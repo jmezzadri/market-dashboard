@@ -66,7 +66,7 @@ jolts_quits:"Feb 01 2026",
 };
 
 const IND={
-vix:["VIX","Equity Volatility","equity",1,"index",1,19.5,23.9,17.2,19.5,15.0,false,
+vix:["VIX","Equity Volatility","equity",1,"index",1,19.4,23.9,17.2,19.5,15.0,false,
 "The CBOE Volatility Index measures expected 30-day S&P 500 volatility from live options prices. Known as the 'fear gauge' — higher = more fear, lower = calm.",
 "At 23.9, modestly above the long-run average (~19.5). Down from 28+ recently. Watch for a sustained break above 30 (stress threshold) or 40 (crisis level)."],
 hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,207.0,268,245,280,220,false,
