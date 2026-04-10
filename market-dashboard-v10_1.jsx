@@ -1108,14 +1108,25 @@ setLoading(true);
 setError("");
 setAnalysis("");
 try{
-const res=await fetch("/api/analyze",{
+const apiKey=import.meta.env.VITE_ANTHROPIC_API_KEY;
+if(!apiKey){
+setError("API key not found. Make sure VITE_ANTHROPIC_API_KEY is set in Vercel environment variables.");
+setLoading(false);
+return;
+}
+const res=await fetch("https://api.anthropic.com/v1/messages",{
 method:"POST",
-headers:{"Content-Type":"application/json"},
-body:JSON.stringify({prompt:buildPrompt()})
+headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01"},
+body:JSON.stringify({
+model:"claude-sonnet-4-20250514",
+max_tokens:1000,
+messages:[{role:"user",content:buildPrompt()}]
+})
 });
-if(!res.ok){const e=await res.json();throw new Error(e.error||`Server error ${res.status}`);}
+if(!res.ok){const e=await res.json();throw new Error(e.error?.message||`API error ${res.status}`);}
 const data=await res.json();
-setAnalysis(data.text||"");
+const text=data.content?.[0]?.text||"";
+setAnalysis(text);
 setGeneratedAt(new Date().toLocaleString("en-US",{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"}));
 }catch(e){
 setError(`Error: ${e.message}`);

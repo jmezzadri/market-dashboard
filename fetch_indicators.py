@@ -253,6 +253,14 @@ if __name__ == "__main__":
 
     update_dashboard(results)
 
+    # Auto-push to GitHub so Vercel redeploys with fresh data
+    print("\n── Pushing to GitHub ─────────────────────────────────")
+    ret = os.system("cd ~/Documents/market-dashboard && git add market-dashboard-v10.jsx && git commit -m 'Daily data update' && git push")
+    if ret == 0:
+        print("✓ Pushed to GitHub — Vercel will redeploy in ~60 seconds")
+    else:
+        print("⚠ Git push failed — check your internet connection")
+
     print("\n── Manual updates needed monthly ─────────────────────")
     print(f"  CAPE ({CAPE_VALUE}): https://www.multpl.com/shiller-pe")
     print(f"  ISM  ({ISM_VALUE}): https://www.ismworld.org")
