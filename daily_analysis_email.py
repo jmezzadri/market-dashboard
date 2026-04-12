@@ -19,6 +19,7 @@ Configure in ~/.config/market-dashboard.env (sourced by run-daily-fetch.sh):
 Optional:
   CLAUDE_MODEL=claude-sonnet-4-20250514
   SKIP_DAILY_EMAIL=1   — skip this script entirely
+  GITHUB_TOKEN         — for scheduled git push over HTTPS when ssh-agent is unavailable (see fetch_indicators.py)
 """
 from __future__ import annotations
 

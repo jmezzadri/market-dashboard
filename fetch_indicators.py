@@ -11,6 +11,9 @@ Daily automation (macOS): install launchd job from launchd/com.joemezzadri.marke
 Optional env:
   FRED_API_KEY   — override key in this file (recommended for security)
   SKIP_GIT_PUSH=1 — fetch + patch files only, no commit/push
+  GITHUB_TOKEN or GH_TOKEN — PAT for `git push` when using an https://github.com remote from
+    launchd (SSH agent is often unavailable; use fine-grained token with Contents read-write)
+  MARKET_DASHBOARD_PYTHON — absolute path to python3 if not using Homebrew default
 
 Two indicators require manual monthly updates (no free API):
   - CAPE (Shiller): https://www.multpl.com/shiller-pe
@@ -19,6 +22,7 @@ Two indicators require manual monthly updates (no free API):
 
 import re
 import os
+import subprocess
 from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
@@ -261,6 +265,72 @@ def update_all_dashboards(results):
             ok = False
     return ok
 
+
+def git_commit_and_push() -> int:
+    """Stage dashboard files, commit if needed, push. Uses GITHUB_TOKEN for HTTPS GitHub when set."""
+    paths = [os.path.relpath(p, BASE_DIR) for p in dashboard_paths() if os.path.isfile(p)]
+    if not paths:
+        print("⚠ No dashboard files to add")
+        return 1
+
+    env = os.environ.copy()
+    r = subprocess.run(["git", "add", *paths], cwd=BASE_DIR, env=env)
+    if r.returncode != 0:
+        return r.returncode
+
+    r = subprocess.run(["git", "diff", "--cached", "--quiet"], cwd=BASE_DIR, env=env)
+    if r.returncode == 0:
+        print("No changes to commit — skipping push (dashboard already up to date)")
+        return 0
+
+    r = subprocess.run(["git", "commit", "-m", "Daily data update"], cwd=BASE_DIR, env=env)
+    if r.returncode != 0:
+        print("⚠ git commit failed")
+        return r.returncode
+
+    pushed = False
+    token = (os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN") or "").strip()
+    origin_url = ""
+    u = subprocess.run(
+        ["git", "remote", "get-url", "origin"],
+        cwd=BASE_DIR,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    if u.returncode == 0:
+        origin_url = (u.stdout or "").strip()
+
+    if token and origin_url.startswith("https://github.com"):
+        push_cmd = [
+            "git",
+            "-c",
+            "http.https://github.com/.extraheader=AUTHORIZATION: bearer " + token,
+            "push",
+        ]
+    else:
+        push_cmd = ["git", "push"]
+
+    r = subprocess.run(push_cmd, cwd=BASE_DIR, env=env)
+    if r.returncode == 0:
+        pushed = True
+    elif origin_url.startswith("git@github.com") or origin_url.startswith("ssh://"):
+        print(
+            "⚠ git push failed over SSH — ensure ssh-agent (run-daily-fetch discovers "
+            "SSH_AUTH_SOCK) or switch origin to HTTPS and set GITHUB_TOKEN in market-dashboard.env"
+        )
+    elif origin_url.startswith("https://github.com") and not token:
+        print(
+            "⚠ git push failed — for scheduled runs set GITHUB_TOKEN in ~/.config/market-dashboard.env "
+            "or fix SSH (SSH_AUTH_SOCK)"
+        )
+    else:
+        print("⚠ git push failed — check remote URL, auth, and network")
+    if pushed:
+        print("✓ Pushed to GitHub — Vercel will redeploy in ~60 seconds")
+    return r.returncode
+
+
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
     print("=" * 55)
@@ -284,16 +354,7 @@ if __name__ == "__main__":
         print("SKIP_GIT_PUSH=1 — skipping commit/push")
     else:
         print("\n── Pushing to GitHub ─────────────────────────────────")
-        add_files = " ".join(
-            os.path.relpath(p, BASE_DIR) for p in dashboard_paths() if os.path.isfile(p)
-        )
-        ret = os.system(
-            f'cd "{BASE_DIR}" && git add {add_files} && git commit -m "Daily data update" && git push'
-        )
-        if ret == 0:
-            print("✓ Pushed to GitHub — Vercel will redeploy in ~60 seconds")
-        else:
-            print("⚠ Git push failed — not a repo, nothing to commit, or network/auth issue")
+        git_commit_and_push()
 
     try:
         from daily_analysis_email import run_if_configured

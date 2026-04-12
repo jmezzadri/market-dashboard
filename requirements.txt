@@ -1,0 +1,6 @@
+# Match the interpreter used by scripts/run-daily-fetch.sh (Homebrew python3).
+# Install: /opt/homebrew/bin/python3 -m pip install -r requirements.txt
+anthropic>=0.40.0
+fredapi>=0.5.0
+pandas>=2.0.0
+yfinance>=0.2.0
