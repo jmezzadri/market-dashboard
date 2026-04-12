@@ -2,10 +2,15 @@
 """
 Market Stress Dashboard — Indicator Fetcher v2
 Pulls live data from FRED API + Yahoo Finance
-Updates market-dashboard-v10.jsx with fresh values
+Updates src/App.jsx (and market-dashboard-v10.jsx if present) with fresh values.
 
-Run daily via cron:
-  0 7 * * 1-5 cd ~/Documents/market-dashboard && python3 fetch_indicators.py
+Daily automation (macOS): install launchd job from launchd/com.joemezzadri.market-dashboard.fetch.plist
+  → copy to ~/Library/LaunchAgents/ then:
+  launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.joemezzadri.market-dashboard.fetch.plist
+
+Optional env:
+  FRED_API_KEY   — override key in this file (recommended for security)
+  SKIP_GIT_PUSH=1 — fetch + patch files only, no commit/push
 
 Two indicators require manual monthly updates (no free API):
   - CAPE (Shiller): https://www.multpl.com/shiller-pe
@@ -18,9 +23,20 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
 
+from dashboard_env import load_market_dashboard_env
+
+load_market_dashboard_env()
+
 # ── CONFIGURATION ─────────────────────────────────────────────────────────────
-FRED_API_KEY = "e1696db1c3f8bb036993f40c61aad0d5"
-DASHBOARD_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "market-dashboard-v10.jsx")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+FRED_API_KEY = os.environ.get("FRED_API_KEY", "e1696db1c3f8bb036993f40c61aad0d5")
+
+def dashboard_paths():
+    paths = [os.path.join(BASE_DIR, "src", "App.jsx")]
+    legacy = os.path.join(BASE_DIR, "market-dashboard-v10.jsx")
+    if os.path.isfile(legacy):
+        paths.append(legacy)
+    return paths
 
 # ── MANUAL MONTHLY VALUES ─────────────────────────────────────────────────────
 # Update these once per month — takes 2 minutes
@@ -203,12 +219,12 @@ def fetch_all():
     return results
 
 # ── UPDATE JSX ────────────────────────────────────────────────────────────────
-def update_dashboard(results):
-    if not os.path.exists(DASHBOARD_FILE):
-        print(f"\n⚠ File not found: {DASHBOARD_FILE}")
+def update_dashboard(path, results):
+    if not os.path.exists(path):
+        print(f"\n⚠ File not found: {path}")
         return False
 
-    with open(DASHBOARD_FILE, "r") as f:
+    with open(path, "r") as f:
         content = f.read()
     original = content
     updated = 0
@@ -226,14 +242,24 @@ def update_dashboard(results):
         )
 
     if content != original:
-        backup = DASHBOARD_FILE.replace(".jsx", f"_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.jsx")
-        with open(backup, "w") as f: f.write(original)
-        with open(DASHBOARD_FILE, "w") as f: f.write(content)
-        print(f"\n✓ Updated {updated} indicators")
-        print(f"✓ Backup: {os.path.basename(backup)}")
+        backup = path.replace(".jsx", f"_backup_{datetime.now().strftime('%Y%m%d_%H%M')}.jsx")
+        with open(backup, "w") as f:
+            f.write(original)
+        with open(path, "w") as f:
+            f.write(content)
+        print(f"\n✓ {os.path.basename(path)}: patched {updated} indicator value(s)")
+        print(f"  Backup: {os.path.basename(backup)}")
     else:
-        print("\n⚠ No changes written.")
+        print(f"\n⚠ {os.path.basename(path)}: no changes written.")
     return True
+
+
+def update_all_dashboards(results):
+    ok = True
+    for p in dashboard_paths():
+        if not update_dashboard(p, results):
+            ok = False
+    return ok
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
@@ -251,15 +277,30 @@ if __name__ == "__main__":
         print(f"{k:<20} {str(v):<12} {d}")
     print(f"\n✓ {len(results)}/25 indicators fetched")
 
-    update_dashboard(results)
+    update_all_dashboards(results)
 
-    # Auto-push to GitHub so Vercel redeploys with fresh data
-    print("\n── Pushing to GitHub ─────────────────────────────────")
-    ret = os.system("cd ~/Documents/market-dashboard && git add market-dashboard-v10.jsx && git commit -m 'Daily data update' && git push")
-    if ret == 0:
-        print("✓ Pushed to GitHub — Vercel will redeploy in ~60 seconds")
+    if os.environ.get("SKIP_GIT_PUSH") == "1":
+        print("\n── Git ───────────────────────────────────────────────")
+        print("SKIP_GIT_PUSH=1 — skipping commit/push")
     else:
-        print("⚠ Git push failed — check your internet connection")
+        print("\n── Pushing to GitHub ─────────────────────────────────")
+        add_files = " ".join(
+            os.path.relpath(p, BASE_DIR) for p in dashboard_paths() if os.path.isfile(p)
+        )
+        ret = os.system(
+            f'cd "{BASE_DIR}" && git add {add_files} && git commit -m "Daily data update" && git push'
+        )
+        if ret == 0:
+            print("✓ Pushed to GitHub — Vercel will redeploy in ~60 seconds")
+        else:
+            print("⚠ Git push failed — not a repo, nothing to commit, or network/auth issue")
+
+    try:
+        from daily_analysis_email import run_if_configured
+
+        run_if_configured(results)
+    except Exception as e:
+        print(f"\n⚠ Daily AI email skipped: {e}")
 
     print("\n── Manual updates needed monthly ─────────────────────")
     print(f"  CAPE ({CAPE_VALUE}): https://www.multpl.com/shiller-pe")
