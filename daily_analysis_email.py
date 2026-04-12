@@ -149,7 +149,12 @@ def run_claude(prompt: str) -> str:
     try:
         import anthropic
     except ImportError:
-        raise RuntimeError("pip3 install anthropic") from None
+        import sys
+
+        raise RuntimeError(
+            f"anthropic is not installed for {sys.executable!r} — run: "
+            f"{sys.executable} -m pip install anthropic"
+        ) from None
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "").strip()
     if not api_key:

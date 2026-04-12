@@ -4,16 +4,15 @@ Market Stress Dashboard — Indicator Fetcher v2
 Pulls live data from FRED API + Yahoo Finance
 Updates src/App.jsx (and market-dashboard-v10.jsx if present) with fresh values.
 
-Daily automation (macOS): install launchd job from launchd/com.joemezzadri.market-dashboard.fetch.plist
-  → copy to ~/Library/LaunchAgents/ then:
-  launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.joemezzadri.market-dashboard.fetch.plist
+Daily automation (macOS): scripts/install-launchagent.sh
+  (fills __HOME__/__REPO__ in launchd/com.joemezzadri.market-dashboard.fetch.plist and bootstraps the agent)
 
 Optional env:
   FRED_API_KEY   — override key in this file (recommended for security)
   SKIP_GIT_PUSH=1 — fetch + patch files only, no commit/push
   GITHUB_TOKEN or GH_TOKEN — PAT for `git push` when using an https://github.com remote from
     launchd (SSH agent is often unavailable; use fine-grained token with Contents read-write)
-  MARKET_DASHBOARD_PYTHON — absolute path to python3 if not using Homebrew default
+  MARKET_DASHBOARD_PYTHON — absolute path to python3 (default: Apple CLT python if present)
 
 Two indicators require manual monthly updates (no free API):
   - CAPE (Shiller): https://www.multpl.com/shiller-pe
@@ -311,21 +310,26 @@ def git_commit_and_push() -> int:
     else:
         push_cmd = ["git", "push"]
 
-    r = subprocess.run(push_cmd, cwd=BASE_DIR, env=env)
+    r = subprocess.run(push_cmd, cwd=BASE_DIR, env=env, capture_output=True, text=True)
     if r.returncode == 0:
         pushed = True
-    elif origin_url.startswith("git@github.com") or origin_url.startswith("ssh://"):
-        print(
-            "⚠ git push failed over SSH — ensure ssh-agent (run-daily-fetch discovers "
-            "SSH_AUTH_SOCK) or switch origin to HTTPS and set GITHUB_TOKEN in market-dashboard.env"
-        )
-    elif origin_url.startswith("https://github.com") and not token:
-        print(
-            "⚠ git push failed — for scheduled runs set GITHUB_TOKEN in ~/.config/market-dashboard.env "
-            "or fix SSH (SSH_AUTH_SOCK)"
-        )
     else:
-        print("⚠ git push failed — check remote URL, auth, and network")
+        err_tail = ((r.stderr or "") + (r.stdout or "")).strip()
+        if err_tail:
+            tail = err_tail[-800:] if len(err_tail) > 800 else err_tail
+            print(f"git push stderr: {tail}")
+        if origin_url.startswith("git@github.com") or origin_url.startswith("ssh://"):
+            print(
+                "⚠ git push failed over SSH — ensure ssh-agent (run-daily-fetch sets SSH_AUTH_SOCK) "
+                "or set GITHUB_TOKEN and use an https://github.com remote"
+            )
+        elif origin_url.startswith("https://github.com") and not token:
+            print(
+                "⚠ git push failed — set GITHUB_TOKEN in ~/.config/market-dashboard.env "
+                "(PAT with repo scope) or fix SSH auth"
+            )
+        else:
+            print("⚠ git push failed — check remote URL, auth, and network")
     if pushed:
         print("✓ Pushed to GitHub — Vercel will redeploy in ~60 seconds")
     return r.returncode

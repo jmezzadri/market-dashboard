@@ -7,7 +7,7 @@
 	<key>ProgramArguments</key>
 	<array>
 		<string>/bin/bash</string>
-		<string>/Users/joemezzadri/Documents/market-dashboard/scripts/run-daily-fetch.sh</string>
+		<string>__REPO__/scripts/run-daily-fetch.sh</string>
 	</array>
 	<key>StartCalendarInterval</key>
 	<dict>
@@ -17,9 +17,11 @@
 		<integer>0</integer>
 	</dict>
 	<key>StandardOutPath</key>
-	<string>/Users/joemezzadri/Library/Logs/market-dashboard-fetch.launchd.out.log</string>
+	<string>__HOME__/Library/Logs/market-dashboard-fetch.launchd.out.log</string>
 	<key>StandardErrorPath</key>
-	<string>/Users/joemezzadri/Library/Logs/market-dashboard-fetch.launchd.err.log</string>
+	<string>__HOME__/Library/Logs/market-dashboard-fetch.launchd.err.log</string>
+	<key>WorkingDirectory</key>
+	<string>__REPO__</string>
 	<key>RunAtLoad</key>
 	<false/>
 </dict>
