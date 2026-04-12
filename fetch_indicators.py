@@ -21,10 +21,28 @@ Two indicators require manual monthly updates (no free API):
 
 import re
 import os
+import sys
 import subprocess
 from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
+
+
+def _ensure_user_site_on_path() -> None:
+    """pip install --user puts packages in ~/Library/Python/...; launchd often omits user site."""
+    try:
+        import site
+
+        usp = site.getusersitepackages()
+        paths = (usp,) if isinstance(usp, str) else tuple(usp)
+        for p in paths:
+            if p and os.path.isdir(p) and p not in sys.path:
+                sys.path.insert(0, p)
+    except Exception:
+        pass
+
+
+_ensure_user_site_on_path()
 
 from dashboard_env import load_market_dashboard_env
 
@@ -267,6 +285,15 @@ def update_all_dashboards(results):
 
 def git_commit_and_push() -> int:
     """Stage dashboard files, commit if needed, push. Uses GITHUB_TOKEN for HTTPS GitHub when set."""
+    chk = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        cwd=BASE_DIR,
+        capture_output=True,
+    )
+    if chk.returncode != 0:
+        print(f"⚠ git: not a repository at {BASE_DIR} — run from a git clone of market-dashboard")
+        return 1
+
     paths = [os.path.relpath(p, BASE_DIR) for p in dashboard_paths() if os.path.isfile(p)]
     if not paths:
         print("⚠ No dashboard files to add")

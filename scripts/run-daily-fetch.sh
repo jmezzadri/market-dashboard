@@ -62,6 +62,14 @@ if [[ -z "${PYTHON}" || ! -x "${PYTHON}" ]]; then
 	exit 1
 fi
 
+# pip --user installs to ~/Library/Python/x.y/...; launchd may set PYTHONNOUSERSITE or omit user site.
+unset PYTHONNOUSERSITE 2>/dev/null || true
+_USP="$("${PYTHON}" -c "import site; print(site.getusersitepackages())" 2>/dev/null || true)"
+if [[ -n "${_USP}" && -d "${_USP}" ]]; then
+	export PYTHONPATH="${_USP}${PYTHONPATH:+:${PYTHONPATH}}"
+fi
+unset _USP
+
 if [[ -z "${SSH_AUTH_SOCK:-}" ]]; then
 	shopt -s nullglob
 	for sock in /private/tmp/com.apple.launchd.*/Listeners; do
