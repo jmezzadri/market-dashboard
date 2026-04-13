@@ -66,7 +66,7 @@ jolts_quits:"Feb 01 2026",
 };
 
 const IND={
-vix:["VIX","Equity Volatility","equity",1,"index",1,20.6,23.9,17.2,19.5,15.0,false,
+vix:["VIX","Equity Volatility","equity",1,"index",1,20.7,23.9,17.2,19.5,15.0,false,
 "The CBOE Volatility Index measures expected 30-day S&P 500 volatility from live options prices. Known as the 'fear gauge' — higher = more fear, lower = calm.",
 "At 23.9, modestly above the long-run average (~19.5). Down from 28+ recently. Watch for a sustained break above 30 (stress threshold) or 40 (crisis level)."],
 hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,212.0,268,245,280,220,false,
@@ -120,7 +120,7 @@ cmdi:["CMDI","Corp Bond Market Distress","credit",3,"index",2,0.07,0.38,0.30,0.2
 loan_syn:["HY Eff. Yield","High Yield Effective Yield","credit",3,"%",2,6.89,7.45,7.0,6.5,6.2,false,
 "ICE BofA US High Yield Index Effective Yield. Proxy for leveraged loan market conditions.",
 "At 7.84%, elevated vs. low-rate era (4–5%). Companies with near-term maturities face refinancing pressure."],
-usd:["USD Index","Trade-Weighted Dollar","fincond",3,"index",1,98.9,103.1,102.5,101.8,101.0,false,
+usd:["USD Index","Trade-Weighted Dollar","fincond",3,"index",1,98.8,103.1,102.5,101.8,101.0,false,
 "Federal Reserve broad trade-weighted USD index. Strong dollar tightens global financial conditions.",
 "At 104.2, modestly strong. Above 106 = meaningfully tight global conditions."],
 cpff:["USD Funding","3M CP vs. Fed Funds Spread","fincond",3,"bps",0,9.0,14,12,10,8,false,
