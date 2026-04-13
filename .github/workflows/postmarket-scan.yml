@@ -1,0 +1,44 @@
+name: Post-Market Scan
+
+on:
+  schedule:
+    - cron: '30 20 * * 1-5'  # 4:30 PM EDT (UTC-4), Mon–Fri
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run post-market scan
+        env:
+          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
+          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          SCORE_BUY_ALERT: "60"
+          SCORE_WATCH_ALERT: "35"
+          ALERT_ON_WATCH: "true"
+          ALERT_ON_BUY: "true"
+        run: python main.py postmarket
+
+      - name: Upload report as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postmarket-report-${{ github.run_id }}
+          path: reports/
+          retention-days: 30

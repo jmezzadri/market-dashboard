@@ -1,0 +1,17 @@
+# Secrets — never commit
+.env
+token.json
+
+# Generated output — too noisy for git history
+reports/
+
+# Python artifacts
+__pycache__/
+*.py[cod]
+.Python
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+dist/
+build/
