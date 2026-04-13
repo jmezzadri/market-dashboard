@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import numpy as np
@@ -17,6 +17,11 @@ from config import (
     CC_MIN_DELTA,
     CC_MIN_EXPIRY_DAYS,
     CC_MIN_IV_RANK,
+    CC_ROLL_UP_MAX_DELTA,
+    CC_ROLL_UP_MIN_DELTA,
+    CC_SELECT_MAX_DELTA,
+    CC_SELECT_MIN_DELTA,
+    CC_SPREAD_WIDE_NOTE_MIN_PCT,
 )
 
 
@@ -67,16 +72,34 @@ def _iv_decimal(iv: float | None) -> float:
     return float(iv)
 
 
-def find_covered_call(
+def earnings_within_window(next_earnings_date: str | None, expiry_date: date) -> bool:
+    """True if option expiry falls in [earnings−7, earnings+7] (avoid selling through earnings)."""
+    if not next_earnings_date:
+        return False
+    try:
+        ed = datetime.strptime(str(next_earnings_date).strip()[:10], "%Y-%m-%d").date()
+    except ValueError:
+        return False
+    win_lo = ed - timedelta(days=7)
+    win_hi = ed + timedelta(days=7)
+    return win_lo <= expiry_date <= win_hi
+
+
+def find_optimal_covered_call(
     ticker: str,
     current_price: float,
     options_chain: list[dict[str, Any]],
     iv_rank: float | None = None,
     next_earnings_date: str | None = None,
+    *,
+    min_delta: float = CC_SELECT_MIN_DELTA,
+    max_delta: float = CC_SELECT_MAX_DELTA,
+    min_strike: float | None = None,
+    exclude_strike_expiry: tuple[float, str] | None = None,
 ) -> dict[str, Any] | None:
     """
-    Best covered call with delta/IV/spread/earnings gates.
-    If iv_rank is below CC_MIN_IV_RANK, returns None (caller may attach cc_skip note).
+    Highest bid (income) among contracts passing IV, DTE, delta, spread, yield gates.
+    Income and annualized yield use **bid** (conservative). Includes bid/ask/mid/spread_pct.
     """
     if current_price <= 0 or not options_chain:
         return None
@@ -87,13 +110,6 @@ def find_covered_call(
     today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
     min_expiry = today + timedelta(days=CC_MIN_EXPIRY_DAYS)
     max_expiry = today + timedelta(days=CC_MAX_EXPIRY_DAYS)
-
-    earnings_dt: datetime | None = None
-    if next_earnings_date:
-        try:
-            earnings_dt = datetime.strptime(str(next_earnings_date).strip()[:10], "%Y-%m-%d")
-        except ValueError:
-            earnings_dt = None
 
     candidates: list[dict[str, Any]] = []
 
@@ -127,12 +143,17 @@ def find_covered_call(
             continue
 
         exp_date = exp.date()
-        if earnings_dt:
-            ed = earnings_dt.date()
-            win_lo = ed - timedelta(days=7)
-            win_hi = ed + timedelta(days=7)
-            if win_lo <= exp_date <= win_hi:
+        exp_s = exp.strftime("%Y-%m-%d")
+        if exclude_strike_expiry is not None:
+            ex_st, ex_e = exclude_strike_expiry
+            if abs(float(strike) - float(ex_st)) < 0.02 and ex_e[:10] == exp_s[:10]:
                 continue
+
+        if min_strike is not None and strike < min_strike - 0.02:
+            continue
+
+        if earnings_within_window(next_earnings_date, exp_date):
+            continue
 
         days_to_expiry = max((exp - today).days, 1)
 
@@ -146,7 +167,7 @@ def find_covered_call(
             continue
 
         delta = call_delta(current_price, strike, days_to_expiry, iv)
-        if not (CC_MIN_DELTA <= delta <= CC_MAX_DELTA):
+        if not (min_delta <= delta <= max_delta):
             continue
 
         bid = _float(contract.get("nbbo_bid"))
@@ -155,34 +176,46 @@ def find_covered_call(
             continue
         if bid is None:
             bid = 0.0
-        mid = (bid + ask) / 2 if bid > 0 else ask
-        spread_pct = (ask - bid) / mid if mid and mid > 0 else 1.0
-        if spread_pct > CC_MAX_SPREAD_PCT:
+        if bid <= 0:
+            continue
+        mid = (bid + ask) / 2
+        spread_frac = (ask - bid) / mid if mid and mid > 0 else 1.0
+        if spread_frac > CC_MAX_SPREAD_PCT:
             continue
 
-        premium = bid if bid > 0 else ask * 0.97
-        annualized_yield = (premium / current_price) * (365 / days_to_expiry)
-        if annualized_yield < CC_MIN_ANNUALIZED_YIELD:
+        ann_yield = (bid / current_price) * (365 / days_to_expiry)
+        if ann_yield < CC_MIN_ANNUALIZED_YIELD:
             continue
 
         otm_pct = (strike - current_price) / current_price * 100
+
+        liquidity_note = None
+        if CC_SPREAD_WIDE_NOTE_MIN_PCT <= spread_frac < CC_MAX_SPREAD_PCT:
+            liquidity_note = (
+                f"Spread is moderately wide — try a limit order at ${mid:.2f} "
+                "and give it 10–15 minutes to fill before adjusting."
+            )
 
         candidates.append(
             {
                 "ticker": ticker,
                 "current_price": current_price,
                 "strike": strike,
-                "expiry": exp.strftime("%Y-%m-%d"),
+                "expiry": exp_s,
                 "days_to_expiry": days_to_expiry,
                 "otm_pct": round(otm_pct, 1),
                 "delta": round(delta, 3),
                 "iv": round(iv * 100, 1),
                 "iv_rank": iv_rank,
-                "premium": round(premium, 4),
+                "bid": round(bid, 4),
+                "ask": round(ask, 4),
+                "mid": round(mid, 4),
+                "spread_pct": round(spread_frac * 100, 2),
+                "liquidity_note": liquidity_note,
+                "premium": round(bid, 4),
                 "premium_bid": bid,
                 "premium_ask": ask,
-                "spread_pct": round(spread_pct * 100, 1),
-                "annualized_yield": round(annualized_yield * 100, 1),
+                "annualized_yield": round(ann_yield * 100, 1),
                 "open_interest": contract.get("open_interest"),
                 "earnings_safe": True,
             }
@@ -190,4 +223,25 @@ def find_covered_call(
 
     if not candidates:
         return None
-    return max(candidates, key=lambda x: x["annualized_yield"])
+    return max(candidates, key=lambda x: x["bid"])
+
+
+def find_covered_call(
+    ticker: str,
+    current_price: float,
+    options_chain: list[dict[str, Any]],
+    iv_rank: float | None = None,
+    next_earnings_date: str | None = None,
+) -> dict[str, Any] | None:
+    """
+    Best covered call for Buy-tier display — uses optimal selection band (default 0.20–0.30 delta).
+    """
+    return find_optimal_covered_call(
+        ticker,
+        current_price,
+        options_chain,
+        iv_rank=iv_rank,
+        next_earnings_date=next_earnings_date,
+        min_delta=CC_SELECT_MIN_DELTA,
+        max_delta=CC_SELECT_MAX_DELTA,
+    )

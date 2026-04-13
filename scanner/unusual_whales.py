@@ -21,6 +21,40 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
+# Per-process cache for /api/stock/{ticker}/info (cleared at each scan run).
+_COMPANY_NAME_CACHE: dict[str, str] = {}
+
+
+def clear_company_name_cache() -> None:
+    """Reset company-name lookups so a new scan run does not reuse stale strings."""
+    _COMPANY_NAME_CACHE.clear()
+
+
+def get_company_name(ticker: str) -> str:
+    """
+    Full company name for a ticker via GET /api/stock/{ticker}/info (full_name).
+    Falls back to the symbol on error. Results are cached until clear_company_name_cache().
+    """
+    sym = ticker.strip().upper()
+    if not sym:
+        return ticker
+    if sym in _COMPANY_NAME_CACHE:
+        return _COMPANY_NAME_CACHE[sym]
+    try:
+        resp = _get(f"/api/stock/{sym}/info")
+        data = resp.get("data")
+        name: str | None = None
+        if isinstance(data, dict):
+            name = data.get("full_name") or data.get("name")
+        elif isinstance(data, list) and data and isinstance(data[0], dict):
+            name = data[0].get("full_name") or data[0].get("name")
+        out = (str(name).strip() if name else None) or sym
+        _COMPANY_NAME_CACHE[sym] = out
+        return out
+    except Exception:
+        _COMPANY_NAME_CACHE[sym] = sym
+        return sym
+
 
 def _headers() -> dict[str, str]:
     h = {
@@ -83,6 +117,26 @@ def get_congress_trades(days_back: int = CONGRESS_LOOKBACK_DAYS) -> list[dict[st
     out: list[dict[str, Any]] = []
     for row in rows:
         if (row.get("txn_type") or "").strip() != "Buy":
+            continue
+        ticker = row.get("ticker")
+        if not ticker:
+            continue
+        out.append(dict(row))
+    return out
+
+
+def get_congress_sells(days_back: int = CONGRESS_LOOKBACK_DAYS) -> list[dict[str, Any]]:
+    """
+    GET /api/congress/recent-trades — Sell disclosures only (for reversal vs prior buys).
+    """
+    raw = _get(
+        "/api/congress/recent-trades",
+        {"limit": 200, "date_from": _iso_date_days_ago(days_back)},
+    )
+    rows = raw.get("data") or []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if (row.get("txn_type") or "").strip() != "Sell":
             continue
         ticker = row.get("ticker")
         if not ticker:

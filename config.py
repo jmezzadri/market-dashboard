@@ -79,6 +79,23 @@ CC_MIN_IV_RANK = 30
 CC_MIN_DELTA = 0.15
 CC_MAX_DELTA = 0.35
 CC_MAX_SPREAD_PCT = 0.10
+# Optimal new short-call selection (triggers spec §4.1) — tighter delta band
+CC_SELECT_MIN_DELTA = float(os.getenv("CC_SELECT_MIN_DELTA", "0.20"))
+CC_SELECT_MAX_DELTA = float(os.getenv("CC_SELECT_MAX_DELTA", "0.30"))
+# Roll-up search band (triggers spec §4.2 trigger 2)
+CC_ROLL_UP_MIN_DELTA = float(os.getenv("CC_ROLL_UP_MIN_DELTA", "0.15"))
+CC_ROLL_UP_MAX_DELTA = float(os.getenv("CC_ROLL_UP_MAX_DELTA", "0.25"))
+# Note when spread is 5–10% of mid (still under CC_MAX_SPREAD_PCT)
+CC_SPREAD_WIDE_NOTE_MIN_PCT = 0.05
+
+# Portfolio / sell triggers (CURSOR_TRIGGERS_SPEC)
+STOP_LOSS_PCT = float(os.getenv("STOP_LOSS_PCT", "0.15"))
+SCORE_COLLAPSE_THRESHOLD = int(os.getenv("SCORE_COLLAPSE_THRESHOLD", "15"))
+SCORE_COLLAPSE_PRIOR_MIN = int(os.getenv("SCORE_COLLAPSE_PRIOR_MIN", "35"))
+INSIDER_REVERSAL_LOOKBACK = int(os.getenv("INSIDER_REVERSAL_LOOKBACK", "90"))
+ROLL_PROFIT_THRESHOLD = float(os.getenv("ROLL_PROFIT_THRESHOLD", "0.80"))
+ROLL_STRIKE_PROXIMITY = float(os.getenv("ROLL_STRIKE_PROXIMITY", "0.03"))
+ROLL_EXPIRY_DAYS = int(os.getenv("ROLL_EXPIRY_DAYS", "7"))
 
 # Email alerts (Phase 2) — set in .env
 ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO", "josephmezzadri@gmail.com").strip()

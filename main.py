@@ -16,6 +16,7 @@ from config import (
     DARKPOOL_LOOKBACK_DAYS,
     FLOW_LOOKBACK_DAYS,
     INSIDER_LOOKBACK_DAYS,
+    INSIDER_REVERSAL_LOOKBACK,
     MAX_STOCK_PRICE,
     MIN_MARKET_CAP,
     MIN_STOCK_PRICE,
@@ -25,6 +26,7 @@ from config import (
 from scanner import notifier, reporter, schwab, unusual_whales as uw
 from scanner.covered_calls import find_covered_call
 from scanner.portfolio_io import load_covered_calls, load_portfolio_positions
+from scanner.scan_state import load_last_scores, save_last_scores
 from scanner.scorer import score_ticker
 from scanner.sell_signals import check_covered_call_alerts, check_position_alerts
 
@@ -51,7 +53,15 @@ def extract_all_tickers(signals: dict[str, Any]) -> list[str]:
         t = row.get("ticker")
         if t:
             s.add(str(t).upper())
+    for row in signals.get("congress_sells") or []:
+        t = row.get("ticker")
+        if t:
+            s.add(str(t).upper())
     for row in signals.get("insider_buys") or []:
+        t = row.get("ticker")
+        if t:
+            s.add(str(t).upper())
+    for row in signals.get("insider_buys_90d") or []:
         t = row.get("ticker")
         if t:
             s.add(str(t).upper())
@@ -124,11 +134,14 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     """
     scan_type options: "premarket", "intraday", "postmarket", "weekly"
     """
+    uw.clear_company_name_cache()
     print(f"Starting {scan_type} scan...")
 
     signals: dict[str, Any] = {
         "congress_buys": uw.get_congress_trades(),
+        "congress_sells": uw.get_congress_sells(),
         "insider_buys": uw.get_insider_transactions(),
+        "insider_buys_90d": uw.get_insider_transactions(INSIDER_REVERSAL_LOOKBACK),
         "insider_sales": uw.get_insider_sales(),
         "flow_alerts": uw.get_options_flow_alerts(),
         "darkpool": uw.get_darkpool_trades(),
@@ -268,14 +281,19 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     portfolio_cc = load_covered_calls()
     buy_score_map = {t: s for t, s in buy_scored}
     watch_score_map = {t: s for t, s in watch_scored}
+    prev_scores = load_last_scores()
+    current_score_map = {t: s for t, s in all_scores}
     sell_alerts = check_position_alerts(
         portfolio_positions,
         signals,
         signals.get("screener") or {},
         buy_score_map,
         watch_score_map,
+        prev_scores=prev_scores,
+        current_scores=current_score_map,
     )
-    sell_alerts.extend(check_covered_call_alerts(portfolio_cc, signals.get("screener") or {}))
+    sell_alerts.extend(check_covered_call_alerts(portfolio_cc, signals))
+    save_last_scores(current_score_map)
 
     reporter.generate_report(
         scan_type,
@@ -292,7 +310,11 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
 
     if notifier.should_send(buy_opportunities, watch_items, sell_alerts):
         subj, html_b, text_b = reporter.build_email_content(
-            buy_opportunities, watch_items, sell_alerts
+            scan_type,
+            buy_opportunities,
+            watch_items,
+            sell_alerts,
+            signals,
         )
         notifier.send_alert_email(subj, html_b, text_b)
 

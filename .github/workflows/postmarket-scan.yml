@@ -9,6 +9,8 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -42,3 +44,11 @@ jobs:
           name: postmarket-report-${{ github.run_id }}
           path: reports/
           retention-days: 30
+
+      - name: Save scan state
+        run: |
+          git config user.name "Trading Scanner"
+          git config user.email "scanner@github-actions"
+          git add portfolio/.last_scan_scores.json
+          git diff --staged --quiet || git commit -m "Update scan scores [skip ci]"
+          git push

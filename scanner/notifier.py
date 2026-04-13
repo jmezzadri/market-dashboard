@@ -43,11 +43,11 @@ def should_send(
     watch_opps: list[Any],
     sell_alerts: list[dict[str, Any]],
 ) -> bool:
-    """Send email if something actionable is enabled."""
+    """Send email if buy/watch alerts are enabled or there is an actionable portfolio item."""
+    if any(not a.get("is_informational") for a in sell_alerts):
+        return True
     if ALERT_ON_BUY and buy_opps:
         return True
     if ALERT_ON_WATCH and watch_opps:
-        return True
-    if any(a.get("urgency") == "high" for a in sell_alerts):
         return True
     return False
