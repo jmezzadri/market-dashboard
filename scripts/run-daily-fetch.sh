@@ -5,8 +5,9 @@
 #   Default order: CLT → Homebrew → PATH (anthropic must be installed for that interpreter):
 #     /Library/Developer/CommandLineTools/usr/bin/python3 -m pip install -r requirements.txt
 #
-# Logs: ALL output goes to ~/Library/Logs/market-dashboard-fetch.log (redirect is set early so
-#   launchd's plist stdout file is not the only place to look).
+# Logs: default ~/Library/Logs/market-dashboard-fetch.log. When you run this script in Terminal
+#   (interactive), output is also printed to the screen via tee — launchd runs non-interactively
+#   and only writes the log file.
 #
 # Git: SSH_AUTH_SOCK discovery + optional GITHUB_TOKEN for https://github.com remotes.
 set -eo pipefail
@@ -25,8 +26,14 @@ unset _u
 
 LOG_DIR="${HOME}/Library/Logs"
 mkdir -p "$LOG_DIR"
-# Redirect ASAP so nothing goes only to launchd's StandardOutPath (users read market-dashboard-fetch.log).
-exec >>"${LOG_DIR}/market-dashboard-fetch.log" 2>>"${LOG_DIR}/market-dashboard-fetch.err.log"
+MAIN_LOG="${LOG_DIR}/market-dashboard-fetch.log"
+ERR_LOG="${LOG_DIR}/market-dashboard-fetch.err.log"
+if [[ -t 1 ]]; then
+	exec > >(tee -a "${MAIN_LOG}") 2> >(tee -a "${ERR_LOG}" >&2)
+	echo "(Logging to ${MAIN_LOG} — you should see output below.)"
+else
+	exec >>"${MAIN_LOG}" 2>>"${ERR_LOG}"
+fi
 
 echo "===== $(date '+%Y-%m-%d %H:%M:%S %Z') ====="
 echo "run-daily-fetch: root=${ROOT}"
