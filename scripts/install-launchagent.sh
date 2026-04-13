@@ -1,5 +1,7 @@
 #!/bin/bash
 # Install or refresh the LaunchAgent from launchd/*.plist (paths filled for this machine).
+# Keep the repo outside ~/Documents/ if possible — macOS privacy often blocks launchd from
+# running scripts or reading files under Documents ("Operation not permitted" in launchd stderr).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 LABEL="com.joemezzadri.market-dashboard.fetch"
