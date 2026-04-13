@@ -1412,8 +1412,8 @@ return(
 {/* HEADER */}
 <div style={{padding:"16px 20px 12px",borderBottom:"1px solid #111",display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:14}}>
 <div style={{flex:1,minWidth:200}}>
-<div style={{fontSize:8,letterSpacing:"0.25em",color:"#949494",fontFamily:"monospace",marginBottom:4}}>MACRO STRESS MONITOR · Apr 09, 2026</div>
-<div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.02em"}}>Market Stress <span style={{color:CONV.color}}>Dashboard</span></div>
+<div style={{fontSize:8,letterSpacing:"0.25em",color:"#949494",fontFamily:"monospace",marginBottom:4}}>MACRO STRESS MONITOR · {new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+<div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.02em",color:"#f5f5f5"}}>Market Stress Dashboard</div>
 <div style={{fontSize:9,color:"#949494",marginTop:2,fontFamily:"monospace"}}>25 indicators · statistically calibrated · 6 accounts</div>
 <div style={{display:"flex",gap:6,marginTop:10,alignItems:"center",flexWrap:"wrap"}}>
 <span style={{fontSize:8,color:"#9e9e9e",fontFamily:"monospace"}}>LEVELS:</span>
