@@ -43,11 +43,7 @@ def should_send(
     watch_opps: list[Any],
     sell_alerts: list[dict[str, Any]],
 ) -> bool:
-    """Send email if buy/watch alerts are enabled or there is an actionable portfolio item."""
-    if any(not a.get("is_informational") for a in sell_alerts):
-        return True
-    if ALERT_ON_BUY and buy_opps:
-        return True
-    if ALERT_ON_WATCH and watch_opps:
-        return True
-    return False
+    """Always send a daily scan email so you know the scanner ran successfully.
+    Even on quiet days (no alerts), you get a 'No alerts' confirmation email.
+    """
+    return True
