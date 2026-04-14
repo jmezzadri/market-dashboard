@@ -730,9 +730,9 @@ def build_scan_report_body_html(
 
     parts: list[str] = [
         '<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#222;">',
-        _build_section_html("🟢 RECOMMENDATIONS (Triggered)", "triggered", triggered_rows, signals),
-        _build_section_html("👀 WATCHLIST (Near Trigger)", "watch", watch_rows, signals),
-        _build_section_html("📋 CURRENT PORTFOLIO", "portfolio", portfolio_rows, signals),
+        _build_section_html("RECOMMENDATIONS (Triggered)", "triggered", triggered_rows, signals),
+        _build_section_html("WATCHLIST (Near Trigger)", "watch", watch_rows, signals),
+        _build_section_html("CURRENT PORTFOLIO", "portfolio", portfolio_rows, signals),
         "</div>",
     ]
 
