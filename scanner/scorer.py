@@ -10,7 +10,10 @@ from config import (
     CONGRESS_SCORE_CAP,
     INSIDER_LOOKBACK_DAYS,
     INSIDER_MIN_DOLLAR_FOR_SCORE,
+    SCORE_WATCH_ALERT,
 )
+
+from scanner.technicals import get_technicals
 
 __all__ = [
     "score_ticker",
@@ -206,6 +209,9 @@ def signal_narrative(ticker: str, signals: dict[str, Any]) -> list[str]:
             f"significantly elevated activity."
         )
 
+    tech = get_technicals(sym)
+    bullets.extend(tech.get("tech_summary") or [])
+
     return bullets
 
 
@@ -386,13 +392,30 @@ def score_breakdown(ticker: str, signals: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    raw_total = total
-    final = min(raw_total, 100)
+    base_raw = total
+    tech = get_technicals(sym)
+    tech_pts = int(tech.get("tech_score") or 0)
+    parts.append(
+        {
+            "category": "technicals",
+            "points": tech_pts,
+            "reason": (
+                f"RSI/MACD/MA/volume overlay → {tech_pts:+d} "
+                f"(RSI={tech.get('rsi_14')}, MACD={tech.get('macd_cross')})"
+            ),
+        }
+    )
+    raw_total = base_raw + tech_pts
+    combined = raw_total
+    if base_raw < 20 and combined >= SCORE_WATCH_ALERT:
+        combined = SCORE_WATCH_ALERT - 1
+    final = max(0, min(100, combined))
+
     return {
         "ticker": sym,
         "components": parts,
         "raw_total": raw_total,
-        "cap_applied": raw_total > 100,
+        "cap_applied": raw_total > 100 or (base_raw < 20 and base_raw + tech_pts >= SCORE_WATCH_ALERT),
         "final_score": final,
         "congress_rows_sample": congress_rows[:5],
         "insider_rows_sample": qualifying[:5],
@@ -413,7 +436,7 @@ def format_score_breakdown(ticker: str, signals: dict[str, Any]) -> str:
     for p in b["components"]:
         lines.append(f"    [{p['category']}] +{p['points']}: {p['reason']}")
     lines.append("")
-    lines.append(f"  Verify score_ticker(): {score_ticker(ticker, signals)}")
+    lines.append(f"  Verify score_ticker(): {score_ticker(ticker, signals)} (includes technicals)")
     return "\n".join(lines)
 
 
@@ -463,4 +486,10 @@ def score_ticker(ticker: str, signals: dict[str, Any]) -> int:
     elif rel_vol >= 2.0:
         score += 5
 
-    return min(score, 100)
+    base_score = min(score, 100)
+    tech = get_technicals(sym)
+    tech_pts = int(tech.get("tech_score") or 0)
+    total = base_score + tech_pts
+    if base_score < 20 and total >= SCORE_WATCH_ALERT:
+        total = SCORE_WATCH_ALERT - 1
+    return max(0, min(100, total))

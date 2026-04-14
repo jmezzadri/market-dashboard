@@ -1,4 +1,4 @@
-"""yfinance-backed price change columns (1W / 1M / YTD). Cached per scan run."""
+"""yfinance-backed OHLCV cache, price change columns (1W / 1M / YTD), shared per scan run."""
 
 from __future__ import annotations
 
@@ -10,11 +10,44 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
+_OHLCV_CACHE: dict[str, pd.DataFrame] = {}
 _PRICE_CHANGES_CACHE: dict[str, dict[str, str]] = {}
+
+
+def clear_ohlcv_cache() -> None:
+    _OHLCV_CACHE.clear()
 
 
 def clear_price_changes_cache() -> None:
     _PRICE_CHANGES_CACHE.clear()
+
+
+def get_ohlcv(ticker: str) -> pd.DataFrame:
+    """
+    One year of daily OHLCV for a ticker, cached per scan run.
+    Shared by price_history and technicals to avoid duplicate yfinance fetches.
+    """
+    sym = (ticker or "").strip().upper()
+    if not sym:
+        return pd.DataFrame()
+    if sym in _OHLCV_CACHE:
+        return _OHLCV_CACHE[sym]
+    try:
+        import yfinance as yf
+    except ImportError:
+        logger.warning("yfinance not installed; OHLCV unavailable")
+        _OHLCV_CACHE[sym] = pd.DataFrame()
+        return _OHLCV_CACHE[sym]
+
+    try:
+        hist: Any = yf.Ticker(sym).history(period="1y")
+        out = hist if hist is not None and not hist.empty else pd.DataFrame()
+        _OHLCV_CACHE[sym] = out
+        return out
+    except Exception as e:
+        logger.debug("get_ohlcv failed for %s: %s", sym, e)
+        _OHLCV_CACHE[sym] = pd.DataFrame()
+        return pd.DataFrame()
 
 
 def get_price_changes(ticker: str) -> dict[str, str]:
@@ -28,24 +61,17 @@ def get_price_changes(ticker: str) -> dict[str, str]:
     if sym in _PRICE_CHANGES_CACHE:
         return _PRICE_CHANGES_CACHE[sym]
 
-    out = _fetch_price_changes(sym)
+    out = _fetch_price_changes_from_hist(sym)
     _PRICE_CHANGES_CACHE[sym] = out
     return out
 
 
-def _fetch_price_changes(ticker: str) -> dict[str, str]:
-    try:
-        import yfinance as yf
-    except ImportError:
-        logger.warning("yfinance not installed; price changes will be N/A")
+def _fetch_price_changes_from_hist(sym: str) -> dict[str, str]:
+    hist = get_ohlcv(sym)
+    if hist is None or hist.empty or "Close" not in hist.columns:
         return {"1w": "N/A", "1m": "N/A", "ytd": "N/A"}
 
     try:
-        stock = yf.Ticker(ticker)
-        hist: Any = stock.history(period="1y")
-        if hist is None or hist.empty or "Close" not in hist.columns:
-            return {"1w": "N/A", "1m": "N/A", "ytd": "N/A"}
-
         current = float(hist["Close"].iloc[-1])
         today = datetime.now().date()
 
@@ -80,5 +106,5 @@ def _fetch_price_changes(ticker: str) -> dict[str, str]:
             "ytd": ytd_str,
         }
     except Exception as e:
-        logger.debug("get_price_changes failed for %s: %s", ticker, e)
+        logger.debug("get_price_changes failed for %s: %s", sym, e)
         return {"1w": "N/A", "1m": "N/A", "ytd": "N/A"}
