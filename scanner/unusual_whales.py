@@ -369,22 +369,62 @@ def _parse_float(val: Any) -> float | None:
         return None
 
 
+def _parse_occ_symbol(symbol: str) -> dict[str, Any] | None:
+    """
+    Parse an OCC option symbol like MSFT260516C00300000.
+    Returns {"type": "call"|"put", "strike": float, "expiry": "YYYY-MM-DD"} or None.
+    Inline duplicate of covered_calls.parse_option_symbol to avoid circular imports.
+    """
+    import re as _re
+    from datetime import datetime as _dt
+    s = str(symbol).strip().upper()
+    m = _re.match(r"^([A-Z]{1,6})(\d{6})([CP])(\d{8})$", s)
+    if not m:
+        return None
+    _, date_str, cp, strike_str = m.groups()
+    try:
+        expiry = _dt.strptime(date_str, "%y%m%d")
+    except ValueError:
+        return None
+    return {
+        "type": "call" if cp == "C" else "put",
+        "strike": int(strike_str) / 1000.0,
+        "expiry": expiry.strftime("%Y-%m-%d"),
+    }
+
+
 def normalize_option_contract(row: dict[str, Any]) -> dict[str, Any] | None:
-    """Map API contract row to covered_calls.find_covered_call shape."""
+    """
+    Map API contract row to covered_calls.find_covered_call shape.
+    The /api/stock/{ticker}/option-contracts endpoint does NOT return explicit
+    strike/expiry/type fields — they are encoded in the OCC option_symbol string.
+    This function parses the OCC symbol as a fallback for any missing fields.
+    """
+    opt_sym_str = str(row.get("option_symbol") or row.get("symbol") or "")
+    parsed_sym = _parse_occ_symbol(opt_sym_str) if opt_sym_str else None
+
     opt_type = (row.get("option_type") or row.get("type") or "").strip().lower()
     if opt_type not in ("call", "c"):
-        if "C" in str(row.get("option_symbol") or "") and not opt_type:
+        if parsed_sym:
+            opt_type = parsed_sym["type"]
+        elif "C" in opt_sym_str and not opt_type:
             opt_type = "call"
         else:
             return None
     if opt_type == "c":
         opt_type = "call"
+    if opt_type != "call":
+        return None
 
     strike = _parse_float(row.get("strike"))
+    if strike is None and parsed_sym:
+        strike = float(parsed_sym["strike"])
     if strike is None:
         return None
 
     expiry_raw = row.get("expiry") or row.get("expires") or row.get("expiration_date")
+    if not expiry_raw and parsed_sym:
+        expiry_raw = parsed_sym["expiry"]
     if not expiry_raw:
         return None
     expiry_s = str(expiry_raw).strip()[:10]
