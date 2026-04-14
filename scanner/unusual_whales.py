@@ -32,8 +32,8 @@ def clear_company_name_cache() -> None:
 
 def get_company_name(ticker: str) -> str:
     """
-    Full company name for a ticker via GET /api/stock/{ticker}/info (full_name).
-    Falls back to the symbol on error. Results are cached until clear_company_name_cache().
+    Full company name via GET /api/stock/{ticker}/info (full_name), then yfinance, else symbol.
+    Cached until clear_company_name_cache().
     """
     sym = ticker.strip().upper()
     if not sym:
@@ -45,15 +45,38 @@ def get_company_name(ticker: str) -> str:
         data = resp.get("data")
         name: str | None = None
         if isinstance(data, dict):
-            name = data.get("full_name") or data.get("name")
+            name = (
+                data.get("full_name")
+                or data.get("name")
+                or data.get("company_name")
+            )
         elif isinstance(data, list) and data and isinstance(data[0], dict):
-            name = data[0].get("full_name") or data[0].get("name")
-        out = (str(name).strip() if name else None) or sym
-        _COMPANY_NAME_CACHE[sym] = out
-        return out
+            name = (
+                data[0].get("full_name")
+                or data[0].get("name")
+                or data[0].get("company_name")
+            )
+        if name and str(name).strip() and str(name).strip().upper() != sym:
+            out = str(name).strip()
+            _COMPANY_NAME_CACHE[sym] = out
+            return out
     except Exception:
-        _COMPANY_NAME_CACHE[sym] = sym
-        return sym
+        pass
+
+    try:
+        import yfinance as yf
+
+        info = yf.Ticker(sym).info
+        yn = info.get("longName") or info.get("shortName")
+        if yn and str(yn).strip():
+            out = str(yn).strip()
+            _COMPANY_NAME_CACHE[sym] = out
+            return out
+    except Exception:
+        pass
+
+    _COMPANY_NAME_CACHE[sym] = sym
+    return sym
 
 
 def _headers() -> dict[str, str]:

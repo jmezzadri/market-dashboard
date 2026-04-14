@@ -128,13 +128,17 @@ def _parse_float(v: Any) -> float | None:
 def _analysis_two_sentences(ticker: str, signals: dict[str, Any]) -> str:
     bullets = signal_narrative(ticker, signals)
     if not bullets:
-        return "Composite score from available signal data."
+        return ""
     text = " ".join(bullets)
     sents = re.split(r"(?<=[.!?])\s+", text.strip())
     sents = [s for s in sents if s]
     if len(sents) <= 2:
-        return text.strip()
-    return " ".join(sents[:2]).strip()
+        out = text.strip()
+    else:
+        out = " ".join(sents[:2]).strip()
+    if out == "Composite score from available signal data.":
+        return ""
+    return out
 
 
 def _earnings_blocks_typical_cc(next_earnings_date: str | None) -> bool:
@@ -150,76 +154,85 @@ def _earnings_blocks_typical_cc(next_earnings_date: str | None) -> bool:
         return False
 
 
-def _fmt_earnings_short(next_earnings_date: str | None) -> str:
-    if not next_earnings_date:
+def _fmt_expiry_date(expiry_str: str | None) -> str:
+    """Format '2026-04-17' → 'Apr 17' (cross-platform day, no leading zero)."""
+    if not expiry_str:
         return ""
     try:
-        d = datetime.strptime(str(next_earnings_date).strip()[:10], "%Y-%m-%d")
-        return d.strftime("%b %d").lstrip("0").replace(" 0", " ")
+        dt = datetime.strptime(str(expiry_str).strip()[:10], "%Y-%m-%d")
+        return f"{dt.strftime('%b')} {dt.day}"
     except ValueError:
-        return str(next_earnings_date).strip()[:10]
+        return str(expiry_str).strip()[:10]
 
 
-def _html_cc_action_from_contract(cc: dict[str, Any]) -> str:
-    exp_s = str(cc.get("expiry") or "")[:10]
+def _pt_sl_compact_html(ptsl: dict[str, float] | None) -> str:
+    if not ptsl:
+        return "—"
+    line = f"PT {_fmt_money(ptsl['pt'])} · SL {_fmt_money(ptsl['sl'])}"
+    return _escape_html(line)
+
+
+def _score_badge_html(score: Any) -> str:
     try:
-        d = datetime.strptime(exp_s, "%Y-%m-%d")
-        exp_label = d.strftime("%b %d").replace(" 0", " ")
-    except ValueError:
-        exp_label = exp_s
-    try:
-        strike = float(cc.get("strike") or 0)
-    except (TypeError, ValueError):
-        strike = 0.0
-    bid = cc.get("bid")
-    ask = cc.get("ask")
-    mid = cc.get("mid")
-    sp = cc.get("spread_pct")
-    yld = cc.get("annualized_yield")
-    lines = [
-        f"Sell {exp_label} ${_escape_html(f'{strike:,.2f}')} Call",
-        (
-            f"Bid: {_escape_html(_fmt_money(bid))} | Ask: {_escape_html(_fmt_money(ask))} | "
-            f"Mid: {_escape_html(_fmt_money(mid))} | Spread: {_escape_html(str(sp))}%"
-        ),
-        f"Yield: {_escape_html(str(yld))}% annualized",
-    ]
-    return "<br/>".join(lines)
+        s = int(score)
+    except (ValueError, TypeError):
+        return _escape_html(str(score))
+    if s >= 60:
+        color = "#27ae60"
+    elif s >= 35:
+        color = "#2980b9"
+    else:
+        color = "#95a5a6"
+    return (
+        f'<span style="background:{color};color:#fff;padding:1px 7px;'
+        f'border-radius:8px;font-size:11px;font-weight:600;">{s}</span>'
+    )
 
 
-def _resolve_cc_columns(
+def _resolve_cc_cell(
     ticker: str,
     price: float | None,
     signals: dict[str, Any],
     *,
     precomputed_cc: dict[str, Any] | None = None,
-    precomputed_cc_note: str | None = None,
-) -> tuple[str, str]:
-    """
-    Returns (cc_opportunity_cell_html, cc_action_cell_html).
-    """
+) -> dict[str, str]:
+    """Single Covered Call column: returns {'html': ..., 'plain': ...}."""
     sym = ticker.upper()
     sc_row = (signals.get("screener") or {}).get(sym) if isinstance(signals.get("screener"), dict) else None
     sc_row = sc_row or {}
     ivr = _parse_float(sc_row.get("iv_rank"))
     earn_raw = sc_row.get("next_earnings_date")
     earn_s = str(earn_raw).strip()[:10] if earn_raw is not None and str(earn_raw).strip() else None
+    ivr_floor = int(CC_MIN_IV_RANK)
 
-    yes_style = "color:#27ae60;font-weight:bold;"
-    warn_style = "color:#e67e22;font-weight:bold;"
-    sub_muted = "color:#555;font-size:11px;"
+    def contract_pair(cc: dict[str, Any]) -> tuple[str, str]:
+        el = _fmt_expiry_date(str(cc.get("expiry") or "")[:10])
+        try:
+            strike = float(cc.get("strike") or 0)
+        except (TypeError, ValueError):
+            strike = 0.0
+        bid = cc.get("bid")
+        mid = cc.get("mid")
+        yld = cc.get("annualized_yield")
+        line1 = f"Sell {el} {_fmt_money(strike)} Call"
+        line2 = f"Bid {_fmt_money(bid)} · Mid {_fmt_money(mid)} · Yield {yld}%"
+        html = (
+            f"{_escape_html(line1)}<br/>"
+            f'<span style="color:#555;font-size:11px;">{_escape_html(line2)}</span>'
+        )
+        plain = f"{line1} | {line2}"
+        return html, plain
 
     if precomputed_cc:
-        return (
-            f'<span style="{yes_style}">Yes</span>',
-            _html_cc_action_from_contract(precomputed_cc),
-        )
+        h, p = contract_pair(precomputed_cc)
+        return {"html": h, "plain": p}
 
     if price is None or price <= 0:
-        return (
-            f'<span style="{sub_muted}">No</span><br/><span style="{sub_muted}">No price</span>',
-            "N/A",
-        )
+        msg = "No — Price unavailable"
+        return {
+            "html": f'<span style="color:#999">{_escape_html(msg)}</span>',
+            "plain": msg,
+        }
 
     chain: list[dict[str, Any]] = []
     try:
@@ -238,34 +251,36 @@ def _resolve_cc_columns(
         )
 
     if opt:
-        return (
-            f'<span style="{yes_style}">Yes</span>',
-            _html_cc_action_from_contract(opt),
-        )
+        h, p = contract_pair(opt)
+        return {"html": h, "plain": p}
 
     if ivr is not None and ivr < CC_MIN_IV_RANK:
-        return (
-            f'No<br/><span style="{sub_muted}">IVR too low</span>',
-            "N/A",
-        )
+        msg = f"No — IVR too low (< {ivr_floor})"
+        return {
+            "html": f'<span style="color:#999">{_escape_html(msg)}</span>',
+            "plain": msg,
+        }
 
     if earn_s and _earnings_blocks_typical_cc(earn_s):
-        el = _fmt_earnings_short(earn_s)
-        return (
-            f'<span style="{warn_style}">⚠️ Earnings {el}</span>',
-            f"Wait — earnings {_escape_html(el)}.",
-        )
+        el = _fmt_expiry_date(earn_s)
+        msg = f"⚠️ Earnings {el} — wait"
+        return {
+            "html": f'<span style="color:#e67e22;font-weight:bold;">{_escape_html(msg)}</span>',
+            "plain": msg,
+        }
 
     if not chain:
-        return (
-            f'No<br/><span style="{sub_muted}">No chain</span>',
-            "N/A",
-        )
+        msg = "No — No options data"
+        return {
+            "html": f'<span style="color:#999">{_escape_html(msg)}</span>',
+            "plain": msg,
+        }
 
-    return (
-        f'No<br/><span style="{sub_muted}">No liquid strikes</span>',
-        "N/A",
-    )
+    msg = "No — No liquid strikes"
+    return {
+        "html": f'<span style="color:#999">{_escape_html(msg)}</span>',
+        "plain": msg,
+    }
 
 
 def _pct_cell_html(s: str) -> str:
@@ -336,7 +351,9 @@ def _portfolio_analysis_cell(sym: str, action: str, signals: dict[str, Any], sel
         return _analysis_two_sentences(sym, signals)
     base = _analysis_two_sentences(sym, signals)
     if action == "Hold":
-        return f"No active sell triggers. {base}" if base else "No active sell triggers."
+        if base and base.strip():
+            return f"No active sell triggers. {base}"
+        return "No active sell triggers. Original thesis intact — monitor for new signals."
     return base
 
 
@@ -354,57 +371,98 @@ def _build_data_table_html(
     section: str,
     header_score_or_pnl: str,
     rows: list[dict[str, Any]],
+    title: str,
 ) -> str:
-    """rows: each dict has keys matching column builder output (pre-escaped inner HTML where needed)."""
-    th = 'style="background:#2e86c1;color:#fff;font-size:12px;padding:6px 8px;text-align:left;border:1px solid #1f5f85;"'
+    """
+    Section title row inside <thead> (full colspan). Triggered/watch: 9 cols; portfolio: 10 (includes Action).
+    Analysis is a sub-row when present in row dict.
+    """
+    is_pf = section == "portfolio"
+    col_count = 10 if is_pf else 9
     td = 'style="padding:6px 8px;font-size:12px;border-bottom:1px solid #ddd;vertical-align:top;"'
-    tbl = 'style="border-collapse:collapse;width:100%;"'
-    hdr = (
-        f"<tr>"
-        f'<th {th}>Ticker</th><th {th}>Company</th><th {th}>Price</th>'
-        f'<th {th}>{_escape_html(header_score_or_pnl)}</th>'
-        f'<th {th}>1W</th><th {th}>1M</th><th {th}>YTD</th>'
-        f'<th {th}>Action</th><th {th}>Analysis</th>'
-        f'<th {th}>CC Opportunity</th><th {th}>CC Action</th><th {th}>PT / SL</th>'
-        f"</tr>"
+    tbl = 'style="border-collapse:collapse;width:100%;table-layout:fixed;"'
+
+    def th(mw: int) -> str:
+        return (
+            f'style="background:#2e86c1;color:#fff;font-size:12px;padding:6px 8px;'
+            f'text-align:left;border:1px solid #1f5f85;min-width:{mw}px;"'
+        )
+
+    title_row = (
+        f'<tr><th colspan="{col_count}" style="background:#1a5276;color:#fff;padding:8px 12px;'
+        f'font-size:13px;font-weight:bold;text-align:left;border:1px solid #134c6b;">'
+        f"{_escape_html(title)}</th></tr>"
     )
+    if is_pf:
+        hdr_cols = (
+            f"<tr>"
+            f'<th {th(50)}>Ticker</th>'
+            f'<th {th(130)}>Company</th>'
+            f'<th {th(65)}>Price</th>'
+            f'<th {th(50)}>{_escape_html(header_score_or_pnl)}</th>'
+            f'<th {th(48)}>1W</th><th {th(48)}>1M</th><th {th(48)}>YTD</th>'
+            f'<th {th(55)}>Action</th>'
+            f'<th {th(160)}>Covered Call</th>'
+            f'<th {th(110)}>PT / SL</th>'
+            f"</tr>"
+        )
+    else:
+        hdr_cols = (
+            f"<tr>"
+            f'<th {th(50)}>Ticker</th>'
+            f'<th {th(130)}>Company</th>'
+            f'<th {th(65)}>Price</th>'
+            f'<th {th(50)}>{_escape_html(header_score_or_pnl)}</th>'
+            f'<th {th(48)}>1W</th><th {th(48)}>1M</th><th {th(48)}>YTD</th>'
+            f'<th {th(160)}>Covered Call</th>'
+            f'<th {th(110)}>PT / SL</th>'
+            f"</tr>"
+        )
+
+    thead = f"<thead>{title_row}{hdr_cols}</thead>"
+
     if not rows:
         empty_td = (
             'style="padding:10px 8px;color:#777;font-style:italic;'
             'border-bottom:1px solid #ddd;font-size:12px;"'
         )
-        empty = f'<tr><td colspan="12" {empty_td}>No entries this scan.</td></tr>'
-        return f"<table {tbl}><thead>{hdr}</thead><tbody>{empty}</tbody></table>"
+        empty = f'<tr><td colspan="{col_count}" {empty_td}>No entries this scan.</td></tr>'
+        return f"<table {tbl}>{thead}<tbody>{empty}</tbody></table>"
 
     body_lines: list[str] = []
     for i, r in enumerate(rows):
         bg = "background:#f2f3f4;" if i % 2 == 0 else ""
         lb = _row_left_border(section, r.get("action") or "")
         tr_style = f"{lb}{bg}"
-        body_lines.append(
-            f'<tr style="{tr_style}">'
-            f'<td {td}><strong>{r["ticker"]}</strong></td>'
-            f'<td {td}>{r["company"]}</td>'
-            f'<td {td}>{r["price"]}</td>'
-            f'<td {td}>{r["score_or_pnl"]}</td>'
-            f'<td {td}>{r["w1"]}</td>'
-            f'<td {td}>{r["m1"]}</td>'
-            f'<td {td}>{r["ytd"]}</td>'
-            f'<td {td}>{r["action_html"]}</td>'
-            f'<td {td}>{r["analysis"]}</td>'
-            f'<td {td}>{r["cc_opp"]}</td>'
-            f'<td {td}>{r["cc_action"]}</td>'
-            f'<td {td}>{r["pt_sl"]}</td>'
-            f"</tr>"
+        cells = [
+            f'<tr style="{tr_style}">',
+            f'<td {td}><strong>{r["ticker"]}</strong></td>',
+            f'<td {td}>{r["company"]}</td>',
+            f'<td {td}>{r["price"]}</td>',
+            f'<td {td}>{r["score_or_pnl"]}</td>',
+            f'<td {td}>{r["w1"]}</td>',
+            f'<td {td}>{r["m1"]}</td>',
+            f'<td {td}>{r["ytd"]}</td>',
+        ]
+        if is_pf:
+            cells.append(f'<td {td}>{r["action_html"]}</td>')
+        cells.extend(
+            [
+                f'<td {td}>{r["cc_combined"]}</td>',
+                f'<td {td}>{r["pt_sl"]}</td>',
+                "</tr>",
+            ]
         )
-    return f"<table {tbl}><thead>{hdr}</thead><tbody>{''.join(body_lines)}</tbody></table>"
-
-
-def _section_header_html(title: str) -> str:
-    return (
-        f'<div style="background:#1a5276;color:#fff;padding:8px 12px;font-weight:bold;'
-        f'font-family:Arial,sans-serif;margin-top:16px;">{_escape_html(title)}</div>'
-    )
+        body_lines.append("".join(cells))
+        an = (r.get("analysis") or "").strip()
+        if an:
+            sub = (
+                f'<tr style="{lb}{bg}">'
+                f'<td colspan="{col_count}" style="padding:4px 8px 10px 16px;font-size:11px;color:#555;'
+                f'font-style:italic;border-bottom:1px solid #ddd;">{an}</td></tr>'
+            )
+            body_lines.append(sub)
+    return f"<table {tbl}>{thead}<tbody>{''.join(body_lines)}</tbody></table>"
 
 
 def _fmt_money(x: float | None) -> str:
@@ -440,31 +498,25 @@ def build_scan_report_body_html(
         price = opp.get("current_price")
         pc = get_price_changes(t)
         ptsl = calc_pt_sl(float(price)) if price is not None and price > 0 else None
-        pt_sl_s = (
-            f"PT: {_escape_html(_fmt_money(ptsl['pt']))}<br/>SL: {_escape_html(_fmt_money(ptsl['sl']))}"
-            if ptsl
-            else "—"
-        )
-        cc_o, cc_a = _resolve_cc_columns(
+        pt_sl_s = _pt_sl_compact_html(ptsl)
+        cc_cell = _resolve_cc_cell(
             t,
             _parse_float(price),
             signals,
             precomputed_cc=opp.get("covered_call"),
-            precomputed_cc_note=opp.get("cc_note"),
         )
+        narr = _analysis_two_sentences(t, signals)
         triggered_rows.append(
             {
                 "ticker": _escape_html(sym),
-                "company": _escape_html(uw.get_company_name(t).title()),
+                "company": _escape_html(uw.get_company_name(t)),
                 "price": _escape_html(_fmt_money(price)),
-                "score_or_pnl": _escape_html(str(opp.get("score", ""))),
+                "score_or_pnl": _score_badge_html(opp.get("score", "")),
                 "w1": _pct_cell_html(pc.get("1w", "N/A")),
                 "m1": _pct_cell_html(pc.get("1m", "N/A")),
                 "ytd": _pct_cell_html(pc.get("ytd", "N/A")),
-                "action_html": _action_pill_html("Buy"),
-                "analysis": _escape_html(_analysis_two_sentences(t, signals)).replace("\n", "<br/>"),
-                "cc_opp": cc_o,
-                "cc_action": cc_a,
+                "analysis": _escape_html(narr).replace("\n", "<br/>") if narr else "",
+                "cc_combined": cc_cell["html"],
                 "pt_sl": pt_sl_s,
                 "action": "Buy",
             }
@@ -477,25 +529,20 @@ def build_scan_report_body_html(
         price = w.get("current_price")
         pc = get_price_changes(t)
         ptsl = calc_pt_sl(float(price)) if price is not None and price > 0 else None
-        pt_sl_s = (
-            f"PT: {_escape_html(_fmt_money(ptsl['pt']))}<br/>SL: {_escape_html(_fmt_money(ptsl['sl']))}"
-            if ptsl
-            else "—"
-        )
-        cc_o, cc_a = _resolve_cc_columns(t, _parse_float(price), signals)
+        pt_sl_s = _pt_sl_compact_html(ptsl)
+        cc_cell = _resolve_cc_cell(t, _parse_float(price), signals)
+        narr = _analysis_two_sentences(t, signals)
         watch_rows.append(
             {
                 "ticker": _escape_html(sym),
-                "company": _escape_html(uw.get_company_name(t).title()),
+                "company": _escape_html(uw.get_company_name(t)),
                 "price": _escape_html(_fmt_money(price)),
-                "score_or_pnl": _escape_html(str(w.get("score", ""))),
+                "score_or_pnl": _score_badge_html(w.get("score", "")),
                 "w1": _pct_cell_html(pc.get("1w", "N/A")),
                 "m1": _pct_cell_html(pc.get("1m", "N/A")),
                 "ytd": _pct_cell_html(pc.get("ytd", "N/A")),
-                "action_html": _action_pill_html("Watch"),
-                "analysis": _escape_html(_analysis_two_sentences(t, signals)).replace("\n", "<br/>"),
-                "cc_opp": cc_o,
-                "cc_action": cc_a,
+                "analysis": _escape_html(narr).replace("\n", "<br/>") if narr else "",
+                "cc_combined": cc_cell["html"],
                 "pt_sl": pt_sl_s,
                 "action": "Watch",
             }
@@ -520,40 +567,39 @@ def build_scan_report_body_html(
         sc = score_map.get(sym)
         act = _portfolio_action_for_ticker(sym, sell_alerts, sc)
         ptsl = calc_pt_sl(float(avg)) if avg is not None and avg > 0 else None
-        pt_sl_s = (
-            f"PT: {_escape_html(_fmt_money(ptsl['pt']))}<br/>SL: {_escape_html(_fmt_money(ptsl['sl']))}"
-            if ptsl
-            else "—"
-        )
-        cc_o, cc_a = _resolve_cc_columns(sym, _parse_float(price), signals)
+        pt_sl_s = _pt_sl_compact_html(ptsl)
+        cc_cell = _resolve_cc_cell(sym, _parse_float(price), signals)
+        pan = _portfolio_analysis_cell(sym, act, signals, sell_alerts)
         portfolio_rows.append(
             {
                 "ticker": _escape_html(sym),
-                "company": _escape_html(uw.get_company_name(sym).title()),
+                "company": _escape_html(uw.get_company_name(sym)),
                 "price": _escape_html(_fmt_money(price)),
                 "score_or_pnl": pnl_html,
                 "w1": _pct_cell_html(pc.get("1w", "N/A")),
                 "m1": _pct_cell_html(pc.get("1m", "N/A")),
                 "ytd": _pct_cell_html(pc.get("ytd", "N/A")),
                 "action_html": _action_pill_html(act),
-                "analysis": _escape_html(_portfolio_analysis_cell(sym, act, signals, sell_alerts)).replace(
-                    "\n", "<br/>"
-                ),
-                "cc_opp": cc_o,
-                "cc_action": cc_a,
+                "analysis": _escape_html(pan).replace("\n", "<br/>") if pan else "",
+                "cc_combined": cc_cell["html"],
                 "pt_sl": pt_sl_s,
                 "action": act,
             }
         )
 
     parts: list[str] = [
-        '<div style="font-family:Arial,sans-serif;max-width:900px;margin:auto;">',
-        _section_header_html("🟢 RECOMMENDATIONS (Triggered)"),
-        _build_data_table_html("triggered", "Score", triggered_rows),
-        _section_header_html("👀 WATCHLIST (Near Trigger)"),
-        _build_data_table_html("watch", "Score", watch_rows),
-        _section_header_html("📋 CURRENT PORTFOLIO"),
-        _build_data_table_html("portfolio", "P&L", portfolio_rows),
+        '<div style="font-family:Arial,sans-serif;max-width:820px;margin:auto;">',
+        '<div style="margin-bottom:24px;">'
+        + _build_data_table_html(
+            "triggered", "Score", triggered_rows, "🟢 RECOMMENDATIONS (Triggered)"
+        )
+        + "</div>",
+        '<div style="margin-bottom:24px;">'
+        + _build_data_table_html("watch", "Score", watch_rows, "👀 WATCHLIST (Near Trigger)")
+        + "</div>",
+        '<div style="margin-bottom:24px;">'
+        + _build_data_table_html("portfolio", "P&L", portfolio_rows, "📋 CURRENT PORTFOLIO")
+        + "</div>",
         "</div>",
     ]
 
@@ -570,12 +616,6 @@ def build_scan_report_body_html(
     return "\n".join(parts)
 
 
-def _strip_inline_html(s: str) -> str:
-    t = re.sub(r"<br\s*/?>", " ", s, flags=re.I)
-    t = re.sub(r"<[^>]+>", "", t)
-    return " ".join(t.split())
-
-
 def build_plain_text_email(
     buy_opportunities: list[dict[str, Any]],
     watch_items: list[dict[str, Any]],
@@ -590,7 +630,7 @@ def build_plain_text_email(
     def row_line(cols: list[str]) -> str:
         return "\t".join(cols)
 
-    hdr_score = [
+    hdr_tw = [
         "Ticker",
         "Company",
         "Price",
@@ -598,10 +638,7 @@ def build_plain_text_email(
         "1W",
         "1M",
         "YTD",
-        "Action",
-        "Analysis",
-        "CC Opportunity",
-        "CC Action",
+        "Covered Call",
         "PT / SL",
     ]
     hdr_pnl = [
@@ -613,9 +650,7 @@ def build_plain_text_email(
         "1M",
         "YTD",
         "Action",
-        "Analysis",
-        "CC Opportunity",
-        "CC Action",
+        "Covered Call",
         "PT / SL",
     ]
 
@@ -623,7 +658,7 @@ def build_plain_text_email(
         "════════════════════════════════════",
         "§1 RECOMMENDATIONS (Triggered)",
         "════════════════════════════════════",
-        row_line(hdr_score),
+        row_line(hdr_tw),
     ]
 
     if not buy_opportunities:
@@ -635,17 +670,17 @@ def build_plain_text_email(
         pc = get_price_changes(t)
         ptsl = calc_pt_sl(float(price)) if price is not None and price > 0 else None
         pt_sl = (
-            f"PT: {_fmt_money(ptsl['pt'])} / SL: {_fmt_money(ptsl['sl'])}"
+            f"PT {_fmt_money(ptsl['pt'])} · SL {_fmt_money(ptsl['sl'])}"
             if ptsl
             else "—"
         )
-        cc_o, cc_a = _resolve_cc_columns(
+        cc_cell = _resolve_cc_cell(
             t,
             _parse_float(price),
             signals,
             precomputed_cc=opp.get("covered_call"),
-            precomputed_cc_note=opp.get("cc_note"),
         )
+        narr = _analysis_two_sentences(t, signals)
         lines.append(
             row_line(
                 [
@@ -656,14 +691,13 @@ def build_plain_text_email(
                     pc.get("1w", "N/A"),
                     pc.get("1m", "N/A"),
                     pc.get("ytd", "N/A"),
-                    "Buy",
-                    _analysis_two_sentences(t, signals),
-                    _strip_inline_html(cc_o),
-                    _strip_inline_html(cc_a),
+                    cc_cell["plain"],
                     pt_sl,
                 ]
             )
         )
+        if narr:
+            lines.append(f"  Analysis: {narr}")
 
     lines.extend(
         [
@@ -671,7 +705,7 @@ def build_plain_text_email(
             "════════════════════════════════════",
             "§2 WATCHLIST (Near Trigger)",
             "════════════════════════════════════",
-            row_line(hdr_score),
+            row_line(hdr_tw),
         ]
     )
     if not watch_items:
@@ -683,11 +717,12 @@ def build_plain_text_email(
         pc = get_price_changes(t)
         ptsl = calc_pt_sl(float(price)) if price is not None and price > 0 else None
         pt_sl = (
-            f"PT: {_fmt_money(ptsl['pt'])} / SL: {_fmt_money(ptsl['sl'])}"
+            f"PT {_fmt_money(ptsl['pt'])} · SL {_fmt_money(ptsl['sl'])}"
             if ptsl
             else "—"
         )
-        cc_o, cc_a = _resolve_cc_columns(t, _parse_float(price), signals)
+        cc_cell = _resolve_cc_cell(t, _parse_float(price), signals)
+        narr = _analysis_two_sentences(t, signals)
         lines.append(
             row_line(
                 [
@@ -698,14 +733,13 @@ def build_plain_text_email(
                     pc.get("1w", "N/A"),
                     pc.get("1m", "N/A"),
                     pc.get("ytd", "N/A"),
-                    "Watch",
-                    _analysis_two_sentences(t, signals),
-                    _strip_inline_html(cc_o),
-                    _strip_inline_html(cc_a),
+                    cc_cell["plain"],
                     pt_sl,
                 ]
             )
         )
+        if narr:
+            lines.append(f"  Analysis: {narr}")
 
     lines.extend(
         [
@@ -737,11 +771,12 @@ def build_plain_text_email(
         act = _portfolio_action_for_ticker(sym, sell_alerts, sc)
         ptsl = calc_pt_sl(float(avg)) if avg is not None and avg > 0 else None
         pt_sl = (
-            f"PT: {_fmt_money(ptsl['pt'])} / SL: {_fmt_money(ptsl['sl'])}"
+            f"PT {_fmt_money(ptsl['pt'])} · SL {_fmt_money(ptsl['sl'])}"
             if ptsl
             else "—"
         )
-        cc_o, cc_a = _resolve_cc_columns(sym, _parse_float(price), signals)
+        cc_cell = _resolve_cc_cell(sym, _parse_float(price), signals)
+        pan = _portfolio_analysis_cell(sym, act, signals, sell_alerts)
         lines.append(
             row_line(
                 [
@@ -753,13 +788,13 @@ def build_plain_text_email(
                     pc.get("1m", "N/A"),
                     pc.get("ytd", "N/A"),
                     act,
-                    _portfolio_analysis_cell(sym, act, signals, sell_alerts),
-                    _strip_inline_html(cc_o),
-                    _strip_inline_html(cc_a),
+                    cc_cell["plain"],
                     pt_sl,
                 ]
             )
         )
+        if pan:
+            lines.append(f"  Analysis: {pan}")
 
     return "\n".join(lines)
 
