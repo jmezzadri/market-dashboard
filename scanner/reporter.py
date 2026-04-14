@@ -129,16 +129,11 @@ def _analysis_two_sentences(ticker: str, signals: dict[str, Any]) -> str:
     bullets = signal_narrative(ticker, signals)
     if not bullets:
         return ""
-    text = " ".join(bullets)
-    sents = re.split(r"(?<=[.!?])\s+", text.strip())
-    sents = [s for s in sents if s]
-    if len(sents) <= 2:
-        out = text.strip()
-    else:
-        out = " ".join(sents[:2]).strip()
-    if out == "Composite score from available signal data.":
+    # Join all bullets — card layout uses a full-width row so no truncation needed
+    text = " ".join(bullets).strip()
+    if text == "Composite score from available signal data.":
         return ""
-    return out
+    return text
 
 
 def _earnings_blocks_typical_cc(next_earnings_date: str | None) -> bool:
