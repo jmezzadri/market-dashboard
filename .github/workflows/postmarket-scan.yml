@@ -52,4 +52,5 @@ jobs:
           git add portfolio/.last_scan_scores.json
           git add reports/latest_report.html
           git diff --staged --quiet || git commit -m "Update scan state [skip ci]"
+          git pull --rebase origin main
           git push
