@@ -236,20 +236,277 @@ def _escape_html(s: str) -> str:
     return html_module.escape(s, quote=True)
 
 
+# Inline CSS only (no external stylesheets; no <style> block in documents).
+_P = 'style="margin:0.35rem 0;line-height:1.5;"'
+_BAR = 'style="color:#444;font-weight:600;letter-spacing:0.02em;margin:0.5rem 0;"'
+_H2 = 'style="font-size:1.05rem;margin:1.25rem 0 0.5rem;color:#111;"'
+_RULE = 'style="border:none;border-top:1px solid #ccc;margin:1rem 0;height:0;"'
+_EM_FOOT = 'style="color:#555;font-size:0.95rem;"'
+
+
 def _text_to_html_paras(lines: list[str]) -> str:
-    """Wrap plain lines in simple HTML; blank line → paragraph break."""
+    """Wrap plain lines in simple HTML; blank line → paragraph break. Inline-styled <p>."""
     chunks: list[str] = []
     buf: list[str] = []
     for line in lines:
         if line == "":
             if buf:
-                chunks.append("<p>" + "<br/>\n".join(_escape_html(x) for x in buf) + "</p>")
+                chunks.append(
+                    f"<p {_P}>"
+                    + "<br/>\n".join(_escape_html(x) for x in buf)
+                    + "</p>"
+                )
                 buf = []
             continue
         buf.append(line)
     if buf:
-        chunks.append("<p>" + "<br/>\n".join(_escape_html(x) for x in buf) + "</p>")
+        chunks.append(
+            f"<p {_P}>"
+            + "<br/>\n".join(_escape_html(x) for x in buf)
+            + "</p>"
+        )
     return "\n".join(chunks)
+
+
+def _alert_accent_style(a: dict[str, Any]) -> str:
+    """Left border color by urgency / informational."""
+    if a.get("is_informational"):
+        return "border-left:4px solid #7e57c2;background:#fafafa;padding:10px 12px;margin:0.75rem 0;border-radius:0 6px 6px 0;"
+    u = str(a.get("urgency") or "").lower()
+    if u == "high":
+        return "border-left:4px solid #c62828;background:#fff8f8;padding:10px 12px;margin:0.75rem 0;border-radius:0 6px 6px 0;"
+    if u == "medium":
+        return "border-left:4px solid #ef6c00;background:#fffaf5;padding:10px 12px;margin:0.75rem 0;border-radius:0 6px 6px 0;"
+    return "border-left:4px solid #546e7a;background:#f8fafc;padding:10px 12px;margin:0.75rem 0;border-radius:0 6px 6px 0;"
+
+
+def _tier_box_style(tier: str) -> str:
+    if tier == "buy":
+        return "border-left:4px solid #2e7d32;background:#f4fff6;padding:12px 14px;margin:0.75rem 0;border-radius:0 8px 8px 0;"
+    if tier == "watch":
+        return "border-left:4px solid #1565c0;background:#f5f9ff;padding:12px 14px;margin:0.75rem 0;border-radius:0 8px 8px 0;"
+    return "padding:12px 14px;margin:0.75rem 0;"
+
+
+def wrap_html_document(title: str, inner_html: str) -> str:
+    """Full HTML5 page; typography on outer wrapper (inline CSS only)."""
+    wrap = (
+        "font-family:system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;"
+        "max-width:42rem;margin:0 auto;padding:1rem 1rem 2rem;line-height:1.5;color:#111;"
+        "background:#fafafa;min-height:100vh;box-sizing:border-box;"
+    )
+    return (
+        "<!DOCTYPE html>\n"
+        '<html lang="en">\n'
+        "<head>\n"
+        '<meta charset="utf-8"/>\n'
+        '<meta name="viewport" content="width=device-width,initial-scale=1"/>\n'
+        f"<title>{_escape_html(title)}</title>\n"
+        "</head>\n"
+        f'<body style="margin:0;background:#e8e8e8;">\n'
+        f'<div style="{wrap}">\n'
+        f"{inner_html}\n"
+        "</div>\n"
+        "</body>\n"
+        "</html>\n"
+    )
+
+
+def build_scan_report_body_html(
+    scan_type: str,
+    buy_opportunities: list[dict[str, Any]],
+    watch_items: list[dict[str, Any]],
+    sell_alerts: list[dict[str, Any]],
+    signals: dict[str, Any],
+) -> str:
+    """
+    Main scan content as HTML fragment (same structure as email body).
+    Uses inline CSS only.
+    """
+    et = ZoneInfo("America/New_York")
+    now = datetime.now(et)
+    label = SCAN_LABELS.get(scan_type, scan_type)
+    header = f"TRADING SCAN — {label.upper()} | {now.strftime('%Y-%m-%d %I:%M %p %Z')}"
+    sep = "════════════════════════════════════"
+    sorted_act, sorted_info = _partition_portfolio_alerts(sell_alerts)
+
+    parts: list[str] = [
+        f'<p {_BAR}>{_escape_html(sep)}</p>',
+        f'<p {_P}><strong style="font-weight:700;">{_escape_html(header)}</strong></p>',
+        f'<p {_BAR}>{_escape_html(sep)}</p>',
+    ]
+
+    if sorted_act:
+        parts.append(f'<h2 {_H2}>⚠️ PORTFOLIO ACTIONS NEEDED</h2>')
+        for i, a in enumerate(sorted_act):
+            block = _format_portfolio_alert_block(a)
+            inner = _text_to_html_paras(block)
+            sty = _alert_accent_style(a)
+            parts.append(f'<div style="{sty}">{inner}</div>')
+            if i < len(sorted_act) - 1:
+                parts.append(f"<hr {_RULE}/>")
+        parts.append(f'<p {_BAR}>{_escape_html(sep)}</p>')
+
+    if sorted_info:
+        parts.append(f'<h2 {_H2}>📈 PORTFOLIO NOTES (informational only)</h2>')
+        for i, a in enumerate(sorted_info):
+            block = _format_portfolio_alert_block(a)
+            inner = _text_to_html_paras(block)
+            sty = _alert_accent_style(a)
+            parts.append(f'<div style="{sty}">{inner}</div>')
+            if i < len(sorted_info) - 1:
+                parts.append(f"<hr {_RULE}/>")
+        parts.append(f'<p {_BAR}>{_escape_html(sep)}</p>')
+
+    if buy_opportunities:
+        parts.append(f'<h2 {_H2}>🟢 BUY OPPORTUNITIES</h2>')
+        for opp in buy_opportunities:
+            block = _format_buy_block(opp, signals)
+            inner = _text_to_html_paras(block)
+            parts.append(f'<div style="{_tier_box_style("buy")}">{inner}</div>')
+            parts.append(f"<hr {_RULE}/>")
+
+    if watch_items:
+        parts.append(
+            f'<h2 {_H2}>👀 ON WATCH (score {SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1})</h2>'
+            f'<p {_P}>These stocks have meaningful signals but haven\'t yet crossed the buy threshold. '
+            f"Monitor them — a new signal could push them into Buy territory.</p>"
+        )
+        for i, w in enumerate(watch_items, start=1):
+            block = _format_watch_item(w, i, signals)
+            inner = _text_to_html_paras(block)
+            parts.append(f'<div style="{_tier_box_style("watch")}">{inner}</div>')
+
+    next_hint = NEXT_SCAN_BLURB.get(scan_type.lower(), "the next scheduled run")
+    parts.extend(
+        [
+            f'<p {_BAR}>{_escape_html(sep)}</p>',
+            f'<p {_EM_FOOT}><em>Scan complete | Unusual Whales data | Next scan: {_escape_html(next_hint)}</em></p>',
+            "<p "
+            + _P
+            + ">"
+            + _escape_html(
+                "To update your portfolio holdings, edit portfolio/positions.csv on GitHub."
+            )
+            + "</p>",
+            f'<p {_BAR}>{_escape_html(sep)}</p>',
+        ]
+    )
+    return "\n".join(parts)
+
+
+def build_latest_report_html(
+    scan_type: str,
+    buy_opportunities: list[dict[str, Any]],
+    watch_items: list[dict[str, Any]],
+    sell_alerts: list[dict[str, Any]],
+    signals: dict[str, Any],
+    *,
+    date_str: str,
+    label: str,
+    stocks_scanned: int,
+    n_flagged: int,
+    n_buy: int,
+    n_watch: int,
+    portfolio_positions: list[dict[str, Any]],
+    portfolio_covered_calls: list[dict[str, Any]],
+) -> str:
+    """
+    Full static page: dashboard header + email-equivalent body + CSV position tables (Phase 2 §5).
+    Inline CSS only.
+    """
+    body = build_scan_report_body_html(
+        scan_type,
+        buy_opportunities,
+        watch_items,
+        sell_alerts,
+        signals,
+    )
+
+    dash = (
+        f'<div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:12px 14px;margin-bottom:1.25rem;">'
+        f'<p style="margin:0 0 8px 0;font-size:0.9rem;color:#333;"><strong style="font-weight:700;">Trading Signal Scan</strong> · {_escape_html(label)}</p>'
+        f'<p style="margin:0;font-size:0.85rem;color:#555;">{_escape_html(date_str)}</p>'
+        f'<table style="width:100%;border-collapse:collapse;margin-top:10px;font-size:0.88rem;">'
+        f'<tr style="border-bottom:1px solid #eee;">'
+        f'<td style="padding:6px 8px 6px 0;color:#666;">Stocks scanned</td><td style="padding:6px 0;text-align:right;font-weight:600;">{stocks_scanned}</td></tr>'
+        f'<tr style="border-bottom:1px solid #eee;">'
+        f'<td style="padding:6px 8px 6px 0;color:#666;">Signals ≥{SCORE_WATCH_ALERT} (watch + buy)</td>'
+        f'<td style="padding:6px 0;text-align:right;font-weight:600;">{n_flagged}</td></tr>'
+        f'<tr style="border-bottom:1px solid #eee;">'
+        f'<td style="padding:6px 8px 6px 0;color:#666;">Buy tier (≥{SCORE_BUY_ALERT})</td>'
+        f'<td style="padding:6px 0;text-align:right;font-weight:600;">{n_buy}</td></tr>'
+        f'<tr>'
+        f'<td style="padding:6px 8px 6px 0;color:#666;">Watch tier ({SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1})</td>'
+        f'<td style="padding:6px 0;text-align:right;font-weight:600;">{n_watch}</td></tr>'
+        f"</table></div>"
+    )
+
+    pos_rows = ""
+    if portfolio_positions:
+        for r in portfolio_positions:
+            ac = r.get("avg_cost")
+            acs = _fmt_money(ac) if ac is not None else "—"
+            ed = r.get("entry_date")
+            eds = str(ed) if ed else "—"
+            pos_rows += (
+                "<tr>"
+                f"<td style='padding:8px;border-bottom:1px solid #eee;'>{_escape_html(str(r.get('ticker', '')))}</td>"
+                f"<td style='padding:8px;border-bottom:1px solid #eee;text-align:right;'>{_escape_html(str(r.get('shares', '')))}</td>"
+                f"<td style='padding:8px;border-bottom:1px solid #eee;text-align:right;'>{_escape_html(acs)}</td>"
+                f"<td style='padding:8px;border-bottom:1px solid #eee;'>{_escape_html(eds)}</td>"
+                f"<td style='padding:8px;border-bottom:1px solid #eee;font-size:0.88rem;'>{_escape_html(str(r.get('notes', '')))}</td>"
+                "</tr>"
+            )
+    else:
+        pos_rows = (
+            f"<tr><td colspan='5' style='padding:10px;color:#666;'>"
+            f"No rows in portfolio/positions.csv (or file missing).</td></tr>"
+        )
+
+    pos_section = (
+        f'<h2 {_H2}>📋 Current positions (portfolio CSV)</h2>'
+        f'<div style="overflow-x:auto;margin-bottom:1rem;">'
+        f'<table style="width:100%;border-collapse:collapse;font-size:0.88rem;background:#fff;border:1px solid #ddd;border-radius:8px;">'
+        f'<thead><tr style="background:#f0f0f0;">'
+        f"<th style='text-align:left;padding:8px;border-bottom:1px solid #ccc;'>Ticker</th>"
+        f"<th style='text-align:right;padding:8px;border-bottom:1px solid #ccc;'>Shares</th>"
+        f"<th style='text-align:right;padding:8px;border-bottom:1px solid #ccc;'>Avg cost</th>"
+        f"<th style='text-align:left;padding:8px;border-bottom:1px solid #ccc;'>Entry</th>"
+        f"<th style='text-align:left;padding:8px;border-bottom:1px solid #ccc;'>Notes</th>"
+        f"</tr></thead><tbody>{pos_rows}</tbody></table></div>"
+    )
+
+    cc_lines = ""
+    if portfolio_covered_calls:
+        for c in portfolio_covered_calls:
+            try:
+                stf = float(c.get("strike") or 0)
+            except (TypeError, ValueError):
+                stf = 0.0
+            cc_lines += (
+                f'<p {_P} style="margin:0.35rem 0 0.35rem 1rem;">'
+                f"{_escape_html(str(c.get('ticker')))} "
+                f"{_escape_html(str(c.get('contracts')))}× "
+                f"${stf:.2f} exp {_escape_html(str(c.get('expiry')))} "
+                f"(prem received {_fmt_money(c.get('premium_received'))}/sh)"
+                f"</p>"
+            )
+        cc_section = (
+            f'<h2 {_H2}>📋 Open covered calls (portfolio CSV)</h2>'
+            f'<div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:10px 12px;">{cc_lines}</div>'
+        )
+    else:
+        cc_section = ""
+
+    footer = (
+        f'<p style="margin-top:1.5rem;font-size:0.82rem;color:#888;border-top:1px solid #ddd;padding-top:12px;">'
+        f"Generated by Trading Signal Scanner · Unusual Whales API · {_escape_html(date_str)}"
+        f"</p>"
+    )
+
+    inner = dash + body + pos_section + cc_section + footer
+    return wrap_html_document("Trading Signal Scan", inner)
 
 
 def _fmt_money(x: float | None) -> str:
@@ -660,14 +917,22 @@ def generate_report(
     logger.info("Wrote %s", csv_path)
 
     latest = REPORTS_DIR / "latest_report.html"
-    safe = html_module.escape("\n".join(lines))
     latest.write_text(
-        "<!DOCTYPE html><html><head><meta charset='utf-8'>"
-        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
-        "<title>Trading Signal Scan</title>"
-        "<style>body{font-family:system-ui,sans-serif;max-width:52rem;margin:0 auto;padding:1rem;line-height:1.45;background:#fafafa;color:#111}"
-        "pre{white-space:pre-wrap;word-break:break-word;background:#fff;padding:1rem;border:1px solid #ddd;border-radius:8px}</style>"
-        f"</head><body><pre>{safe}</pre></body></html>",
+        build_latest_report_html(
+            scan_type,
+            buy_opportunities,
+            watch_items,
+            sell_alerts,
+            signals,
+            date_str=date_str,
+            label=label,
+            stocks_scanned=int(stocks_scanned),
+            n_flagged=n_flagged,
+            n_buy=n_buy,
+            n_watch=n_watch,
+            portfolio_positions=portfolio_positions,
+            portfolio_covered_calls=portfolio_covered_calls,
+        ),
         encoding="utf-8",
     )
     logger.info("Wrote %s", latest)
@@ -682,7 +947,7 @@ def build_email_content(
     sell_alerts: list[dict[str, Any]],
     signals: dict[str, Any],
 ) -> tuple[str, str, str]:
-    """Subject, HTML body, plain text for notifier."""
+    """Subject, HTML body, plain text for notifier. HTML matches scan report body (inline CSS)."""
     et = ZoneInfo("America/New_York")
     now = datetime.now(et)
     label = SCAN_LABELS.get(scan_type, scan_type)
@@ -765,70 +1030,13 @@ def build_email_content(
     text = "\n".join(text_lines)
     subject = sub[:900]
 
-    # HTML mirrors structure
-    html_parts: list[str] = [
-        "<!DOCTYPE html><html><head><meta charset='utf-8'>",
-        "<meta name='viewport' content='width=device-width,initial-scale=1'>",
-        "<title>Trading Scan</title>",
-        "<style>body{font-family:system-ui,-apple-system,sans-serif;max-width:42rem;margin:1rem auto;"
-        "line-height:1.5;color:#111;background:#fafafa;padding:0 0.75rem}"
-        ".bar{color:#444;font-weight:600;letter-spacing:0.02em}"
-        "h2{font-size:1rem;margin:1.25rem 0 0.5rem}"
-        ".rule{border:none;border-top:1px solid #ccc;margin:1rem 0}"
-        "p{margin:0.35rem 0}</style></head><body>",
-        f"<p class='bar'>{_escape_html(sep)}</p>",
-        f"<p><strong>{_escape_html(header)}</strong></p>",
-        f"<p class='bar'>{_escape_html(sep)}</p>",
-    ]
-
-    if sorted_act:
-        html_parts.append("<h2>⚠️ PORTFOLIO ACTIONS NEEDED</h2>")
-        for i, a in enumerate(sorted_act):
-            block = _format_portfolio_alert_block(a)
-            html_parts.append(_text_to_html_paras(block))
-            if i < len(sorted_act) - 1:
-                html_parts.append("<hr class='rule'/>")
-        html_parts.append(f"<p class='bar'>{_escape_html(sep)}</p>")
-
-    if sorted_info:
-        html_parts.append("<h2>📈 PORTFOLIO NOTES (informational only)</h2>")
-        for i, a in enumerate(sorted_info):
-            block = _format_portfolio_alert_block(a)
-            html_parts.append(_text_to_html_paras(block))
-            if i < len(sorted_info) - 1:
-                html_parts.append("<hr class='rule'/>")
-        html_parts.append(f"<p class='bar'>{_escape_html(sep)}</p>")
-
-    if buy_opportunities:
-        html_parts.append("<h2>🟢 BUY OPPORTUNITIES</h2>")
-        for opp in buy_opportunities:
-            html_parts.append(_text_to_html_paras(_format_buy_block(opp, signals)))
-            html_parts.append("<hr class='rule'/>")
-
-    if watch_items:
-        html_parts.append(
-            f"<h2>👀 ON WATCH (score {SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1})</h2>"
-            "<p>These stocks have meaningful signals but haven't yet crossed the buy threshold. "
-            "Monitor them — a new signal could push them into Buy territory.</p>"
-        )
-        for i, w in enumerate(watch_items, start=1):
-            html_parts.append(_text_to_html_paras(_format_watch_item(w, i, signals)))
-
-    html_parts.extend(
-        [
-            f"<p class='bar'>{_escape_html(sep)}</p>",
-            "<p><em>"
-            + _escape_html(f"Scan complete | Unusual Whales data | Next scan: {next_hint}")
-            + "</em></p>",
-            "<p>"
-            + _escape_html(
-                "To update your portfolio holdings, edit portfolio/positions.csv on GitHub."
-            )
-            + "</p>",
-            f"<p class='bar'>{_escape_html(sep)}</p>",
-            "</body></html>",
-        ]
+    body_html = build_scan_report_body_html(
+        scan_type,
+        buy_opportunities,
+        watch_items,
+        sell_alerts,
+        signals,
     )
-    html_body = "\n".join(html_parts)
+    html_body = wrap_html_document("Trading Scan", body_html)
 
     return subject, html_body, text

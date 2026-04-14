@@ -3,7 +3,8 @@
 token.json
 
 # Generated output — too noisy for git history
-reports/
+reports/*
+!reports/latest_report.html
 
 # Python artifacts
 __pycache__/
