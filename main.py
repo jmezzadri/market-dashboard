@@ -315,13 +315,6 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         sell_alerts=sell_alerts,
     )
 
-    # TEMP DEBUG: show tech results for watch/buy tickers
-    for t, s in list(buy_scored) + list(watch_scored):
-        tech = get_technicals(t)
-        print(f"TECH {t}: score={tech.get('tech_score')} rsi={tech.get('rsi_14')} macd={tech.get('macd_cross')} above50={tech.get('above_50ma')} above200={tech.get('above_200ma')} bullets={len(tech.get('tech_summary') or [])}")
-        for b in (tech.get("tech_summary") or []):
-            print(f"  BULLET: {b[:100]}")
-
     if notifier.should_send(buy_opportunities, watch_items, sell_alerts):
         subj, html_b, text_b = reporter.build_email_content(
             scan_type,

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 
 from config import (
@@ -25,6 +26,7 @@ __all__ = [
     "congress_score_for_ticker",
     "score_insider_signal",
     "signal_narrative",
+    "signal_indicators",
     "_congress_tier_value",
 ]
 
@@ -57,6 +59,30 @@ def qualifying_insider_rows(ticker_insiders: list[dict[str, Any]]) -> list[dict[
 def _congress_tier_value(amounts: str | None) -> int:
     """Numeric sort key for a congressional disclosure amount range (tier points)."""
     return congress_tier_points(amounts)
+
+
+def _congress_amount_mid_dollars(amounts: str | None) -> float:
+    """Midpoint dollar estimate for a disclosure `amounts` range string (for conviction tiers)."""
+    if amounts is None:
+        return 0.0
+    key = " ".join(str(amounts).split())
+    key = key.replace("–", "-").replace("—", "-")
+    mids: dict[str, float] = {
+        "$1,001 - $15,000": 8_000.5,
+        "$15,001 - $50,000": 32_500.5,
+        "$50,001 - $100,000": 75_000.5,
+        "$100,001 - $250,000": 175_000.5,
+        "$250,001 - $500,000": 375_000.5,
+        "$500,001 - $1,000,000": 750_000.5,
+        "$1,000,001 +": 1_500_000.0,
+    }
+    if key in mids:
+        return mids[key]
+    nk = key.replace("$", "").replace(",", "").lower()
+    for ak, mid in mids.items():
+        if ak.replace("$", "").replace(",", "").lower() == nk:
+            return mid
+    return 0.0
 
 
 def congress_tier_points(amounts: str | None) -> int:
@@ -493,3 +519,227 @@ def score_ticker(ticker: str, signals: dict[str, Any]) -> int:
     if base_score < 20 and total >= SCORE_WATCH_ALERT:
         total = SCORE_WATCH_ALERT - 1
     return max(0, min(100, total))
+
+
+def _congress_indicator(sym: str, signals: dict[str, Any]) -> dict[str, Any]:
+    rows = [
+        r
+        for r in (signals.get("congress_buys") or [])
+        if (r.get("ticker") or "").upper() == sym
+    ]
+    if not rows:
+        return {"direction": "neutral", "conviction": "", "detail": ["No recent activity"]}
+
+    total = len(rows)
+    names = sorted(
+        {(r.get("name") or "Member").strip() for r in rows if r.get("name")}
+    )
+    largest = max(rows, key=lambda r: _congress_amount_mid_dollars(r.get("amounts")))
+    largest_val = _congress_amount_mid_dollars(largest.get("amounts"))
+    total_val = sum(_congress_amount_mid_dollars(r.get("amounts")) for r in rows)
+    largest_amt_str = largest.get("amounts") or "undisclosed"
+
+    if largest_val >= 250_000 or total_val >= 500_000:
+        conviction = "High Conviction"
+    elif total_val >= 50_000:
+        conviction = "Moderate"
+    else:
+        conviction = "Routine"
+
+    clustered = False
+    try:
+        dates: list[datetime] = []
+        for r in rows:
+            d = r.get("date") or r.get("transaction_date") or ""
+            if d:
+                dates.append(datetime.strptime(str(d)[:10], "%Y-%m-%d"))
+        if len(dates) >= 2:
+            dates.sort()
+            recent = sum(1 for d in dates if (dates[-1] - d).days <= 7)
+            if recent >= 2:
+                clustered = True
+    except (TypeError, ValueError):
+        pass
+
+    name_str = names[0] if names else "Member"
+    cluster_note = " · clustered" if clustered else ""
+    detail = [
+        f"{total} buy{'s' if total > 1 else ''} ({CONGRESS_LOOKBACK_DAYS}d){cluster_note}",
+        f"Incl. {name_str}",
+        f"Largest: {largest_amt_str}",
+    ]
+    return {"direction": "bullish", "conviction": conviction, "detail": detail[:3]}
+
+
+def _insider_indicator(sym: str, signals: dict[str, Any]) -> dict[str, Any]:
+    rows = qualifying_insider_rows(
+        [
+            r
+            for r in (signals.get("insider_buys") or [])
+            if (r.get("ticker") or "").upper() == sym
+        ]
+    )
+    if not rows:
+        return {"direction": "neutral", "conviction": "", "detail": ["No qualifying activity"]}
+
+    total_val = sum(get_insider_dollar_value(r) for r in rows)
+    unique = len({(r.get("owner_name") or "").strip() for r in rows})
+    officers = [r for r in rows if r.get("is_officer")]
+    if officers:
+        role = "officer" if unique == 1 else "officers"
+    else:
+        role = "insider" if unique == 1 else "insiders"
+    largest_val = max(get_insider_dollar_value(r) for r in rows)
+
+    if largest_val >= 500_000 or total_val >= 1_000_000:
+        conviction = "High Conviction"
+    elif total_val >= 100_000:
+        conviction = "Moderate"
+    else:
+        conviction = "Routine"
+
+    detail = [
+        f"{unique} {role} · ${total_val:,.0f} total",
+        f"Last {INSIDER_LOOKBACK_DAYS} days",
+    ]
+    return {"direction": "bullish", "conviction": conviction, "detail": detail[:3]}
+
+
+def _options_indicator(sym: str, signals: dict[str, Any]) -> dict[str, Any]:
+    flow = [
+        r
+        for r in (signals.get("flow_alerts") or [])
+        if (r.get("ticker") or "").upper() == sym
+    ]
+    screener_row: dict[str, Any] = {}
+    sc = signals.get("screener")
+    if isinstance(sc, dict):
+        screener_row = sc.get(sym) or {}
+    try:
+        rel_vol = float(screener_row.get("relative_volume") or 0)
+    except (TypeError, ValueError):
+        rel_vol = 0.0
+
+    if not flow and rel_vol < 2.0:
+        return {"direction": "neutral", "conviction": "", "detail": ["No unusual flow"]}
+
+    sweeps = [r for r in flow if r.get("has_sweep")]
+    puts = [r for r in flow if str(r.get("put_call") or "").lower() == "put"]
+    calls = [r for r in flow if str(r.get("put_call") or "").lower() == "call"]
+
+    total_prem = sum(float(r.get("total_premium") or 0) for r in flow)
+    max_sweep_prem = max((float(r.get("total_premium") or 0) for r in sweeps), default=0)
+
+    if max_sweep_prem >= 500_000 or total_prem >= 1_000_000:
+        conviction = "High Conviction"
+    elif max_sweep_prem >= 100_000 or total_prem >= 250_000:
+        conviction = "Moderate"
+    else:
+        conviction = "Routine"
+
+    if calls and not puts:
+        direction = "bullish"
+    elif puts and not calls:
+        direction = "bearish"
+    elif calls and puts:
+        direction = "mixed"
+    else:
+        direction = "neutral"
+
+    detail: list[str] = []
+    if sweeps:
+        largest = max(sweeps, key=lambda r: float(r.get("total_premium") or 0))
+        prem = float(largest.get("total_premium") or 0)
+        side = "Call" if str(largest.get("put_call") or "").lower() == "call" else "Put"
+        detail.append(f"{side} sweep ${prem:,.0f}")
+    if len(flow) > 1:
+        detail.append(f"{len(flow)} alerts total")
+    if rel_vol >= 2.0:
+        detail.append(f"Vol {rel_vol:.1f}x avg")
+    if not detail:
+        detail = ["Unusual activity"]
+    return {"direction": direction, "conviction": conviction, "detail": detail[:3]}
+
+
+def _technical_indicator(sym: str) -> dict[str, Any]:
+    tech = get_technicals(sym)
+    score = int(tech.get("tech_score") or 0)
+    rsi = tech.get("rsi_14")
+    macd = tech.get("macd_cross")
+    a50 = tech.get("above_50ma")
+    a200 = tech.get("above_200ma")
+
+    if rsi is None and macd is None and a50 is None:
+        return {"direction": "neutral", "conviction": "", "detail": ["No data"]}
+
+    bull = 0
+    bear = 0
+    detail: list[str] = []
+
+    if rsi is not None:
+        if rsi < 40:
+            bull += 1
+            detail.append(f"RSI {rsi:.0f} — oversold")
+        elif rsi > 70:
+            bear += 1
+            detail.append(f"RSI {rsi:.0f} — overbought")
+        else:
+            detail.append(f"RSI {rsi:.0f}")
+
+    if macd == "bullish":
+        bull += 1
+        detail.append("MACD bullish cross")
+    elif macd == "bearish":
+        bear += 1
+        detail.append("MACD bearish cross")
+
+    if a50 is True and a200 is True:
+        bull += 1
+        detail.append("Above 50 & 200MA")
+    elif a50 is True and a200 is False:
+        detail.append("Above 50MA, below 200MA")
+    elif a50 is False and a200 is False:
+        bear += 1
+        detail.append("Below 50 & 200MA")
+    elif a50 is False and a200 is True:
+        detail.append("Below 50MA, above 200MA")
+
+    vol = tech.get("vol_surge")
+    if vol is not None and vol >= 2.0:
+        bull += 1
+        detail.append(f"Vol {vol:.1f}x avg")
+
+    abs_score = abs(score)
+    if abs_score >= 12:
+        conviction = "High Conviction"
+    elif abs_score >= 5:
+        conviction = "Moderate"
+    else:
+        conviction = "Routine" if (bull + bear) > 0 else ""
+
+    if bull > 0 and bear == 0:
+        direction = "bullish"
+    elif bear > 0 and bull == 0:
+        direction = "bearish"
+    elif bull > 0 and bear > 0:
+        direction = "mixed"
+    else:
+        direction = "neutral"
+
+    return {"direction": direction, "conviction": conviction, "detail": detail[:3]}
+
+
+def signal_indicators(ticker: str, signals: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """
+    Four signal categories for the HTML indicator table:
+        direction: bullish | bearish | neutral | mixed
+        conviction: High Conviction | Moderate | Routine | ""
+        detail: short phrases, max 3 items
+    """
+    sym = ticker.strip().upper()
+    return {
+        "congress": _congress_indicator(sym, signals),
+        "insider": _insider_indicator(sym, signals),
+        "options": _options_indicator(sym, signals),
+        "technical": _technical_indicator(sym),
+    }
