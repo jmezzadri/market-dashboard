@@ -489,11 +489,19 @@ def _resolve_cc_cell(
             "plain": msg,
         }
 
+    # Use pre-fetched cache from main.py scan run; fall back to live call only
+    # if cache is absent (e.g. standalone reporter invocation).
+    _cache = signals.get("_chain_cache")
     chain: list[dict[str, Any]] = []
-    try:
-        chain = uw.get_options_chain(ticker)
-    except Exception as e:
-        logger.debug("options chain for %s: %s", ticker, e)
+    if _cache is not None and sym in _cache:
+        chain = _cache[sym] or []
+    else:
+        try:
+            chain = uw.get_options_chain(ticker)
+            if _cache is not None:
+                _cache[sym] = chain
+        except Exception as e:
+            logger.warning("options chain for %s: %s", ticker, e)
 
     opt = None
     if chain:

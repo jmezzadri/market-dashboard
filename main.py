@@ -228,14 +228,22 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         (t, s) for t, s in watch_and_above if SCORE_WATCH_ALERT <= s < SCORE_BUY_ALERT
     ]
 
+    # Pre-fetch options chains once for every buy+watch ticker and cache in signals.
+    # This prevents the reporter from making redundant second API calls per ticker,
+    # which caused silent failures (e.g. rate-limited MSFT showing "No options data").
+    signals["_chain_cache"] = {}
+    for _t, _ in watch_and_above:
+        _sym = _t.upper()
+        try:
+            signals["_chain_cache"][_sym] = uw.get_options_chain(_t)
+        except Exception as _e:
+            logger.warning("Options chain pre-fetch failed for %s: %s", _t, _e)
+            signals["_chain_cache"][_sym] = []
+
     buy_opportunities: list[dict[str, Any]] = []
     for ticker, sc in buy_scored:
         price = uw.get_current_price(ticker, signals)
-        chain: list[dict[str, Any]] = []
-        try:
-            chain = uw.get_options_chain(ticker)
-        except Exception as e:
-            logger.warning("Options chain failed for %s: %s", ticker, e)
+        chain: list[dict[str, Any]] = signals["_chain_cache"].get(ticker.upper(), [])
 
         sc_row = (signals.get("screener") or {}).get(ticker.upper()) or {}
         ivr = _parse_float(sc_row.get("iv_rank"))
