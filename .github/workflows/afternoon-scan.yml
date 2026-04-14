@@ -2,7 +2,7 @@ name: Afternoon Scan
 
 on:
   schedule:
-    - cron: '0 18 * * 1-5'   # 2:00 PM EDT (UTC-4), Mon–Fri
+    - cron: '0 19 * * 1-5'   # 2:00 PM EDT (UTC-4), Mon–Fri
   workflow_dispatch:
 
 jobs:
