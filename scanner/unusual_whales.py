@@ -406,7 +406,7 @@ def get_options_chain(ticker: str) -> list[dict[str, Any]]:
         {
             "option_type": "call",
             "limit": 500,
-            "exclude_zero_dte": True,
+            "exclude_zero_dte": "true",  # lowercase string; Python True serializes as "True"
         },
     )
     rows = raw.get("data") or []
@@ -415,6 +415,17 @@ def get_options_chain(ticker: str) -> list[dict[str, Any]]:
         norm = normalize_option_contract(row if isinstance(row, dict) else {})
         if norm:
             out.append(norm)
+    logger.info(
+        "options chain %s: %d raw rows from API, %d passed normalization",
+        t, len(rows), len(out),
+    )
+    if rows and not out:
+        # All rows failed normalization — log a sample to aid debugging
+        sample = rows[0] if rows else {}
+        logger.warning(
+            "options chain %s: all %d rows failed normalize — sample keys: %s",
+            t, len(rows), list(sample.keys())[:10],
+        )
     return out
 
 
