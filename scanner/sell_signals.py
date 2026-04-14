@@ -353,8 +353,6 @@ def check_covered_call_alerts(
     from config import (
         CC_ROLL_UP_MAX_DELTA,
         CC_ROLL_UP_MIN_DELTA,
-        CC_SELECT_MAX_DELTA,
-        CC_SELECT_MIN_DELTA,
         ROLL_EXPIRY_DAYS,
         ROLL_PROFIT_THRESHOLD,
         ROLL_STRIKE_PROXIMITY,
@@ -444,8 +442,6 @@ def check_covered_call_alerts(
             chain,
             iv_rank=ivr if ivr > 0 else None,
             next_earnings_date=earn_s,
-            min_delta=CC_SELECT_MIN_DELTA,
-            max_delta=CC_SELECT_MAX_DELTA,
             exclude_strike_expiry=exclude,
         )
         new_roll_up = find_optimal_covered_call(
@@ -454,8 +450,6 @@ def check_covered_call_alerts(
             chain,
             iv_rank=ivr if ivr > 0 else None,
             next_earnings_date=earn_s,
-            min_delta=CC_ROLL_UP_MIN_DELTA,
-            max_delta=CC_ROLL_UP_MAX_DELTA,
             min_strike=strike + 0.01,
             exclude_strike_expiry=exclude,
         )

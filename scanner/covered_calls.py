@@ -1,7 +1,8 @@
-"""Covered call screener — Greeks, IV gate, earnings avoidance, liquidity (Phase 2)."""
+"""Covered call screener — yield gate, 1-sigma OTM rule, earnings avoidance, liquidity."""
 
 from __future__ import annotations
 
+import math
 import re
 from datetime import date, datetime, timedelta
 from typing import Any
@@ -10,17 +11,14 @@ import numpy as np
 from scipy.stats import norm
 
 from config import (
-    CC_MAX_DELTA,
     CC_MAX_EXPIRY_DAYS,
     CC_MAX_SPREAD_PCT,
     CC_MIN_ANNUALIZED_YIELD,
-    CC_MIN_DELTA,
     CC_MIN_EXPIRY_DAYS,
     CC_MIN_IV_RANK,
+    CC_OTM_IV_MULTIPLIER,
     CC_ROLL_UP_MAX_DELTA,
     CC_ROLL_UP_MIN_DELTA,
-    CC_SELECT_MAX_DELTA,
-    CC_SELECT_MIN_DELTA,
     CC_SPREAD_WIDE_NOTE_MIN_PCT,
 )
 
@@ -92,14 +90,18 @@ def find_optimal_covered_call(
     iv_rank: float | None = None,
     next_earnings_date: str | None = None,
     *,
-    min_delta: float = CC_SELECT_MIN_DELTA,
-    max_delta: float = CC_SELECT_MAX_DELTA,
     min_strike: float | None = None,
     exclude_strike_expiry: tuple[float, str] | None = None,
 ) -> dict[str, Any] | None:
     """
-    Highest bid (income) among contracts passing IV, DTE, delta, spread, yield gates.
-    Income and annualized yield use **bid** (conservative). Includes bid/ask/mid/spread_pct.
+    Best covered call using two gates (delta bands removed):
+      1. Strike must be ≥ CC_OTM_IV_MULTIPLIER × IV × √(DTE/365) OTM
+         — 1-sigma expected move; scales with vol and time so high-IV names
+           (MU, CCJ) require further OTM strikes than low-vol names (MSFT).
+      2. Annualized premium yield (bid / price × 365/DTE) ≥ CC_MIN_ANNUALIZED_YIELD
+         — income gate; replaces the old delta lower-bound filter.
+    Delta is still computed and included in output for display purposes.
+    Picks the contract with the highest bid among all passing candidates.
     """
     if current_price <= 0 or not options_chain:
         return None
@@ -166,9 +168,14 @@ def find_optimal_covered_call(
         if iv <= 0:
             continue
 
-        delta = call_delta(current_price, strike, days_to_expiry, iv)
-        if not (min_delta <= delta <= max_delta):
+        # Gate 1: 1-sigma OTM rule — strike must be far enough OTM given vol + time.
+        # min_otm_frac = IV × √(DTE/365) × multiplier (default 1.0 = 1 sigma)
+        min_otm_frac = CC_OTM_IV_MULTIPLIER * iv * math.sqrt(days_to_expiry / 365.0)
+        otm_frac = (strike - current_price) / current_price
+        if otm_frac < min_otm_frac:
             continue
+
+        delta = call_delta(current_price, strike, days_to_expiry, iv)
 
         bid = _float(contract.get("nbbo_bid"))
         ask = _float(contract.get("nbbo_ask") or contract.get("ask"))
@@ -183,11 +190,12 @@ def find_optimal_covered_call(
         if spread_frac > CC_MAX_SPREAD_PCT:
             continue
 
+        # Gate 2: annualized premium yield floor
         ann_yield = (bid / current_price) * (365 / days_to_expiry)
         if ann_yield < CC_MIN_ANNUALIZED_YIELD:
             continue
 
-        otm_pct = (strike - current_price) / current_price * 100
+        otm_pct = otm_frac * 100
 
         liquidity_note = None
         if CC_SPREAD_WIDE_NOTE_MIN_PCT <= spread_frac < CC_MAX_SPREAD_PCT:
@@ -234,7 +242,8 @@ def find_covered_call(
     next_earnings_date: str | None = None,
 ) -> dict[str, Any] | None:
     """
-    Best covered call for Buy-tier display — uses optimal selection band (default 0.20–0.30 delta).
+    Best covered call for Buy-tier display.
+    Selection is governed by the 1-sigma OTM rule + 25% annualized yield gate.
     """
     return find_optimal_covered_call(
         ticker,
@@ -242,6 +251,4 @@ def find_covered_call(
         options_chain,
         iv_rank=iv_rank,
         next_earnings_date=next_earnings_date,
-        min_delta=CC_SELECT_MIN_DELTA,
-        max_delta=CC_SELECT_MAX_DELTA,
     )

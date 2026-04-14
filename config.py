@@ -46,11 +46,14 @@ CONGRESS_AMOUNT_SCORES: dict[str, int] = {
 CONGRESS_SCORE_CAP = 40
 
 # Covered call strategy parameters
-CC_MIN_OTM_PCT = 0.10
-CC_MAX_OTM_PCT = 0.20
-CC_MIN_EXPIRY_DAYS = 28
+CC_MIN_EXPIRY_DAYS = 14   # shortened from 28 — yield gate does the income filtering
 CC_MAX_EXPIRY_DAYS = 42
-CC_MIN_ANNUALIZED_YIELD = 0.15
+CC_MIN_ANNUALIZED_YIELD = 0.25  # raised from 0.15 — primary income gate
+
+# Dynamic OTM floor: strike must be at least CC_OTM_IV_MULTIPLIER × IV × √(DTE/365)
+# This is the 1-sigma expected move — scales naturally with vol and time.
+# Higher IV names (MU, CCJ) require further OTM strikes than low-vol names (MSFT).
+CC_OTM_IV_MULTIPLIER = float(os.getenv("CC_OTM_IV_MULTIPLIER", "1.0"))
 
 # Unusual options activity thresholds
 MIN_VOLUME_OI_RATIO = 0.5
@@ -74,19 +77,16 @@ UW_BASE_URL = "https://api.unusualwhales.com"
 # Optional client header (see Unusual Whales API documentation)
 UW_CLIENT_API_ID = os.getenv("UW_CLIENT_API_ID", "100001")
 
-# Covered call — Greeks and quality gates (Phase 2)
+# Covered call — quality gates
 CC_MIN_IV_RANK = 30
-CC_MIN_DELTA = 0.15
-CC_MAX_DELTA = 0.35
 CC_MAX_SPREAD_PCT = 0.10
-# Optimal new short-call selection (triggers spec §4.1) — tighter delta band
-CC_SELECT_MIN_DELTA = float(os.getenv("CC_SELECT_MIN_DELTA", "0.20"))
-CC_SELECT_MAX_DELTA = float(os.getenv("CC_SELECT_MAX_DELTA", "0.30"))
-# Roll-up search band (triggers spec §4.2 trigger 2)
-CC_ROLL_UP_MIN_DELTA = float(os.getenv("CC_ROLL_UP_MIN_DELTA", "0.15"))
-CC_ROLL_UP_MAX_DELTA = float(os.getenv("CC_ROLL_UP_MAX_DELTA", "0.25"))
 # Note when spread is 5–10% of mid (still under CC_MAX_SPREAD_PCT)
 CC_SPREAD_WIDE_NOTE_MIN_PCT = 0.05
+# Delta is computed and displayed but no longer used as a selection filter —
+# the 1-sigma OTM rule + yield gate replace delta banding entirely.
+# Roll-up search still uses delta as a proximity signal for existing positions.
+CC_ROLL_UP_MIN_DELTA = float(os.getenv("CC_ROLL_UP_MIN_DELTA", "0.15"))
+CC_ROLL_UP_MAX_DELTA = float(os.getenv("CC_ROLL_UP_MAX_DELTA", "0.25"))
 
 # Portfolio / sell triggers (CURSOR_TRIGGERS_SPEC)
 STOP_LOSS_PCT = float(os.getenv("STOP_LOSS_PCT", "0.15"))
