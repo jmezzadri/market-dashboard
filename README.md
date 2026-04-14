@@ -5,7 +5,7 @@ A Python-based trading opportunity scanner that pulls data from the Unusual Whal
 | Scan | Schedule |
 |---|---|
 | Pre-market | Weekdays ~8 AM ET |
-| Afternoon | Weekdays ~1 PM ET |
+| Afternoon | Weekdays ~3:15 PM ET (EDT; see workflow comment for EST) |
 | Post-market | Weekdays ~4:30 PM ET |
 | Weekly Review | Sundays ~6 PM ET |
 
