@@ -1,9 +1,8 @@
-name: Afternoon Scan
+# Retired — replaced by daily-scan.yml (runs at 3:45 PM EDT).
+# Kept for manual dispatch only; no scheduled trigger.
+name: Afternoon Scan (Retired)
 
 on:
-  schedule:
-    # 19:15 UTC = 3:15 PM Eastern when US is on EDT (UTC-4). On EST (UTC-5), same cron = 2:15 PM.
-    - cron: '15 19 * * 1-5'
   workflow_dispatch:
 
 jobs:

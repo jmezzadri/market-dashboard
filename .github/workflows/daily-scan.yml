@@ -1,8 +1,8 @@
-# Retired — replaced by daily-scan.yml (runs at 3:45 PM EDT).
-# Kept for manual dispatch only; no scheduled trigger.
-name: Post-Market Scan (Retired)
+name: Daily Scan
 
 on:
+  schedule:
+    - cron: '45 19 * * 1-5'  # 3:45 PM EDT (UTC-4), Mon–Fri
   workflow_dispatch:
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
-      - name: Run post-market scan
+      - name: Run daily scan
         env:
           UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
           ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
@@ -35,13 +35,13 @@ jobs:
           SCORE_WATCH_ALERT: "35"
           ALERT_ON_WATCH: "true"
           ALERT_ON_BUY: "true"
-        run: python main.py postmarket
+        run: python main.py intraday
 
       - name: Upload report as artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: postmarket-report-${{ github.run_id }}
+          name: daily-report-${{ github.run_id }}
           path: reports/
           retention-days: 30
 
