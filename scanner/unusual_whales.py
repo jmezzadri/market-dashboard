@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -23,6 +24,11 @@ logger = logging.getLogger(__name__)
 
 # Per-process cache for /api/stock/{ticker}/info (cleared at each scan run).
 _COMPANY_NAME_CACHE: dict[str, str] = {}
+
+# Rate-limiting for per-ticker screener fallback calls.
+# 18 rapid-fire calls in < 1s was triggering UW 429s and poisoning the options chain pre-fetch.
+_SCREENER_LAST_CALL: float = 0.0
+_SCREENER_MIN_INTERVAL: float = 0.35  # seconds between per-ticker /api/screener/stocks calls
 
 
 def clear_company_name_cache() -> None:
@@ -88,13 +94,25 @@ def _headers() -> dict[str, str]:
     return h
 
 
-def _get(path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
+def _get(path: str, params: dict[str, Any] | None = None, *, _retries: int = 3) -> dict[str, Any]:
     if not UNUSUAL_WHALES_API_KEY:
         raise RuntimeError(
             "UNUSUAL_WHALES_API_KEY is not set. Copy .env.example to .env and add your key."
         )
     url = f"{UW_BASE_URL.rstrip('/')}{path}"
-    r = requests.get(url, headers=_headers(), params=params or {}, timeout=60)
+    for attempt in range(_retries + 1):
+        r = requests.get(url, headers=_headers(), params=params or {}, timeout=60)
+        if r.status_code == 429 and attempt < _retries:
+            wait = 2.0 ** attempt  # 1s → 2s → 4s
+            logger.warning(
+                "UW API rate limited (429) on %s — retry %d/%d after %.0fs",
+                path, attempt + 1, _retries, wait,
+            )
+            time.sleep(wait)
+            continue
+        r.raise_for_status()
+        return r.json()
+    # Should not reach here, but satisfy type checker
     r.raise_for_status()
     return r.json()
 
@@ -291,10 +309,19 @@ def fetch_screener_row_for_ticker(sym: str, signals: dict[str, Any]) -> dict[str
     (Query param is ``ticker`` — ``tickers`` can return an unrelated leaderboard row.)
     Cached on `signals` for the duration of the scan.
     """
+    global _SCREENER_LAST_CALL
     sym = sym.strip().upper()
     cache: dict[str, Any | None] = signals.setdefault("_uw_quote_cache", {})
     if sym in cache:
         return cache[sym]
+
+    # Throttle per-ticker screener calls to avoid triggering UW rate limits.
+    # Without this, 18+ calls fire in < 1s and 429s cascade into the options chain pre-fetch.
+    elapsed = time.monotonic() - _SCREENER_LAST_CALL
+    if elapsed < _SCREENER_MIN_INTERVAL:
+        time.sleep(_SCREENER_MIN_INTERVAL - elapsed)
+    _SCREENER_LAST_CALL = time.monotonic()
+
     try:
         raw = _get(
             "/api/screener/stocks",
