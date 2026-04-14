@@ -184,9 +184,216 @@ def _score_badge_html(score: Any) -> str:
     else:
         color = "#95a5a6"
     return (
-        f'<span style="background:{color};color:#fff;padding:1px 7px;'
-        f'border-radius:8px;font-size:11px;font-weight:600;">{s}</span>'
+        f'<span style="background:{color};color:#fff;padding:2px 8px;'
+        f'border-radius:10px;font-size:11px;font-weight:600;">{s}</span>'
     )
+
+
+def _pct_color_card(pct_str: str) -> str:
+    if not pct_str or pct_str == "N/A":
+        return "#888"
+    try:
+        v = float(pct_str.replace("%", "").replace("+", ""))
+    except ValueError:
+        return "#888"
+    if v > 0:
+        return "#27ae60"
+    if v < 0:
+        return "#e74c3c"
+    return "#888"
+
+
+def _perf_row_spans(w1: str, m1: str, ytd: str) -> str:
+    parts: list[str] = []
+    for lab, val in (("1W", w1), ("1M", m1), ("YTD", ytd)):
+        c = _pct_color_card(val)
+        parts.append(
+            f'<span style="margin-right:16px;">{lab} <strong style="color:{c};">'
+            f"{_escape_html(val)}</strong></span>"
+        )
+    return "".join(parts)
+
+
+def _card_left_border_hex(section: str, action: str) -> str:
+    if section == "portfolio":
+        a = (action or "").strip()
+        if a == "Sell":
+            return "#e74c3c"
+        if a == "Add":
+            return "#8e44ad"
+        return "#7f8c8d"
+    if section == "triggered":
+        return "#27ae60"
+    if section == "watch":
+        return "#2980b9"
+    return "#7f8c8d"
+
+
+def _pt_sl_row_triggered_watch(ptsl: dict[str, float] | None) -> str:
+    if not ptsl:
+        return ""
+    return (
+        f'<strong>PT</strong> {_escape_html(_fmt_money(ptsl["pt"]))} &nbsp;·&nbsp; '
+        f'<strong>SL</strong> {_escape_html(_fmt_money(ptsl["sl"]))}'
+    )
+
+
+def _pt_sl_row_portfolio(avg: float | None, ptsl: dict[str, float] | None) -> str:
+    chunks: list[str] = []
+    if avg is not None and avg > 0:
+        chunks.append(f'<strong>Avg cost</strong> {_escape_html(_fmt_money(avg))}')
+    if ptsl:
+        chunks.append(
+            f'<strong>PT</strong> {_escape_html(_fmt_money(ptsl["pt"]))} &nbsp;·&nbsp; '
+            f'<strong>SL</strong> {_escape_html(_fmt_money(ptsl["sl"]))}'
+        )
+    return " &nbsp;·&nbsp; ".join(chunks)
+
+
+def _cc_row_suffix_html(cc_plain: str) -> str:
+    esc = _escape_html(cc_plain)
+    if cc_plain.startswith("⚠️") or (
+        "Earnings" in cc_plain and "wait" in cc_plain.lower()
+    ):
+        return f'<span style="color:#e67e22;font-weight:bold;">CC: {esc}</span>'
+    if cc_plain.startswith("Sell ") and " | " in cc_plain:
+        return f'<span style="color:#444;">CC: {esc}</span>'
+    return f'<span style="color:#999;">CC: {esc}</span>'
+
+
+def _stock_card_html(row: dict[str, Any], section: str) -> str:
+    """One stock card for Triggered / Watchlist (score badge, no P&L row)."""
+    left = _card_left_border_hex(section, row.get("action") or "")
+    tbl = (
+        f'border-collapse:collapse;width:100%;margin-bottom:10px;'
+        f'border:1px solid #ddd;border-left:4px solid {left};'
+    )
+    tw = row.get("pc_1w", "N/A")
+    tm = row.get("pc_1m", "N/A")
+    ty = row.get("pc_ytd", "N/A")
+    perf = _perf_row_spans(str(tw), str(tm), str(ty))
+    cc_bit = _cc_row_suffix_html(row.get("cc_plain") or "")
+    analysis = (row.get("analysis") or "").strip()
+
+    row1_right = (
+        f'<strong style="font-size:14px;">{row["price"]}</strong>&nbsp;{row.get("score_badge_html") or ""}'
+    )
+    pt_block = _pt_sl_row_triggered_watch(row.get("ptsl"))
+
+    row3_inner = pt_block
+    if pt_block and cc_bit:
+        row3_inner = f"{pt_block}&nbsp;&nbsp;|&nbsp;&nbsp;{cc_bit}"
+    elif not pt_block and cc_bit:
+        row3_inner = cc_bit
+    elif pt_block and not cc_bit:
+        row3_inner = pt_block
+
+    analysis_row = ""
+    if analysis:
+        analysis_row = (
+            f'<tr style="background:#fafafa;">'
+            f'<td colspan="2" style="padding:8px 14px;font-size:12px;color:#555;'
+            f'font-style:italic;border-top:1px solid #eee;">{analysis}</td></tr>'
+        )
+
+    return (
+        f'<table style="{tbl}">'
+        f'<tr style="background:#f0f3f6;">'
+        f'<td style="padding:10px 14px;width:65%;">'
+        f'<strong style="font-size:14px;letter-spacing:0.3px;">{row["ticker"]}</strong>'
+        f'<span style="color:#555;font-size:12px;margin-left:8px;">{row["company"]}</span>'
+        f"</td>"
+        f'<td style="padding:10px 14px;text-align:right;width:35%;white-space:nowrap;">{row1_right}</td>'
+        f"</tr>"
+        f'<tr style="background:#fff;">'
+        f'<td colspan="2" style="padding:6px 14px;font-size:12px;border-top:1px solid #eee;">{perf}</td>'
+        f"</tr>"
+        f'<tr style="background:#fff;">'
+        f'<td colspan="2" style="padding:4px 14px 8px 14px;font-size:12px;'
+        f'border-top:1px solid #eee;color:#444;">{row3_inner}</td>'
+        f"</tr>"
+        f"{analysis_row}"
+        f"</table>"
+    )
+
+
+def _stock_card_html_portfolio(row: dict[str, Any]) -> str:
+    """Portfolio card: Row 1 uses 60/40 and P&L + action badge; Row 3 includes avg cost."""
+    left = _card_left_border_hex("portfolio", row.get("action") or "")
+    tbl = (
+        f'border-collapse:collapse;width:100%;margin-bottom:10px;'
+        f'border:1px solid #ddd;border-left:4px solid {left};'
+    )
+    tw, tm, ty = row.get("pc_1w", "N/A"), row.get("pc_1m", "N/A"), row.get("pc_ytd", "N/A")
+    perf = _perf_row_spans(str(tw), str(tm), str(ty))
+    cc_bit = _cc_row_suffix_html(row.get("cc_plain") or "")
+    analysis = (row.get("analysis") or "").strip()
+    pnl_raw = row.get("pnl_raw") or "—"
+    pnl_c = _pct_color_card(pnl_raw) if pnl_raw != "—" else "#888"
+    row1_right = (
+        f'<strong style="font-size:14px;">{row["price"]}</strong>&nbsp;'
+        f'<span style="color:{pnl_c};font-size:12px;font-weight:600;">{_escape_html(pnl_raw)}</span>&nbsp;'
+        f'{row.get("action_badge_html") or ""}'
+    )
+    pt_block = _pt_sl_row_portfolio(row.get("avg_cost"), row.get("ptsl"))
+    if pt_block and cc_bit:
+        row3_inner = f"{pt_block}&nbsp;&nbsp;|&nbsp;&nbsp;{cc_bit}"
+    elif not pt_block and cc_bit:
+        row3_inner = cc_bit
+    else:
+        row3_inner = pt_block or cc_bit
+    analysis_row = ""
+    if analysis:
+        analysis_row = (
+            f'<tr style="background:#fafafa;">'
+            f'<td colspan="2" style="padding:8px 14px;font-size:12px;color:#555;'
+            f'font-style:italic;border-top:1px solid #eee;">{analysis}</td></tr>'
+        )
+    return (
+        f'<table style="{tbl}">'
+        f'<tr style="background:#f0f3f6;">'
+        f'<td style="padding:10px 14px;width:60%;">'
+        f'<strong style="font-size:14px;">{row["ticker"]}</strong>'
+        f'<span style="color:#555;font-size:12px;margin-left:8px;">{row["company"]}</span>'
+        f"</td>"
+        f'<td style="padding:10px 14px;text-align:right;width:40%;white-space:nowrap;">{row1_right}</td>'
+        f"</tr>"
+        f'<tr style="background:#fff;">'
+        f'<td colspan="2" style="padding:6px 14px;font-size:12px;border-top:1px solid #eee;">{perf}</td>'
+        f"</tr>"
+        f'<tr style="background:#fff;">'
+        f'<td colspan="2" style="padding:4px 14px 8px 14px;font-size:12px;'
+        f'border-top:1px solid #eee;color:#444;">{row3_inner}</td>'
+        f"</tr>"
+        f"{analysis_row}"
+        f"</table>"
+    )
+
+
+def _build_section_html(full_title: str, section: str, rows: list[dict[str, Any]]) -> str:
+    """Section header table + stock cards or empty state."""
+    header = (
+        '<table style="border-collapse:collapse;width:100%;margin-bottom:6px;">'
+        "<tr>"
+        '<td style="background:#1a5276;color:#fff;padding:10px 14px;'
+        'font-size:13px;font-weight:bold;border-radius:4px 4px 0 0;">'
+        f"{_escape_html(full_title)}</td>"
+        "</tr></table>"
+    )
+    if not rows:
+        return (
+            header
+            + '<table style="border-collapse:collapse;width:100%;margin-bottom:20px;">'
+            + '<tr><td style="padding:12px 14px;font-size:12px;color:#888;font-style:italic;'
+            + 'border:1px solid #ddd;border-top:none;">No entries this scan.</td></tr></table>'
+        )
+    cards: list[str] = []
+    for r in rows:
+        if section == "portfolio":
+            cards.append(_stock_card_html_portfolio(r))
+        else:
+            cards.append(_stock_card_html(r, section))
+    return header + "".join(cards) + '<div style="margin-bottom:24px;"></div>'
 
 
 def _resolve_cc_cell(
@@ -357,114 +564,6 @@ def _portfolio_analysis_cell(sym: str, action: str, signals: dict[str, Any], sel
     return base
 
 
-def _row_left_border(section: str, action: str) -> str:
-    if action == "Sell":
-        return "border-left:4px solid #e74c3c;"
-    if section == "triggered":
-        return "border-left:4px solid #27ae60;"
-    if section == "watch":
-        return "border-left:4px solid #2980b9;"
-    return "border-left:4px solid #7f8c8d;"
-
-
-def _build_data_table_html(
-    section: str,
-    header_score_or_pnl: str,
-    rows: list[dict[str, Any]],
-    title: str,
-) -> str:
-    """
-    Section title row inside <thead> (full colspan). Triggered/watch: 9 cols; portfolio: 10 (includes Action).
-    Analysis is a sub-row when present in row dict.
-    """
-    is_pf = section == "portfolio"
-    col_count = 10 if is_pf else 9
-    td = 'style="padding:6px 8px;font-size:12px;border-bottom:1px solid #ddd;vertical-align:top;"'
-    tbl = 'style="border-collapse:collapse;width:100%;table-layout:fixed;"'
-
-    def th(mw: int) -> str:
-        return (
-            f'style="background:#2e86c1;color:#fff;font-size:12px;padding:6px 8px;'
-            f'text-align:left;border:1px solid #1f5f85;min-width:{mw}px;"'
-        )
-
-    title_row = (
-        f'<tr><th colspan="{col_count}" style="background:#1a5276;color:#fff;padding:8px 12px;'
-        f'font-size:13px;font-weight:bold;text-align:left;border:1px solid #134c6b;">'
-        f"{_escape_html(title)}</th></tr>"
-    )
-    if is_pf:
-        hdr_cols = (
-            f"<tr>"
-            f'<th {th(50)}>Ticker</th>'
-            f'<th {th(130)}>Company</th>'
-            f'<th {th(65)}>Price</th>'
-            f'<th {th(50)}>{_escape_html(header_score_or_pnl)}</th>'
-            f'<th {th(48)}>1W</th><th {th(48)}>1M</th><th {th(48)}>YTD</th>'
-            f'<th {th(55)}>Action</th>'
-            f'<th {th(160)}>Covered Call</th>'
-            f'<th {th(110)}>PT / SL</th>'
-            f"</tr>"
-        )
-    else:
-        hdr_cols = (
-            f"<tr>"
-            f'<th {th(50)}>Ticker</th>'
-            f'<th {th(130)}>Company</th>'
-            f'<th {th(65)}>Price</th>'
-            f'<th {th(50)}>{_escape_html(header_score_or_pnl)}</th>'
-            f'<th {th(48)}>1W</th><th {th(48)}>1M</th><th {th(48)}>YTD</th>'
-            f'<th {th(160)}>Covered Call</th>'
-            f'<th {th(110)}>PT / SL</th>'
-            f"</tr>"
-        )
-
-    thead = f"<thead>{title_row}{hdr_cols}</thead>"
-
-    if not rows:
-        empty_td = (
-            'style="padding:10px 8px;color:#777;font-style:italic;'
-            'border-bottom:1px solid #ddd;font-size:12px;"'
-        )
-        empty = f'<tr><td colspan="{col_count}" {empty_td}>No entries this scan.</td></tr>'
-        return f"<table {tbl}>{thead}<tbody>{empty}</tbody></table>"
-
-    body_lines: list[str] = []
-    for i, r in enumerate(rows):
-        bg = "background:#f2f3f4;" if i % 2 == 0 else ""
-        lb = _row_left_border(section, r.get("action") or "")
-        tr_style = f"{lb}{bg}"
-        cells = [
-            f'<tr style="{tr_style}">',
-            f'<td {td}><strong>{r["ticker"]}</strong></td>',
-            f'<td {td}>{r["company"]}</td>',
-            f'<td {td}>{r["price"]}</td>',
-            f'<td {td}>{r["score_or_pnl"]}</td>',
-            f'<td {td}>{r["w1"]}</td>',
-            f'<td {td}>{r["m1"]}</td>',
-            f'<td {td}>{r["ytd"]}</td>',
-        ]
-        if is_pf:
-            cells.append(f'<td {td}>{r["action_html"]}</td>')
-        cells.extend(
-            [
-                f'<td {td}>{r["cc_combined"]}</td>',
-                f'<td {td}>{r["pt_sl"]}</td>',
-                "</tr>",
-            ]
-        )
-        body_lines.append("".join(cells))
-        an = (r.get("analysis") or "").strip()
-        if an:
-            sub = (
-                f'<tr style="{lb}{bg}">'
-                f'<td colspan="{col_count}" style="padding:4px 8px 10px 16px;font-size:11px;color:#555;'
-                f'font-style:italic;border-bottom:1px solid #ddd;">{an}</td></tr>'
-            )
-            body_lines.append(sub)
-    return f"<table {tbl}>{thead}<tbody>{''.join(body_lines)}</tbody></table>"
-
-
 def _fmt_money(x: float | None) -> str:
     if x is None:
         return "—"
@@ -484,7 +583,7 @@ def build_scan_report_body_html(
     portfolio_positions: list[dict[str, Any]] | None = None,
 ) -> str:
     """
-    Three structured HTML tables (inline CSS). Same content as redesigned email body.
+    Card-based HTML (inline CSS) for email width ~580px — one card per ticker per section.
     """
     portfolio_positions = portfolio_positions or []
     et = ZoneInfo("America/New_York")
@@ -498,7 +597,6 @@ def build_scan_report_body_html(
         price = opp.get("current_price")
         pc = get_price_changes(t)
         ptsl = calc_pt_sl(float(price)) if price is not None and price > 0 else None
-        pt_sl_s = _pt_sl_compact_html(ptsl)
         cc_cell = _resolve_cc_cell(
             t,
             _parse_float(price),
@@ -511,13 +609,13 @@ def build_scan_report_body_html(
                 "ticker": _escape_html(sym),
                 "company": _escape_html(uw.get_company_name(t)),
                 "price": _escape_html(_fmt_money(price)),
-                "score_or_pnl": _score_badge_html(opp.get("score", "")),
-                "w1": _pct_cell_html(pc.get("1w", "N/A")),
-                "m1": _pct_cell_html(pc.get("1m", "N/A")),
-                "ytd": _pct_cell_html(pc.get("ytd", "N/A")),
+                "pc_1w": pc.get("1w", "N/A"),
+                "pc_1m": pc.get("1m", "N/A"),
+                "pc_ytd": pc.get("ytd", "N/A"),
+                "score_badge_html": _score_badge_html(opp.get("score", "")),
                 "analysis": _escape_html(narr).replace("\n", "<br/>") if narr else "",
-                "cc_combined": cc_cell["html"],
-                "pt_sl": pt_sl_s,
+                "cc_plain": cc_cell["plain"],
+                "ptsl": ptsl,
                 "action": "Buy",
             }
         )
@@ -529,7 +627,6 @@ def build_scan_report_body_html(
         price = w.get("current_price")
         pc = get_price_changes(t)
         ptsl = calc_pt_sl(float(price)) if price is not None and price > 0 else None
-        pt_sl_s = _pt_sl_compact_html(ptsl)
         cc_cell = _resolve_cc_cell(t, _parse_float(price), signals)
         narr = _analysis_two_sentences(t, signals)
         watch_rows.append(
@@ -537,13 +634,13 @@ def build_scan_report_body_html(
                 "ticker": _escape_html(sym),
                 "company": _escape_html(uw.get_company_name(t)),
                 "price": _escape_html(_fmt_money(price)),
-                "score_or_pnl": _score_badge_html(w.get("score", "")),
-                "w1": _pct_cell_html(pc.get("1w", "N/A")),
-                "m1": _pct_cell_html(pc.get("1m", "N/A")),
-                "ytd": _pct_cell_html(pc.get("ytd", "N/A")),
+                "pc_1w": pc.get("1w", "N/A"),
+                "pc_1m": pc.get("1m", "N/A"),
+                "pc_ytd": pc.get("ytd", "N/A"),
+                "score_badge_html": _score_badge_html(w.get("score", "")),
                 "analysis": _escape_html(narr).replace("\n", "<br/>") if narr else "",
-                "cc_combined": cc_cell["html"],
-                "pt_sl": pt_sl_s,
+                "cc_plain": cc_cell["plain"],
+                "ptsl": ptsl,
                 "action": "Watch",
             }
         )
@@ -559,15 +656,13 @@ def build_scan_report_body_html(
         if price is None and isinstance(screener, dict) and sym in screener:
             price = _parse_float((screener[sym] or {}).get("prev_close") or (screener[sym] or {}).get("close"))
         pc = get_price_changes(sym)
-        pnl_html = "—"
+        pnl_raw = "—"
         if avg is not None and avg > 0 and price is not None:
             pnl = (float(price) - avg) / avg * 100.0
-            pnl_s = f"{pnl:+.1f}%"
-            pnl_html = _pct_cell_html(pnl_s)
+            pnl_raw = f"{pnl:+.1f}%"
         sc = score_map.get(sym)
         act = _portfolio_action_for_ticker(sym, sell_alerts, sc)
         ptsl = calc_pt_sl(float(avg)) if avg is not None and avg > 0 else None
-        pt_sl_s = _pt_sl_compact_html(ptsl)
         cc_cell = _resolve_cc_cell(sym, _parse_float(price), signals)
         pan = _portfolio_analysis_cell(sym, act, signals, sell_alerts)
         portfolio_rows.append(
@@ -575,43 +670,36 @@ def build_scan_report_body_html(
                 "ticker": _escape_html(sym),
                 "company": _escape_html(uw.get_company_name(sym)),
                 "price": _escape_html(_fmt_money(price)),
-                "score_or_pnl": pnl_html,
-                "w1": _pct_cell_html(pc.get("1w", "N/A")),
-                "m1": _pct_cell_html(pc.get("1m", "N/A")),
-                "ytd": _pct_cell_html(pc.get("ytd", "N/A")),
-                "action_html": _action_pill_html(act),
+                "pc_1w": pc.get("1w", "N/A"),
+                "pc_1m": pc.get("1m", "N/A"),
+                "pc_ytd": pc.get("ytd", "N/A"),
+                "pnl_raw": pnl_raw,
+                "action_badge_html": _action_pill_html(act),
                 "analysis": _escape_html(pan).replace("\n", "<br/>") if pan else "",
-                "cc_combined": cc_cell["html"],
-                "pt_sl": pt_sl_s,
+                "cc_plain": cc_cell["plain"],
+                "ptsl": ptsl,
+                "avg_cost": avg,
                 "action": act,
             }
         )
 
     parts: list[str] = [
-        '<div style="font-family:Arial,sans-serif;max-width:820px;margin:auto;">',
-        '<div style="margin-bottom:24px;">'
-        + _build_data_table_html(
-            "triggered", "Score", triggered_rows, "🟢 RECOMMENDATIONS (Triggered)"
-        )
-        + "</div>",
-        '<div style="margin-bottom:24px;">'
-        + _build_data_table_html("watch", "Score", watch_rows, "👀 WATCHLIST (Near Trigger)")
-        + "</div>",
-        '<div style="margin-bottom:24px;">'
-        + _build_data_table_html("portfolio", "P&L", portfolio_rows, "📋 CURRENT PORTFOLIO")
-        + "</div>",
+        '<div style="font-family:Arial,sans-serif;max-width:640px;margin:auto;color:#222;">',
+        _build_section_html("🟢 RECOMMENDATIONS (Triggered)", "triggered", triggered_rows),
+        _build_section_html("👀 WATCHLIST (Near Trigger)", "watch", watch_rows),
+        _build_section_html("📋 CURRENT PORTFOLIO", "portfolio", portfolio_rows),
         "</div>",
     ]
 
     next_hint = NEXT_SCAN_BLURB.get(scan_type.lower(), "the next scheduled run")
     parts.append(
-        f'<p style="margin:16px 0 8px 0;font-size:13px;color:#555;font-family:Arial,sans-serif;">'
-        f"<em>Scan complete | {now.strftime('%a %b ') + str(now.day)} {now.strftime('%I:%M %p %Z')} | "
-        f"Unusual Whales data</em><br/>"
-        f"<em>Next scan: {_escape_html(next_hint)}</em><br/>"
+        '<div style="font-size:11px;color:#888;margin-top:20px;padding-top:12px;border-top:1px solid #eee;">'
+        f"Scan complete | {now.strftime('%a %b ') + str(now.day)} {now.strftime('%I:%M %p %Z')} | "
+        f"Unusual Whales data<br/>"
+        f"Next scan: {_escape_html(next_hint)}<br/>"
         f'<a href="https://github.com/jmezzadri/trading-scanner/blob/main/portfolio/positions.csv" '
         f'style="color:#1a5276;">Update your portfolio: positions.csv on GitHub</a>'
-        f"</p>"
+        f"</div>"
     )
     return "\n".join(parts)
 
