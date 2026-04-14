@@ -24,6 +24,7 @@ from config import (
     SCORE_WATCH_ALERT,
 )
 from scanner import notifier, reporter, schwab, unusual_whales as uw
+from scanner.price_history import clear_price_changes_cache
 from scanner.covered_calls import find_covered_call
 from scanner.portfolio_io import load_covered_calls, load_portfolio_positions
 from scanner.scan_state import load_last_scores, save_last_scores
@@ -135,6 +136,7 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     scan_type options: "premarket", "intraday", "postmarket", "weekly"
     """
     uw.clear_company_name_cache()
+    clear_price_changes_cache()
     print(f"Starting {scan_type} scan...")
 
     signals: dict[str, Any] = {
@@ -190,6 +192,7 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         (ticker, score_ticker(ticker, signals)) for ticker in filtered
     ]
     all_scores.sort(key=lambda x: x[1], reverse=True)
+    signals["_score_by_ticker"] = dict(all_scores)
 
     if debug:
         print(f"\n--- DEBUG: top 10 scores (buy ≥{SCORE_BUY_ALERT}, watch {SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1}) ---")
@@ -315,6 +318,7 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
             watch_items,
             sell_alerts,
             signals,
+            portfolio_positions=portfolio_positions,
         )
         notifier.send_alert_email(subj, html_b, text_b)
 

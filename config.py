@@ -90,6 +90,8 @@ CC_SPREAD_WIDE_NOTE_MIN_PCT = 0.05
 
 # Portfolio / sell triggers (CURSOR_TRIGGERS_SPEC)
 STOP_LOSS_PCT = float(os.getenv("STOP_LOSS_PCT", "0.15"))
+# Profit target for PT line in emails/reports (default 20%)
+PROFIT_TARGET_PCT = float(os.getenv("PROFIT_TARGET_PCT", "0.20"))
 SCORE_COLLAPSE_THRESHOLD = int(os.getenv("SCORE_COLLAPSE_THRESHOLD", "15"))
 SCORE_COLLAPSE_PRIOR_MIN = int(os.getenv("SCORE_COLLAPSE_PRIOR_MIN", "35"))
 INSIDER_REVERSAL_LOOKBACK = int(os.getenv("INSIDER_REVERSAL_LOOKBACK", "90"))

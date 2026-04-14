@@ -7,6 +7,7 @@ from typing import Any
 
 from config import (
     INSIDER_REVERSAL_LOOKBACK,
+    PROFIT_TARGET_PCT,
     ROLL_EXPIRY_DAYS,
     ROLL_PROFIT_THRESHOLD,
     ROLL_STRIKE_PROXIMITY,
@@ -37,6 +38,25 @@ def _price_for_ticker(ticker: str, screener: dict[str, Any]) -> float | None:
 
 def _fmt(x: float) -> str:
     return f"${x:,.2f}"
+
+
+def calc_pt_sl(
+    entry_price: float,
+    stop_pct: float | None = None,
+    target_pct: float | None = None,
+) -> dict[str, float]:
+    """
+    Profit target and stop loss for a given entry.
+    Defaults: STOP_LOSS_PCT / PROFIT_TARGET_PCT from config (15% / 20%).
+    """
+    sp = STOP_LOSS_PCT if stop_pct is None else stop_pct
+    tp = PROFIT_TARGET_PCT if target_pct is None else target_pct
+    e = float(entry_price)
+    return {
+        "entry": round(e, 2),
+        "pt": round(e * (1 + tp), 2),
+        "sl": round(e * (1 - sp), 2),
+    }
 
 
 def _norm_name(n: str) -> str:
