@@ -444,6 +444,92 @@ def _build_section_html(
     return header + "".join(cards) + '<div style="margin-bottom:24px;"></div>'
 
 
+def _diagnose_cc_failure(chain: list[dict[str, Any]], price: float) -> str:
+    """
+    Scan the options chain and return a human-readable reason why no contract
+    passed the covered call filters. Gives the user specific, actionable info
+    instead of the opaque 'No liquid strikes'.
+    """
+    import math
+    from config import CC_MIN_ANNUALIZED_YIELD, CC_OTM_IV_MULTIPLIER, CC_MIN_EXPIRY_DAYS, CC_MAX_EXPIRY_DAYS
+    from scanner.covered_calls import _iv_decimal, parse_option_symbol
+
+    if not chain or price <= 0:
+        return "No options data"
+
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    min_exp = today + timedelta(days=CC_MIN_EXPIRY_DAYS)
+    max_exp = today + timedelta(days=CC_MAX_EXPIRY_DAYS)
+
+    in_dte, has_bid, best_yield, spread_kills, otm_kills = 0, 0, 0.0, 0, 0
+
+    for contract in chain:
+        opt_sym = str(contract.get("option_symbol") or "")
+        parsed = parse_option_symbol(opt_sym) if opt_sym else None
+        if parsed:
+            exp = parsed["expiry"]
+            strike = float(parsed["strike"])
+        else:
+            try:
+                strike = float(contract.get("strike") or 0)
+            except (TypeError, ValueError):
+                continue
+            exp_s = str(contract.get("expiry") or "")[:10]
+            try:
+                exp = datetime.strptime(exp_s, "%Y-%m-%d")
+            except ValueError:
+                continue
+
+        if not (min_exp <= exp <= max_exp):
+            continue
+        in_dte += 1
+
+        bid = float(contract.get("nbbo_bid") or 0)
+        ask = float(contract.get("nbbo_ask") or contract.get("ask") or 0)
+        if bid <= 0:
+            continue
+        has_bid += 1
+
+        if ask > 0:
+            mid = (bid + ask) / 2
+            spread_frac = (ask - bid) / mid if mid > 0 else 1.0
+            if spread_frac > 0.10:
+                spread_kills += 1
+                continue
+
+        iv_raw = contract.get("implied_volatility") or contract.get("iv")
+        try:
+            iv = float(iv_raw or 0)
+        except (TypeError, ValueError):
+            iv = 0.0
+        if iv > 1.25:
+            iv /= 100.0
+        if iv <= 0:
+            continue
+
+        dte = max((exp - today).days, 1)
+        min_otm = CC_OTM_IV_MULTIPLIER * iv * math.sqrt(dte / 365.0)
+        otm_frac = (strike - price) / price
+        if otm_frac < min_otm:
+            otm_kills += 1
+            continue
+
+        ann_yield = (bid / price) * (365 / dte)
+        best_yield = max(best_yield, ann_yield)
+
+    if in_dte == 0:
+        return f"No contracts in {CC_MIN_EXPIRY_DAYS}–{CC_MAX_EXPIRY_DAYS} DTE window"
+    if has_bid == 0:
+        return "All bids $0 — market closed or after-hours"
+    if spread_kills > 0 and has_bid - spread_kills == 0:
+        return f"Spreads too wide (>{int(0.10 * 100)}% of mid) on all contracts with bids"
+    if otm_kills > 0 and best_yield == 0.0:
+        return "All strikes too close to money (1σ OTM rule)"
+    if best_yield > 0:
+        return f"Best yield {best_yield * 100:.0f}% — target ≥ {int(CC_MIN_ANNUALIZED_YIELD * 100)}% annualized"
+    return "No strikes met OTM + yield criteria"
+
+
 def _resolve_cc_cell(
     ticker: str,
     price: float | None,
@@ -518,7 +604,7 @@ def _resolve_cc_cell(
         return {"html": h, "plain": p}
 
     if ivr is not None and ivr < CC_MIN_IV_RANK:
-        msg = f"No — IVR too low (< {ivr_floor})"
+        msg = f"IVR {ivr:.0f} — target ≥ {ivr_floor}"
         return {
             "html": f'<span style="color:#999">{_escape_html(msg)}</span>',
             "plain": msg,
@@ -533,13 +619,14 @@ def _resolve_cc_cell(
         }
 
     if not chain:
-        msg = "No — No options data"
+        msg = "No options data from API"
         return {
             "html": f'<span style="color:#999">{_escape_html(msg)}</span>',
             "plain": msg,
         }
 
-    msg = "No — No liquid strikes"
+    # Diagnose why no contract passed — give the user a specific reason
+    msg = _diagnose_cc_failure(chain, float(price) if price else 0.0)
     return {
         "html": f'<span style="color:#999">{_escape_html(msg)}</span>',
         "plain": msg,
@@ -744,14 +831,15 @@ def build_scan_report_body_html(
         "</div>",
     ]
 
-    next_hint = NEXT_SCAN_BLURB.get(scan_type.lower(), "the next scheduled run")
     parts.append(
         '<div style="font-size:11px;color:#888;margin-top:20px;padding-top:12px;border-top:1px solid #eee;">'
-        f"Scan complete | {now.strftime('%a %b ') + str(now.day)} {now.strftime('%I:%M %p %Z')} | "
-        f"Unusual Whales data<br/>"
-        f"Next scan: {_escape_html(next_hint)}<br/>"
+        f"Scan complete | {now.strftime('%a %b ') + str(now.day)} {now.strftime('%I:%M %p %Z %Y')} (market COB)<br/>"
+        f"Data: Unusual Whales (options flow, dark pool) · SEC EDGAR/Congress.gov (insider &amp; congressional trades) · Yahoo Finance (technicals)<br/>"
+        f'<a href="https://market-dashboard-git-main-joe-mezzadri.vercel.app/#scanner" '
+        f'style="color:#1a5276;font-weight:bold;">📊 Open Interactive Dashboard</a>'
+        f" &nbsp;·&nbsp; "
         f'<a href="https://github.com/jmezzadri/trading-scanner/blob/main/portfolio/positions.csv" '
-        f'style="color:#1a5276;">Update your portfolio: positions.csv on GitHub</a>'
+        f'style="color:#1a5276;">Update portfolio (positions.csv)</a>'
         f"</div>"
     )
     return "\n".join(parts)
@@ -1242,7 +1330,8 @@ def build_latest_report_html(
 
     footer = (
         f'<p style="margin-top:1.5rem;font-size:0.82rem;color:#888;border-top:1px solid #ddd;padding-top:12px;">'
-        f"Generated by Trading Signal Scanner · Unusual Whales API · {_escape_html(date_str)}"
+        f"Trading Signal Scanner · {_escape_html(date_str)} (market COB) · "
+        f"Data: Unusual Whales · SEC EDGAR/Congress.gov · Yahoo Finance"
         f"</p>"
     )
 
@@ -1364,6 +1453,88 @@ def _max_profit_per_share(strike: float, stock: float, premium: float) -> tuple[
     cap = (strike - stock) + premium
     pct = (cap / stock * 100) if stock else 0.0
     return cap, pct
+
+
+def _safe(obj: Any) -> Any:
+    """Recursively convert non-JSON-serializable types."""
+    import math as _math
+    if obj is None or isinstance(obj, (bool, int, str)):
+        return obj
+    if isinstance(obj, float):
+        return None if (_math.isnan(obj) or _math.isinf(obj)) else round(obj, 6)
+    if isinstance(obj, dict):
+        return {k: _safe(v) for k, v in obj.items() if not str(k).startswith("_")}
+    if isinstance(obj, (list, tuple)):
+        return [_safe(v) for v in obj]
+    return str(obj)
+
+
+def _write_json_data(
+    scan_type: str,
+    date_str: str,
+    buy_opportunities: list[dict[str, Any]],
+    watch_items: list[dict[str, Any]],
+    sell_alerts: list[dict[str, Any]],
+    signals: dict[str, Any],
+    portfolio_positions: list[dict[str, Any]],
+    portfolio_covered_calls: list[dict[str, Any]],
+) -> None:
+    """
+    Write reports/latest_scan_data.json — the data feed consumed by the
+    interactive dashboard on Vercel. Excludes internal cache keys (_*).
+    """
+    import json as _json
+    from zoneinfo import ZoneInfo as _ZI
+
+    et = _ZI("America/New_York")
+    now = datetime.now(et)
+
+    # Screener is a dict keyed by ticker — include only tickers in play
+    relevant_tickers = (
+        {(o.get("ticker") or "").upper() for o in buy_opportunities}
+        | {(w.get("ticker") or "").upper() for w in watch_items}
+        | {(p.get("ticker") or "").upper() for p in portfolio_positions}
+    )
+    screener_slim = {
+        t: v for t, v in (signals.get("screener") or {}).items()
+        if t in relevant_tickers
+    }
+
+    payload = {
+        "scan_time": now.isoformat(),
+        "scan_type": scan_type,
+        "date_label": date_str,
+        "buy_opportunities": _safe(buy_opportunities),
+        "watch_items": _safe(watch_items),
+        "sell_alerts": _safe(sell_alerts),
+        "portfolio_positions": _safe(portfolio_positions),
+        "portfolio_covered_calls": _safe(portfolio_covered_calls),
+        "score_by_ticker": _safe(signals.get("_score_by_ticker") or {}),
+        "signals": {
+            "congress_buys": _safe(signals.get("congress_buys") or []),
+            "congress_sells": _safe(signals.get("congress_sells") or []),
+            "insider_buys": _safe(signals.get("insider_buys") or []),
+            "insider_sales": _safe(signals.get("insider_sales") or []),
+            "flow_alerts": _safe(signals.get("flow_alerts") or []),
+            "darkpool": _safe(signals.get("darkpool") or []),
+            "screener": _safe(screener_slim),
+        },
+        "config": {
+            "score_buy_alert": int((signals.get("_score_by_ticker") or {}) and 60),
+            "score_watch_alert": 35,
+            "cc_min_iv_rank": 30,
+            "cc_min_annualized_yield_pct": 25,
+            "cc_otm_iv_multiplier": 1.0,
+            "cc_min_dte": 14,
+            "cc_max_dte": 42,
+            "profit_target_pct": 20,
+            "stop_loss_pct": 15,
+        },
+    }
+
+    json_path = REPORTS_DIR / "latest_scan_data.json"
+    json_path.write_text(_json.dumps(payload, indent=2), encoding="utf-8")
+    logger.info("Wrote %s", json_path)
 
 
 def generate_report(
@@ -1597,7 +1768,7 @@ def generate_report(
         lines.append("*(Available when Schwab API connected)*")
     lines.append("")
     lines.append("---")
-    lines.append("*Generated by Trading Signal Scanner | Unusual Whales API*")
+    lines.append("*Trading Signal Scanner · Data: Unusual Whales · SEC EDGAR/Congress.gov · Yahoo Finance*")
     lines.append("")
 
     md_path.write_text("\n".join(lines), encoding="utf-8")
@@ -1650,6 +1821,12 @@ def generate_report(
     df = pd.DataFrame(rows, columns=cols)
     df.to_csv(csv_path, index=False)
     logger.info("Wrote %s", csv_path)
+
+    # Write JSON data feed for the interactive dashboard
+    _write_json_data(
+        scan_type, date_str, buy_opportunities, watch_items, sell_alerts,
+        signals, portfolio_positions, portfolio_covered_calls,
+    )
 
     latest = REPORTS_DIR / "latest_report.html"
     latest.write_text(
@@ -1706,12 +1883,12 @@ def build_email_content(
         signals,
         portfolio_positions,
     )
-    next_hint = NEXT_SCAN_BLURB.get(st, "the next scheduled run")
     text = (
         text
         + "\n\n"
-        + f"Scan complete | {now.strftime('%Y-%m-%d %I:%M %p %Z')} | Unusual Whales data\n"
-        + f"Next scan: {next_hint}\n"
+        + f"Scan complete | {now.strftime('%Y-%m-%d %I:%M %p %Z')} (market COB)\n"
+        + "Data: Unusual Whales · SEC EDGAR/Congress.gov · Yahoo Finance\n"
+        + "Dashboard: https://market-dashboard-git-main-joe-mezzadri.vercel.app/#scanner\n"
         + "Update portfolio: https://github.com/jmezzadri/trading-scanner/blob/main/portfolio/positions.csv\n"
     )
 
