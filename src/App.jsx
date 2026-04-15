@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Scanner from "./Scanner";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
@@ -1374,7 +1375,7 @@ return(
 }
 
 // ── MAIN APP ─────────────────────────────────────────────────────────────────
-const TAB_IDS=["overview","analysis","indicators","sectors","portfolio","readme"];
+const TAB_IDS=["overview","analysis","indicators","sectors","portfolio","scanner","readme"];
 
 export default function App(){
 const [tab,setTab]=useState(()=>{
@@ -1463,7 +1464,7 @@ return(
 
 {/* TABS */}
 <div style={{padding:"8px 20px",borderBottom:"1px solid #0e0e0e",display:"flex",gap:5,flexWrap:"wrap"}}>
-{[["overview","OVERVIEW"],["analysis","AI ANALYSIS"],["indicators","INDICATORS"],["sectors","SECTORS"],["portfolio","PORTFOLIO"],["readme","FAQ"]].map(([id,label])=>(
+{[["overview","OVERVIEW"],["analysis","AI ANALYSIS"],["indicators","INDICATORS"],["sectors","SECTORS"],["portfolio","PORTFOLIO"],["scanner","📈 SCANNER"],["readme","FAQ"]].map(([id,label])=>(
 <button key={id} onClick={()=>setTab(id)} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:tab===id?"#e0e0e0":"transparent",color:tab===id?"#000":"#bcbcbc",borderColor:tab===id?"#e0e0e0":"#1e1e1e"}}>{label}</button>
 ))}
 </div>
@@ -1702,6 +1703,9 @@ return(<div key={acc.id} style={{flex:t/grandTotal,background:acc.color,opacity:
 <div style={{fontSize:7,color:"#7a7a7a",fontFamily:"monospace"}}>Sample portfolio · Illustrative values only · Not investment advice</div>
 </div>
 )}
+
+{/* SCANNER */}
+{tab==="scanner"&&<Scanner/>}
 
 {/* FAQ */}
 {tab==="readme"&&(
