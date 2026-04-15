@@ -1520,9 +1520,9 @@ def _write_json_data(
             "screener": _safe(screener_slim),
         },
         "config": {
-            "score_buy_alert": int((signals.get("_score_by_ticker") or {}) and 60),
-            "score_watch_alert": 35,
-            "cc_min_iv_rank": 30,
+            "score_buy_alert": SCORE_BUY_ALERT,
+            "score_watch_alert": SCORE_WATCH_ALERT,
+            "cc_min_iv_rank": CC_MIN_IV_RANK,
             "cc_min_annualized_yield_pct": 25,
             "cc_otm_iv_multiplier": 1.0,
             "cc_min_dte": 14,
@@ -1822,11 +1822,14 @@ def generate_report(
     df.to_csv(csv_path, index=False)
     logger.info("Wrote %s", csv_path)
 
-    # Write JSON data feed for the interactive dashboard
-    _write_json_data(
-        scan_type, date_str, buy_opportunities, watch_items, sell_alerts,
-        signals, portfolio_positions, portfolio_covered_calls,
-    )
+    # Write JSON data feed for the interactive dashboard (non-fatal if it fails)
+    try:
+        _write_json_data(
+            scan_type, date_str, buy_opportunities, watch_items, sell_alerts,
+            signals, portfolio_positions, portfolio_covered_calls,
+        )
+    except Exception as _e:
+        logger.warning("_write_json_data failed (non-fatal): %s", _e)
 
     latest = REPORTS_DIR / "latest_report.html"
     latest.write_text(
