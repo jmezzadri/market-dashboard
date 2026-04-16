@@ -1428,6 +1428,11 @@ useEffect(()=>{window.location.hash=tab;},[tab]);
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
 const [showCompHist,setShowCompHist]=useState(false);
+const [scanData,setScanData]=useState(null);
+useEffect(()=>{
+  fetch("https://raw.githubusercontent.com/jmezzadri/trading-scanner/main/reports/latest_scan_data.json?t="+Date.now())
+    .then(r=>r.ok?r.json():null).then(d=>setScanData(d)).catch(()=>{});
+},[]);
 const trendIdx={"1M":7,"3M":8,"6M":9,"12M":10};
 
 const visibleIds=Object.keys(IND).filter(id=>{
@@ -1511,10 +1516,96 @@ return(
 {tab==="overview"&&(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:14}}>
 
-{/* MACRO NARRATIVE */}
+{/* TOOL DESCRIPTION */}
 <div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}44`,borderRadius:8,padding:"14px 16px"}}>
-<div style={{fontSize:8,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>MACRO DASHBOARD & TRADING SCANNER · EXECUTIVE SUMMARY</div>
-<div style={{fontSize:10,color:"#d8d8d8",lineHeight:1.85,fontStyle:"italic"}}>{buildMacroNarrative()}</div>
+<div style={{fontSize:8,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>MACRO DASHBOARD & TRADING OPPORTUNITY SCANNER · OVERVIEW</div>
+<div style={{fontSize:10,color:"#d8d8d8",lineHeight:1.85}}>
+This tool combines two complementary systems. The <span style={{color:CONV.color,fontWeight:700}}>Macro Dashboard</span> monitors 25 economic and financial stress indicators across six categories — Credit, Equity, Macro, Rates, Liquidity, and Sentiment — producing a composite stress score that drives a four-regime conviction framework for asset allocation. The <span style={{color:"#4a9eff",fontWeight:700}}>Trading Opportunity Scanner</span> runs daily at 3:45 PM ET, screening a universe of stocks and ETFs for technical and fundamental buy signals, watch candidates, covered call setups, and sell alerts on existing portfolio positions. Together they provide a macro-informed, systematically-scored view of where to allocate capital and when to act.
+</div>
+</div>
+
+{/* TWO-COLUMN STATUS */}
+<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:14}}>
+
+{/* MACRO STATUS */}
+<div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+<div style={{fontSize:8,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em"}}>MACRO DASHBOARD STATUS</div>
+<div style={{display:"flex",alignItems:"flex-end",gap:10}}>
+<div style={{fontSize:40,fontWeight:800,color:CONV.color,fontFamily:"monospace",lineHeight:1}}>{COMP100}</div>
+<div style={{paddingBottom:4}}>
+<div style={{fontSize:11,fontWeight:700,color:CONV.color,fontFamily:"monospace"}}>{CONV.label}</div>
+<div style={{fontSize:9,color:"#bcbcbc",fontFamily:"monospace"}}>{TREND_SIG.arrow} {TREND_SIG.label}</div>
+</div>
+</div>
+<div style={{height:6,background:"#1a1a1a",borderRadius:3,overflow:"hidden"}}>
+<div style={{height:"100%",width:`${COMP100}%`,background:CONV.color,borderRadius:3}}/>
+</div>
+<div style={{fontSize:9,color:"#c8c8c8",fontStyle:"italic",lineHeight:1.6}}>{CONV.action}</div>
+<div style={{borderTop:"1px solid #1a1a1a",paddingTop:8}}>
+<div style={{fontSize:7,color:"#bcbcbc",fontFamily:"monospace",marginBottom:6}}>TOP STRESSED INDICATORS</div>
+{Object.entries(IND).map(([id,d])=>({id,s:sdScore(id,d[6]),label:d[0]})).filter(x=>x.s!=null).sort((a,b)=>b.s-a.s).slice(0,4).map(({id,s,label})=>{
+const col=sdColor(s);
+const pct=Math.max(0,Math.min(100,((s+2)/5)*100));
+return(<div key={id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,cursor:"pointer"}} onClick={()=>{setTab("indicators");setCatFilter(null);setExpandedId(id);}}>
+<span style={{fontSize:8,color:"#c8c8c8",fontFamily:"monospace",minWidth:110,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+<div style={{flex:1,height:3,background:"#1a1a1a",borderRadius:2,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:2}}/></div>
+<span style={{fontSize:8,color:col,fontFamily:"monospace",minWidth:52,textAlign:"right"}}>{sdLabel(s)}</span>
+</div>);
+})}
+<div style={{fontSize:7,color:"#8a8a8a",fontFamily:"monospace",marginTop:4,cursor:"pointer"}} onClick={()=>setTab("indicators")}>View all 25 indicators →</div>
+</div>
+</div>
+
+{/* SCANNER STATUS */}
+<div style={{background:"#0c0c0c",border:"1px solid #4a9eff33",borderRadius:8,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
+<div style={{fontSize:8,color:"#4a9eff",fontFamily:"monospace",letterSpacing:"0.15em"}}>TRADING SCANNER STATUS</div>
+{!scanData?(
+<div style={{fontSize:9,color:"#9e9e9e",fontStyle:"italic",marginTop:8}}>Loading scan data…</div>
+):(
+<>
+<div style={{display:"flex",gap:10}}>
+{[
+{label:"BUY ALERTS",val:scanData.buy_opportunities?.length||0,col:"#22c55e"},
+{label:"WATCH LIST",val:scanData.watch_items?.length||0,col:"#eab308"},
+{label:"SELL ALERTS",val:scanData.sell_alerts?.length||0,col:"#ef4444"},
+].map(({label,val,col})=>(
+<div key={label} style={{flex:1,background:"#0a0a0a",borderRadius:6,padding:"8px 10px",textAlign:"center"}}>
+<div style={{fontSize:18,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1}}>{val}</div>
+<div style={{fontSize:7,color:"#bcbcbc",fontFamily:"monospace",marginTop:3}}>{label}</div>
+</div>
+))}
+</div>
+<div style={{borderTop:"1px solid #1a1a1a",paddingTop:8}}>
+<div style={{fontSize:7,color:"#bcbcbc",fontFamily:"monospace",marginBottom:6}}>TOP SCORING TICKERS</div>
+{Object.entries(scanData.score_by_ticker||{}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([ticker,score])=>{
+const col=score>=60?"#22c55e":score>=35?"#eab308":"#9e9e9e";
+const pct=Math.min(100,(score/60)*100);
+return(<div key={ticker} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
+<span style={{fontSize:9,fontWeight:700,color:"#d8d8d8",fontFamily:"monospace",minWidth:44}}>{ticker}</span>
+<div style={{flex:1,height:4,background:"#1a1a1a",borderRadius:2,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:2}}/></div>
+<span style={{fontSize:9,color:col,fontFamily:"monospace",minWidth:28,textAlign:"right"}}>{score}</span>
+</div>);
+})}
+</div>
+<div style={{borderTop:"1px solid #1a1a1a",paddingTop:8}}>
+<div style={{fontSize:7,color:"#bcbcbc",fontFamily:"monospace",marginBottom:4}}>PORTFOLIO POSITIONS</div>
+{(scanData.portfolio_positions||[]).map(p=>(
+<div key={p.ticker} style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
+<span style={{fontSize:9,fontWeight:700,color:"#d8d8d8",fontFamily:"monospace"}}>{p.ticker}</span>
+<span style={{fontSize:8,color:"#9e9e9e",fontFamily:"monospace"}}>{p.shares} sh · avg ${p.avg_cost}</span>
+</div>
+))}
+</div>
+<div style={{fontSize:7,color:"#8a8a8a",fontFamily:"monospace",marginTop:2}}>Last scan: {scanData.date_label} · <span style={{cursor:"pointer",color:"#4a9eff"}} onClick={()=>setTab("scanner")}>View full scanner →</span></div>
+</>
+)}
+</div>
+</div>{/* end two-col */}
+
+{/* MACRO NARRATIVE */}
+<div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}22`,borderRadius:8,padding:"14px 16px"}}>
+<div style={{fontSize:8,color:"#bcbcbc",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>MACRO NARRATIVE · AUTO-GENERATED FROM LIVE INDICATORS</div>
+<div style={{fontSize:10,color:"#c8c8c8",lineHeight:1.85,fontStyle:"italic"}}>{buildMacroNarrative()}</div>
 </div>
 
 <div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px"}}>
