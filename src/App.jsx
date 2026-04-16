@@ -776,11 +776,11 @@ style={{background:isX?"#111":"#0c0c0c",border:`1px solid ${isX?col+"66":"#1c1c1
 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
 <div style={{width:3,height:12,background:catCol,borderRadius:1}}/>
 <span style={{fontSize:11,fontWeight:700,color:"#f0f0f0",fontFamily:"monospace"}}>{label}</span>
-<span style={{fontSize:7,color:tierCol,border:`1px solid ${tierCol}44`,borderRadius:2,padding:"1px 4px",fontFamily:"monospace"}}>T{tier}</span>
-<span style={{fontSize:7,color:"#6b7280",border:"1px solid #6b728044",borderRadius:2,padding:"1px 4px",fontFamily:"monospace"}}>{IND_FREQ[id]||"—"}</span>
+<span style={{fontSize:8,color:tierCol,border:`1px solid ${tierCol}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace"}}>T{tier}</span>
+<span style={{fontSize:8,color:"#6b7280",border:"1px solid #6b728044",borderRadius:2,padding:"1px 5px",fontFamily:"monospace"}}>{IND_FREQ[id]||"—"}</span>
 </div>
-<div style={{fontSize:9,color:"#b0b0b0",marginLeft:9}}>{sub}</div>
-<div style={{fontSize:7,color:"#949494",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]}</div>
+<div style={{fontSize:10,color:"#b0b0b0",marginLeft:9}}>{sub}</div>
+<div style={{fontSize:8,color:"#949494",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]}</div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:13,fontWeight:800,color:col,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -1456,9 +1456,9 @@ return(
 {/* HEADER */}
 <div style={{padding:"16px 20px 12px",borderBottom:"1px solid #111",display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:14}}>
 <div style={{flex:1,minWidth:200}}>
-<div style={{fontSize:8,letterSpacing:"0.25em",color:"#949494",fontFamily:"monospace",marginBottom:4}}>MACRO STRESS MONITOR · {new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
-<div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.02em",color:"#f5f5f5"}}>Market Stress Dashboard</div>
-<div style={{fontSize:9,color:"#949494",marginTop:2,fontFamily:"monospace"}}>25 indicators · statistically calibrated · 6 accounts</div>
+<div style={{fontSize:9,letterSpacing:"0.2em",color:"#949494",fontFamily:"monospace",marginBottom:4}}>MACRO DASHBOARD & TRADING OPPORTUNITY SCANNER · {new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
+<div style={{fontSize:20,fontWeight:800,letterSpacing:"-0.02em",color:"#f5f5f5"}}>Macro Dashboard & Trading Opportunity Scanner</div>
+<div style={{fontSize:10,color:"#949494",marginTop:2,fontFamily:"monospace"}}>25 macro indicators · statistically calibrated · daily trading scan at 3:45 PM ET</div>
 <div style={{display:"flex",gap:6,marginTop:10,alignItems:"center",flexWrap:"wrap"}}>
 <span style={{fontSize:8,color:"#9e9e9e",fontFamily:"monospace"}}>LEVELS:</span>
 {CONVICTION.map(c=>(
@@ -1502,13 +1502,13 @@ return(
     </div>;
   })}
 </div>
-<span style={{fontSize:9,color:"#c8c8c8",fontFamily:"monospace",marginLeft:"auto"}}>→ {CONV.action}</span>
+<span style={{fontSize:10,color:"#c8c8c8",fontFamily:"monospace",marginLeft:"auto"}}>→ {CONV.action}</span>
 </div>
 
 {/* TABS */}
 <div style={{padding:"8px 20px",borderBottom:"1px solid #0e0e0e",display:"flex",gap:5,flexWrap:"wrap"}}>
 {[["overview","OVERVIEW"],["indicators","INDICATORS"],["sectors","SECTORS"],["portfolio","SAMPLE PORTFOLIO"],["scanner","SCANNER"],["readme","FAQ"]].map(([id,label])=>(
-<button key={id} onClick={()=>setTab(id)} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:tab===id?"#e0e0e0":"transparent",color:tab===id?"#000":"#bcbcbc",borderColor:tab===id?"#e0e0e0":"#1e1e1e"}}>{label}</button>
+<button key={id} onClick={()=>setTab(id)} style={{padding:"5px 14px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:10,fontFamily:"monospace",background:tab===id?"#e0e0e0":"transparent",color:tab===id?"#000":"#bcbcbc",borderColor:tab===id?"#e0e0e0":"#1e1e1e"}}>{label}</button>
 ))}
 </div>
 
@@ -1518,8 +1518,8 @@ return(
 
 {/* TOOL DESCRIPTION */}
 <div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}44`,borderRadius:8,padding:"14px 16px"}}>
-<div style={{fontSize:8,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>MACRO DASHBOARD & TRADING OPPORTUNITY SCANNER · OVERVIEW</div>
-<div style={{fontSize:10,color:"#d8d8d8",lineHeight:1.85}}>
+<div style={{fontSize:9,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:10}}>MACRO DASHBOARD & TRADING OPPORTUNITY SCANNER · OVERVIEW</div>
+<div style={{fontSize:12,color:"#d8d8d8",lineHeight:1.9}}>
 This tool combines two complementary systems. The <span style={{color:CONV.color,fontWeight:700}}>Macro Dashboard</span> monitors 25 economic and financial stress indicators across six categories — Credit, Equity, Macro, Rates, Liquidity, and Sentiment — producing a composite stress score that drives a four-regime conviction framework for asset allocation. The <span style={{color:"#4a9eff",fontWeight:700}}>Trading Opportunity Scanner</span> runs daily at 3:45 PM ET, screening a universe of stocks and ETFs for technical and fundamental buy signals, watch candidates, covered call setups, and sell alerts on existing portfolio positions. Together they provide a macro-informed, systematically-scored view of where to allocate capital and when to act.
 </div>
 </div>
@@ -1529,38 +1529,38 @@ This tool combines two complementary systems. The <span style={{color:CONV.color
 
 {/* MACRO STATUS */}
 <div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
-<div style={{fontSize:8,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em"}}>MACRO DASHBOARD STATUS</div>
+<div style={{fontSize:10,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.12em"}}>MACRO DASHBOARD STATUS</div>
 <div style={{display:"flex",alignItems:"flex-end",gap:10}}>
 <div style={{fontSize:40,fontWeight:800,color:CONV.color,fontFamily:"monospace",lineHeight:1}}>{COMP100}</div>
 <div style={{paddingBottom:4}}>
-<div style={{fontSize:11,fontWeight:700,color:CONV.color,fontFamily:"monospace"}}>{CONV.label}</div>
-<div style={{fontSize:9,color:"#bcbcbc",fontFamily:"monospace"}}>{TREND_SIG.arrow} {TREND_SIG.label}</div>
+<div style={{fontSize:13,fontWeight:700,color:CONV.color,fontFamily:"monospace"}}>{CONV.label}</div>
+<div style={{fontSize:11,color:"#bcbcbc",fontFamily:"monospace"}}>{TREND_SIG.arrow} {TREND_SIG.label}</div>
 </div>
 </div>
 <div style={{height:6,background:"#1a1a1a",borderRadius:3,overflow:"hidden"}}>
 <div style={{height:"100%",width:`${COMP100}%`,background:CONV.color,borderRadius:3}}/>
 </div>
-<div style={{fontSize:9,color:"#c8c8c8",fontStyle:"italic",lineHeight:1.6}}>{CONV.action}</div>
-<div style={{borderTop:"1px solid #1a1a1a",paddingTop:8}}>
-<div style={{fontSize:7,color:"#bcbcbc",fontFamily:"monospace",marginBottom:6}}>TOP STRESSED INDICATORS</div>
+<div style={{fontSize:11,color:"#c8c8c8",fontStyle:"italic",lineHeight:1.6}}>{CONV.action}</div>
+<div style={{borderTop:"1px solid #1a1a1a",paddingTop:10}}>
+<div style={{fontSize:9,color:"#bcbcbc",fontFamily:"monospace",marginBottom:8}}>TOP STRESSED INDICATORS</div>
 {Object.entries(IND).map(([id,d])=>({id,s:sdScore(id,d[6]),label:d[0]})).filter(x=>x.s!=null).sort((a,b)=>b.s-a.s).slice(0,4).map(({id,s,label})=>{
 const col=sdColor(s);
 const pct=Math.max(0,Math.min(100,((s+2)/5)*100));
-return(<div key={id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4,cursor:"pointer"}} onClick={()=>{setTab("indicators");setCatFilter(null);setExpandedId(id);}}>
-<span style={{fontSize:8,color:"#c8c8c8",fontFamily:"monospace",minWidth:110,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
-<div style={{flex:1,height:3,background:"#1a1a1a",borderRadius:2,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:2}}/></div>
-<span style={{fontSize:8,color:col,fontFamily:"monospace",minWidth:52,textAlign:"right"}}>{sdLabel(s)}</span>
+return(<div key={id} style={{display:"flex",alignItems:"center",gap:6,marginBottom:6,cursor:"pointer"}} onClick={()=>{setTab("indicators");setCatFilter(null);setExpandedId(id);}}>
+<span style={{fontSize:10,color:"#c8c8c8",fontFamily:"monospace",minWidth:120,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{label}</span>
+<div style={{flex:1,height:4,background:"#1a1a1a",borderRadius:2,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:2}}/></div>
+<span style={{fontSize:10,color:col,fontFamily:"monospace",minWidth:56,textAlign:"right"}}>{sdLabel(s)}</span>
 </div>);
 })}
-<div style={{fontSize:7,color:"#8a8a8a",fontFamily:"monospace",marginTop:4,cursor:"pointer"}} onClick={()=>setTab("indicators")}>View all 25 indicators →</div>
+<div style={{fontSize:9,color:"#8a8a8a",fontFamily:"monospace",marginTop:6,cursor:"pointer"}} onClick={()=>setTab("indicators")}>View all 25 indicators →</div>
 </div>
 </div>
 
 {/* SCANNER STATUS */}
 <div style={{background:"#0c0c0c",border:"1px solid #4a9eff33",borderRadius:8,padding:"14px 16px",display:"flex",flexDirection:"column",gap:10}}>
-<div style={{fontSize:8,color:"#4a9eff",fontFamily:"monospace",letterSpacing:"0.15em"}}>TRADING SCANNER STATUS</div>
+<div style={{fontSize:10,color:"#4a9eff",fontFamily:"monospace",letterSpacing:"0.12em"}}>TRADING SCANNER STATUS</div>
 {!scanData?(
-<div style={{fontSize:9,color:"#9e9e9e",fontStyle:"italic",marginTop:8}}>Loading scan data…</div>
+<div style={{fontSize:11,color:"#9e9e9e",fontStyle:"italic",marginTop:8}}>Loading scan data…</div>
 ):(
 <>
 <div style={{display:"flex",gap:10}}>
@@ -1570,24 +1570,24 @@ return(<div key={id} style={{display:"flex",alignItems:"center",gap:6,marginBott
 {label:"SELL ALERTS",val:scanData.sell_alerts?.length||0,col:"#ef4444"},
 ].map(({label,val,col})=>(
 <div key={label} style={{flex:1,background:"#0a0a0a",borderRadius:6,padding:"8px 10px",textAlign:"center"}}>
-<div style={{fontSize:18,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1}}>{val}</div>
-<div style={{fontSize:7,color:"#bcbcbc",fontFamily:"monospace",marginTop:3}}>{label}</div>
+<div style={{fontSize:22,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1}}>{val}</div>
+<div style={{fontSize:9,color:"#bcbcbc",fontFamily:"monospace",marginTop:4}}>{label}</div>
 </div>
 ))}
 </div>
 <div style={{borderTop:"1px solid #1a1a1a",paddingTop:8}}>
-<div style={{fontSize:7,color:"#bcbcbc",fontFamily:"monospace",marginBottom:6}}>TOP SCORING TICKERS</div>
+<div style={{fontSize:9,color:"#bcbcbc",fontFamily:"monospace",marginBottom:8}}>TOP SCORING TICKERS</div>
 {Object.entries(scanData.score_by_ticker||{}).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([ticker,score])=>{
 const col=score>=60?"#22c55e":score>=35?"#eab308":"#9e9e9e";
 const pct=Math.min(100,(score/60)*100);
-return(<div key={ticker} style={{display:"flex",alignItems:"center",gap:6,marginBottom:4}}>
-<span style={{fontSize:9,fontWeight:700,color:"#d8d8d8",fontFamily:"monospace",minWidth:44}}>{ticker}</span>
+return(<div key={ticker} style={{display:"flex",alignItems:"center",gap:6,marginBottom:6}}>
+<span style={{fontSize:11,fontWeight:700,color:"#d8d8d8",fontFamily:"monospace",minWidth:50}}>{ticker}</span>
 <div style={{flex:1,height:4,background:"#1a1a1a",borderRadius:2,overflow:"hidden"}}><div style={{width:`${pct}%`,height:"100%",background:col,borderRadius:2}}/></div>
-<span style={{fontSize:9,color:col,fontFamily:"monospace",minWidth:28,textAlign:"right"}}>{score}</span>
+<span style={{fontSize:11,color:col,fontFamily:"monospace",minWidth:28,textAlign:"right"}}>{score}</span>
 </div>);
 })}
 </div>
-<div style={{fontSize:7,color:"#8a8a8a",fontFamily:"monospace",marginTop:2}}>Last scan: {scanData.date_label} · <span style={{cursor:"pointer",color:"#4a9eff"}} onClick={()=>setTab("scanner")}>View full scanner →</span></div>
+<div style={{fontSize:9,color:"#8a8a8a",fontFamily:"monospace",marginTop:6}}>Last scan: {scanData.date_label} · <span style={{cursor:"pointer",color:"#4a9eff"}} onClick={()=>setTab("scanner")}>View full scanner →</span></div>
 </>
 )}
 </div>
@@ -1595,8 +1595,8 @@ return(<div key={ticker} style={{display:"flex",alignItems:"center",gap:6,margin
 
 {/* MACRO NARRATIVE */}
 <div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}22`,borderRadius:8,padding:"14px 16px"}}>
-<div style={{fontSize:8,color:"#bcbcbc",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>MACRO NARRATIVE · AUTO-GENERATED FROM LIVE INDICATORS</div>
-<div style={{fontSize:10,color:"#c8c8c8",lineHeight:1.85,fontStyle:"italic"}}>{buildMacroNarrative()}</div>
+<div style={{fontSize:9,color:"#bcbcbc",fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:10}}>MACRO NARRATIVE · AUTO-GENERATED FROM LIVE INDICATORS</div>
+<div style={{fontSize:12,color:"#c8c8c8",lineHeight:1.9,fontStyle:"italic"}}>{buildMacroNarrative()}</div>
 </div>
 
 <div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px"}}>
@@ -1750,12 +1750,12 @@ style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"4px 6
 {tab==="indicators"&&(
 <div style={{padding:"12px 20px"}}>
 <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-<button onClick={()=>setCatFilter(null)} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:!catFilter?"#e0e0e0":"transparent",color:!catFilter?"#000":"#c8c8c8",borderColor:!catFilter?"#e0e0e0":"#1e1e1e"}}>ALL</button>
+<button onClick={()=>setCatFilter(null)} style={{padding:"5px 14px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:10,fontFamily:"monospace",background:!catFilter?"#e0e0e0":"transparent",color:!catFilter?"#000":"#c8c8c8",borderColor:!catFilter?"#e0e0e0":"#1e1e1e"}}>ALL</button>
 {Object.entries(CATS).map(([catId,cat])=>(
-<button key={catId} onClick={()=>setCatFilter(catFilter===catId?null:catId)} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:catFilter===catId?ACCENT+"22":"transparent",color:catFilter===catId?ACCENT:"#c8c8c8",borderColor:catFilter===catId?ACCENT:"#1e1e1e"}}>{cat.label}</button>
+<button key={catId} onClick={()=>setCatFilter(catFilter===catId?null:catId)} style={{padding:"5px 14px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:10,fontFamily:"monospace",background:catFilter===catId?ACCENT+"22":"transparent",color:catFilter===catId?ACCENT:"#c8c8c8",borderColor:catFilter===catId?ACCENT:"#1e1e1e"}}>{cat.label}</button>
 ))}
 </div>
-<div style={{fontSize:7,color:"#666",fontFamily:"monospace",marginBottom:8}}>Frequency: D = Daily · W = Weekly · M = Monthly · Q = Quarterly</div>
+<div style={{fontSize:9,color:"#666",fontFamily:"monospace",marginBottom:10}}>Frequency: D = Daily · W = Weekly · M = Monthly · Q = Quarterly</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:9}}>
 {visibleIds.map(id=>(<IndicatorCard key={id} id={id} trendPeriod="3M" trendIdx={trendIdx} expandedId={expandedId} setExpandedId={setExpandedId}/>))}
 </div>
