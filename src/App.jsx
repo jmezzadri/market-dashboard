@@ -144,6 +144,15 @@ jolts_quits:["JOLTS Quits","Voluntary Quit Rate","labor",3,"%",1,1.9,2.3,2.35,2.
 "At 2.1%, down from post-COVID high of 3.0%. Workers less confident — signals softening labor market."],
 };
 
+// Reporting frequency per indicator: D=Daily, W=Weekly, M=Monthly, Q=Quarterly
+const IND_FREQ={
+  vix:"D",hy_ig:"D",eq_cr_corr:"D",yield_curve:"D",move:"D",
+  anfci:"W",stlfsi:"W",real_rates:"D",sloos_ci:"Q",cape:"M",
+  ism:"M",copper_gold:"D",bkx_spx:"D",bank_unreal:"Q",credit_3y:"W",
+  term_premium:"D",cmdi:"W",loan_syn:"D",usd:"D",cpff:"D",
+  skew:"D",sloos_cre:"Q",bank_credit:"W",jobless:"W",jolts_quits:"M",
+};
+
 const WEIGHTS={
 vix:1.5,hy_ig:1.5,eq_cr_corr:1.5,yield_curve:1.5,
 move:1.2,anfci:1.2,stlfsi:1.2,real_rates:1.2,sloos_ci:1.2,
@@ -768,6 +777,7 @@ style={{background:isX?"#111":"#0c0c0c",border:`1px solid ${isX?col+"66":"#1c1c1
 <div style={{width:3,height:12,background:catCol,borderRadius:1}}/>
 <span style={{fontSize:11,fontWeight:700,color:"#f0f0f0",fontFamily:"monospace"}}>{label}</span>
 <span style={{fontSize:7,color:tierCol,border:`1px solid ${tierCol}44`,borderRadius:2,padding:"1px 4px",fontFamily:"monospace"}}>T{tier}</span>
+<span style={{fontSize:7,color:"#6b7280",border:"1px solid #6b728044",borderRadius:2,padding:"1px 4px",fontFamily:"monospace"}}>{IND_FREQ[id]||"—"}</span>
 </div>
 <div style={{fontSize:9,color:"#b0b0b0",marginLeft:9}}>{sub}</div>
 <div style={{fontSize:7,color:"#949494",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]}</div>
@@ -1367,8 +1377,46 @@ return(
 );
 }
 
+// ── MACRO NARRATIVE (auto-generated from live data) ─────────────────────────
+function buildMacroNarrative(){
+const lvl=CONV.label;
+const score=COMP100;
+const dir=TREND_SIG.label;
+const arrow=TREND_SIG.arrow;
+// Top stressed indicators
+const top=Object.entries(IND).map(([id,d])=>({id,label:d[0],s:sdScore(id,d[6])}))
+  .filter(x=>x.s!=null).sort((a,b)=>b.s-a.s);
+const topStressed=top.filter(x=>x.s>0.5).slice(0,3).map(x=>x.label);
+const topEasing=top.filter(x=>x.s<-0.5).reverse().slice(0,2).map(x=>x.label);
+// Category composites
+const catScores=Object.entries(CATS).map(([catId,cat])=>{
+  const ids=Object.keys(IND).filter(id=>IND[id][2]===catId);
+  const scored=ids.map(id=>sdScore(id,IND[id][6])).filter(x=>x!=null);
+  const avg=scored.length?scored.reduce((a,b)=>a+b,0)/scored.length:0;
+  return{cat:cat.label,s:avg,s100:Math.round(Math.max(0,Math.min(100,((avg+2)/5)*100)))};
+}).sort((a,b)=>b.s-a.s);
+const hotCat=catScores[0];
+const coolCat=catScores[catScores.length-1];
+
+const sent1=`The composite macro stress score stands at ${score}/100 — ${lvl} regime ${arrow} ${dir}. `+
+  (score<25?`Markets are in genuinely benign conditions with most indicators well within historical norms.`:
+   score<50?`Markets are operating within normal historical bounds, though pockets of stress are building beneath the surface.`:
+   score<75?`Conditions have shifted to Elevated stress, warranting active risk management and defensive positioning.`:
+   `Extreme stress conditions are present — historical data associates this zone with major financial crises.`);
+
+const sent2=topStressed.length>0
+  ?`The most elevated readings are in ${topStressed.join(", ")}, while ${hotCat.cat} is the most stressed category at ${hotCat.s100}/100.`
+  :`Stress is broadly contained across categories, with ${hotCat.cat} showing the most pressure at ${hotCat.s100}/100.`;
+
+const sent3=topEasing.length>0
+  ?`Easing signals include ${topEasing.join(" and ")}, and ${coolCat.cat} remains the least stressed category (${coolCat.s100}/100).`
+  :`${coolCat.cat} remains the least stressed category at ${coolCat.s100}/100. Monitor trend direction closely for early regime shift signals.`;
+
+return[sent1,sent2,sent3].join(" ");
+}
+
 // ── MAIN APP ─────────────────────────────────────────────────────────────────
-const TAB_IDS=["overview","analysis","indicators","sectors","portfolio","scanner","readme"];
+const TAB_IDS=["overview","indicators","sectors","portfolio","scanner","readme"];
 
 export default function App(){
 const [tab,setTab]=useState(()=>{
@@ -1378,14 +1426,11 @@ return TAB_IDS.includes(h)?h:"overview";
 });
 useEffect(()=>{window.location.hash=tab;},[tab]);
 const [catFilter,setCatFilter]=useState(null);
-const [newOnly,setNewOnly]=useState(false);
-const [trendPeriod,setTrendPeriod]=useState("3M");
 const [expandedId,setExpandedId]=useState(null);
 const [showCompHist,setShowCompHist]=useState(false);
 const trendIdx={"1M":7,"3M":8,"6M":9,"12M":10};
 
 const visibleIds=Object.keys(IND).filter(id=>{
-if(newOnly)return IND[id][11];
 if(catFilter)return IND[id][2]===catFilter;
 return true;
 });
@@ -1457,7 +1502,7 @@ return(
 
 {/* TABS */}
 <div style={{padding:"8px 20px",borderBottom:"1px solid #0e0e0e",display:"flex",gap:5,flexWrap:"wrap"}}>
-{[["overview","OVERVIEW"],["analysis","AI ANALYSIS"],["indicators","INDICATORS"],["sectors","SECTORS"],["portfolio","PORTFOLIO"],["scanner","📈 SCANNER"],["readme","FAQ"]].map(([id,label])=>(
+{[["overview","OVERVIEW"],["indicators","INDICATORS"],["sectors","SECTORS"],["portfolio","SAMPLE PORTFOLIO"],["scanner","SCANNER"],["readme","FAQ"]].map(([id,label])=>(
 <button key={id} onClick={()=>setTab(id)} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:tab===id?"#e0e0e0":"transparent",color:tab===id?"#000":"#bcbcbc",borderColor:tab===id?"#e0e0e0":"#1e1e1e"}}>{label}</button>
 ))}
 </div>
@@ -1465,6 +1510,13 @@ return(
 {/* OVERVIEW */}
 {tab==="overview"&&(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:14}}>
+
+{/* MACRO NARRATIVE */}
+<div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}44`,borderRadius:8,padding:"14px 16px"}}>
+<div style={{fontSize:8,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>MACRO DASHBOARD & TRADING SCANNER · EXECUTIVE SUMMARY</div>
+<div style={{fontSize:10,color:"#d8d8d8",lineHeight:1.85,fontStyle:"italic"}}>{buildMacroNarrative()}</div>
+</div>
+
 <div style={{background:"#0c0c0c",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px"}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
 <div>
@@ -1548,7 +1600,7 @@ const col=sdColor(cs);
 const sc100=Math.round(Math.max(0,Math.min(100,((cs+2)/5)*100)));
 const trend=TREND[catId];
 return(
-<div key={catId} onClick={()=>{setTab("indicators");setCatFilter(catId);setNewOnly(false);}}
+<div key={catId} onClick={()=>{setTab("indicators");setCatFilter(catId);}}
 style={{background:"#0c0c0c",border:`1px solid #1e1e1e`,borderRadius:8,padding:"14px 15px",cursor:"pointer"}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
 <div>
@@ -1599,7 +1651,7 @@ return(<div key={id} style={{display:"flex",alignItems:"center",gap:6}}>
 <div style={{display:"flex",flexDirection:"column",gap:6}}>
 {Object.entries(IND).map(([id,d])=>({id,s:sdScore(id,d[6]),label:d[0]})).filter(x=>x.s!=null).sort((a,b)=>b.s-a.s).slice(0,8).map(({id,s,label})=>{
 const col=sdColor(s);
-return(<div key={id} onClick={()=>{setTab("indicators");setCatFilter(null);setNewOnly(false);setExpandedId(id);setTimeout(()=>document.getElementById(`card-${id}`)?.scrollIntoView({behavior:"smooth",block:"center"}),100);}}
+return(<div key={id} onClick={()=>{setTab("indicators");setCatFilter(null);setExpandedId(id);setTimeout(()=>document.getElementById(`card-${id}`)?.scrollIntoView({behavior:"smooth",block:"center"}),100);}}
 style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"4px 6px",borderRadius:4}}>
 <span style={{fontSize:9,color:"#d8d8d8",fontFamily:"monospace",minWidth:120}}>{label}</span>
 <div style={{flex:1,height:3,background:"#1a1a1a",borderRadius:2,overflow:"hidden"}}><div style={{width:`${Math.max(0,Math.min(100,((s+2)/5)*100))}%`,height:"100%",background:col,borderRadius:2}}/></div>
@@ -1612,27 +1664,18 @@ style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",padding:"4px 6
 </div>
 )}
 
-{/* AI ANALYSIS — LIVE */}
-{tab==="analysis"&&<LiveAnalysisTab/>}
-
 {/* INDICATORS */}
 {tab==="indicators"&&(
 <div style={{padding:"12px 20px"}}>
-<div style={{display:"flex",gap:6,marginBottom:10,alignItems:"center",flexWrap:"wrap"}}>
-<span style={{fontSize:8,color:"#bcbcbc",fontFamily:"monospace"}}>TREND:</span>
-{["1M","3M","6M","12M"].map(p=>(
-<button key={p} onClick={()=>setTrendPeriod(p)} style={{padding:"3px 10px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:9,fontFamily:"monospace",background:trendPeriod===p?"#e0e0e0":"transparent",color:trendPeriod===p?"#000":"#c8c8c8",borderColor:trendPeriod===p?"#e0e0e0":"#1e1e1e"}}>{p}</button>
-))}
-</div>
 <div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-<button onClick={()=>{setNewOnly(n=>!n);setCatFilter(null);}} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:newOnly?"#eab30822":"transparent",color:newOnly?"#eab308":"#c8c8c8",borderColor:newOnly?"#eab308":"#1e1e1e"}}>★ NEW ONLY</button>
-<button onClick={()=>{setCatFilter(null);setNewOnly(false);}} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:!catFilter&&!newOnly?"#e0e0e0":"transparent",color:!catFilter&&!newOnly?"#000":"#c8c8c8",borderColor:!catFilter&&!newOnly?"#e0e0e0":"#1e1e1e"}}>ALL</button>
+<button onClick={()=>setCatFilter(null)} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:!catFilter?"#e0e0e0":"transparent",color:!catFilter?"#000":"#c8c8c8",borderColor:!catFilter?"#e0e0e0":"#1e1e1e"}}>ALL</button>
 {Object.entries(CATS).map(([catId,cat])=>(
-<button key={catId} onClick={()=>{setCatFilter(catFilter===catId?null:catId);setNewOnly(false);}} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:catFilter===catId?ACCENT+"22":"transparent",color:catFilter===catId?ACCENT:"#c8c8c8",borderColor:catFilter===catId?ACCENT:"#1e1e1e"}}>{cat.label}</button>
+<button key={catId} onClick={()=>setCatFilter(catFilter===catId?null:catId)} style={{padding:"4px 12px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:8,fontFamily:"monospace",background:catFilter===catId?ACCENT+"22":"transparent",color:catFilter===catId?ACCENT:"#c8c8c8",borderColor:catFilter===catId?ACCENT:"#1e1e1e"}}>{cat.label}</button>
 ))}
 </div>
+<div style={{fontSize:7,color:"#666",fontFamily:"monospace",marginBottom:8}}>Frequency: D = Daily · W = Weekly · M = Monthly · Q = Quarterly</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:9}}>
-{visibleIds.map(id=>(<IndicatorCard key={id} id={id} trendPeriod={trendPeriod} trendIdx={trendIdx} expandedId={expandedId} setExpandedId={setExpandedId}/>))}
+{visibleIds.map(id=>(<IndicatorCard key={id} id={id} trendPeriod="3M" trendIdx={trendIdx} expandedId={expandedId} setExpandedId={setExpandedId}/>))}
 </div>
 </div>
 )}
@@ -1703,23 +1746,47 @@ return(<div key={acc.id} style={{flex:t/grandTotal,background:acc.color,opacity:
 {/* FAQ */}
 {tab==="readme"&&(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:14}}>
+
+{/* MACRO DASHBOARD FAQs */}
+<div style={{fontSize:9,color:"#4a6fa5",fontFamily:"monospace",letterSpacing:"0.15em",padding:"6px 0",borderBottom:"1px solid #1e1e1e"}}>MACRO DASHBOARD — METHODOLOGY & DATA SOURCES</div>
 {[
-{title:"What is this dashboard?",body:"A personal macro market stress monitor tracking 25 economic and financial indicators synthesized into a single composite stress score (0–100) that drives allocation recommendations and sector guidance."},
-{title:"How are the 4 conviction levels calibrated?",body:"LOW (0–20): Historically rare, genuinely risk-on conditions — VIX well below mean, credit spreads tight, strong growth signals. NORMAL (20–50): Where markets spend most of their time. Mild background stress, nothing flashing. This is the baseline. ELEVATED (50–75): Active hedging warranted — sell covered calls, trim beta, rotate defensive. 2022 rate shock (62) and 2023 SVB stress (58) were in this band. EXTREME (75–100): Reserved for historical crises — COVID (82), GFC (92). Maximum defensiveness."},
-{title:"How is the composite score calculated?",body:"Each indicator is calibrated using its long-run mean and standard deviation (SD). The raw SD score measures how many SDs above or below normal the current reading is. Scores are directionally adjusted, weighted by tier (T1 = 1.5×, T2 = 1.2×, T3 = 1.0×), and averaged into a composite. The composite SD score is mapped to the 0–100 scale."},
-{title:"What is the trend signal?",body:"The trend signal shows the rate of change of the composite score over the past 4 weeks. 'Normal ↗ Rising' means the level is still in Normal territory but stress is accelerating toward Elevated — an early warning. 'Elevated ↘ Easing' means conditions are bad but improving. Level + direction together give a more complete picture than level alone."},
-{title:"How does the Sectors tab work?",body:"Each sector's parent score is the average of its subsector scores. Each subsector has its own sensitivity profile across 8 macro factors (Rates, Credit, Banking, Consumer, Growth, Dollar, Valuation, CRE). The current stress of each factor (computed from live indicator data) is multiplied by the sensitivity weight. This means sector rankings change dynamically as indicator data updates."},
-{title:"What does color mean throughout the dashboard?",body:"Color always means stress level — nothing else. Green = Low, Yellow = Normal, Amber = Elevated, Red = Extreme. All identity/category labels use a quiet neutral blue. This way, any time you see color, it tells you how stressed something is."},
-{title:"How current is the data?",body:"Each indicator card shows its as-of date. Daily indicators update weekly on refresh. Monthly indicators update once per month. Quarterly indicators update each quarter. FRED API automation (coming via MacBook pipeline) will automate daily indicator updates."},
-{title:"Disclaimer",body:"This dashboard is for informational and educational purposes only. It is not financial advice, investment advice, or a solicitation to buy or sell any security. All data is sourced from public databases and may have errors or delays. Allocation suggestions are illustrative frameworks, not personalized recommendations."},
+{title:"What is the Macro Dashboard?",body:"A market stress monitor tracking 25 statistically-calibrated economic and financial indicators synthesized into a single composite stress score (0–100). The score drives regime classification (Low / Normal / Elevated / Extreme) and allocation guidance. Data is sourced exclusively from public databases — FRED, CBOE, ICE BofA, FDIC, ISM, BLS, Shiller, NY Fed, and the St. Louis Fed."},
+{title:"What indicators are tracked and how frequently do they update?",body:"25 indicators across 8 categories: Equity & Vol (VIX, EQ-Credit Correlation, SKEW Index), Credit Markets (HY-IG Spread, Corp Bond Distress Index, HY Effective Yield), Rates & Duration (10Y-2Y Slope, 10Y TIPS Real Rate, MOVE Index, Kim-Wright Term Premium), Financial Conditions (ANFCI, STLFSI, USD Index, USD Funding Spread), Bank & Credit Supply (SLOOS C&I, SLOOS CRE, BKX/SPX Ratio, Bank Unrealized Losses, 3Y Credit Growth, YoY Bank Credit), Labor & Economy (ISM PMI, Copper/Gold Ratio, Initial Claims, JOLTS Quits), Valuation (Shiller CAPE). Each card displays its frequency badge: D = Daily, W = Weekly, M = Monthly, Q = Quarterly."},
+{title:"How is the composite stress score calculated?",body:"Each indicator is calibrated against its own long-run mean and standard deviation (SD). The raw SD score measures how many standard deviations the current reading is from its historical average, with the direction adjusted so that higher always means more stress (e.g., a rising VIX increases stress; a rising JOLTS Quit rate decreases stress). Scores are weighted by tier — T1 indicators (1.5x weight) are the most market-sensitive, T2 (1.2x) are important but less real-time, T3 (1.0x) provide structural context. The weighted average SD score is mapped nonlinearly to a 0–100 scale anchored to historical crises (GFC = 92, COVID = 82, 2022 Rate Shock = 62)."},
+{title:"What are the 4 stress regimes?",body:"LOW (0–20): Historically rare, genuinely risk-on conditions. VIX well below mean, credit spreads tight. NORMAL (20–50): Where markets spend most of their time — the baseline. Mild background stress. ELEVATED (50–75): Active risk management warranted. Sell covered calls, trim beta, rotate defensive. 2022 rate shock peaked at 62; SVB stress hit 58. EXTREME (75–100): Reserved for historical crises. COVID peaked at 82; GFC peaked at 92. Maximum defensiveness."},
+{title:"What is the trend signal?",body:"The trend signal shows the rate of change of the composite score over the prior 4 weeks. 'Normal Rising' means the level is still Normal but stress is accelerating — an early warning to start de-risking. 'Elevated Easing' means conditions are bad but improving. Level and direction together give a more complete picture than level alone."},
+{title:"How does the Sectors tab work?",body:"Each sector score is the average of its subsector scores. Each subsector has its own sensitivity profile across 8 macro factors (Rates, Credit, Banking, Consumer, Growth, Dollar, Valuation, CRE). The stress of each factor is computed live from the indicator data and multiplied by the subsector's sensitivity weight. Sector rankings update automatically as indicator data refreshes."},
+{title:"What does color mean?",body:"Color always means stress level — nothing else. Green = Low, Yellow/Amber = Normal, Orange = Elevated, Red = Extreme. Category labels use a quiet blue. Any time you see color intensity, it tells you stress level."},
 ].map(({title,body},i)=>(
 <div key={i} style={{background:"#0c0c0c",border:"1px solid #1a1a1a",borderRadius:8,padding:"14px 16px"}}>
 <div style={{fontSize:10,fontWeight:700,color:"#e6e6e6",fontFamily:"monospace",marginBottom:8}}>{String(i+1).padStart(2,"0")} · {title}</div>
 <div style={{fontSize:10,color:"#d4d4d4",lineHeight:1.85}}>{body}</div>
 </div>
 ))}
+
+{/* SCANNER FAQs */}
+<div style={{fontSize:9,color:"#4a6fa5",fontFamily:"monospace",letterSpacing:"0.15em",padding:"6px 0",borderBottom:"1px solid #1e1e1e",marginTop:6}}>TRADING SCANNER — METHODOLOGY & DATA SOURCES</div>
+{[
+{title:"What is the Trading Scanner?",body:"An automated daily scan that runs at 3:45 PM ET on weekdays via GitHub Actions. It pulls signal data from Unusual Whales (options flow, dark pool, congressional trades, insider transactions) and scores every qualifying ticker on a 0–100 composite signal score. Tickers scoring 60+ are Buy-tier; 35–59 are Watch-tier."},
+{title:"What data sources does the scanner use?",body:"Unusual Whales API: real-time options flow alerts (unusual volume, large sweeps), dark pool block trades, congressional stock disclosures (within 45 days), and insider purchase filings (SEC Form 4). Yahoo Finance: current price, technicals (RSI, MACD, 50/200-day MA). The scanner does not use analyst ratings or fundamental screeners."},
+{title:"How is the signal score calculated?",body:"Each ticker is scored across 5 signal categories: Options Flow (large unusual sweeps, call-heavy activity, sweep vs. block mix), Dark Pool (size vs. average daily volume, recency), Congressional Activity (buy vs. sell, recency, position size), Insider Buying (Form 4 filings, recency, dollar value), and Technicals (RSI momentum, MACD crossover, price vs. 50/200-day MA). Each category contributes up to 20 points. Tickers must pass a price filter ($5–$500) and a market cap screen before scoring."},
+{title:"What is the Covered Call recommendation?",body:"For Buy-tier tickers, the scanner evaluates the options chain and recommends a covered call strike if conditions are met: IV Rank must be above the minimum threshold (avoids selling premium when IV is low), the strike must be at least 1 standard deviation OTM (1 x IV x sqrt(DTE/365)), and the annualized yield must meet the minimum return target (25% annualized). The DTE window is 14–42 days. If conditions are not met, the scanner explains specifically why (e.g., 'All bids $0 — market closed', 'Spreads too wide', 'IVR below threshold')."},
+{title:"How current is the scanner data?",body:"The scan runs once daily at 3:45 PM ET on weekdays, capturing end-of-day options flow and dark pool data. The dashboard displays the most recent scan with a timestamp. If the market is closed or the scan has not yet run today, the prior day's data is shown with a staleness notice."},
+{title:"What does the Sample Portfolio tab show?",body:"The Sample Portfolio illustrates how the macro regime (from the dashboard) maps to position-level analysis for a hypothetical set of holdings. It is for illustrative purposes only. It does not represent actual account balances or real trading recommendations."},
+].map(({title,body},i)=>(
+<div key={i} style={{background:"#0c0c0c",border:"1px solid #1a1a1a",borderRadius:8,padding:"14px 16px"}}>
+<div style={{fontSize:10,fontWeight:700,color:"#e6e6e6",fontFamily:"monospace",marginBottom:8}}>{String(i+1).padStart(2,"0")} · {title}</div>
+<div style={{fontSize:10,color:"#d4d4d4",lineHeight:1.85}}>{body}</div>
+</div>
+))}
+
+{/* DISCLAIMER */}
+<div style={{background:"#0a0a0a",border:"1px solid #1a1a1a",borderRadius:8,padding:"12px 14px"}}>
+<div style={{fontSize:9,color:"#9e9e9e",lineHeight:1.75}}>This dashboard is for informational and educational purposes only. It is not financial advice, investment advice, or a solicitation to buy or sell any security. All data is sourced from public databases and may have errors or delays. Allocation suggestions and signal scores are illustrative frameworks, not personalized recommendations. Past relationships between indicators and market outcomes do not guarantee future results.</div>
+</div>
+
 <div style={{fontSize:8,color:"#9e9e9e",fontFamily:"monospace",textAlign:"center",padding:"8px 0"}}>
-MACRO STRESS MONITOR v10 · Built with Claude · Data: FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · NY Fed
+MACRO DASHBOARD & TRADING SCANNER · Data: FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · NY Fed · Unusual Whales · Yahoo Finance
 </div>
 </div>
 )}

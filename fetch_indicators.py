@@ -387,12 +387,13 @@ if __name__ == "__main__":
         print("\n── Pushing to GitHub ─────────────────────────────────")
         git_commit_and_push()
 
-    try:
-        from daily_analysis_email import run_if_configured
-
-        run_if_configured(results)
-    except Exception as e:
-        print(f"\n⚠ Daily AI email skipped: {e}")
+    # Daily AI email is disabled — consolidated into the 3:45 PM trading scanner email.
+    # To re-enable: uncomment the block below.
+    # try:
+    #     from daily_analysis_email import run_if_configured
+    #     run_if_configured(results)
+    # except Exception as e:
+    #     print(f"\n⚠ Daily AI email skipped: {e}")
 
     print("\n── Manual updates needed monthly ─────────────────────")
     print(f"  CAPE ({CAPE_VALUE}): https://www.multpl.com/shiller-pe")

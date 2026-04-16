@@ -9,12 +9,12 @@ const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/trading-scanner/main/reports/latest_scan_data.json";
 
 const TABS = [
-  { id: "overview",    label: "📈 Overview" },
-  { id: "congress",    label: "🏛️ Congress" },
-  { id: "insiders",    label: "👤 Insiders" },
-  { id: "flow",        label: "🌊 Options Flow" },
-  { id: "technicals",  label: "📊 Technicals" },
-  { id: "methodology", label: "📋 Methodology" },
+  { id: "overview",    label: "Overview" },
+  { id: "congress",    label: "Congress" },
+  { id: "insiders",    label: "Insiders" },
+  { id: "flow",        label: "Options Flow" },
+  { id: "technicals",  label: "Technicals" },
+  { id: "methodology", label: "Methodology" },
 ];
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -524,19 +524,24 @@ export default function Scanner() {
   }, []);
 
   if (loading) return (
-    <div style={{ textAlign: "center", padding: 60, color: "#6b7280" }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
+    <div style={{ textAlign: "center", padding: 60, color: "#6b7280", fontFamily: "monospace" }}>
       Loading latest scan data…
     </div>
   );
 
   if (error) return (
-    <div style={{ textAlign: "center", padding: 60 }}>
-      <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
-      <div style={{ color: "#dc2626", fontWeight: 600, marginBottom: 8 }}>Could not load scan data</div>
-      <div style={{ color: "#6b7280", fontSize: 13 }}>{error}</div>
-      <div style={{ color: "#6b7280", fontSize: 13, marginTop: 8 }}>
-        The scanner runs at 3:45 PM ET weekdays. Data may not be available yet.
+    <div style={{ padding: "32px 24px", maxWidth: 600, margin: "0 auto" }}>
+      <div style={{ background: "#0c0c0c", border: "1px solid #1e1e1e", borderRadius: 8, padding: "20px 24px" }}>
+        <div style={{ fontSize: 11, color: "#eab308", fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 10 }}>SCAN DATA UNAVAILABLE</div>
+        <div style={{ fontSize: 13, color: "#d4d4d4", marginBottom: 8 }}>
+          No scan data is available yet. The scanner runs automatically at <strong>3:45 PM ET on weekdays</strong> via GitHub Actions.
+        </div>
+        <div style={{ fontSize: 12, color: "#9e9e9e", marginBottom: 4 }}>
+          This is normal if the market has not yet closed today, or if it is a weekend or holiday.
+        </div>
+        <div style={{ fontSize: 11, color: "#6b7280", fontFamily: "monospace", marginTop: 12, paddingTop: 12, borderTop: "1px solid #1a1a1a" }}>
+          Last fetch attempt: {new Date().toLocaleString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", hour12: true })} ET &nbsp;·&nbsp; Error: {error}
+        </div>
       </div>
     </div>
   );
