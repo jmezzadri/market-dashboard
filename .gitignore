@@ -5,6 +5,7 @@ token.json
 # Generated output — too noisy for git history
 reports/*
 !reports/latest_report.html
+!reports/latest_scan_data.json
 
 # Python artifacts
 __pycache__/
