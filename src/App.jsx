@@ -55,19 +55,19 @@ const CONVICTION=[
 function getConv(s){return CONVICTION.find(c=>s>=c.range[0]&&s<c.range[1])||CONVICTION[3];}
 
 const AS_OF={
-vix:"Apr 14 2026",hy_ig:"Apr 13 2026",eq_cr_corr:"Apr 13 2026",
-yield_curve:"Apr 14 2026",move:"Apr 13 2026",anfci:"Apr 03 2026",
-stlfsi:"Apr 03 2026",real_rates:"Apr 09 2026",sloos_ci:"Jan 01 2026",
-cape:"Mar 2026",ism:"Mar 2026",copper_gold:"Apr 14 2026",
-bkx_spx:"Apr 14 2026",bank_unreal:"Q4 2025",credit_3y:"Apr 2026",
-term_premium:"Apr 10 2026",cmdi:"Apr 10 2026",loan_syn:"Apr 14 2026",
-usd:"Apr 15 2026",cpff:"Apr 13 2026",skew:"Apr 14 2026",
+vix:"Apr 16 2026",hy_ig:"Apr 13 2026",eq_cr_corr:"Apr 13 2026",
+yield_curve:"Apr 15 2026",move:"Apr 15 2026",anfci:"Apr 10 2026",
+stlfsi:"Apr 03 2026",real_rates:"Apr 14 2026",sloos_ci:"Jan 01 2026",
+cape:"Mar 2026",ism:"Mar 2026",copper_gold:"Apr 16 2026",
+bkx_spx:"Apr 16 2026",bank_unreal:"Q4 2025",credit_3y:"Apr 2026",
+term_premium:"Apr 10 2026",cmdi:"Apr 10 2026",loan_syn:"Apr 15 2026",
+usd:"Apr 16 2026",cpff:"Apr 13 2026",skew:"Apr 15 2026",
 sloos_cre:"Jan 01 2026",bank_credit:"Apr 01 2026",jobless:"Apr 04 2026",
 jolts_quits:"Feb 01 2026",
 };
 
 const IND={
-vix:["VIX","Equity Volatility","equity",1,"index",1,18.2,23.9,17.2,19.5,15.0,false,
+vix:["VIX","Equity Volatility","equity",1,"index",1,18.6,23.9,17.2,19.5,15.0,false,
 "The CBOE Volatility Index measures expected 30-day S&P 500 volatility from live options prices. Known as the 'fear gauge' — higher = more fear, lower = calm.",
 "At 23.9, modestly above the long-run average (~19.5). Down from 28+ recently. Watch for a sustained break above 30 (stress threshold) or 40 (crisis level)."],
 hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,213.0,268,245,280,220,false,
@@ -76,19 +76,19 @@ hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,213.0,268,245,2
 eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.92,0.61,0.55,0.50,0.40,false,
 "63-day rolling correlation between VIX and HY-IG spreads. When both move together, it signals a genuine risk-off regime rather than isolated noise.",
 "At 0.74, markets are synchronized. Values above 0.6 indicate a true risk-off regime."],
-yield_curve:["10Y–2Y Slope","Yield Curve","rates",1,"bps",0,50.0,52,35,15,-20,false,
+yield_curve:["10Y–2Y Slope","Yield Curve","rates",1,"bps",0,53.0,52,35,15,-20,false,
 "Difference between 10-year and 2-year Treasury yields. Inversion historically precedes recessions by 6–18 months.",
 "At +52bps, re-steepened after the deepest inversion since 1981 (-109bps in 2023). An improving signal. Watch for bear steepening."],
-move:["MOVE Index","Rates Volatility","rates",2,"index",0,74.0,98,95,90,85,false,
+move:["MOVE Index","Rates Volatility","rates",2,"index",0,68.0,98,95,90,85,false,
 "Merrill Lynch Option Volatility Estimate: implied volatility of Treasury yields. The bond market's VIX.",
 "At 112, well above the pre-2022 average of ~65. Elevated rates uncertainty raises borrowing costs."],
-anfci:["ANFCI","Chicago Fed Fin. Conditions","fincond",2,"z-score",2,-0.43,0.08,0.06,0.04,-0.05,false,
+anfci:["ANFCI","Chicago Fed Fin. Conditions","fincond",2,"z-score",2,-0.47,0.08,0.06,0.04,-0.05,false,
 "Adjusted National Financial Conditions Index: composite of 105 indicators isolating pure financial stress.",
 "At +0.12, conditions are slightly tighter than the economy warrants. Positive = tighter than justified."],
 stlfsi:["STLFSI","St. Louis Fed Stress Index","fincond",2,"index",2,-0.24,0.22,0.18,0.12,-0.10,false,
 "St. Louis Fed Financial Stress Index: 18 weekly data series. Zero = historical average stress.",
 "At 0.31, above-average but not severe. Sustained move above 1.0 would be concerning."],
-real_rates:["10Y TIPS","Real Interest Rates","rates",2,"%",2,1.95,1.90,1.75,1.85,1.50,false,
+real_rates:["10Y TIPS","Real Interest Rates","rates",2,"%",2,1.89,1.90,1.75,1.85,1.50,false,
 "10-year TIPS yield — the real after-inflation rate. Represents the true cost of long-term borrowing.",
 "At 1.82%, remains restrictive (historical avg ~0.5%). Compresses equity valuations especially growth stocks."],
 sloos_ci:["SLOOS C&I","Business Lending Standards","bank",2,"%",1,5.3,9.8,8.0,6.0,2.0,false,
@@ -118,7 +118,7 @@ term_premium:["Kim–Wright 10Y","10-Year Term Premium","rates",3,"bps",0,65.0,5
 cmdi:["CMDI","Corp Bond Market Distress","credit",3,"index",2,0.03,0.38,0.30,0.25,0.12,false,
 "Federal Reserve composite of corporate bond market functioning. Zero = normal.",
 "At 0.42, somewhat impaired. Trending higher over 12 months. Leading indicator for credit availability."],
-loan_syn:["HY Eff. Yield","High Yield Effective Yield","credit",3,"%",2,6.7,7.45,7.0,6.5,6.2,false,
+loan_syn:["HY Eff. Yield","High Yield Effective Yield","credit",3,"%",2,6.74,7.45,7.0,6.5,6.2,false,
 "ICE BofA US High Yield Index Effective Yield. Proxy for leveraged loan market conditions.",
 "At 7.84%, elevated vs. low-rate era (4–5%). Companies with near-term maturities face refinancing pressure."],
 usd:["USD Index","Trade-Weighted Dollar","fincond",3,"index",1,98.2,103.1,102.5,101.8,101.0,false,
@@ -127,7 +127,7 @@ usd:["USD Index","Trade-Weighted Dollar","fincond",3,"index",1,98.2,103.1,102.5,
 cpff:["USD Funding","3M CP vs. Fed Funds Spread","fincond",3,"bps",0,8.0,14,12,10,8,false,
 "Spread between 3-month AA financial commercial paper and effective Fed Funds Rate.",
 "At 18bps, money markets functioning normally. GFC peak: 280bps; COVID: 65bps."],
-skew:["SKEW Index","Options-Implied Tail Risk","equity",3,"index",0,150.0,141,138,135,130,false,
+skew:["SKEW Index","Options-Implied Tail Risk","equity",3,"index",0,139.0,141,138,135,130,false,
 "CBOE SKEW from relative pricing of far OTM S&P 500 puts. Measures priced probability of a crash.",
 "At 148, elevated. High SKEW + moderate VIX = quiet buildup of underlying anxiety."],
 sloos_cre:["SLOOS CRE","CRE Lending Standards","bank",3,"%",1,8.9,18.3,15.0,12.0,8.0,false,
@@ -471,12 +471,6 @@ return(
 <div style={{fontSize:8,color:"#bcbcbc",fontFamily:"monospace",marginBottom:4}}>
 LONG-TERM HISTORY
 <span style={{color:"rgba(34,197,94,0.7)",marginLeft:6}}>▬ normal range</span>
-{COMP_CRISES.map(cm=>{
-const idx=labels.findIndex(l=>l===cm.year||l.startsWith(cm.year));
-if(idx<0)return null;
-return <span key={cm.label} style={{color:cm.color,marginLeft:8}}>│{cm.label}: {fmt(data[idx][1])}</span>;
-})}
-<span style={{color:"#9e9e9e",marginLeft:8}}>· hover chart for dates & values</span>
 </div>
 <ChartCore data={data} labels={labels} dir={sd?.dir} sdP={sd} crisisData={COMP_CRISES}
 col={col} fmtFn={fmt} H={100} pL={28} pR={8} pT={18} pB={22} W={500}/>
@@ -634,7 +628,7 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 <path d={fullPath} fill="none" stroke="#505050" strokeWidth="1.5" strokeLinejoin="round"/>
 <path d={recentPath} fill="none" stroke={col} strokeWidth="2.5" strokeLinejoin="round"/>
 <circle cx={lastPt[0]} cy={lastPt[1]} r={compact?3.5:4} fill={col} stroke="#080808" strokeWidth="1.5"/>
-<text x={lastPt[0]} y={lastPt[1]-(compact?6:7)} textAnchor="middle" fill={col} fontSize={compact?6:7} fontFamily="monospace" fontWeight="800">{lastStress!=null?Math.round(lastStress):"—"}</text>
+<text x={lastPt[0]} y={lastPt[1]-(compact?6:7)} textAnchor="middle" fill={col} fontSize={compact?6:7} fontFamily="monospace" fontWeight="800">{fmtRaw(data[data.length-1][1])}</text>
 {labels.map((l,i)=>showLbl[i]&&(
 <text key={i} x={xp(i)} y={H-4} textAnchor="middle" fill="#8a8a8a" fontSize={compact?5:6} fontFamily="monospace">{l}</text>
 ))}
@@ -648,7 +642,6 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 </g>
 )}
 </svg>
-<div style={{fontSize:6,color:"#8a8a8a",fontFamily:"monospace",marginTop:3}}>Line = stress score (0–100) · tooltip shows native units</div>
 </div>
 );
 }
@@ -785,11 +778,11 @@ style={{background:isX?"#111":"#0c0c0c",border:`1px solid ${isX?col+"66":"#1c1c1
 </div>
 <div style={{marginBottom:6}}>
 <span style={{fontSize:11,fontWeight:700,color:col,fontFamily:"monospace"}}>{s!=null?sdLabel(s):"No Data"}</span>
-<ConvictionMiniBar s={s}/>
+{!isX&&(
 <div style={{marginTop:8,width:"100%"}}>
-<div style={{fontSize:7,color:"#9e9e9e",fontFamily:"monospace",marginBottom:5,letterSpacing:"0.04em"}}>STRESS HISTORY (0–100) · GFC · COVID · RATE SHOCK · hover for date & level</div>
 <IndStressChart id={id} col={col} compact/>
 </div>
+)}
 <IndicatorTrendPills id={id} d={d}/>
 </div>
 {delta!=null&&(
