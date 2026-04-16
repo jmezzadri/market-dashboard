@@ -2,4 +2,3 @@ ticker,shares,avg_cost,entry_date,notes
 CCJ,400,117.00,2026-04-10,"Cameco — replace avg_cost/entry_date with broker figures if different"
 OXY,500,58.00,2026-04-10,"Occidental — replace avg_cost/entry_date with broker figures if different"
 RCAT,2000,12.85,2026-04-15,"Redcat Holdings"
-by
