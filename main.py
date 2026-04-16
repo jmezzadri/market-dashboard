@@ -149,6 +149,7 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         "insider_buys_90d": uw.get_insider_transactions(INSIDER_REVERSAL_LOOKBACK),
         "insider_sales": uw.get_insider_sales(),
         "flow_alerts": uw.get_options_flow_alerts(),
+        "put_flow_alerts": uw.get_put_flow_alerts(),
         "darkpool": uw.get_darkpool_trades(),
         "screener": uw.get_stock_screener(),
     }

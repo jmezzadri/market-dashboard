@@ -243,18 +243,17 @@ def get_insider_sales(days_back: int = 30) -> list[dict[str, Any]]:
     return out
 
 
-def get_options_flow_alerts(limit: int = 100, lookback_days: int = FLOW_LOOKBACK_DAYS) -> list[dict[str, Any]]:
+def _get_flow_alerts_by_type(option_type: str, limit: int = 100, lookback_days: int = FLOW_LOOKBACK_DAYS) -> list[dict[str, Any]]:
     """
-    GET /api/option-trades/flow-alerts
-    Calls only; minimum premium threshold applied.
-    Restrict to recent prints (see FLOW_LOOKBACK_DAYS) when timestamps exist.
+    Internal helper: fetch flow alerts filtered to a specific option type ("call" or "put").
+    Minimum premium threshold applied. Restricts to recent prints when timestamps exist.
     """
     raw = _get("/api/option-trades/flow-alerts", {"limit": limit})
     rows = raw.get("data") or []
     hours = max(lookback_days, 1) * 24.0
     out: list[dict[str, Any]] = []
     for row in rows:
-        if (row.get("type") or "").strip().lower() != "call":
+        if (row.get("type") or "").strip().lower() != option_type:
             continue
         try:
             prem = float(row.get("total_premium") or 0)
@@ -276,6 +275,20 @@ def get_options_flow_alerts(limit: int = 100, lookback_days: int = FLOW_LOOKBACK
             continue
         out.append(r)
     return out
+
+
+def get_options_flow_alerts(limit: int = 100, lookback_days: int = FLOW_LOOKBACK_DAYS) -> list[dict[str, Any]]:
+    """
+    GET /api/option-trades/flow-alerts — calls only (used for scoring).
+    """
+    return _get_flow_alerts_by_type("call", limit=limit, lookback_days=lookback_days)
+
+
+def get_put_flow_alerts(limit: int = 100, lookback_days: int = FLOW_LOOKBACK_DAYS) -> list[dict[str, Any]]:
+    """
+    GET /api/option-trades/flow-alerts — puts only (for dashboard display, not scoring).
+    """
+    return _get_flow_alerts_by_type("put", limit=limit, lookback_days=lookback_days)
 
 
 def get_darkpool_trades(limit: int = 100, lookback_days: int = DARKPOOL_LOOKBACK_DAYS) -> list[dict[str, Any]]:
