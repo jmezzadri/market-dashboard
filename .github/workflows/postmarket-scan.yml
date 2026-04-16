@@ -51,6 +51,20 @@ jobs:
           git config user.email "scanner@github-actions"
           git add portfolio/.last_scan_scores.json
           git add reports/latest_report.html
+          git add reports/latest_scan_data.json
           git diff --staged --quiet || git commit -m "Update scan state [skip ci]"
           git pull --rebase origin main
+          git push
+
+      - name: Push scan data to market-dashboard (public)
+        env:
+          DASHBOARD_PAT: ${{ secrets.DASHBOARD_PAT }}
+        run: |
+          git clone https://jmezzadri:$DASHBOARD_PAT@github.com/jmezzadri/market-dashboard.git /tmp/market-dashboard
+          cp reports/latest_scan_data.json /tmp/market-dashboard/public/latest_scan_data.json
+          cd /tmp/market-dashboard
+          git config user.name "Trading Scanner"
+          git config user.email "scanner@github-actions"
+          git add public/latest_scan_data.json
+          git diff --staged --quiet || git commit -m "Scan data update [skip ci]"
           git push
