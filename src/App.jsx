@@ -1587,15 +1587,6 @@ return(<div key={ticker} style={{display:"flex",alignItems:"center",gap:6,margin
 </div>);
 })}
 </div>
-<div style={{borderTop:"1px solid #1a1a1a",paddingTop:8}}>
-<div style={{fontSize:7,color:"#bcbcbc",fontFamily:"monospace",marginBottom:4}}>PORTFOLIO POSITIONS</div>
-{(scanData.portfolio_positions||[]).map(p=>(
-<div key={p.ticker} style={{display:"flex",justifyContent:"space-between",marginBottom:3}}>
-<span style={{fontSize:9,fontWeight:700,color:"#d8d8d8",fontFamily:"monospace"}}>{p.ticker}</span>
-<span style={{fontSize:8,color:"#9e9e9e",fontFamily:"monospace"}}>{p.shares} sh · avg ${p.avg_cost}</span>
-</div>
-))}
-</div>
 <div style={{fontSize:7,color:"#8a8a8a",fontFamily:"monospace",marginTop:2}}>Last scan: {scanData.date_label} · <span style={{cursor:"pointer",color:"#4a9eff"}} onClick={()=>setTab("scanner")}>View full scanner →</span></div>
 </>
 )}
