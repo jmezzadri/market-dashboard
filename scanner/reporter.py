@@ -101,13 +101,13 @@ def build_subject(
     scan_type: str,
     date_str: str,
 ) -> str:
-    """Email subject per CURSOR_EMAIL_REDESIGN_SPEC §7."""
+    """Email subject — daily consolidated macro + scanner summary."""
     parts: list[str] = []
     if buy_opps:
         tickers = ", ".join(o["ticker"] for o in buy_opps[:3])
-        parts.append(f"🟢 {len(buy_opps)} Buy: {tickers}")
+        parts.append(f"{len(buy_opps)} Buy: {tickers}")
     if watch_opps:
-        parts.append(f"👀 {len(watch_opps)} Watch")
+        parts.append(f"{len(watch_opps)} Watch")
     high_alerts = [
         a
         for a in sell_alerts
@@ -115,10 +115,10 @@ def build_subject(
     ]
     if high_alerts:
         tickers = ", ".join(a["ticker"] for a in high_alerts[:2])
-        parts.append(f"⚠️ Action: {tickers}")
+        parts.append(f"Action: {tickers}")
     if not parts:
         parts = ["No alerts"]
-    return f"[Trading Scanner] {' | '.join(parts)} — {scan_type.title()} {date_str}"
+    return f"Macro Dashboard & Trading Opportunity Scanner | {' | '.join(parts)} — {date_str}"
 
 
 def _parse_float(v: Any) -> float | None:
@@ -835,11 +835,8 @@ def build_scan_report_body_html(
         '<div style="font-size:11px;color:#888;margin-top:20px;padding-top:12px;border-top:1px solid #eee;">'
         f"Scan complete | {now.strftime('%a %b ') + str(now.day)} {now.strftime('%I:%M %p %Z %Y')} (market COB)<br/>"
         f"Data: Unusual Whales (options flow, dark pool) · SEC EDGAR/Congress.gov (insider &amp; congressional trades) · Yahoo Finance (technicals)<br/>"
-        f'<a href="https://market-dashboard-git-main-joe-mezzadri.vercel.app/#scanner" '
-        f'style="color:#1a5276;font-weight:bold;">📊 Open Interactive Dashboard</a>'
-        f" &nbsp;·&nbsp; "
-        f'<a href="https://github.com/jmezzadri/trading-scanner/blob/main/portfolio/positions.csv" '
-        f'style="color:#1a5276;">Update portfolio (positions.csv)</a>'
+        f'<a href="https://market-dashboard-git-main-joe-mezzadri.vercel.app/#overview" '
+        f'style="color:#1a5276;font-weight:bold;">Open Macro Dashboard & Trading Scanner</a>'
         f"</div>"
     )
     return "\n".join(parts)
@@ -1891,8 +1888,7 @@ def build_email_content(
         + "\n\n"
         + f"Scan complete | {now.strftime('%Y-%m-%d %I:%M %p %Z')} (market COB)\n"
         + "Data: Unusual Whales · SEC EDGAR/Congress.gov · Yahoo Finance\n"
-        + "Dashboard: https://market-dashboard-git-main-joe-mezzadri.vercel.app/#scanner\n"
-        + "Update portfolio: https://github.com/jmezzadri/trading-scanner/blob/main/portfolio/positions.csv\n"
+        + "Dashboard: https://market-dashboard-git-main-joe-mezzadri.vercel.app/\n"
     )
 
     body_html = build_scan_report_body_html(
@@ -1903,6 +1899,6 @@ def build_email_content(
         signals,
         portfolio_positions=portfolio_positions,
     )
-    html_body = wrap_html_document(f"{label} — Trading Scanner", body_html)
+    html_body = wrap_html_document("Macro Dashboard & Trading Opportunity Scanner", body_html)
 
     return sub[:900], html_body, text
