@@ -45,6 +45,9 @@ def _empty_technicals() -> dict[str, Any]:
         "above_50ma": None,
         "above_200ma": None,
         "vol_surge": None,
+        "week_change": None,
+        "month_change": None,
+        "ytd_change": None,
         "tech_score": 0,
         "tech_summary": [],
     }
@@ -72,6 +75,11 @@ def _compute_technicals(sym: str) -> dict[str, Any]:
 
         vol_surge = _calc_vol_surge(volume, 20) if volume is not None else None
 
+        # Price changes from OHLCV history
+        week_change = _pct_change(close, 5)
+        month_change = _pct_change(close, 21)
+        ytd_change = _calc_ytd_change(close)
+
         score, bullets = _score_technicals(
             rsi=rsi,
             macd_cross=macd_cross,
@@ -86,6 +94,9 @@ def _compute_technicals(sym: str) -> dict[str, Any]:
             "above_50ma": above_50,
             "above_200ma": above_200,
             "vol_surge": round(vol_surge, 2) if vol_surge is not None else None,
+            "week_change": round(week_change, 4) if week_change is not None else None,
+            "month_change": round(month_change, 4) if month_change is not None else None,
+            "ytd_change": round(ytd_change, 4) if ytd_change is not None else None,
             "tech_score": score,
             "tech_summary": bullets,
         }
@@ -221,3 +232,40 @@ def _score_technicals(
 
     points = max(-10, min(20, points))
     return points, bullets
+
+
+def _pct_change(close: pd.Series, n_bars: int) -> float | None:
+    """Return (current / close_n_bars_ago) - 1, or None if not enough data."""
+    if len(close) < n_bars + 1:
+        return None
+    prior = float(close.iloc[-(n_bars + 1)])
+    current = float(close.iloc[-1])
+    if prior <= 0:
+        return None
+    return (current - prior) / prior
+
+
+def _calc_ytd_change(close: pd.Series) -> float | None:
+    """Return YTD % change using the first trading day of the current calendar year."""
+    import pandas as _pd
+    from datetime import datetime
+    if close.empty:
+        return None
+    current_year = datetime.now().year
+    try:
+        idx = close.index
+        # Handle timezone-aware or naive index
+        if hasattr(idx[0], "tzinfo") and idx[0].tzinfo is not None:
+            year_start = _pd.Timestamp(f"{current_year}-01-01", tz=idx[0].tzinfo)
+        else:
+            year_start = _pd.Timestamp(f"{current_year}-01-01")
+        ytd_bars = close[close.index >= year_start]
+        if ytd_bars.empty or len(ytd_bars) < 2:
+            return None
+        prior = float(ytd_bars.iloc[0])
+        current = float(ytd_bars.iloc[-1])
+        if prior <= 0:
+            return None
+        return (current - prior) / prior
+    except Exception:
+        return None

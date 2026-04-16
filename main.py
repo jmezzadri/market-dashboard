@@ -197,7 +197,25 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     ]
     all_scores.sort(key=lambda x: x[1], reverse=True)
     signals["_score_by_ticker"] = dict(all_scores)
-    signals["_technicals"] = {t: get_technicals(t) for t in filtered}
+
+    # Compute technicals for scanned tickers AND portfolio positions
+    portfolio_positions_early = load_portfolio_positions()
+    portfolio_tickers = [
+        (p.get("ticker") or "").upper()
+        for p in portfolio_positions_early
+        if (p.get("ticker") or "").strip()
+    ]
+    all_tech_tickers = list({*filtered, *portfolio_tickers})
+    signals["_technicals"] = {t: get_technicals(t) for t in all_tech_tickers}
+
+    # Ensure portfolio tickers have screener data even if absent from bulk screener
+    screener = signals.get("screener") or {}
+    for sym in portfolio_tickers:
+        if sym not in screener:
+            row = uw.fetch_screener_row_for_ticker(sym, signals)
+            if row:
+                screener[sym] = row
+    signals["screener"] = screener
 
     if debug:
         print(f"\n--- DEBUG: top 10 scores (buy ≥{SCORE_BUY_ALERT}, watch {SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1}) ---")

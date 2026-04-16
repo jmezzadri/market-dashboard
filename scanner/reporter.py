@@ -1513,8 +1513,10 @@ def _write_json_data(
             "insider_buys": _safe(signals.get("insider_buys") or []),
             "insider_sales": _safe(signals.get("insider_sales") or []),
             "flow_alerts": _safe(signals.get("flow_alerts") or []),
+            "put_flow_alerts": _safe(signals.get("put_flow_alerts") or []),
             "darkpool": _safe(signals.get("darkpool") or []),
             "screener": _safe(screener_slim),
+            "technicals": _safe(signals.get("_technicals") or {}),
         },
         "config": {
             "score_buy_alert": SCORE_BUY_ALERT,
