@@ -1,3 +1,8 @@
 .DS_Store
 *_backup_*.jsx
 .git-credentials
+vite.config.*.timestamp-*.mjs
+vite.config.tmp.*
+__pycache__/
+node_modules/
+dist-new/
