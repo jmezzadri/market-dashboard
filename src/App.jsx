@@ -592,12 +592,18 @@ analysis:"20% cash buffer — slightly high. Keep $1.5–2K for near-term medica
 ];
 
 // ── WATCHLIST — names Joe is tracking but doesn't (yet) own ────────────────
-// These tickers should always get scanner intel pulled regardless of score
-// threshold. Today the Python scanner only scores some of them — see Task #9
-// for the scanner-side enrichment work that fills in the missing data.
-// Tickers Joe holds (CCJ, OXY, RCAT) are intentionally NOT in this list —
-// they show up under "Today's Actions" via the ACCOUNTS positions instead.
-const WATCHLIST=[
+// CRYPTO_WATCH lives only on the dashboard side because the Python scanner
+// is equity-only and doesn't know how to pull intel for BTC/ETH.
+// Equity tickers come from the scanner's portfolio/watchlist.csv via
+// scanData.watchlist (single source of truth) — WATCHLIST_FALLBACK is used
+// only when scanData hasn't loaded yet or doesn't include the watchlist key
+// (e.g. older scan JSON pre-Task#9). Edit watchlist.csv in the trading-
+// scanner repo to change the equity list.
+const CRYPTO_WATCH=[
+  {ticker:"BTCUSD",name:"Bitcoin",  theme:"Crypto · spot exposure via FBTC"},
+  {ticker:"ETHUSD",name:"Ethereum", theme:"Crypto · spot exposure via ETHE"},
+];
+const WATCHLIST_FALLBACK=[
   {ticker:"NVDA", name:"NVIDIA Corp",          theme:"AI / Semis"},
   {ticker:"AMAT", name:"Applied Materials",    theme:"Semi capex"},
   {ticker:"CRWD", name:"CrowdStrike",          theme:"Cyber"},
@@ -607,8 +613,6 @@ const WATCHLIST=[
   {ticker:"AVAV", name:"AeroVironment",        theme:"Defense / drones"},
   {ticker:"ONDS", name:"Ondas Holdings",       theme:"Defense / drones"},
   {ticker:"LUNR", name:"Intuitive Machines",   theme:"Space / lunar"},
-  {ticker:"BTCUSD",name:"Bitcoin",             theme:"Crypto · spot exposure via FBTC"},
-  {ticker:"ETHUSD",name:"Ethereum",            theme:"Crypto · spot exposure via ETHE"},
 ];
 
 const ANALYSIS=`REGIME SUMMARY — APRIL 16, 2026
@@ -1942,6 +1946,12 @@ const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual 
 const buyCount = scanData?.buy_opportunities?.length || 0;
 const watchCount = scanData?.watch_items?.length || 0;
 const portCount = scanData?.portfolio_positions?.length || 0;
+// Watchlist: prefer the scanner-published list (single source of truth, edited
+// in trading-scanner repo's portfolio/watchlist.csv); fall back to hardcoded
+// list if scan data hasn't loaded or is from before the watchlist feature.
+// Always append crypto entries — the scanner is equity-only.
+const watchlistEquities = (scanData?.watchlist?.length ? scanData.watchlist : WATCHLIST_FALLBACK);
+const WATCHLIST = [...watchlistEquities, ...CRYPTO_WATCH];
 const lastScanLabel = scanData?.date_label || "—";
 const compactNarrative = `Composite ${COMP100}/100 · ${TREND_SIG.label}`;
 
