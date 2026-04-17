@@ -2166,37 +2166,60 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 </div>
 ))}
 </div>
-<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.08em",marginBottom:6}}>WEALTH BY ACCOUNT</div>
-<div style={{display:"flex",height:30,borderRadius:5,overflow:"hidden",marginBottom:12}}>
-{ACCOUNTS.map(acc=>{
+{/* Wealth-by-account + asset-class composition.
+    Labels live OUTSIDE the bar (legend row below). The bar itself is a thin
+    10px track with 2px gaps between segments — segments don't carry text, so
+    we don't fight truncation/text-shadow on narrow slices. */}
+{(()=>{
+const ACCT_LABEL={brokerage:"Taxable",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529a":"529 Plan","529b":"529 Plan"};
+const acctData=ACCOUNTS.map(acc=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
-const pct=t/grandTotal;
-const ACCT_LABEL={brokerage:"Taxable",k401:"401k",roth:"Roth",hsa:"HSA","529":"529"};
-const name=ACCT_LABEL[acc.id]||acc.label.split(" ")[0];
-return(<div key={acc.id} style={{flex:pct,background:acc.color,opacity:0.85,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 6px",overflow:"hidden"}}>
-{pct>0.08?<span style={{fontSize:12,color:"#fff",fontFamily:"monospace",fontWeight:700,letterSpacing:"0.02em",textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{name} {(pct*100).toFixed(0)}%</span>:pct>0.04?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{(pct*100).toFixed(0)}%</span>:null}
-</div>);
-})}
+return{id:acc.id,name:ACCT_LABEL[acc.id]||acc.label.split(" ")[0],color:acc.color,value:t,pct:t/grandTotal};
+}).sort((a,b)=>b.value-a.value);
+const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
+{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val,pct:val/grandTotal}
+));
+const fmt$=v=>v>=1000?`$${Math.round(v/1000).toLocaleString()}K`:`$${v}`;
+const sectionStyle={marginBottom:14};
+const headerRow={display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8};
+const headerLabel={fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600};
+const headerMeta={fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"};
+const barTrack={display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10};
+const legendWrap={display:"flex",flexWrap:"wrap",rowGap:6,columnGap:18};
+const chip={display:"flex",alignItems:"center",gap:7};
+const swatch={width:9,height:9,borderRadius:2,flexShrink:0};
+const chipName={fontSize:12,color:"var(--text)",fontWeight:500};
+const chipVal={fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"};
+const chipPct={fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"};
+const renderBar=(title,meta,segs,key)=>(
+<div key={key} style={sectionStyle}>
+<div style={headerRow}>
+<span style={headerLabel}>{title}</span>
+<span style={headerMeta}>{meta}</span>
 </div>
-<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.08em",marginBottom:6}}>ASSET CLASS MIX</div>
-<div style={{display:"flex",height:30,borderRadius:5,overflow:"hidden",marginBottom:8}}>
-{Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>{
-const pct=val/grandTotal;
-const ABBR={"Individual Stocks":"Ind Stks","Index Funds":"Idx Funds","Intl Equity":"Int'l Stks","Precious Metals":"Metals","Crypto":"Crypto","Cash":"Cash"};
-const label=ABBR[cls]||cls;
-return(<div key={cls} style={{flex:pct,background:rollupColors[cls]||"#5c6370",opacity:0.9,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",overflow:"hidden"}}>
-{pct>0.08?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,letterSpacing:"0.02em",textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{label} {(pct*100).toFixed(0)}%</span>:pct>0.04?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{(pct*100).toFixed(0)}%</span>:null}
-</div>);
-})}
+<div style={barTrack}>
+{segs.map(s=>(
+<div key={s.id} title={`${s.name} · ${fmt$(s.value)} · ${(s.pct*100).toFixed(1)}%`}
+  style={{flex:s.pct,background:s.color,minWidth:2}}/>
+))}
 </div>
-<div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-{Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
-<div key={cls} style={{display:"flex",alignItems:"center",gap:5}}>
-<div style={{width:8,height:8,borderRadius:"50%",background:rollupColors[cls]||"#5c6370"}}/>
-<span style={{fontSize:12,color:"var(--text)",fontFamily:"monospace"}}>{cls} {(val/grandTotal*100).toFixed(0)}%</span>
+<div style={legendWrap}>
+{segs.map(s=>(
+<div key={s.id} style={chip}>
+<div style={{...swatch,background:s.color}}/>
+<span style={chipName}>{s.name}</span>
+<span style={chipVal}>{fmt$(s.value)}</span>
+<span style={chipPct}>{(s.pct*100).toFixed(0)}%</span>
 </div>
 ))}
 </div>
+</div>
+);
+return(<>
+{renderBar("WEALTH BY ACCOUNT",`${acctData.length} accounts · ${fmt$(grandTotal)}`,acctData,"acct")}
+{renderBar("ASSET CLASS MIX",`${assetData.length} classes · ${fmt$(grandTotal)}`,assetData,"asset")}
+</>);
+})()}
 </div>
 <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
 <div style={{fontSize:11,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:8}}>KEY OBSERVATIONS · {CONV.label} REGIME</div>
