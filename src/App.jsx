@@ -1875,6 +1875,12 @@ const navTo=(next)=>{
   setTabHistory(h=>[...h,tab]);
   setTab(next);
 };
+// Navigate to the Scanner tab and focus on a specific ticker's RichCard.
+// Scanner reads `focusTicker` on mount/change and scrolls + highlights.
+const navToScannerFor=(ticker)=>{
+  setScannerFocusTicker(ticker);
+  if(tab!=="scanner"){setTabHistory(h=>[...h,tab]);setTab("scanner");}
+};
 const goBack=()=>{
   setTabHistory(h=>{
     if(h.length===0){setTab("home");return h;}
@@ -1891,6 +1897,7 @@ const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
 const [expandedActionKey,setExpandedActionKey]=useState(null);
+const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [scanData,setScanData]=useState(null);
 const [scanError,setScanError]=useState(false);
 useEffect(()=>{
@@ -2316,7 +2323,7 @@ const oppCard=(opts)=>{
   <div style={{fontSize:10,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>WATCHING FOR</div>
   <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>{theme}. {score!=null?`Scanner currently scores ${ticker} at ${score} — ${distanceToTrigger>0?`${distanceToTrigger} points from buy threshold`:"already at buy threshold"}. `:`Not in the scanner's scored universe yet — pending scanner-side enrichment. `}For now this is a manual-track position.</div>
   </>)}
-  <div style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();navTo("scanner");}}>View {ticker} in full scanner →</div>
+  <div style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();navToScannerFor(ticker);}}>View {ticker} in full scanner →</div>
   </div>
   )}
   </div>
@@ -2503,7 +2510,7 @@ return(<>
   </div>
   )}
   {p.analysis&&<div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>{p.analysis}</div>}
-  {!SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector)&&!BROAD_INDEX_FUNDS.has(p.ticker)&&p.acctTactical&&<div style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();navTo("scanner");}}>View {p.ticker} in full scanner →</div>}
+  {!SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector)&&!BROAD_INDEX_FUNDS.has(p.ticker)&&p.acctTactical&&<div style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();navToScannerFor(p.ticker);}}>View {p.ticker} in full scanner →</div>}
   </div>
   )}
   </div>
@@ -2622,7 +2629,7 @@ return(<>
 )}
 
 {/* SCANNER */}
-{tab==="scanner"&&<Scanner/>}
+{tab==="scanner"&&<Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)}/>}
 
 {/* FAQ */}
 {tab==="readme"&&(
