@@ -355,9 +355,17 @@ a:hover { text-decoration: underline; }
 }
 
 /* Animations */
+/* Opacity-only fade-in.
+   NOTE: do NOT add `transform` to this animation. `.fade-in` is applied to page
+   wrappers that are ancestors of the modal. Any non-`none` transform value
+   (even `translateY(0)`) on an ancestor creates a new containing block and
+   reroutes `position: fixed` onto it — which breaks modal scrolling: the
+   .modal-backdrop would be trapped inside the page wrapper's bounds instead
+   of the viewport, and users could not scroll to parts of the modal that
+   fell outside those bounds. */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 .fade-in { animation: fadeIn var(--dur-med) var(--ease-out) both; }
 
@@ -372,9 +380,12 @@ a:hover { text-decoration: underline; }
   from { opacity: 0; }
   to   { opacity: 1; }
 }
+/* Sheet entrance: opacity only. A residual transform on the sheet is harmless
+   today (no fixed-position descendants live inside it), but keeping the sheet
+   transform-free avoids the same containing-block trap we hit on .fade-in. */
 @keyframes modalSheetIn {
-  from { opacity: 0; transform: translateY(24px) scale(0.98); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 /* Scrolling-backdrop pattern: backdrop is a scrollable, full-viewport container.
    The sheet sits inside at its natural height. When content exceeds the viewport,

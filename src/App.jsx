@@ -621,7 +621,10 @@ if(vals.length<2)return(
 );
 const mn=Math.min(...vals),mx=Math.max(...vals),rng=mx-mn||1;
 const xp=i=>pL+(i/(data.length-1))*IW;
-const yp=v=>{const raw=(v-mn)/rng;return pT+(dir==="lw"||dir==="nw"?raw:1-raw)*IH;};
+// Always plot raw values with natural orientation: lower at bottom, higher at top.
+// (Previously this flipped for dir="lw"/"nw" indicators, which made narratives
+// like "37% below the historical mean" visually appear as a spike upward.)
+const yp=v=>{const raw=(v-mn)/rng;return pT+(1-raw)*IH;};
 const pts=data.map((d,i)=>[xp(i),yp(d[1])]);
 const fullPath=makePath(pts);
 const recentPath=makePath(pts.slice(-3));
@@ -657,8 +660,8 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 {hZone&&hZone.h>0&&<rect x={pL} y={hZone.y} width={IW} height={hZone.h} fill="rgba(34,197,94,0.08)"/>}
 {meanY!=null&&<line x1={pL} y1={meanY} x2={pL+IW} y2={meanY} stroke="rgba(34,197,94,0.35)" strokeWidth="0.5" strokeDasharray="3,4"/>}
 {sdP&&<text x={pL-3} y={meanY!=null?meanY+2:pT} textAnchor="end" fill="rgba(34,197,94,0.5)" fontSize="5.5" fontFamily="monospace">{fmtFn(sdP.mean)}</text>}
-<text x={pL-3} y={pT+4} textAnchor="end" fill="var(--text-muted)" fontSize="6" fontFamily="monospace">{fmtFn(dir==="lw"||dir==="nw"?mn:mx)}</text>
-<text x={pL-3} y={pT+IH+2} textAnchor="end" fill="var(--text-muted)" fontSize="6" fontFamily="monospace">{fmtFn(dir==="lw"||dir==="nw"?mx:mn)}</text>
+<text x={pL-3} y={pT+4} textAnchor="end" fill="var(--text-muted)" fontSize="6" fontFamily="monospace">{fmtFn(mx)}</text>
+<text x={pL-3} y={pT+IH+2} textAnchor="end" fill="var(--text-muted)" fontSize="6" fontFamily="monospace">{fmtFn(mn)}</text>
 {marks.map(cm=>(
 <g key={cm.label}>
 <line x1={cm.x} y1={pT} x2={cm.x} y2={pT+IH} stroke={cm.color} strokeWidth="1" strokeDasharray="2,3" opacity="0.6"/>
@@ -964,12 +967,13 @@ function RangeBar({sMin,sMax,sp,cur,col}){
 if(!sp||sMin==null)return null;
 const range=sMax-sMin||1;
 const tp=v=>Math.max(0,Math.min(100,((v-sMin)/range)*100));
-const dirFlip=sp.dir==="lw"||sp.dir==="nw";
+// Natural orientation: lower values on the left, higher on the right.
+// (Previously flipped for dir="lw"/"nw" indicators, which contradicted the
+// min/max labels rendered underneath the bar.)
 const hLo=sp.mean-sp.sd*0.5,hHi=sp.mean+sp.sd*0.5;
-const lp=tp(hLo),hp=tp(hHi);
-const adjL=dirFlip?100-hp:lp,adjH=dirFlip?100-lp:hp;
-const adjCur=dirFlip?100-tp(cur):tp(cur);
-const adjAvg=dirFlip?100-tp(sp.mean):tp(sp.mean);
+const adjL=tp(hLo),adjH=tp(hHi);
+const adjCur=tp(cur);
+const adjAvg=tp(sp.mean);
 return(
 <div style={{position:"relative",height:14,background:"#151515",borderRadius:3,marginBottom:4}}>
 <div style={{position:"absolute",left:`${Math.min(adjL,adjH)}%`,width:`${Math.abs(adjH-adjL)}%`,top:0,bottom:0,background:"rgba(34,197,94,0.12)",borderLeft:"1px solid rgba(34,197,94,0.3)",borderRight:"1px solid rgba(34,197,94,0.3)"}}/>
