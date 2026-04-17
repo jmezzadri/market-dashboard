@@ -98,4 +98,15 @@ if ! "${PYTHON}" -c "import anthropic" 2>/dev/null; then
 	echo "  ${PYTHON} -m pip install anthropic"
 fi
 
+# Catch-up: publish yesterday's trading-scanner JSON to the dashboard repo so the
+# Scanner tab has fresh data. Non-fatal — if the scan file is missing or the push
+# fails we still proceed with the indicator fetch.
+PUBLISH_SCAN="${ROOT}/scripts/publish-scan-data.sh"
+if [[ -x "$PUBLISH_SCAN" ]]; then
+	echo "run-daily-fetch: publishing latest scan data..."
+	"$PUBLISH_SCAN" || echo "run-daily-fetch: publish-scan-data.sh exited non-zero (continuing)"
+else
+	echo "run-daily-fetch: publish-scan-data.sh not found or not executable — skipping"
+fi
+
 exec "${PYTHON}" "${ROOT}/fetch_indicators.py"
