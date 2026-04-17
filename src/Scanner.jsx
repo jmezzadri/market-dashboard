@@ -239,7 +239,7 @@ function SignalCol({ title, dot, label, sub, detail }) {
 }
 
 // ── Rich ticker card ──────────────────────────────────────────────────────────
-function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow, ptsl, avgCost, signals, isPortfolio, highlight }) {
+function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow, ptsl, avgCost, signals, isPortfolio }) {
   const sc = (signals?.screener || {})[ticker] || {};
   const cBuys  = signals?.congress_buys   || [];
   const iBuys  = signals?.insider_buys    || [];
@@ -260,13 +260,7 @@ function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow
     : null;
 
   return (
-    <div id={`scanner-card-${ticker}`} data-ticker={ticker} style={{
-      border: `${highlight?2:1}px solid ${highlight?"var(--accent)":borderColor}`,
-      borderRadius: 8, marginBottom: 12, overflow: "hidden",
-      boxShadow: highlight?"0 0 0 3px rgba(10,132,255,0.15), 0 4px 14px rgba(0,0,0,0.08)":"none",
-      transition: "box-shadow 240ms ease, border-color 240ms ease",
-      scrollMarginTop: 80,
-    }}>
+    <div style={{ border: `1px solid ${borderColor}`, borderRadius: 8, marginBottom: 12, overflow: "hidden" }}>
       {/* Header row */}
       <div style={{ background: "var(--surface-3)", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
@@ -357,7 +351,7 @@ function SectionBanner({ label, empty }) {
 }
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ data, focusTicker }) {
+function OverviewTab({ data }) {
   const { buy_opportunities = [], watch_items = [], portfolio_positions = [], signals, config = {} } = data;
   const screenerMap = signals?.screener || {};
   const scoremap   = data.score_by_ticker || {};
@@ -391,19 +385,14 @@ function OverviewTab({ data, focusTicker }) {
         {pt && <><strong style={{ color: C.text }}>PT</strong> <span style={{ color: C.muted }}>{fmt$(pt)}</span></>}
         {sl && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>SL</strong> <span style={{ color: C.muted }}>{fmt$(sl)}</span></>}
         {(item.cc_note) && <><span style={{ color: C.dim }}> | CC: </span><span>{item.cc_note}</span></>}
-        {/* Suppress the legacy "CC: checking criteria" placeholder. The scanner
-            decides up front whether a ticker is eligible for covered-call
-            screening (score / IV-rank / DTE gates). When neither covered_call
-            nor cc_note is set, it means the scanner already passed on this
-            name — silence is more accurate than an "in flight" placeholder. */}
+        {(!item.cc_note && !item.covered_call) && <span style={{ color: C.dim }}> | CC: checking criteria</span>}
       </span>
     );
     const perf = perfRow(t);
     return (
       <RichCard key={t} ticker={t} price={price} score={item.score} tier={tier}
         companyName={company} cc={item.covered_call} ccNote={item.covered_call ? null : item.cc_note}
-        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={false}
-        highlight={focusTicker && t === focusTicker} />
+        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={false} />
     );
   };
 
@@ -426,33 +415,7 @@ function OverviewTab({ data, focusTicker }) {
     return (
       <RichCard key={t} ticker={t} price={price} score={score} tier="portfolio"
         companyName={company} cc={null} ccNote={null}
-        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={true}
-        highlight={focusTicker && t === focusTicker} />
-    );
-  };
-
-  // Render a watchlist entry (manual-track ticker — not in buy/watch/portfolio
-  // but the scanner pulls full intel for it via the always-include path).
-  const watchlist = data.watchlist || [];
-  const renderWatchlistEntry = (w) => {
-    const t = w.ticker;
-    const sc = screenerMap[t] || {};
-    const price = Number(sc.close || sc.prev_close || 0) || null;
-    const score = scoremap[t] ?? null;
-    const company = sc.full_name || sc.company_name || w.name || "";
-    const ptsl = (
-      <span>
-        {w.theme && <><strong style={{ color: C.text }}>Theme</strong> <span style={{ color: C.muted }}>{w.theme}</span></>}
-        {score != null && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>Score</strong> <span style={{ color: C.muted }}>{score}</span>{score < 35 && <span style={{ color: C.dim }}> (below watch tier)</span>}</>}
-      </span>
-    );
-    const perf = perfRow(t);
-    return (
-      <RichCard key={t} ticker={t} price={price} score={score}
-        tier={score >= 60 ? "buy" : score >= 35 ? "watch" : "watchlist"}
-        companyName={company} cc={null} ccNote={null}
-        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={false}
-        highlight={focusTicker && t === focusTicker} />
+        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={true} />
     );
   };
 
@@ -472,14 +435,8 @@ function OverviewTab({ data, focusTicker }) {
 
       <SectionBanner label="CURRENT PORTFOLIO" />
       {portfolio_positions.length === 0
-        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px", marginBottom: 16 }}>No portfolio positions tracked.</div>
-        : <div style={{ marginBottom: 16 }}>{portfolio_positions.map(pos => renderPortfolio(pos))}</div>
-      }
-
-      <SectionBanner label="MANUAL WATCHLIST" />
-      {watchlist.length === 0
-        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px" }}>No manual watchlist (edit <span style={{ fontFamily: "monospace" }}>portfolio/watchlist.csv</span> in the trading-scanner repo to populate).</div>
-        : <div>{watchlist.map(renderWatchlistEntry)}</div>
+        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px" }}>No portfolio positions tracked.</div>
+        : <div>{portfolio_positions.map(pos => renderPortfolio(pos))}</div>
       }
     </div>
   );
@@ -915,33 +872,11 @@ function MethodologyTab({ data }) {
 }
 
 // ── Main Scanner component ────────────────────────────────────────────────────
-export default function Scanner({ focusTicker = null, onFocusConsumed }) {
-  // When we're asked to focus on a specific ticker (from the portopps deep
-  // link), start on the overview view — that's where the ticker's RichCard
-  // lives. Otherwise start on the landing page as before.
-  const [view, setView] = useState(focusTicker ? "overview" : "landing");
+export default function Scanner() {
+  const [view, setView] = useState("landing");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // If a new focusTicker comes in after mount (user re-clicks a different
-  // ticker from portopps without leaving the tab), honor it.
-  useEffect(() => {
-    if (focusTicker) setView("overview");
-  }, [focusTicker]);
-
-  // After the overview renders, scroll to + briefly highlight the focused
-  // ticker's card, then tell the parent we consumed the focus intent so a
-  // re-render of the same ticker fires a fresh scroll+pulse.
-  useEffect(() => {
-    if (!focusTicker || loading || view !== "overview") return;
-    const el = document.getElementById(`scanner-card-${focusTicker}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    const id = setTimeout(() => { if (onFocusConsumed) onFocusConsumed(); }, 2400);
-    return () => clearTimeout(id);
-  }, [focusTicker, loading, view, onFocusConsumed]);
 
   useEffect(() => {
     fetch(DATA_URL + "?t=" + Date.now())
@@ -1173,7 +1108,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed }) {
       </div>
 
       <div style={{ padding: "var(--space-2) var(--space-8) var(--space-8)" }}>
-        {view === "overview"    && <OverviewTab    data={data} focusTicker={focusTicker} />}
+        {view === "overview"    && <OverviewTab    data={data} />}
         {view === "congress"    && <CongressTab    data={data} />}
         {view === "insiders"    && <InsidersTab    data={data} />}
         {view === "flow"        && <FlowTab        data={data} />}
