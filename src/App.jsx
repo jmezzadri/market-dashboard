@@ -970,62 +970,56 @@ return(
   <div className="modal-wrap">
     {hasPrev&&<button className="modal-nav prev" onClick={e=>{e.stopPropagation();onPrev();}} aria-label="Previous">‹</button>}
     {hasNext&&<button className="modal-nav next" onClick={e=>{e.stopPropagation();onNext();}} aria-label="Next">›</button>}
-    <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{position:"relative",padding:"var(--space-6) var(--space-6) var(--space-5)"}}>
+    <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{position:"relative",padding:"var(--space-5) var(--space-5) var(--space-4)"}}>
       <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
       {/* Header */}
-      <div style={{display:"flex",alignItems:"flex-start",gap:14,marginBottom:"var(--space-5)",paddingRight:40}}>
-        <div style={{width:4,height:48,background:catCol,borderRadius:2,flexShrink:0,marginTop:4}}/>
+      <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:"var(--space-4)",paddingRight:40}}>
+        <div style={{width:4,height:44,background:catCol,borderRadius:2,flexShrink:0,marginTop:2}}/>
         <div style={{flex:1,minWidth:0}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4,flexWrap:"wrap"}}>
-            <h2 style={{fontSize:22,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.01em"}}>{label}</h2>
-            <span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600}}>TIER {tier}</span>
-            <span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)"}}>{IND_FREQ[id]||"—"}</span>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+            <h2 style={{fontSize:20,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.01em"}}>{label}</h2>
+            <span style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>TIER {tier}</span>
+            <span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)"}}>{IND_FREQ[id]||"—"}</span>
           </div>
-          <div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{CATS[cat]?.label||cat} · As of {AS_OF[id]}</div>
+          <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{CATS[cat]?.label||cat} · As of {AS_OF[id]}</div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
-          <div className="num" style={{fontSize:32,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
-          <div style={{fontSize:13,fontWeight:700,color:colT,fontFamily:"var(--font-mono)",marginTop:4,letterSpacing:"0.02em"}}>{s!=null?sdLabel(s).toUpperCase():"NO DATA"}</div>
+          <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
+          <div style={{fontSize:11,fontWeight:700,color:colT,fontFamily:"var(--font-mono)",marginTop:4,letterSpacing:"0.02em"}}>{s!=null?sdLabel(s).toUpperCase():"NO DATA"}</div>
         </div>
       </div>
       {/* Period strip */}
-      <div style={{marginBottom:"var(--space-5)"}}>
+      <div style={{marginBottom:"var(--space-4)"}}>
         <IndicatorTrendPills id={id} d={d}/>
       </div>
       {/* Long-term chart */}
-      <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-4)",marginBottom:"var(--space-4)"}}>
+      <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
         <LongChart id={id} col={col}/>
       </div>
-      {/* Range bar */}
+      {/* Range bar — compact single-row layout */}
       {sp&&sMin!=null&&(
-        <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-4)",marginBottom:"var(--space-4)"}}>
-          <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8}}>12-MONTH RANGE</div>
-          <RangeBar sMin={sMin} sMax={sMax} sp={sp} cur={cur} col={col}/>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginBottom:6,marginTop:4}}>
-            <span>{fmtV(id,sMin)} <span style={{color:"var(--text-dim)"}}>(12M low)</span></span>
-            <span style={{color:"#30d158"}}>avg: {fmtV(id,sp.mean)}</span>
-            <span>{fmtV(id,sMax)} <span style={{color:"var(--text-dim)"}}>(12M high)</span></span>
+        <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>
+            <span>12-MONTH RANGE</span>
+            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"#30d158"}}>{fmtV(id,sp.mean)}</span> · elev <span style={{color:"#ff9f0a"}}>{fmtV(id,sp.mean+sp.sd)}</span> · ext <span style={{color:"#ff453a"}}>{fmtV(id,sp.mean+sp.sd*2)}</span></span>
           </div>
-          <div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",gap:14}}>
-            <span>Elevated above: <span style={{color:"#ff9f0a"}}>{fmtV(id,sp.mean+sp.sd)}</span></span>
-            <span>Extreme above: <span style={{color:"#ff453a"}}>{fmtV(id,sp.mean+sp.sd*2)}</span></span>
+          <RangeBar sMin={sMin} sMax={sMax} sp={sp} cur={cur} col={col}/>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginTop:3}}>
+            <span>{fmtV(id,sMin)}</span>
+            <span>{fmtV(id,sMax)}</span>
           </div>
         </div>
       )}
-      {/* What is it */}
-      <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-4)",marginBottom:"var(--space-3)"}}>
-        <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8}}>WHAT IS THIS INDICATOR?</div>
-        <div style={{fontSize:14,color:"var(--text)",lineHeight:1.65}}>{desc}</div>
+      {/* What is this — compact */}
+      <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
+        <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>WHAT IS THIS INDICATOR?</div>
+        <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{desc}</div>
       </div>
       {/* What is it telling you now */}
-      <div style={{background:`${col}0d`,border:`1px solid ${col}33`,borderRadius:"var(--radius-md)",padding:"var(--space-4)"}}>
-        <div style={{fontSize:11,color:col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8,fontWeight:700}}>WHAT IS IT TELLING YOU RIGHT NOW?</div>
-        <div style={{fontSize:14,color:"var(--text)",lineHeight:1.65}}>{dynamicSignal(id,cur,signal)}</div>
-      </div>
-      {/* Keyboard hint */}
-      <div style={{marginTop:"var(--space-4)",fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",textAlign:"center",letterSpacing:"0.05em"}}>
-        ESC to close{(hasPrev||hasNext)?" · ← → to navigate":""}
+      <div style={{background:`${col}0d`,border:`1px solid ${col}33`,borderRadius:"var(--radius-md)",padding:"var(--space-3)"}}>
+        <div style={{fontSize:10,color:col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6,fontWeight:700}}>WHAT IS IT TELLING YOU RIGHT NOW?</div>
+        <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{dynamicSignal(id,cur,signal)}</div>
       </div>
     </div>
   </div>
@@ -1615,7 +1609,7 @@ return(
 {!analysis&&!loading&&!error&&(
 <div style={{padding:"30px 20px",textAlign:"center",borderTop:"1px solid var(--border-faint)"}}>
 <div style={{fontSize:14,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:8}}>Click "Generate Analysis" to get a live narrative</div>
-<div style={{fontSize:12,color:"#9a9a9a",fontFamily:"monospace"}}>Claude will analyze all 25 current indicator readings and write a fresh macro summary</div>
+<div style={{fontSize:12,color:"#9a9a9a",fontFamily:"monospace"}}>Claude will analyze all current indicator readings and write a fresh macro summary</div>
 </div>
 )}
 </div>
@@ -1688,7 +1682,7 @@ const TAB_IDS=["home","overview","indicators","sectors","portfolio","scanner","r
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
   overview:  {eyebrow:"Macro Dashboard",      title:"Today's macro overview",  sub:"Composite stress, regime, category breakdown, and the historical stress trajectory."},
-  indicators:{eyebrow:"All Indicators",       title:`${Object.keys(IND).length} calibrated indicators`,sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
+  indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
   portfolio: {eyebrow:"Sample Portfolio",     title:"Portfolio insights",      sub:"For illustration only. Shows how the macro regime maps to position-level analysis."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
@@ -1809,7 +1803,7 @@ return(
 
       <Tile
         eyebrow="All Indicators"
-        title={`${Object.keys(IND).length} calibrated signals`}
+        title="Calibrated signals"
         sub="VIX, MOVE, HY-IG, ANFCI, CAPE, SLOOS, ISM, claims, JOLTS — all in one view."
         accent="var(--accent)"
         onClick={()=>setTab("indicators")}
@@ -1870,7 +1864,7 @@ return(
 <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:12,maxWidth:980,margin:"0 auto"}}>
 
 <div>
-<div style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.7}}>Monitors 25 economic and financial stress indicators across six categories, producing a composite stress score and four-regime conviction framework. <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>setTab("readme")}>See FAQ →</span> · <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>setTab("scanner")}>View Scanner →</span></div>
+<div style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.7}}>Monitors economic and financial stress indicators across six categories, producing a composite stress score and four-regime conviction framework. <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>setTab("readme")}>See FAQ →</span> · <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>setTab("scanner")}>View Scanner →</span></div>
 </div>
 
 {/* Narrative + Composite dial + Category bars */}
@@ -2046,8 +2040,8 @@ return(<div key={acc.id} style={{flex:t/grandTotal,background:acc.color,opacity:
 <div style={{fontSize:17,fontWeight:700,color:"var(--text)",marginBottom:2}}>The Macro Dashboard</div>
 <div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)"}}>METHODOLOGY & DATA SOURCES</div>
 {[
-{title:"What is the Macro Dashboard?",body:"A market stress monitor tracking 25 statistically-calibrated economic and financial indicators synthesized into a single composite stress score (0–100). The score drives regime classification (Low / Normal / Elevated / Extreme) and allocation guidance. Data is sourced exclusively from public databases — FRED, CBOE, ICE BofA, FDIC, ISM, BLS, Shiller, NY Fed, and the St. Louis Fed."},
-{title:"What indicators are tracked and how frequently do they update?",body:"25 indicators across 6 categories: Equity & Vol (VIX, EQ-Credit Correlation, SKEW Index), Credit Markets (HY-IG Spread, Corp Bond Distress Index, HY Effective Yield), Rates & Duration (10Y-2Y Slope, 10Y TIPS Real Rate, MOVE Index, Kim-Wright Term Premium), Financial Conditions (ANFCI, STLFSI, USD Index, USD Funding Spread), Bank & Money Supply (SLOOS C&I, SLOOS CRE, BKX/SPX Ratio, Bank Unrealized Losses, 3Y Credit Growth, YoY Bank Credit), Labor & Economy (ISM PMI, Copper/Gold Ratio, Initial Claims, JOLTS Quits, Shiller CAPE). Each card displays its frequency badge: D = Daily, W = Weekly, M = Monthly, Q = Quarterly."},
+{title:"What is the Macro Dashboard?",body:"A market stress monitor tracking statistically-calibrated economic and financial indicators synthesized into a single composite stress score (0–100). The score drives regime classification (Low / Normal / Elevated / Extreme) and allocation guidance. Data is sourced exclusively from public databases — FRED, CBOE, ICE BofA, FDIC, ISM, BLS, Shiller, NY Fed, and the St. Louis Fed."},
+{title:"What indicators are tracked and how frequently do they update?",body:"Indicators span 6 categories: Equity & Vol (VIX, EQ-Credit Correlation, SKEW Index), Credit Markets (HY-IG Spread, Corp Bond Distress Index, HY Effective Yield), Rates & Duration (10Y-2Y Slope, 10Y TIPS Real Rate, MOVE Index, Kim-Wright Term Premium), Financial Conditions (ANFCI, STLFSI, USD Index, USD Funding Spread), Bank & Money Supply (SLOOS C&I, SLOOS CRE, BKX/SPX Ratio, Bank Unrealized Losses, 3Y Credit Growth, YoY Bank Credit), Labor & Economy (ISM PMI, Copper/Gold Ratio, Initial Claims, JOLTS Quits, Shiller CAPE). Each card displays its frequency badge: D = Daily, W = Weekly, M = Monthly, Q = Quarterly."},
 {title:"How is the composite stress score calculated?",body:"Each indicator is calibrated against its own long-run mean and standard deviation (SD). The raw SD score measures how many standard deviations the current reading is from its historical average, with direction adjusted so that higher always means more stress. Scores are weighted by tier — T1 indicators (1.5x weight) are the most market-sensitive, T2 (1.2x) are important but less real-time, T3 (1.0x) provide structural context. The weighted average SD score is mapped to a 0–100 scale anchored to historical crises (GFC = 92, COVID = 82, 2022 Rate Shock = 62)."},
 {title:"What are the 4 stress regimes?",body:"LOW (0–20): Historically rare, genuinely risk-on conditions. VIX well below mean, credit spreads tight. NORMAL (20–50): Where markets spend most of their time — the baseline. Mild background stress. ELEVATED (50–75): Active risk management warranted. Sell covered calls, trim beta, rotate defensive. 2022 rate shock peaked at 62; SVB stress hit 58. EXTREME (75–100): Reserved for historical crises. COVID peaked at 82; GFC peaked at 92. Maximum defensiveness."},
 {title:"What does color mean?",body:"Color always means stress level — nothing else. Green = Low stress. Yellow = Normal. Orange = Elevated. Red = Extreme. Any time you see color on an indicator, a bar, or a chart element, it tells you exactly where that reading sits in the stress spectrum."},

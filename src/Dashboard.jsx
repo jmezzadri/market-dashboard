@@ -1193,7 +1193,7 @@ return(
 {!analysis&&!loading&&!error&&(
 <div style={{padding:"30px 20px",textAlign:"center",borderTop:"1px solid #111"}}>
 <div style={{fontSize:11,color:"#333",fontFamily:"monospace",marginBottom:8}}>Click "Generate Analysis" to get a live narrative</div>
-<div style={{fontSize:9,color:"#222",fontFamily:"monospace"}}>Claude will analyze all 25 current indicator readings and write a fresh macro summary</div>
+<div style={{fontSize:9,color:"#222",fontFamily:"monospace"}}>Claude will analyze all current indicator readings and write a fresh macro summary</div>
 </div>
 )}
 </div>
@@ -1235,7 +1235,7 @@ return(
 <div style={{flex:1,minWidth:200}}>
 <div style={{fontSize:8,letterSpacing:"0.25em",color:"#949494",fontFamily:"monospace",marginBottom:4}}>MACRO STRESS MONITOR · {new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</div>
 <div style={{fontSize:18,fontWeight:800,letterSpacing:"-0.02em",color:"#f5f5f5"}}>Market Stress Dashboard</div>
-<div style={{fontSize:9,color:"#949494",marginTop:2,fontFamily:"monospace"}}>25 indicators · statistically calibrated · 6 accounts</div>
+<div style={{fontSize:9,color:"#949494",marginTop:2,fontFamily:"monospace"}}>Statistically calibrated indicators · 6 accounts</div>
 <div style={{display:"flex",gap:6,marginTop:10,alignItems:"center",flexWrap:"wrap"}}>
 <span style={{fontSize:8,color:"#333",fontFamily:"monospace"}}>LEVELS:</span>
 {CONVICTION.map(c=>(
@@ -1296,7 +1296,7 @@ return(
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
 <div>
 <div style={{fontSize:8,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:2}}>OVERALL STRESS COMPOSITE</div>
-<div style={{fontSize:9,color:"#555"}}>Weighted average of 25 indicators · 0 = no stress, 100 = crisis · Normal is where markets spend most time</div>
+<div style={{fontSize:9,color:"#555"}}>Weighted average of all indicators · 0 = no stress, 100 = crisis · Normal is where markets spend most time</div>
 </div>
 <div style={{textAlign:"right"}}>
 <div style={{fontSize:28,fontWeight:800,color:CONV.color,fontFamily:"monospace",lineHeight:1}}>{COMP100}</div>
@@ -1528,7 +1528,7 @@ return(<div key={acc.id} style={{flex:t/grandTotal,background:acc.color,opacity:
 {tab==="readme"&&(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:14}}>
 {[
-{title:"What is this dashboard?",body:"A personal macro market stress monitor tracking 25 economic and financial indicators synthesized into a single composite stress score (0–100) that drives allocation recommendations and sector guidance."},
+{title:"What is this dashboard?",body:"A personal macro market stress monitor tracking economic and financial indicators synthesized into a single composite stress score (0–100) that drives allocation recommendations and sector guidance."},
 {title:"How are the 4 conviction levels calibrated?",body:"LOW (0–20): Historically rare, genuinely risk-on conditions — VIX well below mean, credit spreads tight, strong growth signals. NORMAL (20–50): Where markets spend most of their time. Mild background stress, nothing flashing. This is the baseline. ELEVATED (50–75): Active hedging warranted — sell covered calls, trim beta, rotate defensive. 2022 rate shock (62) and 2023 SVB stress (58) were in this band. EXTREME (75–100): Reserved for historical crises — COVID (82), GFC (92). Maximum defensiveness."},
 {title:"How is the composite score calculated?",body:"Each indicator is calibrated using its long-run mean and standard deviation (SD). The raw SD score measures how many SDs above or below normal the current reading is. Scores are directionally adjusted, weighted by tier (T1 = 1.5×, T2 = 1.2×, T3 = 1.0×), and averaged into a composite. The composite SD score is mapped to the 0–100 scale."},
 {title:"What is the trend signal?",body:"The trend signal shows the rate of change of the composite score over the past 4 weeks. 'Normal ↗ Rising' means the level is still in Normal territory but stress is accelerating toward Elevated — an early warning. 'Elevated ↘ Easing' means conditions are bad but improving. Level + direction together give a more complete picture than level alone."},
