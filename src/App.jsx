@@ -1886,6 +1886,7 @@ const backLabel=(()=>{
 const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
+const [expandedActionKey,setExpandedActionKey]=useState(null);
 const [scanData,setScanData]=useState(null);
 const [scanError,setScanError]=useState(false);
 useEffect(()=>{
@@ -2204,27 +2205,38 @@ const cashByAcct=tacticalAccts.map(acc=>{
   return{id:acc.id,label:acc.label,cash};
 }).filter(x=>x.cash>0).sort((a,b)=>b.cash-a.cash);
 const totalDeployable=cashByAcct.reduce((a,c)=>a+c.cash,0);
-const heldPositions=ACCOUNTS.flatMap(acc=>acc.positions.map(p=>({...p,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical}))).filter(p=>p.sector!=="Cash");
+// Sort held positions by value DESC — biggest exposure first, regardless of account
+const heldPositions=ACCOUNTS
+  .flatMap(acc=>acc.positions.map(p=>({...p,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical})))
+  .filter(p=>p.sector!=="Cash")
+  .sort((a,b)=>b.value-a.value);
 const heldTickers=new Set(heldPositions.map(p=>p.ticker));
-// Action signal derivation: for tactical-account holdings with scanner score
 const scoreByTicker=scanData?.score_by_ticker||{};
-const actionFor=(ticker,acctTactical)=>{
-  if(!acctTactical)return{label:"MONITOR",color:"var(--text-dim)",reason:"Non-tactical account (plan-fund only)"};
-  const sc=scoreByTicker[ticker];
-  if(sc==null)return{label:"NO SIGNAL",color:"var(--text-dim)",reason:"Not in current scan"};
-  if(sc>=60)return{label:"BUY ZONE",color:"#30d158",reason:`Score ${sc} — meets buy threshold`};
-  if(sc>=35)return{label:"HOLD",color:"#ffd60a",reason:`Score ${sc} — within range`};
-  if(sc>=20)return{label:"WATCH",color:"#ff9f0a",reason:`Score ${sc} — weakening`};
-  return{label:"REVIEW",color:"#ff453a",reason:`Score ${sc} — sell-watch zone`};
+// Classes of holdings the scanner framework doesn't meaningfully evaluate —
+// commodities, crypto wrappers, HY-bond funds, broad intl-equity funds get
+// artificially low scores (e.g. SLV=0, GLD=6) because the scanner looks for
+// equity-specific signals (Congress/insider/flow) that don't apply.
+const SCANNER_OUT_OF_SCOPE_SECTORS=new Set(["Commodity","Crypto","HY Bonds","Intl Equity"]);
+const BROAD_INDEX_FUNDS=new Set(["FXAIX","FSKAX","FZILX","FSGGX","FXNAX","FXIIX"]);
+const actionFor=p=>{
+  if(!p.acctTactical)return{label:"MONITOR",color:"var(--text-dim)",reason:"Plan-fund account — can't act on tactical signals here.",detail:`This position sits in ${p.acctLabel}, which is limited to the plan's menu of funds. Signals from the scanner don't apply — the account holds what the plan allows. Review at enrollment/re-enrollment windows or major life events.`};
+  if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return{label:"OUT OF SCOPE",color:"var(--text-dim)",reason:`Scanner doesn't evaluate ${p.sector.toLowerCase()} positions.`,detail:`The scanner looks for equity-specific signals (Congressional trades, insider Form-4s, unusual options flow, technical momentum) that don't meaningfully apply to ${p.sector.toLowerCase()} holdings. This position is held for strategic/diversification reasons — not tactical scanner signals. Review based on portfolio allocation thesis, not the daily scan.`};
+  if(BROAD_INDEX_FUNDS.has(p.ticker))return{label:"CORE",color:"var(--accent)",reason:"Broad-market index fund — not a tactical position.",detail:`${p.ticker} is a diversified index holding. Do not manage tactically on daily scanner signals; it's a long-term core holding. Review allocation relative to age-based glide path, not market regime.`};
+  const sc=scoreByTicker[p.ticker];
+  if(sc==null)return{label:"NO SIGNAL",color:"var(--text-dim)",reason:"Not scored in the latest scan.",detail:`The scanner runs a scored universe of equity tickers; ${p.ticker} isn't currently included. This is a scanner coverage gap, not a sell signal. Task #9 tracks adding held positions to the always-scored list so this gets proper signal data.`};
+  if(sc>=60)return{label:"BUY ZONE",color:"#30d158",reason:`Score ${sc} — meets the 60+ buy threshold.`,detail:`Composite scanner score of ${sc} combines Congressional trades, insider buying, options flow, and technical momentum. A score ≥60 is the algorithmic buy threshold. Consider adding to the position if cash is available and allocation permits. See full scanner detail for the component breakdown.`};
+  if(sc>=35)return{label:"HOLD",color:"#ffd60a",reason:`Score ${sc} — in the healthy hold range.`,detail:`Score ${sc} is within the 35–60 hold band. No action needed. The scanner is not flagging a reason to trim or add. Monitor for score drift below 35 (weakening) or above 60 (add candidate).`};
+  if(sc>=20)return{label:"WATCH",color:"#ff9f0a",reason:`Score ${sc} — signals weakening.`,detail:`Score ${sc} has dropped into the 20–35 weakening band. Underlying signals (flow, insider activity, technicals) are deteriorating but haven't reached sell-watch territory. Tighten your stop-loss and do not add to the position. Consider trimming if score crosses below 20 or the position breaks its SL.`};
+  return{label:"REVIEW",color:"#ff453a",reason:`Score ${sc} — in the sell-watch zone.`,detail:`Score ${sc} is below the 20 sell-watch threshold. Scanner components are bearish (weak flow, no insider support, deteriorating technicals). Not an automatic sell — but actively review the thesis: is there a catalyst you're waiting for? Otherwise, trim or exit on any bounce. Check full scanner detail for the specific weak components.`};
 };
 const fmt$K=v=>v>=1000?`$${Math.round(v/1000).toLocaleString()}K`:`$${Math.round(v).toLocaleString()}`;
 const fmt$Full=v=>`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const sectionPanel={background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,overflow:"hidden",marginBottom:12};
-const sectionHeader={padding:"12px 16px",borderBottom:"1px solid var(--border-faint)",display:"flex",justifyContent:"space-between",alignItems:"center",cursor:"pointer"};
+const sectionHeader={padding:"12px 16px",borderBottom:"1px solid var(--border-faint)",display:"flex",justifyContent:"space-between",alignItems:"center"};
 const sectionTitleStyle={fontSize:12,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)",letterSpacing:"0.1em"};
 const subTitleStyle={fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8,fontWeight:600};
 const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"10px 12px"};
-const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em"});
+const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
 return(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",maxWidth:1100,margin:"0 auto"}}>
 {/* SUMMARY BAR */}
@@ -2247,61 +2259,69 @@ return(
 </div>
 </div>
 
-{/* SECTION 1 — TODAY'S ACTIONS */}
+{/* SECTION 1 — OPPORTUNITIES (reordered: opportunities lead, held positions below) */}
 <div style={sectionPanel}>
 <div style={sectionHeader}>
-<span style={sectionTitleStyle}>① TODAY'S ACTIONS</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{heldPositions.length} positions · {fmt$K(totalDeployable)} deployable</span>
+<span style={sectionTitleStyle}>① OPPORTUNITIES</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{scanData?.buy_opportunities?.length||0} triggered · {scanData?.watch_items?.length||0} near trigger · {WATCHLIST.length} other</span>
 </div>
 <div style={{padding:"12px 16px"}}>
-<div style={subTitleStyle}>HELD POSITIONS</div>
-<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
-{heldPositions.map(p=>{
-  const sig=actionFor(p.ticker,p.acctTactical);
-  const acctPct=(p.value/heldByTicker[p.ticker].total*100).toFixed(0);
-  const wealthPct=(p.value/grandTotal*100).toFixed(1);
-  return(
-  <div key={`${p.acctId}-${p.ticker}`} style={cardStyle}>
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4,gap:8}}>
-  <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
-  <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{p.ticker}</span>
-  <span style={{fontSize:11,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-  </div>
-  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-  <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)",fontWeight:700}}>{fmt$K(p.value)}</span>
-  <span style={tagStyle(sig.color)}>{sig.label}</span>
-  </div>
-  </div>
-  <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginBottom:p.analysis?4:0}}>
-  {p.acctLabel} · {wealthPct}% of wealth{p.acctTactical?"":" · plan-fund only"} · {sig.reason}
-  </div>
-  {p.analysis&&<div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5}}>{p.analysis}</div>}
-  </div>
-  );
-})}
-</div>
-<div style={subTitleStyle}>DEPLOYABLE CASH (TACTICAL ACCOUNTS)</div>
-<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-{cashByAcct.length>0?cashByAcct.map(c=>(
-<div key={c.id} style={{...cardStyle,flex:"1 1 180px"}}>
-<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.05em"}}>{c.label}</div>
-<div style={{fontSize:14,fontWeight:800,color:"#30d158",fontFamily:"var(--font-mono)",marginTop:3}}>{fmt$Full(c.cash)}</div>
-</div>
-)):<div style={{fontSize:12,color:"var(--text-muted)"}}>No cash in tactical accounts.</div>}
-</div>
-</div>
-</div>
 
-{/* SECTION 2 — OPPORTUNITIES */}
-<div style={sectionPanel}>
-<div style={sectionHeader}>
-<span style={sectionTitleStyle}>② OPPORTUNITIES</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{WATCHLIST.length} watching · {(scanData?.buy_opportunities?.length||0)+(scanData?.watch_items?.length||0)} scanner</span>
+{/* SUB 1: Scanner — Triggered (buy alerts) */}
+<div style={subTitleStyle}>SCANNER — TRIGGERED</div>
+{(scanData?.buy_opportunities?.length||0)===0?(
+<div style={{fontSize:12,color:"var(--text-muted)",padding:"10px 12px",background:"var(--surface-2)",borderRadius:6,marginBottom:14}}>
+No buy alerts today · Last scan: {lastScanLabel}
 </div>
-<div style={{padding:"12px 16px"}}>
-{/* SUB: My Watchlist */}
-<div style={subTitleStyle}>MY WATCHLIST</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:6,marginBottom:14}}>
+):(
+<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+{(scanData?.buy_opportunities||[]).map(item=>(
+<div key={`buy-${item.ticker}`} style={cardStyle}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
+<div style={{display:"flex",alignItems:"center",gap:8}}>
+<span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{item.ticker}</span>
+<span style={{...tagStyle("#30d158"),cursor:"default"}}>BUY ALERT</span>
+{heldTickers.has(item.ticker)&&<span style={{...tagStyle("var(--accent)"),cursor:"default"}}>OWNED</span>}
+</div>
+<span style={{fontSize:12,fontWeight:700,color:"#30d158",fontFamily:"var(--font-mono)"}}>Score {item.score}</span>
+</div>
+<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>
+{fmt$Full(item.current_price||0)} · Eligible: {tacticalAccts.map(a=>a.label).join(", ")} · Largest deployable: {cashByAcct[0]?`${cashByAcct[0].label} ${fmt$K(cashByAcct[0].cash)}`:"none"}
+</div>
+</div>
+))}
+</div>
+)}
+
+{/* SUB 2: Scanner — Watch (Near Trigger) */}
+<div style={subTitleStyle}>SCANNER — WATCH (NEAR TRIGGER)</div>
+{(scanData?.watch_items?.length||0)===0?(
+<div style={{fontSize:12,color:"var(--text-muted)",padding:"10px 12px",background:"var(--surface-2)",borderRadius:6,marginBottom:14}}>
+Nothing near trigger today.
+</div>
+):(
+<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+{(scanData?.watch_items||[]).map(item=>(
+<div key={`watch-${item.ticker}`} style={cardStyle}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
+<div style={{display:"flex",alignItems:"center",gap:8}}>
+<span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{item.ticker}</span>
+<span style={{...tagStyle("var(--yellow-text)"),cursor:"default"}}>NEAR TRIGGER</span>
+{heldTickers.has(item.ticker)&&<span style={{...tagStyle("var(--accent)"),cursor:"default"}}>OWNED</span>}
+</div>
+<span style={{fontSize:12,fontWeight:700,color:"var(--yellow-text)",fontFamily:"var(--font-mono)"}}>Score {item.score}</span>
+</div>
+<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>
+{fmt$Full(item.current_price||0)} · {scanData?.signals?.screener?.[item.ticker]?.full_name||"—"}
+</div>
+</div>
+))}
+</div>
+)}
+
+{/* SUB 3: Other — Watch (Joe's manual watchlist) */}
+<div style={subTitleStyle}>OTHER — WATCH</div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:6,marginBottom:10}}>
 {WATCHLIST.map(w=>{
   const sc=scoreByTicker[w.ticker];
   const isCrypto=w.ticker.endsWith("USD");
@@ -2317,51 +2337,64 @@ return(
   );
 })}
 </div>
-<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:14,padding:"6px 8px",background:"var(--surface-2)",borderRadius:4,fontStyle:"italic"}}>
-Scanner is currently configured to score broadly, not by watchlist. Most of these tickers will show "pending" until the scanner is wired to always pull intel for the WATCHLIST list. (Tracked as a separate task.)
+<div style={{fontSize:10,color:"var(--text-dim)",marginBottom:2,padding:"6px 8px",background:"var(--surface-2)",borderRadius:4,fontStyle:"italic"}}>
+Most of these show "pending" because the Python scanner scores a broad equity universe, not the WATCHLIST by name. Scanner-side work to always pull intel for WATCHLIST is tracked separately.
 </div>
 
-{/* SUB: Scanner-Found */}
-<div style={subTitleStyle}>SCANNER-FOUND ALERTS</div>
-{(scanData?.buy_opportunities?.length||0)===0&&(scanData?.watch_items?.length||0)===0?(
-<div style={{fontSize:12,color:"var(--text-muted)",padding:"10px 12px",background:"var(--surface-2)",borderRadius:6}}>
-No buy alerts today · No names near trigger · Last scan: {lastScanLabel}
-</div>
-):(
-<div style={{display:"flex",flexDirection:"column",gap:6}}>
-{(scanData?.buy_opportunities||[]).map(item=>(
-<div key={`buy-${item.ticker}`} style={cardStyle}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
-<div style={{display:"flex",alignItems:"center",gap:8}}>
-<span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{item.ticker}</span>
-<span style={tagStyle("#30d158")}>BUY ALERT</span>
-{heldTickers.has(item.ticker)&&<span style={tagStyle("var(--accent)")}>OWNED</span>}
-</div>
-<span style={{fontSize:12,fontWeight:700,color:"#30d158",fontFamily:"var(--font-mono)"}}>Score {item.score}</span>
-</div>
-<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>
-{fmt$Full(item.current_price||0)} · Eligible: {tacticalAccts.map(a=>a.label).join(", ")} · Largest deployable: {cashByAcct[0]?`${cashByAcct[0].label} ${fmt$K(cashByAcct[0].cash)}`:"none"}
+<div style={{marginTop:14,fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("scanner")}>View full scanner detail (Congress · Insider · Flow · Technicals) →</div>
 </div>
 </div>
-))}
-{(scanData?.watch_items||[]).map(item=>(
-<div key={`watch-${item.ticker}`} style={cardStyle}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
-<div style={{display:"flex",alignItems:"center",gap:8}}>
-<span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{item.ticker}</span>
-<span style={tagStyle("var(--yellow-text)")}>NEAR TRIGGER</span>
-{heldTickers.has(item.ticker)&&<span style={tagStyle("var(--accent)")}>OWNED</span>}
+
+{/* SECTION 2 — TODAY'S ACTIONS (held positions, sorted by value DESC) */}
+<div style={sectionPanel}>
+<div style={sectionHeader}>
+<span style={sectionTitleStyle}>② TODAY'S ACTIONS</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{heldPositions.length} positions · {fmt$K(totalDeployable)} deployable</span>
 </div>
-<span style={{fontSize:12,fontWeight:700,color:"var(--yellow-text)",fontFamily:"var(--font-mono)"}}>Score {item.score}</span>
+<div style={{padding:"12px 16px"}}>
+<div style={subTitleStyle}>HELD POSITIONS · LARGEST FIRST · CLICK SIGNAL FOR DETAIL</div>
+<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+{heldPositions.map(p=>{
+  const sig=actionFor(p);
+  const wealthPct=(p.value/grandTotal*100).toFixed(1);
+  const cardKey=`${p.acctId}-${p.ticker}`;
+  const isExpanded=expandedActionKey===cardKey;
+  return(
+  <div key={cardKey} style={cardStyle}>
+  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4,gap:8}}>
+  <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
+  <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{p.ticker}</span>
+  <span style={{fontSize:11,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
+  </div>
+  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
+  <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)",fontWeight:700}}>{fmt$K(p.value)}</span>
+  <span style={tagStyle(sig.color)} onClick={()=>setExpandedActionKey(isExpanded?null:cardKey)} title="Click for detail">{sig.label} {isExpanded?"▾":"▸"}</span>
+  </div>
+  </div>
+  <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginBottom:(isExpanded||p.analysis)?4:0}}>
+  {p.acctLabel} · {wealthPct}% of wealth{p.acctTactical?"":" · plan-fund only"} · {sig.reason}
+  </div>
+  {isExpanded&&(
+  <div style={{marginTop:6,marginBottom:6,padding:"8px 10px",background:`${sig.color}14`,border:`1px solid ${sig.color}33`,borderRadius:4}}>
+  <div style={{fontSize:10,color:sig.color,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>WHY {sig.label}?</div>
+  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>{sig.detail}</div>
+  {SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector)===false&&!BROAD_INDEX_FUNDS.has(p.ticker)&&p.acctTactical&&<div style={{marginTop:6,fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();navTo("scanner");}}>View {p.ticker} in full scanner →</div>}
+  </div>
+  )}
+  {p.analysis&&<div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5}}>{p.analysis}</div>}
+  </div>
+  );
+})}
 </div>
-<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>
-{fmt$Full(item.current_price||0)} · {scanData?.signals?.screener?.[item.ticker]?.full_name||"—"}
+<div style={subTitleStyle}>DEPLOYABLE CASH (TACTICAL ACCOUNTS)</div>
+<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+{cashByAcct.length>0?cashByAcct.map(c=>(
+<div key={c.id} style={{...cardStyle,flex:"1 1 180px"}}>
+<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.05em"}}>{c.label}</div>
+<div style={{fontSize:14,fontWeight:800,color:"#30d158",fontFamily:"var(--font-mono)",marginTop:3}}>{fmt$Full(c.cash)}</div>
 </div>
+)):<div style={{fontSize:12,color:"var(--text-muted)"}}>No cash in tactical accounts.</div>}
 </div>
-))}
-</div>
-)}
-<div style={{marginTop:12,fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("scanner")}>View full scanner detail (Congress · Insider · Flow · Technicals) →</div>
 </div>
 </div>
 
