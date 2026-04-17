@@ -385,11 +385,7 @@ function OverviewTab({ data }) {
         {pt && <><strong style={{ color: C.text }}>PT</strong> <span style={{ color: C.muted }}>{fmt$(pt)}</span></>}
         {sl && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>SL</strong> <span style={{ color: C.muted }}>{fmt$(sl)}</span></>}
         {(item.cc_note) && <><span style={{ color: C.dim }}> | CC: </span><span>{item.cc_note}</span></>}
-        {/* Suppress the legacy "CC: checking criteria" placeholder. The scanner
-            decides up front whether a ticker is eligible for covered-call
-            screening (score / IV-rank / DTE gates). When neither covered_call
-            nor cc_note is set, it means the scanner already passed on this
-            name — silence is more accurate than an "in flight" placeholder. */}
+        {(!item.cc_note && !item.covered_call) && <span style={{ color: C.dim }}> | CC: checking criteria</span>}
       </span>
     );
     const perf = perfRow(t);

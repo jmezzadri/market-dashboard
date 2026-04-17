@@ -2449,11 +2449,15 @@ return(<>
   const pnl$=p.avgCost?(p.value-p.avgCost*p.shares):null;
   const pnlCol=pnlPct==null?"var(--text-muted)":pnlPct>=0?"#30d158":"#ff453a";
   const screenerRow=scanData?.signals?.screener?.[p.ticker];
+  const techRow=scanData?.signals?.technicals?.[p.ticker];
   const scannerScore=scoreByTicker[p.ticker];
-  const ivr=screenerRow?.iv30d;
-  const wk1=screenerRow?.week_change!=null?Number(screenerRow.week_change)*100:null;
-  const m1=screenerRow?.month_change!=null?Number(screenerRow.month_change)*100:null;
-  const ytd=screenerRow?.ytd_change!=null?Number(screenerRow.ytd_change)*100:null;
+  const ivr=screenerRow?.iv30d!=null?Number(screenerRow.iv30d)*100:null;
+  // Perf lives in technicals (not screener — screener rows are options-flow data).
+  // Scanner expresses these as fractions (0.0692 = +6.92%), so ×100 once.
+  const wk1=techRow?.week_change!=null?Number(techRow.week_change)*100:null;
+  const m1=techRow?.month_change!=null?Number(techRow.month_change)*100:null;
+  const ytd=techRow?.ytd_change!=null?Number(techRow.ytd_change)*100:null;
+  const rsi=techRow?.rsi_14;
   const otherAccts=heldByTicker[p.ticker]?.accounts?.filter(a=>a.acctId!==p.acctId)||[];
   return(
   <div key={cardKey} style={{...cardStyle,cursor:"pointer"}} onClick={()=>setExpandedActionKey(isExpanded?null:cardKey)}>
@@ -2483,12 +2487,13 @@ return(<>
   {p.avgCost&&<div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>COST BASIS</div><div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{fmt$Full(p.avgCost*p.shares)}</div></div>}
   {pnl$!=null&&<div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>UNREALIZED P&L</div><div style={{fontSize:13,fontWeight:700,color:pnlCol,fontFamily:"var(--font-mono)"}}>{pnl$>=0?"+":""}{fmt$Full(pnl$)}</div></div>}
   </div>
-  {(wk1!=null||m1!=null||ytd!=null||ivr!=null||scannerScore!=null)&&(
+  {(wk1!=null||m1!=null||ytd!=null||ivr!=null||rsi!=null||scannerScore!=null)&&(
   <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:11,fontFamily:"var(--font-mono)",marginBottom:8,paddingTop:6,borderTop:"1px solid var(--border-faint)"}}>
   {wk1!=null&&<span><span style={{color:"var(--text-dim)"}}>1W </span><span style={{color:wk1>=0?"#30d158":"#ff453a",fontWeight:600}}>{wk1>=0?"+":""}{wk1.toFixed(1)}%</span></span>}
   {m1!=null&&<span><span style={{color:"var(--text-dim)"}}>1M </span><span style={{color:m1>=0?"#30d158":"#ff453a",fontWeight:600}}>{m1>=0?"+":""}{m1.toFixed(1)}%</span></span>}
   {ytd!=null&&<span><span style={{color:"var(--text-dim)"}}>YTD </span><span style={{color:ytd>=0?"#30d158":"#ff453a",fontWeight:600}}>{ytd>=0?"+":""}{ytd.toFixed(1)}%</span></span>}
-  {ivr!=null&&<span><span style={{color:"var(--text-dim)"}}>IV30d </span><span style={{color:"var(--text)"}}>{Number(ivr).toFixed(1)}</span></span>}
+  {rsi!=null&&<span><span style={{color:"var(--text-dim)"}}>RSI </span><span style={{color:rsi>=70?"#ff453a":rsi<=30?"#30d158":"var(--text)"}}>{Number(rsi).toFixed(0)}</span></span>}
+  {ivr!=null&&<span><span style={{color:"var(--text-dim)"}}>IV30d </span><span style={{color:"var(--text)"}}>{ivr.toFixed(0)}%</span></span>}
   {scannerScore!=null&&<span><span style={{color:"var(--text-dim)"}}>Score </span><span style={{color:"var(--text)",fontWeight:600}}>{scannerScore}</span></span>}
   </div>
   )}
