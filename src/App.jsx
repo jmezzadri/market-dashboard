@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import Scanner from "./Scanner";
 import { useTheme, Hero, Tile, SectionHeader, Footer } from "./Shell";
+import { InfoTip } from "./InfoTip";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
@@ -285,7 +286,13 @@ const COMP_HIST=[
 ["Q1 '22",36],["Q2 '22",55],["Q3 '22",65],["Q4 '22",62],
 ["Q1 '23",60],["Q2 '23",56],["Q3 '23",52],["Q4 '23",46],
 ["Q1 '24",42],["Q2 '24",40],["Q3 '24",36],["Q4 '24",32],
-["Q1 '25",30],["Q2 '25",32],["Q3 '25",34],["Q4 '25",36],
+// 2025 — real regime history, not a placeholder:
+//  Q1: March sell-off (S&P -4.6% on tariff fears). VIX 18-22.
+//  Q2: LIBERATION DAY crash April 8 (S&P → 4,982, VIX peak 50+),
+//      then record recovery (S&P ATH 6205 by Jun 30). Quarter avg elevated.
+//  Q3: Strong rally, VIX ~15, gov shutdown shrugged off.
+//  Q4: Year-end rally to 6846 close (+16.4% 2025). VIX ~13-15.
+["Q1 '25",42],["Q2 '25",55],["Q3 '25",28],["Q4 '25",24],
 ["Apr 15",COMP100],
 ];
 
@@ -317,8 +324,8 @@ const SP500_HIST=[
 4530,3785,3585,3840, // 2022
 4109,4450,4288,4770, // 2023
 5254,5461,5762,5882, // 2024
-5611,5460,5600,5870, // 2025
-7023,                // Apr 15 (all-time high)
+5612,6205,6688,6846, // 2025 — real quarterly closes (Mar31, Jun30, Sep30, Dec31)
+7023,                // Apr 15 2026 (all-time high)
 ];
 
 function clampHistValue(id,v){
@@ -376,6 +383,88 @@ const HIST_OVERRIDES = {
     [2024.25, 22.0],
     [2024.75, 18.0],
     [2025.5, 20.0],// rates plateau, mild deterioration
+  ],
+
+  // Shiller CAPE (cyclically adjusted P/E). Source: multpl.com / Shiller data.
+  // Long-run mean ~17. Only exceeded 30 in 1929, 2000, 2021, 2024-2026.
+  cape: [
+    [2005.0, 26.7],  // post-dot-com hangover, still elevated
+    [2006.5, 27.0],
+    [2007.5, 26.2],  // housing peak
+    [2008.75, 14.9], // GFC: crashed from 27 to 15 in 12 months
+    [2009.25, 13.3], // March 2009 low — cheapest since 1986
+    [2010.5, 21.0],
+    [2012.0, 21.3],
+    [2014.0, 25.6],
+    [2016.0, 25.7],
+    [2018.0, 33.3],  // late-cycle richness
+    [2019.5, 29.5],
+    [2020.25, 23.7], // brief COVID crash
+    [2020.75, 31.4],
+    [2021.75, 38.6], // Nov 2021 peak — second-highest ever after dot-com
+    [2022.75, 27.9], // bear market low
+    [2023.5, 30.3],
+    [2024.25, 34.2],
+    [2024.75, 36.8], // late 2024 record highs
+    [2025.25, 33.5], // Q1 sell-off + AI-led mild correction
+    [2025.5, 33.0],  // Liberation Day crash compressed multiples
+    [2025.75, 35.4], // rapid recovery to record highs by Sep
+    [2026.0, 34.5],
+  ],
+
+  // KBW Bank Index / S&P 500 ratio. Tracks bank stock leadership.
+  // Lower = bank-sector stress relative to broad market.
+  // Historical drawdowns: GFC 2008-09, COVID 2020, SVB/regional-bank 2023.
+  bkx_spx: [
+    [2005.0, 0.148],
+    [2006.0, 0.149],
+    [2007.0, 0.138],  // cracks forming
+    [2007.75, 0.100], // Q4 2007 financials lead market down
+    [2008.5, 0.073],
+    [2009.0, 0.030],  // GFC bank crisis trough
+    [2009.75, 0.055],
+    [2011.0, 0.090],  // Euro crisis drag on banks
+    [2013.0, 0.110],
+    [2015.0, 0.130],
+    [2017.0, 0.165],  // Trump reflation + dereg trade
+    [2018.5, 0.155],
+    [2019.75, 0.145],
+    [2020.25, 0.085], // COVID crash — banks lagged hard
+    [2021.5, 0.145],  // reopening / rate hike trade
+    [2022.75, 0.135],
+    [2023.25, 0.080], // SVB / Signature / First Republic collapse
+    [2023.75, 0.100],
+    [2024.5, 0.115],
+    [2025.25, 0.110],
+    [2025.5, 0.095],  // Q2 tariff volatility hit regional bank exposure
+    [2025.75, 0.105],
+    [2026.0, 0.092],
+  ],
+
+  // Kim-Wright 10Y term premium (bps). Negative for most of 2014-2022
+  // due to QE and safe-haven demand. Rising back into positive territory
+  // post-pandemic as Fed balance sheet shrinks and fiscal supply grows.
+  term_premium: [
+    [2005.0, 65],
+    [2006.5, 35],
+    [2007.5, 20],
+    [2008.5, 80],  // GFC funding stress
+    [2009.5, 50],
+    [2011.0, 45],
+    [2013.0, 15],  // taper tantrum
+    [2014.5, -20], // QE era begins to push premium negative
+    [2016.0, -50],
+    [2018.0, -35],
+    [2019.5, -80], // cycle low
+    [2020.5, -90], // COVID-era Fed purchases
+    [2021.5, -30],
+    [2022.5, 15],  // QT announced, rising supply
+    [2023.5, 25],
+    [2024.0, 35],
+    [2024.75, 45],
+    [2025.5, 60],  // Liberation Day fiscal-uncertainty premium
+    [2025.75, 55],
+    [2026.0, 65],
   ],
 };
 
@@ -920,7 +1009,7 @@ return(
 
 function IndicatorCard({id,onOpen}){
 const d=IND[id];if(!d)return null;
-const [label,sub,cat,tier,,,cur,,,,,,,]=d;
+const [label,sub,cat,tier,,,cur,,,,,,desc,]=d;
 const catCol=CATS[cat]?.color||"#6b7280";
 const s=sdScore(id,cur);
 const col=sdColor(s);
@@ -938,6 +1027,7 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
 <div style={{width:3,height:12,background:catCol,borderRadius:1}}/>
 <span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace"}}>{label}</span>
+{desc&&<span onClick={e=>e.stopPropagation()}><InfoTip term={label} def={desc} size={11}/></span>}
 <span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace"}}>T{tier}</span>
 <span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace"}}>{IND_FREQ[id]||"—"}</span>
 </div>

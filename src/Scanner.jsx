@@ -4,6 +4,7 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { Tile } from "./Shell";
+import { InfoTip, HeadWithTip } from "./InfoTip";
 
 const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
@@ -471,15 +472,26 @@ function SortableTable({ headers, rows }) {
       <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "monospace" }}>
         <thead>
           <tr style={{ borderBottom: `1px solid ${C.border2}` }}>
-            {headers.map((h, i) => (
-              <th key={h} onClick={() => handleSort(i)} style={{
-                padding: "8px 10px", textAlign: "left", fontWeight: 700,
-                color: sortCol === i ? C.text : C.dim, fontSize: 11, letterSpacing: "0.08em",
-                whiteSpace: "nowrap", cursor: "pointer", userSelect: "none",
-              }}>
-                {h}{sortCol === i ? (sortDir === "asc" ? " ▲" : " ▼") : " ·"}
-              </th>
-            ))}
+            {headers.map((h, i) => {
+              // Allow headers to be either a plain string or { label, term }
+              // so individual columns can carry a definition tooltip.
+              const isObj = h && typeof h === "object";
+              const label = isObj ? h.label : h;
+              const term  = isObj ? h.term  : null;
+              const key = isObj ? (h.key || label) : h;
+              return (
+                <th key={key} style={{
+                  padding: "8px 10px", textAlign: "left", fontWeight: 700,
+                  color: sortCol === i ? C.text : C.dim, fontSize: 11, letterSpacing: "0.08em",
+                  whiteSpace: "nowrap", userSelect: "none",
+                }}>
+                  <span onClick={() => handleSort(i)} style={{ cursor: "pointer" }}>
+                    {label}{sortCol === i ? (sortDir === "asc" ? " ▲" : " ▼") : " ·"}
+                  </span>
+                  {term && <InfoTip term={term} size={11} />}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -643,7 +655,17 @@ function FlowTab({ data }) {
         </div>
       ) : (
         <SortableTable
-          headers={["DATE / TIME","TICKER","TYPE","STRIKE","UNDERLYING","MONEYNESS","EXPIRY","PREMIUM","VOL / OI"]}
+          headers={[
+            "DATE / TIME",
+            "TICKER",
+            "TYPE",
+            { label: "STRIKE",    term: "STRIKE"    },
+            "UNDERLYING",
+            { label: "MONEYNESS", term: "MONEYNESS" },
+            "EXPIRY",
+            { label: "PREMIUM",   term: "PREMIUM"   },
+            { label: "VOL / OI",  term: "VOL / OI"  },
+          ]}
           rows={filtered.map(r => {
             const prem   = r.total_premium    ? Number(r.total_premium)    : null;
             const oi     = r.open_interest    ? Number(r.open_interest)    : null;
@@ -712,7 +734,19 @@ function TechnicalsTab({ data }) {
         Price changes from Yahoo Finance (yfinance) · RSI, MACD &amp; MA position computed daily · IV rank and volume from Unusual Whales
       </div>
       <SortableTable
-        headers={["TICKER","PRICE","1W","1M","YTD","RSI","MACD","vs 50MA","vs 200MA","IVR","REL VOL"]}
+        headers={[
+          "TICKER",
+          "PRICE",
+          { label: "1W",       term: "1W"      },
+          { label: "1M",       term: "1M"      },
+          { label: "YTD",      term: "YTD"     },
+          { label: "RSI",      term: "RSI"     },
+          { label: "MACD",     term: "MACD"    },
+          { label: "vs 50MA",  term: "VS 50MA" },
+          { label: "vs 200MA", term: "VS 200MA"},
+          { label: "IVR",      term: "IVR"     },
+          { label: "REL VOL",  term: "REL VOL" },
+        ]}
         rows={allTickers.map(t => {
           const sc   = screener[t]   || {};
           const tech = technicals[t] || {};
