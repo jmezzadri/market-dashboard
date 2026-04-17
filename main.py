@@ -27,7 +27,7 @@ from scanner import notifier, reporter, schwab, unusual_whales as uw
 from scanner.price_history import clear_ohlcv_cache, clear_price_changes_cache
 from scanner.technicals import clear_tech_cache, get_technicals
 from scanner.covered_calls import find_covered_call
-from scanner.portfolio_io import load_covered_calls, load_portfolio_positions
+from scanner.portfolio_io import load_covered_calls, load_portfolio_positions, load_watchlist
 from scanner.scan_state import load_last_scores, save_last_scores
 from scanner.scorer import score_ticker
 from scanner.sell_signals import check_covered_call_alerts, check_position_alerts
@@ -175,10 +175,41 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         sc = signals.get("screener") or {}
         print(f"  screener keys: {len(sc) if isinstance(sc, dict) else 0}")
 
+    # Load watchlist + held-position tickers — these should ALWAYS be in the
+    # scored universe regardless of whether they show up in the UW bulk signal
+    # sources for the day. Watchlist drives the dashboard's "OTHER — WATCH"
+    # section; held positions drive "Today's Actions" + portfolio-position
+    # screener data.
+    watchlist_entries = load_watchlist()
+    watchlist_tickers = [w["ticker"] for w in watchlist_entries if w.get("ticker")]
+    portfolio_positions_for_universe = load_portfolio_positions()
+    portfolio_tickers_for_universe = [
+        (p.get("ticker") or "").upper()
+        for p in portfolio_positions_for_universe
+        if (p.get("ticker") or "").strip()
+    ]
+    always_include = list({*watchlist_tickers, *portfolio_tickers_for_universe})
+
     all_tickers = extract_all_tickers(signals)
+    # Union the always-include set into the universe BEFORE filtering, so the
+    # price-band / market-cap filter still applies (no point sending a ticker
+    # to scoring if its price is unfetchable).
+    all_tickers = sorted({*all_tickers, *always_include})
     filtered, rejected = filter_tickers_with_reasons(all_tickers, signals)
+    # If a watchlist or portfolio ticker got filtered out by price band /
+    # mcap, force-include it anyway — Joe wants intel on these regardless of
+    # whether they pass the equity-screen gates.
+    forced = [t for t in always_include if t not in filtered]
+    if forced:
+        logger.info(
+            "Forcing %d watchlist/portfolio ticker(s) past price/mcap filter: %s",
+            len(forced), ", ".join(forced),
+        )
+        filtered = sorted({*filtered, *forced})
     signals["_filtered_tickers"] = filtered
     signals["_stocks_scanned_count"] = len(filtered)
+    signals["_watchlist_tickers"] = watchlist_tickers
+    signals["_watchlist_entries"] = watchlist_entries
 
     if debug:
         print(f"\n--- DEBUG: universe ---")
@@ -198,19 +229,17 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     all_scores.sort(key=lambda x: x[1], reverse=True)
     signals["_score_by_ticker"] = dict(all_scores)
 
-    # Compute technicals for scanned tickers AND portfolio positions
-    portfolio_positions_early = load_portfolio_positions()
-    portfolio_tickers = [
-        (p.get("ticker") or "").upper()
-        for p in portfolio_positions_early
-        if (p.get("ticker") or "").strip()
-    ]
-    all_tech_tickers = list({*filtered, *portfolio_tickers})
+    # Compute technicals for scanned tickers AND portfolio positions AND watchlist
+    portfolio_positions_early = portfolio_positions_for_universe
+    portfolio_tickers = portfolio_tickers_for_universe
+    all_tech_tickers = list({*filtered, *portfolio_tickers, *watchlist_tickers})
     signals["_technicals"] = {t: get_technicals(t) for t in all_tech_tickers}
 
-    # Ensure portfolio tickers have screener data even if absent from bulk screener
+    # Ensure portfolio + watchlist tickers have screener data even if absent
+    # from the bulk UW screener payload. This is what fills in 1W/1M/YTD perf,
+    # IV30d, market cap, etc. for cards on the dashboard.
     screener = signals.get("screener") or {}
-    for sym in portfolio_tickers:
+    for sym in {*portfolio_tickers, *watchlist_tickers}:
         if sym not in screener:
             row = uw.fetch_screener_row_for_ticker(sym, signals)
             if row:

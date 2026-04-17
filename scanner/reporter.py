@@ -1487,14 +1487,27 @@ def _write_json_data(
     now = datetime.now(et)
 
     # Screener is a dict keyed by ticker — include only tickers in play
+    watchlist_entries = signals.get("_watchlist_entries") or []
+    watchlist_tickers = {
+        (w.get("ticker") or "").upper() for w in watchlist_entries if w.get("ticker")
+    }
     relevant_tickers = (
         {(o.get("ticker") or "").upper() for o in buy_opportunities}
         | {(w.get("ticker") or "").upper() for w in watch_items}
         | {(p.get("ticker") or "").upper() for p in portfolio_positions}
+        | watchlist_tickers
     )
     screener_slim = {
         t: v for t, v in (signals.get("screener") or {}).items()
         if t in relevant_tickers
+    }
+
+    # Score by ticker — restricted to relevant tickers so the JSON stays
+    # compact. The dashboard reads score_by_ticker[ticker] for each held +
+    # watchlist position; everything else is irrelevant.
+    score_by_ticker_full = signals.get("_score_by_ticker") or {}
+    score_by_ticker_slim = {
+        t: s for t, s in score_by_ticker_full.items() if t in relevant_tickers
     }
 
     payload = {
@@ -1506,7 +1519,16 @@ def _write_json_data(
         "sell_alerts": _safe(sell_alerts),
         "portfolio_positions": _safe(portfolio_positions),
         "portfolio_covered_calls": _safe(portfolio_covered_calls),
-        "score_by_ticker": _safe(signals.get("_score_by_ticker") or {}),
+        # Manual watchlist — names Joe is tracking but doesn't (yet) own. The
+        # dashboard renders these in the OTHER — WATCH sub-section. Each entry
+        # carries name/theme; live intel (score, screener row, technicals)
+        # is looked up per-ticker from score_by_ticker / signals.screener /
+        # signals.technicals just like for held positions.
+        "watchlist": _safe(watchlist_entries),
+        # Full score map preserved for backwards compat (dashboard still reads
+        # score_by_ticker[ticker]); but the slimmed version is what's
+        # canonically meaningful for the consolidated tile.
+        "score_by_ticker": _safe(score_by_ticker_full),
         "signals": {
             "congress_buys": _safe(signals.get("congress_buys") or []),
             "congress_sells": _safe(signals.get("congress_sells") or []),

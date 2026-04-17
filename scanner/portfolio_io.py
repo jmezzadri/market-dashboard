@@ -61,6 +61,37 @@ def load_portfolio_positions(path: Path | None = None) -> list[dict[str, Any]]:
     return out
 
 
+def load_watchlist(path: Path | None = None) -> list[dict[str, Any]]:
+    """Read portfolio/watchlist.csv. Manual list of tickers Joe is tracking but
+    doesn't (yet) hold. These tickers should always get Congress / Insider /
+    Flow / Technical intel pulled, regardless of whether they appear in the UW
+    bulk signal sources or pass the buy/watch score thresholds."""
+    p = path or PORTFOLIO_DIR / "watchlist.csv"
+    if not p.exists():
+        return []
+    try:
+        df = pd.read_csv(p)
+    except Exception as e:
+        logger.warning("Could not read %s: %s", p, e)
+        return []
+    if df.empty:
+        return []
+    out: list[dict[str, Any]] = []
+    for _, row in df.iterrows():
+        ticker = str(row.get("ticker") or "").strip().upper()
+        if not ticker:
+            continue
+        out.append(
+            {
+                "ticker": ticker,
+                "name": str(row.get("name") or "").strip(),
+                "theme": str(row.get("theme") or "").strip(),
+                "notes": str(row.get("notes") or "").strip(),
+            }
+        )
+    return out
+
+
 def load_covered_calls(path: Path | None = None) -> list[dict[str, Any]]:
     """Read portfolio/covered_calls.csv."""
     p = path or PORTFOLIO_DIR / "covered_calls.csv"
