@@ -1447,7 +1447,7 @@ return scores.reduce((a,b)=>a+b,0)/scores.length;
 function outlookLabel(score){
 if(score>0.85)return{label:"OVERWEIGHT", color:"#30d158",short:"OW"};
 if(score>0.65)return{label:"SLIGHT OW",  color:"#86efac",short:"+="};
-if(score>0.40)return{label:"NEUTRAL",    color:"var(--text)",   short:"=" };
+if(score>0.40)return{label:"NEUTRAL",    color:"var(--text-muted)",short:"=" };
 if(score>0.20)return{label:"SLIGHT UW",  color:"#ff9f0a",short:"-="};
 return              {label:"UNDERWEIGHT",color:"#ff453a",short:"UW"};
 }

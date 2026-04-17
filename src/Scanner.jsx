@@ -11,8 +11,8 @@ const DATA_URL =
 
 const TAB_META = {
   overview:    { eyebrow: "Recommendations",   title: "Buy & Watch list",       sub: "Triggered entries, watchlist, and current positions with full signal context.",       accent: "#30d158" },
-  congress:    { eyebrow: "Congressional",     title: "Congress buys",          sub: "Disclosed equity purchases by U.S. Senators and Representatives in the last 45 days.", accent: "#0a84ff" },
-  insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider buys",           sub: "Open-market buys by company officers and directors filed with the SEC.",              accent: "#bf5af2" },
+  congress:    { eyebrow: "Congressional",     title: "Congress activity",      sub: "Disclosed equity trades by U.S. Senators and Representatives in the last 45 days (buys and sells).", accent: "#0a84ff" },
+  insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider activity",       sub: "Open-market buys and sells by company officers, directors, and 10% holders filed with the SEC.",    accent: "#bf5af2" },
   flow:        { eyebrow: "Options Flow",      title: "Unusual flow alerts",    sub: "Large or unusual call and put options activity flagged by Unusual Whales.",           accent: "#ff9f0a" },
   technicals:  { eyebrow: "Technicals",        title: "IV, P/C, RSI, MACD",     sub: "IV rank, put/call ratio, relative volume, RSI and MACD across all scored tickers.",   accent: "#ffd60a" },
   methodology: { eyebrow: "Methodology",       title: "How the scanner scores", sub: "Scoring weights, data sources, refresh schedule, and tier thresholds.",                accent: "var(--text-dim)" },
@@ -915,23 +915,35 @@ export default function Scanner() {
   const buyCount     = data.buy_opportunities?.length      || 0;
   const watchCount   = data.watch_items?.length            || 0;
   const portCount    = data.portfolio_positions?.length    || 0;
-  const congressN    = data.signals?.congress_buys?.length || 0;
-  const insiderN     = data.signals?.insider_buys?.length  || 0;
+  const congressBuyN  = data.signals?.congress_buys?.length  || 0;
+  const congressSellN = data.signals?.congress_sells?.length || 0;
+  const congressN     = congressBuyN + congressSellN;
+  const insiderBuyN   = data.signals?.insider_buys?.length   || 0;
+  const insiderSellN  = data.signals?.insider_sales?.length  || 0;
+  const insiderN      = insiderBuyN + insiderSellN;
   const callFlowN    = data.signals?.flow_alerts?.length   || 0;
   const putFlowN     = data.signals?.put_flow_alerts?.length || 0;
   const flowN        = callFlowN + putFlowN;
   const screenerKeys = Object.keys(data.signals?.screener || {});
   const techCount    = screenerKeys.length;
 
-  // Top tickers per surface
+  // Top tickers per surface (combined buys + sells so tile previews match the detail tables)
+  const congressAll = [
+    ...(data.signals?.congress_buys  || []),
+    ...(data.signals?.congress_sells || []),
+  ];
+  const insiderAll = [
+    ...(data.signals?.insider_buys  || []),
+    ...(data.signals?.insider_sales || []),
+  ];
   const topCongress = (() => {
     const counts = {};
-    (data.signals?.congress_buys || []).forEach(r => { counts[r.ticker] = (counts[r.ticker] || 0) + 1; });
+    congressAll.forEach(r => { counts[r.ticker] = (counts[r.ticker] || 0) + 1; });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
   })();
   const congressPartySplit = (() => {
     const c = { D: 0, R: 0, I: 0, "?": 0 };
-    (data.signals?.congress_buys || []).forEach(r => {
+    congressAll.forEach(r => {
       const p = partyOf(r);
       c[p || "?"] = (c[p || "?"] || 0) + 1;
     });
@@ -939,7 +951,7 @@ export default function Scanner() {
   })();
   const topInsider = (() => {
     const counts = {};
-    (data.signals?.insider_buys || []).forEach(r => { counts[r.ticker] = (counts[r.ticker] || 0) + 1; });
+    insiderAll.forEach(r => { counts[r.ticker] = (counts[r.ticker] || 0) + 1; });
     return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
   })();
   const totalCallPrem = (data.signals?.flow_alerts || []).reduce((a, r) => a + (Number(r.total_premium) || 0), 0);
@@ -988,7 +1000,7 @@ export default function Scanner() {
             title={TAB_META.congress.title}
             sub={TAB_META.congress.sub}
             accent={TAB_META.congress.accent}
-            kpi={{ value: congressN, unit: "buys (45d)", color: congressN > 0 ? "var(--accent)" : "var(--text-muted)" }}
+            kpi={{ value: congressN, unit: "trades (45d)", color: congressN > 0 ? "var(--accent)" : "var(--text-muted)" }}
             onClick={() => setView("congress")}
           >
             <div style={{ display: "flex", gap: 6, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
