@@ -529,62 +529,65 @@ const STRESS_HIST_BANDS=[
 ];
 
 // ── PORTFOLIO ───────────────────────────────────────────────────────────────
+// Real holdings as of Apr 17 2026 (sourced from JPM + Fidelity exports).
+// Hoboken Escrow excluded — not investable wealth. Chase brokerage sweep
+// (QACDS) included as deployable cash.
 const ACCOUNTS=[
-{id:"brokerage",label:"Taxable Brokerage",sub:"…4471",color:"#3b82f6",
-note:"Taxable account — active trading, tax-loss harvesting, and macro-driven positioning.",
+{id:"brokerage",label:"JPM Taxable Brokerage",sub:"Margin · J.P. Morgan",color:"#3b82f6",
+note:"Active trading account — concentrated tactical positions in cyclicals + commodity producers. Chase sweep cash is dry powder.",
 positions:[
-{ticker:"SPY",  name:"SPDR S&P 500 ETF",          value:124500,price:548.20,shares:227,sector:"US Equity",  beta:1.00,color:ACCENT,
-analysis:"Core equity holding at 41% of brokerage. At Normal (38/100), holding is appropriate. No reason to reduce until composite reaches Elevated (50+)."},
-{ticker:"QQQ",  name:"Invesco Nasdaq-100 ETF",     value:52800, price:468.50,shares:113,sector:"Technology", beta:1.18,color:ACCENT,
-analysis:"Tech/growth overweight at 17% of brokerage. High beta (1.18). Sensitive to real rates — any rise above 2.5% on TIPS would compress this significantly. First to trim if composite moves to Elevated."},
-{ticker:"GLD",  name:"SPDR Gold ETF",              value:45600, price:429.41,shares:106,sector:"Commodity",  beta:0.08,color:ACCENT,
-analysis:"Macro hedge at 15% of brokerage. Well-positioned at Normal — gold benefits from geopolitical uncertainty and real rate declines."},
-{ticker:"BRK.B",name:"Berkshire Hathaway Class B", value:38200, price:478.20,shares:80, sector:"Financials", beta:0.85,color:ACCENT,
-analysis:"Quality defensive at 13% of brokerage. Buffett's cash pile (~$325B) benefits in stress regimes. Appropriate at any conviction level. Hold."},
-{ticker:"TLT",  name:"iShares 20+ Yr Treasury ETF",value:22100, price:92.30, shares:239,sector:"Long Bonds", beta:-0.25,color:ACCENT,
-analysis:"Duration hedge at 7% of brokerage. Negative beta to equities — rallies when stocks sell off. If yield curve continues steepening, TLT will underperform. Keep modest."},
-{ticker:"CASH", name:"Cash & Sweep Funds",         value:21800, price:1,     shares:21800,sector:"Cash",     beta:0.00,color:"var(--text-dim)",
-analysis:"Cash buffer at 7% — appropriate sizing. Covers quarterly estimated tax payments and dry powder for opportunistic deployment."},
+{ticker:"CCJ",  name:"Cameco Corp",                     value:48266, price:120.665,shares:400,  sector:"Materials",beta:1.40,color:ACCENT,
+analysis:"Uranium leader — 43% of brokerage and the largest single-stock position in the book. Beta ~1.4. Cost basis $117.35; +$1.3K unrealized. Concentration warrants a stop discipline; PT $140 / SL $99 from scanner."},
+{ticker:"RCAT", name:"Red Cat Holdings",                value:26860, price:13.43,  shares:2000, sector:"Technology",beta:2.50,color:ACCENT,
+analysis:"Small-cap drone/AI defense play — 24% of brokerage. Beta ~2.5, very high vol. Wash-sale flagged on this lot — taxable-loss harvesting limited until the 30-day window passes. Down 20% on cost."},
+{ticker:"OXY",  name:"Occidental Petroleum",            value:26130, price:52.26,  shares:500,  sector:"Energy",   beta:1.20,color:ACCENT,
+analysis:"Energy major — 23% of brokerage. Down 19.5% from $64.95 cost. Berkshire still anchors the float; buyback yield supports downside. Trim only if energy regime shifts."},
+{ticker:"QACDS",name:"Chase Brokerage Sweep",           value:9795,  price:1.00,   shares:9795, sector:"Cash",     beta:0.00,color:"var(--text-dim)",
+analysis:"~9% cash in brokerage — deployable dry powder. Reasonable sizing given the all-equity, 3-name concentration above. Consider building toward 15% if the composite moves to Elevated."},
 ]},
-{id:"k401",label:"401(k) — Target Date",sub:"Acct …8823",color:"#6366f1",
-note:"Pre-tax retirement account. Diversified target-date fund approach, auto-rebalancing.",
+{id:"k401",label:"EY 401(k)",sub:"Pre-tax · Account 86964",color:"#6366f1",
+note:"Pre-tax retirement — single-fund allocation. ~67% of total investable wealth sits in this one position.",
 positions:[
-{ticker:"FXAIX",name:"Fidelity 500 Index Fund",    value:198400,price:229.32,shares:866,sector:"US Equity",  beta:1.00,color:ACCENT,
-analysis:"Core 401k holding — S&P 500 index at 60% of account. Do not manage tactically. Contribute the maximum ($23,500 in 2026) and let compounding work."},
-{ticker:"FXNAX",name:"Fidelity U.S. Bond Index",   value:72800, price:10.45, shares:6967,sector:"Bonds",     beta:0.05,color:ACCENT,
-analysis:"Bond allocation at 22% of 401k. Appropriate age-based diversification. With the curve re-steepening, intermediate bonds are more attractive than during the prior inversion."},
-{ticker:"FSGGX",name:"Fidelity Global ex-US Index", value:48200,price:15.82, shares:3048,sector:"Intl Equity",beta:0.88,color:ACCENT,
-analysis:"International diversification at 15% of 401k. Recent dollar weakening helps this allocation; further USD softness would compound the tailwind."},
-{ticker:"FXIIX",name:"Fidelity Inflation-Prot Bond",value:10600,price:10.22, shares:1037,sector:"TIPS",      beta:0.12,color:ACCENT,
-analysis:"TIPS allocation at 3% — appropriate inflation hedge. With real rates restrictive, TIPS are paying a meaningful real yield."},
+{ticker:"JHYUX",name:"JPMorgan High Yield Fund (R6)",value:350506,price:6.59,shares:53188,sector:"HY Bonds",beta:0.50,color:ACCENT,
+analysis:"100% of the 401(k) — and 67% of total investable wealth — is in HY credit. JHYUX correlates more with equity than with Treasuries; behaves like a defensive equity sleeve, not a duration hedge. Currently +0.9% on cost. Concentration + credit-spread risk are the two flags here. At Elevated regime, expect 8–15% drawdowns."},
 ]},
-{id:"roth",label:"Roth IRA",sub:"Acct …2290",color:"#30d158",
-note:"Tax-free growth account — best placement for highest-return, longest-duration assets.",
+{id:"roth",label:"Roth IRA",sub:"Tax-free · Fidelity 23643",color:"#30d158",
+note:"Tax-free compounding — best home for highest-conviction, longest-duration assets. Currently small balance with diversified satellite holdings.",
 positions:[
-{ticker:"VGT",  name:"Vanguard Info Technology ETF",value:28400,price:582.30,shares:49, sector:"Technology",beta:1.22,color:ACCENT,
-analysis:"High-growth tech ETF in Roth — ideal placement. Tax-free compounding on a high-return sector. If composite reaches Elevated, trim to 50%; reinstate on pullback."},
-{ticker:"FBTC", name:"Fidelity Bitcoin ETF",         value:14200,price:58.36, shares:243,sector:"Crypto",    beta:2.20,color:ACCENT,
-analysis:"Bitcoin ETF at 34% of Roth — aggressive but appropriate in a tax-free account. High beta (2.20). Do not add at Elevated+ stress levels."},
-{ticker:"ARKK", name:"ARK Innovation ETF",           value:8900, price:58.75, shares:151,sector:"Disruptive",beta:1.65,color:ACCENT,
-analysis:"Speculative disruptive growth at 21% of Roth. Can drawdown 60%+ in stress regimes. Appropriate in Roth at this sizing."},
-{ticker:"SPAXX",name:"Fidelity Govt Money Market",   value:7400, price:1.00,  shares:7400,sector:"Cash",     beta:0.00,color:"var(--text-dim)",
-analysis:"Cash in Roth at 18% of account — too high. Deploy into VGT or a broad index. Keep only $1,000–2,000 as a buffer."},
+{ticker:"RCAT", name:"Red Cat Holdings",            value:1756, price:13.57, shares:129,sector:"Technology",     beta:2.50,color:ACCENT,
+analysis:"21% of Roth. Same name as the brokerage holding — total household exposure to RCAT is ~$28.6K. Roth placement is correct for high-vol asymmetric upside. +124% on cost basis."},
+{ticker:"FSKAX",name:"Fidelity Total Market Index", value:1569, price:193.37,shares:8.1,sector:"US Equity",      beta:1.00,color:ACCENT,
+analysis:"Broad US market core — 19% of Roth. Up 57% on cost. Right asset in the right account; let it compound."},
+{ticker:"FBTC", name:"Fidelity Wise Origin Bitcoin", value:1355, price:67.75, shares:20, sector:"Crypto",        beta:2.50,color:ACCENT,
+analysis:"BTC exposure — 17% of Roth. Tax-free is the optimal home for crypto. -26% on cost. Sizing is appropriate at this conviction level."},
+{ticker:"GLD",  name:"SPDR Gold Trust",             value:1343, price:447.515,shares:3, sector:"Commodity",      beta:0.05,color:ACCENT,
+analysis:"Gold hedge — 16% of Roth. Diversifier; near flat on cost."},
+{ticker:"SLV",  name:"iShares Silver Trust",        value:1123, price:74.85, shares:15, sector:"Commodity",      beta:0.30,color:ACCENT,
+analysis:"Silver — 14% of Roth. Higher beta than gold; both industrial and monetary. -25% on cost."},
+{ticker:"SPAXX",name:"Fidelity Govt Money Market",  value:531,  price:1.00,  shares:531,sector:"Cash",           beta:0.00,color:"var(--text-dim)",
+analysis:"Cash sweep — 6% of Roth. Fine as a small buffer; deploy if balance grows."},
+{ticker:"ETHE", name:"Grayscale Ethereum Trust",    value:496,  price:19.84, shares:25, sector:"Crypto",         beta:3.00,color:ACCENT,
+analysis:"ETH exposure — 6% of Roth. -37% on cost; legacy Grayscale wrapper has expense-ratio drag vs. spot ETF alternatives. Consider rolling to ETHA/ETHE-equivalent spot product on next add."},
 ]},
-{id:"529a",label:"529 Plan — Child 1 (Age 8)",sub:"Acct …5512",color:"#ff9f0a",
-note:"College savings — 10-year horizon to enrollment. Moderate equity glide path appropriate.",
+{id:"529s",label:"Scarlett 529",sub:"NH 529 · Account 6034",color:"#ff9f0a",
+note:"College savings — 100% international equity. Long horizon supports the allocation, but single-fund concentration warrants a glide-path plan.",
 positions:[
-{ticker:"FZILX",name:"Fidelity ZERO Intl Index",value:22400,price:14.20,shares:1577,sector:"Intl Equity",beta:0.85,color:ACCENT,
-analysis:"0% expense ratio international index. 10-year horizon provides enough runway. Consider shifting to a target-enrollment 2035 fund within 3 years."},
-{ticker:"FXAIX",name:"Fidelity 500 Index Fund", value:14600,price:229.32,shares:64, sector:"US Equity", beta:1.00,color:ACCENT,
-analysis:"US equity core at 39% of 529. Age-8 child has 10-year horizon. Begin adding a bond allocation (target 20%) in 3–4 years."},
+{ticker:"NHXINT906",name:"NH International Index",value:9194,price:25.63,shares:359,sector:"Intl Equity",beta:0.85,color:ACCENT,
+analysis:"100% intl equity — +31% on cost. Heavy regional concentration relative to a typical age-based 529 portfolio. Consider blending to a target-enrollment fund as horizon shortens."},
 ]},
-{id:"hsa",label:"Health Savings Account",sub:"Acct …7734",color:"#00d4a0",
-note:"Triple tax-advantaged — contribute max ($8,550 family 2026), invest long-term, never withdraw if possible.",
+{id:"529e",label:"Ethan 529",sub:"NH 529 · Account 6185",color:"#f97316",
+note:"College savings — same 100% international equity allocation as Scarlett's account, larger balance.",
 positions:[
-{ticker:"FXAIX",name:"Fidelity 500 Index Fund",    value:31200,price:229.32,shares:136,sector:"US Equity",beta:1.00,color:ACCENT,
-analysis:"S&P 500 index in HSA — correct. Maximize contributions for 20 years and this could compound to $500K+. Never withdraw."},
-{ticker:"FDRXX",name:"Fidelity Govt Money Market", value:4800, price:1.00,  shares:4800,sector:"Cash",   beta:0.00,color:"var(--text-dim)",
-analysis:"Cash buffer in HSA at 13% — slightly high. Keep $1,500–2,000 for near-term co-pays; deploy the rest into FXAIX."},
+{ticker:"NHXINT906",name:"NH International Index",value:34473,price:25.63,shares:1345,sector:"Intl Equity",beta:0.85,color:ACCENT,
+analysis:"100% intl equity — +66% on cost. Largest 529 holding. Same single-fund concentration call as Scarlett's account; revisit at age-based glide-path checkpoints."},
+]},
+{id:"hsa",label:"Health Savings Account",sub:"Triple tax-adv · Fidelity 23567",color:"#00d4a0",
+note:"Triple tax-advantaged — contribute the family max and invest long-term. Treat as stealth retirement; never withdraw if cash flow allows.",
+positions:[
+{ticker:"FXAIX",name:"Fidelity 500 Index Fund",   value:6841,price:244.69,shares:28,  sector:"US Equity",beta:1.00,color:ACCENT,
+analysis:"S&P 500 core — 80% of HSA. Up 34% on cost. Correct asset for the most tax-advantaged account in the stack."},
+{ticker:"FDRXX",name:"Fidelity Govt Money Market",value:1747,price:1.00,  shares:1747,sector:"Cash",     beta:0.00,color:"var(--text-dim)",
+analysis:"20% cash buffer — slightly high. Keep $1.5–2K for near-term medical, deploy the rest into FXAIX."},
 ]},
 ];
 
@@ -1893,12 +1896,22 @@ useEffect(()=>{
 
 const grandTotal=ACCOUNTS.reduce((a,acc)=>a+acc.positions.reduce((b,p)=>b+p.value,0),0);
 const portBeta=ACCOUNTS.flatMap(acc=>acc.positions).reduce((a,p)=>a+(p.value/grandTotal)*p.beta,0);
+// Asset-class taxonomy: prefer sector match for fixed income / intl / cash;
+// then ticker match for the few special-cased ETFs (metals, crypto, broad
+// index funds); everything else falls through to "Individual Stocks".
 const assetRollup={};
 ACCOUNTS.flatMap(acc=>acc.positions).forEach(p=>{
-const cls=p.sector==="Cash"?"Cash":["GLD","SLV"].includes(p.ticker)?"Precious Metals":["FBTC","ETHE"].includes(p.ticker)?"Crypto":p.sector==="Intl Equity"?"Intl Equity":["FXAIX","FSKAX","FZILX","FSGGX"].includes(p.ticker)?"Index Funds":"Individual Stocks";
+const cls=
+  p.sector==="Cash"?"Cash":
+  p.sector==="HY Bonds"?"HY Bonds":
+  p.sector==="Intl Equity"?"Intl Equity":
+  ["GLD","SLV"].includes(p.ticker)?"Precious Metals":
+  ["FBTC","ETHE"].includes(p.ticker)?"Crypto":
+  ["FXAIX","FSKAX","FZILX","FSGGX","FXNAX","FXIIX"].includes(p.ticker)?"Index Funds":
+  "Individual Stocks";
 assetRollup[cls]=(assetRollup[cls]||0)+p.value;
 });
-const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","Precious Metals":"#ffd60a","Crypto":"#a855f7","Cash":"var(--text-dim)"};
+const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","HY Bonds":"#14b8a6","Precious Metals":"#ffd60a","Crypto":"#a855f7","Cash":"var(--text-dim)"};
 
 // ── Tile-grid home view computations ─────────────────────────────────────────
 const buyCount = scanData?.buy_opportunities?.length || 0;
@@ -2159,7 +2172,7 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 <div style={{background:"var(--surface)",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px"}}>
 <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>PORTFOLIO INSIGHTS · SAMPLE PORTFOLIO · FOR ILLUSTRATION ONLY</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginBottom:12}}>
-{[{label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},{label:"Accounts",value:"5 accounts",col:"var(--text)"},{label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.2?"#ff9f0a":portBeta>0.8?"var(--yellow-text)":"#30d158"},{label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:convTextColor(CONV)}].map(({label,value,col})=>(
+{[{label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},{label:"Accounts",value:`${ACCOUNTS.length} accounts`,col:"var(--text)"},{label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.2?"#ff9f0a":portBeta>0.8?"var(--yellow-text)":"#30d158"},{label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:convTextColor(CONV)}].map(({label,value,col})=>(
 <div key={label} style={{background:"var(--surface-2)",borderRadius:5,padding:"10px 12px"}}>
 <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",marginBottom:4}}>{label.toUpperCase()}</div>
 <div style={{fontSize:14,fontWeight:800,color:col,fontFamily:"monospace"}}>{value}</div>
@@ -2171,7 +2184,7 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
     10px track with 2px gaps between segments — segments don't carry text, so
     we don't fight truncation/text-shadow on narrow slices. */}
 {(()=>{
-const ACCT_LABEL={brokerage:"Taxable",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529a":"529 Plan","529b":"529 Plan"};
+const ACCT_LABEL={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
 const acctData=ACCOUNTS.map(acc=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
 return{id:acc.id,name:ACCT_LABEL[acc.id]||acc.label.split(" ")[0],color:acc.color,value:t,pct:t/grandTotal};
