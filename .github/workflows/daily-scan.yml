@@ -35,6 +35,10 @@ jobs:
           SCORE_WATCH_ALERT: "35"
           ALERT_ON_WATCH: "true"
           ALERT_ON_BUY: "true"
+          # Scanner is now a data producer only. The consolidated "Daily Brief"
+          # workflow in the market-dashboard repo sends the single 3:50 PM EDT
+          # email that combines scanner signals with macro indicators.
+          SUPPRESS_EMAIL: "1"
         run: python main.py intraday
 
       - name: Upload report as artifact

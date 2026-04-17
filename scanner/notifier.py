@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -18,6 +19,12 @@ from config import (
 
 def send_alert_email(subject: str, html_body: str, text_body: str) -> bool:
     """Send alert email via Gmail SMTP. Returns True if sent successfully."""
+    # Allow the consolidated daily-brief workflow to suppress this email.
+    # The market-dashboard repo's daily-brief.yml (or anyone running the
+    # scanner as a data source only) can set SUPPRESS_EMAIL=1 in env.
+    if os.environ.get("SUPPRESS_EMAIL") == "1":
+        print("SUPPRESS_EMAIL=1 — scanner email suppressed (consolidated brief handles the send)")
+        return False
     if not GMAIL_APP_PASSWORD or not ALERT_EMAIL_FROM:
         print("Email not configured — skipping notification (set ALERT_EMAIL_FROM and GMAIL_APP_PASSWORD in .env)")
         return False
