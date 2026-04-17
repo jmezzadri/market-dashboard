@@ -1,0 +1,95 @@
+name: Daily Brief — 3:50 PM EDT
+
+# Fires 5 minutes after the trading-scanner's "Daily 3:45 PM Scan" workflow so the
+# freshly-pushed public/latest_scan_data.json is in place when we check out.
+#
+# Steps:
+#   1. Check out market-dashboard
+#   2. Run fetch_indicators.py (patches src/App.jsx with fresh FRED/Yahoo values, commits)
+#   3. Run daily_brief.py (reads App.jsx + scan JSON, calls Claude, sends consolidated email)
+#   4. Push the App.jsx update so Vercel auto-deploys
+#
+# Required GitHub secrets (Settings → Secrets and variables → Actions):
+#   FRED_API_KEY
+#   ANTHROPIC_API_KEY
+#   EMAIL_TO              — recipient
+#   SMTP_PASSWORD         — Gmail app password (same value as GMAIL_APP_PASSWORD in trading-scanner)
+# Optional secrets / variables:
+#   EMAIL_FROM            — default = EMAIL_TO
+#   SMTP_USER             — default = EMAIL_FROM
+#   DASHBOARD_URL         — default set via `env` below
+#   SCANNER_REPORT_URL    — optional link to scanner HTML on Vercel
+#   CLAUDE_MODEL          — default = claude-sonnet-4-20250514
+
+on:
+  schedule:
+    # 19:50 UTC = 3:50 PM EDT (UTC-4). During EST (UTC-5) this becomes 2:50 PM.
+    # If year-round 3:50 PM local is required, pair this with a second cron for EST.
+    - cron: '50 19 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: daily-brief
+  cancel-in-progress: false
+
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    env:
+      DASHBOARD_URL: ${{ vars.DASHBOARD_URL != '' && vars.DASHBOARD_URL || 'https://market-dashboard-git-main-joe-mezzadri.vercel.app' }}
+
+    steps:
+      - name: Check out market-dashboard
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Configure git
+        run: |
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+
+      - name: Fetch indicators (update src/App.jsx)
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          # fetch_indicators.py handles its own commit+push when SKIP_GIT_PUSH is unset.
+          # Use the built-in GITHUB_TOKEN for push auth.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python fetch_indicators.py
+
+      - name: Send consolidated daily brief
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLAUDE_MODEL: ${{ secrets.CLAUDE_MODEL || 'claude-sonnet-4-20250514' }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM || secrets.EMAIL_TO }}
+          SMTP_HOST: smtp.gmail.com
+          SMTP_PORT: '587'
+          SMTP_USER: ${{ secrets.SMTP_USER || secrets.EMAIL_FROM || secrets.EMAIL_TO }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          DASHBOARD_URL: ${{ env.DASHBOARD_URL }}
+          SCANNER_REPORT_URL: ${{ secrets.SCANNER_REPORT_URL }}
+          EMAIL_PREVIEW_PATH: brief-preview.html
+        run: python daily_brief.py
+
+      - name: Upload HTML preview as artifact
+        if: always()
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: daily-brief-${{ github.run_id }}
+          path: brief-preview.html
+          retention-days: 14
+          if-no-files-found: ignore

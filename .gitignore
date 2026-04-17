@@ -6,3 +6,7 @@ vite.config.tmp.*
 __pycache__/
 node_modules/
 dist-new/
+
+# Local convenience wrappers (not deployed)
+fire-brief.command
+brief-preview.html

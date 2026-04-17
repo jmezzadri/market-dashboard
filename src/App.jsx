@@ -2166,14 +2166,24 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 <div style={{display:"flex",height:30,borderRadius:5,overflow:"hidden",marginBottom:12}}>
 {ACCOUNTS.map(acc=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return(<div key={acc.id} style={{flex:t/grandTotal,background:acc.color,opacity:0.85,display:"flex",alignItems:"center",justifyContent:"center"}}>
-{t/grandTotal>0.08&&<span style={{fontSize:12,color:"#fff",fontFamily:"monospace",fontWeight:700,letterSpacing:"0.02em",textShadow:"0 1px 2px rgba(0,0,0,0.35)"}}>{acc.id==="k401"?"401k":acc.label.split(" ")[0]}</span>}
+const pct=t/grandTotal;
+const ACCT_LABEL={brokerage:"Taxable",k401:"401k",roth:"Roth",hsa:"HSA","529":"529"};
+const name=ACCT_LABEL[acc.id]||acc.label.split(" ")[0];
+return(<div key={acc.id} style={{flex:pct,background:acc.color,opacity:0.85,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 6px",overflow:"hidden"}}>
+{pct>0.08?<span style={{fontSize:12,color:"#fff",fontFamily:"monospace",fontWeight:700,letterSpacing:"0.02em",textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{name} {(pct*100).toFixed(0)}%</span>:pct>0.04?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{(pct*100).toFixed(0)}%</span>:null}
 </div>);
 })}
 </div>
 <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.08em",marginBottom:6}}>ASSET CLASS MIX</div>
-<div style={{display:"flex",height:18,borderRadius:4,overflow:"hidden",marginBottom:8}}>
-{Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(<div key={cls} style={{flex:val/grandTotal,background:rollupColors[cls]||"#5c6370",opacity:0.9}}/>))}
+<div style={{display:"flex",height:30,borderRadius:5,overflow:"hidden",marginBottom:8}}>
+{Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>{
+const pct=val/grandTotal;
+const ABBR={"Individual Stocks":"Ind Stks","Index Funds":"Idx Funds","Intl Equity":"Int'l Stks","Precious Metals":"Metals","Crypto":"Crypto","Cash":"Cash"};
+const label=ABBR[cls]||cls;
+return(<div key={cls} style={{flex:pct,background:rollupColors[cls]||"#5c6370",opacity:0.9,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",overflow:"hidden"}}>
+{pct>0.08?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,letterSpacing:"0.02em",textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{label} {(pct*100).toFixed(0)}%</span>:pct>0.04?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{(pct*100).toFixed(0)}%</span>:null}
+</div>);
+})}
 </div>
 <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
 {Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
