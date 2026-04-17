@@ -1038,11 +1038,11 @@ style={{background:"var(--surface)",border:`1px solid var(--border-faint)`,borde
 onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="var(--shadow-md)";e.currentTarget.style.borderColor=col+"55";}}
 onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor="var(--border-faint)";}}
 >
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5,gap:8}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5,gap:6}}>
 <div style={{minWidth:0,flex:1}}>
-<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
 <div style={{width:3,height:12,background:catCol,borderRadius:1,flexShrink:0}}/>
-<span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace",whiteSpace:"nowrap"}}>{label}</span>
+<span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,flex:"0 1 auto"}}>{label}</span>
 {desc&&<span onClick={e=>e.stopPropagation()} style={{flexShrink:0}}><InfoTip term={label} def={desc} size={11}/></span>}
 <span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0}}>T{tier}</span>
 <span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0}}>{IND_FREQ[id]||"—"}</span>
@@ -1821,6 +1821,15 @@ return TAB_IDS.includes(h)?h:"home";
 });
 useEffect(()=>{window.location.hash=tab;},[tab]);
 useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab]);
+// Keep tab in sync with URL hash so browser back/forward and manual hash edits work.
+useEffect(()=>{
+  const onHashChange=()=>{
+    const h=(window.location.hash||"").slice(1);
+    if(TAB_IDS.includes(h)&&h!==tab)setTab(h);
+  };
+  window.addEventListener("hashchange",onHashChange);
+  return()=>window.removeEventListener("hashchange",onHashChange);
+},[tab]);
 
 // ─── Navigation stack — so the drill-down back button returns to the
 //     previous tab (e.g. Overview → Indicators → Back → Overview) rather
