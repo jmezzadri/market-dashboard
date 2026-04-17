@@ -71,6 +71,10 @@ function getConv(s){return CONVICTION.find(c=>s>=c.range[0]&&s<c.range[1])||CONV
 // applied to small text on a light surface the yellow becomes illegible.
 // This swaps the NORMAL yellow for the deeper amber --yellow-text token.
 function convTextColor(conv){return conv.color==="#ffd60a"?"var(--yellow-text)":conv.color;}
+// Swap bright yellow (#ffd60a) for a theme-aware variant that stays
+// legible on light backgrounds. Used anywhere an indicator/KPI/trend
+// color is rendered directly as text on a light surface.
+function yText(col){return(col==="#ffd60a"||col==="#FFD60A")?"var(--yellow-text)":col;}
 
 const AS_OF={
 vix:"Apr 16 2026",hy_ig:"Apr 13 2026",eq_cr_corr:"Apr 13 2026",
@@ -602,7 +606,19 @@ return pts.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).j
 function ChartCore({data,labels,dir,sdP,crisisData,col,fmtFn,H,pL,pR,pT,pB,W,id}){
 const [hover,setHover]=useState(null);
 const IW=W-pL-pR,IH=H-pT-pB;
-const vals=data.map(d=>d[1]);
+// Guard: need at least 2 points to draw a line; no points → bail with an
+// empty chart area rather than NaN/Infinity math crashes.
+if(!data||data.length<2)return(
+  <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
+    <text x={W/2} y={H/2} textAnchor="middle" fill="var(--text-dim)" fontSize="6" fontFamily="monospace">No data</text>
+  </svg>
+);
+const vals=data.map(d=>d[1]).filter(v=>Number.isFinite(v));
+if(vals.length<2)return(
+  <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
+    <text x={W/2} y={H/2} textAnchor="middle" fill="var(--text-dim)" fontSize="6" fontFamily="monospace">No data</text>
+  </svg>
+);
 const mn=Math.min(...vals),mx=Math.max(...vals),rng=mx-mn||1;
 const xp=i=>pL+(i/(data.length-1))*IW;
 const yp=v=>{const raw=(v-mn)/rng;return pT+(dir==="lw"||dir==="nw"?raw:1-raw)*IH;};
@@ -1022,17 +1038,17 @@ style={{background:"var(--surface)",border:`1px solid var(--border-faint)`,borde
 onMouseEnter={e=>{e.currentTarget.style.transform="translateY(-1px)";e.currentTarget.style.boxShadow="var(--shadow-md)";e.currentTarget.style.borderColor=col+"55";}}
 onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarget.style.boxShadow="none";e.currentTarget.style.borderColor="var(--border-faint)";}}
 >
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5}}>
-<div>
-<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2}}>
-<div style={{width:3,height:12,background:catCol,borderRadius:1}}/>
-<span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace"}}>{label}</span>
-{desc&&<span onClick={e=>e.stopPropagation()}><InfoTip term={label} def={desc} size={11}/></span>}
-<span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace"}}>T{tier}</span>
-<span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace"}}>{IND_FREQ[id]||"—"}</span>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:5,gap:8}}>
+<div style={{minWidth:0,flex:1}}>
+<div style={{display:"flex",alignItems:"center",gap:6,marginBottom:2,flexWrap:"wrap"}}>
+<div style={{width:3,height:12,background:catCol,borderRadius:1,flexShrink:0}}/>
+<span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace",whiteSpace:"nowrap"}}>{label}</span>
+{desc&&<span onClick={e=>e.stopPropagation()} style={{flexShrink:0}}><InfoTip term={label} def={desc} size={11}/></span>}
+<span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0}}>T{tier}</span>
+<span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0}}>{IND_FREQ[id]||"—"}</span>
 </div>
-<div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9}}>{sub}</div>
-<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]}</div>
+<div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
+<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]||"—"}</div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:15,fontWeight:800,color:colT,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -1831,15 +1847,36 @@ const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
 const [scanData,setScanData]=useState(null);
+const [scanError,setScanError]=useState(false);
 useEffect(()=>{
+  let cancelled=false;
   fetch("https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json?t="+Date.now())
-    .then(r=>r.ok?r.json():null).then(d=>setScanData(d)).catch(()=>{});
+    .then(r=>{
+      if(!r.ok)throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    })
+    .then(d=>{if(!cancelled)setScanData(d);})
+    .catch(err=>{
+      if(cancelled)return;
+      console.warn("scan data fetch failed:",err);
+      setScanError(true);
+    });
+  return()=>{cancelled=true;};
 },[]);
 
 const visibleIds=Object.keys(IND).filter(id=>{
 if(catFilter)return IND[id][2]===catFilter;
 return true;
 });
+
+// If the expanded modal's indicator is no longer visible (e.g. user
+// changed category filter while a modal was still open, or clicked
+// a category row that sets a filter), close the modal so we don't
+// leave a floating sheet whose prev/next arrows are broken.
+useEffect(()=>{
+  if(expandedId&&!visibleIds.includes(expandedId))setExpandedId(null);
+// eslint-disable-next-line react-hooks/exhaustive-deps
+},[catFilter]);
 
 const grandTotal=ACCOUNTS.reduce((a,acc)=>a+acc.positions.reduce((b,p)=>b+p.value,0),0);
 const portBeta=ACCOUNTS.flatMap(acc=>acc.positions).reduce((a,p)=>a+(p.value/grandTotal)*p.beta,0);
@@ -2055,7 +2092,7 @@ return(
 const ta=trendArrow(sc100,prior);
 return(<div key={lbl} style={{background:"var(--border-faint)",borderRadius:3,padding:"2px 6px",display:"flex",alignItems:"center",gap:2}}>
 <span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace"}}>{lbl}</span>
-<span style={{fontSize:11,color:ta.col,fontFamily:"monospace"}}>{ta.arrow}{sc100>prior?"+":""}{sc100-prior}</span>
+<span style={{fontSize:11,color:yText(ta.col),fontFamily:"monospace"}}>{ta.arrow}{sc100>prior?"+":""}{sc100-prior}</span>
 </div>);
 })}
 </div>}
@@ -2089,8 +2126,11 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:9,alignItems:"start"}}>
 {visibleIds.map(id=>(<IndicatorCard key={id} id={id} onOpen={setExpandedId}/>))}
 </div>
-{expandedId&&(()=>{
+{expandedId&&IND[expandedId]&&(()=>{
   const idx=visibleIds.indexOf(expandedId);
+  // If the currently-expanded id isn't in visibleIds (shouldn't happen
+  // given the useEffect above, but belt-and-suspenders) still render the
+  // modal but hide the prev/next chrome.
   const hasPrev=idx>0;
   const hasNext=idx>=0&&idx<visibleIds.length-1;
   return(<IndicatorModal id={expandedId} onClose={()=>setExpandedId(null)} onPrev={()=>hasPrev&&setExpandedId(visibleIds[idx-1])} onNext={()=>hasNext&&setExpandedId(visibleIds[idx+1])} hasPrev={hasPrev} hasNext={hasNext}/>);
@@ -2106,7 +2146,7 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 <div style={{background:"var(--surface)",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px"}}>
 <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>PORTFOLIO INSIGHTS · SAMPLE PORTFOLIO · FOR ILLUSTRATION ONLY</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginBottom:12}}>
-{[{label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},{label:"Accounts",value:"5 accounts",col:"var(--text)"},{label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.2?"#ff9f0a":portBeta>0.8?"#ffd60a":"#30d158"},{label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:CONV.color}].map(({label,value,col})=>(
+{[{label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},{label:"Accounts",value:"5 accounts",col:"var(--text)"},{label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.2?"#ff9f0a":portBeta>0.8?"var(--yellow-text)":"#30d158"},{label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:convTextColor(CONV)}].map(({label,value,col})=>(
 <div key={label} style={{background:"var(--surface-2)",borderRadius:5,padding:"10px 12px"}}>
 <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",marginBottom:4}}>{label.toUpperCase()}</div>
 <div style={{fontSize:14,fontWeight:800,color:col,fontFamily:"monospace"}}>{value}</div>
