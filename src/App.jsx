@@ -65,6 +65,11 @@ const CONVICTION=[
  action:"Crisis regime. Maximum defensiveness. Harvest losses. Hold dry powder."},
 ];
 function getConv(s){return CONVICTION.find(c=>s>=c.range[0]&&s<c.range[1])||CONVICTION[3];}
+// Theme-aware text color for conviction. Raw conviction colors (used for bars,
+// borders, KPI numbers) are bright by design; when those same colors are
+// applied to small text on a light surface the yellow becomes illegible.
+// This swaps the NORMAL yellow for the deeper amber --yellow-text token.
+function convTextColor(conv){return conv.color==="#ffd60a"?"var(--yellow-text)":conv.color;}
 
 const AS_OF={
 vix:"Apr 16 2026",hy_ig:"Apr 13 2026",eq_cr_corr:"Apr 13 2026",
@@ -374,11 +379,21 @@ const HIST_OVERRIDES = {
   ],
 };
 
+// Anchor the chart to today so interpolation from the last real keyframe
+// flows smoothly into the "Now" bucket. April 2026 → 2026 + 3/12 ≈ 2026.28.
+const NOW_T=2026.28;
+
 function buildDefaultHistKeyframes(id){
 const sp=SD[id];if(!sp||!IND[id])return null;
+const d=IND[id],nowVal=d[6];
 // Per-indicator override (real data) wins over the generic synthetic shape.
-if(HIST_OVERRIDES[id])return HIST_OVERRIDES[id];
-const d=IND[id],m=sp.mean,sd=sp.sd||1e-9;
+// Append today's reading so 2025/early-2026 points aren't flat-lined.
+if(HIST_OVERRIDES[id]){
+const kf=HIST_OVERRIDES[id];
+const last=kf[kf.length-1];
+return last[0]<NOW_T?[...kf,[NOW_T,nowVal]]:kf;
+}
+const m=sp.mean,sd=sp.sd||1e-9;
 const flip=sp.dir==="lw"||sp.dir==="nw";
 const u=f=>flip?-f:f;
 return[
@@ -390,6 +405,7 @@ return[
 [2020,m+u(1.58)*sd],
 [2022,m+u(1.02)*sd],
 [2024,m+u(0.28)*sd],
+[NOW_T,nowVal],
 ];
 }
 
@@ -399,13 +415,15 @@ const kf=buildDefaultHistKeyframes(id);
 if(!kf)return null;
 const out=[];
 const QLBL=["Q1","Q2","Q3","Q4"];
-for(let y=2005;y<=2024;y++){
+for(let y=2005;y<=2025;y++){
 for(let q=0;q<4;q++){
 const t=y+q*0.25;
 const lbl=q===0?String(y):`${QLBL[q]} ${y}`;
 out.push([lbl,clampHistValue(id,piecewiseYearValue(t,kf))]);
 }
 }
+// Q1 2026 (last full quarter before "Now" in Q2 2026).
+out.push(["2026",clampHistValue(id,piecewiseYearValue(2026.0,kf))]);
 out.push(["Now",clampHistValue(id,IND[id][6])]);
 return out;
 }
@@ -1437,7 +1455,7 @@ return(
   <div style={{background:"var(--surface)",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"12px 16px"}}>
     <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
       <div>
-        <div style={{fontSize:11,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:4}}>SECTOR OUTLOOK · {CONV.label} {TREND_SIG.arrow} {TREND_SIG.label} · {COMP100}/100</div>
+        <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:4}}>SECTOR OUTLOOK · {CONV.label} {TREND_SIG.arrow} {TREND_SIG.label} · {COMP100}/100</div>
         <div style={{fontSize:12,color:"var(--text)",maxWidth:420,lineHeight:1.6}}>Sector scores driven by live indicator data. Parent score = average of dynamic subsector scores. Each subsector has its own macro sensitivity weights.</div>
       </div>
       <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
@@ -1594,7 +1612,7 @@ return(
 <div key={i} style={{marginBottom:14}}>
 {isH?(
 <>
-<div style={{fontSize:11,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:6,marginTop:i>0?10:0}}>{lines[0]}</div>
+<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:6,marginTop:i>0?10:0}}>{lines[0]}</div>
 <div style={{color:"var(--text)",lineHeight:1.85}}>{lines.slice(1).join(" ")}</div>
 </>
 ):(
@@ -1973,7 +1991,7 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 {tab==="portfolio"&&(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:12}}>
 <div style={{background:"var(--surface)",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px"}}>
-<div style={{fontSize:11,color:CONV.color,fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>PORTFOLIO INSIGHTS · SAMPLE PORTFOLIO · FOR ILLUSTRATION ONLY</div>
+<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>PORTFOLIO INSIGHTS · SAMPLE PORTFOLIO · FOR ILLUSTRATION ONLY</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginBottom:12}}>
 {[{label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},{label:"Accounts",value:"5 accounts",col:"var(--text)"},{label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.2?"#ff9f0a":portBeta>0.8?"#ffd60a":"#30d158"},{label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:CONV.color}].map(({label,value,col})=>(
 <div key={label} style={{background:"var(--surface-2)",borderRadius:5,padding:"10px 12px"}}>
@@ -1982,24 +2000,24 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 </div>
 ))}
 </div>
-<div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",marginBottom:5}}>WEALTH BY ACCOUNT</div>
-<div style={{display:"flex",height:18,borderRadius:4,overflow:"hidden",marginBottom:8}}>
+<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.08em",marginBottom:6}}>WEALTH BY ACCOUNT</div>
+<div style={{display:"flex",height:30,borderRadius:5,overflow:"hidden",marginBottom:12}}>
 {ACCOUNTS.map(acc=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return(<div key={acc.id} style={{flex:t/grandTotal,background:acc.color,opacity:0.8,display:"flex",alignItems:"center",justifyContent:"center"}}>
-{t/grandTotal>0.12&&<span style={{fontSize:6,color:"#000",fontFamily:"monospace",fontWeight:700}}>{acc.id==="k401"?"401k":acc.label.split(" ")[0]}</span>}
+return(<div key={acc.id} style={{flex:t/grandTotal,background:acc.color,opacity:0.85,display:"flex",alignItems:"center",justifyContent:"center"}}>
+{t/grandTotal>0.08&&<span style={{fontSize:12,color:"#fff",fontFamily:"monospace",fontWeight:700,letterSpacing:"0.02em",textShadow:"0 1px 2px rgba(0,0,0,0.35)"}}>{acc.id==="k401"?"401k":acc.label.split(" ")[0]}</span>}
 </div>);
 })}
 </div>
-<div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",marginBottom:5}}>ASSET CLASS MIX</div>
-<div style={{display:"flex",height:10,borderRadius:3,overflow:"hidden",marginBottom:6}}>
-{Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(<div key={cls} style={{flex:val/grandTotal,background:rollupColors[cls]||"#5c6370",opacity:0.85}}/>))}
+<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.08em",marginBottom:6}}>ASSET CLASS MIX</div>
+<div style={{display:"flex",height:18,borderRadius:4,overflow:"hidden",marginBottom:8}}>
+{Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(<div key={cls} style={{flex:val/grandTotal,background:rollupColors[cls]||"#5c6370",opacity:0.9}}/>))}
 </div>
-<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+<div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
 {Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
-<div key={cls} style={{display:"flex",alignItems:"center",gap:3}}>
-<div style={{width:6,height:6,borderRadius:"50%",background:rollupColors[cls]||"#5c6370"}}/>
-<span style={{fontSize:10,color:"var(--text)",fontFamily:"monospace"}}>{cls} {(val/grandTotal*100).toFixed(0)}%</span>
+<div key={cls} style={{display:"flex",alignItems:"center",gap:5}}>
+<div style={{width:8,height:8,borderRadius:"50%",background:rollupColors[cls]||"#5c6370"}}/>
+<span style={{fontSize:12,color:"var(--text)",fontFamily:"monospace"}}>{cls} {(val/grandTotal*100).toFixed(0)}%</span>
 </div>
 ))}
 </div>
