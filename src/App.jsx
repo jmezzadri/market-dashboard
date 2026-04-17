@@ -1804,14 +1804,13 @@ return(
       <Tile
         eyebrow="All Indicators"
         title="Calibrated signals"
-        sub="VIX, MOVE, HY-IG, ANFCI, CAPE, SLOOS, ISM, claims, JOLTS — all in one view."
         accent="var(--accent)"
         onClick={()=>setTab("indicators")}
       >
-        <div style={{display:"flex", gap:4, marginTop:"var(--space-2)", flexWrap:"wrap"}}>
+        <div style={{display:"flex", gap:8, marginTop:"var(--space-3)", flexWrap:"wrap"}}>
           {catScores.map(c=>(
             <span key={c.id} style={{
-              fontSize:10, padding:"3px 8px", borderRadius:999,
+              fontSize:13, padding:"6px 14px", borderRadius:999,
               background:`${c.col}1a`, color:c.col, border:`1px solid ${c.col}33`,
               fontFamily:"var(--font-mono)", fontWeight:600,
             }}>{c.label.split(" ")[0]} {c.sc100}</span>
