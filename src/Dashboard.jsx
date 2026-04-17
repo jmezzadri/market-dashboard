@@ -355,7 +355,7 @@ const ttX=hover?Math.min(Math.max(hover.x,pL+24),W-pR-24):0;
 const ttY=hover?(hover.y<pT+20?hover.y+14:hover.y-14):0;
 const lastPt=pts[pts.length-1];
 return(
-<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"none"}}
+<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
 onMouseMove={handleInteract} onTouchStart={handleInteract} onTouchMove={handleInteract}
 onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),1800)}>
 {hZone&&hZone.h>0&&<rect x={pL} y={hZone.y} width={IW} height={hZone.h} fill="rgba(34,197,94,0.08)"/>}
@@ -463,7 +463,7 @@ setHover({x:pts[best][0],y:pts[best][1],label:labels[best],value:vals[best]});
 const ttX=hover?Math.min(Math.max(hover.x,pL+24),W-pR-24):0;
 const ttY=hover?(hover.y<pT+20?hover.y+14:hover.y-14):0;
 return(
-<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"none"}}
+<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
 onMouseMove={handleInteract} onTouchStart={handleInteract} onTouchMove={handleInteract}
 onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),1800)}>
 {bands.map(b=>(

@@ -494,6 +494,19 @@ a:hover { text-decoration: underline; }
    Only overrides layout on narrow screens.
    All desktop styles above remain completely unchanged.                      */
 @media (max-width: 639px) {
+  /* ── iOS scroll fix ──────────────────────────────────────────────────────
+     background-attachment: fixed disables GPU compositing on iOS Safari and
+     blocks momentum scrolling. Replace with scroll on narrow screens.      */
+  body {
+    background-attachment: scroll;
+    -webkit-overflow-scrolling: touch; /* momentum scroll on iOS */
+    overflow-y: auto;
+  }
+
+  html {
+    overflow-y: auto;
+  }
+
   /* Reduce shell chrome horizontal padding from 32 px → 16 px */
   .hero-header        { padding-left: var(--space-4) !important; padding-right: var(--space-4) !important; }
   .section-header-inner { padding-left: var(--space-4) !important; padding-right: var(--space-4) !important; }
@@ -509,4 +522,15 @@ a:hover { text-decoration: underline; }
 
   /* Hardcoded 2-column grids (Overview categories, FAQ) → single column */
   .two-col-grid { grid-template-columns: 1fr !important; }
+
+  /* Tile — ensure button auto-sizes on iOS (Safari can constrain button height) */
+  .tile {
+    height: auto !important;
+    min-height: 0 !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Indicator cards and any inner section grids → single column */
+  .indicator-grid { grid-template-columns: 1fr !important; }
 }

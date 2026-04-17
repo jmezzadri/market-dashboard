@@ -77,40 +77,40 @@ function convTextColor(conv){return conv.color==="#ffd60a"?"var(--yellow-text)":
 function yText(col){return(col==="#ffd60a"||col==="#FFD60A")?"var(--yellow-text)":col;}
 
 const AS_OF={
-vix:"Apr 16 2026",hy_ig:"Apr 13 2026",eq_cr_corr:"Apr 13 2026",
-yield_curve:"Apr 15 2026",move:"Apr 15 2026",anfci:"Apr 10 2026",
-stlfsi:"Apr 03 2026",real_rates:"Apr 14 2026",sloos_ci:"Jan 01 2026",
+vix:"Apr 16 2026",hy_ig:"Apr 15 2026",eq_cr_corr:"Apr 17 2026",
+yield_curve:"Apr 16 2026",move:"Apr 16 2026",anfci:"Apr 10 2026",
+stlfsi:"Apr 10 2026",real_rates:"Apr 15 2026",sloos_ci:"Jan 01 2026",
 cape:"Mar 2026",ism:"Mar 2026",copper_gold:"Apr 16 2026",
 bkx_spx:"Apr 16 2026",bank_unreal:"Q4 2025",credit_3y:"Apr 2026",
 term_premium:"Apr 10 2026",cmdi:"Apr 10 2026",loan_syn:"Apr 15 2026",
-usd:"Apr 16 2026",cpff:"Apr 13 2026",skew:"Apr 15 2026",
-sloos_cre:"Jan 01 2026",bank_credit:"Apr 01 2026",jobless:"Apr 04 2026",
+usd:"Apr 16 2026",cpff:"Apr 14 2026",skew:"Apr 16 2026",
+sloos_cre:"Jan 01 2026",bank_credit:"Apr 01 2026",jobless:"Apr 11 2026",
 jolts_quits:"Feb 01 2026",
 };
 
 const IND={
-vix:["VIX","Equity Volatility","equity",1,"index",1,18.6,23.9,17.2,19.5,15.0,false,
+vix:["VIX","Equity Volatility","equity",1,"index",1,17.9,23.9,17.2,19.5,15.0,false,
 "The CBOE Volatility Index measures expected 30-day S&P 500 volatility from live options prices. Known as the 'fear gauge' — higher = more fear, lower = calm.",
 "Modestly below the long-run average (~19.5) and down meaningfully from 23.9 a month ago. Stress is fading. Watch for a sustained break above 30 (stress threshold) or 40 (crisis level)."],
-hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,213.0,268,245,280,220,false,
+hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,205.0,268,245,280,220,false,
 "Spread between ICE BofA High Yield and Investment Grade bond yields. Measures extra return investors demand for credit risk.",
 "Spreads have tightened ~55bps over the past month — markets not pricing significant default risk. Below 200bps = benign; above 400bps = significant stress."],
 eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.92,0.61,0.55,0.50,0.40,false,
 "63-day rolling correlation between VIX and HY-IG spreads. When both move together, it signals a genuine risk-off regime rather than isolated noise.",
 "Sharp jump in correlation — equities and credit are now moving as a single risk factor. Values above 0.6 indicate a true risk-off regime; this is a warning sign."],
-yield_curve:["10Y–2Y Slope","Yield Curve","rates",1,"bps",0,53.0,52,35,15,-20,false,
+yield_curve:["10Y–2Y Slope","Yield Curve","rates",1,"bps",0,54.0,52,35,15,-20,false,
 "Difference between 10-year and 2-year Treasury yields. Inversion historically precedes recessions by 6–18 months.",
 "Re-steepened after the deepest inversion since 1981 (-109bps in 2023). An improving signal, though bear steepening (long-end selling off) would be the wrong kind."],
-move:["MOVE Index","Rates Volatility","rates",2,"index",0,68.0,98,95,90,85,false,
+move:["MOVE Index","Rates Volatility","rates",2,"index",0,66.0,98,95,90,85,false,
 "Merrill Lynch Option Volatility Estimate: implied volatility of Treasury yields. The bond market's VIX.",
 "Rates volatility has eased substantially from 98 a month ago. Now near the pre-2022 average of ~65 — borrowing-cost uncertainty has receded."],
 anfci:["ANFCI","Chicago Fed Fin. Conditions","fincond",2,"z-score",2,-0.47,0.08,0.06,0.04,-0.05,false,
 "Adjusted National Financial Conditions Index: composite of 105 indicators isolating pure financial stress.",
 "Conditions have loosened sharply — among the most accommodative readings outside crisis-response periods. Negative = looser than the economy warrants."],
-stlfsi:["STLFSI","St. Louis Fed Stress Index","fincond",2,"index",2,-0.24,0.22,0.18,0.12,-0.10,false,
+stlfsi:["STLFSI","St. Louis Fed Stress Index","fincond",2,"index",2,-0.65,0.22,0.18,0.12,-0.10,false,
 "St. Louis Fed Financial Stress Index: 18 weekly data series. Zero = historical average stress.",
 "Stress has receded to below-average levels. A sustained move above 1.0 would be concerning."],
-real_rates:["10Y TIPS","Real Interest Rates","rates",2,"%",2,1.89,1.90,1.75,1.85,1.50,false,
+real_rates:["10Y TIPS","Real Interest Rates","rates",2,"%",2,1.9,1.90,1.75,1.85,1.50,false,
 "10-year TIPS yield — the real after-inflation rate. Represents the true cost of long-term borrowing.",
 "Restrictive (historical avg ~0.5%). Compresses equity valuations especially growth stocks. Slow-moving — has held in this range for months."],
 sloos_ci:["SLOOS C&I","Business Lending Standards","bank",2,"%",1,5.3,9.8,8.0,6.0,2.0,false,
@@ -122,12 +122,12 @@ cape:["Shiller CAPE","Cyclically Adj. P/E Ratio","equity",2,"ratio",1,34.2,35.1,
 ism:["ISM Mfg. PMI","Manufacturing Activity Index","labor",2,"index",1,52.7,52.4,52.6,49.8,47.9,true,
 "ISM Manufacturing PMI: above 50 = expansion; below 50 = contraction.",
 "Manufacturing in expansion territory and inflecting higher after a soft 2H 2025. A reading sustained above 52 would confirm a real cyclical upturn."],
-copper_gold:["Copper/Gold Ratio","Real Economy vs. Safe Haven","labor",2,"ratio",3,0.126,0.195,0.210,0.225,0.240,true,
+copper_gold:["Copper/Gold Ratio","Real Economy vs. Safe Haven","labor",2,"ratio",3,0.126,0.098,0.108,0.112,0.152,true,
 "Ratio of copper to gold futures. A falling ratio signals growth pessimism and risk-off sentiment.",
-"Sharp deterioration — down ~35% in a month and ~48% over 12 months. Diverging from ISM expansion reading. Historically leads equity weakness."],
-bkx_spx:["BKX/SPX Ratio","Bank vs. Market Strength","bank",2,"ratio",3,0.091,0.352,0.365,0.378,0.395,true,
+"At 0.126, ratio sits ~37% below its 0.20 historical mean — persistent safe-haven gold demand continues to overshadow copper. Ratio dipped to ~0.098 a month ago before copper's rally toward $6/lb drove a partial rebound. A sustained move back toward 0.15+ would signal improving growth confidence."],
+bkx_spx:["BKX/SPX Ratio","Bank vs. Market Strength","bank",2,"ratio",3,0.09,0.086,0.103,0.097,0.090,true,
 "KBW Bank Index divided by S&P 500. Bank weakness often signals coming broader stress.",
-"Bank stocks have collapsed relative to the broader market — a 74% drop in a month. The kind of move seen around SVB (March 2023). Major regional bank concern."],
+"KBE/SPY near 0.09, up from ~0.086 a month ago as banks rallied in early April. Ratio sits ~30% below its historical mean of 0.13 — banks continue to trade at a persistent structural discount to the broader market. A sustained drop below 0.08 would echo SVB-era stress (March 2023)."],
 bank_unreal:["Bank Unreal. Loss","AFS+HTM Losses / Tier 1","bank",2,"% T1",1,19.9,19.5,20.8,22.1,18.5,true,
 "Aggregate unrealized securities losses at FDIC-insured banks as % of Tier 1 regulatory capital.",
 "Aggregate unrealized losses remain near recent highs (~$481B). SVB was at 104% before failure. No margin for error if long rates back up."],
@@ -143,13 +143,13 @@ cmdi:["CMDI","Corp Bond Market Distress","credit",3,"index",2,0.03,0.38,0.30,0.2
 loan_syn:["HY Eff. Yield","High Yield Effective Yield","credit",3,"%",2,6.74,7.45,7.0,6.5,6.2,false,
 "ICE BofA US High Yield Index Effective Yield. Proxy for leveraged loan market conditions.",
 "Easing from 7.45% a month ago but still elevated vs. low-rate era (4–5%). Companies with near-term maturities face refinancing pressure."],
-usd:["USD Index","Trade-Weighted Dollar","fincond",3,"index",1,98.2,103.1,102.5,101.8,101.0,false,
+usd:["USD Index","Trade-Weighted Dollar","fincond",3,"index",1,98.3,101.0,102.5,101.8,101.0,false,
 "Federal Reserve broad trade-weighted USD index. Strong dollar tightens global financial conditions.",
-"Dollar has weakened ~5% in the past month — eases global financial conditions and supports EM/commodity exposures. Above 106 = meaningfully tight."],
-cpff:["USD Funding","3M CP vs. Fed Funds Spread","fincond",3,"bps",0,8.0,14,12,10,8,false,
+"Dollar has weakened ~3% over the past month from ~101 — eases global financial conditions and supports EM/commodity exposures. Above 106 = meaningfully tight."],
+cpff:["USD Funding","3M CP vs. Fed Funds Spread","fincond",3,"bps",0,18.0,14,12,10,8,false,
 "Spread between 3-month AA financial commercial paper and effective Fed Funds Rate.",
 "Money markets functioning normally. GFC peak: 280bps; COVID: 65bps. Funding stress is absent."],
-skew:["SKEW Index","Options-Implied Tail Risk","equity",3,"index",0,139.0,141,138,135,130,false,
+skew:["SKEW Index","Options-Implied Tail Risk","equity",3,"index",0,141.0,141,138,135,130,false,
 "CBOE SKEW from relative pricing of far OTM S&P 500 puts. Measures priced probability of a crash.",
 "Mildly elevated. Combined with moderate VIX, suggests quiet positioning for tail risk underneath an otherwise calm market."],
 sloos_cre:["SLOOS CRE","CRE Lending Standards","bank",3,"%",1,8.9,18.3,15.0,12.0,8.0,false,
@@ -158,7 +158,7 @@ sloos_cre:["SLOOS CRE","CRE Lending Standards","bank",3,"%",1,8.9,18.3,15.0,12.0
 bank_credit:["Bank Credit","YoY Bank Credit Growth","bank",3,"% YoY",1,6.7,3.4,3.8,4.2,5.0,false,
 "Year-over-year growth in total bank credit from the Federal Reserve H.8 release.",
 "Credit growth has accelerated back to historical average (~6.5%) — well up from a stalled 3.4% a month ago. Supports business and consumer activity."],
-jobless:["Init. Claims","Weekly Jobless Claims","labor",3,"K",0,219.0,224,215,210,208,false,
+jobless:["Init. Claims","Weekly Jobless Claims","labor",3,"K",0,207.0,224,215,210,208,false,
 "Initial unemployment insurance claims. Most timely high-frequency labor market indicator.",
 "Within healthy pre-COVID range of 200–250K. No recession signal. Watch for sustained moves above 250K."],
 jolts_quits:["JOLTS Quits","Voluntary Quit Rate","labor",3,"%",1,1.9,2.3,2.35,2.45,2.55,false,
@@ -168,11 +168,11 @@ jolts_quits:["JOLTS Quits","Voluntary Quit Rate","labor",3,"%",1,1.9,2.3,2.35,2.
 
 // Reporting frequency per indicator: D=Daily, W=Weekly, M=Monthly, Q=Quarterly
 const IND_FREQ={
-  vix:"D",hy_ig:"D",eq_cr_corr:"D",yield_curve:"D",move:"D",
-  anfci:"W",stlfsi:"W",real_rates:"D",sloos_ci:"Q",cape:"M",
-  ism:"M",copper_gold:"D",bkx_spx:"D",bank_unreal:"Q",credit_3y:"W",
-  term_premium:"D",cmdi:"W",loan_syn:"D",usd:"D",cpff:"D",
-  skew:"D",sloos_cre:"Q",bank_credit:"W",jobless:"W",jolts_quits:"M",
+  vix:"Apr 16 2026",hy_ig:"Apr 15 2026",eq_cr_corr:"Apr 17 2026",yield_curve:"Apr 16 2026",move:"Apr 16 2026",
+  anfci:"Apr 10 2026",stlfsi:"Apr 10 2026",real_rates:"Apr 15 2026",sloos_ci:"Jan 01 2026",cape:"Mar 2026",
+  ism:"Mar 2026",copper_gold:"Apr 16 2026",bkx_spx:"Apr 16 2026",bank_unreal:"Q4 2025",credit_3y:"Apr 2026",
+  term_premium:"Apr 10 2026",cmdi:"Apr 10 2026",loan_syn:"Apr 15 2026",usd:"Apr 16 2026",cpff:"Apr 14 2026",
+  skew:"Apr 16 2026",sloos_cre:"Jan 01 2026",bank_credit:"Apr 01 2026",jobless:"Apr 11 2026",jolts_quits:"Feb 01 2026",
 };
 
 const WEIGHTS={
@@ -651,7 +651,7 @@ const ttX=hover?Math.min(Math.max(hover.x,pL+24),W-pR-24):0;
 const ttY=hover?(hover.y<pT+20?hover.y+14:hover.y-14):0;
 const lastPt=pts[pts.length-1];
 return(
-<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"none"}}
+<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
 onMouseMove={handleInteract} onTouchStart={handleInteract} onTouchMove={handleInteract}
 onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),1800)}>
 {hZone&&hZone.h>0&&<rect x={pL} y={hZone.y} width={IW} height={hZone.h} fill="rgba(34,197,94,0.08)"/>}
@@ -772,7 +772,7 @@ return(
 <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>S&P 500 (R)</span>
 </div>
 </div>
-<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"none"}}
+<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
 onMouseMove={handleInteract} onTouchStart={handleInteract} onTouchMove={handleInteract}
 onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),1800)}>
 {/* Stress band backgrounds */}
@@ -882,7 +882,7 @@ const ttX=hover?Math.min(Math.max(hover.x,pL+28),W-pR-28):0;
 const ttY=hover?(hover.y<pT+22?hover.y+16:hover.y-16):0;
 return(
 <div onClick={e=>e.stopPropagation()}>
-<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"none"}}
+<svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
 onMouseMove={handleInteract} onTouchStart={handleInteract} onTouchMove={handleInteract}
 onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),1800)}>
 {STRESS_HIST_BANDS.map(b=>(
