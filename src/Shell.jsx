@@ -213,7 +213,7 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
 }
 
 // ── Drill-down chrome (back button + section title) ───────────────────────────
-export function SectionHeader({ eyebrow, title, sub, onBack }) {
+export function SectionHeader({ eyebrow, title, sub, onBack, backLabel = "All sections" }) {
   return (
     <div style={{
       maxWidth: 1440, margin: "0 auto",
@@ -231,7 +231,7 @@ export function SectionHeader({ eyebrow, title, sub, onBack }) {
         onMouseEnter={e => { e.currentTarget.style.background = "var(--hover)"; e.currentTarget.style.color = "var(--text)"; }}
         onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-3)"; e.currentTarget.style.color = "var(--text-muted)"; }}
       >
-        <span style={{ fontSize: 14 }}>←</span> All sections
+        <span style={{ fontSize: 14 }}>←</span> {backLabel}
       </button>
       <div>
         {eyebrow && <div className="section-eyebrow" style={{ marginBottom: 6 }}>{eyebrow}</div>}

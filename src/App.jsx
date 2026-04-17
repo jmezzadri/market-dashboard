@@ -1805,6 +1805,28 @@ return TAB_IDS.includes(h)?h:"home";
 });
 useEffect(()=>{window.location.hash=tab;},[tab]);
 useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab]);
+
+// ─── Navigation stack — so the drill-down back button returns to the
+//     previous tab (e.g. Overview → Indicators → Back → Overview) rather
+//     than always jumping to Home. ────────────────────────────────────
+const [tabHistory,setTabHistory]=useState([]);
+const navTo=(next)=>{
+  if(next===tab)return;
+  setTabHistory(h=>[...h,tab]);
+  setTab(next);
+};
+const goBack=()=>{
+  setTabHistory(h=>{
+    if(h.length===0){setTab("home");return h;}
+    setTab(h[h.length-1]);
+    return h.slice(0,-1);
+  });
+};
+const backLabel=(()=>{
+  const prev=tabHistory[tabHistory.length-1];
+  if(!prev||prev==="home")return"All sections";
+  return TAB_META[prev]?.eyebrow||"Back";
+})();
 const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
@@ -1871,7 +1893,7 @@ return(
         span={2}
         kpi={{value:COMP100, unit:"/ 100", color:CONV.color, delta:`${TREND_SIG.arrow} ${TREND_SIG.label}`, deltaColor:TREND_SIG.col}}
         status={{label:CONV.label, color:CONV.color}}
-        onClick={()=>setTab("overview")}
+        onClick={()=>navTo("overview")}
       >
         <div style={{display:"flex", flexDirection:"column", gap:10, marginTop:"var(--space-3)"}}>
           {buildMacroBullets().map((b,i)=>(
@@ -1895,7 +1917,7 @@ return(
         sub={`Latest scan: ${lastScanLabel}`}
         accent="#30d158"
         kpi={{value:buyCount, unit:"buy alerts", color:buyCount>0?"#30d158":"var(--text-muted)"}}
-        onClick={()=>setTab("scanner")}
+        onClick={()=>navTo("scanner")}
       >
         <div style={{display:"flex", gap:8, marginTop:"var(--space-2)", flexWrap:"wrap"}}>
           <div style={{flex:1, minWidth:90, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
@@ -1913,7 +1935,7 @@ return(
         eyebrow="All Indicators"
         title="Calibrated signals"
         accent="var(--accent)"
-        onClick={()=>setTab("indicators")}
+        onClick={()=>navTo("indicators")}
       >
         <div style={{display:"flex", gap:8, marginTop:"var(--space-3)", flexWrap:"wrap"}}>
           {catScores.map(c=>(
@@ -1931,7 +1953,7 @@ return(
         title="Sectors heat map"
         sub="Subsector sensitivity to 8 macro factors. Re-ranked live as data refreshes."
         accent="#bf5af2"
-        onClick={()=>setTab("sectors")}
+        onClick={()=>navTo("sectors")}
       />
 
       <Tile
@@ -1940,7 +1962,7 @@ return(
         sub={`Total: $${(grandTotal/1000).toFixed(0)}K · Beta ${portBeta.toFixed(2)} · ${CONV.label} regime`}
         accent="#0a84ff"
         kpi={{value:`$${(grandTotal/1000).toFixed(0)}`, unit:"K", color:"var(--text)"}}
-        onClick={()=>setTab("portfolio")}
+        onClick={()=>navTo("portfolio")}
       />
 
       <Tile
@@ -1948,7 +1970,7 @@ return(
         title="How it works"
         sub="Sources, scoring, regimes, and what every signal means."
         accent="var(--text-dim)"
-        onClick={()=>setTab("readme")}
+        onClick={()=>navTo("readme")}
       />
     </div>
   </main>
@@ -1960,7 +1982,8 @@ return(
     eyebrow={TAB_META[tab].eyebrow}
     title={TAB_META[tab].title}
     sub={TAB_META[tab].sub}
-    onBack={()=>setTab("home")}
+    onBack={goBack}
+    backLabel={backLabel}
   />
 )}
 
@@ -1971,7 +1994,7 @@ return(
 <div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:12,maxWidth:980,margin:"0 auto"}}>
 
 <div>
-<div style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.7}}>Monitors economic and financial stress indicators across six categories, producing a composite stress score and four-regime conviction framework. <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>setTab("readme")}>See FAQ →</span> · <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>setTab("scanner")}>View Scanner →</span></div>
+<div style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.7}}>Monitors economic and financial stress indicators across six categories, producing a composite stress score and four-regime conviction framework. <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>navTo("readme")}>See FAQ →</span> · <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>navTo("scanner")}>View Scanner →</span></div>
 </div>
 
 {/* Narrative + Composite dial + Category bars */}
@@ -1990,7 +2013,7 @@ const avg=scored.length?scored.reduce((a,b)=>a+b,0)/scored.length:0;
 const sc100=Math.round(Math.max(0,Math.min(100,((avg+2)/5)*100)));
 const col=sdColor(avg);
 return(
-<div key={catId} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,cursor:"pointer"}} onClick={()=>{setTab("indicators");setCatFilter(catId);}}>
+<div key={catId} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,cursor:"pointer"}} onClick={()=>{navTo("indicators");setCatFilter(catId);}}>
 <span style={{fontSize:12,color:"var(--text)",fontFamily:"monospace",minWidth:108,whiteSpace:"nowrap"}}>{cat.label}</span>
 <div style={{flex:1,height:7,background:"var(--border)",borderRadius:3,overflow:"hidden"}}>
 <div style={{width:`${sc100}%`,height:"100%",background:col,borderRadius:3}}/>
@@ -2019,7 +2042,7 @@ const sc100=Math.round(Math.max(0,Math.min(100,((avg+2)/5)*100)));
 const col=sdColor(avg);
 const trend=TREND[catId];
 return(
-<div key={catId} onClick={()=>{setTab("indicators");setCatFilter(catId);}} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px",cursor:"pointer"}}>
+<div key={catId} onClick={()=>{navTo("indicators");setCatFilter(catId);}} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px",cursor:"pointer"}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
 <div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{cat.label}</div>
 <div style={{fontSize:22,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1}}>{sc100}</div>
