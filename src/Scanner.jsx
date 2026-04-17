@@ -431,6 +431,31 @@ function OverviewTab({ data, focusTicker }) {
     );
   };
 
+  // Render a watchlist entry (manual-track ticker — not in buy/watch/portfolio
+  // but the scanner pulls full intel for it via the always-include path).
+  const watchlist = data.watchlist || [];
+  const renderWatchlistEntry = (w) => {
+    const t = w.ticker;
+    const sc = screenerMap[t] || {};
+    const price = Number(sc.close || sc.prev_close || 0) || null;
+    const score = scoremap[t] ?? null;
+    const company = sc.full_name || sc.company_name || w.name || "";
+    const ptsl = (
+      <span>
+        {w.theme && <><strong style={{ color: C.text }}>Theme</strong> <span style={{ color: C.muted }}>{w.theme}</span></>}
+        {score != null && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>Score</strong> <span style={{ color: C.muted }}>{score}</span>{score < 35 && <span style={{ color: C.dim }}> (below watch tier)</span>}</>}
+      </span>
+    );
+    const perf = perfRow(t);
+    return (
+      <RichCard key={t} ticker={t} price={price} score={score}
+        tier={score >= 60 ? "buy" : score >= 35 ? "watch" : "watchlist"}
+        companyName={company} cc={null} ccNote={null}
+        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={false}
+        highlight={focusTicker && t === focusTicker} />
+    );
+  };
+
   return (
     <div>
       <SectionBanner label="RECOMMENDATIONS (Triggered)" />
@@ -447,8 +472,14 @@ function OverviewTab({ data, focusTicker }) {
 
       <SectionBanner label="CURRENT PORTFOLIO" />
       {portfolio_positions.length === 0
-        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px" }}>No portfolio positions tracked.</div>
-        : <div>{portfolio_positions.map(pos => renderPortfolio(pos))}</div>
+        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px", marginBottom: 16 }}>No portfolio positions tracked.</div>
+        : <div style={{ marginBottom: 16 }}>{portfolio_positions.map(pos => renderPortfolio(pos))}</div>
+      }
+
+      <SectionBanner label="MANUAL WATCHLIST" />
+      {watchlist.length === 0
+        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px" }}>No manual watchlist (edit <span style={{ fontFamily: "monospace" }}>portfolio/watchlist.csv</span> in the trading-scanner repo to populate).</div>
+        : <div>{watchlist.map(renderWatchlistEntry)}</div>
       }
     </div>
   );

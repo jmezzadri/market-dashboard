@@ -529,90 +529,63 @@ const STRESS_HIST_BANDS=[
 ];
 
 // ── PORTFOLIO ───────────────────────────────────────────────────────────────
-// Real holdings as of Apr 17 2026 (sourced from JPM + Fidelity exports).
-// Hoboken Escrow excluded — not investable wealth. Chase brokerage sweep
-// (QACDS) included as deployable cash.
 const ACCOUNTS=[
-{id:"brokerage",label:"JPM Taxable Brokerage",sub:"Margin · J.P. Morgan",color:"#3b82f6",tactical:true,
-note:"Active trading account — concentrated tactical positions in cyclicals + commodity producers. Chase sweep cash is dry powder.",
+{id:"brokerage",label:"Taxable Brokerage",sub:"…4471",color:"#3b82f6",
+note:"Taxable account — active trading, tax-loss harvesting, and macro-driven positioning.",
 positions:[
-{ticker:"CCJ",  name:"Cameco Corp",                     value:48266, price:120.665,shares:400,  avgCost:117.35, sector:"Materials",beta:1.40,color:ACCENT,
-analysis:"Uranium leader — 43% of brokerage and the largest single-stock position in the book. Beta ~1.4. Concentration warrants a stop discipline; PT $140 / SL $99 from scanner."},
-{ticker:"RCAT", name:"Red Cat Holdings",                value:26860, price:13.43,  shares:2000, avgCost:16.87,  sector:"Technology",beta:2.50,color:ACCENT,
-analysis:"Small-cap drone/AI defense play — 24% of brokerage. Beta ~2.5, very high vol. Wash-sale flagged on this lot — taxable-loss harvesting limited until the 30-day window passes."},
-{ticker:"OXY",  name:"Occidental Petroleum",            value:26130, price:52.26,  shares:500,  avgCost:64.95,  sector:"Energy",   beta:1.20,color:ACCENT,
-analysis:"Energy major — 23% of brokerage. Berkshire still anchors the float; buyback yield supports downside. Trim only if energy regime shifts."},
-{ticker:"QACDS",name:"Chase Brokerage Sweep",           value:9795,  price:1.00,   shares:9795, avgCost:1.00,   sector:"Cash",     beta:0.00,color:"var(--text-dim)",
-analysis:"~9% cash in brokerage — deployable dry powder. Reasonable sizing given the all-equity, 3-name concentration above. Consider building toward 15% if the composite moves to Elevated."},
+{ticker:"SPY",  name:"SPDR S&P 500 ETF",          value:124500,price:548.20,shares:227,sector:"US Equity",  beta:1.00,color:ACCENT,
+analysis:"Core equity holding at 41% of brokerage. At Normal (38/100), holding is appropriate. No reason to reduce until composite reaches Elevated (50+)."},
+{ticker:"QQQ",  name:"Invesco Nasdaq-100 ETF",     value:52800, price:468.50,shares:113,sector:"Technology", beta:1.18,color:ACCENT,
+analysis:"Tech/growth overweight at 17% of brokerage. High beta (1.18). Sensitive to real rates — any rise above 2.5% on TIPS would compress this significantly. First to trim if composite moves to Elevated."},
+{ticker:"GLD",  name:"SPDR Gold ETF",              value:45600, price:429.41,shares:106,sector:"Commodity",  beta:0.08,color:ACCENT,
+analysis:"Macro hedge at 15% of brokerage. Well-positioned at Normal — gold benefits from geopolitical uncertainty and real rate declines."},
+{ticker:"BRK.B",name:"Berkshire Hathaway Class B", value:38200, price:478.20,shares:80, sector:"Financials", beta:0.85,color:ACCENT,
+analysis:"Quality defensive at 13% of brokerage. Buffett's cash pile (~$325B) benefits in stress regimes. Appropriate at any conviction level. Hold."},
+{ticker:"TLT",  name:"iShares 20+ Yr Treasury ETF",value:22100, price:92.30, shares:239,sector:"Long Bonds", beta:-0.25,color:ACCENT,
+analysis:"Duration hedge at 7% of brokerage. Negative beta to equities — rallies when stocks sell off. If yield curve continues steepening, TLT will underperform. Keep modest."},
+{ticker:"CASH", name:"Cash & Sweep Funds",         value:21800, price:1,     shares:21800,sector:"Cash",     beta:0.00,color:"var(--text-dim)",
+analysis:"Cash buffer at 7% — appropriate sizing. Covers quarterly estimated tax payments and dry powder for opportunistic deployment."},
 ]},
-{id:"k401",label:"EY 401(k)",sub:"Pre-tax · Account 86964",color:"#6366f1",tactical:false,
-note:"Pre-tax retirement — single-fund allocation. ~67% of total investable wealth sits in HY credit via this one fund. Limited to plan funds; no individual securities.",
+{id:"k401",label:"401(k) — Target Date",sub:"Acct …8823",color:"#6366f1",
+note:"Pre-tax retirement account. Diversified target-date fund approach, auto-rebalancing.",
 positions:[
-{ticker:"JHYUX",name:"JPMorgan High Yield Fund (R6)",value:350506,price:6.59,shares:53188,avgCost:6.53,sector:"HY Bonds",beta:0.50,color:ACCENT,
-analysis:"100% of the 401(k) and ~67% of total investable wealth. Diversified within HY credit (hundreds of issuers), but the whole position carries that asset class's credit-spread risk — JHYUX correlates more with equity than with Treasuries and behaves like a defensive equity sleeve, not a duration hedge. Currently +0.9% on cost. At Elevated regime, expect 8–15% drawdowns."},
+{ticker:"FXAIX",name:"Fidelity 500 Index Fund",    value:198400,price:229.32,shares:866,sector:"US Equity",  beta:1.00,color:ACCENT,
+analysis:"Core 401k holding — S&P 500 index at 60% of account. Do not manage tactically. Contribute the maximum ($23,500 in 2026) and let compounding work."},
+{ticker:"FXNAX",name:"Fidelity U.S. Bond Index",   value:72800, price:10.45, shares:6967,sector:"Bonds",     beta:0.05,color:ACCENT,
+analysis:"Bond allocation at 22% of 401k. Appropriate age-based diversification. With the curve re-steepening, intermediate bonds are more attractive than during the prior inversion."},
+{ticker:"FSGGX",name:"Fidelity Global ex-US Index", value:48200,price:15.82, shares:3048,sector:"Intl Equity",beta:0.88,color:ACCENT,
+analysis:"International diversification at 15% of 401k. Recent dollar weakening helps this allocation; further USD softness would compound the tailwind."},
+{ticker:"FXIIX",name:"Fidelity Inflation-Prot Bond",value:10600,price:10.22, shares:1037,sector:"TIPS",      beta:0.12,color:ACCENT,
+analysis:"TIPS allocation at 3% — appropriate inflation hedge. With real rates restrictive, TIPS are paying a meaningful real yield."},
 ]},
-{id:"roth",label:"Roth IRA",sub:"Tax-free · Fidelity 23643",color:"#30d158",tactical:true,
-note:"Tax-free compounding — best home for highest-conviction, longest-duration assets. Currently small balance with diversified satellite holdings.",
+{id:"roth",label:"Roth IRA",sub:"Acct …2290",color:"#30d158",
+note:"Tax-free growth account — best placement for highest-return, longest-duration assets.",
 positions:[
-{ticker:"RCAT", name:"Red Cat Holdings",            value:1756, price:13.57, shares:129,avgCost:6.07,  sector:"Technology",     beta:2.50,color:ACCENT,
-analysis:"21% of Roth. Same name as the brokerage holding — total household exposure to RCAT is ~$28.6K. Roth placement is correct for high-vol asymmetric upside."},
-{ticker:"FSKAX",name:"Fidelity Total Market Index", value:1569, price:193.37,shares:8.1,avgCost:123.24,sector:"US Equity",      beta:1.00,color:ACCENT,
-analysis:"Broad US market core — 19% of Roth. Right asset in the right account; let it compound."},
-{ticker:"FBTC", name:"Fidelity Wise Origin Bitcoin", value:1355, price:67.75, shares:20, avgCost:91.89, sector:"Crypto",        beta:2.50,color:ACCENT,
-analysis:"BTC exposure — 17% of Roth. Tax-free is the optimal home for crypto. Sizing is appropriate at this conviction level."},
-{ticker:"GLD",  name:"SPDR Gold Trust",             value:1343, price:447.515,shares:3, avgCost:463.92,sector:"Commodity",      beta:0.05,color:ACCENT,
-analysis:"Gold hedge — 16% of Roth. Diversifier."},
-{ticker:"SLV",  name:"iShares Silver Trust",        value:1123, price:74.85, shares:15, avgCost:99.75, sector:"Commodity",      beta:0.30,color:ACCENT,
-analysis:"Silver — 14% of Roth. Higher beta than gold; both industrial and monetary."},
-{ticker:"SPAXX",name:"Fidelity Govt Money Market",  value:531,  price:1.00,  shares:531,avgCost:1.00,  sector:"Cash",           beta:0.00,color:"var(--text-dim)",
-analysis:"Cash sweep — 6% of Roth. Fine as a small buffer; deploy if balance grows."},
-{ticker:"ETHE", name:"Grayscale Ethereum Trust",    value:496,  price:19.84, shares:25, avgCost:31.56, sector:"Crypto",         beta:3.00,color:ACCENT,
-analysis:"ETH exposure — 6% of Roth. Legacy Grayscale wrapper has expense-ratio drag vs. spot ETF alternatives. Consider rolling to ETHA/ETHE-equivalent spot product on next add."},
+{ticker:"VGT",  name:"Vanguard Info Technology ETF",value:28400,price:582.30,shares:49, sector:"Technology",beta:1.22,color:ACCENT,
+analysis:"High-growth tech ETF in Roth — ideal placement. Tax-free compounding on a high-return sector. If composite reaches Elevated, trim to 50%; reinstate on pullback."},
+{ticker:"FBTC", name:"Fidelity Bitcoin ETF",         value:14200,price:58.36, shares:243,sector:"Crypto",    beta:2.20,color:ACCENT,
+analysis:"Bitcoin ETF at 34% of Roth — aggressive but appropriate in a tax-free account. High beta (2.20). Do not add at Elevated+ stress levels."},
+{ticker:"ARKK", name:"ARK Innovation ETF",           value:8900, price:58.75, shares:151,sector:"Disruptive",beta:1.65,color:ACCENT,
+analysis:"Speculative disruptive growth at 21% of Roth. Can drawdown 60%+ in stress regimes. Appropriate in Roth at this sizing."},
+{ticker:"SPAXX",name:"Fidelity Govt Money Market",   value:7400, price:1.00,  shares:7400,sector:"Cash",     beta:0.00,color:"var(--text-dim)",
+analysis:"Cash in Roth at 18% of account — too high. Deploy into VGT or a broad index. Keep only $1,000–2,000 as a buffer."},
 ]},
-{id:"529s",label:"Scarlett 529",sub:"NH 529 · Account 6034",color:"#ff9f0a",tactical:false,
-note:"College savings — 100% international equity. Limited to NH 529 plan funds; no individual stocks. Long horizon supports the allocation but single-fund concentration warrants a glide-path plan.",
+{id:"529a",label:"529 Plan — Child 1 (Age 8)",sub:"Acct …5512",color:"#ff9f0a",
+note:"College savings — 10-year horizon to enrollment. Moderate equity glide path appropriate.",
 positions:[
-{ticker:"NHXINT906",name:"NH International Index",value:9194,price:25.63,shares:359,avgCost:19.51,sector:"Intl Equity",beta:0.85,color:ACCENT,
-analysis:"100% intl equity — +31% on cost. Heavy regional concentration relative to a typical age-based 529 portfolio. Consider blending to a target-enrollment fund as horizon shortens."},
+{ticker:"FZILX",name:"Fidelity ZERO Intl Index",value:22400,price:14.20,shares:1577,sector:"Intl Equity",beta:0.85,color:ACCENT,
+analysis:"0% expense ratio international index. 10-year horizon provides enough runway. Consider shifting to a target-enrollment 2035 fund within 3 years."},
+{ticker:"FXAIX",name:"Fidelity 500 Index Fund", value:14600,price:229.32,shares:64, sector:"US Equity", beta:1.00,color:ACCENT,
+analysis:"US equity core at 39% of 529. Age-8 child has 10-year horizon. Begin adding a bond allocation (target 20%) in 3–4 years."},
 ]},
-{id:"529e",label:"Ethan 529",sub:"NH 529 · Account 6185",color:"#f97316",tactical:false,
-note:"College savings — same 100% international equity allocation as Scarlett's account, larger balance. Limited to NH 529 plan funds.",
+{id:"hsa",label:"Health Savings Account",sub:"Acct …7734",color:"#00d4a0",
+note:"Triple tax-advantaged — contribute max ($8,550 family 2026), invest long-term, never withdraw if possible.",
 positions:[
-{ticker:"NHXINT906",name:"NH International Index",value:34473,price:25.63,shares:1345,avgCost:15.43,sector:"Intl Equity",beta:0.85,color:ACCENT,
-analysis:"100% intl equity — +66% on cost. Largest 529 holding. Same single-fund concentration call as Scarlett's account; revisit at age-based glide-path checkpoints."},
+{ticker:"FXAIX",name:"Fidelity 500 Index Fund",    value:31200,price:229.32,shares:136,sector:"US Equity",beta:1.00,color:ACCENT,
+analysis:"S&P 500 index in HSA — correct. Maximize contributions for 20 years and this could compound to $500K+. Never withdraw."},
+{ticker:"FDRXX",name:"Fidelity Govt Money Market", value:4800, price:1.00,  shares:4800,sector:"Cash",   beta:0.00,color:"var(--text-dim)",
+analysis:"Cash buffer in HSA at 13% — slightly high. Keep $1,500–2,000 for near-term co-pays; deploy the rest into FXAIX."},
 ]},
-{id:"hsa",label:"Health Savings Account",sub:"Triple tax-adv · Fidelity 23567",color:"#00d4a0",tactical:true,
-note:"Triple tax-advantaged — contribute the family max and invest long-term. Treat as stealth retirement; never withdraw if cash flow allows.",
-positions:[
-{ticker:"FXAIX",name:"Fidelity 500 Index Fund",   value:6841,price:244.69,shares:28,  avgCost:183.24,sector:"US Equity",beta:1.00,color:ACCENT,
-analysis:"S&P 500 core — 80% of HSA. Correct asset for the most tax-advantaged account in the stack."},
-{ticker:"FDRXX",name:"Fidelity Govt Money Market",value:1747,price:1.00,  shares:1747,avgCost:1.00,sector:"Cash",     beta:0.00,color:"var(--text-dim)",
-analysis:"20% cash buffer — slightly high. Keep $1.5–2K for near-term medical, deploy the rest into FXAIX."},
-]},
-];
-
-// ── WATCHLIST — names Joe is tracking but doesn't (yet) own ────────────────
-// CRYPTO_WATCH lives only on the dashboard side because the Python scanner
-// is equity-only and doesn't know how to pull intel for BTC/ETH.
-// Equity tickers come from the scanner's portfolio/watchlist.csv via
-// scanData.watchlist (single source of truth) — WATCHLIST_FALLBACK is used
-// only when scanData hasn't loaded yet or doesn't include the watchlist key
-// (e.g. older scan JSON pre-Task#9). Edit watchlist.csv in the trading-
-// scanner repo to change the equity list.
-const CRYPTO_WATCH=[
-  {ticker:"BTCUSD",name:"Bitcoin",  theme:"Crypto · spot exposure via FBTC"},
-  {ticker:"ETHUSD",name:"Ethereum", theme:"Crypto · spot exposure via ETHE"},
-];
-const WATCHLIST_FALLBACK=[
-  {ticker:"NVDA", name:"NVIDIA Corp",          theme:"AI / Semis"},
-  {ticker:"AMAT", name:"Applied Materials",    theme:"Semi capex"},
-  {ticker:"CRWD", name:"CrowdStrike",          theme:"Cyber"},
-  {ticker:"CAT",  name:"Caterpillar",          theme:"Cyclical / Capex"},
-  {ticker:"MP",   name:"MP Materials",         theme:"Rare earth"},
-  {ticker:"KTOS", name:"Kratos Defense",       theme:"Defense / drones"},
-  {ticker:"AVAV", name:"AeroVironment",        theme:"Defense / drones"},
-  {ticker:"ONDS", name:"Ondas Holdings",       theme:"Defense / drones"},
-  {ticker:"LUNR", name:"Intuitive Machines",   theme:"Space / lunar"},
 ];
 
 const ANALYSIS=`REGIME SUMMARY — APRIL 16, 2026
@@ -1832,18 +1805,14 @@ return sorted.slice(0,3).map(c=>{
 }
 
 // ── MAIN APP ─────────────────────────────────────────────────────────────────
-// "portopps" is the consolidated Portfolio + Opportunities surface (Phase 2).
-// "scanner" and "portfolio" remain in TAB_IDS so old hash-links keep working,
-// but they're no longer surfaced from the home grid.
-const TAB_IDS=["home","overview","indicators","sectors","portopps","portfolio","scanner","readme"];
+const TAB_IDS=["home","overview","indicators","sectors","portfolio","scanner","readme"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
   overview:  {eyebrow:"Macro Dashboard",      title:"Today's macro overview",  sub:"Composite stress, regime, category breakdown, and the historical stress trajectory."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
-  portopps:  {eyebrow:"Portfolio & Opportunities", title:"What you own, what to do, what to watch", sub:"Today's actions on your real holdings, your watchlist, and a strategic view of the portfolio."},
-  portfolio: {eyebrow:"Holdings detail",      title:"Portfolio insights",      sub:"Account-by-account holdings detail and allocation view. (Summary lives in Portfolio & Opportunities.)"},
+  portfolio: {eyebrow:"Sample Portfolio",     title:"Portfolio insights",      sub:"For illustration only. Shows how the macro regime maps to position-level analysis."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
 };
@@ -1875,12 +1844,6 @@ const navTo=(next)=>{
   setTabHistory(h=>[...h,tab]);
   setTab(next);
 };
-// Navigate to the Scanner tab and focus on a specific ticker's RichCard.
-// Scanner reads `focusTicker` on mount/change and scrolls + highlights.
-const navToScannerFor=(ticker)=>{
-  setScannerFocusTicker(ticker);
-  if(tab!=="scanner"){setTabHistory(h=>[...h,tab]);setTab("scanner");}
-};
 const goBack=()=>{
   setTabHistory(h=>{
     if(h.length===0){setTab("home");return h;}
@@ -1896,8 +1859,6 @@ const backLabel=(()=>{
 const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
-const [expandedActionKey,setExpandedActionKey]=useState(null);
-const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [scanData,setScanData]=useState(null);
 const [scanError,setScanError]=useState(false);
 useEffect(()=>{
@@ -1932,33 +1893,17 @@ useEffect(()=>{
 
 const grandTotal=ACCOUNTS.reduce((a,acc)=>a+acc.positions.reduce((b,p)=>b+p.value,0),0);
 const portBeta=ACCOUNTS.flatMap(acc=>acc.positions).reduce((a,p)=>a+(p.value/grandTotal)*p.beta,0);
-// Asset-class taxonomy: prefer sector match for fixed income / intl / cash;
-// then ticker match for the few special-cased ETFs (metals, crypto, broad
-// index funds); everything else falls through to "Individual Stocks".
 const assetRollup={};
 ACCOUNTS.flatMap(acc=>acc.positions).forEach(p=>{
-const cls=
-  p.sector==="Cash"?"Cash":
-  p.sector==="HY Bonds"?"HY Bonds":
-  p.sector==="Intl Equity"?"Intl Equity":
-  ["GLD","SLV"].includes(p.ticker)?"Precious Metals":
-  ["FBTC","ETHE"].includes(p.ticker)?"Crypto":
-  ["FXAIX","FSKAX","FZILX","FSGGX","FXNAX","FXIIX"].includes(p.ticker)?"Index Funds":
-  "Individual Stocks";
+const cls=p.sector==="Cash"?"Cash":["GLD","SLV"].includes(p.ticker)?"Precious Metals":["FBTC","ETHE"].includes(p.ticker)?"Crypto":p.sector==="Intl Equity"?"Intl Equity":["FXAIX","FSKAX","FZILX","FSGGX"].includes(p.ticker)?"Index Funds":"Individual Stocks";
 assetRollup[cls]=(assetRollup[cls]||0)+p.value;
 });
-const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","HY Bonds":"#14b8a6","Precious Metals":"#ffd60a","Crypto":"#a855f7","Cash":"var(--text-dim)"};
+const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","Precious Metals":"#ffd60a","Crypto":"#a855f7","Cash":"var(--text-dim)"};
 
 // ── Tile-grid home view computations ─────────────────────────────────────────
 const buyCount = scanData?.buy_opportunities?.length || 0;
 const watchCount = scanData?.watch_items?.length || 0;
 const portCount = scanData?.portfolio_positions?.length || 0;
-// Watchlist: prefer the scanner-published list (single source of truth, edited
-// in trading-scanner repo's portfolio/watchlist.csv); fall back to hardcoded
-// list if scan data hasn't loaded or is from before the watchlist feature.
-// Always append crypto entries — the scanner is equity-only.
-const watchlistEquities = (scanData?.watchlist?.length ? scanData.watchlist : WATCHLIST_FALLBACK);
-const WATCHLIST = [...watchlistEquities, ...CRYPTO_WATCH];
 const lastScanLabel = scanData?.date_label || "—";
 const compactNarrative = `Composite ${COMP100}/100 · ${TREND_SIG.label}`;
 
@@ -2017,30 +1962,21 @@ return(
       </Tile>
 
       <Tile
-        eyebrow="Portfolio & Opportunities"
-        title="Holdings + actions + watchlist"
-        sub={`$${Math.round(grandTotal/1000)}K · ${ACCOUNTS.length} accounts · Beta ${portBeta.toFixed(2)} · ${CONV.label} regime`}
-        accent="#0a84ff"
-        span={2}
-        kpi={{value:`$${Math.round(grandTotal/1000)}`, unit:"K total", color:"var(--text)"}}
-        onClick={()=>navTo("portopps")}
+        eyebrow="Trading Scanner"
+        title="Daily Opportunities"
+        sub={`Latest scan: ${lastScanLabel}`}
+        accent="#30d158"
+        kpi={{value:buyCount, unit:"buy alerts", color:buyCount>0?"#30d158":"var(--text-muted)"}}
+        onClick={()=>navTo("scanner")}
       >
         <div style={{display:"flex", gap:8, marginTop:"var(--space-2)", flexWrap:"wrap"}}>
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>POSITIONS</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--accent)"}}>{ACCOUNTS.reduce((a,acc)=>a+acc.positions.filter(p=>p.sector!=="Cash").length,0)}</div>
-          </div>
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
+          <div style={{flex:1, minWidth:90, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
             <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>WATCH</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--yellow-text)"}}>{WATCHLIST.length}</div>
+            <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--yellow-text)"}}>{watchCount}</div>
           </div>
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>BUY ALERTS</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:buyCount>0?"#30d158":"var(--text-muted)"}}>{buyCount}</div>
-          </div>
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>NEAR TRIGGER</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:watchCount>0?"var(--yellow-text)":"var(--text-muted)"}}>{watchCount}</div>
+          <div style={{flex:1, minWidth:90, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
+            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>HELD</div>
+            <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--accent)"}}>{portCount}</div>
           </div>
         </div>
       </Tile>
@@ -2068,6 +2004,15 @@ return(
         sub="Subsector sensitivity to 8 macro factors. Re-ranked live as data refreshes."
         accent="#bf5af2"
         onClick={()=>navTo("sectors")}
+      />
+
+      <Tile
+        eyebrow="Sample Portfolio"
+        title="Portfolio insights"
+        sub={`Total: $${(grandTotal/1000).toFixed(0)}K · Beta ${portBeta.toFixed(2)} · ${CONV.label} regime`}
+        accent="#0a84ff"
+        kpi={{value:`$${(grandTotal/1000).toFixed(0)}`, unit:"K", color:"var(--text)"}}
+        onClick={()=>navTo("portfolio")}
       />
 
       <Tile
@@ -2208,402 +2153,50 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 
 {tab==="sectors"&&<SectorsTab/>}
 
-{/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2) */}
-{tab==="portopps"&&(()=>{
-const heldByTicker={};
-ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
-  if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
-  heldByTicker[p.ticker].total+=p.value;
-  heldByTicker[p.ticker].accounts.push({acctId:acc.id,acctLabel:acc.label,value:p.value});
-}));
-const tacticalAccts=ACCOUNTS.filter(a=>a.tactical);
-const cashByAcct=tacticalAccts.map(acc=>{
-  const cash=acc.positions.filter(p=>p.sector==="Cash").reduce((a,p)=>a+p.value,0);
-  return{id:acc.id,label:acc.label,cash};
-}).filter(x=>x.cash>0).sort((a,b)=>b.cash-a.cash);
-const totalDeployable=cashByAcct.reduce((a,c)=>a+c.cash,0);
-// Sort held positions by value DESC — biggest exposure first, regardless of account
-const heldPositions=ACCOUNTS
-  .flatMap(acc=>acc.positions.map(p=>({...p,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical})))
-  .filter(p=>p.sector!=="Cash")
-  .sort((a,b)=>b.value-a.value);
-const heldTickers=new Set(heldPositions.map(p=>p.ticker));
-const scoreByTicker=scanData?.score_by_ticker||{};
-// Classes of holdings the scanner framework doesn't meaningfully evaluate —
-// commodities, crypto wrappers, HY-bond funds, broad intl-equity funds get
-// artificially low scores (e.g. SLV=0, GLD=6) because the scanner looks for
-// equity-specific signals (Congress/insider/flow) that don't apply.
-const SCANNER_OUT_OF_SCOPE_SECTORS=new Set(["Commodity","Crypto","HY Bonds","Intl Equity"]);
-const BROAD_INDEX_FUNDS=new Set(["FXAIX","FSKAX","FZILX","FSGGX","FXNAX","FXIIX"]);
-const actionFor=p=>{
-  if(!p.acctTactical)return{label:"MONITOR",color:"var(--text-dim)",reason:"Plan-fund account — can't act on tactical signals here.",detail:`This position sits in ${p.acctLabel}, which is limited to the plan's menu of funds. Signals from the scanner don't apply — the account holds what the plan allows. Review at enrollment/re-enrollment windows or major life events.`};
-  if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return{label:"OUT OF SCOPE",color:"var(--text-dim)",reason:`Scanner doesn't evaluate ${p.sector.toLowerCase()} positions.`,detail:`The scanner looks for equity-specific signals (Congressional trades, insider Form-4s, unusual options flow, technical momentum) that don't meaningfully apply to ${p.sector.toLowerCase()} holdings. This position is held for strategic/diversification reasons — not tactical scanner signals. Review based on portfolio allocation thesis, not the daily scan.`};
-  if(BROAD_INDEX_FUNDS.has(p.ticker))return{label:"CORE",color:"var(--accent)",reason:"Broad-market index fund — not a tactical position.",detail:`${p.ticker} is a diversified index holding. Do not manage tactically on daily scanner signals; it's a long-term core holding. Review allocation relative to age-based glide path, not market regime.`};
-  const sc=scoreByTicker[p.ticker];
-  if(sc==null)return{label:"NO SIGNAL",color:"var(--text-dim)",reason:"Not scored in the latest scan.",detail:`The scanner runs a scored universe of equity tickers; ${p.ticker} isn't currently included. This is a scanner coverage gap, not a sell signal. Task #9 tracks adding held positions to the always-scored list so this gets proper signal data.`};
-  if(sc>=60)return{label:"BUY ZONE",color:"#30d158",reason:`Score ${sc} — meets the 60+ buy threshold.`,detail:`Composite scanner score of ${sc} combines Congressional trades, insider buying, options flow, and technical momentum. A score ≥60 is the algorithmic buy threshold. Consider adding to the position if cash is available and allocation permits. See full scanner detail for the component breakdown.`};
-  if(sc>=35)return{label:"HOLD",color:"#ffd60a",reason:`Score ${sc} — in the healthy hold range.`,detail:`Score ${sc} is within the 35–60 hold band. No action needed. The scanner is not flagging a reason to trim or add. Monitor for score drift below 35 (weakening) or above 60 (add candidate).`};
-  if(sc>=20)return{label:"WATCH",color:"#ff9f0a",reason:`Score ${sc} — signals weakening.`,detail:`Score ${sc} has dropped into the 20–35 weakening band. Underlying signals (flow, insider activity, technicals) are deteriorating but haven't reached sell-watch territory. Tighten your stop-loss and do not add to the position. Consider trimming if score crosses below 20 or the position breaks its SL.`};
-  return{label:"REVIEW",color:"#ff453a",reason:`Score ${sc} — in the sell-watch zone.`,detail:`Score ${sc} is below the 20 sell-watch threshold. Scanner components are bearish (weak flow, no insider support, deteriorating technicals). Not an automatic sell — but actively review the thesis: is there a catalyst you're waiting for? Otherwise, trim or exit on any bounce. Check full scanner detail for the specific weak components.`};
-};
-const fmt$K=v=>v>=1000?`$${Math.round(v/1000).toLocaleString()}K`:`$${Math.round(v).toLocaleString()}`;
-const fmt$Full=v=>`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
-const sectionPanel={background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,overflow:"hidden",marginBottom:12};
-const sectionHeader={padding:"12px 16px",borderBottom:"1px solid var(--border-faint)",display:"flex",justifyContent:"space-between",alignItems:"center"};
-const sectionTitleStyle={fontSize:12,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)",letterSpacing:"0.1em"};
-const subTitleStyle={fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8,fontWeight:600};
-const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"10px 12px"};
-const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
-return(
-<div style={{padding:"14px 20px",display:"flex",flexDirection:"column",maxWidth:1100,margin:"0 auto"}}>
-{/* SUMMARY BAR */}
-<div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & OPPORTUNITIES · SNAPSHOT</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
-{[
-  {label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},
-  {label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:convTextColor(CONV)},
-  {label:"Holdings",value:`${heldPositions.length} positions`,col:"var(--text)"},
-  {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:(scanData?.buy_opportunities?.length||0)>0?"#30d158":"var(--text-muted)"},
-  {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:(scanData?.watch_items?.length||0)>0?"var(--yellow-text)":"var(--text-muted)"},
-  {label:"Watchlist",value:`${WATCHLIST.length} tracking`,col:"var(--text)"},
-].map(({label,value,col})=>(
-<div key={label} style={{background:"var(--surface-2)",borderRadius:5,padding:"10px 12px"}}>
-<div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",marginBottom:4}}>{label.toUpperCase()}</div>
-<div style={{fontSize:14,fontWeight:800,color:col,fontFamily:"monospace"}}>{value}</div>
-</div>
-))}
-</div>
-</div>
-
-{/* SECTION 1 — OPPORTUNITIES (visually distinct sub-panels, clickable cards) */}
-<div style={sectionPanel}>
-<div style={sectionHeader}>
-<span style={sectionTitleStyle}>① OPPORTUNITIES</span>
-<div style={{display:"flex",alignItems:"center",gap:14}}>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{scanData?.buy_opportunities?.length||0} triggered · {scanData?.watch_items?.length||0} near · {WATCHLIST.length} other</span>
-<span style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("scanner")}>Full scanner →</span>
-</div>
-</div>
-<div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
-
-{(()=>{
-const oppCard=(opts)=>{
-  const {keyId,ticker,score,price,companyName,accentCol,tag,held,theme,sector,source}=opts;
-  const isExpanded=expandedActionKey===keyId;
-  const distanceToTrigger=score!=null?(60-score):null;
-  return(
-  <div key={keyId} style={{...cardStyle,cursor:"pointer"}} onClick={()=>setExpandedActionKey(isExpanded?null:keyId)}>
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
-  <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
-  <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{ticker}</span>
-  <span style={{...tagStyle(accentCol),cursor:"pointer"}}>{tag}</span>
-  {held&&<span style={{...tagStyle("var(--accent)"),cursor:"pointer"}}>OWNED</span>}
-  <span style={{fontSize:11,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{companyName}</span>
-  </div>
-  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-  {score!=null&&<span style={{fontSize:12,fontWeight:700,color:accentCol,fontFamily:"var(--font-mono)"}}>Score {score}</span>}
-  <span style={{fontSize:11,color:"var(--text-dim)"}}>{isExpanded?"▾":"▸"}</span>
-  </div>
-  </div>
-  <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>
-  {price?fmt$Full(price):"—"} {theme?`· ${theme}`:""} {sector?`· ${sector}`:""}
-  </div>
-  {isExpanded&&(
-  <div style={{marginTop:8,padding:"8px 10px",background:`${accentCol}14`,border:`1px solid ${accentCol}33`,borderRadius:4}}>
-  {source==="triggered"&&(<>
-  <div style={{fontSize:10,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>WHY TRIGGERED</div>
-  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>Composite score of {score} is at or above the 60 buy threshold. Scanner components (Congressional trades, insider Form-4s, unusual options flow, technicals) are aligned bullishly. Eligible in: <b>{tacticalAccts.map(a=>a.label).join(", ")}</b>. Largest deployable: <b>{cashByAcct[0]?`${cashByAcct[0].label} ${fmt$K(cashByAcct[0].cash)}`:"none"}</b>.</div>
-  </>)}
-  {source==="near"&&(<>
-  <div style={{fontSize:10,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>WHAT'S NEEDED TO TRIGGER</div>
-  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>Current score {score} — needs <b>+{distanceToTrigger}</b> to cross the 60 buy threshold. A catalyst typically comes from a new Congressional disclosure, an insider Form-4 purchase, a large bullish options sweep, or a technical breakout. See the full scanner for the component-level breakdown.</div>
-  </>)}
-  {source==="other"&&(<>
-  <div style={{fontSize:10,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>WATCHING FOR</div>
-  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>{theme}. {score!=null?`Scanner currently scores ${ticker} at ${score} — ${distanceToTrigger>0?`${distanceToTrigger} points from buy threshold`:"already at buy threshold"}. `:`Not in the scanner's scored universe yet — pending scanner-side enrichment. `}For now this is a manual-track position.</div>
-  </>)}
-  <div style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();navToScannerFor(ticker);}}>View {ticker} in full scanner →</div>
-  </div>
-  )}
-  </div>
-  );
-};
-
-// SUB-PANEL 1: SCANNER — TRIGGERED (green accent)
-const triggered=scanData?.buy_opportunities||[];
-// SUB-PANEL 2: SCANNER — WATCH / NEAR TRIGGER (yellow accent)
-const nearTrigger=scanData?.watch_items||[];
-const subPanel=(accentCol,title,count,children)=>(
-<div style={{background:"var(--surface-2)",border:`1px solid ${accentCol}55`,borderLeft:`3px solid ${accentCol}`,borderRadius:6,overflow:"hidden"}}>
-<div style={{padding:"8px 12px",background:`${accentCol}14`,borderBottom:`1px solid ${accentCol}22`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-<span style={{fontSize:11,fontWeight:700,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>{title}</span>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{count}</span>
-</div>
-<div style={{padding:"8px 10px",display:"flex",flexDirection:"column",gap:6}}>{children}</div>
-</div>
-);
-
-return(<>
-{subPanel("#30d158","SCANNER — TRIGGERED",`${triggered.length} alert${triggered.length===1?"":"s"}`,
-  triggered.length===0?
-    <div style={{fontSize:11,color:"var(--text-muted)",padding:"4px 2px"}}>No buy alerts today · Last scan: {lastScanLabel}</div>:
-    triggered.map(item=>oppCard({keyId:`trg-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"#30d158",tag:"BUY ALERT",held:heldTickers.has(item.ticker),source:"triggered"}))
-)}
-{subPanel("#ffd60a","SCANNER — WATCH · NEAR TRIGGER",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
-  nearTrigger.length===0?
-    <div style={{fontSize:11,color:"var(--text-muted)",padding:"4px 2px"}}>Nothing near trigger today.</div>:
-    nearTrigger.map(item=>oppCard({keyId:`near-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"var(--yellow-text)",tag:"NEAR TRIGGER",held:heldTickers.has(item.ticker),source:"near"}))
-)}
-{subPanel("#64748b","OTHER — WATCH (YOUR LIST)",`${WATCHLIST.length} tracking`,
-  WATCHLIST.map(w=>oppCard({keyId:`oth-${w.ticker}`,ticker:w.ticker,score:scoreByTicker[w.ticker],price:null,companyName:w.name,accentCol:"#64748b",tag:w.ticker.endsWith("USD")?"CRYPTO":"WATCH",held:heldTickers.has(w.ticker),theme:w.theme,source:"other"}))
-)}
-</>);
-})()}
-
-</div>
-</div>
-
-{/* SECTION 2 — PORTFOLIO INSIGHTS (merged: allocation + key risks + positions) */}
-<div style={sectionPanel}>
-<div style={sectionHeader}>
-<span style={sectionTitleStyle}>② PORTFOLIO INSIGHTS</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${grandTotal.toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
-</div>
-<div style={{padding:"12px 16px"}}>
-
-{/* ALLOCATION (wealth bars) */}
-<div style={subTitleStyle}>ALLOCATION</div>
-{(()=>{
-const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
-const acctData=ACCOUNTS.map(acc=>{
-const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color,value:t,pct:t/grandTotal};
-}).sort((a,b)=>b.value-a.value);
-const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
-{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val,pct:val/grandTotal}
-));
-const renderBar2=(title,meta,segs,key)=>(
-<div key={key} style={{marginBottom:14}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600}}>{title}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{meta}</span>
-</div>
-<div style={{display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10}}>
-{segs.map(s=>(<div key={s.id} title={`${s.name} · ${fmt$K(s.value)} · ${(s.pct*100).toFixed(1)}%`} style={{flex:s.pct,background:s.color,minWidth:2}}/>))}
-</div>
-<div style={{display:"flex",flexWrap:"wrap",rowGap:6,columnGap:18}}>
-{segs.map(s=>(
-<div key={s.id} style={{display:"flex",alignItems:"center",gap:7}}>
-<div style={{width:9,height:9,borderRadius:2,flexShrink:0,background:s.color}}/>
-<span style={{fontSize:12,color:"var(--text)",fontWeight:500}}>{s.name}</span>
-<span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{fmt$K(s.value)}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{(s.pct*100).toFixed(0)}%</span>
-</div>
-))}
-</div>
-</div>
-);
-return(<>
-{renderBar2("WEALTH BY ACCOUNT",`${acctData.length} accounts · ${fmt$K(grandTotal)}`,acctData,"acct")}
-{renderBar2("ASSET CLASS MIX",`${assetData.length} classes · ${fmt$K(grandTotal)}`,assetData,"asset")}
-</>);
-})()}
-
-{/* KEY RISKS & EXPOSURES */}
-<div style={subTitleStyle}>KEY RISKS & EXPOSURES</div>
-<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
-{(()=>{
-  const flags=[];
-  if(heldByTicker.RCAT&&heldByTicker.RCAT.accounts.length>1){
-    const total=heldByTicker.RCAT.total;
-    const wealthPct=(total/grandTotal*100).toFixed(1);
-    flags.push({col:"#ff9f0a",label:"CROSS-ACCOUNT CONCENTRATION",body:`RCAT held in ${heldByTicker.RCAT.accounts.length} accounts — ${fmt$Full(total)} total (${wealthPct}% of wealth). Single-ticker exposure across both Brokerage and Roth.`});
-  }
-  const broker=ACCOUNTS.find(a=>a.id==="brokerage");
-  if(broker){
-    const stocks=broker.positions.filter(p=>p.sector!=="Cash");
-    if(stocks.length<=4){
-      flags.push({col:"#ff9f0a",label:"SINGLE-STOCK CONCENTRATION",body:`JPM Brokerage equity sleeve is ${stocks.length} individual stocks (${stocks.map(s=>s.ticker).join(", ")}). All cyclical/commodity-linked. No diversification within the account.`});
-    }
-  }
-  const hy=Object.entries(assetRollup).find(([k])=>k==="HY Bonds");
-  if(hy&&hy[1]/grandTotal>0.5){
-    const pct=(hy[1]/grandTotal*100).toFixed(0);
-    flags.push({col:"#14b8a6",label:"ASSET-CLASS EXPOSURE",body:`${pct}% of investable wealth is in HY credit (JHYUX, diversified across hundreds of issuers). Credit-spread sensitive — behaves like a defensive equity sleeve in stress regimes, not a duration hedge. At ${CONV.label} regime: appropriate; at Elevated, expect 8–15% drawdown on this sleeve.`});
-  }
-  const k529s=ACCOUNTS.filter(a=>a.id==="529s"||a.id==="529e");
-  if(k529s.length>0){
-    flags.push({col:"#14b8a6",label:"PLAN-FUND SINGLE ALLOCATION",body:`Both 529 plans are 100% in a single intl-equity fund (NHXINT906 — diversified within the asset class). NH 529 plan menu limits the choice; revisit at age-based glide-path checkpoints.`});
-  }
-  return flags.map((f,i)=>(
-  <div key={i} style={{...cardStyle,borderLeft:`3px solid ${f.col}`}}>
-  <div style={{fontSize:10,color:f.col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>{f.label}</div>
-  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.5}}>{f.body}</div>
-  </div>
-  ));
-})()}
-</div>
-
-{/* POSITIONS — rich data, no signal labels, sorted by value DESC */}
-<div style={subTitleStyle}>POSITIONS · LARGEST FIRST · CLICK FOR DETAIL</div>
-<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:10}}>
-{heldPositions.map(p=>{
-  const wealthPct=(p.value/grandTotal*100).toFixed(1);
-  const cardKey=`pos-${p.acctId}-${p.ticker}`;
-  const isExpanded=expandedActionKey===cardKey;
-  const pnlPct=p.avgCost?((p.price/p.avgCost-1)*100):null;
-  const pnl$=p.avgCost?(p.value-p.avgCost*p.shares):null;
-  const pnlCol=pnlPct==null?"var(--text-muted)":pnlPct>=0?"#30d158":"#ff453a";
-  const screenerRow=scanData?.signals?.screener?.[p.ticker];
-  const techRow=scanData?.signals?.technicals?.[p.ticker];
-  const scannerScore=scoreByTicker[p.ticker];
-  const ivr=screenerRow?.iv30d!=null?Number(screenerRow.iv30d)*100:null;
-  // Perf lives in technicals (not screener — screener rows are options-flow data).
-  // Scanner expresses these as fractions (0.0692 = +6.92%), so ×100 once.
-  const wk1=techRow?.week_change!=null?Number(techRow.week_change)*100:null;
-  const m1=techRow?.month_change!=null?Number(techRow.month_change)*100:null;
-  const ytd=techRow?.ytd_change!=null?Number(techRow.ytd_change)*100:null;
-  const rsi=techRow?.rsi_14;
-  const otherAccts=heldByTicker[p.ticker]?.accounts?.filter(a=>a.acctId!==p.acctId)||[];
-  return(
-  <div key={cardKey} style={{...cardStyle,cursor:"pointer"}} onClick={()=>setExpandedActionKey(isExpanded?null:cardKey)}>
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4,gap:8}}>
-  <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
-  <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{p.ticker}</span>
-  <span style={{fontSize:11,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-  </div>
-  <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-  <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)",fontWeight:700}}>{fmt$K(p.value)}</span>
-  <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{wealthPct}%</span>
-  <span style={{fontSize:11,color:"var(--text-dim)"}}>{isExpanded?"▾":"▸"}</span>
-  </div>
-  </div>
-  <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:11,fontFamily:"var(--font-mono)",marginBottom:p.analysis&&isExpanded?6:0}}>
-  <span style={{color:"var(--text-muted)"}}>{fmt$Full(p.price)}</span>
-  {pnlPct!=null&&<span style={{color:pnlCol,fontWeight:600}}>{pnlPct>=0?"+":""}{pnlPct.toFixed(1)}% vs cost {fmt$Full(p.avgCost)}</span>}
-  <span style={{color:"var(--text-dim)"}}>β {p.beta.toFixed(2)}</span>
-  <span style={{color:"var(--text-dim)"}}>{p.sector}</span>
-  <span style={{color:"var(--text-dim)"}}>{p.acctLabel}</span>
-  </div>
-  {isExpanded&&(
-  <div style={{marginTop:8,padding:"10px 12px",background:"var(--surface-3)",border:"1px solid var(--border-faint)",borderRadius:4}}>
-  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:8}}>
-  <div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>SHARES</div><div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{p.shares.toLocaleString()}</div></div>
-  <div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>MARKET VALUE</div><div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{fmt$Full(p.value)}</div></div>
-  {p.avgCost&&<div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>COST BASIS</div><div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{fmt$Full(p.avgCost*p.shares)}</div></div>}
-  {pnl$!=null&&<div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>UNREALIZED P&L</div><div style={{fontSize:13,fontWeight:700,color:pnlCol,fontFamily:"var(--font-mono)"}}>{pnl$>=0?"+":""}{fmt$Full(pnl$)}</div></div>}
-  </div>
-  {(wk1!=null||m1!=null||ytd!=null||ivr!=null||rsi!=null||scannerScore!=null)&&(
-  <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:11,fontFamily:"var(--font-mono)",marginBottom:8,paddingTop:6,borderTop:"1px solid var(--border-faint)"}}>
-  {wk1!=null&&<span><span style={{color:"var(--text-dim)"}}>1W </span><span style={{color:wk1>=0?"#30d158":"#ff453a",fontWeight:600}}>{wk1>=0?"+":""}{wk1.toFixed(1)}%</span></span>}
-  {m1!=null&&<span><span style={{color:"var(--text-dim)"}}>1M </span><span style={{color:m1>=0?"#30d158":"#ff453a",fontWeight:600}}>{m1>=0?"+":""}{m1.toFixed(1)}%</span></span>}
-  {ytd!=null&&<span><span style={{color:"var(--text-dim)"}}>YTD </span><span style={{color:ytd>=0?"#30d158":"#ff453a",fontWeight:600}}>{ytd>=0?"+":""}{ytd.toFixed(1)}%</span></span>}
-  {rsi!=null&&<span><span style={{color:"var(--text-dim)"}}>RSI </span><span style={{color:rsi>=70?"#ff453a":rsi<=30?"#30d158":"var(--text)"}}>{Number(rsi).toFixed(0)}</span></span>}
-  {ivr!=null&&<span><span style={{color:"var(--text-dim)"}}>IV30d </span><span style={{color:"var(--text)"}}>{ivr.toFixed(0)}%</span></span>}
-  {scannerScore!=null&&<span><span style={{color:"var(--text-dim)"}}>Score </span><span style={{color:"var(--text)",fontWeight:600}}>{scannerScore}</span></span>}
-  </div>
-  )}
-  {otherAccts.length>0&&(
-  <div style={{fontSize:11,color:"var(--text-muted)",marginBottom:6}}>
-  Also held in: {otherAccts.map(a=>`${a.acctLabel} (${fmt$K(a.value)})`).join(", ")}
-  </div>
-  )}
-  {p.analysis&&<div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>{p.analysis}</div>}
-  {!SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector)&&!BROAD_INDEX_FUNDS.has(p.ticker)&&p.acctTactical&&<div style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();navToScannerFor(p.ticker);}}>View {p.ticker} in full scanner →</div>}
-  </div>
-  )}
-  </div>
-  );
-})}
-</div>
-
-{/* DEPLOYABLE CASH */}
-<div style={subTitleStyle}>DEPLOYABLE CASH (TACTICAL ACCOUNTS)</div>
-<div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
-{cashByAcct.length>0?cashByAcct.map(c=>(
-<div key={c.id} style={{...cardStyle,flex:"1 1 180px"}}>
-<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.05em"}}>{c.label}</div>
-<div style={{fontSize:14,fontWeight:800,color:"#30d158",fontFamily:"var(--font-mono)",marginTop:3}}>{fmt$Full(c.cash)}</div>
-</div>
-)):<div style={{fontSize:12,color:"var(--text-muted)"}}>No cash in tactical accounts.</div>}
-</div>
-
-<div style={{marginTop:8,fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("portfolio")}>View account-by-account holdings detail →</div>
-</div>
-</div>
-
-</div>
-);
-})()}
-
 {/* PORTFOLIO */}
 {tab==="portfolio"&&(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:12}}>
 <div style={{background:"var(--surface)",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px"}}>
-<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>PORTFOLIO INSIGHTS · ACCOUNT DETAIL · NOT INVESTMENT ADVICE</div>
+<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>PORTFOLIO INSIGHTS · SAMPLE PORTFOLIO · FOR ILLUSTRATION ONLY</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginBottom:12}}>
-{[{label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},{label:"Accounts",value:`${ACCOUNTS.length} accounts`,col:"var(--text)"},{label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.2?"#ff9f0a":portBeta>0.8?"var(--yellow-text)":"#30d158"},{label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:convTextColor(CONV)}].map(({label,value,col})=>(
+{[{label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},{label:"Accounts",value:"5 accounts",col:"var(--text)"},{label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.2?"#ff9f0a":portBeta>0.8?"var(--yellow-text)":"#30d158"},{label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:convTextColor(CONV)}].map(({label,value,col})=>(
 <div key={label} style={{background:"var(--surface-2)",borderRadius:5,padding:"10px 12px"}}>
 <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",marginBottom:4}}>{label.toUpperCase()}</div>
 <div style={{fontSize:14,fontWeight:800,color:col,fontFamily:"monospace"}}>{value}</div>
 </div>
 ))}
 </div>
-{/* Wealth-by-account + asset-class composition.
-    Labels live OUTSIDE the bar (legend row below). The bar itself is a thin
-    10px track with 2px gaps between segments — segments don't carry text, so
-    we don't fight truncation/text-shadow on narrow slices. */}
-{(()=>{
-const ACCT_LABEL={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
-const acctData=ACCOUNTS.map(acc=>{
+<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.08em",marginBottom:6}}>WEALTH BY ACCOUNT</div>
+<div style={{display:"flex",height:30,borderRadius:5,overflow:"hidden",marginBottom:12}}>
+{ACCOUNTS.map(acc=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return{id:acc.id,name:ACCT_LABEL[acc.id]||acc.label.split(" ")[0],color:acc.color,value:t,pct:t/grandTotal};
-}).sort((a,b)=>b.value-a.value);
-const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
-{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val,pct:val/grandTotal}
-));
-const fmt$=v=>v>=1000?`$${Math.round(v/1000).toLocaleString()}K`:`$${v}`;
-const sectionStyle={marginBottom:14};
-const headerRow={display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8};
-const headerLabel={fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600};
-const headerMeta={fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"};
-const barTrack={display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10};
-const legendWrap={display:"flex",flexWrap:"wrap",rowGap:6,columnGap:18};
-const chip={display:"flex",alignItems:"center",gap:7};
-const swatch={width:9,height:9,borderRadius:2,flexShrink:0};
-const chipName={fontSize:12,color:"var(--text)",fontWeight:500};
-const chipVal={fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"};
-const chipPct={fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"};
-const renderBar=(title,meta,segs,key)=>(
-<div key={key} style={sectionStyle}>
-<div style={headerRow}>
-<span style={headerLabel}>{title}</span>
-<span style={headerMeta}>{meta}</span>
+const pct=t/grandTotal;
+const ACCT_LABEL={brokerage:"Taxable",k401:"401k",roth:"Roth",hsa:"HSA","529":"529"};
+const name=ACCT_LABEL[acc.id]||acc.label.split(" ")[0];
+return(<div key={acc.id} style={{flex:pct,background:acc.color,opacity:0.85,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 6px",overflow:"hidden"}}>
+{pct>0.08?<span style={{fontSize:12,color:"#fff",fontFamily:"monospace",fontWeight:700,letterSpacing:"0.02em",textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{name} {(pct*100).toFixed(0)}%</span>:pct>0.04?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{(pct*100).toFixed(0)}%</span>:null}
+</div>);
+})}
 </div>
-<div style={barTrack}>
-{segs.map(s=>(
-<div key={s.id} title={`${s.name} · ${fmt$(s.value)} · ${(s.pct*100).toFixed(1)}%`}
-  style={{flex:s.pct,background:s.color,minWidth:2}}/>
-))}
+<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.08em",marginBottom:6}}>ASSET CLASS MIX</div>
+<div style={{display:"flex",height:30,borderRadius:5,overflow:"hidden",marginBottom:8}}>
+{Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>{
+const pct=val/grandTotal;
+const ABBR={"Individual Stocks":"Ind Stks","Index Funds":"Idx Funds","Intl Equity":"Int'l Stks","Precious Metals":"Metals","Crypto":"Crypto","Cash":"Cash"};
+const label=ABBR[cls]||cls;
+return(<div key={cls} style={{flex:pct,background:rollupColors[cls]||"#5c6370",opacity:0.9,display:"flex",alignItems:"center",justifyContent:"center",padding:"0 4px",overflow:"hidden"}}>
+{pct>0.08?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,letterSpacing:"0.02em",textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{label} {(pct*100).toFixed(0)}%</span>:pct>0.04?<span style={{fontSize:11,color:"#fff",fontFamily:"monospace",fontWeight:700,textShadow:"0 1px 2px rgba(0,0,0,0.35)",whiteSpace:"nowrap"}}>{(pct*100).toFixed(0)}%</span>:null}
+</div>);
+})}
 </div>
-<div style={legendWrap}>
-{segs.map(s=>(
-<div key={s.id} style={chip}>
-<div style={{...swatch,background:s.color}}/>
-<span style={chipName}>{s.name}</span>
-<span style={chipVal}>{fmt$(s.value)}</span>
-<span style={chipPct}>{(s.pct*100).toFixed(0)}%</span>
+<div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
+{Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
+<div key={cls} style={{display:"flex",alignItems:"center",gap:5}}>
+<div style={{width:8,height:8,borderRadius:"50%",background:rollupColors[cls]||"#5c6370"}}/>
+<span style={{fontSize:12,color:"var(--text)",fontFamily:"monospace"}}>{cls} {(val/grandTotal*100).toFixed(0)}%</span>
 </div>
 ))}
 </div>
-</div>
-);
-return(<>
-{renderBar("WEALTH BY ACCOUNT",`${acctData.length} accounts · ${fmt$(grandTotal)}`,acctData,"acct")}
-{renderBar("ASSET CLASS MIX",`${assetData.length} classes · ${fmt$(grandTotal)}`,assetData,"asset")}
-</>);
-})()}
 </div>
 <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
 <div style={{fontSize:11,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:8}}>KEY OBSERVATIONS · {CONV.label} REGIME</div>
@@ -2624,12 +2217,12 @@ return(<>
 </div>
 </div>
 {ACCOUNTS.map(acct=>(<AcctCard key={acct.id} acct={acct} grandTotal={grandTotal} convColor={CONV.color} convLabel={CONV.label} stressScore={COMP100}/>))}
-<div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace"}}>Personal portfolio · Sourced from JPM + Fidelity exports · Not investment advice</div>
+<div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace"}}>Sample portfolio · Illustrative values only · Not investment advice</div>
 </div>
 )}
 
 {/* SCANNER */}
-{tab==="scanner"&&<Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)}/>}
+{tab==="scanner"&&<Scanner/>}
 
 {/* FAQ */}
 {tab==="readme"&&(
