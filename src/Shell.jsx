@@ -54,14 +54,12 @@ export function ThemeToggle({ pref, setPref }) {
 // ── Tile (clickable) ──────────────────────────────────────────────────────────
 export function Tile({ eyebrow, title, sub, accent, onClick, children, span = 1, kpi, status }) {
   const styleAccent = accent ? { borderColor: `${accent}55` } : undefined;
-  const gridStyle = span === 2
-    ? { gridColumn: "span 2" }
-    : span === 3
-    ? { gridColumn: "span 3" }
-    : undefined;
+  // Span is now a CSS class so the mobile media query can override it without
+  // fighting inline-style specificity.
+  const spanClass = span === 2 ? "tile-span-2" : span === 3 ? "tile-span-3" : "";
 
   return (
-    <button className="tile fade-in" onClick={onClick} style={{ ...gridStyle, ...styleAccent }}>
+    <button className={`tile fade-in${spanClass ? ` ${spanClass}` : ""}`} onClick={onClick} style={styleAccent}>
       {/* accent bar at top */}
       {accent && (
         <div style={{
@@ -142,7 +140,7 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
   const open = isMarketOpen(today);
 
   return (
-    <header style={{
+    <header className="hero-header" style={{
       padding: compact ? "var(--space-4) var(--space-8) var(--space-2)" : "var(--space-8) var(--space-8) var(--space-6)",
       maxWidth: 1440, margin: "0 auto",
       display: "flex", flexDirection: "column", gap: "var(--space-5)",
@@ -215,7 +213,7 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
 // ── Drill-down chrome (back button + section title) ───────────────────────────
 export function SectionHeader({ eyebrow, title, sub, onBack, backLabel = "All sections" }) {
   return (
-    <div style={{
+    <div className="section-header-inner" style={{
       maxWidth: 1440, margin: "0 auto",
       padding: "var(--space-6) var(--space-8) var(--space-4)",
       display: "flex", flexDirection: "column", gap: "var(--space-3)",

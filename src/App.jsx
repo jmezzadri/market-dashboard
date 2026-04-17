@@ -1925,8 +1925,8 @@ return(
 
 {/* ─────── HOME — TILE GRID ─────── */}
 {tab==="home" && (
-  <main className="fade-in" style={{maxWidth:1440, margin:"0 auto", padding:"var(--space-4) var(--space-8) var(--space-10)"}}>
-    <div style={{
+  <main className="fade-in main-padded" style={{maxWidth:1440, margin:"0 auto", padding:"var(--space-4) var(--space-8) var(--space-10)"}}>
+    <div className="home-tile-grid" style={{
       display:"grid",
       gridTemplateColumns:"repeat(auto-fit, minmax(320px, 1fr))",
       gap:"var(--space-5)",
@@ -2079,7 +2079,7 @@ return(
 </div>
 
 {/* Category tiles 2-col grid */}
-<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+<div className="two-col-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
 {Object.entries(CATS).map(([catId,cat])=>{
 const ids=Object.keys(IND).filter(id=>IND[id][2]===catId);
 const scored=ids.map(id=>({id,s:sdScore(id,IND[id][6])})).filter(x=>x.s!=null).sort((a,b)=>b.s-a.s);
@@ -2212,7 +2212,7 @@ return(<div key={acc.id} style={{flex:t/grandTotal,background:acc.color,opacity:
 
 {/* FAQ */}
 {tab==="readme"&&(
-<div style={{padding:"16px 20px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
+<div className="two-col-grid" style={{padding:"16px 20px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
 
 {/* LEFT — MACRO DASHBOARD */}
 <div style={{display:"flex",flexDirection:"column",gap:10}}>

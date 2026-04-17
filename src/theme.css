@@ -483,3 +483,30 @@ a:hover { text-decoration: underline; }
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* ─── Tile column spans ──────────────────────────────────────────────────────
+   Defined as CSS classes (not inline styles) so mobile media query can
+   collapse them to span 1 without !important fighting inline styles.        */
+.tile-span-2 { grid-column: span 2; }
+.tile-span-3 { grid-column: span 3; }
+
+/* ─── Mobile-responsive layout (≤ 639 px / iPhone-sized) ────────────────────
+   Only overrides layout on narrow screens.
+   All desktop styles above remain completely unchanged.                      */
+@media (max-width: 639px) {
+  /* Reduce shell chrome horizontal padding from 32 px → 16 px */
+  .hero-header        { padding-left: var(--space-4) !important; padding-right: var(--space-4) !important; }
+  .section-header-inner { padding-left: var(--space-4) !important; padding-right: var(--space-4) !important; }
+  .main-padded        { padding-left: var(--space-4) !important; padding-right: var(--space-4) !important; }
+
+  /* Home tile grid → single column (removes need for min 320 px columns) */
+  .home-tile-grid { grid-template-columns: 1fr !important; }
+
+  /* Span-2 / span-3 tiles collapse to 1 column so they don't blow out
+     the grid when only 1 implicit column exists on a narrow screen        */
+  .tile-span-2,
+  .tile-span-3 { grid-column: span 1; }
+
+  /* Hardcoded 2-column grids (Overview categories, FAQ) → single column */
+  .two-col-grid { grid-template-columns: 1fr !important; }
+}
