@@ -239,7 +239,7 @@ function SignalCol({ title, dot, label, sub, detail }) {
 }
 
 // ── Rich ticker card ──────────────────────────────────────────────────────────
-function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow, ptsl, avgCost, signals, isPortfolio, highlight }) {
+function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow, ptsl, avgCost, signals, isPortfolio }) {
   const sc = (signals?.screener || {})[ticker] || {};
   const cBuys  = signals?.congress_buys   || [];
   const iBuys  = signals?.insider_buys    || [];
@@ -260,13 +260,7 @@ function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow
     : null;
 
   return (
-    <div id={`scanner-card-${ticker}`} data-ticker={ticker} style={{
-      border: `${highlight?2:1}px solid ${highlight?"var(--accent)":borderColor}`,
-      borderRadius: 8, marginBottom: 12, overflow: "hidden",
-      boxShadow: highlight?"0 0 0 3px rgba(10,132,255,0.15), 0 4px 14px rgba(0,0,0,0.08)":"none",
-      transition: "box-shadow 240ms ease, border-color 240ms ease",
-      scrollMarginTop: 80,
-    }}>
+    <div style={{ border: `1px solid ${borderColor}`, borderRadius: 8, marginBottom: 12, overflow: "hidden" }}>
       {/* Header row */}
       <div style={{ background: "var(--surface-3)", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
@@ -357,7 +351,7 @@ function SectionBanner({ label, empty }) {
 }
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ data, focusTicker }) {
+function OverviewTab({ data }) {
   const { buy_opportunities = [], watch_items = [], portfolio_positions = [], signals, config = {} } = data;
   const screenerMap = signals?.screener || {};
   const scoremap   = data.score_by_ticker || {};
@@ -385,25 +379,20 @@ function OverviewTab({ data, focusTicker }) {
     const price = item.current_price ?? Number(sc.prev_close);
     const pt = price ? price * (1 + ptPct / 100) : null;
     const sl = price ? price * (1 - slPct / 100) : null;
-    const company = sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "";
+    const company = sc.full_name || sc.company_name || "";
     const ptsl = (
       <span>
         {pt && <><strong style={{ color: C.text }}>PT</strong> <span style={{ color: C.muted }}>{fmt$(pt)}</span></>}
         {sl && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>SL</strong> <span style={{ color: C.muted }}>{fmt$(sl)}</span></>}
         {(item.cc_note) && <><span style={{ color: C.dim }}> | CC: </span><span>{item.cc_note}</span></>}
-        {/* Suppress the legacy "CC: checking criteria" placeholder. The scanner
-            decides up front whether a ticker is eligible for covered-call
-            screening (score / IV-rank / DTE gates). When neither covered_call
-            nor cc_note is set, it means the scanner already passed on this
-            name — silence is more accurate than an "in flight" placeholder. */}
+        {(!item.cc_note && !item.covered_call) && <span style={{ color: C.dim }}> | CC: checking criteria</span>}
       </span>
     );
     const perf = perfRow(t);
     return (
       <RichCard key={t} ticker={t} price={price} score={item.score} tier={tier}
         companyName={company} cc={item.covered_call} ccNote={item.covered_call ? null : item.cc_note}
-        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={false}
-        highlight={focusTicker && t === focusTicker} />
+        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={false} />
     );
   };
 
@@ -414,7 +403,7 @@ function OverviewTab({ data, focusTicker }) {
     const score = scoremap[t] ?? null;
     const pt = pos.avg_cost * (1 + ptPct / 100);
     const sl = pos.avg_cost * (1 - slPct / 100);
-    const company = sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "";
+    const company = sc.full_name || sc.company_name || "";
     const ptsl = (
       <span>
         <strong style={{ color: C.text }}>Avg cost</strong> <span style={{ color: C.muted }}>{fmt$(pos.avg_cost)}</span>
@@ -426,33 +415,7 @@ function OverviewTab({ data, focusTicker }) {
     return (
       <RichCard key={t} ticker={t} price={price} score={score} tier="portfolio"
         companyName={company} cc={null} ccNote={null}
-        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={true}
-        highlight={focusTicker && t === focusTicker} />
-    );
-  };
-
-  // Render a watchlist entry (manual-track ticker — not in buy/watch/portfolio
-  // but the scanner pulls full intel for it via the always-include path).
-  const watchlist = data.watchlist || [];
-  const renderWatchlistEntry = (w) => {
-    const t = w.ticker;
-    const sc = screenerMap[t] || {};
-    const price = Number(sc.close || sc.prev_close || 0) || null;
-    const score = scoremap[t] ?? null;
-    const company = sc.full_name || sc.company_name || w.name || (data.ticker_names||{})[t] || "";
-    const ptsl = (
-      <span>
-        {w.theme && <><strong style={{ color: C.text }}>Theme</strong> <span style={{ color: C.muted }}>{w.theme}</span></>}
-        {score != null && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>Score</strong> <span style={{ color: C.muted }}>{score}</span>{score < 35 && <span style={{ color: C.dim }}> (below watch tier)</span>}</>}
-      </span>
-    );
-    const perf = perfRow(t);
-    return (
-      <RichCard key={t} ticker={t} price={price} score={score}
-        tier={score >= 60 ? "buy" : score >= 35 ? "watch" : "watchlist"}
-        companyName={company} cc={null} ccNote={null}
-        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={false}
-        highlight={focusTicker && t === focusTicker} />
+        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={true} />
     );
   };
 
@@ -472,14 +435,8 @@ function OverviewTab({ data, focusTicker }) {
 
       <SectionBanner label="CURRENT PORTFOLIO" />
       {portfolio_positions.length === 0
-        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px", marginBottom: 16 }}>No portfolio positions tracked.</div>
-        : <div style={{ marginBottom: 16 }}>{portfolio_positions.map(pos => renderPortfolio(pos))}</div>
-      }
-
-      <SectionBanner label="MANUAL WATCHLIST" />
-      {watchlist.length === 0
-        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px" }}>No manual watchlist (edit <span style={{ fontFamily: "monospace" }}>portfolio/watchlist.csv</span> in the trading-scanner repo to populate).</div>
-        : <div>{watchlist.map(renderWatchlistEntry)}</div>
+        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px" }}>No portfolio positions tracked.</div>
+        : <div>{portfolio_positions.map(pos => renderPortfolio(pos))}</div>
       }
     </div>
   );
@@ -554,7 +511,7 @@ function SortableTable({ headers, rows }) {
 function mkRow(cells, sortVals) { return { cells, sortVals }; }
 
 // ── Congress tab ──────────────────────────────────────────────────────────────
-function CongressTab({ data, onOpenTicker }) {
+function CongressTab({ data }) {
   const buys  = data.signals?.congress_buys  || [];
   const sells = data.signals?.congress_sells || [];
   const all   = [
@@ -562,203 +519,40 @@ function CongressTab({ data, onOpenTicker }) {
     ...sells.map(r => ({ ...r, _dir: "Sell" })),
   ].sort((a, b) => new Date(b.transaction_date || 0) - new Date(a.transaction_date || 0));
 
-  // Member-detail modal state — lifts one level up from the row so we can
-  // pass it the full trade list and compute aggregates from it.
-  const [memberFocus, setMemberFocus] = useState(null);
-
   if (!all.length) return (
     <div style={{ color: C.dim, textAlign: "center", padding: 40, fontFamily: "monospace", fontSize: 13 }}>
       No congressional trades in the lookback window (last 45 days).
     </div>
   );
 
-  // Aggregate per-member counts so the MEMBER column can show a subtle "N trades" hint.
-  const memberCounts = {};
-  all.forEach(r => { const n = (r.name || r.reporter || "").trim(); if (n) memberCounts[n] = (memberCounts[n] || 0) + 1; });
-
-  const linkStyle = { color: C.text, fontWeight: 600, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(128,128,128,0.35)", textUnderlineOffset: 3 };
-  const tickerLinkStyle = { color: C.text, fontWeight: 800, cursor: onOpenTicker ? "pointer" : "default", textDecoration: onOpenTicker ? "underline" : "none", textDecorationColor: "rgba(128,128,128,0.35)", textUnderlineOffset: 3 };
-
   return (
     <div>
       <div style={{ color: C.dim, fontSize: 12, marginBottom: 16, fontFamily: "monospace" }}>
-        Congressional trades disclosed under the STOCK Act · 45-day lookback · Click a member or ticker for detail.
+        Congressional trades disclosed under the STOCK Act · 45-day lookback · Buys may signal conviction; sells may signal concern
       </div>
       <SortableTable
         headers={["DATE","MEMBER","PARTY","CHAMBER","TICKER","DIRECTION","AMOUNT","FILED"]}
-        rows={all.map((r, i) => {
+        rows={all.map(r => {
           const dir = r.txn_type || r._dir || "";
           const party = partyOf(r);
-          const memberName = r.name || r.reporter || "";
-          const tradeCount = memberCounts[memberName] || 0;
           return mkRow([
             <span style={{ color: C.dim }}>{fmtDate(r.transaction_date)}</span>,
-            memberName
-              ? <span style={linkStyle} onClick={() => setMemberFocus(memberName)} title={`View all ${tradeCount} disclosed trade${tradeCount===1?"":"s"} by ${memberName} in the lookback window`}>{memberName}</span>
-              : <span style={{ color: C.text, fontWeight: 600 }}>—</span>,
+            <span style={{ color: C.text, fontWeight: 600 }}>{r.name || r.reporter || "—"}</span>,
             <PartyBadge party={party} />,
             <span style={{ color: C.dim, textTransform: "capitalize" }}>{r.member_type || "—"}</span>,
-            onOpenTicker
-              ? <span style={tickerLinkStyle} onClick={() => onOpenTicker(r.ticker)} title={`View ${r.ticker} flow, technicals, and short interest`}>{r.ticker}</span>
-              : <span style={{ color: C.text, fontWeight: 800 }}>{r.ticker}</span>,
+            <span style={{ color: C.text, fontWeight: 800 }}>{r.ticker}</span>,
             <Badge label={dir} color={dir === "Buy" ? "green" : "red"} />,
             <span style={{ color: C.muted }}>{r.amounts || r.amount || "—"}</span>,
             <span style={{ color: C.dim }}>{fmtDate(r.filed_at_date || r.disclosure_date)}</span>,
-          ], [r.transaction_date, memberName, party||"Z", r.member_type||"", r.ticker, dir, r.amounts||"", r.filed_at_date||""]);
+          ], [r.transaction_date, r.name||"", party||"Z", r.member_type||"", r.ticker, dir, r.amounts||"", r.filed_at_date||""]);
         })}
       />
-      {memberFocus && (
-        <MemberDetailModal
-          member={memberFocus}
-          allTrades={all}
-          onClose={() => setMemberFocus(null)}
-          onOpenTicker={onOpenTicker}
-        />
-      )}
-    </div>
-  );
-}
-
-// ── Member detail modal (Congress) ────────────────────────────────────────────
-// Summarizes everything one member has disclosed in the 45-day lookback window:
-// aggregate buy/sell counts, position-by-ticker breakdown, and full chronological trade list.
-function MemberDetailModal({ member, allTrades, onClose, onOpenTicker }) {
-  const mine = useMemo(
-    () => allTrades.filter(r => (r.name || r.reporter || "").trim() === member),
-    [allTrades, member]
-  );
-
-  // Close on Escape.
-  useEffect(() => {
-    const h = (e) => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", h);
-    return () => window.removeEventListener("keydown", h);
-  }, [onClose]);
-
-  const party = partyOf(mine[0] || {});
-  const chamber = (mine[0]?.member_type || "").replace(/^\w/, c => c.toUpperCase());
-  const buyCt  = mine.filter(r => (r.txn_type || r._dir) === "Buy").length;
-  const sellCt = mine.filter(r => (r.txn_type || r._dir) === "Sell").length;
-
-  // Per-ticker roll-up: sign-counted net trades (buys minus sells), last trade date.
-  const byTicker = {};
-  mine.forEach(r => {
-    const t = r.ticker || "?";
-    if (!byTicker[t]) byTicker[t] = { ticker: t, buys: 0, sells: 0, last: null, amounts: [] };
-    const d = (r.txn_type || r._dir);
-    if (d === "Buy") byTicker[t].buys++;
-    else if (d === "Sell") byTicker[t].sells++;
-    const td = r.transaction_date ? new Date(r.transaction_date) : null;
-    if (td && (!byTicker[t].last || td > byTicker[t].last)) byTicker[t].last = td;
-    if (r.amounts || r.amount) byTicker[t].amounts.push(r.amounts || r.amount);
-  });
-  const tickerRows = Object.values(byTicker).sort((a, b) => (b.buys + b.sells) - (a.buys + a.sells));
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed", inset: 0, zIndex: 1000,
-        background: "rgba(0,0,0,0.65)", backdropFilter: "blur(4px)",
-        display: "flex", alignItems: "flex-start", justifyContent: "center",
-        padding: "60px 20px", overflowY: "auto",
-      }}
-    >
-      <div
-        onClick={e => e.stopPropagation()}
-        style={{
-          background: "var(--surface)", border: `1px solid ${C.border2}`, borderRadius: 10,
-          width: "100%", maxWidth: 820, padding: "24px 28px",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.45)",
-        }}
-      >
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-          <div>
-            <div style={{ fontSize: 11, color: C.dim, fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 6 }}>CONGRESSIONAL MEMBER</div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: C.text, display: "flex", alignItems: "center", gap: 10 }}>
-              {member}
-              <PartyBadge party={party} />
-              {chamber && <span style={{ fontSize: 12, color: C.dim, fontWeight: 500, textTransform: "none" }}>· {chamber}</span>}
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "monospace", fontSize: 12 }}
-            title="Close (Esc)"
-          >Close</button>
-        </div>
-
-        {/* Aggregate summary */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, margin: "18px 0" }}>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px" }}>
-            <div style={{ fontSize: 10, color: C.dim, fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 4 }}>TOTAL TRADES</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: C.text }}>{mine.length}</div>
-          </div>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px" }}>
-            <div style={{ fontSize: 10, color: C.dim, fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 4 }}>BUYS</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: C.greenT }}>{buyCt}</div>
-          </div>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "12px 14px" }}>
-            <div style={{ fontSize: 10, color: C.dim, fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 4 }}>SELLS</div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: C.redT }}>{sellCt}</div>
-          </div>
-        </div>
-
-        {/* Per-ticker roll-up */}
-        <div style={{ fontSize: 11, color: C.dim, fontFamily: "monospace", letterSpacing: "0.1em", marginTop: 18, marginBottom: 8 }}>POSITIONS TOUCHED</div>
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1.2fr 0.6fr 0.6fr 1fr 1fr", background: C.row2, padding: "8px 12px", fontSize: 10, color: C.dim, fontFamily: "monospace", letterSpacing: "0.08em" }}>
-            <div>TICKER</div><div>BUYS</div><div>SELLS</div><div>LAST</div><div>AMOUNTS</div>
-          </div>
-          {tickerRows.map((row, i) => (
-            <div key={row.ticker} style={{ display: "grid", gridTemplateColumns: "1.2fr 0.6fr 0.6fr 1fr 1fr", padding: "10px 12px", borderTop: `1px solid ${C.border}`, background: i % 2 ? C.row1 : C.row2, fontSize: 13 }}>
-              <div>
-                {onOpenTicker
-                  ? <span style={{ color: C.text, fontWeight: 800, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(128,128,128,0.35)", textUnderlineOffset: 3 }} onClick={() => { onOpenTicker(row.ticker); onClose(); }}>{row.ticker}</span>
-                  : <span style={{ color: C.text, fontWeight: 800 }}>{row.ticker}</span>}
-              </div>
-              <div style={{ color: row.buys > 0 ? C.greenT : C.dim, fontWeight: 600 }}>{row.buys || "—"}</div>
-              <div style={{ color: row.sells > 0 ? C.redT : C.dim, fontWeight: 600 }}>{row.sells || "—"}</div>
-              <div style={{ color: C.muted, fontSize: 12 }}>{row.last ? row.last.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "—"}</div>
-              <div style={{ color: C.dim, fontSize: 11, fontFamily: "monospace" }}>{row.amounts.slice(0, 2).join(" / ")}{row.amounts.length > 2 ? ` +${row.amounts.length-2}` : ""}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Full chronological trade list */}
-        <div style={{ fontSize: 11, color: C.dim, fontFamily: "monospace", letterSpacing: "0.1em", marginTop: 20, marginBottom: 8 }}>ALL DISCLOSED TRADES (chronological)</div>
-        <div style={{ border: `1px solid ${C.border}`, borderRadius: 8, overflow: "hidden", maxHeight: 300, overflowY: "auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 0.8fr 1.2fr 1fr", background: C.row2, padding: "8px 12px", fontSize: 10, color: C.dim, fontFamily: "monospace", letterSpacing: "0.08em", position: "sticky", top: 0 }}>
-            <div>DATE</div><div>TICKER</div><div>DIR</div><div>AMOUNT</div><div>FILED</div>
-          </div>
-          {mine.map((r, i) => {
-            const dir = r.txn_type || r._dir || "";
-            return (
-              <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 0.8fr 1.2fr 1fr", padding: "8px 12px", borderTop: `1px solid ${C.border}`, background: i % 2 ? C.row1 : C.row2, fontSize: 12 }}>
-                <div style={{ color: C.muted }}>{fmtDate(r.transaction_date)}</div>
-                <div>
-                  {onOpenTicker
-                    ? <span style={{ color: C.text, fontWeight: 700, cursor: "pointer" }} onClick={() => { onOpenTicker(r.ticker); onClose(); }}>{r.ticker}</span>
-                    : <span style={{ color: C.text, fontWeight: 700 }}>{r.ticker}</span>}
-                </div>
-                <div><Badge label={dir} color={dir === "Buy" ? "green" : "red"} /></div>
-                <div style={{ color: C.muted }}>{r.amounts || r.amount || "—"}</div>
-                <div style={{ color: C.dim }}>{fmtDate(r.filed_at_date || r.disclosure_date)}</div>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={{ fontSize: 10, color: C.dim, marginTop: 14, fontStyle: "italic" }}>
-          Source: disclosures filed under the STOCK Act, 45-day lookback window. Exact share counts are not disclosed — only dollar-range brackets ($1K–$15K, $15K–$50K, etc.).
-        </div>
-      </div>
     </div>
   );
 }
 
 // ── Insiders tab ──────────────────────────────────────────────────────────────
-function InsidersTab({ data, onOpenTicker }) {
+function InsidersTab({ data }) {
   const buys  = data.signals?.insider_buys  || [];
   const sales = data.signals?.insider_sales || [];
   const all   = [
@@ -797,9 +591,7 @@ function InsidersTab({ data, onOpenTicker }) {
             <span style={{ color: C.dim }}>{fmtDate(r.filing_date || r.transaction_date)}</span>,
             <span style={{ color: C.text, fontWeight: 600 }}>{r.owner_name || r.insider_name || r.name || "—"}</span>,
             <span style={{ color: C.dim, fontSize: 11 }}>{title}</span>,
-            onOpenTicker
-              ? <span style={{ color: C.text, fontWeight: 800, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(128,128,128,0.35)", textUnderlineOffset: 3 }} onClick={() => onOpenTicker(r.ticker)} title={`View ${r.ticker} flow, technicals, and short interest`}>{r.ticker}</span>
-              : <span style={{ color: C.text, fontWeight: 800 }}>{r.ticker}</span>,
+            <span style={{ color: C.text, fontWeight: 800 }}>{r.ticker}</span>,
             <Badge label={r._dir} color={r._dir === "Purchase" ? "green" : "red"} />,
             <span style={{ color: C.muted }}>{sharesTraded ? sharesTraded.toLocaleString() : "—"}</span>,
             <span style={{ color: C.text, fontWeight: 600 }}>{fmtMoney(value)}</span>,
@@ -812,7 +604,7 @@ function InsidersTab({ data, onOpenTicker }) {
 }
 
 // ── Options Flow tab ──────────────────────────────────────────────────────────
-function FlowTab({ data, onOpenTicker }) {
+function FlowTab({ data }) {
   const [typeFilter, setTypeFilter] = useState("all");
   const calls = data.signals?.flow_alerts     || [];
   const puts  = data.signals?.put_flow_alerts || [];
@@ -893,9 +685,7 @@ function FlowTab({ data, onOpenTicker }) {
             const ts = r.start_time || (r.created_at ? new Date(r.created_at).getTime() : 0);
             return mkRow([
               <span style={{ color: C.dim, fontSize: 12 }}>{fmtDateTime(r)}</span>,
-              onOpenTicker
-                ? <span style={{ color: C.text, fontWeight: 800, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(128,128,128,0.35)", textUnderlineOffset: 3 }} onClick={() => onOpenTicker(r.ticker)} title={`View ${r.ticker} flow, technicals, and short interest`}>{r.ticker}</span>
-                : <span style={{ color: C.text, fontWeight: 800 }}>{r.ticker}</span>,
+              <span style={{ color: C.text, fontWeight: 800 }}>{r.ticker}</span>,
               <Badge label={(r.type||"call").toUpperCase()} color={isCall ? "green" : "red"} />,
               <span style={{ color: C.muted }}>{strike != null ? fmt$(strike) : "—"}</span>,
               <span style={{ color: C.muted }}>{under  != null ? fmt$(under)  : "—"}</span>,
@@ -912,7 +702,7 @@ function FlowTab({ data, onOpenTicker }) {
 }
 
 // ── Technicals tab ────────────────────────────────────────────────────────────
-function TechnicalsTab({ data, onOpenTicker }) {
+function TechnicalsTab({ data }) {
   const { buy_opportunities = [], watch_items = [], portfolio_positions = [], signals } = data;
   const allTickers = [
     ...buy_opportunities.map(o => o.ticker),
@@ -970,9 +760,7 @@ function TechnicalsTab({ data, onOpenTicker }) {
           const rsi   = tech.rsi_14       != null ? Number(tech.rsi_14)       : null;
           const rsiCol = rsi == null ? C.dim : rsi > 70 ? C.red : rsi < 30 ? C.green : C.muted;
           return mkRow([
-            onOpenTicker
-              ? <span style={{ color: C.text, fontWeight: 800, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(128,128,128,0.35)", textUnderlineOffset: 3 }} onClick={() => onOpenTicker(t)} title={`View ${t} flow, technicals, and short interest`}>{t}</span>
-              : <span style={{ color: C.text, fontWeight: 800 }}>{t}</span>,
+            <span style={{ color: C.text, fontWeight: 800 }}>{t}</span>,
             <span style={{ color: C.text, fontWeight: 600 }}>{fmt$(price)}</span>,
             <span style={pctStyle(p1w)}>{p1w  != null ? fmtPct(p1w  * 100) : "—"}</span>,
             <span style={pctStyle(p1m)}>{p1m  != null ? fmtPct(p1m  * 100) : "—"}</span>,
@@ -1084,33 +872,11 @@ function MethodologyTab({ data }) {
 }
 
 // ── Main Scanner component ────────────────────────────────────────────────────
-export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTicker }) {
-  // When we're asked to focus on a specific ticker (from the portopps deep
-  // link), start on the overview view — that's where the ticker's RichCard
-  // lives. Otherwise start on the landing page as before.
-  const [view, setView] = useState(focusTicker ? "overview" : "landing");
+export default function Scanner() {
+  const [view, setView] = useState("landing");
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // If a new focusTicker comes in after mount (user re-clicks a different
-  // ticker from portopps without leaving the tab), honor it.
-  useEffect(() => {
-    if (focusTicker) setView("overview");
-  }, [focusTicker]);
-
-  // After the overview renders, scroll to + briefly highlight the focused
-  // ticker's card, then tell the parent we consumed the focus intent so a
-  // re-render of the same ticker fires a fresh scroll+pulse.
-  useEffect(() => {
-    if (!focusTicker || loading || view !== "overview") return;
-    const el = document.getElementById(`scanner-card-${focusTicker}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    const id = setTimeout(() => { if (onFocusConsumed) onFocusConsumed(); }, 2400);
-    return () => clearTimeout(id);
-  }, [focusTicker, loading, view, onFocusConsumed]);
 
   useEffect(() => {
     fetch(DATA_URL + "?t=" + Date.now())
@@ -1342,11 +1108,11 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
       </div>
 
       <div style={{ padding: "var(--space-2) var(--space-8) var(--space-8)" }}>
-        {view === "overview"    && <OverviewTab    data={data} focusTicker={focusTicker} onOpenTicker={onOpenTicker} />}
-        {view === "congress"    && <CongressTab    data={data} onOpenTicker={onOpenTicker} />}
-        {view === "insiders"    && <InsidersTab    data={data} onOpenTicker={onOpenTicker} />}
-        {view === "flow"        && <FlowTab        data={data} onOpenTicker={onOpenTicker} />}
-        {view === "technicals"  && <TechnicalsTab  data={data} onOpenTicker={onOpenTicker} />}
+        {view === "overview"    && <OverviewTab    data={data} />}
+        {view === "congress"    && <CongressTab    data={data} />}
+        {view === "insiders"    && <InsidersTab    data={data} />}
+        {view === "flow"        && <FlowTab        data={data} />}
+        {view === "technicals"  && <TechnicalsTab  data={data} />}
         {view === "methodology" && <MethodologyTab data={data} />}
       </div>
     </div>

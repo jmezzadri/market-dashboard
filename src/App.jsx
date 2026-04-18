@@ -2670,7 +2670,7 @@ return(
 
 {(()=>{
 const oppCard=(opts)=>{
-  const {keyId,ticker,score,price,companyName,accentCol,tag,held,theme,sector,source}=opts;
+  const {keyId,ticker,score,price,companyName,accentCol,held,theme,sector,source}=opts;
   const isExpanded=expandedActionKey===keyId;
   const distanceToTrigger=score!=null?(60-score):null;
   return(
@@ -2678,7 +2678,6 @@ const oppCard=(opts)=>{
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
   <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
   <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{ticker}</span>
-  <span style={{...tagStyle(accentCol),cursor:"pointer"}}>{tag}</span>
   {held&&<span style={{...tagStyle("var(--accent)"),cursor:"pointer"}}>OWNED</span>}
   <span style={{fontSize:11,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{companyName}</span>
   </div>
@@ -2729,15 +2728,15 @@ return(<>
 {subPanel("#30d158","BUY ALERTS",`${triggered.length} today`,
   triggered.length===0?
     <div style={{fontSize:11,color:"var(--text-muted)",padding:"4px 2px"}}>No buy alerts today · Last scan: {lastScanLabel}</div>:
-    triggered.map(item=>oppCard({keyId:`trg-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"#30d158",tag:"BUY ALERT",held:heldTickers.has(item.ticker),source:"triggered"}))
+    triggered.map(item=>oppCard({keyId:`trg-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"#30d158",held:heldTickers.has(item.ticker),source:"triggered"}))
 )}
 {subPanel("#ffd60a","NEAR TRIGGER",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
   nearTrigger.length===0?
     <div style={{fontSize:11,color:"var(--text-muted)",padding:"4px 2px"}}>Nothing near trigger today.</div>:
-    nearTrigger.map(item=>oppCard({keyId:`near-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"var(--yellow-text)",tag:"NEAR TRIGGER",held:heldTickers.has(item.ticker),source:"near"}))
+    nearTrigger.map(item=>oppCard({keyId:`near-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"var(--yellow-text)",held:heldTickers.has(item.ticker),source:"near"}))
 )}
 {subPanel("#64748b","OTHER WATCHLIST",`${WATCHLIST.length} tracking`,
-  WATCHLIST.map(w=>oppCard({keyId:`oth-${w.ticker}`,ticker:w.ticker,score:scoreByTicker[w.ticker],price:null,companyName:w.name,accentCol:"#64748b",tag:w.ticker.endsWith("USD")?"CRYPTO":"WATCH",held:heldTickers.has(w.ticker),theme:w.theme,source:"other"}))
+  WATCHLIST.map(w=>oppCard({keyId:`oth-${w.ticker}`,ticker:w.ticker,score:scoreByTicker[w.ticker],price:null,companyName:w.name,accentCol:"#64748b",held:heldTickers.has(w.ticker),theme:w.theme,source:"other"}))
 )}
 </>);
 })()}
