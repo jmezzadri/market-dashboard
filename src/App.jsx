@@ -1223,6 +1223,7 @@ return(
 //    piece of intel the scanner has for one ticker — no need to bounce
 //    to the Scanner tab.
 function TickerDetailModal({ticker,scanData,accounts,onClose}){
+const [descExpanded,setDescExpanded]=useState(false);
 useEffect(()=>{
   const onKey=e=>{if(e.key==="Escape")onClose();};
   window.addEventListener("keydown",onKey);
@@ -1281,7 +1282,16 @@ const relVol=sc.relative_volume!=null?Number(sc.relative_volume):null;
 const nextEarn=sc.next_earnings_date;
 const nextDiv=sc.next_dividend_date;
 const erTime=sc.er_time;  // "premarket" | "postmarket" | null
-const sector=sc.sector;
+// Modal enrichment (scanner bakes these into signals.{info,news,analyst_ratings} keyed by ticker).
+const info=scanData?.signals?.info?.[ticker]||null;
+const news=scanData?.signals?.news?.[ticker]||[];
+const analystRatings=scanData?.signals?.analyst_ratings?.[ticker]||[];
+// sector comes from /api/stock/{t}/info (NOT the screener row) — fall back to screener row if present.
+const sector=info?.sector||sc.sector||null;
+const tags=info?.tags||[];
+const shortDesc=info?.short_description||null;
+// announce_time from /info is the same field as er_time from screener — use whichever exists.
+const earnTimeForChip=erTime||info?.announce_time||null;
 // Short interest (FINRA biweekly via yfinance — lagged ~15 days, NEVER real-time)
 const siPctFloat=sc.short_pct_float!=null?Number(sc.short_pct_float):null;
 const siPctSOut=sc.short_pct_shares_out!=null?Number(sc.short_pct_shares_out):null;
@@ -1362,9 +1372,20 @@ return(
 {watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>WATCHLIST</span>}
 </div>
 {companyName&&companyName!==ticker&&<div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2,fontWeight:500}}>{companyName}</div>}
-{sector&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
-<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{sector}</span>
+{(sector||tags.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
+{sector&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{sector}</span>}
+{tags.slice(0,4).map(tg=>(<span key={tg} style={{fontSize:10,color:"var(--text-dim)",border:"1px solid var(--border-faint)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:500,letterSpacing:"0.04em",textTransform:"uppercase"}}>{tg}</span>))}
 </div>}
+{shortDesc&&(()=>{
+  const DESC_LIMIT=140;
+  const isLong=shortDesc.length>DESC_LIMIT;
+  const shown=descExpanded||!isLong?shortDesc:shortDesc.slice(0,DESC_LIMIT).replace(/\s\S*$/,"")+"…";
+  return(
+  <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.5,marginTop:6,maxWidth:640}}>
+  {shown}
+  {isLong&&<span onClick={e=>{e.stopPropagation();setDescExpanded(v=>!v);}} style={{marginLeft:6,color:"var(--accent)",cursor:"pointer",fontSize:11,fontFamily:"var(--font-mono)"}}>{descExpanded?"less ↑":"more ↓"}</span>}
+  </div>);
+})()}
 {watchlistEntry?.theme&&<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)",marginTop:3}}>{watchlistEntry.theme}</div>}
 </div>
 <div style={{textAlign:"right",flexShrink:0}}>
@@ -1468,7 +1489,7 @@ return(
 {mcap!=null&&<Kpi label="MARKET CAP" value={fmt$M(mcap)} color="var(--text)" tip="Total market capitalization (shares × price). Rough size buckets: <$300M microcap, $300M-2B small, $2-10B mid, $10-200B large, >$200B mega."/>}
 {avgVol!=null&&price!=null&&<Kpi label="AVG $VOL 30D" value={fmt$M(avgVol*price)} color="var(--text)" sub="liquidity, last 30d" tip="Average daily DOLLAR volume over the past 30 days (avg shares × close). This is the comparable liquidity read across tickers — raw share counts don't compare (a $0.50 penny stock can trade more shares than BRK.A). Rough institutional buckets: <$10M illiquid (wide spreads, slippage on size); $10M-100M tradable but be careful with size; >$100M deep enough for most positions; >$1B mega-liquid."/>}
 {relVol!=null&&<Kpi label="RELATIVE VOL" value={`${relVol.toFixed(2)}×`} color={relVol>=2?"#30d158":relVol>=1?"var(--text)":"var(--text-dim)"} sub="vs 30d avg" tip="End-of-session relative volume from the daily 3:45 PM ET scan: prior session's full-day volume divided by the 30-day average. >1× = heavier than typical (often news/catalyst); <1× = quieter than typical. NOT a real-time intraday pace — the dashboard is fed by a once-daily scan."/>}
-{nextEarn&&<Kpi label="NEXT EARNINGS" value={String(nextEarn).slice(0,10)} color="var(--text)" sub={erTime==="premarket"?"before open":erTime==="postmarket"?"after close":""} tip={`Next scheduled earnings release date${erTime?` (${erTime==="premarket"?"reports before the open":"reports after the close"})`:""}. IV often inflates into earnings and crushes immediately after — relevant for any options trades.`}/>}
+{(nextEarn||info?.next_earnings_date)&&<Kpi label="NEXT EARNINGS" value={String(nextEarn||info?.next_earnings_date).slice(0,10)} color="var(--text)" sub={earnTimeForChip==="premarket"?"before open":earnTimeForChip==="postmarket"?"after close":""} tip={`Next scheduled earnings release date${earnTimeForChip?` (${earnTimeForChip==="premarket"?"reports before the open":"reports after the close"})`:""}. IV often inflates into earnings and crushes immediately after — relevant for any options trades.`}/>}
 {nextDiv&&<Kpi label="NEXT DIVIDEND" value={String(nextDiv).slice(0,10)} color="var(--text)" tip="Next ex-dividend date. Covered-call writers should be aware — American-style calls that are deep-ITM may be exercised early before the ex-dividend date."/>}
 </div>
 </div>
@@ -1558,6 +1579,70 @@ return(
 </div>
 </div>
 )}
+</div>
+)}
+
+{/* ANALYST RATINGS — aggregated buy/hold/sell counts + avg price target,
+    then 5 most recent rating actions. Data from UW /api/screener/analysts. */}
+{analystRatings.length>0&&(()=>{
+  const recs=analystRatings.map(r=>(r.recommendation||"").toLowerCase());
+  const nBuy=recs.filter(r=>r==="buy"||r==="strong_buy"||r==="overweight").length;
+  const nHold=recs.filter(r=>r==="hold"||r==="neutral").length;
+  const nSell=recs.filter(r=>r==="sell"||r==="strong_sell"||r==="underweight").length;
+  const targets=analystRatings.map(r=>parseFloat(r.target)).filter(v=>!isNaN(v)&&v>0);
+  const avgTarget=targets.length?targets.reduce((a,b)=>a+b,0)/targets.length:null;
+  const upside=(avgTarget&&price)?((avgTarget-price)/price)*100:null;
+  const lastDate=analystRatings[0]?.timestamp?String(analystRatings[0].timestamp).slice(0,10):null;
+  return(
+  <div style={panelStyle}>
+  <div style={sectionLabel}>ANALYST RATINGS · {analystRatings.length} recent</div>
+  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:8,marginBottom:10}}>
+    <Kpi label="BUY" value={nBuy} color={nBuy>0?"#30d158":"var(--text-dim)"} tip="Count of recent analyst ratings in the buy/outperform/overweight category."/>
+    <Kpi label="HOLD" value={nHold} color={nHold>0?"var(--text)":"var(--text-dim)"} tip="Count of recent analyst ratings in the hold/neutral category."/>
+    <Kpi label="SELL" value={nSell} color={nSell>0?"#ff453a":"var(--text-dim)"} tip="Count of recent analyst ratings in the sell/underweight category."/>
+    {avgTarget!=null&&<Kpi label="AVG TARGET" value={fmt$(avgTarget)} color={upside!=null?(upside>=0?"#30d158":"#ff453a"):"var(--text)"} sub={upside!=null?`${upside>=0?"+":""}${upside.toFixed(1)}% vs current`:null} tip="Mean of disclosed analyst price targets across the recent ratings listed. Compare to current price for implied upside/downside."/>}
+    {lastDate&&<Kpi label="LAST ACTION" value={lastDate} color="var(--text)" tip="Date of the most recent analyst action in this list."/>}
+  </div>
+  <div style={{display:"flex",flexDirection:"column",gap:3}}>
+    {analystRatings.slice(0,5).map((r,i)=>{
+      const rec=(r.recommendation||"").toLowerCase();
+      const recCol=rec==="buy"||rec==="strong_buy"||rec==="overweight"?"#30d158":rec==="sell"||rec==="strong_sell"||rec==="underweight"?"#ff453a":"var(--text-muted)";
+      const tgt=parseFloat(r.target);
+      return(
+      <div key={i} style={{display:"flex",gap:8,fontSize:11,fontFamily:"var(--font-mono)",alignItems:"center",padding:"4px 6px",background:"var(--surface-3)",borderRadius:3}}>
+      <span style={{color:"var(--text-dim)",minWidth:70}}>{r.timestamp?String(r.timestamp).slice(0,10):"—"}</span>
+      <span style={{color:"var(--text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.firm||"—"}{r.analyst_name?` · ${r.analyst_name}`:""}</span>
+      <span style={{fontSize:9,color:"var(--text-muted)",textTransform:"uppercase",minWidth:66,textAlign:"right"}}>{r.action||""}</span>
+      <span style={{color:recCol,fontWeight:700,textTransform:"uppercase",minWidth:56,textAlign:"right"}}>{r.recommendation||"—"}</span>
+      <span style={{color:"var(--text)",fontWeight:700,minWidth:56,textAlign:"right"}}>{!isNaN(tgt)&&tgt>0?fmt$(tgt):"—"}</span>
+      </div>);
+    })}
+  </div>
+  </div>);
+})()}
+
+{/* RECENT NEWS — UW /api/news/headlines. Headlines may reference multiple
+    tickers; we filter UW-side via ?ticker= so the list is this-ticker-relevant. */}
+{news.length>0&&(
+<div style={panelStyle}>
+<div style={sectionLabel}>RECENT NEWS · {news.length} headline{news.length===1?"":"s"}</div>
+<div style={{display:"flex",flexDirection:"column",gap:6}}>
+  {news.slice(0,6).map((n,i)=>{
+    const sent=(n.sentiment||"").toLowerCase();
+    const sentCol=sent==="positive"||sent==="bullish"?"#30d158":sent==="negative"||sent==="bearish"?"#ff453a":"var(--text-muted)";
+    const sentLabel=sent==="positive"||sent==="bullish"?"+":sent==="negative"||sent==="bearish"?"−":"·";
+    const dt=n.created_at?new Date(n.created_at):null;
+    const dateStr=dt?dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+    return(
+    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"6px 8px",background:"var(--surface-3)",borderRadius:4,fontSize:12,lineHeight:1.4}}>
+    <span style={{color:sentCol,fontWeight:800,fontSize:13,fontFamily:"var(--font-mono)",flexShrink:0,minWidth:10,textAlign:"center"}}>{sentLabel}</span>
+    <div style={{flex:1,minWidth:0}}>
+    <div style={{color:"var(--text)",marginBottom:2}}>{n.headline}{n.is_major&&<span style={{marginLeft:6,fontSize:9,color:"var(--orange)",fontFamily:"var(--font-mono)",border:"1px solid var(--orange)",borderRadius:3,padding:"1px 4px",fontWeight:700,verticalAlign:"middle"}}>MAJOR</span>}</div>
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{n.source||"—"} · {dateStr}</div>
+    </div>
+    </div>);
+  })}
+</div>
 </div>
 )}
 
