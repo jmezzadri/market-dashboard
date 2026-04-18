@@ -1233,7 +1233,7 @@ if(!ticker)return null;
 const sc=scanData?.signals?.screener?.[ticker]||{};
 const tech=scanData?.signals?.technicals?.[ticker]||{};
 const score=scanData?.score_by_ticker?.[ticker];
-const watchlistEntry=(scanData?.watchlist||[]).find(w=>w.ticker===ticker);
+const watchlistEntry=(scanData?.watchlist||[]).find(w=>w.ticker===ticker)||WATCHLIST_FALLBACK.find(w=>w.ticker===ticker);
 const heldIn=(accounts||[]).flatMap(a=>a.positions.filter(p=>p.ticker===ticker).map(p=>({acct:a,p}))).filter(Boolean);
 const price=Number(sc.close||sc.prev_close||0)||null;
 const prevClose=Number(sc.prev_close||0)||null;
@@ -1241,6 +1241,10 @@ const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
 const companyName=sc.full_name||sc.company_name||watchlistEntry?.name||heldIn[0]?.p?.name||ticker;
 const scoreCol=score==null?"var(--text-dim)":score>=60?"#30d158":score>=35?"#ffd60a":score>=20?"#ff9f0a":"#ff453a";
 const scoreLabel=score==null?"NO SCORE":score>=60?"BUY":score>=35?"NEAR TRIGGER":score>=20?"WATCH":"SELL-WATCH";
+// Manual-track position: on the watchlist but not in the scanner's scored
+// universe yet. We still want to show a useful modal (name, theme, held info)
+// rather than a box full of dashes.
+const isManualTrack=!!watchlistEntry&&score==null&&Object.keys(sc).length===0;
 // Performance (from technicals — scanner stores as fractions: 0.05 = 5%)
 const fmtPct=v=>v==null?null:`${v>=0?"+":""}${(v*100).toFixed(1)}%`;
 const wk=tech.week_change,mo=tech.month_change,yt=tech.ytd_change;
@@ -1320,7 +1324,7 @@ const kpiValue={fontSize:14,fontWeight:700,fontFamily:"var(--font-mono)"};
 // in the modal gets one so nothing reads as a mystery number.
 const Kpi=({label,value,color,sub,tip})=>(
 <div style={kpiBox}>
-<div style={{...kpiLabelBase,cursor:tip?"help":"default",display:"flex",alignItems:"center",gap:3}} title={tip}>{label}{tip&&<span style={{opacity:0.5,fontSize:9}}>ⓘ</span>}</div>
+<div style={{...kpiLabelBase,display:"flex",alignItems:"center",gap:2}}>{label}{tip&&<InfoTip def={tip} size={10}/>}</div>
 <div style={{...kpiValue,color:color||"var(--text)"}}>{value}</div>
 {sub&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{sub}</div>}
 </div>
@@ -1344,7 +1348,8 @@ return(
 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
 <h2 style={{fontSize:22,fontWeight:700,color:"var(--text)",margin:0,fontFamily:"var(--font-mono)",letterSpacing:"-0.01em"}}>{ticker}</h2>
 {heldIn.length>0&&<span style={{fontSize:10,color:"var(--accent)",border:"1px solid rgba(10,132,255,0.35)",background:"rgba(10,132,255,0.10)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>OWNED</span>}
-{watchlistEntry&&!heldIn.length&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>WATCHLIST</span>}
+{isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px dashed var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>MANUAL TRACK</span>}
+{watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>WATCHLIST</span>}
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{companyName}</div>
 {watchlistEntry?.theme&&<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{watchlistEntry.theme}</div>}
@@ -1355,7 +1360,15 @@ return(
 </div>
 </div>
 
-{/* Score Gauge + Signal Breakdown */}
+{/* Score Gauge + Signal Breakdown — or, for manual-track positions, a short
+    explainer so the modal doesn't render as a wall of dashes. */}
+{isManualTrack?(
+<div style={panelStyle}>
+<div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.55}}>
+<span style={{color:"var(--text)",fontWeight:600}}>Not in the scanner's scored universe yet.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — pending scanner-side enrichment. `:"Pending scanner-side enrichment. "}For now this is a manual-track position; the scanner runs once daily at 3:45 PM ET and will populate technicals, options and market-structure data when coverage is added.
+</div>
+</div>
+):(
 <div style={{...panelStyle,display:"flex",alignItems:"center",gap:16}}>
 <div style={{flexShrink:0}}><ScoreGauge s={score}/></div>
 <div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8}}>
@@ -1365,6 +1378,7 @@ return(
 <Kpi label="TECHNICAL" value={techScore==null?"—":(techScore>=0?"+":"")+techScore} color={techScoreCol} tip={"Weighted technical score from RSI + MACD + moving averages + volume. NOT a simple +/− count of cells — very overbought RSI (>80) penalizes −8, clean uptrend (above both MAs) rewards +6, etc. So a stock with strong MAs but extremely overbought RSI can net negative. Current breakdown:\n"+(rsi!=null?(rsi>80?`• RSI ${rsi.toFixed(1)} severely overbought (−8)\n`:rsi>70?`• RSI ${rsi.toFixed(1)} overbought (−4)\n`:rsi<30?`• RSI ${rsi.toFixed(1)} oversold (+8)\n`:rsi<40?`• RSI ${rsi.toFixed(1)} approaching oversold (+4)\n`:`• RSI ${rsi.toFixed(1)} neutral (0)\n`):"")+(macd==="bullish"?"• MACD bullish cross (+6)\n":macd==="bearish"?"• MACD bearish cross (−3)\n":"• MACD neutral (0)\n")+(above50===true&&above200===true?"• Above both 50d & 200d MA (+6)":above50===true?"• Above 50d / below 200d (+3)":above200===true?"• Below 50d / above 200d (−1)":"• Below both MAs (−4)")}/>
 </div>
 </div>
+)}
 
 {/* Performance strip */}
 {(wk!=null||mo!=null||yt!=null)&&(
@@ -1378,18 +1392,20 @@ return(
 </div>
 )}
 
-{/* Technicals */}
+{/* Technicals — hide entirely for manual-track tickers where every field is null */}
+{(rsi!=null||macd!=null||above50!=null||above200!=null||vol!=null||rv!=null)&&(
 <div style={panelStyle}>
 <div style={sectionLabel}>TECHNICALS</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
-<Kpi label="RSI-14" value={rsi==null?"—":rsi.toFixed(1)} color={rsiColor} sub={rsi==null?"":rsi>=70?"overbought":rsi<=30?"oversold":"neutral"} tip="Relative Strength Index over 14 days. Oscillator from 0-100. Above 70 is traditionally 'overbought' (stretched, prone to pullback); below 30 is 'oversold' (bid for a bounce). Between 30-70 is neutral momentum."/>
-<Kpi label="MACD CROSS" value={macd==null?"—":macd} color={macdColor} tip="Moving Average Convergence Divergence. 'bullish' = the 12-day EMA just crossed ABOVE the 26-day EMA in the last 3 days (momentum shift up). 'bearish' = crossed below (momentum down). 'neutral' = no recent cross."/>
-<Kpi label="VS 50-DAY MA" value={above50==null?"—":above50?"above":"below"} color={ma50Color} tip="Is the price above or below its 50-day simple moving average? Above = short-term uptrend. Below = short-term downtrend."/>
-<Kpi label="VS 200-DAY MA" value={above200==null?"—":above200?"above":"below"} color={ma200Color} tip="Is the price above or below its 200-day simple moving average? Above = long-term bull trend (institutional reference line). Below = long-term bear / correction."/>
-<Kpi label="VOL SURGE" value={vol==null?"—":`${vol.toFixed(2)}×`} color={volColor} sub="vs 30d avg" tip="Today's trading volume divided by the 20-day average. 1.0× = normal day. >2× = heavy interest (often tied to news, breakouts, or institutional activity). <0.5× = quiet."/>
+{rsi!=null&&<Kpi label="RSI-14" value={rsi.toFixed(1)} color={rsiColor} sub={rsi>=70?"overbought":rsi<=30?"oversold":"neutral"} tip="Relative Strength Index over 14 days. Oscillator from 0-100. Above 70 is traditionally 'overbought' (stretched, prone to pullback); below 30 is 'oversold' (bid for a bounce). Between 30-70 is neutral momentum."/>}
+{macd!=null&&<Kpi label="MACD CROSS" value={macd} color={macdColor} tip="Moving Average Convergence Divergence. 'bullish' = the 12-day EMA just crossed ABOVE the 26-day EMA in the last 3 days (momentum shift up). 'bearish' = crossed below (momentum down). 'neutral' = no recent cross."/>}
+{above50!=null&&<Kpi label="VS 50-DAY MA" value={above50?"above":"below"} color={ma50Color} tip="Is the price above or below its 50-day simple moving average? Above = short-term uptrend. Below = short-term downtrend."/>}
+{above200!=null&&<Kpi label="VS 200-DAY MA" value={above200?"above":"below"} color={ma200Color} tip="Is the price above or below its 200-day simple moving average? Above = long-term bull trend (institutional reference line). Below = long-term bear / correction."/>}
+{vol!=null&&<Kpi label="VOL SURGE" value={`${vol.toFixed(2)}×`} color={volColor} sub="vs 30d avg" tip="Today's trading volume divided by the 20-day average. 1.0× = normal day. >2× = heavy interest (often tied to news, breakouts, or institutional activity). <0.5× = quiet."/>}
 {rv!=null&&<Kpi label="REALIZED VOL 30D" value={`${rv.toFixed(0)}%`} color="var(--text)" tip="Actual price volatility observed over the past 30 days (annualized). Compare to implied vol to see if options are priced richer or cheaper than the stock's recent behavior."/>}
 </div>
 </div>
+)}
 
 {/* Options — IV + flow skew */}
 {(ivLvl!=null||ivRank!=null||bullPrem!=null||flowSkew!=null||impMove30!=null||pcRatio!=null)&&(
@@ -2367,23 +2383,6 @@ return(
             <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>NEAR TRIGGER</div>
             <div className="num" style={{fontSize:20, fontWeight:700, color:watchCount>0?"var(--yellow-text)":"var(--text-muted)"}}>{watchCount}</div>
           </div>
-        </div>
-      </Tile>
-
-      <Tile
-        eyebrow="All Indicators"
-        title="Calibrated signals"
-        accent="var(--accent)"
-        onClick={()=>navTo("indicators")}
-      >
-        <div style={{display:"flex", gap:8, marginTop:"var(--space-3)", flexWrap:"wrap"}}>
-          {catScores.map(c=>(
-            <span key={c.id} style={{
-              fontSize:13, padding:"6px 14px", borderRadius:999,
-              background:`${c.col}1a`, color:c.col, border:`1px solid ${c.col}33`,
-              fontFamily:"var(--font-mono)", fontWeight:600,
-            }}>{c.label.split(" ")[0]} {c.sc100}</span>
-          ))}
         </div>
       </Tile>
 

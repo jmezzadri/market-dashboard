@@ -10,6 +10,7 @@
  *   <span>RSI <InfoTip term="RSI" /></span>
  */
 import { useState, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 
 // ─── Definitions dictionary ────────────────────────────────────────────────
 // Single source of truth. Keys are normalized to UPPERCASE and may include
@@ -158,7 +159,7 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
       >
         ?
       </span>
-      {open && (
+      {open && typeof document !== "undefined" && createPortal(
         <div
           role="tooltip"
           style={{
@@ -178,7 +179,7 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
             boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
             zIndex: 9999,
             pointerEvents: "none",
-            whiteSpace: "normal",
+            whiteSpace: "pre-wrap",
             letterSpacing: 0,
             textTransform: "none",
           }}
@@ -189,7 +190,8 @@ export function InfoTip({ term, def, size = 12, inline = true, style }) {
             </div>
           )}
           {text}
-        </div>
+        </div>,
+        document.body
       )}
     </>
   );
