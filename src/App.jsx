@@ -167,12 +167,15 @@ jolts_quits:["JOLTS Quits","Voluntary Quit Rate","labor",3,"%",1,1.9,2.3,2.35,2.
 };
 
 // Reporting frequency per indicator: D=Daily, W=Weekly, M=Monthly, Q=Quarterly
+// Release-frequency badge shown on each indicator card (D = Daily, W = Weekly,
+// M = Monthly, Q = Quarterly). This was accidentally overwritten with dates
+// at some point — values below are the actual update cadence of each source.
 const IND_FREQ={
-  vix:"Apr 16 2026",hy_ig:"Apr 15 2026",eq_cr_corr:"Apr 17 2026",yield_curve:"Apr 16 2026",move:"Apr 16 2026",
-  anfci:"Apr 10 2026",stlfsi:"Apr 10 2026",real_rates:"Apr 15 2026",sloos_ci:"Jan 01 2026",cape:"Mar 2026",
-  ism:"Mar 2026",copper_gold:"Apr 16 2026",bkx_spx:"Apr 16 2026",bank_unreal:"Q4 2025",credit_3y:"Apr 2026",
-  term_premium:"Apr 10 2026",cmdi:"Apr 10 2026",loan_syn:"Apr 15 2026",usd:"Apr 16 2026",cpff:"Apr 14 2026",
-  skew:"Apr 16 2026",sloos_cre:"Jan 01 2026",bank_credit:"Apr 01 2026",jobless:"Apr 11 2026",jolts_quits:"Feb 01 2026",
+  vix:"D",hy_ig:"D",eq_cr_corr:"D",yield_curve:"D",move:"D",
+  real_rates:"D",copper_gold:"D",bkx_spx:"D",usd:"D",skew:"D",
+  anfci:"W",stlfsi:"W",cpff:"W",loan_syn:"W",bank_credit:"W",jobless:"W",cmdi:"W",term_premium:"W",
+  cape:"M",ism:"M",jolts_quits:"M",
+  sloos_ci:"Q",sloos_cre:"Q",bank_unreal:"Q",credit_3y:"Q",
 };
 
 const WEIGHTS={
@@ -1075,8 +1078,8 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 <div style={{width:3,height:12,background:catCol,borderRadius:1,flexShrink:0}}/>
 <span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,flex:"0 1 auto"}}>{label}</span>
 {desc&&<span onClick={e=>e.stopPropagation()} style={{flexShrink:0}}><InfoTip term={label} def={desc} size={11}/></span>}
-<span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0}}>T{tier}</span>
-<span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0}}>{IND_FREQ[id]||"—"}</span>
+<span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>T{tier}</span>
+<span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
 <div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]||"—"}</div>
@@ -1133,8 +1136,8 @@ return(
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
             <h2 style={{fontSize:20,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.01em"}}>{label}</h2>
-            <span style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>TIER {tier}</span>
-            <span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)"}}>{IND_FREQ[id]||"—"}</span>
+            <span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
+            <span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
           <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{CATS[cat]?.label||cat} · As of {AS_OF[id]}</div>
@@ -2062,7 +2065,7 @@ const TAB_META={
   overview:  {eyebrow:"Macro Dashboard",      title:"Today's macro overview",  sub:"Composite stress, regime, category breakdown, and the historical stress trajectory."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
-  portopps:  {eyebrow:"Portfolio & Opportunities", title:"What you own, what to do, what to watch", sub:"Today's actions on your real holdings, your watchlist, and a strategic view of the portfolio."},
+  portopps:  {eyebrow:"Portfolio & Insights", title:"Portfolio & Insights", sub:"Allocation, key insights, positions, and today's opportunities from the scan."},
   portfolio: {eyebrow:"Holdings detail",      title:"Portfolio insights",      sub:"Account-by-account holdings detail and allocation view. (Summary lives in Portfolio & Opportunities.)"},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
@@ -2238,9 +2241,9 @@ return(
       </Tile>
 
       <Tile
-        eyebrow="Portfolio & Opportunities"
-        title="Holdings + actions + watchlist"
-        sub={`$${Math.round(grandTotal/1000)}K · ${ACCOUNTS.length} accounts · Beta ${portBeta.toFixed(2)} · ${CONV.label} regime`}
+        eyebrow="Portfolio & Insights"
+        title="Portfolio & Insights"
+        sub={`$${Math.round(grandTotal/1000)}K · ${ACCOUNTS.length} accounts · Beta ${portBeta.toFixed(2)}`}
         accent="#0a84ff"
         span={2}
         kpi={{value:`$${Math.round(grandTotal/1000)}`, unit:"K total", color:"var(--text)"}}
@@ -2479,11 +2482,10 @@ return(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",maxWidth:1100,margin:"0 auto"}}>
 {/* SUMMARY BAR */}
 <div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & OPPORTUNITIES · SNAPSHOT</div>
+<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & INSIGHTS · SNAPSHOT</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
 {[
   {label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},
-  {label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:convTextColor(CONV)},
   {label:"Holdings",value:`${heldPositions.length} positions`,col:"var(--text)"},
   {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:(scanData?.buy_opportunities?.length||0)>0?"#30d158":"var(--text-muted)"},
   {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:(scanData?.watch_items?.length||0)>0?"var(--yellow-text)":"var(--text-muted)"},
@@ -2566,17 +2568,17 @@ const subPanel=(accentCol,title,count,children)=>(
 );
 
 return(<>
-{subPanel("#30d158","SCANNER — TRIGGERED",`${triggered.length} alert${triggered.length===1?"":"s"}`,
+{subPanel("#30d158","BUY ALERTS",`${triggered.length} today`,
   triggered.length===0?
     <div style={{fontSize:11,color:"var(--text-muted)",padding:"4px 2px"}}>No buy alerts today · Last scan: {lastScanLabel}</div>:
     triggered.map(item=>oppCard({keyId:`trg-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"#30d158",tag:"BUY ALERT",held:heldTickers.has(item.ticker),source:"triggered"}))
 )}
-{subPanel("#ffd60a","SCANNER — WATCH · NEAR TRIGGER",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
+{subPanel("#ffd60a","NEAR TRIGGER",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
   nearTrigger.length===0?
     <div style={{fontSize:11,color:"var(--text-muted)",padding:"4px 2px"}}>Nothing near trigger today.</div>:
     nearTrigger.map(item=>oppCard({keyId:`near-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"var(--yellow-text)",tag:"NEAR TRIGGER",held:heldTickers.has(item.ticker),source:"near"}))
 )}
-{subPanel("#64748b","OTHER — WATCH (YOUR LIST)",`${WATCHLIST.length} tracking`,
+{subPanel("#64748b","OTHER WATCHLIST",`${WATCHLIST.length} tracking`,
   WATCHLIST.map(w=>oppCard({keyId:`oth-${w.ticker}`,ticker:w.ticker,score:scoreByTicker[w.ticker],price:null,companyName:w.name,accentCol:"#64748b",tag:w.ticker.endsWith("USD")?"CRYPTO":"WATCH",held:heldTickers.has(w.ticker),theme:w.theme,source:"other"}))
 )}
 </>);
@@ -2631,38 +2633,38 @@ return(<>
 </>);
 })()}
 
-{/* KEY RISKS & EXPOSURES */}
-<div style={subTitleStyle}>KEY RISKS & EXPOSURES</div>
-<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:14}}>
+{/* INSIGHTS — short, punchy, one-liner only. Only things that are genuinely
+    notable (single-ticker cross-account exposure, big P&L swings). Drop
+    anything that reads as preaching or editorializing about asset allocation. */}
+<div style={subTitleStyle}>INSIGHTS</div>
+<div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:14}}>
 {(()=>{
-  const flags=[];
-  if(heldByTicker.RCAT&&heldByTicker.RCAT.accounts.length>1){
-    const total=heldByTicker.RCAT.total;
-    const wealthPct=(total/grandTotal*100).toFixed(1);
-    flags.push({col:"#ff9f0a",label:"CROSS-ACCOUNT CONCENTRATION",body:`RCAT held in ${heldByTicker.RCAT.accounts.length} accounts — ${fmt$Full(total)} total (${wealthPct}% of wealth). Single-ticker exposure across both Brokerage and Roth.`});
-  }
-  const broker=ACCOUNTS.find(a=>a.id==="brokerage");
-  if(broker){
-    const stocks=broker.positions.filter(p=>p.sector!=="Cash");
-    if(stocks.length<=4){
-      flags.push({col:"#ff9f0a",label:"SINGLE-STOCK CONCENTRATION",body:`JPM Brokerage equity sleeve is ${stocks.length} individual stocks (${stocks.map(s=>s.ticker).join(", ")}). All cyclical/commodity-linked. No diversification within the account.`});
+  const lines=[];
+  // Cross-account single-ticker exposure (e.g. RCAT in 2 accounts)
+  Object.entries(heldByTicker).forEach(([ticker,info])=>{
+    if(info.accounts.length>1&&ticker!=="FXAIX"&&ticker!=="NHXINT906"){
+      lines.push({col:"#ff9f0a",body:`${ticker} held in ${info.accounts.length} accounts — ${fmt$K(info.total)} total exposure`});
     }
-  }
-  const hy=Object.entries(assetRollup).find(([k])=>k==="HY Bonds");
-  if(hy&&hy[1]/grandTotal>0.5){
-    const pct=(hy[1]/grandTotal*100).toFixed(0);
-    flags.push({col:"#14b8a6",label:"ASSET-CLASS EXPOSURE",body:`${pct}% of investable wealth is in HY credit (JHYUX, diversified across hundreds of issuers). Credit-spread sensitive — behaves like a defensive equity sleeve in stress regimes, not a duration hedge. At ${CONV.label} regime: appropriate; at Elevated, expect 8–15% drawdown on this sleeve.`});
-  }
-  const k529s=ACCOUNTS.filter(a=>a.id==="529s"||a.id==="529e");
-  if(k529s.length>0){
-    flags.push({col:"#14b8a6",label:"PLAN-FUND SINGLE ALLOCATION",body:`Both 529 plans are 100% in a single intl-equity fund (NHXINT906 — diversified within the asset class). NH 529 plan menu limits the choice; revisit at age-based glide-path checkpoints.`});
-  }
-  return flags.map((f,i)=>(
-  <div key={i} style={{...cardStyle,borderLeft:`3px solid ${f.col}`}}>
-  <div style={{fontSize:10,color:f.col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>{f.label}</div>
-  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.5}}>{f.body}</div>
-  </div>
-  ));
+  });
+  // Biggest winner + biggest loser by % P&L on positions with avgCost
+  const pnlRanked=heldPositions
+    .filter(p=>p.avgCost&&p.sector!=="Cash")
+    .map(p=>({ticker:p.ticker,pct:((p.price/p.avgCost-1)*100),acct:p.acctLabel}))
+    .sort((a,b)=>b.pct-a.pct);
+  const winner=pnlRanked[0];
+  const loser=pnlRanked[pnlRanked.length-1];
+  if(winner&&winner.pct>=15)lines.push({col:"#30d158",body:`Biggest winner: ${winner.ticker} +${winner.pct.toFixed(0)}% (${winner.acct})`});
+  if(loser&&loser.pct<=-10)lines.push({col:"#ff453a",body:`Biggest loser: ${loser.ticker} ${loser.pct.toFixed(0)}% (${loser.acct})`});
+  // Deployable cash
+  if(totalDeployable>5000)lines.push({col:"#30d158",body:`${fmt$K(totalDeployable)} deployable cash across ${cashByAcct.length} tactical account${cashByAcct.length===1?"":"s"}`});
+  return lines.length===0?
+    <div style={{fontSize:12,color:"var(--text-muted)",padding:"4px 2px"}}>No notable insights today.</div>:
+    lines.map((l,i)=>(
+    <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface-2)",borderLeft:`3px solid ${l.col}`,borderRadius:4}}>
+    <span style={{width:6,height:6,borderRadius:"50%",background:l.col,flexShrink:0}}/>
+    <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{l.body}</span>
+    </div>
+    ));
 })()}
 </div>
 
