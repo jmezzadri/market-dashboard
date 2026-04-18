@@ -866,8 +866,16 @@ return(
 }
 
 function IndStressChart({id,col,compact}){
+// Plots RAW values with natural orientation (higher raw = top of chart) so
+// this compact tile chart reads the same way as the modal LongChart. For
+// "lower-is-worse" indicators, the stress bands naturally land at the
+// bottom (where low raw values live); for "higher-is-worse", bands land
+// at the top. Either way, a line trending down is visually a line trending
+// down — matches the narrative copy.
 const data=getIndicatorHistSeries(id);
 if(!data||data.length<3)return null;
+const sp=SD[id];
+if(!sp)return null;
 const unit=IND[id]?.[4]||"",dec=IND[id]?.[5]??1;
 const fmtRaw=v=>{
 if(v==null)return"—";
@@ -878,28 +886,44 @@ if(["% T1","% 3yr","% YoY","%"].includes(unit))return`${Number(v).toFixed(dec)}%
 return Number(v).toFixed(dec);
 };
 const labels=data.map(d=>String(d[0]));
-const valsStress=data.map(([,v])=>{const s=sdScore(id,v);return s==null?null:sdTo100(s);});
+const rawVals=data.map(d=>d[1]).filter(v=>Number.isFinite(v));
+// Convert stress-100 score back to raw value for a given indicator.
+// sdTo100(sdScore) = ((sdScore+1)/4)*100  ⇒  sdScore = s100/25 − 1
+// For dir="hw": raw = mean + sdScore*sd
+// For dir="lw"/"nw": raw = mean − sdScore*sd  (inverse — bands flip)
+const stressToRaw=(s100)=>{
+  const sdSc=(s100/100)*4-1;
+  return (sp.dir==="hw") ? sp.mean+sdSc*sp.sd : sp.mean-sdSc*sp.sd;
+};
+// Actual indicator-specific band boundaries in raw space
+const bandsRaw=STRESS_HIST_BANDS.map(b=>{
+  const a=stressToRaw(b.lo),c=stressToRaw(b.hi);
+  return {...b,rawLo:Math.min(a,c),rawHi:Math.max(a,c)};
+});
+// Chart range: widen to include the mean band + a buffer so the line never
+// hugs an edge, but don't blow out range for extremely long series.
+const dataMn=Math.min(...rawVals),dataMx=Math.max(...rawVals);
+const meanRaw=sp.mean;
+const yMn=Math.min(dataMn,meanRaw-sp.sd*2);
+const yMx=Math.max(dataMx,meanRaw+sp.sd*2);
+const rng=yMx-yMn||1;
 const W=compact?320:500,H=compact?86:115,pL=compact?22:24,pR=compact?38:44,pT=compact?11:14,pB=compact?18:22;
 const IW=W-pL-pR,IH=H-pT-pB;
 const [hover,setHover]=useState(null);
 const xp=i=>pL+(i/(data.length-1))*IW;
-const yp=v=>pT+(1-Math.max(0,Math.min(100,v))/100)*IH;
-const pts=data.map((d,i)=>{
-const st=valsStress[i];
-return[xp(i),yp(st==null?50:st)];
-});
+// Natural orientation: higher raw = top (y small), lower = bottom (y large)
+const yp=v=>pT+(1-(v-yMn)/rng)*IH;
+const pts=data.map((d,i)=>[xp(i),yp(d[1])]);
 const fullPath=makePath(pts);
 const recentPath=makePath(pts.slice(-3));
 const marks=COMP_CRISES.map(cm=>{
 const idx=labels.findIndex(l=>l===cm.year);
 if(idx<0)return null;
-const st=valsStress[idx];
-return{...cm,x:xp(idx),y:yp(st==null?50:st),raw:data[idx][1]};
+return{...cm,x:xp(idx),y:yp(data[idx][1]),raw:data[idx][1]};
 }).filter(Boolean);
 const tickEvery=data.length>40?16:4;
 const showLbl=labels.map((_,i)=>i===0||i===data.length-1||i%tickEvery===0);
 const lastPt=pts[pts.length-1];
-const lastStress=valsStress[valsStress.length-1];
 const handleInteract=e=>{
 e.stopPropagation();
 const svg=e.currentTarget,rect=svg.getBoundingClientRect();
@@ -908,7 +932,8 @@ const svgX=((cx-rect.left)/rect.width)*W;
 let best=0,bestD=Infinity;
 pts.forEach(([px],i)=>{const d0=Math.abs(px-svgX);if(d0<bestD){bestD=d0;best=i;}});
 const raw=data[best][1];
-const st=valsStress[best];
+const s=sdScore(id,raw);
+const st=s==null?null:sdTo100(s);
 setHover({x:pts[best][0],y:pts[best][1],label:labels[best],raw,st});
 };
 const ttX=hover?Math.min(Math.max(hover.x,pL+28),W-pR-28):0;
@@ -918,18 +943,26 @@ return(
 <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
 onMouseMove={handleInteract} onTouchStart={handleInteract} onTouchMove={handleInteract}
 onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),1800)}>
-{STRESS_HIST_BANDS.map(b=>(
+{/* Stress-band zones translated to raw-value y-coords. Clipped to visible
+    chart range so off-chart bands don't render outside the plot area. */}
+{bandsRaw.map(b=>{
+const yTop=yp(Math.min(b.rawHi,yMx));
+const yBot=yp(Math.max(b.rawLo,yMn));
+const h=yBot-yTop;
+if(h<=0)return null;
+return(
 <g key={b.label}>
-<rect x={pL} y={yp(b.hi)} width={IW} height={yp(b.lo)-yp(b.hi)} fill={b.col} opacity="0.07"/>
-<text x={pL+IW+2} y={yp((b.lo+b.hi)/2)+3} fill={b.col} fontSize={compact?4.5:5} fontFamily="monospace" opacity="0.7">{b.label}</text>
+<rect x={pL} y={yTop} width={IW} height={h} fill={b.col} opacity="0.07"/>
+<text x={pL+IW+2} y={yTop+h/2+2} fill={b.col} fontSize={compact?4.5:5} fontFamily="monospace" opacity="0.7">{b.label}</text>
 </g>
-))}
-{[0,20,50,75,100].map(v=>(
-<g key={v}>
-<line x1={pL-2} y1={yp(v)} x2={pL} y2={yp(v)} stroke="#505050" strokeWidth="0.5"/>
-<text x={pL-4} y={yp(v)+3} textAnchor="end" fill="var(--text-dim)" fontSize={compact?5:6} fontFamily="monospace">{v}</text>
-</g>
-))}
+);
+})}
+{/* Mean dashed line */}
+<line x1={pL} y1={yp(meanRaw)} x2={pL+IW} y2={yp(meanRaw)} stroke="rgba(34,197,94,0.35)" strokeWidth="0.5" strokeDasharray="3,4"/>
+<text x={pL-3} y={yp(meanRaw)+2} textAnchor="end" fill="rgba(34,197,94,0.5)" fontSize={compact?5:5.5} fontFamily="monospace">{fmtRaw(meanRaw)}</text>
+{/* Raw-value tick marks at top and bottom of the range */}
+<text x={pL-3} y={pT+4} textAnchor="end" fill="var(--text-dim)" fontSize={compact?5:6} fontFamily="monospace">{fmtRaw(yMx)}</text>
+<text x={pL-3} y={pT+IH+2} textAnchor="end" fill="var(--text-dim)" fontSize={compact?5:6} fontFamily="monospace">{fmtRaw(yMn)}</text>
 {marks.map(cm=>(
 <g key={cm.label}>
 <line x1={cm.x} y1={pT} x2={cm.x} y2={pT+IH} stroke={cm.color} strokeWidth="1" strokeDasharray="2,3" opacity="0.6"/>
