@@ -1280,6 +1280,14 @@ const avgVol=sc.avg30_volume!=null?Number(sc.avg30_volume):null;
 const relVol=sc.relative_volume!=null?Number(sc.relative_volume):null;
 const nextEarn=sc.next_earnings_date;
 const nextDiv=sc.next_dividend_date;
+// Short interest (FINRA biweekly via yfinance — lagged ~15 days, NEVER real-time)
+const siPctFloat=sc.short_pct_float!=null?Number(sc.short_pct_float):null;
+const siPctSOut=sc.short_pct_shares_out!=null?Number(sc.short_pct_shares_out):null;
+const siDaysCover=sc.days_to_cover!=null?Number(sc.days_to_cover):null;
+const sharesShort=sc.shares_short!=null?Number(sc.shares_short):null;
+const sharesShortPrior=sc.shares_short_prior!=null?Number(sc.shares_short_prior):null;
+const siAsOf=sc.short_as_of;
+const siTrendPct=(sharesShort!=null&&sharesShortPrior!=null&&sharesShortPrior>0)?((sharesShort-sharesShortPrior)/sharesShortPrior)*100:null;
 const fmt$=v=>v==null?"—":`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const fmt$M=v=>v==null?"—":v>=1e9?`$${(v/1e9).toFixed(2)}B`:v>=1e6?`$${(v/1e6).toFixed(1)}M`:v>=1e3?`$${(v/1e3).toFixed(0)}K`:`$${v.toFixed(0)}`;
 const fmt$signed=v=>v==null?"—":(v>=0?"+":"")+fmt$M(Math.abs(v));
@@ -1395,7 +1403,7 @@ return(
 {/* Technicals — hide entirely for manual-track tickers where every field is null */}
 {(rsi!=null||macd!=null||above50!=null||above200!=null||vol!=null||rv!=null)&&(
 <div style={panelStyle}>
-<div style={sectionLabel}>TECHNICALS</div>
+<div style={sectionLabel}>TECHNICAL ANALYSIS</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
 {rsi!=null&&<Kpi label="RSI-14" value={rsi.toFixed(1)} color={rsiColor} sub={rsi>=70?"overbought":rsi<=30?"oversold":"neutral"} tip="Relative Strength Index over 14 days. Oscillator from 0-100. Above 70 is traditionally 'overbought' (stretched, prone to pullback); below 30 is 'oversold' (bid for a bounce). Between 30-70 is neutral momentum."/>}
 {macd!=null&&<Kpi label="MACD CROSS" value={macd} color={macdColor} tip="Moving Average Convergence Divergence. 'bullish' = the 12-day EMA just crossed ABOVE the 26-day EMA in the last 3 days (momentum shift up). 'bearish' = crossed below (momentum down). 'neutral' = no recent cross."/>}
@@ -1423,6 +1431,29 @@ return(
 </div>
 </div>
 )}
+
+{/* Short interest — FINRA biweekly, ~15-day lag, NEVER real-time */}
+{(siPctFloat!=null||siPctSOut!=null||siDaysCover!=null)&&(()=>{
+  const pf=siPctFloat!=null?siPctFloat:siPctSOut;  // prefer % of float, fall back to % of shares out
+  const pfPct=pf!=null?pf*100:null;
+  const siCol=pfPct==null?"var(--text-dim)":pfPct>=25?"#ff453a":pfPct>=15?"#ff9f0a":pfPct>=5?"#ffd60a":"#30d158";
+  const siLabel=pfPct==null?"":pfPct>=25?"squeeze setup":pfPct>=15?"elevated":pfPct>=5?"moderate":"low";
+  const dtcCol=siDaysCover==null?"var(--text-dim)":siDaysCover>=7?"#ff453a":siDaysCover>=3?"#ff9f0a":"var(--text)";
+  const trendCol=siTrendPct==null?"var(--text-dim)":siTrendPct>=10?"#ff453a":siTrendPct<=-10?"#30d158":"var(--text)";
+  const usingSOut=siPctFloat==null&&siPctSOut!=null;
+  return(
+  <div style={panelStyle}>
+  <div style={sectionLabel}>SHORT INTEREST {siAsOf?`· as of ${siAsOf}`:""}</div>
+  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
+  {pfPct!=null&&<Kpi label={usingSOut?"SI % SHARES OUT":"SI % FLOAT"} value={`${pfPct.toFixed(1)}%`} color={siCol} sub={siLabel} tip={`Short interest as a percentage of ${usingSOut?"shares outstanding":"float"}. The classic squeeze indicator — high SI on a name showing bullish setup (rising price, positive flow, congress/insider buys) is a setup for a short squeeze. Buckets: <5% low (no edge); 5–15% moderate; 15–25% elevated (worth watching); >25% squeeze setup (GME peak was 140%+).${siPctFloat==null?" Note: this ticker only reports % of shares outstanding, not float.":""}`}/>}
+  {siDaysCover!=null&&<Kpi label="DAYS TO COVER" value={`${siDaysCover.toFixed(1)}d`} color={dtcCol} sub={siDaysCover>=7?"hard to exit":siDaysCover>=3?"meaningful":"easy to cover"} tip="Short interest divided by 30-day average daily share volume — how many trading days it would take shorts to fully cover at typical volume. Low days-to-cover (<3) means shorts can exit cleanly; high (>7) means any squeeze gets violent because shorts can't get out fast enough."/>}
+  {sharesShort!=null&&<Kpi label="SHARES SHORT" value={fmtNum(sharesShort)} color="var(--text)" sub={siTrendPct!=null?`${siTrendPct>=0?"+":""}${siTrendPct.toFixed(1)}% vs prior`:""} tip="Total shares sold short at the last FINRA report (biweekly). Compare to prior-month figure (sub-text) to see if shorts are pressing the trade or covering — bears doubling down (rising SI) into a rising price is a classic squeeze setup."/>}
+  {siTrendPct!=null&&<Kpi label="SI TREND" value={`${siTrendPct>=0?"+":""}${siTrendPct.toFixed(1)}%`} color={trendCol} sub={siTrendPct>=10?"shorts pressing":siTrendPct<=-10?"shorts covering":"flat"} tip="Change in shares short vs the prior bi-weekly report. Rising SI (>+10%) into a rising price = bears doubling down (squeeze fuel). Falling SI (<-10%) = shorts already covering (squeeze likely played out)."/>}
+  </div>
+  <div style={{fontSize:9,color:"var(--text-dim)",marginTop:8,fontStyle:"italic"}}>FINRA reports SI biweekly with a ~15-day lag — this data is never real-time.</div>
+  </div>
+  );
+})()}
 
 {/* Market structure */}
 {(mcap!=null||avgVol!=null||nextEarn||nextDiv)&&(
