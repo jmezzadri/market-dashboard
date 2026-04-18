@@ -1186,10 +1186,10 @@ return(
 }
 
 // ── TICKER DETAIL MODAL — per-ticker drill-down for opportunity cards,
-//    held positions, and watchlist entries. Shows score gauge + 4-signal
-//    breakdown + perf + technicals + options flow in one view, without
-//    navigating the user away from the portopps page.
-function TickerDetailModal({ticker,scanData,accounts,onClose,onOpenFullScanner}){
+//    held positions, and watchlist entries. Self-contained view of every
+//    piece of intel the scanner has for one ticker — no need to bounce
+//    to the Scanner tab.
+function TickerDetailModal({ticker,scanData,accounts,onClose}){
 useEffect(()=>{
   const onKey=e=>{if(e.key==="Escape")onClose();};
   window.addEventListener("keydown",onKey);
@@ -1218,26 +1218,46 @@ const above50=tech.above_50ma;
 const above200=tech.above_200ma;
 const vol=tech.vol_surge;
 const techScore=tech.tech_score;
-const ivr=sc.iv30d!=null?Number(sc.iv30d)*100:null;
-// Options flow
+const ivLvl=sc.iv30d!=null?Number(sc.iv30d)*100:null;
+const ivRank=sc.iv_rank!=null?Number(sc.iv_rank):null;
+const rv=sc.realized_volatility!=null?Number(sc.realized_volatility)*100:null;
+const impMove30=sc.implied_move_perc_30!=null?Number(sc.implied_move_perc_30)*100:(sc.implied_move_perc!=null?Number(sc.implied_move_perc)*100:null);
+// Options flow — positive/negative premium flows
 const bullPrem=sc.bullish_premium!=null?Number(sc.bullish_premium):null;
 const bearPrem=sc.bearish_premium!=null?Number(sc.bearish_premium):null;
+const netCallPrem=sc.net_call_premium!=null?Number(sc.net_call_premium):null;
+const netPutPrem=sc.net_put_premium!=null?Number(sc.net_put_premium):null;
+// Skew: net call premium minus net put premium ($) — positive = bid for
+// upside calls (bullish skew), negative = bid for put protection (bearish).
+// This is the closest thing to an equity-skew read we have without explicit
+// 25-delta IV data.
+const flowSkew=(netCallPrem!=null&&netPutPrem!=null)?(netCallPrem-netPutPrem):null;
 const callVol=sc.call_volume!=null?Number(sc.call_volume):null;
 const putVol=sc.put_volume!=null?Number(sc.put_volume):null;
 const callOI=sc.call_open_interest!=null?Number(sc.call_open_interest):null;
 const putOI=sc.put_open_interest!=null?Number(sc.put_open_interest):null;
 const pcRatio=putOI&&callOI?putOI/callOI:null;
+const pcVolRatio=putVol&&callVol?putVol/callVol:null;
 const mcap=sc.marketcap!=null?Number(sc.marketcap):null;
 const avgVol=sc.avg30_volume!=null?Number(sc.avg30_volume):null;
+const relVol=sc.relative_volume!=null?Number(sc.relative_volume):null;
+const nextEarn=sc.next_earnings_date;
+const nextDiv=sc.next_dividend_date;
 const fmt$=v=>v==null?"—":`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const fmt$M=v=>v==null?"—":v>=1e9?`$${(v/1e9).toFixed(2)}B`:v>=1e6?`$${(v/1e6).toFixed(1)}M`:v>=1e3?`$${(v/1e3).toFixed(0)}K`:`$${v.toFixed(0)}`;
+const fmt$signed=v=>v==null?"—":(v>=0?"+":"")+fmt$M(Math.abs(v));
 const fmtNum=v=>v==null?"—":v>=1e6?`${(v/1e6).toFixed(1)}M`:v>=1e3?`${(v/1e3).toFixed(0)}K`:v.toLocaleString();
-// Signal-column lookups (reuse the same logic Scanner.jsx uses for the 4-col grid)
-const countSig=(rows,tickerKey)=>(rows||[]).filter(r=>(r?.ticker||"").toUpperCase()===ticker).length;
-const congressCt=countSig(scanData?.signals?.congress_buys)+countSig(scanData?.signals?.congress_sells);
-const insiderCt=countSig(scanData?.signals?.insider_buys)+countSig(scanData?.signals?.insider_sales);
-const flowCt=countSig(scanData?.signals?.flow_alerts)+countSig(scanData?.signals?.put_flow_alerts);
-const sigLabel=(c,pos,neg)=>c===0?"Neutral":`${c} ${c===1?"hit":"hits"}`;
+// Activity rows (filter scanData signals by this ticker)
+const rowsFor=(list)=>(list||[]).filter(r=>(r?.ticker||"").toUpperCase()===ticker);
+const congressBuys=rowsFor(scanData?.signals?.congress_buys);
+const congressSells=rowsFor(scanData?.signals?.congress_sells);
+const insiderBuys=rowsFor(scanData?.signals?.insider_buys);
+const insiderSells=rowsFor(scanData?.signals?.insider_sales);
+const flowCalls=rowsFor(scanData?.signals?.flow_alerts);
+const flowPuts=rowsFor(scanData?.signals?.put_flow_alerts);
+const congressCt=congressBuys.length+congressSells.length;
+const insiderCt=insiderBuys.length+insiderSells.length;
+const flowCt=flowCalls.length+flowPuts.length;
 // Score components / contribution gauge
 const ScoreGauge=({s})=>{
   if(s==null)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",width:148,height:100,color:"var(--text-dim)",fontSize:11,fontFamily:"var(--font-mono)"}}>no score</div>;
@@ -1261,8 +1281,24 @@ const ScoreGauge=({s})=>{
 const panelStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"};
 const sectionLabel={fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8,fontWeight:600};
 const kpiBox={background:"var(--surface-3)",borderRadius:5,padding:"8px 10px"};
-const kpiLabel={fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:3};
+const kpiLabelBase={fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:3};
 const kpiValue={fontSize:14,fontWeight:700,fontFamily:"var(--font-mono)"};
+// Reusable KPI with hover-tooltip on the label (little ⓘ marker). Every metric
+// in the modal gets one so nothing reads as a mystery number.
+const Kpi=({label,value,color,sub,tip})=>(
+<div style={kpiBox}>
+<div style={{...kpiLabelBase,cursor:tip?"help":"default",display:"flex",alignItems:"center",gap:3}} title={tip}>{label}{tip&&<span style={{opacity:0.5,fontSize:9}}>ⓘ</span>}</div>
+<div style={{...kpiValue,color:color||"var(--text)"}}>{value}</div>
+{sub&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{sub}</div>}
+</div>
+);
+const rsiColor=rsi==null?"var(--text-dim)":rsi>=70?"#ff453a":rsi<=30?"#30d158":"var(--text)";
+const macdColor=macd==="bullish"?"#30d158":macd==="bearish"?"#ff453a":"var(--text)";
+const ma50Color=above50==null?"var(--text-dim)":above50?"#30d158":"#ff453a";
+const ma200Color=above200==null?"var(--text-dim)":above200?"#30d158":"#ff453a";
+const volColor=vol==null?"var(--text-dim)":vol>=2?"#30d158":vol>=1?"var(--text)":"var(--text-dim)";
+const ivRankColor=ivRank==null?"var(--text-dim)":ivRank>=70?"#ff453a":ivRank<=30?"#30d158":"var(--text)";
+const techScoreCol=techScore==null?"var(--text-dim)":techScore>=2?"#30d158":techScore>=-1?"var(--text)":"#ff453a";
 return(
 <div className="modal-backdrop" onClick={onClose}>
 <div className="modal-wrap">
@@ -1286,24 +1322,14 @@ return(
 </div>
 </div>
 
-{/* Score Gauge + Tier Label + Signal Breakdown */}
+{/* Score Gauge + Signal Breakdown */}
 <div style={{...panelStyle,display:"flex",alignItems:"center",gap:16}}>
 <div style={{flexShrink:0}}><ScoreGauge s={score}/></div>
 <div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8}}>
-{[
-  {lbl:"CONGRESS",ct:congressCt,col:"var(--blue)"},
-  {lbl:"INSIDER",ct:insiderCt,col:"var(--purple)"},
-  {lbl:"OPTIONS FLOW",ct:flowCt,col:"var(--orange)"},
-  {lbl:"TECHNICAL",ct:techScore!=null?techScore:null,col:"var(--yellow)",isTech:true},
-].map(({lbl,ct,col,isTech})=>(
-<div key={lbl} style={kpiBox}>
-<div style={kpiLabel}>{lbl}</div>
-{isTech?
-  <div style={{...kpiValue,color:ct==null?"var(--text-dim)":ct>=2?"#30d158":ct>=-1?"var(--text)":"#ff453a"}}>{ct==null?"—":(ct>=0?"+":"")+ct}</div>:
-  <div style={{...kpiValue,color:ct>0?col:"var(--text-dim)"}}>{ct>0?`${ct} hit${ct===1?"":"s"}`:"—"}</div>
-}
-</div>
-))}
+<Kpi label="CONGRESS" value={congressCt>0?`${congressCt} hit${congressCt===1?"":"s"}`:"—"} color={congressCt>0?"var(--blue)":"var(--text-dim)"} tip="Disclosed equity trades by U.S. Senators and Representatives in the last 45 days. Scanner tallies buys and sells separately and scores them by disclosed dollar range."/>
+<Kpi label="INSIDER" value={insiderCt>0?`${insiderCt} hit${insiderCt===1?"":"s"}`:"—"} color={insiderCt>0?"var(--purple)":"var(--text-dim)"} tip="Open-market buys and sells by company officers, directors, and 10% holders filed on Form 4 with the SEC in the last 30 days. Only meaningful-dollar transactions count toward the score."/>
+<Kpi label="OPTIONS FLOW" value={flowCt>0?`${flowCt} hit${flowCt===1?"":"s"}`:"—"} color={flowCt>0?"var(--orange)":"var(--text-dim)"} tip="Large or unusual call and put options activity flagged by Unusual Whales. Calls and puts are scored separately (bullish vs bearish flow)."/>
+<Kpi label="TECHNICAL" value={techScore==null?"—":(techScore>=0?"+":"")+techScore} color={techScoreCol} tip={"Weighted technical score from RSI + MACD + moving averages + volume. NOT a simple +/− count of cells — very overbought RSI (>80) penalizes −8, clean uptrend (above both MAs) rewards +6, etc. So a stock with strong MAs but extremely overbought RSI can net negative. Current breakdown:\n"+(rsi!=null?(rsi>80?`• RSI ${rsi.toFixed(1)} severely overbought (−8)\n`:rsi>70?`• RSI ${rsi.toFixed(1)} overbought (−4)\n`:rsi<30?`• RSI ${rsi.toFixed(1)} oversold (+8)\n`:rsi<40?`• RSI ${rsi.toFixed(1)} approaching oversold (+4)\n`:`• RSI ${rsi.toFixed(1)} neutral (0)\n`):"")+(macd==="bullish"?"• MACD bullish cross (+6)\n":macd==="bearish"?"• MACD bearish cross (−3)\n":"• MACD neutral (0)\n")+(above50===true&&above200===true?"• Above both 50d & 200d MA (+6)":above50===true?"• Above 50d / below 200d (+3)":above200===true?"• Below 50d / above 200d (−1)":"• Below both MAs (−4)")}/>
 </div>
 </div>
 
@@ -1312,12 +1338,9 @@ return(
 <div style={panelStyle}>
 <div style={sectionLabel}>PERFORMANCE</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-{[["1W",wk],["1M",mo],["YTD",yt]].map(([lbl,v])=>(
-<div key={lbl} style={kpiBox}>
-<div style={kpiLabel}>{lbl}</div>
-<div style={{...kpiValue,color:v==null?"var(--text-dim)":v>=0?"#30d158":"#ff453a"}}>{v==null?"—":fmtPct(v)}</div>
-</div>
-))}
+<Kpi label="1W" value={wk==null?"—":fmtPct(wk)} color={wk==null?"var(--text-dim)":wk>=0?"#30d158":"#ff453a"} tip="Price change over the last 5 trading days."/>
+<Kpi label="1M" value={mo==null?"—":fmtPct(mo)} color={mo==null?"var(--text-dim)":mo>=0?"#30d158":"#ff453a"} tip="Price change over the last ~21 trading days."/>
+<Kpi label="YTD" value={yt==null?"—":fmtPct(yt)} color={yt==null?"var(--text-dim)":yt>=0?"#30d158":"#ff453a"} tip="Price change since Jan 1 of the current year."/>
 </div>
 </div>
 )}
@@ -1325,47 +1348,43 @@ return(
 {/* Technicals */}
 <div style={panelStyle}>
 <div style={sectionLabel}>TECHNICALS</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8}}>
-<div style={kpiBox}>
-<div style={kpiLabel}>RSI-14</div>
-<div style={{...kpiValue,color:rsi==null?"var(--text-dim)":rsi>=70?"#ff453a":rsi<=30?"#30d158":"var(--text)"}}>{rsi==null?"—":rsi.toFixed(1)}</div>
-<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{rsi==null?"":rsi>=70?"overbought":rsi<=30?"oversold":"neutral"}</div>
-</div>
-<div style={kpiBox}>
-<div style={kpiLabel}>MACD CROSS</div>
-<div style={{...kpiValue,color:macd==="bullish"?"#30d158":macd==="bearish"?"#ff453a":"var(--text)"}}>{macd==null?"—":macd}</div>
-</div>
-<div style={kpiBox}>
-<div style={kpiLabel}>VS 50-DAY MA</div>
-<div style={{...kpiValue,color:above50==null?"var(--text-dim)":above50?"#30d158":"#ff453a"}}>{above50==null?"—":above50?"above":"below"}</div>
-</div>
-<div style={kpiBox}>
-<div style={kpiLabel}>VS 200-DAY MA</div>
-<div style={{...kpiValue,color:above200==null?"var(--text-dim)":above200?"#30d158":"#ff453a"}}>{above200==null?"—":above200?"above":"below"}</div>
-</div>
-<div style={kpiBox}>
-<div style={kpiLabel}>VOL SURGE</div>
-<div style={{...kpiValue,color:vol==null?"var(--text-dim)":vol>=2?"#30d158":vol>=1?"var(--text)":"var(--text-dim)"}}>{vol==null?"—":`${vol.toFixed(2)}×`}</div>
-<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>vs 30d avg</div>
-</div>
-<div style={kpiBox}>
-<div style={kpiLabel}>IV 30-DAY</div>
-<div style={{...kpiValue,color:"var(--text)"}}>{ivr==null?"—":`${ivr.toFixed(0)}%`}</div>
-</div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
+<Kpi label="RSI-14" value={rsi==null?"—":rsi.toFixed(1)} color={rsiColor} sub={rsi==null?"":rsi>=70?"overbought":rsi<=30?"oversold":"neutral"} tip="Relative Strength Index over 14 days. Oscillator from 0-100. Above 70 is traditionally 'overbought' (stretched, prone to pullback); below 30 is 'oversold' (bid for a bounce). Between 30-70 is neutral momentum."/>
+<Kpi label="MACD CROSS" value={macd==null?"—":macd} color={macdColor} tip="Moving Average Convergence Divergence. 'bullish' = the 12-day EMA just crossed ABOVE the 26-day EMA in the last 3 days (momentum shift up). 'bearish' = crossed below (momentum down). 'neutral' = no recent cross."/>
+<Kpi label="VS 50-DAY MA" value={above50==null?"—":above50?"above":"below"} color={ma50Color} tip="Is the price above or below its 50-day simple moving average? Above = short-term uptrend. Below = short-term downtrend."/>
+<Kpi label="VS 200-DAY MA" value={above200==null?"—":above200?"above":"below"} color={ma200Color} tip="Is the price above or below its 200-day simple moving average? Above = long-term bull trend (institutional reference line). Below = long-term bear / correction."/>
+<Kpi label="VOL SURGE" value={vol==null?"—":`${vol.toFixed(2)}×`} color={volColor} sub="vs 30d avg" tip="Today's trading volume divided by the 20-day average. 1.0× = normal day. >2× = heavy interest (often tied to news, breakouts, or institutional activity). <0.5× = quiet."/>
+{rv!=null&&<Kpi label="REALIZED VOL 30D" value={`${rv.toFixed(0)}%`} color="var(--text)" tip="Actual price volatility observed over the past 30 days (annualized). Compare to implied vol to see if options are priced richer or cheaper than the stock's recent behavior."/>}
 </div>
 </div>
 
-{/* Options flow / market structure */}
-{(bullPrem!=null||bearPrem!=null||callOI!=null||putOI!=null||mcap!=null)&&(
+{/* Options — IV + flow skew */}
+{(ivLvl!=null||ivRank!=null||bullPrem!=null||flowSkew!=null||impMove30!=null||pcRatio!=null)&&(
 <div style={panelStyle}>
-<div style={sectionLabel}>OPTIONS FLOW · MARKET STRUCTURE</div>
+<div style={sectionLabel}>OPTIONS · IV · FLOW SKEW</div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
+{ivRank!=null&&<Kpi label="IV RANK" value={`${ivRank.toFixed(0)}`} color={ivRankColor} sub={ivRank>=70?"IV expensive":ivRank<=30?"IV cheap":"mid-range"} tip="Where current 30-day implied volatility sits in its 52-week range, 0-100. IV Rank 0 = IV is at a 1-year LOW (options cheap, favors buying calls/puts). IV Rank 100 = IV is at a 1-year HIGH (options expensive, favors premium selling — covered calls, cash-secured puts). >70 is the scanner's threshold to screen for covered-call setups."/>}
+{ivLvl!=null&&<Kpi label="IV 30D LEVEL" value={`${ivLvl.toFixed(0)}%`} color="var(--text)" tip={`Annualized implied volatility priced into 30-day options (${ivLvl.toFixed(0)}%). Interpretation: the options market expects the stock to move roughly ±${(ivLvl/Math.sqrt(12)).toFixed(0)}% over the next month (1σ). Higher = more expected motion. Compare to realized vol to see the vol premium.`}/>}
+{impMove30!=null&&<Kpi label="IMPLIED MOVE 30D" value={`±${impMove30.toFixed(1)}%`} color="var(--text)" tip="Expected price range over the next 30 days implied by at-the-money option prices (1σ). E.g. ±6% means the options market is pricing ~68% probability the stock stays within ±6% over a month."/>}
+{flowSkew!=null&&<Kpi label="FLOW SKEW" value={fmt$signed(flowSkew)} color={flowSkew>=0?"#30d158":"#ff453a"} sub={flowSkew>=0?"bid for upside":"bid for downside"} tip="Net call premium minus net put premium (dollars). Positive = today's options flow is net paying for upside exposure (calls); negative = net paying for downside protection (puts). This is the scanner's closest equity-skew read — more positive = more bullish flow."/>}
+{netCallPrem!=null&&<Kpi label="NET CALL PREM" value={fmt$signed(netCallPrem)} color={netCallPrem>=0?"#30d158":"var(--text-dim)"} tip="Dollar premium paid for calls at the ask MINUS premium hit at the bid. Positive = aggressive call buying; negative = net call selling."/>}
+{netPutPrem!=null&&<Kpi label="NET PUT PREM" value={fmt$signed(netPutPrem)} color={netPutPrem>=0?"#ff453a":"var(--text-dim)"} tip="Dollar premium paid for puts at the ask MINUS premium hit at the bid. Positive = aggressive put buying (hedging or directional bear bets); negative = net put selling (often income / yield)."/>}
+{pcRatio!=null&&<Kpi label="PUT/CALL OI" value={pcRatio.toFixed(2)} color={pcRatio>1?"#ff453a":pcRatio<0.7?"#30d158":"var(--text)"} sub={`calls ${fmtNum(callOI)} · puts ${fmtNum(putOI)}`} tip="Put open interest divided by call open interest. >1.0 means more put positioning than call (often hedged long books or bearish); <0.7 skews bullish. Extreme values (>2 or <0.3) can be contrarian signals."/>}
+{pcVolRatio!=null&&<Kpi label="PUT/CALL VOL" value={pcVolRatio.toFixed(2)} color={pcVolRatio>1?"#ff453a":pcVolRatio<0.7?"#30d158":"var(--text)"} sub="today's flow direction" tip="Today's put volume divided by call volume. Measures today's directional flow (vs OI which measures accumulated positioning). Moving above 1 intraday often signals stress buying; below 0.7 signals call chase."/>}
+</div>
+</div>
+)}
+
+{/* Market structure */}
+{(mcap!=null||avgVol!=null||nextEarn||nextDiv)&&(
+<div style={panelStyle}>
+<div style={sectionLabel}>MARKET STRUCTURE</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
-{bullPrem!=null&&<div style={kpiBox}><div style={kpiLabel}>BULLISH PREMIUM</div><div style={{...kpiValue,color:"#30d158"}}>{fmt$M(bullPrem)}</div></div>}
-{bearPrem!=null&&<div style={kpiBox}><div style={kpiLabel}>BEARISH PREMIUM</div><div style={{...kpiValue,color:"#ff453a"}}>{fmt$M(bearPrem)}</div></div>}
-{pcRatio!=null&&<div style={kpiBox}><div style={kpiLabel}>PUT/CALL OI</div><div style={{...kpiValue,color:pcRatio>1?"#ff453a":pcRatio<0.7?"#30d158":"var(--text)"}}>{pcRatio.toFixed(2)}</div><div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>calls {fmtNum(callOI)} · puts {fmtNum(putOI)}</div></div>}
-{callVol!=null&&putVol!=null&&<div style={kpiBox}><div style={kpiLabel}>TODAY'S VOL</div><div style={{...kpiValue,color:"var(--text)"}}>{fmtNum(callVol+putVol)}</div><div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>calls {fmtNum(callVol)} · puts {fmtNum(putVol)}</div></div>}
-{mcap!=null&&<div style={kpiBox}><div style={kpiLabel}>MARKET CAP</div><div style={{...kpiValue,color:"var(--text)"}}>{fmt$M(mcap)}</div></div>}
-{avgVol!=null&&<div style={kpiBox}><div style={kpiLabel}>AVG VOL 30D</div><div style={{...kpiValue,color:"var(--text)"}}>{fmtNum(avgVol)}</div></div>}
+{mcap!=null&&<Kpi label="MARKET CAP" value={fmt$M(mcap)} color="var(--text)" tip="Total market capitalization (shares × price). Rough size buckets: <$300M microcap, $300M-2B small, $2-10B mid, $10-200B large, >$200B mega."/>}
+{avgVol!=null&&<Kpi label="AVG VOL 30D" value={fmtNum(avgVol)} color="var(--text)" tip="Average daily share volume over the past 30 days. Low avg volume means wider spreads and worse fills; anything under ~500K/day can be tough to trade size in."/>}
+{relVol!=null&&<Kpi label="RELATIVE VOL" value={`${relVol.toFixed(2)}×`} color={relVol>=2?"#30d158":relVol>=1?"var(--text)":"var(--text-dim)"} sub="intraday vs avg" tip="Today's volume pace divided by the normal pace for this time of day. 2× + means heavy session vs. typical; often a news day or breakout."/>}
+{nextEarn&&<Kpi label="NEXT EARNINGS" value={String(nextEarn).slice(0,10)} color="var(--text)" tip="Next scheduled earnings release date. IV often inflates into earnings and crushes immediately after — relevant for any options trades."/>}
+{nextDiv&&<Kpi label="NEXT DIVIDEND" value={String(nextDiv).slice(0,10)} color="var(--text)" tip="Next ex-dividend date. Covered-call writers should be aware — American-style calls that are deep-ITM may be exercised early before the ex-dividend date."/>}
 </div>
 </div>
 )}
@@ -1376,10 +1395,9 @@ return(
 <div style={sectionLabel}>HELD · {heldIn.length===1?heldIn[0].acct.label:`${heldIn.length} accounts`}</div>
 {heldIn.map(({acct,p})=>{
   const pnlPct=p.avgCost?((p.price/p.avgCost-1)*100):null;
-  const pnl$=p.avgCost?(p.value-p.avgCost*p.shares):null;
   const col=pnlPct==null?"var(--text-muted)":pnlPct>=0?"#30d158":"#ff453a";
   return(
-  <div key={acct.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--border-faint)",fontSize:12,fontFamily:"var(--font-mono)"}}>
+  <div key={acct.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--border-faint)",fontSize:12,fontFamily:"var(--font-mono)",gap:8,flexWrap:"wrap"}}>
   <span style={{color:"var(--text)"}}>{acct.label}</span>
   <span style={{color:"var(--text-muted)"}}>{p.shares.toLocaleString()} sh · cost {fmt$(p.avgCost)}</span>
   <span style={{color:"var(--text)",fontWeight:700}}>{fmt$(p.value)}</span>
@@ -1390,14 +1408,64 @@ return(
 </div>
 )}
 
-{/* Footer */}
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:"var(--space-2)",gap:8,flexWrap:"wrap"}}>
-<div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>
-Scan: {scanData?.date_label||"—"} · Data from latest scanner run
+{/* Activity: Congress / Insider / Flow rows — full scanner detail, inlined */}
+{(congressCt>0||insiderCt>0||flowCt>0)&&(
+<div style={panelStyle}>
+<div style={sectionLabel}>ACTIVITY</div>
+{congressBuys.length+congressSells.length>0&&(
+<div style={{marginBottom:10}}>
+<div style={{fontSize:10,color:"var(--blue)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>CONGRESSIONAL TRADES ({congressCt})</div>
+<div style={{display:"flex",flexDirection:"column",gap:3}}>
+{[...congressBuys.map(r=>({...r,kind:"BUY"})),...congressSells.map(r=>({...r,kind:"SELL"}))].slice(0,8).map((r,i)=>(
+<div key={i} style={{display:"flex",gap:8,fontSize:11,fontFamily:"var(--font-mono)",alignItems:"center",padding:"3px 6px",background:"var(--surface-3)",borderRadius:3}}>
+<span style={{fontSize:9,fontWeight:700,color:r.kind==="BUY"?"#30d158":"#ff453a",minWidth:28}}>{r.kind}</span>
+<span style={{color:"var(--text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name||r.reporter||"—"}</span>
+<span style={{color:"var(--text-muted)"}}>{r.amount||r.disclosed_amount||"—"}</span>
+<span style={{color:"var(--text-dim)"}}>{String(r.transaction_date||r.disclosed_at||"").slice(0,10)}</span>
 </div>
-<span style={{fontSize:12,color:"var(--accent)",cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>{onClose();onOpenFullScanner&&onOpenFullScanner(ticker);}}>
-See {ticker} in full scanner context →
-</span>
+))}
+</div>
+</div>
+)}
+{insiderBuys.length+insiderSells.length>0&&(
+<div style={{marginBottom:10}}>
+<div style={{fontSize:10,color:"var(--purple)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>INSIDER TRANSACTIONS ({insiderCt})</div>
+<div style={{display:"flex",flexDirection:"column",gap:3}}>
+{[...insiderBuys.map(r=>({...r,kind:"BUY"})),...insiderSells.map(r=>({...r,kind:"SELL"}))].slice(0,8).map((r,i)=>(
+<div key={i} style={{display:"flex",gap:8,fontSize:11,fontFamily:"var(--font-mono)",alignItems:"center",padding:"3px 6px",background:"var(--surface-3)",borderRadius:3}}><span style={{fontSize:9,fontWeight:700,color:r.kind==="BUY"?"#30d158":"#ff453a",minWidth:28}}>{r.kind}</span>
+<span style={{color:"var(--text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name||r.insider_name||"—"} {r.title?`· ${r.title}`:""}</span>
+<span style={{color:"var(--text-muted)"}}>{r.dollar_amount?fmt$M(Number(r.dollar_amount)):r.shares?`${fmtNum(r.shares)} sh`:"—"}</span>
+<span style={{color:"var(--text-dim)"}}>{String(r.transaction_date||r.filed_at||"").slice(0,10)}</span>
+</div>
+))}
+</div>
+</div>
+)}
+{flowCalls.length+flowPuts.length>0&&(
+<div>
+<div style={{fontSize:10,color:"var(--orange)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>UNUSUAL OPTIONS FLOW ({flowCt})</div>
+<div style={{display:"flex",flexDirection:"column",gap:3}}>
+{[...flowCalls.map(r=>({...r,side:"CALL"})),...flowPuts.map(r=>({...r,side:"PUT"}))].slice(0,8).map((r,i)=>{
+  const isCall=r.side==="CALL";
+  const mono=r.strike&&r.underlying_price?((Number(r.strike)-Number(r.underlying_price))/Number(r.underlying_price)*100):null;
+  return(
+  <div key={i} style={{display:"flex",gap:8,fontSize:11,fontFamily:"var(--font-mono)",alignItems:"center",padding:"3px 6px",background:"var(--surface-3)",borderRadius:3}}>
+  <span style={{fontSize:9,fontWeight:700,color:isCall?"#30d158":"#ff453a",minWidth:28}}>{r.side}</span>
+  <span style={{color:"var(--text)"}}>{r.strike?fmt$(Number(r.strike)):"—"} {r.expiry||r.expires?`exp ${String(r.expiry||r.expires).slice(0,10)}`:""}</span>
+  <span style={{color:"var(--text-muted)",flex:1}}>{mono!=null?`${mono>=0?"+":""}${mono.toFixed(1)}% OTM`:""}</span>
+  <span style={{color:isCall?"#30d158":"#ff453a",fontWeight:700}}>{r.total_premium?fmt$M(Number(r.total_premium)):"—"}</span>
+  </div>
+  );
+})}
+</div>
+</div>
+)}
+</div>
+)}
+
+{/* Footer — just a timestamp, no escape hatch */}
+<div style={{marginTop:"var(--space-2)",fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",textAlign:"right"}}>
+Scan: {scanData?.date_label||"—"} · Data from latest scanner run
 </div>
 </div>
 </div>
@@ -2295,6 +2363,15 @@ return(
       />
 
       <Tile
+        eyebrow="Daily Opp Scan"
+        title="Full scanner browse"
+        sub={`Buy/watch alerts, Congress/insider/flow/technicals tabs · Last scan: ${lastScanLabel}`}
+        accent="#30d158"
+        kpi={{value:buyCount, unit:buyCount===1?"buy alert":"buy alerts", color:buyCount>0?"#30d158":"var(--text-muted)"}}
+        onClick={()=>navTo("scanner")}
+      />
+
+      <Tile
         eyebrow="Methodology"
         title="How it works"
         sub="Sources, scoring, regimes, and what every signal means."
@@ -2858,8 +2935,7 @@ return(<>
     portopps (opportunity cards, position cards). Escape hatch at the bottom
     of the modal navigates to the Scanner tab with that ticker focused. */}
 {tickerDetail&&<TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS}
-  onClose={()=>setTickerDetail(null)}
-  onOpenFullScanner={(t)=>navToScannerFor(t)}/>}
+  onClose={()=>setTickerDetail(null)}/>}
 
 {/* FAQ */}
 {tab==="readme"&&(
