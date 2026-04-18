@@ -2640,8 +2640,8 @@ return(
 {[
   {label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},
   {label:"Holdings",value:`${heldPositions.length} positions`,col:"var(--text)"},
-  {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:(scanData?.buy_opportunities?.length||0)>0?"#30d158":"var(--text-muted)"},
-  {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:(scanData?.watch_items?.length||0)>0?"var(--yellow-text)":"var(--text-muted)"},
+  {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:"#30d158"},
+  {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:"#ffd60a"},
   {label:"Watchlist",value:`${WATCHLIST.length} tracking`,col:"var(--text)"},
 ].map(({label,value,col})=>(
 <div key={label} style={{background:"var(--surface-2)",borderRadius:5,padding:"10px 12px"}}>
