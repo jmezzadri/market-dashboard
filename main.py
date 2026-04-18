@@ -288,6 +288,37 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
             logger.warning("Options chain pre-fetch failed for %s: %s", _t, _e)
             signals["_chain_cache"][_sym] = []
 
+    # Modal enrichment: static-ish UW data for the dashboard's ticker-detail
+    # modal. Fetched once per relevant ticker (held + watchlist + buy + watch)
+    # so the Vercel frontend has everything it needs at build time (no backend).
+    # Three UW endpoints: /api/stock/{t}/info, /api/news/headlines,
+    # /api/screener/analysts.
+    enrich_tickers: set[str] = {
+        *(t.upper() for t, _ in watch_and_above),
+        *(t.upper() for t in portfolio_tickers),
+        *(t.upper() for t in watchlist_tickers),
+    }
+    signals["_info"] = {}
+    signals["_news"] = {}
+    signals["_analyst_ratings"] = {}
+    logger.info("Enriching %d tickers for modal (info/news/analyst_ratings)", len(enrich_tickers))
+    for _sym in sorted(enrich_tickers):
+        try:
+            signals["_info"][_sym] = uw.get_stock_info(_sym)
+        except Exception as _e:
+            logger.warning("info enrich failed for %s: %s", _sym, _e)
+            signals["_info"][_sym] = None
+        try:
+            signals["_news"][_sym] = uw.get_news_for_ticker(_sym, limit=10)
+        except Exception as _e:
+            logger.warning("news enrich failed for %s: %s", _sym, _e)
+            signals["_news"][_sym] = []
+        try:
+            signals["_analyst_ratings"][_sym] = uw.get_analyst_ratings_for_ticker(_sym, limit=10)
+        except Exception as _e:
+            logger.warning("analyst_ratings enrich failed for %s: %s", _sym, _e)
+            signals["_analyst_ratings"][_sym] = []
+
     buy_opportunities: list[dict[str, Any]] = []
     for ticker, sc in buy_scored:
         price = uw.get_current_price(ticker, signals)

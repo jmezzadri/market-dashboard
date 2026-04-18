@@ -550,3 +550,131 @@ def get_current_price(ticker: str, signals: dict[str, Any]) -> float | None:
 
     return None
 
+
+# ───────────────────────────────────────────────────────────────────────────
+# Modal-enrichment endpoints: static-ish per-ticker data for the dashboard
+# ticker-detail modal (sector/description/tags, news, analyst ratings).
+# Each scan run fetches these once per relevant ticker and bakes them into
+# the output JSON — the Vercel frontend has no backend and can't hit UW.
+# ───────────────────────────────────────────────────────────────────────────
+
+
+def get_stock_info(ticker: str) -> dict[str, Any] | None:
+    """
+    GET /api/stock/{ticker}/info — company profile fields used by the modal.
+    Returns a compact dict (None on failure) with the subset we actually render.
+    """
+    sym = ticker.strip().upper()
+    if not sym:
+        return None
+    try:
+        raw = _get(f"/api/stock/{sym}/info")
+    except Exception as e:
+        logger.warning("info fetch failed for %s: %s", sym, e)
+        return None
+    data = raw.get("data")
+    if isinstance(data, list) and data:
+        data = data[0]
+    if not isinstance(data, dict):
+        return None
+
+    tags = data.get("uw_tags")
+    if isinstance(tags, str):
+        tags = [t.strip() for t in tags.split(",") if t.strip()]
+    if not isinstance(tags, list):
+        tags = []
+
+    return {
+        "sector": data.get("sector"),
+        "tags": tags,  # renamed from uw_tags for dashboard-facing clarity
+        "short_description": data.get("short_description"),
+        "full_name": data.get("full_name") or data.get("name"),
+        "short_name": data.get("short_name"),
+        "next_earnings_date": data.get("next_earnings_date"),
+        "announce_time": data.get("announce_time"),  # "premarket" | "postmarket" | null
+        "marketcap": data.get("marketcap"),
+        "marketcap_size": data.get("marketcap_size"),
+        "beta": data.get("beta"),
+        "issue_type": data.get("issue_type"),
+        "has_options": data.get("has_options"),
+        "has_dividend": data.get("has_dividend"),
+        "logo": data.get("logo"),
+    }
+
+
+def get_news_for_ticker(
+    ticker: str, limit: int = 10, major_only: bool = False
+) -> list[dict[str, Any]]:
+    """
+    GET /api/news/headlines?ticker={ticker}&limit={limit}
+    Returns normalized list of recent headlines. `limit` caps at 100 per UW.
+    Headlines can mention multiple tickers; we surface what UW attaches.
+    """
+    sym = ticker.strip().upper()
+    if not sym:
+        return []
+    params: dict[str, Any] = {"ticker": sym, "limit": min(max(int(limit), 1), 100)}
+    if major_only:
+        params["major_only"] = "true"
+    try:
+        raw = _get("/api/news/headlines", params)
+    except Exception as e:
+        logger.warning("news fetch failed for %s: %s", sym, e)
+        return []
+    rows = raw.get("data") or []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        out.append({
+            "headline": row.get("headline"),
+            "source": row.get("source"),
+            "sentiment": row.get("sentiment"),
+            "is_major": bool(row.get("is_major")),
+            "created_at": row.get("created_at"),
+            "tickers": row.get("tickers") or [],
+            "tags": row.get("tags") or [],
+        })
+    return out
+
+
+def get_analyst_ratings_for_ticker(
+    ticker: str, limit: int = 10
+) -> list[dict[str, Any]]:
+    """
+    GET /api/screener/analysts?ticker={ticker}&limit={limit}
+    Returns recent analyst actions (most recent first per UW ordering).
+
+    IMPORTANT: param is `ticker` (singular). `tickers` (plural) is silently
+    ignored by UW and returns the unfiltered leaderboard.
+    """
+    sym = ticker.strip().upper()
+    if not sym:
+        return []
+    try:
+        raw = _get(
+            "/api/screener/analysts",
+            {"ticker": sym, "limit": min(max(int(limit), 1), 100)},
+        )
+    except Exception as e:
+        logger.warning("analyst ratings fetch failed for %s: %s", sym, e)
+        return []
+    rows = raw.get("data") or []
+    out: list[dict[str, Any]] = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        # UW returns rows even when the ticker param doesn't match the row
+        # ticker in some edge cases — guard with a client-side filter.
+        row_ticker = str(row.get("ticker") or "").upper()
+        if row_ticker and row_ticker != sym:
+            continue
+        out.append({
+            "timestamp": row.get("timestamp"),
+            "firm": row.get("firm"),
+            "analyst_name": row.get("analyst_name"),
+            "action": row.get("action"),  # maintained | initiated | upgraded | downgraded | reiterated | ...
+            "recommendation": row.get("recommendation"),  # buy | hold | sell (lowercase)
+            "target": row.get("target"),
+        })
+    return out

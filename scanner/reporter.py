@@ -1539,6 +1539,20 @@ def _write_json_data(
             "darkpool": _safe(signals.get("darkpool") or []),
             "screener": _safe(screener_slim),
             "technicals": _safe(signals.get("_technicals") or {}),
+            # Modal enrichment — keyed by ticker, slimmed to relevant_tickers.
+            # Missing/empty keys are fine; dashboard renders gracefully.
+            "info": _safe({
+                t: v for t, v in (signals.get("_info") or {}).items()
+                if t in relevant_tickers and v
+            }),
+            "news": _safe({
+                t: v for t, v in (signals.get("_news") or {}).items()
+                if t in relevant_tickers and v
+            }),
+            "analyst_ratings": _safe({
+                t: v for t, v in (signals.get("_analyst_ratings") or {}).items()
+                if t in relevant_tickers and v
+            }),
         },
         "config": {
             "score_buy_alert": SCORE_BUY_ALERT,
