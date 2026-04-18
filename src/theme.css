@@ -545,3 +545,148 @@ a:hover { text-decoration: underline; }
   /* Indicator cards and any inner section grids → single column */
   .indicator-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ─── Left sidebar nav ──────────────────────────────────────────────────────
+   Fixed 232px column on desktop, drawer (slide-in) on narrow screens.
+   Main content is offset via `.app-main { margin-left: 232px; }`. On narrow
+   screens the offset collapses and a hamburger toggle appears in the header. */
+.sidebar {
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  width: 232px;
+  background: var(--surface);
+  border-right: 1px solid var(--border-faint);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  display: flex;
+  flex-direction: column;
+  z-index: 100;
+  transition: transform var(--dur-med, 220ms) var(--ease, ease);
+}
+
+.sidebar-brand {
+  padding: 20px 18px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid var(--border-faint);
+}
+.sidebar-brand-mark {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent) 0%, #5856d6 100%);
+  display: grid; place-items: center;
+  color: #fff;
+  font-weight: 700; font-size: 13px; letter-spacing: -0.02em;
+  font-family: var(--font-display);
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+.sidebar-brand-name {
+  font-family: var(--font-display);
+  font-size: 14px; font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.sidebar-brand-sub {
+  font-size: 10px; color: var(--text-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.sidebar-nav {
+  flex: 1;
+  padding: 12px 10px;
+  overflow-y: auto;
+  display: flex; flex-direction: column;
+  gap: 2px;
+}
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 12px;
+  border-radius: 7px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--font-ui);
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background var(--dur-fast, 120ms) var(--ease, ease), color var(--dur-fast, 120ms) var(--ease, ease);
+}
+.sidebar-link:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+.sidebar-link--active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
+}
+.sidebar-link--active .sidebar-link-icon { color: var(--accent); }
+.sidebar-link-icon {
+  display: inline-flex;
+  width: 18px; height: 18px;
+  align-items: center; justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+.sidebar-link:hover .sidebar-link-icon { color: var(--text-muted); }
+.sidebar-link-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-footer {
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--border-faint);
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+.sidebar-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.32);
+  z-index: 99;
+  animation: sidebar-fade-in var(--dur-fast, 120ms) var(--ease, ease);
+}
+@keyframes sidebar-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.sidebar-toggle {
+  display: none;  /* shown only on narrow screens */
+  background: var(--surface-3);
+  border: 1px solid var(--border-faint);
+  border-radius: 8px;
+  width: 36px; height: 36px;
+  padding: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+  align-items: center; justify-content: center;
+  transition: background var(--dur-fast, 120ms) var(--ease, ease);
+}
+.sidebar-toggle:hover { background: var(--hover); color: var(--text); }
+
+.app-main {
+  margin-left: 232px;
+  min-height: 100vh;
+}
+
+/* Mobile / tablet: sidebar becomes a slide-in drawer */
+@media (max-width: 860px) {
+  .sidebar { transform: translateX(-100%); width: 270px; }
+  .sidebar--open { transform: translateX(0); box-shadow: var(--shadow-lg); }
+  .sidebar-toggle { display: inline-flex; }
+  .app-main { margin-left: 0; }
+}
+

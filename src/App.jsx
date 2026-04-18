@@ -1,6 +1,11 @@
 import { useState, useEffect } from "react";
 import Scanner from "./Scanner";
-import { useTheme, Hero, Tile, SectionHeader, Footer } from "./Shell";
+import {
+  useTheme, Hero, Tile, SectionHeader, Footer,
+  Sidebar, SidebarToggleButton,
+  NavIconHome, NavIconGauge, NavIconGrid, NavIconHeat,
+  NavIconPie, NavIconList, NavIconRadar, NavIconBook,
+} from "./Shell";
 import { InfoTip } from "./InfoTip";
 
 const SD={
@@ -2322,6 +2327,20 @@ const TAB_META={
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
 };
 
+// ─── Sidebar nav — single source of truth, references the TAB_IDS above ─────
+// Order in the sidebar (intentionally groups macro → sectors → portfolio →
+// scanner → docs). Home sits at the top as the tile-grid landing.
+const NAV_ITEMS = [
+  { id:"home",       label:"Home",                  icon:<NavIconHome/>   },
+  { id:"overview",   label:"Macro Overview",        icon:<NavIconGauge/>  },
+  { id:"indicators", label:"All Indicators",        icon:<NavIconGrid/>   },
+  { id:"sectors",    label:"Sectors",               icon:<NavIconHeat/>   },
+  { id:"portopps",   label:"Portfolio & Insights",  icon:<NavIconPie/>    },
+  { id:"portfolio",  label:"Holdings Detail",       icon:<NavIconList/>   },
+  { id:"scanner",    label:"Trading Scanner",       icon:<NavIconRadar/>  },
+  { id:"readme",     label:"Methodology",           icon:<NavIconBook/>   },
+];
+
 export default function App(){
 const [tab,setTab]=useState(()=>{
 if(typeof window==="undefined")return"home";
@@ -2375,6 +2394,11 @@ const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [tickerDetail,setTickerDetail]=useState(null);
 const [scanData,setScanData]=useState(null);
 const [scanError,setScanError]=useState(false);
+// Sidebar drawer state — only visible on mobile; desktop sidebar is persistent.
+const [sidebarOpen,setSidebarOpen]=useState(false);
+// Close drawer automatically whenever the active tab changes (in case the user
+// navigated via a non-sidebar control while the drawer was open).
+useEffect(()=>{setSidebarOpen(false);},[tab]);
 useEffect(()=>{
   let cancelled=false;
   fetch("https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json?t="+Date.now())
@@ -2448,6 +2472,17 @@ const catScores = Object.entries(CATS).map(([catId,cat])=>{
 return(
 <div style={{minHeight:"100vh",color:"var(--text)",fontFamily:"var(--font-ui)"}}>
 
+<Sidebar
+  items={NAV_ITEMS}
+  activeId={tab}
+  onSelect={navTo}
+  open={sidebarOpen}
+  onClose={()=>setSidebarOpen(false)}
+  footer={<span>v10 · {new Date().getFullYear()}</span>}
+/>
+
+<div className="app-main">
+
 <Hero
   pref={pref}
   setPref={setPref}
@@ -2455,6 +2490,7 @@ return(
   score={COMP100}
   narrativeOneLine={compactNarrative}
   compact={tab!=="home"}
+  menuButton={<SidebarToggleButton onClick={()=>setSidebarOpen(true)}/>}
 />
 
 {/* ─────── HOME — TILE GRID ─────── */}
@@ -3160,6 +3196,8 @@ return(<>
   leftText={tab==="scanner"?"SOURCES · Unusual Whales · Yahoo Finance · SEC Form 4 · Congressional Disclosures":"SOURCES · FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · Kim-Wright Fed · SLOOS Fed"}
   rightText="⚠ NOT INVESTMENT ADVICE · v10"
 />
+
+</div>{/* close .app-main */}
 </div>
 );
 }

@@ -134,7 +134,7 @@ function isMarketOpen(d = new Date()) {
   return etMin >= 9 * 60 + 30 && etMin <= 16 * 60;
 }
 
-export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact = false }) {
+export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact = false, menuButton = null }) {
   const today = new Date();
   const dateStr = today.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const open = isMarketOpen(today);
@@ -145,9 +145,10 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
       maxWidth: 1440, margin: "0 auto",
       display: "flex", flexDirection: "column", gap: "var(--space-5)",
     }}>
-      {/* Top row — date / market dot / theme toggle (always visible) */}
+      {/* Top row — menu (mobile only) / date / market dot / theme toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {menuButton}
           <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{dateStr}</span>
           <span style={{ width: 1, height: 14, background: "var(--border)" }}/>
           <MarketDot open={open}/>
@@ -237,6 +238,75 @@ export function SectionHeader({ eyebrow, title, sub, onBack, backLabel = "All se
         {sub && <div style={{ fontSize: 15, color: "var(--text-muted)", marginTop: 8, maxWidth: 720, lineHeight: 1.5 }}>{sub}</div>}
       </div>
     </div>
+  );
+}
+
+// ── Sidebar nav icons (16×16, stroke-based to match Apple-system feel) ───────
+export function NavIconHome()    { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2 7.5 L8 2.5 L14 7.5 V13 A1 1 0 0 1 13 14 H3 A1 1 0 0 1 2 13 Z"/><path d="M6.5 14 V10 H9.5 V14"/></svg>; }
+export function NavIconGauge()   { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M2.5 11 A5.5 5.5 0 0 1 13.5 11"/><path d="M8 11 L11 6.5" strokeWidth="1.6"/><circle cx="8" cy="11" r="1" fill="currentColor" stroke="none"/></svg>; }
+export function NavIconGrid()    { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>; }
+export function NavIconHeat()    { return <svg width="16" height="16" viewBox="0 0 16 16"><rect x="2" y="2" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.75"/><rect x="6.2" y="2" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.4"/><rect x="10.4" y="2" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.22"/><rect x="2" y="6.2" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.4"/><rect x="6.2" y="6.2" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.75"/><rect x="10.4" y="6.2" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.4"/><rect x="2" y="10.4" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.22"/><rect x="6.2" y="10.4" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.4"/><rect x="10.4" y="10.4" width="3.6" height="3.6" rx="0.6" fill="currentColor" opacity="0.75"/></svg>; }
+export function NavIconPie()     { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><path d="M8 2.5 A5.5 5.5 0 1 0 13.5 8 L8 8 Z" fill="currentColor" fillOpacity="0.18" stroke="none"/><circle cx="8" cy="8" r="5.5"/><path d="M8 2.5 V8 H13.5" strokeLinecap="round"/></svg>; }
+export function NavIconList()    { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"><line x1="5" y1="4" x2="14" y2="4"/><line x1="5" y1="8" x2="14" y2="8"/><line x1="5" y1="12" x2="14" y2="12"/><circle cx="2.7" cy="4" r="0.9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="8" r="0.9" fill="currentColor" stroke="none"/><circle cx="2.7" cy="12" r="0.9" fill="currentColor" stroke="none"/></svg>; }
+export function NavIconRadar()   { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4"><circle cx="8" cy="8" r="5.5"/><circle cx="8" cy="8" r="2.8"/><line x1="8" y1="8" x2="12.2" y2="3.8" strokeLinecap="round"/></svg>; }
+export function NavIconBook()    { return <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"><path d="M3 3 H7 A1.5 1.5 0 0 1 8 4.5 V13.5 A1.2 1.2 0 0 0 6.8 12.3 H3 Z"/><path d="M13 3 H9 A1.5 1.5 0 0 0 8 4.5 V13.5 A1.2 1.2 0 0 1 9.2 12.3 H13 Z"/></svg>; }
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+//   items   = [{ id, label, icon, eyebrow? }]   — single source of truth for nav
+//   activeId= currently-selected tab id
+//   onSelect= (id) => void — called when user clicks an item
+//   open    = mobile drawer open state (desktop: sidebar is always visible)
+//   onClose = () => void — called to close drawer (backdrop click or nav select)
+//   footer  = optional JSX rendered in the bottom slot (reserved for account/sign-out)
+export function Sidebar({ items, activeId, onSelect, open = false, onClose, footer }) {
+  const handleSelect = (id) => {
+    onSelect(id);
+    if (open && onClose) onClose();  // auto-close drawer on mobile after navigate
+  };
+  return (
+    <>
+      {open && <div className="sidebar-backdrop" onClick={onClose}/>}
+      <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label="Primary navigation">
+        <div className="sidebar-brand">
+          <div className="sidebar-brand-mark" aria-hidden="true">MT</div>
+          <div style={{ minWidth: 0 }}>
+            <div className="sidebar-brand-name">MacroTilt</div>
+            <div className="sidebar-brand-sub">Market Dashboard</div>
+          </div>
+        </div>
+        <nav className="sidebar-nav">
+          {items.map(item => {
+            const active = activeId === item.id;
+            return (
+              <button
+                key={item.id}
+                className={`sidebar-link${active ? " sidebar-link--active" : ""}`}
+                onClick={() => handleSelect(item.id)}
+                aria-current={active ? "page" : undefined}
+                title={item.label}
+              >
+                <span className="sidebar-link-icon" aria-hidden="true">{item.icon}</span>
+                <span className="sidebar-link-label">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+        <div className="sidebar-footer">{footer}</div>
+      </aside>
+    </>
+  );
+}
+
+// Hamburger toggle — only visible on narrow screens (CSS handles display)
+export function SidebarToggleButton({ onClick }) {
+  return (
+    <button className="sidebar-toggle" onClick={onClick} aria-label="Open navigation menu" type="button">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+        <line x1="3" y1="5" x2="15" y2="5"/>
+        <line x1="3" y1="9" x2="15" y2="9"/>
+        <line x1="3" y1="13" x2="15" y2="13"/>
+      </svg>
+    </button>
   );
 }
 
