@@ -1280,6 +1280,8 @@ const avgVol=sc.avg30_volume!=null?Number(sc.avg30_volume):null;
 const relVol=sc.relative_volume!=null?Number(sc.relative_volume):null;
 const nextEarn=sc.next_earnings_date;
 const nextDiv=sc.next_dividend_date;
+const erTime=sc.er_time;  // "premarket" | "postmarket" | null
+const sector=sc.sector;
 // Short interest (FINRA biweekly via yfinance — lagged ~15 days, NEVER real-time)
 const siPctFloat=sc.short_pct_float!=null?Number(sc.short_pct_float):null;
 const siPctSOut=sc.short_pct_shares_out!=null?Number(sc.short_pct_shares_out):null;
@@ -1360,7 +1362,10 @@ return(
 {watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>WATCHLIST</span>}
 </div>
 {companyName&&companyName!==ticker&&<div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2,fontWeight:500}}>{companyName}</div>}
-{watchlistEntry?.theme&&<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{watchlistEntry.theme}</div>}
+{sector&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
+<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{sector}</span>
+</div>}
+{watchlistEntry?.theme&&<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)",marginTop:3}}>{watchlistEntry.theme}</div>}
 </div>
 <div style={{textAlign:"right",flexShrink:0}}>
 <div className="num" style={{fontSize:24,fontWeight:800,color:"var(--text)",lineHeight:1,fontFamily:"var(--font-mono)"}}>{price?fmt$(price):"—"}</div>
@@ -1463,7 +1468,7 @@ return(
 {mcap!=null&&<Kpi label="MARKET CAP" value={fmt$M(mcap)} color="var(--text)" tip="Total market capitalization (shares × price). Rough size buckets: <$300M microcap, $300M-2B small, $2-10B mid, $10-200B large, >$200B mega."/>}
 {avgVol!=null&&price!=null&&<Kpi label="AVG $VOL 30D" value={fmt$M(avgVol*price)} color="var(--text)" sub="liquidity, last 30d" tip="Average daily DOLLAR volume over the past 30 days (avg shares × close). This is the comparable liquidity read across tickers — raw share counts don't compare (a $0.50 penny stock can trade more shares than BRK.A). Rough institutional buckets: <$10M illiquid (wide spreads, slippage on size); $10M-100M tradable but be careful with size; >$100M deep enough for most positions; >$1B mega-liquid."/>}
 {relVol!=null&&<Kpi label="RELATIVE VOL" value={`${relVol.toFixed(2)}×`} color={relVol>=2?"#30d158":relVol>=1?"var(--text)":"var(--text-dim)"} sub="vs 30d avg" tip="End-of-session relative volume from the daily 3:45 PM ET scan: prior session's full-day volume divided by the 30-day average. >1× = heavier than typical (often news/catalyst); <1× = quieter than typical. NOT a real-time intraday pace — the dashboard is fed by a once-daily scan."/>}
-{nextEarn&&<Kpi label="NEXT EARNINGS" value={String(nextEarn).slice(0,10)} color="var(--text)" tip="Next scheduled earnings release date. IV often inflates into earnings and crushes immediately after — relevant for any options trades."/>}
+{nextEarn&&<Kpi label="NEXT EARNINGS" value={String(nextEarn).slice(0,10)} color="var(--text)" sub={erTime==="premarket"?"before open":erTime==="postmarket"?"after close":""} tip={`Next scheduled earnings release date${erTime?` (${erTime==="premarket"?"reports before the open":"reports after the close"})`:""}. IV often inflates into earnings and crushes immediately after — relevant for any options trades.`}/>}
 {nextDiv&&<Kpi label="NEXT DIVIDEND" value={String(nextDiv).slice(0,10)} color="var(--text)" tip="Next ex-dividend date. Covered-call writers should be aware — American-style calls that are deep-ITM may be exercised early before the ex-dividend date."/>}
 </div>
 </div>
