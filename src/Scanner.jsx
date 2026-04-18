@@ -385,7 +385,7 @@ function OverviewTab({ data, focusTicker }) {
     const price = item.current_price ?? Number(sc.prev_close);
     const pt = price ? price * (1 + ptPct / 100) : null;
     const sl = price ? price * (1 - slPct / 100) : null;
-    const company = sc.full_name || sc.company_name || "";
+    const company = sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "";
     const ptsl = (
       <span>
         {pt && <><strong style={{ color: C.text }}>PT</strong> <span style={{ color: C.muted }}>{fmt$(pt)}</span></>}
@@ -414,7 +414,7 @@ function OverviewTab({ data, focusTicker }) {
     const score = scoremap[t] ?? null;
     const pt = pos.avg_cost * (1 + ptPct / 100);
     const sl = pos.avg_cost * (1 - slPct / 100);
-    const company = sc.full_name || sc.company_name || "";
+    const company = sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "";
     const ptsl = (
       <span>
         <strong style={{ color: C.text }}>Avg cost</strong> <span style={{ color: C.muted }}>{fmt$(pos.avg_cost)}</span>
@@ -439,7 +439,7 @@ function OverviewTab({ data, focusTicker }) {
     const sc = screenerMap[t] || {};
     const price = Number(sc.close || sc.prev_close || 0) || null;
     const score = scoremap[t] ?? null;
-    const company = sc.full_name || sc.company_name || w.name || "";
+    const company = sc.full_name || sc.company_name || w.name || (data.ticker_names||{})[t] || "";
     const ptsl = (
       <span>
         {w.theme && <><strong style={{ color: C.text }}>Theme</strong> <span style={{ color: C.muted }}>{w.theme}</span></>}

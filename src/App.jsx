@@ -1238,7 +1238,7 @@ const heldIn=(accounts||[]).flatMap(a=>a.positions.filter(p=>p.ticker===ticker).
 const price=Number(sc.close||sc.prev_close||0)||null;
 const prevClose=Number(sc.prev_close||0)||null;
 const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
-const companyName=sc.full_name||sc.company_name||watchlistEntry?.name||heldIn[0]?.p?.name||ticker;
+const companyName=sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||ticker;
 const scoreCol=score==null?"var(--text-dim)":score>=60?"#30d158":score>=35?"#ffd60a":score>=20?"#ff9f0a":"#ff453a";
 const scoreLabel=score==null?"NO SCORE":score>=60?"BUY":score>=35?"NEAR TRIGGER":score>=20?"WATCH":"SELL-WATCH";
 // Manual-track position: on the watchlist but not in the scanner's scored
@@ -1359,7 +1359,7 @@ return(
 {isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px dashed var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>MANUAL TRACK</span>}
 {watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>WATCHLIST</span>}
 </div>
-<div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{companyName}</div>
+{companyName&&companyName!==ticker&&<div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2,fontWeight:500}}>{companyName}</div>}
 {watchlistEntry?.theme&&<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{watchlistEntry.theme}</div>}
 </div>
 <div style={{textAlign:"right",flexShrink:0}}>
@@ -1499,9 +1499,9 @@ return(
 {[...congressBuys.map(r=>({...r,kind:"BUY"})),...congressSells.map(r=>({...r,kind:"SELL"}))].slice(0,8).map((r,i)=>(
 <div key={i} style={{display:"flex",gap:8,fontSize:11,fontFamily:"var(--font-mono)",alignItems:"center",padding:"3px 6px",background:"var(--surface-3)",borderRadius:3}}>
 <span style={{fontSize:9,fontWeight:700,color:r.kind==="BUY"?"#30d158":"#ff453a",minWidth:28}}>{r.kind}</span>
-<span style={{color:"var(--text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name||r.reporter||"—"}</span>
-<span style={{color:"var(--text-muted)"}}>{r.amount||r.disclosed_amount||"—"}</span>
-<span style={{color:"var(--text-dim)"}}>{String(r.transaction_date||r.disclosed_at||"").slice(0,10)}</span>
+<span style={{color:"var(--text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name||r.reporter||"—"}{r.member_type?<span style={{color:"var(--text-dim)",marginLeft:6,textTransform:"capitalize"}}>· {r.member_type}</span>:null}</span>
+<span style={{color:"var(--text-muted)"}}>{r.amounts||r.amount||r.disclosed_amount||"—"}</span>
+<span style={{color:"var(--text-dim)"}}>{String(r.transaction_date||r.filed_at_date||r.disclosure_date||"").slice(0,10)}</span>
 </div>
 ))}
 </div>
@@ -1511,13 +1511,26 @@ return(
 <div style={{marginBottom:10}}>
 <div style={{fontSize:10,color:"var(--purple)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>INSIDER TRANSACTIONS ({insiderCt})</div>
 <div style={{display:"flex",flexDirection:"column",gap:3}}>
-{[...insiderBuys.map(r=>({...r,kind:"BUY"})),...insiderSells.map(r=>({...r,kind:"SELL"}))].slice(0,8).map((r,i)=>(
-<div key={i} style={{display:"flex",gap:8,fontSize:11,fontFamily:"var(--font-mono)",alignItems:"center",padding:"3px 6px",background:"var(--surface-3)",borderRadius:3}}><span style={{fontSize:9,fontWeight:700,color:r.kind==="BUY"?"#30d158":"#ff453a",minWidth:28}}>{r.kind}</span>
-<span style={{color:"var(--text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.name||r.insider_name||"—"} {r.title?`· ${r.title}`:""}</span>
-<span style={{color:"var(--text-muted)"}}>{r.dollar_amount?fmt$M(Number(r.dollar_amount)):r.shares?`${fmtNum(r.shares)} sh`:"—"}</span>
-<span style={{color:"var(--text-dim)"}}>{String(r.transaction_date||r.filed_at||"").slice(0,10)}</span>
-</div>
-))}
+{[...insiderBuys.map(r=>({...r,kind:"BUY"})),...insiderSells.map(r=>({...r,kind:"SELL"}))].slice(0,8).map((r,i)=>{
+  // Real scan-data fields: owner_name, officer_title, shares_owned_before/after, price/price_per_share/stock_price, transaction_date, filing_date
+  const insiderName=r.owner_name||r.insider_name||r.name||"—";
+  const insiderTitle=r.officer_title||r.insider_title||(r.is_director?"Director":r.is_ten_percent_owner?"10% owner":"");
+  const priceN=r.price_per_share?Number(r.price_per_share):r.price?Number(r.price):r.stock_price?Number(r.stock_price):null;
+  const sharesBefore=r.shares_owned_before!=null?Number(r.shares_owned_before):null;
+  const sharesAfter=r.shares_owned_after!=null?Number(r.shares_owned_after):null;
+  const rawShares=r.shares!=null?Number(r.shares):(r.amount!=null?Number(r.amount):null);
+  const sharesTraded=(sharesBefore!=null&&sharesAfter!=null)?Math.abs(sharesAfter-sharesBefore):rawShares;
+  const value=(sharesTraded!=null&&priceN!=null)?sharesTraded*priceN:null;
+  const dateStr=String(r.filing_date||r.transaction_date||"").slice(0,10);
+  return(
+  <div key={i} style={{display:"flex",gap:8,fontSize:11,fontFamily:"var(--font-mono)",alignItems:"center",padding:"3px 6px",background:"var(--surface-3)",borderRadius:3}}>
+  <span style={{fontSize:9,fontWeight:700,color:r.kind==="BUY"?"#30d158":"#ff453a",minWidth:28}}>{r.kind}</span>
+  <span style={{color:"var(--text)",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{insiderName}{insiderTitle?<span style={{color:"var(--text-dim)",marginLeft:6}}>· {insiderTitle}</span>:null}</span>
+  <span style={{color:"var(--text-muted)"}}>{value!=null?fmt$M(value):sharesTraded!=null?`${fmtNum(sharesTraded)} sh`:"—"}</span>
+  <span style={{color:"var(--text-dim)"}}>{dateStr}</span>
+  </div>
+  );
+})}
 </div>
 </div>
 )}
