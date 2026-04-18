@@ -2311,49 +2311,54 @@ return sorted.slice(0,3).map(c=>{
 }
 
 // ── MAIN APP ─────────────────────────────────────────────────────────────────
-// "portopps" is the consolidated Portfolio + Opportunities surface (Phase 2).
-// "scanner" and "portfolio" remain in TAB_IDS so old hash-links keep working,
-// but they're no longer surfaced from the home grid.
-const TAB_IDS=["home","overview","indicators","sectors","portopps","portfolio","scanner","readme"];
+// "portopps" is the consolidated Portfolio + Opportunities + Holdings surface.
+// Old "#portfolio" hash redirects to "#portopps" (handled in the hash init/
+// hashchange listeners in App()) so existing bookmarks keep working.
+const TAB_IDS=["home","overview","indicators","sectors","portopps","scanner","readme"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
   overview:  {eyebrow:"Macro Dashboard",      title:"Today's macro overview",  sub:"Composite stress, regime, category breakdown, and the historical stress trajectory."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
-  portopps:  {eyebrow:"Portfolio & Insights", title:"Portfolio & Insights", sub:"Allocation, key insights, positions, and today's opportunities from the scan."},
-  portfolio: {eyebrow:"Holdings detail",      title:"Portfolio insights",      sub:"Account-by-account holdings detail and allocation view. (Summary lives in Portfolio & Opportunities.)"},
+  portopps:  {eyebrow:"Portfolio & Insights", title:"Portfolio & Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
 };
 
 // ─── Sidebar nav — single source of truth, references the TAB_IDS above ─────
-// Order in the sidebar (intentionally groups macro → sectors → portfolio →
-// scanner → docs). Home sits at the top as the tile-grid landing.
+// Order in the sidebar (macro → sectors → portfolio → scanner → docs). Home
+// sits at the top as the tile-grid landing.
 const NAV_ITEMS = [
   { id:"home",       label:"Home",                  icon:<NavIconHome/>   },
   { id:"overview",   label:"Macro Overview",        icon:<NavIconGauge/>  },
   { id:"indicators", label:"All Indicators",        icon:<NavIconGrid/>   },
   { id:"sectors",    label:"Sectors",               icon:<NavIconHeat/>   },
   { id:"portopps",   label:"Portfolio & Insights",  icon:<NavIconPie/>    },
-  { id:"portfolio",  label:"Holdings Detail",       icon:<NavIconList/>   },
   { id:"scanner",    label:"Trading Scanner",       icon:<NavIconRadar/>  },
   { id:"readme",     label:"Methodology",           icon:<NavIconBook/>   },
 ];
 
 export default function App(){
+// Legacy redirect: "#portfolio" (old Holdings Detail tab) now lives inside
+// Portfolio & Insights. Any bookmark pointing at #portfolio resolves to
+// #portopps.
+const resolveHash=(raw)=>{
+  const h=(raw||"").slice(1);
+  if(h==="portfolio")return"portopps";
+  return TAB_IDS.includes(h)?h:"home";
+};
 const [tab,setTab]=useState(()=>{
 if(typeof window==="undefined")return"home";
-const h=(window.location.hash||"").slice(1);
-return TAB_IDS.includes(h)?h:"home";
+return resolveHash(window.location.hash);
 });
 useEffect(()=>{window.location.hash=tab;},[tab]);
 useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab]);
 // Keep tab in sync with URL hash so browser back/forward and manual hash edits work.
 useEffect(()=>{
   const onHashChange=()=>{
-    const h=(window.location.hash||"").slice(1);
-    if(TAB_IDS.includes(h)&&h!==tab)setTab(h);
+    const next=resolveHash(window.location.hash);
+    if(next!==tab)setTab(next);
   };
   window.addEventListener("hashchange",onHashChange);
   return()=>window.removeEventListener("hashchange",onHashChange);
@@ -2394,6 +2399,10 @@ const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [tickerDetail,setTickerDetail]=useState(null);
 const [scanData,setScanData]=useState(null);
 const [scanError,setScanError]=useState(false);
+// Account-by-account breakdown on the Portfolio & Insights tab. Default
+// collapsed — power users expand when they want the deeper per-account view
+// (this replaces the separate Holdings Detail tab).
+const [acctBreakdownOpen,setAcctBreakdownOpen]=useState(false);
 // Sidebar drawer state — only visible on mobile; desktop sidebar is persistent.
 const [sidebarOpen,setSidebarOpen]=useState(false);
 // Close drawer automatically whenever the active tab changes (in case the user
@@ -2765,6 +2774,7 @@ return(
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
 {[
   {label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},
+  {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"#ff9f0a":portBeta<0.6?"#ffd60a":"var(--text)"},
   {label:"Holdings",value:`${heldPositions.length} positions`,col:"var(--text)"},
   {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:"#30d158",accent:"#30d158"},
   {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:"#ffd60a",accent:"#ffd60a"},
@@ -2911,40 +2921,94 @@ return(<>
 </>);
 })()}
 
-{/* INSIGHTS — short, punchy, one-liner only. Only things that are genuinely
-    notable (single-ticker cross-account exposure, big P&L swings). Drop
-    anything that reads as preaching or editorializing about asset allocation. */}
-<div style={subTitleStyle}>INSIGHTS</div>
-<div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:14}}>
+{/* NOTABLE — rules-driven; renders nothing if zero rules fire. Keep terse:
+    one short sentence per line. Never pad with "you're well-diversified"
+    type observations — that's visual noise, not signal. Surface only
+    things Joe wouldn't already see from the positions list:
+      • Aggregate portfolio-beta outliers (>1.3 or <0.6)
+      • Single-stock concentrations >10% of total wealth (excl. broad
+        index funds, HY bond funds, crypto wrappers, cash)
+      • Cross-account single-ticker exposure (same name in >1 account)
+      • Deployable cash aggregate across tactical accounts
+      • Scanner REVIEW-zone holdings (score <20) — active sell-watch
+      • Material drawdowns on individual positions (≤-25% vs. cost)
+    News events (earnings, M&A, guidance) are planned but not wired yet. */}
 {(()=>{
   const lines=[];
-  // Cross-account single-ticker exposure (e.g. RCAT in 2 accounts)
+
+  // Broad index / commodity-wrapper / cash tickers that aren't meaningful
+  // "concentrations" even if >10% — they're diversified by construction.
+  const NOT_A_CONCENTRATION=new Set([
+    "FXAIX","FSKAX","FXIIX","FZILX","FSGGX","FXNAX", // broad index
+    "JHYUX",                                          // HY bond fund
+    "NHXINT906",                                      // intl-equity 529 fund
+    "SPAXX","QACDS",                                  // money-market / cash
+  ]);
+
+  // (1) Portfolio-beta outlier
+  if(portBeta>1.3){
+    lines.push({col:"#ff9f0a",body:`Portfolio beta ${portBeta.toFixed(2)} — elevated equity sensitivity`});
+  }else if(portBeta<0.6){
+    lines.push({col:"#ffd60a",body:`Portfolio beta ${portBeta.toFixed(2)} — defensive vs. market`});
+  }
+
+  // (2) Single-stock concentrations >10% of total wealth
   Object.entries(heldByTicker).forEach(([ticker,info])=>{
-    if(info.accounts.length>1&&ticker!=="FXAIX"&&ticker!=="NHXINT906"){
-      lines.push({col:"#ff9f0a",body:`${ticker} held in ${info.accounts.length} accounts — ${fmt$K(info.total)} total exposure`});
+    if(NOT_A_CONCENTRATION.has(ticker))return;
+    const pct=info.total/grandTotal*100;
+    if(pct>=10){
+      lines.push({col:"#ff9f0a",body:`${ticker} is ${pct.toFixed(1)}% of total wealth — single-name concentration`});
     }
   });
-  // Biggest winner + biggest loser by % P&L on positions with avgCost
-  const pnlRanked=heldPositions
-    .filter(p=>p.avgCost&&p.sector!=="Cash")
-    .map(p=>({ticker:p.ticker,pct:((p.price/p.avgCost-1)*100),acct:p.acctLabel}))
-    .sort((a,b)=>b.pct-a.pct);
-  const winner=pnlRanked[0];
-  const loser=pnlRanked[pnlRanked.length-1];
-  if(winner&&winner.pct>=15)lines.push({col:"#30d158",body:`Biggest winner: ${winner.ticker} +${winner.pct.toFixed(0)}% (${winner.acct})`});
-  if(loser&&loser.pct<=-10)lines.push({col:"#ff453a",body:`Biggest loser: ${loser.ticker} ${loser.pct.toFixed(0)}% (${loser.acct})`});
-  // Deployable cash
-  if(totalDeployable>5000)lines.push({col:"#30d158",body:`${fmt$K(totalDeployable)} deployable cash across ${cashByAcct.length} tactical account${cashByAcct.length===1?"":"s"}`});
-  return lines.length===0?
-    <div style={{fontSize:12,color:"var(--text-muted)",padding:"4px 2px"}}>No notable insights today.</div>:
-    lines.map((l,i)=>(
-    <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface-2)",borderLeft:`3px solid ${l.col}`,borderRadius:4}}>
-    <span style={{width:6,height:6,borderRadius:"50%",background:l.col,flexShrink:0}}/>
-    <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{l.body}</span>
+
+  // (3) Cross-account single-ticker exposure (harder to spot from the list)
+  Object.entries(heldByTicker).forEach(([ticker,info])=>{
+    if(NOT_A_CONCENTRATION.has(ticker))return;
+    if(info.accounts.length>1){
+      lines.push({col:"#64748b",body:`${ticker} held in ${info.accounts.length} accounts — ${fmt$K(info.total)} total`});
+    }
+  });
+
+  // (4) Deployable cash (tactical accounts only)
+  if(totalDeployable>5000){
+    lines.push({col:"#30d158",body:`${fmt$K(totalDeployable)} deployable cash across ${cashByAcct.length} tactical account${cashByAcct.length===1?"":"s"}`});
+  }
+
+  // (5) Scanner REVIEW-zone (score <20) — only tactical, in-scope holdings
+  heldPositions.forEach(p=>{
+    if(!p.acctTactical)return;
+    if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return;
+    if(BROAD_INDEX_FUNDS.has(p.ticker))return;
+    const sc=scoreByTicker[p.ticker];
+    if(sc!=null&&sc<20){
+      lines.push({col:"#ff453a",body:`${p.ticker} scanner score ${sc} — sell-watch zone`});
+    }
+  });
+
+  // (6) Material individual-position drawdowns (≤-25% vs. cost)
+  heldPositions.forEach(p=>{
+    if(!p.avgCost||p.sector==="Cash")return;
+    const pnlPct=(p.price/p.avgCost-1)*100;
+    if(pnlPct<=-25){
+      lines.push({col:"#ff453a",body:`${p.ticker} ${pnlPct.toFixed(0)}% vs. cost (${p.acctLabel})`});
+    }
+  });
+
+  if(lines.length===0)return null;
+  return(
+    <>
+    <div style={subTitleStyle}>NOTABLE</div>
+    <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:14}}>
+    {lines.map((l,i)=>(
+      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface-2)",borderLeft:`3px solid ${l.col}`,borderRadius:4}}>
+      <span style={{width:6,height:6,borderRadius:"50%",background:l.col,flexShrink:0}}/>
+      <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{l.body}</span>
+      </div>
+    ))}
     </div>
-    ));
+    </>
+  );
 })()}
-</div>
 
 {/* POSITIONS — rich data, no signal labels, sorted by value DESC */}
 <div style={subTitleStyle}>POSITIONS · LARGEST FIRST · CLICK FOR DETAIL</div>
@@ -3030,104 +3094,30 @@ return(<>
 )):<div style={{fontSize:12,color:"var(--text-muted)"}}>No cash in tactical accounts.</div>}
 </div>
 
-<div style={{marginTop:8,fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("portfolio")}>View account-by-account holdings detail →</div>
 </div>
 </div>
 
-</div>
-);
-})()}
-
-{/* PORTFOLIO */}
-{tab==="portfolio"&&(
-<div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:12}}>
-<div style={{background:"var(--surface)",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px"}}>
-<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>PORTFOLIO INSIGHTS · ACCOUNT DETAIL · NOT INVESTMENT ADVICE</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(120px,1fr))",gap:8,marginBottom:12}}>
-{[{label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},{label:"Accounts",value:`${ACCOUNTS.length} accounts`,col:"var(--text)"},{label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.2?"#ff9f0a":portBeta>0.8?"var(--yellow-text)":"#30d158"},{label:"Macro Regime",value:`${CONV.label} ${TREND_SIG.arrow}`,col:convTextColor(CONV)}].map(({label,value,col})=>(
-<div key={label} style={{background:"var(--surface-2)",borderRadius:5,padding:"10px 12px"}}>
-<div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",marginBottom:4}}>{label.toUpperCase()}</div>
-<div style={{fontSize:14,fontWeight:800,color:col,fontFamily:"monospace"}}>{value}</div>
-</div>
-))}
-</div>
-{/* Wealth-by-account + asset-class composition.
-    Labels live OUTSIDE the bar (legend row below). The bar itself is a thin
-    10px track with 2px gaps between segments — segments don't carry text, so
-    we don't fight truncation/text-shadow on narrow slices. */}
-{(()=>{
-const ACCT_LABEL={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
-const acctData=ACCOUNTS.map(acc=>{
-const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return{id:acc.id,name:ACCT_LABEL[acc.id]||acc.label.split(" ")[0],color:acc.color,value:t,pct:t/grandTotal};
-}).sort((a,b)=>b.value-a.value);
-const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
-{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val,pct:val/grandTotal}
-));
-const fmt$=v=>v>=1000?`$${Math.round(v/1000).toLocaleString()}K`:`$${v}`;
-const sectionStyle={marginBottom:14};
-const headerRow={display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8};
-const headerLabel={fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600};
-const headerMeta={fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"};
-const barTrack={display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10};
-const legendWrap={display:"flex",flexWrap:"wrap",rowGap:6,columnGap:18};
-const chip={display:"flex",alignItems:"center",gap:7};
-const swatch={width:9,height:9,borderRadius:2,flexShrink:0};
-const chipName={fontSize:12,color:"var(--text)",fontWeight:500};
-const chipVal={fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"};
-const chipPct={fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"};
-const renderBar=(title,meta,segs,key)=>(
-<div key={key} style={sectionStyle}>
-<div style={headerRow}>
-<span style={headerLabel}>{title}</span>
-<span style={headerMeta}>{meta}</span>
-</div>
-<div style={barTrack}>
-{segs.map(s=>(
-<div key={s.id} title={`${s.name} · ${fmt$(s.value)} · ${(s.pct*100).toFixed(1)}%`}
-  style={{flex:s.pct,background:s.color,minWidth:2}}/>
-))}
-</div>
-<div style={legendWrap}>
-{segs.map(s=>(
-<div key={s.id} style={chip}>
-<div style={{...swatch,background:s.color}}/>
-<span style={chipName}>{s.name}</span>
-<span style={chipVal}>{fmt$(s.value)}</span>
-<span style={chipPct}>{(s.pct*100).toFixed(0)}%</span>
-</div>
-))}
+{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — collapsed by default to keep the tab lean.
+    Replaces the old Holdings Detail tab; same AcctCard component, rendered
+    inline once the user asks for it. */}
+<div style={sectionPanel}>
+<div style={{...sectionHeader,cursor:"pointer"}} onClick={()=>setAcctBreakdownOpen(v=>!v)}>
+<span style={sectionTitleStyle}>③ ACCOUNT BREAKDOWN</span>
+<div style={{display:"flex",alignItems:"center",gap:14}}>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{ACCOUNTS.length} accounts · position-level detail</span>
+<span style={{fontSize:11,color:ACCENT,fontFamily:"var(--font-mono)"}}>{acctBreakdownOpen?"▾ Hide":"▸ Show"}</span>
 </div>
 </div>
-);
-return(<>
-{renderBar("WEALTH BY ACCOUNT",`${acctData.length} accounts · ${fmt$(grandTotal)}`,acctData,"acct")}
-{renderBar("ASSET CLASS MIX",`${assetData.length} classes · ${fmt$(grandTotal)}`,assetData,"asset")}
-</>);
-})()}
-</div>
-<div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
-<div style={{fontSize:11,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:8}}>KEY OBSERVATIONS · {CONV.label} REGIME</div>
-<div style={{display:"flex",flexDirection:"column",gap:6}}>
-{[
-{ok:true,text:"401k is diversified across US equity (60%), bonds (22%), international (15%), and TIPS (3%) — appropriate target-date structure for a long-horizon retirement account."},
-{ok:CONV.level<=3,text:`Brokerage is well-diversified: SPY core, QQQ growth tilt, GLD hedge, BRK.B quality, TLT tail hedge, and 7% cash. ${CONV.level<=2?"Consider trimming GLD and adding equity on any dip.":"Positioning appropriate for current "+CONV.label+" stress level."}`},
-{ok:true,text:"529 uses Fidelity ZERO funds (0% expense ratio) — optimal fund selection. Begin glide toward bonds within 3–4 years as enrollment approaches."},
-{ok:true,text:"HSA invested in FXAIX — correct. Maximize family contributions ($8,550 in 2026). Treat as stealth retirement account; never withdraw."},
-{ok:true,text:"Roth IRA holds highest-risk/return assets (VGT, FBTC, ARKK) — tax-free growth makes this the right account for speculative and high-growth positions."},
-{ok:false,text:"Roth cash (SPAXX at 18% of account) is too high — deploy into VGT or a broad index to maximize tax-free compounding."},
-].map(({ok,text},i)=>(
-<div key={i} style={{display:"flex",gap:8,padding:"7px 10px",background:ok?"#22c55e08":"#ef444408",border:`1px solid ${ok?"#22c55e22":"#ef444422"}`,borderRadius:5}}>
-<span style={{color:ok?"#30d158":"#ff453a",fontSize:13,flexShrink:0}}>{ok?"✓":"✗"}</span>
-<span style={{fontSize:12,color:"var(--text-2)",lineHeight:1.6}}>{text}</span>
-</div>
-))}
-</div>
-</div>
+{acctBreakdownOpen&&(
+<div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:12}}>
 {ACCOUNTS.map(acct=>(<AcctCard key={acct.id} acct={acct} grandTotal={grandTotal} convColor={CONV.color} convLabel={CONV.label} stressScore={COMP100}/>))}
-<div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace"}}>Personal portfolio · Sourced from JPM + Fidelity exports · Not investment advice</div>
 </div>
 )}
+</div>
+
+</div>
+);
+})()}
 
 {/* SCANNER */}
 {tab==="scanner"&&<Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)} onOpenTicker={(t)=>setTickerDetail(t)}/>}
