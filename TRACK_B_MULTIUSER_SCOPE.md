@@ -13,8 +13,12 @@
 - **Scanner de-personalized.** The "CURRENT PORTFOLIO" section has been removed from the Scanner tab (Track B0). The scanner JSON may still emit `portfolio_positions`, but the dashboard no longer renders it. No per-user personalization of the scanner UI.
 - **Scored-universe expansion (separate track, scanner repo).** Universe should broaden to S&P 500 + NASDAQ Composite + Dow Jones Industrial Average + Russell 2000. This is Python-side work in the trading-scanner repo, not this repo. Tracked separately.
 - **Supabase + RLS** is the vendor pick.
-- **CSV + manual entry** for portfolio input; no Plaid.
+- **Portfolio input supports two modes:**
+  - **CSV upload** for a full portfolio (account + positions with shares / avg cost / sector).
+  - **Lightweight "add ticker for tracking"** — symbol-only entry that creates a watchlist row. No financial data required. Useful for F&F who just want to track names without committing to data entry.
+- **"Wipe my portfolio" button** on the portfolio tabs — one-click reset so F&F can undo a botched CSV upload.
 - **Sample portfolio shipped as static JSON**, not a DB row.
+- **Git history scrub — deferred.** The old `ACCOUNTS` array will remain in git history after the B5 cutover. Data is already public via a public GitHub repo, so rewriting history is closing the barn door. Future safety comes from never hardcoding real data again (which B5 enforces).
 
 ---
 
@@ -63,7 +67,7 @@ The RLS angle is the one that matters most for you — in a risk/controls framin
 
 ## 3. Data model
 
-Two tables. User-owned, RLS-gated.
+Three tables. All user-owned, RLS-gated. The split between `positions` and `watchlist` mirrors the two input modes: committed capital vs. things you just want to track.
 
 ### `accounts`
 
@@ -98,6 +102,21 @@ Two tables. User-owned, RLS-gated.
 | `color` | text | |
 | `created_at` / `updated_at` | timestamptz | |
 
+### `watchlist`
+
+Ticker-only rows for the "add ticker for tracking" flow — no shares, no avg cost, no capital-at-risk data.
+
+| column | type | notes |
+|---|---|---|
+| `id` | uuid PK | |
+| `user_id` | uuid FK → auth.users | **RLS filter** |
+| `ticker` | text | |
+| `name` | text | optional — filled from scanner metadata if available |
+| `theme` | text | optional — user's tag ("AI / Semis", "Energy", etc.) |
+| `note` | text | optional — free-form |
+| `sort_order` | int | |
+| `created_at` / `updated_at` | timestamptz | |
+
 ### RLS policies (the important part)
 
 ```sql
@@ -115,6 +134,14 @@ create policy "own positions - select"
   on positions for select using (auth.uid() = user_id);
 create policy "own positions - write"
   on positions for all using (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+-- watchlist (same pattern)
+alter table watchlist enable row level security;
+create policy "own watchlist - select"
+  on watchlist for select using (auth.uid() = user_id);
+create policy "own watchlist - write"
+  on watchlist for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 ```
 
@@ -190,7 +217,7 @@ Each stage is shippable and reversible. Each should land as its own PR / Vercel 
 | **B1 — Auth scaffold** | Add Supabase SDK, login screen, email magic link, protected route wrapper. No DB writes yet. Can still show hardcoded ACCOUNTS to everyone behind auth. | Low | ~half day w/ Cursor |
 | **B2 — Data model + RLS** | Create `accounts` + `positions` tables, RLS policies, migrations. Admin script to test-insert & test-query. No UI integration yet. | Low | ~half day |
 | **B3 — Sample portfolio + read path** | Add sample JSON. Refactor Portfolio & Insights + Holdings Detail tabs to read from DB if the user has data, else show sample with banner. Joe's data still comes from `ACCOUNTS` for now (toggle). | Medium — touches the biggest tabs | ~1 day |
-| **B4 — Write path: manual add + CSV** | Add/Edit account form. Add/Edit position form. CSV template download + upload with parse preview. | Medium | ~1 day |
+| **B4 — Write path: CSV upload, add-position form, add-ticker-to-watchlist form, wipe-my-portfolio button** | Add/Edit account form. Add/Edit position form. Add-ticker form (lightweight — symbol only → watchlist). CSV template download + upload with parse preview. "Wipe my portfolio" confirmation → truncates user's accounts/positions/watchlist rows. | Medium | ~1.5 days |
 | **B5 — Migrate Joe's data + remove hardcode** | Seed Joe's data into DB. Delete ACCOUNTS literal. Verify dashboard still looks identical for Joe. | Medium — this is the cutover | ~half day |
 | **B6 — Invite F&F** | Share URL. Watch for bugs. | — | ongoing |
 
@@ -202,12 +229,26 @@ Total: ~3–4 days of focused work, spread across however many sessions you want
 
 1. ~~**Is Supabase OK as the auth/DB vendor?**~~ **Yes — locked.**
 2. ~~**Login gate: hard or soft?**~~ **Soft — only portfolio tabs gated. Locked.**
-3. **CSV-first or manual-first?** Both are in scope; question is which we build & polish first. CSV is faster for you to load test users. Manual is friendlier to non-technical F&F. *Open.*
-4. **"Delete my data" affordance?** You probably want a simple "wipe my portfolio" button so F&F can reset if they screw up a CSV upload. *Open.*
-5. **Hardcoded-ACCOUNTS history scrub?** Low-risk data, but worth asking: do you want me to rewrite git history to remove the old snapshots, or leave it? *Open.*
+3. ~~**CSV-first or manual-first?**~~ **Both — CSV for full portfolios, plus a lightweight "add ticker for tracking" path (symbol only, stores in `watchlist` table). Locked.**
+4. ~~**"Delete my data" affordance?**~~ **Yes — "Wipe my portfolio" button. Locked.**
+5. ~~**Hardcoded-ACCOUNTS history scrub?**~~ **Deferred. Data already public; rewriting history doesn't meaningfully reduce exposure. Locked.**
+
+All questions resolved. Ready to start B1.
 
 ---
 
 ## 8. What I'd recommend we do next
 
-Answer the 5 questions above, then I kick off B1 (auth scaffold). B1 is low-risk and standalone — even if we change our minds on data model details, the login wrapper and Supabase client setup stay.
+All scoping questions resolved. Next step is **B1 — Auth scaffold**:
+
+1. Create Supabase project (free tier)
+2. Add `@supabase/supabase-js` dep + Supabase client singleton in the dashboard repo
+3. Login screen (email magic link only — no password)
+4. Protected-route wrapper that gates only the two portfolio tabs (soft gate)
+5. Basic account UI in the sidebar footer slot (name/email + "Sign out")
+
+B1 is low-risk and fully reversible — if we decide to change auth vendor later, nothing in B1 is load-bearing for B2+. It's also ~half a day of Cursor work with you supervising.
+
+I'll need from you before I start:
+- Supabase project URL + anon key (created once in the Supabase dashboard — I can walk you through it)
+- A throwaway email address to test magic-link login end-to-end (or your primary; both work)
