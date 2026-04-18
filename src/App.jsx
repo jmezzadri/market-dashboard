@@ -2992,7 +2992,7 @@ return(<>
 )}
 
 {/* SCANNER */}
-{tab==="scanner"&&<Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)}/>}
+{tab==="scanner"&&<Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)} onOpenTicker={(t)=>setTickerDetail(t)}/>}
 
 {/* Per-ticker detail modal — opens from any ticker-level 'Details' click in
     portopps (opportunity cards, position cards). Escape hatch at the bottom
