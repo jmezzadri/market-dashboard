@@ -12,6 +12,7 @@ import LoginScreen from "./auth/LoginScreen";
 import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
+import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
@@ -1267,9 +1268,11 @@ const insiderBuys=rowsFor(scanData?.signals?.insider_buys);
 const insiderSells=rowsFor(scanData?.signals?.insider_sales);
 const flowCalls=rowsFor(scanData?.signals?.flow_alerts);
 const flowPuts=rowsFor(scanData?.signals?.put_flow_alerts);
+const darkPoolPrints=rowsFor(scanData?.signals?.darkpool);
 const congressCt=congressBuys.length+congressSells.length;
 const insiderCt=insiderBuys.length+insiderSells.length;
 const flowCt=flowCalls.length+flowPuts.length;
+const dpCt=darkPoolPrints.length;
 // Score components / contribution gauge
 const ScoreGauge=({s})=>{
   if(s==null)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",width:148,height:100,color:"var(--text-dim)",fontSize:11,fontFamily:"var(--font-mono)"}}>no score</div>;
@@ -1311,6 +1314,54 @@ const ma200Color=above200==null?"var(--text-dim)":above200?"#30d158":"#ff453a";
 const volColor=vol==null?"var(--text-dim)":vol>=2?"#30d158":vol>=1?"var(--text)":"var(--text-dim)";
 const ivRankColor=ivRank==null?"var(--text-dim)":ivRank>=70?"#ff453a":ivRank<=30?"#30d158":"var(--text)";
 const techScoreCol=techScore==null?"var(--text-dim)":techScore>=2?"#30d158":techScore>=-1?"var(--text)":"#ff453a";
+// Section composites — signed −100..+100 per category, with weighted overall.
+// This is the "distill the signals" view: legacy 0–100 is bullish-only, these
+// expose direction. See ./ticker/sectionComposites.js for the math.
+const composite=computeSectionComposites(ticker,scanData);
+// Compact pill renderer — one per section. Clicking scrolls to the section panel.
+const CompositePill=({sec,onClick})=>{
+  const col=colorForDirection(sec.direction);
+  const valStr=sec.score==null?"—":(sec.score>=0?"+":"")+sec.score;
+  return(
+  <button
+    type="button"
+    onClick={onClick}
+    title={sec.components?.map(c=>c.label+(c.points!=null?` (${c.points>=0?"+":""}${c.points})`:"")).join("\n")}
+    style={{
+      flex:"1 1 0",minWidth:94,textAlign:"left",
+      background:"var(--surface-3)",border:`1px solid ${sec.score!=null&&sec.score!==0?col+"66":"var(--border-faint)"}`,
+      borderRadius:5,padding:"7px 9px",cursor:onClick?"pointer":"default",
+      transition:"border-color 0.15s",
+    }}
+  >
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:2}}>
+      <span style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:600,textTransform:"uppercase"}}>{sec.name}</span>
+      <span style={{fontSize:8,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{sec.weight}%</span>
+    </div>
+    <div style={{fontSize:17,fontWeight:800,fontFamily:"var(--font-mono)",color:col,lineHeight:1.1}}>{valStr}</div>
+    <div style={{fontSize:8,color:"var(--text-dim)",fontFamily:"var(--font-mono)",letterSpacing:"0.05em",marginTop:2}}>{sec.label}</div>
+  </button>);
+};
+// Small inline badge used at each section panel header.
+const CompositeBadge=({sec})=>{
+  if(!sec||sec.score==null)return null;
+  const col=colorForDirection(sec.direction);
+  const v=(sec.score>=0?"+":"")+sec.score;
+  return(
+  <span style={{
+    display:"inline-flex",alignItems:"center",gap:5,marginLeft:8,
+    fontSize:10,fontFamily:"var(--font-mono)",fontWeight:700,
+    color:col,background:col+"15",border:`1px solid ${col}55`,
+    borderRadius:4,padding:"1px 6px",letterSpacing:"0.04em",
+  }}>
+    <span>{v}</span>
+    <span style={{color:"var(--text-dim)",fontWeight:500}}>· {sec.label}</span>
+  </span>);
+};
+const scrollToSection=(id)=>{
+  const el=document.getElementById(id);
+  if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
+};
 return(
 <div className="modal-backdrop" onClick={onClose}>
 <div className="modal-wrap">
@@ -1366,14 +1417,35 @@ return(
 </div>
 </div>
 ):(
-<div style={{...panelStyle,display:"flex",alignItems:"center",gap:16}}>
+<div style={panelStyle}>
+<div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
 <div style={{flexShrink:0}}><ScoreGauge s={score}/></div>
-<div style={{flex:1,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(100px,1fr))",gap:8}}>
-<Kpi label="CONGRESS" value={congressCt>0?`${congressCt} hit${congressCt===1?"":"s"}`:"—"} color={congressCt>0?"var(--blue)":"var(--text-dim)"} tip="Disclosed equity trades by U.S. Senators and Representatives in the last 45 days. Scanner tallies buys and sells separately and scores them by disclosed dollar range."/>
-<Kpi label="INSIDER" value={insiderCt>0?`${insiderCt} hit${insiderCt===1?"":"s"}`:"—"} color={insiderCt>0?"var(--purple)":"var(--text-dim)"} tip="Open-market buys and sells by company officers, directors, and 10% holders filed on Form 4 with the SEC in the last 30 days. Only meaningful-dollar transactions count toward the score."/>
-<Kpi label="OPTIONS FLOW" value={flowCt>0?`${flowCt} hit${flowCt===1?"":"s"}`:"—"} color={flowCt>0?"var(--orange)":"var(--text-dim)"} tip="Large or unusual call and put options activity flagged by Unusual Whales. Calls and puts are scored separately (bullish vs bearish flow)."/>
-<Kpi label="TECHNICAL" value={techScore==null?"—":(techScore>=0?"+":"")+techScore} color={techScoreCol} tip={"Weighted technical score from RSI + MACD + moving averages + volume. NOT a simple +/− count of cells — very overbought RSI (>80) penalizes −8, clean uptrend (above both MAs) rewards +6, etc. So a stock with strong MAs but extremely overbought RSI can net negative. Current breakdown:\n"+(rsi!=null?(rsi>80?`• RSI ${rsi.toFixed(1)} severely overbought (−8)\n`:rsi>70?`• RSI ${rsi.toFixed(1)} overbought (−4)\n`:rsi<30?`• RSI ${rsi.toFixed(1)} oversold (+8)\n`:rsi<40?`• RSI ${rsi.toFixed(1)} approaching oversold (+4)\n`:`• RSI ${rsi.toFixed(1)} neutral (0)\n`):"")+(macd==="bullish"?"• MACD bullish cross (+6)\n":macd==="bearish"?"• MACD bearish cross (−3)\n":"• MACD neutral (0)\n")+(above50===true&&above200===true?"• Above both 50d & 200d MA (+6)":above50===true?"• Above 50d / below 200d (+3)":above200===true?"• Below 50d / above 200d (−1)":"• Below both MAs (−4)")}/>
+<div style={{flex:1,minWidth:0}}>
+<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:600,marginBottom:4}}>
+SIGNAL COMPOSITE
+{composite?.overall?.score!=null&&(
+<span style={{marginLeft:10,fontSize:14,fontWeight:800,color:colorForDirection(composite.overall.direction)}}>
+{composite.overall.score>=0?"+":""}{composite.overall.score}
+</span>)}
+{composite?.overall?.score!=null&&(
+<span style={{marginLeft:6,fontSize:9,color:colorForDirection(composite.overall.direction),fontFamily:"var(--font-mono)",letterSpacing:"0.06em"}}>
+{composite.overall.label}
+</span>)}
 </div>
+<div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.4}}>
+Legacy score <strong style={{color:"var(--text)",fontFamily:"var(--font-mono)"}}>{score??"—"}/100</strong> is a bullish-only signal tally. The composite is a weighted blend of the six sections below (−100 bearish … +100 bullish) so you can see direction AND strength at a glance.
+</div>
+</div>
+</div>
+{composite&&(
+<div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+{composite.order.map(k=>{
+  const sec=composite.sections[k];
+  const anchorMap={technicals:"sec-technical",options:"sec-options",insider:"sec-activity",congress:"sec-activity",analyst:"sec-analyst",darkpool:"sec-darkpool"};
+  return <CompositePill key={k} sec={sec} onClick={()=>scrollToSection(anchorMap[k])}/>;
+})}
+</div>
+)}
 </div>
 )}
 
@@ -1391,8 +1463,8 @@ return(
 
 {/* Technicals — hide entirely for manual-track tickers where every field is null */}
 {(rsi!=null||macd!=null||above50!=null||above200!=null||vol!=null||rv!=null)&&(
-<div style={panelStyle}>
-<div style={sectionLabel}>TECHNICAL ANALYSIS</div>
+<div id="sec-technical" style={panelStyle}>
+<div style={{...sectionLabel,display:"flex",alignItems:"center"}}><span>TECHNICAL ANALYSIS</span><CompositeBadge sec={composite?.sections?.technicals}/></div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
 {rsi!=null&&<Kpi label="RSI-14" value={rsi.toFixed(1)} color={rsiColor} sub={rsi>=70?"overbought":rsi<=30?"oversold":"neutral"} tip="Relative Strength Index over 14 days. Oscillator from 0-100. Above 70 is traditionally 'overbought' (stretched, prone to pullback); below 30 is 'oversold' (bid for a bounce). Between 30-70 is neutral momentum."/>}
 {macd!=null&&<Kpi label="MACD CROSS" value={macd} color={macdColor} tip="Moving Average Convergence Divergence. 'bullish' = the 12-day EMA just crossed ABOVE the 26-day EMA in the last 3 days (momentum shift up). 'bearish' = crossed below (momentum down). 'neutral' = no recent cross."/>}
@@ -1406,8 +1478,8 @@ return(
 
 {/* Options — IV + flow skew */}
 {(ivLvl!=null||ivRank!=null||bullPrem!=null||flowSkew!=null||impMove30!=null||pcRatio!=null)&&(
-<div style={panelStyle}>
-<div style={sectionLabel}>OPTIONS · IV · FLOW SKEW</div>
+<div id="sec-options" style={panelStyle}>
+<div style={{...sectionLabel,display:"flex",alignItems:"center"}}><span>OPTIONS · IV · FLOW SKEW</span><CompositeBadge sec={composite?.sections?.options}/></div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(150px,1fr))",gap:8}}>
 {ivRank!=null&&<Kpi label="IV RANK" value={`${ivRank.toFixed(0)}`} color={ivRankColor} sub={ivRank>=70?"IV expensive":ivRank<=30?"IV cheap":"mid-range"} tip="Where current 30-day implied volatility sits in its 52-week range, 0-100. IV Rank 0 = IV is at a 1-year LOW (options cheap, favors buying calls/puts). IV Rank 100 = IV is at a 1-year HIGH (options expensive, favors premium selling — covered calls, cash-secured puts). >70 is the scanner's threshold to screen for covered-call setups."/>}
 {ivLvl!=null&&<Kpi label="IV 30D LEVEL" value={`${ivLvl.toFixed(0)}%`} color="var(--text)" tip={`Annualized implied volatility priced into 30-day options (${ivLvl.toFixed(0)}%). Interpretation: the options market expects the stock to move roughly ±${(ivLvl/Math.sqrt(12)).toFixed(0)}% over the next month (1σ). Higher = more expected motion. Compare to realized vol to see the vol premium.`}/>}
@@ -1479,8 +1551,12 @@ return(
 
 {/* Activity: Congress / Insider / Flow rows — full scanner detail, inlined */}
 {(congressCt>0||insiderCt>0||flowCt>0)&&(
-<div style={panelStyle}>
-<div style={sectionLabel}>ACTIVITY</div>
+<div id="sec-activity" style={panelStyle}>
+<div style={{...sectionLabel,display:"flex",alignItems:"center",flexWrap:"wrap"}}>
+<span>ACTIVITY</span>
+{congressCt>0&&<CompositeBadge sec={composite?.sections?.congress}/>}
+{insiderCt>0&&<CompositeBadge sec={composite?.sections?.insider}/>}
+</div>
 {congressBuys.length+congressSells.length>0&&(
 <div style={{marginBottom:10}}>
 <div style={{fontSize:10,color:"var(--blue)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>CONGRESSIONAL TRADES ({congressCt})</div>
@@ -1547,6 +1623,46 @@ return(
 
 {/* ANALYST RATINGS — aggregated buy/hold/sell counts + avg price target,
     then 5 most recent rating actions. Data from UW /api/screener/analysts. */}
+{/* Dark Pool activity — tiebreaker-only signal (max ±20 in composite). */}
+{dpCt>0&&(()=>{
+  const totalPrem=darkPoolPrints.reduce((s,r)=>s+(Number(r.premium)||0),0);
+  // Direction proxy via NBBO-midpoint relationship (match composite logic).
+  let bull=0,bear=0;
+  for(const r of darkPoolPrints){
+    const b=Number(r.nbbo_bid),a=Number(r.nbbo_ask),p=Number(r.price);
+    if(b>0&&a>0&&p>0){const m=(b+a)/2;if(p>m)bull++;else if(p<m)bear++;}
+  }
+  return(
+  <div id="sec-darkpool" style={panelStyle}>
+  <div style={{...sectionLabel,display:"flex",alignItems:"center"}}>
+  <span>DARK POOL PRINTS · {dpCt}</span>
+  <CompositeBadge sec={composite?.sections?.darkpool}/>
+  </div>
+  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:8}}>
+  <Kpi label="PRINTS TODAY" value={dpCt} color="var(--text)" tip="Count of large off-exchange (dark pool) prints matched to this ticker in today's scan."/>
+  <Kpi label="TOTAL PREMIUM" value={fmt$M(totalPrem)} color="var(--text)" tip="Sum of notional (price × size) across today's dark pool prints for this ticker."/>
+  <Kpi label="DIRECTION" value={bull>bear?"bid-lifted":bear>bull?"bid-hit":"mixed"} color={bull>bear?"#30d158":bear>bull?"#ff453a":"var(--text-muted)"} sub={`${bull} above-mid · ${bear} below-mid`} tip="Heuristic: print price vs NBBO midpoint. Above midpoint = buyer lifted the offer (accumulation bias). Below midpoint = seller hit the bid (distribution bias). Dark pool is always a weak signal — use as a tiebreaker only."/>
+  </div>
+  <div style={{display:"flex",flexDirection:"column",gap:3}}>
+  {darkPoolPrints.slice(0,5).map((r,i)=>{
+    const b=Number(r.nbbo_bid),a=Number(r.nbbo_ask),p=Number(r.price);
+    const mid=(b>0&&a>0)?(b+a)/2:null;
+    const vsMid=mid?p-mid:null;
+    const tag=vsMid==null?"":vsMid>0?"▲ ask":vsMid<0?"▼ bid":"= mid";
+    const col=vsMid==null?"var(--text-muted)":vsMid>0?"#30d158":vsMid<0?"#ff453a":"var(--text-muted)";
+    return(
+    <div key={i} style={{display:"flex",gap:8,fontSize:11,fontFamily:"var(--font-mono)",alignItems:"center",padding:"3px 6px",background:"var(--surface-3)",borderRadius:3}}>
+    <span style={{color:col,fontWeight:700,minWidth:48}}>{tag}</span>
+    <span style={{color:"var(--text)",flex:1}}>{Number(r.size).toLocaleString()} sh @ {fmt$(p)}</span>
+    <span style={{color:"var(--text-muted)"}}>{fmt$M(Number(r.premium)||0)}</span>
+    <span style={{color:"var(--text-dim)"}}>{String(r.executed_at||"").slice(11,16)}</span>
+    </div>);
+  })}
+  </div>
+  <div style={{fontSize:9,color:"var(--text-dim)",marginTop:8,fontStyle:"italic"}}>Dark pool is a weak signal — capped at ±20 in the section composite.</div>
+  </div>);
+})()}
+
 {analystRatings.length>0&&(()=>{
   const recs=analystRatings.map(r=>(r.recommendation||"").toLowerCase());
   const nBuy=recs.filter(r=>r==="buy"||r==="strong_buy"||r==="overweight").length;
@@ -1557,8 +1673,11 @@ return(
   const upside=(avgTarget&&price)?((avgTarget-price)/price)*100:null;
   const lastDate=analystRatings[0]?.timestamp?String(analystRatings[0].timestamp).slice(0,10):null;
   return(
-  <div style={panelStyle}>
-  <div style={sectionLabel}>ANALYST RATINGS · {analystRatings.length} recent</div>
+  <div id="sec-analyst" style={panelStyle}>
+  <div style={{...sectionLabel,display:"flex",alignItems:"center"}}>
+  <span>ANALYST RATINGS · {analystRatings.length} recent</span>
+  <CompositeBadge sec={composite?.sections?.analyst}/>
+  </div>
   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(110px,1fr))",gap:8,marginBottom:10}}>
     <Kpi label="BUY" value={nBuy} color={nBuy>0?"#30d158":"var(--text-dim)"} tip="Count of recent analyst ratings in the buy/outperform/overweight category."/>
     <Kpi label="HOLD" value={nHold} color={nHold>0?"var(--text)":"var(--text-dim)"} tip="Count of recent analyst ratings in the hold/neutral category."/>
