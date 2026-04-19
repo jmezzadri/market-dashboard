@@ -11,6 +11,7 @@
  *   views = { tabId: { title, eyebrow, render: () => <jsx /> } }
  */
 import { useState, useEffect, useMemo } from "react";
+import HeaderAuth from "./auth/HeaderAuth";
 
 // ── Theme hook ────────────────────────────────────────────────────────────────
 const THEME_KEY = "md_theme_pref";  // "light" | "dark"
@@ -153,7 +154,10 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
           <span style={{ width: 1, height: 14, background: "var(--border)" }}/>
           <MarketDot open={open}/>
         </div>
-        <ThemeToggle pref={pref} setPref={setPref}/>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <HeaderAuth />
+          <ThemeToggle pref={pref} setPref={setPref}/>
+        </div>
       </div>
 
       {/* Title + Regime KPI — only on home (full hero) */}
