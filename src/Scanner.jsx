@@ -5,6 +5,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { Tile } from "./Shell";
 import { InfoTip, HeadWithTip } from "./InfoTip";
+import { useSession } from "./auth/useSession";
+import { useUserPortfolio } from "./hooks/useUserPortfolio";
 
 const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
@@ -14,7 +16,7 @@ const TAB_META = {
   congress:    { eyebrow: "Congressional",     title: "Congress activity",      sub: "Disclosed equity trades by U.S. Senators and Representatives in the last 45 days (buys and sells).", accent: "#0a84ff" },
   insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider activity",       sub: "Open-market buys and sells by company officers, directors, and 10% holders filed with the SEC.",    accent: "#bf5af2" },
   flow:        { eyebrow: "Options Flow",      title: "Unusual flow alerts",    sub: "Large or unusual call and put options activity flagged by Unusual Whales.",           accent: "#ff9f0a" },
-  technicals:  { eyebrow: "Per-ticker signals", title: "Technicals",            sub: "Implied volatility rank, put/call ratio, relative volume, and momentum indicators across all scored tickers.", accent: "#ffd60a" },
+  technicals:  { eyebrow: "Per-ticker signals", title: "Technicals",            sub: "Composite SIGNAL score (-100 to +100, SCTR-weighted with ADX regime filter), plus RSI, MACD, moving averages, IV rank, and relative volume.", accent: "#ffd60a" },
   methodology: { eyebrow: "Methodology",       title: "How the scanner scores", sub: "Scoring weights, data sources, refresh schedule, and tier thresholds.",                accent: "var(--text-dim)" },
 };
 
@@ -357,7 +359,11 @@ function SectionBanner({ label, empty }) {
 }
 
 // ── Overview tab ──────────────────────────────────────────────────────────────
-function OverviewTab({ data, focusTicker }) {
+// `userAccounts` / `userWatchlist` come from useUserPortfolio (Supabase / RLS)
+// and are empty arrays when signed out. They replace the old public-artifact
+// `data.watchlist` / `data.portfolio_positions` paths, which no longer ship
+// personal data (see trading-scanner/scanner/reporter.py::_write_scan_data_json).
+function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [], isSignedIn = false }) {
   const { buy_opportunities = [], watch_items = [], signals, config = {} } = data;
   const screenerMap = signals?.screener || {};
   const scoremap   = data.score_by_ticker || {};
@@ -407,9 +413,9 @@ function OverviewTab({ data, focusTicker }) {
     );
   };
 
-  // Render a watchlist entry (manual-track ticker — not in buy/watch/portfolio
-  // but the scanner pulls full intel for it via the always-include path).
-  const watchlist = data.watchlist || [];
+  // Render a personal watchlist entry (signed-in-only — sourced from Supabase
+  // via useUserPortfolio). Falls through to score/price data if the ticker
+  // happens to be in the public universe too.
   const renderWatchlistEntry = (w) => {
     const t = w.ticker;
     const sc = screenerMap[t] || {};
@@ -432,8 +438,59 @@ function OverviewTab({ data, focusTicker }) {
     );
   };
 
+  // Render one of the user's portfolio positions. Always-on rather than
+  // conditional on score — the user wants to see their own book, period.
+  // Entry price + shares are personal data from Supabase (RLS-scoped).
+  const renderPortfolioEntry = (p) => {
+    const t = p.ticker;
+    const sc = screenerMap[t] || {};
+    const price = p.price != null ? Number(p.price) : (Number(sc.close || sc.prev_close || 0) || null);
+    const score = scoremap[t] ?? null;
+    const company = p.name || sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "";
+    const shares = p.shares != null ? Number(p.shares) : null;
+    const avg    = p.avgCost != null ? Number(p.avgCost) : null;
+    const ptsl = (
+      <span>
+        {shares != null && <><strong style={{ color: C.text }}>Shares</strong> <span style={{ color: C.muted }}>{shares.toLocaleString()}</span></>}
+        {avg != null && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>Avg</strong> <span style={{ color: C.muted }}>{fmt$(avg)}</span></>}
+        {score != null && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>Score</strong> <span style={{ color: C.muted }}>{score}</span></>}
+      </span>
+    );
+    const perf = perfRow(t);
+    return (
+      <RichCard key={t} ticker={t} price={price} score={score} tier="portfolio"
+        companyName={company} cc={null} ccNote={null} avgCost={avg}
+        perfRow={perf} ptsl={ptsl} signals={signals} isPortfolio={true}
+        highlight={focusTicker && t === focusTicker} />
+    );
+  };
+
+  // Flatten positions across all accounts into a single de-duplicated ticker
+  // list. If a ticker is held in multiple accounts we render once and sum
+  // nothing (we don't know consolidated cost basis); the per-account view on
+  // the Portfolio tab remains the source of truth for that.
+  const positionsByTicker = {};
+  for (const acct of userAccounts) {
+    for (const pos of acct.positions || []) {
+      if (!pos.ticker) continue;
+      if (!positionsByTicker[pos.ticker]) positionsByTicker[pos.ticker] = pos;
+    }
+  }
+  const portfolioEntries = Object.values(positionsByTicker);
+
   return (
     <div>
+      {/* Disclosure banner — clarifies what the Buy & Watch surface is doing
+          and how signed-in augmentation behaves, so users aren't confused by
+          an empty "Your Book" section when unauthenticated. */}
+      <div style={{ color: C.dim, fontSize: 12, marginBottom: 16, fontFamily: "monospace", lineHeight: 1.6 }}>
+        <strong style={{ color: C.muted }}>RECOMMENDATIONS</strong> and <strong style={{ color: C.muted }}>WATCHLIST (Near Trigger)</strong> are scored from public market signals (Congress, insiders, options flow, dark pool) — same for every visitor.
+        {isSignedIn
+          ? <> The <strong style={{ color: C.muted }}>YOUR BOOK</strong> and <strong style={{ color: C.muted }}>YOUR WATCHLIST</strong> sections below are pulled from your Supabase workspace (RLS-scoped — no other user sees them).</>
+          : <> Sign in to overlay your own portfolio and watchlist alongside these picks.</>
+        }
+      </div>
+
       <SectionBanner label="RECOMMENDATIONS (Triggered)" />
       {buy_opportunities.length === 0
         ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px", marginBottom: 16 }}>No entries this scan.</div>
@@ -446,11 +503,21 @@ function OverviewTab({ data, focusTicker }) {
         : <div style={{ marginBottom: 16 }}>{watch_items.map(item => renderBuyWatch(item, "watch"))}</div>
       }
 
-      <SectionBanner label="MANUAL WATCHLIST" />
-      {watchlist.length === 0
-        ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px" }}>No manual watchlist (edit <span style={{ fontFamily: "monospace" }}>portfolio/watchlist.csv</span> in the trading-scanner repo to populate).</div>
-        : <div>{watchlist.map(renderWatchlistEntry)}</div>
-      }
+      {isSignedIn && (
+        <>
+          <SectionBanner label="YOUR BOOK" empty={portfolioEntries.length === 0} />
+          {portfolioEntries.length === 0
+            ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px", marginBottom: 16 }}>No positions yet. Add positions on the Portfolio tab.</div>
+            : <div style={{ marginBottom: 16 }}>{portfolioEntries.map(renderPortfolioEntry)}</div>
+          }
+
+          <SectionBanner label="YOUR WATCHLIST" empty={userWatchlist.length === 0} />
+          {userWatchlist.length === 0
+            ? <div style={{ color: C.dim, fontStyle: "italic", fontSize: 13, padding: "10px 14px" }}>No watchlist yet. Add tickers on the Portfolio tab.</div>
+            : <div>{userWatchlist.map(renderWatchlistEntry)}</div>
+          }
+        </>
+      )}
     </div>
   );
 }
@@ -881,12 +948,50 @@ function FlowTab({ data, onOpenTicker }) {
   );
 }
 
+// ── Composite SIGNAL badge ────────────────────────────────────────────────────
+// Renders the SCTR-style -100..+100 composite score as a colored pill with the
+// qualitative label ("BULL", "NEUTRAL", etc.) and optional regime suffix
+// ("× CONFIRMED" / "× CHOPPY"). Falls back to "—" if the backend returned no
+// composite for this ticker (insufficient price history, ETF, etc.).
+function CompositeBadge({ composite }) {
+  if (!composite || composite.score == null) {
+    return <span style={{ color: C.dim }}>—</span>;
+  }
+  const { score, label, regime } = composite;
+  // Color picker — mirror the bull/neutral/bear gradient used in RichCards.
+  let col = C.muted;
+  if (score >= 50)       col = C.green;
+  else if (score >= 20)  col = C.greenT;
+  else if (score <= -50) col = C.red;
+  else if (score <= -20) col = C.redT;
+  // Slim inline presentation so it fits in a sortable-table cell alongside the
+  // other technical signals without blowing up row height.
+  return (
+    <span style={{ display: "inline-flex", alignItems: "baseline", gap: 6 }}>
+      <span style={{ color: col, fontWeight: 800, fontSize: 12, letterSpacing: "0.02em" }}>
+        {score >= 0 ? "+" : ""}{score}
+      </span>
+      <span style={{ color: col, fontSize: 10, fontWeight: 700, letterSpacing: "0.04em" }}>{label}</span>
+      {regime === "CHOPPY" && (
+        <span style={{ color: C.dim, fontSize: 9, fontWeight: 600, letterSpacing: "0.04em" }}>CHOP</span>
+      )}
+    </span>
+  );
+}
+
 // ── Technicals tab ────────────────────────────────────────────────────────────
-function TechnicalsTab({ data, onOpenTicker }) {
+// `userTickers` is the list of tickers from the signed-in user's portfolio +
+// watchlist (empty array when signed out). Those get overlaid on top of the
+// public buy/watch universe so Joe's book shows up on Technicals when signed
+// in, without that data ever touching the public latest_scan_data.json.
+function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = false }) {
   const { buy_opportunities = [], watch_items = [], signals } = data;
+  // Dedupe public-first, then user — preserves the "market signals first,
+  // your book after" ordering if we ever want to segment rows visually.
   const allTickers = [
     ...buy_opportunities.map(o => o.ticker),
     ...watch_items.map(w => w.ticker),
+    ...userTickers,
   ].filter((t, i, a) => a.indexOf(t) === i);
 
   const screener   = signals?.screener    || {};
@@ -907,15 +1012,29 @@ function TechnicalsTab({ data, onOpenTicker }) {
   };
   const pctStyle = (v) => ({ color: v == null ? C.dim : v >= 0 ? C.green : C.red, fontWeight: v != null ? 600 : 400 });
 
+  // Build a lookup so we can badge rows that came from the user's book.
+  const userSet = new Set(userTickers);
+  const publicSet = new Set([
+    ...buy_opportunities.map(o => o.ticker),
+    ...watch_items.map(w => w.ticker),
+  ]);
+
   return (
     <div>
-      <div style={{ color: C.dim, fontSize: 12, marginBottom: 16, fontFamily: "monospace" }}>
-        Price changes from Yahoo Finance (yfinance) · RSI, MACD &amp; MA position computed daily · IV rank and volume from Unusual Whales
+      <div style={{ color: C.dim, fontSize: 12, marginBottom: 8, fontFamily: "monospace" }}>
+        Price changes from Yahoo Finance (yfinance) · RSI, MACD, ADX &amp; MA position computed daily · IV rank and volume from Unusual Whales
+      </div>
+      <div style={{ color: C.dim, fontSize: 11, marginBottom: 16, fontFamily: "monospace", lineHeight: 1.5 }}>
+        <strong style={{ color: C.muted }}>SIGNAL</strong> is a composite -100 to +100 directional tape-strength score (SCTR-weighted: long-term trend 60% / mid 30% / short 10%), with ADX regime confirmation and volume confirmation. See Methodology.
+        {isSignedIn && userTickers.length > 0 && (
+          <> · <strong style={{ color: C.muted }}>Your</strong> tickers show dashes for indicators that weren't computed this run — personal tickers aren't part of the public scan universe.</>
+        )}
       </div>
       <SortableTable
         headers={[
           "TICKER",
           "PRICE",
+          { label: "SIGNAL",   term: "COMPOSITE" },
           { label: "1W",       term: "1W"      },
           { label: "1M",       term: "1M"      },
           { label: "YTD",      term: "YTD"     },
@@ -938,11 +1057,23 @@ function TechnicalsTab({ data, onOpenTicker }) {
           const pytd  = tech.ytd_change   != null ? Number(tech.ytd_change)   : null;
           const rsi   = tech.rsi_14       != null ? Number(tech.rsi_14)       : null;
           const rsiCol = rsi == null ? C.dim : rsi > 70 ? C.red : rsi < 30 ? C.green : C.muted;
+          const comp  = tech.composite || null;
+          // Badge to mark user-only rows (portfolio or watchlist, not also in public)
+          const inUserOnly = userSet.has(t) && !publicSet.has(t);
+          const tickerCell = (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {onOpenTicker
+                ? <span style={{ color: C.text, fontWeight: 800, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(128,128,128,0.35)", textUnderlineOffset: 3 }} onClick={() => onOpenTicker(t)} title={`View ${t} flow, technicals, and short interest`}>{t}</span>
+                : <span style={{ color: C.text, fontWeight: 800 }}>{t}</span>}
+              {inUserOnly && (
+                <span style={{ fontSize: 9, color: C.accent, fontWeight: 700, letterSpacing: "0.05em", padding: "1px 5px", border: `1px solid ${C.border2}`, borderRadius: 3 }}>YOURS</span>
+              )}
+            </span>
+          );
           return mkRow([
-            onOpenTicker
-              ? <span style={{ color: C.text, fontWeight: 800, cursor: "pointer", textDecoration: "underline", textDecorationColor: "rgba(128,128,128,0.35)", textUnderlineOffset: 3 }} onClick={() => onOpenTicker(t)} title={`View ${t} flow, technicals, and short interest`}>{t}</span>
-              : <span style={{ color: C.text, fontWeight: 800 }}>{t}</span>,
+            tickerCell,
             <span style={{ color: C.text, fontWeight: 600 }}>{fmt$(price)}</span>,
+            <CompositeBadge composite={comp} />,
             <span style={pctStyle(p1w)}>{p1w  != null ? fmtPct(p1w  * 100) : "—"}</span>,
             <span style={pctStyle(p1m)}>{p1m  != null ? fmtPct(p1m  * 100) : "—"}</span>,
             <span style={pctStyle(pytd)}>{pytd != null ? fmtPct(pytd * 100) : "—"}</span>,
@@ -952,7 +1083,15 @@ function TechnicalsTab({ data, onOpenTicker }) {
             maBadge(tech.above_200ma),
             <span style={{ color: C.muted }}>{ivr  != null ? ivr.toFixed(0)         : "—"}</span>,
             <span style={{ color: C.muted }}>{rvol != null ? rvol.toFixed(1) + "×"  : "—"}</span>,
-          ], [t, price||0, p1w||0, p1m||0, pytd||0, rsi||0, tech.macd_cross||"", tech.above_50ma?1:0, tech.above_200ma?1:0, ivr||0, rvol||0]);
+          ], [
+            t,
+            price || 0,
+            comp && comp.score != null ? comp.score : -999,
+            p1w || 0, p1m || 0, pytd || 0,
+            rsi || 0, tech.macd_cross || "",
+            tech.above_50ma ? 1 : 0, tech.above_200ma ? 1 : 0,
+            ivr || 0, rvol || 0,
+          ]);
         })}
       />
     </div>
@@ -1001,6 +1140,28 @@ function MethodologyTab({ data }) {
         ["Stop Loss", `${cfg.stop_loss_pct || 15}% below average cost basis. Triggers scan email alert.`],
         ["Score Collapse", "Alert fires if a position's signal score drops significantly from the prior scan."],
         ["Insider/Congress Reversal", "Alert fires if the same insider or politician who bought is now selling."],
+      ],
+    },
+    {
+      title: "TECHNICALS COMPOSITE (-100 to +100)",
+      rows: [
+        ["Intent", "A standalone, signed tape-strength score independent of fundamental signals. Answers 'what is price action alone saying?' for each ticker. Modeled after StockCharts SCTR with IBD-style relative-strength and ADX regime confirmation."],
+        ["Long-term trend (60%)", "30 points from % above/below the 200-day moving average (saturates at ±30% deviation). 30 points from YTD return minus SPY YTD (IBD-style relative strength, saturates at ±30%)."],
+        ["Mid-term trend (30%)", "15 points from % above/below the 50-day moving average. 15 points from 1-month return minus SPY 1-month return."],
+        ["Short-term momentum (10%)", "5 points for MACD cross direction (bullish / neutral / bearish). 5 points for RSI zone (overbought +, oversold −)."],
+        ["Volume confirmation", "×1.1 multiplier when relative volume ≥ 1.5 confirms the direction; ×0.9 when RVOL < 0.7 signals participation is weak."],
+        ["ADX regime filter (14)", "ADX ≥ 25 and |raw score| > 30 → label carries 'CONFIRMED' suffix (trend is real). ADX < 20 → score scaled by 0.7 and marked 'CHOPPY' (trend is noise). 20 ≤ ADX < 25 is the neutral band."],
+        ["Label bands", "≥ +50 STRONG BULL · +20 to +49 BULL · -19 to +19 NEUTRAL · -49 to -20 BEAR · ≤ -50 STRONG BEAR · NO DATA when < 30 days of price history."],
+        ["Reference methodologies", "StockCharts SCTR (long 60 / mid 30 / short 10 weighting) · IBD Composite (relative strength vs. benchmark) · TradingView Technical Rating (vote-based) · Barchart Opinion (multi-timeframe averaging). See trading-scanner/ROADMAP.md for oscillators and industry-group RS we have not yet adopted."],
+      ],
+    },
+    {
+      title: "DATA SCOPE — PUBLIC VS. SIGNED IN",
+      rows: [
+        ["Public artifact (signed-out)", "latest_scan_data.json is identical for every visitor. Contains only market-signal data: Congress trades, insider transactions, options flow, dark pool, plus Buy/Watch-tier picks scored from those signals, with technicals for the scannable universe. No user's portfolio or watchlist is ever baked into this file."],
+        ["Signed-in overlay", "Your positions and watchlist come from Supabase, scoped to your account via row-level security (no other user can read them). The dashboard merges them in on the client — they render alongside the public signals on Buy & Watch and Technicals."],
+        ["Scannable universe", "Union of tickers appearing in any public signal source (Congress, insider buys/sales, options flow, dark pool), excluding index/ETF products and low-liquidity names. Your personal tickers are overlaid on top of this universe but do not drive what the scanner scores."],
+        ["ETFs excluded", "Broad-market, sector, bond, volatility, commodity, and crypto ETFs are filtered out up front — they surface heavily in flow and dark pool but don't behave like scannable single-name signals."],
       ],
     },
     {
@@ -1061,6 +1222,30 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Signed-in overlay. The public latest_scan_data.json deliberately contains
+  // no user-specific data; we merge the user's Supabase portfolio + watchlist
+  // here on the client. RLS makes this a no-op for unauthenticated callers
+  // (accounts/watchlist come back empty → identical to signed-out view).
+  const { session } = useSession();
+  const { accounts: userAccounts = [], watchlist: userWatchlistRows = [] } = useUserPortfolio();
+  const isSignedIn = Boolean(session?.user?.id);
+
+  // Flatten user accounts → distinct ticker list for the Technicals overlay.
+  // Watchlist tickers are included so the whole "what I care about" set gets
+  // composite scores on the Technicals tab.
+  const userTickers = useMemo(() => {
+    const s = new Set();
+    for (const acct of userAccounts || []) {
+      for (const pos of acct.positions || []) {
+        if (pos.ticker) s.add(String(pos.ticker).toUpperCase());
+      }
+    }
+    for (const w of userWatchlistRows || []) {
+      if (w.ticker) s.add(String(w.ticker).toUpperCase());
+    }
+    return [...s];
+  }, [userAccounts, userWatchlistRows]);
 
   // If a new focusTicker comes in after mount (user re-clicks a different
   // ticker from portopps without leaving the tab), honor it.
@@ -1127,7 +1312,16 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   const putFlowN     = data.signals?.put_flow_alerts?.length || 0;
   const flowN        = callFlowN + putFlowN;
   const screenerKeys = Object.keys(data.signals?.screener || {});
-  const techCount    = screenerKeys.length;
+  // Public tech count is the union of scored buy+watch tickers from the public
+  // universe. User tickers get layered on top when signed in so the landing
+  // tile reads "N public · M yours" and matches what the table actually shows.
+  const techPublicSet = new Set([
+    ...(data.buy_opportunities || []).map(o => o.ticker),
+    ...(data.watch_items || []).map(w => w.ticker),
+  ]);
+  const techPublicCount = techPublicSet.size;
+  const techUserOnlyCount = userTickers.filter(t => !techPublicSet.has(t)).length;
+  const techCount = techPublicCount + (isSignedIn ? techUserOnlyCount : 0);
 
   // Top tickers per surface (combined buys + sells so tile previews match the detail tables)
   const congressAll = [
@@ -1268,6 +1462,9 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
           >
             <div style={{ display: "flex", gap: 8, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
               <MiniStat label="HIGH VOLATILITY (>70)" value={highIVR} color="var(--yellow-text)" wide />
+              {isSignedIn && techUserOnlyCount > 0 && (
+                <MiniStat label="+ YOUR BOOK" value={techUserOnlyCount} color="var(--accent)" wide />
+              )}
             </div>
           </Tile>
 
@@ -1309,11 +1506,13 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
       </div>
 
       <div style={{ padding: "var(--space-2) var(--space-8) var(--space-8)" }}>
-        {view === "overview"    && <OverviewTab    data={data} focusTicker={focusTicker} onOpenTicker={onOpenTicker} />}
+        {view === "overview"    && <OverviewTab    data={data} focusTicker={focusTicker} onOpenTicker={onOpenTicker}
+                                      userAccounts={userAccounts} userWatchlist={userWatchlistRows} isSignedIn={isSignedIn} />}
         {view === "congress"    && <CongressTab    data={data} onOpenTicker={onOpenTicker} />}
         {view === "insiders"    && <InsidersTab    data={data} onOpenTicker={onOpenTicker} />}
         {view === "flow"        && <FlowTab        data={data} onOpenTicker={onOpenTicker} />}
-        {view === "technicals"  && <TechnicalsTab  data={data} onOpenTicker={onOpenTicker} />}
+        {view === "technicals"  && <TechnicalsTab  data={data} onOpenTicker={onOpenTicker}
+                                      userTickers={userTickers} isSignedIn={isSignedIn} />}
         {view === "methodology" && <MethodologyTab data={data} />}
       </div>
     </div>
