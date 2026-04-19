@@ -9,6 +9,7 @@ import {
 import { InfoTip } from "./InfoTip";
 import SidebarAuth from "./auth/SidebarAuth";
 import LoginScreen from "./auth/LoginScreen";
+import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 
@@ -2847,13 +2848,13 @@ return(<>
 </div>
 <div style={{padding:"12px 16px"}}>
 {ACCOUNTS.length===0?(
-<div style={{padding:"28px 16px",textAlign:"center",color:"var(--text-muted)",fontSize:13,lineHeight:1.55}}>
-  {portfolioAuthed?(
-    <>No portfolio data yet. Import your holdings to populate this view.</>
+  portfolioAuthed?(
+    <OnboardingPanel userId={session?.user?.id} onDone={refetchPortfolio}/>
   ):(
-    <>Sign in to populate allocation, positions, and risk insights with your own data.</>
-  )}
-</div>
+    <div style={{padding:"28px 16px",textAlign:"center",color:"var(--text-muted)",fontSize:13,lineHeight:1.55}}>
+      Sign in to populate allocation, positions, and risk insights with your own data.
+    </div>
+  )
 ):<>
 
 {/* ALLOCATION (wealth bars) */}
