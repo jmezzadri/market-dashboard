@@ -584,10 +584,25 @@ def get_stock_info(ticker: str) -> dict[str, Any] | None:
     if not isinstance(tags, list):
         tags = []
 
+    # UW's `short_description` is already truncated at the source (ends with "...").
+    # Fetch yfinance `longBusinessSummary` as a full fallback so the dashboard's
+    # "more" toggle has something real to reveal. Failure is tolerated — we still
+    # ship the short description.
+    long_description = None
+    try:
+        import yfinance as yf
+        yf_info = yf.Ticker(sym).info or {}
+        lbs = yf_info.get("longBusinessSummary")
+        if isinstance(lbs, str) and len(lbs.strip()) > 0:
+            long_description = lbs.strip()
+    except Exception as e:
+        logger.debug("yfinance longBusinessSummary fetch failed for %s: %s", sym, e)
+
     return {
         "sector": data.get("sector"),
         "tags": tags,  # renamed from uw_tags for dashboard-facing clarity
         "short_description": data.get("short_description"),
+        "long_description": long_description,
         "full_name": data.get("full_name") or data.get("name"),
         "short_name": data.get("short_name"),
         "next_earnings_date": data.get("next_earnings_date"),
