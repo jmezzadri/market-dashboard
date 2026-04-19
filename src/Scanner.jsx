@@ -18,7 +18,9 @@ const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
 
 const TAB_META = {
-  overview:    { eyebrow: "Recommendations",   title: "Buy & Watch list",       sub: "Triggered entries, watchlist, and current positions with full signal context.",       accent: "#30d158" },
+  // "overview" (Buy & Watch list) tile retired 2026-04-19: Portfolio & Insights
+  // (portopps) now surfaces the same buy alerts / near-trigger / watchlist data
+  // with populated 6-bar composites, making this tile redundant.
   congress:    { eyebrow: "Congressional",     title: "Congress activity",      sub: "Disclosed equity trades by U.S. Senators and Representatives in the last 45 days (buys and sells).", accent: "#0a84ff" },
   insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider activity",       sub: "Open-market buys and sells by company officers, directors, and 10% holders filed with the SEC.",    accent: "#bf5af2" },
   flow:        { eyebrow: "Options Flow",      title: "Unusual flow alerts",    sub: "Large or unusual call and put options activity flagged by Unusual Whales.",           accent: "#ff9f0a" },
@@ -1374,10 +1376,10 @@ function MethodologyTab({ data }) {
 
 // ── Main Scanner component ────────────────────────────────────────────────────
 export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTicker }) {
-  // When we're asked to focus on a specific ticker (from the portopps deep
-  // link), start on the overview view — that's where the ticker's RichCard
-  // lives. Otherwise start on the landing page as before.
-  const [view, setView] = useState(focusTicker ? "overview" : "landing");
+  // Start on the landing page (tile grid). The prior focusTicker → "overview"
+  // deep-link behavior was retired 2026-04-19 along with the Buy & Watch list
+  // tile; portopps is now the canonical surface for per-ticker detail.
+  const [view, setView] = useState("landing");
   const [rawData, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -1410,24 +1412,12 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
     return [...s];
   }, [userAccounts, userWatchlistRows]);
 
-  // If a new focusTicker comes in after mount (user re-clicks a different
-  // ticker from portopps without leaving the tab), honor it.
+  // focusTicker deep-link flow retired 2026-04-19 along with the "overview"
+  // (Buy & Watch list) tab. If a focusTicker ever arrives, just consume it so
+  // the parent clears state — we no longer try to scroll into a specific card.
   useEffect(() => {
-    if (focusTicker) setView("overview");
-  }, [focusTicker]);
-
-  // After the overview renders, scroll to + briefly highlight the focused
-  // ticker's card, then tell the parent we consumed the focus intent so a
-  // re-render of the same ticker fires a fresh scroll+pulse.
-  useEffect(() => {
-    if (!focusTicker || loading || view !== "overview") return;
-    const el = document.getElementById(`scanner-card-${focusTicker}`);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-    const id = setTimeout(() => { if (onFocusConsumed) onFocusConsumed(); }, 2400);
-    return () => clearTimeout(id);
-  }, [focusTicker, loading, view, onFocusConsumed]);
+    if (focusTicker && onFocusConsumed) onFocusConsumed();
+  }, [focusTicker, onFocusConsumed]);
 
   useEffect(() => {
     fetch(DATA_URL + "?t=" + Date.now())
@@ -1554,18 +1544,8 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
           gap: "var(--space-4)",
           alignItems: "start",
         }}>
-          <Tile
-            eyebrow={TAB_META.overview.eyebrow}
-            title={TAB_META.overview.title}
-            sub={TAB_META.overview.sub}
-            accent={TAB_META.overview.accent}
-            kpi={{ value: buyCount, unit: "buy alerts", color: buyCount > 0 ? "var(--green-text)" : "var(--text-muted)" }}
-            onClick={() => setView("overview")}
-          >
-            <div style={{ display: "flex", gap: 8, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-              <MiniStat label="WATCH" value={watchCount} color="var(--yellow-text)" />
-            </div>
-          </Tile>
+          {/* "Buy & Watch list" tile retired 2026-04-19 — see TAB_META note above.
+              Portfolio & Insights (portopps) is the canonical surface for buy/watch/positions. */}
 
           <Tile
             eyebrow={TAB_META.congress.eyebrow}
@@ -1683,8 +1663,9 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
       </div>
 
       <div style={{ padding: "var(--space-2) var(--space-8) var(--space-8)" }}>
-        {view === "overview"    && <OverviewTab    data={data} focusTicker={focusTicker} onOpenTicker={onOpenTicker}
-                                      userAccounts={userAccounts} userWatchlist={userWatchlistRows} isSignedIn={isSignedIn} />}
+        {/* "overview" (Buy & Watch list) tab retired 2026-04-19 — portopps is the canonical surface.
+            OverviewTab + renderBuyWatch are retained in this file as orphaned helpers for now
+            (harmless dead code); clean up next time we touch this file. */}
         {view === "congress"    && <CongressTab    data={data} onOpenTicker={onOpenTicker} />}
         {view === "insiders"    && <InsidersTab    data={data} onOpenTicker={onOpenTicker} />}
         {view === "flow"        && <FlowTab        data={data} onOpenTicker={onOpenTicker} />}

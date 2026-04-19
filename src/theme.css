@@ -90,12 +90,15 @@
 /* ───────── Dark theme — auto ───────── */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg:            #000000;
-    --bg-grad:       radial-gradient(ellipse at top, #1a1a1d 0%, #0a0a0c 60%, #000000 100%);
-    --surface:       rgba(28,28,32,0.72);
-    --surface-2:     rgba(20,20,24,0.55);
+    /* Dark-navy palette (2026-04-19) — shifted from neutral gray/black
+       toward a deep navy base so surfaces feel more financial-terminal
+       than generic system-dark. */
+    --bg:            #070c1a;
+    --bg-grad:       radial-gradient(ellipse at top, #1a2747 0%, #0f172d 60%, #050913 100%);
+    --surface:       rgba(26,38,65,0.72);
+    --surface-2:     rgba(18,28,50,0.55);
     --surface-3:     rgba(255,255,255,0.04);
-    --surface-solid: #1c1c20;
+    --surface-solid: #141d36;
     --hover:         rgba(255,255,255,0.06);
 
     --border:        rgba(255,255,255,0.08);
@@ -116,7 +119,7 @@
     --shadow-lg:  0 16px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
     --shadow-glow:0 0 0 1px rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.50);
 
-    --glass-bg:    rgba(28,28,32,0.62);
+    --glass-bg:    rgba(26,38,65,0.62);
     --glass-bord:  rgba(255,255,255,0.10);
 
     /* On dark, the bright semantic colors read fine as text */
@@ -133,12 +136,13 @@
 
 /* ───────── Manual dark override ───────── */
 :root[data-theme="dark"] {
-  --bg:            #000000;
-  --bg-grad:       radial-gradient(ellipse at top, #1a1a1d 0%, #0a0a0c 60%, #000000 100%);
-  --surface:       rgba(28,28,32,0.72);
-  --surface-2:     rgba(20,20,24,0.55);
+  /* Dark-navy palette (2026-04-19) — see note in the @media block above. */
+  --bg:            #070c1a;
+  --bg-grad:       radial-gradient(ellipse at top, #1a2747 0%, #0f172d 60%, #050913 100%);
+  --surface:       rgba(26,38,65,0.72);
+  --surface-2:     rgba(18,28,50,0.55);
   --surface-3:     rgba(255,255,255,0.04);
-  --surface-solid: #1c1c20;
+  --surface-solid: #141d36;
   --hover:         rgba(255,255,255,0.06);
 
   --border:        rgba(255,255,255,0.08);
@@ -159,7 +163,7 @@
   --shadow-lg:  0 16px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
   --shadow-glow:0 0 0 1px rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.50);
 
-  --glass-bg:    rgba(28,28,32,0.62);
+  --glass-bg:    rgba(26,38,65,0.62);
   --glass-bord:  rgba(255,255,255,0.10);
 
   --green-text:  #30d158;
