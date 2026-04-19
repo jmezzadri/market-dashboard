@@ -1111,7 +1111,13 @@ function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = fals
         rows={allTickers.map(t => {
           const sc   = screener[t]   || {};
           const tech = technicals[t] || {};
-          const price = sc.prev_close != null ? Number(sc.prev_close) : (sc.close != null ? Number(sc.close) : null);
+          // PRICE fallback order: UW screener prev_close → UW close → yfinance
+          // technicals close. The last fallback keeps the column populated for
+          // tickers outside UW's bulk leaderboard (wide-universe survivors).
+          const price = sc.prev_close != null ? Number(sc.prev_close)
+                      : sc.close      != null ? Number(sc.close)
+                      : tech.close    != null ? Number(tech.close)
+                      : null;
           const ivr   = sc.iv_rank        != null ? Number(sc.iv_rank)         : null;
           const rvol  = sc.relative_volume != null ? Number(sc.relative_volume) : null;
           // Price changes from yfinance technicals

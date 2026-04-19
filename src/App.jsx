@@ -13,6 +13,7 @@ import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
+import { supabase } from "./lib/supabase";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
@@ -1173,12 +1174,51 @@ return(
 );
 }
 
+// ── WATCHLIST ADD INPUT — inline input for adding arbitrary tickers to the
+//    signed-in user's watchlist from the Portfolio/Opportunities "Other
+//    Watchlist" sub-panel. Writes to supabase.watchlist and refetches.
+function WatchlistAddInput({session,watchlistRows,refetchPortfolio}){
+const [val,setVal]=useState("");
+const [busy,setBusy]=useState(false);
+const [err,setErr]=useState(null);
+const submit=async(e)=>{
+  e?.preventDefault?.();
+  const t=(val||"").trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,"");
+  if(!t)return;
+  if((watchlistRows||[]).some(w=>w.ticker===t)){setErr(`${t} already on watchlist`);return;}
+  setBusy(true);setErr(null);
+  try{
+    const userId=session?.user?.id;
+    if(!userId)throw new Error("Not signed in");
+    const sort_order=((watchlistRows||[]).reduce((m,w)=>Math.max(m,w.sort_order||0),0))+1;
+    const {error}=await supabase.from("watchlist").insert({user_id:userId,ticker:t,name:t,theme:"",sort_order});
+    if(error)throw error;
+    setVal("");
+    await refetchPortfolio?.();
+  }catch(e2){setErr(e2.message||String(e2));}
+  finally{setBusy(false);}
+};
+return(
+<form onSubmit={submit} style={{display:"flex",gap:6,alignItems:"center",padding:"4px 2px",marginTop:2}}>
+<input type="text" value={val} onChange={e=>{setVal(e.target.value);setErr(null);}}
+  placeholder="Add ticker (e.g. NFLX)" disabled={busy}
+  style={{flex:1,minWidth:0,fontSize:11,fontFamily:"var(--font-mono)",padding:"6px 8px",background:"var(--surface-3)",border:"1px solid var(--border-faint)",color:"var(--text)",borderRadius:4,letterSpacing:"0.04em",textTransform:"uppercase"}}/>
+<button type="submit" disabled={busy||!val.trim()}
+  style={{fontSize:11,fontFamily:"var(--font-mono)",fontWeight:700,color:"#fff",background:val.trim()?"var(--accent)":"var(--text-dim)",border:"none",borderRadius:4,padding:"6px 12px",cursor:busy||!val.trim()?"default":"pointer",letterSpacing:"0.05em"}}>
+  {busy?"…":"+ ADD"}
+</button>
+{err&&<span style={{fontSize:10,color:"#ff453a",fontFamily:"var(--font-mono)",marginLeft:4}}>{err}</span>}
+</form>);
+}
+
 // ── TICKER DETAIL MODAL — per-ticker drill-down for opportunity cards,
 //    held positions, and watchlist entries. Self-contained view of every
 //    piece of intel the scanner has for one ticker — no need to bounce
 //    to the Scanner tab.
-function TickerDetailModal({ticker,scanData,accounts,onClose}){
+function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose}){
 const [descExpanded,setDescExpanded]=useState(false);
+const [wlBusy,setWlBusy]=useState(false);
+const [wlError,setWlError]=useState(null);
 useEffect(()=>{
   const onKey=e=>{if(e.key==="Escape")onClose();};
   window.addEventListener("keydown",onKey);
@@ -1189,7 +1229,42 @@ if(!ticker)return null;
 const sc=scanData?.signals?.screener?.[ticker]||{};
 const tech=scanData?.signals?.technicals?.[ticker]||{};
 const score=scanData?.score_by_ticker?.[ticker];
-const watchlistEntry=(scanData?.watchlist||[]).find(w=>w.ticker===ticker)||WATCHLIST_FALLBACK.find(w=>w.ticker===ticker);
+// Signed-in user's own watchlist takes precedence over the scan artifact's
+// (empty, public) watchlist. WATCHLIST_FALLBACK is the pre-auth seed list.
+const userWLEntry=(watchlistRows||[]).find(w=>w.ticker===ticker);
+const watchlistEntry=userWLEntry||(scanData?.watchlist||[]).find(w=>w.ticker===ticker)||WATCHLIST_FALLBACK.find(w=>w.ticker===ticker);
+const onUserWatchlist=!!userWLEntry;
+// Add current ticker to the signed-in user's watchlist.
+async function addToWatchlist(){
+  setWlBusy(true);setWlError(null);
+  try{
+    const {data:{session}}=await supabase.auth.getSession();
+    const userId=session?.user?.id;
+    if(!userId)throw new Error("Not signed in");
+    const sort_order=((watchlistRows||[]).reduce((m,w)=>Math.max(m,w.sort_order||0),0))+1;
+    const {error}=await supabase.from("watchlist").insert({
+      user_id:userId,ticker:ticker.toUpperCase(),
+      name:(sc.full_name||sc.company_name||ticker),theme:"",sort_order,
+    });
+    if(error)throw error;
+    await refetchPortfolio?.();
+  }catch(err){setWlError(err.message||String(err));}
+  finally{setWlBusy(false);}
+}
+// Remove current ticker from the signed-in user's watchlist.
+async function removeFromWatchlist(){
+  setWlBusy(true);setWlError(null);
+  try{
+    const {data:{session}}=await supabase.auth.getSession();
+    const userId=session?.user?.id;
+    if(!userId)throw new Error("Not signed in");
+    const {error}=await supabase.from("watchlist").delete()
+      .eq("user_id",userId).eq("ticker",ticker.toUpperCase());
+    if(error)throw error;
+    await refetchPortfolio?.();
+  }catch(err){setWlError(err.message||String(err));}
+  finally{setWlBusy(false);}
+}
 const heldIn=(accounts||[]).flatMap(a=>a.positions.filter(p=>p.ticker===ticker).map(p=>({acct:a,p}))).filter(Boolean);
 const price=Number(sc.close||sc.prev_close||0)||null;
 const prevClose=Number(sc.prev_close||0)||null;
@@ -1376,6 +1451,15 @@ return(
 {heldIn.length>0&&<span style={{fontSize:10,color:"var(--accent)",border:"1px solid rgba(10,132,255,0.35)",background:"rgba(10,132,255,0.10)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>OWNED</span>}
 {isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px dashed var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>MANUAL TRACK</span>}
 {watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>WATCHLIST</span>}
+{portfolioAuthed&&(onUserWatchlist
+  ?<button type="button" onClick={removeFromWatchlist} disabled={wlBusy}
+     style={{fontSize:10,color:"#ff453a",background:"transparent",border:"1px solid rgba(255,69,58,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.03em"}}
+     title="Remove this ticker from your watchlist">{wlBusy?"…":"− REMOVE"}</button>
+  :<button type="button" onClick={addToWatchlist} disabled={wlBusy}
+     style={{fontSize:10,color:"var(--accent)",background:"rgba(10,132,255,0.08)",border:"1px solid rgba(10,132,255,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.03em"}}
+     title="Add this ticker to your watchlist">{wlBusy?"…":"+ WATCHLIST"}</button>
+)}
+{wlError&&<span style={{fontSize:10,color:"#ff453a",fontFamily:"var(--font-mono)"}}>{wlError}</span>}
 </div>
 {companyName&&companyName!==ticker&&<div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2,fontWeight:500}}>{companyName}</div>}
 {(sector||tags.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
@@ -1408,16 +1492,16 @@ return(
 </div>
 </div>
 
-{/* Score Gauge + Signal Breakdown — or, for manual-track positions, a short
-    explainer so the modal doesn't render as a wall of dashes. */}
-{isManualTrack?(
+{/* Score Gauge + Signal Breakdown. Manual-track tickers (on watchlist but
+    outside the scanner universe) get the same composite frame rendered with
+    "—" placeholders + a small banner explaining why scores are pending. This
+    keeps every modal structurally consistent. */}
 <div style={panelStyle}>
-<div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.55}}>
-<span style={{color:"var(--text)",fontWeight:600}}>Not in the scanner's scored universe yet.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — pending scanner-side enrichment. `:"Pending scanner-side enrichment. "}For now this is a manual-track position; the scanner runs once daily at 3:45 PM ET and will populate technicals, options and market-structure data when coverage is added.
+{isManualTrack&&(
+<div style={{fontSize:11,color:"var(--text-muted)",background:"var(--surface-3)",border:"1px solid var(--border-faint)",borderRadius:5,padding:"7px 10px",marginBottom:10,lineHeight:1.45}}>
+<span style={{color:"var(--text)",fontWeight:600}}>Manual-track position.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}Not in the scanner's scored universe yet, so composite scores below show as "—". The scanner runs daily at 3:45 PM ET; scores populate once coverage is added.
 </div>
-</div>
-):(
-<div style={panelStyle}>
+)}
 <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
 <div style={{flexShrink:0}}><ScoreGauge s={score}/></div>
 <div style={{flex:1,minWidth:0}}>
@@ -1431,6 +1515,9 @@ SIGNAL COMPOSITE
 <span style={{marginLeft:6,fontSize:9,color:colorForDirection(composite.overall.direction),fontFamily:"var(--font-mono)",letterSpacing:"0.06em"}}>
 {composite.overall.label}
 </span>)}
+{composite&&composite.overall?.score==null&&(
+<span style={{marginLeft:10,fontSize:14,fontWeight:800,color:"var(--text-dim)"}}>—</span>
+)}
 </div>
 <div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.4}}>
 Legacy score <strong style={{color:"var(--text)",fontFamily:"var(--font-mono)"}}>{score??"—"}/100</strong> is a bullish-only signal tally. The composite is a weighted blend of the six sections below (−100 bearish … +100 bullish) so you can see direction AND strength at a glance.
@@ -1447,7 +1534,6 @@ Legacy score <strong style={{color:"var(--text)",fontFamily:"var(--font-mono)"}}
 </div>
 )}
 </div>
-)}
 
 {/* Performance strip */}
 {(wk!=null||mo!=null||yt!=null)&&(
@@ -2979,7 +3065,10 @@ return(<>
     nearTrigger.map(item=>oppCard({keyId:`near-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"var(--yellow-text)",held:heldTickers.has(item.ticker),source:"near"}))
 )}
 {subPanel("#64748b","OTHER WATCHLIST",`${WATCHLIST.length} tracking`,
-  WATCHLIST.map(w=>oppCard({keyId:`oth-${w.ticker}`,ticker:w.ticker,score:scoreByTicker[w.ticker],price:null,companyName:w.name,accentCol:"#64748b",held:heldTickers.has(w.ticker),theme:w.theme,source:"other"}))
+  <>
+    {WATCHLIST.map(w=>oppCard({keyId:`oth-${w.ticker}`,ticker:w.ticker,score:scoreByTicker[w.ticker],price:null,companyName:w.name,accentCol:"#64748b",held:heldTickers.has(w.ticker),theme:w.theme,source:"other"}))}
+    {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio}/>}
+  </>
 )}
 </>);
 })()}
@@ -3249,6 +3338,7 @@ return(<>
     portopps (opportunity cards, position cards). Escape hatch at the bottom
     of the modal navigates to the Scanner tab with that ticker focused. */}
 {tickerDetail&&<TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS}
+  watchlistRows={userWatchlistRows} portfolioAuthed={portfolioAuthed} refetchPortfolio={refetchPortfolio}
   onClose={()=>setTickerDetail(null)}/>}
 
 {/* FAQ */}
