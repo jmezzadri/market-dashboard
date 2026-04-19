@@ -1403,7 +1403,7 @@ const CompositePill=({sec,onClick})=>{
   <button
     type="button"
     onClick={onClick}
-    title={sec.components?.map(c=>c.label+(c.points!=null?` (${c.points>=0?"+":""}${c.points})`:"")).join("\n")}
+    title={(Array.isArray(sec.components)?sec.components:[]).map(c=>c.label+(c.points!=null?` (${c.points>=0?"+":""}${c.points})`:"")).join("\n")}
     style={{
       flex:"1 1 0",minWidth:94,textAlign:"left",
       background:"var(--surface-3)",border:`1px solid ${sec.score!=null&&sec.score!==0?col+"66":"var(--border-faint)"}`,

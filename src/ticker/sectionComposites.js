@@ -76,11 +76,20 @@ function technicalsComposite(tech) {
   }
   const comp = tech.composite;
   if (comp && typeof comp.score === "number") {
+    // Guard: scanner has historically emitted components as an array, but
+    // some builds emit it as a keyed object (e.g. {long:{...},mid:{...}}).
+    // A non-array truthy value slips past `x || []` and blows up `.map`,
+    // which previously blanked the whole app on ticker click. Coerce here.
+    const rawComponents = Array.isArray(comp.components)
+      ? comp.components
+      : (comp.components && typeof comp.components === "object")
+        ? Object.entries(comp.components).map(([k, v]) => ({ ...(v || {}), name: v?.name || v?.label || k }))
+        : [];
     return {
       score: Math.round(clamp(comp.score, -100, 100)),
       source: "SCTR composite",
       regime: comp.regime || null,
-      components: (comp.components || []).map(c => ({
+      components: rawComponents.map(c => ({
         label: c.name || c.label || "component",
         points: c.score != null ? Math.round(c.score) : c.points,
       })),
