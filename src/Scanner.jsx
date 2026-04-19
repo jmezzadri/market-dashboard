@@ -985,13 +985,20 @@ function CompositeBadge({ composite }) {
 // public buy/watch universe so Joe's book shows up on Technicals when signed
 // in, without that data ever touching the public latest_scan_data.json.
 function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = false }) {
-  const { buy_opportunities = [], watch_items = [], signals } = data;
+  const { buy_opportunities = [], watch_items = [], signals, wide_universe } = data;
   const screener   = signals?.screener    || {};
   const technicals = signals?.technicals  || {};
 
+  // Wide-universe direction tags — populated by the scanner's pre-filter pass
+  // (scanner/universe_builder.py). Maps ticker → "long" | "short". Tickers
+  // without a tag came from UW signals (congress, insider, flow, darkpool)
+  // and aren't direction-classified; they render in the "All" view.
+  const wuLong  = new Set((wide_universe?.long  || []).map(t => (t || "").toUpperCase()));
+  const wuShort = new Set((wide_universe?.short || []).map(t => (t || "").toUpperCase()));
+  const directionOf = (t) => wuLong.has(t) ? "long" : wuShort.has(t) ? "short" : "unclassified";
+
   // Public universe = every ticker that has technical data computed (the
-  // full scannable universe, ~150-200 names), unioned with buy/watch picks
-  // (in case those ever live outside the technicals dict). User-book tickers
+  // full scannable universe), unioned with buy/watch picks. User-book tickers
   // get layered on top so a signed-in user sees their holdings even if those
   // names didn't make the public scan universe.
   const publicUniverse = new Set([
@@ -999,12 +1006,28 @@ function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = fals
     ...buy_opportunities.map(o => o.ticker),
     ...watch_items.map(w => w.ticker),
   ]);
-  const allTickers = [
+  const allTickersUnfiltered = [
     ...publicUniverse,
     ...userTickers.filter(t => !publicUniverse.has(t)),
   ];
 
-  if (!allTickers.length) return (
+  // Direction filter — default to "long" since that's the common case.
+  // "all" shows everything (long + short + unclassified UW names).
+  const [directionFilter, setDirectionFilter] = useState("long");
+  const hasDirectionData = wuLong.size > 0 || wuShort.size > 0;
+
+  const allTickers = useMemo(() => {
+    if (!hasDirectionData || directionFilter === "all") return allTickersUnfiltered;
+    return allTickersUnfiltered.filter(t => {
+      const d = directionOf((t || "").toUpperCase());
+      if (directionFilter === "long")  return d === "long"  || d === "unclassified";
+      if (directionFilter === "short") return d === "short" || d === "unclassified";
+      return true;
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [directionFilter, hasDirectionData, allTickersUnfiltered.length]);
+
+  if (!allTickersUnfiltered.length) return (
     <div style={{ color: C.dim, textAlign: "center", padding: 40, fontFamily: "monospace", fontSize: 13 }}>No tickers to display.</div>
   );
 
@@ -1028,12 +1051,48 @@ function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = fals
       <div style={{ color: C.dim, fontSize: 12, marginBottom: 8, fontFamily: "monospace" }}>
         Price changes from Yahoo Finance (yfinance) · RSI, MACD, ADX &amp; MA position computed daily · IV rank and volume from Unusual Whales
       </div>
-      <div style={{ color: C.dim, fontSize: 11, marginBottom: 16, fontFamily: "monospace", lineHeight: 1.5 }}>
+      <div style={{ color: C.dim, fontSize: 11, marginBottom: 12, fontFamily: "monospace", lineHeight: 1.5 }}>
         <strong style={{ color: C.muted }}>SIGNAL</strong> is a composite -100 to +100 directional tape-strength score (SCTR-weighted: long-term trend 60% / mid 30% / short 10%), with ADX regime confirmation and volume confirmation. See Methodology.
         {isSignedIn && userTickers.length > 0 && (
           <> · <strong style={{ color: C.muted }}>Your</strong> tickers show dashes for indicators that weren't computed this run — personal tickers aren't part of the public scan universe.</>
         )}
       </div>
+      {hasDirectionData && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, fontFamily: "monospace", fontSize: 11 }}>
+          <span style={{ color: C.dim, letterSpacing: "0.04em" }}>DIRECTION</span>
+          {[
+            { key: "long",  label: `Long (${wuLong.size})`,   col: C.green },
+            { key: "short", label: `Short (${wuShort.size})`, col: C.red },
+            { key: "all",   label: "All",                     col: C.muted },
+          ].map(opt => {
+            const active = directionFilter === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => setDirectionFilter(opt.key)}
+                style={{
+                  padding: "4px 10px",
+                  border: `1px solid ${active ? opt.col : C.border2}`,
+                  background: active ? `${opt.col}22` : "transparent",
+                  color: active ? opt.col : C.muted,
+                  fontFamily: "monospace",
+                  fontSize: 11,
+                  fontWeight: 700,
+                  letterSpacing: "0.04em",
+                  cursor: "pointer",
+                  borderRadius: 3,
+                }}
+                aria-pressed={active}
+              >
+                {opt.label.toUpperCase()}
+              </button>
+            );
+          })}
+          <span style={{ color: C.dim, marginLeft: 4 }}>
+            · Gate-filtered from S&amp;P 500 + Nasdaq 100 + Dow 30
+          </span>
+        </div>
+      )}
       <SortableTable
         headers={[
           "TICKER",
