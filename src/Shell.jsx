@@ -272,11 +272,16 @@ export function Sidebar({ items, activeId, onSelect, open = false, onClose, foot
       {open && <div className="sidebar-backdrop" onClick={onClose}/>}
       <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label="Primary navigation">
         <div className="sidebar-brand">
-          <div className="sidebar-brand-mark" aria-hidden="true">MT</div>
-          <div style={{ minWidth: 0 }}>
-            <div className="sidebar-brand-name">MacroTilt</div>
-            <div className="sidebar-brand-sub">Market Dashboard</div>
-          </div>
+          <img
+            src="/macrotilt-logo.svg"
+            alt="MacroTilt"
+            className="sidebar-brand-logo sidebar-brand-logo--dark"
+          />
+          <img
+            src="/macrotilt-logo-light.svg"
+            alt="MacroTilt"
+            className="sidebar-brand-logo sidebar-brand-logo--light"
+          />
         </div>
         <nav className="sidebar-nav">
           {items.map(item => {

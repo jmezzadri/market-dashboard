@@ -581,6 +581,14 @@ a:hover { text-decoration: underline; }
   flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(0,0,0,0.12);
 }
+/* Brand logo (img) — theme-swapped via data-theme on <html>. */
+.sidebar-brand-logo {
+  height: 40px;
+  width: auto;
+  display: block;
+}
+[data-theme="dark"]  .sidebar-brand-logo--light { display: none; }
+[data-theme="light"] .sidebar-brand-logo--dark  { display: none; }
 .sidebar-brand-name {
   font-family: var(--font-display);
   font-size: 14px; font-weight: 600;
