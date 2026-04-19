@@ -1,20 +1,24 @@
-// LoginScreen — email + 6-digit code sign-in, styled to match the rest of the
-// Apple-tone dashboard. Lives inside the app frame (Hero + Sidebar stay visible);
-// the ProtectedRoute wrapper renders this in place of the gated tab content.
+// LoginScreen — Google OAuth (primary) + email/6-digit-code (fallback).
 //
-// Flow:
-//   1) User enters email, clicks "Send code".
-//   2) Supabase emails a 6-digit code (template variable {{ .Token }}).
-//   3) User types the code here; we call supabase.auth.verifyOtp.
-//   4) On success, onAuthStateChange fires in useSession and the gate drops.
+// Two sign-in paths, picked by the user:
 //
-// Why code-entry instead of clicking the magic link?
+// 1) CONTINUE WITH GOOGLE
+//    One click → Supabase/Google OAuth → returns signed in. Zero friction for
+//    Gmail / Google Workspace users (most F&F).
+//
+// 2) SIGN IN WITH EMAIL CODE (fallback for users without Google)
+//    Enter email → Supabase emails a 6-digit code → type the code → signed in.
+//    Users stay signed in on their device via Supabase refresh tokens
+//    (`persistSession: true`), so the code is entered ONCE per device, not
+//    every visit.
+//
+// Why the 6-digit code instead of a magic-link click?
 //   Gmail / Google Workspace safe-browsing scanners pre-fetch URLs in incoming
 //   mail, which redeems the single-use magic-link token before the user can
 //   click — producing `otp_expired` on return (seen live on macrotilt.com).
 //   A 6-digit code has no URL for a scanner to fetch, so it's immune to this.
-//   The email still includes the magic link as a fallback for users who prefer
-//   clicking; either path works.
+//   We intentionally DO NOT pass `emailRedirectTo` anymore; the Supabase email
+//   template is configured to render the {{ .Token }} only (no magic link).
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
@@ -61,6 +65,24 @@ export default function LoginScreen() {
     if (parsed) setUrlErr(parsed);
   }, []);
 
+  const onSignInGoogle = async () => {
+    setStatus("sending");
+    setErrorMsg("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        // Where Google redirects back after successful auth. We land on the
+        // same page and useSession picks up the session automatically.
+        redirectTo: window.location.origin + window.location.pathname,
+      },
+    });
+    if (error) {
+      setStatus("error");
+      setErrorMsg(error.message || "Could not start Google sign-in.");
+    }
+    // Success path: the browser navigates to Google — nothing to handle here.
+  };
+
   const onSendEmail = async (e) => {
     e.preventDefault();
     const trimmed = email.trim();
@@ -69,15 +91,10 @@ export default function LoginScreen() {
     setStatus("sending");
     setErrorMsg("");
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-      options: {
-        // Magic-link fallback: if the user chooses to click the link instead of
-        // typing the code, Supabase will redirect here with #access_token=... and
-        // the client picks it up via detectSessionInUrl (see supabase.js).
-        emailRedirectTo: window.location.origin + window.location.pathname,
-      },
-    });
+    // No `emailRedirectTo` — we don't want a magic-link URL in the email at
+    // all (Gmail pre-fetch burns the token). The Supabase email template is
+    // configured to render `{{ .Token }}` only.
+    const { error } = await supabase.auth.signInWithOtp({ email: trimmed });
 
     if (error) {
       setStatus("error");
@@ -162,8 +179,8 @@ export default function LoginScreen() {
           Sign in to view portfolio data
         </h2>
         <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5, margin: "0 0 24px" }}>
-          Portfolio & Insights is private to each user. Enter your email and we'll send
-          a 6-digit sign-in code. No password required.
+          Portfolio & Insights is private to each user. One click with Google, or get a
+          6-digit sign-in code by email. You'll stay signed in on this device.
         </p>
 
         {!isSupabaseConfigured && (
@@ -283,8 +300,52 @@ export default function LoginScreen() {
             </div>
           </form>
         ) : (
-          // Step 1: email entry.
-          <form onSubmit={onSendEmail}>
+          // Step 1: pick Google OAuth or email.
+          <>
+            {/* Primary: Google OAuth */}
+            <button
+              type="button"
+              onClick={onSignInGoogle}
+              disabled={status === "sending" || !isSupabaseConfigured}
+              style={{
+                width: "100%",
+                padding: "12px 16px",
+                fontSize: 14,
+                fontWeight: 600,
+                color: "var(--text)",
+                background: "var(--surface-1)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                cursor: (status === "sending" || !isSupabaseConfigured) ? "wait" : "pointer",
+                opacity: (status === "sending" || !isSupabaseConfigured) ? 0.6 : 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 10,
+                transition: "background 0.15s, border-color 0.15s",
+              }}
+            >
+              {/* Google "G" mark — inline SVG to avoid an asset fetch */}
+              <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+                <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/>
+                <path fill="#34A853" d="M24 46c5.94 0 10.92-1.97 14.56-5.33l-7.11-5.52c-1.97 1.32-4.49 2.1-7.45 2.1-5.73 0-10.58-3.87-12.31-9.07H4.34v5.7C7.96 41.07 15.4 46 24 46z"/>
+                <path fill="#FBBC05" d="M11.69 28.18c-.44-1.32-.69-2.73-.69-4.18s.25-2.86.69-4.18v-5.7H4.34C2.85 17.09 2 20.45 2 24s.85 6.91 2.34 9.88l7.35-5.7z"/>
+                <path fill="#EA4335" d="M24 10.75c3.23 0 6.13 1.11 8.41 3.29l6.31-6.31C34.91 4.18 29.93 2 24 2 15.4 2 7.96 6.93 4.34 14.12l7.35 5.7c1.73-5.2 6.58-9.07 12.31-9.07z"/>
+              </svg>
+              {status === "sending" ? "Signing in…" : "Continue with Google"}
+            </button>
+
+            {/* Divider */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "20px 0 16px" }}>
+              <div style={{ flex: 1, height: 1, background: "var(--border-faint)" }} />
+              <div style={{ fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", fontWeight: 600 }}>
+                OR EMAIL CODE
+              </div>
+              <div style={{ flex: 1, height: 1, background: "var(--border-faint)" }} />
+            </div>
+
+            {/* Fallback: email → 6-digit code */}
+            <form onSubmit={onSendEmail}>
             <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", marginBottom: 6 }}>
               EMAIL
             </label>
@@ -310,7 +371,8 @@ export default function LoginScreen() {
                 {errorMsg}
               </div>
             )}
-          </form>
+            </form>
+          </>
         )}
 
         <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--border-faint)", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
