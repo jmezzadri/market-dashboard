@@ -3,10 +3,14 @@
 // Reads RESEND_API_KEY from the edge function env. Set via:
 //   supabase secrets set RESEND_API_KEY=re_...
 //
-// Sends from noreply@macrotilt.com (must be a verified domain in Resend).
+// Sends from noreply@send.macrotilt.com — the DKIM record is published at
+// resend._domainkey.send.macrotilt.com (Porkbun DNS), and Resend's dashboard
+// shows send.macrotilt.com as the verified sending domain, not the apex.
+// Sending from @macrotilt.com would fail DKIM.
+// Replies route to Joe's inbox so reporters who just hit reply get a human.
 
 const RESEND_API_URL = "https://api.resend.com/emails";
-const FROM = "MacroTilt Support <noreply@macrotilt.com>";
+const FROM = "MacroTilt Support <noreply@send.macrotilt.com>";
 const REPLY_TO = "josephmezzadri@gmail.com";
 
 export interface SendEmailArgs {
