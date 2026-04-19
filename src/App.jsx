@@ -14,6 +14,7 @@ import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
 import { supabase } from "./lib/supabase";
+import ReportBug from "./reportbug/ReportBug";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
@@ -3401,6 +3402,10 @@ return(<>
 />
 
 </div>{/* close .app-main */}
+
+{/* Global floating Report Bug button — visible to everyone, auth'd or not. */}
+<ReportBug />
+
 </div>
 );
 }
