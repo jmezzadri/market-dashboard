@@ -7,6 +7,12 @@ import { Tile } from "./Shell";
 import { InfoTip, HeadWithTip } from "./InfoTip";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
+import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
+import {
+  computeSectionComposites,
+  colorForDirection,
+  SECTION_ORDER,
+} from "./ticker/sectionComposites";
 
 const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
@@ -241,6 +247,83 @@ function SignalCol({ title, dot, label, sub, detail }) {
 }
 
 // ── Rich ticker card ──────────────────────────────────────────────────────────
+// Compact six-bar subcomposite strip — one slim tile per section (Technicals,
+// Options, Insider, Congress, Analyst, Dark Pool) showing the directional
+// score for that section. Mirrors the modal's CompositePill layout but much
+// denser, so it fits inline on Trading Opportunities / Portfolio Insights
+// cards without clicking through to the detail modal. `signals` is the same
+// object passed to RichCard; we wrap it in a { signals } scanData shim so
+// computeSectionComposites can consume it.
+function SubCompositeStrip({ ticker, signals }) {
+  const composite = computeSectionComposites(ticker, { signals });
+  if (!composite) return null;
+  const overall = composite.overall || {};
+  const overallCol = colorForDirection(overall.direction);
+
+  const labelShort = {
+    technicals: "TECH",
+    options:    "OPT",
+    insider:    "INS",
+    congress:   "CON",
+    analyst:    "ANL",
+    darkpool:   "DP",
+  };
+
+  return (
+    <div style={{
+      display: "flex", gap: 4, padding: "8px 10px",
+      background: "var(--surface-2)", borderTop: `1px solid ${C.border}`,
+      alignItems: "stretch",
+    }}>
+      {SECTION_ORDER.map(key => {
+        const sec = composite.sections[key];
+        const col = colorForDirection(sec.direction);
+        const hasScore = sec.score != null;
+        const valStr = !hasScore ? "—" : (sec.score >= 0 ? "+" : "") + sec.score;
+        return (
+          <div key={key} title={`${sec.name}: ${sec.label} · weight ${sec.weight}%`} style={{
+            flex: "1 1 0", minWidth: 0,
+            background: "var(--surface-3)",
+            border: `1px solid ${hasScore && sec.score !== 0 ? col + "55" : "var(--border-faint)"}`,
+            borderRadius: 4, padding: "4px 6px",
+            display: "flex", flexDirection: "column", justifyContent: "center",
+            lineHeight: 1.1,
+          }}>
+            <div style={{
+              fontSize: 8, color: "var(--text-muted)",
+              fontFamily: "monospace", letterSpacing: "0.06em", fontWeight: 700,
+            }}>{labelShort[key]}</div>
+            <div style={{
+              fontSize: 13, fontWeight: 800, fontFamily: "monospace",
+              color: hasScore ? col : "var(--text-dim)", marginTop: 1,
+            }}>{valStr}</div>
+          </div>
+        );
+      })}
+      {/* Overall weighted-composite chip */}
+      <div title={`Weighted overall: ${overall.label || "no data"}`} style={{
+        flex: "0 0 auto", minWidth: 54,
+        background: overallCol + "15",
+        border: `1px solid ${overall.score != null && overall.score !== 0 ? overallCol + "55" : "var(--border-faint)"}`,
+        borderRadius: 4, padding: "4px 7px",
+        display: "flex", flexDirection: "column", justifyContent: "center",
+        lineHeight: 1.1,
+      }}>
+        <div style={{
+          fontSize: 8, color: "var(--text-muted)",
+          fontFamily: "monospace", letterSpacing: "0.06em", fontWeight: 700,
+        }}>OVERALL</div>
+        <div style={{
+          fontSize: 13, fontWeight: 800, fontFamily: "monospace",
+          color: overall.score != null ? overallCol : "var(--text-dim)", marginTop: 1,
+        }}>
+          {overall.score == null ? "—" : (overall.score >= 0 ? "+" : "") + overall.score}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow, ptsl, avgCost, signals, isPortfolio, highlight }) {
   const sc = (signals?.screener || {})[ticker] || {};
   const cBuys  = signals?.congress_buys   || [];
@@ -329,6 +412,10 @@ function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow
         <div style={{ background: "var(--surface-2)", borderTop: `1px solid ${C.border}`, padding: "7px 14px",
           fontSize: 12, color: C.dim, fontFamily: "monospace" }}>CC: {ccNote}</div>
       )}
+
+      {/* 6-bar sub-composite strip — directional scores per section (same as
+          the TickerDetailModal, but condensed for inline viewing). */}
+      <SubCompositeStrip ticker={ticker} signals={signals} />
 
       {/* 4-signal grid */}
       <div style={{ display: "flex", borderTop: `1px solid ${C.border}`, background: "var(--surface-2)" }}>
@@ -1291,7 +1378,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   // link), start on the overview view — that's where the ticker's RichCard
   // lives. Otherwise start on the landing page as before.
   const [view, setView] = useState(focusTicker ? "overview" : "landing");
-  const [data, setData] = useState(null);
+  const [rawData, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -1301,6 +1388,10 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   // (accounts/watchlist come back empty → identical to signed-out view).
   const { session } = useSession();
   const { accounts: userAccounts = [], watchlist: userWatchlistRows = [] } = useUserPortfolio();
+  // Per-user scan supplement — technicals/screener/analyst/info/news for the
+  // user's watchlist tickers that the scanner kept out of the public artifact.
+  // `mergeInto` is pass-through when signed out (byTicker is empty).
+  const { mergeInto: mergePrivateScan } = usePrivateScanSupplement();
   const isSignedIn = Boolean(session?.user?.id);
 
   // Flatten user accounts → distinct ticker list for the Technicals overlay.
@@ -1347,6 +1438,18 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
       .then(d => { setData(d); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
+
+  // Layer the per-user private scan rows onto the public scan data. For signed-
+  // out users `mergePrivateScan` is pass-through; for signed-in users it fills
+  // in signals.technicals / screener / analyst / info / news for every
+  // watchlist ticker that the scanner computed. Downstream render reads from
+  // `data` (the merged result) so six-bar composites appear on watchlist
+  // tickers too. `rawData` remains available for any code that needs the
+  // unmerged public artifact.
+  const data = useMemo(
+    () => (rawData ? mergePrivateScan(rawData) : rawData),
+    [rawData, mergePrivateScan]
+  );
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: 60, color: C.dim, fontFamily: "monospace", fontSize: 13 }}>
