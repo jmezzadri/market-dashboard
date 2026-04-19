@@ -6,6 +6,11 @@ vite.config.tmp.*
 __pycache__/
 node_modules/
 dist-new/
+dist-*/
+
+# Local env (never commit)
+.env
+.env.local
 
 # Local convenience wrappers (not deployed)
 fire-brief.command

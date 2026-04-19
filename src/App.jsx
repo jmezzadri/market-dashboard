@@ -7,6 +7,8 @@ import {
   NavIconPie, NavIconList, NavIconRadar, NavIconBook,
 } from "./Shell";
 import { InfoTip } from "./InfoTip";
+import ProtectedRoute from "./auth/ProtectedRoute";
+import SidebarAuth from "./auth/SidebarAuth";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
@@ -2496,7 +2498,7 @@ return(
   onSelect={navTo}
   open={sidebarOpen}
   onClose={()=>setSidebarOpen(false)}
-  footer={<span>v10 · {new Date().getFullYear()}</span>}
+  footer={<SidebarAuth/>}
 />
 
 <div className="app-main">
@@ -2730,7 +2732,7 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 {tab==="sectors"&&<SectorsTab/>}
 
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2) */}
-{tab==="portopps"&&(()=>{
+{tab==="portopps"&&<ProtectedRoute>{(()=>{
 const heldByTicker={};
 ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
   if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
@@ -3108,7 +3110,7 @@ return(<>
 
 </div>
 );
-})()}
+})()}</ProtectedRoute>}
 
 {/* SCANNER */}
 {tab==="scanner"&&<Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)} onOpenTicker={(t)=>setTickerDetail(t)}/>}
