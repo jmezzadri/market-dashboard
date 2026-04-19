@@ -1507,10 +1507,21 @@ def _write_json_data(
     filtered_universe = {
         (t or "").upper() for t in (signals.get("_filtered_tickers") or [])
     }
+    # Wide-universe survivors also qualify as public — they were scanned from
+    # public index constituents (S&P 500, Nasdaq 100, Dow, optional R2000) and
+    # contain no personal data. Each carries a direction tag (long/short) for
+    # the Technicals tab filter.
+    wide_universe = signals.get("_wide_universe") or {}
+    wide_universe_tickers = {
+        (t or "").upper() for t in (wide_universe.get("long") or [])
+    } | {
+        (t or "").upper() for t in (wide_universe.get("short") or [])
+    }
     relevant_tickers = (
         {(o.get("ticker") or "").upper() for o in buy_opportunities}
         | {(w.get("ticker") or "").upper() for w in watch_items}
         | filtered_universe
+        | wide_universe_tickers
     )
 
     screener_slim = {
@@ -1548,6 +1559,14 @@ def _write_json_data(
         "watchlist": [],
         # Slimmed score map so the dashboard only sees public-universe scores.
         "score_by_ticker": _safe(score_by_ticker_slim),
+        # Wide-universe direction tags — drives the Technicals tab's Long/Short
+        # filter. Tickers without a direction tag came from UW signals and
+        # render under "All".
+        "wide_universe": {
+            "long": sorted(wide_universe.get("long") or []),
+            "short": sorted(wide_universe.get("short") or []),
+            "direction_by_ticker": _safe(wide_universe.get("direction_by_ticker") or {}),
+        },
         "signals": {
             "congress_buys": _safe(signals.get("congress_buys") or []),
             "congress_sells": _safe(signals.get("congress_sells") or []),

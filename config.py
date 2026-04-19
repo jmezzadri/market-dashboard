@@ -99,6 +99,31 @@ ROLL_PROFIT_THRESHOLD = float(os.getenv("ROLL_PROFIT_THRESHOLD", "0.80"))
 ROLL_STRIKE_PROXIMITY = float(os.getenv("ROLL_STRIKE_PROXIMITY", "0.03"))
 ROLL_EXPIRY_DAYS = int(os.getenv("ROLL_EXPIRY_DAYS", "7"))
 
+# Wide-universe technicals pre-filter (see scanner/universe_builder.py)
+# Gate 1 — liquidity: minimum 20-day average dollar volume to survive
+WIDE_UNIVERSE_MIN_ADV_USD = float(os.getenv("WIDE_UNIVERSE_MIN_ADV_USD", "10000000"))
+# Gate 3 — relative strength vs SPY: |3M excess return| threshold
+WIDE_UNIVERSE_RS_THRESHOLD = float(os.getenv("WIDE_UNIVERSE_RS_THRESHOLD", "0.05"))
+# Gate 4 — RSI bands (directional). Longs avoid overbought and broken names;
+# shorts avoid oversold bounces and names already recovering.
+WIDE_UNIVERSE_RSI_LONG_MIN = float(os.getenv("WIDE_UNIVERSE_RSI_LONG_MIN", "40"))
+WIDE_UNIVERSE_RSI_LONG_MAX = float(os.getenv("WIDE_UNIVERSE_RSI_LONG_MAX", "75"))
+WIDE_UNIVERSE_RSI_SHORT_MIN = float(os.getenv("WIDE_UNIVERSE_RSI_SHORT_MIN", "25"))
+WIDE_UNIVERSE_RSI_SHORT_MAX = float(os.getenv("WIDE_UNIVERSE_RSI_SHORT_MAX", "60"))
+# Universe composition — Russell 2000 (~2000 names) is opt-in because the
+# yfinance batch fetch dominates scan runtime.
+WIDE_UNIVERSE_INCLUDE_RUSSELL_2000 = os.getenv(
+    "WIDE_UNIVERSE_INCLUDE_RUSSELL_2000", "false"
+).lower() in ("1", "true", "yes")
+# Master switch — disable entirely if a scan needs to stay fast or if
+# yfinance is degraded.
+WIDE_UNIVERSE_ENABLED = os.getenv("WIDE_UNIVERSE_ENABLED", "true").lower() in (
+    "1", "true", "yes",
+)
+# yfinance batch size for the OHLCV fetch. 200 is a reasonable default that
+# respects yfinance's batch limits without single-ticker fallthrough.
+WIDE_UNIVERSE_BATCH_SIZE = int(os.getenv("WIDE_UNIVERSE_BATCH_SIZE", "200"))
+
 # Email alerts (Phase 2) — set in .env
 ALERT_EMAIL_TO = os.getenv("ALERT_EMAIL_TO", "josephmezzadri@gmail.com").strip()
 ALERT_EMAIL_FROM = os.getenv("ALERT_EMAIL_FROM", "").strip()

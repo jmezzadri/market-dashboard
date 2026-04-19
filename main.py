@@ -22,10 +22,12 @@ from config import (
     MIN_STOCK_PRICE,
     SCORE_BUY_ALERT,
     SCORE_WATCH_ALERT,
+    WIDE_UNIVERSE_ENABLED,
 )
 from scanner import notifier, reporter, schwab, unusual_whales as uw
 from scanner.price_history import clear_ohlcv_cache, clear_price_changes_cache
 from scanner.technicals import clear_tech_cache, get_technicals
+from scanner.universe_builder import build_wide_universe, direction_for_ticker
 from scanner.covered_calls import find_covered_call
 from scanner.portfolio_io import load_covered_calls, load_portfolio_positions, load_watchlist
 from scanner.scan_state import load_last_scores, save_last_scores
@@ -283,6 +285,42 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     portfolio_tickers = portfolio_tickers_for_universe
     all_tech_tickers = list({*filtered, *portfolio_tickers, *watchlist_tickers})
     signals["_technicals"] = {t: get_technicals(t) for t in all_tech_tickers}
+
+    # ── Wide-universe pre-filter ──────────────────────────────────────────────
+    # Gate pass over S&P 500 + Nasdaq 100 + Dow 30 (+ optional R2000). Gate
+    # survivors get the full composite computed so the Technicals tab surfaces
+    # names that have a technical setup even if no UW signal fired on them.
+    # Direction (long/short) is captured so the dashboard can filter by bias.
+    wide_long: list[str] = []
+    wide_short: list[str] = []
+    wide_direction_map: dict[str, str] = {}
+    if WIDE_UNIVERSE_ENABLED:
+        try:
+            wu = build_wide_universe()
+            wide_long = wu.get("long", []) or []
+            wide_short = wu.get("short", []) or []
+            wide_direction_map = direction_for_ticker(wu)
+            # Compute composite for each survivor. _batch_fetch already warmed
+            # the OHLCV cache, so get_technicals() is a cache hit → cheap.
+            survivors = [s for s in (wide_long + wide_short)
+                         if s not in signals["_technicals"]]
+            for sym in survivors:
+                signals["_technicals"][sym] = get_technicals(sym)
+            if debug:
+                print(f"\n--- DEBUG: wide universe ---")
+                print(f"  long: {len(wide_long)}  short: {len(wide_short)}")
+                print(f"  dropped: {wu.get('stats', {}).get('dropped_by_reason', {})}")
+        except Exception as e:
+            logger.warning("Wide-universe pass failed — continuing with UW-sourced universe: %s", e)
+
+    # Direction tags are needed by the dashboard to drive the Technicals tab's
+    # Long/Short/All filter. UW-sourced tickers without a wide-universe verdict
+    # appear as direction=null on the artifact (they render under "All").
+    signals["_wide_universe"] = {
+        "long": wide_long,
+        "short": wide_short,
+        "direction_by_ticker": wide_direction_map,
+    }
 
     # Ensure portfolio + watchlist tickers have screener data even if absent
     # from the bulk UW screener payload. Email/report-only — the public artifact
