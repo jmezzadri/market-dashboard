@@ -2,13 +2,48 @@
 // Apple-tone dashboard. Lives inside the app frame (Hero + Sidebar stay visible);
 // the ProtectedRoute wrapper renders this in place of the gated tab content.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
+
+// Read Supabase auth error params from the URL (e.g. after a failed magic-link
+// click, Supabase redirects back with ?error=access_denied&error_code=otp_expired
+// &error_description=Email+link+is+invalid+or+has+expired). We surface these
+// inline so the user can see *why* the link didn't work rather than silently
+// bouncing back to the sign-in CTA.
+function readAuthUrlError() {
+  if (typeof window === "undefined") return null;
+  const qs   = new URLSearchParams(window.location.search);
+  const hash = new URLSearchParams((window.location.hash || "").replace(/^#/, ""));
+  const src  = qs.get("error") ? qs : hash.get("error") ? hash : null;
+  if (!src) return null;
+  return {
+    error:       src.get("error"),
+    errorCode:   src.get("error_code"),
+    description: src.get("error_description"),
+  };
+}
+
+// Strip the Supabase error params from the URL so a page refresh doesn't
+// keep showing the banner after the user acts on it.
+function clearAuthUrlError() {
+  if (typeof window === "undefined") return;
+  const url = new URL(window.location.href);
+  ["error", "error_code", "error_description"].forEach((k) => url.searchParams.delete(k));
+  url.hash = "";
+  window.history.replaceState({}, "", url.toString());
+}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState("idle"); // idle | sending | sent | error
   const [errorMsg, setErrorMsg] = useState("");
+  const [urlErr, setUrlErr] = useState(null);
+
+  // On mount, pick up any Supabase error params from a bounced magic-link click.
+  useEffect(() => {
+    const parsed = readAuthUrlError();
+    if (parsed) setUrlErr(parsed);
+  }, []);
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -65,6 +100,36 @@ export default function LoginScreen() {
         {!isSupabaseConfigured && (
           <div style={{ padding: 12, marginBottom: 16, background: "rgba(255, 149, 0, 0.1)", border: "1px solid rgba(255, 149, 0, 0.3)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "var(--text)" }}>
             Supabase is not configured (missing env vars). Contact the admin.
+          </div>
+        )}
+
+        {urlErr && (
+          <div style={{ padding: 12, marginBottom: 16, background: "rgba(255, 59, 48, 0.08)", border: "1px solid rgba(255, 59, 48, 0.3)", borderRadius: "var(--radius-sm)", fontSize: 12, color: "var(--text)", lineHeight: 1.5 }}>
+            <div style={{ fontWeight: 600, marginBottom: 4 }}>
+              That sign-in link didn't work
+            </div>
+            <div style={{ color: "var(--text-muted)" }}>
+              {urlErr.description
+                ? urlErr.description.replace(/\+/g, " ")
+                : `Auth error: ${urlErr.errorCode || urlErr.error}.`}
+              {" "}Request a new one below.
+            </div>
+            <button
+              type="button"
+              onClick={() => { clearAuthUrlError(); setUrlErr(null); }}
+              style={{
+                marginTop: 10,
+                padding: "6px 10px",
+                fontSize: 11,
+                color: "var(--text-muted)",
+                background: "transparent",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius-sm)",
+                cursor: "pointer",
+              }}
+            >
+              Dismiss
+            </button>
           </div>
         )}
 
