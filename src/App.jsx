@@ -2372,21 +2372,6 @@ const portfolioAuthed=!!session;
 // banner swaps the skeleton for the LoginScreen; successful sign-in flips
 // `portfolioAuthed` and the user sees their real portfolio.
 const [showPortoppsLogin,setShowPortoppsLogin]=useState(false);
-// If Supabase bounced the user back here with an auth error in the URL
-// (e.g. expired magic link → ?error=access_denied&error_code=otp_expired),
-// jump the user straight to the portopps LoginScreen so they (a) see the
-// error banner and (b) have a path to request a new link. Without this the
-// error params sit on the home tab and the user just sees the public zero-state.
-useEffect(()=>{
-  if(typeof window==="undefined")return;
-  const qs=new URLSearchParams(window.location.search);
-  const hs=new URLSearchParams((window.location.hash||"").replace(/^#/,""));
-  if(qs.get("error")||hs.get("error")){
-    setTab("portopps");
-    setShowPortoppsLogin(true);
-  }
-// eslint-disable-next-line react-hooks/exhaustive-deps
-},[]);
 // Close drawer automatically whenever the active tab changes (in case the user
 // navigated via a non-sidebar control while the drawer was open).
 useEffect(()=>{setSidebarOpen(false);},[tab]);

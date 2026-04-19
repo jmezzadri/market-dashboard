@@ -1,6 +1,20 @@
-// LoginScreen — email magic-link sign-in, styled to match the rest of the
+// LoginScreen — email + 6-digit code sign-in, styled to match the rest of the
 // Apple-tone dashboard. Lives inside the app frame (Hero + Sidebar stay visible);
 // the ProtectedRoute wrapper renders this in place of the gated tab content.
+//
+// Flow:
+//   1) User enters email, clicks "Send code".
+//   2) Supabase emails a 6-digit code (template variable {{ .Token }}).
+//   3) User types the code here; we call supabase.auth.verifyOtp.
+//   4) On success, onAuthStateChange fires in useSession and the gate drops.
+//
+// Why code-entry instead of clicking the magic link?
+//   Gmail / Google Workspace safe-browsing scanners pre-fetch URLs in incoming
+//   mail, which redeems the single-use magic-link token before the user can
+//   click — producing `otp_expired` on return (seen live on macrotilt.com).
+//   A 6-digit code has no URL for a scanner to fetch, so it's immune to this.
+//   The email still includes the magic link as a fallback for users who prefer
+//   clicking; either path works.
 
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
@@ -34,10 +48,12 @@ function clearAuthUrlError() {
 }
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | sending | sent | error
+  const [email, setEmail]       = useState("");
+  const [code, setCode]         = useState("");
+  // idle → sending → sent → verifying → error/(success removes screen)
+  const [status, setStatus]     = useState("idle");
   const [errorMsg, setErrorMsg] = useState("");
-  const [urlErr, setUrlErr] = useState(null);
+  const [urlErr, setUrlErr]     = useState(null);
 
   // On mount, pick up any Supabase error params from a bounced magic-link click.
   useEffect(() => {
@@ -45,7 +61,7 @@ export default function LoginScreen() {
     if (parsed) setUrlErr(parsed);
   }, []);
 
-  const onSubmit = async (e) => {
+  const onSendEmail = async (e) => {
     e.preventDefault();
     const trimmed = email.trim();
     if (!trimmed) return;
@@ -56,9 +72,9 @@ export default function LoginScreen() {
     const { error } = await supabase.auth.signInWithOtp({
       email: trimmed,
       options: {
-        // Magic-link click returns the user to the same page they signed in from.
-        // On return, the Supabase client reads the hash fragment and establishes
-        // the session automatically (detectSessionInUrl: true in supabase.js).
+        // Magic-link fallback: if the user chooses to click the link instead of
+        // typing the code, Supabase will redirect here with #access_token=... and
+        // the client picks it up via detectSessionInUrl (see supabase.js).
         emailRedirectTo: window.location.origin + window.location.pathname,
       },
     });
@@ -68,7 +84,33 @@ export default function LoginScreen() {
       setErrorMsg(error.message || "Something went wrong. Please try again.");
     } else {
       setStatus("sent");
+      setCode("");
     }
+  };
+
+  const onVerifyCode = async (e) => {
+    e.preventDefault();
+    const trimmedCode  = code.trim();
+    const trimmedEmail = email.trim();
+    if (!trimmedCode || !trimmedEmail) return;
+
+    setStatus("verifying");
+    setErrorMsg("");
+
+    // `type: "email"` matches Supabase's email OTP — same token works whether it
+    // was delivered as a click-link (ConfirmationURL) or a 6-digit code (Token).
+    const { error } = await supabase.auth.verifyOtp({
+      email: trimmedEmail,
+      token: trimmedCode,
+      type: "email",
+    });
+
+    if (error) {
+      setStatus("sent"); // stay on code-entry screen so user can retry
+      setErrorMsg(error.message || "Invalid or expired code. Request a new one.");
+    }
+    // On success, onAuthStateChange in useSession will flip session !== null
+    // and ProtectedRoute will render the gated content. Nothing to do here.
   };
 
   // Wrapper style — mirrors the .card tone used across the dashboard so the
@@ -83,6 +125,33 @@ export default function LoginScreen() {
     boxShadow: "var(--shadow-sm)",
   };
 
+  const inputBase = {
+    width: "100%",
+    padding: "12px 14px",
+    fontSize: 14,
+    color: "var(--text)",
+    background: "var(--surface-1)",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-sm)",
+    fontFamily: "var(--font-ui)",
+    outline: "none",
+  };
+
+  const primaryBtn = (disabled) => ({
+    marginTop: 14,
+    width: "100%",
+    padding: "12px 16px",
+    fontSize: 14,
+    fontWeight: 600,
+    color: "#fff",
+    background: "var(--accent)",
+    border: "none",
+    borderRadius: "var(--radius-sm)",
+    cursor: disabled ? "wait" : "pointer",
+    opacity: disabled ? 0.6 : 1,
+    transition: "opacity 0.15s",
+  });
+
   return (
     <main className="fade-in main-padded" style={{ maxWidth: 1440, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
       <div style={card}>
@@ -94,7 +163,7 @@ export default function LoginScreen() {
         </h2>
         <p style={{ fontSize: 14, color: "var(--text-muted)", lineHeight: 1.5, margin: "0 0 24px" }}>
           Portfolio & Insights is private to each user. Enter your email and we'll send
-          a one-time sign-in link. No password required.
+          a 6-digit sign-in code. No password required.
         </p>
 
         {!isSupabaseConfigured && (
@@ -112,7 +181,8 @@ export default function LoginScreen() {
               {urlErr.description
                 ? urlErr.description.replace(/\+/g, " ")
                 : `Auth error: ${urlErr.errorCode || urlErr.error}.`}
-              {" "}Request a new one below.
+              {" "}Enter your email below and sign in with the 6-digit code instead —
+              it can't be pre-fetched by Gmail's link scanner.
             </div>
             <button
               type="button"
@@ -133,8 +203,88 @@ export default function LoginScreen() {
           </div>
         )}
 
-        {status !== "sent" ? (
-          <form onSubmit={onSubmit}>
+        {status === "sent" || status === "verifying" ? (
+          // Step 2: code entry.
+          <form onSubmit={onVerifyCode}>
+            <div style={{ padding: 14, marginBottom: 16, background: "rgba(52, 199, 89, 0.08)", border: "1px solid rgba(52, 199, 89, 0.25)", borderRadius: "var(--radius-sm)" }}>
+              <div style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.5 }}>
+                We sent a 6-digit code to <strong>{email}</strong>. Enter it below to sign in.
+              </div>
+            </div>
+
+            <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", marginBottom: 6 }}>
+              6-DIGIT CODE
+            </label>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]*"
+              maxLength={6}
+              required
+              autoFocus
+              disabled={status === "verifying" || !isSupabaseConfigured}
+              placeholder="123456"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+              style={{
+                ...inputBase,
+                fontSize: 20,
+                letterSpacing: "0.3em",
+                textAlign: "center",
+                fontFamily: "var(--font-mono)",
+              }}
+            />
+            <button
+              type="submit"
+              disabled={status === "verifying" || !isSupabaseConfigured || code.length !== 6}
+              style={primaryBtn(status === "verifying" || code.length !== 6)}
+            >
+              {status === "verifying" ? "Verifying…" : "Sign in"}
+            </button>
+            {errorMsg && (
+              <div style={{ marginTop: 12, fontSize: 12, color: "var(--danger, #ff3b30)" }}>
+                {errorMsg}
+              </div>
+            )}
+
+            <div style={{ marginTop: 16, display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                onClick={() => { setStatus("idle"); setCode(""); setErrorMsg(""); }}
+                style={{
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  background: "transparent",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-sm)",
+                  cursor: "pointer",
+                }}
+              >
+                Use a different email
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { setCode(""); setErrorMsg(""); onSendEmail(e); }}
+                disabled={status === "verifying"}
+                style={{
+                  padding: "8px 12px",
+                  fontSize: 12,
+                  color: "var(--text-muted)",
+                  background: "transparent",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius-sm)",
+                  cursor: "pointer",
+                }}
+              >
+                Resend code
+              </button>
+            </div>
+          </form>
+        ) : (
+          // Step 1: email entry.
+          <form onSubmit={onSendEmail}>
             <label style={{ display: "block", fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em", marginBottom: 6 }}>
               EMAIL
             </label>
@@ -146,37 +296,14 @@ export default function LoginScreen() {
               placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "12px 14px",
-                fontSize: 14,
-                color: "var(--text)",
-                background: "var(--surface-1)",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius-sm)",
-                fontFamily: "var(--font-ui)",
-                outline: "none",
-              }}
+              style={inputBase}
             />
             <button
               type="submit"
               disabled={status === "sending" || !isSupabaseConfigured || !email.trim()}
-              style={{
-                marginTop: 14,
-                width: "100%",
-                padding: "12px 16px",
-                fontSize: 14,
-                fontWeight: 600,
-                color: "#fff",
-                background: "var(--accent)",
-                border: "none",
-                borderRadius: "var(--radius-sm)",
-                cursor: status === "sending" ? "wait" : "pointer",
-                opacity: status === "sending" || !email.trim() || !isSupabaseConfigured ? 0.6 : 1,
-                transition: "opacity 0.15s",
-              }}
+              style={primaryBtn(status === "sending" || !email.trim() || !isSupabaseConfigured)}
             >
-              {status === "sending" ? "Sending…" : "Send magic link"}
+              {status === "sending" ? "Sending…" : "Send code"}
             </button>
             {status === "error" && (
               <div style={{ marginTop: 12, fontSize: 12, color: "var(--danger, #ff3b30)" }}>
@@ -184,33 +311,6 @@ export default function LoginScreen() {
               </div>
             )}
           </form>
-        ) : (
-          <div>
-            <div style={{ padding: 16, background: "rgba(52, 199, 89, 0.08)", border: "1px solid rgba(52, 199, 89, 0.25)", borderRadius: "var(--radius-sm)" }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text)", marginBottom: 4 }}>
-                Check your email
-              </div>
-              <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
-                We sent a sign-in link to <strong style={{ color: "var(--text)" }}>{email}</strong>.
-                Click it on this device to finish signing in.
-              </div>
-            </div>
-            <button
-              onClick={() => { setStatus("idle"); setEmail(""); }}
-              style={{
-                marginTop: 14,
-                padding: "8px 12px",
-                fontSize: 12,
-                color: "var(--text-muted)",
-                background: "transparent",
-                border: "1px solid var(--border)",
-                borderRadius: "var(--radius-sm)",
-                cursor: "pointer",
-              }}
-            >
-              Use a different email
-            </button>
-          </div>
         )}
 
         <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--border-faint)", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>

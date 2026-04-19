@@ -30,14 +30,7 @@ export const supabase = createClient(url || "https://placeholder.supabase.co", a
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true, // picks up the magic-link token from the URL hash on return
-    // Implicit flow (default): Supabase redirects to redirect_to#access_token=...
-    // and the client reads the hash directly. Simpler and far more forgiving than
-    // PKCE for email magic links — PKCE requires a code_verifier stored in
-    // localStorage at signIn time to still be present when the link is clicked,
-    // which fails if the user clicks the link in a different browser tab / window
-    // or if localStorage was cleared. For a public SPA with no server-side auth,
-    // implicit is the right default.
-    flowType: "implicit",
+    flowType: "pkce",
   },
 });
 
