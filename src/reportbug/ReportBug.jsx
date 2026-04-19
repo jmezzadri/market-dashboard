@@ -206,6 +206,19 @@ function ReportBugModal({ onClose }) {
         }
       }
 
+      // 4. Fire ack email (best-effort). If Resend isn't set up yet, the edge
+      //    function will 500 — we swallow the error so the report itself
+      //    still counts as filed. The scheduled triage task can backfill
+      //    missed acks if needed.
+      try {
+        await supabase.functions.invoke("submit-bug-report", {
+          body: { report_id: reportId },
+        });
+      } catch (ackErr) {
+        // eslint-disable-next-line no-console
+        console.warn("[reportbug] ack email dispatch failed (non-fatal):", ackErr);
+      }
+
       setLastSubmitTs(Date.now());
       setSuccessInfo({ reportNumber });
     } catch (err) {
