@@ -2810,11 +2810,9 @@ return(
 
 {(()=>{
 const oppCard=(opts)=>{
-  const {keyId,ticker,score,price,companyName,accentCol,held,theme,sector,source}=opts;
-  const isExpanded=expandedActionKey===keyId;
-  const distanceToTrigger=score!=null?(60-score):null;
+  const {keyId,ticker,score,price,companyName,accentCol,held,theme,sector}=opts;
   return(
-  <div key={keyId} style={{...cardStyle,cursor:"pointer"}} onClick={()=>setExpandedActionKey(isExpanded?null:keyId)}>
+  <div key={keyId} style={{...cardStyle,cursor:"pointer"}} onClick={()=>setTickerDetail(ticker)}>
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
   <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
   <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{ticker}</span>
@@ -2823,29 +2821,12 @@ const oppCard=(opts)=>{
   </div>
   <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
   {score!=null&&<span style={{fontSize:12,fontWeight:700,color:accentCol,fontFamily:"var(--font-mono)"}}>Score {score}</span>}
-  <span style={{fontSize:11,color:"var(--text-dim)"}}>{isExpanded?"▾":"▸"}</span>
+  <span style={{fontSize:11,color:"var(--text-dim)"}}>→</span>
   </div>
   </div>
   <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>
   {price?fmt$Full(price):"—"} {theme?`· ${theme}`:""} {sector?`· ${sector}`:""}
   </div>
-  {isExpanded&&(
-  <div style={{marginTop:8,padding:"8px 10px",background:`${accentCol}14`,border:`1px solid ${accentCol}33`,borderRadius:4}}>
-  {source==="triggered"&&(<>
-  <div style={{fontSize:10,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>WHY TRIGGERED</div>
-  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>Composite score of {score} is at or above the 60 buy threshold. Scanner components (Congressional trades, insider Form-4s, unusual options flow, technicals) are aligned bullishly. Eligible in: <b>{tacticalAccts.map(a=>a.label).join(", ")}</b>. Largest deployable: <b>{cashByAcct[0]?`${cashByAcct[0].label} ${fmt$K(cashByAcct[0].cash)}`:"none"}</b>.</div>
-  </>)}
-  {source==="near"&&(<>
-  <div style={{fontSize:10,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>WHAT'S NEEDED TO TRIGGER</div>
-  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>Current score {score} — needs <b>+{distanceToTrigger}</b> to cross the 60 buy threshold. A catalyst typically comes from a new Congressional disclosure, an insider Form-4 purchase, a large bullish options sweep, or a technical breakout. See the full scanner for the component-level breakdown.</div>
-  </>)}
-  {source==="other"&&(<>
-  <div style={{fontSize:10,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:700,marginBottom:4}}>WATCHING FOR</div>
-  <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>{theme}. {score!=null?`Scanner currently scores ${ticker} at ${score} — ${distanceToTrigger>0?`${distanceToTrigger} points from buy threshold`:"already at buy threshold"}. `:`Not in the scanner's scored universe yet — pending scanner-side enrichment. `}For now this is a manual-track position.</div>
-  </>)}
-  <div style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();setTickerDetail(ticker);}}>View {ticker} detail →</div>
-  </div>
-  )}
   </div>
   );
 };
