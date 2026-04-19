@@ -295,7 +295,12 @@ export default function LoginScreen() {
 
   return (
     <main className="fade-in main-padded" style={{ maxWidth: 1440, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
-      <div style={card}>
+      {/* Brand wordmark above the sign-in card */}
+      <div style={{ display: "flex", justifyContent: "center", marginTop: "min(8vh, 64px)" }}>
+        <img src="/macrotilt-logo.svg"       alt="MacroTilt" className="login-brand-logo login-brand-logo--dark"  />
+        <img src="/macrotilt-logo-light.svg" alt="MacroTilt" className="login-brand-logo login-brand-logo--light" />
+      </div>
+      <div style={{ ...card, margin: "var(--space-5) auto 0" }}>
         <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 6 }}>
           {mode === "signup" ? "CREATE ACCOUNT" : mode === "code" || mode === "codeSent" ? "EMAIL CODE" : "SIGN IN REQUIRED"}
         </div>

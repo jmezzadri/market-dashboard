@@ -589,6 +589,76 @@ a:hover { text-decoration: underline; }
 }
 [data-theme="dark"]  .sidebar-brand-logo--light { display: none; }
 [data-theme="light"] .sidebar-brand-logo--dark  { display: none; }
+
+/* ── Hero header brand mark ─────────────────────────────────────────
+   Anchors the brand on every page + every viewport — especially
+   important on mobile where the sidebar collapses behind the hamburger. */
+.hero-brand {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.hero-brand-logo {
+  height: 30px;
+  width: auto;
+  display: block;
+}
+[data-theme="dark"]  .hero-brand-logo--light { display: none; }
+[data-theme="light"] .hero-brand-logo--dark  { display: none; }
+
+.hero-meta-divider {
+  width: 1px; height: 14px; background: var(--border);
+  flex-shrink: 0;
+}
+.hero-meta-date {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.hero-meta-dot-sep {
+  width: 1px; height: 14px; background: var(--border);
+  flex-shrink: 0;
+}
+
+/* Mobile: hide the date and the redundant dividers to keep the top row
+   from wrapping. Keep brand + market dot + auth + theme toggle visible. */
+@media (max-width: 640px) {
+  .hero-brand-logo   { height: 26px; }
+  .hero-meta-date    { display: none; }
+  .hero-meta-divider { display: none; }
+}
+
+/* ── Section-header brand mark (drill-in pages) ─────────────────────
+   Small MT icon opposite the back button — subtle brand anchor on
+   every sub-page. */
+.section-brand-mark {
+  width: 28px; height: 28px;
+  opacity: 0.55;
+  transition: opacity var(--dur-fast, 150ms) var(--ease, ease);
+}
+.section-brand-mark:hover { opacity: 0.9; }
+[data-theme="dark"]  .section-brand-mark--light { display: none; }
+[data-theme="light"] .section-brand-mark--dark  { display: none; }
+
+/* ── Footer brand logo ──────────────────────────────────────────── */
+.footer-brand-logo {
+  height: 28px;
+  width: auto;
+  display: block;
+  opacity: 0.85;
+}
+[data-theme="dark"]  .footer-brand-logo--light { display: none; }
+[data-theme="light"] .footer-brand-logo--dark  { display: none; }
+
+/* ── Login-screen brand logo (above the sign-in card) ───────────── */
+.login-brand-logo {
+  height: 56px;
+  width: auto;
+  display: block;
+}
+[data-theme="dark"]  .login-brand-logo--light { display: none; }
+[data-theme="light"] .login-brand-logo--dark  { display: none; }
 .sidebar-brand-name {
   font-family: var(--font-display);
   font-size: 14px; font-weight: 600;

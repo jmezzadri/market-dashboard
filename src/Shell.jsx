@@ -146,12 +146,17 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
       maxWidth: 1440, margin: "0 auto",
       display: "flex", flexDirection: "column", gap: "var(--space-5)",
     }}>
-      {/* Top row — menu (mobile only) / date / market dot / theme toggle */}
+      {/* Top row — menu / brand logo / date / market dot / auth / theme toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
           {menuButton}
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{dateStr}</span>
-          <span style={{ width: 1, height: 14, background: "var(--border)" }}/>
+          <a href="#home" className="hero-brand" aria-label="MacroTilt home">
+            <img src="/macrotilt-logo.svg"       alt="MacroTilt" className="hero-brand-logo hero-brand-logo--dark"  />
+            <img src="/macrotilt-logo-light.svg" alt="MacroTilt" className="hero-brand-logo hero-brand-logo--light" />
+          </a>
+          <span className="hero-meta-divider" aria-hidden="true"/>
+          <span className="hero-meta-date">{dateStr}</span>
+          <span className="hero-meta-dot-sep" aria-hidden="true"/>
           <MarketDot open={open}/>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -223,19 +228,33 @@ export function SectionHeader({ eyebrow, title, sub, onBack, backLabel = "All se
       padding: "var(--space-6) var(--space-8) var(--space-4)",
       display: "flex", flexDirection: "column", gap: "var(--space-3)",
     }}>
-      <button onClick={onBack} style={{
-        alignSelf: "flex-start",
-        display: "inline-flex", alignItems: "center", gap: 6,
-        fontSize: 13, fontWeight: 500, color: "var(--text-muted)",
-        padding: "6px 12px", borderRadius: 999,
-        background: "var(--surface-3)", border: "1px solid var(--border-faint)",
-        transition: "all var(--dur-fast) var(--ease)",
-      }}
-        onMouseEnter={e => { e.currentTarget.style.background = "var(--hover)"; e.currentTarget.style.color = "var(--text)"; }}
-        onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-3)"; e.currentTarget.style.color = "var(--text-muted)"; }}
-      >
-        <span style={{ fontSize: 14 }}>←</span> {backLabel}
-      </button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+        <button onClick={onBack} style={{
+          alignSelf: "flex-start",
+          display: "inline-flex", alignItems: "center", gap: 6,
+          fontSize: 13, fontWeight: 500, color: "var(--text-muted)",
+          padding: "6px 12px", borderRadius: 999,
+          background: "var(--surface-3)", border: "1px solid var(--border-faint)",
+          transition: "all var(--dur-fast) var(--ease)",
+        }}
+          onMouseEnter={e => { e.currentTarget.style.background = "var(--hover)"; e.currentTarget.style.color = "var(--text)"; }}
+          onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-3)"; e.currentTarget.style.color = "var(--text-muted)"; }}
+        >
+          <span style={{ fontSize: 14 }}>←</span> {backLabel}
+        </button>
+        <img
+          src="/macrotilt-icon.svg"
+          alt=""
+          aria-hidden="true"
+          className="section-brand-mark section-brand-mark--dark"
+        />
+        <img
+          src="/macrotilt-icon-light.svg"
+          alt=""
+          aria-hidden="true"
+          className="section-brand-mark section-brand-mark--light"
+        />
+      </div>
       <div>
         {eyebrow && <div className="section-eyebrow" style={{ marginBottom: 6 }}>{eyebrow}</div>}
         <h2 className="section-title">{title}</h2>
@@ -321,16 +340,39 @@ export function SidebarToggleButton({ onClick }) {
 
 // ── Footer ────────────────────────────────────────────────────────────────────
 export function Footer({ leftText, rightText }) {
+  const year = new Date().getFullYear();
   return (
     <footer style={{
-      maxWidth: 1440, margin: "0 auto",
+      maxWidth: 1440, margin: "var(--space-10) auto 0",
       padding: "var(--space-8) var(--space-8) var(--space-6)",
-      display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8,
       borderTop: "1px solid var(--border-faint)",
-      marginTop: "var(--space-10)",
+      display: "flex", flexDirection: "column", gap: "var(--space-5)",
     }}>
-      <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{leftText}</span>
-      <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{rightText}</span>
+      {/* Brand row */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        flexWrap: "wrap", gap: 12,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <img src="/macrotilt-logo.svg"       alt="MacroTilt" className="footer-brand-logo footer-brand-logo--dark"  />
+          <img src="/macrotilt-logo-light.svg" alt="MacroTilt" className="footer-brand-logo footer-brand-logo--light" />
+        </div>
+        <span style={{
+          fontSize: 11, color: "var(--text-dim)",
+          fontFamily: "var(--font-mono)", letterSpacing: "0.06em",
+        }}>
+          © {year} MacroTilt
+        </span>
+      </div>
+
+      {/* Sources + disclaimer row */}
+      <div style={{
+        display: "flex", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 8,
+      }}>
+        <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{leftText}</span>
+        <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{rightText}</span>
+      </div>
     </footer>
   );
 }
