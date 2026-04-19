@@ -27,11 +27,13 @@ export default function HeaderAuth() {
   if (session) return null;
 
   const onClick = () => {
-    // Routing the user to #portopps is the simplest path — ProtectedRoute
-    // renders LoginScreen there for unauthenticated visitors, and after
-    // sign-in they land directly on the Portfolio tab (which is the point
-    // of signing in anyway).
+    // Single-click UX: jump straight to the 6-digit code-entry LoginScreen,
+    // bypassing the portopps preview screen. We route to #portopps so the
+    // Portfolio tab is active, AND dispatch macrotilt:open-login so App.jsx
+    // flips showPortoppsLogin=true. After sign-in they land directly on
+    // the Portfolio tab (which is the point of signing in anyway).
     window.location.hash = "portopps";
+    window.dispatchEvent(new Event("macrotilt:open-login"));
   };
 
   return (

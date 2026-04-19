@@ -14,7 +14,7 @@ const TAB_META = {
   congress:    { eyebrow: "Congressional",     title: "Congress activity",      sub: "Disclosed equity trades by U.S. Senators and Representatives in the last 45 days (buys and sells).", accent: "#0a84ff" },
   insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider activity",       sub: "Open-market buys and sells by company officers, directors, and 10% holders filed with the SEC.",    accent: "#bf5af2" },
   flow:        { eyebrow: "Options Flow",      title: "Unusual flow alerts",    sub: "Large or unusual call and put options activity flagged by Unusual Whales.",           accent: "#ff9f0a" },
-  technicals:  { eyebrow: "Technicals",        title: "IV, P/C, RSI, MACD",     sub: "IV rank, put/call ratio, relative volume, RSI and MACD across all scored tickers.",   accent: "#ffd60a" },
+  technicals:  { eyebrow: "Per-ticker signals", title: "Technicals",            sub: "Implied volatility rank, put/call ratio, relative volume, and momentum indicators across all scored tickers.", accent: "#ffd60a" },
   methodology: { eyebrow: "Methodology",       title: "How the scanner scores", sub: "Scoring weights, data sources, refresh schedule, and tier thresholds.",                accent: "var(--text-dim)" },
 };
 
@@ -1267,7 +1267,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
             onClick={() => setView("technicals")}
           >
             <div style={{ display: "flex", gap: 8, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-              <MiniStat label="HIGH IV (>70)" value={highIVR} color="var(--yellow-text)" wide />
+              <MiniStat label="HIGH VOLATILITY (>70)" value={highIVR} color="var(--yellow-text)" wide />
             </div>
           </Tile>
 

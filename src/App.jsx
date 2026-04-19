@@ -2387,6 +2387,19 @@ useEffect(()=>{
   }
 // eslint-disable-next-line react-hooks/exhaustive-deps
 },[]);
+// Header Sign-in button dispatches macrotilt:open-login to skip the portopps
+// zero-state preview and drop the user directly on the 6-digit code LoginScreen.
+// Without this, the header CTA would require two clicks (header → inline "Sign in"
+// button in the portopps preview banner) before the login form appears.
+useEffect(()=>{
+  if(typeof window==="undefined")return;
+  const handler=()=>{
+    setTab("portopps");
+    setShowPortoppsLogin(true);
+  };
+  window.addEventListener("macrotilt:open-login",handler);
+  return()=>window.removeEventListener("macrotilt:open-login",handler);
+},[]);
 // Close drawer automatically whenever the active tab changes (in case the user
 // navigated via a non-sidebar control while the drawer was open).
 useEffect(()=>{setSidebarOpen(false);},[tab]);
