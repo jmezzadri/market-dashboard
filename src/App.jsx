@@ -568,9 +568,9 @@ analysis:"21% of Roth. Same name as the brokerage holding — total household ex
 analysis:"Broad US market core — 19% of Roth. Right asset in the right account; let it compound."},
 {ticker:"FBTC", name:"Fidelity Wise Origin Bitcoin", value:1355, price:67.75, shares:20, avgCost:91.89, sector:"Crypto",        beta:2.50,color:ACCENT,
 analysis:"BTC exposure — 17% of Roth. Tax-free is the optimal home for crypto. Sizing is appropriate at this conviction level."},
-{ticker:"GLD",  name:"SPDR Gold Trust",             value:1343, price:447.515,shares:3, avgCost:463.92,sector:"Commodity",      beta:0.05,color:ACCENT,
+{ticker:"GLD",  name:"SPDR Gold Trust",             value:1343, price:447.515,shares:3, avgCost:463.92,sector:"Metals",         beta:0.05,color:ACCENT,
 analysis:"Gold hedge — 16% of Roth. Diversifier."},
-{ticker:"SLV",  name:"iShares Silver Trust",        value:1123, price:74.85, shares:15, avgCost:99.75, sector:"Commodity",      beta:0.30,color:ACCENT,
+{ticker:"SLV",  name:"iShares Silver Trust",        value:1123, price:74.85, shares:15, avgCost:99.75, sector:"Metals",         beta:0.30,color:ACCENT,
 analysis:"Silver — 14% of Roth. Higher beta than gold; both industrial and monetary."},
 {ticker:"SPAXX",name:"Fidelity Govt Money Market",  value:531,  price:1.00,  shares:531,avgCost:1.00,  sector:"Cash",           beta:0.00,color:"var(--text-dim)",
 analysis:"Cash sweep — 6% of Roth. Fine as a small buffer; deploy if balance grows."},
@@ -1295,6 +1295,7 @@ const analystRatings=scanData?.signals?.analyst_ratings?.[ticker]||[];
 const sector=info?.sector||sc.sector||null;
 const tags=info?.tags||[];
 const shortDesc=info?.short_description||null;
+const longDesc=info?.long_description||null;
 // announce_time from /info is the same field as er_time from screener — use whichever exists.
 const earnTimeForChip=erTime||info?.announce_time||null;
 // Short interest (FINRA biweekly via yfinance — lagged ~15 days, NEVER real-time)
@@ -1381,10 +1382,18 @@ return(
 {sector&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{sector}</span>}
 {tags.slice(0,4).map(tg=>(<span key={tg} style={{fontSize:10,color:"var(--text-dim)",border:"1px solid var(--border-faint)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:500,letterSpacing:"0.04em",textTransform:"uppercase"}}>{tg}</span>))}
 </div>}
-{shortDesc&&(()=>{
+{(shortDesc||longDesc)&&(()=>{
   const DESC_LIMIT=140;
-  const isLong=shortDesc.length>DESC_LIMIT;
-  const shown=descExpanded||!isLong?shortDesc:shortDesc.slice(0,DESC_LIMIT).replace(/\s\S*$/,"")+"…";
+  // Prefer the real long description when expanded; otherwise the teaser.
+  // UW's short_description already ends in literal "..." (truncated at source);
+  // strip it so we don't double-ellipsis when collapsed.
+  const teaser=(shortDesc||longDesc||"").replace(/\s*\.\.\.\s*$/,"").replace(/\s*…\s*$/,"");
+  const fullText=longDesc||teaser;
+  const canExpand=!!longDesc&&longDesc.length>teaser.length+20;
+  const needsCollapse=teaser.length>DESC_LIMIT;
+  const collapsed=needsCollapse?teaser.slice(0,DESC_LIMIT).replace(/\s\S*$/,"")+"…":teaser;
+  const isLong=canExpand||needsCollapse;
+  const shown=descExpanded?fullText:(isLong?collapsed:teaser);
   return(
   <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.5,marginTop:6,maxWidth:640}}>
   {shown}
@@ -1705,7 +1714,7 @@ style={{background:"var(--surface-2)",border:`1px solid ${exp?"#4a6fa555":"var(-
 }
 
 function AcctCard({acct,grandTotal,convColor,convLabel,stressScore}){
-const [open,setOpen]=useState(true);
+const [open,setOpen]=useState(false);
 const total=acct.positions.reduce((a,p)=>a+p.value,0);
 const pctOfTotal=(total/grandTotal*100).toFixed(1);
 return(
@@ -2321,7 +2330,7 @@ const TAB_META={
   overview:  {eyebrow:"Macro Dashboard",      title:"Today's macro overview",  sub:"Composite stress, regime, category breakdown, and the historical stress trajectory."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
-  portopps:  {eyebrow:"Portfolio & Insights", title:"Portfolio & Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
+  portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
 };
@@ -2334,7 +2343,7 @@ const NAV_ITEMS = [
   { id:"overview",   label:"Macro Overview",        icon:<NavIconGauge/>  },
   { id:"indicators", label:"All Indicators",        icon:<NavIconGrid/>   },
   { id:"sectors",    label:"Sectors",               icon:<NavIconHeat/>   },
-  { id:"portopps",   label:"Portfolio & Insights",  icon:<NavIconPie/>    },
+  { id:"portopps",   label:"Trading Opps & Insights",  icon:<NavIconPie/>    },
   { id:"scanner",    label:"Trading Scanner",       icon:<NavIconRadar/>  },
   { id:"readme",     label:"Methodology",           icon:<NavIconBook/>   },
 ];
@@ -2537,8 +2546,8 @@ return(
       </Tile>
 
       <Tile
-        eyebrow="Portfolio & Insights"
-        title="Portfolio & Insights"
+        eyebrow="Trading Opportunities & Portfolio Insights"
+        title="Trading Opportunities & Portfolio Insights"
         sub={`$${Math.round(grandTotal/1000)}K · ${ACCOUNTS.length} accounts · Beta ${portBeta.toFixed(2)}`}
         accent="#0a84ff"
         span={2}
@@ -2556,7 +2565,7 @@ return(
           </div>
           <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
             <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>BUY ALERTS</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:buyCount>0?"#30d158":"var(--text-muted)"}}>{buyCount}</div>
+            <div className="num" style={{fontSize:20, fontWeight:700, color:buyCount>0?"var(--green-text)":"var(--text-muted)"}}>{buyCount}</div>
           </div>
           <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
             <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>NEAR TRIGGER</div>
@@ -2745,7 +2754,7 @@ const scoreByTicker=scanData?.score_by_ticker||{};
 // commodities, crypto wrappers, HY-bond funds, broad intl-equity funds get
 // artificially low scores (e.g. SLV=0, GLD=6) because the scanner looks for
 // equity-specific signals (Congress/insider/flow) that don't apply.
-const SCANNER_OUT_OF_SCOPE_SECTORS=new Set(["Commodity","Crypto","HY Bonds","Intl Equity"]);
+const SCANNER_OUT_OF_SCOPE_SECTORS=new Set(["Commodity","Metals","Crypto","HY Bonds","Intl Equity"]);
 const BROAD_INDEX_FUNDS=new Set(["FXAIX","FSKAX","FZILX","FSGGX","FXNAX","FXIIX"]);
 const actionFor=p=>{
   if(!p.acctTactical)return{label:"MONITOR",color:"var(--text-dim)",reason:"Plan-fund account — can't act on tactical signals here.",detail:`This position sits in ${p.acctLabel}, which is limited to the plan's menu of funds. Signals from the scanner don't apply — the account holds what the plan allows. Review at enrollment/re-enrollment windows or major life events.`};
@@ -2762,7 +2771,7 @@ const fmt$K=v=>v>=1000?`$${Math.round(v/1000).toLocaleString()}K`:`$${Math.round
 const fmt$Full=v=>`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
 const sectionPanel={background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,overflow:"hidden",marginBottom:12};
 const sectionHeader={padding:"12px 16px",borderBottom:"1px solid var(--border-faint)",display:"flex",justifyContent:"space-between",alignItems:"center"};
-const sectionTitleStyle={fontSize:12,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)",letterSpacing:"0.1em"};
+const sectionTitleStyle={fontSize:16,fontWeight:800,color:"var(--text)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"};
 const subTitleStyle={fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8,fontWeight:600};
 const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"10px 12px"};
 const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
@@ -2774,14 +2783,14 @@ return(
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
 {[
   {label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},
-  {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"#ff9f0a":portBeta<0.6?"#ffd60a":"var(--text)"},
+  {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
   {label:"Holdings",value:`${heldPositions.length} positions`,col:"var(--text)"},
-  {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:"#30d158",accent:"#30d158"},
-  {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:"#ffd60a",accent:"#ffd60a"},
+  {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:"var(--green-text)",accent:"#30d158"},
+  {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:"var(--yellow-text)",accent:"#ffd60a"},
   {label:"Watchlist",value:`${WATCHLIST.length} tracking`,col:"var(--text)"},
 ].map(({label,value,col,accent})=>(
 <div key={label} style={{background:accent?`${accent}14`:"var(--surface-2)",border:accent?`1px solid ${accent}55`:"1px solid transparent",borderLeft:accent?`3px solid ${accent}`:"1px solid transparent",borderRadius:5,padding:"10px 12px"}}>
-<div style={{fontSize:10,color:accent||"var(--text-2)",fontFamily:"monospace",marginBottom:4,fontWeight:accent?700:400,letterSpacing:accent?"0.08em":"normal"}}>{label.toUpperCase()}</div>
+<div style={{fontSize:10,color:accent?col:"var(--text-2)",fontFamily:"monospace",marginBottom:4,fontWeight:accent?700:400,letterSpacing:accent?"0.08em":"normal"}}>{label.toUpperCase()}</div>
 <div style={{fontSize:14,fontWeight:800,color:col,fontFamily:"monospace"}}>{value}</div>
 </div>
 ))}
@@ -2791,7 +2800,7 @@ return(
 {/* SECTION 1 — OPPORTUNITIES (visually distinct sub-panels, clickable cards) */}
 <div style={sectionPanel}>
 <div style={sectionHeader}>
-<span style={sectionTitleStyle}>① OPPORTUNITIES</span>
+<span style={sectionTitleStyle}>① TRADING OPPORTUNITIES</span>
 <div style={{display:"flex",alignItems:"center",gap:14}}>
 <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{scanData?.buy_opportunities?.length||0} triggered · {scanData?.watch_items?.length||0} near · {WATCHLIST.length} other</span>
 <span style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("scanner")}>Full scanner →</span>
@@ -3046,7 +3055,8 @@ return(<>
   </div>
   <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:11,fontFamily:"var(--font-mono)",marginBottom:p.analysis&&isExpanded?6:0}}>
   <span style={{color:"var(--text-muted)"}}>{fmt$Full(p.price)}</span>
-  {pnlPct!=null&&<span style={{color:pnlCol,fontWeight:600}}>{pnlPct>=0?"+":""}{pnlPct.toFixed(1)}% vs cost {fmt$Full(p.avgCost)}</span>}
+  {pnl$!=null&&<span style={{color:pnlCol,fontWeight:600}}>{pnl$>=0?"+":""}{fmt$Full(pnl$)}</span>}
+  {pnlPct!=null&&<span style={{color:pnlCol,fontWeight:600}}>{pnlPct>=0?"+":""}{pnlPct.toFixed(1)}%</span>}
   <span style={{color:"var(--text-dim)"}}>β {p.beta.toFixed(2)}</span>
   <span style={{color:"var(--text-dim)"}}>{p.sector}</span>
   <span style={{color:"var(--text-dim)"}}>{p.acctLabel}</span>
