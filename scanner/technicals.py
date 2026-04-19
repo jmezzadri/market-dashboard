@@ -57,6 +57,7 @@ def get_technicals(ticker: str) -> dict[str, Any]:
 
 def _empty_technicals() -> dict[str, Any]:
     return {
+        "close": None,
         "rsi_14": None,
         "macd_cross": None,
         "above_50ma": None,
@@ -154,6 +155,9 @@ def _compute_technicals(sym: str) -> dict[str, Any]:
         )
 
         return {
+            # Latest close from OHLCV — the dashboard's PRICE column falls back
+            # to this when the UW screener row (sc.prev_close) is missing.
+            "close": round(current, 4) if current is not None else None,
             "rsi_14": round(rsi, 1) if rsi is not None else None,
             "macd_cross": macd_cross,
             "above_50ma": above_50,

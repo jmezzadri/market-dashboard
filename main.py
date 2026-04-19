@@ -322,12 +322,22 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         "direction_by_ticker": wide_direction_map,
     }
 
-    # Ensure portfolio + watchlist tickers have screener data even if absent
-    # from the bulk UW screener payload. Email/report-only — the public artifact
-    # strips these rows back to the scannable universe.
+    # Ensure screener data exists for every ticker the dashboard renders rows
+    # for — portfolio, watchlist, AND every wide-universe survivor + UW-sourced
+    # filtered ticker. Without this, the Technicals tab's PRICE column goes
+    # blank for names that weren't in UW's relative-volume top-N.
+    #
+    # The per-ticker /api/screener/stocks endpoint is throttled to 0.35s/call
+    # in unusual_whales.py; for ~200 tickers that's ~70s, well within the
+    # daily workflow's 10-minute budget.
     screener = signals.get("screener") or {}
-    for sym in {*portfolio_tickers, *watchlist_tickers}:
-        if sym not in screener:
+    coverage_tickers = (
+        {*portfolio_tickers, *watchlist_tickers, *filtered}
+        | {(t or "").upper() for t in (wide_long or [])}
+        | {(t or "").upper() for t in (wide_short or [])}
+    )
+    for sym in coverage_tickers:
+        if sym and sym not in screener:
             row = uw.fetch_screener_row_for_ticker(sym, signals)
             if row:
                 screener[sym] = row
