@@ -1,15 +1,27 @@
 # Track B — Multi-user Support: Scoping Document
 
-**Status:** Draft — key decisions locked in (2026-04-18)
-**Author:** Claude (drafted 2026-04-18)
+**Status:** B1 shipped (2026-04-18). B2 in flight.
+**Author:** Claude (drafted 2026-04-18, revised 2026-04-18 post-B1)
 **Owner:** Joe
-**Depends on:** Track A (sidebar nav) — shipped; Track B0 (Scanner de-personalize) — shipped
+**Depends on:** Track A (sidebar nav) — shipped; Track B0 (Scanner de-personalize) — shipped; B1 (Auth scaffold) — shipped.
 
 ---
 
 ## Decisions locked in (2026-04-18)
 
-- **Soft login gate.** Only the two portfolio tabs (Portfolio & Insights, Holdings Detail) require auth. Macro Dashboard, Indicators, Sectors, Scanner, and Methodology stay public — F&F can try the macro side before signing up.
+### Revised post-B1 (2026-04-18 evening)
+
+The "soft login gate on portfolio tabs" decision is **superseded** after B1 went live. New direction:
+
+- **No UI gates anywhere.** Every tab is publicly clickable, including the Portfolio & Insights detail tab. Data is what gates, not routing. Unauthenticated visitors see the tab chrome and layout in a **zero/empty state**; sign-in switches the data from empty to user-scoped.
+- **Inline sign-in CTA, not a blocking LoginScreen card.** When the detail tab renders empty, a contextual "Sign in to see your portfolio" prompt sits inline (near the snapshot or as a top banner), with the same magic-link email input embedded. No more "replace the whole view with a login wall."
+- **Home tile stays public too.** The Home dashboard's Trading Opps summary tile renders zero-state numbers pre-auth (totals $0 / 0 positions / 0 watchlist / etc.), not a "sign in to see" panel. Signed-in users see their aggregates.
+- **Rationale.** Hard gates create a funnel cliff — prospective F&F users see a wall instead of the product. Empty-state views let them see the shape of what they'd get, which is a better discovery experience. And it avoids a throwaway intermediate "gate the UI" state before B2 un-gates it anyway.
+- **`ProtectedRoute` wrapper stays in the codebase** (may be useful later, e.g. settings/admin), but is no longer wired into portopps.
+
+### Original decisions (pre-B1, still applicable)
+
+- **Soft login gate.** ~~Only the two portfolio tabs require auth.~~ **Superseded — see above.** Macro Dashboard, Indicators, Sectors, Scanner, and Methodology stay public — F&F can try the macro side before signing up.
 - **Scanner de-personalized.** The "CURRENT PORTFOLIO" section has been removed from the Scanner tab (Track B0). The scanner JSON may still emit `portfolio_positions`, but the dashboard no longer renders it. No per-user personalization of the scanner UI.
 - **Scored-universe expansion (separate track, scanner repo).** Universe should broaden to S&P 500 + NASDAQ Composite + Dow Jones Industrial Average + Russell 2000. This is Python-side work in the trading-scanner repo, not this repo. Tracked separately.
 - **Supabase + RLS** is the vendor pick.
@@ -208,20 +220,20 @@ Account metadata (label, sub) repeats per row and gets deduped server-side. Simp
 
 ---
 
-## 6. Delivery stages
+## 6. Delivery stages (revised 2026-04-18 post-B1)
 
-Each stage is shippable and reversible. Each should land as its own PR / Vercel deploy so we can UAT incrementally.
+Each stage is shippable and reversible. B1 shipped in one session; B2 collapses the originally-planned B2+B3+B4+B5 into a single coherent stage because un-gating + user-scoping + seeding need to land together to avoid data-leakage intermediate states.
 
-| Stage | Scope | Risk | Time estimate |
-|---|---|---|---|
-| **B1 — Auth scaffold** | Add Supabase SDK, login screen, email magic link, protected route wrapper. No DB writes yet. Can still show hardcoded ACCOUNTS to everyone behind auth. | Low | ~half day w/ Cursor |
-| **B2 — Data model + RLS** | Create `accounts` + `positions` tables, RLS policies, migrations. Admin script to test-insert & test-query. No UI integration yet. | Low | ~half day |
-| **B3 — Sample portfolio + read path** | Add sample JSON. Refactor Portfolio & Insights + Holdings Detail tabs to read from DB if the user has data, else show sample with banner. Joe's data still comes from `ACCOUNTS` for now (toggle). | Medium — touches the biggest tabs | ~1 day |
-| **B4 — Write path: CSV upload, add-position form, add-ticker-to-watchlist form, wipe-my-portfolio button** | Add/Edit account form. Add/Edit position form. Add-ticker form (lightweight — symbol only → watchlist). CSV template download + upload with parse preview. "Wipe my portfolio" confirmation → truncates user's accounts/positions/watchlist rows. | Medium | ~1.5 days |
-| **B5 — Migrate Joe's data + remove hardcode** | Seed Joe's data into DB. Delete ACCOUNTS literal. Verify dashboard still looks identical for Joe. | Medium — this is the cutover | ~half day |
-| **B6 — Invite F&F** | Share URL. Watch for bugs. | — | ongoing |
+| Stage | Scope | Status |
+|---|---|---|
+| **B1 — Auth scaffold** | Supabase SDK, magic-link login, ProtectedRoute wrapper, sidebar account UI. | ✅ Shipped 2026-04-18 |
+| **B2 — Data model + un-gate + read + write + seed** | (a) Supabase schema: `accounts`, `positions`, `watchlist` with RLS on `auth.uid()`. (b) `useUserPortfolio` hook — reads Supabase when session exists, returns empty shape when session is null. (c) Replace all `ACCOUNTS` / `WATCHLIST_FALLBACK` reads in App.jsx with the hook. (d) Zero-state rendering at every call site (Home tile = zero numbers, portopps detail = empty skeleton + inline sign-in CTA). (e) Remove `ProtectedRoute` wrapper from portopps. (f) Onboarding flow: post-sign-in with zero rows routes to import screen with **two paths: paste-tickers form + CSV upload**, both writing through same insert. (g) Sample portfolio shipped as `src/data/samplePortfolio.json`, rendered to unauthenticated visitors as a preview (optional; see §4). (h) Seed Joe's `ACCOUNTS` into DB under his user_id. (i) Delete `ACCOUNTS` literal from App.jsx. | In flight |
+| **B3 — Wipe my portfolio + account/position edit forms** | Edit-in-place forms for accounts and positions. "Wipe my portfolio" confirmation button. Add-ticker-to-watchlist form (symbol-only quick add). | Pending — split out so B2 doesn't balloon |
+| **B4 — Invite F&F** | Share URL. Watch for bugs. Collect feedback on onboarding friction. | Pending |
 
-Total: ~3–4 days of focused work, spread across however many sessions you want.
+**Time estimate for B2:** 1–2 focused sessions. Schema + RLS is 30 minutes. Session-scoped store + wiring is the bulk of the work (4–6 hours). Import flow is 1–2 hours. Seeding + cutover is another hour.
+
+**Key sequencing rule for B2:** the un-gate and the data-store swap must land in the same deploy. If we un-gate portopps while ACCOUNTS is still bundled, every visitor sees Joe's book. The cutover PR removes both gates at once.
 
 ---
 
@@ -237,18 +249,20 @@ All questions resolved. Ready to start B1.
 
 ---
 
-## 8. What I'd recommend we do next
+## 8. B2 execution plan
 
-All scoping questions resolved. Next step is **B1 — Auth scaffold**:
+Landing in this order within B2:
 
-1. Create Supabase project (free tier)
-2. Add `@supabase/supabase-js` dep + Supabase client singleton in the dashboard repo
-3. Login screen (email magic link only — no password)
-4. Protected-route wrapper that gates only the two portfolio tabs (soft gate)
-5. Basic account UI in the sidebar footer slot (name/email + "Sign out")
+1. **Schema SQL** (`supabase/migrations/001_b2_portfolio_tables.sql`) — `accounts`, `positions`, `watchlist` tables + RLS policies + indexes. Joe runs this once in the Supabase SQL editor.
+2. **`useUserPortfolio` hook** (`src/hooks/useUserPortfolio.js`) — subscribes to session, fetches rows for the current user on sign-in, returns `{ accounts, positions, watchlist, loading, refetch }`. Pre-auth returns the sample portfolio JSON (for visual preview) or an explicit empty shape `{ accounts: [], positions: [], watchlist: [] }` — decide at implementation time.
+3. **Sample portfolio JSON** (`src/data/samplePortfolio.json`) — tiny 2-account fake portfolio (JPM Brokerage + 401k) so unauthenticated visitors see a realistic shape rather than "$0 everywhere". Clearly labeled as "SAMPLE" in the UI.
+4. **Wire hook into App.jsx** — replace every read of `ACCOUNTS`, `WATCHLIST_FALLBACK`, and the scanner's `watchlist` slice with the hook return. Delete the `ACCOUNTS` literal from source. Home tile, portopps detail, anywhere else.
+5. **Un-gate portopps** — remove `<ProtectedRoute>` wrapper; the IIFE renders freely. Add inline "Sign in to see your portfolio" banner when `!session` (using the magic-link input from LoginScreen, but embedded not fullscreen).
+6. **Import flow** (`src/portfolio/Onboarding.jsx`) — routed to automatically when signed in with zero positions. Two side-by-side cards:
+   - **Paste tickers:** multiline textarea, one line per position, format `TICKER SHARES AVG_COST ACCOUNT_LABEL` (or simpler — just tickers with quantities, account defaults to "Brokerage"). Parse, preview, commit.
+   - **Upload CSV:** file input, template download, parse, preview, commit.
+   Both write through the same `insertPortfolio({ accounts, positions })` function.
+7. **Seed Joe's data** — `scripts/seed-joes-portfolio.mjs` reads exported JSON (ran locally, never committed), uses Supabase service-role key from `.env.local`, inserts tagged with Joe's `user_id`. Run once.
+8. **Build, commit, push, UAT.** Verify: signed-out shows sample-labeled zero-state everywhere; sign in as Joe → real portfolio renders; sign in as a fresh test user → onboarding screen appears.
 
-B1 is low-risk and fully reversible — if we decide to change auth vendor later, nothing in B1 is load-bearing for B2+. It's also ~half a day of Cursor work with you supervising.
-
-I'll need from you before I start:
-- Supabase project URL + anon key (created once in the Supabase dashboard — I can walk you through it)
-- A throwaway email address to test magic-link login end-to-end (or your primary; both work)
+Total expected session time: 4–6 hours of focused execution.

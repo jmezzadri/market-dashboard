@@ -7,8 +7,10 @@ import {
   NavIconPie, NavIconList, NavIconRadar, NavIconBook,
 } from "./Shell";
 import { InfoTip } from "./InfoTip";
-import ProtectedRoute from "./auth/ProtectedRoute";
 import SidebarAuth from "./auth/SidebarAuth";
+import LoginScreen from "./auth/LoginScreen";
+import { useSession } from "./auth/useSession";
+import { useUserPortfolio } from "./hooks/useUserPortfolio";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
@@ -539,67 +541,11 @@ const STRESS_HIST_BANDS=[
 ];
 
 // ── PORTFOLIO ───────────────────────────────────────────────────────────────
-// Real holdings as of Apr 17 2026 (sourced from JPM + Fidelity exports).
-// Hoboken Escrow excluded — not investable wealth. Chase brokerage sweep
-// (QACDS) included as deployable cash.
-const ACCOUNTS=[
-{id:"brokerage",label:"JPM Taxable Brokerage",sub:"Margin · J.P. Morgan",color:"#3b82f6",tactical:true,
-note:"Active trading account — concentrated tactical positions in cyclicals + commodity producers. Chase sweep cash is dry powder.",
-positions:[
-{ticker:"CCJ",  name:"Cameco Corp",                     value:48266, price:120.665,shares:400,  avgCost:117.35, sector:"Materials",beta:1.40,color:ACCENT,
-analysis:"Uranium leader — 43% of brokerage and the largest single-stock position in the book. Beta ~1.4. Concentration warrants a stop discipline; PT $140 / SL $99 from scanner."},
-{ticker:"RCAT", name:"Red Cat Holdings",                value:26860, price:13.43,  shares:2000, avgCost:16.87,  sector:"Technology",beta:2.50,color:ACCENT,
-analysis:"Small-cap drone/AI defense play — 24% of brokerage. Beta ~2.5, very high vol. Wash-sale flagged on this lot — taxable-loss harvesting limited until the 30-day window passes."},
-{ticker:"OXY",  name:"Occidental Petroleum",            value:26130, price:52.26,  shares:500,  avgCost:64.95,  sector:"Energy",   beta:1.20,color:ACCENT,
-analysis:"Energy major — 23% of brokerage. Berkshire still anchors the float; buyback yield supports downside. Trim only if energy regime shifts."},
-{ticker:"QACDS",name:"Chase Brokerage Sweep",           value:9795,  price:1.00,   shares:9795, avgCost:1.00,   sector:"Cash",     beta:0.00,color:"var(--text-dim)",
-analysis:"~9% cash in brokerage — deployable dry powder. Reasonable sizing given the all-equity, 3-name concentration above. Consider building toward 15% if the composite moves to Elevated."},
-]},
-{id:"k401",label:"EY 401(k)",sub:"Pre-tax · Account 86964",color:"#6366f1",tactical:false,
-note:"Pre-tax retirement — single-fund allocation. ~67% of total investable wealth sits in HY credit via this one fund. Limited to plan funds; no individual securities.",
-positions:[
-{ticker:"JHYUX",name:"JPMorgan High Yield Fund (R6)",value:350506,price:6.59,shares:53188,avgCost:6.53,sector:"HY Bonds",beta:0.50,color:ACCENT,
-analysis:"100% of the 401(k) and ~67% of total investable wealth. Diversified within HY credit (hundreds of issuers), but the whole position carries that asset class's credit-spread risk — JHYUX correlates more with equity than with Treasuries and behaves like a defensive equity sleeve, not a duration hedge. Currently +0.9% on cost. At Elevated regime, expect 8–15% drawdowns."},
-]},
-{id:"roth",label:"Roth IRA",sub:"Tax-free · Fidelity 23643",color:"#30d158",tactical:true,
-note:"Tax-free compounding — best home for highest-conviction, longest-duration assets. Currently small balance with diversified satellite holdings.",
-positions:[
-{ticker:"RCAT", name:"Red Cat Holdings",            value:1756, price:13.57, shares:129,avgCost:6.07,  sector:"Technology",     beta:2.50,color:ACCENT,
-analysis:"21% of Roth. Same name as the brokerage holding — total household exposure to RCAT is ~$28.6K. Roth placement is correct for high-vol asymmetric upside."},
-{ticker:"FSKAX",name:"Fidelity Total Market Index", value:1569, price:193.37,shares:8.1,avgCost:123.24,sector:"US Equity",      beta:1.00,color:ACCENT,
-analysis:"Broad US market core — 19% of Roth. Right asset in the right account; let it compound."},
-{ticker:"FBTC", name:"Fidelity Wise Origin Bitcoin", value:1355, price:67.75, shares:20, avgCost:91.89, sector:"Crypto",        beta:2.50,color:ACCENT,
-analysis:"BTC exposure — 17% of Roth. Tax-free is the optimal home for crypto. Sizing is appropriate at this conviction level."},
-{ticker:"GLD",  name:"SPDR Gold Trust",             value:1343, price:447.515,shares:3, avgCost:463.92,sector:"Metals",         beta:0.05,color:ACCENT,
-analysis:"Gold hedge — 16% of Roth. Diversifier."},
-{ticker:"SLV",  name:"iShares Silver Trust",        value:1123, price:74.85, shares:15, avgCost:99.75, sector:"Metals",         beta:0.30,color:ACCENT,
-analysis:"Silver — 14% of Roth. Higher beta than gold; both industrial and monetary."},
-{ticker:"SPAXX",name:"Fidelity Govt Money Market",  value:531,  price:1.00,  shares:531,avgCost:1.00,  sector:"Cash",           beta:0.00,color:"var(--text-dim)",
-analysis:"Cash sweep — 6% of Roth. Fine as a small buffer; deploy if balance grows."},
-{ticker:"ETHE", name:"Grayscale Ethereum Trust",    value:496,  price:19.84, shares:25, avgCost:31.56, sector:"Crypto",         beta:3.00,color:ACCENT,
-analysis:"ETH exposure — 6% of Roth. Legacy Grayscale wrapper has expense-ratio drag vs. spot ETF alternatives. Consider rolling to ETHA/ETHE-equivalent spot product on next add."},
-]},
-{id:"529s",label:"Scarlett 529",sub:"NH 529 · Account 6034",color:"#ff9f0a",tactical:false,
-note:"College savings — 100% international equity. Limited to NH 529 plan funds; no individual stocks. Long horizon supports the allocation but single-fund concentration warrants a glide-path plan.",
-positions:[
-{ticker:"NHXINT906",name:"NH International Index",value:9194,price:25.63,shares:359,avgCost:19.51,sector:"Intl Equity",beta:0.85,color:ACCENT,
-analysis:"100% intl equity — +31% on cost. Heavy regional concentration relative to a typical age-based 529 portfolio. Consider blending to a target-enrollment fund as horizon shortens."},
-]},
-{id:"529e",label:"Ethan 529",sub:"NH 529 · Account 6185",color:"#f97316",tactical:false,
-note:"College savings — same 100% international equity allocation as Scarlett's account, larger balance. Limited to NH 529 plan funds.",
-positions:[
-{ticker:"NHXINT906",name:"NH International Index",value:34473,price:25.63,shares:1345,avgCost:15.43,sector:"Intl Equity",beta:0.85,color:ACCENT,
-analysis:"100% intl equity — +66% on cost. Largest 529 holding. Same single-fund concentration call as Scarlett's account; revisit at age-based glide-path checkpoints."},
-]},
-{id:"hsa",label:"Health Savings Account",sub:"Triple tax-adv · Fidelity 23567",color:"#00d4a0",tactical:true,
-note:"Triple tax-advantaged — contribute the family max and invest long-term. Treat as stealth retirement; never withdraw if cash flow allows.",
-positions:[
-{ticker:"FXAIX",name:"Fidelity 500 Index Fund",   value:6841,price:244.69,shares:28,  avgCost:183.24,sector:"US Equity",beta:1.00,color:ACCENT,
-analysis:"S&P 500 core — 80% of HSA. Correct asset for the most tax-advantaged account in the stack."},
-{ticker:"FDRXX",name:"Fidelity Govt Money Market",value:1747,price:1.00,  shares:1747,avgCost:1.00,sector:"Cash",     beta:0.00,color:"var(--text-dim)",
-analysis:"20% cash buffer — slightly high. Keep $1.5–2K for near-term medical, deploy the rest into FXAIX."},
-]},
-];
+// Portfolio data is session-scoped in Track B2 — fetched from Supabase via
+// `useUserPortfolio()` per signed-in user. Unauthenticated visitors get an
+// empty array (zero-state render). The seed migration at
+// `supabase/migrations/002_b2_seed_joe.sql` populates Joe's holdings; other
+// users import via the onboarding paste-tickers / CSV flow (Track B2).
 
 // ── WATCHLIST — names Joe is tracking but doesn't (yet) own ────────────────
 // CRYPTO_WATCH lives only on the dashboard side because the Python scanner
@@ -2416,6 +2362,15 @@ const [scanError,setScanError]=useState(false);
 const [acctBreakdownOpen,setAcctBreakdownOpen]=useState(false);
 // Sidebar drawer state — only visible on mobile; desktop sidebar is persistent.
 const [sidebarOpen,setSidebarOpen]=useState(false);
+// Session-scoped portfolio — returns empty arrays when unauthenticated so the
+// tiles render a zero-state rather than leaking someone else's data.
+const {session}=useSession();
+const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio}=useUserPortfolio();
+const portfolioAuthed=!!session;
+// Inline sign-in toggle for the portopps zero-state. Clicking the CTA in the
+// banner swaps the skeleton for the LoginScreen; successful sign-in flips
+// `portfolioAuthed` and the user sees their real portfolio.
+const [showPortoppsLogin,setShowPortoppsLogin]=useState(false);
 // Close drawer automatically whenever the active tab changes (in case the user
 // navigated via a non-sidebar control while the drawer was open).
 useEffect(()=>{setSidebarOpen(false);},[tab]);
@@ -2449,8 +2404,11 @@ useEffect(()=>{
 // eslint-disable-next-line react-hooks/exhaustive-deps
 },[catFilter]);
 
-const grandTotal=ACCOUNTS.reduce((a,acc)=>a+acc.positions.reduce((b,p)=>b+p.value,0),0);
-const portBeta=ACCOUNTS.flatMap(acc=>acc.positions).reduce((a,p)=>a+(p.value/grandTotal)*p.beta,0);
+const grandTotal=ACCOUNTS.reduce((a,acc)=>a+acc.positions.reduce((b,p)=>b+(p.value||0),0),0);
+// Weighted β — skip the weighting when there's nothing to weight (unauth zero-state).
+const portBeta=grandTotal>0
+  ?ACCOUNTS.flatMap(acc=>acc.positions).reduce((a,p)=>a+((p.value||0)/grandTotal)*(p.beta||0),0)
+  :0;
 // Asset-class taxonomy: prefer sector match for fixed income / intl / cash;
 // then ticker match for the few special-cased ETFs (metals, crypto, broad
 // index funds); everything else falls through to "Individual Stocks".
@@ -2472,12 +2430,11 @@ const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual 
 const buyCount = scanData?.buy_opportunities?.length || 0;
 const watchCount = scanData?.watch_items?.length || 0;
 const portCount = scanData?.portfolio_positions?.length || 0;
-// Watchlist: prefer the scanner-published list (single source of truth, edited
-// in trading-scanner repo's portfolio/watchlist.csv); fall back to hardcoded
-// list if scan data hasn't loaded or is from before the watchlist feature.
-// Always append crypto entries — the scanner is equity-only.
-const watchlistEquities = (scanData?.watchlist?.length ? scanData.watchlist : WATCHLIST_FALLBACK);
-const WATCHLIST = [...watchlistEquities, ...CRYPTO_WATCH];
+// Watchlist: user's watchlist rows from Supabase are the source of truth when
+// signed in (they're seeded from WATCHLIST_FALLBACK + CRYPTO_WATCH at onboarding
+// and the user can edit them). Pre-auth, WATCHLIST is empty to avoid leaking
+// anyone else's list.
+const WATCHLIST = portfolioAuthed ? userWatchlistRows : [];
 const lastScanLabel = scanData?.date_label || "—";
 const compactNarrative = `Composite ${COMP100}/100 · ${TREND_SIG.label}`;
 
@@ -2731,8 +2688,11 @@ return(<div key={id} style={{display:"flex",justifyContent:"space-between",align
 
 {tab==="sectors"&&<SectorsTab/>}
 
-{/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2) */}
-{tab==="portopps"&&<ProtectedRoute>{(()=>{
+{/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
+    clickable since Track B2 — unauthenticated visitors see a zero-state
+    skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
+{tab==="portopps"&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
+{tab==="portopps"&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
 const heldByTicker={};
 ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
   if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
@@ -2779,6 +2739,18 @@ const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-fa
 const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
 return(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",maxWidth:1100,margin:"0 auto"}}>
+{/* INLINE SIGN-IN CTA — only when not authed. Per B2 spec: portopps is
+    publicly clickable, but shows zero-state + a contextual prompt instead
+    of a full LoginScreen. Signing in swaps the skeleton for real data. */}
+{!portfolioAuthed&&(
+<div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px",marginBottom:12,display:"flex",gap:14,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
+<div style={{flex:"1 1 260px",minWidth:0}}>
+<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:4,fontWeight:700}}>SIGN IN TO SEE YOUR PORTFOLIO</div>
+<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>This is the shape of Portfolio & Insights. Sign in to populate it with your own accounts, positions, and watchlist — everything is private to your account.</div>
+</div>
+<button onClick={()=>setShowPortoppsLogin(true)} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</button>
+</div>
+)}
 {/* SUMMARY BAR */}
 <div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
 <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & INSIGHTS · SNAPSHOT</div>
@@ -2874,6 +2846,15 @@ return(<>
 <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${grandTotal.toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
 </div>
 <div style={{padding:"12px 16px"}}>
+{ACCOUNTS.length===0?(
+<div style={{padding:"28px 16px",textAlign:"center",color:"var(--text-muted)",fontSize:13,lineHeight:1.55}}>
+  {portfolioAuthed?(
+    <>No portfolio data yet. Import your holdings to populate this view.</>
+  ):(
+    <>Sign in to populate allocation, positions, and risk insights with your own data.</>
+  )}
+</div>
+):<>
 
 {/* ALLOCATION (wealth bars) */}
 <div style={subTitleStyle}>ALLOCATION</div>
@@ -3087,6 +3068,7 @@ return(<>
 )):<div style={{fontSize:12,color:"var(--text-muted)"}}>No cash in tactical accounts.</div>}
 </div>
 
+</>}
 </div>
 </div>
 
@@ -3110,7 +3092,7 @@ return(<>
 
 </div>
 );
-})()}</ProtectedRoute>}
+})()}
 
 {/* SCANNER */}
 {tab==="scanner"&&<Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)} onOpenTicker={(t)=>setTickerDetail(t)}/>}
