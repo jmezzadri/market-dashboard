@@ -15,6 +15,7 @@ import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
 import SubCompositeStrip from "./components/SubCompositeStrip";
+import WatchlistTable from "./components/WatchlistTable";
 import { supabase } from "./lib/supabase";
 import ReportBug from "./reportbug/ReportBug";
 import ErrorBoundary from "./ErrorBoundary";
@@ -1794,7 +1795,10 @@ Legacy score <strong style={{color:"var(--text)",fontFamily:"var(--font-mono)"}}
 })()}
 
 {/* RECENT NEWS — UW /api/news/headlines. Headlines may reference multiple
-    tickers; we filter UW-side via ?ticker= so the list is this-ticker-relevant. */}
+    tickers; we filter UW-side via ?ticker= so the list is this-ticker-relevant.
+    Each item shows headline, publisher's own description (if UW returns one),
+    source/date, and an outbound link to the article. We don't run an LLM
+    summary — kept the cost/latency at zero per Joe's preference. */}
 {news.length>0&&(
 <div style={panelStyle}>
 <div style={sectionLabel}>RECENT NEWS · {news.length} headline{news.length===1?"":"s"}</div>
@@ -1805,12 +1809,23 @@ Legacy score <strong style={{color:"var(--text)",fontFamily:"var(--font-mono)"}}
     const sentLabel=sent==="positive"||sent==="bullish"?"+":sent==="negative"||sent==="bearish"?"−":"·";
     const dt=n.created_at?new Date(n.created_at):null;
     const dateStr=dt?dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+    const url=n.url||"";
+    // If we have a URL, the headline becomes a link out (new tab, noopener).
+    // The whole card is NOT clickable — that would conflict with text-select
+    // and the ticker modal's other clickables.
+    const HeadlineEl=url
+      ?<a href={url} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",borderBottom:"1px dotted var(--text-muted)"}} onClick={e=>e.stopPropagation()}>{n.headline}</a>
+      :<>{n.headline}</>;
     return(
     <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"6px 8px",background:"var(--surface-3)",borderRadius:4,fontSize:12,lineHeight:1.4}}>
     <span style={{color:sentCol,fontWeight:800,fontSize:13,fontFamily:"var(--font-mono)",flexShrink:0,minWidth:10,textAlign:"center"}}>{sentLabel}</span>
     <div style={{flex:1,minWidth:0}}>
-    <div style={{color:"var(--text)",marginBottom:2}}>{n.headline}{n.is_major&&<span style={{marginLeft:6,fontSize:9,color:"var(--orange)",fontFamily:"var(--font-mono)",border:"1px solid var(--orange)",borderRadius:3,padding:"1px 4px",fontWeight:700,verticalAlign:"middle"}}>MAJOR</span>}</div>
-    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{n.source||"—"} · {dateStr}</div>
+    <div style={{color:"var(--text)",marginBottom:2}}>{HeadlineEl}{n.is_major&&<span style={{marginLeft:6,fontSize:9,color:"var(--orange)",fontFamily:"var(--font-mono)",border:"1px solid var(--orange)",borderRadius:3,padding:"1px 4px",fontWeight:700,verticalAlign:"middle"}}>MAJOR</span>}</div>
+    {n.description&&<div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5,marginBottom:3}}>{n.description}</div>}
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",gap:8,alignItems:"center"}}>
+      <span>{n.source||"—"} · {dateStr}</span>
+      {url&&<a href={url} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>Read full article →</a>}
+    </div>
     </div>
     </div>);
   })}
@@ -2807,6 +2822,40 @@ return(
         accent="var(--text-dim)"
         onClick={()=>navTo("readme")}
       />
+
+      {/* MARKET NEWS — non-ticker-specific. Public ZeroHedge feed today;
+          premium ZH (Joe-only via stored creds) is a follow-up. We render
+          the most recent 5 headlines inline; clicking a headline opens the
+          full article on the publisher's site. Tile spans 2 cols since
+          news entries are wider than a single KPI tile. */}
+      {(()=>{
+        const zhPub=scanData?.signals?.market_news?.zerohedge_public||[];
+        const items=zhPub.slice(0,5);
+        return(
+        <Tile
+          eyebrow="Market News"
+          title="Macro headlines"
+          sub={items.length>0?`${zhPub.length} ZeroHedge headline${zhPub.length===1?"":"s"} · click to read`:"No headlines available right now"}
+          accent="#bf5af2"
+          span={2}
+        >
+          {items.length>0&&(
+          <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:"var(--space-3)"}}>
+            {items.map((n,i)=>{
+              const dt=n.published?new Date(n.published):null;
+              const dateStr=dt?dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
+              return(
+              <div key={i} style={{padding:"8px 10px",background:"var(--surface-3)",borderRadius:"var(--radius-sm)",border:"1px solid var(--border-faint)"}}>
+                <div style={{fontSize:13,fontWeight:600,color:"var(--text)",lineHeight:1.4,marginBottom:4}}>
+                  <a href={n.url} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",borderBottom:"1px dotted var(--text-muted)"}} onClick={e=>e.stopPropagation()}>{n.headline}</a>
+                </div>
+                {n.description&&<div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.5,marginBottom:4}}>{n.description}</div>}
+                <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{n.source||"ZeroHedge"} · {dateStr}</div>
+              </div>);
+            })}
+          </div>)}
+        </Tile>);
+      })()}
     </div>
   </main>
 )}
@@ -3091,7 +3140,20 @@ return(<>
 )}
 {subPanel("#64748b","OTHER WATCHLIST",`${WATCHLIST.length} tracking`,
   <>
-    {WATCHLIST.map(w=>oppCard({keyId:`oth-${w.ticker}`,ticker:w.ticker,score:scoreByTicker[w.ticker],price:null,companyName:w.name,accentCol:"#64748b",held:heldTickers.has(w.ticker),theme:w.theme,source:"other"}))}
+    {WATCHLIST.length>0&&(
+      <WatchlistTable
+        rows={WATCHLIST}
+        signals={scanData?.signals}
+        screener={scanData?.signals?.screener||{}}
+        heldTickers={heldTickers}
+        onOpenTicker={(t)=>setTickerDetail(t)}
+      />
+    )}
+    {WATCHLIST.length===0&&(
+      <div style={{fontSize:12,color:"var(--text-muted)",fontFamily:"var(--font-mono)",padding:"6px 2px"}}>
+        No tickers on your watchlist. Add one below.
+      </div>
+    )}
     {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio}/>}
   </>
 )}
@@ -3165,18 +3227,22 @@ return(<>
 
 {/* NOTABLE — rules-driven; renders nothing if zero rules fire. Keep terse:
     one short sentence per line. Never pad with "you're well-diversified"
-    type observations — that's visual noise, not signal. Surface only
-    things Joe wouldn't already see from the positions list:
-      • Aggregate portfolio-beta outliers (>1.3 or <0.6)
-      • Single-stock concentrations >10% of total wealth (excl. broad
-        index funds, HY bond funds, crypto wrappers, cash)
-      • Cross-account single-ticker exposure (same name in >1 account)
-      • Deployable cash aggregate across tactical accounts
-      • Scanner REVIEW-zone holdings (score <20) — active sell-watch
-      • Material drawdowns on individual positions (≤-25% vs. cost)
-    News events (earnings, M&A, guidance) are planned but not wired yet. */}
+    type observations — that's visual noise, not signal. Signals on YOUR
+    tickers are prioritized over generic portfolio-beta/drawdown lines
+    because those are derivable from the positions list above; the
+    scanner composite and flow/insider/congress signals are not. Order:
+      Priority 1 — Signal changes on holdings (composite flips, conviction
+                   stacks, congress/insider buys on names you own)
+      Priority 2 — Cross-account exposure + risk flags (concentration,
+                   sector cluster, cross-account holds)
+      Priority 3 — Portfolio-level notes (deployable cash, beta outlier)
+      Priority 4 — Material drawdowns (severe only — ≤-35% or > $5K loss)
+    Rule: if fewer than 2 signal-based lines fire, we still show cross-
+    account & cash lines because those are inherently useful. We do NOT
+    force more drawdown lines just to fill space. */}
 {(()=>{
   const lines=[];
+  const signals=scanData?.signals;
 
   // Broad index / commodity-wrapper / cash tickers that aren't meaningful
   // "concentrations" even if >10% — they're diversified by construction.
@@ -3187,54 +3253,147 @@ return(<>
     "SPAXX","QACDS",                                  // money-market / cash
   ]);
 
-  // (1) Portfolio-beta outlier
-  if(portBeta>1.3){
-    lines.push({col:"#ff9f0a",body:`Portfolio beta ${portBeta.toFixed(2)} — elevated equity sensitivity`});
-  }else if(portBeta<0.6){
-    lines.push({col:"#ffd60a",body:`Portfolio beta ${portBeta.toFixed(2)} — defensive vs. market`});
-  }
+  // Tickers we'll evaluate for signal-based insights — deduplicated set of
+  // the user's in-scope tactical holdings. Broad-index funds and cash
+  // don't have composite signals, so exclude them early.
+  const signalTickers=new Set();
+  heldPositions.forEach(p=>{
+    if(!p.acctTactical)return;
+    if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return;
+    if(BROAD_INDEX_FUNDS.has(p.ticker))return;
+    if(NOT_A_CONCENTRATION.has(p.ticker))return;
+    signalTickers.add(p.ticker);
+  });
 
-  // (2) Single-stock concentrations >10% of total wealth
+  // ── PRIORITY 1 — Signal changes on holdings ──
+  // For each in-scope holding, compute the full composite and surface rules
+  // that give Joe info he can't derive from the positions list.
+  const signalLines=[];
+  signalTickers.forEach(t=>{
+    const composite=signals?computeSectionComposites(t,{signals}):null;
+    if(!composite)return;
+    const ov=composite.overall?.score;
+    const sections=composite.sections||{};
+
+    // (a) Strong bullish composite on a holding (>=30) — conviction to add
+    if(ov!=null&&ov>=30){
+      signalLines.push({col:"#30d158",body:`${t} composite +${ov} — strong bullish tilt across ${Object.values(sections).filter(s=>s?.score>0).length} of 6 categories`,pri:1});
+    }
+    // (b) Strong bearish composite on a holding (<=-25) — sell-watch
+    else if(ov!=null&&ov<=-25){
+      signalLines.push({col:"#ff453a",body:`${t} composite ${ov} — bearish read, review position`,pri:1});
+    }
+
+    // (c) Conviction stack — three or more sections strongly bullish
+    // (each score >= +30). Fires even if overall is moderate.
+    const strongBull=Object.entries(sections).filter(([,s])=>s?.score!=null&&s.score>=30).map(([k])=>k);
+    if(strongBull.length>=3){
+      const names=strongBull.map(k=>k.toUpperCase()).slice(0,4).join("/");
+      // Only add if we haven't already flagged this ticker with the overall rule
+      if(!signalLines.some(l=>l.body.startsWith(`${t} composite`))){
+        signalLines.push({col:"#30d158",body:`${t} bullish stack — ${names} all >+30`,pri:1});
+      }
+    }
+
+    // (d) Congress buy on a ticker you already hold
+    const congBuys=(signals?.congress_buys||[]).filter(r=>(r?.ticker||"").toUpperCase()===t);
+    if(congBuys.length>0){
+      const buyers=new Set(congBuys.map(r=>r.member||r.name)).size;
+      signalLines.push({col:"#0a84ff",body:`${t} — ${congBuys.length} recent congressional buy${congBuys.length===1?"":"s"} (${buyers} member${buyers===1?"":"s"})`,pri:1});
+    }
+
+    // (e) Insider buy on a ticker you already hold (material only — $50K+)
+    const insBuys=(signals?.insider_buys||[]).filter(r=>{
+      if((r?.ticker||"").toUpperCase()!==t)return false;
+      const val=Number(r.transaction_value||r.value||0);
+      return val>=50000;
+    });
+    if(insBuys.length>0){
+      signalLines.push({col:"#bf5af2",body:`${t} — insider open-market buy${insBuys.length===1?"":"s"} filed (${insBuys.length})`,pri:1});
+    }
+  });
+  // Cap signal lines at 6 to keep the panel scannable; sorted implicitly
+  // by heldPositions traversal order (largest positions first).
+  signalLines.slice(0,6).forEach(l=>lines.push(l));
+
+  // ── PRIORITY 2 — Cross-account exposure + risk flags ──
+
+  // Single-stock concentrations >10% of total wealth
   Object.entries(heldByTicker).forEach(([ticker,info])=>{
     if(NOT_A_CONCENTRATION.has(ticker))return;
     const pct=info.total/grandTotal*100;
     if(pct>=10){
-      lines.push({col:"#ff9f0a",body:`${ticker} is ${pct.toFixed(1)}% of total wealth — single-name concentration`});
+      lines.push({col:"#ff9f0a",body:`${ticker} is ${pct.toFixed(1)}% of total wealth — single-name concentration`,pri:2});
     }
   });
 
-  // (3) Cross-account single-ticker exposure (harder to spot from the list)
+  // Sector concentration — any non-broad single sector >30% of tactical
+  // book (excludes funds/cash that aren't sector-specific).
+  const sectorTot={};
+  let tacTot=0;
+  heldPositions.forEach(p=>{
+    if(!p.acctTactical)return;
+    if(BROAD_INDEX_FUNDS.has(p.ticker))return;
+    if(p.sector==="Cash")return;
+    if(!p.sector||p.sector==="—")return;
+    sectorTot[p.sector]=(sectorTot[p.sector]||0)+p.value;
+    tacTot+=p.value;
+  });
+  if(tacTot>0){
+    Object.entries(sectorTot).forEach(([sector,val])=>{
+      const pct=val/tacTot*100;
+      if(pct>=30){
+        lines.push({col:"#ff9f0a",body:`${sector} sector is ${pct.toFixed(0)}% of tactical book — sector cluster`,pri:2});
+      }
+    });
+  }
+
+  // Cross-account single-ticker exposure (harder to spot from the list)
   Object.entries(heldByTicker).forEach(([ticker,info])=>{
     if(NOT_A_CONCENTRATION.has(ticker))return;
     if(info.accounts.length>1){
-      lines.push({col:"#64748b",body:`${ticker} held in ${info.accounts.length} accounts — ${fmt$K(info.total)} total`});
+      lines.push({col:"#64748b",body:`${ticker} held in ${info.accounts.length} accounts — ${fmt$K(info.total)} total`,pri:2});
     }
   });
 
-  // (4) Deployable cash (tactical accounts only)
-  if(totalDeployable>5000){
-    lines.push({col:"#30d158",body:`${fmt$K(totalDeployable)} deployable cash across ${cashByAcct.length} tactical account${cashByAcct.length===1?"":"s"}`});
-  }
-
-  // (5) Scanner REVIEW-zone (score <20) — only tactical, in-scope holdings
+  // Scanner REVIEW-zone (score <20) — only tactical, in-scope holdings
   heldPositions.forEach(p=>{
     if(!p.acctTactical)return;
     if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return;
     if(BROAD_INDEX_FUNDS.has(p.ticker))return;
     const sc=scoreByTicker[p.ticker];
     if(sc!=null&&sc<20){
-      lines.push({col:"#ff453a",body:`${p.ticker} scanner score ${sc} — sell-watch zone`});
+      lines.push({col:"#ff453a",body:`${p.ticker} scanner score ${sc} — sell-watch zone`,pri:2});
     }
   });
 
-  // (6) Material individual-position drawdowns (≤-25% vs. cost)
+  // ── PRIORITY 3 — Portfolio-level notes ──
+
+  // Deployable cash (tactical accounts only)
+  if(totalDeployable>5000){
+    lines.push({col:"#30d158",body:`${fmt$K(totalDeployable)} deployable cash across ${cashByAcct.length} tactical account${cashByAcct.length===1?"":"s"}`,pri:3});
+  }
+
+  // Portfolio-beta outlier — only surface at extremes so it's not constant noise
+  if(portBeta>1.3){
+    lines.push({col:"#ff9f0a",body:`Portfolio beta ${portBeta.toFixed(2)} — elevated equity sensitivity`,pri:3});
+  }else if(portBeta<0.6){
+    lines.push({col:"#ffd60a",body:`Portfolio beta ${portBeta.toFixed(2)} — defensive vs. market`,pri:3});
+  }
+
+  // ── PRIORITY 4 — Material drawdowns (severe only) ──
+  // Previously fired at -25% on any position — created noise. Now only
+  // fires when drawdown is ≤-35% OR dollar loss exceeds $5K. Cap at 2.
+  const drawdownLines=[];
   heldPositions.forEach(p=>{
     if(!p.avgCost||p.sector==="Cash")return;
     const pnlPct=(p.price/p.avgCost-1)*100;
-    if(pnlPct<=-25){
-      lines.push({col:"#ff453a",body:`${p.ticker} ${pnlPct.toFixed(0)}% vs. cost (${p.acctLabel})`});
+    const pnl$=p.value-p.avgCost*p.shares;
+    if(pnlPct<=-35||pnl$<=-5000){
+      drawdownLines.push({col:"#ff453a",body:`${p.ticker} ${pnlPct.toFixed(0)}% vs. cost (${fmt$K(pnl$)} · ${p.acctLabel})`,pri:4});
     }
   });
+  drawdownLines.slice(0,2).forEach(l=>lines.push(l));
 
   if(lines.length===0)return null;
   return(
