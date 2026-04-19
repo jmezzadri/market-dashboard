@@ -641,6 +641,18 @@ def get_news_for_ticker(
     for row in rows:
         if not isinstance(row, dict):
             continue
+        # UW's /api/news/headlines returns a `meta` block with a short
+        # description and a `url` field pointing at the source article.
+        # We surface both so the frontend can render a 1–2 sentence blurb
+        # and an outbound link instead of just the headline.
+        meta = row.get("meta") if isinstance(row.get("meta"), dict) else {}
+        description = (
+            row.get("description")
+            or meta.get("description")
+            or meta.get("summary")
+            or ""
+        )
+        url = row.get("url") or meta.get("url") or meta.get("link") or ""
         out.append({
             "headline": row.get("headline"),
             "source": row.get("source"),
@@ -649,6 +661,8 @@ def get_news_for_ticker(
             "created_at": row.get("created_at"),
             "tickers": row.get("tickers") or [],
             "tags": row.get("tags") or [],
+            "description": description,
+            "url": url,
         })
     return out
 

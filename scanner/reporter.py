@@ -1591,6 +1591,13 @@ def _write_json_data(
                 t: v for t, v in (signals.get("_analyst_ratings") or {}).items()
                 if t in relevant_tickers and v
             }),
+            # Market-wide news (non-ticker-specific). Only `*_public` entries
+            # ship in the public artifact — premium content stays out by
+            # policy. Frontend reads signals.market_news.* to render the
+            # Market News section on the dashboard.
+            "market_news": _safe({
+                "zerohedge_public": (signals.get("_market_news") or {}).get("zerohedge_public") or [],
+            }),
         },
         "config": {
             "score_buy_alert": SCORE_BUY_ALERT,

@@ -25,6 +25,7 @@ from config import (
     WIDE_UNIVERSE_ENABLED,
 )
 from scanner import notifier, reporter, schwab, unusual_whales as uw
+from scanner.market_news import get_market_news
 from scanner.price_history import clear_ohlcv_cache, clear_price_changes_cache
 from scanner.technicals import clear_tech_cache, get_technicals
 from scanner.universe_builder import build_wide_universe, direction_for_ticker
@@ -416,6 +417,17 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         *(t.upper() for t in watchlist_tickers),
         *all_user_watchlist_tickers,
     }
+    # Market-wide news (non-ticker-specific). Public sources go into the shared
+    # artifact for every dashboard user; premium sources are stubbed today and
+    # will be Joe-only via user-scoped Supabase row when implemented.
+    try:
+        signals["_market_news"] = get_market_news()
+        _zh_pub = len(signals["_market_news"].get("zerohedge_public") or [])
+        logger.info("Market news: ZH public=%d", _zh_pub)
+    except Exception as _e:
+        logger.warning("market news fetch failed: %s", _e)
+        signals["_market_news"] = {}
+
     signals["_info"] = {}
     signals["_news"] = {}
     signals["_analyst_ratings"] = {}
