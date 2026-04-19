@@ -15,6 +15,7 @@ import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
 import { supabase } from "./lib/supabase";
 import ReportBug from "./reportbug/ReportBug";
+import ErrorBoundary from "./ErrorBoundary";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
@@ -3338,9 +3339,13 @@ return(<>
 {/* Per-ticker detail modal — opens from any ticker-level 'Details' click in
     portopps (opportunity cards, position cards). Escape hatch at the bottom
     of the modal navigates to the Scanner tab with that ticker focused. */}
-{tickerDetail&&<TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS}
-  watchlistRows={userWatchlistRows} portfolioAuthed={portfolioAuthed} refetchPortfolio={refetchPortfolio}
-  onClose={()=>setTickerDetail(null)}/>}
+{tickerDetail&&(
+  <ErrorBoundary label={`${tickerDetail} detail`} onDismiss={()=>setTickerDetail(null)}>
+    <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS}
+      watchlistRows={userWatchlistRows} portfolioAuthed={portfolioAuthed} refetchPortfolio={refetchPortfolio}
+      onClose={()=>setTickerDetail(null)}/>
+  </ErrorBoundary>
+)}
 
 {/* FAQ */}
 {tab==="readme"&&(
