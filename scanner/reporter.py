@@ -1477,8 +1477,22 @@ def _write_json_data(
     portfolio_covered_calls: list[dict[str, Any]],
 ) -> None:
     """
-    Write reports/latest_scan_data.json — the data feed consumed by the
-    interactive dashboard on Vercel. Excludes internal cache keys (_*).
+    Write reports/latest_scan_data.json — the PUBLIC data feed consumed by the
+    Vercel dashboard. Identical for every visitor, signed in or out.
+
+    Contains ONLY:
+      - Buy / Watch tier picks scored from public signals (congress, insider,
+        flow, dark pool)
+      - Per-ticker scored data (score, screener row, technicals w/ composite,
+        modal info/news/analyst ratings) for the scannable universe
+
+    Does NOT contain:
+      - Joe's portfolio positions or watchlist (these live in Supabase per-user
+        and are overlaid by the frontend via useUserPortfolio)
+      - Any `_personal_*` keys, which stay in-process for the email renderer
+
+    Anyone who fetches this JSON from the public repo sees only market signal
+    data — not any user's book.
     """
     import json as _json
     from zoneinfo import ZoneInfo as _ZI
@@ -1486,25 +1500,33 @@ def _write_json_data(
     et = _ZI("America/New_York")
     now = datetime.now(et)
 
-    # Screener is a dict keyed by ticker — include only tickers in play
-    watchlist_entries = signals.get("_watchlist_entries") or []
-    watchlist_tickers = {
-        (w.get("ticker") or "").upper() for w in watchlist_entries if w.get("ticker")
+    # Public-universe tickers — anything that ended up scored from the signal
+    # sources. This is the only set of tickers allowed into the public artifact.
+    # Personal/watchlist tickers that were force-included for the email renderer
+    # are intentionally excluded here.
+    filtered_universe = {
+        (t or "").upper() for t in (signals.get("_filtered_tickers") or [])
     }
     relevant_tickers = (
         {(o.get("ticker") or "").upper() for o in buy_opportunities}
         | {(w.get("ticker") or "").upper() for w in watch_items}
-        | {(p.get("ticker") or "").upper() for p in portfolio_positions}
-        | watchlist_tickers
+        | filtered_universe
     )
+
     screener_slim = {
         t: v for t, v in (signals.get("screener") or {}).items()
         if t in relevant_tickers
     }
 
-    # Score by ticker — restricted to relevant tickers so the JSON stays
-    # compact. The dashboard reads score_by_ticker[ticker] for each held +
-    # watchlist position; everything else is irrelevant.
+    # Technicals keyed by ticker — also restricted to the public universe. This
+    # is where the composite score rides along with the raw indicator data.
+    technicals_slim = {
+        t: v for t, v in (signals.get("_technicals") or {}).items()
+        if t in relevant_tickers
+    }
+
+    # Score by ticker — restricted to public-universe tickers. The old
+    # artifact leaked scores for Joe's watchlist/portfolio here; stripped.
     score_by_ticker_full = signals.get("_score_by_ticker") or {}
     score_by_ticker_slim = {
         t: s for t, s in score_by_ticker_full.items() if t in relevant_tickers
@@ -1516,19 +1538,16 @@ def _write_json_data(
         "date_label": date_str,
         "buy_opportunities": _safe(buy_opportunities),
         "watch_items": _safe(watch_items),
-        "sell_alerts": _safe(sell_alerts),
-        "portfolio_positions": _safe(portfolio_positions),
-        "portfolio_covered_calls": _safe(portfolio_covered_calls),
-        # Manual watchlist — names Joe is tracking but doesn't (yet) own. The
-        # dashboard renders these in the OTHER — WATCH sub-section. Each entry
-        # carries name/theme; live intel (score, screener row, technicals)
-        # is looked up per-ticker from score_by_ticker / signals.screener /
-        # signals.technicals just like for held positions.
-        "watchlist": _safe(watchlist_entries),
-        # Full score map preserved for backwards compat (dashboard still reads
-        # score_by_ticker[ticker]); but the slimmed version is what's
-        # canonically meaningful for the consolidated tile.
-        "score_by_ticker": _safe(score_by_ticker_full),
+        # Sell alerts and portfolio_covered_calls are PERSONAL data — they
+        # reference Joe's actual positions. These stay in the email output
+        # only; the public artifact gets empty lists so the dashboard's
+        # sell_alerts surface renders a clean "sign in to see yours" state.
+        "sell_alerts": [],
+        "portfolio_positions": [],
+        "portfolio_covered_calls": [],
+        "watchlist": [],
+        # Slimmed score map so the dashboard only sees public-universe scores.
+        "score_by_ticker": _safe(score_by_ticker_slim),
         "signals": {
             "congress_buys": _safe(signals.get("congress_buys") or []),
             "congress_sells": _safe(signals.get("congress_sells") or []),
@@ -1538,7 +1557,7 @@ def _write_json_data(
             "put_flow_alerts": _safe(signals.get("put_flow_alerts") or []),
             "darkpool": _safe(signals.get("darkpool") or []),
             "screener": _safe(screener_slim),
-            "technicals": _safe(signals.get("_technicals") or {}),
+            "technicals": _safe(technicals_slim),
             # Modal enrichment — keyed by ticker, slimmed to relevant_tickers.
             # Missing/empty keys are fine; dashboard renders gracefully.
             "info": _safe({
@@ -1569,7 +1588,7 @@ def _write_json_data(
 
     json_path = REPORTS_DIR / "latest_scan_data.json"
     json_path.write_text(_json.dumps(payload, indent=2), encoding="utf-8")
-    logger.info("Wrote %s", json_path)
+    logger.info("Wrote %s (public artifact — no user data)", json_path)
 
 
 def generate_report(

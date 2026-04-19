@@ -48,38 +48,80 @@ def _parse_float(val: Any) -> float | None:
         return None
 
 
+# Tickers to exclude from the scored universe. Index/ETF products show up heavily
+# in options flow and dark pool prints but they're not scannable names — they have
+# no meaningful per-name fundamentals, and their options flow reflects macro
+# positioning rather than ticker-specific intelligence. Dropping them cleans up
+# the Flow tab and stops them from bloating the technicals universe.
+_ETF_BLACKLIST: frozenset[str] = frozenset({
+    # Broad market
+    "SPY", "SPX", "SPXW", "SPXL", "SPXU", "SSO", "SDS",
+    "QQQ", "QQQM", "TQQQ", "SQQQ", "PSQ",
+    "IWM", "TNA", "TZA",
+    "DIA", "UDOW", "SDOW",
+    "VOO", "VTI", "VEA", "VWO", "VXUS", "IVV",
+    # Sector / thematic ETFs
+    "XLF", "XLK", "XLE", "XLV", "XLI", "XLY", "XLP", "XLU", "XLB", "XLRE", "XLC",
+    "SMH", "SOXL", "SOXS", "SOXX",
+    "XBI", "LABU", "LABD",
+    "KRE", "KBE", "FAS", "FAZ",
+    "XOP", "OIH",
+    # Bonds / rates
+    "TLT", "TBT", "TMF", "TMV", "IEF", "SHY", "HYG", "JNK", "LQD", "AGG", "BND",
+    "TLH", "TIP", "BIL", "GOVT", "SGOV", "MUB", "EMB",
+    # Volatility
+    "VXX", "UVXY", "VIXY", "VIX", "SVXY",
+    # Commodities
+    "GLD", "IAU", "SLV", "GDX", "GDXJ", "NUGT", "DUST",
+    "USO", "UCO", "SCO", "UNG", "BOIL", "KOLD",
+    "DBA", "DBC",
+    # International / EM
+    "EEM", "EFA", "FXI", "MCHI", "YINN", "YANG", "INDA", "EWJ", "EWZ", "KWEB",
+    # Crypto / misc derivatives
+    "BITO", "GBTC", "IBIT", "ETHA",
+    # Ticker anomalies from UW (non-equities that sneak in)
+    "STATE",
+})
+
+
 def extract_all_tickers(signals: dict[str, Any]) -> list[str]:
-    """Union of tickers appearing in any signal source."""
+    """
+    Union of tickers appearing in any *scannable* signal source.
+
+    Intentionally excludes:
+      - UW bulk screener (it's a day-curated promotion list, not a signal)
+      - insider_buys_90d (long-lookback — for reversal detection, not universe)
+      - index/ETF products (see _ETF_BLACKLIST — they're macro tape, not tickers)
+
+    Sources: Congress trades, insider buys/sales, options flow alerts, and dark
+    pool prints. This is the public scannable universe — the same data any
+    visitor to the site sees whether signed in or not.
+    """
     s: set[str] = set()
+
+    def _add(t: Any) -> None:
+        if not t:
+            return
+        sym = str(t).upper().strip()
+        if not sym or sym in _ETF_BLACKLIST:
+            return
+        s.add(sym)
+
     for row in signals.get("congress_buys") or []:
-        t = row.get("ticker")
-        if t:
-            s.add(str(t).upper())
+        _add(row.get("ticker"))
     for row in signals.get("congress_sells") or []:
-        t = row.get("ticker")
-        if t:
-            s.add(str(t).upper())
+        _add(row.get("ticker"))
     for row in signals.get("insider_buys") or []:
-        t = row.get("ticker")
-        if t:
-            s.add(str(t).upper())
-    for row in signals.get("insider_buys_90d") or []:
-        t = row.get("ticker")
-        if t:
-            s.add(str(t).upper())
+        _add(row.get("ticker"))
+    for row in signals.get("insider_sales") or []:
+        _add(row.get("ticker"))
     for row in signals.get("flow_alerts") or []:
-        t = row.get("ticker")
-        if t:
-            s.add(str(t).upper())
+        _add(row.get("ticker"))
+    for row in signals.get("put_flow_alerts") or []:
+        _add(row.get("ticker"))
     for row in signals.get("darkpool") or []:
-        t = row.get("ticker")
-        if t:
-            s.add(str(t).upper())
-    sc = signals.get("screener") or {}
-    if isinstance(sc, dict):
-        for k in sc:
-            if k:
-                s.add(str(k).upper())
+        _add(row.get("ticker"))
+
     return sorted(s)
 
 
@@ -175,11 +217,12 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         sc = signals.get("screener") or {}
         print(f"  screener keys: {len(sc) if isinstance(sc, dict) else 0}")
 
-    # Load watchlist + held-position tickers — these should ALWAYS be in the
-    # scored universe regardless of whether they show up in the UW bulk signal
-    # sources for the day. Watchlist drives the dashboard's "OTHER — WATCH"
-    # section; held positions drive "Today's Actions" + portfolio-position
-    # screener data.
+    # Load Joe's personal book — used for the email (sell alerts, position
+    # enrichment) and for his local technicals compute, but NOT as a driver
+    # of the public scanned universe. This keeps the public artifact free of
+    # any user data and makes signed-out/signed-in identical from a data-
+    # provenance standpoint (see TRACK_B_MULTIUSER_SCOPE.md — per-user state
+    # lives in Supabase on the dashboard side).
     watchlist_entries = load_watchlist()
     watchlist_tickers = [w["ticker"] for w in watchlist_entries if w.get("ticker")]
     portfolio_positions_for_universe = load_portfolio_positions()
@@ -188,28 +231,22 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         for p in portfolio_positions_for_universe
         if (p.get("ticker") or "").strip()
     ]
-    always_include = list({*watchlist_tickers, *portfolio_tickers_for_universe})
+    personal_tickers = list({*watchlist_tickers, *portfolio_tickers_for_universe})
 
+    # Public scannable universe — union of congress + insider + flow + darkpool,
+    # filtered by price band / market cap. No personal tickers mixed in.
     all_tickers = extract_all_tickers(signals)
-    # Union the always-include set into the universe BEFORE filtering, so the
-    # price-band / market-cap filter still applies (no point sending a ticker
-    # to scoring if its price is unfetchable).
-    all_tickers = sorted({*all_tickers, *always_include})
     filtered, rejected = filter_tickers_with_reasons(all_tickers, signals)
-    # If a watchlist or portfolio ticker got filtered out by price band /
-    # mcap, force-include it anyway — Joe wants intel on these regardless of
-    # whether they pass the equity-screen gates.
-    forced = [t for t in always_include if t not in filtered]
-    if forced:
-        logger.info(
-            "Forcing %d watchlist/portfolio ticker(s) past price/mcap filter: %s",
-            len(forced), ", ".join(forced),
-        )
-        filtered = sorted({*filtered, *forced})
     signals["_filtered_tickers"] = filtered
     signals["_stocks_scanned_count"] = len(filtered)
-    signals["_watchlist_tickers"] = watchlist_tickers
-    signals["_watchlist_entries"] = watchlist_entries
+
+    # Personal-tickers metadata kept on `signals` ONLY for the email + report
+    # renderers (which run in-process and need these for sell alerts / "your
+    # positions today" sections). The reporter's JSON-artifact writer MUST strip
+    # these keys before shipping — see scanner/reporter.py::_write_scan_data_json.
+    signals["_personal_tickers"] = personal_tickers
+    signals["_personal_watchlist_entries"] = watchlist_entries
+    signals["_personal_portfolio_positions"] = portfolio_positions_for_universe
 
     if debug:
         print(f"\n--- DEBUG: universe ---")
@@ -229,15 +266,27 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     all_scores.sort(key=lambda x: x[1], reverse=True)
     signals["_score_by_ticker"] = dict(all_scores)
 
-    # Compute technicals for scanned tickers AND portfolio positions AND watchlist
+    # Warm the SPY OHLCV cache once up front so per-ticker composite calls
+    # (which subtract SPY returns for relative-strength) don't each pay a
+    # fetch on their first call. Cheap — one yfinance call, cached thereafter.
+    try:
+        from scanner.price_history import get_ohlcv as _warm_ohlcv
+        _warm_ohlcv("SPY")
+    except Exception as _e:
+        logger.debug("SPY warm-cache failed (composite RS will degrade gracefully): %s", _e)
+
+    # Compute technicals for the public universe AND Joe's personal tickers.
+    # The personal-ticker technicals are used for the email (sell alerts, "your
+    # positions today"); they get filtered OUT of the public artifact in
+    # reporter.py::_write_scan_data_json so no user data ships.
     portfolio_positions_early = portfolio_positions_for_universe
     portfolio_tickers = portfolio_tickers_for_universe
     all_tech_tickers = list({*filtered, *portfolio_tickers, *watchlist_tickers})
     signals["_technicals"] = {t: get_technicals(t) for t in all_tech_tickers}
 
     # Ensure portfolio + watchlist tickers have screener data even if absent
-    # from the bulk UW screener payload. This is what fills in 1W/1M/YTD perf,
-    # IV30d, market cap, etc. for cards on the dashboard.
+    # from the bulk UW screener payload. Email/report-only — the public artifact
+    # strips these rows back to the scannable universe.
     screener = signals.get("screener") or {}
     for sym in {*portfolio_tickers, *watchlist_tickers}:
         if sym not in screener:
