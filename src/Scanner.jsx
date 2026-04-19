@@ -986,16 +986,23 @@ function CompositeBadge({ composite }) {
 // in, without that data ever touching the public latest_scan_data.json.
 function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = false }) {
   const { buy_opportunities = [], watch_items = [], signals } = data;
-  // Dedupe public-first, then user — preserves the "market signals first,
-  // your book after" ordering if we ever want to segment rows visually.
-  const allTickers = [
-    ...buy_opportunities.map(o => o.ticker),
-    ...watch_items.map(w => w.ticker),
-    ...userTickers,
-  ].filter((t, i, a) => a.indexOf(t) === i);
-
   const screener   = signals?.screener    || {};
   const technicals = signals?.technicals  || {};
+
+  // Public universe = every ticker that has technical data computed (the
+  // full scannable universe, ~150-200 names), unioned with buy/watch picks
+  // (in case those ever live outside the technicals dict). User-book tickers
+  // get layered on top so a signed-in user sees their holdings even if those
+  // names didn't make the public scan universe.
+  const publicUniverse = new Set([
+    ...Object.keys(technicals),
+    ...buy_opportunities.map(o => o.ticker),
+    ...watch_items.map(w => w.ticker),
+  ]);
+  const allTickers = [
+    ...publicUniverse,
+    ...userTickers.filter(t => !publicUniverse.has(t)),
+  ];
 
   if (!allTickers.length) return (
     <div style={{ color: C.dim, textAlign: "center", padding: 40, fontFamily: "monospace", fontSize: 13 }}>No tickers to display.</div>
@@ -1014,10 +1021,7 @@ function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = fals
 
   // Build a lookup so we can badge rows that came from the user's book.
   const userSet = new Set(userTickers);
-  const publicSet = new Set([
-    ...buy_opportunities.map(o => o.ticker),
-    ...watch_items.map(w => w.ticker),
-  ]);
+  const publicSet = publicUniverse;
 
   return (
     <div>
@@ -1057,7 +1061,10 @@ function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = fals
           const pytd  = tech.ytd_change   != null ? Number(tech.ytd_change)   : null;
           const rsi   = tech.rsi_14       != null ? Number(tech.rsi_14)       : null;
           const rsiCol = rsi == null ? C.dim : rsi > 70 ? C.red : rsi < 30 ? C.green : C.muted;
-          const comp  = tech.composite || null;
+          // Composite object (score + label + regime) emitted by technicals.py.
+          // Artifacts written before the composite rollout show "—" here until
+          // the next scheduled scan refreshes the data.
+          const comp = tech.composite || null;
           // Badge to mark user-only rows (portfolio or watchlist, not also in public)
           const inUserOnly = userSet.has(t) && !publicSet.has(t);
           const tickerCell = (
@@ -1312,10 +1319,12 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   const putFlowN     = data.signals?.put_flow_alerts?.length || 0;
   const flowN        = callFlowN + putFlowN;
   const screenerKeys = Object.keys(data.signals?.screener || {});
-  // Public tech count is the union of scored buy+watch tickers from the public
-  // universe. User tickers get layered on top when signed in so the landing
-  // tile reads "N public · M yours" and matches what the table actually shows.
+  // Public tech count is the full scannable universe — every ticker that has
+  // technical data computed, plus any buy/watch picks that happened to live
+  // outside that dict. User tickers get layered on top when signed in so the
+  // landing tile reads "N public · M yours" and matches what the table shows.
   const techPublicSet = new Set([
+    ...Object.keys(data.signals?.technicals || {}),
     ...(data.buy_opportunities || []).map(o => o.ticker),
     ...(data.watch_items || []).map(w => w.ticker),
   ]);
