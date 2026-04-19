@@ -8,11 +8,7 @@ import { InfoTip, HeadWithTip } from "./InfoTip";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
-import {
-  computeSectionComposites,
-  colorForDirection,
-  SECTION_ORDER,
-} from "./ticker/sectionComposites";
+import SubCompositeStrip from "./components/SubCompositeStrip";
 
 const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
@@ -249,83 +245,9 @@ function SignalCol({ title, dot, label, sub, detail }) {
 }
 
 // ── Rich ticker card ──────────────────────────────────────────────────────────
-// Compact six-bar subcomposite strip — one slim tile per section (Technicals,
-// Options, Insider, Congress, Analyst, Dark Pool) showing the directional
-// score for that section. Mirrors the modal's CompositePill layout but much
-// denser, so it fits inline on Trading Opportunities / Portfolio Insights
-// cards without clicking through to the detail modal. `signals` is the same
-// object passed to RichCard; we wrap it in a { signals } scanData shim so
-// computeSectionComposites can consume it.
-function SubCompositeStrip({ ticker, signals }) {
-  const composite = computeSectionComposites(ticker, { signals });
-  if (!composite) return null;
-  const overall = composite.overall || {};
-  const overallCol = colorForDirection(overall.direction);
-
-  const labelShort = {
-    technicals: "TECH",
-    options:    "OPT",
-    insider:    "INS",
-    congress:   "CON",
-    analyst:    "ANL",
-    darkpool:   "DP",
-  };
-
-  return (
-    <div style={{
-      display: "flex", gap: 4, padding: "8px 10px",
-      background: "var(--surface-2)", borderTop: `1px solid ${C.border}`,
-      alignItems: "stretch",
-    }}>
-      {SECTION_ORDER.map(key => {
-        const sec = composite.sections[key];
-        const col = colorForDirection(sec.direction);
-        const hasScore = sec.score != null;
-        const valStr = !hasScore ? "—" : (sec.score >= 0 ? "+" : "") + sec.score;
-        return (
-          <div key={key} title={`${sec.name}: ${sec.label} · weight ${sec.weight}%`} style={{
-            flex: "1 1 0", minWidth: 0,
-            background: "var(--surface-3)",
-            border: `1px solid ${hasScore && sec.score !== 0 ? col + "55" : "var(--border-faint)"}`,
-            borderRadius: 4, padding: "4px 6px",
-            display: "flex", flexDirection: "column", justifyContent: "center",
-            lineHeight: 1.1,
-          }}>
-            <div style={{
-              fontSize: 8, color: "var(--text-muted)",
-              fontFamily: "monospace", letterSpacing: "0.06em", fontWeight: 700,
-            }}>{labelShort[key]}</div>
-            <div style={{
-              fontSize: 13, fontWeight: 800, fontFamily: "monospace",
-              color: hasScore ? col : "var(--text-dim)", marginTop: 1,
-            }}>{valStr}</div>
-          </div>
-        );
-      })}
-      {/* Overall weighted-composite chip */}
-      <div title={`Weighted overall: ${overall.label || "no data"}`} style={{
-        flex: "0 0 auto", minWidth: 54,
-        background: overallCol + "15",
-        border: `1px solid ${overall.score != null && overall.score !== 0 ? overallCol + "55" : "var(--border-faint)"}`,
-        borderRadius: 4, padding: "4px 7px",
-        display: "flex", flexDirection: "column", justifyContent: "center",
-        lineHeight: 1.1,
-      }}>
-        <div style={{
-          fontSize: 8, color: "var(--text-muted)",
-          fontFamily: "monospace", letterSpacing: "0.06em", fontWeight: 700,
-        }}>OVERALL</div>
-        <div style={{
-          fontSize: 13, fontWeight: 800, fontFamily: "monospace",
-          color: overall.score != null ? overallCol : "var(--text-dim)", marginTop: 1,
-        }}>
-          {overall.score == null ? "—" : (overall.score >= 0 ? "+" : "") + overall.score}
-        </div>
-      </div>
-    </div>
-  );
-}
-
+// SubCompositeStrip (6-bar TECH/OPT/INS/CON/ANL/DP + OVERALL chip) is imported
+// from ./components/SubCompositeStrip so portopps cards in App.jsx can reuse
+// the exact same component — extracted 2026-04-19.
 function RichCard({ ticker, price, score, tier, companyName, cc, ccNote, perfRow, ptsl, avgCost, signals, isPortfolio, highlight }) {
   const sc = (signals?.screener || {})[ticker] || {};
   const cBuys  = signals?.congress_buys   || [];

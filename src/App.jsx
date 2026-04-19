@@ -13,6 +13,7 @@ import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
+import SubCompositeStrip from "./components/SubCompositeStrip";
 import { supabase } from "./lib/supabase";
 import ReportBug from "./reportbug/ReportBug";
 import ErrorBoundary from "./ErrorBoundary";
@@ -2559,7 +2560,9 @@ const backLabel=(()=>{
 const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
-const [expandedActionKey,setExpandedActionKey]=useState(null);
+// (expandedActionKey removed 2026-04-19: position cards now open the
+// TickerDetailModal directly instead of inline-expanding. See oppCard +
+// heldPositions render below.)
 const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [tickerDetail,setTickerDetail]=useState(null);
 const [scanData,setScanData]=useState(null);
@@ -3022,7 +3025,8 @@ return(
 const oppCard=(opts)=>{
   const {keyId,ticker,score,price,companyName,accentCol,held,theme,sector}=opts;
   return(
-  <div key={keyId} style={{...cardStyle,cursor:"pointer"}} onClick={()=>setTickerDetail(ticker)}>
+  <div key={keyId} style={{...cardStyle,cursor:"pointer",padding:0,overflow:"hidden"}} onClick={()=>setTickerDetail(ticker)}>
+  <div style={{padding:"8px 10px"}}>
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
   <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
   <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{ticker}</span>
@@ -3037,6 +3041,11 @@ const oppCard=(opts)=>{
   <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>
   {price?fmt$Full(price):"—"} {theme?`· ${theme}`:""} {sector?`· ${sector}`:""}
   </div>
+  </div>
+  {/* 6-bar sub-composite strip — TECH/OPT/INS/CON/ANL/DP + OVERALL chip.
+      Same component used on the Scanner page RichCard so the two pages
+      agree on signal direction at a glance. */}
+  <SubCompositeStrip ticker={ticker} signals={scanData?.signals}/>
   </div>
   );
 };
@@ -3228,23 +3237,16 @@ return(<>
 {heldPositions.map(p=>{
   const wealthPct=(p.value/grandTotal*100).toFixed(1);
   const cardKey=`pos-${p.acctId}-${p.ticker}`;
-  const isExpanded=expandedActionKey===cardKey;
   const pnlPct=p.avgCost?((p.price/p.avgCost-1)*100):null;
   const pnl$=p.avgCost?(p.value-p.avgCost*p.shares):null;
   const pnlCol=pnlPct==null?"var(--text-muted)":pnlPct>=0?"#30d158":"#ff453a";
-  const screenerRow=scanData?.signals?.screener?.[p.ticker];
-  const techRow=scanData?.signals?.technicals?.[p.ticker];
-  const scannerScore=scoreByTicker[p.ticker];
-  const ivr=screenerRow?.iv30d!=null?Number(screenerRow.iv30d)*100:null;
-  // Perf lives in technicals (not screener — screener rows are options-flow data).
-  // Scanner expresses these as fractions (0.0692 = +6.92%), so ×100 once.
-  const wk1=techRow?.week_change!=null?Number(techRow.week_change)*100:null;
-  const m1=techRow?.month_change!=null?Number(techRow.month_change)*100:null;
-  const ytd=techRow?.ytd_change!=null?Number(techRow.ytd_change)*100:null;
-  const rsi=techRow?.rsi_14;
   const otherAccts=heldByTicker[p.ticker]?.accounts?.filter(a=>a.acctId!==p.acctId)||[];
+  // Inline strip shows per-section signal direction; the detail modal (opened
+  // on card click) shows the full composite breakdown + account context.
+  const showStrip=!SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector)&&!BROAD_INDEX_FUNDS.has(p.ticker)&&p.acctTactical;
   return(
-  <div key={cardKey} style={{...cardStyle,cursor:"pointer"}} onClick={()=>setExpandedActionKey(isExpanded?null:cardKey)}>
+  <div key={cardKey} style={{...cardStyle,cursor:"pointer",padding:0,overflow:"hidden"}} onClick={()=>setTickerDetail(p.ticker)}>
+  <div style={{padding:"10px 12px"}}>
   <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4,gap:8}}>
   <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
   <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{p.ticker}</span>
@@ -3253,10 +3255,10 @@ return(<>
   <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
   <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)",fontWeight:700}}>{fmt$K(p.value)}</span>
   <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{wealthPct}%</span>
-  <span style={{fontSize:11,color:"var(--text-dim)"}}>{isExpanded?"▾":"▸"}</span>
+  <span style={{fontSize:11,color:"var(--text-dim)"}}>→</span>
   </div>
   </div>
-  <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:11,fontFamily:"var(--font-mono)",marginBottom:p.analysis&&isExpanded?6:0}}>
+  <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:11,fontFamily:"var(--font-mono)",marginBottom:(p.analysis||otherAccts.length>0)?6:0}}>
   <span style={{color:"var(--text-muted)"}}>{fmt$Full(p.price)}</span>
   {pnl$!=null&&<span style={{color:pnlCol,fontWeight:600}}>{pnl$>=0?"+":""}{fmt$Full(pnl$)}</span>}
   {pnlPct!=null&&<span style={{color:pnlCol,fontWeight:600}}>{pnlPct>=0?"+":""}{pnlPct.toFixed(1)}%</span>}
@@ -3264,33 +3266,19 @@ return(<>
   <span style={{color:"var(--text-dim)"}}>{p.sector}</span>
   <span style={{color:"var(--text-dim)"}}>{p.acctLabel}</span>
   </div>
-  {isExpanded&&(
-  <div style={{marginTop:8,padding:"10px 12px",background:"var(--surface-3)",border:"1px solid var(--border-faint)",borderRadius:4}}>
-  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8,marginBottom:8}}>
-  <div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>SHARES</div><div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{p.shares.toLocaleString()}</div></div>
-  <div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>MARKET VALUE</div><div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{fmt$Full(p.value)}</div></div>
-  {p.avgCost&&<div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>COST BASIS</div><div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{fmt$Full(p.avgCost*p.shares)}</div></div>}
-  {pnl$!=null&&<div><div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>UNREALIZED P&L</div><div style={{fontSize:13,fontWeight:700,color:pnlCol,fontFamily:"var(--font-mono)"}}>{pnl$>=0?"+":""}{fmt$Full(pnl$)}</div></div>}
-  </div>
-  {(wk1!=null||m1!=null||ytd!=null||ivr!=null||rsi!=null||scannerScore!=null)&&(
-  <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:11,fontFamily:"var(--font-mono)",marginBottom:8,paddingTop:6,borderTop:"1px solid var(--border-faint)"}}>
-  {wk1!=null&&<span><span style={{color:"var(--text-dim)"}}>1W </span><span style={{color:wk1>=0?"#30d158":"#ff453a",fontWeight:600}}>{wk1>=0?"+":""}{wk1.toFixed(1)}%</span></span>}
-  {m1!=null&&<span><span style={{color:"var(--text-dim)"}}>1M </span><span style={{color:m1>=0?"#30d158":"#ff453a",fontWeight:600}}>{m1>=0?"+":""}{m1.toFixed(1)}%</span></span>}
-  {ytd!=null&&<span><span style={{color:"var(--text-dim)"}}>YTD </span><span style={{color:ytd>=0?"#30d158":"#ff453a",fontWeight:600}}>{ytd>=0?"+":""}{ytd.toFixed(1)}%</span></span>}
-  {rsi!=null&&<span><span style={{color:"var(--text-dim)"}}>RSI </span><span style={{color:rsi>=70?"#ff453a":rsi<=30?"#30d158":"var(--text)"}}>{Number(rsi).toFixed(0)}</span></span>}
-  {ivr!=null&&<span><span style={{color:"var(--text-dim)"}}>IV30d </span><span style={{color:"var(--text)"}}>{ivr.toFixed(0)}%</span></span>}
-  {scannerScore!=null&&<span><span style={{color:"var(--text-dim)"}}>Score </span><span style={{color:"var(--text)",fontWeight:600}}>{scannerScore}</span></span>}
-  </div>
-  )}
   {otherAccts.length>0&&(
-  <div style={{fontSize:11,color:"var(--text-muted)",marginBottom:6}}>
+  <div style={{fontSize:11,color:"var(--text-muted)",marginBottom:p.analysis?4:0}}>
   Also held in: {otherAccts.map(a=>`${a.acctLabel} (${fmt$K(a.value)})`).join(", ")}
   </div>
   )}
-  {p.analysis&&<div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,marginBottom:6}}>{p.analysis}</div>}
-  {!SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector)&&!BROAD_INDEX_FUNDS.has(p.ticker)&&p.acctTactical&&<div style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={e=>{e.stopPropagation();setTickerDetail(p.ticker);}}>View {p.ticker} detail →</div>}
+  {p.analysis&&<div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>{p.analysis}</div>}
   </div>
-  )}
+  {/* 6-bar sub-composite strip — only for in-scope tactical holdings with
+      scanner data. Broad-index funds and out-of-scope sectors render
+      without it (component returns null when composite data is absent,
+      but we also gate here to avoid hitting computeSectionComposites
+      for obviously-unscored holdings). */}
+  {showStrip&&<SubCompositeStrip ticker={p.ticker} signals={scanData?.signals}/>}
   </div>
   );
 })}
