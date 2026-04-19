@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Scanner from "./Scanner";
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
@@ -12,6 +12,7 @@ import LoginScreen from "./auth/LoginScreen";
 import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
+import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
 import SubCompositeStrip from "./components/SubCompositeStrip";
 import { supabase } from "./lib/supabase";
@@ -1495,14 +1496,14 @@ return(
 </div>
 </div>
 
-{/* Score Gauge + Signal Breakdown. Manual-track tickers (on watchlist but
-    outside the scanner universe) get the same composite frame rendered with
-    "—" placeholders + a small banner explaining why scores are pending. This
-    keeps every modal structurally consistent. */}
+{/* Score Gauge + Signal Breakdown. Tickers that the scanner can't score
+    (funds, ETFs, crypto proxies, or symbols outside yfinance/UW coverage)
+    get the same composite frame rendered with "—" placeholders + a small
+    banner explaining why. Keeps every modal structurally consistent. */}
 <div style={panelStyle}>
 {isManualTrack&&(
 <div style={{fontSize:11,color:"var(--text-muted)",background:"var(--surface-3)",border:"1px solid var(--border-faint)",borderRadius:5,padding:"7px 10px",marginBottom:10,lineHeight:1.45}}>
-<span style={{color:"var(--text)",fontWeight:600}}>Manual-track position.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}Not in the scanner's scored universe yet, so composite scores below show as "—". The scanner runs daily at 3:45 PM ET; scores populate once coverage is added.
+<span style={{color:"var(--text)",fontWeight:600}}>No subcomposite data.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}Subcomposite scores are computed for single-name equities only — not funds, ETFs, or crypto proxies (BTCUSD / ETHUSD). Hold info and watchlist context still render above; directional scores will stay blank for this symbol.
 </div>
 )}
 <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
@@ -2565,8 +2566,18 @@ const [expandedId,setExpandedId]=useState(null);
 // heldPositions render below.)
 const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [tickerDetail,setTickerDetail]=useState(null);
-const [scanData,setScanData]=useState(null);
+// rawScanData is the public artifact straight from the CDN (no user data).
+// `scanData` (below) is the merged version — per-user watchlist rows from
+// Supabase (user_scan_data) are layered in so AMAT/CRWD/CAT/KTOS etc. carry
+// technicals/screener/analyst data for the SubCompositeStrip on portopps
+// and the TickerDetailModal. Scanner.jsx does the same thing.
+const [rawScanData,setScanData]=useState(null);
 const [scanError,setScanError]=useState(false);
+const { mergeInto: mergePrivateScan }=usePrivateScanSupplement();
+const scanData=useMemo(
+  ()=>(rawScanData?mergePrivateScan(rawScanData):rawScanData),
+  [rawScanData,mergePrivateScan]
+);
 // Account-by-account breakdown on the Portfolio & Insights tab. Default
 // collapsed — power users expand when they want the deeper per-account view
 // (this replaces the separate Holdings Detail tab).
@@ -3034,7 +3045,10 @@ const oppCard=(opts)=>{
   <span style={{fontSize:11,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{companyName}</span>
   </div>
   <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-  {score!=null&&<span style={{fontSize:12,fontWeight:700,color:accentCol,fontFamily:"var(--font-mono)"}}>Score {score}</span>}
+  {/* Legacy 0-100 Score removed 2026-04-19: it's a bullish-only trigger
+      tally that could disagree with OVERALL by 40+ points (e.g. MSFT Score 35
+      vs OVERALL -3 when TECH/OPT are bearish). OVERALL in the strip below
+      is now the sole directional read. */}
   <span style={{fontSize:11,color:"var(--text-dim)"}}>→</span>
   </div>
   </div>
@@ -3081,6 +3095,13 @@ return(<>
     {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio}/>}
   </>
 )}
+{/* Coverage disclaimer. Subcomposites require single-name fundamentals +
+    options flow + insider/congress feeds, which don't exist for funds,
+    ETFs, or crypto proxies (BTCUSD/ETHUSD). Keeps blank strips interpretable
+    rather than looking like a bug. */}
+<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.04em",textAlign:"center",padding:"6px 4px 2px",opacity:0.75}}>
+  Subcomposite scores (TECH / OPT / INS / CON / ANL / DP) available for single-name equities only — blank on funds, ETFs, and crypto proxies.
+</div>
 </>);
 })()}
 
