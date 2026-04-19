@@ -6,3 +6,7 @@ scipy>=1.11.0
 python-dotenv>=1.0.0
 # Pre-release on PyPI; pin when implementing OAuth (see schwab-py docs).
 schwab-py>=0.0.0a24
+# User-watchlist supplement: writes per-user tech/screener/analyst rows to
+# public.user_scan_data. See scanner/supabase_io.py. Service-role client
+# bypasses RLS so the scanner can write on behalf of every user.
+supabase>=2.3.0

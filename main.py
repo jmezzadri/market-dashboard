@@ -33,6 +33,7 @@ from scanner.portfolio_io import load_covered_calls, load_portfolio_positions, l
 from scanner.scan_state import load_last_scores, save_last_scores
 from scanner.scorer import score_ticker
 from scanner.sell_signals import check_covered_call_alerts, check_position_alerts
+from scanner.supabase_io import load_all_watchlists, write_user_scan_rows
 
 logging.basicConfig(
     level=logging.INFO,
@@ -235,6 +236,22 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     ]
     personal_tickers = list({*watchlist_tickers, *portfolio_tickers_for_universe})
 
+    # Multi-user watchlists from Supabase. The scanner needs the union of every
+    # signed-in user's watchlist so it can compute technicals / screener /
+    # analyst / etc. for those tickers — but the per-user mapping is kept OUT
+    # of the public artifact and persisted to public.user_scan_data (RLS-scoped
+    # owner-only). See scanner/supabase_io.py. Degrades gracefully to empty if
+    # Supabase creds are missing or the table is unreachable.
+    user_watchlists = load_all_watchlists()
+    all_user_watchlist_tickers = sorted({
+        t for tickers in user_watchlists.values() for t in tickers
+    })
+    if user_watchlists:
+        logger.info(
+            "Loaded %d user watchlist(s) from Supabase (%d unique tickers).",
+            len(user_watchlists), len(all_user_watchlist_tickers),
+        )
+
     # Public scannable universe — union of congress + insider + flow + darkpool,
     # filtered by price band / market cap. No personal tickers mixed in.
     all_tickers = extract_all_tickers(signals)
@@ -283,7 +300,10 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     # reporter.py::_write_scan_data_json so no user data ships.
     portfolio_positions_early = portfolio_positions_for_universe
     portfolio_tickers = portfolio_tickers_for_universe
-    all_tech_tickers = list({*filtered, *portfolio_tickers, *watchlist_tickers})
+    all_tech_tickers = list({
+        *filtered, *portfolio_tickers, *watchlist_tickers,
+        *all_user_watchlist_tickers,
+    })
     signals["_technicals"] = {t: get_technicals(t) for t in all_tech_tickers}
 
     # ── Wide-universe pre-filter ──────────────────────────────────────────────
@@ -332,7 +352,7 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     # daily workflow's 10-minute budget.
     screener = signals.get("screener") or {}
     coverage_tickers = (
-        {*portfolio_tickers, *watchlist_tickers, *filtered}
+        {*portfolio_tickers, *watchlist_tickers, *filtered, *all_user_watchlist_tickers}
         | {(t or "").upper() for t in (wide_long or [])}
         | {(t or "").upper() for t in (wide_short or [])}
     )
@@ -394,6 +414,7 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         *(t.upper() for t, _ in watch_and_above),
         *(t.upper() for t in portfolio_tickers),
         *(t.upper() for t in watchlist_tickers),
+        *all_user_watchlist_tickers,
     }
     signals["_info"] = {}
     signals["_news"] = {}
@@ -498,6 +519,16 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         portfolio_covered_calls=portfolio_cc,
         sell_alerts=sell_alerts,
     )
+
+    # Multi-user watchlist supplement. Writes one row per (user, ticker) to
+    # public.user_scan_data in Supabase so the dashboard can merge user-private
+    # tech/screener/analyst data into the public signals map client-side. Safe
+    # to call with empty creds — the module logs and returns a no-op.
+    if user_watchlists:
+        try:
+            write_user_scan_rows(user_watchlists, signals)
+        except Exception as e:  # pragma: no cover
+            logger.warning("user_scan_data write failed: %s", e)
 
     if notifier.should_send(buy_opportunities, watch_items, sell_alerts):
         subj, html_b, text_b = reporter.build_email_content(
