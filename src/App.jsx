@@ -2952,13 +2952,13 @@ return(
         onClick={()=>navTo("portopps")}
       >
         <div style={{display:"flex", gap:8, marginTop:"var(--space-2)", flexWrap:"wrap"}}>
+          {/* Order matches the portopps sub-panel order: Positions (neutral) →
+              Buy Alerts (green) → Near Trigger (yellow) → Other Watch (grey).
+              Buy / Near numbers mute to grey when count === 0 so a stale day
+              doesn't scream for attention. */}
           <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>POSITIONS</div>
+            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>CURRENT POSITIONS</div>
             <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--accent)"}}>{ACCOUNTS.reduce((a,acc)=>a+acc.positions.filter(p=>p.sector!=="Cash").length,0)}</div>
-          </div>
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>WATCH</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--yellow-text)"}}>{WATCHLIST.length}</div>
           </div>
           <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
             <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>BUY ALERTS</div>
@@ -2967,6 +2967,10 @@ return(
           <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
             <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>NEAR TRIGGER</div>
             <div className="num" style={{fontSize:20, fontWeight:700, color:watchCount>0?"var(--yellow-text)":"var(--text-muted)"}}>{watchCount}</div>
+          </div>
+          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
+            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>OTHER WATCH</div>
+            <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--text-muted)"}}>{WATCHLIST.length}</div>
           </div>
         </div>
       </Tile>
