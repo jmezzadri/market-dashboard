@@ -14,6 +14,7 @@ import {
   colorForDirection,
   SECTION_ORDER,
 } from "../ticker/sectionComposites";
+import { normalizeTickerName } from "../lib/nameFormat";
 
 // Header metadata — label shown in the header cell, tooltip spells it out.
 // Order here is the render order of the signal columns — sorted LEFT TO
@@ -79,9 +80,13 @@ export default function WatchlistTable({ rows, signals, screener, onOpenTicker, 
       // symbol itself. Once scan-ticker populates screener data, prefer the
       // real full_name from UW over the ticker-as-name placeholder.
       const hasRealName = w.name && w.name.trim().toUpperCase() !== t;
+      const rawName = hasRealName ? w.name : (sc.full_name || "");
       return {
         ticker: t,
-        name: hasRealName ? w.name : (sc.full_name || ""),
+        // normalizeTickerName only touches ALL-CAPS strings (UW feed); Yahoo-sourced
+        // names like "NVIDIA Corp" / "CrowdStrike" pass through untouched. See
+        // lib/nameFormat.js for the full rationale on why we need this.
+        name: normalizeTickerName(rawName),
         sector: sc.sector || "",
         theme: w.theme || "",
         held: heldTickers?.has?.(t) || false,

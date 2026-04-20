@@ -20,6 +20,7 @@ import PositionsTable from "./components/PositionsTable";
 import PositionEditor from "./components/PositionEditor";
 import BulkImport from "./components/BulkImport";
 import { supabase } from "./lib/supabase";
+import { normalizeTickerName } from "./lib/nameFormat";
 import ReportBug from "./reportbug/ReportBug";
 import ErrorBoundary from "./ErrorBoundary";
 
@@ -1380,7 +1381,7 @@ const heldIn=(accounts||[]).flatMap(a=>a.positions.filter(p=>p.ticker===ticker).
 const price=Number(sc.close||sc.prev_close||0)||null;
 const prevClose=Number(sc.prev_close||0)||null;
 const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
-const companyName=sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||ticker;
+const companyName=normalizeTickerName(sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||ticker);
 // Legacy 0–100 score gauge retired — the modal now leads with the signal
 // composite (−100 → +100) so direction and strength read consistently.
 // Manual-track position: on the watchlist but not in the scanner's scored

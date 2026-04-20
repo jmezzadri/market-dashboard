@@ -9,6 +9,7 @@ import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import SubCompositeStrip from "./components/SubCompositeStrip";
+import { normalizeTickerName } from "./lib/nameFormat";
 
 const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
@@ -402,7 +403,7 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
     const price = item.current_price ?? Number(sc.prev_close);
     const pt = price ? price * (1 + ptPct / 100) : null;
     const sl = price ? price * (1 - slPct / 100) : null;
-    const company = sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "";
+    const company = normalizeTickerName(sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "");
     const ptsl = (
       <span>
         {pt && <><strong style={{ color: C.text }}>PT</strong> <span style={{ color: C.muted }}>{fmt$(pt)}</span></>}
@@ -432,7 +433,7 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
     const sc = screenerMap[t] || {};
     const price = Number(sc.close || sc.prev_close || 0) || null;
     const score = scoremap[t] ?? null;
-    const company = sc.full_name || sc.company_name || w.name || (data.ticker_names||{})[t] || "";
+    const company = normalizeTickerName(sc.full_name || sc.company_name || w.name || (data.ticker_names||{})[t] || "");
     const ptsl = (
       <span>
         {w.theme && <><strong style={{ color: C.text }}>Theme</strong> <span style={{ color: C.muted }}>{w.theme}</span></>}
@@ -457,7 +458,7 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
     const sc = screenerMap[t] || {};
     const price = p.price != null ? Number(p.price) : (Number(sc.close || sc.prev_close || 0) || null);
     const score = scoremap[t] ?? null;
-    const company = p.name || sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "";
+    const company = normalizeTickerName(p.name || sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "");
     const shares = p.shares != null ? Number(p.shares) : null;
     const avg    = p.avgCost != null ? Number(p.avgCost) : null;
     const ptsl = (
