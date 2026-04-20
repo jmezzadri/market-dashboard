@@ -6,7 +6,7 @@ import {
   NavIconHome, NavIconGauge, NavIconGrid, NavIconHeat,
   NavIconPie, NavIconList, NavIconRadar, NavIconBook,
 } from "./Shell";
-import { InfoTip } from "./InfoTip";
+import { InfoTip, Tip } from "./InfoTip";
 import SidebarAuth from "./auth/SidebarAuth";
 import LoginScreen from "./auth/LoginScreen";
 import OnboardingPanel from "./auth/OnboardingPanel";
@@ -32,7 +32,7 @@ import ErrorBoundary from "./ErrorBoundary";
 // for the re-runnable pull).
 const SD={
 vix:{mean:18.5,sd:7.3,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
-eq_cr_corr:{mean:0.38,sd:0.22,dir:"hw"},yield_curve:{mean:80,sd:95,dir:"nw"},
+eq_cr_corr:{mean:0.75,sd:0.09,dir:"hw"},yield_curve:{mean:80,sd:95,dir:"nw"},
 move:{mean:72,sd:28,dir:"hw"},anfci:{mean:0,sd:0.38,dir:"hw"},
 stlfsi:{mean:0,sd:0.9,dir:"hw"},real_rates:{mean:0.7,sd:1.0,dir:"hw"},
 sloos_ci:{mean:9,sd:22,dir:"hw"},cape:{mean:22,sd:7,dir:"hw"},
@@ -122,9 +122,9 @@ vix:["VIX","Equity Volatility","equity",1,"index",1,17.9,23.9,17.2,19.5,15.0,fal
 hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,205.0,268,245,280,220,false,
 "Spread between ICE BofA High Yield and Investment Grade bond yields. Measures extra return investors demand for credit risk.",
 "Spreads have tightened ~55bps over the past month — markets not pricing significant default risk. Below 200bps = benign; above 400bps = significant stress."],
-eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.92,0.61,0.55,0.50,0.40,false,
-"63-day rolling correlation between VIX and HY-IG spreads. When both move together, it signals a genuine risk-off regime rather than isolated noise.",
-"Sharp jump in correlation — equities and credit are now moving as a single risk factor. Values above 0.6 indicate a true risk-off regime; this is a warning sign."],
+eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.81,0.75,0.69,0.75,0.92,false,
+"63-day rolling Pearson correlation between SPY and HYG daily returns. Measures whether equities and high-yield credit are moving as a single risk factor — a genuine risk-off regime vs. isolated noise.",
+"At 0.81, synchronization sits modestly above the long-run mean of ~0.75 (2015–2026). Readings above ~0.85 (≈1 SD above mean) flag a tightly-linked risk-off regime; sustained readings below ~0.65 suggest equities and credit are responding to different drivers."],
 yield_curve:["10Y–2Y Slope","Yield Curve","rates",1,"bps",0,54.0,52,35,15,-20,false,
 "Difference between 10-year and 2-year Treasury yields. Inversion historically precedes recessions by 6–18 months.",
 "Re-steepened after the deepest inversion since 1981 (-109bps in 2023). An improving signal, though bear steepening (long-end selling off) would be the wrong kind."],
@@ -149,7 +149,7 @@ cape:["Shiller CAPE","Cyclically Adj. P/E Ratio","equity",2,"ratio",1,34.2,35.1,
 ism:["ISM Mfg. PMI","Manufacturing Activity Index","labor",2,"index",1,52.7,52.4,52.6,49.8,47.9,true,
 "ISM Manufacturing PMI: above 50 = expansion; below 50 = contraction.",
 "Manufacturing in expansion territory and inflecting higher after a soft 2H 2025. A reading sustained above 52 would confirm a real cyclical upturn."],
-copper_gold:["Copper/Gold Ratio","Real Economy vs. Safe Haven","labor",2,"ratio",3,0.126,0.098,0.108,0.112,0.152,true,
+copper_gold:["Copper/Gold Ratio","Real Economy vs. Safe Haven","growth",2,"ratio",3,0.126,0.098,0.108,0.112,0.152,true,
 "Ratio of copper to gold futures. A falling ratio signals growth pessimism and risk-off sentiment.",
 "At 0.126, ratio sits ~37% below its 0.20 historical mean — persistent safe-haven gold demand continues to overshadow copper. Ratio dipped to ~0.098 a month ago before copper's rally toward $6/lb drove a partial rebound. A sustained move back toward 0.15+ would signal improving growth confidence."],
 bkx_spx:["BKX/SPX Ratio","Bank vs. Market Strength","bank",2,"ratio",3,0.09,0.086,0.103,0.097,0.090,true,
@@ -203,6 +203,44 @@ const IND_FREQ={
   anfci:"W",stlfsi:"W",cpff:"W",loan_syn:"W",bank_credit:"W",jobless:"W",cmdi:"W",term_premium:"W",
   cape:"M",ism:"M",jolts_quits:"M",
   sloos_ci:"Q",sloos_cre:"Q",bank_unreal:"Q",credit_3y:"Q",
+};
+
+// Data source attribution per indicator (Bug #5d — data-provenance stamp).
+// Short-form labels fit a small badge/footer. Used by IndicatorCard and
+// IndicatorModal to show "<SRC> · as of <date>" next to each value, so
+// users can sanity-check where a number came from at a glance. Grouping
+// by origin (not by vendor — e.g. yield_curve values come via FRED but
+// originate at Treasury):
+//   CBOE         — VIX, SKEW (option-implied)
+//   ICE BofA     — HY-IG spread, HY effective yield, MOVE
+//   Yahoo (calc) — EQ-Credit correlation, Copper/Gold ratio, BKX/SPX ratio
+//                  (values COMPUTED locally from price feeds, not sourced)
+//   Treasury     — 10Y-2Y slope, 10Y TIPS
+//   Chicago Fed  — ANFCI
+//   St Louis Fed — STLFSI
+//   NY Fed       — Term premium (Kim-Wright), CMDI
+//   Fed Reserve  — SLOOS C&I, SLOOS CRE, USD index (H.10), CPFF, bank credit (H.8),
+//                  3Y credit growth (H.8)
+//   FDIC         — Bank unrealized losses (QBP)
+//   ISM          — Manufacturing PMI
+//   BLS          — JOLTS quits rate
+//   Shiller      — CAPE (Robert Shiller / Yale)
+//   DOL          — Initial jobless claims (via FRED, originates DOL)
+const IND_SOURCE={
+  vix:"CBOE",skew:"CBOE",
+  hy_ig:"ICE BofA",loan_syn:"ICE BofA",move:"ICE BofA",
+  eq_cr_corr:"Yahoo",copper_gold:"Yahoo",bkx_spx:"Yahoo",
+  yield_curve:"Treasury",real_rates:"Treasury",
+  anfci:"Chicago Fed",
+  stlfsi:"St Louis Fed",
+  term_premium:"NY Fed",cmdi:"NY Fed",
+  sloos_ci:"Fed Reserve",sloos_cre:"Fed Reserve",usd:"Fed Reserve",cpff:"Fed Reserve",
+  bank_credit:"Fed Reserve",credit_3y:"Fed Reserve",
+  bank_unreal:"FDIC",
+  ism:"ISM",
+  jolts_quits:"BLS",
+  cape:"Shiller",
+  jobless:"DOL",
 };
 
 const WEIGHTS={
@@ -1082,11 +1120,15 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 <div style={{width:3,height:12,background:catCol,borderRadius:1,flexShrink:0}}/>
 <span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,flex:"0 1 auto"}}>{label}</span>
 {desc&&<span onClick={e=>e.stopPropagation()} style={{flexShrink:0}}><InfoTip term={label} def={desc} size={11}/></span>}
-<span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>T{tier}</span>
-<span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+<Tip label={`TIER ${tier}`} def={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."}>
+<span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>T{tier}</span>
+</Tip>
+<Tip label={IND_FREQ[id]==="D"?"DAILY":IND_FREQ[id]==="W"?"WEEKLY":IND_FREQ[id]==="M"?"MONTHLY":IND_FREQ[id]==="Q"?"QUARTERLY":""} def={IND_FREQ[id]==="D"?"Daily release — updated every trading day.":IND_FREQ[id]==="W"?"Weekly release — typically published Thursday or Friday morning.":IND_FREQ[id]==="M"?"Monthly release — published in the first or second week after month-end.":IND_FREQ[id]==="Q"?"Quarterly release — published ~6 weeks after quarter-end. There is no true intra-quarter value.":"Release frequency unknown."}>
+<span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+</Tip>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
-<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]||"—"}</div>
+<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}} title={IND_SOURCE[id]?`Sourced from ${IND_SOURCE[id]}`:""}>{/* Bug #5d: prefix source attribution so users know who reported this value. */}{IND_SOURCE[id]?<><span style={{fontWeight:700}}>{IND_SOURCE[id]}</span><span style={{margin:"0 4px"}}>·</span></>:null}{AS_OF[id]||"—"}</div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:15,fontWeight:800,color:colT,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -1140,11 +1182,15 @@ return(
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
             <h2 style={{fontSize:20,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.01em"}}>{label}</h2>
-            <span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
-            <span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+            <Tip label={`TIER ${tier}`} def={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."}>
+              <span style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
+            </Tip>
+            <Tip label={IND_FREQ[id]==="D"?"DAILY":IND_FREQ[id]==="W"?"WEEKLY":IND_FREQ[id]==="M"?"MONTHLY":IND_FREQ[id]==="Q"?"QUARTERLY":""} def={IND_FREQ[id]==="D"?"Daily release — updated every trading day.":IND_FREQ[id]==="W"?"Weekly release — typically published Thursday or Friday morning.":IND_FREQ[id]==="M"?"Monthly release — published in the first or second week after month-end.":IND_FREQ[id]==="Q"?"Quarterly release — published ~6 weeks after quarter-end. There is no true intra-quarter value.":"Release frequency unknown."}>
+              <span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+            </Tip>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{CATS[cat]?.label||cat} · As of {AS_OF[id]}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{/* Bug #5d: inject source attribution between category and asOf date. */}{CATS[cat]?.label||cat}{IND_SOURCE[id]?<> · <span style={{fontWeight:700}}>{IND_SOURCE[id]}</span></>:null} · As of {AS_OF[id]}</div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
@@ -2660,7 +2706,7 @@ const TAB_META={
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
   portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
-  scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
+  scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (40+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
 };
 
@@ -3067,7 +3113,7 @@ return(
       <Tile
         eyebrow="Daily Opp Scan"
         title="Full scanner browse"
-        sub={`Buy/watch alerts, Congress/insider/flow/technicals tabs · Last scan: ${lastScanLabel}`}
+        sub={`Buy/watch alerts, Congress/insider/flow/technicals tabs · UW · scanned ${lastScanLabel}`}
         accent="#30d158"
         kpi={{value:buyCount, unit:buyCount===1?"buy alert":"buy alerts", color:buyCount>0?"#30d158":"var(--text-muted)"}}
         onClick={()=>navTo("scanner")}
@@ -3387,6 +3433,7 @@ return(<>
     heldTickers={heldTickers}
     onOpenTicker={(t)=>setTickerDetail(t)}
     emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
+    provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
   />
 )}
 {subPanel("#ffd60a","NEAR TRIGGER","(Composite Score 40–59)",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
@@ -3397,6 +3444,7 @@ return(<>
     heldTickers={heldTickers}
     onOpenTicker={(t)=>setTickerDetail(t)}
     emptyMessage="Nothing near trigger today."
+    provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
   />
 )}
 {subPanel("#64748b","OTHER WATCHLIST",null,`${WATCHLIST.length} tracking`,
@@ -3408,6 +3456,7 @@ return(<>
       heldTickers={heldTickers}
       onOpenTicker={(t)=>setTickerDetail(t)}
       emptyMessage="No tickers on your watchlist. Add one below."
+      provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
     />
     {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>}
   </>

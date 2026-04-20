@@ -15,6 +15,7 @@ import {
   SECTION_ORDER,
 } from "../ticker/sectionComposites";
 import { normalizeTickerName } from "../lib/nameFormat";
+import ProvenanceStamp from "./ProvenanceStamp";
 
 // Header metadata — label shown in the header cell, tooltip spells it out.
 // Order here is the render order of the signal columns — sorted LEFT TO
@@ -56,7 +57,7 @@ function ScoreCell({ score, direction }) {
   );
 }
 
-export default function WatchlistTable({ rows, signals, screener, onOpenTicker, heldTickers, emptyMessage }) {
+export default function WatchlistTable({ rows, signals, screener, onOpenTicker, heldTickers, emptyMessage, provenance }) {
   // Each row: { ticker, name, theme }. We enrich with composites + sector
   // here so sorting has all the data pre-computed (avoids recomputing on
   // every sort click).
@@ -177,7 +178,7 @@ export default function WatchlistTable({ rows, signals, screener, onOpenTicker, 
 
   return (
     <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 6 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, marginBottom: 0 }}>
         <thead>
           <tr>
             {renderHeader("ticker", "TICKER", "Ticker symbol")}
@@ -213,8 +214,13 @@ export default function WatchlistTable({ rows, signals, screener, onOpenTicker, 
               </td>
               <td style={{
                 padding: "7px 6px", color: "var(--text-muted)",
-                maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }} title={row.name}>{row.name || "—"}</td>
+                whiteSpace: "nowrap",
+              }} title={row.name}>
+                {/* Bug #1: truncate to 20 chars; full name available on hover via title */}
+                {row.name
+                  ? (row.name.length > 20 ? row.name.slice(0, 20) + "…" : row.name)
+                  : "—"}
+              </td>
               <td style={{
                 padding: "7px 6px", color: "var(--text-dim)",
                 fontFamily: "var(--font-mono)", fontSize: 11,
@@ -235,6 +241,15 @@ export default function WatchlistTable({ rows, signals, screener, onOpenTicker, 
           ))}
         </tbody>
       </table>
+      {provenance && (provenance.source || provenance.asOf) && (
+        <ProvenanceStamp
+          source={provenance.source}
+          asOf={provenance.asOf}
+          prefix={provenance.prefix}
+          align="right"
+          style={{ padding: "6px 10px", borderTop: "1px solid var(--border-faint)", background: "var(--surface-3)" }}
+        />
+      )}
     </div>
   );
 }
