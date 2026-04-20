@@ -4,16 +4,18 @@ If you change WEIGHTS or SD in App.jsx, update this file to match.
 """
 from __future__ import annotations
 
+# SD calibration — see docs/CALIBRATION_METHODOLOGY.md for empirical
+# re-grounding (Bug #2 / Bug #2b, FRED 2016-04 → 2026-04 window).
 SD = {
-    "vix": {"mean": 19.5, "sd": 8.2, "dir": "hw"},
+    "vix": {"mean": 18.5, "sd": 7.3, "dir": "hw"},
     "hy_ig": {"mean": 220, "sd": 95, "dir": "hw"},
     "eq_cr_corr": {"mean": 0.38, "sd": 0.22, "dir": "hw"},
     "yield_curve": {"mean": 80, "sd": 95, "dir": "nw"},
     "move": {"mean": 72, "sd": 28, "dir": "hw"},
     "anfci": {"mean": 0, "sd": 0.38, "dir": "hw"},
     "stlfsi": {"mean": 0, "sd": 0.9, "dir": "hw"},
-    "real_rates": {"mean": 0.5, "sd": 1.1, "dir": "hw"},
-    "sloos_ci": {"mean": 5, "sd": 18, "dir": "hw"},
+    "real_rates": {"mean": 0.7, "sd": 1.0, "dir": "hw"},
+    "sloos_ci": {"mean": 9, "sd": 22, "dir": "hw"},
     "cape": {"mean": 22, "sd": 7, "dir": "hw"},
     "ism": {"mean": 52, "sd": 5.5, "dir": "lw"},
     "copper_gold": {"mean": 0.20, "sd": 0.03, "dir": "lw"},
