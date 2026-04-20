@@ -1452,6 +1452,21 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
     ? `${scanTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · ${scanTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}`
     : "—";
 
+  // Bug #5b — stale-data guard. The scanner normally runs daily at 3:45PM ET
+  // (see .github/workflows/daily-scan.yml). If latest_scan_data.json is more
+  // than a day old, the user is looking at yesterday's (or older) signals and
+  // should be told so explicitly — options flow and insider data age fast
+  // enough that 24h+ stale data is legitimately misleading.
+  const scanAgeHours = scanTime ? (Date.now() - scanTime.getTime()) / 3600_000 : null;
+  const STALE_H = 24;   // amber: "may be stale"
+  const VERY_STALE_H = 48; // amber: "is stale, next scan at ..."
+  const isStale = scanAgeHours != null && scanAgeHours >= STALE_H;
+  const isVeryStale = scanAgeHours != null && scanAgeHours >= VERY_STALE_H;
+  const staleCopy = !isStale ? null
+    : isVeryStale
+      ? `Scanner data is ${Math.floor(scanAgeHours / 24)} days old — the daily scan may have failed. Treat signals as stale until the next run.`
+      : `Scanner data is ${Math.round(scanAgeHours)} hours old — fresher-than-daily signals (options flow, insider activity) may be outdated.`;
+
   // ── LANDING — tile grid ────────────────────────────────────────────────────
   if (view === "landing") {
     return (
@@ -1461,11 +1476,36 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
           <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{scanLabel}</span>
         </div>
 
-        <div style={{
+        {staleCopy && (
+          <div
+            role="status"
+            aria-live="polite"
+            style={{
+              display: "flex", alignItems: "flex-start", gap: 10,
+              padding: "10px 14px",
+              marginBottom: "var(--space-5)",
+              background: "rgba(255,159,10,0.10)",     // amber tint on --orange
+              border: "1px solid rgba(255,159,10,0.35)",
+              borderRadius: "var(--radius-sm)",
+              fontSize: 13, lineHeight: 1.45,
+              color: "var(--orange-text)",
+              fontFamily: "var(--font-mono)",
+            }}
+          >
+            <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1.3 }}>⚠</span>
+            <span>
+              <strong style={{ fontWeight: 700, marginRight: 6 }}>
+                {isVeryStale ? "VERY STALE" : "STALE"}
+              </strong>
+              {staleCopy}
+            </span>
+          </div>
+        )}
+
+        <div className="scanner-tile-grid" style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
           gap: "var(--space-4)",
-          alignItems: "start",
         }}>
           {/* "Buy & Watch list" tile retired 2026-04-19 — see TAB_META note above.
               Portfolio & Insights (portopps) is the canonical surface for buy/watch/positions. */}
@@ -1542,9 +1582,8 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
           >
             <div style={{ display: "flex", gap: 8, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
               <MiniStat label="HIGH VOLATILITY (>70)" value={highIVR} color="var(--yellow-text)" wide />
-              {isSignedIn && techUserOnlyCount > 0 && (
-                <MiniStat label="+ YOUR BOOK" value={techUserOnlyCount} color="var(--accent)" wide />
-              )}
+              {/* Bug #4: removed "+ YOUR BOOK N" MiniStat — user-book count is already shown elsewhere */}
+              {/* and clutters the anomaly-focused tile framing. */}
             </div>
           </Tile>
 
