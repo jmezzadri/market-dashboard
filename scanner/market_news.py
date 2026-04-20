@@ -49,7 +49,10 @@ logger = logging.getLogger(__name__)
 # their feed path without having to redeploy code.
 ZH_PUBLIC_RSS_URL = os.environ.get(
     "ZEROHEDGE_PUBLIC_RSS_URL",
-    "https://www.zerohedge.com/fullrss2.xml",
+    # The www.zerohedge.com host returns 404 for RSS — the actual feed is
+    # served from the CMS subdomain. Discovered 2026-04-19 by inspecting
+    # the homepage HTML for inline feed URLs.
+    "https://cms.zerohedge.com/fullrss2.xml",
 )
 
 # HTTP timeout so a slow feed can't stall the whole scan.
