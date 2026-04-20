@@ -16,14 +16,18 @@ import {
 } from "../ticker/sectionComposites";
 
 // Header metadata — label shown in the header cell, tooltip spells it out.
-// Order here is the render order of the signal columns.
+// Order here is the render order of the signal columns — sorted LEFT TO
+// RIGHT by composite weighting (most important first, least important last):
+// Technicals 25% · Insider 25% · Options 20% · Congress 15% · Analyst 10% ·
+// Dark Pool 5% (see SECTION_WEIGHTS in ticker/sectionComposites.js). OVR is
+// rendered separately as the rightmost column.
 const SIGNAL_COLS = [
-  { key: "technicals", short: "TECH", long: "Technicals" },
-  { key: "options",    short: "OPT",  long: "Option Flow" },
-  { key: "insider",    short: "INS",  long: "Insiders" },
-  { key: "congress",   short: "CON",  long: "Congress" },
-  { key: "analyst",    short: "ANL",  long: "Analyst" },
-  { key: "darkpool",   short: "DP",   long: "Dark Pool" },
+  { key: "technicals", short: "TECH", long: "Technicals (25%)" },
+  { key: "insider",    short: "INS",  long: "Insiders (25%)" },
+  { key: "options",    short: "OPT",  long: "Option Flow (20%)" },
+  { key: "congress",   short: "CON",  long: "Congress (15%)" },
+  { key: "analyst",    short: "ANL",  long: "Analyst (10%)" },
+  { key: "darkpool",   short: "DP",   long: "Dark Pool (5%)" },
 ];
 
 // Sanity: SIGNAL_COLS must align 1:1 with SECTION_ORDER so computeSectionComposites
@@ -70,9 +74,14 @@ export default function WatchlistTable({ rows, signals, screener, onOpenTicker, 
           direction: s?.direction ?? null,
         };
       });
+      // Name fallback: when a ticker is added while the Yahoo validator is
+      // unreachable (CORS / rate-limit), w.name is backfilled with the ticker
+      // symbol itself. Once scan-ticker populates screener data, prefer the
+      // real full_name from UW over the ticker-as-name placeholder.
+      const hasRealName = w.name && w.name.trim().toUpperCase() !== t;
       return {
         ticker: t,
-        name: w.name || sc.full_name || "",
+        name: hasRealName ? w.name : (sc.full_name || ""),
         sector: sc.sector || "",
         theme: w.theme || "",
         held: heldTickers?.has?.(t) || false,

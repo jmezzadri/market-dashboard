@@ -1282,8 +1282,13 @@ const submit=async(e)=>{
       });
       setBusy(false);return;
     }
-    // Either v.ok (validated) or v.reason==="unreachable" (soft-warn path).
-    const resolvedName=v.ok?v.name:t;
+    // Either v.ok (validated) or v.reason==="unreachable" (soft-fallthrough).
+    // When unreachable, write an empty name — scan-ticker will shortly
+    // populate screener_json with UW's full_name, and WatchlistTable falls
+    // through to sc.full_name when w.name is empty. Writing the ticker into
+    // the name column (old behavior) made the Other Watchlist render the
+    // ticker twice for new adds during CORS outages.
+    const resolvedName=v.ok?v.name:"";
     const sort_order=((watchlistRows||[]).reduce((m,w)=>Math.max(m,w.sort_order||0),0))+1;
     const {error}=await supabase.from("watchlist").insert({
       user_id:userId,ticker:t,name:resolvedName,theme:"",sort_order,
@@ -1292,16 +1297,12 @@ const submit=async(e)=>{
     setVal("");
     await refetchPortfolio?.();
     // Fire-and-forget scan so the modal populates without a full scheduled run.
+    // The server-side scan-ticker call is the authoritative validator — if
+    // the symbol is real, UW returns company info and we backfill the name.
+    // When Yahoo's search endpoint is unreachable (CORS / 429), we stay
+    // silent rather than show a noisy "couldn't verify" warning; the user
+    // will see whether the row lights up with real data as the scan returns.
     onTickerAdded?.(t);
-    if(!v.ok){
-      // Unreachable soft-warn — the add went through but the user should
-      // know we couldn't verify the symbol. A subsequent scan will reject
-      // it if it turns out to be bogus.
-      setMsg({
-        text:`Added ${t} — couldn't verify (validator unreachable).`,
-        kind:"warn",
-      });
-    }
   }catch(e2){setMsg({text:e2.message||String(e2),kind:"error"});}
   finally{setBusy(false);}
 };
@@ -3275,18 +3276,24 @@ const toWlRows=(items)=>(items||[]).map(it=>({
 const triggered=scanData?.buy_opportunities||[];
 // SUB-PANEL 2: SCANNER — WATCH / NEAR TRIGGER (yellow accent)
 const nearTrigger=scanData?.watch_items||[];
-const subPanel=(accentCol,title,count,children)=>(
+// subPanel now accepts an optional `criteria` chip rendered next to the
+// title in muted weight — lets users see at a glance *why* a ticker is in
+// the Buy Alerts vs Near Trigger bucket without opening the modal.
+const subPanel=(accentCol,title,criteria,count,children)=>(
 <div style={{background:"var(--surface-2)",border:`1px solid ${accentCol}55`,borderLeft:`3px solid ${accentCol}`,borderRadius:6,overflow:"hidden"}}>
-<div style={{padding:"8px 12px",background:`${accentCol}14`,borderBottom:`1px solid ${accentCol}22`,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-<span style={{fontSize:11,fontWeight:700,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>{title}</span>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{count}</span>
+<div style={{padding:"8px 12px",background:`${accentCol}14`,borderBottom:`1px solid ${accentCol}22`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+<span style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap",minWidth:0}}>
+  <span style={{fontSize:11,fontWeight:700,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>{title}</span>
+  {criteria&&<span style={{fontSize:10,fontWeight:500,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.04em"}}>{criteria}</span>}
+</span>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",whiteSpace:"nowrap"}}>{count}</span>
 </div>
 <div style={{padding:"8px 10px",display:"flex",flexDirection:"column",gap:6}}>{children}</div>
 </div>
 );
 
 return(<>
-{subPanel("#30d158","BUY ALERTS",`${triggered.length} today`,
+{subPanel("#30d158","BUY ALERTS","(Composite Score ≥ 60)",`${triggered.length} today`,
   <WatchlistTable
     rows={toWlRows(triggered)}
     signals={scanData?.signals}
@@ -3296,7 +3303,7 @@ return(<>
     emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
   />
 )}
-{subPanel("#ffd60a","NEAR TRIGGER",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
+{subPanel("#ffd60a","NEAR TRIGGER","(Composite Score 40–59)",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
   <WatchlistTable
     rows={toWlRows(nearTrigger)}
     signals={scanData?.signals}
@@ -3306,7 +3313,7 @@ return(<>
     emptyMessage="Nothing near trigger today."
   />
 )}
-{subPanel("#64748b","OTHER WATCHLIST",`${WATCHLIST.length} tracking`,
+{subPanel("#64748b","OTHER WATCHLIST",null,`${WATCHLIST.length} tracking`,
   <>
     <WatchlistTable
       rows={WATCHLIST}
