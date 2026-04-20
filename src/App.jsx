@@ -1281,8 +1281,8 @@ const price=Number(sc.close||sc.prev_close||0)||null;
 const prevClose=Number(sc.prev_close||0)||null;
 const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
 const companyName=sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||ticker;
-const scoreCol=score==null?"var(--text-dim)":score>=60?"#30d158":score>=35?"#ffd60a":score>=20?"#ff9f0a":"#ff453a";
-const scoreLabel=score==null?"NO SCORE":score>=60?"BUY":score>=35?"NEAR TRIGGER":score>=20?"WATCH":"SELL-WATCH";
+// Legacy 0–100 score gauge retired — the modal now leads with the signal
+// composite (−100 → +100) so direction and strength read consistently.
 // Manual-track position: on the watchlist but not in the scanner's scored
 // universe yet. We still want to show a useful modal (name, theme, held info)
 // rather than a box full of dashes. Also fires for OWNED names that haven't
@@ -1373,26 +1373,7 @@ const congressCt=congressBuys.length+congressSells.length;
 const insiderCt=insiderBuys.length+insiderSells.length;
 const flowCt=flowCalls.length+flowPuts.length;
 const dpCt=darkPoolPrints.length;
-// Score components / contribution gauge
-const ScoreGauge=({s})=>{
-  if(s==null)return<div style={{display:"flex",alignItems:"center",justifyContent:"center",width:148,height:100,color:"var(--text-dim)",fontSize:11,fontFamily:"var(--font-mono)"}}>no score</div>;
-  const r=56,cx=74,cy=64,start=-180,sweep=180;
-  const toRad=d=>d*Math.PI/180;
-  const pt=d=>[cx+r*Math.cos(toRad(d)),cy+r*Math.sin(toRad(d))];
-  const norm=Math.max(0,Math.min(1,s/100));
-  const [sx,sy]=pt(start),[ex,ey]=pt(start+sweep);
-  const fS=sweep*norm,[fx,fy]=pt(start+fS);
-  const la=fS>180?1:0;
-  return(
-  <svg width="148" height="90" viewBox="0 0 148 90">
-  <path d={`M ${sx} ${sy} A ${r} ${r} 0 0 1 ${ex} ${ey}`} fill="none" stroke="var(--border)" strokeWidth="10" strokeLinecap="round"/>
-  {norm>0.01&&<path d={`M ${sx} ${sy} A ${r} ${r} 0 ${la} 1 ${fx} ${fy}`} fill="none" stroke={scoreCol} strokeWidth="10" strokeLinecap="round" opacity="0.95"/>}
-  {[0.2,0.35,0.6].map(t=>{const [tx,ty]=pt(start+sweep*t);return(<circle key={t} cx={tx} cy={ty} r="2.5" fill="var(--bg)"/>);})}
-  <text x={cx} y={56} textAnchor="middle" fill={scoreCol} fontSize="28" fontWeight="800" fontFamily="monospace">{s}</text>
-  <text x={cx} y={74} textAnchor="middle" fill={scoreCol} fontSize="9" fontFamily="monospace" letterSpacing="0.08em" fontWeight="700">{scoreLabel}</text>
-  </svg>
-  );
-};
+// ScoreGauge (legacy 0–100) removed — see comment on retired scoreCol above.
 const panelStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"};
 const sectionLabel={fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8,fontWeight:600};
 const kpiBox={background:"var(--surface-3)",borderRadius:5,padding:"8px 10px"};
@@ -1469,7 +1450,7 @@ return(
 <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
 {/* Header */}
 <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:"var(--space-4)",paddingRight:40}}>
-<div style={{width:4,height:44,background:scoreCol,borderRadius:2,flexShrink:0,marginTop:2}}/>
+<div style={{width:4,height:44,background:colorForDirection(composite?.overall?.direction),borderRadius:2,flexShrink:0,marginTop:2}}/>
 <div style={{flex:1,minWidth:0}}>
 <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
 <h2 style={{fontSize:22,fontWeight:700,color:"var(--text)",margin:0,fontFamily:"var(--font-mono)",letterSpacing:"-0.01em"}}>{ticker}</h2>
@@ -1535,26 +1516,20 @@ return(
 )}
 </div>
 )}
-<div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
-<div style={{flexShrink:0}}><ScoreGauge s={score}/></div>
-<div style={{flex:1,minWidth:0}}>
-<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:600,marginBottom:4}}>
-SIGNAL COMPOSITE
-{composite?.overall?.score!=null&&(
-<span style={{marginLeft:10,fontSize:14,fontWeight:800,color:colorForDirection(composite.overall.direction)}}>
+<div style={{display:"flex",alignItems:"baseline",gap:12,marginBottom:10,flexWrap:"wrap"}}>
+<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:600}}>SIGNAL COMPOSITE</div>
+{composite?.overall?.score!=null?(<>
+<span style={{fontSize:30,fontWeight:800,color:colorForDirection(composite.overall.direction),fontFamily:"var(--font-mono)",lineHeight:1}}>
 {composite.overall.score>=0?"+":""}{composite.overall.score}
-</span>)}
-{composite?.overall?.score!=null&&(
-<span style={{marginLeft:6,fontSize:9,color:colorForDirection(composite.overall.direction),fontFamily:"var(--font-mono)",letterSpacing:"0.06em"}}>
+</span>
+<span style={{fontSize:11,color:colorForDirection(composite.overall.direction),fontFamily:"var(--font-mono)",letterSpacing:"0.08em",fontWeight:600}}>
 {composite.overall.label}
-</span>)}
-{composite&&composite.overall?.score==null&&(
-<span style={{marginLeft:10,fontSize:14,fontWeight:800,color:"var(--text-dim)"}}>—</span>
-)}
-</div>
-<div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.4}}>
-Legacy score <strong style={{color:"var(--text)",fontFamily:"var(--font-mono)"}}>{score??"—"}/100</strong> is a bullish-only signal tally. The composite is a weighted blend of the six sections below (−100 bearish … +100 bullish) so you can see direction AND strength at a glance.
-</div>
+</span>
+</>):composite?(
+<span style={{fontSize:30,fontWeight:800,color:"var(--text-dim)",fontFamily:"var(--font-mono)",lineHeight:1}}>—</span>
+):null}
+<div style={{flexBasis:"100%",fontSize:11,color:"var(--text-muted)",lineHeight:1.4,marginTop:2}}>
+Weighted blend of the six sections below (−100 bearish … +100 bullish) so you can see direction AND strength at a glance. Click a pill to jump to the section.
 </div>
 </div>
 {composite&&(
