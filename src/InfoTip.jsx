@@ -209,3 +209,83 @@ export function HeadWithTip({ label, term }) {
     </span>
   );
 }
+
+/**
+ * Tip — a wrapper that attaches a portal-rendered tooltip to any child element.
+ *
+ * Use this when a chip/badge/icon is itself the hover target (rather than
+ * adding a separate "?" icon). Replaces the native HTML `title` attribute,
+ * which has a long delay (~1.5s) and unstyled appearance on most browsers.
+ *
+ * Usage:
+ *   <Tip label="TIER 2" def="Tier 2 — important but less real-time, weighted 1.2× …">
+ *     <span style={{...badge styles}}>TIER 2</span>
+ *   </Tip>
+ */
+export function Tip({ children, def, label }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0, flip: false });
+  const anchorRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current) return;
+    const r = anchorRef.current.getBoundingClientRect();
+    const TT_W = 280;
+    const margin = 8;
+    const wantX = r.left + r.width / 2 - TT_W / 2;
+    const clampedX = Math.max(margin, Math.min(wantX, window.innerWidth - TT_W - margin));
+    const flipAbove = r.bottom + 140 > window.innerHeight;
+    setPos({ x: clampedX, y: flipAbove ? r.top - 8 : r.bottom + 8, flip: flipAbove });
+  }, [open]);
+
+  if (!def) return children;
+
+  return (
+    <>
+      <span
+        ref={anchorRef}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        style={{ display: "inline-flex", alignItems: "center" }}
+      >
+        {children}
+      </span>
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          role="tooltip"
+          style={{
+            position: "fixed",
+            left: pos.x,
+            top: pos.flip ? undefined : pos.y,
+            bottom: pos.flip ? window.innerHeight - pos.y : undefined,
+            width: 280,
+            padding: "10px 12px",
+            background: "var(--surface, #fff)",
+            color: "var(--text, #111)",
+            border: "1px solid var(--border, #d4d7db)",
+            borderRadius: 8,
+            fontSize: 12,
+            lineHeight: 1.5,
+            fontFamily: "var(--font-ui, system-ui, sans-serif)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+            zIndex: 9999,
+            pointerEvents: "none",
+            whiteSpace: "pre-wrap",
+            letterSpacing: 0,
+            textTransform: "none",
+          }}
+        >
+          {label && (
+            <div style={{ fontWeight: 700, fontFamily: "var(--font-mono, monospace)", fontSize: 11, letterSpacing: "0.06em", color: "var(--text-muted, #6b7280)", marginBottom: 4 }}>
+              {label}
+            </div>
+          )}
+          {def}
+        </div>,
+        document.body
+      )}
+    </>
+  );
+}
