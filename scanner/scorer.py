@@ -433,7 +433,8 @@ def score_breakdown(ticker: str, signals: dict[str, Any]) -> dict[str, Any]:
     )
     raw_total = base_raw + tech_pts
     combined = raw_total
-    if base_raw < 20 and combined >= SCORE_WATCH_ALERT:
+    # Mirror score_ticker's fundamentals floor (10 pts).
+    if base_raw < 10 and combined >= SCORE_WATCH_ALERT:
         combined = SCORE_WATCH_ALERT - 1
     final = max(0, min(100, combined))
 
@@ -441,7 +442,7 @@ def score_breakdown(ticker: str, signals: dict[str, Any]) -> dict[str, Any]:
         "ticker": sym,
         "components": parts,
         "raw_total": raw_total,
-        "cap_applied": raw_total > 100 or (base_raw < 20 and base_raw + tech_pts >= SCORE_WATCH_ALERT),
+        "cap_applied": raw_total > 100 or (base_raw < 10 and base_raw + tech_pts >= SCORE_WATCH_ALERT),
         "final_score": final,
         "congress_rows_sample": congress_rows[:5],
         "insider_rows_sample": qualifying[:5],
@@ -516,7 +517,11 @@ def score_ticker(ticker: str, signals: dict[str, Any]) -> int:
     tech = get_technicals(sym)
     tech_pts = int(tech.get("tech_score") or 0)
     total = base_score + tech_pts
-    if base_score < 20 and total >= SCORE_WATCH_ALERT:
+    # Fundamentals floor: tech alone cannot flag a name into Watch/Buy. Requires
+    # at least 10 pts of fundamental signal (≈ one small insider buy, one sweep,
+    # or 2 small congress disclosures) before technicals can lift into tier.
+    # Was 20 — lowered so small insider+congress pairs with strong tech reach Watch.
+    if base_score < 10 and total >= SCORE_WATCH_ALERT:
         total = SCORE_WATCH_ALERT - 1
     return max(0, min(100, total))
 

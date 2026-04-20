@@ -110,10 +110,12 @@ WIDE_UNIVERSE_RSI_LONG_MIN = float(os.getenv("WIDE_UNIVERSE_RSI_LONG_MIN", "40")
 WIDE_UNIVERSE_RSI_LONG_MAX = float(os.getenv("WIDE_UNIVERSE_RSI_LONG_MAX", "75"))
 WIDE_UNIVERSE_RSI_SHORT_MIN = float(os.getenv("WIDE_UNIVERSE_RSI_SHORT_MIN", "25"))
 WIDE_UNIVERSE_RSI_SHORT_MAX = float(os.getenv("WIDE_UNIVERSE_RSI_SHORT_MAX", "60"))
-# Universe composition — Russell 2000 (~2000 names) is opt-in because the
-# yfinance batch fetch dominates scan runtime.
+# Universe composition — Russell 2000 (~2000 names) adds ~2-3 min to scan
+# runtime (yfinance batch fetch) but captures small-cap setups. Can still be
+# disabled via env (WIDE_UNIVERSE_INCLUDE_RUSSELL_2000=false) if a fast scan
+# is needed or yfinance is degraded.
 WIDE_UNIVERSE_INCLUDE_RUSSELL_2000 = os.getenv(
-    "WIDE_UNIVERSE_INCLUDE_RUSSELL_2000", "false"
+    "WIDE_UNIVERSE_INCLUDE_RUSSELL_2000", "true"
 ).lower() in ("1", "true", "yes")
 # Master switch — disable entirely if a scan needs to stay fast or if
 # yfinance is degraded.

@@ -253,12 +253,73 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
             len(user_watchlists), len(all_user_watchlist_tickers),
         )
 
-    # Public scannable universe — union of congress + insider + flow + darkpool,
-    # filtered by price band / market cap. No personal tickers mixed in.
-    all_tickers = extract_all_tickers(signals)
-    filtered, rejected = filter_tickers_with_reasons(all_tickers, signals)
+    # ── Wide-universe pre-filter (run first, contributes to scored universe) ──
+    # Gate pass over S&P 500 + Nasdaq 100 + Dow 30 + Russell 2000 (env-toggle).
+    # Survivors join the scored universe below so Buy Alerts / Near Trigger can
+    # surface index names with strong technical setups even when UW signals are
+    # weak — provided the fundamentals floor in score_ticker is also cleared.
+    # Warm SPY OHLCV first so the wide-universe RS gate has a denominator.
+    try:
+        from scanner.price_history import get_ohlcv as _warm_ohlcv
+        _warm_ohlcv("SPY")
+    except Exception as _e:
+        logger.debug("SPY warm-cache failed (composite RS will degrade gracefully): %s", _e)
+
+    wide_long: list[str] = []
+    wide_short: list[str] = []
+    wide_direction_map: dict[str, str] = {}
+    wu: dict[str, Any] = {}
+    if WIDE_UNIVERSE_ENABLED:
+        try:
+            wu = build_wide_universe()
+            wide_long = wu.get("long", []) or []
+            wide_short = wu.get("short", []) or []
+            wide_direction_map = direction_for_ticker(wu)
+            if debug:
+                print(f"\n--- DEBUG: wide universe ---")
+                print(f"  long: {len(wide_long)}  short: {len(wide_short)}")
+                print(f"  dropped: {wu.get('stats', {}).get('dropped_by_reason', {})}")
+        except Exception as e:
+            logger.warning("Wide-universe pass failed — continuing with UW-sourced universe: %s", e)
+
+    # Wide-universe survivors that pass the price band. They've already cleared
+    # liquidity ($10M ADV), trend, RS, and RSI gates, so we don't re-run them
+    # through filter_tickers_with_reasons — that path needs a UW screener row
+    # per ticker (a throttled REST call), which would cost ~14 minutes for the
+    # ~2,500 R2000 names. Index membership implies large-enough mcap in
+    # practice. _ETF_BLACKLIST is applied defensively in case wikipedia/iShares
+    # tables include a sleeve we missed.
+    wu_details = wu.get("details", {}) if isinstance(wu, dict) else {}
+    wide_priced: list[str] = []
+    for _sym in (wide_long + wide_short):
+        _p = (wu_details.get(_sym) or {}).get("price")
+        if _p is None:
+            continue
+        if not (MIN_STOCK_PRICE <= float(_p) <= MAX_STOCK_PRICE):
+            continue
+        if _sym in _ETF_BLACKLIST:
+            continue
+        wide_priced.append(_sym)
+
+    # Public scannable universe — union of:
+    #   (1) UW signal sources (congress + insider + flow + darkpool), filtered
+    #       by price band / market cap via filter_tickers_with_reasons.
+    #   (2) Wide-universe gate survivors (index members with strong technicals).
+    # No personal tickers mixed in — public artifact stays user-agnostic.
+    uw_sourced = extract_all_tickers(signals)
+    filtered_uw, rejected = filter_tickers_with_reasons(uw_sourced, signals)
+    filtered = sorted({*filtered_uw, *wide_priced})
     signals["_filtered_tickers"] = filtered
     signals["_stocks_scanned_count"] = len(filtered)
+
+    # Direction tags exposed on the artifact so the dashboard's Technicals tab
+    # can drive the Long/Short/All filter. UW-sourced tickers without a wide-
+    # universe verdict appear as direction=null (they render under "All").
+    signals["_wide_universe"] = {
+        "long": wide_long,
+        "short": wide_short,
+        "direction_by_ticker": wide_direction_map,
+    }
 
     # Personal-tickers metadata kept on `signals` ONLY for the email + report
     # renderers (which run in-process and need these for sell alerts / "your
@@ -270,35 +331,31 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
 
     if debug:
         print(f"\n--- DEBUG: universe ---")
-        print(f"  unique tickers (union of sources): {len(all_tickers)}")
-        print(f"  after price (${MIN_STOCK_PRICE}-${MAX_STOCK_PRICE}) + mcap (if known ≥ ${MIN_MARKET_CAP:,.0f}): {len(filtered)}")
+        print(f"  UW-sourced (union of signals): {len(uw_sourced)}")
+        print(f"  UW-sourced after price/mcap filter: {len(filtered_uw)}")
+        print(f"  Wide-universe survivors added: {len(wide_priced)}")
+        print(f"  Total scored set: {len(filtered)}")
         if rejected:
-            print(f"  rejected by filters: {len(rejected)} (showing up to 25)")
+            print(f"  UW-sourced rejected by filters: {len(rejected)} (showing up to 25)")
             for t, why in rejected[:25]:
                 print(f"    {t}: {why}")
             if len(rejected) > 25:
                 print(f"    … +{len(rejected) - 25} more")
 
-    # Score every ticker that passed stock filters
+    # Score every ticker in the unified universe. Wide-universe survivors with
+    # zero UW signals will fail the fundamentals floor in score_ticker (10 pts)
+    # and won't reach Watch (35) — exactly the intent: tech alone can't flag.
     all_scores: list[tuple[str, int]] = [
         (ticker, score_ticker(ticker, signals)) for ticker in filtered
     ]
     all_scores.sort(key=lambda x: x[1], reverse=True)
     signals["_score_by_ticker"] = dict(all_scores)
 
-    # Warm the SPY OHLCV cache once up front so per-ticker composite calls
-    # (which subtract SPY returns for relative-strength) don't each pay a
-    # fetch on their first call. Cheap — one yfinance call, cached thereafter.
-    try:
-        from scanner.price_history import get_ohlcv as _warm_ohlcv
-        _warm_ohlcv("SPY")
-    except Exception as _e:
-        logger.debug("SPY warm-cache failed (composite RS will degrade gracefully): %s", _e)
-
     # Compute technicals for the public universe AND Joe's personal tickers.
-    # The personal-ticker technicals are used for the email (sell alerts, "your
-    # positions today"); they get filtered OUT of the public artifact in
-    # reporter.py::_write_scan_data_json so no user data ships.
+    # Wide-universe OHLCV is already cached by _batch_fetch so get_technicals
+    # is a cache hit for those survivors. Personal-ticker technicals are used
+    # for the email (sell alerts, "your positions today") and get filtered OUT
+    # of the public artifact in reporter.py::_write_scan_data_json.
     portfolio_positions_early = portfolio_positions_for_universe
     portfolio_tickers = portfolio_tickers_for_universe
     all_tech_tickers = list({
@@ -307,55 +364,24 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     })
     signals["_technicals"] = {t: get_technicals(t) for t in all_tech_tickers}
 
-    # ── Wide-universe pre-filter ──────────────────────────────────────────────
-    # Gate pass over S&P 500 + Nasdaq 100 + Dow 30 (+ optional R2000). Gate
-    # survivors get the full composite computed so the Technicals tab surfaces
-    # names that have a technical setup even if no UW signal fired on them.
-    # Direction (long/short) is captured so the dashboard can filter by bias.
-    wide_long: list[str] = []
-    wide_short: list[str] = []
-    wide_direction_map: dict[str, str] = {}
-    if WIDE_UNIVERSE_ENABLED:
-        try:
-            wu = build_wide_universe()
-            wide_long = wu.get("long", []) or []
-            wide_short = wu.get("short", []) or []
-            wide_direction_map = direction_for_ticker(wu)
-            # Compute composite for each survivor. _batch_fetch already warmed
-            # the OHLCV cache, so get_technicals() is a cache hit → cheap.
-            survivors = [s for s in (wide_long + wide_short)
-                         if s not in signals["_technicals"]]
-            for sym in survivors:
-                signals["_technicals"][sym] = get_technicals(sym)
-            if debug:
-                print(f"\n--- DEBUG: wide universe ---")
-                print(f"  long: {len(wide_long)}  short: {len(wide_short)}")
-                print(f"  dropped: {wu.get('stats', {}).get('dropped_by_reason', {})}")
-        except Exception as e:
-            logger.warning("Wide-universe pass failed — continuing with UW-sourced universe: %s", e)
-
-    # Direction tags are needed by the dashboard to drive the Technicals tab's
-    # Long/Short/All filter. UW-sourced tickers without a wide-universe verdict
-    # appear as direction=null on the artifact (they render under "All").
-    signals["_wide_universe"] = {
-        "long": wide_long,
-        "short": wide_short,
-        "direction_by_ticker": wide_direction_map,
-    }
-
     # Ensure screener data exists for every ticker the dashboard renders rows
-    # for — portfolio, watchlist, AND every wide-universe survivor + UW-sourced
-    # filtered ticker. Without this, the Technicals tab's PRICE column goes
-    # blank for names that weren't in UW's relative-volume top-N.
+    # for. Coverage scope is intentionally tighter now that the wide universe
+    # includes Russell 2000 (~2,500 names): per-ticker /api/screener/stocks is
+    # throttled to 0.35s/call, so blanket coverage of all wide-universe
+    # survivors would cost ~14 min — over the 10-min workflow budget.
     #
-    # The per-ticker /api/screener/stocks endpoint is throttled to 0.35s/call
-    # in unusual_whales.py; for ~200 tickers that's ~70s, well within the
-    # daily workflow's 10-minute budget.
+    # We cover:
+    #   - Personal tickers (portfolio, watchlist, multi-user watchlists)
+    #   - All UW-sourced filtered tickers (typically ~200 names)
+    #   - Wide-universe survivors that scored ≥ Watch (these surface on Buy /
+    #     Near Trigger panels and need full screener data for IV rank, earnings,
+    #     etc.). Wide-universe survivors that scored below Watch only appear on
+    #     the Technicals tab, which reads price from the OHLCV cache.
     screener = signals.get("screener") or {}
+    scored_watch_plus = {t.upper() for t, s in all_scores if s >= SCORE_WATCH_ALERT}
     coverage_tickers = (
-        {*portfolio_tickers, *watchlist_tickers, *filtered, *all_user_watchlist_tickers}
-        | {(t or "").upper() for t in (wide_long or [])}
-        | {(t or "").upper() for t in (wide_short or [])}
+        {*portfolio_tickers, *watchlist_tickers, *filtered_uw, *all_user_watchlist_tickers}
+        | scored_watch_plus
     )
     for sym in coverage_tickers:
         if sym and sym not in screener:
