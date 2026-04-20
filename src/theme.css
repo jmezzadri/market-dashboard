@@ -295,6 +295,12 @@ a:hover { text-decoration: underline; }
 }
 .tile:hover .tile-cta::after { transform: translateX(3px); }
 
+/* Scanner landing tile grid — uniform tile height (Bug #4a).
+   Stretch row heights and enforce a floor so every tile renders as
+   the same box regardless of how much child content each carries. */
+.scanner-tile-grid { align-items: stretch; }
+.scanner-tile-grid > .tile { min-height: 300px; }
+
 /* Pill button — for nav, segmented controls */
 .pill {
   display: inline-flex;
