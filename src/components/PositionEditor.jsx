@@ -399,7 +399,7 @@ export default function PositionEditor({
         {/* Numeric block */}
         <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
           <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
-            POSITION MATH · COST/SHARE ↔ TOTAL COST AUTO-CALCULATE
+            POSITION MATH · COST/SHARE ↔ TOTAL COST · PRICE/SHARE ↔ CURRENT VALUE — EDIT EITHER, THE OTHER AUTO-CALCULATES
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10 }}>
@@ -444,26 +444,39 @@ export default function PositionEditor({
             </div>
           </div>
 
-          {/* Current value — full width. No price/share input: we back-solve
-              price = value / shares on save. The platform's market data layer
-              refreshes the live price after save, so there's no reason to ask
-              the user for it manually. */}
-          <div style={{ marginBottom: 6 }}>
-            <label style={label}>CURRENT VALUE</label>
-            <input
-              style={input}
-              value={
-                shares != null && price != null
-                  ? String(shares * price)
-                  : currentValueStr
-              }
-              onChange={(e) => onChangeCurrentValue(e.target.value)}
-              inputMode="decimal"
-              placeholder="1750.00"
-            />
-            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-              Enter today's market value of the holding. Price/share is derived automatically.
+          {/* Market-price pair — mirrors the cost pair above. Edit either
+              PRICE/SHARE or CURRENT VALUE; the other auto-calculates from
+              SHARES. After save, the platform's market-data layer will
+              overwrite `price` with the live quote on the next scan, so the
+              value the user types here is just a seed. */}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 6 }}>
+            <div>
+              <label style={label}>PRICE / SHARE (MARKET)</label>
+              <input
+                style={input}
+                value={inputVal(price)}
+                onChange={(e) => onChangePrice(e.target.value)}
+                inputMode="decimal"
+                placeholder="175.00"
+              />
             </div>
+            <div>
+              <label style={label}>CURRENT VALUE (= SHARES × PRICE/SHARE)</label>
+              <input
+                style={input}
+                value={
+                  shares != null && price != null
+                    ? String(shares * price)
+                    : currentValueStr
+                }
+                onChange={(e) => onChangeCurrentValue(e.target.value)}
+                inputMode="decimal"
+                placeholder="1750.00"
+              />
+            </div>
+          </div>
+          <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4, marginBottom: 0 }}>
+            Price/share is refreshed from live market data after save; the value you enter here is a seed.
           </div>
         </div>
 
