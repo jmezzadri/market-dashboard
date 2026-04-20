@@ -6,7 +6,7 @@ import {
   NavIconHome, NavIconGauge, NavIconGrid, NavIconHeat,
   NavIconPie, NavIconList, NavIconRadar, NavIconBook,
 } from "./Shell";
-import { InfoTip } from "./InfoTip";
+import { InfoTip, Tip } from "./InfoTip";
 import SidebarAuth from "./auth/SidebarAuth";
 import LoginScreen from "./auth/LoginScreen";
 import OnboardingPanel from "./auth/OnboardingPanel";
@@ -1120,8 +1120,12 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 <div style={{width:3,height:12,background:catCol,borderRadius:1,flexShrink:0}}/>
 <span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,flex:"0 1 auto"}}>{label}</span>
 {desc&&<span onClick={e=>e.stopPropagation()} style={{flexShrink:0}}><InfoTip term={label} def={desc} size={11}/></span>}
-<span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>T{tier}</span>
-<span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+<Tip label={`TIER ${tier}`} def={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."}>
+<span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>T{tier}</span>
+</Tip>
+<Tip label={IND_FREQ[id]==="D"?"DAILY":IND_FREQ[id]==="W"?"WEEKLY":IND_FREQ[id]==="M"?"MONTHLY":IND_FREQ[id]==="Q"?"QUARTERLY":""} def={IND_FREQ[id]==="D"?"Daily release — updated every trading day.":IND_FREQ[id]==="W"?"Weekly release — typically published Thursday or Friday morning.":IND_FREQ[id]==="M"?"Monthly release — published in the first or second week after month-end.":IND_FREQ[id]==="Q"?"Quarterly release — published ~6 weeks after quarter-end. There is no true intra-quarter value.":"Release frequency unknown."}>
+<span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+</Tip>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
 <div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}} title={IND_SOURCE[id]?`Sourced from ${IND_SOURCE[id]}`:""}>{/* Bug #5d: prefix source attribution so users know who reported this value. */}{IND_SOURCE[id]?<><span style={{fontWeight:700}}>{IND_SOURCE[id]}</span><span style={{margin:"0 4px"}}>·</span></>:null}{AS_OF[id]||"—"}</div>
@@ -1178,8 +1182,12 @@ return(
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
             <h2 style={{fontSize:20,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.01em"}}>{label}</h2>
-            <span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
-            <span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+            <Tip label={`TIER ${tier}`} def={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."}>
+              <span style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
+            </Tip>
+            <Tip label={IND_FREQ[id]==="D"?"DAILY":IND_FREQ[id]==="W"?"WEEKLY":IND_FREQ[id]==="M"?"MONTHLY":IND_FREQ[id]==="Q"?"QUARTERLY":""} def={IND_FREQ[id]==="D"?"Daily release — updated every trading day.":IND_FREQ[id]==="W"?"Weekly release — typically published Thursday or Friday morning.":IND_FREQ[id]==="M"?"Monthly release — published in the first or second week after month-end.":IND_FREQ[id]==="Q"?"Quarterly release — published ~6 weeks after quarter-end. There is no true intra-quarter value.":"Release frequency unknown."}>
+              <span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+            </Tip>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
           <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{/* Bug #5d: inject source attribution between category and asOf date. */}{CATS[cat]?.label||cat}{IND_SOURCE[id]?<> · <span style={{fontWeight:700}}>{IND_SOURCE[id]}</span></>:null} · As of {AS_OF[id]}</div>
