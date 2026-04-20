@@ -7,7 +7,7 @@ from __future__ import annotations
 SD = {
     "vix": {"mean": 19.5, "sd": 8.2, "dir": "hw"},
     "hy_ig": {"mean": 220, "sd": 95, "dir": "hw"},
-    "eq_cr_corr": {"mean": 0.38, "sd": 0.22, "dir": "hw"},
+    "eq_cr_corr": {"mean": 0.75, "sd": 0.09, "dir": "hw"},  # Bug #2 recal: SPY/HYG 63d returns corr. Empirical 2015-2026 daily: mean 0.747, sd 0.087.
     "yield_curve": {"mean": 80, "sd": 95, "dir": "nw"},
     "move": {"mean": 72, "sd": 28, "dir": "hw"},
     "anfci": {"mean": 0, "sd": 0.38, "dir": "hw"},

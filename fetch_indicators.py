@@ -122,13 +122,22 @@ def fetch_all():
 
     print("  EQ-Credit Correlation...")
     try:
-        vix_s = yf.Ticker("^VIX").history(period="6mo")["Close"].dropna()
-        vix_s.index = vix_s.index.tz_localize(None)
-        hy_s = fred.get_series("BAMLH0A0HYM2", observation_start="2024-01-01").dropna() * 100
-        df = pd.DataFrame({"vix": vix_s, "hy": hy_s}).dropna()
-        if len(df) >= 30:
-            corr = round(float(df["vix"].tail(63).corr(df["hy"].tail(63))), 2)
-            results["eq_cr_corr"] = (corr, datetime.now().strftime("%b %d %Y"))
+        # Bug #2 fix: was correlating VIX *levels* with HY-spread *levels*, which
+        # measures slow trend co-movement rather than risk-off synchronization.
+        # New methodology: 63-day rolling Pearson correlation of SPY and HYG
+        # DAILY RETURNS — the standard measure of whether equities and HY credit
+        # are moving as a single risk factor. Empirical 11y range ~0.38-0.96,
+        # mean ~0.75, sd ~0.09. See macro_compute.py SD["eq_cr_corr"].
+        spy_s = yf.Ticker("SPY").history(period="12mo")["Close"].dropna().pct_change()
+        hyg_s = yf.Ticker("HYG").history(period="12mo")["Close"].dropna().pct_change()
+        spy_s.index = spy_s.index.tz_localize(None)
+        hyg_s.index = hyg_s.index.tz_localize(None)
+        df = pd.DataFrame({"spy": spy_s, "hyg": hyg_s}).dropna()
+        if len(df) >= 63:
+            corr = round(float(df["spy"].tail(63).corr(df["hyg"].tail(63))), 2)
+            # As-of is the SPY price date (most recent trading day), not wall time
+            last_date = df.index[-1].strftime("%b %d %Y")
+            results["eq_cr_corr"] = (corr, last_date)
     except Exception as e:
         print(f"    ⚠ {e}")
 
