@@ -1899,14 +1899,23 @@ function AcctCard({acct,grandTotal,convColor,convLabel,stressScore}){
 const [open,setOpen]=useState(false);
 const total=acct.positions.reduce((a,p)=>a+p.value,0);
 const pctOfTotal=(total/grandTotal*100).toFixed(1);
+// Per-account portfolio beta — value-weighted average of per-position betas,
+// scoped to this account only. Cash positions (beta=0 or null) dilute toward
+// zero, which is the desired economic behavior. Matches the portfolio-level
+// formula used for portBeta, just with a per-account denominator.
+const acctBeta=total>0
+  ?acct.positions.reduce((a,p)=>a+((p.value||0)/total)*(p.beta||0),0)
+  :0;
+const betaCol=acctBeta>1.3?"#ff9f0a":acctBeta<0.6?"#ffd60a":"var(--text)";
 return(
 <div style={{background:"var(--surface)",border:`1px solid ${ACCENT}33`,borderRadius:8,overflow:"hidden"}}>
 <div onClick={()=>setOpen(o=>!o)} style={{padding:"12px 14px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
 <div style={{flex:1,minWidth:0}}>
-<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2}}>
+<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:2,flexWrap:"wrap"}}>
 <div style={{width:8,height:8,borderRadius:"50%",background:acct.color,flexShrink:0}}/>
 <span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace"}}>{acct.label}</span>
 <span style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>{acct.sub}</span>
+<span title="Value-weighted beta of this account's positions" style={{fontSize:10,fontWeight:700,color:betaCol,fontFamily:"monospace",letterSpacing:"0.05em",padding:"1px 6px",border:`1px solid ${betaCol}55`,borderRadius:3,background:`${typeof betaCol==="string"&&betaCol.startsWith("#")?betaCol:"#ffffff"}14`}}>β {acctBeta.toFixed(2)}</span>
 </div>
 <div style={{fontSize:11,color:"var(--text-2)",marginLeft:16,lineHeight:1.5}}>{acct.note}</div>
 </div>
@@ -3099,6 +3108,13 @@ const sectionPanel={background:"var(--surface)",border:"1px solid var(--border-f
 const sectionHeader={padding:"12px 16px",borderBottom:"1px solid var(--border-faint)",display:"flex",justifyContent:"space-between",alignItems:"center"};
 const sectionTitleStyle={fontSize:16,fontWeight:800,color:"var(--text)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em"};
 const subTitleStyle={fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8,fontWeight:600};
+// Visual separator for sub-sections INSIDE a Section Panel. Each sub-panel gets
+// its own bordered frame + header row so Allocation / Notable / Positions /
+// Deployable Cash read as discrete blocks rather than one giant flow.
+const subPanelOuter={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,overflow:"hidden",marginBottom:12};
+const subPanelHeader={padding:"8px 12px",background:"var(--surface)",borderBottom:"1px solid var(--border-faint)",display:"flex",justifyContent:"space-between",alignItems:"center"};
+const subPanelTitleStyle={fontSize:11,color:"var(--text-2)",fontFamily:"var(--font-mono)",letterSpacing:"0.1em",fontWeight:700};
+const subPanelBody={padding:"10px 12px"};
 const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"10px 12px"};
 const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
 return(
@@ -3118,14 +3134,14 @@ return(
 {/* SUMMARY BAR */}
 <div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
 <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & INSIGHTS · SNAPSHOT</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
+<div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
 {[
   {label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},
   {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
-  {label:"Holdings",value:`${heldPositions.length} positions`,col:"var(--text)"},
+  {label:"Holdings",value:`${heldPositions.length}`,col:"var(--text)"},
   {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:"var(--green-text)",accent:"#30d158"},
   {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:"var(--yellow-text)",accent:"#ffd60a"},
-  {label:"Watchlist",value:`${WATCHLIST.length} tracking`,col:"var(--text)"},
+  {label:"Watchlist",value:`${WATCHLIST.length}`,col:"var(--text)"},
 ].map(({label,value,col,accent})=>(
 <div key={label} style={{background:accent?`${accent}14`:"var(--surface-2)",border:accent?`1px solid ${accent}55`:"1px solid transparent",borderLeft:accent?`3px solid ${accent}`:"1px solid transparent",borderRadius:5,padding:"10px 12px"}}>
 <div style={{fontSize:10,color:accent?col:"var(--text-2)",fontFamily:"monospace",marginBottom:4,fontWeight:accent?700:400,letterSpacing:accent?"0.08em":"normal"}}>{label.toUpperCase()}</div>
@@ -3237,7 +3253,12 @@ return(<>
 ):<>
 
 {/* ALLOCATION (wealth bars) */}
-<div style={subTitleStyle}>ALLOCATION</div>
+<div style={subPanelOuter}>
+<div style={subPanelHeader}>
+<span style={subPanelTitleStyle}>ALLOCATION</span>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>WEALTH BY ACCOUNT & ASSET CLASS</span>
+</div>
+<div style={subPanelBody}>
 {(()=>{
 const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
 const acctData=ACCOUNTS.map(acc=>{
@@ -3273,6 +3294,9 @@ return(<>
 {renderBar2("ASSET CLASS MIX",`${assetData.length} classes · ${fmt$K(grandTotal)}`,assetData,"asset")}
 </>);
 })()}
+</div>
+</div>
+{/* /ALLOCATION sub-panel */}
 
 {/* NOTABLE — rules-driven; renders nothing if zero rules fire. Keep terse:
     one short sentence per line. Never pad with "you're well-diversified"
@@ -3446,17 +3470,22 @@ return(<>
 
   if(lines.length===0)return null;
   return(
-    <>
-    <div style={subTitleStyle}>NOTABLE</div>
-    <div style={{display:"flex",flexDirection:"column",gap:4,marginBottom:14}}>
+    <div style={subPanelOuter}>
+    <div style={subPanelHeader}>
+    <span style={subPanelTitleStyle}>NOTABLE</span>
+    <span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{lines.length} insight{lines.length===1?"":"s"}</span>
+    </div>
+    <div style={subPanelBody}>
+    <div style={{display:"flex",flexDirection:"column",gap:4}}>
     {lines.map((l,i)=>(
-      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface-2)",borderLeft:`3px solid ${l.col}`,borderRadius:4}}>
+      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface)",borderLeft:`3px solid ${l.col}`,borderRadius:4}}>
       <span style={{width:6,height:6,borderRadius:"50%",background:l.col,flexShrink:0}}/>
       <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{l.body}</span>
       </div>
     ))}
     </div>
-    </>
+    </div>
+    </div>
   );
 })()}
 
@@ -3464,8 +3493,12 @@ return(<>
     exposure first). Click column headers to re-sort. Row click opens the
     detail modal. Columns: Ticker, Name, Sector, Price, Cost Basis, PnL $,
     PnL %, Beta, % Wealth, Account. */}
-<div style={subTitleStyle}>POSITIONS · CLICK A ROW FOR DETAIL · SORT BY ANY COLUMN</div>
-<div style={{marginBottom:10}}>
+<div style={subPanelOuter}>
+<div style={subPanelHeader}>
+<span style={subPanelTitleStyle}>POSITIONS</span>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>CLICK A ROW FOR DETAIL · SORT BY ANY COLUMN</span>
+</div>
+<div style={subPanelBody}>
 <PositionsTable
   rows={heldPositions}
   grandTotal={grandTotal}
@@ -3477,16 +3510,24 @@ return(<>
   onDelete={portfolioAuthed?deletePositionInline:undefined}
 />
 </div>
+</div>
 
 {/* DEPLOYABLE CASH */}
-<div style={subTitleStyle}>DEPLOYABLE CASH (TACTICAL ACCOUNTS)</div>
-<div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:10}}>
+<div style={subPanelOuter}>
+<div style={subPanelHeader}>
+<span style={subPanelTitleStyle}>DEPLOYABLE CASH</span>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>TACTICAL ACCOUNTS · {fmt$Full(totalDeployable||0)}</span>
+</div>
+<div style={subPanelBody}>
+<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
 {cashByAcct.length>0?cashByAcct.map(c=>(
 <div key={c.id} style={{...cardStyle,flex:"1 1 180px"}}>
 <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.05em"}}>{c.label}</div>
 <div style={{fontSize:14,fontWeight:800,color:"#30d158",fontFamily:"var(--font-mono)",marginTop:3}}>{fmt$Full(c.cash)}</div>
 </div>
 )):<div style={{fontSize:12,color:"var(--text-muted)"}}>No cash in tactical accounts.</div>}
+</div>
+</div>
 </div>
 
 </>}
