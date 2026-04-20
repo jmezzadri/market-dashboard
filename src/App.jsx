@@ -258,7 +258,7 @@ credit:  {label:"Credit Markets",      color:ACCENT},
 rates:   {label:"Rates & Duration",    color:ACCENT},
 fincond: {label:"Financial Conditions",color:ACCENT},
 bank:    {label:"Bank & Money Supply", color:ACCENT},
-labor:   {label:"Labor & Economy",     color:ACCENT},
+labor:   {label:"Growth & Real Economy",color:ACCENT},
 };
 
 function fmtV(id,v){
@@ -1128,7 +1128,7 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 </Tip>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
-<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}} title={IND_SOURCE[id]?`Sourced from ${IND_SOURCE[id]}`:""}>{/* Bug #5d: prefix source attribution so users know who reported this value. */}{IND_SOURCE[id]?<><span style={{fontWeight:700}}>{IND_SOURCE[id]}</span><span style={{margin:"0 4px"}}>·</span></>:null}{AS_OF[id]||"—"}</div>
+<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}} title={IND_SOURCE[id]?`Sourced from ${IND_SOURCE[id]}`:""}>{/* Bug #5d: source attribution. Bug #1006: category label for discoverability. */}{IND_SOURCE[id]?<><span style={{fontWeight:700}}>{IND_SOURCE[id]}</span><span style={{margin:"0 4px"}}>·</span></>:null}<span style={{fontWeight:600}}>{CATS[cat]?.label||cat}</span><span style={{margin:"0 4px"}}>·</span>{AS_OF[id]||"—"}</div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:15,fontWeight:800,color:colT,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -2565,7 +2565,7 @@ return(
 
 {loading&&(
 <div style={{padding:"20px",textAlign:"center"}}>
-<div style={{fontSize:13,color:"var(--text)",fontFamily:"monospace"}}>Analyzing {Object.keys(IND).length} indicators across rates, credit, banking, labor, and valuation...</div>
+<div style={{fontSize:13,color:"var(--text)",fontFamily:"monospace"}}>Analyzing {Object.keys(IND).length} indicators across rates, credit, banking, growth, and valuation...</div>
 <div style={{marginTop:8,fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>Usually takes 5-10 seconds</div>
 </div>
 )}
@@ -3861,7 +3861,7 @@ return(<>
 <div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)"}}>METHODOLOGY & DATA SOURCES</div>
 {[
 {title:"What is the Macro Dashboard?",body:"A market stress monitor tracking statistically-calibrated economic and financial indicators synthesized into a single composite stress score (0–100). The score drives regime classification (Low / Normal / Elevated / Extreme) and allocation guidance. Data is sourced exclusively from public databases — FRED, CBOE, ICE BofA, FDIC, ISM, BLS, Shiller, NY Fed, and the St. Louis Fed."},
-{title:"What indicators are tracked and how frequently do they update?",body:"Indicators span 6 categories: Equity & Vol (VIX, EQ-Credit Correlation, SKEW Index), Credit Markets (HY-IG Spread, Corp Bond Distress Index, HY Effective Yield), Rates & Duration (10Y-2Y Slope, 10Y TIPS Real Rate, MOVE Index, Kim-Wright Term Premium), Financial Conditions (ANFCI, STLFSI, USD Index, USD Funding Spread), Bank & Money Supply (SLOOS C&I, SLOOS CRE, BKX/SPX Ratio, Bank Unrealized Losses, 3Y Credit Growth, YoY Bank Credit), Labor & Economy (ISM PMI, Copper/Gold Ratio, Initial Claims, JOLTS Quits, Shiller CAPE). Each card displays its frequency badge: D = Daily, W = Weekly, M = Monthly, Q = Quarterly."},
+{title:"What indicators are tracked and how frequently do they update?",body:"Indicators span 6 categories: Equity & Vol (VIX, EQ-Credit Correlation, SKEW Index), Credit Markets (HY-IG Spread, Corp Bond Distress Index, HY Effective Yield), Rates & Duration (10Y-2Y Slope, 10Y TIPS Real Rate, MOVE Index, Kim-Wright Term Premium), Financial Conditions (ANFCI, STLFSI, USD Index, USD Funding Spread), Bank & Money Supply (SLOOS C&I, SLOOS CRE, BKX/SPX Ratio, Bank Unrealized Losses, 3Y Credit Growth, YoY Bank Credit), Growth & Real Economy (ISM PMI, Copper/Gold Ratio, Initial Claims, JOLTS Quits, Shiller CAPE). Each card displays its frequency badge: D = Daily, W = Weekly, M = Monthly, Q = Quarterly."},
 {title:"How is the composite stress score calculated?",body:"Each indicator is calibrated against its own long-run mean and standard deviation (SD). The raw SD score measures how many standard deviations the current reading is from its historical average, with direction adjusted so that higher always means more stress. Scores are weighted by tier — T1 indicators (1.5x weight) are the most market-sensitive, T2 (1.2x) are important but less real-time, T3 (1.0x) provide structural context. The weighted average SD score is mapped to a 0–100 scale anchored to historical crises (GFC = 92, COVID = 82, 2022 Rate Shock = 62)."},
 {title:"What are the 4 stress regimes?",body:"LOW (0–20): Historically rare, genuinely risk-on conditions. VIX well below mean, credit spreads tight. NORMAL (20–50): Where markets spend most of their time — the baseline. Mild background stress. ELEVATED (50–75): Active risk management warranted. Sell covered calls, trim beta, rotate defensive. 2022 rate shock peaked at 62; SVB stress hit 58. EXTREME (75–100): Reserved for historical crises. COVID peaked at 82; GFC peaked at 92. Maximum defensiveness."},
 {title:"What does color mean?",body:"Color always means stress level — nothing else. Green = Low stress. Yellow = Normal. Orange = Elevated. Red = Extreme. Any time you see color on an indicator, a bar, or a chart element, it tells you exactly where that reading sits in the stress spectrum."},
