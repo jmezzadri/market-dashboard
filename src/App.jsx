@@ -199,6 +199,44 @@ const IND_FREQ={
   sloos_ci:"Q",sloos_cre:"Q",bank_unreal:"Q",credit_3y:"Q",
 };
 
+// Data source attribution per indicator (Bug #5d — data-provenance stamp).
+// Short-form labels fit a small badge/footer. Used by IndicatorCard and
+// IndicatorModal to show "<SRC> · as of <date>" next to each value, so
+// users can sanity-check where a number came from at a glance. Grouping
+// by origin (not by vendor — e.g. yield_curve values come via FRED but
+// originate at Treasury):
+//   CBOE         — VIX, SKEW (option-implied)
+//   ICE BofA     — HY-IG spread, HY effective yield, MOVE
+//   Yahoo (calc) — EQ-Credit correlation, Copper/Gold ratio, BKX/SPX ratio
+//                  (values COMPUTED locally from price feeds, not sourced)
+//   Treasury     — 10Y-2Y slope, 10Y TIPS
+//   Chicago Fed  — ANFCI
+//   St Louis Fed — STLFSI
+//   NY Fed       — Term premium (Kim-Wright), CMDI
+//   Fed Reserve  — SLOOS C&I, SLOOS CRE, USD index (H.10), CPFF, bank credit (H.8),
+//                  3Y credit growth (H.8)
+//   FDIC         — Bank unrealized losses (QBP)
+//   ISM          — Manufacturing PMI
+//   BLS          — JOLTS quits rate
+//   Shiller      — CAPE (Robert Shiller / Yale)
+//   DOL          — Initial jobless claims (via FRED, originates DOL)
+const IND_SOURCE={
+  vix:"CBOE",skew:"CBOE",
+  hy_ig:"ICE BofA",loan_syn:"ICE BofA",move:"ICE BofA",
+  eq_cr_corr:"Yahoo",copper_gold:"Yahoo",bkx_spx:"Yahoo",
+  yield_curve:"Treasury",real_rates:"Treasury",
+  anfci:"Chicago Fed",
+  stlfsi:"St Louis Fed",
+  term_premium:"NY Fed",cmdi:"NY Fed",
+  sloos_ci:"Fed Reserve",sloos_cre:"Fed Reserve",usd:"Fed Reserve",cpff:"Fed Reserve",
+  bank_credit:"Fed Reserve",credit_3y:"Fed Reserve",
+  bank_unreal:"FDIC",
+  ism:"ISM",
+  jolts_quits:"BLS",
+  cape:"Shiller",
+  jobless:"DOL",
+};
+
 const WEIGHTS={
 vix:1.5,hy_ig:1.5,eq_cr_corr:1.5,yield_curve:1.5,
 move:1.2,anfci:1.2,stlfsi:1.2,real_rates:1.2,sloos_ci:1.2,
@@ -1080,7 +1118,7 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 <span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
-<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]||"—"}</div>
+<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}} title={IND_SOURCE[id]?`Sourced from ${IND_SOURCE[id]}`:""}>{/* Bug #5d: prefix source attribution so users know who reported this value. */}{IND_SOURCE[id]?<><span style={{fontWeight:700}}>{IND_SOURCE[id]}</span><span style={{margin:"0 4px"}}>·</span></>:null}{AS_OF[id]||"—"}</div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:15,fontWeight:800,color:colT,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -1138,7 +1176,7 @@ return(
             <span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{CATS[cat]?.label||cat} · As of {AS_OF[id]}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{/* Bug #5d: inject source attribution between category and asOf date. */}{CATS[cat]?.label||cat}{IND_SOURCE[id]?<> · <span style={{fontWeight:700}}>{IND_SOURCE[id]}</span></>:null} · As of {AS_OF[id]}</div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
@@ -2986,7 +3024,7 @@ return(
       <Tile
         eyebrow="Daily Opp Scan"
         title="Full scanner browse"
-        sub={`Buy/watch alerts, Congress/insider/flow/technicals tabs · Last scan: ${lastScanLabel}`}
+        sub={`Buy/watch alerts, Congress/insider/flow/technicals tabs · UW · scanned ${lastScanLabel}`}
         accent="#30d158"
         kpi={{value:buyCount, unit:buyCount===1?"buy alert":"buy alerts", color:buyCount>0?"#30d158":"var(--text-muted)"}}
         onClick={()=>navTo("scanner")}
@@ -3306,6 +3344,7 @@ return(<>
     heldTickers={heldTickers}
     onOpenTicker={(t)=>setTickerDetail(t)}
     emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
+    provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
   />
 )}
 {subPanel("#ffd60a","NEAR TRIGGER","(Composite Score 40–59)",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
@@ -3316,6 +3355,7 @@ return(<>
     heldTickers={heldTickers}
     onOpenTicker={(t)=>setTickerDetail(t)}
     emptyMessage="Nothing near trigger today."
+    provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
   />
 )}
 {subPanel("#64748b","OTHER WATCHLIST",null,`${WATCHLIST.length} tracking`,
@@ -3327,6 +3367,7 @@ return(<>
       heldTickers={heldTickers}
       onOpenTicker={(t)=>setTickerDetail(t)}
       emptyMessage="No tickers on your watchlist. Add one below."
+      provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
     />
     {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>}
   </>
