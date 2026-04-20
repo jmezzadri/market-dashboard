@@ -16,6 +16,7 @@ import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
 import SubCompositeStrip from "./components/SubCompositeStrip";
 import WatchlistTable from "./components/WatchlistTable";
+import PositionsTable from "./components/PositionsTable";
 import { supabase } from "./lib/supabase";
 import ReportBug from "./reportbug/ReportBug";
 import ErrorBoundary from "./ErrorBoundary";
@@ -1279,8 +1280,22 @@ const scoreCol=score==null?"var(--text-dim)":score>=60?"#30d158":score>=35?"#ffd
 const scoreLabel=score==null?"NO SCORE":score>=60?"BUY":score>=35?"NEAR TRIGGER":score>=20?"WATCH":"SELL-WATCH";
 // Manual-track position: on the watchlist but not in the scanner's scored
 // universe yet. We still want to show a useful modal (name, theme, held info)
-// rather than a box full of dashes.
-const isManualTrack=!!watchlistEntry&&score==null&&Object.keys(sc).length===0;
+// rather than a box full of dashes. Also fires for OWNED names that haven't
+// been picked up by a scanner run yet (so you still get a clear "pending"
+// message instead of a fund/ETF disclaimer that doesn't apply).
+const isManualTrack=(!!watchlistEntry||heldIn.length>0)&&score==null&&Object.keys(sc).length===0;
+// Classify why data is missing so the banner copy matches reality:
+//   - "crypto" — BTCUSD / ETHUSD and similar (scanner can't score crypto proxies)
+//   - "fund"   — 5-char mutual-fund tickers ending in X (FXAIX, FSKAX, NHXINT906)
+//               or known fund sectors ("HY Bonds", "Intl Equity", "Commodity")
+//   - "pending"— single-name equity (owned or watchlisted) the scanner just
+//               hasn't scored yet on the last run. RCAT added to watchlist
+//               yesterday lives here — the data WILL populate next scan.
+const fundSectors=new Set(["Commodity","Metals","Crypto","HY Bonds","Intl Equity"]);
+const heldSector=heldIn[0]?.p?.sector;
+const isCryptoProxy=/USD$/i.test(ticker||"")||/USDT$/i.test(ticker||"");
+const isLikelyFund=/^[A-Z]{4,}X$/.test(ticker||"")||/^NH[A-Z]+\d+$/.test(ticker||"")||fundSectors.has(heldSector);
+const manualTrackKind=isCryptoProxy?"crypto":isLikelyFund?"fund":"pending";
 // Performance (from technicals — scanner stores as fractions: 0.05 = 5%)
 const fmtPct=v=>v==null?null:`${v>=0?"+":""}${(v*100).toFixed(1)}%`;
 const wk=tech.week_change,mo=tech.month_change,yt=tech.ytd_change;
@@ -1504,7 +1519,13 @@ return(
 <div style={panelStyle}>
 {isManualTrack&&(
 <div style={{fontSize:11,color:"var(--text-muted)",background:"var(--surface-3)",border:"1px solid var(--border-faint)",borderRadius:5,padding:"7px 10px",marginBottom:10,lineHeight:1.45}}>
-<span style={{color:"var(--text)",fontWeight:600}}>No subcomposite data.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}Subcomposite scores are computed for single-name equities only — not funds, ETFs, or crypto proxies (BTCUSD / ETHUSD). Hold info and watchlist context still render above; directional scores will stay blank for this symbol.
+{manualTrackKind==="pending"?(
+<><span style={{color:"var(--text)",fontWeight:600}}>Scanner data pending.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}This ticker isn't in the last scan yet — directional scores will populate on the next run. News, analyst ratings, and {heldIn.length>0?"position detail":"watchlist context"} still render below if available.</>
+):manualTrackKind==="crypto"?(
+<><span style={{color:"var(--text)",fontWeight:600}}>No subcomposite data.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}Crypto proxies (BTCUSD / ETHUSD) don't have the single-name equity signals (options flow, insider/congress filings, analyst ratings) the composite blends, so directional scores stay blank. Hold info and watchlist context still render above.</>
+):(
+<><span style={{color:"var(--text)",fontWeight:600}}>No subcomposite data.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}Subcomposite scores are computed for single-name equities only — not mutual funds, ETFs, or broad-index funds. Hold info and watchlist context still render above; directional scores will stay blank for this symbol.</>
+)}
 </div>
 )}
 <div style={{display:"flex",alignItems:"center",gap:14,marginBottom:10}}>
@@ -3086,36 +3107,16 @@ return(
 <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
 
 {(()=>{
-const oppCard=(opts)=>{
-  const {keyId,ticker,score,price,companyName,accentCol,held,theme,sector}=opts;
-  return(
-  <div key={keyId} style={{...cardStyle,cursor:"pointer",padding:0,overflow:"hidden"}} onClick={()=>setTickerDetail(ticker)}>
-  <div style={{padding:"8px 10px"}}>
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3,gap:8}}>
-  <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
-  <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{ticker}</span>
-  {held&&<span style={{...tagStyle("var(--accent)"),cursor:"pointer"}}>OWNED</span>}
-  <span style={{fontSize:11,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{companyName}</span>
-  </div>
-  <div style={{display:"flex",alignItems:"center",gap:8,flexShrink:0}}>
-  {/* Legacy 0-100 Score removed 2026-04-19: it's a bullish-only trigger
-      tally that could disagree with OVERALL by 40+ points (e.g. MSFT Score 35
-      vs OVERALL -3 when TECH/OPT are bearish). OVERALL in the strip below
-      is now the sole directional read. */}
-  <span style={{fontSize:11,color:"var(--text-dim)"}}>→</span>
-  </div>
-  </div>
-  <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>
-  {price?fmt$Full(price):"—"} {theme?`· ${theme}`:""} {sector?`· ${sector}`:""}
-  </div>
-  </div>
-  {/* 6-bar sub-composite strip — TECH/OPT/INS/CON/ANL/DP + OVERALL chip.
-      Same component used on the Scanner page RichCard so the two pages
-      agree on signal direction at a glance. */}
-  <SubCompositeStrip ticker={ticker} signals={scanData?.signals}/>
-  </div>
-  );
-};
+// Translate scanner output rows ({ticker, score, current_price, ...}) into
+// the {ticker, name, theme} shape that WatchlistTable consumes. Name comes
+// from the screener full_name when available; theme is left blank (BUY /
+// NEAR have no theme copy — the panel title IS the theme).
+const screenerMap=scanData?.signals?.screener||{};
+const toWlRows=(items)=>(items||[]).map(it=>({
+  ticker:it.ticker,
+  name:screenerMap[it.ticker]?.full_name||"",
+  theme:"",
+}));
 
 // SUB-PANEL 1: SCANNER — TRIGGERED (green accent)
 const triggered=scanData?.buy_opportunities||[];
@@ -3133,31 +3134,35 @@ const subPanel=(accentCol,title,count,children)=>(
 
 return(<>
 {subPanel("#30d158","BUY ALERTS",`${triggered.length} today`,
-  triggered.length===0?
-    <div style={{fontSize:11,color:"var(--text-muted)",padding:"4px 2px"}}>No buy alerts today · Last scan: {lastScanLabel}</div>:
-    triggered.map(item=>oppCard({keyId:`trg-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"#30d158",held:heldTickers.has(item.ticker),source:"triggered"}))
+  <WatchlistTable
+    rows={toWlRows(triggered)}
+    signals={scanData?.signals}
+    screener={screenerMap}
+    heldTickers={heldTickers}
+    onOpenTicker={(t)=>setTickerDetail(t)}
+    emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
+  />
 )}
 {subPanel("#ffd60a","NEAR TRIGGER",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
-  nearTrigger.length===0?
-    <div style={{fontSize:11,color:"var(--text-muted)",padding:"4px 2px"}}>Nothing near trigger today.</div>:
-    nearTrigger.map(item=>oppCard({keyId:`near-${item.ticker}`,ticker:item.ticker,score:item.score,price:item.current_price,companyName:scanData?.signals?.screener?.[item.ticker]?.full_name||"",accentCol:"var(--yellow-text)",held:heldTickers.has(item.ticker),source:"near"}))
+  <WatchlistTable
+    rows={toWlRows(nearTrigger)}
+    signals={scanData?.signals}
+    screener={screenerMap}
+    heldTickers={heldTickers}
+    onOpenTicker={(t)=>setTickerDetail(t)}
+    emptyMessage="Nothing near trigger today."
+  />
 )}
 {subPanel("#64748b","OTHER WATCHLIST",`${WATCHLIST.length} tracking`,
   <>
-    {WATCHLIST.length>0&&(
-      <WatchlistTable
-        rows={WATCHLIST}
-        signals={scanData?.signals}
-        screener={scanData?.signals?.screener||{}}
-        heldTickers={heldTickers}
-        onOpenTicker={(t)=>setTickerDetail(t)}
-      />
-    )}
-    {WATCHLIST.length===0&&(
-      <div style={{fontSize:12,color:"var(--text-muted)",fontFamily:"var(--font-mono)",padding:"6px 2px"}}>
-        No tickers on your watchlist. Add one below.
-      </div>
-    )}
+    <WatchlistTable
+      rows={WATCHLIST}
+      signals={scanData?.signals}
+      screener={screenerMap}
+      heldTickers={heldTickers}
+      onOpenTicker={(t)=>setTickerDetail(t)}
+      emptyMessage="No tickers on your watchlist. Add one below."
+    />
     {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio}/>}
   </>
 )}
@@ -3415,57 +3420,18 @@ return(<>
   );
 })()}
 
-{/* POSITIONS — rich data, no signal labels, sorted by value DESC */}
-<div style={subTitleStyle}>POSITIONS · LARGEST FIRST · CLICK FOR DETAIL</div>
-<div style={{display:"flex",flexDirection:"column",gap:6,marginBottom:10}}>
-{heldPositions.map(p=>{
-  const wealthPct=(p.value/grandTotal*100).toFixed(1);
-  const cardKey=`pos-${p.acctId}-${p.ticker}`;
-  const pnlPct=p.avgCost?((p.price/p.avgCost-1)*100):null;
-  const pnl$=p.avgCost?(p.value-p.avgCost*p.shares):null;
-  const pnlCol=pnlPct==null?"var(--text-muted)":pnlPct>=0?"#30d158":"#ff453a";
-  const otherAccts=heldByTicker[p.ticker]?.accounts?.filter(a=>a.acctId!==p.acctId)||[];
-  // Inline strip shows per-section signal direction; the detail modal (opened
-  // on card click) shows the full composite breakdown + account context.
-  const showStrip=!SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector)&&!BROAD_INDEX_FUNDS.has(p.ticker)&&p.acctTactical;
-  return(
-  <div key={cardKey} style={{...cardStyle,cursor:"pointer",padding:0,overflow:"hidden"}} onClick={()=>setTickerDetail(p.ticker)}>
-  <div style={{padding:"10px 12px"}}>
-  <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4,gap:8}}>
-  <div style={{display:"flex",alignItems:"center",gap:8,minWidth:0,flex:1}}>
-  <span style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{p.ticker}</span>
-  <span style={{fontSize:11,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{p.name}</span>
-  </div>
-  <div style={{display:"flex",alignItems:"center",gap:10,flexShrink:0}}>
-  <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)",fontWeight:700}}>{fmt$K(p.value)}</span>
-  <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{wealthPct}%</span>
-  <span style={{fontSize:11,color:"var(--text-dim)"}}>→</span>
-  </div>
-  </div>
-  <div style={{display:"flex",gap:12,flexWrap:"wrap",fontSize:11,fontFamily:"var(--font-mono)",marginBottom:(p.analysis||otherAccts.length>0)?6:0}}>
-  <span style={{color:"var(--text-muted)"}}>{fmt$Full(p.price)}</span>
-  {pnl$!=null&&<span style={{color:pnlCol,fontWeight:600}}>{pnl$>=0?"+":""}{fmt$Full(pnl$)}</span>}
-  {pnlPct!=null&&<span style={{color:pnlCol,fontWeight:600}}>{pnlPct>=0?"+":""}{pnlPct.toFixed(1)}%</span>}
-  <span style={{color:"var(--text-dim)"}}>β {p.beta.toFixed(2)}</span>
-  <span style={{color:"var(--text-dim)"}}>{p.sector}</span>
-  <span style={{color:"var(--text-dim)"}}>{p.acctLabel}</span>
-  </div>
-  {otherAccts.length>0&&(
-  <div style={{fontSize:11,color:"var(--text-muted)",marginBottom:p.analysis?4:0}}>
-  Also held in: {otherAccts.map(a=>`${a.acctLabel} (${fmt$K(a.value)})`).join(", ")}
-  </div>
-  )}
-  {p.analysis&&<div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>{p.analysis}</div>}
-  </div>
-  {/* 6-bar sub-composite strip — only for in-scope tactical holdings with
-      scanner data. Broad-index funds and out-of-scope sectors render
-      without it (component returns null when composite data is absent,
-      but we also gate here to avoid hitting computeSectionComposites
-      for obviously-unscored holdings). */}
-  {showStrip&&<SubCompositeStrip ticker={p.ticker} signals={scanData?.signals}/>}
-  </div>
-  );
-})}
+{/* POSITIONS — sortable table. Default sort: % of wealth DESC (biggest
+    exposure first). Click column headers to re-sort. Row click opens the
+    detail modal. Columns: Ticker, Name, Sector, Price, Cost Basis, PnL $,
+    PnL %, Beta, % Wealth, Account. */}
+<div style={subTitleStyle}>POSITIONS · CLICK A ROW FOR DETAIL · SORT BY ANY COLUMN</div>
+<div style={{marginBottom:10}}>
+<PositionsTable
+  rows={heldPositions}
+  grandTotal={grandTotal}
+  onOpenTicker={(t)=>setTickerDetail(t)}
+  emptyMessage="No positions."
+/>
 </div>
 
 {/* DEPLOYABLE CASH */}

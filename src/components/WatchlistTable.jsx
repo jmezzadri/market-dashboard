@@ -51,7 +51,7 @@ function ScoreCell({ score, direction }) {
   );
 }
 
-export default function WatchlistTable({ rows, signals, screener, onOpenTicker, heldTickers }) {
+export default function WatchlistTable({ rows, signals, screener, onOpenTicker, heldTickers, emptyMessage }) {
   // Each row: { ticker, name, theme }. We enrich with composites + sector
   // here so sorting has all the data pre-computed (avoids recomputing on
   // every sort click).
@@ -135,7 +135,7 @@ export default function WatchlistTable({ rows, signals, screener, onOpenTicker, 
         padding: "10px 12px", fontSize: 12, color: "var(--text-muted)",
         fontFamily: "var(--font-mono)",
       }}>
-        No tickers on your watchlist. Add one below.
+        {emptyMessage || "No tickers on your watchlist. Add one below."}
       </div>
     );
   }
