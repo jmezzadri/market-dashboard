@@ -130,9 +130,16 @@ export default function PositionEditor({
   const isEdit = mode === "edit" && existing;
 
   // ── form state ────────────────────────────────────────────────────────────
-  const [accountId, setAccountId] = useState(
-    isEdit ? existing.accountId : (accounts?.[0]?.id ?? "")
-  );
+  // Account is a FREE-FORM label (typed string), not an ID. In edit mode we
+  // lock it to the existing label. In add mode the user can either pick an
+  // existing account from the datalist suggestions or type a brand-new name
+  // — on save we find-or-create the account row and use its id for the
+  // position insert. This way the component makes no assumptions about what
+  // account names make sense for any given user.
+  const existingAcctLabel = isEdit
+    ? (accounts?.find((a) => a.id === existing.accountId)?.label || existing.acctLabel || "")
+    : "";
+  const [accountLabel, setAccountLabel] = useState(existingAcctLabel);
   const [ticker, setTicker]   = useState(isEdit ? existing.ticker || "" : "");
   const [sector, setSector]   = useState(isEdit ? existing.sector || "" : "");
 
@@ -213,17 +220,44 @@ export default function PositionEditor({
   // `value` actually is in the DB, so compute it from whichever pair the
   // user gave us.
   const tickerClean = ticker.trim().toUpperCase();
+  const accountLabelClean = accountLabel.trim();
   const validation = useMemo(() => {
-    if (!accountId)     return "Pick an account.";
+    if (!accountLabelClean) return "Account name is required.";
+    if (accountLabelClean.length > 80) return "Account name is too long — max 80 chars.";
     if (!tickerClean)   return "Ticker is required.";
     if (tickerClean.length > 10) return "Ticker looks too long — max 10 chars.";
     // We need enough to compute `value`:
     const haveValue = currentValue != null && Number.isFinite(currentValue);
     if (!haveValue) {
-      return "Enter Shares and either Price or Current Value.";
+      return "Enter Shares and Current Value.";
     }
     return null;
-  }, [accountId, tickerClean, currentValue]);
+  }, [accountLabelClean, tickerClean, currentValue]);
+
+  // Resolve the typed account label to an account_id. If no account with
+  // that exact label exists, create one and return its id. Case-insensitive
+  // match against existing accounts so "Roth IRA" and "roth ira" don't
+  // produce duplicate rows.
+  const resolveAccountId = async () => {
+    const target = accountLabelClean;
+    const match = (accounts || []).find(
+      (a) => (a.label || "").trim().toLowerCase() === target.toLowerCase()
+    );
+    if (match) return match.id;
+    // Not found — create a new account row. sort_order = current count so it
+    // lands at the end of the list; the user can reorder elsewhere.
+    const { data, error } = await supabase
+      .from("accounts")
+      .insert({
+        user_id: userId,
+        label:   target,
+        sort_order: (accounts?.length ?? 0),
+      })
+      .select("id")
+      .single();
+    if (error) throw error;
+    return data.id;
+  };
 
   const handleSave = async () => {
     if (validation) { setErr(validation); return; }
@@ -252,12 +286,14 @@ export default function PositionEditor({
         if (error) throw error;
         onSaved?.(data);
       } else {
+        // Find-or-create the account by label, then insert the position.
+        const account_id = await resolveAccountId();
         const { data, error } = await supabase
           .from("positions")
           .insert({
             ...payload,
             user_id:    userId,
-            account_id: accountId,
+            account_id,
             sort_order: 9999,   // push to end; re-sort is a separate concern
           })
           .select()
@@ -314,17 +350,27 @@ export default function PositionEditor({
           <div>
             <label style={label}>ACCOUNT</label>
             {isEdit ? (
-              <input style={inputLocked} value={existing.acctLabel || ""} readOnly />
+              <input style={inputLocked} value={existing.acctLabel || existingAcctLabel} readOnly />
             ) : (
-              <select
-                value={accountId}
-                onChange={(e) => setAccountId(e.target.value)}
-                style={input}
-              >
-                {(accounts || []).map((a) => (
-                  <option key={a.id} value={a.id}>{a.label}</option>
-                ))}
-              </select>
+              <>
+                <input
+                  style={input}
+                  value={accountLabel}
+                  onChange={(e) => setAccountLabel(e.target.value)}
+                  list="position-editor-account-suggestions"
+                  placeholder="Brokerage, Roth IRA, 401(k)…"
+                  autoComplete="off"
+                  spellCheck={false}
+                />
+                <datalist id="position-editor-account-suggestions">
+                  {(accounts || []).map((a) => (
+                    <option key={a.id} value={a.label} />
+                  ))}
+                </datalist>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                  Type any name. Pick from your existing accounts or enter a new one — it'll be created.
+                </div>
+              </>
             )}
           </div>
           <div>
