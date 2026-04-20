@@ -213,8 +213,13 @@ export default function WatchlistTable({ rows, signals, screener, onOpenTicker, 
               </td>
               <td style={{
                 padding: "7px 6px", color: "var(--text-muted)",
-                maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-              }} title={row.name}>{row.name || "—"}</td>
+                whiteSpace: "nowrap",
+              }} title={row.name}>
+                {/* Bug #1: truncate to 20 chars; full name available on hover via title */}
+                {row.name
+                  ? (row.name.length > 20 ? row.name.slice(0, 20) + "…" : row.name)
+                  : "—"}
+              </td>
               <td style={{
                 padding: "7px 6px", color: "var(--text-dim)",
                 fontFamily: "var(--font-mono)", fontSize: 11,
