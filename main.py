@@ -20,13 +20,17 @@ from config import (
     MAX_STOCK_PRICE,
     MIN_MARKET_CAP,
     MIN_STOCK_PRICE,
-    SCORE_BUY_ALERT,
     SCORE_WATCH_ALERT,
     WIDE_UNIVERSE_ENABLED,
 )
 from scanner import notifier, reporter, schwab, unusual_whales as uw
 from scanner.market_news import get_market_news
 from scanner.price_history import clear_ohlcv_cache, clear_price_changes_cache
+from scanner.signal_composite import (
+    SCORE_BUY_ALERT_COMPOSITE,
+    SCORE_WATCH_ALERT_COMPOSITE,
+    compute_composite,
+)
 from scanner.technicals import clear_tech_cache, get_technicals
 from scanner.universe_builder import build_wide_universe, direction_for_ticker
 from scanner.covered_calls import find_covered_call
@@ -390,15 +394,16 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
                 screener[sym] = row
     signals["screener"] = screener
 
+    # Legacy-tier bucket used ONLY to scope enrichment (chain cache, options
+    # analyst ratings, etc.). The authoritative Buy Alert / Near Trigger tiers
+    # are rebuilt on the Signal Composite further down — see `buy_scored` /
+    # `watch_scored`.
+    legacy_watch_and_above = [(t, s) for t, s in all_scores if s >= SCORE_WATCH_ALERT]
+
     if debug:
-        print(f"\n--- DEBUG: top 10 scores (buy ≥{SCORE_BUY_ALERT}, watch {SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1}) ---")
+        print(f"\n--- DEBUG: top 10 legacy scores (watch floor {SCORE_WATCH_ALERT}) ---")
         for t, s in all_scores[:10]:
-            if s >= SCORE_BUY_ALERT:
-                tier = "BUY"
-            elif s >= SCORE_WATCH_ALERT:
-                tier = "WATCH"
-            else:
-                tier = "—"
+            tier = "WATCH+" if s >= SCORE_WATCH_ALERT else "—"
             print(f"  {t:6}  {s:3}/100  [{tier}]")
         print(
             f"\n--- DEBUG: all {len(all_scores)} filtered tickers (watch floor {SCORE_WATCH_ALERT}) ---"
@@ -408,23 +413,16 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
             print(f"  {t:6}  {s:3}/100  ({flagged})")
         if len(all_scores) > 50:
             print(f"  … +{len(all_scores) - 50} more not shown")
-        n_buy = sum(1 for _, s in all_scores if s >= SCORE_BUY_ALERT)
-        n_watch = sum(
-            1 for _, s in all_scores if SCORE_WATCH_ALERT <= s < SCORE_BUY_ALERT
-        )
-        print(f"  → buy-tier: {n_buy}, watch-tier: {n_watch}\n")
 
-    watch_and_above = [(t, s) for t, s in all_scores if s >= SCORE_WATCH_ALERT]
-    buy_scored = [(t, s) for t, s in watch_and_above if s >= SCORE_BUY_ALERT]
-    watch_scored = [
-        (t, s) for t, s in watch_and_above if SCORE_WATCH_ALERT <= s < SCORE_BUY_ALERT
-    ]
-
-    # Pre-fetch options chains once for every buy+watch ticker and cache in signals.
-    # This prevents the reporter from making redundant second API calls per ticker,
-    # which caused silent failures (e.g. rate-limited MSFT showing "No options data").
+    # Pre-fetch options chains once for every legacy-watch+ ticker and cache in
+    # signals. This prevents the reporter from making redundant second API
+    # calls per ticker, which caused silent failures (e.g. rate-limited MSFT
+    # showing "No options data"). Chain cache is scoped to legacy-watch+ (not
+    # composite-tier) because composite tiering depends on the analyst
+    # enrichment that happens below, and we want options chains ready for any
+    # ticker that MIGHT surface on the final Buy Alert / Near Trigger panels.
     signals["_chain_cache"] = {}
-    for _t, _ in watch_and_above:
+    for _t, _ in legacy_watch_and_above:
         _sym = _t.upper()
         try:
             signals["_chain_cache"][_sym] = uw.get_options_chain(_t)
@@ -433,12 +431,12 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
             signals["_chain_cache"][_sym] = []
 
     # Modal enrichment: static-ish UW data for the dashboard's ticker-detail
-    # modal. Fetched once per relevant ticker (held + watchlist + buy + watch)
+    # modal. Fetched once per relevant ticker (held + watchlist + legacy-watch+)
     # so the Vercel frontend has everything it needs at build time (no backend).
     # Three UW endpoints: /api/stock/{t}/info, /api/news/headlines,
     # /api/screener/analysts.
     enrich_tickers: set[str] = {
-        *(t.upper() for t, _ in watch_and_above),
+        *(t.upper() for t, _ in legacy_watch_and_above),
         *(t.upper() for t in portfolio_tickers),
         *(t.upper() for t in watchlist_tickers),
         *all_user_watchlist_tickers,
@@ -475,8 +473,60 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
             logger.warning("analyst_ratings enrich failed for %s: %s", _sym, _e)
             signals["_analyst_ratings"][_sym] = []
 
+    # ── Signal Composite tiering ─────────────────────────────────────────────
+    # Compute the bidirectional composite (−100..+100) for every filtered
+    # ticker using the enriched signals (screener, technicals, analyst ratings,
+    # insider, congress, flow, dark pool). The composite is the SAME scoring
+    # engine the dashboard modal uses (ported from sectionComposites.js), so
+    # the Buy Alert / Near Trigger panels can no longer disagree with the
+    # modal's verdict — they all run off the same number.
+    #
+    # Tier bands:
+    #   STRONG BULL (≥60) → Buy Alert
+    #   BULLISH    (≥30)  → Near Trigger
+    #   below 30          → not surfaced
+    composite_by_ticker: dict[str, int] = {}
+    for _t in filtered:
+        try:
+            comp = compute_composite(_t, signals)
+        except Exception as _e:
+            logger.debug("composite compute failed for %s: %s", _t, _e)
+            comp = None
+        if comp is not None:
+            composite_by_ticker[_t.upper()] = comp
+    signals["_composite_by_ticker"] = composite_by_ticker
+
+    buy_scored: list[tuple[str, int]] = []
+    watch_scored: list[tuple[str, int]] = []
+    for _t in filtered:
+        comp = composite_by_ticker.get(_t.upper())
+        if comp is None:
+            continue
+        if comp >= SCORE_BUY_ALERT_COMPOSITE:
+            buy_scored.append((_t, comp))
+        elif comp >= SCORE_WATCH_ALERT_COMPOSITE:
+            watch_scored.append((_t, comp))
+    # Sort each tier descending by composite score.
+    buy_scored.sort(key=lambda x: x[1], reverse=True)
+    watch_scored.sort(key=lambda x: x[1], reverse=True)
+
+    if debug:
+        print(
+            f"\n--- DEBUG: composite tiers "
+            f"(Buy Alert ≥{SCORE_BUY_ALERT_COMPOSITE}, "
+            f"Near Trigger {SCORE_WATCH_ALERT_COMPOSITE}–{SCORE_BUY_ALERT_COMPOSITE - 1}) ---"
+        )
+        print(f"  → Buy Alert: {len(buy_scored)}, Near Trigger: {len(watch_scored)}")
+        for t, c in buy_scored[:20]:
+            legacy = signals["_score_by_ticker"].get(t, 0)
+            print(f"  {t:6}  composite={c:+4d}  legacy={legacy:3d}/100  [BUY]")
+        for t, c in watch_scored[:20]:
+            legacy = signals["_score_by_ticker"].get(t, 0)
+            print(f"  {t:6}  composite={c:+4d}  legacy={legacy:3d}/100  [NEAR]")
+
     buy_opportunities: list[dict[str, Any]] = []
-    for ticker, sc in buy_scored:
+    legacy_scores = signals.get("_score_by_ticker") or {}
+    for ticker, comp in buy_scored:
         price = uw.get_current_price(ticker, signals)
         chain: list[dict[str, Any]] = signals["_chain_cache"].get(ticker.upper(), [])
 
@@ -507,7 +557,10 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         buy_opportunities.append(
             {
                 "ticker": ticker,
-                "score": sc,
+                # Keep `score` field = legacy 0–100 for dashboard sort/display
+                # backward-compat. Composite rides alongside on `composite`.
+                "score": int(legacy_scores.get(ticker, 0)),
+                "composite": comp,
                 "covered_call": cc,
                 "current_price": price,
                 "cc_note": cc_note,
@@ -517,10 +570,11 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
     watch_items: list[dict[str, Any]] = [
         {
             "ticker": t,
-            "score": s,
+            "score": int(legacy_scores.get(t, 0)),
+            "composite": c,
             "current_price": uw.get_current_price(t, signals),
         }
-        for t, s in watch_scored
+        for t, c in watch_scored
     ]
 
     positions = schwab.get_positions()
@@ -580,8 +634,10 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         notifier.send_alert_email(subj, html_b, text_b)
 
     print(
-        f"Scan complete. Buy tier (≥{SCORE_BUY_ALERT}): {len(buy_opportunities)}, "
-        f"Watch tier ({SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1}): {len(watch_items)}, "
+        f"Scan complete. Buy Alert (composite ≥{SCORE_BUY_ALERT_COMPOSITE}): "
+        f"{len(buy_opportunities)}, "
+        f"Near Trigger ({SCORE_WATCH_ALERT_COMPOSITE}–{SCORE_BUY_ALERT_COMPOSITE - 1}): "
+        f"{len(watch_items)}, "
         f"portfolio alerts: {len(sell_alerts)}."
     )
 

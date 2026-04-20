@@ -13,6 +13,10 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 
 from config import CC_MIN_IV_RANK, PROJECT_ROOT, SCORE_BUY_ALERT, SCORE_WATCH_ALERT
+from scanner.signal_composite import (
+    SCORE_BUY_ALERT_COMPOSITE,
+    SCORE_WATCH_ALERT_COMPOSITE,
+)
 from scanner import unusual_whales as uw
 from scanner.covered_calls import earnings_within_window, find_optimal_covered_call
 from scanner.price_history import get_price_changes
@@ -186,6 +190,38 @@ def _score_badge_html(score: Any) -> str:
     return (
         f'<span style="background:{color};color:#fff;padding:2px 8px;'
         f'border-radius:10px;font-size:11px;font-weight:600;">{s}</span>'
+    )
+
+
+def _composite_badge_html(composite: Any) -> str:
+    """
+    Bidirectional composite badge (−100..+100). Colored by tier band to match
+    sectionComposites.js labelFromScore: STRONG BULL / BULLISH / TILT BULL /
+    NEUTRAL / TILT BEAR / BEARISH / STRONG BEAR.
+    """
+    try:
+        s = int(composite)
+    except (ValueError, TypeError):
+        return _escape_html(str(composite))
+    if s >= 60:
+        color, label = "#27ae60", "STRONG BULL"
+    elif s >= 30:
+        color, label = "#2980b9", "BULLISH"
+    elif s >= 10:
+        color, label = "#7fb0d5", "TILT BULL"
+    elif s <= -60:
+        color, label = "#c0392b", "STRONG BEAR"
+    elif s <= -30:
+        color, label = "#e67e22", "BEARISH"
+    elif s <= -10:
+        color, label = "#f1a86a", "TILT BEAR"
+    else:
+        color, label = "#95a5a6", "NEUTRAL"
+    sign = "+" if s > 0 else ""
+    return (
+        f'<span style="background:{color};color:#fff;padding:2px 8px;'
+        f'border-radius:10px;font-size:11px;font-weight:600;" title="{label}">'
+        f'{sign}{s}</span>'
     )
 
 
@@ -755,7 +791,10 @@ def build_scan_report_body_html(
                 "pc_1w": pc.get("1w", "N/A"),
                 "pc_1m": pc.get("1m", "N/A"),
                 "pc_ytd": pc.get("ytd", "N/A"),
-                "score_badge_html": _score_badge_html(opp.get("score", "")),
+                # Badge displays the composite score that drove the tier
+                # assignment (STRONG BULL ≥60). Legacy 0–100 score still flows
+                # through opp["score"] for downstream sort/filter callers.
+                "score_badge_html": _composite_badge_html(opp.get("composite", "")),
                 "cc_plain": cc_cell["plain"],
                 "ptsl": ptsl,
                 "action": "Buy",
@@ -779,7 +818,7 @@ def build_scan_report_body_html(
                 "pc_1w": pc.get("1w", "N/A"),
                 "pc_1m": pc.get("1m", "N/A"),
                 "pc_ytd": pc.get("ytd", "N/A"),
-                "score_badge_html": _score_badge_html(w.get("score", "")),
+                "score_badge_html": _composite_badge_html(w.get("composite", "")),
                 "cc_plain": cc_cell["plain"],
                 "ptsl": ptsl,
                 "action": "Watch",
@@ -860,7 +899,7 @@ def build_plain_text_email(
         "Ticker",
         "Company",
         "Price",
-        "Score",
+        "Composite",
         "1W",
         "1M",
         "YTD",
@@ -907,13 +946,15 @@ def build_plain_text_email(
             precomputed_cc=opp.get("covered_call"),
         )
         narr = _analysis_two_sentences(t, signals)
+        _comp = opp.get("composite")
+        _comp_str = f"{_comp:+d}" if isinstance(_comp, (int, float)) else ""
         lines.append(
             row_line(
                 [
                     sym,
                     uw.get_company_name(t),
                     _fmt_money(_parse_float(price)),
-                    str(opp.get("score", "")),
+                    _comp_str,
                     pc.get("1w", "N/A"),
                     pc.get("1m", "N/A"),
                     pc.get("ytd", "N/A"),
@@ -949,13 +990,15 @@ def build_plain_text_email(
         )
         cc_cell = _resolve_cc_cell(t, _parse_float(price), signals)
         narr = _analysis_two_sentences(t, signals)
+        _comp = w.get("composite")
+        _comp_str = f"{_comp:+d}" if isinstance(_comp, (int, float)) else ""
         lines.append(
             row_line(
                 [
                     sym,
                     uw.get_company_name(t),
                     _fmt_money(_parse_float(price)),
-                    str(w.get("score", "")),
+                    _comp_str,
                     pc.get("1w", "N/A"),
                     pc.get("1m", "N/A"),
                     pc.get("ytd", "N/A"),
@@ -1069,11 +1112,12 @@ def _format_portfolio_alert_block(a: dict[str, Any]) -> list[str]:
 def _format_buy_block(opp: dict[str, Any], signals: dict[str, Any]) -> list[str]:
     t = opp["ticker"]
     sym = t.upper()
-    sc = opp["score"]
+    comp = opp.get("composite")
     price = opp.get("current_price")
     company = uw.get_company_name(t)
+    comp_str = f"{comp:+d}" if isinstance(comp, (int, float)) else "—"
     lines = [
-        f"{t} — {company}  [Score: {sc}/100]",
+        f"{t} — {company}  [Composite: {comp_str} · STRONG BULL]",
         f"Current price: {_fmt_money(price)}",
         "───",
         "Why it qualifies for Buy:",
@@ -1118,11 +1162,12 @@ def _format_watch_item(
     signals: dict[str, Any],
 ) -> list[str]:
     t = w["ticker"]
-    sc = w["score"]
+    comp = w.get("composite")
     company = uw.get_company_name(t)
     price = w.get("current_price")
+    comp_str = f"{comp:+d}" if isinstance(comp, (int, float)) else "—"
     lines = [
-        f"{idx}. {t} — {company}  [Score: {sc}/100]",
+        f"{idx}. {t} — {company}  [Composite: {comp_str} · BULLISH]",
         f"   Current price: {_fmt_money(price)}",
         "   ───",
         "   Why it's on watch:",
@@ -1257,13 +1302,13 @@ def build_latest_report_html(
         f'<tr style="border-bottom:1px solid #eee;">'
         f'<td style="padding:6px 8px 6px 0;color:#666;">Stocks scanned</td><td style="padding:6px 0;text-align:right;font-weight:600;">{stocks_scanned}</td></tr>'
         f'<tr style="border-bottom:1px solid #eee;">'
-        f'<td style="padding:6px 8px 6px 0;color:#666;">Signals ≥{SCORE_WATCH_ALERT} (watch + buy)</td>'
+        f'<td style="padding:6px 8px 6px 0;color:#666;">Composite ≥{SCORE_WATCH_ALERT_COMPOSITE} (BULLISH + STRONG BULL)</td>'
         f'<td style="padding:6px 0;text-align:right;font-weight:600;">{n_flagged}</td></tr>'
         f'<tr style="border-bottom:1px solid #eee;">'
-        f'<td style="padding:6px 8px 6px 0;color:#666;">Buy tier (≥{SCORE_BUY_ALERT})</td>'
+        f'<td style="padding:6px 8px 6px 0;color:#666;">Buy Alert — STRONG BULL (≥{SCORE_BUY_ALERT_COMPOSITE})</td>'
         f'<td style="padding:6px 0;text-align:right;font-weight:600;">{n_buy}</td></tr>'
         f'<tr>'
-        f'<td style="padding:6px 8px 6px 0;color:#666;">Watch tier ({SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1})</td>'
+        f'<td style="padding:6px 8px 6px 0;color:#666;">Near Trigger — BULLISH ({SCORE_WATCH_ALERT_COMPOSITE}–{SCORE_BUY_ALERT_COMPOSITE - 1})</td>'
         f'<td style="padding:6px 0;text-align:right;font-weight:600;">{n_watch}</td></tr>'
         f"</table></div>"
     )
@@ -1442,7 +1487,10 @@ def watch_one_line_summary(ticker: str, score: int, signals: dict[str, Any]) -> 
 
     if not bits:
         bits.append("composite signals (see full scan)")
-    return f"{ticker} — {score}pts: " + "; ".join(bits)
+    # `score` here is the COMPOSITE value (−100..+100) passed in from the
+    # markdown renderer; render with explicit sign so the direction is clear.
+    score_str = f"{score:+d}" if isinstance(score, int) else str(score)
+    return f"{ticker} — composite {score_str}: " + "; ".join(bits)
 
 
 def _max_profit_per_share(strike: float, stock: float, premium: float) -> tuple[float, float]:
@@ -1542,6 +1590,14 @@ def _write_json_data(
     score_by_ticker_slim = {
         t: s for t, s in score_by_ticker_full.items() if t in relevant_tickers
     }
+    # Signal composite by ticker — the bidirectional (−100..+100) score that
+    # drives Buy Alert / Near Trigger tiering. Exposed on the artifact so the
+    # dashboard can render coherent composite badges alongside the legacy
+    # score. Keyed by upper-case ticker (matches _composite_by_ticker shape).
+    composite_by_ticker_full = signals.get("_composite_by_ticker") or {}
+    composite_by_ticker_slim = {
+        t: s for t, s in composite_by_ticker_full.items() if t in relevant_tickers
+    }
 
     payload = {
         "scan_time": now.isoformat(),
@@ -1559,6 +1615,8 @@ def _write_json_data(
         "watchlist": [],
         # Slimmed score map so the dashboard only sees public-universe scores.
         "score_by_ticker": _safe(score_by_ticker_slim),
+        # Composite (−100..+100) map — source of truth for tiering and modal.
+        "composite_by_ticker": _safe(composite_by_ticker_slim),
         # Wide-universe direction tags — drives the Technicals tab's Long/Short
         # filter. Tickers without a direction tag came from UW signals and
         # render under "All".
@@ -1602,6 +1660,11 @@ def _write_json_data(
         "config": {
             "score_buy_alert": SCORE_BUY_ALERT,
             "score_watch_alert": SCORE_WATCH_ALERT,
+            # Composite tier thresholds (source of truth for Buy Alert /
+            # Near Trigger). Dashboard can read these to stay in sync if we
+            # ever retune the bands.
+            "composite_buy_alert": SCORE_BUY_ALERT_COMPOSITE,
+            "composite_watch_alert": SCORE_WATCH_ALERT_COMPOSITE,
             "cc_min_iv_rank": CC_MIN_IV_RANK,
             "cc_min_annualized_yield_pct": 25,
             "cc_otm_iv_multiplier": 1.0,
@@ -1669,9 +1732,9 @@ def generate_report(
         f"**Date:** {date_str}  ",
         f"**Scan type:** {label}  ",
         f"**Stocks scanned:** {stocks_scanned}  ",
-        f"**Signals ≥{SCORE_WATCH_ALERT} (watch + buy):** {n_flagged}  ",
-        f"**Buy tier (≥{SCORE_BUY_ALERT}):** {n_buy}  ",
-        f"**Watch tier ({SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1}):** {n_watch}  ",
+        f"**Composite ≥{SCORE_WATCH_ALERT_COMPOSITE} (BULLISH + STRONG BULL):** {n_flagged}  ",
+        f"**Buy Alert — STRONG BULL (composite ≥{SCORE_BUY_ALERT_COMPOSITE}):** {n_buy}  ",
+        f"**Near Trigger — BULLISH (composite {SCORE_WATCH_ALERT_COMPOSITE}–{SCORE_BUY_ALERT_COMPOSITE - 1}):** {n_watch}  ",
         "",
         "---",
         "",
@@ -1714,22 +1777,25 @@ def generate_report(
     lines.extend(
         [
         "## 🟢 BUY OPPORTUNITIES",
-        f"*(Score ≥ {SCORE_BUY_ALERT} — full write-up with covered call analysis)*",
+        f"*(Composite ≥ {SCORE_BUY_ALERT_COMPOSITE} / STRONG BULL — full write-up with covered call analysis)*",
         "",
         ]
     )
 
     if not buy_opportunities:
-        lines.append(f"*No buy-tier signals (score ≥ {SCORE_BUY_ALERT}) on this run.*")
+        lines.append(
+            f"*No Buy Alert signals (composite ≥ {SCORE_BUY_ALERT_COMPOSITE}) on this run.*"
+        )
         lines.append("")
 
     for i, opp in enumerate(buy_opportunities, start=1):
         t = opp["ticker"]
-        sc = opp["score"]
+        comp = opp.get("composite")
         cc = opp.get("covered_call")
         price = opp.get("current_price")
+        comp_str = f"{comp:+d}" if isinstance(comp, (int, float)) else "—"
 
-        lines.append(f"### {i}. {t} — Signal Score: {sc}/100")
+        lines.append(f"### {i}. {t} — Composite: {comp_str} (STRONG BULL)")
         lines.append("")
         lines.append(f"**Current Price:** {_fmt_money(price)}  ")
         lines.append("**Signals detected:**")
@@ -1783,25 +1849,25 @@ def generate_report(
 
     lines.append(f"## 👀 ON WATCH")
     lines.append(
-        f"*(Score {SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1} — one-line summary; no covered call math)*"
+        f"*(Composite {SCORE_WATCH_ALERT_COMPOSITE}–{SCORE_BUY_ALERT_COMPOSITE - 1} / BULLISH — one-line summary; no covered call math)*"
     )
     lines.append("")
 
     if not watch_items:
         lines.append(
-            f"*No watch-tier signals ({SCORE_WATCH_ALERT}–{SCORE_BUY_ALERT - 1}) on this run.*"
+            f"*No Near Trigger signals (composite {SCORE_WATCH_ALERT_COMPOSITE}–{SCORE_BUY_ALERT_COMPOSITE - 1}) on this run.*"
         )
         lines.append("")
     else:
         for w in watch_items:
             t = w["ticker"]
-            sc = w["score"]
-            lines.append(f"- {watch_one_line_summary(t, sc, signals)}")
+            comp = w.get("composite", 0)
+            lines.append(f"- {watch_one_line_summary(t, int(comp), signals)}")
         lines.append("")
 
     if n_flagged == 0:
         lines.append(
-            f"*No signals above watch threshold ({SCORE_WATCH_ALERT}) today — nothing to flag for monitoring or buy-tier review.*"
+            f"*No signals above BULLISH threshold (composite ≥ {SCORE_WATCH_ALERT_COMPOSITE}) today — nothing to flag for monitoring or Buy Alert review.*"
         )
         lines.append("")
 
@@ -1858,6 +1924,7 @@ def generate_report(
         "tier",
         "ticker",
         "score",
+        "composite",
         "current_price",
         "cc_strike",
         "cc_expiry",
@@ -1873,7 +1940,8 @@ def generate_report(
             {
                 "tier": "buy",
                 "ticker": opp["ticker"],
-                "score": opp["score"],
+                "score": opp.get("score"),
+                "composite": opp.get("composite"),
                 "current_price": opp.get("current_price"),
                 "cc_strike": cc.get("strike"),
                 "cc_expiry": cc.get("expiry"),
@@ -1888,7 +1956,8 @@ def generate_report(
             {
                 "tier": "watch",
                 "ticker": w["ticker"],
-                "score": w["score"],
+                "score": w.get("score"),
+                "composite": w.get("composite"),
                 "current_price": w.get("current_price"),
                 "cc_strike": None,
                 "cc_expiry": None,
