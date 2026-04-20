@@ -26,7 +26,7 @@ import ErrorBoundary from "./ErrorBoundary";
 
 const SD={
 vix:{mean:19.5,sd:8.2,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
-eq_cr_corr:{mean:0.38,sd:0.22,dir:"hw"},yield_curve:{mean:80,sd:95,dir:"nw"},
+eq_cr_corr:{mean:0.75,sd:0.09,dir:"hw"},yield_curve:{mean:80,sd:95,dir:"nw"},
 move:{mean:72,sd:28,dir:"hw"},anfci:{mean:0,sd:0.38,dir:"hw"},
 stlfsi:{mean:0,sd:0.9,dir:"hw"},real_rates:{mean:0.5,sd:1.1,dir:"hw"},
 sloos_ci:{mean:5,sd:18,dir:"hw"},cape:{mean:22,sd:7,dir:"hw"},
@@ -116,9 +116,9 @@ vix:["VIX","Equity Volatility","equity",1,"index",1,17.9,23.9,17.2,19.5,15.0,fal
 hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,205.0,268,245,280,220,false,
 "Spread between ICE BofA High Yield and Investment Grade bond yields. Measures extra return investors demand for credit risk.",
 "Spreads have tightened ~55bps over the past month — markets not pricing significant default risk. Below 200bps = benign; above 400bps = significant stress."],
-eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.92,0.61,0.55,0.50,0.40,false,
-"63-day rolling correlation between VIX and HY-IG spreads. When both move together, it signals a genuine risk-off regime rather than isolated noise.",
-"Sharp jump in correlation — equities and credit are now moving as a single risk factor. Values above 0.6 indicate a true risk-off regime; this is a warning sign."],
+eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.81,0.75,0.69,0.75,0.92,false,
+"63-day rolling Pearson correlation between SPY and HYG daily returns. Measures whether equities and high-yield credit are moving as a single risk factor — a genuine risk-off regime vs. isolated noise.",
+"At 0.81, synchronization sits modestly above the long-run mean of ~0.75 (2015–2026). Readings above ~0.85 (≈1 SD above mean) flag a tightly-linked risk-off regime; sustained readings below ~0.65 suggest equities and credit are responding to different drivers."],
 yield_curve:["10Y–2Y Slope","Yield Curve","rates",1,"bps",0,54.0,52,35,15,-20,false,
 "Difference between 10-year and 2-year Treasury yields. Inversion historically precedes recessions by 6–18 months.",
 "Re-steepened after the deepest inversion since 1981 (-109bps in 2023). An improving signal, though bear steepening (long-end selling off) would be the wrong kind."],
