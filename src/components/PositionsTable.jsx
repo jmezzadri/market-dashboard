@@ -24,6 +24,7 @@
 // accountId, ticker, shares, avgCost, price, etc.) — everything the
 // PositionEditor / delete handler needs to target the right DB row.
 import { useMemo, useState } from "react";
+import TruncatedText from "./TruncatedText";
 
 function SortArrow({ dir }) {
   if (!dir) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
@@ -226,15 +227,15 @@ export default function PositionsTable({
                 <td style={{ padding: "7px 6px", fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>
                   {row.ticker}
                 </td>
-                <td
+                <TruncatedText
+                  element="td"
+                  text={row.name}
+                  limit={20}
                   style={{
                     padding: "7px 6px", color: "var(--text-muted)",
-                    maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                    whiteSpace: "nowrap",
                   }}
-                  title={row.name}
-                >
-                  {row.name || "—"}
-                </td>
+                />
                 <td style={{ padding: "7px 6px", color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }}>
                   {row.sector || "—"}
                 </td>
