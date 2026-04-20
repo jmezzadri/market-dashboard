@@ -154,13 +154,17 @@ function groupRowsForInsert(rows) {
 
 // ── styles (match OnboardingPanel visual language) ─────────────────────────
 const backdrop = {
-  position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+  position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)",
   display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
 };
 const modal = {
   width: "min(640px, 96vw)", maxHeight: "92vh", overflowY: "auto",
-  background: "var(--surface-1)", border: "1px solid var(--border)",
+  // Opaque panel — --surface-1 doesn't exist as a CSS var, and --surface /
+  // --surface-2 are translucent rgba colors. --surface-solid is the one
+  // opaque panel background in the design system.
+  background: "var(--surface-solid)", border: "1px solid var(--border)",
   borderRadius: "var(--radius-md, 10px)", padding: "20px 22px",
+  boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
 };
 const primaryBtn = {
   padding: "9px 14px", fontSize: 13, fontWeight: 600, color: "#fff",

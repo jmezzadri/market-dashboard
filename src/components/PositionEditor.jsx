@@ -59,7 +59,9 @@ const inputVal = (n) => (n == null || !Number.isFinite(n) ? "" : String(n));
 
 // ── styles ─────────────────────────────────────────────────────────────────
 const backdrop = {
-  position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+  // Darker backdrop so the opaque modal above it reads crisply against the
+  // page content behind.
+  position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)",
   display: "flex", alignItems: "center", justifyContent: "center",
   zIndex: 1000,
 };
@@ -67,11 +69,15 @@ const modal = {
   width: "min(520px, 94vw)",
   maxHeight: "90vh",
   overflowY: "auto",
-  background: "var(--surface-1)",
+  // MUST be fully opaque — --surface / --surface-2 are translucent rgba colors,
+  // and --surface-1 doesn't exist, so falling back to them makes the modal
+  // unreadable over the page. --surface-solid is the opaque panel color.
+  background: "var(--surface-solid)",
   border: "1px solid var(--border)",
   borderRadius: "var(--radius-md, 10px)",
   padding: "20px 22px",
   fontFamily: "system-ui, -apple-system, sans-serif",
+  boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
 };
 const label = {
   display: "block",
@@ -347,7 +353,7 @@ export default function PositionEditor({
         {/* Numeric block */}
         <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
           <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
-            POSITION MATH · EDIT ANY FIELD — OTHERS AUTO-CALCULATE
+            POSITION MATH · COST/SHARE ↔ TOTAL COST AUTO-CALCULATE
           </div>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10 }}>
@@ -392,31 +398,25 @@ export default function PositionEditor({
             </div>
           </div>
 
-          {/* Value pair */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 6 }}>
-            <div>
-              <label style={label}>PRICE / SHARE (CURRENT)</label>
-              <input
-                style={input}
-                value={inputVal(price)}
-                onChange={(e) => onChangePrice(e.target.value)}
-                inputMode="decimal"
-                placeholder="175.00"
-              />
-            </div>
-            <div>
-              <label style={label}>CURRENT VALUE (= SHARES × PRICE)</label>
-              <input
-                style={input}
-                value={
-                  shares != null && price != null
-                    ? String(shares * price)
-                    : currentValueStr
-                }
-                onChange={(e) => onChangeCurrentValue(e.target.value)}
-                inputMode="decimal"
-                placeholder="1750.00"
-              />
+          {/* Current value — full width. No price/share input: we back-solve
+              price = value / shares on save. The platform's market data layer
+              refreshes the live price after save, so there's no reason to ask
+              the user for it manually. */}
+          <div style={{ marginBottom: 6 }}>
+            <label style={label}>CURRENT VALUE</label>
+            <input
+              style={input}
+              value={
+                shares != null && price != null
+                  ? String(shares * price)
+                  : currentValueStr
+              }
+              onChange={(e) => onChangeCurrentValue(e.target.value)}
+              inputMode="decimal"
+              placeholder="1750.00"
+            />
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+              Enter today's market value of the holding. Price/share is derived automatically.
             </div>
           </div>
         </div>
@@ -436,6 +436,7 @@ export default function PositionEditor({
         }}>
           <div><span style={{ color: "var(--text-muted)" }}>Cost basis: </span>{fmt$(totalCost)}</div>
           <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(currentValue)}</div>
+          <div><span style={{ color: "var(--text-muted)" }}>Implied price/share: </span>{fmt$(price)}</div>
           <div>
             <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
             <span style={{ color: pnlDollars == null ? "var(--text-muted)" : pnlDollars >= 0 ? "#30d158" : "#ff453a" }}>
