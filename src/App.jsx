@@ -2661,6 +2661,39 @@ return sorted.slice(0,3).map(c=>{
 });
 }
 
+// ── CATEGORY OVERVIEW (all 6 cats, current / 1M / 3M / regime) ───────────────
+// Used by the Home-tab "Macro Overview" tile so users see the full picture at a
+// glance instead of just the top-3 stressed bullets. Each category gets:
+//   - current sc100 (0=calmest, 100=most stressed) and the matching regime label
+//   - prior-month and prior-3-month sc100 readings (from IND[id][7] / IND[id][8])
+//   - a trend-arrow vs. 1M ago so the direction of travel is obvious
+// Data source: the static IND table. When the indicator snapshot updates, this
+// tile auto-updates. There is no 1W column today — that requires a history
+// writer (tracked separately); 1M is the finest resolution we currently have.
+function buildCategoryOverview(){
+return Object.entries(CATS).map(([catId,cat])=>{
+  const ids=Object.keys(IND).filter(id=>IND[id][2]===catId);
+  const cur=ids.map(id=>sdScore(id,IND[id][6])).filter(x=>x!=null);
+  const m1 =ids.map(id=>sdScore(id,IND[id][7])).filter(x=>x!=null);
+  const m3 =ids.map(id=>sdScore(id,IND[id][8])).filter(x=>x!=null);
+  const avg =cur.length?cur.reduce((a,b)=>a+b,0)/cur.length:null;
+  const avg1=m1.length ?m1 .reduce((a,b)=>a+b,0)/m1.length :null;
+  const avg3=m3.length ?m3 .reduce((a,b)=>a+b,0)/m3.length :null;
+  return{
+    catId,
+    label:cat.label,
+    sc100 :avg ==null?null:sdTo100(avg),
+    sc1M  :avg1==null?null:sdTo100(avg1),
+    sc3M  :avg3==null?null:sdTo100(avg3),
+    color :sdColor(avg),
+    textColor:sdTextColor(avg),
+    regime:sdLabel(avg),
+    delta1M:(avg!=null&&avg1!=null)?sdTo100(avg)-sdTo100(avg1):null,
+    indicatorCount:ids.length,
+  };
+});
+}
+
 // ── MAIN APP ─────────────────────────────────────────────────────────────────
 // "portopps" is the consolidated Portfolio + Opportunities + Holdings surface.
 // Old "#portfolio" hash redirects to "#portopps" (handled in the hash init/
@@ -2971,26 +3004,68 @@ return(
       <Tile
         eyebrow="Today's Snapshot"
         title="Macro Overview"
-        sub={`Composite stress at ${COMP100}/100 — regime is ${CONV.label}, ${TREND_SIG.label.toLowerCase()}. Here's what's driving it:`}
+        sub={`Composite stress at ${COMP100}/100 — regime is ${CONV.label}, ${TREND_SIG.label.toLowerCase()}. All 6 categories, now vs 1M / 3M ago:`}
         accent={CONV.color}
         span={2}
         kpi={{value:COMP100, unit:"/ 100", color:CONV.color, delta:`${TREND_SIG.arrow} ${TREND_SIG.label}`, deltaColor:TREND_SIG.col}}
         status={{label:CONV.label, color:CONV.color}}
         onClick={()=>navTo("overview")}
       >
-        <div style={{display:"flex", flexDirection:"column", gap:10, marginTop:"var(--space-3)"}}>
-          {buildMacroBullets().map((b,i)=>(
-            <div key={i} style={{display:"flex", gap:10, alignItems:"flex-start"}}>
-              <div style={{width:8, height:8, borderRadius:"50%", background:b.color, flexShrink:0, marginTop:6, boxShadow:`0 0 0 3px ${b.color}22`}}/>
-              <div style={{flex:1, minWidth:0}}>
-                <div style={{display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:8, marginBottom:2}}>
-                  <span style={{fontSize:13, fontWeight:600, color:"var(--text)"}}>{b.label}</span>
-                  <span className="num" style={{fontSize:12, fontWeight:700, color:b.color, fontFamily:"var(--font-mono)"}}>{b.sc100}/100</span>
-                </div>
-                <div style={{fontSize:12, color:"var(--text-muted)", lineHeight:1.5}}>{b.why}</div>
+        <div style={{marginTop:"var(--space-3)"}}>
+          {/* Header row — column labels for the 6 category rows below */}
+          <div style={{
+            display:"grid",
+            gridTemplateColumns:"minmax(140px,1.4fr) 56px 56px 56px 80px",
+            gap:"var(--space-3)", alignItems:"center",
+            padding:"4px 0 6px 0",
+            borderBottom:"1px solid var(--border-faint)",
+            fontSize:9, fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
+            color:"var(--text-muted)", fontWeight:600, textTransform:"uppercase",
+          }}>
+            <span>Category</span>
+            <span style={{textAlign:"right"}}>Now</span>
+            <span style={{textAlign:"right"}}>1M</span>
+            <span style={{textAlign:"right"}}>3M</span>
+            <span style={{textAlign:"right"}}>Regime</span>
+          </div>
+          {buildCategoryOverview().map((c,i)=>{
+            const arrow = c.delta1M==null?"·":c.delta1M>2?"▲":c.delta1M<-2?"▼":"·";
+            const arrowColor = c.delta1M==null?"var(--text-dim)":c.delta1M>2?"#ff453a":c.delta1M<-2?"#30d158":"var(--text-dim)";
+            return(
+            <div key={c.catId} style={{
+              display:"grid",
+              gridTemplateColumns:"minmax(140px,1.4fr) 56px 56px 56px 80px",
+              gap:"var(--space-3)", alignItems:"center",
+              padding:"7px 0",
+              borderBottom:i<5?"1px solid var(--border-faint)":"none",
+            }}>
+              <div style={{minWidth:0}}>
+                <div style={{fontSize:13, fontWeight:600, color:"var(--text)", lineHeight:1.25, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{c.label}</div>
+                <div style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)", letterSpacing:"0.04em"}}>{c.indicatorCount} indicator{c.indicatorCount===1?"":"s"}</div>
               </div>
-            </div>
-          ))}
+              <div style={{textAlign:"right"}}>
+                <div className="num" style={{fontSize:16, fontWeight:700, color:c.textColor, fontFamily:"var(--font-mono)", lineHeight:1}}>{c.sc100==null?"—":c.sc100}</div>
+                <div style={{fontSize:9, color:arrowColor, fontFamily:"var(--font-mono)", marginTop:2, letterSpacing:"0.04em"}}>
+                  {arrow}{c.delta1M!=null&&c.delta1M!==0?` ${c.delta1M>0?"+":""}${c.delta1M}`:""}
+                </div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div className="num" style={{fontSize:13, fontWeight:500, color:"var(--text-muted)", fontFamily:"var(--font-mono)", lineHeight:1}}>{c.sc1M==null?"—":c.sc1M}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <div className="num" style={{fontSize:13, fontWeight:500, color:"var(--text-muted)", fontFamily:"var(--font-mono)", lineHeight:1}}>{c.sc3M==null?"—":c.sc3M}</div>
+              </div>
+              <div style={{textAlign:"right"}}>
+                <span style={{
+                  display:"inline-block",
+                  fontSize:9, fontFamily:"var(--font-mono)", fontWeight:700,
+                  letterSpacing:"0.06em", color:c.textColor,
+                  background:c.color+"15", border:`1px solid ${c.color}55`,
+                  borderRadius:4, padding:"2px 7px", textTransform:"uppercase",
+                }}>{c.regime}</span>
+              </div>
+            </div>);
+          })}
         </div>
       </Tile>
 
