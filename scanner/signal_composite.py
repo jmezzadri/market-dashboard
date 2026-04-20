@@ -61,7 +61,15 @@ SECTION_ORDER: list[str] = ["technicals", "options", "insider", "congress", "ana
 
 # Tier thresholds — these name the COMPOSITE bands (labelFromScore).
 SCORE_BUY_ALERT_COMPOSITE = 60     # STRONG BULL
-SCORE_WATCH_ALERT_COMPOSITE = 30   # BULLISH
+SCORE_WATCH_ALERT_COMPOSITE = 40   # upper half of BULLISH band (see calibration note)
+# Calibration note (2026-04-20): lifted from 30 → 40 to drop the arithmetic
+# noise in the 30-34 band. With the 25% technicals weight and other sections
+# scoring 0 on "no qualifying activity" (not null), names with decent tech
+# and nothing else were landing at 30-34 purely by weighted-average dilution.
+# On the 2026-04-19 scan this band held 51/67 Near Trigger names. Raising to
+# 40 keeps the "approaching Buy Alert" semantics while filtering drift.
+# The BULLISH label boundary in label_from_score stays at 30 (directional
+# label ≠ tier membership) — modal copy unchanged.
 
 CONGRESS_AMOUNT_POINTS: dict[str, int] = {
     "$1,001 - $15,000":        2,
