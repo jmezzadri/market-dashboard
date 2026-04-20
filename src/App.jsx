@@ -3309,8 +3309,20 @@ const cashByAcct=tacticalAccts.map(acc=>{
 }).filter(x=>x.cash>0).sort((a,b)=>b.cash-a.cash);
 const totalDeployable=cashByAcct.reduce((a,c)=>a+c.cash,0);
 // Sort held positions by value DESC — biggest exposure first, regardless of account
+// Enrich each position with LIVE market price from scan data (keyed by ticker).
+// Without this, the stored position.price is a snapshot from when the user last
+// edited the row — two rows of the same ticker could show different prices
+// (Bug #1004) and the modal header (which always reads scanData) wouldn't
+// match the table. Fallback to the stored price if the ticker isn't in scan.
+const scanScreener=scanData?.signals?.screener||{};
 const heldPositions=ACCOUNTS
-  .flatMap(acc=>acc.positions.map(p=>({...p,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical})))
+  .flatMap(acc=>acc.positions.map(p=>{
+    const live=scanScreener[p.ticker];
+    const livePrice=Number(live?.close||live?.prev_close)||null;
+    const price=livePrice!=null?livePrice:p.price;
+    const value=(p.shares!=null&&price!=null)?p.shares*price:p.value;
+    return {...p,price,value,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical};
+  }))
   .filter(p=>p.sector!=="Cash")
   .sort((a,b)=>b.value-a.value);
 const heldTickers=new Set(heldPositions.map(p=>p.ticker));
