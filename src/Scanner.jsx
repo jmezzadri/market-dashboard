@@ -1582,9 +1582,8 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
           >
             <div style={{ display: "flex", gap: 8, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
               <MiniStat label="HIGH VOLATILITY (>70)" value={highIVR} color="var(--yellow-text)" wide />
-              {isSignedIn && techUserOnlyCount > 0 && (
-                <MiniStat label="+ YOUR BOOK" value={techUserOnlyCount} color="var(--accent)" wide />
-              )}
+              {/* Bug #4: removed "+ YOUR BOOK N" MiniStat — user-book count is already shown elsewhere */}
+              {/* and clutters the anomaly-focused tile framing. */}
             </div>
           </Tile>
 
