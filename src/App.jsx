@@ -17,6 +17,8 @@ import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ti
 import SubCompositeStrip from "./components/SubCompositeStrip";
 import WatchlistTable from "./components/WatchlistTable";
 import PositionsTable from "./components/PositionsTable";
+import PositionEditor from "./components/PositionEditor";
+import BulkImport from "./components/BulkImport";
 import { supabase } from "./lib/supabase";
 import ReportBug from "./reportbug/ReportBug";
 import ErrorBoundary from "./ErrorBoundary";
@@ -2648,6 +2650,29 @@ const portfolioAuthed=!!session;
 // banner swaps the skeleton for the LoginScreen; successful sign-in flips
 // `portfolioAuthed` and the user sees their real portfolio.
 const [showPortoppsLogin,setShowPortoppsLogin]=useState(false);
+// ── Portfolio editor state ──────────────────────────────────────────────
+// `positionEditor` === null when closed. When open, holds a shape that tells
+// the PositionEditor modal whether to render in add or edit mode.
+//   { mode: "add" }                        → add to the first account by default
+//   { mode: "edit", existing: rawRow }     → prefill all fields from rawRow
+// `showBulkImport` toggles the BulkImport modal.
+const [positionEditor,setPositionEditor]=useState(null);
+const [showBulkImport,setShowBulkImport]=useState(false);
+// Inline delete from the PositionsTable row goes through this. We use the
+// browser's native confirm dialog rather than building another modal — it's
+// immediate, works on mobile, and users already expect it for destructive
+// actions. Deeper editing + a confirm-in-modal delete live in the editor.
+const deletePositionInline=async(rawRow)=>{
+  if(!rawRow?.id)return;
+  if(!window.confirm(`Delete ${rawRow.ticker} from ${rawRow.acctLabel}? This cannot be undone.`))return;
+  const {error}=await supabase.from("positions").delete().eq("id",rawRow.id);
+  if(error){
+    console.error("[App] inline delete failed:",error);
+    window.alert(`Could not delete: ${error.message||"unknown error"}`);
+    return;
+  }
+  await refetchPortfolio?.();
+};
 // If Supabase bounced the user back here with an auth error in the URL
 // (e.g. expired magic link → ?error=access_denied&error_code=otp_expired),
 // jump the user straight to the portopps LoginScreen so they (a) see the
@@ -3446,6 +3471,10 @@ return(<>
   grandTotal={grandTotal}
   onOpenTicker={(t)=>setTickerDetail(t)}
   emptyMessage="No positions."
+  onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
+  onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
+  onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
+  onDelete={portfolioAuthed?deletePositionInline:undefined}
 />
 </div>
 
@@ -3498,6 +3527,35 @@ return(<>
       watchlistRows={userWatchlistRows} portfolioAuthed={portfolioAuthed} refetchPortfolio={refetchPortfolio}
       onTickerAdded={scanTicker} scanBusy={scanningTickers.has(tickerDetail)}
       onClose={()=>setTickerDetail(null)}/>
+  </ErrorBoundary>
+)}
+
+{/* PositionEditor — add OR edit a single position. Shown when the user
+    clicks "+ Add position" or a row's Edit button in PositionsTable.
+    Supabase writes live inside the component; we just refetch + close. */}
+{positionEditor&&portfolioAuthed&&(
+  <ErrorBoundary label="Position editor" onDismiss={()=>setPositionEditor(null)}>
+    <PositionEditor
+      mode={positionEditor.mode}
+      existing={positionEditor.existing}
+      accounts={ACCOUNTS.map(a=>({id:a.id,label:a.label}))}
+      userId={session?.user?.id}
+      onClose={()=>setPositionEditor(null)}
+      onSaved={async()=>{await refetchPortfolio?.();setPositionEditor(null);}}
+      onDeleted={async()=>{await refetchPortfolio?.();setPositionEditor(null);}}
+    />
+  </ErrorBoundary>
+)}
+
+{/* BulkImport — CSV / XLSX upload with merge-or-replace strategy. Shown
+    from the "Bulk import" button in PositionsTable's action bar. */}
+{showBulkImport&&portfolioAuthed&&(
+  <ErrorBoundary label="Bulk import" onDismiss={()=>setShowBulkImport(false)}>
+    <BulkImport
+      userId={session?.user?.id}
+      onClose={()=>setShowBulkImport(false)}
+      onDone={async()=>{await refetchPortfolio?.();setShowBulkImport(false);}}
+    />
   </ErrorBoundary>
 )}
 

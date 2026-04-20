@@ -27,18 +27,24 @@ import { useSession } from "../auth/useSession";
 const ACCENT = "#4a6fa5"; // must match the ACCENT constant in App.jsx
 
 // Map a raw Supabase `positions` row to the shape the render code expects.
+// NOTE: `id` and `accountId` are included so downstream edit/delete flows can
+// target the row without having to re-query. Without them, update/delete would
+// have to match on (account_id, ticker) which breaks if a user legitimately
+// holds the same ticker in two accounts.
 function shapePosition(row) {
   return {
-    ticker:   row.ticker,
-    name:     row.name,
-    value:    row.value !== null ? Number(row.value) : null,
-    price:    row.price !== null ? Number(row.price) : null,
-    shares:   row.shares !== null ? Number(row.shares) : null,
-    avgCost:  row.avg_cost !== null ? Number(row.avg_cost) : null,   // DB snake → JS camel
-    sector:   row.sector,
-    beta:     row.beta !== null ? Number(row.beta) : null,
-    color:    row.color || ACCENT,
-    analysis: row.analysis || "",
+    id:         row.id,
+    accountId:  row.account_id,
+    ticker:     row.ticker,
+    name:       row.name,
+    value:      row.value !== null ? Number(row.value) : null,
+    price:      row.price !== null ? Number(row.price) : null,
+    shares:     row.shares !== null ? Number(row.shares) : null,
+    avgCost:    row.avg_cost !== null ? Number(row.avg_cost) : null,   // DB snake → JS camel
+    sector:     row.sector,
+    beta:       row.beta !== null ? Number(row.beta) : null,
+    color:      row.color || ACCENT,
+    analysis:   row.analysis || "",
   };
 }
 
