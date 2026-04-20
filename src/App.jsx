@@ -584,7 +584,7 @@ out.push([lbl,clampHistValue(id,piecewiseYearValue(t,kf))]);
 }
 }
 // Q1 2026 (last full quarter before "Now" in Q2 2026).
-out.push(["2026",clampHistValue(id,piecewiseYearValue(2026.0,kf))]);
+out.push(["Q1 2026",clampHistValue(id,piecewiseYearValue(2026.0,kf))]);
 out.push(["Now",clampHistValue(id,IND[id][6])]);
 return out;
 }
