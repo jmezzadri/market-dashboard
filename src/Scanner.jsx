@@ -1502,11 +1502,10 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
           </div>
         )}
 
-        <div style={{
+        <div className="scanner-tile-grid" style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
           gap: "var(--space-4)",
-          alignItems: "start",
         }}>
           {/* "Buy & Watch list" tile retired 2026-04-19 — see TAB_META note above.
               Portfolio & Insights (portopps) is the canonical surface for buy/watch/positions. */}
