@@ -1185,39 +1185,136 @@ return(
 // ── WATCHLIST ADD INPUT — inline input for adding arbitrary tickers to the
 //    signed-in user's watchlist from the Portfolio/Opportunities "Other
 //    Watchlist" sub-panel. Writes to supabase.watchlist and refetches.
+// Catalog the scanner actually covers. Anything else (crypto, futures,
+// currency pairs, options, warrants) must not enter the watchlist — the
+// scan-artifact pipeline has no scoring logic for those instrument types.
+const SCANNER_SUPPORTED_TYPES=new Set(["EQUITY","ETF","MUTUALFUND","INDEX"]);
+const UNSUPPORTED_TYPE_LABELS={
+  CRYPTOCURRENCY:"cryptocurrency",
+  FUTURE:"futures contract",
+  CURRENCY:"currency pair",
+  OPTION:"options contract",
+  WARRANT:"warrant",
+  RIGHT:"rights offering",
+  COMMODITY:"commodity",
+  BOND:"bond",
+};
+// Yahoo Finance symbol search — public endpoint, CORS-friendly, no key.
+// Returns {ok:true, name, quoteType} on verified match, or {ok:false, reason}
+// on miss / unsupported type / unreachable. We distinguish three failure
+// modes so the add flow can apply the right UX:
+//   not_found         — string is not a real symbol → hard-block
+//   unsupported_type  — symbol exists but scanner can't score it → hard-block
+//                       (crypto, futures, options, currencies, warrants...)
+//   unreachable       — validator down / rate-limited / CORS → soft-warn only
+async function validateTicker(t){
+  const sym=String(t||"").trim().toUpperCase();
+  if(!sym)return{ok:false,reason:"empty"};
+  try{
+    const r=await fetch(
+      `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(sym)}&quotesCount=10&newsCount=0`,
+      {headers:{"Accept":"application/json"}}
+    );
+    // Transient HTTP failures (429 rate-limit, 5xx) must not lock the user
+    // out of adding real tickers. Fall through to soft-warn in the caller.
+    if(!r.ok)return{ok:false,reason:"unreachable",http:r.status};
+    const j=await r.json();
+    const quotes=(j&&j.quotes)||[];
+    // Require exact symbol match — fuzzy results would otherwise accept
+    // "AAPLE" as AAPL or similar. If the user typo'd, they should retype.
+    const hit=quotes.find(q=>String(q?.symbol||"").toUpperCase()===sym);
+    if(!hit)return{ok:false,reason:"not_found"};
+    const quoteType=String(hit?.quoteType||"").toUpperCase();
+    if(!SCANNER_SUPPORTED_TYPES.has(quoteType)){
+      return{
+        ok:false,reason:"unsupported_type",quoteType,
+        name:hit.shortname||hit.longname||sym,
+      };
+    }
+    return{
+      ok:true,
+      name:hit.shortname||hit.longname||sym,
+      quoteType,
+      exchange:hit.exchange||"",
+    };
+  }catch(e){
+    // Network failure, CORS block, DNS. Soft-warn path, not hard-block.
+    return{ok:false,reason:"unreachable",err:e?.message||String(e)};
+  }
+}
+
 function WatchlistAddInput({session,watchlistRows,refetchPortfolio,onTickerAdded}){
 const [val,setVal]=useState("");
 const [busy,setBusy]=useState(false);
-const [err,setErr]=useState(null);
+// msg is {text, kind:'error'|'warn'} — error for hard rejects, warn for
+// cases where the add proceeded but the user should know (validator down).
+const [msg,setMsg]=useState(null);
 const submit=async(e)=>{
   e?.preventDefault?.();
   const t=(val||"").trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,"");
   if(!t)return;
-  if((watchlistRows||[]).some(w=>w.ticker===t)){setErr(`${t} already on watchlist`);return;}
-  setBusy(true);setErr(null);
+  if((watchlistRows||[]).some(w=>w.ticker===t)){
+    setMsg({text:`${t} already on watchlist`,kind:"error"});return;
+  }
+  setBusy(true);setMsg(null);
   try{
     const userId=session?.user?.id;
     if(!userId)throw new Error("Not signed in");
+    // Validate BEFORE hitting Supabase. Hard-block on:
+    //   - not_found: bogus string ("BULLSHIT", random letters)
+    //   - unsupported_type: real symbol but outside scanner coverage
+    //     (crypto, futures, options, warrants, currency pairs, ...)
+    // Soft-warn only on unreachable (Yahoo down / 429 / CORS / offline) —
+    // we don't want a flaky validator to block legitimate adds.
+    const v=await validateTicker(t);
+    if(!v.ok && v.reason==="not_found"){
+      setMsg({
+        text:`${t} isn't a real ticker. The scanner only covers U.S. stocks, ETFs, and mutual funds.`,
+        kind:"error",
+      });
+      setBusy(false);return;
+    }
+    if(!v.ok && v.reason==="unsupported_type"){
+      const label=UNSUPPORTED_TYPE_LABELS[v.quoteType]||v.quoteType.toLowerCase();
+      setMsg({
+        text:`${t} is a ${label} — the scanner only covers U.S. stocks, ETFs, and mutual funds.`,
+        kind:"error",
+      });
+      setBusy(false);return;
+    }
+    // Either v.ok (validated) or v.reason==="unreachable" (soft-warn path).
+    const resolvedName=v.ok?v.name:t;
     const sort_order=((watchlistRows||[]).reduce((m,w)=>Math.max(m,w.sort_order||0),0))+1;
-    const {error}=await supabase.from("watchlist").insert({user_id:userId,ticker:t,name:t,theme:"",sort_order});
+    const {error}=await supabase.from("watchlist").insert({
+      user_id:userId,ticker:t,name:resolvedName,theme:"",sort_order,
+    });
     if(error)throw error;
     setVal("");
     await refetchPortfolio?.();
     // Fire-and-forget scan so the modal populates without a full scheduled run.
     onTickerAdded?.(t);
-  }catch(e2){setErr(e2.message||String(e2));}
+    if(!v.ok){
+      // Unreachable soft-warn — the add went through but the user should
+      // know we couldn't verify the symbol. A subsequent scan will reject
+      // it if it turns out to be bogus.
+      setMsg({
+        text:`Added ${t} — couldn't verify (validator unreachable).`,
+        kind:"warn",
+      });
+    }
+  }catch(e2){setMsg({text:e2.message||String(e2),kind:"error"});}
   finally{setBusy(false);}
 };
 return(
 <form onSubmit={submit} style={{display:"flex",gap:6,alignItems:"center",padding:"4px 2px",marginTop:2}}>
-<input type="text" value={val} onChange={e=>{setVal(e.target.value);setErr(null);}}
+<input type="text" value={val} onChange={e=>{setVal(e.target.value);setMsg(null);}}
   placeholder="Add ticker (e.g. NFLX)" disabled={busy}
   style={{flex:1,minWidth:0,fontSize:11,fontFamily:"var(--font-mono)",padding:"6px 8px",background:"var(--surface-3)",border:"1px solid var(--border-faint)",color:"var(--text)",borderRadius:4,letterSpacing:"0.04em",textTransform:"uppercase"}}/>
 <button type="submit" disabled={busy||!val.trim()}
   style={{fontSize:11,fontFamily:"var(--font-mono)",fontWeight:700,color:"#fff",background:val.trim()?"var(--accent)":"var(--text-dim)",border:"none",borderRadius:4,padding:"6px 12px",cursor:busy||!val.trim()?"default":"pointer",letterSpacing:"0.05em"}}>
   {busy?"…":"+ ADD"}
 </button>
-{err&&<span style={{fontSize:10,color:"#ff453a",fontFamily:"var(--font-mono)",marginLeft:4}}>{err}</span>}
+{msg&&<span style={{fontSize:10,color:msg.kind==="warn"?"#ffb300":"#ff453a",fontFamily:"var(--font-mono)",marginLeft:4}}>{msg.text}</span>}
 </form>);
 }
 
