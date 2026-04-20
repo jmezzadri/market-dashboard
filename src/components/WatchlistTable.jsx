@@ -16,6 +16,7 @@ import {
 } from "../ticker/sectionComposites";
 import { normalizeTickerName } from "../lib/nameFormat";
 import ProvenanceStamp from "./ProvenanceStamp";
+import TruncatedText from "./TruncatedText";
 
 // Header metadata — label shown in the header cell, tooltip spells it out.
 // Order here is the render order of the signal columns — sorted LEFT TO
@@ -212,15 +213,15 @@ export default function WatchlistTable({ rows, signals, screener, onOpenTicker, 
                   }}>OWNED</span>
                 )}
               </td>
-              <td style={{
-                padding: "7px 6px", color: "var(--text-muted)",
-                whiteSpace: "nowrap",
-              }} title={row.name}>
-                {/* Bug #1: truncate to 20 chars; full name available on hover via title */}
-                {row.name
-                  ? (row.name.length > 20 ? row.name.slice(0, 20) + "…" : row.name)
-                  : "—"}
-              </td>
+              <TruncatedText
+                element="td"
+                text={row.name}
+                limit={20}
+                style={{
+                  padding: "7px 6px", color: "var(--text-muted)",
+                  whiteSpace: "nowrap",
+                }}
+              />
               <td style={{
                 padding: "7px 6px", color: "var(--text-dim)",
                 fontFamily: "var(--font-mono)", fontSize: 11,
