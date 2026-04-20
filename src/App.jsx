@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Scanner from "./Scanner";
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
@@ -1183,7 +1183,7 @@ return(
 // ── WATCHLIST ADD INPUT — inline input for adding arbitrary tickers to the
 //    signed-in user's watchlist from the Portfolio/Opportunities "Other
 //    Watchlist" sub-panel. Writes to supabase.watchlist and refetches.
-function WatchlistAddInput({session,watchlistRows,refetchPortfolio}){
+function WatchlistAddInput({session,watchlistRows,refetchPortfolio,onTickerAdded}){
 const [val,setVal]=useState("");
 const [busy,setBusy]=useState(false);
 const [err,setErr]=useState(null);
@@ -1201,6 +1201,8 @@ const submit=async(e)=>{
     if(error)throw error;
     setVal("");
     await refetchPortfolio?.();
+    // Fire-and-forget scan so the modal populates without a full scheduled run.
+    onTickerAdded?.(t);
   }catch(e2){setErr(e2.message||String(e2));}
   finally{setBusy(false);}
 };
@@ -1221,7 +1223,7 @@ return(
 //    held positions, and watchlist entries. Self-contained view of every
 //    piece of intel the scanner has for one ticker — no need to bounce
 //    to the Scanner tab.
-function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose}){
+function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy}){
 const [descExpanded,setDescExpanded]=useState(false);
 const [wlBusy,setWlBusy]=useState(false);
 const [wlError,setWlError]=useState(null);
@@ -1254,6 +1256,9 @@ async function addToWatchlist(){
     });
     if(error)throw error;
     await refetchPortfolio?.();
+    // Trigger server-side scan so this modal fills in without waiting
+    // for the next scheduled 3:45 PM run.
+    onTickerAdded?.(ticker.toUpperCase());
   }catch(err){setWlError(err.message||String(err));}
   finally{setWlBusy(false);}
 }
@@ -1519,7 +1524,9 @@ return(
 <div style={panelStyle}>
 {isManualTrack&&(
 <div style={{fontSize:11,color:"var(--text-muted)",background:"var(--surface-3)",border:"1px solid var(--border-faint)",borderRadius:5,padding:"7px 10px",marginBottom:10,lineHeight:1.45}}>
-{manualTrackKind==="pending"?(
+{scanBusy&&manualTrackKind==="pending"?(
+<><span style={{color:"var(--text)",fontWeight:600}}>Scanning fresh data…</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}Pulling news, company info, analyst ratings, and screener stats from Unusual Whales — usually 3–5 seconds. Technical indicators (TECH subcomposite) populate on the next scheduled scan.</>
+):manualTrackKind==="pending"?(
 <><span style={{color:"var(--text)",fontWeight:600}}>Scanner data pending.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}This ticker isn't in the last scan yet — directional scores will populate on the next run. News, analyst ratings, and {heldIn.length>0?"position detail":"watchlist context"} still render below if available.</>
 ):manualTrackKind==="crypto"?(
 <><span style={{color:"var(--text)",fontWeight:600}}>No subcomposite data.</span> {watchlistEntry?.theme?`${watchlistEntry.theme} — `:""}Crypto proxies (BTCUSD / ETHUSD) don't have the single-name equity signals (options flow, insider/congress filings, analyst ratings) the composite blends, so directional scores stay blank. Hold info and watchlist context still render above.</>
@@ -2613,11 +2620,44 @@ const [tickerDetail,setTickerDetail]=useState(null);
 // and the TickerDetailModal. Scanner.jsx does the same thing.
 const [rawScanData,setScanData]=useState(null);
 const [scanError,setScanError]=useState(false);
-const { mergeInto: mergePrivateScan }=usePrivateScanSupplement();
+const { mergeInto: mergePrivateScan, refetch: refetchSupplement }=usePrivateScanSupplement();
 const scanData=useMemo(
   ()=>(rawScanData?mergePrivateScan(rawScanData):rawScanData),
   [rawScanData,mergePrivateScan]
 );
+// Per-ticker scan-on-add: when a user adds a name to their watchlist, fire
+// /api/scan-ticker in the background. Server pulls news/info/analyst/screener
+// from UW (or copies a warm row written by another user < 1h ago), upserts
+// to user_scan_data under the signed-in user, and we refetch so the modal
+// flips from "Scanning…" to real data without a page reload. Technicals
+// stay pending until the next scheduled scan — see api/scan-ticker.js.
+const [scanningTickers,setScanningTickers]=useState(()=>new Set());
+const scanTicker=useCallback(async(ticker)=>{
+  const t=String(ticker||"").toUpperCase();
+  if(!t)return;
+  setScanningTickers(s=>{const n=new Set(s);n.add(t);return n;});
+  try{
+    const {data:{session:sess}}=await supabase.auth.getSession();
+    const token=sess?.access_token;
+    if(!token)return;
+    const r=await fetch("/api/scan-ticker",{
+      method:"POST",
+      headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},
+      body:JSON.stringify({ticker:t}),
+    });
+    if(!r.ok){
+      // eslint-disable-next-line no-console
+      console.warn(`[scan-ticker] ${t} → ${r.status}`);
+      return;
+    }
+    await refetchSupplement?.();
+  }catch(e){
+    // eslint-disable-next-line no-console
+    console.warn("[scan-ticker] failed:",e);
+  }finally{
+    setScanningTickers(s=>{const n=new Set(s);n.delete(t);return n;});
+  }
+},[refetchSupplement]);
 // Account-by-account breakdown on the Portfolio & Insights tab. Default
 // collapsed — power users expand when they want the deeper per-account view
 // (this replaces the separate Holdings Detail tab).
@@ -3163,7 +3203,7 @@ return(<>
       onOpenTicker={(t)=>setTickerDetail(t)}
       emptyMessage="No tickers on your watchlist. Add one below."
     />
-    {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio}/>}
+    {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>}
   </>
 )}
 {/* Coverage disclaimer. Subcomposites require single-name fundamentals +
@@ -3481,6 +3521,7 @@ return(<>
   <ErrorBoundary label={`${tickerDetail} detail`} onDismiss={()=>setTickerDetail(null)}>
     <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS}
       watchlistRows={userWatchlistRows} portfolioAuthed={portfolioAuthed} refetchPortfolio={refetchPortfolio}
+      onTickerAdded={scanTicker} scanBusy={scanningTickers.has(tickerDetail)}
       onClose={()=>setTickerDetail(null)}/>
   </ErrorBoundary>
 )}
