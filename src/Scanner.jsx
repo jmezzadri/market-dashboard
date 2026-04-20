@@ -129,6 +129,58 @@ function Chip({ label }) {
   );
 }
 
+// ── AnomalyList + AnomalyRow (Bug #4b) ────────────────────────────────────────
+// Used by the scanner landing tiles to render "top 3 noteworthy" items per
+// surface instead of aggregate counts. Each row is a single line with a
+// left-side description (ticker + qualifier chips + subject) and a right-side
+// number (dollar size or signal score). Rows are non-interactive — the parent
+// Tile carries the click target to drill into the full detail view.
+function AnomalyList({ items, renderItem, empty }) {
+  if (!items || items.length === 0) {
+    return (
+      <div style={{
+        marginTop: "var(--space-2)",
+        padding: "14px 10px",
+        textAlign: "center",
+        fontSize: 12,
+        color: "var(--text-muted)",
+        fontFamily: "var(--font-mono)",
+        background: "var(--surface-3)",
+        border: "1px dashed var(--border-faint)",
+        borderRadius: "var(--radius-sm)",
+        letterSpacing: "0.02em",
+      }}>{empty || "Nothing to show."}</div>
+    );
+  }
+  return (
+    <div style={{ display: "flex", flexDirection: "column", marginTop: "var(--space-2)" }}>
+      {items.map((it, i) => renderItem(it, i))}
+    </div>
+  );
+}
+function AnomalyRow({ left, right }) {
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: 10,
+      padding: "7px 0",
+      borderBottom: "1px solid var(--border-faint)",
+      fontSize: 12,
+      lineHeight: 1.3,
+      minWidth: 0,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 0, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+        {left}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", flexShrink: 0, fontSize: 12, whiteSpace: "nowrap" }}>
+        {right}
+      </div>
+    </div>
+  );
+}
+
 // ── Badges ────────────────────────────────────────────────────────────────────
 function Badge({ label, color }) {
   const styles = {
@@ -1422,30 +1474,74 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
     ...(data.signals?.insider_buys  || []),
     ...(data.signals?.insider_sales || []),
   ];
-  const topCongress = (() => {
-    const counts = {};
-    congressAll.forEach(r => { counts[r.ticker] = (counts[r.ticker] || 0) + 1; });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  })();
-  const congressPartySplit = (() => {
-    const c = { D: 0, R: 0, I: 0, "?": 0 };
-    congressAll.forEach(r => {
-      const p = partyOf(r);
-      c[p || "?"] = (c[p || "?"] || 0) + 1;
-    });
-    return c;
-  })();
-  const topInsider = (() => {
-    const counts = {};
-    insiderAll.forEach(r => { counts[r.ticker] = (counts[r.ticker] || 0) + 1; });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-  })();
   const totalCallPrem = (data.signals?.flow_alerts || []).reduce((a, r) => a + (Number(r.total_premium) || 0), 0);
   const totalPutPrem  = (data.signals?.put_flow_alerts || []).reduce((a, r) => a + (Number(r.total_premium) || 0), 0);
   const highIVR       = screenerKeys.filter(t => {
     const v = data.signals.screener[t]?.iv_rank;
     return v != null && Number(v) > 70;
   }).length;
+
+  // ── Bug #4b — anomaly-first landing tiles ──────────────────────────────────
+  // The landing tiles used to show aggregate counts + party splits. Aggregates
+  // don't tell a user whether today is notable. These helpers compute the top
+  // 3 most-noteworthy items for each surface so the tile reads as "what's
+  // worth a deeper dive right now" instead of "how many things happened".
+  // Ranking is dollar-weighted where available (congress amount bucket midpoint,
+  // insider shares × price, option total_premium, absolute composite score).
+
+  // Congress: amounts are bucket strings like "$1,001 - $15,000". Parse the
+  // midpoint so we can rank trades by estimated dollar size.
+  const congressAmountMidpoint = (amt) => {
+    if (!amt || typeof amt !== "string") return 0;
+    const nums = amt.match(/[\d,]+/g);
+    if (!nums) return 0;
+    const vals = nums.map(s => Number(s.replace(/,/g, ""))).filter(n => isFinite(n) && n > 0);
+    if (vals.length >= 2) return (vals[0] + vals[1]) / 2;
+    return vals[0] || 0;
+  };
+  const topCongressTrades = congressAll
+    .map(r => ({ row: r, amtMid: congressAmountMidpoint(r.amounts) }))
+    .filter(x => x.amtMid > 0)
+    .sort((a, b) => b.amtMid - a.amtMid)
+    .slice(0, 3);
+
+  // Insider: rank by absolute dollar value of the transaction. Flag 10%-owner
+  // buys and S&P 500 director buys as particularly noteworthy.
+  const topInsiderTrades = insiderAll
+    .map(r => {
+      const shares = Math.abs(Number(r.amount) || 0);
+      const px = Number(r.price || r.stock_price || 0);
+      const usd = shares * px;
+      return { row: r, usd, isBuy: (Number(r.amount) || 0) > 0 };
+    })
+    .filter(x => x.usd > 0)
+    .sort((a, b) => b.usd - a.usd)
+    .slice(0, 3);
+
+  // Flow: combine calls + puts, rank by total_premium. Surface strike/expiry
+  // and flag sweep/repeated-hits alerts — those are the actionable ones.
+  const topFlowAlerts = [
+    ...(data.signals?.flow_alerts || []).map(r => ({ ...r, _side: "call" })),
+    ...(data.signals?.put_flow_alerts || []).map(r => ({ ...r, _side: "put" })),
+  ]
+    .map(r => ({ row: r, prem: Number(r.total_premium) || 0 }))
+    .filter(x => x.prem > 0)
+    .sort((a, b) => b.prem - a.prem)
+    .slice(0, 3);
+
+  // Technicals: rank by absolute composite score (−100..+100). Most extreme
+  // readings — long-bias strong bulls and short-bias strong bears — get
+  // surfaced so users see where the signal is most decisive.
+  const topTechnicals = Object.entries(data.signals?.technicals || {})
+    .map(([ticker, v]) => ({
+      ticker,
+      score: Number(v?.composite?.score ?? 0),
+      label: v?.composite?.label || "",
+      rsi: v?.rsi_14 != null ? Number(v.rsi_14) : null,
+    }))
+    .filter(x => x.score !== 0)
+    .sort((a, b) => Math.abs(b.score) - Math.abs(a.score))
+    .slice(0, 3);
 
   const scanTime = data?.scan_time ? new Date(data.scan_time) : null;
   const scanLabel = scanTime
@@ -1513,78 +1609,182 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
           <Tile
             eyebrow={TAB_META.congress.eyebrow}
             title={TAB_META.congress.title}
-            sub={TAB_META.congress.sub}
+            sub="Top 3 disclosed trades by dollar size — click tile for full table."
             accent={TAB_META.congress.accent}
             kpi={{ value: congressN, unit: "trades (45d)", color: congressN > 0 ? "var(--accent)" : "var(--text-muted)" }}
             onClick={() => setView("congress")}
           >
-            <div style={{ display: "flex", gap: 6, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-              {["D", "R", "I"].map(p => (
-                <span key={p} style={{
-                  fontSize: 11, padding: "3px 9px", borderRadius: 999,
-                  background: PARTY_META[p].bg, color: PARTY_META[p].color,
-                  border: `1px solid ${PARTY_META[p].border}`,
-                  fontFamily: "var(--font-mono)", fontWeight: 700,
-                }}>{PARTY_META[p].label} {congressPartySplit[p] || 0}</span>
-              ))}
-              {congressPartySplit["?"] > 0 && (
-                <span style={{
-                  fontSize: 11, padding: "3px 9px", borderRadius: 999,
-                  background: "var(--surface-3)", color: "var(--text-dim)",
-                  border: "1px solid var(--border-faint)",
-                  fontFamily: "var(--font-mono)", fontWeight: 600,
-                }}>? {congressPartySplit["?"]}</span>
-              )}
-            </div>
-            {topCongress.length > 0 && (
-              <div style={{ display: "flex", gap: 4, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-                {topCongress.map(([t, n]) => <Chip key={t} label={`${t} ×${n}`} />)}
-              </div>
-            )}
+            <AnomalyList
+              items={topCongressTrades}
+              empty="No disclosed trades in the last 45 days."
+              renderItem={({ row, amtMid }, i) => {
+                const party = partyOf(row);
+                const partyStyle = PARTY_META[party] || null;
+                const isBuy = /buy/i.test(row.txn_type || "");
+                const sideCol = isBuy ? "var(--green-text)" : "var(--red-text)";
+                return (
+                  <AnomalyRow key={i}
+                    left={
+                      <>
+                        <span style={{ fontWeight: 700, color: "var(--text)" }}>{row.ticker}</span>
+                        {partyStyle && (
+                          <span style={{
+                            fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                            background: partyStyle.bg, color: partyStyle.color,
+                            border: `1px solid ${partyStyle.border}`, fontFamily: "var(--font-mono)", fontWeight: 700,
+                            marginLeft: 6,
+                          }}>{partyStyle.label}</span>
+                        )}
+                        <span style={{ color: "var(--text-muted)", marginLeft: 6, fontSize: 11 }}>
+                          {row.name || "—"}
+                        </span>
+                      </>
+                    }
+                    right={
+                      <>
+                        <span style={{ color: sideCol, fontWeight: 700, marginRight: 6 }}>{isBuy ? "BUY" : "SELL"}</span>
+                        <span className="num" style={{ color: "var(--text)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>{fmtMoney(amtMid)}</span>
+                      </>
+                    }
+                  />
+                );
+              }}
+            />
           </Tile>
 
           <Tile
             eyebrow={TAB_META.insiders.eyebrow}
             title={TAB_META.insiders.title}
-            sub={TAB_META.insiders.sub}
+            sub="Top 3 Form 4 trades by dollar value — 10%-owner and officer buys flagged."
             accent={TAB_META.insiders.accent}
             kpi={{ value: insiderN, unit: "Form 4s", color: insiderN > 0 ? "#bf5af2" : "var(--text-muted)" }}
             onClick={() => setView("insiders")}
           >
-            {topInsider.length > 0 && (
-              <div style={{ display: "flex", gap: 4, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-                {topInsider.map(([t, n]) => <Chip key={t} label={`${t} ×${n}`} />)}
-              </div>
-            )}
+            <AnomalyList
+              items={topInsiderTrades}
+              empty="No insider Form 4 activity today."
+              renderItem={({ row, usd, isBuy }, i) => {
+                const sideCol = isBuy ? "var(--green-text)" : "var(--red-text)";
+                const flags = [];
+                if (row.is_ten_percent_owner) flags.push("10% OWNER");
+                else if (row.is_officer) flags.push("OFFICER");
+                else if (row.is_director) flags.push("DIR");
+                if (row.is_s_p_500) flags.push("S&P");
+                return (
+                  <AnomalyRow key={i}
+                    left={
+                      <>
+                        <span style={{ fontWeight: 700, color: "var(--text)" }}>{row.ticker}</span>
+                        <span style={{ color: "var(--text-muted)", marginLeft: 6, fontSize: 11, textTransform: "capitalize" }}>
+                          {(row.owner_name || "—").toLowerCase().replace(/\b\w/g, c => c.toUpperCase())}
+                        </span>
+                        {flags.length > 0 && (
+                          <span style={{
+                            fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                            background: "var(--surface-3)", color: "var(--text-muted)",
+                            border: "1px solid var(--border-faint)",
+                            fontFamily: "var(--font-mono)", fontWeight: 700, marginLeft: 6, letterSpacing: "0.04em",
+                          }}>{flags.join(" · ")}</span>
+                        )}
+                      </>
+                    }
+                    right={
+                      <>
+                        <span style={{ color: sideCol, fontWeight: 700, marginRight: 6 }}>{isBuy ? "BUY" : "SELL"}</span>
+                        <span className="num" style={{ color: "var(--text)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>{fmtMoney(usd)}</span>
+                      </>
+                    }
+                  />
+                );
+              }}
+            />
           </Tile>
 
           <Tile
             eyebrow={TAB_META.flow.eyebrow}
             title={TAB_META.flow.title}
-            sub={TAB_META.flow.sub}
+            sub={`Top 3 by premium · Calls ${fmtMoney(totalCallPrem)} · Puts ${fmtMoney(totalPutPrem)}`}
             accent={TAB_META.flow.accent}
             kpi={{ value: flowN, unit: "alerts", color: flowN > 0 ? "#ff9f0a" : "var(--text-muted)" }}
             onClick={() => setView("flow")}
           >
-            <div style={{ display: "flex", gap: 8, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-              <MiniStat label="CALLS" value={`${callFlowN} · ${fmtMoney(totalCallPrem)}`} color="var(--green)" wide />
-              <MiniStat label="PUTS"  value={`${putFlowN} · ${fmtMoney(totalPutPrem)}`}   color="var(--red)"   wide />
-            </div>
+            <AnomalyList
+              items={topFlowAlerts}
+              empty="No unusual flow alerts today."
+              renderItem={({ row, prem }, i) => {
+                const isCall = row._side === "call";
+                const sideCol = isCall ? "var(--green-text)" : "var(--red-text)";
+                const hasSweep = row.has_sweep;
+                return (
+                  <AnomalyRow key={i}
+                    left={
+                      <>
+                        <span style={{ fontWeight: 700, color: "var(--text)" }}>{row.ticker}</span>
+                        <span style={{ color: sideCol, fontSize: 11, fontWeight: 700, marginLeft: 6 }}>
+                          {isCall ? "CALL" : "PUT"}
+                        </span>
+                        <span style={{ color: "var(--text-muted)", marginLeft: 6, fontSize: 11, fontFamily: "var(--font-mono)" }}>
+                          ${Number(row.strike).toFixed(0)} {row.expiry ? `· ${String(row.expiry).slice(5)}` : ""}
+                        </span>
+                        {hasSweep && (
+                          <span style={{
+                            fontSize: 9, padding: "1px 5px", borderRadius: 3,
+                            background: "rgba(255,159,10,0.12)", color: "var(--orange-text)",
+                            border: "1px solid rgba(255,159,10,0.30)", fontFamily: "var(--font-mono)", fontWeight: 700,
+                            marginLeft: 6, letterSpacing: "0.04em",
+                          }}>SWEEP</span>
+                        )}
+                      </>
+                    }
+                    right={
+                      <span className="num" style={{ color: "var(--text)", fontFamily: "var(--font-mono)", fontWeight: 700 }}>{fmtMoney(prem)}</span>
+                    }
+                  />
+                );
+              }}
+            />
           </Tile>
 
           <Tile
             eyebrow={TAB_META.technicals.eyebrow}
             title={TAB_META.technicals.title}
-            sub={TAB_META.technicals.sub}
+            sub={`Top 3 most decisive signals${highIVR > 0 ? ` · ${highIVR} with IV >70` : ""}${isSignedIn && techUserOnlyCount > 0 ? ` · +${techUserOnlyCount} in your book` : ""}`}
             accent={TAB_META.technicals.accent}
             kpi={{ value: techCount, unit: "tickers", color: "var(--text)" }}
             onClick={() => setView("technicals")}
           >
-            <div style={{ display: "flex", gap: 8, marginTop: "var(--space-2)", flexWrap: "wrap" }}>
-              <MiniStat label="HIGH VOLATILITY (>70)" value={highIVR} color="var(--yellow-text)" wide />
-              {/* Bug #4: removed "+ YOUR BOOK N" MiniStat — user-book count is already shown elsewhere */}
-              {/* and clutters the anomaly-focused tile framing. */}
-            </div>
+            <AnomalyList
+              items={topTechnicals}
+              empty="No decisive technical signals in this scan."
+              renderItem={(t, i) => {
+                const isBull = t.score > 0;
+                const sideCol = isBull ? "var(--green-text)" : "var(--red-text)";
+                return (
+                  <AnomalyRow key={i}
+                    left={
+                      <>
+                        <span style={{ fontWeight: 700, color: "var(--text)" }}>{t.ticker}</span>
+                        <span style={{ color: "var(--text-muted)", marginLeft: 6, fontSize: 11, fontFamily: "var(--font-mono)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                          {t.label || (isBull ? "BULL" : "BEAR")}
+                        </span>
+                      </>
+                    }
+                    right={
+                      <>
+                        {t.rsi != null && (
+                          <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11, marginRight: 8 }}>
+                            RSI {t.rsi.toFixed(0)}
+                          </span>
+                        )}
+                        <span className="num" style={{ color: sideCol, fontFamily: "var(--font-mono)", fontWeight: 700 }}>
+                          {isBull ? "+" : ""}{t.score}
+                        </span>
+                      </>
+                    }
+                  />
+                );
+              }}
+            />
           </Tile>
 
           <Tile
