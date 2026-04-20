@@ -1809,13 +1809,17 @@ Legacy score <strong style={{color:"var(--text)",fontFamily:"var(--font-mono)"}}
     const sentLabel=sent==="positive"||sent==="bullish"?"+":sent==="negative"||sent==="bearish"?"−":"·";
     const dt=n.created_at?new Date(n.created_at):null;
     const dateStr=dt?dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
-    const url=n.url||"";
-    // If we have a URL, the headline becomes a link out (new tab, noopener).
-    // The whole card is NOT clickable — that would conflict with text-select
-    // and the ticker modal's other clickables.
-    const HeadlineEl=url
-      ?<a href={url} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",borderBottom:"1px dotted var(--text-muted)"}} onClick={e=>e.stopPropagation()}>{n.headline}</a>
-      :<>{n.headline}</>;
+    // UW's /api/news/headlines does NOT include article URLs (verified
+     // against API 2026-04-19). Fall back to a Google News search on the
+     // headline so Joe can still click through instead of dead-ending on
+     // a headline. If UW ever starts returning urls we prefer the real one.
+    const realUrl=n.url||"";
+    const url=realUrl||`https://www.google.com/search?tbm=nws&q=${encodeURIComponent(n.headline||"")}`;
+    const linkLabel=realUrl?"Read full article →":"Find article →";
+    // Headline becomes a link out (new tab, noopener). The whole card is
+    // NOT clickable — that would conflict with text-select and the ticker
+    // modal's other clickables.
+    const HeadlineEl=<a href={url} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",borderBottom:"1px dotted var(--text-muted)"}} onClick={e=>e.stopPropagation()}>{n.headline}</a>;
     return(
     <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"6px 8px",background:"var(--surface-3)",borderRadius:4,fontSize:12,lineHeight:1.4}}>
     <span style={{color:sentCol,fontWeight:800,fontSize:13,fontFamily:"var(--font-mono)",flexShrink:0,minWidth:10,textAlign:"center"}}>{sentLabel}</span>
@@ -1824,7 +1828,7 @@ Legacy score <strong style={{color:"var(--text)",fontFamily:"var(--font-mono)"}}
     {n.description&&<div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5,marginBottom:3}}>{n.description}</div>}
     <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",gap:8,alignItems:"center"}}>
       <span>{n.source||"—"} · {dateStr}</span>
-      {url&&<a href={url} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>Read full article →</a>}
+      <a href={url} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>{linkLabel}</a>
     </div>
     </div>
     </div>);
