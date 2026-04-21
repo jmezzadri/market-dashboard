@@ -408,7 +408,50 @@ export default function BulkImport({ userId, onClose, onDone }) {
     setSubmitting(true);
     try {
       const ok = strategy === "replace" ? await doReplace() : await doMerge();
-      if (ok) await onDone?.();
+      if (ok) {
+        // 35B: fire scan-ticker for each distinct ticker so name/sector/beta
+        // are populated before the parent refetches. Skip CASH rows (not
+        // scannable). Concurrency 5 so UW doesn't get hammered on a big
+        // import. Promise.allSettled so one bad ticker doesn't fail the set.
+        const tickersToScan = Array.from(new Set(
+          rows
+            .map((r) => String(r?.ticker || "").trim().toUpperCase())
+            .filter((t) => t && t.length <= 10 && t !== "CASH")
+        ));
+        if (tickersToScan.length) {
+          try {
+            const { data: sessData } = await supabase.auth.getSession();
+            const token = sessData?.session?.access_token;
+            if (token) {
+              const POOL = 5;
+              const queue = [...tickersToScan];
+              const worker = async () => {
+                while (queue.length) {
+                  const t = queue.shift();
+                  if (!t) break;
+                  try {
+                    await fetch("/api/scan-ticker", {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({ ticker: t }),
+                    });
+                  } catch (_) { /* best-effort per ticker */ }
+                }
+              };
+              await Promise.allSettled(
+                Array.from({ length: Math.min(POOL, tickersToScan.length) }, worker)
+              );
+            }
+          } catch (scanErr) {
+            // eslint-disable-next-line no-console
+            console.warn("[BulkImport] scan fan-out failed:", scanErr);
+          }
+        }
+        await onDone?.();
+      }
     } catch (e) {
       console.error("[BulkImport] submit failed:", e);
       const msg = (e.message || "").toLowerCase().includes("purchase_date")

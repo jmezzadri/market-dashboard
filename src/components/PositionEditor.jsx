@@ -310,6 +310,7 @@ export default function PositionEditor({
         purchase_date: purchaseDate || null,
       };
 
+      let savedRow;
       if (isEdit) {
         // 35C: Account is now editable in edit mode. Resolve (or create)
         // the target account so the row moves if the user re-routed it.
@@ -321,7 +322,7 @@ export default function PositionEditor({
           .select()
           .single();
         if (error) throw error;
-        onSaved?.(data);
+        savedRow = data;
       } else {
         // Find-or-create the account by label, then insert the position.
         const account_id = await resolveAccountId();
@@ -336,8 +337,31 @@ export default function PositionEditor({
           .select()
           .single();
         if (error) throw error;
-        onSaved?.(data);
+        savedRow = data;
       }
+
+      // 35A: fire scan-ticker so name/sector/beta/price are populated before
+      // the parent refetches. Warm cache is typically <200ms; cold is ~2-3s.
+      // Best-effort: don't fail the save if the scanner call fails.
+      try {
+        const { data: sessData } = await supabase.auth.getSession();
+        const token = sessData?.session?.access_token;
+        if (token) {
+          await fetch("/api/scan-ticker", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ ticker: tickerClean }),
+          });
+        }
+      } catch (scanErr) {
+        // eslint-disable-next-line no-console
+        console.warn("[PositionEditor] scan-ticker best-effort failed:", scanErr);
+      }
+
+      onSaved?.(savedRow);
     } catch (e) {
       console.error("[PositionEditor] save failed:", e);
       setErr(e.message || "Save failed. Try again.");
