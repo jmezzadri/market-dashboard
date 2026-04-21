@@ -1959,7 +1959,7 @@ Scan: {scanData?.date_label||"—"} · Data from latest scanner run
 
 function PosCard({p,accountTotal,convColor,convLabel,stressScore}){
 const [exp,setExp]=useState(false);
-const pct=(p.value/accountTotal*100).toFixed(1);
+const pct=((p.value||0)/accountTotal*100).toFixed(1);
 const bCol=p.beta>1.5?"#ff453a":p.beta>1.0?"#ff9f0a":p.beta>0.5?"#ffd60a":"#30d158";
 return(
 <div onClick={e=>{e.stopPropagation();setExp(x=>!x);}}
@@ -1980,7 +1980,7 @@ style={{background:"var(--surface-2)",border:`1px solid ${exp?"#4a6fa555":"var(-
 </div>
 </div>
 <div style={{display:"flex",gap:10,marginBottom:5,flexWrap:"wrap"}}>
-{[{l:"Price",v:`$${p.price}`},{l:"Qty",v:p.shares<100?p.shares:Math.round(p.shares)},{l:"Beta",v:p.beta.toFixed(2),c:bCol},{l:"Sector",v:p.sector}].map(({l,v,c})=>(
+{[{l:"Price",v:`$${p.price}`},{l:"Qty",v:p.shares<100?p.shares:Math.round(p.shares)},{l:"Beta",v:p.beta==null?"—":p.beta.toFixed(2),c:bCol},{l:"Sector",v:p.sector}].map(({l,v,c})=>(
 <div key={l}>
 <div style={{fontSize:6,color:"var(--text-muted)",fontFamily:"monospace"}}>{l}</div>
 <div style={{fontSize:11,color:c||"var(--text)",fontFamily:"monospace",fontWeight:700}}>{v}</div>
