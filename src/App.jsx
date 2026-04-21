@@ -2809,9 +2809,9 @@ const [showBulkImport,setShowBulkImport]=useState(false);
 // unique non-CASH ticker in the portfolio with a concurrency-5 pool.
 // Lets users converge stale name/sector/beta without per-row edit+save.
 const [rescanState,setRescanState]=useState({active:false,done:0,total:0});
-const handleRescanAllPositions=async()=>{
+const handleRescanAllPositions=async(positions)=>{
   if(rescanState.active)return;
-  const tickers=Array.from(new Set((heldPositions||[])
+  const tickers=Array.from(new Set((positions||[])
     .map(p=>String(p?.ticker||"").trim().toUpperCase())
     .filter(t=>t&&t.length<=10&&t!=="CASH")));
   if(tickers.length===0)return;
@@ -3745,7 +3745,7 @@ return(<>
   emptyMessage="No positions."
   onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
   onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
-  onRescan={portfolioAuthed?handleRescanAllPositions:undefined}
+  onRescan={portfolioAuthed?()=>handleRescanAllPositions(heldPositions):undefined}
   rescanBusy={rescanState.active}
   rescanProgress={{done:rescanState.done,total:rescanState.total}}
   onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
