@@ -2805,6 +2805,42 @@ const [showPortoppsLogin,setShowPortoppsLogin]=useState(false);
 // `showBulkImport` toggles the BulkImport modal.
 const [positionEditor,setPositionEditor]=useState(null);
 const [showBulkImport,setShowBulkImport]=useState(false);
+// Rescan-all-positions utility. Fans POST /api/scan-ticker over every
+// unique non-CASH ticker in the portfolio with a concurrency-5 pool.
+// Lets users converge stale name/sector/beta without per-row edit+save.
+const [rescanState,setRescanState]=useState({active:false,done:0,total:0});
+const handleRescanAllPositions=async()=>{
+  if(rescanState.active)return;
+  const tickers=Array.from(new Set((heldPositions||[])
+    .map(p=>String(p?.ticker||"").trim().toUpperCase())
+    .filter(t=>t&&t.length<=10&&t!=="CASH")));
+  if(tickers.length===0)return;
+  const {data:sessData}=await supabase.auth.getSession();
+  const token=sessData?.session?.access_token;
+  if(!token)return;
+  setRescanState({active:true,done:0,total:tickers.length});
+  const queue=[...tickers];
+  let done=0;
+  const worker=async()=>{
+    while(queue.length){
+      const t=queue.shift();
+      if(!t)break;
+      try{
+        await fetch("/api/scan-ticker",{
+          method:"POST",
+          headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`},
+          body:JSON.stringify({ticker:t}),
+        });
+      }catch(e){/* best-effort */}
+      done+=1;
+      setRescanState(s=>({...s,done}));
+    }
+  };
+  const POOL=5;
+  await Promise.allSettled(Array.from({length:Math.min(POOL,tickers.length)},worker));
+  await refetchPortfolio?.();
+  setRescanState({active:false,done:0,total:0});
+};
 // Inline delete from the PositionsTable row goes through this. We use the
 // browser's native confirm dialog rather than building another modal — it's
 // immediate, works on mobile, and users already expect it for destructive
@@ -3709,6 +3745,9 @@ return(<>
   emptyMessage="No positions."
   onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
   onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
+  onRescan={portfolioAuthed?handleRescanAllPositions:undefined}
+  rescanBusy={rescanState.active}
+  rescanProgress={{done:rescanState.done,total:rescanState.total}}
   onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
   onDelete={portfolioAuthed?deletePositionInline:undefined}
 />

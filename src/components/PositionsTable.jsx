@@ -80,11 +80,17 @@ const fmtMarketCap = (v) => {
 };
 
 const fmtDate = (v) => {
+  // Item #16: standardize to MM/DD/YYYY across all date columns (purchaseDate,
+  // nextEarnings). Using a locale-independent pad so server TZ / user locale
+  // never flips "Apr 6, 2026" vs "04/06/2026" spelling.
   if (!v) return "—";
   try {
     const d = new Date(v);
     if (Number.isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${mm}/${dd}/${yyyy}`;
   } catch {
     return "—";
   }
@@ -177,7 +183,7 @@ const COLUMNS = [
   },
   {
     id: "price",
-    label: "CURRENT PRICE/SHARE",
+    label: "PRICE/SHARE",
     description: "Current market price per share",
     align: "right",
     sortValue: (r) => r.price,
@@ -455,11 +461,12 @@ const DEFAULT_WIDTHS = {
 export default function PositionsTable({
   rows, grandTotal, screener, info,
   onOpenTicker, emptyMessage,
-  onAdd, onBulkImport, onEdit, onDelete,
+  onAdd, onBulkImport, onRescan, onEdit, onDelete,
+  rescanBusy, rescanProgress,
   tableKey = "positions",
 }) {
   const showActionsCol = Boolean(onEdit || onDelete);
-  const showActionBar  = Boolean(onAdd || onBulkImport);
+  const showActionBar  = Boolean(onAdd || onBulkImport || onRescan);
 
   // Load/save column prefs (order + visibility) per user.
   const { prefs, setOrder, setVisible, setWidths, resetToDefaults } = useTablePreferences(tableKey, {
@@ -606,6 +613,19 @@ export default function PositionsTable({
         onVisibleChange={setVisible}
         onResetAll={resetToDefaults}
       />
+      {showActionBar && onRescan && (
+        <button
+          type="button"
+          style={{ ...topBarBtn, opacity: rescanBusy ? 0.6 : 1, cursor: rescanBusy ? "progress" : "pointer" }}
+          onClick={onRescan}
+          disabled={rescanBusy}
+          title="Re-fetch name/sector/beta/price for every non-CASH position. One-shot; uses the same /api/scan-ticker endpoint the add flow uses."
+        >
+          {rescanBusy
+            ? `Rescanning ${rescanProgress?.done ?? 0}/${rescanProgress?.total ?? 0}…`
+            : "Rescan metadata"}
+        </button>
+      )}
       {showActionBar && onBulkImport && (
         <button type="button" style={topBarBtn} onClick={onBulkImport}>
           Bulk import (CSV/XLSX)
