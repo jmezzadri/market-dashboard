@@ -283,9 +283,7 @@ def fetch_all():
     cp3 = safe_fred("DCPF3M")
     dff = safe_fred("DFF")
     if cp3 is not None and dff is not None:
-        df = pd.concat([cp3.rename("cp"), dff.rename("ff")], axis=1).fillna(
-            method="ffill"
-        ).dropna()
+        df = pd.concat([cp3.rename("cp"), dff.rename("ff")], axis=1).ffill().dropna()
         spread_bps = (df["cp"] - df["ff"]) * 100.0
         # resample to weekly to match reported cadence
         spread_w = spread_bps.resample("W-FRI").last().dropna()
