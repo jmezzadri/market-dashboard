@@ -373,6 +373,8 @@ export default function WatchlistTable({
   // Drag state MUST be declared before any conditional return — React hook-order invariant (Item 36 hotfix).
   const [dragId, setDragId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
+  // liveWidths (column resize) MUST also be declared before the early return -- same React hook-order invariant.
+  const [liveWidths, setLiveWidths] = useState(null);
 
   if (!enriched.length) {
     return (
@@ -440,7 +442,6 @@ export default function WatchlistTable({
   };
 
   // --- Resizable columns ----------------------------------------------------
-  const [liveWidths, setLiveWidths] = useState(null);
   const widthOf = (id) => (liveWidths && liveWidths[id] != null)
     ? liveWidths[id]
     : (prefs.widths[id] != null ? prefs.widths[id] : (DEFAULT_WIDTHS[id] || 100));
