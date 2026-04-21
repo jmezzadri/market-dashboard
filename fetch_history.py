@@ -59,12 +59,80 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 OUT_PATH = os.path.join(BASE_DIR, "public", "indicator_history.json")
 FRED_API_KEY = os.environ.get("FRED_API_KEY", "e1696db1c3f8bb036993f40c61aad0d5")
 
-# 15y back-window keeps file <2MB uncompressed while covering: post-GFC,
-# 2015-16 oil crash, 2018 Vol-mageddon, 2020 COVID, 2022 hiking cycle,
-# 2023 SVB, 2025 Liberation Day.
-START = "2011-01-01"
+# 20y back-window captures 2007-2009 GFC, 2011 Euro crisis, 2015-16 oil crash,
+# 2018 Vol-mageddon, 2020 COVID, 2022 hiking cycle, 2023 SVB, 2025 Liberation Day.
+# File grows to ~1.2 MB which is still fine over the wire.
+START = "2006-01-01"
+
+# Stats computation window. We compute mean/sd over a TRAILING 15y of data
+# (not the full 20y) so regime bands reflect the recent regime — the GFC
+# is preserved in the chart for context but excluded from the stats cut-off
+# so it doesn't inflate SD and mask current stress.
+STATS_WINDOW_YEARS = 15
+
+# Indicator "bad-direction" mapping — which tail of the distribution is
+# unhealthy. Drives the SD-score → regime-band color:
+#   hw = "high is worse" (VIX up = bad)
+#   lw = "low is worse"  (ISM down = bad; bank_credit down = bad)
+#   nw = "near zero is worse" (yield curve inversion or flat = bad both sides)
+DIRECTION = {
+    "vix":"hw","hy_ig":"hw","eq_cr_corr":"hw","yield_curve":"nw",
+    "move":"hw","anfci":"hw","stlfsi":"hw","real_rates":"hw",
+    "sloos_ci":"hw","cape":"hw","ism":"lw","copper_gold":"lw",
+    "bkx_spx":"lw","bank_unreal":"hw","credit_3y":"hw","term_premium":"hw",
+    "cmdi":"hw","loan_syn":"hw","usd":"hw","cpff":"hw","skew":"hw",
+    "sloos_cre":"hw","bank_credit":"lw","jobless":"hw","jolts_quits":"lw",
+}
 
 fred = Fred(api_key=FRED_API_KEY)
+
+
+def compute_stats(points, direction="hw", winsorize=True, window_years=STATS_WINDOW_YEARS):
+    """Compute {mean, sd, window, winsorize, n} for a points list.
+
+    Args:
+        points: list of [iso_date_str, value_float]
+        direction: 'hw' | 'lw' | 'nw' (written into output; consumed by React)
+        winsorize: if True, trim 1st/99th percentile before stats (kills outliers
+            like the 2020 COVID jobless spike without deleting them from the chart)
+        window_years: trailing window in years; older data excluded from stats
+    """
+    if not points or len(points) < 10:
+        return None
+    dates = [pd.Timestamp(p[0]) for p in points]
+    values = [p[1] for p in points]
+    s = pd.Series(values, index=dates).sort_index()
+    cutoff = s.index.max() - pd.Timedelta(days=365 * window_years)
+    s = s[s.index >= cutoff]
+    if len(s) < 10:
+        return None
+    if winsorize and len(s) > 20:
+        p1, p99 = s.quantile(0.01), s.quantile(0.99)
+        s = s.clip(lower=p1, upper=p99)
+    return {
+        "mean": round(float(s.mean()), 4),
+        "sd": round(float(s.std()), 4),
+        "window": f"{window_years}y",
+        "winsorize": "1%-99%" if winsorize else "none",
+        "n": int(len(s)),
+        "direction": direction,
+    }
+
+
+def attach_stats_and_as_of(result):
+    """Post-process: attach `stats` block and `as_of` date to every indicator."""
+    for ind_id, entry in list(result.items()):
+        if ind_id.startswith("__"):
+            continue
+        pts = entry.get("points", [])
+        if not pts:
+            continue
+        entry["as_of"] = pts[-1][0]
+        direction = DIRECTION.get(ind_id, "hw")
+        stats = compute_stats(pts, direction=direction, winsorize=True)
+        if stats:
+            entry["stats"] = stats
+    return result
 
 
 def series_to_points(s, *, round_dp=4):
@@ -376,10 +444,16 @@ def fetch_all():
                           "points": move_anchor,
                           "source": "ICE/BofA MOVE (curated anchor)"}
 
-    # as_of metadata
+    # Per-indicator stats block + as_of date. This is what the React frontend
+    # now reads to render tile values, SD-score regime bands, and the generated
+    # state sentence — replacing the hardcoded SD table and d[6..10] in App.jsx.
+    attach_stats_and_as_of(result)
+
+    # Global metadata
     result["__meta__"] = {
         "generated_at_utc": datetime.utcnow().isoformat() + "Z",
         "start": START,
+        "stats_window_years": STATS_WINDOW_YEARS,
         "source": "FRED + Yahoo Finance + curated anchors",
     }
 
