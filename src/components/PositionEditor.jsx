@@ -148,6 +148,25 @@ export default function PositionEditor({
   const [avgCost, setAvgCost] = useState(isEdit ? existing.avgCost ?? null : null);
   const [price,   setPrice]   = useState(isEdit ? existing.price   ?? null : null);
 
+  // ── Sticky input strings for the primary numeric inputs (item 35D) ───────
+  // Prevents `parseNum("2.") → 2 → inputVal(2) → "2"` from stripping the
+  // trailing decimal while the user is mid-keystroke. The canonical Numbers
+  // still drive all downstream math; these strings only drive what the
+  // input renders.
+  const [sharesStr,  setSharesStr]  = useState(inputVal(isEdit ? existing.shares  ?? null : null));
+  const [avgCostStr, setAvgCostStr] = useState(inputVal(isEdit ? existing.avgCost ?? null : null));
+
+  // Mirror canonical → sticky whenever the Number drifts from the string's
+  // parsed value (e.g. back-solve via onChangeTotalCost / onChangeCurrentValue).
+  // The equality check ensures mid-keystroke typing ("2.") isn't clobbered
+  // because parseNum("2.") === 2 === avgCost.
+  useEffect(() => {
+    if (parseNum(sharesStr) !== shares) setSharesStr(inputVal(shares));
+  }, [shares]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (parseNum(avgCostStr) !== avgCost) setAvgCostStr(inputVal(avgCost));
+  }, [avgCost]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Item 36: optional acquisition date. Used by PositionsTable's Holding
   // Period column and (future) Annualized PnL column. Stored as ISO YYYY-MM-DD
   // in positions.purchase_date. NULL for rows the user skipped.
@@ -183,13 +202,13 @@ export default function PositionEditor({
 
   // ── input handlers ────────────────────────────────────────────────────────
   const onChangeShares = (raw) => {
-    const n = parseNum(raw);
-    setShares(n);
+    setSharesStr(raw);
+    setShares(parseNum(raw));
   };
 
   const onChangeAvgCost = (raw) => {
-    const n = parseNum(raw);
-    setAvgCost(n);
+    setAvgCostStr(raw);
+    setAvgCost(parseNum(raw));
   };
 
   const onChangeTotalCost = (raw) => {
@@ -434,7 +453,7 @@ export default function PositionEditor({
               <label style={label}>SHARES</label>
               <input
                 style={input}
-                value={inputVal(shares)}
+                value={sharesStr}
                 onChange={(e) => onChangeShares(e.target.value)}
                 inputMode="decimal"
                 placeholder="10"
@@ -448,7 +467,7 @@ export default function PositionEditor({
               <label style={label}>COST / SHARE</label>
               <input
                 style={input}
-                value={inputVal(avgCost)}
+                value={avgCostStr}
                 onChange={(e) => onChangeAvgCost(e.target.value)}
                 inputMode="decimal"
                 placeholder="150.00"
