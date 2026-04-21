@@ -8,7 +8,9 @@ import { InfoTip, HeadWithTip } from "./InfoTip";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
+import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
 import SubCompositeStrip from "./components/SubCompositeStrip";
+import UniverseFreshness from "./components/UniverseFreshness";
 import { normalizeTickerName } from "./lib/nameFormat";
 
 const DATA_URL =
@@ -1369,6 +1371,11 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   // user's watchlist tickers that the scanner kept out of the public artifact.
   // `mergeInto` is pass-through when signed out (byTicker is empty).
   const { mergeInto: mergePrivateScan } = usePrivateScanSupplement();
+  // 3x-weekday universe snapshot — fresh prices / IV / flow / marketcap /
+  // calendar for every equity ≥ $1B mcap. Layers BEFORE the private supplement
+  // so universe values win on overlapping fields while private fills the gaps
+  // universe doesn't cover (technicals_json, analyst_ratings, news).
+  const { mergeInto: mergeUniverseSnapshot } = useUniverseSnapshot();
   const isSignedIn = Boolean(session?.user?.id);
 
   // Flatten user accounts → distinct ticker list for the Technicals overlay.
@@ -1404,17 +1411,25 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
 
-  // Layer the per-user private scan rows onto the public scan data. For signed-
-  // out users `mergePrivateScan` is pass-through; for signed-in users it fills
-  // in signals.technicals / screener / analyst / info / news for every
-  // watchlist ticker that the scanner computed. Downstream render reads from
-  // `data` (the merged result) so six-bar composites appear on watchlist
-  // tickers too. `rawData` remains available for any code that needs the
-  // unmerged public artifact.
-  const data = useMemo(
-    () => (rawData ? mergePrivateScan(rawData) : rawData),
-    [rawData, mergePrivateScan]
-  );
+  // Layer the universe snapshot (3x/weekday, fresh prices / options / IV) and
+  // the per-user private scan rows onto the public scan data. For signed-out
+  // users both merges are pass-throughs; for signed-in users:
+  //   - `mergeUniverseSnapshot` field-overlays close / prev_close / perc_change
+  //     / marketcap / IV rank / options volume+OI+premium / 52w / earnings date
+  //     from `public.universe_snapshots` (populated 10:00 / 13:00 / 15:45 ET).
+  //   - `mergePrivateScan` fills in technicals / analyst / news / info that the
+  //     universe snapshot doesn't cover, using the 3:30 PM per-user scan.
+  // Order matters: universe runs first so the private supplement (whose guard
+  // is `if (!nextScreener[T])`) only fills gaps instead of clobbering fresher
+  // universe prices. Kept identical to App.jsx so every surface that reads
+  // scanData — Watchlist, Positions, Ticker Detail, Scanner tabs — picks up
+  // the fresher values without per-component edits.
+  const data = useMemo(() => {
+    if (!rawData) return rawData;
+    let x = mergeUniverseSnapshot(rawData);
+    x = mergePrivateScan(x);
+    return x;
+  }, [rawData, mergeUniverseSnapshot, mergePrivateScan]);
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: 60, color: C.dim, fontFamily: "monospace", fontSize: 13 }}>
@@ -1569,7 +1584,13 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
       <main style={{ maxWidth: 1440, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, marginBottom: "var(--space-6)" }}>
           <div className="section-eyebrow">Latest scan</div>
-          <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{scanLabel}</span>
+          <span style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+            {/* Universe-snapshot freshness chip — sits next to the scan time
+                so the user can see both the 1x/day scan and 3x/day price
+                refresh stamps at a glance. Rendered nothing for signed-out. */}
+            <UniverseFreshness ts={data?.universe_snapshot_ts} />
+            <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{scanLabel}</span>
+          </span>
         </div>
 
         {staleCopy && (

@@ -373,11 +373,67 @@ def _coerce_int(v: Any) -> int | None:
         return None
 
 
+def _coerce_numeric(v: Any) -> float | None:
+    """Coerce UW numeric values that sometimes arrive as strings.
+
+    UW returns a handful of numeric fields (perc_change in particular) as
+    JSON strings rather than numbers, occasionally with a trailing '%' or
+    thousands commas. Passing those to PostgREST silently nulls the
+    column (the NUMERIC cast fails, the row lands, the field is NULL).
+
+    Handles: native numeric, numeric-as-string, +/-, trailing %, commas,
+    empty/placeholder strings ('--', 'N/A').
+    """
+    if v is None:
+        return None
+    if isinstance(v, bool):
+        # bool is a subclass of int in Python — guard before the numeric check
+        return None
+    if isinstance(v, (int, float)):
+        return float(v)
+    if isinstance(v, str):
+        s = v.strip().replace(",", "").rstrip("%").strip()
+        if not s or s.upper() in {"--", "N/A", "NA", "NULL", "NONE"}:
+            return None
+        try:
+            return float(s)
+        except ValueError:
+            return None
+    return None
+
+
+# NUMERIC columns on universe_snapshots — we coerce every one of these through
+# _coerce_numeric on the way in so a UW field that flips to a string shape
+# (as perc_change did) never silently nulls the column again. See migration 009.
+NUMERIC_FIELDS: set[str] = {
+    "marketcap", "close", "prev_close", "perc_change", "high", "low",
+    "avg30_volume", "relative_volume", "week_52_high", "week_52_low",
+    "iv30d", "iv30d_1d", "iv30d_1w", "iv30d_1m", "iv_rank",
+    "volatility", "volatility_7", "volatility_30",
+    "realized_volatility", "variance_risk_premium", "rv_1d_last_12q",
+    "implied_move", "implied_move_perc",
+    "implied_move_7", "implied_move_perc_7",
+    "implied_move_30", "implied_move_perc_30",
+    "put_call_ratio",
+    "avg_3_day_call_volume", "avg_3_day_put_volume",
+    "avg_7_day_call_volume", "avg_7_day_put_volume",
+    "avg_30_day_call_volume", "avg_30_day_put_volume",
+    "call_premium", "put_premium",
+    "net_call_premium", "net_put_premium",
+    "bullish_premium", "bearish_premium",
+    "avg_30_day_call_oi", "avg_30_day_put_oi",
+    "cum_dir_delta", "cum_dir_gamma", "cum_dir_vega",
+    "gex_net_change", "gex_perc_change", "gex_ratio",
+}
+
+
 def _shape_row(row: dict[str, Any], snapshot_ts_iso: str) -> dict[str, Any]:
     """Convert one UW screener row into a universe_snapshots insert row.
 
-    Unknown fields go into raw_extras jsonb. Bigint columns get numeric
-    coercion. Date strings pass through as-is (Postgres parses ISO dates).
+    Unknown fields go into raw_extras jsonb. Bigint columns get integer
+    coercion; numeric columns get float coercion (handles UW's occasional
+    string-number shape for fields like perc_change). Date strings pass
+    through as-is (Postgres parses ISO dates).
     """
     out: dict[str, Any] = {
         "snapshot_ts": snapshot_ts_iso,
@@ -393,8 +449,18 @@ def _shape_row(row: dict[str, Any], snapshot_ts_iso: str) -> dict[str, Any]:
             continue
         if k in BIGINT_FIELDS:
             out[k] = _coerce_int(v)
+        elif k in NUMERIC_FIELDS:
+            out[k] = _coerce_numeric(v)
         else:
+            # text / boolean / date fields — pass through
             out[k] = v
+
+    # Note: intentionally NOT deriving perc_change from close/prev_close when
+    # null — we don't know UW's scale (fraction 0.0234 vs percent 2.34) without
+    # seeing a live non-null value, and mixing scales would be worse than
+    # leaving nulls. Consumers derive their own per-cent from close/prev_close
+    # in their preferred scale. Once UW returns a parseable perc_change in
+    # some snapshot, confirm scale + re-enable derivation as a fallback.
 
     if extras:
         out["raw_extras"] = extras
