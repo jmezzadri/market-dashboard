@@ -146,7 +146,18 @@ export default function PositionEditor({
   const [sector, setSector]   = useState(isEdit ? existing.sector || "" : "");
 
   // Canonical numerics
-  const [shares,  setShares]  = useState(isEdit ? existing.shares  ?? null : null);
+  // 35E: if the existing row is CASH, the source-of-truth amount lives in
+  // `existing.value`, not `existing.shares`. Broken rows in the DB have
+  // shares=$amount (same value as price), so shares is unreliable. We use
+  // `existing.value ?? existing.shares` for the initial amount — both match
+  // for correctly-encoded CASH rows; for broken rows, value is right.
+  const _existingTickerUC = isEdit ? String(existing.ticker || "").trim().toUpperCase() : "";
+  const _isExistingCash   = _existingTickerUC === "CASH";
+  const _initAmount       = _isExistingCash
+    ? (existing.value ?? existing.shares ?? null)
+    : (isEdit ? existing.shares ?? null : null);
+
+  const [shares,  setShares]  = useState(_initAmount);
   const [avgCost, setAvgCost] = useState(isEdit ? existing.avgCost ?? null : null);
   const [price,   setPrice]   = useState(isEdit ? existing.price   ?? null : null);
 
@@ -155,7 +166,7 @@ export default function PositionEditor({
   // trailing decimal while the user is mid-keystroke. The canonical Numbers
   // still drive all downstream math; these strings only drive what the
   // input renders.
-  const [sharesStr,  setSharesStr]  = useState(inputVal(isEdit ? existing.shares  ?? null : null));
+  const [sharesStr,  setSharesStr]  = useState(inputVal(_initAmount));
   const [avgCostStr, setAvgCostStr] = useState(inputVal(isEdit ? existing.avgCost ?? null : null));
 
   // Mirror canonical → sticky whenever the Number drifts from the string's
@@ -249,22 +260,32 @@ export default function PositionEditor({
   // user gave us.
   const tickerClean = ticker.trim().toUpperCase();
   const accountLabelClean = accountLabel.trim();
+  // 35E: CASH is first-class. Any time the user types / has CASH, the form
+  // flips to an amount-only layout. Detection is purely by ticker string.
+  const isCash = tickerClean === "CASH";
   const validation = useMemo(() => {
     if (!accountLabelClean) return "Account name is required.";
     if (accountLabelClean.length > 80) return "Account name is too long — max 80 chars.";
     if (!tickerClean)   return "Ticker is required.";
     if (tickerClean.length > 10) return "Ticker looks too long — max 10 chars.";
-    // We need enough to compute `value`:
-    const haveValue = currentValue != null && Number.isFinite(currentValue);
-    if (!haveValue) {
-      return "Enter Shares and Current Value.";
+    if (isCash) {
+      // 35E: CASH uses `shares` as the amount; any non-zero finite number
+      // (positive = cash balance, negative = margin debit) is acceptable.
+      if (shares == null || !Number.isFinite(shares)) return "Enter a dollar amount.";
+      if (shares === 0) return "Amount can't be zero — use Delete to remove a position.";
+    } else {
+      // We need enough to compute `value`:
+      const haveValue = currentValue != null && Number.isFinite(currentValue);
+      if (!haveValue) {
+        return "Enter Shares and Current Value.";
+      }
     }
     // Purchase date is optional; if the user typed one, it must be ISO.
     if (purchaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(purchaseDate)) {
       return "Purchase date must be YYYY-MM-DD (or leave it blank).";
     }
     return null;
-  }, [accountLabelClean, tickerClean, currentValue, purchaseDate]);
+  }, [accountLabelClean, tickerClean, isCash, shares, currentValue, purchaseDate]);
 
   // Resolve the typed account label to an account_id. If no account with
   // that exact label exists, create one and return its id. Case-insensitive
@@ -296,19 +317,35 @@ export default function PositionEditor({
     setErr("");
     setSubmitting(true);
     try {
-      const payload = {
-        ticker:   tickerClean,
-        name:     existing?.name || tickerClean,
-        shares:   shares,
-        price:    price,
-        avg_cost: avgCost,
-        value:    currentValue,
-        sector:   sector || existing?.sector || null,
-        beta:     existing?.beta ?? null,
-        analysis: existing?.analysis ?? null,
-        // Item 36: empty string → NULL so we don't insert a garbage date.
-        purchase_date: purchaseDate || null,
-      };
+      // 35E: CASH is first-class. Build a CASH-shaped payload when ticker===CASH
+      // so the row is encoded as shares=amount / price=1 / avg_cost=1 / value=amount.
+      // This auto-heals broken rows (shares=√value) on the next save.
+      const payload = isCash
+        ? {
+            ticker:   "CASH",
+            name:     "CASH",
+            shares:   shares,          // = dollar amount (signed)
+            price:    1,
+            avg_cost: 1,
+            value:    shares,          // = dollar amount (signed)
+            sector:   "Cash",
+            beta:     0,
+            analysis: existing?.analysis ?? null,
+            purchase_date: purchaseDate || null,
+          }
+        : {
+            ticker:   tickerClean,
+            name:     existing?.name || tickerClean,
+            shares:   shares,
+            price:    price,
+            avg_cost: avgCost,
+            value:    currentValue,
+            sector:   sector || existing?.sector || null,
+            beta:     existing?.beta ?? null,
+            analysis: existing?.analysis ?? null,
+            // Item 36: empty string → NULL so we don't insert a garbage date.
+            purchase_date: purchaseDate || null,
+          };
 
       let savedRow;
       if (isEdit) {
@@ -343,22 +380,26 @@ export default function PositionEditor({
       // 35A: fire scan-ticker so name/sector/beta/price are populated before
       // the parent refetches. Warm cache is typically <200ms; cold is ~2-3s.
       // Best-effort: don't fail the save if the scanner call fails.
-      try {
-        const { data: sessData } = await supabase.auth.getSession();
-        const token = sessData?.session?.access_token;
-        if (token) {
-          await fetch("/api/scan-ticker", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ ticker: tickerClean }),
-          });
+      // 35E: skip for CASH — the scanner can't resolve it, and we already
+      // populated name/sector/beta/price ourselves in the payload above.
+      if (!isCash) {
+        try {
+          const { data: sessData } = await supabase.auth.getSession();
+          const token = sessData?.session?.access_token;
+          if (token) {
+            await fetch("/api/scan-ticker", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ ticker: tickerClean }),
+            });
+          }
+        } catch (scanErr) {
+          // eslint-disable-next-line no-console
+          console.warn("[PositionEditor] scan-ticker best-effort failed:", scanErr);
         }
-      } catch (scanErr) {
-        // eslint-disable-next-line no-console
-        console.warn("[PositionEditor] scan-ticker best-effort failed:", scanErr);
       }
 
       onSaved?.(savedRow);
@@ -441,7 +482,8 @@ export default function PositionEditor({
           </div>
         </div>
 
-        {/* Sector + Purchase Date row — both optional */}
+        {/* Sector + Purchase Date row — both optional; hidden for CASH */}
+        {!isCash && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
           <div>
             <label style={label}>SECTOR (optional)</label>
@@ -465,79 +507,103 @@ export default function PositionEditor({
             </div>
           </div>
         </div>
+        )}
 
-        {/* Numeric block */}
-        <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
-          <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
-            POSITION MATH · COST/SHARE ↔ TOTAL COST AUTO-CALCULATE
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10 }}>
+        {/* Numeric block — 35E: CASH flips to single-amount layout */}
+        {isCash ? (
+          <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
+              CASH BALANCE
+            </div>
             <div>
-              <label style={label}>SHARES</label>
+              <label style={label}>AMOUNT ($)</label>
               <input
                 style={input}
                 value={sharesStr}
                 onChange={(e) => onChangeShares(e.target.value)}
                 inputMode="decimal"
-                placeholder="10"
+                placeholder="40000"
               />
+              <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                Cash is an account balance. Enter the dollar amount — we pin price to $1
+                so your portfolio math stays consistent. A negative amount represents a margin debit.
+              </div>
             </div>
           </div>
-
-          {/* Cost pair */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={label}>COST / SHARE</label>
-              <input
-                style={input}
-                value={avgCostStr}
-                onChange={(e) => onChangeAvgCost(e.target.value)}
-                inputMode="decimal"
-                placeholder="150.00"
-              />
+        ) : (
+          <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
+              POSITION MATH · COST/SHARE ↔ TOTAL COST AUTO-CALCULATE
             </div>
-            <div>
-              <label style={label}>TOTAL COST (= SHARES × COST/SHARE)</label>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={label}>SHARES</label>
+                <input
+                  style={input}
+                  value={sharesStr}
+                  onChange={(e) => onChangeShares(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="10"
+                />
+              </div>
+            </div>
+
+            {/* Cost pair */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={label}>COST / SHARE</label>
+                <input
+                  style={input}
+                  value={avgCostStr}
+                  onChange={(e) => onChangeAvgCost(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="150.00"
+                />
+              </div>
+              <div>
+                <label style={label}>TOTAL COST (= SHARES × COST/SHARE)</label>
+                <input
+                  style={input}
+                  value={
+                    // if both canonicals are set, show derived; else show sticky string
+                    shares != null && avgCost != null
+                      ? String(shares * avgCost)
+                      : totalCostStr
+                  }
+                  onChange={(e) => onChangeTotalCost(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="1500.00"
+                />
+              </div>
+            </div>
+
+            {/* Current value — full width. No price/share input: we back-solve
+                price = value / shares on save. The platform's market data layer
+                refreshes the live price after save, so there's no reason to ask
+                the user for it manually. */}
+            <div style={{ marginBottom: 6 }}>
+              <label style={label}>CURRENT VALUE</label>
               <input
                 style={input}
                 value={
-                  // if both canonicals are set, show derived; else show sticky string
-                  shares != null && avgCost != null
-                    ? String(shares * avgCost)
-                    : totalCostStr
+                  shares != null && price != null
+                    ? String(shares * price)
+                    : currentValueStr
                 }
-                onChange={(e) => onChangeTotalCost(e.target.value)}
+                onChange={(e) => onChangeCurrentValue(e.target.value)}
                 inputMode="decimal"
-                placeholder="1500.00"
+                placeholder="1750.00"
               />
+              <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                Enter today's market value of the holding. Price/share is derived automatically.
+              </div>
             </div>
           </div>
+        )}
 
-          {/* Current value — full width. No price/share input: we back-solve
-              price = value / shares on save. The platform's market data layer
-              refreshes the live price after save, so there's no reason to ask
-              the user for it manually. */}
-          <div style={{ marginBottom: 6 }}>
-            <label style={label}>CURRENT VALUE</label>
-            <input
-              style={input}
-              value={
-                shares != null && price != null
-                  ? String(shares * price)
-                  : currentValueStr
-              }
-              onChange={(e) => onChangeCurrentValue(e.target.value)}
-              inputMode="decimal"
-              placeholder="1750.00"
-            />
-            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-              Enter today's market value of the holding. Price/share is derived automatically.
-            </div>
-          </div>
-        </div>
-
-        {/* Derived summary */}
+        {/* Derived summary — hidden for CASH (PnL math is meaningless) */}
+        {!isCash && (
         <div style={{
           background: "var(--surface-2)",
           border: "1px solid var(--border-faint)",
@@ -566,6 +632,7 @@ export default function PositionEditor({
             </span>
           </div>
         </div>
+        )}
 
         {err && (
           <div style={{ padding: 10, marginBottom: 12, fontSize: 12, color: "#ff453a", background: "rgba(255,69,58,0.08)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 6 }}>
