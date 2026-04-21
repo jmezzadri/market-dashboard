@@ -6,7 +6,7 @@ name: INDICATOR-REFRESH_7AM_WEEKDAYS
 # downstream workflows (daily-brief) kick off.
 #
 # Why a separate workflow (vs. bolting onto daily-brief.yml):
-#   - daily-brief runs at 3:50 PM and depends on the scanner's 3:45 PM step;
+#   - daily-brief runs at 3:50 PM and depends on the scanner's 3:30 PM step;
 #     indicator history only needs overnight FRED/Yahoo data, so morning is
 #     fine and decouples it from scanner-day behavior.
 #   - This file touches public/indicator_history.json (~1.2 MB). Isolating it

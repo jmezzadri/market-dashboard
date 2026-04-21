@@ -1364,7 +1364,7 @@ async function addToWatchlist(){
     if(error)throw error;
     await refetchPortfolio?.();
     // Trigger server-side scan so this modal fills in without waiting
-    // for the next scheduled 3:45 PM run.
+    // for the next scheduled 3:30 PM run.
     onTickerAdded?.(ticker.toUpperCase());
   }catch(err){setWlError(err.message||String(err));}
   finally{setWlBusy(false);}
@@ -1724,7 +1724,7 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(130px,1fr))",gap:8}}>
 {mcap!=null&&<Kpi label="MARKET CAP" value={fmt$M(mcap)} color="var(--text)" tip="Total market capitalization (shares × price). Rough size buckets: <$300M microcap, $300M-2B small, $2-10B mid, $10-200B large, >$200B mega."/>}
 {avgVol!=null&&price!=null&&<Kpi label="AVG $VOL 30D" value={fmt$M(avgVol*price)} color="var(--text)" sub="liquidity, last 30d" tip="Average daily DOLLAR volume over the past 30 days (avg shares × close). This is the comparable liquidity read across tickers — raw share counts don't compare (a $0.50 penny stock can trade more shares than BRK.A). Rough institutional buckets: <$10M illiquid (wide spreads, slippage on size); $10M-100M tradable but be careful with size; >$100M deep enough for most positions; >$1B mega-liquid."/>}
-{relVol!=null&&<Kpi label="RELATIVE VOL" value={`${relVol.toFixed(2)}×`} color={relVol>=2?"#30d158":relVol>=1?"var(--text)":"var(--text-dim)"} sub="vs 30d avg" tip="End-of-session relative volume from the daily 3:45 PM ET scan: prior session's full-day volume divided by the 30-day average. >1× = heavier than typical (often news/catalyst); <1× = quieter than typical. NOT a real-time intraday pace — the dashboard is fed by a once-daily scan."/>}
+{relVol!=null&&<Kpi label="RELATIVE VOL" value={`${relVol.toFixed(2)}×`} color={relVol>=2?"#30d158":relVol>=1?"var(--text)":"var(--text-dim)"} sub="vs 30d avg" tip="End-of-session relative volume from the daily 3:30 PM ET scan: prior session's full-day volume divided by the 30-day average. >1× = heavier than typical (often news/catalyst); <1× = quieter than typical. NOT a real-time intraday pace — the dashboard is fed by a once-daily scan."/>}
 {(nextEarn||info?.next_earnings_date)&&<Kpi label="NEXT EARNINGS" value={String(nextEarn||info?.next_earnings_date).slice(0,10)} color="var(--text)" sub={earnTimeForChip==="premarket"?"before open":earnTimeForChip==="postmarket"?"after close":""} tip={`Next scheduled earnings release date${earnTimeForChip?` (${earnTimeForChip==="premarket"?"reports before the open":"reports after the close"})`:""}. IV often inflates into earnings and crushes immediately after — relevant for any options trades.`}/>}
 {nextDiv&&<Kpi label="NEXT DIVIDEND" value={String(nextDiv).slice(0,10)} color="var(--text)" tip="Next ex-dividend date. Covered-call writers should be aware — American-style calls that are deep-ITM may be exercised early before the ex-dividend date."/>}
 </div>
@@ -2660,7 +2660,7 @@ const TAB_META={
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
   portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
-  scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
+  scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
 };
 
@@ -3871,11 +3871,11 @@ return(<>
 <div style={{fontSize:17,fontWeight:700,color:"var(--text)",marginBottom:2}}>The Trading Scanner</div>
 <div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)"}}>METHODOLOGY & DATA SOURCES</div>
 {[
-{title:"What is the Trading Scanner?",body:"An automated daily scan that runs at 3:45 PM ET on weekdays via GitHub Actions. It pulls signal data from Unusual Whales (options flow, dark pool, congressional trades, insider transactions) and scores every qualifying ticker on a 0–100 composite signal score. Tickers scoring 60+ are Buy-tier; 35–59 are Watch-tier."},
+{title:"What is the Trading Scanner?",body:"An automated daily scan that runs at 3:30 PM ET on weekdays via GitHub Actions. It pulls signal data from Unusual Whales (options flow, dark pool, congressional trades, insider transactions) and scores every qualifying ticker on a 0–100 composite signal score. Tickers scoring 60+ are Buy-tier; 35–59 are Watch-tier."},
 {title:"What data sources does the scanner use?",body:"Unusual Whales API: real-time options flow alerts (unusual volume, large sweeps), dark pool block trades, congressional stock disclosures (within 45 days), and insider purchase filings (SEC Form 4). Yahoo Finance: current price, technicals (RSI, MACD, 50/200-day MA). The scanner does not use analyst ratings or fundamental screeners."},
 {title:"How is the signal score calculated?",body:"Each ticker is scored across 5 signal categories: Options Flow (large unusual sweeps, call-heavy activity, sweep vs. block mix), Dark Pool (size vs. average daily volume, recency), Congressional Activity (buy vs. sell, recency, position size), Insider Buying (Form 4 filings, recency, dollar value), and Technicals (RSI momentum, MACD crossover, price vs. 50/200-day MA). Each category contributes up to 20 points. Tickers must pass a price filter ($5–$500) and a market cap screen before scoring."},
 {title:"What is the Covered Call recommendation?",body:"For Buy-tier tickers, the scanner evaluates the options chain and recommends a covered call strike if conditions are met: IV Rank must be above the minimum threshold (avoids selling premium when IV is low), the strike must be at least 1 standard deviation OTM, and the annualized yield must meet the minimum return target (25% annualized). The DTE window is 14–42 days. If conditions are not met, the scanner explains specifically why (e.g., 'All bids $0 — market closed', 'Spreads too wide', 'IVR below threshold')."},
-{title:"How current is the scanner data?",body:"The scan runs once daily at 3:45 PM ET on weekdays, capturing end-of-day options flow and dark pool data. The dashboard displays the most recent scan with a timestamp. If the market is closed or the scan has not yet run today, the prior day's data is shown with a staleness notice."},
+{title:"How current is the scanner data?",body:"The scan runs once daily at 3:30 PM ET on weekdays, capturing end-of-day options flow and dark pool data. The dashboard displays the most recent scan with a timestamp. If the market is closed or the scan has not yet run today, the prior day's data is shown with a staleness notice."},
 {title:"What does the Sample Portfolio tab show?",body:"The Sample Portfolio illustrates how the macro regime maps to position-level analysis for a hypothetical set of holdings. It is for illustrative purposes only and does not represent actual account balances or real trading recommendations."},
 ].map(({title,body},i)=>(
 <div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px"}}>

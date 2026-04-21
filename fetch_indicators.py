@@ -396,7 +396,7 @@ if __name__ == "__main__":
         print("\n── Pushing to GitHub ─────────────────────────────────")
         git_commit_and_push()
 
-    # Daily AI email is disabled — consolidated into the 3:45 PM trading scanner email.
+    # Daily AI email is disabled — consolidated into the 3:30 PM trading scanner email.
     # To re-enable: uncomment the block below.
     # try:
     #     from daily_analysis_email import run_if_configured

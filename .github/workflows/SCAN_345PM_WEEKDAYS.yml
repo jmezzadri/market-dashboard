@@ -1,4 +1,4 @@
-name: SCAN_345PM_WEEKDAYS
+name: SCAN_330PM_WEEKDAYS
 
 # Runs the trading scanner at 3:30 PM EDT weekdays. Consolidated from the
 # old two-repo setup (trading-scanner → market-dashboard via DASHBOARD_PAT).
@@ -71,7 +71,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4.4.3
         with:
-          name: scan-345pm-${{ github.run_id }}
+          name: scan-330pm-${{ github.run_id }}
           path: trading-scanner/reports/
           retention-days: 30
 

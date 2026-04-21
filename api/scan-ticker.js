@@ -1,7 +1,7 @@
 // On-demand single-ticker scan. Fires when a user adds a ticker to their
 // watchlist — pops the modal alive with news/info/analyst/screener right
 // away rather than making them wait for the next scheduled cron scan
-// (3:45 PM EDT Mon-Fri).
+// (3:30 PM EDT Mon-Fri).
 //
 // What this does NOT do
 // ---------------------

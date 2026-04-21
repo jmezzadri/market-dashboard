@@ -1303,7 +1303,7 @@ function MethodologyTab({ data }) {
     {
       title: "SCAN SCHEDULE",
       rows: [
-        ["Daily scan", "3:45 PM EDT, Monday–Friday via GitHub Actions."],
+        ["Daily scan", "3:30 PM EDT, Monday–Friday via GitHub Actions."],
         ["Email delivery", "Sent automatically when buy or watch signals are present."],
         ["Data freshness", "Options flow and dark pool reflect intraday data at scan time. Congressional data can lag up to 45 days."],
       ],
@@ -1427,7 +1427,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
       <div style={{ background: C.card, border: `1px solid ${C.border2}`, borderRadius: 8, padding: "20px 24px" }}>
         <div style={{ fontSize: 11, color: C.yellow, fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 10 }}>SCAN DATA UNAVAILABLE</div>
         <div style={{ fontSize: 13, color: C.muted, marginBottom: 8 }}>
-          No scan data is available yet. The scanner runs automatically at <strong style={{ color: C.text }}>3:45 PM ET on weekdays</strong> via GitHub Actions.
+          No scan data is available yet. The scanner runs automatically at <strong style={{ color: C.text }}>3:30 PM ET on weekdays</strong> via GitHub Actions.
         </div>
         <div style={{ fontSize: 12, color: C.dim, marginBottom: 4 }}>
           This is normal if the market has not yet closed today, or if it is a weekend or holiday.
@@ -1548,7 +1548,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
     ? `${scanTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · ${scanTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}`
     : "—";
 
-  // Bug #5b — stale-data guard. The scanner normally runs daily at 3:45PM ET
+  // Bug #5b — stale-data guard. The scanner normally runs daily at 3:30PM ET
   // (see .github/workflows/daily-scan.yml). If latest_scan_data.json is more
   // than a day old, the user is looking at yesterday's (or older) signals and
   // should be told so explicitly — options flow and insider data age fast
