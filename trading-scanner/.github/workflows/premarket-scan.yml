@@ -1,0 +1,59 @@
+# Retired — replaced by daily-scan.yml (runs at 3:45 PM EDT).
+# Kept for manual dispatch only; no scheduled trigger.
+name: Pre-Market Scan (Retired)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pre-market scan
+        env:
+          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
+          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          # Multi-user watchlist supplement — see scanner/supabase_io.py.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SCORE_BUY_ALERT: "60"
+          SCORE_WATCH_ALERT: "35"
+          ALERT_ON_WATCH: "true"
+          ALERT_ON_BUY: "true"
+        run: python main.py premarket
+
+      - name: Upload report as artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: premarket-report-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
+
+      - name: Save scan state
+        run: |
+          git config user.name "Trading Scanner"
+          git config user.email "scanner@github-actions"
+          git add portfolio/.last_scan_scores.json
+          git add reports/latest_report.html
+          git diff --staged --quiet || git commit -m "Update scan state [skip ci]"
+          git pull --rebase origin main
+          git push
