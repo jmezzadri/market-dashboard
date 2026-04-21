@@ -21,9 +21,11 @@
 //
 // Modes
 //   "add"  — `existing` prop is null. User picks account + types ticker.
-//   "edit" — `existing` prop is a position object (with id). Account +
-//            ticker are locked (delete+re-add to move between accounts).
-//            A DELETE button is shown.
+//   "edit" — `existing` prop is a position object (with id). Ticker is
+//            locked (delete+re-add if you really need to change it).
+//            Account IS editable — typing a new label and saving calls
+//            resolveAccountId() to find-or-create the target account and
+//            moves the row there. A DELETE button is shown.
 
 import { useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -224,9 +226,21 @@ export default function PositionEditor({
       };
 
       if (isEdit) {
+        // Item 35C: account is now editable in edit mode. If the typed label
+        // differs from the original (case-insensitive), find-or-create the
+        // target account and include account_id in the update payload so the
+        // row moves. Unchanged label → skip the lookup.
+        const originalLabel = (existing.acctLabel || existingAcctLabel || "").trim();
+        const updatePayload = { ...payload };
+        if (
+          accountLabelClean &&
+          accountLabelClean.toLowerCase() !== originalLabel.toLowerCase()
+        ) {
+          updatePayload.account_id = await resolveAccountId();
+        }
         const { data, error } = await supabase
           .from("positions")
-          .update(payload)
+          .update(updatePayload)
           .eq("id", existing.id)
           .select()
           .single();
@@ -299,39 +313,36 @@ export default function PositionEditor({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
           <div>
             <label style={label}>ACCOUNT</label>
-            {isEdit ? (
-              <input style={inputLocked} value={existing.acctLabel || existingAcctLabel} readOnly />
-            ) : (
-              <>
-                <input
-                  style={input}
-                  value={accountLabel}
-                  onChange={(e) => setAccountLabel(e.target.value)}
-                  list="position-editor-account-suggestions"
-                  placeholder="Taxable, 401(k), Roth IRA, Ethan 529…"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <datalist id="position-editor-account-suggestions">
-                  {(accounts || []).map((a) => (
-                    <option key={a.id} value={a.label} />
-                  ))}
-                  {/* Generic hints if the user has no accounts yet */}
-                  {(accounts || []).length === 0 && (
-                    <>
-                      <option value="Taxable" />
-                      <option value="401(k)" />
-                      <option value="IRA" />
-                      <option value="Roth IRA" />
-                      <option value="529" />
-                    </>
-                  )}
-                </datalist>
-                <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-                  Type any name — e.g. "Ethan 529", "Joint Taxable". New names are created automatically.
-                </div>
-              </>
-            )}
+            {/* Free-form in BOTH add and edit modes (Item 35C).
+                In edit mode, typing a different label than the original triggers
+                resolveAccountId() on save → find-or-create + move the row. */}
+            <input
+              style={input}
+              value={accountLabel}
+              onChange={(e) => setAccountLabel(e.target.value)}
+              list="position-editor-account-suggestions"
+              placeholder="Taxable, 401(k), Roth IRA, Ethan 529…"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <datalist id="position-editor-account-suggestions">
+              {(accounts || []).map((a) => (
+                <option key={a.id} value={a.label} />
+              ))}
+              {/* Generic hints if the user has no accounts yet */}
+              {(accounts || []).length === 0 && (
+                <>
+                  <option value="Taxable" />
+                  <option value="401(k)" />
+                  <option value="IRA" />
+                  <option value="Roth IRA" />
+                  <option value="529" />
+                </>
+              )}
+            </datalist>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+              Type any name — e.g. "Ethan 529", "Joint Taxable". New names are created automatically.
+            </div>
           </div>
           <div>
             <label style={label}>TICKER</label>
