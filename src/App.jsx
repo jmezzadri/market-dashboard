@@ -300,6 +300,27 @@ return signal.replace(
 );
 }
 
+// Narrative split (Item 18 / Task #20). IND[id][13] historically mixes two
+// ideas in one paragraph: (1) a live *state* sentence anchored on the current
+// reading, and (2) *context* — what this level means, historical parallels,
+// what to watch next. Splitting them lets the UI render state prominently
+// (live-updated) and context as quieter secondary text.
+//
+// Rule: the first sentence boundary (a period followed by whitespace + a
+// capital letter, OR by end-of-string) delimits state from context. If no
+// boundary is found (single-sentence narratives), we treat the whole thing
+// as state and leave context empty. Live-value substitution runs on the
+// state half only — it's the piece that anchors on "At X%".
+function splitDynamicSignal(id,cur,signal){
+  if(!signal)return{state:"",context:""};
+  const live=dynamicSignal(id,cur,signal);
+  // Match the first ". " followed by an uppercase letter — standard sentence
+  // break. Fall back to the first ". " if there's no capitalized follow-on.
+  const m=live.match(/^(.*?[.!?])\s+(?=[A-Z])(.*)$/s);
+  if(m&&m[1]&&m[2])return{state:m[1].trim(),context:m[2].trim()};
+  return{state:live.trim(),context:""};
+}
+
 function compScore(snap){
 let ws=0,wt=0;
 Object.keys(IND).forEach(id=>{
@@ -590,8 +611,42 @@ return[
 ];
 }
 
+// Build the [label, value] series used by IndStressChart (the compact tile
+// mini-chart). Item 5b / Task #19: prefer real history from _histCache over
+// the synthetic piecewiseYearValue keyframes, so the tile sparkline reflects
+// the same data the main modal chart and SD scoring already use. For a small
+// sparkline we downsample long histories to ~60 points evenly spaced and
+// label them with the ISO date (the tile renders tiny tick labels; the exact
+// label is mostly cosmetic — the trajectory is what matters). Falls back to
+// the synthetic keyframes when _histCache hasn't loaded or doesn't carry
+// this indicator.
 function getIndicatorHistSeries(id){
 if(!IND[id]||!SD[id])return null;
+const e=_histCache&&_histCache[id];
+if(e&&Array.isArray(e.points)&&e.points.length>=3){
+  const pts=e.points;
+  // Downsample to at most ~60 points so the compact tile stays readable.
+  const MAX=60;
+  const step=pts.length<=MAX?1:Math.floor(pts.length/MAX);
+  const out=[];
+  for(let i=0;i<pts.length;i+=step){
+    const p=pts[i];
+    if(!p||p[1]==null)continue;
+    out.push([String(p[0]),clampHistValue(id,p[1])]);
+  }
+  // Always include the final point so "Now" lands at the chart's right edge.
+  const lastRaw=pts[pts.length-1];
+  if(lastRaw&&lastRaw[1]!=null){
+    const lastLbl=String(lastRaw[0]);
+    if(!out.length||out[out.length-1][0]!==lastLbl){
+      out.push([lastLbl,clampHistValue(id,lastRaw[1])]);
+    }
+  }
+  if(out.length>=3)return out;
+  // Fall through to synthetic if downsampling collapsed the series.
+}
+// Synthetic fallback — used on first paint before _histCache loads, or for
+// indicators the JSON doesn't carry.
 const kf=buildDefaultHistKeyframes(id);
 if(!kf)return null;
 const out=[];
@@ -1584,11 +1639,19 @@ return(
         <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>WHAT IS THIS INDICATOR?</div>
         <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{desc}</div>
       </div>
-      {/* What is it telling you now */}
-      <div style={{background:`${col}0d`,border:`1px solid ${col}33`,borderRadius:"var(--radius-md)",padding:"var(--space-3)"}}>
-        <div style={{fontSize:10,color:col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6,fontWeight:700}}>WHAT IS IT TELLING YOU RIGHT NOW?</div>
-        <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{dynamicSignal(id,cur,signal)}</div>
-      </div>
+      {/* What is it telling you now — state (live, prominent) + context (static) */}
+      {(() => {
+        const {state, context} = splitDynamicSignal(id, cur, signal);
+        return (
+          <div style={{background:`${col}0d`,border:`1px solid ${col}33`,borderRadius:"var(--radius-md)",padding:"var(--space-3)"}}>
+            <div style={{fontSize:10,color:col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6,fontWeight:700}}>WHAT IS IT TELLING YOU RIGHT NOW?</div>
+            <div style={{fontSize:14,color:"var(--text)",lineHeight:1.5,fontWeight:600,marginBottom:context?8:0}}>{state}</div>
+            {context && (
+              <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.55,paddingTop:8,borderTop:"1px solid var(--border-faint)"}}>{context}</div>
+            )}
+          </div>
+        );
+      })()}
     </div>
   </div>
 </div>
