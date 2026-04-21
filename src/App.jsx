@@ -1975,7 +1975,7 @@ style={{background:"var(--surface-2)",border:`1px solid ${exp?"#4a6fa555":"var(-
 </div>
 </div>
 <div style={{textAlign:"right"}}>
-<div style={{fontSize:14,fontWeight:800,color:"var(--text)",fontFamily:"monospace"}}>${p.value.toLocaleString()}</div>
+<div style={{fontSize:14,fontWeight:800,color:"var(--text)",fontFamily:"monospace"}}>${Math.round(p.value).toLocaleString()}</div>
 <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace"}}>{pct}% of acct</div>
 </div>
 </div>
@@ -2025,7 +2025,7 @@ return(
 <div style={{fontSize:11,color:"var(--text-2)",marginLeft:16,lineHeight:1.5}}>{acct.note}</div>
 </div>
 <div style={{textAlign:"right",flexShrink:0,marginLeft:10}}>
-<div style={{fontSize:14,fontWeight:800,color:"var(--text)",fontFamily:"monospace"}}>${total.toLocaleString()}</div>
+<div style={{fontSize:14,fontWeight:800,color:"var(--text)",fontFamily:"monospace"}}>${Math.round(total).toLocaleString()}</div>
 <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace"}}>{pctOfTotal}% of wealth</div>
 <div style={{fontSize:12,color:"var(--text-2)"}}>{open?"▲":"▼"}</div>
 </div>
@@ -3320,7 +3320,7 @@ return(
 <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & INSIGHTS · SNAPSHOT</div>
 <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
 {[
-  {label:"Total Wealth",value:`$${grandTotal.toLocaleString()}`,col:"var(--text)"},
+  {label:"Total Wealth",value:`$${Math.round(grandTotal).toLocaleString()}`,col:"var(--text)"},
   {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
   {label:"Holdings",value:`${heldPositions.length}`,col:"var(--text)"},
   {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:"var(--green-text)",accent:"#30d158"},
@@ -3439,7 +3439,7 @@ return(<>
 <div style={sectionPanel}>
 <div style={sectionHeader}>
 <span style={sectionTitleStyle}>② PORTFOLIO INSIGHTS</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${grandTotal.toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${Math.round(grandTotal).toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
 </div>
 <div style={{padding:"12px 16px"}}>
 {ACCOUNTS.length===0?(

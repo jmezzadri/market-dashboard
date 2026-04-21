@@ -87,6 +87,31 @@ export default function TableColumnPicker({
   const [dragId, setDragId] = useState(null);
   const [dragOverId, setDragOverId] = useState(null);
 
+  // ─── Viewport-anchored popover position (items 36 + 37) ───────────────────
+  const [popPos, setPopPos] = useState(null);
+  useEffect(() => {
+    if (!open || !btnRef.current) return;
+    const compute = () => {
+      if (!btnRef.current) return;
+      const r = btnRef.current.getBoundingClientRect();
+      const W = 280, H = 480, pad = 8;
+      const vw = window.innerWidth, vh = window.innerHeight;
+      let top = r.bottom + 4;
+      if (top + H > vh - pad) top = Math.max(pad, r.top - H - 4);
+      let left = r.right - W;
+      if (left < pad) left = pad;
+      if (left + W > vw - pad) left = vw - pad - W;
+      setPopPos({ top, left });
+    };
+    compute();
+    window.addEventListener("resize", compute);
+    window.addEventListener("scroll", compute, true);
+    return () => {
+      window.removeEventListener("resize", compute);
+      window.removeEventListener("scroll", compute, true);
+    };
+  }, [open]);
+
   const onDragStart = (e, id) => {
     setDragId(id);
     try {
@@ -160,15 +185,17 @@ export default function TableColumnPicker({
   };
 
   const popStyle = {
-    position: "absolute",
-    top: "calc(100% + 4px)",
-    right: 0,
-    zIndex: 50,
+    position: "fixed",
+    top: popPos?.top ?? 0,
+    left: popPos?.left ?? 0,
+    visibility: popPos ? "visible" : "hidden",
+    zIndex: 1000,
     width: 280,
     maxHeight: 480,
     display: "flex",
     flexDirection: "column",
-    background: "var(--surface-1, #121826)",
+    background: "var(--surface-solid)",
+    color: "var(--text)",
     border: "1px solid var(--border)",
     borderRadius: 6,
     boxShadow: "0 8px 32px rgba(0,0,0,0.35)",
