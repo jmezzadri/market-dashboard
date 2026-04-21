@@ -51,26 +51,6 @@ jobs:
         working-directory: trading-scanner
         run: pip install -r requirements.txt
 
-      - name: UW key sanity check
-        env:
-          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
-        run: |
-          echo "key length: ${#UNUSUAL_WHALES_API_KEY}"
-          if [ -n "${UNUSUAL_WHALES_API_KEY:-}" ]; then
-            echo "first4: ${UNUSUAL_WHALES_API_KEY:0:4}"
-            echo "last4: ${UNUSUAL_WHALES_API_KEY: -4}"
-          else
-            echo "UW key is EMPTY at runtime"
-          fi
-          HTTP=$(curl -s -o /dev/null -w "%{http_code}" \
-            -H "Authorization: Bearer ${UNUSUAL_WHALES_API_KEY}" \
-            "https://api.unusualwhales.com/api/congress/recent-trades?limit=1")
-          echo "UW congress/recent-trades → HTTP $HTTP"
-          if [ "$HTTP" != "200" ]; then
-            echo "❌ UW key invalid on runner (but passes locally)"
-            exit 1
-          fi
-
       - name: Run intraday scan
         working-directory: trading-scanner
         env:
