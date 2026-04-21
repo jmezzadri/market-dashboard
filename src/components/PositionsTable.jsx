@@ -619,7 +619,7 @@ export default function PositionsTable({
           style={{ ...topBarBtn, opacity: rescanBusy ? 0.6 : 1, cursor: rescanBusy ? "progress" : "pointer" }}
           onClick={onRescan}
           disabled={rescanBusy}
-          title="Re-fetch name/sector/beta/price for every non-CASH position. One-shot; uses the same /api/scan-ticker endpoint the add flow uses."
+          title="Refresh company names, sectors, beta values, and current prices for all your stock and fund positions. Useful if a row looks stale or is missing data. CASH rows are left alone."
         >
           {rescanBusy
             ? `Rescanning ${rescanProgress?.done ?? 0}/${rescanProgress?.total ?? 0}…`
