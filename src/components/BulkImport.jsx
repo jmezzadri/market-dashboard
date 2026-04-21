@@ -85,11 +85,34 @@ function detectDelimiter(firstLine) {
 
 // Normalize a header row into canonical column names using COLUMN_ALIASES.
 // Unknown headers are preserved as-is (ignored downstream).
+//
+// Permissive: if a single cell contains multiple whitespace-separated
+// tokens and every token canonicalizes to a known column (e.g. the
+// cell "account ticker" found in some Excel exports), split the cell
+// into its constituent columns. This lets us accept slightly malformed
+// header rows where two column names got merged into one cell.
 function canonicalizeHeaders(headers) {
-  return headers.map((h) => {
-    const key = String(h || "").toLowerCase().trim();
-    return COLUMN_ALIASES[key] || key;
-  });
+  const out = [];
+  for (const raw of headers) {
+    const cell = String(raw || "").toLowerCase().trim();
+    // Fast path: cell is already a known alias or canonical name.
+    if (COLUMN_ALIASES[cell]) { out.push(COLUMN_ALIASES[cell]); continue; }
+    // Fallback: try whitespace-splitting the cell. Accept the split
+    // ONLY if every resulting token maps to a canonical column — we
+    // don't want to accidentally split legitimate free-text cells.
+    const tokens = cell.split(/\s+/).filter(Boolean);
+    if (tokens.length > 1) {
+      const mapped = tokens.map((t) => COLUMN_ALIASES[t]);
+      if (mapped.every(Boolean)) {
+        out.push(...mapped);
+        continue;
+      }
+    }
+    // Last resort: preserve as-is (downstream "missing required" check
+    // will catch it, and the error message now reports what we saw).
+    out.push(cell);
+  }
+  return out;
 }
 
 function parseCsvText(text) {
@@ -103,7 +126,7 @@ function parseCsvText(text) {
   const headers = canonicalizeHeaders(splitCsvLine(lines[0], delim));
   const missing = ["account", "ticker", "shares", "cost_per_share"].filter((h) => !headers.includes(h));
   if (missing.length) {
-    return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}. Use the template below.`] };
+    return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}. Detected: ${headers.join(", ") || "(none)"}. Use the template below.`] };
   }
   const rows = lines.slice(1).map((line) => {
     const cells = splitCsvLine(line, delim);
@@ -126,7 +149,7 @@ async function parseXlsxFile(file) {
   const headers = canonicalizeHeaders(arr[0].map((h) => String(h || "").trim()));
   const missing = ["account", "ticker", "shares", "cost_per_share"].filter((h) => !headers.includes(h));
   if (missing.length) {
-    return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}.`] };
+    return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}. Detected: ${headers.join(", ") || "(none)"}.`] };
   }
   const rows = arr.slice(1)
     .filter((r) => r.some((c) => String(c).trim() !== ""))
