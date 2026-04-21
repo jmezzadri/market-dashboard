@@ -16,9 +16,11 @@
 //   "add"  — `existing` prop is null. User must pick an account + type a
 //            ticker. Submit inserts a new row.
 //   "edit" — `existing` prop is a position object (with `id`). Account and
-//            ticker are locked (we don't support moving a position between
-//            accounts here — delete+re-add if you really need to). Submit
-//            updates the row. A DELETE button is shown.
+//            ticker are editable — changing Account resolves / creates the
+//            target account and re-parents the row; changing Ticker updates
+//            the same row in place (so live price/scanner data refreshes
+//            on next scan). Submit updates the row. A DELETE button is
+//            shown.
 //
 // All writes land in the Supabase `positions` table. RLS scopes to auth.uid()
 // so we don't need to filter by user_id on read, but we do pass it on insert
@@ -309,9 +311,12 @@ export default function PositionEditor({
       };
 
       if (isEdit) {
+        // 35C: Account is now editable in edit mode. Resolve (or create)
+        // the target account so the row moves if the user re-routed it.
+        const account_id = await resolveAccountId();
         const { data, error } = await supabase
           .from("positions")
-          .update(payload)
+          .update({ ...payload, account_id })
           .eq("id", existing.id)
           .select()
           .single();
@@ -381,36 +386,31 @@ export default function PositionEditor({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
           <div>
             <label style={label}>ACCOUNT</label>
-            {isEdit ? (
-              <input style={inputLocked} value={existing.acctLabel || existingAcctLabel} readOnly />
-            ) : (
-              <>
-                <input
-                  style={input}
-                  value={accountLabel}
-                  onChange={(e) => setAccountLabel(e.target.value)}
-                  list="position-editor-account-suggestions"
-                  placeholder="Brokerage, Roth IRA, 401(k)…"
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <datalist id="position-editor-account-suggestions">
-                  {(accounts || []).map((a) => (
-                    <option key={a.id} value={a.label} />
-                  ))}
-                </datalist>
-                <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-                  Type any name. Pick from your existing accounts or enter a new one — it'll be created.
-                </div>
-              </>
-            )}
+            <input
+              style={input}
+              value={accountLabel}
+              onChange={(e) => setAccountLabel(e.target.value)}
+              list="position-editor-account-suggestions"
+              placeholder="Brokerage, Roth IRA, 401(k)…"
+              autoComplete="off"
+              spellCheck={false}
+            />
+            <datalist id="position-editor-account-suggestions">
+              {(accounts || []).map((a) => (
+                <option key={a.id} value={a.label} />
+              ))}
+            </datalist>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+              {isEdit
+                ? "Rename or re-route to another account — we'll create it if it doesn't exist."
+                : "Type any name. Pick from your existing accounts or enter a new one — it'll be created."}
+            </div>
           </div>
           <div>
             <label style={label}>TICKER</label>
             <input
-              style={isEdit ? inputLocked : input}
+              style={input}
               value={ticker}
-              readOnly={isEdit}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
               placeholder="AAPL"
             />
