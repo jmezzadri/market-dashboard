@@ -1,6 +1,6 @@
 name: SCAN_345PM_WEEKDAYS
 
-# Runs the trading scanner at 3:45 PM EDT weekdays. Consolidated from the
+# Runs the trading scanner at 3:30 PM EDT weekdays. Consolidated from the
 # old two-repo setup (trading-scanner → market-dashboard via DASHBOARD_PAT).
 # Everything now lives in this repo so the cross-repo push is gone.
 #
