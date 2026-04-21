@@ -225,6 +225,63 @@ export default async function handler(req, res) {
       .upsert(payload, { onConflict: "user_id,ticker" });
     if (upErr) throw upErr;
 
+    // ─ 35A/35B: backfill the user's `positions` rows for this ticker ─────
+    // The scheduled Python scanner does this on its daily run. We replicate
+    // here so a freshly-added / freshly-edited position doesn't show Port
+    // Beta 0 / blank sector / cost-basis-driven %-of-wealth until the
+    // next scheduled scan. Best-effort: errors here are logged but do not
+    // fail the scan-ticker call (the user_scan_data row was already written,
+    // which is the primary contract).
+    try {
+      const info = payload.composite_json?.info || null;
+      const screener = payload.screener_json || null;
+      const name =
+        info?.full_name ||
+        info?.short_name ||
+        screener?.full_name ||
+        screener?.name ||
+        null;
+      const sector = info?.sector || screener?.sector || null;
+      const betaRaw = info?.beta != null ? Number(info.beta)
+                      : screener?.beta != null ? Number(screener.beta) : null;
+      const beta = Number.isFinite(betaRaw) ? betaRaw : null;
+      const priceRaw = screener?.price != null ? Number(screener.price)
+                       : info?.price != null ? Number(info.price) : null;
+      const price = Number.isFinite(priceRaw) && priceRaw > 0 ? priceRaw : null;
+
+      const { data: posRows } = await admin
+        .from("positions")
+        .select("id, shares")
+        .eq("user_id", userId)
+        .eq("ticker", sym);
+
+      if (posRows && posRows.length) {
+        const updates = posRows.map((row) => {
+          const patch = {};
+          if (name)   patch.name   = name;
+          if (sector) patch.sector = sector;
+          if (beta != null)  patch.beta  = beta;
+          if (price != null) {
+            patch.price = price;
+            if (row.shares != null) patch.value = Number(row.shares) * price;
+          }
+          if (!Object.keys(patch).length) return Promise.resolve({ error: null });
+          return admin.from("positions").update(patch).eq("id", row.id);
+        });
+        const results = await Promise.allSettled(updates);
+        const firstErr = results.find((r) => r.status === "rejected" ||
+          (r.status === "fulfilled" && r.value?.error));
+        if (firstErr) {
+          // eslint-disable-next-line no-console
+          console.error("[scan-ticker] positions backfill partial failure:",
+            firstErr.reason || firstErr.value?.error);
+        }
+      }
+    } catch (backfillErr) {
+      // eslint-disable-next-line no-console
+      console.error("[scan-ticker] positions backfill threw:", backfillErr);
+    }
+
     return res.status(200).json({
       ok: true,
       ticker: sym,
