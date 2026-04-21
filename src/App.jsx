@@ -1118,16 +1118,37 @@ return(
 );
 }
 
+// Quarter-count-based window presets for the composite chart. COMP_HIST is
+// a quarterly series (2005 Q1 → current); slicing by trailing-N-quarters is
+// simpler than the day-based sliceHistoryToWindow LongChart uses for mixed
+// cadences. Default MAX preserves the legacy full-history view.
+const COMP_WINDOW_PRESETS=[
+  {key:"1Y", label:"1Y",  q:4},
+  {key:"2Y", label:"2Y",  q:8},
+  {key:"5Y", label:"5Y",  q:20},
+  {key:"10Y",label:"10Y", q:40},
+  {key:"20Y",label:"20Y", q:80},
+  {key:"MAX",label:"MAX", q:null},
+];
+
 function CompHistChart(){
 const col=CONV.color;
-const data=COMP_HIST;
+const [windowKey,setWindowKey]=useState("MAX");
+// Slice COMP_HIST + SP500_HIST (parallel arrays) by trailing quarter count.
+// SP500_HIST may be one longer than COMP_HIST (Apr 15 stub), so clamp to
+// whichever is shorter to keep the two aligned index-for-index.
+const _fullLen=Math.min(COMP_HIST.length,SP500_HIST.length);
+const preset=COMP_WINDOW_PRESETS.find(p=>p.key===windowKey)||COMP_WINDOW_PRESETS[COMP_WINDOW_PRESETS.length-1];
+const _tail=preset.q==null?_fullLen:Math.min(_fullLen,preset.q+1);
+const _startIdx=Math.max(0,_fullLen-_tail);
+const data=COMP_HIST.slice(_startIdx,_fullLen);
 const labels=data.map(d=>String(d[0]));
 const W=500,H=130,pL=28,pR=48,pT=18,pB=24;
 const IW=W-pL-pR,IH=H-pT-pB;
 const [hover,setHover]=useState(null);
 const vals=data.map(d=>d[1]);
 // S&P scale — padded 10% above/below for visual breathing room
-const spVals=SP500_HIST.slice(0,data.length);
+const spVals=SP500_HIST.slice(_startIdx,_startIdx+data.length);
 const spMin=Math.floor(Math.min(...spVals)*0.92/500)*500;
 const spMax=Math.ceil(Math.max(...spVals)*1.05/500)*500;
 const xp=i=>pL+(i/(data.length-1))*IW;
@@ -1143,8 +1164,21 @@ const idx=labels.findIndex(l=>l===cm.year);
 if(idx<0)return null;
 return{...cm,x:xp(idx),y:yp(vals[idx]),v:vals[idx]};
 }).filter(Boolean);
-const showLbl=labels.map(l=>l.startsWith("Q1")||l==="Apr 15");
-const xAxisLabel=l=>l.startsWith("Q1")?("'"+l.slice(4)):l;
+// X-axis label density scales with window width:
+//   ≤8 pts (1Y/2Y)   → every quarter labelled
+//   ≤20 pts (5Y)     → Q1 + Q3
+//   longer (10Y/MAX) → Q1 only + current stub
+const showLbl=labels.map((l,i)=>{
+  if(data.length<=8) return true;
+  if(data.length<=20) return l.startsWith("Q1")||l.startsWith("Q3")||i===data.length-1;
+  return l.startsWith("Q1")||l==="Apr 15";
+});
+const xAxisLabel=l=>{
+  if(data.length<=8) return l;       // short window: keep full "Q1 '25" label
+  if(l.startsWith("Q1")) return "'"+l.slice(4);
+  if(l.startsWith("Q")) return l.slice(0,2); // Q2/Q3/Q4 abbrev
+  return l;
+};
 const lastPt=pts[pts.length-1];
 const lastSP=spPts[spPts.length-1];
 // Right-axis S&P labels at rounded levels
@@ -1161,10 +1195,20 @@ setHover({x:pts[best][0],ys:pts[best][1],ysp:spPts[best][1],label:labels[best],s
 const ttX=hover?Math.min(Math.max(hover.x,pL+30),W-pR-30):0;
 const ttY=hover?(hover.ys<pT+28?hover.ys+18:hover.ys-18):0;
 const SP_COL="#60a5fa";
+// Pill styles match LongChart's range-selector pattern (line ~1047) so the
+// two charts read visually consistent when both are open.
+const pillBase={
+  padding:"3px 9px",fontSize:10,fontFamily:"var(--font-mono)",
+  fontWeight:700,letterSpacing:"0.04em",border:"1px solid var(--border)",
+  borderRadius:3,cursor:"pointer",background:"var(--surface-2)",
+  color:"var(--text-muted)",userSelect:"none",
+};
+const pillOn={...pillBase,background:"var(--accent)",color:"#fff",borderColor:"var(--accent)"};
 return(
 <div>
-{/* Legend */}
-<div style={{display:"flex",gap:14,marginBottom:6,paddingLeft:4}}>
+{/* Legend + range pills — pills wrap onto a second line on narrow widths */}
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:8,paddingLeft:4}}>
+<div style={{display:"flex",gap:14}}>
 <div style={{display:"flex",alignItems:"center",gap:4}}>
 <div style={{width:16,height:2.5,borderRadius:2,background:col}}/>
 <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>Composite Stress (L)</span>
@@ -1172,6 +1216,16 @@ return(
 <div style={{display:"flex",alignItems:"center",gap:4}}>
 <div style={{width:16,height:2.5,borderRadius:2,background:SP_COL,opacity:0.8}}/>
 <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>S&P 500 (R)</span>
+</div>
+</div>
+<div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+{COMP_WINDOW_PRESETS.map(p=>(
+<button
+  key={p.key} type="button"
+  style={windowKey===p.key?pillOn:pillBase}
+  onClick={()=>setWindowKey(p.key)}
+>{p.label}</button>
+))}
 </div>
 </div>
 <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
