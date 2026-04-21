@@ -254,6 +254,28 @@ const DEFAULT_VISIBLE = [
   "overall",
 ];
 
+// Default column widths (px).
+const DEFAULT_WIDTHS = {
+  ticker:        90,
+  name:          220,
+  sector:        120,
+  price:         100,
+  dayChangePct:  90,
+  marketcap:     100,
+  ivRank:        85,
+  divYield:      95,
+  nextEarnings:  125,
+  week52:        150,
+  theme:         220,
+  technicals:    70,
+  insider:       70,
+  options:       70,
+  congress:      70,
+  analyst:       70,
+  darkpool:      70,
+  overall:       80,
+};
+
 export default function WatchlistTable({
   rows, signals, screener, info,
   onOpenTicker, heldTickers, emptyMessage,
@@ -262,9 +284,10 @@ export default function WatchlistTable({
   const screenerMap = screener || {};
   const infoMap     = info     || {};
 
-  const { prefs, setOrder, setVisible, resetToDefaults } = useTablePreferences(tableKey, {
+  const { prefs, setOrder, setVisible, setWidths, resetToDefaults } = useTablePreferences(tableKey, {
     defaultOrder:   DEFAULT_ORDER,
     defaultVisible: DEFAULT_VISIBLE,
+    defaultWidths:  DEFAULT_WIDTHS,
   });
 
   const enriched = useMemo(() => {
@@ -359,9 +382,11 @@ export default function WatchlistTable({
             columns={COLUMNS.map(({ id, label, description }) => ({ id, label, description }))}
             order={prefs.order}
             visible={prefs.visible}
+            defaultOrder={DEFAULT_ORDER}
+            defaultVisible={DEFAULT_VISIBLE}
             onOrderChange={setOrder}
             onVisibleChange={setVisible}
-            onReset={resetToDefaults}
+            onResetAll={resetToDefaults}
           />
         </div>
         <div style={{
@@ -411,6 +436,43 @@ export default function WatchlistTable({
     borderBottom: "1px solid var(--border)",
     background: "var(--surface-3)", position: "sticky", top: 0,
     userSelect: "none", whiteSpace: "nowrap",
+    overflow: "hidden", textOverflow: "ellipsis",
+  };
+
+  // --- Resizable columns ----------------------------------------------------
+  const [liveWidths, setLiveWidths] = useState(null);
+  const widthOf = (id) => (liveWidths && liveWidths[id] != null)
+    ? liveWidths[id]
+    : (prefs.widths[id] != null ? prefs.widths[id] : (DEFAULT_WIDTHS[id] || 100));
+
+  const onResizeStart = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startW = widthOf(id);
+    let next = startW;
+    const onMove = (ev) => {
+      next = Math.max(48, Math.min(2000, Math.round(startW + ev.clientX - startX)));
+      setLiveWidths((prev) => ({ ...(prev || {}), [id]: next }));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      const merged = { ...prefs.widths, [id]: next };
+      setLiveWidths(null);
+      setWidths(merged);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const resizeHandleStyle = {
+    position: "absolute",
+    top: 0, right: 0, bottom: 0,
+    width: 6,
+    cursor: "col-resize",
+    userSelect: "none",
+    zIndex: 2,
   };
 
   return (
@@ -420,13 +482,20 @@ export default function WatchlistTable({
           columns={COLUMNS.map(({ id, label, description }) => ({ id, label, description }))}
           order={prefs.order}
           visible={prefs.visible}
+          defaultOrder={DEFAULT_ORDER}
+          defaultVisible={DEFAULT_VISIBLE}
           onOrderChange={setOrder}
           onVisibleChange={setVisible}
-          onReset={resetToDefaults}
+          onResetAll={resetToDefaults}
         />
       </div>
       <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 6 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+          <colgroup>
+            {visibleColumns.map((col) => (
+              <col key={col.id} style={{ width: widthOf(col.id) }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               {visibleColumns.map((col) => {
@@ -452,6 +521,13 @@ export default function WatchlistTable({
                   >
                     {col.label}
                     <SortArrow dir={sortCol === col.id ? sortDir : null} />
+                    <div
+                      draggable={false}
+                      onMouseDown={(e) => onResizeStart(e, col.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={resizeHandleStyle}
+                      title="Drag to resize column"
+                    />
                   </th>
                 );
               })}
@@ -476,6 +552,9 @@ export default function WatchlistTable({
                     style={{
                       padding: "7px 6px",
                       textAlign: col.align,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {col.renderCell(row)}

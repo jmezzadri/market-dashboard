@@ -1,45 +1,51 @@
-// useTablePreferences — per-user column prefs (order + visibility) for every
-// customizable table on the portopps page.
+// useTablePreferences — per-user column prefs for every customizable table
+// on the portopps page.
 //
 // Pattern
 // -------
 // One row per user in public.user_preferences.preferences (JSONB). The blob is
 // keyed by a `tableKey` string — e.g. "positions", "watchlist_buy",
 // "watchlist_near", "watchlist_other". Each entry is:
-//   { order: ["colId", ...], visible: ["colId", ...] }
+//   { order: ["colId", ...], visible: ["colId", ...], widths: { colId: px, ... } }
 //
 // The hook exposes:
 //   {
-//     prefs,            // { order, visible } for THIS tableKey, merged w/ defaults
+//     prefs,            // { order, visible, widths } for THIS tableKey
 //     setOrder(order),  // write new order
 //     setVisible(vis),  // write new visibility set
+//     setWidths(map),   // write new per-col width map
 //     resetToDefaults(),// wipe user overrides for this table (keeps other tables)
 //     loading,          // true during initial fetch
 //     ready,            // true once we have prefs (from DB or defaults)
 //   }
 //
-// Writes are debounced 500ms so drag-reorder doesn't hammer the DB.
+// Writes are debounced 500ms so drag-reorder / drag-resize don't hammer the DB.
 //
 // Forward-compat
 // --------------
-// defaultOrder / defaultVisible are provided by the caller. When we add new
-// columns to a table later, we merge user-saved arrays with defaults so any
-// columns the user's saved state doesn't mention get appended to the end
-// (still hidden by default until the user toggles them on in the picker).
-// That means existing users pick up new columns automatically without being
-// stuck on a frozen layout.
+// defaultOrder / defaultVisible / defaultWidths are provided by the caller
+// (callers should pass stable module-level references to avoid memo churn).
+// When we add new columns to a table later, saved prefs are merged with
+// defaults so any columns the user's saved state doesn't mention get
+// appended to the end (hidden by default, default width) without disrupting
+// the columns the user has already arranged.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../auth/useSession";
 
 const SAVE_DEBOUNCE_MS = 500;
+const MIN_WIDTH_PX = 48;
+const MAX_WIDTH_PX = 2000;
 
 // Module-level cache so switching tabs in the same session doesn't re-fetch
 // the row every time a new table mounts. Keyed by user_id.
 const prefsCache = new Map();
 
-export function useTablePreferences(tableKey, { defaultOrder, defaultVisible }) {
+export function useTablePreferences(
+  tableKey,
+  { defaultOrder, defaultVisible, defaultWidths }
+) {
   const { session } = useSession();
   const userId = session?.user?.id ?? null;
 
@@ -98,16 +104,16 @@ export function useTablePreferences(tableKey, { defaultOrder, defaultVisible }) 
   }, [userId]);
 
   // Merge saved slice with defaults — preserves user's explicit choices while
-  // auto-appending any newly-added columns. `visible` is a whitelist — a col
-  // the user has never touched defaults to whatever defaultVisible says.
+  // auto-appending any newly-added columns.
   const prefs = useMemo(() => {
     const saved = (allPrefs && allPrefs[tableKey]) || {};
-    const savedOrder = Array.isArray(saved.order) ? saved.order : [];
+    const savedOrder   = Array.isArray(saved.order)   ? saved.order   : [];
     const savedVisible = Array.isArray(saved.visible) ? saved.visible : null;
+    const savedWidths  = (saved.widths && typeof saved.widths === "object") ? saved.widths : {};
 
-    // Order: start with saved, then append any defaults not already listed
-    // (new columns). Drop any saved ids that are no longer valid (removed cols).
     const validIds = new Set(defaultOrder);
+
+    // Order: start with saved, then append any defaults not already listed.
     const order = [];
     const seen = new Set();
     for (const id of savedOrder) {
@@ -123,15 +129,25 @@ export function useTablePreferences(tableKey, { defaultOrder, defaultVisible }) 
       }
     }
 
-    // Visibility: if user never saved one, use defaultVisible. Otherwise use
-    // saved — including for newly added columns (hidden by default until user
-    // toggles them in the picker).
+    // Visibility: if user never saved one, use defaultVisible.
     const visible = savedVisible
       ? savedVisible.filter((id) => validIds.has(id))
       : [...defaultVisible];
 
-    return { order, visible };
-  }, [allPrefs, tableKey, defaultOrder, defaultVisible]);
+    // Widths: start with defaults, then overlay saved widths that are for
+    // still-valid columns and within sane bounds. New columns inherit their
+    // default width automatically.
+    const widths = { ...(defaultWidths || {}) };
+    for (const id of Object.keys(savedWidths)) {
+      if (!validIds.has(id)) continue;
+      const w = Number(savedWidths[id]);
+      if (Number.isFinite(w) && w >= MIN_WIDTH_PX && w <= MAX_WIDTH_PX) {
+        widths[id] = Math.round(w);
+      }
+    }
+
+    return { order, visible, widths };
+  }, [allPrefs, tableKey, defaultOrder, defaultVisible, defaultWidths]);
 
   // Debounced persistence
   const saveTimer = useRef(null);
@@ -182,6 +198,18 @@ export function useTablePreferences(tableKey, { defaultOrder, defaultVisible }) 
     mutateSlice((slice) => ({ ...slice, visible }));
   }, [mutateSlice]);
 
+  const setWidths = useCallback((widths) => {
+    // Sanitize before persisting: drop non-numeric, clamp out-of-range.
+    const clean = {};
+    for (const [id, raw] of Object.entries(widths || {})) {
+      const w = Number(raw);
+      if (Number.isFinite(w) && w >= MIN_WIDTH_PX && w <= MAX_WIDTH_PX) {
+        clean[id] = Math.round(w);
+      }
+    }
+    mutateSlice((slice) => ({ ...slice, widths: clean }));
+  }, [mutateSlice]);
+
   const resetToDefaults = useCallback(() => {
     setAllPrefs((prev) => {
       if (!prev) return prev;
@@ -196,6 +224,7 @@ export function useTablePreferences(tableKey, { defaultOrder, defaultVisible }) 
     prefs,
     setOrder,
     setVisible,
+    setWidths,
     resetToDefaults,
     loading,
     ready,
