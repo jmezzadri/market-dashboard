@@ -3702,8 +3702,8 @@ return(<>
 <PositionsTable
   rows={heldPositions}
   grandTotal={grandTotal}
-  screener={screenerMap}
-  info={infoMap}
+  screener={scanData?.signals?.screener||{}}
+  info={scanData?.signals?.info||{}}
   tableKey="positions"
   onOpenTicker={(t)=>setTickerDetail(t)}
   emptyMessage="No positions."
