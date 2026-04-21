@@ -24,7 +24,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: scan-345pm-weekdays
+  group: scan-330pm-weekdays
   cancel-in-progress: false
 
 jobs:
