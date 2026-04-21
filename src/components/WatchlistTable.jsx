@@ -347,6 +347,10 @@ export default function WatchlistTable({
     return arr;
   }, [enriched, sortCol, sortDir]);
 
+  // Drag state MUST be declared before any conditional return — React hook-order invariant (Item 36 hotfix).
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
   if (!enriched.length) {
     return (
       <>
@@ -375,8 +379,6 @@ export default function WatchlistTable({
   const visibleColumns = visibleIds.map((id) => byId.get(id)).filter(Boolean);
 
   // ─── Draggable headers ─────────────────────────────────────────────────────
-  const [dragId, setDragId] = useState(null);
-  const [dragOverId, setDragOverId] = useState(null);
   const onHdrDragStart = (e, id) => {
     setDragId(id);
     try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", id); } catch {}
