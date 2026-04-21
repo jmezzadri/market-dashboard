@@ -1180,14 +1180,50 @@ return <div key={c.level} style={{position:"absolute",left:`${l}%`,width:`${w}%`
 );
 }
 
+// Periods per frequency. Each entry is {label, days}. Daily indicators look
+// back 30/91/183/365 trading-ish days; weekly grows in 1W/1M/3M/12M jumps;
+// monthly in 1M/3M/6M/1Y; quarterly in 1Q/2Q/1Y/3Y. Labels match the
+// cadence so a quarterly series doesn't mis-advertise a "1M ago" value that
+// was really the same quarterly print carried over. Restored from PR #15
+// after PR #23 stealth regression (bundled with Items 5b/9/18 restore).
+const TREND_PERIODS={
+  D:[{label:"1M",days:30},{label:"3M",days:91},{label:"6M",days:183},{label:"12M",days:365}],
+  W:[{label:"1W",days:7},{label:"1M",days:30},{label:"3M",days:91},{label:"12M",days:365}],
+  M:[{label:"1M",days:30},{label:"3M",days:91},{label:"6M",days:183},{label:"1Y",days:365}],
+  Q:[{label:"Prior Q",days:91},{label:"2Q",days:183},{label:"1Y",days:365},{label:"3Y",days:1095}],
+};
+// Find the point in `points` (iso-sorted ascending) whose date is closest to
+// (lastDate - days). Returns null if nothing within a sane tolerance.
+function _valueAtOffset(points,days){
+  if(!points||points.length<2)return null;
+  const lastIso=points[points.length-1][0];
+  const lastDt=new Date(lastIso+"T00:00:00Z").getTime();
+  const targetMs=lastDt-days*86400000;
+  // Binary-search ascending array for the nearest date ≤ target.
+  let lo=0,hi=points.length-1,idx=0;
+  while(lo<=hi){
+    const mid=(lo+hi)>>1;
+    const midMs=new Date(points[mid][0]+"T00:00:00Z").getTime();
+    if(midMs<=targetMs){idx=mid;lo=mid+1;}else{hi=mid-1;}
+  }
+  return points[idx]?.[1];
+}
 function IndicatorTrendPills({id,d}){
-// Compact trend strip: just period label + value. The current value lives in
-// the card/modal header — no need for a separate NOW pill, and the small
-// delta numbers under each reading were noise. Order is short→long
-// (1M, 3M, 6M, 12M) so the eye reads recent-to-historical left-to-right.
-const rows=[
-["1M",d[7]],["3M",d[8]],["6M",d[9]],["12M",d[10]],
-];
+// Freq-aware trend strip: pill label + historical value at that offset.
+// Prefers real history from indicator_history.json via _histCache; falls
+// back to the hardcoded IND[] d[7..10] triples if the cache isn't loaded.
+const freq=IND_FREQ[id]||"D";
+const periods=TREND_PERIODS[freq]||TREND_PERIODS.D;
+const histEntry=_histCache&&_histCache[id];
+const points=histEntry&&Array.isArray(histEntry.points)?histEntry.points:null;
+const rows=periods.map((p,i)=>{
+  let v=null;
+  if(points)v=_valueAtOffset(points,p.days);
+  // Fallback to the old hardcoded 4-tuple only when history isn't available
+  // and the period index lines up with the old d[7..10] layout.
+  if(v==null&&i<4)v=d[7+i]??null;
+  return[p.label,v];
+});
 return(
 <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
 {rows.map(([lbl,v])=>{
