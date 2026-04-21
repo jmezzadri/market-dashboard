@@ -1,34 +1,31 @@
 // PositionEditor — modal for add / edit / delete of a single position.
 //
-// Dynamic calc model
-//   Canonical state : { shares, avgCost, price } — one numeric truth per field.
-//   Derived         : totalCost    = shares × avgCost
-//                     currentValue = shares × price
-//                     pnl$         = currentValue − totalCost
-//                     pnl%         = price / avgCost − 1
-//   All five numeric inputs are user-editable. Editing the derived ones
-//   (total cost, current value) back-solves the canonical one — e.g. typing
-//   "1,750" into TOTAL COST when shares is 10 sets avgCost to 175. If shares
-//   is 0/empty we can't back-solve, so we keep the derived display showing
-//   the user's typed value but don't touch canonical until they fill shares.
+// 5-field model (post-Items 14/15/19 rewrite):
+//   • account        — free-form label, find-or-create (datalist hints)
+//   • ticker         — uppercase, locked in edit mode
+//   • purchase_date  — optional ISO date
+//   • shares         — numeric, supports fractional (e.g. 2.5)
+//   • cost_per_share — numeric
+//
+// Everything else (price, value, sector, beta) is populated by the scanner
+// on the next refresh — the user doesn't type it. `value` is seeded at save
+// time as `shares * cost_per_share` so the row renders a plausible number
+// until the live price arrives; it gets overwritten by the scan pipeline.
+//
+// Decimal-entry fix (Bug #19 root cause):
+//   Earlier versions kept shares/avgCost as Number state. Typing "2." got
+//   parsed to 2, then String(2) = "2" was fed back into the input on next
+//   render — the trailing dot was stripped mid-type. Now each numeric
+//   input keeps its own *string* state (shares_str, costPerShare_str); we
+//   only parse to a Number at save time.
 //
 // Modes
-//   "add"  — `existing` prop is null. User must pick an account + type a
-//            ticker. Submit inserts a new row.
-//   "edit" — `existing` prop is a position object (with `id`). Account and
-//            ticker are locked (we don't support moving a position between
-//            accounts here — delete+re-add if you really need to). Submit
-//            updates the row. A DELETE button is shown.
-//
-// All writes land in the Supabase `positions` table. RLS scopes to auth.uid()
-// so we don't need to filter by user_id on read, but we do pass it on insert
-// so the row is owned by the caller.
-//
-// Parent is expected to call refetchPortfolio() after a successful write —
-// we call `onSaved()` / `onDeleted()` to signal that; the parent decides
-// whether to refetch + close, or just close.
+//   "add"  — `existing` prop is null. User picks account + types ticker.
+//   "edit" — `existing` prop is a position object (with id). Account +
+//            ticker are locked (delete+re-add to move between accounts).
+//            A DELETE button is shown.
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 
 // ── formatting helpers ─────────────────────────────────────────────────────
@@ -40,38 +37,33 @@ const fmt$ = (v) =>
 const fmtPct = (v) =>
   v == null || !Number.isFinite(v) ? "—" : `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
 
-// Parse "1,750.25" / "$1,750" / "" → Number or null. We accept commas and a
+// Parse "1,750.25" / "$1,750" / "" → Number or null. Accepts commas and a
 // leading $ because that's what copy/paste from brokerage statements looks
-// like. Anything unparseable becomes null, not NaN, so downstream math stays
-// sane.
+// like. Trailing dots and empty strings return null, not NaN.
 function parseNum(raw) {
   if (raw == null) return null;
   const s = String(raw).replace(/[$,\s]/g, "").trim();
-  if (s === "") return null;
+  if (s === "" || s === "." || s === "-") return null;
   const n = Number(s);
   return Number.isFinite(n) ? n : null;
 }
 
-// Format a number for input display. We deliberately DON'T format with
-// commas inside the input — it fights the caret during typing. Keep it
-// plain; the read-only derived row below shows the pretty version.
-const inputVal = (n) => (n == null || !Number.isFinite(n) ? "" : String(n));
+// Initial display string for numeric fields in edit mode. We want to echo
+// whatever numeric Supabase gave us without flattening it, but we also don't
+// want to render "12.0000000001" for a value that was actually 12 — so we
+// rely on JS's default Number→String which does the sensible thing.
+const initNumStr = (n) => (n == null || !Number.isFinite(Number(n)) ? "" : String(n));
 
 // ── styles ─────────────────────────────────────────────────────────────────
 const backdrop = {
-  // Darker backdrop so the opaque modal above it reads crisply against the
-  // page content behind.
   position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)",
   display: "flex", alignItems: "center", justifyContent: "center",
   zIndex: 1000,
 };
 const modal = {
-  width: "min(520px, 94vw)",
+  width: "min(500px, 94vw)",
   maxHeight: "90vh",
   overflowY: "auto",
-  // MUST be fully opaque — --surface / --surface-2 are translucent rgba colors,
-  // and --surface-1 doesn't exist, so falling back to them makes the modal
-  // unreadable over the page. --surface-solid is the opaque panel color.
   background: "var(--surface-solid)",
   border: "1px solid var(--border)",
   borderRadius: "var(--radius-md, 10px)",
@@ -120,137 +112,84 @@ const dangerBtn = {
 // ── component ──────────────────────────────────────────────────────────────
 export default function PositionEditor({
   mode,            // "add" | "edit"
-  existing,        // position object for edit mode (carries id, accountId, ticker, shares, avgCost, price, ...)
-  accounts,        // [{ id, label }, ...] — needed for add mode account picker
+  existing,        // position row for edit mode
+  accounts,        // [{ id, label }, ...] — datalist hints in add mode
   userId,          // current auth uid, required for insert
-  onClose,         // () => void — dismiss without saving
-  onSaved,         // (savedRow) => void — fired after successful write
-  onDeleted,       // (deletedId) => void — fired after successful delete (edit mode only)
+  onClose,
+  onSaved,
+  onDeleted,
 }) {
   const isEdit = mode === "edit" && existing;
 
   // ── form state ────────────────────────────────────────────────────────────
-  // Account is a FREE-FORM label (typed string), not an ID. In edit mode we
-  // lock it to the existing label. In add mode the user can either pick an
-  // existing account from the datalist suggestions or type a brand-new name
-  // — on save we find-or-create the account row and use its id for the
-  // position insert. This way the component makes no assumptions about what
-  // account names make sense for any given user.
   const existingAcctLabel = isEdit
     ? (accounts?.find((a) => a.id === existing.accountId)?.label || existing.acctLabel || "")
     : "";
   const [accountLabel, setAccountLabel] = useState(existingAcctLabel);
-  const [ticker, setTicker]   = useState(isEdit ? existing.ticker || "" : "");
-  const [sector, setSector]   = useState(isEdit ? existing.sector || "" : "");
+  const [ticker, setTicker] = useState(isEdit ? existing.ticker || "" : "");
+  const [purchaseDate, setPurchaseDate] = useState(
+    isEdit ? (existing.purchase_date || existing.purchaseDate || "") : ""
+  );
 
-  // Canonical numerics
-  const [shares,  setShares]  = useState(isEdit ? existing.shares  ?? null : null);
-  const [avgCost, setAvgCost] = useState(isEdit ? existing.avgCost ?? null : null);
-  const [price,   setPrice]   = useState(isEdit ? existing.price   ?? null : null);
-
-  // "Sticky" display strings for the two derived inputs — so the user's
-  // typing doesn't get clobbered while shares is still empty.
-  const [totalCostStr,    setTotalCostStr]    = useState("");
-  const [currentValueStr, setCurrentValueStr] = useState("");
-
-  // Whenever the canonical triplet changes, resync the derived input strings
-  // (unless the user is actively typing in one — we detect that by whether
-  // the string is "stale", i.e. no longer matches the would-be derived value).
-  useEffect(() => {
-    if (shares != null && avgCost != null) {
-      setTotalCostStr(String(shares * avgCost));
-    }
-  }, [shares, avgCost]);
-  useEffect(() => {
-    if (shares != null && price != null) {
-      setCurrentValueStr(String(shares * price));
-    }
-  }, [shares, price]);
-
-  // Derived display-only values
-  const totalCost    = shares != null && avgCost != null ? shares * avgCost : null;
-  const currentValue = shares != null && price   != null ? shares * price   : null;
-  const pnlDollars   = currentValue != null && totalCost != null ? currentValue - totalCost : null;
-  const pnlPct       = price != null && avgCost != null && avgCost !== 0
-    ? (price / avgCost - 1) * 100 : null;
-
-  // ── input handlers ────────────────────────────────────────────────────────
-  const onChangeShares = (raw) => {
-    const n = parseNum(raw);
-    setShares(n);
-  };
-
-  const onChangeAvgCost = (raw) => {
-    const n = parseNum(raw);
-    setAvgCost(n);
-  };
-
-  const onChangeTotalCost = (raw) => {
-    setTotalCostStr(raw);
-    const total = parseNum(raw);
-    if (total == null) return;          // let the user keep typing
-    if (shares != null && shares > 0) {
-      setAvgCost(total / shares);       // back-solve canonical
-    }
-    // if shares is empty, hold the typed value in the sticky string; the
-    // useEffect above won't overwrite it until shares+avgCost are both set
-  };
-
-  const onChangePrice = (raw) => {
-    const n = parseNum(raw);
-    setPrice(n);
-  };
-
-  const onChangeCurrentValue = (raw) => {
-    setCurrentValueStr(raw);
-    const val = parseNum(raw);
-    if (val == null) return;
-    if (shares != null && shares > 0) {
-      setPrice(val / shares);
-    }
-  };
+  // Numeric inputs kept as STRINGS — sticky pattern so typing "2." doesn't
+  // get stripped back to "2" on re-render. Only parseNum at save time.
+  const [sharesStr, setSharesStr] = useState(isEdit ? initNumStr(existing.shares) : "");
+  const [costStr, setCostStr] = useState(
+    isEdit ? initNumStr(existing.avgCost ?? existing.avg_cost) : ""
+  );
 
   // ── submit state ──────────────────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Validation — we enforce the same minimum bar as the CSV onboarding path:
-  // account + ticker + either (value) or (shares AND price). That's what
-  // `value` actually is in the DB, so compute it from whichever pair the
-  // user gave us.
+  // Parsed values for validation + preview
+  const shares = parseNum(sharesStr);
+  const costPerShare = parseNum(costStr);
+  const totalCost = shares != null && costPerShare != null ? shares * costPerShare : null;
+
+  // Live price — pulled from the parent-enriched `existing.price` if present
+  // (edit mode). In add mode we have no live price until the next scanner run,
+  // so PnL preview is blank.
+  const livePrice = isEdit && Number.isFinite(Number(existing.price)) ? Number(existing.price) : null;
+  const currentValue = shares != null && livePrice != null ? shares * livePrice : null;
+  const pnlDollars = currentValue != null && totalCost != null ? currentValue - totalCost : null;
+  const pnlPct = livePrice != null && costPerShare != null && costPerShare !== 0
+    ? (livePrice / costPerShare - 1) * 100 : null;
+
+  // ── validation ────────────────────────────────────────────────────────────
   const tickerClean = ticker.trim().toUpperCase();
   const accountLabelClean = accountLabel.trim();
   const validation = useMemo(() => {
     if (!accountLabelClean) return "Account name is required.";
     if (accountLabelClean.length > 80) return "Account name is too long — max 80 chars.";
-    if (!tickerClean)   return "Ticker is required.";
+    if (!tickerClean) return "Ticker is required.";
     if (tickerClean.length > 10) return "Ticker looks too long — max 10 chars.";
-    // We need enough to compute `value`:
-    const haveValue = currentValue != null && Number.isFinite(currentValue);
-    if (!haveValue) {
-      return "Enter Shares and Current Value.";
+    if (shares == null || !Number.isFinite(shares) || shares <= 0) {
+      return "Shares must be a positive number (fractional OK, e.g. 2.5).";
+    }
+    if (costPerShare == null || !Number.isFinite(costPerShare) || costPerShare < 0) {
+      return "Cost per share must be a non-negative number.";
+    }
+    // purchase_date is optional; if provided, validate as ISO date
+    if (purchaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(purchaseDate)) {
+      return "Purchase date must be in YYYY-MM-DD format.";
     }
     return null;
-  }, [accountLabelClean, tickerClean, currentValue]);
+  }, [accountLabelClean, tickerClean, shares, costPerShare, purchaseDate]);
 
-  // Resolve the typed account label to an account_id. If no account with
-  // that exact label exists, create one and return its id. Case-insensitive
-  // match against existing accounts so "Roth IRA" and "roth ira" don't
-  // produce duplicate rows.
+  // Find-or-create account by label (case-insensitive dedupe).
   const resolveAccountId = async () => {
     const target = accountLabelClean;
     const match = (accounts || []).find(
       (a) => (a.label || "").trim().toLowerCase() === target.toLowerCase()
     );
     if (match) return match.id;
-    // Not found — create a new account row. sort_order = current count so it
-    // lands at the end of the list; the user can reorder elsewhere.
     const { data, error } = await supabase
       .from("accounts")
       .insert({
         user_id: userId,
-        label:   target,
+        label: target,
         sort_order: (accounts?.length ?? 0),
       })
       .select("id")
@@ -264,15 +203,23 @@ export default function PositionEditor({
     setErr("");
     setSubmitting(true);
     try {
+      // Seed `value` = shares * costPerShare so the row renders sensibly until
+      // the next scanner refresh overwrites price with a live quote.
+      const seedValue = shares * costPerShare;
       const payload = {
-        ticker:   tickerClean,
-        name:     existing?.name || tickerClean,
-        shares:   shares,
-        price:    price,
-        avg_cost: avgCost,
-        value:    currentValue,
-        sector:   sector || existing?.sector || null,
-        beta:     existing?.beta ?? null,
+        ticker: tickerClean,
+        name: existing?.name || tickerClean,
+        shares,
+        avg_cost: costPerShare,
+        // price + value get rewritten by scan; seed with cost-basis pricing
+        // so the UI doesn't show $0 between save and next scan.
+        price: isEdit ? (existing.price ?? costPerShare) : costPerShare,
+        value: isEdit ? (existing.value ?? seedValue) : seedValue,
+        purchase_date: purchaseDate || null,
+        // Sector, beta, analysis: preserve whatever the scanner (or a prior
+        // save) already wrote; don't blank them on edit.
+        sector: existing?.sector ?? null,
+        beta: existing?.beta ?? null,
         analysis: existing?.analysis ?? null,
       };
 
@@ -286,15 +233,14 @@ export default function PositionEditor({
         if (error) throw error;
         onSaved?.(data);
       } else {
-        // Find-or-create the account by label, then insert the position.
         const account_id = await resolveAccountId();
         const { data, error } = await supabase
           .from("positions")
           .insert({
             ...payload,
-            user_id:    userId,
+            user_id: userId,
             account_id,
-            sort_order: 9999,   // push to end; re-sort is a separate concern
+            sort_order: 9999,
           })
           .select()
           .single();
@@ -303,7 +249,11 @@ export default function PositionEditor({
       }
     } catch (e) {
       console.error("[PositionEditor] save failed:", e);
-      setErr(e.message || "Save failed. Try again.");
+      // Friendlier error when the migration hasn't been applied yet.
+      const msg = (e.message || "").toLowerCase().includes("purchase_date")
+        ? "Database is missing the purchase_date column. Run migration 007_positions_purchase_date.sql in Supabase SQL editor."
+        : (e.message || "Save failed. Try again.");
+      setErr(msg);
     } finally {
       setSubmitting(false);
     }
@@ -345,7 +295,7 @@ export default function PositionEditor({
           </button>
         </div>
 
-        {/* Account + Ticker row */}
+        {/* Row 1: Account + Ticker */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
           <div>
             <label style={label}>ACCOUNT</label>
@@ -358,7 +308,7 @@ export default function PositionEditor({
                   value={accountLabel}
                   onChange={(e) => setAccountLabel(e.target.value)}
                   list="position-editor-account-suggestions"
-                  placeholder="Brokerage, Roth IRA, 401(k)…"
+                  placeholder="Taxable, 401(k), Roth IRA, Ethan 529…"
                   autoComplete="off"
                   spellCheck={false}
                 />
@@ -366,9 +316,19 @@ export default function PositionEditor({
                   {(accounts || []).map((a) => (
                     <option key={a.id} value={a.label} />
                   ))}
+                  {/* Generic hints if the user has no accounts yet */}
+                  {(accounts || []).length === 0 && (
+                    <>
+                      <option value="Taxable" />
+                      <option value="401(k)" />
+                      <option value="IRA" />
+                      <option value="Roth IRA" />
+                      <option value="529" />
+                    </>
+                  )}
                 </datalist>
                 <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-                  Type any name. Pick from your existing accounts or enter a new one — it'll be created.
+                  Type any name — e.g. "Ethan 529", "Joint Taxable". New names are created automatically.
                 </div>
               </>
             )}
@@ -381,103 +341,54 @@ export default function PositionEditor({
               readOnly={isEdit}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
               placeholder="AAPL"
+              autoComplete="off"
+              spellCheck={false}
             />
           </div>
         </div>
 
-        {/* Sector — single line, optional */}
+        {/* Row 2: Purchase date (optional) */}
         <div style={{ marginBottom: 12 }}>
-          <label style={label}>SECTOR (optional)</label>
+          <label style={label}>PURCHASE DATE (OPTIONAL)</label>
           <input
             style={input}
-            value={sector}
-            onChange={(e) => setSector(e.target.value)}
-            placeholder="Tech, HY Bonds, Cash, Intl Equity…"
+            type="date"
+            value={purchaseDate}
+            onChange={(e) => setPurchaseDate(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
           />
+          <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+            Used for hold-period / tax-lot display later. Leave blank if you don't remember.
+          </div>
         </div>
 
-        {/* Numeric block */}
-        <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
-          <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
-            POSITION MATH · COST/SHARE ↔ TOTAL COST · PRICE/SHARE ↔ CURRENT VALUE — EDIT EITHER, THE OTHER AUTO-CALCULATES
+        {/* Row 3: Shares + Cost/share */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 6 }}>
+          <div>
+            <label style={label}>SHARES</label>
+            <input
+              style={input}
+              value={sharesStr}
+              onChange={(e) => setSharesStr(e.target.value)}
+              inputMode="decimal"
+              placeholder="2.5"
+              autoComplete="off"
+            />
           </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={label}>SHARES</label>
-              <input
-                style={input}
-                value={inputVal(shares)}
-                onChange={(e) => onChangeShares(e.target.value)}
-                inputMode="decimal"
-                placeholder="10"
-              />
-            </div>
+          <div>
+            <label style={label}>COST / SHARE</label>
+            <input
+              style={input}
+              value={costStr}
+              onChange={(e) => setCostStr(e.target.value)}
+              inputMode="decimal"
+              placeholder="150.00"
+              autoComplete="off"
+            />
           </div>
-
-          {/* Cost pair */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
-            <div>
-              <label style={label}>COST / SHARE</label>
-              <input
-                style={input}
-                value={inputVal(avgCost)}
-                onChange={(e) => onChangeAvgCost(e.target.value)}
-                inputMode="decimal"
-                placeholder="150.00"
-              />
-            </div>
-            <div>
-              <label style={label}>TOTAL COST (= SHARES × COST/SHARE)</label>
-              <input
-                style={input}
-                value={
-                  // if both canonicals are set, show derived; else show sticky string
-                  shares != null && avgCost != null
-                    ? String(shares * avgCost)
-                    : totalCostStr
-                }
-                onChange={(e) => onChangeTotalCost(e.target.value)}
-                inputMode="decimal"
-                placeholder="1500.00"
-              />
-            </div>
-          </div>
-
-          {/* Market-price pair — mirrors the cost pair above. Edit either
-              PRICE/SHARE or CURRENT VALUE; the other auto-calculates from
-              SHARES. After save, the platform's market-data layer will
-              overwrite `price` with the live quote on the next scan, so the
-              value the user types here is just a seed. */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 6 }}>
-            <div>
-              <label style={label}>PRICE / SHARE (MARKET)</label>
-              <input
-                style={input}
-                value={inputVal(price)}
-                onChange={(e) => onChangePrice(e.target.value)}
-                inputMode="decimal"
-                placeholder="175.00"
-              />
-            </div>
-            <div>
-              <label style={label}>CURRENT VALUE (= SHARES × PRICE/SHARE)</label>
-              <input
-                style={input}
-                value={
-                  shares != null && price != null
-                    ? String(shares * price)
-                    : currentValueStr
-                }
-                onChange={(e) => onChangeCurrentValue(e.target.value)}
-                inputMode="decimal"
-                placeholder="1750.00"
-              />
-            </div>
-          </div>
-          <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4, marginBottom: 0 }}>
-            Price/share is refreshed from live market data after save; the value you enter here is a seed.
-          </div>
+        </div>
+        <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4, marginBottom: 12 }}>
+          Current price comes from the scanner after save — you don't enter it here.
         </div>
 
         {/* Derived summary */}
@@ -494,15 +405,18 @@ export default function PositionEditor({
           fontSize: 12,
         }}>
           <div><span style={{ color: "var(--text-muted)" }}>Cost basis: </span>{fmt$(totalCost)}</div>
+          <div>
+            <span style={{ color: "var(--text-muted)" }}>Live price: </span>
+            {livePrice != null ? fmt$(livePrice) : <span style={{ color: "var(--text-muted)" }}>—</span>}
+          </div>
           <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(currentValue)}</div>
-          <div><span style={{ color: "var(--text-muted)" }}>Implied price/share: </span>{fmt$(price)}</div>
           <div>
             <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
             <span style={{ color: pnlDollars == null ? "var(--text-muted)" : pnlDollars >= 0 ? "#30d158" : "#ff453a" }}>
               {fmt$(pnlDollars)}
             </span>
           </div>
-          <div>
+          <div style={{ gridColumn: "1 / -1" }}>
             <span style={{ color: "var(--text-muted)" }}>PnL %: </span>
             <span style={{ color: pnlPct == null ? "var(--text-muted)" : pnlPct >= 0 ? "#30d158" : "#ff453a" }}>
               {fmtPct(pnlPct)}
