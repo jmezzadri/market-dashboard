@@ -245,7 +245,11 @@ export default async function handler(req, res) {
       const betaRaw = info?.beta != null ? Number(info.beta)
                       : screener?.beta != null ? Number(screener.beta) : null;
       const beta = Number.isFinite(betaRaw) ? betaRaw : null;
+      // screener.price does not exist in UW's /screener response; the
+      // live session close is the correct post-market reference price.
+      // Fall-through order: explicit price → close → info.price → null.
       const priceRaw = screener?.price != null ? Number(screener.price)
+                       : screener?.close != null ? Number(screener.close)
                        : info?.price != null ? Number(info.price) : null;
       const price = Number.isFinite(priceRaw) && priceRaw > 0 ? priceRaw : null;
 
