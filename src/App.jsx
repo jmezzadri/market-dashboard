@@ -839,8 +839,77 @@ return(
 );
 }
 
+// Time-range presets for the LongChart pills. `days=null` = show everything.
+const WINDOW_PRESETS=[
+  {key:"1M", label:"1M",  days:30},
+  {key:"3M", label:"3M",  days:91},
+  {key:"6M", label:"6M",  days:183},
+  {key:"1Y", label:"1Y",  days:365},
+  {key:"2Y", label:"2Y",  days:730},
+  {key:"5Y", label:"5Y",  days:1825},
+  {key:"10Y",label:"10Y", days:3650},
+  {key:"MAX",label:"MAX", days:null},
+];
+// Default window chosen to make "1M ago / 3M ago" tick marks legible
+// for each release cadence:
+//   Daily     → 6M window  (roughly 126 trading days — narrative 1M/3M visible)
+//   Weekly    → 1Y window  (52 points)
+//   Monthly   → 2Y window  (24 points)
+//   Quarterly → 5Y window  (20 points)
+const DEFAULT_WINDOW_BY_FREQ={D:"6M",W:"1Y",M:"2Y",Q:"5Y"};
+
+// Slice a [[iso_date, value], ...] series to a time window and return the
+// [[display_label, value], ...] shape ChartCore expects.
+function sliceHistoryToWindow(points,windowKey,customRange){
+  if(!points||!points.length)return{data:[],labels:[]};
+  const lastIso=points[points.length-1][0];
+  const lastDt=new Date(lastIso+"T00:00:00Z");
+  let startIso=null,endIso=lastIso;
+  if(windowKey==="CUSTOM"){
+    if(!customRange?.start||!customRange?.end)return{data:[],labels:[]};
+    startIso=customRange.start;
+    endIso=customRange.end;
+  }else{
+    const p=WINDOW_PRESETS.find(p=>p.key===windowKey);
+    if(p&&p.days!=null){
+      const s=new Date(lastDt);s.setUTCDate(s.getUTCDate()-p.days);
+      startIso=s.toISOString().slice(0,10);
+    }
+  }
+  const filt=points.filter(([d])=>(!startIso||d>=startIso)&&(!endIso||d<=endIso));
+  if(!filt.length)return{data:[],labels:[]};
+  const spanDays=(new Date(filt[filt.length-1][0])-new Date(filt[0][0]))/(1000*60*60*24);
+  const fmtLbl=(iso)=>{
+    const d=new Date(iso+"T00:00:00Z");
+    const mo=d.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
+    const day=d.getUTCDate();
+    const yr=d.getUTCFullYear();
+    if(spanDays<=400)return `${mo} ${day}`;
+    if(spanDays<=2500)return `${mo} '${String(yr).slice(2)}`;
+    return String(yr);
+  };
+  const data=filt.map(([d,v])=>[fmtLbl(d),v]);
+  const labels=data.map(x=>x[0]);
+  return{data,labels,filtered:filt};
+}
+
 function LongChart({id,col}){
-const data=getIndicatorHistSeries(id);if(!data)return null;
+const [hist,setHist]=useState(_histCache);
+const freq=IND_FREQ[id]||"D";
+const [windowKey,setWindowKey]=useState(DEFAULT_WINDOW_BY_FREQ[freq]||"1Y");
+const [customRange,setCustomRange]=useState({start:"",end:""});
+const [showCustom,setShowCustom]=useState(false);
+useEffect(()=>{
+  if(!_histCache){loadIndicatorHistory().then(setHist);}
+},[]);
+// When id changes (user opened a different indicator modal), reset window
+// to the frequency-appropriate default so the chart makes sense on first
+// view. Custom range stays blank unless explicitly re-entered.
+useEffect(()=>{
+  setWindowKey(DEFAULT_WINDOW_BY_FREQ[freq]||"1Y");
+  setShowCustom(false);
+  setCustomRange({start:"",end:""});
+},[id,freq]);
 const sd=SD[id];
 const unit=IND[id]?.[4]||"",dec=IND[id]?.[5]??1;
 const fmt=v=>{
@@ -850,15 +919,102 @@ if(unit==="z-score")return(v>0?"+":"")+Number(v).toFixed(dec);
 if(["% T1","% 3yr","% YoY","%"].includes(unit))return`${Number(v).toFixed(dec)}%`;
 return Number(v).toFixed(dec);
 };
-const labels=data.map(d=>String(d[0]));
+// Prefer real history when available; fall back to the synthetic SD-interpolated
+// quarterly series so indicators without indicator_history.json coverage still
+// render something.
+const hasReal=hist&&hist[id]&&Array.isArray(hist[id].points)&&hist[id].points.length>1;
+let data,labels,freqOfSeries,minDate,maxDate;
+if(hasReal){
+  const sliced=sliceHistoryToWindow(hist[id].points,windowKey,customRange);
+  data=sliced.data;
+  labels=sliced.labels;
+  freqOfSeries=hist[id].freq||freq;
+  minDate=hist[id].points[0][0];
+  maxDate=hist[id].points[hist[id].points.length-1][0];
+}else{
+  const syn=getIndicatorHistSeries(id);
+  if(!syn||!syn.length){
+    return(
+      <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",padding:"14px 0"}}>
+        No historical data available.
+      </div>
+    );
+  }
+  data=syn;
+  labels=syn.map(d=>String(d[0]));
+  freqOfSeries=freq;
+}
+
+const pillBase={
+  padding:"3px 9px",fontSize:10,fontFamily:"var(--font-mono)",
+  fontWeight:700,letterSpacing:"0.04em",border:"1px solid var(--border)",
+  borderRadius:3,cursor:"pointer",background:"var(--surface-2)",
+  color:"var(--text-muted)",userSelect:"none",
+};
+const pillOn={
+  ...pillBase,background:"var(--accent)",color:"#fff",borderColor:"var(--accent)",
+};
+
+const pickWindow=(k)=>{setWindowKey(k);setShowCustom(false);};
+
+// Pretty frequency label next to the header
+const freqLabel={D:"DAILY",W:"WEEKLY",M:"MONTHLY",Q:"QUARTERLY"}[freqOfSeries]||"";
+
 return(
 <div style={{marginBottom:10}}>
-<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:4}}>
-LONG-TERM HISTORY
-<span style={{color:"rgba(34,197,94,0.7)",marginLeft:6}}>▬ normal range</span>
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
+  <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>
+    HISTORY{freqLabel?` · ${freqLabel}`:""}
+    <span style={{color:"rgba(34,197,94,0.7)",marginLeft:6}}>▬ normal range</span>
+  </div>
+  <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
+    {WINDOW_PRESETS.map(p=>(
+      <button
+        key={p.key} type="button"
+        style={(!showCustom&&windowKey===p.key)?pillOn:pillBase}
+        onClick={()=>pickWindow(p.key)}
+      >{p.label}</button>
+    ))}
+    <button
+      type="button"
+      style={showCustom?pillOn:pillBase}
+      onClick={()=>{setShowCustom(s=>!s);if(!showCustom)setWindowKey("CUSTOM");}}
+      title="Pick a custom date range"
+    >CUSTOM</button>
+  </div>
 </div>
-<ChartCore data={data} labels={labels} dir={sd?.dir} sdP={sd} crisisData={COMP_CRISES}
-col={col} fmtFn={fmt} H={100} pL={28} pR={8} pT={18} pB={22} W={500} id={id}/>
+{showCustom&&hasReal&&(
+  <div style={{
+    display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",
+    marginBottom:6,padding:"6px 8px",background:"var(--surface-2)",
+    border:"1px solid var(--border)",borderRadius:4,
+    fontSize:11,fontFamily:"var(--font-mono)",color:"var(--text-muted)",
+  }}>
+    <span>Range:</span>
+    <input
+      type="date" value={customRange.start||""}
+      min={minDate} max={maxDate}
+      onChange={e=>{setCustomRange(r=>({...r,start:e.target.value}));setWindowKey("CUSTOM");}}
+      style={{fontFamily:"var(--font-mono)",fontSize:11,padding:"2px 4px",background:"var(--surface)",border:"1px solid var(--border)",color:"var(--text)"}}
+    />
+    <span>→</span>
+    <input
+      type="date" value={customRange.end||""}
+      min={minDate} max={maxDate}
+      onChange={e=>{setCustomRange(r=>({...r,end:e.target.value}));setWindowKey("CUSTOM");}}
+      style={{fontFamily:"var(--font-mono)",fontSize:11,padding:"2px 4px",background:"var(--surface)",border:"1px solid var(--border)",color:"var(--text)"}}
+    />
+    <span style={{color:"var(--text-dim)"}}>(available: {minDate} → {maxDate})</span>
+  </div>
+)}
+{data.length<2?(
+  <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",padding:"18px 0",textAlign:"center"}}>
+    No data in this window. Try a wider range.
+  </div>
+):(
+  <ChartCore data={data} labels={labels} dir={sd?.dir} sdP={sd} crisisData={[]}
+  col={col} fmtFn={fmt} H={100} pL={28} pR={8} pT={18} pB={22} W={500} id={id}/>
+)}
 </div>
 );
 }
