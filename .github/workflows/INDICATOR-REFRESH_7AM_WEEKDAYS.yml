@@ -1,4 +1,4 @@
-name: Indicator History Refresh
+name: INDICATOR-REFRESH_7AM_WEEKDAYS
 
 # Regenerates public/indicator_history.json from FRED + Yahoo daily so the
 # dashboard picks up fresh values (20y cadence, 15y Winsorized stats) without
