@@ -159,9 +159,23 @@ export function useTablePreferences(
     }
 
     // Visibility: if user never saved one, use defaultVisible.
-    const visible = savedVisible
-      ? savedVisible.filter((id) => validIds.has(id))
-      : [...defaultVisible];
+    // Otherwise: start from saved, then auto-add any defaultVisible ids that
+    // are brand new to this user (not in their savedOrder AND not in their
+    // savedVisible). This is what makes new default-visible columns actually
+    // appear for returning users — without it, a new column would be added
+    // to their order (via the append loop above) but remain hidden because
+    // their savedVisible list doesn't mention it.
+    let visible;
+    if (savedVisible) {
+      const filtered = savedVisible.filter((id) => validIds.has(id));
+      const seenByUser = new Set([...savedOrder, ...savedVisible]);
+      const autoAdd = (defaultVisible || []).filter(
+        (id) => validIds.has(id) && !seenByUser.has(id) && !filtered.includes(id)
+      );
+      visible = [...filtered, ...autoAdd];
+    } else {
+      visible = [...defaultVisible];
+    }
 
     // Widths: start with defaults, then overlay saved widths that are for
     // still-valid columns and within sane bounds. New columns inherit their
