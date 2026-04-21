@@ -53,7 +53,7 @@ const CSV_TEMPLATE = [
 ].join("\n");
 
 // ── CSV helpers (lifted from the old BulkImport — same parser) ─────────────
-function splitCsvLine(line) {
+function splitCsvLine(line, delim = ",") {
   const out = [];
   let cur = "";
   let inQuotes = false;
@@ -64,13 +64,23 @@ function splitCsvLine(line) {
       else if (ch === '"')                    { inQuotes = false; }
       else                                    { cur += ch; }
     } else {
-      if (ch === ',')       { out.push(cur); cur = ""; }
+      if (ch === delim)     { out.push(cur); cur = ""; }
       else if (ch === '"')  { inQuotes = true; }
       else                  { cur += ch; }
     }
   }
   out.push(cur);
   return out.map((c) => c.trim());
+}
+
+// Detect the delimiter used on the header line. Excel copy/paste yields
+// tab-separated text; downloaded CSVs use commas. We count both on the
+// first line and pick whichever dominates. Falls back to comma when the
+// line is single-column (no delimiter).
+function detectDelimiter(firstLine) {
+  const tabs = (firstLine.match(/\t/g) || []).length;
+  const commas = (firstLine.match(/,/g) || []).length;
+  return tabs > commas ? "\t" : ",";
 }
 
 // Normalize a header row into canonical column names using COLUMN_ALIASES.
@@ -87,13 +97,16 @@ function parseCsvText(text) {
   if (lines.length < 2) {
     return { rows: [], errors: ["File must have a header row plus at least one data row."] };
   }
-  const headers = canonicalizeHeaders(splitCsvLine(lines[0]));
+  // Auto-detect delimiter from the header line — supports Excel copy/paste
+  // (tab-separated) as well as downloaded CSVs (comma-separated).
+  const delim = detectDelimiter(lines[0]);
+  const headers = canonicalizeHeaders(splitCsvLine(lines[0], delim));
   const missing = ["account", "ticker", "shares", "cost_per_share"].filter((h) => !headers.includes(h));
   if (missing.length) {
     return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}. Use the template below.`] };
   }
   const rows = lines.slice(1).map((line) => {
-    const cells = splitCsvLine(line);
+    const cells = splitCsvLine(line, delim);
     const obj = {};
     headers.forEach((h, i) => { obj[h] = cells[i] || ""; });
     return obj;
@@ -524,7 +537,7 @@ export default function BulkImport({ userId, onClose, onDone }) {
           />
         </div>
 
-        <label style={label}>OR PASTE CSV</label>
+        <label style={label}>OR PASTE CSV OR EXCEL</label>
         <textarea
           value={pasteText}
           onChange={(e) => handlePasteChange(e.target.value)}
