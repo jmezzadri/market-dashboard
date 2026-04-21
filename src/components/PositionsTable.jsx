@@ -582,6 +582,10 @@ export default function PositionsTable({
     </div>
   );
 
+  // Drag state MUST be declared before any conditional return — React hook-order invariant (Item 36 hotfix).
+  const [dragId, setDragId] = useState(null);
+  const [dragOverId, setDragOverId] = useState(null);
+
   if (!enriched.length) {
     return (
       <>
@@ -609,8 +613,6 @@ export default function PositionsTable({
   const actionsCol = showActionsCol ? byId.get("actions") : null;
 
   // ─── Draggable headers ─────────────────────────────────────────────────────
-  const [dragId, setDragId] = useState(null);
-  const [dragOverId, setDragOverId] = useState(null);
 
   const onHdrDragStart = (e, id) => {
     setDragId(id);
