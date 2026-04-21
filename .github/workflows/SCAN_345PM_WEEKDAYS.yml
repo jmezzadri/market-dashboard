@@ -1,0 +1,102 @@
+name: SCAN_345PM_WEEKDAYS
+
+# Runs the trading scanner at 3:45 PM EDT weekdays. Consolidated from the
+# old two-repo setup (trading-scanner → market-dashboard via DASHBOARD_PAT).
+# Everything now lives in this repo so the cross-repo push is gone.
+#
+# Steps:
+#   1. pip install scanner deps (trading-scanner/requirements.txt)
+#   2. Run `python main.py intraday` from trading-scanner/
+#   3. Copy trading-scanner/reports/latest_scan_data.json → public/
+#      so Vercel auto-redeploys the dashboard with fresh scanner output
+#   4. Commit both paths + push
+#
+# Required GitHub secrets (Settings → Secrets and variables → Actions):
+#   UNUSUAL_WHALES_API_KEY
+#   SUPABASE_URL                    (already present for other workflows)
+#   SUPABASE_SERVICE_ROLE_KEY       (already present)
+# Optional (scanner can email directly if you ever re-enable that path):
+#   ALERT_EMAIL_FROM, ALERT_EMAIL_TO, GMAIL_APP_PASSWORD
+
+on:
+  schedule:
+    - cron: '45 19 * * 1-5'   # 3:45 PM EDT (UTC-4), Mon–Fri
+  workflow_dispatch:
+
+concurrency:
+  group: scan-345pm-weekdays
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: trading-scanner/requirements.txt
+
+      - name: Install scanner dependencies
+        working-directory: trading-scanner
+        run: pip install -r requirements.txt
+
+      - name: Run intraday scan
+        working-directory: trading-scanner
+        env:
+          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
+          ALERT_EMAIL_FROM: ${{ secrets.ALERT_EMAIL_FROM }}
+          ALERT_EMAIL_TO: ${{ secrets.ALERT_EMAIL_TO }}
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SCORE_BUY_ALERT: "60"
+          SCORE_WATCH_ALERT: "40"
+          ALERT_ON_WATCH: "true"
+          ALERT_ON_BUY: "true"
+          SUPPRESS_EMAIL: "1"
+        run: python main.py intraday
+
+      - name: Upload scanner reports as artifact
+        if: always()
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: scan-345pm-${{ github.run_id }}
+          path: trading-scanner/reports/
+          retention-days: 30
+
+      - name: Publish scan data to public/ and commit
+        run: |
+          mkdir -p public
+          if [ -f trading-scanner/reports/latest_scan_data.json ]; then
+            cp trading-scanner/reports/latest_scan_data.json public/latest_scan_data.json
+          else
+            echo "⚠️  No latest_scan_data.json produced — skipping publish."
+            exit 0
+          fi
+
+          git config user.name  "Trading Scanner Bot"
+          git config user.email "bot@github-actions"
+
+          git add public/latest_scan_data.json \
+                  trading-scanner/portfolio/.last_scan_scores.json \
+                  trading-scanner/reports/latest_report.html \
+                  trading-scanner/reports/latest_scan_data.json 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to scanner output — skipping commit."
+            exit 0
+          fi
+
+          git commit -m "Scan data update [skip ci]"
+          git push || echo "Push failed (non-fatal); next scheduled run will retry."
