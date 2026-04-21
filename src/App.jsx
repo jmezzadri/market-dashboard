@@ -3301,7 +3301,6 @@ const totalDeployable=cashByAcct.reduce((a,c)=>a+c.cash,0);
 // Sort held positions by value DESC — biggest exposure first, regardless of account
 const heldPositions=ACCOUNTS
   .flatMap(acc=>acc.positions.map(p=>({...p,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical})))
-  .filter(p=>p.sector!=="Cash")
   .sort((a,b)=>b.value-a.value);
 const heldTickers=new Set(heldPositions.map(p=>p.ticker));
 const scoreByTicker=scanData?.score_by_ticker||{};
