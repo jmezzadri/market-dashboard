@@ -38,6 +38,30 @@ const SAVE_DEBOUNCE_MS = 500;
 const MIN_WIDTH_PX = 48;
 const MAX_WIDTH_PX = 2000;
 
+// Legacy column-id renames. When we rename a column in the default schema,
+// users who previously saved prefs with the old id would otherwise see that
+// column "disappear" from their table because the filter-by-validIds step
+// drops unknown ids. We translate old → new in-place on load so the user's
+// visibility and ordering choices carry across the rename.
+//
+// Add new entries here for future column-id renames; the map is applied
+// BEFORE the validIds filter in the prefs useMemo below.
+const LEGACY_ID_RENAMES = {
+  shares: "quantity", // PR #46: positions.shares → positions.quantity (2026-04-21)
+};
+function applyRenames(ids) {
+  if (!Array.isArray(ids)) return ids;
+  return ids.map((id) => LEGACY_ID_RENAMES[id] || id);
+}
+function applyRenamesToWidths(widths) {
+  if (!widths || typeof widths !== "object") return widths;
+  const out = {};
+  for (const [id, w] of Object.entries(widths)) {
+    out[LEGACY_ID_RENAMES[id] || id] = w;
+  }
+  return out;
+}
+
 // Module-level cache so switching tabs in the same session doesn't re-fetch
 // the row every time a new table mounts. Keyed by user_id.
 const prefsCache = new Map();
@@ -107,9 +131,14 @@ export function useTablePreferences(
   // auto-appending any newly-added columns.
   const prefs = useMemo(() => {
     const saved = (allPrefs && allPrefs[tableKey]) || {};
-    const savedOrder   = Array.isArray(saved.order)   ? saved.order   : [];
-    const savedVisible = Array.isArray(saved.visible) ? saved.visible : null;
-    const savedWidths  = (saved.widths && typeof saved.widths === "object") ? saved.widths : {};
+    // Translate any legacy column ids BEFORE we filter-by-validIds. Without
+    // this a rename (shares→quantity) silently drops the column from the
+    // user's saved visibility, producing a missing-column UX.
+    const savedOrder   = applyRenames(Array.isArray(saved.order)   ? saved.order   : []);
+    const savedVisible = Array.isArray(saved.visible) ? applyRenames(saved.visible) : null;
+    const savedWidths  = applyRenamesToWidths(
+      (saved.widths && typeof saved.widths === "object") ? saved.widths : {}
+    );
 
     const validIds = new Set(defaultOrder);
 
