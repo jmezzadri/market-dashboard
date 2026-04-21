@@ -6,7 +6,7 @@ import {
   NavIconHome, NavIconGauge, NavIconGrid, NavIconHeat,
   NavIconPie, NavIconList, NavIconRadar, NavIconBook,
 } from "./Shell";
-import { InfoTip, Tip } from "./InfoTip";
+import { InfoTip } from "./InfoTip";
 import SidebarAuth from "./auth/SidebarAuth";
 import LoginScreen from "./auth/LoginScreen";
 import OnboardingPanel from "./auth/OnboardingPanel";
@@ -30,23 +30,17 @@ import ErrorBoundary from "./ErrorBoundary";
 // re-grounded against FRED 2016-04 → 2026-04 (see docs/CALIBRATION_METHODOLOGY.md
 // for full audit table + rationale per indicator, plus scripts/calibration_audit.py
 // for the re-runnable pull).
-//
-// Bug #5 (2026-04-20) — copper_gold, bkx_spx, cmdi, cpff, term_premium
-// empirically recalibrated against 10y trailing window (2016-04 → 2026-04)
-// from public/indicator_history.json. term_premium was the biggest miss:
-// old mean=40, sd=70 → empirical 11, 33. The old SD made current 65bps read
-// as "~0.3σ above mean" when it's actually ~1.6σ above (moderately stressed).
 const SD={
 vix:{mean:18.5,sd:7.3,dir:"hw"},hy_ig:{mean:220,sd:95,dir:"hw"},
-eq_cr_corr:{mean:0.75,sd:0.09,dir:"hw"},yield_curve:{mean:80,sd:95,dir:"nw"},
+eq_cr_corr:{mean:0.38,sd:0.22,dir:"hw"},yield_curve:{mean:80,sd:95,dir:"nw"},
 move:{mean:72,sd:28,dir:"hw"},anfci:{mean:0,sd:0.38,dir:"hw"},
 stlfsi:{mean:0,sd:0.9,dir:"hw"},real_rates:{mean:0.7,sd:1.0,dir:"hw"},
 sloos_ci:{mean:9,sd:22,dir:"hw"},cape:{mean:22,sd:7,dir:"hw"},
-ism:{mean:52,sd:5.5,dir:"lw"},copper_gold:{mean:0.19,sd:0.037,dir:"lw"},
-bkx_spx:{mean:0.127,sd:0.034,dir:"lw"},bank_unreal:{mean:5,sd:8,dir:"hw"},
-credit_3y:{mean:7,sd:5,dir:"hw"},term_premium:{mean:11,sd:33,dir:"hw"},
-cmdi:{mean:0.08,sd:0.13,dir:"hw"},loan_syn:{mean:6.2,sd:2.5,dir:"hw"},
-usd:{mean:99,sd:7,dir:"hw"},cpff:{mean:17,sd:33,dir:"hw"},
+ism:{mean:52,sd:5.5,dir:"lw"},copper_gold:{mean:0.20,sd:0.03,dir:"lw"},
+bkx_spx:{mean:0.13,sd:0.03,dir:"lw"},bank_unreal:{mean:5,sd:8,dir:"hw"},
+credit_3y:{mean:7,sd:5,dir:"hw"},term_premium:{mean:40,sd:70,dir:"hw"},
+cmdi:{mean:0.1,sd:0.35,dir:"hw"},loan_syn:{mean:6.2,sd:2.5,dir:"hw"},
+usd:{mean:99,sd:7,dir:"hw"},cpff:{mean:10,sd:28,dir:"hw"},
 skew:{mean:128,sd:12,dir:"hw"},sloos_cre:{mean:5,sd:20,dir:"hw"},
 bank_credit:{mean:6.5,sd:3.2,dir:"lw"},jobless:{mean:340,sd:185,dir:"hw"},
 jolts_quits:{mean:2.1,sd:0.42,dir:"lw"},
@@ -125,12 +119,12 @@ const IND={
 vix:["VIX","Equity Volatility","equity",1,"index",1,17.9,23.9,17.2,19.5,15.0,false,
 "The CBOE Volatility Index measures expected 30-day S&P 500 volatility from live options prices. Known as the 'fear gauge' — higher = more fear, lower = calm.",
 "Modestly below the long-run average (~19.5) and down meaningfully from 23.9 a month ago. Stress is fading. Watch for a sustained break above 30 (stress threshold) or 40 (crisis level)."],
-hy_ig:["HY OAS","HY Option-Adjusted Spread","credit",1,"bps",0,205.0,268,245,280,220,false,
-"ICE BofA US High Yield Master II Option-Adjusted Spread vs. Treasury (FRED series BAMLH0A0HYM2). Measures the extra yield investors demand to hold high-yield corporate bonds over risk-free Treasuries — a direct read on credit risk appetite. NOT a HY-vs-IG differential despite the legacy label.",
-"Spreads have tightened ~63bps over the past month — markets are not pricing significant default risk. Below 300bps historically benign; above 500bps = meaningful stress; 1000bps+ = crisis (GFC peak ~1800, COVID peak ~1100)."],
-eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.81,0.75,0.69,0.75,0.92,false,
-"63-day rolling Pearson correlation between SPY and HYG daily returns. Measures whether equities and high-yield credit are moving as a single risk factor — a genuine risk-off regime vs. isolated noise.",
-"At 0.81, synchronization sits modestly above the long-run mean of ~0.75 (2015–2026). Readings above ~0.85 (≈1 SD above mean) flag a tightly-linked risk-off regime; sustained readings below ~0.65 suggest equities and credit are responding to different drivers."],
+hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,205.0,268,245,280,220,false,
+"Spread between ICE BofA High Yield and Investment Grade bond yields. Measures extra return investors demand for credit risk.",
+"Spreads have tightened ~55bps over the past month — markets not pricing significant default risk. Below 200bps = benign; above 400bps = significant stress."],
+eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.92,0.61,0.55,0.50,0.40,false,
+"63-day rolling correlation between VIX and HY-IG spreads. When both move together, it signals a genuine risk-off regime rather than isolated noise.",
+"Sharp jump in correlation — equities and credit are now moving as a single risk factor. Values above 0.6 indicate a true risk-off regime; this is a warning sign."],
 yield_curve:["10Y–2Y Slope","Yield Curve","rates",1,"bps",0,54.0,52,35,15,-20,false,
 "Difference between 10-year and 2-year Treasury yields. Inversion historically precedes recessions by 6–18 months.",
 "Re-steepened after the deepest inversion since 1981 (-109bps in 2023). An improving signal, though bear steepening (long-end selling off) would be the wrong kind."],
@@ -158,8 +152,8 @@ ism:["ISM Mfg. PMI","Manufacturing Activity Index","labor",2,"index",1,52.7,52.4
 copper_gold:["Copper/Gold Ratio","Real Economy vs. Safe Haven","labor",2,"ratio",3,0.126,0.098,0.108,0.112,0.152,true,
 "Ratio of copper to gold futures. A falling ratio signals growth pessimism and risk-off sentiment.",
 "At 0.126, ratio sits ~37% below its 0.20 historical mean — persistent safe-haven gold demand continues to overshadow copper. Ratio dipped to ~0.098 a month ago before copper's rally toward $6/lb drove a partial rebound. A sustained move back toward 0.15+ would signal improving growth confidence."],
-bkx_spx:["KBE/SPY Ratio","Banks vs. Market (ETF Proxy)","bank",2,"ratio",3,0.09,0.086,0.103,0.097,0.090,true,
-"KBE (KBW Regional Banking ETF) divided by SPY (SPDR S&P 500 ETF). Used as a liquid daily ETF proxy for the index-level BKX/SPX ratio — different instruments, different absolute levels, but highly correlated directionally. Bank-sector weakness relative to the broad market often precedes systemic stress (SVB was visible in this ratio weeks ahead of failure).",
+bkx_spx:["BKX/SPX Ratio","Bank vs. Market Strength","bank",2,"ratio",3,0.09,0.086,0.103,0.097,0.090,true,
+"KBW Bank Index divided by S&P 500. Bank weakness often signals coming broader stress.",
 "KBE/SPY near 0.09, up from ~0.086 a month ago as banks rallied in early April. Ratio sits ~30% below its historical mean of 0.13 — banks continue to trade at a persistent structural discount to the broader market. A sustained drop below 0.08 would echo SVB-era stress (March 2023)."],
 bank_unreal:["Bank Unreal. Loss","AFS+HTM Losses / Tier 1","bank",2,"% T1",1,19.9,19.5,20.8,22.1,18.5,true,
 "Aggregate unrealized securities losses at FDIC-insured banks as % of Tier 1 regulatory capital.",
@@ -170,11 +164,11 @@ credit_3y:["3Y Credit Growth","3-Year Bank Credit Expansion","bank",2,"% 3yr",1,
 term_premium:["Kim–Wright 10Y","10-Year Term Premium","rates",3,"bps",0,65.0,55,45,35,20,false,
 "Fed model estimate of extra return for holding 10-year Treasuries vs. rolling short bills.",
 "Risen steadily from QE-era depths — long-end investors demanding more compensation. Structural tightening independent of Fed policy."],
-cmdi:["CMDI Proxy","Corp Bond Market Distress (NFCI-derived)","credit",3,"index",2,0.03,0.38,0.30,0.25,0.12,false,
-"Tracks the NY Fed Corporate Market Distress Index concept, but MacroTilt derives a proxy from the Chicago Fed NFCI (transformation: NFCI + 0.5, floored at 0) because the NY Fed CMDI has no free public time-series feed. The proxy captures directional changes in corporate-bond market functioning — absolute levels may diverge from the official NY Fed release.",
+cmdi:["CMDI","Corp Bond Market Distress","credit",3,"index",2,0.03,0.38,0.30,0.25,0.12,false,
+"Federal Reserve composite of corporate bond market functioning. Zero = normal.",
 "Corporate bond market functioning normally — sharp improvement from 0.38 a month ago. A clear positive for credit availability."],
 loan_syn:["HY Eff. Yield","High Yield Effective Yield","credit",3,"%",2,6.74,7.45,7.0,6.5,6.2,false,
-"ICE BofA US High Yield Master II Effective Yield (FRED series BAMLH0A0HYM2EY) — the weighted average yield-to-maturity of the US high-yield corporate bond universe. NOTE: this is HY bonds only. It is NOT a leveraged-loan proxy — loans have a different capital structure (senior secured, floating rate) and trade on different liquidity dynamics.",
+"ICE BofA US High Yield Index Effective Yield. Proxy for leveraged loan market conditions.",
 "Easing from 7.45% a month ago but still elevated vs. low-rate era (4–5%). Companies with near-term maturities face refinancing pressure."],
 usd:["USD Index","Trade-Weighted Dollar","fincond",3,"index",1,98.3,101.0,102.5,101.8,101.0,false,
 "Federal Reserve broad trade-weighted USD index. Strong dollar tightens global financial conditions.",
@@ -211,44 +205,6 @@ const IND_FREQ={
   sloos_ci:"Q",sloos_cre:"Q",bank_unreal:"Q",credit_3y:"Q",
 };
 
-// Data source attribution per indicator (Bug #5d — data-provenance stamp).
-// Short-form labels fit a small badge/footer. Used by IndicatorCard and
-// IndicatorModal to show "<SRC> · as of <date>" next to each value, so
-// users can sanity-check where a number came from at a glance. Grouping
-// by origin (not by vendor — e.g. yield_curve values come via FRED but
-// originate at Treasury):
-//   CBOE         — VIX, SKEW (option-implied)
-//   ICE BofA     — HY-IG spread, HY effective yield, MOVE
-//   Yahoo (calc) — EQ-Credit correlation, Copper/Gold ratio, BKX/SPX ratio
-//                  (values COMPUTED locally from price feeds, not sourced)
-//   Treasury     — 10Y-2Y slope, 10Y TIPS
-//   Chicago Fed  — ANFCI
-//   St Louis Fed — STLFSI
-//   NY Fed       — Term premium (Kim-Wright), CMDI
-//   Fed Reserve  — SLOOS C&I, SLOOS CRE, USD index (H.10), CPFF, bank credit (H.8),
-//                  3Y credit growth (H.8)
-//   FDIC         — Bank unrealized losses (QBP)
-//   ISM          — Manufacturing PMI
-//   BLS          — JOLTS quits rate
-//   Shiller      — CAPE (Robert Shiller / Yale)
-//   DOL          — Initial jobless claims (via FRED, originates DOL)
-const IND_SOURCE={
-  vix:"CBOE",skew:"CBOE",
-  hy_ig:"ICE BofA",loan_syn:"ICE BofA",move:"ICE BofA",
-  eq_cr_corr:"Yahoo",copper_gold:"Yahoo",bkx_spx:"Yahoo",
-  yield_curve:"Treasury",real_rates:"Treasury",
-  anfci:"Chicago Fed",
-  stlfsi:"St Louis Fed",
-  term_premium:"NY Fed",cmdi:"NY Fed",
-  sloos_ci:"Fed Reserve",sloos_cre:"Fed Reserve",usd:"Fed Reserve",cpff:"Fed Reserve",
-  bank_credit:"Fed Reserve",credit_3y:"Fed Reserve",
-  bank_unreal:"FDIC",
-  ism:"ISM",
-  jolts_quits:"BLS",
-  cape:"Shiller",
-  jobless:"DOL",
-};
-
 const WEIGHTS={
 vix:1.5,hy_ig:1.5,eq_cr_corr:1.5,yield_curve:1.5,
 move:1.2,anfci:1.2,stlfsi:1.2,real_rates:1.2,sloos_ci:1.2,
@@ -258,23 +214,13 @@ skew:1.0,sloos_cre:1.0,bank_credit:1.0,jobless:1.0,jolts_quits:1.0,
 };
 
 const ACCENT="#4a6fa5";
-// Category palette — six distinct hues so the left-edge bar on each indicator
-// card actually signals category at a glance instead of rendering as a generic
-// grey stripe. Colors tuned to stay legible on both light and dark themes and
-// to read as distinct (no two neighboring reds or blues).
-//   equity  → indigo  (risk/vol cluster)
-//   credit  → teal    (bond markets)
-//   rates   → violet  (Treasury/duration)
-//   fincond → amber   (conditions composite)
-//   bank    → rose    (banking/credit)
-//   labor   → emerald (real economy/growth)
 const CATS={
-equity:  {label:"Equity & Vol",        color:"#6366f1"},
-credit:  {label:"Credit Markets",      color:"#14b8a6"},
-rates:   {label:"Rates & Duration",    color:"#8b5cf6"},
-fincond: {label:"Financial Conditions",color:"#f59e0b"},
-bank:    {label:"Bank & Money Supply", color:"#f43f5e"},
-labor:   {label:"Growth & Real Economy",color:"#10b981"},
+equity:  {label:"Equity & Vol",        color:ACCENT},
+credit:  {label:"Credit Markets",      color:ACCENT},
+rates:   {label:"Rates & Duration",    color:ACCENT},
+fincond: {label:"Financial Conditions",color:ACCENT},
+bank:    {label:"Bank & Money Supply", color:ACCENT},
+labor:   {label:"Labor & Economy",     color:ACCENT},
 };
 
 function fmtV(id,v){
@@ -300,27 +246,6 @@ return signal.replace(
 );
 }
 
-// Narrative split (Item 18 / Task #20). IND[id][13] historically mixes two
-// ideas in one paragraph: (1) a live *state* sentence anchored on the current
-// reading, and (2) *context* — what this level means, historical parallels,
-// what to watch next. Splitting them lets the UI render state prominently
-// (live-updated) and context as quieter secondary text.
-//
-// Rule: the first sentence boundary (a period followed by whitespace + a
-// capital letter, OR by end-of-string) delimits state from context. If no
-// boundary is found (single-sentence narratives), we treat the whole thing
-// as state and leave context empty. Live-value substitution runs on the
-// state half only — it's the piece that anchors on "At X%".
-function splitDynamicSignal(id,cur,signal){
-  if(!signal)return{state:"",context:""};
-  const live=dynamicSignal(id,cur,signal);
-  // Match the first ". " followed by an uppercase letter — standard sentence
-  // break. Fall back to the first ". " if there's no capitalized follow-on.
-  const m=live.match(/^(.*?[.!?])\s+(?=[A-Z])(.*)$/s);
-  if(m&&m[1]&&m[2])return{state:m[1].trim(),context:m[2].trim()};
-  return{state:live.trim(),context:""};
-}
-
 function compScore(snap){
 let ws=0,wt=0;
 Object.keys(IND).forEach(id=>{
@@ -331,21 +256,17 @@ ws+=s*w;wt+=w;
 return wt>0?ws/wt:0;
 }
 
-// NOTE: these are let-bindings (not const) so _applyHistToGlobals can
-// recompute them after the JSON lands. Components read them lexically on each
-// render — useHistReady() re-renders App, and every tile/gauge/narrative that
-// references COMP/COMP100/CONV/TREND_SIG/etc. sees the fresh numbers.
-let NOW={},MO1={},MO3={};
+const NOW={},MO1={},MO3={};
 Object.keys(IND).forEach(id=>{NOW[id]=IND[id][6];MO1[id]=IND[id][7];MO3[id]=IND[id][8];});
-let COMP=compScore(NOW);
-let COMP1M=compScore(MO1);
-let COMP3M=compScore(MO3);
-let COMP100=sdTo100(COMP);
-let COMP1M100=sdTo100(COMP1M);
-let COMP3M100=sdTo100(COMP3M);
+const COMP=compScore(NOW);
+const COMP1M=compScore(MO1);
+const COMP3M=compScore(MO3);
+const COMP100=sdTo100(COMP);
+const COMP1M100=sdTo100(COMP1M);
+const COMP3M100=sdTo100(COMP3M);
 // Velocity: change over 4 weeks (positive = stress rising)
-let VEL=COMP-COMP1M;
-let CONV=getConv(COMP);
+const VEL=COMP-COMP1M;
+const CONV=getConv(COMP);
 
 // ── TREND SIGNAL ────────────────────────────────────────────────────────────
 function trendSignal(vel){
@@ -357,7 +278,7 @@ if(vel<-0.05)return{label:"Easing",       arrow:"▼", col:"#30d158"};
 if(vel<-0.02)return{label:"Edging Down",  arrow:"↘", col:"#86efac"};
 return              {label:"Stable",       arrow:"→", col:"var(--text-2)"};
 }
-let TREND_SIG=trendSignal(VEL);
+const TREND_SIG=trendSignal(VEL);
 
 function trendArrow(current,prior){
 const d=current-prior;
@@ -611,42 +532,8 @@ return[
 ];
 }
 
-// Build the [label, value] series used by IndStressChart (the compact tile
-// mini-chart). Item 5b / Task #19: prefer real history from _histCache over
-// the synthetic piecewiseYearValue keyframes, so the tile sparkline reflects
-// the same data the main modal chart and SD scoring already use. For a small
-// sparkline we downsample long histories to ~60 points evenly spaced and
-// label them with the ISO date (the tile renders tiny tick labels; the exact
-// label is mostly cosmetic — the trajectory is what matters). Falls back to
-// the synthetic keyframes when _histCache hasn't loaded or doesn't carry
-// this indicator.
 function getIndicatorHistSeries(id){
 if(!IND[id]||!SD[id])return null;
-const e=_histCache&&_histCache[id];
-if(e&&Array.isArray(e.points)&&e.points.length>=3){
-  const pts=e.points;
-  // Downsample to at most ~60 points so the compact tile stays readable.
-  const MAX=60;
-  const step=pts.length<=MAX?1:Math.floor(pts.length/MAX);
-  const out=[];
-  for(let i=0;i<pts.length;i+=step){
-    const p=pts[i];
-    if(!p||p[1]==null)continue;
-    out.push([String(p[0]),clampHistValue(id,p[1])]);
-  }
-  // Always include the final point so "Now" lands at the chart's right edge.
-  const lastRaw=pts[pts.length-1];
-  if(lastRaw&&lastRaw[1]!=null){
-    const lastLbl=String(lastRaw[0]);
-    if(!out.length||out[out.length-1][0]!==lastLbl){
-      out.push([lastLbl,clampHistValue(id,lastRaw[1])]);
-    }
-  }
-  if(out.length>=3)return out;
-  // Fall through to synthetic if downsampling collapsed the series.
-}
-// Synthetic fallback — used on first paint before _histCache loads, or for
-// indicators the JSON doesn't carry.
 const kf=buildDefaultHistKeyframes(id);
 if(!kf)return null;
 const out=[];
@@ -659,7 +546,7 @@ out.push([lbl,clampHistValue(id,piecewiseYearValue(t,kf))]);
 }
 }
 // Q1 2026 (last full quarter before "Now" in Q2 2026).
-out.push(["Q1 2026",clampHistValue(id,piecewiseYearValue(2026.0,kf))]);
+out.push(["2026",clampHistValue(id,piecewiseYearValue(2026.0,kf))]);
 out.push(["Now",clampHistValue(id,IND[id][6])]);
 return out;
 }
@@ -753,30 +640,8 @@ const idx=labels.findIndex(l=>l===cm.year||l.startsWith(cm.year));
 if(idx<0)return null;
 return{...cm,x:xp(idx),y:yp(data[idx][1]),v:data[idx][1]};
 }).filter(Boolean);
-// Build ~5-7 evenly-spaced tick labels including first + last. Drop near-
-// duplicates so multi-year MAX views don't render "2022" three times in a
-// row against the chart's right edge (the "20220265026" clipping bug).
-const targetTicks=data.length>1000?7:data.length>100?6:5;
-const tickIdxSet=new Set([0,data.length-1]);
-for(let t=1;t<targetTicks-1;t++){
-  tickIdxSet.add(Math.round((t/(targetTicks-1))*(data.length-1)));
-}
-const sortedTicks=[...tickIdxSet].sort((a,b)=>a-b);
-const keepTick=new Set();
-let _lastLbl=null,_lastKeptI=-1;
-for(const i of sortedTicks){
-  if(labels[i]!==_lastLbl){
-    keepTick.add(i);
-    _lastLbl=labels[i];
-    _lastKeptI=i;
-  }else if(i===data.length-1){
-    // Rightmost is sacred; drop its near-duplicate predecessor instead.
-    if(_lastKeptI>=0)keepTick.delete(_lastKeptI);
-    keepTick.add(i);
-    _lastKeptI=i;
-  }
-}
-const showLbl=labels.map((_,i)=>keepTick.has(i));
+const tickEvery=data.length>40?16:4;
+const showLbl=labels.map((_,i)=>i===0||i===data.length-1||i%tickEvery===0);
 const handleInteract=e=>{
 e.stopPropagation();
 const svg=e.currentTarget,rect=svg.getBoundingClientRect();
@@ -811,9 +676,7 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 <circle cx={lastPt[0]} cy={lastPt[1]} r="4" fill={col} stroke="var(--bg)" strokeWidth="1.5"/>
 <text x={lastPt[0]} y={lastPt[1]-7} textAnchor="middle" fill={col} fontSize="6" fontFamily="monospace" fontWeight="700">{fmtFn(data[data.length-1][1])}</text>
 {labels.map((l,i)=>showLbl[i]&&(
-<text key={i} x={xp(i)} y={H-4}
-  textAnchor={i===0?"start":i===data.length-1?"end":"middle"}
-  fill="var(--text-dim)" fontSize="6" fontFamily="monospace">{l}</text>
+<text key={i} x={xp(i)} y={H-4} textAnchor="middle" fill="var(--text-dim)" fontSize="6" fontFamily="monospace">{l}</text>
 ))}
 {hover&&(()=>{
 const histCol=id?sdColor(sdScore(id,hover.value)):col;
@@ -833,182 +696,8 @@ return(
 );
 }
 
-// ── REAL HISTORY LOADER ─────────────────────────────────────────────────────
-// public/indicator_history.json is a 20-year snapshot at native cadence for
-// every indicator, plus a 15-year trailing `stats:{mean,sd,winsorize,n}` block
-// and a per-indicator `as_of` date. Generated by fetch_history.py; served as
-// a static asset. We fetch it once and cache in module scope — subsequent
-// LongChart mounts (one per indicator click) reuse the same object.
-//
-// Side effect on load: we OVERWRITE the hardcoded SD{} and AS_OF{} tables
-// above with fresh values from the JSON. This is the source-of-truth flip —
-// every call site (sdScore, IndicatorCard, IndicatorModal, IndicatorTrendPills)
-// reads through SD[id] / AS_OF[id] and automatically picks up the calibrated
-// numbers without prop-threading. Re-render after load is triggered by
-// useHistReady() which the App component calls at the top level.
-let _histCache=null;
-let _histPromise=null;
-const _histReadyListeners=new Set();
-let _histReadyVersion=0;
-function _applyHistToGlobals(hist){
-  if(!hist||typeof hist!=="object")return;
-  for(const id of Object.keys(hist)){
-    const entry=hist[id];
-    if(entry&&entry.stats&&typeof entry.stats.mean==="number"&&typeof entry.stats.sd==="number"){
-      const prev=SD[id]||{};
-      SD[id]={
-        mean:entry.stats.mean,
-        sd:entry.stats.sd,
-        // Preserve direction from the hardcoded table if missing in stats
-        dir:entry.stats.direction||prev.dir||"hw",
-      };
-    }
-    if(entry&&typeof entry.as_of==="string"){
-      // Format 2026-04-16 → "Apr 16 2026" to match the AS_OF convention.
-      try{
-        const d=new Date(entry.as_of+"T00:00:00Z");
-        const mo=d.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
-        AS_OF[id]=`${mo} ${d.getUTCDate()} ${d.getUTCFullYear()}`;
-      }catch{/* leave old AS_OF in place */}
-    }
-    // Mutate IND[id][6] with the latest point from hist so every reader
-    // of the "current value" position in the tuple automatically picks
-    // up daily-refreshed numbers — includes sdScore driving the composite
-    // stress score, KPI tiles, comparison tables, and heatmap colors.
-    if(entry&&Array.isArray(entry.points)&&entry.points.length&&IND[id]){
-      const last=entry.points[entry.points.length-1];
-      if(last&&last[1]!=null&&Number.isFinite(last[1])){
-        IND[id][6]=last[1];
-      }
-    }
-  }
-  // Also refresh the NOW/MO1/MO3 lookup tables since they were built once at
-  // module init from stale IND[id][6..8] values. Then recompute every derived
-  // composite (COMP/COMP100/COMP1M/CONV/TREND_SIG/VEL) so gauges, narratives,
-  // and the Home tile all reflect the fresh data on the next render.
-  try{
-    Object.keys(IND).forEach(id=>{
-      NOW[id]=IND[id][6];
-      MO1[id]=IND[id][7];
-      MO3[id]=IND[id][8];
-    });
-    COMP=compScore(NOW);
-    COMP1M=compScore(MO1);
-    COMP3M=compScore(MO3);
-    COMP100=sdTo100(COMP);
-    COMP1M100=sdTo100(COMP1M);
-    COMP3M100=sdTo100(COMP3M);
-    VEL=COMP-COMP1M;
-    CONV=getConv(COMP);
-    TREND_SIG=trendSignal(VEL);
-    // Also refresh DS (per-indicator SD scores) and FACTOR_SCORES, which
-    // the Sectors tab and composite factor bars read lexically.
-    if(typeof _rebuildDS==="function")_rebuildDS();
-    if(typeof _rebuildFactorScores==="function")_rebuildFactorScores();
-  }catch(e){console.warn("[indicator-history] composite recompute failed",e);}
-}
-function _notifyHistReady(){
-  _histReadyVersion++;
-  for(const fn of _histReadyListeners){try{fn(_histReadyVersion);}catch{/* noop */}}
-}
-function loadIndicatorHistory(){
-  if(_histCache)return Promise.resolve(_histCache);
-  if(_histPromise)return _histPromise;
-  _histPromise=fetch("/indicator_history.json",{cache:"force-cache"})
-    .then(r=>r.ok?r.json():{})
-    .then(d=>{
-      _histCache=d;
-      _applyHistToGlobals(d);
-      _notifyHistReady();
-      return d;
-    })
-    .catch(e=>{console.warn("indicator_history.json load failed",e);_histCache={};_notifyHistReady();return {};});
-  return _histPromise;
-}
-// Top-level hook: call inside the App component so that when the JSON lands
-// and mutates SD/AS_OF, the whole tree re-renders with fresh stats. Returns
-// a version number (unused by callers; the point is re-render on change).
-function useHistReady(){
-  const [,setV]=useState(_histReadyVersion);
-  useEffect(()=>{
-    const fn=(v)=>setV(v);
-    _histReadyListeners.add(fn);
-    if(!_histCache)loadIndicatorHistory();
-    return()=>{_histReadyListeners.delete(fn);};
-  },[]);
-}
-
-// Time-range presets for the LongChart pills. `days=null` = show everything.
-const WINDOW_PRESETS=[
-  {key:"1M", label:"1M",  days:30},
-  {key:"3M", label:"3M",  days:91},
-  {key:"6M", label:"6M",  days:183},
-  {key:"1Y", label:"1Y",  days:365},
-  {key:"2Y", label:"2Y",  days:730},
-  {key:"5Y", label:"5Y",  days:1825},
-  {key:"10Y",label:"10Y", days:3650},
-  {key:"MAX",label:"MAX", days:null},
-];
-// Default window chosen to make "1M ago / 3M ago" tick marks legible
-// for each release cadence:
-//   Daily     → 6M window  (roughly 126 trading days — narrative 1M/3M visible)
-//   Weekly    → 1Y window  (52 points)
-//   Monthly   → 2Y window  (24 points)
-//   Quarterly → 5Y window  (20 points)
-const DEFAULT_WINDOW_BY_FREQ={D:"6M",W:"1Y",M:"2Y",Q:"5Y"};
-
-// Slice a [[iso_date, value], ...] series to a time window and return the
-// [[display_label, value], ...] shape ChartCore expects.
-function sliceHistoryToWindow(points,windowKey,customRange){
-  if(!points||!points.length)return{data:[],labels:[]};
-  const lastIso=points[points.length-1][0];
-  const lastDt=new Date(lastIso+"T00:00:00Z");
-  let startIso=null,endIso=lastIso;
-  if(windowKey==="CUSTOM"){
-    if(!customRange?.start||!customRange?.end)return{data:[],labels:[]};
-    startIso=customRange.start;
-    endIso=customRange.end;
-  }else{
-    const p=WINDOW_PRESETS.find(p=>p.key===windowKey);
-    if(p&&p.days!=null){
-      const s=new Date(lastDt);s.setUTCDate(s.getUTCDate()-p.days);
-      startIso=s.toISOString().slice(0,10);
-    }
-  }
-  const filt=points.filter(([d])=>(!startIso||d>=startIso)&&(!endIso||d<=endIso));
-  if(!filt.length)return{data:[],labels:[]};
-  const spanDays=(new Date(filt[filt.length-1][0])-new Date(filt[0][0]))/(1000*60*60*24);
-  const fmtLbl=(iso)=>{
-    const d=new Date(iso+"T00:00:00Z");
-    const mo=d.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
-    const day=d.getUTCDate();
-    const yr=d.getUTCFullYear();
-    if(spanDays<=400)return `${mo} ${day}`;
-    if(spanDays<=2500)return `${mo} '${String(yr).slice(2)}`;
-    return String(yr);
-  };
-  const data=filt.map(([d,v])=>[fmtLbl(d),v]);
-  const labels=data.map(x=>x[0]);
-  return{data,labels,filtered:filt};
-}
-
 function LongChart({id,col}){
-const [hist,setHist]=useState(_histCache);
-const freq=IND_FREQ[id]||"D";
-const [windowKey,setWindowKey]=useState(DEFAULT_WINDOW_BY_FREQ[freq]||"1Y");
-const [customRange,setCustomRange]=useState({start:"",end:""});
-const [showCustom,setShowCustom]=useState(false);
-useEffect(()=>{
-  if(!_histCache){loadIndicatorHistory().then(setHist);}
-},[]);
-// When id changes (user opened a different indicator modal), reset window
-// to the frequency-appropriate default so the chart makes sense on first
-// view. Custom range stays blank unless explicitly re-entered.
-useEffect(()=>{
-  setWindowKey(DEFAULT_WINDOW_BY_FREQ[freq]||"1Y");
-  setShowCustom(false);
-  setCustomRange({start:"",end:""});
-},[id,freq]);
+const data=getIndicatorHistSeries(id);if(!data)return null;
 const sd=SD[id];
 const unit=IND[id]?.[4]||"",dec=IND[id]?.[5]??1;
 const fmt=v=>{
@@ -1018,137 +707,29 @@ if(unit==="z-score")return(v>0?"+":"")+Number(v).toFixed(dec);
 if(["% T1","% 3yr","% YoY","%"].includes(unit))return`${Number(v).toFixed(dec)}%`;
 return Number(v).toFixed(dec);
 };
-// Prefer real history when available; fall back to the synthetic SD-interpolated
-// quarterly series so indicators without indicator_history.json coverage still
-// render something. (As of Bug #5 fix: all 25 have real coverage.)
-const hasReal=hist&&hist[id]&&Array.isArray(hist[id].points)&&hist[id].points.length>1;
-let data,labels,freqOfSeries,minDate,maxDate;
-if(hasReal){
-  const sliced=sliceHistoryToWindow(hist[id].points,windowKey,customRange);
-  data=sliced.data;
-  labels=sliced.labels;
-  freqOfSeries=hist[id].freq||freq;
-  minDate=hist[id].points[0][0];
-  maxDate=hist[id].points[hist[id].points.length-1][0];
-}else{
-  const syn=getIndicatorHistSeries(id);
-  if(!syn||!syn.length){
-    return(
-      <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",padding:"14px 0"}}>
-        No historical data available.
-      </div>
-    );
-  }
-  data=syn;
-  labels=syn.map(d=>String(d[0]));
-  freqOfSeries=freq;
-}
-
-const pillBase={
-  padding:"3px 9px",fontSize:10,fontFamily:"var(--font-mono)",
-  fontWeight:700,letterSpacing:"0.04em",border:"1px solid var(--border)",
-  borderRadius:3,cursor:"pointer",background:"var(--surface-2)",
-  color:"var(--text-muted)",userSelect:"none",
-};
-const pillOn={
-  ...pillBase,background:"var(--accent)",color:"#fff",borderColor:"var(--accent)",
-};
-
-const pickWindow=(k)=>{setWindowKey(k);setShowCustom(false);};
-
-// Pretty frequency label next to the header
-const freqLabel={D:"DAILY",W:"WEEKLY",M:"MONTHLY",Q:"QUARTERLY"}[freqOfSeries]||"";
-
+const labels=data.map(d=>String(d[0]));
 return(
 <div style={{marginBottom:10}}>
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:6}}>
-  <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>
-    HISTORY{freqLabel?` · ${freqLabel}`:""}
-    <span style={{color:"rgba(34,197,94,0.7)",marginLeft:6}}>▬ normal range</span>
-  </div>
-  <div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-    {WINDOW_PRESETS.map(p=>(
-      <button
-        key={p.key} type="button"
-        style={(!showCustom&&windowKey===p.key)?pillOn:pillBase}
-        onClick={()=>pickWindow(p.key)}
-      >{p.label}</button>
-    ))}
-    <button
-      type="button"
-      style={showCustom?pillOn:pillBase}
-      onClick={()=>{setShowCustom(s=>!s);if(!showCustom)setWindowKey("CUSTOM");}}
-      title="Pick a custom date range"
-    >CUSTOM</button>
-  </div>
+<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:4}}>
+LONG-TERM HISTORY
+<span style={{color:"rgba(34,197,94,0.7)",marginLeft:6}}>▬ normal range</span>
 </div>
-{showCustom&&hasReal&&(
-  <div style={{
-    display:"flex",gap:8,alignItems:"center",flexWrap:"wrap",
-    marginBottom:6,padding:"6px 8px",background:"var(--surface-2)",
-    border:"1px solid var(--border)",borderRadius:4,
-    fontSize:11,fontFamily:"var(--font-mono)",color:"var(--text-muted)",
-  }}>
-    <span>Range:</span>
-    <input
-      type="date" value={customRange.start||""}
-      min={minDate} max={maxDate}
-      onChange={e=>{setCustomRange(r=>({...r,start:e.target.value}));setWindowKey("CUSTOM");}}
-      style={{fontFamily:"var(--font-mono)",fontSize:11,padding:"2px 4px",background:"var(--surface)",border:"1px solid var(--border)",color:"var(--text)"}}
-    />
-    <span>→</span>
-    <input
-      type="date" value={customRange.end||""}
-      min={minDate} max={maxDate}
-      onChange={e=>{setCustomRange(r=>({...r,end:e.target.value}));setWindowKey("CUSTOM");}}
-      style={{fontFamily:"var(--font-mono)",fontSize:11,padding:"2px 4px",background:"var(--surface)",border:"1px solid var(--border)",color:"var(--text)"}}
-    />
-    <span style={{color:"var(--text-dim)"}}>(available: {minDate} → {maxDate})</span>
-  </div>
-)}
-{data.length<2?(
-  <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",padding:"18px 0",textAlign:"center"}}>
-    No data in this window. Try a wider range.
-  </div>
-):(
-  <ChartCore data={data} labels={labels} dir={sd?.dir} sdP={sd} crisisData={[]}
-  col={col} fmtFn={fmt} H={100} pL={28} pR={8} pT={18} pB={22} W={500} id={id}/>
-)}
+<ChartCore data={data} labels={labels} dir={sd?.dir} sdP={sd} crisisData={COMP_CRISES}
+col={col} fmtFn={fmt} H={100} pL={28} pR={8} pT={18} pB={22} W={500} id={id}/>
 </div>
 );
 }
 
-// Quarter-count-based window presets for the composite chart. COMP_HIST is
-// a quarterly series (2005 Q1 → current); slicing by trailing-N-quarters is
-// simpler than the day-based sliceHistoryToWindow LongChart uses for mixed
-// cadences. Default MAX preserves the legacy full-history view.
-const COMP_WINDOW_PRESETS=[
-  {key:"1Y", label:"1Y",  q:4},
-  {key:"2Y", label:"2Y",  q:8},
-  {key:"5Y", label:"5Y",  q:20},
-  {key:"10Y",label:"10Y", q:40},
-  {key:"20Y",label:"20Y", q:80},
-  {key:"MAX",label:"MAX", q:null},
-];
-
 function CompHistChart(){
 const col=CONV.color;
-const [windowKey,setWindowKey]=useState("MAX");
-// Slice COMP_HIST + SP500_HIST (parallel arrays) by trailing quarter count.
-// SP500_HIST may be one longer than COMP_HIST (Apr 15 stub), so clamp to
-// whichever is shorter to keep the two aligned index-for-index.
-const _fullLen=Math.min(COMP_HIST.length,SP500_HIST.length);
-const preset=COMP_WINDOW_PRESETS.find(p=>p.key===windowKey)||COMP_WINDOW_PRESETS[COMP_WINDOW_PRESETS.length-1];
-const _tail=preset.q==null?_fullLen:Math.min(_fullLen,preset.q+1);
-const _startIdx=Math.max(0,_fullLen-_tail);
-const data=COMP_HIST.slice(_startIdx,_fullLen);
+const data=COMP_HIST;
 const labels=data.map(d=>String(d[0]));
 const W=500,H=130,pL=28,pR=48,pT=18,pB=24;
 const IW=W-pL-pR,IH=H-pT-pB;
 const [hover,setHover]=useState(null);
 const vals=data.map(d=>d[1]);
 // S&P scale — padded 10% above/below for visual breathing room
-const spVals=SP500_HIST.slice(_startIdx,_startIdx+data.length);
+const spVals=SP500_HIST.slice(0,data.length);
 const spMin=Math.floor(Math.min(...spVals)*0.92/500)*500;
 const spMax=Math.ceil(Math.max(...spVals)*1.05/500)*500;
 const xp=i=>pL+(i/(data.length-1))*IW;
@@ -1164,21 +745,8 @@ const idx=labels.findIndex(l=>l===cm.year);
 if(idx<0)return null;
 return{...cm,x:xp(idx),y:yp(vals[idx]),v:vals[idx]};
 }).filter(Boolean);
-// X-axis label density scales with window width:
-//   ≤8 pts (1Y/2Y)   → every quarter labelled
-//   ≤20 pts (5Y)     → Q1 + Q3
-//   longer (10Y/MAX) → Q1 only + current stub
-const showLbl=labels.map((l,i)=>{
-  if(data.length<=8) return true;
-  if(data.length<=20) return l.startsWith("Q1")||l.startsWith("Q3")||i===data.length-1;
-  return l.startsWith("Q1")||l==="Apr 15";
-});
-const xAxisLabel=l=>{
-  if(data.length<=8) return l;       // short window: keep full "Q1 '25" label
-  if(l.startsWith("Q1")) return "'"+l.slice(4);
-  if(l.startsWith("Q")) return l.slice(0,2); // Q2/Q3/Q4 abbrev
-  return l;
-};
+const showLbl=labels.map(l=>l.startsWith("Q1")||l==="Apr 15");
+const xAxisLabel=l=>l.startsWith("Q1")?("'"+l.slice(4)):l;
 const lastPt=pts[pts.length-1];
 const lastSP=spPts[spPts.length-1];
 // Right-axis S&P labels at rounded levels
@@ -1195,20 +763,10 @@ setHover({x:pts[best][0],ys:pts[best][1],ysp:spPts[best][1],label:labels[best],s
 const ttX=hover?Math.min(Math.max(hover.x,pL+30),W-pR-30):0;
 const ttY=hover?(hover.ys<pT+28?hover.ys+18:hover.ys-18):0;
 const SP_COL="#60a5fa";
-// Pill styles match LongChart's range-selector pattern (line ~1047) so the
-// two charts read visually consistent when both are open.
-const pillBase={
-  padding:"3px 9px",fontSize:10,fontFamily:"var(--font-mono)",
-  fontWeight:700,letterSpacing:"0.04em",border:"1px solid var(--border)",
-  borderRadius:3,cursor:"pointer",background:"var(--surface-2)",
-  color:"var(--text-muted)",userSelect:"none",
-};
-const pillOn={...pillBase,background:"var(--accent)",color:"#fff",borderColor:"var(--accent)"};
 return(
 <div>
-{/* Legend + range pills — pills wrap onto a second line on narrow widths */}
-<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,flexWrap:"wrap",gap:8,paddingLeft:4}}>
-<div style={{display:"flex",gap:14}}>
+{/* Legend */}
+<div style={{display:"flex",gap:14,marginBottom:6,paddingLeft:4}}>
 <div style={{display:"flex",alignItems:"center",gap:4}}>
 <div style={{width:16,height:2.5,borderRadius:2,background:col}}/>
 <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>Composite Stress (L)</span>
@@ -1216,16 +774,6 @@ return(
 <div style={{display:"flex",alignItems:"center",gap:4}}>
 <div style={{width:16,height:2.5,borderRadius:2,background:SP_COL,opacity:0.8}}/>
 <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>S&P 500 (R)</span>
-</div>
-</div>
-<div style={{display:"flex",gap:4,flexWrap:"wrap",alignItems:"center"}}>
-{COMP_WINDOW_PRESETS.map(p=>(
-<button
-  key={p.key} type="button"
-  style={windowKey===p.key?pillOn:pillBase}
-  onClick={()=>setWindowKey(p.key)}
->{p.label}</button>
-))}
 </div>
 </div>
 <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
@@ -1489,69 +1037,14 @@ return <div key={c.level} style={{position:"absolute",left:`${l}%`,width:`${w}%`
 );
 }
 
-// Periods per frequency. Each entry is {label, days}. Daily indicators look
-// back 30/91/183/365 trading-ish days; weekly grows in 1W/1M/3M/12M jumps;
-// monthly in 1M/3M/6M/1Y; quarterly in 1Q/2Q/1Y/3Y. Labels match the
-// cadence so a quarterly series doesn't mis-advertise a "1M ago" value that
-// was really the same quarterly print carried over.
-const TREND_PERIODS={
-  D:[{label:"1M",days:30},{label:"3M",days:91},{label:"6M",days:183},{label:"12M",days:365}],
-  W:[{label:"1W",days:7},{label:"1M",days:30},{label:"3M",days:91},{label:"12M",days:365}],
-  M:[{label:"1M",days:30},{label:"3M",days:91},{label:"6M",days:183},{label:"1Y",days:365}],
-  Q:[{label:"Prior Q",days:91},{label:"2Q",days:183},{label:"1Y",days:365},{label:"3Y",days:1095}],
-};
-// Source the current value for an indicator. Prefers the last point in the
-// freshly-loaded indicator_history.json (via _histCache), falls back to the
-// hardcoded IND[] d[6] snapshot. Used by IndicatorCard, IndicatorModal, and
-// anywhere we color-code a regime — ensures the daily-refresh pipeline is
-// what drives the colors, not a stale in-file constant.
-function currentValue(id,d){
-  const e=_histCache&&_histCache[id];
-  if(e&&Array.isArray(e.points)&&e.points.length){
-    const last=e.points[e.points.length-1];
-    if(last&&last[1]!=null)return last[1];
-  }
-  return d?.[6]??null;
-}
-// Find the point in `points` (iso-sorted ascending) whose date is closest to
-// (lastDate - days). Returns null if nothing within a sane tolerance.
-function _valueAtOffset(points,days){
-  if(!points||points.length<2)return null;
-  const lastIso=points[points.length-1][0];
-  const lastDt=new Date(lastIso+"T00:00:00Z").getTime();
-  const targetMs=lastDt-days*86400000;
-  // Binary-search ascending array for the nearest date ≤ target.
-  let lo=0,hi=points.length-1,idx=0;
-  while(lo<=hi){
-    const mid=(lo+hi)>>1;
-    const mMs=new Date(points[mid][0]+"T00:00:00Z").getTime();
-    if(mMs<=targetMs){idx=mid;lo=mid+1;}else{hi=mid-1;}
-  }
-  // Guard: if the found point is more than ~half a period older than target
-  // we still accept it — callers render fallback if nothing is useful.
-  return points[idx]?.[1];
-}
 function IndicatorTrendPills({id,d}){
-// Compact trend strip: period label + historical value at that offset. The
-// current value lives in the card/modal header — no need for a separate NOW
-// pill, and the small delta numbers under each reading were noise.
-//
-// Source-of-truth: we prefer indicator_history.json (real points at native
-// cadence) over the hardcoded IND[] d[7..10] triples, which are stale
-// point-in-time snapshots from when App.jsx was last edited. Falls back to
-// d[7..10] only if the history cache hasn't loaded yet.
-const freq=IND_FREQ[id]||"D";
-const periods=TREND_PERIODS[freq]||TREND_PERIODS.D;
-const histEntry=_histCache&&_histCache[id];
-const points=histEntry&&Array.isArray(histEntry.points)?histEntry.points:null;
-const rows=periods.map((p,i)=>{
-  let v=null;
-  if(points)v=_valueAtOffset(points,p.days);
-  // Fallback to the old hardcoded 4-tuple only when history isn't available
-  // and the period index lines up with the old d[7..10] layout.
-  if(v==null&&i<4)v=d[7+i]??null;
-  return[p.label,v];
-});
+// Compact trend strip: just period label + value. The current value lives in
+// the card/modal header — no need for a separate NOW pill, and the small
+// delta numbers under each reading were noise. Order is short→long
+// (1M, 3M, 6M, 12M) so the eye reads recent-to-historical left-to-right.
+const rows=[
+["1M",d[7]],["3M",d[8]],["6M",d[9]],["12M",d[10]],
+];
 return(
 <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
 {rows.map(([lbl,v])=>{
@@ -1589,15 +1082,11 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 <div style={{width:3,height:12,background:catCol,borderRadius:1,flexShrink:0}}/>
 <span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace",whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",minWidth:0,flex:"0 1 auto"}}>{label}</span>
 {desc&&<span onClick={e=>e.stopPropagation()} style={{flexShrink:0}}><InfoTip term={label} def={desc} size={11}/></span>}
-<Tip label={`TIER ${tier}`} def={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."}>
-<span style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>T{tier}</span>
-</Tip>
-<Tip label={IND_FREQ[id]==="D"?"DAILY":IND_FREQ[id]==="W"?"WEEKLY":IND_FREQ[id]==="M"?"MONTHLY":IND_FREQ[id]==="Q"?"QUARTERLY":""} def={IND_FREQ[id]==="D"?"Daily release — updated every trading day.":IND_FREQ[id]==="W"?"Weekly release — typically published Thursday or Friday morning.":IND_FREQ[id]==="M"?"Monthly release — published in the first or second week after month-end.":IND_FREQ[id]==="Q"?"Quarterly release — published ~6 weeks after quarter-end. There is no true intra-quarter value.":"Release frequency unknown."}>
-<span style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
-</Tip>
+<span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:11,color:tierCol,border:`1px solid ${tierBorder}44`,borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>T{tier}</span>
+<span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:11,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:2,padding:"1px 5px",fontFamily:"monospace",flexShrink:0,cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
-<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}} title={IND_SOURCE[id]?`Sourced from ${IND_SOURCE[id]}`:""}>{/* Bug #5d: source attribution. Bug #1006: category label for discoverability. */}{IND_SOURCE[id]?<><span style={{fontWeight:700}}>{IND_SOURCE[id]}</span><span style={{margin:"0 4px"}}>·</span></>:null}<span style={{fontWeight:600}}>{CATS[cat]?.label||cat}</span><span style={{margin:"0 4px"}}>·</span>{AS_OF[id]||"—"}</div>
+<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]||"—"}</div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:15,fontWeight:800,color:colT,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -1651,15 +1140,11 @@ return(
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
             <h2 style={{fontSize:20,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.01em"}}>{label}</h2>
-            <Tip label={`TIER ${tier}`} def={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."}>
-              <span style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
-            </Tip>
-            <Tip label={IND_FREQ[id]==="D"?"DAILY":IND_FREQ[id]==="W"?"WEEKLY":IND_FREQ[id]==="M"?"MONTHLY":IND_FREQ[id]==="Q"?"QUARTERLY":""} def={IND_FREQ[id]==="D"?"Daily release — updated every trading day.":IND_FREQ[id]==="W"?"Weekly release — typically published Thursday or Friday morning.":IND_FREQ[id]==="M"?"Monthly release — published in the first or second week after month-end.":IND_FREQ[id]==="Q"?"Quarterly release — published ~6 weeks after quarter-end. There is no true intra-quarter value.":"Release frequency unknown."}>
-              <span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
-            </Tip>
+            <span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
+            <span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{/* Bug #5d: inject source attribution between category and asOf date. */}{CATS[cat]?.label||cat}{IND_SOURCE[id]?<> · <span style={{fontWeight:700}}>{IND_SOURCE[id]}</span></>:null} · As of {AS_OF[id]}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{CATS[cat]?.label||cat} · As of {AS_OF[id]}</div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
@@ -1693,19 +1178,11 @@ return(
         <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>WHAT IS THIS INDICATOR?</div>
         <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{desc}</div>
       </div>
-      {/* What is it telling you now — state (live, prominent) + context (static) */}
-      {(() => {
-        const {state, context} = splitDynamicSignal(id, cur, signal);
-        return (
-          <div style={{background:`${col}0d`,border:`1px solid ${col}33`,borderRadius:"var(--radius-md)",padding:"var(--space-3)"}}>
-            <div style={{fontSize:10,color:col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6,fontWeight:700}}>WHAT IS IT TELLING YOU RIGHT NOW?</div>
-            <div style={{fontSize:14,color:"var(--text)",lineHeight:1.5,fontWeight:600,marginBottom:context?8:0}}>{state}</div>
-            {context && (
-              <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.55,paddingTop:8,borderTop:"1px solid var(--border-faint)"}}>{context}</div>
-            )}
-          </div>
-        );
-      })()}
+      {/* What is it telling you now */}
+      <div style={{background:`${col}0d`,border:`1px solid ${col}33`,borderRadius:"var(--radius-md)",padding:"var(--space-3)"}}>
+        <div style={{fontSize:10,color:col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6,fontWeight:700}}>WHAT IS IT TELLING YOU RIGHT NOW?</div>
+        <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{dynamicSignal(id,cur,signal)}</div>
+      </div>
     </div>
   </div>
 </div>
@@ -2568,30 +2045,20 @@ return(
 }
 
 // ── SECTORS TAB ─────────────────────────────────────────────────────────────
-// DS and FACTOR_SCORES are recomputed in _applyHistToGlobals after the JSON
-// loads. let-bindings (not const) so re-renders pick up fresh scores.
-let DS={};
-function _rebuildDS(){
-  DS={};
-  Object.keys(IND).forEach(k=>{DS[k]=sdScore(k,IND[k][6]);});
-}
-_rebuildDS();
+const DS={};
+Object.keys(IND).forEach(k=>{DS[k]=sdScore(k,IND[k][6]);});
 
-let FACTOR_SCORES={};
-function _rebuildFactorScores(){
-  FACTOR_SCORES={
-    rates:  Math.max(0,(( DS.real_rates||0)+(DS.term_premium||0)+(DS.move||0))/3),
-    credit: Math.max(0,((DS.hy_ig||0)+(DS.cmdi||0)+(DS.loan_syn||0)+(DS.sloos_ci||0))/4),
-    banking:Math.max(0,((DS.bkx_spx||0)+(DS.bank_unreal||0)+(DS.sloos_ci||0)-( DS.bank_credit||0))/4),
-    consumer:Math.max(0,(-(DS.jolts_quits||0)+(DS.jobless||0)+(DS.anfci||0))/3),
-    growth: Math.max(0,(-(DS.ism||0)-(DS.copper_gold||0))/2),
-    dollar: Math.max(0,DS.usd||0),
-    valuation:Math.max(0,DS.cape||0),
-    cre:    Math.max(0,DS.sloos_cre||0),
-    volatility:Math.max(0,((DS.vix||0)+(DS.skew||0))/2),
-  };
-}
-_rebuildFactorScores();
+const FACTOR_SCORES={
+rates:  Math.max(0,(( DS.real_rates||0)+(DS.term_premium||0)+(DS.move||0))/3),
+credit: Math.max(0,((DS.hy_ig||0)+(DS.cmdi||0)+(DS.loan_syn||0)+(DS.sloos_ci||0))/4),
+banking:Math.max(0,((DS.bkx_spx||0)+(DS.bank_unreal||0)+(DS.sloos_ci||0)-( DS.bank_credit||0))/4),
+consumer:Math.max(0,(-(DS.jolts_quits||0)+(DS.jobless||0)+(DS.anfci||0))/3),
+growth: Math.max(0,(-(DS.ism||0)-(DS.copper_gold||0))/2),
+dollar: Math.max(0,DS.usd||0),
+valuation:Math.max(0,DS.cape||0),
+cre:    Math.max(0,DS.sloos_cre||0),
+volatility:Math.max(0,((DS.vix||0)+(DS.skew||0))/2),
+};
 
 const FACTOR_DISPLAY=[
 {key:"rates",    label:"Rates",     indIds:["real_rates","term_premium","move"]},
@@ -3052,7 +2519,7 @@ return(
 
 {loading&&(
 <div style={{padding:"20px",textAlign:"center"}}>
-<div style={{fontSize:13,color:"var(--text)",fontFamily:"monospace"}}>Analyzing {Object.keys(IND).length} indicators across rates, credit, banking, growth, and valuation...</div>
+<div style={{fontSize:13,color:"var(--text)",fontFamily:"monospace"}}>Analyzing {Object.keys(IND).length} indicators across rates, credit, banking, labor, and valuation...</div>
 <div style={{marginTop:8,fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>Usually takes 5-10 seconds</div>
 </div>
 )}
@@ -3193,7 +2660,7 @@ const TAB_META={
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
   portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
-  scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (40+), covered-call setups."},
+  scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:45 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
 };
 
@@ -3211,12 +2678,6 @@ const NAV_ITEMS = [
 ];
 
 export default function App(){
-// Mount the indicator_history.json loader. Once the JSON lands, it mutates
-// the module-scoped SD{} and AS_OF{} tables with fresh 15y-Winsorized stats
-// and triggers a re-render through the _histReadyListeners set — so every
-// tile, pill, modal, and chart re-reads SD[id]/AS_OF[id] with calibrated
-// numbers on the second paint. No prop threading, no call-site changes.
-useHistReady();
 // Legacy redirect: "#portfolio" (old Holdings Detail tab) now lives inside
 // Portfolio & Insights. Any bookmark pointing at #portfolio resolves to
 // #portopps.
@@ -3606,7 +3067,7 @@ return(
       <Tile
         eyebrow="Daily Opp Scan"
         title="Full scanner browse"
-        sub={`Buy/watch alerts, Congress/insider/flow/technicals tabs · UW · scanned ${lastScanLabel}`}
+        sub={`Buy/watch alerts, Congress/insider/flow/technicals tabs · Last scan: ${lastScanLabel}`}
         accent="#30d158"
         kpi={{value:buyCount, unit:buyCount===1?"buy alert":"buy alerts", color:buyCount>0?"#30d158":"var(--text-muted)"}}
         onClick={()=>navTo("scanner")}
@@ -3802,20 +3263,8 @@ const cashByAcct=tacticalAccts.map(acc=>{
 }).filter(x=>x.cash>0).sort((a,b)=>b.cash-a.cash);
 const totalDeployable=cashByAcct.reduce((a,c)=>a+c.cash,0);
 // Sort held positions by value DESC — biggest exposure first, regardless of account
-// Enrich each position with LIVE market price from scan data (keyed by ticker).
-// Without this, the stored position.price is a snapshot from when the user last
-// edited the row — two rows of the same ticker could show different prices
-// (Bug #1004) and the modal header (which always reads scanData) wouldn't
-// match the table. Fallback to the stored price if the ticker isn't in scan.
-const scanScreener=scanData?.signals?.screener||{};
 const heldPositions=ACCOUNTS
-  .flatMap(acc=>acc.positions.map(p=>{
-    const live=scanScreener[p.ticker];
-    const livePrice=Number(live?.close||live?.prev_close)||null;
-    const price=livePrice!=null?livePrice:p.price;
-    const value=(p.shares!=null&&price!=null)?p.shares*price:p.value;
-    return {...p,price,value,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical};
-  }))
+  .flatMap(acc=>acc.positions.map(p=>({...p,acctId:acc.id,acctLabel:acc.label,acctTactical:acc.tactical})))
   .filter(p=>p.sector!=="Cash")
   .sort((a,b)=>b.value-a.value);
 const heldTickers=new Set(heldPositions.map(p=>p.ticker));
@@ -3903,6 +3352,10 @@ return(
 // from the screener full_name when available; theme is left blank (BUY /
 // NEAR have no theme copy — the panel title IS the theme).
 const screenerMap=scanData?.signals?.screener||{};
+// Item 36: info map powers Div Yield / Next Earnings / Market Cap / etc.
+// columns in Positions & Watchlist tables. Falls back to {} so callers can
+// always safely do info[ticker]?.field.
+const infoMap=scanData?.signals?.info||{};
 const toWlRows=(items)=>(items||[]).map(it=>({
   ticker:it.ticker,
   name:screenerMap[it.ticker]?.full_name||"",
@@ -3935,10 +3388,11 @@ return(<>
     rows={toWlRows(triggered)}
     signals={scanData?.signals}
     screener={screenerMap}
+    info={infoMap}
+    tableKey="watchlist_buy"
     heldTickers={heldTickers}
     onOpenTicker={(t)=>setTickerDetail(t)}
     emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
-    provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
   />
 )}
 {subPanel("#ffd60a","NEAR TRIGGER","(Composite Score 40–59)",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
@@ -3946,10 +3400,11 @@ return(<>
     rows={toWlRows(nearTrigger)}
     signals={scanData?.signals}
     screener={screenerMap}
+    info={infoMap}
+    tableKey="watchlist_near"
     heldTickers={heldTickers}
     onOpenTicker={(t)=>setTickerDetail(t)}
     emptyMessage="Nothing near trigger today."
-    provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
   />
 )}
 {subPanel("#64748b","OTHER WATCHLIST",null,`${WATCHLIST.length} tracking`,
@@ -3958,10 +3413,11 @@ return(<>
       rows={WATCHLIST}
       signals={scanData?.signals}
       screener={screenerMap}
+      info={infoMap}
+      tableKey="watchlist_other"
       heldTickers={heldTickers}
       onOpenTicker={(t)=>setTickerDetail(t)}
       emptyMessage="No tickers on your watchlist. Add one below."
-      provenance={{source:"UW",asOf:lastScanLabel,prefix:"scanned"}}
     />
     {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>}
   </>
@@ -4246,6 +3702,9 @@ return(<>
 <PositionsTable
   rows={heldPositions}
   grandTotal={grandTotal}
+  screener={screenerMap}
+  info={infoMap}
+  tableKey="positions"
   onOpenTicker={(t)=>setTickerDetail(t)}
   emptyMessage="No positions."
   onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
@@ -4354,7 +3813,7 @@ return(<>
 <div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)"}}>METHODOLOGY & DATA SOURCES</div>
 {[
 {title:"What is the Macro Dashboard?",body:"A market stress monitor tracking statistically-calibrated economic and financial indicators synthesized into a single composite stress score (0–100). The score drives regime classification (Low / Normal / Elevated / Extreme) and allocation guidance. Data is sourced exclusively from public databases — FRED, CBOE, ICE BofA, FDIC, ISM, BLS, Shiller, NY Fed, and the St. Louis Fed."},
-{title:"What indicators are tracked and how frequently do they update?",body:"Indicators span 6 categories: Equity & Vol (VIX, EQ-Credit Correlation, SKEW Index), Credit Markets (HY-IG Spread, Corp Bond Distress Index, HY Effective Yield), Rates & Duration (10Y-2Y Slope, 10Y TIPS Real Rate, MOVE Index, Kim-Wright Term Premium), Financial Conditions (ANFCI, STLFSI, USD Index, USD Funding Spread), Bank & Money Supply (SLOOS C&I, SLOOS CRE, BKX/SPX Ratio, Bank Unrealized Losses, 3Y Credit Growth, YoY Bank Credit), Growth & Real Economy (ISM PMI, Copper/Gold Ratio, Initial Claims, JOLTS Quits, Shiller CAPE). Each card displays its frequency badge: D = Daily, W = Weekly, M = Monthly, Q = Quarterly."},
+{title:"What indicators are tracked and how frequently do they update?",body:"Indicators span 6 categories: Equity & Vol (VIX, EQ-Credit Correlation, SKEW Index), Credit Markets (HY-IG Spread, Corp Bond Distress Index, HY Effective Yield), Rates & Duration (10Y-2Y Slope, 10Y TIPS Real Rate, MOVE Index, Kim-Wright Term Premium), Financial Conditions (ANFCI, STLFSI, USD Index, USD Funding Spread), Bank & Money Supply (SLOOS C&I, SLOOS CRE, BKX/SPX Ratio, Bank Unrealized Losses, 3Y Credit Growth, YoY Bank Credit), Labor & Economy (ISM PMI, Copper/Gold Ratio, Initial Claims, JOLTS Quits, Shiller CAPE). Each card displays its frequency badge: D = Daily, W = Weekly, M = Monthly, Q = Quarterly."},
 {title:"How is the composite stress score calculated?",body:"Each indicator is calibrated against its own long-run mean and standard deviation (SD). The raw SD score measures how many standard deviations the current reading is from its historical average, with direction adjusted so that higher always means more stress. Scores are weighted by tier — T1 indicators (1.5x weight) are the most market-sensitive, T2 (1.2x) are important but less real-time, T3 (1.0x) provide structural context. The weighted average SD score is mapped to a 0–100 scale anchored to historical crises (GFC = 92, COVID = 82, 2022 Rate Shock = 62)."},
 {title:"What are the 4 stress regimes?",body:"LOW (0–20): Historically rare, genuinely risk-on conditions. VIX well below mean, credit spreads tight. NORMAL (20–50): Where markets spend most of their time — the baseline. Mild background stress. ELEVATED (50–75): Active risk management warranted. Sell covered calls, trim beta, rotate defensive. 2022 rate shock peaked at 62; SVB stress hit 58. EXTREME (75–100): Reserved for historical crises. COVID peaked at 82; GFC peaked at 92. Maximum defensiveness."},
 {title:"What does color mean?",body:"Color always means stress level — nothing else. Green = Low stress. Yellow = Normal. Orange = Elevated. Red = Extreme. Any time you see color on an indicator, a bar, or a chart element, it tells you exactly where that reading sits in the stress spectrum."},

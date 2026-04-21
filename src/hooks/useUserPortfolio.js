@@ -45,6 +45,9 @@ function shapePosition(row) {
     beta:       row.beta !== null ? Number(row.beta) : null,
     color:      row.color || ACCENT,
     analysis:   row.analysis || "",
+    // Item 36: optional acquisition date. NULL for legacy rows.
+    // Drives Holding Period column + future Annualized PnL column.
+    purchaseDate: row.purchase_date || null,
   };
 }
 
@@ -95,7 +98,7 @@ export function useUserPortfolio() {
             .select("id,label,sub,color,tactical,note,sort_order")
             .order("sort_order", { ascending: true }),
           supabase.from("positions")
-            .select("id,account_id,ticker,name,shares,price,avg_cost,value,sector,beta,analysis,color,sort_order")
+            .select("id,account_id,ticker,name,shares,price,avg_cost,value,sector,beta,analysis,color,sort_order,purchase_date")
             .order("sort_order", { ascending: true }),
           supabase.from("watchlist")
             .select("ticker,name,theme,sort_order")
