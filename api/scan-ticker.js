@@ -39,14 +39,40 @@ function uwHeaders() {
   };
 }
 
-async function uwGet(path, params = {}) {
+async function uwGet(path, params = {}, { retries = 3 } = {}) {
   const url = new URL(UW_BASE + path);
   for (const [k, v] of Object.entries(params)) {
     if (v != null) url.searchParams.set(k, String(v));
   }
-  const r = await fetch(url.toString(), { headers: uwHeaders() });
-  if (!r.ok) throw new Error(`UW ${path} → ${r.status}`);
-  return r.json();
+  // Retry on 429/5xx with exponential backoff (1s → 2s → 4s). Mirrors
+  // the Python scanner's resilience pattern. The bulk-import path fans
+  // out 4 parallel UW calls per ticker — without retry, one transient
+  // 429 silently nulls the row and the positions backfill skips the
+  // price patch (task #40 / OXY regression).
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const r = await fetch(url.toString(), { headers: uwHeaders() });
+      if (r.status === 429 || (r.status >= 500 && r.status < 600)) {
+        lastErr = new Error(`UW ${path} → ${r.status}`);
+        if (attempt < retries) {
+          await new Promise((res) => setTimeout(res, 1000 * Math.pow(2, attempt)));
+          continue;
+        }
+        throw lastErr;
+      }
+      if (!r.ok) throw new Error(`UW ${path} → ${r.status}`);
+      return r.json();
+    } catch (e) {
+      lastErr = e;
+      if (attempt < retries) {
+        await new Promise((res) => setTimeout(res, 1000 * Math.pow(2, attempt)));
+        continue;
+      }
+      throw lastErr;
+    }
+  }
+  throw lastErr;
 }
 
 // -- Normalizers: match the shapes scanner/supabase_io.py writes so the
@@ -176,7 +202,11 @@ export default async function handler(req, res) {
     const warmAge = warmRow?.scan_time
       ? Date.now() - new Date(warmRow.scan_time).getTime()
       : Infinity;
-    const isWarm = warmRow && warmAge < WARM_TTL_MS;
+    // Only treat as warm if the cached row has a usable screener blob.
+    // A stale row from a failed prior screener call should trigger a fresh
+    // cold scan rather than being copied forward into another user's row
+    // (which would also fail to price the position).
+    const isWarm = warmRow && warmAge < WARM_TTL_MS && warmRow.screener_json != null;
 
     let payload;
     if (isWarm) {
@@ -218,6 +248,27 @@ export default async function handler(req, res) {
         screener_json: screener,
         composite_json: composite,
       };
+    }
+
+    // Last-resort: if screener_json is still null (warm path copied a null
+    // from a failed prior scan, or the cold path's screener call blew all
+    // retries), try one more direct /api/screener/stocks fetch. uwGet has
+    // built-in retry, so this single call is robust. Without this, the
+    // positions backfill below has no price source and positions.price
+    // stays pinned at cost_per_share forever.
+    if (payload.screener_json == null) {
+      try {
+        const retry = await uwGet(`/api/screener/stocks`, {
+          ticker: sym,
+          limit: 50,
+          order_by: "relative_volume",
+        });
+        const retryRow = normalizeScreener(retry, sym);
+        if (retryRow) payload.screener_json = retryRow;
+      } catch (retryErr) {
+        // eslint-disable-next-line no-console
+        console.error("[scan-ticker] screener last-resort failed:", retryErr);
+      }
     }
 
     const { error: upErr } = await admin
