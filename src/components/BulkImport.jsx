@@ -1,48 +1,58 @@
 // BulkImport — post-onboarding bulk upload / replace / merge for portfolios.
 //
-// Unlike OnboardingPanel (which only renders on first run when ACCOUNTS is
-// empty), this modal is reachable at any time from the Portfolio Insights
-// header. It supports two strategies, which the user picks before upload:
+// 5-field CSV schema (aligned with the PositionEditor rewrite for Items 14/15/19):
+//   account, ticker, purchase_date, shares, cost_per_share
 //
-//   MERGE   — additive. For each CSV/XLSX row:
-//               · if the account label doesn't exist yet, create it
-//               · if (account, ticker) already exists, UPDATE that row
-//               · otherwise INSERT a new position row
-//             Nothing the user already has gets deleted.
+// Everything else (price, value, sector, beta, analysis) is populated by the
+// scanner after insert — the user doesn't type it. `value` is seeded from
+// `shares * cost_per_share` at insert time so rows render sensibly until the
+// next scanner refresh overwrites with a live quote.
 //
-//   REPLACE — destructive. Wipes ALL accounts + positions for the current
-//             user, then inserts the fresh set. Equivalent to re-running
-//             onboarding from scratch. Shown behind an extra confirm step
-//             because it's irreversible.
+// purchase_date is optional (nullable column in the DB after migration 007).
 //
-// File formats accepted:
-//   · .csv / .tsv — parsed inline (tiny splitter, same as OnboardingPanel)
-//   · .xlsx / .xls — parsed via SheetJS (lazy-imported so the main bundle
-//                    doesn't pay for it when the modal isn't opened)
+// Two strategies:
+//   MERGE   — additive; (account, ticker) matches update in place, new rows insert.
+//   REPLACE — wipes all of the current user's accounts + positions, then inserts fresh.
 //
-// Column schema matches OnboardingPanel CSV_COLUMNS exactly — keeps one
-// template, one mental model.
+// File formats: CSV, TSV, XLSX, XLS.
 
 import { useMemo, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 
-// Same column schema as OnboardingPanel — don't fork it.
-const CSV_COLUMNS = [
-  "account", "ticker", "name", "shares", "price",
-  "avg_cost", "value", "sector", "beta", "analysis",
-];
+// Canonical column schema. Accepts a couple of common aliases so a user who
+// exports from a brokerage (which may call it "cost basis per share" etc.)
+// still lands on the right field.
+const CSV_COLUMNS = ["account", "ticker", "purchase_date", "shares", "cost_per_share"];
+const COLUMN_ALIASES = {
+  "account": "account",
+  "acct": "account",
+  "ticker": "ticker",
+  "symbol": "ticker",
+  "purchase_date": "purchase_date",
+  "purchase date": "purchase_date",
+  "purchased": "purchase_date",
+  "date": "purchase_date",
+  "shares": "shares",
+  "qty": "shares",
+  "quantity": "shares",
+  "cost_per_share": "cost_per_share",
+  "cost per share": "cost_per_share",
+  "cost/share": "cost_per_share",
+  "avg_cost": "cost_per_share",
+  "avg cost": "cost_per_share",
+  "cost basis": "cost_per_share",
+};
 
 const CSV_TEMPLATE = [
   CSV_COLUMNS.join(","),
-  "Roth IRA,VOO,Vanguard S&P 500 ETF,25,540,450,13500,Index Funds,1.0,Core equity sleeve",
-  "Roth IRA,AAPL,Apple Inc,10,175,150,1750,Tech,1.2,",
-  "401(k),FXAIX,Fidelity 500 Index,100,180,150,18000,Index Funds,1.0,",
-  "Taxable,NVDA,NVIDIA Corp,5,850,600,4250,Tech,1.8,High-conviction single-stock",
-  "Taxable,CASH,Cash (sweep),,,,5000,Cash,0,",
+  "Roth IRA,VOO,2024-03-15,25,450",
+  "Roth IRA,AAPL,2023-11-02,10,150",
+  "401(k),FXAIX,,100,150",
+  "Taxable,NVDA,2024-01-10,5.5,600",
+  "Ethan 529,VTSAX,2025-06-01,8.25,210",
 ].join("\n");
 
-// ── CSV helpers (copied from OnboardingPanel — good enough for hand-curated
-// portfolio CSVs; not a full RFC 4180 parser). ────────────────────────────────
+// ── CSV helpers (lifted from the old BulkImport — same parser) ─────────────
 function splitCsvLine(line) {
   const out = [];
   let cur = "";
@@ -63,13 +73,22 @@ function splitCsvLine(line) {
   return out.map((c) => c.trim());
 }
 
+// Normalize a header row into canonical column names using COLUMN_ALIASES.
+// Unknown headers are preserved as-is (ignored downstream).
+function canonicalizeHeaders(headers) {
+  return headers.map((h) => {
+    const key = String(h || "").toLowerCase().trim();
+    return COLUMN_ALIASES[key] || key;
+  });
+}
+
 function parseCsvText(text) {
   const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
   if (lines.length < 2) {
     return { rows: [], errors: ["File must have a header row plus at least one data row."] };
   }
-  const headers = splitCsvLine(lines[0]).map((h) => h.toLowerCase());
-  const missing = ["account", "ticker"].filter((h) => !headers.includes(h));
+  const headers = canonicalizeHeaders(splitCsvLine(lines[0]));
+  const missing = ["account", "ticker", "shares", "cost_per_share"].filter((h) => !headers.includes(h));
   if (missing.length) {
     return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}. Use the template below.`] };
   }
@@ -82,9 +101,6 @@ function parseCsvText(text) {
   return { rows, errors: [] };
 }
 
-// Parse an Excel file using SheetJS. Lazy-loaded so opening the modal doesn't
-// pull ~1MB of parser into the bundle for users who never import. Converts the
-// first sheet into row-objects keyed by header.
 async function parseXlsxFile(file) {
   const XLSX = await import("xlsx");
   const buf = await file.arrayBuffer();
@@ -92,17 +108,15 @@ async function parseXlsxFile(file) {
   const sheetName = wb.SheetNames[0];
   if (!sheetName) return { rows: [], errors: ["No sheet found in the workbook."] };
   const ws = wb.Sheets[sheetName];
-  // header:1 returns a 2D array; we normalize + handle our own header lookup
-  // so column names get lowercased the same way as the CSV path.
   const arr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
   if (!arr.length) return { rows: [], errors: ["Empty sheet."] };
-  const headers = arr[0].map((h) => String(h || "").toLowerCase().trim());
-  const missing = ["account", "ticker"].filter((h) => !headers.includes(h));
+  const headers = canonicalizeHeaders(arr[0].map((h) => String(h || "").trim()));
+  const missing = ["account", "ticker", "shares", "cost_per_share"].filter((h) => !headers.includes(h));
   if (missing.length) {
     return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}.`] };
   }
   const rows = arr.slice(1)
-    .filter((r) => r.some((c) => String(c).trim() !== ""))  // skip blank rows
+    .filter((r) => r.some((c) => String(c).trim() !== ""))
     .map((r) => {
       const obj = {};
       headers.forEach((h, i) => { obj[h] = r[i] != null ? String(r[i]).trim() : ""; });
@@ -111,57 +125,56 @@ async function parseXlsxFile(file) {
   return { rows, errors: [] };
 }
 
-// Reshape raw row-objects into validated { accountLabel, positionFields[] }
-// groups. Mirrors the logic in OnboardingPanel.groupRowsForInsert so the
-// validation rules stay in lockstep.
+// Validate + group rows by account. Enforces: non-empty account, non-empty
+// ticker, positive numeric shares, non-negative cost_per_share, optional
+// YYYY-MM-DD purchase_date.
 function groupRowsForInsert(rows) {
   const errors = [];
   const accounts = new Map();
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
-    const labelRaw  = (r.account || "").toString().trim();
-    const tickerRaw = (r.ticker  || "").toString().trim().toUpperCase();
+    const labelRaw = (r.account || "").toString().trim();
+    const tickerRaw = (r.ticker || "").toString().trim().toUpperCase();
     if (!labelRaw)  { errors.push(`Row ${i + 2}: missing "account"`); continue; }
     if (!tickerRaw) { errors.push(`Row ${i + 2}: missing "ticker"`); continue; }
 
-    const valueNum = Number(r.value);
-    let value = Number.isFinite(valueNum) ? valueNum : null;
-    if (value === null || Number.isNaN(value)) {
-      const sh = Number(r.shares);
-      const px = Number(r.price);
-      if (Number.isFinite(sh) && Number.isFinite(px)) value = sh * px;
+    const sharesNum = Number(String(r.shares).replace(/[$,\s]/g, ""));
+    const costNum = Number(String(r.cost_per_share).replace(/[$,\s]/g, ""));
+    if (!Number.isFinite(sharesNum) || sharesNum <= 0) {
+      errors.push(`Row ${i + 2}: "shares" must be a positive number (got "${r.shares}")`);
+      continue;
     }
-    if (value === null || !Number.isFinite(value)) {
-      errors.push(`Row ${i + 2}: need either "value" or both "shares" and "price"`);
+    if (!Number.isFinite(costNum) || costNum < 0) {
+      errors.push(`Row ${i + 2}: "cost_per_share" must be non-negative (got "${r.cost_per_share}")`);
+      continue;
+    }
+    const purchaseDate = (r.purchase_date || "").toString().trim();
+    if (purchaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(purchaseDate)) {
+      errors.push(`Row ${i + 2}: "purchase_date" must be YYYY-MM-DD (got "${purchaseDate}")`);
       continue;
     }
 
     if (!accounts.has(labelRaw)) accounts.set(labelRaw, []);
     accounts.get(labelRaw).push({
-      ticker:   tickerRaw,
-      name:     r.name     || tickerRaw,
-      shares:   Number(r.shares)   || null,
-      price:    Number(r.price)    || null,
-      avg_cost: Number(r.avg_cost) || null,
-      value,
-      sector:   r.sector   || null,
-      beta:     Number(r.beta) || null,
-      analysis: r.analysis || null,
+      ticker: tickerRaw,
+      name: tickerRaw,              // scanner will overwrite with proper name
+      shares: sharesNum,
+      cost_per_share: costNum,
+      purchase_date: purchaseDate || null,
+      // seed value = shares * cost; scanner updates price + value on next run
+      seed_value: sharesNum * costNum,
     });
   }
   return { accounts, errors };
 }
 
-// ── styles (match OnboardingPanel visual language) ─────────────────────────
+// ── styles ─────────────────────────────────────────────────────────────────
 const backdrop = {
   position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)",
   display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000,
 };
 const modal = {
   width: "min(640px, 96vw)", maxHeight: "92vh", overflowY: "auto",
-  // Opaque panel — --surface-1 doesn't exist as a CSS var, and --surface /
-  // --surface-2 are translucent rgba colors. --surface-solid is the one
-  // opaque panel background in the design system.
   background: "var(--surface-solid)", border: "1px solid var(--border)",
   borderRadius: "var(--radius-md, 10px)", padding: "20px 22px",
   boxShadow: "0 20px 60px rgba(0,0,0,0.5)",
@@ -199,20 +212,16 @@ const modePill = (active, tone = "accent") => ({
 });
 
 // ── component ──────────────────────────────────────────────────────────────
-export default function BulkImport({
-  userId,
-  onClose,
-  onDone,   // parent refetches + closes after successful write
-}) {
+export default function BulkImport({ userId, onClose, onDone }) {
   const [strategy, setStrategy] = useState("merge"); // "merge" | "replace"
   const [fileName, setFileName] = useState("");
-  const [rows, setRows]         = useState([]);      // parsed row-objects
-  const [errors, setErrors]     = useState([]);
+  const [rows, setRows] = useState([]);
+  const [errors, setErrors] = useState([]);
   const [pasteText, setPasteText] = useState("");
   const fileInputRef = useRef(null);
 
   const [submitting, setSubmitting] = useState(false);
-  const [submitErr, setSubmitErr]   = useState("");
+  const [submitErr, setSubmitErr] = useState("");
   const [confirmReplace, setConfirmReplace] = useState(false);
 
   const parsedSummary = useMemo(() => {
@@ -221,7 +230,6 @@ export default function BulkImport({
     return { rowCount: rows.length, acctCount: accts.size };
   }, [rows]);
 
-  // ── input handlers ────────────────────────────────────────────────────────
   const handleFile = async (file) => {
     if (!file) return;
     setFileName(file.name);
@@ -234,7 +242,6 @@ export default function BulkImport({
         setRows(r);
         setErrors(e);
       } else {
-        // CSV / TSV — read as text, reuse parser
         const text = await file.text();
         const { rows: r, errors: e } = parseCsvText(text);
         setRows(r);
@@ -270,25 +277,35 @@ export default function BulkImport({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
-  // ── write paths ───────────────────────────────────────────────────────────
+  // Build the insert payload for one position row. Keeps the column shape
+  // compatible with the existing `positions` table (price, value, sector,
+  // beta, analysis are nullable and get populated by the scanner).
+  const buildPosRow = (p, { user_id, account_id, sort_order }) => ({
+    user_id,
+    account_id,
+    ticker: p.ticker,
+    name: p.name,
+    shares: p.shares,
+    avg_cost: p.cost_per_share,
+    price: p.cost_per_share,        // seed price = cost; scanner overwrites
+    value: p.seed_value,            // seed = shares * cost_per_share
+    purchase_date: p.purchase_date, // nullable; needs migration 007
+    sector: null,
+    beta: null,
+    analysis: null,
+    sort_order,
+  });
 
-  // REPLACE — wipe existing, then insert (same shape as onboarding).
-  // We delete positions FIRST, then accounts, because positions has a FK to
-  // accounts and the DB will refuse to delete an account that still has rows.
   const doReplace = async () => {
     const { accounts, errors: valErr } = groupRowsForInsert(rows);
     if (valErr.length) { setErrors(valErr.slice(0, 8)); return false; }
     if (!accounts.size) { setErrors(["No valid rows to import."]); return false; }
 
-    // Wipe. RLS scopes the delete to this user, so we can use an unfiltered
-    // delete — but we add an explicit user_id predicate so this is obvious
-    // in code-review and survives any future RLS changes.
     const { error: delPosErr } = await supabase.from("positions").delete().eq("user_id", userId);
     if (delPosErr) throw delPosErr;
     const { error: delAcctErr } = await supabase.from("accounts").delete().eq("user_id", userId);
     if (delAcctErr) throw delAcctErr;
 
-    // Insert accounts, capture IDs, then positions.
     const acctPayload = Array.from(accounts.keys()).map((label, i) => ({
       user_id: userId, label, sort_order: i,
     }));
@@ -302,13 +319,7 @@ export default function BulkImport({
     for (const [lbl, posList] of accounts.entries()) {
       const account_id = labelToId.get(lbl);
       for (const p of posList) {
-        posPayload.push({
-          user_id: userId, account_id,
-          ticker: p.ticker, name: p.name,
-          shares: p.shares, price: p.price, avg_cost: p.avg_cost,
-          value: p.value, sector: p.sector, beta: p.beta,
-          analysis: p.analysis, sort_order: sort++,
-        });
+        posPayload.push(buildPosRow(p, { user_id: userId, account_id, sort_order: sort++ }));
       }
     }
     if (posPayload.length) {
@@ -318,17 +329,11 @@ export default function BulkImport({
     return true;
   };
 
-  // MERGE — additive. For each row:
-  //   1) find or create the account (by label)
-  //   2) if (account_id, ticker) already exists → UPDATE
-  //   3) else → INSERT
-  // We fetch existing accounts + positions once up-front to avoid N+1 queries.
   const doMerge = async () => {
     const { accounts: grouped, errors: valErr } = groupRowsForInsert(rows);
     if (valErr.length) { setErrors(valErr.slice(0, 8)); return false; }
     if (!grouped.size) { setErrors(["No valid rows to import."]); return false; }
 
-    // Existing accounts + positions
     const [{ data: existingAccts, error: eAErr }, { data: existingPos, error: ePErr }] = await Promise.all([
       supabase.from("accounts").select("id,label").eq("user_id", userId),
       supabase.from("positions").select("id,account_id,ticker").eq("user_id", userId),
@@ -340,7 +345,6 @@ export default function BulkImport({
     const posKey = (aid, t) => `${aid}::${t}`;
     const posIdBy = new Map((existingPos || []).map((p) => [posKey(p.account_id, p.ticker), p.id]));
 
-    // 1) Create any missing accounts
     const newLabels = [];
     for (const lbl of grouped.keys()) {
       if (!labelToId.has(lbl)) newLabels.push(lbl);
@@ -355,8 +359,7 @@ export default function BulkImport({
       for (const a of created) labelToId.set(a.label, a.id);
     }
 
-    // 2) Partition rows into updates vs inserts
-    const toUpdate = []; // [{id, patch}]
+    const toUpdate = [];
     const toInsert = [];
     let sortCursor = posIdBy.size;
     for (const [lbl, posList] of grouped.entries()) {
@@ -365,22 +368,21 @@ export default function BulkImport({
         const key = posKey(account_id, p.ticker);
         const existingId = posIdBy.get(key);
         const patch = {
-          name: p.name, shares: p.shares, price: p.price, avg_cost: p.avg_cost,
-          value: p.value, sector: p.sector, beta: p.beta, analysis: p.analysis,
+          name: p.name,
+          shares: p.shares,
+          avg_cost: p.cost_per_share,
+          price: p.cost_per_share,
+          value: p.seed_value,
+          purchase_date: p.purchase_date,
         };
         if (existingId) {
           toUpdate.push({ id: existingId, patch });
         } else {
-          toInsert.push({
-            user_id: userId, account_id,
-            ticker: p.ticker, ...patch, sort_order: sortCursor++,
-          });
+          toInsert.push(buildPosRow(p, { user_id: userId, account_id, sort_order: sortCursor++ }));
         }
       }
     }
 
-    // 3) Fire the writes. Updates go one-at-a-time (Supabase doesn't support
-    //    bulk heterogeneous updates) but in parallel. Inserts go as one batch.
     if (toUpdate.length) {
       const results = await Promise.all(
         toUpdate.map(({ id, patch }) =>
@@ -409,13 +411,15 @@ export default function BulkImport({
       if (ok) await onDone?.();
     } catch (e) {
       console.error("[BulkImport] submit failed:", e);
-      setSubmitErr(e.message || "Import failed. Try again.");
+      const msg = (e.message || "").toLowerCase().includes("purchase_date")
+        ? "Database is missing the purchase_date column. Run migration 007_positions_purchase_date.sql in Supabase SQL editor, then retry."
+        : (e.message || "Import failed. Try again.");
+      setSubmitErr(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ── render ────────────────────────────────────────────────────────────────
   return (
     <div style={backdrop} onClick={onClose}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
@@ -433,33 +437,31 @@ export default function BulkImport({
           </button>
         </div>
 
-        {/* Strategy */}
         <div style={{ marginBottom: 14 }}>
           <label style={label}>STRATEGY</label>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <div
-              role="button"
-              onClick={() => { setStrategy("merge"); setConfirmReplace(false); }}
-              style={modePill(strategy === "merge")}
-            >
+            <div role="button" onClick={() => { setStrategy("merge"); setConfirmReplace(false); }} style={modePill(strategy === "merge")}>
               MERGE · update + add
             </div>
-            <div
-              role="button"
-              onClick={() => setStrategy("replace")}
-              style={modePill(strategy === "replace", "danger")}
-            >
+            <div role="button" onClick={() => setStrategy("replace")} style={modePill(strategy === "replace", "danger")}>
               REPLACE · wipe + reload
             </div>
           </div>
           <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 8, lineHeight: 1.5 }}>
             {strategy === "merge"
-              ? "Existing positions with matching account + ticker get updated. Anything new gets added. Nothing you already have is removed."
+              ? "Rows with a matching account + ticker get updated. New rows are added. Nothing you already have is removed."
               : "DESTRUCTIVE — deletes ALL of your existing accounts and positions, then inserts from this file. Not reversible."}
           </div>
         </div>
 
-        {/* File / paste */}
+        <div style={{ marginBottom: 10 }}>
+          <label style={label}>COLUMNS</label>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>
+            Required: <b style={{ color: "var(--text)" }}>account, ticker, shares, cost_per_share</b><br/>
+            Optional: <b style={{ color: "var(--text)" }}>purchase_date</b> (YYYY-MM-DD)
+          </div>
+        </div>
+
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 12 }}>
           <button type="button" onClick={() => fileInputRef.current?.click()} style={secondaryBtn}>
             Choose file…
@@ -483,7 +485,7 @@ export default function BulkImport({
         <textarea
           value={pasteText}
           onChange={(e) => handlePasteChange(e.target.value)}
-          placeholder={"account,ticker,shares,price,avg_cost,value,sector\nRoth IRA,VOO,25,540,450,13500,Index Funds"}
+          placeholder={"account,ticker,purchase_date,shares,cost_per_share\nRoth IRA,VOO,2024-03-15,25,450"}
           rows={5}
           style={{
             width: "100%", padding: "10px 12px", fontSize: 12,
@@ -494,7 +496,6 @@ export default function BulkImport({
           }}
         />
 
-        {/* Parse state */}
         {parsedSummary && !errors.length && (
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
             Parsed {parsedSummary.rowCount} row{parsedSummary.rowCount === 1 ? "" : "s"} across{" "}
@@ -516,7 +517,6 @@ export default function BulkImport({
           </div>
         )}
 
-        {/* Submit */}
         <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
           <button type="button" style={secondaryBtn} disabled={submitting} onClick={onClose}>
             Cancel

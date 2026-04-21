@@ -394,9 +394,18 @@ def fetch_all():
     print("3Y Bank Credit Growth (credit_3y) ...")
     s = safe_fred("TOTBKCR")
     if s is not None:
-        # Weekly; compute 3yr % growth (156w back) then resample Q
+        # Weekly; compute 3yr % growth (156w back) then resample Q.
+        # resample("Q").last() labels each bin with the quarter-end date. When
+        # the source series extends into an in-progress quarter (e.g. weekly
+        # data lands in April while we're still inside Q2), pandas emits a row
+        # labeled with the FUTURE quarter-end (e.g. 2026-06-30) that's really
+        # just a partial-quarter snapshot. Drop anything whose quarter-end
+        # label is strictly after today so the chart right-edge doesn't show
+        # a "future data point."
+        today = pd.Timestamp.today().normalize()
         g3 = s.pct_change(periods=156) * 100.0
         g3q = g3.resample("Q").last().dropna()
+        g3q = g3q.loc[g3q.index <= today]
         result["credit_3y"] = {"freq": "Q", "unit": "% 3yr",
                                "points": series_to_points(g3q, round_dp=2)}
 
