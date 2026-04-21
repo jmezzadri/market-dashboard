@@ -20,7 +20,11 @@ name: SCAN_330PM_WEEKDAYS
 
 on:
   schedule:
-    - cron: '30 19 * * 1-5'   # 3:30 PM EDT (UTC-4), Mon–Fri
+    # Two cron entries so the scanner fires at 3:30 PM America/New_York
+    # year-round without manual DST adjustment. A gate step below
+    # exits the run that doesn't match 15:30 NYC local.
+    - cron: '30 19 * * 1-5'   # 3:30 PM EDT (UTC-4), active Mar–Nov
+    - cron: '30 20 * * 1-5'   # 3:30 PM EST (UTC-5), active Nov–Mar
   workflow_dispatch:
 
 concurrency:
@@ -35,12 +39,27 @@ jobs:
       contents: write
 
     steps:
+      - name: DST gate — skip if not 3:30 PM America/New_York
+        # Only gate scheduled runs; workflow_dispatch always proceeds.
+        if: github.event_name == 'schedule'
+        run: |
+          NY_HM=$(TZ=America/New_York date +%H:%M)
+          echo "America/New_York time: $NY_HM"
+          if [ "$NY_HM" != "15:30" ]; then
+            echo "::notice::Skipping — NYC local is $NY_HM, not 15:30. Expected: the other DST cron entry will handle today."
+            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
+          else
+            echo "✓ NYC time is 15:30 — proceeding with scan."
+          fi
+
       - name: Checkout repository
+        if: env.SKIP_RUN != 'true'
         uses: actions/checkout@v4.2.2
         with:
           fetch-depth: 0
 
       - name: Set up Python
+        if: env.SKIP_RUN != 'true'
         uses: actions/setup-python@v5.3.0
         with:
           python-version: '3.11'
@@ -48,10 +67,12 @@ jobs:
           cache-dependency-path: trading-scanner/requirements.txt
 
       - name: Install scanner dependencies
+        if: env.SKIP_RUN != 'true'
         working-directory: trading-scanner
         run: pip install -r requirements.txt
 
       - name: Run intraday scan
+        if: env.SKIP_RUN != 'true'
         working-directory: trading-scanner
         env:
           UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
@@ -68,7 +89,7 @@ jobs:
         run: python main.py intraday
 
       - name: Upload scanner reports as artifact
-        if: always()
+        if: always() && env.SKIP_RUN != 'true'
         uses: actions/upload-artifact@v4.4.3
         with:
           name: scan-330pm-${{ github.run_id }}
@@ -76,6 +97,7 @@ jobs:
           retention-days: 30
 
       - name: Publish scan data to public/ and commit
+        if: env.SKIP_RUN != 'true'
         run: |
           mkdir -p public
           if [ -f trading-scanner/reports/latest_scan_data.json ]; then
