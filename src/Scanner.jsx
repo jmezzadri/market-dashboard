@@ -504,18 +504,18 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
 
   // Render one of the user's portfolio positions. Always-on rather than
   // conditional on score — the user wants to see their own book, period.
-  // Entry price + shares are personal data from Supabase (RLS-scoped).
+  // Entry price + quantity are personal data from Supabase (RLS-scoped).
   const renderPortfolioEntry = (p) => {
     const t = p.ticker;
     const sc = screenerMap[t] || {};
     const price = p.price != null ? Number(p.price) : (Number(sc.close || sc.prev_close || 0) || null);
     const score = scoremap[t] ?? null;
     const company = normalizeTickerName(p.name || sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "");
-    const shares = p.shares != null ? Number(p.shares) : null;
+    const qty    = p.quantity != null ? Number(p.quantity) : null;
     const avg    = p.avgCost != null ? Number(p.avgCost) : null;
     const ptsl = (
       <span>
-        {shares != null && <><strong style={{ color: C.text }}>Shares</strong> <span style={{ color: C.muted }}>{shares.toLocaleString()}</span></>}
+        {qty != null && <><strong style={{ color: C.text }}>Qty</strong> <span style={{ color: C.muted }}>{qty.toLocaleString()}</span></>}
         {avg != null && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>Avg</strong> <span style={{ color: C.muted }}>{fmt$(avg)}</span></>}
         {score != null && <><span style={{ color: C.dim }}> · </span><strong style={{ color: C.text }}>Score</strong> <span style={{ color: C.muted }}>{score}</span></>}
       </span>

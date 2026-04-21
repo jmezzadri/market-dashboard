@@ -63,7 +63,7 @@ begin
 
   -- ── Positions ─────────────────────────────────────────────────────────────
   -- Brokerage
-  insert into public.positions (user_id, account_id, ticker, name, shares, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
+  insert into public.positions (user_id, account_id, ticker, name, quantity, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
     (joe, brokerage_id, 'CCJ',   'Cameco Corp',                      400,   120.665, 117.35, 48266, 'Materials',  1.40,
      'Uranium leader — 43% of brokerage and the largest single-stock position in the book. Beta ~1.4. Concentration warrants a stop discipline; PT $140 / SL $99 from scanner.',
      null, 0),
@@ -78,13 +78,13 @@ begin
      'var(--text-dim)', 3);
 
   -- 401(k)
-  insert into public.positions (user_id, account_id, ticker, name, shares, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
+  insert into public.positions (user_id, account_id, ticker, name, quantity, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
     (joe, k401_id, 'JHYUX', 'JPMorgan High Yield Fund (R6)', 53188, 6.59, 6.53, 350506, 'HY Bonds', 0.50,
      '100% of the 401(k) and ~67% of total investable wealth. Diversified within HY credit (hundreds of issuers), but the whole position carries that asset class''s credit-spread risk — JHYUX correlates more with equity than with Treasuries and behaves like a defensive equity sleeve, not a duration hedge. Currently +0.9% on cost. At Elevated regime, expect 8–15% drawdowns.',
      null, 0);
 
   -- Roth
-  insert into public.positions (user_id, account_id, ticker, name, shares, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
+  insert into public.positions (user_id, account_id, ticker, name, quantity, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
     (joe, roth_id, 'RCAT',  'Red Cat Holdings',               129, 13.57,  6.07,  1756, 'Technology', 2.50,
      '21% of Roth. Same name as the brokerage holding — total household exposure to RCAT is ~$28.6K. Roth placement is correct for high-vol asymmetric upside.',
      null, 0),
@@ -108,19 +108,19 @@ begin
      null, 6);
 
   -- Scarlett 529
-  insert into public.positions (user_id, account_id, ticker, name, shares, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
+  insert into public.positions (user_id, account_id, ticker, name, quantity, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
     (joe, s529_id, 'NHXINT906', 'NH International Index', 359, 25.63, 19.51, 9194, 'Intl Equity', 0.85,
      '100% intl equity — +31% on cost. Heavy regional concentration relative to a typical age-based 529 portfolio. Consider blending to a target-enrollment fund as horizon shortens.',
      null, 0);
 
   -- Ethan 529
-  insert into public.positions (user_id, account_id, ticker, name, shares, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
+  insert into public.positions (user_id, account_id, ticker, name, quantity, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
     (joe, e529_id, 'NHXINT906', 'NH International Index', 1345, 25.63, 15.43, 34473, 'Intl Equity', 0.85,
      '100% intl equity — +66% on cost. Largest 529 holding. Same single-fund concentration call as Scarlett''s account; revisit at age-based glide-path checkpoints.',
      null, 0);
 
   -- HSA
-  insert into public.positions (user_id, account_id, ticker, name, shares, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
+  insert into public.positions (user_id, account_id, ticker, name, quantity, price, avg_cost, value, sector, beta, analysis, color, sort_order) values
     (joe, hsa_id, 'FXAIX', 'Fidelity 500 Index Fund',     28,   244.69, 183.24, 6841, 'US Equity', 1.00,
      'S&P 500 core — 80% of HSA. Correct asset for the most tax-advantaged account in the stack.',
      null, 0),

@@ -2076,7 +2076,7 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
   return(
   <div key={acct.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--border-faint)",fontSize:12,fontFamily:"var(--font-mono)",gap:8,flexWrap:"wrap"}}>
   <span style={{color:"var(--text)"}}>{acct.label}</span>
-  <span style={{color:"var(--text-muted)"}}>{p.shares.toLocaleString()} sh · cost {fmt$(p.avgCost)}</span>
+  <span style={{color:"var(--text-muted)"}}>{p.quantity.toLocaleString()} sh · cost {fmt$(p.avgCost)}</span>
   <span style={{color:"var(--text)",fontWeight:700}}>{fmt$(p.value)}</span>
   {pnlPct!=null&&<span style={{color:col,fontWeight:600}}>{pnlPct>=0?"+":""}{pnlPct.toFixed(1)}%</span>}
   </div>
@@ -2119,7 +2119,7 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
   const priceN=r.price_per_share?Number(r.price_per_share):r.price?Number(r.price):r.stock_price?Number(r.stock_price):null;
   const sharesBefore=r.shares_owned_before!=null?Number(r.shares_owned_before):null;
   const sharesAfter=r.shares_owned_after!=null?Number(r.shares_owned_after):null;
-  const rawShares=r.shares!=null?Number(r.shares):(r.amount!=null?Number(r.amount):null);
+  const rawShares=r.quantity!=null?Number(r.quantity):(r.amount!=null?Number(r.amount):null);
   const sharesTraded=(sharesBefore!=null&&sharesAfter!=null)?Math.abs(sharesAfter-sharesBefore):rawShares;
   const value=(sharesTraded!=null&&priceN!=null)?sharesTraded*priceN:null;
   const dateStr=String(r.filing_date||r.transaction_date||"").slice(0,10);
@@ -2315,7 +2315,7 @@ style={{background:"var(--surface-2)",border:`1px solid ${exp?"#4a6fa555":"var(-
 </div>
 </div>
 <div style={{display:"flex",gap:10,marginBottom:5,flexWrap:"wrap"}}>
-{[{l:"Price",v:`$${p.price}`},{l:"Qty",v:p.shares<100?p.shares:Math.round(p.shares)},{l:"Beta",v:p.beta==null?"—":p.beta.toFixed(2),c:bCol},{l:"Sector",v:p.sector}].map(({l,v,c})=>(
+{[{l:"Price",v:`$${p.price}`},{l:"Qty",v:p.quantity<100?p.quantity:Math.round(p.quantity)},{l:"Beta",v:p.beta==null?"—":p.beta.toFixed(2),c:bCol},{l:"Sector",v:p.sector}].map(({l,v,c})=>(
 <div key={l}>
 <div style={{fontSize:6,color:"var(--text-muted)",fontFamily:"monospace"}}>{l}</div>
 <div style={{fontSize:11,color:c||"var(--text)",fontFamily:"monospace",fontWeight:700}}>{v}</div>
@@ -4047,7 +4047,7 @@ return(<>
   heldPositions.forEach(p=>{
     if(!p.avgCost||p.sector==="Cash")return;
     const pnlPct=(p.price/p.avgCost-1)*100;
-    const pnl$=p.value-p.avgCost*p.shares;
+    const pnl$=p.value-p.avgCost*p.quantity;
     if(pnlPct<=-35||pnl$<=-5000){
       drawdownLines.push({col:"#ff453a",body:`${p.ticker} ${pnlPct.toFixed(0)}% vs. cost (${fmt$K(pnl$)} · ${p.acctLabel})`,pri:4});
     }

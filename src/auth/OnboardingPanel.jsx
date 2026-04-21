@@ -27,10 +27,10 @@ const CSV_COLUMNS = [
   "account",   // required  — account label (e.g. "Roth IRA", "JPM Taxable")
   "ticker",    // required  — symbol
   "name",      // optional  — company/fund name
-  "shares",    // optional  — numeric
+  "quantity",  // optional  — numeric (aliases: shares, qty)
   "price",     // optional  — numeric (last price)
   "avg_cost",  // optional  — numeric (cost basis per share)
-  "value",     // required  — numeric (dollars held; shares*price if not set)
+  "value",     // required  — numeric (dollars held; quantity*price if not set)
   "sector",    // optional  — "Tech", "HY Bonds", "Cash", "Intl Equity", etc.
   "beta",      // optional  — numeric
   "analysis",  // optional  — free-text qualitative note
@@ -105,22 +105,24 @@ function groupRowsForInsert(rows) {
     const valueNum = Number(r.value);
     if (!label)  { errors.push(`Row ${i + 2}: missing "account"`); continue; }
     if (!ticker) { errors.push(`Row ${i + 2}: missing "ticker"`); continue; }
-    // Allow missing value ONLY if both shares and price are present (we'll compute).
+    // Allow missing value ONLY if both quantity and price are present (we'll compute).
+    // Accept legacy "shares" header as an alias for "quantity".
+    const qtyRaw = r.quantity !== undefined && r.quantity !== "" ? r.quantity : r.shares;
     let value = Number.isFinite(valueNum) ? valueNum : null;
     if (value === null || Number.isNaN(value)) {
-      const sh = Number(r.shares);
+      const sh = Number(qtyRaw);
       const px = Number(r.price);
       if (Number.isFinite(sh) && Number.isFinite(px)) value = sh * px;
     }
     if (value === null || !Number.isFinite(value)) {
-      errors.push(`Row ${i + 2}: need either "value" or both "shares" and "price"`);
+      errors.push(`Row ${i + 2}: need either "value" or both "quantity" and "price"`);
       continue;
     }
     if (!accounts.has(label)) accounts.set(label, { label, rows: [] });
     accounts.get(label).rows.push({
       ticker,
       name:     r.name     || ticker,
-      shares:   Number(r.shares)   || null,
+      quantity: Number(qtyRaw) || null,
       price:    Number(r.price)    || null,
       avg_cost: Number(r.avg_cost) || null,
       value,
@@ -278,7 +280,7 @@ export default function OnboardingPanel({ userId, onDone }) {
             account_id,
             ticker:   p.ticker,
             name:     p.name,
-            shares:   p.shares,
+            quantity: p.quantity,
             price:    p.price,
             avg_cost: p.avg_cost,
             value:    p.value,
@@ -438,7 +440,7 @@ export default function OnboardingPanel({ userId, onDone }) {
           <textarea
             value={csvText}
             onChange={(e) => handleCsvText(e.target.value)}
-            placeholder={"account,ticker,name,shares,price,avg_cost,value,sector,beta,analysis\nRoth IRA,VOO,Vanguard S&P 500 ETF,25,540,450,13500,Index Funds,1.0,"}
+            placeholder={"account,ticker,name,quantity,price,avg_cost,value,sector,beta,analysis\nRoth IRA,VOO,Vanguard S&P 500 ETF,25,540,450,13500,Index Funds,1.0,"}
             rows={6}
             style={{
               width: "100%",
@@ -476,7 +478,7 @@ export default function OnboardingPanel({ userId, onDone }) {
           </button>
           <div style={{ fontSize: 11, color: "var(--text-dim)", marginTop: 10, lineHeight: 1.5 }}>
             Required columns: <code>account</code>, <code>ticker</code>, and either{" "}
-            <code>value</code> or both <code>shares</code> and <code>price</code>.
+            <code>value</code> or both <code>quantity</code> and <code>price</code>.
             Everything else is optional.
           </div>
         </div>
