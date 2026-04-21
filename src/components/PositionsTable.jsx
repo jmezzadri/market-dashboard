@@ -403,20 +403,54 @@ const COLUMNS = [
   },
 ];
 
-// Default column order per Joe's spec (2026-04-21):
+// Default column order (Joe, 2026-04-21 -> updated 2026-04-21 ship 2):
 // Ticker, Name, Current Price/Share, Cost/Share, PNL DAY $, PNL DAY %,
-// Total Cost, Purchase Date, Total PNL $, PNL %, Beta, Holding Period,
-// % of Total Wealth, Account, Market Cap, Div Yield, Next Earnings, Actions.
+// Total Cost, Current Value, Total PNL $, PNL %, Purchase Date,
+// Holding Period, Beta, % of Total Wealth, Account, Market Cap,
+// Div Yield, Next Earnings, Actions.
+//
+// P&L cluster (Total Cost -> Current Value -> Total PNL $ -> PNL %) is
+// adjacent on purpose - those four columns tell the cost-basis story.
 const DEFAULT_ORDER = [
   "ticker", "name", "price", "avgCost", "pnlDay$", "pnlDayPct",
-  "totalCost", "purchaseDate", "pnl$", "pnlPct", "beta", "holdingDays",
+  "totalCost", "currentValue", "pnl$", "pnlPct",
+  "purchaseDate", "holdingDays", "beta",
   "wealthPct", "account", "marketcap", "divYield", "nextEarnings",
   "actions",
 ];
 
 // Defaults-visible matches DEFAULT_ORDER. The rest (sector, shares,
-// currentValue, annualizedPnl) are still available via the picker.
+// annualizedPnl) are still available via the picker.
 const DEFAULT_VISIBLE = [...DEFAULT_ORDER];
+
+// Default column widths (px) - used when user has not dragged a custom
+// width. New columns added later should append here; existing users
+// get the default automatically via the forward-compat merge in
+// useTablePreferences.
+const DEFAULT_WIDTHS = {
+  ticker:        90,
+  name:          220,
+  sector:        120,
+  shares:        90,
+  price:         120,
+  avgCost:       110,
+  totalCost:     115,
+  currentValue:  120,
+  "pnlDay$":     105,
+  pnlDayPct:     95,
+  "pnl$":        115,
+  pnlPct:        90,
+  beta:          70,
+  purchaseDate:  115,
+  holdingDays:   130,
+  annualizedPnl: 110,
+  wealthPct:     110,
+  account:       130,
+  marketcap:     100,
+  divYield:      95,
+  nextEarnings:  125,
+  actions:       90,
+};
 
 export default function PositionsTable({
   rows, grandTotal, screener, info,
@@ -428,9 +462,10 @@ export default function PositionsTable({
   const showActionBar  = Boolean(onAdd || onBulkImport);
 
   // Load/save column prefs (order + visibility) per user.
-  const { prefs, setOrder, setVisible, resetToDefaults } = useTablePreferences(tableKey, {
+  const { prefs, setOrder, setVisible, setWidths, resetToDefaults } = useTablePreferences(tableKey, {
     defaultOrder:   DEFAULT_ORDER,
     defaultVisible: DEFAULT_VISIBLE,
+    defaultWidths:  DEFAULT_WIDTHS,
   });
 
   const screenerMap = screener || {};
@@ -565,9 +600,11 @@ export default function PositionsTable({
         columns={COLUMNS.map(({ id, label, description, pinned }) => ({ id, label, description, pinned }))}
         order={prefs.order}
         visible={prefs.visible}
+        defaultOrder={DEFAULT_ORDER}
+        defaultVisible={DEFAULT_VISIBLE}
         onOrderChange={setOrder}
         onVisibleChange={setVisible}
-        onReset={resetToDefaults}
+        onResetAll={resetToDefaults}
       />
       {showActionBar && onBulkImport && (
         <button type="button" style={topBarBtn} onClick={onBulkImport}>
@@ -650,13 +687,60 @@ export default function PositionsTable({
     borderBottom: "1px solid var(--border)",
     background: "var(--surface-3)", position: "sticky", top: 0,
     userSelect: "none", whiteSpace: "nowrap",
+    overflow: "hidden", textOverflow: "ellipsis",
+  };
+
+  // --- Resizable columns ----------------------------------------------------
+  // Live widths during a drag - null when not resizing. We keep an in-memory
+  // copy instead of writing to prefs on every mousemove so the debounced
+  // save does not log dozens of intermediate widths. Final value is committed
+  // to setWidths() on mouseup.
+  const [liveWidths, setLiveWidths] = useState(null);
+  const widthOf = (id) => (liveWidths && liveWidths[id] != null)
+    ? liveWidths[id]
+    : (prefs.widths[id] != null ? prefs.widths[id] : (DEFAULT_WIDTHS[id] || 100));
+
+  const onResizeStart = (e, id) => {
+    e.preventDefault();   // blocks parent <th>'s native drag from firing
+    e.stopPropagation();  // blocks sort-toggle click
+    const startX = e.clientX;
+    const startW = widthOf(id);
+    let next = startW;
+    const onMove = (ev) => {
+      next = Math.max(48, Math.min(2000, Math.round(startW + ev.clientX - startX)));
+      setLiveWidths((prev) => ({ ...(prev || {}), [id]: next }));
+    };
+    const onUp = () => {
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      const merged = { ...prefs.widths, [id]: next };
+      setLiveWidths(null);
+      setWidths(merged);
+    };
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+  };
+
+  const resizeHandleStyle = {
+    position: "absolute",
+    top: 0, right: 0, bottom: 0,
+    width: 6,
+    cursor: "col-resize",
+    userSelect: "none",
+    zIndex: 2,
   };
 
   return (
     <>
       <ActionBar />
       <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 6 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+          <colgroup>
+            {visibleColumns.map((col) => (
+              <col key={col.id} style={{ width: widthOf(col.id) }} />
+            ))}
+            {actionsCol && <col style={{ width: DEFAULT_WIDTHS.actions }} />}
+          </colgroup>
           <thead>
             <tr>
               {visibleColumns.map((col) => {
@@ -682,13 +766,20 @@ export default function PositionsTable({
                   >
                     {col.label}
                     <SortArrow dir={sortCol === col.id ? sortDir : null} />
+                    <div
+                      draggable={false}
+                      onMouseDown={(e) => onResizeStart(e, col.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={resizeHandleStyle}
+                      title="Drag to resize column"
+                    />
                   </th>
                 );
               })}
               {actionsCol && (
                 <th
                   style={{
-                    ...headerStyle, cursor: "default", textAlign: "right", width: 90,
+                    ...headerStyle, cursor: "default", textAlign: "right",
                     borderLeft: "1px solid var(--border-faint)",
                   }}
                   title={actionsCol.description}
@@ -717,6 +808,9 @@ export default function PositionsTable({
                     style={{
                       padding: "7px 6px",
                       textAlign: col.align === "right" ? "right" : "left",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
                     }}
                   >
                     {col.renderCell(row)}
