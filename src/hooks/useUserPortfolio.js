@@ -39,7 +39,7 @@ function shapePosition(row) {
     name:       row.name,
     value:      row.value !== null ? Number(row.value) : null,
     price:      row.price !== null ? Number(row.price) : null,
-    shares:     row.shares !== null ? Number(row.shares) : null,
+    quantity:   row.quantity !== null ? Number(row.quantity) : null,
     avgCost:    row.avg_cost !== null ? Number(row.avg_cost) : null,   // DB snake → JS camel
     sector:     row.sector,
     beta:       row.beta !== null ? Number(row.beta) : null,

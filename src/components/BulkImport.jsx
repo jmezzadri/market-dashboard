@@ -1,11 +1,11 @@
 // BulkImport — post-onboarding bulk upload / replace / merge for portfolios.
 //
 // 5-field CSV schema (aligned with the PositionEditor rewrite for Items 14/15/19):
-//   account, ticker, purchase_date, shares, cost_per_share
+//   account, ticker, purchase_date, quantity, cost_per_share
 //
 // Everything else (price, value, sector, beta, analysis) is populated by the
 // scanner after insert — the user doesn't type it. `value` is seeded from
-// `shares * cost_per_share` at insert time so rows render sensibly until the
+// `quantity * cost_per_share` at insert time so rows render sensibly until the
 // next scanner refresh overwrites with a live quote.
 //
 // purchase_date is optional (nullable column in the DB after migration 007).
@@ -22,7 +22,7 @@ import { supabase } from "../lib/supabase";
 // Canonical column schema. Accepts a couple of common aliases so a user who
 // exports from a brokerage (which may call it "cost basis per share" etc.)
 // still lands on the right field.
-const CSV_COLUMNS = ["account", "ticker", "purchase_date", "shares", "cost_per_share"];
+const CSV_COLUMNS = ["account", "ticker", "purchase_date", "quantity", "cost_per_share"];
 const COLUMN_ALIASES = {
   "account": "account",
   "acct": "account",
@@ -32,9 +32,9 @@ const COLUMN_ALIASES = {
   "purchase date": "purchase_date",
   "purchased": "purchase_date",
   "date": "purchase_date",
-  "shares": "shares",
-  "qty": "shares",
-  "quantity": "shares",
+  "quantity": "quantity",
+  "qty": "quantity",
+  "shares": "quantity",
   "cost_per_share": "cost_per_share",
   "cost per share": "cost_per_share",
   "cost/share": "cost_per_share",
@@ -124,7 +124,7 @@ function parseCsvText(text) {
   // (tab-separated) as well as downloaded CSVs (comma-separated).
   const delim = detectDelimiter(lines[0]);
   const headers = canonicalizeHeaders(splitCsvLine(lines[0], delim));
-  const missing = ["account", "ticker", "shares", "cost_per_share"].filter((h) => !headers.includes(h));
+  const missing = ["account", "ticker", "quantity", "cost_per_share"].filter((h) => !headers.includes(h));
   if (missing.length) {
     return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}. Detected: ${headers.join(", ") || "(none)"}. Use the template below.`] };
   }
@@ -147,7 +147,7 @@ async function parseXlsxFile(file) {
   const arr = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: false });
   if (!arr.length) return { rows: [], errors: ["Empty sheet."] };
   const headers = canonicalizeHeaders(arr[0].map((h) => String(h || "").trim()));
-  const missing = ["account", "ticker", "shares", "cost_per_share"].filter((h) => !headers.includes(h));
+  const missing = ["account", "ticker", "quantity", "cost_per_share"].filter((h) => !headers.includes(h));
   if (missing.length) {
     return { rows: [], errors: [`Missing required columns: ${missing.join(", ")}. Detected: ${headers.join(", ") || "(none)"}.`] };
   }
@@ -162,7 +162,7 @@ async function parseXlsxFile(file) {
 }
 
 // Validate + group rows by account. Enforces: non-empty account, non-empty
-// ticker, positive numeric shares, non-negative cost_per_share, optional
+// ticker, positive numeric quantity, non-negative cost_per_share, optional
 // YYYY-MM-DD purchase_date.
 function groupRowsForInsert(rows) {
   const errors = [];
@@ -174,10 +174,10 @@ function groupRowsForInsert(rows) {
     if (!labelRaw)  { errors.push(`Row ${i + 2}: missing "account"`); continue; }
     if (!tickerRaw) { errors.push(`Row ${i + 2}: missing "ticker"`); continue; }
 
-    const sharesNum = Number(String(r.shares).replace(/[$,\s]/g, ""));
+    const quantityNum = Number(String(r.quantity).replace(/[$,\s]/g, ""));
     const costNum = Number(String(r.cost_per_share).replace(/[$,\s]/g, ""));
-    if (!Number.isFinite(sharesNum) || sharesNum <= 0) {
-      errors.push(`Row ${i + 2}: "shares" must be a positive number (got "${r.shares}")`);
+    if (!Number.isFinite(quantityNum) || quantityNum <= 0) {
+      errors.push(`Row ${i + 2}: "quantity" must be a positive number (got "${r.quantity}")`);
       continue;
     }
     if (!Number.isFinite(costNum) || costNum < 0) {
@@ -194,11 +194,11 @@ function groupRowsForInsert(rows) {
     accounts.get(labelRaw).push({
       ticker: tickerRaw,
       name: tickerRaw,              // scanner will overwrite with proper name
-      shares: sharesNum,
+      quantity: quantityNum,
       cost_per_share: costNum,
       purchase_date: purchaseDate || null,
-      // seed value = shares * cost; scanner updates price + value on next run
-      seed_value: sharesNum * costNum,
+      // seed value = quantity * cost; scanner updates price + value on next run
+      seed_value: quantityNum * costNum,
     });
   }
   return { accounts, errors };
@@ -321,10 +321,10 @@ export default function BulkImport({ userId, onClose, onDone }) {
     account_id,
     ticker: p.ticker,
     name: p.name,
-    shares: p.shares,
+    quantity: p.quantity,
     avg_cost: p.cost_per_share,
     price: p.cost_per_share,        // seed price = cost; scanner overwrites
-    value: p.seed_value,            // seed = shares * cost_per_share
+    value: p.seed_value,            // seed = quantity * cost_per_share
     purchase_date: p.purchase_date, // nullable; needs migration 007
     sector: null,
     beta: null,
@@ -405,7 +405,7 @@ export default function BulkImport({ userId, onClose, onDone }) {
         const existingId = posIdBy.get(key);
         const patch = {
           name: p.name,
-          shares: p.shares,
+          quantity: p.quantity,
           avg_cost: p.cost_per_share,
           price: p.cost_per_share,
           value: p.seed_value,
@@ -536,7 +536,7 @@ export default function BulkImport({ userId, onClose, onDone }) {
         <div style={{ marginBottom: 10 }}>
           <label style={label}>COLUMNS</label>
           <div style={{ fontSize: 12, color: "var(--text-muted)", fontFamily: "var(--font-mono)", lineHeight: 1.5 }}>
-            Required: <b style={{ color: "var(--text)" }}>account, ticker, shares, cost_per_share</b><br/>
+            Required: <b style={{ color: "var(--text)" }}>account, ticker, quantity, cost_per_share</b><br/>
             Optional: <b style={{ color: "var(--text)" }}>purchase_date</b> (YYYY-MM-DD)
           </div>
         </div>
@@ -564,7 +564,7 @@ export default function BulkImport({ userId, onClose, onDone }) {
         <textarea
           value={pasteText}
           onChange={(e) => handlePasteChange(e.target.value)}
-          placeholder={"account,ticker,purchase_date,shares,cost_per_share\nRoth IRA,VOO,2024-03-15,25,450"}
+          placeholder={"account,ticker,purchase_date,quantity,cost_per_share\nRoth IRA,VOO,2024-03-15,25,450"}
           rows={5}
           style={{
             width: "100%", padding: "10px 12px", fontSize: 12,

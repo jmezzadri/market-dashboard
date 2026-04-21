@@ -306,7 +306,7 @@ export default async function handler(req, res) {
 
       const { data: posRows } = await admin
         .from("positions")
-        .select("id, shares")
+        .select("id, quantity")
         .eq("user_id", userId)
         .eq("ticker", sym);
 
@@ -318,7 +318,7 @@ export default async function handler(req, res) {
           if (beta != null)  patch.beta  = beta;
           if (price != null) {
             patch.price = price;
-            if (row.shares != null) patch.value = Number(row.shares) * price;
+            if (row.quantity != null) patch.value = Number(row.quantity) * price;
           }
           if (!Object.keys(patch).length) return Promise.resolve({ error: null });
           return admin.from("positions").update(patch).eq("id", row.id);

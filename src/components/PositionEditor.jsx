@@ -122,7 +122,7 @@ const dangerBtn = {
 // ── component ──────────────────────────────────────────────────────────────
 export default function PositionEditor({
   mode,            // "add" | "edit"
-  existing,        // position object for edit mode (carries id, accountId, ticker, shares, avgCost, price, ...)
+  existing,        // position object for edit mode (carries id, accountId, ticker, quantity, avgCost, price, ...)
   accounts,        // [{ id, label }, ...] — needed for add mode account picker
   userId,          // current auth uid, required for insert
   onClose,         // () => void — dismiss without saving
@@ -147,15 +147,15 @@ export default function PositionEditor({
 
   // Canonical numerics
   // 35E: if the existing row is CASH, the source-of-truth amount lives in
-  // `existing.value`, not `existing.shares`. Broken rows in the DB have
-  // shares=$amount (same value as price), so shares is unreliable. We use
-  // `existing.value ?? existing.shares` for the initial amount — both match
+  // `existing.value`, not `existing.quantity`. Broken rows in the DB have
+  // quantity=$amount (same value as price), so quantity is unreliable. We use
+  // `existing.value ?? existing.quantity` for the initial amount — both match
   // for correctly-encoded CASH rows; for broken rows, value is right.
   const _existingTickerUC = isEdit ? String(existing.ticker || "").trim().toUpperCase() : "";
   const _isExistingCash   = _existingTickerUC === "CASH";
   const _initAmount       = _isExistingCash
-    ? (existing.value ?? existing.shares ?? null)
-    : (isEdit ? existing.shares ?? null : null);
+    ? (existing.value ?? existing.quantity ?? null)
+    : (isEdit ? existing.quantity ?? null : null);
 
   const [shares,  setShares]  = useState(_initAmount);
   const [avgCost, setAvgCost] = useState(isEdit ? existing.avgCost ?? null : null);
@@ -318,13 +318,13 @@ export default function PositionEditor({
     setSubmitting(true);
     try {
       // 35E: CASH is first-class. Build a CASH-shaped payload when ticker===CASH
-      // so the row is encoded as shares=amount / price=1 / avg_cost=1 / value=amount.
-      // This auto-heals broken rows (shares=√value) on the next save.
+      // so the row is encoded as quantity=amount / price=1 / avg_cost=1 / value=amount.
+      // This auto-heals broken rows (quantity=√value) on the next save.
       const payload = isCash
         ? {
             ticker:   "CASH",
             name:     "CASH",
-            shares:   shares,          // = dollar amount (signed)
+            quantity: shares,          // = dollar amount (signed)
             price:    1,
             avg_cost: 1,
             value:    shares,          // = dollar amount (signed)
@@ -336,7 +336,7 @@ export default function PositionEditor({
         : {
             ticker:   tickerClean,
             name:     existing?.name || tickerClean,
-            shares:   shares,
+            quantity: shares,
             price:    price,
             avg_cost: avgCost,
             value:    currentValue,

@@ -170,14 +170,14 @@ const COLUMNS = [
     ),
   },
   {
-    id: "shares",
-    label: "SHARES",
-    description: "Total shares held",
+    id: "quantity",
+    label: "QTY",
+    description: "Total quantity held (shares for equities; units for crypto; dollars for cash)",
     align: "right",
-    sortValue: (r) => r.shares,
+    sortValue: (r) => r.quantity,
     renderCell: (r) => (
       <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
-        {fmtShares(r.shares)}
+        {fmtShares(r.quantity)}
       </span>
     ),
   },
@@ -425,7 +425,7 @@ const DEFAULT_ORDER = [
   "actions",
 ];
 
-// Defaults-visible matches DEFAULT_ORDER. The rest (sector, shares,
+// Defaults-visible matches DEFAULT_ORDER. The rest (sector, quantity,
 // annualizedPnl) are still available via the picker.
 const DEFAULT_VISIBLE = [...DEFAULT_ORDER];
 
@@ -437,7 +437,7 @@ const DEFAULT_WIDTHS = {
   ticker:        90,
   name:          220,
   sector:        120,
-  shares:        90,
+  quantity:      90,
   price:         120,
   avgCost:       110,
   totalCost:     115,
@@ -485,14 +485,14 @@ export default function PositionsTable({
       const sc = screenerMap[T] || {};
       const inf = infoMap[T] || {};
 
-      const shares   = p.shares  != null ? Number(p.shares)  : null;
+      const quantity = p.quantity != null ? Number(p.quantity) : null;
       const price    = p.price   != null ? Number(p.price)   : null;
       const avgCost  = p.avgCost != null ? Number(p.avgCost) : null;
       const valueDb  = p.value   != null ? Number(p.value)   : null;
 
       const currentValue = valueDb != null ? valueDb
-                         : (shares != null && price != null ? shares * price : null);
-      const totalCost    = (shares != null && avgCost != null) ? shares * avgCost : null;
+                         : (quantity != null && price != null ? quantity * price : null);
+      const totalCost    = (quantity != null && avgCost != null) ? quantity * avgCost : null;
 
       const pnl$   = (currentValue != null && totalCost != null) ? currentValue - totalCost : null;
       const pnlPct = (price != null && avgCost)                  ? (price / avgCost - 1) * 100 : null;
@@ -502,7 +502,7 @@ export default function PositionsTable({
       const scClose = sc.close     != null ? Number(sc.close)     : null;
       const scPrev  = sc.prev_close != null ? Number(sc.prev_close) : null;
       const perShareDay = (scClose != null && scPrev != null) ? scClose - scPrev : null;
-      const pnlDay$   = (perShareDay != null && shares != null) ? perShareDay * shares : null;
+      const pnlDay$   = (perShareDay != null && quantity != null) ? perShareDay * quantity : null;
       const pnlDayPct = (scClose != null && scPrev)             ? (scClose / scPrev - 1) * 100 : null;
 
       const wealthPct = grandTotal && currentValue != null ? (currentValue / grandTotal) * 100 : null;
@@ -531,7 +531,7 @@ export default function PositionsTable({
         ticker: T,
         name: p.name || "",
         sector: p.sector || inf.sector || sc.sector || "",
-        shares,
+        quantity,
         price,
         avgCost,
         totalCost,
