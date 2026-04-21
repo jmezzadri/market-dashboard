@@ -418,15 +418,15 @@ const COLUMNS = [
 // P&L cluster (Total Cost -> Current Value -> Total PNL $ -> PNL %) is
 // adjacent on purpose - those four columns tell the cost-basis story.
 const DEFAULT_ORDER = [
-  "ticker", "name", "price", "avgCost", "pnlDay$", "pnlDayPct",
+  "ticker", "name", "quantity", "price", "avgCost", "pnlDay$", "pnlDayPct",
   "totalCost", "currentValue", "pnl$", "pnlPct",
   "purchaseDate", "holdingDays", "beta",
   "wealthPct", "account", "marketcap", "divYield", "nextEarnings",
   "actions",
 ];
 
-// Defaults-visible matches DEFAULT_ORDER. The rest (sector, quantity,
-// annualizedPnl) are still available via the picker.
+// Defaults-visible matches DEFAULT_ORDER. The rest (sector, annualizedPnl)
+// are still available via the picker.
 const DEFAULT_VISIBLE = [...DEFAULT_ORDER];
 
 // Default column widths (px) - used when user has not dragged a custom
