@@ -495,13 +495,32 @@ def ingest_insider(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) 
 
 def _upsert_events(rows: list[dict[str, Any]]) -> int:
     """Batch-insert ticker_events rows. ON CONFLICT via (source, dedup_key)
-    swallows duplicates from overlapping runs."""
+    swallows duplicates from overlapping runs.
+
+    Pre-dedups rows in memory before hitting Postgres — two rows with the
+    same (source, dedup_key) inside a single batch trigger error 21000
+    "ON CONFLICT DO UPDATE command cannot affect row a second time".
+    In-batch dupes do happen at volume (UW darkpool prints can share
+    ticker/timestamp/size/price/exchange across split fills; news pages
+    sometimes overlap). Last-write-wins — rows with identical dedup_key
+    are by definition the same event, so picking one is safe.
+    """
     if not rows:
         return 0
+
+    unique: dict[tuple[str | None, str | None], dict[str, Any]] = {}
+    for r in rows:
+        unique[(r.get("source"), r.get("dedup_key"))] = r
+    deduped = list(unique.values())
+    dropped = len(rows) - len(deduped)
+    if dropped > 0:
+        logger.info("ticker_events: in-batch dedup dropped %d duplicate rows (%d → %d)",
+                    dropped, len(rows), len(deduped))
+
     client = _get_supabase_client()
     total = 0
-    for i in range(0, len(rows), UPSERT_BATCH_SIZE):
-        batch = rows[i : i + UPSERT_BATCH_SIZE]
+    for i in range(0, len(deduped), UPSERT_BATCH_SIZE):
+        batch = deduped[i : i + UPSERT_BATCH_SIZE]
         client.table("ticker_events").upsert(
             batch, on_conflict="source,dedup_key"
         ).execute()
