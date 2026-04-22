@@ -4258,6 +4258,9 @@ return(<>
   rescanProgress={{done:rescanState.done,total:rescanState.total}}
   onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
   onDelete={portfolioAuthed?deletePositionInline:undefined}
+  pricesTs={universeSnapshotTs}
+  eventsTs={scanData?.ticker_events_ts}
+  footnoteSource="Unusual Whales + Yahoo Finance"
 />
 </div>
 </div>
