@@ -414,6 +414,37 @@ export default function AdminBugs() {
   const [filter, setFilter] = useState("all");
   const [selected, setSelected] = useState(null);
 
+  // ⚠️ HOOKS ORDER: every hook in this function must run on every render.
+  // Early returns below MUST come AFTER all hook calls — otherwise the hook
+  // count changes between render 1 (adminLoading=true) and render 2
+  // (adminLoading=false), which triggers React #310 and blanks the page.
+  // Reference: feedback_grep_all_hooks_when_310.md.
+
+  // Derived counts + filtered rows
+  const { counts, filtered } = useMemo(() => {
+    const all = rows || [];
+    const counts = { all: all.length };
+    for (const r of all) {
+      const g = statusGroup(r.status);
+      counts[g] = (counts[g] || 0) + 1;
+    }
+    const filteredRows = filter === "all" ? all : all.filter(r => statusGroup(r.status) === filter);
+    return { counts, filtered: filteredRows };
+  }, [rows, filter]);
+
+  // KPI strip
+  const openSince = useMemo(() => {
+    const candidates = (rows || []).filter(r => {
+      const g = statusGroup(r.status);
+      return g === "open" || g === "awaiting_approval";
+    });
+    if (!candidates.length) return null;
+    return candidates.reduce((oldest, r) => {
+      if (!oldest) return r.created_at;
+      return new Date(r.created_at) < new Date(oldest) ? r.created_at : oldest;
+    }, null);
+  }, [rows]);
+
   if (adminLoading) {
     return <div style={{ padding: "40px 20px", color: "var(--text-muted)", textAlign: "center" }}>Checking access…</div>;
   }
@@ -430,31 +461,7 @@ export default function AdminBugs() {
     );
   }
 
-  // Derived counts + filtered rows
-  const { counts, filtered } = useMemo(() => {
-    const all = rows || [];
-    const counts = { all: all.length };
-    for (const r of all) {
-      const g = statusGroup(r.status);
-      counts[g] = (counts[g] || 0) + 1;
-    }
-    const filteredRows = filter === "all" ? all : all.filter(r => statusGroup(r.status) === filter);
-    return { counts, filtered: filteredRows };
-  }, [rows, filter]);
-
-  // KPI strip
   const open = (counts.open || 0) + (counts.awaiting_approval || 0);
-  const openSince = useMemo(() => {
-    const candidates = (rows || []).filter(r => {
-      const g = statusGroup(r.status);
-      return g === "open" || g === "awaiting_approval";
-    });
-    if (!candidates.length) return null;
-    return candidates.reduce((oldest, r) => {
-      if (!oldest) return r.created_at;
-      return new Date(r.created_at) < new Date(oldest) ? r.created_at : oldest;
-    }, null);
-  }, [rows]);
 
   return (
     <main className="fade-in main-padded" style={{ maxWidth: 1400, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
