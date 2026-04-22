@@ -88,15 +88,21 @@ return              "Extreme";
 function sdTo100(s){return Math.round(Math.max(0,Math.min(100,((s+1)/4)*100)));}
 
 // ── 4-LEVEL CONVICTION ─────────────────────────────────────────────────────
-// Low 0-20 | Normal 20-50 | Elevated 50-75 | Extreme 75-100
+// Empirically calibrated against indicator_history.json (2006-01-03 → 2026-04,
+// N≈6,313 trading days). See scripts/conviction-backtest.js for the run.
+// Thresholds at p60 / p85 / p97.5 of the historical composite-SD distribution:
+//   LOW     : SD < 0.12  (bottom 60% — quiet regimes)
+//   NORMAL  : 0.12 ≤ SD < 0.41  (next 25% — mid-range)
+//   ELEVATED: 0.41 ≤ SD < 1.03  (top ~12.5% excl. tail — 2022 bear 0.80, SVB 0.67, 2015-16 0.59)
+//   EXTREME : SD ≥ 1.03  (top ~2.5% — GFC peak 2.27, COVID peak 2.02)
 const CONVICTION=[
-{level:1,label:"LOW",      range:[-99,0.25], color:"#30d158", eq:90,bd:5, ca:3, au:2,
+{level:1,label:"LOW",      range:[-99,0.12], color:"#30d158", eq:90,bd:5, ca:3, au:2,
  action:"Risk-on. Historically benign conditions. Consider adding cyclical beta."},
-{level:2,label:"NORMAL",   range:[0.25,0.88],color:"#ffd60a", eq:75,bd:15,ca:7, au:3,
+{level:2,label:"NORMAL",   range:[0.12,0.41],color:"#ffd60a", eq:75,bd:15,ca:7, au:3,
  action:"Market baseline. Maintain diversified exposure. Trim highest-beta on spikes."},
-{level:3,label:"ELEVATED", range:[0.88,1.6], color:"#ff9f0a", eq:55,bd:28,ca:12,au:5,
+{level:3,label:"ELEVATED", range:[0.41,1.03],color:"#ff9f0a", eq:55,bd:28,ca:12,au:5,
  action:"Active hedging warranted. Sell covered calls. Rotate defensive. Reduce leverage."},
-{level:4,label:"EXTREME",  range:[1.6,99],   color:"#ff453a", eq:20,bd:30,ca:35,au:15,
+{level:4,label:"EXTREME",  range:[1.03,99],  color:"#ff453a", eq:20,bd:30,ca:35,au:15,
  action:"Crisis regime. Maximum defensiveness. Harvest losses. Hold dry powder."},
 ];
 function getConv(s){return CONVICTION.find(c=>s>=c.range[0]&&s<c.range[1])||CONVICTION[3];}
@@ -2932,71 +2938,108 @@ const FACTOR_DISPLAY_LAB=[
   {key:"volatility",label:"Volatility",indIds:["vix","skew"]},
 ];
 
-// ── PUNCHLINE helpers · fast/slow + near/long-term composite framing ──────
-// The decision-making frame the Lab is designed to teach:
-//   NEAR-TERM / TACTICAL read = fast movers (daily + weekly cadence). Drives
-//   3-month gross/hedge/vol decisions.
-//   STRATEGIC read = slow movers (monthly + quarterly cadence). Drives 12-18
-//   month asset-allocation / quality-vs-beta decisions.
-// Cadence partition comes directly from IND_FREQ so we never drift.
-const FAST_IDS_LAB=Object.keys(IND_FREQ).filter(id=>IND_FREQ[id]==="D"||IND_FREQ[id]==="W");
-const SLOW_IDS_LAB=Object.keys(IND_FREQ).filter(id=>IND_FREQ[id]==="M"||IND_FREQ[id]==="Q");
+// ── v4 PUNCHLINE helpers · AUC-weighted top-N composites (back-test calibrated 2026-04-22) ──
+// v3 framework was equal-weighted means of fast (D+W) vs slow (M+Q) indicator
+// partitions. Back-test against 2006-2026 SPX history showed v3 did NOT beat
+// the existing 25-indicator COMP — fast composite tied COMP on tactical AUC,
+// slow composite was anti-predictive at strategic horizon, and the slow
+// "extreme" bucket was mathematically unreachable.
+//
+// v4 framework (current) replaces equal weighting with PER-INDICATOR AUC
+// selection at each horizon:
+//   Tactical (60d / -5% S&P drawdown):    AUC ≥ 0.55, one-sided.
+//   Strategic (252d / -10% S&P drawdown): |AUC - 0.5| ≥ 0.05, sign-flipped
+//                                         where AUC < 0.5 (mean reversion).
+//   Weight formula: (max(AUC, 1-AUC) - 0.5) × 2.
+//   Bucket cutoffs: derived from v4 distribution quartiles 2011-2026
+//                   (cold ≤ p25, neutral (p25,p75], hot (p75,p90], extreme > p90).
+//
+// CRITICAL FINDING: only `EXTREME | EXTREME` (BOTH tiles top-decile
+// simultaneously) carries negative forward returns (-2.55% mean 60d, n=640).
+// Single-tile EXTREME is noise — sometimes bullish (EXTREME | NEUTRAL =
+// +8.05% mean 60d). The alignment flag IS the actionable signal; the
+// individual tiles are diagnostic.
+//
+// Walk-forward (refit annually 2014-2025) shows OOS AUC ≈ 0.45-0.49 — the
+// in-sample edge is REAL but not stable year-to-year. Treat v4 as a
+// calibrated lens, not a point forecast. See /sector_lab_research/.
+const V4_TACT_WEIGHTS={
+  vix:{w:0.208,s:1}, move:{w:0.234,s:1}, anfci:{w:0.182,s:1},
+  stlfsi:{w:0.110,s:1}, cpff:{w:0.262,s:1}, jobless:{w:0.176,s:1},
+  cmdi:{w:0.156,s:1}, term_premium:{w:0.190,s:1}, cape:{w:0.336,s:1},
+  jolts_quits:{w:0.150,s:1}, bank_unreal:{w:0.300,s:1},
+};
+const V4_STRAT_WEIGHTS={
+  vix:{w:0.280,s:1}, move:{w:0.310,s:1}, copper_gold:{w:0.122,s:-1},
+  stlfsi:{w:0.166,s:1}, loan_syn:{w:0.452,s:-1}, term_premium:{w:0.224,s:1},
+  cape:{w:0.784,s:1}, ism:{w:0.440,s:-1}, sloos_ci:{w:0.108,s:-1},
+  sloos_cre:{w:0.158,s:1}, bank_unreal:{w:0.160,s:1},
+};
+// Quartile cutoffs from v4 distribution 2011-2026 (post 5y rolling-SD burn-in).
+// Rounded for stability; full precision in /sector_lab_research/methodology/v4_thresholds.json.
+const V4_TACT_CUTS ={p25:-0.58, p75:0.19, p90:0.55};
+const V4_STRAT_CUTS={p25:-0.42, p75:0.21, p90:0.47};
 
-// Weighted composite over a subset of indicators — reuses module-level
-// WEIGHTS and sdScore so calibration stays single-sourced.
-function subsetComp_Lab(snap,ids){
+// AUC-weighted composite. Each selected indicator contributes sign × z × weight.
+function compV4_Lab(snap,weights){
   let ws=0,wt=0;
-  ids.forEach(id=>{
-    const w=WEIGHTS[id];if(!w)return;
-    const s=sdScore(id,snap[id]);if(s==null)return;
-    ws+=s*w;wt+=w;
+  Object.entries(weights).forEach(([id,{w,s}])=>{
+    const z=sdScore(id,snap[id]);if(z==null)return;
+    ws+=s*z*w;wt+=w;
   });
   return wt>0?ws/wt:0;
 }
 
-// Level bucket for a subset composite. Thresholds align with the main
-// CONVICTION table so tactical/strategic levels read consistently with /#home.
-function levelBucket_Lab(comp,horizon){
+// Level bucket using v4 quartile cutoffs. Same BENIGN/NORMAL/ELEVATED/EXTREME
+// labels as v3 so downstream UI labelling stays consistent — only the cutoffs change.
+function levelBucketV4_Lab(comp,horizon){
+  const cuts=horizon==="tactical"?V4_TACT_CUTS:V4_STRAT_CUTS;
   const tilt=(horizon==="tactical")?{
-    EXTREME:"Aggressive defensiveness · raise cash · harvest losses · hold dry powder",
+    EXTREME:"Top-decile tactical stress · only act if STRATEGIC also extreme · otherwise informational",
     ELEVATED:"Active hedging · reduce gross · trim high-beta into strength",
     NORMAL:"Maintain posture · sell vol on spikes · rebalance mechanically",
     BENIGN:"Add risk on pullbacks · equal-weight cyclicals · normal leverage",
   }:{
-    EXTREME:"Defensive strategic mix · overweight cash + quality bonds · wait for reset",
+    EXTREME:"Top-decile strategic stress · only act if TACTICAL also extreme · otherwise informational",
     ELEVATED:"Underweight beta · overweight quality/FCF · favor dividends over growth",
     NORMAL:"Neutral strategic asset allocation · rebalance quarterly",
     BENIGN:"Overweight equities on 12m view · extend duration · add cyclical cap-weights",
   };
-  if(comp>1.6) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
-  if(comp>0.88)return{label:"ELEVATED",color:"#ff9f0a",tilt:tilt.ELEVATED};
-  if(comp>0.25)return{label:"NORMAL",  color:"#ffd60a",tilt:tilt.NORMAL};
-  return             {label:"BENIGN",  color:"#30d158",tilt:tilt.BENIGN};
+  if(comp>cuts.p90) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
+  if(comp>cuts.p75) return{label:"ELEVATED",color:"#ff9f0a",tilt:tilt.ELEVATED};
+  if(comp>cuts.p25) return{label:"NORMAL",  color:"#ffd60a",tilt:tilt.NORMAL};
+  return              {label:"BENIGN",  color:"#30d158",tilt:tilt.BENIGN};
 }
 
-// Top movers cited in the punchline — highest absolute SD scores in the subset.
-function topMovers_Lab(ids,n=3){
-  return ids.map(id=>({id,label:IND[id]?.[0]||id,sd:DS[id]}))
-    .filter(r=>r.sd!=null&&Number.isFinite(r.sd))
-    .sort((a,b)=>Math.abs(b.sd)-Math.abs(a.sd))
-    .slice(0,n);
+// Top contributors from the v4-selected indicators only — drives "what's pushing
+// the score now". Uses signed contribution (sign × sd × weight) sorted by abs magnitude.
+function topMoversV4_Lab(weights,n=3){
+  return Object.entries(weights).map(([id,{w,s}])=>{
+    const sd=DS[id];
+    const contrib=(sd!=null&&Number.isFinite(sd))?s*sd*w:null;
+    return{id,label:IND[id]?.[0]||id,sd,contrib,sign:s};
+  })
+  .filter(r=>r.contrib!=null)
+  .sort((a,b)=>Math.abs(b.contrib)-Math.abs(a.contrib))
+  .slice(0,n);
 }
 
-// Alignment flag: are tactical and strategic composites agreeing or not?
-// Divergence is the most actionable state — tells the user whether to size
-// the gap between tactical and strategic exposure wide or narrow.
-function alignmentFlag_Lab(near,strat){
+// v4 alignment flag · the dominant signal. Joint EXTREME is the only de-risk trigger.
+function alignmentFlagV4_Lab(near,strat,nearBucket,stratBucket){
+  const bothExtreme=nearBucket.label==="EXTREME"&&stratBucket.label==="EXTREME";
+  const oneExtreme=(nearBucket.label==="EXTREME")!==(stratBucket.label==="EXTREME");
+  const bothBenign=nearBucket.label==="BENIGN"&&stratBucket.label==="BENIGN";
   const diff=near-strat;
   const aDiff=Math.abs(diff);
-  const avg=(near+strat)/2;
-  if(aDiff<0.3){
-    if(avg>0.88) return{label:"ALIGNED · BOTH WARNING",color:"#ff453a",
-      desc:"Both tactical and strategic reads are elevated — reduce exposure across horizons. No meaningful gap between near-term and long-term risk posture."};
-    if(avg<0.25) return{label:"ALIGNED · BOTH BENIGN",color:"#30d158",
-      desc:"Both horizons calm — coherent risk-on backdrop. Tactical and strategic exposures can run symmetrically long."};
-    return{label:"ALIGNED · NORMAL",color:"var(--text-2)",
-      desc:"Tactical and strategic reads are coherent; posture is straightforward — no horizon gap to arbitrage."};
-  }
+
+  if(bothExtreme) return{label:"◆ JOINT EXTREME · DE-RISK NOW",color:"#ff453a",
+    desc:"Both tactical AND strategic composites are in the top decile simultaneously. Back-test 2011-2026 (n=640 such days): mean forward 60-day S&P return -2.55%, mean forward 252-day return -1.18%. THIS is the de-risk signal — reduce gross exposure across both horizons."};
+  if(oneExtreme) return{label:"◇ SINGLE-TILE EXTREME · INFORMATIONAL ONLY",color:"#ff9f0a",
+    desc:"One tile is in the top decile, the other is not. Back-test: single-tile EXTREME alone is NOT actionable — historically it's been noise or even modestly bullish (EXTREME tactical + NEUTRAL strategic averaged +8.05% forward 60d return). Wait for the second tile to confirm before trimming exposure across both horizons."};
+  if(bothBenign) return{label:"ALIGNED · BOTH BENIGN",color:"#30d158",
+    desc:"Both composites in the bottom quartile. Coherent risk-on backdrop — tactical and strategic exposures can run symmetrically long."};
+  if(aDiff<0.3) return{label:"ALIGNED · NORMAL",color:"var(--text-2)",
+    desc:"Tactical and strategic reads are coherent; posture is straightforward — no horizon gap to arbitrage."};
   if(diff>0) return{label:"DIVERGENT · TACTICAL HOTTER",color:"#ff9f0a",
     desc:"Near-term stress while slow movers stay calm — tactical drawdown inside a stable regime. Fade spikes, don't de-risk strategically. Short-term hedges earn more than long-term cash."};
   return{label:"DIVERGENT · STRATEGIC HOTTER",color:"#ff9f0a",
@@ -3016,18 +3059,20 @@ const [indSort,setIndSort]=useState({key:"factor",dir:"asc"});
 const cyc=detectCycleStage();
 const scored=SECTORS.map(s=>({...s,score:computeSectorScore(s)})).sort((a,b)=>b.score-a.score);
 
-// ── Punchline composites (fast/slow × near/long-term) ────────────────────
-const NEAR_COMP_LAB=subsetComp_Lab(NOW,FAST_IDS_LAB);
-const STRAT_COMP_LAB=subsetComp_Lab(NOW,SLOW_IDS_LAB);
-const NEAR_COMP_1M_LAB=subsetComp_Lab(MO1,FAST_IDS_LAB);
-const STRAT_COMP_1M_LAB=subsetComp_Lab(MO1,SLOW_IDS_LAB);
+// ── v4 Punchline composites · AUC-weighted top-N per horizon ──────────────
+const NEAR_COMP_LAB=compV4_Lab(NOW,V4_TACT_WEIGHTS);
+const STRAT_COMP_LAB=compV4_Lab(NOW,V4_STRAT_WEIGHTS);
+const NEAR_COMP_1M_LAB=compV4_Lab(MO1,V4_TACT_WEIGHTS);
+const STRAT_COMP_1M_LAB=compV4_Lab(MO1,V4_STRAT_WEIGHTS);
 const NEAR_VEL_LAB=NEAR_COMP_LAB-NEAR_COMP_1M_LAB;
 const STRAT_VEL_LAB=STRAT_COMP_LAB-STRAT_COMP_1M_LAB;
-const NEAR_BUCKET=levelBucket_Lab(NEAR_COMP_LAB,"tactical");
-const STRAT_BUCKET=levelBucket_Lab(STRAT_COMP_LAB,"strategic");
-const NEAR_MOVERS=topMovers_Lab(FAST_IDS_LAB,3);
-const STRAT_MOVERS=topMovers_Lab(SLOW_IDS_LAB,3);
-const ALIGN=alignmentFlag_Lab(NEAR_COMP_LAB,STRAT_COMP_LAB);
+const NEAR_BUCKET=levelBucketV4_Lab(NEAR_COMP_LAB,"tactical");
+const STRAT_BUCKET=levelBucketV4_Lab(STRAT_COMP_LAB,"strategic");
+const NEAR_MOVERS=topMoversV4_Lab(V4_TACT_WEIGHTS,3);
+const STRAT_MOVERS=topMoversV4_Lab(V4_STRAT_WEIGHTS,3);
+const ALIGN=alignmentFlagV4_Lab(NEAR_COMP_LAB,STRAT_COMP_LAB,NEAR_BUCKET,STRAT_BUCKET);
+const V4_TACT_N=Object.keys(V4_TACT_WEIGHTS).length;
+const V4_STRAT_N=Object.keys(V4_STRAT_WEIGHTS).length;
 
 // ── Cycle block data ──────────────────────────────────────────────────────
 const ism=IND.ism?.[6], ism3=IND.ism?.[8];
@@ -3101,21 +3146,31 @@ return(
     ⚗ SECTOR LAB · EXPERIMENTAL · admin-only · research sandbox for the cross-sectional APT sector engine · not wired into composite scoring
   </div>
 
-  {/* ── ★ PUNCHLINE · the decision frame ────────────────────────────────── */}
+  {/* ── ★ PUNCHLINE · v4 framework · back-test calibrated ─────────────────── */}
   <div style={{background:"var(--surface)",border:`2px solid ${ALIGN.color}55`,borderRadius:10,padding:"14px 16px"}}>
     <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:4,fontWeight:800}}>
-      ★ PUNCHLINE · how to think about allocation right now
+      ★ PUNCHLINE · v4 framework · back-test calibrated
     </div>
     <div style={{fontSize:11,color:"var(--text-muted)",marginBottom:12,lineHeight:1.5}}>
-      The market is always sending two signals at different speeds. Fast movers drive tactical (0-3mo) positioning; slow movers drive strategic (6-18mo) asset allocation. When they disagree, the gap itself is the signal.
+      Two AUC-weighted composites built from the indicators that historically predicted S&amp;P drawdowns. <b>Tactical</b> ({V4_TACT_N} indicators, 60d / -5% drawdowns) and <b>Strategic</b> ({V4_STRAT_N} indicators, 252d / -10% drawdowns, with sign-flips on mean-reverters). Per back-test, individual tile readings are diagnostic — the joint <b>ALIGNMENT</b> flag below is the actionable signal.
     </div>
 
-    {/* Two-column: Tactical | Strategic */}
+    {/* ── ◆ ALIGNMENT FLAG · promoted to top · the dominant signal ─────── */}
+    <div style={{background:ALIGN.color+"20",border:`2px solid ${ALIGN.color}`,borderRadius:6,padding:"12px 14px",marginBottom:12}}>
+      <div style={{fontSize:12,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:6,fontWeight:800}}>
+        ◆ ALIGNMENT · {ALIGN.label}
+      </div>
+      <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>
+        {ALIGN.desc}
+      </div>
+    </div>
+
+    {/* Two-column: Tactical | Strategic — supporting detail under the flag */}
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:10,marginBottom:10}}>
-      {/* NEAR-TERM */}
+      {/* TACTICAL */}
       <div style={{background:"var(--surface-2)",border:`1px solid ${NEAR_BUCKET.color}`,borderRadius:6,padding:"10px 12px"}}>
         <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:5}}>
-          NEAR-TERM · 0-3 months · fast movers · {FAST_IDS_LAB.length} series (D+W)
+          TACTICAL · 0-3 months · {V4_TACT_N} AUC-selected indicators
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
           <span style={{padding:"4px 10px",borderRadius:3,background:NEAR_BUCKET.color+"25",border:`1px solid ${NEAR_BUCKET.color}`,color:NEAR_BUCKET.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
@@ -3129,7 +3184,7 @@ return(
           </span>
         </div>
         <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:6,lineHeight:1.5}}>
-          Top movers: {NEAR_MOVERS.map(m=>`${m.label} ${m.sd>=0?"+":""}${m.sd.toFixed(1)}σ`).join(" · ")}
+          Top contributors: {NEAR_MOVERS.map(m=>`${m.label} ${m.contrib>=0?"+":""}${m.contrib.toFixed(2)}`).join(" · ")}
         </div>
         <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
           <span style={{fontSize:9,color:NEAR_BUCKET.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6,verticalAlign:"middle"}}>TACTICAL TILT →</span>
@@ -3139,7 +3194,7 @@ return(
       {/* STRATEGIC */}
       <div style={{background:"var(--surface-2)",border:`1px solid ${STRAT_BUCKET.color}`,borderRadius:6,padding:"10px 12px"}}>
         <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:5}}>
-          STRATEGIC · 6-18 months · slow movers · {SLOW_IDS_LAB.length} series (M+Q)
+          STRATEGIC · 6-18 months · {V4_STRAT_N} AUC-selected (sign-flipped where mean-reverting)
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
           <span style={{padding:"4px 10px",borderRadius:3,background:STRAT_BUCKET.color+"25",border:`1px solid ${STRAT_BUCKET.color}`,color:STRAT_BUCKET.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
@@ -3153,7 +3208,7 @@ return(
           </span>
         </div>
         <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:6,lineHeight:1.5}}>
-          Top movers: {STRAT_MOVERS.map(m=>`${m.label} ${m.sd>=0?"+":""}${m.sd.toFixed(1)}σ`).join(" · ")}
+          Top contributors: {STRAT_MOVERS.map(m=>`${m.label} ${m.contrib>=0?"+":""}${m.contrib.toFixed(2)}`).join(" · ")}
         </div>
         <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
           <span style={{fontSize:9,color:STRAT_BUCKET.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6,verticalAlign:"middle"}}>STRATEGIC TILT →</span>
@@ -3162,18 +3217,8 @@ return(
       </div>
     </div>
 
-    {/* ALIGNMENT flag */}
-    <div style={{background:ALIGN.color+"15",border:`1px solid ${ALIGN.color}55`,borderRadius:6,padding:"10px 12px"}}>
-      <div style={{fontSize:11,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:5,fontWeight:800}}>
-        ◆ ALIGNMENT · {ALIGN.label}
-      </div>
-      <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>
-        {ALIGN.desc}
-      </div>
-    </div>
-
-    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:10,textAlign:"center",lineHeight:1.5}}>
-      Fast / slow split from IND_FREQ · composites are WEIGHTS-weighted means of SD z-scores on each subset · tilts are data-driven from the level bucket, not recommendations
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:6,textAlign:"center",lineHeight:1.6}}>
+      v4 framework · AUC-weighted top-N indicators per horizon · 5y rolling-SD calibration · quartile-derived bucket cutoffs · in-sample tactical AUC 0.66 / strategic AUC 0.72 · walk-forward OOS unstable (see Methodology) · full back-test in /sector_lab_research/backtest_v4_report.html
     </div>
   </div>
 
@@ -3682,7 +3727,7 @@ const NAV_ITEMS = [
   { id:"overview",   label:"Macro Overview",        icon:<NavIconGauge/>  },
   { id:"indicators", label:"All Indicators",        icon:<NavIconGrid/>   },
   { id:"sectors",    label:"Sectors",               icon:<NavIconHeat/>   },
-  { id:"portopps",   label:"Trading Opps & Insights",  icon:<NavIconPie/>    },
+  { id:"portopps",   label:"Trading Opportunities & Portfolio Insights",  icon:<NavIconPie/>    },
   { id:"scanner",    label:"Trading Scanner",       icon:<NavIconRadar/>  },
   { id:"readme",     label:"Methodology",           icon:<NavIconBook/>   },
 ];
@@ -3995,14 +4040,55 @@ assetRollup[cls]=(assetRollup[cls]||0)+p.value;
 const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","HY Bonds":"#14b8a6","Precious Metals":"#ffd60a","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"#dc2626"};
 
 // ── Tile-grid home view computations ─────────────────────────────────────────
-const buyCount = scanData?.buy_opportunities?.length || 0;
-const watchCount = scanData?.watch_items?.length || 0;
 const portCount = scanData?.portfolio_positions?.length || 0;
 // Watchlist: user's watchlist rows from Supabase are the source of truth when
 // signed in (they're seeded from WATCHLIST_FALLBACK + CRYPTO_WATCH at onboarding
 // and the user can edit them). Pre-auth, WATCHLIST is empty to avoid leaking
 // anyone else's list.
 const WATCHLIST = portfolioAuthed ? userWatchlistRows : [];
+
+// ── Client-side rebucket: BUY / NEAR / OTHER using the SAME JS composite that
+// the OVR column displays (sectionComposites.js). We used to trust the scanner's
+// server-side Python buckets, which had drifted out of sync with the JS engine
+// — the OVR column would show +78 on a ticker parked in "Near Trigger" because
+// the Python port lagged the JS canonical scorer. Single source of truth now:
+// both the bucket assignment and the OVR cell come from computeSectionComposites.
+// Universe = scanner-surfaced buy/watch (market-wide discoveries) ∪ user's
+// personal WATCHLIST, so nothing on screen can fall into the wrong tile.
+const _ovrOf = (t) => {
+  if (!t || !scanData?.signals) return null;
+  const c = computeSectionComposites(t, scanData);
+  return c?.overall?.score ?? null;
+};
+const _unionTickers = (() => {
+  const s = new Set();
+  (scanData?.buy_opportunities || []).forEach(o => o?.ticker && s.add(String(o.ticker).toUpperCase()));
+  (scanData?.watch_items       || []).forEach(o => o?.ticker && s.add(String(o.ticker).toUpperCase()));
+  (WATCHLIST || []).forEach(r => r?.ticker && s.add(String(r.ticker).toUpperCase()));
+  return [...s];
+})();
+const _buyBucket = [];
+const _nearBucket = [];
+_unionTickers.forEach(t => {
+  const ovr = _ovrOf(t);
+  if (ovr == null) return;
+  if (ovr >= 60) _buyBucket.push({ ticker: t, ovr });
+  else if (ovr >= 40) _nearBucket.push({ ticker: t, ovr });
+});
+_buyBucket.sort((a, b) => b.ovr - a.ovr);
+_nearBucket.sort((a, b) => b.ovr - a.ovr);
+const rebucketBuyTickers = new Set(_buyBucket.map(x => x.ticker));
+const rebucketNearTickers = new Set(_nearBucket.map(x => x.ticker));
+const rebucketBuy = _buyBucket;     // [{ticker, ovr}] — for tile rows
+const rebucketNear = _nearBucket;   // [{ticker, ovr}]
+// OTHER = user's watchlist rows NOT promoted into Buy or Near by OVR.
+const rebucketOther = (WATCHLIST || []).filter(r => {
+  const t = String(r?.ticker || "").toUpperCase();
+  return !rebucketBuyTickers.has(t) && !rebucketNearTickers.has(t);
+});
+
+const buyCount = rebucketBuy.length;
+const watchCount = rebucketNear.length;
 const lastScanLabel = scanData?.date_label || "—";
 const compactNarrative = `Composite ${COMP100}/100 · ${TREND_SIG.label}`;
 
@@ -4426,8 +4512,8 @@ return(
   {label:"Total Wealth",value:`$${Math.round(grandTotal).toLocaleString()}`,col:"var(--text)"},
   {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
   {label:"Holdings",value:`${heldPositions.length}`,col:"var(--text)"},
-  {label:"Buy Alerts",value:scanData?.buy_opportunities?.length||0,col:"var(--green-text)",accent:"#30d158"},
-  {label:"Near Trigger",value:scanData?.watch_items?.length||0,col:"var(--yellow-text)",accent:"#ffd60a"},
+  {label:"Buy Alerts",value:buyCount,col:"var(--green-text)",accent:"#30d158"},
+  {label:"Near Trigger",value:watchCount,col:"var(--yellow-text)",accent:"#ffd60a"},
   {label:"Watchlist",value:`${WATCHLIST.length}`,col:"var(--text)"},
 ].map(({label,value,col,accent})=>(
 <div key={label} style={{background:accent?`${accent}14`:"var(--surface-2)",border:accent?`1px solid ${accent}55`:"1px solid transparent",borderLeft:accent?`3px solid ${accent}`:"1px solid transparent",borderRadius:5,padding:"10px 12px"}}>
@@ -4445,7 +4531,7 @@ return(
 <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
 {/* Universe-snapshot freshness — signed-in only, hidden pre-auth. */}
 <UniverseFreshness pricesTs={universeSnapshotTs} eventsTs={scanData?.ticker_events_ts}/>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{scanData?.buy_opportunities?.length||0} triggered · {scanData?.watch_items?.length||0} near · {WATCHLIST.length} other</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{buyCount} triggered · {watchCount} near · {rebucketOther.length} other</span>
 <span style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("scanner")}>Full scanner →</span>
 </div>
 </div>
@@ -4468,9 +4554,11 @@ const toWlRows=(items)=>(items||[]).map(it=>({
 }));
 
 // SUB-PANEL 1: SCANNER — TRIGGERED (green accent)
-const triggered=scanData?.buy_opportunities||[];
+// Source: client-side OVR rebucket (see rebucketBuy in outer scope). Keeps
+// tile contents in lockstep with the OVR column, regardless of scanner drift.
+const triggered=rebucketBuy;
 // SUB-PANEL 2: SCANNER — WATCH / NEAR TRIGGER (yellow accent)
-const nearTrigger=scanData?.watch_items||[];
+const nearTrigger=rebucketNear;
 // subPanel now accepts an optional `criteria` chip rendered next to the
 // title in muted weight — lets users see at a glance *why* a ticker is in
 // the Buy Alerts vs Near Trigger bucket without opening the modal.
@@ -4512,10 +4600,10 @@ return(<>
     emptyMessage="Nothing near trigger today."
   />
 )}
-{subPanel("#64748b","OTHER WATCHLIST",null,`${WATCHLIST.length} tracking`,
+{subPanel("#64748b","OTHER WATCHLIST",null,`${rebucketOther.length} tracking`,
   <>
     <WatchlistTable
-      rows={WATCHLIST}
+      rows={rebucketOther}
       signals={scanData?.signals}
       screener={screenerMap}
       info={infoMap}
