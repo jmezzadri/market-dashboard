@@ -15,6 +15,7 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import { useBugReports, useBugStatusLog } from "./hooks/useBugReports";
+import { useBugActions } from "./hooks/useBugActions";
 
 // ── Status model (migration 013) ───────────────────────────────────────────
 // Main pipeline: new → triaged → awaiting_approval → approved → merged
@@ -281,11 +282,140 @@ function ActivityLog({ bugId }) {
   );
 }
 
+// ── Proposed Fix card — prominent top-of-panel treatment for awaiting_approval
+function ProposedFixCard({ row, onApprove, onReject, pending }) {
+  const branch = row.branch_name || row.triage_branch;
+  const [note, setNote] = useState("");
+  const isPending = pending?.bugId === row.id;
+  return (
+    <div style={{
+      background: "rgba(251, 191, 36, 0.06)",
+      border: "1px solid rgba(251, 191, 36, 0.45)",
+      borderRadius: 8,
+      padding: "14px 16px",
+      display: "flex",
+      flexDirection: "column",
+      gap: 12,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 4, background: "#fbbf24" }} />
+        <div style={{ fontSize: 11, fontFamily: "monospace", color: "#fbbf24", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+          Proposed fix — awaiting your approval
+        </div>
+      </div>
+      <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit", fontSize: 13, color: "var(--text)", lineHeight: 1.6 }}>
+        {row.proposed_solution || "(No proposed solution attached. The triage agent hasn't drafted a fix yet.)"}
+      </pre>
+      {branch && (
+        <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>
+          Branch: <span style={{ color: "var(--text-2)" }}>{branch}</span>
+        </div>
+      )}
+      <textarea
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        placeholder="Optional note (saved to audit log)"
+        rows={2}
+        style={{
+          background: "var(--surface)",
+          border: "1px solid var(--border)",
+          borderRadius: 6,
+          padding: "8px 10px",
+          color: "var(--text)",
+          fontSize: 12,
+          fontFamily: "inherit",
+          resize: "vertical",
+        }}
+      />
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <button
+          onClick={() => onApprove(row.id, note)}
+          disabled={isPending}
+          style={{
+            background: "#10b981",
+            border: "none",
+            borderRadius: 6,
+            padding: "9px 16px",
+            color: "white",
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: isPending ? "wait" : "pointer",
+            opacity: isPending ? 0.6 : 1,
+          }}>
+          {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve & build"}
+        </button>
+        <button
+          onClick={() => onReject(row.id, note)}
+          disabled={isPending}
+          style={{
+            background: "transparent",
+            border: "1px solid #ef4444",
+            borderRadius: 6,
+            padding: "9px 14px",
+            color: "#ef4444",
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: isPending ? "wait" : "pointer",
+            opacity: isPending ? 0.6 : 1,
+          }}>
+          {isPending && pending?.action === "rejectFix" ? "Rejecting…" : "✗ Reject"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Action row — status-appropriate buttons for non-awaiting_approval bugs
+function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pending }) {
+  const g = statusGroup(row.status);
+  const s = normStatus(row.status);
+  const isPending = pending?.bugId === row.id;
+  const buttons = [];
+  if (s === "merged")          buttons.push({ id: "markDeployed", label: "Mark deployed", tone: "primary", onClick: () => onMarkDeployed(row.id, null) });
+  if (s === "deployed")        buttons.push({ id: "close",         label: "✓ Close (UAT passed)", tone: "good", onClick: () => onCloseBug(row.id) });
+  if (s === "deployed")        buttons.push({ id: "reopen",        label: "⟲ Reopen", tone: "bad",  onClick: () => onReopen(row.id) });
+  if (s === "verified_closed") buttons.push({ id: "reopen",        label: "⟲ Reopen", tone: "bad",  onClick: () => onReopen(row.id) });
+  if (g === "open" && s !== "awaiting_approval") {
+    buttons.push({ id: "dismiss_wontfix",   label: "Won't fix",   tone: "muted", onClick: () => onDismiss(row.id, "wontfix") });
+    buttons.push({ id: "dismiss_duplicate", label: "Duplicate",   tone: "muted", onClick: () => onDismiss(row.id, "duplicate") });
+    buttons.push({ id: "dismiss_needs_info",label: "Needs info",  tone: "muted", onClick: () => onDismiss(row.id, "needs_info") });
+  }
+  if (!buttons.length) return null;
+  return (
+    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "10px 12px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8 }}>
+      {buttons.map(b => {
+        const style = actionBtnStyle(b.tone, isPending);
+        return (
+          <button key={b.id} onClick={b.onClick} disabled={isPending} style={style}>
+            {isPending && pending?.action && b.id.startsWith(pending.action) ? "…" : b.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+function actionBtnStyle(tone, disabled) {
+  const base = { borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: disabled ? "wait" : "pointer", opacity: disabled ? 0.6 : 1 };
+  if (tone === "good")    return { ...base, background: "#10b981", color: "white", border: "none" };
+  if (tone === "bad")     return { ...base, background: "transparent", color: "#ef4444", border: "1px solid #ef4444" };
+  if (tone === "primary") return { ...base, background: "var(--accent, #2563eb)", color: "white", border: "none" };
+  return { ...base, background: "transparent", color: "var(--text-2)", border: "1px solid var(--border)" };
+}
+
 // ── Side panel ────────────────────────────────────────────────────────────
-function SidePanel({ row, onClose }) {
+function SidePanel({ row, onClose, onActed }) {
+  const actions = useBugActions();
   if (!row) return null;
   const pr = row.merged_pr || row.fixed_pr;
   const branch = row.branch_name || row.triage_branch;
+  const isAwaitingApproval = normStatus(row.status) === "awaiting_approval";
+
+  // Run an action then refresh the parent list + clear selection.
+  const runAndRefresh = async (fn) => {
+    const res = await fn();
+    if (!res?.error) onActed?.();
+  };
+
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 18, display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
@@ -305,6 +435,31 @@ function SidePanel({ row, onClose }) {
         <MetaField label="Where" value={whereText(row)} mono />
       </div>
 
+      {/* Proposed Fix — prominent for awaiting_approval; plain section otherwise */}
+      {isAwaitingApproval ? (
+        <ProposedFixCard
+          row={row}
+          pending={actions.pending}
+          onApprove={(id, note) => runAndRefresh(() => actions.approve(id, note))}
+          onReject={(id, note)  => runAndRefresh(() => actions.rejectFix(id, note))}
+        />
+      ) : (
+        <ActionRow
+          row={row}
+          pending={actions.pending}
+          onMarkDeployed={(id, sha) => runAndRefresh(() => actions.markDeployed(id, sha))}
+          onCloseBug={(id)          => runAndRefresh(() => actions.close(id))}
+          onReopen={(id)            => runAndRefresh(() => actions.reopen(id))}
+          onDismiss={(id, terminal) => runAndRefresh(() => actions.dismissAs(id, terminal))}
+        />
+      )}
+
+      {actions.error && (
+        <div style={{ fontSize: 12, color: "#ef4444", fontFamily: "monospace", padding: "6px 10px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6 }}>
+          Action failed: {actions.error.message || String(actions.error)}
+        </div>
+      )}
+
       {/* Description */}
       <Section title="Description">
         <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit", fontSize: 13, color: "var(--text)", lineHeight: 1.55 }}>
@@ -312,8 +467,9 @@ function SidePanel({ row, onClose }) {
         </pre>
       </Section>
 
-      {/* Proposed solution */}
-      {row.proposed_solution && (
+      {/* Proposed solution — show plain block for non-awaiting_approval statuses
+          so the history is visible after a bug has been approved/merged/etc. */}
+      {row.proposed_solution && !isAwaitingApproval && (
         <Section title="Proposed solution">
           <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit", fontSize: 13, color: "var(--text)", lineHeight: 1.55 }}>
             {row.proposed_solution}
@@ -494,7 +650,7 @@ export default function AdminBugs() {
       {/* Body: table + side panel */}
       <div style={{ display: "grid", gridTemplateColumns: selected ? "minmax(0, 1.3fr) minmax(420px, 1fr)" : "1fr", gap: 16, alignItems: "start" }}>
         <BugTable rows={filtered} selectedId={selected?.id} onSelect={setSelected} />
-        {selected && <SidePanel row={(rows || []).find(r => r.id === selected.id) || selected} onClose={() => setSelected(null)} />}
+        {selected && <SidePanel row={(rows || []).find(r => r.id === selected.id) || selected} onClose={() => setSelected(null)} onActed={() => { reload(); setSelected(null); }} />}
       </div>
 
       {/* Footer */}
