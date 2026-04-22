@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 import Scanner from "./Scanner";
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
@@ -13,6 +13,7 @@ import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import AdminUsage from "./AdminUsage";
+import AdminBugs from "./AdminBugs";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
@@ -24,6 +25,7 @@ import PositionsTable from "./components/PositionsTable";
 import PositionEditor from "./components/PositionEditor";
 import BulkImport from "./components/BulkImport";
 import UniverseFreshness from "./components/UniverseFreshness";
+import MethodologyPage from "./pages/MethodologyPage";
 import { supabase } from "./lib/supabase";
 import { normalizeTickerName } from "./lib/nameFormat";
 import ReportBug from "./reportbug/ReportBug";
@@ -2845,6 +2847,143 @@ return(
 );
 }
 
+// ── SECTOR LAB (admin-only experimental sandbox) ─────────────────────────────
+// Isolated sibling to SectorsTab. Lives here so it can read the same module
+// globals (IND, SECTORS, FACTOR_SCORES, CONV, TREND_SIG, COMP100,
+// computeSectorScore, outlookLabel). Does NOT mutate any of them.
+// v1 contents:
+//   (1) Cycle-stage chip — PMI level + 3m change, confirmed by yield-curve slope.
+//       Anchors: ISM PMI level+momentum as coincident-cycle read; YC slope
+//       (Estrella-Mishkin 1996) as leading-growth read.
+//   (2) Mirror of the live sector ranking (read-only, same scoring, labeled LAB).
+//   (3) Debug panel — raw FACTOR_SCORES + contributing SD scores.
+// When a Lab feature is blessed, promotion = move one render line into
+// SectorsTab. Nothing here is load-bearing for any other tab.
+function detectCycleStage(){
+  const ism=IND.ism?.[6];
+  const ism3=IND.ism?.[8];
+  const yc=IND.yield_curve?.[6];
+  if(ism==null)return{label:"—",color:"var(--text-2)",desc:"PMI unavailable"};
+  const d=ism-(ism3??ism);
+  const rising=d>0.3,falling=d<-0.3;
+  const ycNote=(yc!=null)?` · YC ${yc>=0?"+":""}${yc.toFixed(0)}bps`:"";
+  if(ism>=50&&rising) return{label:"EARLY / MID EXPANSION",color:"#30d158",
+    desc:`PMI ${ism.toFixed(1)} above 50 and rising (Δ3m ${d>=0?"+":""}${d.toFixed(1)})${ycNote}`};
+  if(ism>=50&&falling)return{label:"LATE EXPANSION / SLOWDOWN",color:"#ff9f0a",
+    desc:`PMI ${ism.toFixed(1)} above 50 but falling (Δ3m ${d.toFixed(1)})${ycNote}`};
+  if(ism<50&&falling) return{label:"CONTRACTION",color:"#ff453a",
+    desc:`PMI ${ism.toFixed(1)} below 50 and still falling (Δ3m ${d.toFixed(1)})${ycNote}`};
+  if(ism<50&&rising)  return{label:"EARLY RECOVERY",color:"#64d2ff",
+    desc:`PMI ${ism.toFixed(1)} below 50 but turning up (Δ3m +${d.toFixed(1)})${ycNote}`};
+  return{label:"MIXED",color:"var(--text-2)",
+    desc:`PMI ${ism.toFixed(1)}, 3m change flat (${d>=0?"+":""}${d.toFixed(1)})${ycNote}`};
+}
+
+function SectorLab(){
+const [showDebug,setShowDebug]=useState(false);
+const cyc=detectCycleStage();
+const scored=SECTORS.map(s=>({...s,score:computeSectorScore(s)})).sort((a,b)=>b.score-a.score);
+// Factor-score rows for the debug panel (mirrors FACTOR_DISPLAY order).
+const factorRows=FACTOR_DISPLAY.map(f=>{
+  const raw=FACTOR_SCORES[f.key];
+  const contribs=(f.indIds||[]).map(id=>({id,sd:DS[id]}));
+  return{key:f.key,label:f.label,raw,contribs};
+});
+return(
+<div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:14}}>
+
+  {/* BETA banner */}
+  <div style={{background:"#ff9f0a15",border:"1px solid #ff9f0a55",borderRadius:6,padding:"8px 12px",fontSize:11,color:"#ff9f0a",fontFamily:"monospace",letterSpacing:"0.1em"}}>
+    ⚗ SECTOR LAB · EXPERIMENTAL · admin-only · read-only mirror of the live Sectors tab with prototype overlays · not wired into sector scoring
+  </div>
+
+  {/* Cycle-stage chip + existing header context */}
+  <div style={{background:"var(--surface)",border:`1px solid ${cyc.color}55`,borderRadius:8,padding:"12px 16px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+      <div>
+        <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:4}}>CYCLE STAGE · derived from ISM PMI level + 3m change · confirmed by 10Y–2Y slope</div>
+        <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+          <div style={{padding:"5px 12px",borderRadius:4,background:cyc.color+"20",border:`1px solid ${cyc.color}`,fontSize:13,fontWeight:700,color:cyc.color,fontFamily:"monospace",letterSpacing:"0.1em"}}>{cyc.label}</div>
+          <div style={{fontSize:12,color:"var(--text)",fontFamily:"monospace"}}>{cyc.desc}</div>
+        </div>
+        <div style={{fontSize:11,color:"var(--text-muted)",marginTop:8,maxWidth:560,lineHeight:1.5}}>
+          Classic four-stage business-cycle read. Expansion → Slowdown → Contraction → Recovery. ISM PMI captures coincident growth momentum; yield-curve slope confirms leading growth signal. If promoted, this chip goes in the live Sectors header.
+        </div>
+      </div>
+      <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",textAlign:"right"}}>
+        <div>COMPOSITE · {COMP100}/100 · {CONV.label}</div>
+        <div>TREND · {TREND_SIG.arrow} {TREND_SIG.label}</div>
+      </div>
+    </div>
+  </div>
+
+  {/* Debug toggle + panel */}
+  <div style={{display:"flex",alignItems:"center",gap:10}}>
+    <button onClick={()=>setShowDebug(v=>!v)}
+      style={{padding:"4px 12px",borderRadius:3,border:"1px solid var(--border)",cursor:"pointer",fontSize:11,fontFamily:"monospace",background:showDebug?"var(--accent)":"transparent",color:showDebug?"#fff":"var(--text)",fontWeight:showDebug?700:500}}>
+      {showDebug?"▾ HIDE FACTOR DEBUG":"▸ SHOW FACTOR DEBUG"}
+    </button>
+    <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>raw FACTOR_SCORES + contributing SD scores</span>
+  </div>
+  {showDebug&&(
+    <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
+      <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:8}}>FACTOR SCORES · {factorRows.length} factors</div>
+      <div style={{display:"grid",gridTemplateColumns:"140px 90px 1fr",gap:"6px 12px",fontSize:11,fontFamily:"monospace",alignItems:"center"}}>
+        <div style={{color:"var(--text-2)"}}>FACTOR</div>
+        <div style={{color:"var(--text-2)"}}>SCORE</div>
+        <div style={{color:"var(--text-2)"}}>CONTRIBUTING SD</div>
+        {factorRows.map(r=>{
+          const col=r.raw>1.2?"#ff453a":r.raw>0.5?"#ff9f0a":"#30d158";
+          return(<Fragment key={r.key}>
+            <div style={{color:"var(--text)"}}>{r.label}</div>
+            <div style={{color:col,fontWeight:700}}>{(r.raw??0).toFixed(2)}</div>
+            <div style={{color:"var(--text-2)",display:"flex",gap:8,flexWrap:"wrap"}}>
+              {r.contribs.map(c=>{
+                const sd=c.sd;
+                const c2=sd==null?"var(--text-muted)":sd>1?"#ff9f0a":sd<-1?"#30d158":"var(--text-2)";
+                return <span key={c.id} style={{color:c2}}>{c.id}:{sd==null?"—":sd.toFixed(2)}</span>;
+              })}
+            </div>
+          </Fragment>);
+        })}
+      </div>
+      <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8}}>
+        Green = low/neutral stress · Orange = elevated · Red = extreme. Same formula as FACTOR_SCORES in the live sector engine.
+      </div>
+    </div>
+  )}
+
+  {/* Mirror of live sector ranking (read-only, same logic) */}
+  <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:8}}>MIRROR · live sector ranking (read-only)</div>
+    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+      {scored.map((s,i)=>{
+        const ol=outlookLabel(s.score);
+        const barPct=Math.max(5,Math.min(100,s.score*80));
+        return(
+          <div key={s.id} style={{display:"flex",alignItems:"center",gap:8}}>
+            <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",minWidth:16,textAlign:"right"}}>{i+1}</span>
+            <span style={{fontSize:12,color:"var(--text)",fontFamily:"monospace",minWidth:160}}>{s.name}</span>
+            <div style={{flex:1,height:5,background:"var(--border)",borderRadius:2,overflow:"hidden"}}>
+              <div style={{width:`${barPct}%`,height:"100%",background:ol.color,borderRadius:2,opacity:0.8}}/>
+            </div>
+            <span style={{fontSize:11,fontWeight:700,color:ol.color,fontFamily:"monospace",minWidth:90,textAlign:"right"}}>{ol.label}</span>
+          </div>
+        );
+      })}
+    </div>
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:6}}>
+      Read-only clone of /#sectors ranking · identical scoring · not investment advice
+    </div>
+  </div>
+
+  <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",textAlign:"center"}}>
+    Sector Lab · experimental overlays · promotion path = move one render line into live Sectors header
+  </div>
+</div>
+);
+}
+
 // ── LIVE AI ANALYSIS TAB ─────────────────────────────────────────────────────
 function LiveAnalysisTab(){
 const [analysis,setAnalysis]=useState("");
@@ -3072,7 +3211,7 @@ return Object.entries(CATS).map(([catId,cat])=>{
 // hashchange listeners in App()) so existing bookmarks keep working.
 // "admin" is present in TAB_IDS so hash routing works for signed-in admins;
 // non-admins are redirected to "home" by resolveHash() below (see App()).
-const TAB_IDS=["home","overview","indicators","sectors","portopps","scanner","readme","admin"];
+const TAB_IDS=["home","overview","indicators","sectors","portopps","scanner","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
@@ -3083,6 +3222,8 @@ const TAB_META={
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
   admin:     {eyebrow:"Admin · API Usage",    title:"UW API usage",            sub:"Daily calls, quota remaining, peak RPM, and recent run history. Visible only to admins."},
+  bugs:      {eyebrow:"Admin · Bug Tracker",  title:"Bug reports",             sub:"Institutional-grade triage: every bug, its status, proposed fix, complexity, and lifecycle stamps. Admin only."},
+  lab:       {eyebrow:"Sector Lab · BETA",    title:"Sector Lab",              sub:"Experimental overlays on top of the sector engine — cycle-stage classifier, factor-debug panel, read-only ranking mirror. Admin only."},
 };
 
 // ─── Sidebar nav — single source of truth, references the TAB_IDS above ─────
@@ -3135,7 +3276,7 @@ useEffect(()=>{
 // for adminLoading to settle so the initial check doesn't bounce real admins
 // off their own tab before the is_admin() RPC resolves.
 useEffect(()=>{
-  if(tab==="admin" && !adminLoading && !isAdmin) setTab("home");
+  if(!adminLoading && !isAdmin && (tab==="admin" || tab==="bugs" || tab==="lab")) setTab("home");
 },[tab,isAdmin,adminLoading]);
 
 // ─── Navigation stack — so the drill-down back button returns to the
@@ -3429,7 +3570,10 @@ const catScores = Object.entries(CATS).map(([catId,cat])=>{
 // the existing NavIconGauge since the sidebar doesn't expose a distinct
 // shield glyph; icon semantics here are "instrument panel", which fits.
 const navItems = isAdmin
-  ? [...NAV_ITEMS, { id:"admin", label:"Admin · Usage", icon:<NavIconGauge/> }]
+  ? [...NAV_ITEMS,
+     { id:"admin", label:"Admin · Usage",     icon:<NavIconGauge/> },
+     { id:"bugs",  label:"Admin · Bugs",      icon:<NavIconGrid/>  },
+     { id:"lab",   label:"Sector Lab · BETA", icon:<NavIconHeat/>  }]
   : NAV_ITEMS;
 
 return(
@@ -4356,132 +4500,21 @@ return(<>
 {/* ADMIN · UW API USAGE — gated by useIsAdmin() above. Task #30. */}
 {tab==="admin" && <AdminUsage/>}
 
-{/* FAQ / Methodology */}
-{tab==="readme"&&(
-<div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:28}}>
+{/* ADMIN · BUGS — gated by useIsAdmin() above. Task #36. */}
+{tab==="bugs" && <AdminBugs/>}
 
-<div className="two-col-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
+{/* SECTOR LAB — admin-gated experimental sandbox for sector-engine overlays.
+    Read-only mirror of the live Sectors tab + cycle-stage chip prototype.
+    Zero changes to live SectorsTab. Promotion = move one render line. */}
+{tab==="lab" && <SectorLab/>}
 
-{/* LEFT — MACRO DASHBOARD */}
-<div style={{display:"flex",flexDirection:"column",gap:10}}>
-<div style={{fontSize:17,fontWeight:700,color:"var(--text)",marginBottom:2}}>The Macro Dashboard</div>
-<div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)"}}>METHODOLOGY & DATA SOURCES</div>
-{[
-{title:"What is the Macro Dashboard?",body:"A market stress monitor tracking statistically-calibrated economic and financial indicators synthesized into a single composite stress score (0–100). The score drives regime classification (Low / Normal / Elevated / Extreme) and allocation guidance. Data is sourced exclusively from public databases — FRED, CBOE, ICE BofA, FDIC, ISM, BLS, Shiller, NY Fed, and the St. Louis Fed."},
-{title:"What indicators are tracked and how frequently do they update?",body:"Indicators span 6 categories: Equity & Vol (VIX, EQ-Credit Correlation, SKEW Index), Credit Markets (HY-IG Spread, Corp Bond Distress Index, HY Effective Yield), Rates & Duration (10Y-2Y Slope, 10Y TIPS Real Rate, MOVE Index, Kim-Wright Term Premium), Financial Conditions (ANFCI, STLFSI, USD Index, USD Funding Spread), Bank & Money Supply (SLOOS C&I, SLOOS CRE, BKX/SPX Ratio, Bank Unrealized Losses, 3Y Credit Growth, YoY Bank Credit), Labor & Economy (ISM PMI, Copper/Gold Ratio, Initial Claims, JOLTS Quits, Shiller CAPE). Each card displays its frequency badge: D = Daily, W = Weekly, M = Monthly, Q = Quarterly."},
-{title:"How is the composite stress score calculated?",body:"Each indicator is calibrated against its own long-run mean and standard deviation (SD). The raw SD score measures how many standard deviations the current reading is from its historical average, with direction adjusted so that higher always means more stress. Scores are weighted by tier — T1 indicators (1.5x weight) are the most market-sensitive, T2 (1.2x) are important but less real-time, T3 (1.0x) provide structural context. The weighted average SD score is mapped to a 0–100 scale anchored to historical crises (GFC = 92, COVID = 82, 2022 Rate Shock = 62)."},
-{title:"What are the 4 stress regimes?",body:"LOW (0–20): Historically rare, genuinely risk-on conditions. VIX well below mean, credit spreads tight. NORMAL (20–50): Where markets spend most of their time — the baseline. Mild background stress. ELEVATED (50–75): Active risk management warranted. Sell covered calls, trim beta, rotate defensive. 2022 rate shock peaked at 62; SVB stress hit 58. EXTREME (75–100): Reserved for historical crises. COVID peaked at 82; GFC peaked at 92. Maximum defensiveness."},
-{title:"What does color mean?",body:"Color always means stress level — nothing else. Green = Low stress. Yellow = Normal. Orange = Elevated. Red = Extreme. Any time you see color on an indicator, a bar, or a chart element, it tells you exactly where that reading sits in the stress spectrum."},
-{title:"What is the trend signal?",body:"The trend signal shows the rate of change of the composite score over the prior 4 weeks. 'Rising Fast' means stress is accelerating — an early warning to start de-risking even if the level is still Normal. 'Easing' means conditions are improving. Level and direction together give a more complete picture than level alone."},
-{title:"How does the Sectors tab work?",body:"Each sector score is the average of its subsector scores. Each subsector has its own sensitivity profile across 8 macro factors (Rates, Credit, Banking, Consumer, Growth, Dollar, Valuation, CRE). The stress of each factor is computed live from the indicator data and multiplied by the subsector's sensitivity weight. Sector rankings update automatically as indicator data refreshes."},
-].map(({title,body},i)=>(
-<div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px"}}>
-<div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"monospace",marginBottom:7}}>{String(i+1).padStart(2,"0")} · {title}</div>
-<div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.85}}>{body}</div>
-</div>
-))}
-</div>
+{/* Unified Data & Methodology page — one searchable tile per upstream
+    data stream (25 macro indicators + 8 scanner signals + 3 infra streams).
+    Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
+    stack so there is one source of truth for "where does each number come
+    from, how often does it update, and what does it power?". */}
+{tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF}/>}
 
-{/* RIGHT — TRADING SCANNER */}
-<div style={{display:"flex",flexDirection:"column",gap:10}}>
-<div style={{fontSize:17,fontWeight:700,color:"var(--text)",marginBottom:2}}>The Trading Scanner</div>
-<div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)"}}>METHODOLOGY & DATA SOURCES</div>
-{[
-{title:"What is the Trading Scanner?",body:"An automated daily scan that runs at 3:30 PM ET on weekdays via GitHub Actions. It pulls signal data from Unusual Whales (options flow, dark pool, congressional trades, insider transactions) and scores every qualifying ticker on a 0–100 composite signal score. Tickers scoring 60+ are Buy-tier; 35–59 are Watch-tier."},
-{title:"What data sources does the scanner use?",body:"Unusual Whales API: real-time options flow alerts (unusual volume, large sweeps), dark pool block trades, congressional stock disclosures (within 45 days), and insider purchase filings (SEC Form 4). Yahoo Finance: current price, technicals (RSI, MACD, 50/200-day MA). The scanner does not use analyst ratings or fundamental screeners."},
-{title:"How is the signal score calculated?",body:"Each ticker is scored across 5 signal categories: Options Flow (large unusual sweeps, call-heavy activity, sweep vs. block mix), Dark Pool (size vs. average daily volume, recency), Congressional Activity (buy vs. sell, recency, position size), Insider Buying (Form 4 filings, recency, dollar value), and Technicals (RSI momentum, MACD crossover, price vs. 50/200-day MA). Each category contributes up to 20 points. Tickers must pass a price filter ($5–$500) and a market cap screen before scoring."},
-{title:"What is the Covered Call recommendation?",body:"For Buy-tier tickers, the scanner evaluates the options chain and recommends a covered call strike if conditions are met: IV Rank must be above the minimum threshold (avoids selling premium when IV is low), the strike must be at least 1 standard deviation OTM, and the annualized yield must meet the minimum return target (25% annualized). The DTE window is 14–42 days. If conditions are not met, the scanner explains specifically why (e.g., 'All bids $0 — market closed', 'Spreads too wide', 'IVR below threshold')."},
-{title:"How current is the scanner data?",body:"The scan runs once daily at 3:30 PM ET on weekdays, capturing end-of-day options flow and dark pool data. The dashboard displays the most recent scan with a timestamp. If the market is closed or the scan has not yet run today, the prior day's data is shown with a staleness notice."},
-{title:"What does the Sample Portfolio tab show?",body:"The Sample Portfolio illustrates how the macro regime maps to position-level analysis for a hypothetical set of holdings. It is for illustrative purposes only and does not represent actual account balances or real trading recommendations."},
-].map(({title,body},i)=>(
-<div key={i} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px"}}>
-<div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"monospace",marginBottom:7}}>{String(i+1).padStart(2,"0")} · {title}</div>
-<div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.85}}>{body}</div>
-</div>
-))}
-{/* DISCLAIMER */}
-<div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px",marginTop:4}}>
-<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>DISCLAIMER</div>
-<div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.75}}>This dashboard is for informational and educational purposes only. It is not financial advice, investment advice, or a solicitation to buy or sell any security. All data is sourced from public databases and may have errors or delays. Past relationships between indicators and market outcomes do not guarantee future results.</div>
-</div>
-</div>
-
-</div>{/* close two-col-grid */}
-
-{/* ─── INDICATOR REFERENCE ─────────────────────────────────────────────── */}
-{/* Auto-rendered from IND[id][12] so the canonical 4-element description  */}
-{/* (definition · formula · source + series ID · MacroTilt treatment) is    */}
-{/* available at a stable URL, not only via the InfoTip hover. Item 21.    */}
-<div>
-<div style={{fontSize:17,fontWeight:700,color:"var(--text)",marginBottom:2}}>Indicator Reference</div>
-<div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)",marginBottom:12}}>25 CALIBRATED INDICATORS · BY CATEGORY</div>
-{["equity","credit","rates","fincond","bank","labor"].map(catId=>{
-const cat=CATS[catId];
-const ids=Object.keys(IND).filter(id=>IND[id][2]===catId);
-if(!ids.length)return null;
-return(
-<div key={catId} style={{marginBottom:18}}>
-<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
-<div style={{width:10,height:10,borderRadius:2,background:cat.color}}/>
-<div style={{fontSize:12,fontFamily:"monospace",letterSpacing:"0.12em",color:"var(--text)",fontWeight:700}}>{cat.label.toUpperCase()}</div>
-<div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace"}}>· {ids.length} indicator{ids.length===1?"":"s"}</div>
-</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(340px, 1fr))",gap:10}}>
-{ids.map(id=>{
-const rec=IND[id];
-const shortLabel=rec[0],longLabel=rec[1],tier=rec[3],desc=rec[12]||"—";
-const freq=IND_FREQ[id]||"D";
-const freqLabel={D:"Daily",W:"Weekly",M:"Monthly",Q:"Quarterly"}[freq]||freq;
-return(
-<div key={id} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px"}}>
-<div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:4}}>
-<div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"monospace"}}>{shortLabel}</div>
-<div style={{fontSize:9,color:cat.color,fontFamily:"monospace",letterSpacing:"0.08em",fontWeight:700}}>T{tier} · {freqLabel.toUpperCase()}</div>
-</div>
-<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:8}}>{longLabel}</div>
-<div style={{fontSize:12,color:"var(--text-2)",lineHeight:1.7}}>{desc}</div>
-</div>
-);})}
-</div>
-</div>
-);})}
-</div>
-
-{/* ─── DATA FRESHNESS & CADENCE ────────────────────────────────────────── */}
-{/* Extends the Task #24 DataFreshness chip pattern to per-indicator detail. */}
-{/* Reads IND_FREQ (reporting cadence) and AS_OF (latest data point).       */}
-<div>
-<div style={{fontSize:17,fontWeight:700,color:"var(--text)",marginBottom:2}}>Data Freshness & Cadence</div>
-<div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)",marginBottom:12}}>WHEN EACH INDICATOR LAST UPDATED · BY REPORTING FREQUENCY</div>
-<div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,overflow:"hidden"}}>
-<div style={{display:"grid",gridTemplateColumns:"minmax(140px,1.2fr) 80px 90px minmax(160px,1.4fr) minmax(100px,1fr)",gap:0,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",color:"var(--text-dim)",fontWeight:700,padding:"10px 14px",borderBottom:"1px solid var(--border)",background:"var(--surface-2)"}}>
-<div>INDICATOR</div><div>CATEGORY</div><div>FREQUENCY</div><div>LATEST DATA</div><div>TIER</div>
-</div>
-{["D","W","M","Q"].flatMap(f=>Object.keys(IND).filter(id=>(IND_FREQ[id]||"D")===f)).map((id,i)=>{
-const rec=IND[id];
-const cat=CATS[rec[2]];
-const freq=IND_FREQ[id]||"D";
-const freqLabel={D:"Daily",W:"Weekly",M:"Monthly",Q:"Quarterly"}[freq]||freq;
-return(
-<div key={id} style={{display:"grid",gridTemplateColumns:"minmax(140px,1.2fr) 80px 90px minmax(160px,1.4fr) minmax(100px,1fr)",gap:0,fontSize:12,padding:"9px 14px",borderBottom:"1px solid var(--border)",alignItems:"center"}}>
-<div style={{fontFamily:"monospace",color:"var(--text)",fontWeight:600}}>{rec[0]}</div>
-<div style={{display:"flex",alignItems:"center",gap:5}}>
-<div style={{width:8,height:8,borderRadius:2,background:cat?.color||"var(--text-dim)"}}/>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace"}}>{cat?.label||"—"}</span>
-</div>
-<div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace"}}>{freqLabel}</div>
-<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>{AS_OF[id]||"—"}</div>
-<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace"}}>T{rec[3]}</div>
-</div>
-);})}
-</div>
-<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8,lineHeight:1.6}}>
-Daily series update every US trading day; weekly series release on their native day (ICSA: Thursdays; ANFCI/STLFSI/H.8: Wednesdays); monthly series release on a fixed calendar day (ISM PMI: first business day; CAPE: month close). Quarterly series (SLOOS, FDIC Bank Unrealized Losses) trail by 30–60 days. Price + flow freshness chips on the home page show the rolling age of the live scanner caches.
-</div>
-</div>
-
-</div>
-)}
 
 {/* close fade-in wrapper around tab content */}
 </div>
