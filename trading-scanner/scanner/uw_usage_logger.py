@@ -6,7 +6,8 @@ Every scheduled scanner run should answer "how much of the UW daily budget
 did I burn?" and "did I ever get close to the per-minute ceiling?". This
 utility wraps the UW HTTP client with bookkeeping that:
 
-  - Captures X-RateLimit-Remaining / -Limit / -Reset headers on every call
+  - Captures UW's x-uw-* rate-limit headers on every call (UW does NOT
+    send the standard X-RateLimit-* family — see _record_call below)
   - Counts calls per (source, endpoint)
   - Tracks peak RPM by bucketing timestamps into 60-second windows
   - Flushes one row per (run_id, source) to public.api_usage_log at exit
@@ -94,9 +95,12 @@ class UWUsageLogger:
 
         self.calls: list[tuple[float, str, int]] = []  # (monotonic_ts, endpoint, status_code)
         self.endpoint_counts: dict[str, int] = {}
-        self.last_remaining: int | None = None
-        self.last_limit: int | None = None
-        self.last_reset_epoch: int | None = None
+        self.last_remaining: int | None = None     # daily calls remaining (limit - count)
+        self.last_limit: int | None = None         # daily call ceiling (x-uw-token-req-limit)
+        self.last_daily_count: int | None = None   # cumulative daily calls so far
+        self.last_minute_counter: int | None = None
+        self.last_minute_remaining: int | None = None
+        self.last_reset_epoch: int | None = None   # seconds until per-minute window resets
         self.errors: list[dict[str, Any]] = []
 
     # ------------------------------------------------------------------
@@ -182,15 +186,32 @@ class UWUsageLogger:
         self.calls.append((time.monotonic(), path, resp.status_code))
         self.endpoint_counts[path] = self.endpoint_counts.get(path, 0) + 1
 
-        # UW uses standard X-RateLimit-* headers. Take the latest values —
-        # the final call's residual is what we'd quote to the user.
-        rem = _coerce_int_header(resp.headers.get("X-RateLimit-Remaining"))
-        lim = _coerce_int_header(resp.headers.get("X-RateLimit-Limit"))
-        reset = _coerce_int_header(resp.headers.get("X-RateLimit-Reset"))
-        if rem is not None:
-            self.last_remaining = rem
+        # UW uses its own x-uw-* header family, not the standard
+        # X-RateLimit-* headers. Observed set (confirmed 2026-04-21):
+        #   x-uw-token-req-limit           — daily ceiling (e.g. 20000)
+        #   x-uw-daily-req-count           — cumulative calls so far today
+        #   x-uw-minute-req-counter        — calls in current minute
+        #   x-uw-req-per-minute-remaining  — minute budget remaining
+        #   x-uw-req-per-minute-reset      — seconds until minute window resets
+        h = resp.headers
+        lim = _coerce_int_header(h.get("x-uw-token-req-limit"))
+        daily_count = _coerce_int_header(h.get("x-uw-daily-req-count"))
+        minute_count = _coerce_int_header(h.get("x-uw-minute-req-counter"))
+        minute_remaining = _coerce_int_header(h.get("x-uw-req-per-minute-remaining"))
+        reset = _coerce_int_header(h.get("x-uw-req-per-minute-reset"))
+
         if lim is not None:
             self.last_limit = lim
+        if daily_count is not None:
+            self.last_daily_count = daily_count
+            # Derive remaining budget — UW doesn't send it directly, but
+            # (limit - count) is what "remaining_daily" means everywhere else.
+            if self.last_limit is not None:
+                self.last_remaining = max(self.last_limit - daily_count, 0)
+        if minute_count is not None:
+            self.last_minute_counter = minute_count
+        if minute_remaining is not None:
+            self.last_minute_remaining = minute_remaining
         if reset is not None:
             self.last_reset_epoch = reset
 
@@ -244,9 +265,12 @@ class UWUsageLogger:
             "duration_seconds":  round(duration, 2) if duration is not None else None,
             "status":            self.status,
             "notes": {
-                "endpoint_counts": self.endpoint_counts,
-                "reset_epoch":     self.last_reset_epoch,
-                "errors":          self.errors[:20],  # cap to keep jsonb tidy
+                "endpoint_counts":        self.endpoint_counts,
+                "daily_count":            self.last_daily_count,
+                "minute_counter":         self.last_minute_counter,
+                "minute_remaining":       self.last_minute_remaining,
+                "minute_reset_seconds":   self.last_reset_epoch,
+                "errors":                 self.errors[:20],  # cap to keep jsonb tidy
             },
         }
         client = create_client(url, key)

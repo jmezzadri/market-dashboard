@@ -7,23 +7,21 @@ congressional trades, and dark pool prints now refresh on the same
 
 Architecture
 ------------
-Firehose-then-filter. For sources that UW exposes as a market-wide feed
-(news headlines, congress trades, dark pool prints), we pull a single
-paginated feed and filter to the universe ticker set client-side. For
-insider trades (UW's recent-insider-trades feed is sparse), we fan out
-per-ticker but only for the "tracked" set (union of all users'
-positions + watchlist tickers) — a much smaller set than the universe,
-keeping us inside the 120/min per-user ceiling.
+Firehose-then-filter. All four sources (news headlines, congress trades,
+dark pool prints, insider transactions) are pulled from UW's market-wide
+feeds and filtered to the universe ticker set client-side. This keeps
+the call budget flat regardless of universe size and well inside the
+120/min per-user ceiling.
 
 Rate budget per run (estimated)
 -------------------------------
-    news firehose      : ~10 calls (paginated)
+    news firehose      : ~10 calls (paginated, max 100/page)
     congress firehose  : ~3  calls
-    darkpool firehose  : ~5  calls
-    insider per-ticker : ~50 calls (tracked set, not universe)
+    darkpool firehose  : ~10 calls
+    insider firehose   : ~5  calls
     ----------------------------------------------------------
-    total              : ~70 calls / run × 3 runs/day = ~210/day
-    UW Basic ceiling   : 20,000/day → ~1% of budget
+    total              : ~28 calls / run × 3 runs/day = ~85/day
+    UW Basic ceiling   : 20,000/day → <1% of budget
 
 Deduplication
 -------------
@@ -40,7 +38,7 @@ Environment
 
 Entry point
 -----------
-    run_ticker_events(*, dry_run=False, tracked_tickers=None) -> dict
+    run_ticker_events(*, dry_run=False) -> dict
 """
 
 from __future__ import annotations
@@ -68,12 +66,14 @@ logger = logging.getLogger(__name__)
 ENDPOINT_NEWS      = "/api/news/headlines"
 ENDPOINT_CONGRESS  = "/api/congress/recent-trades"
 ENDPOINT_DARKPOOL  = "/api/darkpool/recent"
-ENDPOINT_INSIDER_PER_TICKER = "/api/stock/{ticker}/insider-trades"
+ENDPOINT_INSIDER   = "/api/insider/transactions"
 
-# Page size caps (UW usually caps at 500; news caps at 100).
+# Page size caps. UW enforces `limit < 200` on every paginated endpoint
+# tested — requesting 500 returns 422 "Invalid limit". News caps at 100
+# server-side, so 100 is our uniform page size.
 PAGE_LIMIT_NEWS      = 100
-PAGE_LIMIT_CONGRESS  = 500
-PAGE_LIMIT_DARKPOOL  = 500
+PAGE_LIMIT_CONGRESS  = 100
+PAGE_LIMIT_DARKPOOL  = 100
 PAGE_LIMIT_INSIDER   = 100
 
 # Lookback window — only ingest events within this many hours of "now".
@@ -84,7 +84,7 @@ LOOKBACK_HOURS = 6
 MAX_NEWS_PAGES        = 5
 MAX_CONGRESS_PAGES    = 3
 MAX_DARKPOOL_PAGES    = 10  # dark pool prints are high-volume; allow more pagination
-MAX_INSIDER_PER_RUN   = 200  # hard cap on per-ticker fetches per run
+MAX_INSIDER_PAGES     = 5
 
 UPSERT_BATCH_SIZE = 500
 
@@ -417,45 +417,47 @@ def ingest_darkpool(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID)
 
 
 # ---------------------------------------------------------------------------
-# Source: insider (per-ticker for tracked set only)
+# Source: insider (market-wide firehose, filter to universe)
 # ---------------------------------------------------------------------------
 
-def ingest_insider(
-    usage: UWUsageLogger,
-    tracked: set[str],
-    run_id: uuid.UUID,
-) -> list[dict[str, Any]]:
-    """Per-ticker insider-trade fetch for the tracked set.
+def ingest_insider(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> list[dict[str, Any]]:
+    """Pull UW /api/insider/transactions firehose, filter to universe.
 
-    Capped at MAX_INSIDER_PER_RUN to stay well inside the per-minute limit.
+    The per-ticker path /api/stock/{ticker}/insider-trades 404s — the only
+    live endpoint is the market-wide feed, so insider uses the same
+    firehose-then-filter pattern as news/congress/darkpool.
     """
     rows: list[dict[str, Any]] = []
-    tickers = list(tracked)[:MAX_INSIDER_PER_RUN]
-    for T in tickers:
-        path = ENDPOINT_INSIDER_PER_TICKER.format(ticker=T)
-        try:
-            resp = usage.get(path, params={"limit": PAGE_LIMIT_INSIDER})
-        except Exception as exc:
-            logger.warning("ticker_events insider: %s failed: %s", T, exc)
-            continue
+    page = 0
+    while page < MAX_INSIDER_PAGES:
+        resp = usage.get(ENDPOINT_INSIDER, params={"limit": PAGE_LIMIT_INSIDER, "page": page})
         if not resp.ok:
-            # 404 for a ticker with no insider activity is normal — skip quietly.
-            continue
+            logger.warning("ticker_events insider: %s on page %d — stopping", resp.status_code, page)
+            break
         body = resp.json()
         items = body.get("data") if isinstance(body, dict) else body
         if not items:
-            continue
+            break
         for item in items:
-            event_ts = _parse_ts(item.get("filing_date") or item.get("transaction_date"))
+            T = str(item.get("ticker") or item.get("symbol") or "").upper()
+            if not T:
+                continue
+            if universe and T not in universe:
+                continue
+            event_ts = _parse_ts(
+                item.get("filing_date")
+                or item.get("transaction_date")
+                or item.get("date")
+            )
             if not _within_lookback(event_ts):
                 continue
             dedup = _stable_hash(
                 "insider",
                 T,
                 event_ts,
-                item.get("insider_name") or item.get("name"),
+                item.get("owner_name") or item.get("insider_name") or item.get("name"),
                 item.get("transaction_type") or item.get("transaction_code"),
-                item.get("shares"),
+                item.get("amount") or item.get("shares"),
                 item.get("price"),
             )
             rows.append({
@@ -465,18 +467,25 @@ def ingest_insider(
                 "run_id":    str(run_id),
                 "dedup_key": dedup,
                 "payload": {
-                    "insider_name":     item.get("insider_name") or item.get("name"),
+                    "owner_name":       item.get("owner_name") or item.get("insider_name") or item.get("name"),
                     "title":            item.get("title") or item.get("relationship"),
+                    "is_director":      item.get("is_director"),
+                    "is_officer":       item.get("is_officer"),
+                    "is_ten_percent":   item.get("is_ten_percent_owner") or item.get("is_ten_percent"),
                     "transaction_type": item.get("transaction_type") or item.get("transaction_code"),
-                    "shares":           item.get("shares"),
+                    "amount":           item.get("amount") or item.get("shares"),
+                    "transactions":     item.get("transactions"),
                     "price":            item.get("price"),
                     "value":            item.get("value") or item.get("total_value"),
-                    "shares_owned_after": item.get("shares_owned_after"),
                     "filing_date":      item.get("filing_date"),
                     "transaction_date": item.get("transaction_date"),
                 },
             })
-    logger.info("ticker_events insider: %d rows emitted across %d tracked tickers", len(rows), len(tickers))
+        if len(items) < PAGE_LIMIT_INSIDER:
+            break
+        page += 1
+
+    logger.info("ticker_events insider: %d rows emitted across %d pages", len(rows), page + 1)
     return rows
 
 
@@ -517,7 +526,6 @@ def run_ticker_events(*, dry_run: bool = False) -> dict[str, Any]:
 
     client = _get_supabase_client()
     universe = _load_universe_tickers(client)
-    tracked = _load_tracked_tickers(client)
 
     all_rows: list[dict[str, Any]] = []
     per_source_counts: dict[str, int] = {}
@@ -527,7 +535,7 @@ def run_ticker_events(*, dry_run: bool = False) -> dict[str, Any]:
             ("news",     ingest_news,     (universe,)),
             ("congress", ingest_congress, (universe,)),
             ("darkpool", ingest_darkpool, (universe,)),
-            ("insider",  ingest_insider,  (tracked,)),
+            ("insider",  ingest_insider,  (universe,)),
         ]:
             try:
                 src_rows = fn(usage, *args, run_id)
@@ -554,7 +562,6 @@ def run_ticker_events(*, dry_run: bool = False) -> dict[str, Any]:
         "remaining_daily":     usage.last_remaining,
         "peak_rpm":            usage._peak_rpm(),
         "universe_size":       len(universe),
-        "tracked_size":        len(tracked),
         "duration_seconds":    round(duration, 2),
         "status":              usage.status,
         "dry_run":             dry_run,
