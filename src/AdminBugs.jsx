@@ -16,6 +16,7 @@ import { supabase } from "./lib/supabase";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import { useBugReports, useBugStatusLog } from "./hooks/useBugReports";
 import { useBugActions } from "./hooks/useBugActions";
+import WorkflowTimeline from "./components/WorkflowTimeline";
 
 // ── Status model (migration 013) ───────────────────────────────────────────
 // Main pipeline: new → triaged → awaiting_approval → approved → merged
@@ -406,12 +407,37 @@ function actionBtnStyle(tone, disabled) {
   return { ...base, background: "transparent", color: "var(--text-2)", border: "1px solid var(--border)" };
 }
 
+// Lightweight blocker fetch — resolves each uuid in row.blocked_by into a
+// { id, report_number, status, title } row so the WorkflowTimeline can
+// render the blocker banner with clickable detail. One query per panel
+// open, cached in component state. RLS already gates bug_reports read.
+function useBlockerRows(ids) {
+  const [rows, setRows] = useState([]);
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      if (!Array.isArray(ids) || ids.length === 0) { setRows([]); return; }
+      const { data, error } = await supabase
+        .from("bug_reports")
+        .select("id, report_number, status, title")
+        .in("id", ids);
+      if (!cancelled && !error && data) setRows(data);
+    })();
+    return () => { cancelled = true; };
+  // blocked_by is a stable array reference at the row level; JSON-stringify
+  // to avoid re-fetching on reference-only changes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(ids || [])]);
+  return rows;
+}
+
 // ── Side panel ────────────────────────────────────────────────────────────
 function SidePanel({ row, onClose, onActed }) {
   const actions = useBugActions();
+  const blockers = useBlockerRows(row?.blocked_by);
   if (!row) return null;
-  const pr = row.merged_pr || row.fixed_pr;
-  const branch = row.branch_name || row.triage_branch;
+  // PR + branch are now rendered inside the WorkflowTimeline's "Merged"
+  // stage body, so we don't destructure them here anymore.
   const isAwaitingApproval = normStatus(row.status) === "awaiting_approval";
 
   // Run an action then refresh the parent list + clear selection.
@@ -438,6 +464,11 @@ function SidePanel({ row, onClose, onActed }) {
         <MetaField label="Reporter" value={row.reporter_name || row.reporter_email || "—"} />
         <MetaField label="Where" value={whereText(row)} mono />
       </div>
+
+      {/* Workflow timeline — 7-stage lifecycle with owner + SLA per stage.
+          Sits above the action row so whoever opens the panel sees at a
+          glance who owns the next step and whether it's within SLA. */}
+      <WorkflowTimeline row={row} blockers={blockers} />
 
       {/* Proposed Fix — prominent for awaiting_approval; plain section otherwise */}
       {isAwaitingApproval ? (
@@ -497,25 +528,18 @@ function SidePanel({ row, onClose, onActed }) {
         </Section>
       )}
 
-      {/* Pipeline timestamps */}
-      <Section title="Lifecycle">
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", rowGap: 4, columnGap: 14, fontSize: 12 }}>
-          <StampRow label="Filed"       iso={row.created_at} />
-          <StampRow label="Ack email"   iso={row.ack_email_sent_at} />
-          <StampRow label="Last triaged" iso={row.last_triaged_at} />
-          <StampRow label="Approved"    iso={row.approved_at} />
-          <StampRow label="Merged"      iso={row.merged_at || row.fixed_at} />
-          <StampRow label="Deployed"    iso={row.deployed_at} />
-          <StampRow label="Verified"    iso={row.verified_at || row.resolved_at} />
-          <StampRow label="Resurface at" iso={row.resurface_at} />
-        </div>
-        {(pr || branch) && (
-          <div style={{ marginTop: 8, fontSize: 12, color: "var(--text-muted)", fontFamily: "monospace" }}>
-            {pr && <span>PR #{pr}{row.merged_sha || row.fixed_sha ? ` · ${(row.merged_sha || row.fixed_sha).slice(0,7)}` : ""} · </span>}
-            {branch && <span>branch: {branch}</span>}
+      {/* Lifecycle housekeeping — the WorkflowTimeline above owns the main
+          stage stamps + PR/branch. This block only surfaces the two
+          infrequent stamps (ack-email, resurface) that don't map to a
+          pipeline stage, and only when at least one is populated. */}
+      {(row.ack_email_sent_at || row.resurface_at) && (
+        <Section title="Housekeeping">
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0,1fr))", rowGap: 4, columnGap: 14, fontSize: 12 }}>
+            {row.ack_email_sent_at && <StampRow label="Ack email"    iso={row.ack_email_sent_at} />}
+            {row.resurface_at     && <StampRow label="Resurface at" iso={row.resurface_at} />}
           </div>
-        )}
-      </Section>
+        </Section>
+      )}
 
       {/* Console errors */}
       {Array.isArray(row.console_errors) && row.console_errors.length > 0 && (
