@@ -9,6 +9,7 @@ import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
+import { useTickerEvents } from "./hooks/useTickerEvents";
 import SubCompositeStrip from "./components/SubCompositeStrip";
 import UniverseFreshness from "./components/UniverseFreshness";
 import { normalizeTickerName } from "./lib/nameFormat";
@@ -1376,6 +1377,11 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   // so universe values win on overlapping fields while private fills the gaps
   // universe doesn't cover (technicals_json, analyst_ratings, news).
   const { mergeInto: mergeUniverseSnapshot } = useUniverseSnapshot();
+  // 3x-weekday ticker events — news / insider / congress / darkpool stream
+  // grouped per-ticker. Layers AFTER the private supplement so it writes to a
+  // new `signals.events` subtree without colliding with the screener overlay.
+  // See hooks/useTickerEvents.js for the filter-by-purpose rationale.
+  const { mergeInto: mergeTickerEvents } = useTickerEvents();
   const isSignedIn = Boolean(session?.user?.id);
 
   // Flatten user accounts → distinct ticker list for the Technicals overlay.
@@ -1428,8 +1434,9 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
     if (!rawData) return rawData;
     let x = mergeUniverseSnapshot(rawData);
     x = mergePrivateScan(x);
+    x = mergeTickerEvents(x);
     return x;
-  }, [rawData, mergeUniverseSnapshot, mergePrivateScan]);
+  }, [rawData, mergeUniverseSnapshot, mergePrivateScan, mergeTickerEvents]);
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: 60, color: C.dim, fontFamily: "monospace", fontSize: 13 }}>
