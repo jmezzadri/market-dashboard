@@ -2082,7 +2082,7 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
   return(
   <div key={acct.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid var(--border-faint)",fontSize:12,fontFamily:"var(--font-mono)",gap:8,flexWrap:"wrap"}}>
   <span style={{color:"var(--text)"}}>{acct.label}</span>
-  <span style={{color:"var(--text-muted)"}}>{p.quantity.toLocaleString()} sh · cost {fmt$(p.avgCost)}</span>
+  <span style={{color:"var(--text-muted)"}}>{p.quantity.toLocaleString()} qty · cost {fmt$(p.avgCost)}</span>
   <span style={{color:"var(--text)",fontWeight:700}}>{fmt$(p.value)}</span>
   {pnlPct!=null&&<span style={{color:col,fontWeight:600}}>{pnlPct>=0?"+":""}{pnlPct.toFixed(1)}%</span>}
   </div>
