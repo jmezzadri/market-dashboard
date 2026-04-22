@@ -120,61 +120,61 @@ jolts_quits:"Feb 01 2026",
 
 const IND={
 vix:["VIX","Equity Volatility","equity",1,"index",1,17.9,23.9,17.2,19.5,15.0,false,
-"The CBOE Volatility Index measures expected 30-day S&P 500 volatility from live options prices. Known as the 'fear gauge' — higher = more fear, lower = calm.",
+"CBOE Volatility Index — 30-day expected S&P 500 volatility, often called the 'fear gauge'. Derived model-free from a weighted strip of OTM SPX puts and calls via variance-swap replication. Source: FRED VIXCLS (CBOE, daily). MacroTilt Tier 1 equity factor; <15 complacent, 15–20 normal, 20–30 elevated, >30 crisis.",
 "Modestly below the long-run average (~19.5) and down meaningfully from 23.9 a month ago. Stress is fading. Watch for a sustained break above 30 (stress threshold) or 40 (crisis level)."],
 hy_ig:["HY–IG Spread","Credit Risk Premium","credit",1,"bps",0,205.0,268,245,280,220,false,
-"Spread between ICE BofA High Yield and Investment Grade bond yields. Measures extra return investors demand for credit risk.",
+"High-yield minus investment-grade credit spread — extra yield investors demand for corporate credit risk. Computed as ICE BofA HY Effective Yield minus ICE BofA IG Effective Yield. Source: FRED BAMLH0A0HYM2EY − BAMLC0A0CMEY (ICE BofA, daily, FRED license). MacroTilt Tier 1 credit factor; <200bps benign, 200–400 watch, >400 significant stress, >500 historically recessionary.",
 "Spreads have tightened ~55bps over the past month — markets not pricing significant default risk. Below 200bps = benign; above 400bps = significant stress."],
 eq_cr_corr:["EQ–Credit Corr","Risk-Off Synchronization","equity",1,"corr",2,0.92,0.61,0.55,0.50,0.40,false,
-"63-day rolling correlation between VIX and HY-IG spreads. When both move together, it signals a genuine risk-off regime rather than isolated noise.",
+"63-day rolling Pearson correlation between daily VIX returns and daily HY–IG spread changes. When both move together, equities and credit are trading as a single risk factor. Source: computed from FRED VIXCLS + BAMLH0A0HYM2 + BAMLC0A0CM. MacroTilt Tier 1 equity factor; >0.6 confirms a genuine risk-off regime, <0.4 signals isolated noise.",
 "Sharp jump in correlation — equities and credit are now moving as a single risk factor. Values above 0.6 indicate a true risk-off regime; this is a warning sign."],
 yield_curve:["10Y–2Y Slope","Yield Curve","rates",1,"bps",0,54.0,52,35,15,-20,false,
-"Difference between 10-year and 2-year Treasury yields. Inversion historically precedes recessions by 6–18 months.",
+"Slope of the Treasury yield curve at the 2y–10y point. Computed as DGS10 − DGS2 (constant-maturity par yields). Source: FRED T10Y2Y (daily). MacroTilt Tier 1 rates factor; inversion (<0) historically precedes recessions by 6–18 months, though bear steepening (long-end selling off) can invert the signal.",
 "Re-steepened after the deepest inversion since 1981 (-109bps in 2023). An improving signal, though bear steepening (long-end selling off) would be the wrong kind."],
 move:["MOVE Index","Rates Volatility","rates",2,"index",0,66.0,98,95,90,85,false,
-"Merrill Lynch Option Volatility Estimate: implied volatility of Treasury yields. The bond market's VIX.",
+"ICE BofA MOVE Index — the Treasury-market VIX. Weighted 1-month ATM OTC swaption implied volatility across 2y/5y/10y/30y tenors (20/20/40/20 weights). Source: ICE BofA proprietary (ticker MOVE on Bloomberg; also Reuters/TradingView). MacroTilt Tier 2 rates factor; <80 normal, 80–120 elevated, >120 bond-market stress (SVB peak 198).",
 "Rates volatility has eased substantially from 98 a month ago. Now near the pre-2022 average of ~65 — borrowing-cost uncertainty has receded."],
 anfci:["ANFCI","Chicago Fed Fin. Conditions","fincond",2,"z-score",2,-0.47,0.08,0.06,0.04,-0.05,false,
-"Adjusted National Financial Conditions Index: composite of 105 indicators isolating pure financial stress.",
+"Adjusted National Financial Conditions Index — Chicago Fed composite of 105 financial indicators (credit, equity, money-market, leverage) with business-cycle effects regressed out. Standard-deviation units. Source: FRED ANFCI (weekly, released Wednesdays). MacroTilt Tier 2 fincond factor; >0 = tighter than economy warrants, <0 = looser. Leads real activity by 1–2 quarters.",
 "Conditions have loosened sharply — among the most accommodative readings outside crisis-response periods. Negative = looser than the economy warrants."],
 stlfsi:["STLFSI","St. Louis Fed Stress Index","fincond",2,"index",2,-0.65,0.22,0.18,0.12,-0.10,false,
-"St. Louis Fed Financial Stress Index: 18 weekly data series. Zero = historical average stress.",
+"St. Louis Fed Financial Stress Index — principal-component composite of 18 weekly stress series (yields, spreads, equity vol). Zero = historical average stress. Source: FRED STLFSI4 (weekly). MacroTilt Tier 2 fincond factor; >1.0 concerning, >2.5 crisis, <0 benign. More volatile and less smoothed than ANFCI.",
 "Stress has receded to below-average levels. A sustained move above 1.0 would be concerning."],
 real_rates:["10Y TIPS","Real Interest Rates","rates",2,"%",2,1.9,1.90,1.75,1.85,1.50,false,
-"10-year TIPS yield — the real after-inflation rate. Represents the true cost of long-term borrowing.",
+"10-year constant-maturity TIPS yield — market-implied real (after-inflation) cost of long-term borrowing. Source: FRED DFII10 (US Treasury, daily). MacroTilt Tier 2 rates factor; historical average ~0.5%, >1.5% restrictive (compresses equity valuations, especially growth), sub-zero indicates financial repression.",
 "Restrictive (historical avg ~0.5%). Compresses equity valuations especially growth stocks. Slow-moving — has held in this range for months."],
 sloos_ci:["SLOOS C&I","Business Lending Standards","bank",2,"%",1,5.3,9.8,8.0,6.0,2.0,false,
-"Senior Loan Officer Opinion Survey: net % of banks tightening C&I loan standards.",
+"Senior Loan Officer Opinion Survey (Fed) — net % of banks reporting tighter Commercial & Industrial loan standards. Quarterly survey of ~75 domestic banks; metric = (% tightening) − (% easing). Source: FRED DRTSCILM (large/mid firms). MacroTilt Tier 2 bank factor; leads credit events 1–2 quarters. GFC peak 84%, >10% historical tightening signal, <0 = net easing.",
 "Net tightening has eased meaningfully from 9.8% a quarter ago. Well below crisis levels (GFC: 84%). Historically leads credit events by 1–2 quarters."],
 cape:["Shiller CAPE","Cyclically Adj. P/E Ratio","equity",2,"ratio",1,34.2,35.1,33.8,31.5,29.8,true,
-"S&P 500 price divided by 10-year average real earnings. Historical average ~17.",
+"Shiller Cyclically Adjusted P/E — S&P 500 price divided by 10-year trailing inflation-adjusted earnings, smoothing cyclical earnings volatility. Source: Robert Shiller dataset (shillerdata.com, monthly). MacroTilt Tier 2 equity valuation factor; long-run mean ~17, >25 rich, >30 very rich (1929, 2000, 2021, current). Weak short-term timing tool, strong 10-year forward-return predictor.",
 "Elevated valuation — only exceeded in 1929 and the dot-com peak. Does not predict timing but predicts poor 10-year forward returns."],
 ism:["ISM Mfg. PMI","Manufacturing Activity Index","labor",2,"index",1,52.7,52.4,52.6,49.8,47.9,true,
-"ISM Manufacturing PMI: above 50 = expansion; below 50 = contraction.",
+"ISM Manufacturing Purchasing Managers Index — diffusion index of 5 subcomponents (New Orders, Production, Employment, Supplier Deliveries, Inventories), each 20%-weighted; >50 = expansion, <50 = contraction. Source: Institute for Supply Management (monthly, first business day). MacroTilt Tier 2 growth factor; <45 has preceded every recession since 1970 except 1967, 50–55 neutral growth, >55 strong cyclical upturn.",
 "Manufacturing in expansion territory and inflecting higher after a soft 2H 2025. A reading sustained above 52 would confirm a real cyclical upturn."],
 copper_gold:["Copper/Gold Ratio","Real Economy vs. Safe Haven","labor",2,"ratio",3,0.126,0.098,0.108,0.112,0.152,true,
-"Ratio of copper to gold futures. A falling ratio signals growth pessimism and risk-off sentiment.",
+"Ratio of front-month COMEX copper futures to COMEX gold futures. Copper is a growth-sensitive industrial metal; gold is a safe-haven store of value — the ratio captures real-economy risk appetite. Source: CME Group (HG1, GC1; daily). MacroTilt Tier 2 growth factor; historical mean ~0.20, falling ratio signals growth pessimism, rising indicates cyclical recovery.",
 "At 0.126, ratio sits ~37% below its 0.20 historical mean — persistent safe-haven gold demand continues to overshadow copper. Ratio dipped to ~0.098 a month ago before copper's rally toward $6/lb drove a partial rebound. A sustained move back toward 0.15+ would signal improving growth confidence."],
 bkx_spx:["BKX/SPX Ratio","Bank vs. Market Strength","bank",2,"ratio",3,0.09,0.086,0.103,0.097,0.090,true,
-"KBW Bank Index divided by S&P 500. Bank weakness often signals coming broader stress.",
+"KBW Bank Index relative to S&P 500 — measures whether banks are leading or lagging the broad market. Source: Nasdaq (KBE ETF) and S&P Dow Jones Indices (SPX/SPY), daily. MacroTilt Tier 2 bank factor; banks have traded at a persistent structural discount since the GFC. Sharp breakdown precedes banking-sector stress — SVB collapse (March 2023) was preceded by a BKX/SPX breakdown.",
 "KBE/SPY near 0.09, up from ~0.086 a month ago as banks rallied in early April. Ratio sits ~30% below its historical mean of 0.13 — banks continue to trade at a persistent structural discount to the broader market. A sustained drop below 0.08 would echo SVB-era stress (March 2023)."],
 bank_unreal:["Bank Unreal. Loss","AFS+HTM Losses / Tier 1","bank",2,"% T1",1,19.9,19.5,20.8,22.1,18.5,true,
-"Aggregate unrealized securities losses at FDIC-insured banks as % of Tier 1 regulatory capital.",
+"Aggregate unrealized securities losses at FDIC-insured banks (AFS + HTM portfolios) expressed as % of Tier 1 regulatory capital. Source: FDIC Quarterly Banking Profile (Call Reports, RCON4223 + RCON1350, ~60-day lag). MacroTilt Tier 2 bank factor; SVB was at 104% before failure. Aggregate >20% indicates persistent rate-risk pressure with no margin for duration mismatches.",
 "Aggregate unrealized losses remain near recent highs (~$481B). SVB was at 104% before failure. No margin for error if long rates back up."],
 credit_3y:["3Y Credit Growth","3-Year Bank Credit Expansion","bank",2,"% 3yr",1,4.5,11.8,12.5,13.2,12.8,true,
-"Total bank credit growth over the prior 3 years. Measures buildup of system-wide credit fragility.",
+"3-year cumulative growth in total bank credit (loans + securities) — measures buildup of system-wide credit fragility over a cycle. Computed as TOTBKCR_t / TOTBKCR_t−156w − 1. Source: FRED TOTBKCR (H.8 release, weekly). MacroTilt Tier 2 bank factor; >12% signals credit-boom fragility that historically precedes crises, <5% indicates tight credit and reduced economic dynamism.",
 "Steep slowdown from 11.8% a quarter ago. Below 5% historically signals tight credit conditions and reduced economic dynamism."],
 term_premium:["Kim–Wright 10Y","10-Year Term Premium","rates",3,"bps",0,65.0,55,45,35,20,false,
-"Fed model estimate of extra return for holding 10-year Treasuries vs. rolling short bills.",
+"Kim–Wright 10-year Treasury term premium — extra compensation investors demand for holding a 10-year Treasury instead of rolling short bills. Fed Board affine-term-structure-model estimate (Kim & Wright 2005). Source: Federal Reserve Board KW series (weekly). MacroTilt Tier 3 rates factor; was deeply negative through QE, rising premium = structural tightening independent of Fed policy.",
 "Risen steadily from QE-era depths — long-end investors demanding more compensation. Structural tightening independent of Fed policy."],
 cmdi:["CMDI","Corp Bond Market Distress","credit",3,"index",2,0.03,0.38,0.30,0.25,0.12,false,
-"Federal Reserve composite of corporate bond market functioning. Zero = normal.",
+"Corporate Bond Market Distress Index — NY Fed composite tracking primary-market issuance, secondary-market liquidity, and pricing dislocations in US corporate credit. Zero = normal functioning. Source: Federal Reserve Bank of New York (daily). MacroTilt Tier 3 credit factor; sustained >0.3 flags impaired market access, leading indicator for credit availability.",
 "Corporate bond market functioning normally — sharp improvement from 0.38 a month ago. A clear positive for credit availability."],
 loan_syn:["HY Eff. Yield","High Yield Effective Yield","credit",3,"%",2,6.74,7.45,7.0,6.5,6.2,false,
-"ICE BofA US High Yield Index Effective Yield. Proxy for leveraged loan market conditions.",
+"ICE BofA US High Yield Index Effective Yield — weighted effective yield of the BB/B/CCC-rated HY bond universe; used here as a proxy for leveraged-finance market costs (not a true leveraged-loan series). Source: FRED BAMLH0A0HYM2EY (ICE BofA, daily, FRED license). MacroTilt Tier 3 credit factor; 4–5% = loose, >7% squeezes issuers with near-term maturities, >10% = refinancing crisis.",
 "Easing from 7.45% a month ago but still elevated vs. low-rate era (4–5%). Companies with near-term maturities face refinancing pressure."],
 usd:["USD Index","Trade-Weighted Dollar","fincond",3,"index",1,98.3,101.0,102.5,101.8,101.0,false,
-"Federal Reserve broad trade-weighted USD index. Strong dollar tightens global financial conditions.",
+"Nominal Broad US Dollar Index — weighted geometric mean of USD against 26 trading-partner currencies, weighted by bilateral trade shares. Source: FRED DTWEXBGS (Federal Reserve Board, daily). MacroTilt Tier 3 fincond factor; strong dollar tightens global financial conditions and pressures EM/commodity exposures. >106 = meaningfully tight, sustained >110 = disorderly strength.",
 "Dollar has weakened ~3% over the past month from ~101 — eases global financial conditions and supports EM/commodity exposures. Above 106 = meaningfully tight."],
 cpff:["USD Funding","3M CP vs. Fed Funds Spread","fincond",3,"bps",0,18.0,14,12,10,8,false,
 "Spread between 3-month AA financial commercial paper and effective Fed Funds Rate.",
@@ -3915,9 +3915,15 @@ return(<>
 <div style={subPanelBody}>
 {(()=>{
 const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
-const acctData=ACCOUNTS.map(acc=>{
+// Account rows in Supabase carry color=null for legacy users (pre-palette
+// migration). Without a fallback, WEALTH BY ACCOUNT bar slices render
+// transparent against the dark background and the bar looks empty.
+// Deterministic fallback by DB sort-order index so colors don't flip on
+// the value-sorted acctData re-sort below.
+const ACCT_PALETTE=["#4a6fa5","#ff9f0a","#14b8a6","#a855f7","#ffd60a","#6366f1","#64748b","#f97316"];
+const acctData=ACCOUNTS.map((acc,i)=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color,value:t};
+return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color||ACCT_PALETTE[i%ACCT_PALETTE.length],value:t};
 }).sort((a,b)=>b.value-a.value);
 const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
 {id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val}
@@ -3929,15 +3935,18 @@ const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val
 // the slice labels sum to 100%. Liabilities still surface in the legend with
 // their signed value + signed % of gross so Joe sees the debit faithfully.
 // Header meta shows net (grandTotal) when it differs from gross.
-const renderBar2=(title,meta,segs,key)=>{
+const renderBar2=(title,unit,segs,key)=>{
 const gross=segs.reduce((a,s)=>a+Math.max(0,s.value),0)||1;
 const net=segs.reduce((a,s)=>a+s.value,0);
 const hasLiab=segs.some(s=>s.value<0);
+const meta=hasLiab
+  ?`${segs.length} ${unit} · ${fmt$K(gross)} gross · ${fmt$K(net)} net`
+  :`${segs.length} ${unit} · ${fmt$K(net)}`;
 return(
 <div key={key} style={{marginBottom:14}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
 <span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600}}>{title}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{hasLiab?`${meta} gross · ${fmt$K(net)} net`:meta}</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{meta}</span>
 </div>
 <div style={{display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10}}>
 {segs.filter(s=>s.value>0).map(s=>(<div key={s.id} title={`${s.name} · ${fmt$K(s.value)} · ${(s.value/gross*100).toFixed(1)}%`} style={{flex:s.value/gross,background:s.color,minWidth:2}}/>))}
@@ -3956,8 +3965,8 @@ return(
 );
 };
 return(<>
-{renderBar2("WEALTH BY ACCOUNT",`${acctData.length} accounts · ${fmt$K(grandTotal)}`,acctData,"acct")}
-{renderBar2("ASSET CLASS MIX",`${assetData.length} classes · ${fmt$K(grandTotal)}`,assetData,"asset")}
+{renderBar2("WEALTH BY ACCOUNT","accounts",acctData,"acct")}
+{renderBar2("ASSET CLASS MIX","classes",assetData,"asset")}
 </>);
 })()}
 </div>
