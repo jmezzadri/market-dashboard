@@ -7,20 +7,32 @@ congressional trades, and dark pool prints now refresh on the same
 
 Architecture
 ------------
-Firehose-then-filter. All four sources (news headlines, congress trades,
-dark pool prints, insider transactions) are pulled from UW's market-wide
-feeds and filtered to the universe ticker set client-side. This keeps
-the call budget flat regardless of universe size and well inside the
-120/min per-user ceiling.
+Firehose-then-filter, with filters chosen per source by PURPOSE:
+  - news     → tracked set (positions ∪ watchlist) — personal awareness
+  - insider  → NO filter (market-wide) — discovery: insider buys surface
+               alpha at small caps not otherwise on the radar. Applies
+               Form 4 P/S code filter + excludes Rule 10b5-1 automatic
+               plans (same business rules as the daily scanner).
+  - congress → NO filter (market-wide) — political info-edge discovery
+  - darkpool → universe filter ($1B+ mcap) — volume-bounded discovery
+
+Per-source lookback windows (mirror config.py used by the daily scanner):
+  - news:     6h      (real-time)
+  - darkpool: 24h     (intraday market data)
+  - insider:  14 days (Form 4 disclosure lag + buffer)
+  - congress: 45 days (congressional disclosure lag)
+
+Insider and congress pass `date_from` to UW so the server filters before
+we download — saves bandwidth and keeps us inside the per-minute ceiling.
 
 Rate budget per run (estimated)
 -------------------------------
-    news firehose      : ~10 calls (paginated, max 100/page)
-    congress firehose  : ~3  calls
+    news firehose      : ~5 calls
+    congress firehose  : ~1 call  (date_from = 45d, low volume)
     darkpool firehose  : ~10 calls
-    insider firehose   : ~5  calls
+    insider firehose   : ~3 calls (date_from = 14d)
     ----------------------------------------------------------
-    total              : ~28 calls / run × 3 runs/day = ~85/day
+    total              : ~20 calls / run × 3 runs/day = ~60/day
     UW Basic ceiling   : 20,000/day → <1% of budget
 
 Deduplication
@@ -49,7 +61,7 @@ import logging
 import os
 import time
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Any, Iterable
 
 from .uw_usage_logger import UWUsageLogger
@@ -76,15 +88,23 @@ PAGE_LIMIT_CONGRESS  = 100
 PAGE_LIMIT_DARKPOOL  = 100
 PAGE_LIMIT_INSIDER   = 100
 
-# Lookback window — only ingest events within this many hours of "now".
-# We're running every ~3h, so 6h of lookback gives us a 2x safety margin
-# without pulling ancient history.
-LOOKBACK_HOURS = 6
+# Per-source lookback windows. Different from each other because disclosure
+# lag and signal cadence differ (mirrors the values in config.py used by
+# the daily scanner).
+#   news      — real-time; 6h covers the 3h cadence with 2x safety margin
+#   darkpool  — intraday market data; 24h catches prints from the prior run
+#   insider   — SEC Form 4 filings lag transactions by up to 2 business days;
+#               14 days is the standard lookback for "recent insider buys"
+#   congress  — congressional disclosures can lag trades by up to 45 days
+LOOKBACK_HOURS_NEWS      = 6
+LOOKBACK_HOURS_DARKPOOL  = 24
+LOOKBACK_DAYS_INSIDER    = 14
+LOOKBACK_DAYS_CONGRESS   = 45
 
 MAX_NEWS_PAGES        = 5
-MAX_CONGRESS_PAGES    = 3
+MAX_CONGRESS_PAGES    = 5   # 45d window can have more pages than 6h used to
 MAX_DARKPOOL_PAGES    = 10  # dark pool prints are high-volume; allow more pagination
-MAX_INSIDER_PAGES     = 5
+MAX_INSIDER_PAGES     = 10  # 14d window means more pages than the old 6h
 
 UPSERT_BATCH_SIZE = 500
 
@@ -229,29 +249,74 @@ def _parse_ts(value: Any) -> str | None:
     return None
 
 
-def _within_lookback(event_ts_iso: str | None) -> bool:
+def _within_lookback_seconds(event_ts_iso: str | None, seconds: float) -> bool:
+    """Client-side safety net for time-window filters.
+
+    Used when UW either doesn't accept date_from or we want a tighter window
+    than the server filter. Pass the per-source lookback in seconds.
+    """
     if not event_ts_iso:
         return False
     try:
         dt = datetime.fromisoformat(event_ts_iso)
     except ValueError:
         return False
-    cutoff = datetime.now(timezone.utc).timestamp() - (LOOKBACK_HOURS * 3600)
+    cutoff = datetime.now(timezone.utc).timestamp() - seconds
     return dt.timestamp() >= cutoff
+
+
+def _iso_date_days_ago(days: int) -> str:
+    """Return YYYY-MM-DD for (today - days) — the format UW's date_from wants."""
+    return (date.today() - timedelta(days=days)).isoformat()
+
+
+# ---------------------------------------------------------------------------
+# Insider business-rule filter (mirrors scanner/unusual_whales.py)
+# ---------------------------------------------------------------------------
+
+_INSIDER_CODE_BUY  = "P"   # SEC Form 4 code P: open-market purchase
+_INSIDER_CODE_SELL = "S"   # SEC Form 4 code S: open-market sale
+
+
+def _is_10b5_1_plan(row: dict[str, Any]) -> bool:
+    """Rule 10b5-1 automatic-plan transactions have no informational value."""
+    v = row.get("is_10b5_1")
+    if v is True:
+        return True
+    if isinstance(v, str) and v.strip().lower() in ("true", "1", "yes"):
+        return True
+    return False
+
+
+def _insider_passes_business_rules(item: dict[str, Any]) -> bool:
+    """Open-market P or S codes only; exclude 10b5-1 automatic plans.
+
+    Matches the filter in scanner/unusual_whales.py so ticker_events insider
+    rows stay consistent with what the daily scanner surfaces today.
+    """
+    code = str(item.get("transaction_code") or item.get("transaction_type") or "").strip().upper()
+    if code not in (_INSIDER_CODE_BUY, _INSIDER_CODE_SELL):
+        return False
+    if _is_10b5_1_plan(item):
+        return False
+    return True
 
 
 # ---------------------------------------------------------------------------
 # Source: news
 # ---------------------------------------------------------------------------
 
-def ingest_news(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> list[dict[str, Any]]:
-    """Pull UW /api/news/headlines firehose and fan out one row per (headline, ticker).
+def ingest_news(usage: UWUsageLogger, tracked: set[str], run_id: uuid.UUID) -> list[dict[str, Any]]:
+    """Pull UW /api/news/headlines firehose, filter to tracked set.
 
-    UW returns headlines with a `tickers: [...]` array — we emit one
-    ticker_events row per (headline, ticker) pair, filtered to universe
-    tickers. Headlines untagged to any universe ticker are dropped.
+    News is the personal-awareness source: "what's happening to stocks I
+    own or watch". Filter to `tracked` = union of all users' positions +
+    watchlist. UW returns headlines with a `tickers: [...]` array — we
+    emit one row per (headline, tracked-ticker) pair. Headlines untagged
+    to any tracked ticker are dropped.
     """
     rows: list[dict[str, Any]] = []
+    lookback_sec = LOOKBACK_HOURS_NEWS * 3600
     page = 0
     while page < MAX_NEWS_PAGES:
         resp = usage.get(ENDPOINT_NEWS, params={"limit": PAGE_LIMIT_NEWS, "page": page})
@@ -262,10 +327,9 @@ def ingest_news(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> 
         items = body.get("data") if isinstance(body, dict) else body
         if not items:
             break
-        emitted_this_page = 0
         for item in items:
             event_ts = _parse_ts(item.get("created_at") or item.get("published_at") or item.get("date"))
-            if not _within_lookback(event_ts):
+            if not _within_lookback_seconds(event_ts, lookback_sec):
                 continue
             tickers = item.get("tickers") or item.get("symbols") or []
             if isinstance(tickers, str):
@@ -274,7 +338,7 @@ def ingest_news(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> 
             url = item.get("url") or item.get("link") or ""
             for t in tickers:
                 T = str(t).upper()
-                if universe and T not in universe:
+                if tracked and T not in tracked:
                     continue
                 dedup = _stable_hash("news", T, event_ts, headline[:200], url)
                 rows.append({
@@ -291,12 +355,11 @@ def ingest_news(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> 
                         "summary":   item.get("description") or item.get("summary"),
                     },
                 })
-                emitted_this_page += 1
         if len(items) < PAGE_LIMIT_NEWS:
             break
         page += 1
 
-    logger.info("ticker_events news: %d rows emitted across %d pages", len(rows), page + 1)
+    logger.info("ticker_events news: %d rows emitted (tracked set = %d tickers)", len(rows), len(tracked))
     return rows
 
 
@@ -304,12 +367,23 @@ def ingest_news(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> 
 # Source: congress
 # ---------------------------------------------------------------------------
 
-def ingest_congress(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> list[dict[str, Any]]:
-    """Pull UW /api/congress/recent-trades firehose, filter to universe."""
+def ingest_congress(usage: UWUsageLogger, run_id: uuid.UUID) -> list[dict[str, Any]]:
+    """Pull UW /api/congress/recent-trades firehose — market-wide, no filter.
+
+    Congressional trades are a DISCOVERY signal: political info-edge, not a
+    personal-awareness feed. Filtering to a user's tracked set or the $1B+
+    universe defeats the point. Surface everything that UW returns inside
+    the 45-day disclosure-lag window.
+    """
     rows: list[dict[str, Any]] = []
+    lookback_sec = LOOKBACK_DAYS_CONGRESS * 86400
+    date_from = _iso_date_days_ago(LOOKBACK_DAYS_CONGRESS)
     page = 0
     while page < MAX_CONGRESS_PAGES:
-        resp = usage.get(ENDPOINT_CONGRESS, params={"limit": PAGE_LIMIT_CONGRESS, "page": page})
+        resp = usage.get(
+            ENDPOINT_CONGRESS,
+            params={"limit": PAGE_LIMIT_CONGRESS, "page": page, "date_from": date_from},
+        )
         if not resp.ok:
             logger.warning("ticker_events congress: %s on page %d — stopping", resp.status_code, page)
             break
@@ -321,10 +395,8 @@ def ingest_congress(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID)
             T = str(item.get("ticker") or "").upper()
             if not T:
                 continue
-            if universe and T not in universe:
-                continue
             event_ts = _parse_ts(item.get("transaction_date") or item.get("date"))
-            if not _within_lookback(event_ts):
+            if not _within_lookback_seconds(event_ts, lookback_sec):
                 continue
             dedup = _stable_hash(
                 "congress",
@@ -355,7 +427,7 @@ def ingest_congress(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID)
             break
         page += 1
 
-    logger.info("ticker_events congress: %d rows emitted", len(rows))
+    logger.info("ticker_events congress: %d rows emitted (market-wide, date_from=%s)", len(rows), date_from)
     return rows
 
 
@@ -364,8 +436,17 @@ def ingest_congress(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID)
 # ---------------------------------------------------------------------------
 
 def ingest_darkpool(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> list[dict[str, Any]]:
-    """Pull UW /api/darkpool/recent firehose, filter to universe."""
+    """Pull UW /api/darkpool/recent firehose, filter to $1B+ universe.
+
+    Dark pool is a DISCOVERY signal ("institution taking a position"), but
+    the firehose volume is otherwise unmanageable (hundreds of prints per
+    minute). The $1B+ universe filter is a volume ceiling, not a
+    personal-awareness filter — it's the smallest cut that keeps the
+    pipeline inside rate limits while still covering the tickers where
+    a dark pool print is actually institutional-scale.
+    """
     rows: list[dict[str, Any]] = []
+    lookback_sec = LOOKBACK_HOURS_DARKPOOL * 3600
     page = 0
     while page < MAX_DARKPOOL_PAGES:
         resp = usage.get(ENDPOINT_DARKPOOL, params={"limit": PAGE_LIMIT_DARKPOOL, "page": page})
@@ -388,7 +469,7 @@ def ingest_darkpool(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID)
                 or item.get("trade_time")
                 or item.get("date")
             )
-            if not _within_lookback(event_ts):
+            if not _within_lookback_seconds(event_ts, lookback_sec):
                 continue
             size = item.get("size") or item.get("volume")
             price = item.get("price")
@@ -412,7 +493,7 @@ def ingest_darkpool(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID)
             break
         page += 1
 
-    logger.info("ticker_events darkpool: %d rows emitted", len(rows))
+    logger.info("ticker_events darkpool: %d rows emitted (universe-filtered)", len(rows))
     return rows
 
 
@@ -420,17 +501,34 @@ def ingest_darkpool(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID)
 # Source: insider (market-wide firehose, filter to universe)
 # ---------------------------------------------------------------------------
 
-def ingest_insider(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) -> list[dict[str, Any]]:
-    """Pull UW /api/insider/transactions firehose, filter to universe.
+def ingest_insider(usage: UWUsageLogger, run_id: uuid.UUID) -> list[dict[str, Any]]:
+    """Pull UW /api/insider/transactions firehose — market-wide, no filter.
 
-    The per-ticker path /api/stock/{ticker}/insider-trades 404s — the only
-    live endpoint is the market-wide feed, so insider uses the same
-    firehose-then-filter pattern as news/congress/darkpool.
+    Insider is the HIGHEST-alpha discovery signal in this pipeline. Insider
+    activity concentrates at small caps (below the $1B universe cut) where
+    the signal is strongest — ONCO, BMNR, SEV, etc. Filtering to the $1B+
+    universe, let alone a user's tracked set, would kill the whole point of
+    the scan. Stay market-wide; the UI layer can narrow for the personal
+    view but the ingestion layer surfaces everything.
+
+    Business rules (mirrors scanner/unusual_whales.py so ticker_events
+    insider rows stay consistent with the daily scanner):
+      - Form 4 code P (open-market purchase) or S (open-market sale) only
+      - Exclude Rule 10b5-1 automatic-plan transactions (no informational value)
+
+    Server-side `date_from` caps the 14-day window so we're not paginating
+    through months of history on every run.
     """
     rows: list[dict[str, Any]] = []
+    lookback_sec = LOOKBACK_DAYS_INSIDER * 86400
+    date_from = _iso_date_days_ago(LOOKBACK_DAYS_INSIDER)
     page = 0
+    dropped_rules = 0
     while page < MAX_INSIDER_PAGES:
-        resp = usage.get(ENDPOINT_INSIDER, params={"limit": PAGE_LIMIT_INSIDER, "page": page})
+        resp = usage.get(
+            ENDPOINT_INSIDER,
+            params={"limit": PAGE_LIMIT_INSIDER, "page": page, "date_from": date_from},
+        )
         if not resp.ok:
             logger.warning("ticker_events insider: %s on page %d — stopping", resp.status_code, page)
             break
@@ -442,14 +540,15 @@ def ingest_insider(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) 
             T = str(item.get("ticker") or item.get("symbol") or "").upper()
             if not T:
                 continue
-            if universe and T not in universe:
+            if not _insider_passes_business_rules(item):
+                dropped_rules += 1
                 continue
             event_ts = _parse_ts(
                 item.get("filing_date")
                 or item.get("transaction_date")
                 or item.get("date")
             )
-            if not _within_lookback(event_ts):
+            if not _within_lookback_seconds(event_ts, lookback_sec):
                 continue
             dedup = _stable_hash(
                 "insider",
@@ -472,6 +571,7 @@ def ingest_insider(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) 
                     "is_director":      item.get("is_director"),
                     "is_officer":       item.get("is_officer"),
                     "is_ten_percent":   item.get("is_ten_percent_owner") or item.get("is_ten_percent"),
+                    "transaction_code": item.get("transaction_code") or item.get("transaction_type"),
                     "transaction_type": item.get("transaction_type") or item.get("transaction_code"),
                     "amount":           item.get("amount") or item.get("shares"),
                     "transactions":     item.get("transactions"),
@@ -479,13 +579,18 @@ def ingest_insider(usage: UWUsageLogger, universe: set[str], run_id: uuid.UUID) 
                     "value":            item.get("value") or item.get("total_value"),
                     "filing_date":      item.get("filing_date"),
                     "transaction_date": item.get("transaction_date"),
+                    "is_10b5_1":        item.get("is_10b5_1"),
                 },
             })
         if len(items) < PAGE_LIMIT_INSIDER:
             break
         page += 1
 
-    logger.info("ticker_events insider: %d rows emitted across %d pages", len(rows), page + 1)
+    logger.info(
+        "ticker_events insider: %d rows emitted across %d pages "
+        "(market-wide, date_from=%s, dropped %d by business rules)",
+        len(rows), page + 1, date_from, dropped_rules,
+    )
     return rows
 
 
@@ -544,20 +649,27 @@ def run_ticker_events(*, dry_run: bool = False) -> dict[str, Any]:
     run_id = uuid.uuid4()
 
     client = _get_supabase_client()
-    universe = _load_universe_tickers(client)
+    universe = _load_universe_tickers(client)  # for darkpool only
+    tracked  = _load_tracked_tickers(client)   # for news only
 
     all_rows: list[dict[str, Any]] = []
     per_source_counts: dict[str, int] = {}
 
+    # Filter-by-purpose: each source gets the filter its signal type requires.
+    #   news     → tracked     (personal awareness)
+    #   insider  → (none)      (market-wide discovery — small-cap alpha lives here)
+    #   congress → (none)      (market-wide discovery — political info-edge)
+    #   darkpool → universe    (universe is a volume ceiling, not a relevance filter)
     with UWUsageLogger(source="ticker_events", run_id=run_id, flush_to_db=not dry_run) as usage:
-        for name, fn, args in [
-            ("news",     ingest_news,     (universe,)),
-            ("congress", ingest_congress, (universe,)),
-            ("darkpool", ingest_darkpool, (universe,)),
-            ("insider",  ingest_insider,  (universe,)),
-        ]:
+        sources = [
+            ("news",     lambda: ingest_news(usage, tracked, run_id)),
+            ("insider",  lambda: ingest_insider(usage, run_id)),
+            ("congress", lambda: ingest_congress(usage, run_id)),
+            ("darkpool", lambda: ingest_darkpool(usage, universe, run_id)),
+        ]
+        for name, fn in sources:
             try:
-                src_rows = fn(usage, *args, run_id)
+                src_rows = fn()
                 per_source_counts[name] = len(src_rows)
                 all_rows.extend(src_rows)
             except Exception as exc:
@@ -581,6 +693,7 @@ def run_ticker_events(*, dry_run: bool = False) -> dict[str, Any]:
         "remaining_daily":     usage.last_remaining,
         "peak_rpm":            usage._peak_rpm(),
         "universe_size":       len(universe),
+        "tracked_size":        len(tracked),
         "duration_seconds":    round(duration, 2),
         "status":              usage.status,
         "dry_run":             dry_run,
