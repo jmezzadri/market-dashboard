@@ -303,8 +303,12 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
           Proposed fix — awaiting your approval
         </div>
       </div>
+      {/* Fallback to triage_notes: the stage-bug-triage edge fn writes its
+          root-cause + Fix: narrative into triage_notes rather than the
+          narrower proposed_solution column. Show whichever is populated so
+          awaiting_approval bugs aren't stuck with an empty-state card. */}
       <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit", fontSize: 13, color: "var(--text)", lineHeight: 1.6 }}>
-        {row.proposed_solution || "(No proposed solution attached. The triage agent hasn't drafted a fix yet.)"}
+        {row.proposed_solution || row.triage_notes || "(No proposed solution attached. The triage agent hasn't drafted a fix yet.)"}
       </pre>
       {branch && (
         <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>
@@ -477,8 +481,10 @@ function SidePanel({ row, onClose, onActed }) {
         </Section>
       )}
 
-      {/* Triage notes */}
-      {row.triage_notes && (
+      {/* Triage notes — skip when the amber Proposed-Fix card above has
+          already fallen back to triage_notes (awaiting_approval + no
+          proposed_solution); avoids duplicating the same block on-screen. */}
+      {row.triage_notes && !(isAwaitingApproval && !row.proposed_solution) && (
         <Section title="Triage notes">
           <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit", fontSize: 12, color: "var(--text-2)", lineHeight: 1.55 }}>
             {row.triage_notes}
