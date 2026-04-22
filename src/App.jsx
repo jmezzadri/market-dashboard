@@ -4353,9 +4353,11 @@ return(<>
 {/* ADMIN · UW API USAGE — gated by useIsAdmin() above. Task #30. */}
 {tab==="admin" && <AdminUsage/>}
 
-{/* FAQ */}
+{/* FAQ / Methodology */}
 {tab==="readme"&&(
-<div className="two-col-grid" style={{padding:"16px 20px",display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
+<div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:28}}>
+
+<div className="two-col-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,alignItems:"start"}}>
 
 {/* LEFT — MACRO DASHBOARD */}
 <div style={{display:"flex",flexDirection:"column",gap:10}}>
@@ -4398,6 +4400,80 @@ return(<>
 <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px",marginTop:4}}>
 <div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>DISCLAIMER</div>
 <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.75}}>This dashboard is for informational and educational purposes only. It is not financial advice, investment advice, or a solicitation to buy or sell any security. All data is sourced from public databases and may have errors or delays. Past relationships between indicators and market outcomes do not guarantee future results.</div>
+</div>
+</div>
+
+</div>{/* close two-col-grid */}
+
+{/* ─── INDICATOR REFERENCE ─────────────────────────────────────────────── */}
+{/* Auto-rendered from IND[id][12] so the canonical 4-element description  */}
+{/* (definition · formula · source + series ID · MacroTilt treatment) is    */}
+{/* available at a stable URL, not only via the InfoTip hover. Item 21.    */}
+<div>
+<div style={{fontSize:17,fontWeight:700,color:"var(--text)",marginBottom:2}}>Indicator Reference</div>
+<div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)",marginBottom:12}}>25 CALIBRATED INDICATORS · BY CATEGORY</div>
+{["equity","credit","rates","fincond","bank","labor"].map(catId=>{
+const cat=CATS[catId];
+const ids=Object.keys(IND).filter(id=>IND[id][2]===catId);
+if(!ids.length)return null;
+return(
+<div key={catId} style={{marginBottom:18}}>
+<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+<div style={{width:10,height:10,borderRadius:2,background:cat.color}}/>
+<div style={{fontSize:12,fontFamily:"monospace",letterSpacing:"0.12em",color:"var(--text)",fontWeight:700}}>{cat.label.toUpperCase()}</div>
+<div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace"}}>· {ids.length} indicator{ids.length===1?"":"s"}</div>
+</div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill, minmax(340px, 1fr))",gap:10}}>
+{ids.map(id=>{
+const rec=IND[id];
+const shortLabel=rec[0],longLabel=rec[1],tier=rec[3],desc=rec[12]||"—";
+const freq=IND_FREQ[id]||"D";
+const freqLabel={D:"Daily",W:"Weekly",M:"Monthly",Q:"Quarterly"}[freq]||freq;
+return(
+<div key={id} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px"}}>
+<div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:4}}>
+<div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"monospace"}}>{shortLabel}</div>
+<div style={{fontSize:9,color:cat.color,fontFamily:"monospace",letterSpacing:"0.08em",fontWeight:700}}>T{tier} · {freqLabel.toUpperCase()}</div>
+</div>
+<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:8}}>{longLabel}</div>
+<div style={{fontSize:12,color:"var(--text-2)",lineHeight:1.7}}>{desc}</div>
+</div>
+);})}
+</div>
+</div>
+);})}
+</div>
+
+{/* ─── DATA FRESHNESS & CADENCE ────────────────────────────────────────── */}
+{/* Extends the Task #24 DataFreshness chip pattern to per-indicator detail. */}
+{/* Reads IND_FREQ (reporting cadence) and AS_OF (latest data point).       */}
+<div>
+<div style={{fontSize:17,fontWeight:700,color:"var(--text)",marginBottom:2}}>Data Freshness & Cadence</div>
+<div style={{fontSize:12,color:"var(--accent)",fontFamily:"monospace",letterSpacing:"0.15em",padding:"5px 0",borderBottom:"1px solid var(--border)",marginBottom:12}}>WHEN EACH INDICATOR LAST UPDATED · BY REPORTING FREQUENCY</div>
+<div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,overflow:"hidden"}}>
+<div style={{display:"grid",gridTemplateColumns:"minmax(140px,1.2fr) 80px 90px minmax(160px,1.4fr) minmax(100px,1fr)",gap:0,fontSize:10,fontFamily:"monospace",letterSpacing:"0.08em",color:"var(--text-dim)",fontWeight:700,padding:"10px 14px",borderBottom:"1px solid var(--border)",background:"var(--surface-2)"}}>
+<div>INDICATOR</div><div>CATEGORY</div><div>FREQUENCY</div><div>LATEST DATA</div><div>TIER</div>
+</div>
+{["D","W","M","Q"].flatMap(f=>Object.keys(IND).filter(id=>(IND_FREQ[id]||"D")===f)).map((id,i)=>{
+const rec=IND[id];
+const cat=CATS[rec[2]];
+const freq=IND_FREQ[id]||"D";
+const freqLabel={D:"Daily",W:"Weekly",M:"Monthly",Q:"Quarterly"}[freq]||freq;
+return(
+<div key={id} style={{display:"grid",gridTemplateColumns:"minmax(140px,1.2fr) 80px 90px minmax(160px,1.4fr) minmax(100px,1fr)",gap:0,fontSize:12,padding:"9px 14px",borderBottom:"1px solid var(--border)",alignItems:"center"}}>
+<div style={{fontFamily:"monospace",color:"var(--text)",fontWeight:600}}>{rec[0]}</div>
+<div style={{display:"flex",alignItems:"center",gap:5}}>
+<div style={{width:8,height:8,borderRadius:2,background:cat?.color||"var(--text-dim)"}}/>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace"}}>{cat?.label||"—"}</span>
+</div>
+<div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace"}}>{freqLabel}</div>
+<div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>{AS_OF[id]||"—"}</div>
+<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace"}}>T{rec[3]}</div>
+</div>
+);})}
+</div>
+<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8,lineHeight:1.6}}>
+Daily series update every US trading day; weekly series release on their native day (ICSA: Thursdays; ANFCI/STLFSI/H.8: Wednesdays); monthly series release on a fixed calendar day (ISM PMI: first business day; CAPE: month close). Quarterly series (SLOOS, FDIC Bank Unrealized Losses) trail by 30–60 days. Price + flow freshness chips on the home page show the rolling age of the live scanner caches.
 </div>
 </div>
 
