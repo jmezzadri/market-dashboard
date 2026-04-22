@@ -304,11 +304,18 @@ export default async function handler(req, res) {
                        : info?.price != null ? Number(info.price) : null;
       const price = Number.isFinite(priceRaw) && priceRaw > 0 ? priceRaw : null;
 
+      // Item 41: only backfill stock-class rows from the UW scanner. If a
+      // user holds an AAPL 250C option row alongside plain AAPL shares,
+      // writing the underlying's close into the option's `price` column
+      // would silently destroy its $ value (options price per-contract,
+      // multiplier-baked). asset_class defaults to 'stock' via migration
+      // 012, so legacy rows are still captured.
       const { data: posRows } = await admin
         .from("positions")
         .select("id, quantity")
         .eq("user_id", userId)
-        .eq("ticker", sym);
+        .eq("ticker", sym)
+        .eq("asset_class", "stock");
 
       if (posRows && posRows.length) {
         const updates = posRows.map((row) => {

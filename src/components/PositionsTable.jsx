@@ -127,6 +127,23 @@ function SortArrow({ dir }) {
   return <span style={{ marginLeft: 4, color: "var(--text)" }}>{dir === "asc" ? "▲" : "▼"}</span>;
 }
 
+// Item 41: format an option row's ticker cell into a compact spec so the
+// PositionsTable row reads "AAPL 04/17/26 $250 C LONG" instead of just "AAPL".
+// Non-option rows fall through to the bare ticker.
+function displayTicker(r) {
+  if (r.assetClass !== "option") return r.ticker;
+  const parts = [r.ticker];
+  if (r.expiration) {
+    // YYYY-MM-DD → MM/DD/YY
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(r.expiration);
+    if (m) parts.push(`${m[2]}/${m[3]}/${m[1].slice(2)}`);
+  }
+  if (r.strike != null) parts.push(`$${Number(r.strike)}`);
+  if (r.contractType) parts.push(String(r.contractType).toUpperCase().slice(0, 1));
+  if (r.direction)    parts.push(String(r.direction).toUpperCase());
+  return parts.join(" ");
+}
+
 // ─── column registry ─────────────────────────────────────────────────────────
 // Values are computed up-front in the `enrich` step below and then read by
 // both the sort comparator (via `sortValue`) and `renderCell`.
@@ -139,7 +156,7 @@ const COLUMNS = [
     sortValue: (r) => r.ticker,
     renderCell: (r) => (
       <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>
-        {r.ticker}
+        {displayTicker(r)}
       </span>
     ),
   },
@@ -550,6 +567,14 @@ export default function PositionsTable({
         divYield,
         hasDividend,
         nextEarnings,
+        // Item 41: asset-class carry-through for displayTicker + downstream filters.
+        assetClass:   p.assetClass   || "stock",
+        contractType: p.contractType || null,
+        direction:    p.direction    || null,
+        strike:       p.strike     != null ? Number(p.strike)     : null,
+        expiration:   p.expiration   || null,
+        multiplier:   p.multiplier != null ? Number(p.multiplier) : null,
+        manualPrice:  p.manualPrice != null ? Number(p.manualPrice) : null,
         _raw: p,
       };
     });
