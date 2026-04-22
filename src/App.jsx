@@ -3341,6 +3341,15 @@ const portBeta=grandTotal>0
 // index funds); everything else falls through to "Individual Stocks".
 const assetRollup={};
 ACCOUNTS.flatMap(acc=>acc.positions).forEach(p=>{
+// Balance-sheet split: negative-value positions (margin debits, shorts)
+// are liabilities, not asset classes. Bucketing them separately keeps
+// Cash reading as a true asset ($2,267 from brokerage + HSA is long
+// cash) and surfaces the debt as its own legend row, so gross = total
+// assets, net = gross − debt, and gross − net = exactly the debt.
+if((p.value||0)<0){
+  assetRollup["Margin Debt"]=(assetRollup["Margin Debt"]||0)+p.value;
+  return;
+}
 const cls=
   p.sector==="Cash"?"Cash":
   p.sector==="HY Bonds"?"HY Bonds":
@@ -3351,7 +3360,7 @@ const cls=
   "Individual Stocks";
 assetRollup[cls]=(assetRollup[cls]||0)+p.value;
 });
-const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","HY Bonds":"#14b8a6","Precious Metals":"#ffd60a","Crypto":"#a855f7","Cash":"var(--text-dim)"};
+const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","HY Bonds":"#14b8a6","Precious Metals":"#ffd60a","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"#dc2626"};
 
 // ── Tile-grid home view computations ─────────────────────────────────────────
 const buyCount = scanData?.buy_opportunities?.length || 0;
@@ -3939,8 +3948,11 @@ const renderBar2=(title,unit,segs,key)=>{
 const gross=segs.reduce((a,s)=>a+Math.max(0,s.value),0)||1;
 const net=segs.reduce((a,s)=>a+s.value,0);
 const hasLiab=segs.some(s=>s.value<0);
+// When liabilities exist, count positive segments only for the class
+// count — debt is a liability row, not an asset class.
+const posCount=segs.filter(s=>s.value>0).length;
 const meta=hasLiab
-  ?`${segs.length} ${unit} · ${fmt$K(gross)} gross · ${fmt$K(net)} net`
+  ?`${posCount} ${unit} · ${fmt$K(gross)} gross · ${fmt$K(net)} net`
   :`${segs.length} ${unit} · ${fmt$K(net)}`;
 return(
 <div key={key} style={{marginBottom:14}}>
