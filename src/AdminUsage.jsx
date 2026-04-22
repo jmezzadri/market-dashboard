@@ -74,7 +74,8 @@ function bucketLabel(key, grain) {
     return `${names[Number(m)-1]} '${String(y).slice(2)}`;
   }
   // week key: W:YYYY-MM-DD (Monday) → "MM-DD" of week start
-  return key.slice(7+3); // skip "W:YYYY-"
+  // "W:" (2) + "YYYY" (4) + "-" (1) = 7 chars to skip, leaving "MM-DD".
+  return key.slice(7);
 }
 function currentBucketKey(grain) {
   return bucketKey(new Date().toISOString(), grain);
