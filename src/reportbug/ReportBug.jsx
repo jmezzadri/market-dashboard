@@ -57,11 +57,39 @@ function CloseIcon() {
 
 export default function ReportBug() {
   const [open, setOpen] = useState(false);
+  // Pre-capture the screen BEFORE opening the modal — otherwise html2canvas
+  // snapshots the modal overlay and the actual bug is hidden behind it. The
+  // blob is handed to the modal via prop and attached at submit time.
+  const [precaptureBlob, setPrecaptureBlob] = useState(null);
+  const [capturing, setCapturing] = useState(false);
+
+  async function handleOpen() {
+    // 1. Hide the floating button (opacity 0) so it doesn't end up in the
+    //    screenshot either. Two rAFs let that paint before we snapshot.
+    setCapturing(true);
+    await new Promise((r) => requestAnimationFrame(r));
+    await new Promise((r) => requestAnimationFrame(r));
+    // 2. Capture. null on failure — modal will show a "capture failed" note.
+    let blob = null;
+    try { blob = await captureScreenshot(); } catch { blob = null; }
+    // 3. Restore button, store blob, open modal.
+    setPrecaptureBlob(blob);
+    setCapturing(false);
+    setOpen(true);
+  }
+
+  function handleClose() {
+    setOpen(false);
+    // Drop blob reference so the PNG can be GC'd once the preview URL is
+    // revoked inside the modal.
+    setPrecaptureBlob(null);
+  }
 
   return (
     <>
       <button
-        onClick={() => setOpen(true)}
+        onClick={handleOpen}
+        disabled={capturing}
         aria-label="Report a bug"
         title="Report a bug"
         style={{
@@ -81,11 +109,14 @@ export default function ReportBug() {
           fontWeight: 600,
           fontFamily: "var(--font-ui)",
           letterSpacing: "0.02em",
-          cursor: "pointer",
+          cursor: capturing ? "wait" : "pointer",
           boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-          transition: "transform 120ms ease, box-shadow 120ms ease",
+          transition: "transform 120ms ease, box-shadow 120ms ease, opacity 80ms linear",
+          opacity: capturing ? 0 : 1,
+          pointerEvents: capturing ? "none" : "auto",
         }}
         onMouseEnter={(e) => {
+          if (capturing) return;
           e.currentTarget.style.transform = "translateY(-1px)";
           e.currentTarget.style.boxShadow = "0 6px 16px rgba(0,0,0,0.12)";
         }}
@@ -98,12 +129,31 @@ export default function ReportBug() {
         <span>Report Bug</span>
       </button>
 
-      {open && <ReportBugModal onClose={() => setOpen(false)} />}
+      {open && (
+        <ReportBugModal
+          onClose={handleClose}
+          precaptureBlob={precaptureBlob}
+          onRetake={async () => {
+            // User clicked "Retake" inside the modal. We need to temporarily
+            // hide the modal (not just its scrim — html2canvas would still
+            // snapshot the scrim), capture, then bring the modal back.
+            setOpen(false);
+            setCapturing(true);
+            await new Promise((r) => requestAnimationFrame(r));
+            await new Promise((r) => requestAnimationFrame(r));
+            let blob = null;
+            try { blob = await captureScreenshot(); } catch { blob = null; }
+            setPrecaptureBlob(blob);
+            setCapturing(false);
+            setOpen(true);
+          }}
+        />
+      )}
     </>
   );
 }
 
-function ReportBugModal({ onClose }) {
+function ReportBugModal({ onClose, precaptureBlob, onRetake }) {
   const { session } = useSession();
   const prefilledEmail = session?.user?.email || "";
 
@@ -114,6 +164,15 @@ function ReportBugModal({ onClose }) {
   const [errorMsg, setErrorMsg] = useState(null);
   const [successInfo, setSuccessInfo] = useState(null); // { reportNumber }
   const firstFieldRef = useRef(null);
+
+  // Object-URL for the pre-capture preview. Revoke on unmount / blob change.
+  const [previewUrl, setPreviewUrl] = useState(null);
+  useEffect(() => {
+    if (!precaptureBlob) { setPreviewUrl(null); return; }
+    const url = URL.createObjectURL(precaptureBlob);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [precaptureBlob]);
 
   useEffect(() => {
     // Focus first field on open
@@ -146,14 +205,11 @@ function ReportBugModal({ onClose }) {
     setErrorMsg(null);
 
     try {
-      // 1. Capture screenshot (if requested). Do this BEFORE rendering any
-      //    "Submitting…" overlay so the capture shows the actual page state,
-      //    not a modal overlay. We captured the modal in the DOM anyway,
-      //    but html2canvas captures the full viewport — acceptable.
-      let screenshotBlob = null;
-      if (includeScreenshot) {
-        screenshotBlob = await captureScreenshot();
-      }
+      // 1. Use the PRE-captured screenshot (taken when the user clicked the
+      //    Report Bug button, before the modal rendered). Capturing at submit
+      //    time would snapshot the modal itself on top of the actual bug —
+      //    worthless. The parent <ReportBug/> hands us a Blob via prop.
+      const screenshotBlob = includeScreenshot ? precaptureBlob : null;
 
       // 2. Insert bug_reports row (returns new id + report_number).
       const payload = {
@@ -358,18 +414,84 @@ function ReportBugModal({ onClose }) {
           />
         </label>
 
-        {/* Screenshot toggle */}
-        <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={includeScreenshot}
-            onChange={(e) => setIncludeScreenshot(e.target.checked)}
-            style={{ cursor: "pointer" }}
-          />
-          <span style={{ fontSize: 13, color: "var(--text-2)" }}>
-            Include a screenshot of what I'm looking at
-          </span>
-        </label>
+        {/* Screenshot block — toggle + preview of the pre-capture taken
+            before this modal opened. Lets the user verify they captured the
+            right thing, or retake if they clicked Report Bug too early. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
+            <input
+              type="checkbox"
+              checked={includeScreenshot}
+              onChange={(e) => setIncludeScreenshot(e.target.checked)}
+              style={{ cursor: "pointer" }}
+            />
+            <span style={{ fontSize: 13, color: "var(--text-2)" }}>
+              Include a screenshot of what I was looking at
+            </span>
+          </label>
+
+          {includeScreenshot && previewUrl && (
+            <div style={{
+              display: "flex", gap: 10, alignItems: "flex-start",
+              padding: 8,
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              background: "var(--surface-2)",
+            }}>
+              <img
+                src={previewUrl}
+                alt="Captured screenshot preview"
+                style={{
+                  width: 140,
+                  height: "auto",
+                  maxHeight: 90,
+                  objectFit: "cover",
+                  borderRadius: 4,
+                  border: "1px solid var(--border)",
+                  flexShrink: 0,
+                }}
+              />
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0, flex: 1 }}>
+                <div style={{ fontSize: 11, color: "var(--text-dim)", lineHeight: 1.4 }}>
+                  Captured the moment you clicked Report Bug. The modal isn't in the shot.
+                </div>
+                {onRetake && (
+                  <button
+                    type="button"
+                    onClick={onRetake}
+                    disabled={submitting}
+                    style={{
+                      alignSelf: "flex-start",
+                      padding: "4px 10px",
+                      borderRadius: 4,
+                      border: "1px solid var(--border)",
+                      background: "transparent",
+                      color: "var(--text-2)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      cursor: submitting ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    ↻ Retake (closes & re-captures)
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {includeScreenshot && !precaptureBlob && (
+            <div style={{
+              fontSize: 11, color: "var(--text-dim)",
+              padding: "6px 8px",
+              borderRadius: 4,
+              background: "var(--surface-2)",
+              border: "1px dashed var(--border)",
+              lineHeight: 1.4,
+            }}>
+              Screenshot capture didn't succeed (CDN blocked, cross-origin image, etc.). The report will still send with your description + page context.
+            </div>
+          )}
+        </div>
 
         {/* Error banner */}
         {errorMsg && (
