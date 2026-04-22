@@ -216,13 +216,17 @@ skew:1.0,sloos_cre:1.0,bank_credit:1.0,jobless:1.0,jolts_quits:1.0,
 };
 
 const ACCENT="#4a6fa5";
+// Per-category hues chosen to avoid the stress palette (red/green/amber
+// reserved for sdColor), so the category color never "reads as" a stress
+// signal. Previously every entry shared ACCENT — Item 22 in Master Bug
+// Inventory: detail modal + card left-bar were visually uncategorized.
 const CATS={
-equity:  {label:"Equity & Vol",        color:ACCENT},
-credit:  {label:"Credit Markets",      color:ACCENT},
-rates:   {label:"Rates & Duration",    color:ACCENT},
-fincond: {label:"Financial Conditions",color:ACCENT},
-bank:    {label:"Bank & Money Supply", color:ACCENT},
-labor:   {label:"Labor & Economy",     color:ACCENT},
+equity:  {label:"Equity & Vol",        color:"#8b5cf6"}, // violet
+credit:  {label:"Credit Markets",      color:"#f59e0b"}, // amber
+rates:   {label:"Rates & Duration",    color:"#06b6d4"}, // cyan
+fincond: {label:"Financial Conditions",color:"#ec4899"}, // pink
+bank:    {label:"Bank & Money Supply", color:"#14b8a6"}, // teal
+labor:   {label:"Labor & Economy",     color:"#3b82f6"}, // blue
 };
 
 function fmtV(id,v){
@@ -1477,11 +1481,15 @@ return(
         <div style={{flex:1,minWidth:0}}>
           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
             <h2 style={{fontSize:20,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.01em"}}>{label}</h2>
+            {/* Category chip — distinct hue per category (Item 22). Replaces the
+                former grey monospace subtitle that rendered identically for every
+                category. */}
+            <span title={`Category: ${CATS[cat]?.label||cat}`} style={{fontSize:10,color:catCol,background:catCol+"15",border:`1px solid ${catCol}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:700,letterSpacing:"0.03em",textTransform:"uppercase"}}>{CATS[cat]?.label||cat}</span>
             <span title={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."} style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
             <span title={IND_FREQ[id]==="D"?"Daily release":IND_FREQ[id]==="W"?"Weekly release":IND_FREQ[id]==="M"?"Monthly release":IND_FREQ[id]==="Q"?"Quarterly release":""} style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{CATS[cat]?.label||cat} · As of {AS_OF[id]}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>As of {AS_OF[id]}</div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
