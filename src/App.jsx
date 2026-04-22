@@ -1361,8 +1361,8 @@ const TREND_PERIODS={
   Q:[{label:"Prior Q",days:91},{label:"2Q",days:183},{label:"1Y",days:365},{label:"3Y",days:1095}],
 };
 // Find the point in `points` (iso-sorted ascending) whose date is closest to
-// (lastDate - days). Returns null if nothing within a sane tolerance.
-function _valueAtOffset(points,days){
+// (lastDate - days). Returns [iso, val] or null if nothing within tolerance.
+function _pointAtOffset(points,days){
   if(!points||points.length<2)return null;
   const lastIso=points[points.length-1][0];
   const lastDt=new Date(lastIso+"T00:00:00Z").getTime();
@@ -1374,33 +1374,55 @@ function _valueAtOffset(points,days){
     const midMs=new Date(points[mid][0]+"T00:00:00Z").getTime();
     if(midMs<=targetMs){idx=mid;lo=mid+1;}else{hi=mid-1;}
   }
-  return points[idx]?.[1];
+  const pt=points[idx];
+  return pt?[pt[0],pt[1]]:null;
+}
+// "2025-12-31" → "Dec 31" (if current year) or "Dec 31 '25" (otherwise).
+// Compact form used on TrendPill date-stamps (Item 9c).
+function _fmtOffsetDate(iso){
+  try{
+    const d=new Date(iso+"T00:00:00Z");
+    const mo=d.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
+    const day=d.getUTCDate();
+    const yr=d.getUTCFullYear();
+    const curYr=new Date().getUTCFullYear();
+    return yr===curYr?`${mo} ${day}`:`${mo} ${day} '${String(yr).slice(-2)}`;
+  }catch{return"";}
 }
 function IndicatorTrendPills({id,d}){
 // Freq-aware trend strip: pill label + historical value at that offset.
 // Prefers real history from indicator_history.json via _histCache; falls
 // back to the hardcoded IND[] d[7..10] triples if the cache isn't loaded.
+// Item 9c — each pill also carries the actual observation date it resolved
+// to so the user can see whether "3M ago" is a March print or an older
+// monthly release (and knows the offset is approximate, not exact).
 const freq=IND_FREQ[id]||"D";
 const periods=TREND_PERIODS[freq]||TREND_PERIODS.D;
 const histEntry=_histCache&&_histCache[id];
 const points=histEntry&&Array.isArray(histEntry.points)?histEntry.points:null;
 const rows=periods.map((p,i)=>{
-  let v=null;
-  if(points)v=_valueAtOffset(points,p.days);
+  let v=null,date=null;
+  if(points){
+    const pt=_pointAtOffset(points,p.days);
+    if(pt){v=pt[1];date=pt[0];}
+  }
   // Fallback to the old hardcoded 4-tuple only when history isn't available
-  // and the period index lines up with the old d[7..10] layout.
+  // and the period index lines up with the old d[7..10] layout. No date
+  // shown in the fallback path — we don't know when the hardcoded number
+  // was actually observed.
   if(v==null&&i<4)v=d[7+i]??null;
-  return[p.label,v];
+  return[p.label,v,date];
 });
 return(
 <div style={{display:"flex",gap:4,marginTop:8,flexWrap:"wrap"}}>
-{rows.map(([lbl,v])=>{
+{rows.map(([lbl,v,date])=>{
 if(v==null)return null;
 const cT=sdTextColor(sdScore(id,v));
 return(
 <div key={lbl} style={{flex:1,minWidth:56,background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:5,padding:"5px 6px",textAlign:"center"}}>
 <div style={{fontSize:9,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:2,letterSpacing:"0.06em"}}>{lbl}</div>
 <div style={{fontSize:14,fontWeight:800,color:cT,fontFamily:"monospace"}}>{fmtV(id,v)}</div>
+{date&&<div style={{fontSize:8,color:"var(--text-dim)",fontFamily:"monospace",marginTop:1,letterSpacing:"0.02em"}}>{_fmtOffsetDate(date)}</div>}
 </div>
 );
 })}
