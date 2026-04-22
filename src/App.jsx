@@ -1978,7 +1978,7 @@ return(
 {/* Universe-snapshot freshness — stamps the price so the user knows whether
     this is a 10:00 / 13:00 / 15:45 ET snapshot or yesterday's close. Hidden
     when scanData.universe_snapshot_ts is null (signed-out view). */}
-{scanData?.universe_snapshot_ts&&<div style={{marginTop:4}}><UniverseFreshness ts={scanData.universe_snapshot_ts} compact/></div>}
+{(scanData?.universe_snapshot_ts||scanData?.ticker_events_ts)&&<div style={{marginTop:4}}><UniverseFreshness pricesTs={scanData.universe_snapshot_ts} eventsTs={scanData.ticker_events_ts} compact/></div>}
 </div>
 </div>
 
@@ -3793,7 +3793,7 @@ return(
 <span style={sectionTitleStyle}>① TRADING OPPORTUNITIES</span>
 <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
 {/* Universe-snapshot freshness — signed-in only, hidden pre-auth. */}
-<UniverseFreshness ts={universeSnapshotTs}/>
+<UniverseFreshness pricesTs={universeSnapshotTs} eventsTs={scanData?.ticker_events_ts}/>
 <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{scanData?.buy_opportunities?.length||0} triggered · {scanData?.watch_items?.length||0} near · {WATCHLIST.length} other</span>
 <span style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("scanner")}>Full scanner →</span>
 </div>
@@ -4152,8 +4152,10 @@ return(<>
 <span style={subPanelTitleStyle}>POSITIONS</span>
 <span style={{display:"flex",alignItems:"center",gap:10}}>
 {/* Same freshness chip as the dashboard header — makes the PnL Day column
-    readable as "today, not yesterday" for any authenticated user. */}
-<UniverseFreshness ts={universeSnapshotTs}/>
+    readable as "today, not yesterday" for any authenticated user. Also
+    stamps ticker-events freshness so news/insider/congress data is visibly
+    current. */}
+<UniverseFreshness pricesTs={universeSnapshotTs} eventsTs={scanData?.ticker_events_ts}/>
 <span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>CLICK A ROW FOR DETAIL · SORT BY ANY COLUMN</span>
 </span>
 </div>

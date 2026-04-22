@@ -1,15 +1,24 @@
-// UniverseFreshness — small caption showing when the 3x/weekday universe
-// snapshot was last refreshed. Drop it into section headers (Positions,
-// Trading Opportunities, Ticker Detail) so the user can tell at a glance that
-// prices / options flow / IV rank / etc. are current, not yesterday's close.
+// UniverseFreshness — small caption showing when the 3x/weekday data feeds
+// were last refreshed. Drop it into section headers (Positions, Trading
+// Opportunities, Ticker Detail) so the user can tell at a glance that
+// prices / options flow / IV rank / news / insider / etc. are current, not
+// yesterday's close.
 //
-// Signed-out users see no snapshot (RLS returns 0 rows → universeSnapshotTs
-// is null), so this component renders nothing — no placeholder, no nag.
+// Two data streams — both show here when timestamps are present:
+//   • Prices (universe snapshot)       — `ts` or `pricesTs` prop
+//   • Events (news/insider/congress/DP) — `eventsTs` prop (Task #24)
 //
-// The snapshot fires 3x per weekday at 10:00, 13:00, and 15:45 ET, so the
-// timestamp is always within ~3 hours during US market hours. Off-hours and
-// weekends, it'll show the last weekday's 15:45 ET snapshot — that's the
-// intended behavior (no weekend refresh is needed; markets are closed).
+// Backward-compat: the legacy single-arg form `<UniverseFreshness ts={...} />`
+// still works and renders prices-only. New code should prefer the explicit
+// `pricesTs` / `eventsTs` form.
+//
+// Signed-out users see no snapshot (RLS returns 0 rows → both ts fields null),
+// so this component renders nothing — no placeholder, no nag.
+//
+// Both streams fire 3x per weekday at 10:00, 13:00, and 15:45 ET, so each
+// timestamp is within ~3 hours during US market hours. Off-hours and weekends
+// show the last weekday's 15:45 ET run — that's the intended behavior (no
+// weekend refresh is needed; markets are closed).
 
 import React from "react";
 
@@ -54,24 +63,53 @@ function formatETDate(isoString) {
 
 /**
  * @param {object} props
- * @param {string|null|undefined} props.ts          ISO timestamp from scanData.universe_snapshot_ts or the hook.
- * @param {React.CSSProperties}   [props.style]    Caller-supplied overrides merged on top of default caption style.
- * @param {boolean}               [props.compact]  Drops the leading "Prices: 3x/day · " prefix for tight headers.
+ * @param {string|null|undefined} props.ts         Legacy prices timestamp (kept for backward-compat callers).
+ * @param {string|null|undefined} props.pricesTs   ISO timestamp from scanData.universe_snapshot_ts (preferred).
+ * @param {string|null|undefined} props.eventsTs   ISO timestamp from scanData.ticker_events_ts. When present, appends an Events segment (Task #24).
+ * @param {React.CSSProperties}   [props.style]   Caller-supplied overrides merged on top of default caption style.
+ * @param {boolean}               [props.compact] Drops the leading "Prices:" / "Events:" labels for tight headers.
  */
-export default function UniverseFreshness({ ts, style, compact = false }) {
-  const timeStr = formatET(ts);
-  if (!timeStr) return null;
-  const dateStr = formatETDate(ts);
-  const caption = compact
-    ? `Updated ${timeStr} ET`
-    : `Prices: 3x/day · Updated ${timeStr} ET`;
+export default function UniverseFreshness({ ts, pricesTs, eventsTs, style, compact = false }) {
+  // Accept either legacy `ts` or new `pricesTs` — pricesTs wins if both are set.
+  const priceIso = pricesTs != null ? pricesTs : ts;
+  const priceTime = formatET(priceIso);
+  const eventTime = formatET(eventsTs);
+
+  // If neither stream has a timestamp, render nothing (matches pre-Task-#24 behavior).
+  if (!priceTime && !eventTime) return null;
+
+  const segments = [];
+  if (priceTime) {
+    segments.push(compact ? `Prices ${priceTime} ET` : `Prices: 3x/day · Updated ${priceTime} ET`);
+  }
+  if (eventTime) {
+    segments.push(compact ? `Events ${eventTime} ET` : `Events: 3x/day · Updated ${eventTime} ET`);
+  }
+  const caption = segments.join(" · ");
+
+  const priceDate = formatETDate(priceIso);
+  const eventDate = formatETDate(eventsTs);
+  const titleParts = [];
+  if (priceTime) {
+    titleParts.push(
+      priceDate
+        ? `Universe snapshot — ${priceDate} ${priceTime} ET.`
+        : `Universe snapshot — ${priceTime} ET.`
+    );
+  }
+  if (eventTime) {
+    titleParts.push(
+      eventDate
+        ? `Ticker events — ${eventDate} ${eventTime} ET.`
+        : `Ticker events — ${eventTime} ET.`
+    );
+  }
+  titleParts.push("Both refresh at 10:00, 13:00, and 15:45 ET on US trading days.");
+  const title = titleParts.join(" ");
+
   return (
     <span
-      title={
-        dateStr
-          ? `Universe snapshot — ${dateStr} ${timeStr} ET. Refreshed at 10:00, 13:00, and 15:45 ET on US trading days.`
-          : "Universe snapshot refreshed 3x/weekday (10:00 / 13:00 / 15:45 ET)."
-      }
+      title={title}
       style={{
         fontSize: 10,
         color: "var(--text-muted)",

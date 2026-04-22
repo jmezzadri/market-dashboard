@@ -1592,10 +1592,11 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, marginBottom: "var(--space-6)" }}>
           <div className="section-eyebrow">Latest scan</div>
           <span style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-            {/* Universe-snapshot freshness chip — sits next to the scan time
-                so the user can see both the 1x/day scan and 3x/day price
-                refresh stamps at a glance. Rendered nothing for signed-out. */}
-            <UniverseFreshness ts={data?.universe_snapshot_ts} />
+            {/* Data-freshness chip — sits next to the scan time so the user
+                can see both the 1x/day scan and the 3x/day price + 3x/day
+                events refresh stamps at a glance. Rendered nothing for
+                signed-out. */}
+            <UniverseFreshness pricesTs={data?.universe_snapshot_ts} eventsTs={data?.ticker_events_ts} />
             <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{scanLabel}</span>
           </span>
         </div>
