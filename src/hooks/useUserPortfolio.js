@@ -48,6 +48,15 @@ function shapePosition(row) {
     // Item 36: optional acquisition date. NULL for legacy rows.
     // Drives Holding Period column + future Annualized PnL column.
     purchaseDate: row.purchase_date || null,
+    // Item 41: asset-class fields. Older rows predate the 012 migration
+    // and have asset_class defaulted to 'stock' with nulls everywhere else.
+    assetClass:   row.asset_class   || "stock",
+    contractType: row.contract_type || null,
+    direction:    row.direction     || null,
+    strike:       row.strike      !== null && row.strike      !== undefined ? Number(row.strike)      : null,
+    expiration:   row.expiration    || null,
+    multiplier:   row.multiplier  !== null && row.multiplier  !== undefined ? Number(row.multiplier)  : null,
+    manualPrice:  row.manual_price !== null && row.manual_price !== undefined ? Number(row.manual_price) : null,
   };
 }
 

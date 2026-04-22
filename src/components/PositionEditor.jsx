@@ -1,6 +1,27 @@
 // PositionEditor — modal for add / edit / delete of a single position.
 //
-// Dynamic calc model
+// Asset-class aware (Item 41)
+// ───────────────────────────
+// We store up to five classes in public.positions:
+//   stock    — the original equity/ETF case. quantity=shares, price=per-share.
+//   cash     — quantity=amount, price=1, avg_cost=1, value=amount. See 35E.
+//   option   — long/short call/put. We store price & avg_cost PER-CONTRACT
+//              (multiplier baked in) so the universal `value = quantity × price`
+//              formula in PositionsTable keeps working. `manual_price` holds
+//              the raw per-share mark so the editor can round-trip it cleanly.
+//              Short positions are stored with NEGATIVE quantity.
+//   bond     — quantity=bonds, price=per-bond mark (no feed → manual), avg_cost=per-bond.
+//   crypto   — quantity=units, price=per-unit mark (V1: manual; Joe's 3x/day
+//              pricing job is wiring up a live feed in a sibling session),
+//              avg_cost=per-unit.
+//
+// For options, bonds, and (for now) crypto the scanner fan-out at save time
+// is skipped — those classes either have no UW scanner symbol (bonds),
+// can't be priced by UW's equity scanner (options), or have a different
+// pricing path coming (crypto). Stock class is the only one we fire
+// `/api/scan-ticker` for in this component.
+//
+// Dynamic calc model (stock mode, unchanged)
 //   Canonical state : { shares, avgCost, price } — one numeric truth per field.
 //   Derived         : totalCost    = shares × avgCost
 //                     currentValue = shares × price
@@ -11,16 +32,6 @@
 //   "1,750" into TOTAL COST when shares is 10 sets avgCost to 175. If shares
 //   is 0/empty we can't back-solve, so we keep the derived display showing
 //   the user's typed value but don't touch canonical until they fill shares.
-//
-// Modes
-//   "add"  — `existing` prop is null. User must pick an account + type a
-//            ticker. Submit inserts a new row.
-//   "edit" — `existing` prop is a position object (with `id`). Account and
-//            ticker are editable — changing Account resolves / creates the
-//            target account and re-parents the row; changing Ticker updates
-//            the same row in place (so live price/scanner data refreshes
-//            on next scan). Submit updates the row. A DELETE button is
-//            shown.
 //
 // All writes land in the Supabase `positions` table. RLS scopes to auth.uid()
 // so we don't need to filter by user_id on read, but we do pass it on insert
@@ -61,19 +72,14 @@ const inputVal = (n) => (n == null || !Number.isFinite(n) ? "" : String(n));
 
 // ── styles ─────────────────────────────────────────────────────────────────
 const backdrop = {
-  // Darker backdrop so the opaque modal above it reads crisply against the
-  // page content behind.
   position: "fixed", inset: 0, background: "rgba(0,0,0,0.72)",
   display: "flex", alignItems: "center", justifyContent: "center",
   zIndex: 1000,
 };
 const modal = {
-  width: "min(520px, 94vw)",
+  width: "min(560px, 94vw)",
   maxHeight: "90vh",
   overflowY: "auto",
-  // MUST be fully opaque — --surface / --surface-2 are translucent rgba colors,
-  // and --surface-1 doesn't exist, so falling back to them makes the modal
-  // unreadable over the page. --surface-solid is the opaque panel color.
   background: "var(--surface-solid)",
   border: "1px solid var(--border)",
   borderRadius: "var(--radius-md, 10px)",
@@ -102,7 +108,6 @@ const input = {
   outline: "none",
   boxSizing: "border-box",
 };
-const inputLocked = { ...input, opacity: 0.6, cursor: "not-allowed" };
 const primaryBtn = {
   padding: "9px 14px", fontSize: 13, fontWeight: 600, color: "#fff",
   background: "var(--accent)", border: "none",
@@ -119,60 +124,69 @@ const dangerBtn = {
   borderRadius: "var(--radius-sm, 6px)", cursor: "pointer",
 };
 
+// ── class helpers ──────────────────────────────────────────────────────────
+const CLASSES = [
+  { id: "stock",  label: "Stock / ETF" },
+  { id: "cash",   label: "Cash" },
+  { id: "option", label: "Option" },
+  { id: "bond",   label: "Bond" },
+  { id: "crypto", label: "Crypto" },
+];
+
+// Infer asset class from an existing row. Rows written before the 012
+// migration didn't carry asset_class; back-heal ran for CASH, everything
+// else defaults to stock.
+function inferAssetClass(existing) {
+  if (!existing) return "stock";
+  if (existing.assetClass) return existing.assetClass;
+  const t = String(existing.ticker || "").trim().toUpperCase();
+  if (t === "CASH") return "cash";
+  return "stock";
+}
+
 // ── component ──────────────────────────────────────────────────────────────
 export default function PositionEditor({
-  mode,            // "add" | "edit"
-  existing,        // position object for edit mode (carries id, accountId, ticker, quantity, avgCost, price, ...)
-  accounts,        // [{ id, label }, ...] — needed for add mode account picker
-  userId,          // current auth uid, required for insert
-  onClose,         // () => void — dismiss without saving
-  onSaved,         // (savedRow) => void — fired after successful write
-  onDeleted,       // (deletedId) => void — fired after successful delete (edit mode only)
+  mode,
+  existing,
+  accounts,
+  userId,
+  onClose,
+  onSaved,
+  onDeleted,
 }) {
   const isEdit = mode === "edit" && existing;
 
-  // ── form state ────────────────────────────────────────────────────────────
-  // Account is a FREE-FORM label (typed string), not an ID. In edit mode we
-  // lock it to the existing label. In add mode the user can either pick an
-  // existing account from the datalist suggestions or type a brand-new name
-  // — on save we find-or-create the account row and use its id for the
-  // position insert. This way the component makes no assumptions about what
-  // account names make sense for any given user.
+  // ── account / ticker / sector / date (shared across classes) ──────────────
   const existingAcctLabel = isEdit
     ? (accounts?.find((a) => a.id === existing.accountId)?.label || existing.acctLabel || "")
     : "";
   const [accountLabel, setAccountLabel] = useState(existingAcctLabel);
   const [ticker, setTicker]   = useState(isEdit ? existing.ticker || "" : "");
   const [sector, setSector]   = useState(isEdit ? existing.sector || "" : "");
+  const [purchaseDate, setPurchaseDate] = useState(
+    isEdit ? (existing.purchaseDate || existing.purchase_date || "") : ""
+  );
 
-  // Canonical numerics
-  // 35E: if the existing row is CASH, the source-of-truth amount lives in
-  // `existing.value`, not `existing.quantity`. Broken rows in the DB have
-  // quantity=$amount (same value as price), so quantity is unreliable. We use
-  // `existing.value ?? existing.quantity` for the initial amount — both match
-  // for correctly-encoded CASH rows; for broken rows, value is right.
+  // Asset class — drives which field block renders below.
+  const [assetClass, setAssetClass] = useState(inferAssetClass(existing));
+
+  // ── class-agnostic canonical numerics (stock/bond/crypto/cash amount) ────
+  // For cash: shares = dollar amount, others unused.
+  // For stock/bond/crypto: shares = quantity, avgCost = per-unit cost,
+  // price = per-unit mark.
   const _existingTickerUC = isEdit ? String(existing.ticker || "").trim().toUpperCase() : "";
-  const _isExistingCash   = _existingTickerUC === "CASH";
+  const _isExistingCash   = _existingTickerUC === "CASH" || (isEdit && existing.assetClass === "cash");
   const _initAmount       = _isExistingCash
-    ? (existing.value ?? existing.quantity ?? null)
+    ? (existing?.value ?? existing?.quantity ?? null)
     : (isEdit ? existing.quantity ?? null : null);
 
   const [shares,  setShares]  = useState(_initAmount);
   const [avgCost, setAvgCost] = useState(isEdit ? existing.avgCost ?? null : null);
   const [price,   setPrice]   = useState(isEdit ? existing.price   ?? null : null);
 
-  // ── Sticky input strings for the primary numeric inputs (item 35D) ───────
-  // Prevents `parseNum("2.") → 2 → inputVal(2) → "2"` from stripping the
-  // trailing decimal while the user is mid-keystroke. The canonical Numbers
-  // still drive all downstream math; these strings only drive what the
-  // input renders.
   const [sharesStr,  setSharesStr]  = useState(inputVal(_initAmount));
   const [avgCostStr, setAvgCostStr] = useState(inputVal(isEdit ? existing.avgCost ?? null : null));
 
-  // Mirror canonical → sticky whenever the Number drifts from the string's
-  // parsed value (e.g. back-solve via onChangeTotalCost / onChangeCurrentValue).
-  // The equality check ensures mid-keystroke typing ("2.") isn't clobbered
-  // because parseNum("2.") === 2 === avgCost.
   useEffect(() => {
     if (parseNum(sharesStr) !== shares) setSharesStr(inputVal(shares));
   }, [shares]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -180,125 +194,154 @@ export default function PositionEditor({
     if (parseNum(avgCostStr) !== avgCost) setAvgCostStr(inputVal(avgCost));
   }, [avgCost]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Item 36: optional acquisition date. Used by PositionsTable's Holding
-  // Period column and (future) Annualized PnL column. Stored as ISO YYYY-MM-DD
-  // in positions.purchase_date. NULL for rows the user skipped.
-  const [purchaseDate, setPurchaseDate] = useState(
-    isEdit ? (existing.purchaseDate || existing.purchase_date || "") : ""
-  );
-
-  // "Sticky" display strings for the two derived inputs — so the user's
-  // typing doesn't get clobbered while shares is still empty.
+  // Sticky strings for the stock-mode derived inputs.
   const [totalCostStr,    setTotalCostStr]    = useState("");
   const [currentValueStr, setCurrentValueStr] = useState("");
 
-  // Whenever the canonical triplet changes, resync the derived input strings
-  // (unless the user is actively typing in one — we detect that by whether
-  // the string is "stale", i.e. no longer matches the would-be derived value).
   useEffect(() => {
-    if (shares != null && avgCost != null) {
-      setTotalCostStr(String(shares * avgCost));
-    }
+    if (shares != null && avgCost != null) setTotalCostStr(String(shares * avgCost));
   }, [shares, avgCost]);
   useEffect(() => {
-    if (shares != null && price != null) {
-      setCurrentValueStr(String(shares * price));
-    }
+    if (shares != null && price != null) setCurrentValueStr(String(shares * price));
   }, [shares, price]);
 
-  // Derived display-only values
-  const totalCost    = shares != null && avgCost != null ? shares * avgCost : null;
-  const currentValue = shares != null && price   != null ? shares * price   : null;
-  const pnlDollars   = currentValue != null && totalCost != null ? currentValue - totalCost : null;
-  const pnlPct       = price != null && avgCost != null && avgCost !== 0
-    ? (price / avgCost - 1) * 100 : null;
+  // ── option-specific state ────────────────────────────────────────────────
+  // Stored per-contract in DB, but we ask the user for per-SHARE premium
+  // and multiplier so the mental model matches how options are quoted
+  // ("$2.50 premium × 100 multiplier × 3 contracts = $750 cost basis").
+  const _initMultiplier = isEdit && existing.multiplier != null ? Number(existing.multiplier) : 100;
+  const _initStrike     = isEdit && existing.strike     != null ? Number(existing.strike)     : null;
+  const _initExpir      = isEdit ? (existing.expiration || "") : "";
+  const _initDirection  = isEdit && existing.direction       ? existing.direction       : "long";
+  const _initContractTp = isEdit && existing.contractType    ? existing.contractType    : "call";
+  // Entry premium per share = avgCost (per-contract) / multiplier.
+  const _initEntryPrem  = (isEdit && existing.avgCost != null && _initMultiplier)
+    ? Number(existing.avgCost) / _initMultiplier : null;
+  // Mark per share = manual_price (raw, as the user typed it).
+  const _initMarkPerShare = isEdit && existing.manualPrice != null
+    ? Number(existing.manualPrice)
+    // Back-compat: if manual_price is null but price is set, derive from price/multiplier.
+    : (isEdit && existing.price != null && _initMultiplier ? Number(existing.price) / _initMultiplier : null);
+  // Contract count (always positive in the UI; sign encoded via direction).
+  const _initContracts = _isExistingCash
+    ? null
+    : (isEdit && assetClass === "option" && existing.quantity != null
+       ? Math.abs(Number(existing.quantity))
+       : null);
 
-  // ── input handlers ────────────────────────────────────────────────────────
-  const onChangeShares = (raw) => {
-    setSharesStr(raw);
-    setShares(parseNum(raw));
-  };
-
-  const onChangeAvgCost = (raw) => {
-    setAvgCostStr(raw);
-    setAvgCost(parseNum(raw));
-  };
-
-  const onChangeTotalCost = (raw) => {
-    setTotalCostStr(raw);
-    const total = parseNum(raw);
-    if (total == null) return;          // let the user keep typing
-    if (shares != null && shares > 0) {
-      setAvgCost(total / shares);       // back-solve canonical
-    }
-    // if shares is empty, hold the typed value in the sticky string; the
-    // useEffect above won't overwrite it until shares+avgCost are both set
-  };
-
-  const onChangePrice = (raw) => {
-    const n = parseNum(raw);
-    setPrice(n);
-  };
-
-  const onChangeCurrentValue = (raw) => {
-    setCurrentValueStr(raw);
-    const val = parseNum(raw);
-    if (val == null) return;
-    if (shares != null && shares > 0) {
-      setPrice(val / shares);
-    }
-  };
+  const [contractType, setContractType] = useState(_initContractTp); // call | put
+  const [direction,    setDirection]    = useState(_initDirection);  // long | short
+  const [strikeStr,    setStrikeStr]    = useState(inputVal(_initStrike));
+  const [strike,       setStrike]       = useState(_initStrike);
+  const [expiration,   setExpiration]   = useState(_initExpir);
+  const [multiplierStr, setMultiplierStr] = useState(inputVal(_initMultiplier));
+  const [multiplier,    setMultiplier]    = useState(_initMultiplier);
+  const [contractsStr, setContractsStr] = useState(inputVal(_initContracts));
+  const [contracts,    setContracts]    = useState(_initContracts);
+  const [entryPremStr, setEntryPremStr] = useState(inputVal(_initEntryPrem));
+  const [entryPrem,    setEntryPrem]    = useState(_initEntryPrem);
+  const [markPSStr,    setMarkPSStr]    = useState(inputVal(_initMarkPerShare));
+  const [markPS,       setMarkPS]       = useState(_initMarkPerShare);
 
   // ── submit state ──────────────────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  // Validation — we enforce the same minimum bar as the CSV onboarding path:
-  // account + ticker + either (value) or (shares AND price). That's what
-  // `value` actually is in the DB, so compute it from whichever pair the
-  // user gave us.
+  // Derived display values (stock mode)
+  const totalCost    = shares != null && avgCost != null ? shares * avgCost : null;
+  const currentValue = shares != null && price   != null ? shares * price   : null;
+  const pnlDollars   = currentValue != null && totalCost != null ? currentValue - totalCost : null;
+  const pnlPct       = price != null && avgCost != null && avgCost !== 0
+    ? (price / avgCost - 1) * 100 : null;
+
+  // Derived display values (option mode)
+  const optSignedContracts = contracts != null ? (direction === "short" ? -contracts : contracts) : null;
+  const optCostBasis       = (contracts != null && entryPrem != null && multiplier != null)
+    ? optSignedContracts * entryPrem * multiplier : null;
+  const optCurrentValue    = (contracts != null && markPS    != null && multiplier != null)
+    ? optSignedContracts * markPS * multiplier : null;
+  const optPnl$            = (optCurrentValue != null && optCostBasis != null)
+    ? optCurrentValue - optCostBasis : null;
+
+  // Derived display values (bond/crypto — same shape as stock)
+  const genCostBasis    = (shares != null && avgCost != null) ? shares * avgCost : null;
+  const genCurrentValue = (shares != null && price   != null) ? shares * price   : null;
+  const genPnl$         = (genCurrentValue != null && genCostBasis != null)
+    ? genCurrentValue - genCostBasis : null;
+
+  // ── input handlers (stock) ────────────────────────────────────────────────
+  const onChangeShares = (raw) => {
+    setSharesStr(raw);
+    setShares(parseNum(raw));
+  };
+  const onChangeAvgCost = (raw) => {
+    setAvgCostStr(raw);
+    setAvgCost(parseNum(raw));
+  };
+  const onChangeTotalCost = (raw) => {
+    setTotalCostStr(raw);
+    const total = parseNum(raw);
+    if (total == null) return;
+    if (shares != null && shares > 0) setAvgCost(total / shares);
+  };
+  const onChangeCurrentValue = (raw) => {
+    setCurrentValueStr(raw);
+    const val = parseNum(raw);
+    if (val == null) return;
+    if (shares != null && shares > 0) setPrice(val / shares);
+  };
+
+  // ── validation ────────────────────────────────────────────────────────────
   const tickerClean = ticker.trim().toUpperCase();
   const accountLabelClean = accountLabel.trim();
-  // 35E: CASH is first-class. Any time the user types / has CASH, the form
-  // flips to an amount-only layout. Detection is purely by ticker string.
-  const isCash = tickerClean === "CASH";
+
   const validation = useMemo(() => {
     if (!accountLabelClean) return "Account name is required.";
     if (accountLabelClean.length > 80) return "Account name is too long — max 80 chars.";
-    if (!tickerClean)   return "Ticker is required.";
-    if (tickerClean.length > 10) return "Ticker looks too long — max 10 chars.";
-    if (isCash) {
-      // 35E: CASH uses `shares` as the amount; any non-zero finite number
-      // (positive = cash balance, negative = margin debit) is acceptable.
-      if (shares == null || !Number.isFinite(shares)) return "Enter a dollar amount.";
-      if (shares === 0) return "Amount can't be zero — use Delete to remove a position.";
-    } else {
-      // We need enough to compute `value`:
-      const haveValue = currentValue != null && Number.isFinite(currentValue);
-      if (!haveValue) {
-        return "Enter Shares and Current Value.";
-      }
-    }
-    // Purchase date is optional; if the user typed one, it must be ISO.
+    if (!tickerClean)   return "Ticker / symbol is required.";
+    if (tickerClean.length > 24) return "Ticker looks too long — max 24 chars.";
     if (purchaseDate && !/^\d{4}-\d{2}-\d{2}$/.test(purchaseDate)) {
       return "Purchase date must be YYYY-MM-DD (or leave it blank).";
     }
-    return null;
-  }, [accountLabelClean, tickerClean, isCash, shares, currentValue, purchaseDate]);
 
-  // Resolve the typed account label to an account_id. If no account with
-  // that exact label exists, create one and return its id. Case-insensitive
-  // match against existing accounts so "Roth IRA" and "roth ira" don't
-  // produce duplicate rows.
+    if (assetClass === "cash") {
+      if (shares == null || !Number.isFinite(shares)) return "Enter a dollar amount.";
+      if (shares === 0) return "Amount can't be zero — use Delete to remove a position.";
+      return null;
+    }
+    if (assetClass === "option") {
+      if (!contractType) return "Pick Call or Put.";
+      if (!direction)    return "Pick Long or Short.";
+      if (strike == null || strike <= 0) return "Strike must be a positive number.";
+      if (!expiration || !/^\d{4}-\d{2}-\d{2}$/.test(expiration)) return "Expiration must be YYYY-MM-DD.";
+      if (multiplier == null || multiplier <= 0) return "Multiplier must be a positive integer (usually 100).";
+      if (contracts == null || contracts <= 0) return "Enter the number of contracts (positive — Short is set via Direction).";
+      if (entryPrem == null || entryPrem < 0) return "Enter the entry premium per share.";
+      if (markPS == null || markPS < 0) return "Enter a current mark per share (manual).";
+      return null;
+    }
+    // bond / crypto / stock — same minimum bar: qty + price
+    if (shares == null || shares === 0) return "Enter quantity.";
+    if (price == null || !Number.isFinite(price)) {
+      return assetClass === "stock"
+        ? "Enter Shares and Current Value."
+        : "Enter a current price (manual for now).";
+    }
+    if (avgCost == null || !Number.isFinite(avgCost)) return "Enter a cost basis (per unit).";
+    return null;
+  }, [
+    assetClass, accountLabelClean, tickerClean, purchaseDate,
+    shares, avgCost, price,
+    contractType, direction, strike, expiration, multiplier, contracts, entryPrem, markPS,
+  ]);
+
   const resolveAccountId = async () => {
     const target = accountLabelClean;
     const match = (accounts || []).find(
       (a) => (a.label || "").trim().toLowerCase() === target.toLowerCase()
     );
     if (match) return match.id;
-    // Not found — create a new account row. sort_order = current count so it
-    // lands at the end of the list; the user can reorder elsewhere.
     const { data, error } = await supabase
       .from("accounts")
       .insert({
@@ -312,45 +355,128 @@ export default function PositionEditor({
     return data.id;
   };
 
+  // ── save ──────────────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (validation) { setErr(validation); return; }
     setErr("");
     setSubmitting(true);
     try {
-      // 35E: CASH is first-class. Build a CASH-shaped payload when ticker===CASH
-      // so the row is encoded as quantity=amount / price=1 / avg_cost=1 / value=amount.
-      // This auto-heals broken rows (quantity=√value) on the next save.
-      const payload = isCash
-        ? {
-            ticker:   "CASH",
-            name:     "CASH",
-            quantity: shares,          // = dollar amount (signed)
-            price:    1,
-            avg_cost: 1,
-            value:    shares,          // = dollar amount (signed)
-            sector:   "Cash",
-            beta:     0,
-            analysis: existing?.analysis ?? null,
-            purchase_date: purchaseDate || null,
-          }
-        : {
-            ticker:   tickerClean,
-            name:     existing?.name || tickerClean,
-            quantity: shares,
-            price:    price,
-            avg_cost: avgCost,
-            value:    currentValue,
-            sector:   sector || existing?.sector || null,
-            beta:     existing?.beta ?? null,
-            analysis: existing?.analysis ?? null,
-            // Item 36: empty string → NULL so we don't insert a garbage date.
-            purchase_date: purchaseDate || null,
-          };
+      // Build a class-specific payload. All classes round-trip the universal
+      // `value = quantity × price` formula so PositionsTable math stays the
+      // same across the board.
+      let payload;
+      if (assetClass === "cash") {
+        payload = {
+          ticker:    "CASH",
+          name:      "CASH",
+          quantity:  shares,
+          price:     1,
+          avg_cost:  1,
+          value:     shares,
+          sector:    "Cash",
+          beta:      0,
+          analysis:  existing?.analysis ?? null,
+          purchase_date: purchaseDate || null,
+          asset_class:   "cash",
+          contract_type: null,
+          direction:     null,
+          strike:        null,
+          expiration:    null,
+          multiplier:    null,
+          manual_price:  null,
+        };
+      } else if (assetClass === "option") {
+        // Multiplier is baked into stored price + avg_cost (per-contract)
+        // so value = quantity × price keeps working. manual_price stores
+        // the raw per-share mark so the editor can round-trip cleanly.
+        const signedQty   = direction === "short" ? -contracts : contracts;
+        const pricePerCt  = markPS * multiplier;
+        const avgPerCt    = entryPrem * multiplier;
+        payload = {
+          ticker:    tickerClean,
+          name:      existing?.name || tickerClean,
+          quantity:  signedQty,
+          price:     pricePerCt,
+          avg_cost:  avgPerCt,
+          value:     signedQty * pricePerCt,
+          sector:    sector || "Options",
+          beta:      existing?.beta ?? null,
+          analysis:  existing?.analysis ?? null,
+          purchase_date: purchaseDate || null,
+          asset_class:   "option",
+          contract_type: contractType,
+          direction,
+          strike,
+          expiration,
+          multiplier,
+          manual_price:  markPS,
+        };
+      } else if (assetClass === "bond") {
+        // Per-bond convention: quantity = bond count, price = per-bond mark.
+        payload = {
+          ticker:    tickerClean,
+          name:      existing?.name || tickerClean,
+          quantity:  shares,
+          price,
+          avg_cost:  avgCost,
+          value:     shares * price,
+          sector:    sector || "Bonds",
+          beta:      existing?.beta ?? null,
+          analysis:  existing?.analysis ?? null,
+          purchase_date: purchaseDate || null,
+          asset_class:   "bond",
+          contract_type: null,
+          direction:     null,
+          strike:        null,
+          expiration:    null,
+          multiplier:    null,
+          manual_price:  price, // manual mark lives in the price column for bonds
+        };
+      } else if (assetClass === "crypto") {
+        payload = {
+          ticker:    tickerClean,
+          name:      existing?.name || tickerClean,
+          quantity:  shares,
+          price,
+          avg_cost:  avgCost,
+          value:     shares * price,
+          sector:    sector || "Crypto",
+          beta:      existing?.beta ?? null,
+          analysis:  existing?.analysis ?? null,
+          purchase_date: purchaseDate || null,
+          asset_class:   "crypto",
+          contract_type: null,
+          direction:     null,
+          strike:        null,
+          expiration:    null,
+          multiplier:    null,
+          manual_price:  price, // V1: user-entered; Joe's sibling session will overwrite
+        };
+      } else {
+        // stock / ETF
+        payload = {
+          ticker:    tickerClean,
+          name:      existing?.name || tickerClean,
+          quantity:  shares,
+          price,
+          avg_cost:  avgCost,
+          value:     currentValue,
+          sector:    sector || existing?.sector || null,
+          beta:      existing?.beta ?? null,
+          analysis:  existing?.analysis ?? null,
+          purchase_date: purchaseDate || null,
+          asset_class:   "stock",
+          contract_type: null,
+          direction:     null,
+          strike:        null,
+          expiration:    null,
+          multiplier:    null,
+          manual_price:  null,
+        };
+      }
 
       let savedRow;
       if (isEdit) {
-        // 35C: Account is now editable in edit mode. Resolve (or create)
-        // the target account so the row moves if the user re-routed it.
         const account_id = await resolveAccountId();
         const { data, error } = await supabase
           .from("positions")
@@ -361,7 +487,6 @@ export default function PositionEditor({
         if (error) throw error;
         savedRow = data;
       } else {
-        // Find-or-create the account by label, then insert the position.
         const account_id = await resolveAccountId();
         const { data, error } = await supabase
           .from("positions")
@@ -369,7 +494,7 @@ export default function PositionEditor({
             ...payload,
             user_id:    userId,
             account_id,
-            sort_order: 9999,   // push to end; re-sort is a separate concern
+            sort_order: 9999,
           })
           .select()
           .single();
@@ -377,12 +502,9 @@ export default function PositionEditor({
         savedRow = data;
       }
 
-      // 35A: fire scan-ticker so name/sector/beta/price are populated before
-      // the parent refetches. Warm cache is typically <200ms; cold is ~2-3s.
-      // Best-effort: don't fail the save if the scanner call fails.
-      // 35E: skip for CASH — the scanner can't resolve it, and we already
-      // populated name/sector/beta/price ourselves in the payload above.
-      if (!isCash) {
+      // Scanner fan-out — stock class only. Options/bonds have no UW path
+      // and crypto gets its price from the sibling 3x/day pricing session.
+      if (assetClass === "stock") {
         try {
           const { data: sessData } = await supabase.auth.getSession();
           const token = sessData?.session?.access_token;
@@ -447,6 +569,42 @@ export default function PositionEditor({
           </button>
         </div>
 
+        {/* Asset class picker */}
+        <div style={{ marginBottom: 12 }}>
+          <label style={label}>ASSET CLASS</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {CLASSES.map((c) => {
+              const active = assetClass === c.id;
+              return (
+                <button
+                  key={c.id}
+                  type="button"
+                  onClick={() => {
+                    setAssetClass(c.id);
+                    // CASH shortcut: auto-set the ticker so the cash branch
+                    // picks it up even if the user hadn't typed anything.
+                    if (c.id === "cash") setTicker("CASH");
+                    if (c.id !== "cash" && tickerClean === "CASH") setTicker("");
+                  }}
+                  style={{
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontFamily: "var(--font-mono)",
+                    fontWeight: active ? 700 : 500,
+                    color: active ? "#fff" : "var(--text-muted)",
+                    background: active ? "var(--accent)" : "transparent",
+                    border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                    borderRadius: "var(--radius-sm, 6px)",
+                    cursor: "pointer",
+                  }}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Account + Ticker row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
           <div>
@@ -465,52 +623,119 @@ export default function PositionEditor({
                 <option key={a.id} value={a.label} />
               ))}
             </datalist>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-              {isEdit
-                ? "Rename or re-route to another account — we'll create it if it doesn't exist."
-                : "Type any name. Pick from your existing accounts or enter a new one — it'll be created."}
-            </div>
           </div>
           <div>
-            <label style={label}>TICKER</label>
+            <label style={label}>
+              {assetClass === "option" ? "UNDERLYING" :
+               assetClass === "bond"   ? "SYMBOL / CUSIP" :
+               assetClass === "crypto" ? "SYMBOL" :
+               assetClass === "cash"   ? "LABEL" :
+               "TICKER"}
+            </label>
             <input
               style={input}
               value={ticker}
               onChange={(e) => setTicker(e.target.value.toUpperCase())}
-              placeholder="AAPL"
+              placeholder={
+                assetClass === "option" ? "AAPL" :
+                assetClass === "bond"   ? "TLT or 912810SZ9" :
+                assetClass === "crypto" ? "BTC" :
+                assetClass === "cash"   ? "CASH" :
+                "AAPL"
+              }
             />
           </div>
         </div>
 
-        {/* Sector + Purchase Date row — both optional; hidden for CASH */}
-        {!isCash && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
-          <div>
-            <label style={label}>SECTOR (optional)</label>
-            <input
-              style={input}
-              value={sector}
-              onChange={(e) => setSector(e.target.value)}
-              placeholder="Tech, HY Bonds, Cash, Intl Equity…"
-            />
-          </div>
-          <div>
-            <label style={label}>PURCHASE DATE (optional)</label>
-            <input
-              style={input}
-              type="date"
-              value={purchaseDate}
-              onChange={(e) => setPurchaseDate(e.target.value)}
-            />
-            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-              Powers Holding Period & future Annualized PnL. Leave blank if you'd rather skip.
+        {/* Sector + Purchase Date — hidden for CASH */}
+        {assetClass !== "cash" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
+            <div>
+              <label style={label}>SECTOR (optional)</label>
+              <input
+                style={input}
+                value={sector}
+                onChange={(e) => setSector(e.target.value)}
+                placeholder={
+                  assetClass === "option" ? "Options" :
+                  assetClass === "bond"   ? "Treasuries, HY Credit…" :
+                  assetClass === "crypto" ? "Crypto" :
+                  "Tech, HY Bonds, Intl Equity…"
+                }
+              />
+            </div>
+            <div>
+              <label style={label}>
+                {assetClass === "option" ? "ENTRY DATE (optional)" : "PURCHASE DATE (optional)"}
+              </label>
+              <input
+                style={input}
+                type="date"
+                value={purchaseDate}
+                onChange={(e) => setPurchaseDate(e.target.value)}
+              />
             </div>
           </div>
-        </div>
         )}
 
-        {/* Numeric block — 35E: CASH flips to single-amount layout */}
-        {isCash ? (
+        {/* ── STOCK / ETF block ──────────────────────────────────────────── */}
+        {assetClass === "stock" && (
+          <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
+              POSITION MATH · COST/SHARE ↔ TOTAL COST AUTO-CALCULATE
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={label}>SHARES</label>
+                <input
+                  style={input}
+                  value={sharesStr}
+                  onChange={(e) => onChangeShares(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="10"
+                />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={label}>COST / SHARE</label>
+                <input
+                  style={input}
+                  value={avgCostStr}
+                  onChange={(e) => onChangeAvgCost(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="150.00"
+                />
+              </div>
+              <div>
+                <label style={label}>TOTAL COST (= SHARES × COST/SHARE)</label>
+                <input
+                  style={input}
+                  value={shares != null && avgCost != null ? String(shares * avgCost) : totalCostStr}
+                  onChange={(e) => onChangeTotalCost(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="1500.00"
+                />
+              </div>
+            </div>
+            <div style={{ marginBottom: 6 }}>
+              <label style={label}>CURRENT VALUE</label>
+              <input
+                style={input}
+                value={shares != null && price != null ? String(shares * price) : currentValueStr}
+                onChange={(e) => onChangeCurrentValue(e.target.value)}
+                inputMode="decimal"
+                placeholder="1750.00"
+              />
+              <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                Enter today's market value of the holding. Price/share is derived automatically.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── CASH block ────────────────────────────────────────────────── */}
+        {assetClass === "cash" && (
           <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
               CASH BALANCE
@@ -530,15 +755,122 @@ export default function PositionEditor({
               </div>
             </div>
           </div>
-        ) : (
+        )}
+
+        {/* ── OPTION block ──────────────────────────────────────────────── */}
+        {assetClass === "option" && (
           <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
-              POSITION MATH · COST/SHARE ↔ TOTAL COST AUTO-CALCULATE
+              CONTRACT SPEC · DIRECTION / TYPE / STRIKE / EXPIRY
             </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 10, marginBottom: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               <div>
-                <label style={label}>SHARES</label>
+                <label style={label}>DIRECTION</label>
+                <select
+                  style={input}
+                  value={direction}
+                  onChange={(e) => setDirection(e.target.value)}
+                >
+                  <option value="long">Long</option>
+                  <option value="short">Short</option>
+                </select>
+              </div>
+              <div>
+                <label style={label}>TYPE</label>
+                <select
+                  style={input}
+                  value={contractType}
+                  onChange={(e) => setContractType(e.target.value)}
+                >
+                  <option value="call">Call</option>
+                  <option value="put">Put</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={label}>STRIKE</label>
+                <input
+                  style={input}
+                  value={strikeStr}
+                  onChange={(e) => { setStrikeStr(e.target.value); setStrike(parseNum(e.target.value)); }}
+                  inputMode="decimal"
+                  placeholder="250.00"
+                />
+              </div>
+              <div>
+                <label style={label}>EXPIRATION</label>
+                <input
+                  style={input}
+                  type="date"
+                  value={expiration}
+                  onChange={(e) => setExpiration(e.target.value)}
+                />
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={label}>CONTRACTS</label>
+                <input
+                  style={input}
+                  value={contractsStr}
+                  onChange={(e) => { setContractsStr(e.target.value); setContracts(parseNum(e.target.value)); }}
+                  inputMode="decimal"
+                  placeholder="3"
+                />
+              </div>
+              <div>
+                <label style={label}>MULTIPLIER</label>
+                <input
+                  style={input}
+                  value={multiplierStr}
+                  onChange={(e) => { setMultiplierStr(e.target.value); setMultiplier(parseNum(e.target.value)); }}
+                  inputMode="decimal"
+                  placeholder="100"
+                />
+              </div>
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", margin: "14px 0 10px" }}>
+              PRICING · PER-SHARE PREMIUM (× MULTIPLIER × CONTRACTS = $ VALUE)
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 6 }}>
+              <div>
+                <label style={label}>ENTRY PREMIUM / SHARE</label>
+                <input
+                  style={input}
+                  value={entryPremStr}
+                  onChange={(e) => { setEntryPremStr(e.target.value); setEntryPrem(parseNum(e.target.value)); }}
+                  inputMode="decimal"
+                  placeholder="2.50"
+                />
+              </div>
+              <div>
+                <label style={label}>CURRENT MARK / SHARE (MANUAL)</label>
+                <input
+                  style={input}
+                  value={markPSStr}
+                  onChange={(e) => { setMarkPSStr(e.target.value); setMarkPS(parseNum(e.target.value)); }}
+                  inputMode="decimal"
+                  placeholder="3.25"
+                />
+              </div>
+            </div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+              No live options feed in V1 — type today's mark manually.
+              Short positions flip to a negative position value automatically.
+            </div>
+          </div>
+        )}
+
+        {/* ── BOND block ────────────────────────────────────────────────── */}
+        {assetClass === "bond" && (
+          <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
+              BOND HOLDING · PER-BOND PRICING
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={label}>BONDS HELD</label>
                 <input
                   style={input}
                   value={sharesStr}
@@ -547,91 +879,143 @@ export default function PositionEditor({
                   placeholder="10"
                 />
               </div>
-            </div>
-
-            {/* Cost pair */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
               <div>
-                <label style={label}>COST / SHARE</label>
+                <label style={label}>AVG COST / BOND</label>
                 <input
                   style={input}
                   value={avgCostStr}
                   onChange={(e) => onChangeAvgCost(e.target.value)}
                   inputMode="decimal"
-                  placeholder="150.00"
-                />
-              </div>
-              <div>
-                <label style={label}>TOTAL COST (= SHARES × COST/SHARE)</label>
-                <input
-                  style={input}
-                  value={
-                    // if both canonicals are set, show derived; else show sticky string
-                    shares != null && avgCost != null
-                      ? String(shares * avgCost)
-                      : totalCostStr
-                  }
-                  onChange={(e) => onChangeTotalCost(e.target.value)}
-                  inputMode="decimal"
-                  placeholder="1500.00"
+                  placeholder="995.00"
                 />
               </div>
             </div>
-
-            {/* Current value — full width. No price/share input: we back-solve
-                price = value / shares on save. The platform's market data layer
-                refreshes the live price after save, so there's no reason to ask
-                the user for it manually. */}
-            <div style={{ marginBottom: 6 }}>
-              <label style={label}>CURRENT VALUE</label>
+            <div>
+              <label style={label}>CURRENT PRICE / BOND (MANUAL)</label>
               <input
                 style={input}
-                value={
-                  shares != null && price != null
-                    ? String(shares * price)
-                    : currentValueStr
-                }
-                onChange={(e) => onChangeCurrentValue(e.target.value)}
+                value={price != null ? String(price) : ""}
+                onChange={(e) => setPrice(parseNum(e.target.value))}
                 inputMode="decimal"
-                placeholder="1750.00"
+                placeholder="1020.00"
               />
               <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-                Enter today's market value of the holding. Price/share is derived automatically.
+                No bond pricing feed in V1. Enter today's per-bond mark manually (face value conventions vary — we store whatever you type).
               </div>
             </div>
           </div>
         )}
 
-        {/* Derived summary — hidden for CASH (PnL math is meaningless) */}
-        {!isCash && (
-        <div style={{
-          background: "var(--surface-2)",
-          border: "1px solid var(--border-faint)",
-          borderRadius: "var(--radius-sm, 6px)",
-          padding: "10px 12px",
-          marginBottom: 14,
-          display: "grid",
-          gridTemplateColumns: "repeat(2, 1fr)",
-          gap: 6,
-          fontFamily: "var(--font-mono)",
-          fontSize: 12,
-        }}>
-          <div><span style={{ color: "var(--text-muted)" }}>Cost basis: </span>{fmt$(totalCost)}</div>
-          <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(currentValue)}</div>
-          <div><span style={{ color: "var(--text-muted)" }}>Implied price/share: </span>{fmt$(price)}</div>
-          <div>
-            <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
-            <span style={{ color: pnlDollars == null ? "var(--text-muted)" : pnlDollars >= 0 ? "#30d158" : "#ff453a" }}>
-              {fmt$(pnlDollars)}
-            </span>
+        {/* ── CRYPTO block ──────────────────────────────────────────────── */}
+        {assetClass === "crypto" && (
+          <div style={{ borderTop: "1px solid var(--border-faint)", paddingTop: 14, marginTop: 4, marginBottom: 12 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 10 }}>
+              CRYPTO HOLDING · PER-UNIT PRICING
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+              <div>
+                <label style={label}>QUANTITY</label>
+                <input
+                  style={input}
+                  value={sharesStr}
+                  onChange={(e) => onChangeShares(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="0.5"
+                />
+              </div>
+              <div>
+                <label style={label}>AVG COST / UNIT</label>
+                <input
+                  style={input}
+                  value={avgCostStr}
+                  onChange={(e) => onChangeAvgCost(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="42000.00"
+                />
+              </div>
+            </div>
+            <div>
+              <label style={label}>CURRENT PRICE / UNIT (MANUAL)</label>
+              <input
+                style={input}
+                value={price != null ? String(price) : ""}
+                onChange={(e) => setPrice(parseNum(e.target.value))}
+                inputMode="decimal"
+                placeholder="67500.00"
+              />
+              <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                V1: enter today's mark manually. A sibling job will wire up
+                3x/day crypto pricing shortly — after that, this field
+                becomes an optional override.
+              </div>
+            </div>
           </div>
-          <div>
-            <span style={{ color: "var(--text-muted)" }}>PnL %: </span>
-            <span style={{ color: pnlPct == null ? "var(--text-muted)" : pnlPct >= 0 ? "#30d158" : "#ff453a" }}>
-              {fmtPct(pnlPct)}
-            </span>
+        )}
+
+        {/* Derived summary — hidden for CASH */}
+        {assetClass === "stock" && (
+          <div style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border-faint)",
+            borderRadius: "var(--radius-sm, 6px)",
+            padding: "10px 12px", marginBottom: 14,
+            display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6,
+            fontFamily: "var(--font-mono)", fontSize: 12,
+          }}>
+            <div><span style={{ color: "var(--text-muted)" }}>Cost basis: </span>{fmt$(totalCost)}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(currentValue)}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>Implied price/share: </span>{fmt$(price)}</div>
+            <div>
+              <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
+              <span style={{ color: pnlDollars == null ? "var(--text-muted)" : pnlDollars >= 0 ? "#30d158" : "#ff453a" }}>
+                {fmt$(pnlDollars)}
+              </span>
+            </div>
+            <div>
+              <span style={{ color: "var(--text-muted)" }}>PnL %: </span>
+              <span style={{ color: pnlPct == null ? "var(--text-muted)" : pnlPct >= 0 ? "#30d158" : "#ff453a" }}>
+                {fmtPct(pnlPct)}
+              </span>
+            </div>
           </div>
-        </div>
+        )}
+        {assetClass === "option" && (
+          <div style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border-faint)",
+            borderRadius: "var(--radius-sm, 6px)",
+            padding: "10px 12px", marginBottom: 14,
+            display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6,
+            fontFamily: "var(--font-mono)", fontSize: 12,
+          }}>
+            <div><span style={{ color: "var(--text-muted)" }}>Cost basis: </span>{fmt$(optCostBasis)}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(optCurrentValue)}</div>
+            <div style={{ gridColumn: "span 2" }}>
+              <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
+              <span style={{ color: optPnl$ == null ? "var(--text-muted)" : optPnl$ >= 0 ? "#30d158" : "#ff453a" }}>
+                {fmt$(optPnl$)}
+              </span>
+            </div>
+          </div>
+        )}
+        {(assetClass === "bond" || assetClass === "crypto") && (
+          <div style={{
+            background: "var(--surface-2)",
+            border: "1px solid var(--border-faint)",
+            borderRadius: "var(--radius-sm, 6px)",
+            padding: "10px 12px", marginBottom: 14,
+            display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 6,
+            fontFamily: "var(--font-mono)", fontSize: 12,
+          }}>
+            <div><span style={{ color: "var(--text-muted)" }}>Cost basis: </span>{fmt$(genCostBasis)}</div>
+            <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(genCurrentValue)}</div>
+            <div style={{ gridColumn: "span 2" }}>
+              <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
+              <span style={{ color: genPnl$ == null ? "var(--text-muted)" : genPnl$ >= 0 ? "#30d158" : "#ff453a" }}>
+                {fmt$(genPnl$)}
+              </span>
+            </div>
+          </div>
         )}
 
         {err && (
