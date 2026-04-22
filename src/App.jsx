@@ -88,15 +88,21 @@ return              "Extreme";
 function sdTo100(s){return Math.round(Math.max(0,Math.min(100,((s+1)/4)*100)));}
 
 // ── 4-LEVEL CONVICTION ─────────────────────────────────────────────────────
-// Low 0-20 | Normal 20-50 | Elevated 50-75 | Extreme 75-100
+// Empirically calibrated against indicator_history.json (2006-01-03 → 2026-04,
+// N≈6,313 trading days). See scripts/conviction-backtest.js for the run.
+// Thresholds at p60 / p85 / p97.5 of the historical composite-SD distribution:
+//   LOW     : SD < 0.12  (bottom 60% — quiet regimes)
+//   NORMAL  : 0.12 ≤ SD < 0.41  (next 25% — mid-range)
+//   ELEVATED: 0.41 ≤ SD < 1.03  (top ~12.5% excl. tail — 2022 bear 0.80, SVB 0.67, 2015-16 0.59)
+//   EXTREME : SD ≥ 1.03  (top ~2.5% — GFC peak 2.27, COVID peak 2.02)
 const CONVICTION=[
-{level:1,label:"LOW",      range:[-99,0.25], color:"#30d158", eq:90,bd:5, ca:3, au:2,
+{level:1,label:"LOW",      range:[-99,0.12], color:"#30d158", eq:90,bd:5, ca:3, au:2,
  action:"Risk-on. Historically benign conditions. Consider adding cyclical beta."},
-{level:2,label:"NORMAL",   range:[0.25,0.88],color:"#ffd60a", eq:75,bd:15,ca:7, au:3,
+{level:2,label:"NORMAL",   range:[0.12,0.41],color:"#ffd60a", eq:75,bd:15,ca:7, au:3,
  action:"Market baseline. Maintain diversified exposure. Trim highest-beta on spikes."},
-{level:3,label:"ELEVATED", range:[0.88,1.6], color:"#ff9f0a", eq:55,bd:28,ca:12,au:5,
+{level:3,label:"ELEVATED", range:[0.41,1.03],color:"#ff9f0a", eq:55,bd:28,ca:12,au:5,
  action:"Active hedging warranted. Sell covered calls. Rotate defensive. Reduce leverage."},
-{level:4,label:"EXTREME",  range:[1.6,99],   color:"#ff453a", eq:20,bd:30,ca:35,au:15,
+{level:4,label:"EXTREME",  range:[1.03,99],  color:"#ff453a", eq:20,bd:30,ca:35,au:15,
  action:"Crisis regime. Maximum defensiveness. Harvest losses. Hold dry powder."},
 ];
 function getConv(s){return CONVICTION.find(c=>s>=c.range[0]&&s<c.range[1])||CONVICTION[3];}
@@ -2932,31 +2938,45 @@ const FACTOR_DISPLAY_LAB=[
   {key:"volatility",label:"Volatility",indIds:["vix","skew"]},
 ];
 
-// ── PUNCHLINE helpers · fast/slow + near/long-term composite framing ──────
-// The decision-making frame the Lab is designed to teach:
-//   NEAR-TERM / TACTICAL read = fast movers (daily + weekly cadence). Drives
-//   3-month gross/hedge/vol decisions.
-//   STRATEGIC read = slow movers (monthly + quarterly cadence). Drives 12-18
-//   month asset-allocation / quality-vs-beta decisions.
-// Cadence partition comes directly from IND_FREQ so we never drift.
-const FAST_IDS_LAB=Object.keys(IND_FREQ).filter(id=>IND_FREQ[id]==="D"||IND_FREQ[id]==="W");
-const SLOW_IDS_LAB=Object.keys(IND_FREQ).filter(id=>IND_FREQ[id]==="M"||IND_FREQ[id]==="Q");
+// ── PUNCHLINE helpers · v4 framework · AUC-weighted, sign-aware ───────────
+// v3 fast/slow + equal-weighted COMP back-tested at AUC ≈ 0.56 (no edge).
+// v4 selects per-horizon top-N indicators by AUC, sign-flips strategic
+// mean-reverters, uses quartile-based bucket cutoffs, and only treats joint
+// EXTREME|EXTREME as actionable.
+//
+// Evidence pack: /public/sector_lab_research/backtest_v4_report.html
+// Methodology: /public/sector_lab_research/methodology/methodology_notes.md
+const V4_TACT_WEIGHTS={
+  vix:{w:0.208,s:1}, move:{w:0.234,s:1}, anfci:{w:0.182,s:1},
+  stlfsi:{w:0.110,s:1}, cpff:{w:0.262,s:1}, jobless:{w:0.176,s:1},
+  cmdi:{w:0.156,s:1}, term_premium:{w:0.190,s:1}, cape:{w:0.336,s:1},
+  jolts_quits:{w:0.150,s:1}, bank_unreal:{w:0.300,s:1},
+};
+const V4_STRAT_WEIGHTS={
+  vix:{w:0.280,s:1}, move:{w:0.310,s:1}, copper_gold:{w:0.122,s:-1},
+  stlfsi:{w:0.166,s:1}, loan_syn:{w:0.452,s:-1}, term_premium:{w:0.224,s:1},
+  cape:{w:0.784,s:1}, ism:{w:0.440,s:-1}, sloos_ci:{w:0.108,s:-1},
+  sloos_cre:{w:0.158,s:1}, bank_unreal:{w:0.160,s:1},
+};
+// Quartile cutoffs from v4 distribution 2011-2026 (replaces eyeballed -0.5/0.5/1.5).
+const V4_TACT_CUTS ={p25:-0.58, p75:0.19, p90:0.55};
+const V4_STRAT_CUTS={p25:-0.42, p75:0.21, p90:0.47};
 
-// Weighted composite over a subset of indicators — reuses module-level
-// WEIGHTS and sdScore so calibration stays single-sourced.
-function subsetComp_Lab(snap,ids){
+// AUC-weighted composite with sign-flips. Reuses sdScore (rolling 5y SD via
+// indicator_history.json + useHistReady) so calibration stays single-sourced.
+function compV4_Lab(snap,weights){
   let ws=0,wt=0;
-  ids.forEach(id=>{
-    const w=WEIGHTS[id];if(!w)return;
-    const s=sdScore(id,snap[id]);if(s==null)return;
-    ws+=s*w;wt+=w;
+  Object.entries(weights).forEach(([id,{w,s}])=>{
+    const z=sdScore(id,snap[id]);if(z==null)return;
+    ws+=s*z*w;wt+=w;
   });
   return wt>0?ws/wt:0;
 }
 
-// Level bucket for a subset composite. Thresholds align with the main
-// CONVICTION table so tactical/strategic levels read consistently with /#home.
-function levelBucket_Lab(comp,horizon){
+// Quartile-based bucket. Every bucket can fire (v3's "extreme" was unreachable
+// on slow — max ever = +1.02σ, threshold was +1.5σ).
+function levelBucketV4_Lab(comp,horizon){
+  const cuts=horizon==="tactical"?V4_TACT_CUTS:V4_STRAT_CUTS;
   const tilt=(horizon==="tactical")?{
     EXTREME:"Aggressive defensiveness · raise cash · harvest losses · hold dry powder",
     ELEVATED:"Active hedging · reduce gross · trim high-beta into strength",
@@ -2968,39 +2988,40 @@ function levelBucket_Lab(comp,horizon){
     NORMAL:"Neutral strategic asset allocation · rebalance quarterly",
     BENIGN:"Overweight equities on 12m view · extend duration · add cyclical cap-weights",
   };
-  if(comp>1.6) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
-  if(comp>0.88)return{label:"ELEVATED",color:"#ff9f0a",tilt:tilt.ELEVATED};
-  if(comp>0.25)return{label:"NORMAL",  color:"#ffd60a",tilt:tilt.NORMAL};
-  return             {label:"BENIGN",  color:"#30d158",tilt:tilt.BENIGN};
+  if(comp>cuts.p90) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
+  if(comp>cuts.p75) return{label:"ELEVATED",color:"#ff9f0a",tilt:tilt.ELEVATED};
+  if(comp>cuts.p25) return{label:"NORMAL",  color:"#ffd60a",tilt:tilt.NORMAL};
+  return              {label:"BENIGN",  color:"#30d158",tilt:tilt.BENIGN};
 }
 
-// Top movers cited in the punchline — highest absolute SD scores in the subset.
-function topMovers_Lab(ids,n=3){
-  return ids.map(id=>({id,label:IND[id]?.[0]||id,sd:DS[id]}))
-    .filter(r=>r.sd!=null&&Number.isFinite(r.sd))
-    .sort((a,b)=>Math.abs(b.sd)-Math.abs(a.sd))
-    .slice(0,n);
+// Top contributors by SIGNED contribution (sign × SD × AUC weight) — answers
+// "what's pushing this composite right now" on the v4 framework's terms.
+function topMoversV4_Lab(weights,n=3){
+  return Object.entries(weights).map(([id,{w,s}])=>{
+    const sd=DS[id];
+    const contrib=(sd!=null&&Number.isFinite(sd))?s*sd*w:null;
+    return{id,label:IND[id]?.[0]||id,sd,contrib,sign:s};
+  }).filter(r=>r.contrib!=null).sort((a,b)=>Math.abs(b.contrib)-Math.abs(a.contrib)).slice(0,n);
 }
 
-// Alignment flag: are tactical and strategic composites agreeing or not?
-// Divergence is the most actionable state — tells the user whether to size
-// the gap between tactical and strategic exposure wide or narrow.
-function alignmentFlag_Lab(near,strat){
-  const diff=near-strat;
-  const aDiff=Math.abs(diff);
-  const avg=(near+strat)/2;
-  if(aDiff<0.3){
-    if(avg>0.88) return{label:"ALIGNED · BOTH WARNING",color:"#ff453a",
-      desc:"Both tactical and strategic reads are elevated — reduce exposure across horizons. No meaningful gap between near-term and long-term risk posture."};
-    if(avg<0.25) return{label:"ALIGNED · BOTH BENIGN",color:"#30d158",
-      desc:"Both horizons calm — coherent risk-on backdrop. Tactical and strategic exposures can run symmetrically long."};
-    return{label:"ALIGNED · NORMAL",color:"var(--text-2)",
-      desc:"Tactical and strategic reads are coherent; posture is straightforward — no horizon gap to arbitrage."};
+// Alignment flag — back-test's most robust finding: ONLY joint EXTREME|EXTREME
+// produces meaningfully negative forward returns (-2.55% mean 60d, n=640).
+// Single-tile EXTREME averages +5-8% forward 60d. Promoted to top of Lab.
+function alignmentFlagV4_Lab(near,strat,nearBucket,stratBucket){
+  const bothExtreme=nearBucket.label==="EXTREME"&&stratBucket.label==="EXTREME";
+  const oneExtreme=(nearBucket.label==="EXTREME")!==(stratBucket.label==="EXTREME");
+  const bothBenign=nearBucket.label==="BENIGN"&&stratBucket.label==="BENIGN";
+  if(bothExtreme) return{label:"◆ JOINT EXTREME · DE-RISK NOW",color:"#ff453a",
+    desc:"Both tactical and strategic composites are in the top decile of v4 history. This is the only signal back-test shows is consistently actionable: mean forward 60d return = −2.55%, mean 252d = −1.18% (n=640). Reduce gross across horizons."};
+  if(oneExtreme){
+    const which=nearBucket.label==="EXTREME"?"TACTICAL":"STRATEGIC";
+    return{label:`◇ SINGLE-TILE EXTREME · ${which} ONLY · INFORMATIONAL`,color:"#ff9f0a",
+    desc:"Only one horizon is firing EXTREME. Back-test shows single-tile extreme is NOT a sell signal — single-tile EXTREME averages +5-8% forward 60d. Stay invested; watch for the other tile to confirm before de-risking."};
   }
-  if(diff>0) return{label:"DIVERGENT · TACTICAL HOTTER",color:"#ff9f0a",
-    desc:"Near-term stress while slow movers stay calm — tactical drawdown inside a stable regime. Fade spikes, don't de-risk strategically. Short-term hedges earn more than long-term cash."};
-  return{label:"DIVERGENT · STRATEGIC HOTTER",color:"#ff9f0a",
-    desc:"Slow movers flashing caution while near-term is calm — classic late-cycle melt-up setup. Short-term bid, long-term vulnerable. Trim into rallies, build strategic defense even as tactical tilt stays invested."};
+  if(bothBenign) return{label:"◇ JOINT BENIGN · RISK-ON BACKDROP",color:"#30d158",
+    desc:"Both composites in the bottom quartile. Coherent risk-on regime — tactical and strategic exposures can run symmetrically long."};
+  return{label:"◇ MIXED · NEUTRAL POSTURE",color:"var(--text-2)",
+    desc:"Composites are in normal/elevated zones — no joint extreme reading. Back-test shows this regime has positive forward returns on average; maintain neutral posture."};
 }
 
 // Trend word for the velocity readout in the punchline banner.
@@ -3016,18 +3037,20 @@ const [indSort,setIndSort]=useState({key:"factor",dir:"asc"});
 const cyc=detectCycleStage();
 const scored=SECTORS.map(s=>({...s,score:computeSectorScore(s)})).sort((a,b)=>b.score-a.score);
 
-// ── Punchline composites (fast/slow × near/long-term) ────────────────────
-const NEAR_COMP_LAB=subsetComp_Lab(NOW,FAST_IDS_LAB);
-const STRAT_COMP_LAB=subsetComp_Lab(NOW,SLOW_IDS_LAB);
-const NEAR_COMP_1M_LAB=subsetComp_Lab(MO1,FAST_IDS_LAB);
-const STRAT_COMP_1M_LAB=subsetComp_Lab(MO1,SLOW_IDS_LAB);
+// ── Punchline composites · v4 AUC-weighted ───────────────────────────────
+const NEAR_COMP_LAB=compV4_Lab(NOW,V4_TACT_WEIGHTS);
+const STRAT_COMP_LAB=compV4_Lab(NOW,V4_STRAT_WEIGHTS);
+const NEAR_COMP_1M_LAB=compV4_Lab(MO1,V4_TACT_WEIGHTS);
+const STRAT_COMP_1M_LAB=compV4_Lab(MO1,V4_STRAT_WEIGHTS);
 const NEAR_VEL_LAB=NEAR_COMP_LAB-NEAR_COMP_1M_LAB;
 const STRAT_VEL_LAB=STRAT_COMP_LAB-STRAT_COMP_1M_LAB;
-const NEAR_BUCKET=levelBucket_Lab(NEAR_COMP_LAB,"tactical");
-const STRAT_BUCKET=levelBucket_Lab(STRAT_COMP_LAB,"strategic");
-const NEAR_MOVERS=topMovers_Lab(FAST_IDS_LAB,3);
-const STRAT_MOVERS=topMovers_Lab(SLOW_IDS_LAB,3);
-const ALIGN=alignmentFlag_Lab(NEAR_COMP_LAB,STRAT_COMP_LAB);
+const NEAR_BUCKET=levelBucketV4_Lab(NEAR_COMP_LAB,"tactical");
+const STRAT_BUCKET=levelBucketV4_Lab(STRAT_COMP_LAB,"strategic");
+const NEAR_MOVERS=topMoversV4_Lab(V4_TACT_WEIGHTS,3);
+const STRAT_MOVERS=topMoversV4_Lab(V4_STRAT_WEIGHTS,3);
+const ALIGN=alignmentFlagV4_Lab(NEAR_COMP_LAB,STRAT_COMP_LAB,NEAR_BUCKET,STRAT_BUCKET);
+const V4_TACT_N=Object.keys(V4_TACT_WEIGHTS).length;
+const V4_STRAT_N=Object.keys(V4_STRAT_WEIGHTS).length;
 
 // ── Cycle block data ──────────────────────────────────────────────────────
 const ism=IND.ism?.[6], ism3=IND.ism?.[8];
@@ -3101,21 +3124,31 @@ return(
     ⚗ SECTOR LAB · EXPERIMENTAL · admin-only · research sandbox for the cross-sectional APT sector engine · not wired into composite scoring
   </div>
 
-  {/* ── ★ PUNCHLINE · the decision frame ────────────────────────────────── */}
+  {/* ── ★ PUNCHLINE v4 · alignment-first decision frame ─────────────────── */}
   <div style={{background:"var(--surface)",border:`2px solid ${ALIGN.color}55`,borderRadius:10,padding:"14px 16px"}}>
     <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:4,fontWeight:800}}>
-      ★ PUNCHLINE · how to think about allocation right now
+      ★ PUNCHLINE v4 · how to think about allocation right now
     </div>
     <div style={{fontSize:11,color:"var(--text-muted)",marginBottom:12,lineHeight:1.5}}>
-      The market is always sending two signals at different speeds. Fast movers drive tactical (0-3mo) positioning; slow movers drive strategic (6-18mo) asset allocation. When they disagree, the gap itself is the signal.
+      Two AUC-weighted composites — tactical (0-3mo) and strategic (6-18mo) — selected from 25 indicators by predictive power against forward S&P drawdowns. Back-test (2011-2026) shows the only consistently actionable signal is JOINT EXTREME on both horizons; single-tile extreme is informational only.
+    </div>
+
+    {/* ALIGNMENT flag — PROMOTED to top per back-test evidence */}
+    <div style={{background:ALIGN.color+"15",border:`1px solid ${ALIGN.color}55`,borderRadius:6,padding:"10px 12px",marginBottom:10}}>
+      <div style={{fontSize:11,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:5,fontWeight:800}}>
+        {ALIGN.label}
+      </div>
+      <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>
+        {ALIGN.desc}
+      </div>
     </div>
 
     {/* Two-column: Tactical | Strategic */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:10,marginBottom:10}}>
-      {/* NEAR-TERM */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:10}}>
+      {/* TACTICAL */}
       <div style={{background:"var(--surface-2)",border:`1px solid ${NEAR_BUCKET.color}`,borderRadius:6,padding:"10px 12px"}}>
         <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:5}}>
-          NEAR-TERM · 0-3 months · fast movers · {FAST_IDS_LAB.length} series (D+W)
+          TACTICAL · 0-3 months · {V4_TACT_N} AUC-selected indicators
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
           <span style={{padding:"4px 10px",borderRadius:3,background:NEAR_BUCKET.color+"25",border:`1px solid ${NEAR_BUCKET.color}`,color:NEAR_BUCKET.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
@@ -3129,7 +3162,7 @@ return(
           </span>
         </div>
         <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:6,lineHeight:1.5}}>
-          Top movers: {NEAR_MOVERS.map(m=>`${m.label} ${m.sd>=0?"+":""}${m.sd.toFixed(1)}σ`).join(" · ")}
+          Top contributors: {NEAR_MOVERS.map(m=>`${m.label} ${m.contrib>=0?"+":""}${m.contrib.toFixed(2)}`).join(" · ")}
         </div>
         <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
           <span style={{fontSize:9,color:NEAR_BUCKET.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6,verticalAlign:"middle"}}>TACTICAL TILT →</span>
@@ -3139,7 +3172,7 @@ return(
       {/* STRATEGIC */}
       <div style={{background:"var(--surface-2)",border:`1px solid ${STRAT_BUCKET.color}`,borderRadius:6,padding:"10px 12px"}}>
         <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:5}}>
-          STRATEGIC · 6-18 months · slow movers · {SLOW_IDS_LAB.length} series (M+Q)
+          STRATEGIC · 6-18 months · {V4_STRAT_N} AUC-selected indicators
         </div>
         <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
           <span style={{padding:"4px 10px",borderRadius:3,background:STRAT_BUCKET.color+"25",border:`1px solid ${STRAT_BUCKET.color}`,color:STRAT_BUCKET.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
@@ -3153,7 +3186,7 @@ return(
           </span>
         </div>
         <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:6,lineHeight:1.5}}>
-          Top movers: {STRAT_MOVERS.map(m=>`${m.label} ${m.sd>=0?"+":""}${m.sd.toFixed(1)}σ`).join(" · ")}
+          Top contributors: {STRAT_MOVERS.map(m=>`${m.label} ${m.contrib>=0?"+":""}${m.contrib.toFixed(2)}`).join(" · ")}
         </div>
         <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
           <span style={{fontSize:9,color:STRAT_BUCKET.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6,verticalAlign:"middle"}}>STRATEGIC TILT →</span>
@@ -3162,18 +3195,8 @@ return(
       </div>
     </div>
 
-    {/* ALIGNMENT flag */}
-    <div style={{background:ALIGN.color+"15",border:`1px solid ${ALIGN.color}55`,borderRadius:6,padding:"10px 12px"}}>
-      <div style={{fontSize:11,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:5,fontWeight:800}}>
-        ◆ ALIGNMENT · {ALIGN.label}
-      </div>
-      <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>
-        {ALIGN.desc}
-      </div>
-    </div>
-
     <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:10,textAlign:"center",lineHeight:1.5}}>
-      Fast / slow split from IND_FREQ · composites are WEIGHTS-weighted means of SD z-scores on each subset · tilts are data-driven from the level bucket, not recommendations
+      v4 AUC-weighted, sign-aware composites · in-sample tactical AUC 0.66 / strategic AUC 0.72 · walk-forward OOS unstable (mean ≈ 0.45-0.49) · evidence: <a href="/sector_lab_research/backtest_v4_report.html" target="_blank" rel="noopener" style={{color:"var(--text-2)",textDecoration:"underline"}}>back-test report</a>
     </div>
   </div>
 
