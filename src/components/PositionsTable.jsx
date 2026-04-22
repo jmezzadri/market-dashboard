@@ -40,6 +40,7 @@
 
 import { useMemo, useState } from "react";
 import TableColumnPicker from "./TableColumnPicker";
+import TableFootnote from "./TableFootnote";
 import { useTablePreferences } from "../hooks/useTablePreferences";
 
 // ─── formatters ──────────────────────────────────────────────────────────────
@@ -481,6 +482,11 @@ export default function PositionsTable({
   onAdd, onBulkImport, onRescan, onEdit, onDelete,
   rescanBusy, rescanProgress,
   tableKey = "positions",
+  // Task #25: optional TableFootnote props. When either timestamp or source is
+  // supplied, a compact caption renders under the table so the freshness +
+  // provenance stays attached to the data even when the user scrolls past
+  // the section header.
+  pricesTs, eventsTs, footnoteSource,
 }) {
   const showActionsCol = Boolean(onEdit || onDelete);
   const showActionBar  = Boolean(onAdd || onBulkImport || onRescan);
@@ -894,6 +900,10 @@ export default function PositionsTable({
           </tbody>
         </table>
       </div>
+      {/* Task #25: footnote keeps freshness + source attached to the table
+          body — useful on long portfolios where the section header scrolls
+          off-screen. Renders null if no ts / source is provided. */}
+      <TableFootnote pricesTs={pricesTs} eventsTs={eventsTs} source={footnoteSource} />
     </>
   );
 }
