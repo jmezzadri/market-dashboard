@@ -11,7 +11,7 @@
 //   • One click → modal with description, email (prefilled if signed in),
 //     auto-screenshot toggle (default on)
 //   • Submit → row + screenshot land in Supabase, success toast, modal closes
-//   • Rate-limited to 1 submission per 5 minutes via localStorage
+//   • Rate-limited to 1 submission per minute via localStorage
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "../lib/supabase";
@@ -19,7 +19,7 @@ import { useSession } from "../auth/useSession";
 import { captureScreenshot, getRecentConsoleErrors } from "./captureScreenshot";
 
 const RATE_LIMIT_KEY = "mt_bug_report_last_ts";
-const RATE_LIMIT_MS = 5 * 60 * 1000; // 5 min
+const RATE_LIMIT_MS = 60 * 1000; // 1 min
 
 function getLastSubmitTs() {
   try { return Number(localStorage.getItem(RATE_LIMIT_KEY) || 0); } catch { return 0; }
