@@ -14,6 +14,7 @@ import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
+import { useTickerEvents } from "./hooks/useTickerEvents";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
 import SubCompositeStrip from "./components/SubCompositeStrip";
 import WatchlistTable from "./components/WatchlistTable";
@@ -338,6 +339,10 @@ const COMP_HIST=[
 //  Q3: Strong rally, VIX ~15, gov shutdown shrugged off.
 //  Q4: Year-end rally to 6846 close (+16.4% 2025). VIX ~13-15.
 ["Q1 '25",42],["Q2 '25",55],["Q3 '25",28],["Q4 '25",24],
+// 2026 — Q1 rally continued from year-end '25 (S&P ATH 7023 by Apr 15).
+// Stress stays low; VIX ~14, tight credit spreads. Item 20 — restore the
+// Q1 '26 tick that went missing when the live point was renamed "Apr 15".
+["Q1 '26",22],
 ["Apr 15",COMP100],
 ];
 
@@ -370,6 +375,7 @@ const SP500_HIST=[
 4109,4450,4288,4770, // 2023
 5254,5461,5762,5882, // 2024
 5612,6205,6688,6846, // 2025 — real quarterly closes (Mar31, Jun30, Sep30, Dec31)
+6917,                // Q1 '26 close — Mar 31 2026 (interpolated between Q4 '25 6846 and Apr 15 2026 7023; Item 20)
 7023,                // Apr 15 2026 (all-time high)
 ];
 
@@ -3115,18 +3121,25 @@ const { mergeInto: mergePrivateScan, refetch: refetchSupplement }=usePrivateScan
 // and 15:45 ET. Field-level overlay — only non-null universe values win, so
 // the public JSON + user_scan_data keep supplying technicals/analyst/news.
 const { mergeInto: mergeUniverseSnapshot, snapshotTs: universeSnapshotTs }=useUniverseSnapshot();
+// 3x-weekday ticker-event overlay (news / insider / congress / darkpool).
+// Writes scanData.signals.events[T] = {news, insider, congress, darkpool}.
+// Additive — no existing fields are overwritten, so downstream renderers
+// that don't read .events keep working unchanged.
+const { mergeInto: mergeTickerEvents, latestEventTs: tickerEventsTs }=useTickerEvents();
 // Merge order: rawScanData → universe snapshot (3x/day) → private supplement
-// (1x/day per-user). Universe runs first so private supplement only fills
-// gaps the universe snapshot couldn't cover (technicals_json, analyst_ratings,
-// news, dividend_yield, has_dividend, tags).
+// (1x/day per-user) → ticker events (3x/day). Universe runs first so private
+// supplement only fills gaps the universe snapshot couldn't cover
+// (technicals_json, analyst_ratings, news, dividend_yield, has_dividend,
+// tags). Ticker events are purely additive under signals.events.
 const scanData=useMemo(
   ()=>{
     if(!rawScanData)return rawScanData;
     let x=mergeUniverseSnapshot(rawScanData);
     x=mergePrivateScan(x);
+    x=mergeTickerEvents(x);
     return x;
   },
-  [rawScanData,mergeUniverseSnapshot,mergePrivateScan]
+  [rawScanData,mergeUniverseSnapshot,mergePrivateScan,mergeTickerEvents]
 );
 // Per-ticker scan-on-add: when a user adds a name to their watchlist, fire
 // /api/scan-ticker in the background. Server pulls news/info/analyst/screener
