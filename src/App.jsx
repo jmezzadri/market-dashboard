@@ -11,6 +11,8 @@ import SidebarAuth from "./auth/SidebarAuth";
 import LoginScreen from "./auth/LoginScreen";
 import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
+import { useIsAdmin } from "./hooks/useIsAdmin";
+import AdminUsage from "./AdminUsage";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
@@ -3068,7 +3070,9 @@ return Object.entries(CATS).map(([catId,cat])=>{
 // "portopps" is the consolidated Portfolio + Opportunities + Holdings surface.
 // Old "#portfolio" hash redirects to "#portopps" (handled in the hash init/
 // hashchange listeners in App()) so existing bookmarks keep working.
-const TAB_IDS=["home","overview","indicators","sectors","portopps","scanner","readme"];
+// "admin" is present in TAB_IDS so hash routing works for signed-in admins;
+// non-admins are redirected to "home" by resolveHash() below (see App()).
+const TAB_IDS=["home","overview","indicators","sectors","portopps","scanner","readme","admin"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
@@ -3078,6 +3082,7 @@ const TAB_META={
   portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
+  admin:     {eyebrow:"Admin · API Usage",    title:"UW API usage",            sub:"Daily calls, quota remaining, peak RPM, and recent run history. Visible only to admins."},
 };
 
 // ─── Sidebar nav — single source of truth, references the TAB_IDS above ─────
@@ -3099,6 +3104,10 @@ export default function App(){
 // recompute happens in _applyHistToGlobals (see REAL HISTORY LOADER above).
 // Item 5b / 9 / 18 — PR #17 restore after PR #23 stealth regression.
 useHistReady();
+// Admin gating — drives the sidebar "Admin" nav item + the #admin tab.
+// useIsAdmin() re-runs on sign-in/out; non-admins never see the tab and are
+// redirected to home if they land on #admin via a stale link. Task #30.
+const {isAdmin, loading:adminLoading}=useIsAdmin();
 // Legacy redirect: "#portfolio" (old Holdings Detail tab) now lives inside
 // Portfolio & Insights. Any bookmark pointing at #portfolio resolves to
 // #portopps.
@@ -3122,6 +3131,12 @@ useEffect(()=>{
   window.addEventListener("hashchange",onHashChange);
   return()=>window.removeEventListener("hashchange",onHashChange);
 },[tab]);
+// Redirect #admin → #home if the resolved session isn't an admin. We wait
+// for adminLoading to settle so the initial check doesn't bounce real admins
+// off their own tab before the is_admin() RPC resolves.
+useEffect(()=>{
+  if(tab==="admin" && !adminLoading && !isAdmin) setTab("home");
+},[tab,isAdmin,adminLoading]);
 
 // ─── Navigation stack — so the drill-down back button returns to the
 //     previous tab (e.g. Overview → Indicators → Back → Overview) rather
@@ -3410,11 +3425,18 @@ const catScores = Object.entries(CATS).map(([catId,cat])=>{
   return {id:catId, label:cat.label, sc100:Math.round(Math.max(0,Math.min(100,((avg+2)/5)*100))), col:sdColor(avg)};
 });
 
+// Admin-only nav item appended at runtime. Non-admins never see it. We use
+// the existing NavIconGauge since the sidebar doesn't expose a distinct
+// shield glyph; icon semantics here are "instrument panel", which fits.
+const navItems = isAdmin
+  ? [...NAV_ITEMS, { id:"admin", label:"Admin · Usage", icon:<NavIconGauge/> }]
+  : NAV_ITEMS;
+
 return(
 <div style={{minHeight:"100vh",color:"var(--text)",fontFamily:"var(--font-ui)"}}>
 
 <Sidebar
-  items={NAV_ITEMS}
+  items={navItems}
   activeId={tab}
   onSelect={navTo}
   open={sidebarOpen}
@@ -4327,6 +4349,9 @@ return(<>
     />
   </ErrorBoundary>
 )}
+
+{/* ADMIN · UW API USAGE — gated by useIsAdmin() above. Task #30. */}
+{tab==="admin" && <AdminUsage/>}
 
 {/* FAQ */}
 {tab==="readme"&&(
