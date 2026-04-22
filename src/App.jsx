@@ -3667,7 +3667,7 @@ const tacticalAccts=ACCOUNTS.filter(a=>a.tactical);
 const cashByAcct=tacticalAccts.map(acc=>{
   const cash=acc.positions.filter(p=>p.sector==="Cash").reduce((a,p)=>a+p.value,0);
   return{id:acc.id,label:acc.label,cash};
-}).filter(x=>x.cash>0).sort((a,b)=>b.cash-a.cash);
+}).filter(x=>x.cash!==0).sort((a,b)=>b.cash-a.cash);
 const totalDeployable=cashByAcct.reduce((a,c)=>a+c.cash,0);
 // Sort held positions by value DESC — biggest exposure first, regardless of account
 const heldPositions=ACCOUNTS
@@ -4142,7 +4142,7 @@ return(<>
 {cashByAcct.length>0?cashByAcct.map(c=>(
 <div key={c.id} style={{...cardStyle,flex:"1 1 180px"}}>
 <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.05em"}}>{c.label}</div>
-<div style={{fontSize:14,fontWeight:800,color:"#30d158",fontFamily:"var(--font-mono)",marginTop:3}}>{fmt$Full(c.cash)}</div>
+<div style={{fontSize:14,fontWeight:800,color:c.cash<0?"#ff453a":"#30d158",fontFamily:"var(--font-mono)",marginTop:3}}>{fmt$Full(c.cash)}</div>
 </div>
 )):<div style={{fontSize:12,color:"var(--text-muted)"}}>No cash in tactical accounts.</div>}
 </div>
