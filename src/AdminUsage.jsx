@@ -45,6 +45,48 @@ function etDayKey(iso) {
     return fmt.format(d); // en-CA gives YYYY-MM-DD directly
   } catch { return iso?.slice(0,10) || ""; }
 }
+
+// Grain-aware bucket key (YYYY-MM-DD for day, W:YYYY-MM-DD-Mon for week,
+// YYYY-MM for month). Week key uses the Monday-of-week in ET so the label
+// sorts cleanly.
+function bucketKey(iso, grain) {
+  const day = etDayKey(iso);
+  if (!day) return "";
+  if (grain === "day") return day;
+  const [y, m, d] = day.split("-").map(Number);
+  if (grain === "month") return `${y}-${String(m).padStart(2,"0")}`;
+  // week: ISO week (Monday start) — use the ET-day components to build a
+  // neutral Date, then walk back to Monday.
+  const local = new Date(Date.UTC(y, m-1, d));
+  const wd = local.getUTCDay() || 7; // Sun=0 → 7
+  local.setUTCDate(local.getUTCDate() - (wd - 1));
+  const wy = local.getUTCFullYear();
+  const wm = String(local.getUTCMonth()+1).padStart(2,"0");
+  const wdd = String(local.getUTCDate()).padStart(2,"0");
+  return `W:${wy}-${wm}-${wdd}`;
+}
+function bucketLabel(key, grain) {
+  if (!key) return "";
+  if (grain === "day") return key.slice(5); // MM-DD
+  if (grain === "month") {
+    const [y,m] = key.split("-");
+    const names = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    return `${names[Number(m)-1]} '${String(y).slice(2)}`;
+  }
+  // week key: W:YYYY-MM-DD (Monday) → "MM-DD" of week start
+  return key.slice(7+3); // skip "W:YYYY-"
+}
+function currentBucketKey(grain) {
+  return bucketKey(new Date().toISOString(), grain);
+}
+function previousBucketKey(grain) {
+  const now = new Date();
+  const d = new Date(now);
+  if (grain === "day")   d.setUTCDate(d.getUTCDate() - 1);
+  if (grain === "week")  d.setUTCDate(d.getUTCDate() - 7);
+  if (grain === "month") d.setUTCMonth(d.getUTCMonth() - 1);
+  return bucketKey(d.toISOString(), grain);
+}
 function etTimeShort(iso) {
   try {
     const d = new Date(iso);
@@ -116,40 +158,44 @@ function KpiTile({ label, value, sub, tone }) {
   );
 }
 
-// ── STACKED DAILY BAR CHART (calls_made by source) ─────────────────────────
-function DailyStackedCalls({ rows }) {
-  // Aggregate by ET-day × source.
-  const { days, perDay, maxTotal } = useMemo(() => {
-    const m = new Map(); // day -> Map(source -> sumCalls)
+// ── STACKED BAR CHART (calls_made by source, bucketed by grain) ────────────
+function StackedCalls({ rows, grain }) {
+  // Aggregate by ET-bucket × source.
+  const { buckets, perBucket, maxTotal } = useMemo(() => {
+    const m = new Map(); // bucketKey -> Map(source -> sumCalls)
     (rows || []).forEach(r => {
-      const day = etDayKey(r.started_at);
-      if (!day) return;
-      if (!m.has(day)) m.set(day, new Map());
-      const s = m.get(day);
+      const key = bucketKey(r.started_at, grain);
+      if (!key) return;
+      if (!m.has(key)) m.set(key, new Map());
+      const s = m.get(key);
       s.set(r.source, (s.get(r.source) || 0) + (Number(r.calls_made) || 0));
     });
-    const days = [...m.keys()].sort(); // ascending
+    const buckets = [...m.keys()].sort(); // ascending
     let maxTotal = 0;
-    const perDay = days.map(d => {
-      const s = m.get(d);
+    const perBucket = buckets.map(k => {
+      const s = m.get(k);
       const total = SOURCE_ORDER.reduce((a,src) => a + (s.get(src) || 0), 0);
       if (total > maxTotal) maxTotal = total;
-      return { day:d, parts:SOURCE_ORDER.map(src => ({ src, v:(s.get(src) || 0) })), total };
+      return { key:k, parts:SOURCE_ORDER.map(src => ({ src, v:(s.get(src) || 0) })), total };
     });
-    return { days, perDay, maxTotal };
-  }, [rows]);
+    return { buckets, perBucket, maxTotal };
+  }, [rows, grain]);
 
-  if (!perDay.length) return <EmptyPanel msg="No runs in the selected window." />;
+  const grainLabel = grain === "week" ? "Weekly" : grain === "month" ? "Monthly" : "Daily";
+  const subtitle = `Stacked by source · ${grain === "day" ? "ET days" : grain === "week" ? "ET weeks (Mon–Sun)" : "ET months"}`;
+
+  if (!perBucket.length) return <ChartPanel title={`${grainLabel} UW API calls`} subtitle={subtitle}><EmptyPanel msg="No runs in the selected window." /></ChartPanel>;
 
   const W = 720, H = 200, PAD_L = 40, PAD_R = 12, PAD_T = 10, PAD_B = 26;
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
-  const barW = Math.max(4, plotW / Math.max(1, perDay.length) * 0.78);
-  const step = plotW / Math.max(1, perDay.length);
+  const barW = Math.max(4, plotW / Math.max(1, perBucket.length) * 0.78);
+  const step = plotW / Math.max(1, perBucket.length);
   const yScale = v => plotH - (v / Math.max(1, maxTotal)) * plotH;
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map(f => Math.round(maxTotal * f));
+  const labelEvery = Math.max(1, Math.floor(perBucket.length / 8));
 
   return (
-    <ChartPanel title="Daily UW API calls (last 30d)" subtitle="Stacked by source · ET days">
+    <ChartPanel title={`${grainLabel} UW API calls (last 90d)`} subtitle={subtitle}>
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
         {/* y gridlines + labels */}
         {yTicks.map((t,i) => {
@@ -162,22 +208,21 @@ function DailyStackedCalls({ rows }) {
           );
         })}
         {/* bars */}
-        {perDay.map((d,i) => {
+        {perBucket.map((b,i) => {
           const x = PAD_L + i*step + (step - barW)/2;
           let acc = 0;
           return (
-            <g key={d.day}>
-              {d.parts.map(p => {
+            <g key={b.key}>
+              {b.parts.map(p => {
                 if (!p.v) return null;
                 const h = (p.v / Math.max(1,maxTotal)) * plotH;
                 const y = PAD_T + plotH - acc - h;
                 acc += h;
                 return <rect key={p.src} x={x} y={y} width={barW} height={h} fill={SOURCE_COLORS[p.src]||"#9ca3af"} />;
               })}
-              {/* x label — every Nth */}
-              {(i===0 || i===perDay.length-1 || i%Math.max(1,Math.floor(perDay.length/6))===0) && (
+              {(i===0 || i===perBucket.length-1 || i%labelEvery===0) && (
                 <text x={x+barW/2} y={H-8} textAnchor="middle" fontSize="9" fill="var(--text-muted)" fontFamily="monospace">
-                  {d.day.slice(5)}
+                  {bucketLabel(b.key, grain)}
                 </text>
               )}
             </g>
@@ -189,24 +234,27 @@ function DailyStackedCalls({ rows }) {
   );
 }
 
-// ── DAILY PEAK-RPM LINE ─────────────────────────────────────────────────────
-function DailyPeakRpm({ rows }) {
+// ── PEAK-RPM LINE (bucketed by grain — peak-of-peaks within bucket) ────────
+function PeakRpm({ rows, grain }) {
   const { pts, dmax } = useMemo(() => {
     const m = new Map();
     (rows || []).forEach(r => {
       if (r.peak_rpm == null) return;
-      const day = etDayKey(r.started_at);
-      if (!day) return;
-      const cur = m.get(day) || 0;
+      const key = bucketKey(r.started_at, grain);
+      if (!key) return;
+      const cur = m.get(key) || 0;
       const v = Number(r.peak_rpm) || 0;
-      if (v > cur) m.set(day, v);
+      if (v > cur) m.set(key, v);
     });
-    const pts = [...m.entries()].sort((a,b) => a[0].localeCompare(b[0])).map(([day,v]) => ({ day, v }));
+    const pts = [...m.entries()].sort((a,b) => a[0].localeCompare(b[0])).map(([key,v]) => ({ key, v }));
     const dmax = Math.max(120, ...pts.map(p => p.v)); // 120/min UW Basic ceiling — anchor
     return { pts, dmax };
-  }, [rows]);
+  }, [rows, grain]);
 
-  if (!pts.length) return <EmptyPanel msg="No peak-RPM data logged yet." />;
+  const grainLabel = grain === "week" ? "week" : grain === "month" ? "month" : "day";
+  const title = `Peak requests/min per ${grainLabel}`;
+
+  if (!pts.length) return <ChartPanel title={title} subtitle="UW Basic tier ceiling: 120/min · red line"><EmptyPanel msg="No peak-RPM data logged yet." /></ChartPanel>;
 
   const W = 720, H = 180, PAD_L = 40, PAD_R = 12, PAD_T = 10, PAD_B = 26;
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
@@ -214,9 +262,10 @@ function DailyPeakRpm({ rows }) {
   const yScale = v => PAD_T + plotH - (v / dmax) * plotH;
   const d = pts.map((p,i) => `${i===0?"M":"L"}${xScale(i)},${yScale(p.v)}`).join(" ");
   const yTicks = [0, 30, 60, 90, 120];
+  const labelEvery = Math.max(1, Math.floor(pts.length / 6));
 
   return (
-    <ChartPanel title="Peak requests/min per day" subtitle="UW Basic tier ceiling: 120/min · red line">
+    <ChartPanel title={title} subtitle="UW Basic tier ceiling: 120/min · red line">
       <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block"}}>
         {yTicks.map((t,i) => {
           const y = yScale(t);
@@ -230,8 +279,8 @@ function DailyPeakRpm({ rows }) {
         <path d={d} stroke="var(--accent)" strokeWidth="1.5" fill="none" />
         {pts.map((p,i) => <circle key={i} cx={xScale(i)} cy={yScale(p.v)} r="2.5" fill="var(--accent)" />)}
         {pts.map((p,i) => {
-          if (i===0 || i===pts.length-1 || i%Math.max(1,Math.floor(pts.length/6))===0) {
-            return <text key={`x${i}`} x={xScale(i)} y={H-8} textAnchor="middle" fontSize="9" fill="var(--text-muted)" fontFamily="monospace">{p.day.slice(5)}</text>;
+          if (i===0 || i===pts.length-1 || i%labelEvery===0) {
+            return <text key={`x${i}`} x={xScale(i)} y={H-8} textAnchor="middle" fontSize="9" fill="var(--text-muted)" fontFamily="monospace">{bucketLabel(p.key, grain)}</text>;
           }
           return null;
         })}
@@ -376,10 +425,77 @@ function EmptyPanel({ msg }) {
   );
 }
 
+// ── GRAIN SEGMENTED CONTROL ─────────────────────────────────────────────────
+function GrainSelect({ value, onChange }) {
+  const opts = [
+    { id:"day",   label:"Day"   },
+    { id:"week",  label:"Week"  },
+    { id:"month", label:"Month" },
+  ];
+  return (
+    <div style={{display:"inline-flex",background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:8,padding:2,gap:0}}>
+      {opts.map(o => {
+        const active = o.id === value;
+        return (
+          <button
+            key={o.id}
+            onClick={() => onChange(o.id)}
+            style={{
+              background: active ? "var(--accent)" : "transparent",
+              color: active ? "#0b0e14" : "var(--text-2)",
+              border: "none",
+              borderRadius: 6,
+              padding: "4px 14px",
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.05em",
+              textTransform: "uppercase",
+              fontFamily: "monospace",
+              cursor: "pointer",
+            }}
+          >{o.label}</button>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── PERIOD-TOTALS BAND (this/last/90d) ──────────────────────────────────────
+function PeriodTotals({ rows, grain }) {
+  const { thisT, lastT, windowT } = useMemo(() => {
+    const cur = currentBucketKey(grain);
+    const prev = previousBucketKey(grain);
+    let a=0, b=0, c=0;
+    (rows || []).forEach(r => {
+      const calls = Number(r.calls_made) || 0;
+      c += calls;
+      const k = bucketKey(r.started_at, grain);
+      if (k === cur)  a += calls;
+      if (k === prev) b += calls;
+    });
+    return { thisT:a, lastT:b, windowT:c };
+  }, [rows, grain]);
+
+  const labels = grain === "week"
+    ? ["This week", "Last week"]
+    : grain === "month"
+    ? ["This month", "Last month"]
+    : ["Today", "Yesterday"];
+
+  return (
+    <div style={{display:"flex",gap:18,alignItems:"baseline",flexWrap:"wrap",fontSize:12,color:"var(--text-muted)",fontFamily:"monospace"}}>
+      <span>{labels[0]}: <strong style={{color:"var(--text)"}}>{fmtInt(thisT)}</strong></span>
+      <span>{labels[1]}: <strong style={{color:"var(--text)"}}>{fmtInt(lastT)}</strong></span>
+      <span>90d total: <strong style={{color:"var(--text)"}}>{fmtInt(windowT)}</strong></span>
+    </div>
+  );
+}
+
 // ── TOP-LEVEL COMPONENT ─────────────────────────────────────────────────────
 export default function AdminUsage() {
   const { isAdmin, loading: adminLoading } = useIsAdmin();
-  const { rows, error, loading, reload } = useApiUsageLog(30);
+  const { rows, error, loading, reload } = useApiUsageLog(90);
+  const [grain, setGrain] = useState("day");
 
   if (adminLoading) {
     return <div style={{padding:"40px 20px",color:"var(--text-muted)",textAlign:"center"}}>Checking access…</div>;
@@ -428,11 +544,17 @@ export default function AdminUsage() {
         <div style={{padding:"40px 20px",color:"var(--text-muted)",textAlign:"center"}}>Loading usage data…</div>
       )}
 
+      {/* Grain selector + period totals */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,marginBottom:10,flexWrap:"wrap"}}>
+        <GrainSelect value={grain} onChange={setGrain} />
+        <PeriodTotals rows={rows} grain={grain} />
+      </div>
+
       {/* Main charts */}
       <div style={{display:"flex",flexDirection:"column",gap:12}}>
-        <DailyStackedCalls rows={rows} />
+        <StackedCalls rows={rows} grain={grain} />
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-          <DailyPeakRpm rows={rows} />
+          <PeakRpm rows={rows} grain={grain} />
           <RemainingDailyByEndpoint rows={rows} />
         </div>
         <RecentRunsTable rows={rows} />
@@ -440,7 +562,7 @@ export default function AdminUsage() {
 
       {/* Footer / reload */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:14,fontSize:11,color:"var(--text-muted)"}}>
-        <div>Window: last 30 days · RLS-gated via <code style={{fontFamily:"monospace"}}>public.is_admin()</code> · 90-day retention on <code style={{fontFamily:"monospace"}}>api_usage_log</code>.</div>
+        <div>Window: last 90 days · RLS-gated via <code style={{fontFamily:"monospace"}}>public.is_admin()</code> · 90-day retention on <code style={{fontFamily:"monospace"}}>api_usage_log</code>.</div>
         <button onClick={reload} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:6,padding:"5px 10px",color:"var(--text-2)",fontSize:11,cursor:"pointer"}}>Reload</button>
       </div>
     </main>
