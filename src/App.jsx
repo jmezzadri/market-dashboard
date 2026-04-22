@@ -2408,7 +2408,7 @@ return(
 </div>
 </div>
 <div style={{display:"flex",height:4,margin:"0 14px 10px"}}>
-{acct.positions.map(p=>(<div key={p.ticker} style={{flex:p.value/total,background:ACCENT,opacity:0.6}}/>))}
+{(()=>{const grossA=acct.positions.reduce((a,p)=>a+Math.max(0,p.value),0)||1;return acct.positions.filter(p=>p.value>0).map(p=>(<div key={p.ticker} style={{flex:p.value/grossA,background:ACCENT,opacity:0.6}}/>));})()}
 </div>
 {open&&(
 <div style={{padding:"0 14px 14px",display:"flex",flexDirection:"column",gap:8}}>
@@ -3917,32 +3917,44 @@ return(<>
 const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
 const acctData=ACCOUNTS.map(acc=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color,value:t,pct:t/grandTotal};
+return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color,value:t};
 }).sort((a,b)=>b.value-a.value);
 const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
-{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val,pct:val/grandTotal}
+{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val}
 ));
-const renderBar2=(title,meta,segs,key)=>(
+// Gross / net split. Negative values (margin debits, short positions) break
+// stacked-bar flex math — `flex: -0.08` collapses every segment to minWidth
+// because CSS treats negative flex-grow as 0. We stack positives only and
+// compute segment % against GROSS (sum of positives) so the bar renders and
+// the slice labels sum to 100%. Liabilities still surface in the legend with
+// their signed value + signed % of gross so Joe sees the debit faithfully.
+// Header meta shows net (grandTotal) when it differs from gross.
+const renderBar2=(title,meta,segs,key)=>{
+const gross=segs.reduce((a,s)=>a+Math.max(0,s.value),0)||1;
+const net=segs.reduce((a,s)=>a+s.value,0);
+const hasLiab=segs.some(s=>s.value<0);
+return(
 <div key={key} style={{marginBottom:14}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
 <span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600}}>{title}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{meta}</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{hasLiab?`${meta} gross · ${fmt$K(net)} net`:meta}</span>
 </div>
 <div style={{display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10}}>
-{segs.map(s=>(<div key={s.id} title={`${s.name} · ${fmt$K(s.value)} · ${(s.pct*100).toFixed(1)}%`} style={{flex:s.pct,background:s.color,minWidth:2}}/>))}
+{segs.filter(s=>s.value>0).map(s=>(<div key={s.id} title={`${s.name} · ${fmt$K(s.value)} · ${(s.value/gross*100).toFixed(1)}%`} style={{flex:s.value/gross,background:s.color,minWidth:2}}/>))}
 </div>
 <div style={{display:"flex",flexWrap:"wrap",rowGap:6,columnGap:18}}>
 {segs.map(s=>(
 <div key={s.id} style={{display:"flex",alignItems:"center",gap:7}}>
-<div style={{width:9,height:9,borderRadius:2,flexShrink:0,background:s.color}}/>
+<div style={{width:9,height:9,borderRadius:2,flexShrink:0,background:s.color,opacity:s.value<0?0.4:1}}/>
 <span style={{fontSize:12,color:"var(--text)",fontWeight:500}}>{s.name}</span>
 <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{fmt$K(s.value)}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{(s.pct*100).toFixed(0)}%</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{(s.value/gross*100).toFixed(0)}%</span>
 </div>
 ))}
 </div>
 </div>
 );
+};
 return(<>
 {renderBar2("WEALTH BY ACCOUNT",`${acctData.length} accounts · ${fmt$K(grandTotal)}`,acctData,"acct")}
 {renderBar2("ASSET CLASS MIX",`${assetData.length} classes · ${fmt$K(grandTotal)}`,assetData,"asset")}
