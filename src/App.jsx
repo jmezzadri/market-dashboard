@@ -3767,7 +3767,10 @@ return(
 {/* SUMMARY BAR */}
 <div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
 <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & INSIGHTS · SNAPSHOT</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8}}>
+{/* Item 28: auto-fit + minmax(140px,1fr) so 6 KPIs fit on desktop but reflow
+    to 2 cols on a 430px phone (previously forced repeat(6,1fr) — boxes at
+    ~58px, dollar values overflowed off viewport). */}
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
 {[
   {label:"Total Wealth",value:`$${Math.round(grandTotal).toLocaleString()}`,col:"var(--text)"},
   {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
