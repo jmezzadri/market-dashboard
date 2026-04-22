@@ -64,7 +64,19 @@ export function useBugActions() {
   // stamp. The bug_status_log trigger captures auth.uid() for the audit
   // trail, so we skip explicit *_by writes here — saves an extra round-trip
   // to supabase.auth.getUser().
-  const approve      = (bugId, note) => run(bugId, "approve",      { status: "approved",        approved_at: new Date().toISOString() }, note);
+  // Approve: persist the note to bug_reports.approval_notes (mig 014) so
+  // the timeline's Approved-stage body can surface Joe's feedback /
+  // conditions inline — not just bury it in the audit log. Still also
+  // attaches to bug_status_log.note via attachNote() below for the trail.
+  const approve = (bugId, note) => run(
+    bugId, "approve",
+    {
+      status: "approved",
+      approved_at: new Date().toISOString(),
+      ...(note && note.trim() ? { approval_notes: note.trim() } : {}),
+    },
+    note,
+  );
   const rejectFix    = (bugId, note) => run(bugId, "rejectFix",    { status: "wontfix" }, note);
   const markDeployed = (bugId, sha, note) => run(bugId, "markDeployed", { status: "deployed", deployed_at: new Date().toISOString(), ...(sha ? { deployed_sha: sha } : {}) }, note);
   const close        = (bugId, note) => run(bugId, "close",        { status: "verified_closed", verified_at: new Date().toISOString() }, note);
