@@ -2851,63 +2851,173 @@ return(
 // Isolated sibling to SectorsTab. Lives here so it can read the same module
 // globals (IND, SECTORS, FACTOR_SCORES, CONV, TREND_SIG, COMP100,
 // computeSectorScore, outlookLabel). Does NOT mutate any of them.
-// v1 contents:
-//   (1) Cycle-stage chip — PMI level + 3m change, confirmed by yield-curve slope.
-//       Anchors: ISM PMI level+momentum as coincident-cycle read; YC slope
-//       (Estrella-Mishkin 1996) as leading-growth read.
-//   (2) Mirror of the live sector ranking (read-only, same scoring, labeled LAB).
-//   (3) Debug panel — raw FACTOR_SCORES + contributing SD scores.
-// When a Lab feature is blessed, promotion = move one render line into
+// v2 contents (2026-04-22):
+//   (1) Cycle-stage · expanded — 4-stage diagram with current stage highlit,
+//       ISM PMI block (value, Δ3m, 12m sparkline), Yield-Curve block (10Y-2Y bps,
+//       inversion flag, Estrella-Mishkin-style recession probability), thresholds.
+//   (2) Factor Scores · OPEN BY DEFAULT — all 9 factor rows, each expandable
+//       with contributing indicators (value, SD z-score, AS_OF date, sparkline).
+//   (3) Indicator Inputs Table · flat sortable table of every factor input.
+//   (4) Sector Factor-Loading Matrix · 12 sectors × 9 factors heatmap — APT
+//       engine made visible (subsector sensitivities aggregated to parent).
+//   (5) Mirror Ranking · demoted; same logic as live /#sectors.
+//   (6) Methodology · APT (Chen-Roll-Ross 1986), cycle-stage model
+//       (Estrella-Mishkin 1996), factor model (Fama-French 1993), promotion path.
+// When a Lab feature is blessed, promotion = move one render block into
 // SectorsTab. Nothing here is load-bearing for any other tab.
 function detectCycleStage(){
   const ism=IND.ism?.[6];
   const ism3=IND.ism?.[8];
   const yc=IND.yield_curve?.[6];
-  if(ism==null)return{label:"—",color:"var(--text-2)",desc:"PMI unavailable"};
+  if(ism==null)return{label:"—",color:"var(--text-2)",stageKey:"MIXED",desc:"PMI unavailable"};
   const d=ism-(ism3??ism);
   const rising=d>0.3,falling=d<-0.3;
   const ycNote=(yc!=null)?` · YC ${yc>=0?"+":""}${yc.toFixed(0)}bps`:"";
-  if(ism>=50&&rising) return{label:"EARLY / MID EXPANSION",color:"#30d158",
+  if(ism>=50&&rising) return{label:"EARLY / MID EXPANSION",stageKey:"EXPANSION",color:"#30d158",
     desc:`PMI ${ism.toFixed(1)} above 50 and rising (Δ3m ${d>=0?"+":""}${d.toFixed(1)})${ycNote}`};
-  if(ism>=50&&falling)return{label:"LATE EXPANSION / SLOWDOWN",color:"#ff9f0a",
+  if(ism>=50&&falling)return{label:"LATE EXPANSION / SLOWDOWN",stageKey:"SLOWDOWN",color:"#ff9f0a",
     desc:`PMI ${ism.toFixed(1)} above 50 but falling (Δ3m ${d.toFixed(1)})${ycNote}`};
-  if(ism<50&&falling) return{label:"CONTRACTION",color:"#ff453a",
+  if(ism<50&&falling) return{label:"CONTRACTION",stageKey:"CONTRACTION",color:"#ff453a",
     desc:`PMI ${ism.toFixed(1)} below 50 and still falling (Δ3m ${d.toFixed(1)})${ycNote}`};
-  if(ism<50&&rising)  return{label:"EARLY RECOVERY",color:"#64d2ff",
+  if(ism<50&&rising)  return{label:"EARLY RECOVERY",stageKey:"RECOVERY",color:"#64d2ff",
     desc:`PMI ${ism.toFixed(1)} below 50 but turning up (Δ3m +${d.toFixed(1)})${ycNote}`};
-  return{label:"MIXED",color:"var(--text-2)",
+  return{label:"MIXED",stageKey:"MIXED",color:"var(--text-2)",
     desc:`PMI ${ism.toFixed(1)}, 3m change flat (${d>=0?"+":""}${d.toFixed(1)})${ycNote}`};
 }
 
+// 4-stage business cycle order used for the Lab cycle diagram.
+const CYCLE_STAGES_LAB=[
+  {key:"EXPANSION",   label:"EXPANSION",   color:"#30d158", rule:"PMI ≥50 & rising (Δ3m > +0.3)"},
+  {key:"SLOWDOWN",    label:"SLOWDOWN",    color:"#ff9f0a", rule:"PMI ≥50 & falling (Δ3m < −0.3)"},
+  {key:"CONTRACTION", label:"CONTRACTION", color:"#ff453a", rule:"PMI <50 & still falling"},
+  {key:"RECOVERY",    label:"RECOVERY",    color:"#64d2ff", rule:"PMI <50 & turning up"},
+];
+
+// Estrella-Mishkin-style 12-month-ahead recession probability proxy.
+// Canonical specification (Estrella & Mishkin 1996) uses the 10Y–3M spread in
+// percentage points with a probit (normal CDF) link. We have 10Y–2Y in bps, so
+// we fit the same *shape* to that series as a directional / magnitude read:
+//   p = 1 / (1 + exp(0.545 + 0.566 * spread_pct))
+// where spread_pct = yc_bps / 100. This is logistic, not probit — it produces
+// nearly identical curves in the range that matters. Caveat shown in the UI.
+function emRecessionProbPct_Lab(yc_bps){
+  if(yc_bps==null)return null;
+  const s=yc_bps/100;
+  const p=1/(1+Math.exp(0.545+0.566*s));
+  return Math.max(0,Math.min(100,p*100));
+}
+
+// Build a 5-point sparkline series from IND[id]: [12m, 6m, 3m, 1m, now] chronological.
+function sparkSeries_Lab(id){
+  const row=IND[id];if(!row)return[];
+  const pts=[row[10],row[9],row[8],row[7],row[6]];
+  return pts.filter(v=>v!=null&&Number.isFinite(v));
+}
+
+// Tiny inline SVG sparkline renderer — no external lib dependency.
+function LabSpark({series,color,w=60,h=18}){
+  if(!series||series.length<2)return<span style={{fontFamily:"monospace",fontSize:10,color:"var(--text-dim)"}}>—</span>;
+  const min=Math.min(...series),max=Math.max(...series),range=max-min||1;
+  const step=w/(series.length-1);
+  const pts=series.map((v,i)=>`${(i*step).toFixed(1)},${(h-((v-min)/range)*h).toFixed(1)}`).join(" ");
+  return(<svg width={w} height={h} style={{display:"inline-block",verticalAlign:"middle"}}>
+    <polyline points={pts} fill="none" stroke={color} strokeWidth="1.2" opacity="0.85"/>
+  </svg>);
+}
+
+// Extended factor display including volatility — local to the Lab so it doesn't
+// perturb SectorCard rendering in the live Sectors tab.
+const FACTOR_DISPLAY_LAB=[
+  ...FACTOR_DISPLAY,
+  {key:"volatility",label:"Volatility",indIds:["vix","skew"]},
+];
+
 function SectorLab(){
-const [showDebug,setShowDebug]=useState(false);
+const [openFactor,setOpenFactor]=useState(null);
+const [indSort,setIndSort]=useState({key:"factor",dir:"asc"});
 const cyc=detectCycleStage();
 const scored=SECTORS.map(s=>({...s,score:computeSectorScore(s)})).sort((a,b)=>b.score-a.score);
-// Factor-score rows for the debug panel (mirrors FACTOR_DISPLAY order).
-const factorRows=FACTOR_DISPLAY.map(f=>{
-  const raw=FACTOR_SCORES[f.key];
-  const contribs=(f.indIds||[]).map(id=>({id,sd:DS[id]}));
+
+// ── Cycle block data ──────────────────────────────────────────────────────
+const ism=IND.ism?.[6], ism3=IND.ism?.[8];
+const ismDelta=(ism!=null&&ism3!=null)?(ism-ism3):null;
+const ismSpark=sparkSeries_Lab("ism");
+const yc=IND.yield_curve?.[6];
+const ycSpark=sparkSeries_Lab("yield_curve");
+const emProb=emRecessionProbPct_Lab(yc);
+const emCol=emProb==null?"var(--text-muted)":emProb>=30?"#ff453a":emProb>=15?"#ff9f0a":"#30d158";
+
+// ── Factor rows ───────────────────────────────────────────────────────────
+const factorRows=FACTOR_DISPLAY_LAB.map(f=>{
+  const raw=FACTOR_SCORES[f.key]??0;
+  const contribs=(f.indIds||[]).map(id=>({
+    id,
+    label:IND[id]?.[0]||id,
+    value:IND[id]?.[6],
+    unit:IND[id]?.[4],
+    sd:DS[id],
+    asOf:AS_OF[id]||"—",
+    spark:sparkSeries_Lab(id),
+  }));
   return{key:f.key,label:f.label,raw,contribs};
 });
+
+// ── Indicator-inputs table rows ──────────────────────────────────────────
+const indRowsRaw=[];
+FACTOR_DISPLAY_LAB.forEach(f=>{
+  (f.indIds||[]).forEach(id=>{
+    indRowsRaw.push({
+      id,
+      label:IND[id]?.[0]||id,
+      value:IND[id]?.[6],
+      unit:IND[id]?.[4],
+      sd:DS[id],
+      asOf:AS_OF[id]||"—",
+      factor:f.label,
+    });
+  });
+});
+const indRows=[...indRowsRaw].sort((a,b)=>{
+  const k=indSort.key;
+  let va=a[k],vb=b[k];
+  if(k==="sd"||k==="value"){va=va??-Infinity;vb=vb??-Infinity;}
+  else{va=String(va??"");vb=String(vb??"");}
+  if(va<vb)return indSort.dir==="asc"?-1:1;
+  if(va>vb)return indSort.dir==="asc"?1:-1;
+  return 0;
+});
+const setIndSortKey=(key)=>setIndSort(prev=>({key,dir:prev.key===key&&prev.dir==="asc"?"desc":"asc"}));
+const sortArrow=(key)=>indSort.key===key?(indSort.dir==="asc"?" ▲":" ▼"):"";
+
+// ── Factor-loading matrix (sectors × factors) ────────────────────────────
+// Aggregate subsector sensitivities to parent sector:
+//   parent_loading[factor] = average of subsector.sensitivities[factor] (missing = 0)
+const matrixFactors=FACTOR_DISPLAY_LAB.filter(f=>f.key!=="volatility"||SECTORS.some(s=>s.subsectors.some(ss=>ss.sensitivities?.volatility!=null)));
+const matrixRows=[...SECTORS].map(s=>{
+  const loadings={};
+  matrixFactors.forEach(f=>{
+    const vals=s.subsectors.map(ss=>ss.sensitivities?.[f.key]??0);
+    loadings[f.key]=vals.reduce((a,b)=>a+b,0)/(vals.length||1);
+  });
+  return{id:s.id,name:s.name,loadings,score:computeSectorScore(s)};
+}).sort((a,b)=>b.score-a.score);
+
 return(
-<div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:14}}>
+<div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:16}}>
 
   {/* BETA banner */}
   <div style={{background:"#ff9f0a15",border:"1px solid #ff9f0a55",borderRadius:6,padding:"8px 12px",fontSize:11,color:"#ff9f0a",fontFamily:"monospace",letterSpacing:"0.1em"}}>
-    ⚗ SECTOR LAB · EXPERIMENTAL · admin-only · read-only mirror of the live Sectors tab with prototype overlays · not wired into sector scoring
+    ⚗ SECTOR LAB · EXPERIMENTAL · admin-only · research sandbox for the cross-sectional APT sector engine · not wired into composite scoring
   </div>
 
-  {/* Cycle-stage chip + existing header context */}
-  <div style={{background:"var(--surface)",border:`1px solid ${cyc.color}55`,borderRadius:8,padding:"12px 16px"}}>
-    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10}}>
+  {/* ── Section 1 · CYCLE STAGE (expanded) ─────────────────────────────── */}
+  <div style={{background:"var(--surface)",border:`1px solid ${cyc.color}55`,borderRadius:8,padding:"14px 16px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",flexWrap:"wrap",gap:10,marginBottom:12}}>
       <div>
-        <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:4}}>CYCLE STAGE · derived from ISM PMI level + 3m change · confirmed by 10Y–2Y slope</div>
+        <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:6}}>1 · CYCLE STAGE</div>
         <div style={{display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <div style={{padding:"5px 12px",borderRadius:4,background:cyc.color+"20",border:`1px solid ${cyc.color}`,fontSize:13,fontWeight:700,color:cyc.color,fontFamily:"monospace",letterSpacing:"0.1em"}}>{cyc.label}</div>
+          <div style={{padding:"6px 14px",borderRadius:4,background:cyc.color+"20",border:`1px solid ${cyc.color}`,fontSize:14,fontWeight:800,color:cyc.color,fontFamily:"monospace",letterSpacing:"0.1em"}}>{cyc.label}</div>
           <div style={{fontSize:12,color:"var(--text)",fontFamily:"monospace"}}>{cyc.desc}</div>
-        </div>
-        <div style={{fontSize:11,color:"var(--text-muted)",marginTop:8,maxWidth:560,lineHeight:1.5}}>
-          Classic four-stage business-cycle read. Expansion → Slowdown → Contraction → Recovery. ISM PMI captures coincident growth momentum; yield-curve slope confirms leading growth signal. If promoted, this chip goes in the live Sectors header.
         </div>
       </div>
       <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",textAlign:"right"}}>
@@ -2915,70 +3025,241 @@ return(
         <div>TREND · {TREND_SIG.arrow} {TREND_SIG.label}</div>
       </div>
     </div>
-  </div>
 
-  {/* Debug toggle + panel */}
-  <div style={{display:"flex",alignItems:"center",gap:10}}>
-    <button onClick={()=>setShowDebug(v=>!v)}
-      style={{padding:"4px 12px",borderRadius:3,border:"1px solid var(--border)",cursor:"pointer",fontSize:11,fontFamily:"monospace",background:showDebug?"var(--accent)":"transparent",color:showDebug?"#fff":"var(--text)",fontWeight:showDebug?700:500}}>
-      {showDebug?"▾ HIDE FACTOR DEBUG":"▸ SHOW FACTOR DEBUG"}
-    </button>
-    <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>raw FACTOR_SCORES + contributing SD scores</span>
-  </div>
-  {showDebug&&(
-    <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
-      <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:8}}>FACTOR SCORES · {factorRows.length} factors</div>
-      <div style={{display:"grid",gridTemplateColumns:"140px 90px 1fr",gap:"6px 12px",fontSize:11,fontFamily:"monospace",alignItems:"center"}}>
-        <div style={{color:"var(--text-2)"}}>FACTOR</div>
-        <div style={{color:"var(--text-2)"}}>SCORE</div>
-        <div style={{color:"var(--text-2)"}}>CONTRIBUTING SD</div>
-        {factorRows.map(r=>{
-          const col=r.raw>1.2?"#ff453a":r.raw>0.5?"#ff9f0a":"#30d158";
-          return(<Fragment key={r.key}>
-            <div style={{color:"var(--text)"}}>{r.label}</div>
-            <div style={{color:col,fontWeight:700}}>{(r.raw??0).toFixed(2)}</div>
-            <div style={{color:"var(--text-2)",display:"flex",gap:8,flexWrap:"wrap"}}>
-              {r.contribs.map(c=>{
-                const sd=c.sd;
-                const c2=sd==null?"var(--text-muted)":sd>1?"#ff9f0a":sd<-1?"#30d158":"var(--text-2)";
-                return <span key={c.id} style={{color:c2}}>{c.id}:{sd==null?"—":sd.toFixed(2)}</span>;
-              })}
-            </div>
-          </Fragment>);
-        })}
+    {/* 4-stage diagram */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:6,marginBottom:14}}>
+      {CYCLE_STAGES_LAB.map(st=>{
+        const isCur=st.key===cyc.stageKey;
+        return(
+          <div key={st.key} style={{background:isCur?st.color+"25":"var(--surface-2)",border:`1px solid ${isCur?st.color:"var(--border)"}`,borderRadius:6,padding:"8px 10px",opacity:isCur?1:0.55}}>
+            <div style={{fontSize:10,color:isCur?st.color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",fontWeight:700,marginBottom:3}}>{isCur?"◆ ":"○ "}{st.label}</div>
+            <div style={{fontSize:10,color:"var(--text-muted)",lineHeight:1.4}}>{st.rule}</div>
+          </div>
+        );
+      })}
+    </div>
+
+    {/* ISM + YC blocks side-by-side */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:10}}>
+      {/* ISM PMI */}
+      <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 12px"}}>
+        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>ISM PMI · coincident growth</div>
+        <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:6}}>
+          <div>
+            <span style={{fontSize:20,fontWeight:800,color:ism!=null&&ism>=50?"#30d158":"#ff453a",fontFamily:"monospace"}}>{ism!=null?ism.toFixed(1):"—"}</span>
+            <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",marginLeft:6}}>AS OF {AS_OF.ism||"—"}</span>
+          </div>
+          <LabSpark series={ismSpark} color={ism!=null&&ism>=50?"#30d158":"#ff453a"} w={72} h={22}/>
+        </div>
+        <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace"}}>
+          Δ3m · <span style={{color:ismDelta==null?"var(--text-muted)":ismDelta>0?"#30d158":"#ff453a",fontWeight:700}}>{ismDelta==null?"—":`${ismDelta>=0?"+":""}${ismDelta.toFixed(1)}`}</span>
+          <span style={{color:"var(--text-muted)",marginLeft:10}}>&gt;50 expansion · &lt;50 contraction · &lt;45 recession-consistent</span>
+        </div>
       </div>
-      <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8}}>
-        Green = low/neutral stress · Orange = elevated · Red = extreme. Same formula as FACTOR_SCORES in the live sector engine.
+      {/* Yield Curve */}
+      <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 12px"}}>
+        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>10Y–2Y SLOPE · leading growth</div>
+        <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:6}}>
+          <div>
+            <span style={{fontSize:20,fontWeight:800,color:yc==null?"var(--text-muted)":yc<0?"#ff453a":yc<40?"#ff9f0a":"#30d158",fontFamily:"monospace"}}>{yc==null?"—":`${yc>=0?"+":""}${yc.toFixed(0)}bps`}</span>
+            <span style={{fontSize:11,color:yc==null?"var(--text-muted)":yc<0?"#ff453a":"var(--text-muted)",fontFamily:"monospace",marginLeft:6,fontWeight:yc!=null&&yc<0?700:400}}>{yc==null?"":yc<0?"INVERTED":"POSITIVE"}</span>
+          </div>
+          <LabSpark series={ycSpark} color={yc==null?"#888":yc<0?"#ff453a":"#30d158"} w={72} h={22}/>
+        </div>
+        <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace"}}>
+          P(recession 12m) · <span style={{color:emCol,fontWeight:700}}>{emProb==null?"—":`${emProb.toFixed(1)}%`}</span>
+          <span style={{color:"var(--text-muted)",marginLeft:10}}>Estrella-Mishkin-style proxy · uses 10Y-2Y (not canonical 10Y-3M)</span>
+        </div>
       </div>
     </div>
-  )}
 
-  {/* Mirror of live sector ranking (read-only, same logic) */}
+    <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:10,lineHeight:1.5}}>
+      Anchor: ISM PMI level + momentum (coincident) · Yield-curve slope (leading, Estrella-Mishkin 1996). Recession probability is a logistic fit to 10Y-2Y for directional magnitude — the canonical 10Y-3M spec is stronger but we don't yet surface it in IND.
+    </div>
+  </div>
+
+  {/* ── Section 2 · FACTOR SCORES (open by default) ───────────────────── */}
   <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
-    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:8}}>MIRROR · live sector ranking (read-only)</div>
-    <div style={{display:"flex",flexDirection:"column",gap:5}}>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>2 · FACTOR SCORES · {factorRows.length} macro factors · click a row to see its inputs</div>
+    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+      {factorRows.map(r=>{
+        const col=r.raw>1.2?"#ff453a":r.raw>0.5?"#ff9f0a":"#30d158";
+        const barPct=Math.max(3,Math.min(100,(r.raw/2)*100));
+        const isOpen=openFactor===r.key;
+        return(
+          <div key={r.key} style={{background:"var(--surface-2)",border:`1px solid ${isOpen?col+"55":"var(--border)"}`,borderRadius:5}}>
+            <div onClick={()=>setOpenFactor(isOpen?null:r.key)}
+              style={{display:"flex",alignItems:"center",gap:10,padding:"8px 12px",cursor:"pointer"}}>
+              <span style={{fontSize:10,color:col,fontFamily:"monospace",minWidth:12}}>{isOpen?"▾":"▸"}</span>
+              <span style={{fontSize:12,color:"var(--text)",fontFamily:"monospace",minWidth:110,fontWeight:700}}>{r.label}</span>
+              <div style={{flex:1,height:5,background:"var(--border)",borderRadius:2,overflow:"hidden"}}>
+                <div style={{width:`${barPct}%`,height:"100%",background:col,opacity:0.85}}/>
+              </div>
+              <span style={{fontSize:11,color:col,fontFamily:"monospace",fontWeight:700,minWidth:48,textAlign:"right"}}>{r.raw.toFixed(2)}</span>
+              <span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",minWidth:66,textAlign:"right"}}>{r.raw>1.2?"EXTREME":r.raw>0.5?"ELEVATED":"BENIGN"}</span>
+            </div>
+            {isOpen&&(
+              <div style={{borderTop:"1px solid var(--border)",padding:"8px 12px 10px 34px"}}>
+                <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>CONTRIBUTING INDICATORS</div>
+                <div style={{display:"grid",gridTemplateColumns:"minmax(150px,1.2fr) minmax(80px,0.7fr) minmax(70px,0.5fr) minmax(100px,0.6fr) auto",gap:"6px 12px",alignItems:"center",fontSize:11,fontFamily:"monospace"}}>
+                  <div style={{color:"var(--text-2)"}}>INDICATOR</div>
+                  <div style={{color:"var(--text-2)",textAlign:"right"}}>VALUE</div>
+                  <div style={{color:"var(--text-2)",textAlign:"right"}}>SD</div>
+                  <div style={{color:"var(--text-2)"}}>AS OF</div>
+                  <div style={{color:"var(--text-2)"}}>TREND</div>
+                  {r.contribs.map(c=>{
+                    const sdCol=c.sd==null?"var(--text-muted)":c.sd>1.2?"#ff453a":c.sd>0.5?"#ff9f0a":c.sd<-0.5?"#30d158":"var(--text-2)";
+                    return(<Fragment key={c.id}>
+                      <div style={{color:"var(--text)"}}>{c.label} <span style={{color:"var(--text-dim)",fontSize:10}}>· {c.id}</span></div>
+                      <div style={{color:"var(--text)",textAlign:"right"}}>{c.value==null?"—":fmtV(c.id,c.value)}</div>
+                      <div style={{color:sdCol,textAlign:"right",fontWeight:700}}>{c.sd==null?"—":`${c.sd>=0?"+":""}${c.sd.toFixed(2)}`}</div>
+                      <div style={{color:"var(--text-muted)"}}>{c.asOf}</div>
+                      <div><LabSpark series={c.spark} color={sdCol} w={54} h={16}/></div>
+                    </Fragment>);
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8,lineHeight:1.5}}>
+      Factor score = clipped mean of SD z-scores across contributing indicators. Benign &lt;0.5 · Elevated 0.5–1.2 · Extreme &gt;1.2. Same formula used by /#sectors.
+    </div>
+  </div>
+
+  {/* ── Section 3 · INDICATOR INPUTS TABLE ────────────────────────────── */}
+  <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>3 · INDICATOR INPUTS · {indRows.length} series · click a header to sort</div>
+    <div style={{overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:"monospace"}}>
+        <thead>
+          <tr style={{color:"var(--text-2)",textAlign:"left"}}>
+            <th onClick={()=>setIndSortKey("label")}   style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)"}}>INDICATOR{sortArrow("label")}</th>
+            <th onClick={()=>setIndSortKey("factor")}  style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)"}}>FACTOR{sortArrow("factor")}</th>
+            <th onClick={()=>setIndSortKey("value")}   style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)",textAlign:"right"}}>VALUE{sortArrow("value")}</th>
+            <th onClick={()=>setIndSortKey("sd")}      style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)",textAlign:"right"}}>SD{sortArrow("sd")}</th>
+            <th onClick={()=>setIndSortKey("asOf")}    style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)"}}>AS OF{sortArrow("asOf")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {indRows.map((r,i)=>{
+            const sdCol=r.sd==null?"var(--text-muted)":r.sd>1.2?"#ff453a":r.sd>0.5?"#ff9f0a":r.sd<-0.5?"#30d158":"var(--text-2)";
+            return(
+              <tr key={`${r.id}-${r.factor}-${i}`} style={{borderBottom:"1px solid var(--border-faint)"}}>
+                <td style={{padding:"4px 8px",color:"var(--text)"}}>{r.label} <span style={{color:"var(--text-dim)"}}>· {r.id}</span></td>
+                <td style={{padding:"4px 8px",color:"var(--text-2)"}}>{r.factor}</td>
+                <td style={{padding:"4px 8px",color:"var(--text)",textAlign:"right"}}>{r.value==null?"—":fmtV(r.id,r.value)}</td>
+                <td style={{padding:"4px 8px",color:sdCol,textAlign:"right",fontWeight:700}}>{r.sd==null?"—":`${r.sd>=0?"+":""}${r.sd.toFixed(2)}`}</td>
+                <td style={{padding:"4px 8px",color:"var(--text-muted)"}}>{r.asOf}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8}}>
+      Flat view — an indicator appears multiple times if it contributes to more than one factor. SD = standardized deviation (z-score direction-adjusted; positive = stressful).
+    </div>
+  </div>
+
+  {/* ── Section 4 · FACTOR-LOADING MATRIX ──────────────────────────────── */}
+  <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>4 · SECTOR × FACTOR LOADING MATRIX · {matrixRows.length} sectors × {matrixFactors.length} factors · cell = avg subsector sensitivity</div>
+    <div style={{overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:10,fontFamily:"monospace"}}>
+        <thead>
+          <tr>
+            <th style={{padding:"4px 8px",textAlign:"left",color:"var(--text-2)",borderBottom:"1px solid var(--border)"}}>SECTOR</th>
+            {matrixFactors.map(f=>(
+              <th key={f.key} style={{padding:"4px 6px",textAlign:"center",color:"var(--text-2)",borderBottom:"1px solid var(--border)",letterSpacing:"0.05em"}}>{f.label.toUpperCase()}</th>
+            ))}
+            <th style={{padding:"4px 8px",textAlign:"right",color:"var(--text-2)",borderBottom:"1px solid var(--border)"}}>SCORE</th>
+          </tr>
+        </thead>
+        <tbody>
+          {matrixRows.map(r=>{
+            const ol=outlookLabel(r.score);
+            return(
+              <tr key={r.id} style={{borderBottom:"1px solid var(--border-faint)"}}>
+                <td style={{padding:"4px 8px",color:"var(--text)",fontWeight:600}}>{r.name}</td>
+                {matrixFactors.map(f=>{
+                  const load=r.loadings[f.key]||0;
+                  const absL=Math.abs(load);
+                  let bg="transparent",fg="var(--text-muted)";
+                  if(load>0){
+                    const intensity=Math.min(1,absL/3);
+                    bg=`rgba(255,69,58,${(intensity*0.5).toFixed(2)})`;
+                    fg=intensity>0.6?"#fff":"#ff453a";
+                  }else if(load<0){
+                    const intensity=Math.min(1,absL/3);
+                    bg=`rgba(48,209,88,${(intensity*0.5).toFixed(2)})`;
+                    fg=intensity>0.6?"#fff":"#30d158";
+                  }
+                  return<td key={f.key} style={{padding:"4px 6px",textAlign:"center",background:bg,color:fg,fontWeight:load!==0?700:400}}>{load===0?"·":load.toFixed(1)}</td>;
+                })}
+                <td style={{padding:"4px 8px",color:ol.color,textAlign:"right",fontWeight:700}}>{ol.short}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8,lineHeight:1.5}}>
+      Red = positive loading (headwind when that factor is stressed) · Green = negative loading (tailwind when factor is stressed) · Intensity scales with magnitude. This is the APT engine made visible — a sector's score = 1 − Σ(loading × factor_stress) averaged across its subsectors.
+    </div>
+  </div>
+
+  {/* ── Section 5 · MIRROR RANKING (demoted) ──────────────────────────── */}
+  <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"10px 14px"}}>
+    <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:6}}>5 · MIRROR · live /#sectors ranking (read-only, same formula)</div>
+    <div style={{display:"flex",flexDirection:"column",gap:3}}>
       {scored.map((s,i)=>{
         const ol=outlookLabel(s.score);
         const barPct=Math.max(5,Math.min(100,s.score*80));
         return(
           <div key={s.id} style={{display:"flex",alignItems:"center",gap:8}}>
-            <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",minWidth:16,textAlign:"right"}}>{i+1}</span>
-            <span style={{fontSize:12,color:"var(--text)",fontFamily:"monospace",minWidth:160}}>{s.name}</span>
-            <div style={{flex:1,height:5,background:"var(--border)",borderRadius:2,overflow:"hidden"}}>
-              <div style={{width:`${barPct}%`,height:"100%",background:ol.color,borderRadius:2,opacity:0.8}}/>
+            <span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",minWidth:14,textAlign:"right"}}>{i+1}</span>
+            <span style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",minWidth:140}}>{s.name}</span>
+            <div style={{flex:1,height:3,background:"var(--border)",borderRadius:2,overflow:"hidden"}}>
+              <div style={{width:`${barPct}%`,height:"100%",background:ol.color,opacity:0.8}}/>
             </div>
-            <span style={{fontSize:11,fontWeight:700,color:ol.color,fontFamily:"monospace",minWidth:90,textAlign:"right"}}>{ol.label}</span>
+            <span style={{fontSize:10,fontWeight:700,color:ol.color,fontFamily:"monospace",minWidth:84,textAlign:"right"}}>{ol.label}</span>
           </div>
         );
       })}
     </div>
-    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:6}}>
-      Read-only clone of /#sectors ranking · identical scoring · not investment advice
+  </div>
+
+  {/* ── Section 6 · METHODOLOGY ──────────────────────────────────────── */}
+  <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>6 · METHODOLOGY · how the Lab engine works</div>
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12,fontSize:12,color:"var(--text)",lineHeight:1.55}}>
+      <div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>CROSS-SECTIONAL APT</div>
+        <div>Each sector's score is built bottom-up from subsector factor sensitivities. A subsector carries a loading on each of 9 macro factors (rates, credit, banking, consumer, growth, dollar, valuation, CRE, volatility); the parent score = average across subsectors. This is an Arbitrage Pricing Theory treatment of sectors — return drivers are macro factors, not a single-market-beta CAPM.</div>
+        <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>Anchor: Chen, Roll &amp; Ross (1986) — "Economic Forces and the Stock Market."</div>
+      </div>
+      <div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>CYCLE-STAGE CLASSIFIER</div>
+        <div>ISM PMI level + 3-month momentum gates the 4-stage business-cycle read; 10Y-2Y slope confirms leading-growth direction. Recession probability is a logistic proxy of Estrella-Mishkin — the canonical spec uses 10Y-3M, which we don't yet surface.</div>
+        <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>Anchor: Estrella &amp; Mishkin (1996) — "The Yield Curve as a Predictor of U.S. Recessions," FRBNY.</div>
+      </div>
+      <div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>FACTOR CONSTRUCTION</div>
+        <div>Each factor is the clipped mean of SD z-scores across its contributing indicators; direction-adjusted so higher = more stressful. Equal weights within a factor. Sources: FRED, ICE BofA, NY Fed CMDI, Shiller CAPE dataset, CBOE.</div>
+        <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>Anchor: Fama &amp; French (1993) — multifactor model motivates linear factor-loading aggregation.</div>
+      </div>
+      <div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>PROMOTION PATH</div>
+        <div>A Lab block graduates to the live /#sectors header only after (1) the research anchor is cited inline, (2) the compute is stable across 3 consecutive indicator refreshes, and (3) the visual and numeric output match the Lab mirror. Promotion = move one render block into <code>SectorsTab</code>; nothing else changes.</div>
+      </div>
     </div>
   </div>
 
   <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",textAlign:"center"}}>
-    Sector Lab · experimental overlays · promotion path = move one render line into live Sectors header
+    Sector Lab v2 · admin-only · research sandbox — not investment advice · promotion path = block-by-block migration into /#sectors
   </div>
 </div>
 );
@@ -4513,7 +4794,7 @@ return(<>
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
-{tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF}/>}
+{tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>}
 
 
 {/* close fade-in wrapper around tab content */}
