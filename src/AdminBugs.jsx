@@ -471,20 +471,25 @@ function SidePanel({ row, onClose, onActed }) {
         </pre>
       </Section>
 
-      {/* Proposed solution — show plain block for non-awaiting_approval statuses
-          so the history is visible after a bug has been approved/merged/etc. */}
-      {row.proposed_solution && !isAwaitingApproval && (
-        <Section title="Proposed solution">
+      {/* Proposed fix — plain block for non-awaiting_approval statuses so the
+          fix narrative is still visible after a bug has been approved/merged/
+          deployed. Falls back to triage_notes when proposed_solution is null
+          (the stage-bug-triage edge fn writes its Root-cause/Fix: narrative
+          into triage_notes rather than the narrower proposed_solution col). */}
+      {(row.proposed_solution || row.triage_notes) && !isAwaitingApproval && (
+        <Section title="Proposed fix">
           <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit", fontSize: 13, color: "var(--text)", lineHeight: 1.55 }}>
-            {row.proposed_solution}
+            {row.proposed_solution || row.triage_notes}
           </pre>
         </Section>
       )}
 
-      {/* Triage notes — skip when the amber Proposed-Fix card above has
-          already fallen back to triage_notes (awaiting_approval + no
-          proposed_solution); avoids duplicating the same block on-screen. */}
-      {row.triage_notes && !(isAwaitingApproval && !row.proposed_solution) && (
+      {/* Triage notes — only render when proposed_solution is ALSO populated
+          (i.e. triage has extra detail beyond the fix narrative). When
+          proposed_solution is null, triage_notes has already been surfaced
+          above — either by the amber Proposed-Fix card or by the Proposed
+          fix Section — and rendering it again here would double the block. */}
+      {row.triage_notes && row.proposed_solution && (
         <Section title="Triage notes">
           <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit", fontSize: 12, color: "var(--text-2)", lineHeight: 1.55 }}>
             {row.triage_notes}
