@@ -2932,11 +2932,102 @@ const FACTOR_DISPLAY_LAB=[
   {key:"volatility",label:"Volatility",indIds:["vix","skew"]},
 ];
 
+// ── PUNCHLINE helpers · fast/slow + near/long-term composite framing ──────
+// The decision-making frame the Lab is designed to teach:
+//   NEAR-TERM / TACTICAL read = fast movers (daily + weekly cadence). Drives
+//   3-month gross/hedge/vol decisions.
+//   STRATEGIC read = slow movers (monthly + quarterly cadence). Drives 12-18
+//   month asset-allocation / quality-vs-beta decisions.
+// Cadence partition comes directly from IND_FREQ so we never drift.
+const FAST_IDS_LAB=Object.keys(IND_FREQ).filter(id=>IND_FREQ[id]==="D"||IND_FREQ[id]==="W");
+const SLOW_IDS_LAB=Object.keys(IND_FREQ).filter(id=>IND_FREQ[id]==="M"||IND_FREQ[id]==="Q");
+
+// Weighted composite over a subset of indicators — reuses module-level
+// WEIGHTS and sdScore so calibration stays single-sourced.
+function subsetComp_Lab(snap,ids){
+  let ws=0,wt=0;
+  ids.forEach(id=>{
+    const w=WEIGHTS[id];if(!w)return;
+    const s=sdScore(id,snap[id]);if(s==null)return;
+    ws+=s*w;wt+=w;
+  });
+  return wt>0?ws/wt:0;
+}
+
+// Level bucket for a subset composite. Thresholds align with the main
+// CONVICTION table so tactical/strategic levels read consistently with /#home.
+function levelBucket_Lab(comp,horizon){
+  const tilt=(horizon==="tactical")?{
+    EXTREME:"Aggressive defensiveness · raise cash · harvest losses · hold dry powder",
+    ELEVATED:"Active hedging · reduce gross · trim high-beta into strength",
+    NORMAL:"Maintain posture · sell vol on spikes · rebalance mechanically",
+    BENIGN:"Add risk on pullbacks · equal-weight cyclicals · normal leverage",
+  }:{
+    EXTREME:"Defensive strategic mix · overweight cash + quality bonds · wait for reset",
+    ELEVATED:"Underweight beta · overweight quality/FCF · favor dividends over growth",
+    NORMAL:"Neutral strategic asset allocation · rebalance quarterly",
+    BENIGN:"Overweight equities on 12m view · extend duration · add cyclical cap-weights",
+  };
+  if(comp>1.6) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
+  if(comp>0.88)return{label:"ELEVATED",color:"#ff9f0a",tilt:tilt.ELEVATED};
+  if(comp>0.25)return{label:"NORMAL",  color:"#ffd60a",tilt:tilt.NORMAL};
+  return             {label:"BENIGN",  color:"#30d158",tilt:tilt.BENIGN};
+}
+
+// Top movers cited in the punchline — highest absolute SD scores in the subset.
+function topMovers_Lab(ids,n=3){
+  return ids.map(id=>({id,label:IND[id]?.[0]||id,sd:DS[id]}))
+    .filter(r=>r.sd!=null&&Number.isFinite(r.sd))
+    .sort((a,b)=>Math.abs(b.sd)-Math.abs(a.sd))
+    .slice(0,n);
+}
+
+// Alignment flag: are tactical and strategic composites agreeing or not?
+// Divergence is the most actionable state — tells the user whether to size
+// the gap between tactical and strategic exposure wide or narrow.
+function alignmentFlag_Lab(near,strat){
+  const diff=near-strat;
+  const aDiff=Math.abs(diff);
+  const avg=(near+strat)/2;
+  if(aDiff<0.3){
+    if(avg>0.88) return{label:"ALIGNED · BOTH WARNING",color:"#ff453a",
+      desc:"Both tactical and strategic reads are elevated — reduce exposure across horizons. No meaningful gap between near-term and long-term risk posture."};
+    if(avg<0.25) return{label:"ALIGNED · BOTH BENIGN",color:"#30d158",
+      desc:"Both horizons calm — coherent risk-on backdrop. Tactical and strategic exposures can run symmetrically long."};
+    return{label:"ALIGNED · NORMAL",color:"var(--text-2)",
+      desc:"Tactical and strategic reads are coherent; posture is straightforward — no horizon gap to arbitrage."};
+  }
+  if(diff>0) return{label:"DIVERGENT · TACTICAL HOTTER",color:"#ff9f0a",
+    desc:"Near-term stress while slow movers stay calm — tactical drawdown inside a stable regime. Fade spikes, don't de-risk strategically. Short-term hedges earn more than long-term cash."};
+  return{label:"DIVERGENT · STRATEGIC HOTTER",color:"#ff9f0a",
+    desc:"Slow movers flashing caution while near-term is calm — classic late-cycle melt-up setup. Short-term bid, long-term vulnerable. Trim into rallies, build strategic defense even as tactical tilt stays invested."};
+}
+
+// Trend word for the velocity readout in the punchline banner.
+function trendWord_Lab(v){
+  if(v>0.05) return"rising";
+  if(v<-0.05)return"easing";
+  return"stable";
+}
+
 function SectorLab(){
 const [openFactor,setOpenFactor]=useState(null);
 const [indSort,setIndSort]=useState({key:"factor",dir:"asc"});
 const cyc=detectCycleStage();
 const scored=SECTORS.map(s=>({...s,score:computeSectorScore(s)})).sort((a,b)=>b.score-a.score);
+
+// ── Punchline composites (fast/slow × near/long-term) ────────────────────
+const NEAR_COMP_LAB=subsetComp_Lab(NOW,FAST_IDS_LAB);
+const STRAT_COMP_LAB=subsetComp_Lab(NOW,SLOW_IDS_LAB);
+const NEAR_COMP_1M_LAB=subsetComp_Lab(MO1,FAST_IDS_LAB);
+const STRAT_COMP_1M_LAB=subsetComp_Lab(MO1,SLOW_IDS_LAB);
+const NEAR_VEL_LAB=NEAR_COMP_LAB-NEAR_COMP_1M_LAB;
+const STRAT_VEL_LAB=STRAT_COMP_LAB-STRAT_COMP_1M_LAB;
+const NEAR_BUCKET=levelBucket_Lab(NEAR_COMP_LAB,"tactical");
+const STRAT_BUCKET=levelBucket_Lab(STRAT_COMP_LAB,"strategic");
+const NEAR_MOVERS=topMovers_Lab(FAST_IDS_LAB,3);
+const STRAT_MOVERS=topMovers_Lab(SLOW_IDS_LAB,3);
+const ALIGN=alignmentFlag_Lab(NEAR_COMP_LAB,STRAT_COMP_LAB);
 
 // ── Cycle block data ──────────────────────────────────────────────────────
 const ism=IND.ism?.[6], ism3=IND.ism?.[8];
@@ -3008,6 +3099,82 @@ return(
   {/* BETA banner */}
   <div style={{background:"#ff9f0a15",border:"1px solid #ff9f0a55",borderRadius:6,padding:"8px 12px",fontSize:11,color:"#ff9f0a",fontFamily:"monospace",letterSpacing:"0.1em"}}>
     ⚗ SECTOR LAB · EXPERIMENTAL · admin-only · research sandbox for the cross-sectional APT sector engine · not wired into composite scoring
+  </div>
+
+  {/* ── ★ PUNCHLINE · the decision frame ────────────────────────────────── */}
+  <div style={{background:"var(--surface)",border:`2px solid ${ALIGN.color}55`,borderRadius:10,padding:"14px 16px"}}>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:4,fontWeight:800}}>
+      ★ PUNCHLINE · how to think about allocation right now
+    </div>
+    <div style={{fontSize:11,color:"var(--text-muted)",marginBottom:12,lineHeight:1.5}}>
+      The market is always sending two signals at different speeds. Fast movers drive tactical (0-3mo) positioning; slow movers drive strategic (6-18mo) asset allocation. When they disagree, the gap itself is the signal.
+    </div>
+
+    {/* Two-column: Tactical | Strategic */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:10,marginBottom:10}}>
+      {/* NEAR-TERM */}
+      <div style={{background:"var(--surface-2)",border:`1px solid ${NEAR_BUCKET.color}`,borderRadius:6,padding:"10px 12px"}}>
+        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:5}}>
+          NEAR-TERM · 0-3 months · fast movers · {FAST_IDS_LAB.length} series (D+W)
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+          <span style={{padding:"4px 10px",borderRadius:3,background:NEAR_BUCKET.color+"25",border:`1px solid ${NEAR_BUCKET.color}`,color:NEAR_BUCKET.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
+            {NEAR_BUCKET.label}
+          </span>
+          <span style={{fontSize:13,color:NEAR_BUCKET.color,fontFamily:"monospace",fontWeight:700}}>
+            {NEAR_COMP_LAB>=0?"+":""}{NEAR_COMP_LAB.toFixed(2)}σ
+          </span>
+          <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>
+            · {trendWord_Lab(NEAR_VEL_LAB)} ({NEAR_VEL_LAB>=0?"+":""}{NEAR_VEL_LAB.toFixed(2)} vs 1m)
+          </span>
+        </div>
+        <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:6,lineHeight:1.5}}>
+          Top movers: {NEAR_MOVERS.map(m=>`${m.label} ${m.sd>=0?"+":""}${m.sd.toFixed(1)}σ`).join(" · ")}
+        </div>
+        <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
+          <span style={{fontSize:9,color:NEAR_BUCKET.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6,verticalAlign:"middle"}}>TACTICAL TILT →</span>
+          {NEAR_BUCKET.tilt}
+        </div>
+      </div>
+      {/* STRATEGIC */}
+      <div style={{background:"var(--surface-2)",border:`1px solid ${STRAT_BUCKET.color}`,borderRadius:6,padding:"10px 12px"}}>
+        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:5}}>
+          STRATEGIC · 6-18 months · slow movers · {SLOW_IDS_LAB.length} series (M+Q)
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
+          <span style={{padding:"4px 10px",borderRadius:3,background:STRAT_BUCKET.color+"25",border:`1px solid ${STRAT_BUCKET.color}`,color:STRAT_BUCKET.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
+            {STRAT_BUCKET.label}
+          </span>
+          <span style={{fontSize:13,color:STRAT_BUCKET.color,fontFamily:"monospace",fontWeight:700}}>
+            {STRAT_COMP_LAB>=0?"+":""}{STRAT_COMP_LAB.toFixed(2)}σ
+          </span>
+          <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>
+            · {trendWord_Lab(STRAT_VEL_LAB)} ({STRAT_VEL_LAB>=0?"+":""}{STRAT_VEL_LAB.toFixed(2)} vs 1m)
+          </span>
+        </div>
+        <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:6,lineHeight:1.5}}>
+          Top movers: {STRAT_MOVERS.map(m=>`${m.label} ${m.sd>=0?"+":""}${m.sd.toFixed(1)}σ`).join(" · ")}
+        </div>
+        <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
+          <span style={{fontSize:9,color:STRAT_BUCKET.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6,verticalAlign:"middle"}}>STRATEGIC TILT →</span>
+          {STRAT_BUCKET.tilt}
+        </div>
+      </div>
+    </div>
+
+    {/* ALIGNMENT flag */}
+    <div style={{background:ALIGN.color+"15",border:`1px solid ${ALIGN.color}55`,borderRadius:6,padding:"10px 12px"}}>
+      <div style={{fontSize:11,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:5,fontWeight:800}}>
+        ◆ ALIGNMENT · {ALIGN.label}
+      </div>
+      <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>
+        {ALIGN.desc}
+      </div>
+    </div>
+
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:10,textAlign:"center",lineHeight:1.5}}>
+      Fast / slow split from IND_FREQ · composites are WEIGHTS-weighted means of SD z-scores on each subset · tilts are data-driven from the level bucket, not recommendations
+    </div>
   </div>
 
   {/* ── Section 1 · CYCLE STAGE (expanded) ─────────────────────────────── */}
