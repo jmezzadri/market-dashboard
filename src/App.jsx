@@ -1031,16 +1031,31 @@ return(
 );
 }
 
+// Timeframe presets for the composite history chart. COMP_HIST is quarterly
+// (Q1 '05 → Q1 '26) with one live tail entry ("Apr 15"), so we slice by count
+// from the tail: n=quarters+1 to include the live point. MAX = full dataset
+// (default — preserves the long-term GFC/COVID/Rate-Shock context on open).
+const COMP_HIST_WINDOWS=[
+{key:"1Y", label:"1Y", n:5},
+{key:"3Y", label:"3Y", n:13},
+{key:"5Y", label:"5Y", n:21},
+{key:"10Y",label:"10Y",n:41},
+{key:"MAX",label:"MAX",n:null},
+];
+
 function CompHistChart(){
 const col=CONV.color;
-const data=COMP_HIST;
+const [windowKey,setWindowKey]=useState("MAX");
+const [hover,setHover]=useState(null);
+const win=COMP_HIST_WINDOWS.find(w=>w.key===windowKey)||COMP_HIST_WINDOWS[4];
+const data=win.n?COMP_HIST.slice(-win.n):COMP_HIST;
 const labels=data.map(d=>String(d[0]));
 const W=500,H=130,pL=28,pR=48,pT=18,pB=24;
 const IW=W-pL-pR,IH=H-pT-pB;
-const [hover,setHover]=useState(null);
 const vals=data.map(d=>d[1]);
-// S&P scale — padded 10% above/below for visual breathing room
-const spVals=SP500_HIST.slice(0,data.length);
+// S&P scale — padded 10% above/below for visual breathing room. Slice from
+// the tail so SP500_HIST aligns index-for-index with the sliced COMP_HIST.
+const spVals=win.n?SP500_HIST.slice(-win.n):SP500_HIST.slice(0,data.length);
 const spMin=Math.floor(Math.min(...spVals)*0.92/500)*500;
 const spMax=Math.ceil(Math.max(...spVals)*1.05/500)*500;
 const xp=i=>pL+(i/(data.length-1))*IW;
@@ -1076,8 +1091,9 @@ const ttY=hover?(hover.ys<pT+28?hover.ys+18:hover.ys-18):0;
 const SP_COL="#60a5fa";
 return(
 <div>
-{/* Legend */}
-<div style={{display:"flex",gap:14,marginBottom:6,paddingLeft:4}}>
+{/* Header row: legend (left) + timeframe pills (right) */}
+<div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6,paddingLeft:4,paddingRight:4,flexWrap:"wrap",gap:6}}>
+<div style={{display:"flex",gap:14}}>
 <div style={{display:"flex",alignItems:"center",gap:4}}>
 <div style={{width:16,height:2.5,borderRadius:2,background:col}}/>
 <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>Composite Stress (L)</span>
@@ -1085,6 +1101,18 @@ return(
 <div style={{display:"flex",alignItems:"center",gap:4}}>
 <div style={{width:16,height:2.5,borderRadius:2,background:SP_COL,opacity:0.8}}/>
 <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>S&P 500 (R)</span>
+</div>
+</div>
+<div data-testid="comp-hist-timeframe" style={{display:"flex",gap:4,flexWrap:"wrap"}}>
+{COMP_HIST_WINDOWS.map(w=>{
+const on=w.key===windowKey;
+return(
+<button key={w.key} type="button" onClick={()=>setWindowKey(w.key)}
+style={{padding:"3px 9px",fontSize:10,fontFamily:"var(--font-mono)",fontWeight:700,letterSpacing:"0.04em",border:"1px solid "+(on?"var(--accent)":"var(--border)"),borderRadius:3,cursor:"pointer",background:on?"var(--accent)":"var(--surface-2)",color:on?"#fff":"var(--text-muted)",userSelect:"none"}}>
+{w.label}
+</button>
+);
+})}
 </div>
 </div>
 <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{display:"block",touchAction:"pan-y"}}
