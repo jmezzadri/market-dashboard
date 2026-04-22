@@ -234,7 +234,10 @@ function congressComposite(buys, sells) {
   const b = buys  || [];
   const s = sells || [];
   if (b.length === 0 && s.length === 0) {
-    return { score: 0, components: [{ label: "No congressional activity" }], note: "no data" };
+    // score: null (not 0) — same rationale as insiderComposite. Congress
+    // feed is also global/top-market; phantom 0s on every non-matching
+    // ticker were dragging OVERALL toward neutral (15% weight).
+    return { score: null, components: [{ label: "No congressional activity" }], note: "no data" };
   }
 
   const buyPts  = b.reduce((a, r) => a + congressTierPts(r.amounts), 0);
@@ -268,7 +271,12 @@ function insiderComposite(buys, sells) {
   const qualSells = (sells || []).filter(r => insiderDollarValue(r) >= 25_000);
 
   if (qualBuys.length === 0 && qualSells.length === 0) {
-    return { score: 0, components: [{ label: "No qualifying insider activity" }], note: "no data" };
+    // score: null (not 0) so the chip renders "—" instead of "+0" and the
+    // section is excluded from the weighted OVERALL composite (line ~419
+    // guards on `r.score != null`). Prior behavior injected a phantom 0
+    // that dragged OVERALL toward neutral for ~every ticker (insider feed
+    // is global/top-market, so most held tickers never match).
+    return { score: null, components: [{ label: "No qualifying insider activity" }], note: "no data" };
   }
 
   const buyTotal  = qualBuys.reduce((a, r) => a + insiderDollarValue(r), 0);
