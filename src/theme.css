@@ -813,3 +813,92 @@ a:hover { text-decoration: underline; }
   .app-main { margin-left: 0; }
 }
 
+/* ============================================================================
+   Phase 2 design tokens — LOCKED 2026-04-22
+   Defined but NOT APPLIED yet. Step 4 of the Phase 2 rollout will flip the
+   selectors that use these, behind the `data-mt-theme` attribute. Until then,
+   adding these tokens has zero visual effect — existing --bg/--text/--accent
+   remain the authoritative values.
+
+   Palette reference: /design-lab (mnt/macrotilt/design-lab/index.html § 02)
+   Font reference:    Fraunces (display) · Inter (body) · JetBrains Mono (num)
+   ========================================================================= */
+
+:root {
+  /* ── Typography stack ── */
+  --mt-font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --mt-font-body:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --mt-font-mono:    "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+
+  /* ── Spacing scale ── */
+  --mt-s-1: 4px;  --mt-s-2: 8px;  --mt-s-3: 12px; --mt-s-4: 16px;
+  --mt-s-5: 24px; --mt-s-6: 32px; --mt-s-7: 48px; --mt-s-8: 64px;
+
+  /* ── Radius scale ── */
+  --mt-r-sm: 4px; --mt-r-md: 6px; --mt-r-lg: 8px;
+
+  /* ── Motion ── */
+  --mt-motion-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --mt-motion-med:  180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* ── Semantic colors (direction-neutral, same across themes) ── */
+  --mt-up:   #3dd38c;   /* data-up green */
+  --mt-down: #ff5c6c;   /* data-down red */
+  --mt-warn: #f4c363;   /* caution amber */
+  --mt-info: #7aa7ff;   /* info blue */
+}
+
+/* Dark Phase-2 palette — engaged by setting [data-mt-theme="dark"] on <html> in Step 4 */
+[data-mt-theme="dark"] {
+  --mt-bg-0:   #0a0b0d;  /* neutral ink (replaces the legacy navy #070c1a) */
+  --mt-bg-1:   #0f1115;  /* card surface */
+  --mt-bg-2:   #151820;  /* hover surface */
+  --mt-bg-3:   #1c2029;  /* elevated surface */
+  --mt-bg-rail:#0d0f13;  /* left-rail navigation bg */
+
+  --mt-ink-0:  #f5f6f8;  /* body text */
+  --mt-ink-1:  #b4b9c3;  /* secondary text */
+  --mt-ink-2:  #7e8593;  /* tertiary / labels */
+  --mt-ink-3:  #545a66;  /* muted / eyebrow */
+
+  --mt-line-0: #1c2029;  /* hairline borders */
+  --mt-line-1: #2a2f3a;  /* stronger borders */
+
+  --mt-accent-warm:     #d9b27a;  /* parchment (primary brand accent) */
+  --mt-accent-warm-dim: #a88957;  /* parchment dimmed */
+  --mt-oxblood:         #4a1520;  /* iOS app-icon background */
+}
+
+/* Paper / light Phase-2 palette — engaged by [data-mt-theme="paper"] */
+[data-mt-theme="paper"] {
+  --mt-bg-0:   #fafaf5;
+  --mt-bg-1:   #f3f2ec;
+  --mt-bg-2:   #edebe3;
+  --mt-bg-3:   #e5e2d8;
+  --mt-bg-rail:#f1f0e8;
+
+  --mt-ink-0:  #1a1814;
+  --mt-ink-1:  #3a362d;
+  --mt-ink-2:  #6b6557;
+  --mt-ink-3:  #9a9282;
+
+  --mt-line-0: #e0ddd2;
+  --mt-line-1: #cdc9bb;
+
+  --mt-accent-warm:     #8a6a3d;
+  --mt-accent-warm-dim: #b89866;
+  --mt-oxblood:         #6a1d2c;
+
+  /* paper-mode data colors (slightly darker to preserve contrast on cream) */
+  --mt-up:   #1f8a5a;
+  --mt-down: #b83746;
+  --mt-warn: #a5760a;
+  --mt-info: #3a67b3;
+}
+
+/* Utility — tabular-nums helper (will be applied globally in Step 4) */
+.mt-num, .mt-mono {
+  font-family: var(--mt-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
