@@ -111,7 +111,7 @@
   --font-ui:  'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
               'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  --font-display: 'Inter Display', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;  /* Phase 2 — editorial display serif */
 
   --ease:        cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);

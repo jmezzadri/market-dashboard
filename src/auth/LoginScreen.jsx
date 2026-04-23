@@ -32,6 +32,7 @@
 //   6-digit code path still works independently for passwordless / reset.
 
 import { useEffect, useState } from "react";
+import { Monogram, Wordmark } from "../components/Logo";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
 // Read Supabase auth error params from the URL (e.g. after a failed magic-link
@@ -297,8 +298,10 @@ export default function LoginScreen() {
     <main className="fade-in main-padded" style={{ maxWidth: 1440, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
       {/* Brand wordmark above the sign-in card */}
       <div style={{ display: "flex", justifyContent: "center", marginTop: "min(8vh, 64px)" }}>
-        <img src="/macrotilt-logo.svg"       alt="MacroTilt" className="login-brand-logo login-brand-logo--dark"  />
-        <img src="/macrotilt-logo-light.svg" alt="MacroTilt" className="login-brand-logo login-brand-logo--light" />
+        <span className="login-brand-logo" style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
+          <Monogram size={40} color="var(--accent, #d9b27a)" />
+          <Wordmark size={17} />
+        </span>
       </div>
       <div style={{ ...card, margin: "var(--space-5) auto 0" }}>
         <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 6 }}>

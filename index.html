@@ -3,29 +3,23 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/macrotilt-icon.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/favicon-v2.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-v2.png" />
+    <link rel="manifest" href="/manifest-v2.json" />
     <meta name="theme-color" content="#0b0d10" />
     <title>MacroTilt — Market Dashboard</title>
       <script>
-      /* Phase 2 preview flag — ?theme=phase2 activates the parchment/ink re-skin
-         and MIRRORS the existing data-theme (dark|light) so the app's own
-         sun/moon toggle also flips Phase 2 between ink-dark and paper-light. */
+      /* Phase 2 — parchment + ink re-skin is ALWAYS ON. Mirrors the app's own
+         data-theme (dark|light) onto data-mt-theme so the CSS overlay in
+         theme.css activates automatically for every visitor. No URL flag. */
       (function () {
         try {
-          var p = new URLSearchParams(window.location.search);
-          if (p.get("theme") !== "phase2") return;
-
           var html = document.documentElement;
           var sync = function () {
             var cur = html.getAttribute("data-theme");
-            // paper = Phase 2 light, dark = Phase 2 dark. If neither, default to dark.
             html.setAttribute("data-mt-theme", cur === "light" ? "paper" : "dark");
           };
           sync();
-
-          // Observe data-theme changes so the app's sun/moon toggle keeps us in sync
           new MutationObserver(function (muts) {
             for (var i = 0; i < muts.length; i++) {
               if (muts[i].attributeName === "data-theme") { sync(); break; }
