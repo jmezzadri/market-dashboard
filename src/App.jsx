@@ -5434,11 +5434,15 @@ return(<>
 
   // Broad index / commodity-wrapper / cash tickers that aren't meaningful
   // "concentrations" even if >10% — they're diversified by construction.
+  // 2026-04-23 (#1018): extended the cash list so literal CASH / FDIC /
+  // Core-Cash tickers can never surface as composite-scored holdings in
+  // Notable. The scanner-score sell-watch rule was the path that slipped
+  // a "CASH composite -49" line through before this commit.
   const NOT_A_CONCENTRATION=new Set([
     "FXAIX","FSKAX","FXIIX","FZILX","FSGGX","FXNAX", // broad index
     "JHYUX",                                          // HY bond fund
     "NHXINT906",                                      // intl-equity 529 fund
-    "SPAXX","QACDS",                                  // money-market / cash
+    "SPAXX","QACDS","CASH","FDIC","CORE-CASH","CORECASH", // money-market / cash
   ]);
 
   // Tickers we'll evaluate for signal-based insights — deduplicated set of
@@ -5544,15 +5548,30 @@ return(<>
   // derivable from the positions table and was padding the panel. Keep
   // only signals that add information beyond what's on screen.)
 
-  // Scanner REVIEW-zone (score <20) — only tactical, in-scope holdings
+  // Sell-watch zone — rewritten 2026-04-23 (#1018). Previously used the
+  // 0-100 scanner score with a `< 20` threshold, which rendered lines like
+  // "NVDA scanner score 13 — sell-watch zone" that looked bearish on a
+  // signed-composite (-100/+100) mental model where +13 is mildly bullish.
+  // Now uses the same client-side composite engine as the watchlist / modal
+  // / BUY-NEAR-TRIGGER buckets, with a signed threshold of composite ≤ -20.
+  // Skips tickers already flagged by Priority 1 (composite ≤ -30 = "bearish
+  // read, review") so we don't double-surface the same bearish holding.
+  // Cash / money-market / broad-index / out-of-scope positions continue to
+  // be filtered identically to the signalTickers loop above.
   heldPositions.forEach(p=>{
     if(!p.acctTactical)return;
+    if(p.sector==="Cash")return;
     if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return;
     if(BROAD_INDEX_FUNDS.has(p.ticker))return;
-    const sc=scoreByTicker[p.ticker];
-    if(sc!=null&&sc<20){
-      lines.push({col:"#ff453a",body:`${p.ticker} scanner score ${sc} — sell-watch zone`,pri:2});
-    }
+    if(NOT_A_CONCENTRATION.has(p.ticker))return;
+    const composite=signals?computeSectionComposites(p.ticker,{signals}):null;
+    const ov=composite?.overall?.score;
+    if(ov==null)return;
+    if(ov>-20)return; // not in sell-watch band
+    // Already surfaced by Priority 1 bearish rule (<= -30)? Skip to avoid
+    // duplicate lines on the same ticker.
+    if(signalLines.some(l=>l.body.startsWith(`${p.ticker} composite`)))return;
+    lines.push({col:"#ff453a",body:`${p.ticker} composite ${ov} — sell-watch zone`,pri:2});
   });
 
   // ── PRIORITY 3 — Portfolio-level notes ──
