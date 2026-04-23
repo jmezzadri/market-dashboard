@@ -53,7 +53,7 @@ const STAGES = [
 const STAGE_META = {
   filed:             { label: "Filed",              color: "#60a5fa", sla_h:  24 },
   triaged:           { label: "Triaged",            color: "#a78bfa", sla_h:   8 },
-  awaiting_approval: { label: "Awaiting approval",  color: "#fbbf24", sla_h:  48 },
+  awaiting_approval: { label: "Awaiting approval",  color: "#B8860B", sla_h:  48 },
   approved:          { label: "Approved",           color: "#f59e0b", sla_h:  24 },
   merged:            { label: "Merged",             color: "#34d399", sla_h:   1 },
   deployed:          { label: "Deployed",           color: "#10b981", sla_h:  24 },
@@ -109,7 +109,7 @@ function ownerFor(stage, row) {
 
 function ownerColor(tone) {
   if (tone === "claude") return "#a78bfa";
-  if (tone === "joe")    return "#fbbf24";
+  if (tone === "joe")    return "#B8860B";
   if (tone === "auto")   return "#34d399";
   if (tone === "info")   return "#60a5fa";
   return "#6b7280";
@@ -174,7 +174,7 @@ function slaState(row, stage, active) {
 
 function slaColor(state) {
   if (state === "breached") return "#ef4444";
-  if (state === "warning")  return "#fbbf24";
+  if (state === "warning")  return "#B8860B";
   return "#10b981";
 }
 
@@ -279,7 +279,7 @@ function StageRow({ row, stage, stamp, isActive, isComplete, isFuture, sla }) {
             </div>
           )}
           {isActive && stamp == null && (
-            <div style={{ fontSize: 10, fontFamily: "monospace", color: "#fbbf24", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
+            <div style={{ fontSize: 10, fontFamily: "monospace", color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700 }}>
               ← current
             </div>
           )}
@@ -338,7 +338,7 @@ function SlaChip({ sla }) {
 function OwnerLegend() {
   const items = [
     { label: "Claude", color: "#a78bfa" },
-    { label: "Joe",    color: "#fbbf24" },
+    { label: "Joe",    color: "#B8860B" },
     { label: "Auto",   color: "#34d399" },
   ];
   return (
@@ -418,7 +418,7 @@ function stageBody(row, stage) {
       const since = row.awaiting_approval_at;
       return (
         <div>
-          <div>Waiting on <b style={{ color: "#fbbf24" }}>Joe</b> to approve (or reject) the proposed fix above.</div>
+          <div>Waiting on <b style={{ color: "#B8860B" }}>Joe</b> to approve (or reject) the proposed fix above.</div>
           {since && (
             <div style={{ marginTop: 4, fontSize: 10, fontFamily: "monospace", color: "var(--text-muted)" }}>
               Entered: {etDateTime(since)} · aging: {ageText(since)}
@@ -433,8 +433,8 @@ function stageBody(row, stage) {
         <div>
           <div>Approved by <b>Joe</b>{row.approved_at ? ` · ${etDateTime(row.approved_at)}` : ""}.</div>
           {row.approval_notes && (
-            <div style={{ marginTop: 6, padding: "6px 8px", borderLeft: "2px solid #fbbf24", background: "rgba(251,191,36,0.06)" }}>
-              <div style={{ fontSize: 10, fontFamily: "monospace", color: "#fbbf24", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
+            <div style={{ marginTop: 6, padding: "6px 8px", borderLeft: "2px solid #B8860B", background: "rgba(251,191,36,0.06)" }}>
+              <div style={{ fontSize: 10, fontFamily: "monospace", color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
                 Feedback / conditions
               </div>
               <div style={{ whiteSpace: "pre-wrap" }}>{row.approval_notes}</div>
@@ -472,7 +472,7 @@ function stageBody(row, stage) {
             </div>
           )}
           <div style={{ marginTop: 6 }}>
-            UAT owner: <b style={{ color: auto ? "#a78bfa" : "#fbbf24" }}>
+            UAT owner: <b style={{ color: auto ? "#a78bfa" : "#B8860B" }}>
               {auto ? "Claude — auto-UAT via Chrome" : "Joe — manual UAT on live site"}
             </b>
           </div>

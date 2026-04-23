@@ -121,7 +121,7 @@ const betaColor = (v) =>
   v == null ? "var(--text-dim)"
   : v > 1.5 ? "#ff453a"
   : v > 1.0 ? "#ff9f0a"
-  : v > 0.5 ? "#ffd60a" : "#30d158";
+  : v > 0.5 ? "#B8860B" : "#30d158";
 
 function SortArrow({ dir }) {
   if (!dir) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;

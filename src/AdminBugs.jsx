@@ -42,7 +42,7 @@ function normStatus(s) { return LEGACY_ALIAS[s] || s || "new"; }
 const STATUS_META = {
   new:               { label: "New",               color: "#60a5fa", group: "open" },
   triaged:           { label: "Triaged",           color: "#a78bfa", group: "open" },
-  awaiting_approval: { label: "Awaiting approval", color: "#fbbf24", group: "awaiting_approval" },
+  awaiting_approval: { label: "Awaiting approval", color: "#B8860B", group: "awaiting_approval" },
   approved:          { label: "Approved",          color: "#f59e0b", group: "merged" },
   merged:            { label: "Merged",            color: "#34d399", group: "merged" },
   deployed:          { label: "Deployed",          color: "#10b981", group: "merged" },
@@ -108,14 +108,14 @@ function whereText(r) {
 }
 function complexityColor(c) {
   if (c === "H") return "#ef4444";
-  if (c === "M") return "#fbbf24";
+  if (c === "M") return "#B8860B";
   if (c === "L") return "#34d399";
   return "var(--text-muted)";
 }
 
 // ── Small UI atoms ─────────────────────────────────────────────────────────
 function KpiTile({ label, value, sub, tone }) {
-  const toneColor = tone === "good" ? "#34d399" : tone === "warn" ? "#fbbf24" : tone === "bad" ? "#ef4444" : "var(--text)";
+  const toneColor = tone === "good" ? "#34d399" : tone === "warn" ? "#B8860B" : tone === "bad" ? "#ef4444" : "var(--text)";
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</div>
@@ -299,8 +299,8 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
       gap: 12,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 4, background: "#fbbf24" }} />
-        <div style={{ fontSize: 11, fontFamily: "monospace", color: "#fbbf24", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 4, background: "#B8860B" }} />
+        <div style={{ fontSize: 11, fontFamily: "monospace", color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
           Proposed fix — awaiting your approval
         </div>
       </div>
