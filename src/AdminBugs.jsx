@@ -56,6 +56,63 @@ function statusLabel(raw) { const m = STATUS_META[normStatus(raw)]; return m?.la
 function statusColor(raw) { const m = STATUS_META[normStatus(raw)]; return m?.color || "#9ca3af"; }
 function statusGroup(raw) { const m = STATUS_META[normStatus(raw)]; return m?.group || "open"; }
 
+// Detect "state desync" — the row's authoritative status disagrees with
+// what the denormalised lifecycle stamps imply. Surfaced as a small amber
+// chip next to the status badge so the next #1020-style incident is
+// obvious from the bug list instead of requiring a click into the panel.
+// Logic: each status has an EXPECTED set of stamps that must be
+// present (and a set that must NOT be present). A violation = desync.
+const STAMP_EXPECT = {
+  new:               { must: [],                                         mustNot: ["triaged_at", "awaiting_approval_at", "approved_at", "merged_at", "deployed_at", "verified_at"] },
+  triaged:           { must: ["triaged_at"],                              mustNot: ["awaiting_approval_at", "approved_at", "merged_at", "deployed_at", "verified_at"] },
+  awaiting_approval: { must: ["awaiting_approval_at"],                    mustNot: ["approved_at", "merged_at", "deployed_at", "verified_at"] },
+  approved:          { must: ["approved_at"],                             mustNot: ["merged_at", "deployed_at", "verified_at"] },
+  merged:            { must: ["merged_at"],                               mustNot: ["deployed_at", "verified_at"] },
+  deployed:          { must: ["deployed_at"],                             mustNot: ["verified_at"] },
+  verified_closed:   { must: ["verified_at"],                             mustNot: [] },
+  // reopened + terminal side-branches don't warrant desync alarms —
+  // their stamp shape is by-design heterogeneous.
+};
+function desyncReasons(row) {
+  const s = normStatus(row.status);
+  const rule = STAMP_EXPECT[s];
+  if (!rule) return null;
+  const problems = [];
+  // merged_at has a legacy fallback on fixed_at; verified_at on resolved_at.
+  const stampFor = (k) => {
+    if (k === "merged_at")   return row.merged_at   || row.fixed_at;
+    if (k === "verified_at") return row.verified_at || row.resolved_at;
+    if (k === "triaged_at")  return row.triaged_at  || row.last_triaged_at;
+    return row[k];
+  };
+  for (const k of rule.must) {
+    if (!stampFor(k)) problems.push(`missing ${k}`);
+  }
+  for (const k of rule.mustNot) {
+    if (stampFor(k)) problems.push(`unexpected ${k}`);
+  }
+  return problems.length ? problems : null;
+}
+
+function DesyncChip({ reasons }) {
+  if (!reasons || !reasons.length) return null;
+  const tip = `Status/stamp desync:\n· ${reasons.join("\n· ")}\n\nThe 'status' column is authoritative. Lifecycle stamps should be re-aligned either by re-firing the correct action on this bug or with a direct SQL update.`;
+  return (
+    <span
+      title={tip}
+      style={{
+        display: "inline-flex", alignItems: "center", gap: 3,
+        fontSize: 10, fontFamily: "monospace", fontWeight: 700,
+        color: "#B8860B", padding: "1px 5px", borderRadius: 3,
+        border: "1px solid #B8860B", background: "rgba(184,134,11,0.10)",
+        textTransform: "uppercase", letterSpacing: "0.08em",
+        marginLeft: 6, cursor: "help",
+      }}>
+      ⚠ desync
+    </span>
+  );
+}
+
 const FILTER_PILLS = [
   { id: "all",                label: "All" },
   { id: "open",               label: "Open" },
@@ -224,7 +281,10 @@ function BugTable({ rows, selectedId, onSelect }) {
               <div style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortTitle(r)}</div>
               <div style={{ fontFamily: "monospace", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.url_full || ""}>{whereText(r)}</div>
               <div><ComplexityBadge value={r.complexity} /></div>
-              <div><StatusBadge status={r.status} /></div>
+              <div style={{ display: "inline-flex", alignItems: "center" }}>
+                <StatusBadge status={r.status} />
+                <DesyncChip reasons={desyncReasons(r)} />
+              </div>
               <div style={{ fontFamily: "monospace", color: "var(--text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={branch || ""}>
                 {pr ? `#${pr}` : branch || "—"}
               </div>
@@ -458,7 +518,7 @@ function SidePanel({ row, onClose, onActed }) {
 
       {/* Meta strip */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 10, fontSize: 12 }}>
-        <MetaField label="Status" value={<StatusBadge status={row.status} />} />
+        <MetaField label="Status" value={<span style={{ display: "inline-flex", alignItems: "center" }}><StatusBadge status={row.status} /><DesyncChip reasons={desyncReasons(row)} /></span>} />
         <MetaField label="Complexity" value={<ComplexityBadge value={row.complexity} />} />
         <MetaField label="Priority" value={row.priority || "—"} mono />
         <MetaField label="Reporter" value={row.reporter_name || row.reporter_email || "—"} />

@@ -75,6 +75,27 @@ const LEGACY_ALIAS = {
 };
 function normStageStatus(s) { return LEGACY_ALIAS[s] || s || "filed"; }
 
+// Canonical status → active-stage map. `row.status` is the AUTHORITATIVE
+// source of truth for "where is this bug right now" — the stamp columns
+// (triaged_at / awaiting_approval_at / ...) are denormalized audit data
+// that back-fill the timeline's checkmarks but must never override the
+// status column when picking the active stage. Before this map existed,
+// activeStage() walked stamps and returned "awaiting_approval" for rows
+// that were legitimately status='triaged' (because triaged_at was
+// stamped but awaiting_approval_at wasn't), producing the #1020 desync
+// documented in the 2026-04-23 incident report. See the commit message
+// on fix/bug-workflow-desync for the full post-mortem.
+const STATUS_TO_STAGE = {
+  filed:             "filed",
+  triaged:           "triaged",
+  awaiting_approval: "awaiting_approval",
+  approved:          "approved",
+  merged:            "merged",
+  deployed:          "deployed",
+  verified_closed:   "verified_closed",
+  reopened:          "filed",         // reset clock; SLA restarts from top
+};
+
 // Is this row on a terminal-side branch? Those don't render a timeline at
 // all — the panel falls back to a plain "closed as wontfix/duplicate/…"
 // label so we don't mislead the viewer with a green happy path.
@@ -140,20 +161,43 @@ function ageText(iso) {
   return `${Math.round(h / 24)}d`;
 }
 
-// Active-stage = first stage whose timestamp is absent AND the row hasn't
-// closed past it. For rows already in verified_closed we flag every stage
-// complete. For rows in side-branches we return null (caller hides tl).
+// Active-stage picker. Prefers `row.status` via STATUS_TO_STAGE (the
+// authoritative answer). Falls back to stamp-walking only for rows whose
+// status value isn't in our canonical map — e.g. historical rows from
+// before migration 013 that still carry an unrecognised vocab even after
+// LEGACY_ALIAS normalisation. Side-branches (wontfix/duplicate/needs_info)
+// short-circuit to null so the caller hides the timeline entirely.
 function activeStage(row) {
   const normalized = normStageStatus(row.status);
   if (SIDE_BRANCHES.has(normalized)) return null;
-  if (normalized === "reopened") return "filed"; // reset clock
-  if (normalized === "verified_closed") return "verified_closed";
-  // Pick the earliest stage without a stamp. Skip "merged" fallthrough if
-  // merged_at is genuinely absent but later stages have stamps (data skew).
+  const canonical = STATUS_TO_STAGE[normalized];
+  if (canonical) return canonical;
+  // Unknown status — fall back to the old heuristic so we don't render a
+  // blank timeline. Mostly a safety net; shouldn't fire in practice now
+  // that migrations 013+014 normalised every extant row.
   for (const s of STAGES) {
     if (!stampFor(row, s)) return s;
   }
   return "verified_closed";
+}
+
+// A blocker is "still blocking" iff it hasn't reached deployed or a
+// terminal close state. Once the blocker deploys, downstream bugs can be
+// re-triaged on top of the deployed fix — so the red BLOCKED banner
+// should come down and turn into a "✓ blockers cleared" chip. Keeps
+// operators from chasing stale blocker references like the 2026-04-23
+// #1020 → #1018 situation. Matches the auto-clear trigger in migration
+// 017 so app-side rendering + DB truth agree.
+const BLOCKER_RESOLVED = new Set(["deployed", "verified_closed", "wontfix", "duplicate"]);
+function partitionBlockers(blockers) {
+  const pending = [];
+  const resolved = [];
+  for (const b of blockers || []) {
+    const s = normStageStatus(b.status);
+    if (BLOCKER_RESOLVED.has(s)) resolved.push(b);
+    else pending.push(b);
+  }
+  return { pending, resolved };
 }
 
 // SLA state for a given stage, computed relative to when it was ENTERED
@@ -207,7 +251,17 @@ export default function WorkflowTimeline({ row, blockers = [] }) {
         <OwnerLegend />
       </div>
 
-      {blockers.length > 0 && <BlockerBanner blockers={blockers} />}
+      {(() => {
+        const { pending, resolved } = partitionBlockers(blockers);
+        return (
+          <>
+            {pending.length > 0 && <BlockerBanner blockers={pending} />}
+            {pending.length === 0 && resolved.length > 0 && (
+              <ResolvedBlockerChip blockers={resolved} />
+            )}
+          </>
+        );
+      })()}
 
       <ol style={olStyle}>
         {STAGES.map((stage, i) => {
@@ -378,6 +432,39 @@ function BlockerBanner({ blockers }) {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// Rendered when every listed blocker has already reached a resolved state
+// (deployed / verified_closed / wontfix / duplicate). The triage note
+// usually still references the blocker by number, so we keep the list
+// visible — just in a green "you're clear to work on this" colour.
+// Paired with the migration-017 trigger that auto-removes resolved
+// blockers from bug_reports.blocked_by when the blocker deploys.
+function ResolvedBlockerChip({ blockers }) {
+  return (
+    <div style={{
+      background: "rgba(16,185,129,0.06)",
+      border: "1px solid rgba(16,185,129,0.4)",
+      borderRadius: 6,
+      padding: "6px 10px",
+      marginBottom: 8,
+      fontSize: 12,
+      color: "var(--text)",
+    }}>
+      <div style={{ fontSize: 10, fontFamily: "monospace", color: "#10b981", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 2 }}>
+        ✓ Blockers cleared — ready to re-triage
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-2)" }}>
+        {blockers.map((b, i) => (
+          <span key={b.id}>
+            {i > 0 && ", "}
+            <b style={{ fontFamily: "monospace", color: "var(--text)" }}>#{b.report_number}</b>
+            {b.status && <span style={{ fontSize: 10, fontFamily: "monospace", color: "#10b981", marginLeft: 4 }}>[{b.status}]</span>}
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
