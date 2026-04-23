@@ -4484,6 +4484,44 @@ return(
         const positionCount = ACCOUNTS.reduce((a,acc)=>a+acc.positions.filter(p=>p.sector!=="Cash").length,0);
         const buyTop  = rebucketBuy[0]  || null;
         const nearTop = rebucketNear[0] || null;
+        // Day-of-session P&L: Σ (close - prev_close) × quantity, for every
+        // non-Cash position. Reads from scanData.signals.screener (refreshed
+        // intraday 3x via universe_snapshots). Percent uses prior-day total
+        // as denominator so the number reads as "today's move against
+        // yesterday's close," not "dollar change / current AUM".
+        const _screenerMap = scanData?.signals?.screener || {};
+        let _dayPnl = 0, _priorEq = 0;
+        ACCOUNTS.flatMap(a => a.positions).forEach(p => {
+          if (p.sector === "Cash") return;
+          const sc = _screenerMap[p.ticker] || {};
+          const close = Number(sc.close || sc.prev_close || p.price || 0);
+          const prev  = Number(sc.prev_close || 0);
+          if (!close || !prev || !p.quantity) return;
+          _dayPnl  += (close - prev) * p.quantity;
+          _priorEq += prev * p.quantity;
+        });
+        const dayPnl$ = _dayPnl;
+        const dayPnlPct = _priorEq > 0 ? (_dayPnl / _priorEq) * 100 : 0;
+        const hasDayPnl = Math.abs(_priorEq) > 1;  // pre-market or empty book → hide
+        // Deployable cash: sum of Cash-sector positions in tactical accounts.
+        const totalDeployable = ACCOUNTS
+          .filter(a => a.tactical)
+          .flatMap(a => a.positions)
+          .filter(p => p.sector === "Cash")
+          .reduce((s, p) => s + (p.value || 0), 0);
+        // Largest non-cash position as % of total book — concentration flag.
+        const _positionsSorted = ACCOUNTS
+          .flatMap(a => a.positions)
+          .filter(p => p.sector !== "Cash" && (p.value || 0) > 0)
+          .sort((a, b) => (b.value || 0) - (a.value || 0));
+        const largestPos = _positionsSorted[0] || null;
+        const largestPct = (largestPos && grandTotal > 0) ? (largestPos.value / grandTotal) * 100 : 0;
+        const _fmt$K = (n) => {
+          const a = Math.abs(n);
+          if (a >= 1_000_000) return `${(n/1_000_000).toFixed(1)}M`;
+          if (a >= 1_000)     return `${Math.round(n/1_000)}K`;
+          return `${Math.round(n)}`;
+        };
         // Local-storage delta for portfolio beta: we log today's value on
         // each visit and compare against the oldest entry within the last
         // 14 days (targeting "~last week" direction of travel). Falls back
@@ -4592,7 +4630,69 @@ return(
                   : <>nothing pending</>}
               </div>
             </div>
+
+            {/* Day P&L — today's session move on the book. Hidden on a
+                fresh book / pre-market when prior equity is 0. */}
+            <div style={tileStyle}>
+              <div style={tileEyebrow}>Day P&amp;L</div>
+              <div className="num" style={tileBig(
+                !hasDayPnl ? "var(--text-muted)"
+                : dayPnl$ >= 0 ? "var(--green-text)"
+                : "var(--red-text)"
+              )}>
+                {hasDayPnl
+                  ? (dayPnl$ >= 0 ? "+" : "−") + "$" + _fmt$K(Math.abs(dayPnl$))
+                  : "—"}
+              </div>
+              <div style={tileSub}>
+                {hasDayPnl
+                  ? <>
+                      <span style={{
+                        fontFamily:"var(--font-mono)",
+                        color: dayPnl$ >= 0 ? "var(--green-text)" : "var(--red-text)",
+                      }}>{dayPnl$ >= 0 ? "+" : ""}{dayPnlPct.toFixed(2)}%</span>
+                      <span style={{color:"var(--text-dim)"}}> · vs. yesterday's close</span>
+                    </>
+                  : <>market closed or pre-open</>}
+              </div>
+            </div>
+
+            {/* Deployable cash — total cash across tactical accounts only */}
+            <div style={tileStyle}>
+              <div style={tileEyebrow}>Deployable Cash</div>
+              <div className="num" style={tileBig(totalDeployable>0?"var(--accent)":"var(--text-muted)")}>
+                {totalDeployable>0 ? "$"+_fmt$K(totalDeployable) : "$0"}
+              </div>
+              <div style={tileSub}>
+                {totalDeployable>0
+                  ? <>ready to put to work · tactical only</>
+                  : <>no tactical cash</>}
+              </div>
+            </div>
           </div>
+
+          {/* Largest position — compact single line so it doesn't crowd
+              the grid. Surfaces any single-name >=10% concentration. */}
+          {largestPos && (
+            <div style={{
+              marginTop:"var(--space-3)",
+              paddingTop:"var(--space-3)",
+              borderTop:"1px solid var(--border-faint)",
+              fontSize:12, color:"var(--text-muted)",
+              display:"flex", alignItems:"baseline", gap:"var(--space-2)", flexWrap:"wrap",
+            }}>
+              <span style={{
+                fontFamily:"var(--font-mono)", fontSize:10,
+                letterSpacing:"0.12em", textTransform:"uppercase",
+                color:"var(--text-dim)",
+              }}>Largest position</span>
+              <span style={{color:"var(--text)", fontWeight:500}}>{largestPos.ticker}</span>
+              <span style={{fontFamily:"var(--font-mono)", color: largestPct>=10 ? "var(--warn, #B8860B)" : "var(--text)"}}>
+                {largestPct.toFixed(1)}%
+              </span>
+              <span style={{color:"var(--text-dim)"}}>of book · ${_fmt$K(largestPos.value)}</span>
+            </div>
+          )}
 
           <div style={{marginTop:"var(--space-4)"}}>
             <a onClick={()=>navTo("portopps")} style={{
@@ -4690,46 +4790,107 @@ return(
         )}
       </div>
 
-      {/* 04 · Daily Opp Scan */}
-      <div style={cardStyle}>
-        <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>04</span>Daily Opp Scan</h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("scanner")}>Open →</a>
-        </div>
-        <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-3)"}}>
-          <div className="num" style={{
-            fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-            fontSize:44, fontWeight:500, color:"var(--accent)",
-            letterSpacing:"-0.01em", lineHeight:1,
-          }}>{buyCount + watchCount}</div>
-          <div style={{
-            fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-            letterSpacing:"0.12em", textTransform:"uppercase", lineHeight:1.3,
-          }}>candidates<br/>today</div>
-        </div>
-        {[
-          {k:"Buy alerts (60+)",   v:buyCount},
-          {k:"Near trigger (40+)", v:watchCount},
-          {k:"Other watchlist",    v:rebucketOther.length},
-        ].map((row,i)=>(
-          <div key={i} style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            padding:"var(--space-2) 0", fontSize:12,
-          }}>
-            <span style={{color:"var(--text-muted)"}}>{row.k}</span>
-            <span className="num" style={{
-              fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-              color:"var(--text)",
-            }}>{row.v}</span>
+      {/* 04 · Daily Opp Scan — top-of-book names, not just counts */}
+      {(()=>{
+        // Top 3 buys (by overall score, highest first). Fall back to
+        // near-trigger names when the buy list is thin, so the tile
+        // always has at least one named opportunity if any exist.
+        const _topBuys = (rebucketBuy.length ? rebucketBuy : rebucketNear).slice(0, 3);
+        // Sector lookup for the name row's sub-copy.
+        const _sectorFor = (t) => {
+          const sc = scanData?.signals?.screener?.[t];
+          return sc?.sector || scanData?.ticker_names?.[t] || "";
+        };
+        const rowHasData = _topBuys.length > 0;
+        return (
+        <div style={cardStyle}>
+          <div style={cardHeadStyle}>
+            <h2 style={cardH2Style}><span style={cardTagStyle}>04</span>Daily Opp Scan</h2>
+            <a style={cardLinkStyle} onClick={()=>navTo("scanner")}>Open →</a>
           </div>
-        ))}
-        <div style={{
-          marginTop:"var(--space-3)", paddingTop:"var(--space-3)",
-          borderTop:"1px solid var(--border-faint)",
-          fontSize:11, color:"var(--text-dim)",
-          fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
-        }}>Last scan · {lastScanLabel}</div>
-      </div>
+
+          {/* Headline number — candidates today */}
+          <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-4)"}}>
+            <div className="num" style={{
+              fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+              fontSize:44, fontWeight:500, color: (buyCount + watchCount) > 0 ? "var(--accent)" : "var(--text-muted)",
+              letterSpacing:"-0.01em", lineHeight:1,
+            }}>{buyCount + watchCount}</div>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+              letterSpacing:"0.12em", textTransform:"uppercase", lineHeight:1.3,
+            }}>candidates<br/>today</div>
+          </div>
+
+          {/* Compact counts strip */}
+          <div style={{
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"var(--space-2) 0",
+            borderBottom:"1px solid var(--border-faint)",
+            fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-muted)",
+            letterSpacing:"0.06em", textTransform:"uppercase",
+          }}>
+            <span>Buy {buyCount} · Near {watchCount} · Other {rebucketOther.length}</span>
+            <span style={{color:"var(--text-dim)"}}>60/40/0 thresholds</span>
+          </div>
+
+          {/* Top-of-book: top 3 names with their overall scores. The
+              highest-score name in the scanner is far more useful than
+              three count lines. */}
+          <div style={{
+            marginTop:"var(--space-2)",
+            display:"flex", flexDirection:"column",
+          }}>
+            <div style={{
+              padding:"var(--space-3) 0 var(--space-2)",
+              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+              letterSpacing:"0.14em", textTransform:"uppercase",
+            }}>Top candidates</div>
+            {rowHasData ? _topBuys.map((r, i) => {
+              const sect = _sectorFor(r.ticker);
+              const isLast = i === _topBuys.length - 1;
+              const isBuy  = r.ovr >= 60;
+              return (
+                <div key={r.ticker}
+                     onClick={()=>navTo("scanner")}
+                     style={{
+                       display:"flex", alignItems:"center", justifyContent:"space-between",
+                       padding:"var(--space-2) 0",
+                       borderBottom:isLast ? "none" : "1px solid var(--border-faint)",
+                       cursor:"pointer", gap:"var(--space-3)",
+                     }}>
+                  <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
+                    <span style={{
+                      fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+                      width:20, flexShrink:0,
+                    }}>#{i+1}</span>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.2}}>{r.ticker}</div>
+                      {sect && <div style={{fontSize:10, color:"var(--text-muted)", marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{sect}</div>}
+                    </div>
+                  </div>
+                  <div style={{
+                    fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+                    fontSize:14, fontWeight:500,
+                    color: isBuy ? "var(--accent)" : "var(--warn, #B8860B)",
+                  }}>{r.ovr}</div>
+                </div>
+              );
+            }) : (
+              <div style={{
+                padding:"var(--space-3) 0", fontSize:12, color:"var(--text-muted)",
+              }}>No candidates on the watchlist today.</div>
+            )}
+          </div>
+
+          {/* Last scan timestamp */}
+          <div style={{
+            marginTop:"auto", paddingTop:"var(--space-3)",
+            fontSize:11, color:"var(--text-dim)",
+            fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
+          }}>Last scan · {lastScanLabel}</div>
+        </div>);
+      })()}
 
     </section>
 
