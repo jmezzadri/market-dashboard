@@ -52,6 +52,19 @@ const SELECT_COLS = [
   "resolution_email_sent_at",
   "resurface_at",
   "last_triaged_at",
+  // migration 014 — workflow_timeline columns. Without these the side
+  // panel's WorkflowTimeline receives `undefined` for stamps + blockers
+  // and falls back to its stamp-walking heuristic, which disagrees with
+  // the authoritative `status` column and renders the wrong active stage.
+  // See fix/bug-workflow-desync (#1020 incident, 2026-04-23).
+  "triaged_at",
+  "awaiting_approval_at",
+  "approval_notes",
+  "blocked_by",
+  "uat_mode",
+  "auto_uat_checklist",
+  "auto_uat_attempted_at",
+  "auto_uat_failed",
 ].join(", ");
 
 export function useBugReports({ limit = 500 } = {}) {
