@@ -25,7 +25,8 @@ const TAB_META = {
   insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider activity",       sub: "Open-market buys and sells by company officers, directors, and 10% holders filed with the SEC.",    accent: "#bf5af2" },
   flow:        { eyebrow: "Options Flow",      title: "Unusual flow alerts",    sub: "Large or unusual call and put options activity flagged by Unusual Whales.",           accent: "#ff9f0a" },
   technicals:  { eyebrow: "Per-ticker signals", title: "Technicals",            sub: "Composite SIGNAL score (-100 to +100, SCTR-weighted with ADX regime filter), plus RSI, MACD, moving averages, IV rank, and relative volume.", accent: "#ffd60a" },
-  methodology: { eyebrow: "Methodology",       title: "How the scanner scores", sub: "Scoring weights, data sources, refresh schedule, and tier thresholds.",                accent: "var(--text-dim)" },
+  // "methodology" tile retired 2026-04-22 — the scanner tile now links to the
+  // site-wide Methodology page (#readme) rather than rendering its own copy.
 };
 
 // ── Congressional party lookup ────────────────────────────────────────────────
@@ -1237,120 +1238,10 @@ function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = fals
   );
 }
 
-// ── Methodology tab ───────────────────────────────────────────────────────────
-function MethodologyTab({ data }) {
-  const cfg = data.config || {};
-  const sections = [
-    {
-      title: "DATA SOURCES",
-      rows: [
-        ["Unusual Whales API", "Options flow alerts, dark pool prints, stock screener (price, IV rank, relative volume), and option contract chains."],
-        ["Congress.gov / SEC EDGAR", "Congressional trade disclosures (STOCK Act) and insider Form 4 filings. Congressional lookback: 45 days. Insider lookback: 14 days."],
-        ["Yahoo Finance", "Price history, RSI, moving averages, and company names."],
-      ],
-    },
-    {
-      title: "SCORING SYSTEM (0–100)",
-      rows: [
-        ["Options Flow", "Large or unusual call flow from Unusual Whales. Minimum premium $50K. Weighted by total premium and number of alerts."],
-        ["Congressional Buys", "Open-market purchases disclosed by members of Congress. Scored by disclosed dollar amount and number of buyers. Cap of 40 points."],
-        ["Insider Buys", "Open-market purchases (Form 4 code P) by officers and directors. Excludes Rule 10b5-1 automatic plan transactions."],
-        ["Dark Pool", "Large off-exchange prints ($500K+ minimum). Treated as additional confirmation."],
-        ["Technicals", "RSI, moving average positioning, and relative volume as tiebreakers."],
-        [`Buy Tier (≥ ${cfg.score_buy_alert || 60})`, "Triggers a recommendation and covered call screening."],
-        [`Watch Tier (${cfg.score_watch_alert || 35}–${(cfg.score_buy_alert || 60) - 1})`, "Near-trigger — worth monitoring for a developing setup."],
-      ],
-    },
-    {
-      title: "COVERED CALL CRITERIA",
-      rows: [
-        ["Min IV Rank", `≥ ${cfg.cc_min_iv_rank || 30} — sells premium when IV is elevated relative to its own history.`],
-        ["Min Annualized Yield", `≥ ${cfg.cc_min_annualized_yield_pct || 25}% — bid premium ÷ stock price, annualized over DTE.`],
-        ["OTM Rule (1-sigma)", `Strike must be ≥ IV × √(DTE/365) OTM — the 1 standard-deviation expected move.`],
-        ["DTE Window", `${cfg.cc_min_dte || 14}–${cfg.cc_max_dte || 42} days to expiration.`],
-        ["Bid-Ask Spread", "≤ 10% of mid-price."],
-        ["Earnings Avoidance", "No calls selling through an earnings window (±7 days from next earnings)."],
-      ],
-    },
-    {
-      title: "PORTFOLIO TRIGGERS",
-      rows: [
-        ["Profit Target", `${cfg.profit_target_pct || 20}% above average cost basis. Informational only.`],
-        ["Stop Loss", `${cfg.stop_loss_pct || 15}% below average cost basis. Triggers scan email alert.`],
-        ["Score Collapse", "Alert fires if a position's signal score drops significantly from the prior scan."],
-        ["Insider/Congress Reversal", "Alert fires if the same insider or politician who bought is now selling."],
-      ],
-    },
-    {
-      title: "TECHNICALS COMPOSITE (-100 to +100)",
-      rows: [
-        ["Intent", "A standalone, signed tape-strength score independent of fundamental signals. Answers 'what is price action alone saying?' for each ticker. Modeled after StockCharts SCTR with IBD-style relative-strength and ADX regime confirmation."],
-        ["Long-term trend (60%)", "30 points from % above/below the 200-day moving average (saturates at ±30% deviation). 30 points from YTD return minus SPY YTD (IBD-style relative strength, saturates at ±30%)."],
-        ["Mid-term trend (30%)", "15 points from % above/below the 50-day moving average. 15 points from 1-month return minus SPY 1-month return."],
-        ["Short-term momentum (10%)", "5 points for MACD cross direction (bullish / neutral / bearish). 5 points for RSI zone (overbought +, oversold −)."],
-        ["Volume confirmation", "×1.1 multiplier when relative volume ≥ 1.5 confirms the direction; ×0.9 when RVOL < 0.7 signals participation is weak."],
-        ["ADX regime filter (14)", "ADX ≥ 25 and |raw score| > 30 → label carries 'CONFIRMED' suffix (trend is real). ADX < 20 → score scaled by 0.7 and marked 'CHOPPY' (trend is noise). 20 ≤ ADX < 25 is the neutral band."],
-        ["Label bands", "≥ +50 STRONG BULL · +20 to +49 BULL · -19 to +19 NEUTRAL · -49 to -20 BEAR · ≤ -50 STRONG BEAR · NO DATA when < 30 days of price history."],
-        ["Reference methodologies", "StockCharts SCTR (long 60 / mid 30 / short 10 weighting) · IBD Composite (relative strength vs. benchmark) · TradingView Technical Rating (vote-based) · Barchart Opinion (multi-timeframe averaging). See trading-scanner/ROADMAP.md for oscillators and industry-group RS we have not yet adopted."],
-      ],
-    },
-    {
-      title: "DATA SCOPE — PUBLIC VS. SIGNED IN",
-      rows: [
-        ["Public artifact (signed-out)", "latest_scan_data.json is identical for every visitor. Contains only market-signal data: Congress trades, insider transactions, options flow, dark pool, plus Buy/Watch-tier picks scored from those signals, with technicals for the scannable universe. No user's portfolio or watchlist is ever baked into this file."],
-        ["Signed-in overlay", "Your positions and watchlist come from Supabase, scoped to your account via row-level security (no other user can read them). The dashboard merges them in on the client — they render alongside the public signals on Buy & Watch and Technicals."],
-        ["Scannable universe", "Union of tickers appearing in any public signal source (Congress, insider buys/sales, options flow, dark pool), excluding index/ETF products and low-liquidity names. Your personal tickers are overlaid on top of this universe but do not drive what the scanner scores."],
-        ["ETFs excluded", "Broad-market, sector, bond, volatility, commodity, and crypto ETFs are filtered out up front — they surface heavily in flow and dark pool but don't behave like scannable single-name signals."],
-      ],
-    },
-    {
-      title: "SCAN SCHEDULE",
-      rows: [
-        ["Daily scan", "3:30 PM EDT, Monday–Friday via GitHub Actions."],
-        ["Email delivery", "Sent automatically when buy or watch signals are present."],
-        ["Data freshness", "Options flow and dark pool reflect intraday data at scan time. Congressional data can lag up to 45 days."],
-      ],
-    },
-  ];
-
-  // Title-case a section header originally in shouty caps ("DATA SOURCES" → "Data sources")
-  const titleCase = s => s
-    .toLowerCase()
-    .replace(/(^|\s)\S/g, t => t.toUpperCase())
-    .replace(/\bIv\b/g, "IV")
-    .replace(/\bDte\b/g, "DTE")
-    .replace(/\bOtm\b/g, "OTM");
-
-  return (
-    <div>
-      {sections.map(sec => (
-        <div key={sec.title} style={{ marginBottom: 28 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0,
-            marginBottom: 12, paddingBottom: 8, borderBottom: `1px solid ${C.border}`, letterSpacing: "-0.01em" }}>
-            {titleCase(sec.title)}
-          </h3>
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 10, overflow: "hidden" }}>
-            {sec.rows.map(([label, desc], i) => (
-              <div key={label} style={{
-                display: "flex", gap: 18, padding: "12px 16px",
-                borderBottom: i < sec.rows.length - 1 ? `1px solid ${C.border}` : "none",
-                background: i % 2 === 0 ? C.row1 : C.row2,
-              }}>
-                <div style={{ minWidth: 200, fontWeight: 600, fontSize: 14, color: C.text, lineHeight: 1.5 }}>{label}</div>
-                <div style={{ fontSize: 14, color: C.muted, flex: 1, lineHeight: 1.6 }}>{desc}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-      <div style={{ color: C.muted, fontSize: 12, padding: "14px 0",
-        borderTop: `1px solid ${C.border}`, lineHeight: 1.7 }}>
-        <strong style={{ color: C.text }}>Not financial advice.</strong> This is a personal research tool for informational purposes only. Nothing here constitutes investment advice.
-        Always do your own due diligence before making any investment decision. Data is sourced from third-party APIs and may contain errors or delays.
-      </div>
-    </div>
-  );
-}
+// ── MethodologyTab retired 2026-04-22 ────────────────────────────────────────
+// The in-scanner methodology drill-down was superseded by the site-wide
+// Methodology page (#readme). The scanner tile now opens /#readme directly
+// rather than rendering a parallel (and drift-prone) copy here.
 
 // ── Main Scanner component ────────────────────────────────────────────────────
 export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTicker }) {
@@ -1816,12 +1707,16 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
             />
           </Tile>
 
+          {/* "How This Works" tile retired 2026-04-22 — single canonical source
+              of truth is the site-wide Methodology page (#readme). The scanner
+              tile previously duplicated and drifted from it; we now link out
+              instead of maintaining a parallel copy. */}
           <Tile
-            eyebrow={TAB_META.methodology.eyebrow}
-            title={TAB_META.methodology.title}
-            sub={TAB_META.methodology.sub}
-            accent={TAB_META.methodology.accent}
-            onClick={() => setView("methodology")}
+            eyebrow="Methodology"
+            title="How the scanner scores"
+            sub="Full methodology — scoring weights, CONVICTION bands, data sources, refresh cadence — lives on the site-wide Methodology page. Click to open it."
+            accent="var(--text-dim)"
+            onClick={() => { window.location.hash = "#readme"; }}
           />
         </div>
       </main>
@@ -1862,7 +1757,8 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
         {view === "flow"        && <FlowTab        data={data} onOpenTicker={onOpenTicker} />}
         {view === "technicals"  && <TechnicalsTab  data={data} onOpenTicker={onOpenTicker}
                                       userTickers={userTickers} isSignedIn={isSignedIn} />}
-        {view === "methodology" && <MethodologyTab data={data} />}
+        {/* "methodology" view retired 2026-04-22 — the tile now navigates to
+            #readme (site-wide Methodology page) instead of a local drill-down. */}
       </div>
     </div>
   );
