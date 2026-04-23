@@ -9,15 +9,28 @@
     <meta name="theme-color" content="#0b0d10" />
     <title>MacroTilt — Market Dashboard</title>
       <script>
-      /* Phase 2 preview flag — ?theme=phase2 on any URL activates the
-         parchment/ink re-skin. Lives on main behind this gate so the
-         default visual is unchanged until Joe flips the default in Step 4b. */
+      /* Phase 2 preview flag — ?theme=phase2 activates the parchment/ink re-skin
+         and MIRRORS the existing data-theme (dark|light) so the app's own
+         sun/moon toggle also flips Phase 2 between ink-dark and paper-light. */
       (function () {
         try {
           var p = new URLSearchParams(window.location.search);
-          if (p.get("theme") === "phase2") {
-            document.documentElement.setAttribute("data-mt-theme", "dark");
-          }
+          if (p.get("theme") !== "phase2") return;
+
+          var html = document.documentElement;
+          var sync = function () {
+            var cur = html.getAttribute("data-theme");
+            // paper = Phase 2 light, dark = Phase 2 dark. If neither, default to dark.
+            html.setAttribute("data-mt-theme", cur === "light" ? "paper" : "dark");
+          };
+          sync();
+
+          // Observe data-theme changes so the app's sun/moon toggle keeps us in sync
+          new MutationObserver(function (muts) {
+            for (var i = 0; i < muts.length; i++) {
+              if (muts[i].attributeName === "data-theme") { sync(); break; }
+            }
+          }).observe(html, { attributes: true, attributeFilter: ["data-theme"] });
         } catch (e) {}
       })();
     </script>
