@@ -902,3 +902,89 @@ a:hover { text-decoration: underline; }
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
 }
+
+/* ============================================================================
+   Phase 2 · Step 4a — visual overlay, flag-gated via ?theme=phase2
+   Overrides the legacy --bg / --text / --accent / --blue / --yellow tokens
+   inside a [data-mt-theme="dark"] scope so every component that already
+   reads var(--accent) etc. automatically gets parchment/ink without any
+   component code changes. The default theme is unchanged.
+   ========================================================================= */
+
+:root[data-mt-theme="dark"],
+[data-mt-theme="dark"] {
+  /* Neutral ink background replaces legacy navy */
+  --bg:            #0a0b0d;
+  --bg-grad:       radial-gradient(ellipse at top, #15181f 0%, #0d0f13 55%, #07080a 100%);
+  --surface:       rgba(15, 17, 21, 0.72);
+  --surface-2:     rgba(21, 24, 32, 0.55);
+  --surface-3:     rgba(28, 32, 41, 1);
+  --surface-solid: #0f1115;
+  --hover:         rgba(217, 178, 122, 0.08);
+
+  --border:        #1c2029;
+  --border-strong: #2a2f3a;
+  --border-faint:  rgba(217, 178, 122, 0.08);
+
+  --text:          #f5f6f8;
+  --text-2:        #b4b9c3;
+  --text-muted:    #7e8593;
+  --text-dim:      #545a66;
+
+  /* Parchment replaces iOS blue + bright lemon gold for every accent surface */
+  --accent:        #d9b27a;
+  --accent-soft:   rgba(217, 178, 122, 0.14);
+  --link:          #d9b27a;
+  --blue:          #d9b27a;
+  --yellow:        #d9b27a;
+  --blue-text:     #d9b27a;
+  --yellow-text:   #d9b27a;
+
+  /* Data semantics retained (up/down still use green/red) but slightly softer */
+  --green:      #3dd38c;
+  --green-text: #3dd38c;
+  --red:        #ff5c6c;
+  --red-text:   #ff5c6c;
+
+  --glass-bg:    rgba(15, 17, 21, 0.62);
+  --glass-bord:  rgba(217, 178, 122, 0.10);
+
+  --shadow-sm:  0 1px 2px rgba(0,0,0,0.60);
+  --shadow-md:  0 4px 14px rgba(0,0,0,0.70), 0 2px 6px rgba(0,0,0,0.40);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.75), 0 4px 12px rgba(0,0,0,0.45);
+  --shadow-glow:0 0 0 1px rgba(217,178,122,0.08) inset, 0 8px 32px rgba(0,0,0,0.55);
+
+  color-scheme: dark;
+
+  /* ── Typography: Fraunces display + tabular-nums body ── */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Fraunces on H1 / H2 / H3 (section display type) */
+[data-mt-theme="dark"] h1,
+[data-mt-theme="dark"] h2,
+[data-mt-theme="dark"] h3 {
+  font-family: "Fraunces", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-variation-settings: "opsz" 144;
+  letter-spacing: -0.01em;
+}
+
+/* Italic accent spans within headings use parchment */
+[data-mt-theme="dark"] h1 em,
+[data-mt-theme="dark"] h2 em,
+[data-mt-theme="dark"] h3 em {
+  font-style: italic;
+  color: var(--mt-accent-warm, #d9b27a);
+  font-weight: 400;
+}
+
+/* Monospace numerics keep JBMono + tabular lining figures */
+[data-mt-theme="dark"] .num,
+[data-mt-theme="dark"] .mono,
+[data-mt-theme="dark"] [data-num] {
+  font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}

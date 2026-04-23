@@ -8,6 +8,19 @@
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#0b0d10" />
     <title>MacroTilt — Market Dashboard</title>
+      <script>
+      /* Phase 2 preview flag — ?theme=phase2 on any URL activates the
+         parchment/ink re-skin. Lives on main behind this gate so the
+         default visual is unchanged until Joe flips the default in Step 4b. */
+      (function () {
+        try {
+          var p = new URLSearchParams(window.location.search);
+          if (p.get("theme") === "phase2") {
+            document.documentElement.setAttribute("data-mt-theme", "dark");
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
