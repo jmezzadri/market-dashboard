@@ -330,32 +330,129 @@ export function Footer({ leftText, rightText }) {
       maxWidth: 1440, margin: "var(--space-10) auto 0",
       padding: "var(--space-8) var(--space-8) var(--space-6)",
       borderTop: "1px solid var(--border-faint)",
-      display: "flex", flexDirection: "column", gap: "var(--space-5)",
+      display: "flex", flexDirection: "column", gap: "var(--space-6)",
     }}>
-      {/* Brand row */}
-      <div style={{
-        display: "flex", justifyContent: "space-between", alignItems: "center",
-        flexWrap: "wrap", gap: 12,
+      {/* 4-column editorial grid */}
+      <div className="mt-foot-grid" style={{
+        display: "grid",
+        gridTemplateColumns: "1.3fr 1fr 1fr 1.2fr",
+        gap: "var(--space-7)",
+        alignItems: "start",
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Monogram size={22} color="var(--accent, #d9b27a)" />
-          <Wordmark size={12} />
+        {/* Col 1 · Brand */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <Monogram size={32} color="var(--accent, #d9b27a)" />
+            <Wordmark size={13} />
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, maxWidth: 260 }}>
+            Macro regime dashboard + trading scanner.
+            <br/>Built in NY, NY · 2026.
+          </div>
+          <div style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", letterSpacing: "0.06em" }}>
+            © {year} MACROTILT
+          </div>
         </div>
-        <span style={{
-          fontSize: 11, color: "var(--text-dim)",
-          fontFamily: "var(--font-mono)", letterSpacing: "0.06em",
-        }}>
-          © {year} MacroTilt
-        </span>
+
+        {/* Col 2 · Reach Us */}
+        <div>
+          <div style={{
+            fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)",
+            letterSpacing: "0.14em", textTransform: "uppercase",
+            paddingBottom: 12, marginBottom: 14,
+            borderBottom: "1px solid var(--border-faint)",
+          }}>Reach Us</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <a href="mailto:admin@macrotilt.com" style={{ color: "var(--text)", fontSize: 13, textDecoration: "none", fontWeight: 500 }}>
+              Contact <span style={{ color: "var(--accent)", marginLeft: 4 }}>→</span>
+              <div style={{ color: "var(--text-dim)", fontSize: 11, fontWeight: 400, marginTop: 3 }}>admin@macrotilt.com</div>
+            </a>
+            <div>
+              <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, marginBottom: 3 }}>About us</div>
+              <div style={{ color: "var(--text-dim)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45 }}>
+                Founded in a home office. Team size: one human, one LLM, a lot of ZeroHedge headlines.
+              </div>
+            </div>
+            <div>
+              <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, marginBottom: 3 }}>Careers</div>
+              <div style={{ color: "var(--text-dim)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45 }}>
+                Zero open roles. The intern is an LLM. No PTO policy because nobody takes PTO.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Col 3 · Product */}
+        <div>
+          <div style={{
+            fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)",
+            letterSpacing: "0.14em", textTransform: "uppercase",
+            paddingBottom: 12, marginBottom: 14,
+            borderBottom: "1px solid var(--border-faint)",
+          }}>Product</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, marginBottom: 3 }}>Request a Feature</div>
+              <div style={{ color: "var(--text-dim)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45 }}>
+                Press the Report Bug button and yell. All yells route to one inbox, which is also the only inbox.
+              </div>
+            </div>
+            <div>
+              <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, marginBottom: 3 }}>Customer Care</div>
+              <div style={{ color: "var(--text-dim)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45 }}>
+                Best-in-class — the customer and the care team are the same human.
+              </div>
+            </div>
+            <div>
+              <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, marginBottom: 3 }}>Advertise with us</div>
+              <div style={{ color: "var(--text-dim)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45 }}>
+                Ad inventory: this link. Rates: your self-respect. Pass.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Col 4 · Sources */}
+        <div>
+          <div style={{
+            fontSize: 10, color: "var(--text-dim)", fontFamily: "var(--font-mono)",
+            letterSpacing: "0.14em", textTransform: "uppercase",
+            paddingBottom: 12, marginBottom: 14,
+            borderBottom: "1px solid var(--border-faint)",
+          }}>Sources</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.55 }}>
+            <div>
+              <span style={{ color: "var(--text-2)", fontWeight: 500 }}>Market data · </span>
+              Unusual Whales, FRED
+            </div>
+            <div>
+              <span style={{ color: "var(--text-2)", fontWeight: 500 }}>News · </span>
+              ZeroHedge RSS, Google News
+            </div>
+            <div>
+              <span style={{ color: "var(--text-2)", fontWeight: 500 }}>Portfolio · </span>
+              Plaid (account sync), Supabase (storage)
+            </div>
+            <a href="#readme" style={{ color: "var(--accent)", fontSize: 12, textDecoration: "none", marginTop: 6, fontWeight: 500 }}>
+              Full methodology <span style={{ marginLeft: 2 }}>→</span>
+            </a>
+          </div>
+        </div>
       </div>
 
-      {/* Sources + disclaimer row */}
+      {/* Bottom strip — status + disclaimer */}
       <div style={{
-        display: "flex", justifyContent: "space-between",
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        paddingTop: "var(--space-4)",
+        borderTop: "1px solid var(--border-faint)",
         flexWrap: "wrap", gap: 8,
       }}>
-        <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{leftText}</span>
-        <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{rightText}</span>
+        <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}>
+          {leftText}
+        </span>
+        <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", letterSpacing: "0.04em", fontStyle: "italic" }}>
+          Not investment advice. Not a broker. Not a person in most ways.
+        </span>
       </div>
     </footer>
   );
