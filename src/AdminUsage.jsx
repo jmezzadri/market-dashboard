@@ -20,7 +20,7 @@ const SOURCE_COLORS = {
   universe_snapshot:  "#60a5fa",   // blue
   ticker_events:      "#a78bfa",   // violet
   daily_scanner:      "#34d399",   // green
-  scan_on_add:        "#fbbf24",   // amber
+  scan_on_add:        "#B8860B",   // amber
   indicator_refresh:  "#f472b6",   // pink
   ad_hoc:             "#9ca3af",   // gray
 };
@@ -34,7 +34,7 @@ const SOURCE_LABELS = {
 };
 const SOURCE_ORDER = ["universe_snapshot","ticker_events","daily_scanner","scan_on_add","indicator_refresh","ad_hoc"];
 
-const STATUS_COLORS = { success:"#34d399", partial:"#fbbf24", failed:"#ef4444" };
+const STATUS_COLORS = { success:"#34d399", partial:"#B8860B", failed:"#ef4444" };
 
 // ET day key — matches the convention used elsewhere in the app.
 function etDayKey(iso) {
@@ -149,7 +149,7 @@ function useApiUsageLog(days = 30) {
 
 // ── KPI TILE ────────────────────────────────────────────────────────────────
 function KpiTile({ label, value, sub, tone }) {
-  const toneColor = tone === "good" ? "#34d399" : tone === "warn" ? "#fbbf24" : tone === "bad" ? "#ef4444" : "var(--text)";
+  const toneColor = tone === "good" ? "#34d399" : tone === "warn" ? "#B8860B" : tone === "bad" ? "#ef4444" : "var(--text)";
   return (
     <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px",display:"flex",flexDirection:"column",gap:4}}>
       <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.1em",textTransform:"uppercase"}}>{label}</div>
@@ -312,7 +312,7 @@ function RemainingDailyByEndpoint({ rows }) {
         {latest.map(r => {
           const used = Math.max(0, (Number(r.limit_daily)||0) - (Number(r.remaining_daily)||0));
           const pct = r.limit_daily > 0 ? Math.min(100, Math.round((used / r.limit_daily) * 100)) : 0;
-          const tone = pct >= 85 ? "#ef4444" : pct >= 60 ? "#fbbf24" : "#34d399";
+          const tone = pct >= 85 ? "#ef4444" : pct >= 60 ? "#B8860B" : "#34d399";
           return (
             <div key={r.source} style={{display:"grid",gridTemplateColumns:"140px 1fr 140px",alignItems:"center",gap:10}}>
               <div style={{fontSize:12,color:"var(--text-2)"}}>{SOURCE_LABELS[r.source]||r.source}</div>

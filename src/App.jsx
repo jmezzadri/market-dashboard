@@ -18,6 +18,7 @@ import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
 import { useTickerEvents } from "./hooks/useTickerEvents";
+import { useCommentary } from "./hooks/useCommentary";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
 import SubCompositeStrip from "./components/SubCompositeStrip";
 import WatchlistTable from "./components/WatchlistTable";
@@ -64,7 +65,7 @@ return(p.dir==="lw"||p.dir==="nw")?-r:r;
 function sdColor(s){
 if(s==null)return"var(--text-dim)";
 if(s<0.5) return"#30d158";   // Low — green
-if(s<1.0) return"#ffd60a";   // Normal — yellow
+if(s<1.0) return"#B8860B";   // Normal — yellow
 if(s<1.75)return"#ff9f0a";   // Elevated — amber
 return              "#ff453a"; // Extreme — red
 }
@@ -98,7 +99,7 @@ function sdTo100(s){return Math.round(Math.max(0,Math.min(100,((s+1)/4)*100)));}
 const CONVICTION=[
 {level:1,label:"LOW",      range:[-99,0.12], color:"#30d158", eq:90,bd:5, ca:3, au:2,
  action:"Risk-on. Historically benign conditions. Consider adding cyclical beta."},
-{level:2,label:"NORMAL",   range:[0.12,0.41],color:"#ffd60a", eq:75,bd:15,ca:7, au:3,
+{level:2,label:"NORMAL",   range:[0.12,0.41],color:"#B8860B", eq:75,bd:15,ca:7, au:3,
  action:"Market baseline. Maintain diversified exposure. Trim highest-beta on spikes."},
 {level:3,label:"ELEVATED", range:[0.41,1.03],color:"#ff9f0a", eq:55,bd:28,ca:12,au:5,
  action:"Active hedging warranted. Sell covered calls. Rotate defensive. Reduce leverage."},
@@ -110,11 +111,11 @@ function getConv(s){return CONVICTION.find(c=>s>=c.range[0]&&s<c.range[1])||CONV
 // borders, KPI numbers) are bright by design; when those same colors are
 // applied to small text on a light surface the yellow becomes illegible.
 // This swaps the NORMAL yellow for the deeper amber --yellow-text token.
-function convTextColor(conv){return conv.color==="#ffd60a"?"var(--yellow-text)":conv.color;}
-// Swap bright yellow (#ffd60a) for a theme-aware variant that stays
+function convTextColor(conv){return conv.color==="#B8860B"?"var(--yellow-text)":conv.color;}
+// Swap bright yellow (#B8860B) for a theme-aware variant that stays
 // legible on light backgrounds. Used anywhere an indicator/KPI/trend
 // color is rendered directly as text on a light surface.
-function yText(col){return(col==="#ffd60a"||col==="#FFD60A")?"var(--yellow-text)":col;}
+function yText(col){return(col==="#B8860B"||col==="#B8860B")?"var(--yellow-text)":col;}
 
 const AS_OF={
 vix:"Apr 16 2026",hy_ig:"Apr 15 2026",eq_cr_corr:"Apr 17 2026",
@@ -294,7 +295,7 @@ let CONV=getConv(COMP);
 function trendSignal(vel){
 if(vel>0.12) return{label:"Rising Fast",  arrow:"▲▲",col:"#ff453a"};
 if(vel>0.05) return{label:"Rising",       arrow:"▲", col:"#ff9f0a"};
-if(vel>0.02) return{label:"Edging Up",    arrow:"↗", col:"#ffd60a"};
+if(vel>0.02) return{label:"Edging Up",    arrow:"↗", col:"#B8860B"};
 if(vel<-0.12)return{label:"Easing Fast",  arrow:"▼▼",col:"#30d158"};
 if(vel<-0.05)return{label:"Easing",       arrow:"▼", col:"#30d158"};
 if(vel<-0.02)return{label:"Edging Down",  arrow:"↘", col:"#86efac"};
@@ -359,7 +360,7 @@ const COMP_HIST=[
 const COMP_CRISES=[
 {label:"GFC",year:"Q4 '08",color:"#ff453a"},
 {label:"COVID",year:"Q2 '20",color:"#ff9f0a"},
-{label:"Rate Shock",year:"Q3 '22",color:"#ffd60a"},
+{label:"Rate Shock",year:"Q3 '22",color:"#B8860B"},
 ];
 
 // S&P 500 quarterly closes — matches COMP_HIST index-for-index
@@ -665,6 +666,35 @@ function useHistReady(){
   },[]);
 }
 
+// Look up an indicator's value at approximately N months ago from its most
+// recent historical point. Returns null if _histCache isn't loaded or the
+// series is too short. Used by buildCategoryOverview() to compose the
+// 12M / 6M columns in the Home Macro Overview tile without requiring new
+// positions in the IND tuple.
+function histValueAtMonthsAgo(id,monthsAgo){
+  const entry=_histCache&&_histCache[id];
+  if(!entry||!Array.isArray(entry.points)||entry.points.length<2)return null;
+  const pts=entry.points;
+  const lastStr=pts[pts.length-1][0];
+  const lastDate=new Date(String(lastStr)+"T00:00:00Z");
+  if(Number.isNaN(+lastDate))return null;
+  const targetMs=lastDate.getTime()-monthsAgo*30.44*24*3600*1000;
+  // Walk backwards for efficiency (histories are chronological).
+  let best=null, bestDiff=Infinity;
+  for(let i=pts.length-1;i>=0;i--){
+    const [ds,val]=pts[i];
+    if(val==null||!Number.isFinite(val))continue;
+    const d=new Date(String(ds)+"T00:00:00Z");
+    if(Number.isNaN(+d))continue;
+    const diff=Math.abs(d.getTime()-targetMs);
+    if(diff<bestDiff){bestDiff=diff; best=val;}
+    // Stop once we've clearly passed the target (going further back only
+    // worsens the match).
+    if(d.getTime()<targetMs-45*24*3600*1000)break;
+  }
+  return best;
+}
+
 // Build the [label, value] series used by IndStressChart (the compact tile
 // mini-chart). Item 5b / Task #19: prefer real history from _histCache over
 // the synthetic piecewiseYearValue keyframes, so the tile sparkline reflects
@@ -718,7 +748,7 @@ return out;
 
 const STRESS_HIST_BANDS=[
 {lo:0,hi:20,col:"#30d158",label:"LOW"},
-{lo:20,hi:50,col:"#ffd60a",label:"NORMAL"},
+{lo:20,hi:50,col:"#B8860B",label:"NORMAL"},
 {lo:50,hi:75,col:"#ff9f0a",label:"ELEVATED"},
 {lo:75,hi:100,col:"#ff453a",label:"EXTREME"},
 ];
@@ -1476,7 +1506,7 @@ const s=sdScore(id,cur);
 const col=sdColor(s);
 const colT=sdTextColor(s);
 const tierCol=tier===1?"var(--yellow-text)":tier===2?"#94a3b8":"#4b5563";
-const tierBorder=tier===1?"#ffd60a":tier===2?"#94a3b8":"#4b5563";
+const tierBorder=tier===1?"#B8860B":tier===2?"#94a3b8":"#4b5563";
 return(
 <div id={`card-${id}`} onClick={()=>onOpen(id)} className="indicator-card"
 style={{background:"var(--surface)",border:`1px solid var(--border-faint)`,borderRadius:8,padding:"12px 14px",cursor:"pointer",transition:"transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",position:"relative"}}
@@ -1529,7 +1559,7 @@ const s=sdScore(id,cur);
 const col=sdColor(s);
 const colT=sdTextColor(s);
 const tierCol=tier===1?"var(--yellow-text)":tier===2?"#94a3b8":"#4b5563";
-const tierBorder=tier===1?"#ffd60a":tier===2?"#94a3b8":"#4b5563";
+const tierBorder=tier===1?"#B8860B":tier===2?"#94a3b8":"#4b5563";
 const sp=SD[id];
 const allV=[cur,m1,m3,m6,m12].filter(v=>v!=null);
 const sMin=allV.length?Math.min(...allV):null;
@@ -2113,7 +2143,7 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
 {(siPctFloat!=null||siPctSOut!=null||siDaysCover!=null)&&(()=>{
   const pf=siPctFloat!=null?siPctFloat:siPctSOut;  // prefer % of float, fall back to % of shares out
   const pfPct=pf!=null?pf*100:null;
-  const siCol=pfPct==null?"var(--text-dim)":pfPct>=25?"#ff453a":pfPct>=15?"#ff9f0a":pfPct>=5?"#ffd60a":"#30d158";
+  const siCol=pfPct==null?"var(--text-dim)":pfPct>=25?"#ff453a":pfPct>=15?"#ff9f0a":pfPct>=5?"#B8860B":"#30d158";
   const siLabel=pfPct==null?"":pfPct>=25?"squeeze setup":pfPct>=15?"elevated":pfPct>=5?"moderate":"low";
   const dtcCol=siDaysCover==null?"var(--text-dim)":siDaysCover>=7?"#ff453a":siDaysCover>=3?"#ff9f0a":"var(--text)";
   const trendCol=siTrendPct==null?"var(--text-dim)":siTrendPct>=10?"#ff453a":siTrendPct<=-10?"#30d158":"var(--text)";
@@ -2375,7 +2405,7 @@ Scan: {scanData?.date_label||"—"} · Data from latest scanner run
 function PosCard({p,accountTotal,convColor,convLabel,stressScore}){
 const [exp,setExp]=useState(false);
 const pct=((p.value||0)/accountTotal*100).toFixed(1);
-const bCol=p.beta>1.5?"#ff453a":p.beta>1.0?"#ff9f0a":p.beta>0.5?"#ffd60a":"#30d158";
+const bCol=p.beta>1.5?"#ff453a":p.beta>1.0?"#ff9f0a":p.beta>0.5?"#B8860B":"#30d158";
 return(
 <div onClick={e=>{e.stopPropagation();setExp(x=>!x);}}
 style={{background:"var(--surface-2)",border:`1px solid ${exp?"#4a6fa555":"var(--border)"}`,borderRadius:6,padding:"10px 12px",cursor:"pointer"}}>
@@ -2426,7 +2456,7 @@ const pctOfTotal=(total/grandTotal*100).toFixed(1);
 const acctBeta=total>0
   ?acct.positions.reduce((a,p)=>a+((p.value||0)/total)*(p.beta||0),0)
   :0;
-const betaCol=acctBeta>1.3?"#ff9f0a":acctBeta<0.6?"#ffd60a":"var(--text)";
+const betaCol=acctBeta>1.3?"#ff9f0a":acctBeta<0.6?"#B8860B":"var(--text)";
 return(
 <div style={{background:"var(--surface)",border:`1px solid ${ACCENT}33`,borderRadius:8,overflow:"hidden"}}>
 <div onClick={()=>setOpen(o=>!o)} style={{padding:"12px 14px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -3007,7 +3037,7 @@ function levelBucketV4_Lab(comp,horizon){
   };
   if(comp>cuts.p90) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
   if(comp>cuts.p75) return{label:"ELEVATED",color:"#ff9f0a",tilt:tilt.ELEVATED};
-  if(comp>cuts.p25) return{label:"NORMAL",  color:"#ffd60a",tilt:tilt.NORMAL};
+  if(comp>cuts.p25) return{label:"NORMAL",  color:"#B8860B",tilt:tilt.NORMAL};
   return              {label:"BENIGN",  color:"#30d158",tilt:tilt.BENIGN};
 }
 
@@ -3677,22 +3707,25 @@ return sorted.slice(0,3).map(c=>{
 function buildCategoryOverview(){
 return Object.entries(CATS).map(([catId,cat])=>{
   const ids=Object.keys(IND).filter(id=>IND[id][2]===catId);
-  const cur=ids.map(id=>sdScore(id,IND[id][6])).filter(x=>x!=null);
-  const m1 =ids.map(id=>sdScore(id,IND[id][7])).filter(x=>x!=null);
-  const m3 =ids.map(id=>sdScore(id,IND[id][8])).filter(x=>x!=null);
-  const avg =cur.length?cur.reduce((a,b)=>a+b,0)/cur.length:null;
-  const avg1=m1.length ?m1 .reduce((a,b)=>a+b,0)/m1.length :null;
-  const avg3=m3.length ?m3 .reduce((a,b)=>a+b,0)/m3.length :null;
+  const cur =ids.map(id=>sdScore(id,IND[id][6])).filter(x=>x!=null);
+  const m1  =ids.map(id=>sdScore(id,IND[id][7])).filter(x=>x!=null);
+  const m6  =ids.map(id=>{const v=histValueAtMonthsAgo(id,6);return v==null?null:sdScore(id,v);}).filter(x=>x!=null);
+  const m12 =ids.map(id=>{const v=histValueAtMonthsAgo(id,12);return v==null?null:sdScore(id,v);}).filter(x=>x!=null);
+  const avg   =cur.length?cur.reduce((a,b)=>a+b,0)/cur.length:null;
+  const avg1M =m1.length ?m1 .reduce((a,b)=>a+b,0)/m1.length :null;
+  const avg6M =m6.length ?m6 .reduce((a,b)=>a+b,0)/m6.length :null;
+  const avg12M=m12.length?m12.reduce((a,b)=>a+b,0)/m12.length:null;
   return{
     catId,
     label:cat.label,
-    sc100 :avg ==null?null:sdTo100(avg),
-    sc1M  :avg1==null?null:sdTo100(avg1),
-    sc3M  :avg3==null?null:sdTo100(avg3),
+    sc100 :avg   ==null?null:sdTo100(avg),
+    sc1M  :avg1M ==null?null:sdTo100(avg1M),
+    sc6M  :avg6M ==null?null:sdTo100(avg6M),
+    sc12M :avg12M==null?null:sdTo100(avg12M),
     color :sdColor(avg),
     textColor:sdTextColor(avg),
     regime:sdLabel(avg),
-    delta1M:(avg!=null&&avg1!=null)?sdTo100(avg)-sdTo100(avg1):null,
+    delta1M:(avg!=null&&avg1M!=null)?sdTo100(avg)-sdTo100(avg1M):null,
     indicatorCount:ids.length,
   };
 });
@@ -3825,6 +3858,9 @@ const { mergeInto: mergeUniverseSnapshot, snapshotTs: universeSnapshotTs }=useUn
 // Additive — no existing fields are overwritten, so downstream renderers
 // that don't read .events keep working unchanged.
 const { mergeInto: mergeTickerEvents, latestEventTs: tickerEventsTs }=useTickerEvents();
+// Editorial commentary (home Macro + Sector tiles). Nightly-generated;
+// null-allowed. See supabase/functions/generate-commentary.
+const { macro: macroCommentary, sector: sectorCommentary }=useCommentary();
 // Merge order: rawScanData → universe snapshot (3x/day) → private supplement
 // (1x/day per-user) → ticker events (3x/day). Universe runs first so private
 // supplement only fills gaps the universe snapshot couldn't cover
@@ -4037,7 +4073,7 @@ const cls=
   "Individual Stocks";
 assetRollup[cls]=(assetRollup[cls]||0)+p.value;
 });
-const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","HY Bonds":"#14b8a6","Precious Metals":"#ffd60a","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"#dc2626"};
+const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","HY Bonds":"#14b8a6","Precious Metals":"#B8860B","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"#dc2626"};
 
 // ── Tile-grid home view computations ─────────────────────────────────────────
 const portCount = scanData?.portfolio_positions?.length || 0;
@@ -4176,23 +4212,31 @@ return(
     const map = {
       "Low":      {label:"Risk-on",  color:"var(--up, #30d158)"},
       "Normal":   {label:"Neutral",  color:"var(--text-muted)"},
-      "Elevated": {label:"Caution",  color:"var(--warn, #f4c363)"},
+      "Elevated": {label:"Caution",  color:"var(--warn, #B8860B)"},
       "Extreme":  {label:"Risk-off", color:"var(--down, #ff453a)"},
       "No Data":  {label:"—",        color:"var(--text-dim)"},
     };
     return map[regime] || map["Normal"];
   };
 
-  // ---- Sector outlook list (top 5 by signal strength) ----
+  // ---- Sector outlook list — 3 highest + 3 lowest (Joe feedback 2026-04-23).
+  // Ranked by raw score (not distance from neutral). Top half renders as
+  // the strongest overweights; bottom half as the strongest underweights,
+  // with a visual divider between them. Plain English everywhere — no
+  // "OVR" acronym, say "overall rank".
   const sectorsWithScore = SECTORS.map(s => {
     const score = computeSectorScore(s);
     return {...s, score, outlook:outlookLabel(score)};
   });
-  // Rank by distance from neutral (0.5), descending — strongest signals first.
-  // This surfaces OW and UW extremes over the middle of the pack.
-  const topSectors = [...sectorsWithScore]
-    .sort((a,b) => Math.abs(b.score-0.5) - Math.abs(a.score-0.5))
-    .slice(0, 5);
+  const _sectorsRanked = [...sectorsWithScore].sort((a,b) => b.score - a.score);
+  // Annotate each row with its absolute rank (#1 = highest score) so the
+  // tile can show "#1" / "#10" style badges next to names.
+  _sectorsRanked.forEach((s,i) => { s.rank = i+1; });
+  const _topN = Math.min(3, _sectorsRanked.length);
+  const _bottomN = Math.min(3, _sectorsRanked.length - _topN);
+  const topOverweight  = _sectorsRanked.slice(0, _topN);
+  const bottomUnderweight = _sectorsRanked.slice(-_bottomN);   // worst-first order: already lowest → highest. Reverse so the lowest sits at the bottom (most-underweight last).
+  bottomUnderweight.sort((a,b) => b.score - a.score);          // highest of the bottom-3 first, then down to lowest.
 
   // ---- Headlines ----
   const zhPub = scanData?.signals?.market_news?.zerohedge_public || [];
@@ -4320,60 +4364,60 @@ return(
           </div>
         </div>
 
-        {/* Regime table */}
+        {/* Regime table — Category · 12M · 6M · 1M · Now · State */}
         <div style={{overflowX:"auto"}}>
         <table style={{width:"100%", borderCollapse:"collapse"}}>
           <thead>
             <tr>
-              <th style={{
-                textAlign:"left", fontFamily:"var(--font-mono)", fontSize:10,
-                color:"var(--text-dim)", letterSpacing:"0.12em", textTransform:"uppercase",
-                padding:"var(--space-2) var(--space-3)",
-                borderBottom:"1px solid var(--border-faint)", fontWeight:500,
-              }}>Category</th>
-              <th style={{
-                textAlign:"right", fontFamily:"var(--font-mono)", fontSize:10,
-                color:"var(--text-dim)", letterSpacing:"0.12em", textTransform:"uppercase",
-                padding:"var(--space-2) var(--space-3)",
-                borderBottom:"1px solid var(--border-faint)", fontWeight:500,
-              }}>Score</th>
-              <th style={{
-                textAlign:"right", fontFamily:"var(--font-mono)", fontSize:10,
-                color:"var(--text-dim)", letterSpacing:"0.12em", textTransform:"uppercase",
-                padding:"var(--space-2) var(--space-3)",
-                borderBottom:"1px solid var(--border-faint)", fontWeight:500,
-                width:120,
-              }}>State</th>
+              {(()=>{
+                const thBase={
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  color:"var(--text-dim)", letterSpacing:"0.12em", textTransform:"uppercase",
+                  padding:"var(--space-2) var(--space-3)",
+                  borderBottom:"1px solid var(--border-faint)", fontWeight:500,
+                };
+                const thRight={...thBase, textAlign:"right"};
+                return (<>
+                  <th style={{...thBase, textAlign:"left"}}>Category</th>
+                  <th style={thRight}>12M</th>
+                  <th style={thRight}>6M</th>
+                  <th style={thRight}>1M</th>
+                  <th style={thRight}>Now</th>
+                  <th style={{...thRight, width:110}}>State</th>
+                </>);
+              })()}
             </tr>
           </thead>
           <tbody>
             {buildCategoryOverview().map((c,i,arr) => {
               const pill = regimePillCSS(c.regime);
               const isLast = i === arr.length-1;
+              const tdBase={
+                borderBottom:isLast?"none":"1px solid var(--border-faint)",
+                padding:"var(--space-3)",
+                verticalAlign:"middle",
+              };
+              const numCell={
+                ...tdBase,
+                fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+                textAlign:"right", fontSize:13,
+              };
+              const histCell={...numCell, color:"var(--text-muted)", fontWeight:400};
+              const nowCell ={...numCell, color:"var(--text)",       fontWeight:500, fontSize:14};
               return (
               <tr key={c.catId} onClick={()=>{navTo("indicators"); setCatFilter(c.catId);}}
                   style={{cursor:"pointer"}}>
-                <td style={{
-                  padding:"var(--space-3)",
-                  borderBottom:isLast?"none":"1px solid var(--border-faint)",
-                  fontSize:13, color:"var(--text-muted)", verticalAlign:"middle",
-                }}>
+                <td style={{...tdBase, fontSize:13, color:"var(--text-muted)"}}>
                   <div style={{color:"var(--text)", fontWeight:500, fontSize:13, lineHeight:1.3}}>{c.label}</div>
                   <div style={{color:"var(--text-muted)", fontSize:12, marginTop:2}}>
                     {c.indicatorCount} indicator{c.indicatorCount===1?"":"s"}
                   </div>
                 </td>
-                <td className="num" style={{
-                  padding:"var(--space-3)",
-                  borderBottom:isLast?"none":"1px solid var(--border-faint)",
-                  fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-                  textAlign:"right", color:"var(--text)", fontWeight:500, fontSize:14,
-                  verticalAlign:"middle",
-                }}>{c.sc100==null?"—":c.sc100}</td>
-                <td style={{
-                  padding:"var(--space-3)", textAlign:"right", verticalAlign:"middle",
-                  borderBottom:isLast?"none":"1px solid var(--border-faint)",
-                }}>
+                <td className="num" style={histCell}>{c.sc12M==null?"—":c.sc12M}</td>
+                <td className="num" style={histCell}>{c.sc6M ==null?"—":c.sc6M}</td>
+                <td className="num" style={histCell}>{c.sc1M ==null?"—":c.sc1M}</td>
+                <td className="num" style={nowCell}>{c.sc100==null?"—":c.sc100}</td>
+                <td style={{...tdBase, textAlign:"right"}}>
                   <span style={{
                     display:"inline-flex", alignItems:"center",
                     padding:"2px 8px", borderRadius:10,
@@ -4387,13 +4431,101 @@ return(
           </tbody>
         </table>
         </div>
+
+        {/* Editorial commentary — threshold-gated; renders nothing when
+            nothing has moved materially. Fed by the commentary engine
+            (supabase/functions/generate-commentary → macro_commentary).
+            Each slot is capped at ~25 words to discourage filler. */}
+        {(macroCommentary && (macroCommentary.short_term || macroCommentary.medium_term)) && (
+          <div style={{
+            marginTop:"var(--space-4)",
+            paddingTop:"var(--space-3)",
+            borderTop:"1px solid var(--border-faint)",
+            display:"flex", flexDirection:"column", gap:"var(--space-2)",
+          }}>
+            {macroCommentary.short_term && (
+              <div style={{
+                fontFamily:"var(--font-display)", fontStyle:"italic",
+                fontSize:14, lineHeight:1.5, color:"var(--text-muted)",
+              }}>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                  letterSpacing:"0.14em", textTransform:"uppercase",
+                  color:"var(--text-dim)", marginRight:"var(--space-2)",
+                }}>Short term</span>
+                {macroCommentary.short_term}
+              </div>
+            )}
+            {macroCommentary.medium_term && (
+              <div style={{
+                fontFamily:"var(--font-display)", fontStyle:"italic",
+                fontSize:14, lineHeight:1.5, color:"var(--text-muted)",
+              }}>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                  letterSpacing:"0.14em", textTransform:"uppercase",
+                  color:"var(--text-dim)", marginRight:"var(--space-2)",
+                }}>Medium term</span>
+                {macroCommentary.medium_term}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* 02 · Trading Opportunities & Portfolio Insights */}
+      {/* 02 · Trading Opportunities & Portfolio Insights — data-first,
+          no narrative running list. Each tile carries its own data point:
+          count / delta / top name + score. See Joe feedback 2026-04-23. */}
       {(()=>{
         const positionCount = ACCOUNTS.reduce((a,acc)=>a+acc.positions.filter(p=>p.sector!=="Cash").length,0);
-        const buyTopTickers = rebucketBuy.slice(0,3).map(x=>x.ticker).join(" · ");
-        const nearTopTickers = rebucketNear.slice(0,5).map(x=>x.ticker).join(" · ");
+        const buyTop  = rebucketBuy[0]  || null;
+        const nearTop = rebucketNear[0] || null;
+        // Local-storage delta for portfolio beta: we log today's value on
+        // each visit and compare against the oldest entry within the last
+        // 14 days (targeting "~last week" direction of travel). Falls back
+        // to null when no prior sample is available — tile renders delta
+        // only if we actually have a comparable value.
+        const betaDelta = (()=>{
+          if(typeof window==="undefined"||!window.localStorage)return null;
+          try{
+            const key="mt_beta_history_v1";
+            const now=Date.now();
+            const raw=window.localStorage.getItem(key);
+            const arr=raw?JSON.parse(raw):[];
+            const clean=Array.isArray(arr)
+              ?arr.filter(e=>e&&typeof e.t==="number"&&typeof e.v==="number"&&(now-e.t)<30*24*3600*1000)
+              :[];
+            const todayKey=new Date(now).toISOString().slice(0,10);
+            const hasToday=clean.some(e=>new Date(e.t).toISOString().slice(0,10)===todayKey);
+            if(!hasToday&&portBeta>0){
+              clean.push({t:now, v:+portBeta.toFixed(4)});
+              window.localStorage.setItem(key, JSON.stringify(clean.slice(-30)));
+            }
+            // Oldest sample ≥5d and ≤14d old.
+            const lower=now-14*24*3600*1000, upper=now-5*24*3600*1000;
+            const cand=clean.filter(e=>e.t>=lower&&e.t<=upper);
+            if(!cand.length)return null;
+            const prior=cand.sort((a,b)=>a.t-b.t)[0];
+            if(!prior||typeof prior.v!=="number"||!Number.isFinite(prior.v))return null;
+            const diff=+(portBeta-prior.v).toFixed(2);
+            if(Math.abs(diff)<0.005)return null;
+            return {diff, priorVal:prior.v.toFixed(2)};
+          }catch{return null;}
+        })();
+        const tileStyle = {
+          padding:"var(--space-4)", background:"var(--surface-3)",
+          border:"1px solid var(--border-faint)", borderRadius:6,
+        };
+        const tileEyebrow = {
+          fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+          letterSpacing:"0.14em", textTransform:"uppercase",
+          marginBottom:"var(--space-3)",
+        };
+        const tileBig = (col)=>({
+          fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+          fontSize:32, fontWeight:500, color:col, letterSpacing:"-0.01em", lineHeight:1,
+        });
+        const tileSub = {marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"};
         return (
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
@@ -4408,58 +4540,54 @@ return(
             gap:"var(--space-4)", padding:"var(--space-3) 0",
           }}>
             {/* Current Positions */}
-            <div style={{
-              padding:"var(--space-4)", background:"var(--surface-3)",
-              border:"1px solid var(--border-faint)", borderRadius:6,
-            }}>
-              <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:"var(--space-3)"}}>Current Positions</div>
-              <div className="num" style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:32, fontWeight:500, color:"var(--text)", letterSpacing:"-0.01em", lineHeight:1}}>{positionCount}</div>
-              <div style={{marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"}}>across {ACCOUNTS.length} account{ACCOUNTS.length===1?"":"s"} · ${Math.round(grandTotal/1000)}K</div>
+            <div style={tileStyle}>
+              <div style={tileEyebrow}>Current Positions</div>
+              <div className="num" style={tileBig("var(--text)")}>{positionCount}</div>
+              <div style={tileSub}>across {ACCOUNTS.length} account{ACCOUNTS.length===1?"":"s"} · ${Math.round(grandTotal/1000)}K</div>
             </div>
 
-            {/* Buy Alerts */}
-            <div style={{
-              padding:"var(--space-4)", background:"var(--surface-3)",
-              border:"1px solid var(--border-faint)", borderRadius:6,
-            }}>
-              <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:"var(--space-3)"}}>Buy Alerts</div>
-              <div className="num" style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:32, fontWeight:500, color:buyCount>0?"var(--accent)":"var(--text-muted)", letterSpacing:"-0.01em", lineHeight:1}}>{buyCount}</div>
-              <div style={{marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"}}>{buyCount>0 ? buyTopTickers : "none today"}</div>
+            {/* Portfolio Beta — embedded metric with week-over-week delta
+                when we have a comparable prior sample. Defensive / elevated
+                color thresholds mirror the Observations rules. */}
+            <div style={tileStyle}>
+              <div style={tileEyebrow}>Portfolio Beta</div>
+              <div className="num" style={tileBig(
+                portBeta>1.3 ? "var(--orange-text)"
+                : portBeta<0.6 ? "var(--yellow-text)"
+                : "var(--text)"
+              )}>{portBeta.toFixed(2)}</div>
+              <div style={tileSub}>
+                {betaDelta
+                  ? <>{betaDelta.diff>0?"up":"down"} from <span style={{fontFamily:"var(--font-mono)", color:"var(--text-muted)"}}>{betaDelta.priorVal}</span> last week</>
+                  : <>1.0 = market · weighted by position $</>}
+              </div>
             </div>
 
-            {/* Near Trigger */}
-            <div style={{
-              padding:"var(--space-4)", background:"var(--surface-3)",
-              border:"1px solid var(--border-faint)", borderRadius:6,
-            }}>
-              <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:"var(--space-3)"}}>Near Trigger</div>
-              <div className="num" style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:32, fontWeight:500, color:watchCount>0?"var(--warn, #f4c363)":"var(--text-muted)", letterSpacing:"-0.01em", lineHeight:1}}>{watchCount}</div>
-              <div style={{marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"}}>{watchCount>0 ? nearTopTickers : "nothing pending"}</div>
+            {/* Buy Alerts — score embedded next to the top ticker */}
+            <div style={tileStyle}>
+              <div style={tileEyebrow}>Buy Alerts</div>
+              <div className="num" style={tileBig(buyCount>0?"var(--accent)":"var(--text-muted)")}>{buyCount}</div>
+              <div style={tileSub}>
+                {buyTop
+                  ? <><span style={{color:"var(--text)", fontWeight:500}}>{buyTop.ticker}</span>
+                      {" "}<span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>{buyTop.ovr}</span>
+                      <span style={{color:"var(--text-dim)"}}> · top score</span></>
+                  : <>none today</>}
+              </div>
             </div>
 
-            {/* Other Watchlist */}
-            <div style={{
-              padding:"var(--space-4)", background:"var(--surface-3)",
-              border:"1px solid var(--border-faint)", borderRadius:6,
-            }}>
-              <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:"var(--space-3)"}}>Other Watchlist</div>
-              <div className="num" style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:32, fontWeight:500, color:"var(--text-muted)", letterSpacing:"-0.01em", lineHeight:1}}>{rebucketOther.length}</div>
-              <div style={{marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"}}>tracking, no signal</div>
+            {/* Near Trigger — score embedded next to the top ticker */}
+            <div style={tileStyle}>
+              <div style={tileEyebrow}>Near Trigger</div>
+              <div className="num" style={tileBig(watchCount>0?"var(--warn, #B8860B)":"var(--text-muted)")}>{watchCount}</div>
+              <div style={tileSub}>
+                {nearTop
+                  ? <><span style={{color:"var(--text)", fontWeight:500}}>{nearTop.ticker}</span>
+                      {" "}<span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>{nearTop.ovr}</span>
+                      <span style={{color:"var(--text-dim)"}}> · top score</span></>
+                  : <>nothing pending</>}
+              </div>
             </div>
-          </div>
-
-          {/* Insight row */}
-          <div style={{
-            marginTop:"var(--space-4)",
-            paddingTop:"var(--space-3)",
-            borderTop:"1px solid var(--border-faint)",
-            fontSize:12, color:"var(--text-muted)", lineHeight:1.5,
-          }}>
-            Portfolio beta <span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>{portBeta.toFixed(2)}</span>.{" "}
-            {buyCount>0
-              ? <>Top OVR on the buy list: <span style={{color:"var(--accent)", fontWeight:500}}>{rebucketBuy[0].ticker}</span> at <span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>+{rebucketBuy[0].ovr}</span>.</>
-              : <>No names clearing the +60 OVR threshold today.</>}
-            {watchCount>0 && <> {watchCount} name{watchCount===1?"":"s"} sitting between +40 and +60 — worth a look.</>}
           </div>
 
           <div style={{marginTop:"var(--space-4)"}}>
@@ -4481,37 +4609,87 @@ return(
       display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"var(--space-5)",
     }}>
 
-      {/* 03 · Sector Outlook */}
+      {/* 03 · Sector Outlook — 3 highest overall rank + 3 lowest, with
+          a visual divider between them. Per Joe feedback 2026-04-23:
+          reads like a prop-desk long/short view, not a "top 5 extremes"
+          mashup. Editorial narrative slot reads from sector_commentary
+          and is null-allowed (no forced prose). */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Sector Outlook</h2>
           <a style={cardLinkStyle} onClick={()=>navTo("sectors")}>Open →</a>
         </div>
-        {topSectors.map((s,i)=>{
-          const stanceColor = s.outlook.color;
-          return (
-          <div key={s.id}
-               onClick={()=>navTo("sectors")}
-               style={{
-                 display:"flex", alignItems:"center", justifyContent:"space-between",
-                 padding:"var(--space-3) 0",
-                 borderBottom:i<topSectors.length-1?"1px solid var(--border-faint)":"none",
-                 cursor:"pointer", gap:12,
-               }}>
-            <div style={{minWidth:0, flex:1}}>
-              <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
-              <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
-                <span style={{fontFamily:"var(--font-mono)"}}>β {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
+
+        {(()=>{
+          const renderRow = (s, isLast, key) => {
+            const stanceColor = s.outlook.color;
+            return (
+              <div key={key}
+                   onClick={()=>navTo("sectors")}
+                   style={{
+                     display:"flex", alignItems:"center", justifyContent:"space-between",
+                     padding:"var(--space-3) 0",
+                     borderBottom:isLast?"none":"1px solid var(--border-faint)",
+                     cursor:"pointer", gap:12,
+                   }}>
+                <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
+                  <span style={{
+                    fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)",
+                    letterSpacing:"0.06em", width:28, flexShrink:0,
+                  }}>#{s.rank}</span>
+                  <div style={{minWidth:0, flex:1}}>
+                    <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
+                    <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
+                      <span style={{fontFamily:"var(--font-mono)"}}>β {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
+                    </div>
+                  </div>
+                </div>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  letterSpacing:"0.1em", textTransform:"uppercase",
+                  padding:"2px 8px", borderRadius:10,
+                  border:`1px solid ${stanceColor}`, color:stanceColor, flexShrink:0,
+                }}>{s.outlook.label}</span>
               </div>
-            </div>
-            <span style={{
-              fontFamily:"var(--font-mono)", fontSize:10,
-              letterSpacing:"0.1em", textTransform:"uppercase",
-              padding:"2px 8px", borderRadius:10,
-              border:`1px solid ${stanceColor}`, color:stanceColor, flexShrink:0,
-            }}>{s.outlook.label}</span>
-          </div>);
-        })}
+            );
+          };
+          return (<>
+            {/* Top 3 — highest overall rank */}
+            {topOverweight.map((s,i) => renderRow(s, i===topOverweight.length-1, "top-"+s.id))}
+
+            {/* Divider between the long-book and short-book halves */}
+            {bottomUnderweight.length>0 && (
+              <div aria-hidden="true" style={{
+                display:"flex", alignItems:"center", gap:"var(--space-3)",
+                padding:"var(--space-3) 0",
+                fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
+                letterSpacing:"0.18em", textTransform:"uppercase",
+              }}>
+                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
+                <span>Bottom 3</span>
+                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
+              </div>
+            )}
+
+            {/* Bottom 3 — lowest overall rank */}
+            {bottomUnderweight.map((s,i) => renderRow(s, i===bottomUnderweight.length-1, "bot-"+s.id))}
+          </>);
+        })()}
+
+        {/* Editorial sector narrative — single-sentence analyst note, only
+            renders when the commentary engine detected a material move.
+            No "stable this week" fallback on purpose. */}
+        {(sectorCommentary && sectorCommentary.headline) && (
+          <div style={{
+            marginTop:"var(--space-4)",
+            paddingTop:"var(--space-3)",
+            borderTop:"1px solid var(--border-faint)",
+            fontFamily:"var(--font-display)", fontStyle:"italic",
+            fontSize:13, lineHeight:1.5, color:"var(--text-muted)",
+          }}>
+            {sectorCommentary.headline}
+          </div>
+        )}
       </div>
 
       {/* 04 · Daily Opp Scan */}
@@ -4831,7 +5009,7 @@ const actionFor=p=>{
   const sc=scoreByTicker[p.ticker];
   if(sc==null)return{label:"NO SIGNAL",color:"var(--text-dim)",reason:"Not scored in the latest scan.",detail:`The scanner runs a scored universe of equity tickers; ${p.ticker} isn't currently included. This is a scanner coverage gap, not a sell signal. Task #9 tracks adding held positions to the always-scored list so this gets proper signal data.`};
   if(sc>=60)return{label:"BUY ZONE",color:"#30d158",reason:`Score ${sc} — meets the 60+ buy threshold.`,detail:`Composite scanner score of ${sc} combines Congressional trades, insider buying, options flow, and technical momentum. A score ≥60 is the algorithmic buy threshold. Consider adding to the position if cash is available and allocation permits. See full scanner detail for the component breakdown.`};
-  if(sc>=35)return{label:"HOLD",color:"#ffd60a",reason:`Score ${sc} — in the healthy hold range.`,detail:`Score ${sc} is within the 35–60 hold band. No action needed. The scanner is not flagging a reason to trim or add. Monitor for score drift below 35 (weakening) or above 60 (add candidate).`};
+  if(sc>=35)return{label:"HOLD",color:"#B8860B",reason:`Score ${sc} — in the healthy hold range.`,detail:`Score ${sc} is within the 35–60 hold band. No action needed. The scanner is not flagging a reason to trim or add. Monitor for score drift below 35 (weakening) or above 60 (add candidate).`};
   if(sc>=20)return{label:"WATCH",color:"#ff9f0a",reason:`Score ${sc} — signals weakening.`,detail:`Score ${sc} has dropped into the 20–35 weakening band. Underlying signals (flow, insider activity, technicals) are deteriorating but haven't reached sell-watch territory. Tighten your stop-loss and do not add to the position. Consider trimming if score crosses below 20 or the position breaks its SL.`};
   return{label:"REVIEW",color:"#ff453a",reason:`Score ${sc} — in the sell-watch zone.`,detail:`Score ${sc} is below the 20 sell-watch threshold. Scanner components are bearish (weak flow, no insider support, deteriorating technicals). Not an automatic sell — but actively review the thesis: is there a catalyst you're waiting for? Otherwise, trim or exit on any bounce. Check full scanner detail for the specific weak components.`};
 };
@@ -4876,7 +5054,7 @@ return(
   {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
   {label:"Holdings",value:`${heldPositions.length}`,col:"var(--text)"},
   {label:"Buy Alerts",value:buyCount,col:"var(--green-text)",accent:"#30d158"},
-  {label:"Near Trigger",value:watchCount,col:"var(--yellow-text)",accent:"#ffd60a"},
+  {label:"Near Trigger",value:watchCount,col:"var(--yellow-text)",accent:"#B8860B"},
   {label:"Watchlist",value:`${WATCHLIST.length}`,col:"var(--text)"},
 ].map(({label,value,col,accent})=>(
 <div key={label} style={{background:accent?`${accent}14`:"var(--surface-2)",border:accent?`1px solid ${accent}55`:"1px solid transparent",borderLeft:accent?`3px solid ${accent}`:"1px solid transparent",borderRadius:5,padding:"10px 12px"}}>
@@ -4951,7 +5129,7 @@ return(<>
     emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
   />
 )}
-{subPanel("#ffd60a","NEAR TRIGGER","(Composite Score 40–59)",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
+{subPanel("#B8860B","NEAR TRIGGER","(Composite Score 40–59)",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
   <WatchlistTable
     rows={toWlRows(nearTrigger)}
     signals={scanData?.signals}
@@ -5022,7 +5200,7 @@ const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"
 // transparent against the dark background and the bar looks empty.
 // Deterministic fallback by DB sort-order index so colors don't flip on
 // the value-sorted acctData re-sort below.
-const ACCT_PALETTE=["#4a6fa5","#ff9f0a","#14b8a6","#a855f7","#ffd60a","#6366f1","#64748b","#f97316"];
+const ACCT_PALETTE=["#4a6fa5","#ff9f0a","#14b8a6","#a855f7","#B8860B","#6366f1","#64748b","#f97316"];
 const acctData=ACCOUNTS.map((acc,i)=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
 return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color||ACCT_PALETTE[i%ACCT_PALETTE.length],value:t};
@@ -5128,23 +5306,27 @@ return(<>
     const ov=composite.overall?.score;
     const sections=composite.sections||{};
 
-    // (a) Strong bullish composite on a holding (>=30) — conviction to add
-    if(ov!=null&&ov>=30){
+    // (a) Strong bullish composite on a holding (>=40) — conviction to add.
+    // 2026-04-23: threshold raised from +30 → +40 to keep this panel from
+    // filling with marginal reads. Joe feedback: "80% of 14 items aren't
+    // notable" — bar should be material-move-only.
+    if(ov!=null&&ov>=40){
       signalLines.push({col:"#30d158",body:`${t} composite +${ov} — strong bullish tilt across ${Object.values(sections).filter(s=>s?.score>0).length} of 6 categories`,pri:1});
     }
-    // (b) Strong bearish composite on a holding (<=-25) — sell-watch
-    else if(ov!=null&&ov<=-25){
+    // (b) Strong bearish composite on a holding (<=-30) — sell-watch
+    else if(ov!=null&&ov<=-30){
       signalLines.push({col:"#ff453a",body:`${t} composite ${ov} — bearish read, review position`,pri:1});
     }
 
-    // (c) Conviction stack — three or more sections strongly bullish
-    // (each score >= +30). Fires even if overall is moderate.
-    const strongBull=Object.entries(sections).filter(([,s])=>s?.score!=null&&s.score>=30).map(([k])=>k);
-    if(strongBull.length>=3){
+    // (c) Conviction stack — four or more sections strongly bullish
+    // (each score >= +40). Fires even if overall is moderate. Threshold
+    // raised 2026-04-23 (was 3 sections @ +30) to match the tightened bar.
+    const strongBull=Object.entries(sections).filter(([,s])=>s?.score!=null&&s.score>=40).map(([k])=>k);
+    if(strongBull.length>=4){
       const names=strongBull.map(k=>k.toUpperCase()).slice(0,4).join("/");
       // Only add if we haven't already flagged this ticker with the overall rule
       if(!signalLines.some(l=>l.body.startsWith(`${t} composite`))){
-        signalLines.push({col:"#30d158",body:`${t} bullish stack — ${names} all >+30`,pri:1});
+        signalLines.push({col:"#30d158",body:`${t} bullish stack — ${names} all >+40`,pri:1});
       }
     }
 
@@ -5165,9 +5347,9 @@ return(<>
       signalLines.push({col:"#bf5af2",body:`${t} — insider open-market buy${insBuys.length===1?"":"s"} filed (${insBuys.length})`,pri:1});
     }
   });
-  // Cap signal lines at 6 to keep the panel scannable; sorted implicitly
-  // by heldPositions traversal order (largest positions first).
-  signalLines.slice(0,6).forEach(l=>lines.push(l));
+  // Cap signal lines at 4 (was 6) — keeps the panel scannable and forces
+  // the largest positions to win ties since heldPositions is $-sorted.
+  signalLines.slice(0,4).forEach(l=>lines.push(l));
 
   // ── PRIORITY 2 — Cross-account exposure + risk flags ──
 
@@ -5201,13 +5383,9 @@ return(<>
     });
   }
 
-  // Cross-account single-ticker exposure (harder to spot from the list)
-  Object.entries(heldByTicker).forEach(([ticker,info])=>{
-    if(NOT_A_CONCENTRATION.has(ticker))return;
-    if(info.accounts.length>1){
-      lines.push({col:"#64748b",body:`${ticker} held in ${info.accounts.length} accounts — ${fmt$K(info.total)} total`,pri:2});
-    }
-  });
+  // (Cross-account single-ticker exposure line removed 2026-04-23 — that's
+  // derivable from the positions table and was padding the panel. Keep
+  // only signals that add information beyond what's on screen.)
 
   // Scanner REVIEW-zone (score <20) — only tactical, in-scope holdings
   heldPositions.forEach(p=>{
@@ -5231,7 +5409,7 @@ return(<>
   if(portBeta>1.3){
     lines.push({col:"#ff9f0a",body:`Portfolio beta ${portBeta.toFixed(2)} — elevated equity sensitivity`,pri:3});
   }else if(portBeta<0.6){
-    lines.push({col:"#ffd60a",body:`Portfolio beta ${portBeta.toFixed(2)} — defensive vs. market`,pri:3});
+    lines.push({col:"#B8860B",body:`Portfolio beta ${portBeta.toFixed(2)} — defensive vs. market`,pri:3});
   }
 
   // ── PRIORITY 4 — Material drawdowns (severe only) ──
@@ -5247,6 +5425,11 @@ return(<>
     }
   });
   drawdownLines.slice(0,2).forEach(l=>lines.push(l));
+
+  // Hard cap on total rendered lines — stay on one page, force the
+  // bar higher if everything else is low-signal. (Joe feedback 2026-04-23.)
+  const MAX_NOTABLE=8;
+  if(lines.length>MAX_NOTABLE)lines.length=MAX_NOTABLE;
 
   if(lines.length===0)return null;
   return(

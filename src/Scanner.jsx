@@ -24,7 +24,7 @@ const TAB_META = {
   congress:    { eyebrow: "Congressional",     title: "Congress activity",      sub: "Disclosed equity trades by U.S. Senators and Representatives in the last 45 days (buys and sells).", accent: "#0a84ff" },
   insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider activity",       sub: "Open-market buys and sells by company officers, directors, and 10% holders filed with the SEC.",    accent: "#bf5af2" },
   flow:        { eyebrow: "Options Flow",      title: "Unusual flow alerts",    sub: "Large or unusual call and put options activity flagged by Unusual Whales.",           accent: "#ff9f0a" },
-  technicals:  { eyebrow: "Per-ticker signals", title: "Technicals",            sub: "Composite SIGNAL score (-100 to +100, SCTR-weighted with ADX regime filter), plus RSI, MACD, moving averages, IV rank, and relative volume.", accent: "#ffd60a" },
+  technicals:  { eyebrow: "Per-ticker signals", title: "Technicals",            sub: "Composite SIGNAL score (-100 to +100, SCTR-weighted with ADX regime filter), plus RSI, MACD, moving averages, IV rank, and relative volume.", accent: "#B8860B" },
   // "methodology" tile retired 2026-04-22 — the scanner tile now links to the
   // site-wide Methodology page (#readme) rather than rendering its own copy.
 };

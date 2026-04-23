@@ -78,7 +78,7 @@
 
   /* Stress / semantic — kept consistent across themes for meaning */
   --green:  #30d158;
-  --yellow: #ffd60a;
+  --yellow: #B8860B;
   --orange: #ff9f0a;
   --red:    #ff453a;
   --blue:   #0a84ff;
@@ -86,7 +86,7 @@
 
   /* Text-on-light variants — same semantics, higher contrast for body/small text on white */
   --green-text:  #1a8c39;
-  --yellow-text: #9a6b00;   /* deeper amber: ~5.0:1 on white, still reads as caution */
+  --yellow-text: #B8860B;   /* darkgoldenrod ochre — passes AA on cream and dark alike */
   --orange-text: #c2570a;
   --red-text:    #c8302a;
   --blue-text:   #0066cc;
@@ -159,7 +159,7 @@
 
     /* On dark, the bright semantic colors read fine as text */
     --green-text:  #30d158;
-    --yellow-text: #ffd60a;
+    --yellow-text: #B8860B;
     --orange-text: #ff9f0a;
     --red-text:    #ff453a;
     --blue-text:   #0a84ff;
@@ -202,7 +202,7 @@
   --glass-bord:  rgba(255,255,255,0.10);
 
   --green-text:  #30d158;
-  --yellow-text: #ffd60a;
+  --yellow-text: #B8860B;
   --orange-text: #ff9f0a;
   --red-text:    #ff453a;
   --blue-text:   #0a84ff;
@@ -857,7 +857,7 @@ a:hover { text-decoration: underline; }
   /* ── Semantic colors (direction-neutral, same across themes) ── */
   --mt-up:   #3dd38c;   /* data-up green */
   --mt-down: #ff5c6c;   /* data-down red */
-  --mt-warn: #f4c363;   /* caution amber */
+  --mt-warn: #B8860B;   /* caution ochre (darkgoldenrod) — passes AA on parchment + dark */
   --mt-info: #7aa7ff;   /* info blue */
 }
 
@@ -905,7 +905,7 @@ a:hover { text-decoration: underline; }
   /* paper-mode data colors (slightly darker to preserve contrast on cream) */
   --mt-up:   #1f8a5a;
   --mt-down: #b83746;
-  --mt-warn: #a5760a;
+  --mt-warn: #B8860B;
   --mt-info: #3a67b3;
 }
 
@@ -960,7 +960,7 @@ a:hover { text-decoration: underline; }
   /* ── DATA-SEMANTIC text colors — KEPT so positive/negative/caution render correctly ── */
   --green-text:    #3dd38c;
   --red-text:      #ff5c6c;
-  --yellow-text:   #f4c363;
+  --yellow-text:   #B8860B;   /* ochre (darkgoldenrod) — readable on parchment and dark ink alike */
   --orange-text:   #e8a15a;
   --blue-text:     #d9b27a;   /* this is "info" not up/down, safe to parchment */
   --purple-text:   #d9b27a;   /* same — categorical label */
@@ -1058,7 +1058,7 @@ a:hover { text-decoration: underline; }
   /* Data-semantic text — darker on cream for contrast */
   --green-text:    #1f8a5a;
   --red-text:      #b83746;
-  --yellow-text:   #a5760a;
+  --yellow-text:   #B8860B;
   --orange-text:   #c2570a;
   --blue-text:     #8a6a3d;
   --purple-text:   #8a6a3d;

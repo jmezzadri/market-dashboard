@@ -80,7 +80,7 @@ function scrollToAnchor(id) {
 const CONVICTION_MIRROR = [
   { level:1, label:"LOW",      range:[-99,   0.12], color:"#30d158", hundred:"< 28",      eq:90, bd:5,  ca:3,  au:2,
     action:"Risk-on. Historically benign — bottom 60% of the 2006-2026 distribution. Add cyclical beta on pullbacks." },
-  { level:2, label:"NORMAL",   range:[0.12,  0.41], color:"#ffd60a", hundred:"28 – 35",   eq:75, bd:15, ca:7,  au:3,
+  { level:2, label:"NORMAL",   range:[0.12,  0.41], color:"#B8860B", hundred:"28 – 35",   eq:75, bd:15, ca:7,  au:3,
     action:"Baseline tape. Maintain diversified exposure. Trim highest-beta into spikes. 25% of history." },
   { level:3, label:"ELEVATED", range:[0.41,  1.03], color:"#ff9f0a", hundred:"35 – 51",   eq:55, bd:28, ca:12, au:5,
     action:"Active hedging warranted. Sell covered calls, rotate defensive, reduce leverage. Includes 2022 bear + SVB + 2015-16 selloffs." },
@@ -138,7 +138,7 @@ const INDICATOR_META = {
 
 // Color for a phase / timing pill (soft, not alarming).
 const PHASE_COLOR = { Fast: "#06b6d4", Slow: "#a78bfa" };
-const TIMING_COLOR = { Leading: "#30d158", Coincident: "#ffd60a", Lagging: "#94a3b8" };
+const TIMING_COLOR = { Leading: "#30d158", Coincident: "#B8860B", Lagging: "#94a3b8" };
 // Tier color — chip tint reflects weight (T1 heavy, T2 medium, T3 light).
 const TIER_COLOR = { 1:"#ff453a", 2:"#ff9f0a", 3:"#06b6d4" };
 
@@ -732,8 +732,8 @@ function SignalScoreMath() {
     { label:"STRONG BULL", range:"≥ 60",        note:"Buy Alert",                      color:"#30d158" },
     { label:"BULLISH",     range:"30 – 59",     note:"Near Trigger threshold ≥ 40",    color:"#30d158" },
     { label:"TILT BULL",   range:"10 – 29",     note:"below Near Trigger threshold",   color:"#86efac" },
-    { label:"NEUTRAL",     range:"−10 – 10",    note:"no directional read",            color:"#ffd60a" },
-    { label:"TILT BEAR",   range:"−29 – −10",   note:"below Near Short threshold",     color:"#fbbf24" },
+    { label:"NEUTRAL",     range:"−10 – 10",    note:"no directional read",            color:"#B8860B" },
+    { label:"TILT BEAR",   range:"−29 – −10",   note:"below Near Short threshold",     color:"#B8860B" },
     { label:"BEARISH",     range:"−59 – −30",   note:"directional short bias",         color:"#ff9f0a" },
     { label:"STRONG BEAR", range:"≤ −60",       note:"conviction bear",                color:"#ff453a" },
   ];
