@@ -4314,9 +4314,13 @@ return(
       }}>{lede}</p>
     </div>
 
-    {/* ─── TOP 2-COL: Macro Overview (01) + Trading Opps (02) ─── */}
+    {/* ─── 2x2 TILE GRID: Macro Overview (01) · Trading Opps (02) ·
+         Sector Outlook (03) · Daily Opp Scan (04). News lives full-
+         width below. Methodology tile removed 2026-04-23 — already in
+         the footer. (Joe feedback.) */}
     <section className="mt-top-grid" style={{
-      display:"grid", gridTemplateColumns:"1.2fr 1fr", gap:"var(--space-5)",
+      display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-5)",
+      alignItems:"stretch",
     }}>
 
       {/* 01 · Macro Overview */}
@@ -4602,12 +4606,6 @@ return(
           </div>
         </div>);
       })()}
-    </section>
-
-    {/* ─── 3-COL: Sectors (03) + Daily Opp Scan (04) + Methodology (05) ─── */}
-    <section className="mt-three-col" style={{
-      display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"var(--space-5)",
-    }}>
 
       {/* 03 · Sector Outlook — 3 highest overall rank + 3 lowest, with
           a visual divider between them. Per Joe feedback 2026-04-23:
@@ -4713,7 +4711,6 @@ return(
           {k:"Buy alerts (60+)",   v:buyCount},
           {k:"Near trigger (40+)", v:watchCount},
           {k:"Other watchlist",    v:rebucketOther.length},
-          {k:"Union universe",     v:_unionTickers.length},
         ].map((row,i)=>(
           <div key={i} style={{
             display:"flex", alignItems:"center", justifyContent:"space-between",
@@ -4734,47 +4731,9 @@ return(
         }}>Last scan · {lastScanLabel}</div>
       </div>
 
-      {/* 05 · Methodology */}
-      <div style={cardStyle}>
-        <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>05</span>Methodology</h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("readme")}>Full →</a>
-        </div>
-        <p style={{
-          fontSize:13, color:"var(--text-muted)", lineHeight:1.6,
-          margin:0, marginBottom:"var(--space-4)",
-        }}>
-          A composite macro stress score (0–100) blended across six categories.
-          Each indicator is z-scored over a rolling window and gated through a
-          regime filter.
-        </p>
-        <ul style={{listStyle:"none", padding:0, margin:0}}>
-          {[
-            "6 categories, 25 indicators",
-            "Updated daily, pre-open",
-            "SD-scored, percentile-anchored",
-            "Conviction bands recalibrated Apr 22",
-            "Open the Methodology tab for full math",
-          ].map((item,i,arr)=>(
-            <li key={i} style={{
-              padding:"var(--space-2) 0",
-              borderBottom:i<arr.length-1?"1px solid var(--border-faint)":"none",
-              fontSize:12, color:"var(--text-muted)",
-              display:"flex", alignItems:"baseline", gap:"var(--space-3)",
-            }}>
-              <span style={{
-                fontFamily:"var(--font-display)", fontStyle:"italic",
-                color:"var(--accent)", fontSize:14, flexShrink:0, width:16,
-              }}>·</span>
-              {item}
-            </li>
-          ))}
-        </ul>
-      </div>
-
     </section>
 
-    {/* ─── 06 · Market News · Macro (full width) ─── */}
+    {/* ─── 05 · Market News · Macro (full width) ─── */}
     <section>
       <div style={{
         display:"flex", alignItems:"baseline", justifyContent:"space-between",
@@ -4782,7 +4741,7 @@ return(
         borderBottom:"1px solid var(--border-faint)", gap:12,
       }}>
         <h2 style={{...cardH2Style, fontSize:22}}>
-          <span style={{...cardTagStyle, fontSize:11}}>06</span>Market News · Macro
+          <span style={{...cardTagStyle, fontSize:11}}>05</span>Market News · Macro
         </h2>
         <div style={{
           fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-muted)",
