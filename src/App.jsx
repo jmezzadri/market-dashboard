@@ -4246,9 +4246,32 @@ return(
   const bottomUnderweight = _sectorsRanked.slice(-_bottomN);   // worst-first order: already lowest → highest. Reverse so the lowest sits at the bottom (most-underweight last).
   bottomUnderweight.sort((a,b) => b.score - a.score);          // highest of the bottom-3 first, then down to lowest.
 
-  // ---- Headlines ----
-  const zhPub = scanData?.signals?.market_news?.zerohedge_public || [];
-  const headlines = zhPub.slice(0, 7);
+  // ---- Headlines (multi-source, 2026-04-23) ----
+  // Scanner now aggregates ZH + CNBC + Bloomberg + Reuters + FT + WSJ
+  // into signals.market_news.items (deduped, newest-first). Older
+  // cached bundles still emit only `zerohedge_public` — fall back to
+  // that so the tile doesn't go blank on stale data.
+  const _mnBlock     = scanData?.signals?.market_news || {};
+  const _mnAvailable = Array.isArray(_mnBlock.items) && _mnBlock.items.length > 0
+    ? _mnBlock.items
+    : (_mnBlock.zerohedge_public || []);
+  // Per-source cap of 2 across the 7 Home slots. Prevents ZH (which
+  // posts ~25x/day) from swamping the feed on quiet news days while
+  // preserving strict chronological order within the available pool.
+  const _HEADLINE_SLOTS     = 7;
+  const _HEADLINE_SOURCE_CAP = 2;
+  const _mnSourceCounts = Object.create(null);
+  const headlines = [];
+  for (const it of _mnAvailable) {
+    const src = it?.source || "ZeroHedge";
+    if ((_mnSourceCounts[src] || 0) >= _HEADLINE_SOURCE_CAP) continue;
+    headlines.push(it);
+    _mnSourceCounts[src] = (_mnSourceCounts[src] || 0) + 1;
+    if (headlines.length >= _HEADLINE_SLOTS) break;
+  }
+  // Keep `zhPub` defined as a shim because the count-badge below still
+  // reads it in older-site-cached JS. Point it at the aggregated pool.
+  const zhPub = _mnAvailable;
   const fmtHeadlineTime = (iso) => {
     if (!iso) return "";
     const dt = new Date(iso);

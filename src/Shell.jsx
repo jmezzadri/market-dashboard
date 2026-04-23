@@ -427,7 +427,7 @@ export function Footer({ leftText, rightText }) {
             </div>
             <div>
               <span style={{ color: "var(--text-2)", fontWeight: 500 }}>News · </span>
-              ZeroHedge RSS, Google News
+              ZeroHedge, CNBC, Bloomberg, Reuters, Financial Times, Wall Street Journal
             </div>
             <div>
               <span style={{ color: "var(--text-2)", fontWeight: 500 }}>Portfolio · </span>

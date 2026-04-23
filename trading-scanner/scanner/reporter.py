@@ -1649,11 +1649,14 @@ def _write_json_data(
                 t: v for t, v in (signals.get("_analyst_ratings") or {}).items()
                 if t in relevant_tickers and v
             }),
-            # Market-wide news (non-ticker-specific). Only `*_public` entries
+            # Market-wide news (non-ticker-specific). Only public items
             # ship in the public artifact — premium content stays out by
-            # policy. Frontend reads signals.market_news.* to render the
-            # Market News section on the dashboard.
+            # policy. 2026-04-23: feed expanded to ZH + CNBC + Bloomberg +
+            # Reuters + FT + WSJ. Frontend reads signals.market_news.items
+            # (new) with a fallback to signals.market_news.zerohedge_public
+            # (legacy) for older cached bundles.
             "market_news": _safe({
+                "items":            (signals.get("_market_news") or {}).get("items") or [],
                 "zerohedge_public": (signals.get("_market_news") or {}).get("zerohedge_public") or [],
             }),
         },
