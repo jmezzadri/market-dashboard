@@ -12,6 +12,7 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import HeaderAuth from "./auth/HeaderAuth";
+import { Monogram, Wordmark } from "./components/Logo";
 
 // ── Theme hook ────────────────────────────────────────────────────────────────
 const THEME_KEY = "md_theme_pref";  // "light" | "dark"
@@ -150,9 +151,9 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
           {menuButton}
-          <a href="#home" className="hero-brand" aria-label="MacroTilt home">
-            <img src="/macrotilt-logo.svg"       alt="MacroTilt" className="hero-brand-logo hero-brand-logo--dark"  />
-            <img src="/macrotilt-logo-light.svg" alt="MacroTilt" className="hero-brand-logo hero-brand-logo--light" />
+          <a href="#home" className="hero-brand" aria-label="MacroTilt home" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <Monogram size={28} color="var(--accent, #d9b27a)" />
+            <Wordmark size={13} />
           </a>
           <span className="hero-meta-divider" aria-hidden="true"/>
           <span className="hero-meta-date">{dateStr}</span>
@@ -242,18 +243,9 @@ export function SectionHeader({ eyebrow, title, sub, onBack, backLabel = "All se
         >
           <span style={{ fontSize: 14 }}>←</span> {backLabel}
         </button>
-        <img
-          src="/macrotilt-icon.svg"
-          alt=""
-          aria-hidden="true"
-          className="section-brand-mark section-brand-mark--dark"
-        />
-        <img
-          src="/macrotilt-icon-light.svg"
-          alt=""
-          aria-hidden="true"
-          className="section-brand-mark section-brand-mark--light"
-        />
+        <span className="section-brand-mark" aria-hidden="true" style={{ display: "inline-flex", marginLeft: 4 }}>
+          <Monogram size={22} color="var(--accent, #d9b27a)" />
+        </span>
       </div>
       <div>
         {eyebrow && <div className="section-eyebrow" style={{ marginBottom: 6 }}>{eyebrow}</div>}
@@ -290,17 +282,9 @@ export function Sidebar({ items, activeId, onSelect, open = false, onClose, foot
     <>
       {open && <div className="sidebar-backdrop" onClick={onClose}/>}
       <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label="Primary navigation">
-        <div className="sidebar-brand">
-          <img
-            src="/macrotilt-logo.svg"
-            alt="MacroTilt"
-            className="sidebar-brand-logo sidebar-brand-logo--dark"
-          />
-          <img
-            src="/macrotilt-logo-light.svg"
-            alt="MacroTilt"
-            className="sidebar-brand-logo sidebar-brand-logo--light"
-          />
+        <div className="sidebar-brand" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <Monogram size={30} color="var(--accent, #d9b27a)" />
+          <Wordmark size={14} />
         </div>
         <nav className="sidebar-nav">
           {items.map(item => {
@@ -354,8 +338,8 @@ export function Footer({ leftText, rightText }) {
         flexWrap: "wrap", gap: 12,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src="/macrotilt-logo.svg"       alt="MacroTilt" className="footer-brand-logo footer-brand-logo--dark"  />
-          <img src="/macrotilt-logo-light.svg" alt="MacroTilt" className="footer-brand-logo footer-brand-logo--light" />
+          <Monogram size={22} color="var(--accent, #d9b27a)" />
+          <Wordmark size={12} />
         </div>
         <span style={{
           fontSize: 11, color: "var(--text-dim)",
