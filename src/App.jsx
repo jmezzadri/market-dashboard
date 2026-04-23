@@ -4130,180 +4130,543 @@ return(
   regime={{label:CONV.label, color:CONV.color}}
   score={COMP100}
   narrativeOneLine={compactNarrative}
-  compact={tab!=="home"}
+  compact={true}
   menuButton={<SidebarToggleButton onClick={()=>setSidebarOpen(true)}/>}
 />
 
-{/* ─────── HOME — TILE GRID ─────── */}
-{tab==="home" && (
-  <main className="fade-in main-padded" style={{maxWidth:1440, margin:"0 auto", padding:"var(--space-4) var(--space-8) var(--space-10)"}}>
-    <div className="home-tile-grid" style={{
-      display:"grid",
-      gridTemplateColumns:"repeat(auto-fit, minmax(320px, 1fr))",
-      gap:"var(--space-5)",
-    }}>
-      <Tile
-        eyebrow="Today's Snapshot"
-        title="Macro Overview"
-        sub={`Composite stress at ${COMP100}/100 — regime is ${CONV.label}, ${TREND_SIG.label.toLowerCase()}. All 6 categories, now vs 1M / 3M ago:`}
-        accent={CONV.color}
-        span={2}
-        kpi={{value:COMP100, unit:"/ 100", color:CONV.color, delta:`${TREND_SIG.arrow} ${TREND_SIG.label}`, deltaColor:TREND_SIG.col}}
-        status={{label:CONV.label, color:CONV.color}}
-        onClick={()=>navTo("overview")}
-      >
-        <div style={{marginTop:"var(--space-3)"}}>
-          {/* Header row — column labels for the 6 category rows below */}
-          <div style={{
-            display:"grid",
-            gridTemplateColumns:"minmax(140px,1.4fr) 56px 56px 56px 80px",
-            gap:"var(--space-3)", alignItems:"center",
-            padding:"4px 0 6px 0",
-            borderBottom:"1px solid var(--border-faint)",
-            fontSize:9, fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
-            color:"var(--text-muted)", fontWeight:600, textTransform:"uppercase",
-          }}>
-            <span>Category</span>
-            <span style={{textAlign:"right"}}>Now</span>
-            <span style={{textAlign:"right"}}>1M</span>
-            <span style={{textAlign:"right"}}>3M</span>
-            <span style={{textAlign:"right"}}>Regime</span>
-          </div>
-          {buildCategoryOverview().map((c,i)=>{
-            const arrow = c.delta1M==null?"·":c.delta1M>2?"▲":c.delta1M<-2?"▼":"·";
-            const arrowColor = c.delta1M==null?"var(--text-dim)":c.delta1M>2?"#ff453a":c.delta1M<-2?"#30d158":"var(--text-dim)";
-            return(
-            <div key={c.catId} style={{
-              display:"grid",
-              gridTemplateColumns:"minmax(140px,1.4fr) 56px 56px 56px 80px",
-              gap:"var(--space-3)", alignItems:"center",
-              padding:"7px 0",
-              borderBottom:i<5?"1px solid var(--border-faint)":"none",
-            }}>
-              <div style={{minWidth:0}}>
-                <div style={{fontSize:13, fontWeight:600, color:"var(--text)", lineHeight:1.25, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{c.label}</div>
-                <div style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)", letterSpacing:"0.04em"}}>{c.indicatorCount} indicator{c.indicatorCount===1?"":"s"}</div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div className="num" style={{fontSize:16, fontWeight:700, color:c.textColor, fontFamily:"var(--font-mono)", lineHeight:1}}>{c.sc100==null?"—":c.sc100}</div>
-                <div style={{fontSize:9, color:arrowColor, fontFamily:"var(--font-mono)", marginTop:2, letterSpacing:"0.04em"}}>
-                  {arrow}{c.delta1M!=null&&c.delta1M!==0?` ${c.delta1M>0?"+":""}${c.delta1M}`:""}
-                </div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div className="num" style={{fontSize:13, fontWeight:500, color:"var(--text-muted)", fontFamily:"var(--font-mono)", lineHeight:1}}>{c.sc1M==null?"—":c.sc1M}</div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <div className="num" style={{fontSize:13, fontWeight:500, color:"var(--text-muted)", fontFamily:"var(--font-mono)", lineHeight:1}}>{c.sc3M==null?"—":c.sc3M}</div>
-              </div>
-              <div style={{textAlign:"right"}}>
-                <span style={{
-                  display:"inline-block",
-                  fontSize:9, fontFamily:"var(--font-mono)", fontWeight:700,
-                  letterSpacing:"0.06em", color:c.textColor,
-                  background:c.color+"15", border:`1px solid ${c.color}55`,
-                  borderRadius:4, padding:"2px 7px", textTransform:"uppercase",
-                }}>{c.regime}</span>
-              </div>
-            </div>);
-          })}
-        </div>
-      </Tile>
+{/* ─────── HOME — EDITORIAL LAYOUT ──────────────────────────────────────
+    Phase 3 home redesign — numbered eyebrows, flat cards, Fraunces display
+    headlines, JetBrains-Mono numerics. No gradient card tops, no
+    auto-fit tile grid. Rhythm: page head → 2-col (Macro | Opps) →
+    3-col (Sectors | Scan | Methodology) → full-width Headlines.
+    Mockup source: design-lab/home-current.html (locked 2026-04-23).
+    ───────────────────────────────────────────────────────────────────── */}
+{tab==="home" && (()=>{
 
-      <Tile
-        eyebrow="Trading Opportunities & Portfolio Insights"
-        title="Trading Opportunities & Portfolio Insights"
-        sub={`$${Math.round(grandTotal/1000)}K · ${ACCOUNTS.length} accounts · Beta ${portBeta.toFixed(2)}`}
-        accent="#0a84ff"
-        span={2}
-        kpi={{value:`$${Math.round(grandTotal/1000)}`, unit:"K total", color:"var(--text)"}}
-        onClick={()=>navTo("portopps")}
-      >
-        <div style={{display:"flex", gap:8, marginTop:"var(--space-2)", flexWrap:"wrap"}}>
-          {/* Order matches the portopps sub-panel order: Positions (neutral) →
-              Buy Alerts (green) → Near Trigger (yellow) → Other Watch (grey).
-              Buy / Near numbers mute to grey when count === 0 so a stale day
-              doesn't scream for attention. */}
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>CURRENT POSITIONS</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--accent)"}}>{ACCOUNTS.reduce((a,acc)=>a+acc.positions.filter(p=>p.sector!=="Cash").length,0)}</div>
-          </div>
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>BUY ALERTS</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:buyCount>0?"var(--green-text)":"var(--text-muted)"}}>{buyCount}</div>
-          </div>
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>NEAR TRIGGER</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:watchCount>0?"var(--yellow-text)":"var(--text-muted)"}}>{watchCount}</div>
-          </div>
-          <div style={{flex:1, minWidth:88, padding:"10px 12px", background:"var(--surface-3)", borderRadius:"var(--radius-sm)", border:"1px solid var(--border-faint)"}}>
-            <div style={{fontSize:10, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.06em", marginBottom:3}}>OTHER WATCH</div>
-            <div className="num" style={{fontSize:20, fontWeight:700, color:"var(--text-muted)"}}>{WATCHLIST.length}</div>
-          </div>
-        </div>
-      </Tile>
+  // ---- Headline copy, driven by CONVICTION band ----
+  const HEADLINE_BY_CONV = {
+    LOW:      {h:"Benign regime,",     em:" lean cyclical beta."},
+    NORMAL:   {h:"Constructive,",      em:" with one finger on the brake."},
+    ELEVATED: {h:"Defensive tilt,",    em:" active hedging warranted."},
+    EXTREME:  {h:"Crisis regime.",     em:" Maximum defensiveness."},
+  };
+  const LEDE_BY_CONV = {
+    LOW:      `Composite stress at ${COMP100}/100 — historically quiet. Bottom 60% of the distribution; room to add cyclical exposure. Watch for complacency: the signal can turn fast.`,
+    NORMAL:   `Composite stress at ${COMP100}/100 — market baseline, mid-range on the historical distribution. Keep diversified exposure; trim the highest-beta names on spikes.`,
+    ELEVATED: `Composite stress at ${COMP100}/100 — top 12.5% of the historical distribution. Sell covered calls, rotate defensive, reduce leverage. 2022 bear and SVB landed in this band.`,
+    EXTREME:  `Composite stress at ${COMP100}/100 — top 2.5% of the historical distribution. Harvest losses, hold dry powder. Only GFC (2008) and COVID (2020) peaks registered higher.`,
+  };
+  const STATE_BY_CONV = {
+    LOW:      "Benign · accommodative",
+    NORMAL:   "Constructive, watchful",
+    ELEVATED: "Defensive · hedge actively",
+    EXTREME:  "Crisis · max caution",
+  };
+  const headline = HEADLINE_BY_CONV[CONV.label] || HEADLINE_BY_CONV.NORMAL;
+  const ledeBase = LEDE_BY_CONV[CONV.label] || LEDE_BY_CONV.NORMAL;
+  const stateLine = STATE_BY_CONV[CONV.label] || STATE_BY_CONV.NORMAL;
+  const scannerPhrase = (buyCount>0||watchCount>0)
+    ? ` ${buyCount} buy alert${buyCount===1?"":"s"} on the watchlist, ${watchCount} near trigger.`
+    : " No buy alerts or near-trigger names on the watchlist today.";
+  const lede = ledeBase + scannerPhrase;
 
-      <Tile
-        eyebrow="Sector Outlook"
-        title="Sectors heat map"
-        sub="Subsector sensitivity to 8 macro factors. Re-ranked live as data refreshes."
-        accent="#bf5af2"
-        onClick={()=>navTo("sectors")}
-      />
+  // ---- Regime pill styling per category state (sdLabel value) ----
+  const regimePillCSS = (regime) => {
+    // sdLabel → mockup stance mapping
+    const map = {
+      "Low":      {label:"Risk-on",  color:"var(--up, #30d158)"},
+      "Normal":   {label:"Neutral",  color:"var(--text-muted)"},
+      "Elevated": {label:"Caution",  color:"var(--warn, #f4c363)"},
+      "Extreme":  {label:"Risk-off", color:"var(--down, #ff453a)"},
+      "No Data":  {label:"—",        color:"var(--text-dim)"},
+    };
+    return map[regime] || map["Normal"];
+  };
 
-      <Tile
-        eyebrow="Daily Opp Scan"
-        title="Full scanner browse"
-        sub={`Buy/watch alerts, Congress/insider/flow/technicals tabs · Last scan: ${lastScanLabel}`}
-        accent="#30d158"
-        kpi={{value:buyCount, unit:buyCount===1?"buy alert":"buy alerts", color:buyCount>0?"#30d158":"var(--text-muted)"}}
-        onClick={()=>navTo("scanner")}
-      />
+  // ---- Sector outlook list (top 5 by signal strength) ----
+  const sectorsWithScore = SECTORS.map(s => {
+    const score = computeSectorScore(s);
+    return {...s, score, outlook:outlookLabel(score)};
+  });
+  // Rank by distance from neutral (0.5), descending — strongest signals first.
+  // This surfaces OW and UW extremes over the middle of the pack.
+  const topSectors = [...sectorsWithScore]
+    .sort((a,b) => Math.abs(b.score-0.5) - Math.abs(a.score-0.5))
+    .slice(0, 5);
 
-      <Tile
-        eyebrow="Methodology"
-        title="How it works"
-        sub="Sources, scoring, regimes, and what every signal means."
-        accent="var(--text-dim)"
-        onClick={()=>navTo("readme")}
-      />
+  // ---- Headlines ----
+  const zhPub = scanData?.signals?.market_news?.zerohedge_public || [];
+  const headlines = zhPub.slice(0, 7);
+  const fmtHeadlineTime = (iso) => {
+    if (!iso) return "";
+    const dt = new Date(iso);
+    if (isNaN(dt.getTime())) return "";
+    const today = new Date();
+    const sameDay = dt.toDateString() === today.toDateString();
+    return sameDay
+      ? dt.toLocaleTimeString("en-US",{hour:"2-digit",minute:"2-digit",hour12:false})
+      : dt.toLocaleDateString("en-US",{month:"short",day:"numeric"});
+  };
 
-      {/* MARKET NEWS — non-ticker-specific. Public ZeroHedge feed today;
-          premium ZH (Joe-only via stored creds) is a follow-up. We render
-          the most recent 5 headlines inline; clicking a headline opens the
-          full article on the publisher's site. Tile spans 2 cols since
-          news entries are wider than a single KPI tile. */}
-      {(()=>{
-        const zhPub=scanData?.signals?.market_news?.zerohedge_public||[];
-        const items=zhPub.slice(0,5);
-        return(
-        <Tile
-          eyebrow="Market News"
-          title="Macro headlines"
-          sub={items.length>0?`${zhPub.length} ZeroHedge headline${zhPub.length===1?"":"s"} · click to read`:"No headlines available right now"}
-          accent="#bf5af2"
-          span={2}
-        >
-          {items.length>0&&(
-          <div style={{display:"flex",flexDirection:"column",gap:8,marginTop:"var(--space-3)"}}>
-            {items.map((n,i)=>{
-              const dt=n.published?new Date(n.published):null;
-              const dateStr=dt?dt.toLocaleDateString(undefined,{month:"short",day:"numeric"}):"";
-              return(
-              <div key={i} style={{padding:"8px 10px",background:"var(--surface-3)",borderRadius:"var(--radius-sm)",border:"1px solid var(--border-faint)"}}>
-                <div style={{fontSize:13,fontWeight:600,color:"var(--text)",lineHeight:1.4,marginBottom:4}}>
-                  <a href={n.url} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",borderBottom:"1px dotted var(--text-muted)"}} onClick={e=>e.stopPropagation()}>{n.headline}</a>
-                </div>
-                {n.description&&<div style={{fontSize:11,color:"var(--text-muted)",lineHeight:1.5,marginBottom:4}}>{n.description}</div>}
-                <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{n.source||"ZeroHedge"} · {dateStr}</div>
-              </div>);
-            })}
-          </div>)}
-        </Tile>);
-      })()}
+  // ---- Shared inline style objects ----
+  const cardStyle = {
+    background:"var(--surface)",
+    border:"1px solid var(--border-faint)",
+    borderRadius:8,
+    padding:"var(--space-5)",
+    display:"flex", flexDirection:"column",
+  };
+  const cardHeadStyle = {
+    display:"flex", alignItems:"baseline", justifyContent:"space-between",
+    paddingBottom:"var(--space-3)",
+    marginBottom:"var(--space-4)",
+    borderBottom:"1px solid var(--border-faint)",
+    gap:12,
+  };
+  const cardH2Style = {
+    fontFamily:"var(--font-display)", fontWeight:400, fontSize:20,
+    color:"var(--text)", letterSpacing:"-0.005em", margin:0, lineHeight:1.2,
+  };
+  const cardTagStyle = {
+    fontFamily:"var(--font-mono)", fontSize:10,
+    color:"var(--accent)", letterSpacing:"0.14em",
+    marginRight:"var(--space-2)", fontWeight:500,
+  };
+  const cardLinkStyle = {
+    fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)",
+    letterSpacing:"0.1em", textTransform:"uppercase", textDecoration:"none",
+    cursor:"pointer", whiteSpace:"nowrap",
+  };
+
+  return (
+  <main className="fade-in main-padded mt-home" style={{
+    maxWidth:1360, margin:"0 auto",
+    padding:"var(--space-4) var(--space-8) var(--space-10)",
+    display:"flex", flexDirection:"column", gap:"var(--space-6)",
+  }}>
+
+    {/* ─── PAGE HEAD ─── */}
+    <div style={{padding:"var(--space-3) 0 var(--space-5)"}}>
+      <div style={{
+        fontFamily:"var(--font-mono)", fontSize:11,
+        color:"var(--accent)", letterSpacing:"0.18em", textTransform:"uppercase",
+        marginBottom:"var(--space-3)",
+        display:"flex", alignItems:"center", gap:"var(--space-2)",
+      }}>
+        <span style={{width:20, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
+        MacroTilt Daily · Home
+      </div>
+      <h1 style={{
+        fontFamily:"var(--font-display)", fontWeight:400,
+        fontSize:"clamp(32px, 4.2vw, 44px)",
+        lineHeight:1.1, letterSpacing:"-0.01em",
+        color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
+      }}>
+        {headline.h}<em style={{fontStyle:"italic", color:"var(--accent)"}}>{headline.em}</em>
+      </h1>
+      <p style={{
+        fontSize:15, color:"var(--text-muted)", lineHeight:1.55,
+        maxWidth:"72ch", margin:0,
+      }}>{lede}</p>
     </div>
-  </main>
-)}
+
+    {/* ─── TOP 2-COL: Macro Overview (01) + Trading Opps (02) ─── */}
+    <section className="mt-top-grid" style={{
+      display:"grid", gridTemplateColumns:"1.2fr 1fr", gap:"var(--space-5)",
+    }}>
+
+      {/* 01 · Macro Overview */}
+      <div style={cardStyle}>
+        <div style={cardHeadStyle}>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview</h2>
+          <a style={cardLinkStyle} onClick={()=>navTo("overview")}>All indicators →</a>
+        </div>
+
+        {/* Composite strip */}
+        <div style={{
+          display:"flex", alignItems:"center", gap:"var(--space-5)",
+          padding:"var(--space-4)", background:"var(--surface-3)",
+          border:"1px solid var(--border-faint)", borderRadius:6,
+          marginBottom:"var(--space-4)", flexWrap:"wrap",
+        }}>
+          <div className="num" style={{
+            fontFamily:"var(--font-display)", fontWeight:400,
+            fontSize:48, lineHeight:1, color:CONV.color,
+            fontVariantNumeric:"tabular-nums",
+          }}>{COMP100}</div>
+          <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+              letterSpacing:"0.12em", textTransform:"uppercase",
+            }}>Composite · of 100</div>
+            <div style={{
+              fontFamily:"var(--font-display)", fontSize:16, fontStyle:"italic",
+              color:"var(--text)", lineHeight:1.25,
+            }}>{stateLine}</div>
+          </div>
+          <div style={{
+            marginLeft:"auto",
+            fontFamily:"var(--font-mono)", fontSize:11,
+            color:"var(--text-muted)", letterSpacing:"0.04em", textAlign:"right",
+            display:"flex", alignItems:"center", gap:"var(--space-2)", flexWrap:"wrap",
+            justifyContent:"flex-end",
+          }}>
+            <span style={{color:TREND_SIG.col}}>{TREND_SIG.arrow} {TREND_SIG.label}</span>
+            <span style={{
+              display:"inline-block", padding:"2px 8px", borderRadius:10,
+              border:`1px solid ${CONV.color}`, color:CONV.color,
+              fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase",
+            }}>{CONV.label}</span>
+          </div>
+        </div>
+
+        {/* Regime table */}
+        <div style={{overflowX:"auto"}}>
+        <table style={{width:"100%", borderCollapse:"collapse"}}>
+          <thead>
+            <tr>
+              <th style={{
+                textAlign:"left", fontFamily:"var(--font-mono)", fontSize:10,
+                color:"var(--text-dim)", letterSpacing:"0.12em", textTransform:"uppercase",
+                padding:"var(--space-2) var(--space-3)",
+                borderBottom:"1px solid var(--border-faint)", fontWeight:500,
+              }}>Category</th>
+              <th style={{
+                textAlign:"right", fontFamily:"var(--font-mono)", fontSize:10,
+                color:"var(--text-dim)", letterSpacing:"0.12em", textTransform:"uppercase",
+                padding:"var(--space-2) var(--space-3)",
+                borderBottom:"1px solid var(--border-faint)", fontWeight:500,
+              }}>Score</th>
+              <th style={{
+                textAlign:"right", fontFamily:"var(--font-mono)", fontSize:10,
+                color:"var(--text-dim)", letterSpacing:"0.12em", textTransform:"uppercase",
+                padding:"var(--space-2) var(--space-3)",
+                borderBottom:"1px solid var(--border-faint)", fontWeight:500,
+                width:120,
+              }}>State</th>
+            </tr>
+          </thead>
+          <tbody>
+            {buildCategoryOverview().map((c,i,arr) => {
+              const pill = regimePillCSS(c.regime);
+              const isLast = i === arr.length-1;
+              return (
+              <tr key={c.catId} onClick={()=>{navTo("indicators"); setCatFilter(c.catId);}}
+                  style={{cursor:"pointer"}}>
+                <td style={{
+                  padding:"var(--space-3)",
+                  borderBottom:isLast?"none":"1px solid var(--border-faint)",
+                  fontSize:13, color:"var(--text-muted)", verticalAlign:"middle",
+                }}>
+                  <div style={{color:"var(--text)", fontWeight:500, fontSize:13, lineHeight:1.3}}>{c.label}</div>
+                  <div style={{color:"var(--text-muted)", fontSize:12, marginTop:2}}>
+                    {c.indicatorCount} indicator{c.indicatorCount===1?"":"s"}
+                  </div>
+                </td>
+                <td className="num" style={{
+                  padding:"var(--space-3)",
+                  borderBottom:isLast?"none":"1px solid var(--border-faint)",
+                  fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+                  textAlign:"right", color:"var(--text)", fontWeight:500, fontSize:14,
+                  verticalAlign:"middle",
+                }}>{c.sc100==null?"—":c.sc100}</td>
+                <td style={{
+                  padding:"var(--space-3)", textAlign:"right", verticalAlign:"middle",
+                  borderBottom:isLast?"none":"1px solid var(--border-faint)",
+                }}>
+                  <span style={{
+                    display:"inline-flex", alignItems:"center",
+                    padding:"2px 8px", borderRadius:10,
+                    fontFamily:"var(--font-mono)", fontSize:10,
+                    letterSpacing:"0.08em", textTransform:"uppercase",
+                    border:`1px solid ${pill.color}`, color:pill.color,
+                  }}>{pill.label}</span>
+                </td>
+              </tr>);
+            })}
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      {/* 02 · Trading Opportunities & Portfolio Insights */}
+      {(()=>{
+        const positionCount = ACCOUNTS.reduce((a,acc)=>a+acc.positions.filter(p=>p.sector!=="Cash").length,0);
+        const buyTopTickers = rebucketBuy.slice(0,3).map(x=>x.ticker).join(" · ");
+        const nearTopTickers = rebucketNear.slice(0,5).map(x=>x.ticker).join(" · ");
+        return (
+        <div style={cardStyle}>
+          <div style={cardHeadStyle}>
+            <h2 style={cardH2Style}>
+              <span style={cardTagStyle}>02</span>Trading Opportunities &amp; Portfolio Insights
+            </h2>
+            <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
+          </div>
+
+          <div style={{
+            display:"grid", gridTemplateColumns:"1fr 1fr",
+            gap:"var(--space-4)", padding:"var(--space-3) 0",
+          }}>
+            {/* Current Positions */}
+            <div style={{
+              padding:"var(--space-4)", background:"var(--surface-3)",
+              border:"1px solid var(--border-faint)", borderRadius:6,
+            }}>
+              <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:"var(--space-3)"}}>Current Positions</div>
+              <div className="num" style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:32, fontWeight:500, color:"var(--text)", letterSpacing:"-0.01em", lineHeight:1}}>{positionCount}</div>
+              <div style={{marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"}}>across {ACCOUNTS.length} account{ACCOUNTS.length===1?"":"s"} · ${Math.round(grandTotal/1000)}K</div>
+            </div>
+
+            {/* Buy Alerts */}
+            <div style={{
+              padding:"var(--space-4)", background:"var(--surface-3)",
+              border:"1px solid var(--border-faint)", borderRadius:6,
+            }}>
+              <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:"var(--space-3)"}}>Buy Alerts</div>
+              <div className="num" style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:32, fontWeight:500, color:buyCount>0?"var(--accent)":"var(--text-muted)", letterSpacing:"-0.01em", lineHeight:1}}>{buyCount}</div>
+              <div style={{marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"}}>{buyCount>0 ? buyTopTickers : "none today"}</div>
+            </div>
+
+            {/* Near Trigger */}
+            <div style={{
+              padding:"var(--space-4)", background:"var(--surface-3)",
+              border:"1px solid var(--border-faint)", borderRadius:6,
+            }}>
+              <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:"var(--space-3)"}}>Near Trigger</div>
+              <div className="num" style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:32, fontWeight:500, color:watchCount>0?"var(--warn, #f4c363)":"var(--text-muted)", letterSpacing:"-0.01em", lineHeight:1}}>{watchCount}</div>
+              <div style={{marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"}}>{watchCount>0 ? nearTopTickers : "nothing pending"}</div>
+            </div>
+
+            {/* Other Watchlist */}
+            <div style={{
+              padding:"var(--space-4)", background:"var(--surface-3)",
+              border:"1px solid var(--border-faint)", borderRadius:6,
+            }}>
+              <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.14em", textTransform:"uppercase", marginBottom:"var(--space-3)"}}>Other Watchlist</div>
+              <div className="num" style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:32, fontWeight:500, color:"var(--text-muted)", letterSpacing:"-0.01em", lineHeight:1}}>{rebucketOther.length}</div>
+              <div style={{marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"}}>tracking, no signal</div>
+            </div>
+          </div>
+
+          {/* Insight row */}
+          <div style={{
+            marginTop:"var(--space-4)",
+            paddingTop:"var(--space-3)",
+            borderTop:"1px solid var(--border-faint)",
+            fontSize:12, color:"var(--text-muted)", lineHeight:1.5,
+          }}>
+            Portfolio beta <span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>{portBeta.toFixed(2)}</span>.{" "}
+            {buyCount>0
+              ? <>Top OVR on the buy list: <span style={{color:"var(--accent)", fontWeight:500}}>{rebucketBuy[0].ticker}</span> at <span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>+{rebucketBuy[0].ovr}</span>.</>
+              : <>No names clearing the +60 OVR threshold today.</>}
+            {watchCount>0 && <> {watchCount} name{watchCount===1?"":"s"} sitting between +40 and +60 — worth a look.</>}
+          </div>
+
+          <div style={{marginTop:"var(--space-4)"}}>
+            <a onClick={()=>navTo("portopps")} style={{
+              display:"inline-flex", alignItems:"center", gap:"var(--space-2)",
+              padding:"var(--space-2) var(--space-3)",
+              border:"1px solid var(--border-faint)", borderRadius:6,
+              fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.08em",
+              textTransform:"uppercase", color:"var(--text)",
+              textDecoration:"none", cursor:"pointer",
+            }}>Open Trading Opps <span style={{color:"var(--accent)"}}>→</span></a>
+          </div>
+        </div>);
+      })()}
+    </section>
+
+    {/* ─── 3-COL: Sectors (03) + Daily Opp Scan (04) + Methodology (05) ─── */}
+    <section className="mt-three-col" style={{
+      display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:"var(--space-5)",
+    }}>
+
+      {/* 03 · Sector Outlook */}
+      <div style={cardStyle}>
+        <div style={cardHeadStyle}>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Sector Outlook</h2>
+          <a style={cardLinkStyle} onClick={()=>navTo("sectors")}>Open →</a>
+        </div>
+        {topSectors.map((s,i)=>{
+          const stanceColor = s.outlook.color;
+          return (
+          <div key={s.id}
+               onClick={()=>navTo("sectors")}
+               style={{
+                 display:"flex", alignItems:"center", justifyContent:"space-between",
+                 padding:"var(--space-3) 0",
+                 borderBottom:i<topSectors.length-1?"1px solid var(--border-faint)":"none",
+                 cursor:"pointer", gap:12,
+               }}>
+            <div style={{minWidth:0, flex:1}}>
+              <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
+              <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
+                <span style={{fontFamily:"var(--font-mono)"}}>β {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
+              </div>
+            </div>
+            <span style={{
+              fontFamily:"var(--font-mono)", fontSize:10,
+              letterSpacing:"0.1em", textTransform:"uppercase",
+              padding:"2px 8px", borderRadius:10,
+              border:`1px solid ${stanceColor}`, color:stanceColor, flexShrink:0,
+            }}>{s.outlook.label}</span>
+          </div>);
+        })}
+      </div>
+
+      {/* 04 · Daily Opp Scan */}
+      <div style={cardStyle}>
+        <div style={cardHeadStyle}>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>04</span>Daily Opp Scan</h2>
+          <a style={cardLinkStyle} onClick={()=>navTo("scanner")}>Open →</a>
+        </div>
+        <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-3)"}}>
+          <div className="num" style={{
+            fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+            fontSize:44, fontWeight:500, color:"var(--accent)",
+            letterSpacing:"-0.01em", lineHeight:1,
+          }}>{buyCount + watchCount}</div>
+          <div style={{
+            fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+            letterSpacing:"0.12em", textTransform:"uppercase", lineHeight:1.3,
+          }}>candidates<br/>today</div>
+        </div>
+        {[
+          {k:"Buy alerts (60+)",   v:buyCount},
+          {k:"Near trigger (40+)", v:watchCount},
+          {k:"Other watchlist",    v:rebucketOther.length},
+          {k:"Union universe",     v:_unionTickers.length},
+        ].map((row,i)=>(
+          <div key={i} style={{
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"var(--space-2) 0", fontSize:12,
+          }}>
+            <span style={{color:"var(--text-muted)"}}>{row.k}</span>
+            <span className="num" style={{
+              fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+              color:"var(--text)",
+            }}>{row.v}</span>
+          </div>
+        ))}
+        <div style={{
+          marginTop:"var(--space-3)", paddingTop:"var(--space-3)",
+          borderTop:"1px solid var(--border-faint)",
+          fontSize:11, color:"var(--text-dim)",
+          fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
+        }}>Last scan · {lastScanLabel}</div>
+      </div>
+
+      {/* 05 · Methodology */}
+      <div style={cardStyle}>
+        <div style={cardHeadStyle}>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>05</span>Methodology</h2>
+          <a style={cardLinkStyle} onClick={()=>navTo("readme")}>Full →</a>
+        </div>
+        <p style={{
+          fontSize:13, color:"var(--text-muted)", lineHeight:1.6,
+          margin:0, marginBottom:"var(--space-4)",
+        }}>
+          A composite macro stress score (0–100) blended across six categories.
+          Each indicator is z-scored over a rolling window and gated through a
+          regime filter.
+        </p>
+        <ul style={{listStyle:"none", padding:0, margin:0}}>
+          {[
+            "6 categories, 25 indicators",
+            "Updated daily, pre-open",
+            "SD-scored, percentile-anchored",
+            "Conviction bands recalibrated Apr 22",
+            "Open the Methodology tab for full math",
+          ].map((item,i,arr)=>(
+            <li key={i} style={{
+              padding:"var(--space-2) 0",
+              borderBottom:i<arr.length-1?"1px solid var(--border-faint)":"none",
+              fontSize:12, color:"var(--text-muted)",
+              display:"flex", alignItems:"baseline", gap:"var(--space-3)",
+            }}>
+              <span style={{
+                fontFamily:"var(--font-display)", fontStyle:"italic",
+                color:"var(--accent)", fontSize:14, flexShrink:0, width:16,
+              }}>·</span>
+              {item}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+    </section>
+
+    {/* ─── 06 · Market News · Macro (full width) ─── */}
+    <section>
+      <div style={{
+        display:"flex", alignItems:"baseline", justifyContent:"space-between",
+        paddingBottom:"var(--space-3)", marginBottom:"var(--space-4)",
+        borderBottom:"1px solid var(--border-faint)", gap:12,
+      }}>
+        <h2 style={{...cardH2Style, fontSize:22}}>
+          <span style={{...cardTagStyle, fontSize:11}}>06</span>Market News · Macro
+        </h2>
+        <div style={{
+          fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-muted)",
+          letterSpacing:"0.08em", textTransform:"uppercase",
+          display:"inline-flex", alignItems:"center", gap:8,
+        }}>
+          <span style={{
+            width:6, height:6, borderRadius:"50%",
+            background: headlines.length>0 ? "var(--up, #30d158)" : "var(--text-dim)",
+            display:"inline-block",
+          }}/>
+          {headlines.length>0
+            ? `${zhPub.length} headline${zhPub.length===1?"":"s"}`
+            : "no headlines"}
+        </div>
+      </div>
+
+      {headlines.length>0 ? (
+      <div style={{
+        display:"grid", gridTemplateColumns:"1fr", gap:0,
+        background:"var(--surface)",
+        border:"1px solid var(--border-faint)", borderRadius:8,
+        overflow:"hidden",
+      }}>
+        {headlines.map((n,i)=>(
+          <a key={i} href={n.url} target="_blank" rel="noopener noreferrer" style={{
+            display:"grid", gridTemplateColumns:"96px 1fr auto",
+            gap:"var(--space-5)", alignItems:"center",
+            padding:"var(--space-4) var(--space-5)",
+            borderBottom:i<headlines.length-1?"1px solid var(--border-faint)":"none",
+            textDecoration:"none", color:"inherit",
+            transition:"background 120ms cubic-bezier(0.2,0.8,0.2,1)",
+          }}
+          onMouseEnter={e=>e.currentTarget.style.background="var(--surface-3)"}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+          >
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)",
+              letterSpacing:"0.06em",
+            }}>{fmtHeadlineTime(n.published)}</div>
+            <div style={{fontSize:14, color:"var(--text)", fontWeight:500, lineHeight:1.45}}>
+              {n.headline}
+            </div>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)",
+              letterSpacing:"0.1em", textTransform:"uppercase", textAlign:"right",
+              minWidth:96,
+            }}>{n.source || "ZeroHedge"}</div>
+          </a>
+        ))}
+      </div>
+      ) : (
+      <div style={{
+        padding:"var(--space-6)", textAlign:"center",
+        background:"var(--surface)", border:"1px solid var(--border-faint)",
+        borderRadius:8, color:"var(--text-muted)", fontSize:13,
+      }}>No macro headlines available right now.</div>
+      )}
+    </section>
+
+  </main>);
+})()}
 
 {/* ─────── DRILL-DOWN — section header for non-home views ─────── */}
 {tab!=="home" && TAB_META[tab] && (

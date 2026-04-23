@@ -546,6 +546,15 @@ a:hover { text-decoration: underline; }
 .tile-span-2 { grid-column: span 2; }
 .tile-span-3 { grid-column: span 3; }
 
+/* ─── Phase 3 editorial home — tablet fallback ───────────────────────────────
+   Between 640 and 959 px the 3-col mid row is too tight. Stack to 2-col
+   (Sectors + Scan on top, Methodology below-full). Top row stays 1.2fr/1fr. */
+@media (max-width: 959px) and (min-width: 640px) {
+  .mt-top-grid { grid-template-columns: 1fr !important; }
+  .mt-three-col { grid-template-columns: 1fr 1fr !important; }
+  .mt-three-col > :nth-child(3) { grid-column: span 2; }
+}
+
 /* ─── Mobile-responsive layout (≤ 639 px / iPhone-sized) ────────────────────
    Only overrides layout on narrow screens.
    All desktop styles above remain completely unchanged.                      */
@@ -570,6 +579,10 @@ a:hover { text-decoration: underline; }
 
   /* Home tile grid → single column (removes need for min 320 px columns) */
   .home-tile-grid { grid-template-columns: 1fr !important; }
+
+  /* Phase 3 editorial home — collapse 2-col and 3-col rows to 1-col */
+  .mt-top-grid,
+  .mt-three-col { grid-template-columns: 1fr !important; }
 
   /* Span-2 / span-3 tiles collapse to 1 column so they don't blow out
      the grid when only 1 implicit column exists on a narrow screen        */
