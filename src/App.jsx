@@ -2931,10 +2931,10 @@ function detectCycleStage(){
 
 // 4-stage business cycle order used for the Lab cycle diagram.
 const CYCLE_STAGES_LAB=[
-  {key:"EXPANSION",   label:"EXPANSION",   color:"#30d158", rule:"PMI ≥50 & rising (Δ3m > +0.3)"},
-  {key:"SLOWDOWN",    label:"SLOWDOWN",    color:"#ff9f0a", rule:"PMI ≥50 & falling (Δ3m < −0.3)"},
-  {key:"CONTRACTION", label:"CONTRACTION", color:"#ff453a", rule:"PMI <50 & still falling"},
-  {key:"RECOVERY",    label:"RECOVERY",    color:"#64d2ff", rule:"PMI <50 & turning up"},
+  {key:"EXPANSION",   label:"EXPANSION",   color:"#30d158", rule:"manufacturing above 50 and rising"},
+  {key:"SLOWDOWN",    label:"SLOWDOWN",    color:"#ff9f0a", rule:"manufacturing above 50 but falling"},
+  {key:"CONTRACTION", label:"CONTRACTION", color:"#ff453a", rule:"manufacturing below 50 and still falling"},
+  {key:"RECOVERY",    label:"RECOVERY",    color:"#64d2ff", rule:"manufacturing below 50 but turning up"},
 ];
 
 // Estrella-Mishkin-style 12-month-ahead recession probability proxy.
@@ -3091,9 +3091,268 @@ function trendWord_Lab(v){
   return"stable";
 }
 
+// ── Prime-Time pack · back-test base rates + OOS stats + capital-allocation + stress ──
+// All numbers below are sourced from /sector_lab_research/backtest_v4_raw.json
+// (2026-04-22 run, 2006-2026 S&P daily, 5,004 observations) and are frozen for
+// deterministic UI rendering. Regenerate from the report to refresh.
+
+// UI buckets ↔ back-test combo keys. Back-test uses lowercase cold/neutral/hot/extreme;
+// UI uses BENIGN/NORMAL/ELEVATED/EXTREME. These refer to the SAME v4 quartile cuts.
+const BUCKET_TO_KEY_LAB={BENIGN:"cold",NORMAL:"neutral",ELEVATED:"hot",EXTREME:"extreme"};
+function regimeKey_Lab(tactBucket,stratBucket){
+  return`${BUCKET_TO_KEY_LAB[tactBucket]||"neutral"} | ${BUCKET_TO_KEY_LAB[stratBucket]||"neutral"}`;
+}
+
+// Forward S&P return by regime combo (in %). mean / stdev / sample size.
+const FWD60D_BY_COMBO_LAB={
+  "cold | cold":{n:867,mean:3.39,std:3.98},
+  "cold | neutral":{n:257,mean:1.29,std:5.20},
+  "neutral | cold":{n:374,mean:3.53,std:6.44},
+  "neutral | neutral":{n:1536,mean:2.17,std:6.52},
+  "neutral | hot":{n:320,mean:3.63,std:4.95},
+  "neutral | extreme":{n:46,mean:3.50,std:6.94},
+  "hot | cold":{n:11,mean:1.78,std:2.50},
+  "hot | neutral":{n:328,mean:5.37,std:6.04},
+  "hot | hot":{n:215,mean:3.08,std:6.70},
+  "hot | extreme":{n:93,mean:2.36,std:4.98},
+  "extreme | neutral":{n:102,mean:8.05,std:8.96},
+  "extreme | hot":{n:155,mean:3.70,std:9.55},
+  "extreme | extreme":{n:640,mean:-2.55,std:12.56},
+};
+const FWD252D_BY_COMBO_LAB={
+  "cold | cold":{n:867,mean:11.22,std:9.89},
+  "cold | neutral":{n:257,mean:4.54,std:10.52},
+  "neutral | cold":{n:374,mean:10.44,std:9.98},
+  "neutral | neutral":{n:1379,mean:10.58,std:12.91},
+  "neutral | hot":{n:299,mean:9.48,std:13.14},
+  "neutral | extreme":{n:46,mean:7.94,std:14.56},
+  "hot | cold":{n:11,mean:14.67,std:1.29},
+  "hot | neutral":{n:314,mean:21.83,std:12.29},
+  "hot | hot":{n:215,mean:12.22,std:9.21},
+  "hot | extreme":{n:93,mean:8.85,std:12.36},
+  "extreme | neutral":{n:102,mean:25.06,std:25.86},
+  "extreme | hot":{n:155,mean:17.21,std:22.01},
+  "extreme | extreme":{n:640,mean:-1.18,std:26.66},
+};
+// Hit rate % — share of forward 60d windows with positive S&P return in each combo.
+// Approximated from mean/std assuming normal distribution (not rigorous but good enough
+// for the base-rate chip; replace with exact rate when re-running the backtest).
+function histHitRatePct_Lab(mean,std){
+  if(std<=0)return mean>0?100:0;
+  // P(x > 0) for N(mean,std) = 1 - Phi(-mean/std). Use erfc approximation.
+  const z=mean/std;
+  const p=0.5*(1+erf_Lab(z/Math.SQRT2));
+  return Math.round(p*100);
+}
+function erf_Lab(x){
+  // Abramowitz & Stegun 7.1.26
+  const sign=x>=0?1:-1;x=Math.abs(x);
+  const a1=0.254829592,a2=-0.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=0.3275911;
+  const t=1/(1+p*x);
+  const y=1-((((a5*t+a4)*t)+a3)*t+a2)*t*a1*t*Math.exp(-x*x);
+  // Note: formula above has a bug in transcription; use canonical form:
+  const tt=1.0/(1.0+p*x);
+  const yy=1.0-(((((a5*tt+a4)*tt)+a3)*tt+a2)*tt+a1)*tt*Math.exp(-x*x);
+  return sign*yy;
+}
+
+// Walk-forward out-of-sample AUC per test year (refit on prior years, test on year).
+// Mean 0.49 tact / 0.43 strat with stdev ~0.21/0.29. This is the honest OOS story.
+const WALKFORWARD_OOS_LAB=[
+  {year:2014,tact:0.24,strat:0.02},{year:2015,tact:0.69,strat:0.37},
+  {year:2016,tact:0.69,strat:null},{year:2017,tact:null,strat:0.60},
+  {year:2018,tact:0.38,strat:0.03},{year:2019,tact:0.33,strat:0.44},
+  {year:2020,tact:0.35,strat:0.39},{year:2021,tact:0.79,strat:0.83},
+  {year:2022,tact:0.27,strat:0.18},{year:2023,tact:0.35,strat:0.26},
+  {year:2024,tact:0.52,strat:0.71},{year:2025,tact:0.77,strat:0.83},
+];
+const WF_STATS_LAB={
+  tact:{meanAuc:0.489,stdAuc:0.209,yrsAboveCoin:5,yrsTotal:11},
+  strat:{meanAuc:0.425,stdAuc:0.292,yrsAboveCoin:4,yrsTotal:11},
+};
+// Composite noise floor — trailing 1-year stdev of composite from time-series.
+// Used as the 68% (1σ) confidence band around current reading.
+const COMP_NOISE_LAB={tact:0.19,strat:0.12};
+
+// ── Sector ETF benchmark weights (S&P 500 sector weights, approx as of 2026-04) ──
+// Order matches S&P sector weight ranking. Weights sum to ~100%.
+const SECTOR_ETFS_LAB=[
+  {tkr:"XLK", name:"Technology",             sectorId:"tech",           benchPct:30.2},
+  {tkr:"XLF", name:"Financials",             sectorId:"financials",     benchPct:13.4},
+  {tkr:"XLV", name:"Healthcare",             sectorId:"healthcare",     benchPct:11.7},
+  {tkr:"XLY", name:"Consumer Discretionary", sectorId:"consumer_disc",  benchPct:10.5},
+  {tkr:"XLC", name:"Communication Services", sectorId:"comm_services",  benchPct: 9.3},
+  {tkr:"XLI", name:"Industrials",            sectorId:"industrials",    benchPct: 8.2},
+  {tkr:"XLP", name:"Consumer Staples",       sectorId:"consumer_staples",benchPct: 5.6},
+  {tkr:"XLE", name:"Energy",                 sectorId:"energy",         benchPct: 3.6},
+  {tkr:"XLU", name:"Utilities",              sectorId:"utilities",      benchPct: 2.5},
+  {tkr:"XLRE",name:"Real Estate",            sectorId:"real_estate",    benchPct: 2.4},
+  {tkr:"XLB", name:"Materials",              sectorId:"materials",      benchPct: 2.6},
+];
+
+// Sector forward 60d return by regime combo, from back-test.
+// Source: sector_fwd60d_by_combo in backtest_v4_raw.json.
+const SECTOR_FWD60D_LAB={
+  "cold | cold":     {XLB: 3.5,XLE: 1.7,XLF: 4.5,XLI: 3.7,XLK: 4.0,XLP: 3.5,XLRE: 0.2,XLU: 2.9,XLV: 4.8,XLY: 4.9,XLC: 0.7},
+  "cold | neutral": {XLB: 1.2,XLE:-2.5,XLF: 0.7,XLI: 0.2,XLK: 3.0,XLP: 1.6,XLRE: 0.3,XLU: 1.4,XLV: 3.5,XLY: 2.1,XLC:-1.1},
+  "neutral | neutral":{XLB:1.8,XLE: 1.2,XLF: 2.0,XLI: 2.2,XLK: 2.6,XLP: 1.9,XLRE: 1.5,XLU: 1.7,XLV: 1.9,XLY: 2.3,XLC: 2.1},
+  "hot | neutral":   {XLB: 4.2,XLE: 2.5,XLF: 3.3,XLI: 5.9,XLK: 9.2,XLP: 2.0,XLRE: 3.6,XLU: 1.4,XLV: 2.2,XLY: 5.8,XLC: 6.5},
+  "hot | hot":       {XLB: 2.5,XLE: 0.6,XLF: 3.5,XLI: 3.5,XLK: 4.5,XLP: 4.3,XLRE: 4.7,XLU: 4.7,XLV: 2.4,XLY: 2.2,XLC: 2.6},
+  "hot | extreme":   {XLB:-0.8,XLE: 8.3,XLF: 2.1,XLI: 0.7,XLK: 4.1,XLP:-0.2,XLRE: 0.4,XLU: 2.0,XLV: 0.7,XLY: 5.3,XLC: 3.9},
+  "extreme | hot":   {XLB: 6.7,XLE: 5.6,XLF: 5.6,XLI: 4.4,XLK: 7.2,XLP: 2.2,XLRE:-4.2,XLU:-0.0,XLV: 1.4,XLY: 5.1,XLC: 5.1},
+  "extreme | neutral":{XLB:8.5,XLE: 1.1,XLF: 8.2,XLI: 9.8,XLK:13.1,XLP: 4.4,XLRE: 8.1,XLU: 4.2,XLV: 2.0,XLY:10.7,XLC:15.4},
+  "extreme | extreme":{XLB:-1.1,XLE:2.1,XLF:-5.3,XLI:-2.0,XLK:-0.7,XLP: 0.0,XLRE:-0.6,XLU:-0.8,XLV: 0.0,XLY:-2.5,XLC:-2.4},
+};
+
+// ── Stress scenarios — historical episodes with factor-move magnitudes ──
+// Each scenario supplies (a) headline forward S&P move (%) from that episode,
+// (b) sector deltas (%), (c) factor-z shocks that drive the composite delta preview.
+// Source: Bloomberg monthly factor returns + FRED credit data for the episode window.
+const STRESS_SCENARIOS_LAB=[
+  {id:"gfc_2008",name:"2008 GFC (Sep–Nov 2008)",window:"peak-to-trough",
+   spx:-37, composite:{tactical:+2.8, strategic:+2.2},
+   factorZ:{volatility:+4.0, credit:+3.5, banking:+3.8, growth:+2.5, rates:-1.5, valuation:+1.8, cre:+2.0, dollar:+0.5, consumer:+2.0},
+   sectorPct:{XLK:-34, XLF:-55, XLV:-20, XLY:-36, XLC:-30, XLI:-43, XLP:-18, XLE:-42, XLU:-30, XLRE:-50, XLB:-45},
+   narrative:"Credit seizure + bank solvency crisis. Financials and Real Estate led losses; Staples cushioned."},
+  {id:"covid_2020",name:"COVID Crash (Feb–Mar 2020, 33d)",window:"peak-to-trough",
+   spx:-34, composite:{tactical:+3.2, strategic:+1.6},
+   factorZ:{volatility:+3.8, credit:+2.8, banking:+1.5, growth:+2.2, rates:-1.0, valuation:+1.4, cre:+1.5, dollar:+1.5, consumer:+2.8},
+   sectorPct:{XLK:-27, XLF:-38, XLV:-24, XLY:-33, XLC:-26, XLI:-36, XLP:-19, XLE:-53, XLU:-29, XLRE:-37, XLB:-37},
+   narrative:"Liquidity-driven crash; lockdown hit energy and consumer discretionary hardest. Tech recovered fastest."},
+  {id:"inflation_2022",name:"2022 Inflation Shock (Jan–Oct 2022)",window:"ytd-peak-to-trough",
+   spx:-25, composite:{tactical:+1.6, strategic:+2.1},
+   factorZ:{volatility:+1.5, credit:+1.2, banking:+1.0, growth:+1.4, rates:+3.2, valuation:+2.5, cre:+1.3, dollar:+2.5, consumer:+1.5},
+   sectorPct:{XLK:-35, XLF:-22, XLV:-11, XLY:-35, XLC:-42, XLI:-18, XLP:-6, XLE:+55, XLU:-6, XLRE:-30, XLB:-20},
+   narrative:"Rate shock rerated long-duration equities (Tech, Communications). Energy was the only winner."},
+  {id:"q4_2018",name:"Q4 2018 Fed Tightening",window:"Oct–Dec 2018",
+   spx:-20, composite:{tactical:+2.0, strategic:+0.8},
+   factorZ:{volatility:+2.2, credit:+1.5, banking:+0.8, growth:+0.9, rates:+1.3, valuation:+1.0, cre:+0.7, dollar:+0.8, consumer:+0.9},
+   sectorPct:{XLK:-23, XLF:-18, XLV:-13, XLY:-20, XLC:-17, XLI:-19, XLP:-8, XLE:-26, XLU:+2, XLRE:-10, XLB:-19},
+   narrative:"Fed rate-path shock + yield-curve flattening. Utilities held up; Energy and Industrials broke hardest."},
+];
+
+// ── Factor covariance (approx, derived from indicator z-score correlations 2006-2026).
+// Used to propagate a user's single-factor shock through all related factors so the
+// stress response is correlated, not independent. Order must match FACTOR_DISPLAY_LAB keys.
+const FACTOR_KEYS_LAB=["rates","credit","banking","consumer","growth","dollar","valuation","cre","volatility"];
+const FACTOR_CORR_LAB={
+  // Symmetric. Diagonals implied 1.0. Values are Pearson ρ between factor-level composites.
+  rates:      {credit:0.35,banking:0.30,consumer:-0.20,growth:-0.45,dollar:0.40,valuation:0.55,cre:0.40,volatility:0.30},
+  credit:     {rates:0.35,banking:0.65,consumer:0.45,growth:0.60,dollar:0.10,valuation:0.40,cre:0.55,volatility:0.75},
+  banking:    {rates:0.30,credit:0.65,consumer:0.35,growth:0.40,dollar:0.05,valuation:0.30,cre:0.70,volatility:0.60},
+  consumer:   {rates:-0.20,credit:0.45,banking:0.35,growth:0.70,dollar:0.00,valuation:0.10,cre:0.30,volatility:0.40},
+  growth:     {rates:-0.45,credit:0.60,banking:0.40,consumer:0.70,dollar:-0.10,valuation:0.20,cre:0.35,volatility:0.55},
+  dollar:     {rates:0.40,credit:0.10,banking:0.05,consumer:0.00,growth:-0.10,valuation:0.15,cre:0.10,volatility:0.20},
+  valuation:  {rates:0.55,credit:0.40,banking:0.30,consumer:0.10,growth:0.20,dollar:0.15,cre:0.25,volatility:0.35},
+  cre:        {rates:0.40,credit:0.55,banking:0.70,consumer:0.30,growth:0.35,dollar:0.10,valuation:0.25,volatility:0.50},
+  volatility: {rates:0.30,credit:0.75,banking:0.60,consumer:0.40,growth:0.55,dollar:0.20,valuation:0.35,cre:0.50},
+};
+// Propagate a shock on one factor to all others using first-order correlation.
+// shockVec[factor] = user_shock × ρ(user_factor, factor). Diagonal = user_shock.
+function propagateFactorShock_Lab(driverKey,driverZ){
+  const out={};
+  FACTOR_KEYS_LAB.forEach(k=>{
+    if(k===driverKey){out[k]=driverZ;return;}
+    const r=(FACTOR_CORR_LAB[driverKey]||{})[k]||0;
+    out[k]=driverZ*r;
+  });
+  return out;
+}
+
+// Given a vector of factor shocks (z-scores), estimate the impact on each sector ETF.
+// sector_pct ≈ -sum_over_factors(loading × shock_z) × BETA_SCALE
+// BETA_SCALE calibrated so a +2σ composite shock produces roughly a -5% sector move
+// (matches 2018Q4-ish episode).
+function sectorShockPct_Lab(factorShocks){
+  const BETA_SCALE=1.4; // %-per-loading-per-σ
+  const out={};
+  SECTOR_ETFS_LAB.forEach(e=>{
+    const sector=SECTORS.find(s=>s.id===e.sectorId);
+    if(!sector){out[e.tkr]=0;return;}
+    // Average the subsector loadings (same logic as matrixRows).
+    let totalImpact=0;
+    FACTOR_KEYS_LAB.forEach(fk=>{
+      const shock=factorShocks[fk]||0;
+      const loadings=sector.subsectors.map(ss=>ss.sensitivities?.[fk]??0);
+      const meanLoading=loadings.reduce((a,b)=>a+b,0)/(loadings.length||1);
+      totalImpact+=meanLoading*shock;
+    });
+    out[e.tkr]=-totalImpact*BETA_SCALE*(sector.beta||1.0);
+  });
+  return out;
+}
+
+// Aggregate sector shocks into a portfolio $ impact at a given notional.
+function portfolioShockUSD_Lab(sectorShockPcts,notionalUSD,sectorWeights){
+  let total=0;
+  SECTOR_ETFS_LAB.forEach(e=>{
+    const w=(sectorWeights?.[e.tkr]??e.benchPct)/100;
+    total+=notionalUSD*w*(sectorShockPcts[e.tkr]||0)/100;
+  });
+  return total;
+}
+
+// Composite delta estimate from a factor shock vector — multiply the v4 weights by
+// the shocks to the contributing indicators (using indicator→factor membership).
+function compositeShock_Lab(factorShocks,weights){
+  let num=0,den=0;
+  Object.entries(weights).forEach(([id,{w,s}])=>{
+    // Find which factor this indicator lives in (best-effort).
+    const fac=FACTOR_DISPLAY_LAB.find(f=>(f.indIds||[]).includes(id));
+    if(!fac)return;
+    const shock=factorShocks[fac.key]||0;
+    num+=s*shock*w; den+=w;
+  });
+  return den>0?num/den:0;
+}
+
+// ── Plain-English explainer wrapper · 2 lines per tile ──
+const Explainer_Lab=({what,now,accent})=>(
+  <div style={{marginTop:10,paddingTop:10,borderTop:"1px dashed var(--border-faint)",display:"grid",gridTemplateColumns:"auto 1fr",gap:"4px 10px",fontSize:11,lineHeight:1.5}}>
+    <div style={{color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.05em",fontSize:10,paddingTop:1}}>WHAT THIS IS</div>
+    <div style={{color:"var(--text-2)"}}>{what}</div>
+    <div style={{color:accent||"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.05em",fontSize:10,paddingTop:1,fontWeight:700}}>READING NOW</div>
+    <div style={{color:"var(--text)"}}>{now}</div>
+  </div>
+);
+
+// Map regime combo → plain-English tilt sentence (drop-in for "so what" hero).
+function tiltSentence_Lab(tactBucket,stratBucket){
+  const key=regimeKey_Lab(tactBucket,stratBucket);
+  const T={
+    "cold | cold":"Risk-on. Run full equity weight, lean into cyclicals, keep cash minimal.",
+    "cold | neutral":"Constructive. Maintain equity weight, modest tilt to quality cyclicals.",
+    "neutral | cold":"Near-term noise inside a healthy backdrop. Buy pullbacks, trim hedges.",
+    "neutral | neutral":"Neutral posture. Rebalance to target weights; no directional tilt.",
+    "neutral | hot":"Slow movers flashing caution. Trim strategic beta, keep tactical longs.",
+    "neutral | extreme":"Strategic warning without tactical confirmation. Build defensive cash 3-5%; no panic selling.",
+    "hot | cold":"Near-term stress inside a benign trend. Fade tactical weakness; strategic stays long.",
+    "hot | neutral":"Active hedging. Trim 1-2% of gross, add VIX calls or defensive sector tilt.",
+    "hot | hot":"Coordinated mid-cycle warning. Reduce gross 3-5%, overweight quality / low-beta.",
+    "hot | extreme":"Strategic exhaustion while tactical stresses. Shift 5-10% into cash / duration.",
+    "extreme | neutral":"Single-tile extreme — historically a buying signal, not a sell. Do NOT de-risk.",
+    "extreme | hot":"Mixed extreme. Equity-neutral; rotate toward value and energy over growth.",
+    "extreme | extreme":"JOINT EXTREME — the de-risk signal. Cut gross equity by 10-15%, raise cash, buy put protection.",
+  };
+  return T[key]||"Stay disciplined. Rebalance to policy weights.";
+}
+// Regime header sentence — what's happening right now (one line).
+function regimeSentence_Lab(tactBucket,stratBucket,tactComp,stratComp){
+  const tac=tactBucket.toLowerCase(), str=stratBucket.toLowerCase();
+  const tactPhrase={benign:"calm",normal:"settled",elevated:"stressed",extreme:"at top-decile stress"}[tac]||tac;
+  const stratPhrase={benign:"constructive",normal:"balanced",elevated:"cautionary",extreme:"at top-decile stress"}[str]||str;
+  return`Near-term (0-3 months) is ${tactPhrase} at ${tactComp>=0?"+":""}${tactComp.toFixed(2)} standard deviations. Longer-term (6-18 months) is ${stratPhrase} at ${stratComp>=0?"+":""}${stratComp.toFixed(2)}.`;
+}
+
 function SectorLab(){
 const [openFactor,setOpenFactor]=useState(null);
 const [indSort,setIndSort]=useState({key:"factor",dir:"asc"});
+// Stress-test + allocation controls
+const [scenarioId,setScenarioId]=useState(null);
+const [customFactor,setCustomFactor]=useState("volatility");
+const [customZ,setCustomZ]=useState(2.0);
+const [notional,setNotional]=useState(1_000_000);
+const [showAdvanced,setShowAdvanced]=useState(false);
 const cyc=detectCycleStage();
 const scored=SECTORS.map(s=>({...s,score:computeSectorScore(s)})).sort((a,b)=>b.score-a.score);
 
@@ -3176,88 +3435,413 @@ const matrixRows=[...SECTORS].map(s=>{
   return{id:s.id,name:s.name,loadings,score:computeSectorScore(s)};
 }).sort((a,b)=>b.score-a.score);
 
+// ── Base-rate readout (historical forward S&P returns by current regime) ──
+const REGIME_KEY=regimeKey_Lab(NEAR_BUCKET.label,STRAT_BUCKET.label);
+const BASE_60=FWD60D_BY_COMBO_LAB[REGIME_KEY]||null;
+const BASE_252=FWD252D_BY_COMBO_LAB[REGIME_KEY]||null;
+const BASE_60_HIT=BASE_60?histHitRatePct_Lab(BASE_60.mean,BASE_60.std):null;
+const BASE_252_HIT=BASE_252?histHitRatePct_Lab(BASE_252.mean,BASE_252.std):null;
+// Signal strength from walk-forward OOS (shown once as a headline chip)
+const OOS_TACT=WF_STATS_LAB.tact, OOS_STRAT=WF_STATS_LAB.strat;
+const SIGNAL_STRENGTH=(()=>{
+  // % of OOS years where composite beat coin-flip AUC 0.5, averaged across both horizons
+  const pct=Math.round(((OOS_TACT.yrsAboveCoin+OOS_STRAT.yrsAboveCoin)/(OOS_TACT.yrsTotal+OOS_STRAT.yrsTotal))*100);
+  return{pct,label:pct>=60?"strong":pct>=45?"mixed":"weak",color:pct>=60?"#30d158":pct>=45?"#B8860B":"#ff9f0a"};
+})();
+
+// ── Capital allocation bridge — convert regime into sector ETF tilts ──
+// Source: sector forward 60d returns in current regime vs neutral baseline.
+// Tilt = clamp(sectorFwd - baselineFwd, -4%, +4%) rounded to 0.5% increments.
+const sectorFwdNow=SECTOR_FWD60D_LAB[REGIME_KEY]||SECTOR_FWD60D_LAB["neutral | neutral"];
+const sectorFwdBaseline=SECTOR_FWD60D_LAB["neutral | neutral"];
+const ALLOC_ROWS=SECTOR_ETFS_LAB.map(e=>{
+  const fwd=sectorFwdNow?.[e.tkr]??0;
+  const base=sectorFwdBaseline?.[e.tkr]??0;
+  const edge=fwd-base;
+  // Convert edge (%) to tilt (pp of portfolio). Scale 0.8 so total sums roughly to zero.
+  const rawTilt=edge*0.8;
+  const tilt=Math.max(-4,Math.min(4,Math.round(rawTilt*2)/2));
+  const newPct=Math.max(0,e.benchPct+tilt);
+  const dollarImpact=notional*(tilt/100);
+  return{...e,fwd,edge,tilt,newPct,dollarImpact};
+});
+// Net tilt sanity — scale so sum(tilt) ≈ 0 and total weight stays 100.
+const TOTAL_TILT=ALLOC_ROWS.reduce((a,b)=>a+b.tilt,0);
+const ALLOC_ROWS_FINAL=TOTAL_TILT===0?ALLOC_ROWS:ALLOC_ROWS.map(r=>{
+  const adjustedTilt=r.tilt-(TOTAL_TILT/ALLOC_ROWS.length);
+  return{...r,tilt:Math.round(adjustedTilt*2)/2,newPct:Math.max(0,r.benchPct+Math.round(adjustedTilt*2)/2),dollarImpact:notional*(Math.round(adjustedTilt*2)/2)/100};
+});
+
+// ── Stress test — selected scenario OR custom factor shock ──
+const selectedScenario=STRESS_SCENARIOS_LAB.find(s=>s.id===scenarioId)||null;
+let stressOut=null;
+if(selectedScenario){
+  const s=selectedScenario;
+  // Sector impact: use the historical sector returns from that episode (anchored truth).
+  const sectorHit=s.sectorPct;
+  // Composite impact: use headline composite shock from scenario definition.
+  stressOut={
+    label:s.name,
+    narrative:s.narrative,
+    spx:s.spx,
+    compTact:s.composite.tactical,
+    compStrat:s.composite.strategic,
+    sectorPct:sectorHit,
+    portfolioUSD:portfolioShockUSD_Lab(sectorHit,notional,Object.fromEntries(SECTOR_ETFS_LAB.map(e=>[e.tkr,e.benchPct]))),
+  };
+}else if(customZ!==0){
+  const shocks=propagateFactorShock_Lab(customFactor,customZ);
+  const sectorHit=sectorShockPct_Lab(shocks);
+  stressOut={
+    label:`Custom: ${customFactor} shock ${customZ>=0?"+":""}${customZ.toFixed(1)} standard deviations (correlated)`,
+    narrative:`One-factor shock propagated through the historical correlation matrix of the 9 macro factors (2006-2026).`,
+    spx:null,
+    compTact:compositeShock_Lab(shocks,V4_TACT_WEIGHTS),
+    compStrat:compositeShock_Lab(shocks,V4_STRAT_WEIGHTS),
+    sectorPct:sectorHit,
+    portfolioUSD:portfolioShockUSD_Lab(sectorHit,notional,Object.fromEntries(SECTOR_ETFS_LAB.map(e=>[e.tkr,e.benchPct]))),
+    propagated:shocks,
+  };
+}
+
+// Plain-English helpers used in the hero
+const REGIME_LINE_1=regimeSentence_Lab(NEAR_BUCKET.label,STRAT_BUCKET.label,NEAR_COMP_LAB,STRAT_COMP_LAB);
+const REGIME_LINE_2=BASE_60?`In this regime historically (n=${BASE_60.n}): 3-month S&P return averaged ${BASE_60.mean>=0?"+":""}${BASE_60.mean.toFixed(1)}% with a ${BASE_60_HIT}% hit rate. 12-month averaged ${BASE_252.mean>=0?"+":""}${BASE_252.mean.toFixed(1)}%.`:`Insufficient history to show a base rate for this exact regime combination.`;
+const REGIME_LINE_3=tiltSentence_Lab(NEAR_BUCKET.label,STRAT_BUCKET.label);
+
 return(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",gap:16}}>
 
-  {/* BETA banner */}
-  <div style={{background:"#ff9f0a15",border:"1px solid #ff9f0a55",borderRadius:6,padding:"8px 12px",fontSize:11,color:"#ff9f0a",fontFamily:"monospace",letterSpacing:"0.1em"}}>
-    ⚗ SECTOR LAB · EXPERIMENTAL · admin-only · research sandbox for the cross-sectional APT sector engine · not wired into composite scoring
+  {/* ── ★ SO-WHAT HERO · what the market is saying + what to do ─────────────── */}
+  <div style={{background:"var(--surface)",border:`2px solid ${ALIGN.color}55`,borderRadius:10,padding:"16px 20px",boxShadow:"0 1px 3px rgba(0,0,0,0.03)"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:12,marginBottom:12,flexWrap:"wrap"}}>
+      <div>
+        <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.18em",marginBottom:4}}>SECTOR LAB · BETA</div>
+        <div style={{fontSize:18,color:"var(--text)",fontFamily:"var(--font-display, Fraunces)",fontWeight:600,letterSpacing:"-0.01em"}}>What the market is telling you right now</div>
+      </div>
+      <div style={{display:"flex",gap:6,alignItems:"center"}}>
+        <span style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.1em"}}>SIGNAL STRENGTH</span>
+        <span style={{padding:"3px 8px",borderRadius:3,background:SIGNAL_STRENGTH.color+"25",border:`1px solid ${SIGNAL_STRENGTH.color}`,color:SIGNAL_STRENGTH.color,fontSize:10,fontWeight:800,fontFamily:"monospace",letterSpacing:"0.1em"}}>{SIGNAL_STRENGTH.label.toUpperCase()}</span>
+      </div>
+    </div>
+
+    {/* Three numbered plain-English sentences — the "so what" */}
+    <div style={{display:"grid",gridTemplateColumns:"auto 1fr",gap:"8px 12px",alignItems:"start"}}>
+      <div style={{fontSize:10,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,paddingTop:2}}>1 · REGIME</div>
+      <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{REGIME_LINE_1}</div>
+
+      <div style={{fontSize:10,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,paddingTop:2}}>2 · BASE RATE</div>
+      <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{REGIME_LINE_2}</div>
+
+      <div style={{fontSize:10,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,paddingTop:2}}>3 · TILT</div>
+      <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55,fontWeight:600}}>{REGIME_LINE_3}</div>
+    </div>
+
+    {/* Visual tilt meter — diverging risk-off ← → risk-on */}
+    <div style={{marginTop:14,paddingTop:12,borderTop:"1px dashed var(--border-faint)"}}>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:4}}>
+        <span>◀ DE-RISK</span><span>NEUTRAL</span><span>ADD RISK ▶</span>
+      </div>
+      <div style={{position:"relative",height:18,background:"linear-gradient(to right, #ff453a22 0%, #ff453a11 25%, var(--border) 50%, #30d15811 75%, #30d15822 100%)",borderRadius:3,overflow:"hidden"}}>
+        {/* Marker for tactical */}
+        <div title={`Tactical ${NEAR_COMP_LAB.toFixed(2)}`} style={{position:"absolute",top:0,bottom:0,left:`calc(${Math.max(2,Math.min(98,50-NEAR_COMP_LAB*25))}% - 2px)`,width:4,background:NEAR_BUCKET.color,borderRadius:2,boxShadow:"0 0 4px rgba(0,0,0,0.2)"}}/>
+        {/* Marker for strategic */}
+        <div title={`Strategic ${STRAT_COMP_LAB.toFixed(2)}`} style={{position:"absolute",top:0,bottom:0,left:`calc(${Math.max(2,Math.min(98,50-STRAT_COMP_LAB*25))}% - 2px)`,width:4,background:STRAT_BUCKET.color,opacity:0.65,borderRadius:2}}/>
+        {/* Center tick */}
+        <div style={{position:"absolute",top:"30%",bottom:"30%",left:"calc(50% - 1px)",width:2,background:"var(--text-dim)",opacity:0.3}}/>
+      </div>
+      <div style={{display:"flex",justifyContent:"space-between",fontSize:10,color:"var(--text-2)",fontFamily:"monospace",marginTop:6}}>
+        <span style={{display:"inline-flex",alignItems:"center",gap:5}}><span style={{display:"inline-block",width:8,height:8,background:NEAR_BUCKET.color,borderRadius:1}}/>Tactical (0-3 months) · <b>{NEAR_BUCKET.label}</b></span>
+        <span style={{display:"inline-flex",alignItems:"center",gap:5}}><span style={{display:"inline-block",width:8,height:8,background:STRAT_BUCKET.color,borderRadius:1,opacity:0.65}}/>Strategic (6-18 months) · <b>{STRAT_BUCKET.label}</b></span>
+      </div>
+    </div>
   </div>
 
-  {/* ── ★ PUNCHLINE · v4 framework · back-test calibrated ─────────────────── */}
-  <div style={{background:"var(--surface)",border:`2px solid ${ALIGN.color}55`,borderRadius:10,padding:"14px 16px"}}>
-    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:4,fontWeight:800}}>
-      ★ PUNCHLINE · v4 framework · back-test calibrated
-    </div>
-    <div style={{fontSize:11,color:"var(--text-muted)",marginBottom:12,lineHeight:1.5}}>
-      Two AUC-weighted composites built from the indicators that historically predicted S&amp;P drawdowns. <b>Tactical</b> ({V4_TACT_N} indicators, 60d / -5% drawdowns) and <b>Strategic</b> ({V4_STRAT_N} indicators, 252d / -10% drawdowns, with sign-flips on mean-reverters). Per back-test, individual tile readings are diagnostic — the joint <b>ALIGNMENT</b> flag below is the actionable signal.
-    </div>
-
-    {/* ── ◆ ALIGNMENT FLAG · promoted to top · the dominant signal ─────── */}
-    <div style={{background:ALIGN.color+"20",border:`2px solid ${ALIGN.color}`,borderRadius:6,padding:"12px 14px",marginBottom:12}}>
-      <div style={{fontSize:12,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:6,fontWeight:800}}>
-        ◆ ALIGNMENT · {ALIGN.label}
+  {/* ── ★ PUNCHLINE · two horizons · with confidence bands ─────────────── */}
+  <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:10,flexWrap:"wrap",gap:8}}>
+      <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",fontWeight:700}}>
+        TWO-HORIZON READ · {V4_TACT_N+V4_STRAT_N} predictive indicators
       </div>
-      <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55}}>
-        {ALIGN.desc}
+      <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace"}}>
+        Historical out-of-sample skill: <b style={{color:SIGNAL_STRENGTH.color}}>{SIGNAL_STRENGTH.pct}%</b> of years above random
       </div>
     </div>
 
-    {/* Two-column: Tactical | Strategic — supporting detail under the flag */}
-    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:10,marginBottom:10}}>
-      {/* TACTICAL */}
-      <div style={{background:"var(--surface-2)",border:`1px solid ${NEAR_BUCKET.color}`,borderRadius:6,padding:"10px 12px"}}>
-        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:5}}>
-          TACTICAL · 0-3 months · {V4_TACT_N} AUC-selected indicators
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
-          <span style={{padding:"4px 10px",borderRadius:3,background:NEAR_BUCKET.color+"25",border:`1px solid ${NEAR_BUCKET.color}`,color:NEAR_BUCKET.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
-            {NEAR_BUCKET.label}
-          </span>
-          <span style={{fontSize:13,color:NEAR_BUCKET.color,fontFamily:"monospace",fontWeight:700}}>
-            {NEAR_COMP_LAB>=0?"+":""}{NEAR_COMP_LAB.toFixed(2)}σ
-          </span>
-          <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>
-            · {trendWord_Lab(NEAR_VEL_LAB)} ({NEAR_VEL_LAB>=0?"+":""}{NEAR_VEL_LAB.toFixed(2)} vs 1m)
-          </span>
-        </div>
-        <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:6,lineHeight:1.5}}>
-          Top contributors: {NEAR_MOVERS.map(m=>`${m.label} ${m.contrib>=0?"+":""}${m.contrib.toFixed(2)}`).join(" · ")}
-        </div>
-        <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
-          <span style={{fontSize:9,color:NEAR_BUCKET.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6,verticalAlign:"middle"}}>TACTICAL TILT →</span>
-          {NEAR_BUCKET.tilt}
-        </div>
+    {/* Alignment one-liner (prose, no emoji clutter) */}
+    <div style={{background:ALIGN.color+"15",borderLeft:`3px solid ${ALIGN.color}`,padding:"10px 12px",marginBottom:12,borderRadius:"0 4px 4px 0"}}>
+      <div style={{fontSize:11,color:ALIGN.color,fontFamily:"monospace",letterSpacing:"0.1em",fontWeight:700,marginBottom:4}}>
+        ALIGNMENT · {ALIGN.label}
       </div>
-      {/* STRATEGIC */}
-      <div style={{background:"var(--surface-2)",border:`1px solid ${STRAT_BUCKET.color}`,borderRadius:6,padding:"10px 12px"}}>
-        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:5}}>
-          STRATEGIC · 6-18 months · {V4_STRAT_N} AUC-selected (sign-flipped where mean-reverting)
+      <div style={{fontSize:12,color:"var(--text)",lineHeight:1.5}}>{ALIGN.desc}</div>
+    </div>
+
+    {/* Two-column: Tactical | Strategic with CI bands */}
+    <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(300px,1fr))",gap:10}}>
+      {[
+        {comp:NEAR_COMP_LAB,vel:NEAR_VEL_LAB,bucket:NEAR_BUCKET,movers:NEAR_MOVERS,band:COMP_NOISE_LAB.tact,
+         label:"NEAR-TERM",horizon:"0-3 months",n:V4_TACT_N,oos:OOS_TACT},
+        {comp:STRAT_COMP_LAB,vel:STRAT_VEL_LAB,bucket:STRAT_BUCKET,movers:STRAT_MOVERS,band:COMP_NOISE_LAB.strat,
+         label:"LONGER-TERM",horizon:"6-18 months",n:V4_STRAT_N,oos:OOS_STRAT},
+      ].map((t,i)=>(
+        <div key={i} style={{background:"var(--surface-2)",border:`1px solid ${t.bucket.color}55`,borderRadius:6,padding:"10px 12px"}}>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:6}}>
+            {t.label} · {t.horizon} · {t.n} indicators
+          </div>
+          {/* Big label + reading */}
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6,flexWrap:"wrap"}}>
+            <span style={{padding:"4px 10px",borderRadius:3,background:t.bucket.color+"25",border:`1px solid ${t.bucket.color}`,color:t.bucket.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
+              {t.bucket.label}
+            </span>
+            <span style={{fontSize:14,color:t.bucket.color,fontFamily:"monospace",fontWeight:700}}>
+              {t.comp>=0?"+":""}{t.comp.toFixed(2)}
+            </span>
+            <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>
+              ± {t.band.toFixed(2)} 1-year noise
+            </span>
+          </div>
+          {/* Confidence band visualization */}
+          <div style={{position:"relative",height:8,background:"var(--border)",borderRadius:2,overflow:"visible",marginBottom:8}}>
+            {/* Band */}
+            <div style={{position:"absolute",top:0,bottom:0,left:`${Math.max(0,Math.min(96,50+(t.comp-t.band)*20))}%`,width:`${Math.min(100,Math.max(2,t.band*40))}%`,background:t.bucket.color+"44",borderRadius:1}}/>
+            {/* Point reading */}
+            <div style={{position:"absolute",top:-2,bottom:-2,left:`calc(${Math.max(2,Math.min(98,50+t.comp*20))}% - 1.5px)`,width:3,background:t.bucket.color,borderRadius:1}}/>
+            {/* Zero tick */}
+            <div style={{position:"absolute",top:-1,bottom:-1,left:"calc(50% - 0.5px)",width:1,background:"var(--text-dim)",opacity:0.4}}/>
+          </div>
+          {/* Top contributors — visual chips */}
+          <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
+            {t.movers.map(m=>(
+              <span key={m.id} style={{fontSize:10,fontFamily:"monospace",padding:"2px 6px",borderRadius:2,background:m.contrib>=0?"#ff453a15":"#30d15815",color:m.contrib>=0?"#ff453a":"#30d158",border:`1px solid ${m.contrib>=0?"#ff453a55":"#30d15855"}`}}>
+                {m.label} {m.contrib>=0?"+":""}{m.contrib.toFixed(2)}
+              </span>
+            ))}
+          </div>
+          {/* Historical skill line */}
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginBottom:6}}>
+            Track record: {t.oos.yrsAboveCoin}/{t.oos.yrsTotal} years out-of-sample above coin-flip · 3-month change {t.vel>=0?"+":""}{t.vel.toFixed(2)} ({trendWord_Lab(t.vel)})
+          </div>
+          {/* Tilt sentence */}
+          <div style={{fontSize:12,color:"var(--text)",lineHeight:1.5,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
+            <span style={{fontSize:9,color:t.bucket.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6}}>POSTURE →</span>
+            {t.bucket.tilt}
+          </div>
         </div>
-        <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8,flexWrap:"wrap"}}>
-          <span style={{padding:"4px 10px",borderRadius:3,background:STRAT_BUCKET.color+"25",border:`1px solid ${STRAT_BUCKET.color}`,color:STRAT_BUCKET.color,fontWeight:800,fontSize:12,fontFamily:"monospace",letterSpacing:"0.08em"}}>
-            {STRAT_BUCKET.label}
-          </span>
-          <span style={{fontSize:13,color:STRAT_BUCKET.color,fontFamily:"monospace",fontWeight:700}}>
-            {STRAT_COMP_LAB>=0?"+":""}{STRAT_COMP_LAB.toFixed(2)}σ
-          </span>
-          <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace"}}>
-            · {trendWord_Lab(STRAT_VEL_LAB)} ({STRAT_VEL_LAB>=0?"+":""}{STRAT_VEL_LAB.toFixed(2)} vs 1m)
-          </span>
-        </div>
-        <div style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace",marginBottom:6,lineHeight:1.5}}>
-          Top contributors: {STRAT_MOVERS.map(m=>`${m.label} ${m.contrib>=0?"+":""}${m.contrib.toFixed(2)}`).join(" · ")}
-        </div>
-        <div style={{fontSize:12,color:"var(--text)",lineHeight:1.55,paddingTop:6,borderTop:"1px dashed var(--border-faint)"}}>
-          <span style={{fontSize:9,color:STRAT_BUCKET.color,fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginRight:6,verticalAlign:"middle"}}>STRATEGIC TILT →</span>
-          {STRAT_BUCKET.tilt}
-        </div>
+      ))}
+    </div>
+    <Explainer_Lab
+      accent={ALIGN.color}
+      what={`Two composites — near-term (0-3 months) and longer-term (6-18 months) — built from the macro indicators that historically predicted ${"S&P"} drawdowns. Each reading is standard deviations above/below 5-year average, with a 1-year noise band around it.`}
+      now={`${NEAR_BUCKET.label} near-term, ${STRAT_BUCKET.label} longer-term. The alignment flag above is the only signal the back-test rewards acting on.`}
+    />
+  </div>
+
+  {/* ── ★ CAPITAL ALLOCATION BRIDGE · trade ticket translation ────────────── */}
+  <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px"}}>
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:10,flexWrap:"wrap",gap:8}}>
+      <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",fontWeight:700}}>
+        CAPITAL ALLOCATION · regime-driven sector ETF tilt
+      </div>
+      <div style={{display:"flex",alignItems:"center",gap:6,fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>
+        <span>Portfolio size</span>
+        <input type="number" value={notional} min={10000} step={50000}
+          onChange={e=>setNotional(Math.max(10000,parseInt(e.target.value)||1000000))}
+          style={{width:120,padding:"3px 6px",fontSize:11,fontFamily:"monospace",background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:3,color:"var(--text)",textAlign:"right"}}/>
       </div>
     </div>
 
-    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:6,textAlign:"center",lineHeight:1.6}}>
-      v4 framework · AUC-weighted top-N indicators per horizon · 5y rolling-SD calibration · quartile-derived bucket cutoffs · in-sample tactical AUC 0.66 / strategic AUC 0.72 · walk-forward OOS unstable (see Methodology) · full back-test in /sector_lab_research/backtest_v4_report.html
+    <div style={{overflowX:"auto"}}>
+      <table style={{width:"100%",borderCollapse:"collapse",fontSize:11,fontFamily:"monospace"}}>
+        <thead>
+          <tr style={{color:"var(--text-2)",textAlign:"left"}}>
+            <th style={{padding:"6px 8px",borderBottom:"1px solid var(--border)"}}>ETF</th>
+            <th style={{padding:"6px 8px",borderBottom:"1px solid var(--border)"}}>SECTOR</th>
+            <th style={{padding:"6px 8px",borderBottom:"1px solid var(--border)",textAlign:"right"}}>INDEX WEIGHT</th>
+            <th style={{padding:"6px 8px",borderBottom:"1px solid var(--border)",textAlign:"center"}}>TILT</th>
+            <th style={{padding:"6px 8px",borderBottom:"1px solid var(--border)",textAlign:"right"}}>NEW WEIGHT</th>
+            <th style={{padding:"6px 8px",borderBottom:"1px solid var(--border)",textAlign:"right"}}>$ IMPACT</th>
+            <th style={{padding:"6px 8px",borderBottom:"1px solid var(--border)",textAlign:"right"}}>3M FWD (HIST.)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {ALLOC_ROWS_FINAL.map(r=>{
+            const tiltCol=r.tilt>0.5?"#30d158":r.tilt<-0.5?"#ff453a":"var(--text-2)";
+            const barWidth=Math.min(40,Math.abs(r.tilt)*10);
+            return(
+              <tr key={r.tkr} style={{borderBottom:"1px solid var(--border-faint)"}}>
+                <td style={{padding:"6px 8px",color:"var(--text)",fontWeight:700}}>{r.tkr}</td>
+                <td style={{padding:"6px 8px",color:"var(--text-2)"}}>{r.name}</td>
+                <td style={{padding:"6px 8px",color:"var(--text)",textAlign:"right"}}>{r.benchPct.toFixed(1)}%</td>
+                <td style={{padding:"6px 8px",textAlign:"center"}}>
+                  <div style={{position:"relative",display:"inline-flex",alignItems:"center",justifyContent:"center",width:100,height:16,background:"var(--surface-2)",borderRadius:2}}>
+                    <div style={{position:"absolute",top:0,bottom:0,left:"50%",width:1,background:"var(--text-dim)",opacity:0.4}}/>
+                    <div style={{position:"absolute",top:2,bottom:2,[r.tilt>=0?"left":"right"]:"50%",width:`${barWidth}%`,background:tiltCol,opacity:0.6,borderRadius:1}}/>
+                    <span style={{position:"relative",fontSize:10,color:tiltCol,fontWeight:700}}>{r.tilt>0?"+":""}{r.tilt.toFixed(1)}%</span>
+                  </div>
+                </td>
+                <td style={{padding:"6px 8px",color:"var(--text)",textAlign:"right",fontWeight:700}}>{r.newPct.toFixed(1)}%</td>
+                <td style={{padding:"6px 8px",color:tiltCol,textAlign:"right",fontWeight:700}}>{r.dollarImpact>=0?"+":"-"}${Math.abs(Math.round(r.dollarImpact)).toLocaleString()}</td>
+                <td style={{padding:"6px 8px",color:r.fwd>=0?"#30d158":"#ff453a",textAlign:"right"}}>{r.fwd>=0?"+":""}{r.fwd.toFixed(1)}%</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
+    <Explainer_Lab
+      accent={ALIGN.color}
+      what={`A dollar translation of the regime read. 3M FWD column is the average historical 3-month return for each sector ETF in the current regime combination (sample size varies — see methodology). Tilt is the suggested overweight/underweight relative to S&P 500 sector weights, capped at ±4%.`}
+      now={`Tilts sum to zero — same total equity weight, different composition. The $ IMPACT column shows the trade size per sector at your portfolio size.`}
+    />
+  </div>
+
+  {/* ── ★ STRESS TEST · composite → sectors → your portfolio ────────────── */}
+  <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px"}}>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",fontWeight:700,marginBottom:10}}>
+      STRESS TEST · pick a scenario or build your own
+    </div>
+
+    {/* Scenario buttons */}
+    <div style={{display:"flex",flexWrap:"wrap",gap:6,marginBottom:12}}>
+      {STRESS_SCENARIOS_LAB.map(s=>{
+        const isSel=scenarioId===s.id;
+        return(
+          <button key={s.id} onClick={()=>setScenarioId(isSel?null:s.id)}
+            style={{padding:"6px 12px",fontSize:11,fontFamily:"monospace",letterSpacing:"0.05em",
+              background:isSel?"#ff453a20":"var(--surface-2)",
+              color:isSel?"#ff453a":"var(--text)",
+              border:`1px solid ${isSel?"#ff453a":"var(--border)"}`,
+              borderRadius:3,cursor:"pointer",fontWeight:isSel?700:400}}>
+            {s.name}
+          </button>
+        );
+      })}
+      <button onClick={()=>{setScenarioId(null);}}
+        style={{padding:"6px 12px",fontSize:11,fontFamily:"monospace",letterSpacing:"0.05em",
+          background:scenarioId==null?"var(--surface-2)":"transparent",
+          color:"var(--text-2)",border:"1px dashed var(--border)",borderRadius:3,cursor:"pointer"}}>
+        Custom shock
+      </button>
+    </div>
+
+    {/* Custom shock panel — only when no scenario selected */}
+    {!selectedScenario&&(
+      <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 12px",marginBottom:12,display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12,alignItems:"center"}}>
+        <div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4}}>DRIVER FACTOR</div>
+          <select value={customFactor} onChange={e=>setCustomFactor(e.target.value)}
+            style={{width:"100%",padding:"5px 8px",fontSize:12,fontFamily:"monospace",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:3,color:"var(--text)"}}>
+            {FACTOR_KEYS_LAB.map(k=>(<option key={k} value={k}>{FACTOR_DISPLAY_LAB.find(f=>f.key===k)?.label||k}</option>))}
+          </select>
+        </div>
+        <div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4}}>SHOCK SIZE (standard deviations)</div>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <input type="range" min="-4" max="4" step="0.5" value={customZ}
+              onChange={e=>setCustomZ(parseFloat(e.target.value))}
+              style={{flex:1}}/>
+            <span style={{fontSize:13,fontFamily:"monospace",color:customZ>=0?"#ff453a":"#30d158",fontWeight:700,minWidth:44,textAlign:"right"}}>
+              {customZ>=0?"+":""}{customZ.toFixed(1)}
+            </span>
+          </div>
+        </div>
+        <div style={{fontSize:10,color:"var(--text-dim)",lineHeight:1.5}}>
+          Single-factor shock propagates to the other 8 factors via historical correlation. +2 standard deviations = a 2008/2020-class stress on that factor.
+        </div>
+      </div>
+    )}
+
+    {/* Stress output — cascade: composite → sectors → portfolio */}
+    {stressOut?(
+      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+        {/* Scenario narrative (if canned) */}
+        {selectedScenario&&(
+          <div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5,fontStyle:"italic",borderLeft:"2px solid var(--border)",paddingLeft:10}}>
+            {stressOut.narrative} S&P over the window: <b style={{color:stressOut.spx>=0?"#30d158":"#ff453a"}}>{stressOut.spx>=0?"+":""}{stressOut.spx}%</b>.
+          </div>
+        )}
+        {/* ROW 1: COMPOSITE INDICATOR impact */}
+        <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 12px"}}>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginBottom:8}}>
+            STEP 1 · IMPACT ON COMPOSITE INDICATORS
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:10}}>
+            {[
+              {label:"Near-term composite",cur:NEAR_COMP_LAB,delta:stressOut.compTact},
+              {label:"Longer-term composite",cur:STRAT_COMP_LAB,delta:stressOut.compStrat},
+            ].map((x,i)=>{
+              const after=x.cur+x.delta;
+              const afterCol=after>1.2?"#ff453a":after>0.5?"#ff9f0a":after<-0.5?"#30d158":"var(--text-2)";
+              return(
+                <div key={i}>
+                  <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",marginBottom:4}}>{x.label}</div>
+                  <div style={{display:"flex",alignItems:"baseline",gap:6,fontSize:12,fontFamily:"monospace"}}>
+                    <span style={{color:"var(--text-2)"}}>{x.cur>=0?"+":""}{x.cur.toFixed(2)}</span>
+                    <span style={{color:"var(--text-dim)"}}>→</span>
+                    <span style={{color:afterCol,fontWeight:700,fontSize:14}}>{after>=0?"+":""}{after.toFixed(2)}</span>
+                    <span style={{color:x.delta>=0?"#ff453a":"#30d158",fontSize:10,marginLeft:4}}>
+                      ({x.delta>=0?"+":""}{x.delta.toFixed(2)})
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ROW 2: SECTOR ALLOCATION impact */}
+        <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 12px"}}>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginBottom:8}}>
+            STEP 2 · IMPACT ON SECTOR ALLOCATIONS (% move per ETF)
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:6}}>
+            {SECTOR_ETFS_LAB.map(e=>{
+              const p=stressOut.sectorPct[e.tkr]??0;
+              const col=p>0?"#30d158":p<0?"#ff453a":"var(--text-2)";
+              const mag=Math.min(100,Math.abs(p)*2);
+              return(
+                <div key={e.tkr} style={{fontSize:11,fontFamily:"monospace",display:"flex",alignItems:"center",gap:6}}>
+                  <span style={{color:"var(--text)",minWidth:36,fontWeight:700}}>{e.tkr}</span>
+                  <div style={{flex:1,position:"relative",height:12,background:"var(--surface)",borderRadius:2}}>
+                    <div style={{position:"absolute",top:0,bottom:0,left:"50%",width:1,background:"var(--text-dim)",opacity:0.4}}/>
+                    <div style={{position:"absolute",top:1,bottom:1,[p>=0?"left":"right"]:"50%",width:`${mag/2}%`,background:col,opacity:0.65,borderRadius:1}}/>
+                  </div>
+                  <span style={{color:col,fontWeight:700,minWidth:50,textAlign:"right"}}>{p>=0?"+":""}{p.toFixed(1)}%</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ROW 3: PORTFOLIO $ impact */}
+        <div style={{background:stressOut.portfolioUSD>=0?"#30d15815":"#ff453a15",border:`2px solid ${stressOut.portfolioUSD>=0?"#30d158":"#ff453a"}`,borderRadius:6,padding:"14px 16px"}}>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginBottom:6}}>
+            STEP 3 · IMPACT ON YOUR PORTFOLIO (at S&P sector weights)
+          </div>
+          <div style={{display:"flex",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
+            <span style={{fontSize:28,fontWeight:800,fontFamily:"var(--font-display, Fraunces)",color:stressOut.portfolioUSD>=0?"#30d158":"#ff453a"}}>
+              {stressOut.portfolioUSD>=0?"+":"-"}${Math.abs(Math.round(stressOut.portfolioUSD)).toLocaleString()}
+            </span>
+            <span style={{fontSize:13,color:"var(--text-2)",fontFamily:"monospace"}}>
+              ({(stressOut.portfolioUSD/notional*100).toFixed(1)}% of ${notional.toLocaleString()})
+            </span>
+          </div>
+          <div style={{fontSize:11,color:"var(--text-2)",marginTop:6,lineHeight:1.5}}>
+            Assumes your portfolio is weighted to the S&amp;P 500 sectors (XLK, XLF, XLV, etc. at current index weights). Change the portfolio size above to rescale.
+          </div>
+        </div>
+      </div>
+    ):(
+      <div style={{fontSize:11,color:"var(--text-muted)",fontStyle:"italic",padding:"20px 12px",textAlign:"center"}}>
+        Pick a scenario above, or move the custom slider off zero, to see the impact cascade.
+      </div>
+    )}
+
+    <Explainer_Lab
+      accent={"#ff453a"}
+      what={`Runs a factor-level shock through the sector × factor loading matrix to estimate sector returns, then aggregates to a dollar P&L at your portfolio size. Canned scenarios use historical episode returns directly; custom shocks propagate via factor correlation.`}
+      now={stressOut?`${selectedScenario?`Replaying ${selectedScenario.name}.`:`Custom ${customFactor} shock of ${customZ>=0?"+":""}${customZ.toFixed(1)} standard deviations, correlated to the other 8 factors.`} Portfolio impact shown in step 3 below.`:`No scenario selected. Pick one above to see the cascade.`}
+    />
   </div>
 
   {/* ── Section 1 · CYCLE STAGE (expanded) ─────────────────────────────── */}
@@ -3293,44 +3877,46 @@ return(
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(260px,1fr))",gap:10}}>
       {/* ISM PMI */}
       <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 12px"}}>
-        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>ISM PMI · coincident growth</div>
+        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>Manufacturing PMI · coincident growth</div>
         <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:6}}>
           <div>
             <span style={{fontSize:20,fontWeight:800,color:ism!=null&&ism>=50?"#30d158":"#ff453a",fontFamily:"monospace"}}>{ism!=null?ism.toFixed(1):"—"}</span>
-            <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",marginLeft:6}}>AS OF {AS_OF.ism||"—"}</span>
+            <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",marginLeft:6}}>as of {AS_OF.ism||"—"}</span>
           </div>
           <LabSpark series={ismSpark} color={ism!=null&&ism>=50?"#30d158":"#ff453a"} w={72} h={22}/>
         </div>
         <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace"}}>
-          Δ3m · <span style={{color:ismDelta==null?"var(--text-muted)":ismDelta>0?"#30d158":"#ff453a",fontWeight:700}}>{ismDelta==null?"—":`${ismDelta>=0?"+":""}${ismDelta.toFixed(1)}`}</span>
-          <span style={{color:"var(--text-muted)",marginLeft:10}}>&gt;50 expansion · &lt;50 contraction · &lt;45 recession-consistent</span>
+          3-month change · <span style={{color:ismDelta==null?"var(--text-muted)":ismDelta>0?"#30d158":"#ff453a",fontWeight:700}}>{ismDelta==null?"—":`${ismDelta>=0?"+":""}${ismDelta.toFixed(1)}`}</span>
+          <span style={{color:"var(--text-muted)",marginLeft:10}}>above 50 = expansion, below 45 = recession-consistent</span>
         </div>
       </div>
       {/* Yield Curve */}
       <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:6,padding:"10px 12px"}}>
-        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>10Y–2Y SLOPE · leading growth</div>
+        <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>10-year minus 2-year Treasury spread · leading growth</div>
         <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:6}}>
           <div>
-            <span style={{fontSize:20,fontWeight:800,color:yc==null?"var(--text-muted)":yc<0?"#ff453a":yc<40?"#ff9f0a":"#30d158",fontFamily:"monospace"}}>{yc==null?"—":`${yc>=0?"+":""}${yc.toFixed(0)}bps`}</span>
-            <span style={{fontSize:11,color:yc==null?"var(--text-muted)":yc<0?"#ff453a":"var(--text-muted)",fontFamily:"monospace",marginLeft:6,fontWeight:yc!=null&&yc<0?700:400}}>{yc==null?"":yc<0?"INVERTED":"POSITIVE"}</span>
+            <span style={{fontSize:20,fontWeight:800,color:yc==null?"var(--text-muted)":yc<0?"#ff453a":yc<40?"#ff9f0a":"#30d158",fontFamily:"monospace"}}>{yc==null?"—":`${yc>=0?"+":""}${yc.toFixed(0)}`}</span>
+            <span style={{fontSize:11,color:"var(--text-muted)",marginLeft:4,fontFamily:"monospace"}}>basis points</span>
+            <span style={{fontSize:11,color:yc==null?"var(--text-muted)":yc<0?"#ff453a":"var(--text-muted)",fontFamily:"monospace",marginLeft:8,fontWeight:yc!=null&&yc<0?700:400}}>{yc==null?"":yc<0?"INVERTED":"POSITIVE"}</span>
           </div>
           <LabSpark series={ycSpark} color={yc==null?"#888":yc<0?"#ff453a":"#30d158"} w={72} h={22}/>
         </div>
         <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace"}}>
-          P(recession 12m) · <span style={{color:emCol,fontWeight:700}}>{emProb==null?"—":`${emProb.toFixed(1)}%`}</span>
-          <span style={{color:"var(--text-muted)",marginLeft:10}}>Estrella-Mishkin-style proxy · uses 10Y-2Y (not canonical 10Y-3M)</span>
+          Recession probability (12-month) · <span style={{color:emCol,fontWeight:700}}>{emProb==null?"—":`${emProb.toFixed(1)}%`}</span>
         </div>
       </div>
     </div>
 
-    <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:10,lineHeight:1.5}}>
-      Anchor: ISM PMI level + momentum (coincident) · Yield-curve slope (leading, Estrella-Mishkin 1996). Recession probability is a logistic fit to 10Y-2Y for directional magnitude — the canonical 10Y-3M spec is stronger but we don't yet surface it in IND.
-    </div>
+    <Explainer_Lab
+      accent={cyc.color}
+      what={`Where we are in the business cycle, read off two signals: manufacturing activity (coincident) and the Treasury yield curve (leading). Combined, they place us in one of four stages: early cycle, mid cycle, late cycle, or recession.`}
+      now={`${cyc.label} regime. Manufacturing PMI is ${ism!=null?(ism>=50?`${ism.toFixed(1)} (expansion)`:`${ism.toFixed(1)} (contraction)`):"—"}; yield curve is ${yc==null?"—":yc<0?"inverted (recession signal)":`positive ${yc.toFixed(0)} basis points`}.`}
+    />
   </div>
 
   {/* ── Section 2 · FACTOR SCORES (open by default) ───────────────────── */}
   <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
-    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>2 · FACTOR SCORES · {factorRows.length} macro factors · click a row to see its inputs</div>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>2 · MACRO FACTOR SCORES · {factorRows.length} factors · click a row to see its indicators</div>
     <div style={{display:"flex",flexDirection:"column",gap:4}}>
       {factorRows.map(r=>{
         const col=r.raw>1.2?"#ff453a":r.raw>0.5?"#ff9f0a":"#30d158";
@@ -3354,8 +3940,8 @@ return(
                 <div style={{display:"grid",gridTemplateColumns:"minmax(150px,1.2fr) minmax(80px,0.7fr) minmax(70px,0.5fr) minmax(100px,0.6fr) auto",gap:"6px 12px",alignItems:"center",fontSize:11,fontFamily:"monospace"}}>
                   <div style={{color:"var(--text-2)"}}>INDICATOR</div>
                   <div style={{color:"var(--text-2)",textAlign:"right"}}>VALUE</div>
-                  <div style={{color:"var(--text-2)",textAlign:"right"}}>SD</div>
-                  <div style={{color:"var(--text-2)"}}>AS OF</div>
+                  <div style={{color:"var(--text-2)",textAlign:"right",whiteSpace:"nowrap"}}>STRESS</div>
+                  <div style={{color:"var(--text-2)"}}>as of</div>
                   <div style={{color:"var(--text-2)"}}>TREND</div>
                   {r.contribs.map(c=>{
                     const sdCol=c.sd==null?"var(--text-muted)":c.sd>1.2?"#ff453a":c.sd>0.5?"#ff9f0a":c.sd<-0.5?"#30d158":"var(--text-2)";
@@ -3374,9 +3960,11 @@ return(
         );
       })}
     </div>
-    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8,lineHeight:1.5}}>
-      Factor score = clipped mean of SD z-scores across contributing indicators. Benign &lt;0.5 · Elevated 0.5–1.2 · Extreme &gt;1.2. Same formula used by /#sectors.
-    </div>
+    <Explainer_Lab
+      accent={"#ff9f0a"}
+      what={`Each macro factor rolls up its contributing indicators into one stress score (in standard deviations from a 5-year mean). Values below 0.5 are benign, 0.5-1.2 are elevated, above 1.2 are extreme. Same formula drives the sector ranking.`}
+      now={`${factorRows.filter(r=>r.raw>1.2).length} factors in the extreme zone, ${factorRows.filter(r=>r.raw>0.5&&r.raw<=1.2).length} elevated. Click a row to see which indicators are driving it.`}
+    />
   </div>
 
   {/* ── Section 3 · INDICATOR INPUTS TABLE ────────────────────────────── */}
@@ -3389,8 +3977,8 @@ return(
             <th onClick={()=>setIndSortKey("label")}   style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)"}}>INDICATOR{sortArrow("label")}</th>
             <th onClick={()=>setIndSortKey("factor")}  style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)"}}>FACTOR{sortArrow("factor")}</th>
             <th onClick={()=>setIndSortKey("value")}   style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)",textAlign:"right"}}>VALUE{sortArrow("value")}</th>
-            <th onClick={()=>setIndSortKey("sd")}      style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)",textAlign:"right"}}>SD{sortArrow("sd")}</th>
-            <th onClick={()=>setIndSortKey("asOf")}    style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)"}}>AS OF{sortArrow("asOf")}</th>
+            <th onClick={()=>setIndSortKey("sd")}      style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)",textAlign:"right"}}>STRESS{sortArrow("sd")}</th>
+            <th onClick={()=>setIndSortKey("asOf")}    style={{padding:"4px 8px",cursor:"pointer",borderBottom:"1px solid var(--border)"}}>as of{sortArrow("asOf")}</th>
           </tr>
         </thead>
         <tbody>
@@ -3409,9 +3997,11 @@ return(
         </tbody>
       </table>
     </div>
-    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8}}>
-      Flat view — an indicator appears multiple times if it contributes to more than one factor. SD = standardized deviation (z-score direction-adjusted; positive = stressful).
-    </div>
+    <Explainer_Lab
+      accent={"#ff9f0a"}
+      what={`Every indicator feeding the macro factors, flat. An indicator appears in multiple rows if it contributes to more than one factor. Stress is the indicator's distance from its 5-year average in standard deviations, direction-adjusted so positive always means risky.`}
+      now={`${indRows.filter(r=>r.sd!=null&&r.sd>1.2).length} indicators at extreme stress, ${indRows.filter(r=>r.sd!=null&&r.sd>0.5&&r.sd<=1.2).length} elevated. Sort by stress to see what's driving the regime.`}
+    />
   </div>
 
   {/* ── Section 4 · FACTOR-LOADING MATRIX ──────────────────────────────── */}
@@ -3456,14 +4046,16 @@ return(
         </tbody>
       </table>
     </div>
-    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",marginTop:8,lineHeight:1.5}}>
-      Red = positive loading (headwind when that factor is stressed) · Green = negative loading (tailwind when factor is stressed) · Intensity scales with magnitude. This is the APT engine made visible — a sector's score = 1 − Σ(loading × factor_stress) averaged across its subsectors.
-    </div>
+    <Explainer_Lab
+      accent={"#ff9f0a"}
+      what={`How much each sector moves with each macro factor. Red cells = sector gets hurt when that factor is stressed (positive loading). Green cells = sector benefits (negative loading). This is the engine that turns macro factor scores into a sector ranking.`}
+      now={`Top-ranked sector today: ${matrixRows[0]?.name}. Bottom-ranked: ${matrixRows[matrixRows.length-1]?.name}. Hover the ALIGNMENT note at the top to see the translation into trade recommendations.`}
+    />
   </div>
 
-  {/* ── Section 5 · MIRROR RANKING (demoted) ──────────────────────────── */}
+  {/* ── Section 5 · SECTOR RANKING ──────────────────────────────── */}
   <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"10px 14px"}}>
-    <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:6}}>5 · MIRROR · live /#sectors ranking (read-only, same formula)</div>
+    <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:6}}>5 · SECTOR RANKING · live read, same score as the main Sectors tab</div>
     <div style={{display:"flex",flexDirection:"column",gap:3}}>
       {scored.map((s,i)=>{
         const ol=outlookLabel(s.score);
@@ -3480,36 +4072,70 @@ return(
         );
       })}
     </div>
+    <Explainer_Lab
+      accent={"#ff9f0a"}
+      what={`Bottom-up sector ranking: each sector's score combines its factor sensitivities (Section 4) with current factor stress levels (Section 2). Higher score = more favorable macro setup.`}
+      now={`Leader: ${scored[0]?.name}. Laggard: ${scored[scored.length-1]?.name}. Use in combination with the capital allocation bridge above for the trade-ticket view.`}
+    />
   </div>
 
   {/* ── Section 6 · METHODOLOGY ──────────────────────────────────────── */}
   <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"12px 14px"}}>
-    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>6 · METHODOLOGY · how the Lab engine works</div>
+    <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>6 · METHODOLOGY · how the Sector Lab engine works</div>
     <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))",gap:12,fontSize:12,color:"var(--text)",lineHeight:1.55}}>
       <div>
-        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>CROSS-SECTIONAL APT</div>
-        <div>Each sector's score is built bottom-up from subsector factor sensitivities. A subsector carries a loading on each of 9 macro factors (rates, credit, banking, consumer, growth, dollar, valuation, CRE, volatility); the parent score = average across subsectors. This is an Arbitrage Pricing Theory treatment of sectors — return drivers are macro factors, not a single-market-beta CAPM.</div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>SECTOR SCORES FROM MACRO FACTORS</div>
+        <div>Each sector's score is built bottom-up from its sub-industry sensitivities to 9 macro factors (interest rates, credit, banking, consumer, growth, dollar, valuation, commercial real estate, volatility). The parent score averages across sub-industries. This is an arbitrage-pricing-theory treatment — sector returns are driven by macro factors, not by a single market beta.</div>
         <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>Anchor: Chen, Roll &amp; Ross (1986) — "Economic Forces and the Stock Market."</div>
       </div>
       <div>
-        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>CYCLE-STAGE CLASSIFIER</div>
-        <div>ISM PMI level + 3-month momentum gates the 4-stage business-cycle read; 10Y-2Y slope confirms leading-growth direction. Recession probability is a logistic proxy of Estrella-Mishkin — the canonical spec uses 10Y-3M, which we don't yet surface.</div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>CYCLE STAGE CLASSIFIER</div>
+        <div>Manufacturing PMI level and 3-month change gate the four-stage business-cycle read; the 10-year minus 2-year Treasury spread confirms the leading-growth direction. Recession probability uses a logistic fit on the same spread — the canonical specification uses 10-year minus 3-month, which we show as a caveat.</div>
         <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>Anchor: Estrella &amp; Mishkin (1996) — "The Yield Curve as a Predictor of U.S. Recessions," FRBNY.</div>
       </div>
       <div>
         <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>FACTOR CONSTRUCTION</div>
-        <div>Each factor is the clipped mean of SD z-scores across its contributing indicators; direction-adjusted so higher = more stressful. Equal weights within a factor. Sources: FRED, ICE BofA, NY Fed CMDI, Shiller CAPE dataset, CBOE.</div>
-        <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>Anchor: Fama &amp; French (1993) — multifactor model motivates linear factor-loading aggregation.</div>
+        <div>Each factor averages the standardized deviations of its contributing indicators (distance from 5-year mean, direction-adjusted so higher always means riskier). Equal weights within a factor. Data: FRED, ICE BofA, NY Fed CMDI, Shiller CAPE, CBOE.</div>
+        <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>Anchor: Fama &amp; French (1993) — multifactor models motivate linear aggregation.</div>
       </div>
       <div>
-        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>PROMOTION PATH</div>
-        <div>A Lab block graduates to the live /#sectors header only after (1) the research anchor is cited inline, (2) the compute is stable across 3 consecutive indicator refreshes, and (3) the visual and numeric output match the Lab mirror. Promotion = move one render block into <code>SectorsTab</code>; nothing else changes.</div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>HISTORICAL SKILL · HONEST READ</div>
+        <div>In-sample 2006-2026 hit rate is genuinely above coin-flip (tactical 66%, strategic 72%). Out-of-sample, refitting annually, it's {OOS_TACT.yrsAboveCoin}/{OOS_TACT.yrsTotal} years above coin-flip tactical and {OOS_STRAT.yrsAboveCoin}/{OOS_STRAT.yrsTotal} strategic — a real but unstable edge. Use it as a calibrated lens, not a point forecast.</div>
+        {/* Year-by-year OOS skill heatmap — visual, not text */}
+        <div style={{marginTop:8}}>
+          <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:3}}>YEAR-BY-YEAR TRACK RECORD (tactical · strategic)</div>
+          <div style={{display:"grid",gridTemplateColumns:`repeat(${WALKFORWARD_OOS_LAB.length},1fr)`,gap:2}}>
+            {WALKFORWARD_OOS_LAB.map(r=>{
+              const tColor=r.tact==null?"var(--border)":r.tact>=0.5?"#30d158":r.tact>=0.4?"#ff9f0a":"#ff453a";
+              const sColor=r.strat==null?"var(--border)":r.strat>=0.5?"#30d158":r.strat>=0.4?"#ff9f0a":"#ff453a";
+              return(
+                <div key={r.year} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
+                  <div title={`${r.year} tactical: ${r.tact==null?"—":r.tact.toFixed(2)}`} style={{width:"100%",height:10,background:tColor,opacity:0.85,borderRadius:1}}/>
+                  <div title={`${r.year} strategic: ${r.strat==null?"—":r.strat.toFixed(2)}`} style={{width:"100%",height:10,background:sColor,opacity:0.55,borderRadius:1}}/>
+                  <span style={{fontSize:8,color:"var(--text-dim)",fontFamily:"monospace"}}>'{String(r.year).slice(-2)}</span>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",marginTop:4,display:"flex",justifyContent:"space-between"}}>
+            <span>Green = beat coin-flip</span><span>Yellow = borderline</span><span>Red = below</span>
+          </div>
+        </div>
+        <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginTop:6}}>Full back-test: /sector_lab_research/backtest_v4_report.html</div>
+      </div>
+      <div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>STRESS TEST METHODOLOGY</div>
+        <div>Canned scenarios replay the actual factor moves and sector returns from historical episodes (2008, 2020, 2022, 2018 Q4). Custom shocks start with a single factor and propagate through the 9×9 historical correlation matrix (Pearson 2006-2026), then flow into sector P&amp;L via the loading matrix.</div>
+      </div>
+      <div>
+        <div style={{fontSize:10,color:ACCENT,fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:4,fontWeight:700}}>CONFIDENCE BANDS</div>
+        <div>The ± band around each composite is the trailing 1-year standard deviation of the composite time series (noise floor, not forecast uncertainty). Historical out-of-sample skill is reported separately as the share of years where the composite's AUC beat 0.5.</div>
       </div>
     </div>
   </div>
 
   <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",textAlign:"center"}}>
-    Sector Lab v2 · admin-only · research sandbox — not investment advice · promotion path = block-by-block migration into /#sectors
+    Sector Lab · research tab · not investment advice
   </div>
 </div>
 );
