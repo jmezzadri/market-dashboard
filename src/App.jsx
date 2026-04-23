@@ -4503,6 +4503,17 @@ return(
         const dayPnl$ = _dayPnl;
         const dayPnlPct = _priorEq > 0 ? (_dayPnl / _priorEq) * 100 : 0;
         const hasDayPnl = Math.abs(_priorEq) > 1;  // pre-market or empty book → hide
+        // Benchmark — S&P 500 (SPY ETF) day %. Pulled from the universe
+        // snapshot overlay (merged into scanData.signals.screener by
+        // useUniverseSnapshot). When SPY isn't in the snapshot (weekend /
+        // empty state), benchmarkPct is null and the vs-SPY line hides.
+        const _spy = _screenerMap["SPY"] || {};
+        const _spyClose = Number(_spy.close || 0);
+        const _spyPrev  = Number(_spy.prev_close || 0);
+        const benchmarkPct = (_spyClose && _spyPrev) ? ((_spyClose - _spyPrev) / _spyPrev) * 100 : null;
+        const outperfBps = (hasDayPnl && benchmarkPct != null)
+          ? Math.round((dayPnlPct - benchmarkPct) * 100)
+          : null;
         // Deployable cash: sum of Cash-sector positions in tactical accounts.
         const totalDeployable = ACCOUNTS
           .filter(a => a.tactical)
@@ -4651,7 +4662,25 @@ return(
                         fontFamily:"var(--font-mono)",
                         color: dayPnl$ >= 0 ? "var(--green-text)" : "var(--red-text)",
                       }}>{dayPnl$ >= 0 ? "+" : ""}{dayPnlPct.toFixed(2)}%</span>
-                      <span style={{color:"var(--text-dim)"}}> · vs. yesterday's close</span>
+                      {benchmarkPct != null ? (
+                        <>
+                          <span style={{color:"var(--text-dim)"}}> · S&amp;P </span>
+                          <span style={{fontFamily:"var(--font-mono)", color:"var(--text-muted)"}}>
+                            {benchmarkPct >= 0 ? "+" : ""}{benchmarkPct.toFixed(2)}%
+                          </span>
+                          {outperfBps != null && Math.abs(outperfBps) >= 1 && (
+                            <span style={{
+                              fontFamily:"var(--font-mono)",
+                              marginLeft:4,
+                              color: outperfBps > 0 ? "var(--green-text)" : "var(--red-text)",
+                            }}>
+                              ({outperfBps > 0 ? "+" : ""}{outperfBps} bps)
+                            </span>
+                          )}
+                        </>
+                      ) : (
+                        <span style={{color:"var(--text-dim)"}}> · vs. yesterday's close</span>
+                      )}
                     </>
                   : <>market closed or pre-open</>}
               </div>
