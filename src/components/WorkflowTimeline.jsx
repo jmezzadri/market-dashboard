@@ -388,12 +388,19 @@ function stageBody(row, stage) {
     case "filed": {
       const who = row.reporter_name || row.reporter_email || "Unknown";
       const desc = (row.description || "").trim();
-      const oneLiner = desc ? (desc.split(/\r?\n/)[0] || "").slice(0, 220) : "";
+      // Render the full description — no char cap, no first-line-only
+      // clipping. Triage rule is "≥2-3 sentences per section" (Joe,
+      // 2026-04-22) so the filed stage body has to show all of it or
+      // the rule is meaningless. Side panel is already scrollable.
       return (
         <div>
           <div><b>Reporter:</b> {who}</div>
-          {oneLiner && <div style={{ marginTop: 4, color: "var(--text-muted)" }}>{oneLiner}{oneLiner.length === 220 ? "…" : ""}</div>}
-          <div style={{ marginTop: 4, fontSize: 10, fontFamily: "monospace", color: "var(--text-muted)" }}>
+          {desc && (
+            <div style={{ marginTop: 4, color: "var(--text-muted)", whiteSpace: "pre-wrap" }}>
+              {desc}
+            </div>
+          )}
+          <div style={{ marginTop: 6, fontSize: 10, fontFamily: "monospace", color: "var(--text-muted)" }}>
             {row.complexity && <>complexity: <b style={{ color: "var(--text-2)" }}>{row.complexity}</b> · </>}
             {row.priority && <>priority: <b style={{ color: "var(--text-2)" }}>{row.priority}</b></>}
           </div>
