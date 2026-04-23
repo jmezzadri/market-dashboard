@@ -2897,7 +2897,7 @@ return(
 // computeSectorScore, outlookLabel). Does NOT mutate any of them.
 // v2 contents (2026-04-22):
 //   (1) Cycle-stage · expanded — 4-stage diagram with current stage highlit,
-//       ISM PMI block (value, Δ3m, 12m sparkline), Yield-Curve block (10Y-2Y bps,
+//       ISM PMI block (value, 3-month change, 12m sparkline), Yield-Curve block (10Y-2Y bps,
 //       inversion flag, Estrella-Mishkin-style recession probability), thresholds.
 //   (2) Factor Scores · OPEN BY DEFAULT — all 9 factor rows, each expandable
 //       with contributing indicators (value, SD z-score, AS_OF date, sparkline).
@@ -2916,15 +2916,15 @@ function detectCycleStage(){
   if(ism==null)return{label:"—",color:"var(--text-2)",stageKey:"MIXED",desc:"PMI unavailable"};
   const d=ism-(ism3??ism);
   const rising=d>0.3,falling=d<-0.3;
-  const ycNote=(yc!=null)?` · YC ${yc>=0?"+":""}${yc.toFixed(0)}bps`:"";
+  const ycNote=(yc!=null)?` · Curve ${yc>=0?"+":""}${yc.toFixed(0)} basis points`:"";
   if(ism>=50&&rising) return{label:"EARLY / MID EXPANSION",stageKey:"EXPANSION",color:"#30d158",
-    desc:`PMI ${ism.toFixed(1)} above 50 and rising (Δ3m ${d>=0?"+":""}${d.toFixed(1)})${ycNote}`};
+    desc:`Manufacturing ${ism.toFixed(1)} above 50 and rising (3-month change ${d>=0?"+":""}${d.toFixed(1)})${ycNote}`};
   if(ism>=50&&falling)return{label:"LATE EXPANSION / SLOWDOWN",stageKey:"SLOWDOWN",color:"#ff9f0a",
-    desc:`PMI ${ism.toFixed(1)} above 50 but falling (Δ3m ${d.toFixed(1)})${ycNote}`};
+    desc:`Manufacturing ${ism.toFixed(1)} above 50 but falling (3-month change ${d.toFixed(1)})${ycNote}`};
   if(ism<50&&falling) return{label:"CONTRACTION",stageKey:"CONTRACTION",color:"#ff453a",
-    desc:`PMI ${ism.toFixed(1)} below 50 and still falling (Δ3m ${d.toFixed(1)})${ycNote}`};
+    desc:`Manufacturing ${ism.toFixed(1)} below 50 and still falling (3-month change ${d.toFixed(1)})${ycNote}`};
   if(ism<50&&rising)  return{label:"EARLY RECOVERY",stageKey:"RECOVERY",color:"#64d2ff",
-    desc:`PMI ${ism.toFixed(1)} below 50 but turning up (Δ3m +${d.toFixed(1)})${ycNote}`};
+    desc:`Manufacturing ${ism.toFixed(1)} below 50 but turning up (3-month change +${d.toFixed(1)})${ycNote}`};
   return{label:"MIXED",stageKey:"MIXED",color:"var(--text-2)",
     desc:`PMI ${ism.toFixed(1)}, 3m change flat (${d>=0?"+":""}${d.toFixed(1)})${ycNote}`};
 }
