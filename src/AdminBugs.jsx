@@ -673,6 +673,14 @@ function SidePanel({ row, onClose, onActed }) {
           glance who owns the next step and whether it's within SLA. */}
       <WorkflowTimeline row={row} blockers={blockers} />
 
+      {/* Verify-before-reopen card — only when the row is deployed + awaiting
+          Joe's manual UAT. Renders What-you-reported / What-was-approved /
+          What-actually-shipped side-by-side so reopen is an informed action
+          instead of a "still doesn't work" black box. Memory of bug #1019. */}
+      {normStatus(row.status) === "deployed" && (row.uat_mode ?? "manual") === "manual" && (
+        <VerifyShippedPanel row={row} />
+      )}
+
       {/* Proposed Fix — prominent for awaiting_approval; plain section otherwise */}
       {isAwaitingApproval ? (
         <ProposedFixCard
@@ -797,6 +805,110 @@ function StampRow({ label, iso }) {
     <div style={{ display: "flex", gap: 8, alignItems: "baseline" }}>
       <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", minWidth: 86 }}>{label}</div>
       <div style={{ fontFamily: "monospace", fontSize: 11, color: iso ? "var(--text-2)" : "var(--text-muted)" }}>{iso ? etDateTime(iso) : "—"}</div>
+    </div>
+  );
+}
+
+// ── VerifyShippedPanel ─────────────────────────────────────────────────────
+// Three-column "what you reported / what was approved / what shipped" card
+// that renders on deployed + manual-UAT rows so reopen becomes a comparison,
+// not a guess. Memory of bug #1019: reopened without a note because the
+// reporter had no context on what the shipped PR actually changed.
+const GH_REPO_URL = "https://github.com/jmezzadri/market-dashboard";
+function VerifyShippedPanel({ row }) {
+  const prUrl = row.fixed_pr
+    ? `${GH_REPO_URL}/pull/${row.fixed_pr}`
+    : row.merged_pr ? `${GH_REPO_URL}/pull/${row.merged_pr}` : null;
+  const sha = row.deployed_sha || row.merged_sha || row.fixed_sha;
+  const commitUrl = sha ? `${GH_REPO_URL}/commit/${sha}` : null;
+  const shortSha = sha ? sha.slice(0, 7) : null;
+
+  const columnStyle = {
+    background: "var(--surface)",
+    border: "1px solid var(--border)",
+    borderRadius: 6,
+    padding: "10px 12px",
+    display: "flex",
+    flexDirection: "column",
+    gap: 6,
+    minWidth: 0,
+  };
+  const labelStyle = {
+    fontSize: 10,
+    fontFamily: "monospace",
+    color: "var(--text-muted)",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+  };
+  const bodyStyle = {
+    fontSize: 12,
+    color: "var(--text)",
+    lineHeight: 1.5,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    maxHeight: 180,
+    overflow: "auto",
+  };
+
+  return (
+    <div style={{
+      background: "rgba(16, 185, 129, 0.05)",
+      border: "1px solid rgba(16, 185, 129, 0.35)",
+      borderRadius: 8,
+      padding: 14,
+      display: "flex",
+      flexDirection: "column",
+      gap: 10,
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 4, background: "#10b981" }} />
+        <div style={{ fontSize: 11, fontFamily: "monospace", color: "#059669", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+          Verify before reopening — does what shipped match what you asked for?
+        </div>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0,1fr))", gap: 8 }}>
+        <div style={columnStyle}>
+          <div style={labelStyle}>1. What you reported</div>
+          <div style={bodyStyle}>{row.description || "(empty)"}</div>
+        </div>
+        <div style={columnStyle}>
+          <div style={labelStyle}>2. What was approved</div>
+          <div style={bodyStyle}>{row.proposed_solution || row.triage_notes || "(no proposed_solution captured)"}</div>
+        </div>
+        <div style={columnStyle}>
+          <div style={labelStyle}>3. What shipped</div>
+          <div style={{ ...bodyStyle, fontFamily: "monospace", fontSize: 11 }}>
+            {prUrl && (
+              <div style={{ marginBottom: 4 }}>
+                <a href={prUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#059669", textDecoration: "underline" }}>
+                  PR #{row.fixed_pr || row.merged_pr}
+                </a>
+              </div>
+            )}
+            {commitUrl && (
+              <div style={{ marginBottom: 4 }}>
+                commit <a href={commitUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#059669", textDecoration: "underline" }}>{shortSha}</a>
+              </div>
+            )}
+            {row.deployed_at && (
+              <div style={{ marginBottom: 4, color: "var(--text-2)" }}>
+                deployed {etDateTime(row.deployed_at)}
+              </div>
+            )}
+            {row.branch_name && (
+              <div style={{ color: "var(--text-muted)", wordBreak: "break-all" }}>
+                branch: {row.branch_name}
+              </div>
+            )}
+            {!prUrl && !commitUrl && !row.deployed_at && (
+              <div style={{ color: "var(--text-muted)" }}>(no ship trail recorded)</div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.5 }}>
+        If column 3 covers column 2 but you still see a problem, it's a new bug — file it separately so the audit trail stays clean. If column 3 misses something in column 2, reopen with a specific repro and the fix-builder will take another pass.
+      </div>
     </div>
   );
 }
