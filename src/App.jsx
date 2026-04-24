@@ -53,6 +53,16 @@ usd:{mean:99,sd:7,dir:"hw"},cpff:{mean:10,sd:28,dir:"hw"},
 skew:{mean:128,sd:12,dir:"hw"},sloos_cre:{mean:5,sd:20,dir:"hw"},
 bank_credit:{mean:6.5,sd:3.2,dir:"lw"},jobless:{mean:340,sd:185,dir:"hw"},
 jolts_quits:{mean:2.1,sd:0.42,dir:"lw"},
+// New series 2026-04-24 — stub stats; overwritten from JSON at runtime.
+m2_yoy:{mean:6,sd:4,dir:"hw"},
+fed_bs:{mean:0,sd:8,dir:"lw"},
+rrp:{mean:430,sd:700,dir:"hw"},
+bank_reserves:{mean:3200,sd:600,dir:"lw"},
+tga:{mean:500,sd:200,dir:"hw"},
+breakeven_10y:{mean:2.2,sd:0.3,dir:"hw"},
+cfnai:{mean:0,sd:0.3,dir:"lw"},
+cfnai_3ma:{mean:0,sd:0.3,dir:"lw"},
+hy_ig_etf:{mean:1.05,sd:0.05,dir:"hw"},
 };
 
 function sdScore(id,v){
@@ -128,6 +138,10 @@ term_premium:"Apr 10 2026",cmdi:"Apr 10 2026",loan_syn:"Apr 15 2026",
 usd:"Apr 16 2026",cpff:"Apr 14 2026",skew:"Apr 16 2026",
 sloos_cre:"Jan 01 2026",bank_credit:"Apr 01 2026",jobless:"Apr 11 2026",
 jolts_quits:"Feb 01 2026",
+// New series added 2026-04-24 — placeholders, AS_OF[id] is overwritten at runtime
+// from indicator_history.json's per-series `as_of` field.
+m2_yoy:"—",fed_bs:"—",rrp:"—",bank_reserves:"—",tga:"—",
+breakeven_10y:"—",cfnai:"—",cfnai_3ma:"—",hy_ig_etf:"—",
 };
 
 const IND={
@@ -206,6 +220,36 @@ jobless:["Init. Claims","Weekly Jobless Claims","labor",3,"K",0,207.0,224,215,21
 jolts_quits:["JOLTS Quits","Voluntary Quit Rate","labor",3,"%",1,1.9,2.3,2.35,2.45,2.55,false,
 "Voluntary quits as a percentage of total nonfarm employment — workers quit when confident about finding a better job, so the rate proxies labor-market tightness and wage-pressure direction. Source: FRED JTSQUR (BLS Job Openings and Labor Turnover Survey, monthly). MacroTilt Tier 3 labor factor; post-2000 average ~2.1%, >2.5% tight labor market with wage pressure, <2% softening, <1.5% recessionary.",
 "Down sharply from a post-COVID high of 3.0% — workers less confident about finding a better job. Signals softening labor market."],
+// ─── 8 NEW SERIES (2026-04-24) — Senior-Quant-validated; data populated at
+//     runtime from public/indicator_history.json. Hardcoded m1/m3/m6/m12 left
+//     null; UI computes them from real history. cur seeded as null → live.
+m2_yoy:["M2 Money Supply","M2 Money Stock YoY Growth","fincond",1,"% YoY",2,null,null,null,null,null,false,
+"Year-over-year growth in the M2 money stock — Friedman's medium-term monetary impulse to asset prices. Source: FRED M2SL (monthly, transformed to YoY % change). MacroTilt Tier 1 financial-conditions factor; sustained M2 growth above ~7% historically associated with looser conditions and higher asset valuations, sub-zero growth (M2 contraction) is rare and historically tight.",
+""],
+fed_bs:["Fed Balance Sheet","Fed Total Assets YoY Change","fincond",2,"% YoY",1,null,null,null,null,null,false,
+"Year-over-year change in the Fed's total assets (WALCL) — the headline measure of QE / QT. Positive = balance-sheet expansion (QE), negative = contraction (QT). Source: FRED WALCL (weekly, transformed to YoY % change). MacroTilt Tier 2 financial-conditions factor; tracks the direction of policy liquidity injection or withdrawal.",
+""],
+rrp:["Reverse Repo","Overnight Reverse Repo Take-Up","fincond",2,"$bn",0,null,null,null,null,null,false,
+"Cash parked at the Fed's reverse-repo facility — a measure of liquidity drag from money-market funds. Higher take-up indicates excess system liquidity is being absorbed by the Fed; sharply falling take-up signals liquidity is being pulled back into private credit. Source: FRED RRPONTSYD (daily, divided by 1,000 for $bn).",
+""],
+bank_reserves:["Bank Reserves","Reserve Balances at the Fed","bank",2,"$bn",0,null,null,null,null,null,false,
+"Total reserves held by depository institutions at the Fed — the system liquidity floor. Source: FRED WRESBAL (weekly, divided by 1,000 for $bn). MacroTilt Tier 2 bank factor; the Fed has signaled the floor for ample reserves is somewhere around $3T — sustained moves below that range are a tightening signal for the banking system.",
+""],
+tga:["Treasury General Account","Treasury Cash at the Fed","fincond",2,"$bn",0,null,null,null,null,null,false,
+"Cash held by the Treasury at the Fed — when high, it withdraws liquidity from bank reserves; when low, it adds liquidity back into the system. Mechanical liquidity-impact relationship inverse to RRP and bank reserves. Source: FRED WTREGEN (weekly, divided by 1,000 for $bn).",
+""],
+breakeven_10y:["10Y Breakeven","10-Year Inflation Breakeven","rates",2,"%",2,null,null,null,null,null,false,
+"10-year breakeven inflation rate — the bond market's read on average annual CPI inflation over the next decade, computed as nominal 10Y Treasury yield minus 10Y TIPS real yield. Source: FRED T10YIE (daily). MacroTilt Tier 2 rates factor; long-run anchor near 2.0–2.5%; sustained moves above 3% reflect inflation-regime concerns, sub-1.5% reflects deflation/hard-landing pricing.",
+""],
+cfnai:["CFNAI","Chicago Fed National Activity Index","labor",1,"index",2,null,null,null,null,null,false,
+"85-component composite of monthly economic activity covering production, employment, personal-consumption / housing, and sales / orders / inventories. Source: FRED CFNAI (monthly). MacroTilt Tier 1 growth factor; readings above 0 = above-trend growth, below 0 = below trend, sustained below −0.7 historically signals an active recession (NBER convention uses the 3-month average — see cfnai_3ma).",
+""],
+cfnai_3ma:["CFNAI (3M Avg)","CFNAI 3-Month Moving Average","labor",1,"index",2,null,null,null,null,null,false,
+"Smoothed (3-month moving average) version of CFNAI — the Chicago Fed's preferred read because the monthly series is noisy. The threshold often cited for recession risk is a sustained −0.7 in this 3-month average. Source: FRED CFNAI, computed as a 3-month rolling mean. MacroTilt Tier 1 growth factor; primary input to the Growth composite.",
+""],
+hy_ig_etf:["HY-IG ETF Proxy","LQD ÷ HYG Price Ratio","credit",2,"ratio",4,null,null,null,null,null,false,
+"LQD (investment-grade corporate bond ETF) divided by HYG (high-yield ETF) — a Yahoo-sourced proxy for HY-IG spread that backfills the 2007–2023 window where FRED's ICE BofA OAS series is licensed-out. Higher ratio = HY underperforming = wider spreads. Source: Yahoo Finance (daily). Reference indicator only — NOT a substitute for the FRED OAS series in composite math; the FRED series is preserved as-is via curated anchors.",
+""],
 };
 
 // Reporting frequency per indicator: D=Daily, W=Weekly, M=Monthly, Q=Quarterly
@@ -218,6 +262,9 @@ const IND_FREQ={
   anfci:"W",stlfsi:"W",cpff:"W",loan_syn:"W",bank_credit:"W",jobless:"W",cmdi:"W",term_premium:"W",
   cape:"M",ism:"M",jolts_quits:"M",
   sloos_ci:"Q",sloos_cre:"Q",bank_unreal:"Q",credit_3y:"Q",
+  // New series 2026-04-24
+  m2_yoy:"M",fed_bs:"W",rrp:"D",bank_reserves:"W",tga:"W",
+  breakeven_10y:"D",cfnai:"M",cfnai_3ma:"M",hy_ig_etf:"D",
 };
 
 const WEIGHTS={
@@ -1638,6 +1685,500 @@ return(
 </div>
 );
 }
+
+
+// ── ALL INDICATORS TABLE — single sortable inventory of every macro indicator
+//    MacroTilt collects. Replaces the prior expandable-card grid.
+//
+// Joe spec (PR feat/all-indicators-redesign-plus-new-data 2026-04-24):
+//   - Narrative intro + dynamic count line
+//   - One sortable table (Indicator / Category / Freq / Composite / Weight /
+//     Type / Last refresh / Current / 3M / 6M / 12M)
+//   - Click row → expand inline using IndicatorDetailBody (re-uses the same
+//     content that lives inside IndicatorModal)
+//   - Tooltips on column headers + chips, instant show via <Tip/>
+//   - Plain English everywhere; works in both light + dark theme via existing
+//     CSS theme tokens (no hardcoded colors except semantic stress hues).
+//
+// Composite mappings + weights match public/composite_weights.json (PR #110).
+// Indicators that did not clear the AUC predictive-threshold are kept on the
+// site as reference (per memory feedback_indicators_never_deleted).
+
+// Composite mapping — derived from public/composite_weights.json so a single
+// edit there propagates here. Keeping inline for now; future refactor can
+// import the JSON at build time.
+const COMPOSITE_MAP = {
+  // Risk & Liquidity (R&L) — 3-month forward drawdown
+  anfci:  { composite:"Risk & Liquidity", weight:0.2598 },
+  vix:    { composite:"Risk & Liquidity", weight:0.2537 },
+  stlfsi: { composite:"Risk & Liquidity", weight:0.2434 },
+  cmdi:   { composite:"Risk & Liquidity", weight:0.2431 },
+  // Growth — 6-month forward
+  jobless:    { composite:"Growth", weight:0.3427 },
+  cfnai_3ma:  { composite:"Growth", weight:0.3307 },
+  bkx_spx:    { composite:"Growth", weight:0.3265 },
+  // Inflation & Rates — 18-month forward
+  move:   { composite:"Inflation & Rates", weight:0.5063 },
+  m2_yoy: { composite:"Inflation & Rates", weight:0.4937 },
+};
+
+const COMPOSITE_TOOLTIPS = {
+  "Risk & Liquidity": "Risk & Liquidity composite — 3-month forward drawdown predictor. AUC 0.69 (95% CI 0.60–0.78), 4 indicators.",
+  "Growth":           "Growth composite — 6-month forward drawdown predictor. AUC 0.66 (95% CI 0.57–0.74), 3 indicators.",
+  "Inflation & Rates":"Inflation & Rates composite — 18-month forward drawdown predictor. AUC 0.60 (95% CI 0.51–0.68), 2 indicators.",
+};
+
+// Lead/Coincident/Lag classification (Senior Quant + Conference Board / NBER convention).
+const TYPE_MAP = {
+  // LEAD
+  yield_curve:"Lead", ism:"Lead", jobless:"Lead", jolts_quits:"Lead", copper_gold:"Lead",
+  sloos_ci:"Lead", sloos_cre:"Lead", real_rates:"Lead", term_premium:"Lead",
+  breakeven_10y:"Lead", m2_yoy:"Lead", fed_bs:"Lead", cfnai:"Lead", cfnai_3ma:"Lead",
+  skew:"Lead",
+  // COINCIDENT
+  vix:"Coincident", move:"Coincident", anfci:"Coincident", stlfsi:"Coincident",
+  cmdi:"Coincident", hy_ig:"Coincident", hy_ig_etf:"Coincident", cpff:"Coincident",
+  loan_syn:"Coincident", bkx_spx:"Coincident", usd:"Coincident", rrp:"Coincident",
+  bank_reserves:"Coincident", tga:"Coincident", eq_cr_corr:"Coincident", bank_unreal:"Coincident",
+  // LAG
+  bank_credit:"Lag", credit_3y:"Lag", cape:"Lag",
+};
+
+const TYPE_TOOLTIP_BY_VAL = {
+  "Lead":      "Lead — moves before the cycle (Conference Board convention). Useful for forward-looking allocation tilts.",
+  "Coincident":"Coincident — moves with the cycle. Useful as a real-time gauge of current conditions.",
+  "Lag":       "Lag — moves after the cycle. Useful for confirming a regime shift, less so for anticipating one.",
+};
+const TYPE_COLOR = { "Lead":"#22c55e", "Coincident":"#94a3b8", "Lag":"#a78bfa" };
+
+// Per-category plain-English description (shown in chip tooltip).
+const CATEGORY_TOOLTIPS = {
+  equity:  "Equity & Vol — implied volatility, equity-credit correlation, and tail-risk pricing on the S&P 500 options market.",
+  credit:  "Credit Markets — corporate bond risk premia, distress indices, and HY/IG spread proxies.",
+  rates:   "Rates & Duration — Treasury curve slope, real yields, term premium, and long-end inflation pricing.",
+  fincond: "Financial Conditions — broad measures of money-market and balance-sheet stress (ANFCI, STLFSI, USD, CPFF, M2, RRP, Treasury General Account, Fed Balance Sheet).",
+  bank:    "Bank & Money Supply — bank credit growth, lending standards, unrealized losses, and the system reserve floor.",
+  labor:   "Labor & Economy — jobless claims, JOLTS quits, ISM manufacturing PMI, CFNAI activity index, copper/gold growth proxy.",
+};
+
+// Helper — value at approximately N days back, using indicator_history.json.
+function _valueAtDaysAgo(id, days){
+  const e = _histCache && _histCache[id];
+  if(!e || !Array.isArray(e.points) || e.points.length < 2) return null;
+  const pts = e.points;
+  const lastDate = new Date(String(pts[pts.length-1][0]) + "T00:00:00Z");
+  if(Number.isNaN(+lastDate)) return null;
+  const targetMs = lastDate.getTime() - days * 24 * 3600 * 1000;
+  let best = null, bestDiff = Infinity, bestDate = null;
+  for(let i = pts.length-1; i >= 0; i--){
+    const [ds, val] = pts[i];
+    if(val == null || !Number.isFinite(val)) continue;
+    const d = new Date(String(ds) + "T00:00:00Z");
+    if(Number.isNaN(+d)) continue;
+    // Only consider points at or before the target date
+    if(d.getTime() > targetMs + 7*24*3600*1000) continue;
+    const diff = Math.abs(d.getTime() - targetMs);
+    if(diff < bestDiff){ bestDiff = diff; best = val; bestDate = ds; }
+    if(d.getTime() < targetMs - 60*24*3600*1000) break;
+  }
+  return best;
+}
+
+// Sort comparators per column. Always returns nulls-last regardless of direction
+// — pulled out of the asc/desc reversal in the component so users always see the
+// real values together (desc → highest weight first, nulls anchored at the bottom;
+// asc → lowest weight first, nulls also at the bottom).
+function _cmp(a, b){
+  if(a == null && b == null) return 0;
+  if(a == null) return 1;
+  if(b == null) return -1;
+  if(typeof a === "number" && typeof b === "number") return a - b;
+  return String(a).localeCompare(String(b));
+}
+
+// Default sort: composite priority (R&L → Growth → Inflation & Rates → N/A),
+// then weight DESC inside each composite.
+const COMP_ORDER = { "Risk & Liquidity":0, "Growth":1, "Inflation & Rates":2, "":3 };
+
+function AllIndicatorsTable(){
+  const [sortKey, setSortKey] = useState("default");
+  const [sortDir, setSortDir] = useState("asc");
+  const [openId, setOpenId] = useState(null);
+
+  // Build row data — one row per indicator in IND.
+  const rows = Object.keys(IND).map(id => {
+    const d = IND[id];
+    const compMap = COMPOSITE_MAP[id];
+    const composite = compMap ? compMap.composite : "";
+    const weight = compMap ? compMap.weight : null;
+    const type = TYPE_MAP[id] || "";
+    const cur = d[6];
+    const v3m = _valueAtDaysAgo(id, 90);
+    const v6m = _valueAtDaysAgo(id, 180);
+    const v12m = _valueAtDaysAgo(id, 365);
+    return {
+      id,
+      label: d[0],
+      sub: d[1],
+      cat: d[2],
+      tier: d[3],
+      freq: IND_FREQ[id] || "",
+      composite,
+      weight,
+      type,
+      asOf: AS_OF[id] || "—",
+      cur, v3m, v6m, v12m,
+    };
+  });
+
+  const weightedCount = rows.filter(r => r.weight != null).length;
+  const refCount = rows.length - weightedCount;
+
+  // Sort
+  const sorted = [...rows].sort((a, b) => {
+    if(sortKey === "default"){
+      const ca = COMP_ORDER[a.composite] ?? 3;
+      const cb = COMP_ORDER[b.composite] ?? 3;
+      if(ca !== cb) return ca - cb;
+      return (b.weight || 0) - (a.weight || 0);
+    }
+    let av, bv;
+    switch(sortKey){
+      case "label":     av = a.label;      bv = b.label;      break;
+      case "category":  av = CATS[a.cat]?.label || a.cat; bv = CATS[b.cat]?.label || b.cat; break;
+      case "freq":      av = a.freq;       bv = b.freq;       break;
+      case "composite": av = COMP_ORDER[a.composite] ?? 3; bv = COMP_ORDER[b.composite] ?? 3; break;
+      case "weight":    av = a.weight;     bv = b.weight;     break;
+      case "type":      av = a.type;       bv = b.type;       break;
+      case "asof":      av = AS_OF_TS(a.asOf); bv = AS_OF_TS(b.asOf); break;
+      case "cur":       av = a.cur;        bv = b.cur;        break;
+      case "v3m":       av = a.v3m;        bv = b.v3m;        break;
+      case "v6m":       av = a.v6m;        bv = b.v6m;        break;
+      case "v12m":      av = a.v12m;       bv = b.v12m;       break;
+      default:          return 0;
+    }
+    // Anchor nulls last in BOTH directions — only flip the comparison sign on
+    // the non-null pairs so a desc sort doesn't bring blank cells to the top.
+    if(av == null && bv == null) return 0;
+    if(av == null) return 1;
+    if(bv == null) return -1;
+    const c = _cmp(av, bv);
+    return sortDir === "asc" ? c : -c;
+  });
+
+  const onSort = (k) => {
+    if(sortKey === k) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("asc"); }
+  };
+
+  const arrowFor = (k) => {
+    if(sortKey !== k) return "";
+    return sortDir === "asc" ? " ▲" : " ▼";
+  };
+
+  // Header cell with optional tooltip
+  const Th = ({ k, label, tip, align="left", width }) => {
+    const inner = (
+      <span style={{display:"inline-flex",alignItems:"center",gap:4,cursor:"pointer",userSelect:"none"}}>
+        {label}{arrowFor(k) && <span style={{fontSize:9,color:"var(--text-dim)"}}>{arrowFor(k)}</span>}
+      </span>
+    );
+    return (
+      <th onClick={()=>onSort(k)} style={{
+        textAlign: align, padding:"10px 12px",
+        fontSize:11, fontWeight:600, color:"var(--text-2)",
+        fontFamily:"var(--font-mono)", letterSpacing:"0.06em", textTransform:"uppercase",
+        borderBottom:"1px solid var(--border)", background:"var(--surface)",
+        whiteSpace:"nowrap", width,
+      }}>
+        {tip ? <Tip def={tip}>{inner}</Tip> : inner}
+      </th>
+    );
+  };
+
+  const tdBase = { padding:"12px 12px", fontSize:13, color:"var(--text)", borderBottom:"1px solid var(--border-faint)", verticalAlign:"middle" };
+
+  return (
+    <div style={{padding:"20px 20px 24px", maxWidth:1200, margin:"0 auto"}}>
+
+      {/* ── NARRATIVE INTRO ─────────────────────────────────────────── */}
+      <div style={{marginBottom:18}}>
+        <h1 style={{fontSize:28, fontWeight:700, color:"var(--text)", margin:"0 0 10px 0", letterSpacing:"-0.01em", fontFamily:'"Fraunces", Georgia, serif'}}>
+          All indicators — what feeds the composites and what doesn't
+        </h1>
+        <p style={{fontSize:14, color:"var(--text-2)", lineHeight:1.7, margin:"0 0 8px 0", maxWidth:840}}>
+          This page is the inventory of every macro indicator MacroTilt collects. Each is mapped to
+          a category (equity & volatility, credit, rates, financial conditions, bank channel, labor,
+          money supply, inflation expectations) and to a forward-horizon composite (Risk &amp; Liquidity,
+          Growth, Inflation &amp; Rates) where it has cleared the drawdown-prediction confidence threshold
+          from our v2 backtest. Indicators that did not clear are kept on the site as reference — they
+          remain useful for context but do NOT contribute to composite math. Click any row for the full
+          indicator detail (description, calculation, source, history chart). Headers are sortable;
+          tooltips on every column header and weight chip explain the term in plain English.
+        </p>
+        <div style={{fontSize:12, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.04em"}}>
+          {rows.length} indicators total · {weightedCount} weighted into composites · {refCount} reference-only
+        </div>
+      </div>
+
+      {/* ── SORTABLE TABLE ──────────────────────────────────────────── */}
+      <div style={{
+        background:"var(--surface)",
+        border:"1px solid var(--border)",
+        borderRadius:8,
+        overflow:"hidden",
+      }}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%", borderCollapse:"collapse"}}>
+            <thead>
+              <tr>
+                <Th k="label"     label="Indicator" />
+                <Th k="category"  label="Category" />
+                <Th k="freq"      label="Freq" align="center" width={60} tip="D = Daily · W = Weekly · M = Monthly · Q = Quarterly. The release cadence of the upstream source." />
+                <Th k="composite" label="Composite" tip="Indicators that cleared the AUC predictive threshold (95% CI lower ≥ 0.55) for forward S&P drawdowns are mapped here. R&L = 3-month horizon, Growth = 6-month, Inflation & Rates = 18-month." />
+                <Th k="weight"    label="Weight" align="right" tip="Empirical weight = the indicator's AUC excess (over 0.5) normalized within its composite. Higher AUC implies higher weight. Indicators with — did not clear the predictive threshold." />
+                <Th k="type"      label="Type" align="center" tip="Lead = moves before the cycle (Conference Board convention). Coincident = moves with the cycle. Lag = moves after." />
+                <Th k="asof"      label="Last refresh" tip="Date the most recent observation was posted by the source. Daily refresh runs at market close." />
+                <Th k="cur"       label="Current" align="right" />
+                <Th k="v3m"       label="3M ago" align="right" tip="Value at approximately 90 days back, walked from the indicator's history series. — when lookback exceeds the available history." />
+                <Th k="v6m"       label="6M ago" align="right" tip="Value at approximately 180 days back." />
+                <Th k="v12m"      label="12M ago" align="right" tip="Value at approximately 365 days back." />
+              </tr>
+            </thead>
+            <tbody>
+              {sorted.map((r, idx) => {
+                const isOpen = openId === r.id;
+                const catCol = CATS[r.cat]?.color || "var(--text-dim)";
+                const compTip = COMPOSITE_TOOLTIPS[r.composite];
+                const sCur = sdScore(r.id, r.cur);
+                const colCur = sdTextColor(sCur);
+                return (
+                  <Fragment key={r.id}>
+                    <tr
+                      onClick={() => setOpenId(isOpen ? null : r.id)}
+                      style={{
+                        cursor:"pointer",
+                        background: isOpen ? "var(--inset, var(--surface-2))" : "transparent",
+                      }}
+                      onMouseEnter={e => { if(!isOpen) e.currentTarget.style.background = "var(--inset, var(--surface-2))"; }}
+                      onMouseLeave={e => { if(!isOpen) e.currentTarget.style.background = "transparent"; }}
+                    >
+                      {/* Indicator name + key */}
+                      <td style={{...tdBase, paddingLeft:16}}>
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{width:3, height:18, background:catCol, borderRadius:1, flexShrink:0}}/>
+                          <div>
+                            <div style={{fontSize:13, fontWeight:600, color:"var(--text)"}}>{r.label}</div>
+                            <div style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)", marginTop:1}}>{r.id}</div>
+                          </div>
+                        </div>
+                      </td>
+                      {/* Category chip */}
+                      <td style={tdBase}>
+                        <Tip def={CATEGORY_TOOLTIPS[r.cat] || ""}>
+                          <span style={{
+                            display:"inline-block",
+                            fontSize:10, fontWeight:700, color:catCol, background:catCol+"15",
+                            border:`1px solid ${catCol}55`, borderRadius:4, padding:"2px 7px",
+                            fontFamily:"var(--font-mono)", letterSpacing:"0.03em",
+                            textTransform:"uppercase", whiteSpace:"nowrap",
+                          }}>{CATS[r.cat]?.label || r.cat}</span>
+                        </Tip>
+                      </td>
+                      {/* Freq chip */}
+                      <td style={{...tdBase, textAlign:"center"}}>
+                        <span style={{
+                          display:"inline-block", fontSize:11, color:"var(--text-2)",
+                          border:"1px solid var(--border)", borderRadius:3, padding:"1px 6px",
+                          fontFamily:"var(--font-mono)", fontWeight:600,
+                        }}>{r.freq || "—"}</span>
+                      </td>
+                      {/* Composite */}
+                      <td style={tdBase}>
+                        {r.composite ? (
+                          <Tip def={compTip || ""}>
+                            <span style={{
+                              fontSize:11, fontWeight:600, color:"var(--accent)",
+                              fontFamily:"var(--font-mono)", letterSpacing:"0.02em", whiteSpace:"nowrap",
+                            }}>{r.composite}</span>
+                          </Tip>
+                        ) : (
+                          <span style={{fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)"}}>N/A</span>
+                        )}
+                      </td>
+                      {/* Weight */}
+                      <td style={{...tdBase, textAlign:"right"}}>
+                        {r.weight != null ? (
+                          <span style={{
+                            fontSize:12, fontWeight:700, color:"var(--text)",
+                            fontFamily:"var(--font-mono)",
+                          }}>{(r.weight * 100).toFixed(1)}%</span>
+                        ) : (
+                          <span style={{color:"var(--text-dim)"}}>—</span>
+                        )}
+                      </td>
+                      {/* Type */}
+                      <td style={{...tdBase, textAlign:"center"}}>
+                        {r.type ? (
+                          <Tip def={TYPE_TOOLTIP_BY_VAL[r.type] || ""}>
+                            <span style={{
+                              display:"inline-block",
+                              fontSize:10, fontWeight:700, color: TYPE_COLOR[r.type] || "var(--text-2)",
+                              border:`1px solid ${(TYPE_COLOR[r.type] || "var(--border)")}55`,
+                              background: (TYPE_COLOR[r.type] || "transparent") + "15",
+                              borderRadius:3, padding:"2px 7px", fontFamily:"var(--font-mono)",
+                              letterSpacing:"0.03em", textTransform:"uppercase",
+                            }}>{r.type}</span>
+                          </Tip>
+                        ) : (
+                          <span style={{color:"var(--text-dim)"}}>—</span>
+                        )}
+                      </td>
+                      {/* Last refresh */}
+                      <td style={{...tdBase, fontSize:12, color:"var(--text-2)", fontFamily:"var(--font-mono)"}}>
+                        {r.asOf || "—"}
+                      </td>
+                      {/* Current */}
+                      <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", fontWeight:700, color: colCur}}>
+                        {fmtV(r.id, r.cur)}
+                      </td>
+                      {/* 3M ago */}
+                      <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", color:"var(--text-2)"}}>
+                        {fmtV(r.id, r.v3m)}
+                      </td>
+                      {/* 6M ago */}
+                      <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", color:"var(--text-2)"}}>
+                        {fmtV(r.id, r.v6m)}
+                      </td>
+                      {/* 12M ago */}
+                      <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", color:"var(--text-2)", paddingRight:16}}>
+                        {fmtV(r.id, r.v12m)}
+                      </td>
+                    </tr>
+                    {/* Inline expanded detail row — full-width detail panel */}
+                    {isOpen && (
+                      <tr>
+                        <td colSpan={11} style={{padding:0, background:"var(--surface-2)", borderBottom:"1px solid var(--border)"}}>
+                          <div style={{padding:"20px 24px"}}>
+                            <IndicatorDetailBody id={r.id} onClose={() => setOpenId(null)} inline />
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper for as-of date sort — converts "Apr 16 2026" / "Mar 2026" / "Q4 2025" to ms.
+function AS_OF_TS(s){
+  if(!s || s === "—") return 0;
+  const t = Date.parse(s);
+  if(!Number.isNaN(t)) return t;
+  // "Q4 2025" → Dec 31 2025
+  const mq = /^Q([1-4])\s+(\d{4})$/i.exec(s);
+  if(mq){
+    const q = parseInt(mq[1], 10);
+    const y = parseInt(mq[2], 10);
+    return Date.UTC(y, q*3 - 1, 28);
+  }
+  return 0;
+}
+
+// Reusable detail body — same content as IndicatorModal sheet, but no overlay
+// chrome (close button + nav arrows). Used inline in AllIndicatorsTable rows.
+function IndicatorDetailBody({ id, onClose, inline }){
+  const d = IND[id];
+  if(!d) return null;
+  const [label, sub, cat, tier, , , cur, m1, m3, m6, m12, , desc, signal] = d;
+  const catCol = CATS[cat]?.color || "var(--text-dim)";
+  const s = sdScore(id, cur);
+  const col = sdColor(s);
+  const colT = sdTextColor(s);
+  const tierCol = tier===1?"var(--yellow-text)":tier===2?"#94a3b8":"#4b5563";
+  const tierBorder = tier===1?"#B8860B":tier===2?"#94a3b8":"#4b5563";
+  const sp = SD[id];
+  const allV = [cur, m1, m3, m6, m12].filter(v => v != null);
+  const sMin = allV.length ? Math.min(...allV) : null;
+  const sMax = allV.length ? Math.max(...allV) : null;
+  return (
+    <div style={{position:"relative"}}>
+      {inline && (
+        <button onClick={onClose} aria-label="Collapse" style={{
+          position:"absolute", top:0, right:0,
+          width:28, height:28, padding:0,
+          background:"transparent", border:"1px solid var(--border)", borderRadius:4,
+          cursor:"pointer", color:"var(--text-2)", fontSize:18, lineHeight:"24px",
+        }}>×</button>
+      )}
+      {/* Header */}
+      <div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:"var(--space-4)",paddingRight:40}}>
+        <div style={{width:4,height:44,background:catCol,borderRadius:2,flexShrink:0,marginTop:2}}/>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
+            <h2 style={{fontSize:20,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.01em"}}>{label}</h2>
+            <Tip def={CATEGORY_TOOLTIPS[cat] || ""}>
+              <span style={{fontSize:10,color:catCol,background:catCol+"15",border:`1px solid ${catCol}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:700,letterSpacing:"0.03em",textTransform:"uppercase"}}>{CATS[cat]?.label||cat}</span>
+            </Tip>
+            <Tip label={`TIER ${tier}`} def={tier===1?"Tier 1 — most market-sensitive, highest weight (1.5×) in the composite stress score.":tier===2?"Tier 2 — important but less real-time, weighted 1.2× in the composite.":"Tier 3 — structural/context indicator, weighted 1.0× in the composite."}>
+              <span style={{fontSize:10,color:tierCol,border:`1px solid ${tierBorder}55`,borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:"help"}}>TIER {tier}</span>
+            </Tip>
+            <Tip label={IND_FREQ[id]==="D"?"DAILY":IND_FREQ[id]==="W"?"WEEKLY":IND_FREQ[id]==="M"?"MONTHLY":IND_FREQ[id]==="Q"?"QUARTERLY":""} def={IND_FREQ[id]==="D"?"Daily release — updated every trading day.":IND_FREQ[id]==="W"?"Weekly release — typically published Thursday or Friday morning.":IND_FREQ[id]==="M"?"Monthly release — published in the first or second week after month-end.":IND_FREQ[id]==="Q"?"Quarterly release — published ~6 weeks after quarter-end. There is no true intra-quarter value.":"Release frequency unknown."}>
+              <span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",cursor:"help"}}>{IND_FREQ[id]||"—"}</span>
+            </Tip>
+          </div>
+          <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>As of {AS_OF[id]}</div>
+        </div>
+        <div style={{textAlign:"right",flexShrink:0,marginRight: inline ? 36 : 0}}>
+          <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
+          <div style={{fontSize:11,fontWeight:700,color:colT,fontFamily:"var(--font-mono)",marginTop:4,letterSpacing:"0.02em"}}>{s!=null?sdLabel(s).toUpperCase():"NO DATA"}</div>
+        </div>
+      </div>
+      {/* Period strip */}
+      <div style={{marginBottom:"var(--space-4)"}}>
+        <IndicatorTrendPills id={id} d={d}/>
+      </div>
+      {/* Long-term chart */}
+      <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
+        <LongChart id={id} col={col}/>
+      </div>
+      {/* Range bar */}
+      {sp && sMin != null && (
+        <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>
+            <span>12-MONTH RANGE</span>
+            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"#30d158"}}>{fmtV(id,sp.mean)}</span> · elev <span style={{color:"#ff9f0a"}}>{fmtV(id,sp.mean+sp.sd)}</span> · ext <span style={{color:"#ff453a"}}>{fmtV(id,sp.mean+sp.sd*2)}</span></span>
+          </div>
+          <RangeBar sMin={sMin} sMax={sMax} sp={sp} cur={cur} col={col}/>
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginTop:3}}>
+            <span>{fmtV(id,sMin)}</span>
+            <span>{fmtV(id,sMax)}</span>
+          </div>
+        </div>
+      )}
+      {/* What is this */}
+      <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
+        <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>WHAT IS THIS INDICATOR?</div>
+        <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{desc || "—"}</div>
+      </div>
+      {/* What is it telling you now */}
+      {signal ? (
+        <div style={{background:`${col}0d`,border:`1px solid ${col}33`,borderRadius:"var(--radius-md)",padding:"var(--space-3)"}}>
+          <div style={{fontSize:10,color:col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6,fontWeight:700}}>WHAT IS IT TELLING YOU RIGHT NOW?</div>
+          <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{dynamicSignal(id, cur, signal)}</div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 
 // ── WATCHLIST ADD INPUT — inline input for adding arbitrary tickers to the
 //    signed-in user's watchlist from the Portfolio/Opportunities "Other
@@ -5749,29 +6290,7 @@ return(
 )}
 
 {/* INDICATORS */}
-{tab==="indicators"&&(
-<div style={{padding:"12px 20px"}}>
-<div style={{display:"flex",gap:6,marginBottom:10,flexWrap:"wrap"}}>
-<button onClick={()=>setCatFilter(null)} style={{padding:"5px 14px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:13,fontFamily:"monospace",background:!catFilter?"var(--accent)":"transparent",color:!catFilter?"#fff":"var(--text)",borderColor:!catFilter?"var(--accent)":"var(--border)",fontWeight:!catFilter?700:500}}>ALL</button>
-{Object.entries(CATS).map(([catId,cat])=>(
-<button key={catId} onClick={()=>setCatFilter(catFilter===catId?null:catId)} style={{padding:"5px 14px",borderRadius:3,border:"1px solid",cursor:"pointer",fontSize:13,fontFamily:"monospace",background:catFilter===catId?ACCENT+"22":"transparent",color:catFilter===catId?ACCENT:"var(--text)",borderColor:catFilter===catId?ACCENT:"var(--border)"}}>{cat.label}</button>
-))}
-</div>
-<div style={{fontSize:12,color:"var(--text-dim)",fontFamily:"monospace",marginBottom:10}}>Frequency: D = Daily · W = Weekly · M = Monthly · Q = Quarterly</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(270px,1fr))",gap:9,alignItems:"start"}}>
-{visibleIds.map(id=>(<IndicatorCard key={id} id={id} onOpen={setExpandedId}/>))}
-</div>
-{expandedId&&IND[expandedId]&&(()=>{
-  const idx=visibleIds.indexOf(expandedId);
-  // If the currently-expanded id isn't in visibleIds (shouldn't happen
-  // given the useEffect above, but belt-and-suspenders) still render the
-  // modal but hide the prev/next chrome.
-  const hasPrev=idx>0;
-  const hasNext=idx>=0&&idx<visibleIds.length-1;
-  return(<IndicatorModal id={expandedId} onClose={()=>setExpandedId(null)} onPrev={()=>hasPrev&&setExpandedId(visibleIds[idx-1])} onNext={()=>hasNext&&setExpandedId(visibleIds[idx+1])} hasPrev={hasPrev} hasNext={hasNext}/>);
-})()}
-</div>
-)}
+{tab==="indicators"&&(<AllIndicatorsTable/>)}
 
 {tab==="sectors"&&<SectorsTab/>}
 

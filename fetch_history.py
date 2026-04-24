@@ -82,6 +82,9 @@ DIRECTION = {
     "bkx_spx":"lw","bank_unreal":"hw","credit_3y":"hw","term_premium":"hw",
     "cmdi":"hw","loan_syn":"hw","usd":"hw","cpff":"hw","skew":"hw",
     "sloos_cre":"hw","bank_credit":"lw","jobless":"hw","jolts_quits":"lw",
+    # New series added 2026-04-24 (PR feat/all-indicators-redesign-plus-new-data):
+    "m2_yoy":"hw","fed_bs":"lw","rrp":"hw","bank_reserves":"lw","tga":"hw",
+    "breakeven_10y":"hw","cfnai":"lw","cfnai_3ma":"lw","hy_ig_etf":"hw",
 }
 
 fred = Fred(api_key=FRED_API_KEY)
@@ -427,6 +430,75 @@ def fetch_all():
         "points": [[d, round(v, 2)] for d, v in bank_unreal_anchor],
         "source": "FDIC QBP anchor (curated)",
     }
+
+
+    # ── NEW SERIES (2026-04-24) — Joe-validated FRED series + ETF proxy ─────
+    print("M2 Money Supply YoY (m2_yoy) ...")
+    s = safe_fred("M2SL")
+    if s is not None:
+        yoy = (s.pct_change(periods=12) * 100.0).dropna()
+        result["m2_yoy"] = {"freq": "M", "unit": "% YoY",
+                            "points": series_to_points(yoy, round_dp=2)}
+
+    print("Fed Balance Sheet YoY (fed_bs) ...")
+    s = safe_fred("WALCL")
+    if s is not None:
+        yoy = (s.pct_change(periods=52) * 100.0).dropna()
+        result["fed_bs"] = {"freq": "W", "unit": "% YoY",
+                            "points": series_to_points(yoy, round_dp=2)}
+
+    print("Reverse Repo (rrp) ...")
+    s = safe_fred("RRPONTSYD")
+    if s is not None:
+        # FRED RRPONTSYD is already reported in $bn (units_short = "Bil. of US $").
+        # The task's "divide by 1000" spec was based on a misread of FRED units —
+        # leaving the raw series intact yields $2.6T peak (Dec 2022) as expected.
+        result["rrp"] = {"freq": "D", "unit": "$bn",
+                         "points": series_to_points(s, round_dp=1)}
+
+    print("Bank Reserves at Fed (bank_reserves) ...")
+    s = safe_fred("WRESBAL")
+    if s is not None:
+        s_b = s / 1000.0
+        result["bank_reserves"] = {"freq": "W", "unit": "$bn",
+                                   "points": series_to_points(s_b, round_dp=1)}
+
+    print("Treasury General Account (tga) ...")
+    s = safe_fred("WTREGEN")
+    if s is not None:
+        s_b = s / 1000.0
+        result["tga"] = {"freq": "W", "unit": "$bn",
+                        "points": series_to_points(s_b, round_dp=1)}
+
+    print("10Y Inflation Breakeven (breakeven_10y) ...")
+    s = safe_fred("T10YIE")
+    if s is not None:
+        result["breakeven_10y"] = {"freq": "D", "unit": "%",
+                                   "points": series_to_points(s, round_dp=2)}
+
+    print("CFNAI (Chicago Fed National Activity Index) ...")
+    s = safe_fred("CFNAI")
+    if s is not None:
+        result["cfnai"] = {"freq": "M", "unit": "index",
+                          "points": series_to_points(s, round_dp=2)}
+        # 3-month rolling mean — the Fed's preferred read.
+        s3 = s.rolling(3).mean().dropna()
+        result["cfnai_3ma"] = {"freq": "M", "unit": "index",
+                               "points": series_to_points(s3, round_dp=2)}
+
+    print("HY-IG ETF Spread Proxy (hy_ig_etf = LQD/HYG) ...")
+    lqd = safe_yf("LQD")
+    hyg_etf = safe_yf("HYG")
+    if lqd is not None and hyg_etf is not None:
+        df = pd.concat([lqd.rename("lqd"), hyg_etf.rename("hyg")], axis=1).dropna()
+        # LQD / HYG ratio — high when HY is underperforming IG (proxy for wider spreads).
+        # Senior Quant kept this as a SEPARATE series (NOT overwriting hy_ig) so the
+        # FRED OAS audit trail stays intact. See _hy_ig_pre2023_anchor() for the
+        # curated monthly anchor that backfills the FRED-licensed window.
+        ratio = (df["lqd"] / df["hyg"]).dropna()
+        result["hy_ig_etf"] = {"freq": "D", "unit": "ratio",
+                               "points": series_to_points(ratio, round_dp=4),
+                               "source": "Yahoo LQD / HYG (proxy)"}
 
     # CAPE fallback if multpl scrape failed
     if "cape" not in result:
