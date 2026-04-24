@@ -1784,10 +1784,13 @@ function _valueAtDaysAgo(id, days){
   return best;
 }
 
-// Sort comparators per column. ASC then DESC toggle handled in component.
+// Sort comparators per column. Always returns nulls-last regardless of direction
+// — pulled out of the asc/desc reversal in the component so users always see the
+// real values together (desc → highest weight first, nulls anchored at the bottom;
+// asc → lowest weight first, nulls also at the bottom).
 function _cmp(a, b){
   if(a == null && b == null) return 0;
-  if(a == null) return 1;  // nulls last
+  if(a == null) return 1;
   if(b == null) return -1;
   if(typeof a === "number" && typeof b === "number") return a - b;
   return String(a).localeCompare(String(b));
@@ -1854,6 +1857,11 @@ function AllIndicatorsTable(){
       case "v12m":      av = a.v12m;       bv = b.v12m;       break;
       default:          return 0;
     }
+    // Anchor nulls last in BOTH directions — only flip the comparison sign on
+    // the non-null pairs so a desc sort doesn't bring blank cells to the top.
+    if(av == null && bv == null) return 0;
+    if(av == null) return 1;
+    if(bv == null) return -1;
     const c = _cmp(av, bv);
     return sortDir === "asc" ? c : -c;
   });
