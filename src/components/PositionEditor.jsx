@@ -197,6 +197,18 @@ export default function PositionEditor({
   // Sticky strings for the stock-mode derived inputs.
   const [totalCostStr,    setTotalCostStr]    = useState("");
   const [currentValueStr, setCurrentValueStr] = useState("");
+  // Bug #1019 — stocks can be flagged as "manually priced" (mutual fund,
+  // untracked asset, etc.) so the user enters today's NAV directly instead
+  // of fumbling with a derived price. Back-compat: an existing stock row
+  // with manual_price already set loads this toggle on by default.
+  const [manualMarkStock, setManualMarkStock] = useState(
+    isEdit && (existing?.assetClass === "stock" || !existing?.assetClass) && existing?.manualPrice != null
+  );
+  const [markPerShareStr, setMarkPerShareStr] = useState(
+    isEdit && existing?.manualPrice != null ? String(existing.manualPrice)
+      : isEdit && existing?.price != null ? String(existing.price)
+      : ""
+  );
 
   useEffect(() => {
     if (shares != null && avgCost != null) setTotalCostStr(String(shares * avgCost));
@@ -290,6 +302,17 @@ export default function PositionEditor({
     const val = parseNum(raw);
     if (val == null) return;
     if (shares != null && shares > 0) setPrice(val / shares);
+  };
+  // Bug #1019 — when the user is managing a mutual-fund-style position,
+  // they paste today's NAV directly and we derive Current Value from it
+  // (the inverse of the default stock flow). Keep Current Value in sync
+  // so the summary below stays consistent regardless of entry direction.
+  const onChangeMarkPerShare = (raw) => {
+    setMarkPerShareStr(raw);
+    const n = parseNum(raw);
+    if (n == null) return;
+    setPrice(n);
+    if (shares != null && shares > 0) setCurrentValueStr(String(shares * n));
   };
 
   // ── validation ────────────────────────────────────────────────────────────
@@ -453,7 +476,10 @@ export default function PositionEditor({
           manual_price:  price, // V1: user-entered; Joe's sibling session will overwrite
         };
       } else {
-        // stock / ETF
+        // stock / ETF — manual_price is populated iff the user flagged this
+        // as a manually-priced position (mutual fund / untracked asset),
+        // see bug #1019. Downstream can treat `manual_price IS NOT NULL`
+        // as "skip any live-price overlay, this NAV was set by hand".
         payload = {
           ticker:    tickerClean,
           name:      existing?.name || tickerClean,
@@ -471,7 +497,7 @@ export default function PositionEditor({
           strike:        null,
           expiration:    null,
           multiplier:    null,
-          manual_price:  null,
+          manual_price:  manualMarkStock ? price : null,
         };
       }
 
@@ -718,19 +744,62 @@ export default function PositionEditor({
                 />
               </div>
             </div>
-            <div style={{ marginBottom: 6 }}>
-              <label style={label}>CURRENT VALUE</label>
+
+            {/* Bug #1019 — manual-NAV toggle for mutual funds + untracked
+                assets that don't show up in the live price feed. When on,
+                the user types today's NAV and Current Value is derived;
+                when off, the original behaviour (edit Current Value, NAV
+                is derived) is preserved. */}
+            <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10, cursor: "pointer", userSelect: "none" }}>
               <input
-                style={input}
-                value={shares != null && price != null ? String(shares * price) : currentValueStr}
-                onChange={(e) => onChangeCurrentValue(e.target.value)}
-                inputMode="decimal"
-                placeholder="1750.00"
+                type="checkbox"
+                checked={manualMarkStock}
+                onChange={(e) => setManualMarkStock(e.target.checked)}
               />
-              <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-                Enter today's market value of the holding. Price/share is derived automatically.
+              <span style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-2)", letterSpacing: "0.04em" }}>
+                MANUALLY PRICED (mutual fund, untracked asset)
+              </span>
+            </label>
+
+            {manualMarkStock ? (
+              <div style={{ marginBottom: 6 }}>
+                <label style={label}>CURRENT NAV / MARK PER SHARE</label>
+                <input
+                  style={input}
+                  value={markPerShareStr}
+                  onChange={(e) => onChangeMarkPerShare(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="82.17"
+                />
+                <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                  Paste today\'s NAV from Fidelity / Vanguard / your broker.
+                  Current value and PnL are derived as shares × NAV.
+                </div>
+                <div style={{ marginTop: 10 }}>
+                  <label style={label}>CURRENT VALUE (= SHARES × NAV)</label>
+                  <input
+                    style={{ ...input, background: "var(--surface-2)", color: "var(--text-muted)" }}
+                    value={shares != null && price != null ? String(shares * price) : currentValueStr}
+                    readOnly
+                    inputMode="decimal"
+                  />
+                </div>
               </div>
-            </div>
+            ) : (
+              <div style={{ marginBottom: 6 }}>
+                <label style={label}>CURRENT VALUE</label>
+                <input
+                  style={input}
+                  value={shares != null && price != null ? String(shares * price) : currentValueStr}
+                  onChange={(e) => onChangeCurrentValue(e.target.value)}
+                  inputMode="decimal"
+                  placeholder="1750.00"
+                />
+                <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                  Enter today\'s market value of the holding. Price/share is derived automatically.
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -964,7 +1033,9 @@ export default function PositionEditor({
           }}>
             <div><span style={{ color: "var(--text-muted)" }}>Cost basis: </span>{fmt$(totalCost)}</div>
             <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(currentValue)}</div>
-            <div><span style={{ color: "var(--text-muted)" }}>Implied price/share: </span>{fmt$(price)}</div>
+            <div title="Derived per-unit mark — shares × derived mark = current value. Not a live market quote; for mutual funds and untracked assets, edit Current NAV above to update it.">
+              <span style={{ color: "var(--text-muted)" }}>Derived mark: </span>{fmt$(price)}
+            </div>
             <div>
               <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
               <span style={{ color: pnlDollars == null ? "var(--text-muted)" : pnlDollars >= 0 ? "#30d158" : "#ff453a" }}>
