@@ -936,16 +936,7 @@ export default function AdminBugs() {
       const b = bugBucket(r);
       counts[b] = (counts[b] || 0) + 1;
     }
-    const filteredRows = filter === "all"
-      ? all
-      // The "Open" tile's value sums the 'open' bucket (new/triaged/reopened)
-      // AND the 'awaiting_approval' bucket. If we filtered only on === 'open'
-      // here, clicking the tile would show fewer rows than the tile's count,
-      // which is what blew up #NNNN ("3 open · 0 of 32 shown"). Match the
-      // tile's definition so the filter surface matches its header number.
-      : filter === "open"
-        ? all.filter(r => { const b = bugBucket(r); return b === "open" || b === "awaiting_approval"; })
-        : all.filter(r => bugBucket(r) === filter);
+    const filteredRows = filter === "all" ? all : all.filter(r => bugBucket(r) === filter);
     return { counts, filtered: filteredRows };
   }, [rows, filter]);
 
@@ -977,7 +968,12 @@ export default function AdminBugs() {
     );
   }
 
-  const open = (counts.open || 0) + (counts.awaiting_approval || 0);
+  // "Open" = rows still in initial triage (new/triaged/reopened). Does NOT
+  // include awaiting_approval — that has its own dedicated tile next to this
+  // one, and summing them here was double-counting the same row across two
+  // tiles (Joe's UX feedback, 2026-04-24 "1 awaiting approval in open bucket.
+  // It's the same issue in two buckets.").
+  const open = counts.open || 0;
   const needsUat = counts.needs_uat || 0;
   const inFlight = counts.in_flight || 0;
   // Anything older than 36h in Joe's manual-UAT queue is a red flag — most
@@ -1006,7 +1002,7 @@ export default function AdminBugs() {
         <KpiTile
           label="Open"
           value={open}
-          sub={`${counts.open || 0} triage · ${counts.awaiting_approval || 0} awaiting approval`}
+          sub={open > 0 ? "needs first look" : "nothing waiting"}
           tone={open > 0 ? "warn" : "good"}
           active={filter === "open"}
           onClick={() => setFilter("open")}
