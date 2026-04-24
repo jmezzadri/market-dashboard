@@ -39,6 +39,9 @@ from scanner.scan_state import load_last_scores, save_last_scores
 from scanner.scorer import score_ticker
 from scanner.sell_signals import check_covered_call_alerts, check_position_alerts
 from scanner.supabase_io import load_all_watchlists, write_user_scan_rows
+from scanner.api_usage_helper import log_run_summary
+import uuid
+from datetime import datetime, timezone
 
 logging.basicConfig(
     level=logging.INFO,
@@ -646,4 +649,29 @@ if __name__ == "__main__":
     raw = [a for a in sys.argv[1:] if a != "--debug"]
     debug = "--debug" in sys.argv[1:]
     scan = raw[0] if raw else "intraday"
-    run_scan(scan, debug=debug)
+    _run_id = uuid.uuid4()
+    _started_at = datetime.now(timezone.utc)
+    try:
+        run_scan(scan, debug=debug)
+        # Bug #1032: one row per successful daily scanner run into
+        # api_usage_log so the Admin API Usage bar chart has historical
+        # per-day coverage for this workflow source (UW calls via
+        # scanner.unusual_whales._get are not currently counted).
+        log_run_summary(
+            source="daily_scanner",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            status="success",
+            notes={"scan_type": scan},
+        )
+    except Exception as _exc:
+        log_run_summary(
+            source="daily_scanner",
+            run_id=_run_id,
+            started_at=_started_at,
+            completed_at=datetime.now(timezone.utc),
+            status="failed",
+            notes={"scan_type": scan, "error": str(_exc)[:500]},
+        )
+        raise

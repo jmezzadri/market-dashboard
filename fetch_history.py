@@ -668,24 +668,75 @@ def _move_fallback_monthly():
     return [[d, v] for d, v in raw]
 
 
+# Bug #1032: write one row per indicator-refresh run to api_usage_log so
+# the Admin API Usage bar chart has per-day historical coverage for this
+# workflow source. Import is inlined and guarded so a missing module
+# can never fail the refresh.
+def _log_run_to_api_usage(status, started_at, completed_at, notes):
+    import os, sys, uuid as _uuid
+    try:
+        # trading-scanner is a sibling of this file; add it to sys.path so
+        # scanner.api_usage_helper is importable regardless of cwd.
+        here = os.path.dirname(os.path.abspath(__file__))
+        ts_dir = os.path.join(here, "trading-scanner")
+        if os.path.isdir(ts_dir) and ts_dir not in sys.path:
+            sys.path.insert(0, ts_dir)
+        from scanner.api_usage_helper import log_run_summary
+        log_run_summary(
+            source="indicator_refresh",
+            run_id=_uuid.uuid4(),
+            started_at=started_at,
+            completed_at=completed_at,
+            status=status,
+            notes=notes or {},
+        )
+    except Exception as _exc:
+        # Never let logging failure take down the refresh.
+        import logging as _lg
+        _lg.getLogger(__name__).warning("api_usage_helper not available: %s", _exc)
+
+
 def main():
-    out_dir = os.path.dirname(OUT_PATH)
-    if not os.path.isdir(out_dir):
-        os.makedirs(out_dir, exist_ok=True)
-    print(f"Fetching history → {OUT_PATH}")
-    data = fetch_all()
-    with open(OUT_PATH, "w") as f:
-        json.dump(data, f, separators=(",", ":"))
-    size_kb = os.path.getsize(OUT_PATH) / 1024
-    print(f"Wrote {OUT_PATH}  ({size_kb:.0f} KB)")
-    # Summary per indicator
-    for k, v in sorted(data.items()):
-        if k.startswith("__"):
-            continue
-        pts = v.get("points", [])
-        first = pts[0][0] if pts else "-"
-        last = pts[-1][0] if pts else "-"
-        print(f"  {k:16s} freq={v.get('freq'):<2s}  {len(pts):5d} points  {first} → {last}")
+    from datetime import datetime, timezone
+    started_at = datetime.now(timezone.utc)
+    try:
+        out_dir = os.path.dirname(OUT_PATH)
+        if not os.path.isdir(out_dir):
+            os.makedirs(out_dir, exist_ok=True)
+        print(f"Fetching history → {OUT_PATH}")
+        data = fetch_all()
+        with open(OUT_PATH, "w") as f:
+            json.dump(data, f, separators=(",", ":"))
+        size_kb = os.path.getsize(OUT_PATH) / 1024
+        print(f"Wrote {OUT_PATH}  ({size_kb:.0f} KB)")
+        # Summary per indicator
+        n_indicators = 0
+        for k, v in sorted(data.items()):
+            if k.startswith("__"):
+                continue
+            n_indicators += 1
+            pts = v.get("points", [])
+            first = pts[0][0] if pts else "-"
+            last = pts[-1][0] if pts else "-"
+            print(f"  {k:16s} freq={v.get('freq'):<2s}  {len(pts):5d} points  {first} → {last}")
+        _log_run_to_api_usage(
+            status="success",
+            started_at=started_at,
+            completed_at=datetime.now(timezone.utc),
+            notes={
+                "indicators": n_indicators,
+                "out_path": OUT_PATH,
+                "size_kb": round(size_kb, 1),
+            },
+        )
+    except Exception as exc:
+        _log_run_to_api_usage(
+            status="failed",
+            started_at=started_at,
+            completed_at=datetime.now(timezone.utc),
+            notes={"error": str(exc)[:500]},
+        )
+        raise
 
 
 if __name__ == "__main__":
