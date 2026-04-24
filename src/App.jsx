@@ -27,6 +27,7 @@ import PositionEditor from "./components/PositionEditor";
 import BulkImport from "./components/BulkImport";
 import UniverseFreshness from "./components/UniverseFreshness";
 import MethodologyPage from "./pages/MethodologyPage";
+import TodayMacro from "./pages/TodayMacro";
 import { supabase } from "./lib/supabase";
 import { normalizeTickerName } from "./lib/nameFormat";
 import ReportBug from "./reportbug/ReportBug";
@@ -4452,7 +4453,7 @@ const TAB_IDS=["home","overview","indicators","sectors","portopps","scanner","re
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
-  overview:  {eyebrow:"Macro Dashboard",      title:"Today's macro overview",  sub:"Composite stress, regime, category breakdown, and the historical stress trajectory."},
+  overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
   portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
@@ -5744,89 +5745,7 @@ return(
 
 {/* OVERVIEW — MACRO ONLY */}
 {tab==="overview"&&(
-<div style={{padding:"16px 20px",display:"flex",flexDirection:"column",gap:12,maxWidth:980,margin:"0 auto"}}>
-
-<div>
-<div style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.7}}>Monitors economic and financial stress indicators across six categories, producing a composite stress score and four-regime conviction framework. <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>navTo("readme")}>See FAQ →</span> · <span style={{color:ACCENT,cursor:"pointer"}} onClick={()=>navTo("scanner")}>View Scanner →</span></div>
-</div>
-
-{/* Narrative + Composite dial + Category bars */}
-<div style={{background:"var(--surface)",border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"16px"}}>
-<div style={{fontSize:13,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:10}}>SUMMARY OF CURRENT MACRO ENVIRONMENT</div>
-<div style={{fontSize:14,color:"var(--text)",lineHeight:1.85,marginBottom:16}}>{buildMacroNarrative()}</div>
-<div style={{display:"flex",gap:16,alignItems:"flex-start"}}>
-<div style={{flexShrink:0}}>
-<Gauge score={COMP}/>
-</div>
-<div style={{flex:1,paddingTop:4}}>
-{Object.entries(CATS).map(([catId,cat])=>{
-const ids=Object.keys(IND).filter(id=>IND[id][2]===catId);
-const scored=ids.map(id=>sdScore(id,IND[id][6])).filter(x=>x!=null);
-const avg=scored.length?scored.reduce((a,b)=>a+b,0)/scored.length:0;
-const sc100=Math.round(Math.max(0,Math.min(100,((avg+2)/5)*100)));
-const col=sdColor(avg);
-return(
-<div key={catId} style={{display:"flex",alignItems:"center",gap:8,marginBottom:7,cursor:"pointer"}} onClick={()=>{navTo("indicators");setCatFilter(catId);}}>
-<span style={{fontSize:12,color:"var(--text)",fontFamily:"monospace",minWidth:108,whiteSpace:"nowrap"}}>{cat.label}</span>
-<div style={{flex:1,height:7,background:"var(--border)",borderRadius:3,overflow:"hidden"}}>
-<div style={{width:`${sc100}%`,height:"100%",background:col,borderRadius:3}}/>
-</div>
-<span style={{fontSize:13,fontWeight:700,color:col,fontFamily:"monospace",minWidth:26,textAlign:"right"}}>{sc100}</span>
-</div>
-);
-})}
-</div>
-</div>
-</div>
-
-{/* Historical Chart */}
-<div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"16px"}}>
-<div style={{fontSize:12,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:10}}>COMPOSITE STRESS HISTORY</div>
-<CompHistChart/>
-</div>
-
-{/* Category tiles 2-col grid */}
-<div className="two-col-grid" style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
-{Object.entries(CATS).map(([catId,cat])=>{
-const ids=Object.keys(IND).filter(id=>IND[id][2]===catId);
-const scored=ids.map(id=>({id,s:sdScore(id,IND[id][6])})).filter(x=>x.s!=null).sort((a,b)=>b.s-a.s);
-const avg=scored.length?scored.reduce((a,b)=>a+b.s,0)/scored.length:0;
-const sc100=Math.round(Math.max(0,Math.min(100,((avg+2)/5)*100)));
-const col=sdColor(avg);
-const trend=TREND[catId];
-return(
-<div key={catId} onClick={()=>{navTo("indicators");setCatFilter(catId);}} style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"12px 14px",cursor:"pointer"}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-<div style={{fontSize:13,fontWeight:600,color:"var(--text)"}}>{cat.label}</div>
-<div style={{fontSize:22,fontWeight:800,color:col,fontFamily:"monospace",lineHeight:1}}>{sc100}</div>
-</div>
-<div style={{height:4,background:"var(--border)",borderRadius:2,overflow:"hidden",marginBottom:8}}>
-<div style={{width:`${sc100}%`,height:"100%",background:col,borderRadius:2}}/>
-</div>
-{trend&&<div style={{display:"flex",gap:4,marginBottom:8}}>
-{[["1M",trend.m1],["6M",trend.m6],["12M",trend.m12]].map(([lbl,prior])=>{
-const ta=trendArrow(sc100,prior);
-return(<div key={lbl} style={{background:"var(--border-faint)",borderRadius:3,padding:"2px 6px",display:"flex",alignItems:"center",gap:2}}>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace"}}>{lbl}</span>
-<span style={{fontSize:11,color:yText(ta.col),fontFamily:"monospace"}}>{ta.arrow}{sc100>prior?"+":""}{sc100-prior}</span>
-</div>);
-})}
-</div>}
-<div style={{display:"flex",flexDirection:"column",gap:3}}>
-{scored.slice(0,2).map(({id,s})=>{
-const c2=sdColor(s);
-return(<div key={id} style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-<span style={{fontSize:12,color:"var(--text-muted)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"65%"}}>{IND[id][0]}</span>
-<span style={{fontSize:12,color:c2,fontFamily:"monospace",flexShrink:0}}>{sdLabel(s)}</span>
-</div>);
-})}
-</div>
-</div>
-);
-})}
-</div>
-
-</div>
+<TodayMacro onNavToReadme={()=>navTo("readme")}/>
 )}
 
 {/* INDICATORS */}
