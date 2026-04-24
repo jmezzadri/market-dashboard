@@ -21,36 +21,59 @@
  * (FRED + UW pulls + EWMA fit on the daily refresh job) is a follow-up.
  *
  * No chart library — top + bottom panel SVG drawn by the component.
+ *
+ * THEMING (2026-04-24 — UAT pass for PR #110):
+ * The page-scoped --tm-* tokens are MAPPED to the existing app theme tokens
+ * (theme.css `var(--bg)`, `var(--surface-solid)`, `var(--text)`, etc.) so
+ * the page automatically follows the user's light / dark theme toggle.
+ * Semantic stress hues (calm green / elevated amber / stressed red) stay
+ * literal because they carry meaning regardless of theme.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 
 // ────────────────────────────────────────────────────────────────────────────
-// Palette — scoped to this page (locked v9 design)
+// Palette — page-scoped tokens MAPPED to app theme tokens. Each --tm-* alias
+// resolves through theme.css so light/dark toggle just works. Don't hardcode
+// hex values in this object — they bypass the theme system.
 // ────────────────────────────────────────────────────────────────────────────
 const PAGE_VARS = {
-  "--tm-bg":         "#faf6ef",
-  "--tm-card":       "#ffffff",
-  "--tm-inset":      "#f3f1e9",
-  "--tm-line":       "#e6dfd2",
-  "--tm-ink-0":      "#17181c",
-  "--tm-ink-1":      "#44474f",
-  "--tm-ink-2":      "#6b6f78",
-  "--tm-ink-3":      "#9a9ea8",
-  "--tm-accent":     "#9d3545",
-  "--tm-accent-soft":"#fbe7eb",
+  // Surfaces — follow app theme (parchment in paper, neutral ink in dark)
+  "--tm-bg":         "var(--bg)",
+  "--tm-card":       "var(--surface-solid)",
+  "--tm-inset":      "var(--surface-2)",
+  "--tm-line":       "var(--border)",
+
+  // Text ramp — map to app's 4-step ink ramp
+  "--tm-ink-0":      "var(--text)",
+  "--tm-ink-1":      "var(--text-2)",
+  "--tm-ink-2":      "var(--text-muted)",
+  "--tm-ink-3":      "var(--text-dim)",
+
+  // Brand accent — parchment (paper) / parchment (dark) via app token
+  "--tm-accent":     "var(--accent)",
+  "--tm-accent-soft":"var(--accent-soft)",
+
+  // Semantic stress hues — kept LITERAL (meaning is theme-invariant).
+  // These read fine on both parchment and neutral-ink backgrounds.
   "--tm-calm":       "#1f9d60",
   "--tm-quiet":      "#69b585",
-  "--tm-normal":     "#7a838f",
+  "--tm-normal":     "var(--text-muted)",
   "--tm-elevated":   "#b8811c",
   "--tm-stressed":   "#d23040",
-  "--tm-calm-soft":     "#e6f4ed",
-  "--tm-quiet-soft":    "#eef7f1",
-  "--tm-normal-soft":   "#eef0f2",
-  "--tm-elevated-soft": "#fbf3e1",
-  "--tm-stressed-soft": "#fbe7e9",
-  "--tm-fdisp":  "'Fraunces', Georgia, serif",
-  "--tm-fbody":  "'Inter', -apple-system, sans-serif",
-  "--tm-fmono":  "'JetBrains Mono', ui-monospace, monospace",
+
+  // Soft pill backgrounds — use rgba of the semantic color so they read
+  // correctly on cream AND on dark ink. Fixed-opacity tints give the same
+  // visual weight in both themes.
+  "--tm-calm-soft":     "rgba(31,157,96,0.14)",
+  "--tm-quiet-soft":    "rgba(105,181,133,0.16)",
+  "--tm-normal-soft":   "var(--surface-3)",
+  "--tm-elevated-soft": "rgba(184,129,28,0.16)",
+  "--tm-stressed-soft": "rgba(210,48,64,0.14)",
+
+  // Fonts — point at the app's existing font stacks
+  "--tm-fdisp":  "var(--font-display)",
+  "--tm-fbody":  "var(--font-ui)",
+  "--tm-fmono":  "var(--font-mono)",
 };
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -65,14 +88,50 @@ const STYLES = `
 .tm-hero-headline { font-family: var(--tm-fdisp); font-weight: 400; font-size: 30px; line-height: 1.25; margin: 8px 0 0; max-width: 920px; color: var(--tm-ink-0); }
 .tm-hero-headline em { font-style: italic; color: var(--tm-accent); }
 .tm-hero-meta { display: flex; align-items: center; gap: 14px; margin-top: 14px; flex-wrap: wrap; }
-.tm-quadrant-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--tm-accent-soft); color: var(--tm-accent); border: 1px solid #f0c9d2; border-radius: 999px; font-size: 12px; font-weight: 500; }
+.tm-quadrant-chip { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--tm-accent-soft); color: var(--tm-accent); border: 1px solid var(--tm-line); border-radius: 999px; font-size: 12px; font-weight: 500; cursor: help; position: relative; }
 .tm-quadrant-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--tm-accent); }
 .tm-regime-summary { display: flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--tm-ink-2); flex-wrap: wrap; }
-.tm-regime-summary .pill { padding: 3px 10px; border-radius: 999px; font-weight: 500; font-size: 11.5px; }
+.tm-regime-summary .pill { padding: 3px 10px; border-radius: 999px; font-weight: 500; font-size: 11.5px; cursor: help; position: relative; }
+
+/* ── Instant-show tooltip — no native title delay, no hover transition ──
+   Apple-style inline-definition tooltip used on hero pills/chips.        */
+.tm-itip-host { position: relative; display: inline-flex; }
+.tm-itip-host .tm-itip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 240px;
+  padding: 10px 12px;
+  background: var(--tm-card);
+  color: var(--tm-ink-1);
+  border: 1px solid var(--tm-line);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  font-family: var(--tm-fbody);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+  text-align: left;
+  letter-spacing: 0;
+  text-transform: none;
+  pointer-events: none;
+  z-index: 50;
+  white-space: normal;
+  /* No transition on opacity/visibility — show INSTANTLY on hover. */
+  transition: none;
+}
+.tm-itip-host:hover .tm-itip,
+.tm-itip-host:focus-visible .tm-itip {
+  visibility: visible;
+  opacity: 1;
+}
 
 .tm-composites { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 28px; }
 .tm-cc { background: var(--tm-card); border: 1px solid var(--tm-line); border-radius: 14px; padding: 22px 22px 20px; transition: border-color 0.15s; }
-.tm-cc.is-active { border-color: #d8c7b8; box-shadow: 0 1px 0 rgba(0,0,0,0.02); }
+.tm-cc.is-active { border-color: var(--tm-accent); box-shadow: 0 1px 0 rgba(0,0,0,0.02); }
 .tm-cc-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; gap: 12px; }
 .tm-cc-name { font-family: var(--tm-fdisp); font-weight: 400; font-size: 21px; margin: 0; color: var(--tm-ink-0); }
 .tm-cc-horizon { font-size: 11px; color: var(--tm-ink-3); margin-top: 3px; font-family: var(--tm-fmono); letter-spacing: 0.02em; }
@@ -105,7 +164,8 @@ const STYLES = `
 
 .tm-expand-btn { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 14px; padding: 10px 14px; background: transparent; border: 1px solid var(--tm-line); border-radius: 8px; cursor: pointer; font-family: var(--tm-fbody); font-size: 12.5px; color: var(--tm-ink-1); transition: border-color 0.15s, background 0.15s; }
 .tm-expand-btn:hover { border-color: var(--tm-accent); background: var(--tm-accent-soft); color: var(--tm-accent); }
-.tm-expand-btn .chev { transition: transform 0.2s; }
+.tm-expand-btn .chev { transition: transform 0.2s; display: inline-block; }
+.tm-expand-btn.is-open .chev,
 .tm-cc.is-active .tm-expand-btn .chev { transform: rotate(180deg); }
 
 .tm-drilldown { margin-top: 16px; padding-top: 18px; border-top: 1px solid var(--tm-line); }
@@ -128,24 +188,39 @@ const STYLES = `
 .tm-ind-table .ind-auc  { font-family: var(--tm-fmono); text-align: right; color: var(--tm-ink-2); }
 .tm-tier-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--tm-accent); margin-right: 8px; vertical-align: middle; }
 
-.tm-trajectory { background: var(--tm-card); border: 1px solid var(--tm-line); border-radius: 14px; padding: 22px 24px; margin-bottom: 22px; }
-.tm-traj-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 16px; flex-wrap: wrap; }
-.tm-traj-title { font-family: var(--tm-fdisp); font-weight: 400; font-size: 18px; margin: 0; color: var(--tm-ink-0); }
-.tm-traj-subtitle { font-size: 12.5px; color: var(--tm-ink-2); margin-top: 4px; max-width: 720px; }
+/* ── Collapsible sections (trajectory + lead-time table) ──
+   Tile-mode = compact preview row. Expanded mode reveals full content.   */
+.tm-collapsible { background: var(--tm-card); border: 1px solid var(--tm-line); border-radius: 14px; margin-bottom: 22px; }
+.tm-collapsible-head { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 18px 24px; cursor: pointer; user-select: none; }
+.tm-collapsible-head:hover { background: var(--tm-inset); }
+.tm-collapsible-head:hover .tm-collapsible-toggle { border-color: var(--tm-accent); color: var(--tm-accent); }
+.tm-collapsible.is-open .tm-collapsible-head { border-bottom: 1px solid var(--tm-line); }
+.tm-collapsible-meta { flex: 1; min-width: 0; }
+.tm-collapsible-title { font-family: var(--tm-fdisp); font-weight: 400; font-size: 18px; margin: 0; color: var(--tm-ink-0); }
+.tm-collapsible-sub { font-size: 12.5px; color: var(--tm-ink-2); margin-top: 4px; }
+.tm-collapsible-spark { display: flex; align-items: center; gap: 16px; }
+.tm-collapsible-spark svg { display: block; }
+.tm-collapsible-toggle { display: inline-flex; align-items: center; gap: 8px; padding: 8px 14px; background: transparent; border: 1px solid var(--tm-line); border-radius: 999px; font-family: var(--tm-fbody); font-size: 12px; font-weight: 500; color: var(--tm-ink-1); cursor: pointer; white-space: nowrap; transition: border-color 0.15s, color 0.15s; }
+.tm-collapsible-toggle .chev { display: inline-block; transition: transform 0.2s; }
+.tm-collapsible.is-open .tm-collapsible-toggle .chev { transform: rotate(180deg); }
+.tm-collapsible-body { padding: 4px 24px 22px; }
+
+.tm-trajectory { /* now lives inside .tm-collapsible-body — no own border */ }
+.tm-traj-head { margin: 8px 0 12px; }
 
 .tm-chart-controls { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin: 8px 0 14px; padding: 12px 14px; background: var(--tm-inset); border-radius: 10px; flex-wrap: wrap; }
 .tm-control-label { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--tm-ink-3); font-weight: 500; }
 
 .tm-timeline-buttons { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 .tm-timeline-buttons button { padding: 5px 12px; font-family: var(--tm-fbody); font-size: 12px; font-weight: 500; background: transparent; color: var(--tm-ink-2); border: 1px solid var(--tm-line); border-radius: 6px; cursor: pointer; transition: all 0.15s; }
-.tm-timeline-buttons button:hover { background: #fff; color: var(--tm-ink-0); }
-.tm-timeline-buttons button.is-active { background: var(--tm-accent); color: #fff; border-color: var(--tm-accent); }
+.tm-timeline-buttons button:hover { background: var(--tm-card); color: var(--tm-ink-0); }
+.tm-timeline-buttons button.is-active { background: var(--tm-accent); color: var(--tm-card); border-color: var(--tm-accent); }
 
 .tm-date-controls { display: flex; align-items: center; gap: 6px; padding: 0 8px; border-left: 1px solid var(--tm-line); border-right: 1px solid var(--tm-line); flex-wrap: wrap; }
-.tm-date-controls input[type="date"] { padding: 4px 7px; font-family: var(--tm-fmono); font-size: 11.5px; border: 1px solid var(--tm-line); border-radius: 5px; background: #fff; color: var(--tm-ink-0); }
+.tm-date-controls input[type="date"] { padding: 4px 7px; font-family: var(--tm-fmono); font-size: 11.5px; border: 1px solid var(--tm-line); border-radius: 5px; background: var(--tm-card); color: var(--tm-ink-0); }
 .tm-date-controls input[type="date"]:focus { outline: 1px solid var(--tm-accent); border-color: var(--tm-accent); }
-.tm-apply-btn { padding: 5px 13px; font-family: var(--tm-fbody); font-size: 12px; font-weight: 500; background: var(--tm-accent); color: #fff; border: 1px solid var(--tm-accent); border-radius: 5px; cursor: pointer; }
-.tm-apply-btn:hover { background: #7a2935; }
+.tm-apply-btn { padding: 5px 13px; font-family: var(--tm-fbody); font-size: 12px; font-weight: 500; background: var(--tm-accent); color: var(--tm-card); border: 1px solid var(--tm-accent); border-radius: 5px; cursor: pointer; }
+.tm-apply-btn:hover { opacity: 0.85; }
 
 .tm-markers-toggle { padding: 0 8px; }
 .tm-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; font-size: 12px; color: var(--tm-ink-1); user-select: none; }
@@ -158,7 +233,7 @@ const STYLES = `
 .tm-chart-container { position: relative; width: 100%; }
 .tm-chart-svg { width: 100%; height: auto; display: block; }
 
-.tm-tooltip { position: absolute; background: #fff; border: 1px solid var(--tm-line); border-radius: 8px; padding: 10px 13px; font-size: 12px; box-shadow: 0 4px 12px rgba(23,24,28,0.08); pointer-events: none; opacity: 0; transition: opacity 0.1s; min-width: 240px; z-index: 10; }
+.tm-tooltip { position: absolute; background: var(--tm-card); border: 1px solid var(--tm-line); border-radius: 8px; padding: 10px 13px; font-size: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.10); pointer-events: none; opacity: 0; transition: opacity 0.1s; min-width: 240px; z-index: 10; }
 .tm-tooltip .tt-date { font-family: var(--tm-fmono); font-size: 11px; color: var(--tm-ink-2); margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--tm-line); }
 .tm-tooltip .tt-row { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 3px 0; font-size: 12px; }
 .tm-tooltip .tt-row .tt-label { display: flex; align-items: center; gap: 6px; color: var(--tm-ink-1); }
@@ -166,20 +241,20 @@ const STYLES = `
 .tm-tooltip .tt-row .tt-val { font-family: var(--tm-fmono); font-weight: 500; color: var(--tm-ink-0); white-space: nowrap; }
 .tm-tooltip .tt-section { font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tm-ink-3); margin: 6px 0 2px; padding-top: 4px; border-top: 1px dashed var(--tm-line); }
 
-.tm-event-marker-line { stroke: #9d3545; stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.5; }
+.tm-event-marker-line { stroke: var(--tm-stressed); stroke-width: 1; stroke-dasharray: 3 3; opacity: 0.5; }
 .tm-event-marker-line.spx { stroke: #2862c2; }
-.tm-event-marker-label { font-family: 'Inter', sans-serif; font-size: 9.5px; font-weight: 500; fill: var(--tm-ink-1); }
+.tm-event-marker-label { font-family: var(--tm-fbody); font-size: 9.5px; font-weight: 500; fill: var(--tm-ink-1); }
 
-.tm-lead-time-table { background: var(--tm-card); border: 1px solid var(--tm-line); border-radius: 14px; padding: 22px 24px; margin-bottom: 22px; }
-.tm-lead-time-table h3 { font-family: var(--tm-fdisp); font-weight: 400; font-size: 18px; margin: 0 0 6px; color: var(--tm-ink-0); }
 .tm-lt-sub { font-size: 13px; color: var(--tm-ink-2); margin-bottom: 14px; }
-.tm-lead-time-table table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
-.tm-lead-time-table th { text-align: left; font-weight: 500; color: var(--tm-ink-2); padding: 8px 12px 8px 0; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--tm-line); }
-.tm-lead-time-table td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--tm-line); font-family: var(--tm-fmono); }
-.tm-lead-time-table td.label { font-family: var(--tm-fbody); }
-.tm-lead-time-table td.lead-good { color: var(--tm-calm); font-weight: 500; }
-.tm-lead-time-table td.lead-bad { color: var(--tm-stressed); font-weight: 500; }
-.tm-lead-time-table td.lead-coincident { color: var(--tm-ink-2); }
+.tm-lead-time-table-el { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 10px; }
+.tm-lead-time-table-el th { text-align: left; font-weight: 500; color: var(--tm-ink-2); padding: 8px 12px 8px 0; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--tm-line); }
+.tm-lead-time-table-el td { padding: 9px 12px 9px 0; border-bottom: 1px solid var(--tm-line); font-family: var(--tm-fmono); }
+.tm-lead-time-table-el td.label { font-family: var(--tm-fbody); }
+.tm-lead-time-table-el td.lead-good { color: var(--tm-calm); font-weight: 500; }
+.tm-lead-time-table-el td.lead-bad { color: var(--tm-stressed); font-weight: 500; }
+.tm-lead-time-table-el td.lead-coincident { color: var(--tm-ink-2); }
+.tm-lead-time-table-el td.detail { color: var(--tm-ink-2); font-size: 11.5px; }
+.tm-lead-time-table-el th.detail { color: var(--tm-ink-3); font-size: 9.5px; }
 .tm-honest-read { font-size: 13px; color: var(--tm-ink-1); margin-top: 14px; line-height: 1.6; }
 
 .tm-foot { background: var(--tm-card); border: 1px solid var(--tm-line); border-radius: 12px; padding: 16px 22px; font-size: 12px; color: var(--tm-ink-2); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
@@ -192,6 +267,8 @@ const STYLES = `
   .tm-page { padding: 8px 14px 40px; }
   .tm-hero-headline { font-size: 24px; }
   .tm-chart-controls { padding: 10px 12px; }
+  .tm-collapsible-head { padding: 14px 16px; flex-wrap: wrap; }
+  .tm-collapsible-body { padding: 4px 16px 18px; }
 }
 `;
 
@@ -228,12 +305,57 @@ const COMPOSITES = [
   },
 ];
 
+// Lead-time event-study rows. Each row carries BOTH the reader-facing summary
+// columns (composite that turned first / lead time / max S&P drawdown) and the
+// underlying detail columns ("show your work" — +30 cross date, S&P -15% date,
+// lead at +30, lead at composite>0). The summary columns come straight from
+// Joe's mockup screenshot; detail columns are computed from the daily series.
 const LEAD_TIME_ROWS = [
-  { event: "GFC",             comp: "Risk & Liquidity",  cross: "2007-03-02", spx: "2008-01-18", lead30: { label: "+46 weeks",            cls: "lead-good" }, leadZero: { label: "+46 weeks", cls: "lead-good" } },
-  { event: "2011 EU crisis",  comp: "Risk & Liquidity",  cross: "2011-09-30", spx: "2011-04-08", lead30: { label: "−25 weeks (lagged)", cls: "lead-bad"  }, leadZero: { label: "−17 weeks", cls: "lead-bad"  } },
-  { event: "2018 Q4",         comp: "Risk & Liquidity",  cross: "2018-12-17", spx: "2018-12-20", lead30: { label: "+0.4 weeks (coincident)", cls: "lead-coincident" }, leadZero: { label: "+45 weeks", cls: "lead-good" } },
-  { event: "COVID",           comp: "Risk & Liquidity",  cross: "2020-02-28", spx: "2020-03-09", lead30: { label: "+1.4 weeks (coincident)", cls: "lead-coincident" }, leadZero: { label: "+27 weeks", cls: "lead-good" } },
-  { event: "2022 hike cycle", comp: "Inflation & Rates", cross: "2021-11-01", spx: "2022-05-09", lead30: { label: "+27 weeks",           cls: "lead-good" }, leadZero: { label: "+46 weeks", cls: "lead-good" } },
+  {
+    event: "GFC",
+    summaryComp: "Risk & Liquidity",
+    summaryLead: "≈9 months",
+    summaryDD:   "−52.6%",
+    comp: "Risk & Liquidity",  cross: "2007-03-02", spx: "2008-01-18",
+    lead30:   { label: "+46 weeks",            cls: "lead-good" },
+    leadZero: { label: "+46 weeks",            cls: "lead-good" },
+  },
+  {
+    event: "2011 EU crisis",
+    summaryComp: "Risk & Liquidity + Inflation & Rates",
+    summaryLead: "≈3 months",
+    summaryDD:   "−18%",
+    comp: "Risk & Liquidity",  cross: "2011-09-30", spx: "2011-04-08",
+    lead30:   { label: "−25 weeks (lagged)",   cls: "lead-bad"  },
+    leadZero: { label: "−17 weeks",            cls: "lead-bad"  },
+  },
+  {
+    event: "2018 Q4",
+    summaryComp: "Risk & Liquidity",
+    summaryLead: "≈4 months",
+    summaryDD:   "−14.0%",
+    comp: "Risk & Liquidity",  cross: "2018-12-17", spx: "2018-12-20",
+    lead30:   { label: "+0.4 weeks (coincident)", cls: "lead-coincident" },
+    leadZero: { label: "+45 weeks",            cls: "lead-good" },
+  },
+  {
+    event: "COVID",
+    summaryComp: "none — exogenous shock",
+    summaryLead: "0 (coincident)",
+    summaryDD:   "−20.0%",
+    comp: "Risk & Liquidity",  cross: "2020-02-28", spx: "2020-03-09",
+    lead30:   { label: "+1.4 weeks (coincident)", cls: "lead-coincident" },
+    leadZero: { label: "+27 weeks",            cls: "lead-good" },
+  },
+  {
+    event: "2022 hike cycle",
+    summaryComp: "Inflation & Rates",
+    summaryLead: "≈6 months",
+    summaryDD:   "−24.8%",
+    comp: "Inflation & Rates", cross: "2021-11-01", spx: "2022-05-09",
+    lead30:   { label: "+27 weeks",            cls: "lead-good" },
+    leadZero: { label: "+46 weeks",            cls: "lead-good" },
+  },
 ];
 
 const SERIES_META = {
@@ -253,6 +375,27 @@ const LAYOUT = {
   topPanel:    { y0: 20,  y1: 200, yMin: -100, yMax: 100 },
   bottomPanel: { y0: 260, y1: 460, yMin: -60,  yMax: 0   },
   width: 1100, height: 520,
+};
+
+// ── Hero pill tooltip copy. TODO: parameterize when regime computation is
+// wired live — today's read is Normal across all three composites, so we
+// hardcode the Normal-state text. When the regime can flip elsewhere, swap
+// these strings on the live regime label.
+const HERO_TOOLTIPS = {
+  quadrantGoldilocks:
+    "The Bridgewater All-Weather framework places today in the Goldilocks " +
+    "quadrant — growth is firm and inflation is cooling. Historically a " +
+    "favorable equity environment.",
+  rlNormal:
+    "Risk & Liquidity composite reads Normal — financial-conditions stress, " +
+    "equity volatility, and credit spreads are sitting near their long-run " +
+    "averages.",
+  growthNormal:
+    "Growth composite reads Normal — real-economy momentum (jobless claims, " +
+    "broad activity, bank-equity ratio) is at trend.",
+  inflationRatesNormal:
+    "Inflation & Rates composite reads Normal — Treasury volatility and " +
+    "money-supply growth are sitting near their long-run averages.",
 };
 
 function regimeForScore(s) {
@@ -326,8 +469,8 @@ function DialGauge({ score }) {
     else if (s === 100) { anchor = "end"; xl += 2; }
     return (
       <g key={s}>
-        <line x1={xi.toFixed(1)} y1={yi.toFixed(1)} x2={xo.toFixed(1)} y2={yo.toFixed(1)} stroke="#9a9ea8" strokeWidth="0.8"/>
-        <text x={xl.toFixed(1)} y={(yl + 3).toFixed(1)} textAnchor={anchor} fontFamily="JetBrains Mono" fontSize="9" fill="#9a9ea8">
+        <line x1={xi.toFixed(1)} y1={yi.toFixed(1)} x2={xo.toFixed(1)} y2={yo.toFixed(1)} stroke="currentColor" strokeWidth="0.8" opacity="0.5"/>
+        <text x={xl.toFixed(1)} y={(yl + 3).toFixed(1)} textAnchor={anchor} fontFamily="JetBrains Mono" fontSize="9" fill="currentColor" opacity="0.55">
           {(s > 0 ? "+" : "") + s}
         </text>
       </g>
@@ -336,27 +479,31 @@ function DialGauge({ score }) {
   const zoneLabels = [
     [-75, "CALM",     "#1f9d60"],
     [-35, "QUIET",    "#69b585"],
-    [  0, "NORMAL",   "#6b6f78"],
+    [  0, "NORMAL",   "currentColor"],
     [ 35, "ELEVATED", "#b8811c"],
     [ 75, "STRESSED", "#d23040"],
   ].map(([s, label, color]) => {
     const [xl, yl] = pointOnArc(s, R - 26);
     return (
       <text key={label} x={xl.toFixed(1)} y={yl.toFixed(1)} textAnchor="middle"
-            fontFamily="Inter" fontSize="7.5" fontWeight="500" letterSpacing="0.06em" fill={color}>
+            fontFamily="Inter" fontSize="7.5" fontWeight="500" letterSpacing="0.06em"
+            fill={color} opacity={color === "currentColor" ? 0.55 : 1}>
         {label}
       </text>
     );
   });
   const [tipX, tipY] = pointOnArc(clamped, innerR);
+  // Needle + center hub use currentColor → inherits .tm-dial-svg color, which
+  // we pin to var(--tm-ink-0). Auto-flips with theme.
   return (
-    <svg className="tm-dial-svg" viewBox="0 0 240 145" preserveAspectRatio="xMidYMid meet">
+    <svg className="tm-dial-svg" viewBox="0 0 240 145" preserveAspectRatio="xMidYMid meet"
+         style={{ color: "var(--tm-ink-0)" }}>
       {arcs}
       {ticks}
       {zoneLabels}
-      <line x1={cx} y1={cy} x2={tipX.toFixed(2)} y2={tipY.toFixed(2)} stroke="#17181c" strokeWidth="2" strokeLinecap="round"/>
-      <circle cx={cx} cy={cy} r="6" fill="#17181c"/>
-      <circle cx={tipX.toFixed(2)} cy={tipY.toFixed(2)} r="3.5" fill="#17181c" stroke="#fff" strokeWidth="1.5"/>
+      <line x1={cx} y1={cy} x2={tipX.toFixed(2)} y2={tipY.toFixed(2)} stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+      <circle cx={cx} cy={cy} r="6" fill="currentColor"/>
+      <circle cx={tipX.toFixed(2)} cy={tipY.toFixed(2)} r="3.5" fill="currentColor" stroke="var(--tm-card)" strokeWidth="1.5"/>
     </svg>
   );
 }
@@ -470,6 +617,28 @@ function CompositeTile({ comp, score, prevScore, weightsBlock }) {
         </div>
       )}
     </div>
+  );
+}
+
+// ── Mini sparkline preview shown in the collapsed trajectory tile head.
+//    Single composite line, last ~2y of daily data, no axes — just shape.
+function MiniSpark({ data }) {
+  if (!data || data.length < 2) return null;
+  const slice = data.slice(-Math.min(504, data.length)); // ~2y trading days
+  const w = 140, h = 36;
+  const vals = slice.map((r) => (r.RL == null ? 0 : r.RL));
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const span = (max - min) || 1;
+  const pts = vals.map((v, i) => {
+    const x = (i / (vals.length - 1)) * (w - 2) + 1;
+    const y = h - 1 - ((v - min) / span) * (h - 2);
+    return x.toFixed(1) + "," + y.toFixed(1);
+  }).join(" ");
+  return (
+    <svg width={w} height={h} viewBox={"0 0 " + w + " " + h} aria-hidden="true">
+      <polyline points={pts} fill="none" stroke="var(--tm-accent)" strokeWidth="1.2"
+                strokeLinejoin="round" strokeLinecap="round" opacity="0.85"/>
+    </svg>
   );
 }
 
@@ -635,13 +804,10 @@ function TrajectoryChart({ data, eventMarkers }) {
   return (
     <div className="tm-trajectory">
       <div className="tm-traj-head">
-        <div>
-          <h3 className="tm-traj-title">Composite history vs. equity drawdowns</h3>
-          <div className="tm-traj-subtitle">
-            Top: composite scores (z × 50, ±100). Bottom: S&amp;P 500, Dow, NASDAQ
-            drawdowns from running peak. Composites lead, drawdowns follow. Hover for values; toggle
-            series; pick a window.
-          </div>
+        <div className="tm-collapsible-sub" style={{ marginTop: 0, maxWidth: 720 }}>
+          Top: composite scores (z × 50, ±100). Bottom: S&amp;P 500, Dow, NASDAQ
+          drawdowns from running peak. Composites lead, drawdowns follow. Hover for values; toggle
+          series; pick a window.
         </div>
       </div>
 
@@ -697,42 +863,44 @@ function TrajectoryChart({ data, eventMarkers }) {
         <svg ref={svgRef} className="tm-chart-svg" viewBox={"0 0 " + LAYOUT.width + " " + LAYOUT.height}
              preserveAspectRatio="none"
              onMouseMove={onMouseMove} onMouseLeave={onMouseLeave}
-             style={{ height: 520, cursor: "crosshair" }}>
+             style={{ height: 520, cursor: "crosshair", color: "var(--tm-ink-3)" }}>
           {[-100,-50,0,50,100].map((v) => {
             const y = yForTop(v); const isZero = v === 0;
             return (
               <g key={"top-" + v}>
                 <line x1={LAYOUT.marginLeft} y1={y} x2={LAYOUT.width - LAYOUT.marginRight} y2={y}
-                      stroke={isZero ? "#9a9ea8" : "#e6dfd2"} strokeWidth={isZero ? 0.8 : 0.5}
-                      strokeDasharray={isZero ? "3 3" : undefined}/>
-                <text x={LAYOUT.marginLeft - 8} y={y + 3} textAnchor="end" fontFamily="JetBrains Mono" fontSize="9.5" fill="#9a9ea8">
+                      stroke="currentColor" strokeWidth={isZero ? 0.8 : 0.5}
+                      strokeDasharray={isZero ? "3 3" : undefined}
+                      opacity={isZero ? 0.6 : 0.35}/>
+                <text x={LAYOUT.marginLeft - 8} y={y + 3} textAnchor="end" fontFamily="JetBrains Mono" fontSize="9.5" fill="currentColor">
                   {v > 0 ? "+" + v : v}
                 </text>
               </g>
             );
           })}
-          <text x={LAYOUT.marginLeft} y="14" fontFamily="Inter" fontSize="10" fill="#6b6f78" fontWeight="500">COMPOSITE SCORE (LEAD)</text>
+          <text x={LAYOUT.marginLeft} y="14" fontFamily="Inter" fontSize="10" fill="var(--tm-ink-2)" fontWeight="500">COMPOSITE SCORE (LEAD)</text>
 
           {[0,-15,-30,-45,-60].map((v) => {
             const y = yForBottom(v);
             return (
               <g key={"bot-" + v}>
                 <line x1={LAYOUT.marginLeft} y1={y} x2={LAYOUT.width - LAYOUT.marginRight} y2={y}
-                      stroke={v === 0 ? "#9a9ea8" : "#e6dfd2"} strokeWidth={v === 0 ? 0.8 : 0.5}/>
-                <text x={LAYOUT.marginLeft - 8} y={y + 3} textAnchor="end" fontFamily="JetBrains Mono" fontSize="9.5" fill="#9a9ea8">
+                      stroke="currentColor" strokeWidth={v === 0 ? 0.8 : 0.5}
+                      opacity={v === 0 ? 0.6 : 0.35}/>
+                <text x={LAYOUT.marginLeft - 8} y={y + 3} textAnchor="end" fontFamily="JetBrains Mono" fontSize="9.5" fill="currentColor">
                   {v}%
                 </text>
               </g>
             );
           })}
-          <text x={LAYOUT.marginLeft} y="254" fontFamily="Inter" fontSize="10" fill="#6b6f78" fontWeight="500">EQUITY DRAWDOWN FROM RUNNING PEAK (FOLLOW)</text>
+          <text x={LAYOUT.marginLeft} y="254" fontFamily="Inter" fontSize="10" fill="var(--tm-ink-2)" fontWeight="500">EQUITY DRAWDOWN FROM RUNNING PEAK (FOLLOW)</text>
 
           {xTicks.map((t, i) => {
             const x = xFor(t.idx);
             return (
               <g key={"x-" + i}>
-                <text x={x} y="240" fontFamily="JetBrains Mono" fontSize="9.5" fill="#9a9ea8" textAnchor="middle">{t.label}</text>
-                <text x={x} y="478" fontFamily="JetBrains Mono" fontSize="9.5" fill="#9a9ea8" textAnchor="middle">{t.label}</text>
+                <text x={x} y="240" fontFamily="JetBrains Mono" fontSize="9.5" fill="currentColor" textAnchor="middle">{t.label}</text>
+                <text x={x} y="478" fontFamily="JetBrains Mono" fontSize="9.5" fill="currentColor" textAnchor="middle">{t.label}</text>
               </g>
             );
           })}
@@ -743,7 +911,7 @@ function TrajectoryChart({ data, eventMarkers }) {
                 <>
                   <line className="tm-event-marker-line" x1={xFor(m.compIdx)} y1="20" x2={xFor(m.compIdx)} y2="200"/>
                   <text className="tm-event-marker-label" x={xFor(m.compIdx)} y="34" textAnchor="middle">{m.label}</text>
-                  <text className="tm-event-marker-label" x={xFor(m.compIdx)} y="46" textAnchor="middle" style={{ fontSize: 9, fill: "#6b6f78" }}>
+                  <text className="tm-event-marker-label" x={xFor(m.compIdx)} y="46" textAnchor="middle" style={{ fontSize: 9, fill: "var(--tm-ink-2)" }}>
                     {m.comp} cross
                   </text>
                 </>
@@ -766,13 +934,13 @@ function TrajectoryChart({ data, eventMarkers }) {
 
           {n > 0 && (
             <line x1={xFor(n - 1)} y1="20" x2={xFor(n - 1)} y2="460"
-                  stroke="#9d3545" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.4"/>
+                  stroke="var(--tm-accent)" strokeWidth="0.8" strokeDasharray="2 2" opacity="0.5"/>
           )}
 
           {hover && filtered[hover.idx] && (
             <g>
               <line x1={xFor(hover.idx)} y1="20" x2={xFor(hover.idx)} y2="460"
-                    stroke="#9d3545" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.5"/>
+                    stroke="var(--tm-accent)" strokeWidth="0.8" strokeDasharray="3 3" opacity="0.6"/>
               {Object.keys(SERIES_META).map((k) => {
                 if (!visible[k]) return null;
                 const v = filtered[hover.idx][k];
@@ -780,20 +948,46 @@ function TrajectoryChart({ data, eventMarkers }) {
                 const y = SERIES_META[k].panel === "top" ? yForTop(v) : yForBottom(v);
                 return (
                   <circle key={k} cx={xFor(hover.idx)} cy={y} r="3.5"
-                          fill={SERIES_META[k].color} stroke="#fff" strokeWidth="1.5"/>
+                          fill={SERIES_META[k].color} stroke="var(--tm-card)" strokeWidth="1.5"/>
                 );
               })}
             </g>
           )}
 
           {n === 0 && (
-            <text x={LAYOUT.width / 2} y="260" textAnchor="middle" fontFamily="Inter" fontSize="14" fill="#9a9ea8">
+            <text x={LAYOUT.width / 2} y="260" textAnchor="middle" fontFamily="Inter" fontSize="14" fill="var(--tm-ink-3)">
               No data in selected range
             </text>
           )}
         </svg>
         {tt}
       </div>
+    </div>
+  );
+}
+
+// ── Generic collapsible section wrapper. Click the head row to expand/collapse.
+//    When closed, only the head shows (compact tile mode). When open, body is rendered.
+function Collapsible({ title, sub, preview, openLabel, closeLabel, defaultOpen, children }) {
+  const [open, setOpen] = useState(!!defaultOpen);
+  return (
+    <div className={"tm-collapsible" + (open ? " is-open" : "")}>
+      <div className="tm-collapsible-head" onClick={() => setOpen((v) => !v)}
+           role="button" tabIndex={0}
+           onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setOpen((v) => !v); } }}>
+        <div className="tm-collapsible-meta">
+          <h3 className="tm-collapsible-title">{title}</h3>
+          {sub && <div className="tm-collapsible-sub">{sub}</div>}
+        </div>
+        <div className="tm-collapsible-spark">
+          {!open && preview}
+          <button className="tm-collapsible-toggle" onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}>
+            <span>{open ? closeLabel : openLabel}</span>
+            <span className="chev">▾</span>
+          </button>
+        </div>
+      </div>
+      {open && <div className="tm-collapsible-body">{children}</div>}
     </div>
   );
 }
@@ -900,13 +1094,42 @@ export default function TodayMacro({ onNavToReadme }) {
     );
   }
 
+  // Resolve the right tooltip text for each pill given current regime label.
+  // TODO: parameterize when regime computation is wired live — today's read
+  // is Normal across all three composites, so we hardcode the Normal-state
+  // copy. Quadrant tooltip currently always returns Goldilocks copy.
+  const quadrantTip = HERO_TOOLTIPS.quadrantGoldilocks;
+  const pillTipFor = (compKey) => {
+    if (compKey === "RL") return HERO_TOOLTIPS.rlNormal;
+    if (compKey === "GR") return HERO_TOOLTIPS.growthNormal;
+    if (compKey === "IR") return HERO_TOOLTIPS.inflationRatesNormal;
+    return "";
+  };
+
+  // Total observation count for the trajectory tile preview line
+  const obsCount = data ? data.length : 0;
+  const yearSpan = data && data.length > 1
+    ? Math.round((new Date(data[data.length - 1].d) - new Date(data[0].d)) / (365.25 * 86400000))
+    : 0;
+  const trajPreview = (
+    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <MiniSpark data={data}/>
+      <span style={{ fontSize: 11.5, color: "var(--tm-ink-3)", fontFamily: "var(--tm-fmono)", whiteSpace: "nowrap" }}>
+        {yearSpan}Y · {obsCount.toLocaleString()} obs
+      </span>
+    </div>
+  );
+
   return (
     <div className="tm-page" style={PAGE_VARS}>
       <div className="tm-hero">
         <div className="tm-eyebrow">Today's setup</div>
         <h1 className="tm-hero-headline">{headline}</h1>
         <div className="tm-hero-meta">
-          <span className="tm-quadrant-chip"><span className="dot"/>{quadrantLabel}</span>
+          <span className="tm-itip-host" tabIndex={0}>
+            <span className="tm-quadrant-chip"><span className="dot"/>{quadrantLabel}</span>
+            <span className="tm-itip" role="tooltip">{quadrantTip}</span>
+          </span>
           <span className="tm-regime-summary">
             <span>Composites:</span>
             {regimes.map((r) => {
@@ -915,8 +1138,11 @@ export default function TodayMacro({ onNavToReadme }) {
               const col = "var(--tm-" + cls + ")";
               const shortName = r.comp.key === "RL" ? "R&L" : r.comp.key === "GR" ? "Growth" : "Inflation & Rates";
               return (
-                <span key={r.comp.key} className="pill" style={{ background: bg, color: col }}>
-                  {shortName} {regimeLabel(cls)}
+                <span key={r.comp.key} className="tm-itip-host" tabIndex={0}>
+                  <span className="pill" style={{ background: bg, color: col }}>
+                    {shortName} {regimeLabel(cls)}
+                  </span>
+                  <span className="tm-itip" role="tooltip">{pillTipFor(r.comp.key)}</span>
                 </span>
               );
             })}
@@ -934,36 +1160,52 @@ export default function TodayMacro({ onNavToReadme }) {
         ))}
       </div>
 
-      <TrajectoryChart data={data} eventMarkers={eventMarkers}/>
+      <Collapsible
+        title="Composite history vs. equity drawdowns"
+        sub={"21 years · " + obsCount.toLocaleString() + " daily observations · Hover, toggle, and zoom available when expanded"}
+        preview={trajPreview}
+        openLabel="Show chart"
+        closeLabel="Hide chart"
+      >
+        <TrajectoryChart data={data} eventMarkers={eventMarkers}/>
+      </Collapsible>
 
-      <div className="tm-lead-time-table">
-        <h3>Lead-time event study — what the chart actually shows</h3>
+      <Collapsible
+        title="Lead-time event study — what the chart actually shows"
+        sub={"Five major drawdowns since 2007 — when each composite turned, when the S&P broke down, and the lead between them."}
+        openLabel="Show event study"
+        closeLabel="Hide event study"
+      >
         <div className="tm-lt-sub">
-          For each major drawdown since 2007, the date the relevant composite first crossed +30 (a
-          stress signal), the date the S&amp;P first hit −15% peak-to-trough drawdown, and the
-          lead time between them. Toggle "Show event markers" on the chart to see these dates as
-          vertical lines.
+          For each major drawdown since 2007, the composite that crossed +30 first (a stress
+          signal), how far ahead of the S&amp;P −15% drawdown that signal arrived, and the
+          eventual peak-to-trough drawdown. Toggle "Show event markers" on the chart above to see
+          these dates as vertical lines.
         </div>
-        <table>
+        <table className="tm-lead-time-table-el">
           <thead>
             <tr>
               <th>Event</th>
-              <th>Composite</th>
-              <th>+30 cross date</th>
-              <th>S&amp;P −15% date</th>
-              <th>Lead at +30</th>
-              <th>Lead at composite&gt;0</th>
+              <th>Composite that turned first</th>
+              <th>Lead time</th>
+              <th>Max S&amp;P drawdown</th>
+              <th className="detail">+30 cross date</th>
+              <th className="detail">S&amp;P −15% date</th>
+              <th className="detail">Lead at +30</th>
+              <th className="detail">Lead at composite&gt;0</th>
             </tr>
           </thead>
           <tbody>
             {LEAD_TIME_ROWS.map((r) => (
               <tr key={r.event}>
                 <td className="label">{r.event}</td>
-                <td className="label">{r.comp}</td>
-                <td>{r.cross}</td>
-                <td>{r.spx}</td>
-                <td className={r.lead30.cls}>{r.lead30.label}</td>
-                <td className={r.leadZero.cls}>{r.leadZero.label}</td>
+                <td className="label">{r.summaryComp}</td>
+                <td className="label">{r.summaryLead}</td>
+                <td>{r.summaryDD}</td>
+                <td className="detail">{r.cross}</td>
+                <td className="detail">{r.spx}</td>
+                <td className={"detail " + r.lead30.cls}>{r.lead30.label}</td>
+                <td className={"detail " + r.leadZero.cls}>{r.leadZero.label}</td>
               </tr>
             ))}
           </tbody>
@@ -979,7 +1221,7 @@ export default function TodayMacro({ onNavToReadme }) {
           deterministic timing tool. Today's reading lowers conditional drawdown probability but
           does not eliminate it.
         </p>
-      </div>
+      </Collapsible>
 
       <div className="tm-foot">
         <div>
