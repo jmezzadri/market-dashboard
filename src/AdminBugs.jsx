@@ -936,7 +936,16 @@ export default function AdminBugs() {
       const b = bugBucket(r);
       counts[b] = (counts[b] || 0) + 1;
     }
-    const filteredRows = filter === "all" ? all : all.filter(r => bugBucket(r) === filter);
+    const filteredRows = filter === "all"
+      ? all
+      // The "Open" tile's value sums the 'open' bucket (new/triaged/reopened)
+      // AND the 'awaiting_approval' bucket. If we filtered only on === 'open'
+      // here, clicking the tile would show fewer rows than the tile's count,
+      // which is what blew up #NNNN ("3 open · 0 of 32 shown"). Match the
+      // tile's definition so the filter surface matches its header number.
+      : filter === "open"
+        ? all.filter(r => { const b = bugBucket(r); return b === "open" || b === "awaiting_approval"; })
+        : all.filter(r => bugBucket(r) === filter);
     return { counts, filtered: filteredRows };
   }, [rows, filter]);
 
