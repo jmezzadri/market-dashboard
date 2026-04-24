@@ -210,6 +210,33 @@ export default function PositionEditor({
       : ""
   );
 
+  // Migration 017 — "as uploaded" price, preserved across scanner updates
+  // and manual overrides. Drives the "Revert to uploaded price" button
+  // below the NAV input. Falls back to avg_cost for rows pre-dating
+  // migration 017 (backfill covers most, this is belt-and-suspenders).
+  const revertTargetPrice = (
+    existing?.ingestedPrice != null ? Number(existing.ingestedPrice)
+    : existing?.avgCost != null     ? Number(existing.avgCost)
+    : null
+  );
+  const hasRevertTarget = revertTargetPrice != null && Number.isFinite(revertTargetPrice);
+  // Show the revert affordance only when the on-screen mark actually differs
+  // from the revert target (within a cent tolerance), so a freshly-imported
+  // fund with no override doesn't display a redundant "revert" button.
+  const markDiffersFromUploaded = (
+    hasRevertTarget
+    && price != null
+    && Number.isFinite(price)
+    && Math.abs(price - revertTargetPrice) > 0.005
+  );
+  const revertToUploadedPrice = () => {
+    if (!hasRevertTarget) return;
+    const v = revertTargetPrice;
+    setPrice(v);
+    setMarkPerShareStr(String(v));
+    if (shares != null && shares > 0) setCurrentValueStr(String(shares * v));
+  };
+
   useEffect(() => {
     if (shares != null && avgCost != null) setTotalCostStr(String(shares * avgCost));
   }, [shares, avgCost]);
@@ -407,6 +434,7 @@ export default function PositionEditor({
           expiration:    null,
           multiplier:    null,
           manual_price:  null,
+          ingested_price: existing?.ingestedPrice ?? 1,
         };
       } else if (assetClass === "option") {
         // Multiplier is baked into stored price + avg_cost (per-contract)
@@ -433,6 +461,7 @@ export default function PositionEditor({
           expiration,
           multiplier,
           manual_price:  markPS,
+          ingested_price: existing?.ingestedPrice ?? pricePerCt,
         };
       } else if (assetClass === "bond") {
         // Per-bond convention: quantity = bond count, price = per-bond mark.
@@ -454,6 +483,7 @@ export default function PositionEditor({
           expiration:    null,
           multiplier:    null,
           manual_price:  price, // manual mark lives in the price column for bonds
+          ingested_price: existing?.ingestedPrice ?? price,
         };
       } else if (assetClass === "crypto") {
         payload = {
@@ -474,6 +504,7 @@ export default function PositionEditor({
           expiration:    null,
           multiplier:    null,
           manual_price:  price, // V1: user-entered; Joe's sibling session will overwrite
+          ingested_price: existing?.ingestedPrice ?? price,
         };
       } else {
         // stock / ETF — manual_price is populated iff the user flagged this
@@ -498,6 +529,10 @@ export default function PositionEditor({
           expiration:    null,
           multiplier:    null,
           manual_price:  manualMarkStock ? price : null,
+          // Mig 017 — preserve "as uploaded" price so Revert always has a target.
+          // New inserts: seed from avg_cost (which equals price on fresh seed).
+          // Edits: preserve whatever the row already had.
+          ingested_price: existing?.ingestedPrice ?? (avgCost ?? price),
         };
       }
 
@@ -775,6 +810,54 @@ export default function PositionEditor({
                   Paste today\'s NAV from Fidelity / Vanguard / your broker.
                   Current value and PnL are derived as shares × NAV.
                 </div>
+                {hasRevertTarget && (
+                  <div style={{
+                    marginTop: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    padding: "6px 10px",
+                    background: markDiffersFromUploaded ? "rgba(251, 191, 36, 0.08)" : "var(--surface-2)",
+                    border: markDiffersFromUploaded ? "1px solid rgba(251, 191, 36, 0.45)" : "1px solid var(--border)",
+                    borderRadius: 6,
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                  }}>
+                    <span style={{ color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                      As uploaded
+                    </span>
+                    <span style={{ color: "var(--text)", fontWeight: 700 }}>
+                      ${Number(revertTargetPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    {markDiffersFromUploaded ? (
+                      <button
+                        type="button"
+                        onClick={revertToUploadedPrice}
+                        style={{
+                          marginLeft: "auto",
+                          background: "transparent",
+                          border: "1px solid #B8860B",
+                          borderRadius: 5,
+                          padding: "4px 10px",
+                          color: "#B8860B",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          letterSpacing: "0.04em",
+                          textTransform: "uppercase",
+                        }}
+                        title="Replace the current NAV with the price from your last CSV import / broker upload."
+                      >
+                        ⟲ Revert to uploaded
+                      </button>
+                    ) : (
+                      <span style={{ marginLeft: "auto", color: "var(--text-muted)" }}>
+                        current NAV matches upload
+                      </span>
+                    )}
+                  </div>
+                )}
                 <div style={{ marginTop: 10 }}>
                   <label style={label}>CURRENT VALUE (= SHARES × NAV)</label>
                   <input
