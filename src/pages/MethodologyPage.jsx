@@ -192,7 +192,7 @@ function Contents() {
     { num: "1", label: "Macro Indicator → Category Map",  sub: "The 25 indicators, grouped by category, with source / frequency / tier / weight / type / detail.", id: A("catmap") },
     { num: "2", label: "Macro Composite Methodology",     sub: "How the 25 indicators roll up into one 0-100 Composite Stress Score and four conviction bands.",    id: A("composite-math") },
     { num: "3", label: "Equity Scanner Signal Score",     sub: "How six section sub-scores combine into a single signed composite on [-100, +100] per ticker.",     id: A("signal-math") },
-    { num: "4", label: "Detailed Data Information",       sub: "Every upstream data stream — source, refresh cadence, what it feeds, how it's weighted.",            id: A("catalog") },
+    { num: "4", label: "Equity Scanner Data Streams",    sub: "The 8 streams that feed the per-ticker Signal Score - source, refresh cadence, scanner section, weight.",    id: A("catalog") },
   ];
   return (
     <nav data-testid="methodology-contents" aria-label="Contents"
@@ -783,89 +783,58 @@ function SignalScoreMath() {
   );
 }
 
-// ─── §5 DETAILED DATA INFORMATION (sortable flat table) ─────────────────────
-// Every upstream stream in one sortable table: what it is, where it comes
-// from, how often it refreshes, where it lands, and what weight it carries.
+// ─── §5 EQUITY SCANNER DATA STREAMS (sortable flat table, scanner-only) ────
+// Scanner data only — the macro indicators have their own table in §1, so
+// repeating them here would be redundant.
 function DataCatalogTable({ ind, asOf }) {
   const rows = useMemo(() => {
-    return DATA_REGISTRY.map((r) => {
-      let usedFor = "";
-      let usedForColor = "#94a3b8";
-      if (r.section === "macro") {
-        const catLabel = CATEGORY_LABEL[r.category] || r.category || "—";
-        usedFor = `MACRO · ${catLabel}`;
-        usedForColor = "#ec4899";
-      } else if (r.section === "scanner") {
-        const scanSec = SCANNER_SECTION_FOR[r.key] || "—";
-        usedFor = `SCANNER · ${scanSec}`;
-        usedForColor = "#06b6d4";
-      } else {
-        usedFor = "PLUMBING";
-        usedForColor = "#94a3b8";
-      }
+    return DATA_REGISTRY
+      .filter((r) => r.section === "scanner")
+      .map((r) => {
+        const secLabel = SCANNER_SECTION_FOR[r.key] || "—";
+        const secKey   = SCANNER_SECTION_KEY_FOR[r.key];
 
-      let weighting = "—";
-      let weightingSort = 0;
-      if (r.section === "macro") {
-        const tier = r.tier || 3;
-        const tierW = tier === 1 ? 1.5 : tier === 2 ? 1.2 : 1.0;
-        weighting = `T${tier} · ${tierW.toFixed(1)}×`;
-        weightingSort = tierW;
-      } else if (r.section === "scanner") {
-        const secKey = SCANNER_SECTION_KEY_FOR[r.key];
+        let weighting = "—";
+        let weightingSort = 0;
         if (secKey && SECTION_WEIGHTS[secKey] != null) {
           weighting = `${SECTION_WEIGHTS[secKey]}%`;
           weightingSort = SECTION_WEIGHTS[secKey];
+        } else if (r.key === "uw_screener") {
+          weighting = "Filter";
+          weightingSort = -1;
+        } else {
+          weighting = "Enrichment";
+          weightingSort = -2;
         }
-      }
 
-      let lastRefresh = "—";
-      if (r.section === "macro" && r.indId && asOf && asOf[r.indId]) {
-        lastRefresh = asOf[r.indId];
-      } else if (r.freq) {
-        lastRefresh = r.freq;
-      }
+        const timing = r.timing || "";
+        const detail = r.details || r.summary || "";
 
-      let timing = "";
-      if (r.section === "macro" && r.indId && INDICATOR_META[r.indId]) {
-        timing = INDICATOR_META[r.indId].timing || "";
-      } else if (r.timing) {
-        timing = r.timing;
-      }
-
-      const detail = r.section === "macro" && r.indId && ind && ind[r.indId]
-        ? (ind[r.indId][12] || r.summary || "")
-        : (r.details || r.summary || "");
-
-      return {
-        key: r.key,
-        section: r.section,
-        name: r.name,
-        source: r.source || "—",
-        freq: r.freq || "—",
-        lastRefresh,
-        usedFor,
-        usedForColor,
-        weighting,
-        weightingSort,
-        timing,
-        detail,
-      };
-    });
-  }, [ind, asOf]);
+        return {
+          key: r.key,
+          name: r.name,
+          source: r.source || "—",
+          freq: r.freq || "—",
+          section: secLabel,
+          weighting,
+          weightingSort,
+          timing,
+          detail,
+        };
+      });
+  }, []);
 
   const [sortKey, setSortKey] = useState("section");
   const [sortDir, setSortDir] = useState("asc");
   const [query, setQuery] = useState("");
 
-  const SECTION_ORD = { macro:1, scanner:2, infra:3 };
   const TIMING_ORDER = { Leading:1, Coincident:2, Lagging:3 };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return rows;
     return rows.filter((r) =>
-      [r.name, r.source, r.usedFor, r.weighting, r.timing, r.detail]
+      [r.name, r.source, r.freq, r.section, r.weighting, r.timing, r.detail]
         .join(" ").toLowerCase().includes(q)
     );
   }, [rows, query]);
@@ -876,19 +845,17 @@ function DataCatalogTable({ ind, asOf }) {
     arr.sort((a, b) => {
       let av, bv;
       switch (sortKey) {
-        case "name":        av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
-        case "source":      av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
-        case "freq":        av = a.freq.toLowerCase(); bv = b.freq.toLowerCase(); break;
-        case "lastRefresh": av = a.lastRefresh.toLowerCase(); bv = b.lastRefresh.toLowerCase(); break;
-        case "usedFor":     av = a.usedFor.toLowerCase(); bv = b.usedFor.toLowerCase(); break;
-        case "weighting":   av = a.weightingSort; bv = b.weightingSort; break;
-        case "timing":      av = TIMING_ORDER[a.timing] || 99; bv = TIMING_ORDER[b.timing] || 99; break;
-        case "section":     av = SECTION_ORD[a.section] || 99; bv = SECTION_ORD[b.section] || 99; break;
-        default:            av = 0; bv = 0;
+        case "name":      av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
+        case "source":    av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
+        case "freq":      av = a.freq.toLowerCase(); bv = b.freq.toLowerCase(); break;
+        case "section":   av = a.section.toLowerCase(); bv = b.section.toLowerCase(); break;
+        case "weighting": av = a.weightingSort; bv = b.weightingSort; break;
+        case "timing":    av = TIMING_ORDER[a.timing] || 99; bv = TIMING_ORDER[b.timing] || 99; break;
+        default:          av = 0; bv = 0;
       }
       if (av < bv) return -1 * dir;
       if (av > bv) return  1 * dir;
-      return (SECTION_ORD[a.section] - SECTION_ORD[b.section]) || a.name.localeCompare(b.name);
+      return a.name.localeCompare(b.name);
     });
     return arr;
   }, [filtered, sortKey, sortDir]);
@@ -899,32 +866,31 @@ function DataCatalogTable({ ind, asOf }) {
   }
 
   const COLS = [
-    { k:"name",        label:"Data",          align:"left"   },
-    { k:"source",      label:"Source",        align:"left"   },
-    { k:"freq",        label:"Frequency",     align:"left"   },
-    { k:"lastRefresh", label:"Last Refresh",  align:"left"   },
-    { k:"usedFor",     label:"Used For",      align:"left"   },
-    { k:"weighting",   label:"Weighting",     align:"right"  },
-    { k:"timing",      label:"Type",          align:"center" },
+    { k:"name",      label:"Data",        align:"left"   },
+    { k:"source",    label:"Source",      align:"left"   },
+    { k:"freq",      label:"Frequency",   align:"left"   },
+    { k:"section",   label:"Scanner Section", align:"left" },
+    { k:"weighting", label:"Weight in Signal Score", align:"right" },
+    { k:"timing",    label:"Type",        align:"center" },
   ];
 
   return (
     <section id={A("catalog")} data-testid="methodology-section-catalog"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="4 · DETAILED DATA INFORMATION"
-        sub={`${rows.length} streams · sortable · searchable`}
+        label="4 · EQUITY SCANNER DATA STREAMS"
+        sub={`${rows.length} streams that feed the per-ticker Signal Score · sortable`}
         applies={[
-          { id:"overview",   label:"Macro Overview",  path:"#overview" },
-          { id:"indicators", label:"All Indicators",  path:"#indicators" },
-          { id:"scanner",    label:"Trading Scanner", path:"#scanner" },
+          { id:"scanner",  label:"Trading Scanner",                            path:"#scanner" },
+          { id:"portopps", label:"Trading Opportunities & Portfolio Insights", path:"#portopps" },
         ]}
       />
 
       <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
-        One row per upstream stream. Click any column header to sort. The <strong>Used For</strong> tag
-        tells you which engine consumes the stream (Macro Composite · Scanner Signal · Plumbing table).
-        <strong> Weighting</strong> is the tier × (for macro) or the section weight % (for scanner).
+        Every upstream data stream the scanner reads when it scores a ticker. Click a column header to
+        sort. <strong>Scanner Section</strong> = which of the six subscore buckets the stream lands in.
+        <strong> Weight in Signal Score</strong> = that section's share of the overall composite (see §3).
+        Non-scored streams (universe filter, enrichment feeds like live price + news) are marked explicitly.
         Click a row to expand the full detail.
       </div>
 
@@ -933,8 +899,8 @@ function DataCatalogTable({ ind, asOf }) {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search data / source / timing / detail…"
-          aria-label="Search data streams"
+          placeholder="Search scanner streams…"
+          aria-label="Search scanner data streams"
           data-testid="methodology-search"
           style={{
             flex:"1 1 320px", minWidth:260, maxWidth:560,
@@ -992,12 +958,11 @@ function DataRow({ r }) {
         </td>
         <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.source}</td>
         <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.freq}</td>
-        <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>{r.lastRefresh}</td>
         <td style={{ ...tdStyle }}>
-          <span style={{ fontSize:10, color:r.usedForColor, border:`1px solid ${r.usedForColor}`,
+          <span style={{ fontSize:10, color:"#06b6d4", border:"1px solid #06b6d4",
                          borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
-                         whiteSpace:"nowrap" }}>
-            {r.usedFor}
+                         whiteSpace:"nowrap", textTransform:"uppercase" }}>
+            {r.section}
           </span>
         </td>
         <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)" }}>{r.weighting}</td>
@@ -1014,7 +979,7 @@ function DataRow({ r }) {
       {open && (
         <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))",
                      background:"var(--surface-2)" }}>
-          <td colSpan={7} style={{ padding:"10px 14px 14px 34px", fontSize:12,
+          <td colSpan={6} style={{ padding:"10px 14px 14px 34px", fontSize:12,
                                    color:"var(--text-muted)", lineHeight:1.7 }}>
             {r.detail || "No additional detail."}
           </td>
@@ -1024,24 +989,15 @@ function DataRow({ r }) {
   );
 }
 
-// Mapping tables used by the Data Catalog.
-const CATEGORY_LABEL = {
-  equity:  "Equity & Vol",
-  credit:  "Credit Markets",
-  rates:   "Rates & Curve",
-  fincond: "Financial Conditions",
-  bank:    "Banking System",
-  labor:   "Labor & Activity",
-};
-
+// Mapping tables used by §4.
 const SCANNER_SECTION_FOR = {
   uw_options_flow:   "Options",
   uw_dark_pool:      "Dark Pool",
   uw_congressional:  "Congress",
   uw_insider:        "Insider",
-  uw_screener:       "Screener (filter)",
-  uw_news:           "News",
-  yahoo_prices:      "Prices",
+  uw_screener:       "Filter (universe screen)",
+  uw_news:           "Ticker Detail — News",
+  yahoo_prices:      "Prices (enrichment)",
   yahoo_technicals:  "Technicals",
 };
 const SCANNER_SECTION_KEY_FOR = {
@@ -1051,11 +1007,6 @@ const SCANNER_SECTION_KEY_FOR = {
   uw_insider:        "insider",
   yahoo_technicals:  "technicals",
 };
-
-const thStyle = { textAlign:"left", fontWeight:600, fontSize:10, letterSpacing:"0.08em",
-                  padding:"8px 12px", color:"var(--text-dim)", textTransform:"uppercase",
-                  fontFamily:"var(--font-mono)", whiteSpace:"nowrap" };
-const tdStyle = { padding:"8px 12px", verticalAlign:"top" };
 
 // ─── SHARED HELPERS ──────────────────────────────────────────────────────────
 // SectionHeader + Prose + P + Formula + PillChip were co-located with the old
