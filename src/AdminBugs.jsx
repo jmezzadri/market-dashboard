@@ -185,14 +185,39 @@ function complexityColor(c) {
 }
 
 // ── Small UI atoms ─────────────────────────────────────────────────────────
-function KpiTile({ label, value, sub, tone }) {
+// KpiTile doubles as a filter button — clicking selects its bucket. When
+// `active` is true, the tile gets an accent border + tinted background so
+// the current filter is unambiguous. The separate filter-pill row below the
+// strip was removed on the tile-first redesign (2026-04-24).
+function KpiTile({ label, value, sub, tone, active, onClick }) {
   const toneColor = tone === "good" ? "#34d399" : tone === "warn" ? "#B8860B" : tone === "bad" ? "#ef4444" : "var(--text)";
+  const borderColor = active ? "var(--accent, #2563eb)" : "var(--border)";
+  const bg = active ? "rgba(37, 99, 235, 0.06)" : "var(--surface)";
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 4 }}>
+    <button
+      type="button"
+      onClick={onClick}
+      title={onClick ? `Filter to ${label}` : undefined}
+      style={{
+        background: bg,
+        border: `1px solid ${borderColor}`,
+        borderRadius: 8,
+        padding: "14px 16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 4,
+        textAlign: "left",
+        cursor: onClick ? "pointer" : "default",
+        boxShadow: active ? "0 0 0 1px var(--accent, #2563eb)" : "none",
+        transition: "background 120ms, border-color 120ms, box-shadow 120ms",
+        fontFamily: "inherit",
+        color: "inherit",
+        width: "100%",
+      }}>
       <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", letterSpacing: "0.1em", textTransform: "uppercase" }}>{label}</div>
       <div style={{ fontSize: 22, fontWeight: 700, color: toneColor, fontVariantNumeric: "tabular-nums" }}>{value}</div>
       {sub && <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{sub}</div>}
-    </div>
+    </button>
   );
 }
 
@@ -251,38 +276,10 @@ function UatModeBadge({ row }) {
   );
 }
 
-function FilterPills({ value, onChange, counts }) {
-  return (
-    <div style={{ display: "inline-flex", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: 2, gap: 2, flexWrap: "wrap" }}>
-      {FILTER_PILLS.map(p => {
-        const active = value === p.id;
-        const n = counts?.[p.id];
-        return (
-          <button
-            key={p.id}
-            onClick={() => onChange(p.id)}
-            style={{
-              background: active ? "var(--accent, #2563eb)" : "transparent",
-              color: active ? "white" : "var(--text-2)",
-              border: "none",
-              borderRadius: 6,
-              padding: "6px 12px",
-              fontSize: 12,
-              fontWeight: 600,
-              fontFamily: "monospace",
-              cursor: "pointer",
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-            }}>
-            {p.label}
-            {n != null && <span style={{ fontSize: 10, opacity: active ? 0.9 : 0.7 }}>{n}</span>}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+// NB: the old <FilterPills/> component was removed on 2026-04-24 — the KPI
+// tiles above now double as the filter UI (click a tile to filter, click
+// "All" to clear). FILTER_PILLS is still used below for label lookup in
+// the active-filter readout.
 
 // ── Bug row table ─────────────────────────────────────────────────────────
 function BugTable({ rows, selectedId, onSelect }) {
@@ -481,16 +478,111 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
   );
 }
 
-// ── Action row — status-appropriate buttons for non-awaiting_approval bugs
+// ── Action row — status-appropriate buttons for non-awaiting_approval bugs.
+// Reopen is two-step: clicking ⟲ Reopen swaps the button row for a note
+// textarea + Confirm / Cancel. The note is REQUIRED (UAT failure context
+// lives or dies on this — if Joe has to re-open a fix, the fix-builder
+// needs to know what specifically is still broken). Flows through the
+// existing useBugActions.reopen(bugId, note) → bug_status_log.note.
 function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pending }) {
   const g = statusGroup(row.status);
   const s = normStatus(row.status);
   const isPending = pending?.bugId === row.id;
+
+  const [reopenMode, setReopenMode] = useState(false);
+  const [reopenNote, setReopenNote] = useState("");
+  // Reset inline-reopen state whenever the selected row changes, so closing
+  // + re-opening the side panel (or jumping to a different bug) doesn't
+  // resurface a half-filled textarea.
+  useEffect(() => {
+    setReopenMode(false);
+    setReopenNote("");
+  }, [row.id]);
+
+  if (reopenMode) {
+    const trimmed = reopenNote.trim();
+    const canSubmit = trimmed.length > 0 && !isPending;
+    return (
+      <div style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        padding: "12px 14px",
+        background: "rgba(239, 68, 68, 0.06)",
+        border: "1px solid rgba(239, 68, 68, 0.45)",
+        borderRadius: 8,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 4, background: "#ef4444" }} />
+          <div style={{ fontSize: 11, fontFamily: "monospace", color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+            Reopen — tell the fix-builder what's still broken
+          </div>
+        </div>
+        <textarea
+          value={reopenNote}
+          onChange={(e) => setReopenNote(e.target.value)}
+          placeholder="e.g. FXAIX current price is still $1 after refresh — fix didn't take on Safari desktop."
+          rows={3}
+          autoFocus
+          style={{
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: 6,
+            padding: "8px 10px",
+            color: "var(--text)",
+            fontSize: 13,
+            fontFamily: "inherit",
+            resize: "vertical",
+            lineHeight: 1.5,
+          }}
+        />
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <button
+            type="button"
+            onClick={() => { if (canSubmit) onReopen(row.id, trimmed); }}
+            disabled={!canSubmit}
+            style={{
+              background: canSubmit ? "#ef4444" : "transparent",
+              color: canSubmit ? "white" : "var(--text-muted)",
+              border: canSubmit ? "none" : "1px solid var(--border)",
+              borderRadius: 6,
+              padding: "9px 16px",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: canSubmit ? "pointer" : "not-allowed",
+              opacity: isPending ? 0.6 : 1,
+            }}>
+            {isPending && pending?.action === "reopen" ? "Reopening…" : "⟲ Confirm reopen"}
+          </button>
+          <button
+            type="button"
+            onClick={() => { setReopenMode(false); setReopenNote(""); }}
+            disabled={isPending}
+            style={{
+              background: "transparent",
+              border: "1px solid var(--border)",
+              borderRadius: 6,
+              padding: "9px 14px",
+              color: "var(--text-2)",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: isPending ? "wait" : "pointer",
+            }}>
+            Cancel
+          </button>
+          <span style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace", marginLeft: "auto" }}>
+            {trimmed.length ? `${trimmed.length} chars` : "note required"}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   const buttons = [];
   if (s === "merged")          buttons.push({ id: "markDeployed", label: "Mark deployed", tone: "primary", onClick: () => onMarkDeployed(row.id, null) });
   if (s === "deployed")        buttons.push({ id: "close",         label: "✓ Close (UAT passed)", tone: "good", onClick: () => onCloseBug(row.id) });
-  if (s === "deployed")        buttons.push({ id: "reopen",        label: "⟲ Reopen", tone: "bad",  onClick: () => onReopen(row.id) });
-  if (s === "verified_closed") buttons.push({ id: "reopen",        label: "⟲ Reopen", tone: "bad",  onClick: () => onReopen(row.id) });
+  if (s === "deployed")        buttons.push({ id: "reopen",        label: "⟲ Reopen", tone: "bad",  onClick: () => setReopenMode(true) });
+  if (s === "verified_closed") buttons.push({ id: "reopen",        label: "⟲ Reopen", tone: "bad",  onClick: () => setReopenMode(true) });
   if (g === "open" && s !== "awaiting_approval") {
     buttons.push({ id: "dismiss_wontfix",   label: "Won't fix",   tone: "muted", onClick: () => onDismiss(row.id, "wontfix") });
     buttons.push({ id: "dismiss_duplicate", label: "Duplicate",   tone: "muted", onClick: () => onDismiss(row.id, "duplicate") });
@@ -595,7 +687,7 @@ function SidePanel({ row, onClose, onActed }) {
           pending={actions.pending}
           onMarkDeployed={(id, sha) => runAndRefresh(() => actions.markDeployed(id, sha))}
           onCloseBug={(id)          => runAndRefresh(() => actions.close(id))}
-          onReopen={(id)            => runAndRefresh(() => actions.reopen(id))}
+          onReopen={(id, note)      => runAndRefresh(() => actions.reopen(id, note))}
           onDismiss={(id, terminal) => runAndRefresh(() => actions.dismissAs(id, terminal))}
         />
       )}
@@ -772,20 +864,70 @@ export default function AdminBugs() {
   const needsUatAgeMs = oldestNeedsUat ? (Date.now() - new Date(oldestNeedsUat).getTime()) : 0;
   const needsUatStale = needsUatAgeMs > 36 * 3600 * 1000;
 
+  // One-tile-per-bucket filter strip. Clicking a tile sets the active filter;
+  // the `All` tile resets. The separate filter-pill row below was removed in
+  // favour of this tile-first UX (2026-04-24) so there's a single, unified
+  // hierarchy: the same tile that shows the count IS the filter.
+  const wontFix = counts.wontfix || 0;
+  const all = counts.all || 0;
+
   return (
     <main className="fade-in main-padded" style={{ maxWidth: 1400, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
-      {/* KPI strip */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 12, marginBottom: 16 }}>
-        <KpiTile label="Open" value={open} sub={`${counts.open || 0} triage · ${counts.awaiting_approval || 0} awaiting approval`} tone={open > 0 ? "warn" : "good"} />
-        <KpiTile label="Awaiting approval" value={counts.awaiting_approval || 0} sub="your decision needed" tone={counts.awaiting_approval > 0 ? "warn" : undefined} />
+      {/* KPI strip (clickable = filter) */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0,1fr))", gap: 10, marginBottom: 16 }}>
+        <KpiTile
+          label="All"
+          value={all}
+          sub="every report"
+          active={filter === "all"}
+          onClick={() => setFilter("all")}
+        />
+        <KpiTile
+          label="Open"
+          value={open}
+          sub={`${counts.open || 0} triage · ${counts.awaiting_approval || 0} awaiting approval`}
+          tone={open > 0 ? "warn" : "good"}
+          active={filter === "open"}
+          onClick={() => setFilter("open")}
+        />
+        <KpiTile
+          label="Awaiting approval"
+          value={counts.awaiting_approval || 0}
+          sub="your decision needed"
+          tone={counts.awaiting_approval > 0 ? "warn" : undefined}
+          active={filter === "awaiting_approval"}
+          onClick={() => setFilter("awaiting_approval")}
+        />
         <KpiTile
           label="Needs your UAT"
           value={needsUat}
           sub={needsUat ? `oldest: ${ageText(oldestNeedsUat)}${needsUatStale ? " — stale" : ""}` : "nothing pending"}
           tone={needsUat === 0 ? "good" : needsUatStale ? "bad" : "warn"}
+          active={filter === "needs_uat"}
+          onClick={() => setFilter("needs_uat")}
         />
-        <KpiTile label="In flight" value={inFlight} sub="automated pipeline" />
-        <KpiTile label="Closed" value={counts.closed || 0} sub="verified fixed" tone="good" />
+        <KpiTile
+          label="In flight"
+          value={inFlight}
+          sub="automated pipeline"
+          active={filter === "in_flight"}
+          onClick={() => setFilter("in_flight")}
+        />
+        <KpiTile
+          label="Closed"
+          value={counts.closed || 0}
+          sub="verified fixed"
+          tone="good"
+          active={filter === "closed"}
+          onClick={() => setFilter("closed")}
+        />
+        <KpiTile
+          label="Wont fix"
+          value={wontFix}
+          sub="won't fix · duplicate · needs info"
+          active={filter === "wontfix"}
+          onClick={() => setFilter("wontfix")}
+        />
       </div>
 
       {error && (
@@ -797,12 +939,23 @@ export default function AdminBugs() {
         <div style={{ padding: "40px 20px", color: "var(--text-muted)", textAlign: "center" }}>Loading bugs…</div>
       )}
 
-      {/* Filter pills */}
+      {/* Shown-count strip — the filter itself now lives on the KPI tiles
+          above, so we only need the "N of M shown" readout + a Clear button
+          when the current filter is not `all`. */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
-        <FilterPills value={filter} onChange={setFilter} counts={counts} />
         <div style={{ fontSize: 11, color: "var(--text-muted)", fontFamily: "monospace" }}>
-          {filtered.length} of {rows?.length || 0} shown
+          {filter === "all"
+            ? `${rows?.length || 0} total`
+            : <>Filter: <span style={{ color: "var(--text-2)" }}>{FILTER_PILLS.find(p => p.id === filter)?.label || filter}</span> · {filtered.length} of {rows?.length || 0}</>}
         </div>
+        {filter !== "all" && (
+          <button
+            type="button"
+            onClick={() => setFilter("all")}
+            style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 10px", color: "var(--text-2)", fontSize: 11, fontFamily: "monospace", cursor: "pointer" }}>
+            Clear filter
+          </button>
+        )}
       </div>
 
       {/* Body: table + side panel */}
