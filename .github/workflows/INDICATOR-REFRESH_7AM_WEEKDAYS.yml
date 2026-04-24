@@ -59,6 +59,10 @@ jobs:
       - name: Regenerate indicator_history.json
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          # Bug #1032: pass Supabase creds so fetch_history.py can write one
+          # row per run to api_usage_log (via scanner.api_usage_helper).
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python fetch_history.py
 
       - name: Commit + push if changed

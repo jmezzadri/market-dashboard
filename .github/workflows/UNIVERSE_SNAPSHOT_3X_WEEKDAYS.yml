@@ -44,21 +44,40 @@ jobs:
       contents: read
 
     steps:
-      - name: DST gate — skip if not 10:00 / 13:00 / 15:45 America/New_York
+      - name: DST gate — fire inside a 15-min window after each NY slot
         # Only gate scheduled runs; workflow_dispatch always proceeds.
+        #
+        # Bug #1033/#1032: relaxed from strict minute-exact equality on the
+        # NY-local clock to a 15-minute window starting at each target slot.
+        # GitHub's cron scheduler routinely slips a few minutes, and strict
+        # equality was silently dropping every scheduled run (e.g.
+        # ticker_events last logged to api_usage_log on 2026-04-22 for this
+        # reason). The sister DST cron entries fall well outside these
+        # windows by construction, so no double-firing.
         if: github.event_name == 'schedule'
         run: |
           NY_HM=$(TZ=America/New_York date +%H:%M)
-          echo "America/New_York time: $NY_HM"
-          case "$NY_HM" in
-            10:00|13:00|15:45)
-              echo "✓ NYC time is $NY_HM — proceeding with snapshot."
-              ;;
-            *)
-              echo "::notice::Skipping — NYC local is $NY_HM, not a target slot. The DST-matched cron will handle today."
-              echo "SKIP_RUN=true" >> "$GITHUB_ENV"
-              ;;
-          esac
+          NY_H=${NY_HM%:*}
+          NY_M=${NY_HM#*:}
+          NY_H=${NY_H#0}; NY_M=${NY_M#0}
+          MINS=$(( NY_H * 60 + NY_M ))
+          HIT=""
+          for SLOT in 10:00 13:00 15:45; do
+            SH=${SLOT%:*}; SM=${SLOT#*:}
+            SH=${SH#0}; SM=${SM#0}
+            SLOT_START=$(( SH * 60 + SM ))
+            SLOT_END=$(( SLOT_START + 14 ))
+            if [ "$MINS" -ge "$SLOT_START" ] && [ "$MINS" -le "$SLOT_END" ]; then
+              HIT="$SLOT"
+              break
+            fi
+          done
+          if [ -z "$HIT" ]; then
+            echo "::notice::Skipping — NYC local is $NY_HM, outside slot windows. DST-matched cron will handle today."
+            echo "SKIP_RUN=true" >> "$GITHUB_ENV"
+          else
+            echo "✓ NYC time is $NY_HM, inside 15-min window for slot $HIT — proceeding."
+          fi
 
       - name: Checkout repository
         if: env.SKIP_RUN != 'true'
