@@ -323,9 +323,10 @@ export default function BulkImport({ userId, onClose, onDone }) {
     name: p.name,
     quantity: p.quantity,
     avg_cost: p.cost_per_share,
-    price: p.cost_per_share,        // seed price = cost; scanner overwrites
-    value: p.seed_value,            // seed = quantity * cost_per_share
-    purchase_date: p.purchase_date, // nullable; needs migration 007
+    price: p.cost_per_share,          // seed price = cost; scanner overwrites
+    ingested_price: p.cost_per_share, // mig 017 — "as uploaded" revert target
+    value: p.seed_value,              // seed = quantity * cost_per_share
+    purchase_date: p.purchase_date,   // nullable; needs migration 007
     sector: null,
     beta: null,
     analysis: null,

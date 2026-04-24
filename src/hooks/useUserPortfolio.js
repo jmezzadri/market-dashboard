@@ -57,6 +57,9 @@ function shapePosition(row) {
     expiration:   row.expiration    || null,
     multiplier:   row.multiplier  !== null && row.multiplier  !== undefined ? Number(row.multiplier)  : null,
     manualPrice:  row.manual_price !== null && row.manual_price !== undefined ? Number(row.manual_price) : null,
+    // Migration 017 — "as uploaded" price, preserved across scanner
+    // updates and manual overrides. Drives the editor's Revert button.
+    ingestedPrice: row.ingested_price !== null && row.ingested_price !== undefined ? Number(row.ingested_price) : null,
   };
 }
 
