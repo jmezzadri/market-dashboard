@@ -313,13 +313,59 @@ const TAB_CONTENT = [
   },
 ];
 
+// Bug #1030 — "By Tab" cards used to render fully expanded, so the page
+// was an 800px wall of text before the reader could even see the list of
+// tabs. Now:
+//   • each card is collapsible; header click toggles open/closed. Cards
+//     start collapsed on fresh page load so the section is scannable at
+//     a glance.
+//   • a TOC strip at the top lists each tab with its one-line tagline;
+//     clicking a row smooth-scrolls to that card and expands it — all
+//     within #readme (we use preventDefault + scrollIntoView so the URL
+//     hash never mutates, matching the Item #18 fix pattern).
+//   • the existing OPEN link is preserved as a secondary pill for the
+//     separate case where the user really does want to navigate out to
+//     the actual tab. stopPropagation keeps OPEN from also toggling the
+//     card's collapsed state.
 function TabWalkthrough() {
+  // Track which cards are currently expanded. Collapsed-by-default means
+  // we store the OPEN set; empty = all closed.
+  const [openKeys, setOpenKeys] = useState(() => new Set());
+  const toggle = (key) => {
+    setOpenKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+  const allOpen = openKeys.size === TAB_CONTENT.length;
+  const expandAll = () => setOpenKeys(new Set(TAB_CONTENT.map(t => t.key)));
+  const collapseAll = () => setOpenKeys(new Set());
+
+  // TOC row click: expand the target card (if collapsed) and smooth-scroll
+  // to it. Using onClick + preventDefault + scrollIntoView avoids changing
+  // the URL hash away from #readme (same pattern as the existing jump nav).
+  const goToTab = (key) => {
+    setOpenKeys((prev) => {
+      if (prev.has(key)) return prev;
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+    // Defer scroll one frame so the newly-expanded card is laid out first.
+    if (typeof window !== "undefined") {
+      window.requestAnimationFrame(() => scrollToAnchor(A(`tab-${key}`)));
+    } else {
+      scrollToAnchor(A(`tab-${key}`));
+    }
+  };
+
   return (
     <section id={A("tabs")} data-testid="methodology-section-tabs"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
         label="BY TAB"
-        sub={`${TAB_CONTENT.length} user-facing surfaces`}
+        sub={`${TAB_CONTENT.length} user-facing surfaces · click a row to jump + expand`}
         applies={TAB_CONTENT.map(t => ({ id: t.key, label: t.title, path: t.path }))}
       />
       <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:820 }}>
@@ -327,21 +373,90 @@ function TabWalkthrough() {
         use it</strong>, <strong>where the differentiated edge comes from</strong>, what's on the page, and
         how to read it.
       </div>
+
+      {/* TOC strip — one row per tab with a one-line description. Clicking
+          scrolls to the matching card and expands it. Stays inside #readme. */}
+      <nav aria-label="By-tab table of contents"
+        data-testid="methodology-tabs-toc"
+        style={{ background:"var(--surface)", border:"1px solid var(--border)",
+                 borderRadius:8, padding:"10px 12px",
+                 display:"flex", flexDirection:"column", gap:4 }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:8, marginBottom:4 }}>
+          <div style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
+                        letterSpacing:"0.08em", textTransform:"uppercase" }}>
+            Jump to
+          </div>
+          <button
+            type="button"
+            onClick={allOpen ? collapseAll : expandAll}
+            style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
+                     background:"transparent", border:"1px solid var(--accent)",
+                     borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
+                     cursor:"pointer", textTransform:"uppercase" }}
+          >
+            {allOpen ? "Collapse all" : "Expand all"}
+          </button>
+        </div>
+        {TAB_CONTENT.map((t) => (
+          <a key={t.key}
+             href={`#${A(`tab-${t.key}`)}`}
+             data-testid={`methodology-toc-${t.key}`}
+             onClick={(e) => { e.preventDefault(); goToTab(t.key); }}
+             style={{ display:"flex", alignItems:"baseline", gap:10,
+                      padding:"6px 4px", borderRadius:4, cursor:"pointer",
+                      textDecoration:"none", color:"var(--text)",
+                      borderBottom:"1px solid var(--border-subtle, rgba(0,0,0,0.04))" }}>
+            <span style={{ fontSize:13, fontWeight:600, minWidth:180 }}>{t.title}</span>
+            <span style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.5, flex:1 }}>
+              {t.tagline}
+            </span>
+            {t.betaNote && (
+              <span style={{ fontSize:9, fontFamily:"var(--font-mono)", color:"#a78bfa",
+                             border:"1px solid #a78bfa", borderRadius:3, padding:"0 4px", letterSpacing:"0.05em" }}>
+                BETA
+              </span>
+            )}
+          </a>
+        ))}
+      </nav>
+
       <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(440px, 1fr))", gap:14 }}>
-        {TAB_CONTENT.map((t) => <TabBlock key={t.key} tab={t}/>)}
+        {TAB_CONTENT.map((t) => (
+          <TabBlock key={t.key} tab={t}
+            open={openKeys.has(t.key)}
+            onToggle={() => toggle(t.key)} />
+        ))}
       </div>
     </section>
   );
 }
 
-function TabBlock({ tab }) {
+function TabBlock({ tab, open, onToggle }) {
+  const cardId = A(`tab-${tab.key}`);
   return (
-    <article data-testid={`methodology-tab-${tab.key}`}
+    <article id={cardId} data-testid={`methodology-tab-${tab.key}`}
       style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8,
                padding:"14px 16px", display:"flex", flexDirection:"column", gap:10 }}>
-      <div style={{ display:"flex", alignItems:"baseline", gap:10, flexWrap:"wrap" }}>
+      {/* Header — the whole row toggles collapse. OPEN link stops
+          propagation so navigating away doesn't also toggle the card. */}
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={open}
+        aria-controls={`${cardId}-body`}
+        onClick={onToggle}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); }
+        }}
+        style={{ display:"flex", alignItems:"baseline", gap:10, flexWrap:"wrap",
+                 cursor:"pointer", outline:"none" }}>
+        <span style={{ fontSize:12, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
+                       width:14, display:"inline-block" }}>
+          {open ? "▾" : "▸"}
+        </span>
         <div style={{ fontSize:15, fontWeight:700, color:"var(--text)" }}>{tab.title}</div>
         <a href={tab.path}
+           onClick={(e) => e.stopPropagation()}
            style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
                     textDecoration:"none", border:"1px solid var(--accent)",
                     borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em" }}>
@@ -358,11 +473,15 @@ function TabBlock({ tab }) {
                     letterSpacing:"0.06em", textTransform:"uppercase" }}>
         {tab.tagline}
       </div>
-      <FieldRow label="Why we built it"           body={tab.purpose}/>
-      <FieldRow label="How a PM uses it"          body={tab.pmUse}/>
-      <FieldRow label="Where the edge comes from" body={tab.edge}/>
-      <FieldRow label="What you see"              body={tab.what}/>
-      <FieldRow label="How to read it"            body={tab.howRead}/>
+      {open && (
+        <div id={`${cardId}-body`} style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          <FieldRow label="Why we built it"           body={tab.purpose}/>
+          <FieldRow label="How a PM uses it"          body={tab.pmUse}/>
+          <FieldRow label="Where the edge comes from" body={tab.edge}/>
+          <FieldRow label="What you see"              body={tab.what}/>
+          <FieldRow label="How to read it"            body={tab.howRead}/>
+        </div>
+      )}
     </article>
   );
 }
