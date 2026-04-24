@@ -886,9 +886,12 @@ function makePath(pts){
 return pts.map((p,i)=>`${i===0?"M":"L"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(" ");
 }
 
-function ChartCore({data,labels,dir,sdP,crisisData,col,fmtFn,H,pL,pR,pT,pB,W,id}){
+function ChartCore({data,labels,dir,sdP,crisisData,col,fmtFn,H,pL,pR,pT,pB,W,id,freq,windowKey,filteredPoints}){
 const [hover,setHover]=useState(null);
 const IW=W-pL-pR,IH=H-pT-pB;
+// Q-frequency renders as discrete bars (one bar per quarterly print) instead
+// of a line, since interpolation between quarterly points is misleading.
+const isBars = freq === "Q";
 // Guard: need at least 2 points to draw a line; no points → bail with an
 // empty chart area rather than NaN/Infinity math crashes.
 if(!data||data.length<2)return(
@@ -912,18 +915,61 @@ const pts=data.map((d,i)=>[xp(i),yp(d[1])]);
 const fullPath=makePath(pts);
 const recentPath=makePath(pts.slice(-3));
 const meanY=sdP?yp(sdP.mean):null;
+// Normal-range green band — clamp to the visible chart area. If the band
+// (mean ± 0.5 sd) falls entirely outside the visible y-range, fall back to
+// rendering a thin band at the appropriate edge so the user always sees
+// the "normal range" reference (Reg #3 — band must show on every indicator
+// with a stats block, regardless of whether current values overshoot).
 const hZone=sdP?(()=>{
 const lo=sdP.mean-sdP.sd*0.5,hi=sdP.mean+sdP.sd*0.5;
-const y1=yp(Math.min(lo,hi)),y2=yp(Math.max(lo,hi));
-return{y:Math.min(y1,y2),h:Math.abs(y2-y1)};
+const yLoRaw=yp(Math.min(lo,hi)),yHiRaw=yp(Math.max(lo,hi));
+const yTop=Math.min(yLoRaw,yHiRaw);
+const yBot=Math.max(yLoRaw,yHiRaw);
+const clampedTop=Math.max(pT,Math.min(pT+IH,yTop));
+const clampedBot=Math.max(pT,Math.min(pT+IH,yBot));
+let y=clampedTop, h=clampedBot-clampedTop;
+// Band entirely above or below the visible window — render a thin reference
+// strip at the nearest edge so it's still indicated.
+if(h<=0.5){
+  if(yBot<pT){ y=pT; h=2; }
+  else if(yTop>pT+IH){ y=pT+IH-2; h=2; }
+  else { y=clampedTop; h=Math.max(h,1); }
+}
+return{y,h};
 })():null;
 const marks=crisisData.map(cm=>{
 const idx=labels.findIndex(l=>l===cm.year||l.startsWith(cm.year));
 if(idx<0)return null;
 return{...cm,x:xp(idx),y:yp(data[idx][1]),v:data[idx][1]};
 }).filter(Boolean);
-const tickEvery=data.length>40?16:4;
-const showLbl=labels.map((_,i)=>i===0||i===data.length-1||i%tickEvery===0);
+// Tick density driven by visible date span (Reg #4 — MAX zoom over ~21y was
+// rendering ~20 overlapping year ticks). Use the filtered points' span if
+// passed, otherwise fall back to point-count-based density.
+let showLbl;
+if(Array.isArray(filteredPoints)&&filteredPoints.length>=2){
+  const startMs=new Date(String(filteredPoints[0][0])+"T00:00:00Z").getTime();
+  const endMs=new Date(String(filteredPoints[filteredPoints.length-1][0])+"T00:00:00Z").getTime();
+  const spanDays=(endMs-startMs)/(1000*60*60*24);
+  // Target N ticks based on span, then dedupe duplicate label strings so
+  // year-only labels (e.g. "2008","2008","2008") only render once each.
+  let targetTicks;
+  if(spanDays<=90)        targetTicks=6;     // < 90d → "MMM D" — keep dense
+  else if(spanDays<=730)  targetTicks=8;     // 90d–2y → "MMM 'YY"
+  else if(spanDays<=3650) targetTicks=8;     // 2–10y → year only
+  else                    targetTicks=7;     // > 10y → 5–7 year ticks
+  const stride=Math.max(1,Math.floor(data.length/targetTicks));
+  const seen=new Set();
+  showLbl=labels.map((l,i)=>{
+    const isAnchor=(i===0||i===data.length-1||i%stride===0);
+    if(!isAnchor)return false;
+    if(seen.has(l))return false;
+    seen.add(l);
+    return true;
+  });
+}else{
+  const tickEvery=data.length>40?16:4;
+  showLbl=labels.map((_,i)=>i===0||i===data.length-1||i%tickEvery===0);
+}
 const handleInteract=e=>{
 e.stopPropagation();
 const svg=e.currentTarget,rect=svg.getBoundingClientRect();
@@ -953,9 +999,28 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 <text x={cm.x} y={cm.y-2} textAnchor="middle" fill={cm.color} fontSize="5.5" fontFamily="monospace">{fmtFn(cm.v)}</text>
 </g>
 ))}
-<path d={fullPath} fill="none" stroke="#505050" strokeWidth="1.5" strokeLinejoin="round"/>
-<path d={recentPath} fill="none" stroke={col} strokeWidth="2.5" strokeLinejoin="round"/>
-<circle cx={lastPt[0]} cy={lastPt[1]} r="4" fill={col} stroke="var(--bg)" strokeWidth="1.5"/>
+{isBars ? (
+  // Quarterly bars — one rect per print, anchored to the chart baseline at
+  // pT+IH. Recent 3 bars use the live indicator color; older ones grey.
+  (() => {
+    const baseY = pT + IH;
+    const barW = data.length > 1 ? Math.max(2, (IW / data.length) * 0.7) : 6;
+    return data.map((d, i) => {
+      const x = xp(i) - barW / 2;
+      const y = yp(d[1]);
+      const h = Math.max(1, baseY - y);
+      const recent = i >= data.length - 3;
+      return <rect key={i} x={x} y={y} width={barW} height={h}
+        fill={recent ? col : "#505050"} opacity={recent ? 0.95 : 0.7} />;
+    });
+  })()
+) : (
+  <>
+    <path d={fullPath} fill="none" stroke="#505050" strokeWidth="1.5" strokeLinejoin="round"/>
+    <path d={recentPath} fill="none" stroke={col} strokeWidth="2.5" strokeLinejoin="round"/>
+    <circle cx={lastPt[0]} cy={lastPt[1]} r="4" fill={col} stroke="var(--bg)" strokeWidth="1.5"/>
+  </>
+)}
 <text x={lastPt[0]} y={lastPt[1]-7} textAnchor="middle" fill={col} fontSize="6" fontFamily="monospace" fontWeight="700">{fmtFn(data[data.length-1][1])}</text>
 {labels.map((l,i)=>showLbl[i]&&(
 <text key={i} x={xp(i)} y={H-4} textAnchor="middle" fill="var(--text-dim)" fontSize="6" fontFamily="monospace">{l}</text>
@@ -1111,13 +1176,13 @@ return(
       <button
         key={p.key} type="button"
         style={(!showCustom&&windowKey===p.key)?pillOn:pillBase}
-        onClick={()=>pickWindow(p.key)}
+        onClick={(e)=>{e.stopPropagation();pickWindow(p.key);}}
       >{p.label}</button>
     ))}
     <button
       type="button"
       style={showCustom?pillOn:pillBase}
-      onClick={()=>{setShowCustom(s=>!s);if(!showCustom)setWindowKey("CUSTOM");}}
+      onClick={(e)=>{e.stopPropagation();setShowCustom(s=>!s);if(!showCustom)setWindowKey("CUSTOM");}}
       title="Pick a custom date range"
     >CUSTOM</button>
   </div>
@@ -1152,7 +1217,9 @@ return(
   </div>
 ):(
   <ChartCore data={data} labels={labels} dir={sd?.dir} sdP={sd} crisisData={[]}
-  col={col} fmtFn={fmt} H={100} pL={28} pR={8} pT={18} pB={22} W={500} id={id}/>
+  col={col} fmtFn={fmt} H={100} pL={28} pR={8} pT={18} pB={22} W={500} id={id}
+  freq={freqOfSeries} windowKey={windowKey}
+  filteredPoints={hasReal ? sliceHistoryToWindow(hist[id].points,windowKey,customRange).filtered : null}/>
 )}
 </div>
 );
@@ -1850,9 +1917,23 @@ function _cmp(a, b){
 const COMP_ORDER = { "Risk & Liquidity":0, "Growth":1, "Inflation & Rates":2, "":3 };
 
 function AllIndicatorsTable(){
+  // Subscribe to indicator_history.json hydration so this table re-renders
+  // once IND[id][6] / _histCache are mutated by _applyHistToGlobals — without
+  // this, the 9 new indicators (Reg #8) render their Current / 3M / 6M / 12M
+  // cells as em-dashes on first paint and never recover unless something else
+  // higher in the tree triggers a re-render before navigation.
+  useHistReady();
   const [sortKey, setSortKey] = useState("default");
   const [sortDir, setSortDir] = useState("asc");
-  const [openId, setOpenId] = useState(null);
+  // Reg #7: openIds is a Set so we can expand-all / collapse-all.
+  const [openIds, setOpenIds] = useState(() => new Set());
+  const toggleOne = (id) => {
+    setOpenIds(prev => {
+      const next = new Set(prev);
+      if(next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
 
   // Build row data — one row per indicator in IND.
   const rows = Object.keys(IND).map(id => {
@@ -1952,9 +2033,37 @@ function AllIndicatorsTable(){
 
       {/* ── NARRATIVE INTRO ─────────────────────────────────────────── */}
       <div style={{marginBottom:18}}>
-        <h1 style={{fontSize:28, fontWeight:700, color:"var(--text)", margin:"0 0 10px 0", letterSpacing:"-0.01em", fontFamily:'"Fraunces", Georgia, serif'}}>
-          All indicators — what feeds the composites and what doesn't
-        </h1>
+        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16,marginBottom:10,flexWrap:"wrap"}}>
+          <h1 style={{fontSize:28, fontWeight:700, color:"var(--text)", margin:0, letterSpacing:"-0.01em", fontFamily:'"Fraunces", Georgia, serif', flex:1, minWidth:0}}>
+            All indicators — what feeds the composites and what doesn't
+          </h1>
+          {/* Reg #7 — expand-all / collapse-all toggle */}
+          <button
+            type="button"
+            onClick={() => {
+              if(openIds.size === 0) setOpenIds(new Set(rows.map(r => r.id)));
+              else setOpenIds(new Set());
+            }}
+            style={{
+              padding:"6px 14px",
+              fontSize:11,
+              fontFamily:"var(--font-mono)",
+              fontWeight:700,
+              letterSpacing:"0.06em",
+              textTransform:"uppercase",
+              border:"1px solid var(--border)",
+              borderRadius:4,
+              cursor:"pointer",
+              background:"var(--surface-2)",
+              color:"var(--text)",
+              whiteSpace:"nowrap",
+              flexShrink:0,
+              marginTop:4,
+            }}
+          >
+            {openIds.size === 0 ? "Expand all" : "Collapse all"}
+          </button>
+        </div>
         <p style={{fontSize:14, color:"var(--text-2)", lineHeight:1.7, margin:"0 0 8px 0", maxWidth:840}}>
           This page is the inventory of every macro indicator MacroTilt collects. Each is mapped to
           a category (equity & volatility, credit, rates, financial conditions, bank channel, labor,
@@ -1996,7 +2105,7 @@ function AllIndicatorsTable(){
             </thead>
             <tbody>
               {sorted.map((r, idx) => {
-                const isOpen = openId === r.id;
+                const isOpen = openIds.has(r.id);
                 const catCol = CATS[r.cat]?.color || "var(--text-dim)";
                 const compTip = COMPOSITE_TOOLTIPS[r.composite];
                 const sCur = sdScore(r.id, r.cur);
@@ -2004,7 +2113,7 @@ function AllIndicatorsTable(){
                 return (
                   <Fragment key={r.id}>
                     <tr
-                      onClick={() => setOpenId(isOpen ? null : r.id)}
+                      onClick={() => toggleOne(r.id)}
                       style={{
                         cursor:"pointer",
                         background: isOpen ? "var(--inset, var(--surface-2))" : "transparent",
@@ -2109,7 +2218,7 @@ function AllIndicatorsTable(){
                       <tr>
                         <td colSpan={11} style={{padding:0, background:"var(--surface-2)", borderBottom:"1px solid var(--border)"}}>
                           <div style={{padding:"20px 24px"}}>
-                            <IndicatorDetailBody id={r.id} onClose={() => setOpenId(null)} inline />
+                            <IndicatorDetailBody id={r.id} onClose={() => toggleOne(r.id)} inline />
                           </div>
                         </td>
                       </tr>
@@ -2140,6 +2249,74 @@ function AS_OF_TS(s){
   return 0;
 }
 
+// Compute the trailing 12-month low/high from indicator_history.json. The
+// "12-month" cut-off uses last-N-points by frequency (252D / 52W / 12M / 4Q)
+// per Joe's spec rather than wall-clock date math, so a sparse weekly series
+// doesn't accidentally use 5 years of data because pts is indexed by sample.
+// Returns { low, high, n, monthsCovered } — when history is shorter than 12
+// months the caller can fall back to "N-month range" labelling.
+function getTwelveMonthRange(id){
+  const e = _histCache && _histCache[id];
+  if(!e || !Array.isArray(e.points) || e.points.length < 1) return null;
+  const freq = (e.freq || IND_FREQ[id] || "D").toUpperCase();
+  const wantN = freq === "Q" ? 4 : freq === "M" ? 12 : freq === "W" ? 52 : 252;
+  const tail = e.points.slice(Math.max(0, e.points.length - wantN));
+  const vals = tail.map(p => p[1]).filter(v => v != null && Number.isFinite(v));
+  if(!vals.length) return null;
+  const low = Math.min(...vals);
+  const high = Math.max(...vals);
+  // Approximate months covered for the "N-month range" fallback label.
+  let monthsCovered = 12;
+  if(tail.length < wantN){
+    if(freq === "Q") monthsCovered = tail.length * 3;
+    else if(freq === "M") monthsCovered = tail.length;
+    else if(freq === "W") monthsCovered = Math.round(tail.length * 12 / 52);
+    else monthsCovered = Math.round(tail.length * 12 / 252);
+  }
+  return { low, high, n: tail.length, monthsCovered };
+}
+
+// 12-month Range Bar — Joe's spec (2026-04-24 UAT):
+//   "12M Low (left), Current Reading vertical tick in middle, 12M High (right)"
+// Tick position = (current - low) / (high - low). Falls back to "N-month
+// range" label when history < 12 months. No green band, no avg tick — that
+// info already lives in the chart overlay underneath.
+function TwelveMonthRangeBar({ id, cur }){
+  const range = getTwelveMonthRange(id);
+  if(!range || cur == null) return null;
+  const { low, high, monthsCovered } = range;
+  const span = high - low;
+  // When low == high (only one print available, or flat series), pin tick
+  // to the middle and skip the math.
+  const pct = span > 0 ? Math.max(0, Math.min(100, ((cur - low) / span) * 100)) : 50;
+  const sCur = sdScore(id, cur);
+  const tickCol = sdColor(sCur);
+  const label = monthsCovered >= 12 ? "12-MONTH RANGE" : `${monthsCovered}-MONTH RANGE`;
+  return (
+    <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
+      <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:8}}>{label}</div>
+      <div style={{display:"flex",alignItems:"center",gap:10}}>
+        {/* 12M LOW value (left) */}
+        <div style={{minWidth:60,textAlign:"left"}}>
+          <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"var(--font-mono)",letterSpacing:"0.04em"}}>12M LOW</div>
+          <div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{fmtV(id,low)}</div>
+        </div>
+        {/* The bar with the current marker */}
+        <div style={{flex:1,position:"relative",height:12,background:"var(--inset, var(--surface-2))",border:"1px solid var(--border)",borderRadius:6}}>
+          <div title={`Current ${fmtV(id,cur)}`} style={{position:"absolute",left:`${pct}%`,top:-3,bottom:-3,width:3,background:tickCol,borderRadius:2,transform:"translateX(-50%)",boxShadow:`0 0 6px ${tickCol}88`}}/>
+          {/* Current value label above the tick */}
+          <div style={{position:"absolute",left:`${pct}%`,bottom:"100%",transform:"translateX(-50%)",marginBottom:4,fontSize:11,fontWeight:700,color:tickCol,fontFamily:"var(--font-mono)",whiteSpace:"nowrap"}}>{fmtV(id,cur)}</div>
+        </div>
+        {/* 12M HIGH value (right) */}
+        <div style={{minWidth:60,textAlign:"right"}}>
+          <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"var(--font-mono)",letterSpacing:"0.04em"}}>12M HIGH</div>
+          <div style={{fontSize:13,fontWeight:700,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{fmtV(id,high)}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Reusable detail body — same content as IndicatorModal sheet, but no overlay
 // chrome (close button + nav arrows). Used inline in AllIndicatorsTable rows.
 function IndicatorDetailBody({ id, onClose, inline }){
@@ -2153,13 +2330,8 @@ function IndicatorDetailBody({ id, onClose, inline }){
   const tierCol = tier===1?"var(--yellow-text)":tier===2?"#94a3b8":"#4b5563";
   const tierBorder = tier===1?"#B8860B":tier===2?"#94a3b8":"#4b5563";
   const sp = SD[id];
-  // Bug #1035: 12-month range-bar scale now comes from the actual last 365
-  // days of daily points in indicator_history.json via get12MWindowStats(),
-  // not from the five sparse snapshots [cur,m1,m3,m6,m12].
-  const win12 = get12MWindowStats(id);
-  const sMin = win12 ? win12.min : (() => { const v = [cur, m1, m3, m6, m12].filter(x => x != null); return v.length ? Math.min(...v) : null; })();
-  const sMax = win12 ? win12.max : (() => { const v = [cur, m1, m3, m6, m12].filter(x => x != null); return v.length ? Math.max(...v) : null; })();
-  const rangeStats = win12 ? { mean: win12.mean, sd: win12.sd } : sp;
+  // (Locals win12/sMin/sMax/rangeStats from PR #116 dropped — TwelveMonthRangeBar
+  // computes its own 12M low/high directly from indicator_history.json now.)
   return (
     <div style={{position:"relative"}}>
       {inline && (
@@ -2202,32 +2374,21 @@ function IndicatorDetailBody({ id, onClose, inline }){
       <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
         <LongChart id={id} col={col}/>
       </div>
-      {/* Range bar */}
-      {sp && sMin != null && (
-        <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>
-            <span>12-MONTH RANGE</span>
-            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"#30d158"}}>{fmtV(id,rangeStats.mean)}</span> · elev <span style={{color:"#ff9f0a"}}>{fmtV(id,rangeStats.mean+rangeStats.sd)}</span> · ext <span style={{color:"#ff453a"}}>{fmtV(id,rangeStats.mean+rangeStats.sd*2)}</span></span>
-          </div>
-          <RangeBar sMin={sMin} sMax={sMax} sp={rangeStats} cur={cur} col={col}/>
-          <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginTop:3}}>
-            <span>{fmtV(id,sMin)}</span>
-            <span>{fmtV(id,sMax)}</span>
-          </div>
-        </div>
-      )}
+      {/* 12-month range bar — Joe's spec (Reg #5, supersedes PR #116 inline body):
+          12M LOW value (left) · CURRENT vertical tick in middle · 12M HIGH value (right).
+          Pulls real 12M low/high from indicator_history.json (last 252D / 52W /
+          12M / 4Q by frequency), not the stale m1/m3/m6/m12 IND tuple values
+          and not the avg/elev/ext markers PR #116 added. The IndicatorModal
+          (separate component) still uses the PR #116 RangeBar with markers. */}
+      <TwelveMonthRangeBar id={id} cur={cur} />
       {/* What is this */}
       <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
         <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>WHAT IS THIS INDICATOR?</div>
         <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{desc || "—"}</div>
       </div>
-      {/* What is it telling you now */}
-      {signal ? (
-        <div style={{background:`${col}0d`,border:`1px solid ${col}33`,borderRadius:"var(--radius-md)",padding:"var(--space-3)"}}>
-          <div style={{fontSize:10,color:col,fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6,fontWeight:700}}>WHAT IS IT TELLING YOU RIGHT NOW?</div>
-          <div style={{fontSize:13,color:"var(--text)",lineHeight:1.55}}>{dynamicSignal(id, cur, signal)}</div>
-        </div>
-      ) : null}
+      {/* "What is it telling you right now" intentionally removed —
+          duplicates the SD-band chip + the chart's normal-range overlay.
+          Per Joe (2026-04-24 UAT). */}
     </div>
   );
 }
