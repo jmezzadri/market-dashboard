@@ -1783,6 +1783,11 @@ function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuth
 const [descExpanded,setDescExpanded]=useState(false);
 const [wlBusy,setWlBusy]=useState(false);
 const [wlError,setWlError]=useState(null);
+// Bug #1017 — per-ticker Google News feed (Option B). Fetched when the
+// modal opens and merged with UW signals.news[ticker] below so UW stays
+// supplementary for flow-related headlines.
+const [gnNewsItems,setGnNewsItems]=useState([]);
+const [gnNewsLoading,setGnNewsLoading]=useState(false);
 useEffect(()=>{
   const onKey=e=>{if(e.key==="Escape")onClose();};
   window.addEventListener("keydown",onKey);
@@ -1793,6 +1798,32 @@ if(!ticker)return null;
 const sc=scanData?.signals?.screener?.[ticker]||{};
 const tech=scanData?.signals?.technicals?.[ticker]||{};
 const score=scanData?.score_by_ticker?.[ticker];
+// Bug #1017 — fetch per-ticker Google News (whitelist + dedupe is done on the
+// server). Fires when `ticker` changes. Server already 10m-cached, client
+// replaces on each modal open. Failures are swallowed silently so the UW
+// supplementary list still renders.
+useEffect(()=>{
+  if(!ticker) return;
+  let cancelled=false;
+  setGnNewsLoading(true);
+  (async()=>{
+    try{
+      const companyName=sc.full_name||sc.company_name||"";
+      const params=new URLSearchParams({ticker});
+      if(companyName) params.set("company",companyName);
+      const r=await fetch(`/api/news-per-ticker?${params.toString()}`);
+      if(!r.ok) throw new Error(`gn ${r.status}`);
+      const d=await r.json();
+      if(!cancelled) setGnNewsItems(Array.isArray(d?.items)?d.items:[]);
+    }catch(_){
+      if(!cancelled) setGnNewsItems([]);
+    }finally{
+      if(!cancelled) setGnNewsLoading(false);
+    }
+  })();
+  return()=>{cancelled=true;};
+// eslint-disable-next-line react-hooks/exhaustive-deps
+},[ticker]);
 // Signed-in user's own watchlist takes precedence over the scan artifact's
 // (empty, public) watchlist. WATCHLIST_FALLBACK is the pre-auth seed list.
 const userWLEntry=(watchlistRows||[]).find(w=>w.ticker===ticker);
@@ -1895,7 +1926,44 @@ const nextDiv=sc.next_dividend_date;
 const erTime=sc.er_time;  // "premarket" | "postmarket" | null
 // Modal enrichment (scanner bakes these into signals.{info,news,analyst_ratings} keyed by ticker).
 const info=scanData?.signals?.info?.[ticker]||null;
-const news=scanData?.signals?.news?.[ticker]||[];
+// Bug #1017 — merge Google News (primary, whitelist-filtered + deduped
+// server-side) with UW per-ticker headlines (supplementary — UW is strong
+// on flow-related items). Normalize into a single shape so the renderer
+// doesn't have to branch. Dedupe across sources by headline.
+const _uwNews=scanData?.signals?.news?.[ticker]||[];
+const _gnNormalized=(gnNewsItems||[]).map((n)=>({
+  headline:n.headline,
+  source:n.source||"Google News",
+  sourceTier:"google_news",
+  description:n.description||"",
+  url:n.url||"",
+  created_at:n.published||null,
+  sentiment:null,
+  is_major:false,
+}));
+const _uwNormalized=_uwNews.map((n)=>({
+  headline:n.headline||"",
+  source:n.source||"UW",
+  sourceTier:"uw",
+  description:n.description||"",
+  url:n.url||"",
+  created_at:n.created_at||null,
+  sentiment:n.sentiment||null,
+  is_major:!!n.is_major,
+}));
+const _newsDedupeKey=(h)=>String(h||"").toLowerCase().replace(/[^a-z0-9\s]/g," ").replace(/\s+/g," ").trim().slice(0,80);
+const _newsSeen=new Set();
+const news=[..._gnNormalized,..._uwNormalized].filter((n)=>{
+  const k=_newsDedupeKey(n.headline);
+  if(!k) return false;
+  if(_newsSeen.has(k)) return false;
+  _newsSeen.add(k);
+  return true;
+}).sort((a,b)=>{
+  const ta=a.created_at?new Date(a.created_at).getTime():0;
+  const tb=b.created_at?new Date(b.created_at).getTime():0;
+  return tb-ta;
+});
 const analystRatings=scanData?.signals?.analyst_ratings?.[ticker]||[];
 // sector comes from /api/stock/{t}/info (NOT the screener row) — fall back to screener row if present.
 const sector=info?.sector||sc.sector||null;
@@ -2390,7 +2458,16 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
     <div style={{color:"var(--text)",marginBottom:2}}>{HeadlineEl}{n.is_major&&<span style={{marginLeft:6,fontSize:9,color:"var(--orange)",fontFamily:"var(--font-mono)",border:"1px solid var(--orange)",borderRadius:3,padding:"1px 4px",fontWeight:700,verticalAlign:"middle"}}>MAJOR</span>}</div>
     {n.description&&<div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5,marginBottom:3}}>{n.description}</div>}
     <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",gap:8,alignItems:"center"}}>
-      <span>{n.source||"—"} · {dateStr}</span>
+      <span
+        style={{
+          fontSize:10,fontFamily:"var(--font-mono)",
+          color:n.sourceTier==="google_news"?"var(--accent)":"var(--text-muted)",
+          border:`1px solid ${n.sourceTier==="google_news"?"var(--accent)":"var(--border)"}`,
+          borderRadius:3,padding:"0 5px",letterSpacing:"0.04em",fontWeight:700,
+          textTransform:"uppercase",
+        }}
+      >{n.source||"—"}</span>
+      <span style={{color:"var(--text-dim)"}}>{dateStr}</span>
       <a href={url} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",textDecoration:"none"}} onClick={e=>e.stopPropagation()}>{linkLabel}</a>
     </div>
     </div>
