@@ -43,9 +43,9 @@ const STATUS_META = {
   new:               { label: "New",               color: "#60a5fa", group: "open" },
   triaged:           { label: "Triaged",           color: "#a78bfa", group: "open" },
   awaiting_approval: { label: "Awaiting approval", color: "#B8860B", group: "awaiting_approval" },
-  approved:          { label: "Approved",          color: "#f59e0b", group: "merged" },
-  merged:            { label: "Merged",            color: "#34d399", group: "merged" },
-  deployed:          { label: "Deployed",          color: "#10b981", group: "merged" },
+  approved:          { label: "Approved",          color: "#f59e0b", group: "in_flight" },
+  merged:            { label: "Merged",            color: "#34d399", group: "in_flight" },
+  deployed:          { label: "Deployed",          color: "#10b981", group: "in_flight" },
   verified_closed:   { label: "Closed",            color: "#6b7280", group: "closed" },
   reopened:          { label: "Reopened",          color: "#ef4444", group: "open" },
   wontfix:           { label: "Won't fix",         color: "#475569", group: "wontfix" },
@@ -113,11 +113,25 @@ function DesyncChip({ reasons }) {
   );
 }
 
+// ── Bucket logic (row-level, not status-level) ────────────────────────────
+// The old "merged" tab lumped together three very different things: Claude's
+// in-flight pipeline AND bugs already deployed that are waiting for Joe to
+// click Close. Those are TWO queues, not one. Split them here based on
+// uat_mode:
+//   - deployed + uat_mode='manual' → "needs_uat"  (Joe's queue)
+//   - everything else in the in_flight group      → "in_flight"  (automated)
+function bugBucket(row) {
+  const s = normStatus(row?.status);
+  if (s === "deployed" && (row?.uat_mode || "manual") === "manual") return "needs_uat";
+  return statusGroup(s);
+}
+
 const FILTER_PILLS = [
   { id: "all",                label: "All" },
   { id: "open",               label: "Open" },
   { id: "awaiting_approval",  label: "Awaiting approval" },
-  { id: "merged",             label: "Merged" },
+  { id: "needs_uat",          label: "Needs your UAT" },
+  { id: "in_flight",          label: "In flight" },
   { id: "closed",             label: "Closed" },
   { id: "wontfix",            label: "Wont fix" },
 ];
@@ -197,6 +211,42 @@ function ComplexityBadge({ value }) {
   return (
     <span style={{ display: "inline-block", minWidth: 18, textAlign: "center", padding: "1px 6px", fontSize: 11, fontWeight: 700, fontFamily: "monospace", borderRadius: 4, border: `1px solid ${complexityColor(value)}`, color: complexityColor(value), background: "transparent" }}>
       {value}
+    </span>
+  );
+}
+
+// Whose-queue badge — surfaces uat_mode so it's obvious who owns the next
+// step on a deployed bug. Manual = Joe (must click through + Close). Auto =
+// Claude-in-Chrome auto-UAT. Only rendered once a bug is deployed; before
+// that the workflow stamps already tell the story.
+function UatModeBadge({ row }) {
+  const s = normStatus(row?.status);
+  if (s !== "deployed") return null;
+  const mode = (row?.uat_mode || "manual").toLowerCase();
+  const isManual = mode === "manual";
+  const color = isManual ? "#B8860B" : "#60a5fa";
+  const label = isManual ? "UAT: you" : "UAT: auto";
+  return (
+    <span
+      title={isManual
+        ? "Deployed to prod. Waiting for you to click through + hit Close."
+        : "Deployed to prod. Auto-UAT will verify and close this on its next sweep."}
+      style={{
+        display: "inline-block",
+        padding: "1px 6px",
+        marginLeft: 6,
+        fontSize: 10,
+        fontWeight: 700,
+        fontFamily: "monospace",
+        borderRadius: 4,
+        border: `1px solid ${color}`,
+        color,
+        background: "transparent",
+        textTransform: "uppercase",
+        letterSpacing: "0.06em",
+        verticalAlign: "middle",
+      }}>
+      {label}
     </span>
   );
 }
@@ -284,6 +334,7 @@ function BugTable({ rows, selectedId, onSelect }) {
               <div style={{ display: "inline-flex", alignItems: "center" }}>
                 <StatusBadge status={r.status} />
                 <DesyncChip reasons={desyncReasons(r)} />
+                <UatModeBadge row={r} />
               </div>
               <div style={{ fontFamily: "monospace", color: "var(--text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={branch || ""}>
                 {pr ? `#${pr}` : branch || "—"}
@@ -518,7 +569,7 @@ function SidePanel({ row, onClose, onActed }) {
 
       {/* Meta strip */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 10, fontSize: 12 }}>
-        <MetaField label="Status" value={<span style={{ display: "inline-flex", alignItems: "center" }}><StatusBadge status={row.status} /><DesyncChip reasons={desyncReasons(row)} /></span>} />
+        <MetaField label="Status" value={<span style={{ display: "inline-flex", alignItems: "center" }}><StatusBadge status={row.status} /><DesyncChip reasons={desyncReasons(row)} /><UatModeBadge row={row} /></span>} />
         <MetaField label="Complexity" value={<ComplexityBadge value={row.complexity} />} />
         <MetaField label="Priority" value={row.priority || "—"} mono />
         <MetaField label="Reporter" value={row.reporter_name || row.reporter_email || "—"} />
@@ -671,28 +722,29 @@ export default function AdminBugs() {
   // (adminLoading=false), which triggers React #310 and blanks the page.
   // Reference: feedback_grep_all_hooks_when_310.md.
 
-  // Derived counts + filtered rows
+  // Derived counts + filtered rows — bucket uses row (not just status) so
+  // deployed+uat_mode=manual gets routed to the "needs_uat" queue instead of
+  // the automated "in_flight" pipeline.
   const { counts, filtered } = useMemo(() => {
     const all = rows || [];
     const counts = { all: all.length };
     for (const r of all) {
-      const g = statusGroup(r.status);
-      counts[g] = (counts[g] || 0) + 1;
+      const b = bugBucket(r);
+      counts[b] = (counts[b] || 0) + 1;
     }
-    const filteredRows = filter === "all" ? all : all.filter(r => statusGroup(r.status) === filter);
+    const filteredRows = filter === "all" ? all : all.filter(r => bugBucket(r) === filter);
     return { counts, filtered: filteredRows };
   }, [rows, filter]);
 
-  // KPI strip
-  const openSince = useMemo(() => {
-    const candidates = (rows || []).filter(r => {
-      const g = statusGroup(r.status);
-      return g === "open" || g === "awaiting_approval";
-    });
-    if (!candidates.length) return null;
-    return candidates.reduce((oldest, r) => {
-      if (!oldest) return r.created_at;
-      return new Date(r.created_at) < new Date(oldest) ? r.created_at : oldest;
+  // Oldest item in Joe's manual-UAT queue — used in KPI sub-copy. Uses
+  // deployed_at as the age marker (that's when the ball landed in his court).
+  const oldestNeedsUat = useMemo(() => {
+    const cands = (rows || []).filter(r => bugBucket(r) === "needs_uat");
+    if (!cands.length) return null;
+    return cands.reduce((oldest, r) => {
+      const ts = r.deployed_at || r.created_at;
+      if (!oldest || new Date(ts) < new Date(oldest)) return ts;
+      return oldest;
     }, null);
   }, [rows]);
 
@@ -713,6 +765,12 @@ export default function AdminBugs() {
   }
 
   const open = (counts.open || 0) + (counts.awaiting_approval || 0);
+  const needsUat = counts.needs_uat || 0;
+  const inFlight = counts.in_flight || 0;
+  // Anything older than 36h in Joe's manual-UAT queue is a red flag — most
+  // items should be closed within a day.
+  const needsUatAgeMs = oldestNeedsUat ? (Date.now() - new Date(oldestNeedsUat).getTime()) : 0;
+  const needsUatStale = needsUatAgeMs > 36 * 3600 * 1000;
 
   return (
     <main className="fade-in main-padded" style={{ maxWidth: 1400, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
@@ -720,9 +778,14 @@ export default function AdminBugs() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 12, marginBottom: 16 }}>
         <KpiTile label="Open" value={open} sub={`${counts.open || 0} triage · ${counts.awaiting_approval || 0} awaiting approval`} tone={open > 0 ? "warn" : "good"} />
         <KpiTile label="Awaiting approval" value={counts.awaiting_approval || 0} sub="your decision needed" tone={counts.awaiting_approval > 0 ? "warn" : undefined} />
-        <KpiTile label="Merged" value={counts.merged || 0} sub="in deploy pipeline" />
+        <KpiTile
+          label="Needs your UAT"
+          value={needsUat}
+          sub={needsUat ? `oldest: ${ageText(oldestNeedsUat)}${needsUatStale ? " — stale" : ""}` : "nothing pending"}
+          tone={needsUat === 0 ? "good" : needsUatStale ? "bad" : "warn"}
+        />
+        <KpiTile label="In flight" value={inFlight} sub="automated pipeline" />
         <KpiTile label="Closed" value={counts.closed || 0} sub="verified fixed" tone="good" />
-        <KpiTile label="Oldest open" value={openSince ? ageText(openSince) : "—"} sub={openSince ? etDateShort(openSince) : "no open bugs"} tone={openSince && (Date.now() - new Date(openSince).getTime()) > 7 * 86400000 ? "bad" : undefined} />
       </div>
 
       {error && (
