@@ -39,17 +39,32 @@ jobs:
       contents: write
 
     steps:
-      - name: DST gate — skip if not 3:30 PM America/New_York
+      - name: DST gate — fire inside the 15:30-15:44 America/New_York window
         # Only gate scheduled runs; workflow_dispatch always proceeds.
+        #
+        # Bug #1033 (option A): relaxed from strict 15:30-only equality to a
+        # 15-minute window starting 15:30 NYC local. GitHub's cron scheduler
+        # routinely slips a few minutes, and strict equality was quietly
+        # dropping every scheduled run — composite scores on the site were
+        # stuck at 5-day-old values as a result. 15:30-15:44 accepts normal
+        # GitHub cron drift while keeping the other DST cron from also
+        # firing the scan (it falls outside this window by construction).
         if: github.event_name == 'schedule'
         run: |
           NY_HM=$(TZ=America/New_York date +%H:%M)
-          echo "America/New_York time: $NY_HM"
-          if [ "$NY_HM" != "15:30" ]; then
-            echo "::notice::Skipping — NYC local is $NY_HM, not 15:30. Expected: the other DST cron entry will handle today."
+          NY_H=${NY_HM%:*}
+          NY_M=${NY_HM#*:}
+          # Strip any leading zero for bash arithmetic (08 would be octal).
+          NY_H=${NY_H#0}; NY_M=${NY_M#0}
+          MINS=$(( NY_H * 60 + NY_M ))
+          WINDOW_START=$(( 15 * 60 + 30 ))   # 15:30 NYC
+          WINDOW_END=$(( WINDOW_START + 14 )) # 15:44 NYC inclusive
+          echo "America/New_York time: $NY_HM (minute-of-day=$MINS, window=$WINDOW_START-$WINDOW_END)"
+          if [ "$MINS" -lt "$WINDOW_START" ] || [ "$MINS" -gt "$WINDOW_END" ]; then
+            echo "::notice::Skipping — NYC local is $NY_HM, outside 15:30-15:44 window. The other DST cron entry will handle today."
             echo "SKIP_RUN=true" >> "$GITHUB_ENV"
           else
-            echo "✓ NYC time is 15:30 — proceeding with scan."
+            echo "✓ NYC time is $NY_HM, inside 15:30-15:44 window — proceeding with scan."
           fi
 
       - name: Checkout repository
