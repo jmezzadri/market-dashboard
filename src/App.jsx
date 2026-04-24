@@ -743,6 +743,45 @@ function histValueAtMonthsAgo(id,monthsAgo){
   return best;
 }
 
+// Compute the real trailing-12-month statistics for an indicator directly
+// from _histCache[id].points — filtered to the last 365 calendar days of
+// the series. Returns {min,max,mean,sd,n} (values scaled by clampHistValue
+// the same way the detail chart is), or null if there isn't enough data.
+// Used by the IndicatorModal / IndicatorDetailBody range bar so sMin/sMax
+// reflect the actual 12M window instead of the five sparse snapshot points
+// [cur,m1,m3,m6,m12]. Bug #1035: prior to this fix, hy_ig (current 285,
+// real 12M 264-416) was rendering with cur pegged to the right edge of
+// the bar because the sparse-snapshot min/max happened to collapse near cur.
+function get12MWindowStats(id){
+  const entry=_histCache&&_histCache[id];
+  if(!entry||!Array.isArray(entry.points)||entry.points.length<5)return null;
+  const pts=entry.points;
+  const lastStr=pts[pts.length-1][0];
+  const lastDate=new Date(String(lastStr)+"T00:00:00Z");
+  if(Number.isNaN(+lastDate))return null;
+  const cutoffMs=lastDate.getTime()-365*24*3600*1000;
+  const vals=[];
+  for(let i=pts.length-1;i>=0;i--){
+    const p=pts[i];
+    if(!p)continue;
+    const ds=p[0], raw=p[1];
+    if(raw==null||!Number.isFinite(raw))continue;
+    const d=new Date(String(ds)+"T00:00:00Z");
+    if(Number.isNaN(+d))continue;
+    if(d.getTime()<cutoffMs)break;
+    vals.push(clampHistValue(id,raw));
+  }
+  if(vals.length<2)return null;
+  let sum=0;for(const v of vals)sum+=v;
+  const mean=sum/vals.length;
+  let sq=0;for(const v of vals){const d=v-mean;sq+=d*d;}
+  const sd=Math.sqrt(sq/Math.max(1,vals.length-1));
+  let mn=vals[0], mx=vals[0];
+  for(const v of vals){if(v<mn)mn=v;if(v>mx)mx=v;}
+  return {min:mn, max:mx, mean, sd, n:vals.length};
+}
+
+
 // Build the [label, value] series used by IndStressChart (the compact tile
 // mini-chart). Item 5b / Task #19: prefer real history from _histCache over
 // the synthetic piecewiseYearValue keyframes, so the tile sparkline reflects
@@ -1613,9 +1652,19 @@ const colT=sdTextColor(s);
 const tierCol=tier===1?"var(--yellow-text)":tier===2?"#94a3b8":"#4b5563";
 const tierBorder=tier===1?"#B8860B":tier===2?"#94a3b8":"#4b5563";
 const sp=SD[id];
-const allV=[cur,m1,m3,m6,m12].filter(v=>v!=null);
-const sMin=allV.length?Math.min(...allV):null;
-const sMax=allV.length?Math.max(...allV):null;
+// Bug #1035: 12-month range-bar scale now comes from the actual last 365
+// days of daily points in indicator_history.json via get12MWindowStats(),
+// not from the five sparse snapshots [cur,m1,m3,m6,m12]. The sparse version
+// collapsed when those five readings happened to cluster near the current
+// value (e.g. hy_ig 285 pegged right). Fallback to the sparse logic when
+// _histCache hasn't loaded yet so the bar still renders on first paint.
+const win12=get12MWindowStats(id);
+const sMin=win12?win12.min:(()=>{const v=[cur,m1,m3,m6,m12].filter(x=>x!=null);return v.length?Math.min(...v):null;})();
+const sMax=win12?win12.max:(()=>{const v=[cur,m1,m3,m6,m12].filter(x=>x!=null);return v.length?Math.max(...v):null;})();
+// Re-scope avg/elev/ext markers to the SAME 12M window when available, so
+// the numbers beside "12-MONTH RANGE" describe the window being rendered
+// rather than the 15y baseline from SD[id].
+const rangeStats=win12?{mean:win12.mean,sd:win12.sd}:sp;
 return(
 <div className="modal-backdrop" onClick={onClose}>
   <div className="modal-wrap">
@@ -1661,9 +1710,9 @@ return(
         <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>
             <span>12-MONTH RANGE</span>
-            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"#30d158"}}>{fmtV(id,sp.mean)}</span> · elev <span style={{color:"#ff9f0a"}}>{fmtV(id,sp.mean+sp.sd)}</span> · ext <span style={{color:"#ff453a"}}>{fmtV(id,sp.mean+sp.sd*2)}</span></span>
+            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"#30d158"}}>{fmtV(id,rangeStats.mean)}</span> · elev <span style={{color:"#ff9f0a"}}>{fmtV(id,rangeStats.mean+rangeStats.sd)}</span> · ext <span style={{color:"#ff453a"}}>{fmtV(id,rangeStats.mean+rangeStats.sd*2)}</span></span>
           </div>
-          <RangeBar sMin={sMin} sMax={sMax} sp={sp} cur={cur} col={col}/>
+          <RangeBar sMin={sMin} sMax={sMax} sp={rangeStats} cur={cur} col={col}/>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginTop:3}}>
             <span>{fmtV(id,sMin)}</span>
             <span>{fmtV(id,sMax)}</span>
@@ -2104,9 +2153,13 @@ function IndicatorDetailBody({ id, onClose, inline }){
   const tierCol = tier===1?"var(--yellow-text)":tier===2?"#94a3b8":"#4b5563";
   const tierBorder = tier===1?"#B8860B":tier===2?"#94a3b8":"#4b5563";
   const sp = SD[id];
-  const allV = [cur, m1, m3, m6, m12].filter(v => v != null);
-  const sMin = allV.length ? Math.min(...allV) : null;
-  const sMax = allV.length ? Math.max(...allV) : null;
+  // Bug #1035: 12-month range-bar scale now comes from the actual last 365
+  // days of daily points in indicator_history.json via get12MWindowStats(),
+  // not from the five sparse snapshots [cur,m1,m3,m6,m12].
+  const win12 = get12MWindowStats(id);
+  const sMin = win12 ? win12.min : (() => { const v = [cur, m1, m3, m6, m12].filter(x => x != null); return v.length ? Math.min(...v) : null; })();
+  const sMax = win12 ? win12.max : (() => { const v = [cur, m1, m3, m6, m12].filter(x => x != null); return v.length ? Math.max(...v) : null; })();
+  const rangeStats = win12 ? { mean: win12.mean, sd: win12.sd } : sp;
   return (
     <div style={{position:"relative"}}>
       {inline && (
@@ -2154,9 +2207,9 @@ function IndicatorDetailBody({ id, onClose, inline }){
         <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>
             <span>12-MONTH RANGE</span>
-            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"#30d158"}}>{fmtV(id,sp.mean)}</span> · elev <span style={{color:"#ff9f0a"}}>{fmtV(id,sp.mean+sp.sd)}</span> · ext <span style={{color:"#ff453a"}}>{fmtV(id,sp.mean+sp.sd*2)}</span></span>
+            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"#30d158"}}>{fmtV(id,rangeStats.mean)}</span> · elev <span style={{color:"#ff9f0a"}}>{fmtV(id,rangeStats.mean+rangeStats.sd)}</span> · ext <span style={{color:"#ff453a"}}>{fmtV(id,rangeStats.mean+rangeStats.sd*2)}</span></span>
           </div>
-          <RangeBar sMin={sMin} sMax={sMax} sp={sp} cur={cur} col={col}/>
+          <RangeBar sMin={sMin} sMax={sMax} sp={rangeStats} cur={cur} col={col}/>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginTop:3}}>
             <span>{fmtV(id,sMin)}</span>
             <span>{fmtV(id,sMax)}</span>
