@@ -80,7 +80,31 @@ export function useBugActions() {
   const rejectFix    = (bugId, note) => run(bugId, "rejectFix",    { status: "wontfix" }, note);
   const markDeployed = (bugId, sha, note) => run(bugId, "markDeployed", { status: "deployed", deployed_at: new Date().toISOString(), ...(sha ? { deployed_sha: sha } : {}) }, note);
   const close        = (bugId, note) => run(bugId, "close",        { status: "verified_closed", verified_at: new Date().toISOString() }, note);
-  const reopen       = (bugId, note) => run(bugId, "reopen",       { status: "reopened" }, note);
+  // Reopen uses the reopen_bug RPC (migration 018) so the status transition and
+  // the bug_status_log.note row are written atomically and the note requirement
+  // is enforced at the DB. A null/empty note raises before any UPDATE hits the
+  // table — no more note-less reopens slipping through a UI gap.
+  const reopen = useCallback(async (bugId, note) => {
+    const trimmed = (note || "").trim();
+    if (!trimmed) {
+      const err = new Error("Reopen note is required — tell the fix-builder what's still broken.");
+      setError(err);
+      return { error: err };
+    }
+    setPending({ action: "reopen", bugId });
+    setError(null);
+    const { data, error: err } = await supabase.rpc("reopen_bug", {
+      p_bug_id: bugId,
+      p_note:   trimmed,
+    });
+    if (err) {
+      setError(err);
+      setPending(null);
+      return { error: err };
+    }
+    setPending(null);
+    return { data };
+  }, []);
   const dismissAs    = (bugId, terminal, note) => run(bugId, "dismissAs", { status: terminal }, note); // terminal ∈ { wontfix, duplicate, needs_info }
 
   return { approve, rejectFix, markDeployed, close, reopen, dismissAs, pending, error };
