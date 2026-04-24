@@ -163,8 +163,8 @@ export default function MethodologyPage({ ind, asOf, weights, cats, indFreq }) {
       <Contents />
       <MacroIndicatorTable ind={ind} weights={weights} cats={cats} indFreq={indFreq} asOf={asOf} />
       <CompositeMath ind={ind} weights={weights} cats={cats} />
-      <SignalScoreMath />
       <DataCatalogTable ind={ind} asOf={asOf} />
+      <SignalScoreMath />
       <Disclaimer />
     </div>
   );
@@ -189,10 +189,10 @@ function HeaderOverview() {
 // ─── CONTENTS (replaces prior JumpNav strip) ────────────────────────────────
 function Contents() {
   const items = [
-    { num: "1", label: "Macro Indicator → Category Map",  sub: "The 25 indicators, grouped by category, with source / frequency / tier / weight / type / detail.", id: A("catmap") },
-    { num: "2", label: "Macro Composite Methodology",     sub: "How the 25 indicators roll up into one 0-100 Composite Stress Score and four conviction bands.",    id: A("composite-math") },
-    { num: "3", label: "Equity Scanner Signal Score",     sub: "How six section sub-scores combine into a single signed composite on [-100, +100] per ticker.",     id: A("signal-math") },
-    { num: "4", label: "Equity Scanner Data Streams",    sub: "The 8 streams that feed the per-ticker Signal Score - source, refresh cadence, scanner section, weight.",    id: A("catalog") },
+    { num: "1", label: "Macro Mapping & Data Sources",   sub: "The 25 macro indicators — source, frequency, last refresh, tier, weight, type, detail.",                id: A("catmap") },
+    { num: "2", label: "Macro Methodology",              sub: "How the 25 indicators roll up into one 0-100 Composite Stress Score and four conviction bands.",        id: A("composite-math") },
+    { num: "3", label: "Equity Scanner Data Sources",    sub: "The 8 upstream streams that feed the per-ticker Signal Score — scanner section + weight each carries.",   id: A("catalog") },
+    { num: "4", label: "Equity Scanner Methodology",     sub: "How six section sub-scores combine into a single signed composite on [-100, +100] per ticker.",           id: A("signal-math") },
   ];
   return (
     <nav data-testid="methodology-contents" aria-label="Contents"
@@ -227,7 +227,7 @@ function Contents() {
   );
 }
 
-// ─── §2 MACRO INDICATOR → CATEGORY MAP (sortable table) ─────────────────────
+// ─── §2 MACRO MAPPING & DATA SOURCES (sortable table) ──────────────────────
 function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
   const rows = useMemo(() => {
     if (!ind) return [];
@@ -309,7 +309,7 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
     <section id={A("catmap")} data-testid="methodology-section-catmap"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="1 · MACRO INDICATOR → CATEGORY MAP"
+        label="1 · MACRO MAPPING & DATA SOURCES"
         sub={`${rows.length} macro indicators · sortable`}
         applies={[
           { id:"overview",   label:"Macro Overview",  path:"#overview" },
@@ -384,7 +384,7 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
   );
 }
 
-// ─── §3 MACRO COMPOSITE METHODOLOGY ──────────────────────────────────────────
+// ─── §3 MACRO METHODOLOGY ──────────────────────────────────────────────────
 function CompositeMath({ ind, weights }) {
   // Tier distribution pulled live from WEIGHTS.
   const tierBuckets = useMemo(() => {
@@ -409,7 +409,7 @@ function CompositeMath({ ind, weights }) {
     <section id={A("composite-math")} data-testid="methodology-section-compmath"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="2 · MACRO COMPOSITE METHODOLOGY"
+        label="2 · MACRO METHODOLOGY"
         sub="How the 25 indicators roll up into one number"
         applies={[
           { id:"home",     label:"Home",           path:"#home" },
@@ -574,7 +574,7 @@ function CompositeMath({ ind, weights }) {
   );
 }
 
-// ─── §4 EQUITY SCANNER SIGNAL SCORE ──────────────────────────────────────────
+// ─── §5 EQUITY SCANNER METHODOLOGY ─────────────────────────────────────────
 function SignalScoreMath() {
   const TIER_BANDS = [
     { label:"STRONG BULL", range:"≥ 60",        note:"Buy Alert",                      color:"#30d158" },
@@ -601,7 +601,7 @@ function SignalScoreMath() {
     <section id={A("signal-math")} data-testid="methodology-section-signalmath"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="3 · EQUITY SCANNER SIGNAL SCORE"
+        label="4 · EQUITY SCANNER METHODOLOGY"
         sub="Single composite on [−100, +100]"
         applies={[
           { id:"scanner",  label:"Trading Scanner",                         path:"#scanner" },
@@ -783,7 +783,7 @@ function SignalScoreMath() {
   );
 }
 
-// ─── §5 EQUITY SCANNER DATA STREAMS (sortable flat table, scanner-only) ────
+// ─── §4 EQUITY SCANNER DATA SOURCES (sortable flat table, scanner-only) ───
 // Scanner data only — the macro indicators have their own table in §1, so
 // repeating them here would be redundant.
 function DataCatalogTable({ ind, asOf }) {
@@ -878,7 +878,7 @@ function DataCatalogTable({ ind, asOf }) {
     <section id={A("catalog")} data-testid="methodology-section-catalog"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="4 · EQUITY SCANNER DATA STREAMS"
+        label="3 · EQUITY SCANNER DATA SOURCES"
         sub={`${rows.length} streams that feed the per-ticker Signal Score · sortable`}
         applies={[
           { id:"scanner",  label:"Trading Scanner",                            path:"#scanner" },
