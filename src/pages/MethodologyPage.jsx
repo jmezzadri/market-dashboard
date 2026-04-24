@@ -789,89 +789,76 @@ function SignalScoreMath() {
 function DataCatalogTable({ ind, asOf }) {
   const rows = useMemo(() => {
     return DATA_REGISTRY
-      .filter((r) => r.section === "scanner")
+      .filter((r) => r.section === "scanner" && !r.isFilter)
       .map((r) => {
         const secLabel = SCANNER_SECTION_FOR[r.key] || "—";
         const secKey   = SCANNER_SECTION_KEY_FOR[r.key];
-
         let weighting = "—";
         let weightingSort = 0;
         if (secKey && SECTION_WEIGHTS[secKey] != null) {
           weighting = `${SECTION_WEIGHTS[secKey]}%`;
           weightingSort = SECTION_WEIGHTS[secKey];
-        } else if (r.key === "uw_screener") {
-          weighting = "Filter";
-          weightingSort = -1;
         } else {
           weighting = "Enrichment";
-          weightingSort = -2;
+          weightingSort = -1;
         }
-
-        const timing = r.timing || "";
-        const detail = r.details || r.summary || "";
-
         return {
           key: r.key,
           name: r.name,
-          source: r.source || "—",
-          freq: r.freq || "—",
           section: secLabel,
+          source: r.source || "—",
+          freq: r.freqCode || "—",
+          lastRefresh: r.lastRefresh || "—",
           weighting,
           weightingSort,
-          timing,
-          detail,
+          timing: r.timing || "",
+          detail: r.summary || r.details || "",
         };
       });
   }, []);
 
-  const [sortKey, setSortKey] = useState("section");
-  const [sortDir, setSortDir] = useState("asc");
-  const [query, setQuery] = useState("");
-
+  const [sortKey, setSortKey] = useState("weighting");
+  const [sortDir, setSortDir] = useState("desc");
   const TIMING_ORDER = { Leading:1, Coincident:2, Lagging:3 };
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((r) =>
-      [r.name, r.source, r.freq, r.section, r.weighting, r.timing, r.detail]
-        .join(" ").toLowerCase().includes(q)
-    );
-  }, [rows, query]);
+  const FREQ_ORDER   = { "3x/D":1, D:2, W:3, M:4, Q:5, Y:6 };
 
   const sorted = useMemo(() => {
-    const arr = [...filtered];
+    const arr = [...rows];
     const dir = sortDir === "asc" ? 1 : -1;
     arr.sort((a, b) => {
       let av, bv;
       switch (sortKey) {
-        case "name":      av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
-        case "source":    av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
-        case "freq":      av = a.freq.toLowerCase(); bv = b.freq.toLowerCase(); break;
-        case "section":   av = a.section.toLowerCase(); bv = b.section.toLowerCase(); break;
-        case "weighting": av = a.weightingSort; bv = b.weightingSort; break;
-        case "timing":    av = TIMING_ORDER[a.timing] || 99; bv = TIMING_ORDER[b.timing] || 99; break;
-        default:          av = 0; bv = 0;
+        case "name":        av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
+        case "section":     av = a.section.toLowerCase(); bv = b.section.toLowerCase(); break;
+        case "source":      av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
+        case "freq":        av = FREQ_ORDER[a.freq] || 99; bv = FREQ_ORDER[b.freq] || 99; break;
+        case "lastRefresh": av = Date.parse(a.lastRefresh) || 0; bv = Date.parse(b.lastRefresh) || 0; break;
+        case "weighting":   av = a.weightingSort; bv = b.weightingSort; break;
+        case "timing":      av = TIMING_ORDER[a.timing] || 99; bv = TIMING_ORDER[b.timing] || 99; break;
+        case "detail":      av = a.detail.toLowerCase(); bv = b.detail.toLowerCase(); break;
+        default:            av = 0; bv = 0;
       }
       if (av < bv) return -1 * dir;
       if (av > bv) return  1 * dir;
       return a.name.localeCompare(b.name);
     });
     return arr;
-  }, [filtered, sortKey, sortDir]);
+  }, [rows, sortKey, sortDir]);
 
   function onSort(k) {
     if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else { setSortKey(k); setSortDir("asc"); }
+    else { setSortKey(k); setSortDir(k === "weighting" ? "desc" : "asc"); }
   }
 
   const COLS = [
-    { k:"name",      label:"Data",        align:"left"   },
-    { k:"source",    label:"Source",      align:"left"   },
-    { k:"freq",      label:"Frequency",   align:"left"   },
-    { k:"section",   label:"Scanner Section", align:"left" },
-    { k:"weighting", label:"Weight in Signal Score", align:"right" },
-    { k:"timing",    label:"Type",        align:"center" },
+    { k:"name",        label:"Data",         align:"left"   },
+    { k:"section",     label:"Category / Use", align:"left" },
+    { k:"source",      label:"Source",       align:"left"   },
+    { k:"freq",        label:"Frequency",    align:"center" },
+    { k:"lastRefresh", label:"Last Refresh", align:"left"   },
+    { k:"weighting",   label:"Weight",       align:"right"  },
+    { k:"timing",      label:"Type",         align:"center" },
+    { k:"detail",      label:"Detail",       align:"left"   },
   ];
 
   return (
@@ -885,34 +872,12 @@ function DataCatalogTable({ ind, asOf }) {
           { id:"portopps", label:"Trading Opportunities & Portfolio Insights", path:"#portopps" },
         ]}
       />
-
       <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
-        Every upstream data stream the scanner reads when it scores a ticker. Click a column header to
-        sort. <strong>Scanner Section</strong> = which of the six subscore buckets the stream lands in.
-        <strong> Weight in Signal Score</strong> = that section's share of the overall composite (see §3).
-        Non-scored streams (universe filter, enrichment feeds like live price + news) are marked explicitly.
-        Click a row to expand the full detail.
-      </div>
-
-      <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search scanner streams…"
-          aria-label="Search scanner data streams"
-          data-testid="methodology-search"
-          style={{
-            flex:"1 1 320px", minWidth:260, maxWidth:560,
-            fontSize:13, padding:"8px 12px",
-            border:"1px solid var(--border)", borderRadius:6,
-            background:"var(--surface-2)", color:"var(--text)",
-            fontFamily:"var(--font-mono)", outline:"none",
-          }}
-        />
-        <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)" }}>
-          {sorted.length} / {rows.length}
-        </span>
+        Every upstream stream the scanner reads when it scores a ticker. Click a column header to sort.
+        <strong> Frequency</strong> is how often the stream refreshes (D = once per weekday, 3x/D = three
+        pulls per weekday). <strong>Weight</strong> is that stream's share of the overall Signal Score
+        (see §4). Before any of this runs, a price ($5–$500) and market-cap screen from the Unusual Whales
+        screener filters the investable universe — the screener is a methodology step, not a scoring input.
       </div>
 
       <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8,
@@ -935,57 +900,40 @@ function DataCatalogTable({ ind, asOf }) {
           </thead>
           <tbody>
             {sorted.map((r) => (
-              <DataRow key={r.key} r={r} />
+              <tr key={r.key} style={{ borderTop:"1px solid var(--border)" }}>
+                <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)", whiteSpace:"nowrap" }}>
+                  {r.name}
+                </td>
+                <td style={{ ...tdStyle }}>
+                  <span style={{ fontSize:10, color:"#06b6d4", border:"1px solid #06b6d4",
+                                 borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
+                                 whiteSpace:"nowrap", textTransform:"uppercase" }}>
+                    {r.section}
+                  </span>
+                </td>
+                <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.source}</td>
+                <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{r.freq}</td>
+                <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>{r.lastRefresh}</td>
+                <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)" }}>{r.weighting}</td>
+                <td style={{ ...tdStyle, textAlign:"center" }}>
+                  {r.timing ? (
+                    <span style={{ fontSize:10, color:TIMING_COLOR[r.timing] || "var(--text-dim)",
+                                   border:`1px solid ${TIMING_COLOR[r.timing] || "var(--border)"}`,
+                                   borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
+                                   textTransform:"uppercase", whiteSpace:"nowrap" }}>
+                      {r.timing}
+                    </span>
+                  ) : "—"}
+                </td>
+                <td style={{ ...tdStyle, color:"var(--text-muted)", lineHeight:1.6, minWidth:320 }}>
+                  {r.detail || "—"}
+                </td>
+              </tr>
             ))}
           </tbody>
         </table>
       </div>
     </section>
-  );
-}
-
-function DataRow({ r }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <tr onClick={() => setOpen((v) => !v)}
-          style={{ borderTop:"1px solid var(--border)", cursor:"pointer" }}>
-        <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)", whiteSpace:"nowrap" }}>
-          <span style={{ fontSize:10, color:"var(--text-dim)", marginRight:6 }}>
-            {open ? "▾" : "▸"}
-          </span>
-          {r.name}
-        </td>
-        <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.source}</td>
-        <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.freq}</td>
-        <td style={{ ...tdStyle }}>
-          <span style={{ fontSize:10, color:"#06b6d4", border:"1px solid #06b6d4",
-                         borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
-                         whiteSpace:"nowrap", textTransform:"uppercase" }}>
-            {r.section}
-          </span>
-        </td>
-        <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)" }}>{r.weighting}</td>
-        <td style={{ ...tdStyle, textAlign:"center" }}>
-          {r.timing ? (
-            <span style={{ fontSize:10, color:TIMING_COLOR[r.timing] || "var(--text-dim)",
-                           border:`1px solid ${TIMING_COLOR[r.timing] || "var(--border)"}`,
-                           borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em" }}>
-              {r.timing}
-            </span>
-          ) : "—"}
-        </td>
-      </tr>
-      {open && (
-        <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))",
-                     background:"var(--surface-2)" }}>
-          <td colSpan={6} style={{ padding:"10px 14px 14px 34px", fontSize:12,
-                                   color:"var(--text-muted)", lineHeight:1.7 }}>
-            {r.detail || "No additional detail."}
-          </td>
-        </tr>
-      )}
-    </>
   );
 }
 
