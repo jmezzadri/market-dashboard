@@ -1008,6 +1008,11 @@ const SCANNER_SECTION_KEY_FOR = {
   yahoo_technicals:  "technicals",
 };
 
+const thStyle = { textAlign:"left", fontWeight:600, fontSize:10, letterSpacing:"0.08em",
+                  padding:"8px 12px", color:"var(--text-dim)", textTransform:"uppercase",
+                  fontFamily:"var(--font-mono)", whiteSpace:"nowrap" };
+const tdStyle = { padding:"8px 12px", verticalAlign:"top" };
+
 // ─── SHARED HELPERS ──────────────────────────────────────────────────────────
 // SectionHeader + Prose + P + Formula + PillChip were co-located with the old
 // §6 catalog section; the §6 → §5 rebuild dropped them inadvertently. Restored
