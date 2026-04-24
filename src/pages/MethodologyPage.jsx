@@ -160,11 +160,11 @@ export default function MethodologyPage({ ind, asOf, weights, cats, indFreq }) {
   return (
     <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
       <HeaderOverview />
-      <JumpNav />
-      <CategoryMap ind={ind} weights={weights} cats={cats} indFreq={indFreq} />
+      <Contents />
+      <MacroIndicatorTable ind={ind} weights={weights} cats={cats} indFreq={indFreq} asOf={asOf} />
       <CompositeMath ind={ind} weights={weights} cats={cats} />
       <SignalScoreMath />
-      <CatalogSection ind={ind} asOf={asOf} cats={cats} />
+      <DataCatalogTable ind={ind} asOf={asOf} />
       <Disclaimer />
     </div>
   );
@@ -179,208 +179,212 @@ function HeaderOverview() {
         Data & Methodology
       </div>
       <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, maxWidth: 880 }}>
-        How every number in MacroTilt is built, where it comes from, and how it's weighted — top-down from
-        macro to micro.
-      </div>
-      <div style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.75, maxWidth: 880 }}>
-        MacroTilt is two engines stacked on top of each other. The <strong>macro engine</strong> converts 25
-        indicators into a single 0–100 Composite Stress Score — where we are in the regime. The <strong>sector
-        engine</strong> drops one level down to rank sectors on cross-sectional factor tilts given that regime.
-        The <strong>micro engine</strong> (scanner) scans individual stocks for conviction-trade setups —
-        insiders, Congress, options flow, technicals — and scores each one on a single directional composite
-        from −100 (bearish) to +100 (bullish). Your <strong>portfolio surface</strong> is the overlay: macro →
-        sector → micro lined up against your actual holdings and watchlist.
+        Four sections. First the macro indicator → composite chain, then the per-ticker signal
+        chain, then the full catalog of every data stream that feeds the site.
       </div>
     </section>
   );
 }
 
-// ─── JUMP NAV (Item 18 — fixed to use onClick + scrollIntoView) ─────────────
-function JumpNav() {
-  const links = [
-    ["Category map",   A("catmap")],
-    ["Composite math", A("composite-math")],
-    ["Signal math",    A("signal-math")],
-    ["Data streams",   A("catalog")],
+// ─── CONTENTS (replaces prior JumpNav strip) ────────────────────────────────
+function Contents() {
+  const items = [
+    { num: "1", label: "Macro Indicator → Category Map",  sub: "The 25 indicators, grouped by category, with source / frequency / tier / weight / type / detail.", id: A("catmap") },
+    { num: "2", label: "Macro Composite Methodology",     sub: "How the 25 indicators roll up into one 0-100 Composite Stress Score and four conviction bands.",    id: A("composite-math") },
+    { num: "3", label: "Equity Scanner Signal Score",     sub: "How six section sub-scores combine into a single signed composite on [-100, +100] per ticker.",     id: A("signal-math") },
+    { num: "4", label: "Detailed Data Information",       sub: "Every upstream data stream — source, refresh cadence, what it feeds, how it's weighted.",            id: A("catalog") },
   ];
   return (
-    <nav data-testid="methodology-toc"
-      style={{ display:"flex", flexWrap:"wrap", gap:8, fontFamily:"var(--font-mono)", fontSize:11,
-               borderTop:"1px solid var(--border)", borderBottom:"1px solid var(--border)",
-               padding:"10px 0", color:"var(--text-dim)" }}>
-      <span style={{ color:"var(--text-dim)", letterSpacing:"0.08em" }}>JUMP TO:</span>
-      {links.map(([label, id], i) => (
-        <React.Fragment key={id}>
-          <a
-            href={`#${id}`}
-            onClick={(e) => { e.preventDefault(); scrollToAnchor(id); }}
-            style={{ color:"var(--accent)", textDecoration:"none", cursor:"pointer" }}
-          >
-            {label}
-          </a>
-          {i < links.length - 1 && <span style={{ color:"var(--border)" }}>·</span>}
-        </React.Fragment>
+    <nav data-testid="methodology-contents" aria-label="Contents"
+      style={{ display:"flex", flexDirection:"column", gap:0,
+               border:"1px solid var(--border)", borderRadius:8,
+               background:"var(--surface)", overflow:"hidden" }}>
+      <div style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
+                    letterSpacing:"0.08em", textTransform:"uppercase",
+                    padding:"8px 12px", borderBottom:"1px solid var(--border)",
+                    background:"var(--surface-2)" }}>
+        Contents
+      </div>
+      {items.map((it, i) => (
+        <a key={it.id} href={`#${it.id}`}
+           onClick={(e) => { e.preventDefault(); scrollToAnchor(it.id); }}
+           style={{ display:"flex", alignItems:"baseline", gap:12,
+                    padding:"10px 12px", textDecoration:"none", color:"var(--text)",
+                    borderTop: i === 0 ? "none" : "1px solid var(--border)", cursor:"pointer" }}>
+          <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
+                         width:14, flexShrink:0 }}>
+            {it.num}.
+          </span>
+          <span style={{ fontSize:13, fontWeight:600, minWidth:280, color:"var(--text)" }}>
+            {it.label}
+          </span>
+          <span style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.5, flex:1 }}>
+            {it.sub}
+          </span>
+        </a>
       ))}
     </nav>
   );
 }
 
-// ─── §3 INDICATOR → CATEGORY MAP (Item 21 — enriched) ───────────────────────
-function CategoryMap({ ind, weights, cats, indFreq }) {
-  // Group IND keys by category (IND[id][2]) and sort within category by tier
-  // asc, then short name. Augment with INDICATOR_META so each row can show
-  // phase / timing / source / measure / rationale.
-  const grouped = useMemo(() => {
-    const g = {};
-    Object.keys(ind || {}).forEach((id) => {
-      const row = ind[id] || [];
-      const cat = row[2];
-      if (!cat) return;
-      if (!g[cat]) g[cat] = [];
+// ─── §2 MACRO INDICATOR → CATEGORY MAP (sortable table) ─────────────────────
+function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
+  const rows = useMemo(() => {
+    if (!ind) return [];
+    return Object.keys(ind).map((id) => {
+      const r = ind[id] || [];
       const meta = INDICATOR_META[id] || {};
-      g[cat].push({
+      const w = (weights && weights[id]) || 0;
+      const tier = w >= 1.5 ? 1 : w >= 1.2 ? 2 : 3;
+      const catKey = r[2] || "";
+      const cat = (cats && cats[catKey]) || {};
+      return {
         id,
-        short: row[0],
-        long: row[1],
-        tier: row[3],
-        unit: row[4],
-        weight: (weights && weights[id]) || 0,
-        freq: (indFreq && indFreq[id]) || "",
-        phase: meta.phase || "",
-        timing: meta.timing || "",
+        short: r[0] || id,
+        catKey,
+        catLabel: cat.label || catKey,
+        catColor: cat.color || "#94a3b8",
         source: meta.source || "",
-        measure: meta.measure || "",
-        rationale: meta.rationale || "",
-      });
+        freq: (indFreq && indFreq[id]) || "",
+        asOf: (asOf && asOf[id]) || "",
+        tier,
+        weight: w,
+        timing: meta.timing || "",
+        detail: meta.measure || "",
+      };
     });
-    Object.values(g).forEach((rows) => rows.sort((a,b) => (a.tier - b.tier) || a.short.localeCompare(b.short)));
-    return g;
-  }, [ind, weights, indFreq]);
+  }, [ind, weights, cats, indFreq, asOf]);
 
-  // Keep category rendering order stable and consistent with App.jsx order.
+  const [sortKey, setSortKey] = useState("tier");
+  const [sortDir, setSortDir] = useState("asc");
+
   const CAT_ORDER = ["equity","credit","rates","fincond","bank","labor"];
-  const orderedCats = CAT_ORDER.filter((k) => grouped[k] && grouped[k].length > 0);
-  const totalCount = Object.values(grouped).reduce((n, rows) => n + rows.length, 0);
+  const FREQ_ORDER = { D:1, W:2, M:3, Q:4, Y:5 };
+  const TIMING_ORDER = { Leading:1, Coincident:2, Lagging:3 };
+
+  const sorted = useMemo(() => {
+    const arr = [...rows];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let av, bv;
+      switch (sortKey) {
+        case "short":  av = a.short.toLowerCase(); bv = b.short.toLowerCase(); break;
+        case "catKey": av = CAT_ORDER.indexOf(a.catKey); bv = CAT_ORDER.indexOf(b.catKey); break;
+        case "source": av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
+        case "freq":   av = FREQ_ORDER[a.freq] || 99; bv = FREQ_ORDER[b.freq] || 99; break;
+        case "asOf":   av = Date.parse(a.asOf) || 0; bv = Date.parse(b.asOf) || 0; break;
+        case "tier":   av = a.tier; bv = b.tier; break;
+        case "weight": av = a.weight; bv = b.weight; break;
+        case "timing": av = TIMING_ORDER[a.timing] || 99; bv = TIMING_ORDER[b.timing] || 99; break;
+        case "detail": av = a.detail.toLowerCase(); bv = b.detail.toLowerCase(); break;
+        default:       av = 0; bv = 0;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return  1 * dir;
+      const ca = CAT_ORDER.indexOf(a.catKey), cb = CAT_ORDER.indexOf(b.catKey);
+      if (ca !== cb) return ca - cb;
+      return a.short.localeCompare(b.short);
+    });
+    return arr;
+  }, [rows, sortKey, sortDir]);
+
+  function onSort(k) {
+    if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("asc"); }
+  }
+
+  const COLS = [
+    { k:"short",  label:"Indicator",    align:"left"   },
+    { k:"catKey", label:"Category",     align:"left"   },
+    { k:"source", label:"Source",       align:"left"   },
+    { k:"freq",   label:"Frequency",    align:"center" },
+    { k:"asOf",   label:"Last Refresh", align:"left"   },
+    { k:"tier",   label:"Tier",         align:"center" },
+    { k:"weight", label:"Weight",       align:"right"  },
+    { k:"timing", label:"Type",         align:"center" },
+    { k:"detail", label:"Detail",       align:"left"   },
+  ];
 
   return (
     <section id={A("catmap")} data-testid="methodology-section-catmap"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="INDICATOR → CATEGORY MAP"
-        sub={`${totalCount} macro indicators · ${orderedCats.length} categories`}
+        label="1 · MACRO INDICATOR → CATEGORY MAP"
+        sub={`${rows.length} macro indicators · sortable`}
         applies={[
-          { id:"overview",  label:"Macro Overview",  path:"#overview" },
-          { id:"indicators", label:"All Indicators", path:"#indicators" },
+          { id:"overview",   label:"Macro Overview",  path:"#overview" },
+          { id:"indicators", label:"All Indicators",  path:"#indicators" },
         ]}
       />
       <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
-        Every indicator that feeds the Composite, grouped by category. <strong>Phase</strong> = how quickly
-        the number moves (Fast daily market obs vs Slow survey / accounting). <strong>Timing</strong> =
-        leading / coincident / lagging relative to real-economy activity. <strong>Weight tier</strong> =
-        T1 (1.5×, most market-sensitive), T2 (1.2×, important but less real-time), T3 (1.0×, structural /
-        context). Rendered live from <code style={{ fontFamily:"var(--font-mono)" }}>IND</code>
-        + <code style={{ fontFamily:"var(--font-mono)" }}>WEIGHTS</code> + local <code
-        style={{ fontFamily:"var(--font-mono)" }}>INDICATOR_META</code>; App.jsx is the source of truth for
-        IND and WEIGHTS.
+        Click a column header to sort. <strong>Frequency</strong> is how often the underlying source
+        refreshes (D = daily, W = weekly, M = monthly, Q = quarterly). <strong>Tier</strong> sets the
+        indicator's weight in the Composite — T1 = 1.5× (market-sensitive), T2 = 1.2× (important but
+        slower), T3 = 1.0× (structural / context). <strong>Type</strong> = leading / coincident / lagging
+        vs. real-economy activity.
       </div>
 
-      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
-        {orderedCats.map((ck) => {
-          const cat = cats?.[ck];
-          if (!cat) return null;
-          const rows = grouped[ck];
-          return (
-            <div key={ck} style={{ background:"var(--surface)", border:"1px solid var(--border)",
-                                    borderRadius:8, overflow:"hidden" }}>
-              <div style={{ display:"flex", alignItems:"center", gap:10, padding:"8px 12px",
-                            background:"var(--surface-2)", borderBottom:"1px solid var(--border)" }}>
-                <span style={{ width:10, height:10, borderRadius:2, background:cat.color }}/>
-                <span style={{ fontSize:12, fontWeight:700, color:"var(--text)",
-                               fontFamily:"var(--font-mono)", letterSpacing:"0.06em", textTransform:"uppercase" }}>
-                  {cat.label}
-                </span>
-                <span style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
-                  · {rows.length} {rows.length === 1 ? "indicator" : "indicators"}
-                </span>
-              </div>
-              <div style={{ display:"flex", flexDirection:"column" }}>
-                {rows.map((r, idx) => (
-                  <div key={r.id}
-                    style={{ padding:"12px 14px",
-                             borderTop: idx === 0 ? "none" : "1px solid var(--border)",
-                             display:"flex", flexDirection:"column", gap:6 }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
-                      <span style={{ fontSize:13, fontWeight:700, color:"var(--text)",
-                                     fontFamily:"var(--font-mono)" }}>
-                        {r.short}
-                      </span>
-                      <span style={{ fontSize:11, color:"var(--text-muted)" }}>
-                        {r.long}
-                      </span>
-                      <span style={{ flex:1 }}/>
-                      <TierChip tier={r.tier} weight={r.weight}/>
-                      <PillChip text={r.phase} color={PHASE_COLOR[r.phase]}/>
-                      <PillChip text={r.timing} color={TIMING_COLOR[r.timing]}/>
-                      <PillChip text={FREQ_LABEL[r.freq] || r.freq} color={freqAccent(FREQ_LABEL[r.freq] || r.freq)}/>
-                    </div>
-                    {r.measure && (
-                      <div style={{ fontSize:12, color:"var(--text-2)", lineHeight:1.6 }}>
-                        {r.measure}
-                      </div>
-                    )}
-                    <div style={{ display:"flex", gap:18, flexWrap:"wrap" }}>
-                      {r.source && (
-                        <div style={{ fontSize:11, color:"var(--text-muted)" }}>
-                          <span style={{ fontFamily:"var(--font-mono)", color:"var(--text-dim)",
-                                         letterSpacing:"0.08em" }}>SOURCE · </span>
-                          {r.source}
-                        </div>
-                      )}
-                      {r.rationale && (
-                        <div style={{ fontSize:11, color:"var(--text-muted)" }}>
-                          <span style={{ fontFamily:"var(--font-mono)", color:"var(--text-dim)",
-                                         letterSpacing:"0.08em" }}>TIER · </span>
-                          {r.rationale}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8,
+                    overflow:"auto" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
+          <thead>
+            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
+              {COLS.map((c) => (
+                <th key={c.k}
+                    onClick={() => onSort(c.k)}
+                    style={{ ...thStyle, textAlign:c.align, cursor:"pointer", userSelect:"none",
+                             whiteSpace:"nowrap" }}>
+                  {c.label}
+                  <span style={{ marginLeft:4, color: sortKey === c.k ? "var(--accent)" : "transparent" }}>
+                    {sortDir === "asc" ? "▲" : "▼"}
+                  </span>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r) => (
+              <tr key={r.id} style={{ borderTop:"1px solid var(--border)" }}>
+                <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)", whiteSpace:"nowrap" }}>
+                  {r.short}
+                </td>
+                <td style={{ ...tdStyle }}>
+                  <span style={{ fontSize:10, color:r.catColor, border:`1px solid ${r.catColor}`,
+                                 borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
+                                 textTransform:"uppercase", whiteSpace:"nowrap" }}>
+                    {r.catLabel}
+                  </span>
+                </td>
+                <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.source || "—"}</td>
+                <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{r.freq || "—"}</td>
+                <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>{r.asOf || "—"}</td>
+                <td style={{ ...tdStyle, textAlign:"center", fontWeight:700, color:TIER_COLOR[r.tier] }}>
+                  T{r.tier}
+                </td>
+                <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)" }}>
+                  {r.weight ? `${r.weight.toFixed(1)}×` : "—"}
+                </td>
+                <td style={{ ...tdStyle, textAlign:"center" }}>
+                  <span style={{ fontSize:10, color:TIMING_COLOR[r.timing] || "var(--text-dim)",
+                                 border:`1px solid ${TIMING_COLOR[r.timing] || "var(--border)"}`,
+                                 borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
+                                 textTransform:"uppercase", whiteSpace:"nowrap" }}>
+                    {r.timing || "—"}
+                  </span>
+                </td>
+                <td style={{ ...tdStyle, color:"var(--text-muted)", lineHeight:1.6, minWidth:320 }}>
+                  {r.detail || "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
   );
 }
 
-function TierChip({ tier, weight }) {
-  const color = TIER_COLOR[tier] || "var(--text-muted)";
-  return (
-    <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color, border:`1px solid ${color}`,
-                    borderRadius:3, padding:"2px 6px", letterSpacing:"0.05em", fontWeight:700 }}>
-      T{tier} · {Number(weight).toFixed(1)}×
-    </span>
-  );
-}
-
-function PillChip({ text, color }) {
-  if (!text) return null;
-  const c = color || "var(--text-muted)";
-  return (
-    <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:c, border:`1px solid ${c}`,
-                    borderRadius:3, padding:"2px 6px", letterSpacing:"0.04em", opacity:0.9 }}>
-      {text}
-    </span>
-  );
-}
-
-const thStyle = { textAlign:"left", fontWeight:600, fontSize:10, letterSpacing:"0.08em",
-                   textTransform:"uppercase", padding:"8px 12px" };
-const tdStyle = { padding:"8px 12px", verticalAlign:"top" };
-
-// ─── §4 COMPOSITE MATH ──────────────────────────────────────────────────────
+// ─── §3 MACRO COMPOSITE METHODOLOGY ──────────────────────────────────────────
 function CompositeMath({ ind, weights }) {
   // Tier distribution pulled live from WEIGHTS.
   const tierBuckets = useMemo(() => {
@@ -405,7 +409,7 @@ function CompositeMath({ ind, weights }) {
     <section id={A("composite-math")} data-testid="methodology-section-compmath"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="COMPOSITE SCORE MATH"
+        label="2 · MACRO COMPOSITE METHODOLOGY"
         sub="How the 25 indicators roll up into one number"
         applies={[
           { id:"home",     label:"Home",           path:"#home" },
@@ -570,7 +574,7 @@ function CompositeMath({ ind, weights }) {
   );
 }
 
-// ─── §5 SIGNAL SCORE MATH (Item 24 — single-score methodology) ──────────────
+// ─── §4 EQUITY SCANNER SIGNAL SCORE ──────────────────────────────────────────
 function SignalScoreMath() {
   const TIER_BANDS = [
     { label:"STRONG BULL", range:"≥ 60",        note:"Buy Alert",                      color:"#30d158" },
@@ -597,7 +601,7 @@ function SignalScoreMath() {
     <section id={A("signal-math")} data-testid="methodology-section-signalmath"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="SIGNAL SCORE MATH"
+        label="3 · EQUITY SCANNER SIGNAL SCORE"
         sub="Single composite on [−100, +100]"
         applies={[
           { id:"scanner",  label:"Trading Scanner",                         path:"#scanner" },
@@ -654,12 +658,105 @@ function SignalScoreMath() {
         <code> trading-scanner/scanner/signal_composite.py</code> (scanner). The Python file carries a
         "MUST mirror" comment enforcing parity.</P>
 
+        <P><strong>Inside the Technicals subscore.</strong> The 25% Technicals weight is itself a weighted
+        blend — SCTR-style, with long-term trend dominating. Short-term momentum (MACD + RSI) is
+        intentionally small so a single crossover doesn't swing the ticker's overall score.</P>
+      </Prose>
+
+      {/* Inside-Technicals breakdown — shows how each technical input rolls up. */}
+      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, overflow:"hidden" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
+          <thead>
+            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
+              <th style={thStyle}>Block</th>
+              <th style={thStyle}>Input</th>
+              <th style={{ ...thStyle, textAlign:"right" }}>Max pts (of ±100)</th>
+              <th style={{ ...thStyle, textAlign:"right" }}>% of Technicals</th>
+              <th style={{ ...thStyle, textAlign:"right" }}>% of overall ticker</th>
+              <th style={thStyle}>What it measures</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style={{ borderTop:"1px solid var(--border)" }}>
+              <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }} rowSpan={2}>Long-term trend<br/><span style={{ fontSize:10, color:"var(--text-dim)" }}>60 pts total</span></td>
+              <td style={{ ...tdStyle }}>Price vs 200-day MA</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>±30</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>30%</td>
+              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>7.50%</td>
+              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Distance above / below the 200-day MA, capped ±5%.</td>
+            </tr>
+            <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))" }}>
+              <td style={{ ...tdStyle }}>YTD return vs SPY</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>±30</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>30%</td>
+              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>7.50%</td>
+              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>IBD-style relative strength year-to-date, capped ±10%.</td>
+            </tr>
+            <tr style={{ borderTop:"1px solid var(--border)" }}>
+              <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }} rowSpan={2}>Mid-term trend<br/><span style={{ fontSize:10, color:"var(--text-dim)" }}>30 pts total</span></td>
+              <td style={{ ...tdStyle }}>Price vs 50-day MA</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>±15</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>15%</td>
+              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>3.75%</td>
+              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Distance above / below the 50-day MA, capped ±2%.</td>
+            </tr>
+            <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))" }}>
+              <td style={{ ...tdStyle }}>1-month return vs SPY</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>±15</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>15%</td>
+              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>3.75%</td>
+              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Relative strength over the trailing month, capped ±5%.</td>
+            </tr>
+            <tr style={{ borderTop:"1px solid var(--border)" }}>
+              <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }} rowSpan={2}>Short-term momentum<br/><span style={{ fontSize:10, color:"var(--text-dim)" }}>10 pts total</span></td>
+              <td style={{ ...tdStyle, color:"var(--text)" }}><strong>MACD cross</strong> (12/26/9)</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>±5</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>5%</td>
+              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)", fontWeight:700 }}>1.25%</td>
+              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Bullish / bearish cross within the last 3 daily bars.</td>
+            </tr>
+            <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))" }}>
+              <td style={{ ...tdStyle }}>RSI-14</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>±5</td>
+              <td style={{ ...tdStyle, textAlign:"right" }}>5%</td>
+              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>1.25%</td>
+              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Healthy-uptrend zone 50-70 adds +5; mild oversold &lt;30 adds +2.</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr style={{ borderTop:"2px solid var(--border)", background:"var(--surface-2)" }}>
+              <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }} colSpan={2}>Total pre-regime</td>
+              <td style={{ ...tdStyle, textAlign:"right", fontWeight:700 }}>±100</td>
+              <td style={{ ...tdStyle, textAlign:"right", fontWeight:700 }}>100%</td>
+              <td style={{ ...tdStyle, textAlign:"right", fontWeight:700, color:"var(--text)" }}>25%</td>
+              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Before ADX regime multiplier and volume confirmation.</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.7, maxWidth:880 }}>
+        <strong>Plain-English read-out for MACD:</strong> a bullish MACD crossover on its own can add at most
+        <strong> ±5 of ±100 Technicals points (5% of Technicals)</strong>. Since Technicals is 25% of the
+        overall ticker composite, MACD's maximum contribution to the overall <strong>−100 / +100</strong>
+        score is <strong>5% × 25% = 1.25%</strong>. RSI carries the same weight. Short-term momentum is
+        intentionally a tiebreaker, not a driver — the long-term trend and relative-strength blocks do the
+        heavy lifting.
+      </div>
+
+      <Prose>
+        <P><strong>ADX regime + volume multipliers.</strong> After the raw additive score, ADX sets a regime
+        flag — CONFIRMED trend (ADX ≥ 25, |score| &gt; 30) leaves the score as-is; chop regime (ADX &lt; 20)
+        dampens it; indeterminate leaves it alone. Volume surge above 1.5× average adds a small
+        confirmation bump. These are multiplicative, not additive — they don't shift the weights above.</P>
+
         <P><strong>Tier bands.</strong> The composite maps to a named direction (modal label) and a tier
         (Buy Alert / Near Trigger membership). The Near Trigger threshold was lifted from 30 → 40 on
         2026-04-20 to drop arithmetic noise in the 30-34 band (51/67 Near Trigger names on the 2026-04-19
         scan were in that band purely from weighted-average dilution). The BULLISH label boundary stays at
         30 — label and tier are decoupled.</P>
       </Prose>
+
 
       {/* Tier band table. */}
       <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, overflow:"hidden" }}>
@@ -686,63 +783,149 @@ function SignalScoreMath() {
   );
 }
 
-// ─── §6 CATALOG — tiles + search (Item 25 — plain-English) ──────────────────
-// Section blurbs rewritten away from raw table names.
-const SECTION_BLURBS_OVERRIDE = {
-  macro:   "Upstream macro data that feeds the Composite Stress Score. Each stream is z-scored against its own history, direction-flipped if lower-is-worse, then tier-weighted into a single number.",
-  scanner: "Upstream signals the daily scanner reads when it scores each ticker on [−100, +100]. Each one contributes a section subscore (Options, Insider, Congress, Analyst, Technicals, Dark Pool) that the composite blends.",
-  infra:   "Supabase aggregation tables the UI reads from. They don't introduce new data — they collect and stamp the upstream streams so every surface can look up the latest value in one fast query. Think of them as the plumbing, not the signal.",
-};
+// ─── §5 DETAILED DATA INFORMATION (sortable flat table) ─────────────────────
+// Every upstream stream in one sortable table: what it is, where it comes
+// from, how often it refreshes, where it lands, and what weight it carries.
+function DataCatalogTable({ ind, asOf }) {
+  const rows = useMemo(() => {
+    return DATA_REGISTRY.map((r) => {
+      let usedFor = "";
+      let usedForColor = "#94a3b8";
+      if (r.section === "macro") {
+        const catLabel = CATEGORY_LABEL[r.category] || r.category || "—";
+        usedFor = `MACRO · ${catLabel}`;
+        usedForColor = "#ec4899";
+      } else if (r.section === "scanner") {
+        const scanSec = SCANNER_SECTION_FOR[r.key] || "—";
+        usedFor = `SCANNER · ${scanSec}`;
+        usedForColor = "#06b6d4";
+      } else {
+        usedFor = "PLUMBING";
+        usedForColor = "#94a3b8";
+      }
 
-function CatalogSection({ ind, asOf, cats }) {
+      let weighting = "—";
+      let weightingSort = 0;
+      if (r.section === "macro") {
+        const tier = r.tier || 3;
+        const tierW = tier === 1 ? 1.5 : tier === 2 ? 1.2 : 1.0;
+        weighting = `T${tier} · ${tierW.toFixed(1)}×`;
+        weightingSort = tierW;
+      } else if (r.section === "scanner") {
+        const secKey = SCANNER_SECTION_KEY_FOR[r.key];
+        if (secKey && SECTION_WEIGHTS[secKey] != null) {
+          weighting = `${SECTION_WEIGHTS[secKey]}%`;
+          weightingSort = SECTION_WEIGHTS[secKey];
+        }
+      }
+
+      let lastRefresh = "—";
+      if (r.section === "macro" && r.indId && asOf && asOf[r.indId]) {
+        lastRefresh = asOf[r.indId];
+      } else if (r.freq) {
+        lastRefresh = r.freq;
+      }
+
+      let timing = "";
+      if (r.section === "macro" && r.indId && INDICATOR_META[r.indId]) {
+        timing = INDICATOR_META[r.indId].timing || "";
+      } else if (r.timing) {
+        timing = r.timing;
+      }
+
+      const detail = r.section === "macro" && r.indId && ind && ind[r.indId]
+        ? (ind[r.indId][12] || r.summary || "")
+        : (r.details || r.summary || "");
+
+      return {
+        key: r.key,
+        section: r.section,
+        name: r.name,
+        source: r.source || "—",
+        freq: r.freq || "—",
+        lastRefresh,
+        usedFor,
+        usedForColor,
+        weighting,
+        weightingSort,
+        timing,
+        detail,
+      };
+    });
+  }, [ind, asOf]);
+
+  const [sortKey, setSortKey] = useState("section");
+  const [sortDir, setSortDir] = useState("asc");
   const [query, setQuery] = useState("");
-  const [openKeys, setOpenKeys] = useState(() => new Set());
 
-  const q = query.trim().toLowerCase();
+  const SECTION_ORD = { macro:1, scanner:2, infra:3 };
+  const TIMING_ORDER = { Leading:1, Coincident:2, Lagging:3 };
 
   const filtered = useMemo(() => {
-    if (!q) return REGISTRY_WITH_BLOBS;
-    return REGISTRY_WITH_BLOBS.filter((row) => row._blob.includes(q));
-  }, [q]);
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((r) =>
+      [r.name, r.source, r.usedFor, r.weighting, r.timing, r.detail]
+        .join(" ").toLowerCase().includes(q)
+    );
+  }, [rows, query]);
 
-  const bySection = useMemo(() => {
-    const map = new Map(DATA_SECTIONS.map((s) => [s.key, []]));
-    for (const row of filtered) {
-      const bucket = map.get(row.section);
-      if (bucket) bucket.push(row);
-    }
-    return map;
-  }, [filtered]);
-
-  const totalCount = REGISTRY_WITH_BLOBS.length;
-  const matchCount = filtered.length;
-
-  function toggle(key) {
-    setOpenKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key); else next.add(key);
-      return next;
+  const sorted = useMemo(() => {
+    const arr = [...filtered];
+    const dir = sortDir === "asc" ? 1 : -1;
+    arr.sort((a, b) => {
+      let av, bv;
+      switch (sortKey) {
+        case "name":        av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
+        case "source":      av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
+        case "freq":        av = a.freq.toLowerCase(); bv = b.freq.toLowerCase(); break;
+        case "lastRefresh": av = a.lastRefresh.toLowerCase(); bv = b.lastRefresh.toLowerCase(); break;
+        case "usedFor":     av = a.usedFor.toLowerCase(); bv = b.usedFor.toLowerCase(); break;
+        case "weighting":   av = a.weightingSort; bv = b.weightingSort; break;
+        case "timing":      av = TIMING_ORDER[a.timing] || 99; bv = TIMING_ORDER[b.timing] || 99; break;
+        case "section":     av = SECTION_ORD[a.section] || 99; bv = SECTION_ORD[b.section] || 99; break;
+        default:            av = 0; bv = 0;
+      }
+      if (av < bv) return -1 * dir;
+      if (av > bv) return  1 * dir;
+      return (SECTION_ORD[a.section] - SECTION_ORD[b.section]) || a.name.localeCompare(b.name);
     });
+    return arr;
+  }, [filtered, sortKey, sortDir]);
+
+  function onSort(k) {
+    if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else { setSortKey(k); setSortDir("asc"); }
   }
-  function expandAllVisible() { setOpenKeys(new Set(filtered.map((r) => r.key))); }
-  function collapseAll()      { setOpenKeys(new Set()); }
+
+  const COLS = [
+    { k:"name",        label:"Data",          align:"left"   },
+    { k:"source",      label:"Source",        align:"left"   },
+    { k:"freq",        label:"Frequency",     align:"left"   },
+    { k:"lastRefresh", label:"Last Refresh",  align:"left"   },
+    { k:"usedFor",     label:"Used For",      align:"left"   },
+    { k:"weighting",   label:"Weighting",     align:"right"  },
+    { k:"timing",      label:"Type",          align:"center" },
+  ];
 
   return (
     <section id={A("catalog")} data-testid="methodology-section-catalog"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <SectionHeader
-        label="DATA STREAMS CATALOG"
-        sub={`${totalCount} streams · searchable`}
+        label="4 · DETAILED DATA INFORMATION"
+        sub={`${rows.length} streams · sortable · searchable`}
         applies={[
-          { id:"overview",  label:"Macro Overview",  path:"#overview" },
-          { id:"indicators", label:"All Indicators", path:"#indicators" },
-          { id:"scanner",   label:"Trading Scanner", path:"#scanner" },
+          { id:"overview",   label:"Macro Overview",  path:"#overview" },
+          { id:"indicators", label:"All Indicators",  path:"#indicators" },
+          { id:"scanner",    label:"Trading Scanner", path:"#scanner" },
         ]}
       />
 
-      <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:820 }}>
-        Every upstream data stream in one place. Click a tile to expand. Use the search box to filter by
-        name, source, series ID, keyword, or downstream tab.
+      <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
+        One row per upstream stream. Click any column header to sort. The <strong>Used For</strong> tag
+        tells you which engine consumes the stream (Macro Composite · Scanner Signal · Plumbing table).
+        <strong> Weighting</strong> is the tier × (for macro) or the section weight % (for scanner).
+        Click a row to expand the full detail.
       </div>
 
       <div style={{ display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
@@ -750,237 +933,124 @@ function CatalogSection({ ind, asOf, cats }) {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search streams, sources, series IDs, keywords…"
+          placeholder="Search data / source / timing / detail…"
           aria-label="Search data streams"
           data-testid="methodology-search"
           style={{
             flex:"1 1 320px", minWidth:260, maxWidth:560,
-            fontSize:13, padding:"9px 12px",
+            fontSize:13, padding:"8px 12px",
             border:"1px solid var(--border)", borderRadius:6,
             background:"var(--surface-2)", color:"var(--text)",
             fontFamily:"var(--font-mono)", outline:"none",
           }}
         />
-        <span data-testid="methodology-match-count"
-          style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)", whiteSpace:"nowrap" }}>
-          {q ? `${matchCount} / ${totalCount} streams` : `${totalCount} streams`}
+        <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)" }}>
+          {sorted.length} / {rows.length}
         </span>
-        <button type="button" onClick={expandAllVisible} style={catalogBtnStyle}>Expand visible</button>
-        <button type="button" onClick={collapseAll}     style={catalogBtnStyle}>Collapse all</button>
       </div>
 
-      {DATA_SECTIONS.map((sec) => {
-        const rows = bySection.get(sec.key) || [];
-        if (q && rows.length === 0) return null;
-        const blurb = SECTION_BLURBS_OVERRIDE[sec.key] || sec.blurb;
-        return (
-          <div key={sec.key} style={{ display:"flex", flexDirection:"column", gap:10 }}>
-            <div style={{ display:"flex", alignItems:"baseline", gap:10,
-                          paddingBottom:6, borderBottom:"1px solid var(--border)" }}>
-              <div style={{ fontSize:13, fontWeight:700, color:"var(--text)",
-                            fontFamily:"var(--font-mono)", letterSpacing:"0.08em" }}>
-                {sec.label.toUpperCase()}
-              </div>
-              <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
-                · {rows.length} {rows.length === 1 ? "stream" : "streams"}
-              </div>
-            </div>
-            <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.55, maxWidth:820, marginBottom:4 }}>
-              {blurb}
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(360px, 1fr))", gap:10 }}>
-              {rows.map((row) => (
-                <Tile key={row.key} row={row} cats={cats}
-                  open={openKeys.has(row.key)} onToggle={() => toggle(row.key)}
-                  ind={ind} asOf={asOf}/>
+      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8,
+                    overflow:"auto" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
+          <thead>
+            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
+              {COLS.map((c) => (
+                <th key={c.k}
+                    onClick={() => onSort(c.k)}
+                    style={{ ...thStyle, textAlign:c.align, cursor:"pointer", userSelect:"none",
+                             whiteSpace:"nowrap" }}>
+                  {c.label}
+                  <span style={{ marginLeft:4, color: sortKey === c.k ? "var(--accent)" : "transparent" }}>
+                    {sortDir === "asc" ? "▲" : "▼"}
+                  </span>
+                </th>
               ))}
-            </div>
-          </div>
-        );
-      })}
-
-      {q && matchCount === 0 && (
-        <div style={{ background:"var(--surface)", border:"1px dashed var(--border)",
-                      borderRadius:8, padding:"16px 18px",
-                      fontSize:13, color:"var(--text-muted)", textAlign:"center" }}>
-          No streams match <code style={{ color:"var(--text)" }}>{JSON.stringify(query)}</code>.
-          Try <code>fred</code>, <code>options</code>, or <code>quarterly</code>.
-        </div>
-      )}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r) => (
+              <DataRow key={r.key} r={r} />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </section>
   );
 }
 
-const catalogBtnStyle = {
-  fontSize:11, fontFamily:"var(--font-mono)",
-  padding:"6px 10px", borderRadius:4,
-  background:"var(--surface-2)", color:"var(--text-2)",
-  border:"1px solid var(--border)", cursor:"pointer",
+function DataRow({ r }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <tr onClick={() => setOpen((v) => !v)}
+          style={{ borderTop:"1px solid var(--border)", cursor:"pointer" }}>
+        <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)", whiteSpace:"nowrap" }}>
+          <span style={{ fontSize:10, color:"var(--text-dim)", marginRight:6 }}>
+            {open ? "▾" : "▸"}
+          </span>
+          {r.name}
+        </td>
+        <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.source}</td>
+        <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.freq}</td>
+        <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>{r.lastRefresh}</td>
+        <td style={{ ...tdStyle }}>
+          <span style={{ fontSize:10, color:r.usedForColor, border:`1px solid ${r.usedForColor}`,
+                         borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
+                         whiteSpace:"nowrap" }}>
+            {r.usedFor}
+          </span>
+        </td>
+        <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)" }}>{r.weighting}</td>
+        <td style={{ ...tdStyle, textAlign:"center" }}>
+          {r.timing ? (
+            <span style={{ fontSize:10, color:TIMING_COLOR[r.timing] || "var(--text-dim)",
+                           border:`1px solid ${TIMING_COLOR[r.timing] || "var(--border)"}`,
+                           borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em" }}>
+              {r.timing}
+            </span>
+          ) : "—"}
+        </td>
+      </tr>
+      {open && (
+        <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))",
+                     background:"var(--surface-2)" }}>
+          <td colSpan={7} style={{ padding:"10px 14px 14px 34px", fontSize:12,
+                                   color:"var(--text-muted)", lineHeight:1.7 }}>
+            {r.detail || "No additional detail."}
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+// Mapping tables used by the Data Catalog.
+const CATEGORY_LABEL = {
+  equity:  "Equity & Vol",
+  credit:  "Credit Markets",
+  rates:   "Rates & Curve",
+  fincond: "Financial Conditions",
+  bank:    "Banking System",
+  labor:   "Labor & Activity",
 };
 
-function Tile({ row, open, onToggle, ind, asOf, cats }) {
-  const cat = row.category && cats ? cats[row.category] : null;
-  const freqColor = freqAccent(row.freq);
-
-  const longDescription = row.section === "macro" && row.indId
-    ? (ind?.[row.indId]?.[12] || row.details || row.summary)
-    : (row.details || row.summary);
-  const latestData = row.section === "macro" && row.indId ? (asOf?.[row.indId] || null) : null;
-
-  return (
-    <div role="button" tabIndex={0} onClick={onToggle}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
-      aria-expanded={open}
-      data-testid={`methodology-tile-${row.key}`}
-      style={{ background:"var(--surface)", border:"1px solid var(--border)",
-               borderRadius:8, padding:"12px 14px", cursor:"pointer",
-               transition:"background 120ms ease, border-color 120ms ease" }}>
-      <div style={{ display:"flex", alignItems:"flex-start", gap:8 }}>
-        {cat && <div title={cat.label}
-          style={{ width:10, height:10, borderRadius:2, background:cat.color, marginTop:5, flexShrink:0 }}/>}
-        <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ display:"flex", alignItems:"baseline", gap:6, flexWrap:"wrap" }}>
-            <div style={{ fontSize:14, fontWeight:700, color:"var(--text)", fontFamily:"var(--font-mono)" }}>
-              {row.name}
-            </div>
-            {row.tier && (
-              <span style={{ fontSize:9, color:cat?.color || "var(--text-dim)",
-                             fontFamily:"var(--font-mono)", letterSpacing:"0.08em", fontWeight:700 }}>
-                T{row.tier}
-              </span>
-            )}
-          </div>
-          {row.longName && row.longName !== row.name && (
-            <div style={{ fontSize:11, color:"var(--text-muted)", fontFamily:"var(--font-mono)", marginTop:2 }}>
-              {row.longName}
-            </div>
-          )}
-        </div>
-        <div style={{ fontSize:14, color:"var(--text-dim)", lineHeight:1, marginTop:2, flexShrink:0 }}>
-          {open ? "▾" : "▸"}
-        </div>
-      </div>
-
-      <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:8 }}>
-        <Chip label={row.source} tone="neutral"/>
-        <Chip label={row.freq} tone="accent" color={freqColor}/>
-      </div>
-
-      <div style={{ fontSize:12, color:"var(--text-2)", lineHeight:1.65, marginTop:8 }}>
-        {row.summary}
-      </div>
-
-      {open && (
-        <div style={{ marginTop:10, paddingTop:10, borderTop:"1px dashed var(--border)",
-                      display:"flex", flexDirection:"column", gap:8 }}>
-          {row.seriesId && <Field label="Series / endpoint" value={row.seriesId} mono/>}
-          {latestData && <Field label="Latest data" value={latestData} mono/>}
-          {row.powers?.length > 0 && (
-            <Field label="Powers" valueNode={
-              <ul style={{ margin:0, paddingLeft:18, fontSize:12, color:"var(--text-2)", lineHeight:1.6 }}>
-                {row.powers.map((p) => <li key={p}>{p}</li>)}
-              </ul>
-            }/>
-          )}
-          <Field label="Detail" valueNode={
-            <div style={{ fontSize:12, color:"var(--text-2)", lineHeight:1.75 }}>
-              {longDescription}
-            </div>
-          }/>
-          {cat && <Field label="Category" value={cat.label}/>}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Chip({ label, tone, color }) {
-  if (!label) return null;
-  const baseColor = color || (tone === "accent" ? "var(--accent)" : "var(--text-muted)");
-  return (
-    <span style={{ fontSize:10, fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
-                    color:baseColor, border:`1px solid ${baseColor}`, borderRadius:3,
-                    padding:"2px 6px", lineHeight:1.45, whiteSpace:"nowrap", opacity:0.9 }}>
-      {label}
-    </span>
-  );
-}
-
-function Field({ label, value, valueNode, mono }) {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:2 }}>
-      <div style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
-                    letterSpacing:"0.08em" }}>
-        {label.toUpperCase()}
-      </div>
-      {valueNode ? valueNode : (
-        <div style={{ fontSize:12, color:"var(--text-2)",
-                      fontFamily:mono ? "var(--font-mono)" : "inherit", lineHeight:1.6 }}>
-          {value}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Shared widgets ─────────────────────────────────────────────────────────
-// SectionHeader now optionally carries an APPLIES TO chip group — Item 22.
-function SectionHeader({ label, sub, applies }) {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:6, borderBottom:"1px solid var(--border)", paddingBottom:6 }}>
-      <div style={{ display:"flex", alignItems:"baseline", gap:10, flexWrap:"wrap" }}>
-        <div style={{ fontSize:15, fontWeight:700, color:"var(--text)",
-                      fontFamily:"var(--font-mono)", letterSpacing:"0.08em" }}>
-          {label}
-        </div>
-        {sub && (
-          <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
-            · {sub}
-          </div>
-        )}
-      </div>
-      {applies && applies.length > 0 && (
-        <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-          <span style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
-                         letterSpacing:"0.08em" }}>
-            APPLIES TO:
-          </span>
-          {applies.map((a) => (
-            <a key={a.id} href={a.path}
-               style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
-                        textDecoration:"none", border:"1px solid var(--accent)",
-                        borderRadius:3, padding:"2px 6px", letterSpacing:"0.05em" }}>
-              {a.label}
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Prose({ children }) {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:10, maxWidth:900,
-                   fontSize:13, color:"var(--text-2)", lineHeight:1.75 }}>
-      {children}
-    </div>
-  );
-}
-
-function P({ children }) {
-  return <div>{children}</div>;
-}
-
-function Formula({ children }) {
-  return (
-    <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:"var(--text)",
-                   background:"var(--surface-2)", border:"1px solid var(--border)",
-                   borderRadius:6, padding:"10px 12px" }}>
-      {children}
-    </div>
-  );
-}
+const SCANNER_SECTION_FOR = {
+  uw_options_flow:   "Options",
+  uw_dark_pool:      "Dark Pool",
+  uw_congressional:  "Congress",
+  uw_insider:        "Insider",
+  uw_screener:       "Screener (filter)",
+  uw_news:           "News",
+  yahoo_prices:      "Prices",
+  yahoo_technicals:  "Technicals",
+};
+const SCANNER_SECTION_KEY_FOR = {
+  uw_options_flow:   "options",
+  uw_dark_pool:      "darkpool",
+  uw_congressional:  "congress",
+  uw_insider:        "insider",
+  yahoo_technicals:  "technicals",
+};
 
 // ─── Disclaimer ─────────────────────────────────────────────────────────────
 function Disclaimer() {
