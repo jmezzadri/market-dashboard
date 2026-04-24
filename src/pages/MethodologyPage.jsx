@@ -1052,6 +1052,78 @@ const SCANNER_SECTION_KEY_FOR = {
   yahoo_technicals:  "technicals",
 };
 
+// ─── SHARED HELPERS ──────────────────────────────────────────────────────────
+// SectionHeader + Prose + P + Formula + PillChip were co-located with the old
+// §6 catalog section; the §6 → §5 rebuild dropped them inadvertently. Restored
+// here, one layer above Disclaimer, so every section can read them.
+function SectionHeader({ label, sub, applies }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:6, borderBottom:"1px solid var(--border)", paddingBottom:6 }}>
+      <div style={{ display:"flex", alignItems:"baseline", gap:10, flexWrap:"wrap" }}>
+        <div style={{ fontSize:15, fontWeight:700, color:"var(--text)",
+                      fontFamily:"var(--font-mono)", letterSpacing:"0.08em" }}>
+          {label}
+        </div>
+        {sub && (
+          <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
+            · {sub}
+          </div>
+        )}
+      </div>
+      {applies && applies.length > 0 && (
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+          <span style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
+                         letterSpacing:"0.08em" }}>
+            APPLIES TO:
+          </span>
+          {applies.map((a) => (
+            <a key={a.id} href={a.path}
+               style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
+                        textDecoration:"none", border:"1px solid var(--accent)",
+                        borderRadius:3, padding:"2px 6px", letterSpacing:"0.05em" }}>
+              {a.label}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Prose({ children }) {
+  return (
+    <div style={{ display:"flex", flexDirection:"column", gap:10, maxWidth:900,
+                   fontSize:13, color:"var(--text-2)", lineHeight:1.75 }}>
+      {children}
+    </div>
+  );
+}
+
+function P({ children }) {
+  return <div>{children}</div>;
+}
+
+function Formula({ children }) {
+  return (
+    <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:"var(--text)",
+                   background:"var(--surface-2)", border:"1px solid var(--border)",
+                   borderRadius:6, padding:"10px 12px" }}>
+      {children}
+    </div>
+  );
+}
+
+function PillChip({ text, color }) {
+  if (!text) return null;
+  return (
+    <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:color || "var(--text-dim)",
+                   border:`1px solid ${color || "var(--border)"}`, borderRadius:3,
+                   padding:"1px 6px", letterSpacing:"0.05em", whiteSpace:"nowrap" }}>
+      {text}
+    </span>
+  );
+}
+
 // ─── Disclaimer ─────────────────────────────────────────────────────────────
 function Disclaimer() {
   return (
