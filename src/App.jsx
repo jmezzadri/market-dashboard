@@ -144,6 +144,65 @@ m2_yoy:"—",fed_bs:"—",rrp:"—",bank_reserves:"—",tga:"—",
 breakeven_10y:"—",cfnai:"—",cfnai_3ma:"—",hy_ig_etf:"—",
 };
 
+// Bug #1034: parallel table of the RAW ISO date (YYYY-MM-DD) each indicator
+// was last refreshed. Populated at runtime from indicator_history.json's
+// per-series as_of field by _applyHistToGlobals (with a FUTURE-DATE CLAMP
+// that refuses any as_of > today — prevents the credit_3y / "quarter-end
+// phantom" class of bug from ever rendering a date that hasn't happened
+// yet). Consumed by staleness() / StalePill() and by the explicit
+// "Data as of <date>" line on every indicator modal.
+const AS_OF_ISO={};
+
+// Cadence → stale-threshold lookup in CALENDAR days. Monthly allows 40d
+// because FRED monthly releases land ~4-6 weeks after month-end. Quarterly
+// allows 100d for the same reason (SLOOS / JOLTS-style releases).
+const STALE_LIMITS_DAYS={D:3, W:10, M:45, Q:120};
+
+// Compute staleness for an indicator based on AS_OF_ISO[id] vs today.
+// Returns {label,color,days,limit,ok}. Null if no raw ISO known.
+function staleness(id){
+  const iso=AS_OF_ISO[id];
+  if(!iso)return null;
+  const freq=IND_FREQ[id]||"D";
+  const limit=STALE_LIMITS_DAYS[freq]||400;
+  const d=new Date(iso+"T00:00:00Z");
+  if(Number.isNaN(+d))return null;
+  const today=new Date();
+  // Normalize today to UTC midnight for a stable day-count.
+  const todayUtc=Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate());
+  const days=Math.max(0,Math.round((todayUtc-d.getTime())/86400000));
+  const ok=days<=limit;
+  return {label:ok?"FRESH":"STALE", color:ok?"#30d158":"#ff9f0a", days, limit, ok, iso};
+}
+
+// Tiny pill used on indicator tiles / modals when the data is older than
+// its expected cadence. Rendering nothing when the data is fresh keeps
+// the tile visually quiet on normal days (Bug #1034 option B).
+function StalePill({id,compact=false}){
+  const st=staleness(id);
+  if(!st||st.ok)return null;
+  const freq=IND_FREQ[id]||"D";
+  const cadLbl={D:"daily",W:"weekly",M:"monthly",Q:"quarterly"}[freq]||"data";
+  return(
+    <span title={`${cadLbl.toUpperCase()} indicator — last refresh ${st.iso} (${st.days}d ago, expected ≤${st.limit}d).`}
+      style={{
+        fontSize:compact?9:10,
+        color:"#ff9f0a",
+        background:"rgba(255,159,10,0.12)",
+        border:"1px solid rgba(255,159,10,0.45)",
+        borderRadius:3,
+        padding:compact?"0 4px":"1px 5px",
+        fontFamily:"var(--font-mono)",
+        fontWeight:700,
+        letterSpacing:"0.04em",
+        marginLeft:6,
+        cursor:"help",
+        textTransform:"uppercase",
+      }}>STALE {st.days}d</span>
+  );
+}
+
+
 const IND={
 vix:["VIX","Equity Volatility","equity",1,"index",1,17.9,23.9,17.2,19.5,15.0,false,
 "CBOE Volatility Index — 30-day expected S&P 500 volatility, often called the 'fear gauge'. Derived model-free from a weighted strip of OTM SPX puts and calls via variance-swap replication. Source: FRED VIXCLS (CBOE, daily). MacroTilt Tier 1 equity factor; <15 complacent, 15–20 normal, 20–30 elevated, >30 crisis.",
@@ -641,10 +700,24 @@ function _applyHistToGlobals(hist){
     }
     if(entry&&typeof entry.as_of==="string"){
       // Format 2026-04-16 → "Apr 16 2026" to match the AS_OF convention.
+      // Bug #1034: refuse any as_of that's strictly in the future — that
+      // guarantees display code can never render a date that hasn't
+      // happened yet (classic quarterly-resample phantom).
       try{
-        const d=new Date(entry.as_of+"T00:00:00Z");
-        const mo=d.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
-        AS_OF[id]=`${mo} ${d.getUTCDate()} ${d.getUTCFullYear()}`;
+        const isoRaw=entry.as_of;
+        const d=new Date(isoRaw+"T00:00:00Z");
+        const today=new Date();
+        const todayUtc=Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate());
+        if(+d>todayUtc){
+          console.warn("[indicator-history] clamping future as_of for",id,"=",isoRaw,"→ today");
+          // Skip overwriting AS_OF[id] with a future date; leave the
+          // hardcoded placeholder in place and store no ISO so staleness()
+          // returns null rather than showing a FRESH pill on bogus data.
+        }else{
+          const mo=d.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
+          AS_OF[id]=`${mo} ${d.getUTCDate()} ${d.getUTCFullYear()}`;
+          AS_OF_ISO[id]=isoRaw;
+        }
       }catch{/* leave old AS_OF in place */}
     }
     // Mutate IND[id][6] with the latest point from hist so every reader
@@ -1681,7 +1754,7 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 </Tip>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
-<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace"}}>{AS_OF[id]||"—"}</div>
+<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace",display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}><span>Data as of {AS_OF[id]||"—"}</span><StalePill id={id} compact={true}/></div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:15,fontWeight:800,color:colT,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -1757,7 +1830,7 @@ return(
             </Tip>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>As of {AS_OF[id]}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
@@ -2359,7 +2432,7 @@ function IndicatorDetailBody({ id, onClose, inline }){
             </Tip>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>As of {AS_OF[id]}</div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
         </div>
         <div style={{textAlign:"right",flexShrink:0,marginRight: inline ? 36 : 0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
