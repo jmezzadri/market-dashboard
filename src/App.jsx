@@ -3660,7 +3660,7 @@ style={{background:expanded?"var(--border-faint)":"var(--surface)",border:`1px s
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
       <div style={{width:3,height:16,background:ACCENT,borderRadius:1,flexShrink:0}}/>
       <span style={{fontSize:15,fontWeight:800,color:"var(--text)",fontFamily:"monospace"}}>{sector.name}</span>
-      <span style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>β {sector.beta.toFixed(2)}</span>
+      <span style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>Beta {sector.beta.toFixed(2)}</span>
     </div>
     <div style={{fontSize:12,color:"var(--text-muted)",marginLeft:11}}>{sector.sub}</div>
   </div>
@@ -6346,7 +6346,7 @@ return(
                   <div style={{minWidth:0, flex:1}}>
                     <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
                     <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
-                      <span style={{fontFamily:"var(--font-mono)"}}>β {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
+                      <span style={{fontFamily:"var(--font-mono)"}}>Beta {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
                     </div>
                   </div>
                 </div>
