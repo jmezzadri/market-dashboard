@@ -73,3 +73,101 @@ rows in `bug_reports`.
 
 This rule also applies to bugs Claude itself surfaces while doing
 unrelated work — they don't get to live in chat as a footnote.
+
+---
+
+## 3. Tooltips are zero-latency — no hover delay, no fade-in
+
+**The rule.** Every tooltip on macrotilt.com must appear the instant the
+cursor enters the trigger and disappear the instant it leaves. No enter
+delay, no exit delay, no opacity transition that feels like a delay.
+
+**Why.** Joe directive 2026-04-25. MacroTilt is information-dense and
+users skim — they hover-scan a tile to read three definitions in two
+seconds. Browser default tooltips (the `title=` attribute, ~750 ms
+delay) and most off-the-shelf tooltip libraries (200–400 ms enter
+animation) both kill that workflow. A tooltip that doesn't appear by
+the time the user has moved on is a tooltip the user never reads, which
+defeats the entire reason for tooltips on this site (rule 5 below).
+
+**How to apply.**
+
+1. Use a single shared tooltip primitive across the site. Do not roll
+   one-offs per component. Any new component with hover hints routes
+   through that primitive.
+2. The primitive's enter delay is `0 ms`, exit delay is `0 ms`, and any
+   opacity transition is ≤ 50 ms. No "graceful" 200 ms fade.
+3. Never use the bare `title=` HTML attribute for anything user-facing —
+   the browser default is too slow and unstyleable. `title=` is fine for
+   accessibility-only fallback if a styled tooltip is also present.
+4. UX Designer signs off on the tooltip primitive's behavior whenever
+   it's edited. Lead Developer ensures every consumer in the codebase
+   uses it.
+
+---
+
+## 4. Every table is sortable — click any column header
+
+**The rule.** Every data table on macrotilt.com must support
+click-to-sort on every column header. Sort cycles
+ascending → descending → unsorted → ascending. The active sort column
+shows a visible direction indicator (arrow), and headers communicate
+clickability (cursor, hover state).
+
+**Why.** Joe directive 2026-04-25. MacroTilt's audience is portfolio
+managers, risk managers, and senior business stakeholders who rebuild
+the same table in their head dozens of times a day to find the largest
+mover, the worst contributor, the highest weight. A static table forces
+them to scan every row to answer a one-second question. Click-sort
+collapses that to a single click. Static tables on this site are a
+usability defect, not a stylistic choice.
+
+**How to apply.**
+
+1. Adopt one shared sortable-table component (or hook). New tiles that
+   ship a table default to sortable; the UX Designer blocks merge if a
+   static table sneaks through.
+2. Sort must be stable, must respect data type (numeric columns sort
+   numerically, dates sort chronologically, percent strings parse to
+   numbers), and must handle nulls predictably (nulls last on ascending,
+   first on descending — or hidden if the column is "rank").
+3. Existing static tables get retrofitted opportunistically. When a
+   static table is found, file a bug per occurrence (rule 2) so the
+   Triage Sweep picks it up; do not silently fix without a ticket.
+4. Senior Quant signs off if the column sort affects a calculated
+   metric whose ordering has business meaning (e.g., risk rank, beta).
+
+---
+
+## 5. Plain-English UI copy — define every quant term with a tooltip
+
+**The rule.** User-facing copy is for laymen. Avoid opaque quant
+acronyms and symbols in labels, headers, and prose. When brevity forces
+one (a column header, a dense tile), the term must carry a hover
+tooltip the first time it appears on a page that defines it in one
+plain-English sentence.
+
+**Why.** Joe directive 2026-04-25, reinforcing the existing standing
+rule "no acronyms in user-facing copy." MacroTilt is sold to portfolio
+managers AND risk managers AND business stakeholders, and Joe (a
+non-coder partner who also uses the site daily) wants the surface
+readable by anyone in the room. Acronyms like IV, SD, OVR, VaR, OAS,
+DV01, Z-score, CDS, and Greek symbols (β, σ, μ, α) are jargon to most
+readers. Code variable names can stay compact; the rule applies to
+anything the user reads.
+
+**How to apply.**
+
+1. Default to the spelled-out form. "Implied volatility," not "IV."
+   "Standard deviation," not "SD." "Overall rank," not "OVR." "Value at
+   risk," not "VaR."
+2. Where space forces an acronym or symbol, attach a hover tooltip on
+   first occurrence per page that defines the term in one sentence,
+   plain English. The tooltip uses the zero-latency primitive from
+   rule 3.
+3. Senior Quant is the authority on definitions — they write the
+   one-sentence tooltip copy for any quant term. UX Designer signs off
+   on placement, length, and tone.
+4. This rule cascades: any new metric, indicator, or score introduced
+   by Senior Quant ships with its plain-English tooltip definition in
+   the same PR. No separate "we'll add tooltips later" tickets.
