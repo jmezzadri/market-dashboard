@@ -91,24 +91,30 @@ function buildTooltip(f) {
   }
 }
 
-// Default click action — jump to the README's freshness section. Host
-// components can override via the onExplain prop (e.g. open a sheet).
+// Default click action — jump to the README's freshness section.
+// Hosts can override via the onExplain prop (e.g. open a sheet).
+//
+// Why this is more elaborate than a one-shot setTimeout:
+// React's tab swap re-renders the page, the Methodology page mounts heavy
+// children, and during that mount window scrollY can get reset to 0 by
+// competing layout effects. We schedule THREE scroll attempts at 80 / 350 /
+// 800 ms — once each time the explainer has rendered. Uses "auto" (instant)
+// to avoid the smooth-scroll-being-cancelled class of bug.
 function defaultExplain() {
   if (typeof window === "undefined") return;
   window.location.hash = "readme";
-  // Poll for the explainer anchor to render — React's tab swap + heavy
-  // page render isn't synchronous, so a fixed-timeout setTimeout regularly
-  // misses the element. Try every 50ms for up to 2 seconds.
-  const start = Date.now();
-  const tick = () => {
+  const scrollOnce = () => {
     const el = document.getElementById("freshness-explainer");
     if (el && typeof el.scrollIntoView === "function") {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
-      return;
+      el.scrollIntoView({ behavior: "auto", block: "start" });
+      return true;
     }
-    if (Date.now() - start < 2000) setTimeout(tick, 50);
+    return false;
   };
-  setTimeout(tick, 60);
+  // Three timed attempts cover: synchronous render, post-effect, post-paint.
+  setTimeout(scrollOnce, 80);
+  setTimeout(scrollOnce, 350);
+  setTimeout(scrollOnce, 800);
 }
 
 export default function FreshnessDot({
