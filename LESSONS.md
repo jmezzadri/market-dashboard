@@ -209,3 +209,16 @@ Approve button never appears for gated rows.
 4. UX Designer signs off on the visual treatment whenever the gated-card
    layout is touched. Lead Developer keeps the pickled-vs-non-gated path
    tested with a one-line case in the regex helper.
+
+**Corollary — only show pick options the proposal actually offers.**
+On 2026-04-25 the first iteration of this rule shipped an unconditional
+**Approve · Both** button. Most A/B proposals on this site are mutually
+exclusive ("close this row OR re-triage", "wrap with a tooltip OR spell
+it out"), and "Both" is nonsense in those cases. The detector now uses
+two helpers: `isDecisionGated()` decides whether to swap the single
+Approve for the picker at all, and `allowsBoth()` decides whether the
+picker includes the Both button. Both is shown only when the proposal
+explicitly invites it: "or Both", "ship both", "apply both", "do both",
+or "both options". Default is to hide Both. If a future proposal needs
+a third option (C) or different shape, extend both helpers — never
+pre-bake choices that aren't on the table.

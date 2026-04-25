@@ -417,6 +417,24 @@ function isDecisionGated(text) {
   return false;
 }
 
+// Bug #1075 — only render the Both button when the proposal actually invites
+// it. Most A/B proposals on this site are mutually exclusive (e.g. "close
+// this row OR re-triage", "keep symbol with tooltip OR spell it out") and
+// "Both" is nonsense. Default: hide Both. Show it only when the proposal
+// uses a phrase that explicitly allows shipping both paths.
+function allowsBoth(text) {
+  if (!text) return false;
+  const t = String(text);
+  if (/\bor\s+both\b/i.test(t)) return true;
+  if (/\bship\s+both\b/i.test(t)) return true;
+  if (/\bapply\s+both\b/i.test(t)) return true;
+  if (/\bdo\s+both\b/i.test(t)) return true;
+  if (/\bboth\s+options\b/i.test(t)) return true;
+  // "Reply A, B, or Both" / "A, B, or Both" — explicit picker
+  if (/(?:^|[\s,])both(?:[\s,.;]|$)/i.test(t) && /\bor\b/i.test(t)) return true;
+  return false;
+}
+
 function ProposedFixCard({ row, onApprove, onReject, pending }) {
   const branch = row.branch_name || row.triage_branch;
   const [note, setNote] = useState("");
@@ -543,22 +561,24 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
               }}>
               {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve · Option B"}
             </button>
-            <button
-              onClick={() => onApprove(row.id, buildNote("Both"))}
-              disabled={isPending}
-              style={{
-                background: "#0f766e",
-                border: "none",
-                borderRadius: 6,
-                padding: "9px 14px",
-                color: "white",
-                fontSize: 13,
-                fontWeight: 700,
-                cursor: isPending ? "wait" : "pointer",
-                opacity: isPending ? 0.6 : 1,
-              }}>
-              {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve · Both"}
-            </button>
+            {allowsBoth(proposedText) && (
+              <button
+                onClick={() => onApprove(row.id, buildNote("Both"))}
+                disabled={isPending}
+                style={{
+                  background: "#0f766e",
+                  border: "none",
+                  borderRadius: 6,
+                  padding: "9px 14px",
+                  color: "white",
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: isPending ? "wait" : "pointer",
+                  opacity: isPending ? 0.6 : 1,
+                }}>
+                {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve · Both"}
+              </button>
+            )}
           </>
         ) : (
           <button
