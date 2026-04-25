@@ -132,23 +132,40 @@ export default function FreshnessDot({
   const fresh = useFreshness(indicatorId);
   const [hover, setHover] = useState(false);
 
-  // Client-side fallback when pipeline_health row is missing or still loading.
-  // Lets the dot paint correct colors before the migration runs / edge fn ships.
+  // Prefer whichever side sees FRESHER data.
+  //   • If pipeline_health has no row, or is loading → fall back to client-side.
+  //   • If pipeline_health exists but the client's asOfIso is strictly MORE
+  //     recent than the server's last_good_at, trust the client (this is what
+  //     fires on a preview deploy whose JSON is newer than prod, or on any
+  //     surface where a recent refresh hasn't been picked up by the edge fn
+  //     on its 30-min cadence yet).
+  //   • Otherwise, the server row wins (authoritative for silent-failure
+  //     detection across users).
   let derived = fresh;
-  if ((fresh.status === "loading" || fresh.status === "unknown") && asOfIso && cadence) {
-    const fb = deriveStatusFromAsOf(asOfIso, cadence);
-    if (fb) {
-      derived = {
-        ...fresh,
-        status: fb.status,
-        loading: false,
-        missing: false,
-        lastGoodAt: asOfIso,
-        cadence,
-        cadenceMinutes: CADENCE_LIMITS[cadence],
-        source: source || fresh.source,
-        label: label || fresh.label,
-      };
+  if (asOfIso && cadence) {
+    const serverTs = fresh.lastGoodAt ? new Date(fresh.lastGoodAt).getTime() : 0;
+    const clientTs = new Date(asOfIso + (asOfIso.length === 10 ? "T00:00:00Z" : "")).getTime();
+    const clientIsFresher =
+      !fresh.lastGoodAt || (Number.isFinite(clientTs) && clientTs > serverTs);
+    const needsFallback =
+      fresh.status === "loading" ||
+      fresh.status === "unknown" ||
+      clientIsFresher;
+    if (needsFallback) {
+      const fb = deriveStatusFromAsOf(asOfIso, cadence);
+      if (fb) {
+        derived = {
+          ...fresh,
+          status: fb.status,
+          loading: false,
+          missing: false,
+          lastGoodAt: asOfIso,
+          cadence,
+          cadenceMinutes: CADENCE_LIMITS[cadence],
+          source: source || fresh.source,
+          label: label || fresh.label,
+        };
+      }
     }
   }
 
