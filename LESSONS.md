@@ -9,4 +9,8 @@ out the task. Format:
 **What you should do instead:** [one sentence, specific and testable]
 **Applies to:** [Lead Developer / Senior Quant / UX Designer / All]
 ---
-(No entries yet — this file will grow as the team learns.)
+
+### 2026-04-24 — Plain-English status reports
+**What happened:** Used Git jargon ("fast-forward," "origin/main," raw commit hashes) in a status report to a non-technical user.
+**What you should do instead:** When reporting on Git work, describe what happened in plain English. Example: instead of "fast-forward from abc to def on origin/main," say "the change is now live on the main branch on GitHub." Commit hashes are fine to include for reference but should never carry meaning the user is expected to interpret.
+**Applies to:** Lead Developer (primary), All (when reporting status)
