@@ -5396,17 +5396,36 @@ useHistReady();
 const {isAdmin, loading:adminLoading}=useIsAdmin();
 // Legacy redirect: "#portfolio" (old Holdings Detail tab) now lives inside
 // Portfolio & Insights. Any bookmark pointing at #portfolio resolves to
-// #portopps.
+// #portopps. Bug #1071 — alias four "natural" deep-link hashes that the
+// router previously bounced silently to /#home: /#today-macro is the
+// natural deep-link to the macro-overview composites tab; /#positions and
+// /#watchlist are the two halves of /#portopps; /#asset-allocation is the
+// in-development tab (lands on /#home until that page ships).
+const HASH_ALIASES={
+  "portfolio":"portopps",
+  "today-macro":"overview",
+  "positions":"portopps",
+  "watchlist":"portopps",
+  "asset-allocation":"home",
+};
 const resolveHash=(raw)=>{
-  const h=(raw||"").slice(1);
-  if(h==="portfolio")return"portopps";
+  const h=(raw||"").slice(1).toLowerCase();
+  if(HASH_ALIASES[h])return HASH_ALIASES[h];
   return TAB_IDS.includes(h)?h:"home";
 };
 const [tab,setTab]=useState(()=>{
 if(typeof window==="undefined")return"home";
 return resolveHash(window.location.hash);
 });
-useEffect(()=>{window.location.hash=tab;},[tab]);
+// Bug #1071 — preserve the user-typed alias hash. If they typed /#positions
+// (which resolves to the "portopps" tab), don't silently rewrite the URL bar
+// back to /#portopps. Only sync when the URL doesn't already point at this tab.
+useEffect(()=>{
+  const cur=(window.location.hash||"").slice(1).toLowerCase();
+  if(HASH_ALIASES[cur]===tab)return;
+  if(cur===tab)return;
+  window.location.hash=tab;
+},[tab]);
 useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab]);
 // Keep tab in sync with URL hash so browser back/forward and manual hash edits work.
 useEffect(()=>{
