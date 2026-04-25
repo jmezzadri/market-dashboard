@@ -65,6 +65,22 @@ function buildTooltip(f) {
   }
 }
 
+// Default click action — jump to the README's freshness section. Host
+// components can override via the onExplain prop (e.g. open a sheet).
+function defaultExplain() {
+  if (typeof window === "undefined") return;
+  // Use the hash router pattern the rest of the app uses (`window.location.hash = "readme"`)
+  // and append the freshness anchor so the README scrolls to the right place.
+  window.location.hash = "readme";
+  // Defer the in-page anchor jump so the React tab swap completes first.
+  setTimeout(() => {
+    const el = document.getElementById("freshness-explainer");
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, 80);
+}
+
 export default function FreshnessDot({
   indicatorId,
   onExplain,
@@ -78,12 +94,12 @@ export default function FreshnessDot({
 
   const color = HUES[fresh.status] || HUES.unknown;
   const tip   = title || buildTooltip(fresh);
-  const clickable = typeof onExplain === "function";
+  const explain = typeof onExplain === "function" ? onExplain : defaultExplain;
+  const clickable = true;
 
   const handleClick = (e) => {
-    if (!clickable) return;
     e.stopPropagation();
-    onExplain(fresh);
+    explain(fresh);
   };
 
   return (

@@ -26,6 +26,7 @@ import PositionsTable from "./components/PositionsTable";
 import PositionEditor from "./components/PositionEditor";
 import BulkImport from "./components/BulkImport";
 import UniverseFreshness from "./components/UniverseFreshness";
+import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
 import TodayMacro from "./pages/TodayMacro";
 import { supabase } from "./lib/supabase";
@@ -1754,7 +1755,7 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 </Tip>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
-<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace",display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}><span>Data as of {AS_OF[id]||"—"}</span><StalePill id={id} compact={true}/></div>
+<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id}/><span>Data as of {AS_OF[id]||"—"}</span><StalePill id={id} compact={true}/></div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:15,fontWeight:800,color:colT,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -1830,7 +1831,7 @@ return(
             </Tip>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id}/><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
@@ -2432,7 +2433,7 @@ function IndicatorDetailBody({ id, onClose, inline }){
             </Tip>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id}/><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
         </div>
         <div style={{textAlign:"right",flexShrink:0,marginRight: inline ? 36 : 0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>

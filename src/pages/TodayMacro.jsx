@@ -30,6 +30,7 @@
  * literal because they carry meaning regardless of theme.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import FreshnessDot from "../components/FreshnessDot";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Palette — page-scoped tokens MAPPED to app theme tokens. Each --tm-* alias
@@ -531,7 +532,11 @@ function CompositeTile({ comp, score, prevScore, weightsBlock }) {
     <div className={"tm-cc" + (open ? " is-active" : "")}>
       <div className="tm-cc-head">
         <div>
-          <h2 className="tm-cc-name">{comp.name}</h2>
+          <h2 className="tm-cc-name" style={{display:"inline-flex",alignItems:"center",gap:8}}>
+            {comp.name}
+            {/* RAG dot for the composite's underlying daily series. Click → /#readme freshness section. */}
+            <FreshnessDot indicatorId={`composite_${comp.key.toLowerCase()}`} size={7}/>
+          </h2>
           <div className="tm-cc-horizon">{comp.horizonLabel}</div>
         </div>
         <span className={"tm-tag " + regime}>{regimeText}</span>
@@ -600,7 +605,8 @@ function CompositeTile({ comp, score, prevScore, weightsBlock }) {
                     <td>
                       <span className="tm-tier-dot"/>
                       <span className="ind-name">{ind.name}</span>{" "}
-                      <span className="ind-key">({ind.key})</span>
+                      <span className="ind-key">({ind.key})</span>{" "}
+                      <FreshnessDot indicatorId={ind.key} size={5}/>
                     </td>
                     <td className="ind-auc">{ind.auc != null ? ind.auc.toFixed(2) : "—"}</td>
                     <td className="ind-w">{(ind.weight * 100).toFixed(1)}%</td>
