@@ -257,11 +257,21 @@ def fetch_all():
         result["bkx_spx"] = {"freq": "D", "unit": "ratio",
                              "points": series_to_points(ratio, round_dp=4)}
 
-    print("USD (DTWEXBGS) ...")
-    s = safe_fred("DTWEXBGS")
+    # USD: Yahoo DX-Y.NYB (ICE US Dollar Index futures) — was FRED DTWEXBGS,
+    # which has a 7-day publication lag and lives on a different scale
+    # (broad trade-weighted ~110-130 vs ICE's 6-currency basket ~95-105).
+    # PR #1.5 (Joe 2026-04-24): standardize on DXY for three reasons:
+    #   1. The daily fetcher (fetch_indicators.py) was already pulling
+    #      DX-Y.NYB while history was still on DTWEXBGS — z-scores were
+    #      being computed against the wrong scale.
+    #   2. SD calibration in App.jsx (mean=99, sd=7) is DXY-scale.
+    #   3. DXY is the dollar index every trading desk references intraday.
+    print("USD (DX-Y.NYB) ...")
+    s = safe_yf("DX-Y.NYB")
     if s is not None:
         result["usd"] = {"freq": "D", "unit": "index",
-                         "points": series_to_points(s, round_dp=2)}
+                         "points": series_to_points(s, round_dp=2),
+                         "source": "Yahoo DX-Y.NYB"}
 
     print("SKEW Index ...")
     s = safe_yf("^SKEW")
