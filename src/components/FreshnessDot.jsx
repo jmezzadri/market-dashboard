@@ -20,9 +20,35 @@ const HUES = {
   green:   "#1f9d60",   // var(--tm-calm)
   amber:   "#b8811c",   // var(--tm-elevated)
   red:     "#d23040",   // var(--tm-stressed)
-  loading: "#bbb4a3",   // parchment-compatible loading grey
-  unknown: "#bbb4a3",
+  loading: "#9a9387",   // visible on parchment AND dark
+  unknown: "#9a9387",
 };
+
+// Cadence (D/W/M/Q) → minutes until amber and red, including release-time
+// tolerances calibrated to FRED/FDIC release schedules. These mirror the
+// edge function's `expected_cadence_minutes + CADENCE_TOLERANCE_MINUTES`.
+const CADENCE_LIMITS = {
+  D: 1440 + 360,    // 1d + 6h grace
+  W: 10080 + 2880,  // 7d + 48h
+  M: 43200 + 14400, // 30d + 10d
+  Q: 129600 + 43200,// 90d + 30d
+};
+
+// Client-side RAG derivation for the case where pipeline_health hasn't been
+// populated yet (first deploy, edge fn cold start, missing migration). Uses
+// the AS_OF date already on the page and the indicator's release cadence.
+// Returns null if we can't derive (no asOf or no cadence).
+function deriveStatusFromAsOf(asOfIso, cadence) {
+  if (!asOfIso || !cadence) return null;
+  const t = new Date(asOfIso + (asOfIso.length === 10 ? "T00:00:00Z" : "")).getTime();
+  if (Number.isNaN(t)) return null;
+  const ageMin = Math.max(0, Math.round((Date.now() - t) / 60000));
+  const limit = CADENCE_LIMITS[cadence];
+  if (!limit) return null;
+  if (ageMin <= limit)         return { status: "green", ageMin };
+  if (ageMin <= limit * 2)     return { status: "amber", ageMin };
+  return { status: "red", ageMin };
+}
 
 const CADENCE_ENGLISH = {
   D: "updates daily",
@@ -88,18 +114,42 @@ export default function FreshnessDot({
   style,
   title,            // optional override of the computed tooltip
   showRing = false, // subtle halo for emphasis on composite cards
+  asOfIso,          // client-side fallback: ISO date string when pipeline_health is empty
+  cadence,          // client-side fallback: D/W/M/Q
+  source,           // optional: shown in tooltip when fallback is active
+  label,            // optional: shown in tooltip when fallback is active
 }) {
   const fresh = useFreshness(indicatorId);
   const [hover, setHover] = useState(false);
 
-  const color = HUES[fresh.status] || HUES.unknown;
-  const tip   = title || buildTooltip(fresh);
+  // Client-side fallback when pipeline_health row is missing or still loading.
+  // Lets the dot paint correct colors before the migration runs / edge fn ships.
+  let derived = fresh;
+  if ((fresh.status === "loading" || fresh.status === "unknown") && asOfIso && cadence) {
+    const fb = deriveStatusFromAsOf(asOfIso, cadence);
+    if (fb) {
+      derived = {
+        ...fresh,
+        status: fb.status,
+        loading: false,
+        missing: false,
+        lastGoodAt: asOfIso,
+        cadence,
+        cadenceMinutes: CADENCE_LIMITS[cadence],
+        source: source || fresh.source,
+        label: label || fresh.label,
+      };
+    }
+  }
+
+  const color = HUES[derived.status] || HUES.unknown;
+  const tip   = title || buildTooltip(derived);
   const explain = typeof onExplain === "function" ? onExplain : defaultExplain;
   const clickable = true;
 
   const handleClick = (e) => {
     e.stopPropagation();
-    explain(fresh);
+    explain(derived);
   };
 
   return (

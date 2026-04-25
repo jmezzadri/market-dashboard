@@ -157,12 +157,12 @@ const FREQ_LABEL = { D:"Daily", W:"Weekly", M:"Monthly", Q:"Quarterly" };
 const REGISTRY_WITH_BLOBS = DATA_REGISTRY.map((row) => ({ ...row, _blob: buildSearchBlob(row) }));
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
-export default function MethodologyPage({ ind, asOf, weights, cats, indFreq }) {
+export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, indFreq }) {
   return (
     <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
       <HeaderOverview />
       <Contents />
-      <MacroIndicatorTable ind={ind} weights={weights} cats={cats} indFreq={indFreq} asOf={asOf} />
+      <MacroIndicatorTable ind={ind} weights={weights} cats={cats} indFreq={indFreq} asOf={asOf} asOfIso={asOfIso} />
       <FreshnessExplainer />
       <CompositeMath ind={ind} weights={weights} cats={cats} />
       <DataCatalogTable ind={ind} asOf={asOf} />
@@ -230,7 +230,7 @@ function Contents() {
 }
 
 // ─── §2 MACRO MAPPING & DATA SOURCES (sortable table) ──────────────────────
-function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
+function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso }) {
   const rows = useMemo(() => {
     if (!ind) return [];
     return Object.keys(ind).map((id) => {
@@ -249,13 +249,14 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
         source: meta.source || "",
         freq: (indFreq && indFreq[id]) || "",
         asOf: (asOf && asOf[id]) || "",
+        asOfIso: (asOfIso && asOfIso[id]) || "",
         tier,
         weight: w,
         timing: meta.timing || "",
         detail: meta.measure || "",
       };
     });
-  }, [ind, weights, cats, indFreq, asOf]);
+  }, [ind, weights, cats, indFreq, asOf, asOfIso]);
 
   const [sortKey, setSortKey] = useState("tier");
   const [sortDir, setSortDir] = useState("asc");
@@ -361,7 +362,7 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
                 <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{r.freq || "—"}</td>
                 <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>
                   <span style={{ display:"inline-flex", alignItems:"center", gap:6 }}>
-                    <FreshnessDot indicatorId={r.id}/>
+                    <FreshnessDot indicatorId={r.id} asOfIso={r.asOfIso} cadence={r.freq}/>
                     {r.asOf || "—"}
                   </span>
                 </td>

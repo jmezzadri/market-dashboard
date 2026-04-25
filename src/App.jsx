@@ -1755,7 +1755,7 @@ onMouseLeave={e=>{e.currentTarget.style.transform="translateY(0)";e.currentTarge
 </Tip>
 </div>
 <div style={{fontSize:13,color:"var(--text-muted)",marginLeft:9,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{sub}</div>
-<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id}/><span>Data as of {AS_OF[id]||"—"}</span><StalePill id={id} compact={true}/></div>
+<div style={{fontSize:11,color:"var(--text-dim)",marginLeft:9,fontFamily:"monospace",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id} asOfIso={AS_OF_ISO[id]} cadence={IND_FREQ[id]}/><span>Data as of {AS_OF[id]||"—"}</span><StalePill id={id} compact={true}/></div>
 </div>
 <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:3}}>
 <span style={{fontSize:15,fontWeight:800,color:colT,fontFamily:"monospace"}}>{fmtV(id,cur)}</span>
@@ -1831,7 +1831,7 @@ return(
             </Tip>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id}/><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id} asOfIso={AS_OF_ISO[id]} cadence={IND_FREQ[id]}/><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
         </div>
         <div style={{textAlign:"right",flexShrink:0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
@@ -2266,9 +2266,12 @@ function AllIndicatorsTable(){
                           <span style={{color:"var(--text-dim)"}}>—</span>
                         )}
                       </td>
-                      {/* Last refresh */}
+                      {/* Last refresh — FreshnessDot is the at-a-glance signal next to the date */}
                       <td style={{...tdBase, fontSize:12, color:"var(--text-2)", fontFamily:"var(--font-mono)"}}>
-                        {r.asOf || "—"}
+                        <span style={{display:"inline-flex",alignItems:"center",gap:6}}>
+                          <FreshnessDot indicatorId={r.id} asOfIso={AS_OF_ISO[r.id]} cadence={r.freq} label={r.label}/>
+                          {r.asOf || "—"}
+                        </span>
                       </td>
                       {/* Current */}
                       <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", fontWeight:700, color: colCur}}>
@@ -2433,7 +2436,7 @@ function IndicatorDetailBody({ id, onClose, inline }){
             </Tip>
           </div>
           <div style={{fontSize:13,color:"var(--text-muted)",marginBottom:2}}>{sub}</div>
-          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id}/><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
+          <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",alignItems:"center",gap:6,flexWrap:"wrap"}}><FreshnessDot indicatorId={id} asOfIso={AS_OF_ISO[id]} cadence={IND_FREQ[id]}/><span>Data as of {AS_OF[id]}</span><StalePill id={id}/></div>
         </div>
         <div style={{textAlign:"right",flexShrink:0,marginRight: inline ? 36 : 0}}>
           <div className="num" style={{fontSize:28,fontWeight:800,color:colT,lineHeight:1,fontFamily:"var(--font-mono)"}}>{fmtV(id,cur)}</div>
@@ -7223,7 +7226,7 @@ return(<>
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
-{tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>}
+{tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF} asOfIso={AS_OF_ISO} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>}
 
 
 {/* close fade-in wrapper around tab content */}

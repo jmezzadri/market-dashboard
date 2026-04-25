@@ -509,7 +509,7 @@ function DialGauge({ score }) {
   );
 }
 
-function CompositeTile({ comp, score, prevScore, weightsBlock }) {
+function CompositeTile({ comp, score, prevScore, weightsBlock, asOfIso }) {
   const [open, setOpen] = useState(false);
   const regime = regimeForScore(score);
   const regimeText = regimeLabel(regime);
@@ -535,7 +535,7 @@ function CompositeTile({ comp, score, prevScore, weightsBlock }) {
           <h2 className="tm-cc-name" style={{display:"inline-flex",alignItems:"center",gap:8}}>
             {comp.name}
             {/* RAG dot for the composite's underlying daily series. Click → /#readme freshness section. */}
-            <FreshnessDot indicatorId={`composite_${comp.key.toLowerCase()}`} size={7}/>
+            <FreshnessDot indicatorId={`composite_${comp.key.toLowerCase()}`} size={7} asOfIso={asOfIso} cadence="D"/>
           </h2>
           <div className="tm-cc-horizon">{comp.horizonLabel}</div>
         </div>
@@ -1162,6 +1162,7 @@ export default function TodayMacro({ onNavToReadme }) {
             score={snapshot[c.key].score}
             prevScore={snapshot[c.key].prev}
             weightsBlock={weights[c.weightsKey]}
+            asOfIso={snapshot.asOf}
           />
         ))}
       </div>
