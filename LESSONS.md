@@ -171,3 +171,41 @@ anything the user reads.
 4. This rule cascades: any new metric, indicator, or score introduced
    by Senior Quant ships with its plain-English tooltip definition in
    the same PR. No separate "we'll add tooltips later" tickets.
+
+---
+
+## 6. Decision-gated proposals — the UI must enforce the pick
+
+**The rule.** Whenever the build operator's proposed_solution gives Joe two
+options to choose between (Option A vs Option B, "Reply A or B", "pick option",
+"decision pending"), the AdminBugs panel detects the gate and replaces the
+single Approve button with three explicit picks: **Approve · Option A**,
+**Approve · Option B**, **Approve · Both**. Each pick writes the chosen letter
+verbatim into approval_notes ("A", "B", or "Both"), so the build operator's
+regex on approval_notes recognises it without further parsing.
+
+**Why.** Joe directive 2026-04-25 (#1074). Decision-gated rows shipped to
+"approved" with empty approval_notes burned a build-sweep cycle every time —
+the operator skipped them and emailed back asking for a re-approval with the
+pick. #1037, #1047, #1069, #1070 all hit this pattern in the last 24 hours.
+The policy on the operator side stays exactly as written: skip with reason
+"decision-gated approved without a pick", reset to awaiting_approval. The UI
+change makes that policy unreachable in the normal flow because the single
+Approve button never appears for gated rows.
+
+**How to apply.**
+
+1. Trigger phrases for the gate detector are mirrored from the build
+   operator's pre-flight check — keep them in sync if either side adds a
+   new pattern. Currently: "Reply A or B" (with optional `**` markers),
+   "pick option", "pick A or B", "decision pending", or "Option A" AND
+   "Option B" both present.
+2. The picks must write "A", "B", or "Both" into approval_notes verbatim
+   — the build operator's regex looks for those exact tokens. Any free-form
+   note from the textarea is appended after a separator (`A · note text`).
+3. Three-option proposals are not yet handled in the UI. If a future
+   triage proposal lands with Option A/B/C, file a follow-on bug to extend
+   the picker — do not silently coerce a third option to "Both".
+4. UX Designer signs off on the visual treatment whenever the gated-card
+   layout is touched. Lead Developer keeps the pickled-vs-non-gated path
+   tested with a one-line case in the regex helper.
