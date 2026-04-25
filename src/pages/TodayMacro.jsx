@@ -626,7 +626,7 @@ function CompositeTile({ comp, score, prevScore, weightsBlock, asOfIso, indicato
       </div>
 
       <button className="tm-expand-btn" onClick={() => setOpen((v) => !v)}>
-        <span>Show the math · {indicators.length} indicators · AUC {auc ? auc.toFixed(2) : "—"}</span>
+        <span>Show the math · {indicators.length} indicators · Model accuracy {auc ? auc.toFixed(2) : "—"}</span>
         <span className="chev">▾</span>
       </button>
 
