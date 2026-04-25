@@ -30,6 +30,7 @@
  * literal because they carry meaning regardless of theme.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import FreshnessDot from "../components/FreshnessDot";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Palette — page-scoped tokens MAPPED to app theme tokens. Each --tm-* alias
@@ -508,7 +509,7 @@ function DialGauge({ score }) {
   );
 }
 
-function CompositeTile({ comp, score, prevScore, weightsBlock }) {
+function CompositeTile({ comp, score, prevScore, weightsBlock, asOfIso, indicatorAsOfIso, indicatorFreq }) {
   const [open, setOpen] = useState(false);
   const regime = regimeForScore(score);
   const regimeText = regimeLabel(regime);
@@ -531,7 +532,11 @@ function CompositeTile({ comp, score, prevScore, weightsBlock }) {
     <div className={"tm-cc" + (open ? " is-active" : "")}>
       <div className="tm-cc-head">
         <div>
-          <h2 className="tm-cc-name">{comp.name}</h2>
+          <h2 className="tm-cc-name" style={{display:"inline-flex",alignItems:"center",gap:8}}>
+            {comp.name}
+            {/* RAG dot for the composite's underlying daily series. Click → /#readme freshness section. */}
+            <FreshnessDot indicatorId={`composite_${comp.key.toLowerCase()}`} size={7} asOfIso={asOfIso} cadence="D"/>
+          </h2>
           <div className="tm-cc-horizon">{comp.horizonLabel}</div>
         </div>
         <span className={"tm-tag " + regime}>{regimeText}</span>
@@ -600,7 +605,8 @@ function CompositeTile({ comp, score, prevScore, weightsBlock }) {
                     <td>
                       <span className="tm-tier-dot"/>
                       <span className="ind-name">{ind.name}</span>{" "}
-                      <span className="ind-key">({ind.key})</span>
+                      <span className="ind-key">({ind.key})</span>{" "}
+                      <FreshnessDot indicatorId={ind.key} size={5} asOfIso={indicatorAsOfIso&&indicatorAsOfIso[ind.key]} cadence={indicatorFreq&&indicatorFreq[ind.key]}/>
                     </td>
                     <td className="ind-auc">{ind.auc != null ? ind.auc.toFixed(2) : "—"}</td>
                     <td className="ind-w">{(ind.weight * 100).toFixed(1)}%</td>
@@ -992,7 +998,7 @@ function Collapsible({ title, sub, preview, openLabel, closeLabel, defaultOpen, 
   );
 }
 
-export default function TodayMacro({ onNavToReadme }) {
+export default function TodayMacro({ onNavToReadme, asOfIso, indFreq }) {
   const [data, setData] = useState(null);
   const [weights, setWeights] = useState(null);
   const [eventMarkers, setEventMarkers] = useState([]);
@@ -1156,6 +1162,9 @@ export default function TodayMacro({ onNavToReadme }) {
             score={snapshot[c.key].score}
             prevScore={snapshot[c.key].prev}
             weightsBlock={weights[c.weightsKey]}
+            asOfIso={snapshot.asOf}
+            indicatorAsOfIso={asOfIso}
+            indicatorFreq={indFreq}
           />
         ))}
       </div>

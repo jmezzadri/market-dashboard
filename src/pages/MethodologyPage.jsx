@@ -48,6 +48,7 @@
 //   indFreq — IND_FREQ map (id → "D"|"W"|"M"|"Q")
 
 import React, { useMemo, useState } from "react";
+import FreshnessDot from "../components/FreshnessDot";
 import { DATA_REGISTRY, DATA_SECTIONS, buildSearchBlob } from "../data/dataRegistry";
 import {
   SECTION_WEIGHTS,
@@ -156,12 +157,13 @@ const FREQ_LABEL = { D:"Daily", W:"Weekly", M:"Monthly", Q:"Quarterly" };
 const REGISTRY_WITH_BLOBS = DATA_REGISTRY.map((row) => ({ ...row, _blob: buildSearchBlob(row) }));
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
-export default function MethodologyPage({ ind, asOf, weights, cats, indFreq }) {
+export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, indFreq }) {
   return (
     <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
       <HeaderOverview />
       <Contents />
-      <MacroIndicatorTable ind={ind} weights={weights} cats={cats} indFreq={indFreq} asOf={asOf} />
+      <MacroIndicatorTable ind={ind} weights={weights} cats={cats} indFreq={indFreq} asOf={asOf} asOfIso={asOfIso} />
+      <FreshnessExplainer />
       <CompositeMath ind={ind} weights={weights} cats={cats} />
       <DataCatalogTable ind={ind} asOf={asOf} />
       <SignalScoreMath />
@@ -228,7 +230,7 @@ function Contents() {
 }
 
 // ─── §2 MACRO MAPPING & DATA SOURCES (sortable table) ──────────────────────
-function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
+function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso }) {
   const rows = useMemo(() => {
     if (!ind) return [];
     return Object.keys(ind).map((id) => {
@@ -247,13 +249,14 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
         source: meta.source || "",
         freq: (indFreq && indFreq[id]) || "",
         asOf: (asOf && asOf[id]) || "",
+        asOfIso: (asOfIso && asOfIso[id]) || "",
         tier,
         weight: w,
         timing: meta.timing || "",
         detail: meta.measure || "",
       };
     });
-  }, [ind, weights, cats, indFreq, asOf]);
+  }, [ind, weights, cats, indFreq, asOf, asOfIso]);
 
   const [sortKey, setSortKey] = useState("tier");
   const [sortDir, setSortDir] = useState("asc");
@@ -357,7 +360,12 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
                 </td>
                 <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.source || "—"}</td>
                 <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{r.freq || "—"}</td>
-                <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>{r.asOf || "—"}</td>
+                <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>
+                  <span style={{ display:"inline-flex", alignItems:"center", gap:6 }}>
+                    <FreshnessDot indicatorId={r.id} asOfIso={r.asOfIso} cadence={r.freq}/>
+                    {r.asOf || "—"}
+                  </span>
+                </td>
                 <td style={{ ...tdStyle, textAlign:"center", fontWeight:700, color:TIER_COLOR[r.tier] }}>
                   T{r.tier}
                 </td>
@@ -379,6 +387,97 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf }) {
             ))}
           </tbody>
         </table>
+      </div>
+    </section>
+  );
+}
+
+// ─── DATA FRESHNESS EXPLAINER ──────────────────────────────────────────────
+// Anchor target for every FreshnessDot click on the site. Plain English,
+// no acronyms (per Joe 2026-04-23). The dot is the at-a-glance signal,
+// this is the page that explains what "stale" actually means.
+function FreshnessExplainer() {
+  const swatch = (color) => ({
+    display: "inline-block", width: 10, height: 10, borderRadius: "50%",
+    background: color, marginRight: 8, verticalAlign: "middle",
+  });
+  return (
+    <section id="freshness-explainer" style={{ scrollMarginTop: 80 }}>
+      <SectionHeader
+        label="Data freshness — what the colored dots mean"
+        sub="Every indicator has a small dot · green = current · amber = a little overdue · red = stale or missing"
+      />
+      <div style={{ marginTop: 12,
+        background: "var(--surface)", border: "1px solid var(--border)",
+        borderRadius: 8, padding: "16px 20px", lineHeight: 1.7, color: "var(--text-2)",
+        fontSize: 13,
+      }}>
+        <p style={{ margin: "0 0 14px" }}>
+          We re-check every indicator every 30 minutes against its expected release schedule.
+          A daily indicator like the VIX should refresh every weekday, so if today's VIX dot is
+          green it means the site is showing a value from within the last day or so. A weekly
+          indicator like Initial Jobless Claims releases on Thursday morning — its dot stays
+          green from Thursday through the following Wednesday because that's the actual release
+          cadence. Click any dot anywhere on the site to land back on this page.
+        </p>
+
+        <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
+          <div>
+            <span style={swatch("#1f9d60")}/>
+            <strong style={{ color: "#1f9d60" }}>Fresh</strong>
+            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
+              — within the indicator's normal release cadence. Nothing to worry about.
+            </span>
+          </div>
+          <div>
+            <span style={swatch("#b8811c")}/>
+            <strong style={{ color: "#b8811c" }}>Overdue</strong>
+            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
+              — between one and two release cycles late. Often legitimate (a holiday, a
+              release-day shift) but worth a glance. We start watching but don't alert yet.
+            </span>
+          </div>
+          <div>
+            <span style={swatch("#d23040")}/>
+            <strong style={{ color: "#d23040" }}>Stale</strong>
+            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
+              — more than two release cycles late, or the last fetch hit an error. The
+              monitoring job emails Joe automatically (debounced, max one per day per
+              indicator) so the data pipeline can be repaired.
+            </span>
+          </div>
+          <div>
+            <span style={{ ...swatch("#bbb4a3") }}/>
+            <strong style={{ color: "var(--text-muted)" }}>Grey</strong>
+            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
+              — freshness is being checked, or this indicator isn't yet tracked by the
+              monitor. Treat as informational only.
+            </span>
+          </div>
+        </div>
+
+        <p style={{ margin: "16px 0 6px", fontWeight: 600, color: "var(--text)" }}>
+          Why a daily indicator can show "Fresh" for two days
+        </p>
+        <p style={{ margin: 0 }}>
+          Most "daily" series like FRED's VIX don't release a number every calendar day —
+          they skip weekends and US bank holidays. The freshness rules build in a 6-hour
+          grace period for daily series, 48 hours for weekly, ten days for monthly, and
+          thirty days for quarterly to handle release-schedule reality (FRED monthly releases
+          land 4–6 weeks after month-end; Senior Loan Officer surveys are 6–10 weeks delayed).
+          The dot reflects whether the data is on its expected schedule, not whether the
+          calendar moved.
+        </p>
+
+        <p style={{ margin: "16px 0 6px", fontWeight: 600, color: "var(--text)" }}>
+          When something turns red
+        </p>
+        <p style={{ margin: 0 }}>
+          A red dot generally means the data pipeline has broken silently — Yahoo throttled,
+          FRED returned an empty series, the scheduled scanner workflow didn't run. The
+          alerting job emails Joe so the pipeline can be fixed. The site keeps showing
+          whatever the last good value was; no value silently drifts.
+        </p>
       </div>
     </section>
   );
