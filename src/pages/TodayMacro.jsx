@@ -31,6 +31,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import FreshnessDot from "../components/FreshnessDot";
+import { useSortableTable, SortArrow, sortableHeaderProps } from "../hooks/useSortableTable.jsx";
 
 // ────────────────────────────────────────────────────────────────────────────
 // Palette — page-scoped tokens MAPPED to app theme tokens. Each --tm-* alias
@@ -187,6 +188,9 @@ const STYLES = `
 .tm-ind-table .ind-name { font-weight: 500; color: var(--tm-ink-0); }
 .tm-ind-table .ind-w    { font-family: var(--tm-fmono); text-align: right; color: var(--tm-accent); font-weight: 500; }
 .tm-ind-table .ind-auc  { font-family: var(--tm-fmono); text-align: right; color: var(--tm-ink-2); }
+.tm-ind-table th.tm-ind-th-sortable { cursor: pointer; user-select: none; transition: color 50ms; }
+.tm-ind-table th.tm-ind-th-sortable:hover { color: var(--tm-ink-0); }
+.tm-ind-table th.tm-ind-th-sortable[aria-sort="ascending"], .tm-ind-table th.tm-ind-th-sortable[aria-sort="descending"] { color: var(--tm-ink-0); }
 .tm-tier-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--tm-accent); margin-right: 8px; vertical-align: middle; }
 
 /* ── Collapsible sections (trajectory + lead-time table) ──
@@ -509,6 +513,61 @@ function DialGauge({ score }) {
   );
 }
 
+// IndicatorContributionTable — drilldown row of an expanded composite tile.
+// Click any column header to sort. Default sort: Weight desc (largest
+// contributors first, matching how the data lands from the weights JSON).
+//
+// Council: Lead Developer led; UX Designer signed off on header
+// affordance (cursor, hover, ▲/▼/↕ arrow placement); Senior Quant signed
+// off on AUC/Weight numeric ordering — sorting by AUC desc surfaces the
+// strongest discriminators in this composite, sorting by Weight desc
+// surfaces the indicators carrying the most influence on today's score.
+function IndicatorContributionTable({ indicators, indicatorAsOfIso, indicatorFreq }) {
+  const columns = useMemo(() => ([
+    { id: "name", label: "Indicator", align: "left",  sortValue: (r) => r.name },
+    { id: "auc",  label: "AUC",       align: "right", sortValue: (r) => (r.auc == null ? null : r.auc) },
+    { id: "w",    label: "Weight",    align: "right", sortValue: (r) => (r.weight == null ? null : r.weight) },
+  ]), []);
+  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({
+    rows: indicators,
+    columns,
+    defaultColId: "w",
+    defaultDir: "desc",
+  });
+  const headerCls = "tm-ind-th-sortable";
+  return (
+    <table className="tm-ind-table">
+      <thead>
+        <tr>
+          <th className={headerCls} {...sortableHeaderProps({ colId: "name", sortCol, sortDir, toggleSort })}>
+            Indicator <SortArrow dir={sortCol === "name" ? sortDir : null}/>
+          </th>
+          <th className={"ind-auc " + headerCls} {...sortableHeaderProps({ colId: "auc", sortCol, sortDir, toggleSort })}>
+            AUC <SortArrow dir={sortCol === "auc" ? sortDir : null}/>
+          </th>
+          <th className={"ind-w " + headerCls} {...sortableHeaderProps({ colId: "w", sortCol, sortDir, toggleSort })}>
+            Weight <SortArrow dir={sortCol === "w" ? sortDir : null}/>
+          </th>
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((ind) => (
+          <tr key={ind.key}>
+            <td>
+              <span className="tm-tier-dot"/>
+              <span className="ind-name">{ind.name}</span>{" "}
+              <span className="ind-key">({ind.key})</span>{" "}
+              <FreshnessDot indicatorId={ind.key} size={5} asOfIso={indicatorAsOfIso&&indicatorAsOfIso[ind.key]} cadence={indicatorFreq&&indicatorFreq[ind.key]}/>
+            </td>
+            <td className="ind-auc">{ind.auc != null ? ind.auc.toFixed(2) : "—"}</td>
+            <td className="ind-w">{(ind.weight * 100).toFixed(1)}%</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function CompositeTile({ comp, score, prevScore, weightsBlock, asOfIso, indicatorAsOfIso, indicatorFreq }) {
   const [open, setOpen] = useState(false);
   const regime = regimeForScore(score);
@@ -597,23 +656,11 @@ function CompositeTile({ comp, score, prevScore, weightsBlock, asOfIso, indicato
 
           <div className="tm-dd-section">
             <h4 className="tm-dd-h">Indicator contributions</h4>
-            <table className="tm-ind-table">
-              <thead><tr><th>Indicator</th><th className="ind-auc">AUC</th><th className="ind-w">Weight</th></tr></thead>
-              <tbody>
-                {indicators.map((ind) => (
-                  <tr key={ind.key}>
-                    <td>
-                      <span className="tm-tier-dot"/>
-                      <span className="ind-name">{ind.name}</span>{" "}
-                      <span className="ind-key">({ind.key})</span>{" "}
-                      <FreshnessDot indicatorId={ind.key} size={5} asOfIso={indicatorAsOfIso&&indicatorAsOfIso[ind.key]} cadence={indicatorFreq&&indicatorFreq[ind.key]}/>
-                    </td>
-                    <td className="ind-auc">{ind.auc != null ? ind.auc.toFixed(2) : "—"}</td>
-                    <td className="ind-w">{(ind.weight * 100).toFixed(1)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <IndicatorContributionTable
+              indicators={indicators}
+              indicatorAsOfIso={indicatorAsOfIso}
+              indicatorFreq={indicatorFreq}
+            />
             <p className="tm-dd-explain" style={{ marginTop: 10, fontSize: 12, color: "var(--tm-ink-2)" }}>
               The remaining {comp.name} indicators stay visible on the All Indicators tab — they
               didn't clear the drawdown-prediction threshold but are still useful as standalone
