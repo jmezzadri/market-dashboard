@@ -1045,6 +1045,74 @@ function Collapsible({ title, sub, preview, openLabel, closeLabel, defaultOpen, 
   );
 }
 
+// LeadTimeTable — bug #1039 (LESSONS rule #4): the historical-events table is
+// click-sortable on every column. Lead-time text like "+46 weeks" or "−25
+// weeks (lagged)" is parsed to a numeric weeks value so sorting reads as
+// "longest lead first" on desc.
+function _parseWeeks(label){
+  if (!label) return null;
+  const m = String(label).match(/(?:^|\s)([+\-−]?\s*\d+(?:\.\d+)?)\s*weeks?/i);
+  if (!m) return null;
+  const n = parseFloat(m[1].replace("−", "-").replace(/\s+/g, ""));
+  return Number.isFinite(n) ? n : null;
+}
+function _parseDDPct(label){
+  if (!label) return null;
+  const m = String(label).match(/(-?\d+(?:\.\d+)?)/);
+  return m ? parseFloat(m[1]) : null;
+}
+function LeadTimeTable({ rows }){
+  const COLS = [
+    { id: "event",     label: "Event",                        align: "left",  sortValue: r => r.event },
+    { id: "comp",      label: "Composite that turned first",  align: "left",  sortValue: r => r.summaryComp },
+    { id: "lead",      label: "Lead time",                    align: "left",  sortValue: r => _parseWeeks(r.lead30 && r.lead30.label) ?? _parseWeeks(r.summaryLead) },
+    { id: "dd",        label: "Max S&P drawdown",             align: "left",  sortValue: r => _parseDDPct(r.summaryDD) },
+    { id: "cross",     label: "+30 cross date",               align: "left",  sortValue: r => r.cross },
+    { id: "spx",       label: "S&P −15% date",                align: "left",  sortValue: r => r.spx },
+    { id: "lead30",    label: "Lead at +30",                  align: "left",  sortValue: r => _parseWeeks(r.lead30 && r.lead30.label) },
+    { id: "leadZero",  label: "Lead at composite>0",          align: "left",  sortValue: r => _parseWeeks(r.leadZero && r.leadZero.label) },
+  ];
+  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({
+    rows, columns: COLS, defaultColId: "event", defaultDir: "asc",
+  });
+  return (
+    <table className="tm-lead-time-table-el">
+      <thead>
+        <tr>
+          {COLS.map((c, i) => {
+            const isDetail = i >= 4;
+            return (
+              <th key={c.id} className={isDetail ? "detail" : undefined}
+                  {...sortableHeaderProps({ colId: c.id, sortCol, sortDir, toggleSort })}>
+                {c.label === "S&P −15% date" ? <>S&amp;P −15% date</> :
+                 c.label === "Max S&P drawdown" ? <>Max S&amp;P drawdown</> :
+                 c.label === "Lead at composite>0" ? <>Lead at composite&gt;0</> : c.label}
+                {" "}
+                <SortArrow dir={sortCol === c.id ? sortDir : null}/>
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((r) => (
+          <tr key={r.event}>
+            <td className="label">{r.event}</td>
+            <td className="label">{r.summaryComp}</td>
+            <td className="label">{r.summaryLead}</td>
+            <td>{r.summaryDD}</td>
+            <td className="detail">{r.cross}</td>
+            <td className="detail">{r.spx}</td>
+            <td className={"detail " + r.lead30.cls}>{r.lead30.label}</td>
+            <td className={"detail " + r.leadZero.cls}>{r.leadZero.label}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+
 export default function TodayMacro({ onNavToReadme, asOfIso, indFreq }) {
   const [data, setData] = useState(null);
   const [weights, setWeights] = useState(null);
@@ -1238,34 +1306,7 @@ export default function TodayMacro({ onNavToReadme, asOfIso, indFreq }) {
           eventual peak-to-trough drawdown. Toggle "Show event markers" on the chart above to see
           these dates as vertical lines.
         </div>
-        <table className="tm-lead-time-table-el">
-          <thead>
-            <tr>
-              <th>Event</th>
-              <th>Composite that turned first</th>
-              <th>Lead time</th>
-              <th>Max S&amp;P drawdown</th>
-              <th className="detail">+30 cross date</th>
-              <th className="detail">S&amp;P −15% date</th>
-              <th className="detail">Lead at +30</th>
-              <th className="detail">Lead at composite&gt;0</th>
-            </tr>
-          </thead>
-          <tbody>
-            {LEAD_TIME_ROWS.map((r) => (
-              <tr key={r.event}>
-                <td className="label">{r.event}</td>
-                <td className="label">{r.summaryComp}</td>
-                <td className="label">{r.summaryLead}</td>
-                <td>{r.summaryDD}</td>
-                <td className="detail">{r.cross}</td>
-                <td className="detail">{r.spx}</td>
-                <td className={"detail " + r.lead30.cls}>{r.lead30.label}</td>
-                <td className={"detail " + r.leadZero.cls}>{r.leadZero.label}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <LeadTimeTable rows={LEAD_TIME_ROWS}/>
         <p className="tm-honest-read">
           <strong>Honest read:</strong> at the +30 threshold, the composite is a CONFIRMATION signal
           — it tells you stress has arrived, not that it's coming. At the lower threshold of{" "}
