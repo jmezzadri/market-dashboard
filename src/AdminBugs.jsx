@@ -392,10 +392,47 @@ function ActivityLog({ bugId }) {
 }
 
 // ── Proposed Fix card — prominent top-of-panel treatment for awaiting_approval
+//
+// Bug #1074: when the build operator proposes two options ("Option A" /
+// "Option B" / "Reply A or B"), the single Approve button used to let
+// Joe through without recording the pick. The build operator then
+// skipped the row and emailed back asking for a re-approval with the
+// pick — burning a sweep cycle. Now the card detects decision-gated
+// proposals and replaces the single Approve with three explicit picks
+// (Approve · Option A / Option B / Both). Each pick writes "A" / "B"
+// / "Both" verbatim into approval_notes so the build operator's regex
+// recognises it without further parsing. Non-gated rows keep the
+// single Approve button.
+//
+// Trigger phrases match what the build operator's pre-flight check
+// looks for: "Option A" AND "Option B", "Reply A or B", "Reply **A**
+// or **B**", "pick A or B", "pick option", or "decision pending".
+function isDecisionGated(text) {
+  if (!text) return false;
+  const t = String(text);
+  if (/Reply\s*(\*\*)?A(\*\*)?\s*or\s*(\*\*)?B(\*\*)?/i.test(t)) return true;
+  if (/pick\s*(option|A\s*or\s*B)/i.test(t)) return true;
+  if (/decision pending/i.test(t)) return true;
+  if (/Option\s*A/i.test(t) && /Option\s*B/i.test(t)) return true;
+  return false;
+}
+
 function ProposedFixCard({ row, onApprove, onReject, pending }) {
   const branch = row.branch_name || row.triage_branch;
   const [note, setNote] = useState("");
   const isPending = pending?.bugId === row.id;
+  const proposedText = row.proposed_solution || row.triage_notes || "";
+  const gated = isDecisionGated(proposedText);
+
+  // Build the approval_notes payload: pick (when gated) plus any free-form
+  // note. Pick comes first so the build operator's regex on approval_notes
+  // hits "A"/"B"/"Both" without scanning the rest of the string.
+  const buildNote = (pick) => {
+    const trimmed = (note || "").trim();
+    if (!pick) return trimmed;
+    return trimmed ? `${pick} · ${trimmed}` : pick;
+  };
+
   return (
     <div style={{
       background: "rgba(251, 191, 36, 0.06)",
@@ -411,17 +448,48 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
         <div style={{ fontSize: 11, fontFamily: "monospace", color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
           Proposed fix — awaiting your approval
         </div>
+        {gated && (
+          <div style={{
+            marginLeft: "auto",
+            fontSize: 10,
+            fontFamily: "monospace",
+            color: "#B8860B",
+            background: "rgba(251, 191, 36, 0.15)",
+            border: "1px solid rgba(251, 191, 36, 0.45)",
+            borderRadius: 4,
+            padding: "2px 8px",
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+          }}>
+            Pick required
+          </div>
+        )}
       </div>
       {/* Fallback to triage_notes: the stage-bug-triage edge fn writes its
           root-cause + Fix: narrative into triage_notes rather than the
           narrower proposed_solution column. Show whichever is populated so
           awaiting_approval bugs aren't stuck with an empty-state card. */}
       <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "inherit", fontSize: 13, color: "var(--text)", lineHeight: 1.6 }}>
-        {row.proposed_solution || row.triage_notes || "(No proposed solution attached. The triage agent hasn't drafted a fix yet.)"}
+        {proposedText || "(No proposed solution attached. The triage agent hasn't drafted a fix yet.)"}
       </pre>
       {branch && (
         <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--text-muted)" }}>
           Branch: <span style={{ color: "var(--text-2)" }}>{branch}</span>
+        </div>
+      )}
+      {gated && (
+        <div style={{
+          fontSize: 12,
+          color: "var(--text-muted)",
+          background: "var(--surface)",
+          border: "1px dashed var(--border)",
+          borderRadius: 6,
+          padding: "8px 10px",
+          lineHeight: 1.5,
+        }}>
+          This proposal asks you to pick between two options. Use the buttons
+          below — your choice is written to the approval note automatically so
+          the build operator knows which path to ship.
         </div>
       )}
       <textarea
@@ -441,22 +509,75 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
         }}
       />
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button
-          onClick={() => onApprove(row.id, note)}
-          disabled={isPending}
-          style={{
-            background: "#10b981",
-            border: "none",
-            borderRadius: 6,
-            padding: "9px 16px",
-            color: "white",
-            fontSize: 13,
-            fontWeight: 700,
-            cursor: isPending ? "wait" : "pointer",
-            opacity: isPending ? 0.6 : 1,
-          }}>
-          {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve & build"}
-        </button>
+        {gated ? (
+          <>
+            <button
+              onClick={() => onApprove(row.id, buildNote("A"))}
+              disabled={isPending}
+              style={{
+                background: "#10b981",
+                border: "none",
+                borderRadius: 6,
+                padding: "9px 14px",
+                color: "white",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: isPending ? "wait" : "pointer",
+                opacity: isPending ? 0.6 : 1,
+              }}>
+              {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve · Option A"}
+            </button>
+            <button
+              onClick={() => onApprove(row.id, buildNote("B"))}
+              disabled={isPending}
+              style={{
+                background: "#10b981",
+                border: "none",
+                borderRadius: 6,
+                padding: "9px 14px",
+                color: "white",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: isPending ? "wait" : "pointer",
+                opacity: isPending ? 0.6 : 1,
+              }}>
+              {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve · Option B"}
+            </button>
+            <button
+              onClick={() => onApprove(row.id, buildNote("Both"))}
+              disabled={isPending}
+              style={{
+                background: "#0f766e",
+                border: "none",
+                borderRadius: 6,
+                padding: "9px 14px",
+                color: "white",
+                fontSize: 13,
+                fontWeight: 700,
+                cursor: isPending ? "wait" : "pointer",
+                opacity: isPending ? 0.6 : 1,
+              }}>
+              {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve · Both"}
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => onApprove(row.id, buildNote(""))}
+            disabled={isPending}
+            style={{
+              background: "#10b981",
+              border: "none",
+              borderRadius: 6,
+              padding: "9px 16px",
+              color: "white",
+              fontSize: 13,
+              fontWeight: 700,
+              cursor: isPending ? "wait" : "pointer",
+              opacity: isPending ? 0.6 : 1,
+            }}>
+            {isPending && pending?.action === "approve" ? "Approving…" : "✓ Approve & build"}
+          </button>
+        )}
         <button
           onClick={() => onReject(row.id, note)}
           disabled={isPending}
