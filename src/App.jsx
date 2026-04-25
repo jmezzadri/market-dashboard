@@ -6577,7 +6577,7 @@ return(
 
 {/* OVERVIEW — MACRO ONLY */}
 {tab==="overview"&&(
-<TodayMacro onNavToReadme={()=>navTo("readme")}/>
+<TodayMacro onNavToReadme={()=>navTo("readme")} asOfIso={AS_OF_ISO} indFreq={IND_FREQ}/>
 )}
 
 {/* INDICATORS */}

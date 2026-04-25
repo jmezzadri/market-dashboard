@@ -509,7 +509,7 @@ function DialGauge({ score }) {
   );
 }
 
-function CompositeTile({ comp, score, prevScore, weightsBlock, asOfIso }) {
+function CompositeTile({ comp, score, prevScore, weightsBlock, asOfIso, indicatorAsOfIso, indicatorFreq }) {
   const [open, setOpen] = useState(false);
   const regime = regimeForScore(score);
   const regimeText = regimeLabel(regime);
@@ -606,7 +606,7 @@ function CompositeTile({ comp, score, prevScore, weightsBlock, asOfIso }) {
                       <span className="tm-tier-dot"/>
                       <span className="ind-name">{ind.name}</span>{" "}
                       <span className="ind-key">({ind.key})</span>{" "}
-                      <FreshnessDot indicatorId={ind.key} size={5}/>
+                      <FreshnessDot indicatorId={ind.key} size={5} asOfIso={indicatorAsOfIso&&indicatorAsOfIso[ind.key]} cadence={indicatorFreq&&indicatorFreq[ind.key]}/>
                     </td>
                     <td className="ind-auc">{ind.auc != null ? ind.auc.toFixed(2) : "—"}</td>
                     <td className="ind-w">{(ind.weight * 100).toFixed(1)}%</td>
@@ -998,7 +998,7 @@ function Collapsible({ title, sub, preview, openLabel, closeLabel, defaultOpen, 
   );
 }
 
-export default function TodayMacro({ onNavToReadme }) {
+export default function TodayMacro({ onNavToReadme, asOfIso, indFreq }) {
   const [data, setData] = useState(null);
   const [weights, setWeights] = useState(null);
   const [eventMarkers, setEventMarkers] = useState([]);
@@ -1163,6 +1163,8 @@ export default function TodayMacro({ onNavToReadme }) {
             prevScore={snapshot[c.key].prev}
             weightsBlock={weights[c.weightsKey]}
             asOfIso={snapshot.asOf}
+            indicatorAsOfIso={asOfIso}
+            indicatorFreq={indFreq}
           />
         ))}
       </div>
