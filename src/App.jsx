@@ -29,6 +29,7 @@ import UniverseFreshness from "./components/UniverseFreshness";
 import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
 import TodayMacro from "./pages/TodayMacro";
+import { useSortableTable as useSortableTable_v1, SortArrow as SortArrow_v1, sortableHeaderProps as sortableHeaderProps_v1 } from "./hooks/useSortableTable.jsx";
 import { supabase } from "./lib/supabase";
 import { normalizeTickerName } from "./lib/nameFormat";
 import ReportBug from "./reportbug/ReportBug";
@@ -5281,6 +5282,80 @@ return Object.entries(CATS).map(([catId,cat])=>{
 // hashchange listeners in App()) so existing bookmarks keep working.
 // "admin" is present in TAB_IDS so hash routing works for signed-in admins;
 // non-admins are redirected to "home" by resolveHash() below (see App()).
+// RegimeCategoryTable — bug #1042 (LESSONS rule #4): the macro-overview Regime
+// table (Category / 12M / 6M / 1M / Now / State) becomes click-sortable on
+// every column via the shared useSortableTable hook.
+function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
+  const REGIME_ORDER = { "risk-on": 0, "neutral": 1, "risk-off": 2 };
+  const COLS = [
+    { id: "label", label: "Category", align: "left",  sortValue: r => r.label },
+    { id: "12m",   label: "12M",      align: "right", sortValue: r => r.sc12M },
+    { id: "6m",    label: "6M",       align: "right", sortValue: r => r.sc6M },
+    { id: "1m",    label: "1M",       align: "right", sortValue: r => r.sc1M },
+    { id: "now",   label: "Now",      align: "right", sortValue: r => r.sc100 },
+    { id: "state", label: "State",    align: "right", sortValue: r => REGIME_ORDER[r.regime] ?? 99 },
+  ];
+  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable_v1({
+    rows, columns: COLS, defaultColId: "now", defaultDir: "desc",
+  });
+  const thBase = {
+    fontFamily: "var(--font-mono)", fontSize: 10,
+    color: "var(--text-dim)", letterSpacing: "0.12em", textTransform: "uppercase",
+    padding: "var(--space-2) var(--space-3)",
+    borderBottom: "1px solid var(--border-faint)", fontWeight: 500,
+  };
+  return (
+    <table style={{width:"100%", borderCollapse:"collapse"}}>
+      <thead>
+        <tr>
+          {COLS.map(col => {
+            const sortable = sortableHeaderProps_v1({ colId: col.id, sortCol, sortDir, toggleSort });
+            const styleMerged = { ...thBase, textAlign: col.align, ...(col.id === "state" ? { width: 110 } : {}), ...sortable.style };
+            return (
+              <th key={col.id} {...sortable} style={styleMerged}>
+                {col.label} <SortArrow_v1 dir={sortCol === col.id ? sortDir : null}/>
+              </th>
+            );
+          })}
+        </tr>
+      </thead>
+      <tbody>
+        {sorted.map((c,i,arr) => {
+          const pill = regimePillCSS(c.regime);
+          const isLast = i === arr.length-1;
+          const tdBase = { borderBottom: isLast ? "none" : "1px solid var(--border-faint)", padding: "var(--space-3)", verticalAlign: "middle" };
+          const numCell = { ...tdBase, fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", textAlign: "right", fontSize: 13 };
+          const histCell = { ...numCell, color: "var(--text-muted)", fontWeight: 400 };
+          const nowCell = { ...numCell, color: "var(--text)", fontWeight: 500, fontSize: 14 };
+          return (
+            <tr key={c.catId} onClick={()=>{navTo("indicators"); setCatFilter(c.catId);}} style={{cursor:"pointer"}}>
+              <td style={{...tdBase, fontSize:13, color:"var(--text-muted)"}}>
+                <div style={{color:"var(--text)", fontWeight:500, fontSize:13, lineHeight:1.3}}>{c.label}</div>
+                <div style={{color:"var(--text-muted)", fontSize:12, marginTop:2}}>
+                  {c.indicatorCount} indicator{c.indicatorCount===1?"":"s"}
+                </div>
+              </td>
+              <td className="num" style={histCell}>{c.sc12M==null?"—":c.sc12M}</td>
+              <td className="num" style={histCell}>{c.sc6M ==null?"—":c.sc6M}</td>
+              <td className="num" style={histCell}>{c.sc1M ==null?"—":c.sc1M}</td>
+              <td className="num" style={nowCell}>{c.sc100==null?"—":c.sc100}</td>
+              <td style={{...tdBase, textAlign:"right"}}>
+                <span style={{
+                  display:"inline-flex", alignItems:"center",
+                  padding:"2px 8px", borderRadius:10,
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  letterSpacing:"0.08em", textTransform:"uppercase",
+                  border:`1px solid ${pill.color}`, color:pill.color,
+                }}>{pill.label}</span>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  );
+}
+
 const TAB_IDS=["home","overview","indicators","sectors","portopps","scanner","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
@@ -5937,70 +6012,7 @@ return(
 
         {/* Regime table — Category · 12M · 6M · 1M · Now · State */}
         <div style={{overflowX:"auto"}}>
-        <table style={{width:"100%", borderCollapse:"collapse"}}>
-          <thead>
-            <tr>
-              {(()=>{
-                const thBase={
-                  fontFamily:"var(--font-mono)", fontSize:10,
-                  color:"var(--text-dim)", letterSpacing:"0.12em", textTransform:"uppercase",
-                  padding:"var(--space-2) var(--space-3)",
-                  borderBottom:"1px solid var(--border-faint)", fontWeight:500,
-                };
-                const thRight={...thBase, textAlign:"right"};
-                return (<>
-                  <th style={{...thBase, textAlign:"left"}}>Category</th>
-                  <th style={thRight}>12M</th>
-                  <th style={thRight}>6M</th>
-                  <th style={thRight}>1M</th>
-                  <th style={thRight}>Now</th>
-                  <th style={{...thRight, width:110}}>State</th>
-                </>);
-              })()}
-            </tr>
-          </thead>
-          <tbody>
-            {buildCategoryOverview().map((c,i,arr) => {
-              const pill = regimePillCSS(c.regime);
-              const isLast = i === arr.length-1;
-              const tdBase={
-                borderBottom:isLast?"none":"1px solid var(--border-faint)",
-                padding:"var(--space-3)",
-                verticalAlign:"middle",
-              };
-              const numCell={
-                ...tdBase,
-                fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-                textAlign:"right", fontSize:13,
-              };
-              const histCell={...numCell, color:"var(--text-muted)", fontWeight:400};
-              const nowCell ={...numCell, color:"var(--text)",       fontWeight:500, fontSize:14};
-              return (
-              <tr key={c.catId} onClick={()=>{navTo("indicators"); setCatFilter(c.catId);}}
-                  style={{cursor:"pointer"}}>
-                <td style={{...tdBase, fontSize:13, color:"var(--text-muted)"}}>
-                  <div style={{color:"var(--text)", fontWeight:500, fontSize:13, lineHeight:1.3}}>{c.label}</div>
-                  <div style={{color:"var(--text-muted)", fontSize:12, marginTop:2}}>
-                    {c.indicatorCount} indicator{c.indicatorCount===1?"":"s"}
-                  </div>
-                </td>
-                <td className="num" style={histCell}>{c.sc12M==null?"—":c.sc12M}</td>
-                <td className="num" style={histCell}>{c.sc6M ==null?"—":c.sc6M}</td>
-                <td className="num" style={histCell}>{c.sc1M ==null?"—":c.sc1M}</td>
-                <td className="num" style={nowCell}>{c.sc100==null?"—":c.sc100}</td>
-                <td style={{...tdBase, textAlign:"right"}}>
-                  <span style={{
-                    display:"inline-flex", alignItems:"center",
-                    padding:"2px 8px", borderRadius:10,
-                    fontFamily:"var(--font-mono)", fontSize:10,
-                    letterSpacing:"0.08em", textTransform:"uppercase",
-                    border:`1px solid ${pill.color}`, color:pill.color,
-                  }}>{pill.label}</span>
-                </td>
-              </tr>);
-            })}
-          </tbody>
-        </table>
+        <RegimeCategoryTable rows={buildCategoryOverview()} regimePillCSS={regimePillCSS} navTo={navTo} setCatFilter={setCatFilter}/>
         </div>
 
         {/* Editorial commentary — threshold-gated; renders nothing when
