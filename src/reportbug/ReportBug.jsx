@@ -226,13 +226,37 @@ function ReportBugModal({ onClose, precaptureBlob, onRetake }) {
         console_errors: getRecentConsoleErrors(),
       };
 
-      const { data: inserted, error: insertErr } = await supabase
-        .from("bug_reports")
-        .insert(payload)
-        .select("id, report_number")
-        .single();
+      // Submit via SECURITY DEFINER RPC instead of direct table insert.
+      // Background: 2026-04-25 the public-insert path on bug_reports was
+      // returning 42501 (RLS denial) for both anon and authenticated REST
+      // calls — the failure persisted even after recreating the policy
+      // with WITH CHECK (true) and the right roles, so root cause sits
+      // somewhere outside the policy itself. The RPC sidesteps it: it runs
+      // with elevated privileges, validates inputs, and fills user_id from
+      // auth.uid() server-side so the caller can\'t spoof someone else.
+      const { data: rpcData, error: insertErr } = await supabase.rpc(
+        "submit_bug_report",
+        {
+          p_reporter_email: payload.reporter_email,
+          p_description:    payload.description,
+          p_title:          payload.title,
+          p_url_hash:       payload.url_hash,
+          p_url_full:       payload.url_full,
+          p_user_agent:     payload.user_agent,
+          p_viewport:       payload.viewport,
+          p_build_sha:      payload.build_sha,
+          p_console_errors: payload.console_errors,
+          p_reporter_name:  payload.reporter_name,
+        }
+      );
 
       if (insertErr) throw insertErr;
+      // RPC returns a SETOF (id, report_number) — supabase-js delivers it
+      // as an array. Take the first row.
+      const inserted = Array.isArray(rpcData) ? rpcData[0] : rpcData;
+      if (!inserted || !inserted.id) {
+        throw new Error("submit_bug_report returned no row");
+      }
       const reportId = inserted.id;
       const reportNumber = inserted.report_number;
 
