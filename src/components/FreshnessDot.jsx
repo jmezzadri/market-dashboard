@@ -95,16 +95,20 @@ function buildTooltip(f) {
 // components can override via the onExplain prop (e.g. open a sheet).
 function defaultExplain() {
   if (typeof window === "undefined") return;
-  // Use the hash router pattern the rest of the app uses (`window.location.hash = "readme"`)
-  // and append the freshness anchor so the README scrolls to the right place.
   window.location.hash = "readme";
-  // Defer the in-page anchor jump so the React tab swap completes first.
-  setTimeout(() => {
+  // Poll for the explainer anchor to render — React's tab swap + heavy
+  // page render isn't synchronous, so a fixed-timeout setTimeout regularly
+  // misses the element. Try every 50ms for up to 2 seconds.
+  const start = Date.now();
+  const tick = () => {
     const el = document.getElementById("freshness-explainer");
     if (el && typeof el.scrollIntoView === "function") {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
     }
-  }, 80);
+    if (Date.now() - start < 2000) setTimeout(tick, 50);
+  };
+  setTimeout(tick, 60);
 }
 
 export default function FreshnessDot({
@@ -163,7 +167,7 @@ export default function FreshnessDot({
       }}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      aria-label={`Data freshness: ${fresh.status}. ${tip}`}
+      aria-label={`Data freshness: ${derived.status}. ${tip}`}
       title={tip}
       style={{
         display: "inline-block",

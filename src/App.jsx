@@ -5893,7 +5893,7 @@ return(
       {/* 01 · Macro Overview */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview</h2>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
           <a style={cardLinkStyle} onClick={()=>navTo("overview")}>All indicators →</a>
         </div>
 
