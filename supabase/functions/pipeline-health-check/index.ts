@@ -180,8 +180,15 @@ async function handle(req: Request): Promise<Response> {
     const shouldAlert =
       !skipAlerts && wasGreen && nowRed && lastAlertAge >= ALERT_DEBOUNCE_HOURS;
 
+    // Include all NOT NULL columns (label, source, cadence, expected_cadence_minutes)
+    // — Supabase's upsert reuses INSERT semantics on conflict, so partial rows
+    // trip the column constraints even though the row already exists.
     updates.push({
       indicator_id: row.indicator_id,
+      label: row.label,
+      source: row.source,
+      cadence: row.cadence,
+      expected_cadence_minutes: row.expected_cadence_minutes,
       last_check_at: now.toISOString(),
       last_good_at: asOf ? new Date(asOf + "T00:00:00Z").toISOString() : row.last_good_at,
       last_error: lastError,
