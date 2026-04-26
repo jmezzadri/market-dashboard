@@ -5352,7 +5352,7 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","sectors","portopps","scanner","readme","admin","bugs","lab"];
+const TAB_IDS=["home","overview","indicators","sectors","allocation","portopps","scanner","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
@@ -5397,13 +5397,13 @@ const {isAdmin, loading:adminLoading}=useIsAdmin();
 // router previously bounced silently to /#home: /#today-macro is the
 // natural deep-link to the macro-overview composites tab; /#positions and
 // /#watchlist are the two halves of /#portopps; /#asset-allocation is the
-// in-development tab (lands on /#home until that page ships).
+// /#asset-allocation is the natural deep-link to the Asset Allocation tab (v9, shipped 2026-04-25).
 const HASH_ALIASES={
   "portfolio":"portopps",
   "today-macro":"overview",
   "positions":"portopps",
   "watchlist":"portopps",
-  "asset-allocation":"home",
+  "asset-allocation":"allocation",
 };
 const resolveHash=(raw)=>{
   const h=(raw||"").slice(1).toLowerCase();
