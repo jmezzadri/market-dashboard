@@ -29,12 +29,12 @@ import { InfoTip } from "../InfoTip";
 
 // ─── Sector → industry group mapping (11 GICS sectors × 25 IGs) ─────────────
 const SECTOR_IG_MAP = [
-  { sector: "Info Tech",     groups: [
+  { sector: "Information Technology",     groups: [
       { name: "Semiconductors", ticker: "SOXX", rating: "ow" },
       { name: "Software",       ticker: "IGV",  rating: "mw" },
       { name: "Hardware",       ticker: null,   rating: "mw" },
   ]},
-  { sector: "Comm Svcs",     groups: [
+  { sector: "Communication Services",     groups: [
       { name: "Telecom & Media", ticker: "IYZ", rating: "ow" },
       { name: "Media",           ticker: null,  rating: "mw" },
   ]},
@@ -51,7 +51,7 @@ const SECTOR_IG_MAP = [
       { name: "Metals & Mining", ticker: "XLB", rating: "ow" },
       { name: "Chemicals",       ticker: null,  rating: "mw" },
   ]},
-  { sector: "Cons Disc",     groups: [
+  { sector: "Consumer Discretionary",     groups: [
       { name: "Retail", ticker: null, rating: "mw" },
       { name: "Autos",  ticker: null, rating: "uw" },
   ]},
@@ -64,7 +64,7 @@ const SECTOR_IG_MAP = [
       { name: "Pharma",  ticker: "XLV", rating: "uw" },
       { name: "Biotech", ticker: "IBB", rating: "uw" },
   ]},
-  { sector: "Cons Staples",  groups: [
+  { sector: "Consumer Staples",  groups: [
       { name: "Food",      ticker: "XLP", rating: "uw" },
       { name: "Household", ticker: null,  rating: "uw" },
   ]},
@@ -81,7 +81,7 @@ const RISK_SCENARIOS = [
   {
     trigger: "Real rates spike above 2.0%",
     impact: "Long-duration tech and homebuilders most exposed. The aggressive Semis tilt would compress fastest — a 50bp move in real rates has historically produced ~6% drawdown in IGV/SOXX over 30 days.",
-    tags: ["Semiconductors", "Software", "Cons Disc"],
+    tags: ["Semiconductors", "Software", "Consumer Discretionary"],
   },
   {
     trigger: "HY-IG credit spread widens past 250bp",
@@ -100,16 +100,24 @@ const RISK_SCENARIOS = [
   },
 ];
 
+
+// SPY sector weights (cap-weighted, approximate). Q1 2026 snapshot.
+const SPY_WEIGHTS = {
+  SOXX: 0.073, IGV: 0.115, IBB: 0.018, XLF: 0.133, XLV: 0.121,
+  XLI:  0.094, XLE: 0.037, XLY: 0.103, XLP: 0.062, XLU: 0.024,
+  XLB:  0.026, IYR: 0.026, IYZ: 0.094, MGK: 0.000,
+};
+
 // ─── Composite scoring helpers ──────────────────────────────────────────────
 // Match Today's Macro's framing: lower = lower drawdown probability = bullish.
 function classifyComposite(score) {
   // Match Today's Macro classification — at score -20 the dial shows NORMAL,
   // not CALM. The Quiet/Calm zone is reserved for the deep negative tail.
   if (score == null || isNaN(score)) return { state: "—", color: "var(--text-muted)", pillBg: "transparent", pillColor: "var(--text-muted)" };
-  if (score <= -50) return { state: "Quiet",    color: "var(--green)",  pillBg: "rgba(48,209,88,0.22)", pillColor: "#1c6f2c" };
-  if (score <= 50)  return { state: "Normal",   color: "var(--green)",  pillBg: "rgba(48,209,88,0.14)", pillColor: "#1c6f2c" };
-  if (score <= 75)  return { state: "Elevated", color: "var(--orange)", pillBg: "rgba(255,159,10,0.18)", pillColor: "#7a4a00" };
-  return { state: "Stressed", color: "var(--red)", pillBg: "rgba(255,69,58,0.18)", pillColor: "#7a1414" };
+  if (score <= -50) return { state: "Quiet",    color: "var(--green-text)",  pillBg: "rgba(48,209,88,0.22)", pillColor: "var(--green-text)" };
+  if (score <= 50)  return { state: "Normal",   color: "var(--green-text)",  pillBg: "rgba(48,209,88,0.14)", pillColor: "var(--green-text)" };
+  if (score <= 75)  return { state: "Elevated", color: "var(--orange-text)", pillBg: "rgba(255,159,10,0.18)", pillColor: "var(--orange-text)" };
+  return { state: "Stressed", color: "var(--red-text)", pillBg: "rgba(255,69,58,0.18)", pillColor: "var(--red-text)" };
 }
 
 function meterPosition(score) {
@@ -173,7 +181,7 @@ function MacroSnapCard({ name, window, score, current, deltaMo, deltaQt, drawdow
         <span style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, color: cls.color }}>{cls.state}</span>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--text-muted)" }}>{score == null ? "—" : score.toFixed(0)}</span>
       </div>
-      <div style={{ height: 5, borderRadius: 3, position: "relative", background: "linear-gradient(to right, var(--green) 0%, var(--green) 33%, var(--border) 33%, var(--border) 66%, var(--orange) 66%, var(--orange) 84%, var(--red) 84%, var(--red) 100%)" }}>
+      <div style={{ height: 5, borderRadius: 3, position: "relative", background: "linear-gradient(to right, var(--green-text) 0%, var(--green-text) 33%, var(--yellow-text) 33%, var(--yellow-text) 66%, var(--orange-text) 66%, var(--orange-text) 84%, var(--red-text) 84%, var(--red-text) 100%)", opacity: 0.6 }}>
         <div style={{ position: "absolute", top: -2, width: 2, height: 9, background: "var(--text)", left: `${meterPosition(score)}%` }}/>
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
@@ -195,13 +203,13 @@ function MacroSnapCard({ name, window, score, current, deltaMo, deltaQt, drawdow
 
 function RatingPill({ rating, size = "sm" }) {
   const map = {
-    ow: { label: "Overweight", bg: "rgba(48,209,88,0.18)", color: "#1c6f2c" },
-    mw: { label: "Mkt Wt",     bg: "rgba(184,134,11,0.18)", color: "#6b4a00" },
-    uw: { label: "Underweight", bg: "rgba(255,69,58,0.18)", color: "#7a1414" },
-    upgrade:   { label: "Upgrade",   bg: "rgba(48,209,88,0.18)",  color: "#1c6f2c" },
-    downgrade: { label: "Downgrade", bg: "rgba(255,69,58,0.18)",  color: "#7a1414" },
-    increase:  { label: "Increase",  bg: "rgba(48,209,88,0.18)",  color: "#1c6f2c" },
-    exit:      { label: "Exit",      bg: "rgba(255,69,58,0.18)",  color: "#7a1414" },
+    ow: { label: "Overweight", bg: "rgba(48,209,88,0.18)", color: "var(--green-text)" },
+    mw: { label: "Market Weight",     bg: "rgba(184,134,11,0.18)", color: "var(--yellow-text)" },
+    uw: { label: "Underweight", bg: "rgba(255,69,58,0.18)", color: "var(--red-text)" },
+    upgrade:   { label: "Upgrade",   bg: "rgba(48,209,88,0.18)",  color: "var(--green-text)" },
+    downgrade: { label: "Downgrade", bg: "rgba(255,69,58,0.18)",  color: "var(--red-text)" },
+    increase:  { label: "Increase",  bg: "rgba(48,209,88,0.18)",  color: "var(--green-text)" },
+    exit:      { label: "Exit",      bg: "rgba(255,69,58,0.18)",  color: "var(--red-text)" },
   };
   const m = map[rating] || map.mw;
   return (
@@ -329,7 +337,7 @@ export default function AssetAllocation({ onOpenTicker }) {
   const [composites, setComposites]     = useState(null);
   const [rationales, setRationales]     = useState(null);
   const [history, setHistory]           = useState(null);
-  const [activeBucket, setActiveBucket] = useState({ sector: "Info Tech", name: "Semiconductors", ticker: "SOXX", rating: "ow" });
+  const [activeBucket, setActiveBucket] = useState({ sector: "Information Technology", name: "Semiconductors", ticker: "SOXX", rating: "ow" });
 
   useEffect(() => {
     fetch("/v9_allocation.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setAlloc).catch(() => setAlloc(null));
@@ -373,9 +381,9 @@ export default function AssetAllocation({ onOpenTicker }) {
     if (!macroSnap || !macroSnap.RL) return { label: "—", color: "var(--text-muted)", bg: "var(--surface)" };
     const rl = macroSnap.RL.score;
     // Stance derives from leverage in v9 (>1.05 = Aggressive). Override only on stress.
-    if (rl >= 50)  return { label: "Defensive", color: "#7a1414", bg: "rgba(255,69,58,0.18)" };
-    if (rl >= 30)  return { label: "Cautious",  color: "#7a4a00", bg: "rgba(255,159,10,0.18)" };
-    return { label: "Aggressive", color: "#1c6f2c", bg: "rgba(48,209,88,0.18)" };
+    if (rl >= 50)  return { label: "Defensive", color: "var(--red-text)", bg: "rgba(255,69,58,0.18)" };
+    if (rl >= 30)  return { label: "Cautious",  color: "var(--orange-text)", bg: "rgba(255,159,10,0.18)" };
+    return { label: "Aggressive", color: "var(--green-text)", bg: "rgba(48,209,88,0.18)" };
   }, [macroSnap]);
 
   // Hero KPI numbers from v9_allocation.json
@@ -388,6 +396,28 @@ export default function AssetAllocation({ onOpenTicker }) {
   // Picks for table 2 (allocation changes — stub data until allocation_history.json populates)
   const picks = alloc?.picks || [];
   const lastChange = picks.length ? picks[0]?.weight : null;
+
+  // Derived hero subtitle — never goes stale because it reads the live composites.
+  const heroSubtitle = useMemo(() => {
+    if (!macroSnap) return "Loading macro snapshot...";
+    const states = [macroSnap.RL?.score, macroSnap.GR?.score, macroSnap.IR?.score].map(classifyComposite);
+    const allBenign = states.every(x => x.state === "Calm" || x.state === "Normal" || x.state === "Quiet");
+    const anyStressed = states.some(x => x.state === "Stressed");
+    const elevatedCount = states.filter(x => x.state === "Elevated").length;
+    if (anyStressed) return "One or more composites in the stressed zone. Defensive sleeve activates.";
+    if (elevatedCount >= 2) return "Composites turning elevated. Trim cyclicals; watch stress thresholds.";
+    if (elevatedCount === 1) return "One composite in the elevated zone. Stay aggressive but monitor closely.";
+    if (allBenign) return "All three macro composites read benign. Risk-on conditions support overweighting cyclicals and using leverage.";
+    return "Mixed macro signals. Allocation tilts cyclical with normal leverage.";
+  }, [macroSnap]);
+
+  // Next rebalance date — computed live so the badge never goes stale.
+  const nextSaturdayStr = useMemo(() => {
+    const d = new Date();
+    const daysUntilSat = (6 - d.getDay() + 7) % 7 || 7;
+    d.setDate(d.getDate() + daysUntilSat);
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  }, []);
 
   // Loading state
   if (!alloc) {
@@ -407,7 +437,7 @@ export default function AssetAllocation({ onOpenTicker }) {
         background: "var(--surface-solid)",
         border: "1px solid var(--border-strong)",
         borderRadius: "var(--radius-lg)",
-        marginBottom: "var(--space-5)",
+        marginBottom: "var(--space-6)",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
           <div style={{ minWidth: 0, flex: "1 1 320px" }}>
@@ -416,7 +446,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               {stance.label} — {totalEquity > 1.05 ? "leaning into cyclical rotation" : totalEquity > 0.85 ? "balanced positioning" : "defensive posture"}
             </h1>
             <p style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 14, fontStyle: "italic", color: "var(--text-muted)", margin: 0 }}>
-              All three macro composites read benign. Risk-on conditions support overweighting cyclicals and using leverage.
+              {heroSubtitle}
             </p>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
@@ -425,8 +455,8 @@ export default function AssetAllocation({ onOpenTicker }) {
               {stance.label}
             </span>
             <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }}/>
-              Updated {alloc.as_of} · Next rebalance {alloc.methodology?.locked_at ? "Sat May 2" : "—"}
+              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green-text)" }}/>
+              Updated {alloc.as_of} · Next rebalance {nextSaturdayStr}
             </span>
           </div>
         </div>
@@ -437,7 +467,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               Total equity exposure
               <InfoTip def="The total dollars of equities held per $100 of capital, including borrowed dollars from margin. When this exceeds $100, the difference is leverage (e.g., $128 means 28% margin)." />
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green)", marginTop: 2 }}>${(totalEquity * 100).toFixed(0)}</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green-text)", marginTop: 2 }}>${(totalEquity * 100).toFixed(0)}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>per $100 capital · {(margin * 100).toFixed(0)}% margin</div>
           </div>
           <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
@@ -453,7 +483,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               Excess return target
               <InfoTip def="Expected outperformance versus the S&P 500 over the next month, after subtracting the financing cost on any margin used." />
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green)", marginTop: 2 }}>+{alpha.toFixed(2)} pp</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green-text)", marginTop: 2 }}>+{alpha.toFixed(2)} pp</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>monthly · over S&P 500</div>
           </div>
           <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
@@ -468,7 +498,7 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 1 — The Big Picture */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 10 }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>1 · The big picture</div>
@@ -492,7 +522,7 @@ export default function AssetAllocation({ onOpenTicker }) {
 
         {/* The What & The Why */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
-          <div style={{ padding: "14px 16px", background: "rgba(48,209,88,0.10)", borderLeft: "3px solid var(--green)", borderRadius: "var(--radius-md)" }}>
+          <div style={{ padding: "14px 16px", background: "color-mix(in srgb, var(--green-text) 18%, transparent)", borderLeft: "3px solid var(--green-text)", borderRadius: "var(--radius-md)" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 4 }}>The What</div>
             <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 17, fontWeight: 500, marginBottom: 8, lineHeight: 1.3 }}>
               Aggressive cyclical tilt with <span style={{ fontStyle: "italic", color: "var(--text-muted)" }}>${(margin * 100).toFixed(0)} of leverage</span> per $100 capital.
@@ -501,7 +531,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               All three macro composites read in the calm or normal zone with implied drawdown risk at or below historical baseline. The portfolio holds <strong style={{ fontWeight: 600 }}>${(totalEquity * 100).toFixed(0)} in equities</strong> with the defensive sleeve {defensiveOn ? "active" : "off"}, concentrated in {picks.length} overweights: {picks.map(p => p.name).join(", ")}.
             </div>
           </div>
-          <div style={{ padding: "14px 16px", background: "rgba(184,134,11,0.10)", borderLeft: "3px solid #B8860B", borderRadius: "var(--radius-md)" }}>
+          <div style={{ padding: "14px 16px", background: "color-mix(in srgb, var(--yellow-text) 18%, transparent)", borderLeft: "3px solid #B8860B", borderRadius: "var(--radius-md)" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 4 }}>The Why</div>
             <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 17, fontWeight: 500, marginBottom: 8, lineHeight: 1.3 }}>
               Real rates rolling over, curve steepening, credit spreads tight.
@@ -514,7 +544,7 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 2 — Recommended Asset Allocation */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>2 · Recommended Asset Allocation</div>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Three views: where we are, what changed, what flipped</h2>
@@ -552,7 +582,7 @@ export default function AssetAllocation({ onOpenTicker }) {
             </tr>
             <tr>
               <td style={{...tdStyle(), color: "var(--text-muted)"}}>Implied cash / (margin)</td>
-              <td style={tdRight()}><span style={{...dollarStyle(), color: "var(--text-muted)"}}>{margin > 0 ? `($${(margin * 100).toFixed(0)})` : `$0`}</span></td>
+              <td style={tdRight()}><span style={dollarStyle()}>{margin > 0 ? `($${(margin * 100).toFixed(0)})` : `$0`}</span></td>
               <td style={tdRight()}><HistCell value={history?.last_month?.cash_margin} loading={!history} /></td>
               <td style={tdRight()}><HistCell value={history?.last_quarter?.cash_margin} loading={!history} /></td>
             </tr>
@@ -617,7 +647,7 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 3 — Sector outlooks */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>3 · Sector outlooks &amp; target allocation</div>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>11 sectors · 25 industry groups · 3 ratings</h2>
@@ -650,15 +680,18 @@ export default function AssetAllocation({ onOpenTicker }) {
 
         <div style={{ display: "grid", gridTemplateColumns: "120px repeat(3, 1fr)", gap: 3, fontSize: 10 }}>
           <div style={{ padding: "6px 4px" }}/>
-          <div style={{ padding: "6px 4px", color: "var(--green)", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 10, textAlign: "center", fontWeight: 600 }}>Overweight</div>
+          <div style={{ padding: "6px 4px", color: "var(--green-text)", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 10, textAlign: "center", fontWeight: 600 }}>Overweight</div>
           <div style={{ padding: "6px 4px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 10, textAlign: "center", fontWeight: 600 }}>Market weight</div>
-          <div style={{ padding: "6px 4px", color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 10, textAlign: "center", fontWeight: 600 }}>Underweight</div>
+          <div style={{ padding: "6px 4px", color: "var(--red-text)", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 10, textAlign: "center", fontWeight: 600 }}>Underweight</div>
 
           {SECTOR_IG_MAP.map((row) => (
             <HeatmapRow key={row.sector} row={row} activeBucket={activeBucket} setActiveBucket={setActiveBucket} />
           ))}
         </div>
 
+        {activeBucket && activeBucket.ticker && !rationales && (
+          <div style={{ marginTop: 12, padding: 14, border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--surface-solid)", color: "var(--text-muted)", fontSize: 13, fontStyle: "italic" }}>Loading rationale for {activeBucket.name}…</div>
+        )}
         {activeBucket && activeBucket.ticker && rationales && (
           <DrillDownPanel
             ig={activeBucket}
@@ -666,13 +699,13 @@ export default function AssetAllocation({ onOpenTicker }) {
             onOpenTicker={onOpenTicker}
             onClose={() => setActiveBucket(null)}
             currentWeight={picks.find(p => p.ticker === activeBucket.ticker)?.weight || 0}
-            spyWeight={0.073}
+            spyWeight={activeBucket?.ticker ? (SPY_WEIGHTS[activeBucket.ticker] ?? null) : null}
           />
         )}
       </section>
 
       {/* Section 4 — Risk management */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>4 · Risk management</div>
@@ -680,7 +713,7 @@ export default function AssetAllocation({ onOpenTicker }) {
             <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Each scenario lists the trigger, the buckets exposed, and the mechanism.</p>
           </div>
           <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }}/>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green-text)" }}/>
             Stress 0/4 fired
           </span>
         </div>
@@ -697,7 +730,7 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Methodology summary + footer */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Methodology</div>
         <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>How this allocation is built — {alloc.methodology?.version || "v9"}</h2>
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.55 }}>Locked {alloc.methodology?.locked_at || "—"}. Each bucket is regressed on 2-6 macro factors (universal background factors: yield curve and term premium). Top 5 picks selected by combined indicator + 6-month-momentum rank, equal-weighted, scaled by leverage calibrated to the Risk &amp; Liquidity composite. Defensive sleeve (BIL/TLT/GLD/LQD) activates when R&amp;L moves into the elevated or stressed zone.</p>
@@ -715,12 +748,12 @@ export default function AssetAllocation({ onOpenTicker }) {
           </div>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Max drawdown</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4, color: "var(--red)" }}>{((alloc.methodology?.back_test_max_drawdown || 0) * 100).toFixed(1)}%</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4, color: "var(--red-text)" }}>{((alloc.methodology?.back_test_max_drawdown || 0) * 100).toFixed(1)}%</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>peak to trough</div>
           </div>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>vs S&P 500</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4, color: "var(--green)" }}>+{((alloc.methodology?.vs_spy_cagr_diff || 0) * 100).toFixed(1)}%/yr</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4, color: "var(--green-text)" }}>+{((alloc.methodology?.vs_spy_cagr_diff || 0) * 100).toFixed(1)}%/yr</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>excess return</div>
           </div>
         </div>
@@ -761,8 +794,8 @@ function HistCell({ value, loading }) {
 
 // ─── Side-by-side OW/UW table ───────────────────────────────────────────────
 function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect }) {
-  const accentColor = kind === "ow" ? "var(--green)" : "var(--red)";
-  const accentBg    = kind === "ow" ? "rgba(48,209,88,0.10)" : "rgba(255,69,58,0.10)";
+  const accentColor = kind === "ow" ? "var(--green-text)" : "var(--red-text)";
+  const accentBg    = kind === "ow" ? "color-mix(in srgb, var(--green-text) 14%, transparent)" : "color-mix(in srgb, var(--red-text) 14%, transparent)";
   return (
     <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden", background: "var(--bg)" }}>
       <div style={{ padding: "10px 14px", background: accentBg, borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
@@ -782,10 +815,8 @@ function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect })
           {rows.map((r, i) => {
             const pick = picks.find(p => p.ticker === r.ticker);
             const weight = pick?.weight || 0;
-            // Rough SPY weights (cap-weighted) for the buckets we actually track
-            const SPY_W = { SOXX: 0.073, IGV: 0.115, IBB: 0.018, XLF: 0.133, XLV: 0.121, XLI: 0.094, XLE: 0.037, XLY: 0.103, XLP: 0.062, XLU: 0.024, XLB: 0.026, IYR: 0.026, IYZ: 0.094, MGK: 0.0 };
-            const spyW = r.ticker ? (SPY_W[r.ticker] || 0) : 0;
-            const delta = weight - spyW;
+            const spyW = r.ticker ? (SPY_WEIGHTS[r.ticker] ?? 0) : 0;
+            const delta = (spyW > 0) ? (weight - spyW) : null;
             const seed = rationales?.buckets?.[r.ticker];
             const why = seed ? (seed.key_factors?.[0]?.name + " " + (seed.key_factors?.[0]?.value || "")) : "—";
             return (
@@ -820,7 +851,7 @@ function HeatmapRow({ row, activeBucket, setActiveBucket }) {
 
   const cellStyle = (color) => ({
     display: "flex", flexWrap: "wrap", gap: 3, padding: 4, borderRadius: 4, alignContent: "flex-start", minHeight: 30,
-    background: color === "ow" ? "rgba(48,209,88,0.10)" : color === "uw" ? "rgba(255,69,58,0.10)" : "rgba(184,134,11,0.08)",
+    background: color === "ow" ? "color-mix(in srgb, var(--green-text) 18%, transparent)" : color === "uw" ? "color-mix(in srgb, var(--red-text) 18%, transparent)" : "color-mix(in srgb, var(--yellow-text) 14%, transparent)",
   });
 
   return (
