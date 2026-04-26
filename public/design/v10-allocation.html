@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MacroTilt — Asset Allocation v10 (wireframe v2)</title>
+<title>MacroTilt — Asset Allocation v10 (wireframe v3)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -38,21 +38,19 @@
   --warn: #b8811c;
   --info: #2862c2;
 
-  --tier-ow:  #2f6f4a;     /* Overweight (was Most Favored) */
-  --tier-mw:  #9a9ea8;     /* Market Weight (was Neutral) */
-  --tier-uw:  #9d3545;     /* Underweight (was Least Favored) */
-  --tier-sow: #1d4a31;     /* Strong Overweight (granular) */
-  --tier-suw: #6e1d2a;     /* Strong Underweight (granular) */
+  --tier-sow: #1d4a31;
+  --tier-ow:  #2f6f4a;
+  --tier-mw:  #9a9ea8;
+  --tier-uw:  #9d3545;
+  --tier-suw: #6e1d2a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-body);
-  font-size: 16px;
-  line-height: 1.6;
-  color: var(--ink-0);
-  background: var(--bg-0);
+  font-size: 16px; line-height: 1.6;
+  color: var(--ink-0); background: var(--bg-0);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -79,15 +77,6 @@ h4 { font-size: 14px; font-weight: 600; font-family: var(--font-body);
 p { color: var(--ink-1); max-width: 68ch; }
 p strong { color: var(--ink-0); font-weight: 600; }
 
-.eyebrow {
-  font-family: var(--font-body);
-  font-size: 11px; font-weight: 600;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  color: var(--ink-2); display: inline-block;
-}
-.eyebrow .sep { color: var(--ink-3); margin: 0 var(--s-2); }
-
-/* Big section header with parchment rule and accent eyebrow */
 .section-eyebrow {
   font-family: var(--font-body); font-size: 12px; font-weight: 700;
   letter-spacing: 0.18em; text-transform: uppercase;
@@ -105,10 +94,10 @@ p strong { color: var(--ink-0); font-weight: 600; }
 .section-dek {
   font-family: var(--font-display); font-weight: 300; font-style: italic;
   font-size: clamp(16px, 1.6vw, 18px); line-height: 1.45;
-  color: var(--ink-2); max-width: 60ch; margin-top: var(--s-2);
+  color: var(--ink-2); max-width: 64ch; margin-top: var(--s-2);
 }
+.section-dek strong { color: var(--ink-1); font-weight: 500; font-style: normal; }
 
-/* Wireframe banner */
 .wf-banner {
   background: var(--bg-2); border-bottom: 1px solid var(--line-0);
   padding: var(--s-2) var(--s-4); font-size: 12px;
@@ -116,7 +105,6 @@ p strong { color: var(--ink-0); font-weight: 600; }
 }
 .wf-banner strong { color: var(--ink-0); }
 
-/* Top bar */
 .topbar {
   background: var(--bg-1); border-bottom: 1px solid var(--line-0);
   padding: var(--s-3) 0; position: sticky; top: 0; z-index: 50;
@@ -138,12 +126,11 @@ p strong { color: var(--ink-0); font-weight: 600; }
 .tabs a { color: var(--ink-2); }
 .tabs a.active { color: var(--ink-0); border-bottom: 2px solid var(--accent); padding-bottom: 4px; }
 
-/* Page shell */
 .shell {
   max-width: 1240px; margin: 0 auto; padding: var(--s-6) var(--s-4) var(--s-8);
 }
 
-/* ============= Section 1 — Hero with TOC top-right ============= */
+/* ========== Section 1 — Hero ========== */
 .hero { padding-bottom: var(--s-7); border-bottom: 1px solid var(--line-0); }
 .hero-grid {
   display: grid; grid-template-columns: 1.55fr 1fr;
@@ -159,21 +146,15 @@ p strong { color: var(--ink-0); font-weight: 600; }
   font-size: 12px; color: var(--ink-2); display: flex;
   flex-wrap: wrap; gap: var(--s-3); align-items: center;
 }
-.hero-asof .pulse {
-  width: 7px; height: 7px; background: var(--up); border-radius: 50%;
-  display: inline-block;
-}
+.hero-asof .pulse { width: 7px; height: 7px; background: var(--up); border-radius: 50%; display: inline-block; }
+.hero-asof .sep { color: var(--ink-3); }
 
-/* Table of contents card */
 .toc {
   background: var(--bg-1); border: 1px solid var(--line-0);
   border-radius: var(--r-lg); padding: var(--s-4);
   position: sticky; top: 88px;
 }
-.toc h4 {
-  margin-bottom: var(--s-3); font-size: 11px;
-  letter-spacing: 0.16em; color: var(--accent-deep);
-}
+.toc h4 { margin-bottom: var(--s-3); font-size: 11px; letter-spacing: 0.16em; color: var(--accent-deep); }
 .toc ol { list-style: none; padding: 0; counter-reset: toc; }
 .toc ol li {
   counter-increment: toc; padding: var(--s-2) 0;
@@ -185,12 +166,9 @@ p strong { color: var(--ink-0); font-weight: 600; }
   font-family: var(--font-mono); font-size: 11px;
   font-weight: 600; margin-right: var(--s-3);
 }
-.toc ol li a {
-  color: var(--ink-1); transition: color var(--motion-fast);
-}
+.toc ol li a { color: var(--ink-1); }
 .toc ol li a:hover { color: var(--ink-0); text-decoration: none; }
 
-/* Hero strip — 3 tiles */
 .hero-strip {
   display: grid; grid-template-columns: repeat(3, 1fr);
   gap: var(--s-3); margin-top: var(--s-6);
@@ -205,6 +183,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
   color: var(--ink-0); line-height: 1; margin-bottom: var(--s-2);
 }
 .tile .sub { font-size: 13px; color: var(--ink-2); }
+.tile .sub strong { color: var(--ink-1); font-weight: 500; }
 
 .stance-arc { display: flex; gap: 2px; margin-top: var(--s-3); }
 .stance-arc .seg {
@@ -219,14 +198,17 @@ p strong { color: var(--ink-0); font-weight: 600; }
   letter-spacing: 0.04em; text-transform: uppercase;
 }
 
-.meter-arc {
-  position: relative; width: 100%; height: 90px;
-  display: flex; align-items: center; justify-content: center;
+.eq-breakdown {
+  margin-top: var(--s-3); padding-top: var(--s-3);
+  border-top: 1px dashed var(--line-0);
+  font-size: 12px; color: var(--ink-2);
 }
-.meter-arc svg { width: 180px; height: 90px; }
-.meter-num {
-  position: absolute; bottom: 4px;
-  font-family: var(--font-display); font-size: 28px; color: var(--ink-0);
+.eq-breakdown .row {
+  display: flex; justify-content: space-between; padding: 2px 0;
+}
+.eq-breakdown .row .pip {
+  width: 8px; height: 8px; border-radius: 2px;
+  display: inline-block; margin-right: var(--s-2);
 }
 
 .macro-pills { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
@@ -242,17 +224,42 @@ p strong { color: var(--ink-0); font-weight: 600; }
 .macro-pill .dot.neutral { background: var(--ink-3); }
 .macro-pill .label { color: var(--ink-2); font-size: 12px; }
 
-/* ============= Section 2 — What changed and why (combined) ============= */
+/* ========== Section ========== */
 .section { padding: var(--s-7) 0; border-bottom: 1px solid var(--line-0); }
 .section:last-child { border-bottom: none; }
 .sec-head { margin-bottom: var(--s-5); }
+
+/* ========== Section 2 — What changed ========== */
+.changes-controls {
+  display: flex; align-items: center; gap: var(--s-3);
+  margin-bottom: var(--s-4); flex-wrap: wrap;
+}
+.changes-controls .count {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 16px; color: var(--ink-2);
+}
+.toggle-min {
+  display: inline-flex; background: var(--bg-2); border-radius: var(--r-md);
+  padding: 3px;
+}
+.toggle-min button {
+  background: transparent; border: none; padding: 5px 12px;
+  font-family: var(--font-body); font-size: 12px; color: var(--ink-2);
+  border-radius: var(--r-sm); cursor: pointer;
+  letter-spacing: 0.02em;
+}
+.toggle-min button.active {
+  background: var(--bg-1); color: var(--ink-0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
 
 .changes-stack { display: flex; flex-direction: column; gap: var(--s-3); margin-bottom: var(--s-6); }
 .change-block {
   background: var(--bg-1); border: 1px solid var(--line-0);
   border-radius: var(--r-lg); padding: var(--s-4) var(--s-5);
-  display: grid; grid-template-columns: auto 1fr;
-  gap: var(--s-3) var(--s-4); align-items: start;
+  display: grid;
+  grid-template-columns: 36px minmax(180px, 1fr) minmax(220px, 280px) 2fr;
+  gap: var(--s-3) var(--s-4); align-items: center;
 }
 .change-block .arrow {
   font-size: 20px; line-height: 1;
@@ -263,17 +270,33 @@ p strong { color: var(--ink-0); font-weight: 600; }
 .change-block.up .arrow { background: rgba(31, 157, 96, 0.12); color: var(--up); }
 .change-block.down .arrow { background: rgba(210, 48, 64, 0.10); color: var(--down); }
 .change-block.add .arrow { background: rgba(168, 122, 58, 0.16); color: var(--accent-deep); }
+.change-block.rm .arrow { background: rgba(20,20,18,0.06); color: var(--ink-2); }
 .change-block .change-name {
   font-family: var(--font-display); font-size: 22px;
   font-weight: 500; color: var(--ink-0); line-height: 1.1;
 }
-.change-block .change-move {
-  font-size: 12px; color: var(--ink-2); margin-top: 2px;
-  letter-spacing: 0.04em; text-transform: uppercase;
+.change-block .change-rating {
+  font-size: 11px; color: var(--ink-2); margin-top: 4px;
+  letter-spacing: 0.06em; text-transform: uppercase;
 }
+.change-block .change-numbers {
+  font-family: var(--font-mono);
+}
+.change-block .change-numbers .pair {
+  font-size: 14px; color: var(--ink-2);
+}
+.change-block .change-numbers .pair .from { color: var(--ink-3); }
+.change-block .change-numbers .pair .arr { color: var(--ink-3); margin: 0 6px; }
+.change-block .change-numbers .pair .to { color: var(--ink-0); font-weight: 500; }
+.change-block .change-numbers .delta {
+  font-size: 17px; font-weight: 500; margin-top: 2px;
+}
+.change-block.up .change-numbers .delta,
+.change-block.add .change-numbers .delta { color: var(--up); }
+.change-block.down .change-numbers .delta,
+.change-block.rm .change-numbers .delta { color: var(--down); }
 .change-block .change-driver {
-  grid-column: 2; font-size: 14px; color: var(--ink-1);
-  margin-top: var(--s-2);
+  font-size: 13px; color: var(--ink-1); line-height: 1.5;
 }
 .change-block .change-driver strong { color: var(--ink-0); }
 .change-block .driver-tag {
@@ -281,14 +304,18 @@ p strong { color: var(--ink-0); font-weight: 600; }
   letter-spacing: 0.1em; text-transform: uppercase;
   padding: 2px 6px; border-radius: 3px;
   background: var(--bg-3); color: var(--ink-1);
-  margin-right: var(--s-2);
+  margin-right: var(--s-1); margin-bottom: 4px;
 }
 .change-block .driver-tag.composite { background: rgba(168, 122, 58, 0.16); color: var(--accent-deep); }
+.change-block.minor { opacity: 0.85; padding: var(--s-3) var(--s-4); }
+.change-block.minor .change-name { font-size: 17px; }
+.change-block.minor .change-numbers .delta { font-size: 14px; }
+.change-block.minor .arrow { width: 28px; height: 28px; font-size: 14px; }
 
-/* Themes */
+/* themes */
 .themes-row {
   display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: var(--s-3);
+  gap: var(--s-3); margin-top: var(--s-5);
 }
 .theme-card {
   background: var(--bg-1); border: 1px solid var(--line-0);
@@ -300,26 +327,27 @@ p strong { color: var(--ink-0); font-weight: 600; }
   text-transform: none; letter-spacing: 0; font-size: 15px; font-weight: 600;
   font-family: var(--font-body);
 }
+.theme-card .spans {
+  font-size: 11px; font-family: var(--font-body);
+  font-weight: 600; letter-spacing: 0.06em;
+  color: var(--accent-deep); text-transform: uppercase;
+  margin-bottom: var(--s-2);
+}
 .theme-card p { font-size: 13px; margin: 0; }
 .themes-label {
   font-size: 12px; font-weight: 600; letter-spacing: 0.14em;
-  text-transform: uppercase; color: var(--ink-2); margin-bottom: var(--s-3);
+  text-transform: uppercase; color: var(--ink-2);
+  margin-top: var(--s-6);
 }
 
-/* ============= Section 3 — Sector outlooks ============= */
-.view-toggle {
-  display: inline-flex; background: var(--bg-2); border-radius: var(--r-md);
-  padding: 3px; gap: 0; margin-bottom: var(--s-4);
+/* ========== Section 3 — Recommendations ========== */
+.rec-controls {
+  display: flex; align-items: center; gap: var(--s-3);
+  margin-bottom: var(--s-4); flex-wrap: wrap;
 }
-.view-toggle button {
-  background: transparent; border: none; padding: 6px 14px;
-  font-family: var(--font-body); font-size: 13px; color: var(--ink-2);
-  border-radius: var(--r-sm); cursor: pointer;
-  transition: background var(--motion-fast), color var(--motion-fast);
-}
-.view-toggle button.active {
-  background: var(--bg-1); color: var(--ink-0);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+.rec-controls .label {
+  font-size: 12px; font-weight: 600; color: var(--ink-2);
+  letter-spacing: 0.06em; text-transform: uppercase;
 }
 
 .tier-row { margin-bottom: var(--s-5); }
@@ -329,10 +357,10 @@ p strong { color: var(--ink-0); font-weight: 600; }
   border-bottom: 1px solid var(--line-0);
 }
 .tier-label .pip { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
-.tier-label.ow .pip { background: var(--tier-ow); }
 .tier-label.sow .pip { background: var(--tier-sow); }
-.tier-label.mw .pip { background: var(--tier-mw); }
-.tier-label.uw .pip { background: var(--tier-uw); }
+.tier-label.ow .pip  { background: var(--tier-ow); }
+.tier-label.mw .pip  { background: var(--tier-mw); }
+.tier-label.uw .pip  { background: var(--tier-uw); }
 .tier-label.suw .pip { background: var(--tier-suw); }
 .tier-label .name {
   font-family: var(--font-display); font-size: 22px; font-weight: 500;
@@ -340,41 +368,108 @@ p strong { color: var(--ink-0); font-weight: 600; }
 }
 .tier-label .count { font-size: 12px; color: var(--ink-2); margin-left: auto; }
 
-.bucket-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--s-2);
+.rec-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--s-3);
 }
-.bucket-card {
+.rec-card {
   background: var(--bg-1); border: 1px solid var(--line-0);
   border-left: 3px solid var(--ink-3);
   border-radius: var(--r-md); padding: var(--s-3) var(--s-4);
   cursor: pointer;
-  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast);
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
 }
-.bucket-card:hover {
+.rec-card:hover {
   transform: translateY(-1px);
   box-shadow: 0 4px 14px rgba(0,0,0,0.06);
 }
-.bucket-card.ow { border-left-color: var(--tier-ow); }
-.bucket-card.sow { border-left-color: var(--tier-sow); }
-.bucket-card.mw { border-left-color: var(--tier-mw); }
-.bucket-card.uw { border-left-color: var(--tier-uw); }
-.bucket-card.suw { border-left-color: var(--tier-suw); }
-.bucket-card .name {
-  font-family: var(--font-body); font-size: 14px; font-weight: 600;
-  color: var(--ink-0); margin-bottom: var(--s-2);
+.rec-card.sow { border-left-color: var(--tier-sow); }
+.rec-card.ow  { border-left-color: var(--tier-ow); }
+.rec-card.mw  { border-left-color: var(--tier-mw); }
+.rec-card.uw  { border-left-color: var(--tier-uw); }
+.rec-card.suw { border-left-color: var(--tier-suw); }
+
+.rec-card .top {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: var(--s-2);
 }
-.bucket-card .primary {
-  font-family: var(--font-mono); font-size: 18px; font-weight: 500;
-  letter-spacing: -0.02em; color: var(--ink-0); margin-bottom: 2px;
+.rec-card .top .name {
+  font-family: var(--font-body); font-size: 15px; font-weight: 600;
+  color: var(--ink-0);
 }
-.bucket-card .primary.up { color: var(--up); }
-.bucket-card .primary.down { color: var(--down); }
-.bucket-card .primary.flat { color: var(--ink-2); }
-.bucket-card .secondary {
-  font-size: 11px; color: var(--ink-2); display: flex; gap: var(--s-2);
-  letter-spacing: 0.02em;
+.rec-card .top .tier-pill {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-2);
 }
+.rec-card .bet-row {
+  display: flex; align-items: center; gap: var(--s-3);
+  margin-bottom: var(--s-3);
+}
+.rec-card .bet-num {
+  font-family: var(--font-mono); font-size: 22px; font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.rec-card .bet-num.up { color: var(--up); }
+.rec-card .bet-num.down { color: var(--down); }
+.rec-card .bet-num.flat { color: var(--ink-2); }
+.rec-card .spark {
+  flex: 1; min-width: 0;
+}
+.rec-card .spark svg { width: 100%; height: 28px; display: block; }
+
+.rec-card .weights-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-2);
+  font-size: 11px; color: var(--ink-2);
+  padding-top: var(--s-2); border-top: 1px dashed var(--line-0);
+}
+.rec-card .weights-grid .lbl {
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-3); font-size: 9px; font-weight: 600;
+  margin-bottom: 2px;
+}
+.rec-card .weights-grid .val {
+  font-family: var(--font-mono); font-size: 13px; color: var(--ink-0);
+}
+
+.rec-card .footer {
+  display: flex; justify-content: space-between;
+  font-size: 11px; color: var(--ink-2);
+  margin-top: var(--s-2); padding-top: var(--s-2);
+  border-top: 1px dashed var(--line-0);
+}
+.rec-card .footer .pos { color: var(--up); }
+.rec-card .footer .neg { color: var(--down); }
+.rec-card .footer .neutral { color: var(--ink-3); }
+
+/* Table view */
+.alloc-table-wrap { background: var(--bg-1); border: 1px solid var(--line-0);
+  border-radius: var(--r-lg); padding: var(--s-4); }
+.alloc-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.alloc-table thead th {
+  text-align: left; padding: var(--s-2) var(--s-3);
+  font-size: 11px; font-weight: 600; color: var(--ink-2);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  border-bottom: 1px solid var(--line-1);
+  cursor: pointer; user-select: none;
+}
+.alloc-table thead th:hover { color: var(--ink-0); }
+.alloc-table thead th.num { text-align: right; }
+.alloc-table thead th .sort-arrow { color: var(--ink-3); margin-left: 4px; font-size: 10px; }
+.alloc-table thead th.sorted .sort-arrow { color: var(--accent-deep); }
+.alloc-table tbody td {
+  padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--line-0);
+  color: var(--ink-1);
+}
+.alloc-table tbody td.num { text-align: right; font-family: var(--font-mono); color: var(--ink-0); }
+.alloc-table tbody td.bucket { color: var(--ink-0); font-weight: 500; }
+.alloc-table tbody td .pip { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: var(--s-2); }
+.alloc-table tbody tr { cursor: pointer; }
+.alloc-table tbody tr:hover { background: var(--bg-2); }
+.alloc-table tr td.over { color: var(--up); font-weight: 600; }
+.alloc-table tr td.under { color: var(--down); font-weight: 600; }
+.alloc-table tr td.flat { color: var(--ink-3); }
 
 /* Drawer */
 .drawer-mask {
@@ -430,8 +525,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
   border-bottom: 1px dashed var(--line-0);
 }
 .drawer .etf-row {
-  display: flex; flex-wrap: wrap; gap: var(--s-2);
-  margin-top: var(--s-2);
+  display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2);
 }
 .drawer .etf-chip {
   font-family: var(--font-mono); font-size: 12px;
@@ -440,154 +534,8 @@ p strong { color: var(--ink-0); font-weight: 600; }
   color: var(--ink-0);
 }
 .drawer .etf-disclaimer {
-  font-size: 11px; color: var(--ink-3); font-style: italic;
-  margin-top: var(--s-2);
+  font-size: 11px; color: var(--ink-3); font-style: italic; margin-top: var(--s-2);
 }
-
-/* ============= Section 4 — Sector trends ============= */
-.trend-list {
-  background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-4); padding-top: var(--s-3);
-}
-.trend-list .trend-header {
-  display: grid;
-  grid-template-columns: 14px minmax(160px, 1.4fr) 1fr 80px 90px;
-  gap: var(--s-3); padding: var(--s-2) var(--s-2);
-  font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase; color: var(--ink-2);
-  border-bottom: 1px solid var(--line-1);
-}
-.trend-row {
-  display: grid;
-  grid-template-columns: 14px minmax(160px, 1.4fr) 1fr 80px 90px;
-  gap: var(--s-3); align-items: center;
-  padding: var(--s-2);
-  border-bottom: 1px solid var(--line-0);
-  font-size: 13px;
-}
-.trend-row:last-child { border-bottom: none; }
-.trend-row .pip { width: 12px; height: 12px; border-radius: 2px; }
-.trend-row .name { color: var(--ink-0); font-weight: 500; }
-.trend-row svg { width: 100%; height: 28px; }
-.trend-row .pct {
-  font-family: var(--font-mono); font-size: 13px;
-  text-align: right; font-weight: 500;
-}
-.trend-row .pct.up { color: var(--up); }
-.trend-row .pct.down { color: var(--down); }
-.trend-row .bet {
-  font-family: var(--font-mono); font-size: 12px;
-  text-align: right; color: var(--ink-2);
-}
-
-/* ============= Section 5 — Model portfolio ============= */
-.alloc-bar-chart {
-  background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-5); padding-top: var(--s-4);
-  margin-bottom: var(--s-4);
-}
-.alloc-bar-chart h4 {
-  text-transform: none; letter-spacing: 0; font-size: 14px;
-  color: var(--ink-1); font-weight: 500; margin-bottom: var(--s-2);
-  font-family: var(--font-body);
-}
-.alloc-bar-chart .legend-line {
-  display: flex; gap: var(--s-4); font-size: 12px; color: var(--ink-2);
-  margin-bottom: var(--s-4);
-}
-.alloc-bar-chart .legend-line .item { display: flex; align-items: center; gap: var(--s-1); }
-.alloc-bar-chart .legend-line .swatch {
-  width: 12px; height: 12px; border-radius: 2px;
-}
-.alloc-bar-chart .row {
-  display: grid;
-  grid-template-columns: minmax(170px, 200px) 1fr minmax(100px, 130px);
-  gap: var(--s-3); align-items: center;
-  padding: 6px 0;
-}
-.alloc-bar-chart .row .label {
-  font-size: 13px; color: var(--ink-0); font-weight: 500;
-  display: flex; align-items: center; gap: var(--s-2);
-}
-.alloc-bar-chart .row .label .pip { width: 8px; height: 8px; border-radius: 2px; }
-.alloc-bar-chart .row .bars {
-  display: flex; flex-direction: column; gap: 3px;
-}
-.alloc-bar-chart .row .bar-line {
-  display: flex; align-items: center; gap: var(--s-2); font-size: 11px;
-}
-.alloc-bar-chart .row .bar-line .lbl {
-  width: 36px; color: var(--ink-2); flex-shrink: 0;
-  letter-spacing: 0.04em; text-transform: uppercase; font-size: 9px; font-weight: 600;
-}
-.alloc-bar-chart .row .bar-line .bar-bg {
-  flex: 1; background: var(--bg-2); height: 14px; border-radius: 2px;
-  position: relative;
-}
-.alloc-bar-chart .row .bar-line .bar-fg {
-  height: 100%; border-radius: 2px;
-}
-.alloc-bar-chart .row .bar-line.target .bar-fg { background: var(--accent-deep); }
-.alloc-bar-chart .row .bar-line.spy .bar-fg { background: var(--ink-3); opacity: 0.7; }
-.alloc-bar-chart .row .bar-line .pct {
-  width: 44px; font-family: var(--font-mono); color: var(--ink-0);
-  font-size: 11px; text-align: right;
-}
-.alloc-bar-chart .row .delta {
-  text-align: right; font-family: var(--font-mono); font-size: 13px;
-  font-weight: 600;
-}
-.alloc-bar-chart .row .delta.over { color: var(--up); }
-.alloc-bar-chart .row .delta.under { color: var(--down); }
-.alloc-bar-chart .row .delta.flat { color: var(--ink-3); }
-
-/* Allocation table */
-.table-wrap {
-  background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-4); margin-bottom: var(--s-4);
-}
-.table-wrap h4 {
-  text-transform: none; letter-spacing: 0; font-size: 14px;
-  color: var(--ink-0); font-weight: 600; margin-bottom: var(--s-1);
-  font-family: var(--font-body);
-}
-.table-wrap .helper {
-  font-size: 12px; color: var(--ink-2); margin-bottom: var(--s-3);
-  line-height: 1.5;
-}
-.table-wrap .helper strong { color: var(--ink-0); font-weight: 600; }
-
-.alloc-table {
-  width: 100%; border-collapse: collapse; font-size: 13px;
-}
-.alloc-table thead th {
-  text-align: left; padding: var(--s-2) var(--s-3);
-  font-size: 11px; font-weight: 600; color: var(--ink-2);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  border-bottom: 1px solid var(--line-1);
-  cursor: pointer; user-select: none;
-}
-.alloc-table thead th:hover { color: var(--ink-0); }
-.alloc-table thead th.num { text-align: right; }
-.alloc-table thead th .sort-arrow { color: var(--ink-3); margin-left: 4px; font-size: 10px; }
-.alloc-table thead th.sorted .sort-arrow { color: var(--accent-deep); }
-.alloc-table tbody td {
-  padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--line-0);
-  color: var(--ink-1);
-}
-.alloc-table tbody td.num { text-align: right; font-family: var(--font-mono); color: var(--ink-0); }
-.alloc-table tbody td.bucket { color: var(--ink-0); font-weight: 500; }
-.alloc-table tbody td .pip { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: var(--s-2); }
-.alloc-table tr.over .delta-col { color: var(--up); font-weight: 600; }
-.alloc-table tr.under .delta-col { color: var(--down); font-weight: 600; }
-.alloc-table tr.flat .delta-col { color: var(--ink-3); }
-
-.tactics {
-  background: var(--bg-2); border-radius: var(--r-lg);
-  padding: var(--s-4) var(--s-5); margin-top: var(--s-4);
-  font-size: 14px; color: var(--ink-1);
-}
-.tactics strong { color: var(--ink-0); }
 
 /* Risks */
 .risk-list { display: flex; flex-direction: column; gap: var(--s-3); }
@@ -607,7 +555,6 @@ p strong { color: var(--ink-0); font-weight: 600; }
   border-top: 1px dashed var(--line-0); font-style: italic;
 }
 
-/* Bottom strip */
 .bottom-strip {
   display: flex; gap: var(--s-3); flex-wrap: wrap;
   padding: var(--s-5) 0; border-top: 1px solid var(--line-0);
@@ -623,34 +570,28 @@ p strong { color: var(--ink-0); font-weight: 600; }
 .bottom-strip a:hover { background: var(--bg-3); text-decoration: none; }
 .bottom-strip .right { margin-left: auto; color: var(--ink-3); font-size: 12px; }
 
-/* Mobile */
 @media (max-width: 980px) {
   .hero-grid { grid-template-columns: 1fr; }
   .toc { position: static; }
   .hero-strip { grid-template-columns: 1fr; }
   .themes-row { grid-template-columns: 1fr; }
-  .trend-list .trend-header,
-  .trend-row {
-    grid-template-columns: 14px 1fr 70px 80px;
-  }
-  .trend-list .trend-header > :nth-child(3),
-  .trend-row > svg { display: none; }
-  .alloc-bar-chart .row { grid-template-columns: 1fr; gap: var(--s-1); }
+  .change-block { grid-template-columns: 36px 1fr; }
+  .change-block > .change-numbers,
+  .change-block > .change-driver { grid-column: 2; }
+  .rec-grid { grid-template-columns: 1fr; }
 }
 </style>
 </head>
 <body>
 
 <div class="wf-banner">
-  <strong>Wireframe v2</strong> · Asset Allocation v10 · Mock data ·
-  Click any sector card for the drill-down · This is a static preview; nothing here moves money.
+  <strong>Wireframe v3</strong> · Asset Allocation v10 · Mock data ·
+  Click any sector for the drill-down · 4 sections, redesigned per your feedback.
 </div>
 
 <header class="topbar">
   <div class="topbar-inner">
-    <div class="brand">
-      <span class="brand-mark"></span>MacroTilt
-    </div>
+    <div class="brand"><span class="brand-mark"></span>MacroTilt</div>
     <nav class="tabs">
       <a href="#">Today's Macro</a>
       <a href="#" class="active">Asset Allocation</a>
@@ -671,7 +612,6 @@ p strong { color: var(--ink-0); font-weight: 600; }
         <div class="section-eyebrow"><span class="num">01</span> The Big Picture</div>
         <h1>Aggressive equity tilt — leaning into AI infrastructure and energy discipline.</h1>
         <p class="dek">Macro composites are calm and growth is firming. The model is overweight equities, with a clear bias toward sectors that have both fundamental tailwinds and confirming price momentum.</p>
-
         <div class="hero-asof">
           <span class="pulse"></span>
           <span>As of <strong style="color:var(--ink-0)">April 25, 2026</strong></span>
@@ -686,9 +626,8 @@ p strong { color: var(--ink-0); font-weight: 600; }
         <h4>On this page</h4>
         <ol>
           <li><a href="#sec-bigpicture">The Big Picture</a></li>
-          <li><a href="#sec-changes">What Changed &amp; Why</a></li>
-          <li><a href="#sec-outlooks">Sector Outlooks</a></li>
-          <li><a href="#sec-portfolio">Model Portfolio</a></li>
+          <li><a href="#sec-changes">What Changed This Rebalance</a></li>
+          <li><a href="#sec-recommendations">Recommendations</a></li>
           <li><a href="#sec-risks">Risk Management</a></li>
         </ol>
       </aside>
@@ -698,29 +637,26 @@ p strong { color: var(--ink-0); font-weight: 600; }
       <div class="tile">
         <h4>Stance</h4>
         <div class="big">Aggressive</div>
-        <div class="sub">Risk-on. Equity-heavy. Defensive sleeves trimmed.</div>
+        <div class="sub">Risk-on. Equity-heavy.</div>
         <div class="stance-arc">
-          <div class="seg"></div>
-          <div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
           <div class="seg on-balanced"></div>
           <div class="seg on-aggressive"></div>
           <div class="seg on-aggressive"></div>
         </div>
-        <div class="stance-labels">
-          <span>Defensive</span><span>Balanced</span><span>Aggressive</span>
-        </div>
+        <div class="stance-labels"><span>Defensive</span><span>Balanced</span><span>Aggressive</span></div>
       </div>
 
       <div class="tile">
-        <h4>Equity Exposure</h4>
-        <div class="meter-arc">
-          <svg viewBox="0 0 180 90" xmlns="http://www.w3.org/2000/svg">
-            <path d="M 10 80 A 80 80 0 0 1 170 80" fill="none" stroke="#eae6d8" stroke-width="10" stroke-linecap="round"/>
-            <path d="M 10 80 A 80 80 0 0 1 162 50" fill="none" stroke="#a87a3a" stroke-width="10" stroke-linecap="round"/>
-          </svg>
-          <span class="meter-num">86%</span>
+        <h4>Allocation Mix</h4>
+        <div class="big">86<span style="font-size:18px;color:var(--ink-2);"> / </span>14</div>
+        <div class="sub"><strong>Equity / Defensive ballast</strong>, in percent.</div>
+        <div class="eq-breakdown">
+          <div class="row"><span><span class="pip" style="background:var(--accent-deep)"></span>Equity (12 sector buckets)</span><span class="num">86%</span></div>
+          <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Cash &amp; T-bills</span><span class="num">8%</span></div>
+          <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Short-duration treasuries</span><span class="num">4%</span></div>
+          <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Gold</span><span class="num">2%</span></div>
         </div>
-        <div class="sub">Equity sleeve · 14% in defensive ballast</div>
       </div>
 
       <div class="tile">
@@ -745,179 +681,99 @@ p strong { color: var(--ink-0); font-weight: 600; }
   </section>
 
   <!-- ============================================================
-       SECTION 2 — WHAT CHANGED AND WHY (combined)
+       SECTION 2 — WHAT CHANGED THIS REBALANCE
        ============================================================ -->
   <section class="section" id="sec-changes">
     <div class="sec-head">
-      <div class="section-eyebrow"><span class="num">02</span> What Changed &amp; Why</div>
-      <h2>Four moves this rebalance — each tied to a specific driver.</h2>
-      <p class="section-dek">A quick read on what we changed in the model portfolio since the last rebalance, the macro signal that triggered each move, and the broader themes those moves fit into.</p>
+      <div class="section-eyebrow"><span class="num">02</span> What Changed This Rebalance</div>
+      <h2>Eight moves vs last week, sorted by size.</h2>
+      <p class="section-dek">Each card shows the new target weight, the prior weight, and the percentage-point change. Numbers are <strong>recommended weights</strong>, not return forecasts.</p>
     </div>
 
-    <div class="changes-stack">
-      <div class="change-block up">
-        <div class="arrow">&uarr;</div>
-        <div>
-          <div class="change-name">Energy</div>
-          <div class="change-move">Market Weight &rarr; Strong Overweight · +5.3% of portfolio</div>
-        </div>
-        <div class="change-driver">
-          <span class="driver-tag">WTI level</span><span class="driver-tag">Capex/revenue</span>
-          <strong>Crude held above $80/bbl</strong> for the third consecutive month while U.S. producers kept capex flat — meaning cash flow without the overinvestment trap that ended prior cycles. Rig count is steady. Sector earnings revisions are positive for the first time since 2022.
-        </div>
-      </div>
-
-      <div class="change-block add">
-        <div class="arrow">+</div>
-        <div>
-          <div class="change-name">Capital Markets</div>
-          <div class="change-move">Added · Strong Overweight · +4.2% of portfolio</div>
-        </div>
-        <div class="change-driver">
-          <span class="driver-tag composite">R&amp;L composite</span><span class="driver-tag">M&amp;A volume</span>
-          <strong>Risk &amp; Liquidity composite improved 11 points QoQ</strong> as credit spreads tightened and short-end funding eased. M&amp;A spreads at multi-year tights and IPO pipeline reopening — the fee businesses geared into a recovery the macro composites are calling.
-        </div>
-      </div>
-
-      <div class="change-block down">
-        <div class="arrow">&darr;</div>
-        <div>
-          <div class="change-name">Consumer Staples</div>
-          <div class="change-move">Overweight &rarr; Underweight · &minus;2.2% of portfolio</div>
-        </div>
-        <div class="change-driver">
-          <span class="driver-tag">Defensive premium</span><span class="driver-tag composite">Growth composite</span>
-          <strong>Defensive P/E premium has compressed</strong> — Staples has been bid up over the cycle and now trades rich relative to its earnings growth. With Growth composite firming at +3.2, the model doesn't need to pay up for safety.
-        </div>
-      </div>
-
-      <div class="change-block down">
-        <div class="arrow">&minus;</div>
-        <div>
-          <div class="change-name">Real Estate</div>
-          <div class="change-move">Removed from picks · Underweight · &minus;1.0% of portfolio</div>
-        </div>
-        <div class="change-driver">
-          <span class="driver-tag">10y yield</span><span class="driver-tag">CRE delinquencies</span>
-          <strong>Rates path is no longer trending lower.</strong> 10-year yield is range-bound near 4.5%. Commercial real-estate delinquencies still elevated. The model removes Real Estate from picks; will re-engage if 10y breaks below 4%.
-        </div>
+    <div class="changes-controls">
+      <span class="count" id="changesCount">&mdash; changes shown</span>
+      <span style="margin-left:auto"></span>
+      <span style="font-size:12px;color:var(--ink-2);font-weight:600;letter-spacing:0.06em;text-transform:uppercase;">Filter</span>
+      <div class="toggle-min" id="changesFilter">
+        <button class="active" data-mode="material">Material moves only</button>
+        <button data-mode="all">All changes</button>
       </div>
     </div>
 
-    <div class="themes-label">Broader themes underneath these moves</div>
+    <div class="changes-stack" id="changesStack"></div>
+
+    <div class="themes-label">Themes underneath these moves</div>
     <div class="themes-row">
       <div class="theme-card">
-        <h4>AI infrastructure</h4>
-        <p>Capex cycle still expanding. Semiconductors, cloud-data names, and the power feeders behind them all rate Strong Overweight or Overweight.</p>
+        <h4>Cyclical revival</h4>
+        <div class="spans">Banks &amp; Insurance · Capital Markets · Industrials</div>
+        <p>R&amp;L composite improved 11 points QoQ. Yield curve no longer inverted. The same regime improvement is driving three different overweights — fee businesses, lenders, and goods producers.</p>
       </div>
       <div class="theme-card">
-        <h4>Energy discipline</h4>
-        <p>U.S. producers holding capex flat and returning cash. Crude steady above $80 means cash flow without the overinvestment trap.</p>
+        <h4>Tech platform durability</h4>
+        <div class="spans">Software · Communication Services</div>
+        <p>AI capex is the visible story but the deeper one is mega-cap cash generation. Both buckets are net-margin-resilient and earnings-revision positive — different mechanics, same conclusion.</p>
       </div>
       <div class="theme-card">
-        <h4>Re-shoring industrials</h4>
-        <p>Automation, machinery, and electrical equipment continue to benefit from supply-chain repatriation and IRA spending.</p>
+        <h4>Rate-sensitive de-rating</h4>
+        <div class="spans">Real Estate · Utilities · Consumer Staples</div>
+        <p>10y rangebound near 4.5% breaks the bond-proxy thesis for two of these and removes the safety premium on the third. All three were funding sources for our cyclical overweights.</p>
       </div>
     </div>
   </section>
 
   <!-- ============================================================
-       SECTION 3 — SECTOR OUTLOOKS
+       SECTION 3 — RECOMMENDATIONS (consolidated)
        ============================================================ -->
-  <section class="section" id="sec-outlooks">
+  <section class="section" id="sec-recommendations">
     <div class="sec-head">
-      <div class="section-eyebrow"><span class="num">03</span> Sector Outlooks</div>
-      <h2>Recommendations across all 12 sector buckets.</h2>
-      <p class="section-dek">The model rates every sector relative to the S&amp;P 500. Numbers shown are <strong>active bets in basis points (bp)</strong> — how much we recommend over- or under-weighting vs the benchmark. 100 bp = 1.00% of portfolio.</p>
-    </div>
-
-    <div class="view-toggle" id="viewToggle">
-      <button class="active" data-view="headline">Headline (3 tiers)</button>
-      <button data-view="granular">Granular (5 tiers)</button>
-    </div>
-
-    <div id="ratingsBlock"></div>
-
-    <p style="font-size:12px;color:var(--ink-2);margin-top:var(--s-3);">
-      <em>Click any sector to see why it's rated this way, the factors driving it, the industry groups inside, and example ETFs to express it.</em>
-    </p>
-  </section>
-
-  <!-- ============================================================
-       SECTION 4 — SECTOR TRENDS (replaces composite trajectory)
-       ============================================================ -->
-  <section class="section" id="sec-trends">
-    <div class="sec-head">
-      <div class="section-eyebrow"><span class="num">04</span> Sector Trends</div>
-      <h2>How each sector has moved over the last 6 months.</h2>
-      <p class="section-dek">Trailing 6-month total return for each sector, sorted from best to worst. The colored pip on the left shows our current rating — which lets you see whether our overweights are confirmed by recent price action.</p>
-    </div>
-
-    <div class="trend-list">
-      <div class="trend-header">
-        <span></span>
-        <span>Sector</span>
-        <span>6-month trend</span>
-        <span style="text-align:right;">6mo return</span>
-        <span style="text-align:right;">Active bet</span>
-      </div>
-      <div id="trendBody"></div>
-    </div>
-  </section>
-
-  <!-- ============================================================
-       SECTION 5 — MODEL PORTFOLIO
-       ============================================================ -->
-  <section class="section" id="sec-portfolio">
-    <div class="sec-head">
-      <div class="section-eyebrow"><span class="num">05</span> Model Portfolio</div>
-      <h2>Target weights vs S&amp;P 500.</h2>
-      <p class="section-dek">Side-by-side comparison: what we recommend you hold (Target) vs what the S&amp;P 500 holds (Benchmark). The right column shows the active bet in percent of portfolio — the gap that expresses our view.</p>
-    </div>
-
-    <div class="alloc-bar-chart">
-      <h4>Sector-level weights · sorted by active bet</h4>
-      <div class="legend-line">
-        <div class="item"><span class="swatch" style="background:var(--accent-deep)"></span>Target portfolio</div>
-        <div class="item"><span class="swatch" style="background:var(--ink-3); opacity:0.7;"></span>S&amp;P 500</div>
-      </div>
-      <div id="barsBody"></div>
-    </div>
-
-    <div class="table-wrap">
-      <h4>Allocation detail</h4>
-      <p class="helper">
-        12 sector-level buckets covering 99% of S&amp;P 500. <strong>Target %</strong> is what we recommend holding; <strong>S&amp;P %</strong> is the benchmark; <strong>Active</strong> is the difference (positive = overweight, negative = underweight). <strong>MoM Δ%</strong> is how much our target weight changed since last month, in percent of portfolio. Click any column header to sort.
+      <div class="section-eyebrow"><span class="num">03</span> Recommendations</div>
+      <h2>All 12 sector buckets, organized by rating.</h2>
+      <p class="section-dek">
+        <strong>Active bet</strong> is how much we recommend over- or under-weighting each sector vs the S&amp;P 500, in basis points (100 bp = 1.00% of portfolio). The mini-chart shows trailing 6-month return — green if up, red if down — so you can see whether recent price action confirms the model's view. Click any card for the rationale, key factors, industry groups, and example ETFs.
       </p>
-      <table class="alloc-table" id="allocTable">
-        <thead>
-          <tr>
-            <th data-sort="name">Bucket <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-            <th data-sort="rating">Rating <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-            <th data-sort="targetPct" class="num">Target % <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-            <th data-sort="spyPct" class="num">S&amp;P % <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-            <th data-sort="activeBp" class="num sorted">Active bp <span class="sort-arrow">&#x25BE;</span></th>
-            <th data-sort="momPctDelta" class="num">MoM Δ% <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
     </div>
 
-    <div class="tactics">
-      <strong>How to express it.</strong> Use broad sector ETFs for liquidity. Avoid single-name
-      concentration &mdash; the model rates the bucket, not the security inside it. For active bets larger
-      than 200 basis points (Energy, Capital Markets, Software), consider phasing in over two weeks to
-      manage execution. Rebalance quarterly absent a regime change.
+    <div class="rec-controls">
+      <span class="label">View</span>
+      <div class="toggle-min" id="viewToggle">
+        <button class="active" data-view="cards">Cards</button>
+        <button data-view="table">Table</button>
+      </div>
+      <span class="label" style="margin-left:var(--s-3)">Detail</span>
+      <div class="toggle-min" id="tierToggle">
+        <button class="active" data-tier="5">5 tiers</button>
+        <button data-tier="3">3 tiers</button>
+      </div>
+    </div>
+
+    <div id="cardsView"></div>
+    <div id="tableView" style="display:none;">
+      <div class="alloc-table-wrap">
+        <table class="alloc-table" id="allocTable">
+          <thead>
+            <tr>
+              <th data-sort="name">Bucket <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+              <th data-sort="rating5">Rating <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+              <th data-sort="targetPct" class="num">Target % <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+              <th data-sort="spyPct" class="num">S&amp;P % <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+              <th data-sort="activeBp" class="num sorted">Active bp <span class="sort-arrow">&#x25BE;</span></th>
+              <th data-sort="momPctDelta" class="num">vs Last Week <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+              <th data-sort="sixMoReturn" class="num">6mo return <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
     </div>
   </section>
 
   <!-- ============================================================
-       SECTION 6 — RISK MANAGEMENT
+       SECTION 4 — RISK MANAGEMENT
        ============================================================ -->
   <section class="section" id="sec-risks">
     <div class="sec-head">
-      <div class="section-eyebrow"><span class="num">06</span> Risk Management</div>
+      <div class="section-eyebrow"><span class="num">04</span> Risk Management</div>
       <h2>What could break this view.</h2>
       <p class="section-dek">The four scenarios that would flip the model's recommendation. Each has a Trigger (the macro condition that would fire it) and an Alternate (where the portfolio would move).</p>
     </div>
@@ -926,7 +782,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
       <div class="risk-card">
         <h4>Crude breaks below $70/bbl</h4>
         <p class="trigger">Energy goes from cash machine to capital trap. Cash flow turns vulnerable; capital discipline narrative collapses.</p>
-        <p class="alt">Alternate: rotate Energy back to Market Weight, add weight to Health Care and Staples for defensive carry.</p>
+        <p class="alt">Alternate: rotate Energy back to Market Weight, add to Health Care and Staples for defensive carry.</p>
       </div>
       <div class="risk-card">
         <h4>Credit spreads widen &gt; 100 bp in two weeks</h4>
@@ -959,7 +815,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
 
 </div>
 
-<!-- Drawer (drill-down) -->
+<!-- Drawer -->
 <div class="drawer-mask" id="drawerMask"></div>
 <aside class="drawer" id="drawer">
   <button class="drawer-close" aria-label="Close" id="drawerClose">&times;</button>
@@ -990,153 +846,212 @@ p strong { color: var(--ink-0); font-weight: 600; }
 </aside>
 
 <script>
-/* ============================================================
-   v10 ALLOCATION fixture (mirrors v10 schema with v2 additions)
-   ============================================================ */
+/* Mock v10 allocation — every bucket has priorTargetPct (last week's weight). */
 const ALLOCATION = [
-  { name: "Software", tier5: "sow", tier3: "ow",
-    rating5: "Strong Overweight", rating3: "Overweight",
-    targetPct: 16.0, spyPct: 11.5, activeBp: 450, momPctDelta: 0.5,
-    sixMoReturn: 0.084, trendPath: [0.0, 1.5, 2.8, 4.2, 6.1, 7.5, 8.4],
-    rationale: "AI infrastructure capex still expanding and price momentum confirming. Multivariate regression shows ISM, semis cycle index, and Growth composite as the dominant drivers — all three pointing the right way.",
-    factors: [{name:"ISM New Orders", z:"+1.4"},{name:"Semis cycle (SOX/SPX)", z:"+1.1"},{name:"Growth composite", z:"+0.7"},{name:"Earnings revision breadth", z:"+0.9"}],
-    igs: ["Software & Services","IT Services","Cloud platforms"],
-    etfs: ["XLK","VGT","IGV"],
-    tactical: "Bucket is rich on absolute valuation but momentum + growth signal both align. Hold to Strong Overweight unless ISM rolls over." },
-  { name: "Energy", tier5: "sow", tier3: "ow",
-    rating5: "Strong Overweight", rating3: "Overweight",
-    targetPct: 9.5, spyPct: 4.2, activeBp: 530, momPctDelta: 5.3,
-    sixMoReturn: 0.122, trendPath: [0.0, 1.0, 3.5, 5.5, 7.8, 10.3, 12.2],
-    rationale: "Capital discipline holding for the third consecutive year. Crude steady above $80/bbl plus a tightening rig count means cash flow without the overinvestment trap that ended prior cycles.",
-    factors: [{name:"WTI level", z:"+1.0"},{name:"Rig count delta", z:"+0.6"},{name:"Capex/revenue (sector)", z:"-0.8 (good)"},{name:"Inventories vs 5y avg", z:"-0.4"}],
-    igs: ["Oil & Gas E&P","Integrated Oil & Gas","Energy Equipment & Services"],
-    etfs: ["XLE","VDE","XOP"],
-    tactical: "Largest active bet in the portfolio. Phase in if adding new exposure. Watch crude $70 as kill-trigger." },
-  { name: "Capital Markets", tier5: "sow", tier3: "ow",
-    rating5: "Strong Overweight", rating3: "Overweight",
-    targetPct: 7.0, spyPct: 2.8, activeBp: 420, momPctDelta: 4.2,
-    sixMoReturn: 0.094, trendPath: [0.0, 0.8, 1.5, 3.5, 5.8, 8.0, 9.4],
-    rationale: "IPO pipeline reopening and M&A spreads tightening. Fee businesses geared into the recovery the macro composites are calling. Different factor map from Banks & Insurance — that's why we break it out.",
-    factors: [{name:"VIX (inverse)", z:"+1.2"},{name:"HY-IG spread (inverse)", z:"+0.9"},{name:"M&A volume delta", z:"+1.5"},{name:"R&L composite", z:"+1.1"}],
-    igs: ["Investment Banking & Brokerage","Asset Management & Custody"],
-    etfs: ["KCE","IAI"],
-    tactical: "New addition this cycle. Quality over breadth — bigger names with diversified fee streams." },
-  { name: "Industrials", tier5: "ow", tier3: "ow",
-    rating5: "Overweight", rating3: "Overweight",
-    targetPct: 11.0, spyPct: 8.4, activeBp: 260, momPctDelta: 1.0,
-    sixMoReturn: 0.066, trendPath: [0.0, 0.8, 1.8, 2.9, 4.2, 5.5, 6.6],
-    rationale: "Re-shoring tailwind plus IRA-related infrastructure spending. ISM finally above 50 confirms the macro backdrop is supportive.",
-    factors: [{name:"ISM Manufacturing", z:"+0.8"},{name:"PPI machinery", z:"+0.4"},{name:"Construction spending", z:"+0.6"}],
-    igs: ["Aerospace & Defense","Machinery","Electrical Equipment","Building Products"],
-    etfs: ["XLI","VIS"],
-    tactical: "Add on dips. Watch defense budget cycle for tail risk." },
-  { name: "Communication Services", tier5: "ow", tier3: "ow",
-    rating5: "Overweight", rating3: "Overweight",
-    targetPct: 9.5, spyPct: 8.6, activeBp: 90, momPctDelta: 0.0,
-    sixMoReturn: 0.052, trendPath: [0.0, 0.5, 1.4, 2.3, 3.5, 4.5, 5.2],
-    rationale: "Mega-cap platforms still doing the heavy lifting — cash generative, AI-adjacent, and resilient on margins.",
-    factors: [{name:"Mega-cap earnings revisions", z:"+1.0"},{name:"Ad-spend index", z:"+0.5"},{name:"Subscriber growth", z:"+0.3"}],
-    igs: ["Interactive Media & Services","Diversified Telecom","Entertainment"],
-    etfs: ["XLC","VOX"],
-    tactical: "Concentration risk. Flat to small overweight." },
-  { name: "Banks & Insurance", tier5: "ow", tier3: "ow",
-    rating5: "Overweight", rating3: "Overweight",
-    targetPct: 10.0, spyPct: 9.6, activeBp: 40, momPctDelta: 0.5,
-    sixMoReturn: 0.045, trendPath: [0.0, 0.5, 1.2, 2.0, 2.8, 3.7, 4.5],
-    rationale: "Yield curve no longer inverted. Net-interest-margin expansion thesis intact for regional and money-center banks. Credit costs contained.",
-    factors: [{name:"Yield curve slope (10y-2y)", z:"+0.7"},{name:"Loan growth YoY", z:"+0.4"},{name:"Non-performing loan ratio", z:"-0.3 (good)"}],
-    igs: ["Banks","Insurance","Consumer Finance"],
-    etfs: ["XLF","KBE","KIE"],
-    tactical: "Quality regional banks > money centers in this stance." },
-  { name: "Health Care", tier5: "mw", tier3: "mw",
-    rating5: "Market Weight", rating3: "Market Weight",
-    targetPct: 11.5, spyPct: 12.4, activeBp: -90, momPctDelta: -0.3,
-    sixMoReturn: 0.018, trendPath: [0.0, 0.3, 0.5, 0.8, 1.2, 1.5, 1.8],
-    rationale: "Defensive carry but no acute thesis. Drug pipeline risk is offsetting the demographic tailwind. Position size near benchmark.",
-    factors: [{name:"FDA approval count", z:"-0.2"},{name:"Premium index", z:"+0.4"},{name:"Demographic trend", z:"+0.5"}],
-    igs: ["Pharmaceuticals","Biotechnology","Medical Equipment","Health Care Services"],
-    etfs: ["XLV","VHT"],
-    tactical: "Hold near benchmark. Tilt to large-cap pharma + medical equipment." },
-  { name: "Materials", tier5: "mw", tier3: "mw",
-    rating5: "Market Weight", rating3: "Market Weight",
-    targetPct: 2.5, spyPct: 2.5, activeBp: 0, momPctDelta: 0.0,
-    sixMoReturn: 0.005, trendPath: [0.0, 0.0, 0.2, 0.3, 0.4, 0.5, 0.5],
-    rationale: "China demand unclear. Copper-gold ratio neutral. Position at benchmark; no edge.",
-    factors: [{name:"Copper-gold ratio", z:"+0.1"},{name:"China PMI", z:"-0.3"},{name:"Steel prices", z:"+0.2"}],
-    igs: ["Chemicals","Metals & Mining","Construction Materials"],
-    etfs: ["XLB","VAW"],
-    tactical: "Hold at benchmark." },
-  { name: "Consumer Discretionary", tier5: "uw", tier3: "uw",
-    rating5: "Underweight", rating3: "Underweight",
-    targetPct: 9.0, spyPct: 10.8, activeBp: -180, momPctDelta: -1.0,
-    sixMoReturn: -0.012, trendPath: [0.0, 0.5, 0.3, 0.0, -0.4, -0.8, -1.2],
-    rationale: "Credit-card delinquencies ticking up. Consumer is still spending but at the margin the tailwind is weakening. Underweight expressed via the cyclical sub-segments.",
-    factors: [{name:"Credit-card 30+ days past due", z:"+0.7 (bad)"},{name:"Retail sales delta", z:"-0.2"},{name:"Consumer confidence", z:"-0.4"}],
-    igs: ["Retailing","Consumer Services","Automobiles","Apparel"],
-    etfs: ["XLY","VCR"],
-    tactical: "Avoid leveraged consumer. Mega-cap e-commerce stays in via the bucket weight." },
-  { name: "Consumer Staples", tier5: "uw", tier3: "uw",
-    rating5: "Underweight", rating3: "Underweight",
-    targetPct: 4.0, spyPct: 6.2, activeBp: -220, momPctDelta: -2.2,
-    sixMoReturn: -0.035, trendPath: [0.0, -0.3, -0.5, -1.0, -1.8, -2.6, -3.5],
-    rationale: "Defensive premium has compressed and the sector's been bid up. With macro composites supportive there's no need to pay up for safety.",
-    factors: [{name:"Defensive P/E premium", z:"+0.8 (rich)"},{name:"Volume growth", z:"-0.1"},{name:"Pricing power", z:"+0.2"}],
-    igs: ["Food & Staples Retailing","Beverages","Household Products","Tobacco"],
-    etfs: ["XLP","VDC"],
-    tactical: "Use as funding source for the Energy and Capital Markets overweights." },
-  { name: "Real Estate", tier5: "suw", tier3: "uw",
-    rating5: "Strong Underweight", rating3: "Underweight",
-    targetPct: 1.5, spyPct: 2.5, activeBp: -100, momPctDelta: -1.0,
-    sixMoReturn: -0.078, trendPath: [0.0, -0.5, -1.4, -3.0, -4.7, -6.3, -7.8],
-    rationale: "Rate path no longer trending lower. Commercial real-estate office overhang persists. Removed from picks this cycle.",
-    factors: [{name:"10y yield level", z:"+0.6 (bad)"},{name:"CRE delinquencies", z:"+0.5 (bad)"},{name:"REIT funds-from-operations growth", z:"-0.3"}],
-    igs: ["Equity REITs","Real Estate Services"],
-    etfs: ["XLRE","VNQ"],
-    tactical: "Trim. Re-engage if 10y breaks below 4%." },
-  { name: "Utilities", tier5: "suw", tier3: "uw",
-    rating5: "Strong Underweight", rating3: "Underweight",
-    targetPct: 1.5, spyPct: 2.4, activeBp: -90, momPctDelta: 0.0,
-    sixMoReturn: -0.058, trendPath: [0.0, -0.3, -0.9, -2.0, -3.5, -4.7, -5.8],
-    rationale: "Bond proxy with rates not cooperating. AI-driven power demand is a real story but the regulatory recovery lag makes it hard to monetize this year.",
-    factors: [{name:"10y yield level", z:"+0.6 (bad)"},{name:"Power demand growth", z:"+0.5 (good)"},{name:"Regulatory ROE trend", z:"-0.2"}],
-    igs: ["Electric Utilities","Multi-Utilities","Independent Power"],
-    etfs: ["XLU","VPU"],
-    tactical: "Min weight. Re-engage in a rate-cutting cycle." },
+  { name: "Software", tier5:"sow", tier3:"ow", rating5:"Strong Overweight", rating3:"Overweight",
+    targetPct: 16.0, priorTargetPct: 15.5, spyPct: 11.5, activeBp: 450,
+    sixMoReturn: 0.084, trendPath:[0.0,1.5,2.8,4.2,6.1,7.5,8.4],
+    rationale:"AI infrastructure capex still expanding and price momentum confirming. Multivariate regression shows ISM, semis cycle index, and Growth composite as the dominant drivers — all three pointing the right way.",
+    factors:[{name:"ISM New Orders",z:"+1.4"},{name:"Semis cycle (SOX/SPX)",z:"+1.1"},{name:"Growth composite",z:"+0.7"},{name:"Earnings revision breadth",z:"+0.9"}],
+    igs:["Software & Services","IT Services","Cloud platforms"],
+    etfs:["XLK","VGT","IGV"],
+    drivers:[{tag:"ISM new orders"},{tag:"Earnings revisions"}],
+    why:"AI capex still expanding; ISM new orders accelerating.",
+    tactical:"Bucket is rich on absolute valuation but momentum + growth signal both align. Hold to Strong Overweight unless ISM rolls over." },
+  { name:"Energy", tier5:"sow", tier3:"ow", rating5:"Strong Overweight", rating3:"Overweight",
+    targetPct:9.5, priorTargetPct:4.2, spyPct:4.2, activeBp:530,
+    sixMoReturn:0.122, trendPath:[0.0,1.0,3.5,5.5,7.8,10.3,12.2],
+    rationale:"Capital discipline holding for the third consecutive year. Crude steady above $80/bbl plus a tightening rig count means cash flow without the overinvestment trap that ended prior cycles.",
+    factors:[{name:"WTI level",z:"+1.0"},{name:"Rig count delta",z:"+0.6"},{name:"Capex/revenue (sector)",z:"-0.8 (good)"},{name:"Inventories vs 5y avg",z:"-0.4"}],
+    igs:["Oil & Gas E&P","Integrated Oil & Gas","Energy Equipment & Services"],
+    etfs:["XLE","VDE","XOP"],
+    drivers:[{tag:"WTI level"},{tag:"Capex/revenue"}],
+    why:"Crude held above $80/bbl; producers kept capex flat; cash flow without the overinvestment trap.",
+    tactical:"Largest active bet in the portfolio. Phase in if adding new exposure. Watch crude $70 as kill-trigger." },
+  { name:"Capital Markets", tier5:"sow", tier3:"ow", rating5:"Strong Overweight", rating3:"Overweight",
+    targetPct:7.0, priorTargetPct:2.8, spyPct:2.8, activeBp:420,
+    sixMoReturn:0.094, trendPath:[0.0,0.8,1.5,3.5,5.8,8.0,9.4],
+    rationale:"IPO pipeline reopening and M&A spreads tightening. Fee businesses geared into the recovery the macro composites are calling. Different factor map from Banks & Insurance — that's why we break it out.",
+    factors:[{name:"VIX (inverse)",z:"+1.2"},{name:"HY-IG spread (inverse)",z:"+0.9"},{name:"M&A volume delta",z:"+1.5"},{name:"R&L composite",z:"+1.1"}],
+    igs:["Investment Banking & Brokerage","Asset Management & Custody"],
+    etfs:["KCE","IAI"],
+    drivers:[{tag:"R&L composite",composite:true},{tag:"M&A volume"}],
+    why:"R&L composite improved 11 pts QoQ as credit spreads tightened. M&A spreads at multi-year tights, IPO pipeline reopening.",
+    tactical:"New addition this cycle. Quality over breadth — bigger names with diversified fee streams." },
+  { name:"Industrials", tier5:"ow", tier3:"ow", rating5:"Overweight", rating3:"Overweight",
+    targetPct:11.0, priorTargetPct:10.0, spyPct:8.4, activeBp:260,
+    sixMoReturn:0.066, trendPath:[0.0,0.8,1.8,2.9,4.2,5.5,6.6],
+    rationale:"Re-shoring tailwind plus IRA-related infrastructure spending. ISM finally above 50 confirms the macro backdrop is supportive.",
+    factors:[{name:"ISM Manufacturing",z:"+0.8"},{name:"PPI machinery",z:"+0.4"},{name:"Construction spending",z:"+0.6"}],
+    igs:["Aerospace & Defense","Machinery","Electrical Equipment","Building Products"],
+    etfs:["XLI","VIS"],
+    drivers:[{tag:"ISM Manufacturing"},{tag:"Construction"}],
+    why:"ISM Manufacturing crossed 50 for first time since 2022; re-shoring + IRA spending tailwind.",
+    tactical:"Add on dips. Watch defense budget cycle for tail risk." },
+  { name:"Banks & Insurance", tier5:"ow", tier3:"ow", rating5:"Overweight", rating3:"Overweight",
+    targetPct:10.0, priorTargetPct:9.5, spyPct:9.6, activeBp:40,
+    sixMoReturn:0.045, trendPath:[0.0,0.5,1.2,2.0,2.8,3.7,4.5],
+    rationale:"Yield curve no longer inverted. Net-interest-margin expansion thesis intact for regional and money-center banks. Credit costs contained.",
+    factors:[{name:"Yield curve slope (10y-2y)",z:"+0.7"},{name:"Loan growth YoY",z:"+0.4"},{name:"Non-performing loan ratio",z:"-0.3 (good)"}],
+    igs:["Banks","Insurance","Consumer Finance"],
+    etfs:["XLF","KBE","KIE"],
+    drivers:[{tag:"Yield curve slope"}],
+    why:"Yield curve no longer inverted; NIM expansion intact. Modest move — already overweight.",
+    tactical:"Quality regional banks > money centers in this stance." },
+  { name:"Communication Services", tier5:"ow", tier3:"ow", rating5:"Overweight", rating3:"Overweight",
+    targetPct:9.5, priorTargetPct:9.5, spyPct:8.6, activeBp:90,
+    sixMoReturn:0.052, trendPath:[0.0,0.5,1.4,2.3,3.5,4.5,5.2],
+    rationale:"Mega-cap platforms still doing the heavy lifting — cash generative, AI-adjacent, and resilient on margins.",
+    factors:[{name:"Mega-cap earnings revisions",z:"+1.0"},{name:"Ad-spend index",z:"+0.5"},{name:"Subscriber growth",z:"+0.3"}],
+    igs:["Interactive Media & Services","Diversified Telecom","Entertainment"],
+    etfs:["XLC","VOX"],
+    drivers:[],
+    why:"No change. Concentration risk; flat to small overweight stays.",
+    tactical:"Concentration risk. Flat to small overweight." },
+  { name:"Health Care", tier5:"mw", tier3:"mw", rating5:"Market Weight", rating3:"Market Weight",
+    targetPct:11.5, priorTargetPct:11.8, spyPct:12.4, activeBp:-90,
+    sixMoReturn:0.018, trendPath:[0.0,0.3,0.5,0.8,1.2,1.5,1.8],
+    rationale:"Defensive carry but no acute thesis. Drug pipeline risk is offsetting the demographic tailwind. Position size near benchmark.",
+    factors:[{name:"FDA approval count",z:"-0.2"},{name:"Premium index",z:"+0.4"},{name:"Demographic trend",z:"+0.5"}],
+    igs:["Pharmaceuticals","Biotechnology","Medical Equipment","Health Care Services"],
+    etfs:["XLV","VHT"],
+    drivers:[{tag:"Defensive premium"}],
+    why:"Trim of 0.3pt. Defensive premium contracting; less need to hold above benchmark.",
+    tactical:"Hold near benchmark. Tilt to large-cap pharma + medical equipment." },
+  { name:"Materials", tier5:"mw", tier3:"mw", rating5:"Market Weight", rating3:"Market Weight",
+    targetPct:2.5, priorTargetPct:2.5, spyPct:2.5, activeBp:0,
+    sixMoReturn:0.005, trendPath:[0.0,0.0,0.2,0.3,0.4,0.5,0.5],
+    rationale:"China demand unclear. Copper-gold ratio neutral. Position at benchmark; no edge.",
+    factors:[{name:"Copper-gold ratio",z:"+0.1"},{name:"China PMI",z:"-0.3"},{name:"Steel prices",z:"+0.2"}],
+    igs:["Chemicals","Metals & Mining","Construction Materials"],
+    etfs:["XLB","VAW"],
+    drivers:[],
+    why:"No change.",
+    tactical:"Hold at benchmark." },
+  { name:"Consumer Discretionary", tier5:"uw", tier3:"uw", rating5:"Underweight", rating3:"Underweight",
+    targetPct:9.0, priorTargetPct:10.0, spyPct:10.8, activeBp:-180,
+    sixMoReturn:-0.012, trendPath:[0.0,0.5,0.3,0.0,-0.4,-0.8,-1.2],
+    rationale:"Credit-card delinquencies ticking up. Consumer is still spending but at the margin the tailwind is weakening. Underweight expressed via the cyclical sub-segments.",
+    factors:[{name:"Credit-card 30+ days past due",z:"+0.7 (bad)"},{name:"Retail sales delta",z:"-0.2"},{name:"Consumer confidence",z:"-0.4"}],
+    igs:["Retailing","Consumer Services","Automobiles","Apparel"],
+    etfs:["XLY","VCR"],
+    drivers:[{tag:"Credit-card delinquency"}],
+    why:"Credit-card delinquencies ticking up. Consumer tailwind weakening at the margin.",
+    tactical:"Avoid leveraged consumer. Mega-cap e-commerce stays in via the bucket weight." },
+  { name:"Consumer Staples", tier5:"uw", tier3:"uw", rating5:"Underweight", rating3:"Underweight",
+    targetPct:4.0, priorTargetPct:6.2, spyPct:6.2, activeBp:-220,
+    sixMoReturn:-0.035, trendPath:[0.0,-0.3,-0.5,-1.0,-1.8,-2.6,-3.5],
+    rationale:"Defensive premium has compressed and the sector's been bid up. With macro composites supportive there's no need to pay up for safety.",
+    factors:[{name:"Defensive P/E premium",z:"+0.8 (rich)"},{name:"Volume growth",z:"-0.1"},{name:"Pricing power",z:"+0.2"}],
+    igs:["Food & Staples Retailing","Beverages","Household Products","Tobacco"],
+    etfs:["XLP","VDC"],
+    drivers:[{tag:"Defensive premium"},{tag:"Growth composite",composite:true}],
+    why:"Defensive premium compressed; Growth composite firming at +3.2 — no need to pay up for safety.",
+    tactical:"Use as funding source for the Energy and Capital Markets overweights." },
+  { name:"Real Estate", tier5:"suw", tier3:"uw", rating5:"Strong Underweight", rating3:"Underweight",
+    targetPct:1.5, priorTargetPct:2.5, spyPct:2.5, activeBp:-100,
+    sixMoReturn:-0.078, trendPath:[0.0,-0.5,-1.4,-3.0,-4.7,-6.3,-7.8],
+    rationale:"Rate path no longer trending lower. Commercial real-estate office overhang persists. Removed from picks this cycle.",
+    factors:[{name:"10y yield level",z:"+0.6 (bad)"},{name:"CRE delinquencies",z:"+0.5 (bad)"},{name:"REIT funds-from-operations growth",z:"-0.3"}],
+    igs:["Equity REITs","Real Estate Services"],
+    etfs:["XLRE","VNQ"],
+    drivers:[{tag:"10y yield"},{tag:"CRE delinquencies"}],
+    why:"Rate path no longer trending lower; CRE delinquencies still elevated. Removed from picks.",
+    tactical:"Trim. Re-engage if 10y breaks below 4%." },
+  { name:"Utilities", tier5:"suw", tier3:"uw", rating5:"Strong Underweight", rating3:"Underweight",
+    targetPct:1.5, priorTargetPct:1.5, spyPct:2.4, activeBp:-90,
+    sixMoReturn:-0.058, trendPath:[0.0,-0.3,-0.9,-2.0,-3.5,-4.7,-5.8],
+    rationale:"Bond proxy with rates not cooperating. AI-driven power demand is a real story but the regulatory recovery lag makes it hard to monetize this year.",
+    factors:[{name:"10y yield level",z:"+0.6 (bad)"},{name:"Power demand growth",z:"+0.5 (good)"},{name:"Regulatory ROE trend",z:"-0.2"}],
+    igs:["Electric Utilities","Multi-Utilities","Independent Power"],
+    etfs:["XLU","VPU"],
+    drivers:[],
+    why:"No change.",
+    tactical:"Min weight. Re-engage in a rate-cutting cycle." },
 ];
 
-const TIER_COLORS = {
-  sow: "#1d4a31", ow: "#2f6f4a", mw: "#9a9ea8", uw: "#9d3545", suw: "#6e1d2a"
-};
-const TIER_NAMES_5 = {
-  sow: "Strong Overweight", ow: "Overweight", mw: "Market Weight",
-  uw: "Underweight", suw: "Strong Underweight"
-};
-const TIER_NAMES_3 = { ow: "Overweight", mw: "Market Weight", uw: "Underweight" };
+const TIER_COLORS = { sow:"#1d4a31", ow:"#2f6f4a", mw:"#9a9ea8", uw:"#9d3545", suw:"#6e1d2a" };
+const TIER_NAMES_5 = { sow:"Strong Overweight", ow:"Overweight", mw:"Market Weight", uw:"Underweight", suw:"Strong Underweight" };
+const TIER_NAMES_3 = { ow:"Overweight", mw:"Market Weight", uw:"Underweight" };
 
 /* ============================================================
-   Section 3 — Sector outlooks (3-tier headline, 5-tier granular)
+   Section 2 — What changed
    ============================================================ */
-function renderRatings(view) {
-  const root = document.getElementById('ratingsBlock');
+function renderChanges(mode) {
+  const stack = document.getElementById('changesStack');
+  const countEl = document.getElementById('changesCount');
+  const threshold = mode === 'material' ? 0.3 : 0.0;
+  const rows = ALLOCATION
+    .map(b => ({ ...b, deltaPct: b.targetPct - b.priorTargetPct }))
+    .filter(b => Math.abs(b.deltaPct) >= threshold && Math.abs(b.deltaPct) > 0)
+    .sort((a,b) => Math.abs(b.deltaPct) - Math.abs(a.deltaPct));
+  countEl.textContent = `${rows.length} ${rows.length === 1 ? 'change' : 'changes'} shown`;
+  stack.innerHTML = rows.map(b => {
+    const cls = b.deltaPct > 0
+      ? (b.priorTargetPct === 0 ? 'add' : 'up')
+      : (b.targetPct === 0 ? 'rm' : 'down');
+    const arrow = cls === 'up' ? '&uarr;' : cls === 'down' ? '&darr;' : cls === 'add' ? '+' : '&minus;';
+    const drivers = (b.drivers || []).map(d =>
+      `<span class="driver-tag${d.composite ? ' composite' : ''}">${d.tag}</span>`
+    ).join('');
+    const minorClass = Math.abs(b.deltaPct) < 0.5 ? ' minor' : '';
+    return `
+      <div class="change-block ${cls}${minorClass}">
+        <div class="arrow">${arrow}</div>
+        <div>
+          <div class="change-name">${b.name}</div>
+          <div class="change-rating">${b.rating5}</div>
+        </div>
+        <div class="change-numbers">
+          <div class="pair">
+            <span class="from">${b.priorTargetPct.toFixed(1)}%</span>
+            <span class="arr">&rarr;</span>
+            <span class="to">${b.targetPct.toFixed(1)}%</span>
+          </div>
+          <div class="delta">${b.deltaPct > 0 ? '+' : ''}${b.deltaPct.toFixed(1)} pts</div>
+        </div>
+        <div class="change-driver">
+          ${drivers ? `<div style="margin-bottom:6px;">${drivers}</div>` : ''}
+          ${b.why}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+document.querySelectorAll('#changesFilter button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#changesFilter button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderChanges(btn.dataset.mode);
+  });
+});
+
+/* ============================================================
+   Section 3 — Recommendations (cards + table)
+   ============================================================ */
+let activeTier = '5';
+let activeView = 'cards';
+
+function renderCards() {
+  const root = document.getElementById('cardsView');
   root.innerHTML = '';
-  if (view === 'headline') {
-    const groups = ['ow','mw','uw'];
-    groups.forEach(t => {
-      const items = ALLOCATION.filter(b => b.tier3 === t)
-        .sort((a,b) => Math.abs(b.activeBp) - Math.abs(a.activeBp));
-      if (items.length) root.appendChild(tierEl(TIER_NAMES_3[t], t, items, 'tier3'));
-    });
-  } else {
-    const order = ['sow','ow','mw','uw','suw'];
-    order.forEach(t => {
+  if (activeTier === '5') {
+    ['sow','ow','mw','uw','suw'].forEach(t => {
       const items = ALLOCATION.filter(b => b.tier5 === t)
         .sort((a,b) => Math.abs(b.activeBp) - Math.abs(a.activeBp));
-      if (items.length) root.appendChild(tierEl(TIER_NAMES_5[t], t, items, 'tier5'));
+      if (items.length) root.appendChild(tierBlock(TIER_NAMES_5[t], t, items, 'tier5'));
+    });
+  } else {
+    ['ow','mw','uw'].forEach(t => {
+      const items = ALLOCATION.filter(b => b.tier3 === t)
+        .sort((a,b) => Math.abs(b.activeBp) - Math.abs(a.activeBp));
+      if (items.length) root.appendChild(tierBlock(TIER_NAMES_3[t], t, items, 'tier3'));
     });
   }
 }
 
-function tierEl(label, pipClass, items, tierField) {
+function tierBlock(label, pipClass, items, tierField) {
   const wrap = document.createElement('div');
   wrap.className = 'tier-row';
   const head = document.createElement('div');
@@ -1144,38 +1059,158 @@ function tierEl(label, pipClass, items, tierField) {
   head.innerHTML = `<span class="pip"></span><span class="name">${label}</span><span class="count">${items.length} bucket${items.length===1?'':'s'}</span>`;
   wrap.appendChild(head);
   const grid = document.createElement('div');
-  grid.className = 'bucket-grid';
-  items.forEach(b => {
-    const card = document.createElement('div');
-    const cls = b[tierField];
-    card.className = `bucket-card ${cls}`;
-    const bp = b.activeBp;
-    const primaryClass = bp > 50 ? 'up' : bp < -50 ? 'down' : 'flat';
-    const primaryText = bp > 0 ? `+${bp} bp overweight`
-                      : bp < 0 ? `${bp} bp underweight`
-                      : 'At benchmark';
-    card.innerHTML = `
-      <div class="name">${b.name}</div>
-      <div class="primary ${primaryClass}">${primaryText}</div>
-      <div class="secondary">
-        <span>${b.targetPct.toFixed(1)}% of portfolio</span>
-        <span>·</span>
-        <span>S&amp;P ${b.spyPct.toFixed(1)}%</span>
-      </div>
-    `;
-    card.addEventListener('click', () => openDrawer(b));
-    grid.appendChild(card);
-  });
+  grid.className = 'rec-grid';
+  items.forEach(b => grid.appendChild(makeRecCard(b, b[tierField])));
   wrap.appendChild(grid);
   return wrap;
 }
 
-/* ============================================================
-   Drawer
-   ============================================================ */
+function makeRecCard(b, cls) {
+  const card = document.createElement('div');
+  card.className = `rec-card ${cls}`;
+  const bp = b.activeBp;
+  const betCls = bp > 50 ? 'up' : bp < -50 ? 'down' : 'flat';
+  const betText = bp > 0 ? `+${bp} bp` : bp < 0 ? `${bp} bp` : 'At benchmark';
+  const betLabel = bp > 0 ? 'overweight' : bp < 0 ? 'underweight' : '';
+  const path = b.trendPath;
+  const minP = Math.min(...path), maxP = Math.max(...path);
+  const range = Math.max(maxP - minP, 0.01);
+  const pts = path.map((y, i) => {
+    const x = (i / (path.length - 1)) * 200;
+    const yPlot = 24 - ((y - minP) / range) * 22;
+    return `${x.toFixed(1)},${yPlot.toFixed(2)}`;
+  }).join(' ');
+  const trendColor = b.sixMoReturn > 0 ? 'var(--up)' : b.sixMoReturn < 0 ? 'var(--down)' : 'var(--ink-3)';
+  const sixMoText = (b.sixMoReturn>=0?'+':'') + (b.sixMoReturn*100).toFixed(1) + '%';
+  const sixMoCls = b.sixMoReturn > 0 ? 'pos' : b.sixMoReturn < 0 ? 'neg' : 'neutral';
+  const dPct = b.targetPct - b.priorTargetPct;
+  const momText = dPct === 0
+    ? 'No change vs last week'
+    : `${dPct > 0 ? '+' : ''}${dPct.toFixed(1)} pts vs last week`;
+  const momCls = dPct > 0 ? 'pos' : dPct < 0 ? 'neg' : 'neutral';
+
+  card.innerHTML = `
+    <div class="top">
+      <span class="name">${b.name}</span>
+      <span class="tier-pill">${b.rating5}</span>
+    </div>
+    <div class="bet-row">
+      <div>
+        <div class="bet-num ${betCls}">${betText}</div>
+        ${betLabel ? `<div style="font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3);">${betLabel}</div>` : ''}
+      </div>
+      <div class="spark">
+        <svg viewBox="0 0 200 28" preserveAspectRatio="none">
+          <polyline points="${pts}" fill="none" stroke="${trendColor}" stroke-width="1.6"/>
+        </svg>
+      </div>
+    </div>
+    <div class="weights-grid">
+      <div>
+        <div class="lbl">Target</div>
+        <div class="val">${b.targetPct.toFixed(1)}%</div>
+      </div>
+      <div>
+        <div class="lbl">S&amp;P 500</div>
+        <div class="val">${b.spyPct.toFixed(1)}%</div>
+      </div>
+    </div>
+    <div class="footer">
+      <span class="${momCls}">${momText}</span>
+      <span class="${sixMoCls}">6mo ${sixMoText}</span>
+    </div>
+  `;
+  card.addEventListener('click', () => openDrawer(b));
+  return card;
+}
+
+/* Table view */
+let sortState = { key: 'activeBp', dir: 'desc' };
+function renderTable() {
+  const tbody = document.querySelector('#allocTable tbody');
+  const rows = [...ALLOCATION].sort((a,b) => {
+    const av = a[sortState.key], bv = b[sortState.key];
+    if (typeof av === 'string') {
+      return sortState.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+    }
+    return sortState.dir === 'asc' ? av - bv : bv - av;
+  });
+  tbody.innerHTML = rows.map(b => {
+    const dPct = b.targetPct - b.priorTargetPct;
+    const ovrCls = b.activeBp > 0 ? 'over' : b.activeBp < 0 ? 'under' : 'flat';
+    const momCls = dPct > 0 ? 'over' : dPct < 0 ? 'under' : 'flat';
+    const sixMoCls = b.sixMoReturn > 0 ? 'over' : b.sixMoReturn < 0 ? 'under' : 'flat';
+    return `
+      <tr data-name="${b.name}">
+        <td class="bucket"><span class="pip" style="background:${TIER_COLORS[b.tier5]}"></span>${b.name}</td>
+        <td>${b.rating5}</td>
+        <td class="num">${b.targetPct.toFixed(1)}</td>
+        <td class="num">${b.spyPct.toFixed(1)}</td>
+        <td class="num ${ovrCls}">${b.activeBp>=0?'+':''}${b.activeBp}</td>
+        <td class="num ${momCls}">${dPct>=0?'+':''}${dPct.toFixed(1)} pts</td>
+        <td class="num ${sixMoCls}">${(b.sixMoReturn>=0?'+':'')+(b.sixMoReturn*100).toFixed(1)}%</td>
+      </tr>
+    `;
+  }).join('');
+  // sort indicator
+  document.querySelectorAll('#allocTable thead th').forEach(th => {
+    th.classList.remove('sorted');
+    const arrow = th.querySelector('.sort-arrow');
+    if (arrow) arrow.innerHTML = '&#x25B4;&#x25BE;';
+  });
+  const activeTh = document.querySelector(`#allocTable thead th[data-sort="${sortState.key}"]`);
+  if (activeTh) {
+    activeTh.classList.add('sorted');
+    activeTh.querySelector('.sort-arrow').innerHTML = sortState.dir === 'asc' ? '&#x25B4;' : '&#x25BE;';
+  }
+  // row click → drawer
+  document.querySelectorAll('#allocTable tbody tr').forEach(tr => {
+    tr.addEventListener('click', () => {
+      const b = ALLOCATION.find(x => x.name === tr.dataset.name);
+      if (b) openDrawer(b);
+    });
+  });
+}
+document.querySelectorAll('#allocTable thead th').forEach(th => {
+  th.addEventListener('click', () => {
+    const key = th.dataset.sort;
+    sortState = (sortState.key === key)
+      ? { key, dir: sortState.dir === 'asc' ? 'desc' : 'asc' }
+      : { key, dir: 'desc' };
+    renderTable();
+  });
+});
+
+/* Toggles */
+document.querySelectorAll('#viewToggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#viewToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeView = btn.dataset.view;
+    if (activeView === 'cards') {
+      document.getElementById('cardsView').style.display = '';
+      document.getElementById('tableView').style.display = 'none';
+    } else {
+      document.getElementById('cardsView').style.display = 'none';
+      document.getElementById('tableView').style.display = '';
+    }
+  });
+});
+document.querySelectorAll('#tierToggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#tierToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    activeTier = btn.dataset.tier;
+    renderCards();
+  });
+});
+
+/* Drawer */
 function openDrawer(b) {
   document.getElementById('drawerTitle').textContent = b.name;
-  document.getElementById('drawerRating').textContent = `${b.rating5} · MoM Δ ${b.momPctDelta>=0?'+':''}${b.momPctDelta.toFixed(1)}% of portfolio`;
+  const dPct = b.targetPct - b.priorTargetPct;
+  const dPctStr = dPct === 0 ? 'No change' : `${dPct>=0?'+':''}${dPct.toFixed(1)} pts vs last week`;
+  document.getElementById('drawerRating').textContent = `${b.rating5} · ${dPctStr}`;
   document.getElementById('drawerPip').style.background = TIER_COLORS[b.tier5];
   document.getElementById('drawerActiveBet').textContent = (b.activeBp>=0?'+':'')+b.activeBp+' bp';
   document.getElementById('drawerTarget').textContent = b.targetPct.toFixed(1)+'%';
@@ -1198,140 +1233,10 @@ document.getElementById('drawerClose').addEventListener('click', closeDrawer);
 document.getElementById('drawerMask').addEventListener('click', closeDrawer);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
-document.querySelectorAll('#viewToggle button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('#viewToggle button').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    renderRatings(btn.dataset.view);
-  });
-});
-
-/* ============================================================
-   Section 4 — Sector trends list
-   ============================================================ */
-function renderTrends() {
-  const body = document.getElementById('trendBody');
-  const sorted = [...ALLOCATION].sort((a,b) => b.sixMoReturn - a.sixMoReturn);
-  body.innerHTML = sorted.map(b => {
-    const path = b.trendPath;
-    const minP = Math.min(...path), maxP = Math.max(...path);
-    const range = Math.max(maxP - minP, 0.01);
-    const pts = path.map((y, i) => {
-      const x = (i / (path.length - 1)) * 200;
-      const yPlot = 24 - ((y - minP) / range) * 22;
-      return `${x.toFixed(1)},${yPlot.toFixed(2)}`;
-    }).join(' ');
-    const lineColor = b.sixMoReturn > 0 ? 'var(--up)' : b.sixMoReturn < 0 ? 'var(--down)' : 'var(--ink-3)';
-    const pctClass = b.sixMoReturn > 0 ? 'up' : b.sixMoReturn < 0 ? 'down' : 'flat';
-    const pctText = (b.sixMoReturn>=0?'+':'')+(b.sixMoReturn*100).toFixed(1)+'%';
-    const betText = b.activeBp > 0 ? `+${b.activeBp} bp` : b.activeBp < 0 ? `${b.activeBp} bp` : '— flat';
-    return `
-      <div class="trend-row">
-        <span class="pip" style="background:${TIER_COLORS[b.tier5]}" title="${b.rating5}"></span>
-        <span class="name">${b.name}</span>
-        <svg viewBox="0 0 200 28" preserveAspectRatio="none">
-          <polyline points="${pts}" fill="none" stroke="${lineColor}" stroke-width="1.6"/>
-        </svg>
-        <span class="pct ${pctClass}">${pctText}</span>
-        <span class="bet">${betText}</span>
-      </div>
-    `;
-  }).join('');
-}
-
-/* ============================================================
-   Section 5 — Bar chart and table
-   ============================================================ */
-function renderBars() {
-  const body = document.getElementById('barsBody');
-  const sorted = [...ALLOCATION].sort((a,b) => b.activeBp - a.activeBp);
-  const maxPct = Math.max(...sorted.flatMap(b => [b.targetPct, b.spyPct]));
-  body.innerHTML = sorted.map(b => {
-    const tw = (b.targetPct / maxPct) * 100;
-    const sw = (b.spyPct / maxPct) * 100;
-    const deltaCls = b.activeBp > 0 ? 'over' : b.activeBp < 0 ? 'under' : 'flat';
-    const deltaTxt = b.activeBp > 0 ? `+${(b.activeBp/100).toFixed(2)}%`
-                   : b.activeBp < 0 ? `${(b.activeBp/100).toFixed(2)}%`
-                   : '0.00%';
-    return `
-      <div class="row">
-        <div class="label"><span class="pip" style="background:${TIER_COLORS[b.tier5]}"></span>${b.name}</div>
-        <div class="bars">
-          <div class="bar-line target">
-            <span class="lbl">Target</span>
-            <span class="bar-bg"><span class="bar-fg" style="width:${tw}%;"></span></span>
-            <span class="pct">${b.targetPct.toFixed(1)}%</span>
-          </div>
-          <div class="bar-line spy">
-            <span class="lbl">S&amp;P</span>
-            <span class="bar-bg"><span class="bar-fg" style="width:${sw}%;"></span></span>
-            <span class="pct">${b.spyPct.toFixed(1)}%</span>
-          </div>
-        </div>
-        <div class="delta ${deltaCls}">${deltaTxt}</div>
-      </div>
-    `;
-  }).join('');
-}
-
-/* ============================================================
-   Sortable allocation table
-   ============================================================ */
-let sortState = { key: 'activeBp', dir: 'desc' };
-function renderAllocTable() {
-  const tbody = document.querySelector('#allocTable tbody');
-  const rows = [...ALLOCATION].sort((a,b) => {
-    const av = a[sortState.key], bv = b[sortState.key];
-    if (typeof av === 'string') {
-      return sortState.dir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
-    }
-    return sortState.dir === 'asc' ? av - bv : bv - av;
-  });
-  tbody.innerHTML = rows.map(b => {
-    const cls = b.activeBp > 0 ? 'over' : b.activeBp < 0 ? 'under' : 'flat';
-    const momCls = b.momPctDelta > 0 ? 'over' : b.momPctDelta < 0 ? 'under' : 'flat';
-    return `
-      <tr class="${cls}">
-        <td class="bucket"><span class="pip" style="background:${TIER_COLORS[b.tier5]}"></span>${b.name}</td>
-        <td>${b.rating5}</td>
-        <td class="num">${b.targetPct.toFixed(1)}</td>
-        <td class="num">${b.spyPct.toFixed(1)}</td>
-        <td class="num delta-col">${b.activeBp>=0?'+':''}${b.activeBp}</td>
-        <td class="num"><span class="${momCls === 'over' ? 'delta-col' : momCls === 'under' ? 'delta-col' : ''}" style="${momCls==='over'?'color:var(--up);font-weight:600':momCls==='under'?'color:var(--down);font-weight:600':'color:var(--ink-3)'}">${b.momPctDelta>=0?'+':''}${b.momPctDelta.toFixed(1)}%</span></td>
-      </tr>
-    `;
-  }).join('');
-  // Update sort indicator
-  document.querySelectorAll('#allocTable thead th').forEach(th => {
-    th.classList.remove('sorted');
-    const arrow = th.querySelector('.sort-arrow');
-    if (arrow) arrow.innerHTML = '&#x25B4;&#x25BE;';
-  });
-  const activeTh = document.querySelector(`#allocTable thead th[data-sort="${sortState.key}"]`);
-  if (activeTh) {
-    activeTh.classList.add('sorted');
-    activeTh.querySelector('.sort-arrow').innerHTML = sortState.dir === 'asc' ? '&#x25B4;' : '&#x25BE;';
-  }
-}
-document.querySelectorAll('#allocTable thead th').forEach(th => {
-  th.addEventListener('click', () => {
-    const key = th.dataset.sort;
-    if (sortState.key === key) {
-      sortState.dir = sortState.dir === 'asc' ? 'desc' : 'asc';
-    } else {
-      sortState = { key, dir: 'desc' };
-    }
-    renderAllocTable();
-  });
-});
-
-/* ============================================================
-   Boot
-   ============================================================ */
-renderRatings('headline');
-renderTrends();
-renderBars();
-renderAllocTable();
+/* Boot */
+renderChanges('material');
+renderCards();
+renderTable();
 </script>
 </body>
 </html>
