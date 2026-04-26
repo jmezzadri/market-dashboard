@@ -222,3 +222,47 @@ explicitly invites it: "or Both", "ship both", "apply both", "do both",
 or "both options". Default is to hide Both. If a future proposal needs
 a third option (C) or different shape, extend both helpers — never
 pre-bake choices that aren't on the table.
+
+---
+
+## 7. Always describe an ETF when you cite its ticker
+
+**The rule.** Whenever you quote an ETF ticker in chat, briefly describe
+what it tracks. "SOXX" alone is meaningless to Joe. "SOXX (iShares
+Semiconductor — chip makers like NVDA, AVGO, AMD)" is useful. The same
+applies to industry-group ETFs, sector ETFs, defensive ETFs, anything
+that isn't a stock you'd see on the news every day.
+
+**Why.** 2026-04-25, in the v8 back-test diagnostic discussion: the
+analysis of why the strategy lagged in 2016, 2021, 2024 referenced
+SOXX, IGV, IBB, XLF, XLV, XLI, XLE, XLY, XLP, XLU, XLB, IYR, IYZ, MGK,
+QQQ, XLG, XLK, etc. without explaining what any of them held. Joe is a
+non-coder consultant, not an ETF analyst. He shouldn't have to mentally
+look up every ticker to follow a sector-allocation analysis. He flagged
+it.
+
+**How to apply.**
+
+1. First mention of any ETF in a response gets a one-line description.
+   Format: "TICKER (issuer + what it tracks — example holdings)".
+   Examples:
+   - "SOXX (iShares Semiconductor — chip makers, NVDA AVGO AMD top
+     holdings)"
+   - "XLF (SPDR Financials — JPMorgan, BofA, Berkshire, Visa)"
+   - "IYR (iShares US Real Estate — REITs across office, residential,
+     data center)"
+   - "MGK (Vanguard Mega-Cap Growth — top US growth names by cap,
+     heavily Mag 7)"
+2. After the first mention you can use the ticker alone in the same
+   response (Joe will remember what you established).
+3. When reporting a new run or starting a new conversation, re-introduce
+   the tickers — don't assume context carries over.
+4. This applies to defensive ETFs too. "BIL" alone means nothing. "BIL
+   (1-3 month US Treasury bills, cash proxy)" is useful.
+5. Tables of sector exposures should have a description column or a
+   separate legend. A table that just lists ticker + return + weight
+   forces the reader to look up every row.
+
+This rule survives across versions. Every back-test diagnostic, every
+allocation report, every methodology memo — describe the ticker the
+first time you cite it.
