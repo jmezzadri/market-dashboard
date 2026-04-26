@@ -103,10 +103,12 @@ const RISK_SCENARIOS = [
 // ─── Composite scoring helpers ──────────────────────────────────────────────
 // Match Today's Macro's framing: lower = lower drawdown probability = bullish.
 function classifyComposite(score) {
+  // Match Today's Macro classification — at score -20 the dial shows NORMAL,
+  // not CALM. The Quiet/Calm zone is reserved for the deep negative tail.
   if (score == null || isNaN(score)) return { state: "—", color: "var(--text-muted)", pillBg: "transparent", pillColor: "var(--text-muted)" };
-  if (score <= -10) return { state: "Calm",     color: "var(--green)",  pillBg: "rgba(48,209,88,0.18)", pillColor: "#1c6f2c" };
-  if (score <= 10)  return { state: "Normal",   color: "var(--green)",  pillBg: "rgba(48,209,88,0.14)", pillColor: "#1c6f2c" };
-  if (score <= 30)  return { state: "Elevated", color: "var(--orange)", pillBg: "rgba(255,159,10,0.18)", pillColor: "#7a4a00" };
+  if (score <= -50) return { state: "Quiet",    color: "var(--green)",  pillBg: "rgba(48,209,88,0.22)", pillColor: "#1c6f2c" };
+  if (score <= 50)  return { state: "Normal",   color: "var(--green)",  pillBg: "rgba(48,209,88,0.14)", pillColor: "#1c6f2c" };
+  if (score <= 75)  return { state: "Elevated", color: "var(--orange)", pillBg: "rgba(255,159,10,0.18)", pillColor: "#7a4a00" };
   return { state: "Stressed", color: "var(--red)", pillBg: "rgba(255,69,58,0.18)", pillColor: "#7a1414" };
 }
 
@@ -370,10 +372,10 @@ export default function AssetAllocation({ onOpenTicker }) {
   const stance = useMemo(() => {
     if (!macroSnap || !macroSnap.RL) return { label: "—", color: "var(--text-muted)", bg: "var(--surface)" };
     const rl = macroSnap.RL.score;
-    if (rl <= -10) return { label: "Aggressive", color: "#1c6f2c", bg: "rgba(48,209,88,0.18)" };
-    if (rl <= 10)  return { label: "Balanced",   color: "#6b4a00", bg: "rgba(184,134,11,0.18)" };
-    if (rl <= 30)  return { label: "Cautious",   color: "#7a4a00", bg: "rgba(255,159,10,0.18)" };
-    return { label: "Defensive", color: "#7a1414", bg: "rgba(255,69,58,0.18)" };
+    // Stance derives from leverage in v9 (>1.05 = Aggressive). Override only on stress.
+    if (rl >= 50)  return { label: "Defensive", color: "#7a1414", bg: "rgba(255,69,58,0.18)" };
+    if (rl >= 30)  return { label: "Cautious",  color: "#7a4a00", bg: "rgba(255,159,10,0.18)" };
+    return { label: "Aggressive", color: "#1c6f2c", bg: "rgba(48,209,88,0.18)" };
   }, [macroSnap]);
 
   // Hero KPI numbers from v9_allocation.json
@@ -451,7 +453,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               Excess return target
               <InfoTip def="Expected outperformance versus the S&P 500 over the next month, after subtracting the financing cost on any margin used." />
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, color: "var(--green)", marginTop: 2 }}>+{(alpha * 100).toFixed(2)}%</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, color: "var(--green)", marginTop: 2 }}>+{alpha.toFixed(2)} pp</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>monthly · over S&P 500</div>
           </div>
           <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
