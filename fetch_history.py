@@ -150,7 +150,68 @@ def series_to_points(s, *, round_dp=4):
     return out
 
 
+
+# ── Bug #1067/#1068 — pipeline_health honesty logger ─────────────────────────
+def _log_pipeline_health(series_id, message):
+    """Update public.pipeline_health with the latest fetcher result so
+    FreshnessDot can show the explanation on hover. No-ops silently if
+    SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY aren't in the environment.
+    Matches rows by `source` ilike `FRED <series_id>` so this works whether
+    the row's indicator_id is `real_rates` (DFII10) or `bank_credit` (TOTBKCR).
+    """
+    try:
+        import urllib.request, urllib.parse, json as _json
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        if not url or not key:
+            return
+        # Find the matching row(s) by source
+        params = urllib.parse.urlencode({
+            "source": f"ilike.FRED {series_id}*",
+            "select": "indicator_id",
+        })
+        req = urllib.request.Request(
+            f"{url}/rest/v1/pipeline_health?{params}",
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            rows = _json.loads(resp.read().decode("utf-8"))
+        if not rows:
+            return
+        for row in rows:
+            indicator_id = row.get("indicator_id")
+            if not indicator_id:
+                continue
+            from datetime import datetime, timezone
+            now_iso = datetime.now(timezone.utc).isoformat()
+            patch = {
+                "last_error": message,
+                "last_check_at": now_iso,
+            }
+            params2 = urllib.parse.urlencode({"indicator_id": f"eq.{indicator_id}"})
+            req2 = urllib.request.Request(
+                f"{url}/rest/v1/pipeline_health?{params2}",
+                data=_json.dumps(patch).encode("utf-8"),
+                method="PATCH",
+                headers={
+                    "apikey": key,
+                    "Authorization": f"Bearer {key}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal",
+                },
+            )
+            try:
+                urllib.request.urlopen(req2, timeout=10)
+            except Exception:
+                pass
+    except Exception:
+        # Honesty logging must never break the pipeline.
+        pass
+
 def safe_fred(series_id, start=START, transform=None, retries=3):
+    """Bug #1067/#1068 — log to pipeline_health when no fresh observation
+    lands. Existing 1.5s × N exponential backoff is preserved; we add a final
+    5-second backoff before the last attempt to absorb FRED hiccups."""
     import time
     last_err = None
     for attempt in range(retries):
@@ -159,11 +220,17 @@ def safe_fred(series_id, start=START, transform=None, retries=3):
             if transform:
                 s = transform(s)
             s = s.dropna()
-            return s
+            if s.empty:
+                last_err = "FRED returned no observations"
+            else:
+                return s
         except Exception as e:
             last_err = e
-            time.sleep(1.5 * (attempt + 1))
+        # Final attempt gets the 5-second floor
+        if attempt < retries - 1:
+            time.sleep(max(1.5 * (attempt + 1), 5.0 if attempt == retries - 2 else 1.5 * (attempt + 1)))
     print(f"  FRED {series_id} FAILED after {retries}: {last_err}")
+    _log_pipeline_health(series_id, f"no fresh observation from FRED ({last_err})")
     return None
 
 
