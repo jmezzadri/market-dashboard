@@ -360,3 +360,91 @@ supposed to eliminate.
    "Three things failed, here are details" is not a decision he
    needs to make. "Auto-UAT shipped a fix and it still fails — here's
    the diff and the screen recording, please advise" is.
+
+---
+
+## 9. Data pipeline before UI — always, no exceptions
+
+**The rule.** Before any UI design work begins for a new product or
+feature, audit every data point the design will reference against the
+backend's actual outputs. If a single field is missing, the UI work
+does not start until the backend produces it. The order is:
+**data architecture → backend implementation → schema validation → UI design**.
+Never the reverse, never in parallel.
+
+**Why.** 2026-04-25, Asset Allocation tab: I shipped a v1 React
+component, then on receiving Joe's storyboard for the proper page,
+discovered that ~80% of the data points the new design referenced
+were not produced by the backend — sector ratings for all 14 buckets,
+per-bucket rationale narratives, MoM/QoQ rating deltas, themes,
+historical rating series, SPY sector weights, risk scenarios, none
+of it. The current `compute_v9_allocation.py` produces 5 picks plus
+4 defensives plus headline numbers. Designing wireframes against the
+proper storyboard was impossible without first rebuilding the backend.
+Surfacing this gap as a discovery instead of running the audit before
+the wireframe work is a process failure that wasted Joe's time and
+forced a redesign of the redesign.
+
+**How to apply.**
+
+1. When the user describes a new product or page, the FIRST deliverable
+   is a data audit document: every UI element the description implies
+   → mapped against current backend outputs → gaps explicitly listed.
+   Not implicit, not in code review. Written up as a doc.
+2. The audit happens BEFORE any wireframe sketch, BEFORE any React
+   component, BEFORE any HTML mockup. There is no exception to this
+   ordering.
+3. If gaps exist, the work plan starts with the backend rebuild and
+   ends with the UI. Never the reverse.
+4. If a gap is discovered mid-design, stop the design work, surface
+   the gap to the user immediately, and re-plan from the data layer up.
+5. Schema validation: the backend produces a JSON schema. CI fails
+   if the schema breaks. UI consumes the schema. Type safety is a
+   non-negotiable layer between backend and UI.
+
+This rule survives across versions. Every new tab, every new page,
+every new feature. Data first, always.
+
+---
+
+## 10. Don't offer the user a choice between doing it right and cutting corners
+
+**The rule.** When proposing a path forward, "do it correctly and
+bulletproof" is the only option. Never present a "compromise path"
+or "phased ship" or "MVP version" alongside it as if they were
+equivalent. Joe doesn't want a menu of quality levels. He wants the
+work done right.
+
+**Why.** This pattern has shown up across the project: I keep
+proposing "Path 1 — do it right (slow) / Path 2 — ship a compromise
+(fast)" and asking Joe to pick. Joe correctly pointed out 2026-04-25
+that this is an absurd question. He hired the partner-level Lead
+Developer / Senior Quant / UX Designer council to do bulletproof
+work. The compromise path is never on the table for him. Continuing
+to offer it forces him to keep saying "do it right" — which he
+shouldn't have to do because that's the assumed default.
+
+**How to apply.**
+
+1. When scoping work, scope the bulletproof version. That's the only
+   plan you propose.
+2. If timeline matters and the bulletproof version takes longer than
+   the user might expect, say so explicitly in the plan ("this is
+   3-4 weeks of work to do correctly") — but don't offer a faster
+   half-version as an alternative. The user can decide to defer the
+   work; they don't get to pick an inferior version of it.
+3. The exception is when the user explicitly asks for a phased
+   approach. Then Phase 1 / Phase 2 are real plans. But never offer
+   phasing unprompted.
+4. "MVP" in this project means "the minimum scope that meets the
+   bar." It does not mean "skipping engineering rigor to ship faster."
+   Tests, error handling, monitoring, schema validation, fallback
+   behavior — all of these are part of MVP.
+5. Industrialization is the default — automated tests, idempotent
+   runs, schema-validated outputs, monitoring, runbook for failures,
+   versioned data, rollback paths. None of this is optional.
+
+This rule pairs with rule 9. Together they mean: when starting any
+new feature, the work plan is "data first, bulletproof everywhere,
+no menu of quality levels."
+
