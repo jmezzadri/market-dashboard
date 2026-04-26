@@ -545,3 +545,46 @@ shouldn't, so this rule supersedes that line for routine PRs.
    short plain-English status note over an open PR sitting on his queue.
    He will say so in chat if a specific PR needed his eyes first; that
    becomes a one-off, not a new gate.
+
+---
+
+## 13. Plain-English rule applies to chat replies too — not only the website surface
+
+**The rule.** Rule 5's no-acronyms / spell-out / define-on-first-use
+discipline applies to **every reply, status note, or chat message
+operators send to Joe**, not just to the website's labels and tiles.
+Quant or engineering acronyms in a chat message get spelled out or
+defined inline on first use, same as on the site.
+
+**Why.** Joe directive 2026-04-25 evening, after I used "DP" in a chat
+status report on bug #1076 without defining it. He pushed back: "What
+is DP blank mean? You really have to stop using acronyms." Rule 5 was
+written in terms of "labels, headers, and prose" on the site, which
+operators (including me) were reading as "the site, not chat." That
+reading is wrong — chat replies to Joe are user-facing copy too. The
+existing memory entry "🚫 No acronyms in user-facing copy" was already
+in place; this rule is the explicit, file-of-record version so no
+operator can fall back to the narrow-reading excuse again.
+
+**How to apply.**
+
+1. Every acronym, abbreviation, or symbol used in a chat reply gets
+   spelled out on first use *in that reply*. "DP (dark pool)," not
+   "DP." "RLS (the database's row-level access rules)," not "RLS."
+   "RPC (a stored function the database can call directly)," not
+   "RPC." "LTTB (a chart down-sampling algorithm — picks the
+   visually-meaningful points)," not "LTTB."
+2. Column-header style abbreviations on the site (INS, OPT, CON, ANL,
+   OVR, DP, IV, β, σ) — when a reply *refers back to those columns*,
+   spell them out in the reply: "the Insider score column (labeled
+   INS on the site)," not just "INS."
+3. Bug numbers (#1067) and PR numbers (#135) are fine as-is — those
+   are explicit identifiers Joe uses every day, not jargon.
+4. Code identifiers (`composite_history_daily.json`,
+   `useSortableTable`, `yForBottom`) are fine when discussing code
+   internals, but the surrounding sentence should make their meaning
+   plain. A reply that's mostly code identifiers is a reply that
+   needs a plain-English summary at the top.
+5. If unsure whether a term needs definition, define it. Reply length
+   is not a constraint — Joe explicitly asks for clarity over
+   brevity, and a one-clause inline definition costs nothing.
