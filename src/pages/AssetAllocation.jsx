@@ -831,8 +831,8 @@ function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect })
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{r.name}</div>
                 </td>
                 <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)" }}>{weight > 0 ? `$${(weight * 100).toFixed(1)}` : "$0"}</td>
-                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)", color: delta >= 0 ? "var(--green)" : "var(--red)", fontWeight: 600 }}>
-                  {delta >= 0 ? "+" : "−"}${Math.abs(delta * 100).toFixed(1)}
+                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)", color: delta == null ? "var(--text-muted)" : delta >= 0 ? "var(--green-text)" : "var(--red-text)", fontWeight: 600 }}>
+                  {delta == null ? "—" : `${delta >= 0 ? "+" : "−"}$${Math.abs(delta * 100).toFixed(1)}`}
                 </td>
                 <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>{why}</td>
               </tr>
