@@ -588,3 +588,37 @@ operator can fall back to the narrow-reading excuse again.
 5. If unsure whether a term needs definition, define it. Reply length
    is not a constraint — Joe explicitly asks for clarity over
    brevity, and a one-clause inline definition costs nothing.
+
+---
+
+## 14. Use MacroTilt brand language — "Tilt", not "Active bet"
+
+**The rule.** When a label, prose line, or chat message refers to the
+model's recommended over- or under-weight vs the benchmark, call it
+**Tilt** (or "MacroTilt"). The product brand IS the recommended portfolio
+tilt. Never use generic finance-speak like "Active bet," "active weight,"
+or "active position" in user-facing copy.
+
+**Why.** Joe directive 2026-04-26: *"Please stop using the term 'Active
+bet' it's fucking stupid - the website is called MacroTilt!!"* The phrase
+is technically correct in academic literature but it obscures the brand
+and feels impersonal. "Tilt" is short, branded, and obvious to anyone in
+the audience (portfolio managers, risk managers, investors). It's also
+the unit the back-test publishes — every recommendation is literally
+"how much we tilt vs S&P 500."
+
+**How to apply.**
+
+1. UI labels: use **"Tilt"** for the over/underweight metric. Example
+   card label: "Tilt: +5.3 pts overweight" — not "Active bet: +530bp."
+2. The internal variable name in code can stay technical (`active_bp`,
+   `active_bet`) — the rule applies to surfaces the user reads, not to
+   the code identifiers Senior Quant works with.
+3. Tier names ("Strong Overweight," "Overweight," "Market Weight,"
+   "Underweight," "Strong Underweight") stay industry-standard.
+4. Drawer copy, tooltips, chat replies, PR descriptions, alert email
+   bodies — all use Tilt.
+5. Any new metric introduced by Senior Quant that overlaps with the
+   tilt concept inherits the Tilt name on the surface; UX Designer and
+   Senior Quant both verify naming on PRs that introduce new finance
+   terms.
