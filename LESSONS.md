@@ -270,3 +270,40 @@ it.
 This rule survives across versions. Every back-test diagnostic, every
 allocation report, every methodology memo — describe the ticker the
 first time you cite it.
+
+---
+
+## 8. New tabs — audit TAB_IDS and HASH_ALIASES on ship
+
+**The rule.** When shipping a new top-level tab (or any URL hash route),
+audit BOTH `TAB_IDS` and `HASH_ALIASES` in `src/App.jsx` as part of the
+PR. Adding the nav item, the import, and the render condition is not
+enough.
+
+**Why.** 2026-04-25, Asset Allocation tab (v9) shipped in PR #140. I
+added the React component, the import, the `NAV_ITEMS` entry, and the
+`{tab==="allocation"&&<AssetAllocation/>}` render condition. I did NOT
+update `TAB_IDS` (the hash resolver's whitelist of valid tab IDs) and
+I did NOT update `HASH_ALIASES["asset-allocation"]` which was still
+pointing at "home" as a placeholder from when the tab was in
+development. Result: clicking the new nav item set the URL hash to
+`#allocation`, the resolver bounced it back to "home" because
+"allocation" wasn't in TAB_IDS, and the tab appeared to do nothing.
+Joe flagged it. Hotfix was PR #141.
+
+**How to apply.**
+
+1. Every PR that adds a new tab or URL route includes BOTH:
+   - Adding the new ID to the `TAB_IDS` array (the resolver whitelist).
+   - Removing or repointing any matching entry in `HASH_ALIASES` —
+     placeholder aliases like `"new-feature":"home"` are common in
+     pre-ship periods and become bugs at ship time.
+2. Self-UAT for new tabs MUST include clicking the live nav item on
+   the deployed site and verifying the page renders. JSON pipeline
+   working is not enough — the routing layer is where this kind of
+   bug hides.
+3. Also test typing the alias hash directly in the URL bar
+   (e.g. `/#asset-allocation`). Aliases get used in bookmarks,
+   shared links, and email links — they need to resolve to the new
+   tab when the feature ships, not stay on home.
+
