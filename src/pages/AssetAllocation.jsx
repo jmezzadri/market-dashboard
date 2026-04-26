@@ -403,15 +403,15 @@ export default function AssetAllocation({ onOpenTicker }) {
 
       {/* Hero KPI strip */}
       <section style={{
-        padding: "var(--space-5) var(--space-6)",
-        background: "var(--surface)",
-        border: "0.5px solid var(--border)",
+        padding: "var(--space-6) var(--space-7)",
+        background: "var(--surface-solid)",
+        border: "1px solid var(--border-strong)",
         borderRadius: "var(--radius-lg)",
-        marginBottom: "var(--space-4)",
+        marginBottom: "var(--space-5)",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
           <div style={{ minWidth: 0, flex: "1 1 320px" }}>
-            <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Asset Allocation</div>
+            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Asset Allocation</div>
             <h1 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 26, fontWeight: 500, margin: "4px 0 4px", letterSpacing: "-0.015em" }}>
               {stance.label} — {totalEquity > 1.05 ? "leaning into cyclical rotation" : totalEquity > 0.85 ? "balanced positioning" : "defensive posture"}
             </h1>
@@ -433,47 +433,47 @@ export default function AssetAllocation({ onOpenTicker }) {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12 }}>
           <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-            <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Total equity exposure
               <InfoTip def="The total dollars of equities held per $100 of capital, including borrowed dollars from margin. When this exceeds $100, the difference is leverage (e.g., $128 means 28% margin)." />
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, color: "var(--green)", marginTop: 2 }}>${(totalEquity * 100).toFixed(0)}</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green)", marginTop: 2 }}>${(totalEquity * 100).toFixed(0)}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>per $100 capital · {(margin * 100).toFixed(0)}% margin</div>
           </div>
           <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-            <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Defensive sleeve
               <InfoTip def="The portion of capital held in safe assets — T-bills (BIL), long Treasuries (TLT), gold (GLD), and IG corporate bonds (LQD). Activates when Risk & Liquidity composite enters the elevated or stressed zone. Currently off." />
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 2 }}>${defensiveOn ? ((1 - alloc.equity_share) * 100).toFixed(0) : 0}</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, marginTop: 2 }}>${defensiveOn ? ((1 - alloc.equity_share) * 100).toFixed(0) : 0}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{defensiveOn ? "active" : "off · activates if R&L stresses"}</div>
           </div>
           <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-            <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Excess return target
               <InfoTip def="Expected outperformance versus the S&P 500 over the next month, after subtracting the financing cost on any margin used." />
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, color: "var(--green)", marginTop: 2 }}>+{alpha.toFixed(2)} pp</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green)", marginTop: 2 }}>+{alpha.toFixed(2)} pp</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>monthly · over S&P 500</div>
           </div>
           <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
-            <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Conviction
               <InfoTip def="How confident the model is in the current ranking. STRONG = the top 5 buckets are clearly separated from the rest on both indicator score and momentum rank." />
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 2, textTransform: "capitalize" }}>{conviction.toLowerCase()}</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, marginTop: 2, textTransform: "capitalize" }}>{conviction.toLowerCase()}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{picks.length} picks · clear rank separation</div>
           </div>
         </div>
       </section>
 
       {/* Section 1 — The Big Picture */}
-      <section style={{ padding: "var(--space-5) var(--space-6)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-4)" }}>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 10 }}>
           <div>
-            <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>1 · The big picture</div>
-            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 19, fontWeight: 500, margin: "4px 0 4px" }}>Market snapshot — live from Macro Overview</h2>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Three composites measure forward S&P drawdown probability over different windows.</p>
+            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>1 · The big picture</div>
+            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Market snapshot — live from Macro Overview</h2>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Three composites measure forward S&P drawdown probability over different windows.</p>
           </div>
           <a href="#overview" style={{ fontSize: 11, color: "var(--accent)", padding: "4px 10px", border: "0.5px solid var(--border)", borderRadius: 5, textDecoration: "none" }}>Full dials &amp; history →</a>
         </div>
@@ -514,11 +514,11 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 2 — Recommended Asset Allocation */}
-      <section style={{ padding: "var(--space-5) var(--space-6)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-4)" }}>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
         <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>2 · Recommended Asset Allocation</div>
-          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 19, fontWeight: 500, margin: "4px 0 4px" }}>Three views: where we are, what changed, what flipped</h2>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Per $100 of capital. Tables read top-down: holdings, then deltas, then ratings.</p>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>2 · Recommended Asset Allocation</div>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Three views: where we are, what changed, what flipped</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Per $100 of capital. Tables read top-down: holdings, then deltas, then ratings.</p>
         </div>
 
         <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "12px 0 6px" }}>Asset class allocation</h3>
@@ -617,12 +617,36 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 3 — Sector outlooks */}
-      <section style={{ padding: "var(--space-5) var(--space-6)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-4)" }}>
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>3 · Sector outlooks</div>
-          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 19, fontWeight: 500, margin: "4px 0 4px" }}>11 sectors · 25 industry groups · 3 ratings</h2>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Click any chip to see the rationale, key factors, and what would change the call.</p>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>3 · Sector outlooks &amp; target allocation</div>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>11 sectors · 25 industry groups · 3 ratings</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Click any sector or industry group below to see the rationale, key factors, and what would change the call.</p>
         </div>
+
+        {/* Side-by-side OW / UW tables */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+          <SideTable
+            kind="ow"
+            title="Overweight"
+            subtitle={`${picks.length} positions · +${(picks.reduce((s,p)=>s+p.weight,0)*100).toFixed(1)}% of capital`}
+            rows={SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "ow").map(g => ({...g, sector: s.sector})))}
+            picks={picks}
+            rationales={rationales}
+            onSelect={setActiveBucket}
+          />
+          <SideTable
+            kind="uw"
+            title="Underweight"
+            subtitle={`${SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "uw")).length} positions · 0% of capital`}
+            rows={SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "uw").map(g => ({...g, sector: s.sector})))}
+            picks={picks}
+            rationales={rationales}
+            onSelect={setActiveBucket}
+          />
+        </div>
+
+        <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginTop: 24, marginBottom: 8 }}>Full heatmap — all 25 industry groups</div>
 
         <div style={{ display: "grid", gridTemplateColumns: "120px repeat(3, 1fr)", gap: 3, fontSize: 10 }}>
           <div style={{ padding: "6px 4px" }}/>
@@ -648,12 +672,12 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 4 — Risk management */}
-      <section style={{ padding: "var(--space-5) var(--space-6)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-4)" }}>
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
           <div>
-            <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>4 · Risk management</div>
-            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 19, fontWeight: 500, margin: "4px 0 4px" }}>What can break this</h2>
-            <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>Each scenario lists the trigger, the buckets exposed, and the mechanism.</p>
+            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>4 · Risk management</div>
+            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>What can break this</h2>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Each scenario lists the trigger, the buckets exposed, and the mechanism.</p>
           </div>
           <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green)" }}/>
@@ -663,8 +687,8 @@ export default function AssetAllocation({ onOpenTicker }) {
 
         {RISK_SCENARIOS.map((s, i) => (
           <div key={i} style={{ border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px", marginTop: 8, background: "var(--bg)" }}>
-            <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 13 }}>{s.trigger}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.55 }}>{s.impact}</div>
+            <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 15 }}>{s.trigger}</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.6 }}>{s.impact}</div>
             <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
               {s.tags.map((t) => <span key={t} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 3, background: "var(--surface)", color: "var(--text-muted)" }}>{t}</span>)}
             </div>
@@ -672,15 +696,37 @@ export default function AssetAllocation({ onOpenTicker }) {
         ))}
       </section>
 
-      {/* Methodology footer */}
-      <section style={{ padding: "10px 14px", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, fontSize: 11, color: "var(--text-muted)" }}>
-        <div style={{ display: "flex", gap: 14, alignItems: "center", flexWrap: "wrap" }}>
-          <span><strong style={{ color: "var(--text)" }}>Methodology {alloc.methodology?.version || "v9"}</strong> · locked {alloc.methodology?.locked_at || "—"}</span>
-          <span>Backtest {alloc.methodology?.back_test_window || "—"} · CAGR {((alloc.methodology?.back_test_cagr || 0) * 100).toFixed(1)}% · Sharpe {(alloc.methodology?.back_test_sharpe || 0).toFixed(2)} · Max DD {((alloc.methodology?.back_test_max_drawdown || 0) * 100).toFixed(1)}% · vs SPY +{((alloc.methodology?.vs_spy_cagr_diff || 0) * 100).toFixed(1)}%/yr</span>
+      {/* Methodology summary + footer */}
+      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-5)" }}>
+        <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Methodology</div>
+        <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>How this allocation is built — {alloc.methodology?.version || "v9"}</h2>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.55 }}>Locked {alloc.methodology?.locked_at || "—"}. Each bucket is regressed on 2-6 macro factors (universal background factors: yield curve and term premium). Top 5 picks selected by combined indicator + 6-month-momentum rank, equal-weighted, scaled by leverage calibrated to the Risk &amp; Liquidity composite. Defensive sleeve (BIL/TLT/GLD/LQD) activates when R&amp;L moves into the elevated or stressed zone.</p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Backtest CAGR</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4 }}>{((alloc.methodology?.back_test_cagr || 0) * 100).toFixed(1)}%</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{alloc.methodology?.back_test_window || "—"}</div>
+          </div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Sharpe ratio</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4 }}>{(alloc.methodology?.back_test_sharpe || 0).toFixed(2)}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>net of financing</div>
+          </div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Max drawdown</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4, color: "var(--red)" }}>{((alloc.methodology?.back_test_max_drawdown || 0) * 100).toFixed(1)}%</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>peak to trough</div>
+          </div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>vs S&P 500</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4, color: "var(--green)" }}>+{((alloc.methodology?.vs_spy_cagr_diff || 0) * 100).toFixed(1)}%/yr</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>excess return</div>
+          </div>
         </div>
-        <div style={{ display: "flex", gap: 10 }}>
-          <a href="#readme" style={{ color: "var(--accent)", textDecoration: "none" }}>Methodology →</a>
-          <a href="/v9_allocation.json" target="_blank" rel="noreferrer" style={{ color: "var(--accent)", textDecoration: "none" }}>Raw data →</a>
+
+        <div style={{ marginTop: "var(--space-4)", fontSize: 12, color: "var(--text-muted)" }}>
+          <a href="#readme" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>Read the full methodology →</a>
         </div>
       </section>
 
@@ -692,16 +738,16 @@ export default function AssetAllocation({ onOpenTicker }) {
 function thStyle() {
   return {
     textAlign: "left",
-    padding: "8px 12px",
-    fontSize: 9,
+    padding: "10px 14px",
+    fontSize: 10,
     color: "var(--text-muted)",
     textTransform: "uppercase",
     letterSpacing: "0.08em",
     fontWeight: 600,
-    borderBottom: "0.5px solid var(--border)",
+    borderBottom: "1px solid var(--border-strong)",
   };
 }
-function tdStyle() { return { padding: "9px 12px", borderBottom: "0.5px solid var(--border)", verticalAlign: "middle", fontSize: 12 }; }
+function tdStyle() { return { padding: "11px 14px", borderBottom: "1px solid var(--border)", verticalAlign: "middle", fontSize: 13 }; }
 function tdRight() { return { ...tdStyle(), textAlign: "right" }; }
 function dollarStyle() { return { fontFamily: "var(--font-mono)", color: "var(--text)" }; }
 
@@ -709,6 +755,62 @@ function HistCell({ value, loading }) {
   if (loading) return <span style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: 11 }}>…</span>;
   if (value == null) return <span style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: 11 }}>—</span>;
   return <span style={dollarStyle()}>${value.toFixed(0)}</span>;
+}
+
+
+
+// ─── Side-by-side OW/UW table ───────────────────────────────────────────────
+function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect }) {
+  const accentColor = kind === "ow" ? "var(--green)" : "var(--red)";
+  const accentBg    = kind === "ow" ? "rgba(48,209,88,0.10)" : "rgba(255,69,58,0.10)";
+  return (
+    <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden", background: "var(--bg)" }}>
+      <div style={{ padding: "10px 14px", background: accentBg, borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+        <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 16, fontWeight: 500, color: accentColor }}>{title}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" }}>{subtitle}</div>
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)", fontSize: 13 }}>
+        <thead>
+          <tr>
+            <th style={{ textAlign: "left", padding: "8px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Sector › Industry group</th>
+            <th style={{ textAlign: "right", padding: "8px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Target</th>
+            <th style={{ textAlign: "right", padding: "8px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>vs SPY</th>
+            <th style={{ textAlign: "left", padding: "8px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Why</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => {
+            const pick = picks.find(p => p.ticker === r.ticker);
+            const weight = pick?.weight || 0;
+            // Rough SPY weights (cap-weighted) for the buckets we actually track
+            const SPY_W = { SOXX: 0.073, IGV: 0.115, IBB: 0.018, XLF: 0.133, XLV: 0.121, XLI: 0.094, XLE: 0.037, XLY: 0.103, XLP: 0.062, XLU: 0.024, XLB: 0.026, IYR: 0.026, IYZ: 0.094, MGK: 0.0 };
+            const spyW = r.ticker ? (SPY_W[r.ticker] || 0) : 0;
+            const delta = weight - spyW;
+            const seed = rationales?.buckets?.[r.ticker];
+            const why = seed ? (seed.key_factors?.[0]?.name + " " + (seed.key_factors?.[0]?.value || "")) : "—";
+            return (
+              <tr key={i}
+                  onClick={() => r.ticker && onSelect({...r})}
+                  style={{ cursor: r.ticker ? "pointer" : "default" }}
+                  onMouseEnter={(e) => { if (r.ticker) e.currentTarget.style.background = "var(--surface)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+              >
+                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none" }}>
+                  <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500 }}>{r.sector}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{r.name}</div>
+                </td>
+                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)" }}>{weight > 0 ? `$${(weight * 100).toFixed(1)}` : "$0"}</td>
+                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)", color: delta >= 0 ? "var(--green)" : "var(--red)", fontWeight: 600 }}>
+                  {delta >= 0 ? "+" : "−"}${Math.abs(delta * 100).toFixed(1)}
+                </td>
+                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>{why}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function HeatmapRow({ row, activeBucket, setActiveBucket }) {
