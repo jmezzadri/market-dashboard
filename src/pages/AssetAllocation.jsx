@@ -280,7 +280,7 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
     }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
         <div>
-          <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 17, fontWeight: 500 }}>{ig.sector} › {seed.name}</div>
+          <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 17, fontWeight: 500 }}>{ig.sector} › {ig.name}</div>
           <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2, display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <RatingPill rating={ig.rating} />
             <span>{seed.fund} ({seed.ticker})</span>
