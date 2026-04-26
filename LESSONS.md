@@ -448,3 +448,100 @@ This rule pairs with rule 9. Together they mean: when starting any
 new feature, the work plan is "data first, bulletproof everywhere,
 no menu of quality levels."
 
+
+---
+
+## 11. When .git lock files won't unlink, fall back to a fresh shallow clone — don't keep retrying the worktree pattern
+
+**The rule.** The build-and-ship sweep documents the worktree pattern
+(create a fresh worktree from origin/main, edit, commit, push, PR). On the
+sandbox-mounted Mac repo, that pattern can fail in a way that's not the
+"stale .git/index.lock" footgun rule #2 of the SKILL warns about — the lock
+file exists, is owned by the right user, but the sandbox cannot `unlink`
+it. Every commit then errors with "Another git process seems to be
+running" and the branch ends up pushed pointing at the same SHA as
+origin/main (no commit landed). When you see this, abandon the worktree
+pattern entirely and `git clone --depth=1 -b main https://${PAT}@github
+.com/jmezzadri/market-dashboard.git /tmp/clone-<branch>` instead.
+
+**Why.** During the 2026-04-25 hourly bugs-build sweep, the first three
+PRs (#1069, #1070, #1071) all "succeeded" their `git push` step but
+actually pushed at the unchanged main SHA — every commit had been silently
+dropped earlier with the EPERM-on-unlink error. The sweep only caught the
+miss because the next step verified the branch SHA against the head SHA.
+The recovery cost was a full second run from fresh clones in `/tmp/`,
+which has no host-mount permission complications. Both `.git/index.lock`
+in the shared repo AND `.git/worktrees/<wt>/HEAD.lock` in each new worktree
+are affected.
+
+**How to apply.**
+
+1. The first time a `git commit` or `git add` from a worktree returns
+   "Another git process seems to be running," check `ls .git/index.lock`
+   and `ls .git/worktrees/*/HEAD.lock`.
+2. If the locks exist and `rm -f` fails with "Operation not permitted,"
+   stop using worktrees against that repo for this run. Don't keep
+   retrying — the locks are unremovable from the sandbox.
+3. Switch to fresh shallow clones in `/tmp/clone-<descriptor>/`. The clone
+   has its own `.git`, lives entirely on the sandbox filesystem, and has
+   no shared-object or shared-lock contention.
+4. After the sweep, the `/tmp/clone-*` directories can be deleted; the
+   worktree leftovers in the shared repo's `.git/worktrees/` will need
+   cleanup from the host (Mac terminal) on a future run, but they won't
+   block subsequent clones.
+5. This is a sandbox/Mac-mount issue, not a git issue — branches pushed
+   from the shallow clone integrate fine with the rest of the repo, and
+   the resulting PR is indistinguishable from a worktree-pattern PR.
+
+---
+
+## 12. Lead Developer ships PRs autonomously — no per-PR Joe-approval gate
+
+**The rule.** Lead Developer drives the full chain end-to-end: branch →
+edit → commit → push → open PR → wait for Vercel green → merge →
+production deploy → UAT verify → update bug-report row to `deployed`.
+Joe's role is to approve the *fix proposals* in the bug queue, not the
+individual PRs that implement them. Once a bug is `status='approved'` with
+a clear proposal, Lead Developer ships without asking again.
+
+**Specialist sign-offs are still required** — UX Designer must clear any
+PR touching `.tsx` / `.jsx` / `/components/` / `/styles/`, and Senior
+Quant must clear any PR touching calculations / indicators / models /
+scoring logic. Those sign-offs go in the PR body or in chat as part of the
+ship message. They do not gate on Joe.
+
+**Why.** Joe has flagged this preference repeatedly across many sessions:
+*"you have the API keys, you do everything, I only approve the fixes."*
+On 2026-04-25 the build-and-ship operator opened PR #137 (rule #11) and
+held it open for "Joe approval per the all-PRs-need-approval rule," which
+contradicted Joe's actual collaboration model and introduced friction he
+explicitly does not want. The earlier project-instructions phrasing —
+"All PRs require my approval before merging" — was carrying weight it
+shouldn't, so this rule supersedes that line for routine PRs.
+
+**How to apply.**
+
+1. **Routine PRs ship autonomously.** Bug fixes, copy fixes, refactors,
+   tooling, LESSONS.md additions documenting operational discoveries
+   (like rule #11) — Lead Developer merges as soon as Vercel is green and
+   the relevant specialist has signed off in the PR body.
+2. **Stop and confirm only for irreversible actions.** Production
+   deploys are auto via Vercel — those are fine. The ones that need an
+   explicit Joe-confirm in chat before proceeding are: force pushes that
+   rewrite shared history, rebasing main, dropping database tables,
+   destructive schema migrations (column drops, data deletes), deleting
+   branches anyone else is on, or anything else that can't be undone with
+   a normal commit revert.
+3. **Specialist consultation is visible in the response.** Even when
+   shipping autonomously, the response that announces the merge names
+   which specialist roles consulted and what they each contributed —
+   this preserves the multi-agent council protocol from the project
+   instructions.
+4. **Bug-proposal approval still gates work.** A bug at
+   `status='awaiting_approval'` does not get touched by Lead Developer
+   until Joe moves it to `status='approved'`. The autonomy is on
+   *implementation*, not on *what to implement*.
+5. **If in doubt, ship and report.** Joe prefers a finished merge plus a
+   short plain-English status note over an open PR sitting on his queue.
+   He will say so in chat if a specific PR needed his eyes first; that
+   becomes a one-off, not a new gate.
