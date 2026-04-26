@@ -1,0 +1,136 @@
+name: V10-ASSET-ALLOCATION
+
+# Replaces the v9 INDICATOR-REFRESH integration. Runs the full v10
+# pipeline weekly (Friday after market close) plus a lighter daily
+# regime watch (Mon-Thu morning).
+#
+# Architecture per asset-allocation-v10-architecture.md.
+# Runbook at asset_allocation/docs/runbook.md.
+#
+# Required GitHub secrets:
+#   FRED_API_KEY (optional — fredgraph CSV works without one)
+#   RESEND_API_KEY (for email alerts)
+#   ALERT_TO (defaults to josephmezzadri@gmail.com)
+
+on:
+  schedule:
+    # Weekly run: Friday 9:30pm UTC = 5:30pm ET (after market close)
+    - cron: '30 21 * * 5'
+    # Daily regime watch: Mon-Thu 11:30am UTC = 7:30am ET
+    - cron: '30 11 * * 1-4'
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Run mode (weekly or watch)'
+        required: true
+        default: 'weekly'
+        type: choice
+        options:
+          - weekly
+          - watch
+
+concurrency:
+  group: v10-asset-allocation
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+
+    steps:
+      - name: Determine mode from cron schedule
+        id: mode
+        run: |
+          # Manual dispatch uses the input; cron uses the day-of-week to decide
+          if [ -n "${{ inputs.mode }}" ]; then
+            echo "mode=${{ inputs.mode }}" >> $GITHUB_OUTPUT
+          else
+            DOW=$(date -u +%u)  # 1=Mon ... 5=Fri ... 7=Sun
+            if [ "$DOW" = "5" ]; then
+              echo "mode=weekly" >> $GITHUB_OUTPUT
+            else
+              echo "mode=watch" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+      - name: Check out market-dashboard
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest
+
+      - name: Run unit tests (CI gate)
+        run: python -m pytest asset_allocation/tests/ -p no:cacheprovider
+
+      - name: Configure git
+        run: |
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+
+      - name: Run pipeline
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+        run: |
+          MODE=${{ steps.mode.outputs.mode }}
+          RUN_DIR=runs/$(date -u +%Y-%m-%d)_${MODE}
+          mkdir -p "$RUN_DIR"
+          python -m asset_allocation.pipeline --mode "$MODE" --run-dir "$RUN_DIR" \
+              --log-level INFO
+
+      - name: Commit + push allocation if changed
+        run: |
+          # Stage only the artifacts the workflow is allowed to modify
+          git add public/v10_allocation.json public/v10_regime_alert.json \
+                  public/allocation_history/ asset_allocation/run_log.jsonl 2>/dev/null || true
+
+          if git diff --staged --quiet; then
+            echo "No allocation changes to commit"
+            exit 0
+          fi
+
+          MODE=${{ steps.mode.outputs.mode }}
+          DATE=$(date -u +%Y-%m-%d)
+          git commit -m "v10 allocation auto-refresh (${MODE}, ${DATE}) [skip ci]"
+          git push || echo "Push failed (non-fatal); next scheduled run will retry."
+
+      - name: Upload run artifacts
+        if: always()
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: v10-run-${{ github.run_id }}
+          path: |
+            runs/
+            public/v10_allocation.json
+            public/v10_regime_alert.json
+            asset_allocation/run_log.jsonl
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Send alert on failure
+        if: failure()
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          ALERT_TO: ${{ secrets.ALERT_TO }}
+        run: |
+          python -c "
+          from asset_allocation.monitoring.alerts import send_email
+          send_email(
+              subject='[MacroTilt] V10 workflow FAILED',
+              html_body='<h2>The V10 workflow failed.</h2><p>Run: ${{ github.run_id }}</p><p>Mode: ${{ steps.mode.outputs.mode }}</p><p>See: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}</p><p>See runbook at asset_allocation/docs/runbook.md.</p>',
+          )
+          " || echo "Alert send failed; check logs"
