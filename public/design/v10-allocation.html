@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MacroTilt — Asset Allocation v10 (wireframe)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Inter", -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --s-1: 4px; --s-2: 8px; --s-3: 16px; --s-4: 24px;
+  --s-5: 32px; --s-6: 48px; --s-7: 64px; --s-8: 96px;
+  --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-xl: 14px;
+  --motion-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  --motion-med: 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  /* Parchment palette */
+  --bg-0: #fafaf5;
+  --bg-1: #ffffff;
+  --bg-2: #f3f1e9;
+  --bg-3: #eae6d8;
+  --ink-0: #17181c;
+  --ink-1: #44474f;
+  --ink-2: #6b6f78;
+  --ink-3: #9a9ea8;
+  --line-0: rgba(0,0,0,0.06);
+  --line-1: rgba(0,0,0,0.12);
+  --accent: #d9b27a;
+  --accent-deep: #a87a3a;
+  --burgundy: #9d3545;
+  --teal: #2b6870;
+
+  --up: #1f9d60;
+  --down: #d23040;
+  --warn: #b8811c;
+  --info: #2862c2;
+
+  --tier-mf:  #2f6f4a;
+  --tier-f:   #6da283;
+  --tier-n:   #9a9ea8;
+  --tier-lf:  #c79870;
+  --tier-leastf:#9d3545;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--ink-0);
+  background: var(--bg-0);
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--info); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+h1, h2, h3, h4, .display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.1;
+  color: var(--ink-0);
+  letter-spacing: -0.02em;
+}
+h1 { font-size: clamp(40px, 4.6vw, 60px); font-weight: 300; }
+h2 { font-size: clamp(26px, 2.8vw, 34px); font-weight: 400; margin: 0; }
+h3 { font-size: 20px; font-weight: 500; }
+h4 { font-size: 14px; font-weight: 600; font-family: var(--font-body);
+     letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
+
+p { color: var(--ink-1); max-width: 68ch; }
+p strong { color: var(--ink-0); font-weight: 600; }
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--ink-2); display: inline-block;
+}
+.eyebrow .sep { color: var(--ink-3); margin: 0 var(--s-2); }
+
+.wf-banner {
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--line-0);
+  padding: var(--s-2) var(--s-4);
+  font-size: 12px;
+  color: var(--ink-2);
+  text-align: center;
+}
+.wf-banner strong { color: var(--ink-0); }
+
+.topbar {
+  background: var(--bg-1);
+  border-bottom: 1px solid var(--line-0);
+  padding: var(--s-3) 0;
+  position: sticky; top: 0; z-index: 50;
+}
+.topbar-inner {
+  max-width: 1180px; margin: 0 auto; padding: 0 var(--s-4);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.brand {
+  font-family: var(--font-display); font-size: 22px; font-weight: 500;
+  letter-spacing: -0.02em; color: var(--ink-0);
+}
+.brand-mark {
+  display: inline-block; width: 24px; height: 24px;
+  background: var(--accent); border-radius: 50%;
+  margin-right: var(--s-2); vertical-align: -5px;
+}
+.tabs { display: flex; gap: var(--s-3); font-size: 13px; color: var(--ink-2); }
+.tabs a { color: var(--ink-2); }
+.tabs a.active { color: var(--ink-0); border-bottom: 2px solid var(--accent); padding-bottom: 4px; }
+
+.shell {
+  max-width: 1180px; margin: 0 auto; padding: var(--s-6) var(--s-4) var(--s-8);
+}
+
+.hero { padding-bottom: var(--s-7); border-bottom: 1px solid var(--line-0); }
+.hero .eyebrow { margin-bottom: var(--s-3); }
+.hero h1 { margin-bottom: var(--s-3); max-width: 18ch; }
+.hero .dek {
+  font-family: var(--font-display);
+  font-size: clamp(18px, 2vw, 22px);
+  font-weight: 300; font-style: italic; line-height: 1.45;
+  color: var(--ink-1); max-width: 56ch; margin-bottom: var(--s-5);
+}
+.hero-asof {
+  font-size: 12px; color: var(--ink-2); display: flex; gap: var(--s-3); align-items: center;
+}
+.hero-asof .pulse {
+  width: 7px; height: 7px; background: var(--up); border-radius: 50%;
+  display: inline-block;
+}
+
+.hero-strip {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: var(--s-3); margin-top: var(--s-5);
+}
+.tile {
+  background: var(--bg-1); border: 1px solid var(--line-0);
+  border-radius: var(--r-lg); padding: var(--s-4);
+}
+.tile h4 { margin-bottom: var(--s-3); }
+.tile .big {
+  font-family: var(--font-display); font-size: 32px; font-weight: 400;
+  color: var(--ink-0); line-height: 1; margin-bottom: var(--s-2);
+}
+.tile .sub { font-size: 13px; color: var(--ink-2); }
+
+.stance-arc { display: flex; gap: 2px; margin-top: var(--s-3); }
+.stance-arc .seg {
+  flex: 1; height: 8px; border-radius: 2px;
+  background: var(--bg-3); transition: background var(--motion-med);
+}
+.stance-arc .seg.on-defensive { background: var(--burgundy); }
+.stance-arc .seg.on-balanced { background: var(--ink-3); }
+.stance-arc .seg.on-aggressive { background: var(--accent-deep); }
+.stance-labels {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--ink-3); margin-top: var(--s-1);
+  letter-spacing: 0.04em; text-transform: uppercase;
+}
+
+.meter-arc {
+  position: relative; width: 100%; height: 90px;
+  display: flex; align-items: center; justify-content: center;
+}
+.meter-arc svg { width: 180px; height: 90px; }
+.meter-num {
+  position: absolute; bottom: 4px;
+  font-family: var(--font-display); font-size: 28px; color: var(--ink-0);
+}
+
+.macro-pills { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
+.macro-pill {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; color: var(--ink-1);
+}
+.macro-pill .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: var(--s-2);
+}
+.macro-pill .dot.calm { background: var(--up); }
+.macro-pill .dot.neutral { background: var(--ink-3); }
+.macro-pill .dot.elevated { background: var(--warn); }
+.macro-pill .dot.stressed { background: var(--down); }
+.macro-pill .label { color: var(--ink-2); font-size: 12px; }
+
+.changes {
+  margin-top: var(--s-6);
+  background: var(--bg-2); border-radius: var(--r-lg);
+  padding: var(--s-4) var(--s-5);
+}
+.changes h4 { margin-bottom: var(--s-3); }
+.change-list { list-style: none; padding: 0; }
+.change-list li {
+  display: flex; align-items: baseline; gap: var(--s-3);
+  padding: var(--s-2) 0; border-bottom: 1px dashed var(--line-0);
+  font-size: 14px; color: var(--ink-1);
+}
+.change-list li:last-child { border-bottom: none; }
+.arrow-up { color: var(--up); font-weight: 600; }
+.arrow-down { color: var(--down); font-weight: 600; }
+.change-name { color: var(--ink-0); font-weight: 500; min-width: 160px; }
+
+.section { padding: var(--s-7) 0; border-bottom: 1px solid var(--line-0); }
+.section:last-child { border-bottom: none; }
+.sec-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  margin-bottom: var(--s-5);
+}
+
+.drivers-grid {
+  display: grid; grid-template-columns: 1.4fr 1fr;
+  gap: var(--s-5); align-items: start;
+}
+.driver-narrative p { margin-bottom: var(--s-3); }
+
+.themes { display: flex; flex-direction: column; gap: var(--s-3); }
+.theme-card {
+  background: var(--bg-1); border: 1px solid var(--line-0);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--r-md); padding: var(--s-3) var(--s-4);
+}
+.theme-card h4 { margin-bottom: var(--s-1); color: var(--ink-0); text-transform: none; letter-spacing: 0; font-size: 14px; }
+.theme-card p { font-size: 13px; margin: 0; }
+
+.composite-trail {
+  margin-top: var(--s-5); background: var(--bg-1);
+  border: 1px solid var(--line-0); border-radius: var(--r-lg);
+  padding: var(--s-4);
+}
+.composite-trail .row {
+  display: flex; align-items: center; gap: var(--s-4);
+  padding: var(--s-2) 0;
+}
+.composite-trail .row .name { font-size: 13px; min-width: 140px; color: var(--ink-1); }
+.composite-trail .row .val { font-family: var(--font-mono); font-size: 13px; color: var(--ink-0); min-width: 60px; }
+.composite-trail .row svg { flex: 1; height: 28px; }
+
+.view-toggle {
+  display: inline-flex; background: var(--bg-2); border-radius: var(--r-md);
+  padding: 3px; gap: 0; margin-bottom: var(--s-4);
+}
+.view-toggle button {
+  background: transparent; border: none; padding: 6px 14px;
+  font-family: var(--font-body); font-size: 13px; color: var(--ink-2);
+  border-radius: var(--r-sm); cursor: pointer;
+  transition: background var(--motion-fast), color var(--motion-fast);
+}
+.view-toggle button.active {
+  background: var(--bg-1); color: var(--ink-0);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.tier-row { margin-bottom: var(--s-4); }
+.tier-label {
+  display: flex; align-items: baseline; gap: var(--s-3);
+  margin-bottom: var(--s-2);
+}
+.tier-label .pip { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.tier-label.mf .pip { background: var(--tier-mf); }
+.tier-label.f  .pip { background: var(--tier-f); }
+.tier-label.n  .pip { background: var(--tier-n); }
+.tier-label.lf .pip { background: var(--tier-lf); }
+.tier-label.leastf .pip { background: var(--tier-leastf); }
+.tier-label .name {
+  font-family: var(--font-display); font-size: 17px; color: var(--ink-0);
+}
+.tier-label .count { font-size: 12px; color: var(--ink-2); }
+
+.bucket-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--s-2);
+}
+.bucket-card {
+  background: var(--bg-1); border: 1px solid var(--line-0);
+  border-left: 3px solid var(--ink-3);
+  border-radius: var(--r-md); padding: var(--s-3);
+  cursor: pointer;
+  transition: transform var(--motion-fast), box-shadow var(--motion-fast), border-color var(--motion-fast);
+}
+.bucket-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+  border-left-color: var(--accent);
+}
+.bucket-card.mf { border-left-color: var(--tier-mf); }
+.bucket-card.f  { border-left-color: var(--tier-f); }
+.bucket-card.n  { border-left-color: var(--tier-n); }
+.bucket-card.lf { border-left-color: var(--tier-lf); }
+.bucket-card.leastf { border-left-color: var(--tier-leastf); }
+
+.bucket-card .name {
+  font-family: var(--font-body); font-size: 14px; font-weight: 600;
+  color: var(--ink-0); margin-bottom: var(--s-1);
+}
+.bucket-card .meta {
+  display: flex; justify-content: space-between; font-size: 12px; color: var(--ink-2);
+}
+.bucket-card .delta.up { color: var(--up); }
+.bucket-card .delta.down { color: var(--down); }
+.bucket-card .delta.flat { color: var(--ink-3); }
+
+.drawer-mask {
+  position: fixed; inset: 0; background: rgba(20,20,18,0.45);
+  z-index: 100; opacity: 0; pointer-events: none;
+  transition: opacity var(--motion-med);
+}
+.drawer-mask.open { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: min(560px, 92vw); background: var(--bg-1);
+  z-index: 101; padding: var(--s-5);
+  transform: translateX(100%); transition: transform var(--motion-med);
+  overflow-y: auto;
+  box-shadow: -8px 0 32px rgba(0,0,0,0.12);
+}
+.drawer.open { transform: translateX(0); }
+.drawer-close {
+  position: absolute; top: var(--s-3); right: var(--s-3);
+  background: none; border: none; cursor: pointer;
+  font-size: 22px; color: var(--ink-2); line-height: 1;
+}
+.drawer .pip-line { display: flex; align-items: center; gap: var(--s-2); margin-bottom: var(--s-2); }
+.drawer .pip-line .pip { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.drawer h2 { margin-bottom: var(--s-2); font-size: 28px; }
+.drawer .rating-line { font-size: 13px; color: var(--ink-2); margin-bottom: var(--s-4); }
+.drawer h4 { margin-top: var(--s-4); margin-bottom: var(--s-2); }
+.drawer p { font-size: 14px; margin-bottom: var(--s-3); }
+.drawer .factor-list { list-style: none; padding: 0; }
+.drawer .factor-list li {
+  padding: var(--s-2) 0; border-bottom: 1px dashed var(--line-0);
+  display: flex; justify-content: space-between; font-size: 13px;
+}
+.drawer .factor-list li .factor-name { color: var(--ink-1); }
+.drawer .factor-list li .factor-z { font-family: var(--font-mono); color: var(--ink-0); }
+.drawer .ig-list { list-style: none; padding: 0; }
+.drawer .ig-list li {
+  padding: var(--s-2) 0; font-size: 13px; color: var(--ink-1);
+  border-bottom: 1px dashed var(--line-0);
+}
+
+.alloc-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: var(--s-5); margin-bottom: var(--s-5);
+}
+.chart-frame {
+  background: var(--bg-1); border: 1px solid var(--line-0);
+  border-radius: var(--r-lg); padding: var(--s-4);
+}
+.chart-frame h4 { margin-bottom: var(--s-3); text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--ink-1); font-weight: 500; }
+.chart-frame .legend { display: flex; flex-wrap: wrap; gap: var(--s-3) var(--s-4); margin-top: var(--s-3); font-size: 12px; }
+.chart-frame .legend .item { display: flex; align-items: center; gap: var(--s-1); color: var(--ink-2); }
+.chart-frame .legend .item .swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+
+.alloc-table {
+  width: 100%; border-collapse: collapse; margin-top: var(--s-3);
+  font-size: 13px;
+}
+.alloc-table thead th {
+  text-align: left; padding: var(--s-2) var(--s-3);
+  font-size: 11px; font-weight: 600; color: var(--ink-2);
+  letter-spacing: 0.08em; text-transform: uppercase;
+  border-bottom: 1px solid var(--line-1);
+}
+.alloc-table tbody td {
+  padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--line-0);
+  color: var(--ink-1);
+}
+.alloc-table tbody td.num { text-align: right; font-family: var(--font-mono); color: var(--ink-0); }
+.alloc-table tbody td.bucket { color: var(--ink-0); font-weight: 500; }
+.alloc-table tbody td .pip { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: var(--s-2); }
+.alloc-table tr.over .delta { color: var(--up); font-weight: 600; }
+.alloc-table tr.under .delta { color: var(--down); font-weight: 600; }
+.alloc-table tr.flat .delta { color: var(--ink-3); }
+
+.tactics {
+  background: var(--bg-2); border-radius: var(--r-lg);
+  padding: var(--s-4) var(--s-5); margin-top: var(--s-4);
+  font-size: 14px; color: var(--ink-1);
+}
+.tactics strong { color: var(--ink-0); }
+
+.risk-list { display: flex; flex-direction: column; gap: var(--s-3); }
+.risk-card {
+  background: var(--bg-1); border: 1px solid var(--line-0);
+  border-left: 3px solid var(--burgundy);
+  border-radius: var(--r-md); padding: var(--s-4);
+}
+.risk-card h4 { color: var(--ink-0); text-transform: none; letter-spacing: 0; font-size: 15px; margin-bottom: var(--s-2); font-weight: 600; }
+.risk-card .trigger { font-size: 13px; color: var(--ink-1); margin-bottom: var(--s-2); }
+.risk-card .alt {
+  font-size: 13px; color: var(--ink-2); padding-top: var(--s-2);
+  border-top: 1px dashed var(--line-0); font-style: italic;
+}
+
+.bottom-strip {
+  display: flex; gap: var(--s-3); flex-wrap: wrap;
+  padding: var(--s-5) 0; border-top: 1px solid var(--line-0);
+  margin-top: var(--s-7);
+  font-size: 13px; color: var(--ink-2);
+  align-items: center;
+}
+.bottom-strip a {
+  background: var(--bg-2); padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm); color: var(--ink-1);
+  border: 1px solid var(--line-0);
+}
+.bottom-strip a:hover { background: var(--bg-3); text-decoration: none; }
+.bottom-strip .right { margin-left: auto; color: var(--ink-3); font-size: 12px; }
+
+@media (max-width: 880px) {
+  .hero-strip { grid-template-columns: 1fr; }
+  .drivers-grid { grid-template-columns: 1fr; }
+  .alloc-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="wf-banner">
+  <strong>Wireframe</strong> · Asset Allocation v10 · Mock data based on the Apr 2026 v10 backend output ·
+  Click any sector card to see the drill-down · This is a static preview; nothing here moves money.
+</div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark"></span>MacroTilt
+    </div>
+    <nav class="tabs">
+      <a href="#">Today's Macro</a>
+      <a href="#" class="active">Asset Allocation</a>
+      <a href="#">Indicators</a>
+      <a href="#">Methodology</a>
+    </nav>
+  </div>
+</header>
+
+<div class="shell">
+
+  <section class="hero">
+    <div class="eyebrow">Section 1 <span class="sep">·</span> The Big Picture</div>
+    <h1>Aggressive equity tilt — leaning into AI infrastructure and energy discipline.</h1>
+    <p class="dek">Macro composites are calm and growth is firming. The model is overweight equities, with a clear bias toward sectors that have both fundamental tailwinds and confirming price momentum.</p>
+
+    <div class="hero-asof">
+      <span class="pulse"></span>
+      <span>As of <strong style="color:var(--ink-0)">April 25, 2026</strong></span>
+      <span class="sep">·</span>
+      <span>Last formal rebalance: <strong style="color:var(--ink-0)">April 18, 2026</strong></span>
+      <span class="sep">·</span>
+      <span>Next: <strong style="color:var(--ink-0)">May 2, 2026</strong></span>
+    </div>
+
+    <div class="hero-strip">
+      <div class="tile">
+        <h4>Stance</h4>
+        <div class="big">Aggressive</div>
+        <div class="sub">Risk-on. Equity-heavy. Defensive sleeves trimmed.</div>
+        <div class="stance-arc">
+          <div class="seg"></div>
+          <div class="seg"></div>
+          <div class="seg on-balanced"></div>
+          <div class="seg on-aggressive"></div>
+          <div class="seg on-aggressive"></div>
+        </div>
+        <div class="stance-labels">
+          <span>Defensive</span><span>Balanced</span><span>Aggressive</span>
+        </div>
+      </div>
+
+      <div class="tile">
+        <h4>Equity Exposure</h4>
+        <div class="meter-arc">
+          <svg viewBox="0 0 180 90" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 10 80 A 80 80 0 0 1 170 80" fill="none" stroke="#eae6d8" stroke-width="10" stroke-linecap="round"/>
+            <path d="M 10 80 A 80 80 0 0 1 162 50" fill="none" stroke="#a87a3a" stroke-width="10" stroke-linecap="round"/>
+          </svg>
+          <span class="meter-num">86%</span>
+        </div>
+        <div class="sub">Equity sleeve · 14% in defensive ballast</div>
+      </div>
+
+      <div class="tile">
+        <h4>Macro Snapshot</h4>
+        <div class="macro-pills">
+          <div class="macro-pill">
+            <span><span class="dot calm"></span>Risk &amp; Liquidity</span>
+            <span class="label">Calm · &minus;6.7</span>
+          </div>
+          <div class="macro-pill">
+            <span><span class="dot calm"></span>Growth</span>
+            <span class="label">Firm · +3.2</span>
+          </div>
+          <div class="macro-pill">
+            <span><span class="dot neutral"></span>Inflation &amp; Rates</span>
+            <span class="label">Neutral · &minus;1.1</span>
+          </div>
+        </div>
+        <div class="sub" style="margin-top:var(--s-2)"><a href="#">See Macro Overview &rarr;</a></div>
+      </div>
+    </div>
+
+    <div class="changes">
+      <h4>Key changes since last rebalance</h4>
+      <ul class="change-list">
+        <li>
+          <span class="change-name">Energy</span>
+          <span class="arrow-up">&uarr;</span>
+          <span>Promoted from <strong>Neutral</strong> to <strong>Most Favored</strong> &mdash; capital discipline + crude steady above $80/bbl.</span>
+        </li>
+        <li>
+          <span class="change-name">Stance</span>
+          <span class="arrow-up">&uarr;</span>
+          <span>Shifted from <strong>Balanced</strong> to <strong>Aggressive</strong> &mdash; Risk &amp; Liquidity composite improved 11 points QoQ.</span>
+        </li>
+        <li>
+          <span class="change-name">Capital Markets</span>
+          <span class="arrow-up">&uarr;</span>
+          <span>Added to top picks &mdash; IPO pipeline reopening, M&amp;A spreads tightening.</span>
+        </li>
+        <li>
+          <span class="change-name">Consumer Staples</span>
+          <span class="arrow-down">&darr;</span>
+          <span>Demoted from <strong>Favored</strong> to <strong>Less Favored</strong> &mdash; defensive premium has compressed.</span>
+        </li>
+        <li>
+          <span class="change-name">Real Estate</span>
+          <span class="arrow-down">&darr;</span>
+          <span>Removed from picks &mdash; rates path no longer trending lower.</span>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <div>
+        <div class="eyebrow">Section 2 <span class="sep">·</span> Drivers &amp; Themes</div>
+        <h2>What's driving rotation</h2>
+      </div>
+    </div>
+
+    <div class="drivers-grid">
+      <div class="driver-narrative">
+        <p>
+          The Risk &amp; Liquidity composite sits at <strong>&minus;6.7 (calm)</strong>, having improved
+          11 points over the quarter as credit spreads tightened and short-end funding eased. Growth
+          is firming at <strong>+3.2</strong>, led by ISM Manufacturing finally crossing 50 and
+          jobless claims flat-lining at trend.
+        </p>
+        <p>
+          The combination is what we look for to take risk: <strong>liquidity is supportive AND
+          growth is confirming</strong>. The model takes that as a green light to lean into cyclicals
+          with momentum (Capital Markets, Energy, Software) while trimming defensives that have
+          already been bid up.
+        </p>
+        <p>
+          The dissonant note is Inflation &amp; Rates at <strong>&minus;1.1 (neutral)</strong> &mdash; not
+          stressed, but not cooperative either. That's why we keep a 14% defensive ballast and
+          why duration-sensitive sectors (Real Estate, Utilities) stay rated Less Favored despite
+          decent fundamentals.
+        </p>
+      </div>
+
+      <div class="themes">
+        <h4 style="margin-bottom:var(--s-2);">Themes of the month</h4>
+        <div class="theme-card">
+          <h4>AI infrastructure</h4>
+          <p>Capex cycle still expanding. Semiconductors, cloud-data names, and the power feeders behind them all rate Most Favored or Favored.</p>
+        </div>
+        <div class="theme-card">
+          <h4>Energy discipline</h4>
+          <p>U.S. producers holding capex flat and returning cash. Crude steady above $80 means cash flow without the overinvestment trap.</p>
+        </div>
+        <div class="theme-card">
+          <h4>Re-shoring industrials</h4>
+          <p>Automation, machinery, and electrical equipment continue to benefit from supply-chain repatriation and IRA spending.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="composite-trail">
+      <h4 style="text-transform:none;letter-spacing:0;font-size:13px;color:var(--ink-2);font-weight:500;margin-bottom:var(--s-3);">Composite trajectory · last 6 months</h4>
+      <div class="row">
+        <span class="name">Risk &amp; Liquidity</span>
+        <span class="val">&minus;6.7</span>
+        <svg viewBox="0 0 200 28" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          <polyline points="0,5 33,8 66,12 100,18 133,21 166,24 200,23" fill="none" stroke="#1f9d60" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="row">
+        <span class="name">Growth</span>
+        <span class="val">+3.2</span>
+        <svg viewBox="0 0 200 28" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          <polyline points="0,22 33,21 66,18 100,15 133,12 166,10 200,8" fill="none" stroke="#1f9d60" stroke-width="2"/>
+        </svg>
+      </div>
+      <div class="row">
+        <span class="name">Inflation &amp; Rates</span>
+        <span class="val">&minus;1.1</span>
+        <svg viewBox="0 0 200 28" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
+          <polyline points="0,14 33,12 66,15 100,13 133,16 166,14 200,15" fill="none" stroke="#9a9ea8" stroke-width="2"/>
+        </svg>
+      </div>
+      <div style="margin-top:var(--s-3);font-size:12px;color:var(--ink-2);">
+        <a href="#">Open full trajectory in Macro Overview &rarr;</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <div>
+        <div class="eyebrow">Section 3 <span class="sep">·</span> Sector Outlooks</div>
+        <h2>Ratings and recommendations</h2>
+      </div>
+    </div>
+
+    <div class="view-toggle" id="viewToggle">
+      <button class="active" data-view="headline">Headline (3 tiers)</button>
+      <button data-view="granular">Granular (5 tiers)</button>
+    </div>
+
+    <div id="ratingsBlock"></div>
+
+    <p style="font-size:12px;color:var(--ink-2);margin-top:var(--s-3);">
+      <em>Rating is the model's relative view &mdash; not a price target. Click any sector to see the rationale, the factors driving it, and the industry groups inside.</em>
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <div>
+        <div class="eyebrow">Section 4 <span class="sep">·</span> Model Portfolio</div>
+        <h2>Target allocation vs. S&amp;P 500</h2>
+      </div>
+    </div>
+
+    <div class="alloc-grid">
+      <div class="chart-frame">
+        <h4>Proposed target weights</h4>
+        <svg viewBox="0 0 220 220" xmlns="http://www.w3.org/2000/svg" id="donutSvg" style="width:100%;max-width:280px;display:block;margin:0 auto;"></svg>
+        <div class="legend" id="donutLegend"></div>
+      </div>
+
+      <div class="chart-frame">
+        <h4>Active bets vs. S&amp;P 500 (basis points)</h4>
+        <svg viewBox="0 0 360 280" xmlns="http://www.w3.org/2000/svg" id="barsSvg" style="width:100%;display:block;"></svg>
+      </div>
+    </div>
+
+    <div class="chart-frame">
+      <h4>Allocation detail · MoM &Delta; shown for each bucket</h4>
+      <table class="alloc-table" id="allocTable">
+        <thead>
+          <tr>
+            <th>Bucket</th>
+            <th>Rating</th>
+            <th class="num" style="text-align:right;">Target %</th>
+            <th class="num" style="text-align:right;">S&amp;P %</th>
+            <th class="num" style="text-align:right;">Active bp</th>
+            <th class="num" style="text-align:right;">MoM &Delta;</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="tactics">
+      <strong>How to express it.</strong> Use broad sector ETFs for liquidity. Avoid single-name
+      concentration &mdash; the model rates the bucket, not the security inside it. For active bets larger
+      than 200 basis points (Energy, Capital Markets), consider phasing in over two weeks to
+      manage execution. Rebalance quarterly absent a regime change.
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="sec-head">
+      <div>
+        <div class="eyebrow">Section 5 <span class="sep">·</span> Risk Management</div>
+        <h2>What could break this view</h2>
+      </div>
+    </div>
+
+    <div class="risk-list">
+      <div class="risk-card">
+        <h4>Crude breaks below $70/bbl</h4>
+        <p class="trigger">Energy goes from cash machine to capital trap. Cash flow turns vulnerable; capital discipline narrative collapses.</p>
+        <p class="alt">Alternate: rotate Energy back to Neutral, add weight to Health Care and Staples for defensive carry.</p>
+      </div>
+      <div class="risk-card">
+        <h4>Credit spreads widen &gt; 100 bps in two weeks</h4>
+        <p class="trigger">R&amp;L composite would flip from calm to elevated. Aggressive stance no longer justified; cyclicals at risk of repricing.</p>
+        <p class="alt">Alternate: trim Capital Markets and Software, raise defensive ballast from 14% to 30%, shift stance to Balanced.</p>
+      </div>
+      <div class="risk-card">
+        <h4>Unemployment claims spike above 280k for three weeks</h4>
+        <p class="trigger">Growth composite rolls over fast. Consumer Discretionary and Capital Markets repriced first; AI capex demand follows with a lag.</p>
+        <p class="alt">Alternate: shift to Defensive stance. Most Favored sectors collapse to Health Care + Staples; equity exposure cut to 60%.</p>
+      </div>
+      <div class="risk-card">
+        <h4>10-year yield breaks above 5.0%</h4>
+        <p class="trigger">Inflation &amp; Rates composite turns stressed. Long-duration cyclicals (Real Estate, Utilities, Software) repriced lower.</p>
+        <p class="alt">Alternate: cut Software to Neutral, hold Energy and Banks (rate beneficiaries), defensive ballast to 25%.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="bottom-strip">
+    <a href="#">Methodology</a>
+    <a href="#">Back-test results (2008&ndash;2026)</a>
+    <a href="#">Calibration evidence</a>
+    <a href="#">Factor maps</a>
+    <a href="#">Run log</a>
+    <span class="right">Pipeline run #1734 · ran Fri 5:31pm ET · all data fresh ·
+      <a href="#" style="background:transparent;border:none;padding:0;color:var(--info);">subscribe to alerts</a>
+    </span>
+  </div>
+
+</div>
+
+<div class="drawer-mask" id="drawerMask"></div>
+<aside class="drawer" id="drawer">
+  <button class="drawer-close" aria-label="Close" id="drawerClose">&times;</button>
+  <div class="pip-line"><span class="pip" id="drawerPip"></span><span class="rating-line" id="drawerRating">Most Favored · sector</span></div>
+  <h2 id="drawerTitle">&mdash;</h2>
+
+  <h4>Why this rating</h4>
+  <p id="drawerRationale">&mdash;</p>
+
+  <h4>Key factors</h4>
+  <ul class="factor-list" id="drawerFactors"></ul>
+
+  <h4>Industry groups inside</h4>
+  <ul class="ig-list" id="drawerIGs"></ul>
+
+  <h4>Tactical notes</h4>
+  <p id="drawerTactical">&mdash;</p>
+</aside>
+
+<script>
+const ALLOCATION = [
+  { name: "Software", tier: "mf", rating: "Most Favored",
+    targetPct: 16.0, spyPct: 11.5, activeBp: 450, momDelta: 0,
+    rationale: "AI infrastructure capex still expanding and price momentum confirming. Multivariate regression shows ISM, semis cycle index, and Growth composite as the dominant drivers — all three pointing the right way.",
+    factors: [{name:"ISM New Orders", z:"+1.4"}, {name:"Semis cycle (SOX/SPX)", z:"+1.1"}, {name:"Growth composite", z:"+0.7"}, {name:"Earnings revision breadth", z:"+0.9"}],
+    igs: ["Software & Services", "IT Services", "Cloud platforms"],
+    tactical: "Bucket is rich on absolute valuation but momentum + growth signal both align. Hold to Most Favored unless ISM rolls over." },
+  { name: "Energy", tier: "mf", rating: "Most Favored",
+    targetPct: 9.5, spyPct: 4.2, activeBp: 530, momDelta: 2,
+    rationale: "Capital discipline holding for the third consecutive year. Crude steady above $80/bbl plus a tightening rig count means cash flow without the overinvestment trap that ended prior cycles.",
+    factors: [{name:"WTI level", z:"+1.0"}, {name:"Rig count delta", z:"+0.6"}, {name:"Capex/revenue (sector)", z:"-0.8 (good)"}, {name:"Inventories vs 5y avg", z:"-0.4"}],
+    igs: ["Oil & Gas E&P", "Integrated Oil & Gas", "Energy Equipment & Services"],
+    tactical: "Largest active bet in the portfolio. Phase in if adding new exposure. Watch crude $70 as kill-trigger." },
+  { name: "Capital Markets", tier: "mf", rating: "Most Favored",
+    targetPct: 7.0, spyPct: 2.8, activeBp: 420, momDelta: 2,
+    rationale: "IPO pipeline reopening and M&A spreads tightening. Fee businesses geared into the recovery the macro composites are calling.",
+    factors: [{name:"VIX (inverse)", z:"+1.2"}, {name:"HY-IG spread (inverse)", z:"+0.9"}, {name:"M&A volume delta", z:"+1.5"}, {name:"R&L composite", z:"+1.1"}],
+    igs: ["Investment Banking & Brokerage", "Asset Management & Custody"],
+    tactical: "New addition this cycle. Quality over breadth — bigger names with diversified fee streams." },
+  { name: "Industrials", tier: "f", rating: "Favored",
+    targetPct: 11.0, spyPct: 8.4, activeBp: 260, momDelta: 1,
+    rationale: "Re-shoring tailwind plus IRA-related infrastructure spending. ISM finally above 50 confirms the macro backdrop is supportive.",
+    factors: [{name:"ISM Manufacturing", z:"+0.8"}, {name:"PPI machinery", z:"+0.4"}, {name:"Construction spending", z:"+0.6"}],
+    igs: ["Aerospace & Defense", "Machinery", "Electrical Equipment", "Building Products"],
+    tactical: "Add on dips. Watch defense budget cycle for tail risk." },
+  { name: "Communication Services", tier: "f", rating: "Favored",
+    targetPct: 9.5, spyPct: 8.6, activeBp: 90, momDelta: 0,
+    rationale: "Mega-cap platforms still doing the heavy lifting — cash generative, AI-adjacent, and resilient on margins.",
+    factors: [{name:"Mega-cap earnings revisions", z:"+1.0"}, {name:"Ad-spend index", z:"+0.5"}, {name:"Subscriber growth", z:"+0.3"}],
+    igs: ["Interactive Media & Services", "Diversified Telecom", "Entertainment"],
+    tactical: "Concentration risk. Flat to small overweight." },
+  { name: "Financials (ex-Cap Mkts)", tier: "f", rating: "Favored",
+    targetPct: 10.0, spyPct: 9.6, activeBp: 40, momDelta: 1,
+    rationale: "Yield curve no longer inverted. NIM expansion thesis intact for regional and money-center banks. Credit costs contained.",
+    factors: [{name:"Yield curve slope (10y-2y)", z:"+0.7"}, {name:"Loan growth YoY", z:"+0.4"}, {name:"NPL ratio", z:"-0.3 (good)"}],
+    igs: ["Banks", "Insurance", "Consumer Finance"],
+    tactical: "Quality regional banks > money centers in this stance." },
+  { name: "Health Care", tier: "n", rating: "Neutral",
+    targetPct: 11.5, spyPct: 12.4, activeBp: -90, momDelta: 0,
+    rationale: "Defensive carry but no acute thesis. Drug pipeline risk is offsetting the demographic tailwind. Position size matches benchmark.",
+    factors: [{name:"FDA approval count", z:"-0.2"}, {name:"Premium index", z:"+0.4"}, {name:"Demographic trend", z:"+0.5"}],
+    igs: ["Pharmaceuticals", "Biotechnology", "Medical Equipment", "Health Care Services"],
+    tactical: "Hold at benchmark. Tilt to large-cap pharma + medical equipment." },
+  { name: "Materials", tier: "n", rating: "Neutral",
+    targetPct: 2.5, spyPct: 2.5, activeBp: 0, momDelta: 0,
+    rationale: "China demand unclear. Copper-gold ratio neutral. Position at benchmark; no edge.",
+    factors: [{name:"Copper-gold ratio", z:"+0.1"}, {name:"China PMI", z:"-0.3"}, {name:"Steel prices", z:"+0.2"}],
+    igs: ["Chemicals", "Metals & Mining", "Construction Materials"],
+    tactical: "Hold at benchmark." },
+  { name: "Consumer Discretionary", tier: "lf", rating: "Less Favored",
+    targetPct: 9.0, spyPct: 10.8, activeBp: -180, momDelta: -1,
+    rationale: "Credit-card delinquencies ticking up. Consumer is still spending but at the margin the tailwind is weakening. Underweight expressed via the cyclical sub-segments.",
+    factors: [{name:"Credit-card 30+ DPD", z:"+0.7 (bad)"}, {name:"Retail sales delta", z:"-0.2"}, {name:"Consumer confidence", z:"-0.4"}],
+    igs: ["Retailing", "Consumer Services", "Automobiles", "Apparel"],
+    tactical: "Avoid leveraged consumer. Mega-cap e-commerce stays in via the bucket weight." },
+  { name: "Consumer Staples", tier: "lf", rating: "Less Favored",
+    targetPct: 4.0, spyPct: 6.2, activeBp: -220, momDelta: -1,
+    rationale: "Defensive premium has compressed and the sector's been bid up. With macro composites supportive there's no need to pay up for safety.",
+    factors: [{name:"Defensive P/E premium", z:"+0.8 (rich)"}, {name:"Volume growth", z:"-0.1"}, {name:"Pricing power", z:"+0.2"}],
+    igs: ["Food & Staples Retailing", "Beverages", "Household Products", "Tobacco"],
+    tactical: "Use as funding source for the Energy and Capital Markets overweights." },
+  { name: "Real Estate", tier: "lf", rating: "Less Favored",
+    targetPct: 1.5, spyPct: 2.5, activeBp: -100, momDelta: -2,
+    rationale: "Rate path no longer trending lower. CRE office overhang persists. Removed from picks this cycle.",
+    factors: [{name:"10y yield level", z:"+0.6 (bad)"}, {name:"CRE delinquencies", z:"+0.5 (bad)"}, {name:"REIT FFO growth", z:"-0.3"}],
+    igs: ["Equity REITs", "Real Estate Services"],
+    tactical: "Trim. Re-engage if 10y breaks below 4%." },
+  { name: "Utilities", tier: "leastf", rating: "Least Favored",
+    targetPct: 1.5, spyPct: 2.4, activeBp: -90, momDelta: 0,
+    rationale: "Bond proxy with rates not cooperating. AI-driven power demand is a real story but the regulatory recovery lag makes it hard to monetize this year.",
+    factors: [{name:"10y yield level", z:"+0.6 (bad)"}, {name:"Power demand growth", z:"+0.5 (good)"}, {name:"Regulatory ROE trend", z:"-0.2"}],
+    igs: ["Electric Utilities", "Multi-Utilities", "Independent Power"],
+    tactical: "Min weight. Re-engage in a rate-cutting cycle." },
+];
+
+const TIER_DEFS = {
+  mf:     { name: "Most Favored",  tier:"mf" },
+  f:      { name: "Favored",       tier:"f" },
+  n:      { name: "Neutral",       tier:"n" },
+  lf:     { name: "Less Favored",  tier:"lf" },
+  leastf: { name: "Least Favored", tier:"leastf" },
+};
+
+function renderRatings(view) {
+  const root = document.getElementById('ratingsBlock');
+  root.innerHTML = '';
+  if (view === 'headline') {
+    const groups = [
+      { label: 'Most Favored',  pipClass:'mf',     items: ALLOCATION.filter(b => ['mf','f'].includes(b.tier)) },
+      { label: 'Neutral',       pipClass:'n',      items: ALLOCATION.filter(b => b.tier === 'n') },
+      { label: 'Least Favored', pipClass:'leastf', items: ALLOCATION.filter(b => ['lf','leastf'].includes(b.tier)) },
+    ];
+    groups.forEach(g => root.appendChild(tierEl(g.label, g.pipClass, g.items)));
+  } else {
+    Object.values(TIER_DEFS).forEach(td => {
+      const items = ALLOCATION.filter(b => b.tier === td.tier);
+      if (items.length) root.appendChild(tierEl(td.name, td.tier, items));
+    });
+  }
+}
+
+function tierEl(label, pipClass, items) {
+  const wrap = document.createElement('div');
+  wrap.className = 'tier-row';
+  const head = document.createElement('div');
+  head.className = `tier-label ${pipClass}`;
+  head.innerHTML = `<span class="pip"></span><span class="name">${label}</span><span class="count">${items.length} buckets</span>`;
+  wrap.appendChild(head);
+  const grid = document.createElement('div');
+  grid.className = 'bucket-grid';
+  items.forEach(b => {
+    const card = document.createElement('div');
+    card.className = `bucket-card ${b.tier}`;
+    card.dataset.name = b.name;
+    const arrow = b.momDelta > 0 ? '<span class="delta up">&uarr; promoted</span>'
+                : b.momDelta < 0 ? '<span class="delta down">&darr; demoted</span>'
+                : '<span class="delta flat">&mdash; flat</span>';
+    card.innerHTML = `
+      <div class="name">${b.name}</div>
+      <div class="meta">
+        <span>${b.targetPct.toFixed(1)}% target</span>
+        ${arrow}
+      </div>
+    `;
+    card.addEventListener('click', () => openDrawer(b));
+    grid.appendChild(card);
+  });
+  wrap.appendChild(grid);
+  return wrap;
+}
+
+function openDrawer(b) {
+  document.getElementById('drawerTitle').innerHTML = b.name;
+  document.getElementById('drawerRating').textContent = `${b.rating} · momentum ${b.momDelta>0?'positive':b.momDelta<0?'negative':'flat'}`;
+  document.getElementById('drawerPip').className = 'pip';
+  document.getElementById('drawerPip').style.background = getComputedStyle(document.documentElement).getPropertyValue(`--tier-${b.tier}`);
+  document.getElementById('drawerRationale').innerHTML = b.rationale;
+  const fl = document.getElementById('drawerFactors');
+  fl.innerHTML = b.factors.map(f =>
+    `<li><span class="factor-name">${f.name}</span><span class="factor-z">${f.z}</span></li>`
+  ).join('');
+  const il = document.getElementById('drawerIGs');
+  il.innerHTML = b.igs.map(ig => `<li>${ig}</li>`).join('');
+  document.getElementById('drawerTactical').innerHTML = b.tactical;
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerMask').classList.add('open');
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerMask').classList.remove('open');
+}
+document.getElementById('drawerClose').addEventListener('click', closeDrawer);
+document.getElementById('drawerMask').addEventListener('click', closeDrawer);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
+document.querySelectorAll('#viewToggle button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#viewToggle button').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    renderRatings(btn.dataset.view);
+  });
+});
+
+function renderDonut() {
+  const svg = document.getElementById('donutSvg');
+  const legend = document.getElementById('donutLegend');
+  const cx=110, cy=110, r=78, sw=22;
+  const items = [...ALLOCATION, { name:"Defensive ballast", tier:"n", targetPct: 14 }];
+  const total = items.reduce((a,b)=>a+b.targetPct, 0);
+  let acc = 0;
+  let out = '';
+  const tierColors = { mf: '#2f6f4a', f: '#6da283', n: '#9a9ea8', lf: '#c79870', leastf: '#9d3545' };
+  items.forEach(b => {
+    const startAng = (acc / total) * 2 * Math.PI - Math.PI/2;
+    const endAng   = ((acc + b.targetPct) / total) * 2 * Math.PI - Math.PI/2;
+    const x1 = cx + r * Math.cos(startAng);
+    const y1 = cy + r * Math.sin(startAng);
+    const x2 = cx + r * Math.cos(endAng);
+    const y2 = cy + r * Math.sin(endAng);
+    const large = (endAng - startAng) > Math.PI ? 1 : 0;
+    const color = tierColors[b.tier] || '#bbb';
+    out += `<path d="M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linecap="butt"><title>${b.name}: ${b.targetPct.toFixed(1)}%</title></path>`;
+    acc += b.targetPct;
+  });
+  out += `<text x="${cx}" y="${cy-4}" text-anchor="middle" font-family="Fraunces" font-size="22" fill="#17181c">14</text>`;
+  out += `<text x="${cx}" y="${cy+14}" text-anchor="middle" font-family="Inter" font-size="9" letter-spacing="0.1em" fill="#6b6f78">BUCKETS</text>`;
+  svg.innerHTML = out;
+  let leg = '';
+  const tiers = [
+    {label:"Most Favored", tier:"mf"},
+    {label:"Favored", tier:"f"},
+    {label:"Neutral", tier:"n"},
+    {label:"Less Favored", tier:"lf"},
+    {label:"Least Favored", tier:"leastf"},
+  ];
+  tiers.forEach(t => {
+    leg += `<span class="item"><span class="swatch" style="background:${tierColors[t.tier]}"></span>${t.label}</span>`;
+  });
+  legend.innerHTML = leg;
+}
+
+function renderBars() {
+  const svg = document.getElementById('barsSvg');
+  const sorted = [...ALLOCATION].sort((a,b) => b.activeBp - a.activeBp);
+  const W=360, H=280;
+  const padL=130, padR=20, padT=12, padB=12;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  const rowH = innerH / sorted.length;
+  const max = Math.max(...sorted.map(b => Math.abs(b.activeBp)), 100);
+  const zeroX = padL + innerW * 0.5;
+  let out = '';
+  out += `<line x1="${zeroX}" y1="${padT}" x2="${zeroX}" y2="${H-padB}" stroke="#9a9ea8" stroke-width="0.8"/>`;
+  sorted.forEach((b, i) => {
+    const cy = padT + rowH * (i + 0.5);
+    const bp = b.activeBp;
+    const w = Math.abs(bp) / (2*max) * innerW;
+    const x = bp >= 0 ? zeroX : zeroX - w;
+    const fill = bp > 0 ? '#2f6f4a' : bp < 0 ? '#9d3545' : '#9a9ea8';
+    out += `<text x="${padL-8}" y="${cy+3.5}" text-anchor="end" font-family="Inter" font-size="10" fill="#44474f">${b.name}</text>`;
+    out += `<rect x="${x}" y="${cy-7}" width="${w}" height="14" fill="${fill}" opacity="0.85" rx="2"><title>${b.name}: ${bp>=0?'+':''}${bp}bp</title></rect>`;
+    const labelX = bp >= 0 ? x + w + 4 : x - 4;
+    const anchor = bp >= 0 ? 'start' : 'end';
+    out += `<text x="${labelX}" y="${cy+3.5}" text-anchor="${anchor}" font-family="JetBrains Mono" font-size="10" fill="#17181c">${bp>=0?'+':''}${bp}</text>`;
+  });
+  svg.innerHTML = out;
+}
+
+function renderAllocTable() {
+  const tbody = document.querySelector('#allocTable tbody');
+  const tierColors = {mf:'#2f6f4a',f:'#6da283',n:'#9a9ea8',lf:'#c79870',leastf:'#9d3545'};
+  const rows = [...ALLOCATION].sort((a,b) => b.targetPct - a.targetPct);
+  tbody.innerHTML = rows.map(b => {
+    const cls = b.activeBp > 0 ? 'over' : b.activeBp < 0 ? 'under' : 'flat';
+    const arrow = b.momDelta > 0 ? '&uarr;' : b.momDelta < 0 ? '&darr;' : '&mdash;';
+    const arrowClass = b.momDelta > 0 ? 'up' : b.momDelta < 0 ? 'down' : 'flat';
+    return `
+      <tr class="${cls}">
+        <td class="bucket"><span class="pip" style="background:${tierColors[b.tier]}"></span>${b.name}</td>
+        <td>${b.rating}</td>
+        <td class="num">${b.targetPct.toFixed(1)}</td>
+        <td class="num">${b.spyPct.toFixed(1)}</td>
+        <td class="num delta">${b.activeBp>=0?'+':''}${b.activeBp}</td>
+        <td class="num"><span class="delta ${arrowClass}">${arrow} ${Math.abs(b.momDelta)}</span></td>
+      </tr>
+    `;
+  }).join('');
+}
+
+renderRatings('headline');
+renderDonut();
+renderBars();
+renderAllocTable();
+</script>
+</body>
+</html>
