@@ -29,6 +29,7 @@ import UniverseFreshness from "./components/UniverseFreshness";
 import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
 import TodayMacro from "./pages/TodayMacro";
+import AssetAllocation from "./pages/AssetAllocation";
 import { useSortableTable as useSortableTable_v1, SortArrow as SortArrow_v1, sortableHeaderProps as sortableHeaderProps_v1 } from "./hooks/useSortableTable.jsx";
 import { supabase } from "./lib/supabase";
 import { normalizeTickerName } from "./lib/nameFormat";
@@ -5374,6 +5375,7 @@ const NAV_ITEMS = [
   { id:"overview",   label:"Macro Overview",        icon:<NavIconGauge/>  },
   { id:"indicators", label:"All Indicators",        icon:<NavIconGrid/>   },
   { id:"sectors",    label:"Sectors",               icon:<NavIconHeat/>   },
+  { id:"allocation", label:"Asset Allocation",      icon:<NavIconHeat/>   },
   { id:"portopps",   label:"Trading Opportunities & Portfolio Insights",  icon:<NavIconPie/>    },
   { id:"scanner",    label:"Trading Scanner",       icon:<NavIconRadar/>  },
   { id:"readme",     label:"Methodology",           icon:<NavIconBook/>   },
@@ -6610,6 +6612,7 @@ return(
 {tab==="indicators"&&(<AllIndicatorsTable/>)}
 
 {tab==="sectors"&&<SectorsTab/>}
+{tab==="allocation"&&<AssetAllocation/>}
 
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
