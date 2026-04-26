@@ -5423,7 +5423,30 @@ useEffect(()=>{
   if(cur===tab)return;
   window.location.hash=tab;
 },[tab]);
-useEffect(()=>{window.scrollTo({top:0,behavior:"smooth"});},[tab]);
+// Bug #1071 — when arriving via an aliased section hash like /#positions or
+// /#watchlist, scroll to the in-page anchor instead of jumping to the top
+// of the tab. The aliased hash is preserved by the URL-sync effect above;
+// here we read it and scroll-into-view if a matching anchor exists. Falls
+// back to scroll-top for everything else (including /#today-macro and
+// /#asset-allocation, which are full-tab routes, not in-tab anchors).
+useEffect(()=>{
+  const cur=(typeof window==="undefined"?"":(window.location.hash||"")).slice(1).toLowerCase();
+  const SECTION_ANCHORS={positions:"section-positions",watchlist:"section-watchlist"};
+  const anchorId=SECTION_ANCHORS[cur];
+  if(anchorId){
+    // Defer one frame so the freshly-mounted tab content can render the
+    // anchor before we try to find it.
+    const tryScroll=(attempt)=>{
+      const el=document.getElementById(anchorId);
+      if(el){el.scrollIntoView({behavior:"smooth",block:"start"});return;}
+      if(attempt<10)setTimeout(()=>tryScroll(attempt+1),50);
+      else window.scrollTo({top:0,behavior:"smooth"});
+    };
+    tryScroll(0);
+    return;
+  }
+  window.scrollTo({top:0,behavior:"smooth"});
+},[tab]);
 // Keep tab in sync with URL hash so browser back/forward and manual hash edits work.
 useEffect(()=>{
   const onHashChange=()=>{
@@ -6758,6 +6781,8 @@ const subPanel=(accentCol,title,criteria,count,children)=>(
 );
 
 return(<>
+{/* Bug #1071 — anchor for /#watchlist deep-link scroll */}
+<div id="section-watchlist" style={{height:0}} aria-hidden="true"/>
 {subPanel("#30d158","BUY ALERTS","(Composite Score ≥ 60)",`${triggered.length} today`,
   <WatchlistTable
     rows={toWlRows(triggered)}
@@ -7115,8 +7140,9 @@ return(<>
 {/* POSITIONS — sortable table. Default sort: % of wealth DESC (biggest
     exposure first). Click column headers to re-sort. Row click opens the
     detail modal. Columns: Ticker, Name, Sector, Price, Cost Basis, PnL $,
-    PnL %, Beta, % Wealth, Account. */}
-<div style={subPanelOuter}>
+    PnL %, Beta, % Wealth, Account. Bug #1071 — id anchor lets /#positions
+    deep-link scroll here. */}
+<div id="section-positions" style={subPanelOuter}>
 <div style={subPanelHeader}>
 <span style={subPanelTitleStyle}>POSITIONS</span>
 <span style={{display:"flex",alignItems:"center",gap:10}}>
