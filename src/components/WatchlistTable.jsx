@@ -339,7 +339,15 @@ export default function WatchlistTable({
       const sectionScores = {};
       SIGNAL_COLS.forEach(c => {
         const s = composite.sections?.[c.key];
-        sectionScores[c.key] = { score: s?.score ?? null, direction: s?.direction ?? null };
+        // Bug #1076 fix-fix: carry `note` through enrichment so the
+        // renderer can see when the section composite explicitly
+        // reports "no qualifying activity" (vs. a generic missing-data
+        // null). Without this, the no-activity pill never lit up.
+        sectionScores[c.key] = {
+          score:     s?.score ?? null,
+          direction: s?.direction ?? null,
+          note:      s?.note ?? null,
+        };
       });
 
       const hasRealName = w.name && w.name.trim().toUpperCase() !== t;
@@ -548,7 +556,6 @@ export default function WatchlistTable({
                     onDrop={(e) => onHdrDrop(e, col.id)}
                     onDragEnd={onHdrDragEnd}
                     onClick={() => toggleSort(col.id)}
-                    title={col.description}
                     style={{
                       ...headerStyle,
                       textAlign: col.align,
@@ -557,8 +564,19 @@ export default function WatchlistTable({
                       borderLeft: isDragOver ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
-                    {col.label}
-                    <SortArrow dir={sortCol === col.id ? sortDir : null} />
+                    {/* Bug #1076 fix-fix: the column-description tooltip used
+                        to be the browser-default `title=` attribute, which
+                        has the ~750ms hover delay LESSONS rule #3 forbids.
+                        Routed through the shared Tip primitive (the same
+                        zero-latency tooltip the "Rescan metadata" button
+                        uses) so the hint appears the instant the cursor
+                        lands on the header. */}
+                    <Tip def={col.description}>
+                      <span style={{ display: "inline-block" }}>
+                        {col.label}
+                        <SortArrow dir={sortCol === col.id ? sortDir : null} />
+                      </span>
+                    </Tip>
                     <Tip def="Drag to resize column"><div
                       draggable={false}
                       onMouseDown={(e) => onResizeStart(e, col.id)}
