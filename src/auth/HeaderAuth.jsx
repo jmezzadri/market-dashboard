@@ -17,6 +17,7 @@
 // When signed in, the sidebar footer is the source of truth for auth state.
 
 import { isSupabaseConfigured } from "../lib/supabase";
+import { Tip } from "../InfoTip";
 import { useSession } from "./useSession";
 
 export default function HeaderAuth() {
@@ -37,9 +38,7 @@ export default function HeaderAuth() {
   };
 
   return (
-    <button
-      onClick={onClick}
-      title="Sign in to view your portfolio"
+    <Tip def="Sign in to view your portfolio"><button onClick={onClick}
       style={{
         fontSize: 12,
         fontWeight: 600,
@@ -58,9 +57,8 @@ export default function HeaderAuth() {
       }}
       onMouseLeave={e => {
         e.currentTarget.style.background = "var(--surface-3)";
-      }}
-    >
+      }}>
       Sign in
-    </button>
+    </button></Tip>
   );
 }

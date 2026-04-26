@@ -1254,12 +1254,9 @@ return(
         onClick={(e)=>{e.stopPropagation();pickWindow(p.key);}}
       >{p.label}</button>
     ))}
-    <button
-      type="button"
+    <Tip def="Pick a custom date range"><button type="button"
       style={showCustom?pillOn:pillBase}
-      onClick={(e)=>{e.stopPropagation();setShowCustom(s=>!s);if(!showCustom)setWindowKey("CUSTOM");}}
-      title="Pick a custom date range"
-    >CUSTOM</button>
+      onClick={(e)=>{e.stopPropagation();setShowCustom(s=>!s);if(!showCustom)setWindowKey("CUSTOM");}}>CUSTOM</button></Tip>
   </div>
 </div>
 {showCustom&&hasReal&&(
@@ -2916,12 +2913,10 @@ return(
 {isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px dashed var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>MANUAL TRACK</span>}
 {watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>WATCHLIST</span>}
 {portfolioAuthed&&(onUserWatchlist
-  ?<button type="button" onClick={removeFromWatchlist} disabled={wlBusy}
-     style={{fontSize:10,color:"#ff453a",background:"transparent",border:"1px solid rgba(255,69,58,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.03em"}}
-     title="Remove this ticker from your watchlist">{wlBusy?"…":"− REMOVE"}</button>
-  :<button type="button" onClick={addToWatchlist} disabled={wlBusy}
-     style={{fontSize:10,color:"var(--accent)",background:"rgba(10,132,255,0.08)",border:"1px solid rgba(10,132,255,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.03em"}}
-     title="Add this ticker to your watchlist">{wlBusy?"…":"+ WATCHLIST"}</button>
+  ?<Tip def="Remove this ticker from your watchlist"><button type="button" onClick={removeFromWatchlist} disabled={wlBusy}
+     style={{fontSize:10,color:"#ff453a",background:"transparent",border:"1px solid rgba(255,69,58,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.03em"}}>{wlBusy?"…":"− REMOVE"}</button></Tip>
+  :<Tip def="Add this ticker to your watchlist"><button type="button" onClick={addToWatchlist} disabled={wlBusy}
+     style={{fontSize:10,color:"var(--accent)",background:"rgba(10,132,255,0.08)",border:"1px solid rgba(10,132,255,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.03em"}}>{wlBusy?"…":"+ WATCHLIST"}</button></Tip>
 )}
 {wlError&&<span style={{fontSize:10,color:"#ff453a",fontFamily:"var(--font-mono)"}}>{wlError}</span>}
 </div>
@@ -3384,7 +3379,7 @@ return(
 <div style={{width:8,height:8,borderRadius:"50%",background:acct.color,flexShrink:0}}/>
 <span style={{fontSize:14,fontWeight:700,color:"var(--text)",fontFamily:"monospace"}}>{acct.label}</span>
 <span style={{fontSize:11,color:"var(--text-2)",fontFamily:"monospace"}}>{acct.sub}</span>
-<span title="Value-weighted beta of this account's positions" style={{fontSize:10,fontWeight:700,color:betaCol,fontFamily:"monospace",letterSpacing:"0.05em",padding:"1px 6px",border:`1px solid ${betaCol}55`,borderRadius:3,background:`${typeof betaCol==="string"&&betaCol.startsWith("#")?betaCol:"#ffffff"}14`}}>β {acctBeta.toFixed(2)}</span>
+<Tip def="Value-weighted beta of this account's positions"><span style={{fontSize:10,fontWeight:700,color:betaCol,fontFamily:"monospace",letterSpacing:"0.05em",padding:"1px 6px",border:`1px solid ${betaCol}55`,borderRadius:3,background:`${typeof betaCol==="string"&&betaCol.startsWith("#")?betaCol:"#ffffff"}14`}}>β {acctBeta.toFixed(2)}</span></Tip>
 </div>
 <div style={{fontSize:11,color:"var(--text-2)",marginLeft:16,lineHeight:1.5}}>{acct.note}</div>
 </div>

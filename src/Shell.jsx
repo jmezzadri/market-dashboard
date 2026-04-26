@@ -11,6 +11,7 @@
  *   views = { tabId: { title, eyebrow, render: () => <jsx /> } }
  */
 import { useState, useEffect, useMemo } from "react";
+import { Tip } from "./InfoTip";
 import HeaderAuth from "./auth/HeaderAuth";
 import { Monogram, Wordmark } from "./components/Logo";
 
@@ -43,12 +44,12 @@ function MoonIcon() { return <svg width="14" height="14" viewBox="0 0 16 16" fil
 export function ThemeToggle({ pref, setPref }) {
   return (
     <div className="theme-toggle" role="group" aria-label="Theme">
-      <button onClick={() => setPref("light")} aria-pressed={pref === "light"} title="Light">
+      <Tip def="Light"><button onClick={() => setPref("light")} aria-pressed={pref === "light"}>
         <SunIcon />
-      </button>
-      <button onClick={() => setPref("dark")}  aria-pressed={pref === "dark"}  title="Dark">
+      </button></Tip>
+      <Tip def="Dark"><button onClick={() => setPref("dark")}  aria-pressed={pref === "dark"}>
         <MoonIcon />
-      </button>
+      </button></Tip>
     </div>
   );
 }

@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useMemo } from "react";
 import { Tile } from "./Shell";
-import { InfoTip, HeadWithTip } from "./InfoTip";
+import { InfoTip, HeadWithTip, Tip } from "./InfoTip";
 import { useSession } from "./auth/useSession";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
@@ -786,11 +786,10 @@ function MemberDetailModal({ member, allTrades, onClose, onOpenTicker }) {
               {chamber && <span style={{ fontSize: 12, color: C.dim, fontWeight: 500, textTransform: "none" }}>· {chamber}</span>}
             </div>
           </div>
-          <button
+          <Tip def="Close (Esc)"><button
             onClick={onClose}
             style={{ background: "transparent", border: `1px solid ${C.border}`, color: C.muted, borderRadius: 6, padding: "4px 10px", cursor: "pointer", fontFamily: "monospace", fontSize: 12 }}
-            title="Close (Esc)"
-          >Close</button>
+          >Close</button></Tip>
         </div>
 
         {/* Aggregate summary */}

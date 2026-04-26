@@ -14,6 +14,7 @@
 //   • Rate-limited to 1 submission per minute via localStorage
 
 import { useState, useEffect, useRef } from "react";
+import { Tip } from "../InfoTip";
 import { supabase } from "../lib/supabase";
 import { useSession } from "../auth/useSession";
 import { captureScreenshot, getRecentConsoleErrors } from "./captureScreenshot";
@@ -87,11 +88,9 @@ export default function ReportBug() {
 
   return (
     <>
-      <button
-        onClick={handleOpen}
+      <Tip def="Report a bug"><button onClick={handleOpen}
         disabled={capturing}
         aria-label="Report a bug"
-        title="Report a bug"
         style={{
           position: "fixed",
           bottom: 20,
@@ -123,11 +122,10 @@ export default function ReportBug() {
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = "";
           e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.08)";
-        }}
-      >
+        }}>
         <BugIcon />
         <span>Report Bug</span>
-      </button>
+      </button></Tip>
 
       {open && (
         <ReportBugModal
