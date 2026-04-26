@@ -307,3 +307,56 @@ Joe flagged it. Hotfix was PR #141.
    shared links, and email links — they need to resolve to the new
    tab when the feature ships, not stay on home.
 
+
+---
+
+## 9. Auto-UAT must close or fix — never email Joe noise
+
+**The rule.** When the auto-UAT scheduled task runs the Chrome-driven
+checklist against a deployed bug, there are exactly two valid outcomes
+per row: (a) every bullet passes and the row is closed as
+`verified_closed`, or (b) a real defect was found and the auto-UAT
+runner ships the fix (commit, PR, merge, redeploy, re-UAT) before
+sending Joe an email. Emailing Joe with "checklist failed but the
+shipped fix actually looks correct, please manually close" is the
+wrong outcome — it's noise, not signal.
+
+**Why.** 2026-04-26 auto-UAT sweep on bugs #1069 (bare β tooltip on
+`/#sectors`), #1070 (bare AUC on `/#overview`), and #1071 (hash
+routing). For #1069 and #1070 the team had shipped Option B (spell
+out "Beta" / "Model accuracy") per the proposal — but the auto-UAT
+checklist was written before Joe picked an option, so its hover-the-β
+bullets couldn't be performed against text that no longer existed.
+For #1071 the URL preservation was correct but the scroll-to-section
+behavior the proposal had promised wasn't actually delivered. The
+auto-UAT runner emailed all three as failures with "manual override
+required." Joe's response: "Things either pass UAT or you fucking
+fix them." He's right. Emailing him three failures where two were
+correctly shipped and one was actually a real defect that should have
+been fixed in the same sweep is exactly the noise this workflow was
+supposed to eliminate.
+
+**How to apply.**
+
+1. **Two valid outcomes per auto-UAT row.** Either close as
+   `verified_closed` after every bullet passes, or ship a fix and
+   re-run UAT until every bullet passes. No third "leave it for
+   manual review" outcome.
+2. **Checklist-vs-shipped-option mismatches are PASSES, not
+   failures.** When the proposal allowed Option A or Option B and the
+   shipped code clearly implements one of them, the auto-UAT runner
+   reads the deployed DOM, infers which option was shipped, and
+   passes the bullets that are option-agnostic plus the bullet that
+   explicitly accommodates either option. The option-specific bullets
+   that test behavior the chosen option doesn't implement are not
+   failures — they're not applicable. Close as `verified_closed`.
+3. **Real defects get fixed in the same sweep.** When the auto-UAT
+   finds a real gap between the proposal and the deployed code, the
+   runner builds the fix on a `feature/dev-*` branch, merges it, and
+   re-runs UAT against the new deployed bundle before deciding the
+   row's outcome. Only after the redeploy fails UAT a second time do
+   we email Joe — and only for the genuine repeat failure.
+4. **Email Joe only when there's a decision he needs to make.**
+   "Three things failed, here are details" is not a decision he
+   needs to make. "Auto-UAT shipped a fix and it still fails — here's
+   the diff and the screen recording, please advise" is.
