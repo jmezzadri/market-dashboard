@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MacroTilt — Asset Allocation v10 (wireframe v6 — GICS tree visual)</title>
+<title>MacroTilt — Recommended Allocation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -12,13 +12,7 @@
   --font-display: "Fraunces", Georgia, serif;
   --font-body: "Inter", -apple-system, system-ui, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
-  --s-1: 4px; --s-2: 8px; --s-3: 16px; --s-4: 24px;
-  --s-5: 32px; --s-6: 48px; --s-7: 64px; --s-8: 96px;
-  --r-sm: 4px; --r-md: 6px; --r-lg: 10px;
-  --motion-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --motion-med: 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
-
-  --bg-0: #fafaf5;
+  --bg: #fafaf5;
   --bg-1: #ffffff;
   --bg-2: #f3f1e9;
   --bg-3: #eae6d8;
@@ -26,1040 +20,415 @@
   --ink-1: #44474f;
   --ink-2: #6b6f78;
   --ink-3: #9a9ea8;
-  --line-0: rgba(0,0,0,0.06);
-  --line-1: rgba(0,0,0,0.12);
+  --line: rgba(0,0,0,0.08);
+  --line-strong: rgba(0,0,0,0.16);
   --accent: #d9b27a;
   --accent-deep: #a87a3a;
-  --burgundy: #9d3545;
-
-  --up: #1f9d60;
-  --down: #d23040;
-  --warn: #b8811c;
-  --info: #2862c2;
-
-  --tier-sow: #1d4a31;
-  --tier-ow:  #2f6f4a;
-  --tier-mw:  #9a9ea8;
-  --tier-uw:  #9d3545;
-  --tier-suw: #6e1d2a;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; }
 body {
   font-family: var(--font-body);
   font-size: 16px; line-height: 1.6;
-  color: var(--ink-0); background: var(--bg-0);
+  color: var(--ink-0); background: var(--bg);
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--info); text-decoration: none; }
-a:hover { text-decoration: underline; }
-.num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
-
-h1 { font-family: var(--font-display); font-weight: 300;
-  font-size: clamp(40px, 4.6vw, 60px); line-height: 1.05;
-  letter-spacing: -0.02em; color: var(--ink-0); }
-h2 { font-family: var(--font-display); font-weight: 300;
-  font-size: clamp(36px, 4.4vw, 52px); line-height: 1.05;
-  letter-spacing: -0.02em; color: var(--ink-0); margin: 0; }
-h4 { font-size: 14px; font-weight: 600; font-family: var(--font-body);
-  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
-p { color: var(--ink-1); max-width: 68ch; }
-p strong { color: var(--ink-0); font-weight: 600; }
-
-.section-eyebrow {
-  font-family: var(--font-body); font-size: 12px; font-weight: 700;
-  letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--accent-deep);
-  display: flex; align-items: center; gap: var(--s-3);
-  margin-bottom: var(--s-3);
+.shell {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 56px 32px 96px;
 }
-.section-eyebrow::before { content: ""; width: 32px; height: 2px; background: var(--accent-deep); }
-.section-eyebrow .num { font-family: var(--font-display); font-weight: 500; font-size: 14px;
-  color: var(--accent-deep); letter-spacing: 0.04em; }
-.section-dek {
-  font-family: var(--font-display); font-weight: 300; font-style: italic;
-  font-size: clamp(16px, 1.6vw, 18px); line-height: 1.45;
-  color: var(--ink-2); max-width: 64ch; margin-top: var(--s-2);
+
+/* Header */
+.header { padding-bottom: 32px; border-bottom: 1px solid var(--line); margin-bottom: 48px; }
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--accent-deep);
+  margin-bottom: 12px;
 }
-.section-dek strong { color: var(--ink-1); font-weight: 500; font-style: normal; }
-
-.wf-banner {
-  background: var(--bg-2); border-bottom: 1px solid var(--line-0);
-  padding: var(--s-2) var(--s-4); font-size: 12px;
-  color: var(--ink-2); text-align: center;
+h1 {
+  font-family: var(--font-display); font-weight: 300;
+  font-size: clamp(40px, 5vw, 56px); line-height: 1.05;
+  letter-spacing: -0.02em; color: var(--ink-0);
+  margin-bottom: 16px;
 }
-.wf-banner strong { color: var(--ink-0); }
-
-.topbar { background: var(--bg-1); border-bottom: 1px solid var(--line-0);
-  padding: var(--s-3) 0; position: sticky; top: 0; z-index: 50; }
-.topbar-inner {
-  max-width: 1320px; margin: 0 auto; padding: 0 var(--s-4);
-  display: flex; align-items: center; justify-content: space-between;
+.dek {
+  font-family: var(--font-display); font-style: italic;
+  font-weight: 300; font-size: 20px; line-height: 1.4;
+  color: var(--ink-1); max-width: 56ch; margin-bottom: 20px;
 }
-.brand { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--ink-0); }
-.brand-mark { display: inline-block; width: 24px; height: 24px;
-  background: var(--accent); border-radius: 50%;
-  margin-right: var(--s-2); vertical-align: -5px; }
-.tabs { display: flex; gap: var(--s-3); font-size: 13px; color: var(--ink-2); }
-.tabs a { color: var(--ink-2); }
-.tabs a.active { color: var(--ink-0); border-bottom: 2px solid var(--accent); padding-bottom: 4px; }
-
-.shell { max-width: 1320px; margin: 0 auto; padding: var(--s-6) var(--s-4) var(--s-8); }
-
-/* Hero */
-.hero { padding-bottom: var(--s-7); border-bottom: 1px solid var(--line-0); }
-.hero-grid {
-  display: grid; grid-template-columns: 1.55fr 1fr;
-  gap: var(--s-6); align-items: start;
+.asof {
+  font-size: 13px; color: var(--ink-2);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
 }
-.hero-left h1 { margin-bottom: var(--s-3); max-width: 18ch; }
-.hero-left .dek {
-  font-family: var(--font-display); font-size: clamp(18px, 2vw, 22px);
-  font-weight: 300; font-style: italic; line-height: 1.45;
-  color: var(--ink-1); max-width: 52ch; margin-bottom: var(--s-5);
+.asof strong { color: var(--ink-0); font-weight: 500; }
+
+/* Section heading */
+h2 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 28px; color: var(--ink-0);
+  margin-bottom: 8px; letter-spacing: -0.01em;
 }
-.hero-asof { font-size: 12px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; }
-.hero-asof .pulse { width: 7px; height: 7px; background: var(--up); border-radius: 50%; display: inline-block; }
-.hero-asof .sep { color: var(--ink-3); }
-
-.toc { background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-4); position: sticky; top: 88px; }
-.toc h4 { margin-bottom: var(--s-3); font-size: 11px; letter-spacing: 0.16em; color: var(--accent-deep); }
-.toc ol { list-style: none; padding: 0; counter-reset: toc; }
-.toc ol li { counter-increment: toc; padding: var(--s-2) 0;
-  border-bottom: 1px dashed var(--line-0); font-size: 14px; }
-.toc ol li:last-child { border-bottom: none; }
-.toc ol li::before { content: "0" counter(toc); color: var(--accent-deep);
-  font-family: var(--font-mono); font-size: 11px; font-weight: 600; margin-right: var(--s-3); }
-.toc ol li a { color: var(--ink-1); }
-
-.hero-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-3); margin-top: var(--s-6); }
-.tile { background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-4); }
-.tile h4 { margin-bottom: var(--s-3); }
-.tile .big { font-family: var(--font-display); font-size: 32px; font-weight: 400;
-  color: var(--ink-0); line-height: 1; margin-bottom: var(--s-2); }
-.tile .sub { font-size: 13px; color: var(--ink-2); }
-.tile .sub strong { color: var(--ink-1); font-weight: 500; }
-
-.stance-arc { display: flex; gap: 2px; margin-top: var(--s-3); }
-.stance-arc .seg { flex: 1; height: 8px; border-radius: 2px; background: var(--bg-3); }
-.stance-arc .seg.on-balanced { background: var(--ink-3); }
-.stance-arc .seg.on-aggressive { background: var(--accent-deep); }
-.stance-labels { display: flex; justify-content: space-between;
-  font-size: 10px; color: var(--ink-3); margin-top: var(--s-1);
-  letter-spacing: 0.04em; text-transform: uppercase; }
-
-.eq-breakdown { margin-top: var(--s-3); padding-top: var(--s-3);
-  border-top: 1px dashed var(--line-0); font-size: 12px; color: var(--ink-2); }
-.eq-breakdown .row { display: flex; justify-content: space-between; padding: 2px 0; }
-.eq-breakdown .row .pip { width: 8px; height: 8px; border-radius: 2px;
-  display: inline-block; margin-right: var(--s-2); }
-
-.macro-pills { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
-.macro-pill { display: flex; align-items: center; justify-content: space-between;
-  font-size: 13px; color: var(--ink-1); }
-.macro-pill .dot { width: 8px; height: 8px; border-radius: 50%;
-  display: inline-block; margin-right: var(--s-2); }
-.macro-pill .dot.calm { background: var(--up); }
-.macro-pill .dot.neutral { background: var(--ink-3); }
-.macro-pill .label { color: var(--ink-2); font-size: 12px; }
-
-.section { padding: var(--s-7) 0; border-bottom: 1px solid var(--line-0); }
-.section:last-child { border-bottom: none; }
-.sec-head { margin-bottom: var(--s-4); }
-
-/* ============== GICS TREE VISUALIZATION ============== */
-.tree-wrap {
-  background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-5) var(--s-4) var(--s-4);
-  overflow-x: auto;
+h2 + .sub {
+  font-size: 14px; color: var(--ink-2); margin-bottom: 24px;
 }
-.tree-svg { display: block; width: 100%; min-width: 1100px; height: auto; }
+.section { margin-bottom: 64px; }
 
-.tree-legend {
-  display: flex; gap: var(--s-4); margin-top: var(--s-4); flex-wrap: wrap;
-  font-size: 12px; color: var(--ink-2); align-items: center;
-  padding-top: var(--s-3); border-top: 1px dashed var(--line-0);
+/* Allocation table — the centerpiece */
+.alloc {
+  border-top: 1px solid var(--line-strong);
 }
-.tree-legend .item { display: flex; align-items: center; gap: var(--s-2); }
-.tree-legend .ring {
-  width: 14px; height: 14px; border-radius: 50%; border: 3px solid;
-}
-.tree-legend .ring.ow { border-color: var(--up); }
-.tree-legend .ring.mw { border-color: var(--ink-3); border-style: dashed; }
-.tree-legend .ring.uw { border-color: var(--down); }
-.tree-legend .lbl { font-size: 11px; color: var(--ink-1); }
-.tree-legend .level-mark {
-  width: 14px; height: 14px; border-radius: 50%; background: var(--ink-2);
-}
-.tree-legend .level-mark.ig { width: 10px; height: 10px; }
-.tree-legend .level-mark.ind { width: 6px; height: 6px; }
-
-.summary-strip {
-  display: grid; grid-template-columns: repeat(4, 1fr);
-  gap: var(--s-3); margin-top: var(--s-4);
-}
-.sum-tile {
-  background: var(--bg-2); border-radius: var(--r-md);
-  padding: var(--s-3) var(--s-4);
-}
-.sum-tile .lbl {
-  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--ink-2); font-weight: 600; margin-bottom: 4px;
-}
-.sum-tile .val {
-  font-family: var(--font-mono); font-size: 18px; color: var(--ink-0); font-weight: 500;
-}
-.sum-tile .val.up { color: var(--up); }
-.sum-tile .val.down { color: var(--down); }
-.sum-tile .val.flat { color: var(--ink-2); }
-
-/* SVG element styles */
-.sector-circle {
+.alloc-row {
+  display: grid;
+  grid-template-columns: 280px 1fr 70px;
+  gap: 24px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
   cursor: pointer;
-  transition: transform var(--motion-fast), filter var(--motion-fast);
+  transition: background 100ms;
 }
-.sector-circle:hover { transform: scale(1.05); transform-origin: center; }
-.sector-circle.unrated { opacity: 0.55; }
-.sector-circle.unrated:hover { opacity: 0.85; }
-
-.ig-dot, .ind-dot { cursor: pointer; transition: transform var(--motion-fast); }
-.ig-dot:hover, .ind-dot:hover { transform: scale(1.3); transform-origin: center; }
-
-.sector-label {
-  font-family: var(--font-body); font-size: 12px; font-weight: 600;
-  fill: var(--ink-0); text-anchor: middle;
-  pointer-events: none;
+.alloc-row:hover { background: rgba(0,0,0,0.015); }
+.alloc-row.expanded { background: var(--bg-1); }
+.alloc-name {
+  font-size: 15px; font-weight: 500; color: var(--ink-0);
+  display: flex; align-items: center; gap: 10px;
 }
-.sector-tilt {
-  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
-  text-anchor: middle; pointer-events: none;
+.alloc-name .caret {
+  font-size: 10px; color: var(--ink-3);
+  transition: transform 150ms;
+  width: 8px;
 }
-.sector-tilt.up { fill: var(--up); }
-.sector-tilt.down { fill: var(--down); }
-.sector-tilt.flat { fill: var(--ink-3); }
-.level-label {
-  font-family: var(--font-body); font-size: 10px; font-weight: 700;
-  letter-spacing: 0.14em; text-transform: uppercase;
-  fill: var(--ink-3); text-anchor: end;
-  pointer-events: none;
+.alloc-row.expanded .caret { transform: rotate(90deg); color: var(--accent-deep); }
+.alloc-name .gics {
+  font-size: 11px; color: var(--ink-3); font-weight: 400;
+  letter-spacing: 0.02em;
+  margin-top: 2px; display: block;
+}
+.alloc-name-wrap { display: flex; flex-direction: column; }
+.alloc-bar {
+  height: 22px;
+  background: var(--bg-2);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.alloc-bar-fill {
+  height: 100%;
+  background: var(--ink-0);
+  border-radius: 2px;
+  transition: width 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.alloc-row.ballast .alloc-bar-fill { background: var(--ink-3); }
+.alloc-pct {
+  font-family: var(--font-mono);
+  font-size: 16px; font-weight: 500;
+  color: var(--ink-0);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
 
-/* Risks, drawer (same as before) */
-.risk-list { display: flex; flex-direction: column; gap: var(--s-3); }
-.risk-card { background: var(--bg-1); border: 1px solid var(--line-0);
-  border-left: 3px solid var(--burgundy);
-  border-radius: var(--r-md); padding: var(--s-4); }
-.risk-card h4 { color: var(--ink-0); text-transform: none; letter-spacing: 0;
-  font-size: 16px; margin-bottom: var(--s-2); font-weight: 600; font-family: var(--font-body); }
-.risk-card .trigger { font-size: 13px; color: var(--ink-1); margin-bottom: var(--s-2); }
-.risk-card .alt { font-size: 13px; color: var(--ink-2); padding-top: var(--s-2);
-  border-top: 1px dashed var(--line-0); font-style: italic; }
-
-.drawer-mask { position: fixed; inset: 0; background: rgba(20,20,18,0.45);
-  z-index: 100; opacity: 0; pointer-events: none;
-  transition: opacity var(--motion-med); }
-.drawer-mask.open { opacity: 1; pointer-events: auto; }
-.drawer { position: fixed; top: 0; right: 0; bottom: 0;
-  width: min(620px, 92vw); background: var(--bg-1);
-  z-index: 101; padding: var(--s-5);
-  transform: translateX(100%); transition: transform var(--motion-med);
-  overflow-y: auto; box-shadow: -8px 0 32px rgba(0,0,0,0.12); }
-.drawer.open { transform: translateX(0); }
-.drawer-close { position: absolute; top: var(--s-3); right: var(--s-3);
-  background: none; border: none; cursor: pointer;
-  font-size: 22px; color: var(--ink-2); line-height: 1; }
-.drawer .breadcrumb {
-  font-size: 11px; color: var(--ink-2); letter-spacing: 0.04em;
-  margin-bottom: var(--s-1); display: flex; align-items: center; gap: var(--s-2);
+/* Total row */
+.alloc-total {
+  display: grid;
+  grid-template-columns: 280px 1fr 70px;
+  gap: 24px;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 2px solid var(--ink-0);
+  margin-top: 4px;
 }
-.drawer .breadcrumb .pip { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-.drawer h2 { margin-bottom: var(--s-1); font-size: 32px; font-family: var(--font-display); font-weight: 400; }
-.drawer .calibration-note {
-  font-size: 11px; color: var(--ink-2); letter-spacing: 0.04em;
-  background: var(--bg-2); padding: 4px 10px; border-radius: var(--r-sm);
-  display: inline-block; margin-bottom: var(--s-3);
+.alloc-total .label {
+  font-family: var(--font-display); font-size: 18px;
+  color: var(--ink-0);
 }
-.drawer .rating-line { font-size: 13px; color: var(--ink-2); margin-bottom: var(--s-4); }
-.drawer .key-stats {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  background: var(--bg-2); border-radius: var(--r-md);
-  padding: var(--s-3); margin-bottom: var(--s-4);
+.alloc-total .pct {
+  font-family: var(--font-mono); font-size: 18px;
+  font-weight: 500; color: var(--ink-0);
+  text-align: right;
 }
-.drawer .key-stats .stat { text-align: center; }
-.drawer .key-stats .stat .val {
-  font-family: var(--font-mono); font-size: 17px; color: var(--ink-0); font-weight: 500;
+
+/* Expanded panel */
+.alloc-detail {
+  display: none;
+  padding: 0 0 24px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
 }
-.drawer .key-stats .stat .lbl {
-  font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
-  color: var(--ink-2); margin-top: 2px;
+.alloc-row.expanded + .alloc-detail { display: block; }
+.alloc-detail-inner {
+  padding: 8px 0 0 280px;
 }
-.drawer h4 { margin-top: var(--s-4); margin-bottom: var(--s-2); }
-.drawer p { font-size: 14px; margin-bottom: var(--s-3); }
+@media (max-width: 720px) {
+  .alloc-detail-inner { padding: 8px 0 0 0; }
+}
+.alloc-detail p {
+  font-size: 14px; color: var(--ink-1);
+  line-height: 1.6; max-width: 64ch;
+  margin-bottom: 12px;
+}
+.alloc-detail p strong { color: var(--ink-0); }
+.alloc-detail .meta {
+  display: flex; flex-wrap: wrap; gap: 16px 24px;
+  font-size: 12px; color: var(--ink-2);
+  padding-top: 8px; margin-top: 4px;
+  border-top: 1px dashed var(--line);
+}
+.alloc-detail .meta .label {
+  font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; font-size: 10px;
+  color: var(--ink-3); margin-right: 6px;
+}
+.alloc-detail .meta .val { color: var(--ink-1); }
+.alloc-detail .tickers {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+}
+.alloc-detail .tickers .t {
+  font-family: var(--font-mono); font-size: 11px;
+  background: var(--bg-2); padding: 3px 8px;
+  border-radius: 3px; color: var(--ink-0);
+}
 
-.method-block { background: var(--bg-2); border-radius: var(--r-md); padding: var(--s-3);
-  font-size: 13px; color: var(--ink-1); margin-bottom: var(--s-3); }
-.method-block .row { display: grid; grid-template-columns: 130px 1fr; gap: var(--s-3); padding: var(--s-1) 0; }
-.method-block .row:not(:last-child) { border-bottom: 1px dashed var(--line-0); padding-bottom: var(--s-2); margin-bottom: 6px; }
-.method-block .row .lbl { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink-2); font-weight: 600; }
-.method-block .row .val { font-size: 13px; color: var(--ink-0); }
-.method-block .row .val .badge { display: inline-block; font-size: 10px; font-weight: 700;
-  letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px; margin-right: 6px; }
-.method-block .row .val .badge.pass { background: rgba(31,157,96,0.16); color: var(--up); }
-.method-block .row .val .badge.fail { background: rgba(210,48,64,0.12); color: var(--down); }
-.method-block .row .val .badge.off  { background: var(--bg-3); color: var(--ink-2); }
+/* Why section — narrative */
+.why-block { background: var(--bg-1); border: 1px solid var(--line);
+  border-radius: 8px; padding: 32px;
+}
+.why-block p {
+  font-family: var(--font-display); font-weight: 300;
+  font-size: 17px; line-height: 1.6; color: var(--ink-1);
+  margin-bottom: 16px; max-width: 64ch;
+}
+.why-block p strong {
+  color: var(--ink-0); font-weight: 500; font-style: normal;
+}
+.why-block p:last-child { margin-bottom: 0; }
+.why-block .pull {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 22px; font-weight: 300; line-height: 1.45;
+  color: var(--ink-0); margin-bottom: 24px;
+  padding-left: 16px; border-left: 3px solid var(--accent);
+}
 
-.factor-list { list-style: none; padding: 0; }
-.factor-list li { padding: var(--s-2) 0; border-bottom: 1px dashed var(--line-0);
-  display: flex; justify-content: space-between; font-size: 13px; }
-.factor-list li .factor-name { color: var(--ink-1); }
-.factor-list li .factor-z { font-family: var(--font-mono); color: var(--ink-0); }
+/* Risks */
+.risk-list { display: flex; flex-direction: column; gap: 12px; }
+.risk-card {
+  background: var(--bg-1); border: 1px solid var(--line);
+  border-left: 2px solid #9d3545;
+  border-radius: 6px; padding: 20px 24px;
+}
+.risk-card h4 {
+  font-family: var(--font-body); font-size: 14px;
+  font-weight: 600; color: var(--ink-0); margin-bottom: 8px;
+}
+.risk-card p { font-size: 13px; color: var(--ink-1); margin: 0; }
+.risk-card p + p {
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-style: italic; color: var(--ink-2);
+}
 
-.tickers-row { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2); }
-.ticker-chip { font-family: var(--font-mono); font-size: 12px;
-  background: var(--bg-2); border: 1px solid var(--line-0);
-  padding: 4px 10px; border-radius: var(--r-sm); color: var(--ink-0); cursor: pointer; }
-.ticker-chip:hover { background: var(--bg-1); border-color: var(--accent); }
-.tickers-disclaimer { font-size: 11px; color: var(--ink-3); font-style: italic; margin-top: var(--s-2); }
+/* Footer */
+.footer-links {
+  margin-top: 64px; padding-top: 24px;
+  border-top: 1px solid var(--line);
+  display: flex; gap: 12px; flex-wrap: wrap;
+  font-size: 13px; color: var(--ink-2);
+}
+.footer-links a {
+  color: var(--ink-1); text-decoration: none;
+  background: var(--bg-2); padding: 6px 12px;
+  border-radius: 4px;
+}
+.footer-links a:hover { background: var(--bg-3); }
+.footer-links .right { margin-left: auto; color: var(--ink-3); font-size: 11px; }
 
-.etf-block { background: var(--bg-2); border-radius: var(--r-md); padding: var(--s-3);
-  font-size: 13px; color: var(--ink-1); }
-.etf-block .label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink-2); font-weight: 600; margin-bottom: 6px; }
-.etf-block .ticker { font-family: var(--font-mono); font-size: 16px;
-  color: var(--ink-0); font-weight: 500; }
-
-.toast { position: fixed; bottom: var(--s-4); left: 50%;
-  transform: translateX(-50%) translateY(120%);
-  background: var(--ink-0); color: var(--bg-1);
-  padding: var(--s-3) var(--s-4); font-size: 13px; border-radius: var(--r-md);
-  z-index: 200; transition: transform var(--motion-med);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
-.toast.show { transform: translateX(-50%) translateY(0); }
-.toast .ticker { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
-
-.bottom-strip { display: flex; gap: var(--s-3); flex-wrap: wrap;
-  padding: var(--s-5) 0; border-top: 1px solid var(--line-0);
-  margin-top: var(--s-7); font-size: 13px; color: var(--ink-2); align-items: center; }
-.bottom-strip a { background: var(--bg-2); padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-sm); color: var(--ink-1); border: 1px solid var(--line-0); }
-.bottom-strip a:hover { background: var(--bg-3); text-decoration: none; }
-.bottom-strip .right { margin-left: auto; color: var(--ink-3); font-size: 12px; }
-
-@media (max-width: 980px) {
-  .hero-grid { grid-template-columns: 1fr; }
-  .toc { position: static; }
-  .hero-strip { grid-template-columns: 1fr; }
-  .summary-strip { grid-template-columns: repeat(2, 1fr); }
+@media (max-width: 720px) {
+  .alloc-row, .alloc-total {
+    grid-template-columns: 1fr 60px;
+    grid-template-areas: "name pct" "bar bar";
+  }
+  .alloc-name-wrap { grid-area: name; }
+  .alloc-bar { grid-area: bar; height: 6px; }
+  .alloc-pct { grid-area: pct; }
 }
 </style>
 </head>
 <body>
 
-<div class="wf-banner">
-  <strong>Wireframe v6</strong> · GICS tree visual · 11 Sectors → 24 Industry Groups → 68 Industries · Click any circle, dot, or sector for the rationale.
-</div>
-
-<header class="topbar">
-  <div class="topbar-inner">
-    <div class="brand"><span class="brand-mark"></span>MacroTilt</div>
-    <nav class="tabs">
-      <a href="#">Today's Macro</a>
-      <a href="#" class="active">Asset Allocation</a>
-      <a href="#">Indicators</a>
-      <a href="#">Methodology</a>
-    </nav>
-  </div>
-</header>
-
 <div class="shell">
 
-  <!-- Section 1 — Big Picture -->
-  <section class="hero" id="sec-bigpicture">
-    <div class="hero-grid">
-      <div class="hero-left">
-        <div class="section-eyebrow"><span class="num">01</span> The Big Picture</div>
-        <h1>Aggressive equity tilt — leaning into AI infrastructure and energy discipline.</h1>
-        <p class="dek">Macro composites are calm and growth is firming. The model is overweight equities, with a clear bias toward industries that have both fundamental tailwinds and confirming price momentum.</p>
-        <div class="hero-asof">
-          <span class="pulse"></span>
-          <span>As of <strong style="color:var(--ink-0)">April 25, 2026</strong></span>
-          <span class="sep">·</span>
-          <span>Last formal rebalance: <strong style="color:var(--ink-0)">April 18, 2026</strong></span>
-          <span class="sep">·</span>
-          <span>Next: <strong style="color:var(--ink-0)">May 2, 2026</strong></span>
-        </div>
-      </div>
-      <aside class="toc">
-        <h4>On this page</h4>
-        <ol>
-          <li><a href="#sec-bigpicture">The Big Picture</a></li>
-          <li><a href="#sec-tree">GICS Tree · Recommendations</a></li>
-          <li><a href="#sec-risks">Risk Management</a></li>
-        </ol>
-      </aside>
+  <!-- Header -->
+  <div class="header">
+    <div class="eyebrow">MacroTilt · Recommended Allocation</div>
+    <h1>Aggressive equity tilt — AI infrastructure, energy discipline, and selective cyclicals.</h1>
+    <p class="dek">Macro composites are calm. Growth is firming. The model leans into industries with both fundamental tailwinds and confirming price momentum.</p>
+    <div class="asof">
+      As of <strong>April 25, 2026</strong> · Last rebalance <strong>April 18, 2026</strong> · Next <strong>May 2, 2026</strong>
     </div>
+  </div>
 
-    <div class="hero-strip">
-      <div class="tile">
-        <h4>Stance</h4>
-        <div class="big">Aggressive</div>
-        <div class="sub">Risk-on. Equity-heavy.</div>
-        <div class="stance-arc">
-          <div class="seg"></div><div class="seg"></div>
-          <div class="seg on-balanced"></div>
-          <div class="seg on-aggressive"></div>
-          <div class="seg on-aggressive"></div>
-        </div>
-        <div class="stance-labels"><span>Defensive</span><span>Balanced</span><span>Aggressive</span></div>
-      </div>
-
-      <div class="tile">
-        <h4>Allocation Mix</h4>
-        <div class="big">86<span style="font-size:18px;color:var(--ink-2);"> / </span>14</div>
-        <div class="sub"><strong>Equity / Defensive ballast</strong>, in percent.</div>
-        <div class="eq-breakdown">
-          <div class="row"><span><span class="pip" style="background:var(--accent-deep)"></span>Equity (across 11 GICS Sectors)</span><span class="num">86%</span></div>
-          <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Cash &amp; T-bills</span><span class="num">8%</span></div>
-          <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Short-duration treasuries</span><span class="num">4%</span></div>
-          <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Gold</span><span class="num">2%</span></div>
-        </div>
-      </div>
-
-      <div class="tile">
-        <h4>Macro Snapshot</h4>
-        <div class="macro-pills">
-          <div class="macro-pill">
-            <span><span class="dot calm"></span>Risk &amp; Liquidity</span>
-            <span class="label">Calm · &minus;6.7</span>
-          </div>
-          <div class="macro-pill">
-            <span><span class="dot calm"></span>Growth</span>
-            <span class="label">Firm · +3.2</span>
-          </div>
-          <div class="macro-pill">
-            <span><span class="dot neutral"></span>Inflation &amp; Rates</span>
-            <span class="label">Neutral · &minus;1.1</span>
-          </div>
-        </div>
-        <div class="sub" style="margin-top:var(--s-2)"><a href="#">See Macro Overview &rarr;</a></div>
-      </div>
+  <!-- THE ALLOCATION -->
+  <section class="section">
+    <h2>What to hold</h2>
+    <div class="sub">16 industries plus defensive ballast. Click any row for the rationale.</div>
+    <div class="alloc" id="allocList"></div>
+    <div class="alloc-total">
+      <span class="label">Total</span>
+      <span></span>
+      <span class="pct">100.0%</span>
     </div>
   </section>
 
-  <!-- Section 2 — GICS TREE VISUAL -->
-  <section class="section" id="sec-tree">
-    <div class="sec-head">
-      <div class="section-eyebrow"><span class="num">02</span> GICS Tree · Recommendations</div>
-      <h2>The full tree, our Tilt overlaid.</h2>
-      <p class="section-dek">
-        11 Sectors at the top. 24 Industry Groups in the middle row. 68 Industries below. The <strong>ring color</strong> on each circle / dot shows our Tilt: <strong style="color:var(--up)">green = Overweight</strong>, gray = Market Weight, <strong style="color:var(--down)">red = Underweight</strong>. Click anything for the methodology rationale, factor z-scores, and example tickers.
-      </p>
-    </div>
+  <!-- WHY -->
+  <section class="section">
+    <h2>Why</h2>
+    <div class="sub">The macro setup driving this allocation.</div>
+    <div class="why-block">
+      <p class="pull">Three macro composites are aligned for the first time since 2022 — Risk &amp; Liquidity calm, Growth firming, Inflation &amp; Rates neutral. That's the setup the back-test calls "lean in," and the allocation reflects it.</p>
 
-    <div class="tree-wrap">
-      <svg class="tree-svg" id="treeSvg" viewBox="0 0 1100 580" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
-        <!-- Tree is rendered by JS below -->
-      </svg>
+      <p><strong>Risk &amp; Liquidity sits at &minus;6.7 (calm).</strong> Credit spreads have tightened 90 basis points since January. Short-end funding eased as the Fed signaled patience. The composite has improved 11 points over the quarter — that's the green light to take risk.</p>
 
-      <div class="tree-legend">
-        <span style="font-weight:600;color:var(--ink-1);">Levels:</span>
-        <span class="item"><span class="level-mark"></span><span class="lbl">Sector (11)</span></span>
-        <span class="item"><span class="level-mark ig"></span><span class="lbl">Industry Group (24)</span></span>
-        <span class="item"><span class="level-mark ind"></span><span class="lbl">Industry (68)</span></span>
-        <span style="margin-left:var(--s-4);font-weight:600;color:var(--ink-1);">Tilt:</span>
-        <span class="item"><span class="ring ow"></span><span class="lbl">Overweight</span></span>
-        <span class="item"><span class="ring mw"></span><span class="lbl">Market Weight (no edge)</span></span>
-        <span class="item"><span class="ring uw"></span><span class="lbl">Underweight</span></span>
-      </div>
-    </div>
+      <p><strong>Growth is firming at +3.2.</strong> ISM Manufacturing finally crossed 50 for the first time since 2022. Jobless claims flat at trend. Capex revisions across mega-cap tech are positive. The economy isn't booming, but the broad-based growth signal is what the model needs to add equity beta.</p>
 
-    <div class="summary-strip">
-      <div class="sum-tile">
-        <div class="lbl">Sectors Overweight</div>
-        <div class="val up" id="sumOver">—</div>
-      </div>
-      <div class="sum-tile">
-        <div class="lbl">Sectors Market Weight</div>
-        <div class="val flat" id="sumFlat">—</div>
-      </div>
-      <div class="sum-tile">
-        <div class="lbl">Sectors Underweight</div>
-        <div class="val down" id="sumUnder">—</div>
-      </div>
-      <div class="sum-tile">
-        <div class="lbl">Calibrated Buckets</div>
-        <div class="val" id="sumBuckets">16 of 103</div>
-      </div>
+      <p><strong>Inflation &amp; Rates is neutral at &minus;1.1.</strong> Not stressed, but not cooperative either — 10-year yields are range-bound near 4.5%. That's why the model holds 14% in defensive ballast (cash, short-duration treasuries, gold) and stays underweight rate-sensitive industries like Real Estate and Utilities even though their fundamentals are stable.</p>
+
+      <p>The largest single position is <strong>Software at 16%</strong> — AI infrastructure capex is still expanding and ISM new orders are confirming the cycle. The biggest weekly increase is <strong>Oil &amp; Gas Exploration &amp; Production, raised to 6%</strong> — capital discipline is holding for the third consecutive year, crude steady above $80/bbl, cash flow without the overinvestment trap. Trimmed: <strong>Consumer Staples to 4%</strong> (defensive premium has compressed) and <strong>Real Estate to 1%</strong> (rates path no longer trending lower).</p>
     </div>
   </section>
 
-  <!-- Section 3 — Risk Management -->
-  <section class="section" id="sec-risks">
-    <div class="sec-head">
-      <div class="section-eyebrow"><span class="num">03</span> Risk Management</div>
-      <h2>What could break this view.</h2>
-      <p class="section-dek">The four scenarios that would flip the model's recommendation. Each has a Trigger (the macro condition that would fire it) and an Alternate (where the portfolio would move).</p>
-    </div>
+  <!-- RISKS -->
+  <section class="section">
+    <h2>What would change this view</h2>
+    <div class="sub">The four scenarios that would force a rebalance away from this allocation.</div>
     <div class="risk-list">
       <div class="risk-card">
         <h4>Crude breaks below $70/bbl</h4>
-        <p class="trigger">Energy goes from cash machine to capital trap. Cash flow turns vulnerable; capital discipline narrative collapses.</p>
-        <p class="alt">Alternate: rotate Energy back to Market Weight, add weight to Health Care and Staples for defensive carry.</p>
+        <p>Oil &amp; Gas E&amp;P goes from cash machine to capital trap. Capital discipline narrative collapses.</p>
+        <p>Move: Oil &amp; Gas back to 2%. Add to Consumer Staples and Insurance for defensive carry.</p>
       </div>
       <div class="risk-card">
         <h4>Credit spreads widen &gt; 100 bp in two weeks</h4>
-        <p class="trigger">Risk &amp; Liquidity composite would flip from calm to elevated. Aggressive stance no longer justified; cyclicals at risk of repricing.</p>
-        <p class="alt">Alternate: trim Software and Semis, raise defensive ballast from 14% to 30%, shift stance to Balanced.</p>
+        <p>Risk &amp; Liquidity composite flips from calm to elevated. Aggressive stance no longer justified.</p>
+        <p>Move: Trim Software and Semiconductors. Raise defensive ballast from 14% to 30%.</p>
       </div>
       <div class="risk-card">
         <h4>Unemployment claims spike above 280k for three weeks</h4>
-        <p class="trigger">Growth composite rolls over fast. Retail and Aerospace &amp; Defense repriced first; AI capex demand follows with a lag.</p>
-        <p class="alt">Alternate: shift to Defensive stance. Overweights collapse to MedDevices + Consumer Staples; equity exposure cut to 60%.</p>
+        <p>Growth composite rolls over. Retail and Aerospace &amp; Defense repriced first; AI capex demand follows with a lag.</p>
+        <p>Move: Defensive stance. Cut equity exposure to 60%. Overweights collapse to MedDevices + Staples.</p>
       </div>
       <div class="risk-card">
         <h4>10-year yield breaks above 5.0%</h4>
-        <p class="trigger">Inflation &amp; Rates composite turns stressed. Long-duration cyclicals (Real Estate, Utilities, Software) repriced lower.</p>
-        <p class="alt">Alternate: cut Software to Market Weight, hold Energy and Banks (rate beneficiaries), defensive ballast to 25%.</p>
+        <p>Inflation &amp; Rates composite turns stressed. Long-duration cyclicals (Real Estate, Utilities, Software) repriced lower.</p>
+        <p>Move: Software to 8%. Hold Oil &amp; Gas and Banks (rate beneficiaries). Defensive ballast to 25%.</p>
       </div>
     </div>
   </section>
 
-  <div class="bottom-strip">
+  <div class="footer-links">
     <a href="#">Methodology</a>
-    <a href="#">Back-test results (2008&ndash;2026)</a>
+    <a href="#">Back-test (2008–2026)</a>
     <a href="#">Calibration evidence</a>
-    <a href="#">Factor maps</a>
     <a href="#">Run log</a>
     <span class="right">Pipeline run #1734 · ran Fri 5:31pm ET · all data fresh</span>
   </div>
 
 </div>
 
-<!-- Drawer -->
-<div class="drawer-mask" id="drawerMask"></div>
-<aside class="drawer" id="drawer">
-  <button class="drawer-close" aria-label="Close" id="drawerClose">&times;</button>
-  <div class="breadcrumb"><span class="pip" id="drawerPip"></span><span id="drawerBreadcrumb">&mdash;</span></div>
-  <h2 id="drawerTitle">&mdash;</h2>
-  <div class="calibration-note" id="drawerCalibLevel">Calibrated at: —</div>
-  <div class="rating-line" id="drawerRating">&mdash;</div>
-
-  <div class="key-stats">
-    <div class="stat"><div class="val" id="drawerTilt">&mdash;</div><div class="lbl">Tilt</div></div>
-    <div class="stat"><div class="val" id="drawerTarget">&mdash;</div><div class="lbl">Target %</div></div>
-    <div class="stat"><div class="val" id="drawerSpy">&mdash;</div><div class="lbl">S&amp;P %</div></div>
-  </div>
-
-  <h4>Why this rating</h4>
-  <p id="drawerRationale">&mdash;</p>
-
-  <div class="method-block" id="drawerMethod"></div>
-
-  <h4>Key factors</h4>
-  <ul class="factor-list" id="drawerFactors"></ul>
-
-  <h4>Example companies</h4>
-  <div class="tickers-row" id="drawerTickers"></div>
-  <div class="tickers-disclaimer">Click any ticker to open the Stock Card · Examples only, not recommendations.</div>
-
-  <h4>Implementation ETF</h4>
-  <div class="etf-block">
-    <div class="label">Calibration / liquid expression</div>
-    <div class="ticker" id="drawerETF">&mdash;</div>
-    <div id="drawerImpl" style="font-size:12px;color:var(--ink-2);margin-top:6px;"></div>
-  </div>
-
-  <h4>Tactical notes</h4>
-  <p id="drawerTactical">&mdash;</p>
-</aside>
-
-<div class="toast" id="toast">Opens Stock Card → <span class="ticker" id="toastTicker"></span> in production</div>
-
 <script>
-/* ============================================================
-   GICS data (pre-2023: 11/24/68/157)
-   ============================================================ */
-const SECTORS = [
-  { key:"Energy", name:"Energy", color:"#7a5e2e", icon:"⚡",
-    igs:[{ name:"Energy", inds:["Energy Equipment & Services","Oil, Gas & Consumable Fuels"] }] },
-  { key:"Materials", name:"Materials", color:"#5a6e7a", icon:"⛏",
-    igs:[{ name:"Materials", inds:["Chemicals","Construction Materials","Containers & Packaging","Metals & Mining","Paper & Forest Products"] }] },
-  { key:"Industrials", name:"Industrials", color:"#2a4a6e", icon:"🏭",
-    igs:[
-      { name:"Capital Goods", inds:["Aerospace & Defense","Building Products","Construction & Engineering","Electrical Equipment","Industrial Conglomerates","Machinery","Trading Companies & Distributors"] },
-      { name:"Commercial & Professional Services", inds:["Commercial Services & Supplies","Professional Services"] },
-      { name:"Transportation", inds:["Air Freight & Logistics","Airlines","Marine","Road & Rail","Transportation Infrastructure"] }
-    ] },
-  { key:"ConsumerDiscretionary", name:"Consumer Discretionary", color:"#b87545", icon:"🛒",
-    igs:[
-      { name:"Automobiles & Components", inds:["Auto Components","Automobiles"] },
-      { name:"Consumer Durables & Apparel", inds:["Household Durables","Leisure Products","Textiles, Apparel & Luxury Goods"] },
-      { name:"Consumer Services", inds:["Hotels, Restaurants & Leisure","Diversified Consumer Services"] },
-      { name:"Retailing", inds:["Distributors","Internet & Direct Marketing Retail","Multiline Retail","Specialty Retail"] }
-    ] },
-  { key:"ConsumerStaples", name:"Consumer Staples", color:"#a86530", icon:"🍔",
-    igs:[
-      { name:"Food & Staples Retailing", inds:["Food & Staples Retailing"] },
-      { name:"Food, Beverage & Tobacco", inds:["Beverages","Food Products","Tobacco"] },
-      { name:"Household & Personal Products", inds:["Household Products","Personal Products"] }
-    ] },
-  { key:"HealthCare", name:"Health Care", color:"#9d3545", icon:"❤",
-    igs:[
-      { name:"Health Care Equipment & Services", inds:["Health Care Equipment","Health Care Providers & Services","Health Care Technology"] },
-      { name:"Pharmaceuticals, Biotechnology & Life Sciences", inds:["Biotechnology","Pharmaceuticals","Life Sciences Tools & Services"] }
-    ] },
-  { key:"Financials", name:"Financials", color:"#5e6478", icon:"📊",
-    igs:[
-      { name:"Banks", inds:["Banks","Thrifts & Mortgage Finance"] },
-      { name:"Diversified Financials", inds:["Diversified Financial Services","Consumer Finance","Capital Markets","Mortgage REITs"] },
-      { name:"Insurance", inds:["Insurance"] }
-    ] },
-  { key:"InformationTechnology", name:"Information Technology", color:"#1f6e4d", icon:"💻",
-    igs:[
-      { name:"Software & Services", inds:["Internet Software & Services","IT Services","Software"] },
-      { name:"Technology Hardware & Equipment", inds:["Communications Equipment","Technology Hardware, Storage & Peripherals","Electronic Equipment, Instruments & Components"] },
-      { name:"Semiconductors & Semiconductor Equipment", inds:["Semiconductors","Semiconductor Equipment"] }
-    ] },
-  { key:"CommunicationServices", name:"Communication Services", color:"#2b6b78", icon:"📡",
-    igs:[
-      { name:"Telecommunication Services", inds:["Diversified Telecommunication Services","Wireless Telecommunication Services"] },
-      { name:"Media & Entertainment", inds:["Media","Entertainment","Interactive Media & Services"] }
-    ] },
-  { key:"Utilities", name:"Utilities", color:"#2d7159", icon:"🔌",
-    igs:[{ name:"Utilities", inds:["Electric Utilities","Gas Utilities","Multi-Utilities","Water Utilities","Independent Power & Renewable Electricity"] }] },
-  { key:"RealEstate", name:"Real Estate", color:"#735780", icon:"🏢",
-    igs:[{ name:"Equity REITs", inds:["Equity REITs","Real Estate Management & Development"] }] },
+const ALLOCATION = [
+  { name:"Software", gics:"Information Technology · Software & Services", pct:16.0,
+    rationale:"AI infrastructure capex still expanding. <strong>ISM new orders accelerating</strong> — the regression points to ISM (t=2.8), the semis cycle (t=2.1), and earnings revisions (t=3.2) all driving this rating. 6-month price momentum confirms at +8.4%. Hold this position unless ISM rolls over.",
+    tickers:["MSFT","ORCL","ADBE","NOW","CRM","INTU"], etf:"IGV", priorPct:15.5 },
+  { name:"Semiconductors", gics:"Information Technology · Semiconductors", pct:14.0,
+    rationale:"Cycle indicator (semi book-to-bill) at multi-year highs. AI-capex demand still expanding into hyperscaler 2026 budgets. <strong>Largest weekly increase</strong> after Oil &amp; Gas. Watch hyperscaler capex guidance for the kill-trigger.",
+    tickers:["NVDA","AVGO","AMD","TSM","ASML","INTC"], etf:"SMH", priorPct:12.0 },
+  { name:"Communication Services", gics:"Communication Services (sector)", pct:11.0,
+    rationale:"Mega-cap platforms still doing the heavy lifting — cash generative, AI-adjacent, margin resilient. <strong>Concentration risk:</strong> top three names (META, GOOGL, NFLX) are 65% of the cap-weighted ETF. Hold flat at +2 pts overweight.",
+    tickers:["META","GOOGL","DIS","NFLX","TMUS"], etf:"XLC", priorPct:11.0 },
+  { name:"Banks", gics:"Financials · Banks", pct:7.0,
+    rationale:"Yield curve no longer inverted. Net-interest-margin expansion thesis intact for both regional and money-center banks. Credit costs contained — non-performing loan ratio still falling. <strong>Tilt to regionals</strong> over money centers in this stance.",
+    tickers:["JPM","BAC","WFC","C","USB","PNC"], etf:"KBE", priorPct:6.5 },
+  { name:"Oil & Gas Exploration & Production", gics:"Energy · Oil, Gas & Consumable Fuels", pct:6.0,
+    rationale:"<strong>Capital discipline holding for the third consecutive year.</strong> Crude steady above $80/bbl plus a tightening rig count means cash flow without the overinvestment trap that ended prior cycles. Largest weekly increase (was 2%). Crude $70/bbl is the kill-trigger.",
+    tickers:["XOM","CVX","COP","EOG","PXD","OXY"], etf:"XOP", priorPct:2.0 },
+  { name:"Aerospace & Defense", gics:"Industrials · Aerospace & Defense", pct:4.0,
+    rationale:"Defense order book robust on geopolitics; commercial aero recovering on travel demand. Trimmed slightly (-0.5 pts) as the boost from the prior capex spike normalizes. Held at +1.5 pts overweight; provides ballast if growth rolls over.",
+    tickers:["BA","LMT","RTX","GD","NOC","TDG"], etf:"ITA", priorPct:4.5 },
+  { name:"Biotech", gics:"Health Care · Biotechnology", pct:4.0,
+    rationale:"FDA approval cadence elevated. Pipeline maturity in obesity / oncology supports forward earnings. Hold at +2 pts overweight.",
+    tickers:["AMGN","GILD","VRTX","REGN","BIIB"], etf:"IBB", priorPct:4.0 },
+  { name:"Medical Devices", gics:"Health Care · Health Care Equipment", pct:4.0,
+    rationale:"Defensive sleeve; demographic tailwind real but priced. No acute catalyst this cycle. Hold at benchmark; tilt to procedure-volume names (ISRG, SYK) over diagnostics.",
+    tickers:["ISRG","TMO","MDT","BSX","SYK","ABT"], etf:"IHI", priorPct:4.0 },
+  { name:"Retail", gics:"Consumer Discretionary · Retailing", pct:4.0,
+    rationale:"<strong>Credit-card delinquencies ticking up.</strong> Consumer is still spending but at the margin the tailwind is weakening. Trimmed -1 pt this rebalance. Avoid leveraged consumer names; mega-cap e-commerce stays in via the bucket weight.",
+    tickers:["AMZN","HD","LOW","TJX","COST"], etf:"XRT", priorPct:5.0 },
+  { name:"Consumer Staples", gics:"Consumer Staples (sector)", pct:4.0,
+    rationale:"Defensive premium has compressed and the sector's been bid up. With macro composites supportive there's no need to pay up for safety. <strong>Trimmed -2 pts</strong> — used as funding source for the Oil &amp; Gas and Software overweights.",
+    tickers:["PG","KO","PEP","WMT","COST","MO"], etf:"XLP", priorPct:6.0 },
+  { name:"Insurance", gics:"Financials · Insurance", pct:3.0,
+    rationale:"Premium pricing power solid but reinvestment yield gains mostly priced in. Hold at benchmark; no edge.",
+    tickers:["BRK.B","PGR","ALL","TRV","CB"], etf:"KIE", priorPct:3.0 },
+  { name:"Mega-Cap Growth", gics:"Cross-cutting overlay (top 7-10 mega-caps)", pct:3.0,
+    rationale:"Cross-cutting bucket overlaying the top 7-10 mega-caps. Held flat — same names already drive Software, Semiconductors, and Comm Services overweights. Tracks net mega-cap concentration vs the S&amp;P top 7-10.",
+    tickers:["AAPL","MSFT","GOOGL","AMZN","META","NVDA","TSLA"], etf:"MGK", priorPct:3.5 },
+  { name:"Materials", gics:"Materials (sector)", pct:2.0,
+    rationale:"China demand unclear. Copper-gold ratio neutral. Position at benchmark; no edge.",
+    tickers:["LIN","APD","SHW","ECL","FCX"], etf:"XLB", priorPct:2.0 },
+  { name:"Transports", gics:"Industrials · Transportation", pct:2.0,
+    rationale:"Freight volumes recovering as goods inventory destocking ends. Mild overweight. Rails over parcel for cycle exposure.",
+    tickers:["UPS","FDX","UNP","CSX","NSC","ODFL"], etf:"IYT", priorPct:1.5 },
+  { name:"Real Estate", gics:"Real Estate (sector)", pct:1.0,
+    rationale:"<strong>Rate path no longer trending lower.</strong> Commercial real-estate office overhang persists. Removed from active picks this cycle. Trim. Re-engage if 10-year breaks below 4%.",
+    tickers:["PLD","EQIX","AMT","CCI","SPG"], etf:"XLRE", priorPct:2.0 },
+  { name:"Utilities", gics:"Utilities (sector)", pct:1.0,
+    rationale:"Bond proxy with rates not cooperating. AI-driven power demand is a real story but the regulatory recovery lag makes it hard to monetize this year. Min weight only.",
+    tickers:["NEE","SO","DUK","D","AEP"], etf:"XLU", priorPct:1.0 },
+  { name:"Defensive ballast", gics:"Cash + short-duration treasuries + gold", pct:14.0, ballast:true,
+    rationale:"Held at 14% to provide downside protection given Inflation &amp; Rates composite is neutral (not cooperative). Composition: 8% cash &amp; T-bills, 4% short-duration treasuries, 2% gold. Raise to 30% if Risk &amp; Liquidity composite flips to elevated.",
+    tickers:[], etf:"BIL / SHY / GLD", priorPct:14.0 },
 ];
 
-/* ============================================================
-   Calibrated ratings (16 buckets) keyed by GICS path
-   ============================================================ */
-const RATINGS = {
-  "InformationTechnology>Software & Services>Software": { id:"Software", calibrationLevel:"industry",
-    tier5:"sow", rating5:"Strong Overweight",
-    targetPct:16.0, priorTargetPct:15.5, spyPct:6.5, sixMoReturn:0.084,
-    tickers:["MSFT","ORCL","ADBE","NOW","CRM","INTU"], etf:"IGV",
-    etfDesc:"iShares Expanded Tech-Software Sector",
-    impl:"Liquid via large-cap software ETFs or the largest 5-10 individual names.",
-    rationale:"AI infrastructure capex still expanding and price momentum confirming.",
-    factors:[{name:"ISM New Orders",z:"+1.4σ"},{name:"Semis cycle (SOX/SPX)",z:"+1.1σ"},{name:"Earnings revision breadth",z:"+0.9σ"},{name:"Growth composite",z:"+0.7σ"}],
-    method:{regression:"3 factors significant: ISM (t=2.8), Semis cycle (t=2.1), Earnings revisions (t=3.2)", momentum:"PASS — +8.4% trailing 6mo", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Hold to Strong Overweight unless ISM rolls over." },
-  "InformationTechnology>Semiconductors & Semiconductor Equipment>Semiconductors": { id:"Semis", calibrationLevel:"industry",
-    tier5:"sow", rating5:"Strong Overweight",
-    targetPct:14.0, priorTargetPct:12.0, spyPct:9.0, sixMoReturn:0.142,
-    tickers:["NVDA","AVGO","AMD","TSM","ASML","INTC"], etf:"SMH",
-    etfDesc:"VanEck Semiconductor ETF", impl:"Concentrated bucket — top 5 = 60% of any liquid ETF.",
-    rationale:"Cycle indicator at multi-year highs. AI-capex demand still expanding.",
-    factors:[{name:"SOX/SPX ratio (Z)",z:"+1.6σ"},{name:"Book-to-bill",z:"+1.2σ"},{name:"Capex revision",z:"+0.9σ"}],
-    method:{regression:"2 factors significant: SOX/SPX (t=3.1), Book-to-bill (t=2.4)", momentum:"PASS — +14.2%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Watch hyperscaler capex guidance for the kill-trigger." },
-  "HealthCare>Pharmaceuticals, Biotechnology & Life Sciences>Biotechnology": { id:"Biotech", calibrationLevel:"industry",
-    tier5:"ow", rating5:"Overweight",
-    targetPct:4.0, priorTargetPct:4.0, spyPct:2.0, sixMoReturn:0.038,
-    tickers:["AMGN","GILD","VRTX","REGN","BIIB"], etf:"IBB",
-    etfDesc:"iShares Biotechnology ETF", impl:"Tier 1 = large-cap biotech (top 10).",
-    rationale:"FDA approval cadence elevated. Pipeline maturity in obesity/oncology.",
-    factors:[{name:"FDA approvals (3M)",z:"+0.8σ"},{name:"IPO volume",z:"+0.5σ"}],
-    method:{regression:"1 factor significant: FDA approvals (t=2.4)", momentum:"PASS — +3.8%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Hold at +2 pts overweight." },
-  "HealthCare>Health Care Equipment & Services>Health Care Equipment": { id:"MedDevices", calibrationLevel:"industry",
-    tier5:"mw", rating5:"Market Weight",
-    targetPct:4.0, priorTargetPct:4.0, spyPct:4.0, sixMoReturn:0.018,
-    tickers:["ISRG","TMO","MDT","BSX","SYK","ABT"], etf:"IHI",
-    etfDesc:"iShares U.S. Medical Devices ETF", impl:"Hold at benchmark.",
-    rationale:"Defensive sleeve; demographic tailwind real but priced.",
-    factors:[{name:"Hospital procedure volumes",z:"+0.3σ"},{name:"FDA 510(k) approvals",z:"+0.4σ"}],
-    method:{regression:"No factors significant", momentum:"NEUTRAL", composite_flip:"OFF", confirmatory:"NEUTRAL"},
-    tactical:"Hold at benchmark." },
-  "Industrials>Capital Goods>Aerospace & Defense": { id:"AeroDefense", calibrationLevel:"industry",
-    tier5:"ow", rating5:"Overweight",
-    targetPct:4.0, priorTargetPct:4.5, spyPct:2.5, sixMoReturn:0.061,
-    tickers:["BA","LMT","RTX","GD","NOC","TDG"], etf:"ITA",
-    etfDesc:"iShares U.S. Aerospace & Defense ETF", impl:"Defense > commercial aero in current cycle.",
-    rationale:"Defense order book robust on geopolitics; commercial aero recovering.",
-    factors:[{name:"DoD obligations",z:"+0.7σ"},{name:"Order book / revenue",z:"+0.5σ"}],
-    method:{regression:"2 factors significant: DoD obligations (t=2.5), Order book (t=2.0)", momentum:"PASS — +6.1%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Trimmed -0.5 pts vs last week." },
-  "Energy>Energy>Oil, Gas & Consumable Fuels": { id:"OilExp", calibrationLevel:"industry",
-    tier5:"sow", rating5:"Strong Overweight",
-    targetPct:6.0, priorTargetPct:2.0, spyPct:2.0, sixMoReturn:0.122,
-    tickers:["XOM","CVX","COP","EOG","PXD","OXY"], etf:"XOP",
-    etfDesc:"SPDR S&P Oil & Gas Exploration & Production",
-    impl:"Equal-weight ETFs preferred to capture full sub-sector breadth.",
-    rationale:"Capital discipline holding for the third consecutive year. Crude steady above $80/bbl.",
-    factors:[{name:"WTI level",z:"+1.0σ"},{name:"Rig count delta",z:"+0.6σ"},{name:"Capex/revenue",z:"-0.8σ (good)"}],
-    method:{regression:"3 factors significant: WTI (t=2.7), Rig count (t=2.2), Capex/revenue (t=-2.5)", momentum:"PASS — +12.2%", composite_flip:"OFF", confirmatory:"PASS — strongest signal"},
-    tactical:"Largest active tilt. Crude $70/bbl is the kill-trigger." },
-  // Industry Group level
-  "Financials>Banks": { id:"Banks", calibrationLevel:"ig",
-    tier5:"ow", rating5:"Overweight",
-    targetPct:7.0, priorTargetPct:6.5, spyPct:6.0, sixMoReturn:0.052,
-    tickers:["JPM","BAC","WFC","C","USB","PNC"], etf:"KBE",
-    etfDesc:"SPDR S&P Bank ETF", impl:"Tilt regional banks > money centers.",
-    rationale:"Yield curve no longer inverted. NIM expansion intact.",
-    factors:[{name:"Curve slope (10y-2y)",z:"+0.7σ"},{name:"Loan growth YoY",z:"+0.4σ"}],
-    method:{regression:"2 factors significant: Curve slope (t=2.6), Loan growth (t=2.0)", momentum:"PASS — +5.2%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Quality regionals over money centers." },
-  "Financials>Insurance": { id:"Insurance", calibrationLevel:"ig",
-    tier5:"mw", rating5:"Market Weight",
-    targetPct:3.0, priorTargetPct:3.0, spyPct:3.0, sixMoReturn:0.022,
-    tickers:["BRK.B","PGR","ALL","TRV","CB"], etf:"KIE",
-    etfDesc:"SPDR S&P Insurance ETF", impl:"Hold at benchmark.",
-    rationale:"Premium pricing power solid but reinvestment yield gains mostly priced in.",
-    factors:[{name:"Premium index",z:"+0.4σ"},{name:"Reinvestment yield",z:"+0.2σ"}],
-    method:{regression:"No factors significant at t>2.0", momentum:"NEUTRAL", composite_flip:"OFF", confirmatory:"NEUTRAL"},
-    tactical:"Hold at benchmark." },
-  "Industrials>Transportation": { id:"Transports", calibrationLevel:"ig",
-    tier5:"ow", rating5:"Overweight",
-    targetPct:2.0, priorTargetPct:1.5, spyPct:1.5, sixMoReturn:0.041,
-    tickers:["UPS","FDX","UNP","CSX","NSC","ODFL"], etf:"IYT",
-    etfDesc:"iShares U.S. Transportation ETF", impl:"Rails over parcel for cycle exposure.",
-    rationale:"Freight volumes recovering as goods inventory destocking ends.",
-    factors:[{name:"Cass Freight Index",z:"+0.6σ"},{name:"Rail carloads",z:"+0.5σ"}],
-    method:{regression:"1 factor significant: Cass Freight (t=2.2)", momentum:"PASS — +4.1%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Mild overweight." },
-  "ConsumerDiscretionary>Retailing": { id:"Retail", calibrationLevel:"ig",
-    tier5:"uw", rating5:"Underweight",
-    targetPct:4.0, priorTargetPct:5.0, spyPct:5.0, sixMoReturn:-0.018,
-    tickers:["AMZN","HD","LOW","TJX","COST"], etf:"XRT",
-    etfDesc:"SPDR S&P Retail ETF", impl:"Concentrated by AMZN in cap-weighted ETFs.",
-    rationale:"Credit-card delinquencies ticking up. Consumer tailwind weakening at the margin.",
-    factors:[{name:"Card 30+ days past due",z:"+0.7σ (bad)"},{name:"Retail sales delta",z:"-0.2σ"}],
-    method:{regression:"2 factors significant: Delinquencies (t=2.3), Consumer confidence (t=-2.1)", momentum:"FAIL — -1.8%", composite_flip:"OFF", confirmatory:"PASS — both negative"},
-    tactical:"Avoid leveraged consumer." },
-  // Sector level
-  "Materials": { id:"Materials", calibrationLevel:"sector",
-    tier5:"mw", rating5:"Market Weight",
-    targetPct:2.0, priorTargetPct:2.0, spyPct:2.5, sixMoReturn:0.005,
-    tickers:["LIN","APD","SHW","ECL","FCX"], etf:"XLB",
-    etfDesc:"SPDR Materials Select Sector", impl:"Hold near benchmark.",
-    rationale:"China demand unclear. Copper-gold ratio neutral.",
-    factors:[{name:"Copper-gold ratio",z:"+0.1σ"},{name:"China PMI",z:"-0.3σ"}],
-    method:{regression:"No factors significant", momentum:"NEUTRAL", composite_flip:"OFF", confirmatory:"NEUTRAL"},
-    tactical:"Hold near benchmark." },
-  "ConsumerStaples": { id:"ConsStaples", calibrationLevel:"sector",
-    tier5:"uw", rating5:"Underweight",
-    targetPct:4.0, priorTargetPct:6.0, spyPct:6.0, sixMoReturn:-0.035,
-    tickers:["PG","KO","PEP","WMT","COST","MO"], etf:"XLP",
-    etfDesc:"SPDR Consumer Staples Select Sector", impl:"Use as funding source.",
-    rationale:"Defensive premium has compressed. With composites supportive, no need to pay up for safety.",
-    factors:[{name:"Defensive P/E premium",z:"+0.8σ (rich)"},{name:"Pricing power",z:"+0.2σ"}],
-    method:{regression:"1 factor significant: Defensive premium (t=2.6)", momentum:"FAIL — -3.5%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Use as funding source." },
-  "Utilities": { id:"Utilities", calibrationLevel:"sector",
-    tier5:"suw", rating5:"Strong Underweight",
-    targetPct:1.0, priorTargetPct:1.0, spyPct:2.5, sixMoReturn:-0.058,
-    tickers:["NEE","SO","DUK","D","AEP"], etf:"XLU",
-    etfDesc:"SPDR Utilities Select Sector", impl:"Min weight only.",
-    rationale:"Bond proxy with rates not cooperating.",
-    factors:[{name:"10y yield",z:"+0.6σ (bad)"},{name:"Power demand growth",z:"+0.5σ (good)"}],
-    method:{regression:"1 factor significant: 10y yield (t=2.4)", momentum:"FAIL — -5.8%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Min weight." },
-  "RealEstate": { id:"RealEstate", calibrationLevel:"sector",
-    tier5:"suw", rating5:"Strong Underweight",
-    targetPct:1.0, priorTargetPct:2.0, spyPct:2.5, sixMoReturn:-0.078,
-    tickers:["PLD","EQIX","AMT","CCI","SPG"], etf:"XLRE",
-    etfDesc:"SPDR Real Estate Select Sector", impl:"Removed from active picks.",
-    rationale:"Rate path no longer trending lower. CRE office overhang persists.",
-    factors:[{name:"10y yield",z:"+0.6σ (bad)"},{name:"CRE delinquencies",z:"+0.5σ (bad)"}],
-    method:{regression:"2 factors significant: 10y yield (t=2.4), CRE delinquencies (t=2.1)", momentum:"FAIL — -7.8%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Trim. Re-engage if 10y breaks below 4%." },
-  "CommunicationServices": { id:"CommSvcs", calibrationLevel:"sector",
-    tier5:"ow", rating5:"Overweight",
-    targetPct:11.0, priorTargetPct:11.0, spyPct:9.0, sixMoReturn:0.052,
-    tickers:["META","GOOGL","DIS","NFLX","TMUS"], etf:"XLC",
-    etfDesc:"SPDR Communication Services Select Sector", impl:"Top 3 names = 65% of cap-weighted ETF.",
-    rationale:"Mega-cap platforms still doing the heavy lifting.",
-    factors:[{name:"Mega-cap earnings revisions",z:"+1.0σ"},{name:"Ad-spend index",z:"+0.5σ"}],
-    method:{regression:"1 factor significant: Earnings revisions (t=2.7)", momentum:"PASS — +5.2%", composite_flip:"OFF", confirmatory:"PASS"},
-    tactical:"Concentration risk. Hold." },
-};
+const maxPct = Math.max(...ALLOCATION.map(b => b.pct));
+const root = document.getElementById('allocList');
+let html = '';
+ALLOCATION.forEach((b, idx) => {
+  const widthPct = (b.pct / maxPct) * 100;
+  const dPct = b.pct - b.priorPct;
+  const dStr = dPct === 0 ? 'unchanged'
+              : `${dPct>0?'+':''}${dPct.toFixed(1)} pts vs last week`;
+  html += `
+    <div class="alloc-row ${b.ballast?'ballast':''}" data-idx="${idx}">
+      <div class="alloc-name-wrap">
+        <span class="alloc-name"><span class="caret">▶</span>${b.name}</span>
+        <span class="gics">${b.gics}</span>
+      </div>
+      <div class="alloc-bar"><div class="alloc-bar-fill" style="width:${widthPct.toFixed(1)}%"></div></div>
+      <span class="alloc-pct">${b.pct.toFixed(1)}%</span>
+    </div>
+    <div class="alloc-detail" data-idx="${idx}">
+      <div class="alloc-detail-inner">
+        <p>${b.rationale}</p>
+        <div class="meta">
+          <div><span class="label">Change this week</span><span class="val">${dStr}</span></div>
+          <div><span class="label">ETF</span><span class="val" style="font-family:var(--font-mono);">${b.etf}</span></div>
+          ${b.tickers.length ? `<div style="width:100%;"><span class="label">Examples</span><div class="tickers">${b.tickers.map(t=>`<span class="t">${t}</span>`).join('')}</div></div>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+});
+root.innerHTML = html;
 
-const TIER_COLORS = { sow:"#1d4a31", ow:"#2f6f4a", mw:"#9a9ea8", uw:"#9d3545", suw:"#6e1d2a" };
-
-/* ============================================================
-   Aggregate sector tilt
-   ============================================================ */
-function sectorAggregate(sec) {
-  if (RATINGS[sec.key]) {
-    const r = RATINGS[sec.key];
-    return { tilt: r.targetPct - r.spyPct, source: 'sector', rating: r };
-  }
-  let target = 0, spy = 0;
-  let foundAny = false;
-  sec.igs.forEach(ig => {
-    const igKey = `${sec.key}>${ig.name}`;
-    if (RATINGS[igKey]) {
-      const r = RATINGS[igKey];
-      target += r.targetPct; spy += r.spyPct; foundAny = true;
-    } else {
-      ig.inds.forEach(ind => {
-        const indKey = `${sec.key}>${ig.name}>${ind}`;
-        if (RATINGS[indKey]) {
-          const r = RATINGS[indKey];
-          target += r.targetPct; spy += r.spyPct; foundAny = true;
-        }
-      });
-    }
+document.querySelectorAll('.alloc-row').forEach(row => {
+  row.addEventListener('click', () => {
+    const idx = row.dataset.idx;
+    const detail = document.querySelector(`.alloc-detail[data-idx="${idx}"]`);
+    const wasOpen = row.classList.contains('expanded');
+    document.querySelectorAll('.alloc-row.expanded').forEach(r => r.classList.remove('expanded'));
+    if (!wasOpen) row.classList.add('expanded');
   });
-  if (!foundAny) return null;
-  return { tilt: target - spy, source: 'derived' };
-}
-
-function tiltColor(tilt) {
-  if (tilt > 0.5) return '#1f9d60';
-  if (tilt < -0.5) return '#d23040';
-  return '#9a9ea8';
-}
-
-/* ============================================================
-   Render the SVG tree
-   ============================================================ */
-function renderTree() {
-  const svg = document.getElementById('treeSvg');
-  const W = 1100, H = 580;
-  const N = SECTORS.length;
-  const colWidth = (W - 40) / N;
-  const sectorY = 70;
-  const igY = 230;
-  const indY = 380;
-
-  let html = '';
-  // Level labels
-  html += `<text x="${W-10}" y="${sectorY+5}" class="level-label">11 Sectors</text>`;
-  html += `<text x="${W-10}" y="${igY+5}" class="level-label">24 Industry Groups</text>`;
-  html += `<text x="${W-10}" y="${indY+5}" class="level-label">68 Industries</text>`;
-
-  let overCount = 0, flatCount = 0, underCount = 0;
-
-  SECTORS.forEach((sec, i) => {
-    const cx = 20 + colWidth * i + colWidth / 2;
-    const agg = sectorAggregate(sec);
-    const tilt = agg ? agg.tilt : 0;
-    const ringColor = agg ? tiltColor(tilt) : '#9a9ea8';
-    const rated = !!RATINGS[sec.key];
-    const sectorClass = (agg && Math.abs(tilt) > 0.5) ? 'rated' : 'unrated';
-    if (agg) {
-      if (tilt > 0.5) overCount++;
-      else if (tilt < -0.5) underCount++;
-      else flatCount++;
-    } else flatCount++;
-
-    // Sector circle: outer Tilt ring + inner brand-color disc
-    const r = 30;
-    const ringR = r + 5;
-    html += `<g class="sector-circle ${sectorClass}" data-sector="${sec.key}">
-      <circle cx="${cx}" cy="${sectorY}" r="${ringR}" fill="none" stroke="${ringColor}" stroke-width="3" ${agg ? '' : 'stroke-dasharray="3,3"'} />
-      <circle cx="${cx}" cy="${sectorY}" r="${r}" fill="${sec.color}" />
-      <text x="${cx}" y="${sectorY+6}" font-size="20" text-anchor="middle" fill="white">${sec.icon}</text>
-    </g>`;
-    // Sector label below
-    const wrappedName = sec.name.replace(/Consumer /,'Consumer ').replace(/Information /,'Info ').replace(/Communication /,'Comm. ').replace(/Real Estate/,'Real Estate');
-    html += `<text x="${cx}" y="${sectorY+58}" class="sector-label">${wrappedName}</text>`;
-    // Tilt label
-    if (agg) {
-      const tiltCls = tilt > 0.5 ? 'up' : tilt < -0.5 ? 'down' : 'flat';
-      const tiltTxt = (tilt >= 0 ? '+' : '') + tilt.toFixed(1) + ' pts';
-      html += `<text x="${cx}" y="${sectorY+74}" class="sector-tilt ${tiltCls}">${tiltTxt}</text>`;
-    } else {
-      html += `<text x="${cx}" y="${sectorY+74}" class="sector-tilt flat">— no edge</text>`;
-    }
-
-    // Vertical line down to IG row
-    html += `<line x1="${cx}" y1="${sectorY+45}" x2="${cx}" y2="${igY-30}" stroke="${sec.color}" stroke-width="1" opacity="0.4"/>`;
-
-    // IGs
-    const igCount = sec.igs.length;
-    const igSpacing = Math.min(20, (colWidth - 20) / Math.max(igCount, 1));
-    const igRowWidth = (igCount - 1) * igSpacing;
-    sec.igs.forEach((ig, j) => {
-      const igX = cx - igRowWidth / 2 + j * igSpacing;
-      const igKey = `${sec.key}>${ig.name}`;
-      const igRated = !!RATINGS[igKey];
-      const igRating = igRated ? RATINGS[igKey] : null;
-      const igTilt = igRated ? (igRating.targetPct - igRating.spyPct) : 0;
-      const igRing = igRated ? tiltColor(igTilt) : '#cccccc';
-      const dotR = 7;
-      // Connection from sector vertical line to IG dot
-      html += `<line x1="${cx}" y1="${igY-30}" x2="${igX}" y2="${igY}" stroke="${sec.color}" stroke-width="1" opacity="0.4"/>`;
-      html += `<g class="ig-dot" data-igkey="${igKey}" data-sectorkey="${sec.key}" data-igname="${ig.name}">
-        <circle cx="${igX}" cy="${igY}" r="${dotR+3}" fill="none" stroke="${igRing}" stroke-width="2.5" ${igRated ? '' : 'stroke-dasharray="2,2"'} />
-        <circle cx="${igX}" cy="${igY}" r="${dotR}" fill="${sec.color}" opacity="${igRated ? 1 : 0.5}" />
-      </g>`;
-
-      // Industries (small dots)
-      const indCount = ig.inds.length;
-      const indSpacing = Math.min(10, (colWidth - 20) / Math.max(indCount * igCount, 1));
-      const indRowWidth = (indCount - 1) * indSpacing;
-      ig.inds.forEach((ind, k) => {
-        const indX = igX - indRowWidth / 2 + k * indSpacing;
-        const indKey = `${sec.key}>${ig.name}>${ind}`;
-        const indRated = !!RATINGS[indKey];
-        const indRating = indRated ? RATINGS[indKey] : null;
-        const indTilt = indRated ? (indRating.targetPct - indRating.spyPct) : 0;
-        const indRing = indRated ? tiltColor(indTilt) : '#cccccc';
-        const indR = 4;
-        html += `<line x1="${igX}" y1="${igY+10}" x2="${indX}" y2="${indY-3}" stroke="${sec.color}" stroke-width="0.8" opacity="0.3"/>`;
-        if (indRated) {
-          html += `<g class="ind-dot" data-indkey="${indKey}" data-sectorkey="${sec.key}" data-igname="${ig.name}" data-indname="${ind}">
-            <circle cx="${indX}" cy="${indY}" r="${indR+2}" fill="none" stroke="${indRing}" stroke-width="2"/>
-            <circle cx="${indX}" cy="${indY}" r="${indR}" fill="${sec.color}"/>
-          </g>`;
-        } else {
-          html += `<circle cx="${indX}" cy="${indY}" r="${indR}" fill="${sec.color}" opacity="0.3"/>`;
-        }
-      });
-    });
-  });
-
-  svg.innerHTML = html;
-  document.getElementById('sumOver').textContent = overCount + ' sectors';
-  document.getElementById('sumFlat').textContent = flatCount + ' sectors';
-  document.getElementById('sumUnder').textContent = underCount + ' sectors';
-  document.getElementById('sumBuckets').textContent = '16 of 103 (Sectors+IGs+Industries)';
-
-  // Wire up clicks
-  document.querySelectorAll('#treeSvg .sector-circle').forEach(el => {
-    el.addEventListener('click', () => {
-      const k = el.dataset.sector;
-      const sec = SECTORS.find(s => s.key === k);
-      const agg = sectorAggregate(sec);
-      if (RATINGS[k]) {
-        openDrawer(RATINGS[k], sec.name, ['Sector', sec.name].join(' · '));
-      } else if (agg) {
-        // Show derived sector summary
-        showSectorSummary(sec, agg);
-      } else {
-        showNoEdge(sec.name, 'Sector', sec.name);
-      }
-    });
-  });
-  document.querySelectorAll('#treeSvg .ig-dot').forEach(el => {
-    el.addEventListener('click', () => {
-      const igKey = el.dataset.igkey;
-      const sk = el.dataset.sectorkey;
-      const igName = el.dataset.igname;
-      const secName = SECTORS.find(s => s.key === sk).name;
-      if (RATINGS[igKey]) {
-        openDrawer(RATINGS[igKey], igName, [secName, igName].join(' · '));
-      } else {
-        showNoEdge(igName, 'Industry Group', `${secName} · ${igName}`);
-      }
-    });
-  });
-  document.querySelectorAll('#treeSvg .ind-dot').forEach(el => {
-    el.addEventListener('click', () => {
-      const indKey = el.dataset.indkey;
-      const sk = el.dataset.sectorkey;
-      const igName = el.dataset.igname;
-      const indName = el.dataset.indname;
-      const secName = SECTORS.find(s => s.key === sk).name;
-      if (RATINGS[indKey]) {
-        openDrawer(RATINGS[indKey], indName, [secName, igName, indName].join(' · '));
-      }
-    });
-  });
-}
-
-/* Sector summary (no direct rating) */
-function showSectorSummary(sec, agg) {
-  // Build a synthetic rating object for the drawer
-  const synthetic = {
-    calibrationLevel: 'sector',
-    tier5: agg.tilt > 0.5 ? 'ow' : agg.tilt < -0.5 ? 'uw' : 'mw',
-    rating5: agg.tilt > 0.5 ? 'Overweight (derived)' : agg.tilt < -0.5 ? 'Underweight (derived)' : 'Market Weight (derived)',
-    targetPct: 0, priorTargetPct: 0, spyPct: 0, sixMoReturn: 0,
-    tickers: [], etf: '—', etfDesc: '',
-    impl: 'This sector is not rated directly — the methodology calibrated against the Industry Groups or Industries inside it. The Tilt shown is the sum of those children.',
-    rationale: `${sec.name} has no sector-level rating. Click the individual Industry Group or Industry circles inside this column to see the calibrated buckets that drive the aggregate Tilt of ${agg.tilt.toFixed(1)} pts.`,
-    factors: [], method: { regression:'See child IGs / Industries', momentum:'See children', composite_flip:'See children', confirmatory:'See children' },
-    tactical: ''
-  };
-  openDrawer(synthetic, sec.name + ' (computed)', `Sector · ${sec.name}`);
-}
-
-function showNoEdge(name, level, breadcrumb) {
-  const synthetic = {
-    calibrationLevel: level === 'Sector' ? 'sector' : level === 'Industry Group' ? 'ig' : 'industry',
-    tier5: 'mw', rating5: 'No calibrated bucket',
-    targetPct: 0, priorTargetPct: 0, spyPct: 0, sixMoReturn: 0,
-    tickers: [], etf: '—', etfDesc: '',
-    impl: 'Defaults to the S&P 500 benchmark weight.',
-    rationale: `The methodology does not have a calibrated bucket at this ${level} level. We carry the benchmark weight here — no tilt vs S&P 500.`,
-    factors: [], method: { regression:'—', momentum:'—', composite_flip:'—', confirmatory:'—' },
-    tactical: 'Hold at benchmark.'
-  };
-  openDrawer(synthetic, name, breadcrumb);
-}
-
-/* Drawer */
-function openDrawer(b, displayName, breadcrumb) {
-  document.getElementById('drawerTitle').textContent = displayName;
-  document.getElementById('drawerBreadcrumb').textContent = breadcrumb;
-  document.getElementById('drawerPip').style.background = TIER_COLORS[b.tier5] || '#9a9ea8';
-  const lvl = b.calibrationLevel;
-  const lvlText = lvl === 'sector' ? 'Sector level' : lvl === 'ig' ? 'Industry Group level' : 'Industry level';
-  document.getElementById('drawerCalibLevel').textContent = `Calibrated at: ${lvlText}`;
-  const dPts = b.targetPct - b.priorTargetPct;
-  const dStr = dPts === 0 ? 'unchanged this week' : `${dPts>=0?'+':''}${dPts.toFixed(1)} pts vs last week`;
-  document.getElementById('drawerRating').textContent = `${b.rating5}${b.targetPct ? ' · ' + dStr : ''}`;
-  document.getElementById('drawerTilt').textContent = b.targetPct ? ((b.targetPct - b.spyPct) >= 0 ? '+' : '') + (b.targetPct - b.spyPct).toFixed(1) + ' pts' : '—';
-  document.getElementById('drawerTarget').textContent = b.targetPct ? b.targetPct.toFixed(1) + '%' : '—';
-  document.getElementById('drawerSpy').textContent = b.spyPct ? b.spyPct.toFixed(1) + '%' : '—';
-  document.getElementById('drawerRationale').textContent = b.rationale;
-  const m = b.method;
-  document.getElementById('drawerMethod').innerHTML = m ? `
-    <div class="row"><span class="lbl">Regression</span><span class="val">${m.regression}</span></div>
-    <div class="row"><span class="lbl">Momentum (6mo)</span><span class="val">${methodBadge(m.momentum)} ${m.momentum}</span></div>
-    <div class="row"><span class="lbl">Composite-flip</span><span class="val">${methodBadge(m.composite_flip)} ${m.composite_flip}</span></div>
-    <div class="row"><span class="lbl">Confirmatory</span><span class="val">${methodBadge(m.confirmatory)} ${m.confirmatory}</span></div>
-  ` : '';
-  document.getElementById('drawerFactors').innerHTML = (b.factors || []).map(f =>
-    `<li><span class="factor-name">${f.name}</span><span class="factor-z">${f.z}</span></li>`
-  ).join('') || '<li style="font-style:italic;color:var(--ink-3);">No factor list at this level.</li>';
-  const tRow = document.getElementById('drawerTickers');
-  tRow.innerHTML = (b.tickers || []).map(t => `<span class="ticker-chip" data-ticker="${t}">${t}</span>`).join('') || '<span style="font-style:italic;color:var(--ink-3);font-size:12px;">No ticker examples at this level.</span>';
-  tRow.querySelectorAll('.ticker-chip').forEach(c => {
-    c.addEventListener('click', e => { e.stopPropagation(); showToast(c.dataset.ticker); });
-  });
-  document.getElementById('drawerETF').textContent = b.etf;
-  document.getElementById('drawerImpl').textContent = (b.etfDesc ? b.etfDesc + ' · ' : '') + b.impl;
-  document.getElementById('drawerTactical').textContent = b.tactical || '—';
-  document.getElementById('drawer').classList.add('open');
-  document.getElementById('drawerMask').classList.add('open');
-}
-
-function methodBadge(text) {
-  const t = (text || '').toUpperCase();
-  if (t.startsWith('PASS')) return '<span class="badge pass">PASS</span>';
-  if (t.startsWith('FAIL')) return '<span class="badge fail">FAIL</span>';
-  if (t.startsWith('OFF')) return '<span class="badge off">OFF</span>';
-  if (t.startsWith('NEUTRAL')) return '<span class="badge off">NEUTRAL</span>';
-  return '';
-}
-
-function closeDrawer() {
-  document.getElementById('drawer').classList.remove('open');
-  document.getElementById('drawerMask').classList.remove('open');
-}
-document.getElementById('drawerClose').addEventListener('click', closeDrawer);
-document.getElementById('drawerMask').addEventListener('click', closeDrawer);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
-
-function showToast(ticker) {
-  document.getElementById('toastTicker').textContent = ticker;
-  const t = document.getElementById('toast');
-  t.classList.add('show');
-  clearTimeout(window._toastT);
-  window._toastT = setTimeout(() => t.classList.remove('show'), 2400);
-}
-
-renderTree();
+});
 </script>
 </body>
 </html>
