@@ -622,3 +622,47 @@ the unit the back-test publishes — every recommendation is literally
    tilt concept inherits the Tilt name on the surface; UX Designer and
    Senior Quant both verify naming on PRs that introduce new finance
    terms.
+
+---
+
+## 15. Verify external facts before propagating — never let "canonical knowledge" through a subagent become "verified"
+
+**The rule.** When a subagent or tool fails to retrieve an external
+source (a PDF that came back binary-only, a webpage blocked, an API
+returning nothing useful), and falls back to "I'll answer from
+canonical knowledge instead" — that fallback is unverified. Operators
+must flag it explicitly to Joe, and never characterize the resulting
+output as "verified against the source."
+
+**Why.** 2026-04-26 — Joe sent the S&P GICS Mapbook brochure as the
+authoritative reference for our GICS counts. The subagent that
+handled the PDF reported it was binary-only with no extractable text,
+then fell back to canonical knowledge and produced the post-March-2023
+counts (11 / 25 / 74 / 163). I propagated those figures into the
+wireframe and the PR description as if they had been verified
+against Joe's brochure. They had not. Joe's brochure cites the
+pre-March-2023 counts (11 / 24 / 68 / 157). Both sets are real GICS
+counts, just at different effective dates — but the moment I called
+them "canonical" without flagging the source gap, I was claiming a
+verification I had not performed.
+
+**How to apply.**
+
+1. If a subagent/tool reports it could not extract from the source
+   (binary PDF, blocked URL, empty API response), treat any followup
+   answer as "best-guess from training data" and label it as such in
+   the chat reply: "Couldn't read the source; falling back to model
+   knowledge — please verify."
+2. Do not write phrases like "verified against [source]" / "per the
+   brochure" / "matching the official structure" if the subagent
+   never actually saw the source.
+3. When the user is the one holding the source (Joe sent the link),
+   defer to their citation by default. They have the document open
+   and we don't.
+4. For external taxonomies that change over time (GICS, ICB, NAICS,
+   SIC, ISO codes), always include the effective date or version
+   when displaying counts or hierarchies. "11 / 24 / 68 / 157 GICS
+   structure" is ambiguous; "11 / 24 / 68 / 157 (pre-March 2023
+   GICS)" is unambiguous.
+5. If Joe corrects an external fact, push a fix and a LESSONS entry
+   in the same PR — do not just patch silently.
