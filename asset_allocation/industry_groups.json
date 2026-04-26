@@ -1,0 +1,136 @@
+{
+  "schema_version": "v10.0",
+  "last_updated": "2026-04-25",
+  "curator": "Senior Quant + Lead Developer",
+  "review_cadence": "quarterly",
+  "groups": {
+    "Software": {
+      "display_name": "Software",
+      "gics_path": "Information Technology → Software & Services → Software",
+      "examples": ["Microsoft", "Salesforce", "Oracle", "Adobe", "ServiceNow", "Intuit"],
+      "calibration_etf": "IGV",
+      "implementation_notes": "Liquid via large-cap software ETFs or the largest 5-10 individual names. Software has the highest within-sector dispersion of any group; broad sector indexes underweight the leaders relative to cap-weight.",
+      "kill_factors": ["real_rates", "term_premium", "breakeven_10y"]
+    },
+    "Semiconductors": {
+      "display_name": "Semiconductors",
+      "gics_path": "Information Technology → Semiconductors & Semiconductor Equipment",
+      "examples": ["Nvidia", "Broadcom", "AMD", "Taiwan Semiconductor", "Texas Instruments", "Applied Materials"],
+      "calibration_etf": "SOXX",
+      "implementation_notes": "Most index ETFs cap individual stocks at 8%, which mechanically caps Nvidia's contribution. For cap-weighted exposure use SMH or XSD; for individual stock concentration build the position directly.",
+      "kill_factors": ["industrial_prod", "capacity_util", "copper_gold", "wti_crude"]
+    },
+    "Biotech": {
+      "display_name": "Biotechnology",
+      "gics_path": "Health Care → Pharmaceuticals, Biotechnology & Life Sciences → Biotechnology",
+      "examples": ["Amgen", "Vertex", "Gilead", "Regeneron", "Moderna", "BioMarin"],
+      "calibration_etf": "IBB",
+      "implementation_notes": "Long-duration cash flows make biotech highly rate-sensitive. Holdings are bimodal: 6-7 large profitable names versus hundreds of pre-revenue clinical-stage companies. Liquid implementation via XBI (equal-weight) or IBB (cap-weighted).",
+      "kill_factors": ["real_rates", "term_premium"]
+    },
+    "Banks": {
+      "display_name": "Banks",
+      "gics_path": "Financials → Banks → Diversified Banks + Regional Banks",
+      "examples": ["JPMorgan Chase", "Bank of America", "Wells Fargo", "Citigroup", "U.S. Bancorp", "PNC"],
+      "calibration_etf": "KRE (regional banks) — see implementation_notes for full coverage",
+      "implementation_notes": "KRE covers regional banks; KBE covers a broader bank universe. For full bank exposure including money centers, supplement with individual JPM/BAC positions.",
+      "kill_factors": ["yield_curve", "real_rates", "sloos_ci", "credit_3y", "anfci"]
+    },
+    "Insurance": {
+      "display_name": "Insurance",
+      "gics_path": "Financials → Insurance",
+      "examples": ["Berkshire Hathaway", "Progressive", "Chubb", "MetLife", "Travelers", "Allstate"],
+      "calibration_etf": "KIE",
+      "implementation_notes": "P&C insurance benefits from rising rates (investment book yield). Life insurance benefits from steepening curves. KIE covers both; for pure P&C use IAK.",
+      "kill_factors": ["term_premium", "real_rates", "vix"]
+    },
+    "MedDevices": {
+      "display_name": "Medical Devices",
+      "gics_path": "Health Care → Health Care Equipment & Services → Health Care Equipment",
+      "examples": ["Abbott Labs", "Medtronic", "Stryker", "Boston Scientific", "Edwards Lifesciences", "Intuitive Surgical"],
+      "calibration_etf": "IHI",
+      "implementation_notes": "Less rate-sensitive than biotech. Defensive characteristics in down markets. Held via IHI for the broad exposure.",
+      "kill_factors": ["real_rates", "industrial_prod"]
+    },
+    "Transports": {
+      "display_name": "Transportation",
+      "gics_path": "Industrials → Transportation",
+      "examples": ["Union Pacific", "Norfolk Southern", "CSX", "United Parcel Service", "FedEx", "Delta Air Lines"],
+      "calibration_etf": "IYT",
+      "implementation_notes": "Highly cyclical, sensitive to fuel costs and trade volume. Rails benefit from infrastructure spending; airlines from consumer travel demand.",
+      "kill_factors": ["wti_crude", "industrial_prod", "anfci"]
+    },
+    "AeroDefense": {
+      "display_name": "Aerospace & Defense",
+      "gics_path": "Industrials → Capital Goods → Aerospace & Defense",
+      "examples": ["RTX", "Lockheed Martin", "Northrop Grumman", "General Dynamics", "Boeing", "Howmet Aerospace"],
+      "calibration_etf": "ITA",
+      "implementation_notes": "Defense names are countercyclical to peace; commercial aerospace is cyclical to travel demand. ITA blends both. PPA is a slightly broader alternative.",
+      "kill_factors": ["loan_syn", "skew"]
+    },
+    "OilExploration": {
+      "display_name": "Oil & Gas Exploration & Production",
+      "gics_path": "Energy → Oil, Gas & Consumable Fuels → Exploration & Production",
+      "examples": ["EOG Resources", "Pioneer Natural Resources", "Devon Energy", "Diamondback Energy", "Marathon Oil", "ConocoPhillips"],
+      "calibration_etf": "XOP",
+      "implementation_notes": "Pure-play upstream exposure. Highly volatile, levered to oil prices. For full energy sector exposure including integrateds use XLE.",
+      "kill_factors": ["wti_crude", "natgas_henry"]
+    },
+    "Retail": {
+      "display_name": "Retail",
+      "gics_path": "Consumer Discretionary → Retailing",
+      "examples": ["Amazon", "Home Depot", "Costco", "Walmart", "Target", "TJX Companies"],
+      "calibration_etf": "XRT",
+      "implementation_notes": "XRT is equal-weighted, capping mega-caps. For cap-weighted retail exposure including Amazon's full weight use RTH or XLY (broader Cons Disc).",
+      "kill_factors": ["umich_sentiment", "retail_sales", "real_pce", "mortgage_30y"]
+    },
+    "Materials": {
+      "display_name": "Materials",
+      "gics_path": "Materials (full sector — chemicals, metals, mining, packaging)",
+      "examples": ["Linde", "Sherwin-Williams", "Air Products", "Freeport-McMoRan", "Newmont", "Dow"],
+      "calibration_etf": "XLB",
+      "implementation_notes": "Cyclical sensitivity to industrial demand and commodity prices. XLB is cap-weighted; for equal-weight or specific commodity exposure see RTM, GDX, COPX.",
+      "kill_factors": ["copper_gold", "industrial_prod", "usd"]
+    },
+    "ConsStaples": {
+      "display_name": "Consumer Staples",
+      "gics_path": "Consumer Staples (full sector)",
+      "examples": ["Procter & Gamble", "Costco", "Walmart", "Coca-Cola", "Pepsi", "Philip Morris"],
+      "calibration_etf": "XLP",
+      "implementation_notes": "Defensive characteristics in stress regimes. Low volatility. XLP is the standard cap-weighted exposure.",
+      "kill_factors": ["umich_sentiment"]
+    },
+    "Utilities": {
+      "display_name": "Utilities",
+      "gics_path": "Utilities (full sector)",
+      "examples": ["NextEra Energy", "Southern Company", "Duke Energy", "Constellation Energy", "American Electric Power", "Sempra"],
+      "calibration_etf": "XLU",
+      "implementation_notes": "Bond-proxy sensitivity to long Treasury yields. Defensive. Renewables theme partially captured via NEE, CEG.",
+      "kill_factors": ["term_premium", "real_rates"]
+    },
+    "RealEstate": {
+      "display_name": "Real Estate",
+      "gics_path": "Real Estate (REITs across property types)",
+      "examples": ["Prologis", "American Tower", "Equinix", "Welltower", "Public Storage", "Realty Income"],
+      "calibration_etf": "IYR",
+      "implementation_notes": "Bond-proxy plus property-cycle exposure. Heavily mortgage-rate sensitive. For specific property types (data centers, residential) see DLR, AMT, EQIX, MAA individually.",
+      "kill_factors": ["mortgage_30y", "term_premium", "real_rates"]
+    },
+    "CommSvcs": {
+      "display_name": "Communication Services",
+      "gics_path": "Communication Services (telecom + media + interactive)",
+      "examples": ["Verizon", "T-Mobile", "AT&T", "Meta Platforms", "Alphabet", "Netflix", "Disney"],
+      "calibration_etf": "IYZ (telecom) — see implementation_notes",
+      "implementation_notes": "GICS reorg in 2018 moved Meta, Alphabet, Netflix into this sector. IYZ captures only telecom (older classification); XLC (post-2018 inception) captures the modern Comm Services. For pre-2018 back-tests we use IYZ as the deep-history proxy.",
+      "kill_factors": ["sloos_ci", "umich_sentiment"]
+    },
+    "MegaCapGrowth": {
+      "display_name": "Mega-Cap Growth (Magnificent 7 plus)",
+      "gics_path": "Cross-sector (Tech + Cons Disc + Comm Services mega-caps)",
+      "examples": ["Apple", "Microsoft", "Nvidia", "Amazon", "Meta", "Alphabet", "Tesla", "Eli Lilly"],
+      "calibration_etf": "MGK",
+      "implementation_notes": "MGK is the cleanest single-ETF Mag-7 exposure. QQQ is broader (Nasdaq-100). XLG is cap-weighted top 50. For pure Mag-7 build the basket directly.",
+      "kill_factors": ["real_rates", "breakeven_10y", "term_premium", "vix"]
+    }
+  }
+}

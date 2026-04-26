@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://macrotilt.com/schemas/industry_group_reference.schema.json",
+  "title": "Industry Group Reference Data — static, hand-curated",
+  "description": "Top example holdings per industry group. Used in the UI to show 'companies you'd find in this group' without recommending specific securities. Refreshed quarterly.",
+  "type": "object",
+  "required": ["schema_version", "last_updated", "groups"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "v10.0" },
+    "last_updated": { "type": "string", "format": "date" },
+    "curator": { "type": "string" },
+    "review_cadence": { "type": "string", "default": "quarterly" },
+    "groups": {
+      "type": "object",
+      "minProperties": 14,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["display_name", "gics_path", "examples", "calibration_etf"],
+        "properties": {
+          "display_name": { "type": "string", "description": "User-facing name" },
+          "gics_path": { "type": "string", "description": "GICS Sector → Industry Group → Industry path" },
+          "examples": {
+            "type": "array",
+            "description": "Top 4-8 example company names",
+            "minItems": 3,
+            "maxItems": 10,
+            "items": { "type": "string" }
+          },
+          "calibration_etf": {
+            "type": "string",
+            "description": "ETF used to calibrate this bucket in the back-test"
+          },
+          "implementation_notes": {
+            "type": "string",
+            "description": "Generic guidance — what to look at, never specific tickers"
+          },
+          "kill_factors": {
+            "type": "array",
+            "description": "Macro factors that, if extreme, suggest avoiding this group",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
