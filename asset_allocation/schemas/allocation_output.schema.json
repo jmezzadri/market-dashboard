@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://macrotilt.com/schemas/allocation_output.schema.json",
+  "title": "Allocation Output — UI-consumable schema",
+  "description": "Final v10 allocation output. Single source of truth between backend and UI. UI never reads anything not in this schema. Backend never writes anything not in this schema. CI enforces both directions.",
+  "type": "object",
+  "required": [
+    "schema_version", "as_of", "calculated_at", "rebalance_frequency",
+    "stance", "headline", "regime", "ratings", "defensive", "methodology"
+  ],
+  "properties": {
+    "schema_version": { "type": "string", "const": "v10.0" },
+    "as_of": { "type": "string", "format": "date" },
+    "calculated_at": { "type": "string", "format": "date-time" },
+    "rebalance_frequency": { "type": "string", "enum": ["weekly", "monthly"] },
+    "previous_rebalance": { "type": ["string", "null"], "format": "date" },
+    "next_rebalance": { "type": ["string", "null"], "format": "date" },
+
+    "stance": {
+      "type": "object",
+      "required": ["label", "color", "description"],
+      "properties": {
+        "label": { "type": "string", "enum": ["Aggressive", "Balanced", "Defensive", "Recovering"] },
+        "color": { "type": "string", "enum": ["calm", "elevated", "stressed"] },
+        "description": { "type": "string" },
+        "vs_last_month": { "type": ["string", "null"] }
+      }
+    },
+
+    "headline": {
+      "type": "object",
+      "required": ["alpha", "equity_share", "leverage"],
+      "properties": {
+        "alpha": { "type": "number", "minimum": 0, "maximum": 2 },
+        "equity_share": { "type": "number", "minimum": 0, "maximum": 1 },
+        "leverage": { "type": "number", "minimum": 1, "maximum": 1.5 },
+        "narrative": { "type": "string" },
+        "active_themes": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+
+    "regime": {
+      "type": "object",
+      "required": ["risk_liquidity", "growth", "inflation_rates", "regime_flip_active"],
+      "properties": {
+        "risk_liquidity": { "type": "object" },
+        "growth": { "type": "object" },
+        "inflation_rates": { "type": "object" },
+        "rl_3mo_change": { "type": "number" },
+        "regime_flip_active": { "type": "boolean" }
+      }
+    },
+
+    "macro_narrative": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "2-3 paragraphs of templated prose. Empty until Phase 4 ships."
+    },
+
+    "themes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "buckets"],
+        "properties": {
+          "name": { "type": "string" },
+          "narrative": { "type": "string" },
+          "buckets": { "type": "array", "items": { "type": "string" } }
+        }
+      },
+      "description": "Empty until Phase 4 ships."
+    },
+
+    "ratings": {
+      "type": "object",
+      "required": ["most_favored", "favored", "neutral", "less_favored", "least_favored"],
+      "properties": {
+        "most_favored":  { "type": "array", "items": { "$ref": "#/$defs/rated_bucket" } },
+        "favored":       { "type": "array", "items": { "$ref": "#/$defs/rated_bucket" } },
+        "neutral":       { "type": "array", "items": { "$ref": "#/$defs/rated_bucket" } },
+        "less_favored":  { "type": "array", "items": { "$ref": "#/$defs/rated_bucket" } },
+        "least_favored": { "type": "array", "items": { "$ref": "#/$defs/rated_bucket" } }
+      }
+    },
+
+    "target_allocation": {
+      "type": "object",
+      "properties": {
+        "by_bucket": { "type": "object" },
+        "by_sector": { "type": "object" },
+        "spy_by_sector": { "type": "object" },
+        "active_overweights_pp": { "type": "array" },
+        "active_underweights_pp": { "type": "array" }
+      }
+    },
+
+    "defensive": {
+      "type": "object",
+      "required": ["active", "weights"],
+      "properties": {
+        "active": { "type": "boolean" },
+        "weights": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["asset", "fund", "weight", "weight_within_defensive"],
+            "properties": {
+              "asset": { "type": "string" },
+              "fund": { "type": "string" },
+              "weight": { "type": "number" },
+              "weight_within_defensive": { "type": "number" },
+              "rationale_when_active": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+
+    "what_changed": {
+      "type": "object",
+      "properties": {
+        "vs_last_rebalance": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["type", "bucket"],
+            "properties": {
+              "type": { "type": "string", "enum": ["promotion", "demotion", "added_to_picks", "removed_from_picks", "weight_change", "stance_change", "leverage_change"] },
+              "bucket": { "type": "string" },
+              "from": { "type": ["string", "number", "null"] },
+              "to": { "type": ["string", "number", "null"] },
+              "magnitude": { "type": ["number", "null"] }
+            }
+          }
+        },
+        "vs_last_month": { "type": "array", "items": { "type": "object" } },
+        "vs_last_quarter": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+
+    "risk_scenarios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["trigger", "impacted_buckets", "narrative"],
+        "properties": {
+          "trigger": { "type": "string" },
+          "impacted_buckets": { "type": "array", "items": { "type": "string" } },
+          "narrative": { "type": "string" }
+        }
+      }
+    },
+
+    "implementation": {
+      "type": "object",
+      "properties": {
+        "guidance_paragraphs": { "type": "array", "items": { "type": "string" } },
+        "rebalance_note": { "type": "string" },
+        "tax_note": { "type": "string" }
+      }
+    },
+
+    "methodology": {
+      "type": "object",
+      "required": ["version", "back_test"],
+      "properties": {
+        "version": { "type": "string" },
+        "locked_at": { "type": "string", "format": "date" },
+        "back_test": {
+          "type": "object",
+          "required": ["window", "cagr", "sharpe", "max_drawdown"],
+          "properties": {
+            "window": { "type": "string" },
+            "cagr": { "type": "number" },
+            "sharpe": { "type": "number" },
+            "max_drawdown": { "type": "number" },
+            "vs_spy_cagr": { "type": "number" }
+          }
+        },
+        "documentation_url": { "type": "string" },
+        "raw_data_url": { "type": "string" }
+      }
+    },
+
+    "data_quality": {
+      "type": "object",
+      "properties": {
+        "factors_pulled": { "type": "integer" },
+        "factors_with_warnings": { "type": "array", "items": { "type": "string" } },
+        "validation_passed": { "type": "boolean" }
+      }
+    }
+  },
+
+  "$defs": {
+    "rated_bucket": {
+      "type": "object",
+      "required": ["bucket", "display_name", "rating", "weight_pct"],
+      "properties": {
+        "bucket": { "type": "string" },
+        "display_name": { "type": "string" },
+        "industry_group": { "type": "string" },
+        "rationale": { "type": "string" },
+        "key_factors": { "type": "array" },
+        "examples": { "type": "array", "items": { "type": "string" } },
+        "rating": { "type": "string", "enum": ["Most Favored", "Favored", "Neutral", "Less Favored", "Least Favored"] },
+        "rating_change_mom": { "type": ["string", "null"] },
+        "rating_change_qoq": { "type": ["string", "null"] },
+        "weight_pct": { "type": "number" },
+        "benchmark_weight_pct": { "type": ["number", "null"] },
+        "vs_benchmark_pp": { "type": ["number", "null"] },
+        "implementation_notes": { "type": "string" },
+        "kill_factors": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  },
+
+  "additionalProperties": false
+}
