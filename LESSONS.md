@@ -253,13 +253,17 @@ it.
      data center)"
    - "MGK (Vanguard Mega-Cap Growth — top US growth names by cap,
      heavily Mag 7)"
-2. After the first mention you can use the ticker alone in the same
-   response (Joe will remember what you established).
-3. When reporting a new run or starting a new conversation, re-introduce
+2. **In long responses (anything longer than ~500 words or with multiple
+   tables), re-describe the ticker on EVERY reference, not just the first.**
+   Joe shouldn't have to scroll back to find what a ticker was. Format:
+   "MGK (Vanguard Mega-Cap Growth — Apple, Microsoft, Nvidia, etc.)" each
+   time it appears. Yes it's repetitive; that's the point.
+3. In short responses (a single paragraph), first-mention-only is fine.
+4. When reporting a new run or starting a new conversation, re-introduce
    the tickers — don't assume context carries over.
-4. This applies to defensive ETFs too. "BIL" alone means nothing. "BIL
+5. This applies to defensive ETFs too. "BIL" alone means nothing. "BIL
    (1-3 month US Treasury bills, cash proxy)" is useful.
-5. Tables of sector exposures should have a description column or a
+6. Tables of sector exposures should have a description column or a
    separate legend. A table that just lists ticker + return + weight
    forces the reader to look up every row.
 
