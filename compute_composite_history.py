@@ -209,8 +209,13 @@ def fetch_prices(start: str, end: str) -> pd.DataFrame:
         if isinstance(df.columns, pd.MultiIndex):
             df.columns = df.columns.get_level_values(0)
         out[col + "p"] = df["Close"].round(2)
-        # daily % change
-        out[col] = (df["Close"].pct_change() * 100).round(2)
+        # ── Bug #1047 fix (2026-04-26): SPX/DJI/NDX columns hold drawdown
+        #    from running peak (always <= 0). Previous code wrote daily %
+        #    change which is the wrong shape for the chart's lower lane
+        #    (which expects 0% to ~-60% range). The chart code never
+        #    changed; only this column was wrong.
+        running_peak = df["Close"].cummax()
+        out[col] = (((df["Close"] / running_peak) - 1.0) * 100).round(2)
     return pd.DataFrame(out)
 
 
@@ -360,6 +365,36 @@ def main() -> int:
         merged = new_rows
     else:
         merged = existing + new_rows
+
+    # ── Bug #1047 sanity guard (2026-04-26): refuse to write if the
+    #    SPX/DJI/NDX columns look like daily percent change (range too
+    #    shallow) instead of drawdown from running peak. Real drawdown
+    #    history must contain values <= -20% somewhere (2008 GFC: -56%,
+    #    2020 COVID: -34%). If the worst value is shallower than -20%,
+    #    something has reverted the column to pct_change semantics again.
+    if not args.dry_run:
+        try:
+            spx_vals = [r.get("SPX") for r in merged if r.get("SPX") is not None]
+            min_spx = min(spx_vals) if spx_vals else 0.0
+            max_spx = max(spx_vals) if spx_vals else 0.0
+            if min_spx > -20.0:
+                raise SystemExit(
+                    f"[GUARD] SPX drawdown column looks broken: min={min_spx} "
+                    f"(expected <= -20%; 2008 GFC and 2020 COVID both produced "
+                    f"deeper drawdowns). Refusing to write {out_path}. This is "
+                    f"the bug #1047 regression guard — fix the price-fetcher "
+                    f"or pass --force-write to override."
+                )
+            if max_spx > 0.5:
+                raise SystemExit(
+                    f"[GUARD] SPX drawdown column has positive values "
+                    f"(max={max_spx}). Drawdown from running peak is always "
+                    f"<= 0%. Refusing to write {out_path}."
+                )
+        except SystemExit:
+            raise
+        except Exception as e:
+            print(f"[GUARD] warn: sanity check skipped due to {e!r}; writing anyway")
 
     out_path.write_text(
         json.dumps(merged, separators=(",", ":")) + "\n", encoding="utf-8"
