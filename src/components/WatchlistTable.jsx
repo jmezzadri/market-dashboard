@@ -77,7 +77,35 @@ function SortArrow({ dir }) {
   return <span style={{ marginLeft: 4, color: "var(--text)" }}>{dir === "asc" ? "▲" : "▼"}</span>;
 }
 
-function ScoreCell({ score, direction }) {
+// Section composite score cell.
+// Bug #1076 — when score is null AND the section composite explicitly
+// reports "no qualifying activity" (vs. a generic missing-data null), we
+// render a faint dashed-border "no activity" pill with a hover tooltip
+// instead of the bare em-dash. The score itself stays null so the section
+// is still excluded from the weighted OVR composite (sectionComposites.js
+// guards on r.score != null) — this is a pure visual change. No math.
+function ScoreCell({ score, direction, emptyHint }) {
+  if (score == null && emptyHint) {
+    return (
+      <Tip def={emptyHint}>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 10,
+            fontWeight: 600,
+            color: "var(--text-dim)",
+            border: "1px dashed var(--border)",
+            borderRadius: 4,
+            padding: "1px 6px",
+            opacity: 0.7,
+            letterSpacing: "0.04em",
+          }}
+        >
+          no activity
+        </span>
+      </Tip>
+    );
+  }
   const col = score == null ? "var(--text-dim)" : colorForDirection(direction);
   const display = score == null ? "—" : (score >= 0 ? "+" : "") + score;
   return (
@@ -224,7 +252,15 @@ const signalCols = SIGNAL_COLS.map((c) => ({
   sortValue: (r) => r.sections[c.key]?.score,
   renderCell: (r) => {
     const s = r.sections[c.key] || {};
-    return <ScoreCell score={s.score} direction={s.direction} />;
+    // Bug #1076 — explicit "no qualifying activity" for the INS column
+    // renders as a styled pill with a hover explainer, instead of "—".
+    // OVR math is unchanged: s.score stays null and is still dropped
+    // from the weighted overall composite.
+    const emptyHint =
+      c.key === "insider" && s.score == null && s.note === "no data"
+        ? "No qualifying insider Form-4 buys or sells in the last 30 days. Insider activity is genuinely sparse — most US equities don't have any in any given month. The OVR composite re-weights across the sections that do have data."
+        : null;
+    return <ScoreCell score={s.score} direction={s.direction} emptyHint={emptyHint} />;
   },
 }));
 
