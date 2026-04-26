@@ -5359,6 +5359,7 @@ const TAB_META={
   overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
+  allocation:{eyebrow:"Asset Allocation",     title:"Strategic asset allocation", sub:"Equity exposure, sector overweights, rationale, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
@@ -6644,7 +6645,7 @@ return(
 {tab==="indicators"&&(<AllIndicatorsTable/>)}
 
 {tab==="sectors"&&<SectorsTab/>}
-{tab==="allocation"&&<AssetAllocation/>}
+{tab==="allocation"&&<AssetAllocation onOpenTicker={(t)=>setTickerDetail(t)}/>}
 
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
