@@ -17,6 +17,7 @@ import { useIsAdmin } from "./hooks/useIsAdmin";
 import { useBugReports, useBugStatusLog } from "./hooks/useBugReports";
 import { useBugActions } from "./hooks/useBugActions";
 import WorkflowTimeline from "./components/WorkflowTimeline";
+import { useSortableTable, SortArrow, sortableHeaderProps } from "./hooks/useSortableTable";
 
 // ── Status model (migration 013) ───────────────────────────────────────────
 // Main pipeline: new → triaged → awaiting_approval → approved → merged
@@ -282,7 +283,37 @@ function UatModeBadge({ row }) {
 // the active-filter readout.
 
 // ── Bug row table ─────────────────────────────────────────────────────────
+// LESSONS rule #4: every data table on macrotilt.com supports
+// click-to-sort on every column header. The bug-triage table used to be
+// rendered as a div-grid masquerading as a table, which silently bypassed
+// that rule. Bug #1075 — converted to a real <table> routed through the
+// shared `useSortableTable` hook so the same ascending → descending cycle
+// + arrow indicator + keyboard accessibility every other table on the
+// site already has lights up here too. No styling / layout change.
+const BUG_TABLE_COLUMNS = [
+  { id: "num",      label: "#",           align: "left",  width: "70px",  sortValue: r => (r.report_number != null ? Number(r.report_number) : null) },
+  { id: "raised",   label: "Raised",      align: "left",  width: "90px",  sortValue: r => (r.created_at ? new Date(r.created_at).getTime() : null) },
+  { id: "reporter", label: "Reporter",    align: "left",  width: "180px", sortValue: r => ((r.reporter_name || r.reporter_email || "").toLowerCase() || null) },
+  { id: "title",    label: "Title",       align: "left",  width: "auto",  sortValue: r => (shortTitle(r) || "").toLowerCase() },
+  { id: "where",    label: "Where",       align: "left",  width: "110px", sortValue: r => ((whereText(r) || "").toLowerCase() || null) },
+  { id: "compl",    label: "Compl.",      align: "left",  width: "60px",  sortValue: r => ({ H: 3, M: 2, L: 1 })[r.complexity] ?? null },
+  { id: "status",   label: "Status",      align: "left",  width: "140px", sortValue: r => statusLabel(r.status) },
+  { id: "pr",       label: "PR / Branch", align: "left",  width: "110px", sortValue: r => {
+      const pr = r.merged_pr || r.fixed_pr;
+      if (pr) return Number(pr);
+      const b = r.branch_name || r.triage_branch;
+      return b ? b.toLowerCase() : null;
+    } },
+  { id: "age",      label: "Age",         align: "right", width: "60px",  sortValue: r => (r.created_at ? Date.now() - new Date(r.created_at).getTime() : null) },
+];
+
 function BugTable({ rows, selectedId, onSelect }) {
+  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({
+    rows: rows || [],
+    columns: BUG_TABLE_COLUMNS,
+    defaultColId: "num",
+    defaultDir: "desc",
+  });
   if (!rows?.length) {
     return (
       <div style={{ padding: "32px 20px", textAlign: "center", color: "var(--text-muted)", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13 }}>
@@ -290,56 +321,92 @@ function BugTable({ rows, selectedId, onSelect }) {
       </div>
     );
   }
+  const headerCellStyle = {
+    padding: "10px 14px",
+    borderBottom: "1px solid var(--border)",
+    fontSize: 10,
+    color: "var(--text-muted)",
+    fontFamily: "monospace",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+    fontWeight: 600,
+    background: "var(--surface)",
+  };
+  const cellStyle = {
+    padding: "10px 14px",
+    borderBottom: "1px solid var(--border)",
+    fontSize: 12,
+    verticalAlign: "middle",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+    whiteSpace: "nowrap",
+  };
   return (
     <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "70px 90px 180px 1fr 110px 60px 140px 110px 60px", gap: 12, padding: "10px 14px", borderBottom: "1px solid var(--border)", fontSize: 10, color: "var(--text-muted)", fontFamily: "monospace", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-        <div>#</div>
-        <div>Raised</div>
-        <div>Reporter</div>
-        <div>Title</div>
-        <div>Where</div>
-        <div>Compl.</div>
-        <div>Status</div>
-        <div>PR / Branch</div>
-        <div style={{ textAlign: "right" }}>Age</div>
-      </div>
-      <div style={{ maxHeight: 520, overflowY: "auto" }}>
-        {rows.map(r => {
-          const isSel = r.id === selectedId;
-          const pr = r.merged_pr || r.fixed_pr;
-          const branch = r.branch_name || r.triage_branch;
-          return (
-            <div
-              key={r.id}
-              onClick={() => onSelect(r)}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "70px 90px 180px 1fr 110px 60px 140px 110px 60px",
-                gap: 12,
-                padding: "10px 14px",
-                borderBottom: "1px solid var(--border)",
-                fontSize: 12,
-                cursor: "pointer",
-                background: isSel ? "var(--hover, rgba(96,165,250,0.08))" : "transparent",
-              }}>
-              <div style={{ fontFamily: "monospace", color: "var(--text-muted)" }}>#{r.report_number || "—"}</div>
-              <div style={{ fontFamily: "monospace", color: "var(--text-2)" }}>{etDateShort(r.created_at)}</div>
-              <div style={{ color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.reporter_email || ""}>{r.reporter_name || r.reporter_email || "—"}</div>
-              <div style={{ color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{shortTitle(r)}</div>
-              <div style={{ fontFamily: "monospace", color: "var(--text-muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={r.url_full || ""}>{whereText(r)}</div>
-              <div><ComplexityBadge value={r.complexity} /></div>
-              <div style={{ display: "inline-flex", alignItems: "center" }}>
-                <StatusBadge status={r.status} />
-                <DesyncChip reasons={desyncReasons(r)} />
-                <UatModeBadge row={r} />
-              </div>
-              <div style={{ fontFamily: "monospace", color: "var(--text-muted)", fontSize: 11, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={branch || ""}>
-                {pr ? `#${pr}` : branch || "—"}
-              </div>
-              <div style={{ textAlign: "right", fontFamily: "monospace", color: "var(--text-muted)" }}>{ageText(r.created_at)}</div>
-            </div>
-          );
-        })}
+      <div style={{ maxHeight: 580, overflowY: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
+          <colgroup>
+            {BUG_TABLE_COLUMNS.map((col) => (
+              <col key={col.id} style={{ width: col.width }} />
+            ))}
+          </colgroup>
+          <thead style={{ position: "sticky", top: 0, zIndex: 1 }}>
+            <tr>
+              {BUG_TABLE_COLUMNS.map((col) => {
+                const headerProps = sortableHeaderProps({ colId: col.id, sortCol, sortDir, toggleSort });
+                return (
+                  <th
+                    key={col.id}
+                    {...headerProps}
+                    style={{
+                      ...headerProps.style,
+                      ...headerCellStyle,
+                      textAlign: col.align,
+                    }}
+                  >
+                    {col.label}
+                    <SortArrow dir={sortCol === col.id ? sortDir : null} />
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map(r => {
+              const isSel = r.id === selectedId;
+              const pr = r.merged_pr || r.fixed_pr;
+              const branch = r.branch_name || r.triage_branch;
+              return (
+                <tr
+                  key={r.id}
+                  onClick={() => onSelect(r)}
+                  style={{
+                    cursor: "pointer",
+                    background: isSel ? "var(--hover, rgba(96,165,250,0.08))" : "transparent",
+                  }}
+                >
+                  <td style={{ ...cellStyle, fontFamily: "monospace", color: "var(--text-muted)" }}>#{r.report_number || "—"}</td>
+                  <td style={{ ...cellStyle, fontFamily: "monospace", color: "var(--text-2)" }}>{etDateShort(r.created_at)}</td>
+                  <td style={{ ...cellStyle, color: "var(--text-2)" }} title={r.reporter_email || ""}>{r.reporter_name || r.reporter_email || "—"}</td>
+                  <td style={{ ...cellStyle, color: "var(--text)" }}>{shortTitle(r)}</td>
+                  <td style={{ ...cellStyle, fontFamily: "monospace", color: "var(--text-muted)" }} title={r.url_full || ""}>{whereText(r)}</td>
+                  <td style={cellStyle}><ComplexityBadge value={r.complexity} /></td>
+                  <td style={{ ...cellStyle, whiteSpace: "nowrap" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center" }}>
+                      <StatusBadge status={r.status} />
+                      <DesyncChip reasons={desyncReasons(r)} />
+                      <UatModeBadge row={r} />
+                    </span>
+                  </td>
+                  <td style={{ ...cellStyle, fontFamily: "monospace", color: "var(--text-muted)", fontSize: 11 }} title={branch || ""}>
+                    {pr ? `#${pr}` : branch || "—"}
+                  </td>
+                  <td style={{ ...cellStyle, textAlign: "right", fontFamily: "monospace", color: "var(--text-muted)" }}>{ageText(r.created_at)}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
