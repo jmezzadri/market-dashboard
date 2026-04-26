@@ -21,6 +21,7 @@
 //                   a different view than the full watchlist)
 
 import { useMemo, useState } from "react";
+import { Tip } from "../InfoTip";
 import {
   computeSectionComposites,
   colorForDirection,
@@ -522,13 +523,12 @@ export default function WatchlistTable({
                   >
                     {col.label}
                     <SortArrow dir={sortCol === col.id ? sortDir : null} />
-                    <div
+                    <Tip def="Drag to resize column"><div
                       draggable={false}
                       onMouseDown={(e) => onResizeStart(e, col.id)}
                       onClick={(e) => e.stopPropagation()}
                       style={resizeHandleStyle}
-                      title="Drag to resize column"
-                    />
+                    /></Tip>
                   </th>
                 );
               })}

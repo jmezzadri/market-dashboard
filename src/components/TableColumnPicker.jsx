@@ -30,6 +30,7 @@
 //   buttonLabel?:   string (default "Edit columns")
 
 import { useEffect, useRef, useState } from "react";
+import { Tip } from "../InfoTip";
 
 export default function TableColumnPicker({
   columns,
@@ -228,15 +229,12 @@ export default function TableColumnPicker({
 
   return (
     <div style={{ position: "relative", display: "inline-block" }}>
-      <button
-        ref={btnRef}
+      <Tip def="Reorder or hide columns. Click Save to persist."><button ref={btnRef}
         type="button"
         style={btnStyle}
-        onClick={() => setOpen((v) => !v)}
-        title="Reorder or hide columns. Click Save to persist."
-      >
+        onClick={() => setOpen((v) => !v)}>
         {buttonLabel}
-      </button>
+      </button></Tip>
 
       {open && (
         <div ref={popRef} style={popStyle} onDragEnd={onDragEnd}>
@@ -248,17 +246,14 @@ export default function TableColumnPicker({
             <span style={{ fontWeight: 700, color: "var(--text)", letterSpacing: "0.08em" }}>
               COLUMNS
             </span>
-            <button
-              type="button"
+            <Tip def="Clear your saved layout and restore the stock defaults."><button type="button"
               onClick={onReset}
               style={{
                 background: "transparent", border: "none", color: "var(--text-dim)",
                 fontFamily: "inherit", fontSize: 10, cursor: "pointer", padding: "2px 4px",
-              }}
-              title="Clear your saved layout and restore the stock defaults."
-            >
+              }}>
               Reset
-            </button>
+            </button></Tip>
           </div>
 
           {/* Scrolling row list */}
@@ -319,31 +314,25 @@ export default function TableColumnPicker({
             padding: "8px 10px", borderTop: "1px solid var(--border-faint)",
             background: "var(--surface-2, #1a2233)",
           }}>
-            <button
-              type="button"
+            <Tip def="Discard changes"><button type="button"
               onClick={onCancel}
               style={{
                 ...footerBtn,
                 background: "transparent",
                 color: "var(--text-muted)",
-              }}
-              title="Discard changes"
-            >
+              }}>
               Cancel
-            </button>
-            <button
-              type="button"
+            </button></Tip>
+            <Tip def="Save column layout"><button type="button"
               onClick={onSave}
               style={{
                 ...footerBtn,
                 background: "var(--accent)",
                 color: "#fff",
                 borderColor: "var(--accent)",
-              }}
-              title="Save column layout"
-            >
+              }}>
               Save
-            </button>
+            </button></Tip>
           </div>
         </div>
       )}

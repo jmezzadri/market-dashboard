@@ -42,6 +42,7 @@
 // whether to refetch + close, or just close.
 
 import { useEffect, useMemo, useState } from "react";
+import { Tip } from "../InfoTip";
 import { supabase } from "../lib/supabase";
 
 // ── formatting helpers ─────────────────────────────────────────────────────
@@ -831,8 +832,7 @@ export default function PositionEditor({
                       ${Number(revertTargetPrice).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     {markDiffersFromUploaded ? (
-                      <button
-                        type="button"
+                      <Tip def="Replace the current NAV with the price from your last CSV import / broker upload."><button type="button"
                         onClick={revertToUploadedPrice}
                         style={{
                           marginLeft: "auto",
@@ -846,11 +846,9 @@ export default function PositionEditor({
                           cursor: "pointer",
                           letterSpacing: "0.04em",
                           textTransform: "uppercase",
-                        }}
-                        title="Replace the current NAV with the price from your last CSV import / broker upload."
-                      >
+                        }}>
                         ⟲ Revert to uploaded
-                      </button>
+                      </button></Tip>
                     ) : (
                       <span style={{ marginLeft: "auto", color: "var(--text-muted)" }}>
                         current NAV matches upload
@@ -1116,9 +1114,9 @@ export default function PositionEditor({
           }}>
             <div><span style={{ color: "var(--text-muted)" }}>Cost basis: </span>{fmt$(totalCost)}</div>
             <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(currentValue)}</div>
-            <div title="Derived per-unit mark — shares × derived mark = current value. Not a live market quote; for mutual funds and untracked assets, edit Current NAV above to update it.">
+            <Tip def="Derived per-unit mark — shares × derived mark = current value. Not a live market quote; for mutual funds and untracked assets, edit Current NAV above to update it."><div>
               <span style={{ color: "var(--text-muted)" }}>Derived mark: </span>{fmt$(price)}
-            </div>
+            </div></Tip>
             <div>
               <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
               <span style={{ color: pnlDollars == null ? "var(--text-muted)" : pnlDollars >= 0 ? "#30d158" : "#ff453a" }}>

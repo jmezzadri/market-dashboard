@@ -39,6 +39,7 @@
 //                                    populates it)
 
 import { useMemo, useState } from "react";
+import { Tip } from "../InfoTip";
 import TableColumnPicker from "./TableColumnPicker";
 import TableFootnote from "./TableFootnote";
 import { useTablePreferences } from "../hooks/useTablePreferences";
@@ -645,17 +646,14 @@ export default function PositionsTable({
         onResetAll={resetToDefaults}
       />
       {showActionBar && onRescan && (
-        <button
-          type="button"
+        <Tip def="Refresh company names, sectors, beta values, and current prices for all your stock and fund positions. Useful if a row looks stale or is missing data. CASH rows are left alone."><button type="button"
           style={{ ...topBarBtn, opacity: rescanBusy ? 0.6 : 1, cursor: rescanBusy ? "progress" : "pointer" }}
           onClick={onRescan}
-          disabled={rescanBusy}
-          title="Refresh company names, sectors, beta values, and current prices for all your stock and fund positions. Useful if a row looks stale or is missing data. CASH rows are left alone."
-        >
+          disabled={rescanBusy}>
           {rescanBusy
             ? `Rescanning ${rescanProgress?.done ?? 0}/${rescanProgress?.total ?? 0}…`
             : "Rescan metadata"}
-        </button>
+        </button></Tip>
       )}
       {showActionBar && onBulkImport && (
         <button type="button" style={topBarBtn} onClick={onBulkImport}>
@@ -818,13 +816,10 @@ export default function PositionsTable({
                   >
                     {col.label}
                     <SortArrow dir={sortCol === col.id ? sortDir : null} />
-                    <div
-                      draggable={false}
+                    <Tip def="Drag to resize column"><div draggable={false}
                       onMouseDown={(e) => onResizeStart(e, col.id)}
                       onClick={(e) => e.stopPropagation()}
-                      style={resizeHandleStyle}
-                      title="Drag to resize column"
-                    />
+                      style={resizeHandleStyle}/></Tip>
                   </th>
                 );
               })}
@@ -874,24 +869,18 @@ export default function PositionsTable({
                     onClick={(e) => e.stopPropagation()}
                   >
                     {onEdit && (
-                      <button
-                        type="button"
-                        title="Edit position"
+                      <Tip def="Edit position"><button type="button"
                         style={{ ...actionBtn, marginRight: 4 }}
-                        onClick={(e) => { e.stopPropagation(); onEdit(row._raw); }}
-                      >
+                        onClick={(e) => { e.stopPropagation(); onEdit(row._raw); }}>
                         Edit
-                      </button>
+                      </button></Tip>
                     )}
                     {onDelete && (
-                      <button
-                        type="button"
-                        title="Delete position"
+                      <Tip def="Delete position"><button type="button"
                         style={{ ...actionBtn, color: "#ff453a", borderColor: "rgba(255,69,58,0.35)" }}
-                        onClick={(e) => { e.stopPropagation(); onDelete(row._raw); }}
-                      >
+                        onClick={(e) => { e.stopPropagation(); onDelete(row._raw); }}>
                         Delete
-                      </button>
+                      </button></Tip>
                     )}
                   </td>
                 )}
