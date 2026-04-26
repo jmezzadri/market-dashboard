@@ -5425,34 +5425,31 @@ useEffect(()=>{
 },[tab]);
 // Bug #1071 — when arriving via an aliased section hash like /#positions or
 // /#watchlist, scroll to the in-page anchor instead of jumping to the top
-// of the tab. The aliased hash is preserved by the URL-sync effect above;
-// here we read it and re-scroll across a 4-second window to handle the
-// layout shifts that happen as portfolio/watchlist data loads in. Falls
-// back to scroll-top for everything else (including /#today-macro and
-// /#asset-allocation, which are full-tab routes, not in-tab anchors).
+// of the tab. Smooth scroll fights the layout shift from late-arriving
+// portfolio/watchlist data — the browser is mid-flight to a stale Y while
+// the anchor moves, and ends up somewhere in between. Reconcile with
+// instant scrolls every 200 ms for ~4 seconds: each tick recomputes the
+// anchor's absolute Y and snaps to it if we're more than 5 px off. This
+// converges to the anchor regardless of when async data finishes loading.
+// Falls back to scroll-top for non-anchor tabs (/#today-macro,
+// /#asset-allocation, etc., which are full-tab routes).
 useEffect(()=>{
   const cur=(typeof window==="undefined"?"":(window.location.hash||"")).slice(1).toLowerCase();
   const SECTION_ANCHORS={positions:"section-positions",watchlist:"section-watchlist"};
   const anchorId=SECTION_ANCHORS[cur];
   if(anchorId){
-    // Poll the anchor's absolute Y for ~4s. Whenever it moves (because
-    // async data loaded above it and pushed it down), re-scroll. This
-    // keeps the section locked at the top of the viewport even as
-    // PositionsTable / WatchlistTable hydrate.
     const start=Date.now();
-    let lastY=null;
     const tick=()=>{
       const el=document.getElementById(anchorId);
       if(!el){
         if(Date.now()-start<4000)setTimeout(tick,100);
         return;
       }
-      const y=Math.round(el.getBoundingClientRect().top+window.scrollY);
-      if(y!==lastY){
-        el.scrollIntoView({behavior:"smooth",block:"start"});
-        lastY=y;
+      const targetY=Math.round(el.getBoundingClientRect().top+window.scrollY);
+      if(Math.abs(targetY-window.scrollY)>5){
+        window.scrollTo({top:targetY,behavior:"instant"});
       }
-      if(Date.now()-start<4000)setTimeout(tick,250);
+      if(Date.now()-start<4000)setTimeout(tick,200);
     };
     tick();
     return;
