@@ -266,3 +266,47 @@ it.
 This rule survives across versions. Every back-test diagnostic, every
 allocation report, every methodology memo — describe the ticker the
 first time you cite it.
+
+---
+
+## 8. When .git lock files won't unlink, fall back to a fresh shallow clone — don't keep retrying the worktree pattern
+
+**The rule.** The build-and-ship sweep documents the worktree pattern
+(create a fresh worktree from origin/main, edit, commit, push, PR). On the
+sandbox-mounted Mac repo, that pattern can fail in a way that's not the
+"stale .git/index.lock" footgun rule #2 of the SKILL warns about — the lock
+file exists, is owned by the right user, but the sandbox cannot `unlink`
+it. Every commit then errors with "Another git process seems to be
+running" and the branch ends up pushed pointing at the same SHA as
+origin/main (no commit landed). When you see this, abandon the worktree
+pattern entirely and `git clone --depth=1 -b main https://${PAT}@github
+.com/jmezzadri/market-dashboard.git /tmp/clone-<branch>` instead.
+
+**Why.** During the 2026-04-25 hourly bugs-build sweep, the first three
+PRs (#1069, #1070, #1071) all "succeeded" their `git push` step but
+actually pushed at the unchanged main SHA — every commit had been silently
+dropped earlier with the EPERM-on-unlink error. The sweep only caught the
+miss because the next step verified the branch SHA against the head SHA.
+The recovery cost was a full second run from fresh clones in `/tmp/`,
+which has no host-mount permission complications. Both `.git/index.lock`
+in the shared repo AND `.git/worktrees/<wt>/HEAD.lock` in each new worktree
+are affected.
+
+**How to apply.**
+
+1. The first time a `git commit` or `git add` from a worktree returns
+   "Another git process seems to be running," check `ls .git/index.lock`
+   and `ls .git/worktrees/*/HEAD.lock`.
+2. If the locks exist and `rm -f` fails with "Operation not permitted,"
+   stop using worktrees against that repo for this run. Don't keep
+   retrying — the locks are unremovable from the sandbox.
+3. Switch to fresh shallow clones in `/tmp/clone-<descriptor>/`. The clone
+   has its own `.git`, lives entirely on the sandbox filesystem, and has
+   no shared-object or shared-lock contention.
+4. After the sweep, the `/tmp/clone-*` directories can be deleted; the
+   worktree leftovers in the shared repo's `.git/worktrees/` will need
+   cleanup from the host (Mac terminal) on a future run, but they won't
+   block subsequent clones.
+5. This is a sandbox/Mac-mount issue, not a git issue — branches pushed
+   from the shallow clone integrate fine with the rest of the repo, and
+   the resulting PR is indistinguishable from a worktree-pattern PR.
