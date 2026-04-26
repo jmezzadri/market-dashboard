@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://macrotilt.com/schemas/spy_holdings.schema.json",
+  "title": "SPY Holdings — current SPY composition aggregated to GICS sector",
+  "type": "object",
+  "required": ["schema_version", "as_of", "pulled_at", "source", "sector_weights", "top_holdings"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "v10.0" },
+    "as_of": { "type": "string", "format": "date" },
+    "pulled_at": { "type": "string", "format": "date-time" },
+    "source": { "type": "string", "description": "SSGA daily holdings disclosure URL or filename" },
+    "sector_weights": {
+      "type": "object",
+      "description": "Map of GICS sector name -> weight (0-1, sums to ~1).",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "top_holdings": {
+      "type": "array",
+      "description": "Top 10 holdings by weight, for context",
+      "items": {
+        "type": "object",
+        "required": ["name", "ticker", "weight", "sector"],
+        "properties": {
+          "name": { "type": "string" },
+          "ticker": { "type": "string" },
+          "weight": { "type": "number", "minimum": 0, "maximum": 1 },
+          "sector": { "type": "string" }
+        }
+      }
+    },
+    "total_weight_check": {
+      "type": "number",
+      "description": "Sum of sector weights — should be 0.99-1.01"
+    }
+  },
+  "additionalProperties": false
+}

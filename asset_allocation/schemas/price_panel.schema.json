@@ -1,0 +1,41 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://macrotilt.com/schemas/price_panel.schema.json",
+  "title": "Price Panel — daily ETF prices for the v10 universe",
+  "type": "object",
+  "required": ["schema_version", "pulled_at", "tickers"],
+  "properties": {
+    "schema_version": { "type": "string", "const": "v10.0" },
+    "pulled_at": { "type": "string", "format": "date-time" },
+    "source_run_id": { "type": "string" },
+    "tickers": {
+      "type": "object",
+      "description": "Map of ticker -> daily close prices (auto-adjusted).",
+      "minProperties": 20,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["source", "first_observation", "last_observation", "points"],
+        "properties": {
+          "source": { "type": "string", "pattern": "^Yahoo:.+" },
+          "first_observation": { "type": "string", "format": "date" },
+          "last_observation": { "type": "string", "format": "date" },
+          "n_observations": { "type": "integer", "minimum": 60 },
+          "points": {
+            "type": "array",
+            "minItems": 60,
+            "items": {
+              "type": "array",
+              "minItems": 2,
+              "maxItems": 2,
+              "prefixItems": [
+                { "type": "string", "format": "date" },
+                { "type": "number", "minimum": 0 }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "additionalProperties": false
+}
