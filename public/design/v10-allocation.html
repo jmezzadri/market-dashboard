@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MacroTilt — Asset Allocation v10 (wireframe v4)</title>
+<title>MacroTilt — Asset Allocation v10 (wireframe v6 — GICS tree visual)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -52,26 +52,18 @@ body {
   color: var(--ink-0); background: var(--bg-0);
   -webkit-font-smoothing: antialiased;
 }
-
 a { color: var(--info); text-decoration: none; }
 a:hover { text-decoration: underline; }
-
 .num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 
-h1 {
-  font-family: var(--font-display); font-weight: 300;
+h1 { font-family: var(--font-display); font-weight: 300;
   font-size: clamp(40px, 4.6vw, 60px); line-height: 1.05;
-  letter-spacing: -0.02em; color: var(--ink-0);
-}
-h2 {
-  font-family: var(--font-display); font-weight: 300;
+  letter-spacing: -0.02em; color: var(--ink-0); }
+h2 { font-family: var(--font-display); font-weight: 300;
   font-size: clamp(36px, 4.4vw, 52px); line-height: 1.05;
-  letter-spacing: -0.02em; color: var(--ink-0); margin: 0;
-}
-h3 { font-family: var(--font-display); font-weight: 500; font-size: 20px; }
+  letter-spacing: -0.02em; color: var(--ink-0); margin: 0; }
 h4 { font-size: 14px; font-weight: 600; font-family: var(--font-body);
-     letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
-
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-2); }
 p { color: var(--ink-1); max-width: 68ch; }
 p strong { color: var(--ink-0); font-weight: 600; }
 
@@ -82,13 +74,9 @@ p strong { color: var(--ink-0); font-weight: 600; }
   display: flex; align-items: center; gap: var(--s-3);
   margin-bottom: var(--s-3);
 }
-.section-eyebrow::before {
-  content: ""; width: 32px; height: 2px; background: var(--accent-deep);
-}
-.section-eyebrow .num {
-  font-family: var(--font-display); font-weight: 500; font-size: 14px;
-  color: var(--accent-deep); letter-spacing: 0.04em;
-}
+.section-eyebrow::before { content: ""; width: 32px; height: 2px; background: var(--accent-deep); }
+.section-eyebrow .num { font-family: var(--font-display); font-weight: 500; font-size: 14px;
+  color: var(--accent-deep); letter-spacing: 0.04em; }
 .section-dek {
   font-family: var(--font-display); font-weight: 300; font-style: italic;
   font-size: clamp(16px, 1.6vw, 18px); line-height: 1.45;
@@ -103,30 +91,23 @@ p strong { color: var(--ink-0); font-weight: 600; }
 }
 .wf-banner strong { color: var(--ink-0); }
 
-.topbar {
-  background: var(--bg-1); border-bottom: 1px solid var(--line-0);
-  padding: var(--s-3) 0; position: sticky; top: 0; z-index: 50;
-}
+.topbar { background: var(--bg-1); border-bottom: 1px solid var(--line-0);
+  padding: var(--s-3) 0; position: sticky; top: 0; z-index: 50; }
 .topbar-inner {
-  max-width: 1240px; margin: 0 auto; padding: 0 var(--s-4);
+  max-width: 1320px; margin: 0 auto; padding: 0 var(--s-4);
   display: flex; align-items: center; justify-content: space-between;
 }
-.brand {
-  font-family: var(--font-display); font-size: 22px; font-weight: 500;
-  letter-spacing: -0.02em; color: var(--ink-0);
-}
-.brand-mark {
-  display: inline-block; width: 24px; height: 24px;
+.brand { font-family: var(--font-display); font-size: 22px; font-weight: 500; color: var(--ink-0); }
+.brand-mark { display: inline-block; width: 24px; height: 24px;
   background: var(--accent); border-radius: 50%;
-  margin-right: var(--s-2); vertical-align: -5px;
-}
+  margin-right: var(--s-2); vertical-align: -5px; }
 .tabs { display: flex; gap: var(--s-3); font-size: 13px; color: var(--ink-2); }
 .tabs a { color: var(--ink-2); }
 .tabs a.active { color: var(--ink-0); border-bottom: 2px solid var(--accent); padding-bottom: 4px; }
 
-.shell { max-width: 1240px; margin: 0 auto; padding: var(--s-6) var(--s-4) var(--s-8); }
+.shell { max-width: 1320px; margin: 0 auto; padding: var(--s-6) var(--s-4) var(--s-8); }
 
-/* ========== Section 1 — Hero ========== */
+/* Hero */
 .hero { padding-bottom: var(--s-7); border-bottom: 1px solid var(--line-0); }
 .hero-grid {
   display: grid; grid-template-columns: 1.55fr 1fr;
@@ -138,263 +119,169 @@ p strong { color: var(--ink-0); font-weight: 600; }
   font-weight: 300; font-style: italic; line-height: 1.45;
   color: var(--ink-1); max-width: 52ch; margin-bottom: var(--s-5);
 }
-.hero-asof {
-  font-size: 12px; color: var(--ink-2); display: flex;
-  flex-wrap: wrap; gap: var(--s-3); align-items: center;
-}
+.hero-asof { font-size: 12px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: var(--s-3); align-items: center; }
 .hero-asof .pulse { width: 7px; height: 7px; background: var(--up); border-radius: 50%; display: inline-block; }
 .hero-asof .sep { color: var(--ink-3); }
 
-.toc {
-  background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-4);
-  position: sticky; top: 88px;
-}
+.toc { background: var(--bg-1); border: 1px solid var(--line-0);
+  border-radius: var(--r-lg); padding: var(--s-4); position: sticky; top: 88px; }
 .toc h4 { margin-bottom: var(--s-3); font-size: 11px; letter-spacing: 0.16em; color: var(--accent-deep); }
 .toc ol { list-style: none; padding: 0; counter-reset: toc; }
-.toc ol li {
-  counter-increment: toc; padding: var(--s-2) 0;
-  border-bottom: 1px dashed var(--line-0); font-size: 14px;
-}
+.toc ol li { counter-increment: toc; padding: var(--s-2) 0;
+  border-bottom: 1px dashed var(--line-0); font-size: 14px; }
 .toc ol li:last-child { border-bottom: none; }
-.toc ol li::before {
-  content: "0" counter(toc); color: var(--accent-deep);
-  font-family: var(--font-mono); font-size: 11px;
-  font-weight: 600; margin-right: var(--s-3);
-}
+.toc ol li::before { content: "0" counter(toc); color: var(--accent-deep);
+  font-family: var(--font-mono); font-size: 11px; font-weight: 600; margin-right: var(--s-3); }
 .toc ol li a { color: var(--ink-1); }
-.toc ol li a:hover { color: var(--ink-0); text-decoration: none; }
 
-.hero-strip {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: var(--s-3); margin-top: var(--s-6);
-}
-.tile {
-  background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-4);
-}
+.hero-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-3); margin-top: var(--s-6); }
+.tile { background: var(--bg-1); border: 1px solid var(--line-0);
+  border-radius: var(--r-lg); padding: var(--s-4); }
 .tile h4 { margin-bottom: var(--s-3); }
-.tile .big {
-  font-family: var(--font-display); font-size: 32px; font-weight: 400;
-  color: var(--ink-0); line-height: 1; margin-bottom: var(--s-2);
-}
+.tile .big { font-family: var(--font-display); font-size: 32px; font-weight: 400;
+  color: var(--ink-0); line-height: 1; margin-bottom: var(--s-2); }
 .tile .sub { font-size: 13px; color: var(--ink-2); }
 .tile .sub strong { color: var(--ink-1); font-weight: 500; }
 
 .stance-arc { display: flex; gap: 2px; margin-top: var(--s-3); }
-.stance-arc .seg {
-  flex: 1; height: 8px; border-radius: 2px; background: var(--bg-3);
-}
+.stance-arc .seg { flex: 1; height: 8px; border-radius: 2px; background: var(--bg-3); }
 .stance-arc .seg.on-balanced { background: var(--ink-3); }
 .stance-arc .seg.on-aggressive { background: var(--accent-deep); }
-.stance-labels {
-  display: flex; justify-content: space-between;
+.stance-labels { display: flex; justify-content: space-between;
   font-size: 10px; color: var(--ink-3); margin-top: var(--s-1);
-  letter-spacing: 0.04em; text-transform: uppercase;
-}
+  letter-spacing: 0.04em; text-transform: uppercase; }
 
-.eq-breakdown {
-  margin-top: var(--s-3); padding-top: var(--s-3);
-  border-top: 1px dashed var(--line-0);
-  font-size: 12px; color: var(--ink-2);
-}
-.eq-breakdown .row {
-  display: flex; justify-content: space-between; padding: 2px 0;
-}
-.eq-breakdown .row .pip {
-  width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: var(--s-2);
-}
+.eq-breakdown { margin-top: var(--s-3); padding-top: var(--s-3);
+  border-top: 1px dashed var(--line-0); font-size: 12px; color: var(--ink-2); }
+.eq-breakdown .row { display: flex; justify-content: space-between; padding: 2px 0; }
+.eq-breakdown .row .pip { width: 8px; height: 8px; border-radius: 2px;
+  display: inline-block; margin-right: var(--s-2); }
 
 .macro-pills { display: flex; flex-direction: column; gap: var(--s-2); margin-top: var(--s-2); }
-.macro-pill {
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 13px; color: var(--ink-1);
-}
-.macro-pill .dot {
-  width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: var(--s-2);
-}
+.macro-pill { display: flex; align-items: center; justify-content: space-between;
+  font-size: 13px; color: var(--ink-1); }
+.macro-pill .dot { width: 8px; height: 8px; border-radius: 50%;
+  display: inline-block; margin-right: var(--s-2); }
 .macro-pill .dot.calm { background: var(--up); }
 .macro-pill .dot.neutral { background: var(--ink-3); }
 .macro-pill .label { color: var(--ink-2); font-size: 12px; }
 
-/* ========== Section ========== */
 .section { padding: var(--s-7) 0; border-bottom: 1px solid var(--line-0); }
 .section:last-child { border-bottom: none; }
-.sec-head { margin-bottom: var(--s-5); }
+.sec-head { margin-bottom: var(--s-4); }
 
-/* ========== Section 2 — Industries (the big one) ========== */
-.controls-row {
-  display: flex; align-items: center; gap: var(--s-3);
-  margin-bottom: var(--s-4); flex-wrap: wrap;
-}
-.controls-row .ctrl-label {
-  font-size: 11px; font-weight: 600; color: var(--ink-2);
-  letter-spacing: 0.08em; text-transform: uppercase;
-}
-.toggle-min {
-  display: inline-flex; background: var(--bg-2); border-radius: var(--r-md); padding: 3px;
-}
-.toggle-min button {
-  background: transparent; border: none; padding: 5px 12px;
-  font-family: var(--font-body); font-size: 12px; color: var(--ink-2);
-  border-radius: var(--r-sm); cursor: pointer;
-}
-.toggle-min button.active {
-  background: var(--bg-1); color: var(--ink-0);
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-.controls-row .count {
-  font-family: var(--font-display); font-style: italic;
-  font-size: 14px; color: var(--ink-2); margin-left: auto;
-}
-.select-pill {
-  background: var(--bg-2); border: 1px solid var(--line-0);
-  padding: 5px 10px; font-size: 12px; border-radius: var(--r-md);
-  color: var(--ink-1); cursor: pointer; font-family: var(--font-body);
-}
-
-.tier-row { margin-bottom: var(--s-5); }
-.tier-label {
-  display: flex; align-items: baseline; gap: var(--s-3);
-  margin-bottom: var(--s-3); padding-bottom: var(--s-2);
-  border-bottom: 1px solid var(--line-0);
-}
-.tier-label .pip { width: 12px; height: 12px; border-radius: 2px; display: inline-block; }
-.tier-label.sow .pip { background: var(--tier-sow); }
-.tier-label.ow .pip  { background: var(--tier-ow); }
-.tier-label.mw .pip  { background: var(--tier-mw); }
-.tier-label.uw .pip  { background: var(--tier-uw); }
-.tier-label.suw .pip { background: var(--tier-suw); }
-.tier-label .name {
-  font-family: var(--font-display); font-size: 22px; font-weight: 500;
-  color: var(--ink-0);
-}
-.tier-label .count { font-size: 12px; color: var(--ink-2); margin-left: auto; }
-
-.ind-grid {
-  display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
-  gap: var(--s-3);
-}
-.ind-card {
+/* ============== GICS TREE VISUALIZATION ============== */
+.tree-wrap {
   background: var(--bg-1); border: 1px solid var(--line-0);
-  border-left: 3px solid var(--ink-3); border-radius: var(--r-md);
-  padding: var(--s-3) var(--s-4); cursor: pointer;
-  transition: transform var(--motion-fast), box-shadow var(--motion-fast);
+  border-radius: var(--r-lg); padding: var(--s-5) var(--s-4) var(--s-4);
+  overflow-x: auto;
 }
-.ind-card:hover {
-  transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.06);
-}
-.ind-card.sow { border-left-color: var(--tier-sow); }
-.ind-card.ow  { border-left-color: var(--tier-ow); }
-.ind-card.mw  { border-left-color: var(--tier-mw); }
-.ind-card.uw  { border-left-color: var(--tier-uw); }
-.ind-card.suw { border-left-color: var(--tier-suw); }
-.ind-card .top {
-  display: flex; align-items: baseline; justify-content: space-between;
-  gap: var(--s-2); margin-bottom: 2px;
-}
-.ind-card .top .name {
-  font-family: var(--font-body); font-size: 15px; font-weight: 600;
-  color: var(--ink-0);
-}
-.ind-card .gics {
-  font-size: 10.5px; color: var(--ink-3);
-  letter-spacing: 0.02em; margin-bottom: var(--s-3);
-}
-.ind-card .tilt-row {
-  display: flex; align-items: center; gap: var(--s-3);
-  margin-bottom: var(--s-3);
-}
-.ind-card .tilt-num {
-  font-family: var(--font-mono); font-size: 22px; font-weight: 500;
-  letter-spacing: -0.02em;
-}
-.ind-card .tilt-num.up { color: var(--up); }
-.ind-card .tilt-num.down { color: var(--down); }
-.ind-card .tilt-num.flat { color: var(--ink-2); }
-.ind-card .tilt-tier {
-  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink-3); margin-top: 2px;
-}
-.ind-card .spark { flex: 1; min-width: 0; }
-.ind-card .spark svg { width: 100%; height: 28px; display: block; }
-.ind-card .spark-pct {
-  font-family: var(--font-mono); font-size: 11px;
-  color: var(--ink-2); text-align: right; margin-top: 2px;
-}
-.ind-card .footer {
-  display: flex; justify-content: space-between;
-  font-size: 12px; color: var(--ink-2);
-  padding-top: var(--s-2); border-top: 1px dashed var(--line-0);
-}
-.ind-card .footer .vsspy {
-  font-family: var(--font-mono); color: var(--ink-1);
-}
-.ind-card .footer .delta { font-family: var(--font-mono); }
-.ind-card .footer .delta.pos { color: var(--up); font-weight: 500; }
-.ind-card .footer .delta.neg { color: var(--down); font-weight: 500; }
-.ind-card .footer .delta.flat { color: var(--ink-3); }
+.tree-svg { display: block; width: 100%; min-width: 1100px; height: auto; }
 
-/* Table view */
-.alloc-table-wrap {
-  background: var(--bg-1); border: 1px solid var(--line-0);
-  border-radius: var(--r-lg); padding: var(--s-4);
+.tree-legend {
+  display: flex; gap: var(--s-4); margin-top: var(--s-4); flex-wrap: wrap;
+  font-size: 12px; color: var(--ink-2); align-items: center;
+  padding-top: var(--s-3); border-top: 1px dashed var(--line-0);
 }
-.alloc-table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.alloc-table thead th {
-  text-align: left; padding: var(--s-2) var(--s-3);
-  font-size: 11px; font-weight: 600; color: var(--ink-2);
-  letter-spacing: 0.08em; text-transform: uppercase;
-  border-bottom: 1px solid var(--line-1);
-  cursor: pointer; user-select: none;
+.tree-legend .item { display: flex; align-items: center; gap: var(--s-2); }
+.tree-legend .ring {
+  width: 14px; height: 14px; border-radius: 50%; border: 3px solid;
 }
-.alloc-table thead th:hover { color: var(--ink-0); }
-.alloc-table thead th.num { text-align: right; }
-.alloc-table thead th .sort-arrow { color: var(--ink-3); margin-left: 4px; font-size: 10px; }
-.alloc-table thead th.sorted .sort-arrow { color: var(--accent-deep); }
-.alloc-table tbody td {
-  padding: var(--s-2) var(--s-3); border-bottom: 1px solid var(--line-0);
-  color: var(--ink-1);
+.tree-legend .ring.ow { border-color: var(--up); }
+.tree-legend .ring.mw { border-color: var(--ink-3); border-style: dashed; }
+.tree-legend .ring.uw { border-color: var(--down); }
+.tree-legend .lbl { font-size: 11px; color: var(--ink-1); }
+.tree-legend .level-mark {
+  width: 14px; height: 14px; border-radius: 50%; background: var(--ink-2);
 }
-.alloc-table tbody td.num { text-align: right; font-family: var(--font-mono); color: var(--ink-0); }
-.alloc-table tbody td.bucket { color: var(--ink-0); font-weight: 500; }
-.alloc-table tbody td .pip { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: var(--s-2); }
-.alloc-table tbody tr { cursor: pointer; }
-.alloc-table tbody tr:hover { background: var(--bg-2); }
-.alloc-table td.over { color: var(--up); font-weight: 600; }
-.alloc-table td.under { color: var(--down); font-weight: 600; }
-.alloc-table td.flat { color: var(--ink-3); }
+.tree-legend .level-mark.ig { width: 10px; height: 10px; }
+.tree-legend .level-mark.ind { width: 6px; height: 6px; }
 
-/* Drawer */
-.drawer-mask {
-  position: fixed; inset: 0; background: rgba(20,20,18,0.45);
+.summary-strip {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-3); margin-top: var(--s-4);
+}
+.sum-tile {
+  background: var(--bg-2); border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4);
+}
+.sum-tile .lbl {
+  font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--ink-2); font-weight: 600; margin-bottom: 4px;
+}
+.sum-tile .val {
+  font-family: var(--font-mono); font-size: 18px; color: var(--ink-0); font-weight: 500;
+}
+.sum-tile .val.up { color: var(--up); }
+.sum-tile .val.down { color: var(--down); }
+.sum-tile .val.flat { color: var(--ink-2); }
+
+/* SVG element styles */
+.sector-circle {
+  cursor: pointer;
+  transition: transform var(--motion-fast), filter var(--motion-fast);
+}
+.sector-circle:hover { transform: scale(1.05); transform-origin: center; }
+.sector-circle.unrated { opacity: 0.55; }
+.sector-circle.unrated:hover { opacity: 0.85; }
+
+.ig-dot, .ind-dot { cursor: pointer; transition: transform var(--motion-fast); }
+.ig-dot:hover, .ind-dot:hover { transform: scale(1.3); transform-origin: center; }
+
+.sector-label {
+  font-family: var(--font-body); font-size: 12px; font-weight: 600;
+  fill: var(--ink-0); text-anchor: middle;
+  pointer-events: none;
+}
+.sector-tilt {
+  font-family: var(--font-mono); font-size: 11px; font-weight: 500;
+  text-anchor: middle; pointer-events: none;
+}
+.sector-tilt.up { fill: var(--up); }
+.sector-tilt.down { fill: var(--down); }
+.sector-tilt.flat { fill: var(--ink-3); }
+.level-label {
+  font-family: var(--font-body); font-size: 10px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  fill: var(--ink-3); text-anchor: end;
+  pointer-events: none;
+}
+
+/* Risks, drawer (same as before) */
+.risk-list { display: flex; flex-direction: column; gap: var(--s-3); }
+.risk-card { background: var(--bg-1); border: 1px solid var(--line-0);
+  border-left: 3px solid var(--burgundy);
+  border-radius: var(--r-md); padding: var(--s-4); }
+.risk-card h4 { color: var(--ink-0); text-transform: none; letter-spacing: 0;
+  font-size: 16px; margin-bottom: var(--s-2); font-weight: 600; font-family: var(--font-body); }
+.risk-card .trigger { font-size: 13px; color: var(--ink-1); margin-bottom: var(--s-2); }
+.risk-card .alt { font-size: 13px; color: var(--ink-2); padding-top: var(--s-2);
+  border-top: 1px dashed var(--line-0); font-style: italic; }
+
+.drawer-mask { position: fixed; inset: 0; background: rgba(20,20,18,0.45);
   z-index: 100; opacity: 0; pointer-events: none;
-  transition: opacity var(--motion-med);
-}
+  transition: opacity var(--motion-med); }
 .drawer-mask.open { opacity: 1; pointer-events: auto; }
-.drawer {
-  position: fixed; top: 0; right: 0; bottom: 0;
+.drawer { position: fixed; top: 0; right: 0; bottom: 0;
   width: min(620px, 92vw); background: var(--bg-1);
   z-index: 101; padding: var(--s-5);
   transform: translateX(100%); transition: transform var(--motion-med);
-  overflow-y: auto;
-  box-shadow: -8px 0 32px rgba(0,0,0,0.12);
-}
+  overflow-y: auto; box-shadow: -8px 0 32px rgba(0,0,0,0.12); }
 .drawer.open { transform: translateX(0); }
-.drawer-close {
-  position: absolute; top: var(--s-3); right: var(--s-3);
+.drawer-close { position: absolute; top: var(--s-3); right: var(--s-3);
   background: none; border: none; cursor: pointer;
-  font-size: 22px; color: var(--ink-2); line-height: 1;
-}
+  font-size: 22px; color: var(--ink-2); line-height: 1; }
 .drawer .breadcrumb {
-  font-size: 11px; color: var(--ink-2);
-  letter-spacing: 0.04em; margin-bottom: var(--s-1);
+  font-size: 11px; color: var(--ink-2); letter-spacing: 0.04em;
+  margin-bottom: var(--s-1); display: flex; align-items: center; gap: var(--s-2);
 }
-.drawer .breadcrumb .pip {
-  width: 10px; height: 10px; border-radius: 2px;
-  display: inline-block; margin-right: var(--s-2);
+.drawer .breadcrumb .pip { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.drawer h2 { margin-bottom: var(--s-1); font-size: 32px; font-family: var(--font-display); font-weight: 400; }
+.drawer .calibration-note {
+  font-size: 11px; color: var(--ink-2); letter-spacing: 0.04em;
+  background: var(--bg-2); padding: 4px 10px; border-radius: var(--r-sm);
+  display: inline-block; margin-bottom: var(--s-3);
 }
-.drawer h2 { margin-bottom: var(--s-2); font-size: 32px; }
 .drawer .rating-line { font-size: 13px; color: var(--ink-2); margin-bottom: var(--s-4); }
 .drawer .key-stats {
   display: grid; grid-template-columns: repeat(3, 1fr);
@@ -403,122 +290,62 @@ p strong { color: var(--ink-0); font-weight: 600; }
 }
 .drawer .key-stats .stat { text-align: center; }
 .drawer .key-stats .stat .val {
-  font-family: var(--font-mono); font-size: 17px;
-  color: var(--ink-0); font-weight: 500;
+  font-family: var(--font-mono); font-size: 17px; color: var(--ink-0); font-weight: 500;
 }
 .drawer .key-stats .stat .lbl {
   font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase;
   color: var(--ink-2); margin-top: 2px;
 }
-
 .drawer h4 { margin-top: var(--s-4); margin-bottom: var(--s-2); }
 .drawer p { font-size: 14px; margin-bottom: var(--s-3); }
 
-.method-block {
-  background: var(--bg-2); border-radius: var(--r-md); padding: var(--s-3);
-  font-size: 13px; color: var(--ink-1);
-  margin-bottom: var(--s-3);
-}
-.method-block .row {
-  display: grid; grid-template-columns: 130px 1fr;
-  gap: var(--s-3); padding: var(--s-1) 0;
-}
+.method-block { background: var(--bg-2); border-radius: var(--r-md); padding: var(--s-3);
+  font-size: 13px; color: var(--ink-1); margin-bottom: var(--s-3); }
+.method-block .row { display: grid; grid-template-columns: 130px 1fr; gap: var(--s-3); padding: var(--s-1) 0; }
 .method-block .row:not(:last-child) { border-bottom: 1px dashed var(--line-0); padding-bottom: var(--s-2); margin-bottom: 6px; }
-.method-block .row .lbl {
-  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink-2); font-weight: 600;
-}
+.method-block .row .lbl { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-2); font-weight: 600; }
 .method-block .row .val { font-size: 13px; color: var(--ink-0); }
-.method-block .row .val .badge {
-  display: inline-block; font-size: 10px; font-weight: 700;
-  letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px;
-  margin-right: 6px;
-}
+.method-block .row .val .badge { display: inline-block; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.06em; padding: 1px 6px; border-radius: 3px; margin-right: 6px; }
 .method-block .row .val .badge.pass { background: rgba(31,157,96,0.16); color: var(--up); }
 .method-block .row .val .badge.fail { background: rgba(210,48,64,0.12); color: var(--down); }
 .method-block .row .val .badge.off  { background: var(--bg-3); color: var(--ink-2); }
 
 .factor-list { list-style: none; padding: 0; }
-.factor-list li {
-  padding: var(--s-2) 0; border-bottom: 1px dashed var(--line-0);
-  display: flex; justify-content: space-between; font-size: 13px;
-}
+.factor-list li { padding: var(--s-2) 0; border-bottom: 1px dashed var(--line-0);
+  display: flex; justify-content: space-between; font-size: 13px; }
 .factor-list li .factor-name { color: var(--ink-1); }
 .factor-list li .factor-z { font-family: var(--font-mono); color: var(--ink-0); }
 
-.tickers-row {
-  display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2);
-}
-.ticker-chip {
-  font-family: var(--font-mono); font-size: 12px;
+.tickers-row { display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-2); }
+.ticker-chip { font-family: var(--font-mono); font-size: 12px;
   background: var(--bg-2); border: 1px solid var(--line-0);
-  padding: 4px 10px; border-radius: var(--r-sm);
-  color: var(--ink-0); cursor: pointer;
-  transition: background var(--motion-fast), border-color var(--motion-fast);
-}
-.ticker-chip:hover {
-  background: var(--bg-1); border-color: var(--accent);
-}
-.tickers-disclaimer {
-  font-size: 11px; color: var(--ink-3); font-style: italic; margin-top: var(--s-2);
-}
+  padding: 4px 10px; border-radius: var(--r-sm); color: var(--ink-0); cursor: pointer; }
+.ticker-chip:hover { background: var(--bg-1); border-color: var(--accent); }
+.tickers-disclaimer { font-size: 11px; color: var(--ink-3); font-style: italic; margin-top: var(--s-2); }
 
-.etf-block {
-  background: var(--bg-2); border-radius: var(--r-md); padding: var(--s-3);
-  font-size: 13px; color: var(--ink-1);
-}
-.etf-block .label {
-  font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--ink-2); font-weight: 600; margin-bottom: 6px;
-}
-.etf-block .ticker {
-  font-family: var(--font-mono); font-size: 16px;
-  color: var(--ink-0); font-weight: 500;
-}
+.etf-block { background: var(--bg-2); border-radius: var(--r-md); padding: var(--s-3);
+  font-size: 13px; color: var(--ink-1); }
+.etf-block .label { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink-2); font-weight: 600; margin-bottom: 6px; }
+.etf-block .ticker { font-family: var(--font-mono); font-size: 16px;
+  color: var(--ink-0); font-weight: 500; }
 
-.toast {
-  position: fixed; bottom: var(--s-4); left: 50%;
+.toast { position: fixed; bottom: var(--s-4); left: 50%;
   transform: translateX(-50%) translateY(120%);
   background: var(--ink-0); color: var(--bg-1);
-  padding: var(--s-3) var(--s-4);
-  font-size: 13px; border-radius: var(--r-md);
+  padding: var(--s-3) var(--s-4); font-size: 13px; border-radius: var(--r-md);
   z-index: 200; transition: transform var(--motion-med);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.15);
-}
+  box-shadow: 0 4px 24px rgba(0,0,0,0.15); }
 .toast.show { transform: translateX(-50%) translateY(0); }
-.toast .ticker {
-  font-family: var(--font-mono); color: var(--accent); font-weight: 500;
-}
+.toast .ticker { font-family: var(--font-mono); color: var(--accent); font-weight: 500; }
 
-/* Risks */
-.risk-list { display: flex; flex-direction: column; gap: var(--s-3); }
-.risk-card {
-  background: var(--bg-1); border: 1px solid var(--line-0);
-  border-left: 3px solid var(--burgundy);
-  border-radius: var(--r-md); padding: var(--s-4);
-}
-.risk-card h4 {
-  color: var(--ink-0); text-transform: none; letter-spacing: 0;
-  font-size: 16px; margin-bottom: var(--s-2); font-weight: 600;
-  font-family: var(--font-body);
-}
-.risk-card .trigger { font-size: 13px; color: var(--ink-1); margin-bottom: var(--s-2); }
-.risk-card .alt {
-  font-size: 13px; color: var(--ink-2); padding-top: var(--s-2);
-  border-top: 1px dashed var(--line-0); font-style: italic;
-}
-
-.bottom-strip {
-  display: flex; gap: var(--s-3); flex-wrap: wrap;
+.bottom-strip { display: flex; gap: var(--s-3); flex-wrap: wrap;
   padding: var(--s-5) 0; border-top: 1px solid var(--line-0);
-  margin-top: var(--s-7);
-  font-size: 13px; color: var(--ink-2); align-items: center;
-}
-.bottom-strip a {
-  background: var(--bg-2); padding: var(--s-2) var(--s-3);
-  border-radius: var(--r-sm); color: var(--ink-1);
-  border: 1px solid var(--line-0);
-}
+  margin-top: var(--s-7); font-size: 13px; color: var(--ink-2); align-items: center; }
+.bottom-strip a { background: var(--bg-2); padding: var(--s-2) var(--s-3);
+  border-radius: var(--r-sm); color: var(--ink-1); border: 1px solid var(--line-0); }
 .bottom-strip a:hover { background: var(--bg-3); text-decoration: none; }
 .bottom-strip .right { margin-left: auto; color: var(--ink-3); font-size: 12px; }
 
@@ -526,15 +353,14 @@ p strong { color: var(--ink-0); font-weight: 600; }
   .hero-grid { grid-template-columns: 1fr; }
   .toc { position: static; }
   .hero-strip { grid-template-columns: 1fr; }
-  .ind-grid { grid-template-columns: 1fr; }
+  .summary-strip { grid-template-columns: repeat(2, 1fr); }
 }
 </style>
 </head>
 <body>
 
 <div class="wf-banner">
-  <strong>Wireframe v4</strong> · Asset Allocation v10 · 16 industries from the v10 backend ·
-  3 sections, GICS hierarchy honored · Mock data, nothing here moves money.
+  <strong>Wireframe v6</strong> · GICS tree visual · 11 Sectors → 24 Industry Groups → 68 Industries · Click any circle, dot, or sector for the rationale.
 </div>
 
 <header class="topbar">
@@ -551,7 +377,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
 
 <div class="shell">
 
-  <!-- ============= Section 1 — Big Picture ============= -->
+  <!-- Section 1 — Big Picture -->
   <section class="hero" id="sec-bigpicture">
     <div class="hero-grid">
       <div class="hero-left">
@@ -567,12 +393,11 @@ p strong { color: var(--ink-0); font-weight: 600; }
           <span>Next: <strong style="color:var(--ink-0)">May 2, 2026</strong></span>
         </div>
       </div>
-
       <aside class="toc">
         <h4>On this page</h4>
         <ol>
           <li><a href="#sec-bigpicture">The Big Picture</a></li>
-          <li><a href="#sec-industries">Industry Recommendations</a></li>
+          <li><a href="#sec-tree">GICS Tree · Recommendations</a></li>
           <li><a href="#sec-risks">Risk Management</a></li>
         </ol>
       </aside>
@@ -597,7 +422,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
         <div class="big">86<span style="font-size:18px;color:var(--ink-2);"> / </span>14</div>
         <div class="sub"><strong>Equity / Defensive ballast</strong>, in percent.</div>
         <div class="eq-breakdown">
-          <div class="row"><span><span class="pip" style="background:var(--accent-deep)"></span>Equity (16 industries)</span><span class="num">86%</span></div>
+          <div class="row"><span><span class="pip" style="background:var(--accent-deep)"></span>Equity (across 11 GICS Sectors)</span><span class="num">86%</span></div>
           <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Cash &amp; T-bills</span><span class="num">8%</span></div>
           <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Short-duration treasuries</span><span class="num">4%</span></div>
           <div class="row"><span><span class="pip" style="background:var(--ink-3)"></span>Gold</span><span class="num">2%</span></div>
@@ -625,82 +450,70 @@ p strong { color: var(--ink-0); font-weight: 600; }
     </div>
   </section>
 
-  <!-- ============= Section 2 — Industry Recommendations ============= -->
-  <section class="section" id="sec-industries">
+  <!-- Section 2 — GICS TREE VISUAL -->
+  <section class="section" id="sec-tree">
     <div class="sec-head">
-      <div class="section-eyebrow"><span class="num">02</span> Industry Recommendations</div>
-      <h2>16 industries, every recommendation in one place.</h2>
+      <div class="section-eyebrow"><span class="num">02</span> GICS Tree · Recommendations</div>
+      <h2>The full tree, our Tilt overlaid.</h2>
       <p class="section-dek">
-        We calibrate and back-test at the <strong>GICS Industry level</strong> (11 Sectors · 24 Industry Groups · 68 Industries · 157 Sub-Industries). <strong>Tilt</strong> is how much we recommend over- or under-weighting each industry vs the S&amp;P 500, in percentage points of portfolio. Click any card for the full methodology rationale — multivariate regression, 6-month momentum signal, composite-flip status, and indicator z-scores.
+        11 Sectors at the top. 24 Industry Groups in the middle row. 68 Industries below. The <strong>ring color</strong> on each circle / dot shows our Tilt: <strong style="color:var(--up)">green = Overweight</strong>, gray = Market Weight, <strong style="color:var(--down)">red = Underweight</strong>. Click anything for the methodology rationale, factor z-scores, and example tickers.
       </p>
     </div>
 
-    <div class="controls-row">
-      <span class="ctrl-label">Filter</span>
-      <div class="toggle-min" id="filterToggle">
-        <button class="active" data-filter="all">All</button>
-        <button data-filter="changed">Changed this week</button>
-        <button data-filter="overweight">Overweights</button>
-        <button data-filter="underweight">Underweights</button>
+    <div class="tree-wrap">
+      <svg class="tree-svg" id="treeSvg" viewBox="0 0 1100 580" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        <!-- Tree is rendered by JS below -->
+      </svg>
+
+      <div class="tree-legend">
+        <span style="font-weight:600;color:var(--ink-1);">Levels:</span>
+        <span class="item"><span class="level-mark"></span><span class="lbl">Sector (11)</span></span>
+        <span class="item"><span class="level-mark ig"></span><span class="lbl">Industry Group (24)</span></span>
+        <span class="item"><span class="level-mark ind"></span><span class="lbl">Industry (68)</span></span>
+        <span style="margin-left:var(--s-4);font-weight:600;color:var(--ink-1);">Tilt:</span>
+        <span class="item"><span class="ring ow"></span><span class="lbl">Overweight</span></span>
+        <span class="item"><span class="ring mw"></span><span class="lbl">Market Weight (no edge)</span></span>
+        <span class="item"><span class="ring uw"></span><span class="lbl">Underweight</span></span>
       </div>
-      <span class="ctrl-label">Group by</span>
-      <div class="toggle-min" id="groupToggle">
-        <button class="active" data-group="tilt">Tilt</button>
-        <button data-group="sector">GICS Sector</button>
-      </div>
-      <span class="ctrl-label">Tilt detail</span>
-      <div class="toggle-min" id="tierToggle">
-        <button class="active" data-tier="5">5 tiers</button>
-        <button data-tier="3">3 tiers</button>
-      </div>
-      <span class="ctrl-label">View</span>
-      <div class="toggle-min" id="viewToggle">
-        <button class="active" data-view="cards">Cards</button>
-        <button data-view="table">Table</button>
-      </div>
-      <span class="count" id="indCount">— industries shown</span>
     </div>
 
-    <div id="cardsView"></div>
-    <div id="tableView" style="display:none;">
-      <div class="alloc-table-wrap">
-        <table class="alloc-table" id="allocTable">
-          <thead>
-            <tr>
-              <th data-sort="name">Industry <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-              <th data-sort="sector">GICS Sector <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-              <th data-sort="rating5">Rating <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-              <th data-sort="targetPct" class="num">Target % <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-              <th data-sort="spyPct" class="num">S&amp;P % <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-              <th data-sort="tiltPts" class="num sorted">Tilt (pts) <span class="sort-arrow">&#x25BE;</span></th>
-              <th data-sort="deltaPts" class="num">vs Last Week <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-              <th data-sort="sixMoReturn" class="num">6mo return <span class="sort-arrow">&#x25B4;&#x25BE;</span></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+    <div class="summary-strip">
+      <div class="sum-tile">
+        <div class="lbl">Sectors Overweight</div>
+        <div class="val up" id="sumOver">—</div>
+      </div>
+      <div class="sum-tile">
+        <div class="lbl">Sectors Market Weight</div>
+        <div class="val flat" id="sumFlat">—</div>
+      </div>
+      <div class="sum-tile">
+        <div class="lbl">Sectors Underweight</div>
+        <div class="val down" id="sumUnder">—</div>
+      </div>
+      <div class="sum-tile">
+        <div class="lbl">Calibrated Buckets</div>
+        <div class="val" id="sumBuckets">16 of 103</div>
       </div>
     </div>
   </section>
 
-  <!-- ============= Section 3 — Risk Management ============= -->
+  <!-- Section 3 — Risk Management -->
   <section class="section" id="sec-risks">
     <div class="sec-head">
       <div class="section-eyebrow"><span class="num">03</span> Risk Management</div>
       <h2>What could break this view.</h2>
       <p class="section-dek">The four scenarios that would flip the model's recommendation. Each has a Trigger (the macro condition that would fire it) and an Alternate (where the portfolio would move).</p>
     </div>
-
     <div class="risk-list">
       <div class="risk-card">
         <h4>Crude breaks below $70/bbl</h4>
-        <p class="trigger">Oil &amp; Gas Exploration goes from cash machine to capital trap. Cash flow turns vulnerable; capital discipline narrative collapses.</p>
-        <p class="alt">Alternate: Oil &amp; Gas E&amp;P back to Market Weight, add weight to Consumer Staples and Insurance for defensive carry.</p>
+        <p class="trigger">Energy goes from cash machine to capital trap. Cash flow turns vulnerable; capital discipline narrative collapses.</p>
+        <p class="alt">Alternate: rotate Energy back to Market Weight, add weight to Health Care and Staples for defensive carry.</p>
       </div>
       <div class="risk-card">
         <h4>Credit spreads widen &gt; 100 bp in two weeks</h4>
         <p class="trigger">Risk &amp; Liquidity composite would flip from calm to elevated. Aggressive stance no longer justified; cyclicals at risk of repricing.</p>
-        <p class="alt">Alternate: trim Software and Semiconductors, raise defensive ballast from 14% to 30%, shift stance to Balanced.</p>
+        <p class="alt">Alternate: trim Software and Semis, raise defensive ballast from 14% to 30%, shift stance to Balanced.</p>
       </div>
       <div class="risk-card">
         <h4>Unemployment claims spike above 280k for three weeks</h4>
@@ -710,7 +523,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
       <div class="risk-card">
         <h4>10-year yield breaks above 5.0%</h4>
         <p class="trigger">Inflation &amp; Rates composite turns stressed. Long-duration cyclicals (Real Estate, Utilities, Software) repriced lower.</p>
-        <p class="alt">Alternate: cut Software to Market Weight, hold Oil &amp; Gas E&amp;P and Banks (rate beneficiaries), defensive ballast to 25%.</p>
+        <p class="alt">Alternate: cut Software to Market Weight, hold Energy and Banks (rate beneficiaries), defensive ballast to 25%.</p>
       </div>
     </div>
   </section>
@@ -732,6 +545,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
   <button class="drawer-close" aria-label="Close" id="drawerClose">&times;</button>
   <div class="breadcrumb"><span class="pip" id="drawerPip"></span><span id="drawerBreadcrumb">&mdash;</span></div>
   <h2 id="drawerTitle">&mdash;</h2>
+  <div class="calibration-note" id="drawerCalibLevel">Calibrated at: —</div>
   <div class="rating-line" id="drawerRating">&mdash;</div>
 
   <div class="key-stats">
@@ -748,7 +562,7 @@ p strong { color: var(--ink-0); font-weight: 600; }
   <h4>Key factors</h4>
   <ul class="factor-list" id="drawerFactors"></ul>
 
-  <h4>Example companies in this industry</h4>
+  <h4>Example companies</h4>
   <div class="tickers-row" id="drawerTickers"></div>
   <div class="tickers-disclaimer">Click any ticker to open the Stock Card · Examples only, not recommendations.</div>
 
@@ -767,516 +581,455 @@ p strong { color: var(--ink-0); font-weight: 600; }
 
 <script>
 /* ============================================================
-   v10 ALLOCATION — 16 industries from asset_allocation/industry_groups.json
+   GICS data (pre-2023: 11/24/68/157)
    ============================================================ */
-const INDUSTRIES = [
-  {
-    id:"Software", name:"Software",
-    sector:"Information Technology",
-    gics:"Information Technology · Software & Services · Software · Systems Software / Application Software",
-    tier5:"sow", tier3:"ow", rating5:"Strong Overweight", rating3:"Overweight",
-    targetPct:16.0, priorTargetPct:15.5, spyPct:6.5,
-    sixMoReturn:0.084, trendPath:[0,1.5,2.8,4.2,6.1,7.5,8.4],
-    tickers:["MSFT","ORCL","ADBE","NOW","CRM","INTU"],
-    etf:"IGV", etfDesc:"iShares Expanded Tech-Software Sector",
-    impl:"Liquid via large-cap software ETFs or the largest 5-10 individual names. Highest within-sector dispersion of any group; broad sector indexes underweight the leaders.",
-    rationale:"AI infrastructure capex still expanding and price momentum confirming. Multivariate regression shows three significant drivers — all pointing the right way.",
-    factors:[{name:"ISM New Orders",z:"+1.4σ"},{name:"Semis cycle (SOX/SPX)",z:"+1.1σ"},{name:"Earnings revision breadth",z:"+0.9σ"},{name:"Growth composite",z:"+0.7σ"}],
-    method: { regression:"3 factors significant: ISM (t=2.8), Semis cycle (t=2.1), Earnings revisions (t=3.2)", momentum:"PASS — +8.4% trailing 6mo (vs SPY +3.1%)", composite_flip:"OFF — R&L composite calm at -6.7", confirmatory:"PASS — fundamental and momentum agree" },
-    tactical:"Bucket is rich on absolute valuation but momentum + growth signal both align. Hold to Strong Overweight unless ISM rolls over."
-  },
-  {
-    id:"Semiconductors", name:"Semiconductors",
-    sector:"Information Technology",
-    gics:"Information Technology · Semiconductors & Semiconductor Equipment · Semiconductors & Semiconductor Equipment · Semiconductors",
-    tier5:"sow", tier3:"ow", rating5:"Strong Overweight", rating3:"Overweight",
-    targetPct:14.0, priorTargetPct:12.0, spyPct:9.0,
-    sixMoReturn:0.142, trendPath:[0,2,4,6,9,12,14],
-    tickers:["NVDA","AVGO","AMD","TSM","ASML","INTC"],
-    etf:"SMH", etfDesc:"VanEck Semiconductor ETF",
-    impl:"Concentrated bucket — top 5 names = 60% of any liquid ETF. Phase in via ETF for liquidity; satellites for concentration.",
-    rationale:"Cycle indicator (semi book-to-bill) at multi-year highs. AI-capex demand still expanding into hyperscaler 2026 budgets.",
-    factors:[{name:"SOX/SPX ratio (Z)",z:"+1.6σ"},{name:"Book-to-bill",z:"+1.2σ"},{name:"Capex revision (top 5)",z:"+0.9σ"}],
-    method: { regression:"2 factors significant: SOX/SPX (t=3.1), Book-to-bill (t=2.4)", momentum:"PASS — +14.2% trailing 6mo (vs SPY +3.1%)", composite_flip:"OFF", confirmatory:"PASS" },
-    tactical:"Largest single-industry overweight after Software. Watch hyperscaler capex guidance for the kill-trigger."
-  },
-  {
-    id:"Biotech", name:"Biotech",
-    sector:"Health Care",
-    gics:"Health Care · Pharmaceuticals, Biotechnology & Life Sciences · Biotechnology · Biotechnology",
-    tier5:"ow", tier3:"ow", rating5:"Overweight", rating3:"Overweight",
-    targetPct:4.0, priorTargetPct:4.0, spyPct:2.0,
-    sixMoReturn:0.038, trendPath:[0,0.5,1.0,1.8,2.5,3.2,3.8],
-    tickers:["AMGN","GILD","VRTX","REGN","BIIB"],
-    etf:"IBB", etfDesc:"iShares Biotechnology ETF",
-    impl:"Tier 1 = large-cap biotech (top 10); avoid early-stage clinical names. Liquidity drops fast below mega-cap.",
-    rationale:"FDA approval cadence elevated. Pipeline maturity in obesity / oncology supports forward earnings.",
-    factors:[{name:"FDA approval count (3M)",z:"+0.8σ"},{name:"Biotech IPO volume",z:"+0.5σ"},{name:"Demographic trend",z:"+0.4σ"}],
-    method: { regression:"1 factor significant: FDA approvals (t=2.4)", momentum:"PASS — +3.8% (vs SPY +3.1%)", composite_flip:"OFF", confirmatory:"PASS — narrow but consistent" },
-    tactical:"Hold at +2 pts overweight. Re-rate up if Inflation Reduction Act drug-pricing rules clarified."
-  },
-  {
-    id:"Banks", name:"Banks",
-    sector:"Financials",
-    gics:"Financials · Banks · Banks · Diversified Banks / Regional Banks",
-    tier5:"ow", tier3:"ow", rating5:"Overweight", rating3:"Overweight",
-    targetPct:7.0, priorTargetPct:6.5, spyPct:6.0,
-    sixMoReturn:0.052, trendPath:[0,0.5,1.2,2.0,3.0,4.0,5.2],
-    tickers:["JPM","BAC","WFC","C","USB","PNC"],
-    etf:"KBE", etfDesc:"SPDR S&P Bank ETF",
-    impl:"Tilt to regional banks > money-center banks in this stance. KRE is the regional-only proxy.",
-    rationale:"Yield curve no longer inverted. Net-interest-margin expansion thesis intact. Credit costs contained — non-performing loan ratio still falling.",
-    factors:[{name:"Yield curve slope (10y-2y)",z:"+0.7σ"},{name:"Loan growth YoY",z:"+0.4σ"},{name:"Non-performing loans",z:"-0.3σ (good)"}],
-    method: { regression:"2 factors significant: Curve slope (t=2.6), Loan growth (t=2.0)", momentum:"PASS — +5.2%", composite_flip:"OFF", confirmatory:"PASS" },
-    tactical:"Quality regionals over money centers. Watch CRE charge-offs as the concern."
-  },
-  {
-    id:"Insurance", name:"Insurance",
-    sector:"Financials",
-    gics:"Financials · Insurance · Insurance · Multi-line / Property & Casualty / Life & Health Insurance",
-    tier5:"mw", tier3:"mw", rating5:"Market Weight", rating3:"Market Weight",
-    targetPct:3.0, priorTargetPct:3.0, spyPct:3.0,
-    sixMoReturn:0.022, trendPath:[0,0.3,0.6,0.9,1.4,1.8,2.2],
-    tickers:["BRK.B","PGR","ALL","TRV","CB"],
-    etf:"KIE", etfDesc:"SPDR S&P Insurance ETF",
-    impl:"Hold at benchmark. Premium pricing power good but reserves cycle late.",
-    rationale:"Insurance sits at benchmark this cycle. Premium pricing power is solid but reinvestment yield gains are mostly priced in.",
-    factors:[{name:"Premium index",z:"+0.4σ"},{name:"Reinvestment yield",z:"+0.2σ"},{name:"Catastrophe loss ratio",z:"+0.0σ"}],
-    method: { regression:"No factors significant at t>2.0", momentum:"NEUTRAL — +2.2% in line with SPY", composite_flip:"OFF", confirmatory:"NEUTRAL — no edge" },
-    tactical:"Hold at benchmark. Re-engage if rate cuts force a reinvestment problem."
-  },
-  {
-    id:"MedDevices", name:"Medical Devices",
-    sector:"Health Care",
-    gics:"Health Care · Health Care Equipment & Services · Health Care Equipment & Supplies · Health Care Equipment",
-    tier5:"mw", tier3:"mw", rating5:"Market Weight", rating3:"Market Weight",
-    targetPct:4.0, priorTargetPct:4.0, spyPct:4.0,
-    sixMoReturn:0.018, trendPath:[0,0.3,0.5,0.8,1.2,1.5,1.8],
-    tickers:["ISRG","TMO","MDT","BSX","SYK","ABT"],
-    etf:"IHI", etfDesc:"iShares U.S. Medical Devices ETF",
-    impl:"Hold at benchmark. Tilt to procedure-volume names (ISRG, SYK) over diagnostics.",
-    rationale:"Defensive sleeve; demographic tailwind real but priced. No acute catalyst this cycle.",
-    factors:[{name:"Hospital procedure volumes",z:"+0.3σ"},{name:"Capex by hospital systems",z:"+0.2σ"},{name:"FDA 510(k) approval count",z:"+0.4σ"}],
-    method: { regression:"No factors significant", momentum:"NEUTRAL", composite_flip:"OFF", confirmatory:"NEUTRAL" },
-    tactical:"Hold at benchmark. Watch hospital capex for re-rating signal."
-  },
-  {
-    id:"Transports", name:"Transports",
-    sector:"Industrials",
-    gics:"Industrials · Transportation · Ground Transportation / Air Freight & Logistics · Rail / Trucking / Air Freight",
-    tier5:"ow", tier3:"ow", rating5:"Overweight", rating3:"Overweight",
-    targetPct:2.0, priorTargetPct:1.5, spyPct:1.5,
-    sixMoReturn:0.041, trendPath:[0,0.3,0.7,1.4,2.2,3.2,4.1],
-    tickers:["UPS","FDX","UNP","CSX","NSC","ODFL"],
-    etf:"IYT", etfDesc:"iShares U.S. Transportation ETF",
-    impl:"Rails over parcel for cycle exposure. Watch fuel costs.",
-    rationale:"Freight volumes recovering as goods inventory destocking ends. Rails leveraged into industrial activity.",
-    factors:[{name:"Cass Freight Index",z:"+0.6σ"},{name:"Rail carloads",z:"+0.5σ"},{name:"Fuel costs",z:"-0.2σ (good)"}],
-    method: { regression:"1 factor significant: Cass Freight (t=2.2)", momentum:"PASS — +4.1%", composite_flip:"OFF", confirmatory:"PASS" },
-    tactical:"Mild overweight. Re-engage harder if China demand inflects."
-  },
-  {
-    id:"AeroDefense", name:"Aerospace & Defense",
-    sector:"Industrials",
-    gics:"Industrials · Capital Goods · Aerospace & Defense · Aerospace & Defense",
-    tier5:"ow", tier3:"ow", rating5:"Overweight", rating3:"Overweight",
-    targetPct:4.0, priorTargetPct:4.5, spyPct:2.5,
-    sixMoReturn:0.061, trendPath:[0,0.8,1.6,2.6,3.8,5.0,6.1],
-    tickers:["BA","LMT","RTX","GD","NOC","TDG"],
-    etf:"ITA", etfDesc:"iShares U.S. Aerospace & Defense ETF",
-    impl:"Defense names > commercial aero in current cycle. Watch defense budget.",
-    rationale:"Defense order book robust on geopolitics; commercial aero recovering on travel demand. Trimmed slightly as boost from capex spike normalizes.",
-    factors:[{name:"DoD obligations",z:"+0.7σ"},{name:"Order book / revenue",z:"+0.5σ"},{name:"Travel demand index",z:"+0.4σ"}],
-    method: { regression:"2 factors significant: DoD obligations (t=2.5), Order book (t=2.0)", momentum:"PASS — +6.1%", composite_flip:"OFF", confirmatory:"PASS" },
-    tactical:"Held at +1.5 pts overweight, trimmed -0.5 pts vs last week. Defense names provide ballast if growth rolls over."
-  },
-  {
-    id:"OilExploration", name:"Oil & Gas E&P",
-    sector:"Energy",
-    gics:"Energy · Energy · Oil, Gas & Consumable Fuels · Oil & Gas Exploration & Production / Integrated Oil & Gas",
-    tier5:"sow", tier3:"ow", rating5:"Strong Overweight", rating3:"Overweight",
-    targetPct:6.0, priorTargetPct:2.0, spyPct:2.0,
-    sixMoReturn:0.122, trendPath:[0,1.0,3.5,5.5,7.8,10.3,12.2],
-    tickers:["XOM","CVX","COP","EOG","PXD","OXY"],
-    etf:"XOP", etfDesc:"SPDR S&P Oil & Gas Exploration & Production",
-    impl:"Equal-weight ETFs (XOP) preferred over cap-weighted to capture full sub-sector breadth.",
-    rationale:"Capital discipline holding for the third consecutive year. Crude steady above $80/bbl plus a tightening rig count means cash flow without the overinvestment trap that ended prior cycles.",
-    factors:[{name:"WTI level",z:"+1.0σ"},{name:"Rig count delta",z:"+0.6σ"},{name:"Capex/revenue (sector)",z:"-0.8σ (good)"},{name:"Inventories vs 5y avg",z:"-0.4σ"}],
-    method: { regression:"3 factors significant: WTI (t=2.7), Rig count (t=2.2), Capex/revenue (t=-2.5)", momentum:"PASS — +12.2% trailing 6mo", composite_flip:"OFF", confirmatory:"PASS — strongest signal in the set" },
-    tactical:"Largest active tilt in the portfolio (+4.0 pts overweight). Phase in if adding new exposure. Crude $70/bbl is the kill-trigger."
-  },
-  {
-    id:"Retail", name:"Retail",
-    sector:"Consumer Discretionary",
-    gics:"Consumer Discretionary · Consumer Discretionary Distribution & Retail · Broadline Retail / Specialty Retail",
-    tier5:"uw", tier3:"uw", rating5:"Underweight", rating3:"Underweight",
-    targetPct:4.0, priorTargetPct:5.0, spyPct:5.0,
-    sixMoReturn:-0.018, trendPath:[0,0.4,0.2,-0.2,-0.6,-1.2,-1.8],
-    tickers:["AMZN","HD","LOW","TJX","COST"],
-    etf:"XRT", etfDesc:"SPDR S&P Retail ETF",
-    impl:"Concentrated by AMZN in cap-weighted ETFs. XRT is equal-weighted alternative.",
-    rationale:"Credit-card delinquencies ticking up. Consumer is still spending but at the margin the tailwind is weakening. Underweight expressed via the cyclical sub-segments.",
-    factors:[{name:"Credit-card 30+ days past due",z:"+0.7σ (bad)"},{name:"Retail sales delta",z:"-0.2σ"},{name:"Consumer confidence",z:"-0.4σ"}],
-    method: { regression:"2 factors significant: Delinquencies (t=2.3), Consumer confidence (t=-2.1)", momentum:"FAIL — -1.8%", composite_flip:"OFF", confirmatory:"PASS — fundamentals and momentum both negative" },
-    tactical:"Avoid leveraged consumer. Mega-cap e-commerce (AMZN) stays in via the bucket weight."
-  },
-  {
-    id:"Materials", name:"Materials",
-    sector:"Materials",
-    gics:"Materials · Materials · Chemicals / Metals & Mining · Industrial Gases / Diversified Chemicals / Copper",
-    tier5:"mw", tier3:"mw", rating5:"Market Weight", rating3:"Market Weight",
-    targetPct:2.0, priorTargetPct:2.0, spyPct:2.5,
-    sixMoReturn:0.005, trendPath:[0,0.0,0.2,0.3,0.4,0.5,0.5],
-    tickers:["LIN","APD","SHW","ECL","FCX"],
-    etf:"XLB", etfDesc:"SPDR Materials Select Sector",
-    impl:"Hold near benchmark. Industrial gases (LIN, APD) are the quality core.",
-    rationale:"China demand unclear. Copper-gold ratio neutral. Position at benchmark; no edge.",
-    factors:[{name:"Copper-gold ratio",z:"+0.1σ"},{name:"China PMI",z:"-0.3σ"},{name:"Steel prices",z:"+0.2σ"}],
-    method: { regression:"No factors significant", momentum:"NEUTRAL — +0.5%", composite_flip:"OFF", confirmatory:"NEUTRAL" },
-    tactical:"Hold near benchmark. Re-engage if China stimulates."
-  },
-  {
-    id:"ConsStaples", name:"Consumer Staples",
-    sector:"Consumer Staples",
-    gics:"Consumer Staples · Food, Beverage & Tobacco / Household & Personal Products · Beverages / Household Products / Tobacco",
-    tier5:"uw", tier3:"uw", rating5:"Underweight", rating3:"Underweight",
-    targetPct:4.0, priorTargetPct:6.0, spyPct:6.0,
-    sixMoReturn:-0.035, trendPath:[0,-0.3,-0.5,-1.0,-1.8,-2.6,-3.5],
-    tickers:["PG","KO","PEP","WMT","COST","MO"],
-    etf:"XLP", etfDesc:"SPDR Consumer Staples Select Sector",
-    impl:"Use as funding source for overweights. Tobacco names (MO, PM) are the remaining yield trade.",
-    rationale:"Defensive premium has compressed and the sector's been bid up. With macro composites supportive there's no need to pay up for safety.",
-    factors:[{name:"Defensive P/E premium",z:"+0.8σ (rich)"},{name:"Volume growth",z:"-0.1σ"},{name:"Pricing power",z:"+0.2σ"}],
-    method: { regression:"1 factor significant: Defensive premium (t=2.6)", momentum:"FAIL — -3.5%", composite_flip:"OFF", confirmatory:"PASS — premium is rich, momentum is weak" },
-    tactical:"Use as funding source for the Oil & Gas and Software overweights."
-  },
-  {
-    id:"Utilities", name:"Utilities",
-    sector:"Utilities",
-    gics:"Utilities · Utilities · Electric Utilities · Electric Utilities",
-    tier5:"suw", tier3:"uw", rating5:"Strong Underweight", rating3:"Underweight",
-    targetPct:1.0, priorTargetPct:1.0, spyPct:2.5,
-    sixMoReturn:-0.058, trendPath:[0,-0.3,-0.9,-2.0,-3.5,-4.7,-5.8],
-    tickers:["NEE","SO","DUK","D","AEP"],
-    etf:"XLU", etfDesc:"SPDR Utilities Select Sector",
-    impl:"Min weight only. Avoid until rate-cutting cycle.",
-    rationale:"Bond proxy with rates not cooperating. AI-driven power demand is a real story but the regulatory recovery lag makes it hard to monetize this year.",
-    factors:[{name:"10y yield level",z:"+0.6σ (bad)"},{name:"Power demand growth",z:"+0.5σ (good)"},{name:"Regulatory ROE trend",z:"-0.2σ"}],
-    method: { regression:"1 factor significant: 10y yield (t=2.4)", momentum:"FAIL — -5.8%", composite_flip:"OFF", confirmatory:"PASS — both negative" },
-    tactical:"Min weight. Re-engage in a rate-cutting cycle."
-  },
-  {
-    id:"RealEstate", name:"Real Estate",
-    sector:"Real Estate",
-    gics:"Real Estate · Equity Real Estate Investment Trusts (REITs) · Industrial / Specialized REITs · Industrial REITs / Data Center REITs / Telecom Tower REITs",
-    tier5:"suw", tier3:"uw", rating5:"Strong Underweight", rating3:"Underweight",
-    targetPct:1.0, priorTargetPct:2.0, spyPct:2.5,
-    sixMoReturn:-0.078, trendPath:[0,-0.5,-1.4,-3.0,-4.7,-6.3,-7.8],
-    tickers:["PLD","EQIX","AMT","CCI","SPG"],
-    etf:"XLRE", etfDesc:"SPDR Real Estate Select Sector",
-    impl:"Removed from active picks. Min weight position only.",
-    rationale:"Rate path no longer trending lower. Commercial real-estate office overhang persists. Removed from picks this cycle.",
-    factors:[{name:"10y yield level",z:"+0.6σ (bad)"},{name:"CRE delinquencies",z:"+0.5σ (bad)"},{name:"REIT funds-from-operations growth",z:"-0.3σ"}],
-    method: { regression:"2 factors significant: 10y yield (t=2.4), CRE delinquencies (t=2.1)", momentum:"FAIL — -7.8%", composite_flip:"OFF", confirmatory:"PASS — both negative" },
-    tactical:"Trim. Re-engage if 10y breaks below 4%."
-  },
-  {
-    id:"CommSvcs", name:"Communication Services",
-    sector:"Communication Services",
-    gics:"Communication Services · Media & Entertainment · Interactive Media & Services / Entertainment · Interactive Media & Services / Movies & Entertainment",
-    tier5:"ow", tier3:"ow", rating5:"Overweight", rating3:"Overweight",
-    targetPct:11.0, priorTargetPct:11.0, spyPct:9.0,
-    sixMoReturn:0.052, trendPath:[0,0.5,1.4,2.3,3.5,4.5,5.2],
-    tickers:["META","GOOGL","DIS","NFLX","TMUS"],
-    etf:"XLC", etfDesc:"SPDR Communication Services Select Sector",
-    impl:"Concentration risk — top 3 names = 65% of cap-weighted ETF. Mostly an AI proxy via mega-cap.",
-    rationale:"Mega-cap platforms still doing the heavy lifting — cash generative, AI-adjacent, and resilient on margins.",
-    factors:[{name:"Mega-cap earnings revisions",z:"+1.0σ"},{name:"Ad-spend index",z:"+0.5σ"},{name:"Subscriber growth",z:"+0.3σ"}],
-    method: { regression:"1 factor significant: Earnings revisions (t=2.7)", momentum:"PASS — +5.2%", composite_flip:"OFF", confirmatory:"PASS" },
-    tactical:"Concentration risk. Hold at +2 pts overweight."
-  },
-  {
-    id:"MegaCapGrowth", name:"Mega-Cap Growth",
-    sector:"Cross-cutting",
-    gics:"Cross-cutting overlay · Spans IT (Systems Software, Tech Hardware, Semis), Comm Svcs (Interactive Media), Cons Disc (Broadline Retail, Auto)",
-    tier5:"mw", tier3:"mw", rating5:"Market Weight", rating3:"Market Weight",
-    targetPct:3.0, priorTargetPct:3.5, spyPct:0.0,
-    sixMoReturn:0.046, trendPath:[0,0.6,1.4,2.2,3.0,3.8,4.6],
-    tickers:["AAPL","MSFT","GOOGL","AMZN","META","NVDA","TSLA"],
-    etf:"MGK", etfDesc:"Vanguard Mega Cap Growth ETF",
-    impl:"Cross-cutting overlay. Already captured in Software / Comm Svcs / Semis weights — exposure here is incremental concentration.",
-    rationale:"Cross-cutting bucket that overlays the top 7-10 mega-caps. Held flat — same names already drive Software, Semis, and Comm Services overweights, no need to double up.",
-    factors:[{name:"Top-5 share of S&P market cap",z:"+1.2σ"},{name:"Mega-cap earnings revisions",z:"+1.0σ"},{name:"Mega-cap free cash flow yield",z:"+0.4σ"}],
-    method: { regression:"Cross-cutting — exposure already expressed via Software / Semis / Comm Svcs", momentum:"PASS — +4.6%", composite_flip:"OFF", confirmatory:"NEUTRAL — held flat to avoid double-overweighting" },
-    tactical:"Cross-cutting bucket. Net exposure is what matters, not this overlay alone."
-  },
+const SECTORS = [
+  { key:"Energy", name:"Energy", color:"#7a5e2e", icon:"⚡",
+    igs:[{ name:"Energy", inds:["Energy Equipment & Services","Oil, Gas & Consumable Fuels"] }] },
+  { key:"Materials", name:"Materials", color:"#5a6e7a", icon:"⛏",
+    igs:[{ name:"Materials", inds:["Chemicals","Construction Materials","Containers & Packaging","Metals & Mining","Paper & Forest Products"] }] },
+  { key:"Industrials", name:"Industrials", color:"#2a4a6e", icon:"🏭",
+    igs:[
+      { name:"Capital Goods", inds:["Aerospace & Defense","Building Products","Construction & Engineering","Electrical Equipment","Industrial Conglomerates","Machinery","Trading Companies & Distributors"] },
+      { name:"Commercial & Professional Services", inds:["Commercial Services & Supplies","Professional Services"] },
+      { name:"Transportation", inds:["Air Freight & Logistics","Airlines","Marine","Road & Rail","Transportation Infrastructure"] }
+    ] },
+  { key:"ConsumerDiscretionary", name:"Consumer Discretionary", color:"#b87545", icon:"🛒",
+    igs:[
+      { name:"Automobiles & Components", inds:["Auto Components","Automobiles"] },
+      { name:"Consumer Durables & Apparel", inds:["Household Durables","Leisure Products","Textiles, Apparel & Luxury Goods"] },
+      { name:"Consumer Services", inds:["Hotels, Restaurants & Leisure","Diversified Consumer Services"] },
+      { name:"Retailing", inds:["Distributors","Internet & Direct Marketing Retail","Multiline Retail","Specialty Retail"] }
+    ] },
+  { key:"ConsumerStaples", name:"Consumer Staples", color:"#a86530", icon:"🍔",
+    igs:[
+      { name:"Food & Staples Retailing", inds:["Food & Staples Retailing"] },
+      { name:"Food, Beverage & Tobacco", inds:["Beverages","Food Products","Tobacco"] },
+      { name:"Household & Personal Products", inds:["Household Products","Personal Products"] }
+    ] },
+  { key:"HealthCare", name:"Health Care", color:"#9d3545", icon:"❤",
+    igs:[
+      { name:"Health Care Equipment & Services", inds:["Health Care Equipment","Health Care Providers & Services","Health Care Technology"] },
+      { name:"Pharmaceuticals, Biotechnology & Life Sciences", inds:["Biotechnology","Pharmaceuticals","Life Sciences Tools & Services"] }
+    ] },
+  { key:"Financials", name:"Financials", color:"#5e6478", icon:"📊",
+    igs:[
+      { name:"Banks", inds:["Banks","Thrifts & Mortgage Finance"] },
+      { name:"Diversified Financials", inds:["Diversified Financial Services","Consumer Finance","Capital Markets","Mortgage REITs"] },
+      { name:"Insurance", inds:["Insurance"] }
+    ] },
+  { key:"InformationTechnology", name:"Information Technology", color:"#1f6e4d", icon:"💻",
+    igs:[
+      { name:"Software & Services", inds:["Internet Software & Services","IT Services","Software"] },
+      { name:"Technology Hardware & Equipment", inds:["Communications Equipment","Technology Hardware, Storage & Peripherals","Electronic Equipment, Instruments & Components"] },
+      { name:"Semiconductors & Semiconductor Equipment", inds:["Semiconductors","Semiconductor Equipment"] }
+    ] },
+  { key:"CommunicationServices", name:"Communication Services", color:"#2b6b78", icon:"📡",
+    igs:[
+      { name:"Telecommunication Services", inds:["Diversified Telecommunication Services","Wireless Telecommunication Services"] },
+      { name:"Media & Entertainment", inds:["Media","Entertainment","Interactive Media & Services"] }
+    ] },
+  { key:"Utilities", name:"Utilities", color:"#2d7159", icon:"🔌",
+    igs:[{ name:"Utilities", inds:["Electric Utilities","Gas Utilities","Multi-Utilities","Water Utilities","Independent Power & Renewable Electricity"] }] },
+  { key:"RealEstate", name:"Real Estate", color:"#735780", icon:"🏢",
+    igs:[{ name:"Equity REITs", inds:["Equity REITs","Real Estate Management & Development"] }] },
 ];
 
-const TIER_COLORS = { sow:"#1d4a31", ow:"#2f6f4a", mw:"#9a9ea8", uw:"#9d3545", suw:"#6e1d2a" };
-const TIER_NAMES_5 = { sow:"Strong Overweight", ow:"Overweight", mw:"Market Weight", uw:"Underweight", suw:"Strong Underweight" };
-const TIER_NAMES_3 = { ow:"Overweight", mw:"Market Weight", uw:"Underweight" };
+/* ============================================================
+   Calibrated ratings (16 buckets) keyed by GICS path
+   ============================================================ */
+const RATINGS = {
+  "InformationTechnology>Software & Services>Software": { id:"Software", calibrationLevel:"industry",
+    tier5:"sow", rating5:"Strong Overweight",
+    targetPct:16.0, priorTargetPct:15.5, spyPct:6.5, sixMoReturn:0.084,
+    tickers:["MSFT","ORCL","ADBE","NOW","CRM","INTU"], etf:"IGV",
+    etfDesc:"iShares Expanded Tech-Software Sector",
+    impl:"Liquid via large-cap software ETFs or the largest 5-10 individual names.",
+    rationale:"AI infrastructure capex still expanding and price momentum confirming.",
+    factors:[{name:"ISM New Orders",z:"+1.4σ"},{name:"Semis cycle (SOX/SPX)",z:"+1.1σ"},{name:"Earnings revision breadth",z:"+0.9σ"},{name:"Growth composite",z:"+0.7σ"}],
+    method:{regression:"3 factors significant: ISM (t=2.8), Semis cycle (t=2.1), Earnings revisions (t=3.2)", momentum:"PASS — +8.4% trailing 6mo", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Hold to Strong Overweight unless ISM rolls over." },
+  "InformationTechnology>Semiconductors & Semiconductor Equipment>Semiconductors": { id:"Semis", calibrationLevel:"industry",
+    tier5:"sow", rating5:"Strong Overweight",
+    targetPct:14.0, priorTargetPct:12.0, spyPct:9.0, sixMoReturn:0.142,
+    tickers:["NVDA","AVGO","AMD","TSM","ASML","INTC"], etf:"SMH",
+    etfDesc:"VanEck Semiconductor ETF", impl:"Concentrated bucket — top 5 = 60% of any liquid ETF.",
+    rationale:"Cycle indicator at multi-year highs. AI-capex demand still expanding.",
+    factors:[{name:"SOX/SPX ratio (Z)",z:"+1.6σ"},{name:"Book-to-bill",z:"+1.2σ"},{name:"Capex revision",z:"+0.9σ"}],
+    method:{regression:"2 factors significant: SOX/SPX (t=3.1), Book-to-bill (t=2.4)", momentum:"PASS — +14.2%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Watch hyperscaler capex guidance for the kill-trigger." },
+  "HealthCare>Pharmaceuticals, Biotechnology & Life Sciences>Biotechnology": { id:"Biotech", calibrationLevel:"industry",
+    tier5:"ow", rating5:"Overweight",
+    targetPct:4.0, priorTargetPct:4.0, spyPct:2.0, sixMoReturn:0.038,
+    tickers:["AMGN","GILD","VRTX","REGN","BIIB"], etf:"IBB",
+    etfDesc:"iShares Biotechnology ETF", impl:"Tier 1 = large-cap biotech (top 10).",
+    rationale:"FDA approval cadence elevated. Pipeline maturity in obesity/oncology.",
+    factors:[{name:"FDA approvals (3M)",z:"+0.8σ"},{name:"IPO volume",z:"+0.5σ"}],
+    method:{regression:"1 factor significant: FDA approvals (t=2.4)", momentum:"PASS — +3.8%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Hold at +2 pts overweight." },
+  "HealthCare>Health Care Equipment & Services>Health Care Equipment": { id:"MedDevices", calibrationLevel:"industry",
+    tier5:"mw", rating5:"Market Weight",
+    targetPct:4.0, priorTargetPct:4.0, spyPct:4.0, sixMoReturn:0.018,
+    tickers:["ISRG","TMO","MDT","BSX","SYK","ABT"], etf:"IHI",
+    etfDesc:"iShares U.S. Medical Devices ETF", impl:"Hold at benchmark.",
+    rationale:"Defensive sleeve; demographic tailwind real but priced.",
+    factors:[{name:"Hospital procedure volumes",z:"+0.3σ"},{name:"FDA 510(k) approvals",z:"+0.4σ"}],
+    method:{regression:"No factors significant", momentum:"NEUTRAL", composite_flip:"OFF", confirmatory:"NEUTRAL"},
+    tactical:"Hold at benchmark." },
+  "Industrials>Capital Goods>Aerospace & Defense": { id:"AeroDefense", calibrationLevel:"industry",
+    tier5:"ow", rating5:"Overweight",
+    targetPct:4.0, priorTargetPct:4.5, spyPct:2.5, sixMoReturn:0.061,
+    tickers:["BA","LMT","RTX","GD","NOC","TDG"], etf:"ITA",
+    etfDesc:"iShares U.S. Aerospace & Defense ETF", impl:"Defense > commercial aero in current cycle.",
+    rationale:"Defense order book robust on geopolitics; commercial aero recovering.",
+    factors:[{name:"DoD obligations",z:"+0.7σ"},{name:"Order book / revenue",z:"+0.5σ"}],
+    method:{regression:"2 factors significant: DoD obligations (t=2.5), Order book (t=2.0)", momentum:"PASS — +6.1%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Trimmed -0.5 pts vs last week." },
+  "Energy>Energy>Oil, Gas & Consumable Fuels": { id:"OilExp", calibrationLevel:"industry",
+    tier5:"sow", rating5:"Strong Overweight",
+    targetPct:6.0, priorTargetPct:2.0, spyPct:2.0, sixMoReturn:0.122,
+    tickers:["XOM","CVX","COP","EOG","PXD","OXY"], etf:"XOP",
+    etfDesc:"SPDR S&P Oil & Gas Exploration & Production",
+    impl:"Equal-weight ETFs preferred to capture full sub-sector breadth.",
+    rationale:"Capital discipline holding for the third consecutive year. Crude steady above $80/bbl.",
+    factors:[{name:"WTI level",z:"+1.0σ"},{name:"Rig count delta",z:"+0.6σ"},{name:"Capex/revenue",z:"-0.8σ (good)"}],
+    method:{regression:"3 factors significant: WTI (t=2.7), Rig count (t=2.2), Capex/revenue (t=-2.5)", momentum:"PASS — +12.2%", composite_flip:"OFF", confirmatory:"PASS — strongest signal"},
+    tactical:"Largest active tilt. Crude $70/bbl is the kill-trigger." },
+  // Industry Group level
+  "Financials>Banks": { id:"Banks", calibrationLevel:"ig",
+    tier5:"ow", rating5:"Overweight",
+    targetPct:7.0, priorTargetPct:6.5, spyPct:6.0, sixMoReturn:0.052,
+    tickers:["JPM","BAC","WFC","C","USB","PNC"], etf:"KBE",
+    etfDesc:"SPDR S&P Bank ETF", impl:"Tilt regional banks > money centers.",
+    rationale:"Yield curve no longer inverted. NIM expansion intact.",
+    factors:[{name:"Curve slope (10y-2y)",z:"+0.7σ"},{name:"Loan growth YoY",z:"+0.4σ"}],
+    method:{regression:"2 factors significant: Curve slope (t=2.6), Loan growth (t=2.0)", momentum:"PASS — +5.2%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Quality regionals over money centers." },
+  "Financials>Insurance": { id:"Insurance", calibrationLevel:"ig",
+    tier5:"mw", rating5:"Market Weight",
+    targetPct:3.0, priorTargetPct:3.0, spyPct:3.0, sixMoReturn:0.022,
+    tickers:["BRK.B","PGR","ALL","TRV","CB"], etf:"KIE",
+    etfDesc:"SPDR S&P Insurance ETF", impl:"Hold at benchmark.",
+    rationale:"Premium pricing power solid but reinvestment yield gains mostly priced in.",
+    factors:[{name:"Premium index",z:"+0.4σ"},{name:"Reinvestment yield",z:"+0.2σ"}],
+    method:{regression:"No factors significant at t>2.0", momentum:"NEUTRAL", composite_flip:"OFF", confirmatory:"NEUTRAL"},
+    tactical:"Hold at benchmark." },
+  "Industrials>Transportation": { id:"Transports", calibrationLevel:"ig",
+    tier5:"ow", rating5:"Overweight",
+    targetPct:2.0, priorTargetPct:1.5, spyPct:1.5, sixMoReturn:0.041,
+    tickers:["UPS","FDX","UNP","CSX","NSC","ODFL"], etf:"IYT",
+    etfDesc:"iShares U.S. Transportation ETF", impl:"Rails over parcel for cycle exposure.",
+    rationale:"Freight volumes recovering as goods inventory destocking ends.",
+    factors:[{name:"Cass Freight Index",z:"+0.6σ"},{name:"Rail carloads",z:"+0.5σ"}],
+    method:{regression:"1 factor significant: Cass Freight (t=2.2)", momentum:"PASS — +4.1%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Mild overweight." },
+  "ConsumerDiscretionary>Retailing": { id:"Retail", calibrationLevel:"ig",
+    tier5:"uw", rating5:"Underweight",
+    targetPct:4.0, priorTargetPct:5.0, spyPct:5.0, sixMoReturn:-0.018,
+    tickers:["AMZN","HD","LOW","TJX","COST"], etf:"XRT",
+    etfDesc:"SPDR S&P Retail ETF", impl:"Concentrated by AMZN in cap-weighted ETFs.",
+    rationale:"Credit-card delinquencies ticking up. Consumer tailwind weakening at the margin.",
+    factors:[{name:"Card 30+ days past due",z:"+0.7σ (bad)"},{name:"Retail sales delta",z:"-0.2σ"}],
+    method:{regression:"2 factors significant: Delinquencies (t=2.3), Consumer confidence (t=-2.1)", momentum:"FAIL — -1.8%", composite_flip:"OFF", confirmatory:"PASS — both negative"},
+    tactical:"Avoid leveraged consumer." },
+  // Sector level
+  "Materials": { id:"Materials", calibrationLevel:"sector",
+    tier5:"mw", rating5:"Market Weight",
+    targetPct:2.0, priorTargetPct:2.0, spyPct:2.5, sixMoReturn:0.005,
+    tickers:["LIN","APD","SHW","ECL","FCX"], etf:"XLB",
+    etfDesc:"SPDR Materials Select Sector", impl:"Hold near benchmark.",
+    rationale:"China demand unclear. Copper-gold ratio neutral.",
+    factors:[{name:"Copper-gold ratio",z:"+0.1σ"},{name:"China PMI",z:"-0.3σ"}],
+    method:{regression:"No factors significant", momentum:"NEUTRAL", composite_flip:"OFF", confirmatory:"NEUTRAL"},
+    tactical:"Hold near benchmark." },
+  "ConsumerStaples": { id:"ConsStaples", calibrationLevel:"sector",
+    tier5:"uw", rating5:"Underweight",
+    targetPct:4.0, priorTargetPct:6.0, spyPct:6.0, sixMoReturn:-0.035,
+    tickers:["PG","KO","PEP","WMT","COST","MO"], etf:"XLP",
+    etfDesc:"SPDR Consumer Staples Select Sector", impl:"Use as funding source.",
+    rationale:"Defensive premium has compressed. With composites supportive, no need to pay up for safety.",
+    factors:[{name:"Defensive P/E premium",z:"+0.8σ (rich)"},{name:"Pricing power",z:"+0.2σ"}],
+    method:{regression:"1 factor significant: Defensive premium (t=2.6)", momentum:"FAIL — -3.5%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Use as funding source." },
+  "Utilities": { id:"Utilities", calibrationLevel:"sector",
+    tier5:"suw", rating5:"Strong Underweight",
+    targetPct:1.0, priorTargetPct:1.0, spyPct:2.5, sixMoReturn:-0.058,
+    tickers:["NEE","SO","DUK","D","AEP"], etf:"XLU",
+    etfDesc:"SPDR Utilities Select Sector", impl:"Min weight only.",
+    rationale:"Bond proxy with rates not cooperating.",
+    factors:[{name:"10y yield",z:"+0.6σ (bad)"},{name:"Power demand growth",z:"+0.5σ (good)"}],
+    method:{regression:"1 factor significant: 10y yield (t=2.4)", momentum:"FAIL — -5.8%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Min weight." },
+  "RealEstate": { id:"RealEstate", calibrationLevel:"sector",
+    tier5:"suw", rating5:"Strong Underweight",
+    targetPct:1.0, priorTargetPct:2.0, spyPct:2.5, sixMoReturn:-0.078,
+    tickers:["PLD","EQIX","AMT","CCI","SPG"], etf:"XLRE",
+    etfDesc:"SPDR Real Estate Select Sector", impl:"Removed from active picks.",
+    rationale:"Rate path no longer trending lower. CRE office overhang persists.",
+    factors:[{name:"10y yield",z:"+0.6σ (bad)"},{name:"CRE delinquencies",z:"+0.5σ (bad)"}],
+    method:{regression:"2 factors significant: 10y yield (t=2.4), CRE delinquencies (t=2.1)", momentum:"FAIL — -7.8%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Trim. Re-engage if 10y breaks below 4%." },
+  "CommunicationServices": { id:"CommSvcs", calibrationLevel:"sector",
+    tier5:"ow", rating5:"Overweight",
+    targetPct:11.0, priorTargetPct:11.0, spyPct:9.0, sixMoReturn:0.052,
+    tickers:["META","GOOGL","DIS","NFLX","TMUS"], etf:"XLC",
+    etfDesc:"SPDR Communication Services Select Sector", impl:"Top 3 names = 65% of cap-weighted ETF.",
+    rationale:"Mega-cap platforms still doing the heavy lifting.",
+    factors:[{name:"Mega-cap earnings revisions",z:"+1.0σ"},{name:"Ad-spend index",z:"+0.5σ"}],
+    method:{regression:"1 factor significant: Earnings revisions (t=2.7)", momentum:"PASS — +5.2%", composite_flip:"OFF", confirmatory:"PASS"},
+    tactical:"Concentration risk. Hold." },
+};
 
-/* Compute derived fields */
-INDUSTRIES.forEach(b => {
-  b.tiltPts = b.targetPct - b.spyPct;
-  b.deltaPts = b.targetPct - b.priorTargetPct;
-});
+const TIER_COLORS = { sow:"#1d4a31", ow:"#2f6f4a", mw:"#9a9ea8", uw:"#9d3545", suw:"#6e1d2a" };
 
 /* ============================================================
-   State
+   Aggregate sector tilt
    ============================================================ */
-let state = { filter: 'all', group: 'tilt', tier: '5', view: 'cards', sortKey: 'tiltPts', sortDir: 'desc' };
-
-function applyFilter(items) {
-  switch (state.filter) {
-    case 'changed':
-      return items.filter(b => Math.abs(b.deltaPts) >= 0.1);
-    case 'overweight':
-      return items.filter(b => b.tiltPts > 0.1);
-    case 'underweight':
-      return items.filter(b => b.tiltPts < -0.1);
-    default:
-      return items;
+function sectorAggregate(sec) {
+  if (RATINGS[sec.key]) {
+    const r = RATINGS[sec.key];
+    return { tilt: r.targetPct - r.spyPct, source: 'sector', rating: r };
   }
-}
-
-function render() {
-  const items = applyFilter([...INDUSTRIES]);
-  document.getElementById('indCount').textContent =
-    `${items.length} of ${INDUSTRIES.length} industries shown`;
-  if (state.view === 'cards') {
-    renderCards(items);
-    document.getElementById('cardsView').style.display = '';
-    document.getElementById('tableView').style.display = 'none';
-  } else {
-    renderTable(items);
-    document.getElementById('cardsView').style.display = 'none';
-    document.getElementById('tableView').style.display = '';
-  }
-}
-
-/* Cards (grouped) */
-function renderCards(items) {
-  const root = document.getElementById('cardsView');
-  root.innerHTML = '';
-  if (items.length === 0) {
-    root.innerHTML = '<p style="color:var(--ink-2);font-style:italic;">No industries match the current filter.</p>';
-    return;
-  }
-  if (state.group === 'tilt') {
-    const tierField = state.tier === '5' ? 'tier5' : 'tier3';
-    const tierNames = state.tier === '5' ? TIER_NAMES_5 : TIER_NAMES_3;
-    const order = state.tier === '5' ? ['sow','ow','mw','uw','suw'] : ['ow','mw','uw'];
-    order.forEach(t => {
-      const tierItems = items.filter(b => b[tierField] === t)
-        .sort((a,b) => Math.abs(b.tiltPts) - Math.abs(a.tiltPts));
-      if (tierItems.length) root.appendChild(tierBlock(tierNames[t], t, tierItems));
-    });
-  } else {
-    const sectors = [...new Set(items.map(b => b.sector))];
-    sectors.sort();
-    sectors.forEach(s => {
-      const sectorItems = items.filter(b => b.sector === s)
-        .sort((a,b) => b.tiltPts - a.tiltPts);
-      root.appendChild(sectorBlock(s, sectorItems));
-    });
-  }
-}
-
-function tierBlock(label, pipClass, items) {
-  const wrap = document.createElement('div');
-  wrap.className = 'tier-row';
-  const head = document.createElement('div');
-  head.className = `tier-label ${pipClass}`;
-  head.innerHTML = `<span class="pip"></span><span class="name">${label}</span><span class="count">${items.length} ${items.length===1?'industry':'industries'}</span>`;
-  wrap.appendChild(head);
-  const grid = document.createElement('div');
-  grid.className = 'ind-grid';
-  items.forEach(b => grid.appendChild(makeCard(b)));
-  wrap.appendChild(grid);
-  return wrap;
-}
-
-function sectorBlock(sector, items) {
-  const wrap = document.createElement('div');
-  wrap.className = 'tier-row';
-  const head = document.createElement('div');
-  head.className = 'tier-label';
-  head.style.borderBottom = '1px solid var(--accent)';
-  head.innerHTML = `<span class="pip" style="background:var(--accent-deep)"></span><span class="name">${sector}</span><span class="count">${items.length} ${items.length===1?'industry':'industries'}</span>`;
-  wrap.appendChild(head);
-  const grid = document.createElement('div');
-  grid.className = 'ind-grid';
-  items.forEach(b => grid.appendChild(makeCard(b)));
-  wrap.appendChild(grid);
-  return wrap;
-}
-
-function makeCard(b) {
-  const card = document.createElement('div');
-  const tierField = state.tier === '5' ? 'tier5' : 'tier3';
-  const ratingField = state.tier === '5' ? 'rating5' : 'rating3';
-  card.className = `ind-card ${b[tierField]}`;
-  const tilt = b.tiltPts;
-  const tiltCls = tilt > 0.5 ? 'up' : tilt < -0.5 ? 'down' : 'flat';
-  const tiltText = tilt > 0 ? `+${tilt.toFixed(1)} pts`
-                 : tilt < 0 ? `${tilt.toFixed(1)} pts`
-                 : '0 pts';
-  const tiltDir = tilt > 0.5 ? 'overweight' : tilt < -0.5 ? 'underweight' : 'at benchmark';
-  const path = b.trendPath;
-  const minP = Math.min(...path), maxP = Math.max(...path);
-  const range = Math.max(maxP - minP, 0.01);
-  const pts = path.map((y, i) => {
-    const x = (i / (path.length - 1)) * 200;
-    const yPlot = 24 - ((y - minP) / range) * 22;
-    return `${x.toFixed(1)},${yPlot.toFixed(2)}`;
-  }).join(' ');
-  const trendColor = b.sixMoReturn > 0 ? 'var(--up)' : b.sixMoReturn < 0 ? 'var(--down)' : 'var(--ink-3)';
-  const sixMoText = (b.sixMoReturn>=0?'+':'') + (b.sixMoReturn*100).toFixed(1) + '%';
-  const dPts = b.deltaPts;
-  const deltaTxt = dPts === 0 ? 'Unchanged this week'
-                 : `${dPts>0?'+':''}${dPts.toFixed(1)} pts vs last week`;
-  const deltaCls = dPts > 0 ? 'pos' : dPts < 0 ? 'neg' : 'flat';
-
-  card.innerHTML = `
-    <div class="top">
-      <span class="name">${b.name}</span>
-      <span class="tilt-tier">${b[ratingField]}</span>
-    </div>
-    <div class="gics">${b.gics}</div>
-    <div class="tilt-row">
-      <div>
-        <div class="tilt-num ${tiltCls}">${tiltText}</div>
-        <div class="tilt-tier">${tiltDir}</div>
-      </div>
-      <div class="spark">
-        <svg viewBox="0 0 200 28" preserveAspectRatio="none">
-          <polyline points="${pts}" fill="none" stroke="${trendColor}" stroke-width="1.6"/>
-        </svg>
-        <div class="spark-pct">6mo ${sixMoText}</div>
-      </div>
-    </div>
-    <div class="footer">
-      <span class="vsspy">Hold ${b.targetPct.toFixed(1)}% · S&amp;P ${b.spyPct.toFixed(1)}%</span>
-      <span class="delta ${deltaCls}">${deltaTxt}</span>
-    </div>
-  `;
-  card.addEventListener('click', () => openDrawer(b));
-  return card;
-}
-
-/* Table */
-function renderTable(items) {
-  const tbody = document.querySelector('#allocTable tbody');
-  const rows = [...items].sort((a,b) => {
-    const av = a[state.sortKey], bv = b[state.sortKey];
-    if (typeof av === 'string') {
-      return state.sortDir === 'asc' ? av.localeCompare(bv) : bv.localeCompare(av);
+  let target = 0, spy = 0;
+  let foundAny = false;
+  sec.igs.forEach(ig => {
+    const igKey = `${sec.key}>${ig.name}`;
+    if (RATINGS[igKey]) {
+      const r = RATINGS[igKey];
+      target += r.targetPct; spy += r.spyPct; foundAny = true;
+    } else {
+      ig.inds.forEach(ind => {
+        const indKey = `${sec.key}>${ig.name}>${ind}`;
+        if (RATINGS[indKey]) {
+          const r = RATINGS[indKey];
+          target += r.targetPct; spy += r.spyPct; foundAny = true;
+        }
+      });
     }
-    return state.sortDir === 'asc' ? av - bv : bv - av;
   });
-  const tierField = state.tier === '5' ? 'tier5' : 'tier3';
-  const ratingField = state.tier === '5' ? 'rating5' : 'rating3';
-  tbody.innerHTML = rows.map(b => {
-    const ovrCls = b.tiltPts > 0.5 ? 'over' : b.tiltPts < -0.5 ? 'under' : 'flat';
-    const dCls = b.deltaPts > 0 ? 'over' : b.deltaPts < 0 ? 'under' : 'flat';
-    const sCls = b.sixMoReturn > 0 ? 'over' : b.sixMoReturn < 0 ? 'under' : 'flat';
-    return `
-      <tr data-id="${b.id}">
-        <td class="bucket"><span class="pip" style="background:${TIER_COLORS[b[tierField]]}"></span>${b.name}</td>
-        <td>${b.sector}</td>
-        <td>${b[ratingField]}</td>
-        <td class="num">${b.targetPct.toFixed(1)}</td>
-        <td class="num">${b.spyPct.toFixed(1)}</td>
-        <td class="num ${ovrCls}">${b.tiltPts>=0?'+':''}${b.tiltPts.toFixed(1)}</td>
-        <td class="num ${dCls}">${b.deltaPts>=0?'+':''}${b.deltaPts.toFixed(1)}</td>
-        <td class="num ${sCls}">${(b.sixMoReturn>=0?'+':'')+(b.sixMoReturn*100).toFixed(1)}%</td>
-      </tr>
-    `;
-  }).join('');
-  // Sort indicator
-  document.querySelectorAll('#allocTable thead th').forEach(th => {
-    th.classList.remove('sorted');
-    const arrow = th.querySelector('.sort-arrow');
-    if (arrow) arrow.innerHTML = '&#x25B4;&#x25BE;';
-  });
-  const activeTh = document.querySelector(`#allocTable thead th[data-sort="${state.sortKey}"]`);
-  if (activeTh) {
-    activeTh.classList.add('sorted');
-    activeTh.querySelector('.sort-arrow').innerHTML = state.sortDir === 'asc' ? '&#x25B4;' : '&#x25BE;';
-  }
-  // Row click → drawer
-  document.querySelectorAll('#allocTable tbody tr').forEach(tr => {
-    tr.addEventListener('click', () => {
-      const b = INDUSTRIES.find(x => x.id === tr.dataset.id);
-      if (b) openDrawer(b);
-    });
-  });
+  if (!foundAny) return null;
+  return { tilt: target - spy, source: 'derived' };
 }
-document.querySelectorAll('#allocTable thead th').forEach(th => {
-  th.addEventListener('click', () => {
-    const k = th.dataset.sort;
-    state.sortDir = (state.sortKey === k && state.sortDir === 'desc') ? 'asc' : 'desc';
-    state.sortKey = k;
-    render();
-  });
-});
 
-/* Toggle wiring (proper state, fixes v3 toggle bug) */
-function bindToggle(id, prop) {
-  document.querySelectorAll(`#${id} button`).forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll(`#${id} button`).forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      state[prop] = btn.dataset[prop];
-      render();
+function tiltColor(tilt) {
+  if (tilt > 0.5) return '#1f9d60';
+  if (tilt < -0.5) return '#d23040';
+  return '#9a9ea8';
+}
+
+/* ============================================================
+   Render the SVG tree
+   ============================================================ */
+function renderTree() {
+  const svg = document.getElementById('treeSvg');
+  const W = 1100, H = 580;
+  const N = SECTORS.length;
+  const colWidth = (W - 40) / N;
+  const sectorY = 70;
+  const igY = 230;
+  const indY = 380;
+
+  let html = '';
+  // Level labels
+  html += `<text x="${W-10}" y="${sectorY+5}" class="level-label">11 Sectors</text>`;
+  html += `<text x="${W-10}" y="${igY+5}" class="level-label">24 Industry Groups</text>`;
+  html += `<text x="${W-10}" y="${indY+5}" class="level-label">68 Industries</text>`;
+
+  let overCount = 0, flatCount = 0, underCount = 0;
+
+  SECTORS.forEach((sec, i) => {
+    const cx = 20 + colWidth * i + colWidth / 2;
+    const agg = sectorAggregate(sec);
+    const tilt = agg ? agg.tilt : 0;
+    const ringColor = agg ? tiltColor(tilt) : '#9a9ea8';
+    const rated = !!RATINGS[sec.key];
+    const sectorClass = (agg && Math.abs(tilt) > 0.5) ? 'rated' : 'unrated';
+    if (agg) {
+      if (tilt > 0.5) overCount++;
+      else if (tilt < -0.5) underCount++;
+      else flatCount++;
+    } else flatCount++;
+
+    // Sector circle: outer Tilt ring + inner brand-color disc
+    const r = 30;
+    const ringR = r + 5;
+    html += `<g class="sector-circle ${sectorClass}" data-sector="${sec.key}">
+      <circle cx="${cx}" cy="${sectorY}" r="${ringR}" fill="none" stroke="${ringColor}" stroke-width="3" ${agg ? '' : 'stroke-dasharray="3,3"'} />
+      <circle cx="${cx}" cy="${sectorY}" r="${r}" fill="${sec.color}" />
+      <text x="${cx}" y="${sectorY+6}" font-size="20" text-anchor="middle" fill="white">${sec.icon}</text>
+    </g>`;
+    // Sector label below
+    const wrappedName = sec.name.replace(/Consumer /,'Consumer ').replace(/Information /,'Info ').replace(/Communication /,'Comm. ').replace(/Real Estate/,'Real Estate');
+    html += `<text x="${cx}" y="${sectorY+58}" class="sector-label">${wrappedName}</text>`;
+    // Tilt label
+    if (agg) {
+      const tiltCls = tilt > 0.5 ? 'up' : tilt < -0.5 ? 'down' : 'flat';
+      const tiltTxt = (tilt >= 0 ? '+' : '') + tilt.toFixed(1) + ' pts';
+      html += `<text x="${cx}" y="${sectorY+74}" class="sector-tilt ${tiltCls}">${tiltTxt}</text>`;
+    } else {
+      html += `<text x="${cx}" y="${sectorY+74}" class="sector-tilt flat">— no edge</text>`;
+    }
+
+    // Vertical line down to IG row
+    html += `<line x1="${cx}" y1="${sectorY+45}" x2="${cx}" y2="${igY-30}" stroke="${sec.color}" stroke-width="1" opacity="0.4"/>`;
+
+    // IGs
+    const igCount = sec.igs.length;
+    const igSpacing = Math.min(20, (colWidth - 20) / Math.max(igCount, 1));
+    const igRowWidth = (igCount - 1) * igSpacing;
+    sec.igs.forEach((ig, j) => {
+      const igX = cx - igRowWidth / 2 + j * igSpacing;
+      const igKey = `${sec.key}>${ig.name}`;
+      const igRated = !!RATINGS[igKey];
+      const igRating = igRated ? RATINGS[igKey] : null;
+      const igTilt = igRated ? (igRating.targetPct - igRating.spyPct) : 0;
+      const igRing = igRated ? tiltColor(igTilt) : '#cccccc';
+      const dotR = 7;
+      // Connection from sector vertical line to IG dot
+      html += `<line x1="${cx}" y1="${igY-30}" x2="${igX}" y2="${igY}" stroke="${sec.color}" stroke-width="1" opacity="0.4"/>`;
+      html += `<g class="ig-dot" data-igkey="${igKey}" data-sectorkey="${sec.key}" data-igname="${ig.name}">
+        <circle cx="${igX}" cy="${igY}" r="${dotR+3}" fill="none" stroke="${igRing}" stroke-width="2.5" ${igRated ? '' : 'stroke-dasharray="2,2"'} />
+        <circle cx="${igX}" cy="${igY}" r="${dotR}" fill="${sec.color}" opacity="${igRated ? 1 : 0.5}" />
+      </g>`;
+
+      // Industries (small dots)
+      const indCount = ig.inds.length;
+      const indSpacing = Math.min(10, (colWidth - 20) / Math.max(indCount * igCount, 1));
+      const indRowWidth = (indCount - 1) * indSpacing;
+      ig.inds.forEach((ind, k) => {
+        const indX = igX - indRowWidth / 2 + k * indSpacing;
+        const indKey = `${sec.key}>${ig.name}>${ind}`;
+        const indRated = !!RATINGS[indKey];
+        const indRating = indRated ? RATINGS[indKey] : null;
+        const indTilt = indRated ? (indRating.targetPct - indRating.spyPct) : 0;
+        const indRing = indRated ? tiltColor(indTilt) : '#cccccc';
+        const indR = 4;
+        html += `<line x1="${igX}" y1="${igY+10}" x2="${indX}" y2="${indY-3}" stroke="${sec.color}" stroke-width="0.8" opacity="0.3"/>`;
+        if (indRated) {
+          html += `<g class="ind-dot" data-indkey="${indKey}" data-sectorkey="${sec.key}" data-igname="${ig.name}" data-indname="${ind}">
+            <circle cx="${indX}" cy="${indY}" r="${indR+2}" fill="none" stroke="${indRing}" stroke-width="2"/>
+            <circle cx="${indX}" cy="${indY}" r="${indR}" fill="${sec.color}"/>
+          </g>`;
+        } else {
+          html += `<circle cx="${indX}" cy="${indY}" r="${indR}" fill="${sec.color}" opacity="0.3"/>`;
+        }
+      });
+    });
+  });
+
+  svg.innerHTML = html;
+  document.getElementById('sumOver').textContent = overCount + ' sectors';
+  document.getElementById('sumFlat').textContent = flatCount + ' sectors';
+  document.getElementById('sumUnder').textContent = underCount + ' sectors';
+  document.getElementById('sumBuckets').textContent = '16 of 103 (Sectors+IGs+Industries)';
+
+  // Wire up clicks
+  document.querySelectorAll('#treeSvg .sector-circle').forEach(el => {
+    el.addEventListener('click', () => {
+      const k = el.dataset.sector;
+      const sec = SECTORS.find(s => s.key === k);
+      const agg = sectorAggregate(sec);
+      if (RATINGS[k]) {
+        openDrawer(RATINGS[k], sec.name, ['Sector', sec.name].join(' · '));
+      } else if (agg) {
+        // Show derived sector summary
+        showSectorSummary(sec, agg);
+      } else {
+        showNoEdge(sec.name, 'Sector', sec.name);
+      }
+    });
+  });
+  document.querySelectorAll('#treeSvg .ig-dot').forEach(el => {
+    el.addEventListener('click', () => {
+      const igKey = el.dataset.igkey;
+      const sk = el.dataset.sectorkey;
+      const igName = el.dataset.igname;
+      const secName = SECTORS.find(s => s.key === sk).name;
+      if (RATINGS[igKey]) {
+        openDrawer(RATINGS[igKey], igName, [secName, igName].join(' · '));
+      } else {
+        showNoEdge(igName, 'Industry Group', `${secName} · ${igName}`);
+      }
+    });
+  });
+  document.querySelectorAll('#treeSvg .ind-dot').forEach(el => {
+    el.addEventListener('click', () => {
+      const indKey = el.dataset.indkey;
+      const sk = el.dataset.sectorkey;
+      const igName = el.dataset.igname;
+      const indName = el.dataset.indname;
+      const secName = SECTORS.find(s => s.key === sk).name;
+      if (RATINGS[indKey]) {
+        openDrawer(RATINGS[indKey], indName, [secName, igName, indName].join(' · '));
+      }
     });
   });
 }
-bindToggle('filterToggle', 'filter');
-bindToggle('groupToggle', 'group');
-bindToggle('tierToggle', 'tier');
-bindToggle('viewToggle', 'view');
+
+/* Sector summary (no direct rating) */
+function showSectorSummary(sec, agg) {
+  // Build a synthetic rating object for the drawer
+  const synthetic = {
+    calibrationLevel: 'sector',
+    tier5: agg.tilt > 0.5 ? 'ow' : agg.tilt < -0.5 ? 'uw' : 'mw',
+    rating5: agg.tilt > 0.5 ? 'Overweight (derived)' : agg.tilt < -0.5 ? 'Underweight (derived)' : 'Market Weight (derived)',
+    targetPct: 0, priorTargetPct: 0, spyPct: 0, sixMoReturn: 0,
+    tickers: [], etf: '—', etfDesc: '',
+    impl: 'This sector is not rated directly — the methodology calibrated against the Industry Groups or Industries inside it. The Tilt shown is the sum of those children.',
+    rationale: `${sec.name} has no sector-level rating. Click the individual Industry Group or Industry circles inside this column to see the calibrated buckets that drive the aggregate Tilt of ${agg.tilt.toFixed(1)} pts.`,
+    factors: [], method: { regression:'See child IGs / Industries', momentum:'See children', composite_flip:'See children', confirmatory:'See children' },
+    tactical: ''
+  };
+  openDrawer(synthetic, sec.name + ' (computed)', `Sector · ${sec.name}`);
+}
+
+function showNoEdge(name, level, breadcrumb) {
+  const synthetic = {
+    calibrationLevel: level === 'Sector' ? 'sector' : level === 'Industry Group' ? 'ig' : 'industry',
+    tier5: 'mw', rating5: 'No calibrated bucket',
+    targetPct: 0, priorTargetPct: 0, spyPct: 0, sixMoReturn: 0,
+    tickers: [], etf: '—', etfDesc: '',
+    impl: 'Defaults to the S&P 500 benchmark weight.',
+    rationale: `The methodology does not have a calibrated bucket at this ${level} level. We carry the benchmark weight here — no tilt vs S&P 500.`,
+    factors: [], method: { regression:'—', momentum:'—', composite_flip:'—', confirmatory:'—' },
+    tactical: 'Hold at benchmark.'
+  };
+  openDrawer(synthetic, name, breadcrumb);
+}
 
 /* Drawer */
-function openDrawer(b) {
-  document.getElementById('drawerTitle').textContent = b.name;
-  document.getElementById('drawerBreadcrumb').textContent = b.gics;
-  document.getElementById('drawerPip').style.background = TIER_COLORS[b.tier5];
-  const dPts = b.deltaPts;
-  const dStr = dPts === 0 ? 'unchanged this week'
-             : `${dPts>=0?'+':''}${dPts.toFixed(1)} pts vs last week`;
-  document.getElementById('drawerRating').textContent = `${b.rating5} · ${dStr}`;
-  document.getElementById('drawerTilt').textContent =
-    (b.tiltPts >= 0 ? '+' : '') + b.tiltPts.toFixed(1) + ' pts';
-  document.getElementById('drawerTarget').textContent = b.targetPct.toFixed(1) + '%';
-  document.getElementById('drawerSpy').textContent = b.spyPct.toFixed(1) + '%';
+function openDrawer(b, displayName, breadcrumb) {
+  document.getElementById('drawerTitle').textContent = displayName;
+  document.getElementById('drawerBreadcrumb').textContent = breadcrumb;
+  document.getElementById('drawerPip').style.background = TIER_COLORS[b.tier5] || '#9a9ea8';
+  const lvl = b.calibrationLevel;
+  const lvlText = lvl === 'sector' ? 'Sector level' : lvl === 'ig' ? 'Industry Group level' : 'Industry level';
+  document.getElementById('drawerCalibLevel').textContent = `Calibrated at: ${lvlText}`;
+  const dPts = b.targetPct - b.priorTargetPct;
+  const dStr = dPts === 0 ? 'unchanged this week' : `${dPts>=0?'+':''}${dPts.toFixed(1)} pts vs last week`;
+  document.getElementById('drawerRating').textContent = `${b.rating5}${b.targetPct ? ' · ' + dStr : ''}`;
+  document.getElementById('drawerTilt').textContent = b.targetPct ? ((b.targetPct - b.spyPct) >= 0 ? '+' : '') + (b.targetPct - b.spyPct).toFixed(1) + ' pts' : '—';
+  document.getElementById('drawerTarget').textContent = b.targetPct ? b.targetPct.toFixed(1) + '%' : '—';
+  document.getElementById('drawerSpy').textContent = b.spyPct ? b.spyPct.toFixed(1) + '%' : '—';
   document.getElementById('drawerRationale').textContent = b.rationale;
-  // Method block
   const m = b.method;
-  document.getElementById('drawerMethod').innerHTML = `
+  document.getElementById('drawerMethod').innerHTML = m ? `
     <div class="row"><span class="lbl">Regression</span><span class="val">${m.regression}</span></div>
     <div class="row"><span class="lbl">Momentum (6mo)</span><span class="val">${methodBadge(m.momentum)} ${m.momentum}</span></div>
     <div class="row"><span class="lbl">Composite-flip</span><span class="val">${methodBadge(m.composite_flip)} ${m.composite_flip}</span></div>
     <div class="row"><span class="lbl">Confirmatory</span><span class="val">${methodBadge(m.confirmatory)} ${m.confirmatory}</span></div>
-  `;
-  // Factors
-  document.getElementById('drawerFactors').innerHTML = b.factors.map(f =>
+  ` : '';
+  document.getElementById('drawerFactors').innerHTML = (b.factors || []).map(f =>
     `<li><span class="factor-name">${f.name}</span><span class="factor-z">${f.z}</span></li>`
-  ).join('');
-  // Tickers (clickable)
+  ).join('') || '<li style="font-style:italic;color:var(--ink-3);">No factor list at this level.</li>';
   const tRow = document.getElementById('drawerTickers');
-  tRow.innerHTML = b.tickers.map(t => `<span class="ticker-chip" data-ticker="${t}">${t}</span>`).join('');
+  tRow.innerHTML = (b.tickers || []).map(t => `<span class="ticker-chip" data-ticker="${t}">${t}</span>`).join('') || '<span style="font-style:italic;color:var(--ink-3);font-size:12px;">No ticker examples at this level.</span>';
   tRow.querySelectorAll('.ticker-chip').forEach(c => {
-    c.addEventListener('click', e => {
-      e.stopPropagation();
-      showToast(c.dataset.ticker);
-    });
+    c.addEventListener('click', e => { e.stopPropagation(); showToast(c.dataset.ticker); });
   });
-  // ETF
   document.getElementById('drawerETF').textContent = b.etf;
-  document.getElementById('drawerImpl').textContent = b.etfDesc + ' · ' + b.impl;
-  document.getElementById('drawerTactical').textContent = b.tactical;
+  document.getElementById('drawerImpl').textContent = (b.etfDesc ? b.etfDesc + ' · ' : '') + b.impl;
+  document.getElementById('drawerTactical').textContent = b.tactical || '—';
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawerMask').classList.add('open');
 }
@@ -1298,7 +1051,6 @@ document.getElementById('drawerClose').addEventListener('click', closeDrawer);
 document.getElementById('drawerMask').addEventListener('click', closeDrawer);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
-/* Toast for ticker click (mock Stock Card) */
 function showToast(ticker) {
   document.getElementById('toastTicker').textContent = ticker;
   const t = document.getElementById('toast');
@@ -1307,8 +1059,7 @@ function showToast(ticker) {
   window._toastT = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-/* Boot */
-render();
+renderTree();
 </script>
 </body>
 </html>
