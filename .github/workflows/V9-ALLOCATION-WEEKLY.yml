@@ -1,0 +1,157 @@
+name: V9-ALLOCATION-WEEKLY
+
+# Recomputes public/v9_allocation.json once a week (Saturday morning UTC, after
+# Friday market close). The Asset Allocation tab on macrotilt.com reads this
+# file to drive its KPIs, picks, and rationale, so a stale file = stale tab.
+#
+# Why a separate workflow (vs. bolting onto INDICATOR-REFRESH):
+#   - INDICATOR-REFRESH runs daily at 7am ET. Allocation rebalance is weekly,
+#     not daily. Recomputing daily would create spurious commit churn even
+#     when the underlying picks have not changed.
+#   - Allocation depends on indicator_history.json AND composite_history_daily.json
+#     being up-to-date. Running on Saturday morning (after Friday's INDICATOR-
+#     REFRESH commit lands) guarantees both inputs are current for the week.
+#
+# Required GitHub secrets:
+#   FRED_API_KEY  — same key INDICATOR-REFRESH uses (compute_v9_allocation.py
+#                   pulls a few extra factors directly from FRED).
+#
+# Manual trigger: Actions → V9 Allocation Weekly → Run workflow.
+
+on:
+  schedule:
+    # 12:00 UTC Saturday = 8:00 AM EDT / 7:00 AM EST.
+    # Friday's INDICATOR-REFRESH posts at 11:00 UTC Friday, so by Saturday
+    # morning the indicator_history.json commit is on main and we have the
+    # full prior-week dataset to recalibrate against.
+    - cron: '0 12 * * 6'
+  workflow_dispatch:
+
+concurrency:
+  group: v9-allocation-weekly
+  cancel-in-progress: false
+
+jobs:
+  rebalance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out market-dashboard
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5.3.0
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Configure git
+        run: |
+          git config user.name  "Market Dashboard Bot"
+          git config user.email "bot@github-actions"
+
+      - name: Snapshot prior allocation into allocation_history.json
+        # Captures the file we are ABOUT to overwrite into a rolling history
+        # array so the AA tab can show last-week / last-month / last-quarter
+        # comparison columns. First-ever run seeds the array with today's
+        # snapshot only — comparison columns populate organically over
+        # subsequent weeks.
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          from datetime import datetime, timezone
+
+          alloc_path = Path("public/v9_allocation.json")
+          hist_path  = Path("public/allocation_history.json")
+
+          if not alloc_path.exists():
+              print("v9_allocation.json missing — nothing to snapshot.")
+              raise SystemExit(0)
+
+          current = json.loads(alloc_path.read_text())
+
+          # Lift just the fields the AA tab needs for comparison views.
+          equity_share = current.get("equity_share", 0)
+          leverage     = current.get("leverage", 0)
+          equities_pp  = round(equity_share * leverage * 100, 2)
+          other_pp     = round((1 - equity_share) * 100, 2) if equity_share < 1 else 0
+          total_pp     = equities_pp + other_pp
+          cash_margin  = -round(max(0, leverage - equity_share) * 100, 2)
+
+          snap = {
+              "as_of": current.get("as_of"),
+              "snapshotted_at": datetime.now(timezone.utc).isoformat(),
+              "stance_label": "Aggressive" if leverage > 1.05 else "Balanced" if leverage > 0.85 else "Defensive",
+              "equities_pct_capital": equities_pp,
+              "other_pct_capital": other_pp,
+              "total_deployed_pct_capital": total_pp,
+              "cash_or_margin_pct_capital": cash_margin,
+              "leverage": leverage,
+              "equity_share": equity_share,
+              "alpha": current.get("alpha"),
+              "picks": [
+                  {"ticker": p["ticker"], "name": p.get("name"), "weight": p.get("weight")}
+                  for p in current.get("picks", [])
+              ],
+              "methodology_version": current.get("methodology", {}).get("version"),
+          }
+
+          if hist_path.exists():
+              hist = json.loads(hist_path.read_text())
+              if not isinstance(hist, list):
+                  hist = []
+          else:
+              hist = []
+
+          # Avoid duplicate entries for the same as_of date.
+          if not any(h.get("as_of") == snap["as_of"] for h in hist):
+              hist.append(snap)
+              # Cap at last 26 weeks of snapshots (~6 months) to keep file small.
+              hist = hist[-26:]
+              hist_path.write_text(json.dumps(hist, indent=2))
+              print(f"Snapshot for {snap['as_of']} appended. History now has {len(hist)} entries.")
+          else:
+              print(f"Snapshot for {snap['as_of']} already in history — skipping.")
+          PY
+
+      - name: Recompute v9 allocation
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python compute_v9_allocation.py
+
+      - name: Commit + push if changed
+        run: |
+          # Stage both files; either or both may have changed.
+          git add public/v9_allocation.json public/allocation_history.json 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No changes to v9_allocation.json or allocation_history.json — skipping commit."
+            exit 0
+          fi
+
+          AS_OF=$(python -c "import json; print(json.load(open('public/v9_allocation.json')).get('as_of', 'unknown'))")
+          git commit -m "V9 weekly allocation rebalance — as of ${AS_OF} [skip ci]
+
+          Regenerated by .github/workflows/V9-ALLOCATION-WEEKLY.yml"
+
+          git push || echo "Push failed (non-fatal); next scheduled run will retry."
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: v9-allocation-${{ github.run_id }}
+          path: |
+            public/v9_allocation.json
+            public/allocation_history.json
+          retention-days: 30
+          if-no-files-found: ignore
