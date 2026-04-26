@@ -805,7 +805,6 @@ export default function PositionsTable({
                     onDrop={(e) => onHdrDrop(e, col.id)}
                     onDragEnd={onHdrDragEnd}
                     onClick={() => toggleSort(col.id)}
-                    title={col.description}
                     style={{
                       ...headerStyle,
                       textAlign: col.align === "right" ? "right" : "left",
@@ -814,8 +813,15 @@ export default function PositionsTable({
                       borderLeft: isDragOver ? "2px solid var(--accent)" : "2px solid transparent",
                     }}
                   >
-                    {col.label}
-                    <SortArrow dir={sortCol === col.id ? sortDir : null} />
+                    {/* LESSONS rule #3: zero-latency tooltip via Tip
+                        primitive. Replaces the slow browser-default
+                        title= attribute that had ~750ms hover delay. */}
+                    <Tip def={col.description}>
+                      <span style={{ display: "inline-block" }}>
+                        {col.label}
+                        <SortArrow dir={sortCol === col.id ? sortDir : null} />
+                      </span>
+                    </Tip>
                     <Tip def="Drag to resize column"><div draggable={false}
                       onMouseDown={(e) => onResizeStart(e, col.id)}
                       onClick={(e) => e.stopPropagation()}
@@ -829,9 +835,10 @@ export default function PositionsTable({
                     ...headerStyle, cursor: "default", textAlign: "right",
                     borderLeft: "1px solid var(--border-faint)",
                   }}
-                  title={actionsCol.description}
                 >
-                  {actionsCol.label}
+                  <Tip def={actionsCol.description}>
+                    <span style={{ display: "inline-block" }}>{actionsCol.label}</span>
+                  </Tip>
                 </th>
               )}
             </tr>
