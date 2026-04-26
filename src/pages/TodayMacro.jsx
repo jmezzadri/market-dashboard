@@ -703,16 +703,38 @@ function TrajectoryChart({ data, eventMarkers }) {
   const [showMarkers, setShowMarkers] = useState(false);
   const [visible, setVisible] = useState({ RL: true, GR: true, IR: true, SPX: true, DJI: true, NDX: true });
   const [hover, setHover] = useState(null);
+  // Bug #1047 — drag-to-zoom range selection (Option B). When set, narrows
+  // the visible window to a user-selected sub-range without swapping out the
+  // chart library or breaking the brand aesthetic.
+  const [zoomRange, setZoomRange] = useState(null); // null | { start, end } ISO date strings
+  const [dragSel, setDragSel] = useState(null);     // null | { startVB, currentVB } chart-coord pixels
   const containerRef = useRef(null);
   const svgRef = useRef(null);
 
   const filtered = useMemo(() => {
-    if (mode === "custom" && fromDate && toDate) {
-      return data.filter((r) => r.d >= fromDate && r.d <= toDate);
+    let base;
+    if (zoomRange) {
+      base = data.filter((r) => r.d >= zoomRange.start && r.d <= zoomRange.end);
+    } else if (mode === "custom" && fromDate && toDate) {
+      base = data.filter((r) => r.d >= fromDate && r.d <= toDate);
+    } else if (timeline === "max") {
+      base = data;
+    } else {
+      base = data.slice(-TIMELINE_DAYS[timeline]);
     }
-    if (timeline === "max") return data;
-    return data.slice(-TIMELINE_DAYS[timeline]);
-  }, [data, mode, timeline, fromDate, toDate]);
+    // Bug #1047 — adaptive down-sampling: stride out daily points when the
+    // visible window exceeds ~1500 marks so the SVG stops painting one-pixel
+    // overlapping columns. Keeps the first and last point exact.
+    const TARGET = 1500;
+    if (base.length > TARGET) {
+      const stride = Math.ceil(base.length / TARGET);
+      const out = [];
+      for (let i = 0; i < base.length; i += stride) out.push(base[i]);
+      if (out[out.length - 1] !== base[base.length - 1]) out.push(base[base.length - 1]);
+      return out;
+    }
+    return base;
+  }, [data, mode, timeline, fromDate, toDate, zoomRange]);
 
   const n = filtered.length;
   const xRange = LAYOUT.width - LAYOUT.marginLeft - LAYOUT.marginRight;
@@ -779,18 +801,50 @@ function TrajectoryChart({ data, eventMarkers }) {
     })).filter((m) => m.compIdx >= 0 || m.spxIdx >= 0);
   }, [eventMarkers, filtered, n, showMarkers]);
 
-  const onMouseMove = (evt) => {
-    if (n === 0) return;
+  const _xVBFromEvt = (evt) => {
     const svg = svgRef.current;
-    if (!svg) return;
+    if (!svg) return null;
     const rect = svg.getBoundingClientRect();
     const xRatio = (evt.clientX - rect.left) / rect.width;
-    const xVB = xRatio * LAYOUT.width;
+    return xRatio * LAYOUT.width;
+  };
+  const onMouseMove = (evt) => {
+    if (n === 0) return;
+    const xVB = _xVBFromEvt(evt);
+    if (xVB == null) return;
+    if (dragSel) {
+      setDragSel({ startVB: dragSel.startVB, currentVB: xVB });
+      return;
+    }
     const idxFrac = ((xVB - LAYOUT.marginLeft) / xRange) * (n - 1);
     const idx = Math.max(0, Math.min(n - 1, Math.round(idxFrac)));
     setHover({ idx, clientX: evt.clientX, clientY: evt.clientY });
   };
-  const onMouseLeave = () => setHover(null);
+  const onMouseLeave = () => { setHover(null); setDragSel(null); };
+  // Bug #1047 — drag-to-zoom: mousedown inside the plot area starts a range
+  // selection; mouseup commits to zoomRange. A drag shorter than 8 viewBox px
+  // is treated as a click and ignored.
+  const onMouseDown = (evt) => {
+    if (n === 0) return;
+    const xVB = _xVBFromEvt(evt);
+    if (xVB == null) return;
+    if (xVB < LAYOUT.marginLeft || xVB > LAYOUT.width - LAYOUT.marginRight) return;
+    setDragSel({ startVB: xVB, currentVB: xVB });
+  };
+  const onMouseUp = () => {
+    if (!dragSel) return;
+    const a = Math.min(dragSel.startVB, dragSel.currentVB);
+    const b = Math.max(dragSel.startVB, dragSel.currentVB);
+    setDragSel(null);
+    if (b - a < 8) return;
+    const idxA = Math.max(0, Math.min(n - 1, Math.round(((a - LAYOUT.marginLeft) / xRange) * (n - 1))));
+    const idxB = Math.max(0, Math.min(n - 1, Math.round(((b - LAYOUT.marginLeft) / xRange) * (n - 1))));
+    if (idxB <= idxA) return;
+    const startD = filtered[idxA] && filtered[idxA].d;
+    const endD = filtered[idxB] && filtered[idxB].d;
+    if (startD && endD) setZoomRange({ start: startD, end: endD });
+  };
+  const resetZoom = () => { setZoomRange(null); setDragSel(null); };
 
   const handleApplyDates = () => {
     if (!fromDate || !toDate) { window.alert("Pick both From and To dates"); return; }
@@ -888,6 +942,13 @@ function TrajectoryChart({ data, eventMarkers }) {
             <input type="checkbox" checked={showMarkers} onChange={(e) => setShowMarkers(e.target.checked)}/>
             <span>Show event markers</span>
           </label>
+          {zoomRange && (
+            <button
+              type="button"
+              onClick={resetZoom}
+              style={{ marginLeft: 12, background: "transparent", border: "1px solid var(--tm-ink-3, #888)", color: "var(--tm-ink-2, #444)", fontSize: 11, padding: "4px 10px", borderRadius: 4, cursor: "pointer", fontFamily: "var(--font-mono, monospace)", letterSpacing: "0.04em" }}
+            >RESET ZOOM</button>
+          )}
         </div>
 
         <div className="tm-series-toggles">
@@ -916,7 +977,8 @@ function TrajectoryChart({ data, eventMarkers }) {
         <svg ref={svgRef} className="tm-chart-svg" viewBox={"0 0 " + LAYOUT.width + " " + LAYOUT.height}
              preserveAspectRatio="none"
              onMouseMove={onMouseMove} onMouseLeave={onMouseLeave}
-             style={{ height: 520, cursor: "crosshair", color: "var(--tm-ink-3)" }}>
+             onMouseDown={onMouseDown} onMouseUp={onMouseUp}
+             style={{ height: 520, cursor: dragSel ? "ew-resize" : "crosshair", color: "var(--tm-ink-3)", userSelect: "none" }}>
           {[-100,-50,0,50,100].map((v) => {
             const y = yForTop(v); const isZero = v === 0;
             return (
@@ -1007,6 +1069,20 @@ function TrajectoryChart({ data, eventMarkers }) {
             </g>
           )}
 
+          {dragSel && (
+            <rect
+              x={Math.min(dragSel.startVB, dragSel.currentVB)}
+              y={LAYOUT.marginTop}
+              width={Math.abs(dragSel.currentVB - dragSel.startVB)}
+              height={LAYOUT.height - LAYOUT.marginTop - LAYOUT.marginBottom}
+              fill="var(--tm-accent, #5b8fb9)"
+              fillOpacity="0.12"
+              stroke="var(--tm-accent, #5b8fb9)"
+              strokeOpacity="0.55"
+              strokeWidth="1"
+              pointerEvents="none"
+            />
+          )}
           {n === 0 && (
             <text x={LAYOUT.width / 2} y="260" textAnchor="middle" fontFamily="Inter" fontSize="14" fill="var(--tm-ink-3)">
               No data in selected range
