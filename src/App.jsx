@@ -5426,7 +5426,8 @@ useEffect(()=>{
 // Bug #1071 — when arriving via an aliased section hash like /#positions or
 // /#watchlist, scroll to the in-page anchor instead of jumping to the top
 // of the tab. The aliased hash is preserved by the URL-sync effect above;
-// here we read it and scroll-into-view if a matching anchor exists. Falls
+// here we read it and re-scroll across a 4-second window to handle the
+// layout shifts that happen as portfolio/watchlist data loads in. Falls
 // back to scroll-top for everything else (including /#today-macro and
 // /#asset-allocation, which are full-tab routes, not in-tab anchors).
 useEffect(()=>{
@@ -5434,15 +5435,26 @@ useEffect(()=>{
   const SECTION_ANCHORS={positions:"section-positions",watchlist:"section-watchlist"};
   const anchorId=SECTION_ANCHORS[cur];
   if(anchorId){
-    // Defer one frame so the freshly-mounted tab content can render the
-    // anchor before we try to find it.
-    const tryScroll=(attempt)=>{
+    // Poll the anchor's absolute Y for ~4s. Whenever it moves (because
+    // async data loaded above it and pushed it down), re-scroll. This
+    // keeps the section locked at the top of the viewport even as
+    // PositionsTable / WatchlistTable hydrate.
+    const start=Date.now();
+    let lastY=null;
+    const tick=()=>{
       const el=document.getElementById(anchorId);
-      if(el){el.scrollIntoView({behavior:"smooth",block:"start"});return;}
-      if(attempt<10)setTimeout(()=>tryScroll(attempt+1),50);
-      else window.scrollTo({top:0,behavior:"smooth"});
+      if(!el){
+        if(Date.now()-start<4000)setTimeout(tick,100);
+        return;
+      }
+      const y=Math.round(el.getBoundingClientRect().top+window.scrollY);
+      if(y!==lastY){
+        el.scrollIntoView({behavior:"smooth",block:"start"});
+        lastY=y;
+      }
+      if(Date.now()-start<4000)setTimeout(tick,250);
     };
-    tryScroll(0);
+    tick();
     return;
   }
   window.scrollTo({top:0,behavior:"smooth"});
