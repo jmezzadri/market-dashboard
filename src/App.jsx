@@ -2186,6 +2186,7 @@ function AllIndicatorsTable(){
                 return (
                   <Fragment key={r.id}>
                     <tr
+                      data-indicator-id={r.id}
                       onClick={() => toggleOne(r.id)}
                       style={{
                         cursor:"pointer",
