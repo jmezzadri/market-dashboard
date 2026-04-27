@@ -5642,6 +5642,7 @@ const portfolioAuthed=!!session;
 // One-shot fetch on first render. Replaces the rolled-up COMP100 number
 // that didn't anchor to anything on the destination page.
 const [_macroLatestSnap, setMacroLatestSnap] = useState(null);
+const [_spxHistory, setSpxHistory] = useState(null);
 useEffect(() => {
   let cancelled = false;
   fetch("/composite_history_daily.json")
@@ -5649,12 +5650,20 @@ useEffect(() => {
     .then(arr => {
       if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
       const last = arr[arr.length - 1];
-      if (!last) return;
-      setMacroLatestSnap({
-        RL: Number(last.RL),
-        GR: Number(last.GR),
-        IR: Number(last.IR),
-      });
+      if (last) {
+        setMacroLatestSnap({
+          RL: Number(last.RL),
+          GR: Number(last.GR),
+          IR: Number(last.IR),
+        });
+      }
+      // Slim history → [{d, spx}] for the period-return calculation. Drops
+      // null entries and pre-allocates so tile 04 can compute 1W/1M/YTD/TTM
+      // returns synchronously.
+      const hist = arr
+        .filter(x => x && x.d && Number.isFinite(Number(x.SPXp)) && Number(x.SPXp) > 0)
+        .map(x => ({ d: x.d, spx: Number(x.SPXp) }));
+      if (hist.length > 0) setSpxHistory(hist);
     })
     .catch(() => {});
   return () => { cancelled = true; };
@@ -6514,6 +6523,62 @@ return(
           fontSize:32, fontWeight:500, color:col, letterSpacing:"-0.01em", lineHeight:1,
         });
         const tileSub = {marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"};
+        // ── ASSET ALLOCATION — 5-bucket rollup ────────────────────────────
+        // Equities · Fixed Income · Commodities/Metals · Crypto · Cash
+        const _classifyAsset = (p) => {
+          if (p.sector === "Cash") return "Cash";
+          if (p.sector === "HY Bonds" || p.sector === "Bonds" ||
+              p.sector === "Treasuries" || p.sector === "Fixed Income") return "Fixed Income";
+          const t = (p.ticker || "").toUpperCase();
+          if (["GLD","SLV","GDX","GDXJ","COPX","CPER","DBA","PDBC","DBC","USO","UNG"].includes(t) ||
+              p.sector === "Commodity" || p.sector === "Metals") return "Commodities";
+          if (["FBTC","ETHE","GBTC","BTCUSD","ETHUSD","IBIT","ETHA","COIN"].includes(t) ||
+              p.sector === "Crypto") return "Crypto";
+          return "Equities";
+        };
+        const _alloc = { Equities:0, "Fixed Income":0, Commodities:0, Crypto:0, Cash:0 };
+        ACCOUNTS.flatMap(a => a.positions).forEach(p => {
+          const v = Number(p.value || 0);
+          if (v <= 0) return;  // skip margin debt / shorts for the pie
+          _alloc[_classifyAsset(p)] += v;
+        });
+        const _allocTotal = Object.values(_alloc).reduce((a,b)=>a+b, 0);
+        const _allocColors = {
+          "Equities":"#4a6fa5",
+          "Fixed Income":"#14b8a6",
+          "Commodities":"#B8860B",
+          "Crypto":"#a855f7",
+          "Cash":"var(--text-dim)",
+        };
+
+        // ── PERIOD RETURNS vs S&P 500 ─────────────────────────────────────
+        // Estimated portfolio return per period = portBeta × SPX period return
+        // (we don't have stored portfolio NAV history yet). Reads SPX history
+        // from /composite_history_daily.json. Periods: 1W (5td), 1M (21td),
+        // YTD (back to Jan 2 of current year), TTM (252td).
+        const _periodReturns = (() => {
+          if (!_spxHistory || _spxHistory.length < 252) return null;
+          const last = _spxHistory[_spxHistory.length - 1];
+          const lastSpx = last.spx;
+          const lastDate = new Date(last.d + "T00:00:00Z");
+          const yearStart = `${lastDate.getUTCFullYear()}-01-01`;
+          // Find SPX value N trading days ago, or first ≥ a date string.
+          const tdAgo = (n) => {
+            const i = _spxHistory.length - 1 - n;
+            return i >= 0 ? _spxHistory[i] : null;
+          };
+          const onOrAfter = (dStr) => _spxHistory.find(x => x.d >= dStr);
+          const r = (start) => start && start.spx > 0
+            ? ((lastSpx - start.spx) / start.spx) * 100
+            : null;
+          return {
+            "1W":  r(tdAgo(5)),
+            "1M":  r(tdAgo(21)),
+            "YTD": r(onOrAfter(yearStart)),
+            "TTM": r(tdAgo(252)),
+          };
+        })();
+
         return (
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
@@ -6523,151 +6588,107 @@ return(
             <a style={cardLinkStyle} onClick={()=>navTo("insights")}>Open →</a>
           </div>
 
+          {/* QUADRANT GRID: 2 rows × 2 cols. Top: Current Value | Beta.
+              Bottom: Asset Allocation pie | Returns vs SPY. */}
           <div style={{
             display:"grid", gridTemplateColumns:"1fr 1fr",
             gap:"var(--space-4)", padding:"var(--space-3) 0",
           }}>
-            {/* Current Positions */}
+
+            {/* Q1 · CURRENT VALUE */}
             <div style={tileStyle}>
-              <div style={tileEyebrow}>Current Positions</div>
-              <div className="num" style={tileBig("var(--text)")}>{positionCount}</div>
-              <div style={tileSub}>across {ACCOUNTS.length} account{ACCOUNTS.length===1?"":"s"} · ${Math.round(grandTotal/1000)}K</div>
+              <div style={tileEyebrow}>Current Value</div>
+              <div className="num" style={tileBig("var(--text)")}>${_fmt$K(grandTotal)}</div>
+              <div style={tileSub}>{positionCount} position{positionCount===1?"":"s"} · {ACCOUNTS.length} account{ACCOUNTS.length===1?"":"s"}</div>
             </div>
 
-            {/* Portfolio Beta — embedded metric with week-over-week delta
-                when we have a comparable prior sample. Defensive / elevated
-                color thresholds mirror the Observations rules. */}
+            {/* Q2 · PORTFOLIO BETA */}
             <div style={tileStyle}>
               <div style={tileEyebrow}>Portfolio Beta</div>
-              <div className="num" style={tileBig(
-                portBeta>1.3 ? "var(--orange-text)"
-                : portBeta<0.6 ? "var(--yellow-text)"
-                : "var(--text)"
-              )}>{portBeta.toFixed(2)}</div>
-              <div style={tileSub}>
-                {betaDelta
-                  ? <>{betaDelta.diff>0?"up":"down"} from <span style={{fontFamily:"var(--font-mono)", color:"var(--text-muted)"}}>{betaDelta.priorVal}</span> last week</>
-                  : <>1.0 = market · weighted by position $</>}
-              </div>
+              <div className="num" style={tileBig(portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)")}>{portBeta.toFixed(2)}</div>
+              <div style={tileSub}>1.0 = market · weighted by position $</div>
             </div>
 
-            {/* Buy Alerts — score embedded next to the top ticker */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Buy Alerts</div>
-              <div className="num" style={tileBig(buyCount>0?"var(--accent)":"var(--text-muted)")}>{buyCount}</div>
-              <div style={tileSub}>
-                {buyTop
-                  ? <><span style={{color:"var(--text)", fontWeight:500}}>{buyTop.ticker}</span>
-                      {" "}<span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>{buyTop.ovr}</span>
-                      <span style={{color:"var(--text-dim)"}}> · top score</span></>
-                  : <>none today</>}
-              </div>
+            {/* Q3 · ASSET ALLOCATION (donut chart + legend) */}
+            <div style={{...tileStyle, gridColumn:"1 / 2"}}>
+              <div style={tileEyebrow}>Asset Allocation</div>
+              {_allocTotal > 0 ? (
+                <div style={{display:"flex", alignItems:"center", gap:12, marginTop:8}}>
+                  {/* SVG donut */}
+                  <svg viewBox="0 0 42 42" width="80" height="80" style={{flexShrink:0}}>
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface)" strokeWidth="6"/>
+                    {(() => {
+                      const order = ["Equities","Fixed Income","Commodities","Crypto","Cash"];
+                      let offset = 25;  // start at top (12 o'clock)
+                      const arcs = [];
+                      for (const k of order) {
+                        const v = _alloc[k];
+                        if (v <= 0) continue;
+                        const pct = (v / _allocTotal) * 100;
+                        arcs.push(
+                          <circle key={k}
+                            cx="21" cy="21" r="15.915" fill="transparent"
+                            stroke={_allocColors[k]} strokeWidth="6"
+                            strokeDasharray={`${pct.toFixed(2)} ${(100-pct).toFixed(2)}`}
+                            strokeDashoffset={offset.toFixed(2)}
+                            transform="rotate(-90 21 21)"
+                          />
+                        );
+                        offset = ((offset - pct) % 100 + 100) % 100;
+                      }
+                      return arcs;
+                    })()}
+                  </svg>
+                  {/* Legend */}
+                  <div style={{flex:1, display:"flex", flexDirection:"column", gap:3, fontSize:11, fontFamily:"var(--font-mono)", minWidth:0}}>
+                    {["Equities","Fixed Income","Commodities","Crypto","Cash"].map(k => {
+                      const v = _alloc[k];
+                      if (v <= 0) return null;
+                      const pct = ((v/_allocTotal)*100);
+                      return (
+                        <div key={k} style={{display:"grid", gridTemplateColumns:"10px 1fr auto", gap:6, alignItems:"center"}}>
+                          <span style={{width:8, height:8, borderRadius:2, background:_allocColors[k]}}/>
+                          <span style={{color:"var(--text)"}}>{k}</span>
+                          <span style={{color:"var(--text-muted)"}}>{pct<1?"<1":pct.toFixed(0)}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <div style={{...tileSub, marginTop:8}}>No positions yet.</div>
+              )}
             </div>
 
-            {/* Near Trigger — score embedded next to the top ticker */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Near Trigger</div>
-              <div className="num" style={tileBig(watchCount>0?"var(--warn, #B8860B)":"var(--text-muted)")}>{watchCount}</div>
-              <div style={tileSub}>
-                {nearTop
-                  ? <><span style={{color:"var(--text)", fontWeight:500}}>{nearTop.ticker}</span>
-                      {" "}<span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>{nearTop.ovr}</span>
-                      <span style={{color:"var(--text-dim)"}}> · top score</span></>
-                  : <>nothing pending</>}
-              </div>
-            </div>
-
-            {/* Day P&L — today's session move on the book. Hidden on a
-                fresh book / pre-market when prior equity is 0. */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Day P&amp;L</div>
-              <div className="num" style={tileBig(
-                !hasDayPnl ? "var(--text-muted)"
-                : dayPnl$ >= 0 ? "var(--green-text)"
-                : "var(--red-text)"
-              )}>
-                {hasDayPnl
-                  ? (dayPnl$ >= 0 ? "+" : "−") + "$" + _fmt$K(Math.abs(dayPnl$))
-                  : "—"}
-              </div>
-              <div style={tileSub}>
-                {hasDayPnl
-                  ? <>
-                      <span style={{
-                        fontFamily:"var(--font-mono)",
-                        color: dayPnl$ >= 0 ? "var(--green-text)" : "var(--red-text)",
-                      }}>{dayPnl$ >= 0 ? "+" : ""}{dayPnlPct.toFixed(2)}%</span>
-                      {benchmarkPct != null ? (
-                        <>
-                          <span style={{color:"var(--text-dim)"}}> · S&amp;P </span>
-                          <span style={{fontFamily:"var(--font-mono)", color:"var(--text-muted)"}}>
-                            {benchmarkPct >= 0 ? "+" : ""}{benchmarkPct.toFixed(2)}%
-                          </span>
-                          {outperfBps != null && Math.abs(outperfBps) >= 1 && (
-                            <span style={{
-                              fontFamily:"var(--font-mono)",
-                              marginLeft:4,
-                              color: outperfBps > 0 ? "var(--green-text)" : "var(--red-text)",
-                            }}>
-                              ({outperfBps > 0 ? "+" : ""}{outperfBps} bps)
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span style={{color:"var(--text-dim)"}}> · vs. yesterday's close</span>
-                      )}
-                    </>
-                  : <>market closed or pre-open</>}
-              </div>
-            </div>
-
-            {/* Deployable cash — total cash across tactical accounts only */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Deployable Cash</div>
-              <div className="num" style={tileBig(totalDeployable>0?"var(--accent)":"var(--text-muted)")}>
-                {totalDeployable>0 ? "$"+_fmt$K(totalDeployable) : "$0"}
-              </div>
-              <div style={tileSub}>
-                {totalDeployable>0
-                  ? <>ready to put to work · tactical only</>
-                  : <>no tactical cash</>}
-              </div>
+            {/* Q4 · RETURNS vs SPY */}
+            <div style={{...tileStyle, gridColumn:"2 / 3"}}>
+              <div style={tileEyebrow}>Returns · est. vs S&P 500</div>
+              {_periodReturns ? (
+                <div style={{marginTop:8, display:"flex", flexDirection:"column", gap:4, fontFamily:"var(--font-mono)", fontSize:12}}>
+                  {["1W","1M","YTD","TTM"].map(k => {
+                    const spxR = _periodReturns[k];
+                    const portR = (spxR != null && Number.isFinite(portBeta)) ? portBeta * spxR : null;
+                    const diff = (portR != null && spxR != null) ? portR - spxR : null;
+                    const fmt = v => v == null ? "—" : (v>=0?"+":"") + v.toFixed(1) + "%";
+                    const diffCol = diff == null ? "var(--text-muted)" : diff >= 0 ? "#30d158" : "#ff453a";
+                    return (
+                      <div key={k} style={{display:"grid", gridTemplateColumns:"32px 1fr auto", gap:8, alignItems:"baseline"}}>
+                        <span style={{color:"var(--text-muted)", fontSize:10, letterSpacing:"0.06em"}}>{k}</span>
+                        <span style={{color:"var(--text)"}}>{fmt(portR)}</span>
+                        <span style={{color:diffCol, fontSize:11}}>{diff==null?"":(diff>=0?"+":"") + diff.toFixed(1)+" vs SPY"}</span>
+                      </div>
+                    );
+                  })}
+                  <div style={{fontSize:9, color:"var(--text-dim)", marginTop:4, fontFamily:"var(--font-ui)", lineHeight:1.4}}>
+                    Estimated as portfolio beta × S&P return (no NAV history yet)
+                  </div>
+                </div>
+              ) : (
+                <div style={{...tileSub, marginTop:8}}>Loading period returns…</div>
+              )}
             </div>
           </div>
 
-          {/* Largest position — compact single line so it doesn't crowd
-              the grid. Surfaces any single-name >=10% concentration. */}
-          {largestPos && (
-            <div style={{
-              marginTop:"var(--space-3)",
-              paddingTop:"var(--space-3)",
-              borderTop:"1px solid var(--border-faint)",
-              fontSize:12, color:"var(--text-muted)",
-              display:"flex", alignItems:"baseline", gap:"var(--space-2)", flexWrap:"wrap",
-            }}>
-              <span style={{
-                fontFamily:"var(--font-mono)", fontSize:10,
-                letterSpacing:"0.12em", textTransform:"uppercase",
-                color:"var(--text-dim)",
-              }}>Largest position</span>
-              <span style={{color:"var(--text)", fontWeight:500}}>{largestPos.ticker}</span>
-              <span style={{fontFamily:"var(--font-mono)", color: largestPct>=10 ? "var(--warn, #B8860B)" : "var(--text)"}}>
-                {largestPct.toFixed(1)}%
-              </span>
-              <span style={{color:"var(--text-dim)"}}>of book · ${_fmt$K(largestPos.value)}</span>
-            </div>
-          )}
-
-          <div style={{marginTop:"var(--space-4)"}}>
-            <a onClick={()=>navTo("portopps")} style={{
-              display:"inline-flex", alignItems:"center", gap:"var(--space-2)",
-              padding:"var(--space-2) var(--space-3)",
-              border:"1px solid var(--border-faint)", borderRadius:6,
-              fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.08em",
-              textTransform:"uppercase", color:"var(--text)",
-              textDecoration:"none", cursor:"pointer",
-            }}>Open Trading Opps <span style={{color:"var(--accent)"}}>→</span></a>
-          </div>
         </div>);
       })()}
 
