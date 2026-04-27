@@ -39,6 +39,7 @@ const PERIOD_TO_DAYS = {
   "6mo":  180,
   "ytd":  -1,   // computed against current year start
   "1y":   365,
+  "2y":   730,
   "5y":   1825,
   "max":  -2,   // anchor at 2002-01-01 per Joe's spec
 };
