@@ -797,28 +797,7 @@ export default function AssetAllocation({ onOpenTicker }) {
           </tbody>
         </table>
 
-        <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "20px 0 8px" }}>Rating changes</h3>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
-          <thead>
-            <tr style={{ background: "var(--surface-solid)" }}>
-              <th style={thStyle()}>Direction</th>
-              <th style={thStyle()}>vs Last month (Mar 28)</th>
-              <th style={thStyle()}>vs Last quarter (Jan 26)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={tdStyle()}><RatingPill rating="upgrade" /></td>
-              <td style={tdStyle()}>{history?.upgrades_1m?.join(", ") || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
-              <td style={tdStyle()}>{history?.upgrades_3m?.join(", ") || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
-            </tr>
-            <tr>
-              <td style={tdStyle()}><RatingPill rating="downgrade" /></td>
-              <td style={tdStyle()}>{history?.downgrades_1m?.join(", ") || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
-              <td style={tdStyle()}>{history?.downgrades_3m?.join(", ") || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
-            </tr>
-          </tbody>
-        </table>
+        
       </section>
 
       {/* Section 3 — Sector outlooks & target allocation */}
