@@ -302,7 +302,7 @@ def build_basket_returns(constituents, daily_ret):
     if not avail:
         return pd.Series(dtype=float)
     sub = daily_ret[avail]
-    monthly = sub.resample("M").apply(lambda x: (1 + x).prod() - 1)
+    monthly = sub.resample("ME").apply(lambda x: (1 + x).prod() - 1)
     return monthly.mean(axis=1, skipna=True)
 
 
@@ -448,7 +448,7 @@ def compute_for_as_of(as_of, factors, composites, daily_ret, calculated_at=None)
     daily_ret_f = daily_ret.loc[:as_of]
 
     # ── Build IG return series (ETF or basket) ──────────────────────────
-    monthly_ret_etf = daily_ret_f.resample("M").apply(lambda x: (1 + x).prod() - 1)
+    monthly_ret_etf = daily_ret_f.resample("ME").apply(lambda x: (1 + x).prod() - 1)
     ig_monthly_returns = {}
     for ig in INDUSTRY_GROUPS:
         if ig["kind"] == "etf":
@@ -471,9 +471,9 @@ def compute_for_as_of(as_of, factors, composites, daily_ret, calculated_at=None)
             f"Not enough history at as_of {as_of}: need {WINDOW} months ≤ {last_complete_month.date()}"
         )
 
-    monthly_factors = factors_f.resample("M").last().dropna(how="all")
+    monthly_factors = factors_f.resample("ME").last().dropna(how="all")
     wf = monthly_factors.loc[:last_complete_month]
-    monthly_comp = composites_f.resample("M").last().dropna()
+    monthly_comp = composites_f.resample("ME").last().dropna()
 
     # ── Forecast each IG ─────────────────────────────────────────────────
     mu = {}
