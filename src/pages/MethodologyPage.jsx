@@ -676,37 +676,233 @@ function CompositeMath({ ind, weights }) {
 
 
 // ─── §4.5 ASSET ALLOCATION METHODOLOGY ─────────────────────────────────────
+// Comprehensive section — destination for every "Methodology →" link on the
+// Asset Allocation tab. Documents the live v9.1 production state (25 GICS
+// industry groups, top-5 equal-weighted selection, 1.5× leverage cap).
 function AssetAllocationMethodology() {
+  // 25-IG universe (live in compute_v9_allocation.py).
+  // type=etf has a clean single-ETF proxy; type=basket uses an equal-weighted
+  // basket of constituent names because no clean ETF exists.
+  const UNIVERSE_25 = [
+    { sector: "Energy",                  ig: "Energy",                                      proxy: "XLE",   type: "etf" },
+    { sector: "Materials",               ig: "Materials",                                   proxy: "XLB",   type: "etf" },
+    { sector: "Industrials",             ig: "Capital Goods",                               proxy: "XLI",   type: "etf" },
+    { sector: "Industrials",             ig: "Commercial & Professional Services",          proxy: "WM/RSG/CTAS basket", type: "basket" },
+    { sector: "Industrials",             ig: "Transportation",                              proxy: "IYT",   type: "etf" },
+    { sector: "Consumer Discretionary",  ig: "Automobiles & Components",                    proxy: "CARZ",  type: "etf" },
+    { sector: "Consumer Discretionary",  ig: "Consumer Durables & Apparel",                 proxy: "NKE/LULU/DECK basket", type: "basket" },
+    { sector: "Consumer Discretionary",  ig: "Consumer Services",                           proxy: "PEJ",   type: "etf" },
+    { sector: "Consumer Discretionary",  ig: "Cons Disc Distribution & Retail",             proxy: "XRT",   type: "etf" },
+    { sector: "Consumer Staples",        ig: "Cons Staples Distribution & Retail",          proxy: "WMT/COST/KR basket",   type: "basket" },
+    { sector: "Consumer Staples",        ig: "Food, Beverage & Tobacco",                    proxy: "PBJ",   type: "etf" },
+    { sector: "Consumer Staples",        ig: "Household & Personal Products",               proxy: "PG/CL/KMB basket",     type: "basket" },
+    { sector: "Health Care",             ig: "Health Care Equipment & Services",            proxy: "IHI",   type: "etf" },
+    { sector: "Health Care",             ig: "Pharmaceuticals, Biotech & Life Sciences",    proxy: "XLV",   type: "etf" },
+    { sector: "Financials",              ig: "Banks",                                       proxy: "XLF",   type: "etf" },
+    { sector: "Financials",              ig: "Financial Services",                          proxy: "IYG",   type: "etf" },
+    { sector: "Financials",              ig: "Insurance",                                   proxy: "KIE",   type: "etf" },
+    { sector: "Information Technology",  ig: "Software & Services",                         proxy: "IGV",   type: "etf" },
+    { sector: "Information Technology",  ig: "Tech Hardware & Equipment",                   proxy: "AAPL/CSCO/HPQ basket", type: "basket" },
+    { sector: "Information Technology",  ig: "Semiconductors & Semi Equipment",             proxy: "SOXX",  type: "etf" },
+    { sector: "Communication Services",  ig: "Telecommunication Services",                  proxy: "IYZ",   type: "etf" },
+    { sector: "Communication Services",  ig: "Media & Entertainment",                       proxy: "XLC",   type: "etf" },
+    { sector: "Utilities",               ig: "Utilities",                                   proxy: "XLU",   type: "etf" },
+    { sector: "Real Estate",             ig: "REITs",                                       proxy: "IYR",   type: "etf" },
+    { sector: "Real Estate",             ig: "Real Estate Mgmt & Development",              proxy: "CBRE/JLL/SLG basket",  type: "basket" },
+  ];
+
+  const DEFENSIVE = [
+    { ticker: "BIL", desc: "SPDR 1-3 Month Treasury Bill ETF", role: "cash proxy" },
+    { ticker: "TLT", desc: "iShares 20+ Year Treasury Bond ETF", role: "long-duration rates" },
+    { ticker: "GLD", desc: "SPDR Gold Shares", role: "real-asset hedge" },
+    { ticker: "LQD", desc: "iShares iBoxx Investment Grade Corporate Bond ETF", role: "credit anchor" },
+  ];
+
+  // Equity-vs-defensive split thresholds (from compute step 6)
+  const EQ_THRESHOLDS = [
+    { rl: "≤ +20",     equity: "100%",       defensive: "0%",   note: "Calm regime — full equity exposure" },
+    { rl: "+20 to +30", equity: "100% → 85%", defensive: "0% → 15%", note: "Linear scale-down as risk rises" },
+    { rl: "+30 to +50", equity: "85% → 60%",  defensive: "15% → 40%", note: "Continued de-risking through stress" },
+    { rl: "> +50",      equity: "60%",        defensive: "40%",  note: "Maximum defensive — equity floor at 60%" },
+  ];
+
+  // Leverage thresholds (from compute step 7)
+  const LEV_THRESHOLDS = [
+    { ir: "> +30",       lev: "1.00×", note: "Inflation hot — no leverage" },
+    { ir: "0 to +30",    lev: "1.00× → 1.10×", note: "Linear scale-up as inflation eases" },
+    { ir: "−10 to 0",    lev: "1.10× → 1.25×", note: "Disinflationary regime — moderate leverage" },
+    { ir: "−10 to −50",  lev: "1.25× → 1.50×", note: "Deflationary regime — capped at 1.5× per Joe's directive" },
+    { ir: "Override",    lev: "1.00×", note: "Force leverage = 1.0× whenever R&L > +20 (don't lever in stress)" },
+  ];
+
+  // 12 IGs without a clean single-ETF proxy
+  const BASKET_IGS = UNIVERSE_25.filter(u => u.type === "basket");
+
+  // Back-test comparison
+  const BACKTEST = [
+    { metric: "CAGR",                       v9: "13.88%", spy: "11.06%", sixty40: "8.02%", edge: "+2.82 pp/yr" },
+    { metric: "Sharpe ratio (3-mo T-bill RF)", v9: "0.610",  spy: "0.495",  sixty40: "0.422", edge: "+0.115" },
+    { metric: "Max drawdown",               v9: "−23.64%", spy: "−46.32%", sixty40: "—",      edge: "+22.7 pp" },
+    { metric: "Cumulative ($1 → $X)",       v9: "$10.84",  spy: "$6.84",   sixty40: "$4.12",  edge: "+58%" },
+    { metric: "Calendar years winning",     v9: "10 of 19", spy: "—",       sixty40: "—",      edge: "—" },
+  ];
+
+  const tableTh = { textAlign: "left", padding: "8px 12px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" };
+  const tableThR = { ...tableTh, textAlign: "right" };
+  const tableTd = { padding: "8px 12px", fontSize: 12, borderBottom: "1px solid var(--border-faint)", verticalAlign: "top" };
+  const tableTdR = { ...tableTd, textAlign: "right", fontFamily: "var(--font-mono)" };
+
   return (
     <section id="mth__asset-alloc" data-testid="methodology-section-asset-alloc"
       style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <SectionHeader label="ASSET ALLOCATION" sub="How the strategic allocation is built" applies={["allocation"]} />
+      <SectionHeader label="ASSET ALLOCATION" sub="How the strategic allocation is built — full v9.1 (current) methodology" applies={["allocation"]} />
 
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
-        The Asset Allocation tab translates the macro composites into a concrete portfolio recommendation: how much equity exposure to take, which industry groups to overweight, when to activate the defensive sleeve, and how much leverage to use.
+        The Asset Allocation tab translates the three macro composites (Risk &amp; Liquidity, Growth, Inflation &amp; Rates) into a concrete portfolio recommendation: which industry groups to overweight, how much equity exposure to take, when to activate the defensive sleeve, and how much leverage to use. The strategy rebalances weekly on Saturdays.
       </div>
 
+      {/* — UNIVERSE — */}
+      <SectionHeader label="UNIVERSE" sub="25 GICS industry groups + 4 defensive assets" applies={["allocation"]} />
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
+        The universe spans the 11 GICS sectors, decomposed into 25 industry groups under the post-March-2023 GICS structure. Implementation uses single-ETF proxies where one is available (13 of 25) and equal-weighted baskets of the largest names where no clean ETF exists (12 of 25).
+      </div>
+      <div style={{ overflowX: "auto", maxWidth: "100%" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
+          <thead><tr><th style={tableTh}>Sector</th><th style={tableTh}>Industry group</th><th style={tableTh}>Proxy</th><th style={tableTh}>Type</th></tr></thead>
+          <tbody>
+            {UNIVERSE_25.map((u, i) => (
+              <tr key={i}>
+                <td style={tableTd}>{u.sector}</td>
+                <td style={tableTd}>{u.ig}</td>
+                <td style={{ ...tableTd, fontFamily: "var(--font-mono)" }}>{u.proxy}</td>
+                <td style={{ ...tableTd, color: u.type === "basket" ? "var(--text-muted)" : "var(--text)" }}>{u.type === "basket" ? "Basket" : "Single ETF"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880, marginTop: 8 }}><strong>Defensive sleeve:</strong></div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
+        <thead><tr><th style={tableTh}>Ticker</th><th style={tableTh}>Description</th><th style={tableTh}>Role</th></tr></thead>
+        <tbody>
+          {DEFENSIVE.map((d, i) => (
+            <tr key={i}><td style={{ ...tableTd, fontFamily: "var(--font-mono)" }}>{d.ticker}</td><td style={tableTd}>{d.desc}</td><td style={tableTd}>{d.role}</td></tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* — INPUTS — */}
+      <SectionHeader label="INPUTS" sub="9 macro inputs feed the model" applies={["allocation"]} />
       <Prose>
-        <P><strong>Universe.</strong> 14 industry-group ETFs spanning the 11 GICS sectors, plus a 4-asset defensive sleeve (BIL T-bills, TLT long Treasuries, GLD gold, LQD investment-grade corporate bonds). Industry groups: Semiconductors, Software, Biotech, Financials, Health Care, Industrials, Energy, Consumer Discretionary, Consumer Staples, Utilities, Materials, Real Estate, Communication Services, Mega-cap Growth.</P>
-
-        <P><strong>Per-industry-group factor model.</strong> Each industry group is regressed on 2-6 macro factors specific to that group (e.g., Semiconductors: jobless claims, M2 YoY, industrial production), plus two universal background factors that apply to every group (10Y-2Y yield curve slope and Kim-Wright term premium). The regression produces an expected monthly return (μ) per industry group. Factors are kept in the regression only if their t-statistic exceeds 2 in the calibration window.</P>
-
-        <P><strong>Momentum overlay.</strong> Trailing 6-month price return is added as a secondary signal alongside the indicator-based μ. Final ranking is the average of indicator rank and momentum rank — this protects against regression overfit (a sector that screens well on factors but is rolling over in price gets demoted).</P>
-
-        <P><strong>Pick selection.</strong> The top 5 industry groups by combined rank become Overweights at equal weight. The remaining 9 industry groups are scored Market Weight or Underweight based on relative rank. v9 is by-design an equal-weight 5-pick model — variable conviction weighting is on the v10 roadmap.</P>
-
-        <P><strong>Stance &amp; leverage.</strong> Total stock exposure scales with the Risk &amp; Liquidity composite. Calm regimes (R&amp;L score &lt; -10) earn full leverage up to 1.3×; Normal regimes (-10 to +30) run between 1.0× and 1.3×; Elevated/Stressed regimes (&gt; +30) cut leverage to 1.0× and activate the defensive sleeve.</P>
-
-        <P><strong>Defensive sleeve.</strong> When the defensive sleeve is on, capital rotates out of equities into a 4-asset mix optimized for tail-risk protection: ~70% gold, ~27% T-bills, ~3% IG corporate bonds. The exact weights are reoptimized per rebalance based on current correlations. The sleeve's purpose is preservation, not return — Sharpe is maximized at the portfolio level by avoiding equity drawdowns, not by alpha-generating in the sleeve itself.</P>
-
-        <P><strong>Rebalance cadence.</strong> Weekly on Saturdays. The compute pipeline runs Saturday morning UTC after Friday's macro indicator refresh lands. Mid-week rating changes can flag pre-positioning opportunities, but new capital allocations only fire on the Saturday rebalance to avoid intra-week whipsaw.</P>
-
-        <P><strong>Backtest discipline.</strong> Walk-forward calibration from 2008 to current date. Every regression coefficient is refit at each Saturday rebalance using only data available at that point in time — no peeking ahead. Backtest results published on the Asset Allocation tab use the exact same code path that runs live.</P>
-
-        <P><strong>Performance vs S&amp;P 500.</strong> Through the 2008-2026 backtest window, the strategy delivered 13.9% CAGR vs the S&amp;P's 11.1% (+2.8 pp/yr excess), Sharpe 0.61 vs 0.45, and max drawdown of -23.6% vs the S&amp;P's -50.9%. Monthly outperformance frequency: 62%. The strategy's edge concentrates in two regimes: aggressive tilts when R&amp;L is calm, and the defensive sleeve activating ahead of major drawdowns (2008, 2020, 2022).</P>
+        <P><strong>1. Daily prices</strong> for all 25 industry-group proxies + 4 defensive ETFs from yfinance. Baskets are aggregated from constituent names, equal-weighted.</P>
+        <P><strong>2. Macro factor panel</strong> — ~32 factors back to 1998-2003 from FRED + Yahoo. Includes the yield curve (10Y minus 2Y), real rates, term premium, breakeven inflation, broad dollar, the Chicago Fed Financial Conditions Index, the St. Louis Financial Stress Index, commercial paper risk, fed funds, the Fed balance sheet, initial jobless claims, industrial production, capacity utilization, consumer sentiment, retail sales, PCE, durable-goods orders, housing starts, the 30-year mortgage rate, M2 money supply year-over-year, bank credit, WTI crude, natural gas, the copper-gold ratio, VIX, SKEW, and SLOOS lending standards (commercial &amp; industrial and commercial real estate).</P>
+        <P><strong>3. Macro composites</strong> — the Risk &amp; Liquidity, Growth, and Inflation &amp; Rates composites from the Today's Macro pipeline (`composite_history_daily.json`). These drive the equity-vs-defensive split and the leverage decision.</P>
       </Prose>
 
-      <SectionHeader label="WHAT CAN BREAK THIS" sub="Conditions that change the rating" applies={["allocation"]} />
+      {/* — PER-ASSET FACTOR MAPS — */}
+      <SectionHeader label="PER-ASSET FACTOR MAPS" sub="Each industry group has its own multivariate regression" applies={["allocation"]} />
+      <Prose>
+        <P>Each industry group's expected return is forecast from a dedicated multivariate regression on macro factors. The factor list is determined by forward-stepwise selection on 1998-2026 monthly returns: factors stay only if their t-statistic exceeds 2 in the calibration window. Two universal background factors apply to every group (10Y-2Y yield curve slope and Kim-Wright term premium). The factor map is regenerated quarterly — factors that lose statistical significance over time are dropped at the next refresh.</P>
+        <P><strong>Cyclicals</strong> (Energy, Materials, Capital Goods, Transportation, Automobiles) load on jobless claims, industrial production, copper-gold ratio, and oil prices.</P>
+        <P><strong>Rate-sensitives</strong> (Software, Pharma/Biotech, Real Estate, Utilities) load on real rates, term premium, and 10Y breakeven inflation.</P>
+        <P><strong>Financials</strong> load on the yield curve slope, SLOOS C&amp;I lending standards, and credit spreads.</P>
+        <P><strong>Consumer-facing</strong> (Cons Disc Retail, Consumer Services, Apparel) load on Michigan sentiment, real PCE, retail sales, and the 30-year mortgage rate.</P>
+        <P><strong>Defensives</strong> (Cons Staples, Health Care, Insurance) load on jobless claims and SLOOS C&amp;I as recession early-warning indicators.</P>
+      </Prose>
+
+      {/* — LOGIC — 9-step pipeline — */}
+      <SectionHeader label="LOGIC — 9-STEP PIPELINE" sub="What runs every Saturday rebalance" applies={["allocation"]} />
+      <Prose>
+        <P><strong>Step 1 — Forecast.</strong> Per-asset OLS regression on the factor panel (lagged 1 month). Last 60 months of returns × shifted factors → coefficient estimates. Forecast = α + β·X[T-1]. Shrink toward each asset's long-run mean by 50% (Bayesian / James-Stein-lite). Output is a vector of expected next-month returns across all 25 industry groups.</P>
+        <P><strong>Step 2 — Momentum.</strong> Trailing 6-month price return for each industry group, strict prior 6 months only — current month is NOT included (lookahead-safe).</P>
+        <P><strong>Step 3 — Regime-flip detection.</strong> If the Risk &amp; Liquidity composite has dropped more than 15 points over the last 3 months AND is now below +30, this is a stress-to-recovery regime change. Set <code>regime_flip = True</code>.</P>
+        <P><strong>Step 4 — Selection.</strong> In normal mode, rank groups by both indicator μ and 6-month momentum. Eligible = both ranks above median. Pick top 5 by combined rank, equal-weight 20% each within the equity sleeve. Fallback if fewer than 5 eligible: fill with indicator-positive only (NEVER momentum-positive only — indicators are forward-looking). In regime-flip mode, override momentum entirely and rank by indicator μ alone.</P>
+        <P><strong>Step 5 — Defensive sub-portfolio weights.</strong> Max-Sharpe optimisation across BIL/TLT/GLD/LQD with per-asset cap of 70%. Returns a 4-vector summing to 100%.</P>
+        <P><strong>Step 6 — Equity-vs-defensive split</strong> from the Risk &amp; Liquidity composite — see the threshold table below.</P>
+        <P><strong>Step 7 — Leverage decision</strong> from the Inflation &amp; Rates composite — see the threshold table below. Capped at 1.5× per Joe's 2026-04-25 directive.</P>
+        <P><strong>Step 8 — Apply leverage and financing cost.</strong> If alpha &gt; 1.0×, financing drag = (alpha − 1.0) × (risk-free + 0.5%/12). Subtracted from the realised portfolio return.</P>
+        <P><strong>Step 9 — Final weights.</strong> Each of the 5 picks gets 20% × equity_share × leverage. Each defensive bucket gets (its defensive sub-weight) × (1 − equity_share). If levered, defensive = 0%, equity &gt; 100%, financing drag applies.</P>
+      </Prose>
+
+      {/* Equity vs Defensive split */}
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880, marginTop: 4 }}><strong>Equity-vs-defensive split (Step 6):</strong></div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
+        <thead><tr><th style={tableTh}>R&amp;L composite</th><th style={tableThR}>Equity weight</th><th style={tableThR}>Defensive weight</th><th style={tableTh}>Notes</th></tr></thead>
+        <tbody>{EQ_THRESHOLDS.map((t, i) => (
+          <tr key={i}><td style={{ ...tableTd, fontFamily: "var(--font-mono)" }}>{t.rl}</td><td style={tableTdR}>{t.equity}</td><td style={tableTdR}>{t.defensive}</td><td style={{ ...tableTd, color: "var(--text-muted)" }}>{t.note}</td></tr>
+        ))}</tbody>
+      </table>
+
+      {/* Leverage thresholds */}
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880, marginTop: 4 }}><strong>Leverage thresholds (Step 7):</strong></div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
+        <thead><tr><th style={tableTh}>Inflation &amp; Rates composite</th><th style={tableThR}>Leverage</th><th style={tableTh}>Notes</th></tr></thead>
+        <tbody>{LEV_THRESHOLDS.map((t, i) => (
+          <tr key={i}><td style={{ ...tableTd, fontFamily: "var(--font-mono)" }}>{t.ir}</td><td style={tableTdR}>{t.lev}</td><td style={{ ...tableTd, color: "var(--text-muted)" }}>{t.note}</td></tr>
+        ))}</tbody>
+      </table>
+
+      {/* — CONFIRMATORY RULE + REGIME FLIP — */}
+      <SectionHeader label="CONFIRMATORY RULE & REGIME-FLIP OVERRIDE" sub="Why two signals must agree to enter a position" applies={["allocation"]} />
+      <Prose>
+        <P><strong>Confirmatory selection.</strong> A pure indicator-based ranking would over-fit the regression and chase factors. A pure momentum-based ranking would chase trends and crash at regime changes. Requiring both signals to point above-median in the same direction is a robustness device — it kills positions where one signal screens hot and the other is cold, which is usually where you get hurt.</P>
+        <P><strong>Regime-flip override.</strong> The exception is at V-bottoms. After a sharp risk-off move (R&amp;L drops more than 15 points in 3 months and is now below +30), trailing 6-month momentum is full of crash data and pointing the wrong way. The override falls back to indicator-only ranking, which is forward-looking and catches the recovery. This pattern is documented in the academic momentum-crash literature (Daniel &amp; Moskowitz 2016).</P>
+      </Prose>
+
+      {/* — TOP-5 EQUAL-WEIGHTED — */}
+      <SectionHeader label="TOP-5 EQUAL-WEIGHTED — TRADE-OFFS" sub="Why 5 picks instead of N or continuous weights" applies={["allocation"]} />
+      <Prose>
+        <P><strong>Concentration.</strong> Five picks at 20% each within the equity sleeve concentrates conviction. The model is making active calls — diluting them across 10 or 15 positions would produce something closer to a sector-rotation index fund.</P>
+        <P><strong>Why not continuous weights.</strong> Variable conviction weighting (e.g., max-Sharpe across the top 10 with weight caps) produces tighter back-test stats but is more fragile out-of-sample because it concentrates on whichever bucket the regression happens to like most that month. Equal-weight 5 is robust to single-bucket forecast errors.</P>
+        <P><strong>What would justify a v10 change.</strong> A back-test showing variable conviction weights deliver materially higher Sharpe AND comparable max drawdown across the full 2008-2026 window. If a future v10 proposal can demonstrate that, the council reviews on the same back-test discipline (walk-forward, no peek-ahead, identical risk-free rate convention). Until then, top-5 equal-weight stays.</P>
+      </Prose>
+
+      {/* — BACK-TEST — */}
+      <SectionHeader label="BACK-TEST RESULTS" sub="Jan 2008 → Apr 2026, 220 months ≈ 18.3 years" applies={["allocation"]} />
+      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
+        <thead><tr><th style={tableTh}>Metric</th><th style={tableThR}>v9.1 strategy</th><th style={tableThR}>S&amp;P 500 (SPY)</th><th style={tableThR}>60/40 (SPY/AGG)</th><th style={tableThR}>Edge</th></tr></thead>
+        <tbody>
+          {BACKTEST.map((b, i) => (
+            <tr key={i}><td style={tableTd}>{b.metric}</td><td style={{ ...tableTdR, color: "var(--green-text)", fontWeight: 600 }}>{b.v9}</td><td style={tableTdR}>{b.spy}</td><td style={tableTdR}>{b.sixty40}</td><td style={{ ...tableTdR, color: "var(--text-muted)" }}>{b.edge}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <Prose>
+        <P><strong>Where v9.1 wins.</strong> Regime-change years: 2008 GFC (+22pp), 2010 (+10pp), 2013 (+17pp), 2020 COVID (+2pp), 2022 inflation shock (+4pp), 2026 YTD (+18pp). The strategy's edge concentrates in two regimes — aggressive tilts when R&amp;L is calm, and the defensive sleeve activating ahead of major drawdowns.</P>
+        <P><strong>Where v9.1 lags.</strong> Mega-cap-concentration years: 2021 (-12pp), 2024 (-9pp), 2009 recovery (-6pp). When dispersion is low and the top 5 happen to be the wrong 5, the equal-weight 5 design under-performs. This is by design — concentration is the cost of conviction.</P>
+        <P><strong>Walk-forward discipline.</strong> Calibration is refit at each Saturday rebalance using only data available at that point in time — no peeking ahead. Back-test results published on the Asset Allocation tab use the exact same code path that runs live. Both Sharpes (strategy and S&amp;P) use the 3-month T-bill as the risk-free rate.</P>
+      </Prose>
+
+      {/* — HONEST LIMITATIONS — */}
+      <SectionHeader label="HONEST LIMITATIONS" sub="12 of 25 industry groups have no clean single-ETF proxy" applies={["allocation"]} />
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
+        These industry groups don't have a clean single-ETF proxy and are tracked through equal-weighted baskets of the largest names. Implementation cost is higher for these (more positions to maintain, no tight-tracking ETF wrapper available). Calibration accuracy depends on the basket adequately representing the underlying GICS group.
+      </div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
+        <thead><tr><th style={tableTh}>Sector</th><th style={tableTh}>Industry group</th><th style={tableTh}>Basket</th></tr></thead>
+        <tbody>{BASKET_IGS.map((u, i) => (
+          <tr key={i}><td style={tableTd}>{u.sector}</td><td style={tableTd}>{u.ig}</td><td style={{ ...tableTd, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{u.proxy}</td></tr>
+        ))}</tbody>
+      </table>
+
+      {/* — REFINEMENT PROCESS — */}
+      <SectionHeader label="REFINEMENT PROCESS" sub="How v9.x → v9.x+1 happens" applies={["allocation"]} />
+      <Prose>
+        <P>Refinements ship as v9.2, v9.3, etc. Each refinement requires: (1) back-test on the same 2008-2026 window, (2) comparison table vs v9.1 baseline (CAGR, Sharpe, max DD, calendar wins), (3) Senior Quant sign-off, (4) UX Designer sign-off if UI changes, (5) Lead Developer ships PR.</P>
+        <P><strong>Decisions that should not change without explicit council re-approval:</strong> the 1.5× leverage cap, industry-group level allocation (no cap dimension), the confirmatory selection rule (both indicator and momentum agree), the 6-month momentum window, the per-asset multivariate factor maps, and top-5 equal-weighted selection.</P>
+      </Prose>
+
+      {/* — CITATIONS — */}
+      <SectionHeader label="CITATIONS" sub="Academic + sell-side methodology references" applies={["allocation"]} />
+      <Prose>
+        <P><strong>Momentum and momentum crashes.</strong> Daniel &amp; Moskowitz, "Momentum Crashes," Journal of Financial Economics (2016) — motivates the regime-flip override at V-bottoms.</P>
+        <P><strong>Multivariate factor models.</strong> Asness, Moskowitz &amp; Pedersen, "Value and Momentum Everywhere," Journal of Finance (2013) — supports combining indicator-based and momentum-based ranks.</P>
+        <P><strong>Walk-forward calibration.</strong> López de Prado, "Advances in Financial Machine Learning" (2018), Chapter 7 — methodology for avoiding lookahead bias in back-tests.</P>
+        <P><strong>Defensive sleeve composition.</strong> Asness, Frazzini &amp; Pedersen, "Leverage Aversion and Risk Parity," Financial Analysts Journal (2012) — supports max-Sharpe optimisation with per-asset caps for tail-risk hedging.</P>
+        <P><strong>Sector rotation literature.</strong> Conover, Jensen, Johnson &amp; Mercer, "Sector Rotation and Monetary Conditions," Journal of Investing (2008) — supports macro-regime-conditional sector selection.</P>
+      </Prose>
+
+      <SectionHeader label="WHAT CAN BREAK THIS" sub="Conditions that change the ratings" applies={["allocation"]} />
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
         The 9 risk scenarios on the Asset Allocation tab map directly to specific indicators in the All Indicators tab. Each scenario links through to its underlying indicator with current value, history, and threshold context. Triggers include: real rates &gt; 2.0%, HY-IG spread &gt; 250bp, yield curve flattening below +25bp, SLOOS C&amp;I tightening &gt; +20pp, VIX sustained above 25, term premium &gt; 1.5%, copper-gold ratio breakdown, ISM &lt; 48, and USD index &gt; 110.
       </div>
