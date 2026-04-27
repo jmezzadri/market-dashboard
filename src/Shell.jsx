@@ -226,7 +226,7 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
 }
 
 // ── Drill-down chrome (back button + section title) ───────────────────────────
-export function SectionHeader({ eyebrow, title, sub, onBack, backLabel = "All sections" }) {
+export function SectionHeader({ eyebrow, title, sub, onBack, backLabel = "Home" }) {
   return (
     <div className="section-header-inner" style={{
       maxWidth: 1440, margin: "0 auto",
