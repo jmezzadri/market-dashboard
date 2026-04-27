@@ -103,7 +103,7 @@ const RISK_SCENARIOS = [
     tags: ["Industrials", "Materials", "Energy", "Utilities"],
   },
   {
-    trigger: "SLOOS C&I tightening above +20pp",
+    trigger: "SLOOS C&I tightening above +20%",
     indicator_id: "sloos_ci",
     impact: "Credit channel chokes off. Capital-goods orders and bank loan growth roll over in 1-2 quarters. Pre-position by trimming Industrials before the next print.",
     tags: ["Industrials", "Financials"],
@@ -153,7 +153,7 @@ const SECTOR_RATINGS = [
   { sector: "Industrials",            rating: "ow", rationale: "Capital Goods overweight on ISM new orders firming above 50 and easing financial conditions. Defense underweight on cycle-end positioning." },
   { sector: "Materials",              rating: "ow", rationale: "Metals & Mining overweight on rising copper/gold ratio plus industrial production recovery. Chemicals market weight." },
   { sector: "Consumer Discretionary", rating: "mw", rationale: "Torn between strong labor markets (favorable) and rate-sensitivity in housing/autos. Retail neutral; Autos underweight on rate sensitivity." },
-  { sector: "Financials",             rating: "uw", rationale: "Banks underweight: yield curve helps NIM but bank unrealized losses still elevated and SLOOS C&I tightening at +12 pp suppresses loan growth." },
+  { sector: "Financials",             rating: "uw", rationale: "Banks underweight: yield curve helps NIM but bank unrealized losses still elevated and SLOOS C&I tightening at +12% suppresses loan growth." },
   { sector: "Health Care",            rating: "uw", rationale: "Pharma & Biotech underweight on negative earnings revisions plus drug-pricing policy overhang. Defensive yield premium not earned in the calm regime." },
   { sector: "Consumer Staples",       rating: "uw", rationale: "Defensive yield premium isn't earned when Risk & Liquidity reads benign. FX-sensitive multinationals also face a strong-USD headwind." },
   { sector: "Real Estate",            rating: "uw", rationale: "REITs underweight: real rates still elevated and CRE office stress live. Pure bond-proxy behavior loses when the curve steepens." },
@@ -824,7 +824,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               Excess return target
               <InfoTip def="Expected outperformance versus the S&P 500 over the next month, after subtracting the financing cost on any margin used." />
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green-text)", marginTop: 2 }}>+{alpha.toFixed(2)} pp</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green-text)", marginTop: 2 }}>+{alpha.toFixed(2)}%</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>monthly · over S&P 500</div>
           </div>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
@@ -925,7 +925,17 @@ export default function AssetAllocation({ onOpenTicker }) {
           ];
 
           return (
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)", tableLayout: "fixed" }}>
+              {/* Right-side column widths intentionally MATCH the per-sector
+                  table below so the four dollar-column headers line up
+                  vertically across both tables (Joe ask 2026-04-27). */}
+              <colgroup>
+                <col />
+                <col style={{ width: 200 }} />
+                <col style={{ width: 200 }} />
+                <col style={{ width: 200 }} />
+                <col style={{ width: 160 }} />
+              </colgroup>
               <thead>
                 <tr>
                   <th style={{ ...headTh, textAlign: "left" }}>Asset class</th>
@@ -981,10 +991,20 @@ export default function AssetAllocation({ onOpenTicker }) {
           return (
             <>
               <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 14, fontWeight: 500, margin: "20px 0 8px" }}>Per-sector changes</h3>
-              <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
+              <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)", tableLayout: "fixed" }}>
+                {/* Right-side column widths match Table 1 above so the four
+                    dollar-column headers line up vertically (Joe ask 2026-04-27). */}
+                <colgroup>
+                  <col style={{ width: 130 }} />
+                  <col />
+                  <col style={{ width: 200 }} />
+                  <col style={{ width: 200 }} />
+                  <col style={{ width: 200 }} />
+                  <col style={{ width: 160 }} />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th style={{ ...headTh, textAlign: "left", width: 130 }}>Move</th>
+                    <th style={{ ...headTh, textAlign: "left" }}>Move</th>
                     <th style={{ ...headTh, textAlign: "left" }}>Sector / Industry group</th>
                     <th style={{ ...headTh, textAlign: "right" }}>Recommended now</th>
                     <th style={{ ...headTh, textAlign: "right" }}>Last month{lastMonthDate !== "—" ? ` (${lastMonthDate})` : ""}</th>
@@ -1125,7 +1145,7 @@ export default function AssetAllocation({ onOpenTicker }) {
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>CAGR vs S&amp;P 500</div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 500, marginTop: 4, color: "var(--green-text)" }}>{((alloc.methodology?.back_test_cagr || 0) * 100).toFixed(1)}%</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>S&amp;P 500: <strong>{(((alloc.methodology?.back_test_cagr || 0) - (alloc.methodology?.vs_spy_cagr_diff || 0)) * 100).toFixed(1)}%</strong> · Δ <span style={{ color: "var(--green-text)", fontWeight: 600 }}>+{((alloc.methodology?.vs_spy_cagr_diff || 0) * 100).toFixed(1)} pp</span></div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>S&amp;P 500: <strong>{(((alloc.methodology?.back_test_cagr || 0) - (alloc.methodology?.vs_spy_cagr_diff || 0)) * 100).toFixed(1)}%</strong> · Δ <span style={{ color: "var(--green-text)", fontWeight: 600 }}>+{((alloc.methodology?.vs_spy_cagr_diff || 0) * 100).toFixed(1)}%</span></div>
           </div>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Sharpe vs S&amp;P 500</div>
@@ -1136,7 +1156,7 @@ export default function AssetAllocation({ onOpenTicker }) {
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Max drawdown vs S&amp;P 500</div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 500, marginTop: 4, color: "var(--red-text)" }}>{((alloc.methodology?.back_test_max_drawdown || 0) * 100).toFixed(1)}%</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>S&amp;P 500: <strong>−50.9%</strong> · Δ <span style={{ color: "var(--green-text)", fontWeight: 600 }}>+{((alloc.methodology?.back_test_max_drawdown || 0) * 100 + 50.9).toFixed(1)} pp</span></div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>S&amp;P 500: <strong>−50.9%</strong> · Δ <span style={{ color: "var(--green-text)", fontWeight: 600 }}>+{((alloc.methodology?.back_test_max_drawdown || 0) * 100 + 50.9).toFixed(1)}%</span></div>
           </div>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Win rate vs S&amp;P 500</div>
@@ -1223,13 +1243,16 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
   }
 
   // Build per-sector aggregates with their child IGs.
-  const baseRows = SECTOR_IG_MAP.map((s) => {
+  // First pass — gather IG-level data and the AVG rank per sector (used to
+  // re-rank sectors 1-11 sequentially, which is what Joe asked for; previous
+  // version used MIN(child IG rank) which produced gappy values like 1, 2, 4,
+  // 8, 14 across only 11 sectors).
+  const firstPass = SECTOR_IG_MAP.map((s) => {
     const igs = s.groups.map((g) => {
       const rec = pickWeightByTicker[g.ticker] || 0;
       const spy = SECTOR_IG_SPY_WEIGHTS[g.name] || 0;
       const rating = igRatingMap?.get(g.name)?.rating || g.rating || "mw";
       const ranks = rankByTicker[g.ticker] || {};
-      // Per-IG Why = full curated rationale paragraph from industry_group_rationale.json.
       const seed = rationales?.buckets?.[g.ticker];
       const why = seed?.rationale || "—";
       return {
@@ -1243,26 +1266,34 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
     const recTotal = igs.reduce((a, x) => a + x.rec, 0);
     const spyTotal = SECTOR_GICS_BENCHMARK[s.sector] ?? igs.reduce((a, x) => a + x.spy, 0);
     const sectorRating = deriveSectorRating(s.sector, igRatingMap, SECTOR_IG_MAP);
-    // Sector-level rank = the BEST (lowest) IG rank in the sector, since that's
-    // the rank that determines whether a sector becomes a pick.
-    const indRanks = igs.map(x => x.indRank).filter(x => x != null);
-    const momRanks = igs.map(x => x.momRank).filter(x => x != null);
-    const sectorIndRank = indRanks.length ? Math.min(...indRanks) : null;
-    const sectorMomRank = momRanks.length ? Math.min(...momRanks) : null;
-    // Sector-level Why = the existing one-paragraph rationale from SECTOR_RATINGS.
+    // Average IG rank per sector — the metric we re-rank sectors by.
+    // Sectors with lower average rank are listed as #1, #2, etc.
+    const ind = igs.map(x => x.indRank).filter(x => x != null);
+    const mom = igs.map(x => x.momRank).filter(x => x != null);
+    const indAvg = ind.length ? ind.reduce((a, b) => a + b, 0) / ind.length : null;
+    const momAvg = mom.length ? mom.reduce((a, b) => a + b, 0) / mom.length : null;
     const why = SECTOR_RATINGS.find((r) => r.sector === s.sector)?.rationale || "";
     return {
-      sector: s.sector,
-      igs,
-      rec: recTotal,
-      spy: spyTotal,
-      tilt: recTotal - spyTotal,
+      sector: s.sector, igs,
+      rec: recTotal, spy: spyTotal, tilt: recTotal - spyTotal,
       rating: sectorRating,
-      indRank: sectorIndRank,
-      momRank: sectorMomRank,
+      indAvg, momAvg,
       why,
     };
   });
+
+  // Second pass — assign sequential 1-11 sector ranks based on indAvg / momAvg.
+  // Sector with lowest indAvg → indRank 1; sector with lowest momAvg → momRank 1.
+  // IG sub-rows keep their original 1-25 ranks unchanged.
+  const sortedByInd = [...firstPass].filter(r => r.indAvg != null).sort((a, b) => a.indAvg - b.indAvg);
+  const sortedByMom = [...firstPass].filter(r => r.momAvg != null).sort((a, b) => a.momAvg - b.momAvg);
+  const sectorIndRankBy = new Map(sortedByInd.map((r, i) => [r.sector, i + 1]));
+  const sectorMomRankBy = new Map(sortedByMom.map((r, i) => [r.sector, i + 1]));
+  const baseRows = firstPass.map(r => ({
+    ...r,
+    indRank: sectorIndRankBy.get(r.sector) ?? null,
+    momRank: sectorMomRankBy.get(r.sector) ?? null,
+  }));
 
   // Sortable columns. Default sort by Tilt descending. Joe ask 2026-04-27:
   // Rating column removed to save space — the Tilt direction (and color) is
@@ -1284,7 +1315,7 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
   });
 
   const fmtPct = (x) => `${(x * 100).toFixed(1)}%`;
-  const fmtTilt = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)} pp`;
+  const fmtTilt = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)}%`;
   // Rank is a plain integer per Joe ask 2026-04-27 — no "#" prefix.
   const fmtRank = (x) => x == null ? "—" : String(x);
   const tiltColor = (x) => Math.abs(x) < 0.005 ? "var(--text-muted)" : (x > 0 ? "var(--green-text)" : "var(--red-text)");
