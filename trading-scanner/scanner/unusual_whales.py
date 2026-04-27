@@ -584,33 +584,71 @@ def get_stock_info(ticker: str) -> dict[str, Any] | None:
     if not isinstance(tags, list):
         tags = []
 
-    # UW's `short_description` is already truncated at the source (ends with "...").
-    # Fetch yfinance `longBusinessSummary` as a full fallback so the dashboard's
-    # "more" toggle has something real to reveal. Failure is tolerated — we still
-    # ship the short description.
+    # Detect ETFs / funds vs common stock so we can branch on the description
+    # source. UW returns issue_type values like "ETF", "ETN", "Common Stock",
+    # "ADR Common Stock", "Closed-End Fund" — anything that's not one of the
+    # equity types is treated as a fund-like for description purposes.
+    raw_issue = (data.get("issue_type") or "").strip()
+    issue_lc  = raw_issue.lower()
+    is_fund   = any(k in issue_lc for k in ("etf", "etn", "fund"))
+
+    # Description chain (Joe's 2026-04-27 ask: every modal has a description):
+    #   1) UW short_description (already truncated, ends with "...")
+    #   2) yfinance longBusinessSummary (best for equities; some ETFs too)
+    #   3) yfinance description (ETF-specific field)
+    # We populate BOTH short_description and long_description so the frontend
+    # has something to render whether or not it expands the "more" toggle.
+    short_desc = data.get("short_description")
     long_description = None
+    yf_full_name = None
+    yf_quote_type = None
+    yf_category   = None
     try:
         import yfinance as yf
         yf_info = yf.Ticker(sym).info or {}
+        # longBusinessSummary covers equities and most ETFs
         lbs = yf_info.get("longBusinessSummary")
         if isinstance(lbs, str) and len(lbs.strip()) > 0:
             long_description = lbs.strip()
+        # ETF-specific: 'description' field on some ETF tickers
+        if not long_description:
+            etf_desc = yf_info.get("description")
+            if isinstance(etf_desc, str) and len(etf_desc.strip()) > 0:
+                long_description = etf_desc.strip()
+        yf_full_name  = yf_info.get("longName") or yf_info.get("shortName")
+        yf_quote_type = yf_info.get("quoteType")  # "EQUITY" | "ETF" | "MUTUALFUND" | ...
+        yf_category   = yf_info.get("category")   # ETF category (e.g., "Large Blend")
     except Exception as e:
-        logger.debug("yfinance longBusinessSummary fetch failed for %s: %s", sym, e)
+        logger.debug("yfinance info fetch failed for %s: %s", sym, e)
+
+    # Fallback short_description for ETFs that UW returns empty for: derive a
+    # truncated teaser from the long description so the frontend always has
+    # SOMETHING to render in the collapsed state.
+    if not short_desc and long_description:
+        teaser = long_description.split(". ")[0]
+        if len(teaser) > 200:
+            teaser = teaser[:200].rsplit(" ", 1)[0]
+        short_desc = teaser + ("..." if not teaser.endswith(".") else "")
+
+    # Confirm fund detection from yfinance if UW didn't tell us
+    if not is_fund and isinstance(yf_quote_type, str) and yf_quote_type.upper() in ("ETF", "MUTUALFUND", "CLOSEDEND"):
+        is_fund = True
 
     return {
         "sector": data.get("sector"),
         "tags": tags,  # renamed from uw_tags for dashboard-facing clarity
-        "short_description": data.get("short_description"),
+        "short_description": short_desc,
         "long_description": long_description,
-        "full_name": data.get("full_name") or data.get("name"),
+        "full_name": data.get("full_name") or data.get("name") or yf_full_name,
         "short_name": data.get("short_name"),
         "next_earnings_date": data.get("next_earnings_date"),
         "announce_time": data.get("announce_time"),  # "premarket" | "postmarket" | null
         "marketcap": data.get("marketcap"),
         "marketcap_size": data.get("marketcap_size"),
         "beta": data.get("beta"),
-        "issue_type": data.get("issue_type"),
+        "issue_type": raw_issue or yf_quote_type,
+        "is_fund": is_fund,
+        "etf_category": yf_category if is_fund else None,
         "has_options": data.get("has_options"),
         "has_dividend": data.get("has_dividend"),
         "logo": data.get("logo"),
