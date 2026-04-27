@@ -6178,6 +6178,45 @@ return(
           <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open →</a>
         </div>
 
+        {/* Editorial commentary — at TOP per Joe 2026-04-27. Threshold-gated;
+            renders nothing when nothing has moved materially. Daily refresh
+            via pg_cron job 'generate-commentary-daily-1130utc'. */}
+        {(macroCommentary && (macroCommentary.short_term || macroCommentary.medium_term)) && (
+          <div style={{
+            marginBottom:"var(--space-4)",
+            paddingBottom:"var(--space-3)",
+            borderBottom:"1px solid var(--border-faint)",
+            display:"flex", flexDirection:"column", gap:"var(--space-2)",
+          }}>
+            {macroCommentary.short_term && (
+              <div style={{
+                fontFamily:"var(--font-display)", fontStyle:"italic",
+                fontSize:15, lineHeight:1.5, color:"var(--text)",
+              }}>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                  letterSpacing:"0.14em", textTransform:"uppercase",
+                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+                }}>Short term</span>
+                {macroCommentary.short_term}
+              </div>
+            )}
+            {macroCommentary.medium_term && (
+              <div style={{
+                fontFamily:"var(--font-display)", fontStyle:"italic",
+                fontSize:15, lineHeight:1.5, color:"var(--text)",
+              }}>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                  letterSpacing:"0.14em", textTransform:"uppercase",
+                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+                }}>Medium term</span>
+                {macroCommentary.medium_term}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Composite strip */}
         <div style={{
           display:"flex", alignItems:"center", gap:"var(--space-5)",
@@ -6342,45 +6381,6 @@ return(
           ))}
         </div>
 
-        {/* Editorial commentary — threshold-gated; renders nothing when
-            nothing has moved materially. Fed by the commentary engine
-            (supabase/functions/generate-commentary → macro_commentary).
-            Each slot is capped at ~25 words to discourage filler. */}
-        {(macroCommentary && (macroCommentary.short_term || macroCommentary.medium_term)) && (
-          <div style={{
-            marginTop:"var(--space-4)",
-            paddingTop:"var(--space-3)",
-            borderTop:"1px solid var(--border-faint)",
-            display:"flex", flexDirection:"column", gap:"var(--space-2)",
-          }}>
-            {macroCommentary.short_term && (
-              <div style={{
-                fontFamily:"var(--font-display)", fontStyle:"italic",
-                fontSize:14, lineHeight:1.5, color:"var(--text-muted)",
-              }}>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                  letterSpacing:"0.14em", textTransform:"uppercase",
-                  color:"var(--text-dim)", marginRight:"var(--space-2)",
-                }}>Short term</span>
-                {macroCommentary.short_term}
-              </div>
-            )}
-            {macroCommentary.medium_term && (
-              <div style={{
-                fontFamily:"var(--font-display)", fontStyle:"italic",
-                fontSize:14, lineHeight:1.5, color:"var(--text-muted)",
-              }}>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                  letterSpacing:"0.14em", textTransform:"uppercase",
-                  color:"var(--text-dim)", marginRight:"var(--space-2)",
-                }}>Medium term</span>
-                {macroCommentary.medium_term}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       {/* 02 · Asset Allocation — 3 highest overall rank + 3 lowest, with
@@ -6393,6 +6393,25 @@ return(
           <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Allocation <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
           <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
         </div>
+
+        {/* Editorial sector narrative — at TOP per Joe 2026-04-27. Daily
+            refresh via pg_cron 'generate-commentary-daily-1130utc'. */}
+        {(sectorCommentary && sectorCommentary.headline) && (
+          <div style={{
+            marginBottom:"var(--space-4)",
+            paddingBottom:"var(--space-3)",
+            borderBottom:"1px solid var(--border-faint)",
+            fontFamily:"var(--font-display)", fontStyle:"italic",
+            fontSize:15, lineHeight:1.5, color:"var(--text)",
+          }}>
+            <span style={{
+              fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+              letterSpacing:"0.14em", textTransform:"uppercase",
+              color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+            }}>Today</span>
+            {sectorCommentary.headline}
+          </div>
+        )}
 
         {(()=>{
           // v9 allocation engine output — this is what's on the destination
@@ -6493,20 +6512,6 @@ return(
           </>);
         })()}
 
-        {/* Editorial sector narrative — single-sentence analyst note, only
-            renders when the commentary engine detected a material move.
-            No "stable this week" fallback on purpose. */}
-        {(sectorCommentary && sectorCommentary.headline) && (
-          <div style={{
-            marginTop:"var(--space-4)",
-            paddingTop:"var(--space-3)",
-            borderTop:"1px solid var(--border-faint)",
-            fontFamily:"var(--font-display)", fontStyle:"italic",
-            fontSize:13, lineHeight:1.5, color:"var(--text-muted)",
-          }}>
-            {sectorCommentary.headline}
-          </div>
-        )}
       </div>
 
       {/* 03 · Trading Opportunities — top-of-book names, not just counts */}
