@@ -230,6 +230,10 @@ export default function LoginScreen() {
   };
 
   const inputBase = {
+    // box-sizing: border-box is critical — without it, width:100% + padding +
+    // border made the inputs render wider than the card, so text bumped right
+    // against (or past) the borders. Joe flagged 2026-04-27.
+    boxSizing: "border-box",
     width: "100%",
     padding: "12px 14px",
     fontSize: 14,

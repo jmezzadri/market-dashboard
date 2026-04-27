@@ -42,14 +42,17 @@ function SunIcon()  { return <svg width="14" height="14" viewBox="0 0 16 16" fil
 function MoonIcon() { return <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M13.5 9.8A5.5 5.5 0 1 1 6.2 2.5a4.5 4.5 0 0 0 7.3 7.3z" fill="currentColor"/></svg>; }
 
 export function ThemeToggle({ pref, setPref }) {
+  // Use aria-label (screen-reader only) instead of <Tip> or title (browser-native
+  // tooltip). Both caused a visible "Light"/"Dark" text bubble to flash on
+  // click — Joe flagged 2026-04-27.
   return (
     <div className="theme-toggle" role="group" aria-label="Theme">
-      <Tip def="Light"><button onClick={() => setPref("light")} aria-pressed={pref === "light"}>
+      <button onClick={() => setPref("light")} aria-pressed={pref === "light"} aria-label="Light theme">
         <SunIcon />
-      </button></Tip>
-      <Tip def="Dark"><button onClick={() => setPref("dark")}  aria-pressed={pref === "dark"}>
+      </button>
+      <button onClick={() => setPref("dark")}  aria-pressed={pref === "dark"}  aria-label="Dark theme">
         <MoonIcon />
-      </button></Tip>
+      </button>
     </div>
   );
 }
