@@ -327,7 +327,7 @@ export function SidebarToggleButton({ onClick }) {
 }
 
 // ── Footer ────────────────────────────────────────────────────────────────────
-export function Footer({ leftText, rightText }) {
+export function Footer({ leftText, rightText, onAbout }) {
   const year = new Date().getFullYear();
   return (
     <footer style={{
@@ -371,12 +371,21 @@ export function Footer({ leftText, rightText }) {
               Contact <span style={{ color: "var(--accent)", marginLeft: 4 }}>→</span>
               <div style={{ color: "var(--text-dim)", fontSize: 11, fontWeight: 400, marginTop: 3 }}>admin@macrotilt.com</div>
             </a>
-            <div>
-              <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, marginBottom: 3 }}>About us</div>
-              <div style={{ color: "var(--text-dim)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45 }}>
-                Founded in a home office. Team size: one human, one LLM, a lot of ZeroHedge headlines.
+            <a
+              onClick={() => { if (onAbout) onAbout(); else { window.location.hash = "#about"; } }}
+              href={onAbout ? undefined : "#about"}
+              style={{
+                color: "inherit", textDecoration: "none", cursor: "pointer",
+                display: "block",
+              }}
+            >
+              <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, marginBottom: 3 }}>
+                About us <span style={{ color: "var(--accent)", marginLeft: 4 }}>→</span>
               </div>
-            </div>
+              <div style={{ color: "var(--text-dim)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45 }}>
+                Why we built it, what it solves, who it's for. The thesis behind the model.
+              </div>
+            </a>
             <div>
               <div style={{ color: "var(--text)", fontSize: 13, fontWeight: 500, marginBottom: 3 }}>Careers</div>
               <div style={{ color: "var(--text-dim)", fontSize: 11, fontStyle: "italic", lineHeight: 1.45 }}>

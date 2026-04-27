@@ -35,6 +35,7 @@ import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
 import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
+import AboutPage from "./pages/AboutPage";
 import TodayMacro from "./pages/TodayMacro";
 import AssetAllocation from "./pages/AssetAllocation";
 import { useSortableTable as useSortableTable_v1, SortArrow as SortArrow_v1, sortableHeaderProps as sortableHeaderProps_v1 } from "./hooks/useSortableTable.jsx";
@@ -5534,7 +5535,7 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","scanner","readme","admin","bugs","lab"];
+const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","scanner","about","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
@@ -5544,6 +5545,7 @@ const TAB_META={
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"Daily opportunity scan candidates — buy alerts, near-triggers, and watchlist movers. Open the full scanner for the deep view."},
   insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
+  about:     {eyebrow:"About MacroTilt",      title:"About",                   sub:"The problem, the approach, and who this is for."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
   admin:     {eyebrow:"Admin · API Usage",    title:"UW API usage",            sub:"Daily calls, quota remaining, peak RPM, and recent run history. Visible only to admins."},
   bugs:      {eyebrow:"Admin · Bug Tracker",  title:"Bug reports",             sub:"Institutional-grade triage: every bug, its status, proposed fix, complexity, and lifecycle stamps. Admin only."},
@@ -6368,9 +6370,9 @@ return(
             </h1>
             <p style={{
               fontSize:16, color:"var(--text-muted)", lineHeight:1.5,
-              maxWidth:"56ch", margin:0,
+              maxWidth:"60ch", margin:0,
             }}>
-              A daily macro read, an allocation tilt, and a scanner that flags names from your watchlist.
+              Beating the benchmark on a risk-adjusted basis takes <em style={{fontStyle:"italic", color:"var(--text)"}}>discipline, not instinct</em>. A back-tested macro model: one daily read, one allocation tilt, one watchlist scanner.
             </p>
           </div>
           <div style={{paddingBottom:"var(--space-2)"}}>
@@ -6387,6 +6389,76 @@ return(
             </div>
           </div>
         </div>
+
+        {/* ── EVIDENCE STRIP ─ three back-test stats from v9 methodology ─
+             Quiet receipt that the daily read is empirical, not vibes.
+             Renders nothing while v9_allocation.json hasn't loaded.
+             Joe 2026-04-27: bring out the back-tested-quant theme. */}
+        {(()=>{
+          const meth = V?.methodology;
+          if (!meth) return null;
+          const cagrAlpha = meth.vs_spy_cagr_diff != null ? meth.vs_spy_cagr_diff : null;
+          const sharpe   = meth.back_test_sharpe;
+          const window   = meth.back_test_window || "";
+          const yrs = (() => {
+            const m = window.match(/(\d{4})-\d{2}\s*to\s*(\d{4})-\d{2}/);
+            if (!m) return null;
+            return Math.max(1, parseInt(m[2]) - parseInt(m[1]));
+          })();
+          const stripCellStyle = {
+            flex:1, minWidth:0,
+            padding:"var(--space-4) var(--space-5)",
+            display:"flex", flexDirection:"column", gap:6,
+            borderRight:"1px solid var(--border-faint)",
+          };
+          const stripCellLast = {...stripCellStyle, borderRight:"none"};
+          const numStyle = {
+            fontFamily:"var(--font-display)", fontWeight:500,
+            fontSize:"clamp(22px, 2.4vw, 28px)", lineHeight:1, color:"var(--text)",
+            letterSpacing:"-0.01em",
+          };
+          const labelStyle = {
+            fontFamily:"var(--font-mono)", fontSize:10,
+            color:"var(--text-dim)", letterSpacing:"0.16em", textTransform:"uppercase",
+          };
+          const subStyle = {
+            fontSize:11, color:"var(--text-muted)", lineHeight:1.4,
+          };
+          return (
+            <div style={{
+              marginTop:"var(--space-5)",
+              padding:"0",
+              background:"var(--surface-3, var(--surface))",
+              border:"1px solid var(--border-faint)",
+              borderRadius:8,
+              display:"flex", flexWrap:"wrap",
+            }}>
+              <div style={stripCellStyle}>
+                <span style={labelStyle}>vs S&amp;P 500</span>
+                <span style={numStyle}>
+                  {cagrAlpha != null ? `${cagrAlpha>=0?"+":""}${(cagrAlpha*100).toFixed(1)}% / yr` : "—"}
+                </span>
+                <span style={subStyle}>annualized excess return, model vs benchmark</span>
+              </div>
+              <div style={stripCellStyle}>
+                <span style={labelStyle}>Sharpe ratio</span>
+                <span style={numStyle}>
+                  {sharpe != null ? sharpe.toFixed(2) : "—"}
+                </span>
+                <span style={subStyle}>return per unit of volatility — higher is better</span>
+              </div>
+              <div style={stripCellLast}>
+                <span style={labelStyle}>Calibration window</span>
+                <span style={numStyle}>
+                  {yrs != null ? `${yrs} years` : "—"}
+                </span>
+                <span style={subStyle}>
+                  {window || "—"} · {meth.ig_universe_size || 25} industry groups
+                </span>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* ── ORIENTATION TILES (Macro / Allocation / Scanner) ── */}
         <section className="mt-home-steps" style={{
@@ -7967,6 +8039,7 @@ return(<>
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
+{tab==="about"  && <AboutPage onNav={navTo}/>}
 {tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF} asOfIso={AS_OF_ISO} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>}
 
 
@@ -7976,6 +8049,7 @@ return(<>
 <Footer
   leftText={tab==="scanner"?"SOURCES · Unusual Whales · Yahoo Finance · SEC Form 4 · Congressional Disclosures":"SOURCES · FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · Kim-Wright Fed · SLOOS Fed"}
   rightText="⚠ NOT INVESTMENT ADVICE · v10"
+  onAbout={()=>navTo("about")}
 />
 
 </div>{/* close .app-main */}
