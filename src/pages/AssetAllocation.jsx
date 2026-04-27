@@ -400,6 +400,7 @@ export default function AssetAllocation({ onOpenTicker }) {
   const [composites, setComposites]     = useState(null);
   const [rationales, setRationales]     = useState(null);
   const [history, setHistory]           = useState(null);
+  const [indicatorHistory, setIndicatorHistory] = useState(null);
   const [activeBucket, setActiveBucket] = useState({ sector: "Information Technology", name: "Semiconductors", ticker: "SOXX", rating: "ow" });
 
   useEffect(() => {
@@ -407,6 +408,7 @@ export default function AssetAllocation({ onOpenTicker }) {
     fetch("/composite_history_daily.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setComposites).catch(() => setComposites(null));
     fetch("/industry_group_rationale.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setRationales).catch(() => setRationales(null));
     fetch("/allocation_history.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setHistory).catch(() => setHistory(null));
+    fetch("/indicator_history.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setIndicatorHistory).catch(() => setIndicatorHistory(null));
   }, []);
 
   // Derive macro composite snapshot from composite_history_daily.json
@@ -459,6 +461,38 @@ export default function AssetAllocation({ onOpenTicker }) {
   // Picks for table 2 (allocation changes — stub data until allocation_history.json populates)
   const picks = alloc?.picks || [];
   const lastChange = picks.length ? picks[0]?.weight : null;
+
+  // Pull current + 1M + 3M for the three indicators The Why card cites.
+  // Sourced from indicator_history.json so the prose never goes stale.
+  const macroFacts = useMemo(() => {
+    if (!indicatorHistory) return null;
+    const latest = (key) => {
+      const obj = indicatorHistory[key];
+      if (!obj || typeof obj !== "object") return null;
+      const dates = Object.keys(obj).sort();
+      if (!dates.length) return null;
+      const cur = obj[dates[dates.length - 1]];
+      const back = (n) => obj[dates[Math.max(0, dates.length - 1 - n)]];
+      return { current: cur, mo1: back(30), mo3: back(90), as_of: dates[dates.length - 1] };
+    };
+    return {
+      real_rates: latest("real_rates"),
+      yield_curve: latest("yield_curve"),
+      hy_ig: latest("hy_ig"),
+    };
+  }, [indicatorHistory]);
+
+  // Plain-English direction label for each indicator
+  const dirLabel = (cur, mo3, kind) => {
+    if (cur == null || mo3 == null) return "";
+    const delta = cur - mo3;
+    const eps = Math.abs(cur) * 0.01;  // 1% threshold
+    if (Math.abs(delta) < eps) return "flat";
+    if (kind === "rates") return delta > 0 ? "rising" : "rolling over";
+    if (kind === "curve") return delta > 0 ? "steepening" : "flattening";
+    if (kind === "spread") return delta > 0 ? "widening" : "tightening";
+    return "";
+  };
 
   // Format an ISO date (e.g. "2026-03-31") as "March 31".
   const humanDate = (iso) => {
@@ -598,9 +632,15 @@ export default function AssetAllocation({ onOpenTicker }) {
               {heroSubtitle}
             </div>
             <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
-              <li><strong>Real rates have rolled over</strong> — 10Y TIPS at 1.62%, supportive of long-duration tech multiples.</li>
-              <li><strong>Yield curve is steepening</strong> (10Y−2Y at +54bp) — historically rewards cyclical sectors over bond proxies.</li>
-              <li><strong>Credit spreads stayed tight</strong> through the Q1 wobble — HY−IG at 205bp, well below the 250bp stress trigger.</li>
+              {macroFacts?.real_rates && (
+                <li><strong>Real rates ({dirLabel(macroFacts.real_rates.current, macroFacts.real_rates.mo3, "rates")})</strong> — 10Y TIPS at {macroFacts.real_rates.current.toFixed(2)}%, vs. {macroFacts.real_rates.mo3?.toFixed(2)}% three months ago.</li>
+              )}
+              {macroFacts?.yield_curve && (
+                <li><strong>Yield curve {dirLabel(macroFacts.yield_curve.current, macroFacts.yield_curve.mo3, "curve")}</strong> (10Y−2Y at {macroFacts.yield_curve.current > 0 ? "+" : ""}{macroFacts.yield_curve.current.toFixed(0)}bp, vs. {macroFacts.yield_curve.mo3?.toFixed(0)}bp three months ago).</li>
+              )}
+              {macroFacts?.hy_ig && (
+                <li><strong>HY−IG credit spread {dirLabel(macroFacts.hy_ig.current, macroFacts.hy_ig.mo3, "spread")}</strong> — current {macroFacts.hy_ig.current.toFixed(0)}bp, vs. {macroFacts.hy_ig.mo3?.toFixed(0)}bp three months ago. 250bp is the stress trigger.</li>
+              )}
               <li>Semis and Energy screen <strong>#1 and #2</strong> on combined indicator + 6-month momentum rank.</li>
               <li>Utilities and REITs lose their bond-proxy thesis when the curve steepens — exit the overweight set.</li>
               <li>Inflation &amp; Rates composite trending higher — worth watching, but the 18-month forward window means it's a trim signal, not a stop signal.</li>
