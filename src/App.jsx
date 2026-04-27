@@ -5541,7 +5541,7 @@ const goBack=()=>{
 };
 const backLabel=(()=>{
   const prev=tabHistory[tabHistory.length-1];
-  if(!prev||prev==="home")return"All sections";
+  if(!prev||prev==="home")return"Home";
   return TAB_META[prev]?.eyebrow||"Back";
 })();
 const {pref,setPref}=useTheme();
