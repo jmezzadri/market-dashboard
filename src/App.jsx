@@ -3316,7 +3316,7 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
         that were running off the modal — Joe flagged 2026-04-27. */}
     <div style={{flex:1,minWidth:0,overflowWrap:"anywhere",wordBreak:"break-word"}}>
     <div style={{color:"var(--text)",marginBottom:2}}>{HeadlineEl}{n.is_major&&<span style={{marginLeft:6,fontSize:9,color:"var(--orange)",fontFamily:"var(--font-mono)",border:"1px solid var(--orange)",borderRadius:3,padding:"1px 4px",fontWeight:700,verticalAlign:"middle",whiteSpace:"nowrap"}}>MAJOR</span>}</div>
-    {n.description&&<div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5,marginBottom:3}}>{n.description}</div>}
+    {(()=>{const cleanDesc=String(n.description||"").replace(/<[^>]*>/g,"").replace(/&nbsp;/g," ").replace(/&amp;/g,"&").replace(/&lt;/g,"<").replace(/&gt;/g,">").replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&apos;/g,"'").replace(/\s+/g," ").trim();return cleanDesc?<div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5,marginBottom:3}}>{cleanDesc}</div>:null;})()}
     <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span
         style={{
