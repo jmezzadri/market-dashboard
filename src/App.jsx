@@ -31,6 +31,7 @@ import PositionEditor from "./components/PositionEditor";
 import BulkImport from "./components/BulkImport";
 import UniverseFreshness from "./components/UniverseFreshness";
 import HistoricalChart from "./components/HistoricalChart";
+import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
 import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
 import TodayMacro from "./pages/TodayMacro";
