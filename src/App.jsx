@@ -5379,14 +5379,15 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","allocation","portopps","scanner","readme","admin","bugs","lab"];
+const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","scanner","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
   overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   allocation:{eyebrow:"Asset Allocation",     title:"Strategic asset allocation", sub:"Equity exposure, sector overweights, rationale, and risk scenarios — anchored to a $100 illustrative portfolio."},
-  portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
+  portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"Daily opportunity scan candidates — buy alerts, near-triggers, and watchlist movers. Open the full scanner for the deep view."},
+  insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
   admin:     {eyebrow:"Admin · API Usage",    title:"UW API usage",            sub:"Daily calls, quota remaining, peak RPM, and recent run history. Visible only to admins."},
@@ -5405,7 +5406,8 @@ const NAV_ITEMS = [
   { id:"home",       label:"Home",                                          icon:<NavIconHome/>   },
   { id:"overview",   label:"Macro Overview",                                icon:<NavIconGauge/>  },
   { id:"allocation", label:"Asset Allocation",                              icon:<NavIconHeat/>   },
-  { id:"portopps",   label:"Trading Opportunities & Portfolio Insights",   icon:<NavIconPie/>    },
+  { id:"portopps",   label:"Trading Opportunities",                          icon:<NavIconPie/>    },
+  { id:"insights",   label:"Portfolio Insights",                             icon:<NavIconList/>   },
   { id:"indicators", label:"All Indicators",                                icon:<NavIconGrid/>   },
 ];
 
@@ -6695,8 +6697,8 @@ return(
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
-{tab==="portopps"&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
-{tab==="portopps"&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
+{tab==="insights"&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
+{(tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
 const heldByTicker={};
 ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
   if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
@@ -6747,22 +6749,33 @@ const subPanelTitleStyle={fontSize:11,color:"var(--text-2)",fontFamily:"var(--fo
 const subPanelBody={padding:"10px 12px"};
 const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"10px 12px"};
 const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
+const showTrading=tab==="portopps";
+const showInsights=tab==="insights";
 return(
 <div style={{padding:"14px 20px",display:"flex",flexDirection:"column",maxWidth:1100,margin:"0 auto"}}>
 {/* INLINE SIGN-IN CTA — only when not authed. Per B2 spec: portopps is
     publicly clickable, but shows zero-state + a contextual prompt instead
     of a full LoginScreen. Signing in swaps the skeleton for real data. */}
-{!portfolioAuthed&&(
+{showInsights&&!portfolioAuthed&&(
 <div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px",marginBottom:12,display:"flex",gap:14,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
 <div style={{flex:"1 1 260px",minWidth:0}}>
 <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:4,fontWeight:700}}>SIGN IN TO SEE YOUR PORTFOLIO</div>
-<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>This is the shape of Portfolio & Insights. Sign in to populate it with your own accounts, positions, and watchlist — everything is private to your account.</div>
+<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>Sign in to populate Portfolio Insights with your own accounts, positions, and watchlist — private to your account.</div>
 </div>
 <button onClick={()=>setShowPortoppsLogin(true)} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</button>
 </div>
 )}
-{/* SUMMARY BAR */}
-<div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+{showTrading&&(
+<div style={{background:"var(--surface-2)",border:"1px solid var(--accent)",borderRadius:8,padding:"14px 16px",marginBottom:12,display:"flex",gap:14,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
+<div style={{flex:"1 1 260px",minWidth:0}}>
+<div style={{fontSize:11,color:"var(--accent)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:4,fontWeight:700}}>DAILY OPPORTUNITY SCAN</div>
+<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>{buyCount} buy alert{buyCount===1?"":"s"} · {watchCount} near trigger today. Open the full scanner for the complete universe, filters, and component scores.</div>
+</div>
+<button onClick={()=>setTab("scanner")} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Open Full Scanner →</button>
+</div>
+)}
+{/* SUMMARY BAR — Portfolio Insights only */}
+{showInsights&&(<div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
 <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & INSIGHTS · SNAPSHOT</div>
 {/* Item 28: auto-fit + minmax(140px,1fr) so 6 KPIs fit on desktop but reflow
     to 2 cols on a 430px phone (previously forced repeat(6,1fr) — boxes at
@@ -6784,8 +6797,10 @@ return(
 </div>
 </div>
 
-{/* SECTION 1 — OPPORTUNITIES (visually distinct sub-panels, clickable cards) */}
-<div style={sectionPanel}>
+)}
+
+{/* SECTION 1 — TRADING OPPS (only on portopps tab) */}
+{showTrading&&<div style={sectionPanel}>
 <div style={sectionHeader}>
 <span style={sectionTitleStyle}>① TRADING OPPORTUNITIES</span>
 <div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
@@ -6888,10 +6903,10 @@ return(<>
 })()}
 
 </div>
-</div>
+</div>}
 
-{/* SECTION 2 — PORTFOLIO INSIGHTS (merged: allocation + key risks + positions) */}
-<div style={sectionPanel}>
+{/* SECTION 2 — PORTFOLIO INSIGHTS (only on insights tab) */}
+{showInsights&&<div style={sectionPanel}>
 <div style={sectionHeader}>
 <span style={sectionTitleStyle}>② PORTFOLIO INSIGHTS</span>
 <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${Math.round(grandTotal).toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
@@ -7252,12 +7267,10 @@ return(<>
 
 </>}
 </div>
-</div>
+</div>}
 
-{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — collapsed by default to keep the tab lean.
-    Replaces the old Holdings Detail tab; same AcctCard component, rendered
-    inline once the user asks for it. */}
-<div style={sectionPanel}>
+{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab */}
+{showInsights&&<div style={sectionPanel}>
 <div style={{...sectionHeader,cursor:"pointer"}} onClick={()=>setAcctBreakdownOpen(v=>!v)}>
 <span style={sectionTitleStyle}>③ ACCOUNT BREAKDOWN</span>
 <div style={{display:"flex",alignItems:"center",gap:14}}>
@@ -7270,7 +7283,7 @@ return(<>
 {ACCOUNTS.map(acct=>(<AcctCard key={acct.id} acct={acct} grandTotal={grandTotal} convColor={CONV.color} convLabel={CONV.label} stressScore={COMP100}/>))}
 </div>
 )}
-</div>
+</div>}
 
 </div>
 );
