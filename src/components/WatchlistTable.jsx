@@ -21,6 +21,7 @@
 //                   a different view than the full watchlist)
 
 import { useMemo, useState } from "react";
+import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
 import { Tip } from "../InfoTip";
 import {
   computeSectionComposites,
@@ -273,7 +274,62 @@ const overallCol = {
   renderCell: (r) => <ScoreCell score={r.overall.score} direction={r.overall.direction} />,
 };
 
-const COLUMNS = [...baseCols, ...signalCols, overallCol];
+const riskCols = [
+  {
+    id: "beta_2y",
+    label: "BETA · 2Y",
+    description: "Beta vs S&P 500 (SPY), 2-year weekly OLS regression. 1.0 = moves with market; >1.0 amplifies; <1.0 dampens.",
+    align: "right",
+    sortValue: (r) => r._risk?.beta ?? null,
+    renderCell: (r) => {
+      const v = r._risk?.beta;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 1.3 ? "var(--orange-text)" : v < 0.6 ? "var(--yellow-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}</span>;
+    },
+  },
+  {
+    id: "annVol_2y",
+    label: "ANN VOL",
+    description: "Annualized volatility — 2Y daily standard deviation × √252. ~15-25% normal for diversified equities; 25-40% elevated; >40% high-beta single-name.",
+    align: "right",
+    sortValue: (r) => r._risk?.annVol ?? null,
+    renderCell: (r) => {
+      const v = r._risk?.annVol;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 0.40 ? "var(--red-text)" : v > 0.25 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+    },
+  },
+  {
+    id: "maxDD_2y",
+    label: "MAX DD",
+    description: "Max peak-to-trough decline over 2 years. Worst-case drawdown without selling.",
+    align: "right",
+    sortValue: (r) => r._risk?.maxDD ?? null,
+    renderCell: (r) => {
+      const v = r._risk?.maxDD;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 0.40 ? "var(--red-text)" : v > 0.25 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+    },
+  },
+  {
+    id: "var10d99",
+    label: "10D 99% VaR",
+    description: "10-day 99% historical VaR. 2Y daily, rolling 10-day windows, 1st percentile worst outcome.",
+    align: "right",
+    sortValue: (r) => r._risk?.var10d99 ?? null,
+    renderCell: (r) => {
+      const v = r._risk?.var10d99;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 0.20 ? "var(--red-text)" : v > 0.10 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+    },
+  },
+];
+
+const COLUMNS = [...baseCols, ...signalCols, overallCol, ...riskCols];
 
 // Defaults preserve the pre-36 layout: ticker, name, sector, 6 signal cols, OVR.
 const DEFAULT_ORDER = [
@@ -284,6 +340,7 @@ const DEFAULT_ORDER = [
   // order, but they start hidden.
   "price", "dayChangePct", "marketcap", "ivRank", "divYield",
   "nextEarnings", "week52", "theme",
+  "beta_2y", "annVol_2y", "maxDD_2y", "var10d99",
 ];
 const DEFAULT_VISIBLE = [
   "ticker", "name", "sector",
@@ -311,6 +368,10 @@ const DEFAULT_WIDTHS = {
   analyst:       70,
   darkpool:      70,
   overall:       80,
+  beta_2y:       90,
+  annVol_2y:     90,
+  maxDD_2y:      90,
+  var10d99:      110,
 };
 
 export default function WatchlistTable({
@@ -326,6 +387,10 @@ export default function WatchlistTable({
     defaultVisible: DEFAULT_VISIBLE,
     defaultWidths:  DEFAULT_WIDTHS,
   });
+
+  // P5 #35 — risk metrics for visible tickers, opt-in columns
+  const _tickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
+  const { metrics: _riskByTicker } = useRiskMetricsBatch(_tickers);
 
   const enriched = useMemo(() => {
     return (rows || []).map((w) => {
@@ -377,9 +442,10 @@ export default function WatchlistTable({
         nextEarnings: inf.next_earnings_date || sc.next_earnings_date || null,
         weekLow:  sc.week_52_low  != null ? Number(sc.week_52_low)  : null,
         weekHigh: sc.week_52_high != null ? Number(sc.week_52_high) : null,
+        _risk:    _riskByTicker[t] || null,
       };
     });
-  }, [rows, signals, screenerMap, infoMap, heldTickers]);
+  }, [rows, signals, screenerMap, infoMap, heldTickers, _riskByTicker]);
 
   const [sortCol, setSortCol] = useState("overall");
   const [sortDir, setSortDir] = useState("desc");
