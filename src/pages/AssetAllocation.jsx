@@ -635,6 +635,7 @@ export default function AssetAllocation({ onOpenTicker }) {
   const [composites, setComposites]     = useState(null);
   const [rationales, setRationales]     = useState(null);
   const [history, setHistory]           = useState(null);
+  const [indicatorHistory, setIndicatorHistory] = useState(null);
   // No drill-down card open by default — Joe directive 2026-04-27. Cards
   // open only when the user clicks an Industry Group chip in the heatmap.
   const [activeBucket, setActiveBucket] = useState(null);
@@ -647,7 +648,57 @@ export default function AssetAllocation({ onOpenTicker }) {
       .then((r) => r.ok ? r.json() : null)
       .then((raw) => setHistory(deriveHistoryView(raw)))
       .catch(() => setHistory(null));
+    fetch("/indicator_history.json", { cache: "force-cache" })
+      .then((r) => r.ok ? r.json() : null)
+      .then(setIndicatorHistory)
+      .catch(() => setIndicatorHistory(null));
   }, []);
+
+  // Bug #1085 fix (2026-04-27): pull current + 3M values for the three macro
+  // indicators The Why bullets cite. Sourced from indicator_history.json so the
+  // prose never goes stale. Earlier hotfix (PR #172/#173) used Object.keys(obj)
+  // which returned wrapper keys (freq/unit/points/as_of/stats) instead of
+  // dates — cur ended up being the stats object and Number(cur) was NaN, which
+  // the Number.isFinite guard correctly filtered out. The actual data lives in
+  // obj.points as an array of [date, value] tuples; this version reads that
+  // shape and works.
+  const macroFacts = useMemo(() => {
+    if (!indicatorHistory) return null;
+    const latest = (key) => {
+      const obj = indicatorHistory[key];
+      const pts = obj && Array.isArray(obj.points) ? obj.points : null;
+      if (!pts || pts.length === 0) return null;
+      const lastIdx = pts.length - 1;
+      const numAt = (idx) => {
+        if (idx < 0) return null;
+        const v = pts[idx]?.[1];
+        return v == null ? null : Number(v);
+      };
+      return {
+        current: numAt(lastIdx),
+        mo3: numAt(Math.max(0, lastIdx - 63)),  // ~63 trading days = ~3 months
+        as_of: pts[lastIdx]?.[0] || obj.as_of,
+      };
+    };
+    return {
+      real_rates: latest("real_rates"),
+      yield_curve: latest("yield_curve"),
+      hy_ig: latest("hy_ig"),
+    };
+  }, [indicatorHistory]);
+
+  // Plain-English direction label keyed by indicator type. Falls back to ""
+  // when current or 3-month value is missing or non-finite.
+  const dirLabel = (cur, mo3, kind) => {
+    if (cur == null || mo3 == null || !Number.isFinite(cur) || !Number.isFinite(mo3)) return "";
+    const delta = cur - mo3;
+    const eps = Math.max(0.01, Math.abs(cur) * 0.01);
+    if (Math.abs(delta) < eps) return "flat";
+    if (kind === "rates")  return delta > 0 ? "rising" : "rolling over";
+    if (kind === "curve")  return delta > 0 ? "steepening" : "flattening";
+    if (kind === "spread") return delta > 0 ? "widening" : "tightening";
+    return "";
+  };
 
   // Derive macro composite snapshot from composite_history_daily.json
   const macroSnap = useMemo(() => {
@@ -868,9 +919,21 @@ export default function AssetAllocation({ onOpenTicker }) {
               {heroSubtitle}
             </div>
             <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
-              <li><strong>Real rates have rolled over</strong> — 10Y TIPS at 1.62%, supportive of long-duration tech multiples.</li>
-              <li><strong>Yield curve is steepening</strong> (10Y−2Y at +54bp) — historically rewards cyclical sectors over bond proxies.</li>
-              <li><strong>Credit spreads stayed tight</strong> through the Q1 wobble — HY−IG at 205bp, well below the 250bp stress trigger.</li>
+              {macroFacts?.real_rates?.current != null && Number.isFinite(macroFacts.real_rates.current) ? (
+                <li><strong>Real rates {dirLabel(macroFacts.real_rates.current, macroFacts.real_rates.mo3, "rates") || "(latest)"}</strong> — 10Y TIPS at {macroFacts.real_rates.current.toFixed(2)}%, vs. {Number.isFinite(macroFacts.real_rates.mo3) ? macroFacts.real_rates.mo3.toFixed(2) + "%" : "—"} three months ago.</li>
+              ) : (
+                <li><strong>Real rates</strong> — 10Y TIPS supportive of long-duration tech multiples (live data loading).</li>
+              )}
+              {macroFacts?.yield_curve?.current != null && Number.isFinite(macroFacts.yield_curve.current) ? (
+                <li><strong>Yield curve {dirLabel(macroFacts.yield_curve.current, macroFacts.yield_curve.mo3, "curve") || "(latest)"}</strong> (10Y−2Y at {macroFacts.yield_curve.current >= 0 ? "+" : ""}{macroFacts.yield_curve.current.toFixed(0)}bp, vs. {Number.isFinite(macroFacts.yield_curve.mo3) ? macroFacts.yield_curve.mo3.toFixed(0) + "bp" : "—"} three months ago).</li>
+              ) : (
+                <li><strong>Yield curve</strong> — historically rewards cyclical sectors over bond proxies (live data loading).</li>
+              )}
+              {macroFacts?.hy_ig?.current != null && Number.isFinite(macroFacts.hy_ig.current) ? (
+                <li><strong>HY−IG credit spread {dirLabel(macroFacts.hy_ig.current, macroFacts.hy_ig.mo3, "spread") || "(latest)"}</strong> — current {macroFacts.hy_ig.current.toFixed(0)}bp, vs. {Number.isFinite(macroFacts.hy_ig.mo3) ? macroFacts.hy_ig.mo3.toFixed(0) + "bp" : "—"} three months ago. 250bp is the stress trigger.</li>
+              ) : (
+                <li><strong>Credit spreads</strong> — well below the 250bp stress trigger (live data loading).</li>
+              )}
               <li>Semis and Energy screen <strong>#1 and #2</strong> on combined indicator + 6-month momentum rank.</li>
               <li>Utilities and REITs lose their bond-proxy thesis when the curve steepens — exit the overweight set.</li>
               <li>Inflation &amp; Rates composite trending higher — worth watching, but the 18-month forward window means it's a trim signal, not a stop signal.</li>
