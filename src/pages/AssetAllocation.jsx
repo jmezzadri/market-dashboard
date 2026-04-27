@@ -575,12 +575,12 @@ export default function AssetAllocation({ onOpenTicker }) {
           <div style={{ padding: "20px 22px", background: "color-mix(in srgb, var(--green-text) 10%, transparent)", borderLeft: "4px solid var(--green-text)", borderRadius: "var(--radius-md)" }}>
             <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 6 }}>The What</div>
             <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 20, fontWeight: 500, marginBottom: 14, lineHeight: 1.3, color: "var(--text)" }}>
-              Aggressive cyclical tilt with ${'{'}(margin * 100).toFixed(0){'}'}% leverage per $100 capital.
+              Aggressive cyclical tilt with {`$${(margin * 100).toFixed(0)}`}% leverage per $100 capital.
             </div>
             <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
-              <li><strong>${'{'}(totalEquity * 100).toFixed(0){'}'}</strong> in equities per $100 of capital, with the defensive sleeve {defensiveOn ? "active" : "off"}.</li>
+              <li><strong>{`$${(totalEquity * 100).toFixed(0)}`}</strong> in equities per $100 of capital, with the defensive sleeve {defensiveOn ? "active" : "off"}.</li>
               <li><strong>{picks.length}</strong> overweight industry groups: {picks.map(p => p.name).join(", ")}.</li>
-              <li><strong>${'{'}(margin * 100).toFixed(0){'}'}%</strong> margin used — calibrated to the Risk &amp; Liquidity composite.</li>
+              <li><strong>{`$${(margin * 100).toFixed(0)}`}%</strong> margin used — calibrated to the Risk &amp; Liquidity composite.</li>
               <li>Excess return target of <strong>+{alpha.toFixed(2)} pp</strong> per month vs. S&amp;P 500, net of financing.</li>
               <li>Conviction <strong>{conviction.toLowerCase()}</strong>: top 5 picks separated cleanly from the rest on combined factor + momentum rank.</li>
               <li>Defensive sleeve auto-activates if Risk &amp; Liquidity moves into the elevated or stressed zone.</li>
