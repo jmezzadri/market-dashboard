@@ -6090,7 +6090,7 @@ return(
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("overview")}>All indicators →</a>
+          <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open →</a>
         </div>
 
         {/* Composite strip */}
@@ -6144,6 +6144,31 @@ return(
                       letterSpacing:"0.06em", marginTop:6,
                       textTransform:"uppercase", fontWeight:700,
                     }}>{lbl}</div>
+                    {/* Range bar: -100 ... 0 ... +100 with regime band colors
+                        + a marker showing where the current score falls. Joe
+                        2026-04-27: needs context for what -20 / -2 / -17 mean. */}
+                    {c.value!=null && (
+                      <div style={{ position:"relative", marginTop:10, height:10 }}>
+                        <div style={{
+                          position:"absolute", inset:"3px 0", borderRadius:2,
+                          background:"linear-gradient(90deg, #1f9d6033 0%, #69b58533 25%, var(--surface-3) 35%, var(--surface-3) 65%, #b8811c33 75%, #d2304033 100%)",
+                          border:"1px solid var(--border-faint)",
+                        }}/>
+                        <div style={{
+                          position:"absolute",
+                          left:`calc(${Math.max(0, Math.min(100, ((Math.max(-100, Math.min(100, c.value)) + 100) / 200) * 100))}% - 1px)`,
+                          top:0, bottom:0, width:2, background:col, borderRadius:1,
+                        }}/>
+                        <div style={{
+                          position:"absolute", left:0, right:0, top:11,
+                          fontFamily:"var(--font-mono)", fontSize:8,
+                          color:"var(--text-dim)", letterSpacing:"0.04em",
+                          display:"flex", justifyContent:"space-between",
+                        }}>
+                          <span>−100</span><span>0</span><span>+100</span>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -6209,7 +6234,7 @@ return(
           and is null-allowed (no forced prose). */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Allocation</h2>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Allocation <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
           <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
         </div>
 
@@ -6300,7 +6325,7 @@ return(
         return (
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
-            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities</h2>
+            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities <FreshnessDot indicatorId="composite_rl" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/></h2>
             <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
           </div>
 
@@ -6493,7 +6518,7 @@ return(
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
             <h2 style={cardH2Style}>
-              <span style={cardTagStyle}>04</span>Portfolio Insights
+              <span style={cardTagStyle}>04</span>Portfolio Insights <FreshnessDot indicatorId="composite_rl" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/>
             </h2>
             <a style={cardLinkStyle} onClick={()=>navTo("insights")}>Open →</a>
           </div>
