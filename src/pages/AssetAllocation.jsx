@@ -76,27 +76,62 @@ const SECTOR_IG_MAP = [
   ]},
 ];
 
-// ─── Risk scenarios from asset_allocation/docs/runbook.md ──────────────────
+// ─── Risk scenarios — Senior Quant catalog of conditions that change the view ──
+// Each scenario links to its underlying indicator in the All Indicators tab.
 const RISK_SCENARIOS = [
   {
     trigger: "Real rates spike above 2.0%",
+    indicator_id: "real_rates",
     impact: "Long-duration tech and homebuilders most exposed. The aggressive Semis tilt would compress fastest — a 50bp move in real rates has historically produced ~6% drawdown in IGV/SOXX over 30 days.",
     tags: ["Semiconductors", "Software", "Consumer Discretionary"],
   },
   {
     trigger: "HY-IG credit spread widens past 250bp",
-    impact: "Risk-off cascade. Equity-credit correlation jumps to 0.95+, defensive sleeve flips on, leverage cuts to 1.0×. Energy and Materials would rotate out in favor of cash + gold.",
+    indicator_id: "hy_ig",
+    impact: "Risk-off cascade. Equity-credit correlation jumps to 0.95+, defensive sleeve flips on, leverage cuts to 1.0×. Energy and Materials rotate out in favor of cash + gold.",
     tags: ["Energy", "Materials", "Industrials"],
   },
   {
-    trigger: "Yield curve flattens or re-inverts",
+    trigger: "Yield curve flattens (10Y-2Y back below +25bp)",
+    indicator_id: "yield_curve",
     impact: "Bull case for our cyclical tilt dies; bear case for utilities reverses. Composite re-rates cyclicals down two notches within a single rebalance.",
-    tags: ["Industrials", "Materials", "Energy"],
+    tags: ["Industrials", "Materials", "Energy", "Utilities"],
   },
   {
     trigger: "SLOOS C&I tightening above +20pp",
+    indicator_id: "sloos_ci",
     impact: "Credit channel chokes off. Capital-goods orders and bank loan growth roll over in 1-2 quarters. Pre-position by trimming Industrials before the next print.",
     tags: ["Industrials", "Financials"],
+  },
+  {
+    trigger: "VIX spikes above 25 sustained",
+    indicator_id: "vix",
+    impact: "Risk & Liquidity composite enters elevated zone. Leverage cuts toward 1.0×, defensive sleeve activates with capital flowing to gold (70%) and T-bills (27%).",
+    tags: ["All overweights", "Defensive sleeve activates"],
+  },
+  {
+    trigger: "Term premium climbs above 1.5%",
+    indicator_id: "term_premium",
+    impact: "Long-duration multiples compress across tech, utilities, and REITs. Pre-positioning trim of Semiconductors and Software before the print can cushion 30-day drawdown.",
+    tags: ["Semiconductors", "Software", "Real Estate", "Utilities"],
+  },
+  {
+    trigger: "Copper-gold ratio breaks down decisively",
+    indicator_id: "copper_gold",
+    impact: "Reflation thesis weakens. Energy and Materials lose their pro-cyclical tailwind. Watch for confirmation in industrial production print.",
+    tags: ["Energy", "Materials"],
+  },
+  {
+    trigger: "ISM manufacturing PMI falls below 48",
+    indicator_id: "ism",
+    impact: "Capital-goods orders roll over within 1-2 quarters. Industrials downgrade triggers; defensive rotation likely follows if Growth composite enters elevated zone.",
+    tags: ["Industrials", "Materials"],
+  },
+  {
+    trigger: "USD index breaks above 110 sustained",
+    indicator_id: "usd",
+    impact: "FX-translated earnings hit Cons Staples, Materials, and mega-cap Tech. Energy benefits short-term but commodity demand from EM weakens. Watch for credit-spread widening as second-order effect.",
+    tags: ["Information Technology", "Materials", "Consumer Staples"],
   },
 ];
 
@@ -328,7 +363,12 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
           <div style={{ fontSize: 10, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, fontWeight: 500 }}>{ig.rating === "ow" ? "Why it's overweight" : ig.rating === "uw" ? "Why it's underweight" : "Why it's market weight"}</div>
           <div style={{ fontSize: 12, lineHeight: 1.6 }}>{seed.rationale}</div>
 
-          <div style={{ fontSize: 10, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 14, marginBottom: 6, fontWeight: 500 }}>Example holdings — click any ticker</div>
+          <div style={{ fontSize: 10, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 14, marginBottom: 6, fontWeight: 500 }}>How to express this view (ETF)</div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: 8 }}>
+            {seed.ticker && <TickerChip ticker={seed.ticker} onOpenTicker={onOpenTicker} />}
+            <span style={{ fontSize: 11, color: "var(--text-muted)", alignSelf: "center" }}>{seed.fund}</span>
+          </div>
+          <div style={{ fontSize: 10, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 14, marginBottom: 6, fontWeight: 500 }}>Example single-name holdings — click any ticker</div>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
             {seed.examples.map((t) => <TickerChip key={t} ticker={t} onOpenTicker={onOpenTicker} />)}
           </div>
@@ -728,16 +768,21 @@ export default function AssetAllocation({ onOpenTicker }) {
           </div>
           <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green-text)" }}/>
-            Stress 0/4 fired
+            Stress 0/9 fired
           </span>
         </div>
 
-        {RISK_SCENARIOS.map((s, i) => (
+        {RISK_SCENARIOS.map((scn, i) => (
           <div key={i} style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "16px 20px", marginTop: 10, background: "var(--bg)" }}>
-            <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 15 }}>{s.trigger}</div>
-            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.6 }}>{s.impact}</div>
-            <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
-              {s.tags.map((t) => <span key={t} style={{ fontSize: 9, padding: "2px 6px", borderRadius: 3, background: "var(--surface)", color: "var(--text-muted)" }}>{t}</span>)}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+              <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 15 }}>{scn.trigger}</div>
+              {scn.indicator_id && (
+                <a href={`#indicators?id=${scn.indicator_id}`} style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none", padding: "5px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", whiteSpace: "nowrap" }}>View indicator →</a>
+              )}
+            </div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.6 }}>{scn.impact}</div>
+            <div style={{ marginTop: 8, display: "flex", gap: 5, flexWrap: "wrap" }}>
+              {scn.tags.map((t) => <span key={t} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 3, background: "var(--surface)", color: "var(--text-muted)" }}>{t}</span>)}
             </div>
           </div>
         ))}
