@@ -135,6 +135,16 @@ const INDICATOR_META = {
   bank_credit: { phase:"Slow", timing:"Coincident", source:"FRED TOTBKCR YoY",              measure:"Year-over-year growth in total bank credit (loans + securities).",                                                 rationale:"T3 — real-economy credit pulse; <3% signals tightening feeding through." },
   jobless:     { phase:"Fast", timing:"Leading",    source:"FRED ICSA (US DOL)",            measure:"Weekly count of new unemployment-insurance filings (thousands).",                                                  rationale:"T3 — most timely high-frequency labor signal; sustained >300K = early recession." },
   jolts_quits: { phase:"Slow", timing:"Coincident", source:"FRED JTSQUR (BLS JOLTS)",       measure:"Voluntary quits as a percentage of total nonfarm employment.",                                                     rationale:"T3 — worker confidence = wage pressure direction." },
+  // ─── 9 NEW SERIES (added 2026-04-24) — meta for the catalog table ──────
+  m2_yoy:       { phase:"Slow", timing:"Leading",    source:"FRED M2SL (YoY)",                    measure:"Year-over-year growth in the M2 money stock — Friedman's medium-term monetary impulse to asset prices.",                                       rationale:"T1 — sustained >7% historically associated with looser conditions and higher asset valuations." },
+  fed_bs:       { phase:"Slow", timing:"Coincident", source:"FRED WALCL (YoY)",                   measure:"Year-over-year change in the Fed's total assets — headline QE/QT measure.",                                                                       rationale:"T2 — direction of policy liquidity injection or withdrawal." },
+  rrp:          { phase:"Fast", timing:"Coincident", source:"FRED RRPONTSYD",                     measure:"Cash parked at the Fed's overnight reverse-repo facility — liquidity drag from money-market funds.",                                              rationale:"T2 — falling take-up signals liquidity being pulled into private credit." },
+  bank_reserves:{ phase:"Slow", timing:"Coincident", source:"FRED WRESBAL",                       measure:"Total reserves held by depository institutions at the Fed — system liquidity floor.",                                                              rationale:"T2 — Fed-signaled ample-reserves floor near $3T; sustained below = banking-system tightening." },
+  tga:          { phase:"Slow", timing:"Coincident", source:"FRED WTREGEN",                       measure:"Treasury cash at the Fed — high withdraws liquidity from bank reserves; low adds it back.",                                                       rationale:"T2 — mechanical inverse to RRP and bank reserves." },
+  breakeven_10y:{ phase:"Fast", timing:"Leading",    source:"FRED T10YIE",                        measure:"Bond market's read on average annual CPI inflation over the next decade (10Y nominal − 10Y TIPS).",                                                rationale:"T2 — long-run anchor near 2.0–2.5%; sustained >3% reflects inflation-regime concerns." },
+  cfnai:        { phase:"Slow", timing:"Coincident", source:"FRED CFNAI",                         measure:"85-component composite of monthly economic activity (production / employment / consumption / sales).",                                              rationale:"T1 — readings above 0 = above-trend growth; sustained below −0.7 historically signals recession." },
+  cfnai_3ma:    { phase:"Slow", timing:"Coincident", source:"FRED CFNAI 3-month avg",             measure:"Smoothed 3-month moving average of CFNAI — Fed's preferred read because the monthly series is noisy.",                                              rationale:"T1 — sustained −0.7 in this 3-month average is the standard recession-risk threshold." },
+  hy_ig_etf:    { phase:"Fast", timing:"Coincident", source:"Yahoo (LQD ÷ HYG)",                  measure:"LQD/HYG price ratio — Yahoo-sourced proxy for HY-IG spread that backfills the 2007–2023 window.",                                                  rationale:"Reference indicator only — NOT a substitute for the FRED OAS series in composite math." },
 };
 
 // Color for a phase / timing pill (soft, not alarming).
@@ -158,16 +168,39 @@ const REGISTRY_WITH_BLOBS = DATA_REGISTRY.map((row) => ({ ...row, _blob: buildSe
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, indFreq }) {
+  // Collapse-state for top-level sections. Default = all collapsed so the
+  // page opens as a one-screen TOC. Joe directive 2026-04-27: "this page
+  // is so long" — start compact, let the reader expand on demand.
+  const [open, setOpen] = useState({
+    catmap: false,
+    compmath: false,
+    alloc: false,
+    catalog: false,
+    signal: false,
+  });
+  const toggle = (k) => setOpen((s) => ({ ...s, [k]: !s[k] }));
+  const expand = (k) => setOpen((s) => ({ ...s, [k]: true }));
+  const expandAll = () => setOpen({ catmap:true, compmath:true, alloc:true, catalog:true, signal:true });
+  const collapseAll = () => setOpen({ catmap:false, compmath:false, alloc:false, catalog:false, signal:false });
+
   return (
     <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
       <HeaderOverview />
-      <Contents />
-      <MacroIndicatorTable ind={ind} weights={weights} cats={cats} indFreq={indFreq} asOf={asOf} asOfIso={asOfIso} />
-      <FreshnessExplainer />
-      <CompositeMath ind={ind} weights={weights} cats={cats} />
-      <AssetAllocationMethodology />
-      <DataCatalogTable ind={ind} asOf={asOf} />
-      <SignalScoreMath />
+      <Contents ind={ind} expand={expand} expandAll={expandAll} collapseAll={collapseAll} />
+      <MacroIndicatorTable
+        ind={ind} weights={weights} cats={cats} indFreq={indFreq}
+        asOf={asOf} asOfIso={asOfIso}
+        open={open.catmap} onToggle={() => toggle("catmap")} />
+      <CompositeMath
+        ind={ind} weights={weights} cats={cats}
+        open={open.compmath} onToggle={() => toggle("compmath")} />
+      <AssetAllocationMethodology
+        open={open.alloc} onToggle={() => toggle("alloc")} />
+      <DataCatalogTable
+        ind={ind} asOf={asOf}
+        open={open.catalog} onToggle={() => toggle("catalog")} />
+      <SignalScoreMath
+        open={open.signal} onToggle={() => toggle("signal")} />
       <Disclaimer />
     </div>
   );
@@ -189,49 +222,153 @@ function HeaderOverview() {
   );
 }
 
-// ─── CONTENTS (replaces prior JumpNav strip) ────────────────────────────────
-function Contents() {
+// ─── CONTENTS (multi-level TOC) ─────────────────────────────────────────────
+// 2026-04-27 rebuild (Joe's 4 asks):
+//   1. Multi-level — every top-level section now lists its sub-anchors so
+//      the page is navigable without scrolling 1300 lines of prose.
+//   2. Live counts — the indicator count and scanner-stream count come from
+//      the data props (Object.keys(ind).length, rows.length on the catalog
+//      table), so adding indicators in App.jsx auto-updates the page.
+//   3. Pairs with the collapsible-section refactor — clicking a sub-link
+//      auto-expands the parent before scrolling to the anchor.
+//   4. Expand-all / Collapse-all controls so the page can collapse to a
+//      one-screen overview, then expand whatever section the reader wants.
+function Contents({ ind, expand, expandAll, collapseAll }) {
+  const indCount = ind ? Object.keys(ind).length : 0;
   const items = [
-    { num: "1", label: "Macro Mapping & Data Sources",   sub: "The 25 macro indicators — source, frequency, last refresh, tier, weight, type, detail.",                id: A("catmap") },
-    { num: "2", label: "Macro Methodology",              sub: "How the 25 indicators roll up into one 0-100 Composite Stress Score and four conviction bands.",        id: A("composite-math") },
-    { num: "3", label: "Equity Scanner Data Sources",    sub: "The 8 upstream streams that feed the per-ticker Signal Score — scanner section + weight each carries.",   id: A("catalog") },
-    { num: "4", label: "Equity Scanner Methodology",     sub: "How six section sub-scores combine into a single signed composite on [-100, +100] per ticker.",           id: A("signal-math") },
+    {
+      key: "catmap",
+      num: "1",
+      label: "Macro Mapping & Data Sources",
+      sub: `${indCount} macro indicators — source, frequency, last refresh, tier, weight, type.`,
+      id: A("catmap"),
+      children: [
+        { num: "1.1", label: "Indicator catalog (sortable)",     id: A("catmap") },
+        { num: "1.2", label: "Data freshness — what the dots mean", id: "freshness-explainer" },
+      ],
+    },
+    {
+      key: "compmath",
+      num: "2",
+      label: "Macro Methodology",
+      sub: `How the ${indCount} indicators roll up into one 0–100 Composite Stress Score and four conviction bands.`,
+      id: A("composite-math"),
+      children: [
+        { num: "2.1", label: "z-score, sign-flip, tier weights", id: A("composite-math") },
+        { num: "2.2", label: "Conviction bands + history alignment", id: A("composite-math") },
+      ],
+    },
+    {
+      key: "alloc",
+      num: "3",
+      label: "Asset Allocation",
+      sub: "How the strategic allocation is built — universe, factor maps, 9-step pipeline, back-test.",
+      id: "mth__asset-alloc",
+      children: [
+        { num: "3.1",  label: "Universe — 25 industry groups + defensive sleeve", id: "mth__alloc-universe" },
+        { num: "3.2",  label: "Inputs",                                            id: "mth__alloc-inputs" },
+        { num: "3.3",  label: "Per-asset factor maps",                             id: "mth__alloc-factor-maps" },
+        { num: "3.4",  label: "Logic — 9-step pipeline",                           id: "mth__alloc-logic" },
+        { num: "3.5",  label: "Confirmatory rule & regime-flip override",          id: "mth__alloc-confirm" },
+        { num: "3.6",  label: "Top-5 equal-weighted — trade-offs",                 id: "mth__alloc-top5" },
+        { num: "3.7",  label: "Back-test results",                                 id: "mth__alloc-backtest" },
+        { num: "3.8",  label: "Honest limitations",                                id: "mth__alloc-limits" },
+        { num: "3.9",  label: "Refinement process",                                id: "mth__alloc-refine" },
+        { num: "3.10", label: "Citations",                                         id: "mth__alloc-cites" },
+        { num: "3.11", label: "What can break this",                               id: "mth__alloc-break" },
+      ],
+    },
+    {
+      key: "catalog",
+      num: "4",
+      label: "Equity Scanner Data Sources",
+      sub: "The upstream streams that feed the per-ticker Signal Score — section + weight each carries.",
+      id: A("catalog"),
+      children: [],
+    },
+    {
+      key: "signal",
+      num: "5",
+      label: "Equity Scanner Methodology",
+      sub: "How six section sub-scores combine into a single signed composite on [−100, +100] per ticker.",
+      id: A("signal-math"),
+      children: [],
+    },
   ];
   return (
     <nav data-testid="methodology-contents" aria-label="Contents"
       style={{ display:"flex", flexDirection:"column", gap:0,
                border:"1px solid var(--border)", borderRadius:8,
                background:"var(--surface)", overflow:"hidden" }}>
-      <div style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
-                    letterSpacing:"0.08em", textTransform:"uppercase",
+      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
                     padding:"8px 12px", borderBottom:"1px solid var(--border)",
                     background:"var(--surface-2)" }}>
-        Contents
+        <div style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
+                      letterSpacing:"0.08em", textTransform:"uppercase" }}>
+          Contents
+        </div>
+        <div style={{ display:"flex", gap:8 }}>
+          <button onClick={expandAll}
+            style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
+                     background:"transparent", border:"1px solid var(--accent)",
+                     borderRadius:3, padding:"3px 8px", cursor:"pointer",
+                     letterSpacing:"0.05em", textTransform:"uppercase" }}>
+            Expand all
+          </button>
+          <button onClick={collapseAll}
+            style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
+                     background:"transparent", border:"1px solid var(--border-strong)",
+                     borderRadius:3, padding:"3px 8px", cursor:"pointer",
+                     letterSpacing:"0.05em", textTransform:"uppercase" }}>
+            Collapse all
+          </button>
+        </div>
       </div>
       {items.map((it, i) => (
-        <a key={it.id} href={`#${it.id}`}
-           onClick={(e) => { e.preventDefault(); scrollToAnchor(it.id); }}
-           style={{ display:"flex", alignItems:"baseline", gap:12,
-                    padding:"10px 12px", textDecoration:"none", color:"var(--text)",
-                    borderTop: i === 0 ? "none" : "1px solid var(--border)", cursor:"pointer" }}>
-          <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
-                         width:14, flexShrink:0 }}>
-            {it.num}.
-          </span>
-          <span style={{ fontSize:13, fontWeight:600, minWidth:280, color:"var(--text)" }}>
-            {it.label}
-          </span>
-          <span style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.5, flex:1 }}>
-            {it.sub}
-          </span>
-        </a>
+        <div key={it.id}
+             style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
+          <a href={`#${it.id}`}
+             onClick={(e) => { e.preventDefault(); expand(it.key); setTimeout(() => scrollToAnchor(it.id), 50); }}
+             style={{ display:"flex", alignItems:"baseline", gap:12,
+                      padding:"10px 12px", textDecoration:"none", color:"var(--text)",
+                      cursor:"pointer" }}>
+            <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
+                           width:18, flexShrink:0 }}>
+              {it.num}.
+            </span>
+            <span style={{ fontSize:13, fontWeight:600, minWidth:240, color:"var(--text)" }}>
+              {it.label}
+            </span>
+            <span style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.5, flex:1 }}>
+              {it.sub}
+            </span>
+          </a>
+          {it.children.length > 0 && (
+            <div style={{ paddingLeft:42, paddingRight:12, paddingBottom:8,
+                          display:"flex", flexDirection:"column", gap:2 }}>
+              {it.children.map((c) => (
+                <a key={c.num + c.id} href={`#${c.id}`}
+                   onClick={(e) => { e.preventDefault(); expand(it.key); setTimeout(() => scrollToAnchor(c.id), 50); }}
+                   style={{ display:"flex", alignItems:"baseline", gap:10,
+                            padding:"3px 0", textDecoration:"none", color:"var(--text-2)",
+                            cursor:"pointer", fontSize:12 }}>
+                  <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
+                                 width:32, flexShrink:0 }}>
+                    {c.num}
+                  </span>
+                  <span style={{ color:"var(--text-2)" }}>{c.label}</span>
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
       ))}
     </nav>
   );
 }
 
 // ─── §2 MACRO MAPPING & DATA SOURCES (sortable table) ──────────────────────
-function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso }) {
+function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso, open, onToggle }) {
   const rows = useMemo(() => {
     if (!ind) return [];
     return Object.keys(ind).map((id) => {
@@ -272,6 +409,7 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso }) {
     arr.sort((a, b) => {
       let av, bv;
       switch (sortKey) {
+        case "num":    av = a.tier; bv = b.tier; break;
         case "short":  av = a.short.toLowerCase(); bv = b.short.toLowerCase(); break;
         case "catKey": av = CAT_ORDER.indexOf(a.catKey); bv = CAT_ORDER.indexOf(b.catKey); break;
         case "source": av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
@@ -298,6 +436,7 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso }) {
   }
 
   const COLS = [
+    { k:"num",    label:"#",            align:"right"  },
     { k:"short",  label:"Indicator",    align:"left"   },
     { k:"catKey", label:"Category",     align:"left"   },
     { k:"source", label:"Source",       align:"left"   },
@@ -312,14 +451,17 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso }) {
   return (
     <section id={A("catmap")} data-testid="methodology-section-catmap"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <SectionHeader
+      <CollapsibleSectionHeader
         label="1 · MACRO MAPPING & DATA SOURCES"
         sub={`${rows.length} macro indicators · sortable`}
         applies={[
           { id:"overview",   label:"Macro Overview",  path:"#overview" },
           { id:"indicators", label:"All Indicators",  path:"#indicators" },
         ]}
+        open={open}
+        onToggle={onToggle}
       />
+      {open && (<>
       <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
         Click a column header to sort. <strong>Frequency</strong> is how often the underlying source
         refreshes (D = daily, W = weekly, M = monthly, Q = quarterly). <strong>Tier</strong> sets the
@@ -347,8 +489,12 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso }) {
             </tr>
           </thead>
           <tbody>
-            {sorted.map((r) => (
+            {sorted.map((r, idx) => (
               <tr key={r.id} style={{ borderTop:"1px solid var(--border)" }}>
+                <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-dim)",
+                             fontFamily:"var(--font-mono)", whiteSpace:"nowrap", width:32 }}>
+                  {idx + 1}
+                </td>
                 <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)", whiteSpace:"nowrap" }}>
                   {r.short}
                 </td>
@@ -389,6 +535,8 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso }) {
           </tbody>
         </table>
       </div>
+      <FreshnessExplainer />
+      </>)}
     </section>
   );
 }
@@ -405,7 +553,7 @@ function FreshnessExplainer() {
   return (
     <section id="freshness-explainer" style={{ scrollMarginTop: 80 }}>
       <SectionHeader
-        label="Data freshness — what the colored dots mean"
+        label="1.2 · DATA FRESHNESS — what the colored dots mean"
         sub="Every indicator has a small dot · green = current · amber = a little overdue · red = stale or missing"
       />
       <div style={{ marginTop: 12,
@@ -485,7 +633,7 @@ function FreshnessExplainer() {
 }
 
 // ─── §3 MACRO METHODOLOGY ──────────────────────────────────────────────────
-function CompositeMath({ ind, weights }) {
+function CompositeMath({ ind, weights, open, onToggle }) {
   // Tier distribution pulled live from WEIGHTS.
   const tierBuckets = useMemo(() => {
     const buckets = { 1:[], 2:[], 3:[] };
@@ -508,14 +656,17 @@ function CompositeMath({ ind, weights }) {
   return (
     <section id={A("composite-math")} data-testid="methodology-section-compmath"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <SectionHeader
+      <CollapsibleSectionHeader
         label="2 · MACRO METHODOLOGY"
-        sub="How the 25 indicators roll up into one number"
+        sub={`How the ${ind ? Object.keys(ind).length : 0} indicators roll up into one number`}
         applies={[
           { id:"home",     label:"Home",           path:"#home" },
           { id:"overview", label:"Macro Overview", path:"#overview" },
         ]}
+        open={open}
+        onToggle={onToggle}
       />
+      {open && (<>
 
       <Prose>
         <P><strong>Step 1 — z-score each indicator against its own history.</strong> Mean and standard
@@ -530,7 +681,7 @@ function CompositeMath({ ind, weights }) {
         sign-flipped so every contributor runs the same direction before aggregation. Controlled by each
         indicator's direction flag in <code>IND[id][11]</code>.</P>
 
-        <P><strong>Step 3 — apply tier weights.</strong> The 25 indicators split into three tiers by market
+        <P><strong>Step 3 — apply tier weights.</strong> The {ind ? Object.keys(ind).length : 0} indicators split into three tiers by market
         sensitivity:</P>
       </Prose>
 
@@ -670,6 +821,7 @@ function CompositeMath({ ind, weights }) {
           bands correct by pulling the ELEVATED threshold down to 0.41 SD (p85 of history).
         </div>
       </div>
+      </>)}
     </section>
   );
 }
@@ -679,7 +831,7 @@ function CompositeMath({ ind, weights }) {
 // Comprehensive section — destination for every "Methodology →" link on the
 // Asset Allocation tab. Documents the live v9.1 production state (25 GICS
 // industry groups, top-5 equal-weighted selection, 1.5× leverage cap).
-function AssetAllocationMethodology() {
+function AssetAllocationMethodology({ open, onToggle }) {
   // 25-IG universe (live in compute_v9_allocation.py).
   // type=etf has a clean single-ETF proxy; type=basket uses an equal-weighted
   // basket of constituent names because no clean ETF exists.
@@ -755,14 +907,21 @@ function AssetAllocationMethodology() {
   return (
     <section id="mth__asset-alloc" data-testid="methodology-section-asset-alloc"
       style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <SectionHeader label="ASSET ALLOCATION" sub="How the strategic allocation is built — full v9.1 (current) methodology" applies={["allocation"]} />
+      <CollapsibleSectionHeader
+        label="3 · ASSET ALLOCATION"
+        sub="How the strategic allocation is built — full v9.1 (current) methodology"
+        applies={[{ id:"allocation", label:"Asset Allocation", path:"#allocation" }]}
+        open={open}
+        onToggle={onToggle}
+      />
+      {open && (<>
 
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
         The Asset Allocation tab translates the three macro composites (Risk &amp; Liquidity, Growth, Inflation &amp; Rates) into a concrete portfolio recommendation: which industry groups to overweight, how much equity exposure to take, when to activate the defensive sleeve, and how much leverage to use. The strategy rebalances weekly on Saturdays.
       </div>
 
       {/* — UNIVERSE — */}
-      <SectionHeader label="UNIVERSE" sub="25 GICS industry groups + 4 defensive assets" applies={["allocation"]} />
+      <div id="mth__alloc-universe" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.1 · UNIVERSE" sub="25 GICS industry groups + 4 defensive assets" applies={["allocation"]} />
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
         The universe spans the 11 GICS sectors, decomposed into 25 industry groups under the post-March-2023 GICS structure. Implementation uses single-ETF proxies where one is available (13 of 25) and equal-weighted baskets of the largest names where no clean ETF exists (12 of 25).
       </div>
@@ -792,7 +951,7 @@ function AssetAllocationMethodology() {
       </table>
 
       {/* — INPUTS — */}
-      <SectionHeader label="INPUTS" sub="9 macro inputs feed the model" applies={["allocation"]} />
+      <div id="mth__alloc-inputs" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.2 · INPUTS" sub="9 macro inputs feed the model" applies={["allocation"]} />
       <Prose>
         <P><strong>1. Daily prices</strong> for all 25 industry-group proxies + 4 defensive ETFs from yfinance. Baskets are aggregated from constituent names, equal-weighted.</P>
         <P><strong>2. Macro factor panel</strong> — ~32 factors back to 1998-2003 from FRED + Yahoo. Includes the yield curve (10Y minus 2Y), real rates, term premium, breakeven inflation, broad dollar, the Chicago Fed Financial Conditions Index, the St. Louis Financial Stress Index, commercial paper risk, fed funds, the Fed balance sheet, initial jobless claims, industrial production, capacity utilization, consumer sentiment, retail sales, PCE, durable-goods orders, housing starts, the 30-year mortgage rate, M2 money supply year-over-year, bank credit, WTI crude, natural gas, the copper-gold ratio, VIX, SKEW, and SLOOS lending standards (commercial &amp; industrial and commercial real estate).</P>
@@ -800,7 +959,7 @@ function AssetAllocationMethodology() {
       </Prose>
 
       {/* — PER-ASSET FACTOR MAPS — */}
-      <SectionHeader label="PER-ASSET FACTOR MAPS" sub="Each industry group has its own multivariate regression" applies={["allocation"]} />
+      <div id="mth__alloc-factor-maps" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.3 · PER-ASSET FACTOR MAPS" sub="Each industry group has its own multivariate regression" applies={["allocation"]} />
       <Prose>
         <P>Each industry group's expected return is forecast from a dedicated multivariate regression on macro factors. The factor list is determined by forward-stepwise selection on 1998-2026 monthly returns: factors stay only if their t-statistic exceeds 2 in the calibration window. Two universal background factors apply to every group (10Y-2Y yield curve slope and Kim-Wright term premium). The factor map is regenerated quarterly — factors that lose statistical significance over time are dropped at the next refresh.</P>
         <P><strong>Cyclicals</strong> (Energy, Materials, Capital Goods, Transportation, Automobiles) load on jobless claims, industrial production, copper-gold ratio, and oil prices.</P>
@@ -811,7 +970,7 @@ function AssetAllocationMethodology() {
       </Prose>
 
       {/* — LOGIC — 9-step pipeline — */}
-      <SectionHeader label="LOGIC — 9-STEP PIPELINE" sub="What runs every Saturday rebalance" applies={["allocation"]} />
+      <div id="mth__alloc-logic" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.4 · LOGIC — 9-STEP PIPELINE" sub="What runs every Saturday rebalance" applies={["allocation"]} />
       <Prose>
         <P><strong>Step 1 — Forecast.</strong> Per-asset OLS regression on the factor panel (lagged 1 month). Last 60 months of returns × shifted factors → coefficient estimates. Forecast = α + β·X[T-1]. Shrink toward each asset's long-run mean by 50% (Bayesian / James-Stein-lite). Output is a vector of expected next-month returns across all 25 industry groups.</P>
         <P><strong>Step 2 — Momentum.</strong> Trailing 6-month price return for each industry group, strict prior 6 months only — current month is NOT included (lookahead-safe).</P>
@@ -843,14 +1002,14 @@ function AssetAllocationMethodology() {
       </table>
 
       {/* — CONFIRMATORY RULE + REGIME FLIP — */}
-      <SectionHeader label="CONFIRMATORY RULE & REGIME-FLIP OVERRIDE" sub="Why two signals must agree to enter a position" applies={["allocation"]} />
+      <div id="mth__alloc-confirm" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.5 · CONFIRMATORY RULE & REGIME-FLIP OVERRIDE" sub="Why two signals must agree to enter a position" applies={["allocation"]} />
       <Prose>
         <P><strong>Confirmatory selection.</strong> A pure indicator-based ranking would over-fit the regression and chase factors. A pure momentum-based ranking would chase trends and crash at regime changes. Requiring both signals to point above-median in the same direction is a robustness device — it kills positions where one signal screens hot and the other is cold, which is usually where you get hurt.</P>
         <P><strong>Regime-flip override.</strong> The exception is at V-bottoms. After a sharp risk-off move (R&amp;L drops more than 15 points in 3 months and is now below +30), trailing 6-month momentum is full of crash data and pointing the wrong way. The override falls back to indicator-only ranking, which is forward-looking and catches the recovery. This pattern is documented in the academic momentum-crash literature (Daniel &amp; Moskowitz 2016).</P>
       </Prose>
 
       {/* — TOP-5 EQUAL-WEIGHTED — */}
-      <SectionHeader label="TOP-5 EQUAL-WEIGHTED — TRADE-OFFS" sub="Why 5 picks instead of N or continuous weights" applies={["allocation"]} />
+      <div id="mth__alloc-top5" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.6 · TOP-5 EQUAL-WEIGHTED — TRADE-OFFS" sub="Why 5 picks instead of N or continuous weights" applies={["allocation"]} />
       <Prose>
         <P><strong>Concentration.</strong> Five picks at 20% each within the equity sleeve concentrates conviction. The model is making active calls — diluting them across 10 or 15 positions would produce something closer to a sector-rotation index fund.</P>
         <P><strong>Why not continuous weights.</strong> Variable conviction weighting (e.g., max-Sharpe across the top 10 with weight caps) produces tighter back-test stats but is more fragile out-of-sample because it concentrates on whichever bucket the regression happens to like most that month. Equal-weight 5 is robust to single-bucket forecast errors.</P>
@@ -858,7 +1017,7 @@ function AssetAllocationMethodology() {
       </Prose>
 
       {/* — BACK-TEST — */}
-      <SectionHeader label="BACK-TEST RESULTS" sub="Jan 2008 → Apr 2026, 220 months ≈ 18.3 years" applies={["allocation"]} />
+      <div id="mth__alloc-backtest" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.7 · BACK-TEST RESULTS" sub="Jan 2008 → Apr 2026, 220 months ≈ 18.3 years" applies={["allocation"]} />
       <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
         <thead><tr><th style={tableTh}>Metric</th><th style={tableThR}>v9.1 strategy</th><th style={tableThR}>S&amp;P 500 (SPY)</th><th style={tableThR}>60/40 (SPY/AGG)</th><th style={tableThR}>Edge</th></tr></thead>
         <tbody>
@@ -874,7 +1033,7 @@ function AssetAllocationMethodology() {
       </Prose>
 
       {/* — HONEST LIMITATIONS — */}
-      <SectionHeader label="HONEST LIMITATIONS" sub="12 of 25 industry groups have no clean single-ETF proxy" applies={["allocation"]} />
+      <div id="mth__alloc-limits" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.8 · HONEST LIMITATIONS" sub="12 of 25 industry groups have no clean single-ETF proxy" applies={["allocation"]} />
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
         These industry groups don't have a clean single-ETF proxy and are tracked through equal-weighted baskets of the largest names. Implementation cost is higher for these (more positions to maintain, no tight-tracking ETF wrapper available). Calibration accuracy depends on the basket adequately representing the underlying GICS group.
       </div>
@@ -886,14 +1045,14 @@ function AssetAllocationMethodology() {
       </table>
 
       {/* — REFINEMENT PROCESS — */}
-      <SectionHeader label="REFINEMENT PROCESS" sub="How v9.x → v9.x+1 happens" applies={["allocation"]} />
+      <div id="mth__alloc-refine" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.9 · REFINEMENT PROCESS" sub="How v9.x → v9.x+1 happens" applies={["allocation"]} />
       <Prose>
         <P>Refinements ship as v9.2, v9.3, etc. Each refinement requires: (1) back-test on the same 2008-2026 window, (2) comparison table vs v9.1 baseline (CAGR, Sharpe, max DD, calendar wins), (3) Senior Quant sign-off, (4) UX Designer sign-off if UI changes, (5) Lead Developer ships PR.</P>
         <P><strong>Decisions that should not change without explicit council re-approval:</strong> the 1.5× leverage cap, industry-group level allocation (no cap dimension), the confirmatory selection rule (both indicator and momentum agree), the 6-month momentum window, the per-asset multivariate factor maps, and top-5 equal-weighted selection.</P>
       </Prose>
 
       {/* — CITATIONS — */}
-      <SectionHeader label="CITATIONS" sub="Academic + sell-side methodology references" applies={["allocation"]} />
+      <div id="mth__alloc-cites" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.10 · CITATIONS" sub="Academic + sell-side methodology references" applies={["allocation"]} />
       <Prose>
         <P><strong>Momentum and momentum crashes.</strong> Daniel &amp; Moskowitz, "Momentum Crashes," Journal of Financial Economics (2016) — motivates the regime-flip override at V-bottoms.</P>
         <P><strong>Multivariate factor models.</strong> Asness, Moskowitz &amp; Pedersen, "Value and Momentum Everywhere," Journal of Finance (2013) — supports combining indicator-based and momentum-based ranks.</P>
@@ -902,16 +1061,17 @@ function AssetAllocationMethodology() {
         <P><strong>Sector rotation literature.</strong> Conover, Jensen, Johnson &amp; Mercer, "Sector Rotation and Monetary Conditions," Journal of Investing (2008) — supports macro-regime-conditional sector selection.</P>
       </Prose>
 
-      <SectionHeader label="WHAT CAN BREAK THIS" sub="Conditions that change the ratings" applies={["allocation"]} />
+      <div id="mth__alloc-break" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.11 · WHAT CAN BREAK THIS" sub="Conditions that change the ratings" applies={["allocation"]} />
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
         The 9 risk scenarios on the Asset Allocation tab map directly to specific indicators in the All Indicators tab. Each scenario links through to its underlying indicator with current value, history, and threshold context. Triggers include: real rates &gt; 2.0%, HY-IG spread &gt; 250bp, yield curve flattening below +25bp, SLOOS C&amp;I tightening &gt; +20pp, VIX sustained above 25, term premium &gt; 1.5%, copper-gold ratio breakdown, ISM &lt; 48, and USD index &gt; 110.
       </div>
+      </>)}
     </section>
   );
 }
 
 // ─── §5 EQUITY SCANNER METHODOLOGY ─────────────────────────────────────────
-function SignalScoreMath() {
+function SignalScoreMath({ open, onToggle }) {
   const TIER_BANDS = [
     { label:"STRONG BULL", range:"≥ 60",        note:"Buy Alert",                      color:"#30d158" },
     { label:"BULLISH",     range:"30 – 59",     note:"Near Trigger threshold ≥ 40",    color:"#30d158" },
@@ -936,14 +1096,17 @@ function SignalScoreMath() {
   return (
     <section id={A("signal-math")} data-testid="methodology-section-signalmath"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <SectionHeader
-        label="4 · EQUITY SCANNER METHODOLOGY"
+      <CollapsibleSectionHeader
+        label="5 · EQUITY SCANNER METHODOLOGY"
         sub="Single composite on [−100, +100]"
         applies={[
           { id:"scanner",  label:"Trading Scanner",                         path:"#scanner" },
           { id:"portopps", label:"Trading Opportunities & Portfolio Insights", path:"#portopps" },
         ]}
+        open={open}
+        onToggle={onToggle}
       />
+      {open && (<>
 
       <Prose>
         <P><strong>One score, one methodology.</strong> Every scanned ticker carries a single directional
@@ -1115,6 +1278,7 @@ function SignalScoreMath() {
           </tbody>
         </table>
       </div>
+      </>)}
     </section>
   );
 }
@@ -1122,7 +1286,7 @@ function SignalScoreMath() {
 // ─── §4 EQUITY SCANNER DATA SOURCES (sortable flat table, scanner-only) ───
 // Scanner data only — the macro indicators have their own table in §1, so
 // repeating them here would be redundant.
-function DataCatalogTable({ ind, asOf }) {
+function DataCatalogTable({ ind, asOf, open, onToggle }) {
   const rows = useMemo(() => {
     return DATA_REGISTRY
       .filter((r) => r.section === "scanner" && !r.isFilter)
@@ -1200,19 +1364,22 @@ function DataCatalogTable({ ind, asOf }) {
   return (
     <section id={A("catalog")} data-testid="methodology-section-catalog"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <SectionHeader
-        label="3 · EQUITY SCANNER DATA SOURCES"
+      <CollapsibleSectionHeader
+        label="4 · EQUITY SCANNER DATA SOURCES"
         sub={`${rows.length} streams that feed the per-ticker Signal Score · sortable`}
         applies={[
           { id:"scanner",  label:"Trading Scanner",                            path:"#scanner" },
           { id:"portopps", label:"Trading Opportunities & Portfolio Insights", path:"#portopps" },
         ]}
+        open={open}
+        onToggle={onToggle}
       />
+      {open && (<>
       <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
         Every upstream stream the scanner reads when it scores a ticker. Click a column header to sort.
         <strong> Frequency</strong> is how often the stream refreshes (D = once per weekday, 3x/D = three
         pulls per weekday). <strong>Weight</strong> is that stream's share of the overall Signal Score
-        (see §4). Before any of this runs, a price ($5–$500) and market-cap screen from the Unusual Whales
+        (see §5). Before any of this runs, a price ($5–$500) and market-cap screen from the Unusual Whales
         screener filters the investable universe — the screener is a methodology step, not a scoring input.
       </div>
 
@@ -1269,11 +1436,12 @@ function DataCatalogTable({ ind, asOf }) {
           </tbody>
         </table>
       </div>
+      </>)}
     </section>
   );
 }
 
-// Mapping tables used by §4.
+// Mapping tables used by §5.
 const SCANNER_SECTION_FOR = {
   uw_options_flow:   "Options",
   uw_dark_pool:      "Dark Pool",
@@ -1301,6 +1469,65 @@ const tdStyle = { padding:"8px 12px", verticalAlign:"top" };
 // SectionHeader + Prose + P + Formula + PillChip were co-located with the old
 // §6 catalog section; the §6 → §5 rebuild dropped them inadvertently. Restored
 // here, one layer above Disclaimer, so every section can read them.
+// CollapsibleSectionHeader — used by every top-level section so the page
+// can collapse to a one-screen TOC then expand on demand. Sub-section
+// anchors stay always-rendered when their parent is open; the parent
+// collapse alone gets ~80% of the length-reduction win.
+function Chevron({ open }) {
+  return (
+    <span style={{ display:"inline-block", width:14, transition:"transform .15s",
+                   transform: open ? "rotate(90deg)" : "rotate(0deg)",
+                   color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
+      ▶
+    </span>
+  );
+}
+function CollapsibleSectionHeader({ label, sub, applies, open, onToggle }) {
+  return (
+    <div onClick={onToggle}
+         role="button" tabIndex={0}
+         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
+         style={{ display:"flex", flexDirection:"column", gap:6,
+                  borderBottom:"1px solid var(--border)", paddingBottom:6,
+                  cursor:"pointer", userSelect:"none" }}>
+      <div style={{ display:"flex", alignItems:"baseline", gap:10, flexWrap:"wrap" }}>
+        <Chevron open={open} />
+        <div style={{ fontSize:15, fontWeight:700, color:"var(--text)",
+                      fontFamily:"var(--font-mono)", letterSpacing:"0.08em" }}>
+          {label}
+        </div>
+        {sub && (
+          <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
+            · {sub}
+          </div>
+        )}
+        <div style={{ marginLeft:"auto", fontSize:10, fontFamily:"var(--font-mono)",
+                      color:"var(--text-dim)", letterSpacing:"0.05em",
+                      textTransform:"uppercase" }}>
+          {open ? "click to collapse" : "click to expand"}
+        </div>
+      </div>
+      {applies && applies.length > 0 && (
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+          <span style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
+                         letterSpacing:"0.08em" }}>
+            APPLIES TO:
+          </span>
+          {applies.map((a) => (
+            <a key={a.id} href={a.path}
+               onClick={(e) => e.stopPropagation()}
+               style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
+                        textDecoration:"none", border:"1px solid var(--accent)",
+                        borderRadius:3, padding:"2px 6px", letterSpacing:"0.05em" }}>
+              {a.label}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SectionHeader({ label, sub, applies }) {
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:6, borderBottom:"1px solid var(--border)", paddingBottom:6 }}>
