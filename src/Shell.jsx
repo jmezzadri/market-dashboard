@@ -454,7 +454,7 @@ export function Footer({ leftText, rightText }) {
         <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", letterSpacing: "0.04em" }}>
           {leftText}
         </span>
-        <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", letterSpacing: "0.04em", fontStyle: "italic" }}>
+        <span style={{ fontSize: 11, color: "var(--text-dim)", fontFamily: "var(--font-mono)", letterSpacing: "0.04em", fontStyle: "italic", paddingRight: 160 }}>
           Not investment advice. Not a broker. Not a person in most ways.
         </span>
       </div>
