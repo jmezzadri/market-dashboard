@@ -17,7 +17,7 @@ section here.
 | Live UI output | `public/v10_allocation.json` |
 | Regime watch alert | `public/v10_regime_alert.json` |
 | Architecture spec | `asset-allocation-v10-architecture.md` |
-| Methodology doc | `asset-allocation-methodology-v9.md` |
+| Methodology lock | `asset-allocation-methodology-v9-LOCKED.md` |
 
 ## Cadence
 

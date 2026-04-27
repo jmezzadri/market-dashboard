@@ -14,7 +14,7 @@ Writes:
 
 Designed to run weekly via V9-ALLOCATION-WEEKLY workflow.
 
-Methodology: see asset-allocation-methodology-v9.md.
+Methodology: see asset-allocation-methodology-v9-LOCKED.md.
 
 ────────────────────────────────────────────────────────────────────────────
 v9.1 EXTENSION (2026-04-26) — score all 25 GICS Industry Groups
