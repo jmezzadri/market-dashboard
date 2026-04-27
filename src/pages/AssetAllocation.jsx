@@ -323,7 +323,8 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
     </div>
   );
 
-  const dollar = fmtDollar(currentWeight || 0);
+  const inPicks = currentWeight && currentWeight > 0;
+  const dollar = inPicks ? fmtDollar(currentWeight) : null;
   const spyDollar = fmtDollar(spyWeight || 0);
   const delta = (currentWeight || 0) - (spyWeight || 0);
   const deltaDollar = fmtPP(delta);
@@ -350,7 +351,7 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
         <div style={{ background: "var(--surface-solid)", border: "1px solid var(--border)", borderRadius: 4, padding: "8px 10px" }}>
           <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Target weight</div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 500 }}>{dollar}</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 500 }}>{inPicks ? dollar : <span style={{ color: "var(--text-muted)", fontSize: 12, fontStyle: "italic" }}>Market weight — no Tilt</span>}</div>
         </div>
         <div style={{ background: "var(--surface-solid)", border: "1px solid var(--border)", borderRadius: 4, padding: "8px 10px" }}>
           <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>SPY weight</div>
@@ -508,6 +509,42 @@ function deriveHistoryView(raw) {
   };
 }
 
+// ─── Live rating derivation helpers ──────────────────────────────────────
+// All three rating displays on this page (sector table, heatmap chips,
+// drilldown weight) MUST derive from the model output (`alloc.all_industry_groups`
+// and `alloc.picks`). Hardcoded ratings in SECTOR_IG_MAP / SECTOR_RATINGS are
+// fallbacks for when the JSON hasn't loaded yet — never the source of truth.
+function buildIgRatingMap(allIgs) {
+  // Returns Map<igName, ratingObj>
+  const map = new Map();
+  if (!Array.isArray(allIgs)) return map;
+  for (const ig of allIgs) {
+    map.set(ig.name, {
+      rating: ig.rating || "mw",
+      combined_rank: ig.combined_rank,
+      indicator_rank: ig.indicator_rank,
+      momentum_rank: ig.momentum_rank,
+      ticker: ig.primary_ticker,
+      sector: ig.sector,
+    });
+  }
+  return map;
+}
+
+function deriveSectorRating(sector, igRatingMap, sectorIgMap) {
+  // A sector's rating reflects the majority of its industry-group ratings:
+  //   • Any OW IG → sector OW (the OW signal is the strongest)
+  //   • All IGs UW → sector UW
+  //   • Otherwise → MW (mixed)
+  const row = sectorIgMap.find((r) => r.sector === sector);
+  if (!row) return "mw";
+  const igs = row.groups.map((g) => igRatingMap.get(g.name)?.rating).filter(Boolean);
+  if (!igs.length) return "mw";
+  if (igs.some((r) => r === "ow")) return "ow";
+  if (igs.every((r) => r === "uw")) return "uw";
+  return "mw";
+}
+
 // ─── Main component ───────────────────────────────────────────────────────
 export default function AssetAllocation({ onOpenTicker }) {
   const [alloc, setAlloc]               = useState(null);
@@ -565,6 +602,9 @@ export default function AssetAllocation({ onOpenTicker }) {
     if (rl >= 30)  return { label: "Cautious",  color: "var(--orange-text)", bg: "rgba(255,159,10,0.18)" };
     return { label: "Aggressive", color: "var(--green-text)", bg: "rgba(48,209,88,0.18)" };
   }, [macroSnap]);
+
+  // Live rating map derived from alloc.all_industry_groups — single source of truth
+  const igRatingMap = useMemo(() => buildIgRatingMap(alloc?.all_industry_groups), [alloc]);
 
   // Hero KPI numbers from v9_allocation.json
   const totalEquity = alloc ? (alloc.leverage * alloc.equity_share) : null;
@@ -822,7 +862,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               <tr key={row.sector}>
                 <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 14 }}>{row.sector}</td>
                 <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "center" }}>
-                  <RatingPill rating={row.rating} />
+                  <RatingPill rating={deriveSectorRating(row.sector, igRatingMap, SECTOR_IG_MAP)} />
                 </td>
                 <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>{row.rationale}</td>
               </tr>
@@ -866,7 +906,7 @@ export default function AssetAllocation({ onOpenTicker }) {
           <div style={{ padding: "6px 4px", color: "var(--red-text)", textTransform: "uppercase", letterSpacing: "0.05em", fontSize: 10, textAlign: "center", fontWeight: 600 }}>Underweight</div>
 
           {SECTOR_IG_MAP.map((row) => (
-            <HeatmapRow key={row.sector} row={row} activeBucket={activeBucket} setActiveBucket={setActiveBucket} />
+            <HeatmapRow key={row.sector} row={row} activeBucket={activeBucket} setActiveBucket={setActiveBucket} igRatingMap={igRatingMap} />
           ))}
         </div>
 
@@ -1037,10 +1077,13 @@ function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect })
   );
 }
 
-function HeatmapRow({ row, activeBucket, setActiveBucket }) {
-  const ow = row.groups.filter(g => g.rating === "ow");
-  const mw = row.groups.filter(g => g.rating === "mw");
-  const uw = row.groups.filter(g => g.rating === "uw");
+function HeatmapRow({ row, activeBucket, setActiveBucket, igRatingMap }) {
+  // Live rating from the model — falls back to row.groups[].rating when JSON hasn't loaded.
+  const liveRating = (g) => igRatingMap?.get(g.name)?.rating || g.rating || "mw";
+  const groups = row.groups.map(g => ({ ...g, rating: liveRating(g) }));
+  const ow = groups.filter(g => g.rating === "ow");
+  const mw = groups.filter(g => g.rating === "mw");
+  const uw = groups.filter(g => g.rating === "uw");
 
   const cellStyle = (color) => ({
     display: "flex", flexWrap: "wrap", gap: 3, padding: 4, borderRadius: 4, alignContent: "flex-start", minHeight: 30,
