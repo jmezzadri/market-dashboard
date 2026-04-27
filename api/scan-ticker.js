@@ -324,6 +324,37 @@ export default async function handler(req, res) {
       }
     }
 
+    // P1 #38 (Joe 2026-04-27): NEVER write null composite_json or
+    // screener_json — that clobbered Joe's CCJ data when an auto-fire scan
+    // came back empty. Read the existing row first; if our new value is
+    // null/empty, preserve what's already there.
+    {
+      const { data: existing } = await admin
+        .from("user_scan_data")
+        .select("composite_json,screener_json,technicals_json")
+        .eq("user_id", userId).eq("ticker", sym).maybeSingle();
+      if (existing) {
+        // composite_json is the source of truth for info/news/analyst_ratings.
+        // Don't overwrite a non-null existing payload with null. Also
+        // don't overwrite a populated info{} sub-block with one that has
+        // an empty string short_description (UW transient).
+        const existingHasInfo = !!(existing.composite_json && existing.composite_json.info && existing.composite_json.info.short_description);
+        const newHasInfo = !!(payload.composite_json && payload.composite_json.info && payload.composite_json.info.short_description);
+        if (payload.composite_json == null && existing.composite_json) {
+          payload.composite_json = existing.composite_json;
+        } else if (existingHasInfo && !newHasInfo) {
+          // Carry the existing info forward; merge the rest from new.
+          payload.composite_json = {
+            ...payload.composite_json,
+            info: existing.composite_json.info,
+          };
+        }
+        if (payload.screener_json == null && existing.screener_json) {
+          payload.screener_json = existing.screener_json;
+        }
+      }
+    }
+
     const { error: upErr } = await admin
       .from("user_scan_data")
       .upsert(payload, { onConflict: "user_id,ticker" });
