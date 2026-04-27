@@ -168,38 +168,42 @@ const REGISTRY_WITH_BLOBS = DATA_REGISTRY.map((row) => ({ ...row, _blob: buildSe
 
 // ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
 export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, indFreq }) {
-  // Collapse-state for top-level sections. Default = all collapsed so the
-  // page opens as a one-screen TOC. Joe directive 2026-04-27: "this page
-  // is so long" — start compact, let the reader expand on demand.
+  // Collapse-state for top-level sections — keys MIRROR the sidebar nav.
+  // Default = all collapsed so the page opens as a one-screen TOC.
   const [open, setOpen] = useState({
-    catmap: false,
-    compmath: false,
+    home: false,
+    macro: false,
     alloc: false,
-    catalog: false,
-    signal: false,
+    trading: false,
+    insights: false,
+    indicators: false,
   });
   const toggle = (k) => setOpen((s) => ({ ...s, [k]: !s[k] }));
   const expand = (k) => setOpen((s) => ({ ...s, [k]: true }));
-  const expandAll = () => setOpen({ catmap:true, compmath:true, alloc:true, catalog:true, signal:true });
-  const collapseAll = () => setOpen({ catmap:false, compmath:false, alloc:false, catalog:false, signal:false });
+  const expandAll = () =>
+    setOpen({ home:true, macro:true, alloc:true, trading:true, insights:true, indicators:true });
+  const collapseAll = () =>
+    setOpen({ home:false, macro:false, alloc:false, trading:false, insights:false, indicators:false });
 
   return (
     <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
       <Contents ind={ind} expand={expand} expandAll={expandAll} collapseAll={collapseAll} />
+      <HomeSection
+        open={open.home} onToggle={() => toggle("home")} />
+      <CompositeMath
+        ind={ind} weights={weights} cats={cats}
+        open={open.macro} onToggle={() => toggle("macro")} />
+      <AssetAllocationMethodology
+        open={open.alloc} onToggle={() => toggle("alloc")} />
+      <TradingOppsMethodology
+        ind={ind} asOf={asOf}
+        open={open.trading} onToggle={() => toggle("trading")} />
+      <PortfolioInsightsSection
+        open={open.insights} onToggle={() => toggle("insights")} />
       <MacroIndicatorTable
         ind={ind} weights={weights} cats={cats} indFreq={indFreq}
         asOf={asOf} asOfIso={asOfIso}
-        open={open.catmap} onToggle={() => toggle("catmap")} />
-      <CompositeMath
-        ind={ind} weights={weights} cats={cats}
-        open={open.compmath} onToggle={() => toggle("compmath")} />
-      <AssetAllocationMethodology
-        open={open.alloc} onToggle={() => toggle("alloc")} />
-      <DataCatalogTable
-        ind={ind} asOf={asOf}
-        open={open.catalog} onToggle={() => toggle("catalog")} />
-      <SignalScoreMath
-        open={open.signal} onToggle={() => toggle("signal")} />
+        open={open.indicators} onToggle={() => toggle("indicators")} />
       <Disclaimer />
     </div>
   );
@@ -219,34 +223,34 @@ export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, ind
 //      one-screen overview, then expand whatever section the reader wants.
 function Contents({ ind, expand, expandAll, collapseAll }) {
   const indCount = ind ? Object.keys(ind).length : 0;
+  // Mirrors the sidebar nav exactly (App.jsx NAV_ITEMS, 2026-04-27 spec):
+  // Home → Macro Overview → Asset Allocation → Trading Opportunities →
+  // Portfolio Insights → All Indicators.
   const items = [
     {
-      key: "catmap",
+      key: "home",
       num: "1",
-      label: "Macro Mapping & Data Sources",
-      sub: `${indCount} macro indicators — source, frequency, last refresh, tier, weight, type.`,
-      id: A("catmap"),
-      children: [
-        { num: "1.1", label: "Indicator catalog (sortable)",     id: A("catmap") },
-        { num: "1.2", label: "Data freshness — what the dots mean", id: "freshness-explainer" },
-      ],
+      label: "Home",
+      sub: "Cover sheet — macro composite headline, portfolio summary, and the daily news feed.",
+      id: "mth__home",
+      children: [],
     },
     {
-      key: "compmath",
+      key: "macro",
       num: "2",
-      label: "Macro Methodology",
+      label: "Macro Overview",
       sub: `How the ${indCount} indicators roll up into one 0–100 Composite Stress Score and four conviction bands.`,
       id: A("composite-math"),
       children: [
-        { num: "2.1", label: "z-score, sign-flip, tier weights", id: A("composite-math") },
-        { num: "2.2", label: "Conviction bands + history alignment", id: A("composite-math") },
+        { num: "2.1", label: "z-score, sign-flip, tier weights",       id: A("composite-math") },
+        { num: "2.2", label: "Conviction bands + history alignment",   id: A("composite-math") },
       ],
     },
     {
       key: "alloc",
       num: "3",
       label: "Asset Allocation",
-      sub: "How the strategic allocation is built — universe, factor maps, 9-step pipeline, back-test.",
+      sub: "Universe, factor maps, 9-step pipeline, back-test, limitations.",
       id: "mth__asset-alloc",
       children: [
         { num: "3.1",  label: "Universe — 25 industry groups + defensive sleeve", id: "mth__alloc-universe" },
@@ -263,20 +267,34 @@ function Contents({ ind, expand, expandAll, collapseAll }) {
       ],
     },
     {
-      key: "catalog",
+      key: "trading",
       num: "4",
-      label: "Equity Scanner Data Sources",
-      sub: "The upstream streams that feed the per-ticker Signal Score — section + weight each carries.",
-      id: A("catalog"),
+      label: "Trading Opportunities",
+      sub: "Per-ticker Signal Score — upstream data + the [−100, +100] math.",
+      id: "mth__trading",
+      children: [
+        { num: "4.1", label: "Scanner data sources",  id: A("catalog") },
+        { num: "4.2", label: "Signal score math",     id: A("signal-math") },
+      ],
+    },
+    {
+      key: "insights",
+      num: "5",
+      label: "Portfolio Insights",
+      sub: "How the portfolio gets scored — TWR returns, observations, scanner overlays.",
+      id: "mth__insights",
       children: [],
     },
     {
-      key: "signal",
-      num: "5",
-      label: "Equity Scanner Methodology",
-      sub: "How six section sub-scores combine into a single signed composite on [−100, +100] per ticker.",
-      id: A("signal-math"),
-      children: [],
+      key: "indicators",
+      num: "6",
+      label: "All Indicators",
+      sub: `${indCount} macro indicators — source, frequency, last refresh, tier, weight, type, detail.`,
+      id: A("catmap"),
+      children: [
+        { num: "6.1", label: "Indicator catalog (sortable, numbered)",    id: A("catmap") },
+        { num: "6.2", label: "Data freshness — what the dots mean",       id: "freshness-explainer" },
+      ],
     },
   ];
   return (
@@ -436,10 +454,9 @@ function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso, open,
     <section id={A("catmap")} data-testid="methodology-section-catmap"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <CollapsibleSectionHeader
-        label="1 · MACRO MAPPING & DATA SOURCES"
-        sub={`${rows.length} macro indicators · sortable`}
+        label="6 · ALL INDICATORS"
+        sub={`${rows.length} macro indicators · sortable, numbered`}
         applies={[
-          { id:"overview",   label:"Macro Overview",  path:"#overview" },
           { id:"indicators", label:"All Indicators",  path:"#indicators" },
         ]}
         open={open}
@@ -537,7 +554,7 @@ function FreshnessExplainer() {
   return (
     <section id="freshness-explainer" style={{ scrollMarginTop: 80 }}>
       <SectionHeader
-        label="1.2 · DATA FRESHNESS — what the colored dots mean"
+        label="6.2 · DATA FRESHNESS — what the colored dots mean"
         sub="Every indicator has a small dot · green = current · amber = a little overdue · red = stale or missing"
       />
       <div style={{ marginTop: 12,
@@ -641,7 +658,7 @@ function CompositeMath({ ind, weights, open, onToggle }) {
     <section id={A("composite-math")} data-testid="methodology-section-compmath"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <CollapsibleSectionHeader
-        label="2 · MACRO METHODOLOGY"
+        label="2 · MACRO OVERVIEW"
         sub={`How the ${ind ? Object.keys(ind).length : 0} indicators roll up into one number`}
         applies={[
           { id:"home",     label:"Home",           path:"#home" },
@@ -1055,7 +1072,7 @@ function AssetAllocationMethodology({ open, onToggle }) {
 }
 
 // ─── §5 EQUITY SCANNER METHODOLOGY ─────────────────────────────────────────
-function SignalScoreMath({ open, onToggle }) {
+function SignalScoreMath() {
   const TIER_BANDS = [
     { label:"STRONG BULL", range:"≥ 60",        note:"Buy Alert",                      color:"#30d158" },
     { label:"BULLISH",     range:"30 – 59",     note:"Near Trigger threshold ≥ 40",    color:"#30d158" },
@@ -1080,17 +1097,13 @@ function SignalScoreMath({ open, onToggle }) {
   return (
     <section id={A("signal-math")} data-testid="methodology-section-signalmath"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <CollapsibleSectionHeader
-        label="5 · EQUITY SCANNER METHODOLOGY"
+      <SectionHeader
+        label="4.2 · EQUITY SCANNER METHODOLOGY"
         sub="Single composite on [−100, +100]"
         applies={[
-          { id:"scanner",  label:"Trading Scanner",                         path:"#scanner" },
-          { id:"portopps", label:"Trading Opportunities & Portfolio Insights", path:"#portopps" },
+          { id:"portopps", label:"Trading Opportunities", path:"#portopps" },
         ]}
-        open={open}
-        onToggle={onToggle}
       />
-      {open && (<>
 
       <Prose>
         <P><strong>One score, one methodology.</strong> Every scanned ticker carries a single directional
@@ -1262,7 +1275,6 @@ function SignalScoreMath({ open, onToggle }) {
           </tbody>
         </table>
       </div>
-      </>)}
     </section>
   );
 }
@@ -1270,7 +1282,7 @@ function SignalScoreMath({ open, onToggle }) {
 // ─── §4 EQUITY SCANNER DATA SOURCES (sortable flat table, scanner-only) ───
 // Scanner data only — the macro indicators have their own table in §1, so
 // repeating them here would be redundant.
-function DataCatalogTable({ ind, asOf, open, onToggle }) {
+function DataCatalogTable({ ind, asOf }) {
   const rows = useMemo(() => {
     return DATA_REGISTRY
       .filter((r) => r.section === "scanner" && !r.isFilter)
@@ -1348,22 +1360,18 @@ function DataCatalogTable({ ind, asOf, open, onToggle }) {
   return (
     <section id={A("catalog")} data-testid="methodology-section-catalog"
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <CollapsibleSectionHeader
-        label="4 · EQUITY SCANNER DATA SOURCES"
+      <SectionHeader
+        label="4.1 · EQUITY SCANNER DATA SOURCES"
         sub={`${rows.length} streams that feed the per-ticker Signal Score · sortable`}
         applies={[
-          { id:"scanner",  label:"Trading Scanner",                            path:"#scanner" },
-          { id:"portopps", label:"Trading Opportunities & Portfolio Insights", path:"#portopps" },
+          { id:"portopps", label:"Trading Opportunities", path:"#portopps" },
         ]}
-        open={open}
-        onToggle={onToggle}
       />
-      {open && (<>
       <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
         Every upstream stream the scanner reads when it scores a ticker. Click a column header to sort.
         <strong> Frequency</strong> is how often the stream refreshes (D = once per weekday, 3x/D = three
         pulls per weekday). <strong>Weight</strong> is that stream's share of the overall Signal Score
-        (see §5). Before any of this runs, a price ($5–$500) and market-cap screen from the Unusual Whales
+        (see §4.2). Before any of this runs, a price ($5–$500) and market-cap screen from the Unusual Whales
         screener filters the investable universe — the screener is a methodology step, not a scoring input.
       </div>
 
@@ -1420,12 +1428,11 @@ function DataCatalogTable({ ind, asOf, open, onToggle }) {
           </tbody>
         </table>
       </div>
-      </>)}
     </section>
   );
 }
 
-// Mapping tables used by §5.
+// Mapping tables used by §4.
 const SCANNER_SECTION_FOR = {
   uw_options_flow:   "Options",
   uw_dark_pool:      "Dark Pool",
@@ -1581,6 +1588,84 @@ function PillChip({ text, color }) {
 }
 
 // ─── Disclaimer ─────────────────────────────────────────────────────────────
+
+// ─── §1 HOME — what the home page surfaces ─────────────────────────────────
+function HomeSection({ open, onToggle }) {
+  return (
+    <section id="mth__home" data-testid="methodology-section-home"
+      style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <CollapsibleSectionHeader
+        label="1 · HOME"
+        sub="What the cover sheet surfaces"
+        applies={[{ id:"home", label:"Home", path:"#home" }]}
+        open={open}
+        onToggle={onToggle}
+      />
+      {open && (<>
+      <Prose>
+        <P>The Home page is the cover sheet for the dashboard. It pulls four threads together:</P>
+        <P><strong>Macro composite headline</strong> — the current 0–100 Composite Stress Score and conviction band, sourced from the same engine documented in §2 Macro Overview. Updated daily on weekdays.</P>
+        <P><strong>Portfolio summary</strong> — your live portfolio value, today's P&amp;L, and trailing time-weighted return (TWR) computed from the daily portfolio_history snapshots described in §5 Portfolio Insights.</P>
+        <P><strong>Trading-opportunity tile</strong> — top-ranked tickers by Signal Score from the engine documented in §4 Trading Opportunities, filtered to your watchlist + held positions where applicable.</P>
+        <P><strong>Daily news</strong> — multi-source news feed (Unusual Whales headlines, ZeroHedge, Google News fallback for any ticker without a UW URL).</P>
+        <P>The Home page does not run any unique math of its own — it's a routing layer that surfaces the most-load-bearing read from each of the deeper tabs. Every number on the page links back to its source tab.</P>
+      </Prose>
+      </>)}
+    </section>
+  );
+}
+
+// ─── §4 TRADING OPPORTUNITIES — wraps Scanner Sources + Methodology ─────────
+// One collapsible parent containing 4.1 Scanner Data Sources and 4.2 Signal
+// Score Math as plain sub-sections. Mirrors the sidebar nav: "Trading
+// Opportunities" is the destination tab; the per-ticker scanner is what
+// powers it.
+function TradingOppsMethodology({ ind, asOf, open, onToggle }) {
+  return (
+    <section id="mth__trading" data-testid="methodology-section-trading"
+      style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <CollapsibleSectionHeader
+        label="4 · TRADING OPPORTUNITIES"
+        sub="Per-ticker Signal Score — data sources + the [−100, +100] math"
+        applies={[{ id:"portopps", label:"Trading Opportunities", path:"#portopps" }]}
+        open={open}
+        onToggle={onToggle}
+      />
+      {open && (<>
+      <Prose>
+        <P>Two sub-sections. <strong>4.1</strong> documents every upstream data stream the scanner reads (options flow, dark pool, Congress, insider trades, analyst, technicals). <strong>4.2</strong> documents how those streams combine into a single signed composite per ticker, plus the directional tier labels (STRONG BULL / BULLISH / TILT BULL / NEUTRAL / TILT BEAR / BEARISH / STRONG BEAR).</P>
+      </Prose>
+      <DataCatalogTable ind={ind} asOf={asOf} />
+      <SignalScoreMath />
+      </>)}
+    </section>
+  );
+}
+
+// ─── §5 PORTFOLIO INSIGHTS — TWR + observations ───────────────────────────
+function PortfolioInsightsSection({ open, onToggle }) {
+  return (
+    <section id="mth__insights" data-testid="methodology-section-insights"
+      style={{ display:"flex", flexDirection:"column", gap:14 }}>
+      <CollapsibleSectionHeader
+        label="5 · PORTFOLIO INSIGHTS"
+        sub="How portfolio P&L, returns, and observations are computed"
+        applies={[{ id:"insights", label:"Portfolio Insights", path:"#insights" }]}
+        open={open}
+        onToggle={onToggle}
+      />
+      {open && (<>
+      <Prose>
+        <P><strong>Time-weighted return (TWR).</strong> The portfolio's daily TWR is computed from the <code>portfolio_history</code> table (one row per portfolio per weekday) — each row stores the day's market value and any cash flows in/out. TWR neutralises the timing of deposits and withdrawals so the return reflects manager skill, not contribution timing. Formula: chain-link daily sub-period returns where each sub-period return = (end value − cash flows) / start value − 1.</P>
+        <P><strong>Observations.</strong> Rules-driven only — no narrative commentary. The page emits an observation when one of these triggers fires: position concentration &gt;10% of portfolio, beta outliers vs the SPY benchmark, deployable cash above a threshold, or a held-position scanner score in REVIEW band. If zero rules fire, the section renders nothing — silence is the correct read on an unremarkable book.</P>
+        <P><strong>Scanner overlay.</strong> Each held position carries its current Signal Score (engine documented in §4) and a freshness chip indicating when the score was last computed.</P>
+        <P><strong>Universe snapshot overlay.</strong> Live prices, implied volatility, and options flow are merged onto held positions from the <code>universe_snapshots</code> table (refreshed 3× per weekday) so the page reflects intraday state without re-running the full scanner.</P>
+      </Prose>
+      </>)}
+    </section>
+  );
+}
+
 function Disclaimer() {
   return (
     <div style={{ background:"var(--surface-2)", border:"1px solid var(--border)",
