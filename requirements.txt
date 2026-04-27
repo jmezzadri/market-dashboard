@@ -4,3 +4,4 @@ anthropic>=0.40.0
 fredapi>=0.5.0
 pandas>=2.2.0
 yfinance>=0.2.0
+scipy>=1.10.0
