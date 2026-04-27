@@ -39,6 +39,7 @@
 //                                    populates it)
 
 import { useMemo, useState } from "react";
+import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
 import { Tip } from "../InfoTip";
 import TableColumnPicker from "./TableColumnPicker";
 import TableFootnote from "./TableFootnote";
@@ -416,6 +417,64 @@ const COLUMNS = [
     ),
   },
   {
+    id: "beta_2y",
+    label: "BETA · 2Y",
+    description: "Beta vs S&P 500 (SPY), 2-year weekly OLS regression. 1.0 = moves with market; >1.0 amplifies; <1.0 dampens.",
+    align: "right",
+    sortValue: (r) => r._risk?.beta ?? null,
+    renderCell: (r) => {
+      const v = r._risk?.beta;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 1.3 ? "var(--orange-text)" : v < 0.6 ? "var(--yellow-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}</span>;
+    },
+  },
+  {
+    id: "annVol_2y",
+    label: "ANN VOL",
+    description: "Annualized volatility — 2Y daily standard deviation × √252. Roughly: 15-25% normal for diversified equities; 25-40% elevated; >40% high-beta single-name territory.",
+    align: "right",
+    sortValue: (r) => r._risk?.annVol ?? null,
+    renderCell: (r) => {
+      const v = r._risk?.annVol;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 0.40 ? "var(--red-text)" : v > 0.25 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+    },
+  },
+  {
+    id: "maxDD_2y",
+    label: "MAX DD",
+    description: "Largest peak-to-trough decline over the last 2 years. Captures worst-case capital impairment without selling.",
+    align: "right",
+    sortValue: (r) => r._risk?.maxDD ?? null,
+    renderCell: (r) => {
+      const v = r._risk?.maxDD;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 0.40 ? "var(--red-text)" : v > 0.25 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+    },
+  },
+  {
+    id: "var10d99",
+    label: "10D 99% VaR",
+    description: "10-day 99% historical Value-at-Risk from 2Y daily rolling 10-day returns, 1st percentile.",
+    align: "right",
+    sortValue: (r) => r._risk?.var10d99 ?? null,
+    renderCell: (r) => {
+      const v = r._risk?.var10d99;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 0.20 ? "var(--red-text)" : v > 0.10 ? "var(--orange-text)" : "var(--text)";
+      const $var = r.currentValue != null ? r.currentValue * v : null;
+      return (
+        <span style={{ fontFamily: "var(--font-mono)", color: col }}>
+          {(v*100).toFixed(1)}%
+          {$var != null && <span style={{color:"var(--text-muted)", marginLeft:6}}>(${Math.round($var).toLocaleString()})</span>}
+        </span>
+      );
+    },
+  },
+  {
     // Pinned rightmost, always visible, never draggable.
     id: "actions",
     label: "ACTIONS",
@@ -440,6 +499,7 @@ const DEFAULT_ORDER = [
   "ticker", "name", "quantity", "price", "avgCost", "pnlDay$", "pnlDayPct",
   "totalCost", "currentValue", "pnl$", "pnlPct",
   "purchaseDate", "holdingDays", "beta",
+  "beta_2y", "annVol_2y", "maxDD_2y", "var10d99",
   "wealthPct", "account", "marketcap", "divYield", "nextEarnings",
   "actions",
 ];
@@ -466,6 +526,10 @@ const DEFAULT_WIDTHS = {
   "pnl$":        115,
   pnlPct:        90,
   beta:          70,
+  beta_2y:       95,
+  annVol_2y:     95,
+  maxDD_2y:      95,
+  var10d99:      170,
   purchaseDate:  115,
   holdingDays:   130,
   annualizedPnl: 110,
@@ -501,6 +565,12 @@ export default function PositionsTable({
 
   const screenerMap = screener || {};
   const infoMap     = info     || {};
+
+  // P5 #35 — fetch 2Y risk metrics for visible tickers and stitch onto each
+  // row. Hook is module-cached + dedup, so N positions = N+1 fetches max
+  // (SPY shared); subsequent renders are instant.
+  const _tickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
+  const { metrics: _riskByTicker } = useRiskMetricsBatch(_tickers);
 
   // Enrich each raw row once so sort + render read from the same shape.
   const enriched = useMemo(() => {
@@ -582,10 +652,11 @@ export default function PositionsTable({
         expiration:   p.expiration   || null,
         multiplier:   p.multiplier != null ? Number(p.multiplier) : null,
         manualPrice:  p.manualPrice != null ? Number(p.manualPrice) : null,
+        _risk:        _riskByTicker[T] || null,
         _raw: p,
       };
     });
-  }, [rows, grandTotal, screenerMap, infoMap]);
+  }, [rows, grandTotal, screenerMap, infoMap, _riskByTicker]);
 
   // ─── Sort state ────────────────────────────────────────────────────────────
   const [sortCol, setSortCol] = useState("wealthPct");
