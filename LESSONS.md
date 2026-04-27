@@ -939,3 +939,64 @@ landed in two API calls.
 This rule covers any future schema work — RLS additions, `pg_cron`
 schedules, function bodies, view definitions. If it's SQL Joe would
 otherwise have to paste, the agent runs it.
+
+---
+
+## 22. Multi-step patch scripts: grep every new symbol AFTER, before declaring success
+
+**The rule.** When a single patch script does multiple `txt.replace(old, new)`
+operations on a source file, ALWAYS run a post-patch grep verifying every
+new symbol (imports, hook calls, function names, JSX components) is actually
+present before running the build. If the build passes silently, that doesn't
+mean the patch landed — it means whatever you broke isn't a compile error.
+
+**Why.** On 2026-04-27, the P5 risk-metrics patch script had the structure:
+```python
+patch1 = add import for useStockRiskMetrics
+patch2 = add hook call inside TickerDetailModal   # ← anchor was stale, asserted out
+patch3 = add JSX panel
+APP.write_text(txt)                               # ← never reached
+```
+`patch2` aborted via `AssertionError` because its anchor string didn't match
+the live file. Python's `assert` raises before the `write_text` at the end,
+so NONE of the patches landed. I then ran a SEPARATE script that only added
+the hook call (no import). Vite build passed clean — JSX with an undefined
+identifier doesn't fail compilation, it fails at runtime. PR #213 shipped
+to prod with `useStockRiskMetrics(ticker)` referenced but never imported.
+Every stock modal threw at render. Joe caught it via screenshot.
+
+**How to apply.**
+
+1. **After any patch script that touches imports + references**, grep for
+   each new symbol in the file:
+   ```bash
+   for sym in useStockRiskMetrics computePortfolioSharpe HistoricalChart; do
+     count=$(grep -c "$sym" src/App.jsx)
+     echo "$sym: $count"
+   done
+   ```
+   The count for each symbol should be at least 2: one for the import line
+   and one for each call site. If it's 1 (only call site), the import is
+   missing.
+
+2. **Patch scripts should write incrementally, not at the end.** Rewrite
+   risky multi-step scripts to save after each successful patch:
+   ```python
+   for label, old, new in patches:
+       if old not in txt: print(f"MISS {label}"); continue
+       txt = txt.replace(old, new, 1)
+       APP.write_text(txt)            # save after EACH patch
+       print(f"OK {label}")
+   ```
+   That way an assertion mid-way doesn't lose earlier work.
+
+3. **Build clean ≠ ship clean.** Vite/esbuild flag JSX syntax errors and
+   missing module-level imports for the file being processed, but they do
+   NOT flag references to undefined identifiers inside JSX. Those throw
+   only at runtime under React's render. Always do one of:
+   - Click into the affected component on a preview URL before merging, OR
+   - Run a quick grep sanity check as in step 1.
+
+This rule also applies to component renames (added a new component but
+forgot to import where used), helper function moves between files, and
+new context providers.
