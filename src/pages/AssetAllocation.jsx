@@ -168,6 +168,8 @@ const SPY_WEIGHTS = {
 
 // S&P 500 GICS sector weights — reference-only, used for the sector-tilt rollup.
 // Source: SPDR SPY published holdings (Q1 2026). Refresh quarterly.
+// IMPORTANT: SECTOR_IG_SPY_WEIGHTS below MUST sum to the parent value here for
+// each sector. Update both together.
 const SECTOR_GICS_BENCHMARK = {
   "Information Technology": 0.305,
   "Financials":             0.135,
@@ -180,6 +182,49 @@ const SECTOR_GICS_BENCHMARK = {
   "Utilities":              0.025,
   "Real Estate":            0.024,
   "Materials":              0.020,
+};
+
+// S&P 500 GICS industry-group sub-weights — keyed by IG name (matching
+// SECTOR_IG_MAP[].groups[].name exactly). Each row's parent sum reconciles
+// to SECTOR_GICS_BENCHMARK above. Source: rough but reconciling estimate
+// drawn from SPY constituents at GICS sub-industry resolution, Q1 2026.
+const SECTOR_IG_SPY_WEIGHTS = {
+  // Information Technology — sums to 0.305
+  "Software & Services":                       0.105,
+  "Technology Hardware & Equipment":           0.125,
+  "Semiconductors & Semi Equipment":           0.075,
+  // Communication Services — sums to 0.095
+  "Telecommunication Services":                0.015,
+  "Media & Entertainment":                     0.080,
+  // Consumer Discretionary — sums to 0.105
+  "Automobiles & Components":                  0.015,
+  "Consumer Durables & Apparel":               0.015,
+  "Consumer Services":                         0.010,
+  "Consumer Discretionary Distribution & Retail": 0.065,
+  // Consumer Staples — sums to 0.060
+  "Consumer Staples Distribution & Retail":    0.025,
+  "Food, Beverage & Tobacco":                  0.025,
+  "Household & Personal Products":             0.010,
+  // Energy — sums to 0.037
+  "Energy":                                    0.037,
+  // Financials — sums to 0.135
+  "Banks":                                     0.055,
+  "Financial Services":                        0.055,
+  "Insurance":                                 0.025,
+  // Health Care — sums to 0.110
+  "Health Care Equipment & Services":          0.045,
+  "Pharmaceuticals, Biotech & Life Sciences":  0.065,
+  // Industrials — sums to 0.085
+  "Capital Goods":                             0.055,
+  "Commercial & Professional Services":        0.015,
+  "Transportation":                            0.015,
+  // Materials — sums to 0.020
+  "Materials":                                 0.020,
+  // Real Estate — sums to 0.024
+  "Equity REITs":                              0.020,
+  "Real Estate Management & Development":      0.004,
+  // Utilities — sums to 0.025
+  "Utilities":                                 0.025,
 };
 
 // Map the short sector labels in v9_allocation.json (e.g. "Info Tech",
@@ -880,27 +925,9 @@ export default function AssetAllocation({ onOpenTicker }) {
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 4px", lineHeight: 1.55 }}>Each sector is rated Overweight / Market Weight / Underweight based on the model's combined indicator + momentum rank.</p>
         </div>
 
-        {/* 11-sector table */}
-        <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
-          <thead>
-            <tr>
-              <th style={{ textAlign: "left", padding: "14px 22px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" }}>Sector</th>
-              <th style={{ textAlign: "center", padding: "14px 22px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", width: 130 }}>Rating</th>
-              <th style={{ textAlign: "left", padding: "14px 22px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" }}>Rationale</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SECTOR_RATINGS.map((row, i) => (
-              <tr key={row.sector}>
-                <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 14 }}>{row.sector}</td>
-                <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "center" }}>
-                  <RatingPill rating={deriveSectorRating(row.sector, igRatingMap, SECTOR_IG_MAP)} />
-                </td>
-                <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>{row.rationale}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {/* Unified 11-sector table — Sector / Rating / Recommended Allocation / S&P 500 / Tilt
+            Click any row to expand and see (a) the rationale, (b) the IG breakdown with weights. */}
+        <UnifiedSectorTable picks={picks} igRatingMap={igRatingMap} />
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 24, marginBottom: 12 }}>
           <SideTable
@@ -941,9 +968,6 @@ export default function AssetAllocation({ onOpenTicker }) {
             <HeatmapRow key={row.sector} row={row} activeBucket={activeBucket} setActiveBucket={setActiveBucket} igRatingMap={igRatingMap} />
           ))}
         </div>
-
-        {/* 11-row GICS sector rollup table — strategy weights aggregated by sector, vs S&P 500 */}
-        <SectorRollupTable picks={picks} allIgs={alloc?.all_industry_groups || []} />
 
         {activeBucket && activeBucket.ticker && !rationales && (
           <div style={{ marginTop: 12, padding: 14, border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--surface-solid)", color: "var(--text-muted)", fontSize: 13, fontStyle: "italic" }}>Loading rationale for {activeBucket.name}…</div>
@@ -1119,91 +1143,113 @@ function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect })
   );
 }
 
-// ─── 11-row GICS sector rollup table ──────────────────────────────────────
-// Aggregates the model's per-pick weights into GICS sector totals so the user
-// can see how the strategy is tilted vs S&P 500 at the sector level.
-// The Information Technology row expands to show its 3 underlying industry
-// groups (Software / Tech Hardware / Semiconductors) because IT carries the
-// most within-sector dispersion of any GICS sector.
-function SectorRollupTable({ picks, allIgs }) {
-  // Build sector → strategy weight map from picks. Picks have `sector` short
-  // labels ("Info Tech", "Comm Svcs", ...) — translate to canonical GICS.
-  const stratWeightBySector = {};
-  for (const sec of Object.keys(SECTOR_GICS_BENCHMARK)) stratWeightBySector[sec] = 0;
-  for (const p of (picks || [])) {
-    const gics = SECTOR_SHORT_TO_GICS[p.sector] || p.sector;
-    if (gics in stratWeightBySector) stratWeightBySector[gics] += (p.weight || 0);
-  }
+// ─── Unified 11-sector table — replaces the old dual layout ──────────────
+// One row per GICS sector. Columns: Sector / Rating / Recommended Allocation
+// / S&P 500 Allocation / Tilt. Click any row to expand the rationale and the
+// underlying industry-group breakdown (each IG also shows Rating / Rec / S&P
+// / Tilt). The IG sub-rows reconcile to the parent sector — both columns
+// (Rec and S&P) sum to the parent.
+function UnifiedSectorTable({ picks, igRatingMap }) {
+  const [expanded, setExpanded] = useState(new Set());
+  const toggle = (sector) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(sector)) next.delete(sector); else next.add(sector);
+      return next;
+    });
+  };
 
-  // For Information Technology, surface the 3 underlying IGs from the live
-  // 25-IG scoring so the dispersion is visible.
-  const itIgs = (allIgs || []).filter(g =>
-    SECTOR_SHORT_TO_GICS[g.sector] === "Information Technology" ||
-    g.sector === "Information Technology"
-  );
-  const itPickByTicker = new Map((picks || []).map(p => [p.ticker, p]));
-
-  // Sort sectors by absolute tilt magnitude descending (biggest bets first).
-  const rows = Object.entries(SECTOR_GICS_BENCHMARK)
-    .map(([sector, spy]) => {
-      const strat = stratWeightBySector[sector] || 0;
-      return { sector, strat, spy, tilt: strat - spy };
-    })
-    .sort((a, b) => Math.abs(b.tilt) - Math.abs(a.tilt));
+  // Pick weight by ticker (only the 5 picks have non-zero weight).
+  const pickWeightByTicker = {};
+  for (const p of (picks || [])) pickWeightByTicker[p.ticker] = p.weight || 0;
 
   const fmtPct = (x) => `${(x * 100).toFixed(1)}%`;
   const fmtTilt = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)} pp`;
   const tiltColor = (x) => Math.abs(x) < 0.005 ? "var(--text-muted)" : (x > 0 ? "var(--green-text)" : "var(--red-text)");
 
-  const thRollup = { textAlign: "left", padding: "12px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" };
-  const thRollupRight = { ...thRollup, textAlign: "right" };
-  const tdRollup = { padding: "12px 18px", fontSize: 13, borderBottom: "1px solid var(--border-faint)" };
-  const tdRollupRight = { ...tdRollup, textAlign: "right", fontFamily: "var(--font-mono)" };
+  // Build per-sector aggregates and order by descending |tilt| (biggest bets first).
+  const sectorRows = SECTOR_IG_MAP.map((s) => {
+    const igs = s.groups.map((g) => {
+      const rec = pickWeightByTicker[g.ticker] || 0;
+      const spy = SECTOR_IG_SPY_WEIGHTS[g.name] || 0;
+      const rating = igRatingMap?.get(g.name)?.rating || g.rating || "mw";
+      return { name: g.name, ticker: g.ticker, basket: !!g.basket, rec, spy, tilt: rec - spy, rating };
+    });
+    const recTotal = igs.reduce((a, x) => a + x.rec, 0);
+    const spyTotal = SECTOR_GICS_BENCHMARK[s.sector] ?? igs.reduce((a, x) => a + x.spy, 0);
+    const rationale = SECTOR_RATINGS.find((r) => r.sector === s.sector)?.rationale || "";
+    const sectorRating = deriveSectorRating(s.sector, igRatingMap, SECTOR_IG_MAP);
+    return { sector: s.sector, igs, rec: recTotal, spy: spyTotal, tilt: recTotal - spyTotal, rationale, rating: sectorRating };
+  }).sort((a, b) => Math.abs(b.tilt) - Math.abs(a.tilt));
+
+  const thU = { textAlign: "left", padding: "12px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" };
+  const thUR = { ...thU, textAlign: "right" };
+  const thUC = { ...thU, textAlign: "center", width: 130 };
+  const tdU = { padding: "14px 18px", fontSize: 13, borderBottom: "1px solid var(--border-faint)", verticalAlign: "middle" };
+  const tdUR = { ...tdU, textAlign: "right", fontFamily: "var(--font-mono)" };
+  const tdUC = { ...tdU, textAlign: "center" };
 
   return (
-    <div style={{ marginTop: 24 }}>
-      <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 8 }}>Sector weight rollup — strategy vs S&amp;P 500</div>
-      <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
-        <thead>
-          <tr>
-            <th style={thRollup}>Sector</th>
-            <th style={thRollupRight}>Strategy</th>
-            <th style={thRollupRight}>S&amp;P 500</th>
-            <th style={thRollupRight}>Tilt</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.flatMap((r) => {
-            const out = [(
-              <tr key={r.sector}>
-                <td style={{ ...tdRollup, fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500 }}>{r.sector}</td>
-                <td style={tdRollupRight}>{fmtPct(r.strat)}</td>
-                <td style={{ ...tdRollupRight, color: "var(--text-muted)" }}>{fmtPct(r.spy)}</td>
-                <td style={{ ...tdRollupRight, color: tiltColor(r.tilt), fontWeight: 600 }}>{fmtTilt(r.tilt)}</td>
-              </tr>
-            )];
-            if (r.sector === "Information Technology" && itIgs.length > 0) {
-              for (const ig of itIgs) {
-                const pick = itPickByTicker.get(ig.primary_ticker);
-                const subStrat = pick?.weight || 0;
-                const subSpy = SPY_WEIGHTS[ig.primary_ticker] || 0;
-                const subTilt = subStrat - subSpy;
-                out.push(
-                  <tr key={`it-${ig.key}`} style={{ background: "var(--surface)" }}>
-                    <td style={{ ...tdRollup, paddingLeft: 36, fontSize: 12, color: "var(--text-2)" }}>↳ {ig.name} <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>({ig.primary_ticker})</span></td>
-                    <td style={{ ...tdRollupRight, fontSize: 12 }}>{fmtPct(subStrat)}</td>
-                    <td style={{ ...tdRollupRight, color: "var(--text-muted)", fontSize: 12 }}>{fmtPct(subSpy)}</td>
-                    <td style={{ ...tdRollupRight, color: tiltColor(subTilt), fontSize: 12, fontWeight: 600 }}>{fmtTilt(subTilt)}</td>
-                  </tr>
-                );
-              }
+    <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
+      <thead>
+        <tr>
+          <th style={thU}>Sector</th>
+          <th style={thUC}>Rating</th>
+          <th style={thUR}>Recommended<br/>Allocation</th>
+          <th style={thUR}>S&amp;P 500<br/>Allocation</th>
+          <th style={thUR}>Tilt</th>
+        </tr>
+      </thead>
+      <tbody>
+        {sectorRows.flatMap((r) => {
+          const isOpen = expanded.has(r.sector);
+          const rows = [];
+          rows.push(
+            <tr key={r.sector} onClick={() => toggle(r.sector)}
+                style={{ cursor: "pointer", background: isOpen ? "var(--surface)" : "transparent" }}
+                onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = "var(--surface)"; }}
+                onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = "transparent"; }}>
+              <td style={{ ...tdU, fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500 }}>
+                <span style={{ display: "inline-block", width: 14, color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{isOpen ? "▾" : "▸"}</span>
+                {r.sector}
+              </td>
+              <td style={tdUC}><RatingPill rating={r.rating} /></td>
+              <td style={tdUR}>{fmtPct(r.rec)}</td>
+              <td style={{ ...tdUR, color: "var(--text-muted)" }}>{fmtPct(r.spy)}</td>
+              <td style={{ ...tdUR, color: tiltColor(r.tilt), fontWeight: 600 }}>{fmtTilt(r.tilt)}</td>
+            </tr>
+          );
+          if (isOpen) {
+            // Rationale row spanning full width
+            if (r.rationale) {
+              rows.push(
+                <tr key={`${r.sector}-rationale`} style={{ background: "var(--surface)" }}>
+                  <td colSpan={5} style={{ ...tdU, fontSize: 12, color: "var(--text-2)", lineHeight: 1.55, fontStyle: "italic", paddingLeft: 38, borderBottom: "1px solid var(--border-faint)" }}>{r.rationale}</td>
+                </tr>
+              );
             }
-            return out;
-          })}
-        </tbody>
-      </table>
-      <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 6, fontStyle: "italic" }}>S&amp;P 500 sector weights are the published GICS allocation as of Q1 2026. Information Technology is expanded to show within-sector dispersion across Software, Tech Hardware, and Semiconductors.</div>
-    </div>
+            // IG sub-rows
+            for (const ig of r.igs) {
+              rows.push(
+                <tr key={`${r.sector}-${ig.name}`} style={{ background: "var(--surface)" }}>
+                  <td style={{ ...tdU, paddingLeft: 38, fontSize: 12, color: "var(--text-2)" }}>
+                    ↳ {ig.name}{" "}
+                    <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>
+                      ({ig.ticker}{ig.basket ? " basket" : ""})
+                    </span>
+                  </td>
+                  <td style={tdUC}><RatingPill rating={ig.rating} size="sm" /></td>
+                  <td style={{ ...tdUR, fontSize: 12 }}>{fmtPct(ig.rec)}</td>
+                  <td style={{ ...tdUR, color: "var(--text-muted)", fontSize: 12 }}>{fmtPct(ig.spy)}</td>
+                  <td style={{ ...tdUR, color: tiltColor(ig.tilt), fontSize: 12, fontWeight: 600 }}>{fmtTilt(ig.tilt)}</td>
+                </tr>
+              );
+            }
+          }
+          return rows;
+        })}
+      </tbody>
+    </table>
   );
 }
 
