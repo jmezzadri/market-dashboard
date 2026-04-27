@@ -29,6 +29,7 @@ import PositionsTable from "./components/PositionsTable";
 import PositionEditor from "./components/PositionEditor";
 import BulkImport from "./components/BulkImport";
 import UniverseFreshness from "./components/UniverseFreshness";
+import HistoricalChart from "./components/HistoricalChart";
 import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
 import TodayMacro from "./pages/TodayMacro";
@@ -3281,6 +3282,12 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
   </div>
   </div>);
 })()}
+
+{/* HISTORICAL CHART — daily price chart with period picker, custom
+    date range, and up to 3 ticker comparators. Joe spec 2026-04-27 (P4
+    #14 + #15). All series price-rebased to 100 at the start of the
+    window. Lives in every stock modal regardless of issue type. */}
+<HistoricalChart ticker={ticker} defaultPeriod="1y" height={280}/>
 
 {/* RECENT NEWS — UW /api/news/headlines. Headlines may reference multiple
     tickers; we filter UW-side via ?ticker= so the list is this-ticker-relevant.
