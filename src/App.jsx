@@ -2817,6 +2817,13 @@ const sector=info?.sector||sc.sector||null;
 const tags=info?.tags||[];
 const shortDesc=info?.short_description||null;
 const longDesc=info?.long_description||null;
+// ETF / fund detection — surfaces the ETF category chip and "FUND" badge
+// instead of (or in addition to) the equity sector chip. Driven by the
+// scanner's is_fund flag, with a JS fallback for legacy scan data that
+// predates the flag.
+const issueTypeRaw=(info?.issue_type||"").toString().toLowerCase();
+const isFund=info?.is_fund===true||/etf|etn|fund/.test(issueTypeRaw);
+const etfCategory=info?.etf_category||null;
 // announce_time from /info is the same field as er_time from screener — use whichever exists.
 const earnTimeForChip=erTime||info?.announce_time||null;
 // Short interest (FINRA biweekly via yfinance — lagged ~15 days, NEVER real-time)
@@ -2937,8 +2944,10 @@ return(
 {wlError&&<span style={{fontSize:10,color:"#ff453a",fontFamily:"var(--font-mono)"}}>{wlError}</span>}
 </div>
 {companyName&&companyName!==ticker&&<div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2,fontWeight:500}}>{companyName}</div>}
-{(sector||tags.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
-{sector&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{sector}</span>}
+{(sector||etfCategory||isFund||tags.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
+{isFund&&<span style={{fontSize:10,color:"var(--accent)",border:"1px solid var(--accent)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:700,letterSpacing:"0.06em",background:"rgba(217,178,122,0.08)"}}>FUND</span>}
+{etfCategory&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{etfCategory}</span>}
+{sector&&!isFund&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{sector}</span>}
 {tags.slice(0,4).map(tg=>(<span key={tg} style={{fontSize:10,color:"var(--text-dim)",border:"1px solid var(--border-faint)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:500,letterSpacing:"0.04em",textTransform:"uppercase"}}>{tg}</span>))}
 </div>}
 {(shortDesc||longDesc)&&(()=>{
