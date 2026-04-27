@@ -17,6 +17,8 @@ import AdminBugs from "./AdminBugs";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
+import usePortfolioHistory from "./hooks/usePortfolioHistory";
+import { computePortfolioReturns, computeSpyReturns } from "./lib/portfolioReturns";
 import { useTickerEvents } from "./hooks/useTickerEvents";
 import { useCommentary } from "./hooks/useCommentary";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
@@ -5669,6 +5671,12 @@ useEffect(() => {
   return () => { cancelled = true; };
 }, []);
 
+// Pull the user's portfolio history (Chase + Fidelity monthly NAV/return rows)
+// and compute period TWR returns for the home tile + Portfolio Insights tab.
+// RLS-scoped — anon users get [] back.
+const { rows: _phRows } = usePortfolioHistory();
+const _portfolioReturns = useMemo(() => computePortfolioReturns(_phRows), [_phRows]);
+
 // Inline sign-in toggle for the portopps zero-state. Clicking the CTA in the
 // banner swaps the skeleton for the LoginScreen; successful sign-in flips
 // `portfolioAuthed` and the user sees their real portfolio.
@@ -6551,33 +6559,16 @@ return(
           "Cash":"var(--text-dim)",
         };
 
-        // ── PERIOD RETURNS vs S&P 500 ─────────────────────────────────────
-        // Estimated portfolio return per period = portBeta × SPX period return
-        // (we don't have stored portfolio NAV history yet). Reads SPX history
-        // from /composite_history_daily.json. Periods: 1W (5td), 1M (21td),
-        // YTD (back to Jan 2 of current year), TTM (252td).
-        const _periodReturns = (() => {
-          if (!_spxHistory || _spxHistory.length < 252) return null;
-          const last = _spxHistory[_spxHistory.length - 1];
-          const lastSpx = last.spx;
-          const lastDate = new Date(last.d + "T00:00:00Z");
-          const yearStart = `${lastDate.getUTCFullYear()}-01-01`;
-          // Find SPX value N trading days ago, or first ≥ a date string.
-          const tdAgo = (n) => {
-            const i = _spxHistory.length - 1 - n;
-            return i >= 0 ? _spxHistory[i] : null;
-          };
-          const onOrAfter = (dStr) => _spxHistory.find(x => x.d >= dStr);
-          const r = (start) => start && start.spx > 0
-            ? ((lastSpx - start.spx) / start.spx) * 100
-            : null;
-          return {
-            "1W":  r(tdAgo(5)),
-            "1M":  r(tdAgo(21)),
-            "YTD": r(onOrAfter(yearStart)),
-            "TTM": r(tdAgo(252)),
-          };
-        })();
+        // ── PERIOD RETURNS — REAL TWR from portfolio_history ──────────────
+        // 1W / 1M / YTD / TTM time-weighted returns computed from the user's
+        // actual NAV + return history (table public.portfolio_history). Not
+        // beta-estimated. Aggregate-first rollup across accounts (sum NAVs at
+        // each as_of, then chain Modified Dietz). SPY comparison comes from
+        // composite_history_daily.json aligned to the portfolio's latest as_of.
+        const _portReturns = _portfolioReturns?.periodReturns || null;
+        const _spyReturns  = (_spxHistory && _portfolioReturns?.latestDate)
+          ? computeSpyReturns(_spxHistory, _portfolioReturns.latestDate)
+          : null;
 
         return (
         <div style={cardStyle}>
@@ -6660,31 +6651,32 @@ return(
               )}
             </div>
 
-            {/* Q4 · RETURNS vs SPY */}
+            {/* Q4 · RETURNS vs SPY — real TWR from portfolio_history */}
             <div style={{...tileStyle, gridColumn:"2 / 3"}}>
-              <div style={tileEyebrow}>Returns · est. vs S&P 500</div>
-              {_periodReturns ? (
+              <div style={tileEyebrow}>Returns · TWR vs S&P 500</div>
+              {_portReturns ? (
                 <div style={{marginTop:8, display:"flex", flexDirection:"column", gap:4, fontFamily:"var(--font-mono)", fontSize:12}}>
                   {["1W","1M","YTD","TTM"].map(k => {
-                    const spxR = _periodReturns[k];
-                    const portR = (spxR != null && Number.isFinite(portBeta)) ? portBeta * spxR : null;
-                    const diff = (portR != null && spxR != null) ? portR - spxR : null;
-                    const fmt = v => v == null ? "—" : (v>=0?"+":"") + v.toFixed(1) + "%";
+                    const portR = _portReturns[k];     // decimal
+                    const spyR  = _spyReturns?.[k];     // decimal
+                    const diff = (portR != null && spyR != null) ? portR - spyR : null;
+                    const fmtPct = v => v == null ? "—" : (v>=0?"+":"") + (v*100).toFixed(1) + "%";
                     const diffCol = diff == null ? "var(--text-muted)" : diff >= 0 ? "#30d158" : "#ff453a";
+                    const portCol = portR == null ? "var(--text-muted)" : portR >= 0 ? "var(--text)" : "var(--text)";
                     return (
-                      <div key={k} style={{display:"grid", gridTemplateColumns:"32px 1fr auto", gap:8, alignItems:"baseline"}}>
+                      <div key={k} style={{display:"grid", gridTemplateColumns:"36px 1fr auto", gap:8, alignItems:"baseline"}}>
                         <span style={{color:"var(--text-muted)", fontSize:10, letterSpacing:"0.06em"}}>{k}</span>
-                        <span style={{color:"var(--text)"}}>{fmt(portR)}</span>
-                        <span style={{color:diffCol, fontSize:11}}>{diff==null?"":(diff>=0?"+":"") + diff.toFixed(1)+" vs SPY"}</span>
+                        <span style={{color:portCol}}>{fmtPct(portR)}</span>
+                        <span style={{color:diffCol, fontSize:11}}>{diff==null?"":(diff>=0?"+":"") + (diff*100).toFixed(1)+" vs SPY"}</span>
                       </div>
                     );
                   })}
                   <div style={{fontSize:9, color:"var(--text-dim)", marginTop:4, fontFamily:"var(--font-ui)", lineHeight:1.4}}>
-                    Estimated as portfolio beta × S&P return (no NAV history yet)
+                    Real time-weighted return; flows netted out (Modified Dietz). Aggregate of all accounts.
                   </div>
                 </div>
               ) : (
-                <div style={{...tileSub, marginTop:8}}>Loading period returns…</div>
+                <div style={{...tileSub, marginTop:8}}>Sign in to view portfolio returns.</div>
               )}
             </div>
           </div>
