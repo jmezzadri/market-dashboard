@@ -1989,7 +1989,7 @@ function _cmp(a, b){
 // then weight DESC inside each composite.
 const COMP_ORDER = { "Risk & Liquidity":0, "Growth":1, "Inflation & Rates":2, "":3 };
 
-function AllIndicatorsTable(){
+function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   // Subscribe to indicator_history.json hydration so this table re-renders
   // once IND[id][6] / _histCache are mutated by _applyHistToGlobals — without
   // this, the 9 new indicators (Reg #8) render their Current / 3M / 6M / 12M
@@ -2000,6 +2000,20 @@ function AllIndicatorsTable(){
   const [sortDir, setSortDir] = useState("asc");
   // Reg #7: openIds is a Set so we can expand-all / collapse-all.
   const [openIds, setOpenIds] = useState(() => new Set());
+
+  // Deep-link: when arriving via #indicators?id=X, expand that row and
+  // scroll it into view, then clear the parent's deeplink state so a manual
+  // navigation away and back doesn't keep re-firing.
+  useEffect(() => {
+    if (!deeplinkId) return;
+    setOpenIds(prev => { const next = new Set(prev); next.add(deeplinkId); return next; });
+    setTimeout(() => {
+      const el = document.querySelector(`[data-indicator-id="${deeplinkId}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (onDeeplinkConsumed) onDeeplinkConsumed();
+    }, 400);
+  }, [deeplinkId]);
+
   const toggleOne = (id) => {
     setOpenIds(prev => {
       const next = new Set(prev);
@@ -5510,13 +5524,18 @@ const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
 
-// Deep-link support: when URL is #indicators?id=X (e.g. from the Asset
-// Allocation tab's "View indicator" buttons), auto-expand that indicator.
+// Deep-link target for the All Indicators tab. URL like
+// #indicators?id=X (from "View indicator" buttons on the AA tab) gets
+// passed to AllIndicatorsTable, which expands + scrolls to the row.
+const [indicatorDeeplink,setIndicatorDeeplink]=useState(()=>{
+  if(typeof window==="undefined")return null;
+  const m=(window.location.hash||"").match(/[?&]id=([\w_]+)/);
+  return m?m[1]:null;
+});
 useEffect(()=>{
   if(tab!=="indicators")return;
-  const hash=window.location.hash||"";
-  const m=hash.match(/[?&]id=([\w_]+)/);
-  if(m&&m[1])setExpandedId(m[1]);
+  const m=(window.location.hash||"").match(/[?&]id=([\w_]+)/);
+  if(m)setIndicatorDeeplink(m[1]);
 },[tab]);
 // (expandedActionKey removed 2026-04-19: position cards now open the
 // TickerDetailModal directly instead of inline-expanding. See oppCard +
@@ -6657,7 +6676,7 @@ return(
 )}
 
 {/* INDICATORS */}
-{tab==="indicators"&&(<AllIndicatorsTable/>)}
+{tab==="indicators"&&(<AllIndicatorsTable deeplinkId={indicatorDeeplink} onDeeplinkConsumed={()=>setIndicatorDeeplink(null)}/>)}
 
 {tab==="sectors"&&<SectorsTab/>}
 {tab==="allocation"&&<AssetAllocation onOpenTicker={(t)=>setTickerDetail(t)}/>}
