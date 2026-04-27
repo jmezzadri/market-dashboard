@@ -1460,20 +1460,39 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
     ? `${scanTime.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })} · ${scanTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", timeZoneName: "short" })}`
     : "—";
 
-  // Bug #5b — stale-data guard. The scanner normally runs daily at 3:30PM ET
-  // (see .github/workflows/daily-scan.yml). If latest_scan_data.json is more
-  // than a day old, the user is looking at yesterday's (or older) signals and
-  // should be told so explicitly — options flow and insider data age fast
-  // enough that 24h+ stale data is legitimately misleading.
+  // Bug #5b / #1079 — stale-data guard, weekend-aware. The scanner runs at
+  // 3:30 PM ET on US trading days only (see .github/workflows/daily-scan.yml).
+  // The "stale" thresholds skip the wall-clock weekend gap: data that's old
+  // because markets are closed isn't stale, it's just up-to-date. The chip
+  // should only flag stale during weekdays when a real refresh window has
+  // been missed.
   const scanAgeHours = scanTime ? (Date.now() - scanTime.getTime()) / 3600_000 : null;
-  const STALE_H = 24;   // amber: "may be stale"
-  const VERY_STALE_H = 48; // amber: "is stale, next scan at ..."
-  const isStale = scanAgeHours != null && scanAgeHours >= STALE_H;
-  const isVeryStale = scanAgeHours != null && scanAgeHours >= VERY_STALE_H;
+  // Hours of weekend wall-clock between the scan and now. We exclude those
+  // from the "age" the user sees, so Friday 15:30 ET → Monday 09:00 ET reads
+  // as ~17h old, not ~65h old.
+  const weekendOffHours = (() => {
+    if (!scanTime) return 0;
+    let off = 0;
+    const cur = new Date(scanTime.getTime());
+    const stop = Date.now();
+    while (cur.getTime() < stop) {
+      // Walk in 1-hour increments; cheap, runs once per render. getDay() on a
+      // Date constructed from the ET wall-clock string returns 0 (Sun) / 6 (Sat).
+      const dayET = new Date(cur.toLocaleString("en-US", { timeZone: "America/New_York" })).getDay();
+      if (dayET === 0 || dayET === 6) off += 1;
+      cur.setTime(cur.getTime() + 60 * 60 * 1000);
+    }
+    return off;
+  })();
+  const effectiveAgeHours = scanAgeHours != null ? Math.max(0, scanAgeHours - weekendOffHours) : null;
+  const STALE_H = 24;   // amber: "may be stale" (weekday hours only)
+  const VERY_STALE_H = 48; // red: "is stale, next scan at ..." (weekday hours only)
+  const isStale = effectiveAgeHours != null && effectiveAgeHours >= STALE_H;
+  const isVeryStale = effectiveAgeHours != null && effectiveAgeHours >= VERY_STALE_H;
   const staleCopy = !isStale ? null
     : isVeryStale
-      ? `Scanner data is ${Math.floor(scanAgeHours / 24)} days old — the daily scan may have failed. Treat signals as stale until the next run.`
-      : `Scanner data is ${Math.round(scanAgeHours)} hours old — fresher-than-daily signals (options flow, insider activity) may be outdated.`;
+      ? `Scanner data is ${Math.floor(effectiveAgeHours / 24)} trading days old — the daily scan may have failed. Treat signals as stale until the next run.`
+      : `Scanner data is ${Math.round(effectiveAgeHours)} trading hours old — fresher-than-daily signals (options flow, insider activity) may be outdated.`;
 
   // ── LANDING — tile grid ────────────────────────────────────────────────────
   if (view === "landing") {

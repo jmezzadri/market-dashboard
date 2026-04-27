@@ -167,14 +167,30 @@ export default function UniverseFreshness({ ts, pricesTs, eventsTs, style, compa
   const eventStale = isStreamStale(eventsTs, now);
   const anyStale = priceStale || eventStale;
 
+  // Bug #1079 — collapse the dual "Prices: 3x/day ... Events: 3x/day ..."
+  // labels into a single "All data refreshed 3x daily · Updated HH:MM ET"
+  // tagline. Both streams share the same 3x/weekday cadence, so showing them
+  // separately was visual noise. Use the most recent stamp as the displayed
+  // "Updated" time. Compact callers keep the per-stream pills.
   const segments = [];
-  if (priceTime) {
-    const datePart = priceDateShort ? priceDateShort + " · " : "";
-    segments.push(compact ? ("Prices " + datePart + priceTime + " ET") : ("Prices: 3x/day · " + datePart + "Updated " + priceTime + " ET"));
-  }
-  if (eventTime) {
-    const datePart = eventDateShort ? eventDateShort + " · " : "";
-    segments.push(compact ? ("Events " + datePart + eventTime + " ET") : ("Events: 3x/day · " + datePart + "Updated " + eventTime + " ET"));
+  if (compact) {
+    if (priceTime) {
+      const datePart = priceDateShort ? priceDateShort + " · " : "";
+      segments.push("Prices " + datePart + priceTime + " ET");
+    }
+    if (eventTime) {
+      const datePart = eventDateShort ? eventDateShort + " · " : "";
+      segments.push("Events " + datePart + eventTime + " ET");
+    }
+  } else {
+    const priceMs = priceIso ? new Date(priceIso).getTime() : 0;
+    const eventMs = eventsTs ? new Date(eventsTs).getTime() : 0;
+    const latestIso = (eventMs > priceMs) ? eventsTs : priceIso;
+    const latestTime = formatET(latestIso);
+    const latestKey = etDateKey(latestIso);
+    const latestDateShort = (latestKey && latestKey !== todayKey) ? formatETDate(latestIso, { short: true }) : null;
+    const datePart = latestDateShort ? latestDateShort + " · " : "";
+    segments.push("All data refreshed 3x daily · " + datePart + "Updated " + latestTime + " ET");
   }
   const caption = segments.join(" · ");
 
