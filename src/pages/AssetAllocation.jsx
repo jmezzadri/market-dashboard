@@ -218,8 +218,8 @@ function MacroSnapCard({ name, window, score, current, deltaMo, deltaQt, drawdow
   return (
     <div style={{
       padding: "var(--space-4)",
-      background: "var(--surface)",
-      border: "0.5px solid var(--border)",
+      background: "var(--surface-solid)",
+      border: "1px solid var(--border-strong)",
       borderRadius: "var(--radius-md)",
       borderLeft: `3px solid ${cls.color}`,
       display: "flex", flexDirection: "column", gap: 8,
@@ -314,7 +314,7 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
   if (!ig || !ig.ticker || !rationaleData) return null;
   const seed = rationaleData.buckets?.[ig.ticker];
   if (!seed) return (
-    <div style={{ marginTop: 12, padding: 12, border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--surface)" }}>
+    <div style={{ marginTop: 12, padding: 12, border: "1px solid var(--border-strong)", borderRadius: "var(--radius-md)", background: "var(--surface-solid)" }}>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <strong>{ig.sector} › {ig.name}</strong>
         <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid var(--border)", borderRadius: 4, padding: "3px 9px", fontSize: 11, cursor: "pointer", color: "var(--text)" }}>Close ✕</button>
@@ -348,15 +348,15 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: 12 }}>
-        <div style={{ background: "var(--surface)", borderRadius: 4, padding: "8px 10px" }}>
+        <div style={{ background: "var(--surface-solid)", border: "1px solid var(--border)", borderRadius: 4, padding: "8px 10px" }}>
           <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Target weight</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 500 }}>{dollar}</div>
         </div>
-        <div style={{ background: "var(--surface)", borderRadius: 4, padding: "8px 10px" }}>
+        <div style={{ background: "var(--surface-solid)", border: "1px solid var(--border)", borderRadius: 4, padding: "8px 10px" }}>
           <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>SPY weight</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 500 }}>{spyDollar}</div>
         </div>
-        <div style={{ background: "var(--surface)", borderRadius: 4, padding: "8px 10px" }}>
+        <div style={{ background: "var(--surface-solid)", border: "1px solid var(--border)", borderRadius: 4, padding: "8px 10px" }}>
           <div style={{ fontSize: 9, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.04em" }}>vs SPY</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 500, color: delta > 0 ? "var(--green)" : delta < 0 ? "var(--red)" : "var(--text)" }}>{deltaDollar || "—"}</div>
         </div>
@@ -737,7 +737,7 @@ export default function AssetAllocation({ onOpenTicker }) {
         <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "12px 0 6px" }}>Asset class allocation</h3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
           <thead>
-            <tr style={{ background: "var(--surface)" }}>
+            <tr style={{ background: "var(--surface-solid)" }}>
               <th style={thStyle()}>Asset class</th>
               <th style={{...thStyle(), textAlign: "right"}}>Current</th>
               <th style={{...thStyle(), textAlign: "right"}}>Last month (Mar 28)</th>
@@ -757,7 +757,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               <td style={tdRight()}><HistCell value={history?.last_month?.other} loading={!history} /></td>
               <td style={tdRight()}><HistCell value={history?.last_quarter?.other} loading={!history} /></td>
             </tr>
-            <tr style={{ background: "var(--surface)", fontWeight: 600 }}>
+            <tr style={{ background: "var(--surface-solid)", fontWeight: 600 }}>
               <td style={tdStyle()}>Total deployed</td>
               <td style={tdRight()}><span style={dollarStyle()}>${(totalEquity * 100).toFixed(0)}</span></td>
               <td style={tdRight()}><HistCell value={history?.last_month?.total} loading={!history} /></td>
@@ -776,7 +776,7 @@ export default function AssetAllocation({ onOpenTicker }) {
         <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "20px 0 8px" }}>Allocation changes</h3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
           <thead>
-            <tr style={{ background: "var(--surface)" }}>
+            <tr style={{ background: "var(--surface-solid)" }}>
               <th style={thStyle()}>Move</th>
               <th style={thStyle()}>Sector / industry group</th>
               <th style={{...thStyle(), textAlign: "right"}}>New target</th>
@@ -800,7 +800,7 @@ export default function AssetAllocation({ onOpenTicker }) {
         <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "20px 0 8px" }}>Rating changes</h3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
           <thead>
-            <tr style={{ background: "var(--surface)" }}>
+            <tr style={{ background: "var(--surface-solid)" }}>
               <th style={thStyle()}>Direction</th>
               <th style={thStyle()}>vs Last month (Mar 28)</th>
               <th style={thStyle()}>vs Last quarter (Jan 26)</th>
@@ -850,6 +850,33 @@ export default function AssetAllocation({ onOpenTicker }) {
             ))}
           </tbody>
         </table>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 24, marginBottom: 12 }}>
+          <SideTable
+            kind="ow"
+            title="Overweight"
+            subtitle={`${(alloc?.all_industry_groups || []).filter(g => g.rating === "ow").length} industry groups model picks for tilt`}
+            rows={(alloc?.all_industry_groups || [])
+              .filter(g => g.rating === "ow")
+              .map(g => ({ name: g.name, sector: g.sector, ticker: g.primary_ticker, rating: "ow", combined_rank: g.combined_rank }))
+              .sort((a, b) => (a.combined_rank || 99) - (b.combined_rank || 99))}
+            picks={picks}
+            rationales={rationales}
+            onSelect={(g) => setActiveBucket({ ...g, ticker: g.ticker })}
+          />
+          <SideTable
+            kind="uw"
+            title="Underweight"
+            subtitle={`${(alloc?.all_industry_groups || []).filter(g => g.rating === "uw").length} industry groups the model down-weights`}
+            rows={(alloc?.all_industry_groups || [])
+              .filter(g => g.rating === "uw")
+              .map(g => ({ name: g.name, sector: g.sector, ticker: g.primary_ticker, rating: "uw", combined_rank: g.combined_rank }))
+              .sort((a, b) => (b.combined_rank || 0) - (a.combined_rank || 0))}
+            picks={picks}
+            rationales={rationales}
+            onSelect={(g) => setActiveBucket({ ...g, ticker: g.ticker })}
+          />
+        </div>
 
         <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginTop: 24, marginBottom: 8 }}>Full heatmap — all 25 industry groups</div>
 
@@ -903,7 +930,7 @@ export default function AssetAllocation({ onOpenTicker }) {
             </div>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.6 }}>{scn.impact}</div>
             <div style={{ marginTop: 8, display: "flex", gap: 5, flexWrap: "wrap" }}>
-              {scn.tags.map((t) => <span key={t} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 3, background: "var(--surface)", color: "var(--text-muted)" }}>{t}</span>)}
+              {scn.tags.map((t) => <span key={t} style={{ fontSize: 10, padding: "3px 8px", borderRadius: 3, background: "var(--surface-solid)", border: "0.5px solid var(--border)", color: "var(--text-muted)" }}>{t}</span>)}
             </div>
           </div>
         ))}
@@ -946,7 +973,7 @@ export default function AssetAllocation({ onOpenTicker }) {
 
         <div style={{ marginTop: "var(--space-5)", paddingTop: "var(--space-4)", borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-muted)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span>Allocation Model v9</span>
-          <a href="#readme" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>Read the full methodology →</a>
+          <a href="/asset-allocation-methodology-v9-LOCKED.md" target="_blank" rel="noopener" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>Locked v9.1 methodology doc →</a>
         </div>
         </div>
       </details>
