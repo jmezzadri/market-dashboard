@@ -1122,6 +1122,37 @@ export default function AssetAllocation({ onOpenTicker }) {
         ))}
       </section>
 
+      {/* Coming Next — small pinned banner. Roadmap items live as scope docs
+          in repo root; this section surfaces them on the live page so Joe
+          (and any new user) sees them every visit. Joe ask 2026-04-27: "How
+          can I log and track this stress capability... pin to MT Project page". */}
+      <section style={{ padding: "var(--space-7) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Coming Next</div>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 18, fontWeight: 500, margin: "6px 0 4px" }}>What&apos;s queued for this page</h2>
+        </div>
+        <div style={{ padding: "14px 18px", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--bg)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+            <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 15 }}>Stress / Scenario Analysis</div>
+            <a
+              href="https://github.com/jmezzadri/market-dashboard/blob/main/STRESS_SCENARIO_SCOPE.md"
+              target="_blank"
+              rel="noopener"
+              style={{ fontSize: 11, color: "var(--accent)", textDecoration: "none", padding: "5px 12px", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", whiteSpace: "nowrap" }}
+            >
+              Read scope doc →
+            </a>
+          </div>
+          <div style={{ fontSize: 12, color: "var(--text-2)", marginTop: 8, lineHeight: 1.6 }}>
+            Canned crisis scenarios (GFC 2008, COVID 2020, 2022 inflation shock, etc.) plus a
+            user-defined scenario builder with calibrated factor covariance. Lets a portfolio
+            manager see how the recommendation shifts under stress. Scope doc captures Joe&apos;s
+            prior responses, 7 open design questions, and a 5-phase plan (covariance calibration
+            first). Realistic 4-6 weeks of focused work. Not started — kick off when ready.
+          </div>
+        </div>
+      </section>
+
       {/* Section 6 — Methodology summary + back-test stats (renumbered from 5) */}
       <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: "var(--space-5)" }}>
