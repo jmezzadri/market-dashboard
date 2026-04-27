@@ -62,7 +62,13 @@ jobs:
       - name: Show resulting snapshot count
         run: |
           if [ -f public/allocation_history.json ]; then
-            python -c "import json; h=json.load(open('public/allocation_history.json')); print(f'snapshots: {len(h)}'); [print(f\"  {s.get(\\\"as_of\\\")} {s.get(\\\"stance_label\\\")} alpha={s.get(\\\"alpha\\\")}\") for s in h]"
+            python <<'PYDIAG'
+          import json
+          h = json.load(open("public/allocation_history.json"))
+          print(f"snapshots: {len(h)}")
+          for s in h:
+              print(f"  {s.get('as_of')} {s.get('stance_label')} alpha={s.get('alpha')}")
+          PYDIAG
           else
             echo "WARN: public/allocation_history.json not found"
           fi
