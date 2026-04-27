@@ -6389,28 +6389,32 @@ return(
           </div>
         </div>
 
-        {/* ── EVIDENCE STRIP ─ three back-test stats from v9 methodology ─
-             Quiet receipt that the daily read is empirical, not vibes.
-             Renders nothing while v9_allocation.json hasn't loaded.
-             Joe 2026-04-27: bring out the back-tested-quant theme. */}
+        {/* ── MISSION + EVIDENCE STRIP ─ what the model seeks to do, with
+             back-tested receipts side-by-side against the S&P 500.
+             Joe r5 2026-04-27: lead with mission, not metrics. */}
         {(()=>{
           const meth = V?.methodology;
           if (!meth) return null;
-          const cagrAlpha = meth.vs_spy_cagr_diff != null ? meth.vs_spy_cagr_diff : null;
-          const sharpe   = meth.back_test_sharpe;
-          const window   = meth.back_test_window || "";
+          // SPX comparison numbers (apples-to-apples across CAGR + Sharpe + DD)
+          const modCagr = meth.back_test_cagr;
+          const spxCagr = meth.back_test_spx_cagr;
+          const alpha   = (modCagr != null && spxCagr != null) ? (modCagr - spxCagr) : null;
+          const modSharpe = meth.back_test_sharpe;
+          const spxSharpe = meth.back_test_spx_sharpe;
+          const modDD     = meth.back_test_max_drawdown;
+          const spxDD     = meth.back_test_spx_max_drawdown;
+          const window    = meth.back_test_window || "";
           const yrs = (() => {
             const m = window.match(/(\d{4})-\d{2}\s*to\s*(\d{4})-\d{2}/);
-            if (!m) return null;
-            return Math.max(1, parseInt(m[2]) - parseInt(m[1]));
+            return m ? Math.max(1, parseInt(m[2]) - parseInt(m[1])) : null;
           })();
-          const stripCellStyle = {
-            flex:1, minWidth:0,
+          const cellStyle = {
+            flex:"1 1 0", minWidth:0,
             padding:"var(--space-4) var(--space-5)",
             display:"flex", flexDirection:"column", gap:6,
             borderRight:"1px solid var(--border-faint)",
           };
-          const stripCellLast = {...stripCellStyle, borderRight:"none"};
+          const cellLast = {...cellStyle, borderRight:"none"};
           const numStyle = {
             fontFamily:"var(--font-display)", fontWeight:500,
             fontSize:"clamp(22px, 2.4vw, 28px)", lineHeight:1, color:"var(--text)",
@@ -6420,40 +6424,95 @@ return(
             fontFamily:"var(--font-mono)", fontSize:10,
             color:"var(--text-dim)", letterSpacing:"0.16em", textTransform:"uppercase",
           };
-          const subStyle = {
-            fontSize:11, color:"var(--text-muted)", lineHeight:1.4,
+          const subStyle = { fontSize:11, color:"var(--text-muted)", lineHeight:1.4 };
+          const cmpStyle = {
+            fontFamily:"var(--font-mono)", fontSize:10.5, color:"var(--text-muted)",
+            letterSpacing:"0.04em",
           };
+          const cmpStrong = {
+            fontFamily:"var(--font-display)", fontStyle:"italic",
+            color:"var(--text)", fontWeight:500,
+          };
+
           return (
-            <div style={{
-              marginTop:"var(--space-5)",
-              padding:"0",
-              background:"var(--surface-3, var(--surface))",
-              border:"1px solid var(--border-faint)",
-              borderRadius:8,
-              display:"flex", flexWrap:"wrap",
-            }}>
-              <div style={stripCellStyle}>
-                <span style={labelStyle}>vs S&amp;P 500</span>
-                <span style={numStyle}>
-                  {cagrAlpha != null ? `${cagrAlpha>=0?"+":""}${(cagrAlpha*100).toFixed(1)}% / yr` : "—"}
-                </span>
-                <span style={subStyle}>annualized excess return, model vs benchmark</span>
+            <div style={{ marginTop:"var(--space-5)" }}>
+              {/* Mission header */}
+              <div style={{
+                marginBottom:"var(--space-3)",
+                fontFamily:"var(--font-display)", fontStyle:"italic",
+                fontSize:15, lineHeight:1.5, color:"var(--text)",
+                maxWidth:"68ch",
+              }}>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                  letterSpacing:"0.16em", textTransform:"uppercase",
+                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+                }}>Mission</span>
+                Outperform the S&amp;P 500 on a risk-adjusted basis. Eighteen years of back-tested evidence:
               </div>
-              <div style={stripCellStyle}>
-                <span style={labelStyle}>Sharpe ratio</span>
-                <span style={numStyle}>
-                  {sharpe != null ? sharpe.toFixed(2) : "—"}
-                </span>
-                <span style={subStyle}>return per unit of volatility — higher is better</span>
-              </div>
-              <div style={stripCellLast}>
-                <span style={labelStyle}>Calibration window</span>
-                <span style={numStyle}>
-                  {yrs != null ? `${yrs} years` : "—"}
-                </span>
-                <span style={subStyle}>
-                  {window || "—"} · {meth.ig_universe_size || 25} industry groups
-                </span>
+              <div style={{
+                background:"var(--surface-3, var(--surface))",
+                border:"1px solid var(--border-faint)",
+                borderRadius:8,
+                display:"flex", flexWrap:"wrap",
+              }}>
+                {/* 1 · Outperformance */}
+                <div style={cellStyle}>
+                  <span style={labelStyle}>Outperformance</span>
+                  <span style={numStyle}>
+                    {alpha != null ? `+${(alpha*100).toFixed(1)}% / yr` : "—"}
+                  </span>
+                  <span style={subStyle}>annualized excess return vs S&amp;P 500</span>
+                  {modCagr != null && spxCagr != null && (
+                    <span style={cmpStyle}>
+                      <span style={cmpStrong}>{(modCagr*100).toFixed(1)}%</span>
+                      {" model · "}
+                      {(spxCagr*100).toFixed(1)}{"% S&P"}
+                    </span>
+                  )}
+                </div>
+
+                {/* 2 · Drawdown control */}
+                <div style={cellStyle}>
+                  <span style={labelStyle}>Drawdown control</span>
+                  <span style={numStyle}>
+                    {modDD != null ? `${(modDD*100).toFixed(1)}%` : "—"}
+                  </span>
+                  <span style={subStyle}>worst peak-to-trough loss in the window</span>
+                  {modDD != null && spxDD != null && (
+                    <span style={cmpStyle}>
+                      <span style={cmpStrong}>{(modDD*100).toFixed(1)}%</span>
+                      {" model · "}
+                      {(spxDD*100).toFixed(1)}{"% S&P"}
+                    </span>
+                  )}
+                </div>
+
+                {/* 3 · Risk-adjusted return */}
+                <div style={cellStyle}>
+                  <span style={labelStyle}>Risk-adjusted return</span>
+                  <span style={numStyle}>
+                    {modSharpe != null ? modSharpe.toFixed(2) : "—"}
+                  </span>
+                  <span style={subStyle}>Sharpe ratio — return per unit of volatility</span>
+                  {modSharpe != null && spxSharpe != null && (
+                    <span style={cmpStyle}>
+                      <span style={cmpStrong}>{modSharpe.toFixed(2)}</span>
+                      {" model · "}
+                      {spxSharpe.toFixed(2)}{" S&P"}
+                    </span>
+                  )}
+                </div>
+
+                {/* 4 · Calibration */}
+                <div style={cellLast}>
+                  <span style={labelStyle}>Calibration</span>
+                  <span style={numStyle}>{yrs != null ? `${yrs} years` : "—"}</span>
+                  <span style={subStyle}>
+                    {window || "—"} · {meth.ig_universe_size || 25} industry groups
+                  </span>
+                  <span style={cmpStyle}>back-tested, then locked</span>
+                </div>
               </div>
             </div>
           );

@@ -117,50 +117,119 @@ export default function AboutPage({ onNav }) {
         </p>
       </div>
 
-      {/* Backtest receipt strip */}
-      {meth && (
-        <div style={{
-          marginBottom: "var(--space-8)",
-          padding: 0,
-          background: "var(--surface)",
-          border: "1px solid var(--border-faint)",
-          borderRadius: 8,
-          display: "flex", flexWrap: "wrap",
-        }}>
-          <StatChip
-            label="vs S&P 500"
-            value={cagrAlpha != null ? `${cagrAlpha >= 0 ? "+" : ""}${(cagrAlpha * 100).toFixed(1)}% / yr` : "—"}
-            sub="annualized excess return"
-          />
-          <StatChip
-            label="Sharpe ratio"
-            value={sharpe != null ? sharpe.toFixed(2) : "—"}
-            sub="return per unit of volatility"
-          />
-          <StatChip
-            label="Max drawdown"
-            value={drawdown != null ? `${(drawdown * 100).toFixed(1)}%` : "—"}
-            sub="worst peak-to-trough loss"
-          />
-          <div style={{
-            flex: 1, minWidth: 0,
-            padding: "var(--space-3) var(--space-4)",
-            display: "flex", flexDirection: "column", gap: 4,
-          }}>
+      {/* Mission-stated backtest strip — model vs S&P 500, four cells. */}
+      {meth && (() => {
+        const modCagr = meth.back_test_cagr;
+        const spxCagr = meth.back_test_spx_cagr;
+        const alpha   = (modCagr != null && spxCagr != null) ? (modCagr - spxCagr) : null;
+        const modSharpe = meth.back_test_sharpe;
+        const spxSharpe = meth.back_test_spx_sharpe;
+        const modDD     = meth.back_test_max_drawdown;
+        const spxDD     = meth.back_test_spx_max_drawdown;
+
+        const cmp = (modVal, spxVal, fmt) => (
+          modVal != null && spxVal != null ? (
             <span style={{
-              fontFamily: "var(--font-mono)", fontSize: 10,
-              color: "var(--text-dim)", letterSpacing: "0.16em", textTransform: "uppercase",
-            }}>Calibration</span>
-            <span style={{
-              fontFamily: "var(--font-display)", fontWeight: 500,
-              fontSize: 22, lineHeight: 1, color: "var(--text)",
-            }}>{window || "—"}</span>
-            <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
-              {igs ? `${igs} industry groups` : "—"}
+              fontFamily: "var(--font-mono)", fontSize: 10.5,
+              color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: 2,
+            }}>
+              <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", color: "var(--text)", fontWeight: 500 }}>{fmt(modVal)}</span>
+              {" model · "}{fmt(spxVal)}{" S&P"}
             </span>
+          ) : null
+        );
+        const pct1 = v => `${(v*100).toFixed(1)}%`;
+        const pct1signed = v => `${v>=0?"+":""}${(v*100).toFixed(1)}%`;
+        const num2 = v => v.toFixed(2);
+
+        return (
+          <div style={{ marginBottom: "var(--space-6)" }}>
+            <div style={{
+              fontFamily: "var(--font-display)", fontStyle: "italic",
+              fontSize: 16, lineHeight: 1.5, color: "var(--text)",
+              marginBottom: "var(--space-3)", maxWidth: "68ch",
+            }}>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontStyle: "normal", fontSize: 10,
+                letterSpacing: "0.16em", textTransform: "uppercase",
+                color: "var(--accent)", marginRight: "var(--space-2)", fontWeight: 600,
+              }}>Mission</span>
+              Outperform the S&amp;P 500 on a risk-adjusted basis. Eighteen years of back-tested evidence:
+            </div>
+
+            <div style={{
+              padding: 0,
+              background: "var(--surface)",
+              border: "1px solid var(--border-faint)",
+              borderRadius: 8,
+              display: "flex", flexWrap: "wrap",
+              marginBottom: "var(--space-8)",
+            }}>
+              <div style={{
+                flex: "1 1 0", minWidth: 0,
+                padding: "var(--space-3) var(--space-4)",
+                display: "flex", flexDirection: "column", gap: 4,
+                borderRight: "1px solid var(--border-faint)",
+              }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.16em", textTransform: "uppercase" }}>Outperformance</span>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 22, lineHeight: 1, color: "var(--text)" }}>
+                  {alpha != null ? `+${(alpha*100).toFixed(1)}% / yr` : "—"}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                  annualized excess return vs S&P 500
+                </span>
+                {cmp(modCagr, spxCagr, pct1)}
+              </div>
+
+              <div style={{
+                flex: "1 1 0", minWidth: 0,
+                padding: "var(--space-3) var(--space-4)",
+                display: "flex", flexDirection: "column", gap: 4,
+                borderRight: "1px solid var(--border-faint)",
+              }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.16em", textTransform: "uppercase" }}>Drawdown control</span>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 22, lineHeight: 1, color: "var(--text)" }}>
+                  {modDD != null ? pct1(modDD) : "—"}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                  worst peak-to-trough loss in the window
+                </span>
+                {cmp(modDD, spxDD, pct1)}
+              </div>
+
+              <div style={{
+                flex: "1 1 0", minWidth: 0,
+                padding: "var(--space-3) var(--space-4)",
+                display: "flex", flexDirection: "column", gap: 4,
+                borderRight: "1px solid var(--border-faint)",
+              }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.16em", textTransform: "uppercase" }}>Risk-adjusted return</span>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 22, lineHeight: 1, color: "var(--text)" }}>
+                  {modSharpe != null ? num2(modSharpe) : "—"}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                  Sharpe ratio — return per unit of volatility
+                </span>
+                {cmp(modSharpe, spxSharpe, num2)}
+              </div>
+
+              <div style={{
+                flex: "1 1 0", minWidth: 0,
+                padding: "var(--space-3) var(--space-4)",
+                display: "flex", flexDirection: "column", gap: 4,
+              }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.16em", textTransform: "uppercase" }}>Calibration</span>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 500, fontSize: 22, lineHeight: 1, color: "var(--text)" }}>
+                  {window || "—"}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.4 }}>
+                  {igs ? `${igs} industry groups` : "—"}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       <Section num="01 / The problem" title="The benchmark is harder to beat than it looks.">
         <p style={{ marginBottom: "var(--space-3)" }}>
