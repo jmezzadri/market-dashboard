@@ -2946,7 +2946,7 @@ return(
 )}
 {wlError&&<span style={{fontSize:10,color:"#ff453a",fontFamily:"var(--font-mono)"}}>{wlError}</span>}
 </div>
-{companyName&&companyName!==ticker&&<div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2,fontWeight:500}}>{companyName}</div>}
+{companyName&&companyName!==ticker&&<div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2,fontWeight:500}}>{companyName.toUpperCase()===ticker.toUpperCase()?ticker.toUpperCase():companyName}</div>}
 {(sector||etfCategory||isFund||tags.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
 {isFund&&<span style={{fontSize:10,color:"var(--accent)",border:"1px solid var(--accent)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:700,letterSpacing:"0.06em",background:"rgba(217,178,122,0.08)"}}>FUND</span>}
 {etfCategory&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{etfCategory}</span>}
