@@ -18,6 +18,7 @@ import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
 import usePortfolioHistory from "./hooks/usePortfolioHistory";
+import useDailyNavSnapshot from "./hooks/useDailyNavSnapshot";
 import { computePortfolioReturns, computeSpyReturns } from "./lib/portfolioReturns";
 import { useTickerEvents } from "./hooks/useTickerEvents";
 import { useCommentary } from "./hooks/useCommentary";
@@ -5688,6 +5689,7 @@ useEffect(() => {
 // and compute period TWR returns for the home tile + Portfolio Insights tab.
 // RLS-scoped — anon users get [] back.
 const { rows: _phRows } = usePortfolioHistory();
+useDailyNavSnapshot();  // backstop for the cron path (#26)
 const _portfolioReturns = useMemo(() => computePortfolioReturns(_phRows), [_phRows]);
 
 // Inline sign-in toggle for the portopps zero-state. Clicking the CTA in the
