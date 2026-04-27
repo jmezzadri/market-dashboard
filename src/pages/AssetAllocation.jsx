@@ -629,7 +629,9 @@ export default function AssetAllocation({ onOpenTicker }) {
   const [composites, setComposites]     = useState(null);
   const [rationales, setRationales]     = useState(null);
   const [history, setHistory]           = useState(null);
-  const [activeBucket, setActiveBucket] = useState({ sector: "Information Technology", name: "Semiconductors", ticker: "SOXX", rating: "ow" });
+  // No drill-down card open by default — Joe directive 2026-04-27. Cards
+  // open only when the user clicks an Industry Group chip in the heatmap.
+  const [activeBucket, setActiveBucket] = useState(null);
 
   useEffect(() => {
     fetch("/v9_allocation.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setAlloc).catch(() => setAlloc(null));
@@ -760,18 +762,45 @@ export default function AssetAllocation({ onOpenTicker }) {
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: stance.color }}/>
               {stance.label}
             </span>
-            <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
-              <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green-text)" }}/>
-              Updated weekly on Saturdays · Last update: {humanDate(alloc.as_of)}
-            </span>
+            {(() => {
+              // Freshness dot derives from how stale alloc.as_of is — NOT
+              // calculated_at. Strategy rebalances weekly on Saturdays; if
+              // as_of is more than a week old the rebalance hasn't run.
+              // Joe correctly flagged 2026-04-27: dot was hardcoded green
+              // even when as_of was 27 days stale (closes bug #1093).
+              const asOf = alloc?.as_of ? new Date(alloc.as_of) : null;
+              const days = asOf ? Math.floor((Date.now() - asOf.getTime()) / 86400000) : null;
+              let color = "var(--text-muted)", note = "";
+              if (days == null) { color = "var(--text-muted)"; note = "no rebalance loaded"; }
+              else if (days <= 7)  { color = "var(--green-text)";  note = "fresh"; }
+              else if (days <= 14) { color = "var(--yellow-text)"; note = `${days} days old — weekly rebalance overdue`; }
+              else                 { color = "var(--red-text)";    note = `${days} days old — weekly rebalance has not run`; }
+              return (
+                <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
+                  <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }}/>
+                  Updated weekly on Saturdays · Last update: {humanDate(alloc.as_of)}{note ? ` (${note})` : ""}
+                </span>
+              );
+            })()}
           </div>
         </div>
+
+        {/* Lead-in paragraph — explains what the page is and how to read it (Joe ask 2026-04-27). */}
+        <p style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.6, margin: "12px 0 0", maxWidth: 920 }}>
+          This page is the model&apos;s strategic asset allocation — a recommendation, not a portfolio.
+          It scores 25 GICS industry groups every Saturday on macro factors and 6-month momentum, then
+          recommends 5 to overweight (equal-weight) and a defensive sleeve to activate when the
+          Risk &amp; Liquidity composite enters stress. Read it top-to-bottom: the hero summarises
+          the recommended posture; the asset-class view sizes it against a $100 portfolio; the sector
+          table and heatmap show where the bets are. The numbers refresh weekly — the freshness dot
+          above turns amber if the rebalance is overdue.
+        </p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12 }}>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
-              Total equity exposure
-              <InfoTip def="The total dollars of equities held per $100 of capital, including borrowed dollars from margin. When this exceeds $100, the difference is leverage (e.g., $128 means 28% margin)." />
+              Recommended Equity Exposure
+              <InfoTip def="The recommended dollars of equities to hold per $100 of capital, including borrowed dollars from margin. When this exceeds $100, the difference is leverage (e.g., $128 means 28% margin)." />
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green-text)", marginTop: 2 }}>${(totalEquity * 100).toFixed(0)}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>per $100 capital · {(margin * 100).toFixed(0)}% margin</div>
@@ -844,99 +873,149 @@ export default function AssetAllocation({ onOpenTicker }) {
         </div>
       </section>
 
-      {/* Section 2 — Recommended Asset Allocation */}
-      <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
-        <div style={{ marginBottom: 12 }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>2 · Recommended Asset Allocation</div>
-          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Three views: where we are, what changed, what flipped</h2>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Per $100 of capital. Tables read top-down: holdings, then deltas, then ratings.</p>
-        </div>
-
-        <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "12px 0 6px" }}>Asset class allocation</h3>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
-          <thead>
-            <tr style={{ background: "var(--surface-solid)" }}>
-              <th style={thStyle()}>Asset class</th>
-              <th style={{...thStyle(), textAlign: "right"}}>Current</th>
-              <th style={{...thStyle(), textAlign: "right"}}>Last month (Mar 28)</th>
-              <th style={{...thStyle(), textAlign: "right"}}>Last quarter (Jan 26)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td style={tdStyle()}>Equities</td>
-              <td style={tdRight()}><span style={dollarStyle()}>${(totalEquity * 100).toFixed(0)}</span></td>
-              <td style={tdRight()}><HistCell value={history?.last_month?.equities} loading={!history} /></td>
-              <td style={tdRight()}><HistCell value={history?.last_quarter?.equities} loading={!history} /></td>
-            </tr>
-            <tr>
-              <td style={tdStyle()}>Other (Bills, UST, Gold, IG Bonds)</td>
-              <td style={tdRight()}><span style={dollarStyle()}>${defensiveOn ? ((1 - alloc.equity_share) * 100).toFixed(0) : 0}</span> {!defensiveOn && <span style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: 11 }}>unch.</span>}</td>
-              <td style={tdRight()}><HistCell value={history?.last_month?.other} loading={!history} /></td>
-              <td style={tdRight()}><HistCell value={history?.last_quarter?.other} loading={!history} /></td>
-            </tr>
-            <tr style={{ background: "var(--surface-solid)", fontWeight: 600 }}>
-              <td style={tdStyle()}>Total deployed</td>
-              <td style={tdRight()}><span style={dollarStyle()}>${(totalEquity * 100).toFixed(0)}</span></td>
-              <td style={tdRight()}><HistCell value={history?.last_month?.total} loading={!history} /></td>
-              <td style={tdRight()}><HistCell value={history?.last_quarter?.total} loading={!history} /></td>
-            </tr>
-            <tr>
-              <td style={{...tdStyle(), color: "var(--text-muted)"}}>Implied cash / (margin)</td>
-              <td style={tdRight()}><span style={dollarStyle()}>{margin > 0 ? `($${(margin * 100).toFixed(0)})` : `$0`}</span></td>
-              <td style={tdRight()}><HistCell value={history?.last_month?.cash_margin} loading={!history} /></td>
-              <td style={tdRight()}><HistCell value={history?.last_quarter?.cash_margin} loading={!history} /></td>
-            </tr>
-          </tbody>
-        </table>
-
-
-        <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "20px 0 8px" }}>Allocation changes</h3>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
-          <thead>
-            <tr style={{ background: "var(--surface-solid)" }}>
-              <th style={thStyle()}>Move</th>
-              <th style={thStyle()}>Sector / industry group</th>
-              <th style={{...thStyle(), textAlign: "right"}}>New target</th>
-              <th style={{...thStyle(), textAlign: "right"}}>Prior</th>
-              <th style={{...thStyle(), textAlign: "right"}}>Change</th>
-            </tr>
-          </thead>
-          <tbody>
-            {history?.changes ? history.changes.map((c, i) => (
-              <tr key={i}>
-                <td style={tdStyle()}><RatingPill rating={c.move} /></td>
-                <td style={tdStyle()}>{c.bucket}</td>
-                <td style={tdRight()}><span style={dollarStyle()}>${(c.new_weight * 100).toFixed(2)}</span></td>
-                <td style={tdRight()}><span style={{...dollarStyle(), color: "var(--text-muted)"}}>${(c.prior_weight * 100).toFixed(2)}</span></td>
-                <td style={tdRight()}><span style={{ fontFamily: "var(--font-mono)", color: c.delta > 0 ? "var(--green)" : "var(--red)", fontWeight: 600 }}>{c.delta > 0 ? "+" : "−"}${Math.abs(c.delta * 100).toFixed(2)}</span></td>
-              </tr>
-            )) : null}
-          </tbody>
-        </table>
-
-        
-      </section>
-
-      {/* Section 3 — Sector outlooks & target allocation */}
+      {/* Section 2 — Recommended Asset Allocation
+          Redesigned 2026-04-27 per Joe feedback: prior version was stark white, lots of
+          whitespace, inconsistent negative formatting (($25) parens vs $-38 hyphen).
+          New: single tight table, parens-for-negatives convention everywhere (financial
+          standard), dynamic last-month / last-quarter dates from the history hook. */}
       <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>3 · Sector outlooks &amp; target allocation</div>
-          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>11 GICS sectors · current rating &amp; rationale</h2>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 4px", lineHeight: 1.55 }}>Each sector is rated Overweight / Market Weight / Underweight based on the model's combined indicator + momentum rank.</p>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>2 · Recommended Asset Allocation</div>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Per $100 of capital — recommended now vs last month vs last quarter</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Negative dollars (margin used) shown in parentheses, financial-statement convention.</p>
         </div>
 
-        {/* Unified 11-sector table — Sector / Rating / Rec Allocation / S&P 500 / Tilt / Why.
-            Every column sortable. Click row to expand → reveals IG sub-rows (each with their
-            own Why = top key factor). IG sub-row click opens the DrillDownPanel below. */}
+        {(() => {
+          // Helpers — single source of truth for currency formatting on this section.
+          // Negative = ($X), positive = $X, zero = $0. No hyphen-prefix anywhere.
+          const fmt$ = (v, dp = 0) => {
+            if (v == null) return "—";
+            const abs = Math.abs(v).toFixed(dp);
+            return v < 0 ? `($${abs})` : `$${abs}`;
+          };
+          const fmt$Δ = (v, dp = 0) => {
+            if (v == null) return "—";
+            if (Math.abs(v) < 0.005) return `$0`;
+            const abs = Math.abs(v).toFixed(dp);
+            return v < 0 ? `($${abs})` : `+$${abs}`;
+          };
+          const colorΔ = (v) => v == null || Math.abs(v) < 0.005 ? "var(--text-muted)" : (v > 0 ? "var(--green-text)" : "var(--red-text)");
+          const monoR = { fontFamily: "var(--font-mono)", textAlign: "right", padding: "11px 18px", fontSize: 13 };
+          const labelL = { padding: "11px 18px", fontSize: 13 };
+          const headTh = { padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" };
+
+          const equityToday   = totalEquity != null ? totalEquity * 100 : null;
+          const otherToday    = defensiveOn ? (1 - alloc.equity_share) * 100 : 0;
+          const totalToday    = equityToday;
+          const cashToday     = margin > 0 ? -margin * 100 : 0;
+          const lastMonthDate = history?.last_month_as_of ? humanDate(history.last_month_as_of) : "—";
+          const lastQtrDate   = history?.last_quarter_as_of ? humanDate(history.last_quarter_as_of) : "—";
+
+          const rows = [
+            { label: "Equities",                              now: equityToday, mo: history?.last_month?.equities,    qt: history?.last_quarter?.equities },
+            { label: "Defensive (Bills · UST · Gold · IG)",   now: otherToday,  mo: history?.last_month?.other,       qt: history?.last_quarter?.other },
+            { label: "Implied cash / (margin)",               now: cashToday,   mo: history?.last_month?.cash_margin, qt: history?.last_quarter?.cash_margin, muted: true },
+            { label: "Total deployed",                        now: totalToday,  mo: history?.last_month?.total,       qt: history?.last_quarter?.total, total: true },
+          ];
+
+          return (
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
+              <thead>
+                <tr>
+                  <th style={{ ...headTh, textAlign: "left" }}>Asset class</th>
+                  <th style={{ ...headTh, textAlign: "right" }}>Recommended now</th>
+                  <th style={{ ...headTh, textAlign: "right" }}>Last month{lastMonthDate !== "—" ? ` (${lastMonthDate})` : ""}</th>
+                  <th style={{ ...headTh, textAlign: "right" }}>Last quarter{lastQtrDate !== "—" ? ` (${lastQtrDate})` : ""}</th>
+                  <th style={{ ...headTh, textAlign: "right" }}>Δ vs last month</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => {
+                  const delta = r.now != null && r.mo != null ? r.now - r.mo : null;
+                  const isLast = i === rows.length - 1;
+                  const rowBg = r.total ? "var(--surface-solid)" : "transparent";
+                  const fontWeight = r.total ? 600 : 400;
+                  const labelColor = r.muted && !r.total ? "var(--text-muted)" : "var(--text)";
+                  const cellBorder = isLast ? "none" : "1px solid var(--border-faint)";
+                  return (
+                    <tr key={r.label} style={{ background: rowBg, fontWeight }}>
+                      <td style={{ ...labelL, color: labelColor, borderBottom: cellBorder }}>{r.label}</td>
+                      <td style={{ ...monoR, borderBottom: cellBorder }}>{fmt$(r.now)}</td>
+                      <td style={{ ...monoR, color: "var(--text-muted)", borderBottom: cellBorder }}>{r.mo == null ? "—" : fmt$(r.mo)}</td>
+                      <td style={{ ...monoR, color: "var(--text-muted)", borderBottom: cellBorder }}>{r.qt == null ? "—" : fmt$(r.qt)}</td>
+                      <td style={{ ...monoR, color: colorΔ(delta), fontWeight: 600, borderBottom: cellBorder }}>{fmt$Δ(delta)}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          );
+        })()}
+
+        {/* Allocation changes — sector-level rotations, same negative-paren convention */}
+        {history?.changes && history.changes.length > 0 && (
+          <>
+            <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 14, fontWeight: 500, margin: "20px 0 8px" }}>Recent allocation changes</h3>
+            <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
+              <thead>
+                <tr>
+                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "left", width: 130 }}>Move</th>
+                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "left" }}>Sector / Industry group</th>
+                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "right" }}>New target</th>
+                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "right" }}>Prior</th>
+                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "right" }}>Δ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {history.changes.map((c, i) => {
+                  const newW = c.new_weight * 100;
+                  const oldW = c.prior_weight * 100;
+                  const delta = c.delta * 100;
+                  const isLast = i === history.changes.length - 1;
+                  const cellBorder = isLast ? "none" : "1px solid var(--border-faint)";
+                  return (
+                    <tr key={i}>
+                      <td style={{ padding: "11px 18px", borderBottom: cellBorder }}><RatingPill rating={c.move} /></td>
+                      <td style={{ padding: "11px 18px", fontSize: 13, borderBottom: cellBorder }}>{c.bucket}</td>
+                      <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", borderBottom: cellBorder }}>{newW < 0 ? `($${Math.abs(newW).toFixed(2)})` : `$${newW.toFixed(2)}`}</td>
+                      <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", borderBottom: cellBorder }}>{oldW < 0 ? `($${Math.abs(oldW).toFixed(2)})` : `$${oldW.toFixed(2)}`}</td>
+                      <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", fontWeight: 600, color: delta > 0 ? "var(--green-text)" : delta < 0 ? "var(--red-text)" : "var(--text-muted)", borderBottom: cellBorder }}>{Math.abs(delta) < 0.005 ? "$0" : delta < 0 ? `($${Math.abs(delta).toFixed(2)})` : `+$${delta.toFixed(2)}`}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </>
+        )}
+      </section>
+
+      {/* Section 3 — Recommended Sector Allocation (UnifiedSectorTable only)
+          Joe directive 2026-04-27: split previous Section 3 into two — table here, heatmap
+          below. Table no longer triggers DrillDownPanel on IG sub-row clicks (the panel
+          rendered offscreen because the table region is far above the heatmap). Cards now
+          ONLY open from heatmap chip clicks in Section 4. */}
+      <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>3 · Recommended Sector Allocation</div>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>11 GICS sectors — recommended weight, indicator rank, momentum rank, and tilt</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 4px", lineHeight: 1.55 }}>Each sector is rated Overweight / Market Weight / Underweight from the model&apos;s combined indicator + momentum rank. Click any sector row to see its industry groups (with their own ranks and rationale).</p>
+        </div>
+
         <UnifiedSectorTable
           picks={picks}
           igRatingMap={igRatingMap}
+          allIgs={alloc?.all_industry_groups || []}
           rationales={rationales}
-          onSelectIg={(g) => setActiveBucket({ ...g, ticker: g.ticker })}
         />
+      </section>
 
-        <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginTop: 24, marginBottom: 8 }}>Full heatmap — all 25 industry groups</div>
+      {/* Section 4 — Sector Heatmap (heatmap + DrillDownPanel) */}
+      <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>4 · Sector Heatmap</div>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Click each industry group for details</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 4px", lineHeight: 1.55 }}>All 25 GICS industry groups grouped by parent sector. Click any tile to open the rationale, key factors, kill factors, and example holdings.</p>
+        </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "120px repeat(3, 1fr)", gap: 3, fontSize: 10 }}>
           <div style={{ padding: "6px 4px" }}/>
@@ -964,11 +1043,11 @@ export default function AssetAllocation({ onOpenTicker }) {
         )}
       </section>
 
-      {/* Section 4 — Risk management */}
+      {/* Section 5 — Risk management (renumbered from 4) */}
       <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
           <div>
-            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>4 · What to watch out for</div>
+            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>5 · What to watch out for</div>
             <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>What to watch out for</h2>
             <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Each scenario lists the trigger, the industry groups exposed, and the mechanism.</p>
           </div>
@@ -994,10 +1073,10 @@ export default function AssetAllocation({ onOpenTicker }) {
         ))}
       </section>
 
-      {/* Section 5 — Methodology summary + back-test stats (always visible per Joe's 2026-04-27 ask) */}
+      {/* Section 6 — Methodology summary + back-test stats (renumbered from 5) */}
       <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: "var(--space-5)" }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>5 · Methodology</div>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>6 · Methodology</div>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 0" }}>How this allocation is built</h2>
         </div>
 
@@ -1085,7 +1164,7 @@ function HistCell({ value, loading }) {
 //     previous version made parent and IG sub-rows the same color).
 //   - IG sub-weights sum to parent sector — verified at parse time via
 //     reconciliation script (Materials/Energy/IT/etc.).
-function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
+function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
   const [expanded, setExpanded] = useState(new Set());
   const toggleRow = (sector) => {
     setExpanded((prev) => {
@@ -1106,26 +1185,41 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
   // Rating numeric rank for sort (ow > mw > uw).
   const ratingRank = { ow: 3, mw: 2, uw: 1 };
 
+  // Live indicator/momentum rank lookups by IG ticker (from v9_allocation.json
+  // all_industry_groups). Lower number = stronger signal. Joe ask 2026-04-27:
+  // surface these in the table so users can see WHY a rating landed where it did.
+  const rankByTicker = {};
+  for (const ig of (allIgs || [])) {
+    if (ig.primary_ticker) rankByTicker[ig.primary_ticker] = { ind: ig.indicator_rank, mom: ig.momentum_rank };
+  }
+
   // Build per-sector aggregates with their child IGs.
   const baseRows = SECTOR_IG_MAP.map((s) => {
     const igs = s.groups.map((g) => {
       const rec = pickWeightByTicker[g.ticker] || 0;
       const spy = SECTOR_IG_SPY_WEIGHTS[g.name] || 0;
       const rating = igRatingMap?.get(g.name)?.rating || g.rating || "mw";
-      // Per-IG Why = the full curated rationale paragraph from
-      // industry_group_rationale.json. The earlier version showed only
-      // top key_factors[0] name+value (e.g. "Real rates 1.62%") which
-      // told nothing on its own. The full rationale explains the thesis
-      // (current rating, what drives it, what the upside catalyst is).
-      // Click any IG sub-row to open the DrillDownPanel for the full
-      // key-factor table + kill_factors thresholds + holdings.
+      const ranks = rankByTicker[g.ticker] || {};
+      // Per-IG Why = full curated rationale paragraph from industry_group_rationale.json.
       const seed = rationales?.buckets?.[g.ticker];
       const why = seed?.rationale || "—";
-      return { name: g.name, ticker: g.ticker, basket: !!g.basket, rec, spy, tilt: rec - spy, rating, why };
+      return {
+        name: g.name, ticker: g.ticker, basket: !!g.basket,
+        rec, spy, tilt: rec - spy, rating,
+        indRank: ranks.ind ?? null,
+        momRank: ranks.mom ?? null,
+        why,
+      };
     });
     const recTotal = igs.reduce((a, x) => a + x.rec, 0);
     const spyTotal = SECTOR_GICS_BENCHMARK[s.sector] ?? igs.reduce((a, x) => a + x.spy, 0);
     const sectorRating = deriveSectorRating(s.sector, igRatingMap, SECTOR_IG_MAP);
+    // Sector-level rank = the BEST (lowest) IG rank in the sector, since that's
+    // the rank that determines whether a sector becomes a pick.
+    const indRanks = igs.map(x => x.indRank).filter(x => x != null);
+    const momRanks = igs.map(x => x.momRank).filter(x => x != null);
+    const sectorIndRank = indRanks.length ? Math.min(...indRanks) : null;
+    const sectorMomRank = momRanks.length ? Math.min(...momRanks) : null;
     // Sector-level Why = the existing one-paragraph rationale from SECTOR_RATINGS.
     const why = SECTOR_RATINGS.find((r) => r.sector === s.sector)?.rationale || "";
     return {
@@ -1135,18 +1229,22 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
       spy: spyTotal,
       tilt: recTotal - spyTotal,
       rating: sectorRating,
+      indRank: sectorIndRank,
+      momRank: sectorMomRank,
       why,
     };
   });
 
   // Sortable columns. Default sort by Tilt descending.
   const cols = [
-    { id: "sector", label: "Sector",                  align: "left",  sortValue: (r) => r.sector },
-    { id: "rating", label: "Rating",                  align: "left",  sortValue: (r) => ratingRank[r.rating] || 0 },
-    { id: "rec",    label: "Recommended Allocation", align: "right", sortValue: (r) => r.rec },
-    { id: "spy",    label: "S&P 500 Allocation",      align: "right", sortValue: (r) => r.spy },
-    { id: "tilt",   label: "Tilt",                    align: "right", sortValue: (r) => r.tilt },
-    { id: "why",    label: "Why",                     align: "left",  sortValue: (r) => r.why },
+    { id: "sector",  label: "Sector",                  align: "left",  sortValue: (r) => r.sector },
+    { id: "rating",  label: "Rating",                  align: "left",  sortValue: (r) => ratingRank[r.rating] || 0 },
+    { id: "rec",     label: "Recommended Allocation", align: "right", sortValue: (r) => r.rec },
+    { id: "spy",     label: "S&P 500 Allocation",      align: "right", sortValue: (r) => r.spy },
+    { id: "tilt",    label: "Tilt",                    align: "right", sortValue: (r) => r.tilt },
+    { id: "indRank", label: "Indicator Rank",          align: "right", sortValue: (r) => r.indRank },
+    { id: "momRank", label: "Momentum Rank",           align: "right", sortValue: (r) => r.momRank },
+    { id: "why",     label: "Why",                     align: "left",  sortValue: (r) => r.why },
   ];
   const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({
     rows: baseRows,
@@ -1157,21 +1255,20 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
 
   const fmtPct = (x) => `${(x * 100).toFixed(1)}%`;
   const fmtTilt = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)} pp`;
+  const fmtRank = (x) => x == null ? "—" : `#${x}`;
   const tiltColor = (x) => Math.abs(x) < 0.005 ? "var(--text-muted)" : (x > 0 ? "var(--green-text)" : "var(--red-text)");
 
-  const thBase = { padding: "12px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", cursor: "pointer", userSelect: "none" };
+  const thBase = { padding: "12px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", cursor: "pointer", userSelect: "none" };
   const thLeft = { ...thBase, textAlign: "left" };
   const thRight = { ...thBase, textAlign: "right" };
-  const thCenter = { ...thBase, textAlign: "center", width: 130 };
-  const tdBase = { padding: "14px 18px", fontSize: 13, borderBottom: "1px solid var(--border-faint)", verticalAlign: "middle" };
+  const thCenter = { ...thBase, textAlign: "center" };
+  const tdBase = { padding: "14px 14px", fontSize: 13, borderBottom: "1px solid var(--border-faint)", verticalAlign: "middle" };
   const tdRight = { ...tdBase, textAlign: "right", fontFamily: "var(--font-mono)" };
   const tdCenter = { ...tdBase, textAlign: "center" };
 
-  // Visual hierarchy when a row is expanded:
-  //   parent row → bg = surface-solid, leftBorder = 3px accent, bold sector name
-  //   sub-rows   → bg = surface (lighter than parent)
-  // This addresses Joe's note that the previous version had parent and sub-rows
-  // at the same color and the parent was hard to identify.
+  // Parent row when expanded gets a stronger background + 3px accent left
+  // border + bold sector name. Sub-rows stay at lighter --surface. Resolves
+  // Joe's note that parent and sub-rows previously looked identical.
   const PARENT_BG_OPEN = "var(--surface-solid)";
   const SUBROW_BG = "var(--surface)";
 
@@ -1200,11 +1297,13 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
 
       <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)", tableLayout: "fixed" }}>
         <colgroup>
-          <col style={{ width: "18%" }} />
-          <col style={{ width: 140 }} />
-          <col style={{ width: 110 }} />
-          <col style={{ width: 110 }} />
-          <col style={{ width: 90 }} />
+          <col style={{ width: "16%" }} />
+          <col style={{ width: 120 }} />
+          <col style={{ width: 96 }} />
+          <col style={{ width: 96 }} />
+          <col style={{ width: 80 }} />
+          <col style={{ width: 84 }} />
+          <col style={{ width: 84 }} />
           <col />
         </colgroup>
         <thead>
@@ -1214,6 +1313,8 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
             <th style={thRight}  onClick={() => toggleSort("rec")}>Recommended<br/>Allocation <SortArrow dir={sortCol === "rec" ? sortDir : null} /></th>
             <th style={thRight}  onClick={() => toggleSort("spy")}>S&amp;P 500<br/>Allocation <SortArrow dir={sortCol === "spy" ? sortDir : null} /></th>
             <th style={thRight}  onClick={() => toggleSort("tilt")}>Tilt <SortArrow dir={sortCol === "tilt" ? sortDir : null} /></th>
+            <th style={thRight}  onClick={() => toggleSort("indRank")}>Indicator<br/>Rank <SortArrow dir={sortCol === "indRank" ? sortDir : null} /></th>
+            <th style={thRight}  onClick={() => toggleSort("momRank")}>Momentum<br/>Rank <SortArrow dir={sortCol === "momRank" ? sortDir : null} /></th>
             <th style={thLeft}   onClick={() => toggleSort("why")}>Why <SortArrow dir={sortCol === "why" ? sortDir : null} /></th>
           </tr>
         </thead>
@@ -1243,22 +1344,19 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
                 <td style={tdRight}>{fmtPct(r.rec)}</td>
                 <td style={{ ...tdRight, color: "var(--text-muted)" }}>{fmtPct(r.spy)}</td>
                 <td style={{ ...tdRight, color: tiltColor(r.tilt), fontWeight: 600 }}>{fmtTilt(r.tilt)}</td>
+                <td style={{ ...tdRight, color: "var(--text-muted)", fontSize: 11 }}>{fmtRank(r.indRank)} <span style={{ fontSize: 9 }}>(best IG)</span></td>
+                <td style={{ ...tdRight, color: "var(--text-muted)", fontSize: 11 }}>{fmtRank(r.momRank)} <span style={{ fontSize: 9 }}>(best IG)</span></td>
                 <td style={{ ...tdBase, fontSize: 12, color: "var(--text-2)", lineHeight: 1.55, whiteSpace: "normal", wordBreak: "break-word" }}>{r.why}</td>
               </tr>
             );
-            // IG sub-rows when expanded — clicking opens the DrillDownPanel below.
+            // IG sub-rows — read-only, no DrillDownPanel trigger (Joe directive
+            // 2026-04-27: cards open ONLY from heatmap chip clicks below).
             if (isOpen) {
               for (const ig of r.igs) {
                 rows.push(
                   <tr
                     key={`${r.sector}-${ig.name}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onSelectIg) onSelectIg({ name: ig.name, sector: r.sector, ticker: ig.ticker, rating: ig.rating });
-                    }}
-                    style={{ background: SUBROW_BG, cursor: ig.ticker ? "pointer" : "default" }}
-                    onMouseEnter={(e) => { if (ig.ticker) e.currentTarget.style.background = "var(--surface-solid)"; }}
-                    onMouseLeave={(e) => e.currentTarget.style.background = SUBROW_BG}
+                    style={{ background: SUBROW_BG }}
                   >
                     <td style={{ ...tdBase, paddingLeft: 50, fontSize: 12, color: "var(--text-2)" }}>
                       <span style={{ color: "var(--text-muted)", marginRight: 6 }}>↳</span>{ig.name}{" "}
@@ -1268,6 +1366,8 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
                     <td style={{ ...tdRight, fontSize: 12 }}>{fmtPct(ig.rec)}</td>
                     <td style={{ ...tdRight, color: "var(--text-muted)", fontSize: 12 }}>{fmtPct(ig.spy)}</td>
                     <td style={{ ...tdRight, color: tiltColor(ig.tilt), fontSize: 12, fontWeight: 600 }}>{fmtTilt(ig.tilt)}</td>
+                    <td style={{ ...tdRight, color: "var(--text-2)", fontSize: 12 }}>{fmtRank(ig.indRank)}</td>
+                    <td style={{ ...tdRight, color: "var(--text-2)", fontSize: 12 }}>{fmtRank(ig.momRank)}</td>
                     <td style={{ ...tdBase, fontSize: 11, color: "var(--text-2)", lineHeight: 1.5, whiteSpace: "normal", wordBreak: "break-word" }}>{ig.why}</td>
                   </tr>
                 );
