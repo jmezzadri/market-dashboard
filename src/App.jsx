@@ -4130,7 +4130,7 @@ function levelBucketV4_Lab(comp,horizon){
   }:{
     EXTREME:"Top-decile strategic stress · only act if TACTICAL also extreme · otherwise informational",
     ELEVATED:"Underweight beta · overweight quality/FCF · favor dividends over growth",
-    NORMAL:"Neutral strategic asset allocation · rebalance quarterly",
+    NORMAL:"Neutral allocation tilt · rebalance quarterly",
     BENIGN:"Overweight equities on 12m view · extend duration · add cyclical cap-weights",
   };
   if(comp>cuts.p90) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
@@ -5541,7 +5541,7 @@ const TAB_IDS=["home","overview","indicators","allocation","portopps","insights"
 const TAB_META={
   overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
-  allocation:{eyebrow:"Asset Allocation",     title:"Strategic asset allocation", sub:"Equity exposure, sector overweights, rationale, and risk scenarios — anchored to a $100 illustrative portfolio."},
+  allocation:{eyebrow:"Allocation Tilt",       title:"Allocation tilt",         sub:"Equity exposure, industry-group overweights, defensive sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"Daily opportunity scan candidates — buy alerts, near-triggers, and watchlist movers. Open the full scanner for the deep view."},
   insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
@@ -5562,7 +5562,7 @@ const TAB_META={
 const NAV_ITEMS = [
   { id:"home",       label:"Home",                                          icon:<NavIconHome/>   },
   { id:"overview",   label:"Macro Overview",                                icon:<NavIconGauge/>  },
-  { id:"allocation", label:"Asset Allocation",                              icon:<NavIconHeat/>   },
+  { id:"allocation", label:"Allocation Tilt",                                icon:<NavIconHeat/>   },
   { id:"portopps",   label:"Trading Opportunities",                          icon:<NavIconPie/>    },
   { id:"insights",   label:"Portfolio Insights",                             icon:<NavIconList/>   },
   { id:"indicators", label:"All Indicators",                                icon:<NavIconGrid/>   },
@@ -6251,14 +6251,14 @@ return(
     {/* ─── WELCOME HEAD ─ hero + 3 orientation tiles + today's read ───
          Strawman A (Joe approved 2026-04-27). Replaces the dense single
          punchline that opened the page. The same programmatic h/em/lede
-         data still drives "Today's stance" (top right) and "Today's read"
-         (below the tiles) — newcomers see what MacroTilt does in one
-         sentence, returning users still see today's read in one scroll. */}
+         data drives "Today's stance" (top right) of the hero. Newcomers
+         see what MacroTilt does in one sentence; returning users get the
+         live numbers via the cards below. */}
     {(()=>{
       // ── PROGRAMMATIC DAILY HEADLINE + LEDE ───────────────────
       // Logic preserved verbatim from the prior page-head IIFE so the
       // h/em pair stays in sync with the destination pages. Used by the
-      // hero stance line (top right) AND the Today's read block below.
+      // hero stance line in the top-right of the welcome head.
       const M = _macroLatestSnap;
       const V = _v9Alloc;
       const PR = _portfolioReturns?.periodReturns;
@@ -6289,15 +6289,7 @@ return(
       else if (worstReg === "calm" || worstReg === "quiet") { h = "Risk-on backdrop,"; em = " composites benign across the board."; }
       else { h = "Normal regime,"; em = " composites in balance."; }
 
-      const macroBits = M ? `Composites read R&L ${(M.RL>=0?"+":"")+Math.round(M.RL)}, Growth ${(M.GR>=0?"+":"")+Math.round(M.GR)}, Inflation ${(M.IR>=0?"+":"")+Math.round(M.IR)} on the −100 to +100 scale.` : "";
-      const allocBits = V
-        ? ` Allocation: ${V.selection_confidence||"—"} confidence, ${V.leverage!=null?V.leverage.toFixed(2)+"× leverage":""}${V.picks?.[0]?.name?", top tilt "+V.picks[0].name:""}.`
-        : "";
-      const scannerBits = ` Scanner: ${buyCount} buy alert${buyCount===1?"":"s"}, ${watchCount} near trigger today.`;
-      const portfolioBits = PR && PR.TTM != null
-        ? ` Your portfolio: TTM TWR ${(PR.TTM>=0?"+":"")+(PR.TTM*100).toFixed(1)}% time-weighted (flows netted out).`
-        : "";
-      const ledeProgrammatic = (macroBits + allocBits + scannerBits + portfolioBits).trim();
+      // (lede paragraph deleted r4 — Joe asked to drop it 2026-04-27)
 
       // (Tile foots dropped 2026-04-27 — the live data lived in the
       // detail cards below, was redundant, and the JetBrains Mono
@@ -6486,7 +6478,7 @@ return(
           <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
                onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
                style={stepTileStyle}>
-            <div style={tileTagStyle}>{tileLineAccent} 02 · Allocation</div>
+            <div style={tileTagStyle}>{tileLineAccent} 02 · Allocation Tilt</div>
             <h3 style={tileH3Style}>How aggressive <em style={{fontStyle:"italic", color:"var(--accent)"}}>to be.</em></h3>
             <p style={tileBlurbStyle}>A confidence band and an industry-group tilt across 25 buckets, with a defensive sleeve when stress flips.</p>
             <div style={tileFootStyle}>
@@ -6506,26 +6498,6 @@ return(
           </div>
         </section>
 
-        {/* ── TODAY'S READ ─ the existing programmatic punchline, kept */}
-        <div style={{marginTop:"var(--space-6)", paddingTop:"var(--space-5)", borderTop:"1px solid var(--border-faint)"}}>
-          <div style={{
-            fontFamily:"var(--font-mono)", fontSize:10,
-            color:"var(--text-dim)", letterSpacing:"0.18em", textTransform:"uppercase",
-            marginBottom:"var(--space-3)",
-          }}>Today's read</div>
-          <h2 style={{
-            fontFamily:"var(--font-display)", fontWeight:400,
-            fontSize:"clamp(24px, 3vw, 32px)",
-            lineHeight:1.15, letterSpacing:"-0.01em",
-            color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
-          }}>
-            {h}<em style={{fontStyle:"italic", color:"var(--accent)"}}>{em}</em>
-          </h2>
-          <p style={{
-            fontSize:15, color:"var(--text-muted)", lineHeight:1.55,
-            maxWidth:"72ch", margin:0,
-          }}>{ledeProgrammatic}</p>
-        </div>
       </>);
     })()}
 
@@ -6545,44 +6517,51 @@ return(
           <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open →</a>
         </div>
 
-        {/* Editorial commentary — at TOP per Joe 2026-04-27. Threshold-gated;
-            renders nothing when nothing has moved materially. Daily refresh
-            via pg_cron job 'generate-commentary-daily-1130utc'. */}
-        {(macroCommentary && (macroCommentary.short_term || macroCommentary.medium_term)) && (
-          <div style={{
-            marginBottom:"var(--space-4)",
-            paddingBottom:"var(--space-3)",
-            borderBottom:"1px solid var(--border-faint)",
-            display:"flex", flexDirection:"column", gap:"var(--space-2)",
-          }}>
-            {macroCommentary.short_term && (
-              <div style={{
-                fontFamily:"var(--font-display)", fontStyle:"italic",
-                fontSize:15, lineHeight:1.5, color:"var(--text)",
-              }}>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                  letterSpacing:"0.14em", textTransform:"uppercase",
-                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-                }}>Short term</span>
-                {macroCommentary.short_term}
-              </div>
-            )}
-            {macroCommentary.medium_term && (
-              <div style={{
-                fontFamily:"var(--font-display)", fontStyle:"italic",
-                fontSize:15, lineHeight:1.5, color:"var(--text)",
-              }}>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                  letterSpacing:"0.14em", textTransform:"uppercase",
-                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-                }}>Medium term</span>
-                {macroCommentary.medium_term}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Macro lead-in — regime-aware, deterministic. Replaces the
+            generic LLM commentary that read the same on every refresh
+            (Joe r4 2026-04-27). Speaks ONLY about the macro environment;
+            positioning lives in the Allocation Tilt tile lead-in below. */}
+        {(()=>{
+          const M = _macroLatestSnap;
+          if (!M) return null;
+          const comps = [
+            {k:"Risk & Liquidity", v:M.RL},
+            {k:"Growth",            v:M.GR},
+            {k:"Inflation",         v:M.IR},
+          ].filter(c => c.v != null);
+          if (!comps.length) return null;
+          const reg = (s) => s>=50 ? "stressed" : s>=20 ? "elevated" : s<=-50 ? "calm" : s<=-20 ? "quiet" : "normal";
+          const isLoud = (s) => s>=20;
+          const loud = comps.filter(c => isLoud(c.v)).sort((a,b)=>b.v-a.v);
+          const sorted = [...comps].sort((a,b)=>b.v-a.v);
+          const worst = sorted[0];
+          let line;
+          if (loud.length === 0) {
+            line = `Macro reads benign — Risk & Liquidity at ${(M.RL>=0?"+":"")+Math.round(M.RL)}, Growth at ${(M.GR>=0?"+":"")+Math.round(M.GR)}, Inflation at ${(M.IR>=0?"+":"")+Math.round(M.IR)}, all on the calm side of the long-run baseline.`;
+          } else if (loud.length === 1) {
+            line = `${loud[0].k} is the lone source of stress at ${(loud[0].v>=0?"+":"")+Math.round(loud[0].v)}; the other two composites read benign. Pressure is contained, not broad-based.`;
+          } else if (loud.length === 2) {
+            line = `${loud[0].k} and ${loud[1].k} are both elevated — macro is tightening across multiple factors. Stress is no longer contained.`;
+          } else {
+            line = `All three composites are flashing stress. ${worst.k} leads at ${(worst.v>=0?"+":"")+Math.round(worst.v)}. This is a defensive macro environment — every factor is loud.`;
+          }
+          return (
+            <div style={{
+              marginBottom:"var(--space-4)",
+              paddingBottom:"var(--space-3)",
+              borderBottom:"1px solid var(--border-faint)",
+              fontFamily:"var(--font-display)", fontStyle:"italic",
+              fontSize:15, lineHeight:1.55, color:"var(--text)",
+            }}>
+              <span style={{
+                fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                letterSpacing:"0.14em", textTransform:"uppercase",
+                color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+              }}>Environment</span>
+              {line}
+            </div>
+          );
+        })()}
 
         {/* Composite strip */}
         <div style={{
@@ -6730,7 +6709,7 @@ return(
                     onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                   >
                     <span style={{fontSize:13, color:"var(--text)", lineHeight:1.3}}>
-                      {ind[0]} <span style={{fontSize:11, color:"var(--text-muted)"}}>· {ind[1]}</span>
+                      {ind[1]}
                     </span>
                     <span style={{
                       fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600,
@@ -6757,28 +6736,49 @@ return(
           and is null-allowed (no forced prose). */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Allocation <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Allocation Tilt <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
           <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
         </div>
 
-        {/* Editorial sector narrative — at TOP per Joe 2026-04-27. Daily
-            refresh via pg_cron 'generate-commentary-daily-1130utc'. */}
-        {(sectorCommentary && sectorCommentary.headline) && (
-          <div style={{
-            marginBottom:"var(--space-4)",
-            paddingBottom:"var(--space-3)",
-            borderBottom:"1px solid var(--border-faint)",
-            fontFamily:"var(--font-display)", fontStyle:"italic",
-            fontSize:15, lineHeight:1.5, color:"var(--text)",
-          }}>
-            <span style={{
-              fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-              letterSpacing:"0.14em", textTransform:"uppercase",
-              color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-            }}>Today</span>
-            {sectorCommentary.headline}
-          </div>
-        )}
+        {/* Allocation Tilt lead-in — positioning-focused, deterministic.
+            Talks about confidence, leverage, top tilt, defensive sleeve.
+            DOES NOT restate the macro environment — that lives in the
+            Macro Overview tile lead-in (Joe r4 2026-04-27). */}
+        {(()=>{
+          const V = _v9Alloc;
+          if (!V) return null;
+          const conf = V.selection_confidence || null;
+          const lev  = V.leverage != null ? V.leverage : null;
+          const top  = V.picks?.[0]?.name || null;
+          const defActive = (V.defensive || []).some(d => d?.weight && d.weight > 0.005);
+          if (!conf || lev == null) return null;
+          let line;
+          if (conf === "STRONG") {
+            line = `Model holds STRONG conviction at ${lev.toFixed(2)}× gross leverage${top?` — leans into a ${top} tilt`:""}${defActive?", with the defensive sleeve partially engaged":", with the defensive sleeve dormant"}.`;
+          } else if (conf === "MODERATE") {
+            line = `Model dialled to MODERATE conviction at ${lev.toFixed(2)}× — ${top?`${top} still leads, but `:""}position size is trimmed relative to peak conviction${defActive?"; defensive sleeve activating":""}.`;
+          } else if (conf === "DEFENSIVE" || conf === "WEAK" || conf === "LOW") {
+            line = `Model is in DEFENSIVE mode — leverage cut to ${lev.toFixed(2)}×${top?`, ${top} still leads at smaller size`:""}; defensive sleeve carries weight.`;
+          } else {
+            line = `Model running at ${conf} conviction · ${lev.toFixed(2)}× leverage${top?` · ${top} leads`:""}.`;
+          }
+          return (
+            <div style={{
+              marginBottom:"var(--space-4)",
+              paddingBottom:"var(--space-3)",
+              borderBottom:"1px solid var(--border-faint)",
+              fontFamily:"var(--font-display)", fontStyle:"italic",
+              fontSize:15, lineHeight:1.55, color:"var(--text)",
+            }}>
+              <span style={{
+                fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                letterSpacing:"0.14em", textTransform:"uppercase",
+                color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+              }}>Positioning</span>
+              {line}
+            </div>
+          );
+        })()}
 
         {(()=>{
           // v9 allocation engine output — this is what's on the destination
@@ -7156,7 +7156,7 @@ return(
 
             {/* Q3 · ASSET ALLOCATION (donut chart + legend) */}
             <div style={{...tileStyle, gridColumn:"1 / 2"}}>
-              <div style={tileEyebrow}>Asset Allocation</div>
+              <div style={tileEyebrow}>Allocation Tilt</div>
               {_allocTotal > 0 ? (
                 <div style={{display:"flex", alignItems:"center", gap:12, marginTop:8}}>
                   {/* SVG donut */}
