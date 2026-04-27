@@ -6246,85 +6246,212 @@ return(
     display:"flex", flexDirection:"column", gap:"var(--space-6)",
   }}>
 
-    {/* ─── PAGE HEAD ─── */}
-    <div style={{padding:"var(--space-3) 0 var(--space-5)"}}>
-      <div style={{
-        fontFamily:"var(--font-mono)", fontSize:11,
-        color:"var(--accent)", letterSpacing:"0.18em", textTransform:"uppercase",
-        marginBottom:"var(--space-3)",
-        display:"flex", alignItems:"center", gap:"var(--space-2)",
-      }}>
-        <span style={{width:20, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
-        MacroTilt Daily · Home
-      </div>
-      {(()=>{
-        // ── PROGRAMMATIC DAILY HEADLINE + LEDE ─────────────────────────
-        // Synthesizes from all 4 tiles' data: 3 macro composites,
-        // v9 allocation (selection confidence + alpha + top pick),
-        // scanner counts, portfolio TWR. Updates on every render so the
-        // header always reflects the same state the tiles below show.
-        // Joe 2026-04-27: replaces the static "Composite stress at 31/100"
-        // string that didn't anchor to anything on the destination pages.
-        const M = _macroLatestSnap;
-        const V = _v9Alloc;
-        const PR = _portfolioReturns?.periodReturns;
+    {/* ─── WELCOME HEAD ─ hero + 3 orientation tiles + today's read ───
+         Strawman A (Joe approved 2026-04-27). Replaces the dense single
+         punchline that opened the page. The same programmatic h/em/lede
+         data still drives "Today's stance" (top right) and "Today's read"
+         (below the tiles) — newcomers see what MacroTilt does in one
+         sentence, returning users still see today's read in one scroll. */}
+    {(()=>{
+      // ── PROGRAMMATIC DAILY HEADLINE + LEDE ───────────────────
+      // Logic preserved verbatim from the prior page-head IIFE so the
+      // h/em pair stays in sync with the destination pages. Used by the
+      // hero stance line (top right) AND the Today's read block below.
+      const M = _macroLatestSnap;
+      const V = _v9Alloc;
+      const PR = _portfolioReturns?.periodReturns;
 
-        // Worst-of-three composite drives the headline mood.
-        const composites = M ? [
-          {k:"R&L",          v:M.RL},
-          {k:"Growth",       v:M.GR},
-          {k:"Inflation",    v:M.IR},
-        ] : [];
-        const regimeOf = (s) => {
-          if (s == null) return "normal";
-          if (s <= -50) return "calm";
-          if (s <= -20) return "quiet";
-          if (s <  +20) return "normal";
-          if (s <  +50) return "elevated";
-          return "stressed";
-        };
-        const worst = composites.reduce((a, b) => (b.v != null && (a.v == null || b.v > a.v) ? b : a), {v:null, k:""});
-        const worstReg = regimeOf(worst.v);
-        const elevatedCount = composites.filter(c => regimeOf(c.v) === "elevated" || regimeOf(c.v) === "stressed").length;
+      const composites = M ? [
+        {k:"R&L",          v:M.RL},
+        {k:"Growth",       v:M.GR},
+        {k:"Inflation",    v:M.IR},
+      ] : [];
+      const regimeOf = (s) => {
+        if (s == null) return "normal";
+        if (s <= -50) return "calm";
+        if (s <= -20) return "quiet";
+        if (s <  +20) return "normal";
+        if (s <  +50) return "elevated";
+        return "stressed";
+      };
+      const worst = composites.reduce((a, b) => (b.v != null && (a.v == null || b.v > a.v) ? b : a), {v:null, k:""});
+      const worstReg = regimeOf(worst.v);
+      const elevatedCount = composites.filter(c => regimeOf(c.v) === "elevated" || regimeOf(c.v) === "stressed").length;
 
-        // Headline: macro mood. h-em split so the second clause renders
-        // in italic accent color (matches the existing typographic system).
-        let h, em;
-        if (!M) { h = "Loading"; em = " today's market read."; }
-        else if (worstReg === "stressed" && elevatedCount >= 2) { h = "Defensive macro,"; em = " multiple composites flashing stress."; }
-        else if (worstReg === "stressed") { h = "Stress in " + worst.k + ","; em = " other composites benign."; }
-        else if (worstReg === "elevated" && elevatedCount >= 2) { h = "Watching " + worst.k + ","; em = " conditions tightening across composites."; }
-        else if (worstReg === "elevated") { h = "Elevated " + worst.k + ","; em = " growth and inflation read normal."; }
-        else if (worstReg === "calm" || worstReg === "quiet") { h = "Risk-on backdrop,"; em = " composites benign across the board."; }
-        else { h = "Normal regime,"; em = " composites in balance."; }
+      let h, em;
+      if (!M) { h = "Loading"; em = " today's market read."; }
+      else if (worstReg === "stressed" && elevatedCount >= 2) { h = "Defensive macro,"; em = " multiple composites flashing stress."; }
+      else if (worstReg === "stressed") { h = "Stress in " + worst.k + ","; em = " other composites benign."; }
+      else if (worstReg === "elevated" && elevatedCount >= 2) { h = "Watching " + worst.k + ","; em = " conditions tightening across composites."; }
+      else if (worstReg === "elevated") { h = "Elevated " + worst.k + ","; em = " growth and inflation read normal."; }
+      else if (worstReg === "calm" || worstReg === "quiet") { h = "Risk-on backdrop,"; em = " composites benign across the board."; }
+      else { h = "Normal regime,"; em = " composites in balance."; }
 
-        // Lede: stitches macro + allocation + scanner + portfolio.
-        const macroBits = M ? `Composites read R&L ${(M.RL>=0?"+":"")+Math.round(M.RL)}, Growth ${(M.GR>=0?"+":"")+Math.round(M.GR)}, Inflation ${(M.IR>=0?"+":"")+Math.round(M.IR)} on the −100 to +100 scale.` : "";
-        const allocBits = V
-          ? ` Allocation: ${V.selection_confidence||"—"} confidence, ${V.leverage!=null?V.leverage.toFixed(2)+"× leverage":""}${V.picks?.[0]?.name?", top tilt "+V.picks[0].name:""}.`
-          : "";
-        const scannerBits = ` Scanner: ${buyCount} buy alert${buyCount===1?"":"s"}, ${watchCount} near trigger today.`;
-        const portfolioBits = PR && PR.TTM != null
-          ? ` Your portfolio: TTM TWR ${(PR.TTM>=0?"+":"")+(PR.TTM*100).toFixed(1)}% time-weighted (flows netted out).`
-          : "";
-        const ledeProgrammatic = (macroBits + allocBits + scannerBits + portfolioBits).trim();
+      const macroBits = M ? `Composites read R&L ${(M.RL>=0?"+":"")+Math.round(M.RL)}, Growth ${(M.GR>=0?"+":"")+Math.round(M.GR)}, Inflation ${(M.IR>=0?"+":"")+Math.round(M.IR)} on the −100 to +100 scale.` : "";
+      const allocBits = V
+        ? ` Allocation: ${V.selection_confidence||"—"} confidence, ${V.leverage!=null?V.leverage.toFixed(2)+"× leverage":""}${V.picks?.[0]?.name?", top tilt "+V.picks[0].name:""}.`
+        : "";
+      const scannerBits = ` Scanner: ${buyCount} buy alert${buyCount===1?"":"s"}, ${watchCount} near trigger today.`;
+      const portfolioBits = PR && PR.TTM != null
+        ? ` Your portfolio: TTM TWR ${(PR.TTM>=0?"+":"")+(PR.TTM*100).toFixed(1)}% time-weighted (flows netted out).`
+        : "";
+      const ledeProgrammatic = (macroBits + allocBits + scannerBits + portfolioBits).trim();
 
-        return (<>
-          <h1 style={{
+      // ── TILE-FOOT LIVE PEEKS ──────────────────────────────
+      const macroFoot = M
+        ? `R&L ${(M.RL>=0?"+":"")+Math.round(M.RL)} · Growth ${(M.GR>=0?"+":"")+Math.round(M.GR)} · Infl ${(M.IR>=0?"+":"")+Math.round(M.IR)}`
+        : "—";
+      const allocFoot = V
+        ? `${V.selection_confidence||"—"} · ${V.leverage!=null?V.leverage.toFixed(2)+"×":""}${V.picks?.[0]?.name?" · "+V.picks[0].name:""}`
+        : "—";
+      const scannerFoot = `${buyCount} buy · ${watchCount} near trigger`;
+
+      // ── SHARED STYLES ────────────────────────────────────
+      const stepTileStyle = {
+        background:"var(--surface)",
+        border:"1px solid var(--border-faint)",
+        borderRadius:8,
+        padding:"var(--space-5)",
+        display:"flex", flexDirection:"column",
+        cursor:"pointer",
+        transition:"border-color 120ms ease, transform 120ms ease",
+      };
+      const tileTagStyle = {
+        fontFamily:"var(--font-mono)", fontSize:10, color:"var(--accent)",
+        letterSpacing:"0.16em", textTransform:"uppercase",
+        marginBottom:"var(--space-3)", fontWeight:500,
+      };
+      const tileH3Style = {
+        fontFamily:"var(--font-display)", fontWeight:400, fontSize:22, lineHeight:1.15,
+        color:"var(--text)", margin:0, marginBottom:"var(--space-2)",
+      };
+      const tileBlurbStyle = {
+        fontSize:13.5, color:"var(--text-muted)", lineHeight:1.55,
+        margin:0, marginBottom:"var(--space-4)",
+      };
+      const tileFootStyle = {
+        marginTop:"auto", paddingTop:"var(--space-3)",
+        borderTop:"1px solid var(--border-faint)",
+        display:"flex", alignItems:"center", justifyContent:"space-between",
+        fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-muted)",
+        letterSpacing:"0.04em", gap:"var(--space-3)",
+      };
+      const arrowStyle = { color:"var(--accent)", fontSize:14, fontFamily:"var(--font-mono)" };
+
+      return (<>
+        {/* ── WELCOME HERO ── */}
+        <div className="mt-home-hero" style={{
+          display:"grid",
+          gridTemplateColumns:"minmax(0, 1.25fr) minmax(0, 1fr)",
+          gap:"var(--space-7)",
+          alignItems:"end",
+          padding:"var(--space-3) 0 var(--space-5)",
+          borderBottom:"1px solid var(--border-faint)",
+        }}>
+          <div>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:11,
+              color:"var(--accent)", letterSpacing:"0.18em", textTransform:"uppercase",
+              marginBottom:"var(--space-3)",
+              display:"flex", alignItems:"center", gap:"var(--space-2)",
+            }}>
+              <span style={{width:20, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
+              MacroTilt
+            </div>
+            <h1 style={{
+              fontFamily:"var(--font-display)", fontWeight:400,
+              fontSize:"clamp(36px, 4.6vw, 52px)",
+              lineHeight:1.05, letterSpacing:"-0.015em",
+              color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
+            }}>
+              Read the market in <em style={{fontStyle:"italic", color:"var(--accent)"}}>three glances.</em>
+            </h1>
+            <p style={{
+              fontSize:16, color:"var(--text-muted)", lineHeight:1.5,
+              maxWidth:"56ch", margin:0,
+            }}>
+              A daily macro read, an allocation tilt, and a scanner that flags names from your watchlist.
+            </p>
+          </div>
+          <div style={{paddingBottom:"var(--space-2)"}}>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:10,
+              color:"var(--text-dim)", letterSpacing:"0.18em", textTransform:"uppercase",
+              marginBottom:"var(--space-3)",
+            }}>Today's stance</div>
+            <div style={{
+              fontFamily:"var(--font-display)", fontStyle:"italic", fontWeight:400,
+              fontSize:"clamp(18px, 2vw, 22px)", lineHeight:1.25, color:"var(--text)",
+            }}>
+              {h}<span style={{color:"var(--accent)"}}>{em}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* ── ORIENTATION TILES (Macro / Allocation / Scanner) ── */}
+        <section className="mt-home-steps" style={{
+          display:"grid", gridTemplateColumns:"repeat(3, minmax(0, 1fr))",
+          gap:"var(--space-4)", marginTop:"var(--space-5)",
+        }}>
+          <div role="link" tabIndex={0} onClick={()=>navTo("overview")}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("overview"); } }}
+               style={stepTileStyle}>
+            <div style={tileTagStyle}>01 / Macro</div>
+            <h3 style={tileH3Style}>Where stress <em style={{fontStyle:"italic", color:"var(--accent)"}}>sits today.</em></h3>
+            <p style={tileBlurbStyle}>Three composites — Risk &amp; Liquidity, Growth, Inflation — scored on a −100 (calm) to +100 (stressed) scale.</p>
+            <div style={tileFootStyle}>
+              <span>{macroFoot}</span>
+              <span style={arrowStyle}>→</span>
+            </div>
+          </div>
+
+          <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
+               style={stepTileStyle}>
+            <div style={tileTagStyle}>02 / Allocation</div>
+            <h3 style={tileH3Style}>How aggressive <em style={{fontStyle:"italic", color:"var(--accent)"}}>to be.</em></h3>
+            <p style={tileBlurbStyle}>A confidence band and an industry-group tilt across 25 buckets, with a defensive sleeve when stress flips.</p>
+            <div style={tileFootStyle}>
+              <span>{allocFoot}</span>
+              <span style={arrowStyle}>→</span>
+            </div>
+          </div>
+
+          <div role="link" tabIndex={0} onClick={()=>navTo("scanner")}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("scanner"); } }}
+               style={stepTileStyle}>
+            <div style={tileTagStyle}>03 / Scanner</div>
+            <h3 style={tileH3Style}>What to act <em style={{fontStyle:"italic", color:"var(--accent)"}}>on today.</em></h3>
+            <p style={tileBlurbStyle}>Daily buy alerts and near-trigger names from your watchlist — the action layer on top of the macro view.</p>
+            <div style={tileFootStyle}>
+              <span>{scannerFoot}</span>
+              <span style={arrowStyle}>→</span>
+            </div>
+          </div>
+        </section>
+
+        {/* ── TODAY'S READ ─ the existing programmatic punchline, kept */}
+        <div style={{marginTop:"var(--space-6)", paddingTop:"var(--space-5)", borderTop:"1px solid var(--border-faint)"}}>
+          <div style={{
+            fontFamily:"var(--font-mono)", fontSize:10,
+            color:"var(--text-dim)", letterSpacing:"0.18em", textTransform:"uppercase",
+            marginBottom:"var(--space-3)",
+          }}>Today's read</div>
+          <h2 style={{
             fontFamily:"var(--font-display)", fontWeight:400,
-            fontSize:"clamp(32px, 4.2vw, 44px)",
-            lineHeight:1.1, letterSpacing:"-0.01em",
+            fontSize:"clamp(24px, 3vw, 32px)",
+            lineHeight:1.15, letterSpacing:"-0.01em",
             color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
           }}>
             {h}<em style={{fontStyle:"italic", color:"var(--accent)"}}>{em}</em>
-          </h1>
+          </h2>
           <p style={{
             fontSize:15, color:"var(--text-muted)", lineHeight:1.55,
             maxWidth:"72ch", margin:0,
           }}>{ledeProgrammatic}</p>
-        </>);
-      })()}
-    </div>
+        </div>
+      </>);
+    })()}
 
     {/* ─── 2x2 TILE GRID: Macro Overview (01) · Trading Opps (02) ·
          Sector Outlook (03) · Daily Opp Scan (04). News lives full-
