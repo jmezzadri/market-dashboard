@@ -5503,6 +5503,15 @@ const backLabel=(()=>{
 const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
+
+// Deep-link support: when URL is #indicators?id=X (e.g. from the Asset
+// Allocation tab's "View indicator" buttons), auto-expand that indicator.
+useEffect(()=>{
+  if(tab!=="indicators")return;
+  const hash=window.location.hash||"";
+  const m=hash.match(/[?&]id=([\w_]+)/);
+  if(m&&m[1])setExpandedId(m[1]);
+},[tab]);
 // (expandedActionKey removed 2026-04-19: position cards now open the
 // TickerDetailModal directly instead of inline-expanding. See oppCard +
 // heldPositions render below.)
