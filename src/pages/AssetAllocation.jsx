@@ -575,19 +575,19 @@ export default function AssetAllocation({ onOpenTicker }) {
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-          {/* The What */}
+          {/* The What — actionable trade list, not a KPI restatement */}
           <div style={{ padding: "20px 22px", background: "color-mix(in srgb, var(--green-text) 10%, transparent)", borderLeft: "4px solid var(--green-text)", borderRadius: "var(--radius-md)" }}>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 6 }}>The What</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 6 }}>The What — how to position</div>
             <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 20, fontWeight: 500, marginBottom: 14, lineHeight: 1.3, color: "var(--text)" }}>
-              Aggressive cyclical tilt with {`$${(margin * 100).toFixed(0)}`} of leverage per $100 capital.
+              Get long the cyclical complex. Pull capital out of bond proxies and defensive yield.
             </div>
             <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
-              <li><strong>{`$${(totalEquity * 100).toFixed(0)}`}</strong> in equities per $100 of capital, with the defensive sleeve {defensiveOn ? "active" : "off"}.</li>
-              <li><strong>{picks.length}</strong> overweight industry groups: {picks.map(p => p.name).join(", ")}.</li>
-              <li><strong>{`$${(margin * 100).toFixed(0)}`}</strong> of margin used — calibrated to the Risk &amp; Liquidity composite.</li>
-              <li>Excess return target of <strong>+{alpha.toFixed(2)} pp</strong> per month vs. S&amp;P 500, net of financing.</li>
-              <li>Conviction <strong>{conviction.toLowerCase()}</strong>: top 5 picks separated cleanly from the rest on combined factor + momentum rank.</li>
-              <li>Defensive sleeve auto-activates if Risk &amp; Liquidity moves into the elevated or stressed zone.</li>
+              <li><strong>Lean into cyclicals.</strong> Build positions in Semiconductors (SOXX), Telecom &amp; Media (IYZ), Oil &amp; Gas (XLE), Capital Goods (XLI), Metals &amp; Mining (XLB). These five carry the overweight book.</li>
+              <li><strong>Trim or exit defensive yield.</strong> Reduce Pharma &amp; Biotech (XLV/IBB), Banks (XLF), REITs (IYR), Utilities (XLU), and Consumer Staples (XLP) toward zero — they lose their thesis when the curve steepens.</li>
+              <li><strong>Use leverage if your risk tolerance allows.</strong> Gross to roughly 1.28× via margin or 2× sector ETFs. Calm regimes earn the leverage budget.</li>
+              <li><strong>Skip the defensive sleeve.</strong> No reason to hold cash, T-bills, or gold here — the regime doesn't pay for safety. Rotate any existing GLD/BIL/TLT into the cyclical picks.</li>
+              <li><strong>Watch real rates.</strong> If 10Y TIPS breaks above 2%, trim Semis first — long-duration tech compresses fastest.</li>
+              <li><strong>Pre-set the stop.</strong> If HY-IG spread widens past 250bp, defensive sleeve activates: rotate gross out of cyclicals into ~70% GLD, ~27% BIL, cut leverage to 1.0×.</li>
             </ul>
           </div>
 
