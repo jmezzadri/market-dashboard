@@ -790,3 +790,61 @@ and pinned `pandas>=2.2.0`.
    thing two minor versions later is a candidate — yfinance,
    numpy, scipy. When you see a `FutureWarning` in a workflow
    log, file a bug to migrate before the deprecation lands.
+---
+
+## 19. Contents-API force-pushes need fresh-from-main file fetches
+
+**The rule.** When you rebuild a feature branch via the GitHub Contents
+API (because git rebase failed locally or because the sandbox can't push
+git directly), every file you upload must be re-fetched from the LATEST
+`main` immediately before applying your delta. The Contents API does an
+absolute file write — it never does a three-way merge. If your local
+copy is stale by even one merged PR, the push silently reverts whatever
+shipped in between.
+
+**Why.** 2026-04-27, PR #175 (the Asset Allocation walk-forward
+backfill) was rebased by force-updating the feature branch to point at
+new `main`, then PUTting four files via the Contents API. The
+`AssetAllocation.jsx` I uploaded was the snapshot from `/tmp/q1/` —
+which had been cloned BEFORE PR #171 (the 25-IG ticker fills) merged.
+The Contents-API PUT therefore overwrote main's post-#171 file with the
+pre-#171 version, silently reverting all 14 ticker fills to `null` and
+breaking drilldown clickability for Insurance, Financial Services,
+Media & Entertainment, and 11 other Industry Groups. Joe caught it
+within hours. Hotfix PR #182 restored the tickers.
+
+This was not a git problem and not a merge-conflict problem — both
+those would have surfaced. It was a flat overwrite that looked like a
+clean diff against pre-rebase main but was actually a regression
+against post-rebase main.
+
+**How to apply.**
+
+1. **Before any Contents-API PUT, re-fetch the file from main.** Pattern:
+   ```python
+   r = gh("GET", f"/repos/.../contents/{path}?ref=main")
+   src = base64.b64decode(r["content"]).decode()
+   # … apply the delta against `src`, not against any locally-cached copy …
+   gh("PUT", f"/repos/.../contents/{path}", {"content": ..., "sha": r["sha"]})
+   ```
+   The `r["sha"]` returned by GET is the per-file SHA the PUT requires
+   for the optimistic-concurrency check; refreshing them together
+   guarantees you're editing the latest version.
+2. **Never PUT a locally-cached copy of a file across a rebase.** The
+   sandbox `/tmp/<work>/` clone is fine for *generating* a delta and for
+   syntax checks, but the file content that goes into the PUT body must
+   come from the live `main` GET, not from the local file.
+3. **After a Contents-API rebase, run a mini-diff sanity check before
+   merging.** Compare the new branch's diff vs `main` with what you
+   expected to ship. If you see lines you didn't intend to touch — and
+   especially deletions you didn't intend — stop and re-fetch.
+4. **Prefer real `git rebase` whenever the sandbox allows it.** Real
+   rebase does a three-way merge against the merge base and surfaces
+   conflicts; Contents-API force-pushes don't. The sandbox falls back
+   to Contents-API only when disk space or `unlink` permissions block
+   git locally — that's a degraded mode, not the default.
+
+This rule pairs with rule 11 (shallow-clone fallback when worktree
+locks won't unlink). Both describe sandbox-only workarounds that are
+safe IF you respect their failure modes; the failure mode of
+Contents-API rebases is silent regression of merged work.
