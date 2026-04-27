@@ -29,6 +29,24 @@ const UW_BASE = "https://api.unusualwhales.com";
 const UW_CLIENT_API_ID = process.env.UW_CLIENT_API_ID || "100001";
 const WARM_TTL_MS = 60 * 60 * 1000; // 1 hour
 
+// Yahoo Finance assetProfile — gives us longBusinessSummary which is the
+// full company description (UW's short_description is ~150 chars; yfinance
+// gives a real paragraph). Free, no auth, same source yfinance uses.
+async function fetchYahooLongDescription(sym) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(sym)}?modules=assetProfile`;
+    const r = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; MacroTiltBot/1.0)", "Accept": "application/json" },
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    const lbs = d?.quoteSummary?.result?.[0]?.assetProfile?.longBusinessSummary;
+    return (typeof lbs === "string" && lbs.trim().length > 0) ? lbs.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
 function uwHeaders() {
   const key = process.env.UNUSUAL_WHALES_API_KEY;
   if (!key) throw new Error("UNUSUAL_WHALES_API_KEY not configured on server");
@@ -221,14 +239,22 @@ export default async function handler(req, res) {
       // ─ Cold scan ────────────────────────────────────────────────────────
       // 4 UW calls in parallel. Each settles independently so one bad
       // endpoint doesn't nuke the whole scan.
-      const [infoRes, newsRes, analystRes, screenerRes] = await Promise.allSettled([
+      const [infoRes, newsRes, analystRes, screenerRes, longDescRes] = await Promise.allSettled([
         uwGet(`/api/stock/${encodeURIComponent(sym)}/info`),
         uwGet(`/api/news/headlines`, { ticker: sym, limit: 10 }),
         uwGet(`/api/screener/analysts`, { ticker: sym, limit: 10 }),
         uwGet(`/api/screener/stocks`, { ticker: sym, limit: 50, order_by: "relative_volume" }),
+        fetchYahooLongDescription(sym),
       ]);
 
       const info = infoRes.status === "fulfilled" ? normalizeInfo(infoRes.value) : null;
+      // Stitch the yahoo longBusinessSummary onto the info block so the
+      // frontend "more" toggle on the Company Overview has something real
+      // to expand to. UW's short_description is ~150 chars; this is the
+      // full paragraph. P1 #36 (Joe 2026-04-27).
+      if (info && longDescRes.status === "fulfilled" && longDescRes.value) {
+        info.long_description = longDescRes.value;
+      }
       const news = newsRes.status === "fulfilled" ? normalizeNews(newsRes.value) : [];
       const analyst_ratings =
         analystRes.status === "fulfilled" ? normalizeAnalyst(analystRes.value, sym) : [];

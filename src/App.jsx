@@ -2884,6 +2884,18 @@ const _uwNews=scanData?.signals?.news?.[ticker]||[];
 // vol, max drawdown, 10-day 99% historical VaR. Joe spec 2026-04-27
 // (P5 #16/#17). Hook caches by ticker; SPY shared across tickers.
 const { metrics: _riskMetrics } = useStockRiskMetrics(ticker);
+// P1 #36 — auto-fire on-demand scan when info is missing or descriptions
+// are empty. Buy/Near Trigger/Watchlist tickers often aren't in the public
+// scan_data.signals.info; this fills that gap so Company Overview renders
+// for every ticker the user opens. Idempotent — scanTicker has its own
+// in-flight tracker. Joe 2026-04-27.
+useEffect(() => {
+  if (!ticker || !portfolioAuthed || !onTickerAdded) return;
+  const i = scanData?.signals?.info?.[ticker];
+  const haveDesc = !!(i && (i.short_description || i.long_description));
+  if (haveDesc) return;
+  onTickerAdded(ticker);
+}, [ticker, scanData, portfolioAuthed, onTickerAdded]);
 const _gnNormalized=(gnNewsItems||[]).map((n)=>({
   headline:n.headline,
   source:n.source||"Google News",
@@ -3057,21 +3069,19 @@ return(
 {tags.slice(0,4).map(tg=>(<span key={tg} style={{fontSize:10,color:"var(--text-dim)",border:"1px solid var(--border-faint)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:500,letterSpacing:"0.04em",textTransform:"uppercase"}}>{tg}</span>))}
 </div>}
 {(shortDesc||longDesc)&&(()=>{
-  const DESC_LIMIT=140;
-  // Prefer the real long description when expanded; otherwise the teaser.
-  // UW's short_description already ends in literal "..." (truncated at source);
-  // strip it so we don't double-ellipsis when collapsed.
-  const teaser=(shortDesc||longDesc||"").replace(/\s*\.\.\.\s*$/,"").replace(/\s*…\s*$/,"");
-  const fullText=longDesc||teaser;
-  const canExpand=!!longDesc&&longDesc.length>teaser.length+20;
-  const needsCollapse=teaser.length>DESC_LIMIT;
-  const collapsed=needsCollapse?teaser.slice(0,DESC_LIMIT).replace(/\s\S*$/,"")+"…":teaser;
-  const isLong=canExpand||needsCollapse;
-  const shown=descExpanded?fullText:(isLong?collapsed:teaser);
+  // P1 #36 fix (Joe 2026-04-27): UW's short_description is ~150 chars
+  // already (ends with "..."). Don't re-truncate that to 140 chars on top
+  // of UW's own truncation. Use the full short text by default; only
+  // collapse when we have a meaningfully longer long_description and the
+  // user has clicked "less".
+  const teaser=(shortDesc||"").replace(/\s*\.\.\.\s*$/,"").replace(/\s*…\s*$/,"");
+  // Prefer longDesc as the expanded view; collapsed view = full UW short.
+  const hasLong=!!longDesc&&longDesc.length>teaser.length+50;
+  const shown=hasLong&&descExpanded?longDesc:(teaser||longDesc||"");
   return(
-  <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.5,marginTop:6,maxWidth:640}}>
+  <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.55,marginTop:6,maxWidth:640}}>
   {shown}
-  {isLong&&<span onClick={e=>{e.stopPropagation();setDescExpanded(v=>!v);}} style={{marginLeft:6,color:"var(--accent)",cursor:"pointer",fontSize:11,fontFamily:"var(--font-mono)"}}>{descExpanded?"less ↑":"more ↓"}</span>}
+  {hasLong&&<span onClick={e=>{e.stopPropagation();setDescExpanded(v=>!v);}} style={{marginLeft:6,color:"var(--accent)",cursor:"pointer",fontSize:11,fontFamily:"var(--font-mono)"}}>{descExpanded?"show less ↑":"read full bio ↓"}</span>}
   </div>);
 })()}
 {watchlistEntry?.theme&&<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)",marginTop:3}}>{watchlistEntry.theme}</div>}
