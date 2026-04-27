@@ -26,6 +26,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { InfoTip } from "../InfoTip";
+import { useSortableTable, SortArrow } from "../hooks/useSortableTable";
 
 // 25 GICS Industry Groups grouped by their 11 GICS Sector parents.
 // Ratings derive from v9's 14-bucket compute output by mapping each GICS IG
@@ -925,36 +926,15 @@ export default function AssetAllocation({ onOpenTicker }) {
           <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 4px", lineHeight: 1.55 }}>Each sector is rated Overweight / Market Weight / Underweight based on the model's combined indicator + momentum rank.</p>
         </div>
 
-        {/* Unified 11-sector table — Sector / Rating / Recommended Allocation / S&P 500 / Tilt
-            Click any row to expand and see (a) the rationale, (b) the IG breakdown with weights. */}
-        <UnifiedSectorTable picks={picks} igRatingMap={igRatingMap} />
-
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginTop: 24, marginBottom: 12 }}>
-          <SideTable
-            kind="ow"
-            title="Overweight"
-            subtitle={`${(alloc?.all_industry_groups || []).filter(g => g.rating === "ow").length} industry groups model picks for tilt`}
-            rows={(alloc?.all_industry_groups || [])
-              .filter(g => g.rating === "ow")
-              .map(g => ({ name: g.name, sector: g.sector, ticker: g.primary_ticker, rating: "ow", combined_rank: g.combined_rank }))
-              .sort((a, b) => (a.combined_rank || 99) - (b.combined_rank || 99))}
-            picks={picks}
-            rationales={rationales}
-            onSelect={(g) => setActiveBucket({ ...g, ticker: g.ticker })}
-          />
-          <SideTable
-            kind="uw"
-            title="Underweight"
-            subtitle={`${(alloc?.all_industry_groups || []).filter(g => g.rating === "uw").length} industry groups the model down-weights`}
-            rows={(alloc?.all_industry_groups || [])
-              .filter(g => g.rating === "uw")
-              .map(g => ({ name: g.name, sector: g.sector, ticker: g.primary_ticker, rating: "uw", combined_rank: g.combined_rank }))
-              .sort((a, b) => (b.combined_rank || 0) - (a.combined_rank || 0))}
-            picks={picks}
-            rationales={rationales}
-            onSelect={(g) => setActiveBucket({ ...g, ticker: g.ticker })}
-          />
-        </div>
+        {/* Unified 11-sector table — Sector / Rating / Rec Allocation / S&P 500 / Tilt / Why.
+            Every column sortable. Click row to expand → reveals IG sub-rows (each with their
+            own Why = top key factor). IG sub-row click opens the DrillDownPanel below. */}
+        <UnifiedSectorTable
+          picks={picks}
+          igRatingMap={igRatingMap}
+          rationales={rationales}
+          onSelectIg={(g) => setActiveBucket({ ...g, ticker: g.ticker })}
+        />
 
         <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginTop: 24, marginBottom: 8 }}>Full heatmap — all 25 industry groups</div>
 
@@ -1091,165 +1071,208 @@ function HistCell({ value, loading }) {
 
 
 
-// ─── Side-by-side OW/UW table ───────────────────────────────────────────────
-function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect }) {
-  const accentColor = kind === "ow" ? "var(--green-text)" : "var(--red-text)";
-  const accentBg    = kind === "ow" ? "color-mix(in srgb, var(--green-text) 14%, transparent)" : "color-mix(in srgb, var(--red-text) 14%, transparent)";
-  return (
-    <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", overflow: "hidden", background: "var(--bg)" }}>
-      <div style={{ padding: "10px 14px", background: accentBg, borderBottom: "1px solid var(--border)", display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-        <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 16, fontWeight: 500, color: accentColor }}>{title}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)" }}>{subtitle}</div>
-      </div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)", fontSize: 13 }}>
-        <thead>
-          <tr>
-            <th style={{ textAlign: "left", padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Sector › Industry group</th>
-            <th style={{ textAlign: "right", padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Target</th>
-            <th style={{ textAlign: "right", padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>vs SPY</th>
-            <th style={{ textAlign: "left", padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Why</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => {
-            const pick = picks.find(p => p.ticker === r.ticker);
-            const weight = pick?.weight || 0;
-            const spyW = r.ticker ? (SPY_WEIGHTS[r.ticker] ?? 0) : 0;
-            const delta = (spyW > 0) ? (weight - spyW) : null;
-            const seed = rationales?.buckets?.[r.ticker];
-            const why = seed ? (seed.key_factors?.[0]?.name + " " + (seed.key_factors?.[0]?.value || "")) : "—";
-            return (
-              <tr key={i}
-                  onClick={() => r.ticker && onSelect({...r})}
-                  style={{ cursor: r.ticker ? "pointer" : "default" }}
-                  onMouseEnter={(e) => { if (r.ticker) e.currentTarget.style.background = "var(--surface)"; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-              >
-                <td style={{ padding: "13px 18px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none" }}>
-                  <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500 }}>{r.sector}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{r.name}</div>
-                </td>
-                <td style={{ padding: "13px 18px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)" }}>{weight > 0 ? `$${(weight * 100).toFixed(1)}` : "$0"}</td>
-                <td style={{ padding: "13px 18px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)", color: delta == null ? "var(--text-muted)" : delta >= 0 ? "var(--green-text)" : "var(--red-text)", fontWeight: 600 }}>
-                  {delta == null ? "—" : `${delta >= 0 ? "+" : "−"}$${Math.abs(delta * 100).toFixed(1)}`}
-                </td>
-                <td style={{ padding: "13px 18px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>{why}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-// ─── Unified 11-sector table — replaces the old dual layout ──────────────
+// ─── Unified 11-sector table v2 ─────────────────────────────────────────
 // One row per GICS sector. Columns: Sector / Rating / Recommended Allocation
-// / S&P 500 Allocation / Tilt. Click any row to expand the rationale and the
-// underlying industry-group breakdown (each IG also shows Rating / Rec / S&P
-// / Tilt). The IG sub-rows reconcile to the parent sector — both columns
-// (Rec and S&P) sum to the parent.
-function UnifiedSectorTable({ picks, igRatingMap }) {
+// / S&P 500 Allocation / Tilt / Why.
+//   - Every column sortable (LESSONS rule 4) via useSortableTable hook.
+//   - Default sort: Tilt descending (overweights at top, underweights at bottom).
+//   - Expand-all / Collapse-all toggle button above the table.
+//   - Click any sector row → expand to reveal IG sub-rows. Each IG sub-row
+//     has its own Why (top key factor + value from rationales JSON).
+//   - Click any IG sub-row → opens the DrillDownPanel below the heatmap.
+//   - Expanded sector row gets a left-border accent + stronger background
+//     so the parent/child hierarchy is visually clear (Joe feedback —
+//     previous version made parent and IG sub-rows the same color).
+//   - IG sub-weights sum to parent sector — verified at parse time via
+//     reconciliation script (Materials/Energy/IT/etc.).
+function UnifiedSectorTable({ picks, igRatingMap, rationales, onSelectIg }) {
   const [expanded, setExpanded] = useState(new Set());
-  const toggle = (sector) => {
+  const toggleRow = (sector) => {
     setExpanded((prev) => {
       const next = new Set(prev);
       if (next.has(sector)) next.delete(sector); else next.add(sector);
       return next;
     });
   };
+  const allSectors = SECTOR_IG_MAP.map((s) => s.sector);
+  const allOpen = expanded.size === allSectors.length;
+  const expandAll = () => setExpanded(new Set(allSectors));
+  const collapseAll = () => setExpanded(new Set());
 
   // Pick weight by ticker (only the 5 picks have non-zero weight).
   const pickWeightByTicker = {};
   for (const p of (picks || [])) pickWeightByTicker[p.ticker] = p.weight || 0;
 
-  const fmtPct = (x) => `${(x * 100).toFixed(1)}%`;
-  const fmtTilt = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)} pp`;
-  const tiltColor = (x) => Math.abs(x) < 0.005 ? "var(--text-muted)" : (x > 0 ? "var(--green-text)" : "var(--red-text)");
+  // Rating numeric rank for sort (ow > mw > uw).
+  const ratingRank = { ow: 3, mw: 2, uw: 1 };
 
-  // Build per-sector aggregates and order by descending |tilt| (biggest bets first).
-  const sectorRows = SECTOR_IG_MAP.map((s) => {
+  // Build per-sector aggregates with their child IGs.
+  const baseRows = SECTOR_IG_MAP.map((s) => {
     const igs = s.groups.map((g) => {
       const rec = pickWeightByTicker[g.ticker] || 0;
       const spy = SECTOR_IG_SPY_WEIGHTS[g.name] || 0;
       const rating = igRatingMap?.get(g.name)?.rating || g.rating || "mw";
-      return { name: g.name, ticker: g.ticker, basket: !!g.basket, rec, spy, tilt: rec - spy, rating };
+      // Per-IG Why = top key factor name + value from rationales JSON
+      const seed = rationales?.buckets?.[g.ticker];
+      const kf = seed?.key_factors?.[0];
+      const why = kf ? `${kf.name}${kf.value ? " " + kf.value : ""}` : "—";
+      return { name: g.name, ticker: g.ticker, basket: !!g.basket, rec, spy, tilt: rec - spy, rating, why };
     });
     const recTotal = igs.reduce((a, x) => a + x.rec, 0);
     const spyTotal = SECTOR_GICS_BENCHMARK[s.sector] ?? igs.reduce((a, x) => a + x.spy, 0);
-    const rationale = SECTOR_RATINGS.find((r) => r.sector === s.sector)?.rationale || "";
     const sectorRating = deriveSectorRating(s.sector, igRatingMap, SECTOR_IG_MAP);
-    return { sector: s.sector, igs, rec: recTotal, spy: spyTotal, tilt: recTotal - spyTotal, rationale, rating: sectorRating };
-  }).sort((a, b) => Math.abs(b.tilt) - Math.abs(a.tilt));
+    // Sector-level Why = the existing one-paragraph rationale from SECTOR_RATINGS.
+    const why = SECTOR_RATINGS.find((r) => r.sector === s.sector)?.rationale || "";
+    return {
+      sector: s.sector,
+      igs,
+      rec: recTotal,
+      spy: spyTotal,
+      tilt: recTotal - spyTotal,
+      rating: sectorRating,
+      why,
+    };
+  });
 
-  const thU = { textAlign: "left", padding: "12px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" };
-  const thUR = { ...thU, textAlign: "right" };
-  const thUC = { ...thU, textAlign: "center", width: 130 };
-  const tdU = { padding: "14px 18px", fontSize: 13, borderBottom: "1px solid var(--border-faint)", verticalAlign: "middle" };
-  const tdUR = { ...tdU, textAlign: "right", fontFamily: "var(--font-mono)" };
-  const tdUC = { ...tdU, textAlign: "center" };
+  // Sortable columns. Default sort by Tilt descending.
+  const cols = [
+    { id: "sector", label: "Sector",                  align: "left",  sortValue: (r) => r.sector },
+    { id: "rating", label: "Rating",                  align: "left",  sortValue: (r) => ratingRank[r.rating] || 0 },
+    { id: "rec",    label: "Recommended Allocation", align: "right", sortValue: (r) => r.rec },
+    { id: "spy",    label: "S&P 500 Allocation",      align: "right", sortValue: (r) => r.spy },
+    { id: "tilt",   label: "Tilt",                    align: "right", sortValue: (r) => r.tilt },
+    { id: "why",    label: "Why",                     align: "left",  sortValue: (r) => r.why },
+  ];
+  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({
+    rows: baseRows,
+    columns: cols,
+    defaultColId: "tilt",
+    defaultDir: "desc",
+  });
+
+  const fmtPct = (x) => `${(x * 100).toFixed(1)}%`;
+  const fmtTilt = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)} pp`;
+  const tiltColor = (x) => Math.abs(x) < 0.005 ? "var(--text-muted)" : (x > 0 ? "var(--green-text)" : "var(--red-text)");
+
+  const thBase = { padding: "12px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", cursor: "pointer", userSelect: "none" };
+  const thLeft = { ...thBase, textAlign: "left" };
+  const thRight = { ...thBase, textAlign: "right" };
+  const thCenter = { ...thBase, textAlign: "center", width: 130 };
+  const tdBase = { padding: "14px 18px", fontSize: 13, borderBottom: "1px solid var(--border-faint)", verticalAlign: "middle" };
+  const tdRight = { ...tdBase, textAlign: "right", fontFamily: "var(--font-mono)" };
+  const tdCenter = { ...tdBase, textAlign: "center" };
+
+  // Visual hierarchy when a row is expanded:
+  //   parent row → bg = surface-solid, leftBorder = 3px accent, bold sector name
+  //   sub-rows   → bg = surface (lighter than parent)
+  // This addresses Joe's note that the previous version had parent and sub-rows
+  // at the same color and the parent was hard to identify.
+  const PARENT_BG_OPEN = "var(--surface-solid)";
+  const SUBROW_BG = "var(--surface)";
 
   return (
-    <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
-      <thead>
-        <tr>
-          <th style={thU}>Sector</th>
-          <th style={thUC}>Rating</th>
-          <th style={thUR}>Recommended<br/>Allocation</th>
-          <th style={thUR}>S&amp;P 500<br/>Allocation</th>
-          <th style={thUR}>Tilt</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sectorRows.flatMap((r) => {
-          const isOpen = expanded.has(r.sector);
-          const rows = [];
-          rows.push(
-            <tr key={r.sector} onClick={() => toggle(r.sector)}
-                style={{ cursor: "pointer", background: isOpen ? "var(--surface)" : "transparent" }}
+    <div>
+      {/* Expand-all / Collapse-all toggle */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 10 }}>
+        <button
+          type="button"
+          onClick={() => (allOpen ? collapseAll() : expandAll())}
+          style={{
+            fontSize: 11,
+            padding: "5px 14px",
+            border: "1px solid var(--border)",
+            borderRadius: 4,
+            background: "var(--bg)",
+            color: "var(--text)",
+            cursor: "pointer",
+            fontWeight: 500,
+            letterSpacing: "0.04em",
+          }}
+        >
+          {allOpen ? "Collapse all" : "Expand all"}
+        </button>
+      </div>
+
+      <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)", tableLayout: "fixed" }}>
+        <colgroup>
+          <col style={{ width: "18%" }} />
+          <col style={{ width: 140 }} />
+          <col style={{ width: 110 }} />
+          <col style={{ width: 110 }} />
+          <col style={{ width: 90 }} />
+          <col />
+        </colgroup>
+        <thead>
+          <tr>
+            <th style={thLeft}   onClick={() => toggleSort("sector")}>Sector <SortArrow dir={sortCol === "sector" ? sortDir : null} /></th>
+            <th style={thCenter} onClick={() => toggleSort("rating")}>Rating <SortArrow dir={sortCol === "rating" ? sortDir : null} /></th>
+            <th style={thRight}  onClick={() => toggleSort("rec")}>Recommended<br/>Allocation <SortArrow dir={sortCol === "rec" ? sortDir : null} /></th>
+            <th style={thRight}  onClick={() => toggleSort("spy")}>S&amp;P 500<br/>Allocation <SortArrow dir={sortCol === "spy" ? sortDir : null} /></th>
+            <th style={thRight}  onClick={() => toggleSort("tilt")}>Tilt <SortArrow dir={sortCol === "tilt" ? sortDir : null} /></th>
+            <th style={thLeft}   onClick={() => toggleSort("why")}>Why <SortArrow dir={sortCol === "why" ? sortDir : null} /></th>
+          </tr>
+        </thead>
+        <tbody>
+          {sorted.flatMap((r) => {
+            const isOpen = expanded.has(r.sector);
+            const rows = [];
+            // Parent (sector) row
+            rows.push(
+              <tr
+                key={r.sector}
+                onClick={() => toggleRow(r.sector)}
+                style={{
+                  cursor: "pointer",
+                  background: isOpen ? PARENT_BG_OPEN : "transparent",
+                  borderLeft: isOpen ? "3px solid var(--accent)" : "3px solid transparent",
+                  transition: "background 80ms",
+                }}
                 onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = "var(--surface)"; }}
-                onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = "transparent"; }}>
-              <td style={{ ...tdU, fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500 }}>
-                <span style={{ display: "inline-block", width: 14, color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{isOpen ? "▾" : "▸"}</span>
-                {r.sector}
-              </td>
-              <td style={tdUC}><RatingPill rating={r.rating} /></td>
-              <td style={tdUR}>{fmtPct(r.rec)}</td>
-              <td style={{ ...tdUR, color: "var(--text-muted)" }}>{fmtPct(r.spy)}</td>
-              <td style={{ ...tdUR, color: tiltColor(r.tilt), fontWeight: 600 }}>{fmtTilt(r.tilt)}</td>
-            </tr>
-          );
-          if (isOpen) {
-            // Rationale row spanning full width
-            if (r.rationale) {
-              rows.push(
-                <tr key={`${r.sector}-rationale`} style={{ background: "var(--surface)" }}>
-                  <td colSpan={5} style={{ ...tdU, fontSize: 12, color: "var(--text-2)", lineHeight: 1.55, fontStyle: "italic", paddingLeft: 38, borderBottom: "1px solid var(--border-faint)" }}>{r.rationale}</td>
-                </tr>
-              );
+                onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = "transparent"; }}
+              >
+                <td style={{ ...tdBase, fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 600, fontSize: 14 }}>
+                  <span style={{ display: "inline-block", width: 16, color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{isOpen ? "▾" : "▸"}</span>
+                  {r.sector}
+                </td>
+                <td style={tdCenter}><RatingPill rating={r.rating} /></td>
+                <td style={tdRight}>{fmtPct(r.rec)}</td>
+                <td style={{ ...tdRight, color: "var(--text-muted)" }}>{fmtPct(r.spy)}</td>
+                <td style={{ ...tdRight, color: tiltColor(r.tilt), fontWeight: 600 }}>{fmtTilt(r.tilt)}</td>
+                <td style={{ ...tdBase, fontSize: 12, color: "var(--text-2)", lineHeight: 1.55, whiteSpace: "normal", wordBreak: "break-word" }}>{r.why}</td>
+              </tr>
+            );
+            // IG sub-rows when expanded — clicking opens the DrillDownPanel below.
+            if (isOpen) {
+              for (const ig of r.igs) {
+                rows.push(
+                  <tr
+                    key={`${r.sector}-${ig.name}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onSelectIg) onSelectIg({ name: ig.name, sector: r.sector, ticker: ig.ticker, rating: ig.rating });
+                    }}
+                    style={{ background: SUBROW_BG, cursor: ig.ticker ? "pointer" : "default" }}
+                    onMouseEnter={(e) => { if (ig.ticker) e.currentTarget.style.background = "var(--surface-solid)"; }}
+                    onMouseLeave={(e) => e.currentTarget.style.background = SUBROW_BG}
+                  >
+                    <td style={{ ...tdBase, paddingLeft: 50, fontSize: 12, color: "var(--text-2)" }}>
+                      <span style={{ color: "var(--text-muted)", marginRight: 6 }}>↳</span>{ig.name}{" "}
+                      <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>({ig.ticker}{ig.basket ? " basket" : ""})</span>
+                    </td>
+                    <td style={tdCenter}><RatingPill rating={ig.rating} size="sm" /></td>
+                    <td style={{ ...tdRight, fontSize: 12 }}>{fmtPct(ig.rec)}</td>
+                    <td style={{ ...tdRight, color: "var(--text-muted)", fontSize: 12 }}>{fmtPct(ig.spy)}</td>
+                    <td style={{ ...tdRight, color: tiltColor(ig.tilt), fontSize: 12, fontWeight: 600 }}>{fmtTilt(ig.tilt)}</td>
+                    <td style={{ ...tdBase, fontSize: 11, color: "var(--text-2)", lineHeight: 1.5, whiteSpace: "normal", wordBreak: "break-word" }}>{ig.why}</td>
+                  </tr>
+                );
+              }
             }
-            // IG sub-rows
-            for (const ig of r.igs) {
-              rows.push(
-                <tr key={`${r.sector}-${ig.name}`} style={{ background: "var(--surface)" }}>
-                  <td style={{ ...tdU, paddingLeft: 38, fontSize: 12, color: "var(--text-2)" }}>
-                    ↳ {ig.name}{" "}
-                    <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>
-                      ({ig.ticker}{ig.basket ? " basket" : ""})
-                    </span>
-                  </td>
-                  <td style={tdUC}><RatingPill rating={ig.rating} size="sm" /></td>
-                  <td style={{ ...tdUR, fontSize: 12 }}>{fmtPct(ig.rec)}</td>
-                  <td style={{ ...tdUR, color: "var(--text-muted)", fontSize: 12 }}>{fmtPct(ig.spy)}</td>
-                  <td style={{ ...tdUR, color: tiltColor(ig.tilt), fontSize: 12, fontWeight: 600 }}>{fmtTilt(ig.tilt)}</td>
-                </tr>
-              );
-            }
-          }
-          return rows;
-        })}
-      </tbody>
-    </table>
+            return rows;
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
