@@ -709,3 +709,84 @@ quality metrics.
    from `lead-developer@macrotilt-bot` may be self-fix-and-close
    candidates; bugs from `senior-quant@macrotilt-bot` always need
    Quant sign-off before close.
+---
+
+## 17. Pin every dependency the compute actually imports
+
+**The rule.** Every Python package the compute scripts (or any other
+runnable Python in the repo) `import`s must be listed explicitly in
+`requirements.txt`. "It's been working in CI" is not evidence that a
+dependency is listed — it's evidence that something else (transitive
+install, runner pre-image, cached pip) was supplying it. The moment a
+new workflow runs in a slightly different image and that supply
+breaks, every downstream workflow breaks with it.
+
+**Why.** 2026-04-26, the V9-ALLOCATION-BACKFILL workflow's first run
+on main died with `ModuleNotFoundError: No module named 'scipy'` on
+every Saturday replay. `compute_v9_allocation.py` had been calling
+`from scipy.optimize import minimize` for months and CI kept finding
+scipy somewhere — until the new workflow ran on a fresh runner image
+and didn't. The V9-ALLOCATION-WEEKLY workflow would have hit the same
+break on its next scheduled Saturday run for the same reason. Hotfix
+PR #179 added `scipy>=1.10.0` to `requirements.txt`. Same lesson
+applies to any other package the compute imports today and that
+`requirements.txt` doesn't list — they're all timebombs waiting for
+the runner image to drift.
+
+**How to apply.**
+
+1. When introducing or modifying any compute script, run
+   `python -c "import ast, sys; tree=ast.parse(open(sys.argv[1]).read()); print({n.module.split('.')[0] if isinstance(n, ast.ImportFrom) else n.names[0].name.split('.')[0] for n in ast.walk(tree) if isinstance(n,(ast.Import,ast.ImportFrom))})"`
+   on every Python entry point in the PR. Compare the set against
+   `requirements.txt` and the Python stdlib. Anything missing gets
+   added in the same PR.
+2. Senior Quant signs off on the dependency list as part of the PR
+   review when calculations are touched. Lead Developer signs off
+   when workflow files or `requirements.txt` are touched.
+3. CI failures of the form `ModuleNotFoundError` on a package that
+   "should already be installed" are NEVER a transient issue —
+   always treat them as a missing dependency that must be added to
+   `requirements.txt`, even if the same workflow ran clean a week
+   ago. The runner pre-image moved underneath us.
+
+---
+
+## 18. Pandas frequency aliases drift — prefer unambiguous spellings
+
+**The rule.** When using pandas frequency strings (in `resample`,
+`asfreq`, `date_range`, `offsets.to_offset`, etc.), use the
+unambiguous spelling that survives the next deprecation cycle:
+`"ME"` (month-end), `"YE"` (year-end), `"QE"` (quarter-end), `"W"`
+(weekly is fine), `"D"` (daily is fine). Never use `"M"`, `"Y"`,
+`"Q"`, `"A"` even when they still work — they are deprecated in
+pandas 2.2 and removed entirely in 2.3+. Pin
+`pandas>=2.2.0` (or higher) in `requirements.txt` so the
+unambiguous spellings are guaranteed to work.
+
+**Why.** 2026-04-26, the V9-ALLOCATION-BACKFILL workflow died on
+every Saturday replay with `Invalid frequency: M. Please use 'ME'
+instead.` because the CI runner had pulled pandas 2.3+ which
+removed the alias entirely. The same code had worked in
+`compute_v9_allocation.py` for the entire v9 lifetime; it broke
+the moment CI's pandas crossed the 2.3 boundary. The same break
+would have hit the V9-ALLOCATION-WEEKLY scheduled run two days
+later. Hotfix PR #176 swapped four `resample("M")` → `resample("ME")`
+and pinned `pandas>=2.2.0`.
+
+**How to apply.**
+
+1. Grep every Python file in the repo for `resample("M")`,
+   `resample("Y")`, `resample("Q")`, `resample("A")`. Replace each
+   with the unambiguous form (`"ME"` / `"YE"` / `"QE"` /
+   `"YE"`). Do this preemptively — don't wait for CI to break.
+2. Same rule applies to `pd.date_range(..., freq="M")` and
+   `pd.tseries.frequencies.to_offset("M")` style calls. Audit
+   them all.
+3. `requirements.txt` floor is `pandas>=2.2.0` — the version that
+   introduced the new aliases. If a future pandas version
+   deprecates `"ME"`, repeat this drill.
+4. This rule generalises beyond pandas. Any library that prefixes
+   a deprecation cycle with a `FutureWarning` and removes the old
+   thing two minor versions later is a candidate — yfinance,
+   numpy, scipy. When you see a `FutureWarning` in a workflow
+   log, file a bug to migrate before the deprecation lands.
