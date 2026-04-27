@@ -473,7 +473,8 @@ export default function AssetAllocation({ onOpenTicker }) {
       if (!dates.length) return null;
       const cur = obj[dates[dates.length - 1]];
       const back = (n) => obj[dates[Math.max(0, dates.length - 1 - n)]];
-      return { current: cur, mo1: back(30), mo3: back(90), as_of: dates[dates.length - 1] };
+      const num = (v) => v == null ? null : Number(v);
+      return { current: num(cur), mo1: num(back(30)), mo3: num(back(90)), as_of: dates[dates.length - 1] };
     };
     return {
       real_rates: latest("real_rates"),
@@ -632,14 +633,14 @@ export default function AssetAllocation({ onOpenTicker }) {
               {heroSubtitle}
             </div>
             <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
-              {macroFacts?.real_rates && (
-                <li><strong>Real rates ({dirLabel(macroFacts.real_rates.current, macroFacts.real_rates.mo3, "rates")})</strong> — 10Y TIPS at {macroFacts.real_rates.current.toFixed(2)}%, vs. {macroFacts.real_rates.mo3?.toFixed(2)}% three months ago.</li>
+              {macroFacts?.real_rates?.current != null && Number.isFinite(macroFacts.real_rates.current) && (
+                <li><strong>Real rates ({dirLabel(macroFacts.real_rates.current, macroFacts.real_rates.mo3, "rates")})</strong> — 10Y TIPS at {macroFacts.real_rates.current.toFixed(2)}%, vs. {Number.isFinite(macroFacts.real_rates.mo3) ? macroFacts.real_rates.mo3.toFixed(2) : "—"}% three months ago.</li>
               )}
-              {macroFacts?.yield_curve && (
-                <li><strong>Yield curve {dirLabel(macroFacts.yield_curve.current, macroFacts.yield_curve.mo3, "curve")}</strong> (10Y−2Y at {macroFacts.yield_curve.current > 0 ? "+" : ""}{macroFacts.yield_curve.current.toFixed(0)}bp, vs. {macroFacts.yield_curve.mo3?.toFixed(0)}bp three months ago).</li>
+              {macroFacts?.yield_curve?.current != null && Number.isFinite(macroFacts.yield_curve.current) && (
+                <li><strong>Yield curve {dirLabel(macroFacts.yield_curve.current, macroFacts.yield_curve.mo3, "curve")}</strong> (10Y−2Y at {macroFacts.yield_curve.current > 0 ? "+" : ""}{macroFacts.yield_curve.current.toFixed(0)}bp, vs. {Number.isFinite(macroFacts.yield_curve.mo3) ? macroFacts.yield_curve.mo3.toFixed(0) : "—"}bp three months ago).</li>
               )}
-              {macroFacts?.hy_ig && (
-                <li><strong>HY−IG credit spread {dirLabel(macroFacts.hy_ig.current, macroFacts.hy_ig.mo3, "spread")}</strong> — current {macroFacts.hy_ig.current.toFixed(0)}bp, vs. {macroFacts.hy_ig.mo3?.toFixed(0)}bp three months ago. 250bp is the stress trigger.</li>
+              {macroFacts?.hy_ig?.current != null && Number.isFinite(macroFacts.hy_ig.current) && (
+                <li><strong>HY−IG credit spread {dirLabel(macroFacts.hy_ig.current, macroFacts.hy_ig.mo3, "spread")}</strong> — current {macroFacts.hy_ig.current.toFixed(0)}bp, vs. {Number.isFinite(macroFacts.hy_ig.mo3) ? macroFacts.hy_ig.mo3.toFixed(0) : "—"}bp three months ago. 250bp is the stress trigger.</li>
               )}
               <li>Semis and Energy screen <strong>#1 and #2</strong> on combined indicator + 6-month momentum rank.</li>
               <li>Utilities and REITs lose their bond-proxy thesis when the curve steepens — exit the overweight set.</li>
