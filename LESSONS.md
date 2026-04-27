@@ -666,3 +666,46 @@ verification I had not performed.
    GICS)" is unambiguous.
 5. If Joe corrects an external fact, push a fix and a LESSONS entry
    in the same PR — do not just patch silently.
+
+## 16. Bug reporter is the specialist who found the bug — not the user
+
+**The rule.** When any specialist (UX Designer, Senior Quant, Lead Developer,
+or any future agent) files a row in the `bug_reports` table, the
+`reporter_email` field MUST identify that specialist's role, not Joe's
+personal email. Use the canonical strings:
+
+- `ux-designer@macrotilt-bot`
+- `senior-quant@macrotilt-bot`
+- `lead-developer@macrotilt-bot`
+
+Joe's email (`josephmezzadri@gmail.com`) is reserved for bugs Joe himself
+filed via the Report Bug button on the live site, OR bugs he raised
+verbally in chat.
+
+**Why.** On 2026-04-26 night, after the post-deploy audit of the new
+Asset Allocation tab, I filed eight bugs (#1085–#1092) and put Joe's
+email in `reporter_email` for all of them. Joe didn't find any of them —
+the UX Designer agent found four (#1086, #1089, #1091, #1092), the
+Senior Quant agent found three (#1087, #1088, #1090), and Lead Developer
+caught one from production console (#1085). Misattributing to Joe
+destroys the audit trail: the Bug Tracker UI then says Joe is the most
+prolific bug reporter on the site, when in fact most bugs come from
+specialist self-audits. That undermines triage, root-cause review, and
+quality metrics.
+
+**How to apply.**
+
+1. Before inserting a `bug_reports` row, ask: who actually surfaced
+   this defect? If the answer is a specialist agent doing audit work,
+   set `reporter_email` to that specialist's bot address.
+2. If a specialist agent is surfacing a bug AND Joe is asking the
+   question that prompted the audit (e.g. "is this rendering right?"),
+   the reporter is still the specialist — Joe is the catalyst, not
+   the reporter.
+3. The Lead Developer reviews bug-filing batches before submission
+   and challenges any row where `reporter_email = josephmezzadri@gmail.com`
+   that didn't actually come from Joe.
+4. Triage Sweep can use `reporter_email` to weight responses — bugs
+   from `lead-developer@macrotilt-bot` may be self-fix-and-close
+   candidates; bugs from `senior-quant@macrotilt-bot` always need
+   Quant sign-off before close.
