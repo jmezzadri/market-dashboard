@@ -5407,7 +5407,9 @@ const HASH_ALIASES={
   "asset-allocation":"allocation",
 };
 const resolveHash=(raw)=>{
-  const h=(raw||"").slice(1).toLowerCase();
+  // Strip leading # AND any ?query=… suffix so hashes like
+  // "#indicators?id=real_rates" still resolve to the "indicators" tab.
+  const h=(raw||"").slice(1).split("?")[0].toLowerCase();
   if(HASH_ALIASES[h])return HASH_ALIASES[h];
   return TAB_IDS.includes(h)?h:"home";
 };
@@ -5419,7 +5421,10 @@ return resolveHash(window.location.hash);
 // (which resolves to the "portopps" tab), don't silently rewrite the URL bar
 // back to /#portopps. Only sync when the URL doesn't already point at this tab.
 useEffect(()=>{
-  const cur=(window.location.hash||"").slice(1).toLowerCase();
+  // Strip query suffix so #indicators?id=X doesn't get rewritten to #indicators
+  // and lose the deep-link parameter on every render.
+  const curRaw=(window.location.hash||"").slice(1).toLowerCase();
+  const cur=curRaw.split("?")[0];
   if(HASH_ALIASES[cur]===tab)return;
   if(cur===tab)return;
   window.location.hash=tab;
