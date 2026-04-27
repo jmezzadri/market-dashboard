@@ -27,62 +27,53 @@
 import { useState, useEffect, useMemo } from "react";
 import { InfoTip } from "../InfoTip";
 
-// 25 GICS Industry Groups (post-March-2023 GICS structure: 11 sectors / 25 IGs
-// / 74 industries / 163 sub-industries) grouped by their 11 sector parents.
-//
-// Tickers come from the v9.1 compute (`compute_v9_allocation.py`) which scores
-// every IG against a tradable proxy — either a single ETF or an equal-weight
-// basket of representative single names. For basket IGs the ticker shown
-// here is the basket's PRIMARY (most-liquid / largest-cap) constituent — the
-// drill-down panel surfaces the full basket via the rationale data.
-//
-// Ratings here are STARTER values from the v9 ranking; the live page reads
-// `alloc.all_industry_groups[].rating` from v9_allocation.json and overrides
-// these client-side. Treat the ratings below as fallback only.
+// 25 GICS Industry Groups grouped by their 11 GICS Sector parents.
+// Ratings derive from v9's 14-bucket compute output by mapping each GICS IG
+// to the closest v9 ETF (or null if v9 doesn't yet score it).
 const SECTOR_IG_MAP = [
   { sector: "Information Technology", groups: [
     { name: "Software & Services",                  ticker: "IGV",  rating: "mw" },
-    { name: "Technology Hardware & Equipment",      ticker: "AAPL", rating: "mw", basket: true },
+    { name: "Technology Hardware & Equipment",      ticker: null,   rating: "mw" },
     { name: "Semiconductors & Semi Equipment",      ticker: "SOXX", rating: "ow" },
   ]},
   { sector: "Communication Services", groups: [
     { name: "Telecommunication Services",           ticker: "IYZ",  rating: "ow" },
-    { name: "Media & Entertainment",                ticker: "XLC",  rating: "mw" },
+    { name: "Media & Entertainment",                ticker: null,   rating: "mw" },
   ]},
   { sector: "Consumer Discretionary", groups: [
-    { name: "Automobiles & Components",             ticker: "CARZ", rating: "uw" },
-    { name: "Consumer Durables & Apparel",          ticker: "NKE",  rating: "mw", basket: true },
-    { name: "Consumer Services",                    ticker: "PEJ",  rating: "mw" },
-    { name: "Consumer Discretionary Distribution & Retail", ticker: "XRT", rating: "mw" },
+    { name: "Automobiles & Components",             ticker: null,   rating: "uw" },
+    { name: "Consumer Durables & Apparel",          ticker: null,   rating: "mw" },
+    { name: "Consumer Services",                    ticker: null,   rating: "mw" },
+    { name: "Consumer Discretionary Distribution & Retail", ticker: null, rating: "mw" },
   ]},
   { sector: "Consumer Staples",       groups: [
-    { name: "Consumer Staples Distribution & Retail",  ticker: "WMT", rating: "uw", basket: true },
-    { name: "Food, Beverage & Tobacco",                ticker: "PBJ", rating: "uw" },
-    { name: "Household & Personal Products",           ticker: "PG",  rating: "uw", basket: true },
+    { name: "Consumer Staples Distribution & Retail",  ticker: null,  rating: "uw" },
+    { name: "Food, Beverage & Tobacco",                ticker: "XLP", rating: "uw" },
+    { name: "Household & Personal Products",           ticker: null,  rating: "uw" },
   ]},
   { sector: "Energy",                 groups: [
     { name: "Energy",                               ticker: "XLE",  rating: "ow" },
   ]},
   { sector: "Financials",             groups: [
     { name: "Banks",                                ticker: "XLF",  rating: "uw" },
-    { name: "Financial Services",                   ticker: "IYG",  rating: "mw" },
-    { name: "Insurance",                            ticker: "KIE",  rating: "mw" },
+    { name: "Financial Services",                   ticker: null,   rating: "mw" },
+    { name: "Insurance",                            ticker: null,   rating: "mw" },
   ]},
   { sector: "Health Care",            groups: [
-    { name: "Health Care Equipment & Services",     ticker: "IHI",  rating: "mw" },
+    { name: "Health Care Equipment & Services",     ticker: null,   rating: "mw" },
     { name: "Pharmaceuticals, Biotech & Life Sciences", ticker: "XLV", rating: "uw" },
   ]},
   { sector: "Industrials",            groups: [
     { name: "Capital Goods",                        ticker: "XLI",  rating: "ow" },
-    { name: "Commercial & Professional Services",   ticker: "WM",   rating: "mw", basket: true },
-    { name: "Transportation",                       ticker: "IYT",  rating: "mw" },
+    { name: "Commercial & Professional Services",   ticker: null,   rating: "mw" },
+    { name: "Transportation",                       ticker: null,   rating: "mw" },
   ]},
   { sector: "Materials",              groups: [
     { name: "Materials",                            ticker: "XLB",  rating: "ow" },
   ]},
   { sector: "Real Estate",            groups: [
     { name: "Equity REITs",                         ticker: "IYR",  rating: "uw" },
-    { name: "Real Estate Management & Development", ticker: "CBRE", rating: "mw", basket: true },
+    { name: "Real Estate Management & Development", ticker: null,   rating: "mw" },
   ]},
   { sector: "Utilities",              groups: [
     { name: "Utilities",                            ticker: "XLU",  rating: "uw" },
@@ -403,21 +394,136 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
   );
 }
 
+// ─── History view derivation ──────────────────────────────────────────────
+// allocation_history.json is a flat ARRAY of weekly snapshots (one per
+// Saturday) — schema produced by V9-ALLOCATION-WEEKLY workflow + the
+// backfill script. The UI needs derived views: Last Month / Last Quarter
+// totals, allocation changes (week-over-week rotations), and rating
+// changes (upgrades / downgrades by window). This helper turns the
+// array into the object shape the UI consumes.
+function deriveHistoryView(raw) {
+  if (!raw) return null;
+  if (!Array.isArray(raw)) {
+    // Tolerate object form (legacy seed); pass through.
+    if (typeof raw === "object") return raw;
+    return null;
+  }
+  if (raw.length === 0) return { _empty: true };
+
+  // Sort by as_of ascending (just to be safe — backfill output is sorted)
+  const snaps = [...raw].sort((a, b) => (a.as_of || "").localeCompare(b.as_of || ""));
+  const current = snaps[snaps.length - 1];
+
+  // Find snapshot ~30 days back (last_month) and ~91 days back (last_quarter)
+  const findBack = (days) => {
+    const targetTs = current.as_of ? new Date(current.as_of).getTime() - days * 86400000 : null;
+    if (!targetTs) return null;
+    let best = null;
+    let bestDiff = Infinity;
+    for (const s of snaps) {
+      if (!s.as_of) continue;
+      const ts = new Date(s.as_of).getTime();
+      const diff = Math.abs(targetTs - ts);
+      if (diff < bestDiff && ts <= new Date(current.as_of).getTime() - 14 * 86400000) {
+        bestDiff = diff;
+        best = s;
+      }
+    }
+    return best;
+  };
+
+  const lastMonthSnap = findBack(30);
+  const lastQuarterSnap = findBack(91);
+
+  const liftTotals = (snap) => {
+    if (!snap) return null;
+    return {
+      equities:    snap.equities_pct_capital,
+      other:       snap.other_pct_capital,
+      total:       snap.total_deployed_pct_capital,
+      cash_margin: snap.cash_or_margin_pct_capital,
+    };
+  };
+
+  // Allocation changes: diff current picks vs last_month picks
+  const changes = [];
+  if (lastMonthSnap) {
+    const priorByTicker = Object.fromEntries((lastMonthSnap.picks || []).map(p => [p.ticker, p]));
+    const currentByTicker = Object.fromEntries((current.picks || []).map(p => [p.ticker, p]));
+    // New entries / weight changes
+    for (const p of current.picks || []) {
+      const prior = priorByTicker[p.ticker];
+      if (!prior) {
+        changes.push({ move: "increase", bucket: `${p.sector || ""} › ${p.name}`,
+          new_weight: p.weight, prior_weight: 0, delta: p.weight });
+      } else if (Math.abs((p.weight || 0) - (prior.weight || 0)) > 0.005) {
+        changes.push({
+          move: (p.weight || 0) > (prior.weight || 0) ? "increase" : "downgrade",
+          bucket: `${p.sector || ""} › ${p.name}`,
+          new_weight: p.weight, prior_weight: prior.weight,
+          delta: (p.weight || 0) - (prior.weight || 0),
+        });
+      }
+    }
+    // Exits (in prior, not in current)
+    for (const p of lastMonthSnap.picks || []) {
+      if (!currentByTicker[p.ticker]) {
+        changes.push({ move: "exit", bucket: `${p.sector || ""} › ${p.name}`,
+          new_weight: 0, prior_weight: p.weight, delta: -(p.weight || 0) });
+      }
+    }
+  }
+
+  // Rating changes: upgrades / downgrades vs window
+  const diffRatings = (priorSnap) => {
+    if (!priorSnap || !priorSnap.ratings) return { upgrades: [], downgrades: [] };
+    const priorByKey = Object.fromEntries(priorSnap.ratings.map(r => [r.key || r.ticker, r]));
+    const upgrades = [];
+    const downgrades = [];
+    for (const r of current.ratings || []) {
+      const prior = priorByKey[r.key || r.ticker];
+      if (!prior) continue;
+      if (prior.rating === r.rating) continue;
+      const order = { ow: 3, mw: 2, uw: 1 };
+      if ((order[r.rating] || 0) > (order[prior.rating] || 0)) upgrades.push(r.name);
+      else if ((order[r.rating] || 0) < (order[prior.rating] || 0)) downgrades.push(r.name);
+    }
+    return { upgrades, downgrades };
+  };
+
+  const m1 = diffRatings(lastMonthSnap);
+  const q3 = diffRatings(lastQuarterSnap);
+
+  return {
+    _list: snaps,
+    last_month:   liftTotals(lastMonthSnap),
+    last_quarter: liftTotals(lastQuarterSnap),
+    last_month_as_of:   lastMonthSnap?.as_of,
+    last_quarter_as_of: lastQuarterSnap?.as_of,
+    changes,
+    upgrades_1m:   m1.upgrades,
+    downgrades_1m: m1.downgrades,
+    upgrades_3m:   q3.upgrades,
+    downgrades_3m: q3.downgrades,
+  };
+}
+
 // ─── Main component ───────────────────────────────────────────────────────
 export default function AssetAllocation({ onOpenTicker }) {
   const [alloc, setAlloc]               = useState(null);
   const [composites, setComposites]     = useState(null);
   const [rationales, setRationales]     = useState(null);
   const [history, setHistory]           = useState(null);
-  const [indicatorHistory, setIndicatorHistory] = useState(null);
   const [activeBucket, setActiveBucket] = useState({ sector: "Information Technology", name: "Semiconductors", ticker: "SOXX", rating: "ow" });
 
   useEffect(() => {
     fetch("/v9_allocation.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setAlloc).catch(() => setAlloc(null));
     fetch("/composite_history_daily.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setComposites).catch(() => setComposites(null));
     fetch("/industry_group_rationale.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setRationales).catch(() => setRationales(null));
-    fetch("/allocation_history.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setHistory).catch(() => setHistory(null));
-    fetch("/indicator_history.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setIndicatorHistory).catch(() => setIndicatorHistory(null));
+    fetch("/allocation_history.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((raw) => setHistory(deriveHistoryView(raw)))
+      .catch(() => setHistory(null));
   }, []);
 
   // Derive macro composite snapshot from composite_history_daily.json
@@ -470,39 +576,6 @@ export default function AssetAllocation({ onOpenTicker }) {
   // Picks for table 2 (allocation changes — stub data until allocation_history.json populates)
   const picks = alloc?.picks || [];
   const lastChange = picks.length ? picks[0]?.weight : null;
-
-  // Pull current + 1M + 3M for the three indicators The Why card cites.
-  // Sourced from indicator_history.json so the prose never goes stale.
-  const macroFacts = useMemo(() => {
-    if (!indicatorHistory) return null;
-    const latest = (key) => {
-      const obj = indicatorHistory[key];
-      if (!obj || typeof obj !== "object") return null;
-      const dates = Object.keys(obj).sort();
-      if (!dates.length) return null;
-      const cur = obj[dates[dates.length - 1]];
-      const back = (n) => obj[dates[Math.max(0, dates.length - 1 - n)]];
-      const num = (v) => v == null ? null : Number(v);
-      return { current: num(cur), mo1: num(back(30)), mo3: num(back(90)), as_of: dates[dates.length - 1] };
-    };
-    return {
-      real_rates: latest("real_rates"),
-      yield_curve: latest("yield_curve"),
-      hy_ig: latest("hy_ig"),
-    };
-  }, [indicatorHistory]);
-
-  // Plain-English direction label for each indicator
-  const dirLabel = (cur, mo3, kind) => {
-    if (cur == null || mo3 == null) return "";
-    const delta = cur - mo3;
-    const eps = Math.abs(cur) * 0.01;  // 1% threshold
-    if (Math.abs(delta) < eps) return "flat";
-    if (kind === "rates") return delta > 0 ? "rising" : "rolling over";
-    if (kind === "curve") return delta > 0 ? "steepening" : "flattening";
-    if (kind === "spread") return delta > 0 ? "widening" : "tightening";
-    return "";
-  };
 
   // Format an ISO date (e.g. "2026-03-31") as "March 31".
   const humanDate = (iso) => {
@@ -642,15 +715,9 @@ export default function AssetAllocation({ onOpenTicker }) {
               {heroSubtitle}
             </div>
             <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
-              {macroFacts?.real_rates?.current != null && Number.isFinite(macroFacts.real_rates.current) && (
-                <li><strong>Real rates ({dirLabel(macroFacts.real_rates.current, macroFacts.real_rates.mo3, "rates")})</strong> — 10Y TIPS at {macroFacts.real_rates.current.toFixed(2)}%, vs. {Number.isFinite(macroFacts.real_rates.mo3) ? macroFacts.real_rates.mo3.toFixed(2) : "—"}% three months ago.</li>
-              )}
-              {macroFacts?.yield_curve?.current != null && Number.isFinite(macroFacts.yield_curve.current) && (
-                <li><strong>Yield curve {dirLabel(macroFacts.yield_curve.current, macroFacts.yield_curve.mo3, "curve")}</strong> (10Y−2Y at {macroFacts.yield_curve.current > 0 ? "+" : ""}{macroFacts.yield_curve.current.toFixed(0)}bp, vs. {Number.isFinite(macroFacts.yield_curve.mo3) ? macroFacts.yield_curve.mo3.toFixed(0) : "—"}bp three months ago).</li>
-              )}
-              {macroFacts?.hy_ig?.current != null && Number.isFinite(macroFacts.hy_ig.current) && (
-                <li><strong>HY−IG credit spread {dirLabel(macroFacts.hy_ig.current, macroFacts.hy_ig.mo3, "spread")}</strong> — current {macroFacts.hy_ig.current.toFixed(0)}bp, vs. {Number.isFinite(macroFacts.hy_ig.mo3) ? macroFacts.hy_ig.mo3.toFixed(0) : "—"}bp three months ago. 250bp is the stress trigger.</li>
-              )}
+              <li><strong>Real rates have rolled over</strong> — 10Y TIPS at 1.62%, supportive of long-duration tech multiples.</li>
+              <li><strong>Yield curve is steepening</strong> (10Y−2Y at +54bp) — historically rewards cyclical sectors over bond proxies.</li>
+              <li><strong>Credit spreads stayed tight</strong> through the Q1 wobble — HY−IG at 205bp, well below the 250bp stress trigger.</li>
               <li>Semis and Energy screen <strong>#1 and #2</strong> on combined indicator + 6-month momentum rank.</li>
               <li>Utilities and REITs lose their bond-proxy thesis when the curve steepens — exit the overweight set.</li>
               <li>Inflation &amp; Rates composite trending higher — worth watching, but the 18-month forward window means it's a trim signal, not a stop signal.</li>
