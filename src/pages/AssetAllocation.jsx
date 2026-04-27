@@ -504,7 +504,7 @@ export default function AssetAllocation({ onOpenTicker }) {
 
       {/* Hero KPI strip */}
       <section style={{
-        padding: "var(--space-6) var(--space-7)",
+        padding: "var(--space-8) var(--space-10)",
         background: "var(--surface-solid)",
         border: "1px solid var(--border-strong)",
         borderRadius: "var(--radius-lg)",
@@ -569,7 +569,7 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 1 — The What & The Why */}
-      <section style={{ padding: "var(--space-7) var(--space-8)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+      <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: 18 }}>
           <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>1 · The big picture</div>
         </div>
@@ -610,7 +610,7 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 2 — Recommended Asset Allocation */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+      <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: 12 }}>
           <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>2 · Recommended Asset Allocation</div>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Three views: where we are, what changed, what flipped</h2>
@@ -656,7 +656,7 @@ export default function AssetAllocation({ onOpenTicker }) {
         </table>
 
 
-        <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "16px 0 6px" }}>Allocation changes</h3>
+        <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "20px 0 8px" }}>Allocation changes</h3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
           <thead>
             <tr style={{ background: "var(--surface)" }}>
@@ -680,7 +680,7 @@ export default function AssetAllocation({ onOpenTicker }) {
           </tbody>
         </table>
 
-        <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "16px 0 6px" }}>Rating changes</h3>
+        <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "20px 0 8px" }}>Rating changes</h3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
           <thead>
             <tr style={{ background: "var(--surface)" }}>
@@ -705,7 +705,7 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 3 — Sector outlooks & target allocation */}
-      <section style={{ padding: "var(--space-7) var(--space-8)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+      <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>3 · Sector outlooks &amp; target allocation</div>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>11 GICS sectors · current rating &amp; rationale</h2>
@@ -716,19 +716,19 @@ export default function AssetAllocation({ onOpenTicker }) {
         <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
           <thead>
             <tr>
-              <th style={{ textAlign: "left", padding: "12px 16px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" }}>Sector</th>
-              <th style={{ textAlign: "center", padding: "12px 16px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", width: 130 }}>Rating</th>
-              <th style={{ textAlign: "left", padding: "12px 16px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" }}>Rationale</th>
+              <th style={{ textAlign: "left", padding: "14px 22px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" }}>Sector</th>
+              <th style={{ textAlign: "center", padding: "14px 22px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", width: 130 }}>Rating</th>
+              <th style={{ textAlign: "left", padding: "14px 22px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" }}>Rationale</th>
             </tr>
           </thead>
           <tbody>
             {SECTOR_RATINGS.map((row, i) => (
               <tr key={row.sector}>
-                <td style={{ padding: "14px 16px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 14 }}>{row.sector}</td>
-                <td style={{ padding: "14px 16px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "center" }}>
+                <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 14 }}>{row.sector}</td>
+                <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "center" }}>
                   <RatingPill rating={row.rating} />
                 </td>
-                <td style={{ padding: "14px 16px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>{row.rationale}</td>
+                <td style={{ padding: "16px 22px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>{row.rationale}</td>
               </tr>
             ))}
           </tbody>
@@ -763,7 +763,7 @@ export default function AssetAllocation({ onOpenTicker }) {
       </section>
 
       {/* Section 4 — Risk management */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+      <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>4 · What to watch out for</div>
@@ -794,14 +794,14 @@ export default function AssetAllocation({ onOpenTicker }) {
 
       {/* Methodology summary + footer — expandable accordion */}
       <details style={{ padding: 0, background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
-        <summary style={{ padding: "var(--space-6) var(--space-7)", cursor: "pointer", listStyle: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <summary style={{ padding: "var(--space-8) var(--space-10)", cursor: "pointer", listStyle: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div>
             <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>5 · Methodology</div>
             <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 0" }}>How this allocation is built</h2>
           </div>
           <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Click to expand ↓</span>
         </summary>
-        <div style={{ padding: "0 var(--space-7) var(--space-6)" }}>
+        <div style={{ padding: "0 var(--space-10) var(--space-8)" }}>
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.55 }}>Each industry group is regressed on 2-6 macro factors (universal background factors: yield curve and term premium). Top 5 picks selected by combined indicator + 6-month-momentum rank, equal-weighted, scaled by leverage calibrated to the Risk &amp; Liquidity composite. Defensive sleeve (BIL/TLT/GLD/LQD) activates when R&amp;L moves into the elevated or stressed zone.</p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
@@ -842,7 +842,7 @@ export default function AssetAllocation({ onOpenTicker }) {
 function thStyle() {
   return {
     textAlign: "left",
-    padding: "10px 14px",
+    padding: "12px 18px",
     fontSize: 10,
     color: "var(--text-muted)",
     textTransform: "uppercase",
@@ -851,7 +851,7 @@ function thStyle() {
     borderBottom: "1px solid var(--border-strong)",
   };
 }
-function tdStyle() { return { padding: "11px 14px", borderBottom: "1px solid var(--border)", verticalAlign: "middle", fontSize: 13 }; }
+function tdStyle() { return { padding: "13px 18px", borderBottom: "1px solid var(--border)", verticalAlign: "middle", fontSize: 13 }; }
 function tdRight() { return { ...tdStyle(), textAlign: "right" }; }
 function dollarStyle() { return { fontFamily: "var(--font-mono)", color: "var(--text)" }; }
 
@@ -875,10 +875,10 @@ function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect })
       <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)", fontSize: 13 }}>
         <thead>
           <tr>
-            <th style={{ textAlign: "left", padding: "8px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Sector › Industry group</th>
-            <th style={{ textAlign: "right", padding: "8px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Target</th>
-            <th style={{ textAlign: "right", padding: "8px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>vs SPY</th>
-            <th style={{ textAlign: "left", padding: "8px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Why</th>
+            <th style={{ textAlign: "left", padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Sector › Industry group</th>
+            <th style={{ textAlign: "right", padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Target</th>
+            <th style={{ textAlign: "right", padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>vs SPY</th>
+            <th style={{ textAlign: "left", padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border)" }}>Why</th>
           </tr>
         </thead>
         <tbody>
@@ -896,15 +896,15 @@ function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect })
                   onMouseEnter={(e) => { if (r.ticker) e.currentTarget.style.background = "var(--surface)"; }}
                   onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
               >
-                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none" }}>
+                <td style={{ padding: "13px 18px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none" }}>
                   <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500 }}>{r.sector}</div>
                   <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 1 }}>{r.name}</div>
                 </td>
-                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)" }}>{weight > 0 ? `$${(weight * 100).toFixed(1)}` : "$0"}</td>
-                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)", color: delta == null ? "var(--text-muted)" : delta >= 0 ? "var(--green-text)" : "var(--red-text)", fontWeight: 600 }}>
+                <td style={{ padding: "13px 18px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)" }}>{weight > 0 ? `$${(weight * 100).toFixed(1)}` : "$0"}</td>
+                <td style={{ padding: "13px 18px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "right", fontFamily: "var(--font-mono)", color: delta == null ? "var(--text-muted)" : delta >= 0 ? "var(--green-text)" : "var(--red-text)", fontWeight: 600 }}>
                   {delta == null ? "—" : `${delta >= 0 ? "+" : "−"}$${Math.abs(delta * 100).toFixed(1)}`}
                 </td>
-                <td style={{ padding: "11px 14px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>{why}</td>
+                <td style={{ padding: "13px 18px", borderBottom: i < rows.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.4 }}>{why}</td>
               </tr>
             );
           })}
