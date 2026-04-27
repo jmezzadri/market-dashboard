@@ -20,6 +20,7 @@ import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
 import usePortfolioHistory from "./hooks/usePortfolioHistory";
 import useDailyNavSnapshot from "./hooks/useDailyNavSnapshot";
 import { computePortfolioReturns, computeSpyReturns } from "./lib/portfolioReturns";
+import { computePortfolioSharpe } from "./lib/riskMetrics";
 import { useTickerEvents } from "./hooks/useTickerEvents";
 import { useCommentary } from "./hooks/useCommentary";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
@@ -2782,6 +2783,10 @@ const info=scanData?.signals?.info?.[ticker]||null;
 // on flow-related items). Normalize into a single shape so the renderer
 // doesn't have to branch. Dedupe across sources by headline.
 const _uwNews=scanData?.signals?.news?.[ticker]||[];
+// 2Y daily price-derived risk metrics. Beta vs SPY (weekly), annualized
+// vol, max drawdown, 10-day 99% historical VaR. Joe spec 2026-04-27
+// (P5 #16/#17). Hook caches by ticker; SPY shared across tickers.
+const { metrics: _riskMetrics } = useStockRiskMetrics(ticker);
 const _gnNormalized=(gnNewsItems||[]).map((n)=>({
   headline:n.headline,
   source:n.source||"Google News",
@@ -3040,6 +3045,35 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
 </div>
 </div>
 )}
+
+{/* Risk metrics — Beta, Vol, Max DD, 10-day 99% VaR. Computed from
+    2Y of daily Yahoo price data. Always renders so users see this on
+    every stock modal regardless of issue type. Joe spec 2026-04-27
+    (P5 #16/#17). */}
+<div id="sec-risk" style={panelStyle}>
+<div style={sectionLabel}>RISK METRICS · 2-YEAR</div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
+{(()=>{
+  const m=_riskMetrics;
+  const fmtPctMag=v=>v==null?"—":(v*100).toFixed(2)+"%";
+  const fmtBeta=v=>v==null?"—":v.toFixed(2);
+  const heldVal=heldIn[0]?.p?.value||null;
+  const var$=m?.var10d99!=null&&heldVal?heldVal*m.var10d99:null;
+  const fmt$=v=>v==null?null:`$${Math.round(v).toLocaleString()}`;
+  const betaCol=m?.beta==null?"var(--text-dim)":m.beta>1.3?"#ff9f0a":m.beta<0.6?"#B8860B":"var(--text)";
+  const volCol=m?.annVol==null?"var(--text-dim)":m.annVol>0.40?"#ff453a":m.annVol>0.25?"#ff9f0a":"var(--text)";
+  const ddCol=m?.maxDD==null?"var(--text-dim)":m.maxDD>0.40?"#ff453a":m.maxDD>0.25?"#ff9f0a":"var(--text)";
+  const varCol=m?.var10d99==null?"var(--text-dim)":m.var10d99>0.20?"#ff453a":m.var10d99>0.10?"#ff9f0a":"var(--text)";
+  return(<>
+    <Kpi label="BETA · vs SPY" value={fmtBeta(m?.beta)} color={betaCol} sub="2Y weekly OLS" tip="Beta vs S&P 500 (SPY). Computed from 2 years of weekly returns via ordinary least squares. Beta of 1.0 = moves with the market; >1.0 amplifies; <1.0 dampens. Negative beta is rare and means inverse correlation."/>
+    <Kpi label="ANN VOL" value={fmtPctMag(m?.annVol)} color={volCol} sub="2Y daily × √252" tip="Annualized volatility = standard deviation of daily returns over 2Y, scaled by √252 (trading days/yr). Roughly: 15-25% normal for diversified equities, 25-40% elevated, >40% high-beta single names."/>
+    <Kpi label="MAX DRAWDOWN" value={fmtPctMag(m?.maxDD)} color={ddCol} sub="peak → trough, 2Y" tip="Largest peak-to-trough decline as a fraction of the prior peak over the last 2Y. Captures the worst capital impairment a holder could have experienced without selling."/>
+    <Kpi label="10D 99% VaR" value={fmtPctMag(m?.var10d99)} color={varCol} sub={var$?"approx "+fmt$(var$)+" on this position":"% of position"} tip="10-day 99% historical Value-at-Risk. Using 2Y daily returns, take rolling 10-day returns, sort, find the 1st-percentile worst outcome. Translates to: with 99% confidence the position should not lose more than this over 10 trading days. Loss EXCEEDS this 1% of the time historically."/>
+  </>);
+})()}
+</div>
+{_riskMetrics?.sourceWindow && <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"var(--font-mono)",letterSpacing:"0.04em",marginTop:6}}>Source: Yahoo daily · {_riskMetrics.sourceWindow}</div>}
+</div>
 
 {/* Technicals — hide entirely for manual-track tickers where every field is null */}
 {(rsi!=null||macd!=null||above50!=null||above200!=null||vol!=null||rv!=null)&&(
@@ -5698,6 +5732,12 @@ useEffect(() => {
 const { rows: _phRows } = usePortfolioHistory();
 useDailyNavSnapshot();  // backstop for the cron path (#26)
 const _portfolioReturns = useMemo(() => computePortfolioReturns(_phRows), [_phRows]);
+const _portfolioSharpe = useMemo(() => {
+  // 3M T-bill spot, decimal. Currently ~5.0% (DGS3MO Apr 2026 prints around
+  // there). Static for now; can be wired to live FRED if more precision
+  // matters than the +/- 50bps the rate moves day-to-day.
+  return computePortfolioSharpe(_portfolioReturns?.aggregate || [], 0.05);
+}, [_portfolioReturns]);
 
 // Inline sign-in toggle for the portopps zero-state. Clicking the CTA in the
 // banner swaps the skeleton for the LoginScreen; successful sign-in flips
@@ -7079,7 +7119,42 @@ return(
 ))}
 </div>
 </div>
+)}
 
+{/* PORTFOLIO RISK METRICS — Sharpe + annualized return + vol from the
+    same portfolio_history aggregate series powering tile 04. Joe spec
+    2026-04-27 (P5 #18). Independent gate: only renders on insights tab
+    AND when we have enough portfolio_history to compute. */}
+{showInsights && _portfolioSharpe && (
+<div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO RISK · TIME-WEIGHTED</div>
+<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8}}>
+{(()=>{
+  const s=_portfolioSharpe;
+  const fmtPct=v=>v==null?"—":((v>=0?"+":"")+(v*100).toFixed(2)+"%");
+  const fmtPctMag=v=>v==null?"—":(v*100).toFixed(2)+"%";
+  const sharpeCol=s.sharpe>=1?"var(--green-text)":s.sharpe>=0.5?"var(--text)":s.sharpe>=0?"var(--yellow-text)":"var(--orange-text)";
+  return(<>
+    <div style={{background:"var(--surface-3)",borderRadius:5,padding:"10px 12px"}}>
+      <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:4,fontWeight:600,letterSpacing:"0.08em"}}>SHARPE RATIO</div>
+      <div style={{fontSize:18,fontWeight:800,color:sharpeCol,fontFamily:"monospace"}}>{s.sharpe.toFixed(2)}</div>
+      <div style={{fontSize:10,color:"var(--text-dim)",marginTop:4}}>RFR {(s.rfrAnnual*100).toFixed(2)}% (3M T-bill)</div>
+    </div>
+    <div style={{background:"var(--surface-3)",borderRadius:5,padding:"10px 12px"}}>
+      <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:4,fontWeight:600,letterSpacing:"0.08em"}}>ANNUALIZED TWR</div>
+      <div style={{fontSize:18,fontWeight:800,color:s.annualR>=0?"var(--green-text)":"var(--orange-text)",fontFamily:"monospace"}}>{fmtPct(s.annualR)}</div>
+      <div style={{fontSize:10,color:"var(--text-dim)",marginTop:4}}>flows netted out</div>
+    </div>
+    <div style={{background:"var(--surface-3)",borderRadius:5,padding:"10px 12px"}}>
+      <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:4,fontWeight:600,letterSpacing:"0.08em"}}>ANN VOLATILITY</div>
+      <div style={{fontSize:18,fontWeight:800,color:s.annualVol>0.20?"var(--orange-text)":"var(--text)",fontFamily:"monospace"}}>{fmtPctMag(s.annualVol)}</div>
+      <div style={{fontSize:10,color:"var(--text-dim)",marginTop:4}}>{s.periods} periods · {s.spanDays} days</div>
+    </div>
+  </>);
+})()}
+</div>
+<div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.04em",marginTop:6}}>Computed from portfolio_history aggregate (Modified Dietz). Sharpe = (annualized return − RFR) / annualized vol. Window: {_portfolioSharpe.spanDays} days, {_portfolioSharpe.periods} flow-netted periods.</div>
+</div>
 )}
 
 {/* SECTION 1 — TRADING OPPS (only on portopps tab) */}
