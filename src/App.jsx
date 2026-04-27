@@ -2007,6 +2007,11 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   // Reg #7: openIds is a Set so we can expand-all / collapse-all.
   const [openIds, setOpenIds] = useState(() => new Set());
 
+  // P6 #20 — search + filter chips. Joe 2026-04-27.
+  const [search, setSearch] = useState("");
+  const [filterComposite, setFilterComposite] = useState("all"); // all | rl | growth | ir | reference
+  const [filterCategory, setFilterCategory]   = useState("all"); // all | equity | credit | rates | fincond | bank | labor
+
   // Deep-link: when arriving via #indicators?id=X, expand that row and
   // scroll it into view, then clear the parent's deeplink state so a manual
   // navigation away and back doesn't keep re-firing.
@@ -2057,8 +2062,25 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   const weightedCount = rows.filter(r => r.weight != null).length;
   const refCount = rows.length - weightedCount;
 
+  // Filter (composite chip + category chip + free-text search)
+  const filtered = rows.filter(r => {
+    if (filterComposite !== "all") {
+      if (filterComposite === "rl"        && r.composite !== "Risk & Liquidity") return false;
+      if (filterComposite === "growth"    && r.composite !== "Growth")           return false;
+      if (filterComposite === "ir"        && r.composite !== "Inflation & Rates")return false;
+      if (filterComposite === "reference" && r.composite)                         return false;
+    }
+    if (filterCategory !== "all" && r.cat !== filterCategory) return false;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      const hay = `${r.id} ${r.label} ${r.sub} ${r.composite} ${r.cat} ${CATS[r.cat]?.label || ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
   // Sort
-  const sorted = [...rows].sort((a, b) => {
+  const sorted = [...filtered].sort((a, b) => {
     if(sortKey === "default"){
       const ca = COMP_ORDER[a.composite] ?? 3;
       const cb = COMP_ORDER[b.composite] ?? 3;
@@ -2168,8 +2190,82 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
           tooltips on every column header and weight chip explain the term in plain English.
         </p>
         <div style={{fontSize:12, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.04em"}}>
-          {rows.length} indicators total · {weightedCount} weighted into composites · {refCount} reference-only
+          {rows.length} indicators total · {weightedCount} weighted into composites · {refCount} reference-only{filtered.length !== rows.length ? <span style={{color:"var(--accent)"}}> · {filtered.length} matching filters</span> : null}
         </div>
+      </div>
+
+      {/* ── SEARCH + FILTER CHIPS (P6 #20, Joe 2026-04-27) ───────── */}
+      <div style={{
+        display:"flex", flexWrap:"wrap", gap:10, alignItems:"center",
+        padding:"12px 14px", marginBottom:14,
+        background:"var(--surface-2)",
+        border:"1px solid var(--border-faint)",
+        borderRadius:6,
+      }}>
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search indicators…"
+          style={{
+            flex:"1 1 240px", minWidth:200, maxWidth:340,
+            padding:"6px 10px", fontSize:13,
+            border:"1px solid var(--border)", borderRadius:4,
+            background:"var(--surface)", color:"var(--text)",
+            fontFamily:"var(--font-ui)",
+          }}
+        />
+        {/* Composite chips */}
+        <div style={{display:"inline-flex", gap:4, flexWrap:"wrap"}}>
+          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600}}>COMPOSITE</span>
+          {[
+            {k:"all",       label:"All",            col:"var(--text)"},
+            {k:"rl",        label:"R&L",            col:"#4a6fa5"},
+            {k:"growth",    label:"Growth",         col:"#1f9d60"},
+            {k:"ir",        label:"Infl & Rates",   col:"#b8811c"},
+            {k:"reference", label:"Reference-only", col:"var(--text-muted)"},
+          ].map(c => (
+            <button key={c.k} type="button"
+              onClick={() => setFilterComposite(c.k)}
+              style={{
+                fontFamily:"var(--font-mono)", fontSize:11,
+                padding:"4px 10px", borderRadius:4, cursor:"pointer",
+                border: `1px solid ${filterComposite === c.k ? c.col : "var(--border)"}`,
+                background: filterComposite === c.k ? c.col + "22" : "transparent",
+                color: filterComposite === c.k ? c.col : "var(--text-muted)",
+                fontWeight: 600, letterSpacing:"0.04em",
+              }}>{c.label}</button>
+          ))}
+        </div>
+        {/* Category chips */}
+        <div style={{display:"inline-flex", gap:4, flexWrap:"wrap"}}>
+          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600}}>CATEGORY</span>
+          {[
+            {k:"all", label:"All", col:"var(--text)"},
+            ...Object.entries(CATS).map(([k, v]) => ({k, label:v.label, col:v.color})),
+          ].map(c => (
+            <button key={c.k} type="button"
+              onClick={() => setFilterCategory(c.k)}
+              style={{
+                fontFamily:"var(--font-mono)", fontSize:11,
+                padding:"4px 10px", borderRadius:4, cursor:"pointer",
+                border: `1px solid ${filterCategory === c.k ? c.col : "var(--border)"}`,
+                background: filterCategory === c.k ? c.col + "22" : "transparent",
+                color: filterCategory === c.k ? c.col : "var(--text-muted)",
+                fontWeight: 600, letterSpacing:"0.04em",
+              }}>{c.label}</button>
+          ))}
+        </div>
+        {(search || filterComposite !== "all" || filterCategory !== "all") && (
+          <button type="button"
+            onClick={() => { setSearch(""); setFilterComposite("all"); setFilterCategory("all"); }}
+            style={{
+              fontFamily:"var(--font-mono)", fontSize:11,
+              padding:"4px 10px", borderRadius:4, cursor:"pointer",
+              border:"1px solid var(--accent)", color:"var(--accent)",
+              background:"transparent", fontWeight:600, marginLeft:"auto",
+            }}>RESET</button>
+        )}
       </div>
 
       {/* ── SORTABLE TABLE ──────────────────────────────────────────── */}
