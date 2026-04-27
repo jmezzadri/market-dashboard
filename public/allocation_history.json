@@ -1,0 +1,970 @@
+[
+  {
+    "as_of": "2025-12-31",
+    "saturday_replayed": "2026-01-03",
+    "snapshotted_at": "2026-04-27T02:27:58+00:00",
+    "backfilled": true,
+    "stance_label": "Aggressive",
+    "equities_pct_capital": 136.69,
+    "other_pct_capital": 0.0,
+    "total_deployed_pct_capital": 136.69,
+    "cash_or_margin_pct_capital": -36.69,
+    "leverage": 1.366875,
+    "equity_share": 1.0,
+    "alpha": 1.366875,
+    "regime": {
+      "risk_liquidity": -18.2,
+      "growth": 19.7,
+      "inflation_rates": -28.7,
+      "rl_3mo_change": 14.8,
+      "regime_flip_active": false
+    },
+    "selection_confidence": "STRONG",
+    "picks": [
+      {
+        "ticker": "CBRE",
+        "name": "Real Estate Management & Development",
+        "sector": "Real Estate",
+        "weight": 0.27337500000000003,
+        "indicator_rank": 1,
+        "momentum_rank": 1
+      },
+      {
+        "ticker": "SOXX",
+        "name": "Semiconductors & Semiconductor Equipment",
+        "sector": "Info Tech",
+        "weight": 0.27337500000000003,
+        "indicator_rank": 2,
+        "momentum_rank": 3
+      },
+      {
+        "ticker": "AAPL",
+        "name": "Technology Hardware & Equipment",
+        "sector": "Info Tech",
+        "weight": 0.27337500000000003,
+        "indicator_rank": 5,
+        "momentum_rank": 4
+      },
+      {
+        "ticker": "CARZ",
+        "name": "Automobiles & Components",
+        "sector": "Cons Disc",
+        "weight": 0.27337500000000003,
+        "indicator_rank": 8,
+        "momentum_rank": 2
+      },
+      {
+        "ticker": "IYG",
+        "name": "Financial Services",
+        "sector": "Financials",
+        "weight": 0.27337500000000003,
+        "indicator_rank": 4,
+        "momentum_rank": 11
+      }
+    ],
+    "ratings": [
+      {
+        "key": "ENRG",
+        "name": "Energy",
+        "ticker": "XLE",
+        "rating": "mw",
+        "combined_rank": 17
+      },
+      {
+        "key": "MTLS",
+        "name": "Materials",
+        "ticker": "XLB",
+        "rating": "uw",
+        "combined_rank": 21
+      },
+      {
+        "key": "CAPG",
+        "name": "Capital Goods",
+        "ticker": "XLI",
+        "rating": "mw",
+        "combined_rank": 11
+      },
+      {
+        "key": "CMSV",
+        "name": "Commercial & Professional Services",
+        "ticker": "WM",
+        "rating": "uw",
+        "combined_rank": 23
+      },
+      {
+        "key": "TRNS",
+        "name": "Transportation",
+        "ticker": "IYT",
+        "rating": "mw",
+        "combined_rank": 15
+      },
+      {
+        "key": "AUTO",
+        "name": "Automobiles & Components",
+        "ticker": "CARZ",
+        "rating": "ow",
+        "combined_rank": 4
+      },
+      {
+        "key": "DURB",
+        "name": "Consumer Durables & Apparel",
+        "ticker": "NKE",
+        "rating": "mw",
+        "combined_rank": 7
+      },
+      {
+        "key": "CSRV",
+        "name": "Consumer Services",
+        "ticker": "PEJ",
+        "rating": "mw",
+        "combined_rank": 18
+      },
+      {
+        "key": "CRTL",
+        "name": "Consumer Discretionary Distribution & Retail",
+        "ticker": "XRT",
+        "rating": "mw",
+        "combined_rank": 12
+      },
+      {
+        "key": "STDR",
+        "name": "Consumer Staples Distribution & Retail",
+        "ticker": "WMT",
+        "rating": "mw",
+        "combined_rank": 13
+      },
+      {
+        "key": "FBVT",
+        "name": "Food, Beverage & Tobacco",
+        "ticker": "PBJ",
+        "rating": "uw",
+        "combined_rank": 24
+      },
+      {
+        "key": "HHPP",
+        "name": "Household & Personal Products",
+        "ticker": "PG",
+        "rating": "uw",
+        "combined_rank": 25
+      },
+      {
+        "key": "HCEQ",
+        "name": "Health Care Equipment & Services",
+        "ticker": "IHI",
+        "rating": "uw",
+        "combined_rank": 22
+      },
+      {
+        "key": "PHRM",
+        "name": "Pharmaceuticals, Biotechnology & Life Sciences",
+        "ticker": "XLV",
+        "rating": "mw",
+        "combined_rank": 9
+      },
+      {
+        "key": "BANK",
+        "name": "Banks",
+        "ticker": "XLF",
+        "rating": "mw",
+        "combined_rank": 8
+      },
+      {
+        "key": "FNSV",
+        "name": "Financial Services",
+        "ticker": "IYG",
+        "rating": "ow",
+        "combined_rank": 5
+      },
+      {
+        "key": "INSR",
+        "name": "Insurance",
+        "ticker": "KIE",
+        "rating": "mw",
+        "combined_rank": 20
+      },
+      {
+        "key": "SOFT",
+        "name": "Software & Services",
+        "ticker": "IGV",
+        "rating": "mw",
+        "combined_rank": 19
+      },
+      {
+        "key": "HRDW",
+        "name": "Technology Hardware & Equipment",
+        "ticker": "AAPL",
+        "rating": "ow",
+        "combined_rank": 3
+      },
+      {
+        "key": "SEMI",
+        "name": "Semiconductors & Semiconductor Equipment",
+        "ticker": "SOXX",
+        "rating": "ow",
+        "combined_rank": 2
+      },
+      {
+        "key": "TLCM",
+        "name": "Telecommunication Services",
+        "ticker": "IYZ",
+        "rating": "mw",
+        "combined_rank": 6
+      },
+      {
+        "key": "MEDI",
+        "name": "Media & Entertainment",
+        "ticker": "XLC",
+        "rating": "mw",
+        "combined_rank": 10
+      },
+      {
+        "key": "UTIL",
+        "name": "Utilities",
+        "ticker": "XLU",
+        "rating": "mw",
+        "combined_rank": 14
+      },
+      {
+        "key": "REIT",
+        "name": "Equity REITs",
+        "ticker": "IYR",
+        "rating": "mw",
+        "combined_rank": 16
+      },
+      {
+        "key": "REMG",
+        "name": "Real Estate Management & Development",
+        "ticker": "CBRE",
+        "rating": "ow",
+        "combined_rank": 1
+      }
+    ],
+    "methodology_version": "v9.1"
+  },
+  {
+    "as_of": "2026-01-31",
+    "saturday_replayed": "2026-01-31",
+    "snapshotted_at": "2026-04-27T02:28:06+00:00",
+    "backfilled": true,
+    "stance_label": "Aggressive",
+    "equities_pct_capital": 137.38,
+    "other_pct_capital": 0.0,
+    "total_deployed_pct_capital": 137.38,
+    "cash_or_margin_pct_capital": -37.38,
+    "leverage": 1.37375,
+    "equity_share": 1.0,
+    "alpha": 1.37375,
+    "regime": {
+      "risk_liquidity": -26.6,
+      "growth": 8.7,
+      "inflation_rates": -29.8,
+      "rl_3mo_change": 0.7999999999999972,
+      "regime_flip_active": false
+    },
+    "selection_confidence": "STRONG",
+    "picks": [
+      {
+        "ticker": "SOXX",
+        "name": "Semiconductors & Semiconductor Equipment",
+        "sector": "Info Tech",
+        "weight": 0.27475,
+        "indicator_rank": 2,
+        "momentum_rank": 1
+      },
+      {
+        "ticker": "CBRE",
+        "name": "Real Estate Management & Development",
+        "sector": "Real Estate",
+        "weight": 0.27475,
+        "indicator_rank": 1,
+        "momentum_rank": 3
+      },
+      {
+        "ticker": "CARZ",
+        "name": "Automobiles & Components",
+        "sector": "Cons Disc",
+        "weight": 0.27475,
+        "indicator_rank": 3,
+        "momentum_rank": 2
+      },
+      {
+        "ticker": "AAPL",
+        "name": "Technology Hardware & Equipment",
+        "sector": "Info Tech",
+        "weight": 0.27475,
+        "indicator_rank": 4,
+        "momentum_rank": 7
+      },
+      {
+        "ticker": "IYZ",
+        "name": "Telecommunication Services",
+        "sector": "Comm Svcs",
+        "weight": 0.27475,
+        "indicator_rank": 11,
+        "momentum_rank": 4
+      }
+    ],
+    "ratings": [
+      {
+        "key": "ENRG",
+        "name": "Energy",
+        "ticker": "XLE",
+        "rating": "mw",
+        "combined_rank": 11
+      },
+      {
+        "key": "MTLS",
+        "name": "Materials",
+        "ticker": "XLB",
+        "rating": "mw",
+        "combined_rank": 10
+      },
+      {
+        "key": "CAPG",
+        "name": "Capital Goods",
+        "ticker": "XLI",
+        "rating": "mw",
+        "combined_rank": 7
+      },
+      {
+        "key": "CMSV",
+        "name": "Commercial & Professional Services",
+        "ticker": "WM",
+        "rating": "mw",
+        "combined_rank": 20
+      },
+      {
+        "key": "TRNS",
+        "name": "Transportation",
+        "ticker": "IYT",
+        "rating": "mw",
+        "combined_rank": 16
+      },
+      {
+        "key": "AUTO",
+        "name": "Automobiles & Components",
+        "ticker": "CARZ",
+        "rating": "ow",
+        "combined_rank": 3
+      },
+      {
+        "key": "DURB",
+        "name": "Consumer Durables & Apparel",
+        "ticker": "NKE",
+        "rating": "mw",
+        "combined_rank": 6
+      },
+      {
+        "key": "CSRV",
+        "name": "Consumer Services",
+        "ticker": "PEJ",
+        "rating": "mw",
+        "combined_rank": 19
+      },
+      {
+        "key": "CRTL",
+        "name": "Consumer Discretionary Distribution & Retail",
+        "ticker": "XRT",
+        "rating": "mw",
+        "combined_rank": 12
+      },
+      {
+        "key": "STDR",
+        "name": "Consumer Staples Distribution & Retail",
+        "ticker": "WMT",
+        "rating": "mw",
+        "combined_rank": 9
+      },
+      {
+        "key": "FBVT",
+        "name": "Food, Beverage & Tobacco",
+        "ticker": "PBJ",
+        "rating": "uw",
+        "combined_rank": 23
+      },
+      {
+        "key": "HHPP",
+        "name": "Household & Personal Products",
+        "ticker": "PG",
+        "rating": "uw",
+        "combined_rank": 24
+      },
+      {
+        "key": "HCEQ",
+        "name": "Health Care Equipment & Services",
+        "ticker": "IHI",
+        "rating": "uw",
+        "combined_rank": 22
+      },
+      {
+        "key": "PHRM",
+        "name": "Pharmaceuticals, Biotechnology & Life Sciences",
+        "ticker": "XLV",
+        "rating": "mw",
+        "combined_rank": 8
+      },
+      {
+        "key": "BANK",
+        "name": "Banks",
+        "ticker": "XLF",
+        "rating": "mw",
+        "combined_rank": 14
+      },
+      {
+        "key": "FNSV",
+        "name": "Financial Services",
+        "ticker": "IYG",
+        "rating": "mw",
+        "combined_rank": 13
+      },
+      {
+        "key": "INSR",
+        "name": "Insurance",
+        "ticker": "KIE",
+        "rating": "uw",
+        "combined_rank": 21
+      },
+      {
+        "key": "SOFT",
+        "name": "Software & Services",
+        "ticker": "IGV",
+        "rating": "uw",
+        "combined_rank": 25
+      },
+      {
+        "key": "HRDW",
+        "name": "Technology Hardware & Equipment",
+        "ticker": "AAPL",
+        "rating": "ow",
+        "combined_rank": 4
+      },
+      {
+        "key": "SEMI",
+        "name": "Semiconductors & Semiconductor Equipment",
+        "ticker": "SOXX",
+        "rating": "ow",
+        "combined_rank": 1
+      },
+      {
+        "key": "TLCM",
+        "name": "Telecommunication Services",
+        "ticker": "IYZ",
+        "rating": "ow",
+        "combined_rank": 5
+      },
+      {
+        "key": "MEDI",
+        "name": "Media & Entertainment",
+        "ticker": "XLC",
+        "rating": "mw",
+        "combined_rank": 15
+      },
+      {
+        "key": "UTIL",
+        "name": "Utilities",
+        "ticker": "XLU",
+        "rating": "mw",
+        "combined_rank": 18
+      },
+      {
+        "key": "REIT",
+        "name": "Equity REITs",
+        "ticker": "IYR",
+        "rating": "mw",
+        "combined_rank": 17
+      },
+      {
+        "key": "REMG",
+        "name": "Real Estate Management & Development",
+        "ticker": "CBRE",
+        "rating": "ow",
+        "combined_rank": 2
+      }
+    ],
+    "methodology_version": "v9.1"
+  },
+  {
+    "as_of": "2026-02-28",
+    "saturday_replayed": "2026-02-28",
+    "snapshotted_at": "2026-04-27T02:28:13+00:00",
+    "backfilled": true,
+    "stance_label": "Aggressive",
+    "equities_pct_capital": 138.44,
+    "other_pct_capital": 0.0,
+    "total_deployed_pct_capital": 138.44,
+    "cash_or_margin_pct_capital": -38.44,
+    "leverage": 1.384375,
+    "equity_share": 1.0,
+    "alpha": 1.384375,
+    "regime": {
+      "risk_liquidity": -23.5,
+      "growth": -4.2,
+      "inflation_rates": -31.5,
+      "rl_3mo_change": -3.3999999999999986,
+      "regime_flip_active": false
+    },
+    "selection_confidence": "STRONG",
+    "picks": [
+      {
+        "ticker": "SOXX",
+        "name": "Semiconductors & Semiconductor Equipment",
+        "sector": "Info Tech",
+        "weight": 0.276875,
+        "indicator_rank": 1,
+        "momentum_rank": 1
+      },
+      {
+        "ticker": "XLE",
+        "name": "Energy",
+        "sector": "Energy",
+        "weight": 0.276875,
+        "indicator_rank": 3,
+        "momentum_rank": 4
+      },
+      {
+        "ticker": "IYZ",
+        "name": "Telecommunication Services",
+        "sector": "Comm Svcs",
+        "weight": 0.276875,
+        "indicator_rank": 5,
+        "momentum_rank": 3
+      },
+      {
+        "ticker": "AAPL",
+        "name": "Technology Hardware & Equipment",
+        "sector": "Info Tech",
+        "weight": 0.276875,
+        "indicator_rank": 4,
+        "momentum_rank": 5
+      },
+      {
+        "ticker": "XLI",
+        "name": "Capital Goods",
+        "sector": "Industrials",
+        "weight": 0.276875,
+        "indicator_rank": 6,
+        "momentum_rank": 7
+      }
+    ],
+    "ratings": [
+      {
+        "key": "ENRG",
+        "name": "Energy",
+        "ticker": "XLE",
+        "rating": "ow",
+        "combined_rank": 2
+      },
+      {
+        "key": "MTLS",
+        "name": "Materials",
+        "ticker": "XLB",
+        "rating": "mw",
+        "combined_rank": 7
+      },
+      {
+        "key": "CAPG",
+        "name": "Capital Goods",
+        "ticker": "XLI",
+        "rating": "ow",
+        "combined_rank": 5
+      },
+      {
+        "key": "CMSV",
+        "name": "Commercial & Professional Services",
+        "ticker": "WM",
+        "rating": "uw",
+        "combined_rank": 24
+      },
+      {
+        "key": "TRNS",
+        "name": "Transportation",
+        "ticker": "IYT",
+        "rating": "mw",
+        "combined_rank": 16
+      },
+      {
+        "key": "AUTO",
+        "name": "Automobiles & Components",
+        "ticker": "CARZ",
+        "rating": "mw",
+        "combined_rank": 11
+      },
+      {
+        "key": "DURB",
+        "name": "Consumer Durables & Apparel",
+        "ticker": "NKE",
+        "rating": "mw",
+        "combined_rank": 13
+      },
+      {
+        "key": "CSRV",
+        "name": "Consumer Services",
+        "ticker": "PEJ",
+        "rating": "uw",
+        "combined_rank": 22
+      },
+      {
+        "key": "CRTL",
+        "name": "Consumer Discretionary Distribution & Retail",
+        "ticker": "XRT",
+        "rating": "mw",
+        "combined_rank": 17
+      },
+      {
+        "key": "STDR",
+        "name": "Consumer Staples Distribution & Retail",
+        "ticker": "WMT",
+        "rating": "mw",
+        "combined_rank": 8
+      },
+      {
+        "key": "FBVT",
+        "name": "Food, Beverage & Tobacco",
+        "ticker": "PBJ",
+        "rating": "mw",
+        "combined_rank": 15
+      },
+      {
+        "key": "HHPP",
+        "name": "Household & Personal Products",
+        "ticker": "PG",
+        "rating": "uw",
+        "combined_rank": 23
+      },
+      {
+        "key": "HCEQ",
+        "name": "Health Care Equipment & Services",
+        "ticker": "IHI",
+        "rating": "uw",
+        "combined_rank": 21
+      },
+      {
+        "key": "PHRM",
+        "name": "Pharmaceuticals, Biotechnology & Life Sciences",
+        "ticker": "XLV",
+        "rating": "mw",
+        "combined_rank": 9
+      },
+      {
+        "key": "BANK",
+        "name": "Banks",
+        "ticker": "XLF",
+        "rating": "mw",
+        "combined_rank": 19
+      },
+      {
+        "key": "FNSV",
+        "name": "Financial Services",
+        "ticker": "IYG",
+        "rating": "mw",
+        "combined_rank": 18
+      },
+      {
+        "key": "INSR",
+        "name": "Insurance",
+        "ticker": "KIE",
+        "rating": "mw",
+        "combined_rank": 20
+      },
+      {
+        "key": "SOFT",
+        "name": "Software & Services",
+        "ticker": "IGV",
+        "rating": "uw",
+        "combined_rank": 25
+      },
+      {
+        "key": "HRDW",
+        "name": "Technology Hardware & Equipment",
+        "ticker": "AAPL",
+        "rating": "ow",
+        "combined_rank": 4
+      },
+      {
+        "key": "SEMI",
+        "name": "Semiconductors & Semiconductor Equipment",
+        "ticker": "SOXX",
+        "rating": "ow",
+        "combined_rank": 1
+      },
+      {
+        "key": "TLCM",
+        "name": "Telecommunication Services",
+        "ticker": "IYZ",
+        "rating": "ow",
+        "combined_rank": 3
+      },
+      {
+        "key": "MEDI",
+        "name": "Media & Entertainment",
+        "ticker": "XLC",
+        "rating": "mw",
+        "combined_rank": 14
+      },
+      {
+        "key": "UTIL",
+        "name": "Utilities",
+        "ticker": "XLU",
+        "rating": "mw",
+        "combined_rank": 6
+      },
+      {
+        "key": "REIT",
+        "name": "Equity REITs",
+        "ticker": "IYR",
+        "rating": "mw",
+        "combined_rank": 12
+      },
+      {
+        "key": "REMG",
+        "name": "Real Estate Management & Development",
+        "ticker": "CBRE",
+        "rating": "mw",
+        "combined_rank": 10
+      }
+    ],
+    "methodology_version": "v9.1"
+  },
+  {
+    "as_of": "2026-03-31",
+    "saturday_replayed": "2026-03-28",
+    "snapshotted_at": "2026-04-27T02:28:21+00:00",
+    "backfilled": true,
+    "stance_label": "Aggressive",
+    "equities_pct_capital": 125.31,
+    "other_pct_capital": 0.0,
+    "total_deployed_pct_capital": 125.31,
+    "cash_or_margin_pct_capital": -25.31,
+    "leverage": 1.253125,
+    "equity_share": 1.0,
+    "alpha": 1.253125,
+    "regime": {
+      "risk_liquidity": -1.5,
+      "growth": -6.1,
+      "inflation_rates": -10.5,
+      "rl_3mo_change": 16.7,
+      "regime_flip_active": false
+    },
+    "selection_confidence": "STRONG",
+    "picks": [
+      {
+        "ticker": "SOXX",
+        "name": "Semiconductors & Semiconductor Equipment",
+        "sector": "Info Tech",
+        "weight": 0.25062500000000004,
+        "indicator_rank": 2,
+        "momentum_rank": 3
+      },
+      {
+        "ticker": "XLE",
+        "name": "Energy",
+        "sector": "Energy",
+        "weight": 0.25062500000000004,
+        "indicator_rank": 5,
+        "momentum_rank": 1
+      },
+      {
+        "ticker": "CARZ",
+        "name": "Automobiles & Components",
+        "sector": "Cons Disc",
+        "weight": 0.25062500000000004,
+        "indicator_rank": 3,
+        "momentum_rank": 6
+      },
+      {
+        "ticker": "IYZ",
+        "name": "Telecommunication Services",
+        "sector": "Comm Svcs",
+        "weight": 0.25062500000000004,
+        "indicator_rank": 7,
+        "momentum_rank": 2
+      },
+      {
+        "ticker": "WMT",
+        "name": "Consumer Staples Distribution & Retail",
+        "sector": "Cons Staples",
+        "weight": 0.25062500000000004,
+        "indicator_rank": 8,
+        "momentum_rank": 4
+      }
+    ],
+    "ratings": [
+      {
+        "key": "ENRG",
+        "name": "Energy",
+        "ticker": "XLE",
+        "rating": "ow",
+        "combined_rank": 2
+      },
+      {
+        "key": "MTLS",
+        "name": "Materials",
+        "ticker": "XLB",
+        "rating": "mw",
+        "combined_rank": 7
+      },
+      {
+        "key": "CAPG",
+        "name": "Capital Goods",
+        "ticker": "XLI",
+        "rating": "mw",
+        "combined_rank": 6
+      },
+      {
+        "key": "CMSV",
+        "name": "Commercial & Professional Services",
+        "ticker": "WM",
+        "rating": "uw",
+        "combined_rank": 24
+      },
+      {
+        "key": "TRNS",
+        "name": "Transportation",
+        "ticker": "IYT",
+        "rating": "mw",
+        "combined_rank": 16
+      },
+      {
+        "key": "AUTO",
+        "name": "Automobiles & Components",
+        "ticker": "CARZ",
+        "rating": "ow",
+        "combined_rank": 4
+      },
+      {
+        "key": "DURB",
+        "name": "Consumer Durables & Apparel",
+        "ticker": "NKE",
+        "rating": "mw",
+        "combined_rank": 19
+      },
+      {
+        "key": "CSRV",
+        "name": "Consumer Services",
+        "ticker": "PEJ",
+        "rating": "mw",
+        "combined_rank": 12
+      },
+      {
+        "key": "CRTL",
+        "name": "Consumer Discretionary Distribution & Retail",
+        "ticker": "XRT",
+        "rating": "uw",
+        "combined_rank": 21
+      },
+      {
+        "key": "STDR",
+        "name": "Consumer Staples Distribution & Retail",
+        "ticker": "WMT",
+        "rating": "ow",
+        "combined_rank": 5
+      },
+      {
+        "key": "FBVT",
+        "name": "Food, Beverage & Tobacco",
+        "ticker": "PBJ",
+        "rating": "mw",
+        "combined_rank": 11
+      },
+      {
+        "key": "HHPP",
+        "name": "Household & Personal Products",
+        "ticker": "PG",
+        "rating": "uw",
+        "combined_rank": 22
+      },
+      {
+        "key": "HCEQ",
+        "name": "Health Care Equipment & Services",
+        "ticker": "IHI",
+        "rating": "uw",
+        "combined_rank": 23
+      },
+      {
+        "key": "PHRM",
+        "name": "Pharmaceuticals, Biotechnology & Life Sciences",
+        "ticker": "XLV",
+        "rating": "mw",
+        "combined_rank": 17
+      },
+      {
+        "key": "BANK",
+        "name": "Banks",
+        "ticker": "XLF",
+        "rating": "mw",
+        "combined_rank": 18
+      },
+      {
+        "key": "FNSV",
+        "name": "Financial Services",
+        "ticker": "IYG",
+        "rating": "mw",
+        "combined_rank": 15
+      },
+      {
+        "key": "INSR",
+        "name": "Insurance",
+        "ticker": "KIE",
+        "rating": "mw",
+        "combined_rank": 14
+      },
+      {
+        "key": "SOFT",
+        "name": "Software & Services",
+        "ticker": "IGV",
+        "rating": "uw",
+        "combined_rank": 25
+      },
+      {
+        "key": "HRDW",
+        "name": "Technology Hardware & Equipment",
+        "ticker": "AAPL",
+        "rating": "mw",
+        "combined_rank": 8
+      },
+      {
+        "key": "SEMI",
+        "name": "Semiconductors & Semiconductor Equipment",
+        "ticker": "SOXX",
+        "rating": "ow",
+        "combined_rank": 1
+      },
+      {
+        "key": "TLCM",
+        "name": "Telecommunication Services",
+        "ticker": "IYZ",
+        "rating": "ow",
+        "combined_rank": 3
+      },
+      {
+        "key": "MEDI",
+        "name": "Media & Entertainment",
+        "ticker": "XLC",
+        "rating": "mw",
+        "combined_rank": 20
+      },
+      {
+        "key": "UTIL",
+        "name": "Utilities",
+        "ticker": "XLU",
+        "rating": "mw",
+        "combined_rank": 9
+      },
+      {
+        "key": "REIT",
+        "name": "Equity REITs",
+        "ticker": "IYR",
+        "rating": "mw",
+        "combined_rank": 13
+      },
+      {
+        "key": "REMG",
+        "name": "Real Estate Management & Development",
+        "ticker": "CBRE",
+        "rating": "mw",
+        "combined_rank": 10
+      }
+    ],
+    "methodology_version": "v9.1"
+  }
+]

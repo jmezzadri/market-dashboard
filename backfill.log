@@ -1,0 +1,36 @@
+HTTP Error 404: {"quoteSummary":{"result":null,"error":{"code":"Not Found","description":"Quote not found for symbol: JNPR"}}}
+$JNPR: possibly delisted; no timezone found
+$RDFN: possibly delisted; no timezone found
+
+2 Failed downloads:
+['JNPR', 'RDFN']: possibly delisted; no timezone found
+[backfill] loading data once for all replays…
+  factors…
+    38 factors, 2001-01-01 → 2026-04-24
+  composites…
+    composites 2005-01-03 → 2026-04-24
+  prices (yfinance one-shot)…
+    79 tickers, 2003-01-03 → 2026-04-24
+
+[backfill] replaying 17 Saturdays from 2026-01-03 through 2026-04-25
+  2026-01-03 → as_of 2025-12-31 | R&L -18 | alpha 1.37 | picks: CBRE,SOXX,AAPL,CARZ,IYG
+  2026-01-10 → as_of 2025-12-31 | R&L -18 | alpha 1.37 | picks: CBRE,SOXX,AAPL,CARZ,IYG
+  2026-01-17 → as_of 2025-12-31 | R&L -18 | alpha 1.37 | picks: CBRE,SOXX,AAPL,CARZ,IYG
+  2026-01-24 → as_of 2025-12-31 | R&L -18 | alpha 1.37 | picks: CBRE,SOXX,AAPL,CARZ,IYG
+  2026-01-31 → as_of 2026-01-31 | R&L -27 | alpha 1.37 | picks: SOXX,CBRE,CARZ,AAPL,IYZ
+  2026-02-07 → as_of 2026-01-31 | R&L -27 | alpha 1.37 | picks: SOXX,CBRE,CARZ,AAPL,IYZ
+  2026-02-14 → as_of 2026-01-31 | R&L -27 | alpha 1.37 | picks: SOXX,CBRE,CARZ,AAPL,IYZ
+  2026-02-21 → as_of 2026-01-31 | R&L -27 | alpha 1.37 | picks: SOXX,CBRE,CARZ,AAPL,IYZ
+  2026-02-28 → as_of 2026-02-28 | R&L -24 | alpha 1.38 | picks: SOXX,XLE,IYZ,AAPL,XLI
+  2026-03-07 → as_of 2026-02-28 | R&L -24 | alpha 1.38 | picks: SOXX,XLE,IYZ,AAPL,XLI
+  2026-03-14 → as_of 2026-02-28 | R&L -24 | alpha 1.38 | picks: SOXX,XLE,IYZ,AAPL,XLI
+  2026-03-21 → as_of 2026-02-28 | R&L -24 | alpha 1.38 | picks: SOXX,XLE,IYZ,AAPL,XLI
+  2026-03-28 → as_of 2026-03-31 | R&L -2 | alpha 1.25 | picks: SOXX,XLE,CARZ,IYZ,WMT
+  2026-04-04 → as_of 2026-03-31 | R&L -2 | alpha 1.25 | picks: SOXX,XLE,CARZ,IYZ,XLB
+  2026-04-11 → as_of 2026-03-31 | R&L -2 | alpha 1.25 | picks: SOXX,XLE,CARZ,IYZ,XLB
+  2026-04-18 → as_of 2026-03-31 | R&L -2 | alpha 1.25 | picks: SOXX,XLE,CARZ,IYZ,XLB
+  2026-04-25 → as_of 2026-03-31 | R&L -2 | alpha 1.25 | picks: SOXX,XLE,CARZ,IYZ,XLB
+
+[done] wrote 4 snapshots to /home/runner/work/market-dashboard/market-dashboard/public/allocation_history.json
+  backfilled: 4
+  live cron:  0
