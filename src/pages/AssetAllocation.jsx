@@ -394,6 +394,120 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
   );
 }
 
+// ─── History view derivation ──────────────────────────────────────────────
+// allocation_history.json is a flat ARRAY of weekly snapshots (one per
+// Saturday) — schema produced by V9-ALLOCATION-WEEKLY workflow + the
+// backfill script. The UI needs derived views: Last Month / Last Quarter
+// totals, allocation changes (week-over-week rotations), and rating
+// changes (upgrades / downgrades by window). This helper turns the
+// array into the object shape the UI consumes.
+function deriveHistoryView(raw) {
+  if (!raw) return null;
+  if (!Array.isArray(raw)) {
+    // Tolerate object form (legacy seed); pass through.
+    if (typeof raw === "object") return raw;
+    return null;
+  }
+  if (raw.length === 0) return { _empty: true };
+
+  // Sort by as_of ascending (just to be safe — backfill output is sorted)
+  const snaps = [...raw].sort((a, b) => (a.as_of || "").localeCompare(b.as_of || ""));
+  const current = snaps[snaps.length - 1];
+
+  // Find snapshot ~30 days back (last_month) and ~91 days back (last_quarter)
+  const findBack = (days) => {
+    const targetTs = current.as_of ? new Date(current.as_of).getTime() - days * 86400000 : null;
+    if (!targetTs) return null;
+    let best = null;
+    let bestDiff = Infinity;
+    for (const s of snaps) {
+      if (!s.as_of) continue;
+      const ts = new Date(s.as_of).getTime();
+      const diff = Math.abs(targetTs - ts);
+      if (diff < bestDiff && ts <= new Date(current.as_of).getTime() - 14 * 86400000) {
+        bestDiff = diff;
+        best = s;
+      }
+    }
+    return best;
+  };
+
+  const lastMonthSnap = findBack(30);
+  const lastQuarterSnap = findBack(91);
+
+  const liftTotals = (snap) => {
+    if (!snap) return null;
+    return {
+      equities:    snap.equities_pct_capital,
+      other:       snap.other_pct_capital,
+      total:       snap.total_deployed_pct_capital,
+      cash_margin: snap.cash_or_margin_pct_capital,
+    };
+  };
+
+  // Allocation changes: diff current picks vs last_month picks
+  const changes = [];
+  if (lastMonthSnap) {
+    const priorByTicker = Object.fromEntries((lastMonthSnap.picks || []).map(p => [p.ticker, p]));
+    const currentByTicker = Object.fromEntries((current.picks || []).map(p => [p.ticker, p]));
+    // New entries / weight changes
+    for (const p of current.picks || []) {
+      const prior = priorByTicker[p.ticker];
+      if (!prior) {
+        changes.push({ move: "increase", bucket: `${p.sector || ""} › ${p.name}`,
+          new_weight: p.weight, prior_weight: 0, delta: p.weight });
+      } else if (Math.abs((p.weight || 0) - (prior.weight || 0)) > 0.005) {
+        changes.push({
+          move: (p.weight || 0) > (prior.weight || 0) ? "increase" : "downgrade",
+          bucket: `${p.sector || ""} › ${p.name}`,
+          new_weight: p.weight, prior_weight: prior.weight,
+          delta: (p.weight || 0) - (prior.weight || 0),
+        });
+      }
+    }
+    // Exits (in prior, not in current)
+    for (const p of lastMonthSnap.picks || []) {
+      if (!currentByTicker[p.ticker]) {
+        changes.push({ move: "exit", bucket: `${p.sector || ""} › ${p.name}`,
+          new_weight: 0, prior_weight: p.weight, delta: -(p.weight || 0) });
+      }
+    }
+  }
+
+  // Rating changes: upgrades / downgrades vs window
+  const diffRatings = (priorSnap) => {
+    if (!priorSnap || !priorSnap.ratings) return { upgrades: [], downgrades: [] };
+    const priorByKey = Object.fromEntries(priorSnap.ratings.map(r => [r.key || r.ticker, r]));
+    const upgrades = [];
+    const downgrades = [];
+    for (const r of current.ratings || []) {
+      const prior = priorByKey[r.key || r.ticker];
+      if (!prior) continue;
+      if (prior.rating === r.rating) continue;
+      const order = { ow: 3, mw: 2, uw: 1 };
+      if ((order[r.rating] || 0) > (order[prior.rating] || 0)) upgrades.push(r.name);
+      else if ((order[r.rating] || 0) < (order[prior.rating] || 0)) downgrades.push(r.name);
+    }
+    return { upgrades, downgrades };
+  };
+
+  const m1 = diffRatings(lastMonthSnap);
+  const q3 = diffRatings(lastQuarterSnap);
+
+  return {
+    _list: snaps,
+    last_month:   liftTotals(lastMonthSnap),
+    last_quarter: liftTotals(lastQuarterSnap),
+    last_month_as_of:   lastMonthSnap?.as_of,
+    last_quarter_as_of: lastQuarterSnap?.as_of,
+    changes,
+    upgrades_1m:   m1.upgrades,
+    downgrades_1m: m1.downgrades,
+    upgrades_3m:   q3.upgrades,
+    downgrades_3m: q3.downgrades,
+  };
+}
+
 // ─── Main component ───────────────────────────────────────────────────────
 export default function AssetAllocation({ onOpenTicker }) {
   const [alloc, setAlloc]               = useState(null);
@@ -406,7 +520,10 @@ export default function AssetAllocation({ onOpenTicker }) {
     fetch("/v9_allocation.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setAlloc).catch(() => setAlloc(null));
     fetch("/composite_history_daily.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setComposites).catch(() => setComposites(null));
     fetch("/industry_group_rationale.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setRationales).catch(() => setRationales(null));
-    fetch("/allocation_history.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setHistory).catch(() => setHistory(null));
+    fetch("/allocation_history.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null)
+      .then((raw) => setHistory(deriveHistoryView(raw)))
+      .catch(() => setHistory(null));
   }, []);
 
   // Derive macro composite snapshot from composite_history_daily.json
