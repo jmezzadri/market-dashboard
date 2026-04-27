@@ -1,7 +1,7 @@
 {
   "_doc": "Per-bucket rationale seed for the Asset Allocation tab. Hand-written by Senior Quant grounded in compute.py factor model. Replace with v10 narrative engine output once Phase 4 ships.",
   "_locked_at": "2026-04-26",
-  "_methodology_version": "v9-seed",
+  "_methodology_version": "v9.1-seed",
   "buckets": {
     "SOXX": {
       "ticker": "SOXX",
@@ -10,12 +10,41 @@
       "fund": "iShares Semiconductor ETF",
       "rationale": "Semis sit at the intersection of two tailwinds: real rates rolling over (lifts long-duration tech multiples) and an industrial-production recovery (lifts cyclical chip demand). Trailing 6-month return confirms the regression result rather than contradicting it. Indicator rank #1, momentum rank #1.",
       "key_factors": [
-        {"name": "Real rates (10Y TIPS)", "value": "1.62%", "direction": "down", "good": true},
-        {"name": "Industrial production YoY", "value": "+2.1%", "direction": "up", "good": true},
-        {"name": "Yield curve (10Y-2Y)", "value": "+54 bp", "direction": "up", "good": true},
-        {"name": "HY-IG spread", "value": "205 bp", "direction": "down", "good": true}
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Industrial production YoY",
+          "value": "+2.1%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Yield curve (10Y-2Y)",
+          "value": "+54 bp",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "HY-IG spread",
+          "value": "205 bp",
+          "direction": "down",
+          "good": true
+        }
       ],
-      "examples": ["NVDA", "AVGO", "AMD", "TSM", "LRCX", "KLAC", "ASML", "MU"],
+      "examples": [
+        "NVDA",
+        "AVGO",
+        "AMD",
+        "TSM",
+        "LRCX",
+        "KLAC",
+        "ASML",
+        "MU"
+      ],
       "kill_factors": "Real rates above 2.0%, term premium above 1.5%, or HY-IG spread above 250bp."
     },
     "IGV": {
@@ -25,11 +54,35 @@
       "fund": "iShares Expanded Tech-Software ETF",
       "rationale": "Software earns its multiple when real rates fall and labor markets stay tight enough to justify enterprise IT spend. We currently rate it Market Weight: long-duration tailwind is intact but earnings revisions have flattened versus Semis. Watchlist for promotion if cap-ex revisions turn positive.",
       "key_factors": [
-        {"name": "Real rates (10Y TIPS)", "value": "1.62%", "direction": "down", "good": true},
-        {"name": "JOLTS quits rate", "value": "1.9%", "direction": "flat", "good": false},
-        {"name": "Earnings revisions (3mo)", "value": "+0.3%", "direction": "flat", "good": false}
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "JOLTS quits rate",
+          "value": "1.9%",
+          "direction": "flat",
+          "good": false
+        },
+        {
+          "name": "Earnings revisions (3mo)",
+          "value": "+0.3%",
+          "direction": "flat",
+          "good": false
+        }
       ],
-      "examples": ["MSFT", "ORCL", "CRM", "NOW", "ADBE", "INTU", "PANW", "SNPS"],
+      "examples": [
+        "MSFT",
+        "ORCL",
+        "CRM",
+        "NOW",
+        "ADBE",
+        "INTU",
+        "PANW",
+        "SNPS"
+      ],
       "kill_factors": "Real rates above 2.0% or jobless claims above 280k (4-week avg)."
     },
     "IBB": {
@@ -39,11 +92,35 @@
       "fund": "iShares Biotechnology ETF",
       "rationale": "Biotech is rated Underweight on a combination of negative earnings revisions and policy overhang from drug pricing legislation. Long-duration profile means it should benefit from falling real rates, but idiosyncratic risk (FDA decisions, pipeline failures) dominates the macro signal in this bucket.",
       "key_factors": [
-        {"name": "Earnings revisions (3mo)", "value": "-1.4%", "direction": "down", "good": false},
-        {"name": "FDA policy headwind", "value": "active", "direction": "flat", "good": false},
-        {"name": "Real rates (10Y TIPS)", "value": "1.62%", "direction": "down", "good": true}
+        {
+          "name": "Earnings revisions (3mo)",
+          "value": "-1.4%",
+          "direction": "down",
+          "good": false
+        },
+        {
+          "name": "FDA policy headwind",
+          "value": "active",
+          "direction": "flat",
+          "good": false
+        },
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        }
       ],
-      "examples": ["AMGN", "GILD", "VRTX", "REGN", "MRNA", "BIIB", "ILMN", "BMRN"],
+      "examples": [
+        "AMGN",
+        "GILD",
+        "VRTX",
+        "REGN",
+        "MRNA",
+        "BIIB",
+        "ILMN",
+        "BMRN"
+      ],
       "kill_factors": "Earnings revisions turn positive (+0.5% threshold) or major regulatory clarity."
     },
     "XLF": {
@@ -53,11 +130,35 @@
       "fund": "Financial Select Sector SPDR",
       "rationale": "Banks are rated Underweight despite a steepening curve because of unrealized AFS losses and SLOOS C&I tightening. The curve helps net interest margins on the margin, but the back-book damage from the 2022-23 rate cycle still suppresses tangible book value growth. We need to see SLOOS reverse before promoting.",
       "key_factors": [
-        {"name": "Yield curve (10Y-2Y)", "value": "+54 bp", "direction": "up", "good": true},
-        {"name": "Bank unrealized losses", "value": "elevated", "direction": "flat", "good": false},
-        {"name": "SLOOS C&I tightening", "value": "+12 pp", "direction": "up", "good": false}
+        {
+          "name": "Yield curve (10Y-2Y)",
+          "value": "+54 bp",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Bank unrealized losses",
+          "value": "elevated",
+          "direction": "flat",
+          "good": false
+        },
+        {
+          "name": "SLOOS C&I tightening",
+          "value": "+12 pp",
+          "direction": "up",
+          "good": false
+        }
       ],
-      "examples": ["JPM", "BAC", "WFC", "C", "GS", "MS", "BLK", "SPGI"],
+      "examples": [
+        "JPM",
+        "BAC",
+        "WFC",
+        "C",
+        "GS",
+        "MS",
+        "BLK",
+        "SPGI"
+      ],
       "kill_factors": "SLOOS turns negative (banks easing standards) and curve sustains above +50bp."
     },
     "XLV": {
@@ -65,13 +166,37 @@
       "name": "HealthCare",
       "sector": "Health Care",
       "fund": "Health Care Select Sector SPDR",
-      "rationale": "Pharma and managed care rated Underweight on negative earnings revisions and policy overhang. Defensive characteristics aren't valued in the current calm regime — when Risk & Liquidity is benign, the market pays for cyclical earnings power, not defensive yield.",
+      "rationale": "Pharma and managed care rated Underweight on negative earnings revisions and policy overhang. Defensive characteristics aren't valued in the current calm regime \u2014 when Risk & Liquidity is benign, the market pays for cyclical earnings power, not defensive yield.",
       "key_factors": [
-        {"name": "Earnings revisions (3mo)", "value": "-0.8%", "direction": "down", "good": false},
-        {"name": "Drug pricing risk", "value": "active", "direction": "flat", "good": false},
-        {"name": "R&L composite", "value": "-20 (calm)", "direction": "flat", "good": false}
+        {
+          "name": "Earnings revisions (3mo)",
+          "value": "-0.8%",
+          "direction": "down",
+          "good": false
+        },
+        {
+          "name": "Drug pricing risk",
+          "value": "active",
+          "direction": "flat",
+          "good": false
+        },
+        {
+          "name": "R&L composite",
+          "value": "-20 (calm)",
+          "direction": "flat",
+          "good": false
+        }
       ],
-      "examples": ["LLY", "UNH", "JNJ", "MRK", "ABBV", "PFE", "TMO", "ABT"],
+      "examples": [
+        "LLY",
+        "UNH",
+        "JNJ",
+        "MRK",
+        "ABBV",
+        "PFE",
+        "TMO",
+        "ABT"
+      ],
       "kill_factors": "R&L composite enters Stressed zone (defensive bid returns) or earnings revisions turn positive."
     },
     "XLI": {
@@ -79,14 +204,43 @@
       "name": "Industrials",
       "sector": "Industrials",
       "fund": "Industrial Select Sector SPDR",
-      "rationale": "Capital goods earn their Overweight on ISM new orders firming above 50, easing financial conditions, and the curve steepening — all leading indicators for capex and reshoring demand. The risk is SLOOS C&I tightening choking off the credit channel before orders convert to revenue.",
+      "rationale": "Capital goods earn their Overweight on ISM new orders firming above 50, easing financial conditions, and the curve steepening \u2014 all leading indicators for capex and reshoring demand. The risk is SLOOS C&I tightening choking off the credit channel before orders convert to revenue.",
       "key_factors": [
-        {"name": "ISM new orders", "value": "54.2", "direction": "up", "good": true},
-        {"name": "Yield curve (10Y-2Y)", "value": "+54 bp", "direction": "up", "good": true},
-        {"name": "ANFCI (financial conditions)", "value": "-0.8", "direction": "down", "good": true},
-        {"name": "SLOOS C&I tightening", "value": "+12 pp", "direction": "up", "good": false}
+        {
+          "name": "ISM new orders",
+          "value": "54.2",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Yield curve (10Y-2Y)",
+          "value": "+54 bp",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "ANFCI (financial conditions)",
+          "value": "-0.8",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "SLOOS C&I tightening",
+          "value": "+12 pp",
+          "direction": "up",
+          "good": false
+        }
       ],
-      "examples": ["GE", "CAT", "DE", "HON", "ETN", "BA", "RTX", "LMT"],
+      "examples": [
+        "GE",
+        "CAT",
+        "DE",
+        "HON",
+        "ETN",
+        "BA",
+        "RTX",
+        "LMT"
+      ],
       "kill_factors": "SLOOS C&I tightening above +20pp or ISM new orders below 48."
     },
     "XLE": {
@@ -96,12 +250,41 @@
       "fund": "SPDR Energy Select Sector",
       "rationale": "Oil & gas earn their Overweight on a combination of curve steepening (pro-cyclical), supply discipline from OPEC+ and US producer capex restraint, and a copper/gold ratio that signals reflation. The bucket is also a late-cycle inflation hedge if Inflation & Rates composite re-accelerates.",
       "key_factors": [
-        {"name": "Yield curve (10Y-2Y)", "value": "+54 bp", "direction": "up", "good": true},
-        {"name": "Copper/gold ratio", "value": "rising", "direction": "up", "good": true},
-        {"name": "OPEC+ supply discipline", "value": "active", "direction": "flat", "good": true},
-        {"name": "Industrial production YoY", "value": "+2.1%", "direction": "up", "good": true}
+        {
+          "name": "Yield curve (10Y-2Y)",
+          "value": "+54 bp",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Copper/gold ratio",
+          "value": "rising",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "OPEC+ supply discipline",
+          "value": "active",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "Industrial production YoY",
+          "value": "+2.1%",
+          "direction": "up",
+          "good": true
+        }
       ],
-      "examples": ["XOM", "CVX", "COP", "EOG", "SLB", "MPC", "PSX", "OXY"],
+      "examples": [
+        "XOM",
+        "CVX",
+        "COP",
+        "EOG",
+        "SLB",
+        "MPC",
+        "PSX",
+        "OXY"
+      ],
       "kill_factors": "Oil price above $100 sustained (demand destruction) or copper/gold ratio rolls over."
     },
     "XLY": {
@@ -109,13 +292,37 @@
       "name": "ConsDisc",
       "sector": "Cons Disc",
       "fund": "Consumer Discretionary Select Sector SPDR",
-      "rationale": "Discretionary is rated Market Weight — torn between strong labor markets (favorable for consumer spending) and the rate-sensitivity of housing/auto sub-sectors. The bucket has wide internal dispersion: retail names rate Neutral, autos rate Underweight on rate sensitivity.",
+      "rationale": "Discretionary is rated Market Weight \u2014 torn between strong labor markets (favorable for consumer spending) and the rate-sensitivity of housing/auto sub-sectors. The bucket has wide internal dispersion: retail names rate Neutral, autos rate Underweight on rate sensitivity.",
       "key_factors": [
-        {"name": "JOLTS quits rate", "value": "1.9%", "direction": "flat", "good": true},
-        {"name": "Real rates (10Y TIPS)", "value": "1.62%", "direction": "down", "good": true},
-        {"name": "Earnings revisions (3mo)", "value": "+0.1%", "direction": "flat", "good": false}
+        {
+          "name": "JOLTS quits rate",
+          "value": "1.9%",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Earnings revisions (3mo)",
+          "value": "+0.1%",
+          "direction": "flat",
+          "good": false
+        }
       ],
-      "examples": ["AMZN", "TSLA", "HD", "MCD", "NKE", "LOW", "SBUX", "TJX"],
+      "examples": [
+        "AMZN",
+        "TSLA",
+        "HD",
+        "MCD",
+        "NKE",
+        "LOW",
+        "SBUX",
+        "TJX"
+      ],
       "kill_factors": "Jobless claims rising trend or real rates sustained above 2.0%."
     },
     "XLP": {
@@ -123,13 +330,37 @@
       "name": "ConsStaples",
       "sector": "Cons Staples",
       "fund": "Consumer Staples Select Sector SPDR",
-      "rationale": "Staples are rated Underweight in the current calm regime — defensive yield premium isn't earned when Risk & Liquidity reads Calm. Bucket includes meaningful FX-sensitive multinationals; a strong dollar is an additional headwind.",
+      "rationale": "Staples are rated Underweight in the current calm regime \u2014 defensive yield premium isn't earned when Risk & Liquidity reads Calm. Bucket includes meaningful FX-sensitive multinationals; a strong dollar is an additional headwind.",
       "key_factors": [
-        {"name": "R&L composite", "value": "-20 (calm)", "direction": "flat", "good": false},
-        {"name": "USD index (DXY)", "value": "elevated", "direction": "flat", "good": false},
-        {"name": "Earnings revisions (3mo)", "value": "-0.2%", "direction": "down", "good": false}
+        {
+          "name": "R&L composite",
+          "value": "-20 (calm)",
+          "direction": "flat",
+          "good": false
+        },
+        {
+          "name": "USD index (DXY)",
+          "value": "elevated",
+          "direction": "flat",
+          "good": false
+        },
+        {
+          "name": "Earnings revisions (3mo)",
+          "value": "-0.2%",
+          "direction": "down",
+          "good": false
+        }
       ],
-      "examples": ["PG", "KO", "PEP", "WMT", "COST", "PM", "MO", "MDLZ"],
+      "examples": [
+        "PG",
+        "KO",
+        "PEP",
+        "WMT",
+        "COST",
+        "PM",
+        "MO",
+        "MDLZ"
+      ],
       "kill_factors": "R&L moves to Elevated/Stressed (defensive bid returns) or USD weakens below 100."
     },
     "XLU": {
@@ -137,13 +368,37 @@
       "name": "Utilities",
       "sector": "Utilities",
       "fund": "Utilities Select Sector SPDR",
-      "rationale": "Utilities are rated Underweight on the steepening yield curve — they trade as bond proxies and lose multiple when long-end yields rise faster than short-end. Defensive yield premium also unattractive in the current calm regime. The AI/data-center capex story provides a floor but doesn't reverse the macro headwind.",
+      "rationale": "Utilities are rated Underweight on the steepening yield curve \u2014 they trade as bond proxies and lose multiple when long-end yields rise faster than short-end. Defensive yield premium also unattractive in the current calm regime. The AI/data-center capex story provides a floor but doesn't reverse the macro headwind.",
       "key_factors": [
-        {"name": "Yield curve (10Y-2Y)", "value": "+54 bp", "direction": "up", "good": false},
-        {"name": "Term premium", "value": "elevated", "direction": "up", "good": false},
-        {"name": "R&L composite", "value": "-20 (calm)", "direction": "flat", "good": false}
+        {
+          "name": "Yield curve (10Y-2Y)",
+          "value": "+54 bp",
+          "direction": "up",
+          "good": false
+        },
+        {
+          "name": "Term premium",
+          "value": "elevated",
+          "direction": "up",
+          "good": false
+        },
+        {
+          "name": "R&L composite",
+          "value": "-20 (calm)",
+          "direction": "flat",
+          "good": false
+        }
       ],
-      "examples": ["NEE", "SO", "DUK", "CEG", "VST", "AEP", "SRE", "D"],
+      "examples": [
+        "NEE",
+        "SO",
+        "DUK",
+        "CEG",
+        "VST",
+        "AEP",
+        "SRE",
+        "D"
+      ],
       "kill_factors": "Curve flattens back below +25bp or R&L moves to Stressed."
     },
     "XLB": {
@@ -151,13 +406,37 @@
       "name": "Materials",
       "sector": "Materials",
       "fund": "SPDR Materials",
-      "rationale": "Metals & mining earn their Overweight on the rising copper/gold ratio (pro-growth signal), industrial production recovery, and curve steepening. China demand is the swing factor — a meaningful slowdown there would compress earnings disproportionately.",
+      "rationale": "Metals & mining earn their Overweight on the rising copper/gold ratio (pro-growth signal), industrial production recovery, and curve steepening. China demand is the swing factor \u2014 a meaningful slowdown there would compress earnings disproportionately.",
       "key_factors": [
-        {"name": "Copper/gold ratio", "value": "rising", "direction": "up", "good": true},
-        {"name": "Industrial production YoY", "value": "+2.1%", "direction": "up", "good": true},
-        {"name": "Yield curve (10Y-2Y)", "value": "+54 bp", "direction": "up", "good": true}
+        {
+          "name": "Copper/gold ratio",
+          "value": "rising",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Industrial production YoY",
+          "value": "+2.1%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Yield curve (10Y-2Y)",
+          "value": "+54 bp",
+          "direction": "up",
+          "good": true
+        }
       ],
-      "examples": ["LIN", "FCX", "NEM", "APD", "ECL", "DD", "SHW", "NUE"],
+      "examples": [
+        "LIN",
+        "FCX",
+        "NEM",
+        "APD",
+        "ECL",
+        "DD",
+        "SHW",
+        "NUE"
+      ],
       "kill_factors": "China industrial output rolls over or copper/gold ratio breaks down."
     },
     "IYR": {
@@ -165,13 +444,37 @@
       "name": "RealEstate",
       "sector": "Real Estate",
       "fund": "iShares US Real Estate ETF",
-      "rationale": "REITs rated Underweight on real rates still elevated and active CRE stress in the office sub-sector. The bucket is also a pure bond proxy — it loses when the curve steepens. Industrial and data-center REITs are the bright spots but don't dominate the index.",
+      "rationale": "REITs rated Underweight on real rates still elevated and active CRE stress in the office sub-sector. The bucket is also a pure bond proxy \u2014 it loses when the curve steepens. Industrial and data-center REITs are the bright spots but don't dominate the index.",
       "key_factors": [
-        {"name": "Real rates (10Y TIPS)", "value": "1.62%", "direction": "down", "good": true},
-        {"name": "CRE stress (office vacancy)", "value": "elevated", "direction": "flat", "good": false},
-        {"name": "Yield curve (10Y-2Y)", "value": "+54 bp", "direction": "up", "good": false}
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "CRE stress (office vacancy)",
+          "value": "elevated",
+          "direction": "flat",
+          "good": false
+        },
+        {
+          "name": "Yield curve (10Y-2Y)",
+          "value": "+54 bp",
+          "direction": "up",
+          "good": false
+        }
       ],
-      "examples": ["PLD", "AMT", "EQIX", "WELL", "DLR", "PSA", "O", "SPG"],
+      "examples": [
+        "PLD",
+        "AMT",
+        "EQIX",
+        "WELL",
+        "DLR",
+        "PSA",
+        "O",
+        "SPG"
+      ],
       "kill_factors": "Real rates fall below 1.0% sustained or CRE stress meaningfully resolves."
     },
     "IYZ": {
@@ -181,11 +484,35 @@
       "fund": "iShares US Telecommunications",
       "rationale": "Telecom & media earn their Overweight on the strongest earnings revisions in the cohort, free cash flow durability, and a defensive moat that doesn't require defensive macro to monetize. The mega-cap media component (GOOGL, META) provides AI-monetization optionality.",
       "key_factors": [
-        {"name": "Earnings revisions (3mo)", "value": "+1.8%", "direction": "up", "good": true},
-        {"name": "Free cash flow yield", "value": "5.2%", "direction": "up", "good": true},
-        {"name": "Real rates (10Y TIPS)", "value": "1.62%", "direction": "down", "good": true}
+        {
+          "name": "Earnings revisions (3mo)",
+          "value": "+1.8%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Free cash flow yield",
+          "value": "5.2%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        }
       ],
-      "examples": ["GOOGL", "META", "NFLX", "DIS", "VZ", "T", "TMUS", "CMCSA"],
+      "examples": [
+        "GOOGL",
+        "META",
+        "NFLX",
+        "DIS",
+        "VZ",
+        "T",
+        "TMUS",
+        "CMCSA"
+      ],
       "kill_factors": "Earnings revisions turn negative or AI monetization narrative breaks down on hyperscaler results."
     },
     "MGK": {
@@ -193,20 +520,653 @@
       "name": "MegaCapGrowth",
       "sector": "Info Tech",
       "fund": "Vanguard Mega Cap Growth ETF",
-      "rationale": "Mega-cap growth rated Market Weight as a barbell hedge — the constituents are already heavily represented in the Semis (Info Tech) and Telecom & Media (Comm Svcs) overweights. Adding MGK on top would double-concentrate. Held at neutral until conviction tilts diverge from concentration risk.",
+      "rationale": "Mega-cap growth rated Market Weight as a barbell hedge \u2014 the constituents are already heavily represented in the Semis (Info Tech) and Telecom & Media (Comm Svcs) overweights. Adding MGK on top would double-concentrate. Held at neutral until conviction tilts diverge from concentration risk.",
       "key_factors": [
-        {"name": "Concentration overlap (Semis + CommSvcs)", "value": "70%", "direction": "flat", "good": false},
-        {"name": "Real rates (10Y TIPS)", "value": "1.62%", "direction": "down", "good": true},
-        {"name": "Earnings revisions (3mo)", "value": "+0.9%", "direction": "up", "good": true}
+        {
+          "name": "Concentration overlap (Semis + CommSvcs)",
+          "value": "70%",
+          "direction": "flat",
+          "good": false
+        },
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Earnings revisions (3mo)",
+          "value": "+0.9%",
+          "direction": "up",
+          "good": true
+        }
       ],
-      "examples": ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMZN", "AVGO", "TSLA"],
+      "examples": [
+        "AAPL",
+        "MSFT",
+        "NVDA",
+        "GOOGL",
+        "META",
+        "AMZN",
+        "AVGO",
+        "TSLA"
+      ],
       "kill_factors": "Single-name divergence (e.g. AAPL/MSFT decoupling from semis) shifts the concentration calc."
+    },
+    "XLC": {
+      "ticker": "XLC",
+      "name": "Media & Entertainment",
+      "sector": "Communication Services",
+      "fund": "SPDR Communication Services Select Sector ETF",
+      "rationale": "Media & Entertainment is dominated by Meta and Alphabet, where ad spend tracks employment and discretionary income. Currently market-weight: real-rate tailwind helps the long-duration profile, but a flat earnings revision trend keeps it from overweight. AI-monetization optionality is the main upside catalyst.",
+      "key_factors": [
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "VIX",
+          "value": "14.1",
+          "direction": "flat",
+          "good": true
+        }
+      ],
+      "examples": [
+        "META",
+        "GOOGL",
+        "NFLX",
+        "DIS",
+        "EA",
+        "TTWO",
+        "WBD",
+        "T",
+        "VZ"
+      ],
+      "kill_factors": "Real rates above 2.0% or VIX above 25 (ad spend slows in stress regimes)."
+    },
+    "AAPL": {
+      "ticker": "AAPL",
+      "name": "Technology Hardware & Equipment",
+      "sector": "Information Technology",
+      "fund": "Basket: AAPL/CSCO/HPQ/DELL/STX/WDC/JNPR/NTAP/ZBRA/CDW/ANET/MSI",
+      "rationale": "Hardware is positively exposed to the same factors that drive Semis (real rates rolling over, capacity utilization recovery) but with a longer lag. AAPL anchors the basket. Currently market-weight pending capex revisions firming. AI infra build-out is the upside lever for networking/storage names (ANET, NTAP).",
+      "key_factors": [
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Capacity utilization",
+          "value": "78.4%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": true
+        }
+      ],
+      "examples": [
+        "AAPL",
+        "CSCO",
+        "HPQ",
+        "DELL",
+        "STX",
+        "WDC",
+        "JNPR",
+        "NTAP",
+        "ANET",
+        "MSI",
+        "ZBRA",
+        "CDW"
+      ],
+      "kill_factors": "Real rates above 2.0% or capacity utilization rolls below 76% (signals demand softening)."
+    },
+    "CARZ": {
+      "ticker": "CARZ",
+      "name": "Automobiles & Components",
+      "sector": "Consumer Discretionary",
+      "fund": "First Trust S&P Global Auto Index ETF \u2014 TSLA, TM, GM, F, STLA, HMC",
+      "rationale": "Autos are the most rate-sensitive consumer durable: monthly payments scale with auto-loan rates which track real rates plus credit spreads. Currently underweight on still-elevated real rates and rising delinquencies in subprime auto. EV transition adds idiosyncratic risk to TSLA, BYD.",
+      "key_factors": [
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Auto-loan delinquencies",
+          "value": "rising",
+          "direction": "up",
+          "good": false
+        },
+        {
+          "name": "Natural gas price (Henry Hub)",
+          "value": "$2.20",
+          "direction": "down",
+          "good": true
+        }
+      ],
+      "examples": [
+        "TSLA",
+        "TM",
+        "GM",
+        "F",
+        "STLA",
+        "HMC",
+        "RIVN",
+        "LCID"
+      ],
+      "kill_factors": "Real rates above 2.0%, jobless claims above 260k, or auto delinquencies break trend."
+    },
+    "NKE": {
+      "ticker": "NKE",
+      "name": "Consumer Durables & Apparel",
+      "sector": "Consumer Discretionary",
+      "fund": "Basket: NKE/LULU/DECK/ONON/RL/TPR/CPRI/WHR/MHK/LEG/HAS",
+      "rationale": "Consumer durables and apparel sit on the consumer-discretionary frontier \u2014 sensitive to both rates (financing costs for big-ticket appliances) and breakeven inflation (input costs for apparel). Currently market-weight as China demand recovery for athletic apparel offsets weakness in housing-related durables.",
+      "key_factors": [
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Breakeven inflation",
+          "value": "2.4%",
+          "direction": "flat",
+          "good": true
+        }
+      ],
+      "examples": [
+        "NKE",
+        "LULU",
+        "DECK",
+        "ONON",
+        "RL",
+        "TPR",
+        "CPRI",
+        "WHR",
+        "MHK",
+        "LEG",
+        "HAS"
+      ],
+      "kill_factors": "Jobless above 260k or breakeven above 3.0% (input cost squeeze)."
+    },
+    "PEJ": {
+      "ticker": "PEJ",
+      "name": "Consumer Services",
+      "sector": "Consumer Discretionary",
+      "fund": "Invesco Dynamic Leisure & Entertainment ETF \u2014 MAR, HLT, BKNG, MGM, MCD",
+      "rationale": "Consumer Services (hotels, restaurants, leisure, gaming) tracks discretionary income and credit availability. Currently market-weight on tight labor market supporting wages but elevated SLOOS C&I tightening keeping a lid on small-business credit which feeds restaurant capex.",
+      "key_factors": [
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "SLOOS C&I tightening",
+          "value": "+8.5pp",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Breakeven inflation",
+          "value": "2.4%",
+          "direction": "flat",
+          "good": true
+        }
+      ],
+      "examples": [
+        "MAR",
+        "HLT",
+        "BKNG",
+        "MGM",
+        "WYNN",
+        "LVS",
+        "MCD",
+        "SBUX",
+        "DRI",
+        "CMG"
+      ],
+      "kill_factors": "Jobless above 260k or SLOOS C&I above +20pp (credit channel chokes off discretionary spend)."
+    },
+    "XRT": {
+      "ticker": "XRT",
+      "name": "Consumer Discretionary Distribution & Retail",
+      "sector": "Consumer Discretionary",
+      "fund": "SPDR S&P Retail ETF \u2014 equal-weight retailers (AMZN-light, AAP, BBY, ORLY, TJX, ULTA, ROST)",
+      "rationale": "Discretionary retail tracks employment growth and M2 (consumer purchasing power). Currently market-weight: tight labor market is bullish but slowing M2 growth caps the upside, and high-end retail (ULTA, RH) faces wallet-share competition from services.",
+      "key_factors": [
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "M2 YoY growth",
+          "value": "+4.1%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "SLOOS C&I tightening",
+          "value": "+8.5pp",
+          "direction": "down",
+          "good": true
+        }
+      ],
+      "examples": [
+        "AMZN",
+        "HD",
+        "LOW",
+        "TJX",
+        "ROST",
+        "ULTA",
+        "BBY",
+        "ORLY",
+        "AAP",
+        "GPC"
+      ],
+      "kill_factors": "Jobless above 260k or M2 YoY drops negative (cash crunch)."
+    },
+    "WMT": {
+      "ticker": "WMT",
+      "name": "Consumer Staples Distribution & Retail",
+      "sector": "Consumer Staples",
+      "fund": "Basket: WMT/COST/KR/TGT/DG/DLTR/BJ/ACI",
+      "rationale": "Mass merchants and grocery are defensive staples that gain share in mid-to-late cycle as consumers trade down. Currently underweight: while jobless claims stay benign and breakeven inflation eases, the bull case for consumer staples requires either a recession trade-down (not happening) or structural margin expansion (not happening yet).",
+      "key_factors": [
+        {
+          "name": "SLOOS C&I tightening",
+          "value": "+8.5pp",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Breakeven inflation",
+          "value": "2.4%",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": false
+        }
+      ],
+      "examples": [
+        "WMT",
+        "COST",
+        "KR",
+        "TGT",
+        "DG",
+        "DLTR",
+        "BJ",
+        "ACI"
+      ],
+      "kill_factors": "Jobless above 260k (recession trade-down) \u2014 would flip this to OW."
+    },
+    "PBJ": {
+      "ticker": "PBJ",
+      "name": "Food, Beverage & Tobacco",
+      "sector": "Consumer Staples",
+      "fund": "Invesco Food & Beverage ETF \u2014 KO, PEP, MO, PM, MDLZ, KHC, KDP, GIS",
+      "rationale": "Food, beverage & tobacco is the deepest defensive equity bucket \u2014 pricing power survives most macro environments. Currently underweight: not because the businesses are weak but because cyclical groups (Semis, Energy, Industrials) score better in a normal/calm regime. Bull case re-emerges if R&L composite enters the elevated zone.",
+      "key_factors": [
+        {
+          "name": "SLOOS C&I tightening",
+          "value": "+8.5pp",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Breakeven inflation",
+          "value": "2.4%",
+          "direction": "flat",
+          "good": true
+        }
+      ],
+      "examples": [
+        "KO",
+        "PEP",
+        "MO",
+        "PM",
+        "MDLZ",
+        "KHC",
+        "KDP",
+        "GIS",
+        "STZ",
+        "HSY"
+      ],
+      "kill_factors": "R&L composite above +30 (stress regime) \u2014 would flip this to OW as a defensive rotation target."
+    },
+    "PG": {
+      "ticker": "PG",
+      "name": "Household & Personal Products",
+      "sector": "Consumer Staples",
+      "fund": "Basket: PG/CL/KMB/CHD/EL/COTY/CLX/CHWY/HRL",
+      "rationale": "Household and personal products is the most rate-defensive consumer staples sub-bucket \u2014 names like PG and CL benefit from low VIX (predictable input costs) and stable breakevens. Currently underweight on relative ranking: cyclicals score better; staples wait their turn.",
+      "key_factors": [
+        {
+          "name": "SLOOS C&I tightening",
+          "value": "+8.5pp",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Breakeven inflation",
+          "value": "2.4%",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "VIX",
+          "value": "14.1",
+          "direction": "flat",
+          "good": true
+        }
+      ],
+      "examples": [
+        "PG",
+        "CL",
+        "KMB",
+        "CHD",
+        "EL",
+        "COTY",
+        "CLX",
+        "CHWY",
+        "HRL"
+      ],
+      "kill_factors": "VIX above 25 OR breakeven above 3.0% \u2014 both would tilt this to OW."
+    },
+    "IYG": {
+      "ticker": "IYG",
+      "name": "Financial Services",
+      "sector": "Financials",
+      "fund": "iShares US Financial Services ETF \u2014 V, MA, JPM, BLK, AXP, SPGI, MCO, ICE",
+      "rationale": "Financial Services covers payments (V/MA/AXP), exchanges (ICE/CME), data/index providers (SPGI/MSCI), and asset managers. Earnings are tightly correlated with capital-markets activity and consumer transaction volume. Currently market-weight: financial conditions easy enough to support volume but capacity-utilization recovery is slow.",
+      "key_factors": [
+        {
+          "name": "ANFCI (financial conditions)",
+          "value": "-0.32",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Capacity utilization",
+          "value": "78.4%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "VIX",
+          "value": "14.1",
+          "direction": "flat",
+          "good": true
+        }
+      ],
+      "examples": [
+        "V",
+        "MA",
+        "JPM",
+        "BLK",
+        "AXP",
+        "SPGI",
+        "MCO",
+        "ICE",
+        "NDAQ",
+        "MSCI",
+        "FDS",
+        "SCHW"
+      ],
+      "kill_factors": "VIX above 25 (volume comp) or ANFCI above 0 (financial conditions tightening)."
+    },
+    "KIE": {
+      "ticker": "KIE",
+      "name": "Insurance",
+      "sector": "Financials",
+      "fund": "SPDR S&P Insurance ETF \u2014 equal-weight US insurance carriers",
+      "rationale": "Insurance is rate-positive: rising real rates lift float yields. Currently market-weight as real rates have rolled over from 2.5% peak, removing the tailwind. Property-catastrophe pricing remains firm and underwriting margins are healthy, but the biggest source of earnings (investment income on float) has stopped expanding.",
+      "key_factors": [
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": false
+        },
+        {
+          "name": "ANFCI (financial conditions)",
+          "value": "-0.32",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "VIX",
+          "value": "14.1",
+          "direction": "flat",
+          "good": true
+        }
+      ],
+      "examples": [
+        "PGR",
+        "CB",
+        "AIG",
+        "MET",
+        "AFL",
+        "ALL",
+        "TRV",
+        "PRU",
+        "HIG"
+      ],
+      "kill_factors": "Real rates back above 2.0% \u2014 the float-yield tailwind would re-engage and flip this to OW."
+    },
+    "IHI": {
+      "ticker": "IHI",
+      "name": "Health Care Equipment & Services",
+      "sector": "Health Care",
+      "fund": "iShares US Medical Devices ETF \u2014 TMO, ABT, MDT, BSX, SYK, ISRG, EW",
+      "rationale": "Medical devices and health-care services together are rate-sensitive (long-duration cash flows) and exposed to capacity-utilization in hospitals. Currently market-weight: stable demand from procedure volume normalization, but ageing rate-rollover is half-priced and AI/robotic surgery pipeline (ISRG) needs another quarter of confirmation.",
+      "key_factors": [
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "SLOOS C&I tightening",
+          "value": "+8.5pp",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Capacity utilization",
+          "value": "78.4%",
+          "direction": "up",
+          "good": true
+        }
+      ],
+      "examples": [
+        "TMO",
+        "ABT",
+        "MDT",
+        "BSX",
+        "SYK",
+        "ISRG",
+        "EW",
+        "BDX",
+        "DHR",
+        "UNH",
+        "CVS"
+      ],
+      "kill_factors": "Capacity utilization rolls below 77% (hospital demand softens) or jobless above 260k."
+    },
+    "IYT": {
+      "ticker": "IYT",
+      "name": "Transportation",
+      "sector": "Industrials",
+      "fund": "iShares US Transportation ETF \u2014 UPS, FDX, UNP, NSC, CSX, DAL, UAL, CHRW",
+      "rationale": "Transportation is the bellwether for industrial activity \u2014 rails and parcels move first when factory orders pick up. Currently market-weight: copper/gold rising and capacity-utilization recovering both bode well, but airline fuel hedge book is upside-down on cheap nat-gas/crude moves.",
+      "key_factors": [
+        {
+          "name": "Capacity utilization",
+          "value": "78.4%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "Natural gas price (Henry Hub)",
+          "value": "$2.20",
+          "direction": "down",
+          "good": true
+        }
+      ],
+      "examples": [
+        "UPS",
+        "FDX",
+        "UNP",
+        "NSC",
+        "CSX",
+        "DAL",
+        "UAL",
+        "CHRW",
+        "EXPD",
+        "JBHT"
+      ],
+      "kill_factors": "Capacity utilization rolls below 77% or oil above $90 (airline cost compression)."
+    },
+    "WM": {
+      "ticker": "WM",
+      "name": "Commercial & Professional Services",
+      "sector": "Industrials",
+      "fund": "Basket: WM/RSG/CTAS/RHI/EFX/VRSK/BAH/RBA",
+      "rationale": "Commercial & Professional Services spans waste management (WM/RSG) \u2014 which is essentially a utility \u2014 through staffing (CTAS/RHI) and data/analytics (EFX/VRSK). Currently market-weight: the mix dilutes any single-factor edge, but earnings stability is high and the basket is a quality-tilt within Industrials.",
+      "key_factors": [
+        {
+          "name": "Jobless claims (4-wk avg)",
+          "value": "232k",
+          "direction": "flat",
+          "good": true
+        },
+        {
+          "name": "Capacity utilization",
+          "value": "78.4%",
+          "direction": "up",
+          "good": true
+        },
+        {
+          "name": "ANFCI (financial conditions)",
+          "value": "-0.32",
+          "direction": "down",
+          "good": true
+        }
+      ],
+      "examples": [
+        "WM",
+        "RSG",
+        "CTAS",
+        "RHI",
+        "EFX",
+        "VRSK",
+        "BAH",
+        "RBA"
+      ],
+      "kill_factors": "Jobless above 260k (staffing sub-bucket cracks first) or ANFCI above 0."
+    },
+    "CBRE": {
+      "ticker": "CBRE",
+      "name": "Real Estate Management & Development",
+      "sector": "Real Estate",
+      "fund": "Basket: CBRE/JLL/Z/EXP/OPEN/RDFN/NMRK/KW",
+      "rationale": "Non-REIT real estate spans commercial brokerage (CBRE/JLL/NMRK) and online residential platforms (Z/RDFN/EXP/OPEN). Currently market-weight: real rates rolling over helps both segments (commercial transactions resume; residential listings flow), but the bull case requires another 50bp drop in real rates to unlock the inventory-stuck residential market.",
+      "key_factors": [
+        {
+          "name": "Real rates (10Y TIPS)",
+          "value": "1.62%",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "ANFCI (financial conditions)",
+          "value": "-0.32",
+          "direction": "down",
+          "good": true
+        },
+        {
+          "name": "Capacity utilization",
+          "value": "78.4%",
+          "direction": "up",
+          "good": true
+        }
+      ],
+      "examples": [
+        "CBRE",
+        "JLL",
+        "Z",
+        "EXP",
+        "OPEN",
+        "RDFN",
+        "NMRK",
+        "KW"
+      ],
+      "kill_factors": "Real rates back above 2.0% would re-stall residential transactions; ANFCI above 0 would freeze commercial deal flow."
     }
   },
   "defensive_sleeve": {
-    "BIL": {"ticker": "BIL", "name": "Cash proxy", "fund": "SPDR 1-3 Month Treasury Bill ETF", "role": "T-bill cash equivalent — preserves capital, earns ~5% yield"},
-    "TLT": {"ticker": "TLT", "name": "Long Treasuries", "fund": "iShares 20+ Year Treasury Bond ETF", "role": "Duration hedge — rallies hard if growth shock forces rate cuts"},
-    "GLD": {"ticker": "GLD", "name": "Gold", "fund": "SPDR Gold Shares", "role": "Inflation hedge and tail-risk insurance — uncorrelated to equities"},
-    "LQD": {"ticker": "LQD", "name": "IG Corporate Bonds", "fund": "iShares Investment Grade Corporate Bond ETF", "role": "Credit-spread carry with moderate duration"}
+    "BIL": {
+      "ticker": "BIL",
+      "name": "Cash proxy",
+      "fund": "SPDR 1-3 Month Treasury Bill ETF",
+      "role": "T-bill cash equivalent \u2014 preserves capital, earns ~5% yield"
+    },
+    "TLT": {
+      "ticker": "TLT",
+      "name": "Long Treasuries",
+      "fund": "iShares 20+ Year Treasury Bond ETF",
+      "role": "Duration hedge \u2014 rallies hard if growth shock forces rate cuts"
+    },
+    "GLD": {
+      "ticker": "GLD",
+      "name": "Gold",
+      "fund": "SPDR Gold Shares",
+      "role": "Inflation hedge and tail-risk insurance \u2014 uncorrelated to equities"
+    },
+    "LQD": {
+      "ticker": "LQD",
+      "name": "IG Corporate Bonds",
+      "fund": "iShares Investment Grade Corporate Bond ETF",
+      "role": "Credit-spread carry with moderate duration"
+    }
   }
 }
