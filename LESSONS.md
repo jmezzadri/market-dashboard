@@ -848,3 +848,94 @@ This rule pairs with rule 11 (shallow-clone fallback when worktree
 locks won't unlink). Both describe sandbox-only workarounds that are
 safe IF you respect their failure modes; the failure mode of
 Contents-API rebases is silent regression of merged work.
+
+---
+
+## 20. Never cut corners on a critical project — read the live state, cite only what actually exists
+
+**The rule.** Before producing ANY deliverable that claims to describe state, methodology, constraints, or sources of truth — ground every claim in what's actually on `origin/main` and in production. If you cite a document, file, decision, or version, that thing must exist on `origin/main` and you must have read it. If you describe a constraint as "approved" or "current" or "immovable," that constraint must be reflected in the live code (or in an explicitly-labelled approved spec doc). Speed-over-rigor on a project this user trusts you with is unacceptable.
+
+**Why.** 2026-04-27. During an Asset Allocation methodology session, I produced a comprehensive prompt for a follow-on agent that contained three integrity failures: (1) cited two methodology docs (`asset-allocation-methodology-v4.md` and `asset-allocation-methodology-v9.2-PROPOSED-NOT-LIVE.md`) that don't exist on `origin/main` or any branch — they were uncommitted local files in the working directory I'd been writing throughout the session, treated as if they were repo artefacts; (2) declared "16-bucket calibration universe" an immovable constraint when production actually runs 25 GICS industry-group buckets via `compute_v9_allocation.py` — the 16 number traced to an in-development v10 architecture rebuild I'd conflated with current production; (3) labelled a forward methodology proposal as "FINAL" without verifying it matched what was live, and only discovered the mismatch when the user pushed back. The follow-on agent caught all three and stopped before writing code, which is exactly the right behaviour but wastes a session's worth of work.
+
+The user's response was direct: *"Nothing irritates me more than when you cut corners on a critical project."* This rule exists because that comment is correct and will be correct every time it shows up.
+
+**How to apply.**
+
+1. **Before producing any methodology doc, prompt, or status summary,** run the three-query routine from `feedback_always_read_repo_state_first.md`:
+   - `git log -20 --oneline origin/main` (what's recent on main)
+   - search the GitHub API tree for `*-LOCKED.md`, `*-approved.md`, `*-current.md`, `methodology*`, `architecture*` (immovable specs)
+   - `head -100 LESSONS.md` and `tail -100 LESSONS.md` (latest team rules)
+2. **Every cited document must exist on `origin/main`** before you reference it. Verify with the GitHub API tree query, not with `ls` against the local working directory. If a doc only exists in your sandbox or in your working tree, it is NOT a repo artefact and cannot be cited as one.
+3. **Every "approved" / "current" / "immovable" constraint** must be backed by either (a) a labelled approved spec doc on `origin/main` or (b) the production code itself. If you describe a constraint and the live code disagrees, the live code wins and your description is wrong.
+4. **Never label a proposal "FINAL", "the spec," "the methodology"** without explicit verification that it matches what's running. Use "draft," "proposed," "v3 forward proposal" until that verification is done.
+5. **When you discover a discrepancy between a doc and production** (the v9 LOCKED doc described 14 sector buckets while production was running 25 IGs from PR #171), surface it immediately to the user as a contradiction to resolve, do NOT pick one and run with it. Three sources disagreeing is information, not a problem to paper over.
+6. **At the start of any session that touches a critical surface** (methodology, allocation logic, composite calibration, scoring), the first three actions are: (a) `git log` of the surface file's last 20 commits, (b) read the file at HEAD on origin/main, (c) read every doc whose path contains the surface name. Three minutes of reading prevents an hour of wrong work.
+7. **If a hand-off prompt to another agent contains assertions about state** (file paths, version numbers, constraint lists, prior decisions), every assertion must be grounded in something the receiving agent can independently verify on `origin/main`. The follow-on agent is right to challenge — and they will, because the sandbox-clean ones do exactly this kind of cross-check before writing code.
+
+This rule pairs with `feedback_always_read_repo_state_first.md` (in auto-memory) and rule 1 in this file (plain-English status reports). Together: read everything before you write anything, and describe what you read, not what you wish were true.
+
+
+---
+
+## 21. Supabase DDL from the sandbox uses the Management API + Personal Access Token — never give up at "service role can't run DDL"
+
+**The rule.** When a task needs `CREATE TABLE`, `CREATE FUNCTION`, `CREATE
+POLICY`, or any DDL on the Supabase Postgres database, run the SQL through
+the **Supabase Management API** using the Personal Access Token (`sbp_*`)
+stored in the project's `.env.local` as `SUPABASE_ACCESS_TOKEN`. Do **not**
+hand the user a SQL file and ask them to paste it into the SQL editor.
+
+**Why.** On 2026-04-27, after building the `portfolio_history` migration
++ seed, I told Joe "service role REST can't run DDL — please apply these
+files manually in the SQL editor." He pushed back: that's exactly the
+kind of mechanical drudgery he expects me to automate end-to-end (cf.
+feedback_drive_everything, feedback_never_ask_user_to_do_claude_tasks).
+The Personal Access Token had been sitting in `.env.local` the whole
+time — I just hadn't searched for it. The Management API endpoint
+`POST /v1/projects/{ref}/database/query` accepts arbitrary SQL with that
+PAT and runs it against the project database. Migration + 245-row seed
+landed in two API calls.
+
+**How to apply.**
+
+1. **Two different Supabase auth tokens, two different scopes:**
+   - `SUPABASE_SERVICE_ROLE_KEY` (`eyJ…` JWT) → PostgREST → **data CRUD
+     only**. No DDL. Use for inserts/updates/selects via `/rest/v1/`.
+   - `SUPABASE_ACCESS_TOKEN` (`sbp_…` Personal Access Token) → Management
+     API → **arbitrary SQL including DDL, GRANT, CREATE EXTENSION, etc.**
+     Use for migrations, RPC creation, schema introspection that needs
+     more than `pg_meta`.
+
+2. **Endpoint:** `POST https://api.supabase.com/v1/projects/{project_ref}/database/query`
+   - `Authorization: Bearer <sbp_…>`
+   - `Content-Type: application/json`
+   - Body: `{"query": "<full SQL, multi-statement OK>"}`
+   - Returns a JSON array of rows. Empty array `[]` for DDL is success.
+
+3. **Sandbox pattern for migrations:**
+   ```bash
+   PAT=$SUPABASE_ACCESS_TOKEN
+   REF=yqaqqzseepebrocgibcw
+   python3 -c "import json,sys; print(json.dumps({'query': open(sys.argv[1]).read()}))" \
+     /path/to/migration.sql > /tmp/req.json
+   curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+     -H "Authorization: Bearer $PAT" \
+     -H "Content-Type: application/json" \
+     --data-binary @/tmp/req.json
+   ```
+   JSON-encoding via Python avoids the shell-escaping landmines around
+   `$`, backticks, and dollar-quoted function bodies.
+
+4. **Always verify after DDL.** After `CREATE TABLE`, query
+   `information_schema.columns` for the new table. After `CREATE POLICY`,
+   query `pg_policies`. After seeding, run a `SELECT COUNT(*)` against
+   the new rows. Don't trust the empty `[]` response alone.
+
+5. **The PAT is sensitive.** Treat it like the GitHub PAT (rule reference
+   in `auto_memory/reference_github_push_pattern.md`): never echo it in
+   commit messages, never paste it into chat, only read it from
+   `.env.local` at runtime.
+
+This rule covers any future schema work — RLS additions, `pg_cron`
+schedules, function bodies, view definitions. If it's SQL Joe would
+otherwise have to paste, the agent runs it.
