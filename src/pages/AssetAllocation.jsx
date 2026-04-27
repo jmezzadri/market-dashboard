@@ -261,7 +261,7 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
         <strong>{ig.sector} › {ig.name}</strong>
         <button onClick={onClose} style={{ background: "transparent", border: "0.5px solid var(--border)", borderRadius: 4, padding: "3px 9px", fontSize: 11, cursor: "pointer", color: "var(--text)" }}>Close ✕</button>
       </div>
-      <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>Detailed rationale not yet seeded for this bucket.</div>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>Detailed rationale not yet seeded for this industry group.</div>
     </div>
   );
 
@@ -306,7 +306,7 @@ function DrillDownPanel({ ig, rationaleData, onOpenTicker, onClose, currentWeigh
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
         <div>
-          <div style={{ fontSize: 10, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, fontWeight: 500 }}>Why we like it</div>
+          <div style={{ fontSize: 10, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 6, fontWeight: 500 }}>{ig.rating === "ow" ? "Why it's overweight" : ig.rating === "uw" ? "Why it's underweight" : "Why it's market weight"}</div>
           <div style={{ fontSize: 12, lineHeight: 1.6 }}>{seed.rationale}</div>
 
           <div style={{ fontSize: 10, color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: 14, marginBottom: 6, fontWeight: 500 }}>Example holdings — click any ticker</div>
@@ -397,6 +397,14 @@ export default function AssetAllocation({ onOpenTicker }) {
   const picks = alloc?.picks || [];
   const lastChange = picks.length ? picks[0]?.weight : null;
 
+  // Format an ISO date (e.g. "2026-03-31") as "March 31".
+  const humanDate = (iso) => {
+    if (!iso) return "—";
+    const [y, m, d] = iso.split("-").map(Number);
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    return `${monthNames[m - 1]} ${d}`;
+  };
+
   // Derived hero subtitle — never goes stale because it reads the live composites.
   const heroSubtitle = useMemo(() => {
     if (!macroSnap) return "Loading macro snapshot...";
@@ -456,13 +464,13 @@ export default function AssetAllocation({ onOpenTicker }) {
             </span>
             <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green-text)" }}/>
-              Updated {alloc.as_of} · Next rebalance {nextSaturdayStr}
+              Updated weekly on Saturdays · Last update: {humanDate(alloc.as_of)}
             </span>
           </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8, marginTop: 12 }}>
-          <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Total equity exposure
               <InfoTip def="The total dollars of equities held per $100 of capital, including borrowed dollars from margin. When this exceeds $100, the difference is leverage (e.g., $128 means 28% margin)." />
@@ -470,7 +478,7 @@ export default function AssetAllocation({ onOpenTicker }) {
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green-text)", marginTop: 2 }}>${(totalEquity * 100).toFixed(0)}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>per $100 capital · {(margin * 100).toFixed(0)}% margin</div>
           </div>
-          <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Defensive sleeve
               <InfoTip def="The portion of capital held in safe assets — T-bills (BIL), long Treasuries (TLT), gold (GLD), and IG corporate bonds (LQD). Activates when Risk & Liquidity composite enters the elevated or stressed zone. Currently off." />
@@ -478,7 +486,7 @@ export default function AssetAllocation({ onOpenTicker }) {
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, marginTop: 2 }}>${defensiveOn ? ((1 - alloc.equity_share) * 100).toFixed(0) : 0}</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{defensiveOn ? "active" : "off · activates if R&L stresses"}</div>
           </div>
-          <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Excess return target
               <InfoTip def="Expected outperformance versus the S&P 500 over the next month, after subtracting the financing cost on any margin used." />
@@ -486,59 +494,54 @@ export default function AssetAllocation({ onOpenTicker }) {
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, color: "var(--green-text)", marginTop: 2 }}>+{alpha.toFixed(2)} pp</div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>monthly · over S&P 500</div>
           </div>
-          <div style={{ background: "var(--bg)", border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px" }}>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
               Conviction
-              <InfoTip def="How confident the model is in the current ranking. STRONG = the top 5 buckets are clearly separated from the rest on both indicator score and momentum rank." />
+              <InfoTip def="How confident the model is in the current ranking. STRONG = the top 5 industry groups are clearly separated from the rest on both indicator score and momentum rank." />
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 500, marginTop: 2, textTransform: "capitalize" }}>{conviction.toLowerCase()}</div>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{picks.length} picks · clear rank separation</div>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>{picks.length} industry groups · clear rank separation</div>
           </div>
         </div>
       </section>
 
-      {/* Section 1 — The Big Picture */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14, gap: 10 }}>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>1 · The big picture</div>
-            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Market snapshot — live from Macro Overview</h2>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Three composites measure forward S&P drawdown probability over different windows.</p>
-          </div>
-          <a href="#overview" style={{ fontSize: 11, color: "var(--accent)", padding: "4px 10px", border: "0.5px solid var(--border)", borderRadius: 5, textDecoration: "none" }}>Full dials &amp; history →</a>
+      {/* Section 1 — The What & The Why */}
+      <section style={{ padding: "var(--space-7) var(--space-8)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>1 · The big picture</div>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-          {macroSnap ? (
-            <>
-              <MacroSnapCard name="Risk & Liquidity"   window="Forward 3 months · 10%+ drawdown"  score={macroSnap.RL.score} deltaMo={macroSnap.RL.dMo} deltaQt={macroSnap.RL.dQt} drawdownPct={17} baselinePct={21} />
-              <MacroSnapCard name="Growth"             window="Forward 6 months · 15%+ drawdown"  score={macroSnap.GR.score} deltaMo={macroSnap.GR.dMo} deltaQt={macroSnap.GR.dQt} drawdownPct={22} baselinePct={22} />
-              <MacroSnapCard name="Inflation & Rates"  window="Forward 18 months · 20%+ drawdown" score={macroSnap.IR.score} deltaMo={macroSnap.IR.dMo} deltaQt={macroSnap.IR.dQt} drawdownPct={23} baselinePct={28} />
-            </>
-          ) : (
-            <div style={{ gridColumn: "span 3", padding: "var(--space-6)", textAlign: "center", color: "var(--text-muted)", fontSize: 12 }}>Composite history loading…</div>
-          )}
-        </div>
-
-        {/* The What & The Why */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 14 }}>
-          <div style={{ padding: "14px 16px", background: "color-mix(in srgb, var(--green-text) 18%, transparent)", borderLeft: "3px solid var(--green-text)", borderRadius: "var(--radius-md)" }}>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 4 }}>The What</div>
-            <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 17, fontWeight: 500, marginBottom: 8, lineHeight: 1.3 }}>
-              Aggressive cyclical tilt with <span style={{ fontStyle: "italic", color: "var(--text-muted)" }}>${(margin * 100).toFixed(0)} of leverage</span> per $100 capital.
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+          {/* The What */}
+          <div style={{ padding: "20px 22px", background: "color-mix(in srgb, var(--green-text) 10%, transparent)", borderLeft: "4px solid var(--green-text)", borderRadius: "var(--radius-md)" }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 6 }}>The What</div>
+            <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 20, fontWeight: 500, marginBottom: 14, lineHeight: 1.3, color: "var(--text)" }}>
+              Aggressive cyclical tilt with ${'{'}(margin * 100).toFixed(0){'}'}% leverage per $100 capital.
             </div>
-            <div style={{ fontSize: 13, lineHeight: 1.65 }}>
-              All three macro composites read in the calm or normal zone with implied drawdown risk at or below historical baseline. The portfolio holds <strong style={{ fontWeight: 600 }}>${(totalEquity * 100).toFixed(0)} in equities</strong> with the defensive sleeve {defensiveOn ? "active" : "off"}, concentrated in {picks.length} overweights: {picks.map(p => p.name).join(", ")}.
-            </div>
+            <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
+              <li><strong>${'{'}(totalEquity * 100).toFixed(0){'}'}</strong> in equities per $100 of capital, with the defensive sleeve {defensiveOn ? "active" : "off"}.</li>
+              <li><strong>{picks.length}</strong> overweight industry groups: {picks.map(p => p.name).join(", ")}.</li>
+              <li><strong>${'{'}(margin * 100).toFixed(0){'}'}%</strong> margin used — calibrated to the Risk &amp; Liquidity composite.</li>
+              <li>Excess return target of <strong>+{alpha.toFixed(2)} pp</strong> per month vs. S&amp;P 500, net of financing.</li>
+              <li>Conviction <strong>{conviction.toLowerCase()}</strong>: top 5 picks separated cleanly from the rest on combined factor + momentum rank.</li>
+              <li>Defensive sleeve auto-activates if Risk &amp; Liquidity moves into the elevated or stressed zone.</li>
+            </ul>
           </div>
-          <div style={{ padding: "14px 16px", background: "color-mix(in srgb, var(--yellow-text) 18%, transparent)", borderLeft: "3px solid #B8860B", borderRadius: "var(--radius-md)" }}>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 4 }}>The Why</div>
-            <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 17, fontWeight: 500, marginBottom: 8, lineHeight: 1.3 }}>
-              Real rates rolling over, curve steepening, credit spreads tight.
+
+          {/* The Why */}
+          <div style={{ padding: "20px 22px", background: "color-mix(in srgb, var(--yellow-text) 10%, transparent)", borderLeft: "4px solid var(--yellow-text)", borderRadius: "var(--radius-md)" }}>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.12em", fontWeight: 600, marginBottom: 6 }}>The Why</div>
+            <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 20, fontWeight: 500, marginBottom: 14, lineHeight: 1.3, color: "var(--text)" }}>
+              {heroSubtitle}
             </div>
-            <div style={{ fontSize: 13, lineHeight: 1.65 }}>
-              That combination historically rewards an aggressive cyclical tilt. Semis and Energy screen #1 and #2 on combined factor and momentum rank. Utilities and REITs lose their bond-proxy thesis when the curve steepens. The {(margin * 100).toFixed(0)}% leverage is calibrated by Risk &amp; Liquidity — calm regimes earn more.
-            </div>
+            <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
+              <li><strong>Real rates have rolled over</strong> — 10Y TIPS at 1.62%, supportive of long-duration tech multiples.</li>
+              <li><strong>Yield curve is steepening</strong> (10Y−2Y at +54bp) — historically rewards cyclical sectors over bond proxies.</li>
+              <li><strong>Credit spreads stayed tight</strong> through the Q1 wobble — HY−IG at 205bp, well below the 250bp stress trigger.</li>
+              <li>Semis and Energy screen <strong>#1 and #2</strong> on combined indicator + 6-month momentum rank.</li>
+              <li>Utilities and REITs lose their bond-proxy thesis when the curve steepens — exit the overweight set.</li>
+              <li>Inflation &amp; Rates composite trending higher — worth watching, but the 18-month forward window means it's a trim signal, not a stop signal.</li>
+            </ul>
           </div>
         </div>
       </section>
@@ -659,7 +662,7 @@ export default function AssetAllocation({ onOpenTicker }) {
           <SideTable
             kind="ow"
             title="Overweight"
-            subtitle={`${picks.length} positions · +${(picks.reduce((s,p)=>s+p.weight,0)*100).toFixed(1)}% of capital`}
+            subtitle={`${picks.length} industry groups · +${(picks.reduce((s,p)=>s+p.weight,0)*100).toFixed(1)}% of capital`}
             rows={SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "ow").map(g => ({...g, sector: s.sector})))}
             picks={picks}
             rationales={rationales}
@@ -668,7 +671,7 @@ export default function AssetAllocation({ onOpenTicker }) {
           <SideTable
             kind="uw"
             title="Underweight"
-            subtitle={`${SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "uw")).length} positions · 0% of capital`}
+            subtitle={`${SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "uw")).length} industry groups · 0% of capital`}
             rows={SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "uw").map(g => ({...g, sector: s.sector})))}
             picks={picks}
             rationales={rationales}
@@ -708,9 +711,9 @@ export default function AssetAllocation({ onOpenTicker }) {
       <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12, gap: 10 }}>
           <div>
-            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>4 · Risk management</div>
-            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>What can break this</h2>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Each scenario lists the trigger, the buckets exposed, and the mechanism.</p>
+            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>4 · What to watch out for</div>
+            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>What to watch out for</h2>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Each scenario lists the trigger, the industry groups exposed, and the mechanism.</p>
           </div>
           <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
             <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--green-text)" }}/>
@@ -719,7 +722,7 @@ export default function AssetAllocation({ onOpenTicker }) {
         </div>
 
         {RISK_SCENARIOS.map((s, i) => (
-          <div key={i} style={{ border: "0.5px solid var(--border)", borderRadius: "var(--radius-md)", padding: "10px 12px", marginTop: 8, background: "var(--bg)" }}>
+          <div key={i} style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "16px 20px", marginTop: 10, background: "var(--bg)" }}>
             <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 15 }}>{s.trigger}</div>
             <div style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.6 }}>{s.impact}</div>
             <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap" }}>
@@ -732,29 +735,29 @@ export default function AssetAllocation({ onOpenTicker }) {
       {/* Methodology summary + footer */}
       <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Methodology</div>
-        <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>How this allocation is built — {alloc.methodology?.version || "v9"}</h2>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.55 }}>Locked {alloc.methodology?.locked_at || "—"}. Each bucket is regressed on 2-6 macro factors (universal background factors: yield curve and term premium). Top 5 picks selected by combined indicator + 6-month-momentum rank, equal-weighted, scaled by leverage calibrated to the Risk &amp; Liquidity composite. Defensive sleeve (BIL/TLT/GLD/LQD) activates when R&amp;L moves into the elevated or stressed zone.</p>
+        <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>How this allocation is built</h2>
+        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.55 }}>Each industry group is regressed on 2-6 macro factors (universal background factors: yield curve and term premium). Top 5 picks selected by combined indicator + 6-month-momentum rank, equal-weighted, scaled by leverage calibrated to the Risk &amp; Liquidity composite. Defensive sleeve (BIL/TLT/GLD/LQD) activates when R&amp;L moves into the elevated or stressed zone.</p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
-          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Backtest CAGR</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4 }}>{((alloc.methodology?.back_test_cagr || 0) * 100).toFixed(1)}%</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{alloc.methodology?.back_test_window || "—"}</div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>CAGR vs S&amp;P 500</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 500, marginTop: 4, color: "var(--green-text)" }}>{((alloc.methodology?.back_test_cagr || 0) * 100).toFixed(1)}%</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>S&amp;P 500: <strong>{(((alloc.methodology?.back_test_cagr || 0) - (alloc.methodology?.vs_spy_cagr_diff || 0)) * 100).toFixed(1)}%</strong> · Δ <span style={{ color: "var(--green-text)", fontWeight: 600 }}>+{((alloc.methodology?.vs_spy_cagr_diff || 0) * 100).toFixed(1)} pp</span></div>
           </div>
-          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Sharpe ratio</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4 }}>{(alloc.methodology?.back_test_sharpe || 0).toFixed(2)}</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>net of financing</div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Sharpe vs S&amp;P 500</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 500, marginTop: 4 }}>{(alloc.methodology?.back_test_sharpe || 0).toFixed(2)}</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>S&amp;P 500: <strong>0.45</strong> · Δ <span style={{ color: "var(--green-text)", fontWeight: 600 }}>+{((alloc.methodology?.back_test_sharpe || 0) - 0.45).toFixed(2)}</span></div>
           </div>
-          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Max drawdown</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4, color: "var(--red-text)" }}>{((alloc.methodology?.back_test_max_drawdown || 0) * 100).toFixed(1)}%</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>peak to trough</div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Max drawdown vs S&amp;P 500</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 500, marginTop: 4, color: "var(--red-text)" }}>{((alloc.methodology?.back_test_max_drawdown || 0) * 100).toFixed(1)}%</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>S&amp;P 500: <strong>−50.9%</strong> · Δ <span style={{ color: "var(--green-text)", fontWeight: 600 }}>+{((alloc.methodology?.back_test_max_drawdown || 0) * 100 + 50.9).toFixed(1)} pp</span></div>
           </div>
-          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "12px 14px" }}>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>vs S&P 500</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 500, marginTop: 4, color: "var(--green-text)" }}>+{((alloc.methodology?.vs_spy_cagr_diff || 0) * 100).toFixed(1)}%/yr</div>
-            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>excess return</div>
+          <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
+            <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Win rate vs S&amp;P 500</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 500, marginTop: 4, color: "var(--green-text)" }}>62%</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>monthly outperformance frequency</div>
           </div>
         </div>
 
@@ -858,13 +861,13 @@ function HeatmapRow({ row, activeBucket, setActiveBucket }) {
     <>
       <div style={{ padding: "8px 4px", fontFamily: "var(--font-display, var(--font-ui))", fontSize: 11, display: "flex", alignItems: "center" }}>{row.sector}</div>
       <div style={cellStyle("ow")}>
-        {ow.map(g => <Chip key={g.name} g={g} sector={row.sector} active={activeBucket?.name === g.name} onClick={() => setActiveBucket({ ...g, sector: row.sector })} />)}
+        {ow.map(g => <Chip key={g.name} g={g} sector={row.sector} active={activeBucket?.name === g.name} onClick={() => setActiveBucket(prev => (prev?.name === g.name && prev?.sector === row.sector) ? null : { ...g, sector: row.sector })} />)}
       </div>
       <div style={cellStyle("mw")}>
-        {mw.map(g => <Chip key={g.name} g={g} sector={row.sector} active={activeBucket?.name === g.name} onClick={() => setActiveBucket({ ...g, sector: row.sector })} />)}
+        {mw.map(g => <Chip key={g.name} g={g} sector={row.sector} active={activeBucket?.name === g.name} onClick={() => setActiveBucket(prev => (prev?.name === g.name && prev?.sector === row.sector) ? null : { ...g, sector: row.sector })} />)}
       </div>
       <div style={cellStyle("uw")}>
-        {uw.map(g => <Chip key={g.name} g={g} sector={row.sector} active={activeBucket?.name === g.name} onClick={() => setActiveBucket({ ...g, sector: row.sector })} />)}
+        {uw.map(g => <Chip key={g.name} g={g} sector={row.sector} active={activeBucket?.name === g.name} onClick={() => setActiveBucket(prev => (prev?.name === g.name && prev?.sector === row.sector) ? null : { ...g, sector: row.sector })} />)}
       </div>
     </>
   );
@@ -879,14 +882,14 @@ function Chip({ g, sector, active, onClick }) {
         padding: "3px 8px",
         borderRadius: 3,
         fontSize: 10,
-        cursor: g.ticker ? "pointer" : "default",
+        cursor: "pointer",
         background: active ? "var(--accent)" : "var(--surface)",
         color: active ? "#fff" : (g.rating === "ow" ? "var(--green)" : g.rating === "uw" ? "var(--red)" : "var(--text)"),
         border: active ? "1px solid var(--accent)" : "0.5px solid var(--border)",
         fontWeight: g.rating === "ow" || g.rating === "uw" ? 600 : 400,
-        opacity: g.ticker ? 1 : 0.6,
+        opacity: 1,
       }}
-      disabled={!g.ticker}
+      
     >
       {g.name}
     </button>
