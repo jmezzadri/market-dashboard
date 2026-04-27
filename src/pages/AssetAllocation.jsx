@@ -524,22 +524,28 @@ function deriveHistoryView(raw) {
     };
   };
 
-  // Allocation changes: diff current picks vs last_month picks
+  // Allocation changes: diff current picks vs last_month picks. Per Joe ask
+  // 2026-04-27 we enrich each change entry with last_quarter_weight too, so
+  // the per-sector table can match Table 1's column structure (Current /
+  // Last M / Last Q / Δ vs Last M).
   const changes = [];
   if (lastMonthSnap) {
     const priorByTicker = Object.fromEntries((lastMonthSnap.picks || []).map(p => [p.ticker, p]));
+    const quarterByTicker = Object.fromEntries(((lastQuarterSnap || {}).picks || []).map(p => [p.ticker, p]));
     const currentByTicker = Object.fromEntries((current.picks || []).map(p => [p.ticker, p]));
+    const qWeight = (t) => (quarterByTicker[t]?.weight ?? 0);
     // New entries / weight changes
     for (const p of current.picks || []) {
       const prior = priorByTicker[p.ticker];
       if (!prior) {
         changes.push({ move: "increase", bucket: `${p.sector || ""} › ${p.name}`,
-          new_weight: p.weight, prior_weight: 0, delta: p.weight });
+          new_weight: p.weight, prior_weight: 0, last_quarter_weight: qWeight(p.ticker), delta: p.weight });
       } else if (Math.abs((p.weight || 0) - (prior.weight || 0)) > 0.005) {
         changes.push({
           move: (p.weight || 0) > (prior.weight || 0) ? "increase" : "downgrade",
           bucket: `${p.sector || ""} › ${p.name}`,
           new_weight: p.weight, prior_weight: prior.weight,
+          last_quarter_weight: qWeight(p.ticker),
           delta: (p.weight || 0) - (prior.weight || 0),
         });
       }
@@ -548,7 +554,7 @@ function deriveHistoryView(raw) {
     for (const p of lastMonthSnap.picks || []) {
       if (!currentByTicker[p.ticker]) {
         changes.push({ move: "exit", bucket: `${p.sector || ""} › ${p.name}`,
-          new_weight: 0, prior_weight: p.weight, delta: -(p.weight || 0) });
+          new_weight: 0, prior_weight: p.weight, last_quarter_weight: qWeight(p.ticker), delta: -(p.weight || 0) });
       }
     }
   }
@@ -880,9 +886,9 @@ export default function AssetAllocation({ onOpenTicker }) {
           standard), dynamic last-month / last-quarter dates from the history hook. */}
       <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>2 · Recommended Asset Allocation</div>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>2 · Changes Since Last Weekly Rebalance</div>
           <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>Per $100 of capital — recommended now vs last month vs last quarter</h2>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Negative dollars (margin used) shown in parentheses, financial-statement convention.</p>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Both tables share the same time-period columns. Negative dollars (margin used) shown in parentheses, financial-statement convention.</p>
         </div>
 
         {(() => {
@@ -952,41 +958,64 @@ export default function AssetAllocation({ onOpenTicker }) {
           );
         })()}
 
-        {/* Allocation changes — sector-level rotations, same negative-paren convention */}
-        {history?.changes && history.changes.length > 0 && (
-          <>
-            <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 14, fontWeight: 500, margin: "20px 0 8px" }}>Recent allocation changes</h3>
-            <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
-              <thead>
-                <tr>
-                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "left", width: 130 }}>Move</th>
-                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "left" }}>Sector / Industry group</th>
-                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "right" }}>New target</th>
-                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "right" }}>Prior</th>
-                  <th style={{ padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", textAlign: "right" }}>Δ</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.changes.map((c, i) => {
-                  const newW = c.new_weight * 100;
-                  const oldW = c.prior_weight * 100;
-                  const delta = c.delta * 100;
-                  const isLast = i === history.changes.length - 1;
-                  const cellBorder = isLast ? "none" : "1px solid var(--border-faint)";
-                  return (
-                    <tr key={i}>
-                      <td style={{ padding: "11px 18px", borderBottom: cellBorder }}><RatingPill rating={c.move} /></td>
-                      <td style={{ padding: "11px 18px", fontSize: 13, borderBottom: cellBorder }}>{c.bucket}</td>
-                      <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", borderBottom: cellBorder }}>{newW < 0 ? `($${Math.abs(newW).toFixed(2)})` : `$${newW.toFixed(2)}`}</td>
-                      <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", borderBottom: cellBorder }}>{oldW < 0 ? `($${Math.abs(oldW).toFixed(2)})` : `$${oldW.toFixed(2)}`}</td>
-                      <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", fontWeight: 600, color: delta > 0 ? "var(--green-text)" : delta < 0 ? "var(--red-text)" : "var(--text-muted)", borderBottom: cellBorder }}>{Math.abs(delta) < 0.005 ? "$0" : delta < 0 ? `($${Math.abs(delta).toFixed(2)})` : `+$${delta.toFixed(2)}`}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </>
-        )}
+        {/* Per-sector changes — same column structure as Table 1 above
+            (Current / Last M / Last Q / Δ vs Last M). Joe ask 2026-04-27:
+            both tables in Section 2 share time-period columns so the eye
+            doesn't have to translate between two formats. */}
+        {history?.changes && history.changes.length > 0 && (() => {
+          const fmt$ = (v, dp = 2) => {
+            if (v == null) return "—";
+            const abs = Math.abs(v).toFixed(dp);
+            return v < 0 ? `($${abs})` : `$${abs}`;
+          };
+          const fmt$Δ = (v, dp = 2) => {
+            if (v == null) return "—";
+            if (Math.abs(v) < 0.005) return `$0`;
+            const abs = Math.abs(v).toFixed(dp);
+            return v < 0 ? `($${abs})` : `+$${abs}`;
+          };
+          const colorΔ = (v) => v == null || Math.abs(v) < 0.005 ? "var(--text-muted)" : (v > 0 ? "var(--green-text)" : "var(--red-text)");
+          const headTh = { padding: "10px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" };
+          const lastMonthDate = history?.last_month_as_of ? humanDate(history.last_month_as_of) : "—";
+          const lastQtrDate   = history?.last_quarter_as_of ? humanDate(history.last_quarter_as_of) : "—";
+          return (
+            <>
+              <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 14, fontWeight: 500, margin: "20px 0 8px" }}>Per-sector changes</h3>
+              <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
+                <thead>
+                  <tr>
+                    <th style={{ ...headTh, textAlign: "left", width: 130 }}>Move</th>
+                    <th style={{ ...headTh, textAlign: "left" }}>Sector / Industry group</th>
+                    <th style={{ ...headTh, textAlign: "right" }}>Recommended now</th>
+                    <th style={{ ...headTh, textAlign: "right" }}>Last month{lastMonthDate !== "—" ? ` (${lastMonthDate})` : ""}</th>
+                    <th style={{ ...headTh, textAlign: "right" }}>Last quarter{lastQtrDate !== "—" ? ` (${lastQtrDate})` : ""}</th>
+                    <th style={{ ...headTh, textAlign: "right" }}>Δ vs last month</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.changes.map((c, i) => {
+                    const nowW    = (c.new_weight || 0) * 100;
+                    const moW     = (c.prior_weight || 0) * 100;
+                    const qtW     = (c.last_quarter_weight || 0) * 100;
+                    const deltaW  = (c.delta || 0) * 100;
+                    const isLast  = i === history.changes.length - 1;
+                    const border  = isLast ? "none" : "1px solid var(--border-faint)";
+                    return (
+                      <tr key={i}>
+                        <td style={{ padding: "11px 18px", borderBottom: border }}><RatingPill rating={c.move} /></td>
+                        <td style={{ padding: "11px 18px", fontSize: 13, borderBottom: border }}>{c.bucket}</td>
+                        <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", borderBottom: border }}>{fmt$(nowW)}</td>
+                        <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", borderBottom: border }}>{fmt$(moW)}</td>
+                        <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", borderBottom: border }}>{fmt$(qtW)}</td>
+                        <td style={{ padding: "11px 18px", fontSize: 13, fontFamily: "var(--font-mono)", textAlign: "right", fontWeight: 600, color: colorΔ(deltaW), borderBottom: border }}>{fmt$Δ(deltaW)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          );
+        })()}
       </section>
 
       {/* Section 3 — Recommended Sector Allocation (UnifiedSectorTable only)
@@ -1235,10 +1264,11 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
     };
   });
 
-  // Sortable columns. Default sort by Tilt descending.
+  // Sortable columns. Default sort by Tilt descending. Joe ask 2026-04-27:
+  // Rating column removed to save space — the Tilt direction (and color) is
+  // a more useful at-a-glance signal than the rating tier label.
   const cols = [
     { id: "sector",  label: "Sector",                  align: "left",  sortValue: (r) => r.sector },
-    { id: "rating",  label: "Rating",                  align: "left",  sortValue: (r) => ratingRank[r.rating] || 0 },
     { id: "rec",     label: "Recommended Allocation", align: "right", sortValue: (r) => r.rec },
     { id: "spy",     label: "S&P 500 Allocation",      align: "right", sortValue: (r) => r.spy },
     { id: "tilt",    label: "Tilt",                    align: "right", sortValue: (r) => r.tilt },
@@ -1255,7 +1285,8 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
 
   const fmtPct = (x) => `${(x * 100).toFixed(1)}%`;
   const fmtTilt = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)} pp`;
-  const fmtRank = (x) => x == null ? "—" : `#${x}`;
+  // Rank is a plain integer per Joe ask 2026-04-27 — no "#" prefix.
+  const fmtRank = (x) => x == null ? "—" : String(x);
   const tiltColor = (x) => Math.abs(x) < 0.005 ? "var(--text-muted)" : (x > 0 ? "var(--green-text)" : "var(--red-text)");
 
   const thBase = { padding: "12px 14px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", cursor: "pointer", userSelect: "none" };
@@ -1296,9 +1327,11 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
       </div>
 
       <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)", tableLayout: "fixed" }}>
+        {/* Column widths: extra space pushed to Sector and Why now that
+            Rating column is gone. Sector cell uses whiteSpace:"nowrap" so
+            longer names like "Communication Services" stay on one line. */}
         <colgroup>
-          <col style={{ width: "16%" }} />
-          <col style={{ width: 120 }} />
+          <col style={{ width: 220 }} />
           <col style={{ width: 96 }} />
           <col style={{ width: 96 }} />
           <col style={{ width: 80 }} />
@@ -1309,7 +1342,6 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
         <thead>
           <tr>
             <th style={thLeft}   onClick={() => toggleSort("sector")}>Sector <SortArrow dir={sortCol === "sector" ? sortDir : null} /></th>
-            <th style={thCenter} onClick={() => toggleSort("rating")}>Rating <SortArrow dir={sortCol === "rating" ? sortDir : null} /></th>
             <th style={thRight}  onClick={() => toggleSort("rec")}>Recommended<br/>Allocation <SortArrow dir={sortCol === "rec" ? sortDir : null} /></th>
             <th style={thRight}  onClick={() => toggleSort("spy")}>S&amp;P 500<br/>Allocation <SortArrow dir={sortCol === "spy" ? sortDir : null} /></th>
             <th style={thRight}  onClick={() => toggleSort("tilt")}>Tilt <SortArrow dir={sortCol === "tilt" ? sortDir : null} /></th>
@@ -1336,16 +1368,15 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
                 onMouseEnter={(e) => { if (!isOpen) e.currentTarget.style.background = "var(--surface)"; }}
                 onMouseLeave={(e) => { if (!isOpen) e.currentTarget.style.background = "transparent"; }}
               >
-                <td style={{ ...tdBase, fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 600, fontSize: 14 }}>
+                <td style={{ ...tdBase, fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 600, fontSize: 14, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                   <span style={{ display: "inline-block", width: 16, color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>{isOpen ? "▾" : "▸"}</span>
                   {r.sector}
                 </td>
-                <td style={tdCenter}><RatingPill rating={r.rating} /></td>
                 <td style={tdRight}>{fmtPct(r.rec)}</td>
                 <td style={{ ...tdRight, color: "var(--text-muted)" }}>{fmtPct(r.spy)}</td>
                 <td style={{ ...tdRight, color: tiltColor(r.tilt), fontWeight: 600 }}>{fmtTilt(r.tilt)}</td>
-                <td style={{ ...tdRight, color: "var(--text-muted)", fontSize: 11 }}>{fmtRank(r.indRank)} <span style={{ fontSize: 9 }}>(best IG)</span></td>
-                <td style={{ ...tdRight, color: "var(--text-muted)", fontSize: 11 }}>{fmtRank(r.momRank)} <span style={{ fontSize: 9 }}>(best IG)</span></td>
+                <td style={{ ...tdRight, color: "var(--text-muted)" }}>{fmtRank(r.indRank)}</td>
+                <td style={{ ...tdRight, color: "var(--text-muted)" }}>{fmtRank(r.momRank)}</td>
                 <td style={{ ...tdBase, fontSize: 12, color: "var(--text-2)", lineHeight: 1.55, whiteSpace: "normal", wordBreak: "break-word" }}>{r.why}</td>
               </tr>
             );
@@ -1358,11 +1389,10 @@ function UnifiedSectorTable({ picks, igRatingMap, rationales, allIgs }) {
                     key={`${r.sector}-${ig.name}`}
                     style={{ background: SUBROW_BG }}
                   >
-                    <td style={{ ...tdBase, paddingLeft: 50, fontSize: 12, color: "var(--text-2)" }}>
+                    <td style={{ ...tdBase, paddingLeft: 50, fontSize: 12, color: "var(--text-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                       <span style={{ color: "var(--text-muted)", marginRight: 6 }}>↳</span>{ig.name}{" "}
                       <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>({ig.ticker}{ig.basket ? " basket" : ""})</span>
                     </td>
-                    <td style={tdCenter}><RatingPill rating={ig.rating} size="sm" /></td>
                     <td style={{ ...tdRight, fontSize: 12 }}>{fmtPct(ig.rec)}</td>
                     <td style={{ ...tdRight, color: "var(--text-muted)", fontSize: 12 }}>{fmtPct(ig.spy)}</td>
                     <td style={{ ...tdRight, color: tiltColor(ig.tilt), fontSize: 12, fontWeight: 600 }}>{fmtTilt(ig.tilt)}</td>
