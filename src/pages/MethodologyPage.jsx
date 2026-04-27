@@ -185,7 +185,6 @@ export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, ind
 
   return (
     <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
-      <HeaderOverview />
       <Contents ind={ind} expand={expand} expandAll={expandAll} collapseAll={collapseAll} />
       <MacroIndicatorTable
         ind={ind} weights={weights} cats={cats} indFreq={indFreq}
@@ -206,21 +205,6 @@ export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, ind
   );
 }
 
-// ─── §1 HEADER + OVERVIEW ───────────────────────────────────────────────────
-function HeaderOverview() {
-  return (
-    <section id={A("overview")} data-testid="methodology-section-overview"
-      style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <div style={{ fontSize: 22, fontWeight: 700, color: "var(--text)" }}>
-        Data & Methodology
-      </div>
-      <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.7, maxWidth: 880 }}>
-        Four sections. First the macro indicator → composite chain, then the per-ticker signal
-        chain, then the full catalog of every data stream that feeds the site.
-      </div>
-    </section>
-  );
-}
 
 // ─── CONTENTS (multi-level TOC) ─────────────────────────────────────────────
 // 2026-04-27 rebuild (Joe's 4 asks):
