@@ -154,6 +154,7 @@ export default function PositionEditor({
   onClose,
   onSaved,
   onDeleted,
+  onClosePosition,    // Phase 3: parent opens CloseModal
 }) {
   const isEdit = mode === "edit" && existing;
 
@@ -1180,13 +1181,32 @@ export default function PositionEditor({
         <div style={{ display: "flex", gap: 10, justifyContent: "space-between", alignItems: "center" }}>
           <div>
             {isEdit && !confirmDelete && (
-              <button type="button" style={dangerBtn} disabled={submitting} onClick={() => setConfirmDelete(true)}>
-                Delete
-              </button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                {onClosePosition && (
+                  <button type="button"
+                    style={{
+                      padding: "9px 14px", fontSize: 13, fontWeight: 600,
+                      color: "#fff", background: "#30d158", border: "none",
+                      borderRadius: "var(--radius-sm, 6px)", cursor: "pointer",
+                    }}
+                    disabled={submitting}
+                    onClick={() => onClosePosition(existing)}
+                    title="Close this position — proceeds go to a cash row, position soft-archived for history">
+                    Close Position
+                  </button>
+                )}
+                <button type="button" style={dangerBtn} disabled={submitting}
+                  onClick={() => setConfirmDelete(true)}
+                  title="Delete entry — no cash impact. Use only for fixing wrong entries.">
+                  Delete entry
+                </button>
+              </div>
             )}
             {isEdit && confirmDelete && (
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "#ff453a", fontFamily: "var(--font-mono)" }}>Sure?</span>
+                <span style={{ fontSize: 12, color: "#ff453a", fontFamily: "var(--font-mono)" }}>
+                  Delete entry — no cash credit. Sure?
+                </span>
                 <button type="button" style={dangerBtn} disabled={submitting} onClick={handleDelete}>
                   {submitting ? "Deleting…" : "Yes, delete"}
                 </button>

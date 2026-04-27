@@ -16,7 +16,9 @@
 //   info          : { TICKER: { next_earnings_date, marketcap, dividend_yield, has_dividend,... } }
 //                   Used as a fallback when screener row isn't present.
 //   onOpenTicker  : fn(ticker) — open detail modal
-//   onAdd, onBulkImport, onEdit, onDelete — action bar / row buttons
+//   onAdd, onBulkImport, onEdit, onClose, onDelete — action bar / row buttons.
+//                   onClose ships proceeds to a cash row via the
+//                   close_position RPC; onDelete is data-cleanup only.
 //   emptyMessage  : string shown when rows is empty
 //
 // Column registry
@@ -544,7 +546,7 @@ const DEFAULT_WIDTHS = {
 export default function PositionsTable({
   rows, grandTotal, screener, info,
   onOpenTicker, emptyMessage,
-  onAdd, onBulkImport, onRescan, onEdit, onDelete,
+  onAdd, onBulkImport, onRescan, onEdit, onClose, onDelete,
   rescanBusy, rescanProgress,
   tableKey = "positions",
   // Task #25: optional TableFootnote props. When either timestamp or source is
@@ -553,7 +555,7 @@ export default function PositionsTable({
   // the section header.
   pricesTs, eventsTs, footnoteSource,
 }) {
-  const showActionsCol = Boolean(onEdit || onDelete);
+  const showActionsCol = Boolean(onEdit || onClose || onDelete);
   const showActionBar  = Boolean(onAdd || onBulkImport || onRescan);
 
   // Load/save column prefs (order + visibility) per user.
@@ -953,12 +955,23 @@ export default function PositionsTable({
                         Edit
                       </button></Tip>
                     )}
+                    {onClose && (
+                      <Tip def="Close position — proceeds to a cash row, position soft-archived for history">
+                        <button type="button"
+                          style={{ ...actionBtn, marginRight: 4, color: "#30d158", borderColor: "rgba(48,209,88,0.4)" }}
+                          onClick={(e) => { e.stopPropagation(); onClose(row._raw); }}>
+                          Close
+                        </button>
+                      </Tip>
+                    )}
                     {onDelete && (
-                      <Tip def="Delete position"><button type="button"
-                        style={{ ...actionBtn, color: "#ff453a", borderColor: "rgba(255,69,58,0.35)" }}
-                        onClick={(e) => { e.stopPropagation(); onDelete(row._raw); }}>
-                        Delete
-                      </button></Tip>
+                      <Tip def="Delete entry — no cash impact. Use only for fixing wrong entries; for closing a real trade use Close instead.">
+                        <button type="button"
+                          style={{ ...actionBtn, color: "#ff453a", borderColor: "rgba(255,69,58,0.35)" }}
+                          onClick={(e) => { e.stopPropagation(); onDelete(row._raw); }}>
+                          Delete
+                        </button>
+                      </Tip>
                     )}
                   </td>
                 )}

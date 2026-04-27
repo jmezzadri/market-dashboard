@@ -28,6 +28,7 @@ import SubCompositeStrip from "./components/SubCompositeStrip";
 import WatchlistTable from "./components/WatchlistTable";
 import PositionsTable from "./components/PositionsTable";
 import PositionEditor from "./components/PositionEditor";
+import CloseModal    from "./components/CloseModal";
 import BulkImport from "./components/BulkImport";
 import UniverseFreshness from "./components/UniverseFreshness";
 import HistoricalChart from "./components/HistoricalChart";
@@ -5860,6 +5861,10 @@ const [showPortoppsLogin,setShowPortoppsLogin]=useState(false);
 //   { mode: "edit", existing: rawRow }     → prefill all fields from rawRow
 // `showBulkImport` toggles the BulkImport modal.
 const [positionEditor,setPositionEditor]=useState(null);
+// Phase 3: close-position modal. null when closed. When open, holds
+// the raw row being closed so CloseModal can read its avg_cost,
+// quantity, asset_class, and account_id.
+const [closeModal,setCloseModal]=useState(null);
 const [showBulkImport,setShowBulkImport]=useState(false);
 // Rescan-all-positions utility. Fans POST /api/scan-ticker over every
 // unique non-CASH ticker in the portfolio with a concurrency-5 pool.
@@ -5903,7 +5908,7 @@ const handleRescanAllPositions=async(positions)=>{
 // actions. Deeper editing + a confirm-in-modal delete live in the editor.
 const deletePositionInline=async(rawRow)=>{
   if(!rawRow?.id)return;
-  if(!window.confirm(`Delete ${rawRow.ticker} from ${rawRow.acctLabel}? This cannot be undone.`))return;
+  if(!window.confirm(`Delete ${rawRow.ticker} entry from ${rawRow.acctLabel}? This is data-cleanup only — no cash will be credited. To close a real trade and credit proceeds to cash, use the Close button instead.`))return;
   const {error}=await supabase.from("positions").delete().eq("id",rawRow.id);
   if(error){
     console.error("[App] inline delete failed:",error);
@@ -7707,6 +7712,7 @@ return(<>
   rescanBusy={rescanState.active}
   rescanProgress={{done:rescanState.done,total:rescanState.total}}
   onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
+  onClose={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
   onDelete={portfolioAuthed?deletePositionInline:undefined}
   pricesTs={universeSnapshotTs}
   eventsTs={scanData?.ticker_events_ts}
@@ -7785,6 +7791,23 @@ return(<>
       onClose={()=>setPositionEditor(null)}
       onSaved={async()=>{await refetchPortfolio?.();setPositionEditor(null);}}
       onDeleted={async()=>{await refetchPortfolio?.();setPositionEditor(null);}}
+      onClosePosition={(existing)=>{setPositionEditor(null);setCloseModal({position:existing});}}
+    />
+  </ErrorBoundary>
+)}
+
+{/* CloseModal — Phase 3 of close-position build. Calls close_position
+    RPC to atomically credit cash, write the ledger row, and
+    soft-archive the position. Mounted at top level (not inside
+    PositionEditor) so it can be opened from either the inline
+    PositionsTable Close button or the editor footer. */}
+{closeModal&&portfolioAuthed&&(
+  <ErrorBoundary label="Close position" onDismiss={()=>setCloseModal(null)}>
+    <CloseModal
+      position={closeModal.position}
+      accounts={ACCOUNTS.map(a=>({id:a.id,label:a.label,tactical:a.tactical}))}
+      onCancel={()=>setCloseModal(null)}
+      onClosed={async()=>{await refetchPortfolio?.();setCloseModal(null);}}
     />
   </ErrorBoundary>
 )}
