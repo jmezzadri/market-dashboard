@@ -5367,13 +5367,12 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","sectors","allocation","portopps","scanner","readme","admin","bugs","lab"];
+const TAB_IDS=["home","overview","indicators","allocation","portopps","scanner","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
   overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
-  sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
   allocation:{eyebrow:"Asset Allocation",     title:"Strategic asset allocation", sub:"Equity exposure, sector overweights, rationale, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
@@ -5390,7 +5389,6 @@ const NAV_ITEMS = [
   { id:"home",       label:"Home",                  icon:<NavIconHome/>   },
   { id:"overview",   label:"Macro Overview",        icon:<NavIconGauge/>  },
   { id:"indicators", label:"All Indicators",        icon:<NavIconGrid/>   },
-  { id:"sectors",    label:"Sectors",               icon:<NavIconHeat/>   },
   { id:"allocation", label:"Asset Allocation",      icon:<NavIconHeat/>   },
   { id:"portopps",   label:"Trading Opportunities & Portfolio Insights",  icon:<NavIconPie/>    },
   { id:"scanner",    label:"Trading Scanner",       icon:<NavIconRadar/>  },
@@ -6406,7 +6404,7 @@ return(
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Sector Outlook</h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("sectors")}>Open →</a>
+          <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
         </div>
 
         {(()=>{
@@ -6414,7 +6412,7 @@ return(
             const stanceColor = s.outlook.color;
             return (
               <div key={key}
-                   onClick={()=>navTo("sectors")}
+                   onClick={()=>navTo("allocation")}
                    style={{
                      display:"flex", alignItems:"center", justifyContent:"space-between",
                      padding:"var(--space-3) 0",
@@ -6678,7 +6676,6 @@ return(
 {/* INDICATORS */}
 {tab==="indicators"&&(<AllIndicatorsTable deeplinkId={indicatorDeeplink} onDeeplinkConsumed={()=>setIndicatorDeeplink(null)}/>)}
 
-{tab==="sectors"&&<SectorsTab/>}
 {tab==="allocation"&&<AssetAllocation onOpenTicker={(t)=>setTickerDetail(t)}/>}
 
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
