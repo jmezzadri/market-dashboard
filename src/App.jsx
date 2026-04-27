@@ -17,6 +17,8 @@ import AdminBugs from "./AdminBugs";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
+import usePortfolioHistory from "./hooks/usePortfolioHistory";
+import { computePortfolioReturns, computeSpyReturns } from "./lib/portfolioReturns";
 import { useTickerEvents } from "./hooks/useTickerEvents";
 import { useCommentary } from "./hooks/useCommentary";
 import { computeSectionComposites, colorForDirection, SECTION_ORDER } from "./ticker/sectionComposites";
@@ -5636,6 +5638,45 @@ const [sidebarOpen,setSidebarOpen]=useState(false);
 const {session}=useSession();
 const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio}=useUserPortfolio();
 const portfolioAuthed=!!session;
+
+// Macro tile: latest 3-composite snapshot (RL/GR/IR) from
+// composite_history_daily.json — same data feeding the Macro Overview tab.
+// One-shot fetch on first render. Replaces the rolled-up COMP100 number
+// that didn't anchor to anything on the destination page.
+const [_macroLatestSnap, setMacroLatestSnap] = useState(null);
+const [_spxHistory, setSpxHistory] = useState(null);
+useEffect(() => {
+  let cancelled = false;
+  fetch("/composite_history_daily.json")
+    .then(r => r.ok ? r.json() : null)
+    .then(arr => {
+      if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
+      const last = arr[arr.length - 1];
+      if (last) {
+        setMacroLatestSnap({
+          RL: Number(last.RL),
+          GR: Number(last.GR),
+          IR: Number(last.IR),
+        });
+      }
+      // Slim history → [{d, spx}] for the period-return calculation. Drops
+      // null entries and pre-allocates so tile 04 can compute 1W/1M/YTD/TTM
+      // returns synchronously.
+      const hist = arr
+        .filter(x => x && x.d && Number.isFinite(Number(x.SPXp)) && Number(x.SPXp) > 0)
+        .map(x => ({ d: x.d, spx: Number(x.SPXp) }));
+      if (hist.length > 0) setSpxHistory(hist);
+    })
+    .catch(() => {});
+  return () => { cancelled = true; };
+}, []);
+
+// Pull the user's portfolio history (Chase + Fidelity monthly NAV/return rows)
+// and compute period TWR returns for the home tile + Portfolio Insights tab.
+// RLS-scoped — anon users get [] back.
+const { rows: _phRows } = usePortfolioHistory();
+const _portfolioReturns = useMemo(() => computePortfolioReturns(_phRows), [_phRows]);
+
 // Inline sign-in toggle for the portopps zero-state. Clicking the CTA in the
 // banner swaps the skeleton for the LoginScreen; successful sign-in flips
 // `portfolioAuthed` and the user sees their real portfolio.
@@ -6066,7 +6107,7 @@ return(
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("overview")}>All indicators →</a>
+          <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open →</a>
         </div>
 
         {/* Composite strip */}
@@ -6076,35 +6117,85 @@ return(
           border:"1px solid var(--border-faint)", borderRadius:6,
           marginBottom:"var(--space-4)", flexWrap:"wrap",
         }}>
-          <div className="num" style={{
-            fontFamily:"var(--font-display)", fontWeight:400,
-            fontSize:48, lineHeight:1, color:CONV.color,
-            fontVariantNumeric:"tabular-nums",
-          }}>{COMP100}</div>
-          <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
+          {/* 3 sub-composite pills — anchors to the Macro Overview tab where
+              these same three composites render as dial gauges. Replaces the
+              rolled-up COMP100 that wasn't on the destination page (Joe
+              flagged 2026-04-27). */}
+          {_macroLatestSnap ? (
             <div style={{
-              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-              letterSpacing:"0.12em", textTransform:"uppercase",
-            }}>Composite · of 100</div>
+              display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
+              gap:"var(--space-3)", flex:1,
+            }}>
+              {[
+                { key:"RL", label:"Risk & Liquidity", value:_macroLatestSnap.RL, horizon:"3-mo" },
+                { key:"GR", label:"Growth",           value:_macroLatestSnap.GR, horizon:"6-mo" },
+                { key:"IR", label:"Inflation & Rates",value:_macroLatestSnap.IR, horizon:"18-mo" },
+              ].map(c => {
+                const reg = (function(s){
+                  if (s == null || Number.isNaN(s)) return "normal";
+                  if (s <= -50) return "calm";
+                  if (s <= -20) return "quiet";
+                  if (s <  +20) return "normal";
+                  if (s <  +50) return "elevated";
+                  return "stressed";
+                })(c.value);
+                const col = ({calm:"#1f9d60",quiet:"#69b585",normal:"var(--text-muted)",elevated:"#b8811c",stressed:"#d23040"})[reg];
+                const lbl = ({calm:"Calm",quiet:"Quiet",normal:"Normal",elevated:"Elevated",stressed:"Stressed"})[reg];
+                return (
+                  <div key={c.key} style={{
+                    background:"var(--surface)",
+                    border:`1px solid ${col}33`,
+                    borderRadius:6, padding:"10px 12px",
+                  }}>
+                    <div style={{
+                      fontFamily:"var(--font-mono)", fontSize:9,
+                      color:"var(--text-muted)", letterSpacing:"0.08em",
+                      marginBottom:6, fontWeight:600, textTransform:"uppercase",
+                    }}>{c.label} · {c.horizon}</div>
+                    <div style={{
+                      fontFamily:"var(--font-mono)", fontSize:24,
+                      fontWeight:600, color:col, lineHeight:1,
+                    }}>{c.value!=null ? (c.value>=0?"+":"") + Math.round(c.value) : "—"}</div>
+                    <div style={{
+                      fontSize:10, color:col, fontFamily:"var(--font-mono)",
+                      letterSpacing:"0.06em", marginTop:6,
+                      textTransform:"uppercase", fontWeight:700,
+                    }}>{lbl}</div>
+                    {/* Range bar: -100 ... 0 ... +100 with regime band colors
+                        + a marker showing where the current score falls. Joe
+                        2026-04-27: needs context for what -20 / -2 / -17 mean. */}
+                    {c.value!=null && (
+                      <div style={{ position:"relative", marginTop:10, height:10 }}>
+                        <div style={{
+                          position:"absolute", inset:"3px 0", borderRadius:2,
+                          background:"linear-gradient(90deg, #1f9d6033 0%, #69b58533 25%, var(--surface-3) 35%, var(--surface-3) 65%, #b8811c33 75%, #d2304033 100%)",
+                          border:"1px solid var(--border-faint)",
+                        }}/>
+                        <div style={{
+                          position:"absolute",
+                          left:`calc(${Math.max(0, Math.min(100, ((Math.max(-100, Math.min(100, c.value)) + 100) / 200) * 100))}% - 1px)`,
+                          top:0, bottom:0, width:2, background:col, borderRadius:1,
+                        }}/>
+                        <div style={{
+                          position:"absolute", left:0, right:0, top:11,
+                          fontFamily:"var(--font-mono)", fontSize:8,
+                          color:"var(--text-dim)", letterSpacing:"0.04em",
+                          display:"flex", justifyContent:"space-between",
+                        }}>
+                          <span>−100</span><span>0</span><span>+100</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
             <div style={{
-              fontFamily:"var(--font-display)", fontSize:16, fontStyle:"italic",
-              color:"var(--text)", lineHeight:1.25,
-            }}>{stateLine}</div>
-          </div>
-          <div style={{
-            marginLeft:"auto",
-            fontFamily:"var(--font-mono)", fontSize:11,
-            color:"var(--text-muted)", letterSpacing:"0.04em", textAlign:"right",
-            display:"flex", alignItems:"center", gap:"var(--space-2)", flexWrap:"wrap",
-            justifyContent:"flex-end",
-          }}>
-            <span style={{color:TREND_SIG.col}}>{TREND_SIG.arrow} {TREND_SIG.label}</span>
-            <span style={{
-              display:"inline-block", padding:"2px 8px", borderRadius:10,
-              border:`1px solid ${CONV.color}`, color:CONV.color,
-              fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase",
-            }}>{CONV.label}</span>
-          </div>
+              fontFamily:"var(--font-mono)", fontSize:11,
+              color:"var(--text-dim)",
+            }}>Loading composites…</div>
+          )}
         </div>
 
         {/* Regime table — Category · 12M · 6M · 1M · Now · State */}
@@ -6153,7 +6244,192 @@ return(
         )}
       </div>
 
-      {/* 02 · Trading Opportunities & Portfolio Insights — data-first,
+      {/* 02 · Asset Allocation — 3 highest overall rank + 3 lowest, with
+          a visual divider between them. Per Joe feedback 2026-04-23:
+          reads like a prop-desk long/short view, not a "top 5 extremes"
+          mashup. Editorial narrative slot reads from sector_commentary
+          and is null-allowed (no forced prose). */}
+      <div style={cardStyle}>
+        <div style={cardHeadStyle}>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Allocation <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
+          <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
+        </div>
+
+        {(()=>{
+          const renderRow = (s, isLast, key) => {
+            const stanceColor = s.outlook.color;
+            return (
+              <div key={key}
+                   onClick={()=>navTo("allocation")}
+                   style={{
+                     display:"flex", alignItems:"center", justifyContent:"space-between",
+                     padding:"var(--space-3) 0",
+                     borderBottom:isLast?"none":"1px solid var(--border-faint)",
+                     cursor:"pointer", gap:12,
+                   }}>
+                <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
+                  <span style={{
+                    fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)",
+                    letterSpacing:"0.06em", width:28, flexShrink:0,
+                  }}>#{s.rank}</span>
+                  <div style={{minWidth:0, flex:1}}>
+                    <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
+                    <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
+                      <span style={{fontFamily:"var(--font-mono)"}}>Beta {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
+                    </div>
+                  </div>
+                </div>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  letterSpacing:"0.1em", textTransform:"uppercase",
+                  padding:"2px 8px", borderRadius:10,
+                  border:`1px solid ${stanceColor}`, color:stanceColor, flexShrink:0,
+                }}>{s.outlook.label}</span>
+              </div>
+            );
+          };
+          return (<>
+            {/* Top 3 — highest overall rank */}
+            {topOverweight.map((s,i) => renderRow(s, i===topOverweight.length-1, "top-"+s.id))}
+
+            {/* Divider between the long-book and short-book halves */}
+            {bottomUnderweight.length>0 && (
+              <div aria-hidden="true" style={{
+                display:"flex", alignItems:"center", gap:"var(--space-3)",
+                padding:"var(--space-3) 0",
+                fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
+                letterSpacing:"0.18em", textTransform:"uppercase",
+              }}>
+                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
+                <span>Bottom 3</span>
+                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
+              </div>
+            )}
+
+            {/* Bottom 3 — lowest overall rank */}
+            {bottomUnderweight.map((s,i) => renderRow(s, i===bottomUnderweight.length-1, "bot-"+s.id))}
+          </>);
+        })()}
+
+        {/* Editorial sector narrative — single-sentence analyst note, only
+            renders when the commentary engine detected a material move.
+            No "stable this week" fallback on purpose. */}
+        {(sectorCommentary && sectorCommentary.headline) && (
+          <div style={{
+            marginTop:"var(--space-4)",
+            paddingTop:"var(--space-3)",
+            borderTop:"1px solid var(--border-faint)",
+            fontFamily:"var(--font-display)", fontStyle:"italic",
+            fontSize:13, lineHeight:1.5, color:"var(--text-muted)",
+          }}>
+            {sectorCommentary.headline}
+          </div>
+        )}
+      </div>
+
+      {/* 03 · Trading Opportunities — top-of-book names, not just counts */}
+      {(()=>{
+        // Top 3 buys (by overall score, highest first). Fall back to
+        // near-trigger names when the buy list is thin, so the tile
+        // always has at least one named opportunity if any exist.
+        const _topBuys = (rebucketBuy.length ? rebucketBuy : rebucketNear).slice(0, 3);
+        // Sector lookup for the name row's sub-copy.
+        const _sectorFor = (t) => {
+          const sc = scanData?.signals?.screener?.[t];
+          return sc?.sector || scanData?.ticker_names?.[t] || "";
+        };
+        const rowHasData = _topBuys.length > 0;
+        return (
+        <div style={cardStyle}>
+          <div style={cardHeadStyle}>
+            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities <FreshnessDot indicatorId="composite_rl" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/></h2>
+            <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
+          </div>
+
+          {/* Headline number — candidates today */}
+          <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-4)"}}>
+            <div className="num" style={{
+              fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+              fontSize:44, fontWeight:500, color: (buyCount + watchCount) > 0 ? "var(--accent)" : "var(--text-muted)",
+              letterSpacing:"-0.01em", lineHeight:1,
+            }}>{buyCount + watchCount}</div>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+              letterSpacing:"0.12em", textTransform:"uppercase", lineHeight:1.3,
+            }}>candidates<br/>today</div>
+          </div>
+
+          {/* Compact counts strip */}
+          <div style={{
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"var(--space-2) 0",
+            borderBottom:"1px solid var(--border-faint)",
+            fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-muted)",
+            letterSpacing:"0.06em", textTransform:"uppercase",
+          }}>
+            <span>Buy {buyCount} · Near {watchCount} · Other {rebucketOther.length}</span>
+            <span style={{color:"var(--text-dim)"}}>60/40/0 thresholds</span>
+          </div>
+
+          {/* Top-of-book: top 3 names with their overall scores. The
+              highest-score name in the scanner is far more useful than
+              three count lines. */}
+          <div style={{
+            marginTop:"var(--space-2)",
+            display:"flex", flexDirection:"column",
+          }}>
+            <div style={{
+              padding:"var(--space-3) 0 var(--space-2)",
+              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+              letterSpacing:"0.14em", textTransform:"uppercase",
+            }}>Top candidates</div>
+            {rowHasData ? _topBuys.map((r, i) => {
+              const sect = _sectorFor(r.ticker);
+              const isLast = i === _topBuys.length - 1;
+              const isBuy  = r.ovr >= 60;
+              return (
+                <div key={r.ticker}
+                     onClick={()=>navTo("scanner")}
+                     style={{
+                       display:"flex", alignItems:"center", justifyContent:"space-between",
+                       padding:"var(--space-2) 0",
+                       borderBottom:isLast ? "none" : "1px solid var(--border-faint)",
+                       cursor:"pointer", gap:"var(--space-3)",
+                     }}>
+                  <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
+                    <span style={{
+                      fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+                      width:20, flexShrink:0,
+                    }}>#{i+1}</span>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.2}}>{r.ticker}</div>
+                      {sect && <div style={{fontSize:10, color:"var(--text-muted)", marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{sect}</div>}
+                    </div>
+                  </div>
+                  <div style={{
+                    fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+                    fontSize:14, fontWeight:500,
+                    color: isBuy ? "var(--accent)" : "var(--warn, #B8860B)",
+                  }}>{r.ovr}</div>
+                </div>
+              );
+            }) : (
+              <div style={{
+                padding:"var(--space-3) 0", fontSize:12, color:"var(--text-muted)",
+              }}>No candidates on the watchlist today.</div>
+            )}
+          </div>
+
+          {/* Last scan timestamp */}
+          <div style={{
+            marginTop:"auto", paddingTop:"var(--space-3)",
+            fontSize:11, color:"var(--text-dim)",
+            fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
+          }}>Last scan · {lastScanLabel}</div>
+        </div>);
+      })()}
+
+      {/* 04 · Portfolio Insights — data-first,
           no narrative running list. Each tile carries its own data point:
           count / delta / top name + score. See Joe feedback 2026-04-23. */}
       {(()=>{
@@ -6255,345 +6531,156 @@ return(
           fontSize:32, fontWeight:500, color:col, letterSpacing:"-0.01em", lineHeight:1,
         });
         const tileSub = {marginTop:"var(--space-2)", fontSize:11, color:"var(--text-muted)"};
+        // ── ASSET ALLOCATION — 5-bucket rollup ────────────────────────────
+        // Equities · Fixed Income · Commodities/Metals · Crypto · Cash
+        const _classifyAsset = (p) => {
+          if (p.sector === "Cash") return "Cash";
+          if (p.sector === "HY Bonds" || p.sector === "Bonds" ||
+              p.sector === "Treasuries" || p.sector === "Fixed Income") return "Fixed Income";
+          const t = (p.ticker || "").toUpperCase();
+          if (["GLD","SLV","GDX","GDXJ","COPX","CPER","DBA","PDBC","DBC","USO","UNG"].includes(t) ||
+              p.sector === "Commodity" || p.sector === "Metals") return "Commodities";
+          if (["FBTC","ETHE","GBTC","BTCUSD","ETHUSD","IBIT","ETHA","COIN"].includes(t) ||
+              p.sector === "Crypto") return "Crypto";
+          return "Equities";
+        };
+        const _alloc = { Equities:0, "Fixed Income":0, Commodities:0, Crypto:0, Cash:0 };
+        ACCOUNTS.flatMap(a => a.positions).forEach(p => {
+          const v = Number(p.value || 0);
+          if (v <= 0) return;  // skip margin debt / shorts for the pie
+          _alloc[_classifyAsset(p)] += v;
+        });
+        const _allocTotal = Object.values(_alloc).reduce((a,b)=>a+b, 0);
+        const _allocColors = {
+          "Equities":"#4a6fa5",
+          "Fixed Income":"#14b8a6",
+          "Commodities":"#B8860B",
+          "Crypto":"#a855f7",
+          "Cash":"var(--text-dim)",
+        };
+
+        // ── PERIOD RETURNS — REAL TWR from portfolio_history ──────────────
+        // 1W / 1M / YTD / TTM time-weighted returns computed from the user's
+        // actual NAV + return history (table public.portfolio_history). Not
+        // beta-estimated. Aggregate-first rollup across accounts (sum NAVs at
+        // each as_of, then chain Modified Dietz). SPY comparison comes from
+        // composite_history_daily.json aligned to the portfolio's latest as_of.
+        const _portReturns = _portfolioReturns?.periodReturns || null;
+        const _spyReturns  = (_spxHistory && _portfolioReturns?.latestDate)
+          ? computeSpyReturns(_spxHistory, _portfolioReturns.latestDate)
+          : null;
+
         return (
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
             <h2 style={cardH2Style}>
-              <span style={cardTagStyle}>02</span>Trading Opportunities &amp; Portfolio Insights
+              <span style={cardTagStyle}>04</span>Portfolio Insights <FreshnessDot indicatorId="composite_rl" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/>
             </h2>
-            <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
+            <a style={cardLinkStyle} onClick={()=>navTo("insights")}>Open →</a>
           </div>
 
+          {/* QUADRANT GRID: 2 rows × 2 cols. Top: Current Value | Beta.
+              Bottom: Asset Allocation pie | Returns vs SPY. */}
           <div style={{
             display:"grid", gridTemplateColumns:"1fr 1fr",
             gap:"var(--space-4)", padding:"var(--space-3) 0",
           }}>
-            {/* Current Positions */}
+
+            {/* Q1 · CURRENT VALUE */}
             <div style={tileStyle}>
-              <div style={tileEyebrow}>Current Positions</div>
-              <div className="num" style={tileBig("var(--text)")}>{positionCount}</div>
-              <div style={tileSub}>across {ACCOUNTS.length} account{ACCOUNTS.length===1?"":"s"} · ${Math.round(grandTotal/1000)}K</div>
+              <div style={tileEyebrow}>Current Value</div>
+              <div className="num" style={tileBig("var(--text)")}>${_fmt$K(grandTotal)}</div>
+              <div style={tileSub}>{positionCount} position{positionCount===1?"":"s"} · {ACCOUNTS.length} account{ACCOUNTS.length===1?"":"s"}</div>
             </div>
 
-            {/* Portfolio Beta — embedded metric with week-over-week delta
-                when we have a comparable prior sample. Defensive / elevated
-                color thresholds mirror the Observations rules. */}
+            {/* Q2 · PORTFOLIO BETA */}
             <div style={tileStyle}>
               <div style={tileEyebrow}>Portfolio Beta</div>
-              <div className="num" style={tileBig(
-                portBeta>1.3 ? "var(--orange-text)"
-                : portBeta<0.6 ? "var(--yellow-text)"
-                : "var(--text)"
-              )}>{portBeta.toFixed(2)}</div>
-              <div style={tileSub}>
-                {betaDelta
-                  ? <>{betaDelta.diff>0?"up":"down"} from <span style={{fontFamily:"var(--font-mono)", color:"var(--text-muted)"}}>{betaDelta.priorVal}</span> last week</>
-                  : <>1.0 = market · weighted by position $</>}
-              </div>
+              <div className="num" style={tileBig(portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)")}>{portBeta.toFixed(2)}</div>
+              <div style={tileSub}>1.0 = market · weighted by position $</div>
             </div>
 
-            {/* Buy Alerts — score embedded next to the top ticker */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Buy Alerts</div>
-              <div className="num" style={tileBig(buyCount>0?"var(--accent)":"var(--text-muted)")}>{buyCount}</div>
-              <div style={tileSub}>
-                {buyTop
-                  ? <><span style={{color:"var(--text)", fontWeight:500}}>{buyTop.ticker}</span>
-                      {" "}<span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>{buyTop.ovr}</span>
-                      <span style={{color:"var(--text-dim)"}}> · top score</span></>
-                  : <>none today</>}
-              </div>
-            </div>
-
-            {/* Near Trigger — score embedded next to the top ticker */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Near Trigger</div>
-              <div className="num" style={tileBig(watchCount>0?"var(--warn, #B8860B)":"var(--text-muted)")}>{watchCount}</div>
-              <div style={tileSub}>
-                {nearTop
-                  ? <><span style={{color:"var(--text)", fontWeight:500}}>{nearTop.ticker}</span>
-                      {" "}<span style={{fontFamily:"var(--font-mono)", color:"var(--text)"}}>{nearTop.ovr}</span>
-                      <span style={{color:"var(--text-dim)"}}> · top score</span></>
-                  : <>nothing pending</>}
-              </div>
-            </div>
-
-            {/* Day P&L — today's session move on the book. Hidden on a
-                fresh book / pre-market when prior equity is 0. */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Day P&amp;L</div>
-              <div className="num" style={tileBig(
-                !hasDayPnl ? "var(--text-muted)"
-                : dayPnl$ >= 0 ? "var(--green-text)"
-                : "var(--red-text)"
-              )}>
-                {hasDayPnl
-                  ? (dayPnl$ >= 0 ? "+" : "−") + "$" + _fmt$K(Math.abs(dayPnl$))
-                  : "—"}
-              </div>
-              <div style={tileSub}>
-                {hasDayPnl
-                  ? <>
-                      <span style={{
-                        fontFamily:"var(--font-mono)",
-                        color: dayPnl$ >= 0 ? "var(--green-text)" : "var(--red-text)",
-                      }}>{dayPnl$ >= 0 ? "+" : ""}{dayPnlPct.toFixed(2)}%</span>
-                      {benchmarkPct != null ? (
-                        <>
-                          <span style={{color:"var(--text-dim)"}}> · S&amp;P </span>
-                          <span style={{fontFamily:"var(--font-mono)", color:"var(--text-muted)"}}>
-                            {benchmarkPct >= 0 ? "+" : ""}{benchmarkPct.toFixed(2)}%
-                          </span>
-                          {outperfBps != null && Math.abs(outperfBps) >= 1 && (
-                            <span style={{
-                              fontFamily:"var(--font-mono)",
-                              marginLeft:4,
-                              color: outperfBps > 0 ? "var(--green-text)" : "var(--red-text)",
-                            }}>
-                              ({outperfBps > 0 ? "+" : ""}{outperfBps} bps)
-                            </span>
-                          )}
-                        </>
-                      ) : (
-                        <span style={{color:"var(--text-dim)"}}> · vs. yesterday's close</span>
-                      )}
-                    </>
-                  : <>market closed or pre-open</>}
-              </div>
-            </div>
-
-            {/* Deployable cash — total cash across tactical accounts only */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Deployable Cash</div>
-              <div className="num" style={tileBig(totalDeployable>0?"var(--accent)":"var(--text-muted)")}>
-                {totalDeployable>0 ? "$"+_fmt$K(totalDeployable) : "$0"}
-              </div>
-              <div style={tileSub}>
-                {totalDeployable>0
-                  ? <>ready to put to work · tactical only</>
-                  : <>no tactical cash</>}
-              </div>
-            </div>
-          </div>
-
-          {/* Largest position — compact single line so it doesn't crowd
-              the grid. Surfaces any single-name >=10% concentration. */}
-          {largestPos && (
-            <div style={{
-              marginTop:"var(--space-3)",
-              paddingTop:"var(--space-3)",
-              borderTop:"1px solid var(--border-faint)",
-              fontSize:12, color:"var(--text-muted)",
-              display:"flex", alignItems:"baseline", gap:"var(--space-2)", flexWrap:"wrap",
-            }}>
-              <span style={{
-                fontFamily:"var(--font-mono)", fontSize:10,
-                letterSpacing:"0.12em", textTransform:"uppercase",
-                color:"var(--text-dim)",
-              }}>Largest position</span>
-              <span style={{color:"var(--text)", fontWeight:500}}>{largestPos.ticker}</span>
-              <span style={{fontFamily:"var(--font-mono)", color: largestPct>=10 ? "var(--warn, #B8860B)" : "var(--text)"}}>
-                {largestPct.toFixed(1)}%
-              </span>
-              <span style={{color:"var(--text-dim)"}}>of book · ${_fmt$K(largestPos.value)}</span>
-            </div>
-          )}
-
-          <div style={{marginTop:"var(--space-4)"}}>
-            <a onClick={()=>navTo("portopps")} style={{
-              display:"inline-flex", alignItems:"center", gap:"var(--space-2)",
-              padding:"var(--space-2) var(--space-3)",
-              border:"1px solid var(--border-faint)", borderRadius:6,
-              fontFamily:"var(--font-mono)", fontSize:11, letterSpacing:"0.08em",
-              textTransform:"uppercase", color:"var(--text)",
-              textDecoration:"none", cursor:"pointer",
-            }}>Open Trading Opps <span style={{color:"var(--accent)"}}>→</span></a>
-          </div>
-        </div>);
-      })()}
-
-      {/* 03 · Sector Outlook — 3 highest overall rank + 3 lowest, with
-          a visual divider between them. Per Joe feedback 2026-04-23:
-          reads like a prop-desk long/short view, not a "top 5 extremes"
-          mashup. Editorial narrative slot reads from sector_commentary
-          and is null-allowed (no forced prose). */}
-      <div style={cardStyle}>
-        <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Sector Outlook</h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
-        </div>
-
-        {(()=>{
-          const renderRow = (s, isLast, key) => {
-            const stanceColor = s.outlook.color;
-            return (
-              <div key={key}
-                   onClick={()=>navTo("allocation")}
-                   style={{
-                     display:"flex", alignItems:"center", justifyContent:"space-between",
-                     padding:"var(--space-3) 0",
-                     borderBottom:isLast?"none":"1px solid var(--border-faint)",
-                     cursor:"pointer", gap:12,
-                   }}>
-                <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
-                  <span style={{
-                    fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)",
-                    letterSpacing:"0.06em", width:28, flexShrink:0,
-                  }}>#{s.rank}</span>
-                  <div style={{minWidth:0, flex:1}}>
-                    <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
-                    <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
-                      <span style={{fontFamily:"var(--font-mono)"}}>Beta {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
-                    </div>
+            {/* Q3 · ASSET ALLOCATION (donut chart + legend) */}
+            <div style={{...tileStyle, gridColumn:"1 / 2"}}>
+              <div style={tileEyebrow}>Asset Allocation</div>
+              {_allocTotal > 0 ? (
+                <div style={{display:"flex", alignItems:"center", gap:12, marginTop:8}}>
+                  {/* SVG donut */}
+                  <svg viewBox="0 0 42 42" width="80" height="80" style={{flexShrink:0}}>
+                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface)" strokeWidth="6"/>
+                    {(() => {
+                      const order = ["Equities","Fixed Income","Commodities","Crypto","Cash"];
+                      let offset = 25;  // start at top (12 o'clock)
+                      const arcs = [];
+                      for (const k of order) {
+                        const v = _alloc[k];
+                        if (v <= 0) continue;
+                        const pct = (v / _allocTotal) * 100;
+                        arcs.push(
+                          <circle key={k}
+                            cx="21" cy="21" r="15.915" fill="transparent"
+                            stroke={_allocColors[k]} strokeWidth="6"
+                            strokeDasharray={`${pct.toFixed(2)} ${(100-pct).toFixed(2)}`}
+                            strokeDashoffset={offset.toFixed(2)}
+                            transform="rotate(-90 21 21)"
+                          />
+                        );
+                        offset = ((offset - pct) % 100 + 100) % 100;
+                      }
+                      return arcs;
+                    })()}
+                  </svg>
+                  {/* Legend */}
+                  <div style={{flex:1, display:"flex", flexDirection:"column", gap:3, fontSize:11, fontFamily:"var(--font-mono)", minWidth:0}}>
+                    {["Equities","Fixed Income","Commodities","Crypto","Cash"].map(k => {
+                      const v = _alloc[k];
+                      if (v <= 0) return null;
+                      const pct = ((v/_allocTotal)*100);
+                      return (
+                        <div key={k} style={{display:"grid", gridTemplateColumns:"10px 1fr auto", gap:6, alignItems:"center"}}>
+                          <span style={{width:8, height:8, borderRadius:2, background:_allocColors[k]}}/>
+                          <span style={{color:"var(--text)"}}>{k}</span>
+                          <span style={{color:"var(--text-muted)"}}>{pct<1?"<1":pct.toFixed(0)}%</span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontSize:10,
-                  letterSpacing:"0.1em", textTransform:"uppercase",
-                  padding:"2px 8px", borderRadius:10,
-                  border:`1px solid ${stanceColor}`, color:stanceColor, flexShrink:0,
-                }}>{s.outlook.label}</span>
-              </div>
-            );
-          };
-          return (<>
-            {/* Top 3 — highest overall rank */}
-            {topOverweight.map((s,i) => renderRow(s, i===topOverweight.length-1, "top-"+s.id))}
+              ) : (
+                <div style={{...tileSub, marginTop:8}}>No positions yet.</div>
+              )}
+            </div>
 
-            {/* Divider between the long-book and short-book halves */}
-            {bottomUnderweight.length>0 && (
-              <div aria-hidden="true" style={{
-                display:"flex", alignItems:"center", gap:"var(--space-3)",
-                padding:"var(--space-3) 0",
-                fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
-                letterSpacing:"0.18em", textTransform:"uppercase",
-              }}>
-                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
-                <span>Bottom 3</span>
-                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
-              </div>
-            )}
-
-            {/* Bottom 3 — lowest overall rank */}
-            {bottomUnderweight.map((s,i) => renderRow(s, i===bottomUnderweight.length-1, "bot-"+s.id))}
-          </>);
-        })()}
-
-        {/* Editorial sector narrative — single-sentence analyst note, only
-            renders when the commentary engine detected a material move.
-            No "stable this week" fallback on purpose. */}
-        {(sectorCommentary && sectorCommentary.headline) && (
-          <div style={{
-            marginTop:"var(--space-4)",
-            paddingTop:"var(--space-3)",
-            borderTop:"1px solid var(--border-faint)",
-            fontFamily:"var(--font-display)", fontStyle:"italic",
-            fontSize:13, lineHeight:1.5, color:"var(--text-muted)",
-          }}>
-            {sectorCommentary.headline}
-          </div>
-        )}
-      </div>
-
-      {/* 04 · Daily Opp Scan — top-of-book names, not just counts */}
-      {(()=>{
-        // Top 3 buys (by overall score, highest first). Fall back to
-        // near-trigger names when the buy list is thin, so the tile
-        // always has at least one named opportunity if any exist.
-        const _topBuys = (rebucketBuy.length ? rebucketBuy : rebucketNear).slice(0, 3);
-        // Sector lookup for the name row's sub-copy.
-        const _sectorFor = (t) => {
-          const sc = scanData?.signals?.screener?.[t];
-          return sc?.sector || scanData?.ticker_names?.[t] || "";
-        };
-        const rowHasData = _topBuys.length > 0;
-        return (
-        <div style={cardStyle}>
-          <div style={cardHeadStyle}>
-            <h2 style={cardH2Style}><span style={cardTagStyle}>04</span>Daily Opp Scan</h2>
-            <a style={cardLinkStyle} onClick={()=>navTo("scanner")}>Open →</a>
-          </div>
-
-          {/* Headline number — candidates today */}
-          <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-4)"}}>
-            <div className="num" style={{
-              fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-              fontSize:44, fontWeight:500, color: (buyCount + watchCount) > 0 ? "var(--accent)" : "var(--text-muted)",
-              letterSpacing:"-0.01em", lineHeight:1,
-            }}>{buyCount + watchCount}</div>
-            <div style={{
-              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-              letterSpacing:"0.12em", textTransform:"uppercase", lineHeight:1.3,
-            }}>candidates<br/>today</div>
-          </div>
-
-          {/* Compact counts strip */}
-          <div style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            padding:"var(--space-2) 0",
-            borderBottom:"1px solid var(--border-faint)",
-            fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-muted)",
-            letterSpacing:"0.06em", textTransform:"uppercase",
-          }}>
-            <span>Buy {buyCount} · Near {watchCount} · Other {rebucketOther.length}</span>
-            <span style={{color:"var(--text-dim)"}}>60/40/0 thresholds</span>
-          </div>
-
-          {/* Top-of-book: top 3 names with their overall scores. The
-              highest-score name in the scanner is far more useful than
-              three count lines. */}
-          <div style={{
-            marginTop:"var(--space-2)",
-            display:"flex", flexDirection:"column",
-          }}>
-            <div style={{
-              padding:"var(--space-3) 0 var(--space-2)",
-              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-              letterSpacing:"0.14em", textTransform:"uppercase",
-            }}>Top candidates</div>
-            {rowHasData ? _topBuys.map((r, i) => {
-              const sect = _sectorFor(r.ticker);
-              const isLast = i === _topBuys.length - 1;
-              const isBuy  = r.ovr >= 60;
-              return (
-                <div key={r.ticker}
-                     onClick={()=>navTo("scanner")}
-                     style={{
-                       display:"flex", alignItems:"center", justifyContent:"space-between",
-                       padding:"var(--space-2) 0",
-                       borderBottom:isLast ? "none" : "1px solid var(--border-faint)",
-                       cursor:"pointer", gap:"var(--space-3)",
-                     }}>
-                  <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
-                    <span style={{
-                      fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-                      width:20, flexShrink:0,
-                    }}>#{i+1}</span>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.2}}>{r.ticker}</div>
-                      {sect && <div style={{fontSize:10, color:"var(--text-muted)", marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{sect}</div>}
-                    </div>
+            {/* Q4 · RETURNS vs SPY — real TWR from portfolio_history */}
+            <div style={{...tileStyle, gridColumn:"2 / 3"}}>
+              <div style={tileEyebrow}>Returns · TWR vs S&P 500</div>
+              {_portReturns ? (
+                <div style={{marginTop:8, display:"flex", flexDirection:"column", gap:4, fontFamily:"var(--font-mono)", fontSize:12}}>
+                  {["1W","1M","YTD","TTM"].map(k => {
+                    const portR = _portReturns[k];     // decimal
+                    const spyR  = _spyReturns?.[k];     // decimal
+                    const diff = (portR != null && spyR != null) ? portR - spyR : null;
+                    const fmtPct = v => v == null ? "—" : (v>=0?"+":"") + (v*100).toFixed(1) + "%";
+                    const diffCol = diff == null ? "var(--text-muted)" : diff >= 0 ? "#30d158" : "#ff453a";
+                    const portCol = portR == null ? "var(--text-muted)" : portR >= 0 ? "var(--text)" : "var(--text)";
+                    return (
+                      <div key={k} style={{display:"grid", gridTemplateColumns:"36px 1fr auto", gap:8, alignItems:"baseline"}}>
+                        <span style={{color:"var(--text-muted)", fontSize:10, letterSpacing:"0.06em"}}>{k}</span>
+                        <span style={{color:portCol}}>{fmtPct(portR)}</span>
+                        <span style={{color:diffCol, fontSize:11}}>{diff==null?"":(diff>=0?"+":"") + (diff*100).toFixed(1)+" vs SPY"}</span>
+                      </div>
+                    );
+                  })}
+                  <div style={{fontSize:9, color:"var(--text-dim)", marginTop:4, fontFamily:"var(--font-ui)", lineHeight:1.4}}>
+                    Real time-weighted return; flows netted out (Modified Dietz). Aggregate of all accounts.
                   </div>
-                  <div style={{
-                    fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-                    fontSize:14, fontWeight:500,
-                    color: isBuy ? "var(--accent)" : "var(--warn, #B8860B)",
-                  }}>{r.ovr}</div>
                 </div>
-              );
-            }) : (
-              <div style={{
-                padding:"var(--space-3) 0", fontSize:12, color:"var(--text-muted)",
-              }}>No candidates on the watchlist today.</div>
-            )}
+              ) : (
+                <div style={{...tileSub, marginTop:8}}>Sign in to view portfolio returns.</div>
+              )}
+            </div>
           </div>
 
-          {/* Last scan timestamp */}
-          <div style={{
-            marginTop:"auto", paddingTop:"var(--space-3)",
-            fontSize:11, color:"var(--text-dim)",
-            fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
-          }}>Last scan · {lastScanLabel}</div>
         </div>);
       })()}
 
