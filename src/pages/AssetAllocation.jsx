@@ -101,6 +101,25 @@ const RISK_SCENARIOS = [
 ];
 
 
+
+// 11 GICS sectors with current rating + plain-English rationale.
+// Ratings: ow = at least one industry group inside is overweight; uw = no IG
+// inside is rated above market weight AND at least one is underweight; mw = otherwise.
+// Senior Quant note: this is the v9 derivation. v10 will emit per-sector ratings directly.
+const SECTOR_RATINGS = [
+  { sector: "Information Technology", rating: "ow", rationale: "Semiconductors lead the entire ranking on falling real rates + industrial production recovery. Software market weight pending earnings revisions firming." },
+  { sector: "Communication Services", rating: "ow", rationale: "Telecom & Media earn overweight on the strongest earnings revisions in the cohort plus AI-monetization optionality (GOOGL, META)." },
+  { sector: "Energy",                 rating: "ow", rationale: "Oil & Gas overweight on yield-curve steepening, OPEC+ supply discipline, and a rising copper/gold ratio that signals reflation." },
+  { sector: "Industrials",            rating: "ow", rationale: "Capital Goods overweight on ISM new orders firming above 50 and easing financial conditions. Defense underweight on cycle-end positioning." },
+  { sector: "Materials",              rating: "ow", rationale: "Metals & Mining overweight on rising copper/gold ratio plus industrial production recovery. Chemicals market weight." },
+  { sector: "Consumer Discretionary", rating: "mw", rationale: "Torn between strong labor markets (favorable) and rate-sensitivity in housing/autos. Retail neutral; Autos underweight on rate sensitivity." },
+  { sector: "Financials",             rating: "uw", rationale: "Banks underweight: yield curve helps NIM but bank unrealized losses still elevated and SLOOS C&I tightening at +12 pp suppresses loan growth." },
+  { sector: "Health Care",            rating: "uw", rationale: "Pharma & Biotech underweight on negative earnings revisions plus drug-pricing policy overhang. Defensive yield premium not earned in the calm regime." },
+  { sector: "Consumer Staples",       rating: "uw", rationale: "Defensive yield premium isn't earned when Risk & Liquidity reads benign. FX-sensitive multinationals also face a strong-USD headwind." },
+  { sector: "Real Estate",            rating: "uw", rationale: "REITs underweight: real rates still elevated and CRE office stress live. Pure bond-proxy behavior loses when the curve steepens." },
+  { sector: "Utilities",              rating: "uw", rationale: "Bond-proxy underweight: long-end yields rising faster than short-end compresses utility multiples. AI/data-center capex is a floor, not a reversal." },
+];
+
 // SPY sector weights (cap-weighted, approximate). Q1 2026 snapshot.
 const SPY_WEIGHTS = {
   SOXX: 0.073, IGV: 0.115, IBB: 0.018, XLF: 0.133, XLV: 0.121,
@@ -591,11 +610,7 @@ export default function AssetAllocation({ onOpenTicker }) {
             </tr>
           </tbody>
         </table>
-        {!history && (
-          <div style={{ fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginTop: 6 }}>
-            Snapshot collection started Apr 26 — historical comparison columns populate after the next rebalance.
-          </div>
-        )}
+
 
         <h3 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 15, fontWeight: 500, margin: "16px 0 6px" }}>Allocation changes</h3>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "0.5px solid var(--border)" }}>
@@ -617,11 +632,7 @@ export default function AssetAllocation({ onOpenTicker }) {
                 <td style={tdRight()}><span style={{...dollarStyle(), color: "var(--text-muted)"}}>${(c.prior_weight * 100).toFixed(2)}</span></td>
                 <td style={tdRight()}><span style={{ fontFamily: "var(--font-mono)", color: c.delta > 0 ? "var(--green)" : "var(--red)", fontWeight: 600 }}>{c.delta > 0 ? "+" : "−"}${Math.abs(c.delta * 100).toFixed(2)}</span></td>
               </tr>
-            )) : (
-              <tr><td colSpan={5} style={{ padding: 16, textAlign: "center", color: "var(--text-muted)", fontStyle: "italic", fontSize: 11 }}>
-                Snapshot collection started Apr 26 — change history populates after the next rebalance.
-              </td></tr>
-            )}
+            )) : null}
           </tbody>
         </table>
 
@@ -637,47 +648,47 @@ export default function AssetAllocation({ onOpenTicker }) {
           <tbody>
             <tr>
               <td style={tdStyle()}><RatingPill rating="upgrade" /></td>
-              <td style={tdStyle()}>{history?.upgrades_1m?.join(", ") || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Awaiting next rebalance</span>}</td>
-              <td style={tdStyle()}>{history?.upgrades_3m?.join(", ") || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Awaiting next rebalance</span>}</td>
+              <td style={tdStyle()}>{history?.upgrades_1m?.join(", ") || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
+              <td style={tdStyle()}>{history?.upgrades_3m?.join(", ") || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
             </tr>
             <tr>
               <td style={tdStyle()}><RatingPill rating="downgrade" /></td>
-              <td style={tdStyle()}>{history?.downgrades_1m?.join(", ") || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Awaiting next rebalance</span>}</td>
-              <td style={tdStyle()}>{history?.downgrades_3m?.join(", ") || <span style={{ color: "var(--text-muted)", fontStyle: "italic" }}>Awaiting next rebalance</span>}</td>
+              <td style={tdStyle()}>{history?.downgrades_1m?.join(", ") || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
+              <td style={tdStyle()}>{history?.downgrades_3m?.join(", ") || <span style={{ color: "var(--text-muted)" }}>—</span>}</td>
             </tr>
           </tbody>
         </table>
       </section>
 
-      {/* Section 3 — Sector outlooks */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+      {/* Section 3 — Sector outlooks & target allocation */}
+      <section style={{ padding: "var(--space-7) var(--space-8)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>3 · Sector outlooks &amp; target allocation</div>
-          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>11 sectors · 25 industry groups · 3 ratings</h2>
-          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>Click any sector or industry group below to see the rationale, key factors, and what would change the call.</p>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>11 GICS sectors · current rating &amp; rationale</h2>
+          <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 4px", lineHeight: 1.55 }}>Each sector is rated Overweight / Market Weight / Underweight based on the model's combined indicator + momentum rank.</p>
         </div>
 
-        {/* Side-by-side OW / UW tables */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
-          <SideTable
-            kind="ow"
-            title="Overweight"
-            subtitle={`${picks.length} industry groups · +${(picks.reduce((s,p)=>s+p.weight,0)*100).toFixed(1)}% of capital`}
-            rows={SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "ow").map(g => ({...g, sector: s.sector})))}
-            picks={picks}
-            rationales={rationales}
-            onSelect={setActiveBucket}
-          />
-          <SideTable
-            kind="uw"
-            title="Underweight"
-            subtitle={`${SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "uw")).length} industry groups · 0% of capital`}
-            rows={SECTOR_IG_MAP.flatMap(s => s.groups.filter(g => g.rating === "uw").map(g => ({...g, sector: s.sector})))}
-            picks={picks}
-            rationales={rationales}
-            onSelect={setActiveBucket}
-          />
-        </div>
+        {/* 11-sector table */}
+        <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", padding: "12px 16px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" }}>Sector</th>
+              <th style={{ textAlign: "center", padding: "12px 16px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)", width: 130 }}>Rating</th>
+              <th style={{ textAlign: "left", padding: "12px 16px", fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" }}>Rationale</th>
+            </tr>
+          </thead>
+          <tbody>
+            {SECTOR_RATINGS.map((row, i) => (
+              <tr key={row.sector}>
+                <td style={{ padding: "14px 16px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500, fontSize: 14 }}>{row.sector}</td>
+                <td style={{ padding: "14px 16px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", textAlign: "center" }}>
+                  <RatingPill rating={row.rating} />
+                </td>
+                <td style={{ padding: "14px 16px", borderBottom: i < SECTOR_RATINGS.length - 1 ? "1px solid var(--border-faint)" : "none", fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>{row.rationale}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
 
         <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginTop: 24, marginBottom: 8 }}>Full heatmap — all 25 industry groups</div>
 
@@ -732,10 +743,16 @@ export default function AssetAllocation({ onOpenTicker }) {
         ))}
       </section>
 
-      {/* Methodology summary + footer */}
-      <section style={{ padding: "var(--space-6) var(--space-7)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
-        <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Methodology</div>
-        <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 4px" }}>How this allocation is built</h2>
+      {/* Methodology summary + footer — expandable accordion */}
+      <details style={{ padding: 0, background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+        <summary style={{ padding: "var(--space-6) var(--space-7)", cursor: "pointer", listStyle: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>5 · Methodology</div>
+            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 0" }}>How this allocation is built</h2>
+          </div>
+          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Click to expand ↓</span>
+        </summary>
+        <div style={{ padding: "0 var(--space-7) var(--space-6)" }}>
         <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.55 }}>Each industry group is regressed on 2-6 macro factors (universal background factors: yield curve and term premium). Top 5 picks selected by combined indicator + 6-month-momentum rank, equal-weighted, scaled by leverage calibrated to the Risk &amp; Liquidity composite. Defensive sleeve (BIL/TLT/GLD/LQD) activates when R&amp;L moves into the elevated or stressed zone.</p>
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
@@ -761,10 +778,12 @@ export default function AssetAllocation({ onOpenTicker }) {
           </div>
         </div>
 
-        <div style={{ marginTop: "var(--space-4)", fontSize: 12, color: "var(--text-muted)" }}>
+        <div style={{ marginTop: "var(--space-5)", paddingTop: "var(--space-4)", borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-muted)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>Allocation Model v9</span>
           <a href="#readme" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>Read the full methodology →</a>
         </div>
-      </section>
+        </div>
+      </details>
 
     </main>
   );
@@ -788,8 +807,7 @@ function tdRight() { return { ...tdStyle(), textAlign: "right" }; }
 function dollarStyle() { return { fontFamily: "var(--font-mono)", color: "var(--text)" }; }
 
 function HistCell({ value, loading }) {
-  if (loading) return <span style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: 11 }}>…</span>;
-  if (value == null) return <span style={{ color: "var(--text-muted)", fontStyle: "italic", fontSize: 11 }}>—</span>;
+  if (loading || value == null) return <span style={{ color: "var(--text-muted)" }}>—</span>;
   return <span style={dollarStyle()}>${value.toFixed(0)}</span>;
 }
 
