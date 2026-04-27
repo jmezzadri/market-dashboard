@@ -33,47 +33,47 @@ import { InfoTip } from "../InfoTip";
 const SECTOR_IG_MAP = [
   { sector: "Information Technology", groups: [
     { name: "Software & Services",                  ticker: "IGV",  rating: "mw" },
-    { name: "Technology Hardware & Equipment",      ticker: null,   rating: "mw" },
+    { name: "Technology Hardware & Equipment",      ticker: "AAPL", basket: true,   rating: "mw" },
     { name: "Semiconductors & Semi Equipment",      ticker: "SOXX", rating: "ow" },
   ]},
   { sector: "Communication Services", groups: [
     { name: "Telecommunication Services",           ticker: "IYZ",  rating: "ow" },
-    { name: "Media & Entertainment",                ticker: null,   rating: "mw" },
+    { name: "Media & Entertainment",                ticker: "XLC",   rating: "mw" },
   ]},
   { sector: "Consumer Discretionary", groups: [
-    { name: "Automobiles & Components",             ticker: null,   rating: "uw" },
-    { name: "Consumer Durables & Apparel",          ticker: null,   rating: "mw" },
-    { name: "Consumer Services",                    ticker: null,   rating: "mw" },
-    { name: "Consumer Discretionary Distribution & Retail", ticker: null, rating: "mw" },
+    { name: "Automobiles & Components",             ticker: "CARZ",   rating: "uw" },
+    { name: "Consumer Durables & Apparel",          ticker: "NKE", basket: true,   rating: "mw" },
+    { name: "Consumer Services",                    ticker: "PEJ",   rating: "mw" },
+    { name: "Consumer Discretionary Distribution & Retail", ticker: "XRT", rating: "mw" },
   ]},
   { sector: "Consumer Staples",       groups: [
-    { name: "Consumer Staples Distribution & Retail",  ticker: null,  rating: "uw" },
+    { name: "Consumer Staples Distribution & Retail",  ticker: "WMT", basket: true,  rating: "uw" },
     { name: "Food, Beverage & Tobacco",                ticker: "XLP", rating: "uw" },
-    { name: "Household & Personal Products",           ticker: null,  rating: "uw" },
+    { name: "Household & Personal Products",           ticker: "PG", basket: true,  rating: "uw" },
   ]},
   { sector: "Energy",                 groups: [
     { name: "Energy",                               ticker: "XLE",  rating: "ow" },
   ]},
   { sector: "Financials",             groups: [
     { name: "Banks",                                ticker: "XLF",  rating: "uw" },
-    { name: "Financial Services",                   ticker: null,   rating: "mw" },
-    { name: "Insurance",                            ticker: null,   rating: "mw" },
+    { name: "Financial Services",                   ticker: "IYG",   rating: "mw" },
+    { name: "Insurance",                            ticker: "KIE",   rating: "mw" },
   ]},
   { sector: "Health Care",            groups: [
-    { name: "Health Care Equipment & Services",     ticker: null,   rating: "mw" },
+    { name: "Health Care Equipment & Services",     ticker: "IHI",   rating: "mw" },
     { name: "Pharmaceuticals, Biotech & Life Sciences", ticker: "XLV", rating: "uw" },
   ]},
   { sector: "Industrials",            groups: [
     { name: "Capital Goods",                        ticker: "XLI",  rating: "ow" },
-    { name: "Commercial & Professional Services",   ticker: null,   rating: "mw" },
-    { name: "Transportation",                       ticker: null,   rating: "mw" },
+    { name: "Commercial & Professional Services",   ticker: "WM", basket: true,   rating: "mw" },
+    { name: "Transportation",                       ticker: "IYT",   rating: "mw" },
   ]},
   { sector: "Materials",              groups: [
     { name: "Materials",                            ticker: "XLB",  rating: "ow" },
   ]},
   { sector: "Real Estate",            groups: [
     { name: "Equity REITs",                         ticker: "IYR",  rating: "uw" },
-    { name: "Real Estate Management & Development", ticker: null,   rating: "mw" },
+    { name: "Real Estate Management & Development", ticker: "CBRE", basket: true,   rating: "mw" },
   ]},
   { sector: "Utilities",              groups: [
     { name: "Utilities",                            ticker: "XLU",  rating: "uw" },
