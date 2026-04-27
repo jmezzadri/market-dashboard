@@ -3297,12 +3297,15 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
     // modal's other clickables.
     const HeadlineEl=<a href={url} target="_blank" rel="noopener noreferrer" style={{color:"var(--text)",textDecoration:"none",borderBottom:"1px dotted var(--text-muted)"}} onClick={e=>e.stopPropagation()}>{n.headline}</a>;
     return(
-    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"6px 8px",background:"var(--surface-3)",borderRadius:4,fontSize:12,lineHeight:1.4}}>
+    <div key={i} style={{display:"flex",gap:8,alignItems:"flex-start",padding:"6px 8px",background:"var(--surface-3)",borderRadius:4,fontSize:12,lineHeight:1.4,maxWidth:"100%",boxSizing:"border-box"}}>
     <span style={{color:sentCol,fontWeight:800,fontSize:13,fontFamily:"var(--font-mono)",flexShrink:0,minWidth:10,textAlign:"center"}}>{sentLabel}</span>
-    <div style={{flex:1,minWidth:0}}>
-    <div style={{color:"var(--text)",marginBottom:2}}>{HeadlineEl}{n.is_major&&<span style={{marginLeft:6,fontSize:9,color:"var(--orange)",fontFamily:"var(--font-mono)",border:"1px solid var(--orange)",borderRadius:3,padding:"1px 4px",fontWeight:700,verticalAlign:"middle"}}>MAJOR</span>}</div>
+    {/* minWidth:0 lets text wrap inside flex; overflowWrap+wordBreak handle
+        long unbreakable strings (URLs, hashtags, foreign-language tokens)
+        that were running off the modal — Joe flagged 2026-04-27. */}
+    <div style={{flex:1,minWidth:0,overflowWrap:"anywhere",wordBreak:"break-word"}}>
+    <div style={{color:"var(--text)",marginBottom:2}}>{HeadlineEl}{n.is_major&&<span style={{marginLeft:6,fontSize:9,color:"var(--orange)",fontFamily:"var(--font-mono)",border:"1px solid var(--orange)",borderRadius:3,padding:"1px 4px",fontWeight:700,verticalAlign:"middle",whiteSpace:"nowrap"}}>MAJOR</span>}</div>
     {n.description&&<div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5,marginBottom:3}}>{n.description}</div>}
-    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",gap:8,alignItems:"center"}}>
+    <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
       <span
         style={{
           fontSize:10,fontFamily:"var(--font-mono)",
@@ -5383,16 +5386,18 @@ const TAB_META={
 };
 
 // ─── Sidebar nav — single source of truth, references the TAB_IDS above ─────
-// Order in the sidebar (macro → sectors → portfolio → scanner → docs). Home
-// sits at the top as the tile-grid landing.
+// New spec order (2026-04-27): Home → Macro Overview → Asset Allocation →
+// Trading Opps & Portfolio Insights → All Indicators. Methodology moved to
+// footer-only. Scanner removed from NAV but route preserved (deep-link from
+// Trading Opps once P3 splits the page). portopps stays as a single combined
+// entry until P3 splits Trading Opps and Portfolio Insights into independent
+// pages.
 const NAV_ITEMS = [
-  { id:"home",       label:"Home",                  icon:<NavIconHome/>   },
-  { id:"overview",   label:"Macro Overview",        icon:<NavIconGauge/>  },
-  { id:"indicators", label:"All Indicators",        icon:<NavIconGrid/>   },
-  { id:"allocation", label:"Asset Allocation",      icon:<NavIconHeat/>   },
-  { id:"portopps",   label:"Trading Opportunities & Portfolio Insights",  icon:<NavIconPie/>    },
-  { id:"scanner",    label:"Trading Scanner",       icon:<NavIconRadar/>  },
-  { id:"readme",     label:"Methodology",           icon:<NavIconBook/>   },
+  { id:"home",       label:"Home",                                          icon:<NavIconHome/>   },
+  { id:"overview",   label:"Macro Overview",                                icon:<NavIconGauge/>  },
+  { id:"allocation", label:"Asset Allocation",                              icon:<NavIconHeat/>   },
+  { id:"portopps",   label:"Trading Opportunities & Portfolio Insights",   icon:<NavIconPie/>    },
+  { id:"indicators", label:"All Indicators",                                icon:<NavIconGrid/>   },
 ];
 
 export default function App(){
