@@ -27,52 +27,56 @@
 import { useState, useEffect, useMemo } from "react";
 import { InfoTip } from "../InfoTip";
 
-// ─── Sector → industry group mapping (11 GICS sectors × 25 IGs) ─────────────
+// 25 GICS Industry Groups grouped by their 11 GICS Sector parents.
+// Ratings derive from v9's 14-bucket compute output by mapping each GICS IG
+// to the closest v9 ETF (or null if v9 doesn't yet score it).
 const SECTOR_IG_MAP = [
-  { sector: "Information Technology",     groups: [
-      { name: "Semiconductors", ticker: "SOXX", rating: "ow" },
-      { name: "Software",       ticker: "IGV",  rating: "mw" },
-      { name: "Hardware",       ticker: null,   rating: "mw" },
+  { sector: "Information Technology", groups: [
+    { name: "Software & Services",                  ticker: "IGV",  rating: "mw" },
+    { name: "Technology Hardware & Equipment",      ticker: null,   rating: "mw" },
+    { name: "Semiconductors & Semi Equipment",      ticker: "SOXX", rating: "ow" },
   ]},
-  { sector: "Communication Services",     groups: [
-      { name: "Telecom & Media", ticker: "IYZ", rating: "ow" },
-      { name: "Media",           ticker: null,  rating: "mw" },
+  { sector: "Communication Services", groups: [
+    { name: "Telecommunication Services",           ticker: "IYZ",  rating: "ow" },
+    { name: "Media & Entertainment",                ticker: null,   rating: "mw" },
   ]},
-  { sector: "Energy",        groups: [
-      { name: "Oil & Gas",   ticker: "XLE",  rating: "ow" },
-      { name: "Equipment",   ticker: null,   rating: "mw" },
+  { sector: "Consumer Discretionary", groups: [
+    { name: "Automobiles & Components",             ticker: null,   rating: "uw" },
+    { name: "Consumer Durables & Apparel",          ticker: null,   rating: "mw" },
+    { name: "Consumer Services",                    ticker: null,   rating: "mw" },
+    { name: "Consumer Discretionary Distribution & Retail", ticker: null, rating: "mw" },
   ]},
-  { sector: "Industrials",   groups: [
-      { name: "Capital Goods", ticker: "XLI", rating: "ow" },
-      { name: "Transport",     ticker: null,  rating: "mw" },
-      { name: "Defense",       ticker: null,  rating: "uw" },
+  { sector: "Consumer Staples",       groups: [
+    { name: "Consumer Staples Distribution & Retail",  ticker: null,  rating: "uw" },
+    { name: "Food, Beverage & Tobacco",                ticker: "XLP", rating: "uw" },
+    { name: "Household & Personal Products",           ticker: null,  rating: "uw" },
   ]},
-  { sector: "Materials",     groups: [
-      { name: "Metals & Mining", ticker: "XLB", rating: "ow" },
-      { name: "Chemicals",       ticker: null,  rating: "mw" },
+  { sector: "Energy",                 groups: [
+    { name: "Energy",                               ticker: "XLE",  rating: "ow" },
   ]},
-  { sector: "Consumer Discretionary",     groups: [
-      { name: "Retail", ticker: null, rating: "mw" },
-      { name: "Autos",  ticker: null, rating: "uw" },
+  { sector: "Financials",             groups: [
+    { name: "Banks",                                ticker: "XLF",  rating: "uw" },
+    { name: "Financial Services",                   ticker: null,   rating: "mw" },
+    { name: "Insurance",                            ticker: null,   rating: "mw" },
   ]},
-  { sector: "Financials",    groups: [
-      { name: "Insurance", ticker: null, rating: "mw" },
-      { name: "Banks",     ticker: "XLF", rating: "uw" },
+  { sector: "Health Care",            groups: [
+    { name: "Health Care Equipment & Services",     ticker: null,   rating: "mw" },
+    { name: "Pharmaceuticals, Biotech & Life Sciences", ticker: "XLV", rating: "uw" },
   ]},
-  { sector: "Health Care",   groups: [
-      { name: "Devices", ticker: null,  rating: "mw" },
-      { name: "Pharma",  ticker: "XLV", rating: "uw" },
-      { name: "Biotech", ticker: "IBB", rating: "uw" },
+  { sector: "Industrials",            groups: [
+    { name: "Capital Goods",                        ticker: "XLI",  rating: "ow" },
+    { name: "Commercial & Professional Services",   ticker: null,   rating: "mw" },
+    { name: "Transportation",                       ticker: null,   rating: "mw" },
   ]},
-  { sector: "Consumer Staples",  groups: [
-      { name: "Food",      ticker: "XLP", rating: "uw" },
-      { name: "Household", ticker: null,  rating: "uw" },
+  { sector: "Materials",              groups: [
+    { name: "Materials",                            ticker: "XLB",  rating: "ow" },
   ]},
-  { sector: "Real Estate",   groups: [
-      { name: "REITs", ticker: "IYR", rating: "uw" },
+  { sector: "Real Estate",            groups: [
+    { name: "Equity REITs",                         ticker: "IYR",  rating: "uw" },
+    { name: "Real Estate Management & Development", ticker: null,   rating: "mw" },
   ]},
-  { sector: "Utilities",     groups: [
-      { name: "Electric & Multi", ticker: "XLU", rating: "uw" },
+  { sector: "Utilities",              groups: [
+    { name: "Utilities",                            ticker: "XLU",  rating: "uw" },
   ]},
 ];
 
