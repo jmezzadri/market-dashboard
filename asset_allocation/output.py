@@ -50,7 +50,7 @@ METHODOLOGY = {
     "version": "v10",
     "locked_at": "2026-04-25",
     "back_test": LOCKED_BACKTEST,
-    "documentation_url": "/asset-allocation-methodology-v9-LOCKED.md",
+    "documentation_url": "/asset-allocation-methodology-v9.md",
     "raw_data_url": "/v10_allocation.json",
 }
 
