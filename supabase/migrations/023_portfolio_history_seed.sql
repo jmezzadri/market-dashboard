@@ -4,20 +4,20 @@
 -- Chase (Taxable) — monthly NAV + flows, from Chase statement
 INSERT INTO public.portfolio_history
   (user_id, account_id, account_label, as_of, nav, contributions, withdrawals, source) VALUES
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-04-25', 51588.07, 0.00, 0.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-04-30', 50707.75, 0.00, 0.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-05-31', 52381.69, 1000.00, 4313.28, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-06-30', 84215.53, 31000.00, 0.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-07-31', 88883.39, 0.00, 0.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-08-31', 87779.53, 0.00, 6055.48, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-09-30', 119377.36, 27000.00, 0.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-10-31', 213369.33, 100000.00, 5000.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-11-30', 151785.34, 0.00, 10000.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2025-12-31', 155393.77, 0.00, 0.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2026-01-31', 207412.75, 40000.00, 0.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2026-02-28', 191653.03, 0.00, 0.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2026-03-31', 181082.79, 0.00, 7000.00, 'chase_statement_2026_04'),
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2026-04-24', 106172.91, 0.00, 70000.00, 'chase_statement_2026_04')
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-04-25', 51588.07, 0.00, 0.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-04-30', 50707.75, 0.00, 0.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-05-31', 52381.69, 1000.00, 4313.28, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-06-30', 84215.53, 31000.00, 0.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-07-31', 88883.39, 0.00, 0.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-08-31', 87779.53, 0.00, 6055.48, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-09-30', 119377.36, 27000.00, 0.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-10-31', 213369.33, 100000.00, 5000.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-11-30', 151785.34, 0.00, 10000.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2025-12-31', 155393.77, 0.00, 0.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2026-01-31', 207412.75, 40000.00, 0.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2026-02-28', 191653.03, 0.00, 0.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2026-03-31', 181082.79, 0.00, 7000.00, 'chase_statement_2026_04'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2026-04-24', 106172.91, 0.00, 70000.00, 'chase_statement_2026_04')
 ON CONFLICT (user_id, account_label, as_of) DO UPDATE SET
   nav=EXCLUDED.nav, contributions=EXCLUDED.contributions, withdrawals=EXCLUDED.withdrawals, source=EXCLUDED.source;
 
@@ -256,7 +256,7 @@ ON CONFLICT (user_id, account_label, as_of) DO UPDATE SET
 -- Anchor: current NAV per account as of 2026-04-27 (Fidelity snapshot + Chase Apr 24)
 INSERT INTO public.portfolio_history
   (user_id, account_id, account_label, as_of, nav, source) VALUES
-  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Chase Taxable', '2026-04-24', 106172.91, 'chase_apr24_anchor'),
+  ('83cd9e76-eb35-4581-864e-9517e13e9be0', 'f07d73c2-b3e9-4237-8b67-5b086e90cf76', 'Taxable', '2026-04-24', 106172.91, 'chase_apr24_anchor'),
   ('83cd9e76-eb35-4581-864e-9517e13e9be0', '005e654e-2f16-4668-8956-29b63fc0553a', 'EY 401(K)', '2026-04-27', 351038.22, 'fidelity_apr27_anchor'),
   ('83cd9e76-eb35-4581-864e-9517e13e9be0', '38ade033-7f3c-4da6-afce-67bf1952a188', 'ROTH IRA', '2026-04-27', 7809.94, 'fidelity_apr27_anchor'),
   ('83cd9e76-eb35-4581-864e-9517e13e9be0', '5d7d62fd-99d3-48b9-9cde-c07517a73c66', 'Scarlett 529', '2026-04-27', 9165.39, 'fidelity_apr27_anchor'),
