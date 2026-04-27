@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import Scanner from "./Scanner";
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
@@ -2884,16 +2884,19 @@ const _uwNews=scanData?.signals?.news?.[ticker]||[];
 // vol, max drawdown, 10-day 99% historical VaR. Joe spec 2026-04-27
 // (P5 #16/#17). Hook caches by ticker; SPY shared across tickers.
 const { metrics: _riskMetrics } = useStockRiskMetrics(ticker);
-// P1 #36 — auto-fire on-demand scan when info is missing or descriptions
-// are empty. Buy/Near Trigger/Watchlist tickers often aren't in the public
-// scan_data.signals.info; this fills that gap so Company Overview renders
-// for every ticker the user opens. Idempotent — scanTicker has its own
-// in-flight tracker. Joe 2026-04-27.
+// P1 #36/#38 — auto-fire on-demand scan when info is missing. Adds a
+// per-ticker cool-down ref (60s) so we don't re-fire if the scan came
+// back empty (which would otherwise cause an infinite loop overwriting
+// existing data with nulls). Joe 2026-04-27.
+const _scanFiredRef = useRef(new Map());
 useEffect(() => {
   if (!ticker || !portfolioAuthed || !onTickerAdded) return;
   const i = scanData?.signals?.info?.[ticker];
   const haveDesc = !!(i && (i.short_description || i.long_description));
   if (haveDesc) return;
+  const lastFired = _scanFiredRef.current.get(ticker) || 0;
+  if (Date.now() - lastFired < 60_000) return;   // 60s cool-down per ticker
+  _scanFiredRef.current.set(ticker, Date.now());
   onTickerAdded(ticker);
 }, [ticker, scanData, portfolioAuthed, onTickerAdded]);
 const _gnNormalized=(gnNewsItems||[]).map((n)=>({
