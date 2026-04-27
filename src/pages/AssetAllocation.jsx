@@ -147,7 +147,7 @@ const RISK_SCENARIOS = [
 // Senior Quant note: this is the v9 derivation. v10 will emit per-sector ratings directly.
 const SECTOR_RATINGS = [
   { sector: "Information Technology", rating: "ow", rationale: "Semiconductors lead the entire ranking on falling real rates + industrial production recovery. Software market weight pending earnings revisions firming." },
-  { sector: "Communication Services", rating: "ow", rationale: "Telecom & Media earn overweight on the strongest earnings revisions in the cohort plus AI-monetization optionality (GOOGL, META)." },
+  { sector: "Communication Services", rating: "ow", rationale: "The Telecommunication Services slice (IYZ — Verizon, AT&T, T-Mobile) earns overweight on the strongest earnings revisions in the cohort and stable cash-flow profile during a cooling-rates regime. Media & Entertainment is rated separately." },
   { sector: "Energy",                 rating: "ow", rationale: "Oil & Gas overweight on yield-curve steepening, OPEC+ supply discipline, and a rising copper/gold ratio that signals reflation." },
   { sector: "Industrials",            rating: "ow", rationale: "Capital Goods overweight on ISM new orders firming above 50 and easing financial conditions. Defense underweight on cycle-end positioning." },
   { sector: "Materials",              rating: "ow", rationale: "Metals & Mining overweight on rising copper/gold ratio plus industrial production recovery. Chemicals market weight." },
@@ -164,6 +164,38 @@ const SPY_WEIGHTS = {
   SOXX: 0.073, IGV: 0.115, IBB: 0.018, XLF: 0.133, XLV: 0.121,
   XLI:  0.094, XLE: 0.037, XLY: 0.103, XLP: 0.062, XLU: 0.024,
   XLB:  0.026, IYR: 0.026, IYZ: 0.094, MGK: 0.000,
+};
+
+// S&P 500 GICS sector weights — reference-only, used for the sector-tilt rollup.
+// Source: SPDR SPY published holdings (Q1 2026). Refresh quarterly.
+const SECTOR_GICS_BENCHMARK = {
+  "Information Technology": 0.305,
+  "Financials":             0.135,
+  "Health Care":            0.110,
+  "Consumer Discretionary": 0.105,
+  "Communication Services": 0.095,
+  "Industrials":            0.085,
+  "Consumer Staples":       0.060,
+  "Energy":                 0.037,
+  "Utilities":              0.025,
+  "Real Estate":            0.024,
+  "Materials":              0.020,
+};
+
+// Map the short sector labels in v9_allocation.json (e.g. "Info Tech",
+// "Comm Svcs") to canonical GICS sector names used in SECTOR_GICS_BENCHMARK.
+const SECTOR_SHORT_TO_GICS = {
+  "Info Tech":          "Information Technology",
+  "Comm Svcs":          "Communication Services",
+  "Cons Disc":          "Consumer Discretionary",
+  "Cons Staples":       "Consumer Staples",
+  "Energy":             "Energy",
+  "Financials":         "Financials",
+  "Health Care":        "Health Care",
+  "Industrials":        "Industrials",
+  "Materials":          "Materials",
+  "Real Estate":        "Real Estate",
+  "Utilities":          "Utilities",
 };
 
 // ─── Composite scoring helpers ──────────────────────────────────────────────
@@ -739,7 +771,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               Get long the cyclical complex. Pull capital out of bond proxies and defensive yield.
             </div>
             <ul style={{ fontSize: 14, lineHeight: 1.7, paddingLeft: 18, margin: 0, color: "var(--text-2)" }}>
-              <li><strong>Lean into cyclicals.</strong> Build positions in Semiconductors (SOXX), Telecom &amp; Media (IYZ), Oil &amp; Gas (XLE), Capital Goods (XLI), Metals &amp; Mining (XLB). These five carry the overweight book.</li>
+              <li><strong>Lean into cyclicals.</strong> Build positions in Semiconductors (SOXX), Telecommunication Services (IYZ), Oil &amp; Gas (XLE), Capital Goods (XLI), Metals &amp; Mining (XLB). These five carry the overweight book.</li>
               <li><strong>Trim or exit defensive yield.</strong> Reduce Pharma &amp; Biotech (XLV/IBB), Banks (XLF), REITs (IYR), Utilities (XLU), and Consumer Staples (XLP) toward zero — they lose their thesis when the curve steepens.</li>
               <li><strong>Use leverage if your risk tolerance allows.</strong> Gross to roughly 1.28× via margin or 2× sector ETFs. Calm regimes earn the leverage budget.</li>
               <li><strong>Skip the defensive sleeve.</strong> No reason to hold cash, T-bills, or gold here — the regime doesn't pay for safety. Rotate any existing GLD/BIL/TLT into the cyclical picks.</li>
@@ -910,6 +942,9 @@ export default function AssetAllocation({ onOpenTicker }) {
           ))}
         </div>
 
+        {/* 11-row GICS sector rollup table — strategy weights aggregated by sector, vs S&P 500 */}
+        <SectorRollupTable picks={picks} allIgs={alloc?.all_industry_groups || []} />
+
         {activeBucket && activeBucket.ticker && !rationales && (
           <div style={{ marginTop: 12, padding: 14, border: "1px solid var(--border)", borderRadius: "var(--radius-md)", background: "var(--surface-solid)", color: "var(--text-muted)", fontSize: 13, fontStyle: "italic" }}>Loading rationale for {activeBucket.name}…</div>
         )}
@@ -955,19 +990,26 @@ export default function AssetAllocation({ onOpenTicker }) {
         ))}
       </section>
 
-      {/* Methodology summary + footer — expandable accordion */}
-      <details style={{ padding: 0, background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
-        <summary style={{ padding: "var(--space-8) var(--space-10)", cursor: "pointer", listStyle: "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div>
-            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>5 · Methodology</div>
-            <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 0" }}>How this allocation is built</h2>
-          </div>
-          <span style={{ fontSize: 13, color: "var(--text-muted)" }}>Click to expand ↓</span>
-        </summary>
-        <div style={{ padding: "0 var(--space-10) var(--space-8)" }}>
-        <p style={{ fontSize: 13, color: "var(--text-muted)", margin: "0 0 14px", lineHeight: 1.55 }}>Each industry group is regressed on 2-6 macro factors (universal background factors: yield curve and term premium). Top 5 picks selected by combined indicator + 6-month-momentum rank, equal-weighted, scaled by leverage calibrated to the Risk &amp; Liquidity composite. Defensive sleeve (BIL/TLT/GLD/LQD) activates when R&amp;L moves into the elevated or stressed zone.</p>
+      {/* Section 5 — Methodology summary + back-test stats (always visible per Joe's 2026-04-27 ask) */}
+      <section style={{ padding: "var(--space-8) var(--space-10)", background: "var(--surface-solid)", border: "1px solid var(--border-strong)", borderRadius: "var(--radius-lg)", marginBottom: "var(--space-6)" }}>
+        <div style={{ marginBottom: "var(--space-5)" }}>
+          <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>5 · Methodology</div>
+          <h2 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 500, margin: "6px 0 0" }}>How this allocation is built</h2>
+        </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-4)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", maxWidth: 880, fontSize: 13.5, color: "var(--text)", lineHeight: 1.65 }}>
+          <p style={{ margin: 0 }}>
+            <strong>What the model does.</strong> Every Saturday it scores 25 industry groups across the 11 GICS sectors using a small set of macro indicators that have predicted those groups historically (per group: jobless claims, real rates, the 10Y-2Y yield curve, credit spreads, and similar — the specific set is industry-group dependent). It picks the five groups where both the macro signal and the 6-month price trend agree they're attractive, holds them in equal weight, and adds leverage up to 1.5× when the broader risk environment is calm. When the Risk &amp; Liquidity composite crosses into stress, equity exposure scales down and a defensive sleeve (T-bills, long Treasuries, gold, investment-grade bonds) activates.
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong>Key assumptions.</strong> Macro factors that mattered for a given industry group from 1998 through today will continue to matter. Six-month price momentum carries information about near-term direction. The S&amp;P 500 is the benchmark; over- and under-weights are measured against it. Rebalances are weekly so the strategy responds to regime shifts faster than monthly tactical models. No transaction-cost or tax modeling is included — the back-test is gross.
+          </p>
+          <p style={{ margin: 0 }}>
+            <strong>Honest limitations.</strong> Twelve of the twenty-five industry groups don&apos;t have a clean single-ETF proxy and are tracked through equal-weighted baskets of the largest names — implementation cost is higher for those (Capital Goods, Commercial &amp; Professional Services, Consumer Durables &amp; Apparel, Consumer Services, Staples Distribution &amp; Retail, Food/Beverage/Tobacco, Household &amp; Personal Products, Tech Hardware &amp; Equipment, Telecommunication Services, Media &amp; Entertainment, Real Estate Management &amp; Development, Automobiles &amp; Components when CARZ is unavailable). The model concentrates in 5 picks at a time, so it under-performs in years where dispersion was low and the top 5 happened to lag (2009, 2021, 2024). Leverage is capped at 1.5× by design — not a market call. The model is allocation guidance only; no live trading.
+          </p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "var(--space-3)", marginTop: "var(--space-6)" }}>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>CAGR vs S&amp;P 500</div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 500, marginTop: 4, color: "var(--green-text)" }}>{((alloc.methodology?.back_test_cagr || 0) * 100).toFixed(1)}%</div>
@@ -977,6 +1019,7 @@ export default function AssetAllocation({ onOpenTicker }) {
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Sharpe vs S&amp;P 500</div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 500, marginTop: 4 }}>{(alloc.methodology?.back_test_sharpe || 0).toFixed(2)}</div>
             <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>S&amp;P 500: <strong>0.45</strong> · Δ <span style={{ color: "var(--green-text)", fontWeight: 600 }}>+{((alloc.methodology?.back_test_sharpe || 0) - 0.45).toFixed(2)}</span></div>
+            <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 6, fontStyle: "italic" }}>Risk-free rate = 3-month T-bill. Both Sharpes computed identically.</div>
           </div>
           <div style={{ background: "var(--bg)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", padding: "14px 16px" }}>
             <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600 }}>Max drawdown vs S&amp;P 500</div>
@@ -991,11 +1034,10 @@ export default function AssetAllocation({ onOpenTicker }) {
         </div>
 
         <div style={{ marginTop: "var(--space-5)", paddingTop: "var(--space-4)", borderTop: "1px solid var(--border)", fontSize: 12, color: "var(--text-muted)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>Allocation Model v9</span>
-          <a href="/asset-allocation-methodology-v9-LOCKED.md" target="_blank" rel="noopener" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500 }}>Locked v9.1 methodology doc →</a>
+          <span>Allocation Model v9.1 (current)</span>
+          <a href="#readme" onClick={(e) => { e.preventDefault(); window.location.hash = "#readme"; setTimeout(() => { const el = document.getElementById("mth__asset-alloc"); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60); }} style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 500, cursor: "pointer" }}>View full methodology →</a>
         </div>
-        </div>
-      </details>
+      </section>
 
     </main>
   );
@@ -1073,6 +1115,94 @@ function SideTable({ kind, title, subtitle, rows, picks, rationales, onSelect })
           })}
         </tbody>
       </table>
+    </div>
+  );
+}
+
+// ─── 11-row GICS sector rollup table ──────────────────────────────────────
+// Aggregates the model's per-pick weights into GICS sector totals so the user
+// can see how the strategy is tilted vs S&P 500 at the sector level.
+// The Information Technology row expands to show its 3 underlying industry
+// groups (Software / Tech Hardware / Semiconductors) because IT carries the
+// most within-sector dispersion of any GICS sector.
+function SectorRollupTable({ picks, allIgs }) {
+  // Build sector → strategy weight map from picks. Picks have `sector` short
+  // labels ("Info Tech", "Comm Svcs", ...) — translate to canonical GICS.
+  const stratWeightBySector = {};
+  for (const sec of Object.keys(SECTOR_GICS_BENCHMARK)) stratWeightBySector[sec] = 0;
+  for (const p of (picks || [])) {
+    const gics = SECTOR_SHORT_TO_GICS[p.sector] || p.sector;
+    if (gics in stratWeightBySector) stratWeightBySector[gics] += (p.weight || 0);
+  }
+
+  // For Information Technology, surface the 3 underlying IGs from the live
+  // 25-IG scoring so the dispersion is visible.
+  const itIgs = (allIgs || []).filter(g =>
+    SECTOR_SHORT_TO_GICS[g.sector] === "Information Technology" ||
+    g.sector === "Information Technology"
+  );
+  const itPickByTicker = new Map((picks || []).map(p => [p.ticker, p]));
+
+  // Sort sectors by absolute tilt magnitude descending (biggest bets first).
+  const rows = Object.entries(SECTOR_GICS_BENCHMARK)
+    .map(([sector, spy]) => {
+      const strat = stratWeightBySector[sector] || 0;
+      return { sector, strat, spy, tilt: strat - spy };
+    })
+    .sort((a, b) => Math.abs(b.tilt) - Math.abs(a.tilt));
+
+  const fmtPct = (x) => `${(x * 100).toFixed(1)}%`;
+  const fmtTilt = (x) => `${x >= 0 ? "+" : ""}${(x * 100).toFixed(1)} pp`;
+  const tiltColor = (x) => Math.abs(x) < 0.005 ? "var(--text-muted)" : (x > 0 ? "var(--green-text)" : "var(--red-text)");
+
+  const thRollup = { textAlign: "left", padding: "12px 18px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" };
+  const thRollupRight = { ...thRollup, textAlign: "right" };
+  const tdRollup = { padding: "12px 18px", fontSize: 13, borderBottom: "1px solid var(--border-faint)" };
+  const tdRollupRight = { ...tdRollup, textAlign: "right", fontFamily: "var(--font-mono)" };
+
+  return (
+    <div style={{ marginTop: 24 }}>
+      <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 8 }}>Sector weight rollup — strategy vs S&amp;P 500</div>
+      <table style={{ width: "100%", borderCollapse: "collapse", background: "var(--bg)", borderRadius: "var(--radius-md)", overflow: "hidden", border: "1px solid var(--border)" }}>
+        <thead>
+          <tr>
+            <th style={thRollup}>Sector</th>
+            <th style={thRollupRight}>Strategy</th>
+            <th style={thRollupRight}>S&amp;P 500</th>
+            <th style={thRollupRight}>Tilt</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.flatMap((r) => {
+            const out = [(
+              <tr key={r.sector}>
+                <td style={{ ...tdRollup, fontFamily: "var(--font-display, var(--font-ui))", fontWeight: 500 }}>{r.sector}</td>
+                <td style={tdRollupRight}>{fmtPct(r.strat)}</td>
+                <td style={{ ...tdRollupRight, color: "var(--text-muted)" }}>{fmtPct(r.spy)}</td>
+                <td style={{ ...tdRollupRight, color: tiltColor(r.tilt), fontWeight: 600 }}>{fmtTilt(r.tilt)}</td>
+              </tr>
+            )];
+            if (r.sector === "Information Technology" && itIgs.length > 0) {
+              for (const ig of itIgs) {
+                const pick = itPickByTicker.get(ig.primary_ticker);
+                const subStrat = pick?.weight || 0;
+                const subSpy = SPY_WEIGHTS[ig.primary_ticker] || 0;
+                const subTilt = subStrat - subSpy;
+                out.push(
+                  <tr key={`it-${ig.key}`} style={{ background: "var(--surface)" }}>
+                    <td style={{ ...tdRollup, paddingLeft: 36, fontSize: 12, color: "var(--text-2)" }}>↳ {ig.name} <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 11 }}>({ig.primary_ticker})</span></td>
+                    <td style={{ ...tdRollupRight, fontSize: 12 }}>{fmtPct(subStrat)}</td>
+                    <td style={{ ...tdRollupRight, color: "var(--text-muted)", fontSize: 12 }}>{fmtPct(subSpy)}</td>
+                    <td style={{ ...tdRollupRight, color: tiltColor(subTilt), fontSize: 12, fontWeight: 600 }}>{fmtTilt(subTilt)}</td>
+                  </tr>
+                );
+              }
+            }
+            return out;
+          })}
+        </tbody>
+      </table>
+      <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 6, fontStyle: "italic" }}>S&amp;P 500 sector weights are the published GICS allocation as of Q1 2026. Information Technology is expanded to show within-sector dispersion across Software, Tech Hardware, and Semiconductors.</div>
     </div>
   );
 }
