@@ -165,6 +165,7 @@ export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, ind
       <MacroIndicatorTable ind={ind} weights={weights} cats={cats} indFreq={indFreq} asOf={asOf} asOfIso={asOfIso} />
       <FreshnessExplainer />
       <CompositeMath ind={ind} weights={weights} cats={cats} />
+      <AssetAllocationMethodology />
       <DataCatalogTable ind={ind} asOf={asOf} />
       <SignalScoreMath />
       <Disclaimer />
@@ -668,6 +669,46 @@ function CompositeMath({ ind, weights }) {
           placed the 2022 bear peak (0.80 SD) and SVB peak (0.67 SD) in NORMAL — a miscalibration the v2.1
           bands correct by pulling the ELEVATED threshold down to 0.41 SD (p85 of history).
         </div>
+      </div>
+    </section>
+  );
+}
+
+
+// ─── §4.5 ASSET ALLOCATION METHODOLOGY ─────────────────────────────────────
+function AssetAllocationMethodology() {
+  return (
+    <section id="mth__asset-alloc" data-testid="methodology-section-asset-alloc"
+      style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <SectionHeader label="ASSET ALLOCATION" sub="How the strategic allocation is built" applies={["allocation"]} />
+
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
+        The Asset Allocation tab translates the macro composites into a concrete portfolio recommendation: how much equity exposure to take, which industry groups to overweight, when to activate the defensive sleeve, and how much leverage to use.
+      </div>
+
+      <Prose>
+        <P><strong>Universe.</strong> 14 industry-group ETFs spanning the 11 GICS sectors, plus a 4-asset defensive sleeve (BIL T-bills, TLT long Treasuries, GLD gold, LQD investment-grade corporate bonds). Industry groups: Semiconductors, Software, Biotech, Financials, Health Care, Industrials, Energy, Consumer Discretionary, Consumer Staples, Utilities, Materials, Real Estate, Communication Services, Mega-cap Growth.</P>
+
+        <P><strong>Per-industry-group factor model.</strong> Each industry group is regressed on 2-6 macro factors specific to that group (e.g., Semiconductors: jobless claims, M2 YoY, industrial production), plus two universal background factors that apply to every group (10Y-2Y yield curve slope and Kim-Wright term premium). The regression produces an expected monthly return (μ) per industry group. Factors are kept in the regression only if their t-statistic exceeds 2 in the calibration window.</P>
+
+        <P><strong>Momentum overlay.</strong> Trailing 6-month price return is added as a secondary signal alongside the indicator-based μ. Final ranking is the average of indicator rank and momentum rank — this protects against regression overfit (a sector that screens well on factors but is rolling over in price gets demoted).</P>
+
+        <P><strong>Pick selection.</strong> The top 5 industry groups by combined rank become Overweights at equal weight. The remaining 9 industry groups are scored Market Weight or Underweight based on relative rank. v9 is by-design an equal-weight 5-pick model — variable conviction weighting is on the v10 roadmap.</P>
+
+        <P><strong>Stance &amp; leverage.</strong> Total stock exposure scales with the Risk &amp; Liquidity composite. Calm regimes (R&amp;L score &lt; -10) earn full leverage up to 1.3×; Normal regimes (-10 to +30) run between 1.0× and 1.3×; Elevated/Stressed regimes (&gt; +30) cut leverage to 1.0× and activate the defensive sleeve.</P>
+
+        <P><strong>Defensive sleeve.</strong> When the defensive sleeve is on, capital rotates out of equities into a 4-asset mix optimized for tail-risk protection: ~70% gold, ~27% T-bills, ~3% IG corporate bonds. The exact weights are reoptimized per rebalance based on current correlations. The sleeve's purpose is preservation, not return — Sharpe is maximized at the portfolio level by avoiding equity drawdowns, not by alpha-generating in the sleeve itself.</P>
+
+        <P><strong>Rebalance cadence.</strong> Weekly on Saturdays. The compute pipeline runs Saturday morning UTC after Friday's macro indicator refresh lands. Mid-week rating changes can flag pre-positioning opportunities, but new capital allocations only fire on the Saturday rebalance to avoid intra-week whipsaw.</P>
+
+        <P><strong>Backtest discipline.</strong> Walk-forward calibration from 2008 to current date. Every regression coefficient is refit at each Saturday rebalance using only data available at that point in time — no peeking ahead. Backtest results published on the Asset Allocation tab use the exact same code path that runs live.</P>
+
+        <P><strong>Performance vs S&amp;P 500.</strong> Through the 2008-2026 backtest window, the strategy delivered 13.9% CAGR vs the S&amp;P's 11.1% (+2.8 pp/yr excess), Sharpe 0.61 vs 0.45, and max drawdown of -23.6% vs the S&amp;P's -50.9%. Monthly outperformance frequency: 62%. The strategy's edge concentrates in two regimes: aggressive tilts when R&amp;L is calm, and the defensive sleeve activating ahead of major drawdowns (2008, 2020, 2022).</P>
+      </Prose>
+
+      <SectionHeader label="WHAT CAN BREAK THIS" sub="Conditions that change the rating" applies={["allocation"]} />
+      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
+        The 9 risk scenarios on the Asset Allocation tab map directly to specific indicators in the All Indicators tab. Each scenario links through to its underlying indicator with current value, history, and threshold context. Triggers include: real rates &gt; 2.0%, HY-IG spread &gt; 250bp, yield curve flattening below +25bp, SLOOS C&amp;I tightening &gt; +20pp, VIX sustained above 25, term premium &gt; 1.5%, copper-gold ratio breakdown, ISM &lt; 48, and USD index &gt; 110.
       </div>
     </section>
   );

@@ -1989,7 +1989,7 @@ function _cmp(a, b){
 // then weight DESC inside each composite.
 const COMP_ORDER = { "Risk & Liquidity":0, "Growth":1, "Inflation & Rates":2, "":3 };
 
-function AllIndicatorsTable(){
+function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   // Subscribe to indicator_history.json hydration so this table re-renders
   // once IND[id][6] / _histCache are mutated by _applyHistToGlobals — without
   // this, the 9 new indicators (Reg #8) render their Current / 3M / 6M / 12M
@@ -2000,6 +2000,20 @@ function AllIndicatorsTable(){
   const [sortDir, setSortDir] = useState("asc");
   // Reg #7: openIds is a Set so we can expand-all / collapse-all.
   const [openIds, setOpenIds] = useState(() => new Set());
+
+  // Deep-link: when arriving via #indicators?id=X, expand that row and
+  // scroll it into view, then clear the parent's deeplink state so a manual
+  // navigation away and back doesn't keep re-firing.
+  useEffect(() => {
+    if (!deeplinkId) return;
+    setOpenIds(prev => { const next = new Set(prev); next.add(deeplinkId); return next; });
+    setTimeout(() => {
+      const el = document.querySelector(`[data-indicator-id="${deeplinkId}"]`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (onDeeplinkConsumed) onDeeplinkConsumed();
+    }, 400);
+  }, [deeplinkId]);
+
   const toggleOne = (id) => {
     setOpenIds(prev => {
       const next = new Set(prev);
@@ -2186,6 +2200,7 @@ function AllIndicatorsTable(){
                 return (
                   <Fragment key={r.id}>
                     <tr
+                      data-indicator-id={r.id}
                       onClick={() => toggleOne(r.id)}
                       style={{
                         cursor:"pointer",
@@ -5352,13 +5367,12 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","sectors","allocation","portopps","scanner","readme","admin","bugs","lab"];
+const TAB_IDS=["home","overview","indicators","allocation","portopps","scanner","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
   overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
-  sectors:   {eyebrow:"Sector Outlook",       title:"Sector heat map",         sub:"Each sector is scored from its subsector sensitivity to 8 macro factors."},
   allocation:{eyebrow:"Asset Allocation",     title:"Strategic asset allocation", sub:"Equity exposure, sector overweights, rationale, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities & Portfolio Insights", title:"Trading Opportunities & Portfolio Insights", sub:"Allocation, notable signals, positions, opportunities, and account-by-account detail."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
@@ -5375,7 +5389,6 @@ const NAV_ITEMS = [
   { id:"home",       label:"Home",                  icon:<NavIconHome/>   },
   { id:"overview",   label:"Macro Overview",        icon:<NavIconGauge/>  },
   { id:"indicators", label:"All Indicators",        icon:<NavIconGrid/>   },
-  { id:"sectors",    label:"Sectors",               icon:<NavIconHeat/>   },
   { id:"allocation", label:"Asset Allocation",      icon:<NavIconHeat/>   },
   { id:"portopps",   label:"Trading Opportunities & Portfolio Insights",  icon:<NavIconPie/>    },
   { id:"scanner",    label:"Trading Scanner",       icon:<NavIconRadar/>  },
@@ -5407,7 +5420,9 @@ const HASH_ALIASES={
   "asset-allocation":"allocation",
 };
 const resolveHash=(raw)=>{
-  const h=(raw||"").slice(1).toLowerCase();
+  // Strip leading # AND any ?query=… suffix so hashes like
+  // "#indicators?id=real_rates" still resolve to the "indicators" tab.
+  const h=(raw||"").slice(1).split("?")[0].toLowerCase();
   if(HASH_ALIASES[h])return HASH_ALIASES[h];
   return TAB_IDS.includes(h)?h:"home";
 };
@@ -5419,7 +5434,10 @@ return resolveHash(window.location.hash);
 // (which resolves to the "portopps" tab), don't silently rewrite the URL bar
 // back to /#portopps. Only sync when the URL doesn't already point at this tab.
 useEffect(()=>{
-  const cur=(window.location.hash||"").slice(1).toLowerCase();
+  // Strip query suffix so #indicators?id=X doesn't get rewritten to #indicators
+  // and lose the deep-link parameter on every render.
+  const curRaw=(window.location.hash||"").slice(1).toLowerCase();
+  const cur=curRaw.split("?")[0];
   if(HASH_ALIASES[cur]===tab)return;
   if(cur===tab)return;
   window.location.hash=tab;
@@ -5503,6 +5521,20 @@ const backLabel=(()=>{
 const {pref,setPref}=useTheme();
 const [catFilter,setCatFilter]=useState(null);
 const [expandedId,setExpandedId]=useState(null);
+
+// Deep-link target for the All Indicators tab. URL like
+// #indicators?id=X (from "View indicator" buttons on the AA tab) gets
+// passed to AllIndicatorsTable, which expands + scrolls to the row.
+const [indicatorDeeplink,setIndicatorDeeplink]=useState(()=>{
+  if(typeof window==="undefined")return null;
+  const m=(window.location.hash||"").match(/[?&]id=([\w_]+)/);
+  return m?m[1]:null;
+});
+useEffect(()=>{
+  if(tab!=="indicators")return;
+  const m=(window.location.hash||"").match(/[?&]id=([\w_]+)/);
+  if(m)setIndicatorDeeplink(m[1]);
+},[tab]);
 // (expandedActionKey removed 2026-04-19: position cards now open the
 // TickerDetailModal directly instead of inline-expanding. See oppCard +
 // heldPositions render below.)
@@ -6372,7 +6404,7 @@ return(
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Sector Outlook</h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("sectors")}>Open →</a>
+          <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
         </div>
 
         {(()=>{
@@ -6380,7 +6412,7 @@ return(
             const stanceColor = s.outlook.color;
             return (
               <div key={key}
-                   onClick={()=>navTo("sectors")}
+                   onClick={()=>navTo("allocation")}
                    style={{
                      display:"flex", alignItems:"center", justifyContent:"space-between",
                      padding:"var(--space-3) 0",
@@ -6642,9 +6674,8 @@ return(
 )}
 
 {/* INDICATORS */}
-{tab==="indicators"&&(<AllIndicatorsTable/>)}
+{tab==="indicators"&&(<AllIndicatorsTable deeplinkId={indicatorDeeplink} onDeeplinkConsumed={()=>setIndicatorDeeplink(null)}/>)}
 
-{tab==="sectors"&&<SectorsTab/>}
 {tab==="allocation"&&<AssetAllocation onOpenTicker={(t)=>setTickerDetail(t)}/>}
 
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
