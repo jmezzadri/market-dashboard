@@ -29,19 +29,46 @@ const UW_BASE = "https://api.unusualwhales.com";
 const UW_CLIENT_API_ID = process.env.UW_CLIENT_API_ID || "100001";
 const WARM_TTL_MS = 60 * 60 * 1000; // 1 hour
 
-// Yahoo Finance assetProfile — gives us longBusinessSummary which is the
-// full company description (UW's short_description is ~150 chars; yfinance
-// gives a real paragraph). Free, no auth, same source yfinance uses.
-async function fetchYahooLongDescription(sym) {
+// Wikipedia REST API fallback for company bios. Joe spec 2026-04-27 (P1 #37):
+// Yahoo's quoteSummary is auth-gated now and yfinance is Python-only. Wiki is
+// free + no auth + has bios for most public companies. Two-step lookup:
+//   1) Yahoo search → ticker → company longname (e.g. "Cameco Corporation")
+//   2) Strip corporate suffixes → Wikipedia summary lookup
+// Returns the .extract paragraph or null. ~200-1000 chars typically.
+async function fetchWikipediaSummary(sym, fallbackName) {
   try {
-    const url = `https://query1.finance.yahoo.com/v10/finance/quoteSummary/${encodeURIComponent(sym)}?modules=assetProfile`;
-    const r = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; MacroTiltBot/1.0)", "Accept": "application/json" },
-    });
-    if (!r.ok) return null;
-    const d = await r.json();
-    const lbs = d?.quoteSummary?.result?.[0]?.assetProfile?.longBusinessSummary;
-    return (typeof lbs === "string" && lbs.trim().length > 0) ? lbs.trim() : null;
+    let title = (fallbackName || "").trim();
+    if (!title) {
+      // Resolve via Yahoo search.
+      try {
+        const sr = await fetch(`https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(sym)}&quotesCount=1&newsCount=0`, {
+          headers: { "User-Agent": "Mozilla/5.0", "Accept": "application/json" },
+        });
+        if (sr.ok) {
+          const sd = await sr.json();
+          const q = sd?.quotes?.[0];
+          title = (q?.longname || q?.shortname || "").trim();
+        }
+      } catch { /* fall through */ }
+    }
+    if (!title) return null;
+    // Strip corporate suffixes for the Wikipedia title; also try without.
+    const candidates = [
+      title,
+      title.replace(/,?\s+(Corporation|Corp\.?|Inc\.?|Holdings|Holding|Ltd\.?|Limited|PLC|N\.V\.|S\.A\.|S\.p\.A\.|AG|SE|Group|Company|Co\.?)\s*$/i, "").trim(),
+    ].filter((v, i, a) => v && a.indexOf(v) === i);
+    for (const c of candidates) {
+      const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(c.replace(/\s+/g, "_"))}`;
+      try {
+        const r = await fetch(url, { headers: { "User-Agent": "MacroTiltBot/1.0 (joe@macrotilt.com)", "Accept": "application/json" } });
+        if (!r.ok) continue;
+        const d = await r.json();
+        if (d?.type !== "standard") continue;       // skip disambiguation / not-found
+        const ex = d?.extract;
+        if (typeof ex === "string" && ex.length >= 80) return ex.trim();
+      } catch { /* try next candidate */ }
+    }
+    return null;
   } catch {
     return null;
   }
@@ -239,21 +266,21 @@ export default async function handler(req, res) {
       // ─ Cold scan ────────────────────────────────────────────────────────
       // 4 UW calls in parallel. Each settles independently so one bad
       // endpoint doesn't nuke the whole scan.
-      const [infoRes, newsRes, analystRes, screenerRes, longDescRes] = await Promise.allSettled([
+      const [infoRes, newsRes, analystRes, screenerRes] = await Promise.allSettled([
         uwGet(`/api/stock/${encodeURIComponent(sym)}/info`),
         uwGet(`/api/news/headlines`, { ticker: sym, limit: 10 }),
         uwGet(`/api/screener/analysts`, { ticker: sym, limit: 10 }),
         uwGet(`/api/screener/stocks`, { ticker: sym, limit: 50, order_by: "relative_volume" }),
-        fetchYahooLongDescription(sym),
       ]);
 
       const info = infoRes.status === "fulfilled" ? normalizeInfo(infoRes.value) : null;
-      // Stitch the yahoo longBusinessSummary onto the info block so the
-      // frontend "more" toggle on the Company Overview has something real
-      // to expand to. UW's short_description is ~150 chars; this is the
-      // full paragraph. P1 #36 (Joe 2026-04-27).
-      if (info && longDescRes.status === "fulfilled" && longDescRes.value) {
-        info.long_description = longDescRes.value;
+
+      // Wikipedia fallback for long_description. Fired AFTER UW info so we
+      // can use UW's full_name as the lookup hint (saves a Yahoo search
+      // round-trip). Joe spec 2026-04-27 (P1 #37). ~200-1000 char paragraph.
+      if (info && !info.long_description) {
+        const wikiBio = await fetchWikipediaSummary(sym, info.full_name || info.short_name || "");
+        if (wikiBio) info.long_description = wikiBio;
       }
       const news = newsRes.status === "fulfilled" ? normalizeNews(newsRes.value) : [];
       const analyst_ratings =
