@@ -6387,8 +6387,6 @@ return(
         </div>);
       })()}
 
-    </section>
-
       {/* 04 · Portfolio Insights — data-first,
           no narrative running list. Each tile carries its own data point:
           count / delta / top name + score. See Joe feedback 2026-04-23. */}
@@ -6647,6 +6645,8 @@ return(
           </div>
         </div>);
       })()}
+
+    </section>
 
     {/* ─── 05 · Market News · Macro (full width) ─── */}
     <section>
