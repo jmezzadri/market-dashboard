@@ -848,3 +848,68 @@ This rule pairs with rule 11 (shallow-clone fallback when worktree
 locks won't unlink). Both describe sandbox-only workarounds that are
 safe IF you respect their failure modes; the failure mode of
 Contents-API rebases is silent regression of merged work.
+
+---
+
+## 20. Supabase DDL from the sandbox uses the Management API + Personal Access Token — never give up at "service role can't run DDL"
+
+**The rule.** When a task needs `CREATE TABLE`, `CREATE FUNCTION`, `CREATE
+POLICY`, or any DDL on the Supabase Postgres database, run the SQL through
+the **Supabase Management API** using the Personal Access Token (`sbp_*`)
+stored in the project's `.env.local` as `SUPABASE_ACCESS_TOKEN`. Do **not**
+hand the user a SQL file and ask them to paste it into the SQL editor.
+
+**Why.** On 2026-04-27, after building the `portfolio_history` migration
++ seed, I told Joe "service role REST can't run DDL — please apply these
+files manually in the SQL editor." He pushed back: that's exactly the
+kind of mechanical drudgery he expects me to automate end-to-end (cf.
+feedback_drive_everything, feedback_never_ask_user_to_do_claude_tasks).
+The Personal Access Token had been sitting in `.env.local` the whole
+time — I just hadn't searched for it. The Management API endpoint
+`POST /v1/projects/{ref}/database/query` accepts arbitrary SQL with that
+PAT and runs it against the project database. Migration + 245-row seed
+landed in two API calls.
+
+**How to apply.**
+
+1. **Two different Supabase auth tokens, two different scopes:**
+   - `SUPABASE_SERVICE_ROLE_KEY` (`eyJ…` JWT) → PostgREST → **data CRUD
+     only**. No DDL. Use for inserts/updates/selects via `/rest/v1/`.
+   - `SUPABASE_ACCESS_TOKEN` (`sbp_…` Personal Access Token) → Management
+     API → **arbitrary SQL including DDL, GRANT, CREATE EXTENSION, etc.**
+     Use for migrations, RPC creation, schema introspection that needs
+     more than `pg_meta`.
+
+2. **Endpoint:** `POST https://api.supabase.com/v1/projects/{project_ref}/database/query`
+   - `Authorization: Bearer <sbp_…>`
+   - `Content-Type: application/json`
+   - Body: `{"query": "<full SQL, multi-statement OK>"}`
+   - Returns a JSON array of rows. Empty array `[]` for DDL is success.
+
+3. **Sandbox pattern for migrations:**
+   ```bash
+   PAT=$SUPABASE_ACCESS_TOKEN
+   REF=yqaqqzseepebrocgibcw
+   python3 -c "import json,sys; print(json.dumps({'query': open(sys.argv[1]).read()}))" \
+     /path/to/migration.sql > /tmp/req.json
+   curl -sS -X POST "https://api.supabase.com/v1/projects/$REF/database/query" \
+     -H "Authorization: Bearer $PAT" \
+     -H "Content-Type: application/json" \
+     --data-binary @/tmp/req.json
+   ```
+   JSON-encoding via Python avoids the shell-escaping landmines around
+   `$`, backticks, and dollar-quoted function bodies.
+
+4. **Always verify after DDL.** After `CREATE TABLE`, query
+   `information_schema.columns` for the new table. After `CREATE POLICY`,
+   query `pg_policies`. After seeding, run a `SELECT COUNT(*)` against
+   the new rows. Don't trust the empty `[]` response alone.
+
+5. **The PAT is sensitive.** Treat it like the GitHub PAT (rule reference
+   in `auto_memory/reference_github_push_pattern.md`): never echo it in
+   commit messages, never paste it into chat, only read it from
+   `.env.local` at runtime.
+
+This rule covers any future schema work — RLS additions, `pg_cron`
+schedules, function bodies, view definitions. If it's SQL Joe would
+otherwise have to paste, the agent runs it.
