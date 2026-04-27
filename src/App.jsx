@@ -5636,6 +5636,30 @@ const [sidebarOpen,setSidebarOpen]=useState(false);
 const {session}=useSession();
 const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio}=useUserPortfolio();
 const portfolioAuthed=!!session;
+
+// Macro tile: latest 3-composite snapshot (RL/GR/IR) from
+// composite_history_daily.json — same data feeding the Macro Overview tab.
+// One-shot fetch on first render. Replaces the rolled-up COMP100 number
+// that didn't anchor to anything on the destination page.
+const [_macroLatestSnap, setMacroLatestSnap] = useState(null);
+useEffect(() => {
+  let cancelled = false;
+  fetch("/composite_history_daily.json")
+    .then(r => r.ok ? r.json() : null)
+    .then(arr => {
+      if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
+      const last = arr[arr.length - 1];
+      if (!last) return;
+      setMacroLatestSnap({
+        RL: Number(last.RL),
+        GR: Number(last.GR),
+        IR: Number(last.IR),
+      });
+    })
+    .catch(() => {});
+  return () => { cancelled = true; };
+}, []);
+
 // Inline sign-in toggle for the portopps zero-state. Clicking the CTA in the
 // banner swaps the skeleton for the LoginScreen; successful sign-in flips
 // `portfolioAuthed` and the user sees their real portfolio.
@@ -6076,35 +6100,60 @@ return(
           border:"1px solid var(--border-faint)", borderRadius:6,
           marginBottom:"var(--space-4)", flexWrap:"wrap",
         }}>
-          <div className="num" style={{
-            fontFamily:"var(--font-display)", fontWeight:400,
-            fontSize:48, lineHeight:1, color:CONV.color,
-            fontVariantNumeric:"tabular-nums",
-          }}>{COMP100}</div>
-          <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
+          {/* 3 sub-composite pills — anchors to the Macro Overview tab where
+              these same three composites render as dial gauges. Replaces the
+              rolled-up COMP100 that wasn't on the destination page (Joe
+              flagged 2026-04-27). */}
+          {_macroLatestSnap ? (
             <div style={{
-              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-              letterSpacing:"0.12em", textTransform:"uppercase",
-            }}>Composite · of 100</div>
+              display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
+              gap:"var(--space-3)", flex:1,
+            }}>
+              {[
+                { key:"RL", label:"Risk & Liquidity", value:_macroLatestSnap.RL, horizon:"3-mo" },
+                { key:"GR", label:"Growth",           value:_macroLatestSnap.GR, horizon:"6-mo" },
+                { key:"IR", label:"Inflation & Rates",value:_macroLatestSnap.IR, horizon:"18-mo" },
+              ].map(c => {
+                const reg = (function(s){
+                  if (s == null || Number.isNaN(s)) return "normal";
+                  if (s <= -50) return "calm";
+                  if (s <= -20) return "quiet";
+                  if (s <  +20) return "normal";
+                  if (s <  +50) return "elevated";
+                  return "stressed";
+                })(c.value);
+                const col = ({calm:"#1f9d60",quiet:"#69b585",normal:"var(--text-muted)",elevated:"#b8811c",stressed:"#d23040"})[reg];
+                const lbl = ({calm:"Calm",quiet:"Quiet",normal:"Normal",elevated:"Elevated",stressed:"Stressed"})[reg];
+                return (
+                  <div key={c.key} style={{
+                    background:"var(--surface)",
+                    border:`1px solid ${col}33`,
+                    borderRadius:6, padding:"10px 12px",
+                  }}>
+                    <div style={{
+                      fontFamily:"var(--font-mono)", fontSize:9,
+                      color:"var(--text-muted)", letterSpacing:"0.08em",
+                      marginBottom:6, fontWeight:600, textTransform:"uppercase",
+                    }}>{c.label} · {c.horizon}</div>
+                    <div style={{
+                      fontFamily:"var(--font-mono)", fontSize:24,
+                      fontWeight:600, color:col, lineHeight:1,
+                    }}>{c.value!=null ? (c.value>=0?"+":"") + Math.round(c.value) : "—"}</div>
+                    <div style={{
+                      fontSize:10, color:col, fontFamily:"var(--font-mono)",
+                      letterSpacing:"0.06em", marginTop:6,
+                      textTransform:"uppercase", fontWeight:700,
+                    }}>{lbl}</div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
             <div style={{
-              fontFamily:"var(--font-display)", fontSize:16, fontStyle:"italic",
-              color:"var(--text)", lineHeight:1.25,
-            }}>{stateLine}</div>
-          </div>
-          <div style={{
-            marginLeft:"auto",
-            fontFamily:"var(--font-mono)", fontSize:11,
-            color:"var(--text-muted)", letterSpacing:"0.04em", textAlign:"right",
-            display:"flex", alignItems:"center", gap:"var(--space-2)", flexWrap:"wrap",
-            justifyContent:"flex-end",
-          }}>
-            <span style={{color:TREND_SIG.col}}>{TREND_SIG.arrow} {TREND_SIG.label}</span>
-            <span style={{
-              display:"inline-block", padding:"2px 8px", borderRadius:10,
-              border:`1px solid ${CONV.color}`, color:CONV.color,
-              fontSize:10, letterSpacing:"0.1em", textTransform:"uppercase",
-            }}>{CONV.label}</span>
-          </div>
+              fontFamily:"var(--font-mono)", fontSize:11,
+              color:"var(--text-dim)",
+            }}>Loading composites…</div>
+          )}
         </div>
 
         {/* Regime table — Category · 12M · 6M · 1M · Now · State */}
@@ -6153,7 +6202,194 @@ return(
         )}
       </div>
 
-      {/* 02 · Trading Opportunities & Portfolio Insights — data-first,
+      {/* 02 · Asset Allocation — 3 highest overall rank + 3 lowest, with
+          a visual divider between them. Per Joe feedback 2026-04-23:
+          reads like a prop-desk long/short view, not a "top 5 extremes"
+          mashup. Editorial narrative slot reads from sector_commentary
+          and is null-allowed (no forced prose). */}
+      <div style={cardStyle}>
+        <div style={cardHeadStyle}>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Allocation</h2>
+          <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
+        </div>
+
+        {(()=>{
+          const renderRow = (s, isLast, key) => {
+            const stanceColor = s.outlook.color;
+            return (
+              <div key={key}
+                   onClick={()=>navTo("allocation")}
+                   style={{
+                     display:"flex", alignItems:"center", justifyContent:"space-between",
+                     padding:"var(--space-3) 0",
+                     borderBottom:isLast?"none":"1px solid var(--border-faint)",
+                     cursor:"pointer", gap:12,
+                   }}>
+                <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
+                  <span style={{
+                    fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)",
+                    letterSpacing:"0.06em", width:28, flexShrink:0,
+                  }}>#{s.rank}</span>
+                  <div style={{minWidth:0, flex:1}}>
+                    <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
+                    <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
+                      <span style={{fontFamily:"var(--font-mono)"}}>Beta {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
+                    </div>
+                  </div>
+                </div>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  letterSpacing:"0.1em", textTransform:"uppercase",
+                  padding:"2px 8px", borderRadius:10,
+                  border:`1px solid ${stanceColor}`, color:stanceColor, flexShrink:0,
+                }}>{s.outlook.label}</span>
+              </div>
+            );
+          };
+          return (<>
+            {/* Top 3 — highest overall rank */}
+            {topOverweight.map((s,i) => renderRow(s, i===topOverweight.length-1, "top-"+s.id))}
+
+            {/* Divider between the long-book and short-book halves */}
+            {bottomUnderweight.length>0 && (
+              <div aria-hidden="true" style={{
+                display:"flex", alignItems:"center", gap:"var(--space-3)",
+                padding:"var(--space-3) 0",
+                fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
+                letterSpacing:"0.18em", textTransform:"uppercase",
+              }}>
+                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
+                <span>Bottom 3</span>
+                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
+              </div>
+            )}
+
+            {/* Bottom 3 — lowest overall rank */}
+            {bottomUnderweight.map((s,i) => renderRow(s, i===bottomUnderweight.length-1, "bot-"+s.id))}
+          </>);
+        })()}
+
+        {/* Editorial sector narrative — single-sentence analyst note, only
+            renders when the commentary engine detected a material move.
+            No "stable this week" fallback on purpose. */}
+        {(sectorCommentary && sectorCommentary.headline) && (
+          <div style={{
+            marginTop:"var(--space-4)",
+            paddingTop:"var(--space-3)",
+            borderTop:"1px solid var(--border-faint)",
+            fontFamily:"var(--font-display)", fontStyle:"italic",
+            fontSize:13, lineHeight:1.5, color:"var(--text-muted)",
+          }}>
+            {sectorCommentary.headline}
+          </div>
+        )}
+      </div>
+
+      {/* 03 · Trading Opportunities — top-of-book names, not just counts */}
+      {(()=>{
+        // Top 3 buys (by overall score, highest first). Fall back to
+        // near-trigger names when the buy list is thin, so the tile
+        // always has at least one named opportunity if any exist.
+        const _topBuys = (rebucketBuy.length ? rebucketBuy : rebucketNear).slice(0, 3);
+        // Sector lookup for the name row's sub-copy.
+        const _sectorFor = (t) => {
+          const sc = scanData?.signals?.screener?.[t];
+          return sc?.sector || scanData?.ticker_names?.[t] || "";
+        };
+        const rowHasData = _topBuys.length > 0;
+        return (
+        <div style={cardStyle}>
+          <div style={cardHeadStyle}>
+            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities</h2>
+            <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
+          </div>
+
+          {/* Headline number — candidates today */}
+          <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-4)"}}>
+            <div className="num" style={{
+              fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+              fontSize:44, fontWeight:500, color: (buyCount + watchCount) > 0 ? "var(--accent)" : "var(--text-muted)",
+              letterSpacing:"-0.01em", lineHeight:1,
+            }}>{buyCount + watchCount}</div>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+              letterSpacing:"0.12em", textTransform:"uppercase", lineHeight:1.3,
+            }}>candidates<br/>today</div>
+          </div>
+
+          {/* Compact counts strip */}
+          <div style={{
+            display:"flex", alignItems:"center", justifyContent:"space-between",
+            padding:"var(--space-2) 0",
+            borderBottom:"1px solid var(--border-faint)",
+            fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-muted)",
+            letterSpacing:"0.06em", textTransform:"uppercase",
+          }}>
+            <span>Buy {buyCount} · Near {watchCount} · Other {rebucketOther.length}</span>
+            <span style={{color:"var(--text-dim)"}}>60/40/0 thresholds</span>
+          </div>
+
+          {/* Top-of-book: top 3 names with their overall scores. The
+              highest-score name in the scanner is far more useful than
+              three count lines. */}
+          <div style={{
+            marginTop:"var(--space-2)",
+            display:"flex", flexDirection:"column",
+          }}>
+            <div style={{
+              padding:"var(--space-3) 0 var(--space-2)",
+              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+              letterSpacing:"0.14em", textTransform:"uppercase",
+            }}>Top candidates</div>
+            {rowHasData ? _topBuys.map((r, i) => {
+              const sect = _sectorFor(r.ticker);
+              const isLast = i === _topBuys.length - 1;
+              const isBuy  = r.ovr >= 60;
+              return (
+                <div key={r.ticker}
+                     onClick={()=>navTo("scanner")}
+                     style={{
+                       display:"flex", alignItems:"center", justifyContent:"space-between",
+                       padding:"var(--space-2) 0",
+                       borderBottom:isLast ? "none" : "1px solid var(--border-faint)",
+                       cursor:"pointer", gap:"var(--space-3)",
+                     }}>
+                  <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
+                    <span style={{
+                      fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
+                      width:20, flexShrink:0,
+                    }}>#{i+1}</span>
+                    <div style={{minWidth:0}}>
+                      <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.2}}>{r.ticker}</div>
+                      {sect && <div style={{fontSize:10, color:"var(--text-muted)", marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{sect}</div>}
+                    </div>
+                  </div>
+                  <div style={{
+                    fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
+                    fontSize:14, fontWeight:500,
+                    color: isBuy ? "var(--accent)" : "var(--warn, #B8860B)",
+                  }}>{r.ovr}</div>
+                </div>
+              );
+            }) : (
+              <div style={{
+                padding:"var(--space-3) 0", fontSize:12, color:"var(--text-muted)",
+              }}>No candidates on the watchlist today.</div>
+            )}
+          </div>
+
+          {/* Last scan timestamp */}
+          <div style={{
+            marginTop:"auto", paddingTop:"var(--space-3)",
+            fontSize:11, color:"var(--text-dim)",
+            fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
+          }}>Last scan · {lastScanLabel}</div>
+        </div>);
+      })()}
+
+    </section>
+
+      {/* 04 · Portfolio Insights — data-first,
           no narrative running list. Each tile carries its own data point:
           count / delta / top name + score. See Joe feedback 2026-04-23. */}
       {(()=>{
@@ -6259,9 +6495,9 @@ return(
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
             <h2 style={cardH2Style}>
-              <span style={cardTagStyle}>02</span>Trading Opportunities &amp; Portfolio Insights
+              <span style={cardTagStyle}>04</span>Portfolio Insights
             </h2>
-            <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
+            <a style={cardLinkStyle} onClick={()=>navTo("insights")}>Open →</a>
           </div>
 
           <div style={{
@@ -6411,193 +6647,6 @@ return(
           </div>
         </div>);
       })()}
-
-      {/* 03 · Sector Outlook — 3 highest overall rank + 3 lowest, with
-          a visual divider between them. Per Joe feedback 2026-04-23:
-          reads like a prop-desk long/short view, not a "top 5 extremes"
-          mashup. Editorial narrative slot reads from sector_commentary
-          and is null-allowed (no forced prose). */}
-      <div style={cardStyle}>
-        <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Sector Outlook</h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
-        </div>
-
-        {(()=>{
-          const renderRow = (s, isLast, key) => {
-            const stanceColor = s.outlook.color;
-            return (
-              <div key={key}
-                   onClick={()=>navTo("allocation")}
-                   style={{
-                     display:"flex", alignItems:"center", justifyContent:"space-between",
-                     padding:"var(--space-3) 0",
-                     borderBottom:isLast?"none":"1px solid var(--border-faint)",
-                     cursor:"pointer", gap:12,
-                   }}>
-                <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
-                  <span style={{
-                    fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)",
-                    letterSpacing:"0.06em", width:28, flexShrink:0,
-                  }}>#{s.rank}</span>
-                  <div style={{minWidth:0, flex:1}}>
-                    <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
-                    <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
-                      <span style={{fontFamily:"var(--font-mono)"}}>Beta {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
-                    </div>
-                  </div>
-                </div>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontSize:10,
-                  letterSpacing:"0.1em", textTransform:"uppercase",
-                  padding:"2px 8px", borderRadius:10,
-                  border:`1px solid ${stanceColor}`, color:stanceColor, flexShrink:0,
-                }}>{s.outlook.label}</span>
-              </div>
-            );
-          };
-          return (<>
-            {/* Top 3 — highest overall rank */}
-            {topOverweight.map((s,i) => renderRow(s, i===topOverweight.length-1, "top-"+s.id))}
-
-            {/* Divider between the long-book and short-book halves */}
-            {bottomUnderweight.length>0 && (
-              <div aria-hidden="true" style={{
-                display:"flex", alignItems:"center", gap:"var(--space-3)",
-                padding:"var(--space-3) 0",
-                fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
-                letterSpacing:"0.18em", textTransform:"uppercase",
-              }}>
-                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
-                <span>Bottom 3</span>
-                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
-              </div>
-            )}
-
-            {/* Bottom 3 — lowest overall rank */}
-            {bottomUnderweight.map((s,i) => renderRow(s, i===bottomUnderweight.length-1, "bot-"+s.id))}
-          </>);
-        })()}
-
-        {/* Editorial sector narrative — single-sentence analyst note, only
-            renders when the commentary engine detected a material move.
-            No "stable this week" fallback on purpose. */}
-        {(sectorCommentary && sectorCommentary.headline) && (
-          <div style={{
-            marginTop:"var(--space-4)",
-            paddingTop:"var(--space-3)",
-            borderTop:"1px solid var(--border-faint)",
-            fontFamily:"var(--font-display)", fontStyle:"italic",
-            fontSize:13, lineHeight:1.5, color:"var(--text-muted)",
-          }}>
-            {sectorCommentary.headline}
-          </div>
-        )}
-      </div>
-
-      {/* 04 · Daily Opp Scan — top-of-book names, not just counts */}
-      {(()=>{
-        // Top 3 buys (by overall score, highest first). Fall back to
-        // near-trigger names when the buy list is thin, so the tile
-        // always has at least one named opportunity if any exist.
-        const _topBuys = (rebucketBuy.length ? rebucketBuy : rebucketNear).slice(0, 3);
-        // Sector lookup for the name row's sub-copy.
-        const _sectorFor = (t) => {
-          const sc = scanData?.signals?.screener?.[t];
-          return sc?.sector || scanData?.ticker_names?.[t] || "";
-        };
-        const rowHasData = _topBuys.length > 0;
-        return (
-        <div style={cardStyle}>
-          <div style={cardHeadStyle}>
-            <h2 style={cardH2Style}><span style={cardTagStyle}>04</span>Daily Opp Scan</h2>
-            <a style={cardLinkStyle} onClick={()=>navTo("scanner")}>Open →</a>
-          </div>
-
-          {/* Headline number — candidates today */}
-          <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-4)"}}>
-            <div className="num" style={{
-              fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-              fontSize:44, fontWeight:500, color: (buyCount + watchCount) > 0 ? "var(--accent)" : "var(--text-muted)",
-              letterSpacing:"-0.01em", lineHeight:1,
-            }}>{buyCount + watchCount}</div>
-            <div style={{
-              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-              letterSpacing:"0.12em", textTransform:"uppercase", lineHeight:1.3,
-            }}>candidates<br/>today</div>
-          </div>
-
-          {/* Compact counts strip */}
-          <div style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            padding:"var(--space-2) 0",
-            borderBottom:"1px solid var(--border-faint)",
-            fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-muted)",
-            letterSpacing:"0.06em", textTransform:"uppercase",
-          }}>
-            <span>Buy {buyCount} · Near {watchCount} · Other {rebucketOther.length}</span>
-            <span style={{color:"var(--text-dim)"}}>60/40/0 thresholds</span>
-          </div>
-
-          {/* Top-of-book: top 3 names with their overall scores. The
-              highest-score name in the scanner is far more useful than
-              three count lines. */}
-          <div style={{
-            marginTop:"var(--space-2)",
-            display:"flex", flexDirection:"column",
-          }}>
-            <div style={{
-              padding:"var(--space-3) 0 var(--space-2)",
-              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-              letterSpacing:"0.14em", textTransform:"uppercase",
-            }}>Top candidates</div>
-            {rowHasData ? _topBuys.map((r, i) => {
-              const sect = _sectorFor(r.ticker);
-              const isLast = i === _topBuys.length - 1;
-              const isBuy  = r.ovr >= 60;
-              return (
-                <div key={r.ticker}
-                     onClick={()=>navTo("scanner")}
-                     style={{
-                       display:"flex", alignItems:"center", justifyContent:"space-between",
-                       padding:"var(--space-2) 0",
-                       borderBottom:isLast ? "none" : "1px solid var(--border-faint)",
-                       cursor:"pointer", gap:"var(--space-3)",
-                     }}>
-                  <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
-                    <span style={{
-                      fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-                      width:20, flexShrink:0,
-                    }}>#{i+1}</span>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.2}}>{r.ticker}</div>
-                      {sect && <div style={{fontSize:10, color:"var(--text-muted)", marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{sect}</div>}
-                    </div>
-                  </div>
-                  <div style={{
-                    fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-                    fontSize:14, fontWeight:500,
-                    color: isBuy ? "var(--accent)" : "var(--warn, #B8860B)",
-                  }}>{r.ovr}</div>
-                </div>
-              );
-            }) : (
-              <div style={{
-                padding:"var(--space-3) 0", fontSize:12, color:"var(--text-muted)",
-              }}>No candidates on the watchlist today.</div>
-            )}
-          </div>
-
-          {/* Last scan timestamp */}
-          <div style={{
-            marginTop:"auto", paddingTop:"var(--space-3)",
-            fontSize:11, color:"var(--text-dim)",
-            fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
-          }}>Last scan · {lastScanLabel}</div>
-        </div>);
-      })()}
-
-    </section>
 
     {/* ─── 05 · Market News · Macro (full width) ─── */}
     <section>
