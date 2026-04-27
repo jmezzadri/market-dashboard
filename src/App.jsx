@@ -6299,14 +6299,9 @@ return(
         : "";
       const ledeProgrammatic = (macroBits + allocBits + scannerBits + portfolioBits).trim();
 
-      // ── TILE-FOOT LIVE PEEKS ──────────────────────────────
-      const macroFoot = M
-        ? `R&L ${(M.RL>=0?"+":"")+Math.round(M.RL)} · Growth ${(M.GR>=0?"+":"")+Math.round(M.GR)} · Infl ${(M.IR>=0?"+":"")+Math.round(M.IR)}`
-        : "—";
-      const allocFoot = V
-        ? `${V.selection_confidence||"—"} · ${V.leverage!=null?V.leverage.toFixed(2)+"×":""}${V.picks?.[0]?.name?" · "+V.picks[0].name:""}`
-        : "—";
-      const scannerFoot = `${buyCount} buy · ${watchCount} near trigger`;
+      // (Tile foots dropped 2026-04-27 — the live data lived in the
+      // detail cards below, was redundant, and the JetBrains Mono
+      // string clashed with the editorial Inter prose above it.)
 
       // ── SHARED STYLES ────────────────────────────────────
       const stepTileStyle = {
@@ -6318,11 +6313,19 @@ return(
         cursor:"pointer",
         transition:"border-color 120ms ease, transform 120ms ease",
       };
+      // Tile eyebrow now matches the hero eyebrow exactly — same mono,
+      // same letter-spacing, same line-accent prefix. Switching from
+      // "01 / MACRO" (slash) to "01 · MACRO" (middle dot, with line)
+      // for typographic cohesion with the rest of the welcome head.
       const tileTagStyle = {
-        fontFamily:"var(--font-mono)", fontSize:10, color:"var(--accent)",
-        letterSpacing:"0.16em", textTransform:"uppercase",
+        fontFamily:"var(--font-mono)", fontSize:11, color:"var(--accent)",
+        letterSpacing:"0.18em", textTransform:"uppercase",
         marginBottom:"var(--space-3)", fontWeight:500,
+        display:"flex", alignItems:"center", gap:"var(--space-2)",
       };
+      const tileLineAccent = (
+        <span style={{width:14, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
+      );
       const tileH3Style = {
         fontFamily:"var(--font-display)", fontWeight:400, fontSize:22, lineHeight:1.15,
         color:"var(--text)", margin:0, marginBottom:"var(--space-2)",
@@ -6331,14 +6334,18 @@ return(
         fontSize:13.5, color:"var(--text-muted)", lineHeight:1.55,
         margin:0, marginBottom:"var(--space-4)",
       };
+      // Foot is now a quiet "Open →" link. The detail cards directly
+      // below the orientation tiles already carry the live numbers, so
+      // duplicating R&L/Growth/Infl etc. in the foot was both redundant
+      // and font-noisy (Joe 2026-04-27).
       const tileFootStyle = {
         marginTop:"auto", paddingTop:"var(--space-3)",
         borderTop:"1px solid var(--border-faint)",
-        display:"flex", alignItems:"center", justifyContent:"space-between",
+        display:"flex", alignItems:"center", justifyContent:"flex-end",
         fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-muted)",
-        letterSpacing:"0.04em", gap:"var(--space-3)",
+        letterSpacing:"0.1em", textTransform:"uppercase",
       };
-      const arrowStyle = { color:"var(--accent)", fontSize:14, fontFamily:"var(--font-mono)" };
+      const arrowStyle = { color:"var(--accent)", fontSize:14, fontFamily:"var(--font-mono)", marginLeft:6 };
 
       return (<>
         {/* ── WELCOME HERO ── */}
@@ -6362,17 +6369,17 @@ return(
             </div>
             <h1 style={{
               fontFamily:"var(--font-display)", fontWeight:400,
-              fontSize:"clamp(36px, 4.6vw, 52px)",
-              lineHeight:1.05, letterSpacing:"-0.015em",
+              fontSize:"clamp(34px, 4.2vw, 46px)",
+              lineHeight:1.08, letterSpacing:"-0.012em",
               color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
             }}>
-              Read the market in <em style={{fontStyle:"italic", color:"var(--accent)"}}>three glances.</em>
+              Designed to beat benchmarks on a risk-adjusted basis using <em style={{fontStyle:"italic", color:"var(--accent)"}}>discipline, not instinct.</em>
             </h1>
             <p style={{
-              fontSize:16, color:"var(--text-muted)", lineHeight:1.5,
-              maxWidth:"60ch", margin:0,
+              fontSize:16, color:"var(--text-muted)", lineHeight:1.55,
+              maxWidth:"62ch", margin:0,
             }}>
-              Beating the benchmark on a risk-adjusted basis takes <em style={{fontStyle:"italic", color:"var(--text)"}}>discipline, not instinct</em>. A back-tested macro model: one daily read, one allocation tilt, one watchlist scanner.
+              A back-tested macro model and allocation tilt engine, coupled with a watchlist scanner.
             </p>
           </div>
           <div style={{paddingBottom:"var(--space-2)"}}>
@@ -6468,36 +6475,33 @@ return(
           <div role="link" tabIndex={0} onClick={()=>navTo("overview")}
                onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("overview"); } }}
                style={stepTileStyle}>
-            <div style={tileTagStyle}>01 / Macro</div>
+            <div style={tileTagStyle}>{tileLineAccent} 01 · Macro</div>
             <h3 style={tileH3Style}>Where stress <em style={{fontStyle:"italic", color:"var(--accent)"}}>sits today.</em></h3>
             <p style={tileBlurbStyle}>Three composites — Risk &amp; Liquidity, Growth, Inflation — scored on a −100 (calm) to +100 (stressed) scale.</p>
             <div style={tileFootStyle}>
-              <span>{macroFoot}</span>
-              <span style={arrowStyle}>→</span>
+              <span>Open<span style={arrowStyle}>→</span></span>
             </div>
           </div>
 
           <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
                onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
                style={stepTileStyle}>
-            <div style={tileTagStyle}>02 / Allocation</div>
+            <div style={tileTagStyle}>{tileLineAccent} 02 · Allocation</div>
             <h3 style={tileH3Style}>How aggressive <em style={{fontStyle:"italic", color:"var(--accent)"}}>to be.</em></h3>
             <p style={tileBlurbStyle}>A confidence band and an industry-group tilt across 25 buckets, with a defensive sleeve when stress flips.</p>
             <div style={tileFootStyle}>
-              <span>{allocFoot}</span>
-              <span style={arrowStyle}>→</span>
+              <span>Open<span style={arrowStyle}>→</span></span>
             </div>
           </div>
 
           <div role="link" tabIndex={0} onClick={()=>navTo("scanner")}
                onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("scanner"); } }}
                style={stepTileStyle}>
-            <div style={tileTagStyle}>03 / Scanner</div>
+            <div style={tileTagStyle}>{tileLineAccent} 03 · Scanner</div>
             <h3 style={tileH3Style}>What to act <em style={{fontStyle:"italic", color:"var(--accent)"}}>on today.</em></h3>
             <p style={tileBlurbStyle}>Daily buy alerts and near-trigger names from your watchlist — the action layer on top of the macro view.</p>
             <div style={tileFootStyle}>
-              <span>{scannerFoot}</span>
-              <span style={arrowStyle}>→</span>
+              <span>Open<span style={arrowStyle}>→</span></span>
             </div>
           </div>
         </section>
