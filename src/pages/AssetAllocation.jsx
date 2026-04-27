@@ -519,7 +519,7 @@ export default function AssetAllocation({ onOpenTicker }) {
   useEffect(() => {
     fetch("/v9_allocation.json", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setAlloc).catch(() => setAlloc(null));
     fetch("/composite_history_daily.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setComposites).catch(() => setComposites(null));
-    fetch("/industry_group_rationale.json", { cache: "force-cache" }).then((r) => r.ok ? r.json() : null).then(setRationales).catch(() => setRationales(null));
+    fetch("/industry_group_rationale.json?v=v9.1", { cache: "no-cache" }).then((r) => r.ok ? r.json() : null).then(setRationales).catch(() => setRationales(null));
     fetch("/allocation_history.json", { cache: "no-cache" })
       .then((r) => r.ok ? r.json() : null)
       .then((raw) => setHistory(deriveHistoryView(raw)))
