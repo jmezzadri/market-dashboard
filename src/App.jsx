@@ -35,6 +35,7 @@ import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
 import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
+import AboutPage from "./pages/AboutPage";
 import TodayMacro from "./pages/TodayMacro";
 import AssetAllocation from "./pages/AssetAllocation";
 import { useSortableTable as useSortableTable_v1, SortArrow as SortArrow_v1, sortableHeaderProps as sortableHeaderProps_v1 } from "./hooks/useSortableTable.jsx";
@@ -4129,7 +4130,7 @@ function levelBucketV4_Lab(comp,horizon){
   }:{
     EXTREME:"Top-decile strategic stress · only act if TACTICAL also extreme · otherwise informational",
     ELEVATED:"Underweight beta · overweight quality/FCF · favor dividends over growth",
-    NORMAL:"Neutral strategic asset allocation · rebalance quarterly",
+    NORMAL:"Neutral allocation tilt · rebalance quarterly",
     BENIGN:"Overweight equities on 12m view · extend duration · add cyclical cap-weights",
   };
   if(comp>cuts.p90) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
@@ -5534,16 +5535,17 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","scanner","readme","admin","bugs","lab"];
+const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","scanner","about","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
   overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
-  allocation:{eyebrow:"Asset Allocation",     title:"Strategic asset allocation", sub:"Equity exposure, sector overweights, rationale, and risk scenarios — anchored to a $100 illustrative portfolio."},
+  allocation:{eyebrow:"Allocation Tilt",       title:"Allocation tilt",         sub:"Equity exposure, industry-group overweights, defensive sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"Daily opportunity scan candidates — buy alerts, near-triggers, and watchlist movers. Open the full scanner for the deep view."},
   insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
+  about:     {eyebrow:"About MacroTilt",      title:"About",                   sub:"The problem, the approach, and who this is for."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
   admin:     {eyebrow:"Admin · API Usage",    title:"UW API usage",            sub:"Daily calls, quota remaining, peak RPM, and recent run history. Visible only to admins."},
   bugs:      {eyebrow:"Admin · Bug Tracker",  title:"Bug reports",             sub:"Institutional-grade triage: every bug, its status, proposed fix, complexity, and lifecycle stamps. Admin only."},
@@ -5560,7 +5562,7 @@ const TAB_META={
 const NAV_ITEMS = [
   { id:"home",       label:"Home",                                          icon:<NavIconHome/>   },
   { id:"overview",   label:"Macro Overview",                                icon:<NavIconGauge/>  },
-  { id:"allocation", label:"Asset Allocation",                              icon:<NavIconHeat/>   },
+  { id:"allocation", label:"Allocation Tilt",                                icon:<NavIconHeat/>   },
   { id:"portopps",   label:"Trading Opportunities",                          icon:<NavIconPie/>    },
   { id:"insights",   label:"Portfolio Insights",                             icon:<NavIconList/>   },
   { id:"indicators", label:"All Indicators",                                icon:<NavIconGrid/>   },
@@ -6246,85 +6248,317 @@ return(
     display:"flex", flexDirection:"column", gap:"var(--space-6)",
   }}>
 
-    {/* ─── PAGE HEAD ─── */}
-    <div style={{padding:"var(--space-3) 0 var(--space-5)"}}>
-      <div style={{
-        fontFamily:"var(--font-mono)", fontSize:11,
-        color:"var(--accent)", letterSpacing:"0.18em", textTransform:"uppercase",
-        marginBottom:"var(--space-3)",
+    {/* ─── WELCOME HEAD ─ hero + 3 orientation tiles + today's read ───
+         Strawman A (Joe approved 2026-04-27). Replaces the dense single
+         punchline that opened the page. The same programmatic h/em/lede
+         data drives "Today's stance" (top right) of the hero. Newcomers
+         see what MacroTilt does in one sentence; returning users get the
+         live numbers via the cards below. */}
+    {(()=>{
+      // ── PROGRAMMATIC DAILY HEADLINE + LEDE ───────────────────
+      // Logic preserved verbatim from the prior page-head IIFE so the
+      // h/em pair stays in sync with the destination pages. Used by the
+      // hero stance line in the top-right of the welcome head.
+      const M = _macroLatestSnap;
+      const V = _v9Alloc;
+      const PR = _portfolioReturns?.periodReturns;
+
+      const composites = M ? [
+        {k:"R&L",          v:M.RL},
+        {k:"Growth",       v:M.GR},
+        {k:"Inflation",    v:M.IR},
+      ] : [];
+      const regimeOf = (s) => {
+        if (s == null) return "normal";
+        if (s <= -50) return "calm";
+        if (s <= -20) return "quiet";
+        if (s <  +20) return "normal";
+        if (s <  +50) return "elevated";
+        return "stressed";
+      };
+      const worst = composites.reduce((a, b) => (b.v != null && (a.v == null || b.v > a.v) ? b : a), {v:null, k:""});
+      const worstReg = regimeOf(worst.v);
+      const elevatedCount = composites.filter(c => regimeOf(c.v) === "elevated" || regimeOf(c.v) === "stressed").length;
+
+      let h, em;
+      if (!M) { h = "Loading"; em = " today's market read."; }
+      else if (worstReg === "stressed" && elevatedCount >= 2) { h = "Defensive macro,"; em = " multiple composites flashing stress."; }
+      else if (worstReg === "stressed") { h = "Stress in " + worst.k + ","; em = " other composites benign."; }
+      else if (worstReg === "elevated" && elevatedCount >= 2) { h = "Watching " + worst.k + ","; em = " conditions tightening across composites."; }
+      else if (worstReg === "elevated") { h = "Elevated " + worst.k + ","; em = " growth and inflation read normal."; }
+      else if (worstReg === "calm" || worstReg === "quiet") { h = "Risk-on backdrop,"; em = " composites benign across the board."; }
+      else { h = "Normal regime,"; em = " composites in balance."; }
+
+      // (lede paragraph deleted r4 — Joe asked to drop it 2026-04-27)
+
+      // (Tile foots dropped 2026-04-27 — the live data lived in the
+      // detail cards below, was redundant, and the JetBrains Mono
+      // string clashed with the editorial Inter prose above it.)
+
+      // ── SHARED STYLES ────────────────────────────────────
+      const stepTileStyle = {
+        background:"var(--surface)",
+        border:"1px solid var(--border-faint)",
+        borderRadius:8,
+        padding:"var(--space-5)",
+        display:"flex", flexDirection:"column",
+        cursor:"pointer",
+        transition:"border-color 120ms ease, transform 120ms ease",
+      };
+      // Tile eyebrow now matches the hero eyebrow exactly — same mono,
+      // same letter-spacing, same line-accent prefix. Switching from
+      // "01 / MACRO" (slash) to "01 · MACRO" (middle dot, with line)
+      // for typographic cohesion with the rest of the welcome head.
+      const tileTagStyle = {
+        fontFamily:"var(--font-mono)", fontSize:11, color:"var(--accent)",
+        letterSpacing:"0.18em", textTransform:"uppercase",
+        marginBottom:"var(--space-3)", fontWeight:500,
         display:"flex", alignItems:"center", gap:"var(--space-2)",
-      }}>
-        <span style={{width:20, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
-        MacroTilt Daily · Home
-      </div>
-      {(()=>{
-        // ── PROGRAMMATIC DAILY HEADLINE + LEDE ─────────────────────────
-        // Synthesizes from all 4 tiles' data: 3 macro composites,
-        // v9 allocation (selection confidence + alpha + top pick),
-        // scanner counts, portfolio TWR. Updates on every render so the
-        // header always reflects the same state the tiles below show.
-        // Joe 2026-04-27: replaces the static "Composite stress at 31/100"
-        // string that didn't anchor to anything on the destination pages.
-        const M = _macroLatestSnap;
-        const V = _v9Alloc;
-        const PR = _portfolioReturns?.periodReturns;
+      };
+      const tileLineAccent = (
+        <span style={{width:14, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
+      );
+      const tileH3Style = {
+        fontFamily:"var(--font-display)", fontWeight:400, fontSize:22, lineHeight:1.15,
+        color:"var(--text)", margin:0, marginBottom:"var(--space-2)",
+      };
+      const tileBlurbStyle = {
+        fontSize:13.5, color:"var(--text-muted)", lineHeight:1.55,
+        margin:0, marginBottom:"var(--space-4)",
+      };
+      // Foot is now a quiet "Open →" link. The detail cards directly
+      // below the orientation tiles already carry the live numbers, so
+      // duplicating R&L/Growth/Infl etc. in the foot was both redundant
+      // and font-noisy (Joe 2026-04-27).
+      const tileFootStyle = {
+        marginTop:"auto", paddingTop:"var(--space-3)",
+        borderTop:"1px solid var(--border-faint)",
+        display:"flex", alignItems:"center", justifyContent:"flex-end",
+        fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-muted)",
+        letterSpacing:"0.1em", textTransform:"uppercase",
+      };
+      const arrowStyle = { color:"var(--accent)", fontSize:14, fontFamily:"var(--font-mono)", marginLeft:6 };
 
-        // Worst-of-three composite drives the headline mood.
-        const composites = M ? [
-          {k:"R&L",          v:M.RL},
-          {k:"Growth",       v:M.GR},
-          {k:"Inflation",    v:M.IR},
-        ] : [];
-        const regimeOf = (s) => {
-          if (s == null) return "normal";
-          if (s <= -50) return "calm";
-          if (s <= -20) return "quiet";
-          if (s <  +20) return "normal";
-          if (s <  +50) return "elevated";
-          return "stressed";
-        };
-        const worst = composites.reduce((a, b) => (b.v != null && (a.v == null || b.v > a.v) ? b : a), {v:null, k:""});
-        const worstReg = regimeOf(worst.v);
-        const elevatedCount = composites.filter(c => regimeOf(c.v) === "elevated" || regimeOf(c.v) === "stressed").length;
+      return (<>
+        {/* ── WELCOME HERO ── */}
+        <div className="mt-home-hero" style={{
+          display:"grid",
+          gridTemplateColumns:"minmax(0, 1.25fr) minmax(0, 1fr)",
+          gap:"var(--space-7)",
+          alignItems:"end",
+          padding:"var(--space-3) 0 var(--space-5)",
+          borderBottom:"1px solid var(--border-faint)",
+        }}>
+          <div>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:11,
+              color:"var(--accent)", letterSpacing:"0.18em", textTransform:"uppercase",
+              marginBottom:"var(--space-3)",
+              display:"flex", alignItems:"center", gap:"var(--space-2)",
+            }}>
+              <span style={{width:20, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
+              MacroTilt
+            </div>
+            <h1 style={{
+              fontFamily:"var(--font-display)", fontWeight:400,
+              fontSize:"clamp(34px, 4.2vw, 46px)",
+              lineHeight:1.08, letterSpacing:"-0.012em",
+              color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
+            }}>
+              Designed to beat benchmarks on a risk-adjusted basis using <em style={{fontStyle:"italic", color:"var(--accent)"}}>discipline, not instinct.</em>
+            </h1>
+            <p style={{
+              fontSize:16, color:"var(--text-muted)", lineHeight:1.55,
+              maxWidth:"62ch", margin:0,
+            }}>
+              A back-tested macro model and allocation tilt engine, coupled with a watchlist scanner.
+            </p>
+          </div>
+          <div style={{paddingBottom:"var(--space-2)"}}>
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:10,
+              color:"var(--text-dim)", letterSpacing:"0.18em", textTransform:"uppercase",
+              marginBottom:"var(--space-3)",
+            }}>Today's stance</div>
+            <div style={{
+              fontFamily:"var(--font-display)", fontStyle:"italic", fontWeight:400,
+              fontSize:"clamp(18px, 2vw, 22px)", lineHeight:1.25, color:"var(--text)",
+            }}>
+              {h}<span style={{color:"var(--accent)"}}>{em}</span>
+            </div>
+          </div>
+        </div>
 
-        // Headline: macro mood. h-em split so the second clause renders
-        // in italic accent color (matches the existing typographic system).
-        let h, em;
-        if (!M) { h = "Loading"; em = " today's market read."; }
-        else if (worstReg === "stressed" && elevatedCount >= 2) { h = "Defensive macro,"; em = " multiple composites flashing stress."; }
-        else if (worstReg === "stressed") { h = "Stress in " + worst.k + ","; em = " other composites benign."; }
-        else if (worstReg === "elevated" && elevatedCount >= 2) { h = "Watching " + worst.k + ","; em = " conditions tightening across composites."; }
-        else if (worstReg === "elevated") { h = "Elevated " + worst.k + ","; em = " growth and inflation read normal."; }
-        else if (worstReg === "calm" || worstReg === "quiet") { h = "Risk-on backdrop,"; em = " composites benign across the board."; }
-        else { h = "Normal regime,"; em = " composites in balance."; }
+        {/* ── MISSION + EVIDENCE STRIP ─ what the model seeks to do, with
+             back-tested receipts side-by-side against the S&P 500.
+             Joe r5 2026-04-27: lead with mission, not metrics. */}
+        {(()=>{
+          const meth = V?.methodology;
+          if (!meth) return null;
+          // SPX comparison numbers (apples-to-apples across CAGR + Sharpe + DD)
+          const modCagr = meth.back_test_cagr;
+          const spxCagr = meth.back_test_spx_cagr;
+          const alpha   = (modCagr != null && spxCagr != null) ? (modCagr - spxCagr) : null;
+          const modSharpe = meth.back_test_sharpe;
+          const spxSharpe = meth.back_test_spx_sharpe;
+          const modDD     = meth.back_test_max_drawdown;
+          const spxDD     = meth.back_test_spx_max_drawdown;
+          const window    = meth.back_test_window || "";
+          const yrs = (() => {
+            const m = window.match(/(\d{4})-\d{2}\s*to\s*(\d{4})-\d{2}/);
+            return m ? Math.max(1, parseInt(m[2]) - parseInt(m[1])) : null;
+          })();
+          const cellStyle = {
+            flex:"1 1 0", minWidth:0,
+            padding:"var(--space-4) var(--space-5)",
+            display:"flex", flexDirection:"column", gap:6,
+            borderRight:"1px solid var(--border-faint)",
+          };
+          const cellLast = {...cellStyle, borderRight:"none"};
+          const numStyle = {
+            fontFamily:"var(--font-display)", fontWeight:500,
+            fontSize:"clamp(22px, 2.4vw, 28px)", lineHeight:1, color:"var(--text)",
+            letterSpacing:"-0.01em",
+          };
+          const labelStyle = {
+            fontFamily:"var(--font-mono)", fontSize:10,
+            color:"var(--text-dim)", letterSpacing:"0.16em", textTransform:"uppercase",
+          };
+          const subStyle = { fontSize:11, color:"var(--text-muted)", lineHeight:1.4 };
+          const cmpStyle = {
+            fontFamily:"var(--font-mono)", fontSize:10.5, color:"var(--text-muted)",
+            letterSpacing:"0.04em",
+          };
+          const cmpStrong = {
+            fontFamily:"var(--font-display)", fontStyle:"italic",
+            color:"var(--text)", fontWeight:500,
+          };
 
-        // Lede: stitches macro + allocation + scanner + portfolio.
-        const macroBits = M ? `Composites read R&L ${(M.RL>=0?"+":"")+Math.round(M.RL)}, Growth ${(M.GR>=0?"+":"")+Math.round(M.GR)}, Inflation ${(M.IR>=0?"+":"")+Math.round(M.IR)} on the −100 to +100 scale.` : "";
-        const allocBits = V
-          ? ` Allocation: ${V.selection_confidence||"—"} confidence, ${V.leverage!=null?V.leverage.toFixed(2)+"× leverage":""}${V.picks?.[0]?.name?", top tilt "+V.picks[0].name:""}.`
-          : "";
-        const scannerBits = ` Scanner: ${buyCount} buy alert${buyCount===1?"":"s"}, ${watchCount} near trigger today.`;
-        const portfolioBits = PR && PR.TTM != null
-          ? ` Your portfolio: TTM TWR ${(PR.TTM>=0?"+":"")+(PR.TTM*100).toFixed(1)}% time-weighted (flows netted out).`
-          : "";
-        const ledeProgrammatic = (macroBits + allocBits + scannerBits + portfolioBits).trim();
+          return (
+            <div style={{ marginTop:"var(--space-5)" }}>
+              {/* Mission header */}
+              <div style={{
+                marginBottom:"var(--space-3)",
+                fontFamily:"var(--font-display)", fontStyle:"italic",
+                fontSize:15, lineHeight:1.5, color:"var(--text)",
+                maxWidth:"68ch",
+              }}>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                  letterSpacing:"0.16em", textTransform:"uppercase",
+                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+                }}>Mission</span>
+                Outperform the S&amp;P 500 on a risk-adjusted basis. Eighteen years of back-tested evidence:
+              </div>
+              <div style={{
+                background:"var(--surface-3, var(--surface))",
+                border:"1px solid var(--border-faint)",
+                borderRadius:8,
+                display:"flex", flexWrap:"wrap",
+              }}>
+                {/* 1 · Outperformance */}
+                <div style={cellStyle}>
+                  <span style={labelStyle}>Outperformance</span>
+                  <span style={numStyle}>
+                    {alpha != null ? `+${(alpha*100).toFixed(1)}% / yr` : "—"}
+                  </span>
+                  <span style={subStyle}>annualized excess return vs S&amp;P 500</span>
+                  {modCagr != null && spxCagr != null && (
+                    <span style={cmpStyle}>
+                      <span style={cmpStrong}>{(modCagr*100).toFixed(1)}%</span>
+                      {" model · "}
+                      {(spxCagr*100).toFixed(1)}{"% S&P"}
+                    </span>
+                  )}
+                </div>
 
-        return (<>
-          <h1 style={{
-            fontFamily:"var(--font-display)", fontWeight:400,
-            fontSize:"clamp(32px, 4.2vw, 44px)",
-            lineHeight:1.1, letterSpacing:"-0.01em",
-            color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
-          }}>
-            {h}<em style={{fontStyle:"italic", color:"var(--accent)"}}>{em}</em>
-          </h1>
-          <p style={{
-            fontSize:15, color:"var(--text-muted)", lineHeight:1.55,
-            maxWidth:"72ch", margin:0,
-          }}>{ledeProgrammatic}</p>
-        </>);
-      })()}
-    </div>
+                {/* 2 · Drawdown control */}
+                <div style={cellStyle}>
+                  <span style={labelStyle}>Drawdown control</span>
+                  <span style={numStyle}>
+                    {modDD != null ? `${(modDD*100).toFixed(1)}%` : "—"}
+                  </span>
+                  <span style={subStyle}>worst peak-to-trough loss in the window</span>
+                  {modDD != null && spxDD != null && (
+                    <span style={cmpStyle}>
+                      <span style={cmpStrong}>{(modDD*100).toFixed(1)}%</span>
+                      {" model · "}
+                      {(spxDD*100).toFixed(1)}{"% S&P"}
+                    </span>
+                  )}
+                </div>
+
+                {/* 3 · Risk-adjusted return */}
+                <div style={cellStyle}>
+                  <span style={labelStyle}>Risk-adjusted return</span>
+                  <span style={numStyle}>
+                    {modSharpe != null ? modSharpe.toFixed(2) : "—"}
+                  </span>
+                  <span style={subStyle}>Sharpe ratio — return per unit of volatility</span>
+                  {modSharpe != null && spxSharpe != null && (
+                    <span style={cmpStyle}>
+                      <span style={cmpStrong}>{modSharpe.toFixed(2)}</span>
+                      {" model · "}
+                      {spxSharpe.toFixed(2)}{" S&P"}
+                    </span>
+                  )}
+                </div>
+
+                {/* 4 · Calibration */}
+                <div style={cellLast}>
+                  <span style={labelStyle}>Calibration</span>
+                  <span style={numStyle}>{yrs != null ? `${yrs} years` : "—"}</span>
+                  <span style={subStyle}>
+                    {window || "—"} · {meth.ig_universe_size || 25} industry groups
+                  </span>
+                  <span style={cmpStyle}>back-tested, then locked</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── ORIENTATION TILES (Macro / Allocation / Scanner) ── */}
+        <section className="mt-home-steps" style={{
+          display:"grid", gridTemplateColumns:"repeat(3, minmax(0, 1fr))",
+          gap:"var(--space-4)", marginTop:"var(--space-5)",
+        }}>
+          <div role="link" tabIndex={0} onClick={()=>navTo("overview")}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("overview"); } }}
+               style={stepTileStyle}>
+            <div style={tileTagStyle}>{tileLineAccent} 01 · Macro</div>
+            <h3 style={tileH3Style}>Where stress <em style={{fontStyle:"italic", color:"var(--accent)"}}>sits today.</em></h3>
+            <p style={tileBlurbStyle}>Three composites — Risk &amp; Liquidity, Growth, Inflation — scored on a −100 (calm) to +100 (stressed) scale.</p>
+            <div style={tileFootStyle}>
+              <span>Open<span style={arrowStyle}>→</span></span>
+            </div>
+          </div>
+
+          <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
+               style={stepTileStyle}>
+            <div style={tileTagStyle}>{tileLineAccent} 02 · Allocation Tilt</div>
+            <h3 style={tileH3Style}>How aggressive <em style={{fontStyle:"italic", color:"var(--accent)"}}>to be.</em></h3>
+            <p style={tileBlurbStyle}>A confidence band and an industry-group tilt across 25 buckets, with a defensive sleeve when stress flips.</p>
+            <div style={tileFootStyle}>
+              <span>Open<span style={arrowStyle}>→</span></span>
+            </div>
+          </div>
+
+          <div role="link" tabIndex={0} onClick={()=>navTo("scanner")}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("scanner"); } }}
+               style={stepTileStyle}>
+            <div style={tileTagStyle}>{tileLineAccent} 03 · Scanner</div>
+            <h3 style={tileH3Style}>What to act <em style={{fontStyle:"italic", color:"var(--accent)"}}>on today.</em></h3>
+            <p style={tileBlurbStyle}>Daily buy alerts and near-trigger names from your watchlist — the action layer on top of the macro view.</p>
+            <div style={tileFootStyle}>
+              <span>Open<span style={arrowStyle}>→</span></span>
+            </div>
+          </div>
+        </section>
+
+      </>);
+    })()}
 
     {/* ─── 2x2 TILE GRID: Macro Overview (01) · Trading Opps (02) ·
          Sector Outlook (03) · Daily Opp Scan (04). News lives full-
@@ -6342,44 +6576,51 @@ return(
           <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open →</a>
         </div>
 
-        {/* Editorial commentary — at TOP per Joe 2026-04-27. Threshold-gated;
-            renders nothing when nothing has moved materially. Daily refresh
-            via pg_cron job 'generate-commentary-daily-1130utc'. */}
-        {(macroCommentary && (macroCommentary.short_term || macroCommentary.medium_term)) && (
-          <div style={{
-            marginBottom:"var(--space-4)",
-            paddingBottom:"var(--space-3)",
-            borderBottom:"1px solid var(--border-faint)",
-            display:"flex", flexDirection:"column", gap:"var(--space-2)",
-          }}>
-            {macroCommentary.short_term && (
-              <div style={{
-                fontFamily:"var(--font-display)", fontStyle:"italic",
-                fontSize:15, lineHeight:1.5, color:"var(--text)",
-              }}>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                  letterSpacing:"0.14em", textTransform:"uppercase",
-                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-                }}>Short term</span>
-                {macroCommentary.short_term}
-              </div>
-            )}
-            {macroCommentary.medium_term && (
-              <div style={{
-                fontFamily:"var(--font-display)", fontStyle:"italic",
-                fontSize:15, lineHeight:1.5, color:"var(--text)",
-              }}>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                  letterSpacing:"0.14em", textTransform:"uppercase",
-                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-                }}>Medium term</span>
-                {macroCommentary.medium_term}
-              </div>
-            )}
-          </div>
-        )}
+        {/* Macro lead-in — regime-aware, deterministic. Replaces the
+            generic LLM commentary that read the same on every refresh
+            (Joe r4 2026-04-27). Speaks ONLY about the macro environment;
+            positioning lives in the Allocation Tilt tile lead-in below. */}
+        {(()=>{
+          const M = _macroLatestSnap;
+          if (!M) return null;
+          const comps = [
+            {k:"Risk & Liquidity", v:M.RL},
+            {k:"Growth",            v:M.GR},
+            {k:"Inflation",         v:M.IR},
+          ].filter(c => c.v != null);
+          if (!comps.length) return null;
+          const reg = (s) => s>=50 ? "stressed" : s>=20 ? "elevated" : s<=-50 ? "calm" : s<=-20 ? "quiet" : "normal";
+          const isLoud = (s) => s>=20;
+          const loud = comps.filter(c => isLoud(c.v)).sort((a,b)=>b.v-a.v);
+          const sorted = [...comps].sort((a,b)=>b.v-a.v);
+          const worst = sorted[0];
+          let line;
+          if (loud.length === 0) {
+            line = `Macro reads benign — Risk & Liquidity at ${(M.RL>=0?"+":"")+Math.round(M.RL)}, Growth at ${(M.GR>=0?"+":"")+Math.round(M.GR)}, Inflation at ${(M.IR>=0?"+":"")+Math.round(M.IR)}, all on the calm side of the long-run baseline.`;
+          } else if (loud.length === 1) {
+            line = `${loud[0].k} is the lone source of stress at ${(loud[0].v>=0?"+":"")+Math.round(loud[0].v)}; the other two composites read benign. Pressure is contained, not broad-based.`;
+          } else if (loud.length === 2) {
+            line = `${loud[0].k} and ${loud[1].k} are both elevated — macro is tightening across multiple factors. Stress is no longer contained.`;
+          } else {
+            line = `All three composites are flashing stress. ${worst.k} leads at ${(worst.v>=0?"+":"")+Math.round(worst.v)}. This is a defensive macro environment — every factor is loud.`;
+          }
+          return (
+            <div style={{
+              marginBottom:"var(--space-4)",
+              paddingBottom:"var(--space-3)",
+              borderBottom:"1px solid var(--border-faint)",
+              fontFamily:"var(--font-display)", fontStyle:"italic",
+              fontSize:15, lineHeight:1.55, color:"var(--text)",
+            }}>
+              <span style={{
+                fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                letterSpacing:"0.14em", textTransform:"uppercase",
+                color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+              }}>Environment</span>
+              {line}
+            </div>
+          );
+        })()}
 
         {/* Composite strip */}
         <div style={{
@@ -6527,7 +6768,7 @@ return(
                     onMouseLeave={e=>e.currentTarget.style.background="transparent"}
                   >
                     <span style={{fontSize:13, color:"var(--text)", lineHeight:1.3}}>
-                      {ind[0]} <span style={{fontSize:11, color:"var(--text-muted)"}}>· {ind[1]}</span>
+                      {ind[1]}
                     </span>
                     <span style={{
                       fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600,
@@ -6554,28 +6795,49 @@ return(
           and is null-allowed (no forced prose). */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Allocation <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Allocation Tilt <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
           <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
         </div>
 
-        {/* Editorial sector narrative — at TOP per Joe 2026-04-27. Daily
-            refresh via pg_cron 'generate-commentary-daily-1130utc'. */}
-        {(sectorCommentary && sectorCommentary.headline) && (
-          <div style={{
-            marginBottom:"var(--space-4)",
-            paddingBottom:"var(--space-3)",
-            borderBottom:"1px solid var(--border-faint)",
-            fontFamily:"var(--font-display)", fontStyle:"italic",
-            fontSize:15, lineHeight:1.5, color:"var(--text)",
-          }}>
-            <span style={{
-              fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-              letterSpacing:"0.14em", textTransform:"uppercase",
-              color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-            }}>Today</span>
-            {sectorCommentary.headline}
-          </div>
-        )}
+        {/* Allocation Tilt lead-in — positioning-focused, deterministic.
+            Talks about confidence, leverage, top tilt, defensive sleeve.
+            DOES NOT restate the macro environment — that lives in the
+            Macro Overview tile lead-in (Joe r4 2026-04-27). */}
+        {(()=>{
+          const V = _v9Alloc;
+          if (!V) return null;
+          const conf = V.selection_confidence || null;
+          const lev  = V.leverage != null ? V.leverage : null;
+          const top  = V.picks?.[0]?.name || null;
+          const defActive = (V.defensive || []).some(d => d?.weight && d.weight > 0.005);
+          if (!conf || lev == null) return null;
+          let line;
+          if (conf === "STRONG") {
+            line = `Model holds STRONG conviction at ${lev.toFixed(2)}× gross leverage${top?` — leans into a ${top} tilt`:""}${defActive?", with the defensive sleeve partially engaged":", with the defensive sleeve dormant"}.`;
+          } else if (conf === "MODERATE") {
+            line = `Model dialled to MODERATE conviction at ${lev.toFixed(2)}× — ${top?`${top} still leads, but `:""}position size is trimmed relative to peak conviction${defActive?"; defensive sleeve activating":""}.`;
+          } else if (conf === "DEFENSIVE" || conf === "WEAK" || conf === "LOW") {
+            line = `Model is in DEFENSIVE mode — leverage cut to ${lev.toFixed(2)}×${top?`, ${top} still leads at smaller size`:""}; defensive sleeve carries weight.`;
+          } else {
+            line = `Model running at ${conf} conviction · ${lev.toFixed(2)}× leverage${top?` · ${top} leads`:""}.`;
+          }
+          return (
+            <div style={{
+              marginBottom:"var(--space-4)",
+              paddingBottom:"var(--space-3)",
+              borderBottom:"1px solid var(--border-faint)",
+              fontFamily:"var(--font-display)", fontStyle:"italic",
+              fontSize:15, lineHeight:1.55, color:"var(--text)",
+            }}>
+              <span style={{
+                fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
+                letterSpacing:"0.14em", textTransform:"uppercase",
+                color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
+              }}>Positioning</span>
+              {line}
+            </div>
+          );
+        })()}
 
         {(()=>{
           // v9 allocation engine output — this is what's on the destination
@@ -6953,7 +7215,7 @@ return(
 
             {/* Q3 · ASSET ALLOCATION (donut chart + legend) */}
             <div style={{...tileStyle, gridColumn:"1 / 2"}}>
-              <div style={tileEyebrow}>Asset Allocation</div>
+              <div style={tileEyebrow}>Allocation Tilt</div>
               {_allocTotal > 0 ? (
                 <div style={{display:"flex", alignItems:"center", gap:12, marginTop:8}}>
                   {/* SVG donut */}
@@ -7840,6 +8102,7 @@ return(<>
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
+{tab==="about"  && <AboutPage onNav={navTo}/>}
 {tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF} asOfIso={AS_OF_ISO} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>}
 
 
@@ -7849,6 +8112,7 @@ return(<>
 <Footer
   leftText={tab==="scanner"?"SOURCES · Unusual Whales · Yahoo Finance · SEC Form 4 · Congressional Disclosures":"SOURCES · FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · Kim-Wright Fed · SLOOS Fed"}
   rightText="⚠ NOT INVESTMENT ADVICE · v10"
+  onAbout={()=>navTo("about")}
 />
 
 </div>{/* close .app-main */}

@@ -663,6 +663,14 @@ def compute_for_as_of(as_of, factors, composites, daily_ret, calculated_at=None)
             "back_test_sharpe": 0.610,
             "back_test_max_drawdown": -0.2364,
             "vs_spy_cagr_diff": 0.0282,
+            # SPX (S&P 500 price index) backtest stats — computed from
+            # public/composite_history_daily.json over the same window.
+            # Used by the home + About evidence strips for apples-to-apples
+            # comparison across CAGR / Sharpe / max drawdown.
+            "back_test_spx_cagr": 0.0916,
+            "back_test_spx_sharpe": 0.540,
+            "back_test_spx_max_drawdown": -0.533,
+            "vs_spx_cagr_diff": 0.0472,
             "ig_universe_size": len(INDUSTRY_GROUPS),
             "igs_scored":       len(avail_e),
         },

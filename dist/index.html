@@ -3,13 +3,33 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/svg+xml" href="/macrotilt-icon.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="icon" type="image/svg+xml" href="/favicon-v2.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-v2.png" />
+    <link rel="manifest" href="/manifest-v2.json" />
     <meta name="theme-color" content="#0b0d10" />
     <title>MacroTilt — Market Dashboard</title>
-    <script type="module" crossorigin src="/assets/index-f5d15a24.js"></script>
-    <link rel="stylesheet" href="/assets/index-fdf0f3fe.css">
+      <script>
+      /* Phase 2 — parchment + ink re-skin is ALWAYS ON. Mirrors the app's own
+         data-theme (dark|light) onto data-mt-theme so the CSS overlay in
+         theme.css activates automatically for every visitor. No URL flag. */
+      (function () {
+        try {
+          var html = document.documentElement;
+          var sync = function () {
+            var cur = html.getAttribute("data-theme");
+            html.setAttribute("data-mt-theme", cur === "light" ? "paper" : "dark");
+          };
+          sync();
+          new MutationObserver(function (muts) {
+            for (var i = 0; i < muts.length; i++) {
+              if (muts[i].attributeName === "data-theme") { sync(); break; }
+            }
+          }).observe(html, { attributes: true, attributeFilter: ["data-theme"] });
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-388a6f90.js"></script>
+    <link rel="stylesheet" href="/assets/index-8524131d.css">
   </head>
   <body>
     <div id="root"></div>

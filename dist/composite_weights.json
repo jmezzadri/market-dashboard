@@ -1,0 +1,135 @@
+{
+  "_methodology": {
+    "version": "v2",
+    "as_of": "2026-04-24",
+    "method": "EWMA z-score (HL=18mo, \u00b13\u03c3 winsorize) \u2192 logistic regression \u2192 DeLong 95% CI",
+    "kill_threshold": "indicator kept if 95% CI lower bound on AUC \u2265 0.55",
+    "weight_formula": "(AUC - 0.5) normalized within composite, after dropping killed indicators",
+    "data_window": "2005-2026, 256 monthly observations",
+    "drawdown_thresholds": {
+      "1m": "\u22655%",
+      "3m": "\u226510%",
+      "6m": "\u226515%",
+      "12m": "\u226515%",
+      "18m": "\u226520%"
+    },
+    "preserve_all_indicators": "Composite math uses kept indicators only; site continues to display every indicator with a 'composite contribution' badge."
+  },
+  "Risk & Liquidity": {
+    "horizon_months_canonical": 3,
+    "horizons_tested": [
+      1,
+      3
+    ],
+    "composite_auc": 0.691,
+    "composite_ci_low": 0.601,
+    "composite_ci_high": 0.782,
+    "composite_lead_months": 14.3,
+    "tpr_at_80pct_threshold": 0.796,
+    "fpr_at_80pct_threshold": 0.628,
+    "indicators": [
+      {
+        "key": "anfci",
+        "name": "Adjusted national financial conditions",
+        "weight": 0.2598,
+        "auc": 0.69,
+        "ci_low": 0.6,
+        "lead_months": 15.0
+      },
+      {
+        "key": "vix",
+        "name": "Implied stock-market volatility",
+        "weight": 0.2537,
+        "auc": 0.686,
+        "ci_low": 0.604,
+        "lead_months": 17.3
+      },
+      {
+        "key": "stlfsi",
+        "name": "St. Louis financial stress",
+        "weight": 0.2434,
+        "auc": 0.678,
+        "ci_low": 0.59,
+        "lead_months": 16.1
+      },
+      {
+        "key": "cmdi",
+        "name": "Corporate market distress (NFCI proxy)",
+        "weight": 0.2431,
+        "auc": 0.678,
+        "ci_low": 0.581,
+        "lead_months": 13.8
+      }
+    ]
+  },
+  "Growth": {
+    "horizon_months_canonical": 6,
+    "horizons_tested": [
+      6,
+      12
+    ],
+    "composite_auc": 0.658,
+    "composite_ci_low": 0.572,
+    "composite_ci_high": 0.743,
+    "composite_lead_months": 16.5,
+    "tpr_at_80pct_threshold": 0.804,
+    "fpr_at_80pct_threshold": 0.632,
+    "indicators": [
+      {
+        "key": "jobless",
+        "name": "Initial jobless claims",
+        "weight": 0.3427,
+        "auc": 0.656,
+        "ci_low": 0.571,
+        "lead_months": 19.7
+      },
+      {
+        "key": "cfnai_3ma",
+        "name": "CFNAI 3-month moving average (smoothed)",
+        "weight": 0.3307,
+        "auc": 0.651,
+        "ci_low": 0.56,
+        "lead_months": 16.2
+      },
+      {
+        "key": "bkx_spx",
+        "name": "Bank index vs S&P (banks lagging = stress)",
+        "weight": 0.3265,
+        "auc": 0.649,
+        "ci_low": 0.564,
+        "lead_months": 18.6
+      }
+    ]
+  },
+  "Inflation & Rates": {
+    "horizon_months_canonical": 18,
+    "horizons_tested": [
+      12,
+      18
+    ],
+    "composite_auc": 0.779,
+    "composite_ci_low": 0.702,
+    "composite_ci_high": 0.857,
+    "composite_lead_months": 12.7,
+    "tpr_at_80pct_threshold": 0.797,
+    "fpr_at_80pct_threshold": 0.303,
+    "indicators": [
+      {
+        "key": "move",
+        "name": "Treasury volatility",
+        "weight": 0.5059,
+        "auc": 0.717,
+        "ci_low": 0.632,
+        "lead_months": 12.2
+      },
+      {
+        "key": "m2_yoy",
+        "name": "M2 money supply YoY growth",
+        "weight": 0.4941,
+        "auc": 0.712,
+        "ci_low": 0.635,
+        "lead_months": 14.5
+      }
+    ]
+  }
+}
