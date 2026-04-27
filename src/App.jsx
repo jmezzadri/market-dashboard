@@ -5644,6 +5644,7 @@ const portfolioAuthed=!!session;
 // One-shot fetch on first render. Replaces the rolled-up COMP100 number
 // that didn't anchor to anything on the destination page.
 const [_macroLatestSnap, setMacroLatestSnap] = useState(null);
+const [_v9Alloc, setV9Alloc] = useState(null);
 const [_spxHistory, setSpxHistory] = useState(null);
 useEffect(() => {
   let cancelled = false;
@@ -5667,6 +5668,18 @@ useEffect(() => {
         .map(x => ({ d: x.d, spx: Number(x.SPXp) }));
       if (hist.length > 0) setSpxHistory(hist);
     })
+    .catch(() => {});
+  return () => { cancelled = true; };
+}, []);
+
+// Pull v9 Asset Allocation (picks, defensive, all_industry_groups, regime,
+// alpha, leverage, selection_confidence) from /v9_allocation.json — same
+// data that powers the Asset Allocation tab. One-shot fetch on mount.
+useEffect(() => {
+  let cancelled = false;
+  fetch("/v9_allocation.json")
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (!cancelled && d) setV9Alloc(d); })
     .catch(() => {});
   return () => { cancelled = true; };
 }, []);
@@ -6080,18 +6093,73 @@ return(
         <span style={{width:20, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
         MacroTilt Daily · Home
       </div>
-      <h1 style={{
-        fontFamily:"var(--font-display)", fontWeight:400,
-        fontSize:"clamp(32px, 4.2vw, 44px)",
-        lineHeight:1.1, letterSpacing:"-0.01em",
-        color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
-      }}>
-        {headline.h}<em style={{fontStyle:"italic", color:"var(--accent)"}}>{headline.em}</em>
-      </h1>
-      <p style={{
-        fontSize:15, color:"var(--text-muted)", lineHeight:1.55,
-        maxWidth:"72ch", margin:0,
-      }}>{lede}</p>
+      {(()=>{
+        // ── PROGRAMMATIC DAILY HEADLINE + LEDE ─────────────────────────
+        // Synthesizes from all 4 tiles' data: 3 macro composites,
+        // v9 allocation (selection confidence + alpha + top pick),
+        // scanner counts, portfolio TWR. Updates on every render so the
+        // header always reflects the same state the tiles below show.
+        // Joe 2026-04-27: replaces the static "Composite stress at 31/100"
+        // string that didn't anchor to anything on the destination pages.
+        const M = _macroLatestSnap;
+        const V = _v9Alloc;
+        const PR = _portfolioReturns?.periodReturns;
+
+        // Worst-of-three composite drives the headline mood.
+        const composites = M ? [
+          {k:"R&L",          v:M.RL},
+          {k:"Growth",       v:M.GR},
+          {k:"Inflation",    v:M.IR},
+        ] : [];
+        const regimeOf = (s) => {
+          if (s == null) return "normal";
+          if (s <= -50) return "calm";
+          if (s <= -20) return "quiet";
+          if (s <  +20) return "normal";
+          if (s <  +50) return "elevated";
+          return "stressed";
+        };
+        const worst = composites.reduce((a, b) => (b.v != null && (a.v == null || b.v > a.v) ? b : a), {v:null, k:""});
+        const worstReg = regimeOf(worst.v);
+        const elevatedCount = composites.filter(c => regimeOf(c.v) === "elevated" || regimeOf(c.v) === "stressed").length;
+
+        // Headline: macro mood. h-em split so the second clause renders
+        // in italic accent color (matches the existing typographic system).
+        let h, em;
+        if (!M) { h = "Loading"; em = " today's market read."; }
+        else if (worstReg === "stressed" && elevatedCount >= 2) { h = "Defensive macro,"; em = " multiple composites flashing stress."; }
+        else if (worstReg === "stressed") { h = "Stress in " + worst.k + ","; em = " other composites benign."; }
+        else if (worstReg === "elevated" && elevatedCount >= 2) { h = "Watching " + worst.k + ","; em = " conditions tightening across composites."; }
+        else if (worstReg === "elevated") { h = "Elevated " + worst.k + ","; em = " growth and inflation read normal."; }
+        else if (worstReg === "calm" || worstReg === "quiet") { h = "Risk-on backdrop,"; em = " composites benign across the board."; }
+        else { h = "Normal regime,"; em = " composites in balance."; }
+
+        // Lede: stitches macro + allocation + scanner + portfolio.
+        const macroBits = M ? `Composites read R&L ${(M.RL>=0?"+":"")+Math.round(M.RL)}, Growth ${(M.GR>=0?"+":"")+Math.round(M.GR)}, Inflation ${(M.IR>=0?"+":"")+Math.round(M.IR)} on the −100 to +100 scale.` : "";
+        const allocBits = V
+          ? ` Allocation: ${V.selection_confidence||"—"} confidence, ${V.leverage!=null?V.leverage.toFixed(2)+"× leverage":""}${V.picks?.[0]?.name?", top tilt "+V.picks[0].name:""}.`
+          : "";
+        const scannerBits = ` Scanner: ${buyCount} buy alert${buyCount===1?"":"s"}, ${watchCount} near trigger today.`;
+        const portfolioBits = PR && PR.TTM != null
+          ? ` Your portfolio: TTM TWR ${(PR.TTM>=0?"+":"")+(PR.TTM*100).toFixed(1)}% time-weighted (flows netted out).`
+          : "";
+        const ledeProgrammatic = (macroBits + allocBits + scannerBits + portfolioBits).trim();
+
+        return (<>
+          <h1 style={{
+            fontFamily:"var(--font-display)", fontWeight:400,
+            fontSize:"clamp(32px, 4.2vw, 44px)",
+            lineHeight:1.1, letterSpacing:"-0.01em",
+            color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
+          }}>
+            {h}<em style={{fontStyle:"italic", color:"var(--accent)"}}>{em}</em>
+          </h1>
+          <p style={{
+            fontSize:15, color:"var(--text-muted)", lineHeight:1.55,
+            maxWidth:"72ch", margin:0,
+          }}>{ledeProgrammatic}</p>
+        </>);
+      })()}
     </div>
 
     {/* ─── 2x2 TILE GRID: Macro Overview (01) · Trading Opps (02) ·
@@ -6198,9 +6266,80 @@ return(
           )}
         </div>
 
-        {/* Regime table — Category · 12M · 6M · 1M · Now · State */}
-        <div style={{overflowX:"auto"}}>
-        <RegimeCategoryTable rows={buildCategoryOverview()} regimePillCSS={regimePillCSS} navTo={navTo} setCatFilter={setCatFilter}/>
+        {/* The 9 indicators that ACTUALLY roll up into the 3 composites
+            on the destination Macro Overview tab. Source of truth:
+            /composite_weights.json. R&L: anfci/vix/stlfsi/cmdi (4),
+            Growth: jobless/cfnai_3ma/bkx_spx (3), Inflation & Rates:
+            move/m2_yoy (2). Joe 2026-04-27: tile must anchor to dest. */}
+        <div style={{
+          background:"var(--surface-3)",
+          border:"1px solid var(--border-faint)",
+          borderRadius:6,
+          marginBottom:"var(--space-4)",
+        }}>
+          {[
+            { comp:"R&L",       compFull:"Risk & Liquidity",   color:"#4a6fa5", indicators:["anfci","vix","stlfsi","cmdi"] },
+            { comp:"Growth",    compFull:"Growth",              color:"#1f9d60", indicators:["jobless","cfnai_3ma","bkx_spx"] },
+            { comp:"Inflation", compFull:"Inflation & Rates",   color:"#b8811c", indicators:["move","m2_yoy"] },
+          ].map((group, gi, arr) => (
+            <div key={group.comp} style={{
+              borderBottom: gi < arr.length-1 ? "1px solid var(--border-faint)" : "none",
+            }}>
+              <div style={{
+                display:"flex", alignItems:"center", justifyContent:"space-between",
+                padding:"8px 12px",
+                background:`${group.color}11`,
+                borderBottom:`1px solid ${group.color}22`,
+              }}>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  letterSpacing:"0.1em", color:group.color, fontWeight:700,
+                  textTransform:"uppercase",
+                }}>{group.compFull}</span>
+                <span style={{
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  color:"var(--text-muted)", letterSpacing:"0.04em",
+                }}>{group.indicators.length} indicator{group.indicators.length===1?"":"s"}</span>
+              </div>
+              {group.indicators.map((id, ii) => {
+                const ind = IND[id];
+                if (!ind) return null;
+                const cur = ind[6];
+                const score = sdScore(id, cur);
+                const col = sdTextColor(score);
+                const label = score!=null ? sdLabel(score) : "—";
+                return (
+                  <div key={id}
+                    onClick={()=>{navTo("indicators"); if(typeof setIndicatorDeeplink==="function") setIndicatorDeeplink(id);}}
+                    style={{
+                      display:"grid",
+                      gridTemplateColumns:"1fr auto auto",
+                      gap:12, alignItems:"center",
+                      padding:"7px 12px",
+                      borderBottom: ii < group.indicators.length-1 ? "1px solid var(--border-faint)" : "none",
+                      cursor:"pointer",
+                      transition:"background 120ms",
+                    }}
+                    onMouseEnter={e=>e.currentTarget.style.background="var(--surface-2)"}
+                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+                  >
+                    <span style={{fontSize:13, color:"var(--text)", lineHeight:1.3}}>
+                      {ind[0]} <span style={{fontSize:11, color:"var(--text-muted)"}}>· {ind[1]}</span>
+                    </span>
+                    <span style={{
+                      fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600,
+                      color:"var(--text)",
+                    }}>{cur!=null ? fmtV(id, cur) : "—"}</span>
+                    <span style={{
+                      fontFamily:"var(--font-mono)", fontSize:10,
+                      color:col, letterSpacing:"0.06em", fontWeight:700,
+                      textTransform:"uppercase", minWidth:60, textAlign:"right",
+                    }}>{label}</span>
+                  </div>
+                );
+              })}
+            </div>
+          ))}
         </div>
 
         {/* Editorial commentary — threshold-gated; renders nothing when
@@ -6256,58 +6395,101 @@ return(
         </div>
 
         {(()=>{
-          const renderRow = (s, isLast, key) => {
-            const stanceColor = s.outlook.color;
-            return (
-              <div key={key}
-                   onClick={()=>navTo("allocation")}
-                   style={{
-                     display:"flex", alignItems:"center", justifyContent:"space-between",
-                     padding:"var(--space-3) 0",
-                     borderBottom:isLast?"none":"1px solid var(--border-faint)",
-                     cursor:"pointer", gap:12,
-                   }}>
-                <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
-                  <span style={{
-                    fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)",
-                    letterSpacing:"0.06em", width:28, flexShrink:0,
-                  }}>#{s.rank}</span>
-                  <div style={{minWidth:0, flex:1}}>
-                    <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>{s.name}</div>
-                    <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
-                      <span style={{fontFamily:"var(--font-mono)"}}>Beta {s.beta.toFixed(2)}</span> · {s.sub.split(" · ").slice(0,2).join(" · ")}
-                    </div>
-                  </div>
-                </div>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontSize:10,
-                  letterSpacing:"0.1em", textTransform:"uppercase",
-                  padding:"2px 8px", borderRadius:10,
-                  border:`1px solid ${stanceColor}`, color:stanceColor, flexShrink:0,
-                }}>{s.outlook.label}</span>
-              </div>
-            );
-          };
-          return (<>
-            {/* Top 3 — highest overall rank */}
-            {topOverweight.map((s,i) => renderRow(s, i===topOverweight.length-1, "top-"+s.id))}
+          // v9 allocation engine output — this is what's on the destination
+          // Asset Allocation tab. Joe 2026-04-27: tile must anchor to the
+          // tab. Fields used: selection_confidence, alpha, equity_share,
+          // leverage, picks (top OWs), all_industry_groups (filter rating=uw
+          // for the bottom list).
+          if (!_v9Alloc) {
+            return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
+          }
+          const conf = _v9Alloc.selection_confidence || "—";
+          const alphaPct = _v9Alloc.alpha != null ? ((_v9Alloc.alpha - 1) * 100) : null;
+          const equityPct = _v9Alloc.equity_share != null ? (_v9Alloc.equity_share * 100) : null;
+          const leverage = _v9Alloc.leverage != null ? _v9Alloc.leverage : null;
+          const confColor = conf === "STRONG" ? "#1f9d60" : conf === "MODERATE" ? "#b8811c" : "var(--text-muted)";
+          const picks = (_v9Alloc.picks || []).slice(0, 3);
+          const ugs = (_v9Alloc.all_industry_groups || []).filter(g => g.rating === "uw").slice(0, 3);
 
-            {/* Divider between the long-book and short-book halves */}
-            {bottomUnderweight.length>0 && (
+          const RatingPill = ({ rating, color }) => (
+            <span style={{
+              fontFamily:"var(--font-mono)", fontSize:10,
+              letterSpacing:"0.1em", textTransform:"uppercase",
+              padding:"2px 8px", borderRadius:10,
+              border:`1px solid ${color}`, color, flexShrink:0,
+            }}>{rating}</span>
+          );
+
+          const renderIG = (ig, isLast, key, isUW) => (
+            <div key={key}
+                 onClick={()=>navTo("allocation")}
+                 style={{
+                   display:"flex", alignItems:"center", justifyContent:"space-between",
+                   padding:"var(--space-3) 0",
+                   borderBottom:isLast?"none":"1px solid var(--border-faint)",
+                   cursor:"pointer", gap:12,
+                 }}>
+              <div style={{minWidth:0, flex:1}}>
+                <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>
+                  {ig.name} <span style={{fontSize:11, color:"var(--text-muted)", fontFamily:"var(--font-mono)"}}>· {ig.ticker || ig.primary_ticker || ""}</span>
+                </div>
+                <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
+                  {ig.sector}{ig.trailing_6mo_return != null ? ` · 6mo ${(ig.trailing_6mo_return*100).toFixed(1)}%` : ""}
+                </div>
+              </div>
+              <RatingPill rating={isUW?"UW":"OW"} color={isUW?"#ff453a":"#1f9d60"}/>
+            </div>
+          );
+
+          return (<>
+            {/* Stance strip — selection_confidence, alpha, leverage, equity share */}
+            <div style={{
+              display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(110px, 1fr))",
+              gap:8, marginBottom:"var(--space-4)",
+            }}>
+              <div style={{background:"var(--surface-3)", border:`1px solid ${confColor}33`, borderRadius:6, padding:"8px 10px"}}>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.08em", marginBottom:4, fontWeight:600}}>SELECTION</div>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:confColor, letterSpacing:"0.04em"}}>{conf}</div>
+              </div>
+              <div style={{background:"var(--surface-3)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"8px 10px"}}>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.08em", marginBottom:4, fontWeight:600}}>ALPHA</div>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--text)"}}>{alphaPct!=null?(alphaPct>=0?"+":"")+alphaPct.toFixed(1)+"%":"—"}</div>
+              </div>
+              <div style={{background:"var(--surface-3)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"8px 10px"}}>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.08em", marginBottom:4, fontWeight:600}}>LEVERAGE</div>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--text)"}}>{leverage!=null?leverage.toFixed(2)+"x":"—"}</div>
+              </div>
+              <div style={{background:"var(--surface-3)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"8px 10px"}}>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.08em", marginBottom:4, fontWeight:600}}>EQUITY</div>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--text)"}}>{equityPct!=null?Math.round(equityPct)+"%":"—"}</div>
+              </div>
+            </div>
+
+            {/* Top 3 OW picks from v9 */}
+            <div style={{
+              fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
+              letterSpacing:"0.18em", textTransform:"uppercase",
+              marginBottom:4, fontWeight:600,
+            }}>Top 3 · Overweight</div>
+            {picks.length === 0 && (
+              <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"6px 0"}}>No OW picks today.</div>
+            )}
+            {picks.map((p, i) => renderIG(p, i===picks.length-1, "ow-"+(p.key||p.ticker), false))}
+
+            {/* Bottom 3 UW industry groups from v9 */}
+            {ugs.length > 0 && (
               <div aria-hidden="true" style={{
                 display:"flex", alignItems:"center", gap:"var(--space-3)",
-                padding:"var(--space-3) 0",
+                padding:"var(--space-3) 0 var(--space-2)",
                 fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
                 letterSpacing:"0.18em", textTransform:"uppercase",
               }}>
                 <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
-                <span>Bottom 3</span>
+                <span>Bottom 3 · Underweight</span>
                 <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
               </div>
             )}
-
-            {/* Bottom 3 — lowest overall rank */}
-            {bottomUnderweight.map((s,i) => renderRow(s, i===bottomUnderweight.length-1, "bot-"+s.id))}
+            {ugs.map((g, i) => renderIG(g, i===ugs.length-1, "uw-"+(g.key||g.ticker), true))}
           </>);
         })()}
 
