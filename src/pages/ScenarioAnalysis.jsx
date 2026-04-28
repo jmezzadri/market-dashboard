@@ -165,6 +165,32 @@ const FACTORS = [
 const FACTOR_IDS = FACTORS.map(f => f.id);
 const fmtZ = v => (v > 0 ? "+" : "") + v.toFixed(1) + "σ";
 
+// Bug #1106 — nominal-value display for the bespoke shock builder.
+// Mean / std calibrated 2006-01 to 2026-03 from indicator_history.json (8 factors)
+// + textbook baselines for the 4 factors not in the panel (hy, aaii, putcall, breadth).
+// Used to translate "+2σ on VIX" into "VIX 18 → 32" so users who think in nominal
+// terms (most of them) don't have to convert in their heads.
+const FACTOR_BASELINES = {
+  vix:          { mean: 19.6, std:  8.1, fmt: v => v.toFixed(1) },
+  move:         { mean: 85.2, std: 31.7, fmt: v => v.toFixed(0) },
+  real_rates:   { mean:  0.83,std:  1.0, fmt: v => v.toFixed(2) + "%" },
+  term_premium: { mean: 29.2, std: 39.5, fmt: v => v.toFixed(0) + "bps" },
+  dxy:          { mean:106.2, std: 12.4, fmt: v => v.toFixed(1) },
+  copper_gold:  { mean:  0.247, std: 0.098, fmt: v => v.toFixed(3) },
+  hy:           { mean:400, std:150, fmt: v => v.toFixed(0) + "bps" },
+  stlfsi:       { mean: 0.0, std:  1.18, fmt: v => v.toFixed(2) },
+  anfci:        { mean:-0.24, std: 0.75, fmt: v => v.toFixed(2) },
+  aaii:         { mean:  6, std: 12, fmt: v => (v >= 0 ? "+" : "") + v.toFixed(0) },
+  putcall:      { mean:  0.95, std: 0.20, fmt: v => v.toFixed(2) },
+  breadth:      { mean: 55, std: 25, fmt: v => v.toFixed(0) + "%" },
+};
+const fmtNominal = (factorId, sigma) => {
+  const b = FACTOR_BASELINES[factorId];
+  if (!b) return "";
+  const v = b.mean + sigma * b.std;
+  return b.fmt(v);
+};
+
 const CORR_PAIRS = {
   "vix|move": 0.65, "vix|real_rates": -0.30, "vix|term_premium": 0.10, "vix|dxy": 0.15,
   "vix|copper_gold": -0.45, "vix|hy": 0.75, "vix|stlfsi": 0.80, "vix|anfci": 0.60,
@@ -462,7 +488,7 @@ const STYLES = `
 .scenarios-page .coherence.exotic { background:rgba(157,53,69,.08); border-color:rgba(157,53,69,.3); }
 .scenarios-page .coherence.exotic .score { color:var(--accent-burgundy); }
 .scenarios-page .factor-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px var(--s-4); margin-top:var(--s-3); }
-.scenarios-page .factor { display:grid; grid-template-columns:110px 1fr 70px 28px; align-items:center; gap:8px; padding:4px 0; }
+.scenarios-page .factor { display:grid; grid-template-columns:100px 1fr 60px 80px 22px; align-items:center; gap:7px; padding:4px 0; }
 .scenarios-page .factor-name { font-size:12px; color:var(--ink-1); font-weight:500; }
 .scenarios-page .factor input[type="range"] { -webkit-appearance:none; appearance:none; width:100%; height:4px; background:var(--bg-3); border-radius:999px; outline:none; cursor:pointer; transition:background 120ms; }
 .scenarios-page .factor input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--ink-0); border:2px solid var(--bg-1); box-shadow:0 1px 3px rgba(0,0,0,.2); cursor:pointer; transition:all 120ms; }
@@ -475,6 +501,8 @@ const STYLES = `
 .scenarios-page .factor.auto input[type="range"]::-moz-range-thumb { background:var(--ink-3); }
 .scenarios-page .factor.auto input[type="range"] { pointer-events:none; opacity:.7; }
 .scenarios-page .factor-val { font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:600; color:var(--ink-0); text-align:right; }
+.scenarios-page .factor-nominal { font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:500; color:var(--ink-2); text-align:right; }
+.scenarios-page .factor.driver .factor-nominal { color:var(--accent-burgundy); }
 .scenarios-page .factor.auto .factor-val { color:var(--ink-2); font-weight:500; }
 .scenarios-page .factor-pin { font-size:13px; color:var(--ink-3); text-align:center; cursor:pointer; user-select:none; transition:color 120ms; }
 .scenarios-page .factor-pin:hover { color:var(--ink-1); }
@@ -653,8 +681,8 @@ export default function ScenarioAnalysis() {
       <style>{STYLES}</style>
       <div className="scenarios-page">
         <div className="demo-banner">
-          <b>BETA · Scenario Analysis v1 · Sprint 2</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
-          <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> now shows <b>real engine output</b> for canned scenarios — picks come from the live v9 optimizer fed a stressed factor panel translated through translate_ccar_to_v9. Out-of-sample accuracy gates run in Sprint 3 — until they pass, treat L4 picks as <b>illustrative engine output, not yet validated against historical actuals</b>. L1–L3 panels and bespoke-shock L4 still use the v2.3 demo math (composite stress + custom-shock engine wiring land in Sprint 2.5 / v1.1).
+          <b>Scenario Analysis v2</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
+          <b>L1–L3 demo math</b> uses sector loadings empirically refit against 2006–2026 monthly factor history (Senior Quant rebuild, 2026-04-28 — fixes Bug #1108 directional sign error on Energy under inflation). <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> shows live v9 engine output for canned scenarios — picks come from the production optimizer fed a stressed factor panel. Out-of-sample accuracy gates land in Sprint 3.
         </div>
 
         <div className="tab-head">
@@ -726,12 +754,14 @@ export default function ScenarioAnalysis() {
                 if (isPinned) cls.push("pinned");
                 if (isDriver) cls.push("driver");
                 if (isAuto) cls.push("auto");
-                const val = (prop === "bespoke" && !isPinned) ? effShocks[f.id] : shocks[f.id];
+                const val = isAuto ? effShocks[f.id] : shocks[f.id];
+                const nominal = fmtNominal(f.id, val);
                 return (
                   <div key={f.id} className={cls.join(" ")}>
                     <span className="factor-name">{f.name}</span>
                     <input type="range" min={f.min} max={f.max} step={f.step} value={val.toFixed(2)} onChange={e => onSliderChange(f.id, parseFloat(e.target.value))} />
                     <span className="factor-val">{fmtZ(val)}</span>
+                    <span className="factor-nominal" title={`${f.name} ≈ ${nominal} at ${fmtZ(val)} (calibrated 2006-2026 mean+std)`}>{nominal}</span>
                     <span className="factor-pin" onClick={() => onPinToggle(f.id)} title={isPinned ? "Unpin" : "Pin"}>{isPinned ? "📌" : "📍"}</span>
                   </div>
                 );
@@ -1179,7 +1209,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
       </div>
 
       <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"\"JetBrains Mono\",monospace", fontStyle:"italic"}}>
-        Live v9 engine output · panel as of {asOf} · BETA — engine output not yet validated against historical actuals (Sprint 3 acceptance gates pending). Composites held at current values in v1; Sprint 2.5 will stress them too.
+        Live v9 engine output · panel as of {asOf} · engine output not yet validated against historical actuals (Sprint 3 acceptance gates pending). Composites held at current values in v1; Sprint 2.5 will stress them too.
       </div>
     </div>
   );
