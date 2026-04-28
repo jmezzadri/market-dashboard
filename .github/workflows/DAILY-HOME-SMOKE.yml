@@ -1,0 +1,46 @@
+name: DAILY-HOME-SMOKE
+
+# Daily smoke test against the live site. Fetches every public/*.json
+# consumed by the home page and the four anchor tabs, validates the
+# producer/consumer contract, and on failure files a P0 bug into
+# Supabase bug_reports so it surfaces in the morning triage queue.
+#
+# Why this exists: bug #1109 (2026-04-28) — Home Outperformance tile
+# rendered an em-dash for three days because the v9 producer dropped
+# three SPY benchmark fields with no consumer-side error. See LESSONS
+# rule #29.
+
+on:
+  schedule:
+    # 11:00 UTC = 06:00 ET (DST) / 07:00 ET (standard). Right before
+    # Joe loads the dashboard with morning coffee.
+    - cron: "0 11 * * *"
+  # Also run after every push to main, since main-deploys are the most
+  # likely cause of a regression.
+  push:
+    branches: [main]
+    paths:
+      - "compute_v9_allocation.py"
+      - "fetch_history.py"
+      - "compute_composite_history.py"
+      - "public/*.json"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: Live producer/consumer contract smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run contract checker (live mode + file-bug on failure)
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/check_producer_contracts.py --live --file-bug
