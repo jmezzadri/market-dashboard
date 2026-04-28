@@ -1,0 +1,34 @@
+name: PR-CONTRACT-CHECK
+
+# Producer/consumer contract check. Fires on any PR that touches a
+# JSON producer (compute_v9_allocation.py, indicator/composite recompute
+# scripts), a public/*.json file, or a frontend file that consumes them.
+# See LESSONS.md rule #29.
+
+on:
+  pull_request:
+    paths:
+      - "compute_v9_allocation.py"
+      - "fetch_history.py"
+      - "compute_composite_history.py"
+      - "scripts/**"
+      - "public/*.json"
+      - "src/App.jsx"
+      - "src/pages/**"
+      - ".github/workflows/PR-CONTRACT-CHECK.yml"
+
+jobs:
+  contract-check:
+    name: Validate producer/consumer contracts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out PR head
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run contract checker (local mode)
+        run: python scripts/check_producer_contracts.py

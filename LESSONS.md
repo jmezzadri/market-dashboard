@@ -1368,3 +1368,62 @@ time that should have been spent in the original ship cycle.
 This rule pairs with rule 2 (file bugs formally) — the symmetric
 discipline. Filing creates the ticket; shipping closes it.
 
+## 29. JSON producer schema changes break Home tiles silently — contract is binding
+
+**What happened.** Bug #1109 (2026-04-28). When the v9 methodology
+was locked on 2026-04-25, `compute_v9_allocation.py` was simplified
+to emit a single `vs_spy_cagr_diff` field instead of the three per-side
+benchmark fields (`back_test_spx_cagr`, `back_test_spx_sharpe`,
+`back_test_spx_max_drawdown`). The Home Outperformance/Drawdown/Sharpe
+tile reads the per-side fields to compute the gap and render the
+"X% model · Y% S&P" comparator lines. With the SPY side missing, the
+headline cell printed `—` and the comparator lines hid. The bug
+shipped to prod and sat there for three days before Joe noticed.
+
+**The deeper failure.** This is the same class of bug as the schema
+rename rule (the `shares → quantity` SQL bug from 2026-04-21) — a
+producer changed its output shape without an error, and the consumer
+silently degraded instead of failing loud. The SQL rule didn't
+generalize to JSON producer/consumer contracts. Every `public/*.json`
+file is a contract between a Python producer and a React consumer.
+JS happily reads `undefined` and renders blank.
+
+**What you should do instead.**
+
+1. **Treat every `public/*.json` schema as binding.** Before removing
+   or renaming any key in `compute_v9_allocation.py`, the indicator
+   or composite recompute scripts, or any file under `public/`, grep
+   `src/App.jsx` and `src/pages/*.jsx` for every key being changed.
+   If any consumer reads it, update both sides in the same PR — the
+   binding contract is producer ↔ consumer, not producer alone.
+
+2. **The contract is enforced automatically — keep it accurate.** The
+   contracts live in `scripts/check_producer_contracts.py`. Two
+   guardrails consume that file:
+   - `.github/workflows/PR-CONTRACT-CHECK.yml` runs on any PR
+     touching a producer or consumer; fails the PR if a required
+     key is missing or null.
+   - `.github/workflows/DAILY-HOME-SMOKE.yml` runs daily at 06:00 ET
+     against the live site; on failure files a P0 bug into
+     `bug_reports` so it lands in the morning triage queue.
+   When a new public/*.json producer/consumer is added, extend the
+   `CONTRACTS` dict in the same PR. When a key the UI reads is
+   genuinely retired, remove it from `CONTRACTS` and from the UI in
+   the same PR — never one without the other.
+
+3. **Self-UAT on shared-producer PRs MUST include a Home-page load.**
+   Per the project's Self-UAT mandate, any PR touching a producer
+   listed in `CONTRACTS` requires loading `macrotilt.com/#home`,
+   confirming the Outperformance/Drawdown/Sharpe tile renders real
+   numbers (not `—`), and attaching a screenshot to the PR. The PR
+   template has the checklist; a green CI doesn't substitute for the
+   screenshot — the contract test catches *missing* keys, not
+   *changed shapes* the contract hasn't been told about yet.
+
+4. **The class of error is "silent consumer degradation."** Whenever
+   a change to one file could make a different file render blank
+   without throwing, that's the trigger for adding a contract entry.
+   The contract list is meant to grow as new fragile producer/consumer
+   pairs are identified — under-coverage is the failure mode, not
+   over-coverage.
+
