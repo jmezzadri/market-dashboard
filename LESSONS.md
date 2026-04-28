@@ -1162,3 +1162,69 @@ on one real position before declaring done. The 100x bug above passed
 build-clean and was only caught when Joe tried it for real.
 
 <!-- 2026-04-27: trigger fresh prod deploy after Vercel Hobby->Pro upgrade (PR #230 stuck behind 100/day Hobby cap) -->
+
+## 20. Chase wash-sale rows keep Total Realized = $0 — parse `Disallowed Loss` separately
+
+**The rule.** When importing Chase realized-gain/loss exports (or any
+broker's 1099-B-style report) into `public.transactions`, Chase's
+`Total Realized Gain Loss USD` column is the **taxable** number — it
+already excludes losses that were disallowed under wash-sale rules. The
+disallowed loss lives in a separate column (`Disallowed Loss`) and
+gets folded into the cost basis of replacement lots. The Realized P&L
+tile uses Chase's taxable number by design (so the YTD card matches
+the user's 1099-B). If you ever need an **economic** P&L view, the
+disallowed amount is preserved in the row's `notes` field and must be
+parsed back out.
+
+**Why.** 2026-04-28, importing Joe's Chase YTD 2026 realized-G/L
+report. Chase reported total realized P&L of -$25,300 against
+$136,522 of disallowed loss — meaning the **economic** loss for the
+year was actually closer to -$162,000, but only -$25,300 is reportable
+on the 1099-B. The same row that shows `Total Realized = $0` can
+have `Disallowed Loss = $598.24` because the entire economic loss was
+moved to the basis of a replacement lot purchased within 30 days. If
+the Realized P&L tile silently reported the economic number, the YTD
+card would have shown -$162K and Joe's tile would not match what
+Chase shows on its own UI or what his accountant sees on the 1099-B.
+
+**How to apply.**
+
+1. **For 1099-B / tile-display purposes, use Chase's `Total Realized
+   Gain Loss USD` as the canonical `realized_pnl`.** That's the
+   taxable, reportable, IRS-correct number.
+
+2. **Preserve the disallowed amount in `notes`** on every wash-sale
+   row, in a parseable format. The current importer writes:
+   `Wash sale: $X disallowed (rolled into replacement basis)`. Future
+   features can `regexp_match(notes, 'Wash sale: \$([0-9.,]+)')` to
+   recover the dollar figure.
+
+3. **Do not double-count when computing economic P&L.** The
+   disallowed loss isn't gone — it's parked in the replacement lot's
+   cost basis and will materialize when that lot is finally sold
+   without another wash-sale violation. Adding `Total Realized` +
+   `Disallowed Loss` only gives the cash impact for the **current
+   year**; over a multi-year window the disallowed amount surfaces
+   later as a larger realized loss on the replacement lot.
+
+4. **Holding period and ST/LT come from the date span, not Chase's
+   ST/LT columns.** Chase splits ST and LT into separate columns and
+   one is always $0. Compute `holding_days = sale_date − acquired_date`
+   and `is_long_term = holding_days > 365` so the data is internally
+   consistent and the Realized P&L tile's tooltip math is right.
+
+5. **Look out for negative quantities on options.** Chase encodes
+   short option positions with a negative `Quantity`. Store quantity
+   as positive in the table and set `direction = 'short'`; otherwise
+   the trade history table double-negates the realized P&L when it
+   formats the row.
+
+6. **Look out for $0-P&L rows.** Wash-sale closes, expired short
+   options, and closed-for-zero positions all show `Total Realized =
+   $0`. They're real closes, not broken rows — keep them in the
+   ledger so the close count is accurate.
+
+This rule pairs with rule #25 (option per-share vs per-contract
+convention): both describe broker-data quirks where the dollar field
+that *looks* canonical isn't the dollar field that *is* canonical.
+Always read the column definitions before trusting the totals.
