@@ -568,6 +568,10 @@
     "back_test_max_drawdown": -0.2364,
     "vs_spy_cagr_diff": 0.0282,
     "ig_universe_size": 25,
-    "igs_scored": 25
+    "igs_scored": 25,
+    "back_test_spx_cagr": 0.0916,
+    "back_test_spx_sharpe": 0.54,
+    "back_test_spx_max_drawdown": -0.533,
+    "vs_spx_cagr_diff": 0.0472
   }
 }
