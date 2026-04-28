@@ -45,6 +45,7 @@ import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 REPO_ROOT = Path(__file__).resolve().parent
@@ -91,7 +92,7 @@ def ewma_zscore(series: pd.Series, halflife: float = HALFLIFE_DAYS) -> pd.Series
     ewm = s_clipped.ewm(halflife=halflife, adjust=False)
     mu = ewm.mean()
     var = ewm.var(bias=False)
-    sigma = var.pow(0.5).replace(0, pd.NA)
+    sigma = var.pow(0.5).replace(0, np.nan)
 
     z = (s_clipped - mu) / sigma
     z = z.clip(lower=-WINSORIZE_SIGMA, upper=WINSORIZE_SIGMA)
@@ -140,7 +141,7 @@ def build_composite_series(
         spec = weights.get(name, {})
         indicators = spec.get("indicators", [])
         if not indicators:
-            out[col] = pd.NA
+            out[col] = np.nan
             continue
 
         weighted_z = pd.Series(0.0, index=calendar)
@@ -177,12 +178,12 @@ def build_composite_series(
         if weight_total > 0:
             comp = weighted_z / weight_total
         else:
-            comp = pd.Series(pd.NA, index=calendar)
+            comp = pd.Series(np.nan, index=calendar)
 
         # Score = z * 50, clipped to ±100. Null until we have at least one
         # contributing indicator on that date.
         score = (comp * SCORE_SCALE).clip(lower=-SCORE_CLIP, upper=SCORE_CLIP)
-        score[~usable_mask] = pd.NA
+        score[~usable_mask] = np.nan
         out[col] = score.round(1)
 
     return out
