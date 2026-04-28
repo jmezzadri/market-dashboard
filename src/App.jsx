@@ -6266,8 +6266,8 @@ return(
   };
   const cardHeadStyle = {
     display:"flex", alignItems:"baseline", justifyContent:"space-between",
-    paddingBottom:"var(--space-3)",
-    marginBottom:"var(--space-4)",
+    paddingBottom:"var(--space-2)",
+    marginBottom:"var(--space-3)",
     borderBottom:"1px solid var(--border-faint)",
     gap:12,
   };
@@ -6289,12 +6289,12 @@ return(
   return (
   <main className="fade-in main-padded mt-home" style={{
     maxWidth:1360, margin:"0 auto",
-    padding:"var(--space-4) var(--space-8) var(--space-10)",
-    display:"flex", flexDirection:"column", gap:"var(--space-6)",
+    padding:"var(--space-3) var(--space-8) var(--space-8)",
+    display:"flex", flexDirection:"column", gap:"var(--space-5)",
   }}>
 
     {/* ─── PAGE HEAD ─── */}
-    <div style={{padding:"var(--space-3) 0 var(--space-5)"}}>
+    <div style={{padding:"var(--space-2) 0 var(--space-3)"}}>
       <div style={{
         fontFamily:"var(--font-mono)", fontSize:11,
         color:"var(--accent)", letterSpacing:"0.18em", textTransform:"uppercase",
@@ -6378,7 +6378,7 @@ return(
          width below. Methodology tile removed 2026-04-23 — already in
          the footer. (Joe feedback.) */}
     <section className="mt-top-grid" style={{
-      display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-5)",
+      display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-4)",
       alignItems:"stretch",
     }}>
 
