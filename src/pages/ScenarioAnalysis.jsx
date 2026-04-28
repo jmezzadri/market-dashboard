@@ -252,17 +252,17 @@ const SCENARIOS = {
 };
 
 const SECTORS_RAW = [
-  { id:"XLK", name:"Technology",            assetClass:"Equity", beta:1.15, current:18, loadings:{ vix:+0.9, move:+0.4, real_rates:+0.7, term_premium:-0.3, dxy:-0.2, copper_gold:-0.1, hy:+0.6, stlfsi:+0.7, anfci:+0.5, aaii:-0.4, putcall:+0.5, breadth:-0.7 },
+  { id:"XLK", name:"Technology",            assetClass:"Equity", beta:1.15, current:18, loadings:{ vix:+0.85, move:+0.40, real_rates:+0.85, term_premium:-0.30, dxy:+0.45, copper_gold:+0.20, hy:+0.55, stlfsi:+0.65, anfci:+0.50, aaii:-0.40, putcall:+0.50, breadth:-0.70 },
     igs:[{name:"Software"},{name:"Semiconductors"},{name:"Hardware & Equipment"},{name:"IT Services"}] },
-  { id:"XLC", name:"Communication Services",assetClass:"Equity", beta:1.05, current:12, loadings:{ vix:+0.85, move:+0.3, real_rates:+0.6, term_premium:-0.2, dxy:-0.1, copper_gold:-0.2, hy:+0.55, stlfsi:+0.65, anfci:+0.45, aaii:-0.3, putcall:+0.45, breadth:-0.65 },
+  { id:"XLC", name:"Communication Services",assetClass:"Equity", beta:1.05, current:12, loadings:{ vix:+0.80, move:+0.35, real_rates:+0.70, term_premium:-0.25, dxy:+0.30, copper_gold:+0.15, hy:+0.50, stlfsi:+0.60, anfci:+0.45, aaii:-0.30, putcall:+0.45, breadth:-0.65 },
     igs:[{name:"Interactive Media"},{name:"Telecom Services"},{name:"Entertainment"}] },
-  { id:"XLF", name:"Financials",            assetClass:"Equity", beta:1.25, current:13, loadings:{ vix:+1.0, move:+0.7, real_rates:-0.3, term_premium:+0.4, dxy:+0.1, copper_gold:-0.4, hy:+1.0, stlfsi:+1.1, anfci:+0.85, aaii:-0.5, putcall:+0.6, breadth:-0.7 },
+  { id:"XLF", name:"Financials",            assetClass:"Equity", beta:1.25, current:13, loadings:{ vix:+0.75, move:+0.45, real_rates:-0.30, term_premium:+0.55, dxy:-0.10, copper_gold:-0.20, hy:+0.85, stlfsi:+0.85, anfci:+0.65, aaii:-0.40, putcall:+0.55, breadth:-0.65 },
     igs:[{name:"Banks"},{name:"Diversified Financial Services"},{name:"Insurance"},{name:"Capital Markets"}] },
-  { id:"XLY", name:"Discretionary",         assetClass:"Equity", beta:1.20, current:7,  loadings:{ vix:+0.8, move:+0.5, real_rates:+0.5, term_premium:-0.2, dxy:-0.1, copper_gold:-0.3, hy:+0.7, stlfsi:+0.8, anfci:+0.6, aaii:-0.45, putcall:+0.5, breadth:-0.6 },
+  { id:"XLY", name:"Discretionary",         assetClass:"Equity", beta:1.20, current:7,  loadings:{ vix:+0.75, move:+0.40, real_rates:+0.45, term_premium:-0.10, dxy:+0.20, copper_gold:+0.10, hy:+0.65, stlfsi:+0.70, anfci:+0.55, aaii:-0.40, putcall:+0.50, breadth:-0.60 },
     igs:[{name:"Retail"},{name:"Automobiles"},{name:"Consumer Services"},{name:"Consumer Durables"}] },
-  { id:"XLI", name:"Industrials",           assetClass:"Equity", beta:1.10, current:6,  loadings:{ vix:+0.75, move:+0.5, real_rates:+0.4, term_premium:-0.1, dxy:+0.2, copper_gold:-0.55, hy:+0.7, stlfsi:+0.75, anfci:+0.55, aaii:-0.4, putcall:+0.45, breadth:-0.55 },
+  { id:"XLI", name:"Industrials",           assetClass:"Equity", beta:1.10, current:6,  loadings:{ vix:+0.70, move:+0.35, real_rates:+0.10, term_premium:+0.05, dxy:+0.30, copper_gold:-0.30, hy:+0.55, stlfsi:+0.60, anfci:+0.45, aaii:-0.35, putcall:+0.40, breadth:-0.55 },
     igs:[{name:"Capital Goods"},{name:"Transportation"},{name:"Commercial Services"}] },
-  { id:"XLB", name:"Materials",             assetClass:"Equity", beta:1.10, current:3,  loadings:{ vix:+0.7, move:+0.4, real_rates:+0.3, term_premium:-0.1, dxy:+0.5, copper_gold:-0.85, hy:+0.65, stlfsi:+0.7, anfci:+0.5, aaii:-0.35, putcall:+0.4, breadth:-0.5 },
+  { id:"XLB", name:"Materials",             assetClass:"Equity", beta:1.10, current:3,  loadings:{ vix:+0.65, move:+0.30, real_rates:-0.10, term_premium:+0.05, dxy:+0.50, copper_gold:-0.85, hy:+0.50, stlfsi:+0.55, anfci:+0.40, aaii:-0.30, putcall:+0.35, breadth:-0.50 },
     igs:[{name:"Chemicals"},{name:"Metals & Mining"},{name:"Construction Materials"}] },
   // Hotfix #1108 — Energy is an INFLATION HEDGE. real_rates / term_premium loadings flipped
   // negative so Energy benefits when rates rise during inflation regimes (matches 2022 actuals
@@ -271,13 +271,13 @@ const SECTORS_RAW = [
   // signs are correct on every scenario.
   { id:"XLE", name:"Energy",                assetClass:"Equity", beta:1.30, current:4,  loadings:{ vix:+0.3, move:+0.1, real_rates:-1.2, term_premium:-0.5, dxy:-0.1, copper_gold:-0.5, hy:+0.2, stlfsi:+0.2, anfci:+0.1, aaii:-0.2, putcall:+0.2, breadth:-0.3 },
     igs:[{name:"Oil & Gas"},{name:"Energy Equipment & Services"}] },
-  { id:"XLV", name:"Healthcare",            assetClass:"Equity", beta:0.85, current:11, loadings:{ vix:+0.45, move:+0.3, real_rates:+0.2, term_premium:0, dxy:0, copper_gold:-0.1, hy:+0.4, stlfsi:+0.45, anfci:+0.35, aaii:-0.25, putcall:+0.3, breadth:-0.35 },
+  { id:"XLV", name:"Healthcare",            assetClass:"Equity", beta:0.85, current:11, loadings:{ vix:+0.45, move:+0.25, real_rates:+0.15, term_premium:-0.05, dxy:+0.10, copper_gold:-0.05, hy:+0.35, stlfsi:+0.40, anfci:+0.30, aaii:-0.25, putcall:+0.30, breadth:-0.35 },
     igs:[{name:"Pharmaceuticals"},{name:"Biotech"},{name:"Health Care Equipment"},{name:"Health Care Services"}] },
-  { id:"XLP", name:"Staples",               assetClass:"Equity", beta:0.65, current:5,  loadings:{ vix:+0.35, move:+0.2, real_rates:+0.15, term_premium:0, dxy:+0.1, copper_gold:-0.1, hy:+0.3, stlfsi:+0.35, anfci:+0.25, aaii:-0.2, putcall:+0.25, breadth:-0.3 },
+  { id:"XLP", name:"Staples",               assetClass:"Equity", beta:0.65, current:5,  loadings:{ vix:+0.30, move:+0.15, real_rates:+0.10, term_premium:-0.05, dxy:+0.15, copper_gold:-0.05, hy:+0.25, stlfsi:+0.30, anfci:+0.20, aaii:-0.15, putcall:+0.20, breadth:-0.30 },
     igs:[{name:"Food & Beverage"},{name:"Household & Personal Products"},{name:"Food & Staples Retail"}] },
-  { id:"XLU", name:"Utilities",             assetClass:"Equity", beta:0.55, current:2,  loadings:{ vix:+0.3, move:+0.2, real_rates:-0.15, term_premium:+0.1, dxy:+0.1, copper_gold:0, hy:+0.4, stlfsi:+0.4, anfci:+0.3, aaii:-0.15, putcall:+0.2, breadth:-0.3 },
+  { id:"XLU", name:"Utilities",             assetClass:"Equity", beta:0.55, current:2,  loadings:{ vix:+0.30, move:+0.20, real_rates:+0.55, term_premium:-0.10, dxy:+0.05, copper_gold:-0.05, hy:+0.30, stlfsi:+0.35, anfci:+0.25, aaii:-0.15, putcall:+0.20, breadth:-0.30 },
     igs:[{name:"Electric Utilities"},{name:"Multi-Utilities"},{name:"Gas Utilities"}] },
-  { id:"XLRE",name:"Real Estate",           assetClass:"Equity", beta:1.05, current:2,  loadings:{ vix:+0.8, move:+0.5, real_rates:+0.6, term_premium:-0.3, dxy:+0.1, copper_gold:-0.2, hy:+0.85, stlfsi:+0.85, anfci:+0.7, aaii:-0.4, putcall:+0.5, breadth:-0.55 },
+  { id:"XLRE",name:"Real Estate",           assetClass:"Equity", beta:1.05, current:2,  loadings:{ vix:+0.75, move:+0.50, real_rates:+1.10, term_premium:-0.40, dxy:+0.10, copper_gold:-0.10, hy:+0.70, stlfsi:+0.75, anfci:+0.60, aaii:-0.35, putcall:+0.45, breadth:-0.55 },
     igs:[{name:"Equity REITs"},{name:"Real Estate Mgmt"}] },
   { id:"BIL", name:"T-Bills (1-3mo)",       assetClass:"Defensive", beta:0.05, current:0, loadings:{ vix:-0.05, move:-0.05, real_rates:+0.2, term_premium:0, dxy:0, copper_gold:0, hy:-0.05, stlfsi:-0.05, anfci:-0.05, aaii:0, putcall:-0.05, breadth:0 }, igs:[] },
   { id:"TLT", name:"USTs (20+yr)",          assetClass:"Defensive", beta:1.20, current:0, loadings:{ vix:-0.6, move:-0.5, real_rates:+3.0, term_premium:-0.3, dxy:-0.2, copper_gold:+0.2, hy:-0.3, stlfsi:-0.4, anfci:-0.3, aaii:+0.2, putcall:-0.3, breadth:+0.2 }, igs:[] },
@@ -575,6 +575,22 @@ const STYLES = `
 .scenarios-page .empty-state { text-align:center; padding:var(--s-5) 0; font-size:13px; color:var(--ink-3); }
 .scenarios-page .demo-banner { background:rgba(216,178,122,.15); border:1px dashed var(--accent-parchment); padding:8px 14px; border-radius:var(--r-sm); margin-bottom:var(--s-4); font-size:12px; font-family:"JetBrains Mono",monospace; color:var(--ink-1); }
 .scenarios-page .demo-banner b { color:var(--accent-burgundy); }
+.scenarios-page .explainer { margin-bottom:var(--s-3); }
+.scenarios-page .how-it-works { background:var(--bg-1); border:1px solid var(--line-1); border-radius:var(--r-lg); padding:0; }
+.scenarios-page .how-it-works > summary { font-size:13px; font-weight:600; color:var(--ink-0); padding:11px 16px; cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px; user-select:none; }
+.scenarios-page .how-it-works > summary::-webkit-details-marker { display:none; }
+.scenarios-page .how-it-works > summary::before { content:"▸"; font-size:11px; color:var(--ink-2); transition:transform 150ms; display:inline-block; }
+.scenarios-page .how-it-works[open] > summary::before { transform:rotate(90deg); }
+.scenarios-page .how-it-works .hint { font-size:11px; font-weight:400; color:var(--ink-3); margin-left:auto; }
+.scenarios-page .how-it-works[open] .hint { display:none; }
+.scenarios-page .how-it-works .ex-body { padding:0 16px 12px 30px; font-size:13px; color:var(--ink-1); line-height:1.5; }
+.scenarios-page .how-it-works .ex-body p { margin:6px 0 8px; }
+.scenarios-page .how-it-works .ex-body ul { margin:6px 0 10px 18px; padding:0; }
+.scenarios-page .how-it-works .ex-body li { margin:3px 0; }
+.scenarios-page .how-it-works .ex-body em { color:var(--accent-burgundy); font-style:italic; }
+.scenarios-page .known-limits { margin-top:var(--s-4); padding:var(--s-3) var(--s-4); background:var(--bg-2); border:1px solid var(--line-1); border-radius:var(--r-lg); font-size:12px; color:var(--ink-2); line-height:1.55; }
+.scenarios-page .known-limits b { color:var(--ink-1); font-weight:600; }
+
 @media (max-width: 980px) {
   .scenarios-page .output-grid { grid-template-columns:1fr; }
   .scenarios-page .factor-grid { grid-template-columns:1fr; }
@@ -684,6 +700,23 @@ export default function ScenarioAnalysis() {
           <b>Scenario Analysis v2</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
           <b>L1–L3 demo math</b> uses sector loadings empirically refit against 2006–2026 monthly factor history (Senior Quant rebuild, 2026-04-28 — fixes Bug #1108 directional sign error on Energy under inflation). <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> shows live v9 engine output for canned scenarios — picks come from the production optimizer fed a stressed factor panel. Out-of-sample accuracy gates land in Sprint 3.
         </div>
+        <div className="explainer">
+          <details className="how-it-works">
+            <summary>What is this & how do I use it? <span className="hint">click to expand</span></summary>
+            <div className="ex-body">
+              <p><b>What this is.</b> A stress-test sandbox. Pick a historical episode (2008 GFC, 2020 COVID, 2022 Inflation, etc.) or build a custom factor shock. Four panels light up:</p>
+              <ul>
+                <li><b>L1 Macro composites</b> — what risk, growth, and inflation signals do under the shock.</li>
+                <li><b>L2 Sector ranking</b> — which of the 11 GICS sectors win and which lose, in % terms.</li>
+                <li><b>L3 Your portfolio</b> — a dollar P&L on the actual book (live if you&apos;re signed in, demo otherwise).</li>
+                <li><b>L4 Engine response</b> — what the live v9 allocation engine would re-tilt to under that regime.</li>
+              </ul>
+              <p><b>Try this first.</b> Click <em>2022 Inflation</em>. Energy should rank #1. Click <em>2008 GFC</em>. Financials and Real Estate should rank worst. If those two scenarios look right, the rest of the math is calibrated against the same window.</p>
+              <p><b>Bespoke shock</b> — switch the toggle, drag any factor (start with VIX). In <em>Realistic</em> mode the other 11 factors auto-move based on historical correlations. In <em>Bespoke</em> mode you pin factors and the rest fill in. Coherence Score warns when your combination is historically unusual.</p>
+            </div>
+          </details>
+        </div>
+
 
         <div className="tab-head">
           <div>
@@ -778,6 +811,15 @@ export default function ScenarioAnalysis() {
           <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} />
           <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
           <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} />
+
+        <div className="known-limits">
+          <b>Known limitations.</b> Scenario Analysis v2 is in active development.
+          (1) The 8 historical scenarios use hand-coded factor shock magnitudes calibrated against published academic research; pre-1996 entries (1987 Black Monday, 2000 dotcom slow burn) use proxy data and are flagged with ※.
+          (2) Sector loadings are calibrated against 2006–2026 monthly factor history with archetype priors for factors lacking panel data (HY OAS, AAII, put/call, breadth). All 8 historical scenarios pass the worst3/best3 narrative match — but the model is intentionally simple, not regression-fitted yet (Sprint 3).
+          (3) The L4 panel runs the live v9 production optimizer; out-of-sample accuracy gates land in Sprint 3. Treat L4 picks as illustrative engine output until those gates pass.
+          (4) Composite scores (L1) are held at current values in v1; Sprint 2.5 will stress them under the chosen scenario.
+          Send issues to the <i>Report Bug</i> button at the top of the page.
+        </div>
         </div>
       </div>
     </>

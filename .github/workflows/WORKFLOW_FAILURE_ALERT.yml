@@ -1,0 +1,96 @@
+name: WORKFLOW_FAILURE_ALERT
+
+# Fires a Resend email to Joe whenever any scheduled workflow finishes in a
+# failure state. Closes the gap that hid bug #1077 for 3 days (the freshness
+# watchdog quietly went down Friday night and we noticed Tuesday).
+#
+# How it works:
+#   1. workflow_run trigger listens for completion events on every scheduled
+#      workflow we care about (listed under `workflows:` below).
+#   2. The `if:` filter only proceeds when conclusion == 'failure'.
+#   3. A small inline Python step posts a Resend email with the workflow name,
+#      run URL, head sha, and head commit message.
+#
+# To add a new workflow to the watchlist: append its `name:` value to the
+# workflows: list. The trigger is matched on workflow NAME, not file name.
+
+on:
+  workflow_run:
+    workflows:
+      - INDICATOR-REFRESH_7AM_WEEKDAYS
+      - V9-ALLOCATION-WEEKLY
+      - TICKER_EVENTS_3X_WEEKDAYS
+      - UNIVERSE_SNAPSHOT_3X_WEEKDAYS
+      - SCAN_330PM_WEEKDAYS
+      - SCENARIO-PRECOMPUTE-WEEKLY
+      - PHASE1-CALIBRATION
+      - HORSE-RACE-V9-VS-EXTENDED
+    types:
+      - completed
+
+jobs:
+  alert:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - name: Send Resend email
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          WF_NAME: ${{ github.event.workflow_run.name }}
+          WF_RUN_URL: ${{ github.event.workflow_run.html_url }}
+          WF_RUN_ID: ${{ github.event.workflow_run.id }}
+          WF_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WF_HEAD_MSG: ${{ github.event.workflow_run.head_commit.message }}
+          WF_CREATED: ${{ github.event.workflow_run.created_at }}
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request
+
+          name      = os.environ["WF_NAME"]
+          run_url   = os.environ["WF_RUN_URL"]
+          run_id    = os.environ["WF_RUN_ID"]
+          head_sha  = os.environ["WF_HEAD_SHA"][:8]
+          head_msg  = os.environ.get("WF_HEAD_MSG", "")[:200]
+          created   = os.environ.get("WF_CREATED", "")
+          api_key   = os.environ["RESEND_API_KEY"]
+
+          subject = f"[MacroTilt] Workflow FAILED: {name}"
+          html = f"""
+          <div style='font-family:-apple-system,Segoe UI,sans-serif;color:#111;line-height:1.45'>
+            <h2 style='margin:0 0 8px;color:#9b2226'>Workflow failed: {name}</h2>
+            <p>A scheduled GitHub Actions workflow finished with conclusion <b>failure</b>.
+            Open the run log to see which step blew up.</p>
+            <table style='border-collapse:collapse;font-size:13px;margin:14px 0'>
+              <tr><td style='padding:4px 12px 4px 0;color:#666'>Workflow</td><td>{name}</td></tr>
+              <tr><td style='padding:4px 12px 4px 0;color:#666'>Run</td><td><a href='{run_url}'>{run_id}</a></td></tr>
+              <tr><td style='padding:4px 12px 4px 0;color:#666'>Started</td><td>{created}</td></tr>
+              <tr><td style='padding:4px 12px 4px 0;color:#666'>Head SHA</td><td><code>{head_sha}</code></td></tr>
+              <tr><td style='padding:4px 12px 4px 0;color:#666'>Head commit</td><td style='font-size:12px;color:#444'>{head_msg}</td></tr>
+            </table>
+            <p style='font-size:12px;color:#888'>Sent automatically by .github/workflows/WORKFLOW_FAILURE_ALERT.yml</p>
+          </div>
+          """
+
+          body = json.dumps({
+              "from":    "MacroTilt Watchdog <onboarding@resend.dev>",
+              "to":      ["josephmezzadri@gmail.com"],
+              "subject": subject,
+              "html":    html,
+          }).encode()
+
+          req = urllib.request.Request(
+              "https://api.resend.com/emails",
+              data=body,
+              headers={"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"},
+          )
+          try:
+              r = urllib.request.urlopen(req, timeout=15)
+              print("Resend status:", r.status, r.read().decode()[:200])
+          except Exception as e:
+              print("Resend send FAILED:", e)
+              raise SystemExit(1)
+          PY

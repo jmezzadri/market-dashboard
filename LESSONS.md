@@ -1228,3 +1228,143 @@ This rule pairs with rule #25 (option per-share vs per-contract
 convention): both describe broker-data quirks where the dollar field
 that *looks* canonical isn't the dollar field that *is* canonical.
 Always read the column definitions before trusting the totals.
+
+## 26. Pandas nullable types and round() — use np.nan, not pd.NA, in JSON pipelines
+
+**The rule.** When a Python compute script writes its output to JSON and uses
+pandas Series/DataFrame intermediates, fill missing values with `np.nan`,
+NOT `pd.NA`. The two look interchangeable in pandas DataFrames but `pd.NA`
+(the pandas-native NAType) does not implement `__round__`, so any
+downstream `Series.round(...)` call raises
+`TypeError: type NAType doesn't define __round__ method` on pandas 2.3+.
+
+**Why.** 2026-04-28 — INDICATOR-REFRESH step 8 (`compute_composite_history.py`)
+went red with that exact TypeError. Lines 94 / 143 / 180 / 185 had been
+assigning `pd.NA` into score Series since v1, then line 186 called
+`score.round(1)` for the JSON output. Pandas 2.3 (which CI's runner image
+upgraded to recently) removed `__round__` on NAType, blowing up the step
+and skipping steps 9-11 (Today's Macro composite commit, v9 allocation
+recompute, v9 commit). Today's Macro dials and Asset Tilt freshness chip
+were stuck on Friday's data until the fix shipped (PR #259). Same class
+of bug as rule 18 — pandas API drift across version bumps.
+
+**How to apply.**
+
+1. **Compute scripts that emit JSON: always use `np.nan` for missing values.**
+   `np.nan` rounds fine, JSON-serializes as `null`, and survives
+   future pandas version bumps. `pd.NA` is the right choice for nullable
+   integer/boolean columns inside a DataFrame, but never for a Series whose
+   final operation is `.round()` or any other arithmetic that may not
+   support NAType.
+2. **`Series.replace(0, pd.NA)` is also a trap** — if the resulting Series
+   then participates in arithmetic that flows into a `.round()`, you'll
+   hit the same crash. Use `np.nan` for "missing" markers in any compute
+   path that ends in JSON serialization.
+3. **CI smoke check.** When touching any compute script, grep the file for
+   `pd.NA` and audit each occurrence: is the resulting value going to be
+   rounded, formatted, or serialized? If yes, use `np.nan`.
+4. **`requirements.txt` floor stays `pandas>=2.2.0`** (rule 18) so we keep
+   getting deprecation warnings before removals — but the warnings won't
+   help with NAType because there is no warning, just a removal. This rule
+   covers that gap.
+
+This rule pairs with rule 18 (pandas frequency aliases). Both describe
+silent-API-removal bugs that surface only when CI's pandas crosses a
+minor-version boundary.
+
+---
+
+## 27. Date-field naming — `as_of` is calibration anchor, NOT "last update"
+
+**The rule.** When a JSON output has multiple date-flavored fields, name
+them precisely and use the one that matches the UI label's semantic.
+`as_of` means "calibration / observation anchor date" — it usually refers
+to the last reported value of an underlying data source and does NOT
+advance when the script re-runs. `calculated_at` (or `generated_at`,
+`rebalanced_at`, etc.) is the script's run timestamp — it advances on
+every recompute. Any UI element labelled "last update", "rebalance
+date", or "data freshness" reads `calculated_at`, NEVER `as_of`.
+
+**Why.** 2026-04-28 — Bug #1104 sat open for two days because the
+Asset Tilt staleness chip on `/#asset-allocation` was reading
+`alloc.as_of` to compute days-since-rebalance. `compute_v9_allocation.py`
+sets `as_of = str(last_complete_month.date())` — the last full
+calendar month (e.g. 2026-03-31), which only changes month-to-month.
+The script's actual rebuild timestamp is in `calculated_at`. So even
+after a successful Saturday rebuild on April 27, the chip read
+"Last update: March 31 (28 days old)" the entire month of April.
+Bug #1093 closed yesterday with the red-dot rendering fixed, but
+the underlying date-source mismatch was not addressed until PR #259.
+
+**How to apply.**
+
+1. **Compute scripts emit at least two date fields:** an `as_of`
+   (or `panel_last_obs`) for the calibration / source date, and a
+   `calculated_at` (ISO timestamp with timezone) for the actual run.
+   Every script that writes a JSON consumed by the UI follows this
+   convention.
+2. **UI staleness chips read `calculated_at`** with a fallback to
+   `as_of` for legacy JSONs that don't have it. Never the other way
+   around.
+3. **Name fields by semantic, not by tradition.** A field called
+   `as_of` should mean "data anchor date." A field called
+   `last_update` should mean "rebuild timestamp." If a script
+   semantically conflates the two, refactor before adding UI that
+   reads it.
+4. **UX Designer signs off** on any new staleness chip / "last
+   update" UI element to confirm it's reading the rebuild timestamp,
+   not the calibration anchor.
+
+This rule pairs with rule 1 (plain-English status reports). Same
+principle in a different domain — words on the screen need to mean
+what users will read them as.
+
+---
+
+## 28. Ticket discipline — close the bug in the same PR that ships the fix
+
+**The rule.** When a fix commits to a bug, the fixing PR (or the same
+commit, if direct) updates `bug_reports.status = 'verified_closed'`
+with `fixed_sha`, `merged_pr`, and `triage_notes`. Do not leave a
+fixed bug sitting at `status = 'new'` waiting for a separate triage
+sweep to notice. Open tickets with shipped fixes lie about
+outstanding work and confuse the build operator's queue.
+
+**Why.** 2026-04-28 — three bugs (#1077 freshness watchdog, #1097
+ticker_events workflow, #1108 Energy directional sign) had already
+been fixed in earlier commits (mig 031, weekend self-heal, commit
+1f285f02 respectively) but were still flagged `status='new'` on
+the bug-reports query. When auditing the queue for F&F readiness,
+the open tickets read as if 3 hours of unfixed work remained.
+Took ~10 minutes to verify each was actually fixed and close it —
+time that should have been spent in the original ship cycle.
+
+**How to apply.**
+
+1. **Every fix-shipping PR closes its bug ticket as part of the
+   merge.** Either the PR description says "Closes #N" (which
+   GitHub auto-applies on merge if Joe wires that in) OR the
+   ship script PATCHes `bug_reports` after the merge with
+   `status='verified_closed'`, `fixed_sha`, `merged_pr`, and a
+   one-paragraph `triage_notes`.
+2. **Do not rely on the next Triage Sweep** to notice the fix.
+   The Triage Sweep handles new arrivals; closure is owned by
+   the ship cycle.
+3. **The `verified_closed` status requires evidence of UAT** —
+   the ship cycle already does Self-UAT (LESSONS rule per project
+   instructions), the triage_notes line should reference the UAT
+   verification (run number, Vercel deployment URL, file hash,
+   etc.) so a future audit can trace the evidence.
+4. **Server-side fixes (database migrations, edge functions,
+   pg_cron schedules) close their tickets the same way.** A
+   migration that ran successfully against prod is a closure
+   trigger, not a "wait for the next triage sweep" trigger.
+5. **Rare exceptions:** if a fix is partial (closes the headline
+   symptom but leaves a known follow-on), the ticket stays open
+   with `triage_notes` describing what's still outstanding, and
+   a follow-on ticket is filed for the rest. Don't close
+   half-fixes.
+
+This rule pairs with rule 2 (file bugs formally) — the symmetric
+discipline. Filing creates the ticket; shipping closes it.
+
