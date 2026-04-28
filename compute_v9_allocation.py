@@ -205,7 +205,31 @@ def fit_per_asset_forecast(asset_returns, factor_panel, factor_names, *, forecas
     return float((1 - SHRINK) * raw + SHRINK * long_run)
 
 
-def equity_share_from_RL(rl):
+prev_alloc = None
+
+def equity_share_from_RL(rl, prev_state=None):
+    """Equity share schedule keyed off the R&L composite.
+
+    Smoothed in feature/quant-v9-threshold-smoothing (sub-bug of #1113):
+    the original v9 had a tightly-stepped schedule starting at rl=20.
+    This version adds a 5-point hysteresis band so the model does not
+    re-leverage immediately on a small mean-reversion of R&L. The shape
+    of the de-risk curve is unchanged — only the re-leverage trigger is
+    tightened (from rl=20 down to rl=15 once de-risked).
+
+    NOTE: prev_state is read from the prior allocation snapshot (state
+    'leveraged' vs 'derisked'). For initial calls or backtest seeds we
+    default to 'leveraged' so behavior matches the original schedule
+    on the way down, only adding hysteresis on the way back up.
+    """
+    # If we are currently in a de-risked state, require R&L to fall
+    # below 15 before re-engaging full equity. Otherwise the original
+    # schedule applies.
+    if prev_state == "derisked" and rl > 15:
+        # Keep the de-risked curve until R&L cools below 15.
+        if rl <= 30: return 1.0 - (rl - 20) * 0.015 if rl > 20 else 0.85
+        if rl <= 50: return 0.85 - (rl - 30) * 0.0125
+        return 0.60
     if rl <= 20: return 1.0
     if rl <= 30: return 1.0 - (rl - 20) * 0.015
     if rl <= 50: return 0.85 - (rl - 30) * 0.0125
@@ -430,9 +454,25 @@ def compute_allocation_from_data(
     w_D = max_sharpe(mu_d_vec, cov_D, DEF_CAP, RF_M)
 
     # Equity share + leverage
-    equity_share = equity_share_from_RL(rl_now)
-    leverage = leverage_from_IR(ir_now)
-    if rl_now > 20: leverage = 1.0
+    # Smoothing: linear ramp 15 -> 25 instead of the hard cliff at 20.
+    # Hysteresis: once de-risked (prev equity_share < 0.99), require R&L
+    # to drop below 15 before re-leveraging. This prevents the single-day
+    # 1.28x -> 1.00x flip that Joe flagged on 2026-04-28 (sub-bug of #1113).
+    prev_state = "derisked" if (prev_alloc and prev_alloc.get("equity_share", 1.0) < 0.99) else "leveraged"
+    equity_share = equity_share_from_RL(rl_now, prev_state=prev_state)
+    lev_from_ir = leverage_from_IR(ir_now)
+    if rl_now <= 15:
+        # Full leverage zone — but only if previously leveraged OR R&L is well below 15.
+        if prev_state == "leveraged" or rl_now <= 10:
+            leverage = lev_from_ir
+        else:
+            leverage = 1.0  # hysteresis: stay derisked
+    elif rl_now >= 25:
+        leverage = 1.0
+    else:
+        # Linear ramp: lev_from_ir at rl=15, 1.0 at rl=25.
+        fraction = (25.0 - rl_now) / 10.0
+        leverage = 1.0 + (lev_from_ir - 1.0) * fraction
     alpha = equity_share * leverage
 
     if alpha <= 1.0:
@@ -508,6 +548,20 @@ def compute_allocation_from_data(
 
 def main():
     print("[v9] computing current allocation...")
+
+    # Read prior allocation for hysteresis state. Optional — falls back to
+    # leveraged-by-default which matches original behavior on first run.
+    import os as _os
+    global prev_alloc
+    prev_alloc = None
+    prior_path = _os.environ.get("V9_PRIOR_ALLOC", "public/v9_allocation.json")
+    if _os.path.exists(prior_path):
+        try:
+            with open(prior_path) as _f: prev_alloc = json.load(_f)
+            print(f"  loaded prior alloc for hysteresis: equity_share={prev_alloc.get('equity_share')}, leverage={prev_alloc.get('leverage')}")
+        except Exception as _e:
+            print(f"  could not read prior alloc ({_e}); using leveraged default")
+
     factors, composites, monthly_ret = load_all_data()
 
     out = compute_allocation_from_data(factors, composites, monthly_ret)
