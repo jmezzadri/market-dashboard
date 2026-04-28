@@ -457,6 +457,7 @@ const STYLES = `
 .scenarios-page .crumb { font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:var(--s-2); }
 .scenarios-page h1.title { font-family:Fraunces,Georgia,serif; font-weight:400; font-size:34px; letter-spacing:-.015em; line-height:1.1; color:var(--ink-0); }
 .scenarios-page .lede { font-size:14px; color:var(--ink-1); max-width:600px; margin-top:var(--s-2); }
+.scenarios-page .lede em { font-style:italic; color:var(--accent-burgundy); }
 .scenarios-page .mode-toggle { display:inline-flex; border:1px solid var(--line-1); border-radius:var(--r-lg); overflow:hidden; background:var(--bg-1); }
 .scenarios-page .mode-toggle button { font-family:Inter,sans-serif; font-size:13px; font-weight:500; padding:10px 18px; border:none; background:transparent; color:var(--ink-1); cursor:pointer; transition:all 120ms; }
 .scenarios-page .mode-toggle button.active { background:var(--ink-0); color:var(--bg-1); }
@@ -575,21 +576,6 @@ const STYLES = `
 .scenarios-page .empty-state { text-align:center; padding:var(--s-5) 0; font-size:13px; color:var(--ink-3); }
 .scenarios-page .demo-banner { background:rgba(216,178,122,.15); border:1px dashed var(--accent-parchment); padding:8px 14px; border-radius:var(--r-sm); margin-bottom:var(--s-4); font-size:12px; font-family:"JetBrains Mono",monospace; color:var(--ink-1); }
 .scenarios-page .demo-banner b { color:var(--accent-burgundy); }
-.scenarios-page .explainer { margin-bottom:var(--s-3); }
-.scenarios-page .how-it-works { background:var(--bg-1); border:1px solid var(--line-1); border-radius:var(--r-lg); padding:0; }
-.scenarios-page .how-it-works > summary { font-size:13px; font-weight:600; color:var(--ink-0); padding:11px 16px; cursor:pointer; list-style:none; display:flex; align-items:center; gap:10px; user-select:none; }
-.scenarios-page .how-it-works > summary::-webkit-details-marker { display:none; }
-.scenarios-page .how-it-works > summary::before { content:"▸"; font-size:11px; color:var(--ink-2); transition:transform 150ms; display:inline-block; }
-.scenarios-page .how-it-works[open] > summary::before { transform:rotate(90deg); }
-.scenarios-page .how-it-works .hint { font-size:11px; font-weight:400; color:var(--ink-3); margin-left:auto; }
-.scenarios-page .how-it-works[open] .hint { display:none; }
-.scenarios-page .how-it-works .ex-body { padding:0 16px 12px 30px; font-size:13px; color:var(--ink-1); line-height:1.5; }
-.scenarios-page .how-it-works .ex-body p { margin:6px 0 8px; }
-.scenarios-page .how-it-works .ex-body ul { margin:6px 0 10px 18px; padding:0; }
-.scenarios-page .how-it-works .ex-body li { margin:3px 0; }
-.scenarios-page .how-it-works .ex-body em { color:var(--accent-burgundy); font-style:italic; }
-.scenarios-page .known-limits { margin-top:var(--s-4); padding:var(--s-3) var(--s-4); background:var(--bg-2); border:1px solid var(--line-1); border-radius:var(--r-lg); font-size:12px; color:var(--ink-2); line-height:1.55; }
-.scenarios-page .known-limits b { color:var(--ink-1); font-weight:600; }
 
 @media (max-width: 980px) {
   .scenarios-page .output-grid { grid-template-columns:1fr; }
@@ -700,29 +686,13 @@ export default function ScenarioAnalysis() {
           <b>Scenario Analysis v2</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
           <b>L1–L3 demo math</b> uses sector loadings empirically refit against 2006–2026 monthly factor history (Senior Quant rebuild, 2026-04-28 — fixes Bug #1108 directional sign error on Energy under inflation). <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> shows live v9 engine output for canned scenarios — picks come from the production optimizer fed a stressed factor panel. Out-of-sample accuracy gates land in Sprint 3.
         </div>
-        <div className="explainer">
-          <details className="how-it-works">
-            <summary>What is this & how do I use it? <span className="hint">click to expand</span></summary>
-            <div className="ex-body">
-              <p><b>What this is.</b> A stress-test sandbox. Pick a historical episode (2008 GFC, 2020 COVID, 2022 Inflation, etc.) or build a custom factor shock. Four panels light up:</p>
-              <ul>
-                <li><b>L1 Macro composites</b> — what risk, growth, and inflation signals do under the shock.</li>
-                <li><b>L2 Sector ranking</b> — which of the 11 GICS sectors win and which lose, in % terms.</li>
-                <li><b>L3 Your portfolio</b> — a dollar P&L on the actual book (live if you&apos;re signed in, demo otherwise).</li>
-                <li><b>L4 Engine response</b> — what the live v9 allocation engine would re-tilt to under that regime.</li>
-              </ul>
-              <p><b>Try this first.</b> Click <em>2022 Inflation</em>. Energy should rank #1. Click <em>2008 GFC</em>. Financials and Real Estate should rank worst. If those two scenarios look right, the rest of the math is calibrated against the same window.</p>
-              <p><b>Bespoke shock</b> — switch the toggle, drag any factor (start with VIX). In <em>Realistic</em> mode the other 11 factors auto-move based on historical correlations. In <em>Bespoke</em> mode you pin factors and the rest fill in. Coherence Score warns when your combination is historically unusual.</p>
-            </div>
-          </details>
-        </div>
 
 
         <div className="tab-head">
           <div>
             <div className="crumb">04 · Scenario Analysis</div>
             <h1 className="title">Stress your book against history.</h1>
-            <div className="lede">Pick a historical episode or build a custom factor shock. See impact on macro composites, sector + Industry Group rankings, your portfolio, and what the engine would re-allocate to under that regime.</div>
+            <div className="lede">Pick a historical episode or build a custom factor shock and watch four things light up: macro composites, sector rankings, your portfolio P&L, and what the live engine would re-allocate to. Try <em>2022 Inflation</em> first — Energy should rank best, long-duration growth worst.</div>
           </div>
           <div className="mode-toggle">
             <button className={mode === "canned" ? "active" : ""} onClick={() => onModeChange("canned")}>Canned scenario</button>
@@ -811,15 +781,6 @@ export default function ScenarioAnalysis() {
           <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} />
           <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
           <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} />
-
-        <div className="known-limits">
-          <b>Known limitations.</b> Scenario Analysis v2 is in active development.
-          (1) The 8 historical scenarios use hand-coded factor shock magnitudes calibrated against published academic research; pre-1996 entries (1987 Black Monday, 2000 dotcom slow burn) use proxy data and are flagged with ※.
-          (2) Sector loadings are calibrated against 2006–2026 monthly factor history with archetype priors for factors lacking panel data (HY OAS, AAII, put/call, breadth). All 8 historical scenarios pass the worst3/best3 narrative match — but the model is intentionally simple, not regression-fitted yet (Sprint 3).
-          (3) The L4 panel runs the live v9 production optimizer; out-of-sample accuracy gates land in Sprint 3. Treat L4 picks as illustrative engine output until those gates pass.
-          (4) Composite scores (L1) are held at current values in v1; Sprint 2.5 will stress them under the chosen scenario.
-          Send issues to the <i>Report Bug</i> button at the top of the page.
-        </div>
         </div>
       </div>
     </>
