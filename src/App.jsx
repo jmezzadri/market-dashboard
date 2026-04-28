@@ -5553,6 +5553,7 @@ const NAV_ITEMS = [
   { id:"portopps",   label:"Trading Opportunities",                          icon:<NavIconPie/>    },
   { id:"insights",   label:"Portfolio Insights",                             icon:<NavIconList/>   },
   { id:"indicators", label:"All Indicators",                                icon:<NavIconGrid/>   },
+  { id:"scenarios",  label:"Scenario Analysis · BETA",                      icon:<NavIconHeat/>   },
 ];
 
 // ─── Rich page hero (Strawmen 1/2/3/4/6) ──────────────────────────────────────
@@ -5705,7 +5706,7 @@ useEffect(()=>{
 // for adminLoading to settle so the initial check doesn't bounce real admins
 // off their own tab before the is_admin() RPC resolves.
 useEffect(()=>{
-  if(!adminLoading && !isAdmin && (tab==="admin" || tab==="bugs" || tab==="lab" || tab==="scenarios")) setTab("home");
+  if(!adminLoading && !isAdmin && (tab==="admin" || tab==="bugs" || tab==="lab")) setTab("home");
 },[tab,isAdmin,adminLoading]);
 
 // ─── Navigation stack — so the drill-down back button returns to the
@@ -6129,8 +6130,7 @@ const navItems = isAdmin
   ? [...NAV_ITEMS,
      { id:"admin", label:"Admin · Usage",     icon:<NavIconGauge/> },
      { id:"bugs",  label:"Admin · Bugs",      icon:<NavIconGrid/>  },
-     { id:"lab",   label:"Sector Lab · BETA", icon:<NavIconHeat/>  },
-     { id:"scenarios", label:"Scenario Analysis · BETA", icon:<NavIconHeat/>  }]
+     { id:"lab",   label:"Sector Lab · BETA", icon:<NavIconHeat/>  }]
   : NAV_ITEMS;
 
 return(
