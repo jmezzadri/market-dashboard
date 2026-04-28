@@ -5566,6 +5566,62 @@ const NAV_ITEMS = [
   { id:"indicators", label:"All Indicators",                                icon:<NavIconGrid/>   },
 ];
 
+// ─── Rich page hero (Strawmen 1/2/3/4/6) ──────────────────────────────────────
+// Single helper drives the page heroes for /#overview, /#portopps, /#insights,
+// /#indicators, /#readme. Optional `kpis` array (4 cells) is omitted for the
+// lean methodology variant. `accent` defaults to the brand accent color.
+function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceColor, lead, kpis, freshLine}) {
+  const _bold = ()=>({fontWeight:600,color:"var(--text)"});
+  // Accent palette: strong = green-text; warn = orange-text; mute = text-dim.
+  const _stanceMap = {
+    strong: {color:"var(--green-text, #1f8a5a)", bg:"rgba(31,138,90,0.12)"},
+    warn:   {color:"var(--orange-text, #a5760a)", bg:"rgba(165,118,10,0.12)"},
+    mute:   {color:"var(--text-muted)",           bg:"var(--surface-3)"},
+  };
+  const _s = _stanceMap[stanceColor||"strong"] || _stanceMap.strong;
+  return (
+    <div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"24px 24px 22px",margin:"0 0 14px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:24,flexWrap:"wrap",marginBottom:14}}>
+        <div style={{flex:"1 1 360px",minWidth:0}}>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--accent)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
+            <span style={{display:"inline-block",width:20,height:1,background:"var(--accent)",opacity:0.6}}/>
+            {eyebrow}
+          </div>
+          <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.1,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:720}}>
+            {headline}{italicAccent && <em style={{fontStyle:"italic",color:"var(--accent)"}}> {italicAccent}</em>}
+          </h1>
+          {italicSub && <div style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontStyle:"italic",fontSize:16,color:"var(--text-muted)"}}>{italicSub}</div>}
+        </div>
+        {(stance || freshLine) && (
+          <div style={{textAlign:"right",flex:"0 0 auto"}}>
+            {stance && (
+              <span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:999,background:_s.bg,color:_s.color,fontWeight:600,fontSize:12,fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>
+                <span style={{width:6,height:6,borderRadius:"50%",background:_s.color}}/>
+                {stance}
+              </span>
+            )}
+            {freshLine && <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",letterSpacing:"0.04em",marginTop:6}}>{freshLine}</div>}
+          </div>
+        )}
+      </div>
+      {lead && (
+        <p style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.65,maxWidth:920,margin:"0 0 18px"}}>{lead}</p>
+      )}
+      {kpis && kpis.length > 0 && (
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:10}}>
+          {kpis.map((k,i)=>(
+            <div key={i} style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"12px 14px"}}>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:600}}>{k.lbl}</div>
+              <div className="num" style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:500,color:k.col||"var(--text)",marginTop:4,fontVariantNumeric:"tabular-nums"}}>{k.v}</div>
+              {k.sub && <div style={{fontSize:10,color:"var(--text-dim)",marginTop:2,letterSpacing:"0.04em"}}>{k.sub}</div>}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function App(){
 // Kick off /indicator_history.json fetch on first mount and re-render the
 // whole tree once it lands. Mutation of SD/AS_OF/IND[id][6..8] + composite
@@ -7114,7 +7170,7 @@ return(
 })()}
 
 {/* ─────── DRILL-DOWN — section header for non-home views ─────── */}
-{tab!=="home" && tab!=="portopps" && TAB_META[tab] && (
+{tab!=="home" && tab!=="portopps" && tab!=="overview" && tab!=="insights" && tab!=="indicators" && tab!=="readme" && TAB_META[tab] && (
   <SectionHeader
     eyebrow={TAB_META[tab].eyebrow}
     title={TAB_META[tab].title}
@@ -7127,11 +7183,63 @@ return(
 <div className="fade-in" style={{maxWidth:1440, margin:"0 auto"}}>
 
 {/* OVERVIEW — MACRO ONLY */}
+{tab==="overview"&&(()=>{
+  const M = _macroLatestSnap;
+  const composites = M ? [{k:"R&L",v:M.RL},{k:"Growth",v:M.GR},{k:"Inflation",v:M.IR}] : [];
+  const worst = composites.reduce((a,b)=>(b.v!=null && (a.v==null||b.v>a.v)?b:a),{v:null,k:""});
+  const stressedCount = composites.filter(c=>c.v!=null && c.v>=20).length;
+  const _regimeLabel = !M ? "LOADING"
+    : worst.v==null ? "LOADING"
+    : worst.v >= 50 ? "STRESSED REGIME"
+    : worst.v >= 20 ? "ELEVATED REGIME"
+    : "NORMAL REGIME";
+  const _stanceColor = !M ? "mute" : worst.v>=20 ? "warn" : "strong";
+  return <RichHero
+    eyebrow="Macro Overview"
+    headline={"Where macro stress is "}
+    italicAccent={"right now, and what's leading."}
+    italicSub={M ? `Three composites in balance · defensive watch is ${stressedCount===0?"off":"on"}.` : "Loading composite data…"}
+    stance={_regimeLabel}
+    stanceColor={_stanceColor}
+    freshLine={`Refreshed daily · Last update: ${(AS_OF_ISO?.vix||AS_OF_ISO?.move||"").slice(0,10)||"—"}`}
+    lead={<>This page tracks macro stress across <strong style={{fontWeight:600,color:"var(--text)"}}>three discrete composites</strong> — <strong style={{fontWeight:600,color:"var(--text)"}}>Risk &amp; Liquidity</strong> (3-mo lookahead), <strong style={{fontWeight:600,color:"var(--text)"}}>Growth</strong> (6-mo), and <strong style={{fontWeight:600,color:"var(--text)"}}>Inflation &amp; Rates</strong> (18-mo) — calibrated against twenty-one years of S&amp;P drawdown data. Each composite scores from <strong style={{fontWeight:600,color:"var(--text)"}}>−100 (calm) to +100 (stressed)</strong>, built from indicators that empirically led the last five major equity drawdowns. Read it top-to-bottom: today's reading and quadrant → composite tiles with indicator drivers → 21-year trajectory chart → lead-time event study.</>}
+    kpis={M ? [
+      {lbl:"Worst composite", v:`${worst.k} ${worst.v>0?"+":""}${Math.round(worst.v)}`, col:worst.v>=20?"var(--orange-text)":"var(--green-text)", sub:worst.v>=50?"stressed":worst.v>=20?"elevated":"normal"},
+      {lbl:"Composites in stress", v:`${stressedCount} of 3`, col:stressedCount>0?"var(--orange-text)":"var(--text)", sub:stressedCount>0?"score ≥ +20":"none above +20"},
+      {lbl:"Lead time (avg)", v:"29 weeks", sub:"composite>0 → S&P −15%"},
+      {lbl:"Calibration", v:"21 yrs", sub:"2005 — 2026"},
+    ] : []}
+  />;
+})()}
 {tab==="overview"&&(
 <TodayMacro onNavToReadme={()=>navTo("readme")} asOfIso={AS_OF_ISO} indFreq={IND_FREQ}/>
 )}
 
 {/* INDICATORS */}
+{tab==="indicators"&&(()=>{
+  const _indCount = Object.keys(IND||{}).length;
+  // Truth: an indicator is "in composites" iff it has a COMPOSITE_MAP entry
+  // (drives the same _weightedCount used by the table intro at line 2064).
+  const _weightedCount = Object.keys(COMPOSITE_MAP||{}).length;
+  const _refCount = _indCount - _weightedCount;
+  const _catCount = Object.keys(CATS||{}).length;
+  return <RichHero
+    eyebrow="All Indicators"
+    headline={"Every signal "}
+    italicAccent={"the model reads."}
+    italicSub={"Calibrated against twenty-one years of equity drawdowns."}
+    stance={`${_indCount} INDICATORS`}
+    stanceColor="strong"
+    freshLine={"Auto-refresh · last poll <6 min ago"}
+    lead={<>Every macro indicator the model uses to score regime stress — <strong style={{fontWeight:600,color:"var(--text)"}}>{_indCount} calibrated series</strong> across Risk &amp; Liquidity, Growth, Inflation &amp; Rates, and other categories. Each is normalized against its long-run mean and standard deviation, then weighted by predictive power (<strong style={{fontWeight:600,color:"var(--text)"}}>AUC for S&amp;P −15% drawdowns</strong>) inside its composite. Hover any row for source, formula, current reading, and meaning. Filter by composite or category at the top. Click a row to open the full indicator detail.</>}
+    kpis={[
+      {lbl:"Indicators", v:_indCount, sub:"total tracked"},
+      {lbl:"In composites", v:_weightedCount, col:"var(--green-text)", sub:`feed R&L / Growth / IR · ${_refCount} reference-only`},
+      {lbl:"Sources", v:"8", sub:"FRED · Fed · ICE BofA · ISM · BLS · Shiller…"},
+      {lbl:"Categories", v:_catCount, sub:"R&L, Growth, Infl…"},
+    ]}
+  />;
+})()}
 {tab==="indicators"&&(<AllIndicatorsTable deeplinkId={indicatorDeeplink} onDeeplinkConsumed={()=>setIndicatorDeeplink(null)}/>)}
 
 {tab==="allocation"&&<AssetAllocation onOpenTicker={(t)=>setTickerDetail(t)}/>}
@@ -7207,6 +7315,30 @@ return(
 <button onClick={()=>setShowPortoppsLogin(true)} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</button>
 </div>
 )}
+{showInsights&&portfolioAuthed&&(()=>{
+  const _ttm = _portfolioReturns?.periodReturns?.TTM;
+  const _ttmPct = _ttm!=null ? `${_ttm>=0?"+":""}${(_ttm*100).toFixed(1)}%` : "—";
+  const _sharpe = _portfolioSharpe?.sharpe;
+  const _sharpeStr = _sharpe!=null ? _sharpe.toFixed(2) : "—";
+  const _grandTotalK = grandTotal>=1000 ? `$${Math.round(grandTotal/1000).toLocaleString()}K` : `$${Math.round(grandTotal).toLocaleString()}`;
+  const _acctCount = (ACCOUNTS||[]).length;
+  return <RichHero
+    eyebrow="Portfolio Insights"
+    headline={"Your real book — "}
+    italicAccent={"with the model's risk lens."}
+    italicSub={`${_acctCount} account${_acctCount===1?"":"s"} · time-weighted returns · position-level alerts.`}
+    stance={`SIGNED IN · ${_acctCount} ACCOUNTS`}
+    stanceColor="strong"
+    freshLine={"Synced daily · positions sourced from your portfolio table"}
+    lead={<>Your real portfolio with the model's risk lens applied. <strong style={{fontWeight:600,color:"var(--text)"}}>Allocation</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>time-weighted returns vs the S&amp;P</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>Sharpe ratio</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>position-level alerts</strong>, and <strong style={{fontWeight:600,color:"var(--text)"}}>notable signals</strong> across your holdings. Read it top-to-bottom: snapshot KPIs → portfolio risk → notable signals → positions → account-by-account breakdown. All data is private to your account.</>}
+    kpis={[
+      {lbl:"Total wealth", v:_grandTotalK, sub:`across ${_acctCount} account${_acctCount===1?"":"s"}`},
+      {lbl:"TTM TWR", v:_ttmPct, col:_ttm!=null && _ttm>=0?"var(--green-text)":_ttm!=null?"var(--red-text)":"var(--text)", sub:"flows netted out"},
+      {lbl:"Sharpe ratio", v:_sharpeStr, sub:"vs 5% T-bill"},
+      {lbl:"Portfolio beta", v:portBeta!=null?portBeta.toFixed(2):"—", col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)", sub:"weighted by $"},
+    ]}
+  />;
+})()}
 {showTrading&&(()=>{
 const universeCount=Object.keys(scanData?.signals?.screener||{}).length;
 const watchlistSize=(WATCHLIST||[]).length;
@@ -7229,7 +7361,7 @@ return(<>
 Trading Opportunities
 </div>
 <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.1,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:720}}>
-Today's actionable names — <em style={{fontStyle:"italic",color:"var(--accent)"}}>from your watchlist.</em>
+What to act on today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>the full scan plus your watchlist.</em>
 </h1>
 <div style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontStyle:"italic",fontSize:16,color:"var(--text-muted)"}}>{_subline}</div>
 </div>
@@ -7242,7 +7374,7 @@ Today's actionable names — <em style={{fontStyle:"italic",color:"var(--accent)
 </div>
 </div>
 <p style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.65,maxWidth:920,margin:"0 0 18px"}}>
-Today's actionable names — <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-triggers</strong> — scored against the universe of <strong style={_b()}>~1,700 most-liquid US equities</strong> ($1B+ market cap), plus any names you add to your watchlist. Each ticker is graded on a composite blending five signals: <strong style={_b()}>technical indicators</strong> (MACD, RSI), <strong style={_b()}>congressional trades</strong>, <strong style={_b()}>insider Form 4 filings</strong>, <strong style={_b()}>dark-pool prints</strong>, and <strong style={_b()}>unusual options flow</strong>. A composite of <strong style={_b()}>60+</strong> is a buy alert; <strong style={_b()}>35–59</strong> sits on near-trigger watch. Read it top-to-bottom: signal sources → scan summary → buy alerts → near-triggers.
+Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-triggers</strong> — surfaced from a daily scan over the universe of <strong style={_b()}>~1,400 most-liquid US equities</strong> ($1B+ market cap), with your watchlist tickers layered on top so anything you track gets scored too. Each ticker is graded on a composite blending five signals: <strong style={_b()}>technical indicators</strong> (MACD, RSI), <strong style={_b()}>congressional trades</strong>, <strong style={_b()}>insider Form 4 filings</strong>, <strong style={_b()}>dark-pool prints</strong>, and <strong style={_b()}>unusual options flow</strong>. A composite of <strong style={_b()}>60+</strong> is a buy alert; <strong style={_b()}>35–59</strong> sits on near-trigger watch. Read it top-to-bottom: signal sources → scan summary → buy alerts → near-triggers.
 </p>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:10}}>
 {[
@@ -7259,10 +7391,6 @@ Today's actionable names — <strong style={_b()}>buy alerts</strong> and <stron
 ))}
 </div>
 </div>
-{/* Inline signal tiles — same Scanner landing the standalone /#scanner
-    tab used to render. Clicking a tile drills into the full table view
-    (Congress / Insiders / Flow / Technicals) in place. */}
-<div style={{marginBottom:14}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>
 </>);
 })()}
 {/* SUMMARY BAR — Portfolio Insights only */}
@@ -7430,6 +7558,10 @@ return(<>
 </div>
 </div>}
 
+{/* Inline signal tiles — moved BELOW the Buy Alerts / Near Trigger tables
+    per Joe's UAT 2026-04-28: tiles are evidence/diagnostics for the names
+    surfaced above, so they read as supporting context rather than primary. */}
+{showTrading&&<div style={{marginBottom:14}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>}
 {/* SECTION 2 — PORTFOLIO INSIGHTS (only on insights tab) */}
 {showInsights&&<div style={sectionPanel}>
 <div style={sectionHeader}>
@@ -7893,7 +8025,16 @@ return(<>
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
-{tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF} asOfIso={AS_OF_ISO} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>}
+{tab==="readme" && (<>
+  <RichHero
+    eyebrow="FAQ &amp; Methodology"
+    headline={"How the model works — "}
+    italicAccent={"every parameter exposed."}
+    italicSub={"Sources, scoring, regime thresholds, calibration windows."}
+    lead={<>The full methodology — every <strong style={{fontWeight:600,color:"var(--text)"}}>data source</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>formula</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>regime threshold</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>back-test parameter</strong> the model uses. Organized by surface: <strong style={{fontWeight:600,color:"var(--text)"}}>macro composites</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>allocation engine</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>trading opportunities scanner</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>portfolio risk</strong>. If you want to know why a number is what it is, the answer is on this page. Search the indicator reference at the bottom for any specific signal.</>}
+  />
+  <MethodologyPage ind={IND} asOf={AS_OF} asOfIso={AS_OF_ISO} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>
+</>)}
 
 
 {/* close fade-in wrapper around tab content */}
