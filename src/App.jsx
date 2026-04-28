@@ -6363,7 +6363,7 @@ return(
         const allocBits = V
           ? ` Allocation: ${V.selection_confidence||"—"} confidence, ${V.leverage!=null?V.leverage.toFixed(2)+"× leverage":""}${V.picks?.[0]?.name?", top tilt "+V.picks[0].name:""}.`
           : "";
-        const scannerBits = ` Scanner: ${buyCount} buy alert${buyCount===1?"":"s"}, ${watchCount} near trigger today.`;
+        const scannerBits = ` Trading Opportunities: ${buyCount} buy alert${buyCount===1?"":"s"}, ${watchCount} near trigger today.`;
         const portfolioBits = PR && PR.TTM != null
           ? ` Your portfolio: TTM TWR ${(PR.TTM>=0?"+":"")+(PR.TTM*100).toFixed(1)}% time-weighted (flows netted out).`
           : "";
@@ -7184,6 +7184,7 @@ return(
 
 {/* OVERVIEW — MACRO ONLY */}
 {tab==="overview"&&(()=>{
+  // Wrap in 1240 wrapper (matches TodayMacro .tm-page max-width below).
   const M = _macroLatestSnap;
   const composites = M ? [{k:"R&L",v:M.RL},{k:"Growth",v:M.GR},{k:"Inflation",v:M.IR}] : [];
   const worst = composites.reduce((a,b)=>(b.v!=null && (a.v==null||b.v>a.v)?b:a),{v:null,k:""});
@@ -7194,7 +7195,7 @@ return(
     : worst.v >= 20 ? "ELEVATED REGIME"
     : "NORMAL REGIME";
   const _stanceColor = !M ? "mute" : worst.v>=20 ? "warn" : "strong";
-  return <RichHero
+  return <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><RichHero
     eyebrow="Macro Overview"
     headline={"Where macro stress is "}
     italicAccent={"right now, and what's leading."}
@@ -7209,7 +7210,7 @@ return(
       {lbl:"Lead time (avg)", v:"29 weeks", sub:"composite>0 → S&P −15%"},
       {lbl:"Calibration", v:"21 yrs", sub:"2005 — 2026"},
     ] : []}
-  />;
+  /></div>;
 })()}
 {tab==="overview"&&(
 <TodayMacro onNavToReadme={()=>navTo("readme")} asOfIso={AS_OF_ISO} indFreq={IND_FREQ}/>
@@ -7223,7 +7224,7 @@ return(
   const _weightedCount = Object.keys(COMPOSITE_MAP||{}).length;
   const _refCount = _indCount - _weightedCount;
   const _catCount = Object.keys(CATS||{}).length;
-  return <RichHero
+  return <div style={{maxWidth:1200,margin:"0 auto",padding:"0 20px"}}><RichHero
     eyebrow="All Indicators"
     headline={"Every signal "}
     italicAccent={"the model reads."}
@@ -7238,7 +7239,7 @@ return(
       {lbl:"Sources", v:"8", sub:"FRED · Fed · ICE BofA · ISM · BLS · Shiller…"},
       {lbl:"Categories", v:_catCount, sub:"R&L, Growth, Infl…"},
     ]}
-  />;
+  /></div>;
 })()}
 {tab==="indicators"&&(<AllIndicatorsTable deeplinkId={indicatorDeeplink} onDeeplinkConsumed={()=>setIndicatorDeeplink(null)}/>)}
 
@@ -8026,13 +8027,13 @@ return(<>
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
 {tab==="readme" && (<>
-  <RichHero
+  <div style={{padding:"0 20px"}}><RichHero
     eyebrow="FAQ &amp; Methodology"
     headline={"How the model works — "}
     italicAccent={"every parameter exposed."}
     italicSub={"Sources, scoring, regime thresholds, calibration windows."}
     lead={<>The full methodology — every <strong style={{fontWeight:600,color:"var(--text)"}}>data source</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>formula</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>regime threshold</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>back-test parameter</strong> the model uses. Organized by surface: <strong style={{fontWeight:600,color:"var(--text)"}}>macro composites</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>allocation engine</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>trading opportunities scanner</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>portfolio risk</strong>. If you want to know why a number is what it is, the answer is on this page. Search the indicator reference at the bottom for any specific signal.</>}
-  />
+  /></div>
   <MethodologyPage ind={IND} asOf={AS_OF} asOfIso={AS_OF_ISO} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>
 </>)}
 
