@@ -37,6 +37,7 @@ import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
 import TodayMacro from "./pages/TodayMacro";
 import AssetAllocation from "./pages/AssetAllocation";
+import ScenarioAnalysis from "./pages/ScenarioAnalysis";
 import { useSortableTable as useSortableTable_v1, SortArrow as SortArrow_v1, sortableHeaderProps as sortableHeaderProps_v1 } from "./hooks/useSortableTable.jsx";
 import { supabase } from "./lib/supabase";
 import { normalizeTickerName } from "./lib/nameFormat";
@@ -5659,7 +5660,7 @@ useEffect(()=>{
 // for adminLoading to settle so the initial check doesn't bounce real admins
 // off their own tab before the is_admin() RPC resolves.
 useEffect(()=>{
-  if(!adminLoading && !isAdmin && (tab==="admin" || tab==="bugs" || tab==="lab")) setTab("home");
+  if(!adminLoading && !isAdmin && (tab==="admin" || tab==="bugs" || tab==="lab" || tab==="scenarios")) setTab("home");
 },[tab,isAdmin,adminLoading]);
 
 // ─── Navigation stack — so the drill-down back button returns to the
@@ -6077,7 +6078,8 @@ const navItems = isAdmin
   ? [...NAV_ITEMS,
      { id:"admin", label:"Admin · Usage",     icon:<NavIconGauge/> },
      { id:"bugs",  label:"Admin · Bugs",      icon:<NavIconGrid/>  },
-     { id:"lab",   label:"Sector Lab · BETA", icon:<NavIconHeat/>  }]
+     { id:"lab",   label:"Sector Lab · BETA", icon:<NavIconHeat/>  },
+     { id:"scenarios", label:"Scenario Analysis · BETA", icon:<NavIconHeat/>  }]
   : NAV_ITEMS;
 
 return(
@@ -7834,6 +7836,7 @@ return(<>
     Read-only mirror of the live Sectors tab + cycle-stage chip prototype.
     Zero changes to live SectorsTab. Promotion = move one render line. */}
 {tab==="lab" && <SectorLab/>}
+{tab==="scenarios" && <ScenarioAnalysis/>}
 
 {/* Unified Data & Methodology page — one searchable tile per upstream
     data stream (25 macro indicators + 8 scanner signals + 3 infra streams).

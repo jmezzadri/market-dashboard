@@ -1003,6 +1003,104 @@ new context providers.
 
 ---
 
+## 23. Quant decisions — multiple-choice + layman translation
+
+**The rule.** When asking Joe to make any decision that touches quant
+math, statistics, ML, calculation methodology, calibration windows,
+distance metrics, shrinkage methods, OOS thresholds, model selection,
+or other Senior-Quant-domain content: ALWAYS use the
+`AskUserQuestion` tool (multiple-choice, not free-text in chat) AND
+pair the technical phrasing with one plain-English sentence per option.
+
+**Why.** 2026-04-27. After the Senior Quant methodology memo for
+Scenario Analysis (v1) was delivered, six open methodology questions
+were left in §8 of the memo expecting a chat-style reply. Joe asked
+to convert them to multiple-choice with layman explanations. He's
+spent his career on the risk-management side of financial services,
+not the quant-research side. He reads technical content fluently but
+doesn't want to *navigate* methodology decisions through free-form
+prose. Multiple-choice scopes the decision; layman framing makes the
+trade-off concrete in user terms.
+
+**How to apply.**
+
+1. **Any decision that involves quant/statistical/ML methodology** —
+   covariance estimation, distance metrics, calibration windows,
+   shrinkage, OOS thresholds, model selection, etc. — goes through
+   `AskUserQuestion`. Do not bury such decisions in a memo body and
+   hope Joe replies in chat. The memo is the spec; the chat tool is
+   the decision interface.
+2. **Each option in the multiple-choice block must include both:**
+   (a) the technical name / formula / parameter setting, and (b) one
+   plain-English sentence of "what this means in practice" — what the
+   user/portfolio manager will actually see or feel differently if
+   this option wins. Trade-offs in user terms, not academic terms.
+3. **Inline definitions on first use of a quant term.** Mahalanobis
+   distance, Ledoit-Wolf shrinkage, Newey-West HAC, ADF, χ², MVN,
+   Cholesky decomposition — define each with a one-line plain-English
+   gloss the first time it appears in any AskUserQuestion option or
+   surrounding chat. Once defined inline, the technical name alone
+   is fine for the rest of that conversation.
+4. **Recommendations stay first.** Per existing convention, the
+   recommended option goes first with "(Recommended)" suffix on the
+   label. For quant decisions, also include the WHY in defensibility
+   terms in the description: "matches academic standard," "survives
+   quant peer review," "Sector Lab's prototype already uses this,"
+   etc. Joe wants to know whether this is the path that survives
+   external scrutiny.
+5. This rule covers Senior Quant decisions specifically. UX, Lead
+   Developer, and product decisions also benefit from multiple-choice
+   formatting, but the **layman translation requirement is strongest
+   for quant content**.
+
+This rule pairs with rule 1 (plain-English status reports — no Git
+jargon). Same principle applied to a different domain: technical
+fluency does not mean technical preference.
+
+---
+
+## 24. All questions to Joe via AskUserQuestion popup, never buried in chat text
+
+**The rule.** ANY question to Joe goes through the `AskUserQuestion`
+tool. Do not bury a question at the end of a chat message — Joe
+doesn't scan full responses for trailing "want me to do X or Y?"
+prompts. He'll miss them, then have to re-ask, then both of us waste
+a turn.
+
+**Why.** 2026-04-27. After landing the Scenario Analysis production
+rollout plan, the Lead Dev closed the message with: *"Want me to walk
+you through the methodology memo now, or call it for the day and pick
+up Sprint 0 tomorrow morning?"* — buried at the end of a multi-paragraph
+status update. Joe pushed back: *"Any questions should be popup. I cant
+read all this to find buried questions."*
+
+This is a broader version of rule 23 (quant decisions need popup +
+layman). Rule 23 specifically requires popups for methodology
+decisions. This one covers everything else: sequencing choices,
+"do you want X or Y?", sign-off requests, scope clarifications,
+even simple "shall I proceed?" gates.
+
+**How to apply.**
+
+1. **If a chat message contains a "?" that needs Joe's answer**, that
+   question goes through `AskUserQuestion`. Period.
+2. **Status updates** stay in chat (no question = no popup).
+3. **Questions where the answer is obvious enough to assume**, just
+   make the call and move forward (per the existing "ship don't ask"
+   feedback rule).
+4. **Questions with real forks Joe needs to weigh in on** — popup,
+   never buried text.
+5. **Multi-question batches** — pack 2–4 into a single popup call;
+   don't send separate calls for each question (slower).
+6. **Confirm wording**: even "Shall I proceed?" / "Sound good?" goes
+   through AskUserQuestion as a 2-option chip ("Proceed" / "Wait").
+
+This rule pairs with rule 23 (quant decisions need popups WITH layman
+translation) and the existing "Take ownership end-to-end" feedback
+rule (don't ask after every step — but when you DO ask, popup).
+
+---
+
 ## 24. Options storage convention — per-contract storage, multiplier as metadata
 
 **The rule.** For every option position written to `public.positions` and every
