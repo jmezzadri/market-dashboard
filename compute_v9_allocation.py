@@ -295,7 +295,7 @@ def load_all_data():
     df = yf.download(tickers, start="2003-01-01", progress=False, auto_adjust=True, threads=True)
     if isinstance(df.columns, pd.MultiIndex): df = df["Close"]
     daily_ret = df.pct_change().dropna(how="all")
-    monthly_ret = daily_ret.resample("M").apply(lambda x: (1 + x).prod() - 1)
+    monthly_ret = daily_ret.resample("ME").apply(lambda x: (1 + x).prod() - 1)
     return factors, composites, monthly_ret
 
 
@@ -350,7 +350,7 @@ def compute_allocation_from_data(
     log(f"  rebalance date: {last_complete_month.date()}")
 
     win = monthly_ret.iloc[idx-WINDOW:idx]
-    monthly_factors = factors.resample("M").last().dropna(how="all")
+    monthly_factors = factors.resample("ME").last().dropna(how="all")
     wf = monthly_factors.loc[:last_complete_month].copy()
 
     # Factor overrides flow into the forecast via fit_per_asset_forecast's
@@ -362,7 +362,7 @@ def compute_allocation_from_data(
         applied = [k for k in factor_overrides if k in wf.columns]
         log(f"    factor overrides will be applied to {len(applied)} factors at forecast time")
 
-    monthly_comp = composites.resample("M").last().dropna()
+    monthly_comp = composites.resample("ME").last().dropna()
 
     # Forecast each asset
     log("  forecasting per-asset μ...")
