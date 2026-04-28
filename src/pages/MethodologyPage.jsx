@@ -186,7 +186,7 @@ export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, ind
     setOpen({ home:false, macro:false, alloc:false, trading:false, insights:false, indicators:false });
 
   return (
-    <div style={{ padding: "16px 20px", display: "flex", flexDirection: "column", gap: 28 }}>
+    <div style={{ maxWidth:1240, margin:"0 auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 28 }}>
       <Contents ind={ind} expand={expand} expandAll={expandAll} collapseAll={collapseAll} />
       <HomeSection
         open={open.home} onToggle={() => toggle("home")} />
