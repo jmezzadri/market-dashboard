@@ -1101,7 +1101,7 @@ rule (don't ask after every step — but when you DO ask, popup).
 
 ---
 
-## 24. Options storage convention — per-contract storage, multiplier as metadata
+## 25. Options storage convention — per-contract storage, multiplier as metadata
 
 **The rule.** For every option position written to `public.positions` and every
 option close written to `public.transactions`, the `price`, `avg_cost`, and
