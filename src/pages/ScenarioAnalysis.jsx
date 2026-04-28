@@ -217,26 +217,6 @@ const CORR_PAIRS = {
 const getCorr = (a, b) => a === b ? 1.0 : (CORR_PAIRS[a + "|" + b] ?? CORR_PAIRS[b + "|" + a] ?? 0);
 
 const SCENARIOS = {
-  gfc_2008: { name:"2008 GFC", window:"Sep–Nov 2008",
-    factors:{ vix:+4.0, move:+3.2, real_rates:-1.5, term_premium:+0.5, dxy:+0.5, copper_gold:-2.0, hy:+3.5, stlfsi:+3.5, anfci:+2.8, aaii:-2.3, putcall:+2.5, breadth:-3.5 },
-    narrative:"Credit seizure plus banking solvency crisis. Lehman, AIG, congressional rejection of TARP v1. Financials and Real Estate led losses; Staples cushioned.",
-    proxy:false, lowConf:false },
-  covid_2020: { name:"COVID 2020", window:"Feb–Mar 2020",
-    factors:{ vix:+3.8, move:+3.5, real_rates:-1.0, term_premium:+0.3, dxy:+1.5, copper_gold:-1.8, hy:+2.8, stlfsi:+2.5, anfci:+1.8, aaii:-1.5, putcall:+2.2, breadth:-3.0 },
-    narrative:"33-day liquidity-driven crash. Lockdown hit Energy and Discretionary hardest. Tech recovered fastest.",
-    proxy:false, lowConf:false },
-  inflation_2022: { name:"2022 Inflation", window:"Jan–Oct 2022",
-    factors:{ vix:+1.5, move:+2.5, real_rates:+3.2, term_premium:-1.5, dxy:+2.5, copper_gold:-0.5, hy:+1.2, stlfsi:+1.0, anfci:+0.5, aaii:-1.8, putcall:+1.5, breadth:-2.0 },
-    narrative:"Rate shock rerated long-duration equities. Energy was the only winner. Multiple compression dominated.",
-    proxy:false, lowConf:false },
-  q4_2018: { name:"2018 Q4 Pivot", window:"Oct–Dec 2018",
-    factors:{ vix:+2.2, move:+1.5, real_rates:+1.3, term_premium:-0.8, dxy:+0.8, copper_gold:-0.7, hy:+1.5, stlfsi:+1.2, anfci:+0.7, aaii:-1.3, putcall:+1.4, breadth:-1.8 },
-    narrative:"Fed rate-path shock plus yield-curve flattening. Utilities held up; Energy and Industrials broke hardest.",
-    proxy:false, lowConf:false },
-  ai_2024: { name:"2024 AI Concentration", window:"Jun–Aug 2024",
-    factors:{ vix:+1.8, move:+1.0, real_rates:-0.5, term_premium:+0.3, dxy:-0.3, copper_gold:-0.4, hy:+0.5, stlfsi:+0.3, anfci:+0.2, aaii:-0.8, putcall:+1.1, breadth:-2.5 },
-    narrative:"Narrow-breadth rally + August carry-trade unwind. Concentration risk realized. Mega-cap tech under-performed broader market briefly.",
-    proxy:false, lowConf:true },
   black_monday_1987: { name:"1987 Black Monday", window:"Oct 1987",
     factors:{ vix:+5.0, move:+3.5, real_rates:+1.5, term_premium:-0.5, dxy:-0.5, copper_gold:-1.0, hy:+2.0, stlfsi:+2.5, anfci:+2.0, aaii:-3.0, putcall:+3.5, breadth:-4.0 },
     narrative:"Single-week crash. Portfolio insurance amplification. VIX values are VXO-derived; HY OAS is BAA-Treasury × 1.85.",
@@ -249,6 +229,26 @@ const SCENARIOS = {
     factors:{ vix:+2.8, move:+1.8, real_rates:-0.5, term_premium:+0.3, dxy:-0.5, copper_gold:-1.5, hy:+2.5, stlfsi:+1.8, anfci:+1.5, aaii:-2.5, putcall:+2.5, breadth:-3.2 },
     narrative:"Final flush of the dotcom bear. Capitulation low followed by 5-year bull market.",
     proxy:false, lowConf:false },
+  gfc_2008: { name:"2008 GFC", window:"Sep–Nov 2008",
+    factors:{ vix:+4.0, move:+3.2, real_rates:-1.5, term_premium:+0.5, dxy:+0.5, copper_gold:-2.0, hy:+3.5, stlfsi:+3.5, anfci:+2.8, aaii:-2.3, putcall:+2.5, breadth:-3.5 },
+    narrative:"Credit seizure plus banking solvency crisis. Lehman, AIG, congressional rejection of TARP v1. Financials and Real Estate led losses; Staples cushioned.",
+    proxy:false, lowConf:false },
+  q4_2018: { name:"2018 Q4 Pivot", window:"Oct–Dec 2018",
+    factors:{ vix:+2.2, move:+1.5, real_rates:+1.3, term_premium:-0.8, dxy:+0.8, copper_gold:-0.7, hy:+1.5, stlfsi:+1.2, anfci:+0.7, aaii:-1.3, putcall:+1.4, breadth:-1.8 },
+    narrative:"Fed rate-path shock plus yield-curve flattening. Utilities held up; Energy and Industrials broke hardest.",
+    proxy:false, lowConf:false },
+  covid_2020: { name:"COVID 2020", window:"Feb–Mar 2020",
+    factors:{ vix:+3.8, move:+3.5, real_rates:-1.0, term_premium:+0.3, dxy:+1.5, copper_gold:-1.8, hy:+2.8, stlfsi:+2.5, anfci:+1.8, aaii:-1.5, putcall:+2.2, breadth:-3.0 },
+    narrative:"33-day liquidity-driven crash. Lockdown hit Energy and Discretionary hardest. Tech recovered fastest.",
+    proxy:false, lowConf:false },
+  inflation_2022: { name:"2022 Inflation", window:"Jan–Oct 2022",
+    factors:{ vix:+1.5, move:+2.5, real_rates:+3.2, term_premium:-1.5, dxy:+2.5, copper_gold:-0.5, hy:+1.2, stlfsi:+1.0, anfci:+0.5, aaii:-1.8, putcall:+1.5, breadth:-2.0 },
+    narrative:"Rate shock rerated long-duration equities. Energy was the only winner. Multiple compression dominated.",
+    proxy:false, lowConf:false },
+  ai_2024: { name:"2024 AI Concentration", window:"Jun–Aug 2024",
+    factors:{ vix:+1.8, move:+1.0, real_rates:-0.5, term_premium:+0.3, dxy:-0.3, copper_gold:-0.4, hy:+0.5, stlfsi:+0.3, anfci:+0.2, aaii:-0.8, putcall:+1.1, breadth:-2.5 },
+    narrative:"Narrow-breadth rally + August carry-trade unwind. Concentration risk realized. Mega-cap tech under-performed broader market briefly.",
+    proxy:false, lowConf:true },
 };
 
 const SECTORS_RAW = [
@@ -573,6 +573,10 @@ const STYLES = `
 .scenarios-page .action-footer .ac-pill { display:inline-block; padding:2px 8px; margin-right:6px; background:var(--bg-2); border-radius:999px; }
 .scenarios-page .action-warn { margin-top:var(--s-2); font-size:11px; color:var(--warn); font-style:italic; }
 .scenarios-page .disclosure { font-family:"JetBrains Mono",monospace; font-size:10px; color:var(--ink-2); padding:7px 11px; background:var(--bg-2); border-left:2px solid var(--accent-warm); border-radius:var(--r-sm); margin-top:var(--s-2); }
+.scenarios-page .legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:var(--s-3); padding:8px 12px; background:rgba(216,178,122,.06); border:1px dashed var(--accent-parchment); border-radius:var(--r-sm); font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-1); }
+.scenarios-page .legend .legend-label { font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2); padding-right:6px; border-right:1px solid var(--line-1); }
+.scenarios-page .legend .legend-item { display:inline-flex; align-items:center; gap:6px; }
+.scenarios-page .legend .lg-marker { color:var(--warn); font-weight:700; font-size:13px; }
 .scenarios-page .empty-state { text-align:center; padding:var(--s-5) 0; font-size:13px; color:var(--ink-3); }
 .scenarios-page .demo-banner { background:rgba(216,178,122,.15); border:1px dashed var(--accent-parchment); padding:8px 14px; border-radius:var(--r-sm); margin-bottom:var(--s-4); font-size:12px; font-family:"JetBrains Mono",monospace; color:var(--ink-1); }
 .scenarios-page .demo-banner b { color:var(--accent-burgundy); }
@@ -722,7 +726,7 @@ export default function ScenarioAnalysis() {
                 </div>
               </div>
             </div>
-            <div className="disclosure">※ marker indicates pre-1996 data proxies (VXO for VIX, BAA-Treasury for HY OAS). ◐ marker indicates lower-confidence calibration.</div>
+            <div className="legend"><span className="legend-label">Legend</span><span className="legend-item"><span className="lg-marker">◐</span> Lower-confidence calibration</span><span className="legend-item"><span className="lg-marker">※</span> Pre-1996 proxies (VXO for VIX, BAA-Treasury for HY OAS)</span></div>
           </div>
         ) : (
           <div className="builder">
