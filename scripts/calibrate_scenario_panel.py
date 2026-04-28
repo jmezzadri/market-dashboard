@@ -231,9 +231,22 @@ def step_factor_panel():
 
 
 def step_covariance(z: pd.DataFrame):
-    """Step 2: Ledoit-Wolf shrinkage covariance + sub-window stability."""
+    """Step 2: Ledoit-Wolf shrinkage covariance + sub-window stability.
+    Handles mixed cadence (forward-fill within each column, then truncate
+    to the latest first-valid date so all 16 columns have coverage)."""
     print("[2/7] Building covariance matrix (Ledoit-Wolf)...")
-    z_clean = z.dropna()
+    # Find the date where every factor has its first observation
+    first_valid_per_col = {col: z[col].first_valid_index() for col in z.columns}
+    truncate_at = max(d for d in first_valid_per_col.values() if d is not None)
+    print(f"  truncating to {truncate_at.date()} (latest first-valid across factors)")
+    z_trunc = z.loc[truncate_at:].copy()
+    # Forward-fill quarterly → weekly observations
+    z_trunc = z_trunc.ffill()
+    # Drop any rows still missing (should be 0 after ffill, but defensive)
+    z_clean = z_trunc.dropna()
+    print(f"  using window {z_clean.index[0].date()} to {z_clean.index[-1].date()} ({len(z_clean)} obs)")
+    if len(z_clean) < 100:
+        raise RuntimeError(f"insufficient observations for Ledoit-Wolf: {len(z_clean)} (need ≥100)")
     lw = LedoitWolf()
     lw.fit(z_clean.values)
     sigma = pd.DataFrame(lw.covariance_, index=z.columns, columns=z.columns)
@@ -247,7 +260,7 @@ def step_covariance(z: pd.DataFrame):
     ]
     sub_corrs = {}
     for label, sub_z in windows:
-        sub_z = sub_z.dropna()
+        sub_z = sub_z.ffill().dropna()
         if len(sub_z) > 20:
             sub_corrs[label] = sub_z.corr().to_dict()
 
@@ -302,7 +315,8 @@ def step_scenarios(z: pd.DataFrame):
 def step_coherence_validation(z: pd.DataFrame, sigma: pd.DataFrame):
     """Step 4: KS test of empirical d² distribution against chi-squared(k=16)."""
     print("[4/7] Coherence Score validation (KS test)...")
-    z_clean = z.dropna()
+    first_valid = max(d for d in (z[c].first_valid_index() for c in z.columns) if d is not None)
+    z_clean = z.loc[first_valid:].ffill().dropna()
     sigma_inv = np.linalg.pinv(sigma.values)
     d2 = []
     for _, row in z_clean.iterrows():
