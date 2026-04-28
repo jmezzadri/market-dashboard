@@ -216,18 +216,20 @@ def step_factor_panel():
     print("[1/7] Building factor panel...")
     df = build_factor_panel()
     z = standardize_panel(df)
-    z.index = z.index.strftime("%Y-%m-%d")
+    # Write JSON with string-keyed dates, but RETURN z with Timestamp index
+    z_json = z.copy()
+    z_json.index = z_json.index.strftime("%Y-%m-%d")
     out = {
-        "as_of": z.index[-1],
+        "as_of": z_json.index[-1],
         "calibration_window_start": CALIBRATION_WINDOW_START,
         "n_observations": len(z),
         "n_factors": len(z.columns),
         "factors": list(z.columns),
-        "panel": z.fillna("").to_dict(orient="index"),  # date -> {factor: zscore}
+        "panel": z_json.where(z_json.notna(), None).to_dict(orient="index"),
     }
-    (OUT_DIR / "factor_panel_calibrated.json").write_text(json.dumps(out, indent=2))
+    (OUT_DIR / "factor_panel_calibrated.json").write_text(json.dumps(out, indent=2, default=str))
     print(f"  ✓ factor_panel_calibrated.json — {len(z)} obs × {len(z.columns)} factors")
-    return z
+    return z  # Timestamp-indexed for downstream steps
 
 
 def step_covariance(z: pd.DataFrame):
@@ -265,7 +267,7 @@ def step_covariance(z: pd.DataFrame):
             sub_corrs[label] = sub_z.corr().to_dict()
 
     out = {
-        "as_of": str(z.index[-1]),
+        "as_of": str(z.index[-1].date() if hasattr(z.index[-1], "date") else z.index[-1]),
         "method": "Ledoit-Wolf shrinkage with diagonal target",
         "shrinkage_intensity": shrinkage,
         "factors": list(z.columns),
@@ -303,7 +305,7 @@ def step_scenarios(z: pd.DataFrame):
         }
         print(f"  ✓ {sc['id']:32s} anchor={anchor_actual.date()}")
     out = {
-        "as_of": str(z.index[-1]),
+        "as_of": str(z.index[-1].date() if hasattr(z.index[-1], "date") else z.index[-1]),
         "n_scenarios": len(anchors),
         "scenarios": anchors,
     }
@@ -329,7 +331,7 @@ def step_coherence_validation(z: pd.DataFrame, sigma: pd.DataFrame):
     fallback_required = ks_p < 0.01
 
     out = {
-        "as_of": str(z.index[-1]),
+        "as_of": str(z.index[-1].date() if hasattr(z.index[-1], "date") else z.index[-1]),
         "k_degrees_of_freedom": k,
         "n_observations": len(d2),
         "ks_statistic": float(ks_stat),
@@ -356,7 +358,7 @@ def step_oos_backtest(z: pd.DataFrame, sigma: pd.DataFrame, anchors: dict):
     # Note: requires historical sector returns — defer to Phase 2 wiring.
     # For now, write the schema with placeholder values; Track 4 fills in.
     out = {
-        "as_of": str(z.index[-1]),
+        "as_of": str(z.index[-1].date() if hasattr(z.index[-1], "date") else z.index[-1]),
         "acceptance_threshold_mae": 0.08,
         "scenarios": {sid: {"oos_mae": None, "passed": None, "note": "requires sector returns from Sprint 1 Track 3"} for sid in anchors},
         "todo": "Track 3 produces sector_loadings_ccar.json which feeds this back-test.",
