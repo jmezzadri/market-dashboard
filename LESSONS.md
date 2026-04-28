@@ -1160,3 +1160,5 @@ This rule pairs with rule 22 (post-patch grep every new symbol) — anytime
 an option-touching change ships, run a numerical sanity check end-to-end
 on one real position before declaring done. The 100x bug above passed
 build-clean and was only caught when Joe tried it for real.
+
+<!-- 2026-04-27: trigger fresh prod deploy after Vercel Hobby->Pro upgrade (PR #230 stuck behind 100/day Hobby cap) -->
