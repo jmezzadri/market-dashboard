@@ -179,6 +179,18 @@ def aggregate_to_weekly(s: pd.Series, native_cadence: str) -> pd.Series:
     raise ValueError(f"unknown cadence: {native_cadence}")
 
 
+def fetch_equity_prices_yf(start: str) -> pd.Series:
+    """Pull S&P 500 daily close from yfinance ^GSPC — FRED's SP500 only has ~5y history."""
+    import yfinance as yf
+    df = yf.download("^GSPC", start=start, progress=False, auto_adjust=True)
+    if df.empty:
+        raise RuntimeError("yfinance returned 0 rows for ^GSPC")
+    s = df["Close"]
+    if hasattr(s, "columns"):  # MultiIndex
+        s = s.iloc[:, 0]
+    return s.dropna()
+
+
 def build_factor_panel() -> pd.DataFrame:
     """
     Step 1 — Build calibrated factor panel.
@@ -186,15 +198,28 @@ def build_factor_panel() -> pd.DataFrame:
     """
     panel = {}
     for var in CCAR_US_16:
+        # Special case: SP500 from FRED only has ~5y of data publicly. Use yfinance ^GSPC instead.
+        if var["id"] == "equity_prices":
+            print(f"  pulling {var['id']} via yfinance ^GSPC (FRED SP500 has only ~5y)...")
+            raw = fetch_equity_prices_yf(CALIBRATION_WINDOW_START)
+            s = transform_series(raw, var["transform"])
+            s = aggregate_to_weekly(s, var["cadence"])
+            panel[var["id"]] = s
+            continue
         print(f"  pulling {var['id']} ({var['fred']})...")
         s = fetch_fred(var["fred"], CALIBRATION_WINDOW_START)
         s = transform_series(s, var["transform"])
         s = aggregate_to_weekly(s, var["cadence"])
-        # Apply pre-1996 proxy if defined
+        # Apply pre-1996 proxy if defined (non-fatal: if proxy fetch fails, fall through)
         if "proxy_pre" in var:
             p = var["proxy_pre"]
             print(f"    + {p['note']}: pulling {p['fred']} for {p['start']} to {p['end']}")
-            proxy_raw = fetch_fred(p["fred"], CALIBRATION_WINDOW_START, p["end"])
+            try:
+                proxy_raw = fetch_fred(p["fred"], CALIBRATION_WINDOW_START, p["end"])
+            except Exception as e:
+                print(f"    ⚠ proxy fetch failed ({e}); skipping proxy substitution for {var['id']}")
+                panel[var["id"]] = s
+                continue
             proxy_t = transform_series(proxy_raw, var["transform"])
             proxy_w = aggregate_to_weekly(proxy_t, var["cadence"])
             # Stitch: proxy window first, native series after
