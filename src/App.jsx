@@ -5528,7 +5528,7 @@ const TAB_IDS=["home","overview","indicators","allocation","portopps","insights"
 const TAB_META={
   overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
-  allocation:{eyebrow:"Asset Tilt",            title:"Asset Tilt",              sub:"Equity exposure, industry-group overweights, defensive sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
+  allocation:{eyebrow:"Asset Tilt",            title:"Asset Tilt",              sub:"Equity exposure, industry-group overweights, safe-haven sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"The unfiltered daily scan (~1,700 US equities) plus your watchlist — scored on five signal sources."},
   insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
@@ -6160,32 +6160,9 @@ return(
     ───────────────────────────────────────────────────────────────────── */}
 {tab==="home" && (()=>{
 
-  // ---- Headline copy, driven by CONVICTION band ----
-  const HEADLINE_BY_CONV = {
-    LOW:      {h:"Benign regime,",     em:" lean cyclical beta."},
-    NORMAL:   {h:"Constructive,",      em:" with one finger on the brake."},
-    ELEVATED: {h:"Defensive tilt,",    em:" active hedging warranted."},
-    EXTREME:  {h:"Crisis regime.",     em:" Maximum defensiveness."},
-  };
-  const LEDE_BY_CONV = {
-    LOW:      `Composite stress at ${COMP100}/100 — historically quiet. Bottom 60% of the distribution; room to add cyclical exposure. Watch for complacency: the signal can turn fast.`,
-    NORMAL:   `Composite stress at ${COMP100}/100 — market baseline, mid-range on the historical distribution. Keep diversified exposure; trim the highest-beta names on spikes.`,
-    ELEVATED: `Composite stress at ${COMP100}/100 — top 12.5% of the historical distribution. Sell covered calls, rotate defensive, reduce leverage. 2022 bear and SVB landed in this band.`,
-    EXTREME:  `Composite stress at ${COMP100}/100 — top 2.5% of the historical distribution. Harvest losses, hold dry powder. Only GFC (2008) and COVID (2020) peaks registered higher.`,
-  };
-  const STATE_BY_CONV = {
-    LOW:      "Benign · accommodative",
-    NORMAL:   "Constructive, watchful",
-    ELEVATED: "Defensive · hedge actively",
-    EXTREME:  "Crisis · max caution",
-  };
-  const headline = HEADLINE_BY_CONV[CONV.label] || HEADLINE_BY_CONV.NORMAL;
-  const ledeBase = LEDE_BY_CONV[CONV.label] || LEDE_BY_CONV.NORMAL;
-  const stateLine = STATE_BY_CONV[CONV.label] || STATE_BY_CONV.NORMAL;
-  const scannerPhrase = (buyCount>0||watchCount>0)
-    ? ` ${buyCount} buy alert${buyCount===1?"":"s"} on the watchlist, ${watchCount} near trigger.`
-    : " No buy alerts or near-trigger names on the watchlist today.";
-  const lede = ledeBase + scannerPhrase;
+  // (HEADLINE_BY_CONV / LEDE_BY_CONV / STATE_BY_CONV constants removed
+  // 2026-04-27 — orphaned after welcome hero replaced the page head;
+  // unused defensive-language strings stripped from bundle entirely.)
 
   // ---- Regime pill styling per category state (sdLabel value) ----
   const regimePillCSS = (regime) => {
@@ -6434,7 +6411,7 @@ return(
                style={stepTileStyle}>
             <div style={tileTagStyle}>{tileLineAccent} 02 · Asset Tilt</div>
             <h3 style={tileH3Style}>How aggressive <em style={{fontStyle:"italic", color:"var(--accent)"}}>to be.</em></h3>
-            <p style={tileBlurbStyle}>A confidence band and an industry-group tilt across 25 buckets, with a defensive sleeve when stress flips.</p>
+            <p style={tileBlurbStyle}>A confidence band and an industry-group tilt across 25 buckets, with a safe-haven sleeve (Treasuries, gold, IG bonds) when stress flips.</p>
             <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
           </div>
 
@@ -6608,7 +6585,7 @@ return(
           } else if (loud.length === 2) {
             line = `${loud[0].k} and ${loud[1].k} are both elevated — macro is tightening across multiple factors. Stress is no longer contained.`;
           } else {
-            line = `All three composites are flashing stress. ${worst.k} leads at ${(worst.v>=0?"+":"")+Math.round(worst.v)}. This is a defensive macro environment — every factor is loud.`;
+            line = `All three composites are flashing stress. ${worst.k} leads at ${(worst.v>=0?"+":"")+Math.round(worst.v)}. This is a broadly stressed regime — every factor is loud.`;
           }
           return (
             <div style={{
@@ -6817,11 +6794,11 @@ return(
           if (!conf || lev == null) return null;
           let line;
           if (conf === "STRONG") {
-            line = `Model holds STRONG conviction at ${lev.toFixed(2)}× gross leverage${top?` — leans into a ${top} tilt`:""}${defActive?", with the defensive sleeve partially engaged":", with the defensive sleeve dormant"}.`;
+            line = `Model holds STRONG conviction at ${lev.toFixed(2)}× gross leverage${top?` — leans into a ${top} tilt`:""}${defActive?", with the safe-haven sleeve partially engaged":", with the safe-haven sleeve dormant"}.`;
           } else if (conf === "MODERATE") {
-            line = `Model dialled to MODERATE conviction at ${lev.toFixed(2)}× — ${top?`${top} still leads, but `:""}position size is trimmed relative to peak conviction${defActive?"; defensive sleeve activating":""}.`;
+            line = `Model dialled to MODERATE conviction at ${lev.toFixed(2)}× — ${top?`${top} still leads, but `:""}position size is trimmed relative to peak conviction${defActive?"; safe-haven sleeve activating":""}.`;
           } else if (conf === "DEFENSIVE" || conf === "WEAK" || conf === "LOW") {
-            line = `Model is in DEFENSIVE mode — leverage cut to ${lev.toFixed(2)}×${top?`, ${top} still leads at smaller size`:""}; defensive sleeve carries weight.`;
+            line = `Model is in RISK-OFF mode — leverage cut to ${lev.toFixed(2)}×${top?`, ${top} still leads at smaller size`:""}; safe-haven sleeve carries weight.`;
           } else {
             line = `Model running at ${conf} conviction · ${lev.toFixed(2)}× leverage${top?` · ${top} leads`:""}.`;
           }
