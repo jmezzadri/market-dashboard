@@ -360,21 +360,26 @@ export default function PositionEditor({
   const tickerClean = ticker.trim().toUpperCase();
   const accountLabelClean = accountLabel.trim();
 
-  // ── Phase 4 (#1099): auto-default Current Value from screener mark ───
-  // The screener carries live close prices for ~1,700 US equities. When
-  // the user types a ticker we recognize and hasn't manually set a price
-  // yet, fill price from the screener so the form doesn't block on "Enter
-  // Current Value" when the user just wants to record qty + cost.
+  // ── Phase 4 (#1099): default Current Value to cost basis when blank ──
+  // Earlier ship tried to read screener?.[ticker]?.close, but the merged
+  // scanData layering produced wrong values for some tickers (Joe's ONDS
+  // came back as $62.69 vs actual $10.95 close). Safer default: when the
+  // user has entered shares + cost/share but left Current Value blank,
+  // default price to avgCost (= shares * cost / shares = cost). The
+  // displayed "Current Value" then matches "Total Cost", which is the
+  // honest answer when we don't have a verified live mark. User can
+  // override anytime via the price input. The screener path is removed
+  // entirely until we have a vetted "live mark per ticker" source that
+  // we trust across edge cases.
   useEffect(() => {
     if (assetClass !== "stock") return;
     if (manualMarkStock) return;
     if (price != null && Number.isFinite(price) && price > 0) return;
-    const close = screener?.[tickerClean]?.close;
-    if (close != null && Number.isFinite(Number(close)) && Number(close) > 0) {
-      setPrice(Number(close));
+    if (avgCost != null && Number.isFinite(avgCost) && avgCost > 0) {
+      setPrice(avgCost);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assetClass, tickerClean, screener]);
+  }, [assetClass, avgCost]);
 
   // ── Phase 4: detect "this ticker already exists in target account" ───
   // Used to surface a merge notice + drive the add_position RPC's
