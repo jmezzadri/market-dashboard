@@ -196,53 +196,6 @@ export default function PositionEditor({
     if (parseNum(sharesStr) !== shares) setSharesStr(inputVal(shares));
   }, [shares]);
 
-  // ── Phase 4 (#1099): auto-default Current Value from screener mark ───
-  // The screener carries live close prices for ~1,700 US equities. When
-  // the user types a ticker we recognize and hasn't manually set a price
-  // yet, fill price from the screener so the form doesn't block on "Enter
-  // Current Value" when the user just wants to record qty + cost.
-  useEffect(() => {
-    if (assetClass !== "stock") return;
-    if (manualMarkStock) return;
-    if (price != null && Number.isFinite(price) && price > 0) return;
-    const close = screener?.[tickerClean]?.close;
-    if (close != null && Number.isFinite(Number(close)) && Number(close) > 0) {
-      setPrice(Number(close));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assetClass, tickerClean, screener]);
-
-  // ── Phase 4: detect "this ticker already exists in target account" ───
-  // Used to surface a merge notice + drive the add_position RPC's
-  // p_merge_into_existing flag (default true).
-  const existingHeld = useMemo(() => {
-    if (isEdit) return null;
-    if (!tickerClean || assetClass === "cash") return null;
-    const acct = (accounts || []).find(
-      (a) => (a.label || "").trim().toLowerCase() === accountLabelClean.toLowerCase()
-    );
-    if (!acct) return null;
-    const matches = (heldPositions || []).filter(
-      (p) => p.acctId === acct.id
-          && (p.ticker || "").toUpperCase() === tickerClean.toUpperCase()
-          && (p.assetClass || p.asset_class) === assetClass
-    );
-    return matches[0] || null;
-  }, [isEdit, tickerClean, accountLabelClean, accounts, heldPositions, assetClass]);
-
-  // ── Phase 4: default the cash-debit toggle to ON for tactical accounts ──
-  useEffect(() => {
-    if (isEdit) return;
-    if (assetClass === "cash") { setPayFromCash(false); return; }
-    const acct = (accounts || []).find(
-      (a) => (a.label || "").trim().toLowerCase() === accountLabelClean.toLowerCase()
-    );
-    const isTactical = acct?.tactical ?? true;
-    setPayFromCash(isTactical);
-    if (acct && !cashAccountId) setCashAccountId(acct.id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, assetClass, accountLabelClean, accounts]);
-
   // ── avgCost ↔ avgCostStr sync (existing) ──────────────────────────────
   useEffect(() => {
     if (parseNum(avgCostStr) !== avgCost) setAvgCostStr(inputVal(avgCost));
@@ -406,6 +359,54 @@ export default function PositionEditor({
   // ── validation ────────────────────────────────────────────────────────────
   const tickerClean = ticker.trim().toUpperCase();
   const accountLabelClean = accountLabel.trim();
+
+  // ── Phase 4 (#1099): auto-default Current Value from screener mark ───
+  // The screener carries live close prices for ~1,700 US equities. When
+  // the user types a ticker we recognize and hasn't manually set a price
+  // yet, fill price from the screener so the form doesn't block on "Enter
+  // Current Value" when the user just wants to record qty + cost.
+  useEffect(() => {
+    if (assetClass !== "stock") return;
+    if (manualMarkStock) return;
+    if (price != null && Number.isFinite(price) && price > 0) return;
+    const close = screener?.[tickerClean]?.close;
+    if (close != null && Number.isFinite(Number(close)) && Number(close) > 0) {
+      setPrice(Number(close));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetClass, tickerClean, screener]);
+
+  // ── Phase 4: detect "this ticker already exists in target account" ───
+  // Used to surface a merge notice + drive the add_position RPC's
+  // p_merge_into_existing flag (default true).
+  const existingHeld = useMemo(() => {
+    if (isEdit) return null;
+    if (!tickerClean || assetClass === "cash") return null;
+    const acct = (accounts || []).find(
+      (a) => (a.label || "").trim().toLowerCase() === accountLabelClean.toLowerCase()
+    );
+    if (!acct) return null;
+    const matches = (heldPositions || []).filter(
+      (p) => p.acctId === acct.id
+          && (p.ticker || "").toUpperCase() === tickerClean.toUpperCase()
+          && (p.assetClass || p.asset_class) === assetClass
+    );
+    return matches[0] || null;
+  }, [isEdit, tickerClean, accountLabelClean, accounts, heldPositions, assetClass]);
+
+  // ── Phase 4: default the cash-debit toggle to ON for tactical accounts ──
+  useEffect(() => {
+    if (isEdit) return;
+    if (assetClass === "cash") { setPayFromCash(false); return; }
+    const acct = (accounts || []).find(
+      (a) => (a.label || "").trim().toLowerCase() === accountLabelClean.toLowerCase()
+    );
+    const isTactical = acct?.tactical ?? true;
+    setPayFromCash(isTactical);
+    if (acct && !cashAccountId) setCashAccountId(acct.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, assetClass, accountLabelClean, accounts]);
+
 
   const validation = useMemo(() => {
     if (!accountLabelClean) return "Account name is required.";
