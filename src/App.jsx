@@ -2148,52 +2148,39 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   return (
     <div style={{padding:"20px 20px 24px", maxWidth:1200, margin:"0 auto"}}>
 
-      {/* ── NARRATIVE INTRO ─────────────────────────────────────────── */}
-      <div style={{marginBottom:18}}>
-        <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",gap:16,marginBottom:10,flexWrap:"wrap"}}>
-          <h1 style={{fontSize:28, fontWeight:700, color:"var(--text)", margin:0, letterSpacing:"-0.01em", fontFamily:'"Fraunces", Georgia, serif', flex:1, minWidth:0}}>
-            All indicators — what feeds the composites and what doesn't
-          </h1>
-          {/* Reg #7 — expand-all / collapse-all toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              if(openIds.size === 0) setOpenIds(new Set(rows.map(r => r.id)));
-              else setOpenIds(new Set());
-            }}
-            style={{
-              padding:"6px 14px",
-              fontSize:11,
-              fontFamily:"var(--font-mono)",
-              fontWeight:700,
-              letterSpacing:"0.06em",
-              textTransform:"uppercase",
-              border:"1px solid var(--border)",
-              borderRadius:4,
-              cursor:"pointer",
-              background:"var(--surface-2)",
-              color:"var(--text)",
-              whiteSpace:"nowrap",
-              flexShrink:0,
-              marginTop:4,
-            }}
-          >
-            {openIds.size === 0 ? "Expand all" : "Collapse all"}
-          </button>
-        </div>
-        <p style={{fontSize:14, color:"var(--text-2)", lineHeight:1.7, margin:"0 0 8px 0", maxWidth:840}}>
-          This page is the inventory of every macro indicator MacroTilt collects. Each is mapped to
-          a category (equity & volatility, credit, rates, financial conditions, bank channel, labor,
-          money supply, inflation expectations) and to a forward-horizon composite (Risk &amp; Liquidity,
-          Growth, Inflation &amp; Rates) where it has cleared the drawdown-prediction confidence threshold
-          from our v2 backtest. Indicators that did not clear are kept on the site as reference — they
-          remain useful for context but do NOT contribute to composite math. Click any row for the full
-          indicator detail (description, calculation, source, history chart). Headers are sortable;
-          tooltips on every column header and weight chip explain the term in plain English.
-        </p>
+      {/* ── INTRO ROW ───────────────────────────────────────────────────
+           The page hero (RichHero above) now carries the H1 + lead paragraph
+           describing what the model reads and how it's calibrated. This row
+           keeps only the live count chip + the Expand-all toggle so the same
+           framing isn't said three times.  (2026-04-28 cleanup) */}
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:14,flexWrap:"wrap"}}>
         <div style={{fontSize:12, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.04em"}}>
           {rows.length} indicators total · {weightedCount} weighted into composites · {refCount} reference-only{filtered.length !== rows.length ? <span style={{color:"var(--accent)"}}> · {filtered.length} matching filters</span> : null}
         </div>
+        <button
+          type="button"
+          onClick={() => {
+            if(openIds.size === 0) setOpenIds(new Set(rows.map(r => r.id)));
+            else setOpenIds(new Set());
+          }}
+          style={{
+            padding:"6px 14px",
+            fontSize:11,
+            fontFamily:"var(--font-mono)",
+            fontWeight:700,
+            letterSpacing:"0.06em",
+            textTransform:"uppercase",
+            border:"1px solid var(--border)",
+            borderRadius:4,
+            cursor:"pointer",
+            background:"var(--surface-2)",
+            color:"var(--text)",
+            whiteSpace:"nowrap",
+            flexShrink:0,
+          }}
+        >
+          {openIds.size === 0 ? "Expand all" : "Collapse all"}
+        </button>
       </div>
 
       {/* ── SEARCH + FILTER CHIPS (P6 #20, Joe 2026-04-27) ───────── */}
@@ -7401,9 +7388,9 @@ Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-t
     to 2 cols on a 430px phone (previously forced repeat(6,1fr) — boxes at
     ~58px, dollar values overflowed off viewport). */}
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
+{/* Total Wealth + Port. Beta removed 2026-04-28 — already in the hero KPI
+    strip above, was duplicating wealth + beta on the same surface. */}
 {[
-  {label:"Total Wealth",value:`$${Math.round(grandTotal).toLocaleString()}`,col:"var(--text)"},
-  {label:"Port. Beta",value:portBeta.toFixed(2),col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
   {label:"Holdings",value:`${heldPositions.length}`,col:"var(--text)"},
   {label:"Buy Alerts",value:buyCount,col:"var(--green-text)",accent:"#30d158"},
   {label:"Near Trigger",value:watchCount,col:"var(--yellow-text)",accent:"#B8860B"},
@@ -8027,7 +8014,7 @@ return(<>
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
 {tab==="readme" && (<>
-  <div style={{padding:"0 20px"}}><RichHero
+  <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><RichHero
     eyebrow="FAQ &amp; Methodology"
     headline={"How the model works — "}
     italicAccent={"every parameter exposed."}

@@ -606,7 +606,7 @@ export default function LoginScreen() {
         )}
 
         <div style={{ marginTop: 28, paddingTop: 20, borderTop: "1px solid var(--border-faint)", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
-          Only the Portfolio & Insights tab requires sign-in. The macro dashboard, indicators, sectors, scanner, and methodology are public.
+          Only the Portfolio & Insights tab requires sign-in. The macro dashboard, indicators, trading opportunities, and methodology are public.
         </div>
       </div>
     </main>
