@@ -7137,7 +7137,7 @@ return(
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
-{tab==="insights"&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
+{(tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
 {(tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
 const heldByTicker={};
 ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
