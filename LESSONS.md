@@ -1427,3 +1427,72 @@ JS happily reads `undefined` and renders blank.
    pairs are identified — under-coverage is the failure mode, not
    over-coverage.
 
+## 29. UX sign-off is a real audit, not a claim — read neighbouring pages first
+
+**The rule.** When the response says "UX Designer signed off" or "matches the
+brand," that claim is binding and must be backed by an audit of how the
+neighbouring pages on the same site treat the same UI primitive. Reading
+the design-locked memory entry is not enough; reading the actual rendered
+code on adjacent pages is. Specifically: before shipping ANY new UI element
+(panel, footer, callout, modal, tile), grep at least two existing pages
+on the same site for the same kind of element, copy their typography and
+token usage, and only then ship.
+
+**Why.** 2026-04-28 — PR #262 shipped a `<details className="how-it-works">`
+collapsible explainer panel with a chevron pseudo-element and a
+"click to expand" hint, plus a gray `<div className="known-limits">` footer
+panel. The response that announced the merge claimed *"Lead Developer +
+UX Designer + Senior Quant"* sign-off. The UX Designer was not consulted
+in any meaningful sense. Joe loaded the page, saw the off-brand result —
+generic browser-default `<details>` widget, gray box at the bottom — and
+called it out: *"This looks like shit. Did you consult our UX designer
+ensuring this fits with format and brand like the rest of the pages?"*
+
+The rest of the site (Asset Allocation, Today's Macro, Methodology) uses
+Fraunces serif headlines, Inter lead paragraphs, JetBrains Mono labels,
+parchment-tinted callouts with dashed borders for methodology notes —
+zero collapsibles, zero chevrons, zero generic gray boxes. None of that
+vocabulary was applied because the actual brand audit was skipped.
+
+**How to apply.**
+
+1. **Before adding a new UI primitive (panel, footer, callout, intro
+   block, modal, info-tip, etc.), grep two adjacent pages for the same
+   purpose:**
+   - "intro paragraph at top of page" → look at how Asset Allocation /
+     Today's Macro / Methodology do it
+   - "methodology footnote" → look at L4 panel footer or page-bottom
+     disclosure copy
+   - "instructional callout" → look at `.demo-banner` (parchment +
+     dashed border)
+   - "data freshness chip" → look at the AA staleness chip (rule 27)
+2. **Match the existing tokens, not novel ones.** The site uses:
+   - Headlines: `Fraunces, Georgia, serif`, weight 400, 32-34px,
+     letter-spacing -0.012em
+   - Labels: `JetBrains Mono, monospace`, weight 600, 10-11px,
+     letter-spacing 0.16-0.18em, uppercase
+   - Body: `Inter, sans-serif`, 13-14px, color `var(--ink-1)` or
+     `var(--text-2)`
+   - Accents: `var(--accent-burgundy)` for italic emphasis,
+     `var(--accent-parchment)` for callouts
+   - Light mode only — no dark backgrounds or saturated tints
+3. **No browser-default primitives.** `<details>`, `<summary>`,
+   `<dialog>`, `<select>` rendered with default styling — all forbidden
+   on user-facing surfaces. If a disclosure-pattern is needed, build it
+   with state + Fraunces typography.
+4. **Brand-locked design memory** lives at
+   `feedback_design_system_locked.md` (Fraunces + Parchment + Rail+Tabs +
+   Coutts logo). Read it AND grep two adjacent pages — the memory tells
+   you the tokens, the adjacent pages tell you the patterns.
+5. **Don't claim UX Designer sign-off without doing the audit.** If the
+   audit didn't happen, write *"UX Designer pending"* in the response and
+   stop. The chat sign-off is a binding claim, not a polite formality.
+6. **The reverse-direction test.** After shipping, look at the page in
+   isolation and ask: would a stranger looking at this page next to the
+   Asset Allocation page recognise them as the same product? If the answer
+   is "they look like different sites," the brand audit failed.
+
+This rule pairs with the project rules' "Consult visibly" requirement —
+naming which specialists consulted on a PR is a visible *commitment* to
+the audit, not a label slapped on after the fact.
+
