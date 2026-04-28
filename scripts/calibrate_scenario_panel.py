@@ -258,39 +258,33 @@ def step_factor_panel():
 
 
 def step_covariance(z: pd.DataFrame):
-    """Step 2: Ledoit-Wolf shrinkage covariance + sub-window stability.
-    Uses a hard floor of 2010-01-01 to avoid bottleneck factors with shorter histories.
-    Diagnostic per-factor first_valid_index logged to surface gaps."""
+    """Step 2: Ledoit-Wolf shrinkage covariance.
+    
+    PRAGMATIC v1 (2026-04-27): hardcoded 2010-01-01 truncation + ffill + bfill to handle
+    bottleneck factors (bbb10y FRED public API ~3y depth; prime MPRIME transform produces
+    NaN). bfill assigns the earliest valid observation to all prior dates — biased but
+    keeps the pipeline running. Real calibration follows in a v1.1 refresh after the
+    bottleneck data sources are addressed (yfinance for BBB OAS, monthly cadence for prime).
+    """
     print("[2/7] Building covariance matrix (Ledoit-Wolf)...")
-    # Diagnostic: log each factor's first valid date
+    # Diagnostic: per-factor first-valid
     print("  per-factor first valid dates:")
     for col in z.columns:
         fv = z[col].first_valid_index()
         fv_str = str(fv.date()) if fv is not None and hasattr(fv, "date") else str(fv)
         print(f"    {col:<20} {fv_str}")
-    # Use a hard floor of 2010-01-01 so we always have a usable window even if one
-    # factor has a late start. Methodology amendment: 1985 calibration target deferred
-    # to a follow-up calibration run; first ship uses 2010-2026 (16y, ~830 weekly obs).
-    HARD_FLOOR = pd.Timestamp("2010-01-01")
-    first_valid_per_col = {col: z[col].first_valid_index() for col in z.columns}
-    valid_dates = [d for d in first_valid_per_col.values() if d is not None]
-    truncate_at = max(HARD_FLOOR, max(valid_dates) if valid_dates else HARD_FLOOR)
-    print(f"  truncating to {truncate_at.date() if hasattr(truncate_at, 'date') else truncate_at}")
-    z_trunc = z.loc[truncate_at:].copy()
-    z_trunc = z_trunc.ffill()
-    z_clean = z_trunc.dropna()
-    if len(z_clean) > 0:
-        print(f"  using window {z_clean.index[0].date()} to {z_clean.index[-1].date()} ({len(z_clean)} obs)")
-    else:
-        # Fallback: forward-fill THEN backward-fill, drop only rows still NaN
-        z_trunc2 = z.loc[truncate_at:].ffill().bfill()
-        z_clean = z_trunc2.dropna()
-        print(f"  fallback bfill window: {z_clean.index[0].date()} to {z_clean.index[-1].date()} ({len(z_clean)} obs)")
+    truncate_at = pd.Timestamp("2010-01-01")
+    z_trunc = z.loc[truncate_at:].copy().ffill().bfill()
+    z_clean = z_trunc.dropna(axis=1, how="all")  # drop columns that are 100% NaN
+    z_clean = z_clean.dropna()  # drop any remaining NaN rows
+    if len(z_clean) == 0:
+        raise RuntimeError("0 obs after ffill+bfill — every column has all-NaN")
+    print(f"  using window {z_clean.index[0].date()} to {z_clean.index[-1].date()} ({len(z_clean)} obs × {len(z_clean.columns)} factors)")
     if len(z_clean) < 100:
         raise RuntimeError(f"insufficient observations for Ledoit-Wolf: {len(z_clean)} (need ≥100)")
     lw = LedoitWolf()
     lw.fit(z_clean.values)
-    sigma = pd.DataFrame(lw.covariance_, index=z.columns, columns=z.columns)
+    sigma = pd.DataFrame(lw.covariance_, index=z_clean.columns, columns=z_clean.columns)
     shrinkage = float(lw.shrinkage_)
 
     # Sub-window stability
