@@ -5535,14 +5535,14 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","scanner","about","readme","admin","bugs","lab"];
+const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","about","readme","admin","bugs","lab"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
-  overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
+  overview:  {eyebrow:"Macro Overview",        title:"Where macro stress is right now, and what's leading.", sub:"This page tracks macro stress across three discrete composites — Risk & Liquidity (short-term indicator of stress), Growth (intermediate term), and Inflation & Rates (longer term indicator) — calibrated against twenty-one years of S&P drawdown data. Each composite scores from −100 (calm) to +100 (stressed), built from indicators that empirically led the last five major equity drawdowns. Read it top-to-bottom: today's reading and quadrant → composite tiles with indicator drivers → 21-year trajectory chart → lead-time event study."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   allocation:{eyebrow:"Allocation Tilt",       title:"Allocation tilt",         sub:"Equity exposure, industry-group overweights, defensive sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
-  portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"Daily opportunity scan candidates — buy alerts, near-triggers, and watchlist movers. Open the full scanner for the deep view."},
+  portopps:  {eyebrow:"Trading Opportunities", title:"Today's actionable names — from the full universe.", sub:"This page surfaces today's actionable names — buy alerts and near-triggers — scored against the universe of ~1,700 most liquid US equities (main-index members, $1B+ market cap), plus any names you add to your watchlist. Each ticker is graded on a composite score blending five signals: technical indicators (MACD, RSI), congressional trades, insider Form 4 filings, dark pool prints, and unusual options flow. A composite of 60+ is a buy alert; 35–59 sits on the near-trigger watch list. Read it top-to-bottom: signal sources → scan summary → buy alerts → near-triggers → covered-call setups."},
   insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
   scanner:   {eyebrow:"Trading Scanner",      title:"Daily opportunity scan",  sub:"Runs at 3:30 PM ET on weekdays. Buy alerts (60+), watch list (35+), covered-call setups."},
   about:     {eyebrow:"About MacroTilt",      title:"About",                   sub:"The problem, the approach, and who this is for."},
@@ -5591,6 +5591,7 @@ const HASH_ALIASES={
   "positions":"portopps",
   "watchlist":"portopps",
   "asset-allocation":"allocation",
+  "scanner":"portopps",  // Scanner page killed 2026-04-27; redirects to consolidated Trading Opportunities tab.
 };
 const resolveHash=(raw)=>{
   // Strip leading # AND any ?query=… suffix so hashes like
@@ -5677,7 +5678,7 @@ const navTo=(next)=>{
 // Scanner reads `focusTicker` on mount/change and scrolls + highlights.
 const navToScannerFor=(ticker)=>{
   setScannerFocusTicker(ticker);
-  if(tab!=="scanner"){setTabHistory(h=>[...h,tab]);setTab("scanner");}
+  if(tab!=="portopps"){setTabHistory(h=>[...h,tab]);setTab("portopps");}
 };
 const goBack=()=>{
   setTabHistory(h=>{
@@ -6545,12 +6546,12 @@ return(
             </div>
           </div>
 
-          <div role="link" tabIndex={0} onClick={()=>navTo("scanner")}
-               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("scanner"); } }}
+          <div role="link" tabIndex={0} onClick={()=>navTo("portopps")}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("portopps"); } }}
                style={stepTileStyle}>
-            <div style={tileTagStyle}>{tileLineAccent} 03 · Scanner</div>
+            <div style={tileTagStyle}>{tileLineAccent} 03 · Opportunities</div>
             <h3 style={tileH3Style}>What to act <em style={{fontStyle:"italic", color:"var(--accent)"}}>on today.</em></h3>
-            <p style={tileBlurbStyle}>Daily buy alerts and near-trigger names from your watchlist — the action layer on top of the macro view.</p>
+            <p style={tileBlurbStyle}>Today's actionable names from the full ~1,700-equity universe scan plus your watchlist — buy alerts, near-triggers, and the signal sources behind them.</p>
             <div style={tileFootStyle}>
               <span>Open<span style={arrowStyle}>→</span></span>
             </div>
@@ -7002,7 +7003,7 @@ return(
               const isBuy  = r.ovr >= 60;
               return (
                 <div key={r.ticker}
-                     onClick={()=>navTo("scanner")}
+                     onClick={()=>navTo("portopps")}
                      style={{
                        display:"flex", alignItems:"center", justifyContent:"space-between",
                        padding:"var(--space-2) 0",
@@ -7465,15 +7466,9 @@ return(
 <button onClick={()=>setShowPortoppsLogin(true)} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</button>
 </div>
 )}
-{showTrading&&(
-<div style={{background:"var(--surface-2)",border:"1px solid var(--accent)",borderRadius:8,padding:"14px 16px",marginBottom:12,display:"flex",gap:14,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
-<div style={{flex:"1 1 260px",minWidth:0}}>
-<div style={{fontSize:11,color:"var(--accent)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:4,fontWeight:700}}>DAILY OPPORTUNITY SCAN</div>
-<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>{buyCount} buy alert{buyCount===1?"":"s"} · {watchCount} near trigger today. Open the full scanner for the complete universe, filters, and component scores.</div>
-</div>
-<button onClick={()=>setTab("scanner")} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Open Full Scanner →</button>
-</div>
-)}
+{/* "Open Full Scanner" CTA killed 2026-04-27 — Scanner content now
+    renders inline on this same page below, so there is no "full scanner"
+    elsewhere to open. */}
 {/* SUMMARY BAR — Portfolio Insights only */}
 {showInsights&&(<div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
 <div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & INSIGHTS · SNAPSHOT</div>
@@ -7542,7 +7537,7 @@ return(
 {/* Universe-snapshot freshness — signed-in only, hidden pre-auth. */}
 <UniverseFreshness pricesTs={universeSnapshotTs} eventsTs={scanData?.ticker_events_ts}/>
 <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{buyCount} triggered · {watchCount} near · {rebucketOther.length} other</span>
-<span style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("scanner")}>Full scanner →</span>
+<span style={{fontSize:11,color:ACCENT,cursor:"pointer",fontFamily:"var(--font-mono)"}} onClick={()=>navTo("portopps")}>Full scanner →</span>
 </div>
 </div>
 <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
@@ -8026,7 +8021,7 @@ return(<>
 })()}
 
 {/* SCANNER */}
-{tab==="scanner"&&<Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)} onOpenTicker={(t)=>setTickerDetail(t)}/>}
+{/* /#scanner route killed 2026-04-27 — Scanner content now lives inline on /#portopps below. Hash redirect handles legacy bookmarks. */}
 
 {/* Per-ticker detail modal — opens from any ticker-level 'Details' click in
     portopps (opportunity cards, position cards). Escape hatch at the bottom
@@ -8103,6 +8098,10 @@ return(<>
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
 {tab==="about"  && <AboutPage onNav={navTo}/>}
+{/* Scanner content — moved here from /#scanner route. Renders below
+    the existing Trading Opportunities header + KPI bar + portfolio
+    sections, providing the full universe scan in one page. */}
+{tab==="portopps" && <Scanner focusTicker={scannerFocusTicker} onFocusConsumed={()=>setScannerFocusTicker(null)} onOpenTicker={(t)=>setTickerDetail(t)}/>}
 {tab==="readme" && <MethodologyPage ind={IND} asOf={AS_OF} asOfIso={AS_OF_ISO} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>}
 
 
@@ -8110,7 +8109,7 @@ return(<>
 </div>
 
 <Footer
-  leftText={tab==="scanner"?"SOURCES · Unusual Whales · Yahoo Finance · SEC Form 4 · Congressional Disclosures":"SOURCES · FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · Kim-Wright Fed · SLOOS Fed"}
+  leftText={tab==="portopps"?"SOURCES · Unusual Whales · Yahoo Finance · SEC Form 4 · Congressional Disclosures · FRED":"SOURCES · FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · Kim-Wright Fed · SLOOS Fed"}
   rightText="⚠ NOT INVESTMENT ADVICE · v10"
   onAbout={()=>navTo("about")}
 />
