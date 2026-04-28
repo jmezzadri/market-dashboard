@@ -829,8 +829,14 @@ export default function AssetAllocation({ onOpenTicker }) {
               // as_of is more than a week old the rebalance hasn't run.
               // Joe correctly flagged 2026-04-27: dot was hardcoded green
               // even when as_of was 27 days stale (closes bug #1093).
-              const asOf = alloc?.as_of ? new Date(alloc.as_of) : null;
-              const days = asOf ? Math.floor((Date.now() - asOf.getTime()) / 86400000) : null;
+              // #1104 — staleness derives from calculated_at (the rebalance
+              // timestamp set by compute_v9_allocation.py). alloc.as_of is the
+              // last full-month factor-panel observation (e.g. 2026-03-31) and
+              // doesn't advance during the calendar month — using it makes a
+              // freshly-rebuilt file read "28 days old" the entire month.
+              const calcAt = alloc?.calculated_at ? new Date(alloc.calculated_at)
+                           : alloc?.as_of ? new Date(alloc.as_of) : null;
+              const days = calcAt ? Math.floor((Date.now() - calcAt.getTime()) / 86400000) : null;
               let color = "var(--text-muted)", note = "";
               if (days == null) { color = "var(--text-muted)"; note = "no rebalance loaded"; }
               else if (days <= 7)  { color = "var(--green-text)";  note = "fresh"; }
@@ -839,7 +845,7 @@ export default function AssetAllocation({ onOpenTicker }) {
               return (
                 <span style={{ fontSize: 10, color: "var(--text-muted)", display: "flex", alignItems: "center", gap: 4 }}>
                   <span style={{ width: 6, height: 6, borderRadius: "50%", background: color }}/>
-                  Updated weekly on Saturdays · Last update: {humanDate(alloc.as_of)}{note ? ` (${note})` : ""}
+                  Updated weekly on Saturdays · Last update: {humanDate(alloc.calculated_at || alloc.as_of)}{note ? ` (${note})` : ""}
                 </span>
               );
             })()}
