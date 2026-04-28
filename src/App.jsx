@@ -7545,7 +7545,7 @@ return(<>
 Trading Opportunities
 </div>
 <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.1,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:720}}>
-What to act on today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>the full scan plus your watchlist.</em>
+What to act on today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>across the full liquid universe.</em>
 </h1>
 <div style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontStyle:"italic",fontSize:16,color:"var(--text-muted)"}}>{_subline}</div>
 </div>
