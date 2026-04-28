@@ -7218,11 +7218,10 @@ return(
 {/* INDICATORS */}
 {tab==="indicators"&&(()=>{
   const _indCount = Object.keys(IND||{}).length;
-  const _weightedCount = Object.entries(WEIGHTS||{}).filter(([_k,v])=>{
-    if (typeof v === "number") return v > 0;
-    if (v && typeof v === "object") return Object.values(v).some(n=>typeof n==="number" && n>0);
-    return false;
-  }).length;
+  // Truth: an indicator is "in composites" iff it has a COMPOSITE_MAP entry
+  // (drives the same _weightedCount used by the table intro at line 2064).
+  const _weightedCount = Object.keys(COMPOSITE_MAP||{}).length;
+  const _refCount = _indCount - _weightedCount;
   const _catCount = Object.keys(CATS||{}).length;
   return <RichHero
     eyebrow="All Indicators"
@@ -7235,8 +7234,8 @@ return(
     lead={<>Every macro indicator the model uses to score regime stress — <strong style={{fontWeight:600,color:"var(--text)"}}>{_indCount} calibrated series</strong> across Risk &amp; Liquidity, Growth, Inflation &amp; Rates, and other categories. Each is normalized against its long-run mean and standard deviation, then weighted by predictive power (<strong style={{fontWeight:600,color:"var(--text)"}}>AUC for S&amp;P −15% drawdowns</strong>) inside its composite. Hover any row for source, formula, current reading, and meaning. Filter by composite or category at the top. Click a row to open the full indicator detail.</>}
     kpis={[
       {lbl:"Indicators", v:_indCount, sub:"total tracked"},
-      {lbl:"In composites", v:_weightedCount, col:"var(--green-text)", sub:"weighted into R&L/Growth/IR"},
-      {lbl:"Sources", v:"8+", sub:"FRED · Fed · ICE BofA · ISM…"},
+      {lbl:"In composites", v:_weightedCount, col:"var(--green-text)", sub:`feed R&L / Growth / IR · ${_refCount} reference-only`},
+      {lbl:"Sources", v:"8", sub:"FRED · Fed · ICE BofA · ISM · BLS · Shiller…"},
       {lbl:"Categories", v:_catCount, sub:"R&L, Growth, Infl…"},
     ]}
   />;
