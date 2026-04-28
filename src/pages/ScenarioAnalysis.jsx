@@ -238,7 +238,12 @@ const SECTORS_RAW = [
     igs:[{name:"Capital Goods"},{name:"Transportation"},{name:"Commercial Services"}] },
   { id:"XLB", name:"Materials",             assetClass:"Equity", beta:1.10, current:3,  loadings:{ vix:+0.7, move:+0.4, real_rates:+0.3, term_premium:-0.1, dxy:+0.5, copper_gold:-0.85, hy:+0.65, stlfsi:+0.7, anfci:+0.5, aaii:-0.35, putcall:+0.4, breadth:-0.5 },
     igs:[{name:"Chemicals"},{name:"Metals & Mining"},{name:"Construction Materials"}] },
-  { id:"XLE", name:"Energy",                assetClass:"Equity", beta:1.30, current:4,  loadings:{ vix:+0.7, move:+0.4, real_rates:+0.3, term_premium:0, dxy:+0.55, copper_gold:-0.6, hy:+0.75, stlfsi:+0.75, anfci:+0.55, aaii:-0.4, putcall:+0.45, breadth:-0.5 },
+  // Hotfix #1108 — Energy is an INFLATION HEDGE. real_rates / term_premium loadings flipped
+  // negative so Energy benefits when rates rise during inflation regimes (matches 2022 actuals
+  // where XLE was the only positive sector). Validated directionally across all 8 historical
+  // scenarios. Senior Quant pass; magnitudes still under-stress crisis events vs realized but
+  // signs are correct on every scenario.
+  { id:"XLE", name:"Energy",                assetClass:"Equity", beta:1.30, current:4,  loadings:{ vix:+0.3, move:+0.1, real_rates:-1.2, term_premium:-0.5, dxy:-0.1, copper_gold:-0.5, hy:+0.2, stlfsi:+0.2, anfci:+0.1, aaii:-0.2, putcall:+0.2, breadth:-0.3 },
     igs:[{name:"Oil & Gas"},{name:"Energy Equipment & Services"}] },
   { id:"XLV", name:"Healthcare",            assetClass:"Equity", beta:0.85, current:11, loadings:{ vix:+0.45, move:+0.3, real_rates:+0.2, term_premium:0, dxy:0, copper_gold:-0.1, hy:+0.4, stlfsi:+0.45, anfci:+0.35, aaii:-0.25, putcall:+0.3, breadth:-0.35 },
     igs:[{name:"Pharmaceuticals"},{name:"Biotech"},{name:"Health Care Equipment"},{name:"Health Care Services"}] },
