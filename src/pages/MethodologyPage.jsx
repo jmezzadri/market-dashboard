@@ -273,7 +273,7 @@ function Contents({ ind, expand, expandAll, collapseAll }) {
       sub: "Per-ticker Signal Score — upstream data + the [−100, +100] math.",
       id: "mth__trading",
       children: [
-        { num: "4.1", label: "Scanner data sources",  id: A("catalog") },
+        { num: "4.1", label: "Trading Opportunities data sources",  id: A("catalog") },
         { num: "4.2", label: "Signal score math",     id: A("signal-math") },
       ],
     },
