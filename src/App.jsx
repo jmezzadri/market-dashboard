@@ -19,6 +19,8 @@ import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
 import usePortfolioHistory from "./hooks/usePortfolioHistory";
 import useDailyNavSnapshot from "./hooks/useDailyNavSnapshot";
+import { useTransactionsLedger } from "./hooks/useTransactionsLedger";
+import TradeHistorySection from "./components/TradeHistorySection";
 import { computePortfolioReturns, computeSpyReturns } from "./lib/portfolioReturns";
 import { computePortfolioSharpe } from "./lib/riskMetrics";
 import { useTickerEvents } from "./hooks/useTickerEvents";
@@ -5896,6 +5898,10 @@ const _portfolioSharpe = useMemo(() => {
   return computePortfolioSharpe(_portfolioReturns?.aggregate || [], 0.05);
 }, [_portfolioReturns]);
 
+// Phase 5 — transactions ledger. Powers the Realized P&L tile + Trade
+// History collapsible on /#insights. RLS-scoped; anon users get [].
+const { rows: _txRows, totals: _txTotals, loading: _txLoading, error: _txError, refetch: _refetchTransactions } = useTransactionsLedger();
+
 // Inline sign-in toggle for the portopps zero-state. Clicking the CTA in the
 // banner swaps the skeleton for the LoginScreen; successful sign-in flips
 // `portfolioAuthed` and the user sees their real portfolio.
@@ -7637,6 +7643,70 @@ Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-t
 </div>
 )}
 
+{/* REALIZED P&L · CLOSED TRADES — Phase 5A. 4 cards (YTD/1M/3M/Lifetime),
+    each shows total realized P&L; tooltip breaks short-term vs long-term.
+    Sourced from public.transactions.realized_pnl + is_long_term, windowed
+    on executed_at. Empty state if no closes yet. Insights tab only. */}
+{showInsights && portfolioAuthed && (() => {
+  const fmt$ = v => {
+    const n = Math.round(v||0);
+    const abs = Math.abs(n).toLocaleString();
+    return (n>=0?"+$":"-$") + abs;
+  };
+  const fmt$Cents = v => {
+    if (v == null) return "—";
+    const sign = v>=0?"+":"-";
+    return sign + "$" + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+  };
+  const colorFor = v => v>0 ? "var(--green-text)" : v<0 ? "var(--orange-text)" : "var(--text)";
+  const closes = _txRows.filter(r => r.realizedPnl != null).length;
+  const cards = [
+    { lbl:"YTD",      sub:`Jan 1 → today`,         data:_txTotals.ytd },
+    { lbl:"1 MONTH",  sub:`last 30 days`,          data:_txTotals.m1 },
+    { lbl:"3 MONTHS", sub:`last 90 days`,          data:_txTotals.m3 },
+    { lbl:"LIFETIME", sub:`since first close`,     data:_txTotals.lifetime },
+  ];
+  return (
+    <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+        <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.15em",fontWeight:700,display:"flex",alignItems:"center",gap:6}}>
+          REALIZED P&amp;L · CLOSED TRADES
+          <InfoTip term="Realized P&L" def="Locked-in gains and losses from positions you've actually closed (sold or bought-to-close). Excludes paper gains on positions you still hold. Short-term (held ≤ 1 year) is taxed at your ordinary income rate; long-term (held > 1 year) is taxed at the preferential 0/15/20% capital-gains rate." size={10}/>
+        </div>
+        <span style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.05em"}}>{closes} closed trade{closes===1?"":"s"}</span>
+      </div>
+      {closes === 0 ? (
+        <div style={{padding:"18px 16px",fontSize:13,color:"var(--text-muted)",textAlign:"center",fontStyle:"italic"}}>
+          No closed trades yet. Realized P&amp;L will populate after your first close.
+        </div>
+      ) : (
+        <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8}}>
+          {cards.map(c => {
+            const tip = `Short-term: ${fmt$Cents(c.data.st)}  ·  Long-term: ${fmt$Cents(c.data.lt)}`;
+            return (
+              <div key={c.lbl} style={{background:"var(--surface-3)",borderRadius:5,padding:"10px 12px",position:"relative"}}>
+                <div style={{display:"flex",alignItems:"center",gap:4,fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:4,fontWeight:600,letterSpacing:"0.08em"}}>
+                  <span>{c.lbl}</span>
+                  <InfoTip term={`${c.lbl} realized P&L`} def={`Total realized P&L for trades closed in this window. Short-term: ${fmt$Cents(c.data.st)}. Long-term: ${fmt$Cents(c.data.lt)}. Hover the value to see this breakdown.`} size={9}/>
+                </div>
+                <div title={tip} style={{fontSize:18,fontWeight:800,color:colorFor(c.data.all),fontFamily:"monospace",cursor:"help"}}>
+                  {fmt$(c.data.all)}
+                </div>
+                <div style={{fontSize:10,color:"var(--text-dim)",marginTop:4}}>
+                  {c.sub} · ST {fmt$Cents(c.data.st)} / LT {fmt$Cents(c.data.lt)}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.04em",marginTop:8}}>
+        Sourced from your trade ledger. Short-term (ST) = held ≤ 1 year, taxed at ordinary rates. Long-term (LT) = held &gt; 1 year, taxed at capital-gains rates. Excludes fees on tickets where the broker didn't report them.
+      </div>
+    </div>
+  );
+})()}
+
 {/* SECTION 1 — TRADING OPPS (only on portopps tab) */}
 {showTrading&&<div style={sectionPanel}>
 <div style={sectionHeader}>
@@ -8110,6 +8180,15 @@ return(<>
 </>}
 </div>
 </div>}
+
+{/* TRADE HISTORY — Phase 5B. Collapsible ledger over public.transactions
+    (BUY/SELL/OPEN/CLOSE) with date-window, ticker, account, and options-only
+    filters + CSV export. Rendered between Positions and Account Breakdown
+    so the page reads top-to-bottom: KPIs → risk → realized P&L → positions
+    → trade history → account-by-account. */}
+{showInsights && portfolioAuthed && (
+  <TradeHistorySection rows={_txRows} loading={_txLoading} accounts={ACCOUNTS}/>
+)}
 
 {/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab */}
 {showInsights&&<div style={sectionPanel}>
