@@ -5524,7 +5524,7 @@ function RegimeCategoryTable({ rows, regimePillCSS, navTo, setCatFilter }){
   );
 }
 
-const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","readme","admin","bugs","lab"];
+const TAB_IDS=["home","overview","indicators","allocation","portopps","insights","readme","admin","bugs","lab","scenarios"];
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
