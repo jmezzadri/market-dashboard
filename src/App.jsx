@@ -7838,8 +7838,8 @@ return(<>
       accounts={ACCOUNTS.map(a=>({id:a.id,label:a.label,tactical:a.tactical}))}
       userId={session?.user?.id}
       screener={scanData?.signals?.screener}
-      heldPositions={heldPositions}
-      cashByAcct={cashByAcct}
+      heldPositions={ACCOUNTS.flatMap(acc => acc.positions.map(p => ({...p, acctId:acc.id, acctLabel:acc.label, acctTactical:acc.tactical})))}
+      cashByAcct={ACCOUNTS.filter(a => a.tactical).map(acc => ({id:acc.id, label:acc.label, cash: acc.positions.filter(p => p.sector === "Cash").reduce((a,p) => a + p.value, 0)}))}
       onClose={()=>setPositionEditor(null)}
       onSaved={async()=>{await refetchPortfolio?.();setPositionEditor(null);}}
       onDeleted={async()=>{await refetchPortfolio?.();setPositionEditor(null);}}
