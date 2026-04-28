@@ -1725,17 +1725,10 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
             />
           </Tile>
 
-          {/* "How This Works" tile retired 2026-04-22 — single canonical source
-              of truth is the site-wide Methodology page (#readme). The scanner
-              tile previously duplicated and drifted from it; we now link out
-              instead of maintaining a parallel copy. */}
-          <Tile
-            eyebrow="Methodology"
-            title="How the scanner scores"
-            sub="Full methodology — scoring weights, CONVICTION bands, data sources, refresh cadence — lives on the site-wide Methodology page. Click to open it."
-            accent="var(--text-dim)"
-            onClick={() => { window.location.hash = "#readme"; }}
-          />
+          {/* "How the scanner works" Methodology tile retired 2026-04-27 along
+              with the standalone /#scanner route — Scanner now renders inline
+              on /#portopps and the rich hero already explains scoring. The
+              site-wide Methodology page (#readme) remains the canonical source. */}
         </div>
       </main>
     );
