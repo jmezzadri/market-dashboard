@@ -348,24 +348,30 @@ def step_scenarios(z: pd.DataFrame):
 
 
 def step_coherence_validation(z: pd.DataFrame, sigma: pd.DataFrame):
-    """Step 4: KS test of empirical d² distribution against chi-squared(k=16)."""
+    """Step 4: KS test of empirical d² distribution against chi-squared(k=16).
+    Same 2010 floor + ffill+bfill as covariance step (handles bbb10y 2023+ depth)."""
     print("[4/7] Coherence Score validation (KS test)...")
-    first_valid = max(d for d in (z[c].first_valid_index() for c in z.columns) if d is not None)
-    z_clean = z.loc[first_valid:].ffill().dropna()
+    truncate_at = pd.Timestamp("2010-01-01")
+    z_clean = z.loc[truncate_at:].copy().ffill().bfill()
+    # Use only the columns actually in sigma (covariance step may have dropped all-NaN cols)
+    z_clean = z_clean[sigma.columns].dropna()
+    if len(z_clean) == 0:
+        raise RuntimeError("step_coherence_validation: 0 rows after cleaning")
+    print(f"  using {len(z_clean)} obs × {len(z_clean.columns)} factors for d² distribution")
     sigma_inv = np.linalg.pinv(sigma.values)
     d2 = []
     for _, row in z_clean.iterrows():
         v = row.values
         d2.append(v @ sigma_inv @ v)
     d2 = np.array(d2)
-    k = len(z.columns)
+    k = len(z_clean.columns)
     # KS test against chi-squared(k)
     ks_stat, ks_p = stats.kstest(d2, lambda x: stats.chi2.cdf(x, df=k))
     fallback_required = ks_p < 0.01
 
     out = {
         "as_of": str(z.index[-1].date() if hasattr(z.index[-1], "date") else z.index[-1]),
-        "k_degrees_of_freedom": k,
+        "k_degrees_of_freedom": int(k),
         "n_observations": len(d2),
         "ks_statistic": float(ks_stat),
         "ks_p_value": float(ks_p),
