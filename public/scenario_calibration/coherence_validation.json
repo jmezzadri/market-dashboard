@@ -1,0 +1,16 @@
+{
+  "as_of": "2026-05-01",
+  "k_degrees_of_freedom": 15,
+  "n_observations": 853,
+  "ks_statistic": 0.16600870383120675,
+  "ks_p_value": 5.157975370801585e-21,
+  "fallback_required": true,
+  "fallback_method": "empirical percentile rank",
+  "d2_quantiles": {
+    "p05": 4.25768525242892,
+    "p25": 9.349622412662068,
+    "p50": 12.351623538350799,
+    "p75": 16.289904435278864,
+    "p95": 41.33591975784767
+  }
+}
