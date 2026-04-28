@@ -796,23 +796,27 @@ export default function AssetAllocation({ onOpenTicker }) {
   return (
     <main style={{ maxWidth: 1440, margin: "0 auto", padding: "var(--space-6) var(--space-8) var(--space-12)" }}>
 
-      {/* Hero KPI strip */}
+      {/* Hero — RichHero pattern (matches Macro Overview / Indicators /
+          Methodology / Trading Opps / Portfolio Insights). 2026-04-28. */}
       <section style={{
-        padding: "var(--space-8) var(--space-10)",
-        background: "var(--surface-solid)",
-        border: "1px solid var(--border-strong)",
-        borderRadius: "var(--radius-lg)",
+        padding: "24px 24px 22px",
+        background: "var(--surface)",
+        border: "1px solid var(--border-faint)",
+        borderRadius: 8,
         marginBottom: "var(--space-6)",
       }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
           <div style={{ minWidth: 0, flex: "1 1 320px" }}>
-            <div style={{ fontSize: 11, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Asset Allocation</div>
-            <h1 style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 26, fontWeight: 500, margin: "4px 0 4px", letterSpacing: "-0.015em" }}>
-              {stance.label} — {totalEquity > 1.05 ? "leaning into cyclical rotation" : totalEquity > 0.85 ? "balanced positioning" : "defensive posture"}
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, fontWeight: 600 }}>
+              <span style={{ display: "inline-block", width: 20, height: 1, background: "var(--accent)", opacity: 0.6 }}/>
+              Allocation Tilt
+            </div>
+            <h1 style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 32, fontWeight: 400, margin: "0 0 10px", letterSpacing: "-0.012em", lineHeight: 1.1, maxWidth: 720 }}>
+              {stance.label} — <em style={{ fontStyle: "italic", color: "var(--accent)" }}>{totalEquity > 1.05 ? "leaning into cyclical rotation" : totalEquity > 0.85 ? "balanced positioning" : "defensive posture"}.</em>
             </h1>
-            <p style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 14, fontStyle: "italic", color: "var(--text-muted)", margin: 0 }}>
+            <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontStyle: "italic", fontSize: 16, color: "var(--text-muted)" }}>
               {heroSubtitle}
-            </p>
+            </div>
           </div>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "6px 12px", borderRadius: 999, background: stance.bg, color: stance.color, fontWeight: 600, fontSize: 12 }}>
