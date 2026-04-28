@@ -788,7 +788,7 @@ export default function AssetAllocation({ onOpenTicker }) {
   if (!alloc) {
     return (
       <main style={{ maxWidth: 1440, margin: "0 auto", padding: "var(--space-8)" }}>
-        <div style={{ padding: "var(--space-12)", textAlign: "center", color: "var(--text-muted)" }}>Loading asset allocation…</div>
+        <div style={{ padding: "var(--space-12)", textAlign: "center", color: "var(--text-muted)" }}>Loading asset tilt…</div>
       </main>
     );
   }
@@ -809,7 +809,7 @@ export default function AssetAllocation({ onOpenTicker }) {
           <div style={{ minWidth: 0, flex: "1 1 320px" }}>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--accent)", letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 10, display: "flex", alignItems: "center", gap: 10, fontWeight: 600 }}>
               <span style={{ display: "inline-block", width: 20, height: 1, background: "var(--accent)", opacity: 0.6 }}/>
-              Allocation Tilt
+              Asset Tilt
             </div>
             <h1 style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 32, fontWeight: 400, margin: "0 0 10px", letterSpacing: "-0.012em", lineHeight: 1.1, maxWidth: 720 }}>
               {stance.label} — <em style={{ fontStyle: "italic", color: "var(--accent)" }}>{totalEquity > 1.05 ? "leaning into cyclical rotation" : totalEquity > 0.85 ? "balanced positioning" : "defensive posture"}.</em>
@@ -848,7 +848,7 @@ export default function AssetAllocation({ onOpenTicker }) {
 
         {/* Lead-in paragraph — explains what the page is and how to read it (Joe ask 2026-04-27). */}
         <p style={{ fontSize: 13.5, color: "var(--text-2)", lineHeight: 1.6, margin: "12px 0 0", maxWidth: 920 }}>
-          This page is the model&apos;s strategic asset allocation — a recommendation, not a portfolio.
+          This page is the model&apos;s asset tilt — a recommendation, not a portfolio.
           It scores 25 GICS industry groups every Saturday on macro factors and 6-month momentum, then
           recommends 5 to overweight (equal-weight) and a defensive sleeve to activate when the
           Risk &amp; Liquidity composite enters stress. Read it top-to-bottom: the hero summarises
