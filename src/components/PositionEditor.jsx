@@ -155,6 +155,9 @@ export default function PositionEditor({
   onSaved,
   onDeleted,
   onClosePosition,    // Phase 3: parent opens CloseModal
+  screener,           // Phase 4: { TICKER: { close, ... } } for auto-default Current Value (#1099)
+  heldPositions,      // Phase 4: existing positions for merge-detection
+  cashByAcct,         // Phase 4: [{ id, label, cash }] for cash-impact preview
 }) {
   const isEdit = mode === "edit" && existing;
 
@@ -191,7 +194,56 @@ export default function PositionEditor({
 
   useEffect(() => {
     if (parseNum(sharesStr) !== shares) setSharesStr(inputVal(shares));
-  }, [shares]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [shares]);
+
+  // ── Phase 4 (#1099): auto-default Current Value from screener mark ───
+  // The screener carries live close prices for ~1,700 US equities. When
+  // the user types a ticker we recognize and hasn't manually set a price
+  // yet, fill price from the screener so the form doesn't block on "Enter
+  // Current Value" when the user just wants to record qty + cost.
+  useEffect(() => {
+    if (assetClass !== "stock") return;
+    if (manualMarkStock) return;
+    if (price != null && Number.isFinite(price) && price > 0) return;
+    const close = screener?.[tickerClean]?.close;
+    if (close != null && Number.isFinite(Number(close)) && Number(close) > 0) {
+      setPrice(Number(close));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetClass, tickerClean, screener]);
+
+  // ── Phase 4: detect "this ticker already exists in target account" ───
+  // Used to surface a merge notice + drive the add_position RPC's
+  // p_merge_into_existing flag (default true).
+  const existingHeld = useMemo(() => {
+    if (isEdit) return null;
+    if (!tickerClean || assetClass === "cash") return null;
+    const acct = (accounts || []).find(
+      (a) => (a.label || "").trim().toLowerCase() === accountLabelClean.toLowerCase()
+    );
+    if (!acct) return null;
+    const matches = (heldPositions || []).filter(
+      (p) => p.acctId === acct.id
+          && (p.ticker || "").toUpperCase() === tickerClean.toUpperCase()
+          && (p.assetClass || p.asset_class) === assetClass
+    );
+    return matches[0] || null;
+  }, [isEdit, tickerClean, accountLabelClean, accounts, heldPositions, assetClass]);
+
+  // ── Phase 4: default the cash-debit toggle to ON for tactical accounts ──
+  useEffect(() => {
+    if (isEdit) return;
+    if (assetClass === "cash") { setPayFromCash(false); return; }
+    const acct = (accounts || []).find(
+      (a) => (a.label || "").trim().toLowerCase() === accountLabelClean.toLowerCase()
+    );
+    const isTactical = acct?.tactical ?? true;
+    setPayFromCash(isTactical);
+    if (acct && !cashAccountId) setCashAccountId(acct.id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEdit, assetClass, accountLabelClean, accounts]);
+
+  // ── avgCost ↔ avgCostStr sync (existing) ──────────────────────────────
   useEffect(() => {
     if (parseNum(avgCostStr) !== avgCost) setAvgCostStr(inputVal(avgCost));
   }, [avgCost]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -203,6 +255,13 @@ export default function PositionEditor({
   // untracked asset, etc.) so the user enters today's NAV directly instead
   // of fumbling with a derived price. Back-compat: an existing stock row
   // with manual_price already set loads this toggle on by default.
+  // ── Phase 4: buy-side cash debit + merge detection (#1099 fold-in) ─────
+  // Default the pay-from-cash toggle ON for tactical accounts (where you
+  // actually trade in/out daily) and OFF for core/retirement accounts where
+  // contributions happen externally and treat-as-already-owned is the norm.
+  const [payFromCash,   setPayFromCash]   = useState(false);
+  const [cashAccountId, setCashAccountId] = useState(null);
+  // ── existing state continues ──────────────────────────────────────────────
   const [manualMarkStock, setManualMarkStock] = useState(
     isEdit && (existing?.assetClass === "stock" || !existing?.assetClass) && existing?.manualPrice != null
   );
@@ -413,6 +472,52 @@ export default function PositionEditor({
     setErr("");
     setSubmitting(true);
     try {
+      // ── Phase 4 path: when adding a non-cash position with the "Pay from
+      // cash" toggle on, route the entire save through the add_position RPC
+      // (mig 029). The RPC atomically writes the BUY tx row, debits/credits
+      // cash, and either merges into an existing position OR inserts new.
+      // No client-side computation of merged avg_cost — the RPC owns it.
+      if (!isEdit && assetClass !== "cash" && payFromCash) {
+        const account_id = await resolveAccountId();
+        // Pre-compute the per-contract values for options (matches storage
+        // convention — LESSONS rule 25). For stock/bond/crypto, avg = avgCost,
+        // price = price, multiplier = 1.
+        const isOption = assetClass === "option";
+        const signedQty = isOption
+          ? (direction === "short" ? -contracts : contracts)
+          : shares;
+        const avgPerCt   = isOption ? entryPrem * multiplier : avgCost;
+        const pricePerCt = isOption ? markPS    * multiplier : price;
+        const multX      = isOption ? multiplier : 1;
+        const { data, error } = await supabase.rpc("add_position", {
+          p_account_id:          account_id,
+          p_ticker:              tickerClean,
+          p_asset_class:         assetClass,
+          p_quantity:            signedQty,
+          p_avg_cost:            avgPerCt,
+          p_current_price:       pricePerCt,
+          p_executed_at:         new Date(`${purchaseDate || new Date().toISOString().slice(0,10)}T16:00:00`).toISOString(),
+          p_pay_from_cash:       true,
+          p_cash_account_id:     cashAccountId || account_id,
+          p_fees:                0,
+          p_contract_type:       isOption ? contractType : null,
+          p_direction:           isOption ? direction    : null,
+          p_strike:              isOption ? strike       : null,
+          p_expiration:          isOption ? expiration   : null,
+          p_multiplier:          multX,
+          p_sector:              sector || null,
+          p_name:                tickerClean,
+          p_purchase_date:       purchaseDate || null,
+          p_manual_price:        isOption ? markPS : (manualMarkStock ? price : null),
+          p_merge_into_existing: true,
+          p_notes:               null,
+        });
+        if (error) throw error;
+        onSaved?.(data);
+        return;
+      }
+
+      // ── Legacy path (cash class, edits, or pay-from-cash off) ────────────
       // Build a class-specific payload. All classes round-trip the universal
       // `value = quantity × price` formula so PositionsTable math stays the
       // same across the board.
@@ -667,6 +772,107 @@ export default function PositionEditor({
             })}
           </div>
         </div>
+
+        {/* ── Phase 4 buy-side cash debit (#1099 fold-in) ───────────────────
+            Toggle to debit (or credit, for short opens) the chosen cash row
+            atomically with the position write via the add_position RPC.
+            Hidden in edit mode (you'd be modifying an existing row, not
+            opening a new trade). */}
+        {!isEdit && assetClass !== "cash" && (
+          <div style={{
+            marginBottom: 12,
+            padding: "10px 12px",
+            background: "var(--surface-2)",
+            border: "1px solid var(--border-faint)",
+            borderRadius: "var(--radius-sm, 6px)",
+          }}>
+            <label style={{
+              display: "flex", alignItems: "center", gap: 8,
+              cursor: "pointer", fontSize: 12, color: "var(--text)",
+              fontFamily: "var(--font-mono)", fontWeight: 600,
+            }}>
+              <input
+                type="checkbox"
+                checked={payFromCash}
+                onChange={(e) => setPayFromCash(e.target.checked)}
+                style={{ accentColor: "var(--accent)" }}
+              />
+              PAY FROM CASH (atomic debit + ledger entry)
+            </label>
+            {payFromCash && (
+              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={label}>CASH ACCOUNT</label>
+                  <select
+                    style={input}
+                    value={cashAccountId || ""}
+                    onChange={(e) => setCashAccountId(e.target.value)}
+                  >
+                    {(accounts || []).map((a) => (
+                      <option key={a.id} value={a.id}>{a.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label style={label}>CASH IMPACT</label>
+                  {(() => {
+                    // Compute cost basis preview from current form state
+                    const isOption = assetClass === "option";
+                    const qtyAbs = isOption ? Math.abs(contracts || 0) : Math.abs(shares || 0);
+                    const perCt  = isOption ? (entryPrem || 0) * (multiplier || 100) : (avgCost || 0);
+                    const cost   = qtyAbs * perCt;
+                    const isShort = isOption && direction === "short";
+                    const sign = isShort ? "+" : "−";
+                    const col  = isShort ? "#30d158" : "#ff453a";
+                    const acct = (cashByAcct || []).find(c => c.id === (cashAccountId || ""));
+                    const curCash = acct?.cash;
+                    return (
+                      <div style={{
+                        padding: "8px 10px", fontSize: 13,
+                        background: "var(--surface)", border: "1px solid var(--border)",
+                        borderRadius: "var(--radius-sm, 6px)",
+                        fontFamily: "var(--font-mono)", color: "var(--text)",
+                      }}>
+                        <div style={{ fontWeight: 700, color: col }}>
+                          {sign}${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </div>
+                        {curCash != null && (
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                            cash {curCash >= 0 ? "$" : "−$"}{Math.abs(curCash).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                            {" → "}
+                            {(curCash + (isShort ? cost : -cost)) >= 0 ? "$" : "−$"}{Math.abs(curCash + (isShort ? cost : -cost)).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Phase 4 merge notice — surface when ticker already exists ────── */}
+        {existingHeld && (
+          <div style={{
+            marginBottom: 12,
+            padding: "8px 12px",
+            background: "rgba(48,209,88,0.08)",
+            border: "1px solid rgba(48,209,88,0.3)",
+            borderRadius: "var(--radius-sm, 6px)",
+            fontSize: 12, color: "var(--text)",
+          }}>
+            <span style={{ fontWeight: 700, color: "#30d158", fontFamily: "var(--font-mono)" }}>
+              MERGE
+            </span>{" "}
+            You already have <strong>{Math.abs(existingHeld.quantity)}</strong>
+            {" "}{assetClass === "option" ? "contract" : "share"}
+            {Math.abs(existingHeld.quantity) === 1 ? "" : "s"} of <strong>{tickerClean}</strong>
+            {" in "}<strong>{accountLabel}</strong> at avg{" "}
+            <strong>${Number(existingHeld.avgCost || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+            . This will merge with that position — average cost gets re-weighted, no second row created.
+          </div>
+        )}
 
         {/* Account + Ticker row */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>

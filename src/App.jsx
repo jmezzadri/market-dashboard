@@ -7835,8 +7835,11 @@ return(<>
     <PositionEditor
       mode={positionEditor.mode}
       existing={positionEditor.existing}
-      accounts={ACCOUNTS.map(a=>({id:a.id,label:a.label}))}
+      accounts={ACCOUNTS.map(a=>({id:a.id,label:a.label,tactical:a.tactical}))}
       userId={session?.user?.id}
+      screener={scanData?.signals?.screener}
+      heldPositions={heldPositions}
+      cashByAcct={cashByAcct}
       onClose={()=>setPositionEditor(null)}
       onSaved={async()=>{await refetchPortfolio?.();setPositionEditor(null);}}
       onDeleted={async()=>{await refetchPortfolio?.();setPositionEditor(null);}}
