@@ -493,6 +493,9 @@ def compute_allocation_from_data(
             "back_test_cagr": 0.1388,
             "back_test_sharpe": 0.610,
             "back_test_max_drawdown": -0.2364,
+            "back_test_spx_cagr": 0.1106,
+            "back_test_spx_sharpe": 0.495,
+            "back_test_spx_max_drawdown": -0.4632,
             "vs_spy_cagr_diff": 0.0282,
         },
     }

@@ -101,8 +101,11 @@
     "locked_at": "2026-04-25",
     "back_test_window": "2008-01 to 2026-04",
     "back_test_cagr": 0.1388,
+    "back_test_spx_cagr": 0.1106,
     "back_test_sharpe": 0.61,
+    "back_test_spx_sharpe": 0.495,
     "back_test_max_drawdown": -0.2364,
+    "back_test_spx_max_drawdown": -0.4632,
     "vs_spy_cagr_diff": 0.0282
   }
 }
