@@ -1496,3 +1496,91 @@ This rule pairs with the project rules' "Consult visibly" requirement —
 naming which specialists consulted on a PR is a visible *commitment* to
 the audit, not a label slapped on after the fact.
 
+
+
+---
+
+## 30 (2026-04-28) — Display surfaces must derive from live model state, never hardcoded narrative copy
+
+**What happened.** Joe ran QA on the Asset Tilt tab and surfaced 7
+distinct credibility-killing display errors in a single screen capture.
+The root pattern wasn't seven separate bugs — it was one bug repeated
+in seven places: **the page rendered hardcoded narrative copy that did
+not adapt to the live model state.** Examples that landed in
+production:
+
+  * Hero subtitle said *"All three macro composites read benign.
+    Risk-on conditions support overweighting cyclicals and using
+    leverage."* while the v9 model had de-risked to 84% equity, 16%
+    defensive sleeve, no leverage.
+  * The What panel said *"Use leverage if your risk tolerance allows.
+    Gross to roughly 1.28× via margin."* while the live leverage was
+    1.00× and the model had already cut margin to zero.
+  * Risk Scenarios listed *"HY-IG credit spread widens past 250bp"* as
+    a future risk while live HY = 286bp — the trigger had already
+    fired.
+  * Sector heatmap fell back to JSX literal ratings (Semis OW / Pharma
+    UW / etc.) because the JSON schema didn't include the per-IG ranks
+    and the fallback was the source of truth on production.
+  * Margin formula was `leverage − equity_share` which silently
+    re-labels the defensive sleeve as margin used when leverage = 1.0.
+  * "Excess return target" KPI rendered the gross-deployment field
+    (`alpha = equity_share × leverage`) as monthly excess return
+    percent.
+
+**Why this is a binding rule.** Each of those errors was technically
+"working code" — the JSX rendered, the variables resolved, the build
+passed. The code looked correct in review. The bugs were only visible
+when a portfolio manager who knew what the model was doing held the
+hardcoded copy up against the live JSON. By that point the page had
+shipped and the credibility damage was done.
+
+**What you should do instead.**
+
+1. **Every user-visible string that touches model state must derive
+   from `alloc` (or equivalent live data source).** No JSX literals
+   that describe positioning, regime, leverage, or a trigger. If the
+   string would change meaning when the model output changes, it must
+   read from the JSON.
+
+2. **Risk Scenarios and similar threshold-based panels must compare
+   against live indicator values.** Render an active / armed / dormant
+   pill with the current value vs. the trigger. If the live value
+   isn't loaded yet, render a "data loading" state — never imply a
+   trigger is dormant when you don't actually know.
+
+3. **Do not let a fallback be the production source of truth.** When
+   the JSX has a hardcoded fallback for missing data
+   (e.g. `SECTOR_IG_MAP` literals when `alloc.all_industry_groups`
+   is empty), audit the live JSON to confirm the primary data path is
+   actually populated. If the fallback is what's rendering on
+   macrotilt.com, the fallback is the bug.
+
+4. **Cross-page contradictions are the loudest credibility hit.**
+   Hero pill says *Defensive*. H1 modifier says *defensive posture*.
+   Subtitle in the same hero box says *risk-on, use leverage*. Each
+   is "correct" in isolation; together they make the page look broken.
+   When two adjacent strings could disagree, derive both from the same
+   single source of truth (a single `modelState` value, in our case).
+
+5. **The QA test isn't "does it render" — it's "does it match what the
+   model is actually doing right now?"** Before declaring a page
+   shipped, fetch the live JSON, work out what the user should see,
+   and compare against macrotilt.com. If the page tells a different
+   story, that's a P0 — page-down + rebuild, not a follow-on tweak.
+
+**Specialists who must sign off going forward.**
+Any PR touching the Asset Tilt page, Macro Overview, Indicator
+detail pages, or the Trading Opps page must include all three
+sign-offs:
+
+  * **Senior Quant** — confirm every numeric KPI matches a real
+    calculation against the live JSON.
+  * **UX Designer** — confirm every narrative string adapts to model
+    state, no hardcoded story-tellers.
+  * **Lead Developer** — confirm the deployed page renders correctly
+    with the actual production data, not a happy-path test fixture.
+
+Tracking: parent bug #1113, sub-bugs #1114–#1120 (display, fixed in
+PR #268), #1122 (v9 cliff smoothing, draft PR #269 — backtest
+required before merge).
