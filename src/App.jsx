@@ -2019,14 +2019,40 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   // Deep-link: when arriving via #indicators?id=X, expand that row and
   // scroll it into view, then clear the parent's deeplink state so a manual
   // navigation away and back doesn't keep re-firing.
+  //
+  // #1086 fix (2026-04-28): the original setTimeout(400ms) approach was
+  // racy — if the table hadn't finished rendering by 400ms (slow network,
+  // hydration in progress, the 9 new indicators not yet applied), the
+  // querySelector returned null and nothing scrolled. Replace with a
+  // double-rAF + bounded poll: try every 80ms for up to 2s, scroll the
+  // moment the row enters the DOM, then bail. Pairs with the useHistReady()
+  // subscription above so the row is guaranteed to render.
   useEffect(() => {
     if (!deeplinkId) return;
     setOpenIds(prev => { const next = new Set(prev); next.add(deeplinkId); return next; });
-    setTimeout(() => {
+    let cancelled = false;
+    let attempts = 0;
+    const MAX_ATTEMPTS = 25;       // 25 x 80ms = 2s deadline
+    const poll = () => {
+      if (cancelled) return;
       const el = document.querySelector(`[data-indicator-id="${deeplinkId}"]`);
-      if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
-      if (onDeeplinkConsumed) onDeeplinkConsumed();
-    }, 400);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+        if (onDeeplinkConsumed) onDeeplinkConsumed();
+        return;
+      }
+      attempts += 1;
+      if (attempts >= MAX_ATTEMPTS) {
+        // Deadline hit — clear the deeplink so we don't loop forever.
+        if (onDeeplinkConsumed) onDeeplinkConsumed();
+        return;
+      }
+      setTimeout(poll, 80);
+    };
+    // Wait two animation frames so React has committed the openIds update
+    // and the row's <tr> is in the DOM before the first lookup.
+    requestAnimationFrame(() => requestAnimationFrame(poll));
+    return () => { cancelled = true; };
   }, [deeplinkId]);
 
   const toggleOne = (id) => {
