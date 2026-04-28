@@ -308,7 +308,7 @@ def step_covariance(z: pd.DataFrame):
         "correlation_full_window": z_clean.corr().to_dict(),
         "correlation_sub_windows": sub_corrs,
     }
-    (OUT_DIR / "factor_covariance.json").write_text(json.dumps(out, indent=2))
+    (OUT_DIR / "factor_covariance.json").write_text(json.dumps(out, indent=2, default=str))
     print(f"  ✓ factor_covariance.json — shrinkage={shrinkage:.4f}")
     return sigma
 
@@ -342,7 +342,7 @@ def step_scenarios(z: pd.DataFrame):
         "n_scenarios": len(anchors),
         "scenarios": anchors,
     }
-    (OUT_DIR / "scenario_anchors.json").write_text(json.dumps(out, indent=2))
+    (OUT_DIR / "scenario_anchors.json").write_text(json.dumps(out, indent=2, default=str))
     print(f"  ✓ scenario_anchors.json — {len(anchors)} scenarios")
     return anchors
 
@@ -375,8 +375,8 @@ def step_coherence_validation(z: pd.DataFrame, sigma: pd.DataFrame):
         "n_observations": len(d2),
         "ks_statistic": float(ks_stat),
         "ks_p_value": float(ks_p),
-        "fallback_required": fallback_required,
-        "fallback_method": "empirical percentile rank" if fallback_required else "parametric chi-squared",
+        "fallback_required": bool(fallback_required),
+        "fallback_method": "empirical percentile rank" if bool(fallback_required) else "parametric chi-squared",
         "d2_quantiles": {
             "p05": float(np.percentile(d2, 5)),
             "p25": float(np.percentile(d2, 25)),
@@ -385,7 +385,7 @@ def step_coherence_validation(z: pd.DataFrame, sigma: pd.DataFrame):
             "p95": float(np.percentile(d2, 95)),
         },
     }
-    (OUT_DIR / "coherence_validation.json").write_text(json.dumps(out, indent=2))
+    (OUT_DIR / "coherence_validation.json").write_text(json.dumps(out, indent=2, default=str))
     print(f"  ✓ coherence_validation.json — ks_p={ks_p:.4f}  fallback={fallback_required}")
 
 
@@ -402,7 +402,7 @@ def step_oos_backtest(z: pd.DataFrame, sigma: pd.DataFrame, anchors: dict):
         "scenarios": {sid: {"oos_mae": None, "passed": None, "note": "requires sector returns from Sprint 1 Track 3"} for sid in anchors},
         "todo": "Track 3 produces sector_loadings_ccar.json which feeds this back-test.",
     }
-    (OUT_DIR / "oos_backtest.json").write_text(json.dumps(out, indent=2))
+    (OUT_DIR / "oos_backtest.json").write_text(json.dumps(out, indent=2, default=str))
     print(f"  ✓ oos_backtest.json (schema only — Track 3 fills values)")
 
 
@@ -428,7 +428,7 @@ def step_international_stub():
             {"id": "fx_jpy_usd",         "name": "JPY/USD",                 "cadence": "W"},
         ],
     }
-    (OUT_DIR / "international_factor_panel.schema.json").write_text(json.dumps(stub, indent=2))
+    (OUT_DIR / "international_factor_panel.schema.json").write_text(json.dumps(stub, indent=2, default=str))
     print(f"  ✓ international_factor_panel.schema.json (stub)")
 
 
