@@ -9,7 +9,35 @@
 // CCAR factor inputs translated to v9's panel via translation-ccar-to-v9-v1.md.
 // Same optimizer, same universe, same output schema. No duplicate calibration.
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
+
+// ════════════════════════════════════════════════════════════════════════
+// REAL ENGINE OUTPUT — Sprint 2: precomputed stressed allocations
+// ════════════════════════════════════════════════════════════════════════
+//
+// For canned scenarios, the L4 panel reads from public/scenario_allocations.json
+// (refreshed nightly by scripts/precompute_scenario_allocations.py). That file
+// contains, per scenario: real picks, weights, defensive sleeve, regime, alpha
+// — produced by the same v9 optimizer that runs nightly, fed a stressed factor
+// panel translated from CCAR via translate_ccar_to_v9().
+//
+// For bespoke shocks: still using the mock math below (pending Sprint 2.5
+// composite-stress derivation + a server-side compute endpoint for arbitrary
+// shocks).
+
+function useScenarioAllocations() {
+  const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    let alive = true;
+    fetch("/scenario_allocations.json", { cache: "no-cache" })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(j => { if (alive) setData(j); })
+      .catch(e => { if (alive) setError(e); });
+    return () => { alive = false; };
+  }, []);
+  return { data, error };
+}
 
 // ════════════════════════════════════════════════════════════════════════
 // MOCK DATA — illustrative only, mirrors v2.3 demo
@@ -428,6 +456,7 @@ export default function ScenarioAnalysis() {
   const pnl = useMemo(() => portfolioPnL(sectorPcts), [sectorPcts]);
   const score = useMemo(() => coherence(effShocks), [effShocks]);
   const tilts = useMemo(() => newAllocation(effShocks, horizon), [effShocks, horizon]);
+  const { data: engineData } = useScenarioAllocations();
 
   // Mode toggle
   const onModeChange = useCallback(m => {
@@ -495,8 +524,8 @@ export default function ScenarioAnalysis() {
       <style>{STYLES}</style>
       <div className="scenarios-page">
         <div className="demo-banner">
-          <b>BETA · Scenario Analysis v1</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
-          <b style={{color:"var(--accent-burgundy)"}}>Architecture:</b> in production, the L4 panel will re-run your AA tool's existing engine (compute_v9_allocation) with stressed factor inputs translated via translation-ccar-to-v9-v1.md. AA stays on v9. The numbers below are mock; magnitudes will calibrate during Phase 1.
+          <b>BETA · Scenario Analysis v1 · Sprint 2</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
+          <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> now shows <b>real engine output</b> for canned scenarios — picks come from the live v9 optimizer fed a stressed factor panel translated through translate_ccar_to_v9. Out-of-sample accuracy gates run in Sprint 3 — until they pass, treat L4 picks as <b>illustrative engine output, not yet validated against historical actuals</b>. L1–L3 panels and bespoke-shock L4 still use the v2.3 demo math (composite stress + custom-shock engine wiring land in Sprint 2.5 / v1.1).
         </div>
 
         <div className="tab-head">
@@ -589,7 +618,7 @@ export default function ScenarioAnalysis() {
           <L1Panel hasShock={hasShock} composites={composites} />
           <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} />
           <L3Panel hasShock={hasShock} pnl={pnl} horizon={horizon} />
-          <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} />
+          <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} />
         </div>
       </div>
     </>
@@ -793,7 +822,12 @@ function L3Panel({ hasShock, pnl, horizon }) {
   );
 }
 
-function L4Panel({ hasShock, tilts, score, mode }) {
+function L4Panel({ hasShock, tilts, score, mode, scenarioId, engineData }) {
+  // Sprint 2: real engine output for canned scenarios. Bespoke (custom shock)
+  // mode still uses the demo math below — composite stress + arbitrary-shock
+  // engine wiring lands in Sprint 2.5 / v1.1.
+  const realEngine = mode === "canned" && scenarioId && engineData?.scenarios?.[scenarioId];
+
   if (!hasShock) {
     return (
       <div className="panel">
@@ -803,6 +837,12 @@ function L4Panel({ hasShock, tilts, score, mode }) {
       </div>
     );
   }
+
+  if (realEngine) {
+    return <L4PanelReal scenario={realEngine} baseline={engineData.baseline} asOf={engineData.factor_panel_last_obs} />;
+  }
+
+  // ---- Demo math fallback (bespoke shock or canned-without-engine-data) ----
   const reduce = tilts.filter(t => t.delta < -0.4).sort((a, b) => a.delta - b.delta).slice(0, 7);
   const add = tilts.filter(t => t.delta > 0.4).sort((a, b) => b.delta - a.delta).slice(0, 7);
   const classRollup = ["Equity", "Defensive"].map(cls => {
@@ -857,7 +897,143 @@ function L4Panel({ hasShock, tilts, score, mode }) {
       </div>
       {warn && <div className="action-warn">{warn}</div>}
       <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"\"JetBrains Mono\",monospace", fontStyle:"italic"}}>
-        Demo math — production wires this panel to compute_v9_allocation with stressed factor inputs. The numbers above are illustrative.
+        {mode === "bespoke"
+          ? "Demo math — bespoke shocks use illustrative sector tilts. Engine wiring for arbitrary shocks ships in Sprint 2.5."
+          : "Loading engine output…"}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// L4Panel — REAL ENGINE OUTPUT variant (canned scenarios, Sprint 2)
+// ════════════════════════════════════════════════════════════════════════
+
+function L4PanelReal({ scenario, baseline, asOf }) {
+  const stressed = scenario.stressed_allocation;
+  const baselinePicks = baseline.picks;
+  const baselinePicksByT = Object.fromEntries(baselinePicks.map(p => [p.ticker, p]));
+  const stressedPicks = stressed.picks;
+  const stressedPicksByT = Object.fromEntries(stressedPicks.map(p => [p.ticker, p]));
+  const added = stressedPicks.filter(p => !baselinePicksByT[p.ticker]);
+  const removed = baselinePicks.filter(p => !stressedPicksByT[p.ticker]);
+  const kept = stressedPicks.filter(p => baselinePicksByT[p.ticker]);
+
+  const stressedDef = stressed.defensive || [];
+  const baselineDef = baseline.defensive || [];
+  const baselineDefByT = Object.fromEntries(baselineDef.map(d => [d.ticker, d]));
+
+  const equityShareCurr = (baseline.equity_share * 100).toFixed(0);
+  const equityShareStr  = (stressed.equity_share * 100).toFixed(0);
+  const alphaCurr = (baseline.alpha * 100).toFixed(0);
+  const alphaStr  = (stressed.alpha * 100).toFixed(0);
+
+  // Headline copy
+  let headline;
+  if (added.length > 0 && removed.length > 0) {
+    const addNames = added.slice(0, 2).map(p => p.ticker).join(" + ");
+    const remNames = removed.slice(0, 2).map(p => p.ticker).join(" + ");
+    headline = `Engine rotates picks: drops ${remNames}, adds ${addNames}`;
+  } else if (added.length > 0) {
+    headline = `Engine adds ${added.map(p => p.ticker).slice(0, 3).join(" + ")} to picks`;
+  } else if (removed.length > 0) {
+    headline = `Engine drops ${removed.map(p => p.ticker).slice(0, 3).join(" + ")} from picks`;
+  } else {
+    headline = `Engine keeps the same 5 picks; reweights within equity`;
+  }
+
+  const subline = (
+    <>
+      Re-ran <span className="mono">compute_v9_allocation</span> with the {scenario.name} CCAR shock translated to the v9 panel. <b>{kept.length}</b> picks held, <b>{added.length}</b> added, <b>{removed.length}</b> dropped. Equity share <span className="mono">{equityShareCurr}% → {equityShareStr}%</span>, alpha <span className="mono">{alphaCurr}% → {alphaStr}%</span>.
+    </>
+  );
+
+  const fmtMu = v => (v * 100).toFixed(2) + "%";
+  const fmtW  = v => (v * 100).toFixed(1) + "%";
+  const muDelta = (sticker, baseTicker) => {
+    const sm = stressedPicksByT[sticker]?.expected_return_monthly;
+    const bm = baselinePicksByT[baseTicker]?.expected_return_monthly;
+    if (sm == null || bm == null) return null;
+    const d = sm - bm;
+    return { val: d, str: (d >= 0 ? "+" : "") + (d * 100).toFixed(2) + "%" };
+  };
+
+  return (
+    <div className="panel">
+      <div className="panel-eyebrow">L4 · Stressed allocation · live v9 engine output</div>
+      <h3 className="panel-title">{headline}</h3>
+      <div className="action-subline">{subline}</div>
+
+      {added.length > 0 && (
+        <div className="action-section">
+          <div className="action-section-head" style={{color:"var(--up)"}}>Added picks</div>
+          {added.map(p => (
+            <div key={p.ticker} className="action-row">
+              <span className="action-name"><b>{p.ticker}</b> · {p.name}</span>
+              <span className="action-delta up">{fmtW(p.weight)}</span>
+              <span className="action-detail" style={{fontFamily:"\"JetBrains Mono\",monospace"}}>μ {fmtMu(p.expected_return_monthly)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {removed.length > 0 && (
+        <div className="action-section">
+          <div className="action-section-head" style={{color:"var(--down)"}}>Dropped picks</div>
+          {removed.map(p => (
+            <div key={p.ticker} className="action-row">
+              <span className="action-name"><b>{p.ticker}</b> · {p.name}</span>
+              <span className="action-delta down">−{fmtW(p.weight)}</span>
+              <span className="action-detail" style={{fontFamily:"\"JetBrains Mono\",monospace"}}>was {fmtW(p.weight)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+      {kept.length > 0 && (
+        <div className="action-section">
+          <div className="action-section-head">Held picks · μ change</div>
+          {kept.map(p => {
+            const d = muDelta(p.ticker, p.ticker);
+            return (
+              <div key={p.ticker} className="action-row">
+                <span className="action-name"><b>{p.ticker}</b> · {p.name}</span>
+                <span className="action-delta" style={{color:"var(--ink-1)"}}>{fmtW(p.weight)}</span>
+                <span className="action-detail" style={{fontFamily:"\"JetBrains Mono\",monospace", color: d && d.val > 0 ? "var(--up)" : d && d.val < 0 ? "var(--down)" : "var(--ink-3)"}}>
+                  μ {fmtMu(p.expected_return_monthly)}{d ? ` (${d.str})` : ""}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <div className="action-section">
+        <div className="action-section-head">Defensive sleeve</div>
+        {stressedDef.map(d => {
+          const b = baselineDefByT[d.ticker];
+          const change = b ? d.weight - b.weight : d.weight;
+          const dir = change > 0.001 ? "up" : change < -0.001 ? "down" : null;
+          return (
+            <div key={d.ticker} className="action-row">
+              <span className="action-name"><b>{d.ticker}</b> · {d.fund}</span>
+              <span className={"action-delta " + (dir || "")} style={!dir ? {color:"var(--ink-3)"} : {}}>{fmtW(d.weight)}</span>
+              <span className="action-detail" style={{fontFamily:"\"JetBrains Mono\",monospace", color:"var(--ink-3)"}}>
+                {b ? `was ${fmtW(b.weight)}` : "new"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="action-footer">
+        Engine state:
+        <span className="ac-pill"><strong>R&L</strong> {stressed.regime.risk_liquidity.toFixed(1)}</span>
+        <span className="ac-pill"><strong>Growth</strong> {stressed.regime.growth.toFixed(1)}</span>
+        <span className="ac-pill"><strong>I&R</strong> {stressed.regime.inflation_rates.toFixed(1)}</span>
+        <span className="ac-pill"><strong>Picks</strong> {stressed.selection_confidence}</span>
+      </div>
+
+      <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"\"JetBrains Mono\",monospace", fontStyle:"italic"}}>
+        Live v9 engine output · panel as of {asOf} · BETA — engine output not yet validated against historical actuals (Sprint 3 acceptance gates pending). Composites held at current values in v1; Sprint 2.5 will stress them too.
       </div>
     </div>
   );

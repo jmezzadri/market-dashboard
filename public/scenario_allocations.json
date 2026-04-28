@@ -1,0 +1,1828 @@
+{
+  "as_of": "2026-04-28",
+  "calculated_at": "2026-04-28T11:01:32+00:00",
+  "factor_panel_last_obs": "2026-04-30",
+  "n_scenarios": 8,
+  "current_v9_z": {
+    "vix": -0.0432,
+    "fed_funds": 0.0781,
+    "yield_curve": 0.645,
+    "term_premium": 1.276,
+    "real_rates": 0.6434,
+    "cpff": -0.2486,
+    "breakeven_10y": 0.415,
+    "jobless": -0.4145,
+    "industrial_prod": 1.4401,
+    "capacity_util": -1.2021,
+    "m2_yoy": 0.2724,
+    "sloos_cre": -0.3402,
+    "sloos_ci": -0.3194,
+    "anfci": -0.4199,
+    "stlfsi": -0.8777,
+    "copper_gold": -1.5036,
+    "natgas_henry": -0.5221,
+    "skew": -0.1563
+  },
+  "passthrough_factors": [
+    "copper_gold",
+    "natgas_henry",
+    "skew"
+  ],
+  "baseline": {
+    "as_of": "2026-04-30",
+    "calculated_at": "2026-04-28T11:01:32+00:00",
+    "regime": {
+      "risk_liquidity": 20.5,
+      "growth": 1.2,
+      "inflation_rates": 7.9,
+      "rl_3mo_change": 47.4,
+      "regime_flip_active": false
+    },
+    "alpha": 0.9925,
+    "equity_share": 0.9925,
+    "leverage": 1.0,
+    "financing_drag_monthly": 0.0,
+    "selection_confidence": "MIXED",
+    "picks": [
+      {
+        "ticker": "SOXX",
+        "name": "Semiconductors",
+        "fund": "iShares Semiconductor ETF",
+        "weight": 0.1985,
+        "weight_within_equity": 0.2,
+        "indicator_rank": 1,
+        "momentum_rank": 3,
+        "expected_return_monthly": 0.03060441390407366,
+        "trailing_6mo_return": 0.2147548953257543
+      },
+      {
+        "ticker": "XLE",
+        "name": "Energy",
+        "fund": "SPDR Energy Select Sector",
+        "weight": 0.1985,
+        "weight_within_equity": 0.2,
+        "indicator_rank": 3,
+        "momentum_rank": 1,
+        "expected_return_monthly": 0.024864203549301345,
+        "trailing_6mo_return": 0.3921169947777443
+      },
+      {
+        "ticker": "IYZ",
+        "name": "CommSvcs",
+        "fund": "iShares US Telecommunications",
+        "weight": 0.1985,
+        "weight_within_equity": 0.2,
+        "indicator_rank": 4,
+        "momentum_rank": 2,
+        "expected_return_monthly": 0.024636315195455984,
+        "trailing_6mo_return": 0.23058730252629456
+      },
+      {
+        "ticker": "XLB",
+        "name": "Materials",
+        "fund": "SPDR Materials",
+        "weight": 0.1985,
+        "weight_within_equity": 0.2,
+        "indicator_rank": 6,
+        "momentum_rank": 5,
+        "expected_return_monthly": 0.01894739196058485,
+        "trailing_6mo_return": 0.1258941535369431
+      },
+      {
+        "ticker": "XLI",
+        "name": "Industrials",
+        "fund": "SPDR Industrials Select Sector",
+        "weight": 0.1985,
+        "weight_within_equity": 0.2,
+        "indicator_rank": 2,
+        "momentum_rank": 9,
+        "expected_return_monthly": 0.026947493577314963,
+        "trailing_6mo_return": 0.055176905354175965
+      }
+    ],
+    "defensive": [
+      {
+        "ticker": "BIL",
+        "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+        "weight": 0.0022499999999999864,
+        "weight_within_defensive": 0.30000000000000016
+      },
+      {
+        "ticker": "TLT",
+        "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+        "weight": 0.0,
+        "weight_within_defensive": 0.0
+      },
+      {
+        "ticker": "GLD",
+        "fund": "SPDR Gold Shares",
+        "weight": 0.005249999999999966,
+        "weight_within_defensive": 0.7
+      },
+      {
+        "ticker": "LQD",
+        "fund": "iShares Investment Grade Corporate Bond ETF",
+        "weight": 2.862293735361713e-19,
+        "weight_within_defensive": 3.8163916471489756e-17
+      }
+    ],
+    "methodology": {
+      "version": "v9",
+      "locked_at": "2026-04-25",
+      "back_test_window": "2008-01 to 2026-04",
+      "back_test_cagr": 0.1388,
+      "back_test_sharpe": 0.61,
+      "back_test_max_drawdown": -0.2364,
+      "vs_spy_cagr_diff": 0.0282
+    }
+  },
+  "scenarios": {
+    "gfc_2008": {
+      "name": "2008 GFC",
+      "window_start": "2008-09-15",
+      "window_end": "2008-11-21",
+      "narrative": "Lehman + AIG + congressional rejection of TARP v1. Credit seizure + banking solvency crisis.",
+      "uses_pre1996_proxies": false,
+      "ccar_z_input": {
+        "real_gdp": -2.671940324385483,
+        "nominal_gdp": -2.673159842183689,
+        "real_dpi": 0.2384660660383821,
+        "nominal_dpi": -0.19732784750744228,
+        "cpi": 0.5923453611937074,
+        "unemployment": 0.4602896459856051,
+        "house_prices": -2.5486237948597097,
+        "cre_prices": -2.405982259031847,
+        "equity_prices": -8.595245914663932,
+        "equity_vol": 3.2723672530519328,
+        "t3mo": -2.3836334669189467,
+        "t5y": 0.9447772875650056,
+        "t10y": 1.9667513145619397,
+        "mortgage30": -1.5237542171473764
+      },
+      "v9_z_stressed": {
+        "vix": 3.2291,
+        "fed_funds": 0.0781,
+        "yield_curve": 4.9954,
+        "term_premium": 2.2979,
+        "real_rates": 2.0178,
+        "cpff": -0.2486,
+        "breakeven_10y": 1.0073,
+        "jobless": -1.5652,
+        "industrial_prod": -3.503,
+        "capacity_util": -4.4085,
+        "m2_yoy": -1.9998,
+        "sloos_cre": 3.0281,
+        "sloos_ci": 1.1502,
+        "anfci": 1.1006,
+        "stlfsi": 1.0385,
+        "copper_gold": -1.5036,
+        "natgas_henry": -0.5221,
+        "skew": -0.1563
+      },
+      "factor_overrides_applied": {
+        "vix": 35.189462,
+        "fed_funds": 3.64,
+        "yield_curve": 317.524139,
+        "term_premium": 87.528104,
+        "real_rates": 3.449949,
+        "cpff": 7.0,
+        "breakeven_10y": 2.506115,
+        "jobless": 159.72007,
+        "industrial_prod": 98.197992,
+        "capacity_util": 72.110314,
+        "m2_yoy": -6.995065,
+        "sloos_cre": 69.809572,
+        "sloos_ci": 37.948398,
+        "anfci": -0.20804,
+        "stlfsi": -0.15163,
+        "copper_gold": 0.127,
+        "natgas_henry": 2.81,
+        "skew": 139.6
+      },
+      "stressed_allocation": {
+        "as_of": "2026-04-30",
+        "calculated_at": "2026-04-28T11:01:32+00:00",
+        "regime": {
+          "risk_liquidity": 20.5,
+          "growth": 1.2,
+          "inflation_rates": 7.9,
+          "rl_3mo_change": 47.4,
+          "regime_flip_active": false
+        },
+        "alpha": 0.9925,
+        "equity_share": 0.9925,
+        "leverage": 1.0,
+        "financing_drag_monthly": 0.0,
+        "selection_confidence": "MIXED",
+        "picks": [
+          {
+            "ticker": "IYZ",
+            "name": "CommSvcs",
+            "fund": "iShares US Telecommunications",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 1,
+            "momentum_rank": 2,
+            "expected_return_monthly": 0.12459802455156258,
+            "trailing_6mo_return": 0.23058730252629456
+          },
+          {
+            "ticker": "XLB",
+            "name": "Materials",
+            "fund": "SPDR Materials",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 7,
+            "momentum_rank": 5,
+            "expected_return_monthly": 0.04603346484612077,
+            "trailing_6mo_return": 0.1258941535369431
+          },
+          {
+            "ticker": "XLF",
+            "name": "Financials",
+            "fund": "SPDR Financials Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 4,
+            "momentum_rank": 11,
+            "expected_return_monthly": 0.11125793450087129,
+            "trailing_6mo_return": -0.07560391399048993
+          },
+          {
+            "ticker": "XLI",
+            "name": "Industrials",
+            "fund": "SPDR Industrials Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 6,
+            "momentum_rank": 9,
+            "expected_return_monthly": 0.04912256549528099,
+            "trailing_6mo_return": 0.055176905354175965
+          },
+          {
+            "ticker": "IYR",
+            "name": "RealEstate",
+            "fund": "iShares US Real Estate ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 5,
+            "momentum_rank": 10,
+            "expected_return_monthly": 0.1067267166817309,
+            "trailing_6mo_return": -0.014287468498027645
+          }
+        ],
+        "defensive": [
+          {
+            "ticker": "BIL",
+            "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+            "weight": 0.0005214923035775668,
+            "weight_within_defensive": 0.06953230714367602
+          },
+          {
+            "ticker": "TLT",
+            "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+            "weight": 0.005249999999999966,
+            "weight_within_defensive": 0.7
+          },
+          {
+            "ticker": "GLD",
+            "fund": "SPDR Gold Shares",
+            "weight": 0.0017285076964224189,
+            "weight_within_defensive": 0.230467692856324
+          },
+          {
+            "ticker": "LQD",
+            "fund": "iShares Investment Grade Corporate Bond ETF",
+            "weight": 9.920449878242301e-20,
+            "weight_within_defensive": 1.3227266504323154e-17
+          }
+        ],
+        "methodology": {
+          "version": "v9",
+          "locked_at": "2026-04-25",
+          "back_test_window": "2008-01 to 2026-04",
+          "back_test_cagr": 0.1388,
+          "back_test_sharpe": 0.61,
+          "back_test_max_drawdown": -0.2364,
+          "vs_spy_cagr_diff": 0.0282
+        },
+        "scenario": {
+          "id": "gfc_2008",
+          "name": "2008 GFC"
+        }
+      },
+      "delta_vs_baseline": {
+        "alpha": 0.0,
+        "equity_share": 0.0,
+        "leverage": 0.0,
+        "picks": {
+          "added": [
+            "IYR",
+            "XLF"
+          ],
+          "removed": [
+            "SOXX",
+            "XLE"
+          ],
+          "kept": [
+            "IYZ",
+            "XLB",
+            "XLI"
+          ]
+        }
+      }
+    },
+    "covid_2020": {
+      "name": "COVID March 2020",
+      "window_start": "2020-02-19",
+      "window_end": "2020-03-23",
+      "narrative": "33-day liquidity-driven crash. Lockdown hit Energy and Discretionary hardest.",
+      "uses_pre1996_proxies": false,
+      "ccar_z_input": {
+        "real_gdp": -1.8818053310449028,
+        "nominal_gdp": -1.7709243103660952,
+        "real_dpi": -0.7568279452539418,
+        "nominal_dpi": -0.9864415035337424,
+        "cpi": -0.8235001532285435,
+        "unemployment": -0.8023174190328964,
+        "house_prices": 0.008373575018129326,
+        "cre_prices": 0.015109900664587693,
+        "equity_prices": -6.959861092516746,
+        "equity_vol": 1.0027783115533646,
+        "t3mo": -2.014137702193704,
+        "t5y": -1.2511675560707962,
+        "t10y": -0.12382710069838154,
+        "mortgage30": 2.8494827350195204
+      },
+      "v9_z_stressed": {
+        "vix": 0.9595,
+        "fed_funds": 0.0781,
+        "yield_curve": 2.5353,
+        "term_premium": 2.4033,
+        "real_rates": 1.343,
+        "cpff": -0.2486,
+        "breakeven_10y": -0.4085,
+        "jobless": 1.5913,
+        "industrial_prod": -2.0413,
+        "capacity_util": -3.4603,
+        "m2_yoy": -1.2329,
+        "sloos_cre": -0.3614,
+        "sloos_ci": 0.7156,
+        "anfci": 0.5829,
+        "stlfsi": 0.0389,
+        "copper_gold": -1.5036,
+        "natgas_henry": -0.5221,
+        "skew": -0.1563
+      },
+      "factor_overrides_applied": {
+        "vix": 23.773808,
+        "fed_funds": 3.64,
+        "yield_curve": 166.80893,
+        "term_premium": 90.201314,
+        "real_rates": 2.698856,
+        "cpff": 7.0,
+        "breakeven_10y": 2.300279,
+        "jobless": 308.613759,
+        "industrial_prod": 99.260147,
+        "capacity_util": 73.159894,
+        "m2_yoy": -2.987035,
+        "sloos_cre": -0.438414,
+        "sloos_ci": 28.29375,
+        "anfci": -0.298595,
+        "stlfsi": -0.468996,
+        "copper_gold": 0.127,
+        "natgas_henry": 2.81,
+        "skew": 139.6
+      },
+      "stressed_allocation": {
+        "as_of": "2026-04-30",
+        "calculated_at": "2026-04-28T11:01:32+00:00",
+        "regime": {
+          "risk_liquidity": 20.5,
+          "growth": 1.2,
+          "inflation_rates": 7.9,
+          "rl_3mo_change": 47.4,
+          "regime_flip_active": false
+        },
+        "alpha": 0.9925,
+        "equity_share": 0.9925,
+        "leverage": 1.0,
+        "financing_drag_monthly": 0.0,
+        "selection_confidence": "MIXED",
+        "picks": [
+          {
+            "ticker": "IYZ",
+            "name": "CommSvcs",
+            "fund": "iShares US Telecommunications",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 4,
+            "momentum_rank": 2,
+            "expected_return_monthly": 0.05409395498682028,
+            "trailing_6mo_return": 0.23058730252629456
+          },
+          {
+            "ticker": "XLB",
+            "name": "Materials",
+            "fund": "SPDR Materials",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 7,
+            "momentum_rank": 5,
+            "expected_return_monthly": 0.04802814779988323,
+            "trailing_6mo_return": 0.1258941535369431
+          },
+          {
+            "ticker": "XLF",
+            "name": "Financials",
+            "fund": "SPDR Financials Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 2,
+            "momentum_rank": 11,
+            "expected_return_monthly": 0.07173234424796197,
+            "trailing_6mo_return": -0.07560391399048993
+          },
+          {
+            "ticker": "IYR",
+            "name": "RealEstate",
+            "fund": "iShares US Real Estate ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 3,
+            "momentum_rank": 10,
+            "expected_return_monthly": 0.06641085134878617,
+            "trailing_6mo_return": -0.014287468498027645
+          },
+          {
+            "ticker": "XLI",
+            "name": "Industrials",
+            "fund": "SPDR Industrials Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 5,
+            "momentum_rank": 9,
+            "expected_return_monthly": 0.05154975161071436,
+            "trailing_6mo_return": 0.055176905354175965
+          }
+        ],
+        "defensive": [
+          {
+            "ticker": "BIL",
+            "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+            "weight": 0.0,
+            "weight_within_defensive": 0.0
+          },
+          {
+            "ticker": "TLT",
+            "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+            "weight": 0.0035260234506005812,
+            "weight_within_defensive": 0.4701364600800806
+          },
+          {
+            "ticker": "GLD",
+            "fund": "SPDR Gold Shares",
+            "weight": 0.0037514083807816557,
+            "weight_within_defensive": 0.500187784104224
+          },
+          {
+            "ticker": "LQD",
+            "fund": "iShares Investment Grade Corporate Bond ETF",
+            "weight": 0.0002225681686177141,
+            "weight_within_defensive": 0.02967575581569541
+          }
+        ],
+        "methodology": {
+          "version": "v9",
+          "locked_at": "2026-04-25",
+          "back_test_window": "2008-01 to 2026-04",
+          "back_test_cagr": 0.1388,
+          "back_test_sharpe": 0.61,
+          "back_test_max_drawdown": -0.2364,
+          "vs_spy_cagr_diff": 0.0282
+        },
+        "scenario": {
+          "id": "covid_2020",
+          "name": "COVID March 2020"
+        }
+      },
+      "delta_vs_baseline": {
+        "alpha": 0.0,
+        "equity_share": 0.0,
+        "leverage": 0.0,
+        "picks": {
+          "added": [
+            "IYR",
+            "XLF"
+          ],
+          "removed": [
+            "SOXX",
+            "XLE"
+          ],
+          "kept": [
+            "IYZ",
+            "XLB",
+            "XLI"
+          ]
+        }
+      }
+    },
+    "inflation_2022": {
+      "name": "2022 Inflation Shock",
+      "window_start": "2022-01-04",
+      "window_end": "2022-10-13",
+      "narrative": "Rate shock rerated long-duration equities. Energy was the only winner. Multiple compression dominated.",
+      "uses_pre1996_proxies": false,
+      "ccar_z_input": {
+        "real_gdp": -0.49991462873762926,
+        "nominal_gdp": 1.0200342195488954,
+        "real_dpi": -0.2681346391422667,
+        "nominal_dpi": 0.11786699136604853,
+        "cpi": 3.9140829643711004,
+        "unemployment": -1.2833105866589927,
+        "house_prices": 2.301067590933485,
+        "cre_prices": 1.4938504282985914,
+        "equity_prices": -2.6086350244222514,
+        "equity_vol": 0.8703110608778275,
+        "t3mo": 2.235063592146593,
+        "t5y": 0.6614295658055469,
+        "t10y": 0.772135077270327,
+        "mortgage30": 5.3762418629381745
+      },
+      "v9_z_stressed": {
+        "vix": 0.8271,
+        "fed_funds": 0.0781,
+        "yield_curve": -0.8179,
+        "term_premium": 1.3867,
+        "real_rates": -2.4986,
+        "cpff": -0.2486,
+        "breakeven_10y": 4.3291,
+        "jobless": 2.7938,
+        "industrial_prod": 0.5152,
+        "capacity_util": -1.802,
+        "m2_yoy": 1.1394,
+        "sloos_cre": -2.4316,
+        "sloos_ci": -0.0444,
+        "anfci": -0.1535,
+        "stlfsi": -0.9668,
+        "copper_gold": -1.5036,
+        "natgas_henry": -0.5221,
+        "skew": -0.1563
+      },
+      "factor_overrides_applied": {
+        "vix": 23.10752,
+        "fed_funds": 3.64,
+        "yield_curve": -38.625581,
+        "term_premium": 64.408666,
+        "real_rates": -1.577525,
+        "cpff": 7.0,
+        "breakeven_10y": 2.989031,
+        "jobless": 365.335165,
+        "industrial_prod": 101.11778,
+        "capacity_util": 74.995536,
+        "m2_yoy": 9.411331,
+        "sloos_cre": -43.344068,
+        "sloos_ci": 11.408449,
+        "anfci": -0.427392,
+        "stlfsi": -0.788278,
+        "copper_gold": 0.127,
+        "natgas_henry": 2.81,
+        "skew": 139.6
+      },
+      "stressed_allocation": {
+        "as_of": "2026-04-30",
+        "calculated_at": "2026-04-28T11:01:32+00:00",
+        "regime": {
+          "risk_liquidity": 20.5,
+          "growth": 1.2,
+          "inflation_rates": 7.9,
+          "rl_3mo_change": 47.4,
+          "regime_flip_active": false
+        },
+        "alpha": 0.9925,
+        "equity_share": 0.9925,
+        "leverage": 1.0,
+        "financing_drag_monthly": 0.0,
+        "selection_confidence": "MIXED",
+        "picks": [
+          {
+            "ticker": "XLE",
+            "name": "Energy",
+            "fund": "SPDR Energy Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 1,
+            "momentum_rank": 1,
+            "expected_return_monthly": 0.1055925146992195,
+            "trailing_6mo_return": 0.3921169947777443
+          },
+          {
+            "ticker": "SOXX",
+            "name": "Semiconductors",
+            "fund": "iShares Semiconductor ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 3,
+            "momentum_rank": 3,
+            "expected_return_monthly": 0.028976414667518137,
+            "trailing_6mo_return": 0.2147548953257543
+          },
+          {
+            "ticker": "IBB",
+            "name": "Biotech",
+            "fund": "iShares Biotechnology ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 2,
+            "momentum_rank": 4,
+            "expected_return_monthly": 0.0339791507468831,
+            "trailing_6mo_return": 0.17168462580277155
+          },
+          {
+            "ticker": "XLV",
+            "name": "HealthCare",
+            "fund": "SPDR Health Care Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 4,
+            "momentum_rank": 7,
+            "expected_return_monthly": 0.02622588218439499,
+            "trailing_6mo_return": 0.06229510987931408
+          },
+          {
+            "ticker": "XLP",
+            "name": "ConsStaples",
+            "fund": "SPDR Consumer Staples",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 5,
+            "momentum_rank": 8,
+            "expected_return_monthly": 0.01903040722980356,
+            "trailing_6mo_return": 0.06039106034438335
+          }
+        ],
+        "defensive": [
+          {
+            "ticker": "BIL",
+            "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+            "weight": 0.0,
+            "weight_within_defensive": 0.0
+          },
+          {
+            "ticker": "TLT",
+            "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+            "weight": 4.16333634234431e-18,
+            "weight_within_defensive": 5.551115123125783e-16
+          },
+          {
+            "ticker": "GLD",
+            "fund": "SPDR Gold Shares",
+            "weight": 0.005249999999999965,
+            "weight_within_defensive": 0.6999999999999998
+          },
+          {
+            "ticker": "LQD",
+            "fund": "iShares Investment Grade Corporate Bond ETF",
+            "weight": 0.002249999999999984,
+            "weight_within_defensive": 0.29999999999999977
+          }
+        ],
+        "methodology": {
+          "version": "v9",
+          "locked_at": "2026-04-25",
+          "back_test_window": "2008-01 to 2026-04",
+          "back_test_cagr": 0.1388,
+          "back_test_sharpe": 0.61,
+          "back_test_max_drawdown": -0.2364,
+          "vs_spy_cagr_diff": 0.0282
+        },
+        "scenario": {
+          "id": "inflation_2022",
+          "name": "2022 Inflation Shock"
+        }
+      },
+      "delta_vs_baseline": {
+        "alpha": 0.0,
+        "equity_share": 0.0,
+        "leverage": 0.0,
+        "picks": {
+          "added": [
+            "IBB",
+            "XLP",
+            "XLV"
+          ],
+          "removed": [
+            "IYZ",
+            "XLB",
+            "XLI"
+          ],
+          "kept": [
+            "SOXX",
+            "XLE"
+          ]
+        }
+      }
+    },
+    "q4_2018": {
+      "name": "2018 Q4 Powell Pivot",
+      "window_start": "2018-10-04",
+      "window_end": "2018-12-24",
+      "narrative": "Fed rate-path shock + yield-curve flattening. Utilities held; Energy + Industrials broke hardest.",
+      "uses_pre1996_proxies": false,
+      "ccar_z_input": {
+        "real_gdp": -0.5142059231237868,
+        "nominal_gdp": -0.5992872609196498,
+        "real_dpi": 0.4948209006541501,
+        "nominal_dpi": 0.4279258978126747,
+        "cpi": -0.5017627940825774,
+        "unemployment": -1.1029381487992067,
+        "house_prices": 0.01643702396672393,
+        "cre_prices": 0.06545729503265438,
+        "equity_prices": -3.178447595252336,
+        "equity_vol": 2.47507295145237,
+        "t3mo": -0.259032819748801,
+        "t5y": -0.6136351821120141,
+        "t10y": -0.7211352193441888,
+        "mortgage30": -0.06600856642508028
+      },
+      "v9_z_stressed": {
+        "vix": 2.4318,
+        "fed_funds": 0.0781,
+        "yield_curve": 0.1829,
+        "term_premium": 1.1685,
+        "real_rates": 0.424,
+        "cpff": -0.2486,
+        "breakeven_10y": -0.0868,
+        "jobless": 2.3429,
+        "industrial_prod": 0.4888,
+        "capacity_util": -1.8192,
+        "m2_yoy": -0.237,
+        "sloos_cre": -0.4319,
+        "sloos_ci": -0.0365,
+        "anfci": 0.9407,
+        "stlfsi": 0.4837,
+        "copper_gold": -1.5036,
+        "natgas_henry": -0.5221,
+        "skew": -0.1563
+      },
+      "factor_overrides_applied": {
+        "vix": 31.179204,
+        "fed_funds": 3.64,
+        "yield_curve": 22.689529,
+        "term_premium": 58.872659,
+        "real_rates": 1.675801,
+        "cpff": 7.0,
+        "breakeven_10y": 2.347053,
+        "jobless": 344.064638,
+        "industrial_prod": 101.098569,
+        "capacity_util": 74.976552,
+        "m2_yoy": 2.217767,
+        "sloos_cre": -1.899243,
+        "sloos_ci": 11.583074,
+        "anfci": -0.236004,
+        "stlfsi": -0.327762,
+        "copper_gold": 0.127,
+        "natgas_henry": 2.81,
+        "skew": 139.6
+      },
+      "stressed_allocation": {
+        "as_of": "2026-04-30",
+        "calculated_at": "2026-04-28T11:01:32+00:00",
+        "regime": {
+          "risk_liquidity": 20.5,
+          "growth": 1.2,
+          "inflation_rates": 7.9,
+          "rl_3mo_change": 47.4,
+          "regime_flip_active": false
+        },
+        "alpha": 0.9925,
+        "equity_share": 0.9925,
+        "leverage": 1.0,
+        "financing_drag_monthly": 0.0,
+        "selection_confidence": "MIXED",
+        "picks": [
+          {
+            "ticker": "XLE",
+            "name": "Energy",
+            "fund": "SPDR Energy Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 4,
+            "momentum_rank": 1,
+            "expected_return_monthly": 0.0451648140560332,
+            "trailing_6mo_return": 0.3921169947777443
+          },
+          {
+            "ticker": "XLB",
+            "name": "Materials",
+            "fund": "SPDR Materials",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 1,
+            "momentum_rank": 5,
+            "expected_return_monthly": 0.07326937261105503,
+            "trailing_6mo_return": 0.1258941535369431
+          },
+          {
+            "ticker": "IYZ",
+            "name": "CommSvcs",
+            "fund": "iShares US Telecommunications",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 6,
+            "momentum_rank": 2,
+            "expected_return_monthly": 0.034339181040299975,
+            "trailing_6mo_return": 0.23058730252629456
+          },
+          {
+            "ticker": "XLI",
+            "name": "Industrials",
+            "fund": "SPDR Industrials Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 2,
+            "momentum_rank": 9,
+            "expected_return_monthly": 0.07206004814123264,
+            "trailing_6mo_return": 0.055176905354175965
+          },
+          {
+            "ticker": "MGK",
+            "name": "MegaCapGrowth",
+            "fund": "Vanguard Mega-Cap Growth ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 3,
+            "momentum_rank": 12,
+            "expected_return_monthly": 0.04651252705451074,
+            "trailing_6mo_return": -0.08524797412009599
+          }
+        ],
+        "defensive": [
+          {
+            "ticker": "BIL",
+            "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+            "weight": 0.002213515639848542,
+            "weight_within_defensive": 0.2951354186464742
+          },
+          {
+            "ticker": "TLT",
+            "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+            "weight": 4.1578381877818894e-19,
+            "weight_within_defensive": 5.5437842503758886e-17
+          },
+          {
+            "ticker": "GLD",
+            "fund": "SPDR Gold Shares",
+            "weight": 0.005249999999999966,
+            "weight_within_defensive": 0.7
+          },
+          {
+            "ticker": "LQD",
+            "fund": "iShares Investment Grade Corporate Bond ETF",
+            "weight": 3.6484360151443335e-05,
+            "weight_within_defensive": 0.00486458135352581
+          }
+        ],
+        "methodology": {
+          "version": "v9",
+          "locked_at": "2026-04-25",
+          "back_test_window": "2008-01 to 2026-04",
+          "back_test_cagr": 0.1388,
+          "back_test_sharpe": 0.61,
+          "back_test_max_drawdown": -0.2364,
+          "vs_spy_cagr_diff": 0.0282
+        },
+        "scenario": {
+          "id": "q4_2018",
+          "name": "2018 Q4 Powell Pivot"
+        }
+      },
+      "delta_vs_baseline": {
+        "alpha": 0.0,
+        "equity_share": 0.0,
+        "leverage": 0.0,
+        "picks": {
+          "added": [
+            "MGK"
+          ],
+          "removed": [
+            "SOXX"
+          ],
+          "kept": [
+            "IYZ",
+            "XLB",
+            "XLE",
+            "XLI"
+          ]
+        }
+      }
+    },
+    "ai_2024": {
+      "name": "2024 AI Concentration",
+      "window_start": "2024-06-15",
+      "window_end": "2024-08-05",
+      "narrative": "Narrow-breadth rally + August carry-trade unwind. Mega-cap concentration risk realized.",
+      "uses_pre1996_proxies": false,
+      "ccar_z_input": {
+        "real_gdp": 0.1474838123981713,
+        "nominal_gdp": -0.014894485400383973,
+        "real_dpi": -0.1659816434630263,
+        "nominal_dpi": -0.18390928722158975,
+        "cpi": 0.09260583893623592,
+        "unemployment": -0.9225657109394205,
+        "house_prices": 0.07737980904527458,
+        "cre_prices": 0.2580272941033669,
+        "equity_prices": -0.4322222896751746,
+        "equity_vol": -0.04297379612512954,
+        "t3mo": -0.3514067609301098,
+        "t5y": -0.6844721125518834,
+        "t10y": -0.3478176451905581,
+        "bbb10y": 0.552311271464215,
+        "mortgage30": 0.12835752033789768
+      },
+      "v9_z_stressed": {
+        "vix": -0.0862,
+        "fed_funds": 0.0781,
+        "yield_curve": 0.6486,
+        "term_premium": 1.6126,
+        "real_rates": 0.2029,
+        "cpff": -0.0166,
+        "breakeven_10y": 0.5076,
+        "jobless": 1.892,
+        "industrial_prod": 1.7129,
+        "capacity_util": -1.0252,
+        "m2_yoy": 0.2597,
+        "sloos_cre": -0.7015,
+        "sloos_ci": -0.4005,
+        "anfci": -0.2113,
+        "stlfsi": -0.6285,
+        "copper_gold": -1.5036,
+        "natgas_henry": -0.5221,
+        "skew": -0.1563
+      },
+      "factor_overrides_applied": {
+        "vix": 18.513849,
+        "fed_funds": 3.64,
+        "yield_curve": 51.219885,
+        "term_premium": 70.141129,
+        "real_rates": 1.429733,
+        "cpff": 12.661173,
+        "breakeven_10y": 2.433463,
+        "jobless": 322.79411,
+        "industrial_prod": 101.988058,
+        "capacity_util": 75.855511,
+        "m2_yoy": 4.813834,
+        "sloos_cre": -7.486662,
+        "sloos_ci": 3.497898,
+        "anfci": -0.437512,
+        "stlfsi": -0.680861,
+        "copper_gold": 0.127,
+        "natgas_henry": 2.81,
+        "skew": 139.6
+      },
+      "stressed_allocation": {
+        "as_of": "2026-04-30",
+        "calculated_at": "2026-04-28T11:01:32+00:00",
+        "regime": {
+          "risk_liquidity": 20.5,
+          "growth": 1.2,
+          "inflation_rates": 7.9,
+          "rl_3mo_change": 47.4,
+          "regime_flip_active": false
+        },
+        "alpha": 0.9925,
+        "equity_share": 0.9925,
+        "leverage": 1.0,
+        "financing_drag_monthly": 0.0,
+        "selection_confidence": "STRONG",
+        "picks": [
+          {
+            "ticker": "XLE",
+            "name": "Energy",
+            "fund": "SPDR Energy Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 1,
+            "momentum_rank": 1,
+            "expected_return_monthly": 0.048622091960536226,
+            "trailing_6mo_return": 0.3921169947777443
+          },
+          {
+            "ticker": "SOXX",
+            "name": "Semiconductors",
+            "fund": "iShares Semiconductor ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 2,
+            "momentum_rank": 3,
+            "expected_return_monthly": 0.03116219191862689,
+            "trailing_6mo_return": 0.2147548953257543
+          },
+          {
+            "ticker": "IBB",
+            "name": "Biotech",
+            "fund": "iShares Biotechnology ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 3,
+            "momentum_rank": 4,
+            "expected_return_monthly": 0.028697070393884423,
+            "trailing_6mo_return": 0.17168462580277155
+          },
+          {
+            "ticker": "XLB",
+            "name": "Materials",
+            "fund": "SPDR Materials",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 4,
+            "momentum_rank": 5,
+            "expected_return_monthly": 0.025095416298085118,
+            "trailing_6mo_return": 0.1258941535369431
+          },
+          {
+            "ticker": "XLV",
+            "name": "HealthCare",
+            "fund": "SPDR Health Care Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 6,
+            "momentum_rank": 7,
+            "expected_return_monthly": 0.02009702932237375,
+            "trailing_6mo_return": 0.06229510987931408
+          }
+        ],
+        "defensive": [
+          {
+            "ticker": "BIL",
+            "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+            "weight": 0.00018353771629045233,
+            "weight_within_defensive": 0.0244716955053938
+          },
+          {
+            "ticker": "TLT",
+            "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+            "weight": 1.0408340855860775e-19,
+            "weight_within_defensive": 1.3877787807814457e-17
+          },
+          {
+            "ticker": "GLD",
+            "fund": "SPDR Gold Shares",
+            "weight": 0.005249999999999966,
+            "weight_within_defensive": 0.7
+          },
+          {
+            "ticker": "LQD",
+            "fund": "iShares Investment Grade Corporate Bond ETF",
+            "weight": 0.002066462283709534,
+            "weight_within_defensive": 0.2755283044946063
+          }
+        ],
+        "methodology": {
+          "version": "v9",
+          "locked_at": "2026-04-25",
+          "back_test_window": "2008-01 to 2026-04",
+          "back_test_cagr": 0.1388,
+          "back_test_sharpe": 0.61,
+          "back_test_max_drawdown": -0.2364,
+          "vs_spy_cagr_diff": 0.0282
+        },
+        "scenario": {
+          "id": "ai_2024",
+          "name": "2024 AI Concentration"
+        }
+      },
+      "delta_vs_baseline": {
+        "alpha": 0.0,
+        "equity_share": 0.0,
+        "leverage": 0.0,
+        "picks": {
+          "added": [
+            "IBB",
+            "XLV"
+          ],
+          "removed": [
+            "IYZ",
+            "XLI"
+          ],
+          "kept": [
+            "SOXX",
+            "XLB",
+            "XLE"
+          ]
+        }
+      }
+    },
+    "black_monday_1987": {
+      "name": "1987 Black Monday",
+      "window_start": "1987-10-12",
+      "window_end": "1987-10-30",
+      "narrative": "Single-week crash. Portfolio insurance amplification. Uses VXO + BAA-Treasury proxies.",
+      "uses_pre1996_proxies": true,
+      "ccar_z_input": {
+        "real_gdp": 1.0321451037598937,
+        "nominal_gdp": 1.1171071150893654,
+        "real_dpi": 0.19776575318767153,
+        "nominal_dpi": 0.2592554283699136,
+        "cpi": 0.9877023302587702,
+        "unemployment": 0.15966891621929516,
+        "equity_prices": -5.593813016689682,
+        "equity_vol": 7.446671845933634,
+        "t3mo": -15.131237349939834,
+        "t5y": -9.11406683489576,
+        "t10y": -9.307439424877646,
+        "mortgage30": -2.1068524774363104
+      },
+      "v9_z_stressed": {
+        "vix": 7.4034,
+        "fed_funds": 0.0781,
+        "yield_curve": 6.4688,
+        "term_premium": 1.0826,
+        "real_rates": -9.6518,
+        "cpff": -0.2486,
+        "breakeven_10y": 1.4027,
+        "jobless": -0.8136,
+        "industrial_prod": 3.3495,
+        "capacity_util": 0.0364,
+        "m2_yoy": 1.2219,
+        "sloos_cre": -0.3402,
+        "sloos_ci": -0.887,
+        "anfci": 5.0413,
+        "stlfsi": 6.8026,
+        "copper_gold": -1.5036,
+        "natgas_henry": -0.5221,
+        "skew": -0.1563
+      },
+      "factor_overrides_applied": {
+        "vix": 56.185518,
+        "fed_funds": 3.64,
+        "yield_curve": 407.792056,
+        "term_premium": 56.69402,
+        "real_rates": -9.540252,
+        "cpff": 7.0,
+        "breakeven_10y": 2.563593,
+        "jobless": 195.170948,
+        "industrial_prod": 103.177281,
+        "capacity_util": 77.030655,
+        "m2_yoy": 9.842561,
+        "sloos_cre": 0.0,
+        "sloos_ci": -7.311765,
+        "anfci": 0.481259,
+        "stlfsi": 1.678365,
+        "copper_gold": 0.127,
+        "natgas_henry": 2.81,
+        "skew": 139.6
+      },
+      "stressed_allocation": {
+        "as_of": "2026-04-30",
+        "calculated_at": "2026-04-28T11:01:32+00:00",
+        "regime": {
+          "risk_liquidity": 20.5,
+          "growth": 1.2,
+          "inflation_rates": 7.9,
+          "rl_3mo_change": 47.4,
+          "regime_flip_active": false
+        },
+        "alpha": 0.9925,
+        "equity_share": 0.9925,
+        "leverage": 1.0,
+        "financing_drag_monthly": 0.0,
+        "selection_confidence": "MIXED",
+        "picks": [
+          {
+            "ticker": "SOXX",
+            "name": "Semiconductors",
+            "fund": "iShares Semiconductor ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 4,
+            "momentum_rank": 3,
+            "expected_return_monthly": 0.03650136033304892,
+            "trailing_6mo_return": 0.2147548953257543
+          },
+          {
+            "ticker": "XLB",
+            "name": "Materials",
+            "fund": "SPDR Materials",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 5,
+            "momentum_rank": 5,
+            "expected_return_monthly": 0.035879290974051126,
+            "trailing_6mo_return": 0.1258941535369431
+          },
+          {
+            "ticker": "XLU",
+            "name": "Utilities",
+            "fund": "SPDR Utilities",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 6,
+            "momentum_rank": 6,
+            "expected_return_monthly": 0.02429646423668426,
+            "trailing_6mo_return": 0.06769946295456886
+          },
+          {
+            "ticker": "IYR",
+            "name": "RealEstate",
+            "fund": "iShares US Real Estate ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 1,
+            "momentum_rank": 10,
+            "expected_return_monthly": 0.12593921597059005,
+            "trailing_6mo_return": -0.014287468498027645
+          },
+          {
+            "ticker": "XLI",
+            "name": "Industrials",
+            "fund": "SPDR Industrials Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 3,
+            "momentum_rank": 9,
+            "expected_return_monthly": 0.06483703151529022,
+            "trailing_6mo_return": 0.055176905354175965
+          }
+        ],
+        "defensive": [
+          {
+            "ticker": "BIL",
+            "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+            "weight": 0.0022499999999995492,
+            "weight_within_defensive": 0.29999999999994187
+          },
+          {
+            "ticker": "TLT",
+            "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+            "weight": 1.2900097656753845e-15,
+            "weight_within_defensive": 1.7200130209005238e-13
+          },
+          {
+            "ticker": "GLD",
+            "fund": "SPDR Gold Shares",
+            "weight": 1.158240170440187e-15,
+            "weight_within_defensive": 1.5443202272535927e-13
+          },
+          {
+            "ticker": "LQD",
+            "fund": "iShares Investment Grade Corporate Bond ETF",
+            "weight": 0.005249999999997953,
+            "weight_within_defensive": 0.6999999999997317
+          }
+        ],
+        "methodology": {
+          "version": "v9",
+          "locked_at": "2026-04-25",
+          "back_test_window": "2008-01 to 2026-04",
+          "back_test_cagr": 0.1388,
+          "back_test_sharpe": 0.61,
+          "back_test_max_drawdown": -0.2364,
+          "vs_spy_cagr_diff": 0.0282
+        },
+        "scenario": {
+          "id": "black_monday_1987",
+          "name": "1987 Black Monday"
+        }
+      },
+      "delta_vs_baseline": {
+        "alpha": 0.0,
+        "equity_share": 0.0,
+        "leverage": 0.0,
+        "picks": {
+          "added": [
+            "IYR",
+            "XLU"
+          ],
+          "removed": [
+            "IYZ",
+            "XLE"
+          ],
+          "kept": [
+            "SOXX",
+            "XLB",
+            "XLI"
+          ]
+        }
+      }
+    },
+    "dotcom_slow_2000": {
+      "name": "2000 Dotcom Slow Burn",
+      "window_start": "2000-03-10",
+      "window_end": "2002-10-09",
+      "narrative": "2.5-year peak-to-trough. Tech multiple compression, telecom collapse, recession + accounting scandals.",
+      "uses_pre1996_proxies": true,
+      "ccar_z_input": {
+        "real_gdp": -0.5314963756577205,
+        "nominal_gdp": -0.4866436813833814,
+        "real_dpi": -0.01009297937649377,
+        "nominal_dpi": -0.01684247541669322,
+        "cpi": -0.48616385683052976,
+        "unemployment": -0.020703521640490715,
+        "house_prices": 0.7866470908559298,
+        "cre_prices": 0.8195196329348756,
+        "equity_prices": -1.473153826744025,
+        "equity_vol": 0.5003814284107511,
+        "t3mo": -0.16665887856748804,
+        "t5y": -0.046939738593099856,
+        "t10y": 0.0254999289630692,
+        "mortgage30": 0.22554056371937373
+      },
+      "v9_z_stressed": {
+        "vix": 0.4571,
+        "fed_funds": 0.0781,
+        "yield_curve": 0.8372,
+        "term_premium": 1.3484,
+        "real_rates": 1.155,
+        "cpff": -0.2486,
+        "breakeven_10y": -0.0712,
+        "jobless": -0.3627,
+        "industrial_prod": 0.4568,
+        "capacity_util": -1.8399,
+        "m2_yoy": -0.1413,
+        "sloos_cre": -1.4876,
+        "sloos_ci": -0.027,
+        "anfci": -0.068,
+        "stlfsi": -0.5968,
+        "copper_gold": -1.5036,
+        "natgas_henry": -0.5221,
+        "skew": -0.1563
+      },
+      "factor_overrides_applied": {
+        "vix": 21.246835,
+        "fed_funds": 3.64,
+        "yield_curve": 62.772513,
+        "term_premium": 63.437839,
+        "real_rates": 2.489569,
+        "cpff": 7.0,
+        "breakeven_10y": 2.349321,
+        "jobless": 216.441475,
+        "industrial_prod": 101.075326,
+        "capacity_util": 74.953584,
+        "m2_yoy": 2.718167,
+        "sloos_cre": -23.778361,
+        "sloos_ci": 11.794346,
+        "anfci": -0.412438,
+        "stlfsi": -0.670796,
+        "copper_gold": 0.127,
+        "natgas_henry": 2.81,
+        "skew": 139.6
+      },
+      "stressed_allocation": {
+        "as_of": "2026-04-30",
+        "calculated_at": "2026-04-28T11:01:32+00:00",
+        "regime": {
+          "risk_liquidity": 20.5,
+          "growth": 1.2,
+          "inflation_rates": 7.9,
+          "rl_3mo_change": 47.4,
+          "regime_flip_active": false
+        },
+        "alpha": 0.9925,
+        "equity_share": 0.9925,
+        "leverage": 1.0,
+        "financing_drag_monthly": 0.0,
+        "selection_confidence": "MIXED",
+        "picks": [
+          {
+            "ticker": "XLE",
+            "name": "Energy",
+            "fund": "SPDR Energy Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 1,
+            "momentum_rank": 1,
+            "expected_return_monthly": 0.05636256262162204,
+            "trailing_6mo_return": 0.3921169947777443
+          },
+          {
+            "ticker": "IYZ",
+            "name": "CommSvcs",
+            "fund": "iShares US Telecommunications",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 2,
+            "momentum_rank": 2,
+            "expected_return_monthly": 0.03509419686426804,
+            "trailing_6mo_return": 0.23058730252629456
+          },
+          {
+            "ticker": "XLB",
+            "name": "Materials",
+            "fund": "SPDR Materials",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 4,
+            "momentum_rank": 5,
+            "expected_return_monthly": 0.03367048857709071,
+            "trailing_6mo_return": 0.1258941535369431
+          },
+          {
+            "ticker": "SOXX",
+            "name": "Semiconductors",
+            "fund": "iShares Semiconductor ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 7,
+            "momentum_rank": 3,
+            "expected_return_monthly": 0.030757620969567807,
+            "trailing_6mo_return": 0.2147548953257543
+          },
+          {
+            "ticker": "XLI",
+            "name": "Industrials",
+            "fund": "SPDR Industrials Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 5,
+            "momentum_rank": 9,
+            "expected_return_monthly": 0.03303663891324996,
+            "trailing_6mo_return": 0.055176905354175965
+          }
+        ],
+        "defensive": [
+          {
+            "ticker": "BIL",
+            "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+            "weight": 0.0014598448049337625,
+            "weight_within_defensive": 0.1946459739911696
+          },
+          {
+            "ticker": "TLT",
+            "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+            "weight": 0.0007901551950662233,
+            "weight_within_defensive": 0.10535402600883047
+          },
+          {
+            "ticker": "GLD",
+            "fund": "SPDR Gold Shares",
+            "weight": 0.005249999999999966,
+            "weight_within_defensive": 0.7
+          },
+          {
+            "ticker": "LQD",
+            "fund": "iShares Investment Grade Corporate Bond ETF",
+            "weight": 3.0899761915836675e-20,
+            "weight_within_defensive": 4.119968255444917e-18
+          }
+        ],
+        "methodology": {
+          "version": "v9",
+          "locked_at": "2026-04-25",
+          "back_test_window": "2008-01 to 2026-04",
+          "back_test_cagr": 0.1388,
+          "back_test_sharpe": 0.61,
+          "back_test_max_drawdown": -0.2364,
+          "vs_spy_cagr_diff": 0.0282
+        },
+        "scenario": {
+          "id": "dotcom_slow_2000",
+          "name": "2000 Dotcom Slow Burn"
+        }
+      },
+      "delta_vs_baseline": {
+        "alpha": 0.0,
+        "equity_share": 0.0,
+        "leverage": 0.0,
+        "picks": {
+          "added": [],
+          "removed": [],
+          "kept": [
+            "IYZ",
+            "SOXX",
+            "XLB",
+            "XLE",
+            "XLI"
+          ]
+        }
+      }
+    },
+    "dotcom_capitulation_2002": {
+      "name": "2002 Capitulation",
+      "window_start": "2002-08-01",
+      "window_end": "2002-10-09",
+      "narrative": "Final flush of the dotcom bear. Capitulation low followed by 5-year bull market.",
+      "uses_pre1996_proxies": false,
+      "ccar_z_input": {
+        "real_gdp": -0.5314963756577205,
+        "nominal_gdp": -0.4866436813833814,
+        "real_dpi": -0.01009297937649377,
+        "nominal_dpi": -0.01684247541669322,
+        "cpi": -0.48616385683052976,
+        "unemployment": -0.020703521640490715,
+        "house_prices": 0.7866470908559298,
+        "cre_prices": 0.8195196329348756,
+        "equity_prices": -1.473153826744025,
+        "equity_vol": 0.5003814284107511,
+        "t3mo": -0.16665887856748804,
+        "t5y": -0.046939738593099856,
+        "t10y": 0.0254999289630692,
+        "mortgage30": 0.22554056371937373
+      },
+      "v9_z_stressed": {
+        "vix": 0.4571,
+        "fed_funds": 0.0781,
+        "yield_curve": 0.8372,
+        "term_premium": 1.3484,
+        "real_rates": 1.155,
+        "cpff": -0.2486,
+        "breakeven_10y": -0.0712,
+        "jobless": -0.3627,
+        "industrial_prod": 0.4568,
+        "capacity_util": -1.8399,
+        "m2_yoy": -0.1413,
+        "sloos_cre": -1.4876,
+        "sloos_ci": -0.027,
+        "anfci": -0.068,
+        "stlfsi": -0.5968,
+        "copper_gold": -1.5036,
+        "natgas_henry": -0.5221,
+        "skew": -0.1563
+      },
+      "factor_overrides_applied": {
+        "vix": 21.246835,
+        "fed_funds": 3.64,
+        "yield_curve": 62.772513,
+        "term_premium": 63.437839,
+        "real_rates": 2.489569,
+        "cpff": 7.0,
+        "breakeven_10y": 2.349321,
+        "jobless": 216.441475,
+        "industrial_prod": 101.075326,
+        "capacity_util": 74.953584,
+        "m2_yoy": 2.718167,
+        "sloos_cre": -23.778361,
+        "sloos_ci": 11.794346,
+        "anfci": -0.412438,
+        "stlfsi": -0.670796,
+        "copper_gold": 0.127,
+        "natgas_henry": 2.81,
+        "skew": 139.6
+      },
+      "stressed_allocation": {
+        "as_of": "2026-04-30",
+        "calculated_at": "2026-04-28T11:01:32+00:00",
+        "regime": {
+          "risk_liquidity": 20.5,
+          "growth": 1.2,
+          "inflation_rates": 7.9,
+          "rl_3mo_change": 47.4,
+          "regime_flip_active": false
+        },
+        "alpha": 0.9925,
+        "equity_share": 0.9925,
+        "leverage": 1.0,
+        "financing_drag_monthly": 0.0,
+        "selection_confidence": "MIXED",
+        "picks": [
+          {
+            "ticker": "XLE",
+            "name": "Energy",
+            "fund": "SPDR Energy Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 1,
+            "momentum_rank": 1,
+            "expected_return_monthly": 0.05636256262162204,
+            "trailing_6mo_return": 0.3921169947777443
+          },
+          {
+            "ticker": "IYZ",
+            "name": "CommSvcs",
+            "fund": "iShares US Telecommunications",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 2,
+            "momentum_rank": 2,
+            "expected_return_monthly": 0.03509419686426804,
+            "trailing_6mo_return": 0.23058730252629456
+          },
+          {
+            "ticker": "XLB",
+            "name": "Materials",
+            "fund": "SPDR Materials",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 4,
+            "momentum_rank": 5,
+            "expected_return_monthly": 0.03367048857709071,
+            "trailing_6mo_return": 0.1258941535369431
+          },
+          {
+            "ticker": "SOXX",
+            "name": "Semiconductors",
+            "fund": "iShares Semiconductor ETF",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 7,
+            "momentum_rank": 3,
+            "expected_return_monthly": 0.030757620969567807,
+            "trailing_6mo_return": 0.2147548953257543
+          },
+          {
+            "ticker": "XLI",
+            "name": "Industrials",
+            "fund": "SPDR Industrials Select Sector",
+            "weight": 0.1985,
+            "weight_within_equity": 0.2,
+            "indicator_rank": 5,
+            "momentum_rank": 9,
+            "expected_return_monthly": 0.03303663891324996,
+            "trailing_6mo_return": 0.055176905354175965
+          }
+        ],
+        "defensive": [
+          {
+            "ticker": "BIL",
+            "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
+            "weight": 0.0014598448049337625,
+            "weight_within_defensive": 0.1946459739911696
+          },
+          {
+            "ticker": "TLT",
+            "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
+            "weight": 0.0007901551950662233,
+            "weight_within_defensive": 0.10535402600883047
+          },
+          {
+            "ticker": "GLD",
+            "fund": "SPDR Gold Shares",
+            "weight": 0.005249999999999966,
+            "weight_within_defensive": 0.7
+          },
+          {
+            "ticker": "LQD",
+            "fund": "iShares Investment Grade Corporate Bond ETF",
+            "weight": 3.0899761915836675e-20,
+            "weight_within_defensive": 4.119968255444917e-18
+          }
+        ],
+        "methodology": {
+          "version": "v9",
+          "locked_at": "2026-04-25",
+          "back_test_window": "2008-01 to 2026-04",
+          "back_test_cagr": 0.1388,
+          "back_test_sharpe": 0.61,
+          "back_test_max_drawdown": -0.2364,
+          "vs_spy_cagr_diff": 0.0282
+        },
+        "scenario": {
+          "id": "dotcom_capitulation_2002",
+          "name": "2002 Capitulation"
+        }
+      },
+      "delta_vs_baseline": {
+        "alpha": 0.0,
+        "equity_share": 0.0,
+        "leverage": 0.0,
+        "picks": {
+          "added": [],
+          "removed": [],
+          "kept": [
+            "IYZ",
+            "SOXX",
+            "XLB",
+            "XLE",
+            "XLI"
+          ]
+        }
+      }
+    }
+  },
+  "anchor_ccar_z": {
+    "gfc_2008": {
+      "real_gdp": -2.671940324385483,
+      "nominal_gdp": -2.673159842183689,
+      "real_dpi": 0.2384660660383821,
+      "nominal_dpi": -0.19732784750744228,
+      "cpi": 0.5923453611937074,
+      "unemployment": 0.4602896459856051,
+      "house_prices": -2.5486237948597097,
+      "cre_prices": -2.405982259031847,
+      "equity_prices": -8.595245914663932,
+      "equity_vol": 3.2723672530519328,
+      "t3mo": -2.3836334669189467,
+      "t5y": 0.9447772875650056,
+      "t10y": 1.9667513145619397,
+      "mortgage30": -1.5237542171473764
+    },
+    "covid_2020": {
+      "real_gdp": -1.8818053310449028,
+      "nominal_gdp": -1.7709243103660952,
+      "real_dpi": -0.7568279452539418,
+      "nominal_dpi": -0.9864415035337424,
+      "cpi": -0.8235001532285435,
+      "unemployment": -0.8023174190328964,
+      "house_prices": 0.008373575018129326,
+      "cre_prices": 0.015109900664587693,
+      "equity_prices": -6.959861092516746,
+      "equity_vol": 1.0027783115533646,
+      "t3mo": -2.014137702193704,
+      "t5y": -1.2511675560707962,
+      "t10y": -0.12382710069838154,
+      "mortgage30": 2.8494827350195204
+    },
+    "inflation_2022": {
+      "real_gdp": -0.49991462873762926,
+      "nominal_gdp": 1.0200342195488954,
+      "real_dpi": -0.2681346391422667,
+      "nominal_dpi": 0.11786699136604853,
+      "cpi": 3.9140829643711004,
+      "unemployment": -1.2833105866589927,
+      "house_prices": 2.301067590933485,
+      "cre_prices": 1.4938504282985914,
+      "equity_prices": -2.6086350244222514,
+      "equity_vol": 0.8703110608778275,
+      "t3mo": 2.235063592146593,
+      "t5y": 0.6614295658055469,
+      "t10y": 0.772135077270327,
+      "mortgage30": 5.3762418629381745
+    },
+    "q4_2018": {
+      "real_gdp": -0.5142059231237868,
+      "nominal_gdp": -0.5992872609196498,
+      "real_dpi": 0.4948209006541501,
+      "nominal_dpi": 0.4279258978126747,
+      "cpi": -0.5017627940825774,
+      "unemployment": -1.1029381487992067,
+      "house_prices": 0.01643702396672393,
+      "cre_prices": 0.06545729503265438,
+      "equity_prices": -3.178447595252336,
+      "equity_vol": 2.47507295145237,
+      "t3mo": -0.259032819748801,
+      "t5y": -0.6136351821120141,
+      "t10y": -0.7211352193441888,
+      "mortgage30": -0.06600856642508028
+    },
+    "ai_2024": {
+      "real_gdp": 0.1474838123981713,
+      "nominal_gdp": -0.014894485400383973,
+      "real_dpi": -0.1659816434630263,
+      "nominal_dpi": -0.18390928722158975,
+      "cpi": 0.09260583893623592,
+      "unemployment": -0.9225657109394205,
+      "house_prices": 0.07737980904527458,
+      "cre_prices": 0.2580272941033669,
+      "equity_prices": -0.4322222896751746,
+      "equity_vol": -0.04297379612512954,
+      "t3mo": -0.3514067609301098,
+      "t5y": -0.6844721125518834,
+      "t10y": -0.3478176451905581,
+      "bbb10y": 0.552311271464215,
+      "mortgage30": 0.12835752033789768
+    },
+    "black_monday_1987": {
+      "real_gdp": 1.0321451037598937,
+      "nominal_gdp": 1.1171071150893654,
+      "real_dpi": 0.19776575318767153,
+      "nominal_dpi": 0.2592554283699136,
+      "cpi": 0.9877023302587702,
+      "unemployment": 0.15966891621929516,
+      "equity_prices": -5.593813016689682,
+      "equity_vol": 7.446671845933634,
+      "t3mo": -15.131237349939834,
+      "t5y": -9.11406683489576,
+      "t10y": -9.307439424877646,
+      "mortgage30": -2.1068524774363104
+    },
+    "dotcom_slow_2000": {
+      "real_gdp": -0.5314963756577205,
+      "nominal_gdp": -0.4866436813833814,
+      "real_dpi": -0.01009297937649377,
+      "nominal_dpi": -0.01684247541669322,
+      "cpi": -0.48616385683052976,
+      "unemployment": -0.020703521640490715,
+      "house_prices": 0.7866470908559298,
+      "cre_prices": 0.8195196329348756,
+      "equity_prices": -1.473153826744025,
+      "equity_vol": 0.5003814284107511,
+      "t3mo": -0.16665887856748804,
+      "t5y": -0.046939738593099856,
+      "t10y": 0.0254999289630692,
+      "mortgage30": 0.22554056371937373
+    },
+    "dotcom_capitulation_2002": {
+      "real_gdp": -0.5314963756577205,
+      "nominal_gdp": -0.4866436813833814,
+      "real_dpi": -0.01009297937649377,
+      "nominal_dpi": -0.01684247541669322,
+      "cpi": -0.48616385683052976,
+      "unemployment": -0.020703521640490715,
+      "house_prices": 0.7866470908559298,
+      "cre_prices": 0.8195196329348756,
+      "equity_prices": -1.473153826744025,
+      "equity_vol": 0.5003814284107511,
+      "t3mo": -0.16665887856748804,
+      "t5y": -0.046939738593099856,
+      "t10y": 0.0254999289630692,
+      "mortgage30": 0.22554056371937373
+    }
+  },
+  "methodology_notes": [
+    "Scenario Analysis re-runs the v9 optimizer with a stressed factor panel.",
+    "CCAR US-Domestic 16 shocks are translated to v9's 18-factor panel via translate_ccar_to_v9.",
+    "Tier-3 v9 factors (copper_gold, natgas_henry, skew) pass through at current value \u2014 CCAR has no analog.",
+    "Composites (R&L / Growth / Inflation & Rates) are held at current values in v1; composite stress derivation is a Sprint 2.5 follow-up.",
+    "Out-of-sample back-test acceptance gates are validated separately in Sprint 3."
+  ]
+}
