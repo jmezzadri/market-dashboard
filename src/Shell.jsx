@@ -291,7 +291,17 @@ export function Sidebar({ items, activeId, onSelect, open = false, onClose, foot
           <Wordmark size={14} />
         </div>
         <nav className="sidebar-nav">
-          {items.map(item => {
+          {items.map((item, idx) => {
+            // Section divider — { divider: true, label?: "Admin" }. Renders a
+            // hairline rule with optional JetBrains-Mono uppercase microcopy
+            // so client-facing tabs and admin tabs sit visually separate.
+            if (item.divider) {
+              return (
+                <div key={`divider-${idx}`} className="sidebar-divider" role="separator" aria-orientation="horizontal">
+                  {item.label && <span className="sidebar-divider-label">{item.label}</span>}
+                </div>
+              );
+            }
             const active = activeId === item.id;
             return (
               <button
