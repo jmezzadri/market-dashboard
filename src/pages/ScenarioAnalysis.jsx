@@ -10,6 +10,7 @@
 // Same optimizer, same universe, same output schema. No duplicate calibration.
 
 import { useState, useMemo, useCallback, useEffect } from "react";
+import { useUserPortfolio } from "../hooks/useUserPortfolio";
 
 // ════════════════════════════════════════════════════════════════════════
 // REAL ENGINE OUTPUT — Sprint 2: precomputed stressed allocations
@@ -37,6 +38,110 @@ function useScenarioAllocations() {
     return () => { alive = false; };
   }, []);
   return { data, error };
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// SPRINT 2.6 — REAL PORTFOLIO INGESTION
+// ════════════════════════════════════════════════════════════════════════
+//
+// useScenarioPortfolio() returns an array of positions in the shape
+// portfolioPnL() expects: { ticker, sector, value, weight }, where `sector`
+// is a SECTORS row name (matched via mapPositionToSectorName).
+//
+// For signed-in users we read positions from useUserPortfolio (Supabase RLS),
+// flatten across accounts, and apply ticker-level overrides + sector-string
+// aliases. For anonymous users (or while the portfolio is loading) we fall
+// back to the v2.3 demo PORTFOLIO so the page is never empty.
+
+const TICKER_TO_SECTOR = {
+  // Defensive sleeve ETFs (already in SECTORS)
+  BIL: "T-Bills (1-3mo)", SHV: "T-Bills (1-3mo)", SHY: "T-Bills (1-3mo)",
+  TLT: "USTs (20+yr)", IEF: "USTs (20+yr)", VGLT: "USTs (20+yr)",
+  GLD: "Gold", IAU: "Gold", SLV: "Gold",   // SLV proxied via Gold for v1
+  LQD: "IG Corp Bond", AGG: "IG Corp Bond", BND: "IG Corp Bond", VCIT: "IG Corp Bond",
+  // Synthetic sectors added in Sprint 2.6
+  JHYUX: "HY Bonds", HYG: "HY Bonds", JNK: "HY Bonds", USHY: "HY Bonds",
+  FBTC: "Crypto", IBIT: "Crypto", ETHE: "Crypto", BITO: "Crypto",
+  FXAIX: "Broad US Equity", FSKAX: "Broad US Equity",
+  VTI: "Broad US Equity", SPY: "Broad US Equity", VOO: "Broad US Equity", IVV: "Broad US Equity",
+  NHXINT906: "International Equity", VXUS: "International Equity",
+  IXUS: "International Equity", IEFA: "International Equity", VEA: "International Equity",
+  // Cash equivalents
+  CASH: "Cash", SPAXX: "Cash",
+};
+
+const SECTOR_ALIASES_RAW = {
+  TECH: "Technology", TECHNOLOGY: "Technology",
+  "INFO TECH": "Technology", "INFORMATION TECHNOLOGY": "Technology",
+  FINANCIALS: "Financials", FINANCIAL: "Financials",
+  HEALTHCARE: "Healthcare", "HEALTH CARE": "Healthcare",
+  ENERGY: "Energy",
+  INDUSTRIALS: "Industrials",
+  MATERIALS: "Materials", "BASIC MATERIALS": "Materials",
+  STAPLES: "Staples", "CONSUMER STAPLES": "Staples",
+  DISCRETIONARY: "Discretionary", "CONSUMER DISCRETIONARY": "Discretionary",
+  UTILITIES: "Utilities",
+  "REAL ESTATE": "Real Estate",
+  "COMMUNICATION SERVICES": "Communication Services", TELECOM: "Communication Services",
+  "HY BONDS": "HY Bonds", "HIGH YIELD": "HY Bonds",
+  "INTERNATIONAL STOCKS": "International Equity", INTERNATIONAL: "International Equity",
+  CRYPTO: "Crypto", "DIGITAL ASSETS": "Crypto",
+  CASH: "Cash",
+};
+
+function mapPositionToSectorName(position) {
+  const t = (position.ticker || "").toUpperCase();
+  const ac = (position.asset_class || "stock").toLowerCase();
+  // Asset-class overrides
+  if (ac === "cash") return "Cash";
+  if (ac === "option") return null; // skip — needs Greeks (Sprint 2.7)
+  // Ticker-level overrides take priority
+  if (TICKER_TO_SECTOR[t]) return TICKER_TO_SECTOR[t];
+  // Sector-string normalization
+  const s = (position.sector || "").trim().toUpperCase();
+  if (SECTOR_ALIASES_RAW[s]) return SECTOR_ALIASES_RAW[s];
+  // Fallback — assume broad US equity for anything else (e.g., individual stocks
+  // without a clean GICS label, or NULL sectors on mutual funds)
+  return "Broad US Equity";
+}
+
+function useScenarioPortfolio() {
+  const { accounts, isAuthed } = useUserPortfolio();
+  return useMemo(() => {
+    if (!isAuthed || !accounts || accounts.length === 0) {
+      return { positions: PORTFOLIO, total: PORTFOLIO_TOTAL, source: "demo", uncovered: [] };
+    }
+    // Flatten accounts → positions
+    const flat = [];
+    for (const acc of accounts) {
+      for (const p of acc.positions || []) {
+        flat.push(p);
+      }
+    }
+    // Sum absolute values for the weight base — handles negative cash (margin
+    // debit) without distorting weights.
+    const grossTotal = flat.reduce((s, p) => s + Math.abs(p.value || 0), 0);
+    const netTotal = flat.reduce((s, p) => s + (p.value || 0), 0);
+    const positions = [];
+    const uncovered = [];
+    for (const p of flat) {
+      const sectorName = mapPositionToSectorName(p);
+      const value = Number(p.value) || 0;
+      const weight = grossTotal > 0 ? Math.abs(value) / grossTotal * 100 : 0;
+      const row = {
+        ticker: p.ticker,
+        sector: sectorName || "Not modeled",
+        weight,
+        value,
+      };
+      if (sectorName == null) {
+        uncovered.push(row);
+      } else {
+        positions.push(row);
+      }
+    }
+    return { positions, total: netTotal, source: "user", uncovered };
+  }, [accounts, isAuthed]);
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -147,6 +252,16 @@ const SECTORS_RAW = [
   { id:"TLT", name:"USTs (20+yr)",          assetClass:"Defensive", beta:1.20, current:0, loadings:{ vix:-0.6, move:-0.5, real_rates:+3.0, term_premium:-0.3, dxy:-0.2, copper_gold:+0.2, hy:-0.3, stlfsi:-0.4, anfci:-0.3, aaii:+0.2, putcall:-0.3, breadth:+0.2 }, igs:[] },
   { id:"GLD", name:"Gold",                  assetClass:"Defensive", beta:0.70, current:0, loadings:{ vix:-0.5, move:-0.3, real_rates:+0.6, term_premium:0, dxy:+0.5, copper_gold:+0.7, hy:-0.4, stlfsi:-0.3, anfci:-0.2, aaii:+0.1, putcall:-0.3, breadth:+0.1 }, igs:[] },
   { id:"LQD", name:"IG Corp Bond",          assetClass:"Defensive", beta:0.60, current:0, loadings:{ vix:+0.2, move:+0.3, real_rates:+2.0, term_premium:-0.2, dxy:-0.1, copper_gold:0, hy:+0.3, stlfsi:+0.2, anfci:+0.15, aaii:-0.1, putcall:+0.1, breadth:-0.15 }, igs:[] },
+  // Sprint 2.6 — synthetic sectors covering positions outside the GICS-equity set.
+  // Loadings are textbook-defensible v1 starting points (BAA-Treasury for HY, broad
+  // equity ± DXY for International, 1.8× equity for Crypto, S&P average for Broad US).
+  // Scheduled for empirical refit in Sprint 2.7 once we have factor-return regressions
+  // on each underlying.
+  { id:"HY",  name:"HY Bonds",              assetClass:"Defensive", beta:0.55, current:0, loadings:{ vix:+0.5, move:+0.4, real_rates:+0.6, term_premium:-0.1, dxy:0, copper_gold:-0.2, hy:+2.5, stlfsi:+1.2, anfci:+0.9, aaii:-0.3, putcall:+0.3, breadth:-0.3 }, igs:[] },
+  { id:"INTL",name:"International Equity",  assetClass:"Equity",    beta:0.95, current:0, loadings:{ vix:+0.75, move:+0.4, real_rates:+0.4, term_premium:-0.1, dxy:-0.9, copper_gold:-0.3, hy:+0.6, stlfsi:+0.65, anfci:+0.5, aaii:-0.4, putcall:+0.45, breadth:-0.55 }, igs:[] },
+  { id:"BTC", name:"Crypto",                assetClass:"Equity",    beta:1.80, current:0, loadings:{ vix:+1.5, move:+0.5, real_rates:+1.0, term_premium:-0.3, dxy:-0.4, copper_gold:-0.5, hy:+1.2, stlfsi:+1.4, anfci:+1.0, aaii:-0.7, putcall:+0.9, breadth:-1.0 }, igs:[] },
+  { id:"SPX", name:"Broad US Equity",       assetClass:"Equity",    beta:1.00, current:0, loadings:{ vix:+0.85, move:+0.4, real_rates:+0.5, term_premium:-0.2, dxy:-0.1, copper_gold:-0.25, hy:+0.7, stlfsi:+0.75, anfci:+0.55, aaii:-0.4, putcall:+0.45, breadth:-0.6 }, igs:[] },
+  { id:"CSH", name:"Cash",                  assetClass:"Defensive", beta:0.00, current:0, loadings:{ vix:0, move:0, real_rates:0, term_premium:0, dxy:0, copper_gold:0, hy:0, stlfsi:0, anfci:0, aaii:0, putcall:0, breadth:0 }, igs:[] },
 ];
 // Re-balance equity currents to sum to 100% (defensive is 0% baseline).
 const SECTORS = SECTORS_RAW.map(s => s.assetClass === "Equity"
@@ -250,8 +365,8 @@ function compositeShock(factorShocks) {
 function compositeNew(currentVal, deltaZ, isStressUp) {
   return Math.max(0, Math.min(100, Math.round(currentVal + deltaZ * 12 * (isStressUp ? 1 : -1))));
 }
-function portfolioPnL(sectorPcts) {
-  const positions = PORTFOLIO.map(p => {
+function portfolioPnL(sectorPcts, portfolio = PORTFOLIO) {
+  const positions = portfolio.map(p => {
     const s = SECTOR_BY_NAME[p.sector];
     const pct = s ? sectorPcts[s.id] || 0 : 0;
     return { ...p, pct, dollar: p.value * pct / 100 };
@@ -457,6 +572,15 @@ export default function ScenarioAnalysis() {
   const score = useMemo(() => coherence(effShocks), [effShocks]);
   const tilts = useMemo(() => newAllocation(effShocks, horizon), [effShocks, horizon]);
   const { data: engineData } = useScenarioAllocations();
+  const userPortfolio = useScenarioPortfolio();
+  // Override the demo-portfolio P&L when we have real positions
+  const realPnl = useMemo(
+    () => portfolioPnL(sectorPcts, userPortfolio.positions),
+    [sectorPcts, userPortfolio.positions]
+  );
+  const portfolioTotal = userPortfolio.total;
+  const portfolioSource = userPortfolio.source;
+  const portfolioUncovered = userPortfolio.uncovered;
 
   // Mode toggle
   const onModeChange = useCallback(m => {
@@ -612,12 +736,12 @@ export default function ScenarioAnalysis() {
           </div>
         )}
 
-        {hasShock && <SoWhatHero mode={mode} scenario={scenario} score={score} pnl={pnl} horizonText={horizonText} />}
+        {hasShock && <SoWhatHero mode={mode} scenario={scenario} score={score} pnl={realPnl} horizonText={horizonText} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} />}
 
         <div className="output-grid">
           <L1Panel hasShock={hasShock} composites={composites} />
           <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} />
-          <L3Panel hasShock={hasShock} pnl={pnl} horizon={horizon} />
+          <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
           <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} />
         </div>
       </div>
@@ -629,8 +753,9 @@ export default function ScenarioAnalysis() {
 // SUB-COMPONENTS
 // ════════════════════════════════════════════════════════════════════════
 
-function SoWhatHero({ mode, scenario, score, pnl, horizonText }) {
+function SoWhatHero({ mode, scenario, score, pnl, horizonText, portfolioTotal = PORTFOLIO_TOTAL, portfolioSource = "demo" }) {
   const isExotic = mode === "bespoke" && score < 5;
+  const PT = portfolioTotal || PORTFOLIO_TOTAL;
   let label, punchline, takeaway;
   if (mode === "canned") {
     const sc = SCENARIOS[scenario];
@@ -638,7 +763,7 @@ function SoWhatHero({ mode, scenario, score, pnl, horizonText }) {
     const direction = pnl.total < 0 ? "hit" : "gain";
     const dollarStr = (Math.abs(pnl.total) / 1000).toFixed(0) + "K";
     punchline = (
-      <>{sc.narrative.split(".")[0]}. Your ${(PORTFOLIO_TOTAL / 1000).toFixed(0)}K book takes a <em>{pnl.total < 0 ? "−" : "+"}${dollarStr} {direction}</em> over {horizonText}.</>
+      <>{sc.narrative.split(".")[0]}. Your ${(PT / 1000).toFixed(0)}K book takes a <em>{pnl.total < 0 ? "−" : "+"}${dollarStr} {direction}</em> over {horizonText}.</>
     );
     takeaway = sc.narrative + (sc.proxy ? " Note: pre-1996 proxies in use; magnitudes are approximations." : "") + (sc.lowConf ? " Low-confidence calibration — single recent episode." : "");
   } else {
@@ -647,10 +772,10 @@ function SoWhatHero({ mode, scenario, score, pnl, horizonText }) {
       punchline = <><em>Exotic factor combination</em> — not corroborated by any historical regime. Engine output: <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "loss" : "gain"}</em>, but treat as exploratory only.</>;
       takeaway = "Pinned factors are forcing an internal contradiction the covariance can't resolve coherently. Useful for thought experiments; the L4 re-allocation should not be acted on until the combination is corroborated by a real regime.";
     } else if (score < 25) {
-      punchline = <>Historically rare combination. Your ${(PORTFOLIO_TOTAL / 1000).toFixed(0)}K book takes <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "hit" : "gain"}</em>. Engine response is calibrated but uncertainty is elevated.</>;
+      punchline = <>Historically rare combination. Your ${(PT / 1000).toFixed(0)}K book takes <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "hit" : "gain"}</em>. Engine response is calibrated but uncertainty is elevated.</>;
       takeaway = "Less than 25% of weekly observations 1985–2026 produced this combination. Engine output is mathematically valid; treat L4 re-allocation as one among several plausible responses.";
     } else {
-      punchline = <>Coherent factor regime. Your ${(PORTFOLIO_TOTAL / 1000).toFixed(0)}K book takes <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "hit" : "gain"}</em> over {horizonText}.</>;
+      punchline = <>Coherent factor regime. Your ${(PT / 1000).toFixed(0)}K book takes <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "hit" : "gain"}</em> over {horizonText}.</>;
       takeaway = "Factor combination is consistent with historical regimes. Engine output carries normal calibration confidence.";
     }
   }
@@ -771,24 +896,32 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector }) {
   );
 }
 
-function L3Panel({ hasShock, pnl, horizon }) {
+function L3Panel({ hasShock, pnl, horizon, portfolioTotal = PORTFOLIO_TOTAL, portfolioSource = "demo", portfolioUncovered = [] }) {
+  const PT = portfolioTotal || PORTFOLIO_TOTAL;
+  const eyebrowSuffix = portfolioSource === "user"
+    ? "your real book · live"
+    : "demo book · sign in for your real positions";
   if (!hasShock) {
     return (
       <div className="panel">
-        <div className="panel-eyebrow">L3 · Your portfolio</div>
+        <div className="panel-eyebrow">L3 · Your portfolio · {eyebrowSuffix}</div>
         <h3 className="panel-title">Position-level P&amp;L · idle</h3>
         <div className="empty-state">Pick a scenario or move factor sliders to populate.</div>
       </div>
     );
   }
-  const totalPct = (pnl.total / PORTFOLIO_TOTAL * 100);
+  // Use absolute portfolio value as the denominator so margin debits don't
+  // distort the % book impact reading.
+  const denom = Math.abs(PT) > 1 ? Math.abs(PT) : 1;
+  const totalPct = (pnl.total / denom * 100);
   const sortedPositions = [...pnl.positions].sort((a, b) => Math.abs(b.dollar) - Math.abs(a.dollar));
   const top5 = sortedPositions.slice(0, 5);
   const others = sortedPositions.slice(5);
   const totalCls = pnl.total < 0 ? "down" : "up";
+  const uncoveredValue = (portfolioUncovered || []).reduce((s, p) => s + Math.abs(p.value || 0), 0);
   return (
     <div className="panel">
-      <div className="panel-eyebrow">L3 · Your portfolio · position-level P&amp;L</div>
+      <div className="panel-eyebrow">L3 · Your portfolio · {eyebrowSuffix}</div>
       <h3 className="panel-title" style={{color: pnl.total < 0 ? "var(--down)" : pnl.total > 0 ? "var(--up)" : "var(--ink-0)"}}>
         {formatDollar(pnl.total)} · {Math.abs(totalPct).toFixed(1)}% of book · {horizon} horizon
       </h3>
@@ -800,7 +933,7 @@ function L3Panel({ hasShock, pnl, horizon }) {
           {top5.map(p => {
             const cls = p.dollar < 0 ? "down" : p.dollar > 0 ? "up" : "";
             return (
-              <tr key={p.ticker}>
+              <tr key={p.ticker + "-" + p.sector}>
                 <td className="mono">{p.ticker}</td>
                 <td>{p.sector}</td>
                 <td className={"right mono"}>{p.weight.toFixed(1)}%</td>
@@ -818,6 +951,14 @@ function L3Panel({ hasShock, pnl, horizon }) {
           </tr>
         </tbody>
       </table>
+      {portfolioSource === "user" && (
+        <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"\"JetBrains Mono\",monospace", fontStyle:"italic", lineHeight:1.5}}>
+          Live read of your real positions ($
+          {(Math.abs(PT) / 1000).toFixed(0)}K across {pnl.positions.length} modeled
+          {portfolioUncovered.length > 0 ? ` + ${portfolioUncovered.length} not modeled (~$${(uncoveredValue/1000).toFixed(0)}K — options, illiquids)` : ""}
+          ). Synthetic-sector loadings (HY Bonds, International, Crypto, Broad US Equity) are textbook-defensible v1 starting points; empirical refit lands in Sprint 2.7.
+        </div>
+      )}
     </div>
   );
 }
@@ -1038,3 +1179,4 @@ function L4PanelReal({ scenario, baseline, asOf }) {
     </div>
   );
 }
+
