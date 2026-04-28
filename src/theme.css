@@ -777,6 +777,33 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 
+/* Sidebar section divider — { divider: true, label?: 'Admin' } items.
+   Hairline rule with optional centred uppercase JetBrains-Mono microcopy.
+   Used to visually separate client-facing tabs from admin-only tabs. */
+.sidebar-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 12px 6px;
+  margin-top: 4px;
+}
+.sidebar-divider::before,
+.sidebar-divider::after {
+  content: "";
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--border-faint);
+}
+.sidebar-divider-label {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 .sidebar-footer {
   padding: 12px 16px 16px;
   border-top: 1px solid var(--border-faint);
