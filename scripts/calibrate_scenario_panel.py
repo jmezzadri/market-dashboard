@@ -106,7 +106,8 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def fetch_fred(series_id: str, start: str, end: Optional[str] = None) -> pd.Series:
-    """Pull a FRED series via the FRED API."""
+    """Pull a FRED series via the FRED API with retry on 5xx/429 (transient errors)."""
+    import time as _time
     api_key = os.environ.get("FRED_API_KEY")
     assert api_key, "FRED_API_KEY environment variable required"
     params = {
@@ -115,8 +116,31 @@ def fetch_fred(series_id: str, start: str, end: Optional[str] = None) -> pd.Seri
     }
     if end:
         params["observation_end"] = end
-    r = requests.get("https://api.stlouisfed.org/fred/series/observations", params=params, timeout=30)
-    r.raise_for_status()
+    last_exc = None
+    r = None
+    for attempt in range(5):
+        try:
+            r = requests.get("https://api.stlouisfed.org/fred/series/observations", params=params, timeout=30)
+            if r.status_code == 200:
+                break
+            if r.status_code in (429, 500, 502, 503, 504):
+                wait = min(30, 2 ** attempt)
+                print(f"    FRED {series_id} HTTP {r.status_code}, retry {attempt+1}/5 in {wait}s...")
+                _time.sleep(wait)
+                continue
+            r.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            last_exc = e
+            if attempt == 4:
+                raise
+            wait = min(30, 2 ** attempt)
+            print(f"    FRED {series_id} network error, retry {attempt+1}/5 in {wait}s: {e}")
+            _time.sleep(wait)
+    if r is None or r.status_code != 200:
+        if last_exc:
+            raise last_exc
+        r.raise_for_status()
+    _time.sleep(0.3)  # be polite to FRED between calls
     obs = r.json().get("observations", [])
     df = pd.DataFrame(obs)
     if df.empty:
