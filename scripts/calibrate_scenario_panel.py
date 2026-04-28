@@ -53,13 +53,13 @@ CCAR_US_16 = [
     {"id": "cre_prices",    "name": "CRE Price Index",                "fred": "BOGZ1FL075035243Q","transform":"yoy_pct",        "cadence": "Q",  "history_start": "1985-Q1"},
     {"id": "equity_prices", "name": "S&P 500 (equity prices)",        "fred": "SP500",      "transform": "weekly_log_return",  "cadence": "W",  "history_start": "1985-01"},
     {"id": "equity_vol",    "name": "Equity volatility (VIX)",        "fred": "VIXCLS",     "transform": "weekly_close_logdiff","cadence": "W", "history_start": "1990-01",
-     "proxy_pre": {"start": "1986-01", "end": "1989-12", "fred": "VXOCLS", "note": "VXO proxy (S&P 100), 1990-2000 ρ with VIX = 0.96"}},
+     "proxy_pre": {"start": "1986-01-01", "end": "1989-12-31", "fred": "VXOCLS", "note": "VXO proxy (S&P 100), 1990-2000 ρ with VIX = 0.96"}},
     # 6 interest rates (weekly)
     {"id": "t3mo",          "name": "3-Month Treasury Rate",          "fred": "DTB3",       "transform": "weekly_delta_bps",   "cadence": "W",  "history_start": "1985-01"},
     {"id": "t5y",           "name": "5-Year Treasury Yield",          "fred": "DGS5",       "transform": "weekly_delta_bps",   "cadence": "W",  "history_start": "1985-01"},
     {"id": "t10y",          "name": "10-Year Treasury Yield",         "fred": "DGS10",      "transform": "weekly_delta_bps",   "cadence": "W",  "history_start": "1985-01"},
     {"id": "bbb10y",        "name": "10-Year BBB Corporate Yield",    "fred": "BAMLC0A4CBBB","transform":"weekly_delta_bps",   "cadence": "W",  "history_start": "1996-12",
-     "proxy_pre": {"start": "1985-01", "end": "1996-11", "fred": "BAA", "note": "BAA-Treasury proxy 1985-1996; 1996-2026 ρ with BBB OAS = 0.74; β ≈ 1.85"}},
+     "proxy_pre": {"start": "1985-01-01", "end": "1996-11-30", "fred": "BAA", "note": "BAA-Treasury proxy 1985-1996; 1996-2026 ρ with BBB OAS = 0.74; β ≈ 1.85"}},
     {"id": "mortgage30",    "name": "30-Year Mortgage Rate",          "fred": "MORTGAGE30US","transform":"weekly_delta_bps",   "cadence": "W",  "history_start": "1985-01"},
     {"id": "prime",         "name": "Prime Rate",                     "fred": "MPRIME",     "transform": "weekly_delta_bps",   "cadence": "W",  "history_start": "1985-01"},
 ]
