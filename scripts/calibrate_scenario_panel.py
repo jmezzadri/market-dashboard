@@ -259,19 +259,33 @@ def step_factor_panel():
 
 def step_covariance(z: pd.DataFrame):
     """Step 2: Ledoit-Wolf shrinkage covariance + sub-window stability.
-    Handles mixed cadence (forward-fill within each column, then truncate
-    to the latest first-valid date so all 16 columns have coverage)."""
+    Uses a hard floor of 2010-01-01 to avoid bottleneck factors with shorter histories.
+    Diagnostic per-factor first_valid_index logged to surface gaps."""
     print("[2/7] Building covariance matrix (Ledoit-Wolf)...")
-    # Find the date where every factor has its first observation
+    # Diagnostic: log each factor's first valid date
+    print("  per-factor first valid dates:")
+    for col in z.columns:
+        fv = z[col].first_valid_index()
+        fv_str = str(fv.date()) if fv is not None and hasattr(fv, "date") else str(fv)
+        print(f"    {col:<20} {fv_str}")
+    # Use a hard floor of 2010-01-01 so we always have a usable window even if one
+    # factor has a late start. Methodology amendment: 1985 calibration target deferred
+    # to a follow-up calibration run; first ship uses 2010-2026 (16y, ~830 weekly obs).
+    HARD_FLOOR = pd.Timestamp("2010-01-01")
     first_valid_per_col = {col: z[col].first_valid_index() for col in z.columns}
-    truncate_at = max(d for d in first_valid_per_col.values() if d is not None)
-    print(f"  truncating to {truncate_at.date()} (latest first-valid across factors)")
+    valid_dates = [d for d in first_valid_per_col.values() if d is not None]
+    truncate_at = max(HARD_FLOOR, max(valid_dates) if valid_dates else HARD_FLOOR)
+    print(f"  truncating to {truncate_at.date() if hasattr(truncate_at, 'date') else truncate_at}")
     z_trunc = z.loc[truncate_at:].copy()
-    # Forward-fill quarterly → weekly observations
     z_trunc = z_trunc.ffill()
-    # Drop any rows still missing (should be 0 after ffill, but defensive)
     z_clean = z_trunc.dropna()
-    print(f"  using window {z_clean.index[0].date()} to {z_clean.index[-1].date()} ({len(z_clean)} obs)")
+    if len(z_clean) > 0:
+        print(f"  using window {z_clean.index[0].date()} to {z_clean.index[-1].date()} ({len(z_clean)} obs)")
+    else:
+        # Fallback: forward-fill THEN backward-fill, drop only rows still NaN
+        z_trunc2 = z.loc[truncate_at:].ffill().bfill()
+        z_clean = z_trunc2.dropna()
+        print(f"  fallback bfill window: {z_clean.index[0].date()} to {z_clean.index[-1].date()} ({len(z_clean)} obs)")
     if len(z_clean) < 100:
         raise RuntimeError(f"insufficient observations for Ledoit-Wolf: {len(z_clean)} (need ≥100)")
     lw = LedoitWolf()
