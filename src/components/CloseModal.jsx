@@ -119,7 +119,10 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
   const feesN         = Number(fees) || 0;
   const grossProceeds = closeQtyN * closingPriceN * multiplier;
   const netCash       = grossProceeds - feesN;
-  const costAmount    = closeQtyN * avgCost * multiplier;
+  // avgCost is stored PER-CONTRACT (PositionEditor multiplies by multiplier
+  // on save), so cost amount is qty × avgCost directly — NO extra multiplier.
+  // grossProceeds above does multiply because closingPrice is per-share input.
+  const costAmount    = closeQtyN * avgCost;
   const realizedPnL   = isShort
     ? (costAmount - grossProceeds - feesN)
     : (grossProceeds - costAmount - feesN);
@@ -139,12 +142,17 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
 
     setSubmitting(true);
     try {
+      // #1100 fix: positions store price/avg_cost as PER-CONTRACT (e.g.
+      // option premium $11.94/share × 100 multiplier = $1,194 stored).
+      // close_position RPC v2 (mig 027) does math as qty × price directly,
+      // so we must convert the user's per-share input to per-contract here.
+      // For non-option positions multiplier = 1 so this is a no-op.
+      const closeContractPrice = closingPriceN * multiplier;
       const { data, error } = await supabase.rpc("close_position", {
         p_position_id:     position.id,
-        p_close_price:     closingPriceN,
+        p_close_price:     closeContractPrice,
         p_close_qty:       closeQtyN,
-        // Use 4pm ET-ish timestamp — close-of-business proxy. The user
-        // picked the date; the time is approximate.
+        // Use 4pm ET-ish timestamp — close-of-business proxy.
         p_executed_at:     new Date(`${executedAt}T16:00:00`).toISOString(),
         p_cash_account_id: cashAccountId,
         p_fees:            feesN,
@@ -184,7 +192,10 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
               {isOption
                 ? `${directionLC || "long"} ${contractType || "?"} · K=${fmt$(strike)} · exp ${expiration || "?"}`
                 : (position.assetClass || position.asset_class || "stock")}
-              {" · avg cost "}{fmt$(avgCost)}{isOption ? "/share" : ""}
+              {" · avg cost "}
+              {isOption
+                ? `${fmt$(avgCost / multiplier)}/share (${fmt$(avgCost)}/contract)`
+                : fmt$(avgCost)}
               {" · open qty "}{fullQty}
             </div>
           </div>
@@ -276,6 +287,28 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
           <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em", marginBottom: 8 }}>
             PREVIEW
           </div>
+          {/* Dual-display unit chain — fixes #1100 (option unit confusion).
+              For options, show the per-share -> per-contract -> total chain
+              explicitly so the user can never confuse the conventions. */}
+          {isOption && (
+            <div style={{
+              fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-muted)",
+              padding: "6px 8px", marginBottom: 8,
+              background: "rgba(48,209,88,0.06)",
+              border: "1px dashed rgba(48,209,88,0.3)",
+              borderRadius: 4,
+            }}>
+              <span style={{ color: "var(--text)", fontWeight: 600 }}>{fmt$(closingPriceN)}/share</span>
+              <span> × </span>
+              <span style={{ color: "var(--text)", fontWeight: 600 }}>{multiplier}</span>
+              <span> = </span>
+              <span style={{ color: "var(--text)", fontWeight: 600 }}>{fmt$(closingPriceN * multiplier)}/contract</span>
+              <span> × </span>
+              <span style={{ color: "var(--text)", fontWeight: 600 }}>{closeQtyN} contract{closeQtyN === 1 ? "" : "s"}</span>
+              <span> = </span>
+              <span style={{ color: "var(--text)", fontWeight: 700 }}>{fmt$(grossProceeds)} total</span>
+            </div>
+          )}
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
             <span style={{ color: "var(--text-muted)" }}>{cashLabel}</span>
             <span style={{ fontWeight: 700, fontFamily: "var(--font-mono)", color: cashSign > 0 ? "#30d158" : "#ff453a" }}>

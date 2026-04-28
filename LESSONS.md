@@ -1000,3 +1000,65 @@ Every stock modal threw at render. Joe caught it via screenshot.
 This rule also applies to component renames (added a new component but
 forgot to import where used), helper function moves between files, and
 new context providers.
+
+---
+
+## 24. Options storage convention — per-contract storage, multiplier as metadata
+
+**The rule.** For every option position written to `public.positions` and every
+option close written to `public.transactions`, the `price`, `avg_cost`, and
+`cost_basis` fields are stored as **per-contract** dollars (already multiplied
+by `multiplier`). The `multiplier` column is metadata for display, NOT used in
+math. Math everywhere is `qty × price` directly. The user-facing form and
+modal accept per-share input (the industry-standard quote convention) and
+convert to per-contract before persisting or calling the RPC.
+
+**Why.** 2026-04-27, on the very first option close through the new Phase 3
+UI (Joe's NVDA put), the realized P&L came back **−$40,400.65 instead of
+−$404** — a 100x error. Root cause: PositionEditor.jsx had been storing
+options as per-contract since launch (line ~445: `const avgPerCt = entryPrem
+* multiplier; payload = { avg_cost: avgPerCt, ... }`), but the new
+`close_position` RPC (mig 026) computed `gross = qty × p_close_price ×
+multiplier` and `cost_amount = qty × avg_cost × multiplier` — multiplying by
+the multiplier a *second* time on values that were already per-contract.
+Joe's input of 790 (the total dollars he received) compounded the error
+further. The 100x error wasn't visible in any unit test because there were
+no tests on options.
+
+**How to apply.**
+
+1. **Storage convention is per-contract everywhere.** `positions.price`,
+   `positions.avg_cost`, `transactions.price`, `transactions.cost_basis`,
+   `transactions.gross_proceeds`, `transactions.net_proceeds`,
+   `transactions.realized_pnl` — all in per-contract / total dollars. Do
+   NOT introduce per-share storage on any new column.
+2. **Multiplier is metadata.** Stored on both tables, used only for display
+   (e.g. "show me the per-share equivalent") and for form-side conversion.
+   It does NOT appear in any SQL math.
+3. **User-facing forms use per-share input.** `PositionEditor.jsx` accepts
+   "ENTRY PREMIUM / SHARE" and converts on save: `avg_cost = entryPrem ×
+   multiplier`. `CloseModal.jsx` accepts a per-share closing price and
+   converts before calling the RPC: `p_close_price = pricePerShare ×
+   multiplier`. The conversion happens at the form-to-RPC boundary,
+   not anywhere else.
+4. **RPCs and SQL math do `qty × price` directly.** No `× multiplier` in
+   any math expression. The math is invariant: gross = qty × per-contract,
+   cost = qty × per-contract, P&L = gross − cost − fees.
+5. **Guardrail enforced in the RPC.** `close_position` raises if
+   `asset_class='option' AND multiplier IS NULL`. Mig 028 backfilled all
+   existing options to `multiplier=100`. Any new option insert path must
+   set multiplier explicitly.
+6. **Display layer can divide by multiplier to surface per-share** for
+   anywhere it's clearer (CloseModal header shows both per-share and
+   per-contract avg cost; the dual-display preview block shows the
+   per-share → per-contract → total chain explicitly).
+7. **Sanity check on any future option-touching code.** Before merging,
+   walk through one example with a real number (e.g. premium $11.94/share,
+   multiplier 100, qty 1, close $7.90/share) and confirm: gross $790,
+   cost $1,194, P&L −$404. If the math comes out 100x off, the storage
+   convention got mixed up somewhere.
+
+This rule pairs with rule 22 (post-patch grep every new symbol) — anytime
+an option-touching change ships, run a numerical sanity check end-to-end
+on one real position before declaring done. The 100x bug above passed
+build-clean and was only caught when Joe tried it for real.
