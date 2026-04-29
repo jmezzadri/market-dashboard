@@ -1,9 +1,11 @@
 // pipeline-health-check — 30-minute scheduled edge function.
 //
 // Reads the public indicator & composite data that the site actually
-// serves (indicator_history.json + composite_history_daily.json), computes
-// a per-indicator RAG status against the cadence thresholds in
-// public.pipeline_health, and upserts the row.
+// serves (indicator_history.json + composite_history_daily.json) plus the
+// Massive ingestion tables (universe_master / prices_eod / dividends /
+// ticker_reference) in Supabase, computes a per-indicator RAG status
+// against the cadence thresholds in public.pipeline_health, and upserts
+// the row.
 //
 // Fires a Resend email to Joe on green→red transitions, debounced at one
 // alert per indicator per 24h unless the row recovers (goes green) and
@@ -70,6 +72,18 @@ const CADENCE_TOLERANCE_MINUTES: Record<CadenceCode, number> = {
   W: 2880,   // 48h  — release days vary (Thu/Wed/Mon)
   M: 14400,  // 10d  — FRED monthly releases land 4-6 weeks after month-end
   Q: 43200,  // 30d  — SLOOS/JOLTS quarterly can land 6-10 weeks after q-end
+};
+
+// ─── Massive ingestion sources ──────────────────────────────────────────────
+// Massive (Polygon) ingestion writes directly to Supabase tables, not to the
+// public site JSON files. The freshness check for these rows reads
+// max(ingested_at) from the corresponding table. Bug #1129.
+// ────────────────────────────────────────────────────────────────────────────
+const MASSIVE_TABLE_MAP: Record<string, string> = {
+  "massive-universe":          "universe_master",
+  "massive-eod":                "prices_eod",
+  "massive-corporate-actions":  "dividends",
+  "massive-ticker-details":     "ticker_reference",
 };
 
 function json(body: unknown, status = 200): Response {
@@ -151,9 +165,36 @@ async function handle(req: Request): Promise<Response> {
 
   for (const row of rows) {
     let asOf: string | null = null;
+    // For sources that already produce a full ISO timestamp (Massive tables),
+    // we bypass the date-only "T00:00:00Z" append below by setting this.
+    let lastGoodIso: string | null = null;
     let lastError: string | null = null;
 
-    if (row.indicator_id.startsWith("composite_")) {
+    if (row.source === "massive") {
+      // Massive rows are sourced from Supabase tables, not site JSON.
+      // Read max(ingested_at) from the corresponding table. Bug #1129.
+      const tableName = MASSIVE_TABLE_MAP[row.indicator_id];
+      if (!tableName) {
+        lastError = `unknown massive indicator_id: ${row.indicator_id}`;
+      } else {
+        const { data, error } = await supabase
+          .from(tableName)
+          .select("ingested_at")
+          .order("ingested_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) {
+          lastError = `massive query (${tableName}): ${error.message}`;
+        } else if (!data) {
+          // Phase 3 backfill not started yet for ticker_reference is the
+          // expected case here. Stays red until rows arrive.
+          lastError = `${tableName} has no rows yet`;
+        } else {
+          lastGoodIso = data.ingested_at as string;
+          asOf = lastGoodIso;
+        }
+      }
+    } else if (row.indicator_id.startsWith("composite_")) {
       asOf = compositeLatestIso;
       if (!asOf) lastError = "composite_history_daily.json has no rows";
     } else {
@@ -190,7 +231,9 @@ async function handle(req: Request): Promise<Response> {
       cadence: row.cadence,
       expected_cadence_minutes: row.expected_cadence_minutes,
       last_check_at: now.toISOString(),
-      last_good_at: asOf ? new Date(asOf + "T00:00:00Z").toISOString() : row.last_good_at,
+      last_good_at: lastGoodIso
+        ? lastGoodIso
+        : (asOf ? new Date(asOf + "T00:00:00Z").toISOString() : row.last_good_at),
       last_error: lastError,
       status: newStatus,
       prev_status: row.status,
