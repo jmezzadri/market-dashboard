@@ -348,56 +348,61 @@ return(
 <div className="modal-wrap">
 <div className="modal-sheet" onClick={e=>e.stopPropagation()} style={{position:"relative",padding:"var(--space-5) var(--space-5) var(--space-4)"}}>
 <button className="modal-close" onClick={onClose} aria-label="Close">×</button>
-{/* Header */}
-<div style={{display:"flex",alignItems:"flex-start",gap:12,marginBottom:"var(--space-4)",paddingRight:40}}>
-<div style={{width:4,height:44,background:colorForDirection(composite?.overall?.direction),borderRadius:2,flexShrink:0,marginTop:2}}/>
-<div style={{flex:1,minWidth:0}}>
-<div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3,flexWrap:"wrap"}}>
-<h2 style={{fontSize:22,fontWeight:700,color:"var(--text)",margin:0,fontFamily:"var(--font-mono)",letterSpacing:"-0.01em"}}>{ticker}</h2>
-{heldIn.length>0&&<span style={{fontSize:10,color:"var(--accent)",border:"1px solid rgba(10,132,255,0.35)",background:"rgba(10,132,255,0.10)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>OWNED</span>}
-{isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px dashed var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>MANUAL TRACK</span>}
-{watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 6px",fontFamily:"var(--font-mono)",fontWeight:600}}>WATCHLIST</span>}
-{portfolioAuthed&&(onUserWatchlist
-  ?<Tip def="Remove this ticker from your watchlist"><button type="button" onClick={removeFromWatchlist} disabled={wlBusy}
-     style={{fontSize:10,color:"#ff453a",background:"transparent",border:"1px solid rgba(255,69,58,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.03em"}}>{wlBusy?"…":"− REMOVE"}</button></Tip>
-  :<Tip def="Add this ticker to your watchlist"><button type="button" onClick={addToWatchlist} disabled={wlBusy}
-     style={{fontSize:10,color:"var(--accent)",background:"rgba(10,132,255,0.08)",border:"1px solid rgba(10,132,255,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.03em"}}>{wlBusy?"…":"+ WATCHLIST"}</button></Tip>
-)}
-{wlError&&<span style={{fontSize:10,color:"#ff453a",fontFamily:"var(--font-mono)"}}>{wlError}</span>}
-</div>
-{companyName&&companyName!==ticker&&<div style={{fontSize:14,color:"var(--text-muted)",marginBottom:2,fontWeight:500}}>{companyName.toUpperCase()===ticker.toUpperCase()?ticker.toUpperCase():companyName}</div>}
-{(sector||etfCategory||isFund||tags.length>0)&&<div style={{display:"flex",alignItems:"center",gap:6,marginTop:3,flexWrap:"wrap"}}>
-{isFund&&<span style={{fontSize:10,color:"var(--accent)",border:"1px solid var(--accent)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:700,letterSpacing:"0.06em",background:"rgba(217,178,122,0.08)"}}>FUND</span>}
-{etfCategory&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{etfCategory}</span>}
-{sector&&!isFund&&<span style={{fontSize:10,color:"var(--text-muted)",border:"1px solid var(--border)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:600,letterSpacing:"0.04em",textTransform:"uppercase"}}>{sector}</span>}
-{tags.slice(0,4).map(tg=>(<span key={tg} style={{fontSize:10,color:"var(--text-dim)",border:"1px solid var(--border-faint)",borderRadius:4,padding:"2px 7px",fontFamily:"var(--font-mono)",fontWeight:500,letterSpacing:"0.04em",textTransform:"uppercase"}}>{tg}</span>))}
-</div>}
-{(shortDesc||longDesc)&&(()=>{
-  // P1 #36 fix (Joe 2026-04-27): UW's short_description is ~150 chars
-  // already (ends with "..."). Don't re-truncate that to 140 chars on top
-  // of UW's own truncation. Use the full short text by default; only
-  // collapse when we have a meaningfully longer long_description and the
-  // user has clicked "less".
-  const teaser=(shortDesc||"").replace(/\s*\.\.\.\s*$/,"").replace(/\s*…\s*$/,"");
-  // Prefer longDesc as the expanded view; collapsed view = full UW short.
-  const hasLong=!!longDesc&&longDesc.length>teaser.length+50;
-  const shown=hasLong&&descExpanded?longDesc:(teaser||longDesc||"");
-  return(
-  <div style={{fontSize:12,color:"var(--text-muted)",lineHeight:1.55,marginTop:6,maxWidth:640}}>
-  {shown}
-  {hasLong&&<span onClick={e=>{e.stopPropagation();setDescExpanded(v=>!v);}} style={{marginLeft:6,color:"var(--accent)",cursor:"pointer",fontSize:11,fontFamily:"var(--font-mono)"}}>{descExpanded?"show less ↑":"read full bio ↓"}</span>}
-  </div>);
-})()}
-{watchlistEntry?.theme&&<div style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)",marginTop:3}}>{watchlistEntry.theme}</div>}
-</div>
-<div style={{textAlign:"right",flexShrink:0}}>
-<div className="num" style={{fontSize:24,fontWeight:800,color:"var(--text)",lineHeight:1,fontFamily:"var(--font-mono)"}}>{price?fmt$(price):"—"}</div>
-{dayPct!=null&&<div style={{fontSize:12,fontWeight:700,color:dayPct>=0?"#30d158":"#ff453a",fontFamily:"var(--font-mono)",marginTop:4}}>{dayPct>=0?"+":""}{dayPct.toFixed(2)}% today</div>}
-{/* Universe-snapshot freshness — stamps the price so the user knows whether
-    this is a 10:00 / 13:00 / 15:45 ET snapshot or yesterday's close. Hidden
-    when scanData.universe_snapshot_ts is null (signed-out view). */}
-{(scanData?.universe_snapshot_ts||scanData?.ticker_events_ts)&&<div style={{marginTop:4}}><UniverseFreshness pricesTs={scanData.universe_snapshot_ts} eventsTs={scanData.ticker_events_ts} compact/></div>}
-</div>
+{/* ── v5 hero — identity-only (Phase 4b PR-B). LESSONS rule #29:
+    Fraunces big-name, JetBrains Mono labels, var(--ink-1)/etc. via
+    the site's existing parchment overlay. LESSONS rule #30: every
+    value derives from live data; no hardcoded narrative. */}
+<div style={{paddingRight:48,marginBottom:"var(--space-4)",display:"grid",gridTemplateColumns:"1fr auto",gap:"var(--space-5)",alignItems:"start"}}>
+  {/* LEFT — identity */}
+  <div style={{minWidth:0}}>
+    <div style={{fontFamily:"var(--font-mono)",fontWeight:700,fontSize:11,textTransform:"uppercase",letterSpacing:"0.18em",color:"var(--text-dim)",display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6}}>
+      <span>{ticker}</span>
+      {info?.exchange&&<span>· {info.exchange}</span>}
+      <span>· {isFund?(etfCategory||"Fund"):"Stock"}</span>
+      {/* Watchlist + Owned status — small mono chips inline with identity row */}
+      {heldIn.length>0&&<span style={{color:"var(--accent)",letterSpacing:"0.16em"}}>· OWNED</span>}
+      {watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{color:"var(--text-muted)",letterSpacing:"0.16em"}}>· WATCHLIST</span>}
+      {portfolioAuthed&&(onUserWatchlist
+        ?<Tip def="Remove this ticker from your watchlist"><button type="button" onClick={removeFromWatchlist} disabled={wlBusy}
+          style={{fontSize:10,marginLeft:6,color:"#c8302a",background:"transparent",border:"1px solid rgba(200,48,42,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.06em"}}>{wlBusy?"…":"− REMOVE"}</button></Tip>
+        :<Tip def="Add this ticker to your watchlist"><button type="button" onClick={addToWatchlist} disabled={wlBusy}
+          style={{fontSize:10,marginLeft:6,color:"var(--accent)",background:"var(--accent-soft)",border:"1px solid rgba(0,113,227,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.06em"}}>{wlBusy?"…":"+ WATCHLIST"}</button></Tip>
+      )}
+    </div>
+    <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontWeight:500,fontSize:32,letterSpacing:"-0.012em",color:"var(--text)",lineHeight:1.05,margin:"0 0 6px"}}>
+      {companyName}
+      {sector&&!isFund&&<span style={{fontStyle:"italic",fontWeight:400,color:"var(--text-muted)"}}> · {sector}</span>}
+    </h1>
+    {/* Sub-line — position context if held, else company description teaser. Falls back gracefully. */}
+    {heldIn.length>0?(
+      <div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.4}}>
+        {heldIn.map((h,i)=>{
+          const sharesTxt=h.p.assetClass==="option"
+            ? `${Number(h.p.quantity)} ${h.p.contractType||""} contract${Number(h.p.quantity)===1?"":"s"}`.trim()
+            : `${Number(h.p.quantity).toLocaleString()} share${Number(h.p.quantity)===1?"":"s"}`;
+          const cb=h.p.avgCost!=null?` · cost basis ${fmt$(h.p.avgCost)}${h.p.assetClass==="option"?" / contract":" / sh"}`:"";
+          return <span key={h.acct.id}>{i>0?" · ":""}{`In your ${h.acct.label}`} · {sharesTxt}{cb}</span>;
+        })}
+      </div>
+    ):watchlistEntry?.theme?(
+      <div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.4}}>{watchlistEntry.theme}</div>
+    ):shortDesc?(
+      <div style={{fontSize:13,color:"var(--text-2)",lineHeight:1.4,maxWidth:560}}>
+        {(shortDesc||"").replace(/\s*\.\.\.\s*$/,"").replace(/\s*…\s*$/,"")}
+      </div>
+    ):null}
+    {wlError&&<div style={{fontSize:11,color:"#c8302a",fontFamily:"var(--font-mono)",marginTop:4}}>{wlError}</div>}
+  </div>
+  {/* RIGHT — price + delta */}
+  <div style={{textAlign:"right",flexShrink:0}}>
+    <div className="num" style={{fontFamily:"var(--font-mono)",fontSize:30,fontWeight:600,color:"var(--text)",lineHeight:1}}>{price?fmt$(price):"—"}</div>
+    {dayPct!=null&&prevClose!=null&&price!=null&&(
+      <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,letterSpacing:"0.06em",color:dayPct>=0?"var(--green-text, #1a8c39)":"var(--red-text, #c8302a)"}}>
+        {dayPct>=0?"▲ +":"▼ "}{fmt$(Math.abs(price-prevClose))} · {dayPct>=0?"+":""}{dayPct.toFixed(2)}%
+      </div>
+    )}
+    {(scanData?.universe_snapshot_ts||scanData?.ticker_events_ts)&&<div style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><UniverseFreshness pricesTs={scanData.universe_snapshot_ts} eventsTs={scanData.ticker_events_ts} compact/></div>}
+  </div>
 </div>
 
 {/* Score Gauge + Signal Breakdown. Tickers that the scanner can't score
@@ -445,17 +450,111 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
 )}
 </div>
 
-{/* Performance strip */}
-{(wk!=null||mo!=null||yt!=null)&&(
-<div style={panelStyle}>
-<div style={sectionLabel}>PERFORMANCE</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8}}>
-<Kpi label="1W" value={wk==null?"—":fmtPct(wk)} color={wk==null?"var(--text-dim)":wk>=0?"#30d158":"#ff453a"} tip="Price change over the last 5 trading days."/>
-<Kpi label="1M" value={mo==null?"—":fmtPct(mo)} color={mo==null?"var(--text-dim)":mo>=0?"#30d158":"#ff453a"} tip="Price change over the last ~21 trading days."/>
-<Kpi label="YTD" value={yt==null?"—":fmtPct(yt)} color={yt==null?"var(--text-dim)":yt>=0?"#30d158":"#ff453a"} tip="Price change since Jan 1 of the current year."/>
-</div>
-</div>
-)}
+{/* ── v5 KPI strip (Phase 4b PR-B). 4 cards: 1-week / 1-month /
+    YTD return + Position P&L. Each carries a vs-SPY comparator
+    and a tiny sparkline. LESSONS rule #5 (plain-English labels);
+    LESSONS rule #30 (every value from live data). */}
+{(()=>{
+  // Pull SPY's matching windows from the same scan (scanData.signals.technicals.SPY).
+  const spyTech = scanData?.signals?.technicals?.SPY || {};
+  const wkSpy = spyTech.week_change;
+  const moSpy = spyTech.month_change;
+  const ytSpy = spyTech.ytd_change;
+  // Position-level math — sum across every account that holds the ticker.
+  // For options, use per-contract cost (LESSONS rule #25). qty * (price - avgCost).
+  const heldUnreal = heldIn.reduce((acc,h)=>{
+    const q = Number(h.p.quantity)||0;
+    const px = Number(h.p.price);
+    const ac = Number(h.p.avgCost);
+    if (!q || !isFinite(px) || !isFinite(ac)) return acc;
+    return acc + q * (px - ac);
+  }, 0);
+  const heldCost = heldIn.reduce((acc,h)=>{
+    const q = Number(h.p.quantity)||0;
+    const ac = Number(h.p.avgCost);
+    if (!q || !isFinite(ac)) return acc;
+    return acc + q * ac;
+  }, 0);
+  const heldPnlPct = heldCost > 0 ? heldUnreal / heldCost : null;
+  const heldQty = heldIn.reduce((acc,h)=>acc + (Number(h.p.quantity)||0), 0);
+
+  // Color rule: green for >=0, red for <0, dim for null.
+  const cFor = v => v==null ? "var(--text-dim)" : (v>=0 ? "var(--green-text, #1a8c39)" : "var(--red-text, #c8302a)");
+  // Tiny sparkline: scale the return into a 0-100 / 4-20 svg path. Slope reflects
+  // sign + magnitude. Not historical — a stylistic trend cue. The historical
+  // 30-day sparkline ships in PR-D (chart Compare bar restyle).
+  const Spark = ({v, color}) => {
+    if (v == null) return null;
+    const slope = Math.max(-1, Math.min(1, v * 6)); // amplify so small returns show
+    const y0 = 18 - slope * 12;
+    const y1 = 18 + slope * 12;
+    return (<svg viewBox="0 0 100 24" preserveAspectRatio="none" style={{width:"100%",height:24,marginTop:6,display:"block"}}>
+      <polyline points={`0,${y1.toFixed(1)} 50,${(18-slope*4).toFixed(1)} 100,${y0.toFixed(1)}`} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
+    </svg>);
+  };
+
+  const KpiCard = ({label, value, comp, color, tip, spark}) => (
+    <div style={{background:"var(--surface-solid, var(--paper, #fff))",border:"1px solid var(--border)",borderRadius:"var(--radius-xs, 6px)",padding:"12px 14px",display:"flex",flexDirection:"column"}}>
+      <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.16em",color:"var(--text-dim)",marginBottom:4,display:"flex",alignItems:"center",gap:3}}>
+        {label}{tip&&<InfoTip def={tip} size={10}/>}
+      </div>
+      <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color,lineHeight:1.1}}>{value}</div>
+      {comp&&<div style={{marginTop:4,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-muted)"}}>{comp}</div>}
+      {spark}
+    </div>
+  );
+
+  const fmtRet = v => v==null ? "—" : `${v>=0?"+":""}${(v*100).toFixed(1)}%`;
+  const fmtRetSpy = v => v==null ? null : `vs SPY ${v>=0?"+":""}${(v*100).toFixed(1)}%`;
+
+  return (
+    <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:14,marginBottom:"var(--space-4)"}}>
+      <KpiCard
+        label="1-week return"
+        value={fmtRet(wk)}
+        comp={fmtRetSpy(wkSpy)}
+        color={cFor(wk)}
+        tip="Price change over the last 5 trading days. Sourced from the in-house technicals on the most recent scan."
+        spark={<Spark v={wk} color={cFor(wk)}/>}
+      />
+      <KpiCard
+        label="1-month return"
+        value={fmtRet(mo)}
+        comp={fmtRetSpy(moSpy)}
+        color={cFor(mo)}
+        tip="Price change over the last ~21 trading days."
+        spark={<Spark v={mo} color={cFor(mo)}/>}
+      />
+      <KpiCard
+        label="YTD return"
+        value={fmtRet(yt)}
+        comp={fmtRetSpy(ytSpy)}
+        color={cFor(yt)}
+        tip="Price change since Jan 1 of the current year."
+        spark={<Spark v={yt} color={cFor(yt)}/>}
+      />
+      {heldIn.length>0?(
+        <KpiCard
+          label="Position P&L"
+          value={heldPnlPct==null ? "—" : (heldUnreal>=0?"+":"−")+fmt$M(Math.abs(heldUnreal))}
+          comp={heldPnlPct==null ? null : `${heldPnlPct>=0?"+":""}${(heldPnlPct*100).toFixed(1)}% on cost · ${heldQty.toLocaleString()} ${heldIn[0].p.assetClass==="option"?"contract"+(heldQty===1?"":"s"):"sh"}`}
+          color={cFor(heldPnlPct)}
+          tip="Unrealized profit/loss across every account that holds this ticker. For options, math uses per-contract storage (LESSONS rule #25)."
+          spark={<Spark v={heldPnlPct} color={cFor(heldPnlPct)}/>}
+        />
+      ):(
+        <KpiCard
+          label="Not held"
+          value="—"
+          comp={watchlistEntry?"on your watchlist":"add to watchlist to track"}
+          color="var(--text-dim)"
+          tip="You don't currently own this ticker. The Position P&L card activates once you add a position via the Add Position editor."
+        />
+      )}
+    </div>
+  );
+})()}
+
 
 {/* Risk metrics — Beta, Vol, Max DD, 10-day 99% VaR. Computed from
     2Y of daily Yahoo price data. Always renders so users see this on
