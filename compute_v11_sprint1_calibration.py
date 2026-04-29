@@ -94,6 +94,20 @@ def fetch_yahoo(ticker: str, start: str = "2007-01-01") -> pd.Series:
     return s
 
 
+def history_payload(series: pd.Series, max_points: int = 120) -> list:
+    """Return [[date_iso, value], ...] for the indicator's history,
+    sampled to ~max_points (default ~10y monthly)."""
+    s = series.dropna().sort_index()
+    if len(s) > max_points:
+        # Keep monthly samples — resample to month-end if higher freq
+        s = s.resample("ME").last().dropna()
+    if len(s) > max_points:
+        # Still too many — keep evenly-spaced samples
+        step = len(s) // max_points
+        s = s.iloc[::max(1, step)]
+    return [[d.strftime("%Y-%m-%d"), round(float(v), 4)] for d, v in s.items()]
+
+
 def percentile_of(series: pd.Series, value: float) -> float:
     """Return percentile rank of `value` against `series` (0-100)."""
     arr = series.dropna().values
@@ -186,12 +200,17 @@ def build_valuation_tile(existing: dict) -> dict:
         indicators.append({
             "id": "cape",
             "name": "CAPE (Shiller)",
+            "unit": "ratio",
             "description": "Cyclically-adjusted price-to-earnings ratio — S&P 500 price divided by 10-year average inflation-adjusted earnings. Smooths out earnings cycles so highs and lows are comparable across decades.",
+            "so_what": "When CAPE sits in the top quartile of its long-run distribution, real subsequent 10-year returns have been low; when it sits in the bottom quartile, they have been high. Not a timing tool — a long-horizon valuation read.",
+            "formula": "CAPE = S&P 500 price / (10-year average inflation-adjusted earnings per share)",
             "source": "Shiller / multpl (curated monthly)",
+            "source_url": "https://www.multpl.com/shiller-pe",
             "sample_window": "post-2011 (15y)",
             "current": {"date": cur_dt, "value": round(cur_val, 2)},
             "percentile": round(pct, 1),
             "quartile": quartile_of(pct),
+            "history": history_payload(cape_series),
         })
 
     # Trailing P/E — derive from CAPE * 10y average / current earnings? Too noisy.
@@ -215,13 +234,18 @@ def build_valuation_tile(existing: dict) -> dict:
             indicators.append({
                 "id": "erp",
                 "name": "Equity Risk Premium",
+                "unit": "percent",
                 "description": "How much extra yield investors demand to own stocks vs 10-year Treasuries. Computed as earnings yield (1/CAPE) minus the 10-year yield. A near-zero or negative ERP means stocks are priced for perfection.",
+                "so_what": "When ERP is at or below zero, investors are accepting less from stocks than they could get risk-free from Treasuries. Historically that compression has marked late-cycle equity tops.",
+                "formula": "ERP = (1 / CAPE) × 100 − 10-year Treasury yield",
                 "source": "Derived: 1/CAPE − DGS10 (FRED)",
+                "source_url": "https://fred.stlouisfed.org/series/DGS10",
                 "sample_window": "post-2011 (15y)",
                 "current": {"date": cur_dt, "value": round(cur_val, 2)},
                 "percentile": round(pct, 1),
                 "quartile": quartile_of(pct),
                 "direction": "low_is_concerning",  # low ERP = stocks expensive
+                "history": history_payload(erp),
             })
     except Exception as e:
         print(f"  [warn] ERP build failed: {e}", file=sys.stderr)
@@ -246,14 +270,18 @@ def build_valuation_tile(existing: dict) -> dict:
             indicators.append({
                 "id": "buffett",
                 "name": "Buffett Indicator",
+                "unit": "% of GDP",
                 "description": "Nonfinancial corporate equity market cap as a percentage of GDP. Warren Buffett's preferred 'overall valuation' yardstick. Above 150% has historically preceded significant drawdowns; the post-1970 median is around 72%.",
+                "so_what": "When this ratio sits at all-time-high levels — as it does today — the equity market is large relative to the economy backing it. Subsequent 10-year real returns have been low.",
+                "formula": "Buffett = (Nonfinancial corp equity market cap / GDP) × 100",
                 "source": "FRED: NCBCEL / GDP (quarterly)",
+                "source_url": "https://fred.stlouisfed.org/series/NCBCEL",
                 "sample_window": "post-1970 (~55y)",
                 "data_caveat": "NCBCEL is nonfinancial corps only; the canonical Buffett indicator includes financial corps. Directional read is identical, level is slightly understated.",
                 "current": {"date": cur_dt, "value": round(cur_val, 1)},
-                "unit": "% of GDP",
                 "percentile": round(pct, 1),
                 "quartile": quartile_of(pct),
+                "history": history_payload(buffett),
             })
     except Exception as e:
         print(f"  [warn] Buffett build failed: {e}", file=sys.stderr)
@@ -338,13 +366,17 @@ def build_credit_tile(existing: dict) -> dict:
             indicators.append({
                 "id": "ig_oas",
                 "name": "IG OAS (Baa − 10y)",
+                "unit": "bp",
                 "description": "Yield premium investors require to own investment-grade Baa-rated corporate bonds over equal-maturity Treasuries. Widens in stress, compresses in complacency.",
+                "so_what": "Today's IG OAS sits in the bottom quartile of post-1986 history. Investors are pricing very little default-risk premium into investment-grade credit — the 'priced for perfection' read.",
+                "formula": "IG OAS proxy = Moody's Baa yield − 10-year Treasury yield, in basis points",
                 "source": "FRED: BAA − DGS10 (monthly)",
+                "source_url": "https://fred.stlouisfed.org/series/BAA",
                 "sample_window": "post-1986 (~40y)",
                 "current": {"date": cur_dt, "value": round(cur_val, 0)},
-                "unit": "bp",
                 "percentile": round(pct, 1),
                 "quartile": quartile_of(pct),
+                "history": history_payload(ig_oas),
             })
     except Exception as e:
         print(f"  [warn] IG OAS build failed: {e}", file=sys.stderr)
@@ -359,14 +391,18 @@ def build_credit_tile(existing: dict) -> dict:
             indicators.append({
                 "id": "hy_oas",
                 "name": "HY OAS",
+                "unit": "bp",
                 "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
+                "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk — a read consistent with late-cycle complacency rather than imminent stress.",
+                "formula": "HY OAS = ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
                 "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
+                "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
                 "sample_window": "post-2011 (15y)",
                 "data_caveat": "ICE BofA license restricts FRED's free history to post-2011. GFC 2008 peak (~2,000bp) is out of sample.",
                 "current": {"date": cur_dt, "value": round(cur_val, 0)},
-                "unit": "bp",
                 "percentile": round(pct, 1),
                 "quartile": quartile_of(pct),
+                "history": history_payload(hy_oas_m),
             })
     except Exception as e:
         print(f"  [warn] HY OAS build failed: {e}", file=sys.stderr)
@@ -391,13 +427,17 @@ def build_credit_tile(existing: dict) -> dict:
                 indicators.append({
                     "id": "hy_ig_ratio",
                     "name": "HY/IG ratio",
+                    "unit": "ratio",
                     "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect — captures whether credit markets are pricing the junk-vs-quality differential normally or in a stressed/complacent way.",
+                    "so_what": "Mid-distribution today. The junk-vs-quality differential is priced normally; nothing unusual either way in the relative pricing of high-yield to investment-grade.",
+                    "formula": "HY/IG ratio = HY OAS / IG OAS proxy (Baa − DGS10)",
                     "source": "Derived: HY OAS / (BAA − DGS10)",
+                    "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
                     "sample_window": "post-2011 (15y)",
                     "current": {"date": cur_dt, "value": round(cur_val, 2)},
-                    "unit": "ratio",
                     "percentile": round(pct, 1),
                     "quartile": quartile_of(pct),
+                    "history": history_payload(ratio_series),
                 })
     except Exception as e:
         print(f"  [warn] HY/IG ratio build failed: {e}", file=sys.stderr)
@@ -458,7 +498,9 @@ def build_growth_tile(existing: dict) -> dict:
     indicators: list[dict] = []
 
     def add_growth_indicator(key: str, name: str, desc: str, source: str,
-                             window: str, lower_is_concerning: bool = True):
+                             window: str, lower_is_concerning: bool = True,
+                             so_what: str = "", formula: str = "", source_url: str = "",
+                             unit: str = ""):
         pts = existing.get(key, {}).get("points", [])
         s = points_to_series(pts)
         if s.empty:
@@ -487,8 +529,12 @@ def build_growth_tile(existing: dict) -> dict:
         indicators.append({
             "id": key,
             "name": name,
+            "unit": unit,
             "description": desc,
+            "so_what": so_what,
+            "formula": formula,
             "source": source,
+            "source_url": source_url,
             "sample_window": window,
             "current": {"date": cur_dt, "value": round(cur_val, 2)},
             "z_score": round(cur_z, 2),
@@ -498,6 +544,7 @@ def build_growth_tile(existing: dict) -> dict:
             "percentile": round(pct, 1),
             "quartile": quartile_of(pct),
             "direction": "low_is_concerning" if lower_is_concerning else "high_is_concerning",
+            "history": history_payload(s),
         })
 
     add_growth_indicator(
@@ -507,6 +554,10 @@ def build_growth_tile(existing: dict) -> dict:
         "FRED: CFNAIMA3 (monthly)",
         "post-2006 (20y)",
         lower_is_concerning=True,
+        unit="index",
+        formula="3-month moving average of the Chicago Fed National Activity Index (a weighted composite of 85 monthly US activity series)",
+        source_url="https://fred.stlouisfed.org/series/CFNAIMA3",
+        so_what="Mid-range today (z = +0.15) but trending down over the last 60 days. Not yet at the level-and-trend condition the rule requires; worth watching.",
     )
     add_growth_indicator(
         "jobless",
@@ -514,7 +565,11 @@ def build_growth_tile(existing: dict) -> dict:
         "Initial unemployment claims, 4-week moving average. The earliest weekly read on labor-market deterioration.",
         "FRED: IC4WSA (weekly)",
         "post-2006 (20y)",
-        lower_is_concerning=False,  # high claims = bad
+        lower_is_concerning=False,
+        unit="thousands",
+        formula="4-week moving average of seasonally-adjusted initial unemployment claims",
+        source_url="https://fred.stlouisfed.org/series/IC4WSA",
+        so_what="At 214k, claims sit in the bottom quartile of the post-2006 sample. The labor market is tight; no early-warning signal here.",
     )
     add_growth_indicator(
         "ism",
@@ -523,6 +578,10 @@ def build_growth_tile(existing: dict) -> dict:
         "FRED: NAPMPI (monthly)",
         "post-2006 (20y)",
         lower_is_concerning=True,
+        unit="index",
+        formula="ISM Manufacturing Purchasing Managers' Index headline composite",
+        source_url="https://fred.stlouisfed.org/series/NAPMPI",
+        so_what="At 52.7 ISM is in expansion territory. Trend is mildly down over 60 days but still well above contraction (50).",
     )
     add_growth_indicator(
         "bkx_spx",
@@ -531,6 +590,10 @@ def build_growth_tile(existing: dict) -> dict:
         "Yahoo: ^BKX, ^GSPC (daily)",
         "post-2006 (20y)",
         lower_is_concerning=True,
+        unit="ratio",
+        formula="BKX/SPX = KBW Bank Index closing price / S&P 500 closing price",
+        source_url="https://finance.yahoo.com/quote/%5EBKX",
+        so_what="Banks are sitting in the bottom quartile of relative performance vs the S&P (z = −1.06). The trend isn't deteriorating month-over-month, so the rule's level-and-trend condition isn't met — but the level alone is an under-the-surface caution.",
     )
 
     state = compute_growth_state(indicators)
