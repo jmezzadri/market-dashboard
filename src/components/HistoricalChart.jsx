@@ -498,7 +498,73 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
         <div style={{padding: 28, textAlign:"center", color:"var(--text-muted)", fontSize:12}}>
           Loading…
         </div>
-      ) : (
+      ) : (<>
+        {/* Customize chart toolbar (collapsed by default; PR-D2). */}
+        <div style={{
+          display:"flex", alignItems:"center", gap:6, marginBottom:6,
+          paddingBottom:6, borderBottom: customizeOpen ? "1px dashed var(--border-faint)" : "none",
+        }}>
+          <button type="button" onClick={()=>setCustomizeOpen(o=>!o)} style={{
+            display:"inline-flex", alignItems:"center", gap:4,
+            fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
+            background:"transparent", border:"1px solid var(--border)",
+            color:"var(--text-2)", padding:"4px 12px", borderRadius:4, cursor:"pointer",
+            letterSpacing:"0.04em",
+          }}>
+            <span>Customize chart</span>
+            <span style={{opacity:0.7}}>{customizeOpen ? "▴" : "▾"}</span>
+            <span style={{opacity:0.5, marginLeft:4}}>· {activeCount} active</span>
+          </button>
+          <button type="button" onClick={resetToClean} style={{
+            fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
+            background:"transparent", border:"1px dashed var(--border-strong, var(--border))",
+            color:"var(--text-muted)", padding:"4px 12px", borderRadius:4, cursor:"pointer",
+            letterSpacing:"0.04em",
+          }}>
+            ⟲ Reset to clean view
+          </button>
+        </div>
+
+        {customizeOpen && (
+          <div style={{
+            background:"var(--surface-3, rgba(0,0,0,0.025))",
+            border:"1px solid var(--border-faint)",
+            borderRadius:6, padding:"10px 12px",
+            marginBottom:8,
+          }}>
+            <CustomizeGroup label="Moving averages & bands"
+              items={[
+                {key:"ma50",      label:"50d MA",         on:overlays.ma50},
+                {key:"ma200",     label:"200d MA",        on:overlays.ma200},
+                {key:"bollinger", label:"Bollinger 20/2", on:overlays.bollinger},
+              ]}
+              onToggle={k => setOverlays(o => ({ ...o, [k]: !o[k] }))}
+            />
+            <CustomizeGroup label="Sub-pane indicators"
+              items={[
+                {key:"rsi",    label:"RSI(14)",      on:subPanes.rsi},
+                {key:"volume", label:"Volume bars",  on:subPanes.volume},
+              ]}
+              onToggle={k => setSubPanes(s => ({ ...s, [k]: !s[k] }))}
+            />
+            <CustomizeGroup label="Event markers on price line"
+              items={[
+                {key:"earnings",  label:"Earnings ◆",  on:markers.earnings},
+                {key:"dividends", label:"Dividends ●", on:markers.dividends},
+                {key:"splits",    label:"Splits ▲",    on:markers.splits},
+              ]}
+              onToggle={k => setMarkers(m => ({ ...m, [k]: !m[k] }))}
+            />
+            <CustomizeGroup label="Display"
+              items={[
+                {key:"crosshair", label:"Crosshair", on:display.crosshair},
+                {key:"logScale",  label:"Log scale", on:display.logScale},
+              ]}
+              onToggle={k => setDisplay(d => ({ ...d, [k]: !d[k] }))}
+            />
+          </div>
+        )}
+
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none"
              onMouseMove={onMove} onMouseLeave={onLeave}
              style={{width:"100%", height:H, display:"block"}}>
@@ -568,7 +634,60 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
             </g>
           )}
         </svg>
-      )}
+
+        {/* RSI(14) sub-pane — toggled via Customize panel. */}
+        {subPanes.rsi && primaryPrices.length > 14 && (
+          <div style={{marginTop:6, paddingTop:4, borderTop:"1px dashed var(--border-faint)"}}>
+            <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:2}}>
+              <span style={{fontFamily:"var(--font-mono)", fontSize:9.5, textTransform:"uppercase", letterSpacing:"0.14em", color:"var(--text-dim)"}}>RSI(14)</span>
+              <span style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-2)"}}>
+                {(() => {
+                  const last = rsi14[rsi14.length-1];
+                  return last != null ? last.toFixed(0) : "—";
+                })()}
+              </span>
+            </div>
+            <svg viewBox={`0 0 ${W} 60`} preserveAspectRatio="none" style={{width:"100%", height:60, display:"block"}}>
+              <line x1="0" y1="18" x2={W} y2="18" stroke="var(--red-text, #c8302a)" strokeWidth="1" strokeDasharray="3 3" opacity="0.4"/>
+              <line x1="0" y1="42" x2={W} y2="42" stroke="var(--green-text, #1a8c39)" strokeWidth="1" strokeDasharray="3 3" opacity="0.4"/>
+              <line x1="0" y1="30" x2={W} y2="30" stroke="var(--text-dim)" strokeWidth="0.5" strokeDasharray="2 4" opacity="0.5"/>
+              <path d={primaryPrices.map((p, i) => rsi14[i] != null
+                ? `${rsi14[i-1]==null?"M":"L"} ${xToPx(i).toFixed(2)} ${(60 - rsi14[i] * 0.6).toFixed(2)}`
+                : null
+              ).filter(Boolean).join(" ")} fill="none" stroke="var(--accent)" strokeWidth="1.4"/>
+              <text x="6" y="48" fill="var(--text-dim)" fontFamily="var(--font-mono)" fontSize="8">30</text>
+              <text x="6" y="22" fill="var(--text-dim)" fontFamily="var(--font-mono)" fontSize="8">70</text>
+            </svg>
+          </div>
+        )}
+
+        {/* Volume bars sub-pane — toggled via Customize panel. */}
+        {subPanes.volume && primaryPrices.length > 0 && (() => {
+          const maxV = Math.max(...volumes);
+          if (!maxV) return null;
+          const barW = Math.max(0.5, (W - pL - pR) / volumes.length * 0.7);
+          return (
+            <div style={{marginTop:6, paddingTop:4, borderTop:"1px dashed var(--border-faint)"}}>
+              <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:2}}>
+                <span style={{fontFamily:"var(--font-mono)", fontSize:9.5, textTransform:"uppercase", letterSpacing:"0.14em", color:"var(--text-dim)"}}>Volume</span>
+                <span style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-2)"}}>
+                  {(volumes[volumes.length-1] / 1e6).toFixed(1)}M
+                </span>
+              </div>
+              <svg viewBox={`0 0 ${W} 50`} preserveAspectRatio="none" style={{width:"100%", height:50, display:"block"}}>
+                {volumes.map((v, i) => {
+                  const h = (v / maxV) * 44;
+                  const x = xToPx(i) - barW / 2;
+                  const up = i > 0 && primaryPrices[i].c >= primaryPrices[i-1].c;
+                  return <rect key={i} x={x} y={50 - h} width={barW} height={h}
+                               fill={up ? "var(--green-text, #1a8c39)" : "var(--red-text, #c8302a)"}
+                               opacity="0.5"/>;
+                })}
+              </svg>
+            </div>
+          );
+        })()}
+      </>)}
 
       {/* Footer note */}
       <div style={{
