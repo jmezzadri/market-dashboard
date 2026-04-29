@@ -77,6 +77,18 @@ def http_json(url, method="GET", headers=None, body=None, timeout=60):
     except URLError as e:
         return 0, {"error": str(e)}
 
+def dedupe_by_keys(rows, keys):
+    """Keep the LAST row for each (k1,k2,...) tuple.  Polygon dividends
+    sometimes return multiple records for the same (ticker, ex_date, type)
+    when records are revised; PostgREST chokes on ON CONFLICT DO UPDATE
+    seeing duplicates in the same chunk.  De-duping client-side is the
+    simplest fix."""
+    seen = {}
+    for r in rows:
+        k = tuple(r.get(k) for k in keys)
+        seen[k] = r
+    return list(seen.values())
+
 def supabase_upsert(sb_url, sb_key, table, rows, on_conflict):
     """Chunked upsert via PostgREST with on_conflict resolution."""
     if not rows:
@@ -183,6 +195,7 @@ def main():
             "share_class_figi": t.get("share_class_figi"),
             "last_updated_utc": t.get("last_updated_utc"),
         } for t in rows if t.get("ticker")]
+        um_rows = dedupe_by_keys(um_rows, ["ticker"])
         n = supabase_upsert(URL, SK, "universe_master", um_rows, "ticker")
         print(f"  upserted {n} into universe_master")
         update_health(URL, SK, "massive-universe", "green")
@@ -225,6 +238,7 @@ def main():
                 print(f"  {d}: no bars (probably non-trading day)")
         if not eod_rows:
             raise RuntimeError("no trading day with bars in last 5 days")
+        eod_rows = dedupe_by_keys(eod_rows, ["ticker","trade_date"])
         n = supabase_upsert(URL, SK, "prices_eod", eod_rows, "ticker,trade_date")
         print(f"  upserted {n} into prices_eod for {date_used}")
         update_health(URL, SK, "massive-eod", "green")
@@ -254,6 +268,7 @@ def main():
             "frequency":        d.get("frequency"),
             "dividend_type":    d.get("dividend_type"),
         } for d in rows if d.get("ticker") and d.get("ex_dividend_date")]
+        div_rows = dedupe_by_keys(div_rows, ["ticker","ex_dividend_date","dividend_type"])
         n = supabase_upsert(URL, SK, "dividends", div_rows,
                             "ticker,ex_dividend_date,dividend_type")
         print(f"  upserted {n} into dividends")
@@ -279,6 +294,7 @@ def main():
             "split_from":     s.get("split_from"),
             "split_to":       s.get("split_to"),
         } for s in rows if s.get("ticker") and s.get("execution_date")]
+        sp_rows = dedupe_by_keys(sp_rows, ["ticker","execution_date"])
         n = supabase_upsert(URL, SK, "splits", sp_rows,
                             "ticker,execution_date")
         print(f"  upserted {n} into splits")
