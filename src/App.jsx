@@ -42,6 +42,7 @@ import AssetAllocation from "./pages/AssetAllocation";
 import ScenarioAnalysis from "./pages/ScenarioAnalysis";
 import { useSortableTable as useSortableTable_v1, SortArrow as SortArrow_v1, sortableHeaderProps as sortableHeaderProps_v1 } from "./hooks/useSortableTable.jsx";
 import { supabase } from "./lib/supabase";
+import useMassiveTickerInfo from "./hooks/useMassiveTickerInfo";
 import { normalizeTickerName } from "./lib/nameFormat";
 import ReportBug from "./reportbug/ReportBug";
 import ErrorBoundary from "./ErrorBoundary";
@@ -2833,7 +2834,13 @@ const heldIn=(accounts||[]).flatMap(a=>a.positions.filter(p=>p.ticker===ticker).
 const price=Number(sc.close||sc.prev_close||0)||null;
 const prevClose=Number(sc.prev_close||0)||null;
 const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
-const companyName=normalizeTickerName(sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||ticker);
+// Phase 4a — backfill the company name from the Massive-sourced
+// Supabase tables for tickers outside UW's screener (~11,000 of ~12,500).
+// ticker_reference (Phase 3 backfill) preferred; universe_master (always
+// populated by the daily Massive cron) is the floor. Falls through to
+// the legacy waterfall if both miss (very rare — only inactive tickers).
+const massiveInfo=useMassiveTickerInfo(ticker);
+const companyName=normalizeTickerName(sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||massiveInfo.name||ticker);
 // Legacy 0–100 score gauge retired — the modal now leads with the signal
 // composite (−100 → +100) so direction and strength read consistently.
 // Manual-track position: on the watchlist but not in the scanner's scored
