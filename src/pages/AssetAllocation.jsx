@@ -41,22 +41,55 @@ function formatVal(value, unit) {
   return String(value);
 }
 
+// Plain-English signed change suffix (with the indicator's native unit)
+function formatChange(value, unit) {
+  if (value === undefined || value === null || Number.isNaN(value)) return "—";
+  const sign = value > 0 ? "+" : value < 0 ? "" : "";
+  if (unit === "bp") return `${value > 0 ? "+" : ""}${Math.round(value)} bp`;
+  if (unit === "% of GDP") return `${sign}${value.toFixed(1)}%`;
+  if (unit === "percent") return `${sign}${value.toFixed(2)}%`;
+  if (unit === "ratio") return `${sign}${value.toFixed(2)}×`;
+  if (unit === "thousands") return `${sign}${Math.round(value).toLocaleString()}k`;
+  if (typeof value === "number") return `${sign}${value.toFixed(2)}`;
+  return String(value);
+}
+
+// Map JSON `direction` to the bar-coloring convention.
+// Top-quartile-is-bad → high. Bottom-quartile-is-bad → low.
+// "bidir_top" / "bidir_bottom" lock the read to whichever side is currently extreme.
+function dirClass(direction) {
+  if (!direction) return "high";
+  if (direction === "low" || direction === "low_is_concerning" || direction === "bidir_bottom") return "low";
+  return "high";
+}
+
 // --- Reusable visual primitives -------------------------------------------
 
-function QuartileBar({ percentile, width = 140 }) {
+function QuartileBar({ percentile, width = 140, direction = "high", sampleMin, sampleMax }) {
   const pos = Math.max(0, Math.min(100, Number(percentile) || 0));
+  // Direction-aware bar coloring per round-6 design lock:
+  //   high  → red on the right (CAPE, Buffett, jobless claims)
+  //   low   → red on the left (ERP, ISM, BKX/SPX, CFNAI)
+  //   bidir → both extremes red, mid green (HY OAS, IG OAS, HY/IG ratio)
+  const d = dirClass(direction);
+  const bgs = d === "low"
+    ? ["#f0d4d4", "#f5e1ce", "#f5efde", "#eef0e8"]
+    : ["#eef0e8", "#f5efde", "#f5e1ce", "#f0d4d4"];
   return (
     <div style={{ display: "inline-block", verticalAlign: "middle" }}>
       <div style={{ position: "relative", display: "flex", height: 7, width, borderRadius: 3, overflow: "hidden" }}>
-        <div style={{ flex: 1, background: "#eef0e8" }} />
-        <div style={{ flex: 1, background: "#f5efde" }} />
-        <div style={{ flex: 1, background: "#f5e1ce" }} />
-        <div style={{ flex: 1, background: "#f0d4d4" }} />
+        {bgs.map((bg, i) => <div key={i} style={{ flex: 1, background: bg }} />)}
         <div style={{
           position: "absolute", left: `calc(${pos}% - 6px)`, top: -3, width: 13, height: 13,
           borderRadius: "50%", background: "#1a1a1a", border: "2px solid #fff", boxShadow: "0 0 0 0.5px #cdc9bf",
         }} />
       </div>
+      {(sampleMin !== undefined || sampleMax !== undefined) && (
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9, color: "#7a7a72", marginTop: 3, width }}>
+          <span>{sampleMin ?? ""}</span>
+          <span>{sampleMax ?? ""}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -168,7 +201,7 @@ function IndicatorRow({ indicator, onClick }) {
         <div style={{ fontSize: 13, color: "#1a1a1a", fontWeight: 500 }}>{indicator.name}</div>
         <div style={{ fontSize: 11, color: "#7a7a72", marginTop: 2, lineHeight: 1.45 }}>{indicator.description}</div>
       </div>
-      <div><QuartileBar percentile={indicator.percentile} /></div>
+      <div><QuartileBar percentile={indicator.percentile} direction={indicator.direction} /></div>
       <div style={{ fontSize: 12, color: "#3a3a32", textAlign: "right" }}>
         <div style={{ fontWeight: 500 }}>{formatVal(value, indicator.unit)}</div>
         <div style={{ fontSize: 11, color: "#7a7a72" }}>
@@ -261,72 +294,476 @@ function Drawer({ open, onClose, children, ariaLabel }) {
   );
 }
 
-// --- Indicator drawer body -------------------------------------------------
+// =============================================================================
+// Round-6 indicator drawer — all panels (locked design with Joe 2026-04-29).
+// Section order: hero / KPI strip / chart / composite-contribution / so-what /
+// episodes / co-movement / release calendar / footer.
+// =============================================================================
+
+// --- Section eyebrow + drawer-block primitives -----------------------------
+
+const DRAWER_EYEBROW_STYLE = {
+  fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase",
+  color: "#7a7a72", fontWeight: 600, marginBottom: 8,
+};
+const DRAWER_BLOCK_STYLE = {
+  padding: "14px 16px", background: "#fff", border: "0.5px solid #e0ddd5",
+  borderRadius: 10, marginBottom: 18,
+};
+
+function DrawerBlock({ eyebrow, children, tinted, tintColor, style }) {
+  const merged = {
+    ...DRAWER_BLOCK_STYLE,
+    ...(tinted ? { background: tintColor || "#f6f3ec", border: "0" } : {}),
+    ...(style || {}),
+  };
+  return (
+    <div style={merged}>
+      {eyebrow && <div style={DRAWER_EYEBROW_STYLE}>{eyebrow}</div>}
+      {children}
+    </div>
+  );
+}
+
+// --- KPI strip — 4 sparkline tiles (1M / 3M / 1Y change + distance from peak)
+
+function Sparkline({ direction }) {
+  // Decorative micro-line; up = stressed-red, dn = normal-green.
+  const color = direction === "up" ? "#a04518" : "#4a7c4a";
+  const points = direction === "up"
+    ? "0,14 12,12 24,13 36,10 48,11 60,7 72,9 84,5 100,3"
+    : "0,4 12,6 24,5 36,8 48,7 60,11 72,9 84,13 100,15";
+  return (
+    <svg viewBox="0 0 100 18" preserveAspectRatio="none" width="100%" height="18" style={{ display: "block", marginTop: 6 }}>
+      <polyline fill="none" stroke={color} strokeWidth="1.4" points={points} />
+    </svg>
+  );
+}
+
+function KpiStrip({ kpis, unit }) {
+  if (!Array.isArray(kpis) || kpis.length === 0) return null;
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 18 }}>
+      {kpis.map((k, i) => {
+        const isPeak = (k.label || "").toLowerCase().includes("peak");
+        const valStr = isPeak
+          ? formatChange(k.value, unit)
+          : formatChange(k.value, unit);
+        const sub = isPeak
+          ? `peak: ${formatVal(k.peak_value, unit)} / ${k.peak_date || ""}`
+          : (k.value_pct !== null && k.value_pct !== undefined
+              ? `${k.value_pct > 0 ? "+" : ""}${k.value_pct}%`
+              : "");
+        return (
+          <div key={i} style={{
+            padding: "12px 12px 8px", background: "#fff",
+            border: "0.5px solid #e0ddd5", borderRadius: 8,
+          }}>
+            <div style={{
+              fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase",
+              color: "#7a7a72", fontWeight: 600,
+            }}>{k.label}</div>
+            <div style={{
+              fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
+              fontSize: 18, fontWeight: 400, marginTop: 4, lineHeight: 1,
+              color: k.direction === "up" ? "#a04518" : k.direction === "dn" ? "#4a7c4a" : "#1a1a1a",
+            }}>{valStr}</div>
+            {sub && <div style={{ fontSize: 10, color: "#7a7a72", marginTop: 2 }}>{sub}</div>}
+            <Sparkline direction={k.direction} />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// --- IndicatorChart — range chips + mean ±1σ overlay + recession bands -------
+
+function IndicatorChart({ history, color = "#1a1a1a", unit = "" }) {
+  const [range, setRange] = useState("MAX");
+  const [showSd, setShowSd] = useState(true);
+  const [hover, setHover] = useState(null);
+  if (!Array.isArray(history) || history.length < 2) return null;
+
+  // Filter history by range chip (1Y / 5Y / 10Y / MAX). Months-based.
+  const filtered = useMemo(() => {
+    if (range === "MAX") return history;
+    const [ly, lm] = (history[history.length - 1][0] || "").split("-").map(Number);
+    if (!ly || !lm) return history;
+    const cutoffMonths = range === "1Y" ? 12 : range === "5Y" ? 60 : 120;
+    const m0 = ly * 12 + lm;
+    return history.filter(([d]) => {
+      const [y, mo] = d.split("-").map(Number);
+      return y * 12 + mo >= m0 - cutoffMonths;
+    });
+  }, [history, range]);
+
+  const pts = filtered.length >= 2 ? filtered : history;
+  const W = 720, H = 220, padL = 44, padR = 18, padT = 14, padB = 28;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const values = pts.map((p) => Number(p[1]));
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  const sd = Math.sqrt(values.reduce((a, b) => a + (b - mean) ** 2, 0) / values.length);
+  const minV = Math.min(...values, mean - 2 * sd);
+  const maxV = Math.max(...values, mean + 2 * sd);
+  const span = maxV - minV || 1;
+  const x = (i) => padL + (i / Math.max(1, pts.length - 1)) * innerW;
+  const y = (v) => padT + (1 - (v - minV) / span) * innerH;
+  const path = pts.map(([, v], i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(Number(v)).toFixed(1)}`).join(" ");
+  const last = pts[pts.length - 1];
+
+  function onMove(e) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    const px = ratio * W;
+    if (px < padL || px > W - padR) { setHover(null); return; }
+    const idx = Math.round(((px - padL) / innerW) * (pts.length - 1));
+    if (idx < 0 || idx >= pts.length) { setHover(null); return; }
+    setHover({ x: x(idx), y: y(Number(pts[idx][1])), date: pts[idx][0], val: pts[idx][1] });
+  }
+
+  return (
+    <div style={DRAWER_BLOCK_STYLE}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 10, flexWrap: "wrap" }}>
+        <div style={{ ...DRAWER_EYEBROW_STYLE, marginBottom: 0 }}>History</div>
+        <div style={{ display: "flex", gap: 4 }}>
+          {["1Y", "5Y", "10Y", "MAX"].map((r) => (
+            <button
+              key={r}
+              type="button"
+              onClick={() => setRange(r)}
+              style={{
+                padding: "3px 9px", fontSize: 11, letterSpacing: "0.04em",
+                border: "0.5px solid #e0ddd5", borderRadius: 4, cursor: "pointer",
+                background: r === range ? "#1a1a1a" : "#fff",
+                color: r === range ? "#fff" : "#3a3a32",
+                borderColor: r === range ? "#1a1a1a" : "#e0ddd5",
+                fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
+              }}
+            >{r}</button>
+          ))}
+        </div>
+        <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#3a3a32", cursor: "pointer", marginLeft: "auto" }}>
+          <input type="checkbox" checked={showSd} onChange={(e) => setShowSd(e.target.checked)} />
+          Mean ±1 SD
+        </label>
+      </div>
+      <div style={{ position: "relative" }} onMouseMove={onMove} onMouseLeave={() => setHover(null)}>
+        <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block", cursor: "crosshair" }}>
+          {showSd && (
+            <>
+              <line x1={padL} x2={W - padR} y1={y(mean)} y2={y(mean)} stroke="#5a5a52" strokeWidth="0.8" strokeDasharray="4 3" />
+              <line x1={padL} x2={W - padR} y1={y(mean + sd)} y2={y(mean + sd)} stroke="#7a7a72" strokeWidth="0.6" strokeDasharray="3 4" opacity="0.6" />
+              <line x1={padL} x2={W - padR} y1={y(mean - sd)} y2={y(mean - sd)} stroke="#7a7a72" strokeWidth="0.6" strokeDasharray="3 4" opacity="0.6" />
+            </>
+          )}
+          <path d={path} stroke={color} strokeWidth="1.5" fill="none" />
+          <circle cx={x(pts.length - 1)} cy={y(Number(last[1]))} r="3.8" fill={color} stroke="#fff" strokeWidth="1.5" />
+          {hover && (
+            <line x1={hover.x} x2={hover.x} y1={padT} y2={H - padB} stroke="#1a1a1a" strokeWidth="0.5" strokeDasharray="2 2" />
+          )}
+          <text x={padL - 4} y={padT + 4} fontSize="9" fill="#7a7a72" textAnchor="end">{maxV.toFixed(maxV >= 100 ? 0 : 2)}</text>
+          {showSd && <text x={padL - 4} y={y(mean) + 3} fontSize="9" fill="#5a5a52" textAnchor="end">{mean.toFixed(mean >= 100 ? 0 : 2)}</text>}
+          <text x={padL - 4} y={H - padB + 4} fontSize="9" fill="#7a7a72" textAnchor="end">{minV.toFixed(minV >= 100 ? 0 : 2)}</text>
+          <text x={padL} y={H - 6} fontSize="9" fill="#7a7a72">{pts[0][0]}</text>
+          <text x={W - padR} y={H - 6} fontSize="9" fill="#7a7a72" textAnchor="end">{pts[pts.length - 1][0]}</text>
+        </svg>
+        {hover && (
+          <div style={{
+            position: "absolute", left: `${(hover.x / W) * 100}%`, top: `${(hover.y / H) * 100}%`,
+            transform: "translate(-50%, calc(-100% - 6px))",
+            background: "#1a1a1a", color: "#fff",
+            fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10,
+            padding: "3px 7px", borderRadius: 3, pointerEvents: "none", whiteSpace: "nowrap",
+          }}>
+            {hover.date} · {formatVal(Number(hover.val), unit)}
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 14, fontSize: 10, color: "#7a7a72", paddingTop: 6, flexWrap: "wrap" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+          <span style={{ width: 12, height: 2, background: color }} /> Indicator
+        </span>
+        {showSd && (
+          <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <span style={{ width: 14, height: 0, borderTop: "2px dashed #5a5a52" }} /> Mean ±1 SD
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// --- Composite contribution panel ------------------------------------------
+
+function CompositeContributionPanel({ ind, tile }) {
+  if (!tile) return null;
+  const breakdown = tile.composite_breakdown || [];
+  if (!breakdown.length) return null;
+  const tileScore = tile.composite_score ?? null;
+  const thisRow = breakdown.find((b) => b.indicator_id === ind.id);
+  const thisShare = thisRow ? thisRow.share_pct : 0;
+  const thisScore = thisRow ? thisRow.concerning_score : 0;
+  const totalScore = breakdown.reduce((a, b) => a + (b.concerning_score || 0), 0);
+  return (
+    <DrawerBlock eyebrow={`Composite contribution / ${tile.name}`}>
+      <div style={{ fontSize: 12, color: "#3a3a32", marginBottom: 10, lineHeight: 1.55 }}>
+        {ind.name} contributes a concerning score of <strong>{thisScore}</strong> of {totalScore} total —{" "}
+        <strong>{thisShare}%</strong> of the {tile.name} composite{tileScore !== null ? ` (tile reads ${tileScore}/100)` : ""}.
+      </div>
+      {breakdown.map((b) => {
+        const isThis = b.indicator_id === ind.id;
+        const scoreColor = b.concerning_score >= 75 ? "#a04518"
+          : b.concerning_score >= 50 ? "#b8860b"
+          : b.concerning_score >= 25 ? "#3a3a32" : "#4a7c4a";
+        return (
+          <div
+            key={b.indicator_id}
+            style={{
+              display: "grid", gridTemplateColumns: "1fr 56px",
+              gap: 14, alignItems: "center", padding: "8px 0",
+              borderBottom: "0.5px dashed #e0ddd5",
+              background: isThis ? "rgba(74,124,74,0.06)" : "transparent",
+              margin: isThis ? "0 -16px" : 0,
+              paddingLeft: isThis ? 16 : 0, paddingRight: isThis ? 16 : 0,
+            }}
+          >
+            <div style={{ fontSize: 12, color: "#1a1a1a", fontWeight: isThis ? 600 : 400 }}>
+              {b.name}
+              {isThis && (
+                <span style={{ display: "block", fontSize: 10, color: "#7a7a72", fontWeight: 400, marginTop: 2 }}>
+                  {b.share_pct}% of total composite weight
+                </span>
+              )}
+            </div>
+            <div style={{
+              textAlign: "right", fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
+              fontSize: 18, fontWeight: 400, color: scoreColor,
+            }}>{b.concerning_score}</div>
+          </div>
+        );
+      })}
+      <div style={{ fontSize: 10, color: "#7a7a72", marginTop: 10, lineHeight: 1.5 }}>
+        Score-weighted: each indicator's 0–100 concerning score divided by the tile's
+        sum-of-scores. 0–25 Normal · 25–50 Mild · 50–75 Cautionary · 75+ Stressed.
+      </div>
+    </DrawerBlock>
+  );
+}
+
+// --- Episodes table --------------------------------------------------------
+
+function EpisodesTable({ episodes, disclosure, indUnit }) {
+  if (!Array.isArray(episodes) || episodes.length === 0) {
+    return (
+      <DrawerBlock eyebrow="Historical episodes / last entries into current quartile">
+        <div style={{ fontSize: 12, color: "#7a7a72", lineHeight: 1.55 }}>
+          Indicator is currently in a mid-quartile (Normal) zone — no concerning-zone
+          entries to report. The episode table activates once the indicator enters the
+          top or bottom quartile and stays there for at least 3 months.
+        </div>
+      </DrawerBlock>
+    );
+  }
+  return (
+    <DrawerBlock eyebrow="Historical episodes / last entries into current quartile">
+      <div style={{ fontSize: 11, color: "#7a7a72", marginBottom: 10, fontStyle: "italic" }}>
+        {disclosure}
+      </div>
+      <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
+        <thead>
+          <tr>
+            {["Period", "Value", "S&P 500 next 6m", "S&P 500 next 12m"].map((h) => (
+              <th key={h} style={{
+                fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 400,
+                fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase",
+                color: "#7a7a72", textAlign: "left",
+                padding: "8px 12px 6px 0", borderBottom: "0.5px solid #1a1a1a",
+              }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {episodes.map((ep, i) => {
+            const cell6 = ep.spx_6m_pct == null
+              ? <span style={{ color: "#7a7a72" }}>—</span>
+              : <span style={{ color: ep.spx_6m_pct < 0 ? "#a04518" : "#4a7c4a" }}>
+                  {ep.spx_6m_pct > 0 ? "+" : ""}{ep.spx_6m_pct}%
+                </span>;
+            const cell12 = ep.spx_12m_pct == null
+              ? <span style={{ color: "#7a7a72" }}>—</span>
+              : <span style={{ color: ep.spx_12m_pct < 0 ? "#a04518" : "#4a7c4a" }}>
+                  {ep.spx_12m_pct > 0 ? "+" : ""}{ep.spx_12m_pct}%
+                </span>;
+            return (
+              <tr key={i}>
+                <td style={tdStyle()}>{ep.period}</td>
+                <td style={{ ...tdStyle(), fontVariantNumeric: "tabular-nums" }}>{formatVal(ep.value, indUnit)}</td>
+                <td style={{ ...tdStyle(), fontVariantNumeric: "tabular-nums" }}>{cell6}</td>
+                <td style={{ ...tdStyle(), fontVariantNumeric: "tabular-nums" }}>{cell12}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </DrawerBlock>
+  );
+}
+function tdStyle() {
+  return { padding: "8px 12px 8px 0", borderBottom: "0.5px dashed #e0ddd5", color: "#3a3a32", verticalAlign: "top" };
+}
+
+// --- Co-movement panel — 1y AND 5y side-by-side (Joe-locked) ----------------
+
+function ComovementPanel({ rows, sampleWindow }) {
+  if (!Array.isArray(rows) || rows.length === 0) return null;
+  return (
+    <DrawerBlock eyebrow="Co-movement / top correlated framework indicators">
+      <div style={{
+        display: "grid", gridTemplateColumns: "1fr 90px 90px",
+        gap: 14, padding: "6px 0 8px",
+        borderBottom: "0.5px solid #1a1a1a",
+        fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 400,
+        fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", color: "#7a7a72",
+      }}>
+        <div>Peer indicator</div>
+        <div style={{ textAlign: "right" }}>1y</div>
+        <div style={{ textAlign: "right" }}>5y</div>
+      </div>
+      {rows.map((r, i) => {
+        const fmt = (c, n) => c == null ? <span style={{ color: "#7a7a72" }}>—</span>
+          : <>
+              <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)" }}>
+                {c > 0 ? "+" : ""}{c.toFixed(2)}
+              </span>
+              <span style={{ display: "block", fontSize: 9, color: "#7a7a72", marginTop: 2 }}>
+                n={n}
+              </span>
+            </>;
+        return (
+          <div key={i} style={{
+            display: "grid", gridTemplateColumns: "1fr 90px 90px",
+            gap: 14, padding: "8px 0", borderBottom: "0.5px dashed #e0ddd5",
+            fontSize: 12, color: "#3a3a32", alignItems: "baseline",
+          }}>
+            <div style={{ fontSize: 12, color: "#1a1a1a" }}>{r.peer_name}</div>
+            <div style={{ textAlign: "right" }}>{fmt(r.corr_1y, r.n_1y)}</div>
+            <div style={{ textAlign: "right" }}>{fmt(r.corr_5y, r.n_5y)}</div>
+          </div>
+        );
+      })}
+      <div style={{ fontSize: 11, color: "#7a7a72", marginTop: 10, lineHeight: 1.5 }}>
+        Pearson correlation on monthly first differences.
+        <strong> 1y</strong> = trailing 12 months (current-regime read).
+        <strong> 5y</strong> = trailing 60 months (cycle-average read).
+        Difference between the two flags whether the relationship is in the cycle's normal pattern or a new regime.
+        {sampleWindow && <> Sample window: {sampleWindow}.</>}
+      </div>
+    </DrawerBlock>
+  );
+}
+
+// --- Release calendar -------------------------------------------------------
+
+function ReleaseCalendar({ release }) {
+  if (!release) return null;
+  const rows = [
+    ["Frequency", release.frequency],
+    ["Last release", release.last_release || "—"],
+    ["Next release", release.next_release || "—"],
+    ["Source", release.source],
+  ].filter((r) => r[1]);
+  if (rows.length === 0) return null;
+  return (
+    <DrawerBlock eyebrow="Release calendar">
+      {rows.map((r, i) => (
+        <div key={i} style={{
+          display: "flex", justifyContent: "space-between",
+          padding: "8px 0", borderBottom: i === rows.length - 1 ? "none" : "0.5px dashed #e0ddd5",
+          fontSize: 12,
+        }}>
+          <span style={{
+            fontSize: 11, color: "#7a7a72", letterSpacing: "0.04em",
+            textTransform: "uppercase", fontWeight: 600,
+          }}>{r[0]}</span>
+          <span style={{ color: "#1a1a1a" }}>{r[1]}</span>
+        </div>
+      ))}
+    </DrawerBlock>
+  );
+}
+
+// --- IndicatorDrawerBody — composes all the round-6 panels -----------------
 
 function IndicatorDrawerBody({ ind, tile }) {
   if (!ind) return null;
   const value = ind?.current?.value;
   const stateColor = STATE_COLORS[tile?.current_state] || "#1a1a1a";
+  const tintBg = STATE_BG_TINT[tile?.current_state] || "#f6f3ec";
   return (
     <div>
-      <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#7a7a72", fontWeight: 600, marginBottom: 6 }}>
-        {tile?.name} · indicator
-      </div>
-      <h2 style={{
-        fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
-        fontSize: 28, fontWeight: 400, margin: "0 0 6px", letterSpacing: "-0.012em",
-      }}>{ind.name}</h2>
-      <div style={{ fontSize: 13, color: "#7a7a72", marginBottom: 18, lineHeight: 1.55 }}>{ind.description}</div>
-
-      {/* Big number block */}
-      <div style={{
-        padding: "16px 18px", background: "#fff", border: "0.5px solid #e0ddd5", borderRadius: 10, marginBottom: 22,
-      }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginBottom: 8 }}>
+      {/* HERO — mono identity strip / display headline / current value / as-of */}
+      <div style={{ marginBottom: 18 }}>
+        <div style={{
+          fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
+          fontSize: 10, color: "#7a7a72", letterSpacing: "0.08em",
+          textTransform: "uppercase", marginBottom: 8,
+        }}>
+          {tile?.name} / {ind.id?.toUpperCase()} / {ind.release?.frequency || "—"}
+        </div>
+        <h2 style={{
+          fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
+          fontSize: 30, fontWeight: 400, letterSpacing: "-0.012em", margin: "0 0 4px",
+        }}>{ind.name}</h2>
+        <div style={{ fontSize: 13, color: "#7a7a72", lineHeight: 1.55, maxWidth: 640 }}>
+          {ind.description}
+        </div>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 14, marginTop: 14 }}>
           <span style={{
             fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
-            fontSize: 44, fontWeight: 300, lineHeight: 1, letterSpacing: "-0.015em",
-          }}>
-            {formatVal(value, ind.unit)}
+            fontSize: 38, fontWeight: 300, letterSpacing: "-0.015em", lineHeight: 1,
+          }}>{formatVal(value, ind.unit)}</span>
+          <span style={{ fontSize: 11, color: "#7a7a72" }}>as of {ind.current?.date || "—"}</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 12 }}>
+          <QuartileBar percentile={ind.percentile} width={200} direction={ind.direction} />
+          <span style={{ fontSize: 12, color: stateColor, fontWeight: 600 }}>
+            {ind.percentile}th percentile · {ind.sample_window || ""}
           </span>
-          <span style={{ fontSize: 12, color: "#7a7a72" }}>as of {ind.current?.date || "—"}</span>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
-          <QuartileBar percentile={ind.percentile} width={180} />
-          <span style={{ fontSize: 12, color: stateColor, fontWeight: 600 }}>{ind.percentile}th percentile</span>
-        </div>
-        <div style={{ fontSize: 11, color: "#7a7a72" }}>
-          Sample window: {ind.sample_window || "—"}
-        </div>
-        {ind.z_score !== undefined && ind.z_score !== null && (
-          <div style={{ fontSize: 11, color: "#7a7a72", marginTop: 4 }}>
-            z = {ind.z_score >= 0 ? "+" : ""}{ind.z_score.toFixed(2)} · trend over 60 trading days: {ind.trend_60d || "—"}
-          </div>
-        )}
       </div>
 
-      {/* So what */}
+      {/* KPI strip */}
+      <KpiStrip kpis={ind.kpis} unit={ind.unit} />
+
+      {/* Chart */}
+      <IndicatorChart history={ind.history} color={stateColor} unit={ind.unit} />
+
+      {/* Composite contribution */}
+      <CompositeContributionPanel ind={ind} tile={tile} />
+
+      {/* So what (state-tinted) */}
       {ind.so_what && (
-        <div style={{ marginBottom: 22, padding: "14px 16px", background: STATE_BG_TINT[tile?.current_state] || "#f6f3ec", borderRadius: 8 }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#7a7a72", fontWeight: 600, marginBottom: 4 }}>
-            So what
-          </div>
+        <DrawerBlock eyebrow="So what" tinted tintColor={tintBg}>
           <div style={{ fontSize: 13, color: "#1a1a1a", lineHeight: 1.55 }}>{ind.so_what}</div>
-        </div>
+        </DrawerBlock>
       )}
 
-      {/* History chart */}
-      {Array.isArray(ind.history) && ind.history.length > 1 && (
-        <div style={{ marginBottom: 22 }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase", color: "#7a7a72", fontWeight: 600, marginBottom: 8 }}>
-            History
-          </div>
-          <HistoryChart history={ind.history} color={stateColor} />
-        </div>
-      )}
+      {/* Episodes */}
+      <EpisodesTable
+        episodes={ind.episodes}
+        disclosure={ind.episodes_disclosure}
+        indUnit={ind.unit}
+      />
 
-      {/* Formula + source */}
-      <div style={{ borderTop: "0.5px solid #e0ddd5", paddingTop: 16, fontSize: 12, color: "#3a3a32", lineHeight: 1.6 }}>
+      {/* Co-movement */}
+      <ComovementPanel rows={ind.comovement} sampleWindow={ind.sample_window} />
+
+      {/* Release calendar */}
+      <ReleaseCalendar release={ind.release} />
+
+      {/* Footer — formula / source / caveat */}
+      <div style={{ borderTop: "0.5px solid #e0ddd5", paddingTop: 16, fontSize: 12, color: "#3a3a32", lineHeight: 1.6, marginTop: 4 }}>
         {ind.formula && (
           <div style={{ marginBottom: 10 }}>
             <strong style={{ color: "#1a1a1a" }}>Formula.</strong> {ind.formula}

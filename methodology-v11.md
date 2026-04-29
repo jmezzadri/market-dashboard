@@ -21,7 +21,13 @@
 7. [Recovery Watch](#recovery-watch)
 8. [Watch List — what we won't claim](#watch-list--what-we-wont-claim)
 9. [Data sources, sample windows, and caveats](#data-sources-sample-windows-and-caveats)
-10. [What changed from v10 to v11](#what-changed-from-v10-to-v11)
+10. [Indicator drawer methodology](#indicator-drawer-methodology)
+    - [10.1 KPI strip — change vs. distance from peak](#101-kpi-strip--change-vs-distance-from-peak)
+    - [10.2 Historical episodes table](#102-historical-episodes-table)
+    - [10.3 Co-movement panel](#103-co-movement-panel)
+    - [10.4 Release calendar](#104-release-calendar)
+    - [10.5 Composite contribution](#105-composite-contribution)
+11. [What changed from v10 to v11](#what-changed-from-v10-to-v11)
 
 ---
 
@@ -237,6 +243,89 @@ We display these honestly. The decision to publish a Watch List in plain languag
 | BKX vs S&P 500 | Yahoo ^BKX, ^GSPC daily | post-2006 | Adjusted for splits; constructed as ^BKX / ^GSPC. |
 
 Every percentile and quartile reading on the site is computed against the sample window in this table. Where the window is shorter than the indicator's true history, the methodology page says so explicitly.
+
+---
+
+## Indicator drawer methodology
+
+Clicking any indicator on the Cycle Mechanism Board opens a drawer with five additional analytical panels. The math behind each panel is described below. All windowing respects each indicator's stated sample window in the table above.
+
+### 10.1 KPI strip — change vs. distance from peak
+
+The strip at the top of the drawer reports four numbers, all computed on a monthly grid (the indicator's native series, resampled to month-end last). Quarterly indicators are forward-filled between releases; daily indicators are reduced to month-end closes.
+
+| Tile | What it shows |
+|---|---|
+| 1-month change | `value_now − value_one_month_ago`, plus the same as a percentage of the prior value. |
+| 3-month change | `value_now − value_three_months_ago`, with prior-value-relative %. |
+| 1-year change | `value_now − value_twelve_months_ago`, with prior-value-relative %. |
+| Distance from peak | `value_now − sample_max`, plus the date of the sample max. |
+
+The strip is a momentum read, not a forecast. The peak label tells the user how far the indicator has retreated from its sample-window high — useful context for indicators that have spent multi-year stretches near extremes.
+
+### 10.2 Historical episodes table
+
+The episodes table answers a single question: *"the last few times this indicator was in the regime it's in today, what did the S&P 500 do over the next 6 and 12 months?"* The table is a base-rate reference, not a forecast or hit-rate claim. The drawer makes that explicit in italics above the table; the JSON ships the disclosure string per indicator.
+
+**Episode definition (locked 2026-04-29 with Joe).** An "entry into the concerning quartile" requires the indicator to remain in the quartile for at least three consecutive months on the monthly grid. The episode is dated at the first month of the run.
+
+This rule is frequency-neutral by construction:
+
+* **Quarterly indicators** (e.g. Buffett Indicator) auto-pass on the first danger-zone print, because the quarterly value forward-fills for three months until the next release. One quarterly print into the danger zone is one episode.
+* **Monthly indicators** (e.g. CAPE, ISM) need three consecutive monthly prints in the danger zone.
+* **Daily indicators** (e.g. HY OAS, IG OAS) are first resampled to month-end closes, then need three consecutive monthly closes in the danger zone.
+
+The "concerning quartile" depends on the indicator's direction:
+
+* **High-is-concerning** (CAPE, Buffett, jobless claims): top quartile of sample window.
+* **Low-is-concerning** (Equity Risk Premium, ISM, CFNAI, BKX/SPX): bottom quartile.
+* **Bidirectional** (IG OAS, HY OAS, HY/IG ratio): the rule is symmetric — top quartile = stress arriving, bottom quartile = priced for perfection. The episode side tracked is whichever quartile the indicator currently sits in.
+
+If the indicator is in a mid-quartile (Normal) zone today, the episode table is empty by design — there is no "concerning regime" to look up the history of. The drawer surfaces a one-line note in this case.
+
+**Forward returns.** S&P 500 6-month and 12-month forward returns are price-only, computed from month-end closes (`^GSPC` from Yahoo). When the entry date is too recent for the 12-month window to be observed, the cell renders as "—".
+
+**Why we don't publish hit-rates.** With a typical sample window of 15–55 years and a 3-month confirmation rule, most Sprint 1 indicators yield 1–6 historical episodes. Hit-rate language at that sample size is statistically dishonest (LESSONS rule 29). The episodes table shows the dates and the forward returns, lets the user count, and stops there.
+
+### 10.3 Co-movement panel
+
+The co-movement panel ranks the four other framework indicators that move most with the indicator in question. Both a 1-year and a 5-year correlation are reported side-by-side per indicator pair.
+
+**Math.** Pearson correlation on monthly first differences. The 1-year window uses the trailing 12 monthly observations; the 5-year window uses the trailing 60. Pairs are ranked by absolute 5-year correlation (or absolute 1-year correlation if 5-year is missing because of sample-window mismatch). The top four pairs are shown.
+
+**Why both windows.** A 1-year correlation captures the current regime. A 5-year correlation captures the cycle-average. The *gap* between them is the cycle-mechanism signal: an indicator pair whose 1-year correlation has flipped sign vs. the 5-year average is a sign that the current regime is different from the prior cycle's pattern.
+
+**Why first differences, not levels.** Monthly first-differencing removes shared trend. Two indicators that drift up together over 5 years will show high correlation in level-space even if their month-to-month moves are unrelated. First-differencing measures whether the indicators are moving in the same direction at the same time, which is the cycle-mechanism question.
+
+**Why monthly, not daily.** Daily noise drowns out the cycle-frequency signal we care about. Weekly is closer but doesn't align with the quarterly indicators in the framework. Monthly first-differencing is the lowest common cadence that all Sprint 1 indicators support.
+
+**Sample-size disclosures.** The drawer reports `n` next to each correlation. When n is small (12 for the 1-year window, 30–60 for the 5-year window depending on overlap), the user can judge how much weight to put on the number.
+
+### 10.4 Release calendar
+
+The release calendar reports four facts: frequency, last release date, next expected release date, and the source. Release dates are pulled from FRED's series-info API where available; for derived series (e.g. Equity Risk Premium = 1/CAPE − 10y) and non-FRED series (Yahoo, Shiller) the calendar uses caller-provided hints.
+
+**Next-release estimate.** FRED does not expose a forward release calendar via its free API. We compute the next-release estimate from the cadence: daily series get T+1, weekly series get T+7, monthly series get T+30 days, quarterly series get T+90 days. The estimate is approximate; users should treat it as "around when to expect the next print," not a calendar lock.
+
+### 10.5 Composite contribution
+
+Each tile reports a composite score from 0 to 100 (the higher the score, the more concerning the tile reads). The drawer shows how the indicator currently in view contributes to that composite.
+
+**Per-indicator concerning score.** Computed from the indicator's percentile rank within its sample window:
+
+| Direction | Concerning score |
+|---|---|
+| High-is-concerning | `score = round(percentile)` |
+| Low-is-concerning | `score = round(100 − percentile)` |
+| Bidirectional | `score = round(abs(percentile − 50) × 2)` |
+
+So a CAPE in the 77th percentile reads 77/100 (heading toward stressed). An ERP in the 8th percentile reads 92/100 (low ERP = stocks expensive). An IG OAS in the 23rd percentile reads 54/100 (the read is meaningful in either tail).
+
+**Tile composite.** The simple average of the concerning scores of all live indicators in the tile.
+
+**Per-indicator contribution share.** Computed as `concerning_score / sum_of_tile_concerning_scores × 100`. So if the Valuation tile has CAPE at 77, ERP at 85, and Buffett at 100, Buffett contributes 38.2% of the tile's composite weight, ERP 32.4%, and CAPE 29.4%.
+
+**Why score-weighted, not equal-weighted (locked 2026-04-29 with Joe).** Equal-weighting would treat a percentile-50 indicator as equally important as a percentile-100 indicator, which is wrong — when a tile is being driven by one stressed component, the user should see that component dominating. Score-weighted contribution preserves that signal. The drawer shows the contribution math explicitly so the user can sanity-check the weighting.
 
 ---
 
