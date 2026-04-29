@@ -1739,3 +1739,98 @@ exist for the same root reason: the write-and-claim-it-works pattern
 without verifying against the deployed site is the most common way bugs
 ship to prod on this project. Chrome UAT is the verification step that
 makes #29 and #30 actually enforceable.
+---
+
+## 33 (2026-04-29) — UAT means CLICK EVERY BUTTON, AUDIT EVERY LINK, ASK UX DESIGNER FOR AN A+ BRANDING PASS
+
+**The rule.** Chrome UAT (LESSONS rule #32) is necessary but not
+sufficient. Loading the page and checking that the surface renders is
+not UAT. Real UAT means:
+
+  1. **Click every interactive element on the changed surface.** Every
+     tile in a rail, every tab in a tab strip, every action button in
+     a row, every chip, every disclosure. Look at the expanded state.
+     Look at the empty state. Look at the loading state. Look at the
+     error state.
+  2. **Click every external link.** If a link's source label says
+     'Zerohedge' the target URL must actually go to zerohedge.com — not
+     Seeking Alpha or anywhere else. Source attribution must match the
+     destination.
+  3. **Audit color / brand consistency.** A tile that reads 'Net
+     bullish' (positive) must not have an amber dot (caution) and a
+     green dollar amount (positive again) at the same time. All three
+     signals must agree. RAG dots: green = positive, red = negative,
+     amber = caution / mixed, GREY = no data / loading / not applicable.
+     Amber must NEVER mean 'absence of data' — that's grey.
+  4. **Ask the UX Designer for an A+ branding pass.** Not just 'does it
+     render' — does the typography match the rest of the site, do the
+     colors agree with each other within a tile, does the spacing match
+     adjacent surfaces, does an expanded body actually look like the
+     v5 mockup that was agreed?
+  5. **Verify against the v5 mockup HTML directly.** The mockup file is
+     the source of truth. Open it in a separate tab; click the same
+     rail tile in both; compare the expanded content row-by-row. If
+     the live tile is missing a row the mockup has, that's a bug.
+
+**Why this is binding.** On 2026-04-29 second QA pass, Joe surfaced 7
+issues on top of the 11 from the first round. The Lead Dev had claimed
+the per-tile rail audit (item 6 of #1133) was done after only checking
+the COLLAPSED state — never expanded each tile, never clicked an
+external link, never asked the UX Designer for a brand sign-off.
+Symptoms Joe found:
+
+  * Flow tile said 'Net bullish' (positive) with amber dot (caution)
+    and green dollar amount (positive) — three signals fighting.
+  * Asset Tilt rendered amber for 'Not in model' which is a no-data
+    state, not a caution state. Should have been grey.
+  * Earnings & Events expanded body only had a date — no EPS, no Rev,
+    no beats strip, no options-implied move (which we already had in
+    scope).
+  * News tile attributed an ARM article to Zerohedge but the link went
+    to Seeking Alpha.
+  * Compare picker couldn't find ONDS — a ticker Joe holds — because
+    the picker only searched a hardcoded peer/index list.
+
+Joe's exact words: *'Im escalating this level of incompetance to mgmt-
+PLEASE LOG A LESSON - WHEN YOU UAT SOMETHING, YOU MUST CLICK EVERY
+BUTTON AND USE EVERY SINGLE FEATURE TO ENSURE IT WORKS AS INTENDED.
+YOU MUST AUDIT EVERY SINGLE LINK. YOU MUST ASK OUR UX DESIGNER IF
+THIS PASSES A+ QUALITY AND BRANDING.'* Filed verbatim so the failure
+mode is documented.
+
+**What you should do instead.**
+
+1. Before declaring any rail-or-tab-strip-touching PR done:
+   - Click EVERY tile / EVERY tab in the rail / strip.
+   - For each, take a screenshot of the EXPANDED state.
+   - Verify the expanded body matches the v5 mockup row-for-row.
+   - Sign-off requires the screenshot in the PR or chat reply.
+
+2. Before declaring any link-rendering PR done:
+   - Click each external link.
+   - Confirm the URL host matches the source attribution shown to the
+     user. (zerohedge.com label → zerohedge.com URL.)
+   - If they don't match, that's a P1 — fix the attribution OR fix
+     the URL. Source-label-vs-destination mismatches are misleading
+     to the user about who said what.
+
+3. Before declaring any tile / chip / status-rendering PR done:
+   - Audit color consistency: dot color, header text tone, body text
+     color, dollar-amount color must all agree on the same direction
+     for the same tile.
+   - RAG vocabulary is binding: green = positive, red = negative,
+     amber = caution / mixed, GREY = no data / loading / not
+     applicable. Amber for empty state is a bug.
+
+4. Ask the UX Designer for an A+ branding pass per LESSONS rule #29.
+   This is not a polite formality. It's a real audit. The Lead Dev
+   does NOT sign off on UI changes alone — UX Designer's screenshot
+   review of the EXPANDED states is part of the close-out.
+
+5. Verify against the v5 mockup HTML side by side. The mockup is the
+   source of truth and was already agreed.
+
+This rule pairs with #29 (UX brand audit) and #32 (Chrome UAT
+mandatory). Together: load the page, click every primitive, audit
+every link, agree every color signal, and don't sign off without UX
+Designer review of expanded states.
