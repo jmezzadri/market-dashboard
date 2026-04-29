@@ -1,0 +1,64 @@
+# MASSIVE-TICKER-REFERENCE-BACKFILL — rolling backfill of ticker_reference.
+#
+# Phase 3 of the Massive (Polygon) data revamp. Loops over tickers in
+# universe_master that don't yet have a ticker_reference row, calls
+# /v3/reference/tickers/{ticker} per-name (free tier: 5 calls/min),
+# upserts the resulting metadata into public.ticker_reference.
+#
+# Schedule
+# --------
+# Every 4 hours. With MAX_PER_RUN=1500 and THROTTLE=13s, each run takes
+# ~5h25m wall-clock. ~9 runs to fully populate the 12,500-ticker universe
+# from cold start (~36-42 hours total). Once populated, each subsequent
+# run picks up the stalest rows for refresh.
+#
+# Resumable: each run independently picks targets, so killed runs don't
+# leave dangling state.
+
+name: MASSIVE-TICKER-REFERENCE-BACKFILL
+
+on:
+  schedule:
+    # Every 4 hours, on the half hour to avoid clashing with MASSIVE-DAILY
+    # at 22:00 UTC and the 30-minute pipeline-health-check.
+    - cron: "30 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      max_per_run:
+        description: "Max tickers per run (default 1500)"
+        required: false
+        default: "1500"
+      refresh_days_stale:
+        description: "Days before a row is considered stale (default 30)"
+        required: false
+        default: "30"
+
+# One run at a time. If a 4h-cron run is still going when the next one
+# fires, GH Actions will queue the new one rather than running both.
+concurrency:
+  group: massive-ticker-reference-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    # GH Actions hard limit is 6h on free runners. Set 5h45m to give
+    # the script enough room to finish the upsert + health update before
+    # the runner is killed.
+    timeout-minutes: 345
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run ticker_reference backfill
+        env:
+          MASSIVE_API_KEY:           ${{ secrets.MASSIVE_API_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          MAX_PER_RUN:               ${{ github.event.inputs.max_per_run    || '1500' }}
+          REFRESH_DAYS_STALE:        ${{ github.event.inputs.refresh_days_stale || '30' }}
+          THROTTLE_SECONDS:          "13"
+          PYTHONUNBUFFERED:          "1"
+        run: |
+          python3 scripts/backfill_ticker_reference.py
