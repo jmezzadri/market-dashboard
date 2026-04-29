@@ -6622,38 +6622,25 @@ return(
 
 <div className="fade-in" style={{maxWidth:1440, margin:"0 auto"}}>
 
-{/* OVERVIEW — MACRO ONLY */}
-{tab==="overview"&&(()=>{
-  // Wrap in 1240 wrapper (matches TodayMacro .tm-page max-width below).
-  const M = _macroLatestSnap;
-  const composites = M ? [{k:"R&L",v:M.RL},{k:"Growth",v:M.GR},{k:"Inflation",v:M.IR}] : [];
-  const worst = composites.reduce((a,b)=>(b.v!=null && (a.v==null||b.v>a.v)?b:a),{v:null,k:""});
-  const stressedCount = composites.filter(c=>c.v!=null && c.v>=20).length;
-  const _regimeLabel = !M ? "LOADING"
-    : worst.v==null ? "LOADING"
-    : worst.v >= 50 ? "STRESSED REGIME"
-    : worst.v >= 20 ? "ELEVATED REGIME"
-    : "NORMAL REGIME";
-  const _stanceColor = !M ? "mute" : worst.v>=20 ? "warn" : "strong";
-  return <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><RichHero
-    eyebrow="Macro Overview"
-    headline={"Where macro stress is "}
-    italicAccent={"right now, and what's leading."}
-    italicSub={M ? `Three composites in balance · defensive watch is ${stressedCount===0?"off":"on"}.` : "Loading composite data…"}
-    stance={_regimeLabel}
-    stanceColor={_stanceColor}
-    freshLine={`Refreshed daily · Last update: ${(AS_OF_ISO?.vix||AS_OF_ISO?.move||"").slice(0,10)||"—"}`}
-    lead={<>This page tracks macro stress across <strong style={{fontWeight:600,color:"var(--text)"}}>three discrete composites</strong> — <strong style={{fontWeight:600,color:"var(--text)"}}>Risk &amp; Liquidity</strong> (3-mo lookahead), <strong style={{fontWeight:600,color:"var(--text)"}}>Growth</strong> (6-mo), and <strong style={{fontWeight:600,color:"var(--text)"}}>Inflation &amp; Rates</strong> (18-mo) — calibrated against twenty-one years of S&amp;P drawdown data. Each composite scores from <strong style={{fontWeight:600,color:"var(--text)"}}>−100 (calm) to +100 (stressed)</strong>, built from indicators that empirically led the last five major equity drawdowns. Read it top-to-bottom: today's reading and quadrant → composite tiles with indicator drivers → 21-year trajectory chart → lead-time event study.</>}
-    kpis={M ? [
-      {lbl:"Worst composite", v:`${worst.k} ${worst.v>0?"+":""}${Math.round(worst.v)}`, col:worst.v>=20?"var(--orange-text)":"var(--green-text)", sub:worst.v>=50?"stressed":worst.v>=20?"elevated":"normal"},
-      {lbl:"Composites in stress", v:`${stressedCount} of 3`, col:stressedCount>0?"var(--orange-text)":"var(--text)", sub:stressedCount>0?"score ≥ +20":"none above +20"},
-      {lbl:"Lead time (avg)", v:"29 weeks", sub:"composite>0 → S&P −15%"},
-      {lbl:"Calibration", v:"21 yrs", sub:"2005 — 2026"},
-    ] : []}
-  /></div>;
-})()}
+{/* OVERVIEW — v11 mockup served from /public as an iframe.
+    The previous SD-score / composite / category-tile layout has been
+    replaced by the v11 design (see PR #314, #315, #316). The static
+    mockup file lives at public/MacroTilt_Macro_Overview_Page_v11.html.
+    Once the React port of v11 is built, this iframe goes away. */}
 {tab==="overview"&&(
-<TodayMacro onNavToReadme={()=>navTo("readme")} asOfIso={AS_OF_ISO} indFreq={IND_FREQ}/>
+<div style={{padding:0,margin:0,width:"100%"}}>
+<iframe
+  src="/MacroTilt_Macro_Overview_Page_v11.html"
+  title="Macro Overview"
+  style={{
+    border:"none",
+    width:"100%",
+    minHeight:"calc(100vh - 80px)",
+    display:"block",
+    background:"#fafaf7",
+  }}
+/>
+</div>
 )}
 
 {/* INDICATORS */}
