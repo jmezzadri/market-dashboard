@@ -1664,3 +1664,78 @@ indicator calibrations, composite weights, model formulas
   * **Lead Developer** — confirm methodology page changes ship in
     the same PR as the underlying model change.
 
+---
+
+## 32 (2026-04-29) — Every PR requires LIVE Chrome UAT before close — bundle smoke checks alone are NEVER enough
+
+**The rule.** Before any PR is declared shipped, the operator MUST load
+the affected page on macrotilt.com in Chrome (via the Chrome MCP), drive
+the actual interaction the change touches, take a screenshot, and attach
+the screenshot to the PR comment. Bundle string-grep via `curl` is
+necessary but not sufficient — it proves strings made it into the JS
+bundle, not that React renders them correctly with real layout, real
+data, and real interactions.
+
+**Why this is binding.** On 2026-04-29 night, six Phase 4b modal PRs
+(#286, #287, #288, #289, #290, #291) shipped in a single session. Each
+one passed bundle smoke checks: the new strings ("Signal Intelligence",
+"1-week return", "Suggested peers", etc.) were all present in the
+deployed `index-*.js`. Each PR's "specialist sign-off" claimed the
+change was live. Joe loaded macrotilt.com, clicked into a ticker, and
+saw the modal-grid layout collapsing the left column to 338px wide,
+wrapping the company name and description one word per line. The new
+rail was rendering — but the modal looked broken. Joe lost time. His
+response: *"Im sick and tired of losing hours, coming back and hearing
+'oh wait, bug found it, fixed, check now'. Fucking tired of it!!!!
+Nothing changed on the site!!!! Fix it!"* He's right. Every one of
+those six PRs claimed self-UAT was done; none of them actually loaded
+the site in a browser.
+
+**What you should do instead.**
+
+1. **Every PR MUST have a Chrome UAT block in its body** with: (a) the
+   exact page URL the change affects, (b) the click path to reach it,
+   (c) what the expected render is, (d) a screenshot from `mcp__Claude_
+   in_Chrome__computer` action `screenshot` taken AFTER the production
+   deploy lands, (e) a one-line confirmation that what's on screen
+   matches the spec.
+2. **If the Chrome MCP isn't connected, the PR doesn't merge.** Ask the
+   user to install/connect the extension, or queue the PR until it is.
+   No fall-back to "bundle string-grep is good enough."
+3. **The screenshot is binding evidence.** If the screenshot shows the
+   layout broken (left column too narrow, content overlapping, missing
+   pieces, etc.) — that's a P0 fix in the SAME PR or as a hot-fix
+   immediately after. Do NOT close the PR with a known visual defect.
+4. **For shared-producer PRs (anything in `scripts/check_producer_
+   contracts.py`), the Chrome UAT MUST include the Home page load too**
+   — same rule as #29 says, but extended to every visual surface.
+5. **For new layout / grid / responsive changes, the Chrome UAT MUST
+   include resizing the viewport.** Test at desktop width (~1500px) AND
+   at narrow width (~960px) AND at mobile width (~390px). Layouts that
+   work at one breakpoint but break at another are common; the
+   responsive media queries are part of the spec.
+6. **No more "ship 6 PRs in a session and curl-grep them all."** If the
+   session has shipped 3+ PRs without a single Chrome UAT in between,
+   stop and load the live site before continuing. Compounding visual
+   regressions across 6 untested PRs is exactly how this rule was
+   created.
+
+**Specialists who must sign off going forward.** Every PR that touches
+ANY visual surface — `.tsx`, `.jsx`, `/components/`, `/styles/`, `theme.
+css`, modal layout, page layout, or any UI primitive — requires:
+
+  * **Lead Developer** — runs the Chrome UAT, attaches the screenshot,
+    and writes the one-line confirmation. Build-clean and bundle-grep
+    are pre-flight, not sign-off.
+  * **UX Designer** — reviews the screenshot for brand consistency,
+    layout integrity, and typography fidelity at every breakpoint
+    tested.
+  * **Senior Quant** — only if the change touches a numeric KPI;
+    confirms the displayed number matches the live JSON.
+
+This rule pairs with #29 (UX brand audit before any new UI primitive)
+and #30 (display surfaces must derive from live model state). All three
+exist for the same root reason: the write-and-claim-it-works pattern
+without verifying against the deployed site is the most common way bugs
+ship to prod on this project. Chrome UAT is the verification step that
+makes #29 and #30 actually enforceable.
