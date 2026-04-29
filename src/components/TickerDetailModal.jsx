@@ -37,6 +37,7 @@ import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 // ============================================================================
 function SignalIntelligenceRail({
   ticker, composite, tech, scanData, macroLatest, v9Alloc,
+  riskMetrics, heldIn,
   sector, isFund,
   congressBuys, congressSells, insiderBuys, insiderSells,
   flowCalls, flowPuts, darkPoolPrints, news,
@@ -183,6 +184,33 @@ function SignalIntelligenceRail({
     };
   })();
 
+  // Tile 7 — Risk Metrics (2Y daily — beta, vol, max drawdown, VaR)
+  const riskTile = (() => {
+    const m = riskMetrics;
+    if (!m) return { state: "loading", value: "…", meta: "Loading 2-year risk metrics", detail: null };
+    const flags = {
+      beta:   m.beta == null    ? null : m.beta    > 1.6 ? "red" : m.beta    > 1.3 ? "amber" : "green",
+      annVol: m.annVol == null  ? null : m.annVol  > 0.40 ? "red" : m.annVol  > 0.25 ? "amber" : "green",
+      maxDD:  m.maxDD == null   ? null : m.maxDD   > 0.40 ? "red" : m.maxDD   > 0.25 ? "amber" : "green",
+      var10:  m.var10d99 == null? null : m.var10d99> 0.20 ? "red" : m.var10d99> 0.10 ? "amber" : "green",
+    };
+    const arr = Object.values(flags).filter(Boolean);
+    const state = arr.includes("red") ? "red" : arr.includes("amber") ? "amber" : arr.length ? "green" : "loading";
+    const headline =
+      state === "red"   ? "Elevated risk"
+    : state === "amber" ? "Watch"
+    : state === "green" ? "In range"
+    :                     "—";
+    const meta = [
+      m.beta != null   ? `β ${m.beta.toFixed(2)}` : null,
+      m.annVol != null ? `vol ${(m.annVol*100).toFixed(0)}%` : null,
+      m.maxDD != null  ? `DD ${(m.maxDD*100).toFixed(0)}%` : null,
+    ].filter(Boolean).join(" · ");
+    const heldVal = heldIn?.[0]?.p?.value || null;
+    const var$ = m?.var10d99 != null && heldVal ? heldVal * m.var10d99 : null;
+    return { state, value: headline, meta, detail: { ...m, flags, var$ } };
+  })();
+
   // Tile 6 — News
   const newsTile = (() => {
     const items = (news || []).slice(0, 5);
@@ -246,6 +274,31 @@ function SignalIntelligenceRail({
           }
         </div>
       )} />
+      <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
+        const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
+        const fmtBeta = v => v == null ? "—" : v.toFixed(2);
+        const fmt$ = v => v == null ? null : "$" + Math.round(v).toLocaleString();
+        const Row = ({ label, val, color }) => (
+          <div style={{display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"center",fontSize:12}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{label}</span>
+            <span style={{color:"var(--text)"}}>{val}</span>
+            <span style={{width:8,height:8,borderRadius:"50%",background:ragColor(color)}}/>
+          </div>
+        );
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <Row label="Beta · vs SPY"  val={fmtBeta(detail.beta)}             color={detail.flags.beta}/>
+            <Row label="Annualized vol" val={fmtPctMag(detail.annVol)}         color={detail.flags.annVol}/>
+            <Row label="Max drawdown"   val={fmtPctMag(detail.maxDD)}          color={detail.flags.maxDD}/>
+            <Row label="10-day 99% VaR" val={fmtPctMag(detail.var10d99) + (detail.var$ ? " · ~" + fmt$(detail.var$) : "")} color={detail.flags.var10}/>
+            {detail.sourceWindow && (
+              <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
+                Source: Yahoo daily · {detail.sourceWindow}
+              </div>
+            )}
+          </div>
+        );
+      }} />
     </div>
   );
 }
@@ -366,7 +419,6 @@ function DeepDiveTabs({ deepDive, ticker, riskMetrics, heldIn }) {
     }}>
       <div style={{display:"flex",borderBottom:"1px solid var(--border-faint)",gap:0}}>
         <button onClick={()=>setTab("about")} style={tabBtnStyle(tab==="about")}>About</button>
-        <button onClick={()=>setTab("risk")} style={tabBtnStyle(tab==="risk")}>Risk</button>
         <button onClick={()=>setTab("dividends")} style={tabBtnStyle(tab==="dividends")}>
           Dividend history{divs.length>0?` · ${divs.length}`:""}
         </button>
@@ -402,51 +454,6 @@ function DeepDiveTabs({ deepDive, ticker, riskMetrics, heldIn }) {
                 </div>
               )
         )}
-        {tab === "risk" && (() => {
-          const m = riskMetrics;
-          if (!m) return <div style={{fontSize:13,color:"var(--text-muted)"}}>Loading risk metrics…</div>;
-          const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(2) + "%";
-          const fmtBeta = v => v == null ? "—" : v.toFixed(2);
-          const heldVal = heldIn?.[0]?.p?.value || null;
-          const var$ = m?.var10d99 != null && heldVal ? heldVal * m.var10d99 : null;
-          const fmt$ = v => v == null ? null : "$" + Math.round(v).toLocaleString();
-          const cFor = (v, lo, hi) => v == null ? "var(--text-dim)"
-                                    : v > hi ? "var(--red-text, #c8302a)"
-                                    : v > lo ? "var(--yellow-text, #B8860B)"
-                                    : "var(--text)";
-          const RiskField = ({ label, value, sub, color, tip }) => (
-            <div style={{padding:"12px 14px",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-xs, 6px)",background:"var(--surface, var(--paper, #fff))"}}>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.16em",color:"var(--text-dim)",marginBottom:4}}>{label}</div>
-              <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:color || "var(--text)",lineHeight:1.1}}>{value}</div>
-              {sub && <div style={{marginTop:4,fontSize:11,color:"var(--text-muted)"}}>{sub}</div>}
-              {tip && <div style={{marginTop:8,fontSize:11.5,color:"var(--text-2)",lineHeight:1.45}}>{tip}</div>}
-            </div>
-          );
-          return (
-            <div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))",gap:12}}>
-                <RiskField label="Beta · vs SPY" value={fmtBeta(m?.beta)} sub="2Y weekly OLS"
-                       color={cFor(m?.beta, 1.3, 1.6)}
-                       tip="Beta vs S&P 500. 1.0 moves with the market; >1.0 amplifies; <1.0 dampens. Computed from 2 years of weekly returns."/>
-                <RiskField label="Annualized volatility" value={fmtPctMag(m?.annVol)} sub="2Y daily × √252"
-                       color={cFor(m?.annVol, 0.25, 0.40)}
-                       tip="Standard deviation of daily returns over 2Y, scaled by √252 (trading days/yr). Roughly: 15-25% normal for diversified equities, 25-40% elevated, >40% high-beta single names."/>
-                <RiskField label="Max drawdown" value={fmtPctMag(m?.maxDD)} sub="peak → trough, 2Y"
-                       color={cFor(m?.maxDD, 0.25, 0.40)}
-                       tip="Largest peak-to-trough decline over the last 2 years. Captures the worst capital impairment a holder could have experienced without selling."/>
-                <RiskField label="10-day 99% VaR" value={fmtPctMag(m?.var10d99)}
-                       sub={var$ ? "approx " + fmt$(var$) + " on this position" : "% of position"}
-                       color={cFor(m?.var10d99, 0.10, 0.20)}
-                       tip="10-day 99% historical Value-at-Risk. Using 2Y daily returns, take rolling 10-day returns, sort, find the 1st-percentile worst outcome. Loss EXCEEDS this 1% of the time historically."/>
-              </div>
-              {m?.sourceWindow && (
-                <div style={{marginTop:14,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
-                  Source: Yahoo daily · {m.sourceWindow}
-                </div>
-              )}
-            </div>
-          );
-        })()}
         {tab === "dividends" && (
           deepDive.loading
             ? <div style={{fontSize:13,color:"var(--text-muted)"}}>Loading dividend history…</div>
