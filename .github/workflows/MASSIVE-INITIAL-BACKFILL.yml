@@ -1,0 +1,40 @@
+# MASSIVE-INITIAL-BACKFILL — one-shot population of the new Massive
+# tables (universe_master, prices_eod, dividends, splits) added by
+# migration 032.  Phase 2 of the data revamp.
+#
+# Triggered manually via workflow_dispatch.  Runs the Python script
+# scripts/backfill_massive_initial.py against the live Supabase project.
+# Wall clock ~5–7 minutes due to free-tier rate limit (5 calls/min).
+#
+# After this workflow finishes successfully, the daily cron functions
+# only need to do incremental refreshes.
+
+name: MASSIVE-INITIAL-BACKFILL
+
+on:
+  workflow_dispatch:
+    inputs:
+      throttle_seconds:
+        description: "Seconds between paginated API calls (free tier needs ≥13)"
+        required: false
+        default: "13"
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run initial backfill
+        env:
+          MASSIVE_API_KEY:           ${{ secrets.MASSIVE_API_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PYTHONUNBUFFERED:          "1"
+        run: |
+          python3 scripts/backfill_massive_initial.py
