@@ -75,6 +75,61 @@ function stripHtml(s) {
   return decodeEntities((s || "").replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
 }
 
+// Resolve a Google News redirect URL to its final destination. Used to
+// display the actual publisher domain (seekingalpha.com, zerohedge.com,
+// etc.) instead of the title-derived label which can disagree with what
+// the link actually opens. Best-effort: 2s timeout per item; on failure
+// returns null and the caller falls back to the title-derived source.
+async function resolveFinalUrl(rawUrl) {
+  if (!rawUrl) return null;
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2000);
+    const r = await fetch(rawUrl, {
+      method: "HEAD",
+      redirect: "follow",
+      headers: { "User-Agent": "Mozilla/5.0 (MacroTilt/1.0)" },
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    return r.url || null;
+  } catch (_) {
+    return null;
+  }
+}
+
+// Friendlier display names for common publisher hostnames.
+const HOST_DISPLAY = {
+  "seekingalpha.com":   "Seeking Alpha",
+  "zerohedge.com":      "ZeroHedge",
+  "bloomberg.com":      "Bloomberg",
+  "reuters.com":        "Reuters",
+  "wsj.com":            "Wall Street Journal",
+  "ft.com":             "Financial Times",
+  "cnbc.com":           "CNBC",
+  "marketwatch.com":    "MarketWatch",
+  "fool.com":           "The Motley Fool",
+  "barrons.com":        "Barron's",
+  "forbes.com":         "Forbes",
+  "businessinsider.com":"Business Insider",
+  "yahoo.com":          "Yahoo Finance",
+  "investors.com":      "Investor's Business Daily",
+  "benzinga.com":       "Benzinga",
+};
+
+function hostnameToDisplay(url) {
+  try {
+    const u = new URL(url);
+    let host = u.hostname.toLowerCase().replace(/^www\./, "");
+    // Strip subdomain like 'finance.yahoo.com' → 'yahoo.com' for the lookup
+    const parts = host.split(".");
+    const root = parts.length >= 2 ? parts.slice(-2).join(".") : host;
+    return { host, display: HOST_DISPLAY[root] || HOST_DISPLAY[host] || root };
+  } catch (_) {
+    return { host: "", display: "" };
+  }
+}
+
 // Google News titles land as "Headline - Bloomberg.com". Split on the last
 // " - " separator so we pick up the publisher even when the headline itself
 // contains a dash.
@@ -176,22 +231,45 @@ export default async function handler(req, res) {
 
   const raw = parseRssItems(xml).map(shape);
   const seen = new Set();
-  const filtered = [];
+  const candidates = [];
   for (const it of raw) {
     if (!it.headline || !it._sourceKey) continue;
     if (!WHITELIST_SET.has(it._sourceKey)) continue;
     const key = dedupeKey(it.headline);
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    filtered.push({
+    candidates.push(it);
+    if (candidates.length >= 10) break;
+  }
+
+  // Resolve final URLs in parallel — bounded fan-out; total wall clock ≤ 2s.
+  // This makes source attribution match the actual destination domain.
+  const resolved = await Promise.all(candidates.map(it => resolveFinalUrl(it.url)));
+  const filtered = candidates.map((it, i) => {
+    const finalUrl = resolved[i] || it.url;
+    const { host, display } = hostnameToDisplay(finalUrl);
+    // Prefer the destination-derived source when we resolved successfully.
+    // Fall back to the title-derived source with a '(via Google News)'
+    // suffix so users know the link is a GN redirect.
+    let displaySource;
+    if (resolved[i] && display) {
+      displaySource = display;
+    } else if (it.source) {
+      displaySource = it.source + " (via Google News)";
+    } else if (display) {
+      displaySource = display;
+    } else {
+      displaySource = "via Google News";
+    }
+    return {
       headline:    it.headline,
-      source:      it.source,
-      url:         it.url,
+      source:      displaySource,
+      source_host: host,
+      url:         finalUrl,
       published:   it.published,
       description: it.description,
-    });
-    if (filtered.length >= 20) break;
-  }
+    };
+  });
 
   res.setHeader("Cache-Control", "public, s-maxage=600, stale-while-revalidate=1800");
   return res.status(200).json({ source: "google_news", items: filtered });

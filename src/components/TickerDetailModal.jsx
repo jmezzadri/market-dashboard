@@ -410,16 +410,40 @@ function SignalIntelligenceRail({
         );
       }} />
       <SignalCard title="Earnings & Events" {...earningsTile} ragColor={ragColor} renderDetail={detail => detail && (
-        <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:12,color:"var(--text-2)",lineHeight:1.5}}>
-          <div>Next earnings: <b>{detail.dateLabel}</b>{detail.timeLabel ? ` · ${detail.timeLabel}` : ""}{detail.days > 0 ? ` · in ${detail.days} day${detail.days === 1 ? "" : "s"}` : ""}.</div>
-          {(detail.epsExp != null || detail.revExp != null) && (
-            <div>
-              {detail.epsExp != null && <span>Consensus EPS <b>${Number(detail.epsExp).toFixed(2)}</b></span>}
-              {detail.epsExp != null && detail.revExp != null && <span> · </span>}
-              {detail.revExp != null && <span>Rev <b>${(Number(detail.revExp)/1e9).toFixed(2)}B</b></span>}
-            </div>
-          )}
-          {detail.impMove30 != null && <div>30-day implied move: <b>±{Number(detail.impMove30).toFixed(1)}%</b> (priced from at-the-money options).</div>}
+        <div style={{display:"flex",flexDirection:"column",gap:10,fontSize:12,color:"var(--text-2)",lineHeight:1.5}}>
+          <div>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginRight:8}}>Next report</span>
+            <b>{detail.dateLabel}</b>{detail.timeLabel ? ` · ${detail.timeLabel}` : ""}{detail.days > 0 ? ` · in ${detail.days} day${detail.days === 1 ? "" : "s"}` : detail.days === 0 ? " · today" : " · already reported"}
+          </div>
+
+          {detail.impMove30 != null
+            ? <div>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginRight:8}}>Implied move (30d)</span>
+                <b>±{Number(detail.impMove30).toFixed(1)}%</b> from at-the-money options
+              </div>
+            : <div style={{color:"var(--text-muted)"}}>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginRight:8}}>Implied move (30d)</span>
+                <i>not available — options chain not in scope for this ticker</i>
+              </div>
+          }
+
+          {(detail.epsExp != null || detail.revExp != null)
+            ? <div>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginRight:8}}>Consensus</span>
+                {detail.epsExp != null && <span>EPS <b>${Number(detail.epsExp).toFixed(2)}</b></span>}
+                {detail.epsExp != null && detail.revExp != null && <span> · </span>}
+                {detail.revExp != null && <span>Rev <b>${(Number(detail.revExp)/1e9).toFixed(2)}B</b></span>}
+              </div>
+            : <div style={{color:"var(--text-muted)"}}>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginRight:8}}>Consensus EPS / Rev</span>
+                <i>not yet wired — pending data-pipeline work</i>
+              </div>
+          }
+
+          <div style={{color:"var(--text-muted)"}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginRight:8}}>Last 4 quarters</span>
+            <i>beats / misses strip not yet wired — pending data-pipeline work</i>
+          </div>
         </div>
       )} />
       <SignalCard title="News" {...newsTile} ragColor={ragColor} renderDetail={detail => (
