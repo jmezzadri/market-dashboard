@@ -1,157 +1,320 @@
-// AssetAllocation — page taken down (v2) for Senior Quant calibration audit.
+// AssetAllocation — v11 Cycle Mechanism Board (Sprint 1).
 //
-// 2026-04-28 evening: after the Phase B rebuild restored the page, Joe
-// surfaced multiple Senior Quant calibration errors that the rebuild had
-// preserved unchanged:
+// Reads from public/methodology_calibration_v11.json. Layout follows the
+// Editorial / magazine hero design (round-2 mockup A, approved 2026-04-29):
+//   1. Eyebrow date + big sentence headline
+//   2. Numbered 6-tile strip across the page (top-border accent in state color)
+//   3. Detail block per live tile (rule + indicator rows with quartile bars)
 //
-//   1. HY-IG / HY OAS threshold is below historical floor.
-//      The Risk Scenarios narrative says "HY-IG > 250bp activates the
-//      defensive sleeve". Pulled from FRED (BAMLH0A0HYM2 = HY OAS over
-//      Treasuries) the indicator has NEVER been below 259bp in the 812-day
-//      sample. Real stress is 500bp+ (Joe's intuition: 4-6%). The 250bp
-//      threshold has been continuously breached for the entire dataset
-//      yet the model has not had its defensive sleeve continuously on —
-//      i.e. the threshold isn't actually wired to the model.
+// 4-state lexicon: Normal / Cautionary / Stressed / Distressed.
+// Sprint 1 ships 3 live tiles: Valuation, Credit, Growth. The other three
+// (Funding, Liquidity & Policy, Positioning & Breadth) render as greyed
+// placeholders labeled with their target sprint.
 //
-//   2. R&L composite read by v9 is month-end-stale.
-//      v9_allocation.json regime.risk_liquidity = 30.9 (end of March
-//      2026). composite_history_daily.json today shows R&L = -20.7. The
-//      model uses `prior_dt = last_complete_month - MonthEnd(1)` for
-//      lookahead-safety which means production recommendations always lag
-//      the visible composite by ~1 month. User reads R&L = -20.7 (calm)
-//      on the gauges, then sees "Model has de-risked" on Asset Tilt; the
-//      two numbers are the same composite at different dates.
-//
-//   3. Risk Scenarios narrative does not describe what model actually
-//      does. Defensive sleeve activation is keyed off the R&L composite
-//      score, not directly off HY OAS, real rates, VIX, etc. The current
-//      copy implies direct trigger wiring that doesn't exist.
-//
-// All three are calibration / Senior Quant issues, not display issues.
-// They cannot be fixed by re-skinning the React. They require: (a) a
-// re-validation pass on every threshold against historical distributions,
-// (b) a decision on month-end-stale vs daily-fresh model output, (c) a
-// rewrite of the trigger-narrative to match actual model behavior, and
-// (d) backtest validation before any production change ships.
-//
-// Until that work is complete and the Senior Quant signs it off, the page
-// renders this banner instead of misleading numbers.
+// Full methodology lives at /#methodology (v11 doc, in same PR).
+
+import React, { useEffect, useState } from "react";
+
+const STATE_COLORS = {
+  Normal: "#4a7c4a",
+  Cautionary: "#b8860b",
+  Stressed: "#a04518",
+  Distressed: "#7a1414",
+};
+
+const STATE_TOOLTIPS = {
+  Normal: "The mechanism's rule is not met. Reading is constructive or neutral.",
+  Cautionary: "Rule partially met. Watch but do not act.",
+  Stressed: "Rule fully met. Mechanism is signaling its concerning regime.",
+  Distressed: "Rule fully met AND deteriorating over the last 60 trading days.",
+};
+
+function formatDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return d.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+function QuartileBar({ percentile, label }) {
+  // 4-segment colored bar with current-reading dot
+  const pos = Math.max(0, Math.min(100, Number(percentile) || 0));
+  return (
+    <div title={label || `${pos}th percentile`} style={{ display: "inline-block", verticalAlign: "middle" }}>
+      <div style={{ position: "relative", display: "flex", height: 7, width: 140, borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ flex: 1, background: "#eef0e8" }} />
+        <div style={{ flex: 1, background: "#f5efde" }} />
+        <div style={{ flex: 1, background: "#f5e1ce" }} />
+        <div style={{ flex: 1, background: "#f0d4d4" }} />
+        <div style={{
+          position: "absolute",
+          left: `calc(${pos}% - 6px)`,
+          top: -3,
+          width: 13,
+          height: 13,
+          borderRadius: "50%",
+          background: "#1a1a1a",
+          border: "2px solid #fff",
+          boxShadow: "0 0 0 0.5px #cdc9bf",
+        }} />
+      </div>
+    </div>
+  );
+}
+
+function TileStrip({ tiles }) {
+  const ordered = [...tiles].sort((a, b) => (a.order || 99) - (b.order || 99));
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "repeat(6, 1fr)",
+      gap: 14,
+      marginTop: 30,
+    }}>
+      {ordered.map((t, i) => {
+        const live = t.live;
+        const state = t.current_state;
+        const color = STATE_COLORS[state] || "#1a1a1a";
+        const isElevated = state && state !== "Normal" && state !== "—";
+        return (
+          <div
+            key={t.id}
+            title={live ? STATE_TOOLTIPS[state] : `Ships in ${t.ships_in}`}
+            style={{
+              padding: "14px 0 0",
+              borderTop: live
+                ? `${isElevated ? 3 : 1.5}px solid ${color}`
+                : "1px dashed #cdc9bf",
+              opacity: live ? 1 : 0.45,
+            }}
+          >
+            <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 11, color: "#7a7a72", letterSpacing: "0.04em" }}>
+              {String(i + 1).padStart(2, "0")}
+            </div>
+            <div style={{
+              fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
+              fontSize: 16,
+              fontWeight: 400,
+              lineHeight: 1.2,
+              margin: "6px 0 8px",
+              minHeight: 36,
+              fontStyle: live ? "normal" : "italic",
+            }}>
+              {t.name}
+            </div>
+            <div style={{
+              fontSize: 11,
+              letterSpacing: "0.04em",
+              color: live ? color : "#7a7a72",
+            }}>
+              {live ? state : t.ships_in}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function IndicatorRow({ indicator }) {
+  const value = indicator?.current?.value;
+  const unit = indicator?.unit;
+  const formattedVal = (() => {
+    if (value === undefined || value === null) return "—";
+    if (unit === "bp") return `${Math.round(value)} bp`;
+    if (unit === "% of GDP") return `${value.toFixed(1)}%`;
+    if (unit === "ratio") return `${value.toFixed(2)}×`;
+    if (typeof value === "number") return value.toFixed(2);
+    return String(value);
+  })();
+  const z = indicator.z_score;
+  const trend = indicator.trend_60d;
+  const trendText = (z !== undefined && z !== null && trend)
+    ? `z = ${z >= 0 ? "+" : ""}${z.toFixed(2)}, ${trend}`
+    : null;
+  return (
+    <div style={{
+      display: "grid",
+      gridTemplateColumns: "1.4fr 160px 1fr",
+      gap: 18,
+      alignItems: "center",
+      padding: "10px 0",
+      borderBottom: "0.5px dashed var(--border, #e0ddd5)",
+    }}>
+      <div>
+        <div style={{ fontSize: 13, color: "var(--text, #1a1a1a)", fontWeight: 500 }}>
+          {indicator.name}
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text-muted, #7a7a72)", marginTop: 2 }}>
+          {indicator.description}
+        </div>
+      </div>
+      <div>
+        <QuartileBar percentile={indicator.percentile} label={`${indicator.percentile}th percentile`} />
+      </div>
+      <div style={{ fontSize: 12, color: "var(--text-2, #3a3a32)", textAlign: "right" }}>
+        <div style={{ fontWeight: 500 }}>{formattedVal}</div>
+        <div style={{ fontSize: 11, color: "var(--text-muted, #7a7a72)" }}>
+          {indicator.percentile}th percentile · {indicator.sample_window || ""}
+        </div>
+        {trendText && (
+          <div style={{ fontSize: 11, color: "var(--text-muted, #7a7a72)", marginTop: 2 }}>
+            {trendText}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function TileDetail({ tile }) {
+  if (!tile.live) return null;
+  const color = STATE_COLORS[tile.current_state] || "#1a1a1a";
+  return (
+    <section style={{
+      padding: "26px 0 22px",
+      borderTop: `2px solid ${color}`,
+      marginTop: 20,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+        <h2 style={{
+          fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
+          fontSize: 26,
+          fontWeight: 400,
+          margin: 0,
+          letterSpacing: "-0.008em",
+        }}>
+          {tile.name}
+        </h2>
+        <div style={{ fontSize: 12, letterSpacing: "0.04em", color, fontWeight: 600 }}>
+          {tile.current_state}
+        </div>
+      </div>
+      <p style={{ fontSize: 13, color: "var(--text-muted, #7a7a72)", margin: "0 0 6px", maxWidth: 720 }}>
+        {tile.description_long || tile.description_short}
+      </p>
+      <p style={{ fontSize: 12, color: "var(--text-2, #3a3a32)", margin: "0 0 16px", fontStyle: "italic" }}>
+        Rule status: {tile.rule_status}
+      </p>
+      <div>
+        {(tile.indicators || []).map((ind) => (
+          <IndicatorRow key={ind.id} indicator={ind} />
+        ))}
+      </div>
+    </section>
+  );
+}
 
 export default function AssetAllocation() {
-  return (
-    <main style={{ maxWidth: 880, margin: "0 auto", padding: "var(--space-12) var(--space-8)" }}>
-      <section style={{
-        padding: "var(--space-10) var(--space-8)",
-        background: "var(--surface-solid, var(--surface))",
-        border: "1px solid var(--border-strong, var(--border))",
-        borderRadius: "var(--radius-lg)",
-        textAlign: "center",
-      }}>
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "5px 12px",
-          borderRadius: 999,
-          background: "rgba(255,69,58,0.14)",
-          color: "#7a1414",
-          fontSize: 11,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          fontWeight: 600,
-          marginBottom: 18,
-        }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#a01818" }}/>
-          Asset Tilt — under quant calibration review
-        </div>
+  const [calib, setCalib] = useState(null);
+  const [error, setError] = useState(null);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/methodology_calibration_v11.json?v=${Date.now()}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        if (!cancelled) setCalib(data);
+      })
+      .catch((e) => {
+        if (!cancelled) setError(String(e));
+      });
+    return () => { cancelled = true; };
+  }, []);
+
+  if (error) {
+    return (
+      <main style={{ maxWidth: 880, margin: "0 auto", padding: "var(--space-12, 48px) var(--space-8, 24px)" }}>
+        <div style={{ padding: 24, border: "1px solid var(--border)", borderRadius: 8 }}>
+          <div style={{ fontSize: 12, color: "#7a1414", marginBottom: 6 }}>Calibration data didn't load</div>
+          <div style={{ fontSize: 12, color: "var(--text-muted)" }}>{error}</div>
+        </div>
+      </main>
+    );
+  }
+
+  if (!calib) {
+    return (
+      <main style={{ maxWidth: 1100, margin: "0 auto", padding: "var(--space-12, 48px) var(--space-8, 24px)" }}>
+        <div style={{ fontSize: 12, color: "var(--text-muted, #7a7a72)" }}>Loading…</div>
+      </main>
+    );
+  }
+
+  const tiles = calib.tiles || [];
+  const liveTiles = tiles.filter((t) => t.live);
+  const gauge = calib.headline_gauge || {};
+
+  return (
+    <main style={{ maxWidth: 1100, margin: "0 auto", padding: "var(--space-12, 48px) var(--space-8, 28px) 64px" }}>
+
+      {/* Editorial hero */}
+      <section style={{ paddingBottom: 24, borderBottom: "1px solid var(--text, #1a1a1a)", marginBottom: 28 }}>
+        <div style={{
+          fontSize: 11,
+          letterSpacing: "0.14em",
+          textTransform: "uppercase",
+          color: "var(--text-muted, #7a7a72)",
+          marginBottom: 14,
+          fontWeight: 600,
+        }}>
+          Cycle Mechanism Board · {formatDate(calib.as_of)}
+        </div>
         <h1 style={{
           fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
-          fontSize: 32,
-          fontWeight: 400,
-          margin: "0 0 14px",
-          letterSpacing: "-0.012em",
-          lineHeight: 1.15,
+          fontSize: 42,
+          fontWeight: 300,
+          lineHeight: 1.12,
+          letterSpacing: "-0.018em",
+          color: "var(--text, #1a1a1a)",
+          margin: "0 0 16px",
+          maxWidth: 940,
         }}>
-          Senior Quant is re-validating this page front to back.
+          {gauge.headline_sentence}
         </h1>
-
-        <p style={{
-          fontSize: 14.5,
-          lineHeight: 1.65,
-          color: "var(--text-2, var(--text-muted))",
-          maxWidth: 600,
-          margin: "0 auto 14px",
-        }}>
-          On 2026-04-28 we surfaced three Senior Quant calibration issues that
-          can't be fixed at the display layer:
-        </p>
-
         <div style={{
-          textAlign: "left",
-          maxWidth: 640,
-          margin: "0 auto 22px",
-          padding: "16px 20px",
-          background: "var(--bg, #fafaf7)",
-          border: "0.5px solid var(--border)",
-          borderRadius: 8,
-          fontSize: 13,
-          lineHeight: 1.65,
-          color: "var(--text-2, var(--text-muted))",
+          fontSize: 14,
+          color: "var(--text-2, #3a3a32)",
+          maxWidth: 760,
+          lineHeight: 1.55,
         }}>
-          <ol style={{ margin: 0, paddingLeft: 20 }}>
-            <li style={{ marginBottom: 8 }}>
-              <strong>HY OAS threshold of 250bp is below the historical floor.</strong>{" "}
-              HY OAS has not been below 259bp in the dataset; real stress doesn't kick in until 500–700bp+.
-            </li>
-            <li style={{ marginBottom: 8 }}>
-              <strong>The model reads month-end R&amp;L.</strong>{" "}
-              v9 is using a value from end of March (R&amp;L = 30.9) while today's R&amp;L is −20.7. Recommendations lag the visible composite by ~1 month.
-            </li>
-            <li>
-              <strong>Risk Scenario narrative doesn't match the model.</strong>{" "}
-              The defensive sleeve activates on the R&amp;L composite score, not directly on HY, VIX, or real rates as the copy implies.
-            </li>
-          </ol>
-        </div>
-
-        <p style={{
-          fontSize: 13,
-          lineHeight: 1.6,
-          color: "var(--text-muted)",
-          maxWidth: 560,
-          margin: "0 auto 24px",
-          fontStyle: "italic",
-        }}>
-          The composite gauges, scanners, watchlist, and Macro Overview are unaffected. The page will return only after every threshold has been re-validated against historical distributions and back-tested.
-        </p>
-
-        <a href="#overview" style={{
-          display: "inline-block",
-          padding: "11px 20px",
-          background: "var(--accent)",
-          color: "#fff",
-          borderRadius: 6,
-          textDecoration: "none",
-          fontSize: 13,
-          fontWeight: 500,
-          letterSpacing: "0.01em",
-        }}>
-          Go to Macro Overview →
-        </a>
-
-        <div style={{
-          marginTop: 32,
-          paddingTop: 18,
-          borderTop: "0.5px dashed var(--border)",
-          fontSize: 11,
-          color: "var(--text-muted)",
-          lineHeight: 1.6,
-        }}>
-          Status: under quant calibration review · 2026-04-28 evening · Senior Quant lead<br/>
-          Tracking: bugs <strong>#1113</strong>, <strong>#1122</strong>, <strong>#1123</strong>, <strong>#1124</strong>, <strong>#1125</strong>
+          {gauge.verdict}. Recovery Watch hidden — page activates if a fourth tile elevates
+          or the S&amp;P enters a 15% drawdown. Read more in
+          {" "}<a href="#methodology" style={{ color: "var(--accent, #1a1a1a)", textDecoration: "underline" }}>full methodology</a>.
         </div>
       </section>
+
+      {/* 6-tile strip */}
+      <TileStrip tiles={tiles} />
+
+      {/* Detail blocks per live tile */}
+      <div style={{ marginTop: 36 }}>
+        {liveTiles
+          .sort((a, b) => (a.order || 99) - (b.order || 99))
+          .map((t) => <TileDetail key={t.id} tile={t} />)}
+      </div>
+
+      {/* Sprint 1 footer */}
+      <div style={{
+        marginTop: 48,
+        paddingTop: 18,
+        borderTop: "0.5px dashed var(--border)",
+        fontSize: 11,
+        color: "var(--text-muted, #7a7a72)",
+        lineHeight: 1.6,
+      }}>
+        Sprint 1 ships three of six tiles. Funding (Sprint 2), Liquidity &amp; Policy (Sprint 4),
+        and Positioning &amp; Breadth (Sprint 4) render as greyed placeholders above.
+        Forward Warning tile and Recovery Watch ship in Sprint 3 and Sprint 5.
+        Calibration source: <code>{calib.build_meta?.script || "v11 build script"}</code> · framework {calib.version || "v11"}.
+      </div>
     </main>
   );
 }
