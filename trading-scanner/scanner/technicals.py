@@ -71,6 +71,20 @@ def _empty_technicals() -> dict[str, Any]:
         "ytd_change": None,
         "spy_relative_month": None,
         "spy_relative_ytd": None,
+        "bb_upper": None,
+        "bb_middle": None,
+        "bb_lower": None,
+        "bb_pctb": None,
+        "bb_bandwidth": None,
+        "atr_14": None,
+        "obv": None,
+        "stoch_k": None,
+        "stoch_d": None,
+        "ichimoku_tenkan": None,
+        "ichimoku_kijun": None,
+        "ichimoku_senkou_a": None,
+        "ichimoku_senkou_b": None,
+        "ichimoku_chikou": None,
         "tech_score": 0,
         "tech_summary": [],
         "composite": {
@@ -154,6 +168,32 @@ def _compute_technicals(sym: str) -> dict[str, Any]:
             vol_surge=vol_surge,
         )
 
+        # ── Phase 4.5 expansion (additive — no calc replacement) ────────────
+        # Joe directive 2026-04-28: expand the in-house technicals library
+        # using the OHLCV we already have. Don't use Massive's per-ticker
+        # indicator endpoints (free-tier rate limit).
+        # All five below are computed from the same `hist` DataFrame, all
+        # additive, none feed the existing tech_score (which stays on the
+        # original RSI/MACD/MA/vol signals — no backtest gate triggered).
+        # ─────────────────────────────────────────────────────────────────
+        bb = _calc_bollinger_bands(close, period=20, num_std=2.0)
+        atr = (
+            _calc_atr(high, low, close, period=14)
+            if (high is not None and low is not None)
+            else None
+        )
+        obv = _calc_obv(close, volume) if volume is not None else None
+        stoch = (
+            _calc_stochastic(high, low, close, k_period=14, d_period=3)
+            if (high is not None and low is not None)
+            else (None, None)
+        )
+        ichi = (
+            _calc_ichimoku(high, low, close)
+            if (high is not None and low is not None)
+            else (None, None, None, None, None)
+        )
+
         return {
             # Latest close from OHLCV — the dashboard's PRICE column falls back
             # to this when the UW screener row (sc.prev_close) is missing.
@@ -171,6 +211,20 @@ def _compute_technicals(sym: str) -> dict[str, Any]:
             "ytd_change": round(ytd_change, 4) if ytd_change is not None else None,
             "spy_relative_month": round(spy_rel_month, 4) if spy_rel_month is not None else None,
             "spy_relative_ytd": round(spy_rel_ytd, 4) if spy_rel_ytd is not None else None,
+            "bb_upper": round(bb[0], 4) if bb[0] is not None else None,
+            "bb_middle": round(bb[1], 4) if bb[1] is not None else None,
+            "bb_lower": round(bb[2], 4) if bb[2] is not None else None,
+            "bb_pctb": round(bb[3], 4) if bb[3] is not None else None,
+            "bb_bandwidth": round(bb[4], 4) if bb[4] is not None else None,
+            "atr_14": round(atr, 4) if atr is not None else None,
+            "obv": round(obv, 0) if obv is not None else None,
+            "stoch_k": round(stoch[0], 2) if stoch[0] is not None else None,
+            "stoch_d": round(stoch[1], 2) if stoch[1] is not None else None,
+            "ichimoku_tenkan": round(ichi[0], 4) if ichi[0] is not None else None,
+            "ichimoku_kijun": round(ichi[1], 4) if ichi[1] is not None else None,
+            "ichimoku_senkou_a": round(ichi[2], 4) if ichi[2] is not None else None,
+            "ichimoku_senkou_b": round(ichi[3], 4) if ichi[3] is not None else None,
+            "ichimoku_chikou": round(ichi[4], 4) if ichi[4] is not None else None,
             "tech_score": score,
             "tech_summary": bullets,
             "composite": composite,
@@ -531,3 +585,176 @@ def _calc_ytd_change(close: pd.Series) -> float | None:
         return (current - prior) / prior
     except Exception:
         return None
+
+
+# ════════════════════════════════════════════════════════════════════════════
+# Phase 4.5 — additive technicals expansion (Joe directive 2026-04-28)
+#
+# All five functions below compute from the same `hist` OHLCV DataFrame
+# already loaded by _compute_technicals. They are additive — none feed the
+# legacy tech_score, so no backtest re-run is required (Senior Quant gate).
+#
+# Reconciliation against existing in-house indicators (RSI / MACD / SMA /
+# ADX) is in scripts/reconcile_technicals.py — runs side-by-side on a
+# 10-ticker sample and prints all values, used as the Senior Quant
+# sanity-check before merge.
+#
+# References:
+#   Bollinger    — Bollinger on Bollinger Bands (Bollinger 2002), period=20, k=2σ
+#   ATR          — New Concepts in Technical Trading Systems (Wilder 1978), period=14
+#   OBV          — Granville's running-cumulative volume signed by price direction
+#   Stochastic   — Lane's %K/%D, K=14, D=3-period SMA of %K
+#   Ichimoku     — Hosoda (1969), defaults 9/26/52
+# ════════════════════════════════════════════════════════════════════════════
+
+
+def _calc_bollinger_bands(
+    close: pd.Series, period: int = 20, num_std: float = 2.0
+) -> tuple[float | None, float | None, float | None, float | None, float | None]:
+    """
+    Bollinger Bands at the most recent bar.
+
+    Returns (upper, middle, lower, %B, bandwidth).
+    %B = (close − lower) / (upper − lower); 0..1 typically, can extend.
+    Bandwidth = (upper − lower) / middle; volatility expansion / contraction proxy.
+    """
+    if len(close) < period:
+        return (None, None, None, None, None)
+    try:
+        ma = close.rolling(period).mean()
+        sd = close.rolling(period).std(ddof=0)
+        upper = ma + num_std * sd
+        lower = ma - num_std * sd
+        c = float(close.iloc[-1])
+        u = float(upper.iloc[-1])
+        m = float(ma.iloc[-1])
+        l = float(lower.iloc[-1])
+        if pd.isna(u) or pd.isna(m) or pd.isna(l):
+            return (None, None, None, None, None)
+        rng = u - l
+        pctb = (c - l) / rng if rng > 0 else None
+        bw = rng / m if m > 0 else None
+        return (u, m, l, pctb, bw)
+    except Exception as e:
+        logger.debug("Bollinger calc failed: %s", e)
+        return (None, None, None, None, None)
+
+
+def _calc_atr(
+    high: pd.Series, low: pd.Series, close: pd.Series, period: int = 14
+) -> float | None:
+    """
+    Wilder's Average True Range. Volatility measure in price units (not %).
+    Returns the ATR value at the most recent bar.
+    """
+    if len(close) < period + 1:
+        return None
+    try:
+        prev_close = close.shift(1)
+        tr = pd.concat(
+            [(high - low).abs(), (high - prev_close).abs(), (low - prev_close).abs()],
+            axis=1,
+        ).max(axis=1)
+        atr = tr.ewm(alpha=1 / period, adjust=False).mean()
+        val = atr.iloc[-1]
+        return float(val) if not pd.isna(val) else None
+    except Exception as e:
+        logger.debug("ATR calc failed: %s", e)
+        return None
+
+
+def _calc_obv(close: pd.Series, volume: pd.Series) -> float | None:
+    """
+    On-Balance Volume — Granville's running-cumulative volume signed by
+    daily price direction. Returns the latest cumulative value.
+    Useful as a *trend* indicator (rising OBV with rising price = healthy
+    accumulation; rising price with falling OBV = distribution divergence).
+    """
+    if len(close) < 2 or volume is None or len(volume) < 2:
+        return None
+    try:
+        diff = close.diff().fillna(0)
+        signed_vol = volume.where(diff > 0, -volume.where(diff < 0, 0))
+        obv = signed_vol.cumsum()
+        val = obv.iloc[-1]
+        return float(val) if not pd.isna(val) else None
+    except Exception as e:
+        logger.debug("OBV calc failed: %s", e)
+        return None
+
+
+def _calc_stochastic(
+    high: pd.Series, low: pd.Series, close: pd.Series,
+    k_period: int = 14, d_period: int = 3,
+) -> tuple[float | None, float | None]:
+    """
+    Lane's Stochastic Oscillator.
+      %K = 100 × (close − lowest_low_K) / (highest_high_K − lowest_low_K)
+      %D = SMA(%K, d_period)
+    Returns (%K, %D) at the most recent bar; both 0..100.
+
+    Above 80 = overbought; below 20 = oversold; %K crossing %D from below = bullish.
+    """
+    if len(close) < k_period + d_period:
+        return (None, None)
+    try:
+        ll = low.rolling(k_period).min()
+        hh = high.rolling(k_period).max()
+        rng = (hh - ll).replace(0, np.nan)
+        k = 100.0 * (close - ll) / rng
+        d = k.rolling(d_period).mean()
+        kv = k.iloc[-1]
+        dv = d.iloc[-1]
+        return (
+            float(kv) if not pd.isna(kv) else None,
+            float(dv) if not pd.isna(dv) else None,
+        )
+    except Exception as e:
+        logger.debug("Stochastic calc failed: %s", e)
+        return (None, None)
+
+
+def _calc_ichimoku(
+    high: pd.Series, low: pd.Series, close: pd.Series,
+    tenkan_period: int = 9, kijun_period: int = 26, senkou_b_period: int = 52,
+) -> tuple[float | None, float | None, float | None, float | None, float | None]:
+    """
+    Ichimoku Kinko Hyo cloud, default Hosoda parameters (9/26/52).
+
+    Returns (tenkan_sen, kijun_sen, senkou_span_a, senkou_span_b, chikou_span)
+    at the most recent bar.
+
+      tenkan_sen   = (9-period high + low) / 2          — fast trend line
+      kijun_sen    = (26-period high + low) / 2          — base line
+      senkou_a     = (tenkan + kijun) / 2                — leading span A (cloud edge)
+      senkou_b     = (52-period high + low) / 2          — leading span B (cloud edge)
+      chikou_span  = close shifted -26 bars              — lagging span
+
+    Note: senkou_a/b and chikou are the *current-bar* values without the
+    forward/backward time-shift Ichimoku traditionally applies on the chart.
+    Comparison logic (price vs. cloud, etc.) lives in the consumer.
+    """
+    n = len(close)
+    if n < senkou_b_period:
+        return (None, None, None, None, None)
+    try:
+        def _midline(h: pd.Series, lo: pd.Series, p: int) -> pd.Series:
+            return (h.rolling(p).max() + lo.rolling(p).min()) / 2.0
+
+        tenkan = _midline(high, low, tenkan_period)
+        kijun = _midline(high, low, kijun_period)
+        senkou_a = (tenkan + kijun) / 2.0
+        senkou_b = _midline(high, low, senkou_b_period)
+        chikou = close  # un-shifted; consumers may compare close[-1] vs close[-27]
+
+        def _last(s: pd.Series) -> float | None:
+            v = s.iloc[-1]
+            return float(v) if not pd.isna(v) else None
+
+        return (
+            _last(tenkan), _last(kijun), _last(senkou_a),
+            _last(senkou_b), _last(chikou),
+        )
+    except Exception as e:
+        logger.debug("Ichimoku calc failed: %s", e)
+        return (None, None, None, None, None)
