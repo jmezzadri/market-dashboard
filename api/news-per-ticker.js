@@ -248,15 +248,24 @@ export default async function handler(req, res) {
   const filtered = candidates.map((it, i) => {
     const finalUrl = resolved[i] || it.url;
     const { host, display } = hostnameToDisplay(finalUrl);
-    // Prefer the destination-derived source when we resolved successfully.
-    // Fall back to the title-derived source with a '(via Google News)'
-    // suffix so users know the link is a GN redirect.
+    // Pick the displayed source HONESTLY:
+    //   - If the resolved host is news.google.com (GN serves the article
+    //     inline; redirect to the publisher only fires client-side), the
+    //     server cannot know the real destination. Use the title-derived
+    //     publisher name with '(via Google News)' suffix so the user
+    //     knows the link is a GN redirect.
+    //   - If the resolved host is a real publisher domain, use the
+    //     destination-derived source — this matches what the user lands
+    //     on.
+    //   - Fall back to '(via Google News)' or just 'via Google News'
+    //     when nothing better is available.
+    const isStillGN = host === "news.google.com" || host === "google.com";
     let displaySource;
-    if (resolved[i] && display) {
+    if (resolved[i] && display && !isStillGN) {
       displaySource = display;
     } else if (it.source) {
       displaySource = it.source + " (via Google News)";
-    } else if (display) {
+    } else if (display && !isStillGN) {
       displaySource = display;
     } else {
       displaySource = "via Google News";
