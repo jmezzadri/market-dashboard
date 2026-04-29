@@ -1,0 +1,41 @@
+# MASSIVE-DAILY — daily refresh of Massive-sourced tables.
+#
+# Runs every weekday at 22:00 UTC (= 18:00 ET, ~30 min after US market
+# close + Polygon's T+0 publish window).  Also triggerable on demand
+# via workflow_dispatch.
+#
+# Same backfill script as the one-shot MASSIVE-INITIAL-BACKFILL, but
+# with shorter dividends/splits lookback windows since most rows
+# already exist from the initial backfill — daily run just catches
+# new/revised records.
+#
+# Wall-clock target: ~4 min (universe ~3 min + EOD 5s + small div/split
+# deltas).  Well inside the free-tier 5/min throttle.
+
+name: MASSIVE-DAILY
+
+on:
+  schedule:
+    # Mon–Fri at 22:00 UTC (after US market close).  Cron is UTC.
+    - cron: "0 22 * * 1-5"
+  workflow_dispatch: {}
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run daily refresh
+        env:
+          MASSIVE_API_KEY:           ${{ secrets.MASSIVE_API_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          DIVIDENDS_DAYS:            "7"
+          SPLITS_DAYS:               "30"
+          PYTHONUNBUFFERED:          "1"
+        run: |
+          python3 scripts/backfill_massive_initial.py

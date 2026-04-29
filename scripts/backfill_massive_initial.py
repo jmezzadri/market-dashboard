@@ -250,7 +250,7 @@ def main():
     print("\n[3/4] Dividends (last 90 days)…")
     time.sleep(THROTTLE_SECONDS)
     try:
-        cutoff = (date.today() - timedelta(days=90)).isoformat()
+        cutoff = (date.today() - timedelta(days=int(os.environ.get("DIVIDENDS_DAYS", "90")))).isoformat()
         rows = fetch_paginated(
             "https://api.polygon.io/v3/reference/dividends",
             {"ex_dividend_date.gte": cutoff, "limit": PAGE_SIZE,
@@ -281,7 +281,7 @@ def main():
     print("\n[4/4] Splits (last 365 days)…")
     time.sleep(THROTTLE_SECONDS)
     try:
-        cutoff = (date.today() - timedelta(days=365)).isoformat()
+        cutoff = (date.today() - timedelta(days=int(os.environ.get("SPLITS_DAYS", "365")))).isoformat()
         rows = fetch_paginated(
             "https://api.polygon.io/v3/reference/splits",
             {"execution_date.gte": cutoff, "limit": PAGE_SIZE,
