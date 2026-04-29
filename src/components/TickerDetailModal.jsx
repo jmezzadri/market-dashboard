@@ -556,7 +556,7 @@ function DeepDiveTabs({ deepDive, ticker, riskMetrics, heldIn }) {
           deepDive.loading
             ? <div style={{fontSize:13,color:"var(--text-muted)"}}>Loading company overview…</div>
             : !ref
-              ? <div style={{fontSize:13,color:"var(--text-muted)"}}>No company overview on file for {ticker} yet. The daily backfill populates ~1,500 tickers per cycle; check back tomorrow.</div>
+              ? <div style={{fontSize:13,color:"var(--text-muted)"}}>We're still gathering company details for {ticker}. Check back later.</div>
               : (
                 <div style={{display:"grid",gridTemplateColumns:"1fr",gap:14}}>
                   {ref.description && (

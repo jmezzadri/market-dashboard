@@ -39,11 +39,8 @@ export default function useTickerDeepDive(ticker) {
     (async () => {
       try {
         const [refRes, divRes, splRes] = await Promise.all([
-          supabase.from("ticker_reference").select(
-            "ticker,name,description,homepage_url,logo_url,list_date,market_cap," +
-            "share_class_shares_outstanding,total_employees,sic_code,sic_description," +
-            "address_city,address_state,address_country,primary_exchange,phone_number,ingested_at"
-          ).eq("ticker", upper).maybeSingle(),
+          supabase.from("ticker_reference").select("*")
+            .eq("ticker", upper).maybeSingle(),
           supabase.from("dividends").select(
             "ticker,ex_dividend_date,pay_date,record_date,declaration_date," +
             "cash_amount,currency,frequency,dividend_type"
