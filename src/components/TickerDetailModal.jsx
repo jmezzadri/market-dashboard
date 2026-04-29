@@ -36,7 +36,7 @@ import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 // macroLatest, v9Alloc, scanData feeds); no hardcoded narrative.
 // ============================================================================
 function SignalIntelligenceRail({
-  ticker, composite, tech, scanData, macroLatest, v9Alloc,
+  ticker, composite, tech, scanData, sc, macroLatest, v9Alloc,
   riskMetrics, heldIn,
   sector, isFund,
   congressBuys, congressSells, insiderBuys, insiderSells,
@@ -60,12 +60,24 @@ function SignalIntelligenceRail({
     const meta = state === "green" ? "Risk-on regime · all 3 composites positive"
               : state === "red"   ? "Risk-off regime · composites stressed"
               : "Mixed regime · composites split";
+    const lev   = Number(v9Alloc?.leverage);
+    const eqShr = Number(v9Alloc?.equity_share);
+    const levTxt = Number.isFinite(lev) && Number.isFinite(eqShr)
+      ? `Leverage ${lev.toFixed(2)}× · equity share ${(eqShr*100).toFixed(0)}%${eqShr < 1 ? ` · defensive sleeve ${((1-eqShr)*100).toFixed(0)}%` : " · no defensive sleeve"}.`
+      : null;
+    const implication = state === "green"
+      ? `Macro tailwind for cyclicals + growth — no model-level reason to underweight ${ticker}.`
+      : state === "red"
+      ? `Macro stress argues for defensive positioning — ${ticker} weighs against the regime.`
+      : `Mixed regime — ${ticker} should be evaluated on bottom-up signals (the rest of the rail).`;
     return {
       state, value, meta,
       detail: (
-        <>
-          <b>R&amp;L</b> {fmtSigned(Math.round(rl))} · <b>Growth</b> {fmtSigned(Math.round(gr))} · <b>Inflation &amp; Rates</b> {fmtSigned(Math.round(ir))}.
-        </>
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          <div><b>R&amp;L</b> {fmtSigned(Math.round(rl))} · <b>Growth</b> {fmtSigned(Math.round(gr))} · <b>Inflation &amp; Rates</b> {fmtSigned(Math.round(ir))}.</div>
+          {levTxt && <div style={{color:"var(--text-2)"}}>{levTxt}</div>}
+          <div style={{fontStyle:"italic",color:"var(--accent)"}}>{implication}</div>
+        </div>
       ),
     };
   })();
@@ -79,13 +91,22 @@ function SignalIntelligenceRail({
                     || defens.find(p => (p.ticker || "").toUpperCase() === (ticker || "").toUpperCase());
     const sectorPick = sector ? picks.find(p => (p.name || "").toLowerCase() === sector.toLowerCase()
                                               || (p.fund || "").toLowerCase().includes(sector.toLowerCase())) : null;
+    const owns = (heldIn?.length || 0) > 0;
+    const align = owns
+      ? <div style={{fontStyle:"italic",color:"var(--accent)"}}>Matches your held position.</div>
+      : null;
     if (directPick) {
       const w = (Number(directPick.weight) || 0) * 100;
       const state = w >= 5 ? "green" : "amber";
       return {
         state, value: `${w >= 0 ? "+" : ""}${w.toFixed(1)}% of model`,
         meta: `Direct pick · ${directPick.fund || directPick.name || ticker}`,
-        detail: <>v9 leverages this name. Weight {w.toFixed(1)}% of total portfolio. Indicator rank {directPick.indicator_rank ?? "—"}, momentum rank {directPick.momentum_rank ?? "—"}.</>,
+        detail: (
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <div>v9 leverages this name directly. Weight <b>{w.toFixed(1)}%</b> of total portfolio. Indicator rank <b>{directPick.indicator_rank ?? "—"}</b>, momentum rank <b>{directPick.momentum_rank ?? "—"}</b>.</div>
+            {align}
+          </div>
+        ),
       };
     }
     if (sectorPick) {
@@ -94,12 +115,22 @@ function SignalIntelligenceRail({
         state: w >= 5 ? "green" : "amber",
         value: `${w >= 0 ? "+" : ""}${w.toFixed(1)}% sector O/W`,
         meta: `${sector} sleeve · proxy ${sectorPick.ticker}`,
-        detail: <>v9 model is overweight the {sector} sector via {sectorPick.fund || sectorPick.ticker} ({w.toFixed(1)}% of portfolio). The model leans toward this sector but doesn't single-name {ticker}.</>,
+        detail: (
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <div>v9 model is overweight the <b>{sector}</b> sector via {sectorPick.fund || sectorPick.ticker} ({w.toFixed(1)}% of portfolio). The model leans toward this sector but does not single-name {ticker}.</div>
+            {align}
+          </div>
+        ),
       };
     }
     return {
       state: "amber", value: "Not in model", meta: "Outside v9 picks",
-      detail: <>v9 hasn't selected {ticker}{sector ? ` or its sector (${sector})` : ""} this rebalance. Holding it is a discretionary bet vs the model.</>,
+      detail: (
+        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+          <div>v9 has not selected {ticker}{sector ? ` or its sector (${sector})` : ""} this rebalance.</div>
+          <div style={{fontStyle:"italic",color:"var(--accent)"}}>{owns ? "Holding it is a discretionary bet vs the model." : "Adding it would be a discretionary bet vs the model."}</div>
+        </div>
+      ),
     };
   })();
 
@@ -148,22 +179,25 @@ function SignalIntelligenceRail({
     return { state, value, meta: `Composite ${value} · ${rows.length} indicators in scope`, detail: rows };
   })();
 
-  // Tile 4 — Unusual Flow
+  // Tile 4 — Unusual Flow (renders actual event rows from each source)
   const flowTile = (() => {
-    const cBuy = congressBuys?.length || 0, cSell = congressSells?.length || 0;
-    const iBuy = insiderBuys?.length || 0, iSell = insiderSells?.length || 0;
-    const fCall = flowCalls?.length || 0, fPut = flowPuts?.length || 0;
-    const dp = darkPoolPrints?.length || 0;
-    const total = cBuy + cSell + iBuy + iSell + fCall + fPut + dp;
-    const netBull = (cBuy - cSell) + (iBuy - iSell) + (fCall - fPut);
+    const cBuys  = congressBuys  || [];
+    const cSells = congressSells || [];
+    const iBuys  = insiderBuys   || [];
+    const iSells = insiderSells  || [];
+    const fCalls = flowCalls     || [];
+    const fPuts  = flowPuts      || [];
+    const dp     = darkPoolPrints || [];
+    const total  = cBuys.length + cSells.length + iBuys.length + iSells.length + fCalls.length + fPuts.length + dp.length;
+    const netBull = (cBuys.length - cSells.length) + (iBuys.length - iSells.length) + (fCalls.length - fPuts.length);
     const state = total === 0 ? "loading"
-                : Math.abs(netBull) >= 2 || dp >= 3 ? (netBull >= 0 ? "green" : "red")
+                : Math.abs(netBull) >= 2 || dp.length >= 3 ? (netBull >= 0 ? "green" : "red")
                 : "amber";
     const value = total === 0 ? "Quiet" : netBull > 0 ? "Net bullish" : netBull < 0 ? "Net bearish" : "Mixed";
     const meta = total === 0
       ? "No unusual flow events in last scan"
-      : `${total} events · Congress ${cBuy + cSell} · Insider ${iBuy + iSell} · Options ${fCall + fPut} · Dark pool ${dp}`;
-    return { state, value, meta, detail: { cBuy, cSell, iBuy, iSell, fCall, fPut, dp, total } };
+      : `${total} events · Congress ${cBuys.length + cSells.length} · Insider ${iBuys.length + iSells.length} · Options ${fCalls.length + fPuts.length} · Dark pool ${dp.length}`;
+    return { state, value, meta, detail: { cBuys, cSells, iBuys, iSells, fCalls, fPuts, dp, total } };
   })();
 
   // Tile 5 — Earnings & Events
@@ -176,11 +210,13 @@ function SignalIntelligenceRail({
     const state = days <= 7 ? "amber" : "green";
     const dateLabel = dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
     const timeLabel = earnTimeForChip === "premarket" ? "before open" : earnTimeForChip === "postmarket" ? "after close" : "";
+    const epsExp = sc?.eps_estimate ?? sc?.next_eps_estimate ?? null;
+    const revExp = sc?.revenue_estimate ?? sc?.next_revenue_estimate ?? null;
     return {
       state,
       value: days < 0 ? "Reported" : days === 0 ? "Today" : `${days} day${days === 1 ? "" : "s"}`,
       meta: `Next report: ${dateLabel}${timeLabel ? ` (${timeLabel})` : ""}`,
-      detail: { days, dateLabel, timeLabel, impMove30 },
+      detail: { days, dateLabel, timeLabel, impMove30, epsExp, revExp },
     };
   })();
 
@@ -238,21 +274,109 @@ function SignalIntelligenceRail({
           ))}
         </div>
       )} />
-      <SignalCard title="Unusual Flow" {...flowTile} ragColor={ragColor} renderDetail={detail => (
-        <div style={{display:"flex",flexDirection:"column",gap:6,fontSize:12}}>
-          {detail.cBuy > 0 && <FlowRow label="Congress · BUY" count={detail.cBuy} positive scrollToSection={scrollToSection}/>}
-          {detail.cSell > 0 && <FlowRow label="Congress · SELL" count={detail.cSell} positive={false} scrollToSection={scrollToSection}/>}
-          {detail.iBuy > 0 && <FlowRow label="Insider · BUY" count={detail.iBuy} positive scrollToSection={scrollToSection}/>}
-          {detail.iSell > 0 && <FlowRow label="Insider · SELL" count={detail.iSell} positive={false} scrollToSection={scrollToSection}/>}
-          {detail.fCall > 0 && <FlowRow label="Calls · sweep" count={detail.fCall} positive scrollToSection={scrollToSection}/>}
-          {detail.fPut > 0 && <FlowRow label="Puts · sweep" count={detail.fPut} positive={false} scrollToSection={scrollToSection}/>}
-          {detail.dp > 0 && <FlowRow label="Dark pool prints" count={detail.dp} elevated scrollToSection={scrollToSection}/>}
-          {detail.total === 0 && <span style={{color:"var(--text-muted)"}}>No flow events in the last scan window.</span>}
-        </div>
-      )} />
+      <SignalCard title="Unusual Flow" {...flowTile} ragColor={ragColor} renderDetail={detail => {
+        if (detail.total === 0) return <span style={{fontSize:12,color:"var(--text-muted)"}}>No flow events in the last scan window.</span>;
+        const fmtMoney = v => {
+          const n = Number(v);
+          if (!Number.isFinite(n) || n === 0) return null;
+          if (Math.abs(n) >= 1e6) return `$${(n/1e6).toFixed(1)}M`;
+          if (Math.abs(n) >= 1e3) return `$${(n/1e3).toFixed(0)}K`;
+          return `$${n.toFixed(0)}`;
+        };
+        const fmtDate = d => {
+          if (!d) return "";
+          const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
+          return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        };
+        const Section = ({ label, children }) => (
+          <div style={{marginTop:8}}>
+            <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:5}}>{label}</div>
+            {children}
+          </div>
+        );
+        const Row = ({ who, what, amt, sign }) => {
+          const c = sign === "pos" ? "var(--green-text, #1a8c39)"
+                  : sign === "neg" ? "var(--red-text, #c8302a)"
+                  : "var(--text)";
+          return (
+            <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8,alignItems:"baseline",fontSize:12,padding:"3px 0"}}>
+              <span style={{color:"var(--text-2)",lineHeight:1.4}}>
+                <span style={{fontWeight:600,color:"var(--text)"}}>{who}</span>
+                {what ? <span style={{color:"var(--text-muted)"}}> · {what}</span> : null}
+              </span>
+              <span style={{fontFamily:"var(--font-mono)",fontWeight:600,color:c,whiteSpace:"nowrap"}}>{amt}</span>
+            </div>
+          );
+        };
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:0,fontSize:12}}>
+            {(detail.cBuys.length > 0 || detail.cSells.length > 0) && (
+              <Section label="Congress">
+                {detail.cBuys.slice(0,3).map((r,i)=>(
+                  <Row key={"cb"+i} who={r.reporter || r.name}
+                       what={`BUY · ${r.amounts || ""} · ${fmtDate(r.transaction_date)}${r.member_type ? " · " + r.member_type : ""}`.replace(/\s+·\s+·/g," ·").trim()}
+                       sign="pos" amt="↑ buy" />
+                ))}
+                {detail.cSells.slice(0,3).map((r,i)=>(
+                  <Row key={"cs"+i} who={r.reporter || r.name}
+                       what={`SELL · ${r.amounts || ""} · ${fmtDate(r.transaction_date)}${r.member_type ? " · " + r.member_type : ""}`.replace(/\s+·\s+·/g," ·").trim()}
+                       sign="neg" amt="↓ sell" />
+                ))}
+              </Section>
+            )}
+            {(detail.iBuys.length > 0 || detail.iSells.length > 0) && (
+              <Section label="Insider">
+                {detail.iBuys.slice(0,3).map((r,i)=>(
+                  <Row key={"ib"+i} who={r.insider_name || r.name || r.reporter || "Insider"}
+                       what={`Form 4 · BUY${r.shares ? " " + Number(r.shares).toLocaleString() + " sh" : ""}${r.price ? " @ $" + Number(r.price).toFixed(2) : ""}${r.transaction_date ? " · " + fmtDate(r.transaction_date) : ""}`}
+                       sign="pos" amt={fmtMoney(r.value || r.transaction_value || r.total_value) || "↑ buy"} />
+                ))}
+                {detail.iSells.slice(0,3).map((r,i)=>(
+                  <Row key={"is"+i} who={r.insider_name || r.name || r.reporter || "Insider"}
+                       what={`Form 4 · SELL${r.shares ? " " + Number(r.shares).toLocaleString() + " sh" : ""}${r.price ? " @ $" + Number(r.price).toFixed(2) : ""}${r.transaction_date ? " · " + fmtDate(r.transaction_date) : ""}`}
+                       sign="neg" amt={fmtMoney(r.value || r.transaction_value || r.total_value) || "↓ sell"} />
+                ))}
+              </Section>
+            )}
+            {(detail.fCalls.length > 0 || detail.fPuts.length > 0) && (
+              <Section label="Option flow">
+                {detail.fCalls.slice(0,3).map((r,i)=>(
+                  <Row key={"fc"+i}
+                       who={`${r.has_sweep ? "Sweep " : ""}${r.volume || ""} ${r.expiry ? fmtDate(r.expiry) : ""} ${r.strike || ""}C`.replace(/\s+/g," ").trim()}
+                       what={`${r.alert_rule || ""}${r.iv_end ? " · IV " + (Number(r.iv_end)*100).toFixed(0) + "%" : ""}`}
+                       sign="pos" amt={fmtMoney(r.total_premium) || "—"} />
+                ))}
+                {detail.fPuts.slice(0,3).map((r,i)=>(
+                  <Row key={"fp"+i}
+                       who={`${r.has_sweep ? "Sweep " : ""}${r.volume || ""} ${r.expiry ? fmtDate(r.expiry) : ""} ${r.strike || ""}P`.replace(/\s+/g," ").trim()}
+                       what={`${r.alert_rule || ""}${r.iv_end ? " · IV " + (Number(r.iv_end)*100).toFixed(0) + "%" : ""}`}
+                       sign="neg" amt={fmtMoney(r.total_premium) || "—"} />
+                ))}
+              </Section>
+            )}
+            {detail.dp.length > 0 && (
+              <Section label="Dark pool prints">
+                {detail.dp.slice(0,3).map((r,i)=>(
+                  <Row key={"dp"+i}
+                       who={`${Number(r.size || 0).toLocaleString()} sh @ $${Number(r.price).toFixed(2)}`}
+                       what={`${r.executed_at ? fmtDate(r.executed_at) : ""}${r.market_center ? " · venue " + r.market_center : ""}`}
+                       sign="neutral" amt={fmtMoney(r.premium) || "—"} />
+                ))}
+              </Section>
+            )}
+          </div>
+        );
+      }} />
       <SignalCard title="Earnings & Events" {...earningsTile} ragColor={ragColor} renderDetail={detail => detail && (
         <div style={{display:"flex",flexDirection:"column",gap:8,fontSize:12,color:"var(--text-2)",lineHeight:1.5}}>
           <div>Next earnings: <b>{detail.dateLabel}</b>{detail.timeLabel ? ` · ${detail.timeLabel}` : ""}{detail.days > 0 ? ` · in ${detail.days} day${detail.days === 1 ? "" : "s"}` : ""}.</div>
+          {(detail.epsExp != null || detail.revExp != null) && (
+            <div>
+              {detail.epsExp != null && <span>Consensus EPS <b>${Number(detail.epsExp).toFixed(2)}</b></span>}
+              {detail.epsExp != null && detail.revExp != null && <span> · </span>}
+              {detail.revExp != null && <span>Rev <b>${(Number(detail.revExp)/1e9).toFixed(2)}B</b></span>}
+            </div>
+          )}
           {detail.impMove30 != null && <div>30-day implied move: <b>±{Number(detail.impMove30).toFixed(1)}%</b> (priced from at-the-money options).</div>}
         </div>
       )} />
@@ -1138,8 +1262,11 @@ return(
   composite={composite}
   tech={tech}
   scanData={scanData}
+  sc={sc}
   macroLatest={macroLatest}
   v9Alloc={v9Alloc}
+  riskMetrics={_riskMetrics}
+  heldIn={heldIn}
   sector={sector}
   isFund={isFund}
   congressBuys={congressBuys}
