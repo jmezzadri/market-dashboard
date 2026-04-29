@@ -66,7 +66,7 @@ jobs:
             SH=${SLOT%:*}; SM=${SLOT#*:}
             SH=${SH#0}; SM=${SM#0}
             SLOT_START=$(( SH * 60 + SM ))
-            SLOT_END=$(( SLOT_START + 14 ))
+            SLOT_END=$(( SLOT_START + 49 ))   # widened from 15min to 50min — see PR #284 + LESSONS rule #32 for cron-drift context
             if [ "$MINS" -ge "$SLOT_START" ] && [ "$MINS" -le "$SLOT_END" ]; then
               HIT="$SLOT"
               break
