@@ -472,7 +472,93 @@ function Field({ label, value }) {
 }
 
 
-export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,macroLatest,v9Alloc}){
+
+
+// ============================================================================
+// ActionRow — Phase 4b PR-F
+// Closes the modal-left column with the four primary actions:
+//   - Buy / add        → opens PositionEditor in "add" mode (prefilled ticker)
+//   - Edit position    → opens PositionEditor in "edit" mode (held row)
+//   - Watchlist toggle → uses the existing add/remove handlers
+//   - Open in Scanner  → navigates to /#scanner with the modal closed
+// "Set stop alert" is queued — needs backend alert table + cron + notifications.
+// ============================================================================
+function ActionRow({
+  ticker, heldIn, portfolioAuthed, onUserWatchlist, removeFromWatchlist, wlBusy,
+  onOpenAddPosition, onOpenEditPosition, onOpenScanner, onClose,
+}) {
+  const heldRow = heldIn?.[0]?.p || null;
+  const owns = heldIn && heldIn.length > 0;
+
+  const btnBase = {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 6,
+    padding: "8px 14px",
+    fontFamily: "var(--font-mono)",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    border: "1px solid var(--border)",
+    borderRadius: "var(--radius-xs, 6px)",
+    background: "var(--surface-solid, var(--paper, #fff))",
+    color: "var(--text)",
+    cursor: "pointer",
+    transition: "all 0.12s ease",
+  };
+  const btnPrimary = {
+    ...btnBase,
+    background: "var(--accent, #0071e3)",
+    border: "1px solid var(--accent, #0071e3)",
+    color: "var(--surface-solid, #fff)",
+  };
+  const btnDanger = {
+    ...btnBase,
+    color: "var(--red-text, #c8302a)",
+    border: "1px solid rgba(200,48,42,0.35)",
+  };
+
+  return (
+    <div style={{
+      marginTop: "var(--space-4)",
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 10,
+      paddingTop: "var(--space-4)",
+      borderTop: "1px solid var(--border-faint)",
+    }}>
+      {portfolioAuthed && (
+        owns
+          ? <button type="button" onClick={()=>onOpenEditPosition?.(heldRow)} style={btnPrimary}>
+              Edit position
+            </button>
+          : <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnPrimary}>
+              + Add position
+            </button>
+      )}
+      {portfolioAuthed && owns && (
+        <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnBase}>
+          + Add to another account
+        </button>
+      )}
+      {portfolioAuthed && onUserWatchlist && (
+        <button type="button" onClick={removeFromWatchlist} disabled={wlBusy} style={btnDanger}>
+          {wlBusy ? "…" : "− Remove from watchlist"}
+        </button>
+      )}
+      <button type="button" onClick={()=>onOpenScanner?.(ticker)} style={btnBase}>
+        Open in Scanner →
+      </button>
+      <button type="button" onClick={onClose} style={{...btnBase, marginLeft:"auto", color:"var(--text-muted)"}}>
+        Close
+      </button>
+    </div>
+  );
+}
+
+
+export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,macroLatest,v9Alloc,onOpenAddPosition,onOpenEditPosition,onOpenScanner}){
 const [descExpanded,setDescExpanded]=useState(false);
 const [wlBusy,setWlBusy]=useState(false);
 const [wlError,setWlError]=useState(null);
@@ -1353,6 +1439,23 @@ Scan: {scanData?.date_label||"—"} · Data from latest scanner run
     LESSONS rule #29: stateful disclosure (no <details>); LESSONS
     rule #30: every value reads from live data. */}
 <DeepDiveTabs deepDive={deepDive} ticker={ticker}/>
+
+{/* ── ACTION ROW — Phase 4b PR-F. Closes out the modal-left column.
+    Wires to existing flows: Add Position editor, Edit Position editor,
+    watchlist remove, Scanner deep-dive. 'Set stop alert' is queued as
+    its own track — needs a backend alert table + cron + notifications. */}
+<ActionRow
+  ticker={ticker}
+  heldIn={heldIn}
+  portfolioAuthed={portfolioAuthed}
+  onUserWatchlist={onUserWatchlist}
+  removeFromWatchlist={removeFromWatchlist}
+  wlBusy={wlBusy}
+  onOpenAddPosition={onOpenAddPosition}
+  onOpenEditPosition={onOpenEditPosition}
+  onOpenScanner={onOpenScanner}
+  onClose={onClose}
+/>
 
 </div>
 <aside className="modal-rail" style={{minWidth:0,paddingLeft:"var(--space-2)",borderLeft:"1px solid var(--border-faint)"}}>
