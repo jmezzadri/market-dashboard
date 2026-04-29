@@ -86,7 +86,7 @@ async function fetchHistory({ ticker, period, from, to }) {
   return r.json();
 }
 
-export default function HistoricalChart({ ticker, defaultPeriod = "1y", height = 280, sector, accounts, watchlistRows }) {
+export default function HistoricalChart({ ticker, defaultPeriod = "1y", height = 280, sector, accounts, watchlistRows, nextEarnDate, dividends, splits }) {
   const [period, setPeriod]       = useState(defaultPeriod);
   const [fromDate, setFromDate]   = useState("");
   const [toDate, setToDate]       = useState("");
@@ -95,6 +95,29 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
   const [compInput, setCompInput] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerFilter, setPickerFilter] = useState("");
+
+  // ─── Customize chart state — collapsed-by-default panel (PR-D2) ───
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+  const DEFAULT_OVERLAYS = { ma50: true, ma200: true, bollinger: false };
+  const DEFAULT_SUBPANES = { rsi: false, volume: false };
+  const DEFAULT_MARKERS  = { earnings: false, dividends: false, splits: false };
+  const DEFAULT_DISPLAY  = { crosshair: true, logScale: false };
+  const [overlays, setOverlays] = useState(DEFAULT_OVERLAYS);
+  const [subPanes, setSubPanes] = useState(DEFAULT_SUBPANES);
+  const [markers, setMarkers] = useState(DEFAULT_MARKERS);
+  const [display, setDisplay] = useState(DEFAULT_DISPLAY);
+
+  const activeCount = Object.values(overlays).filter(Boolean).length
+                    + Object.values(subPanes).filter(Boolean).length
+                    + Object.values(markers).filter(Boolean).length
+                    + Object.values(display).filter(Boolean).length;
+
+  const resetToClean = () => {
+    setOverlays(DEFAULT_OVERLAYS);
+    setSubPanes(DEFAULT_SUBPANES);
+    setMarkers(DEFAULT_MARKERS);
+    setDisplay(DEFAULT_DISPLAY);
+  };
 
   // seriesData: { TICKER: [{d,c,...}, ...] }
   const [seriesData, setSeriesData] = useState({});
@@ -171,6 +194,65 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
     });
     return out;
   }, [seriesData, ticker, comparators]);
+
+  // ─── Indicator computations — derived from primary ticker's prices (PR-D2) ───
+  const primaryPrices = seriesData[ticker]?.prices || [];
+  const sma = (arr, period) => {
+    const out = new Array(arr.length).fill(null);
+    let sum = 0;
+    for (let i = 0; i < arr.length; i++) {
+      sum += arr[i];
+      if (i >= period) sum -= arr[i - period];
+      if (i >= period - 1) out[i] = sum / period;
+    }
+    return out;
+  };
+  const closes = useMemo(() => primaryPrices.map(p => p.c), [primaryPrices]);
+  const volumes = useMemo(() => primaryPrices.map(p => p.v || 0), [primaryPrices]);
+  const sma50 = useMemo(() => sma(closes, 50), [closes]);
+  const sma200 = useMemo(() => sma(closes, 200), [closes]);
+  const bollinger = useMemo(() => {
+    const period = 20, k = 2;
+    const ma = sma(closes, period);
+    const upper = new Array(closes.length).fill(null);
+    const lower = new Array(closes.length).fill(null);
+    for (let i = period - 1; i < closes.length; i++) {
+      const slice = closes.slice(i - period + 1, i + 1);
+      const mean = ma[i];
+      const variance = slice.reduce((acc, v) => acc + (v - mean) ** 2, 0) / period;
+      const sd = Math.sqrt(variance);
+      upper[i] = mean + k * sd;
+      lower[i] = mean - k * sd;
+    }
+    return { upper, lower, mid: ma };
+  }, [closes]);
+  const rsi14 = useMemo(() => {
+    const period = 14;
+    const out = new Array(closes.length).fill(null);
+    if (closes.length <= period) return out;
+    let gain = 0, loss = 0;
+    for (let i = 1; i <= period; i++) {
+      const ch = closes[i] - closes[i - 1];
+      if (ch >= 0) gain += ch; else loss -= ch;
+    }
+    let avgGain = gain / period, avgLoss = loss / period;
+    out[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+    for (let i = period + 1; i < closes.length; i++) {
+      const ch = closes[i] - closes[i - 1];
+      const g = ch >= 0 ? ch : 0;
+      const l = ch < 0 ? -ch : 0;
+      avgGain = (avgGain * (period - 1) + g) / period;
+      avgLoss = (avgLoss * (period - 1) + l) / period;
+      out[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + avgGain / avgLoss));
+    }
+    return out;
+  }, [closes]);
+  const dateToIdx = useMemo(() => {
+    const m = new Map();
+    primaryPrices.forEach((p, i) => m.set(p.d, i));
+    return m;
+  }, [primaryPrices]);
+
 
   // Axis mode — switches what the y-axis shows based on context.
   //   "price"  : single ticker, real dollar prices (no rebase confusion)
@@ -599,6 +681,75 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
               <path key={s.ticker} d={path} fill="none" stroke={s.color} strokeWidth="1.6" />
             );
           })}
+
+          {/* Indicator overlays — render on the primary ticker only, in PRICE
+              mode only. Compare mode (% change) skips them. */}
+          {axisMode === "price" && primaryPrices.length > 0 && (
+            <>
+              {overlays.ma50 && (
+                <path
+                  d={primaryPrices.map((p, i) => sma50[i] != null
+                    ? `${i===0||sma50[i-1]==null?"M":"L"} ${xToPx(i).toFixed(2)} ${yToPx(sma50[i]).toFixed(2)}`
+                    : null
+                  ).filter(Boolean).join(" ")}
+                  fill="none" stroke="var(--accent)" strokeWidth="1.2" opacity="0.7"
+                />
+              )}
+              {overlays.ma200 && (
+                <path
+                  d={primaryPrices.map((p, i) => sma200[i] != null
+                    ? `${sma200[i-1]==null?"M":"L"} ${xToPx(i).toFixed(2)} ${yToPx(sma200[i]).toFixed(2)}`
+                    : null
+                  ).filter(Boolean).join(" ")}
+                  fill="none" stroke="var(--text-dim)" strokeWidth="1.2" opacity="0.6" strokeDasharray="3 3"
+                />
+              )}
+              {overlays.bollinger && (
+                <>
+                  <path
+                    d={primaryPrices.map((p, i) => bollinger.upper[i] != null
+                      ? `${bollinger.upper[i-1]==null?"M":"L"} ${xToPx(i).toFixed(2)} ${yToPx(bollinger.upper[i]).toFixed(2)}`
+                      : null
+                    ).filter(Boolean).join(" ")}
+                    fill="none" stroke="#8a3ed1" strokeWidth="1" opacity="0.55"
+                  />
+                  <path
+                    d={primaryPrices.map((p, i) => bollinger.lower[i] != null
+                      ? `${bollinger.lower[i-1]==null?"M":"L"} ${xToPx(i).toFixed(2)} ${yToPx(bollinger.lower[i]).toFixed(2)}`
+                      : null
+                    ).filter(Boolean).join(" ")}
+                    fill="none" stroke="#8a3ed1" strokeWidth="1" opacity="0.55"
+                  />
+                </>
+              )}
+            </>
+          )}
+
+          {/* Event markers on the price line — only when in price mode. */}
+          {axisMode === "price" && primaryPrices.length > 0 && (
+            <>
+              {markers.earnings && nextEarnDate && (() => {
+                const idx = dateToIdx.get(String(nextEarnDate).slice(0,10));
+                if (idx == null || primaryPrices[idx] == null) return null;
+                const cx = xToPx(idx), cy = yToPx(primaryPrices[idx].c);
+                return <polygon points={`${cx},${cy-6} ${cx+5},${cy} ${cx},${cy+6} ${cx-5},${cy}`}
+                                fill="var(--gold, #c89834)" stroke="var(--surface-solid)" strokeWidth="1.5"/>;
+              })()}
+              {markers.dividends && (dividends || []).map((d, i) => {
+                const idx = dateToIdx.get(String(d.ex_dividend_date).slice(0,10));
+                if (idx == null || primaryPrices[idx] == null) return null;
+                const cx = xToPx(idx), cy = yToPx(primaryPrices[idx].c) + 14;
+                return <circle key={"div"+i} cx={cx} cy={cy} r="3.5" fill="var(--accent)" stroke="var(--surface-solid)" strokeWidth="1.5"/>;
+              })}
+              {markers.splits && (splits || []).map((s, i) => {
+                const idx = dateToIdx.get(String(s.execution_date).slice(0,10));
+                if (idx == null || primaryPrices[idx] == null) return null;
+                const cx = xToPx(idx), cy = yToPx(primaryPrices[idx].c) - 14;
+                return <polygon key={"spl"+i} points={`${cx},${cy-5} ${cx+5},${cy+3} ${cx-5},${cy+3}`}
+                                fill="var(--gold, #c89834)" stroke="var(--surface-solid)" strokeWidth="1.5"/>;
+              })}
+            </>
+          )}
 
           {/* X-axis date labels (3 ticks: start, middle, end) */}
           {allDates.length > 0 && [0, Math.floor(allDates.length/2), allDates.length-1].map(i => (
