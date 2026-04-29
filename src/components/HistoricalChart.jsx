@@ -86,7 +86,7 @@ async function fetchHistory({ ticker, period, from, to }) {
   return r.json();
 }
 
-export default function HistoricalChart({ ticker, defaultPeriod = "1y", height = 280, sector }) {
+export default function HistoricalChart({ ticker, defaultPeriod = "1y", height = 280, sector, accounts, watchlistRows }) {
   const [period, setPeriod]       = useState(defaultPeriod);
   const [fromDate, setFromDate]   = useState("");
   const [toDate, setToDate]       = useState("");
@@ -341,6 +341,33 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
             const matchesFilt = (t, n) => !filt || t.includes(filt) || (n||"").toUpperCase().includes(filt);
             const indexes = PICKER_INDEXES.filter(({ticker:t,name}) => t !== ticker && !comparators.includes(t) && matchesFilt(t,name));
             const peersFiltered = peers.filter(t => matchesFilt(t,""));
+            // Held + watchlist tickers — Joe should be able to compare against
+            // anything he holds or watches without typing the full ticker.
+            const heldTickers = new Set();
+            (accounts || []).forEach(a => (a.positions || []).forEach(p => {
+              if (p.ticker && p.ticker !== "CASH") heldTickers.add(p.ticker);
+            }));
+            const wlTickers = new Set();
+            (watchlistRows || []).forEach(w => {
+              if (w.ticker) wlTickers.add(w.ticker);
+            });
+            const userTickers = [...heldTickers, ...wlTickers]
+              .filter(t => t !== ticker && !comparators.includes(t)
+                       && !peers.includes(t)
+                       && !PICKER_INDEXES.some(p => p.ticker === t)
+                       && matchesFilt(t, ""));
+            // Free-text fallback — if the user typed something and nothing
+            // in the curated lists matched, offer it as a 'try anyway' row.
+            // The chart fetch will fail gracefully if the symbol does not
+            // exist on Yahoo.
+            const freeTextRow = filt && filt.length >= 1 && filt.length <= 6
+              && /^[A-Z][A-Z0-9.\-]*$/.test(filt)
+              && filt !== ticker
+              && !comparators.includes(filt)
+              && !peers.includes(filt)
+              && !PICKER_INDEXES.some(p => p.ticker === filt)
+              && !heldTickers.has(filt) && !wlTickers.has(filt)
+              ? filt : null;
             const pick = (t) => {
               if (comparators.length >= 3) return;
               setComparators([...comparators, t]);
@@ -409,9 +436,51 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
                     ))}
                   </>
                 )}
-                {peersFiltered.length === 0 && indexes.length === 0 && (
+                {userTickers.length > 0 && (
+                  <>
+                    <div style={{
+                      fontFamily:"var(--font-mono)", fontSize:9.5, fontWeight:600,
+                      textTransform:"uppercase", letterSpacing:"0.14em",
+                      color:"var(--text-dim)", padding:"10px 6px 4px",
+                    }}>Your holdings & watchlist</div>
+                    {userTickers.map(t => (
+                      <div key={t} onClick={()=>pick(t)} style={{
+                        display:"flex", justifyContent:"space-between", alignItems:"center",
+                        padding:"6px 8px", cursor:"pointer", borderRadius:4,
+                        fontFamily:"var(--font-mono)", fontSize:12,
+                      }}
+                      onMouseEnter={e=>{e.currentTarget.style.background="var(--hover, rgba(0,0,0,0.04))";}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                        <span style={{fontWeight:600,color:"var(--text)"}}>{t}</span>
+                        <span style={{color:"var(--text-muted)",fontSize:11}}>
+                          {heldTickers.has(t) ? "owned" : "watching"}
+                        </span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {freeTextRow && (
+                  <>
+                    <div style={{
+                      fontFamily:"var(--font-mono)", fontSize:9.5, fontWeight:600,
+                      textTransform:"uppercase", letterSpacing:"0.14em",
+                      color:"var(--text-dim)", padding:"10px 6px 4px",
+                    }}>Try this ticker</div>
+                    <div onClick={()=>pick(freeTextRow)} style={{
+                      display:"flex", justifyContent:"space-between", alignItems:"center",
+                      padding:"6px 8px", cursor:"pointer", borderRadius:4,
+                      fontFamily:"var(--font-mono)", fontSize:12,
+                    }}
+                    onMouseEnter={e=>{e.currentTarget.style.background="var(--hover, rgba(0,0,0,0.04))";}}
+                    onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                      <span style={{fontWeight:600,color:"var(--text)"}}>{freeTextRow}</span>
+                      <span style={{color:"var(--text-muted)",fontSize:11}}>add anyway</span>
+                    </div>
+                  </>
+                )}
+                {peersFiltered.length === 0 && indexes.length === 0 && userTickers.length === 0 && !freeTextRow && (
                   <div style={{padding:"8px 10px",color:"var(--text-muted)",fontSize:12}}>
-                    No matches. Try SPY, QQQ, AMD, AVGO, etc.
+                    Type a ticker symbol to add it to the chart.
                   </div>
                 )}
               </div>
