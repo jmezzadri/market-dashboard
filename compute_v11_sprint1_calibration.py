@@ -153,6 +153,424 @@ def latest(series: pd.Series) -> tuple[str, float]:
 
 
 # =============================================================================
+# Per-indicator enrichment — KPIs, episodes, co-movement, release calendar
+# =============================================================================
+
+# Cache of underlying monthly series, populated as each indicator is built.
+# Keyed by indicator id. Used by enrich_all_indicators() at the end of main().
+SERIES_CACHE: dict = {}
+
+# Cache for SPX monthly closes (loaded once, used for episode forward-returns).
+SPX_MONTHLY: pd.Series | None = None
+
+
+def _ensure_spx_monthly() -> pd.Series:
+    """Lazy-load SPX month-end closes for forward-return math."""
+    global SPX_MONTHLY
+    if SPX_MONTHLY is not None:
+        return SPX_MONTHLY
+    try:
+        df = yf.download("^GSPC", start="1970-01-01", progress=False, auto_adjust=True)
+        s = df["Close"]
+        if isinstance(s, pd.DataFrame):
+            s = s.iloc[:, 0]
+        s = s.dropna().sort_index()
+        s.index = pd.DatetimeIndex(s.index).tz_localize(None).normalize()
+        SPX_MONTHLY = s.resample("ME").last().dropna()
+        SPX_MONTHLY.index = SPX_MONTHLY.index.normalize()
+    except Exception as e:
+        print(f"  [warn] SPX monthly load failed: {e}", file=sys.stderr)
+        SPX_MONTHLY = pd.Series(dtype=float)
+    return SPX_MONTHLY
+
+
+def _spx_forward_return(spx_m: pd.Series, start_dt: pd.Timestamp, months: int) -> float | None:
+    """Return %-return on SPX from start_dt to start_dt + months. None if out of sample."""
+    if spx_m is None or spx_m.empty:
+        return None
+    if start_dt > spx_m.index.max():
+        return None
+    idx_s = spx_m.index.get_indexer([start_dt], method="bfill")
+    if idx_s[0] < 0:
+        return None
+    end_target = start_dt + pd.DateOffset(months=months)
+    idx_e = spx_m.index.get_indexer([end_target], method="bfill")
+    if idx_e[0] < 0 or idx_e[0] >= len(spx_m):
+        return None
+    p0 = float(spx_m.iloc[idx_s[0]])
+    p1 = float(spx_m.iloc[idx_e[0]])
+    return (p1 / p0 - 1) * 100
+
+
+def compute_kpis(series: pd.Series, unit: str = "ratio") -> list[dict]:
+    """Build the 4-tile KPI strip for the indicator drawer:
+    1-month change, 3-month change, 1-year change, distance from sample peak.
+
+    All windowing respects whatever sample the caller passes in. Returns a list
+    of dicts with: label, value, value_pct, sub, direction ('up'|'dn'|'flat')."""
+    s = series.dropna().sort_index()
+    if len(s) < 4:
+        return []
+    cur = float(s.iloc[-1])
+    out = []
+    for label, lookback in (("1-month change", 1), ("3-month change", 3), ("1-year change", 12)):
+        if len(s) <= lookback:
+            continue
+        past = float(s.iloc[-1 - lookback])
+        chg = cur - past
+        chg_pct = (chg / past * 100.0) if past != 0 else None
+        # 90-day moving average (rough proxy on monthly grid: trailing 3 months)
+        if lookback == 1 and len(s) >= 4:
+            avg3 = float(s.tail(3).mean()) - float(s.iloc[-4])
+        else:
+            avg3 = None
+        out.append({
+            "label": label,
+            "value": round(chg, 4),
+            "value_pct": round(chg_pct, 1) if chg_pct is not None else None,
+            "direction": "up" if chg > 0 else ("dn" if chg < 0 else "flat"),
+        })
+    peak = float(s.max())
+    peak_dt = s.idxmax().strftime("%Y-%m")
+    out.append({
+        "label": "Distance from peak",
+        "value": round(cur - peak, 4),
+        "peak_value": round(peak, 4),
+        "peak_date": peak_dt,
+        "direction": "dn" if cur < peak else "flat",
+    })
+    return out
+
+
+def compute_episodes(series_monthly: pd.Series,
+                     direction: str,
+                     spx_monthly: pd.Series,
+                     k: int = 3,
+                     limit: int = 5) -> list[dict]:
+    """Definition B (locked 2026-04-29 with Joe): episodes are 3-month-confirmed
+    entries into the indicator's 'concerning' zone (the quartile it currently sits
+    in, if extreme). On the monthly grid; quarterly indicators auto-pass via
+    forward-fill, daily are resampled to month-end first.
+
+    direction:
+      'high'         -> top quartile = concerning (e.g. CAPE, Buffett)
+      'low'          -> bottom quartile = concerning (e.g. ERP, ISM, BKX/SPX)
+      'bidir_top'    -> top quartile = concerning (used when current state is in top)
+      'bidir_bottom' -> bottom quartile = concerning (used when current state is in bottom)
+
+    Returns last `limit` episodes (most recent last) with SPX 6m / 12m forward
+    price-returns from the entry date. Forward-return language must use base
+    rates ('historical reference, not a forecast') in the UI per LESSONS #29.
+    """
+    s = series_monthly.dropna().sort_index()
+    if len(s) < 12:
+        return []
+    if direction in ("high", "bidir_top"):
+        threshold = float(s.quantile(0.75))
+        in_zone = s >= threshold
+        zone_label = "top quartile"
+    elif direction in ("low", "bidir_bottom"):
+        threshold = float(s.quantile(0.25))
+        in_zone = s <= threshold
+        zone_label = "bottom quartile"
+    else:
+        return []
+    out_dates: list[pd.Timestamp] = []
+    n = len(s)
+    i = 0
+    while i < n:
+        if bool(in_zone.iloc[i]):
+            j = i
+            while j < n and bool(in_zone.iloc[j]):
+                j += 1
+            run_len = j - i
+            if run_len >= k:
+                out_dates.append(s.index[i])
+            i = j
+        else:
+            i += 1
+    rows: list[dict] = []
+    # Take the last `limit` episodes (most recent first in display).
+    selected = out_dates[-limit:] if len(out_dates) > limit else out_dates
+    for d in selected:
+        v = float(s.loc[d])
+        r6 = _spx_forward_return(spx_monthly, d, 6)
+        r12 = _spx_forward_return(spx_monthly, d, 12)
+        rows.append({
+            "period": d.strftime("%Y-%m"),
+            "value": round(v, 4),
+            "spx_6m_pct": round(r6, 1) if r6 is not None else None,
+            "spx_12m_pct": round(r12, 1) if r12 is not None else None,
+            "zone": zone_label,
+        })
+    rows.reverse()  # Most recent first
+    # Sample-size disclosure for the UI
+    return rows
+
+
+def compute_comovement(anchor_id: str,
+                       anchor_series: pd.Series,
+                       cache: dict,
+                       framework_names: dict,
+                       top_n: int = 4) -> list[dict]:
+    """Pearson correlation on monthly first-differences, anchor vs every other
+    framework indicator in the cache. Reports BOTH 1-year and 5-year windows
+    side-by-side per Joe directive 2026-04-29.
+
+    Returns top_n peers ranked by abs(5-year correlation), with name (display),
+    corr_1y, corr_5y, n_1y, n_5y, and a short subtitle."""
+    a = anchor_series.dropna().sort_index()
+    if len(a) < 12:
+        return []
+    rows = []
+    for peer_id, peer_series in cache.items():
+        if peer_id == anchor_id:
+            continue
+        p = peer_series.dropna().sort_index()
+        if len(p) < 12:
+            continue
+        # Align on common dates and take first differences
+        df = pd.concat([a, p], axis=1).dropna()
+        if len(df) < 12:
+            continue
+        df.columns = ["a", "p"]
+        diffs = df.diff().dropna()
+        if len(diffs) < 6:
+            continue
+        # 1-year window
+        c1y = None
+        n1 = 0
+        if len(diffs) >= 12:
+            tail12 = diffs.tail(12)
+            std_a = float(tail12["a"].std())
+            std_p = float(tail12["p"].std())
+            if std_a > 1e-12 and std_p > 1e-12:
+                c1y = float(tail12.corr().iloc[0, 1])
+                n1 = len(tail12)
+        # 5-year window
+        c5y = None
+        n5 = 0
+        if len(diffs) >= 24:
+            tail60 = diffs.tail(60)
+            std_a = float(tail60["a"].std())
+            std_p = float(tail60["p"].std())
+            if std_a > 1e-12 and std_p > 1e-12:
+                c5y = float(tail60.corr().iloc[0, 1])
+                n5 = len(tail60)
+        if c1y is None and c5y is None:
+            continue
+        rows.append({
+            "peer_id": peer_id,
+            "peer_name": framework_names.get(peer_id, peer_id),
+            "corr_1y": round(c1y, 2) if c1y is not None else None,
+            "corr_5y": round(c5y, 2) if c5y is not None else None,
+            "n_1y": n1,
+            "n_5y": n5,
+        })
+    # Rank by |5y correlation|, fall back to |1y| if 5y missing
+    rows.sort(key=lambda r: -abs(r.get("corr_5y") if r.get("corr_5y") is not None else (r.get("corr_1y") or 0.0)))
+    return rows[:top_n]
+
+
+def compute_release_metadata(fred_id: str | None = None,
+                             frequency_hint: str = "Monthly",
+                             custom_source: str | None = None,
+                             source_url: str | None = None) -> dict:
+    """Best-effort release-calendar payload for the indicator drawer.
+    Tries FRED's series-info API first; falls back to caller-provided hints.
+
+    FRED's free API exposes last_updated but NOT a forward calendar — so
+    `next_release` is computed from the frequency hint and the last release date.
+    """
+    last_release = ""
+    frequency = frequency_hint
+    source_str = custom_source or (f"FRED: {fred_id}" if fred_id else "")
+    url_str = source_url or (f"https://fred.stlouisfed.org/series/{fred_id}" if fred_id else "")
+    if fred_id:
+        try:
+            info = FRED.get_series_info(fred_id)
+            freq = info.get("frequency_short") or info.get("frequency") or frequency_hint
+            frequency = str(freq).strip()
+            lu = info.get("last_updated") or ""
+            last_release = lu[:10] if lu else ""
+        except Exception:
+            pass
+    # Estimate the next release based on cadence
+    next_release = ""
+    if last_release:
+        try:
+            d = pd.Timestamp(last_release)
+            f = frequency.lower()
+            if "daily" in f or "d" == f:
+                next_release = (d + pd.Timedelta(days=1)).strftime("%Y-%m-%d") + " (T+1)"
+            elif "week" in f or "w" == f:
+                next_release = (d + pd.Timedelta(days=7)).strftime("%Y-%m-%d") + " (T+7)"
+            elif "month" in f or "m" == f:
+                next_release = (d + pd.DateOffset(months=1)).strftime("%Y-%m-%d") + " (~30d)"
+            elif "quarter" in f or "q" == f:
+                next_release = (d + pd.DateOffset(months=3)).strftime("%Y-%m-%d") + " (~quarterly)"
+            else:
+                next_release = ""
+        except Exception:
+            pass
+    return {
+        "frequency": frequency,
+        "last_release": last_release,
+        "next_release": next_release,
+        "source": source_str,
+        "source_url": url_str,
+    }
+
+
+def enrich_all_indicators(tiles: list[dict],
+                          framework_names: dict | None = None) -> None:
+    """Walk every live tile's indicators and inject:
+      * direction        — 'high' | 'low' | 'bidir_top' | 'bidir_bottom'
+      * kpis             — 4-tile KPI strip (1M / 3M / 1Y change + distance from peak)
+      * episodes         — last 5 entries into concerning zone with SPX 6m/12m
+      * comovement       — top 4 peers by |5y corr|, both 1y and 5y reported
+      * release          — frequency, last_release, next_release, source, url
+      * composite_score  — 0–100 concerning score (used for tile-composite share)
+
+    Reads the underlying monthly series from SERIES_CACHE. SPX monthly closes
+    are loaded once via _ensure_spx_monthly().
+    """
+    if framework_names is None:
+        framework_names = {}
+    spx_m = _ensure_spx_monthly()
+    for tile in tiles:
+        if not tile.get("live"):
+            continue
+        # Tile-level config
+        tile_id = tile.get("id")
+        tile_logic = (tile.get("rule") or {}).get("logic", "")
+        for ind in tile.get("indicators", []):
+            ind_id = ind.get("id")
+            series = SERIES_CACHE.get(ind_id)
+            if series is None or series.empty:
+                continue
+            s = series.dropna().sort_index()
+            # Determine direction (the quartile that is concerning for THIS indicator)
+            # Default rules per Sprint 1:
+            cur_pct = float(ind.get("percentile") or 0.0)
+            if "direction" in ind and ind["direction"]:
+                direction = ind["direction"]
+            else:
+                # Per-tile / per-indicator defaults
+                if tile_id == "valuation":
+                    if ind_id == "erp":
+                        direction = "low"
+                    else:
+                        direction = "high"
+                elif tile_id == "credit":
+                    # Bidirectional read on credit; pick the side based on current state
+                    if cur_pct >= 75:
+                        direction = "bidir_top"
+                    elif cur_pct <= 25:
+                        direction = "bidir_bottom"
+                    else:
+                        direction = "bidir_top"  # default; episodes still informative
+                elif tile_id == "growth":
+                    if ind_id in ("ism", "cfnai_3ma", "bkx_spx"):
+                        direction = "low"
+                    elif ind_id == "jobless":
+                        direction = "high"
+                    else:
+                        direction = "low"
+                else:
+                    direction = "high"
+            ind["direction"] = direction
+
+            # Concerning score 0–100 (used by composite-contribution row in drawer)
+            if direction in ("high", "bidir_top"):
+                ind["concerning_score"] = round(cur_pct)
+            elif direction in ("low", "bidir_bottom"):
+                ind["concerning_score"] = round(100 - cur_pct)
+            else:
+                ind["concerning_score"] = round(abs(cur_pct - 50) * 2)
+
+            # KPIs (frequency-neutral; uses monthly grid)
+            ind["kpis"] = compute_kpis(s, unit=ind.get("unit", "ratio"))
+
+            # Episodes — only meaningful when the indicator is in an extreme zone.
+            if cur_pct >= 75 or cur_pct <= 25 or direction in ("bidir_top", "bidir_bottom"):
+                ind["episodes"] = compute_episodes(s, direction, spx_m, k=3, limit=5)
+            else:
+                ind["episodes"] = []
+            # Sample-size disclosure for UI honesty (LESSONS rule #29: never
+            # frame as hit-rate or forecast)
+            ind["episodes_disclosure"] = (
+                f"Historical reference, not a forecast. Episodes are 3-month-confirmed entries "
+                f"into the {('top' if direction in ('high','bidir_top') else 'bottom')} quartile "
+                f"of {ind.get('sample_window','sample')}; SPX returns are price-only. "
+                f"Sample size is small — base-rate context only."
+            )
+
+            # Co-movement — top 4 framework peers (1y + 5y side-by-side)
+            ind["comovement"] = compute_comovement(
+                ind_id, s, SERIES_CACHE, framework_names, top_n=4
+            )
+
+            # Release calendar — derived from FRED metadata where possible
+            fred_id = ind.get("fred_id") or _guess_fred_id(ind_id)
+            ind["release"] = compute_release_metadata(
+                fred_id=fred_id,
+                frequency_hint=ind.get("frequency_hint", _default_frequency(ind_id)),
+                custom_source=ind.get("source"),
+                source_url=ind.get("source_url"),
+            )
+
+        # Re-compute tile composite (score-weighted) and stash both score and
+        # share map for the drawer (per Joe directive 2026-04-29: score-weighted
+        # with transparency).
+        live_inds = [i for i in tile.get("indicators", []) if i.get("concerning_score") is not None]
+        if live_inds:
+            scores = [int(i["concerning_score"]) for i in live_inds]
+            tile_composite = round(sum(scores) / len(scores))
+            score_sum = sum(scores) or 1
+            shares = []
+            for i in live_inds:
+                share = round((int(i["concerning_score"]) / score_sum) * 100.0, 1)
+                i["composite_share_pct"] = share
+                shares.append({"indicator_id": i.get("id"), "name": i.get("name"),
+                               "concerning_score": int(i["concerning_score"]),
+                               "share_pct": share})
+            tile["composite_score"] = tile_composite
+            tile["composite_breakdown"] = shares
+
+
+def _guess_fred_id(ind_id: str) -> str | None:
+    """Best-effort FRED series ID lookup for indicators built off FRED."""
+    return {
+        "ig_oas": "BAA",          # IG OAS is BAA - DGS10 derived; metadata via BAA
+        "hy_oas": "BAMLH0A0HYM2",
+        "hy_ig_ratio": "BAMLH0A0HYM2",
+        "buffett": "NCBCEL",
+        "erp": "DGS10",
+        "cfnai_3ma": "CFNAIMA3",
+        "jobless": "ICSA",
+        "ism": None,              # paid (or proxy)
+        "bkx_spx": None,          # derived from yfinance
+        "cape": None,             # multpl curated
+    }.get(ind_id)
+
+
+def _default_frequency(ind_id: str) -> str:
+    return {
+        "cape": "Monthly",
+        "erp": "Daily",
+        "buffett": "Quarterly",
+        "ig_oas": "Daily",
+        "hy_oas": "Daily",
+        "hy_ig_ratio": "Daily",
+        "cfnai_3ma": "Monthly",
+        "jobless": "Weekly",
+        "ism": "Monthly",
+        "bkx_spx": "Daily",
+    }.get(ind_id, "Monthly")
+
+
+# =============================================================================
 # Indicator loaders — Sprint 1
 # =============================================================================
 
@@ -197,6 +615,7 @@ def build_valuation_tile(existing: dict) -> dict:
     if not cape_series.empty:
         cur_dt, cur_val = latest(cape_series)
         pct = percentile_of(cape_series, cur_val)
+        SERIES_CACHE["cape"] = cape_series.resample("ME").last().dropna()
         indicators.append({
             "id": "cape",
             "name": "CAPE (Shiller)",
@@ -231,6 +650,7 @@ def build_valuation_tile(existing: dict) -> dict:
             erp = (1.0 / joined["cape"]) * 100 - joined["tnx"]  # percent points
             cur_dt, cur_val = latest(erp)
             pct = percentile_of(erp, cur_val)
+            SERIES_CACHE["erp"] = erp
             indicators.append({
                 "id": "erp",
                 "name": "Equity Risk Premium",
@@ -267,6 +687,12 @@ def build_valuation_tile(existing: dict) -> dict:
             buffett = (joined["ncbcel"] / (joined["gdp"] * 1000.0)) * 100.0
             cur_dt, cur_val = latest(buffett)
             pct = percentile_of(buffett, cur_val)
+            # Forward-fill quarterly to monthly for episode/comovement consistency
+            buffett_monthly = buffett.reindex(
+                pd.date_range(buffett.index.min(), buffett.index.max(), freq="ME"),
+                method="ffill"
+            )
+            SERIES_CACHE["buffett"] = buffett_monthly.dropna()
             indicators.append({
                 "id": "buffett",
                 "name": "Buffett Indicator",
@@ -363,6 +789,7 @@ def build_credit_tile(existing: dict) -> dict:
             ig_oas = (baa_m - dgs10_m).dropna() * 100  # basis points
             cur_dt, cur_val = latest(ig_oas)
             pct = percentile_of(ig_oas, cur_val)
+            SERIES_CACHE["ig_oas"] = ig_oas
             indicators.append({
                 "id": "ig_oas",
                 "name": "IG OAS (Baa − 10y)",
@@ -388,6 +815,7 @@ def build_credit_tile(existing: dict) -> dict:
             hy_oas_m = hy_oas.resample("ME").last().dropna()
             cur_dt, cur_val = latest(hy_oas_m)
             pct = percentile_of(hy_oas_m, cur_val)
+            SERIES_CACHE["hy_oas"] = hy_oas_m
             indicators.append({
                 "id": "hy_oas",
                 "name": "HY OAS",
@@ -424,6 +852,7 @@ def build_credit_tile(existing: dict) -> dict:
                 cur_dt = ratio_series.index[-1].strftime("%Y-%m-%d")
                 cur_val = float(ratio_series.iloc[-1])
                 pct = percentile_of(ratio_series, cur_val)
+                SERIES_CACHE["hy_ig_ratio"] = ratio_series
                 indicators.append({
                     "id": "hy_ig_ratio",
                     "name": "HY/IG ratio",
@@ -505,6 +934,9 @@ def build_growth_tile(existing: dict) -> dict:
         s = points_to_series(pts)
         if s.empty:
             return
+        # Resample to monthly grid for consistent episode/comovement math
+        s_monthly = s.resample("ME").last().dropna()
+        SERIES_CACHE[key] = s_monthly
         # z-score against full sample
         mean = s.mean()
         sd = s.std()
@@ -753,6 +1185,18 @@ def main():
     ]
 
     tiles = [valuation, credit, placeholders[0], growth, placeholders[1], placeholders[2]]
+
+    # Enrich every live indicator with the round-6 drawer field groups:
+    # KPIs, episodes (Definition B 3-month confirmation), comovement (1y + 5y
+    # side-by-side), release calendar, and composite contribution shares.
+    print("  enriching indicators (kpis / episodes / comovement / release / contribution)…")
+    framework_names: dict = {}
+    for tile in tiles:
+        for ind in tile.get("indicators", []) or []:
+            framework_names[ind.get("id")] = ind.get("name") or ind.get("id")
+    enrich_all_indicators(tiles, framework_names=framework_names)
+    print(f"    enriched {sum(len(t.get('indicators') or []) for t in tiles if t.get('live'))} indicators across {sum(1 for t in tiles if t.get('live'))} live tiles")
+
     gauge = headline_gauge(tiles)
 
     output = {
@@ -792,6 +1236,11 @@ def main():
         "build_meta": {
             "script": "compute_v11_sprint1_calibration.py",
             "framework_version": VERSION,
+            "schema_version": "v11.1.0",  # bumped: round-6 drawer fields wired
+            "round6_fields_present": True,
+            "episodes_definition": "B-3month-confirmation",
+            "comovement_windows": ["1y", "5y"],
+            "composite_share": "score-weighted-with-transparency",
             "lessons_rule_31_acknowledged": True,
         },
     }
