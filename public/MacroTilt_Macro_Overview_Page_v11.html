@@ -203,7 +203,7 @@
     user-select: none;
   }
   .dial-card.placeholder {
-    cursor: default;
+    cursor: pointer;
     opacity: 0.55;
   }
   .dial-card.placeholder:hover {
@@ -900,7 +900,9 @@ function renderDials() {
     card.type = "button";
     card.className = "surface dial-card" + (t.live ? " surface-interactive" : " placeholder");
     card.style.border = "0.5px solid var(--border-strong)";
-    if (t.live) card.addEventListener("click", () => openModal(t));
+    // Click handler for both live and placeholder cards. openModal() routes
+    // placeholders to a toast ("ships in Sprint N") and live tiles to the modal.
+    card.addEventListener("click", () => openModal(t));
     let inner = "";
     inner += `<span class="num-tag">${t.num}</span>`;
     if (t.live) inner += `<span class="click-arrow">›</span>`;
