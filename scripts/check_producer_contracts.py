@@ -56,7 +56,6 @@ CONTRACTS: dict = {
         "consumed_by": [
             "src/App.jsx Home Mission/Evidence strip (~L6440)",
             "src/pages/AssetAllocation.jsx",
-            "src/components/TickerDetailModal.jsx Asset Tilt rail tile (Phase 4b PR-C)",
         ],
         "required_top_level": [
             "as_of",
@@ -88,7 +87,6 @@ CONTRACTS: dict = {
             "src/App.jsx Home Macro lead-in",
             "src/pages/AssetAllocation.jsx timeline",
             "src/pages/TodayMacro.jsx chart",
-            "src/components/TickerDetailModal.jsx Macro Composite rail tile (Phase 4b PR-C)",
         ],
         "list_min_length": 100,
         # Each row must contain at least these keys.
@@ -130,6 +128,47 @@ CONTRACTS: dict = {
     "composite_event_markers.json": {
         "consumed_by": ["src/pages/TodayMacro.jsx event-study table"],
         "non_empty": True,
+    },
+
+    # v11 calibration — Cycle Mechanism Board (Asset Tilt page) + methodology
+    # page. Sprint 1 ships 3 live tiles (Valuation / Credit / Growth) with the
+    # round-6 indicator drawer field groups (kpis, episodes, comovement,
+    # release, composite_breakdown). LESSONS rule #29: producer/consumer
+    # contract is binding.
+    "methodology_calibration_v11.json": {
+        "consumed_by": [
+            "src/pages/AssetAllocation.jsx (Cycle Mechanism Board)",
+            "src/pages/MethodologyPage.jsx (v11 methodology preview)",
+        ],
+        "required_top_level": [
+            "version",
+            "framework",
+            "as_of",
+            "lexicon",
+            "headline_gauge",
+            "tiles",
+            "ui_spec",
+            "build_meta",
+        ],
+        # Headline gauge fields the page reads
+        "required_non_null": [
+            "headline_gauge.n_elevated",
+            "headline_gauge.n_live",
+            "headline_gauge.verdict",
+            "headline_gauge.headline_sentence",
+            "build_meta.framework_version",
+            "build_meta.schema_version",
+        ],
+        # tiles is a list — at least 6 (3 live + 3 placeholders) and each
+        # live tile carries the round-6 enrichment fields per indicator.
+        "list_field": "tiles",
+        "list_field_min_length": 6,
+        # Schema for live tile indicators after round-6 enrichment.
+        "live_tile_indicator_required": [
+            "id", "name", "current", "percentile", "quartile",
+            "history", "kpis", "episodes", "comovement", "release",
+            "concerning_score", "composite_share_pct", "direction",
+        ],
     },
 }
 
@@ -219,6 +258,36 @@ def _check_one(filename: str, contract: dict, data) -> list[str]:
             out.append(f"  [{filename}] missing key '{path}' — breaks: {consumers}")
         elif val is None:
             out.append(f"  [{filename}] key '{path}' is null — breaks: {consumers}")
+
+    # Nested list-field min-length and per-row checks (used by the v11
+    # calibration contract — `tiles` is the list to validate).
+    list_field = contract.get("list_field")
+    if list_field:
+        list_data = data.get(list_field) if isinstance(data, dict) else None
+        if not isinstance(list_data, list):
+            out.append(f"  [{filename}] '{list_field}' is not a list — breaks: {consumers}")
+        else:
+            min_len = contract.get("list_field_min_length", 0)
+            if len(list_data) < min_len:
+                out.append(
+                    f"  [{filename}] '{list_field}' has {len(list_data)} entries "
+                    f"(need ≥ {min_len}) — breaks: {consumers}"
+                )
+            # Per-indicator round-6 enrichment audit on live tiles only.
+            ind_req = contract.get("live_tile_indicator_required") or []
+            if ind_req:
+                for tile in list_data:
+                    if not isinstance(tile, dict) or not tile.get("live"):
+                        continue
+                    for ind in tile.get("indicators", []) or []:
+                        if not isinstance(ind, dict):
+                            continue
+                        for k in ind_req:
+                            if k not in ind or ind.get(k) is None:
+                                out.append(
+                                    f"  [{filename}] live tile '{tile.get('id')}' indicator "
+                                    f"'{ind.get('id')}' missing/null '{k}' — breaks: {consumers}"
+                                )
 
     return out
 
