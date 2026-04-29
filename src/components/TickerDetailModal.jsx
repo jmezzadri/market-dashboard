@@ -21,6 +21,7 @@ import { normalizeTickerName } from "../lib/nameFormat";
 import { supabase } from "../lib/supabase";
 import useMassiveTickerInfo from "../hooks/useMassiveTickerInfo";
 import useStockRiskMetrics from "../hooks/useStockRiskMetrics";
+import useTickerDeepDive from "../hooks/useTickerDeepDive";
 import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 
 
@@ -305,6 +306,172 @@ function FlowRow({ label, count, positive, elevated, scrollToSection }) {
 }
 
 
+
+
+// ============================================================================
+// DeepDiveTabs — Phase 4b PR-E
+// Bottom-of-modal tabs for company-overview / dividend history / splits.
+// All values come from the live Supabase tables populated by the daily
+// MASSIVE-DAILY cron (Phase 1-3 of the data modernization).
+// ============================================================================
+function DeepDiveTabs({ deepDive, ticker }) {
+  const [tab, setTab] = useState("about");
+  const fmt$ = v => v == null ? "—" : `$${Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
+  const fmtMcap = v => {
+    if (v == null) return "—";
+    const n = Number(v);
+    if (n >= 1e12) return `$${(n/1e12).toFixed(2)}T`;
+    if (n >= 1e9)  return `$${(n/1e9).toFixed(2)}B`;
+    if (n >= 1e6)  return `$${(n/1e6).toFixed(0)}M`;
+    return `$${n.toLocaleString()}`;
+  };
+  const fmtDate = d => d ? new Date(String(d).slice(0,10) + "T00:00:00Z").toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"}) : "—";
+
+  const ref = deepDive.ref;
+  const divs = deepDive.dividends || [];
+  const spls = deepDive.splits || [];
+
+  // Frequency code → human ("4" = quarterly, "12" = monthly, "1" = annual, etc.)
+  const freqLabel = f => {
+    if (f == null) return "";
+    const n = Number(f);
+    if (n === 12) return "monthly";
+    if (n === 4) return "quarterly";
+    if (n === 2) return "semi-annual";
+    if (n === 1) return "annual";
+    return `${n}×/yr`;
+  };
+
+  const tabBtnStyle = (active) => ({
+    padding: "8px 14px",
+    background: "transparent",
+    border: "none",
+    borderBottom: active ? "2px solid var(--accent)" : "2px solid transparent",
+    color: active ? "var(--text)" : "var(--text-muted)",
+    fontFamily: "var(--font-mono)",
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    cursor: "pointer",
+  });
+
+  return (
+    <div style={{
+      marginTop: "var(--space-4)",
+      background: "var(--surface-solid, var(--paper, #fff))",
+      border: "1px solid var(--border)",
+      borderRadius: "var(--radius-xs, 6px)",
+      overflow: "hidden",
+    }}>
+      <div style={{display:"flex",borderBottom:"1px solid var(--border-faint)",gap:0}}>
+        <button onClick={()=>setTab("about")} style={tabBtnStyle(tab==="about")}>About</button>
+        <button onClick={()=>setTab("dividends")} style={tabBtnStyle(tab==="dividends")}>
+          Dividend history{divs.length>0?` · ${divs.length}`:""}
+        </button>
+        <button onClick={()=>setTab("splits")} style={tabBtnStyle(tab==="splits")}>
+          Splits{spls.length>0?` · ${spls.length}`:""}
+        </button>
+      </div>
+
+      <div style={{padding:"16px 18px"}}>
+        {tab === "about" && (
+          deepDive.loading
+            ? <div style={{fontSize:13,color:"var(--text-muted)"}}>Loading company overview…</div>
+            : !ref
+              ? <div style={{fontSize:13,color:"var(--text-muted)"}}>No company overview on file for {ticker} yet. The daily backfill populates ~1,500 tickers per cycle; check back tomorrow.</div>
+              : (
+                <div style={{display:"grid",gridTemplateColumns:"1fr",gap:14}}>
+                  {ref.description && (
+                    <div style={{fontSize:13.5,color:"var(--text-2)",lineHeight:1.55,maxWidth:720}}>{ref.description}</div>
+                  )}
+                  <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))",gap:"10px 18px"}}>
+                    {ref.list_date && <Field label="Listed" value={fmtDate(ref.list_date)}/>}
+                    {ref.primary_exchange && <Field label="Exchange" value={ref.primary_exchange}/>}
+                    {(ref.address_city || ref.address_state) && <Field label="Headquarters" value={[ref.address_city, ref.address_state].filter(Boolean).join(", ")}/>}
+                    {ref.total_employees != null && <Field label="Employees" value={Number(ref.total_employees).toLocaleString()}/>}
+                    {ref.market_cap != null && <Field label="Market cap" value={fmtMcap(ref.market_cap)}/>}
+                    {ref.sic_description && <Field label="Industry" value={ref.sic_description}/>}
+                    {ref.share_class_shares_outstanding != null && <Field label="Shares out" value={Number(ref.share_class_shares_outstanding).toLocaleString()}/>}
+                    {ref.homepage_url && <Field label="Website" value={<a href={ref.homepage_url} target="_blank" rel="noopener noreferrer" style={{color:"var(--accent)",textDecoration:"none"}}>{ref.homepage_url.replace(/^https?:\/\//, "").replace(/\/$/, "")}</a>}/>}
+                  </div>
+                  <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
+                    Source: ticker_reference (Massive · Polygon){ref.ingested_at?` · refreshed ${fmtDate(ref.ingested_at)}`:""}
+                  </div>
+                </div>
+              )
+        )}
+        {tab === "dividends" && (
+          deepDive.loading
+            ? <div style={{fontSize:13,color:"var(--text-muted)"}}>Loading dividend history…</div>
+            : divs.length === 0
+              ? <div style={{fontSize:13,color:"var(--text-muted)"}}>No dividends on file for {ticker} in the most recent ingest window.</div>
+              : (
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12.5}}>
+                  <thead>
+                    <tr>
+                      {["Ex-date","Pay date","Cash","Frequency","Type"].map(h=>(
+                        <th key={h} style={{textAlign:"left",padding:"6px 8px",fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.08em",color:"var(--text-dim)",borderBottom:"1px solid var(--border-faint)"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {divs.map((d,i)=>(
+                      <tr key={d.ex_dividend_date+"_"+i} style={{borderBottom:"1px solid var(--border-faint)"}}>
+                        <td style={{padding:"7px 8px",fontFamily:"var(--font-mono)",color:"var(--text)"}}>{fmtDate(d.ex_dividend_date)}</td>
+                        <td style={{padding:"7px 8px",fontFamily:"var(--font-mono)",color:"var(--text-2)"}}>{fmtDate(d.pay_date)}</td>
+                        <td style={{padding:"7px 8px",fontFamily:"var(--font-mono)",fontWeight:600,color:"var(--text)"}}>{fmt$(d.cash_amount)}</td>
+                        <td style={{padding:"7px 8px",color:"var(--text-2)"}}>{freqLabel(d.frequency)}</td>
+                        <td style={{padding:"7px 8px",color:"var(--text-muted)"}}>{d.dividend_type || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+        )}
+        {tab === "splits" && (
+          deepDive.loading
+            ? <div style={{fontSize:13,color:"var(--text-muted)"}}>Loading splits…</div>
+            : spls.length === 0
+              ? <div style={{fontSize:13,color:"var(--text-muted)"}}>No splits on file for {ticker} in the most recent ingest window.</div>
+              : (
+                <table style={{width:"100%",borderCollapse:"collapse",fontSize:12.5}}>
+                  <thead>
+                    <tr>
+                      {["Effective date","Ratio"].map(h=>(
+                        <th key={h} style={{textAlign:"left",padding:"6px 8px",fontFamily:"var(--font-mono)",fontSize:10,textTransform:"uppercase",letterSpacing:"0.08em",color:"var(--text-dim)",borderBottom:"1px solid var(--border-faint)"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {spls.map((s,i)=>(
+                      <tr key={s.execution_date+"_"+i} style={{borderBottom:"1px solid var(--border-faint)"}}>
+                        <td style={{padding:"7px 8px",fontFamily:"var(--font-mono)",color:"var(--text)"}}>{fmtDate(s.execution_date)}</td>
+                        <td style={{padding:"7px 8px",fontFamily:"var(--font-mono)",fontWeight:600,color:"var(--text)"}}>
+                          {s.split_to}-for-{s.split_from}
+                          <span style={{marginLeft:8,color:"var(--text-muted)",fontWeight:400}}>{Number(s.split_to)>Number(s.split_from)?"forward":"reverse"}</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, value }) {
+  return (
+    <div>
+      <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",marginBottom:2}}>{label}</div>
+      <div style={{fontSize:13,color:"var(--text)",fontWeight:500}}>{value}</div>
+    </div>
+  );
+}
+
+
 export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,macroLatest,v9Alloc}){
 const [descExpanded,setDescExpanded]=useState(false);
 const [wlBusy,setWlBusy]=useState(false);
@@ -399,6 +566,7 @@ const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
 // populated by the daily Massive cron) is the floor. Falls through to
 // the legacy waterfall if both miss (very rare — only inactive tickers).
 const massiveInfo=useMassiveTickerInfo(ticker);
+const deepDive=useTickerDeepDive(ticker);
 const companyName=normalizeTickerName(sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||massiveInfo.name||ticker);
 // Legacy 0–100 score gauge retired — the modal now leads with the signal
 // composite (−100 → +100) so direction and strength read consistently.
@@ -1177,6 +1345,15 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
 <div style={{marginTop:"var(--space-2)",fontSize:10,color:"var(--text-dim)",fontFamily:"var(--font-mono)",textAlign:"right"}}>
 Scan: {scanData?.date_label||"—"} · Data from latest scanner run
 </div>
+
+{/* ── BOTTOM TABS — deep-dive content (About / Dividend history / Splits).
+    Phase 4b PR-E. About reads ticker_reference (Massive · Polygon
+    metadata); Dividend history and Splits read the corresponding
+    Supabase tables populated by the daily MASSIVE-DAILY cron.
+    LESSONS rule #29: stateful disclosure (no <details>); LESSONS
+    rule #30: every value reads from live data. */}
+<DeepDiveTabs deepDive={deepDive} ticker={ticker}/>
+
 </div>
 <aside className="modal-rail" style={{minWidth:0,paddingLeft:"var(--space-2)",borderLeft:"1px solid var(--border-faint)"}}>
 <SignalIntelligenceRail
