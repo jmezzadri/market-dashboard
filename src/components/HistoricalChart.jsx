@@ -36,6 +36,32 @@ const SERIES_COLORS = [
   "#a855f7",         // comparator 3 — purple
 ];
 
+// Picker presets — Phase 4b PR-D. Indexes always available; suggested peers
+// vary by the open ticker's sector.
+const PICKER_INDEXES = [
+  { ticker: "SPY",  name: "S&P 500" },
+  { ticker: "QQQ",  name: "Nasdaq-100" },
+  { ticker: "DIA",  name: "Dow Jones" },
+  { ticker: "RSP",  name: "S&P Equal-Weight" },
+  { ticker: "IWM",  name: "Russell 2000" },
+];
+const SUGGESTED_PEERS_BY_SECTOR = {
+  "Technology":            ["AAPL","MSFT","NVDA","AVGO","ORCL"],
+  "Information Technology":["AAPL","MSFT","NVDA","AVGO","ORCL"],
+  "Semiconductors":        ["NVDA","AMD","AVGO","TSM","INTC"],
+  "Consumer Discretionary":["AMZN","TSLA","HD","MCD","NKE"],
+  "Consumer Staples":      ["WMT","PG","KO","PEP","COST"],
+  "Communication Services":["GOOGL","META","NFLX","DIS","T"],
+  "Health Care":           ["UNH","JNJ","LLY","ABBV","PFE"],
+  "Financials":            ["JPM","BAC","WFC","V","MA"],
+  "Financial Services":    ["JPM","BAC","WFC","V","MA"],
+  "Energy":                ["XOM","CVX","COP","EOG","SLB"],
+  "Industrials":           ["CAT","UNH","HON","GE","BA"],
+  "Real Estate":           ["AMT","EQIX","PLD","SPG","O"],
+  "Utilities":             ["NEE","SO","DUK","AEP","EXC"],
+  "Materials":             ["LIN","SHW","FCX","NEM","ECL"],
+};
+
 function fmtDate(d) {
   if (!d) return "";
   // d is "YYYY-MM-DD" string
@@ -60,13 +86,15 @@ async function fetchHistory({ ticker, period, from, to }) {
   return r.json();
 }
 
-export default function HistoricalChart({ ticker, defaultPeriod = "1y", height = 280 }) {
+export default function HistoricalChart({ ticker, defaultPeriod = "1y", height = 280, sector }) {
   const [period, setPeriod]       = useState(defaultPeriod);
   const [fromDate, setFromDate]   = useState("");
   const [toDate, setToDate]       = useState("");
   const [useCustom, setUseCustom] = useState(false);
   const [comparators, setComparators] = useState([]);   // ["SPY", "QQQ"]
   const [compInput, setCompInput] = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerFilter, setPickerFilter] = useState("");
 
   // seriesData: { TICKER: [{d,c,...}, ...] }
   const [seriesData, setSeriesData] = useState({});
@@ -233,38 +261,146 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
           </>
         )}
 
-        {/* Compare input + chips */}
-        <div style={{ marginLeft: "auto", display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+        {/* Compare bar — Phase 4b PR-D v5 spec: pill chips for active overlays
+            + "+ Add ticker / index" picker with sector-aware suggested peers
+            and a fixed list of indexes. Replaces the free-text input. */}
+        <div style={{ marginLeft: "auto", display: "inline-flex", gap: 8, alignItems: "center", flexWrap: "wrap", position: "relative" }}>
+          <span style={{
+            fontFamily:"var(--font-mono)", fontSize:10, fontWeight:600,
+            textTransform:"uppercase", letterSpacing:"0.16em",
+            color:"var(--text-dim)", marginRight:2,
+          }}>Compare</span>
+
+          {/* Primary-ticker pill (cannot be removed) */}
+          <span style={{
+            display:"inline-flex", alignItems:"center", gap:6,
+            fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
+            background:"var(--surface-solid, var(--paper, #fff))",
+            border:"1px solid var(--border)",
+            color:"var(--text)",
+            padding:"4px 10px", borderRadius:14,
+          }}>
+            <span style={{display:"inline-block", width:10, height:2, borderRadius:1, background:SERIES_COLORS[0]}}/>
+            {ticker}
+          </span>
+
+          {/* Comparator pills */}
           {comparators.map((c, i) => (
             <span key={c} style={{
-              display: "inline-flex", alignItems: "center", gap: 4,
-              background: SERIES_COLORS[i+1] + "22",
-              border: `1px solid ${SERIES_COLORS[i+1]}55`,
-              color: SERIES_COLORS[i+1],
-              fontSize: 11, fontFamily: "var(--font-mono)", fontWeight: 600,
-              padding: "2px 6px", borderRadius: 3,
+              display:"inline-flex", alignItems:"center", gap:6,
+              fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
+              background:"var(--surface-solid, var(--paper, #fff))",
+              border:"1px solid var(--border)",
+              color:"var(--text)",
+              padding:"4px 6px 4px 10px", borderRadius:14,
             }}>
+              <span style={{display:"inline-block", width:10, height:2, borderRadius:1, background:SERIES_COLORS[i+1]}}/>
               {c}
-              <span onClick={() => removeComparator(c)} style={{cursor:"pointer", fontSize:13, lineHeight:1}}>×</span>
+              <span onClick={() => removeComparator(c)} style={{
+                cursor:"pointer", fontSize:13, lineHeight:1,
+                color:"var(--text-dim)", padding:"0 4px", borderRadius:"50%",
+              }}>×</span>
             </span>
           ))}
+
+          {/* "+ Add ticker / index" button → opens picker */}
           {comparators.length < 3 && (
-            <form onSubmit={addComparator} style={{display:"inline-flex", gap:4}}>
-              <input
-                type="text" value={compInput}
-                onChange={e => setCompInput(e.target.value.toUpperCase())}
-                placeholder="+ compare ticker"
-                style={{
-                  fontFamily:"var(--font-mono)", fontSize:11,
-                  padding:"3px 8px", width:120,
-                  border:"1px solid var(--border)", borderRadius:3,
-                  color:"var(--text)", background:"var(--surface)",
-                  textTransform:"uppercase",
-                }}
-                maxLength={10}
-              />
-            </form>
+            <button type="button" onClick={() => setPickerOpen(o => !o)} style={{
+              display:"inline-flex", alignItems:"center", gap:4,
+              fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
+              background:"transparent",
+              border:"1px dashed var(--border-strong, var(--border))",
+              color:"var(--text-muted)",
+              padding:"4px 12px", borderRadius:14,
+              cursor:"pointer",
+            }}>+ Add ticker / index</button>
           )}
+
+          {/* Picker dropdown */}
+          {pickerOpen && comparators.length < 3 && (() => {
+            const peers = (sector && SUGGESTED_PEERS_BY_SECTOR[sector])
+              ? SUGGESTED_PEERS_BY_SECTOR[sector].filter(t => t !== ticker && !comparators.includes(t))
+              : [];
+            const filt = pickerFilter.trim().toUpperCase();
+            const matchesFilt = (t, n) => !filt || t.includes(filt) || (n||"").toUpperCase().includes(filt);
+            const indexes = PICKER_INDEXES.filter(({ticker:t,name}) => t !== ticker && !comparators.includes(t) && matchesFilt(t,name));
+            const peersFiltered = peers.filter(t => matchesFilt(t,""));
+            const pick = (t) => {
+              if (comparators.length >= 3) return;
+              setComparators([...comparators, t]);
+              setPickerFilter("");
+              setPickerOpen(false);
+            };
+            return (
+              <div style={{
+                position:"absolute", top:"100%", right:0, marginTop:6,
+                background:"var(--surface-solid, var(--paper, #fff))",
+                border:"1px solid var(--border)",
+                borderRadius:"var(--radius-xs, 6px)",
+                boxShadow:"var(--shadow-md)",
+                width:280, zIndex:50, padding:8,
+              }} onClick={e=>e.stopPropagation()}>
+                <input
+                  type="text" value={pickerFilter}
+                  onChange={e=>setPickerFilter(e.target.value)}
+                  placeholder="Search ticker or index…"
+                  style={{
+                    width:"100%", border:"1px solid var(--border)", borderRadius:4,
+                    padding:"7px 10px", fontFamily:"var(--font-mono)", fontSize:12,
+                    background:"var(--surface)", color:"var(--text)", outline:"none",
+                    marginBottom:8,
+                  }}
+                  autoFocus
+                />
+                {peersFiltered.length > 0 && (
+                  <>
+                    <div style={{
+                      fontFamily:"var(--font-mono)", fontSize:9.5, fontWeight:600,
+                      textTransform:"uppercase", letterSpacing:"0.14em",
+                      color:"var(--text-dim)", padding:"6px 6px 4px",
+                    }}>Suggested peers · {sector}</div>
+                    {peersFiltered.map(t => (
+                      <div key={t} onClick={()=>pick(t)} style={{
+                        display:"flex", justifyContent:"space-between", alignItems:"center",
+                        padding:"6px 8px", cursor:"pointer", borderRadius:4,
+                        fontFamily:"var(--font-mono)", fontSize:12,
+                      }}
+                      onMouseEnter={e=>{e.currentTarget.style.background="var(--hover, rgba(0,0,0,0.04))";}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                        <span style={{fontWeight:600,color:"var(--text)"}}>{t}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {indexes.length > 0 && (
+                  <>
+                    <div style={{
+                      fontFamily:"var(--font-mono)", fontSize:9.5, fontWeight:600,
+                      textTransform:"uppercase", letterSpacing:"0.14em",
+                      color:"var(--text-dim)", padding:"10px 6px 4px",
+                    }}>Indexes</div>
+                    {indexes.map(({ticker:t,name}) => (
+                      <div key={t} onClick={()=>pick(t)} style={{
+                        display:"flex", justifyContent:"space-between", alignItems:"center",
+                        padding:"6px 8px", cursor:"pointer", borderRadius:4,
+                        fontFamily:"var(--font-mono)", fontSize:12,
+                      }}
+                      onMouseEnter={e=>{e.currentTarget.style.background="var(--hover, rgba(0,0,0,0.04))";}}
+                      onMouseLeave={e=>{e.currentTarget.style.background="transparent";}}>
+                        <span style={{fontWeight:600,color:"var(--text)"}}>{t}</span>
+                        <span style={{color:"var(--text-muted)",fontSize:11}}>{name}</span>
+                      </div>
+                    ))}
+                  </>
+                )}
+                {peersFiltered.length === 0 && indexes.length === 0 && (
+                  <div style={{padding:"8px 10px",color:"var(--text-muted)",fontSize:12}}>
+                    No matches. Try SPY, QQQ, AMD, AVGO, etc.
+                  </div>
+                )}
+              </div>
+            );
+          })()}
         </div>
       </div>
 

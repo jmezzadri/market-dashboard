@@ -1284,7 +1284,7 @@ Weighted blend of the six sections below (−100 bearish … +100 bullish) so yo
     date range, and up to 3 ticker comparators. Joe spec 2026-04-27 (P4
     #14 + #15). All series price-rebased to 100 at the start of the
     window. Lives in every stock modal regardless of issue type. */}
-<HistoricalChart ticker={ticker} defaultPeriod="1y" height={280}/>
+<HistoricalChart ticker={ticker} sector={sector} defaultPeriod="1y" height={280}/>
 
 {/* RECENT NEWS — UW /api/news/headlines. Headlines may reference multiple
     tickers; we filter UW-side via ?ticker= so the list is this-ticker-relevant.
