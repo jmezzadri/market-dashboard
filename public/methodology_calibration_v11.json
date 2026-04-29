@@ -1,0 +1,297 @@
+{
+  "version": "v11.0.0",
+  "framework": "cycle-mechanism-counting",
+  "sprint": 1,
+  "as_of": "2026-04-29",
+  "lexicon": {
+    "states": [
+      "Normal",
+      "Cautionary",
+      "Stressed",
+      "Distressed"
+    ],
+    "tooltips": {
+      "Normal": "Tile rule is not met. Mechanism is reading constructively or neutrally.",
+      "Cautionary": "Tile rule is partially met. Watch but do not act.",
+      "Stressed": "Tile rule is fully met. Mechanism is signaling its concerning regime.",
+      "Distressed": "Tile rule is fully met AND deteriorating over the last 60 trading days."
+    },
+    "headline_thresholds": {
+      "Constructive": "0\u20131 mechanisms elevated",
+      "Watchful": "2 mechanisms elevated",
+      "Defensive setup forming": "3 mechanisms elevated",
+      "High-conviction defensive": "4+ mechanisms elevated"
+    }
+  },
+  "headline_gauge": {
+    "n_elevated": 2,
+    "n_live": 3,
+    "n_total": 6,
+    "verdict": "Watchful",
+    "breakdown": {
+      "Cautionary": 1,
+      "Stressed": 1,
+      "Distressed": 0
+    },
+    "headline_sentence": "Two of 3 live cycle mechanisms are elevated above Normal \u2014 1 in Stressed territory, 1 Cautionary."
+  },
+  "tiles": [
+    {
+      "id": "valuation",
+      "name": "Valuation",
+      "order": 1,
+      "live": true,
+      "description_short": "How richly equities are priced relative to history.",
+      "description_long": "Valuation indicators measure how much investors are paying per dollar of earnings, GDP, or risk premium. When several measures simultaneously sit in the top quartile of their long-run distribution, the equity market is showing the cycle-peak signature \u2014 high prices, high prices for risk, narrow risk premium.",
+      "rule": {
+        "logic": "concerning_if_three_of_four_in_concerning_quartile",
+        "description": "Stressed when 3 of 4 indicators sit in their concerning quartile. For CAPE, P/E, and Buffett indicator the concerning quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Distressed when 3 of 4 AND worsening over 60 trading days.",
+        "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; trailing P/E joins in Sprint 1.5 once long-history Shiller series is staged."
+      },
+      "indicators": [
+        {
+          "id": "cape",
+          "name": "CAPE (Shiller)",
+          "description": "Cyclically-adjusted price-to-earnings ratio \u2014 S&P 500 price divided by 10-year average inflation-adjusted earnings. Smooths out earnings cycles so highs and lows are comparable across decades.",
+          "source": "Shiller / multpl (curated monthly)",
+          "sample_window": "post-2011 (15y)",
+          "current": {
+            "date": "2026-03-31",
+            "value": 34.2
+          },
+          "percentile": 76.9,
+          "quartile": 4
+        },
+        {
+          "id": "erp",
+          "name": "Equity Risk Premium",
+          "description": "How much extra yield investors demand to own stocks vs 10-year Treasuries. Computed as earnings yield (1/CAPE) minus the 10-year yield. A near-zero or negative ERP means stocks are priced for perfection.",
+          "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
+          "sample_window": "post-2011 (15y)",
+          "current": {
+            "date": "2026-03-31",
+            "value": -1.38
+          },
+          "percentile": 7.7,
+          "quartile": 1,
+          "direction": "low_is_concerning"
+        },
+        {
+          "id": "buffett",
+          "name": "Buffett Indicator",
+          "description": "Nonfinancial corporate equity market cap as a percentage of GDP. Warren Buffett's preferred 'overall valuation' yardstick. Above 150% has historically preceded significant drawdowns; the post-1970 median is around 72%.",
+          "source": "FRED: NCBCEL / GDP (quarterly)",
+          "sample_window": "post-1970 (~55y)",
+          "data_caveat": "NCBCEL is nonfinancial corps only; the canonical Buffett indicator includes financial corps. Directional read is identical, level is slightly understated.",
+          "current": {
+            "date": "2025-12-31",
+            "value": 232.7
+          },
+          "unit": "% of GDP",
+          "percentile": 100.0,
+          "quartile": 4
+        }
+      ],
+      "current_state": "Stressed",
+      "rule_status": "3 of 3 indicators in concerning quartile",
+      "as_of": "2026-04-29"
+    },
+    {
+      "id": "credit",
+      "name": "Credit",
+      "order": 2,
+      "live": true,
+      "description_short": "Compensation investors demand for default risk on corporate bonds.",
+      "description_long": "Credit spreads describe how much extra yield bond investors require over risk-free Treasuries to take corporate-credit risk. The Credit tile reads as bidirectional: extreme tightness reads as cycle-peak complacency, extreme widening reads as actual stress arriving. Both are interesting in opposite ways.",
+      "rule": {
+        "logic": "bidirectional",
+        "stressed_condition": "3 of 4 spreads in top quartile (real stress arriving)",
+        "complacency_condition": "3 of 4 spreads in bottom quartile (priced for perfection)",
+        "cautionary_at": "2 of 4 in either tail",
+        "distressed_addendum": "stressed_condition AND deteriorating over 60d",
+        "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; leveraged-loan spread joins in Sprint 2."
+      },
+      "indicators": [
+        {
+          "id": "ig_oas",
+          "name": "IG OAS (Baa \u2212 10y)",
+          "description": "Yield premium investors require to own investment-grade Baa-rated corporate bonds over equal-maturity Treasuries. Widens in stress, compresses in complacency.",
+          "source": "FRED: BAA \u2212 DGS10 (monthly)",
+          "sample_window": "post-1986 (~40y)",
+          "current": {
+            "date": "2026-03-31",
+            "value": 174.0
+          },
+          "unit": "bp",
+          "percentile": 23.4,
+          "quartile": 1
+        },
+        {
+          "id": "hy_oas",
+          "name": "HY OAS",
+          "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
+          "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
+          "sample_window": "post-2011 (15y)",
+          "data_caveat": "ICE BofA license restricts FRED's free history to post-2011. GFC 2008 peak (~2,000bp) is out of sample.",
+          "current": {
+            "date": "2026-04-30",
+            "value": 284.0
+          },
+          "unit": "bp",
+          "percentile": 16.2,
+          "quartile": 1
+        },
+        {
+          "id": "hy_ig_ratio",
+          "name": "HY/IG ratio",
+          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect \u2014 captures whether credit markets are pricing the junk-vs-quality differential normally or in a stressed/complacent way.",
+          "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
+          "sample_window": "post-2011 (15y)",
+          "current": {
+            "date": "2026-03-31",
+            "value": 1.89
+          },
+          "unit": "ratio",
+          "percentile": 47.2,
+          "quartile": 2
+        }
+      ],
+      "current_state": "Cautionary",
+      "rule_status": "2 of 3 in bottom quartile",
+      "as_of": "2026-04-29"
+    },
+    {
+      "id": "funding",
+      "name": "Funding",
+      "order": 3,
+      "live": false,
+      "ships_in": "Sprint 2",
+      "description_short": "Bank-system funding stress \u2014 SOFR-OIS, FRA-OIS, CDX IG-HY basis, cross-currency basis, CP funding spread.",
+      "current_state": "\u2014"
+    },
+    {
+      "id": "growth",
+      "name": "Growth",
+      "order": 4,
+      "live": true,
+      "description_short": "How fast (or slow) the real economy is moving.",
+      "description_long": "The Growth tile aggregates four real-economy reads: a broad activity index (CFNAI), an early labor-market signal (jobless claims), a manufacturing PMI proxy (ISM headline), and the bank-relative-equity signal (BKX vs S&P). The Growth rule fires only when indicators are BOTH at extreme levels AND deteriorating over 60 trading days \u2014 the 'AND' avoids permanently-elevated false alarms.",
+      "rule": {
+        "logic": "level_AND_trend",
+        "description": "Stressed when 3 of 4 indicators are both extreme (|z| > 1) AND deteriorating over 60 trading days. Cautionary when 2 of 4. Distressed when 3 of 4 AND deteriorating across all four."
+      },
+      "indicators": [
+        {
+          "id": "cfnai_3ma",
+          "name": "CFNAI 3-month",
+          "description": "Chicago Fed National Activity Index, 3-month moving average. A weighted average of 85 monthly indicators of US activity. Below \u22120.7 has historically signaled recession.",
+          "source": "FRED: CFNAIMA3 (monthly)",
+          "sample_window": "post-2006 (20y)",
+          "current": {
+            "date": "2026-03-01",
+            "value": -0.03
+          },
+          "z_score": 0.15,
+          "trend_60d": "falling",
+          "concerning": false,
+          "deteriorating": true,
+          "percentile": 59.8,
+          "quartile": 3,
+          "direction": "low_is_concerning"
+        },
+        {
+          "id": "jobless",
+          "name": "Jobless claims (4w)",
+          "description": "Initial unemployment claims, 4-week moving average. The earliest weekly read on labor-market deterioration.",
+          "source": "FRED: IC4WSA (weekly)",
+          "sample_window": "post-2006 (20y)",
+          "current": {
+            "date": "2026-04-18",
+            "value": 214.0
+          },
+          "z_score": -0.4,
+          "trend_60d": "flat",
+          "concerning": false,
+          "deteriorating": false,
+          "percentile": 12.2,
+          "quartile": 1,
+          "direction": "high_is_concerning"
+        },
+        {
+          "id": "ism",
+          "name": "ISM Manufacturing PMI",
+          "description": "Institute for Supply Management's composite manufacturing index. Below 50 = contraction, above = expansion. Used as a proxy for the new-orders subindex (paid feed). Caveat noted in methodology.",
+          "source": "FRED: NAPMPI (monthly)",
+          "sample_window": "post-2006 (20y)",
+          "current": {
+            "date": "2026-03-31",
+            "value": 52.7
+          },
+          "z_score": -0.07,
+          "trend_60d": "falling",
+          "concerning": false,
+          "deteriorating": true,
+          "percentile": 54.1,
+          "quartile": 3,
+          "direction": "low_is_concerning"
+        },
+        {
+          "id": "bkx_spx",
+          "name": "Banks vs S&P 500 (BKX/SPX)",
+          "description": "Ratio of the KBW Bank Index to the S&P 500. Banks lead the cycle in both directions \u2014 under-performance signals tightening credit conditions and growth slowdown.",
+          "source": "Yahoo: ^BKX, ^GSPC (daily)",
+          "sample_window": "post-2006 (20y)",
+          "current": {
+            "date": "2026-04-24",
+            "value": 0.09
+          },
+          "z_score": -1.06,
+          "trend_60d": "flat",
+          "concerning": false,
+          "deteriorating": false,
+          "percentile": 6.1,
+          "quartile": 1,
+          "direction": "low_is_concerning"
+        }
+      ],
+      "current_state": "Normal",
+      "rule_status": "0 of 4 concerning \u00b7 2 of 4 deteriorating over 60d",
+      "as_of": "2026-04-29"
+    },
+    {
+      "id": "liquidity_policy",
+      "name": "Liquidity & Policy",
+      "order": 5,
+      "live": false,
+      "ships_in": "Sprint 4",
+      "description_short": "Adjusted Financial Conditions, real Fed funds rate, M2 YoY, term premium, Fed balance sheet trajectory.",
+      "current_state": "\u2014"
+    },
+    {
+      "id": "positioning_breadth",
+      "name": "Positioning & Breadth",
+      "order": 6,
+      "live": false,
+      "ships_in": "Sprint 4",
+      "description_short": "NAAIM exposure, margin debt YoY, put/call ratio, % of S&P above 200dma, advance-decline.",
+      "current_state": "\u2014"
+    }
+  ],
+  "ui_spec": {
+    "design_language": "Editorial / magazine hero (round-2 mockup A)",
+    "tile_state_visual": "top-border accent in state color",
+    "distribution_viz": "quartile bar with current-reading dot",
+    "empty_tiles": "greyed-out placeholders labeled Sprint N"
+  },
+  "data_caveats": [
+    "Sprint 1 valuation distributions use the 15-year (post-2011) window for CAPE and ERP; Buffett indicator uses post-1970.",
+    "Sprint 1 credit distributions use post-1986 for IG OAS, post-2011 for HY OAS and HY/IG ratio.",
+    "Trailing P/E and leveraged-loan spread are deferred to Sprint 1.5 / Sprint 2 \u2014 both require additional data sourcing.",
+    "ISM headline used in place of ISM new-orders subindex \u2014 paid feed required for the latter."
+  ],
+  "build_meta": {
+    "script": "compute_v11_sprint1_calibration.py",
+    "framework_version": "v11.0.0",
+    "lessons_rule_31_acknowledged": true
+  }
+}
