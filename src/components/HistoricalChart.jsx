@@ -143,7 +143,10 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
     setSeriesData({});
   }, [period, fromDate, toDate, useCustom, ticker]);
 
-  // Compute rebased series. Each ticker's first close → 100.
+  // Compute series. Each ticker keeps `raw` (real dollar close), `pct`
+  // (percent change from start of the window), and `v` (rebased index =
+  // 100 at start). The plot uses `pct` when in compare mode, `raw` when
+  // showing a single ticker.
   const rebased = useMemo(() => {
     const out = [];
     const all = [ticker, ...comparators];
@@ -153,14 +156,26 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
       const baseClose = d.prices[0].c;
       if (!baseClose) return;
       const points = d.prices.map(p => ({
-        d: p.d,
-        v: (p.c / baseClose) * 100,
+        d:   p.d,
         raw: p.c,
+        pct: (p.c / baseClose - 1) * 100,
+        v:   (p.c / baseClose) * 100,
       }));
-      out.push({ ticker: t, color: SERIES_COLORS[i] || "var(--text-muted)", points });
+      out.push({
+        ticker: t,
+        color:  SERIES_COLORS[i] || "var(--text-muted)",
+        baseDate: d.prices[0].d,
+        baseClose,
+        points,
+      });
     });
     return out;
   }, [seriesData, ticker, comparators]);
+
+  // Axis mode — switches what the y-axis shows based on context.
+  //   "price"  : single ticker, real dollar prices (no rebase confusion)
+  //   "pct"    : 2+ tickers, percent change from start (compare apples-to-apples)
+  const axisMode = comparators.length > 0 ? "pct" : "price";
 
   // Layout
   const W = 800;     // viewBox width — scales via CSS
@@ -168,7 +183,8 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
   const pL = 44, pR = 16, pT = 12, pB = 28;
 
   // X / Y domain
-  const allValues = rebased.flatMap(s => s.points.map(p => p.v));
+  const yField = axisMode === "price" ? "raw" : "pct";
+  const allValues = rebased.flatMap(s => s.points.map(p => p[yField]));
   const yMin = allValues.length ? Math.min(...allValues) : 0;
   const yMax = allValues.length ? Math.max(...allValues) : 100;
   const yPad = (yMax - yMin) * 0.06 || 1;
@@ -222,7 +238,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
           fontSize: 10, fontFamily: "var(--font-mono)",
           color: "var(--text-muted)", letterSpacing: "0.08em",
           fontWeight: 600, textTransform: "uppercase", marginRight: 8,
-        }}>Historical · daily · rebased to 100</div>
+        }}>{axisMode === "price" ? "Historical · daily · adjusted close ($)" : "Historical · daily · % change from start"}</div>
 
         {/* Period preset buttons */}
         <div style={{ display: "inline-flex", gap: 2, background: "var(--surface-3)", padding: 2, borderRadius: 4 }}>
@@ -425,20 +441,25 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
               <g key={t}>
                 <line x1={pL} y1={y} x2={W-pR} y2={y} stroke="var(--border-faint)" strokeWidth="0.5"/>
                 <text x={pL-6} y={y+3} textAnchor="end" fontSize="10" fontFamily="var(--font-mono)" fill="var(--text-muted)">
-                  {v.toFixed(0)}
+                  {axisMode === "price" ? `$${v.toFixed(0)}` : `${v >= 0 ? "+" : ""}${v.toFixed(0)}%`}
                 </text>
               </g>
             );
           })}
-          {/* Reference line at 100 (rebase anchor) */}
-          {yLo <= 100 && yHi >= 100 && (
-            <line x1={pL} y1={yToPx(100)} x2={W-pR} y2={yToPx(100)}
-                  stroke="var(--text-dim)" strokeDasharray="2,2" strokeWidth="0.7"/>
+          {/* Reference line — anchor at 0% in compare mode (rebase start). */}
+          {axisMode === "pct" && yLo <= 0 && yHi >= 0 && (
+            <>
+              <line x1={pL} y1={yToPx(0)} x2={W-pR} y2={yToPx(0)}
+                    stroke="var(--text-dim)" strokeDasharray="2,2" strokeWidth="0.7"/>
+              <text x={W-pR-4} y={yToPx(0)-3} textAnchor="end" fontSize="9" fontFamily="var(--font-mono)" fill="var(--text-dim)">
+                start = 0% ({rebased[0]?.baseDate ? fmtDate(rebased[0].baseDate) : ""})
+              </text>
+            </>
           )}
 
-          {/* Series lines */}
+          {/* Series lines — y from `raw` (price mode) or `pct` (compare mode). */}
           {rebased.map(s => {
-            const path = s.points.map((p, i) => `${i===0?"M":"L"} ${xToPx(i).toFixed(2)} ${yToPx(p.v).toFixed(2)}`).join(" ");
+            const path = s.points.map((p, i) => `${i===0?"M":"L"} ${xToPx(i).toFixed(2)} ${yToPx(p[yField]).toFixed(2)}`).join(" ");
             return (
               <path key={s.ticker} d={path} fill="none" stroke={s.color} strokeWidth="1.6" />
             );
@@ -460,7 +481,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
               {rebased.map(s => {
                 const p = s.points[hoverIdx];
                 if (!p) return null;
-                return <circle key={s.ticker} cx={xToPx(hoverIdx)} cy={yToPx(p.v)} r="3" fill={s.color} stroke="var(--surface)" strokeWidth="1"/>;
+                return <circle key={s.ticker} cx={xToPx(hoverIdx)} cy={yToPx(p[yField])} r="3" fill={s.color} stroke="var(--surface)" strokeWidth="1"/>;
               })}
               <text x={xToPx(hoverIdx)+6} y={pT+12} fontSize="10" fontFamily="var(--font-mono)" fill="var(--text)">
                 {fmtDate(allDates[hoverIdx])}
@@ -471,7 +492,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
                 const yt = pT + 26 + idx * 12;
                 return (
                   <text key={s.ticker} x={xToPx(hoverIdx)+6} y={yt} fontSize="10" fontFamily="var(--font-mono)" fill={s.color}>
-                    {s.ticker} · {p.v.toFixed(1)} (${p.raw.toFixed(2)})
+                    {s.ticker} · ${p.raw.toFixed(2)} ({p.pct >= 0 ? "+" : ""}{p.pct.toFixed(1)}%)
                   </text>
                 );
               })}
