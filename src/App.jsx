@@ -7466,7 +7466,7 @@ return(<>
     of the modal navigates to the Scanner tab with that ticker focused. */}
 {tickerDetail&&(
   <ErrorBoundary label={`${tickerDetail} detail`} onDismiss={()=>setTickerDetail(null)}>
-    <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS}
+    <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS} macroLatest={_macroLatestSnap} v9Alloc={_v9Alloc}
       watchlistRows={userWatchlistRows} portfolioAuthed={portfolioAuthed} refetchPortfolio={refetchPortfolio}
       onTickerAdded={scanTicker} scanBusy={scanningTickers.has(tickerDetail)}
       onClose={()=>setTickerDetail(null)}/>
