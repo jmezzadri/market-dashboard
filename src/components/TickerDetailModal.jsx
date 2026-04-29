@@ -124,7 +124,7 @@ function SignalIntelligenceRail({
       };
     }
     return {
-      state: "amber", value: "Not in model", meta: "Outside v9 picks",
+      state: "loading", value: "Not in model", meta: "Outside v9 picks",
       detail: (
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
           <div>v9 has not selected {ticker}{sector ? ` or its sector (${sector})` : ""} this rebalance.</div>
@@ -190,10 +190,20 @@ function SignalIntelligenceRail({
     const dp     = darkPoolPrints || [];
     const total  = cBuys.length + cSells.length + iBuys.length + iSells.length + fCalls.length + fPuts.length + dp.length;
     const netBull = (cBuys.length - cSells.length) + (iBuys.length - iSells.length) + (fCalls.length - fPuts.length);
-    const state = total === 0 ? "loading"
-                : Math.abs(netBull) >= 2 || dp.length >= 3 ? (netBull >= 0 ? "green" : "red")
-                : "amber";
-    const value = total === 0 ? "Quiet" : netBull > 0 ? "Net bullish" : netBull < 0 ? "Net bearish" : "Mixed";
+    // Align state color with the verbal headline. Tile must not say 'Net
+    // bullish' (positive) while the dot is amber (caution); pick one and
+    // stick to it. Direction trumps magnitude — if events skew positive,
+    // we are 'Net bullish' and the dot is green even on small samples.
+    let state, value;
+    if (total === 0) {
+      state = "loading"; value = "Quiet";
+    } else if (netBull > 0) {
+      state = "green";   value = "Net bullish";
+    } else if (netBull < 0) {
+      state = "red";     value = "Net bearish";
+    } else {
+      state = "amber";   value = "Mixed";
+    }
     const meta = total === 0
       ? "No unusual flow events in last scan"
       : `${total} events · Congress ${cBuys.length + cSells.length} · Insider ${iBuys.length + iSells.length} · Options ${fCalls.length + fPuts.length} · Dark pool ${dp.length}`;
@@ -263,6 +273,31 @@ function SignalIntelligenceRail({
       </div>
       <SignalCard title="Macro Composite" {...macroTile} ragColor={ragColor} defaultOpen />
       <SignalCard title="Asset Tilt" {...tiltTile} ragColor={ragColor} />
+      <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
+        const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
+        const fmtBeta = v => v == null ? "—" : v.toFixed(2);
+        const fmt$ = v => v == null ? null : "$" + Math.round(v).toLocaleString();
+        const Row = ({ label, val, color }) => (
+          <div style={{display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"center",fontSize:12}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{label}</span>
+            <span style={{color:"var(--text)"}}>{val}</span>
+            <span style={{width:8,height:8,borderRadius:"50%",background:ragColor(color)}}/>
+          </div>
+        );
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <Row label="Beta · vs SPY"  val={fmtBeta(detail.beta)}             color={detail.flags.beta}/>
+            <Row label="Annualized vol" val={fmtPctMag(detail.annVol)}         color={detail.flags.annVol}/>
+            <Row label="Max drawdown"   val={fmtPctMag(detail.maxDD)}          color={detail.flags.maxDD}/>
+            <Row label="10-day 99% VaR" val={fmtPctMag(detail.var10d99) + (detail.var$ ? " · ~" + fmt$(detail.var$) : "")} color={detail.flags.var10}/>
+            {detail.sourceWindow && (
+              <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
+                Source: Yahoo daily · {detail.sourceWindow}
+              </div>
+            )}
+          </div>
+        );
+      }} />
       <SignalCard title="Technical Indicators" {...techTile} ragColor={ragColor} renderDetail={detail => (
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
           {detail.map((r,i)=>(
@@ -275,7 +310,9 @@ function SignalIntelligenceRail({
         </div>
       )} />
       <SignalCard title="Unusual Flow" {...flowTile} ragColor={ragColor} renderDetail={detail => {
-        if (detail.total === 0) return <span style={{fontSize:12,color:"var(--text-muted)"}}>No flow events in the last scan window.</span>;
+        // LESSONS rule #33 — every category section ALWAYS renders with an
+        // explicit empty-state line when no events. Never silently hide a
+        // section just because it has zero events for this ticker.
         const fmtMoney = v => {
           const n = Number(v);
           if (!Number.isFinite(n) || n === 0) return null;
@@ -294,6 +331,7 @@ function SignalIntelligenceRail({
             {children}
           </div>
         );
+        const Empty = ({ msg }) => <div style={{fontSize:11.5,color:"var(--text-muted)",fontStyle:"italic"}}>{msg}</div>;
         const Row = ({ who, what, amt, sign }) => {
           const c = sign === "pos" ? "var(--green-text, #1a8c39)"
                   : sign === "neg" ? "var(--red-text, #c8302a)"
@@ -310,60 +348,64 @@ function SignalIntelligenceRail({
         };
         return (
           <div style={{display:"flex",flexDirection:"column",gap:0,fontSize:12}}>
-            {(detail.cBuys.length > 0 || detail.cSells.length > 0) && (
-              <Section label="Congress">
-                {detail.cBuys.slice(0,3).map((r,i)=>(
-                  <Row key={"cb"+i} who={r.reporter || r.name}
-                       what={`BUY · ${r.amounts || ""} · ${fmtDate(r.transaction_date)}${r.member_type ? " · " + r.member_type : ""}`.replace(/\s+·\s+·/g," ·").trim()}
-                       sign="pos" amt="↑ buy" />
-                ))}
-                {detail.cSells.slice(0,3).map((r,i)=>(
-                  <Row key={"cs"+i} who={r.reporter || r.name}
-                       what={`SELL · ${r.amounts || ""} · ${fmtDate(r.transaction_date)}${r.member_type ? " · " + r.member_type : ""}`.replace(/\s+·\s+·/g," ·").trim()}
-                       sign="neg" amt="↓ sell" />
-                ))}
-              </Section>
-            )}
-            {(detail.iBuys.length > 0 || detail.iSells.length > 0) && (
-              <Section label="Insider">
-                {detail.iBuys.slice(0,3).map((r,i)=>(
-                  <Row key={"ib"+i} who={r.insider_name || r.name || r.reporter || "Insider"}
-                       what={`Form 4 · BUY${r.shares ? " " + Number(r.shares).toLocaleString() + " sh" : ""}${r.price ? " @ $" + Number(r.price).toFixed(2) : ""}${r.transaction_date ? " · " + fmtDate(r.transaction_date) : ""}`}
-                       sign="pos" amt={fmtMoney(r.value || r.transaction_value || r.total_value) || "↑ buy"} />
-                ))}
-                {detail.iSells.slice(0,3).map((r,i)=>(
-                  <Row key={"is"+i} who={r.insider_name || r.name || r.reporter || "Insider"}
-                       what={`Form 4 · SELL${r.shares ? " " + Number(r.shares).toLocaleString() + " sh" : ""}${r.price ? " @ $" + Number(r.price).toFixed(2) : ""}${r.transaction_date ? " · " + fmtDate(r.transaction_date) : ""}`}
-                       sign="neg" amt={fmtMoney(r.value || r.transaction_value || r.total_value) || "↓ sell"} />
-                ))}
-              </Section>
-            )}
-            {(detail.fCalls.length > 0 || detail.fPuts.length > 0) && (
-              <Section label="Option flow">
-                {detail.fCalls.slice(0,3).map((r,i)=>(
-                  <Row key={"fc"+i}
-                       who={`${r.has_sweep ? "Sweep " : ""}${r.volume || ""} ${r.expiry ? fmtDate(r.expiry) : ""} ${r.strike || ""}C`.replace(/\s+/g," ").trim()}
-                       what={`${r.alert_rule || ""}${r.iv_end ? " · IV " + (Number(r.iv_end)*100).toFixed(0) + "%" : ""}`}
-                       sign="pos" amt={fmtMoney(r.total_premium) || "—"} />
-                ))}
-                {detail.fPuts.slice(0,3).map((r,i)=>(
-                  <Row key={"fp"+i}
-                       who={`${r.has_sweep ? "Sweep " : ""}${r.volume || ""} ${r.expiry ? fmtDate(r.expiry) : ""} ${r.strike || ""}P`.replace(/\s+/g," ").trim()}
-                       what={`${r.alert_rule || ""}${r.iv_end ? " · IV " + (Number(r.iv_end)*100).toFixed(0) + "%" : ""}`}
-                       sign="neg" amt={fmtMoney(r.total_premium) || "—"} />
-                ))}
-              </Section>
-            )}
-            {detail.dp.length > 0 && (
-              <Section label="Dark pool prints">
-                {detail.dp.slice(0,3).map((r,i)=>(
-                  <Row key={"dp"+i}
-                       who={`${Number(r.size || 0).toLocaleString()} sh @ $${Number(r.price).toFixed(2)}`}
-                       what={`${r.executed_at ? fmtDate(r.executed_at) : ""}${r.market_center ? " · venue " + r.market_center : ""}`}
-                       sign="neutral" amt={fmtMoney(r.premium) || "—"} />
-                ))}
-              </Section>
-            )}
+            <Section label="Congress">
+              {detail.cBuys.length === 0 && detail.cSells.length === 0
+                ? <Empty msg="No congress trades in last scan." />
+                : null}
+              {detail.cBuys.slice(0,3).map((r,i)=>(
+                <Row key={"cb"+i} who={r.reporter || r.name}
+                     what={`BUY · ${r.amounts || ""} · ${fmtDate(r.transaction_date)}${r.member_type ? " · " + r.member_type : ""}`.replace(/\s+·\s+·/g," ·").trim()}
+                     sign="pos" amt="↑ buy" />
+              ))}
+              {detail.cSells.slice(0,3).map((r,i)=>(
+                <Row key={"cs"+i} who={r.reporter || r.name}
+                     what={`SELL · ${r.amounts || ""} · ${fmtDate(r.transaction_date)}${r.member_type ? " · " + r.member_type : ""}`.replace(/\s+·\s+·/g," ·").trim()}
+                     sign="neg" amt="↓ sell" />
+              ))}
+            </Section>
+            <Section label="Insider">
+              {detail.iBuys.length === 0 && detail.iSells.length === 0
+                ? <Empty msg="No insider Form 4s in last scan." />
+                : null}
+              {detail.iBuys.slice(0,3).map((r,i)=>(
+                <Row key={"ib"+i} who={r.insider_name || r.name || r.reporter || "Insider"}
+                     what={`Form 4 · BUY${r.shares ? " " + Number(r.shares).toLocaleString() + " sh" : ""}${r.price ? " @ $" + Number(r.price).toFixed(2) : ""}${r.transaction_date ? " · " + fmtDate(r.transaction_date) : ""}`}
+                     sign="pos" amt={fmtMoney(r.value || r.transaction_value || r.total_value) || "↑ buy"} />
+              ))}
+              {detail.iSells.slice(0,3).map((r,i)=>(
+                <Row key={"is"+i} who={r.insider_name || r.name || r.reporter || "Insider"}
+                     what={`Form 4 · SELL${r.shares ? " " + Number(r.shares).toLocaleString() + " sh" : ""}${r.price ? " @ $" + Number(r.price).toFixed(2) : ""}${r.transaction_date ? " · " + fmtDate(r.transaction_date) : ""}`}
+                     sign="neg" amt={fmtMoney(r.value || r.transaction_value || r.total_value) || "↓ sell"} />
+              ))}
+            </Section>
+            <Section label="Option flow">
+              {detail.fCalls.length === 0 && detail.fPuts.length === 0
+                ? <Empty msg="No unusual options in last scan." />
+                : null}
+              {detail.fCalls.slice(0,3).map((r,i)=>(
+                <Row key={"fc"+i}
+                     who={`${r.has_sweep ? "Sweep " : ""}${r.volume || ""} ${r.expiry ? fmtDate(r.expiry) : ""} ${r.strike || ""}C`.replace(/\s+/g," ").trim()}
+                     what={`${r.alert_rule || ""}${r.iv_end ? " · IV " + (Number(r.iv_end)*100).toFixed(0) + "%" : ""}`}
+                     sign="pos" amt={fmtMoney(r.total_premium) || "—"} />
+              ))}
+              {detail.fPuts.slice(0,3).map((r,i)=>(
+                <Row key={"fp"+i}
+                     who={`${r.has_sweep ? "Sweep " : ""}${r.volume || ""} ${r.expiry ? fmtDate(r.expiry) : ""} ${r.strike || ""}P`.replace(/\s+/g," ").trim()}
+                     what={`${r.alert_rule || ""}${r.iv_end ? " · IV " + (Number(r.iv_end)*100).toFixed(0) + "%" : ""}`}
+                     sign="neg" amt={fmtMoney(r.total_premium) || "—"} />
+              ))}
+            </Section>
+            <Section label="Dark pool prints">
+              {detail.dp.length === 0
+                ? <Empty msg="No dark-pool prints in last scan." />
+                : null}
+              {detail.dp.slice(0,3).map((r,i)=>(
+                <Row key={"dp"+i}
+                     who={`${Number(r.size || 0).toLocaleString()} sh @ $${Number(r.price).toFixed(2)}`}
+                     what={`${r.executed_at ? fmtDate(r.executed_at) : ""}${r.market_center ? " · venue " + r.market_center : ""}`}
+                     sign="neutral" amt={fmtMoney(r.premium) || "—"} />
+              ))}
+            </Section>
           </div>
         );
       }} />
@@ -398,32 +440,7 @@ function SignalIntelligenceRail({
           }
         </div>
       )} />
-      <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
-        const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
-        const fmtBeta = v => v == null ? "—" : v.toFixed(2);
-        const fmt$ = v => v == null ? null : "$" + Math.round(v).toLocaleString();
-        const Row = ({ label, val, color }) => (
-          <div style={{display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"center",fontSize:12}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{label}</span>
-            <span style={{color:"var(--text)"}}>{val}</span>
-            <span style={{width:8,height:8,borderRadius:"50%",background:ragColor(color)}}/>
           </div>
-        );
-        return (
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            <Row label="Beta · vs SPY"  val={fmtBeta(detail.beta)}             color={detail.flags.beta}/>
-            <Row label="Annualized vol" val={fmtPctMag(detail.annVol)}         color={detail.flags.annVol}/>
-            <Row label="Max drawdown"   val={fmtPctMag(detail.maxDD)}          color={detail.flags.maxDD}/>
-            <Row label="10-day 99% VaR" val={fmtPctMag(detail.var10d99) + (detail.var$ ? " · ~" + fmt$(detail.var$) : "")} color={detail.flags.var10}/>
-            {detail.sourceWindow && (
-              <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
-                Source: Yahoo daily · {detail.sourceWindow}
-              </div>
-            )}
-          </div>
-        );
-      }} />
-    </div>
   );
 }
 
@@ -718,7 +735,7 @@ function ActionRow({
       </>)}
       {portfolioAuthed && !owns && (
         <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnPrimary}>
-          + Add position
+          + Buy / Add
         </button>
       )}
       {portfolioAuthed && onUserWatchlist && (
