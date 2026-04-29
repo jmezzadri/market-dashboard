@@ -769,19 +769,31 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
                 if (!p) return null;
                 return <circle key={s.ticker} cx={xToPx(hoverIdx)} cy={yToPx(p[yField])} r="3" fill={s.color} stroke="var(--surface)" strokeWidth="1"/>;
               })}
-              <text x={xToPx(hoverIdx)+6} y={pT+12} fontSize="10" fontFamily="var(--font-mono)" fill="var(--text)">
-                {fmtDate(allDates[hoverIdx])}
-              </text>
-              {rebased.map((s, idx) => {
-                const p = s.points[hoverIdx];
-                if (!p) return null;
-                const yt = pT + 26 + idx * 12;
+              {(() => {
+                // Smart anchor — when the crosshair is past 70% of chart width,
+                // flip the labels to the LEFT side so they don't overflow.
+                const cx = xToPx(hoverIdx);
+                const flip = cx > pL + (W - pL - pR) * 0.70;
+                const labelX = flip ? cx - 6 : cx + 6;
+                const anchor = flip ? "end" : "start";
                 return (
-                  <text key={s.ticker} x={xToPx(hoverIdx)+6} y={yt} fontSize="10" fontFamily="var(--font-mono)" fill={s.color}>
-                    {s.ticker} · ${p.raw.toFixed(2)} ({p.pct >= 0 ? "+" : ""}{p.pct.toFixed(1)}%)
-                  </text>
+                  <>
+                    <text x={labelX} y={pT+12} textAnchor={anchor} fontSize="10" fontFamily="var(--font-mono)" fill="var(--text)">
+                      {fmtDate(allDates[hoverIdx])}
+                    </text>
+                    {rebased.map((s, idx) => {
+                      const pt = s.points[hoverIdx];
+                      if (!pt) return null;
+                      const yt = pT + 26 + idx * 12;
+                      return (
+                        <text key={s.ticker} x={labelX} y={yt} textAnchor={anchor} fontSize="10" fontFamily="var(--font-mono)" fill={s.color}>
+                          {s.ticker} · ${pt.raw.toFixed(2)} ({pt.pct >= 0 ? "+" : ""}{pt.pct.toFixed(1)}%)
+                        </text>
+                      );
+                    })}
+                  </>
                 );
-              })}
+              })()}
             </g>
           )}
         </svg>
