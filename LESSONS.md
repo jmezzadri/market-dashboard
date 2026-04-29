@@ -1834,3 +1834,40 @@ This rule pairs with #29 (UX brand audit) and #32 (Chrome UAT
 mandatory). Together: load the page, click every primitive, audit
 every link, agree every color signal, and don't sign off without UX
 Designer review of expanded states.
+---
+
+## 35 (2026-04-29) — Iteration status updates use a numbered table, max 1-2 lines per item
+
+**The rule.** When responding to user feedback during a bug-iteration
+loop, status updates use a numbered table with these exact columns:
+**# | Issue | Fixed (Y/N) | Fix | Comments**. Each cell is 1-2 lines
+maximum. No prose preamble. No prose postamble. The table is the
+entire response.
+
+**Why.** Long prose responses bury the signal. The user is iterating on
+a punch list and needs a fast glance of what landed vs what did not.
+Joe's exact words across multiple sessions: *"I don't read all the crap
+you type"* and *"keep your responses short."* A numbered table compresses
+the same information into a scannable format.
+
+**How to apply.**
+
+1. Any iteration response covering 2+ items → numbered table format.
+   Mandatory.
+2. Columns are fixed: # / Issue / Fixed (Y/N) / Fix / Comments.
+3. Single-item iterations may use 1-2 lines of prose. Multi-item never
+   may.
+4. Skip the preamble. No 'Here is where we are…'. Skip the postamble.
+   No 'Let me know what you think…'. The table IS the response.
+5. Sources line at the bottom (PR links) is allowed and short.
+
+**Example shape:**
+
+| # | Issue | Fixed | Fix | Comments |
+|---|---|---|---|---|
+| 1 | Sparklines on KPI cards added zero signal | Y | Removed Spark component + spark prop | Real 30d sparklines queued for PR-D2 |
+| 2 | 'Open in Scanner' button redundant with nav | Y | Killed button + onOpenScanner prop chain | — |
+
+This rule pairs with LESSONS rules #1 (plain English, no jargon) and
+#13 (plain English in chat too). All three exist for the same reason:
+chat is the user's primary interface, and the user has limited bandwidth.
