@@ -191,6 +191,37 @@ def map_to_row(ticker, payload):
     }
 
 
+# Mega-cap and household-name tickers that should be backfilled before the
+# alphabetical long tail. Tickers users actually open in the modal land here.
+# The priority list itself is augmented at runtime with the user's
+# positions + watchlist + the daily Trading Opportunities board.
+MEGA_CAP_PRIORITY = [
+    "AAPL","MSFT","NVDA","GOOGL","GOOG","AMZN","META","TSLA","BRK.B","AVGO",
+    "JPM","V","UNH","XOM","JNJ","WMT","MA","PG","LLY","HD","CVX","MRK",
+    "ABBV","KO","PEP","BAC","COST","ORCL","ADBE","CSCO","CRM","NFLX","TMO",
+    "AMD","INTC","ARM","QCOM","TXN","INTU","IBM","NOW","UBER","SHOP","PYPL",
+    "DIS","NKE","MCD","SBUX","CAT","BA","DE","HON","GE","MMM","FDX","UPS",
+    "SPY","QQQ","DIA","IWM","VTI","VOO","RSP","XLK","XLF","XLV","XLE","XLY","XLI","XLP","XLU","XLB","XLRE","XLC","SOXX","IBB","SMH","KRE","XBI",
+]
+
+
+def fetch_priority_overlay(sb_url, sb_key):
+    """Pull tickers from positions + watchlist tables to seed the priority
+    bucket at the front of the queue. Falls through silently if either
+    table read fails — priority is a nice-to-have, not load-bearing."""
+    out = set()
+    for table in ("positions", "watchlist"):
+        try:
+            rows = supabase_get_all(sb_url, sb_key, table, "ticker", page_size=2000)
+            for r in rows:
+                t = (r.get("ticker") or "").strip().upper()
+                if t and t != "CASH":
+                    out.add(t)
+        except Exception as e:
+            print(f"[targets] couldn't pull {table} for priority overlay: {e}")
+    return out
+
+
 def pick_targets(sb_url, sb_key, max_per_run, stale_days):
     print(f"[targets] reading universe_master + ticker_reference...")
     um = supabase_get_all(sb_url, sb_key, "universe_master",
@@ -203,8 +234,19 @@ def pick_targets(sb_url, sb_key, max_per_run, stale_days):
     print(f"[targets] universe active={len(universe_active)} "
           f"reference={len(tr_by_ticker)}")
 
-    missing = sorted(t for t in universe_active if t not in tr_by_ticker)
-    print(f"[targets] missing in ticker_reference: {len(missing)}")
+    # Build priority set: mega-caps + user holdings + user watchlist.
+    user_holdings = fetch_priority_overlay(sb_url, sb_key)
+    priority_set = set(MEGA_CAP_PRIORITY) | user_holdings
+    print(f"[targets] priority bucket: {len(priority_set)} tickers "
+          f"({len(user_holdings)} from user positions/watchlist)")
+
+    # Missing tickers, with priority-set first, alphabetical inside each tier.
+    all_missing = [t for t in universe_active if t not in tr_by_ticker]
+    priority_missing = sorted([t for t in all_missing if t in priority_set])
+    other_missing    = sorted([t for t in all_missing if t not in priority_set])
+    missing = priority_missing + other_missing
+    print(f"[targets] missing total={len(all_missing)} "
+          f"(priority={len(priority_missing)} alphabetical={len(other_missing)})")
 
     if len(missing) >= max_per_run:
         return missing[:max_per_run]
