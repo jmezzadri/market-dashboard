@@ -56,6 +56,7 @@ CONTRACTS: dict = {
         "consumed_by": [
             "src/App.jsx Home Mission/Evidence strip (~L6440)",
             "src/pages/AssetAllocation.jsx",
+            "src/components/TickerDetailModal.jsx Asset Tilt rail tile (Phase 4b PR-C)",
         ],
         "required_top_level": [
             "as_of",
@@ -87,6 +88,7 @@ CONTRACTS: dict = {
             "src/App.jsx Home Macro lead-in",
             "src/pages/AssetAllocation.jsx timeline",
             "src/pages/TodayMacro.jsx chart",
+            "src/components/TickerDetailModal.jsx Macro Composite rail tile (Phase 4b PR-C)",
         ],
         "list_min_length": 100,
         # Each row must contain at least these keys.
