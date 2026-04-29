@@ -7467,6 +7467,7 @@ return(<>
 {tickerDetail&&(
   <ErrorBoundary label={`${tickerDetail} detail`} onDismiss={()=>setTickerDetail(null)}>
     <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS} macroLatest={_macroLatestSnap} v9Alloc={_v9Alloc}
+      onClosePosition={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
       onOpenAddPosition={portfolioAuthed?(t)=>setPositionEditor({mode:"add",ticker:t}):undefined}
       onOpenEditPosition={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
       watchlistRows={userWatchlistRows} portfolioAuthed={portfolioAuthed} refetchPortfolio={refetchPortfolio}

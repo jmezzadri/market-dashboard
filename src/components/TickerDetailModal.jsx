@@ -531,7 +531,7 @@ function Field({ label, value }) {
 // ============================================================================
 function ActionRow({
   ticker, heldIn, portfolioAuthed, onUserWatchlist, removeFromWatchlist, wlBusy,
-  onOpenAddPosition, onOpenEditPosition, onClose,
+  onOpenAddPosition, onOpenEditPosition, onClosePosition, onClose,
 }) {
   const heldRow = heldIn?.[0]?.p || null;
   const owns = heldIn && heldIn.length > 0;
@@ -574,22 +574,24 @@ function ActionRow({
       paddingTop: "var(--space-4)",
       borderTop: "1px solid var(--border-faint)",
     }}>
-      {portfolioAuthed && (
-        owns
-          ? <button type="button" onClick={()=>onOpenEditPosition?.(heldRow)} style={btnPrimary}>
-              Edit position
-            </button>
-          : <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnPrimary}>
-              + Add position
-            </button>
-      )}
-      {portfolioAuthed && owns && (
+      {portfolioAuthed && owns && (<>
+        <button type="button" onClick={()=>onOpenEditPosition?.(heldRow)} style={btnPrimary}>
+          Edit position
+        </button>
         <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnBase}>
-          + Add to another account
+          + Buy / add
+        </button>
+        <button type="button" onClick={()=>onClosePosition?.(heldRow)} style={btnDanger}>
+          Close position
+        </button>
+      </>)}
+      {portfolioAuthed && !owns && (
+        <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnPrimary}>
+          + Add position
         </button>
       )}
       {portfolioAuthed && onUserWatchlist && (
-        <button type="button" onClick={removeFromWatchlist} disabled={wlBusy} style={btnDanger}>
+        <button type="button" onClick={removeFromWatchlist} disabled={wlBusy} style={{...btnBase, color:"var(--text-muted)"}}>
           {wlBusy ? "…" : "− Remove from watchlist"}
         </button>
       )}
@@ -601,7 +603,7 @@ function ActionRow({
 }
 
 
-export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,macroLatest,v9Alloc,onOpenAddPosition,onOpenEditPosition}){
+export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,macroLatest,v9Alloc,onOpenAddPosition,onOpenEditPosition,onClosePosition}){
 const [descExpanded,setDescExpanded]=useState(false);
 const [wlBusy,setWlBusy]=useState(false);
 const [wlError,setWlError]=useState(null);
@@ -1118,6 +1120,7 @@ return(
   wlBusy={wlBusy}
   onOpenAddPosition={onOpenAddPosition}
   onOpenEditPosition={onOpenEditPosition}
+  onClosePosition={onClosePosition}
   onClose={onClose}
 />
 
