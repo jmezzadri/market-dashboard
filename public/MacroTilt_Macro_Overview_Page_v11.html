@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MacroTilt — Macro Overview v11 (clickable mockup)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* =============================================================
+     v11 — single visual layer.
+     ONE surface, ONE palette, ONE typography hierarchy, ONE
+     animation. No card gradients, no radial highlights, no resting
+     shadows. Bars are neutral; the dot carries the band color.
+     ============================================================= */
+
+  :root {
+    color-scheme: light;
+
+    /* ---- Surface neutrals ---- */
+    --bg: #fafaf7;
+    --surface: #fbfaf6;
+    --border: #e0ddd5;
+    --border-strong: #cdc9bf;
+
+    /* ---- Ink ---- */
+    --ink: #1a1a1a;
+    --ink-2: #3a3a32;
+    --ink-3: #5a5a52;
+    --muted: #7a7a72;
+    --muted-2: #9a9a92;
+
+    /* ---- State palette — single source of truth.
+       Four state hues × 2 brightnesses. No parallel hex codes. ---- */
+    --green-active: #4a7c4a;
+    --green-subtle: #d8e6d8;
+    --amber-active: #b8860b;
+    --amber-subtle: #efe2c2;
+    --oxblood-active: #a04518;
+    --oxblood-subtle: #e6cfc1;
+    --darkblood-active: #7a1414;
+    --darkblood-subtle: #e1c5c5;
+
+    /* ---- Typography ---- */
+    --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'JetBrains Mono', SFMono-Regular, Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--ink); }
+  button { font-family: inherit; }
+
+  .page-frame {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 36px 80px;
+  }
+
+  /* ============================================================
+     ONE typography hierarchy. Five sizes total.
+     38  — verdict count + dial scores
+     28  — modal title
+     22  — verdict headline
+     14  — body text
+     11  — eyebrows / mono labels / metadata
+     ============================================================ */
+  .h-display-38 { font-family: var(--display); font-weight: 300; font-size: 38px; line-height: 1; letter-spacing: -0.02em; }
+  .h-display-28 { font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1.15; letter-spacing: -0.012em; }
+  .h-display-22 { font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1.32; letter-spacing: -0.006em; }
+  .body-14 { font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+  .meta-11 { font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--muted); }
+
+  /* ============================================================
+     ONE surface treatment. Used by verdict-block, dial-card, modal-card.
+     - Plain off-white, 0.5px border-strong, 12px radius.
+     - No internal gradient, no radial highlight, no resting shadow.
+     - Hover lifts 2px and adds a soft shadow — that's the only depth cue.
+     ============================================================ */
+  .surface {
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+  }
+  .surface-interactive {
+    cursor: pointer;
+    transition: transform 220ms cubic-bezier(0.16,1,0.3,1),
+                box-shadow 220ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .surface-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(26,26,26,0.06);
+  }
+
+  /* ============================================================
+     PAGE HEADER
+     ============================================================ */
+  .page-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .cadence-stamp {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 22px;
+    line-height: 1.6;
+  }
+
+  /* ============================================================
+     VERDICT BLOCK
+     - Same surface as cards.
+     - 380px dial column on left, headline + count + explainer on right.
+     ============================================================ */
+  .verdict-block {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 36px;
+    align-items: center;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+  }
+  .verdict-svg-wrap { position: relative; }
+  .verdict-svg { display: block; width: 100%; height: auto; }
+
+  .verdict-count {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .verdict-count .frac {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-left: 2px;
+    vertical-align: 6px;
+  }
+  .verdict-sublabel {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  .verdict-headline {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.32;
+    letter-spacing: -0.006em;
+    margin: 0 0 12px;
+    color: var(--ink);
+    max-width: 600px;
+  }
+  .verdict-explainer {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.6;
+    max-width: 600px;
+  }
+  .verdict-explainer a { font-weight: 500; }
+
+  /* ============================================================
+     DIAL GRID — 3 columns, 6 cards
+     ============================================================ */
+  .dials-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .dial-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  .dial-card {
+    position: relative;
+    padding: 22px 20px 20px;
+    text-align: center;
+    user-select: none;
+  }
+  .dial-card.placeholder {
+    cursor: default;
+    opacity: 0.55;
+  }
+  .dial-card.placeholder:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .dial-card .num-tag {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-2);
+    letter-spacing: 0.10em;
+  }
+  .dial-card .click-arrow {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 14px;
+    color: var(--muted-2);
+    opacity: 0;
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+  .dial-card:hover .click-arrow {
+    opacity: 0.8;
+    transform: translateX(2px);
+  }
+  .dial-card .name {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.22;
+    letter-spacing: -0.006em;
+    margin: 4px 0 12px;
+    color: var(--ink);
+  }
+  .dial-card.placeholder .name { font-style: italic; color: var(--muted); }
+
+  .dial-svg-wrap {
+    position: relative;
+    margin: 4px auto 8px;
+    max-width: 220px;
+  }
+  .dial-svg { display: block; width: 100%; height: auto; }
+
+  .dial-score-wrap { margin-top: -8px; margin-bottom: 8px; }
+  .dial-score-num {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .dial-score-suffix {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    margin-left: 4px;
+  }
+  .dial-card .caption {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    padding: 0 4px;
+    min-height: 56px;
+    margin-top: 6px;
+    text-align: left;
+  }
+  .dial-card.placeholder .caption {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .dial-card .ships-in {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    color: var(--muted-2);
+  }
+  .since-line {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 0.5px dashed var(--border);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    text-align: left;
+  }
+  .cadence-line {
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-align: left;
+  }
+
+  /* ============================================================
+     ONE animation. Dial pointer sweep on first paint, 800ms ease-out.
+     Wedges show static. Reduced-motion users get static everything.
+     ============================================================ */
+  .dial-pointer-group {
+    transform-origin: var(--pivot-x) var(--pivot-y);
+    animation: pointerSweep 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .verdict-pointer-group {
+    transform-origin: 190px 180px;
+    animation: pointerSweep 800ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes pointerSweep {
+    from { transform: rotate(var(--from-deg)); }
+    to   { transform: rotate(0deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dial-pointer-group, .verdict-pointer-group {
+      animation: none !important;
+      transform: none !important;
+    }
+  }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  .page-foot {
+    margin-top: 48px;
+    padding-top: 18px;
+    border-top: 0.5px dashed var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .page-foot code {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+
+  /* ============================================================
+     MODAL — same surface treatment as cards
+     ============================================================ */
+  .modal-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(26,26,26,0.42);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 60px 32px;
+  }
+  .modal-scrim.open { display: flex; }
+  .modal-card {
+    position: relative;
+    width: 100%;
+    max-width: 940px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(26,26,26,0.18);
+    padding: 32px 36px 44px;
+  }
+  .modal-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--muted);
+  }
+  .modal-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .modal-h {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .modal-h h3 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 28px;
+    letter-spacing: -0.012em;
+    margin: 0;
+  }
+  .modal-block {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+    margin-bottom: 18px;
+  }
+  .modal-block-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .kpi {
+    padding: 12px 14px 10px;
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+  }
+  .kpi .lbl {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .kpi .val {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    margin-top: 4px;
+    line-height: 1;
+  }
+  .kpi .val.up { color: var(--oxblood-active); }
+  .kpi .val.dn { color: var(--green-active); }
+  .kpi .meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ============================================================
+     INDICATOR ROW — neutral track, dot color carries the band
+     ============================================================ */
+  .ind-list { margin-top: 14px; }
+  .ind-row {
+    display: grid;
+    grid-template-columns: 1.4fr 168px 1fr 18px;
+    gap: 18px;
+    align-items: center;
+    padding: 14px 6px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 0.5px dashed var(--border);
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .ind-row:hover { background: rgba(184,134,11,0.04); }
+  .ind-row .nm {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .ind-row .nm-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    margin-left: 8px;
+    text-transform: none;
+  }
+  .ind-row .desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.5;
+  }
+
+  /* The unified neutral track. Same color, same height, same width
+     for every indicator regardless of directionality. The dot carries
+     the band color via inline style. */
+  .qbar {
+    position: relative;
+    width: 140px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--border);
+  }
+  .qbar-ends {
+    display: flex;
+    justify-content: space-between;
+    width: 140px;
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .qd {
+    position: absolute;
+    top: -3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    box-shadow: 0 0 0 0.5px var(--border-strong);
+  }
+
+  .ind-row .meta-r {
+    display: grid;
+    grid-template-columns: 1fr 56px;
+    gap: 8px;
+    align-items: center;
+  }
+  .ind-row .v {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .ind-row .pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    margin-top: 2px;
+  }
+  .ind-row .score-num {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1;
+    text-align: right;
+  }
+  .ind-row .share-pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    text-align: right;
+    margin-top: 4px;
+  }
+  .ind-row .arr {
+    font-size: 14px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 980px) {
+    .dial-grid { grid-template-columns: repeat(2, 1fr); }
+    .verdict-block { grid-template-columns: 1fr; }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .dial-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============================================================
+     TOAST
+     ============================================================ */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 22px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    border-radius: 8px;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+    z-index: 10000;
+  }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="page-frame">
+
+  <div class="page-eyebrow">
+    Macro Overview · Wednesday, April 29, 2026
+  </div>
+
+  <div class="cadence-stamp">
+    Refreshed daily · last update Apr 29, 2026 · 06:14 ET &nbsp;·&nbsp;
+    Page-level reading typically shifts every several weeks-to-months. Mechanism scores can move daily.
+  </div>
+
+  <!-- ============================ AGGREGATE VERDICT ============================ -->
+  <section class="surface verdict-block">
+    <div class="verdict-svg-wrap">
+      <!-- Aggregate verdict dial — 4 wedges, current position pointed to.
+           Wedge labels are factual band names, not state pill words. -->
+      <svg class="verdict-svg" viewBox="0 0 380 230" id="verdictDial">
+        <path d="" id="wedge-riskon"  fill="#d8e6d8" />
+        <path d="" id="wedge-neutral" fill="#b8860b" />
+        <path d="" id="wedge-caution" fill="#e6cfc1" />
+        <path d="" id="wedge-riskoff" fill="#e1c5c5" />
+
+        <text x="65"  y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="start"  letter-spacing="0.08em" font-weight="600">RISK-ON</text>
+        <text x="155" y="220" font-family="JetBrains Mono" font-size="10" fill="#1a1a1a" text-anchor="middle" letter-spacing="0.08em" font-weight="600">NEUTRAL</text>
+        <text x="245" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="middle" letter-spacing="0.08em" font-weight="600">CAUTION</text>
+        <text x="325" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="end"    letter-spacing="0.08em" font-weight="600">RISK-OFF</text>
+
+        <!-- Pointer group rotates from leftmost (180°) to current angle. -->
+        <g class="verdict-pointer-group" id="verdictPointerGroup">
+          <line x1="190" y1="180" x2="" y2="" id="verdictPointer"
+                stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" />
+          <circle cx="190" cy="180" r="6" fill="#1a1a1a"/>
+          <circle cx="" cy="" r="4.5" fill="#1a1a1a" stroke="#fff" stroke-width="1.8" id="verdictTip"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <div class="verdict-count">2<span class="frac">/ 3</span></div>
+      <div class="verdict-sublabel">mechanisms elevated</div>
+      <h1 class="verdict-headline">
+        Mixed setup — neither risk-on nor risk-off cleanly. Equity valuations are at cycle peak; credit is pricing complacency; the real economy is still moving at trend.
+      </h1>
+      <div class="verdict-explainer">
+        Six cycle mechanisms describe where the market sits in the cycle, summed into one page-level reading. Bands: 0–1 elevated reads as <strong>Risk-on</strong>, 2 as <strong>Neutral</strong>, 3 as <strong>Caution</strong>, 4–6 as <strong>Risk-off</strong>. We don't predict downturns — we describe where you are. <a href="#">Methodology</a>.
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================ MECHANISM DIALS ============================ -->
+  <div class="dials-eyebrow">Six cycle mechanisms — click any card</div>
+
+  <div class="dial-grid" id="dialGrid">
+    <!-- Cards rendered by JS so the dial wedges can be programmatic. -->
+  </div>
+
+  <div class="page-foot">
+    Sprint 1 ships three of six cycle mechanisms. Funding (Sprint 2), Liquidity &amp; Policy (Sprint 4),
+    and Positioning &amp; Breadth (Sprint 4) appear above as dial-placeholders. The page-level band
+    widens its denominator from 3 to 6 as those mechanisms ship.
+    Calibration source: <code>compute_v11_sprint1_calibration.py</code> · framework v11.
+  </div>
+</div>
+
+<!-- =================================== MODAL =================================== -->
+<div class="modal-scrim" id="modalScrim" onclick="if(event.target===this)closeModal()">
+  <article class="modal-card" id="modalCard">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+    <div id="modalBody"></div>
+  </article>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================================
+// Data — Sprint 1 calibration snapshot (matches public/methodology_calibration_v11.json)
+// Carried forward from v10 unchanged. Visual layer rebuilt; data layer untouched.
+// ============================================================================
+
+const RECESSIONS = [["2020-02","2020-04"]];
+
+const TILES = [
+  {
+    id:"valuation", num:"01", name:"Valuation", live:true, score:87, band:"darkblood",
+    caption:"Currently at cycle peak — multiple valuation reads in the top quartile of long-run history. Caution advised.",
+    persistence:"Reading at cycle peak since Oct 2024 — 18 consecutive months above the long-run-history threshold.",
+    cadence: "Monthly · CAPE/ERP refresh; Buffett quarterly",
+    traj: [
+      [2016,4,58],[2016,7,60],[2016,10,62],[2017,1,63],[2017,4,64],[2017,7,65],[2017,10,67],
+      [2018,1,71],[2018,4,69],[2018,7,70],[2018,10,67],[2019,1,69],[2019,4,72],[2019,7,73],[2019,10,72],
+      [2020,1,75],[2020,4,52],[2020,7,68],[2020,10,73],
+      [2021,1,79],[2021,4,82],[2021,7,84],[2021,10,86],
+      [2022,1,84],[2022,4,80],[2022,7,75],[2022,10,77],
+      [2023,1,79],[2023,4,80],[2023,7,82],[2023,10,84],
+      [2024,1,84],[2024,4,85],[2024,7,86],[2024,10,86],
+      [2025,1,86],[2025,4,86],[2025,7,86],[2025,10,87],
+      [2026,1,87],[2026,4,87],
+    ],
+    indicators:[
+      { id:"cape", name:"CAPE (Shiller)", value:"34.2×", percentile:77, dir:"high", desc:"Cyclically-adjusted price-to-earnings ratio.", sample:"post-2011 (15y)", sampleMin:"21.1", sampleMax:"38.6" },
+      { id:"erp",  name:"Equity Risk Premium", value:"-1.38%", percentile:8, dir:"low", desc:"S&P 500 earnings yield minus 10-year Treasury yield.", sample:"post-2011 (15y)", sampleMin:"-2.4%", sampleMax:"+2.8%" },
+      { id:"buffett", name:"Buffett Indicator", value:"232.7%", percentile:100, dir:"high", desc:"U.S. equity market cap as share of GDP.", sample:"post-1970 (~55y)", sampleMin:"32%", sampleMax:"232%" },
+    ],
+  },
+  {
+    id:"credit", num:"02", name:"Credit", live:true, score:69, band:"oxblood",
+    caption:"Spreads pricing complacency — investment-grade and high-yield spreads have not been tighter since before 2008. Late-cycle signature.",
+    persistence:"Spreads tighter than pre-2008 since Sep 2025 — 7 consecutive months in the bottom-quartile complacency regime.",
+    cadence: "Daily · ICE BofA via FRED",
+    traj: [
+      [2016,4,52],[2016,7,55],[2016,10,48],[2017,1,42],[2017,4,40],[2017,7,42],[2017,10,38],
+      [2018,1,42],[2018,4,46],[2018,7,48],[2018,10,58],[2019,1,68],[2019,4,52],[2019,7,55],[2019,10,50],
+      [2020,1,55],[2020,3,95],[2020,4,89],[2020,7,72],[2020,10,62],
+      [2021,1,55],[2021,4,52],[2021,7,50],[2021,10,55],
+      [2022,1,58],[2022,4,68],[2022,7,75],[2022,10,82],
+      [2023,1,80],[2023,4,72],[2023,7,68],[2023,10,72],
+      [2024,1,68],[2024,4,62],[2024,7,68],[2024,10,72],
+      [2025,1,73],[2025,4,72],[2025,7,71],[2025,10,70],
+      [2026,1,69],[2026,4,69],
+    ],
+    indicators:[
+      { id:"ig_oas", name:"IG OAS (Baa − 10y)", value:"174 bp", percentile:23, dir:"bidir", desc:"Investment-grade Baa premium over Treasuries.", sample:"post-1986 (~40y)", sampleMin:"120 bp", sampleMax:"628 bp" },
+      { id:"hy_oas", name:"HY OAS",            value:"285 bp", percentile:16, dir:"bidir", desc:"High-yield (junk) corporate spread over Treasuries.", sample:"post-2011 (15y)", sampleMin:"265 bp", sampleMax:"880 bp" },
+      { id:"hy_ig", name:"HY/IG ratio",        value:"1.89×",  percentile:47, dir:"bidir", desc:"High-yield spread divided by investment-grade spread.", sample:"post-2011 (15y)", sampleMin:"1.42×", sampleMax:"3.10×" },
+    ],
+  },
+  { id:"funding", num:"03", name:"Funding", live:false, ships:"Sprint 2",
+    caption:"Bank-system funding stress: SOFR-OIS, FRA-OIS, CDX IG-HY basis, cross-currency basis, commercial-paper funding spread." },
+  {
+    id:"growth", num:"04", name:"Growth", live:true, score:47, band:"amber",
+    caption:"Real economy moving at trend — no level-and-trend signal. Jobless claims tight, ISM in expansion.",
+    persistence:"Real economy at trend since Feb 2025 — 14 consecutive months below the level-and-trend threshold.",
+    cadence: "Monthly + weekly · CFNAI/ISM monthly, jobless weekly",
+    traj: [
+      [2016,4,38],[2016,7,42],[2016,10,40],[2017,1,38],[2017,4,35],[2017,7,32],[2017,10,30],
+      [2018,1,32],[2018,4,30],[2018,7,32],[2018,10,42],[2019,1,48],[2019,4,42],[2019,7,40],[2019,10,38],
+      [2020,1,42],[2020,3,95],[2020,4,92],[2020,7,72],[2020,10,55],
+      [2021,1,42],[2021,4,32],[2021,7,28],[2021,10,30],
+      [2022,1,38],[2022,4,52],[2022,7,62],[2022,10,68],
+      [2023,1,72],[2023,4,68],[2023,7,58],[2023,10,52],
+      [2024,1,55],[2024,4,52],[2024,7,50],[2024,10,48],
+      [2025,1,52],[2025,4,48],[2025,7,46],[2025,10,47],
+      [2026,1,46],[2026,4,47],
+    ],
+    indicators:[
+      { id:"cfnai", name:"CFNAI 3-month", value:"-0.03", percentile:60, dir:"low", desc:"Chicago Fed National Activity Index.", sample:"post-2006 (20y)", sampleMin:"-4.7", sampleMax:"+1.8" },
+      { id:"jobless", name:"Jobless claims (4w)", value:"214k", percentile:12, dir:"high", desc:"Initial unemployment claims, 4-week average.", sample:"post-2006 (20y)", sampleMin:"189k", sampleMax:"5,310k" },
+      { id:"ism", name:"ISM Manufacturing PMI", value:"52.7", percentile:54, dir:"low", desc:"ISM headline composite.", sample:"post-2006 (20y)", sampleMin:"37.6", sampleMax:"63.7" },
+      { id:"bkx_spx", name:"Banks vs S&P 500", value:"0.09×", percentile:8, dir:"low", desc:"KBW Bank Index relative to S&P 500.", sample:"post-2006 (20y)", sampleMin:"0.07×", sampleMax:"0.21×" },
+    ],
+  },
+  { id:"liquidity_policy", num:"05", name:"Liquidity & Policy", live:false, ships:"Sprint 4",
+    caption:"Adjusted financial conditions, real Fed funds rate, M2 year-on-year, term premium, Fed balance-sheet trajectory." },
+  { id:"positioning_breadth", num:"06", name:"Positioning & Breadth", live:false, ships:"Sprint 4",
+    caption:"NAAIM exposure, margin debt year-on-year, put/call ratio, share of S&P above 200-day moving average, advance-decline." },
+];
+
+// Map band identifier → palette colors
+const BAND_COLORS = {
+  green:     { active: "#4a7c4a", subtle: "#d8e6d8" },
+  amber:     { active: "#b8860b", subtle: "#efe2c2" },
+  oxblood:   { active: "#a04518", subtle: "#e6cfc1" },
+  darkblood: { active: "#7a1414", subtle: "#e1c5c5" },
+};
+
+// Score → band (matches the Sprint 1 calibration thresholds)
+function scoreToBand(score) {
+  if (score < 25) return "green";
+  if (score < 50) return "amber";
+  if (score < 75) return "oxblood";
+  return "darkblood";
+}
+
+// Dot color for an indicator row — band of where the indicator currently sits
+// in its sample distribution. For bidirectional indicators the color tracks
+// distance from the middle. The bar itself stays neutral; the dot does the
+// visual storytelling.
+function indicatorDotBand(ind) {
+  // Translate percentile + directionality into a 0-100 "concerning" score,
+  // then bucket the score into a band.
+  let concerning;
+  if (ind.dir === "low")        concerning = 100 - ind.percentile;
+  else if (ind.dir === "bidir") concerning = Math.abs(ind.percentile - 50) * 2;
+  else                          concerning = ind.percentile;
+  return scoreToBand(concerning);
+}
+
+function indicatorConcerningScore(ind) {
+  if (ind.dir === "low")  return Math.round(100 - ind.percentile);
+  if (ind.dir === "bidir") return Math.round(Math.abs(ind.percentile - 50) * 2);
+  return Math.round(ind.percentile);
+}
+
+// ============================================================================
+// Aggregate verdict dial — single pointer sweep, no wedge animation.
+// ============================================================================
+(function buildVerdictDial() {
+  const cx = 190, cy = 180, R_outer = 140, R_inner = 90;
+  const segments = [
+    { id: "wedge-riskon",  a0: 180, a1: 135 },
+    { id: "wedge-neutral", a0: 135, a1: 90  },
+    { id: "wedge-caution", a0: 90,  a1: 45  },
+    { id: "wedge-riskoff", a0: 45,  a1: 0   },
+  ];
+  function polar(r, deg) {
+    const rad = (deg * Math.PI) / 180;
+    return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
+  }
+  segments.forEach(s => {
+    const [x0o, y0o] = polar(R_outer, s.a0);
+    const [x1o, y1o] = polar(R_outer, s.a1);
+    const [x1i, y1i] = polar(R_inner, s.a1);
+    const [x0i, y0i] = polar(R_inner, s.a0);
+    const d = `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${R_outer} ${R_outer} 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${R_inner} ${R_inner} 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+    document.getElementById(s.id).setAttribute("d", d);
+  });
+  // Today's pointer — Neutral wedge mid (112.5°)
+  const a_today = 112.5;
+  const [tx, ty] = polar(R_outer + 8, a_today);
+  document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
+  document.getElementById("verdictPointer").setAttribute("y2", ty.toFixed(2));
+  document.getElementById("verdictTip").setAttribute("cx", tx.toFixed(2));
+  document.getElementById("verdictTip").setAttribute("cy", ty.toFixed(2));
+
+  // Set up the sweep animation: pointer starts at leftmost (180°) and
+  // rotates CW to rest at 0° offset. SVG rotation is CW, our angle math is CCW,
+  // so the rotation delta is +(180 - a_today) starting position.
+  const startDeg = -(180 - a_today);  // rotate CCW by that amount initially, sweep back to 0
+  document.getElementById("verdictPointerGroup").style.setProperty("--from-deg", `${startDeg}deg`);
+})();
+
+// ============================================================================
+// Mechanism dial — single sweep animation on first paint
+// ============================================================================
+function buildDialSvg(score, isLive, band) {
+  const W = 220, H = 140;
+  const cx = W / 2, cy = H - 12;
+  const R_outer = 92, R_inner = 64;
+
+  const wedges = [
+    { from: 0,   to: 25,  ...BAND_COLORS.green },
+    { from: 25,  to: 50,  ...BAND_COLORS.amber },
+    { from: 50,  to: 75,  ...BAND_COLORS.oxblood },
+    { from: 75,  to: 100, ...BAND_COLORS.darkblood },
+  ];
+  const scoreToDeg = (s) => 180 - Math.max(0, Math.min(100, s)) * 1.8;
+  const polar = (r, deg) => {
+    const rad = (deg * Math.PI) / 180;
+    return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
+  };
+  const activeIdx = isLive
+    ? (score < 25 ? 0 : score < 50 ? 1 : score < 75 ? 2 : 3)
+    : -1;
+
+  let out = `<svg class="dial-svg" viewBox="0 0 ${W} ${H}">`;
+  // Wedges — static, no animation
+  wedges.forEach((w, i) => {
+    const a0 = scoreToDeg(w.from), a1 = scoreToDeg(w.to);
+    const [x0o, y0o] = polar(R_outer, a0);
+    const [x1o, y1o] = polar(R_outer, a1);
+    const [x1i, y1i] = polar(R_inner, a1);
+    const [x0i, y0i] = polar(R_inner, a0);
+    const d = `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${R_outer} ${R_outer} 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${R_inner} ${R_inner} 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+    const isActive = i === activeIdx;
+    const fill = isActive ? w.active : (isLive ? w.subtle : "#e0ddd5");
+    out += `<path d="${d}" fill="${fill}"/>`;
+  });
+  // Pointer — sweeps from leftmost (180°) to current position
+  if (isLive) {
+    const a = scoreToDeg(score);
+    const [px, py] = polar(R_outer + 6, a);
+    const [bx, by] = polar(R_inner - 4, a);
+    // Rotation delta: animation starts at -(180 - a) and ends at 0
+    const startDeg = -(180 - a);
+    out += `<g class="dial-pointer-group" style="--from-deg:${startDeg}deg; --pivot-x:${cx}px; --pivot-y:${cy}px;">`;
+    out += `<line x1="${bx.toFixed(2)}" y1="${by.toFixed(2)}" x2="${px.toFixed(2)}" y2="${py.toFixed(2)}" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round"/>`;
+    out += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="3.8" fill="#1a1a1a" stroke="#fff" stroke-width="1.6"/>`;
+    out += `<circle cx="${cx}" cy="${cy}" r="4" fill="#1a1a1a"/>`;
+    out += `</g>`;
+  }
+  out += "</svg>";
+  return out;
+}
+
+function renderDials() {
+  const grid = document.getElementById("dialGrid");
+  grid.innerHTML = "";
+  TILES.forEach(t => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "surface dial-card" + (t.live ? " surface-interactive" : " placeholder");
+    card.style.border = "0.5px solid var(--border-strong)";
+    if (t.live) card.addEventListener("click", () => openModal(t));
+    let inner = "";
+    inner += `<span class="num-tag">${t.num}</span>`;
+    if (t.live) inner += `<span class="click-arrow">›</span>`;
+    inner += `<div class="name">${t.name}</div>`;
+    inner += `<div class="dial-svg-wrap">${buildDialSvg(t.score, t.live, t.band)}</div>`;
+    if (t.live) {
+      inner += `<div class="dial-score-wrap"><span class="dial-score-num">${t.score}</span><span class="dial-score-suffix">/ 100</span></div>`;
+    } else {
+      inner += `<div class="dial-score-wrap"><span class="ships-in">${t.ships}</span></div>`;
+    }
+    inner += `<div class="caption">${t.caption}</div>`;
+    if (t.live) {
+      inner += `<div class="since-line">${t.persistence || ""}</div>`;
+      inner += `<div class="cadence-line">Refreshes ${t.cadence || ""}</div>`;
+    }
+    card.innerHTML = inner;
+    grid.appendChild(card);
+  });
+}
+renderDials();
+
+// ============================================================================
+// Modal
+// ============================================================================
+function openModal(t) {
+  if (!t.live) {
+    showToast(`${t.name} ships in ${t.ships}.`);
+    return;
+  }
+  const body = document.getElementById("modalBody");
+  const inds = t.indicators || [];
+  const scores = inds.map(ind => ({ ind, score: indicatorConcerningScore(ind), band: indicatorDotBand(ind) }));
+  const totalScore = scores.reduce((a,b) => a + b.score, 0) || 1;
+  const tileColor = BAND_COLORS[t.band].active;
+
+  let h = "";
+  h += `<div class="modal-eyebrow">Cycle mechanism · ${t.name}</div>`;
+  h += `<div class="modal-h">
+    <h3>${t.name}</h3>
+    <div style="text-align:right;">
+      <div class="dial-score-num" style="color:${tileColor};">${t.score}<span class="dial-score-suffix">/ 100</span></div>
+      <div class="meta-11" style="margin-top:4px;">composite score</div>
+    </div>
+  </div>`;
+  h += `<p class="body-14" style="margin:0 0 18px;max-width:720px;">${t.caption}</p>`;
+
+  if (t.traj) {
+    h += `<div class="modal-block">
+      <div class="modal-block-eyebrow">10-year trajectory · ${t.cadence || ""}</div>
+      <div style="position:relative;">${buildModalTrajectorySvg(t)}</div>
+      <div style="font-size:14px;color:var(--ink-3);font-style:italic;margin-top:10px;">${t.persistence || ""}</div>
+    </div>`;
+  }
+
+  h += `<div class="modal-block-eyebrow" style="margin-top:8px;">Indicators contributing to this composite</div>`;
+  h += `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">
+    Score-weighted: each indicator's 0–100 concerning score divided by the tile's sum-of-scores.
+    Higher scores carry more weight. Click any row for the full indicator drilldown.
+  </div>`;
+  h += `<div class="ind-list">`;
+  scores.forEach(({ind, score, band}) => {
+    const pos = Math.max(0, Math.min(100, ind.percentile));
+    const sharePct = Math.round((score / totalScore) * 100 * 10) / 10;
+    const dotColor = BAND_COLORS[band].active;
+    const scoreColor = BAND_COLORS[band].active;
+    const dirText = ind.dir === "low" ? "low = concerning"
+                  : ind.dir === "bidir" ? "extremes = concerning"
+                  : "high = concerning";
+    h += `<button type="button" class="ind-row" data-indid="${ind.id}" data-tileid="${t.id}">
+      <div>
+        <div class="nm">${ind.name}<span class="nm-meta">${dirText}</span></div>
+        <div class="desc">${ind.desc}</div>
+      </div>
+      <div>
+        <div class="qbar"><span class="qd" style="left:calc(${pos}% - 7px); background:${dotColor};"></span></div>
+        <div class="qbar-ends"><span>${ind.sampleMin || "low"}</span><span>${ind.sampleMax || "high"}</span></div>
+      </div>
+      <div class="meta-r">
+        <div>
+          <div class="v">${ind.value}</div>
+          <div class="pct">${ind.percentile}th pct · ${ind.sample}</div>
+        </div>
+        <div>
+          <div class="score-num" style="color:${scoreColor};">${score}</div>
+          <div class="share-pct">${sharePct}% share</div>
+        </div>
+      </div>
+      <div class="arr">›</div>
+    </button>`;
+  });
+  h += `</div>`;
+
+  h += `<div style="margin-top:24px;padding-top:14px;border-top:0.5px dashed var(--border);font-size:11px;color:var(--muted);line-height:1.6;">
+    <strong style="color:var(--ink);font-weight:600;">Methodology.</strong>
+    The ${t.name} composite is the simple average of its indicators' 0–100 concerning scores.
+    Each indicator's score derives from its current percentile in the indicator's stated sample window.
+    See the <a href="#methodology" style="color:var(--ink);">methodology page</a> for the full rule.
+  </div>`;
+
+  body.innerHTML = h;
+
+  body.querySelectorAll(".ind-row").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const indId = btn.dataset.indid;
+      const ind = (t.indicators || []).find(i => i.id === indId);
+      openIndicatorDrawer(ind, t);
+    });
+  });
+
+  document.getElementById("modalScrim").classList.add("open");
+  document.getElementById("modalCard").scrollTop = 0;
+}
+
+function buildModalTrajectorySvg(tile) {
+  if (!tile.traj || tile.traj.length < 2) return "";
+  const W = 760, H = 130;
+  const padL = 36, padR = 8, padT = 10, padB = 22;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const points = tile.traj;
+  const N = points.length;
+  const x = (i) => padL + (i / Math.max(1, N - 1)) * innerW;
+  const y = (s) => padT + (1 - s / 100) * innerH;
+  const dotColor = BAND_COLORS[tile.band].active;
+  const pathD = points.map((p,i) => `${i===0?"M":"L"}${x(i).toFixed(1)},${y(p[2]).toFixed(1)}`).join(" ");
+  let recStart = -1, recEnd = -1;
+  points.forEach((p,i) => {
+    if (recStart === -1 && p[0]===2020 && p[1]>=2) recStart = i;
+    if (p[0]===2020 && p[1]<=4) recEnd = i;
+  });
+  let recBand = "";
+  if (recStart >= 0 && recEnd >= recStart) {
+    const x1 = x(recStart), x2 = x(recEnd);
+    recBand = `<rect x="${x1}" y="${padT}" width="${(x2-x1).toFixed(1)}" height="${innerH}" fill="rgba(122,20,20,0.10)"/>`;
+  }
+  const lastX = x(N-1), lastY = y(points[N-1][2]);
+  const firstYr = points[0][0], lastYr = points[N-1][0];
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+    ${recBand}
+    <line x1="${padL}" x2="${W-padR}" y1="${y(50)}" y2="${y(50)}" stroke="#cdc9bf" stroke-width="0.5" stroke-dasharray="3 4"/>
+    <line x1="${padL}" x2="${W-padR}" y1="${y(75)}" y2="${y(75)}" stroke="#e0ddd5" stroke-width="0.5" stroke-dasharray="2 5"/>
+    <line x1="${padL}" x2="${W-padR}" y1="${y(25)}" y2="${y(25)}" stroke="#e0ddd5" stroke-width="0.5" stroke-dasharray="2 5"/>
+    <text x="${padL-4}" y="${y(75)+3}" font-size="10" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">75</text>
+    <text x="${padL-4}" y="${y(50)+3}" font-size="10" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">50</text>
+    <text x="${padL-4}" y="${y(25)+3}" font-size="10" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">25</text>
+    <path d="${pathD}" stroke="#5a5a52" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4" fill="${dotColor}" stroke="#fff" stroke-width="1.5"/>
+    <text x="${padL}" y="${H-6}" font-size="11" fill="#7a7a72" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="11" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
+    <text x="${(W/2).toFixed(0)}" y="${H-6}" font-size="11" fill="rgba(122,20,20,0.6)" text-anchor="middle" font-family="JetBrains Mono" font-weight="500">COVID 2020</text>
+  </svg>`;
+}
+
+// ============================================================================
+// Indicator-level history chart (basis points, not 0-100 composite score)
+// ----------------------------------------------------------------------------
+// Renders the indicator's actual measured value over 10 years. Y-axis spans
+// observed min→max with a small margin. Mean line + ±1 SD shaded band give
+// the eye a baseline. COVID recession band shaded behind the curve.
+// ============================================================================
+function buildIndicatorTrajectorySvg(drill, dotColor) {
+  if (!drill.traj_bp || drill.traj_bp.length < 2) return "";
+  const W = 760, H = 180;
+  const padL = 44, padR = 12, padT = 12, padB = 24;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const points = drill.traj_bp;
+  const N = points.length;
+  // Compute axis bounds with a 5% margin
+  const vals = points.map(p => p[2]);
+  const vMin = Math.min(...vals), vMax = Math.max(...vals);
+  const vRange = vMax - vMin;
+  const yMin = Math.max(0, vMin - vRange * 0.05);
+  const yMax = vMax + vRange * 0.05;
+  const mean = vals.reduce((a,b)=>a+b, 0) / N;
+  const variance = vals.reduce((a,b)=>a + (b - mean)**2, 0) / N;
+  const sd = Math.sqrt(variance);
+  const x = (i) => padL + (i / Math.max(1, N - 1)) * innerW;
+  const y = (v) => padT + (1 - (v - yMin) / (yMax - yMin)) * innerH;
+  const pathD = points.map((p,i) => `${i===0?"M":"L"}${x(i).toFixed(1)},${y(p[2]).toFixed(1)}`).join(" ");
+  // COVID recession band
+  let recStart = -1, recEnd = -1;
+  points.forEach((p,i) => {
+    if (recStart === -1 && p[0]===2020 && p[1]>=2) recStart = i;
+    if (p[0]===2020 && p[1]<=4) recEnd = i;
+  });
+  let recBand = "";
+  if (recStart >= 0 && recEnd >= recStart) {
+    const x1 = x(recStart), x2 = x(recEnd);
+    recBand = `<rect x="${x1}" y="${padT}" width="${(x2-x1).toFixed(1)}" height="${innerH}" fill="rgba(122,20,20,0.10)"/>`;
+  }
+  // ±1 SD band
+  const sdTopY = y(mean + sd), sdBotY = y(mean - sd);
+  const sdBand = `<rect x="${padL}" y="${sdTopY.toFixed(1)}" width="${innerW}" height="${(sdBotY - sdTopY).toFixed(1)}" fill="rgba(122,20,20,0.04)"/>`;
+  // Y axis labels
+  const yTicks = [
+    { v: Math.round(yMax / 100) * 100, label: Math.round(yMax / 100) * 100 + "" },
+    { v: Math.round(mean / 100) * 100, label: Math.round(mean / 100) * 100 + "" },
+    { v: Math.round((yMin + 50) / 100) * 100, label: Math.round((yMin + 50) / 100) * 100 + "" },
+  ].filter((t, i, arr) => arr.findIndex(o => o.v === t.v) === i);
+  const lastX = x(N-1), lastY = y(points[N-1][2]);
+  const firstYr = points[0][0], lastYr = points[N-1][0];
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+    ${recBand}
+    ${sdBand}
+    <line x1="${padL}" x2="${W-padR}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="#cdc9bf" stroke-width="0.5" stroke-dasharray="4 4"/>
+    ${yTicks.map(t => `<text x="${padL-6}" y="${y(t.v)+3}" font-size="11" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${t.label}</text>`).join("")}
+    <text x="${W-padR}" y="${y(mean)-4}" font-size="11" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">mean ${Math.round(mean)} bp</text>
+    <path d="${pathD}" stroke="#5a5a52" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4.5" fill="${dotColor}" stroke="#fff" stroke-width="1.6"/>
+    <text x="${padL}" y="${H-6}" font-size="11" fill="#7a7a72" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="11" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
+    <text x="${(W/2).toFixed(0)}" y="${H-6}" font-size="11" fill="rgba(122,20,20,0.6)" text-anchor="middle" font-family="JetBrains Mono" font-weight="500">COVID 2020</text>
+  </svg>`;
+}
+
+// ============================================================================
+// Indicator drawer (HY OAS wired as the demo)
+// ============================================================================
+const HY_OAS_DRILL = {
+  kpis: [
+    { lbl:"1-month change", val:"-43 bp", meta:"vs 90d avg +6 bp", dir:"dn" },
+    { lbl:"3-month change", val:"-3 bp",  meta:"trending tighter", dir:"dn" },
+    { lbl:"1-year change",  val:"-109 bp", meta:"tightening cycle", dir:"dn" },
+    { lbl:"Distance from peak", val:"-184 bp", meta:"peak: 469bp / May 2023", dir:"dn" },
+  ],
+  // 10-year monthly HY OAS history (basis points). Synthesized for the mockup,
+  // anchored to known regime transitions: 2016 post-energy crisis tightening,
+  // 2018 H2 widening, March 2020 COVID spike to ~1100bp, 2021 super-tight
+  // post-stimulus, 2022 inflation/Fed widening, May 2023 peak 469bp, 2024
+  // tightening cycle resumes, current 285bp.
+  traj_bp: [
+    [2016,4,720],[2016,7,580],[2016,10,470],[2017,1,410],[2017,4,395],[2017,7,375],[2017,10,360],
+    [2018,1,355],[2018,4,365],[2018,7,365],[2018,10,425],[2019,1,510],[2019,4,400],[2019,7,395],[2019,10,400],
+    [2020,1,395],[2020,3,1090],[2020,4,820],[2020,7,490],[2020,10,440],
+    [2021,1,365],[2021,4,310],[2021,7,300],[2021,10,310],
+    [2022,1,330],[2022,4,395],[2022,7,470],[2022,10,510],
+    [2023,1,460],[2023,4,455],[2023,7,400],[2023,10,425],
+    [2024,1,385],[2024,4,394],[2024,7,355],[2024,10,330],
+    [2025,1,340],[2025,4,360],[2025,7,335],[2025,10,310],
+    [2026,1,328],[2026,4,285],
+  ],
+  episodes: [
+    { period:"Apr 2026", note:"Today's entry into bottom quartile", spx6:null, spx12:null },
+    { period:"Apr 2024", note:"Most-recent prior bottom-quartile entry", spx6:"+12%", spx12:"+22%" },
+    { period:"Aug 2021", note:"Peak complacency before 2022 selloff", spx6:"-4%", spx12:"-18%" },
+    { period:"Jan 2018", note:"Late-cycle compression", spx6:"+2%", spx12:"-6%" },
+    { period:"Jun 2014", note:"Pre-energy-crisis tightness", spx6:"+5%", spx12:"+5%" },
+  ],
+  comovement: [
+    { peer:"IG OAS (Baa - 10y)", c1y:"+0.89", c5y:"+0.85", n1:"12", n5:"36" },
+    { peer:"VIX",                 c1y:"+0.62", c5y:"+0.51", n1:"12", n5:"60" },
+    { peer:"MOVE",                c1y:"+0.51", c5y:"+0.44", n1:"12", n5:"60" },
+    { peer:"S&P 500",             c1y:"-0.44", c5y:"-0.38", n1:"12", n5:"60" },
+  ],
+  release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"FRED · ICE BofA · BAMLH0A0HYM2" },
+  source_url: "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+  formula: "ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
+  caveat: "ICE BofA license restricts FRED's free history to post-2011. The 2008 GFC peak (~2,000 bp) is out of sample.",
+};
+
+function openIndicatorDrawer(ind, tile) {
+  if (!ind) return;
+  if (ind.id !== "hy_oas") {
+    showToast(`Indicator drawer wired only on HY OAS in this mockup. In production every indicator opens this same drawer.`);
+    return;
+  }
+  const body = document.getElementById("modalBody");
+  const drill = HY_OAS_DRILL;
+  let h = "";
+  h += `<div style="margin-bottom:10px;"><button type="button" onclick="reopenTileModal('${tile.id}')" style="border:none;background:transparent;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;letter-spacing:0.04em;padding:0;">‹ BACK TO ${tile.name.toUpperCase()}</button></div>`;
+  h += `<div class="modal-eyebrow">${tile.name} / indicator</div>`;
+  h += `<div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;margin-bottom:8px;">FRED · BAMLH0A0HYM2 · Daily</div>`;
+  h += `<div class="modal-h"><h3>${ind.name}</h3>
+    <div style="text-align:right;">
+      <div class="dial-score-num">${ind.value}</div>
+      <div class="meta-11" style="margin-top:4px;">as of Apr 30, 2026</div>
+    </div></div>`;
+  h += `<p class="body-14" style="margin:0 0 16px;max-width:640px;">${ind.desc}</p>`;
+  h += `<div class="kpi-strip">`;
+  drill.kpis.forEach(k => {
+    h += `<div class="kpi"><div class="lbl">${k.lbl}</div><div class="val ${k.dir}">${k.val}</div><div class="meta">${k.meta}</div></div>`;
+  });
+  h += `</div>`;
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">History · 10-year · basis points</div>
+    <div style="position:relative;">${buildIndicatorTrajectorySvg(drill, BAND_COLORS.darkblood.active)}</div>
+    <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);margin-top:8px;letter-spacing:0.04em;">Mean ${(function(){const v=drill.traj_bp.map(p=>p[2]);return Math.round(v.reduce((a,b)=>a+b,0)/v.length);})()} bp · current 285 bp · sample range 265–880 bp (post-2011)</div>
+  </div>`;
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">Last entries into bottom quartile · S&P forward returns</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-style:italic;">Historical reference, not a forecast. 3-month confirmation rule on monthly grid. Sample size precludes hit-rate claims.</div>
+    <table style="width:100%;font-size:14px;border-collapse:collapse;">
+      <thead><tr>${["Period","Note","SPX next 6m","SPX next 12m"].map(c=>`<th style="text-align:left;font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--muted);border-bottom:0.5px solid var(--ink);padding:8px 12px 6px 0;">${c}</th>`).join("")}</tr></thead>
+      <tbody>${drill.episodes.map(e=>{
+        const c6 = e.spx6 ? `<span style="color:${e.spx6.startsWith("-")?"var(--oxblood-active)":"var(--green-active)"}">${e.spx6}</span>` : '<span style="color:var(--muted)">—</span>';
+        const c12 = e.spx12 ? `<span style="color:${e.spx12.startsWith("-")?"var(--oxblood-active)":"var(--green-active)"}">${e.spx12}</span>` : '<span style="color:var(--muted)">—</span>';
+        return `<tr><td style="padding:8px 12px 8px 0;border-bottom:0.5px dashed var(--border);color:var(--ink-2);">${e.period}</td><td style="padding:8px 12px 8px 0;border-bottom:0.5px dashed var(--border);color:var(--ink-2);">${e.note}</td><td style="padding:8px 12px 8px 0;border-bottom:0.5px dashed var(--border);font-family:var(--mono);font-weight:500;">${c6}</td><td style="padding:8px 12px 8px 0;border-bottom:0.5px dashed var(--border);font-family:var(--mono);font-weight:500;">${c12}</td></tr>`;
+      }).join("")}</tbody>
+    </table>
+  </div>`;
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">Co-movement · top correlated framework indicators</div>
+    <div style="display:grid;grid-template-columns:1fr 90px 90px;gap:14px;padding:6px 0 8px;border-bottom:0.5px solid var(--ink);font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--muted);">
+      <div>Peer indicator</div><div style="text-align:right;">1y</div><div style="text-align:right;">5y</div>
+    </div>
+    ${drill.comovement.map(c=>`<div style="display:grid;grid-template-columns:1fr 90px 90px;gap:14px;padding:8px 0;border-bottom:0.5px dashed var(--border);font-size:14px;color:var(--ink-2);align-items:baseline;">
+      <div style="color:var(--ink);">${c.peer}</div>
+      <div style="text-align:right;font-family:var(--mono);font-weight:500;"><span>${c.c1y}</span><span style="display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;">n=${c.n1}</span></div>
+      <div style="text-align:right;font-family:var(--mono);font-weight:500;"><span>${c.c5y}</span><span style="display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;">n=${c.n5}</span></div>
+    </div>`).join("")}
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.55;">Pearson correlation on monthly first differences. <strong>1y</strong> = current-regime read. <strong>5y</strong> = cycle-average read. The gap between the two flags whether the relationship is in its normal pattern or a new regime.</div>
+  </div>`;
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">Release calendar</div>
+    ${[["Frequency",drill.release.freq],["Last release",drill.release.last],["Next release",drill.release.next],["Source",drill.release.source]].map(r=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px dashed var(--border);font-size:14px;"><span style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;font-weight:600;">${r[0]}</span><span style="color:var(--ink);">${r[1]}</span></div>`).join("")}
+  </div>`;
+  h += `<div style="border-top:0.5px solid var(--border);padding-top:16px;font-size:14px;color:var(--ink-2);line-height:1.6;margin-top:4px;">
+    <div style="margin-bottom:10px;"><strong style="color:var(--ink);">Formula.</strong> ${drill.formula}</div>
+    <div style="margin-bottom:10px;"><strong style="color:var(--ink);">Source.</strong> FRED: BAMLH0A0HYM2 · <a href="${drill.source_url}" target="_blank" style="color:var(--ink);">view on FRED</a></div>
+    <div style="margin-bottom:10px;font-style:italic;color:var(--muted);"><strong style="color:var(--ink);font-style:normal;">Caveat.</strong> ${drill.caveat}</div>
+  </div>`;
+  body.innerHTML = h;
+  document.getElementById("modalCard").scrollTop = 0;
+}
+
+function reopenTileModal(tileId) {
+  const t = TILES.find(x => x.id === tileId);
+  if (t) openModal(t);
+}
+
+function closeModal() {
+  document.getElementById("modalScrim").classList.remove("open");
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeModal();
+});
+
+// ============================================================================
+// Toast
+// ============================================================================
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove("show"); }, 2400);
+}
+</script>
+</body>
+</html>
