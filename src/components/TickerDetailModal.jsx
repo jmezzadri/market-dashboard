@@ -531,7 +531,7 @@ function Field({ label, value }) {
 // ============================================================================
 function ActionRow({
   ticker, heldIn, portfolioAuthed, onUserWatchlist, removeFromWatchlist, wlBusy,
-  onOpenAddPosition, onOpenEditPosition, onOpenScanner, onClose,
+  onOpenAddPosition, onOpenEditPosition, onClose,
 }) {
   const heldRow = heldIn?.[0]?.p || null;
   const owns = heldIn && heldIn.length > 0;
@@ -593,9 +593,6 @@ function ActionRow({
           {wlBusy ? "…" : "− Remove from watchlist"}
         </button>
       )}
-      <button type="button" onClick={()=>onOpenScanner?.(ticker)} style={btnBase}>
-        Open in Scanner →
-      </button>
       <button type="button" onClick={onClose} style={{...btnBase, marginLeft:"auto", color:"var(--text-muted)"}}>
         Close
       </button>
@@ -604,7 +601,7 @@ function ActionRow({
 }
 
 
-export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,macroLatest,v9Alloc,onOpenAddPosition,onOpenEditPosition,onOpenScanner}){
+export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,macroLatest,v9Alloc,onOpenAddPosition,onOpenEditPosition}){
 const [descExpanded,setDescExpanded]=useState(false);
 const [wlBusy,setWlBusy]=useState(false);
 const [wlError,setWlError]=useState(null);
@@ -1025,18 +1022,6 @@ return(
 
   // Color rule: green for >=0, red for <0, dim for null.
   const cFor = v => v==null ? "var(--text-dim)" : (v>=0 ? "var(--green-text, #1a8c39)" : "var(--red-text, #c8302a)");
-  // Tiny sparkline: scale the return into a 0-100 / 4-20 svg path. Slope reflects
-  // sign + magnitude. Not historical — a stylistic trend cue. The historical
-  // 30-day sparkline ships in PR-D (chart Compare bar restyle).
-  const Spark = ({v, color}) => {
-    if (v == null) return null;
-    const slope = Math.max(-1, Math.min(1, v * 6)); // amplify so small returns show
-    const y0 = 18 - slope * 12;
-    const y1 = 18 + slope * 12;
-    return (<svg viewBox="0 0 100 24" preserveAspectRatio="none" style={{width:"100%",height:24,marginTop:6,display:"block"}}>
-      <polyline points={`0,${y1.toFixed(1)} 50,${(18-slope*4).toFixed(1)} 100,${y0.toFixed(1)}`} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round"/>
-    </svg>);
-  };
 
   const KpiCard = ({label, value, comp, color, tip, spark}) => (
     <div style={{background:"var(--surface-solid, var(--paper, #fff))",border:"1px solid var(--border)",borderRadius:"var(--radius-xs, 6px)",padding:"12px 14px",display:"flex",flexDirection:"column"}}>
@@ -1060,7 +1045,6 @@ return(
         comp={fmtRetSpy(wkSpy)}
         color={cFor(wk)}
         tip="Price change over the last 5 trading days. Sourced from the in-house technicals on the most recent scan."
-        spark={<Spark v={wk} color={cFor(wk)}/>}
       />
       <KpiCard
         label="1-month return"
@@ -1068,7 +1052,6 @@ return(
         comp={fmtRetSpy(moSpy)}
         color={cFor(mo)}
         tip="Price change over the last ~21 trading days."
-        spark={<Spark v={mo} color={cFor(mo)}/>}
       />
       <KpiCard
         label="YTD return"
@@ -1076,7 +1059,6 @@ return(
         comp={fmtRetSpy(ytSpy)}
         color={cFor(yt)}
         tip="Price change since Jan 1 of the current year."
-        spark={<Spark v={yt} color={cFor(yt)}/>}
       />
       {heldIn.length>0?(
         <KpiCard
@@ -1085,7 +1067,6 @@ return(
           comp={heldPnlPct==null ? null : `${heldPnlPct>=0?"+":""}${(heldPnlPct*100).toFixed(1)}% on cost · ${heldQty.toLocaleString()} ${heldIn[0].p.assetClass==="option"?"contract"+(heldQty===1?"":"s"):"sh"}`}
           color={cFor(heldPnlPct)}
           tip="Unrealized profit/loss across every account that holds this ticker. For options, math uses per-contract storage (LESSONS rule #25)."
-          spark={<Spark v={heldPnlPct} color={cFor(heldPnlPct)}/>}
         />
       ):(
         <KpiCard
@@ -1137,7 +1118,6 @@ return(
   wlBusy={wlBusy}
   onOpenAddPosition={onOpenAddPosition}
   onOpenEditPosition={onOpenEditPosition}
-  onOpenScanner={onOpenScanner}
   onClose={onClose}
 />
 

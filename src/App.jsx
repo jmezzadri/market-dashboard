@@ -7469,7 +7469,6 @@ return(<>
     <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS} macroLatest={_macroLatestSnap} v9Alloc={_v9Alloc}
       onOpenAddPosition={portfolioAuthed?(t)=>setPositionEditor({mode:"add",ticker:t}):undefined}
       onOpenEditPosition={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
-      onOpenScanner={(t)=>{setTickerDetail(null); window.location.hash = "#scanner";}}
       watchlistRows={userWatchlistRows} portfolioAuthed={portfolioAuthed} refetchPortfolio={refetchPortfolio}
       onTickerAdded={scanTicker} scanBusy={scanningTickers.has(tickerDetail)}
       onClose={()=>setTickerDetail(null)}/>
