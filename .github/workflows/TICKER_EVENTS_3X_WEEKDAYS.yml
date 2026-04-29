@@ -48,11 +48,13 @@ jobs:
         #
         # Bug #1033/#1032: relaxed from strict minute-exact equality on the
         # NY-local clock to a 15-minute window starting at each target slot.
-        # GitHub's cron scheduler routinely slips a few minutes, and strict
-        # equality was silently dropping every scheduled run (e.g. ticker_events
-        # last logged to api_usage_log on 2026-04-22 for this reason). The
-        # sister DST cron entries fall well outside these windows by
-        # construction, so no double-firing.
+        # Bug #1131 (2026-04-29): GitHub Actions cron drift on Tuesday
+        # 2026-04-28 ranged from 38 minutes to 3+ hours past the scheduled
+        # slot (typical drift under load), causing every run to land
+        # outside the 15-minute window and the gate to silently skip the
+        # ingestion step. Widened the window to 50 minutes — still 10
+        # minutes shy of the 60-minute UTC gap between EDT and EST sister
+        # cron entries, so no double-firing possible.
         if: github.event_name == 'schedule'
         run: |
           NY_HM=$(TZ=America/New_York date +%H:%M)
@@ -66,7 +68,7 @@ jobs:
             SH=${SLOT%:*}; SM=${SLOT#*:}
             SH=${SH#0}; SM=${SM#0}
             SLOT_START=$(( SH * 60 + SM ))
-            SLOT_END=$(( SLOT_START + 14 ))
+            SLOT_END=$(( SLOT_START + 49 ))
             if [ "$MINS" -ge "$SLOT_START" ] && [ "$MINS" -le "$SLOT_END" ]; then
               HIT="$SLOT"
               break
