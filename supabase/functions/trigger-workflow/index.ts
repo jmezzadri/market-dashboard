@@ -22,6 +22,7 @@ const ALLOWED_WORKFLOWS = new Set<string>([
   "SCAN_345PM_WEEKDAYS.yml",
   "INDICATOR-REFRESH_7AM_WEEKDAYS.yml",
   "UNIVERSE_SNAPSHOT_3X_WEEKDAYS.yml",
+  "MASSIVE-DAILY.yml",
 ]);
 
 // If the workflow has a run completed with conclusion=success in the last
