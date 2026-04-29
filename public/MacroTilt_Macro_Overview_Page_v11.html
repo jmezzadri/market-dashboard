@@ -874,15 +874,16 @@ function buildDialSvg(score, isLive, band) {
     const fill = isActive ? w.active : (isLive ? w.subtle : "#e0ddd5");
     out += `<path d="${d}" fill="${fill}"/>`;
   });
-  // Pointer — sweeps from leftmost (180°) to current position
+  // Pointer — sweeps from leftmost (180°) to current position. Line starts
+  // AT the pivot and extends all the way to the tip outside the outer ring,
+  // so the needle reads as one continuous element. (Earlier version started
+  // the line at the inner ring, leaving a visual gap between pivot and line.)
   if (isLive) {
     const a = scoreToDeg(score);
     const [px, py] = polar(R_outer + 6, a);
-    const [bx, by] = polar(R_inner - 4, a);
-    // Rotation delta: animation starts at -(180 - a) and ends at 0
     const startDeg = -(180 - a);
     out += `<g class="dial-pointer-group" style="--from-deg:${startDeg}deg; --pivot-x:${cx}px; --pivot-y:${cy}px;">`;
-    out += `<line x1="${bx.toFixed(2)}" y1="${by.toFixed(2)}" x2="${px.toFixed(2)}" y2="${py.toFixed(2)}" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round"/>`;
+    out += `<line x1="${cx}" y1="${cy}" x2="${px.toFixed(2)}" y2="${py.toFixed(2)}" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round"/>`;
     out += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="3.8" fill="#1a1a1a" stroke="#fff" stroke-width="1.6"/>`;
     out += `<circle cx="${cx}" cy="${cy}" r="4" fill="#1a1a1a"/>`;
     out += `</g>`;
