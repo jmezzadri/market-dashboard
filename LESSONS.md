@@ -1584,3 +1584,83 @@ sign-offs:
 Tracking: parent bug #1113, sub-bugs #1114–#1120 (display, fixed in
 PR #268), #1122 (v9 cliff smoothing, draft PR #269 — backtest
 required before merge).
+
+
+---
+
+## 31 (2026-04-28) — Methodology page must be re-written, not appended to, every time data, models, or calibrations change
+
+**The rule.** Anytime we change a data source, a model formula, an
+indicator calibration, a composite weight, a band threshold, a horizon
+choice, or any other piece of methodology that the Full Methodology
+page describes, the methodology page must be **updated in place** —
+not appended to. That means: replacing stale tables and numbers,
+reorganizing sections so the new structure reads coherently from top
+to bottom, and updating the table of contents to match.
+
+**Why.** On 2026-04-28 (HY OAS / Asset Tilt calibration episode), the
+methodology page on macrotilt.com still described the v9 calibration
+with the four-band Normal/Cautionary/Stressed/Distressed framework
+and the original "HY spread > 250bp triggers defensive cascade"
+language — even after we'd run the full backtest, validated 14 of
+the 38 indicators, restructured the page into the four-panel
+Forward Warning / Cycle Position / Macro Regime / Stress Confirmation
+architecture, and reframed HY spread as a "Cycle Peak / Complacency"
+indicator rather than a stress trigger. The methodology page becomes
+the source of truth users (and Joe) check when sense-testing what the
+model is doing. If it lags the actual calibration, the page itself
+becomes a credibility liability — it tells the user one story while
+the dashboard tells another. Same failure mode as LESSONS rule #30
+(hardcoded narrative copy diverging from live model state), but at
+the documentation layer.
+
+**What you should do instead.**
+
+1. **Treat the methodology page like a living spec, not a changelog.**
+   When a calibration changes, find the section that describes the
+   old calibration, replace it with the new one. Do not leave the
+   old text in place with a "superseded" note. Do not append a new
+   section at the bottom that contradicts an earlier section. The
+   page must read as a single coherent description of what the
+   model actually does today.
+
+2. **Update the table of contents in the same PR that ships the
+   change.** If you've added, removed, or renamed a section, the
+   ToC must reflect it. Stale ToC links are user-visible bugs.
+
+3. **Reorganize, don't accumulate.** If the framework changes (for
+   example, moving from a one-dimensional level-based calibration
+   to a two-dimensional level-and-change calibration), the
+   methodology page section that describes "how indicators are
+   calibrated" needs to be rewritten end-to-end, not patched.
+   Reorganization is the signal that the underlying methodology
+   actually changed; appending is the signal that we're hiding the
+   change.
+
+4. **Senior Quant signs off on technical accuracy. UX Designer
+   signs off on readability and structural coherence. Lead
+   Developer ships the page change in the same PR as the
+   underlying model/calibration change.** Methodology updates
+   never lag the model change by more than one PR cycle.
+
+5. **Self-UAT requires reading the methodology page top-to-bottom
+   after the change.** Before declaring any methodology-touching
+   PR complete, the Lead Developer reads the page from the
+   beginning, confirms it tells one coherent story, and confirms
+   the table of contents matches the headings. If two adjacent
+   sections describe the same concept differently, that's a P0
+   methodology bug — fix before merge.
+
+**Specialists who must sign off going forward.** Any PR that touches
+indicator calibrations, composite weights, model formulas
+(`compute_v9_allocation.py`, `asset_allocation/compute.py`,
+`compute_composite_history.py`), or band thresholds requires:
+
+  * **Senior Quant** — confirm methodology page numbers match the
+    new calibration exactly.
+  * **UX Designer** — confirm the methodology page reads as a
+    single coherent document, not a changelog. Confirm ToC matches
+    headings.
+  * **Lead Developer** — confirm methodology page changes ship in
+    the same PR as the underlying model change.
+
