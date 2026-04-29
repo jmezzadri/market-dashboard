@@ -851,3 +851,39 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
     </div>
   );
 }
+
+
+// CustomizeGroup — labelled group of pill-toggle checkboxes for the chart panel.
+function CustomizeGroup({ label, items, onToggle }) {
+  return (
+    <div style={{marginBottom:8}}>
+      <div style={{
+        fontFamily:"var(--font-mono)", fontSize:9.5, fontWeight:600,
+        textTransform:"uppercase", letterSpacing:"0.14em",
+        color:"var(--text-dim)", marginBottom:5,
+      }}>{label}</div>
+      <div style={{display:"flex", flexWrap:"wrap", gap:6}}>
+        {items.map(it => (
+          <label key={it.key} onClick={() => onToggle(it.key)} style={{
+            display:"inline-flex", alignItems:"center", gap:6,
+            fontFamily:"var(--font-mono)", fontSize:11, fontWeight:500,
+            padding:"4px 10px", borderRadius:14,
+            border: it.on ? "1px solid var(--accent)" : "1px solid var(--border)",
+            background: it.on ? "var(--accent-soft)" : "transparent",
+            color: it.on ? "var(--accent)" : "var(--text-2)",
+            cursor:"pointer", userSelect:"none",
+            transition:"background var(--dur-fast, 160ms) ease, border-color var(--dur-fast, 160ms) ease",
+          }}>
+            <span style={{
+              display:"inline-block", width:10, height:10,
+              borderRadius:2, border:"1px solid currentColor",
+              background: it.on ? "currentColor" : "transparent",
+              transition:"background var(--dur-fast, 160ms) ease",
+            }}/>
+            {it.label}
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
