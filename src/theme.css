@@ -453,9 +453,29 @@ a:hover { text-decoration: underline; }
 .modal-wrap {
   position: relative;
   width: 100%;
-  max-width: 760px;
+  /* Phase 4b PR-G hotfix (2026-04-29): bumped from 760px to 1200px so the
+     v5 modal's 2-column grid (left content + 360px Signal Intelligence
+     rail) has room to breathe. With the prior 760px cap, the left column
+     collapsed to ~338px and the company name and description wrapped
+     one word per line. Live UAT on macrotilt.com confirmed the issue. */
+  max-width: 1200px;
   margin: 0 auto;
   /* No height constraints — wrap flows with sheet */
+}
+
+/* Modal grid stack-on-narrow fallback. Below 980px the rail flows under
+   the left column instead of squeezing it. Phase 4b PR-G. */
+@media (max-width: 980px) {
+  .modal-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+  .modal-rail {
+    border-left: none !important;
+    padding-left: 0 !important;
+    border-top: 1px solid var(--border-faint);
+    padding-top: var(--space-3);
+    margin-top: var(--space-2);
+  }
 }
 .modal-sheet {
   background: var(--surface-solid);
