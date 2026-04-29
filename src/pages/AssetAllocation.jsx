@@ -1,157 +1,81 @@
-// AssetAllocation — page taken down (v2) for Senior Quant calibration audit.
+// AssetAllocation — Asset Tilt tab (#allocation).
 //
-// 2026-04-28 evening: after the Phase B rebuild restored the page, Joe
-// surfaced multiple Senior Quant calibration errors that the rebuild had
-// preserved unchanged:
+// As of 2026-04-29, this page is intentionally banner-only. The previous
+// v9 / v10 framework on this tab was retired during the v11 rebuild, and
+// Joe has scoped Asset Tilt v2 (allocation across sectors, industry groups,
+// and the defensive sleeve, driven by the v9 model that's already on disk)
+// as a separate workstream.
 //
-//   1. HY-IG / HY OAS threshold is below historical floor.
-//      The Risk Scenarios narrative says "HY-IG > 250bp activates the
-//      defensive sleeve". Pulled from FRED (BAMLH0A0HYM2 = HY OAS over
-//      Treasuries) the indicator has NEVER been below 259bp in the 812-day
-//      sample. Real stress is 500bp+ (Joe's intuition: 4-6%). The 250bp
-//      threshold has been continuously breached for the entire dataset
-//      yet the model has not had its defensive sleeve continuously on —
-//      i.e. the threshold isn't actually wired to the model.
+// The macro state read that USED to live here has moved to the Macro
+// Overview tab (#overview, src/pages/MacroOverview.jsx) — that's where the
+// Cycle Mechanism Board lives now per Joe's three-stage funnel:
+//   Macro Overview → Asset Tilt → Trading Opps.
 //
-//   2. R&L composite read by v9 is month-end-stale.
-//      v9_allocation.json regime.risk_liquidity = 30.9 (end of March
-//      2026). composite_history_daily.json today shows R&L = -20.7. The
-//      model uses `prior_dt = last_complete_month - MonthEnd(1)` for
-//      lookahead-safety which means production recommendations always lag
-//      the visible composite by ~1 month. User reads R&L = -20.7 (calm)
-//      on the gauges, then sees "Model has de-risked" on Asset Tilt; the
-//      two numbers are the same composite at different dates.
-//
-//   3. Risk Scenarios narrative does not describe what model actually
-//      does. Defensive sleeve activation is keyed off the R&L composite
-//      score, not directly off HY OAS, real rates, VIX, etc. The current
-//      copy implies direct trigger wiring that doesn't exist.
-//
-// All three are calibration / Senior Quant issues, not display issues.
-// They cannot be fixed by re-skinning the React. They require: (a) a
-// re-validation pass on every threshold against historical distributions,
-// (b) a decision on month-end-stale vs daily-fresh model output, (c) a
-// rewrite of the trigger-narrative to match actual model behavior, and
-// (d) backtest validation before any production change ships.
-//
-// Until that work is complete and the Senior Quant signs it off, the page
-// renders this banner instead of misleading numbers.
+// LESSONS rule 30: every user-visible string here derives from no live data
+// (the page is a static banner — no model state to display). When Asset
+// Tilt v2 ships, this file gets fully rewritten; the calibration JSON
+// pipeline is unaffected because it's tab-agnostic.
+
+import React from "react";
 
 export default function AssetAllocation() {
   return (
-    <main style={{ maxWidth: 880, margin: "0 auto", padding: "var(--space-12) var(--space-8)" }}>
-      <section style={{
-        padding: "var(--space-10) var(--space-8)",
-        background: "var(--surface-solid, var(--surface))",
-        border: "1px solid var(--border-strong, var(--border))",
-        borderRadius: "var(--radius-lg)",
-        textAlign: "center",
-      }}>
+    <main style={{
+      maxWidth: 880, margin: "0 auto",
+      padding: "var(--space-12, 64px) var(--space-8, 28px) var(--space-12, 64px)",
+    }}>
+      <section style={{ paddingBottom: 24, borderBottom: "1px solid #1a1a1a", marginBottom: 32 }}>
         <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 8,
-          padding: "5px 12px",
-          borderRadius: 999,
-          background: "rgba(255,69,58,0.14)",
-          color: "#7a1414",
-          fontSize: 11,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          fontWeight: 600,
-          marginBottom: 18,
+          fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase",
+          color: "#7a7a72", marginBottom: 16, fontWeight: 600,
         }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#a01818" }}/>
-          Asset Tilt — under quant calibration review
+          Asset Tilt
         </div>
-
         <h1 style={{
           fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
-          fontSize: 32,
-          fontWeight: 400,
-          margin: "0 0 14px",
-          letterSpacing: "-0.012em",
-          lineHeight: 1.15,
+          fontSize: 38, fontWeight: 300, lineHeight: 1.15, letterSpacing: "-0.018em",
+          color: "#1a1a1a", margin: "0 0 12px", maxWidth: 760,
         }}>
-          Senior Quant is re-validating this page front to back.
+          Asset Tilt is being rebuilt.
         </h1>
-
         <p style={{
-          fontSize: 14.5,
-          lineHeight: 1.65,
-          color: "var(--text-2, var(--text-muted))",
-          maxWidth: 600,
-          margin: "0 auto 14px",
+          fontSize: 15, color: "#3a3a32", maxWidth: 720, lineHeight: 1.6, margin: "0 0 16px",
         }}>
-          On 2026-04-28 we surfaced three Senior Quant calibration issues that
-          can't be fixed at the display layer:
+          Asset Tilt is the second stage of MacroTilt's three-stage funnel:
+          given the macro regime, how should I allocate across sectors,
+          industry groups, and the defensive sleeve. The previous v9 page
+          on this tab is retired; v2 is in scope and will rebuild against
+          the locked allocation framework.
         </p>
-
-        <div style={{
-          textAlign: "left",
-          maxWidth: 640,
-          margin: "0 auto 22px",
-          padding: "16px 20px",
-          background: "var(--bg, #fafaf7)",
-          border: "0.5px solid var(--border)",
-          borderRadius: 8,
-          fontSize: 13,
-          lineHeight: 1.65,
-          color: "var(--text-2, var(--text-muted))",
-        }}>
-          <ol style={{ margin: 0, paddingLeft: 20 }}>
-            <li style={{ marginBottom: 8 }}>
-              <strong>HY OAS threshold of 250bp is below the historical floor.</strong>{" "}
-              HY OAS has not been below 259bp in the dataset; real stress doesn't kick in until 500–700bp+.
-            </li>
-            <li style={{ marginBottom: 8 }}>
-              <strong>The model reads month-end R&amp;L.</strong>{" "}
-              v9 is using a value from end of March (R&amp;L = 30.9) while today's R&amp;L is −20.7. Recommendations lag the visible composite by ~1 month.
-            </li>
-            <li>
-              <strong>Risk Scenario narrative doesn't match the model.</strong>{" "}
-              The defensive sleeve activates on the R&amp;L composite score, not directly on HY, VIX, or real rates as the copy implies.
-            </li>
-          </ol>
-        </div>
-
         <p style={{
-          fontSize: 13,
-          lineHeight: 1.6,
-          color: "var(--text-muted)",
-          maxWidth: 560,
-          margin: "0 auto 24px",
-          fontStyle: "italic",
+          fontSize: 13, color: "#7a7a72", maxWidth: 720, lineHeight: 1.55, margin: 0,
         }}>
-          The composite gauges, scanners, watchlist, and Macro Overview are unaffected. The page will return only after every threshold has been re-validated against historical distributions and back-tested.
+          For today's macro state — the regime read that used to sit at the
+          top of this page — see the <a href="#overview" style={{ color: "#1a1a1a", fontWeight: 600 }}>Macro Overview</a> tab.
         </p>
-
-        <a href="#overview" style={{
-          display: "inline-block",
-          padding: "11px 20px",
-          background: "var(--accent)",
-          color: "#fff",
-          borderRadius: 6,
-          textDecoration: "none",
-          fontSize: 13,
-          fontWeight: 500,
-          letterSpacing: "0.01em",
-        }}>
-          Go to Macro Overview →
-        </a>
-
-        <div style={{
-          marginTop: 32,
-          paddingTop: 18,
-          borderTop: "0.5px dashed var(--border)",
-          fontSize: 11,
-          color: "var(--text-muted)",
-          lineHeight: 1.6,
-        }}>
-          Status: under quant calibration review · 2026-04-28 evening · Senior Quant lead<br/>
-          Tracking: bugs <strong>#1113</strong>, <strong>#1122</strong>, <strong>#1123</strong>, <strong>#1124</strong>, <strong>#1125</strong>
-        </div>
       </section>
+
+      <div style={{
+        padding: "20px 22px", background: "var(--accent-parchment, #f5efde)",
+        border: "0.5px dashed var(--border-strong, #cdc9bf)", borderRadius: 10,
+      }}>
+        <div style={{
+          fontSize: 11, letterSpacing: "0.14em", textTransform: "uppercase",
+          color: "#7a7a72", marginBottom: 8, fontWeight: 600,
+        }}>
+          What this tab will become
+        </div>
+        <p style={{ fontSize: 13, color: "#1a1a1a", lineHeight: 1.6, margin: "0 0 8px" }}>
+          Asset Tilt v2 will translate the macro regime read on the Macro Overview
+          tab into specific allocation guidance: sector weights, industry-group
+          tilts, and how much of the book belongs in the defensive sleeve (cash,
+          long-duration Treasuries, gold, IG credit) under today's conditions.
+        </p>
+        <p style={{ fontSize: 12, color: "#7a7a72", lineHeight: 1.55, margin: 0 }}>
+          The downstream Trading Opportunities tab takes the allocation guidance
+          and surfaces the specific tickers / contracts that execute it.
+        </p>
+      </div>
     </main>
   );
 }
