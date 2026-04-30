@@ -728,8 +728,11 @@
 
 <script>
 // ============================================================================
-// Data — Sprint 1 calibration snapshot (matches public/methodology_calibration_v11.json)
-// Carried forward from v10 unchanged. Visual layer rebuilt; data layer untouched.
+// Data — Sprint 1 calibration snapshot.
+// IMPORTANT: the home Macro Overview tile (src/App.jsx) renders the SAME six
+// scores + aggregate verdict from public/cycle_board_snapshot.json. If you
+// change any score, band, or elevated-flag below, also update that JSON so
+// the home preview stays in lockstep with this page.
 // ============================================================================
 
 const RECESSIONS = [["2020-02","2020-04"]];
