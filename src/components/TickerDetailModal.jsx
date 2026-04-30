@@ -34,10 +34,10 @@ import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 // LESSONS rule #29: stateful disclosure pattern (no <details>), Fraunces +
 // JetBrains Mono + parchment via site CSS vars.
 // LESSONS rule #30: every value derives from live data (composite,
-// macroLatest, v9Alloc, scanData feeds); no hardcoded narrative.
+// cycleBoardSnap, v9Alloc, scanData feeds); no hardcoded narrative.
 // ============================================================================
 function SignalIntelligenceRail({
-  ticker, composite, tech, scanData, sc, macroLatest, v9Alloc,
+  ticker, composite, tech, scanData, sc, cycleBoardSnap, v9Alloc,
   riskMetrics, heldIn,
   sector, isFund,
   congressBuys, congressSells, insiderBuys, insiderSells,
@@ -53,32 +53,41 @@ function SignalIntelligenceRail({
                           : state === "red"   ? "var(--red-text, #c8302a)"
                           : "var(--text-dim)";
 
-  // Tile 1 — Macro Composite
+  // Tile 1 — Macro Cycle Board (v11). Reads the same six-mechanism snapshot
+  // that drives the Macro Overview page. Bands per v11 footer: 0-25 Risk-on,
+  // 25-50 Neutral, 50-75 Caution, 75-100 Risk-off (lower = better, opposite of
+  // the deprecated 3-composite scale).
   const macroTile = (() => {
-    if (!macroLatest) return { state: "loading", value: "…", meta: "Loading composite history", detail: null };
-    const rl = macroLatest.RL, gr = macroLatest.GR, ir = macroLatest.IR;
-    const blend = [rl, gr, ir].filter(Number.isFinite);
-    const avg = blend.length ? blend.reduce((a,b)=>a+b,0) / blend.length : null;
-    const state = avg == null ? "loading" : avg >= 10 ? "green" : avg <= -10 ? "red" : "amber";
-    const value = avg == null ? "—" : fmtSigned(Math.round(avg));
-    const meta = state === "green" ? "Risk-on regime · all 3 composites positive"
-              : state === "red"   ? "Risk-off regime · composites stressed"
-              : "Mixed regime · composites split";
+    if (!cycleBoardSnap) return { state: "loading", value: "…", meta: "Loading cycle board", detail: null };
+    const mechs = cycleBoardSnap.mechanisms || [];
+    const live = mechs.filter(m => Number.isFinite(Number(m.score)));
+    if (live.length === 0) return { state: "loading", value: "…", meta: "No mechanism scores yet", detail: null };
+    const avg = live.reduce((a,m)=>a + Number(m.score), 0) / live.length;
+    const rounded = Math.round(avg);
+    // 0-25 Risk-on (green), 25-50 Neutral (amber), 50-75 Caution (amber), 75-100 Risk-off (red).
+    const state = avg < 25 ? "green" : avg < 75 ? "amber" : "red";
+    const label = avg < 25 ? "Risk-on" : avg < 50 ? "Neutral" : avg < 75 ? "Caution" : "Risk-off";
+    const value = `${rounded}/100`;
+    const meta = `${label} regime · ${live.length}/${mechs.length} mechanisms live`;
     const lev   = Number(v9Alloc?.leverage);
     const eqShr = Number(v9Alloc?.equity_share);
     const levTxt = Number.isFinite(lev) && Number.isFinite(eqShr)
       ? `Leverage ${lev.toFixed(2)}× · equity share ${(eqShr*100).toFixed(0)}%${eqShr < 1 ? ` · defensive sleeve ${((1-eqShr)*100).toFixed(0)}%` : " · no defensive sleeve"}.`
       : null;
     const implication = state === "green"
-      ? `Macro tailwind for cyclicals + growth — no model-level reason to underweight ${ticker}.`
+      ? `Macro tailwind — most mechanisms read benign. No model-level reason to underweight ${ticker}.`
       : state === "red"
-      ? `Macro stress argues for defensive positioning — ${ticker} weighs against the regime.`
-      : `Mixed regime — ${ticker} should be evaluated on bottom-up signals (the rest of the rail).`;
+      ? `Macro stress — multiple mechanisms in the upper quartile. Defensive posture warranted; ${ticker} weighs against the regime.`
+      : `Mixed regime — selective heat in a few mechanisms. ${ticker} should be evaluated on bottom-up signals (the rest of the rail).`;
     return {
       state, value, meta,
       detail: (
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
-          <div><b>R&amp;L</b> {fmtSigned(Math.round(rl))} · <b>Growth</b> {fmtSigned(Math.round(gr))} · <b>Inflation &amp; Rates</b> {fmtSigned(Math.round(ir))}.</div>
+          <div>{mechs.map((m, i) => {
+            const s = Number.isFinite(Number(m.score)) ? Math.round(Number(m.score)) : null;
+            const nm = m.name || m.id || "—";
+            return <span key={i}><b>{nm}</b> {s == null ? "—" : s}{i < mechs.length - 1 ? " · " : ""}</span>;
+          })}</div>
           {levTxt && <div style={{color:"var(--text-2)"}}>{levTxt}</div>}
           <div style={{fontStyle:"italic",color:"var(--accent)"}}>{implication}</div>
         </div>
@@ -856,7 +865,7 @@ function ActionRow({
 }
 
 
-export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,macroLatest,v9Alloc,onOpenAddPosition,onOpenEditPosition,onClosePosition}){
+export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,cycleBoardSnap,v9Alloc,onOpenAddPosition,onOpenEditPosition,onClosePosition}){
 const [descExpanded,setDescExpanded]=useState(false);
 const [wlBusy,setWlBusy]=useState(false);
 const [wlError,setWlError]=useState(null);
@@ -1384,7 +1393,7 @@ return(
   tech={tech}
   scanData={scanData}
   sc={sc}
-  macroLatest={macroLatest}
+  cycleBoardSnap={cycleBoardSnap}
   v9Alloc={v9Alloc}
   riskMetrics={_riskMetrics}
   heldIn={heldIn}
