@@ -125,11 +125,15 @@ function expectedLatestSlotMs(now) {
   return _now.getTime();
 }
 
-// A stream is stale when its stamp is more than one scheduled-slot worth
-// (~3 hours) older than the expected latest slot. That's the wording from the
-// approved bug proposal — "more than one scheduled slot old (about 3 hours
-// late)". Returns false when there's no stamp at all (nothing to flag).
-var SLOT_TOLERANCE_MS = 3 * 60 * 60 * 1000;
+// A stream is stale when its stamp is more than two scheduled-slot widths
+// (~6 hours) older than the expected latest slot. Bug #1133-10 — Joe saw
+// "stale" badges on weekends when the data was correctly Friday's 15:45 ET
+// snapshot but cron timing variance pushed the comparison over the original
+// 3h threshold. Widening to ~6h keeps genuine multi-hour stalls flagged
+// (the FRED + universe crons fire at most every 3h during market hours,
+// so a >6h gap still indicates a real outage) while absorbing normal
+// scheduling drift.
+var SLOT_TOLERANCE_MS = 6 * 60 * 60 * 1000;
 
 function isStreamStale(iso, now) {
   if (!iso) return false;
