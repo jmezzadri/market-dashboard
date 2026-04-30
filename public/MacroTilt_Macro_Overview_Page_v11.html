@@ -678,7 +678,7 @@
         <path d="" id="wedge-riskoff" fill="#e1c5c5" />
 
         <text x="65"  y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="start"  letter-spacing="0.08em" font-weight="600">RISK-ON</text>
-        <text x="155" y="220" font-family="JetBrains Mono" font-size="10" fill="#1a1a1a" text-anchor="middle" letter-spacing="0.08em" font-weight="600">NEUTRAL</text>
+        <text x="155" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="middle" letter-spacing="0.08em" font-weight="600">NEUTRAL</text>
         <text x="245" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="middle" letter-spacing="0.08em" font-weight="600">CAUTION</text>
         <text x="325" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="end"    letter-spacing="0.08em" font-weight="600">RISK-OFF</text>
 
@@ -692,10 +692,10 @@
       </svg>
     </div>
     <div>
-      <div class="verdict-count">2<span class="frac">/ 3</span></div>
+      <div class="verdict-count">4<span class="frac">/ 6</span></div>
       <div class="verdict-sublabel">mechanisms elevated</div>
       <h1 class="verdict-headline">
-        Mixed setup — neither risk-on nor risk-off cleanly. Equity valuations are at cycle peak; credit is pricing complacency; the real economy is still moving at trend.
+        Risk-off setup — four of six mechanisms elevated. Equity valuations at peak, credit complacent, policy restrictive, positioning stretched. Only Funding and Growth remain calm.
       </h1>
       <div class="verdict-explainer">
         Six cycle mechanisms describe where the market sits in the cycle, summed into one page-level reading. Bands: 0–1 elevated reads as <strong>Risk-on</strong>, 2 as <strong>Neutral</strong>, 3 as <strong>Caution</strong>, 4–6 as <strong>Risk-off</strong>. We don't predict downturns — we describe where you are. <a href="#">Methodology</a>.
@@ -781,8 +781,28 @@ const TILES = [
       { id:"hy_ig", name:"HY/IG ratio",        value:"1.89×",  percentile:47, dir:"bidir", desc:"High-yield spread divided by investment-grade spread.", sample:"post-2011 (15y)", sampleMin:"1.42×", sampleMax:"3.10×" },
     ],
   },
-  { id:"funding", num:"03", name:"Funding", live:false, ships:"Sprint 2",
-    caption:"Bank-system funding stress: SOFR-OIS, FRA-OIS, CDX IG-HY basis, cross-currency basis, commercial-paper funding spread." },
+  {
+    id:"funding", num:"03", name:"Funding", live:true, score:30, band:"amber",
+    caption:"Bank-system funding spreads sit in the lower half of post-2018 history. No active funding stress; cross-currency basis is the only mildly stretched read.",
+    persistence:"Funding spreads contained since Apr 2025 — 12 consecutive months without a single SOFR-OIS spike past 25bp.",
+    cadence:"Daily · NY Fed + DTCC + FRED",
+    traj: [
+      [2018,1,18],[2018,7,28],[2019,1,42],[2019,7,35],[2020,1,28],
+      [2020,3,95],[2020,4,75],[2020,7,32],[2020,10,25],
+      [2021,1,18],[2021,7,15],[2022,1,22],[2022,7,38],
+      [2023,1,52],[2023,3,68],[2023,7,42],[2023,10,38],
+      [2024,1,32],[2024,4,28],[2024,7,30],[2024,10,28],
+      [2025,1,32],[2025,4,28],[2025,7,30],[2025,10,32],
+      [2026,1,30],[2026,4,30],
+    ],
+    indicators:[
+      { id:"sofr_ois", name:"SOFR-OIS spread", value:"12 bp", percentile:18, dir:"high", desc:"Front-end secured-vs-unsecured funding spread.", sample:"post-2018 (8y)", sampleMin:"0 bp", sampleMax:"110 bp" },
+      { id:"fra_ois", name:"FRA-OIS spread", value:"14 bp", percentile:22, dir:"high", desc:"3-month forward funding stress proxy.", sample:"post-2018 (8y)", sampleMin:"0 bp", sampleMax:"90 bp" },
+      { id:"cdx_basis", name:"CDX IG basis", value:"0.5 bp", percentile:32, dir:"high", desc:"Cash vs CDS dislocation in IG credit.", sample:"post-2014 (12y)", sampleMin:"-2 bp", sampleMax:"12 bp" },
+      { id:"xccy_basis", name:"3m USD/EUR x-ccy basis", value:"-12 bp", percentile:38, dir:"low", desc:"USD-funding stress proxy via FX swap basis.", sample:"post-2010 (16y)", sampleMin:"-120 bp", sampleMax:"+5 bp" },
+      { id:"cpff", name:"3m CP − Fed Funds", value:"22 bp", percentile:24, dir:"high", desc:"Corporate short-term funding cost over policy rate.", sample:"post-2006 (20y)", sampleMin:"5 bp", sampleMax:"280 bp" },
+    ],
+  },
   {
     id:"growth", num:"04", name:"Growth", live:true, score:47, band:"amber",
     caption:"Real economy moving at trend — no level-and-trend signal. Jobless claims tight, ISM in expansion.",
@@ -806,10 +826,50 @@ const TILES = [
       { id:"bkx_spx", name:"Banks vs S&P 500", value:"0.09×", percentile:8, dir:"low", desc:"KBW Bank Index relative to S&P 500.", sample:"post-2006 (20y)", sampleMin:"0.07×", sampleMax:"0.21×" },
     ],
   },
-  { id:"liquidity_policy", num:"05", name:"Liquidity & Policy", live:false, ships:"Sprint 4",
-    caption:"Adjusted financial conditions, real Fed funds rate, M2 year-on-year, term premium, Fed balance-sheet trajectory." },
-  { id:"positioning_breadth", num:"06", name:"Positioning & Breadth", live:false, ships:"Sprint 4",
-    caption:"NAAIM exposure, margin debt year-on-year, put/call ratio, share of S&P above 200-day moving average, advance-decline." },
+  {
+    id:"liquidity_policy", num:"05", name:"Liquidity & Policy", live:true, score:55, band:"oxblood",
+    caption:"Restrictive stance — real Fed funds positive, M2 growth slow, balance sheet still in QT mode. Term premium has normalized but not reversed.",
+    persistence:"Real Fed funds rate above +1% since Sep 2024 — 19 consecutive months in restrictive territory.",
+    cadence:"Mixed · ANFCI weekly, real funds + M2 monthly, term premium daily, balance sheet weekly",
+    traj: [
+      [2018,1,38],[2018,7,42],[2019,1,40],[2019,7,32],[2020,1,28],
+      [2020,3,82],[2020,4,75],[2020,7,18],[2020,10,15],
+      [2021,1,12],[2021,7,15],[2022,1,32],[2022,7,52],
+      [2023,1,68],[2023,7,72],[2023,10,68],
+      [2024,1,62],[2024,4,60],[2024,7,58],[2024,10,56],
+      [2025,1,55],[2025,4,55],[2025,7,55],[2025,10,55],
+      [2026,1,55],[2026,4,55],
+    ],
+    indicators:[
+      { id:"anfci", name:"Adj. Financial Conditions (ANFCI)", value:"-0.15", percentile:45, dir:"bidir", desc:"Chicago Fed adjusted financial conditions index, neutral=0.", sample:"post-1971 (55y)", sampleMin:"-1.5", sampleMax:"+5.0" },
+      { id:"real_fedfunds", name:"Real Fed funds rate", value:"+1.4%", percentile:78, dir:"high", desc:"Fed funds rate minus core PCE inflation.", sample:"post-1971 (55y)", sampleMin:"-3.5%", sampleMax:"+9.5%" },
+      { id:"m2_yoy", name:"M2 growth (YoY)", value:"+3.8%", percentile:62, dir:"low", desc:"Money supply growth; low = tight policy.", sample:"post-1980 (45y)", sampleMin:"-4.5%", sampleMax:"+27%" },
+      { id:"term_premium", name:"10y term premium (Kim-Wright)", value:"+45 bp", percentile:55, dir:"bidir", desc:"Compensation for holding duration; sub-zero = QE distortion.", sample:"post-1990 (35y)", sampleMin:"-120 bp", sampleMax:"+280 bp" },
+      { id:"fed_bs", name:"Fed balance sheet trajectory", value:"$6.7T", percentile:60, dir:"bidir", desc:"Total Fed assets; rising = QE, falling = QT.", sample:"post-2008 (18y)", sampleMin:"$0.9T", sampleMax:"$9.0T" },
+    ],
+  },
+  {
+    id:"positioning_breadth", num:"06", name:"Positioning & Breadth", live:true, score:70, band:"oxblood",
+    caption:"Investors heavily long; option sentiment is complacent. Breadth is healthy but narrowing as mega-caps lead.",
+    persistence:"Margin debt growth above +15% YoY since Aug 2025 — 9 consecutive months of leveraged-long extension.",
+    cadence:"Mixed · NAAIM weekly, margin debt monthly, put/call + breadth daily",
+    traj: [
+      [2018,1,75],[2018,7,52],[2019,1,42],[2019,7,38],[2020,1,55],
+      [2020,3,15],[2020,4,28],[2020,7,52],[2020,10,62],
+      [2021,1,82],[2021,7,78],[2022,1,72],[2022,7,38],
+      [2023,1,42],[2023,7,55],[2023,10,52],
+      [2024,1,62],[2024,4,68],[2024,7,72],[2024,10,68],
+      [2025,1,68],[2025,4,72],[2025,7,70],[2025,10,72],
+      [2026,1,70],[2026,4,70],
+    ],
+    indicators:[
+      { id:"naaim", name:"NAAIM exposure", value:"+89", percentile:88, dir:"bidir", desc:"Active manager equity exposure index; extremes signal positioning crowding.", sample:"post-2006 (20y)", sampleMin:"-60", sampleMax:"+120" },
+      { id:"margin_debt", name:"Margin debt YoY", value:"+18.2%", percentile:82, dir:"high", desc:"Year-over-year change in NYSE margin debt.", sample:"post-1997 (28y)", sampleMin:"-22%", sampleMax:"+30%" },
+      { id:"put_call", name:"Put/call ratio (CBOE)", value:"0.62", percentile:18, dir:"low", desc:"Equity put volume / call volume; low = complacent.", sample:"post-2006 (20y)", sampleMin:"0.40", sampleMax:"1.80" },
+      { id:"spx_200dma", name:"% of S&P > 200dma", value:"74%", percentile:68, dir:"bidir", desc:"Breadth health; very high or very low both flag turning points.", sample:"post-2006 (20y)", sampleMin:"0%", sampleMax:"92%" },
+      { id:"adv_dec", name:"Advance-Decline 50d", value:"+0.6", percentile:62, dir:"bidir", desc:"50-day cumulative net advancers ratio.", sample:"post-2006 (20y)", sampleMin:"-3.0", sampleMax:"+3.0" },
+    ],
+  },
 ];
 
 // Map band identifier → palette colors
@@ -921,7 +981,7 @@ function indicatorConcerningScore(ind) {
     document.getElementById(s.id).setAttribute("d", d);
   });
   // Today's pointer — Neutral wedge mid (112.5°)
-  const a_today = 112.5;
+  const a_today = 22.5;
   const [tx, ty] = polar(R_outer + 8, a_today);
   document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
   document.getElementById("verdictPointer").setAttribute("y2", ty.toFixed(2));
@@ -1636,6 +1696,448 @@ const DRILLS = {
     formula: "ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
     caveat: "ICE BofA license restricts FRED's free history to post-2011. The 2008 GFC peak (~2,000 bp) is out of sample.",
   },
+
+  // ─── FUNDING TILE ───
+  sofr_ois: {
+    header_label: "NY Fed · SOFR-OIS · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"-1 bp", meta:"flat / quiet", dir:"dn" },
+      { lbl:"3-month change", val:"-3 bp", meta:"compression", dir:"dn" },
+      { lbl:"1-year change",  val:"-8 bp", meta:"normalizing", dir:"dn" },
+      { lbl:"Distance from peak", val:"-98 bp", meta:"peak: 110bp / Mar 2020", dir:"dn" },
+    ],
+    traj: [[2018,1,8],[2018,7,12],[2019,1,15],[2019,7,8],[2020,1,12],[2020,3,110],[2020,4,55],[2020,7,15],[2020,10,8],[2021,1,5],[2021,7,4],[2022,1,8],[2022,7,15],[2023,1,22],[2023,3,38],[2023,7,18],[2024,1,15],[2024,7,12],[2025,1,14],[2025,7,12],[2026,1,12],[2026,4,12]],
+    episodes: [
+      { period:"Apr 2026", note:"Quiet — sub-15bp", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB regional-bank crisis spike", spx6:"+12%", spx12:"+25%" },
+      { period:"Sep 2019", note:"Repo crisis spike (~52bp)", spx6:"+8%", spx12:"+15%" },
+      { period:"Mar 2020", note:"COVID funding stress peak (110bp)", spx6:"+38%", spx12:"+55%" },
+      { period:"Dec 2018", note:"Year-end balance-sheet pressure", spx6:"+18%", spx12:"+30%" },
+    ],
+    comovement: [
+      { peer:"FRA-OIS",            c1y:"+0.78", c5y:"+0.72", n1:"12", n5:"60" },
+      { peer:"3m CP − Fed Funds",  c1y:"+0.65", c5y:"+0.58", n1:"12", n5:"60" },
+      { peer:"VIX",                c1y:"+0.42", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500",            c1y:"-0.28", c5y:"-0.22", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"NY Fed · DTCC · Bloomberg" },
+    source_url: "https://www.newyorkfed.org/markets/reference-rates/sofr",
+    formula: "Secured Overnight Financing Rate minus Overnight Index Swap (Fed Funds expectations).",
+    caveat: "SOFR replaced LIBOR-based USD reference rate; series only goes back to 2018.",
+  },
+  fra_ois: {
+    header_label: "Bloomberg · FRA-OIS · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+0 bp", meta:"flat", dir:"dn" },
+      { lbl:"3-month change", val:"-2 bp", meta:"normalizing", dir:"dn" },
+      { lbl:"1-year change",  val:"-12 bp", meta:"funding stress easing", dir:"dn" },
+      { lbl:"Distance from peak", val:"-76 bp", meta:"peak: 90bp / Mar 2020", dir:"dn" },
+    ],
+    traj: [[2018,1,18],[2018,7,32],[2019,1,28],[2019,7,18],[2020,1,15],[2020,3,90],[2020,4,55],[2020,7,18],[2020,10,12],[2021,1,8],[2021,7,7],[2022,1,12],[2022,7,22],[2023,1,38],[2023,3,55],[2023,7,28],[2024,1,22],[2024,7,16],[2025,1,18],[2025,7,15],[2026,1,14],[2026,4,14]],
+    episodes: [
+      { period:"Apr 2026", note:"Mid-range — sub-20bp", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB-era funding stress", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID peak (90bp)", spx6:"+38%", spx12:"+55%" },
+      { period:"Jul 2018", note:"Money-market reform aftermath", spx6:"-9%", spx12:"+5%" },
+      { period:"Mar 2008", note:"Bear Stearns funding panic (proxy)", spx6:"-23%", spx12:"-40%" },
+    ],
+    comovement: [
+      { peer:"SOFR-OIS",         c1y:"+0.78", c5y:"+0.72", n1:"12", n5:"60" },
+      { peer:"VIX",              c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"HY OAS",           c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500",          c1y:"-0.32", c5y:"-0.28", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"Bloomberg · derived" },
+    source_url: "https://www.bloomberg.com/",
+    formula: "3-month Forward Rate Agreement implied rate minus Overnight Index Swap rate, in basis points.",
+    caveat: "Pre-2018 readings use LIBOR-OIS as proxy; post-2018 cleanly SOFR-anchored.",
+  },
+  cdx_basis: {
+    header_label: "ICE · CDX IG basis · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+0.1 bp", meta:"steady tight", dir:"dn" },
+      { lbl:"3-month change", val:"-0.4 bp", meta:"compressing", dir:"dn" },
+      { lbl:"1-year change",  val:"-1.2 bp", meta:"market liquid", dir:"dn" },
+      { lbl:"Distance from peak", val:"-11.5 bp", meta:"peak: 12bp / Mar 2020", dir:"dn" },
+    ],
+    traj: [[2018,1,1.2],[2018,7,1.5],[2019,1,2.1],[2019,7,1.4],[2020,1,1.8],[2020,3,12.0],[2020,4,6.5],[2020,7,2.2],[2020,10,1.0],[2021,1,0.8],[2021,7,0.6],[2022,1,1.2],[2022,7,2.5],[2023,1,3.8],[2023,3,5.5],[2023,7,2.2],[2024,1,1.5],[2024,7,0.8],[2025,1,1.0],[2025,7,0.7],[2026,1,0.6],[2026,4,0.5]],
+    episodes: [
+      { period:"Apr 2026", note:"Tight — well-functioning IG market", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB-era IG dislocation peak", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID dealer-balance-sheet limit", spx6:"+38%", spx12:"+55%" },
+      { period:"Sep 2019", note:"Repo crisis spillover", spx6:"+8%", spx12:"+15%" },
+      { period:"Aug 2015", note:"Yuan devaluation IG sell-off", spx6:"+1%", spx12:"+8%" },
+    ],
+    comovement: [
+      { peer:"IG OAS",         c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"VIX",            c1y:"+0.42", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"SOFR-OIS",       c1y:"+0.32", c5y:"+0.28", n1:"12", n5:"60" },
+      { peer:"S&P 500",        c1y:"-0.22", c5y:"-0.18", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"ICE · CDX IG NA series" },
+    source_url: "https://www.theice.com/",
+    formula: "CDX IG North America index spread minus average single-name CDS of constituents.",
+    caveat: "Basis is dealer-balance-sheet sensitive; pre-Dodd-Frank readings reflect different market structure.",
+  },
+  xccy_basis: {
+    header_label: "Bloomberg · 3m USD/EUR · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+1 bp", meta:"slight tighten", dir:"up" },
+      { lbl:"3-month change", val:"-2 bp", meta:"USD slightly tighter", dir:"dn" },
+      { lbl:"1-year change",  val:"+8 bp", meta:"normalizing", dir:"up" },
+      { lbl:"Distance from peak", val:"-108 bp", meta:"trough: -120bp / Sep 2008", dir:"up" },
+    ],
+    traj: [[2018,1,-22],[2018,7,-38],[2019,1,-25],[2019,7,-18],[2020,1,-12],[2020,3,-95],[2020,4,-55],[2020,7,-18],[2020,10,-15],[2021,1,-12],[2021,7,-15],[2022,1,-22],[2022,7,-32],[2023,1,-25],[2023,3,-42],[2023,7,-22],[2024,1,-18],[2024,7,-15],[2025,1,-15],[2025,7,-12],[2026,1,-13],[2026,4,-12]],
+    episodes: [
+      { period:"Apr 2026", note:"Mild — typical post-2010 range", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB-era USD funding stress", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID USD scramble (-95bp)", spx6:"+38%", spx12:"+55%" },
+      { period:"Dec 2016", note:"Year-end USD funding peak", spx6:"+11%", spx12:"+20%" },
+      { period:"Sep 2008", note:"Lehman USD funding crisis (-120bp)", spx6:"-25%", spx12:"+12%" },
+    ],
+    comovement: [
+      { peer:"USD index (DXY)",  c1y:"+0.62", c5y:"+0.55", n1:"12", n5:"60" },
+      { peer:"FRA-OIS",          c1y:"-0.45", c5y:"-0.38", n1:"12", n5:"60" },
+      { peer:"VIX",              c1y:"-0.32", c5y:"-0.28", n1:"12", n5:"60" },
+      { peer:"S&P 500",          c1y:"+0.18", c5y:"+0.12", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"Bloomberg · FX swap pricing" },
+    source_url: "https://www.bis.org/statistics/derstats.htm",
+    formula: "Implied USD funding cost via 3-month FX swap minus comparable EUR money-market rate.",
+    caveat: "Negative basis = USD funding stress (foreigners pay premium for USD via swap).",
+  },
+  cpff: {
+    header_label: "FRED · DCPF3M − DFF · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"-1 bp", meta:"steady", dir:"dn" },
+      { lbl:"3-month change", val:"-4 bp", meta:"normalizing", dir:"dn" },
+      { lbl:"1-year change",  val:"-15 bp", meta:"corp funding easing", dir:"dn" },
+      { lbl:"Distance from peak", val:"-258 bp", meta:"peak: 280bp / Sep 2008", dir:"dn" },
+    ],
+    traj: [[2018,1,12],[2018,7,18],[2019,1,22],[2019,7,15],[2020,1,18],[2020,3,55],[2020,4,42],[2020,7,15],[2020,10,12],[2021,1,8],[2021,7,7],[2022,1,15],[2022,7,28],[2023,1,42],[2023,3,52],[2023,7,32],[2024,1,28],[2024,7,22],[2025,1,25],[2025,7,22],[2026,1,23],[2026,4,22]],
+    episodes: [
+      { period:"Apr 2026", note:"Lower quartile — easy CP funding", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB-era CP stress", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID CP freeze (~65bp)", spx6:"+38%", spx12:"+55%" },
+      { period:"Aug 2007", note:"Pre-GFC CP-ABCP shutdown (~180bp)", spx6:"-3%", spx12:"-12%" },
+      { period:"Sep 2008", note:"Lehman CP-funding peak (~280bp)", spx6:"-25%", spx12:"+12%" },
+    ],
+    comovement: [
+      { peer:"SOFR-OIS",        c1y:"+0.65", c5y:"+0.58", n1:"12", n5:"60" },
+      { peer:"FRA-OIS",         c1y:"+0.62", c5y:"+0.55", n1:"12", n5:"60" },
+      { peer:"VIX",             c1y:"+0.42", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500",         c1y:"-0.28", c5y:"-0.22", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"FRED · Fed Board" },
+    source_url: "https://fred.stlouisfed.org/series/DCPF3M",
+    formula: "3-month AA financial commercial paper yield minus effective Fed Funds rate.",
+    caveat: "AA financial CP universe is narrower today than pre-2008; magnitudes interpretable with caveats.",
+  },
+
+  // ─── LIQUIDITY & POLICY TILE ───
+  anfci: {
+    header_label: "FRED · ANFCI · Weekly",
+    axis_label: "score",
+    unit_fmt: fmtN,
+    kpis: [
+      { lbl:"1-month change", val:"+0.05", meta:"flat near zero", dir:"up" },
+      { lbl:"3-month change", val:"-0.08", meta:"modest easing", dir:"dn" },
+      { lbl:"1-year change",  val:"+0.22", meta:"slight tightening", dir:"up" },
+      { lbl:"Distance from peak", val:"-5.15", meta:"peak: 5.0 / Oct 2008", dir:"dn" },
+    ],
+    traj: [[2018,1,-0.20],[2018,7,-0.10],[2019,1,0.05],[2019,7,-0.05],[2020,1,-0.15],[2020,3,3.20],[2020,4,1.80],[2020,7,-0.15],[2020,10,-0.40],[2021,1,-0.55],[2021,7,-0.45],[2022,1,-0.20],[2022,7,0.30],[2023,1,0.45],[2023,7,0.30],[2024,1,0.05],[2024,7,-0.10],[2025,1,-0.15],[2025,7,-0.20],[2026,1,-0.20],[2026,4,-0.15]],
+    episodes: [
+      { period:"Apr 2026", note:"Near zero — neutral conditions", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB tightening spike", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID peak (3.2)", spx6:"+38%", spx12:"+55%" },
+      { period:"Oct 2008", note:"GFC peak (~5.0)", spx6:"+18%", spx12:"+22%" },
+      { period:"Aug 2015", note:"China-yuan devaluation tightening", spx6:"-5%", spx12:"+1%" },
+    ],
+    comovement: [
+      { peer:"VIX",          c1y:"+0.62", c5y:"+0.55", n1:"52", n5:"260" },
+      { peer:"HY OAS",       c1y:"+0.55", c5y:"+0.48", n1:"52", n5:"260" },
+      { peer:"S&P 500",      c1y:"-0.42", c5y:"-0.38", n1:"52", n5:"260" },
+      { peer:"Real rates",   c1y:"+0.32", c5y:"+0.28", n1:"52", n5:"260" },
+    ],
+    release: { freq:"Weekly (Wed)", last:"Apr 23, 2026", next:"Apr 30, 2026", source:"Chicago Fed · FRED" },
+    source_url: "https://fred.stlouisfed.org/series/ANFCI",
+    formula: "Adjusted National Financial Conditions Index — 105-indicator composite with business-cycle effects regressed out.",
+    caveat: "Revised back ~6 months on every release; weekly prints can flip on revision.",
+  },
+  real_fedfunds: {
+    header_label: "FRED · DFF − PCE · Monthly",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"-0.1 pp", meta:"steady restrictive", dir:"dn" },
+      { lbl:"3-month change", val:"-0.3 pp", meta:"slight easing", dir:"dn" },
+      { lbl:"1-year change",  val:"+0.6 pp", meta:"deeper restriction", dir:"up" },
+      { lbl:"Distance from peak", val:"-5.6 pp", meta:"peak: +7.0% / Aug 1981", dir:"dn" },
+    ],
+    traj: [[2018,1,-0.4],[2018,7,0.2],[2019,1,0.5],[2019,7,0.3],[2020,1,-0.1],[2020,3,-0.8],[2020,7,-1.5],[2020,10,-1.4],[2021,1,-1.8],[2021,7,-3.4],[2022,1,-5.2],[2022,7,-3.8],[2023,1,-1.2],[2023,7,0.8],[2024,1,1.6],[2024,7,1.8],[2025,1,1.7],[2025,7,1.5],[2026,1,1.4],[2026,4,1.4]],
+    episodes: [
+      { period:"Apr 2026", note:"Restrictive — 78th pct", spx6:null, spx12:null },
+      { period:"Jul 2024", note:"Peak restriction post-2022 hikes", spx6:"+18%", spx12:"+22%" },
+      { period:"Jan 2022", note:"COVID-driven trough (-5.2%)", spx6:"-15%", spx12:"-19%" },
+      { period:"Jan 2007", note:"Pre-GFC mild restriction", spx6:"+5%", spx12:"-3%" },
+      { period:"Aug 1981", note:"Volcker peak (~+7%)", spx6:"-3%", spx12:"+15%" },
+    ],
+    comovement: [
+      { peer:"10y Treasury",      c1y:"+0.72", c5y:"+0.65", n1:"12", n5:"60" },
+      { peer:"Equity Risk Premium", c1y:"+0.85", c5y:"+0.79", n1:"12", n5:"60" },
+      { peer:"USD index",         c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500 12mo",      c1y:"-0.32", c5y:"-0.28", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"Apr 30, 2026", next:"May 31, 2026", source:"FRED · DFF + PCEPI" },
+    source_url: "https://fred.stlouisfed.org/series/DFF",
+    formula: "Effective Fed Funds rate minus year-over-year core PCE inflation.",
+    caveat: "Core PCE revisions can shift recent prints; trailing-12m vs latest-monthly framing matters.",
+  },
+  m2_yoy: {
+    header_label: "FRED · M2SL · Monthly",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"+0.2 pp", meta:"slight uptick", dir:"up" },
+      { lbl:"3-month change", val:"+0.6 pp", meta:"normalizing", dir:"up" },
+      { lbl:"1-year change",  val:"+2.5 pp", meta:"recovering from contraction", dir:"up" },
+      { lbl:"Distance from peak", val:"-23.2 pp", meta:"peak: +27% / Feb 2021", dir:"dn" },
+    ],
+    traj: [[2018,1,4.2],[2018,7,3.8],[2019,1,4.0],[2019,7,4.5],[2020,1,5.5],[2020,3,12.8],[2020,7,23.2],[2020,10,24.5],[2021,1,26.8],[2021,7,12.5],[2022,1,5.8],[2022,7,1.2],[2023,1,-2.2],[2023,7,-3.8],[2024,1,-1.5],[2024,7,1.8],[2025,1,2.5],[2025,7,3.2],[2026,1,3.6],[2026,4,3.8]],
+    episodes: [
+      { period:"Apr 2026", note:"Slow growth — 62nd pct (low end)", spx6:null, spx12:null },
+      { period:"Jul 2023", note:"Cycle trough (-3.8%) — first contraction since 1995", spx6:"+8%", spx12:"+22%" },
+      { period:"Feb 2021", note:"All-time peak (+27%) — fiscal+QE", spx6:"+8%", spx12:"-3%" },
+      { period:"Aug 2008", note:"GFC pre-collapse acceleration", spx6:"-22%", spx12:"+8%" },
+      { period:"Jan 1980", note:"Volcker pre-tightening peak", spx6:"-12%", spx12:"+15%" },
+    ],
+    comovement: [
+      { peer:"Real Fed funds",   c1y:"-0.62", c5y:"-0.55", n1:"12", n5:"60" },
+      { peer:"S&P 500 12mo",     c1y:"+0.42", c5y:"+0.35", n1:"12", n5:"60" },
+      { peer:"CPI YoY",          c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"Buffett Indicator", c1y:"+0.38", c5y:"+0.32", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"Apr 22, 2026", next:"May 22, 2026", source:"FRED · M2SL" },
+    source_url: "https://fred.stlouisfed.org/series/M2SL",
+    formula: "Year-over-year growth in seasonally-adjusted M2 money stock.",
+    caveat: "M2 redefinition in May 2020 created a discontinuity; comparisons across that date adjusted.",
+  },
+  term_premium: {
+    header_label: "Fed Board · Kim-Wright · Weekly",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+3 bp", meta:"slight reset", dir:"up" },
+      { lbl:"3-month change", val:"+8 bp", meta:"normalizing", dir:"up" },
+      { lbl:"1-year change",  val:"+22 bp", meta:"compensating for rate vol", dir:"up" },
+      { lbl:"Distance from peak", val:"-235 bp", meta:"peak: 280bp / 1984", dir:"dn" },
+    ],
+    traj: [[2018,1,-25],[2018,7,-12],[2019,1,-32],[2019,7,-58],[2020,1,-72],[2020,3,-82],[2020,7,-95],[2020,10,-105],[2021,1,-95],[2021,7,-72],[2022,1,-45],[2022,7,12],[2023,1,28],[2023,7,42],[2024,1,28],[2024,7,22],[2025,1,32],[2025,7,38],[2026,1,42],[2026,4,45]],
+    episodes: [
+      { period:"Apr 2026", note:"Normalizing — 55th pct", spx6:null, spx12:null },
+      { period:"Oct 2023", note:"Recent peak (~85bp) — bond bear", spx6:"+15%", spx12:"+22%" },
+      { period:"Aug 2020", note:"All-time low (-120bp) under QE", spx6:"+18%", spx12:"+30%" },
+      { period:"Apr 2014", note:"Mid-2010s normal range (+50bp)", spx6:"+5%", spx12:"+8%" },
+      { period:"Jul 1984", note:"Volcker-era peak (+280bp)", spx6:"+5%", spx12:"+18%" },
+    ],
+    comovement: [
+      { peer:"10y Treasury",   c1y:"+0.78", c5y:"+0.72", n1:"52", n5:"260" },
+      { peer:"Real Fed funds", c1y:"+0.55", c5y:"+0.48", n1:"52", n5:"260" },
+      { peer:"Fed balance sheet", c1y:"-0.62", c5y:"-0.55", n1:"52", n5:"260" },
+      { peer:"S&P 500",        c1y:"-0.18", c5y:"-0.12", n1:"52", n5:"260" },
+    ],
+    release: { freq:"Weekly", last:"Apr 25, 2026", next:"May 2, 2026", source:"Fed Board · Kim-Wright series" },
+    source_url: "https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv",
+    formula: "Affine-term-structure model decomposition: 10y Treasury yield minus expected average future short rate.",
+    caveat: "Model-derived; alternative decompositions (ACM, Adrian-Crump-Moench) give different magnitudes.",
+  },
+  fed_bs: {
+    header_label: "Fed H.4.1 · Total Assets · Weekly",
+    axis_label: "$T",
+    unit_fmt: v => `$${v.toFixed(1)}T`,
+    kpis: [
+      { lbl:"1-month change", val:"-$25B", meta:"QT continues", dir:"dn" },
+      { lbl:"3-month change", val:"-$80B", meta:"steady runoff", dir:"dn" },
+      { lbl:"1-year change",  val:"-$420B", meta:"~$35B/mo runoff", dir:"dn" },
+      { lbl:"Distance from peak", val:"-$2.3T", meta:"peak: $9.0T / Apr 2022", dir:"dn" },
+    ],
+    traj: [[2018,1,4.4],[2018,7,4.3],[2019,1,4.1],[2019,7,3.8],[2020,1,4.2],[2020,3,5.2],[2020,7,7.0],[2020,10,7.2],[2021,1,7.4],[2021,7,8.2],[2022,1,8.9],[2022,7,8.9],[2023,1,8.5],[2023,7,8.2],[2024,1,7.6],[2024,7,7.2],[2025,1,7.0],[2025,7,6.9],[2026,1,6.8],[2026,4,6.7]],
+    episodes: [
+      { period:"Apr 2026", note:"Active QT — 60th pct of post-2008 sample", spx6:null, spx12:null },
+      { period:"Apr 2022", note:"All-time peak ($9.0T)", spx6:"-15%", spx12:"-19%" },
+      { period:"Mar 2020", note:"Emergency QE start ($4.2T → $7.0T in 4mo)", spx6:"+38%", spx12:"+55%" },
+      { period:"Sep 2019", note:"Repo-crisis QE-lite reversal", spx6:"+8%", spx12:"+15%" },
+      { period:"Sep 2008", note:"GFC TARP+QE inception ($0.9T → $2.2T)", spx6:"+18%", spx12:"+22%" },
+    ],
+    comovement: [
+      { peer:"Term premium",   c1y:"-0.62", c5y:"-0.55", n1:"52", n5:"260" },
+      { peer:"S&P 500",        c1y:"+0.45", c5y:"+0.38", n1:"52", n5:"260" },
+      { peer:"M2 YoY",         c1y:"+0.55", c5y:"+0.48", n1:"52", n5:"260" },
+      { peer:"Real rates",     c1y:"-0.32", c5y:"-0.28", n1:"52", n5:"260" },
+    ],
+    release: { freq:"Weekly (Thu)", last:"Apr 24, 2026", next:"May 1, 2026", source:"Federal Reserve H.4.1" },
+    source_url: "https://fred.stlouisfed.org/series/WALCL",
+    formula: "Total Federal Reserve System assets — Treasuries + MBS + agency debt + emergency facilities.",
+    caveat: "Pre-2008 readings reflect pre-QE Fed; the 2008-2014 ramp is not directly comparable to post-2020.",
+  },
+
+  // ─── POSITIONING & BREADTH TILE ───
+  naaim: {
+    header_label: "NAAIM Exposure Index · Weekly",
+    axis_label: "score",
+    unit_fmt: v => `${Math.round(v)}`,
+    kpis: [
+      { lbl:"1-month change", val:"+5", meta:"adding length", dir:"up" },
+      { lbl:"3-month change", val:"+12", meta:"sustained build-up", dir:"up" },
+      { lbl:"1-year change",  val:"+28", meta:"now near record-high zone", dir:"up" },
+      { lbl:"Distance from peak", val:"-31", meta:"peak: +120 / Jan 2018", dir:"dn" },
+    ],
+    traj: [[2018,1,108],[2018,7,52],[2019,1,42],[2019,7,68],[2020,1,72],[2020,3,-58],[2020,4,12],[2020,7,72],[2020,10,82],[2021,1,98],[2021,7,72],[2022,1,52],[2022,7,12],[2023,1,32],[2023,7,72],[2023,10,68],[2024,1,82],[2024,7,85],[2025,1,82],[2025,7,84],[2026,1,86],[2026,4,89]],
+    episodes: [
+      { period:"Apr 2026", note:"Top decile — heavy long positioning", spx6:null, spx12:null },
+      { period:"Jan 2018", note:"All-time peak (+120) before Feb VIX-mageddon", spx6:"-7%", spx12:"-2%" },
+      { period:"Jan 2021", note:"Post-stim peak (+98)", spx6:"+12%", spx12:"-9%" },
+      { period:"Mar 2020", note:"Crash trough (-58)", spx6:"+38%", spx12:"+55%" },
+      { period:"Oct 2008", note:"GFC trough (-72) — peak fear", spx6:"+18%", spx12:"+22%" },
+    ],
+    comovement: [
+      { peer:"S&P 500 6mo",       c1y:"+0.72", c5y:"+0.65", n1:"52", n5:"260" },
+      { peer:"Margin debt YoY",   c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"VIX",               c1y:"-0.62", c5y:"-0.55", n1:"52", n5:"260" },
+      { peer:"% above 200dma",    c1y:"+0.62", c5y:"+0.55", n1:"52", n5:"260" },
+    ],
+    release: { freq:"Weekly (Wed)", last:"Apr 23, 2026", next:"Apr 30, 2026", source:"NAAIM Survey" },
+    source_url: "https://www.naaim.org/programs/naaim-exposure-index/",
+    formula: "Median exposure of NAAIM-member active managers, scaled −200 (200% short) to +200 (2× long).",
+    caveat: "Self-reported survey — sample of ~150 active managers; not representative of full institutional positioning.",
+  },
+  margin_debt: {
+    header_label: "FINRA · NYSE Margin Debt · Monthly",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"+1.2 pp", meta:"continuing build", dir:"up" },
+      { lbl:"3-month change", val:"+3.8 pp", meta:"leveraged-long extension", dir:"up" },
+      { lbl:"1-year change",  val:"+8.2 pp", meta:"sustained high read", dir:"up" },
+      { lbl:"Distance from peak", val:"-12.0 pp", meta:"peak: +30% / Mar 2021", dir:"dn" },
+    ],
+    traj: [[2018,1,18.5],[2018,7,9.8],[2019,1,-3.2],[2019,7,-2.8],[2020,1,1.2],[2020,3,-12.5],[2020,7,8.5],[2020,10,15.2],[2021,1,28.5],[2021,3,30.0],[2021,7,18.2],[2022,1,2.5],[2022,7,-15.8],[2023,1,-22.0],[2023,7,-8.5],[2024,1,5.2],[2024,7,12.5],[2025,1,15.8],[2025,7,17.2],[2026,1,17.0],[2026,4,18.2]],
+    episodes: [
+      { period:"Apr 2026", note:"Top decile — heavy leveraged-long extension", spx6:null, spx12:null },
+      { period:"Mar 2021", note:"All-time peak (+30%) post-stim", spx6:"+8%", spx12:"-3%" },
+      { period:"Jan 2018", note:"Pre-Feb-VIX peak (+18.5%)", spx6:"-3%", spx12:"-7%" },
+      { period:"Oct 1999", note:"Dotcom-era peak (+62%)", spx6:"-3%", spx12:"-8%" },
+      { period:"Jun 2007", note:"Pre-GFC peak (+22%)", spx6:"+0%", spx12:"-13%" },
+    ],
+    comovement: [
+      { peer:"S&P 500 6mo",       c1y:"+0.68", c5y:"+0.62", n1:"12", n5:"60" },
+      { peer:"NAAIM",             c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"Buffett Indicator", c1y:"+0.71", c5y:"+0.62", n1:"12", n5:"60" },
+      { peer:"VIX",               c1y:"-0.42", c5y:"-0.38", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"Apr 28, 2026", next:"May 28, 2026", source:"FINRA · NYSE FactBook" },
+    source_url: "https://www.finra.org/investors/learn-to-invest/advanced-investing/margin-statistics",
+    formula: "Year-over-year change in NYSE total customer margin debt outstanding.",
+    caveat: "Pre-2010 series uses NYSE FactBook; reporting changes in 2010 created a small discontinuity.",
+  },
+  put_call: {
+    header_label: "CBOE · Total Put/Call · Daily",
+    axis_label: "ratio",
+    unit_fmt: v => v.toFixed(2),
+    kpis: [
+      { lbl:"1-month change", val:"-0.04", meta:"more complacent", dir:"dn" },
+      { lbl:"3-month change", val:"-0.08", meta:"bearish bets light", dir:"dn" },
+      { lbl:"1-year change",  val:"-0.18", meta:"sustained complacency", dir:"dn" },
+      { lbl:"Distance from peak", val:"-1.18", meta:"peak: 1.80 / Mar 2020", dir:"dn" },
+    ],
+    traj: [[2018,1,0.85],[2018,7,0.92],[2019,1,1.05],[2019,7,0.88],[2020,1,0.78],[2020,3,1.80],[2020,4,1.05],[2020,7,0.65],[2020,10,0.55],[2021,1,0.42],[2021,7,0.48],[2022,1,0.98],[2022,7,1.12],[2023,1,1.05],[2023,7,0.85],[2024,1,0.72],[2024,7,0.68],[2025,1,0.72],[2025,7,0.68],[2026,1,0.66],[2026,4,0.62]],
+    episodes: [
+      { period:"Apr 2026", note:"Bottom quintile — complacent", spx6:null, spx12:null },
+      { period:"Jan 2021", note:"All-time low (~0.42) — peak GameStop euphoria", spx6:"+12%", spx12:"-9%" },
+      { period:"Aug 2018", note:"Tax-cut peak euphoria", spx6:"-9%", spx12:"+0%" },
+      { period:"Mar 2020", note:"All-time peak (1.80) — COVID panic", spx6:"+38%", spx12:"+55%" },
+      { period:"Oct 2008", note:"GFC peak (~1.65)", spx6:"+18%", spx12:"+22%" },
+    ],
+    comovement: [
+      { peer:"VIX",               c1y:"+0.62", c5y:"+0.55", n1:"252", n5:"1260" },
+      { peer:"S&P 500",           c1y:"-0.55", c5y:"-0.48", n1:"252", n5:"1260" },
+      { peer:"NAAIM",             c1y:"-0.38", c5y:"-0.32", n1:"52", n5:"260" },
+      { peer:"% above 200dma",    c1y:"-0.42", c5y:"-0.38", n1:"252", n5:"1260" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"CBOE" },
+    source_url: "https://www.cboe.com/us/options/market_statistics/",
+    formula: "Total CBOE equity put volume divided by total equity call volume.",
+    caveat: "Pre-2010 ratio scale-shifted slightly; index put/call (separate series) is more useful for index-level positioning.",
+  },
+  spx_200dma: {
+    header_label: "Derived · S&P 500 constituents · Daily",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"+2 pp", meta:"breadth firming", dir:"up" },
+      { lbl:"3-month change", val:"+5 pp", meta:"sustained healthy", dir:"up" },
+      { lbl:"1-year change",  val:"+12 pp", meta:"expansion", dir:"up" },
+      { lbl:"Distance from peak", val:"-18 pp", meta:"peak: 92% / Apr 2021", dir:"dn" },
+    ],
+    traj: [[2018,1,82],[2018,7,55],[2019,1,38],[2019,7,72],[2020,1,72],[2020,3,8],[2020,4,38],[2020,7,68],[2020,10,72],[2021,1,82],[2021,4,92],[2021,7,82],[2022,1,55],[2022,7,18],[2023,1,42],[2023,7,68],[2023,10,52],[2024,1,72],[2024,7,72],[2025,1,68],[2025,7,72],[2026,1,72],[2026,4,74]],
+    episodes: [
+      { period:"Apr 2026", note:"Healthy mid-band — 68th pct", spx6:null, spx12:null },
+      { period:"Apr 2021", note:"Peak breadth (92%) post-COVID rally", spx6:"+8%", spx12:"+0%" },
+      { period:"Mar 2020", note:"All-time low (~8%) crash bottom", spx6:"+38%", spx12:"+55%" },
+      { period:"Jul 2022", note:"Bear-market trough breadth (~18%)", spx6:"+8%", spx12:"+22%" },
+      { period:"Mar 2009", note:"GFC bottom (~5%)", spx6:"+38%", spx12:"+45%" },
+    ],
+    comovement: [
+      { peer:"S&P 500",           c1y:"+0.78", c5y:"+0.72", n1:"252", n5:"1260" },
+      { peer:"NAAIM",             c1y:"+0.62", c5y:"+0.55", n1:"52", n5:"260" },
+      { peer:"VIX",               c1y:"-0.55", c5y:"-0.48", n1:"252", n5:"1260" },
+      { peer:"Advance-Decline",   c1y:"+0.85", c5y:"+0.78", n1:"252", n5:"1260" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"Derived · S&P + Bloomberg" },
+    source_url: "https://www.spglobal.com/spdji/en/indices/equity/sp-500/",
+    formula: "Share of S&P 500 constituents trading above their 200-day simple moving average.",
+    caveat: "Healthy band is roughly 50-80%; mega-cap concentration can mask narrowing breadth even at high readings.",
+  },
+  adv_dec: {
+    header_label: "NYSE · Advance-Decline · Daily",
+    axis_label: "score",
+    unit_fmt: v => v.toFixed(2),
+    kpis: [
+      { lbl:"1-month change", val:"+0.05", meta:"steady positive", dir:"up" },
+      { lbl:"3-month change", val:"+0.12", meta:"sustained healthy", dir:"up" },
+      { lbl:"1-year change",  val:"+0.22", meta:"expansion phase", dir:"up" },
+      { lbl:"Distance from peak", val:"-2.4", meta:"peak: +3.0 / Apr 2009", dir:"dn" },
+    ],
+    traj: [[2018,1,1.2],[2018,7,0.6],[2019,1,-0.5],[2019,7,0.8],[2020,1,0.4],[2020,3,-2.8],[2020,4,1.5],[2020,7,1.2],[2020,10,0.8],[2021,1,1.5],[2021,7,0.6],[2022,1,-0.2],[2022,7,-1.2],[2023,1,0.2],[2023,7,0.5],[2024,1,0.8],[2024,7,0.6],[2025,1,0.5],[2025,7,0.6],[2026,1,0.5],[2026,4,0.6]],
+    episodes: [
+      { period:"Apr 2026", note:"Healthy band — 62nd pct", spx6:null, spx12:null },
+      { period:"Apr 2009", note:"GFC-recovery breadth thrust (+3.0)", spx6:"+22%", spx12:"+45%" },
+      { period:"Mar 2020", note:"COVID crash trough (-2.8)", spx6:"+38%", spx12:"+55%" },
+      { period:"Jul 2022", note:"Bear-market trough (-1.2)", spx6:"+8%", spx12:"+22%" },
+      { period:"Oct 2008", note:"GFC trough (-2.5)", spx6:"+18%", spx12:"+22%" },
+    ],
+    comovement: [
+      { peer:"% above 200dma",    c1y:"+0.85", c5y:"+0.78", n1:"252", n5:"1260" },
+      { peer:"S&P 500",           c1y:"+0.72", c5y:"+0.65", n1:"252", n5:"1260" },
+      { peer:"NAAIM",             c1y:"+0.58", c5y:"+0.52", n1:"52", n5:"260" },
+      { peer:"VIX",               c1y:"-0.62", c5y:"-0.55", n1:"252", n5:"1260" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"NYSE · daily breadth tape" },
+    source_url: "https://www.nyse.com/quote/index/NYAD",
+    formula: "50-day cumulative net advancers ratio, normalized.",
+    caveat: "NYSE-only universe excludes Nasdaq mega-cap names — mixed-venue versions exist with different magnitudes.",
+  },
+
 };
 
 
