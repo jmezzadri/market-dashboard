@@ -5564,18 +5564,22 @@ return(
         if (s <  +50) return "elevated";
         return "stressed";
       };
-      const worst = composites.reduce((a, b) => (b.v != null && (a.v == null || b.v > a.v) ? b : a), {v:null, k:""});
-      const worstReg = regimeOf(worst.v);
-      const elevatedCount = composites.filter(c => regimeOf(c.v) === "elevated" || regimeOf(c.v) === "stressed").length;
-
-      let h, em;
-      if (!M) { h = "Loading"; em = " today's market read."; }
-      else if (worstReg === "stressed" && elevatedCount >= 2) { h = "Defensive macro,"; em = " multiple composites flashing stress."; }
-      else if (worstReg === "stressed") { h = "Stress in " + worst.k + ","; em = " other composites benign."; }
-      else if (worstReg === "elevated" && elevatedCount >= 2) { h = "Watching " + worst.k + ","; em = " conditions tightening across composites."; }
-      else if (worstReg === "elevated") { h = "Elevated " + worst.k + ","; em = " growth and inflation read normal."; }
-      else if (worstReg === "calm" || worstReg === "quiet") { h = "Risk-on backdrop,"; em = " composites benign across the board."; }
-      else { h = "Normal regime,"; em = " composites in balance."; }
+      // Stance now reads off the v11 cycle-board snapshot — same six-
+      // mechanism average that drives /#overview. The legacy RL/GR/IR
+      // regimeOf/worst computation above is kept in scope but no longer
+      // wired to the hero. Falls back gracefully if the snapshot isn't
+      // loaded yet.
+      let h = "Loading", em = " today's cycle read.";
+      const _cbMechs = cycleBoardSnap?.mechanisms || [];
+      if (_cbMechs.length) {
+        const _cbAvg = _cbMechs.reduce((a,t)=>a+(Number(t.score)||0),0) / _cbMechs.length;
+        const _cbR   = Math.round(_cbAvg);
+        if (_cbAvg < 30)        { h = "Risk-on composite,";       em = ` average ${_cbR}/100 — most mechanisms calm.`; }
+        else if (_cbAvg < 50)   { h = "Calm-leaning composite,";  em = ` average ${_cbR}/100 — selective stress only.`; }
+        else if (_cbAvg < 65)   { h = "Mid-cycle composite,";     em = ` average ${_cbR}/100 — selective stress, not system-wide.`; }
+        else if (_cbAvg < 80)   { h = "Cautious composite,";      em = ` average ${_cbR}/100 — multiple mechanisms stretched.`; }
+        else                    { h = "Risk-off composite,";      em = ` average ${_cbR}/100 — system-wide stress.`; }
+      }
 
       // Shared styles for orientation tiles
       const stepTileStyle = {
@@ -5645,7 +5649,7 @@ return(
               fontSize:16, color:"var(--text-muted)", lineHeight:1.55,
               maxWidth:"62ch", margin:0,
             }}>
-              A back-tested macro model and allocation tilt engine, coupled with a watchlist scanner.
+              A six-mechanism macro cycle board and a watchlist scanner. Asset tilt engine in rebuild.
             </p>
           </div>
           <div style={{paddingBottom:"var(--space-2)"}}>
@@ -5672,8 +5676,8 @@ return(
                onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("overview"); } }}
                style={stepTileStyle}>
             <div style={tileTagStyle}>{tileLineAccent} 01 · Macro</div>
-            <h3 style={tileH3Style}>Where stress <em style={{fontStyle:"italic", color:"var(--accent)"}}>sits today.</em></h3>
-            <p style={tileBlurbStyle}>Three composites — Risk &amp; Liquidity, Growth, Inflation — scored on a −100 (calm) to +100 (stressed) scale.</p>
+            <h3 style={tileH3Style}>Where the cycle <em style={{fontStyle:"italic", color:"var(--accent)"}}>sits today.</em></h3>
+            <p style={tileBlurbStyle}>Six cycle mechanisms — Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth — scored 0 (calm) to 100 (stressed).</p>
             <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
           </div>
 
@@ -5704,123 +5708,10 @@ return(
           </div>
         </section>
 
-        {/* ── MISSION + EVIDENCE STRIP ── */}
-        {(()=>{
-          const meth = V?.methodology;
-          if (!meth) return null;
-          const modCagr = meth.back_test_cagr;
-          const spxCagr = meth.back_test_spx_cagr;
-          const alpha   = (modCagr != null && spxCagr != null) ? (modCagr - spxCagr) : null;
-          const modSharpe = meth.back_test_sharpe;
-          const spxSharpe = meth.back_test_spx_sharpe;
-          const modDD     = meth.back_test_max_drawdown;
-          const spxDD     = meth.back_test_spx_max_drawdown;
-          const window    = meth.back_test_window || "";
-          const yrs = (() => {
-            const m = window.match(/(\d{4})-\d{2}\s*to\s*(\d{4})-\d{2}/);
-            return m ? Math.max(1, parseInt(m[2]) - parseInt(m[1])) : null;
-          })();
-          const cellStyle = {
-            flex:"1 1 0", minWidth:0,
-            padding:"var(--space-4) var(--space-5)",
-            display:"flex", flexDirection:"column", gap:6,
-            borderRight:"1px solid var(--border-faint)",
-          };
-          const cellLast = {...cellStyle, borderRight:"none"};
-          const numStyle = {
-            fontFamily:"var(--font-display)", fontWeight:500,
-            fontSize:"clamp(22px, 2.4vw, 28px)", lineHeight:1, color:"var(--text)",
-            letterSpacing:"-0.01em",
-          };
-          const labelStyle = {
-            fontFamily:"var(--font-mono)", fontSize:10,
-            color:"var(--text-dim)", letterSpacing:"0.16em", textTransform:"uppercase",
-          };
-          const subStyle = { fontSize:11, color:"var(--text-muted)", lineHeight:1.4 };
-          const cmpStyle = {
-            fontFamily:"var(--font-mono)", fontSize:10.5, color:"var(--text-muted)",
-            letterSpacing:"0.04em",
-          };
-          const cmpStrong = {
-            fontFamily:"var(--font-display)", fontStyle:"italic",
-            color:"var(--text)", fontWeight:500,
-          };
-
-          return (
-            <div style={{ marginTop:"var(--space-5)" }}>
-              <div style={{
-                marginBottom:"var(--space-3)",
-                fontFamily:"var(--font-display)", fontStyle:"italic",
-                fontSize:15, lineHeight:1.5, color:"var(--text)",
-                maxWidth:"68ch",
-              }}>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                  letterSpacing:"0.16em", textTransform:"uppercase",
-                  color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-                }}>Mission</span>
-                Outperform the S&amp;P 500 on a risk-adjusted basis. Eighteen years of back-tested evidence:
-              </div>
-              <div style={{
-                background:"var(--surface-3, var(--surface))",
-                border:"1px solid var(--border-faint)",
-                borderRadius:8,
-                display:"flex", flexWrap:"wrap",
-              }}>
-                <div style={cellStyle}>
-                  <span style={labelStyle}>Outperformance</span>
-                  <span style={numStyle}>
-                    {alpha != null ? `+${(alpha*100).toFixed(1)}% / yr` : "—"}
-                  </span>
-                  <span style={subStyle}>annualized excess return vs S&amp;P 500</span>
-                  {modCagr != null && spxCagr != null && (
-                    <span style={cmpStyle}>
-                      <span style={cmpStrong}>{(modCagr*100).toFixed(1)}%</span>
-                      {" model · "}
-                      {(spxCagr*100).toFixed(1)}{"% S&P"}
-                    </span>
-                  )}
-                </div>
-                <div style={cellStyle}>
-                  <span style={labelStyle}>Drawdown control</span>
-                  <span style={numStyle}>
-                    {modDD != null ? `${(modDD*100).toFixed(1)}%` : "—"}
-                  </span>
-                  <span style={subStyle}>worst peak-to-trough loss in the window</span>
-                  {modDD != null && spxDD != null && (
-                    <span style={cmpStyle}>
-                      <span style={cmpStrong}>{(modDD*100).toFixed(1)}%</span>
-                      {" model · "}
-                      {(spxDD*100).toFixed(1)}{"% S&P"}
-                    </span>
-                  )}
-                </div>
-                <div style={cellStyle}>
-                  <span style={labelStyle}>Risk-adjusted return</span>
-                  <span style={numStyle}>
-                    {modSharpe != null ? modSharpe.toFixed(2) : "—"}
-                  </span>
-                  <span style={subStyle}>Sharpe ratio — return per unit of volatility</span>
-                  {modSharpe != null && spxSharpe != null && (
-                    <span style={cmpStyle}>
-                      <span style={cmpStrong}>{modSharpe.toFixed(2)}</span>
-                      {" model · "}
-                      {spxSharpe.toFixed(2)}{" S&P"}
-                    </span>
-                  )}
-                </div>
-                <div style={cellLast}>
-                  <span style={labelStyle}>Calibration</span>
-                  <span style={numStyle}>{yrs != null ? `${yrs} years` : "—"}</span>
-                  <span style={subStyle}>
-                    {window || "—"} · {meth.ig_universe_size || 25} industry groups
-                  </span>
-                  <span style={cmpStyle}>back-tested, then locked</span>
-                </div>
-              </div>
-            </div>
-          );
-        })()}
+        {/* MISSION + EVIDENCE strip removed 2026-04-30 — every cell
+            (outperformance, drawdown, Sharpe, calibration) was sourced from
+            the v9 Asset Allocation methodology snapshot, which is offline
+            pending Senior Quant calibration. Bring back when v9 ships. */}
       </>);
     })()}
 
@@ -5833,13 +5724,18 @@ return(
       alignItems:"stretch",
     }}>
 
-      {/* 01 · Macro Overview — mirrors v11 cycle-mechanism board (2026-04-30 v2).
-          Both surfaces (this card + /#overview iframe) read the SAME 6 cycle
-          mechanisms from public/cycle_board_snapshot.json. Mock calibration
-          data (Sprint 1 snapshot) — replaced by a live calc engine when v11
-          ports to React. The previous version of this card claimed "same
-          data as /#overview" while showing the OLD 3-composite RL/GR/IR
-          framework. That was wrong. This version is honest. */}
+      {/* 01 · Macro Overview — mirrors v11 (2026-04-30 v3).
+          PR #337 hardcoded a stale "4/6 elevated · Risk-off" verdict in
+          the JSON. The real /#overview computes a 0-100 simple average
+          from the six mechanism scores and applies a labelFn:
+            <30  Risk-on composite
+            <50  Calm-leaning composite
+            <65  Mid-cycle composite      (current: 60 — Caution band)
+            <80  Cautious composite
+            ≥80  Risk-off composite
+          This card runs the SAME math against the same JSON, so the
+          home preview and /#overview show identical numbers, identical
+          band, identical narrative. */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
@@ -5850,53 +5746,77 @@ return(
           if (!cycleBoardSnap) {
             return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading cycle board…</div>;
           }
-          const agg = cycleBoardSnap.aggregate || {};
           const mechs = cycleBoardSnap.mechanisms || [];
-          // Match v11 band colors (darkblood / oxblood / amber / green-active)
-          const bandColor = (b) => ({
-            "darkblood":      "#7a1414",
-            "oxblood":        "#a04518",
-            "amber":          "#b8860b",
-            "green-active":   "#4a7c4a",
-          })[b] || "var(--text-muted)";
-          const aggColor = (() => {
-            const c = agg.elevated_count;
-            if (c >= 4) return "#7a1414";   // risk-off
-            if (c === 3) return "#a04518";  // caution
-            if (c === 2) return "#b8860b";  // neutral
-            return "#4a7c4a";               // risk-on
-          })();
+          if (!mechs.length) return null;
+
+          // ── Identical to v11s populateVerdict() at line 989-1014 of
+          // public/MacroTilt_Macro_Overview_Page_v11.html.
+          const avg = mechs.reduce((a, t) => a + (Number(t.score)||0), 0) / mechs.length;
+          const rounded = Math.round(avg);
+          let label, narrative;
+          if (avg < 30) {
+            label = "Risk-on composite";
+            narrative = "Most mechanisms calm; cycle is in a low-risk regime.";
+          } else if (avg < 50) {
+            label = "Calm-leaning composite";
+            narrative = "Mostly benign reads with selective stress in a few mechanisms.";
+          } else if (avg < 65) {
+            label = "Mid-cycle composite";
+            const above = mechs.filter(t => t.score >= avg).map(t => t.name);
+            const below = mechs.filter(t => t.score <  avg).map(t => t.name);
+            narrative = `${above.join(" and ")} above the cohort; ${below.join(" and ")} below. Selective stress, not system-wide.`;
+          } else if (avg < 80) {
+            label = "Cautious composite";
+            narrative = "Multiple mechanisms stretched. Defensive posture warranted.";
+          } else {
+            label = "Risk-off composite";
+            narrative = "System-wide stress across most mechanisms.";
+          }
+          // Bands per v11 footer copy: 0-25 Risk-on, 25-50 Neutral,
+          // 50-75 Caution, 75-100 Risk-off.
+          const bandFor = (s) => s < 25 ? "risk-on" : s < 50 ? "neutral" : s < 75 ? "caution" : "risk-off";
+          const bandColor = (band) => ({
+            "risk-on":  "#4a7c4a",
+            "neutral":  "#b8860b",
+            "caution":  "#a04518",
+            "risk-off": "#7a1414",
+          })[band] || "var(--text-muted)";
+          const aggBand = bandFor(avg);
+          const aggCol  = bandColor(aggBand);
+
           return (
             <>
-              {/* Aggregate verdict — exact pattern from v11 (count + sublabel + headline) */}
+              {/* Composite-average headline — exact pattern from v11 */}
               <div style={{
                 display:"flex", alignItems:"baseline", gap:"var(--space-3)",
                 marginBottom:"var(--space-3)",
               }}>
                 <div style={{
                   fontFamily:"var(--font-mono)", fontSize:38, fontWeight:600,
-                  color:aggColor, lineHeight:1, letterSpacing:"-0.02em",
-                }}>{agg.elevated_count ?? "—"}<span style={{fontSize:18, fontWeight:400, color:"var(--text-muted)", marginLeft:4}}>/ {agg.total ?? 6}</span></div>
+                  color:aggCol, lineHeight:1, letterSpacing:"-0.02em",
+                }}>{rounded}<span style={{fontSize:18, fontWeight:400, color:"var(--text-muted)", marginLeft:4}}>/ 100</span></div>
                 <div style={{
                   fontFamily:"var(--font-mono)", fontSize:10,
                   color:"var(--text-muted)", letterSpacing:"0.10em",
                   textTransform:"uppercase", fontWeight:600,
-                }}>mechanisms elevated</div>
+                }}>composite average</div>
               </div>
               <div style={{
                 fontFamily:"var(--font-display)", fontSize:14, lineHeight:1.55,
                 color:"var(--text)", marginBottom:"var(--space-4)",
                 paddingBottom:"var(--space-3)",
                 borderBottom:"1px solid var(--border-faint)",
-              }}>{agg.headline}</div>
+              }}>{label} — average {rounded}/100. {narrative}</div>
 
-              {/* Six mechanism mini-cards — name, score, band */}
+              {/* Six mechanism mini-cards — number, name, score/100. Band
+                  color on the score; no Elevated/Calm pill (matches v11 dial
+                  cards which dont show one either). */}
               <div style={{
                 display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
                 gap:"var(--space-2)",
               }}>
                 {mechs.map(m => {
-                  const col = bandColor(m.band);
+                  const col = bandColor(bandFor(m.score));
                   return (
                     <div key={m.id} onClick={()=>navTo("overview")} style={{
                       background:"var(--surface)",
@@ -5911,14 +5831,8 @@ return(
                       }}>{m.num} · {m.name}</div>
                       <div style={{
                         fontFamily:"var(--font-mono)", fontSize:24,
-                        fontWeight:600, color:col, lineHeight:1, marginBottom:4,
-                      }}>{m.score ?? "—"}</div>
-                      <div style={{
-                        fontSize:10, color:m.elevated ? col : "var(--text-dim)",
-                        fontFamily:"var(--font-mono)",
-                        letterSpacing:"0.06em",
-                        textTransform:"uppercase", fontWeight:700,
-                      }}>{m.elevated ? "Elevated" : "Calm"}</div>
+                        fontWeight:600, color:col, lineHeight:1,
+                      }}>{m.score}<span style={{fontSize:11, fontWeight:400, color:"var(--text-muted)", marginLeft:3}}>/ 100</span></div>
                     </div>
                   );
                 })}
@@ -5927,7 +5841,7 @@ return(
           );
         })()}
 
-        {/* Footer — honest about the mock-data status */}
+        {/* Footer */}
         <div style={{
           marginTop:"var(--space-4)",
           paddingTop:"var(--space-3)",
@@ -5936,7 +5850,7 @@ return(
           color:"var(--text-dim)", letterSpacing:"0.06em",
           display:"flex", justifyContent:"space-between", alignItems:"center", gap:8,
         }}>
-          <span>Sprint 1 calibration · framework v11</span>
+          <span>{cycleBoardSnap?.calibration_label || "Sprint 1 calibration"} · framework v11</span>
           <a onClick={()=>navTo("overview")} style={{
             color:"var(--accent)", cursor:"pointer", fontWeight:600,
           }}>Open dial board, indicator drill-downs →</a>
