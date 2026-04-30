@@ -1,0 +1,41 @@
+# MASSIVE-V9-ETF-BACKFILL — one-shot backfill of 20-year daily history for the
+# 18 v9 universe ETFs (IGV, SOXX, IBB, XLF, XLV, XLI, XLE, XLY, XLP, XLU, XLB,
+# IYR, IYZ, MGK, BIL, TLT, GLD, LQD) into public.prices_eod.
+#
+# After this workflow runs successfully, PR #9 (compute_v9_allocation.py
+# yfinance -> Supabase) can ship without breaking the optimizer's 20-year
+# multivariate regression.
+#
+# Wall clock: ~4 minutes (18 tickers × 1 call each, 13s throttle).
+# Trigger: workflow_dispatch only — this is a one-shot prep workflow.
+#
+# Phase 3 PR #9-prep (Joe directive 2026-04-30 popup answer A).
+
+name: MASSIVE-V9-ETF-BACKFILL
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: massive-v9-etf-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run v9 ETF history backfill
+        env:
+          MASSIVE_API_KEY:           ${{ secrets.MASSIVE_API_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PYTHONUNBUFFERED:          "1"
+        run: |
+          python3 scripts/backfill_v9_etf_history.py
