@@ -2669,7 +2669,9 @@ const submit=async(e)=>{
   const t=(val||"").trim().toUpperCase().replace(/[^A-Z0-9.\-]/g,"");
   if(!t)return;
   if((watchlistRows||[]).some(w=>w.ticker===t)){
-    setMsg({text:`${t} already on watchlist`,kind:"error"});return;
+    setMsg({text:`${t} is already on your watchlist — clear the input and look for it in the rows above.`,kind:"warn"});
+    setVal("");
+    return;
   }
   setBusy(true);setMsg(null);
   try{
@@ -2722,7 +2724,7 @@ const submit=async(e)=>{
   finally{setBusy(false);}
 };
 return(
-<form onSubmit={submit} style={{display:"flex",gap:6,alignItems:"center",padding:"4px 2px",marginTop:2}}>
+<form onSubmit={submit} style={{display:"flex",flexWrap:"wrap",gap:6,alignItems:"center",padding:"4px 2px",marginTop:2}}>
 <input type="text" value={val} onChange={e=>{setVal(e.target.value);setMsg(null);}}
   placeholder="Add ticker (e.g. NFLX)" disabled={busy}
   style={{flex:1,minWidth:0,fontSize:11,fontFamily:"var(--font-mono)",padding:"6px 8px",background:"var(--surface-3)",border:"1px solid var(--border-faint)",color:"var(--text)",borderRadius:4,letterSpacing:"0.04em",textTransform:"uppercase"}}/>
@@ -2730,7 +2732,7 @@ return(
   style={{fontSize:11,fontFamily:"var(--font-mono)",fontWeight:700,color:"#fff",background:val.trim()?"var(--accent)":"var(--text-dim)",border:"none",borderRadius:4,padding:"6px 12px",cursor:busy||!val.trim()?"default":"pointer",letterSpacing:"0.05em"}}>
   {busy?"…":"+ ADD"}
 </button>
-{msg&&<span style={{fontSize:10,color:msg.kind==="warn"?"#ffb300":"#ff453a",fontFamily:"var(--font-mono)",marginLeft:4}}>{msg.text}</span>}
+{msg&&<div style={{flexBasis:"100%",fontSize:12,color:msg.kind==="warn"?"#b8860b":"#c8302a",fontFamily:"var(--font-mono)",marginTop:6,padding:"6px 8px",borderRadius:4,background:msg.kind==="warn"?"rgba(255,179,0,0.08)":"rgba(255,69,58,0.08)",border:msg.kind==="warn"?"1px solid rgba(255,179,0,0.25)":"1px solid rgba(255,69,58,0.25)"}}>{msg.text}</div>}
 </form>);
 }
 
@@ -4782,7 +4784,7 @@ const TAB_META={
   overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   allocation:{eyebrow:"Asset Tilt",            title:"Asset Tilt",              sub:"Equity exposure, industry-group overweights, safe-haven sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
-  portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"The unfiltered daily scan (~1,700 US equities) plus your watchlist — scored on five signal sources."},
+  portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"The unfiltered daily scan plus your watchlist — scored on five signal sources."},
   insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
   admin:     {eyebrow:"Admin · API Usage",    title:"UW API usage",            sub:"Daily calls, quota remaining, peak RPM, and recent run history. Visible only to admins."},
@@ -5677,7 +5679,7 @@ return(
                style={stepTileStyle}>
             <div style={tileTagStyle}>{tileLineAccent} 03 · Opportunities</div>
             <h3 style={tileH3Style}>What to act <em style={{fontStyle:"italic", color:"var(--accent)"}}>on today.</em></h3>
-            <p style={tileBlurbStyle}>Today's actionable names from the full ~1,700-equity universe scan plus your watchlist — buy alerts, near-triggers, and the signal sources behind them.</p>
+            <p style={tileBlurbStyle}>Today's actionable names from the full daily scan plus your watchlist — buy alerts, near-triggers, and the signal sources behind them.</p>
             <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
           </div>
         </section>
@@ -6803,7 +6805,7 @@ What to act on today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>
 </div>
 </div>
 <p style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.65,maxWidth:920,margin:"0 0 18px"}}>
-Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-triggers</strong> — surfaced from a daily scan over the universe of <strong style={_b()}>~1,400 most-liquid US equities</strong> ($1B+ market cap, main-index members). Each ticker is graded on a composite blending five signals: <strong style={_b()}>technical indicators</strong> (MACD, RSI), <strong style={_b()}>congressional trades</strong>, <strong style={_b()}>insider Form 4 filings</strong>, <strong style={_b()}>dark-pool prints</strong>, and <strong style={_b()}>unusual options flow</strong>. A composite of <strong style={_b()}>60+</strong> is a buy alert; <strong style={_b()}>35–59</strong> sits on near-trigger watch. Read it top-to-bottom: signal sources → scan summary → buy alerts → near-triggers.
+Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-triggers</strong> — surfaced from a daily scan of <strong style={_b()}>{universeCount.toLocaleString()} liquid US equities</strong> ($1B+ market cap). Each ticker is graded on a composite blending five signals: <strong style={_b()}>technical indicators</strong> (MACD, RSI), <strong style={_b()}>congressional trades</strong>, <strong style={_b()}>insider Form 4 filings</strong>, <strong style={_b()}>dark-pool prints</strong>, and <strong style={_b()}>unusual options flow</strong>. A composite of <strong style={_b()}>60+</strong> is a buy alert; <strong style={_b()}>35–59</strong> sits on near-trigger watch. Read it top-to-bottom: signal sources → scan summary → buy alerts → near-triggers.
 </p>
 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:10}}>
 {[

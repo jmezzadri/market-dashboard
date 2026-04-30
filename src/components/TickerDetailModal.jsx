@@ -22,6 +22,7 @@ import { supabase } from "../lib/supabase";
 import useMassiveTickerInfo from "../hooks/useMassiveTickerInfo";
 import useStockRiskMetrics from "../hooks/useStockRiskMetrics";
 import useTickerDeepDive from "../hooks/useTickerDeepDive";
+import { useEarningsHistory } from "../hooks/useEarningsHistory";
 import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 
 
@@ -144,6 +145,9 @@ function SignalIntelligenceRail({
                 : "amber";
     const value = score == null ? "…" : fmtSigned(score);
     const rows = [];
+    // Render every technical the scanner emits — the data shape is fixed in
+    // trading-scanner/scanner/screener_unusual_whales.py / technicals.py and
+    // we surface every field that's populated. Color = direction.
     if (tech?.rsi_14 != null) {
       const rsi = Number(tech.rsi_14);
       rows.push({ label: "RSI(14)", val: rsi.toFixed(0), color: rsi >= 70 ? "red" : rsi <= 30 ? "amber" : "green" });
@@ -160,6 +164,47 @@ function SignalIntelligenceRail({
         color: above50 && above200 ? "green" : !above50 && !above200 ? "red" : "amber",
       });
     }
+    if (tech?.pct_vs_50ma != null) {
+      const p = Number(tech.pct_vs_50ma);
+      rows.push({ label: "% vs 50d MA", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p > 5 ? "green" : p < -5 ? "red" : "amber" });
+    }
+    if (tech?.pct_vs_200ma != null) {
+      const p = Number(tech.pct_vs_200ma);
+      rows.push({ label: "% vs 200d MA", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p > 10 ? "green" : p < -10 ? "red" : "amber" });
+    }
+    if (tech?.adx_14 != null) {
+      const adx = Number(tech.adx_14);
+      rows.push({ label: "ADX(14)", val: adx.toFixed(0), color: adx >= 25 ? "green" : "amber" });
+    }
+    if (tech?.vol_surge != null) {
+      const vs = Number(tech.vol_surge);
+      rows.push({ label: "Volume surge", val: `${vs.toFixed(2)}× avg`, color: vs >= 1.5 ? "green" : vs < 0.7 ? "amber" : "amber" });
+    }
+    if (tech?.week_change != null) {
+      const p = Number(tech.week_change);
+      rows.push({ label: "1-week change", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
+    }
+    if (tech?.month_change != null) {
+      const p = Number(tech.month_change);
+      rows.push({ label: "1-month change", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
+    }
+    if (tech?.ytd_change != null) {
+      const p = Number(tech.ytd_change);
+      rows.push({ label: "YTD change", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
+    }
+    if (tech?.spy_relative_month != null) {
+      const p = Number(tech.spy_relative_month);
+      rows.push({ label: "1-month vs SPY", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
+    }
+    if (tech?.spy_relative_ytd != null) {
+      const p = Number(tech.spy_relative_ytd);
+      rows.push({ label: "YTD vs SPY", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
+    }
+    if (tech?.tech_summary != null) {
+      const s = String(tech.tech_summary);
+      rows.push({ label: "Scanner summary", val: s, color: /strong|bull/i.test(s) ? "green" : /weak|bear/i.test(s) ? "red" : "amber" });
+    }
+    // Optional fields the scanner sometimes includes (kept for forward-compat)
     if (tech?.bb_pctb != null) {
       const pctB = Number(tech.bb_pctb);
       rows.push({ label: "Bollinger %B", val: pctB.toFixed(2), color: pctB > 1 ? "amber" : pctB < 0 ? "amber" : pctB > 0.5 ? "green" : "amber" });
@@ -440,10 +485,43 @@ function SignalIntelligenceRail({
               </div>
           }
 
-          <div style={{color:"var(--text-muted)"}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginRight:8}}>Last 4 quarters</span>
-            <i>beats / misses strip not yet wired — pending data-pipeline work</i>
-          </div>
+          {(() => {
+            const eh = earningsHist?.quarters || [];
+            const stripLabel = (
+              <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginRight:8}}>Last 4 quarters</span>
+            );
+            if (earningsHist?.loading) {
+              return <div style={{color:"var(--text-muted)"}}>{stripLabel}<i>loading…</i></div>;
+            }
+            if (eh.length === 0) {
+              return <div style={{color:"var(--text-muted)"}}>{stripLabel}<i>no reported quarters in our history yet — refreshes weekly</i></div>;
+            }
+            return (
+              <div>
+                {stripLabel}
+                <span style={{display:"inline-flex",gap:6,flexWrap:"wrap"}}>
+                  {eh.map((q,i) => {
+                    const beat = q.beat === true;
+                    const miss = q.beat === false;
+                    const pct = q.surprisePct;
+                    const dotColor = beat ? "var(--green-text, #2ec27e)" : miss ? "var(--red-text, #c8302a)" : "var(--text-muted)";
+                    const sign = pct > 0 ? "+" : "";
+                    const pctTxt = pct == null ? "—" : `${sign}${Number(pct).toFixed(1)}%`;
+                    const date = q.date ? String(q.date) : "—";
+                    return (
+                      <span key={i} title={`Est ${q.estimate ?? "—"} · Actual ${q.actual ?? "—"}`}
+                        style={{display:"inline-flex",alignItems:"center",gap:4,fontFamily:"var(--font-mono)",fontSize:11,padding:"3px 8px",borderRadius:12,border:"1px solid var(--border-faint)",background:"var(--surface-2, transparent)"}}>
+                        <span style={{width:6,height:6,borderRadius:"50%",background:dotColor}}/>
+                        <b style={{color:dotColor}}>{beat ? "BEAT" : miss ? "MISS" : "—"}</b>
+                        <span style={{color:"var(--text-2)"}}>{pctTxt}</span>
+                        <span style={{color:"var(--text-dim)"}}>· {date}</span>
+                      </span>
+                    );
+                  })}
+                </span>
+              </div>
+            );
+          })()}
         </div>
       )} />
       <SignalCard title="News" {...newsTile} ragColor={ragColor} renderDetail={detail => (
@@ -869,6 +947,7 @@ const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
 // populated by the daily Massive cron) is the floor. Falls through to
 // the legacy waterfall if both miss (very rare — only inactive tickers).
 const massiveInfo=useMassiveTickerInfo(ticker);
+const earningsHist=useEarningsHistory(ticker);
 const deepDive=useTickerDeepDive(ticker);
 const companyName=normalizeTickerName(sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||massiveInfo.name||ticker);
 // Legacy 0–100 score gauge retired — the modal now leads with the signal
