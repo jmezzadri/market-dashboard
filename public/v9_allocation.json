@@ -1,6 +1,6 @@
 {
   "as_of": "2026-04-30",
-  "calculated_at": "2026-04-29T23:59:55+00:00",
+  "calculated_at": "2026-04-30T16:10:38+00:00",
   "regime": {
     "risk_liquidity": 30.9,
     "growth": -6.9,
@@ -22,7 +22,7 @@
       "weight_within_equity": 0.2,
       "indicator_rank": 1,
       "momentum_rank": 3,
-      "expected_return_monthly": 0.030604419315790055,
+      "expected_return_monthly": 0.0306044210543251,
       "trailing_6mo_return": 0.2147548953257543
     },
     {
@@ -33,8 +33,8 @@
       "weight_within_equity": 0.2,
       "indicator_rank": 3,
       "momentum_rank": 1,
-      "expected_return_monthly": 0.02486420540785393,
-      "trailing_6mo_return": 0.3921169947777443
+      "expected_return_monthly": 0.02486420256232358,
+      "trailing_6mo_return": 0.3921171154575509
     },
     {
       "ticker": "IYZ",
@@ -44,8 +44,8 @@
       "weight_within_equity": 0.2,
       "indicator_rank": 4,
       "momentum_rank": 2,
-      "expected_return_monthly": 0.024626798145847208,
-      "trailing_6mo_return": 0.23058730252629456
+      "expected_return_monthly": 0.024626785830298148,
+      "trailing_6mo_return": 0.23058722906790496
     },
     {
       "ticker": "XLB",
@@ -55,7 +55,7 @@
       "weight_within_equity": 0.2,
       "indicator_rank": 6,
       "momentum_rank": 5,
-      "expected_return_monthly": 0.018949033768717816,
+      "expected_return_monthly": 0.01894903429820213,
       "trailing_6mo_return": 0.1258941535369431
     },
     {
@@ -66,7 +66,7 @@
       "weight_within_equity": 0.2,
       "indicator_rank": 2,
       "momentum_rank": 9,
-      "expected_return_monthly": 0.02694976385624827,
+      "expected_return_monthly": 0.026949767275453694,
       "trailing_6mo_return": 0.055176905354175965
     }
   ],
@@ -74,14 +74,14 @@
     {
       "ticker": "BIL",
       "fund": "SPDR 1-3 Month Treasury Bill ETF (cash proxy)",
-      "weight": 0.048375000000000015,
-      "weight_within_defensive": 0.3000000000000001
+      "weight": 0.048375,
+      "weight_within_defensive": 0.3
     },
     {
       "ticker": "TLT",
       "fund": "iShares 20+ Year Treasury Bond ETF (long duration)",
-      "weight": 0.0,
-      "weight_within_defensive": 0.0
+      "weight": 1.482538050656679e-17,
+      "weight_within_defensive": 9.194034422677078e-17
     },
     {
       "ticker": "GLD",
