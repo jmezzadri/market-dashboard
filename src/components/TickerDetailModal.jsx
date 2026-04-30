@@ -695,7 +695,7 @@ function Field({ label, value }) {
 // ============================================================================
 // ActionRow — Phase 4b PR-F
 // Closes the modal-left column with the four primary actions:
-//   - Buy / add        → opens PositionEditor in "add" mode (prefilled ticker)
+//   - Buy / Add        → opens PositionEditor in "add" mode (prefilled ticker)
 //   - Edit position    → opens PositionEditor in "edit" mode (held row)
 //   - Watchlist toggle → uses the existing add/remove handlers
 //   - Open in Scanner  → navigates to /#scanner with the modal closed
@@ -751,7 +751,7 @@ function ActionRow({
           Edit position
         </button>
         <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnBase}>
-          + Buy / add
+          + Buy / Add
         </button>
         <button type="button" onClick={()=>onClosePosition?.(heldRow)} style={btnDanger}>
           Close position
