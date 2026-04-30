@@ -111,6 +111,7 @@ export function useUserPortfolio() {
             .order("sort_order", { ascending: true }),
           supabase.from("positions")
             .select("id,account_id,ticker,name,quantity,price,avg_cost,value,sector,beta,analysis,color,sort_order,purchase_date,asset_class,contract_type,direction,strike,expiration,multiplier,manual_price,ingested_price")
+            .is("closed_at", null)
             .order("sort_order", { ascending: true }),
           supabase.from("watchlist")
             .select("ticker,name,theme,sort_order")
