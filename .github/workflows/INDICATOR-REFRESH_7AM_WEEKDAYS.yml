@@ -26,9 +26,12 @@ name: INDICATOR-REFRESH_7AM_WEEKDAYS
 
 on:
   schedule:
-    # 11:00 UTC = 7:00 AM EDT (UTC-4) / 6:00 AM EST (UTC-5).
+    # 10:00 UTC = 6:00 AM EDT (UTC-4) / 5:00 AM EST (UTC-5).
+    # Data Steward standard slot for daily slow-data pulls (Joe directive 2026-04-30,
+    # Phase 2 schedule normalization). Was 0 11 (7:00 EDT) — moved one hour earlier so
+    # the morning indicator pull is settled before any 6:00-window consumer reads.
     # Catches series that publish overnight and prior-day morning releases.
-    - cron: '0 11 * * 1-5'
+    - cron: '0 10 * * 1-5'
     # 22:00 UTC = 6:00 PM EDT (UTC-4) / 5:00 PM EST (UTC-5).
     # Catches FRED daily series that publish in the late afternoon
     # (e.g. DFII10 around 20:00 UTC). See bug #1130.

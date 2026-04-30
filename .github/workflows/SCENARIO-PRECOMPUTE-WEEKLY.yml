@@ -18,10 +18,11 @@ name: SCENARIO-PRECOMPUTE-WEEKLY
 
 on:
   schedule:
-    # 13:30 UTC Saturday = 9:30 AM EDT / 8:30 AM EST.
-    # V9-ALLOCATION-WEEKLY posts at 12:00 UTC Saturday, so by 13:30 the
-    # current allocation snapshot + indicator history are on main.
-    - cron: '30 13 * * 6'
+    # 11:30 UTC Saturday = 7:30 AM EDT / 6:30 AM EST. Data Steward weekly
+    # slot (Joe directive 2026-04-30, Phase 2 schedule normalization). Was
+    # 30 13 (9:30 EDT). Chains 90 min after V9-ALLOCATION (now at 10:00 UTC) so
+    # the current v9 snapshot is on main when SCENARIO reads it.
+    - cron: '30 11 * * 6'
   workflow_dispatch:
 
 concurrency:
