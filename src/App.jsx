@@ -5665,13 +5665,21 @@ return(
             <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
           </div>
 
-          <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
-               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
-               style={stepTileStyle}>
+          {/* Asset Tilt hero tile — under construction. The destination
+              page is offline pending Senior Quant calibration sign-off
+              (HY OAS threshold + R&L staleness, see src/pages/AssetAllocation.jsx
+              for full status). Tile is non-interactive so the user isn't
+              dropped onto a placeholder banner. */}
+          <div aria-disabled="true" style={{
+            ...stepTileStyle,
+            cursor:"default", opacity:0.6,
+            background:"var(--surface-3, var(--surface))",
+            borderStyle:"dashed",
+          }}>
             <div style={tileTagStyle}>{tileLineAccent} 02 · Asset Tilt</div>
-            <h3 style={tileH3Style}>How aggressive <em style={{fontStyle:"italic", color:"var(--accent)"}}>to be.</em></h3>
-            <p style={tileBlurbStyle}>A confidence band and an industry-group tilt across 25 buckets, with a safe-haven sleeve (Treasuries, gold, IG bonds) when stress flips.</p>
-            <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
+            <h3 style={tileH3Style}>Under <em style={{fontStyle:"italic", color:"var(--text-muted)"}}>construction.</em></h3>
+            <p style={tileBlurbStyle}>The asset tilt tool is being rebuilt. New version coming soon.</p>
+            <div style={{...tileFootStyle, color:"var(--text-dim)"}}><span>Coming soon</span></div>
           </div>
 
           <div role="link" tabIndex={0} onClick={()=>navTo("portopps")}
@@ -5813,371 +5821,144 @@ return(
       alignItems:"stretch",
     }}>
 
-      {/* 01 · Macro Overview */}
+      {/* 01 · Macro Overview — v11-aligned preview (2026-04-30).
+          Replaces the prior composite-strip + regime-pill + range-bar
+          card that visually mismatched the v11 Macro Overview tab.
+          Reads the same composite_history_daily.json (RL / GR / IR) the
+          /#overview iframe consumes, so the headline numbers stay in
+          lock-step with the destination page. Click anywhere → opens
+          the full v11 view. */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open →</a>
+          <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open full view →</a>
         </div>
 
-        {/* Macro lead-in — regime-aware, deterministic. Replaces the LLM
-            commentary that read the same on every refresh. Speaks ONLY
-            about the macro environment. */}
-        {(()=>{
-          const M = _macroLatestSnap;
-          if (!M) return null;
-          const comps = [
-            {k:"Risk & Liquidity", v:M.RL},
-            {k:"Growth",            v:M.GR},
-            {k:"Inflation",         v:M.IR},
-          ].filter(c => c.v != null);
-          if (!comps.length) return null;
-          const isLoud = (s) => s>=20;
-          const loud = comps.filter(c => isLoud(c.v)).sort((a,b)=>b.v-a.v);
-          const sorted = [...comps].sort((a,b)=>b.v-a.v);
-          const worst = sorted[0];
-          let line;
-          if (loud.length === 0) {
-            line = `Macro reads benign — Risk & Liquidity at ${(M.RL>=0?"+":"")+Math.round(M.RL)}, Growth at ${(M.GR>=0?"+":"")+Math.round(M.GR)}, Inflation at ${(M.IR>=0?"+":"")+Math.round(M.IR)}, all on the calm side of the long-run baseline.`;
-          } else if (loud.length === 1) {
-            line = `${loud[0].k} is the lone source of stress at ${(loud[0].v>=0?"+":"")+Math.round(loud[0].v)}; the other two composites read benign. Pressure is contained, not broad-based.`;
-          } else if (loud.length === 2) {
-            line = `${loud[0].k} and ${loud[1].k} are both elevated — macro is tightening across multiple factors. Stress is no longer contained.`;
-          } else {
-            line = `All three composites are flashing stress. ${worst.k} leads at ${(worst.v>=0?"+":"")+Math.round(worst.v)}. This is a broadly stressed regime — every factor is loud.`;
-          }
-          return (
-            <div style={{
-              marginBottom:"var(--space-4)",
-              paddingBottom:"var(--space-3)",
-              borderBottom:"1px solid var(--border-faint)",
-              fontFamily:"var(--font-display)", fontStyle:"italic",
-              fontSize:15, lineHeight:1.55, color:"var(--text)",
-            }}>
-              <span style={{
-                fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                letterSpacing:"0.14em", textTransform:"uppercase",
-                color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-              }}>Environment</span>
-              {line}
-            </div>
-          );
-        })()}
+        {/* Live three-composite headline — same RL / GR / IR data the v11
+            page renders as dial gauges. Each tile shows the score, the
+            band label, and the −100→+100 range slider so the reader can
+            place the number in context. */}
+        {_macroLatestSnap ? (
+          <div style={{
+            display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
+            gap:"var(--space-3)",
+          }}>
+            {[
+              { key:"RL", label:"Risk & Liquidity", value:_macroLatestSnap.RL, horizon:"3-mo" },
+              { key:"GR", label:"Growth",           value:_macroLatestSnap.GR, horizon:"6-mo" },
+              { key:"IR", label:"Inflation & Rates",value:_macroLatestSnap.IR, horizon:"18-mo" },
+            ].map(c => {
+              const reg = (function(s){
+                if (s == null || Number.isNaN(s)) return "normal";
+                if (s <= -50) return "calm";
+                if (s <= -20) return "quiet";
+                if (s <  +20) return "normal";
+                if (s <  +50) return "elevated";
+                return "stressed";
+              })(c.value);
+              const col = ({calm:"#1f9d60",quiet:"#69b585",normal:"var(--text-muted)",elevated:"#b8811c",stressed:"#d23040"})[reg];
+              const lbl = ({calm:"Calm",quiet:"Quiet",normal:"Normal",elevated:"Elevated",stressed:"Stressed"})[reg];
+              return (
+                <div key={c.key} onClick={()=>navTo("overview")} style={{
+                  background:"var(--surface)",
+                  border:`1px solid ${col}33`,
+                  borderRadius:6, padding:"14px 14px",
+                  cursor:"pointer",
+                }}>
+                  <div style={{
+                    fontFamily:"var(--font-mono)", fontSize:9.5,
+                    color:"var(--text-muted)", letterSpacing:"0.10em",
+                    marginBottom:8, fontWeight:600, textTransform:"uppercase",
+                  }}>{c.label} · {c.horizon}</div>
+                  <div style={{
+                    fontFamily:"var(--font-mono)", fontSize:30,
+                    fontWeight:600, color:col, lineHeight:1, marginBottom:6,
+                  }}>{c.value!=null ? (c.value>=0?"+":"") + Math.round(c.value) : "—"}</div>
+                  <div style={{
+                    fontSize:10.5, color:col, fontFamily:"var(--font-mono)",
+                    letterSpacing:"0.06em",
+                    textTransform:"uppercase", fontWeight:700,
+                  }}>{lbl}</div>
+                  {c.value!=null && (
+                    <div style={{ position:"relative", marginTop:14, height:6 }}>
+                      <div style={{
+                        position:"absolute", inset:"0", borderRadius:2,
+                        background:"linear-gradient(90deg, #1f9d6044 0%, #69b58544 25%, var(--surface-3) 35%, var(--surface-3) 65%, #b8811c44 75%, #d2304044 100%)",
+                      }}/>
+                      <div style={{
+                        position:"absolute",
+                        left:`calc(${Math.max(0, Math.min(100, ((Math.max(-100, Math.min(100, c.value)) + 100) / 200) * 100))}% - 1px)`,
+                        top:-2, bottom:-2, width:2, background:col, borderRadius:1,
+                      }}/>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading composites…</div>
+        )}
 
-        {/* Composite strip */}
+        {/* Footer — explicit anchor copy so it's clear this card is a
+            preview of the v11 Macro Overview, not a parallel surface. */}
         <div style={{
-          display:"flex", alignItems:"center", gap:"var(--space-5)",
-          padding:"var(--space-4)", background:"var(--surface-3)",
-          border:"1px solid var(--border-faint)", borderRadius:6,
-          marginBottom:"var(--space-4)", flexWrap:"wrap",
+          marginTop:"var(--space-4)",
+          paddingTop:"var(--space-3)",
+          borderTop:"1px solid var(--border-faint)",
+          fontFamily:"var(--font-mono)", fontSize:10,
+          color:"var(--text-dim)", letterSpacing:"0.06em",
+          display:"flex", justifyContent:"space-between", alignItems:"center",
         }}>
-          {/* 3 sub-composite pills — anchors to the Macro Overview tab where
-              these same three composites render as dial gauges. Replaces the
-              rolled-up COMP100 that wasn't on the destination page (Joe
-              flagged 2026-04-27). */}
-          {_macroLatestSnap ? (
-            <div style={{
-              display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
-              gap:"var(--space-3)", flex:1,
-            }}>
-              {[
-                { key:"RL", label:"Risk & Liquidity", value:_macroLatestSnap.RL, horizon:"3-mo" },
-                { key:"GR", label:"Growth",           value:_macroLatestSnap.GR, horizon:"6-mo" },
-                { key:"IR", label:"Inflation & Rates",value:_macroLatestSnap.IR, horizon:"18-mo" },
-              ].map(c => {
-                const reg = (function(s){
-                  if (s == null || Number.isNaN(s)) return "normal";
-                  if (s <= -50) return "calm";
-                  if (s <= -20) return "quiet";
-                  if (s <  +20) return "normal";
-                  if (s <  +50) return "elevated";
-                  return "stressed";
-                })(c.value);
-                const col = ({calm:"#1f9d60",quiet:"#69b585",normal:"var(--text-muted)",elevated:"#b8811c",stressed:"#d23040"})[reg];
-                const lbl = ({calm:"Calm",quiet:"Quiet",normal:"Normal",elevated:"Elevated",stressed:"Stressed"})[reg];
-                return (
-                  <div key={c.key} style={{
-                    background:"var(--surface)",
-                    border:`1px solid ${col}33`,
-                    borderRadius:6, padding:"10px 12px",
-                  }}>
-                    <div style={{
-                      fontFamily:"var(--font-mono)", fontSize:9,
-                      color:"var(--text-muted)", letterSpacing:"0.08em",
-                      marginBottom:6, fontWeight:600, textTransform:"uppercase",
-                    }}>{c.label} · {c.horizon}</div>
-                    <div style={{
-                      fontFamily:"var(--font-mono)", fontSize:24,
-                      fontWeight:600, color:col, lineHeight:1,
-                    }}>{c.value!=null ? (c.value>=0?"+":"") + Math.round(c.value) : "—"}</div>
-                    <div style={{
-                      fontSize:10, color:col, fontFamily:"var(--font-mono)",
-                      letterSpacing:"0.06em", marginTop:6,
-                      textTransform:"uppercase", fontWeight:700,
-                    }}>{lbl}</div>
-                    {/* Range bar: -100 ... 0 ... +100 with regime band colors
-                        + a marker showing where the current score falls. Joe
-                        2026-04-27: needs context for what -20 / -2 / -17 mean. */}
-                    {c.value!=null && (
-                      <div style={{ position:"relative", marginTop:10, height:10 }}>
-                        <div style={{
-                          position:"absolute", inset:"3px 0", borderRadius:2,
-                          background:"linear-gradient(90deg, #1f9d6033 0%, #69b58533 25%, var(--surface-3) 35%, var(--surface-3) 65%, #b8811c33 75%, #d2304033 100%)",
-                          border:"1px solid var(--border-faint)",
-                        }}/>
-                        <div style={{
-                          position:"absolute",
-                          left:`calc(${Math.max(0, Math.min(100, ((Math.max(-100, Math.min(100, c.value)) + 100) / 200) * 100))}% - 1px)`,
-                          top:0, bottom:0, width:2, background:col, borderRadius:1,
-                        }}/>
-                        <div style={{
-                          position:"absolute", left:0, right:0, top:11,
-                          fontFamily:"var(--font-mono)", fontSize:8,
-                          color:"var(--text-dim)", letterSpacing:"0.04em",
-                          display:"flex", justifyContent:"space-between",
-                        }}>
-                          <span>−100</span><span>0</span><span>+100</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div style={{
-              fontFamily:"var(--font-mono)", fontSize:11,
-              color:"var(--text-dim)",
-            }}>Loading composites…</div>
-          )}
+          <span>Live preview · same data as /#overview</span>
+          <a onClick={()=>navTo("overview")} style={{
+            color:"var(--accent)", cursor:"pointer", fontWeight:600,
+          }}>Open dials, indicator history, lead-time table →</a>
         </div>
-
-        {/* The 9 indicators that ACTUALLY roll up into the 3 composites
-            on the destination Macro Overview tab. Source of truth:
-            /composite_weights.json. R&L: anfci/vix/stlfsi/cmdi (4),
-            Growth: jobless/cfnai_3ma/bkx_spx (3), Inflation & Rates:
-            move/m2_yoy (2). Joe 2026-04-27: tile must anchor to dest. */}
-        <div style={{
-          background:"var(--surface-3)",
-          border:"1px solid var(--border-faint)",
-          borderRadius:6,
-          marginBottom:"var(--space-4)",
-        }}>
-          {[
-            { comp:"R&L",       compFull:"Risk & Liquidity",   color:"#4a6fa5", indicators:["anfci","vix","stlfsi","cmdi"] },
-            { comp:"Growth",    compFull:"Growth",              color:"#1f9d60", indicators:["jobless","cfnai_3ma","bkx_spx"] },
-            { comp:"Inflation", compFull:"Inflation & Rates",   color:"#b8811c", indicators:["move","m2_yoy"] },
-          ].map((group, gi, arr) => (
-            <div key={group.comp} style={{
-              borderBottom: gi < arr.length-1 ? "1px solid var(--border-faint)" : "none",
-            }}>
-              <div style={{
-                display:"flex", alignItems:"center", justifyContent:"space-between",
-                padding:"8px 12px",
-                background:`${group.color}11`,
-                borderBottom:`1px solid ${group.color}22`,
-              }}>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontSize:10,
-                  letterSpacing:"0.1em", color:group.color, fontWeight:700,
-                  textTransform:"uppercase",
-                }}>{group.compFull}</span>
-                <span style={{
-                  fontFamily:"var(--font-mono)", fontSize:10,
-                  color:"var(--text-muted)", letterSpacing:"0.04em",
-                }}>{group.indicators.length} indicator{group.indicators.length===1?"":"s"}</span>
-              </div>
-              {group.indicators.map((id, ii) => {
-                const ind = IND[id];
-                if (!ind) return null;
-                const cur = ind[6];
-                const score = sdScore(id, cur);
-                const col = sdTextColor(score);
-                const label = score!=null ? sdLabel(score) : "—";
-                return (
-                  <div key={id}
-                    onClick={()=>{navTo("indicators"); if(typeof setIndicatorDeeplink==="function") setIndicatorDeeplink(id);}}
-                    style={{
-                      display:"grid",
-                      gridTemplateColumns:"1fr auto auto",
-                      gap:12, alignItems:"center",
-                      padding:"7px 12px",
-                      borderBottom: ii < group.indicators.length-1 ? "1px solid var(--border-faint)" : "none",
-                      cursor:"pointer",
-                      transition:"background 120ms",
-                    }}
-                    onMouseEnter={e=>e.currentTarget.style.background="var(--surface-2)"}
-                    onMouseLeave={e=>e.currentTarget.style.background="transparent"}
-                  >
-                    <span style={{fontSize:13, color:"var(--text)", lineHeight:1.3}}>
-                      {ind[0]} <span style={{fontSize:11, color:"var(--text-muted)"}}>· {ind[1]}</span>
-                    </span>
-                    <span style={{
-                      fontFamily:"var(--font-mono)", fontSize:12, fontWeight:600,
-                      color:"var(--text)",
-                    }}>{cur!=null ? fmtV(id, cur) : "—"}</span>
-                    <span style={{
-                      fontFamily:"var(--font-mono)", fontSize:10,
-                      color:col, letterSpacing:"0.06em", fontWeight:700,
-                      textTransform:"uppercase", minWidth:60, textAlign:"right",
-                    }}>{label}</span>
-                  </div>
-                );
-              })}
-            </div>
-          ))}
-        </div>
-
       </div>
 
-      {/* 02 · Asset Allocation — 3 highest overall rank + 3 lowest, with
-          a visual divider between them. Per Joe feedback 2026-04-23:
-          reads like a prop-desk long/short view, not a "top 5 extremes"
-          mashup. Editorial narrative slot reads from sector_commentary
-          and is null-allowed (no forced prose). */}
-      <div style={cardStyle}>
+      {/* 02 · Asset Tilt — UNDER CONSTRUCTION (2026-04-30).
+          The full v9 allocation surface (selection-confidence strip, top-3 OW,
+          bottom-3 UW, etc.) was retired from the home page on 2026-04-30
+          because the destination page (src/pages/AssetAllocation.jsx) is
+          offline pending Senior Quant calibration sign-off (HY OAS threshold
+          + R&L staleness — see #1122 / #1125). This placeholder keeps the home
+          grid intact without dropping users onto a banner-only page. The
+          full home tile lives in git history; bring it back when the
+          tool ships. */}
+      <div style={{...cardStyle, opacity:0.85}}>
         <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Tilt <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("allocation")}>Open →</a>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Tilt</h2>
+          <span style={{...cardLinkStyle, color:"var(--text-dim)", cursor:"default"}}>Coming soon</span>
         </div>
-
-        {/* Editorial sector narrative — at TOP per Joe 2026-04-27. Daily
-            refresh via pg_cron 'generate-commentary-daily-1130utc'. */}
-        {(()=>{
-          const V = _v9Alloc;
-          if (!V) return null;
-          const conf = V.selection_confidence || null;
-          const lev  = V.leverage != null ? V.leverage : null;
-          const top  = V.picks?.[0]?.name || null;
-          const defActive = (V.defensive || []).some(d => d?.weight && d.weight > 0.005);
-          if (!conf || lev == null) return null;
-          let line;
-          if (conf === "STRONG") {
-            line = `Model holds STRONG conviction at ${lev.toFixed(2)}× gross leverage${top?` — leans into a ${top} tilt`:""}${defActive?", with the safe-haven sleeve partially engaged":", with the safe-haven sleeve dormant"}.`;
-          } else if (conf === "MODERATE") {
-            line = `Model dialled to MODERATE conviction at ${lev.toFixed(2)}× — ${top?`${top} still leads, but `:""}position size is trimmed relative to peak conviction${defActive?"; safe-haven sleeve activating":""}.`;
-          } else if (conf === "DEFENSIVE" || conf === "WEAK" || conf === "LOW") {
-            line = `Model is in RISK-OFF mode — leverage cut to ${lev.toFixed(2)}×${top?`, ${top} still leads at smaller size`:""}; safe-haven sleeve carries weight.`;
-          } else {
-            line = `Model running at ${conf} conviction · ${lev.toFixed(2)}× leverage${top?` · ${top} leads`:""}.`;
-          }
-          return (
-            <div style={{
-              marginBottom:"var(--space-4)",
-              paddingBottom:"var(--space-3)",
-              borderBottom:"1px solid var(--border-faint)",
-              fontFamily:"var(--font-display)", fontStyle:"italic",
-              fontSize:15, lineHeight:1.55, color:"var(--text)",
-            }}>
-              <span style={{
-                fontFamily:"var(--font-mono)", fontStyle:"normal", fontSize:9,
-                letterSpacing:"0.14em", textTransform:"uppercase",
-                color:"var(--accent)", marginRight:"var(--space-2)", fontWeight:600,
-              }}>Positioning</span>
-              {line}
-            </div>
-          );
-        })()}
-
-        {(()=>{
-          // v9 allocation engine output — this is what's on the destination
-          // Asset Allocation tab. Joe 2026-04-27: tile must anchor to the
-          // tab. Fields used: selection_confidence, alpha, equity_share,
-          // leverage, picks (top OWs), all_industry_groups (filter rating=uw
-          // for the bottom list).
-          if (!_v9Alloc) {
-            return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
-          }
-          const conf = _v9Alloc.selection_confidence || "—";
-          const alphaPct = _v9Alloc.alpha != null ? ((_v9Alloc.alpha - 1) * 100) : null;
-          const equityPct = _v9Alloc.equity_share != null ? (_v9Alloc.equity_share * 100) : null;
-          const leverage = _v9Alloc.leverage != null ? _v9Alloc.leverage : null;
-          const confColor = conf === "STRONG" ? "#1f9d60" : conf === "MODERATE" ? "#b8811c" : "var(--text-muted)";
-          const picks = (_v9Alloc.picks || []).slice(0, 3);
-          const ugs = (_v9Alloc.all_industry_groups || []).filter(g => g.rating === "uw").slice(0, 3);
-
-          const RatingPill = ({ rating, color }) => (
-            <span style={{
-              fontFamily:"var(--font-mono)", fontSize:10,
-              letterSpacing:"0.1em", textTransform:"uppercase",
-              padding:"2px 8px", borderRadius:10,
-              border:`1px solid ${color}`, color, flexShrink:0,
-            }}>{rating}</span>
-          );
-
-          const renderIG = (ig, isLast, key, isUW) => (
-            <div key={key}
-                 onClick={()=>navTo("allocation")}
-                 style={{
-                   display:"flex", alignItems:"center", justifyContent:"space-between",
-                   padding:"var(--space-3) 0",
-                   borderBottom:isLast?"none":"1px solid var(--border-faint)",
-                   cursor:"pointer", gap:12,
-                 }}>
-              <div style={{minWidth:0, flex:1}}>
-                <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.3}}>
-                  {ig.name} <span style={{fontSize:11, color:"var(--text-muted)", fontFamily:"var(--font-mono)"}}>· {ig.ticker || ig.primary_ticker || ""}</span>
-                </div>
-                <div style={{fontSize:11, color:"var(--text-muted)", marginTop:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>
-                  {ig.sector}{ig.trailing_6mo_return != null ? ` · 6mo ${(ig.trailing_6mo_return*100).toFixed(1)}%` : ""}
-                </div>
-              </div>
-              <RatingPill rating={isUW?"UW":"OW"} color={isUW?"#ff453a":"#1f9d60"}/>
-            </div>
-          );
-
-          return (<>
-            {/* Stance strip — selection_confidence, alpha, leverage, equity share */}
-            <div style={{
-              display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(110px, 1fr))",
-              gap:8, marginBottom:"var(--space-4)",
-            }}>
-              <div style={{background:"var(--surface-3)", border:`1px solid ${confColor}33`, borderRadius:6, padding:"8px 10px"}}>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.08em", marginBottom:4, fontWeight:600}}>SELECTION</div>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:confColor, letterSpacing:"0.04em"}}>{conf}</div>
-              </div>
-              <div style={{background:"var(--surface-3)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"8px 10px"}}>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.08em", marginBottom:4, fontWeight:600}}>ALPHA</div>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--text)"}}>{alphaPct!=null?(alphaPct>=0?"+":"")+alphaPct.toFixed(1)+"%":"—"}</div>
-              </div>
-              <div style={{background:"var(--surface-3)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"8px 10px"}}>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.08em", marginBottom:4, fontWeight:600}}>LEVERAGE</div>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--text)"}}>{leverage!=null?leverage.toFixed(2)+"x":"—"}</div>
-              </div>
-              <div style={{background:"var(--surface-3)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"8px 10px"}}>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.08em", marginBottom:4, fontWeight:600}}>EQUITY</div>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:14, fontWeight:700, color:"var(--text)"}}>{equityPct!=null?Math.round(equityPct)+"%":"—"}</div>
-              </div>
-            </div>
-
-            {/* Top 3 OW picks from v9 */}
-            <div style={{
-              fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
-              letterSpacing:"0.18em", textTransform:"uppercase",
-              marginBottom:4, fontWeight:600,
-            }}>Top 3 · Overweight</div>
-            {picks.length === 0 && (
-              <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"6px 0"}}>No OW picks today.</div>
-            )}
-            {picks.map((p, i) => renderIG(p, i===picks.length-1, "ow-"+(p.key||p.ticker), false))}
-
-            {/* Bottom 3 UW industry groups from v9 */}
-            {ugs.length > 0 && (
-              <div aria-hidden="true" style={{
-                display:"flex", alignItems:"center", gap:"var(--space-3)",
-                padding:"var(--space-3) 0 var(--space-2)",
-                fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)",
-                letterSpacing:"0.18em", textTransform:"uppercase",
-              }}>
-                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
-                <span>Bottom 3 · Underweight</span>
-                <span style={{flex:1, height:1, background:"var(--border-faint)"}}/>
-              </div>
-            )}
-            {ugs.map((g, i) => renderIG(g, i===ugs.length-1, "uw-"+(g.key||g.ticker), true))}
-          </>);
-        })()}
-
+        <div style={{
+          padding:"36px 24px",
+          textAlign:"center",
+          border:"1px dashed var(--border-strong, var(--border))",
+          borderRadius:8,
+          background:"var(--surface-3, var(--surface))",
+        }}>
+          <div style={{
+            display:"inline-flex", alignItems:"center", gap:8,
+            padding:"5px 12px", borderRadius:999,
+            background:"var(--darkblood-subtle, rgba(122,20,20,0.14))",
+            color:"var(--darkblood-active, #7a1414)",
+            fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
+            letterSpacing:"0.10em", textTransform:"uppercase",
+            marginBottom:18,
+          }}>
+            <span style={{width:6,height:6,borderRadius:"50%",background:"var(--darkblood-active, #7a1414)"}}/>
+            Under construction
+          </div>
+          <h3 style={{
+            fontFamily:"var(--font-display)", fontSize:22, fontWeight:400,
+            color:"var(--text)", margin:"0 0 10px", letterSpacing:"-0.005em",
+          }}>The asset tilt tool is being rebuilt.</h3>
+          <p style={{
+            fontFamily:"var(--font-body)", fontSize:13, lineHeight:1.6,
+            color:"var(--text-muted)", maxWidth:480, margin:"0 auto",
+          }}>The previous v9 allocation engine has been pulled while we re-calibrate the HY OAS threshold and the R&amp;L staleness rule. The home tile, the navigation card, and the dedicated page will all light back up together when the new model ships.</p>
+        </div>
       </div>
 
       {/* 03 · Trading Opportunities — top-of-book names, not just counts */}
@@ -6453,9 +6234,12 @@ return(
               <div style={tileSub}>1.0 = market · weighted by position $</div>
             </div>
 
-            {/* Q3 · ASSET ALLOCATION (donut chart + legend) */}
+            {/* Q3 · ASSET ALLOCATION (donut chart + legend).
+                Renamed 2026-04-30 from "Asset Tilt" → "Asset Class Mix"
+                so this portfolio-allocation donut doesn't collide visually
+                with the (under-construction) Asset Tilt model card above. */}
             <div style={{...tileStyle, gridColumn:"1 / 2"}}>
-              <div style={tileEyebrow}>Asset Tilt</div>
+              <div style={tileEyebrow}>Asset Class Mix</div>
               {_allocTotal > 0 ? (
                 <div style={{display:"flex", alignItems:"center", gap:12, marginTop:8}}>
                   {/* SVG donut */}
