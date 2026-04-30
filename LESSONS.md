@@ -1871,3 +1871,46 @@ the same information into a scannable format.
 This rule pairs with LESSONS rules #1 (plain English, no jargon) and
 #13 (plain English in chat too). All three exist for the same reason:
 chat is the user's primary interface, and the user has limited bandwidth.
+
+
+---
+
+## 36 (2026-04-29) — Never tell Joe you're starting work and then stop. Action follows the announcement, in the same response.
+
+**The rule.** When you say "starting now," "stepping into," "kicking off,"
+or any equivalent, the very next thing in the same response must be tool
+calls that actually start the work. Not status, not framing, not "let me
+gather context first." Tool calls. If you need to gather context, you
+gather context — you don't announce that you're about to.
+
+**Why.** Joe watches for actual progress, not narration. When a response
+ends with "starting now" and no tool calls, it reads as deflection — Joe
+sees the words but no movement. His exact words 2026-04-29:
+*"Are you on step 1? I dont see you working. Please log a LESSON. NEver
+tell me you're starting something and then stop working."* Same response
+that promised to start a P1 bug investigation contained zero investigation
+tool calls.
+
+**How to apply.**
+
+1. Banned phrase pattern: any sentence ending in "starting now,"
+   "kicking off now," "on it," "stepping into [task] now" without an
+   immediately-following tool call in the same response. If the sentence
+   is true, the tool call exists. If the tool call doesn't exist, delete
+   the sentence.
+2. The acceptance test: after writing a response that contains "starting
+   X," scroll the response. If there are zero tool calls between that
+   sentence and the end of the response, the response is broken. Add the
+   tool calls or remove the sentence.
+3. Multi-turn handoffs are fine. Saying "I'll loop back at the next gate"
+   at the END of a response with completed tool calls is fine. The bug is
+   announcing forward action with no forward action attached.
+4. Pre-flight context-gathering counts as work. You don't need a fix in
+   the first response — you need ACTION. Querying pipeline_health, reading
+   the YAML, hitting the FRED API are all valid first moves and all
+   visible to Joe via tool-call output.
+
+This rule pairs with LESSONS rule #12 (Lead Dev ships PRs autonomously)
+and rule #35 (numbered-table iteration replies). All three exist for the
+same reason: Joe's bandwidth is limited and he reads tool-call evidence,
+not prose promises.
