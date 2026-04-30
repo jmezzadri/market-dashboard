@@ -7166,7 +7166,7 @@ return(<>
     of the modal navigates to the Scanner tab with that ticker focused. */}
 {tickerDetail&&(
   <ErrorBoundary label={`${tickerDetail} detail`} onDismiss={()=>setTickerDetail(null)}>
-    <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS} macroLatest={_macroLatestSnap} v9Alloc={_v9Alloc}
+    <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS} cycleBoardSnap={cycleBoardSnap} v9Alloc={_v9Alloc}
       onClosePosition={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
       onOpenAddPosition={portfolioAuthed?(t)=>setPositionEditor({mode:"add",ticker:t}):undefined}
       onOpenEditPosition={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
