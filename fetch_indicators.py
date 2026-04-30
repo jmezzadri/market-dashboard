@@ -64,9 +64,12 @@ def dashboard_paths():
 # CAPE: https://www.multpl.com/shiller-pe
 CAPE_VALUE = 34.2
 CAPE_AS_OF = "Mar 2026"
-# ISM PMI: https://www.ismworld.org (released 1st business day of month)
-ISM_VALUE = 52.7
-ISM_AS_OF = "Mar 2026"
+# ISM PMI is now pulled live from FRED NAPMPI (was: ISM_VALUE/ISM_AS_OF
+# hardcoded constants, manually edited monthly per Joe's old workflow).
+# Joe directive 2026-04-30 (Phase 3 PR #3a): swap to live FRED feed so the
+# Mech 4 Growth tile is auto-current on each FRED release. Senior Quant
+# decided the source pick (FRED NAPMPI vs ISM-direct paid feed); FRED proxy
+# tracks new-orders directionally per methodology-v11.md Section 5.4.
 # Bank Unrealized Losses: https://www.fdic.gov/analysis/quarterly-banking-profile
 BANK_UNREAL_VALUE = 19.9
 BANK_UNREAL_AS_OF = "Q4 2025"
@@ -241,8 +244,9 @@ def fetch_all():
     print("  CAPE (manual monthly)...")
     results["cape"] = (CAPE_VALUE, CAPE_AS_OF)
 
-    print("  ISM PMI (manual monthly)...")
-    results["ism"] = (ISM_VALUE, ISM_AS_OF)
+    print("  ISM Manufacturing PMI (FRED NAPMPI)...")
+    r = safe_fred("NAPMPI")
+    if r: results["ism"] = (round(r[0], 1), r[1])
 
     # Copper/Gold: (copper USD/lb * 100) / gold USD/oz → ~0.10-0.25 range
     print("  Copper/Gold Ratio...")
@@ -479,7 +483,7 @@ if __name__ == "__main__":
 
     print("\n── Manual updates needed monthly ─────────────────────")
     print(f"  CAPE ({CAPE_VALUE}): https://www.multpl.com/shiller-pe")
-    print(f"  ISM  ({ISM_VALUE}): https://www.ismworld.org")
+    # ISM PMI now sourced live from FRED NAPMPI (PR #3a 2026-04-30).
     print(f"  Bank Unrealized Losses ({BANK_UNREAL_VALUE}): https://www.fdic.gov/analysis/quarterly-banking-profile")
     print("\nEdit the values at the top of this script to update them.")
     print("=" * 55)
