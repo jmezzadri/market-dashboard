@@ -985,31 +985,32 @@ function indicatorConcerningScore(ind) {
   const liveTiles = TILES.filter(t => t.live);
   const avgScore = liveTiles.reduce((a, t) => a + t.score, 0) / liveTiles.length;
   const a_today = 180 - avgScore * 1.8;
-  // Populate verdict text from the same average
+  // Populate verdict text from the same average.
+  // Bands per page header copy: 0-25 Risk-on, 25-50 Neutral,
+  // 50-75 Caution, 75-100 Risk-off. No "stress/stressed" anywhere
+  // (Joe directive 2026-04-30) — describe heat using "above/below
+  // the cohort" and the band names.
   (function populateVerdict() {
     const rounded = Math.round(avgScore);
     document.getElementById("verdictCount").firstChild.nodeValue = String(rounded);
     let label, narrative;
-    if (avgScore < 30) {
-      label = "Risk-on composite";
-      narrative = "Most mechanisms calm; cycle is in a low-risk regime.";
+    if (avgScore < 25) {
+      label = "Risk-on";
+      narrative = "Most mechanisms read benign. Cycle is in a low-risk regime.";
     } else if (avgScore < 50) {
-      label = "Calm-leaning composite";
-      narrative = "Mostly benign reads with selective stress in a few mechanisms.";
-    } else if (avgScore < 65) {
-      label = "Mid-cycle composite";
+      label = "Neutral";
+      narrative = "Composite sits in the neutral band. A few mechanisms run hot, the rest stay calm.";
+    } else if (avgScore < 75) {
+      label = "Caution";
       const above = liveTiles.filter(t => t.score >= avgScore).map(t => t.name);
-      const below = liveTiles.filter(t => t.score < avgScore).map(t => t.name);
-      narrative = `${above.join(" and ")} above the cohort; ${below.join(" and ")} below. Selective stress, not system-wide.`;
-    } else if (avgScore < 80) {
-      label = "Cautious composite";
-      narrative = "Multiple mechanisms stretched. Defensive posture warranted.";
+      const below = liveTiles.filter(t => t.score <  avgScore).map(t => t.name);
+      narrative = `${above.join(" and ")} above the cohort; ${below.join(" and ")} below. Heat is selective, not system-wide.`;
     } else {
-      label = "Risk-off composite";
-      narrative = "System-wide stress across most mechanisms.";
+      label = "Risk-off";
+      narrative = "Multiple mechanisms in the upper quartile. Broad-based heat — defensive posture warranted.";
     }
     document.getElementById("verdictHeadline").textContent =
-      `${label} — average ${rounded}/100. ${narrative}`;
+      `${label} band — average ${rounded}/100. ${narrative}`;
   })();
   const [tx, ty] = polar(R_outer + 8, a_today);
   document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
