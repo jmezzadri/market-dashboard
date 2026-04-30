@@ -4881,11 +4881,11 @@ const {isAdmin, loading:adminLoading}=useIsAdmin();
 // /#watchlist are the two halves of /#portopps; /#asset-allocation is the
 // /#asset-allocation is the natural deep-link to the Asset Allocation tab (v9, shipped 2026-04-25).
 const HASH_ALIASES={
-  "portfolio":"portopps",
+  "portfolio":"insights",  // bug #1132: insights tab split out 2026-04-27
   "scanner":"portopps",
   "today-macro":"overview",
-  "positions":"portopps",
-  "watchlist":"portopps",
+  "positions":"insights",  // bug #1132
+  "watchlist":"insights",  // bug #1132 — watchlist sub-panels live in insights
   "asset-allocation":"allocation",
 };
 const resolveHash=(raw)=>{
