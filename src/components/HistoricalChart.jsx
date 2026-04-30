@@ -95,9 +95,14 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
   const [compInput, setCompInput] = useState("");
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerFilter, setPickerFilter] = useState("");
+  // Outside-click close — refs anchor the popover + the pill that opens it.
+  const pickerRef = useRef(null);
+  const pickerBtnRef = useRef(null);
 
   // ─── Customize chart state — collapsed-by-default panel (PR-D2) ───
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  const customizeRef = useRef(null);
+  const customizeBtnRef = useRef(null);
   const DEFAULT_OVERLAYS = { ma50: true, ma200: true, bollinger: false };
   const DEFAULT_SUBPANES = { rsi: false, volume: false };
   const DEFAULT_MARKERS  = { earnings: false, dividends: false, splits: false };
@@ -165,6 +170,36 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
   useEffect(() => {
     setSeriesData({});
   }, [period, fromDate, toDate, useCustom, ticker]);
+
+  // ─── Outside-click close — Compare picker + Customize panel ─────────────
+  // Both popovers used to require clicking the same pill that opened them.
+  // This effect closes whichever is open if the click lands outside both
+  // the panel and its trigger button. ESC also closes both.
+  useEffect(() => {
+    if (!pickerOpen && !customizeOpen) return undefined;
+    const onDown = (e) => {
+      const t = e.target;
+      if (pickerOpen) {
+        const inPanel = pickerRef.current && pickerRef.current.contains(t);
+        const onBtn   = pickerBtnRef.current && pickerBtnRef.current.contains(t);
+        if (!inPanel && !onBtn) setPickerOpen(false);
+      }
+      if (customizeOpen) {
+        const inPanel = customizeRef.current && customizeRef.current.contains(t);
+        const onBtn   = customizeBtnRef.current && customizeBtnRef.current.contains(t);
+        if (!inPanel && !onBtn) setCustomizeOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === "Escape") { setPickerOpen(false); setCustomizeOpen(false); }
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [pickerOpen, customizeOpen]);
 
   // Compute series. Each ticker keeps `raw` (real dollar close), `pct`
   // (percent change from start of the window), and `v` (rebased index =
@@ -403,7 +438,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
 
           {/* "+ Add ticker / index" button → opens picker */}
           {comparators.length < 3 && (
-            <button type="button" onClick={() => setPickerOpen(o => !o)} style={{
+            <button type="button" ref={pickerBtnRef} onClick={() => setPickerOpen(o => !o)} style={{
               display:"inline-flex", alignItems:"center", gap:4,
               fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
               background:"transparent",
@@ -457,7 +492,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
               setPickerOpen(false);
             };
             return (
-              <div style={{
+              <div ref={pickerRef} style={{
                 position:"absolute", top:"100%", right:0, marginTop:6,
                 background:"var(--surface-solid, var(--paper, #fff))",
                 border:"1px solid var(--border)",
@@ -586,7 +621,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
           display:"flex", alignItems:"center", gap:6, marginBottom:6,
           paddingBottom:6, borderBottom: customizeOpen ? "1px dashed var(--border-faint)" : "none",
         }}>
-          <button type="button" onClick={()=>setCustomizeOpen(o=>!o)} style={{
+          <button type="button" ref={customizeBtnRef} onClick={()=>setCustomizeOpen(o=>!o)} style={{
             display:"inline-flex", alignItems:"center", gap:4,
             fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
             background:"transparent", border:"1px solid var(--border)",
@@ -608,7 +643,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
         </div>
 
         {customizeOpen && (
-          <div style={{
+          <div ref={customizeRef} style={{
             background:"var(--surface-3, rgba(0,0,0,0.025))",
             border:"1px solid var(--border-faint)",
             borderRadius:6, padding:"10px 12px",
