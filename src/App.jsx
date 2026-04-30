@@ -5101,6 +5101,18 @@ const portfolioAuthed=!!session;
 const [_macroLatestSnap, setMacroLatestSnap] = useState(null);
 const [_v9Alloc, setV9Alloc] = useState(null);
 const [_spxHistory, setSpxHistory] = useState(null);
+// Cycle-mechanism board snapshot — same JSON the v11 Macro Overview page
+// reads. Home tile renders the SAME 6 mechanism scores + aggregate verdict
+// so the home preview and /#overview stay in lockstep.
+const [cycleBoardSnap, setCycleBoardSnap] = useState(null);
+useEffect(() => {
+  let cancelled = false;
+  fetch("/cycle_board_snapshot.json")
+    .then(r => r.ok ? r.json() : null)
+    .then(j => { if (!cancelled && j) setCycleBoardSnap(j); })
+    .catch(() => {});
+  return () => { cancelled = true; };
+}, []);
 useEffect(() => {
   let cancelled = false;
   fetch("/composite_history_daily.json")
@@ -5821,99 +5833,113 @@ return(
       alignItems:"stretch",
     }}>
 
-      {/* 01 · Macro Overview — v11-aligned preview (2026-04-30).
-          Replaces the prior composite-strip + regime-pill + range-bar
-          card that visually mismatched the v11 Macro Overview tab.
-          Reads the same composite_history_daily.json (RL / GR / IR) the
-          /#overview iframe consumes, so the headline numbers stay in
-          lock-step with the destination page. Click anywhere → opens
-          the full v11 view. */}
+      {/* 01 · Macro Overview — mirrors v11 cycle-mechanism board (2026-04-30 v2).
+          Both surfaces (this card + /#overview iframe) read the SAME 6 cycle
+          mechanisms from public/cycle_board_snapshot.json. Mock calibration
+          data (Sprint 1 snapshot) — replaced by a live calc engine when v11
+          ports to React. The previous version of this card claimed "same
+          data as /#overview" while showing the OLD 3-composite RL/GR/IR
+          framework. That was wrong. This version is honest. */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
           <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open full view →</a>
         </div>
 
-        {/* Live three-composite headline — same RL / GR / IR data the v11
-            page renders as dial gauges. Each tile shows the score, the
-            band label, and the −100→+100 range slider so the reader can
-            place the number in context. */}
-        {_macroLatestSnap ? (
-          <div style={{
-            display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
-            gap:"var(--space-3)",
-          }}>
-            {[
-              { key:"RL", label:"Risk & Liquidity", value:_macroLatestSnap.RL, horizon:"3-mo" },
-              { key:"GR", label:"Growth",           value:_macroLatestSnap.GR, horizon:"6-mo" },
-              { key:"IR", label:"Inflation & Rates",value:_macroLatestSnap.IR, horizon:"18-mo" },
-            ].map(c => {
-              const reg = (function(s){
-                if (s == null || Number.isNaN(s)) return "normal";
-                if (s <= -50) return "calm";
-                if (s <= -20) return "quiet";
-                if (s <  +20) return "normal";
-                if (s <  +50) return "elevated";
-                return "stressed";
-              })(c.value);
-              const col = ({calm:"#1f9d60",quiet:"#69b585",normal:"var(--text-muted)",elevated:"#b8811c",stressed:"#d23040"})[reg];
-              const lbl = ({calm:"Calm",quiet:"Quiet",normal:"Normal",elevated:"Elevated",stressed:"Stressed"})[reg];
-              return (
-                <div key={c.key} onClick={()=>navTo("overview")} style={{
-                  background:"var(--surface)",
-                  border:`1px solid ${col}33`,
-                  borderRadius:6, padding:"14px 14px",
-                  cursor:"pointer",
-                }}>
-                  <div style={{
-                    fontFamily:"var(--font-mono)", fontSize:9.5,
-                    color:"var(--text-muted)", letterSpacing:"0.10em",
-                    marginBottom:8, fontWeight:600, textTransform:"uppercase",
-                  }}>{c.label} · {c.horizon}</div>
-                  <div style={{
-                    fontFamily:"var(--font-mono)", fontSize:30,
-                    fontWeight:600, color:col, lineHeight:1, marginBottom:6,
-                  }}>{c.value!=null ? (c.value>=0?"+":"") + Math.round(c.value) : "—"}</div>
-                  <div style={{
-                    fontSize:10.5, color:col, fontFamily:"var(--font-mono)",
-                    letterSpacing:"0.06em",
-                    textTransform:"uppercase", fontWeight:700,
-                  }}>{lbl}</div>
-                  {c.value!=null && (
-                    <div style={{ position:"relative", marginTop:14, height:6 }}>
-                      <div style={{
-                        position:"absolute", inset:"0", borderRadius:2,
-                        background:"linear-gradient(90deg, #1f9d6044 0%, #69b58544 25%, var(--surface-3) 35%, var(--surface-3) 65%, #b8811c44 75%, #d2304044 100%)",
-                      }}/>
-                      <div style={{
-                        position:"absolute",
-                        left:`calc(${Math.max(0, Math.min(100, ((Math.max(-100, Math.min(100, c.value)) + 100) / 200) * 100))}% - 1px)`,
-                        top:-2, bottom:-2, width:2, background:col, borderRadius:1,
-                      }}/>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading composites…</div>
-        )}
+        {(() => {
+          if (!cycleBoardSnap) {
+            return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading cycle board…</div>;
+          }
+          const agg = cycleBoardSnap.aggregate || {};
+          const mechs = cycleBoardSnap.mechanisms || [];
+          // Match v11 band colors (darkblood / oxblood / amber / green-active)
+          const bandColor = (b) => ({
+            "darkblood":      "#7a1414",
+            "oxblood":        "#a04518",
+            "amber":          "#b8860b",
+            "green-active":   "#4a7c4a",
+          })[b] || "var(--text-muted)";
+          const aggColor = (() => {
+            const c = agg.elevated_count;
+            if (c >= 4) return "#7a1414";   // risk-off
+            if (c === 3) return "#a04518";  // caution
+            if (c === 2) return "#b8860b";  // neutral
+            return "#4a7c4a";               // risk-on
+          })();
+          return (
+            <>
+              {/* Aggregate verdict — exact pattern from v11 (count + sublabel + headline) */}
+              <div style={{
+                display:"flex", alignItems:"baseline", gap:"var(--space-3)",
+                marginBottom:"var(--space-3)",
+              }}>
+                <div style={{
+                  fontFamily:"var(--font-mono)", fontSize:38, fontWeight:600,
+                  color:aggColor, lineHeight:1, letterSpacing:"-0.02em",
+                }}>{agg.elevated_count ?? "—"}<span style={{fontSize:18, fontWeight:400, color:"var(--text-muted)", marginLeft:4}}>/ {agg.total ?? 6}</span></div>
+                <div style={{
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  color:"var(--text-muted)", letterSpacing:"0.10em",
+                  textTransform:"uppercase", fontWeight:600,
+                }}>mechanisms elevated</div>
+              </div>
+              <div style={{
+                fontFamily:"var(--font-display)", fontSize:14, lineHeight:1.55,
+                color:"var(--text)", marginBottom:"var(--space-4)",
+                paddingBottom:"var(--space-3)",
+                borderBottom:"1px solid var(--border-faint)",
+              }}>{agg.headline}</div>
 
-        {/* Footer — explicit anchor copy so it's clear this card is a
-            preview of the v11 Macro Overview, not a parallel surface. */}
+              {/* Six mechanism mini-cards — name, score, band */}
+              <div style={{
+                display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
+                gap:"var(--space-2)",
+              }}>
+                {mechs.map(m => {
+                  const col = bandColor(m.band);
+                  return (
+                    <div key={m.id} onClick={()=>navTo("overview")} style={{
+                      background:"var(--surface)",
+                      border:`1px solid ${col}33`,
+                      borderRadius:6, padding:"10px 12px",
+                      cursor:"pointer",
+                    }}>
+                      <div style={{
+                        fontFamily:"var(--font-mono)", fontSize:9,
+                        color:"var(--text-muted)", letterSpacing:"0.10em",
+                        marginBottom:6, fontWeight:600, textTransform:"uppercase",
+                      }}>{m.num} · {m.name}</div>
+                      <div style={{
+                        fontFamily:"var(--font-mono)", fontSize:24,
+                        fontWeight:600, color:col, lineHeight:1, marginBottom:4,
+                      }}>{m.score ?? "—"}</div>
+                      <div style={{
+                        fontSize:10, color:m.elevated ? col : "var(--text-dim)",
+                        fontFamily:"var(--font-mono)",
+                        letterSpacing:"0.06em",
+                        textTransform:"uppercase", fontWeight:700,
+                      }}>{m.elevated ? "Elevated" : "Calm"}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          );
+        })()}
+
+        {/* Footer — honest about the mock-data status */}
         <div style={{
           marginTop:"var(--space-4)",
           paddingTop:"var(--space-3)",
           borderTop:"1px solid var(--border-faint)",
           fontFamily:"var(--font-mono)", fontSize:10,
           color:"var(--text-dim)", letterSpacing:"0.06em",
-          display:"flex", justifyContent:"space-between", alignItems:"center",
+          display:"flex", justifyContent:"space-between", alignItems:"center", gap:8,
         }}>
-          <span>Live preview · same data as /#overview</span>
+          <span>Sprint 1 calibration · framework v11</span>
           <a onClick={()=>navTo("overview")} style={{
             color:"var(--accent)", cursor:"pointer", fontWeight:600,
-          }}>Open dials, indicator history, lead-time table →</a>
+          }}>Open dial board, indicator drill-downs →</a>
         </div>
       </div>
 

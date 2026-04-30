@@ -1,0 +1,19 @@
+{
+  "_doc": "Snapshot of the v11 cycle-mechanism board. The home Macro Overview tile + the /#overview iframe both read these values so the two surfaces stay aligned. Mock calibration data; replaced by live values when the v11 calc engine ports to React. Source of truth: trading-scanner/run_cycle_board_calibration.py (pending build, see LESSONS_FUTURE).",
+  "as_of": "2026-04-30",
+  "framework": "v11 — six cycle mechanisms",
+  "aggregate": {
+    "elevated_count": 4,
+    "total": 6,
+    "band": "risk-off",
+    "headline": "Risk-off setup — four of six mechanisms elevated. Equity valuations at peak, credit complacent, policy restrictive, positioning stretched. Only Funding and Growth remain calm."
+  },
+  "mechanisms": [
+    { "id": "valuation",            "num": "01", "name": "Valuation",             "score": 87, "band": "darkblood",  "elevated": true,  "caption": "Cycle peak — multiple valuation reads in the top quartile of long-run history." },
+    { "id": "credit",               "num": "02", "name": "Credit",                "score": 69, "band": "oxblood",    "elevated": true,  "caption": "Spreads pricing complacency — IG and HY tighter than pre-2008. Late-cycle signature." },
+    { "id": "funding",              "num": "03", "name": "Funding",               "score": 30, "band": "amber",      "elevated": false, "caption": "Funding stable — bills/repo functioning, no stress in money markets." },
+    { "id": "growth",               "num": "04", "name": "Growth",                "score": 47, "band": "amber",      "elevated": false, "caption": "Growth coasting — soft-landing trajectory; not accelerating, not contracting." },
+    { "id": "liquidity_policy",     "num": "05", "name": "Liquidity & Policy",    "score": 55, "band": "oxblood",    "elevated": true,  "caption": "Restrictive stance — real Fed funds positive, M2 growth slow, balance sheet still in QT mode." },
+    { "id": "positioning_breadth",  "num": "06", "name": "Positioning & Breadth", "score": 70, "band": "oxblood",    "elevated": true,  "caption": "Crowded positioning — speculator long, breadth narrow. Mean-reversion risk." }
+  ]
+}
