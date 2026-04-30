@@ -5547,28 +5547,12 @@ return(
          leads with what MacroTilt is for, then a glanceable orientation,
          then the mission-stated 4-cell evidence strip. */}
     {(()=>{
-      const M = _macroLatestSnap;
       const V = _v9Alloc;
-
-      // Worst-of-three composite drives the stance line in top-right.
-      const composites = M ? [
-        {k:"R&L",          v:M.RL},
-        {k:"Growth",       v:M.GR},
-        {k:"Inflation",    v:M.IR},
-      ] : [];
-      const regimeOf = (s) => {
-        if (s == null) return "normal";
-        if (s <= -50) return "calm";
-        if (s <= -20) return "quiet";
-        if (s <  +20) return "normal";
-        if (s <  +50) return "elevated";
-        return "stressed";
-      };
-      // Stance now reads off the v11 cycle-board snapshot — same six-
-      // mechanism average that drives /#overview. The legacy RL/GR/IR
-      // regimeOf/worst computation above is kept in scope but no longer
-      // wired to the hero. Falls back gracefully if the snapshot isn't
-      // loaded yet.
+      // Stance reads off the v11 cycle-board snapshot — same six-mechanism
+      // average that drives /#overview. The legacy 3-composite (RL/GR/IR)
+      // path was deprecated in v11 (Joe directive 2026-04-30) and has been
+      // removed from this hero. composite_history_daily.json still feeds
+      // SPY history downstream until prices_eod replaces it (Phase 9).
       let h = "Loading", em = " today's cycle read.";
       const _cbMechs = cycleBoardSnap?.mechanisms || [];
       if (_cbMechs.length) {
