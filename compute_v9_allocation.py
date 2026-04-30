@@ -6,7 +6,7 @@ Reads:
   - public/indicator_history.json  (existing daily indicator panel)
   - public/composite_history_daily.json  (Risk & Liquidity / Growth / Inflation & Rates)
   - Live FRED + Yahoo data for missing factors
-  - yfinance for daily ETF prices
+  - Supabase prices_eod for daily ETF prices (Massive + yfinance-bootstrap)
 
 Writes:
   - public/v9_allocation.json  (current allocation with picks, weights, regime state)
@@ -26,7 +26,9 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import yfinance as yf
+# yfinance import dropped 2026-04-30 (PR #9-final): the v9 chain now reads
+# ETF closes from Supabase prices_eod (Massive forward + yfinance-bootstrap
+# pre-2024-04-30). yfinance no longer touches the v9 pipeline at all.
 
 warnings.filterwarnings("ignore")
 
@@ -275,12 +277,70 @@ def select_picks(avail_e, mu_dict, mom_dict, regime_flip):
 # ────────────────────────────────────────────────────────────────────────────
 
 
+
+def _load_etf_closes_from_supabase(tickers, start_date="2003-01-01"):
+    """Read daily close prices for a ticker list out of public.prices_eod.
+
+    Replaces the legacy yfinance bulk pull as of PR #9-final (2026-04-30, Joe
+    directive: hybrid path). prices_eod is fed by:
+      - source='yfinance-bootstrap' for 2003-01-01 → 2024-04-29 (V9-YFINANCE-
+        BOOTSTRAP one-shot); and
+      - source='massive' for 2024-04-30 → today (MASSIVE-DAILY workflow).
+    Both source tags coexist in the table; we read both transparently and
+    let the (ticker, trade_date) PK guarantee no duplicates.
+
+    Returns a pandas.DataFrame indexed by trade_date (Timestamp) with one
+    column per ticker holding the close price — same shape the rest of
+    compute_v9_allocation expected from yf.download[..., 'Close'].
+    """
+    import os
+    import json as _json
+    from urllib.request import Request, urlopen
+    from urllib.parse import urlencode
+
+    URL = os.environ.get("SUPABASE_URL", "").strip()
+    KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    if not URL or not KEY:
+        raise SystemExit("compute_v9_allocation: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required")
+
+    # PostgREST `in.(...)` filter for ticker. Cap is 1M rows per request via
+    # the Range/Limit headers; 18 tickers x ~5,300 trading days = ~95K rows
+    # comfortably under the cap.
+    in_clause = f"in.({','.join(tickers)})"
+    qs = urlencode({
+        "select":     "ticker,trade_date,close",
+        "ticker":     in_clause,
+        "trade_date": f"gte.{start_date}",
+        "order":      "trade_date.asc",
+        "limit":      "1000000",
+    })
+    endpoint = f"{URL.rstrip('/')}/rest/v1/prices_eod?{qs}"
+    req = Request(endpoint, headers={
+        "apikey":        KEY,
+        "Authorization": f"Bearer {KEY}",
+        "Accept":        "application/json",
+    })
+    with urlopen(req, timeout=120) as r:
+        rows = _json.loads(r.read().decode("utf-8"))
+    if not rows:
+        raise RuntimeError(
+            f"prices_eod returned 0 rows for tickers={tickers} "
+            f"start={start_date}. Bootstrap may not have completed."
+        )
+    df = pd.DataFrame(rows)
+    df["trade_date"] = pd.to_datetime(df["trade_date"])
+    df["close"] = pd.to_numeric(df["close"], errors="coerce")
+    pivoted = df.pivot(index="trade_date", columns="ticker", values="close")
+    pivoted.index.name = None  # match yfinance's behavior
+    return pivoted
+
+
 def load_all_data():
     """Load every input compute_allocation_from_data needs.
 
     Pulled out of main() so the Scenario Analysis precompute script can re-use
     one data load across many stressed scenarios. Network calls happen here
-    (FRED + yfinance), the compute path is pure.
+    (FRED + Supabase prices_eod), the compute path is pure.
     """
     print("  loading factor panel...")
     factors = load_factor_panel()
@@ -290,12 +350,13 @@ def load_all_data():
     composites = load_composites()
     print(f"    composites latest: {composites.index[-1].date()}")
 
-    print("  pulling daily ETF prices (yfinance)...")
+    print("  pulling daily ETF prices (Supabase prices_eod / Massive + yfinance-bootstrap)...")
     tickers = list(EQUITY) + list(DEFENSIVE)
-    df = yf.download(tickers, start="2003-01-01", progress=False, auto_adjust=True, threads=True)
-    if isinstance(df.columns, pd.MultiIndex): df = df["Close"]
+    df = _load_etf_closes_from_supabase(tickers, start_date="2003-01-01")
     daily_ret = df.pct_change().dropna(how="all")
     monthly_ret = daily_ret.resample("ME").apply(lambda x: (1 + x).prod() - 1)
+    print(f"    {len(df)} trading days across {df.shape[1]} tickers, "
+          f"{df.index.min().date()} -> {df.index.max().date()}")
     return factors, composites, monthly_ret
 
 
