@@ -1215,62 +1215,503 @@ function buildIndicatorTrajectorySvg(drill, dotColor) {
 }
 
 // ============================================================================
-// Indicator drawer (HY OAS wired as the demo)
+// Indicator drawer — DRILLS object keyed by indicator id. Each entry
+// follows the same shape so the same render path works for all 10
+// indicators. When an indicator id is not in DRILLS, the drawer falls
+// back to a minimal stub.
 // ============================================================================
-const HY_OAS_DRILL = {
-  kpis: [
-    { lbl:"1-month change", val:"-43 bp", meta:"vs 90d avg +6 bp", dir:"dn" },
-    { lbl:"3-month change", val:"-3 bp",  meta:"trending tighter", dir:"dn" },
-    { lbl:"1-year change",  val:"-109 bp", meta:"tightening cycle", dir:"dn" },
-    { lbl:"Distance from peak", val:"-184 bp", meta:"peak: 469bp / May 2023", dir:"dn" },
-  ],
-  // 10-year monthly HY OAS history (basis points). Synthesized for the mockup,
-  // anchored to known regime transitions: 2016 post-energy crisis tightening,
-  // 2018 H2 widening, March 2020 COVID spike to ~1100bp, 2021 super-tight
-  // post-stimulus, 2022 inflation/Fed widening, May 2023 peak 469bp, 2024
-  // tightening cycle resumes, current 285bp.
-  traj_bp: [
-    [2016,4,720],[2016,7,580],[2016,10,470],[2017,1,410],[2017,4,395],[2017,7,375],[2017,10,360],
-    [2018,1,355],[2018,4,365],[2018,7,365],[2018,10,425],[2019,1,510],[2019,4,400],[2019,7,395],[2019,10,400],
-    [2020,1,395],[2020,3,1090],[2020,4,820],[2020,7,490],[2020,10,440],
-    [2021,1,365],[2021,4,310],[2021,7,300],[2021,10,310],
-    [2022,1,330],[2022,4,395],[2022,7,470],[2022,10,510],
-    [2023,1,460],[2023,4,455],[2023,7,400],[2023,10,425],
-    [2024,1,385],[2024,4,394],[2024,7,355],[2024,10,330],
-    [2025,1,340],[2025,4,360],[2025,7,335],[2025,10,310],
-    [2026,1,328],[2026,4,285],
-  ],
-  episodes: [
-    { period:"Apr 2026", note:"Today's entry into bottom quartile", spx6:null, spx12:null },
-    { period:"Apr 2024", note:"Most-recent prior bottom-quartile entry", spx6:"+12%", spx12:"+22%" },
-    { period:"Aug 2021", note:"Peak complacency before 2022 selloff", spx6:"-4%", spx12:"-18%" },
-    { period:"Jan 2018", note:"Late-cycle compression", spx6:"+2%", spx12:"-6%" },
-    { period:"Jun 2014", note:"Pre-energy-crisis tightness", spx6:"+5%", spx12:"+5%" },
-  ],
-  comovement: [
-    { peer:"IG OAS (Baa - 10y)", c1y:"+0.89", c5y:"+0.85", n1:"12", n5:"36" },
-    { peer:"VIX",                 c1y:"+0.62", c5y:"+0.51", n1:"12", n5:"60" },
-    { peer:"MOVE",                c1y:"+0.51", c5y:"+0.44", n1:"12", n5:"60" },
-    { peer:"S&P 500",             c1y:"-0.44", c5y:"-0.38", n1:"12", n5:"60" },
-  ],
-  release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"FRED · ICE BofA · BAMLH0A0HYM2" },
-  source_url: "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
-  formula: "ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
-  caveat: "ICE BofA license restricts FRED's free history to post-2011. The 2008 GFC peak (~2,000 bp) is out of sample.",
+// ============================================================================
+// Indicator drill-down data (DRILLS) — keyed by indicator id. Each entry
+// follows the same shape: header_label, axis_label, unit_fmt(v), kpis,
+// traj (10y monthly history in natural unit), episodes, comovement, release,
+// source_url, formula, caveat.
+// ============================================================================
+const fmtBp = v => `${Math.round(v)} bp`;
+const fmtX  = v => `${v.toFixed(1)}\u00d7`;
+const fmtPct = v => `${v.toFixed(1)}%`;
+const fmtK  = v => `${Math.round(v)}k`;
+const fmtN  = v => v.toFixed(2);
+
+const DRILLS = {
+  // ─── VALUATION TILE ───
+  cape: {
+    header_label: "Robert Shiller \u00b7 Monthly",
+    axis_label: "ratio",
+    unit_fmt: fmtX,
+    kpis: [
+      { lbl:"1-month change", val:"-0.4\u00d7", meta:"vs 90d avg +0.2\u00d7", dir:"dn" },
+      { lbl:"3-month change", val:"+0.8\u00d7", meta:"slow drift higher", dir:"up" },
+      { lbl:"1-year change",  val:"+1.6\u00d7", meta:"sustained re-rating", dir:"up" },
+      { lbl:"Distance from peak", val:"-4.4\u00d7", meta:"peak: 38.6\u00d7 / Dec 2021", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,26.4],[2016,7,26.8],[2016,10,27.1],[2017,1,28.5],[2017,4,29.1],[2017,7,30.2],[2017,10,31.5],
+      [2018,1,33.3],[2018,4,32.5],[2018,7,32.7],[2018,10,30.6],[2019,1,28.5],[2019,4,30.4],[2019,7,29.8],[2019,10,29.5],
+      [2020,1,30.8],[2020,3,24.8],[2020,4,26.5],[2020,7,30.1],[2020,10,30.6],
+      [2021,1,33.3],[2021,4,36.5],[2021,7,38.2],[2021,10,38.6],
+      [2022,1,38.0],[2022,4,33.5],[2022,7,29.4],[2022,10,28.6],
+      [2023,1,30.0],[2023,4,30.5],[2023,7,32.0],[2023,10,30.4],
+      [2024,1,32.0],[2024,4,32.6],[2024,7,33.5],[2024,10,33.8],
+      [2025,1,34.0],[2025,4,33.9],[2025,7,34.0],[2025,10,34.5],
+      [2026,1,34.6],[2026,4,34.2],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Today's read \u2014 top quartile", spx6:null, spx12:null },
+      { period:"Dec 2021", note:"All-time peak before 2022 selloff", spx6:"-12%", spx12:"-19%" },
+      { period:"Sep 2018", note:"Mid-cycle Trump tax-cut peak", spx6:"-7%", spx12:"+0%" },
+      { period:"Jan 2007", note:"Housing-cycle peak", spx6:"+5%", spx12:"-9%" },
+      { period:"Mar 2000", note:"Dotcom peak", spx6:"-8%", spx12:"-22%" },
+    ],
+    comovement: [
+      { peer:"Equity Risk Premium", c1y:"-0.94", c5y:"-0.90", n1:"12", n5:"60" },
+      { peer:"Buffett Indicator",   c1y:"+0.88", c5y:"+0.79", n1:"4",  n5:"20" },
+      { peer:"S&P 500",             c1y:"+0.85", c5y:"+0.78", n1:"12", n5:"60" },
+      { peer:"Real rates",          c1y:"-0.42", c5y:"-0.38", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"Apr 30, 2026", next:"May 31, 2026", source:"Robert Shiller \u00b7 shillerdata.com" },
+    source_url: "https://shillerdata.com/",
+    formula: "Real S&P 500 price divided by 10-year trailing inflation-adjusted earnings.",
+    caveat: "Slow-moving series; turning points lag market peaks by 6\u201312 months.",
+  },
+
+  erp: {
+    header_label: "Derived \u00b7 S&P operating earnings + DGS10 \u00b7 Daily",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"-0.05%", meta:"earnings yield flat", dir:"dn" },
+      { lbl:"3-month change", val:"-0.21%", meta:"yields edging up", dir:"dn" },
+      { lbl:"1-year change",  val:"-1.45%", meta:"compressing", dir:"dn" },
+      { lbl:"Distance from peak", val:"-4.18%", meta:"peak: +2.8% / Dec 2009", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,1.5],[2016,7,1.4],[2016,10,1.2],[2017,1,1.0],[2017,4,0.9],[2017,7,0.8],[2017,10,0.6],
+      [2018,1,0.4],[2018,4,0.3],[2018,7,0.2],[2018,10,0.5],[2019,1,1.1],[2019,4,1.0],[2019,7,1.2],[2019,10,1.4],
+      [2020,1,1.3],[2020,3,2.1],[2020,4,1.8],[2020,7,1.6],[2020,10,1.8],
+      [2021,1,1.5],[2021,4,1.2],[2021,7,1.0],[2021,10,0.6],
+      [2022,1,0.2],[2022,4,-0.5],[2022,7,-1.0],[2022,10,-1.5],
+      [2023,1,-1.7],[2023,4,-1.6],[2023,7,-1.4],[2023,10,-1.2],
+      [2024,1,-0.8],[2024,4,-0.6],[2024,7,-0.7],[2024,10,-0.9],
+      [2025,1,-1.0],[2025,4,-1.1],[2025,7,-1.2],[2025,10,-1.3],
+      [2026,1,-1.33],[2026,4,-1.38],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Today's read \u2014 bottom quartile (rich)", spx6:null, spx12:null },
+      { period:"Oct 2022", note:"Cycle low \u2014 yields shock peak", spx6:"+15%", spx12:"+20%" },
+      { period:"Oct 2018", note:"Powell-pivot setup", spx6:"+12%", spx12:"+10%" },
+      { period:"Jul 2007", note:"Housing-cycle wide", spx6:"-3%", spx12:"-15%" },
+      { period:"Jun 2000", note:"Dotcom-era ERP near zero", spx6:"-5%", spx12:"-13%" },
+    ],
+    comovement: [
+      { peer:"CAPE (Shiller)",   c1y:"-0.94", c5y:"-0.90", n1:"12", n5:"60" },
+      { peer:"Real rates",       c1y:"+0.85", c5y:"+0.79", n1:"12", n5:"60" },
+      { peer:"10y Treasury",     c1y:"+0.72", c5y:"+0.68", n1:"12", n5:"60" },
+      { peer:"S&P 500",          c1y:"-0.55", c5y:"-0.48", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"S&P + FRED \u00b7 derived" },
+    source_url: "https://fred.stlouisfed.org/series/DGS10",
+    formula: "S&P 500 12-month trailing earnings yield minus 10-year Treasury yield.",
+    caveat: "Sensitive to earnings revisions; can flip on a single quarter of S&P EPS surprise.",
+  },
+
+  buffett: {
+    header_label: "Federal Reserve Z.1 + BEA \u00b7 Quarterly",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"+1.4 pp", meta:"price + low GDP", dir:"up" },
+      { lbl:"3-month change", val:"+5.2 pp", meta:"new highs week-over-week", dir:"up" },
+      { lbl:"1-year change",  val:"+14.8 pp", meta:"sustained run", dir:"up" },
+      { lbl:"Distance from peak", val:"0 pp", meta:"all-time high reading", dir:"up" },
+    ],
+    traj: [
+      [2016,4,148],[2016,7,151],[2016,10,153],[2017,1,158],[2017,4,162],[2017,7,166],[2017,10,170],
+      [2018,1,178],[2018,4,176],[2018,7,180],[2018,10,167],[2019,1,162],[2019,4,170],[2019,7,170],[2019,10,172],
+      [2020,1,180],[2020,3,135],[2020,4,148],[2020,7,170],[2020,10,178],
+      [2021,1,190],[2021,4,195],[2021,7,196],[2021,10,197],
+      [2022,1,194],[2022,4,180],[2022,7,170],[2022,10,165],
+      [2023,1,178],[2023,4,182],[2023,7,190],[2023,10,192],
+      [2024,1,205],[2024,4,210],[2024,7,215],[2024,10,218],
+      [2025,1,222],[2025,4,224],[2025,7,227],[2025,10,229],
+      [2026,1,231],[2026,4,232.7],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"All-time high \u2014 above 2021 peak", spx6:null, spx12:null },
+      { period:"Oct 2021", note:"Pandemic-era peak (197%)", spx6:"-10%", spx12:"-19%" },
+      { period:"Mar 2000", note:"Dotcom peak (~148%)", spx6:"-9%", spx12:"-22%" },
+      { period:"Sep 2007", note:"Pre-GFC peak (~110%)", spx6:"-12%", spx12:"-30%" },
+      { period:"Dec 1968", note:"Nifty-Fifty peak (~87%)", spx6:"-3%", spx12:"+8%" },
+    ],
+    comovement: [
+      { peer:"S&P 500",            c1y:"+0.94", c5y:"+0.90", n1:"4",  n5:"20" },
+      { peer:"CAPE (Shiller)",     c1y:"+0.88", c5y:"+0.79", n1:"4",  n5:"20" },
+      { peer:"Margin debt YoY",    c1y:"+0.71", c5y:"+0.62", n1:"4",  n5:"20" },
+      { peer:"Real GDP growth",    c1y:"-0.22", c5y:"-0.18", n1:"4",  n5:"20" },
+    ],
+    release: { freq:"Quarterly", last:"Mar 31, 2026 (Q1)", next:"Jun 30, 2026 (Q2)", source:"Fed Z.1 + BEA GDP" },
+    source_url: "https://fred.stlouisfed.org/graph/?g=qLC",
+    formula: "Total U.S. equity market capitalization divided by nominal GDP.",
+    caveat: "Buffett himself called this \u201cprobably the best single measure\u201d in 2001; modern critique points to globalization tilt.",
+  },
+
+  // ─── CREDIT TILE ───
+  ig_oas: {
+    header_label: "FRED \u00b7 BAMLC0A0CM \u00b7 Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+5 bp", meta:"slight widening", dir:"up" },
+      { lbl:"3-month change", val:"-8 bp", meta:"net tighter", dir:"dn" },
+      { lbl:"1-year change",  val:"-22 bp", meta:"in compression cycle", dir:"dn" },
+      { lbl:"Distance from peak", val:"-454 bp", meta:"peak: 628bp / Dec 2008", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,260],[2016,7,220],[2016,10,180],[2017,1,160],[2017,4,150],[2017,7,140],[2017,10,140],
+      [2018,1,140],[2018,4,150],[2018,7,150],[2018,10,170],[2019,1,210],[2019,4,170],[2019,7,170],[2019,10,165],
+      [2020,1,165],[2020,3,400],[2020,4,300],[2020,7,200],[2020,10,180],
+      [2021,1,160],[2021,4,150],[2021,7,150],[2021,10,160],
+      [2022,1,170],[2022,4,210],[2022,7,260],[2022,10,280],
+      [2023,1,250],[2023,4,240],[2023,7,210],[2023,10,220],
+      [2024,1,200],[2024,4,196],[2024,7,180],[2024,10,170],
+      [2025,1,175],[2025,4,180],[2025,7,170],[2025,10,165],
+      [2026,1,169],[2026,4,174],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Bottom-quartile compression", spx6:null, spx12:null },
+      { period:"Apr 2024", note:"Prior tight read pre-AI rally", spx6:"+10%", spx12:"+18%" },
+      { period:"Jul 2021", note:"Pandemic-era tights", spx6:"-3%", spx12:"-15%" },
+      { period:"Jan 2018", note:"Late-cycle tights", spx6:"+1%", spx12:"-5%" },
+      { period:"Feb 2007", note:"Pre-GFC tightest", spx6:"-1%", spx12:"-12%" },
+    ],
+    comovement: [
+      { peer:"HY OAS",         c1y:"+0.89", c5y:"+0.85", n1:"12", n5:"60" },
+      { peer:"VIX",            c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"S&P 500",        c1y:"-0.42", c5y:"-0.36", n1:"12", n5:"60" },
+      { peer:"Real rates",     c1y:"-0.18", c5y:"-0.12", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"FRED \u00b7 ICE BofA \u00b7 BAMLC0A0CM" },
+    source_url: "https://fred.stlouisfed.org/series/BAMLC0A0CM",
+    formula: "ICE BofA US Corporate Index Option-Adjusted Spread, in basis points.",
+    caveat: "Index composition shifts; modern IG has more BBB exposure than 2008-era.",
+  },
+
+  hy_ig: {
+    header_label: "Derived \u00b7 BAMLH0A0HYM2 / BAMLC0A0CM \u00b7 Daily",
+    axis_label: "ratio",
+    unit_fmt: fmtX,
+    kpis: [
+      { lbl:"1-month change", val:"-0.05\u00d7", meta:"compressing", dir:"dn" },
+      { lbl:"3-month change", val:"-0.12\u00d7", meta:"sustained tighter", dir:"dn" },
+      { lbl:"1-year change",  val:"+0.08\u00d7", meta:"normalizing from 2024 lows", dir:"up" },
+      { lbl:"Distance from peak", val:"-1.21\u00d7", meta:"peak: 3.10\u00d7 / Mar 2020", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,2.77],[2016,7,2.64],[2016,10,2.61],[2017,1,2.56],[2017,4,2.63],[2017,7,2.68],[2017,10,2.57],
+      [2018,1,2.54],[2018,4,2.43],[2018,7,2.43],[2018,10,2.50],[2019,1,2.43],[2019,4,2.35],[2019,7,2.32],[2019,10,2.42],
+      [2020,1,2.39],[2020,3,2.73],[2020,4,2.73],[2020,7,2.45],[2020,10,2.44],
+      [2021,1,2.28],[2021,4,2.07],[2021,7,2.00],[2021,10,1.94],
+      [2022,1,1.94],[2022,4,1.88],[2022,7,1.81],[2022,10,1.82],
+      [2023,1,1.84],[2023,4,1.90],[2023,7,1.90],[2023,10,1.93],
+      [2024,1,1.93],[2024,4,2.01],[2024,7,1.97],[2024,10,1.94],
+      [2025,1,1.94],[2025,4,2.00],[2025,7,1.97],[2025,10,1.88],
+      [2026,1,1.94],[2026,4,1.89],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Mid-range \u2014 not extreme either way", spx6:null, spx12:null },
+      { period:"Jul 2024", note:"Most-recent low (peak HY-IG decoupling)", spx6:"+3%", spx12:"+9%" },
+      { period:"Mar 2020", note:"COVID peak ratio (3.10\u00d7) \u2014 HY blew out faster", spx6:"+38%", spx12:"+55%" },
+      { period:"Feb 2016", note:"Energy-cycle peak (~2.85\u00d7)", spx6:"+7%", spx12:"+19%" },
+      { period:"Aug 2014", note:"Mid-cycle compression", spx6:"-5%", spx12:"+1%" },
+    ],
+    comovement: [
+      { peer:"HY OAS",        c1y:"+0.92", c5y:"+0.88", n1:"12", n5:"60" },
+      { peer:"VIX",           c1y:"+0.62", c5y:"+0.55", n1:"12", n5:"60" },
+      { peer:"IG OAS",        c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"S&P 500",       c1y:"-0.38", c5y:"-0.32", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"FRED \u00b7 derived" },
+    source_url: "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+    formula: "HY OAS divided by IG OAS \u2014 the relative-risk premium ratio.",
+    caveat: "Sensitive to denominator; small IG OAS moves can swing the ratio.",
+  },
+
+  // ─── GROWTH TILE ───
+  cfnai: {
+    header_label: "Chicago Fed \u00b7 CFNAIMA3 \u00b7 Monthly",
+    axis_label: "score",
+    unit_fmt: fmtN,
+    kpis: [
+      { lbl:"1-month change", val:"-0.04", meta:"slight cooling", dir:"dn" },
+      { lbl:"3-month change", val:"-0.12", meta:"moderating", dir:"dn" },
+      { lbl:"1-year change",  val:"-0.18", meta:"trend-pace deceleration", dir:"dn" },
+      { lbl:"Distance from peak", val:"-1.83", meta:"peak: +1.80 / Apr 2021", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,-0.20],[2016,7,-0.15],[2016,10,-0.10],[2017,1,0.05],[2017,4,0.18],[2017,7,0.22],[2017,10,0.20],
+      [2018,1,0.40],[2018,4,0.30],[2018,7,0.15],[2018,10,0.10],[2019,1,-0.05],[2019,4,-0.10],[2019,7,-0.20],[2019,10,-0.30],
+      [2020,1,-0.40],[2020,3,-4.70],[2020,4,-3.00],[2020,7,1.20],[2020,10,0.80],
+      [2021,1,1.00],[2021,4,1.80],[2021,7,0.50],[2021,10,0.40],
+      [2022,1,0.30],[2022,4,0.25],[2022,7,-0.10],[2022,10,-0.40],
+      [2023,1,-0.40],[2023,4,-0.20],[2023,7,-0.10],[2023,10,-0.05],
+      [2024,1,0.10],[2024,4,0.18],[2024,7,0.15],[2024,10,0.10],
+      [2025,1,0.05],[2025,4,0.04],[2025,7,0.00],[2025,10,-0.02],
+      [2026,1,-0.02],[2026,4,-0.03],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Trend-pace read", spx6:null, spx12:null },
+      { period:"Oct 2022", note:"Recession-scare trough", spx6:"+12%", spx12:"+20%" },
+      { period:"Dec 2019", note:"Pre-COVID slowdown", spx6:"-5%", spx12:"+18%" },
+      { period:"Aug 2015", note:"Industrial-slowdown trough", spx6:"-2%", spx12:"+10%" },
+      { period:"Jun 2009", note:"GFC trough", spx6:"+25%", spx12:"+38%" },
+    ],
+    comovement: [
+      { peer:"ISM Manufacturing", c1y:"+0.88", c5y:"+0.82", n1:"12", n5:"60" },
+      { peer:"Banks vs S&P",      c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"Jobless claims",    c1y:"-0.62", c5y:"-0.55", n1:"12", n5:"60" },
+      { peer:"S&P 500 12mo",      c1y:"+0.55", c5y:"+0.42", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"Apr 23, 2026", next:"May 22, 2026", source:"Chicago Fed" },
+    source_url: "https://fred.stlouisfed.org/series/CFNAIMA3",
+    formula: "85 monthly indicators weighted into a single index, 3-month moving average.",
+    caveat: "Revised back ~2 years on every release; recent prints are tentative.",
+  },
+
+  jobless: {
+    header_label: "DOL \u00b7 ICSA \u00b7 Weekly",
+    axis_label: "k",
+    unit_fmt: v => `${Math.round(v)}k`,
+    kpis: [
+      { lbl:"1-month change", val:"-8k", meta:"labor-market tight", dir:"dn" },
+      { lbl:"3-month change", val:"+12k", meta:"slight uptick", dir:"up" },
+      { lbl:"1-year change",  val:"-22k", meta:"tightening", dir:"dn" },
+      { lbl:"Distance from peak", val:"-5,096k", meta:"peak: 5,310k / Apr 2020", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,260],[2016,7,255],[2016,10,250],[2017,1,242],[2017,4,238],[2017,7,235],[2017,10,232],
+      [2018,1,228],[2018,4,225],[2018,7,222],[2018,10,218],[2019,1,220],[2019,4,215],[2019,7,212],[2019,10,210],
+      [2020,1,212],[2020,3,3300],[2020,4,5310],[2020,7,1300],[2020,10,790],
+      [2021,1,470],[2021,4,400],[2021,7,300],[2021,10,265],
+      [2022,1,232],[2022,4,205],[2022,7,225],[2022,10,210],
+      [2023,1,205],[2023,4,225],[2023,7,235],[2023,10,212],
+      [2024,1,210],[2024,4,225],[2024,7,232],[2024,10,220],
+      [2025,1,215],[2025,4,222],[2025,7,218],[2025,10,212],
+      [2026,1,222],[2026,4,214],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Bottom-quartile (tight labor)", spx6:null, spx12:null },
+      { period:"Sep 2022", note:"Post-recovery tights", spx6:"+10%", spx12:"+22%" },
+      { period:"Dec 2018", note:"Late-cycle tights", spx6:"+12%", spx12:"+22%" },
+      { period:"Mar 2014", note:"Mid-expansion tights", spx6:"+5%", spx12:"+13%" },
+      { period:"Sep 2006", note:"Pre-GFC tights", spx6:"-3%", spx12:"-10%" },
+    ],
+    comovement: [
+      { peer:"CFNAI",            c1y:"-0.62", c5y:"-0.55", n1:"12", n5:"60" },
+      { peer:"ISM Manufacturing", c1y:"-0.42", c5y:"-0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500",          c1y:"-0.38", c5y:"-0.32", n1:"12", n5:"60" },
+      { peer:"Banks vs S&P",     c1y:"-0.28", c5y:"-0.22", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Weekly (Thu)", last:"Apr 24, 2026", next:"May 1, 2026", source:"U.S. Department of Labor" },
+    source_url: "https://fred.stlouisfed.org/series/ICSA",
+    formula: "4-week moving average of initial unemployment insurance claims.",
+    caveat: "Holiday weeks and seasonal-adjustment factors can produce noisy single-week prints.",
+  },
+
+  ism: {
+    header_label: "Institute for Supply Management \u00b7 Monthly",
+    axis_label: "PMI",
+    unit_fmt: v => v.toFixed(1),
+    kpis: [
+      { lbl:"1-month change", val:"+0.4", meta:"expansion territory", dir:"up" },
+      { lbl:"3-month change", val:"+1.2", meta:"firming", dir:"up" },
+      { lbl:"1-year change",  val:"+3.8", meta:"cyclical recovery", dir:"up" },
+      { lbl:"Distance from peak", val:"-11.0", meta:"peak: 63.7 / Mar 2021", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,50.8],[2016,7,52.6],[2016,10,51.9],[2017,1,55.4],[2017,4,54.7],[2017,7,56.3],[2017,10,58.6],
+      [2018,1,59.4],[2018,4,58.4],[2018,7,58.7],[2018,10,57.1],[2019,1,56.0],[2019,4,52.9],[2019,7,51.3],[2019,10,48.5],
+      [2020,1,50.0],[2020,3,49.1],[2020,4,41.6],[2020,7,54.6],[2020,10,58.8],
+      [2021,1,60.5],[2021,4,60.6],[2021,7,59.4],[2021,10,60.6],
+      [2022,1,57.5],[2022,4,55.4],[2022,7,52.7],[2022,10,49.3],
+      [2023,1,47.0],[2023,4,47.1],[2023,7,46.5],[2023,10,46.7],
+      [2024,1,49.1],[2024,4,49.2],[2024,7,46.8],[2024,10,48.5],
+      [2025,1,50.9],[2025,4,49.3],[2025,7,50.5],[2025,10,51.5],
+      [2026,1,52.0],[2026,4,52.7],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Mid-expansion (54th pct)", spx6:null, spx12:null },
+      { period:"Mar 2021", note:"Cycle peak (63.7) post-COVID", spx6:"-2%", spx12:"+8%" },
+      { period:"Feb 2018", note:"Tax-cut peak (60.8)", spx6:"-2%", spx12:"-2%" },
+      { period:"Jul 2014", note:"Industrial-cycle peak (~57)", spx6:"-3%", spx12:"+5%" },
+      { period:"Nov 2006", note:"Pre-GFC peak (~57)", spx6:"+2%", spx12:"-13%" },
+    ],
+    comovement: [
+      { peer:"CFNAI",            c1y:"+0.88", c5y:"+0.82", n1:"12", n5:"60" },
+      { peer:"Copper/gold",      c1y:"+0.62", c5y:"+0.55", n1:"12", n5:"60" },
+      { peer:"Banks vs S&P",     c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"S&P 500 6mo",      c1y:"+0.42", c5y:"+0.35", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"Apr 1, 2026", next:"May 1, 2026", source:"ISM" },
+    source_url: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/",
+    formula: "Diffusion index of 5 sub-components (new orders, production, employment, supplier deliveries, inventories).",
+    caveat: "Sub-50 readings have preceded every recession since 1970 \u2014 with false positives in 1995, 2012, 2015, and 2024.",
+  },
+
+  bkx_spx: {
+    header_label: "Derived \u00b7 KBE / SPY \u00b7 Daily",
+    axis_label: "ratio",
+    unit_fmt: v => `${v.toFixed(2)}\u00d7`,
+    kpis: [
+      { lbl:"1-month change", val:"+0.001\u00d7", meta:"flat", dir:"dn" },
+      { lbl:"3-month change", val:"-0.002\u00d7", meta:"underperforming", dir:"dn" },
+      { lbl:"1-year change",  val:"-0.012\u00d7", meta:"persistent lag", dir:"dn" },
+      { lbl:"Distance from peak", val:"-0.12\u00d7", meta:"peak: 0.21\u00d7 / Mar 2009", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,0.16],[2016,7,0.15],[2016,10,0.16],[2017,1,0.17],[2017,4,0.16],[2017,7,0.16],[2017,10,0.17],
+      [2018,1,0.17],[2018,4,0.17],[2018,7,0.17],[2018,10,0.16],[2019,1,0.15],[2019,4,0.15],[2019,7,0.14],[2019,10,0.14],
+      [2020,1,0.14],[2020,3,0.10],[2020,4,0.11],[2020,7,0.10],[2020,10,0.10],
+      [2021,1,0.13],[2021,4,0.14],[2021,7,0.13],[2021,10,0.14],
+      [2022,1,0.13],[2022,4,0.12],[2022,7,0.11],[2022,10,0.11],
+      [2023,1,0.10],[2023,3,0.08],[2023,4,0.08],[2023,7,0.09],[2023,10,0.09],
+      [2024,1,0.09],[2024,4,0.10],[2024,7,0.10],[2024,10,0.10],
+      [2025,1,0.10],[2025,4,0.10],[2025,7,0.09],[2025,10,0.09],
+      [2026,1,0.09],[2026,4,0.09],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Bottom-decile (banks weakest since SVB)", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB collapse trough", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID-driven trough", spx6:"+38%", spx12:"+55%" },
+      { period:"Feb 2016", note:"Yield-curve-flat trough", spx6:"+8%", spx12:"+19%" },
+      { period:"Mar 2009", note:"GFC trough \u2014 actually a generational LOW (peak ratio era ended here)", spx6:"+38%", spx12:"+45%" },
+    ],
+    comovement: [
+      { peer:"Yield curve (10-2)", c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"CFNAI",              c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"Real rates",         c1y:"+0.32", c5y:"+0.28", n1:"12", n5:"60" },
+      { peer:"S&P 500",            c1y:"-0.18", c5y:"-0.12", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"Nasdaq + S&P" },
+    source_url: "https://www.spglobal.com/spdji/en/indices/equity/sp-500/",
+    formula: "KBW Bank Index ETF (KBE) price divided by S&P 500 ETF (SPY) price.",
+    caveat: "Sharp breakdowns precede banking-sector stress; SVB (Mar 2023) was preceded by a 6-month BKX/SPX breakdown.",
+  },
+
+  // ─── HY OAS — wired in the original v11 — keep with new shape ───
+  hy_oas: {
+    header_label: "FRED · BAMLH0A0HYM2 · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"-43 bp", meta:"vs 90d avg +6 bp", dir:"dn" },
+      { lbl:"3-month change", val:"-3 bp",  meta:"trending tighter", dir:"dn" },
+      { lbl:"1-year change",  val:"-109 bp", meta:"tightening cycle", dir:"dn" },
+      { lbl:"Distance from peak", val:"-184 bp", meta:"peak: 469bp / May 2023", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,720],[2016,7,580],[2016,10,470],[2017,1,410],[2017,4,395],[2017,7,375],[2017,10,360],
+      [2018,1,355],[2018,4,365],[2018,7,365],[2018,10,425],[2019,1,510],[2019,4,400],[2019,7,395],[2019,10,400],
+      [2020,1,395],[2020,3,1090],[2020,4,820],[2020,7,490],[2020,10,440],
+      [2021,1,365],[2021,4,310],[2021,7,300],[2021,10,310],
+      [2022,1,330],[2022,4,395],[2022,7,470],[2022,10,510],
+      [2023,1,460],[2023,4,455],[2023,7,400],[2023,10,425],
+      [2024,1,385],[2024,4,394],[2024,7,355],[2024,10,330],
+      [2025,1,340],[2025,4,360],[2025,7,335],[2025,10,310],
+      [2026,1,328],[2026,4,285],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Today's entry into bottom quartile", spx6:null, spx12:null },
+      { period:"Apr 2024", note:"Most-recent prior bottom-quartile entry", spx6:"+12%", spx12:"+22%" },
+      { period:"Aug 2021", note:"Peak complacency before 2022 selloff", spx6:"-4%", spx12:"-18%" },
+      { period:"Jan 2018", note:"Late-cycle compression", spx6:"+2%", spx12:"-6%" },
+      { period:"Jun 2014", note:"Pre-energy-crisis tightness", spx6:"+5%", spx12:"+5%" },
+    ],
+    comovement: [
+      { peer:"IG OAS (Baa - 10y)", c1y:"+0.89", c5y:"+0.85", n1:"12", n5:"36" },
+      { peer:"VIX",                 c1y:"+0.62", c5y:"+0.51", n1:"12", n5:"60" },
+      { peer:"MOVE",                c1y:"+0.51", c5y:"+0.44", n1:"12", n5:"60" },
+      { peer:"S&P 500",             c1y:"-0.44", c5y:"-0.38", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"Apr 30, 2026", next:"May 1, 2026 (T+1)", source:"FRED · ICE BofA · BAMLH0A0HYM2" },
+    source_url: "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+    formula: "ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
+    caveat: "ICE BofA license restricts FRED's free history to post-2011. The 2008 GFC peak (~2,000 bp) is out of sample.",
+  },
 };
+
+
+
+// Build trajectory chart for any indicator's natural-unit history.
+// Replaces the prior basis-points-only buildIndicatorTrajectorySvg.
+function buildIndicatorTrajectoryAny(drill, dotColor) {
+  const points = drill.traj || drill.traj_bp || [];
+  if (points.length < 2) return "";
+  const W = 760, H = 180;
+  const padL = 50, padR = 12, padT = 12, padB = 24;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const N = points.length;
+  const vals = points.map(p => p[2]);
+  const vMin = Math.min(...vals), vMax = Math.max(...vals);
+  const vRange = vMax - vMin;
+  const yMin = vMin - vRange * 0.05;
+  const yMax = vMax + vRange * 0.05;
+  const mean = vals.reduce((a,b)=>a+b, 0) / N;
+  const variance = vals.reduce((a,b)=>a + (b - mean)**2, 0) / N;
+  const sd = Math.sqrt(variance);
+  const x = (i) => padL + (i / Math.max(1, N - 1)) * innerW;
+  const y = (v) => padT + (1 - (v - yMin) / (yMax - yMin)) * innerH;
+  const pathD = points.map((p,i) => `${i===0?"M":"L"}${x(i).toFixed(1)},${y(p[2]).toFixed(1)}`).join(" ");
+
+  // COVID recession band
+  let recStart = -1, recEnd = -1;
+  points.forEach((p,i) => {
+    if (recStart === -1 && p[0]===2020 && p[1]>=2) recStart = i;
+    if (p[0]===2020 && p[1]<=4) recEnd = i;
+  });
+  let recBand = "";
+  if (recStart >= 0 && recEnd >= recStart) {
+    const x1 = x(recStart), x2 = x(recEnd);
+    recBand = `<rect x="${x1}" y="${padT}" width="${(x2-x1).toFixed(1)}" height="${innerH}" fill="rgba(122,20,20,0.10)"/>`;
+  }
+  const sdTopY = y(mean + sd), sdBotY = y(mean - sd);
+  const sdBand = `<rect x="${padL}" y="${sdTopY.toFixed(1)}" width="${innerW}" height="${(sdBotY - sdTopY).toFixed(1)}" fill="rgba(122,20,20,0.04)"/>`;
+
+  // Y axis labels — three ticks: max, mean, min (rounded sensibly)
+  const fmt = drill.unit_fmt || (v => v.toFixed(2));
+  const yTicks = [
+    { v: vMax, label: fmt(vMax) },
+    { v: mean, label: fmt(mean) },
+    { v: vMin, label: fmt(vMin) },
+  ];
+  const lastX = x(N-1), lastY = y(points[N-1][2]);
+  const firstYr = points[0][0], lastYr = points[N-1][0];
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+    ${recBand}
+    ${sdBand}
+    <line x1="${padL}" x2="${W-padR}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="${cssVar('--border-strong')}" stroke-width="0.5" stroke-dasharray="4 4"/>
+    ${yTicks.map(t => `<text x="${padL-6}" y="${y(t.v)+3}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${t.label}</text>`).join("")}
+    <text x="${W-padR}" y="${y(mean)-4}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">mean ${fmt(mean)}</text>
+    <path d="${pathD}" stroke="${cssVar('--ink-3')}" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4.5" fill="${dotColor}" stroke="#fff" stroke-width="1.6"/>
+    <text x="${padL}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
+    <text x="${(W/2).toFixed(0)}" y="${H-6}" font-size="11" fill="rgba(122,20,20,0.6)" text-anchor="middle" font-family="JetBrains Mono" font-weight="500">COVID 2020</text>
+  </svg>`;
+}
 
 function openIndicatorDrawer(ind, tile) {
   if (!ind) return;
-  if (ind.id !== "hy_oas") {
-    showToast(`Indicator drawer wired only on HY OAS in this mockup. In production every indicator opens this same drawer.`);
+  const drill = DRILLS[ind.id];
+  if (!drill) {
+    showToast(`No drilldown data for ${ind.name} yet.`);
     return;
   }
   const body = document.getElementById("modalBody");
-  const drill = HY_OAS_DRILL;
+  const tileColor = BAND_COLORS[tile.band].active;
+
   let h = "";
   h += `<div style="margin-bottom:10px;"><button type="button" onclick="reopenTileModal('${tile.id}')" style="border:none;background:transparent;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;letter-spacing:0.04em;padding:0;">‹ BACK TO ${tile.name.toUpperCase()}</button></div>`;
   h += `<div class="modal-eyebrow">${tile.name} / indicator</div>`;
-  h += `<div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;margin-bottom:8px;">FRED · BAMLH0A0HYM2 · Daily</div>`;
+  h += `<div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;margin-bottom:8px;">${drill.header_label}</div>`;
   h += `<div class="modal-h"><h3>${ind.name}</h3>
     <div style="text-align:right;">
       <div class="dial-score-num">${ind.value}</div>
@@ -1282,14 +1723,24 @@ function openIndicatorDrawer(ind, tile) {
     h += `<div class="kpi"><div class="lbl">${k.lbl}</div><div class="val ${k.dir}">${k.val}</div><div class="meta">${k.meta}</div></div>`;
   });
   h += `</div>`;
+
+  // Chart caption
+  const points = drill.traj || drill.traj_bp;
+  const fmt = drill.unit_fmt || (v => v.toFixed(2));
+  const vals = points.map(p => p[2]);
+  const meanVal = vals.reduce((a,b)=>a+b,0) / vals.length;
+  const minVal = Math.min(...vals), maxVal = Math.max(...vals);
+  const sample = ind.sample || "post-2011";
+
   h += `<div class="modal-block">
-    <div class="modal-block-eyebrow">History · 10-year · basis points</div>
-    <div style="position:relative;">${buildIndicatorTrajectorySvg(drill, BAND_COLORS.darkblood.active)}</div>
-    <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);margin-top:8px;letter-spacing:0.04em;">Mean ${(function(){const v=drill.traj_bp.map(p=>p[2]);return Math.round(v.reduce((a,b)=>a+b,0)/v.length);})()} bp · current 285 bp · sample range 265–880 bp (post-2011)</div>
+    <div class="modal-block-eyebrow">History · 10-year · ${drill.axis_label}</div>
+    <div style="position:relative;">${buildIndicatorTrajectoryAny(drill, tileColor)}</div>
+    <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);margin-top:8px;letter-spacing:0.04em;">Mean ${fmt(meanVal)} · current ${ind.value} · sample range ${fmt(minVal)}–${fmt(maxVal)} (${sample})</div>
   </div>`;
+
   h += `<div class="modal-block">
-    <div class="modal-block-eyebrow">Last entries into bottom quartile · S&P forward returns</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-style:italic;">Historical reference, not a forecast. 3-month confirmation rule on monthly grid. Sample size precludes hit-rate claims.</div>
+    <div class="modal-block-eyebrow">Notable historical reads · S&P forward returns</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-style:italic;">Historical reference, not a forecast. Sample size precludes hit-rate claims.</div>
     <table style="width:100%;font-size:14px;border-collapse:collapse;">
       <thead><tr>${["Period","Note","SPX next 6m","SPX next 12m"].map(c=>`<th style="text-align:left;font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--muted);border-bottom:0.5px solid var(--ink);padding:8px 12px 6px 0;">${c}</th>`).join("")}</tr></thead>
       <tbody>${drill.episodes.map(e=>{
@@ -1299,6 +1750,7 @@ function openIndicatorDrawer(ind, tile) {
       }).join("")}</tbody>
     </table>
   </div>`;
+
   h += `<div class="modal-block">
     <div class="modal-block-eyebrow">Co-movement · top correlated framework indicators</div>
     <div style="display:grid;grid-template-columns:1fr 90px 90px;gap:14px;padding:6px 0 8px;border-bottom:0.5px solid var(--ink);font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--muted);">
@@ -1309,17 +1761,20 @@ function openIndicatorDrawer(ind, tile) {
       <div style="text-align:right;font-family:var(--mono);font-weight:500;"><span>${c.c1y}</span><span style="display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;">n=${c.n1}</span></div>
       <div style="text-align:right;font-family:var(--mono);font-weight:500;"><span>${c.c5y}</span><span style="display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;">n=${c.n5}</span></div>
     </div>`).join("")}
-    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.55;">Pearson correlation on monthly first differences. <strong>1y</strong> = current-regime read. <strong>5y</strong> = cycle-average read. The gap between the two flags whether the relationship is in its normal pattern or a new regime.</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.55;">Pearson correlation on monthly first differences. <strong>1y</strong> = current-regime read. <strong>5y</strong> = cycle-average read.</div>
   </div>`;
+
   h += `<div class="modal-block">
     <div class="modal-block-eyebrow">Release calendar</div>
     ${[["Frequency",drill.release.freq],["Last release",drill.release.last],["Next release",drill.release.next],["Source",drill.release.source]].map(r=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px dashed var(--border);font-size:14px;"><span style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;font-weight:600;">${r[0]}</span><span style="color:var(--ink);">${r[1]}</span></div>`).join("")}
   </div>`;
+
   h += `<div style="border-top:0.5px solid var(--border);padding-top:16px;font-size:14px;color:var(--ink-2);line-height:1.6;margin-top:4px;">
     <div style="margin-bottom:10px;"><strong style="color:var(--ink);">Formula.</strong> ${drill.formula}</div>
-    <div style="margin-bottom:10px;"><strong style="color:var(--ink);">Source.</strong> FRED: BAMLH0A0HYM2 · <a href="${drill.source_url}" target="_blank" style="color:var(--ink);">view on FRED</a></div>
-    <div style="margin-bottom:10px;font-style:italic;color:var(--muted);"><strong style="color:var(--ink);font-style:normal;">Caveat.</strong> ${drill.caveat}</div>
+    <div style="margin-bottom:10px;"><strong style="color:var(--ink);">Source.</strong> <a href="${drill.source_url}" target="_blank" style="color:var(--ink);">${drill.release.source}</a></div>
+    ${drill.caveat ? `<div style="margin-bottom:10px;font-style:italic;color:var(--muted);"><strong style="color:var(--ink);font-style:normal;">Caveat.</strong> ${drill.caveat}</div>` : ""}
   </div>`;
+
   body.innerHTML = h;
   document.getElementById("modalCard").scrollTop = 0;
 }
