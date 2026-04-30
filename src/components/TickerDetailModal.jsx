@@ -44,6 +44,9 @@ function SignalIntelligenceRail({
   flowCalls, flowPuts, darkPoolPrints, news,
   nextEarn, earnTimeForChip, impMove30, scrollToSection,
 }) {
+  // Last-4-quarters earnings strip — reads from public.earnings_history,
+  // which is refreshed weekly by trading-scanner/run_earnings_history.py.
+  const earningsHist = useEarningsHistory(ticker);
   const fmtSigned = v => v == null ? "—" : `${v >= 0 ? "+" : ""}${v}`;
   const ragColor = state => state === "green" ? "var(--green-text, #1a8c39)"
                           : state === "amber" ? "var(--yellow-text, #B8860B)"
@@ -947,7 +950,6 @@ const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
 // populated by the daily Massive cron) is the floor. Falls through to
 // the legacy waterfall if both miss (very rare — only inactive tickers).
 const massiveInfo=useMassiveTickerInfo(ticker);
-const earningsHist=useEarningsHistory(ticker);
 const deepDive=useTickerDeepDive(ticker);
 const companyName=normalizeTickerName(sc.full_name||sc.company_name||scanData?.ticker_names?.[ticker]||watchlistEntry?.name||heldIn[0]?.p?.name||massiveInfo.name||ticker);
 // Legacy 0–100 score gauge retired — the modal now leads with the signal
