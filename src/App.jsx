@@ -6586,6 +6586,97 @@ Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-t
 </div>
 )}
 
+{/* NAV-OVER-TIME · TIME-WEIGHTED — Phase 3 PR #8. Inline SVG line chart of
+    aggregated portfolio NAV from portfolio_history (Modified Dietz aggregate
+    series). Optional SPY benchmark line rebased to the portfolio's first NAV
+    so the comparison is visual + apples-to-apples (both start at the same
+    point). No chart library — pure SVG to keep the bundle thin. */}
+{showInsights && _portfolioReturns?.aggregate && _portfolioReturns.aggregate.length >= 2 && (()=>{
+  const agg = _portfolioReturns.aggregate;
+  // Slim history → [{d, spx}] from composite_history_daily.json (already
+  // pulled by the existing _spxHistory effect).
+  const portStart = agg[0].as_of;
+  // SPY benchmark, rebased: pin SPY's value on portStart to portfolio's first NAV.
+  // Then walk SPY forward by its returns to a parallel series.
+  let spyLine = null;
+  if (Array.isArray(_spxHistory) && _spxHistory.length > 0) {
+    // Find SPY value at-or-before portStart for the anchor.
+    let anchorIdx = -1;
+    for (let i = _spxHistory.length - 1; i >= 0; i--) {
+      if (_spxHistory[i].d <= portStart) { anchorIdx = i; break; }
+    }
+    if (anchorIdx >= 0) {
+      const spyAnchor = _spxHistory[anchorIdx].spx;
+      const portAnchor = agg[0].nav;
+      // Map portfolio dates → nearest SPY value (forward-fill).
+      spyLine = agg.map(p => {
+        let si = -1;
+        for (let i = _spxHistory.length - 1; i >= 0; i--) {
+          if (_spxHistory[i].d <= p.as_of) { si = i; break; }
+        }
+        if (si < 0) return null;
+        const spyNow = _spxHistory[si].spx;
+        const rebased = portAnchor * (spyNow / spyAnchor);
+        return { as_of: p.as_of, v: rebased };
+      }).filter(x => x);
+    }
+  }
+  // Layout
+  const W = 720, H = 220, M = { l: 56, r: 16, t: 12, b: 28 };
+  const innerW = W - M.l - M.r;
+  const innerH = H - M.t - M.b;
+  const navMin = Math.min(...agg.map(p => p.nav), ...(spyLine ? spyLine.map(p => p.v) : []));
+  const navMax = Math.max(...agg.map(p => p.nav), ...(spyLine ? spyLine.map(p => p.v) : []));
+  const padPct = 0.06;
+  const yMin = navMin - (navMax - navMin) * padPct;
+  const yMax = navMax + (navMax - navMin) * padPct;
+  const xOf = i => M.l + (i / (agg.length - 1)) * innerW;
+  const yOf = v => M.t + (1 - (v - yMin) / (yMax - yMin)) * innerH;
+  const navPoints = agg.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.nav).toFixed(1)}`).join(" ");
+  // Build SPY point list keyed off the same x-positions (one entry per agg row).
+  const spyPoints = spyLine ? spyLine.map((p, i) => `${xOf(i).toFixed(1)},${yOf(p.v).toFixed(1)}`).join(" ") : null;
+  // Y-axis ticks at min, mid, max
+  const ticks = [yMin, (yMin + yMax) / 2, yMax];
+  const fmt$K = v => v >= 1000 ? `$${Math.round(v / 1000).toLocaleString()}K` : `$${Math.round(v).toLocaleString()}`;
+  // X-axis labels at first, mid, last
+  const xLabels = [agg[0].as_of, agg[Math.floor(agg.length / 2)].as_of, agg[agg.length - 1].as_of];
+  const portReturn = (agg[agg.length - 1].nav / agg[0].nav - 1) * 100;
+  const spyReturn = spyLine ? (spyLine[spyLine.length - 1].v / spyLine[0].v - 1) * 100 : null;
+  const portCol = portReturn >= 0 ? "var(--green-text)" : "var(--orange-text)";
+  return (
+    <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8,gap:12,flexWrap:"wrap"}}>
+        <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.15em",fontWeight:700}}>NAV OVER TIME · TIME-WEIGHTED</div>
+        <div style={{display:"flex",gap:18,fontFamily:"monospace",fontSize:11,color:"var(--text-muted)"}}>
+          <span><span style={{display:"inline-block",width:10,height:2,background:"var(--accent)",verticalAlign:"middle",marginRight:6}}></span>Portfolio <strong style={{color:portCol,marginLeft:4}}>{portReturn>=0?"+":""}{portReturn.toFixed(1)}%</strong></span>
+          {spyReturn != null && <span><span style={{display:"inline-block",width:12,height:2,background:"var(--text-dim)",verticalAlign:"middle",marginRight:6,borderTop:"1px dashed var(--text-dim)"}}></span>SPY (rebased) <strong style={{color:"var(--text-2)",marginLeft:4}}>{spyReturn>=0?"+":""}{spyReturn.toFixed(1)}%</strong></span>}
+        </div>
+      </div>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{display:"block",overflow:"visible"}} preserveAspectRatio="none">
+        {/* Y grid */}
+        {ticks.map((tv, i) => (
+          <g key={`y${i}`}>
+            <line x1={M.l} x2={M.l + innerW} y1={yOf(tv)} y2={yOf(tv)} stroke="var(--border-faint)" strokeDasharray={i === 1 ? "2 4" : "0"} strokeWidth="1" />
+            <text x={M.l - 6} y={yOf(tv) + 3} textAnchor="end" fontSize="9" fontFamily="monospace" fill="var(--text-muted)">{fmt$K(tv)}</text>
+          </g>
+        ))}
+        {/* X labels */}
+        {xLabels.map((d, i) => (
+          <text key={`x${i}`} x={M.l + (i / 2) * innerW} y={H - 8} textAnchor={i === 0 ? "start" : i === 2 ? "end" : "middle"} fontSize="9" fontFamily="monospace" fill="var(--text-muted)">{d}</text>
+        ))}
+        {/* SPY line first (under) */}
+        {spyPoints && <polyline fill="none" stroke="var(--text-dim)" strokeWidth="1.4" strokeDasharray="3 3" points={spyPoints} />}
+        {/* Portfolio line on top */}
+        <polyline fill="none" stroke="var(--accent)" strokeWidth="1.8" points={navPoints} />
+        {/* End-point dots */}
+        <circle cx={xOf(agg.length - 1)} cy={yOf(agg[agg.length - 1].nav)} r="3" fill="var(--accent)" />
+        {spyLine && spyLine.length > 0 && <circle cx={xOf(spyLine.length - 1)} cy={yOf(spyLine[spyLine.length - 1].v)} r="2.5" fill="var(--text-dim)" />}
+      </svg>
+      <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.04em",marginTop:6}}>{agg.length} monthly observations · {portStart} → {agg[agg.length - 1].as_of}. SPY benchmark rebased so both lines start at the same NAV (so the curves compare visually). Aggregate-first TWR rollup; flows netted out.</div>
+    </div>
+  );
+})()}
+
 {/* REALIZED P&L · CLOSED TRADES — Phase 5A. 4 cards (YTD/1M/3M/Lifetime),
     each shows total realized P&L; tooltip breaks short-term vs long-term.
     Sourced from public.transactions.realized_pnl + is_long_term, windowed
