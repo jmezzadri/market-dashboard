@@ -1,131 +1,139 @@
-// AssetAllocation — page taken down (v2) for Senior Quant calibration audit.
+// AssetAllocation — page is offline behind a calibration banner pending
+// Senior Quant sign-off on bugs #1122 + #1125. The full allocation surface
+// (KPI strip, IG-25 ranking, drill-downs) lives in the working tree but
+// will not return to main until the threshold + R&L-staleness fixes have
+// been backtested 1985–2026 and approved.
 //
-// 2026-04-28 evening: after the Phase B rebuild restored the page, Joe
-// surfaced multiple Senior Quant calibration errors that the rebuild had
-// preserved unchanged:
+// Three open calibration items, summarized in the banner below:
+//   1. HY OAS threshold (#1125, P0). The Risk Scenarios narrative says
+//      "HY OAS > 250bp activates the defensive sleeve." HY OAS has never
+//      been below 259bp in 812 days; real stress is 500–700bp (Joe's read:
+//      4-6%). The 250bp number is narrative only — the model actually
+//      keys defensive activation off the R&L composite. Fix is either
+//      raise the threshold to ~500bp armed / 600bp active OR rewrite the
+//      narrative to describe what the model does. Either path needs
+//      Senior Quant backtest before merge.
+//   2. v9 reads month-end R&L (#1122 family). v9_allocation.json shows
+//      regime.risk_liquidity from end-of-March; daily R&L today is the
+//      different number visible on Today's Macro. Production lag is ~1mo
+//      under the lookahead-safety rule.
+//   3. Risk Scenarios narrative does not match model behavior. Defensive
+//      sleeve is keyed off R&L composite — not direct factor wiring on
+//      HY OAS, VIX, real rates as copy currently implies.
 //
-//   1. HY-IG / HY OAS threshold is below historical floor.
-//      The Risk Scenarios narrative says "HY-IG > 250bp activates the
-//      defensive sleeve". Pulled from FRED (BAMLH0A0HYM2 = HY OAS over
-//      Treasuries) the indicator has NEVER been below 259bp in the 812-day
-//      sample. Real stress is 500bp+ (Joe's intuition: 4-6%). The 250bp
-//      threshold has been continuously breached for the entire dataset
-//      yet the model has not had its defensive sleeve continuously on —
-//      i.e. the threshold isn't actually wired to the model.
-//
-//   2. R&L composite read by v9 is month-end-stale.
-//      v9_allocation.json regime.risk_liquidity = 30.9 (end of March
-//      2026). composite_history_daily.json today shows R&L = -20.7. The
-//      model uses `prior_dt = last_complete_month - MonthEnd(1)` for
-//      lookahead-safety which means production recommendations always lag
-//      the visible composite by ~1 month. User reads R&L = -20.7 (calm)
-//      on the gauges, then sees "Model has de-risked" on Asset Tilt; the
-//      two numbers are the same composite at different dates.
-//
-//   3. Risk Scenarios narrative does not describe what model actually
-//      does. Defensive sleeve activation is keyed off the R&L composite
-//      score, not directly off HY OAS, real rates, VIX, etc. The current
-//      copy implies direct trigger wiring that doesn't exist.
-//
-// All three are calibration / Senior Quant issues, not display issues.
-// They cannot be fixed by re-skinning the React. They require: (a) a
-// re-validation pass on every threshold against historical distributions,
-// (b) a decision on month-end-stale vs daily-fresh model output, (c) a
-// rewrite of the trigger-narrative to match actual model behavior, and
-// (d) backtest validation before any production change ships.
-//
-// Until that work is complete and the Senior Quant signs it off, the page
-// renders this banner instead of misleading numbers.
+// Until the Senior Quant signs off, the page renders this banner. The
+// design here is v11-aligned (Fraunces 28 header, Inter 14 body, mono 11
+// metadata, darkblood-subtle pill, single off-white surface) so the
+// brand stays consistent with Macro Overview.
 
 export default function AssetAllocation() {
   return (
-    <main style={{ maxWidth: 880, margin: "0 auto", padding: "var(--space-12) var(--space-8)" }}>
+    <main style={{
+      maxWidth: 920,
+      margin: "0 auto",
+      padding: "60px 32px 80px",
+      fontFamily: "var(--font-body, Inter, sans-serif)",
+    }}>
       <section style={{
-        padding: "var(--space-10) var(--space-8)",
+        padding: "44px 40px",
         background: "var(--surface-solid, var(--surface))",
-        border: "1px solid var(--border-strong, var(--border))",
-        borderRadius: "var(--radius-lg)",
+        border: "0.5px solid var(--border-strong, var(--border))",
+        borderRadius: 12,
         textAlign: "center",
       }}>
+        {/* Status pill — v11 darkblood-subtle bg, darkblood-active text */}
         <div style={{
           display: "inline-flex",
           alignItems: "center",
           gap: 8,
           padding: "5px 12px",
           borderRadius: 999,
-          background: "rgba(255,69,58,0.14)",
-          color: "#7a1414",
+          background: "var(--darkblood-subtle, rgba(122,20,20,0.14))",
+          color: "var(--darkblood-active, #7a1414)",
+          fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
           fontSize: 11,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
           fontWeight: 600,
-          marginBottom: 18,
+          letterSpacing: "0.10em",
+          textTransform: "uppercase",
+          marginBottom: 22,
         }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#a01818" }}/>
-          Asset Tilt — under quant calibration review
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--darkblood-active, #7a1414)" }}/>
+          Asset Tilt · under quant calibration review
         </div>
 
+        {/* Headline — v11 Fraunces 28 */}
         <h1 style={{
           fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
-          fontSize: 32,
+          fontSize: 28,
           fontWeight: 400,
           margin: "0 0 14px",
           letterSpacing: "-0.012em",
-          lineHeight: 1.15,
+          lineHeight: 1.22,
+          color: "var(--text)",
         }}>
           Senior Quant is re-validating this page front to back.
         </h1>
 
+        {/* Lede — v11 14 body */}
         <p style={{
-          fontSize: 14.5,
-          lineHeight: 1.65,
+          fontSize: 14,
+          lineHeight: 1.6,
           color: "var(--text-2, var(--text-muted))",
-          maxWidth: 600,
-          margin: "0 auto 14px",
+          maxWidth: 620,
+          margin: "0 auto 18px",
         }}>
-          On 2026-04-28 we surfaced three Senior Quant calibration issues that
-          can't be fixed at the display layer:
+          Three Senior Quant calibration issues surfaced 2026-04-28 that can't be fixed at the display layer.
+          Each requires a re-validation pass against historical distributions and a back-test before the page returns.
         </p>
 
+        {/* Issue list — v11 surface treatment */}
         <div style={{
           textAlign: "left",
-          maxWidth: 640,
+          maxWidth: 660,
           margin: "0 auto 22px",
-          padding: "16px 20px",
-          background: "var(--bg, #fafaf7)",
+          padding: "18px 22px",
+          background: "var(--bg)",
           border: "0.5px solid var(--border)",
-          borderRadius: 8,
-          fontSize: 13,
+          borderRadius: 12,
+          fontSize: 14,
           lineHeight: 1.65,
           color: "var(--text-2, var(--text-muted))",
         }}>
           <ol style={{ margin: 0, paddingLeft: 20 }}>
-            <li style={{ marginBottom: 8 }}>
-              <strong>HY OAS threshold of 250bp is below the historical floor.</strong>{" "}
-              HY OAS has not been below 259bp in the dataset; real stress doesn't kick in until 500–700bp+.
+            <li style={{ marginBottom: 10 }}>
+              <strong style={{ color: "var(--text)" }}>HY OAS threshold sits below the historical floor (#1125).</strong>{" "}
+              The narrative promises "HY OAS &gt; 250bp activates the defensive sleeve," but HY OAS has never been below 259bp in the 812-day sample.
+              Real stress is 500–700bp+; the model itself keys defensive activation off the R&amp;L composite, not HY OAS directly.
+              Fix is either re-thresholding (with backtest) or rewriting the copy to describe what the model actually does.
             </li>
-            <li style={{ marginBottom: 8 }}>
-              <strong>The model reads month-end R&amp;L.</strong>{" "}
-              v9 is using a value from end of March (R&amp;L = 30.9) while today's R&amp;L is −20.7. Recommendations lag the visible composite by ~1 month.
+            <li style={{ marginBottom: 10 }}>
+              <strong style={{ color: "var(--text)" }}>R&amp;L composite read by v9 is month-end-stale (#1122).</strong>{" "}
+              v9_allocation.json holds end-of-March R&amp;L (30.9); today's daily composite reads −20.7.
+              Lookahead-safety rule means production recommendations lag the visible composite by ~1 month.
+              Decision pending: month-end-stale vs daily-fresh.
             </li>
             <li>
-              <strong>Risk Scenario narrative doesn't match the model.</strong>{" "}
-              The defensive sleeve activates on the R&amp;L composite score, not directly on HY, VIX, or real rates as the copy implies.
+              <strong style={{ color: "var(--text)" }}>Risk Scenarios narrative doesn't describe model behavior.</strong>{" "}
+              Defensive sleeve activates on the R&amp;L composite score — not directly on HY OAS, real rates, or VIX as the current copy implies.
+              Trigger-narrative will be rewritten to match actual model logic.
             </li>
           </ol>
         </div>
 
+        {/* Tail copy */}
         <p style={{
-          fontSize: 13,
+          fontSize: 14,
           lineHeight: 1.6,
           color: "var(--text-muted)",
-          maxWidth: 560,
+          maxWidth: 580,
           margin: "0 auto 24px",
           fontStyle: "italic",
         }}>
-          The composite gauges, scanners, watchlist, and Macro Overview are unaffected. The page will return only after every threshold has been re-validated against historical distributions and back-tested.
+          Macro Overview, scanners, watchlist, and the composite gauges are unaffected.
+          Asset Tilt returns once each threshold is re-validated against historical distributions and back-tested.
         </p>
 
+        {/* CTA */}
         <a href="#overview" style={{
           display: "inline-block",
           padding: "11px 20px",
@@ -133,23 +141,29 @@ export default function AssetAllocation() {
           color: "#fff",
           borderRadius: 6,
           textDecoration: "none",
-          fontSize: 13,
-          fontWeight: 500,
-          letterSpacing: "0.01em",
+          fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: "0.10em",
+          textTransform: "uppercase",
         }}>
           Go to Macro Overview →
         </a>
 
+        {/* Status footer — v11 mono 11 */}
         <div style={{
-          marginTop: 32,
-          paddingTop: 18,
+          marginTop: 28,
+          paddingTop: 16,
           borderTop: "0.5px dashed var(--border)",
+          fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
           fontSize: 11,
+          fontWeight: 500,
           color: "var(--text-muted)",
-          lineHeight: 1.6,
+          lineHeight: 1.7,
+          letterSpacing: "0.04em",
         }}>
-          Status: under quant calibration review · 2026-04-28 evening · Senior Quant lead<br/>
-          Tracking: bugs <strong>#1113</strong>, <strong>#1122</strong>, <strong>#1123</strong>, <strong>#1124</strong>, <strong>#1125</strong>
+          Status: under quant calibration review · Senior Quant lead · 2026-04-28 evening<br/>
+          Tracking: bugs <strong>#1122</strong> · <strong>#1125</strong>
         </div>
       </section>
     </main>
