@@ -45,6 +45,54 @@
     --mono: 'JetBrains Mono', SFMono-Regular, Menlo, monospace;
   }
 
+  /* ============================================================
+     DARK THEME — surfaces invert, ink lightens, state colors
+     brighten so they keep their semantic read on dark backgrounds.
+     v11 reads parent dashboard's [data-theme] and mirrors it.
+     ============================================================ */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --bg: #1a1a17;
+    --surface: #242421;
+    --border: #3a3a36;
+    --border-strong: #4a4a44;
+
+    --ink: #fafaf7;
+    --ink-2: #d8d8d4;
+    --ink-3: #a8a8a4;
+    --muted: #888884;
+    --muted-2: #686864;
+
+    --green-active: #6ba66b;
+    --green-subtle: #1f3520;
+    --amber-active: #d4a73d;
+    --amber-subtle: #3a2e16;
+    --oxblood-active: #c66830;
+    --oxblood-subtle: #3a201a;
+    --darkblood-active: #c44040;
+    --darkblood-subtle: #3a1818;
+  }
+
+  /* Verdict dial wedges + text — fills are inline SVG attrs which CSS
+     can override. Map each wedge id and label color via CSS so theme
+     toggle just works without touching JS. */
+  :root[data-theme="dark"] #wedge-riskon  { fill: #1f3520; }
+  :root[data-theme="dark"] #wedge-neutral { fill: #d4a73d; }
+  :root[data-theme="dark"] #wedge-caution { fill: #3a201a; }
+  :root[data-theme="dark"] #wedge-riskoff { fill: #3a1818; }
+  :root[data-theme="dark"] .verdict-svg text[fill="#7a7a72"] { fill: #888884; }
+  :root[data-theme="dark"] .verdict-svg text[fill="#1a1a1a"] { fill: #fafaf7; }
+  :root[data-theme="dark"] .verdict-svg line[stroke="#1a1a1a"] { stroke: #fafaf7; }
+  :root[data-theme="dark"] .verdict-svg circle[fill="#1a1a1a"] { fill: #fafaf7; }
+  :root[data-theme="dark"] .verdict-svg circle[stroke="#fff"] { stroke: #1a1a17; }
+
+  /* Modal scrim darker on dark theme so it still reads as overlay */
+  :root[data-theme="dark"] .modal-scrim { background: rgba(0,0,0,0.6); }
+
+  /* Indicator-row hover tint adapts */
+  :root[data-theme="dark"] .ind-row:hover { background: rgba(212,167,61,0.06); }
+
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body {
@@ -765,12 +813,61 @@ const TILES = [
 ];
 
 // Map band identifier → palette colors
-const BAND_COLORS = {
-  green:     { active: "#4a7c4a", subtle: "#d8e6d8" },
-  amber:     { active: "#b8860b", subtle: "#efe2c2" },
-  oxblood:   { active: "#a04518", subtle: "#e6cfc1" },
-  darkblood: { active: "#7a1414", subtle: "#e1c5c5" },
-};
+// ----------------------------------------------------------------------------
+// Theme sync — v11 mirrors the parent dashboard's [data-theme]. Same-origin
+// iframes can read the parent's documentElement directly. On theme change,
+// re-render the dials so the SVG fills pick up the new CSS-var values.
+// ----------------------------------------------------------------------------
+function syncThemeFromParent() {
+  let parentTheme = "light";
+  try {
+    parentTheme = (window.parent && window.parent !== window
+      && window.parent.document.documentElement.dataset.theme) || "light";
+  } catch (e) { parentTheme = "light"; }
+  document.documentElement.setAttribute("data-theme", parentTheme);
+}
+syncThemeFromParent();
+try {
+  if (window.parent && window.parent !== window) {
+    const obs = new MutationObserver(() => {
+      syncThemeFromParent();
+      BAND_COLORS = bandColors();
+      // Re-render dials so JS-built SVGs pick up the new palette
+      if (typeof renderDials === "function") renderDials();
+      // If a modal is open, re-open it so its trajectory SVG re-renders too
+      try {
+        const scrim = document.getElementById("modalScrim");
+        if (scrim && scrim.classList.contains("open")) {
+          const eyebrow = scrim.querySelector(".modal-eyebrow");
+          const tileName = eyebrow && eyebrow.textContent.split("·").pop().trim();
+          const t = TILES.find(x => x.name === tileName);
+          if (t) openModal(t);
+        }
+      } catch (e) { /* ignore modal re-render failure */ }
+    });
+    obs.observe(window.parent.document.documentElement, {
+      attributes: true, attributeFilter: ["data-theme"],
+    });
+  }
+} catch (e) { /* cross-origin or missing parent — skip observer */ }
+
+// Read a CSS variable from :root (theme-aware)
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// Theme-aware band colors. Read fresh on every call so theme changes propagate.
+function bandColors() {
+  return {
+    green:     { active: cssVar("--green-active"),     subtle: cssVar("--green-subtle") },
+    amber:     { active: cssVar("--amber-active"),     subtle: cssVar("--amber-subtle") },
+    oxblood:   { active: cssVar("--oxblood-active"),   subtle: cssVar("--oxblood-subtle") },
+    darkblood: { active: cssVar("--darkblood-active"), subtle: cssVar("--darkblood-subtle") },
+  };
+}
+// Backwards-compat alias for the rest of the script. Treat as a snapshot
+// (re-read by re-rendering on theme change).
+let BAND_COLORS = bandColors();
 
 // Score → band (matches the Sprint 1 calibration thresholds)
 function scoreToBand(score) {
@@ -871,7 +968,7 @@ function buildDialSvg(score, isLive, band) {
     const [x0i, y0i] = polar(R_inner, a0);
     const d = `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${R_outer} ${R_outer} 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${R_inner} ${R_inner} 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
     const isActive = i === activeIdx;
-    const fill = isActive ? w.active : (isLive ? w.subtle : "#e0ddd5");
+    const fill = isActive ? w.active : (isLive ? w.subtle : cssVar("--border"));
     out += `<path d="${d}" fill="${fill}"/>`;
   });
   // Pointer — sweeps from leftmost (180°) to current position. Line starts
@@ -883,9 +980,9 @@ function buildDialSvg(score, isLive, band) {
     const [px, py] = polar(R_outer + 6, a);
     const startDeg = -(180 - a);
     out += `<g class="dial-pointer-group" style="--from-deg:${startDeg}deg; --pivot-x:${cx}px; --pivot-y:${cy}px;">`;
-    out += `<line x1="${cx}" y1="${cy}" x2="${px.toFixed(2)}" y2="${py.toFixed(2)}" stroke="#1a1a1a" stroke-width="2.4" stroke-linecap="round"/>`;
-    out += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="3.8" fill="#1a1a1a" stroke="#fff" stroke-width="1.6"/>`;
-    out += `<circle cx="${cx}" cy="${cy}" r="4" fill="#1a1a1a"/>`;
+    out += `<line x1="${cx}" y1="${cy}" x2="${px.toFixed(2)}" y2="${py.toFixed(2)}" stroke="${cssVar('--ink')}" stroke-width="2.4" stroke-linecap="round"/>`;
+    out += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="3.8" fill="${cssVar('--ink')}" stroke="#fff" stroke-width="1.6"/>`;
+    out += `<circle cx="${cx}" cy="${cy}" r="4" fill="${cssVar('--ink')}"/>`;
     out += `</g>`;
   }
   out += "</svg>";
@@ -1041,16 +1138,16 @@ function buildModalTrajectorySvg(tile) {
   const firstYr = points[0][0], lastYr = points[N-1][0];
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
     ${recBand}
-    <line x1="${padL}" x2="${W-padR}" y1="${y(50)}" y2="${y(50)}" stroke="#cdc9bf" stroke-width="0.5" stroke-dasharray="3 4"/>
-    <line x1="${padL}" x2="${W-padR}" y1="${y(75)}" y2="${y(75)}" stroke="#e0ddd5" stroke-width="0.5" stroke-dasharray="2 5"/>
-    <line x1="${padL}" x2="${W-padR}" y1="${y(25)}" y2="${y(25)}" stroke="#e0ddd5" stroke-width="0.5" stroke-dasharray="2 5"/>
-    <text x="${padL-4}" y="${y(75)+3}" font-size="10" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">75</text>
-    <text x="${padL-4}" y="${y(50)+3}" font-size="10" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">50</text>
-    <text x="${padL-4}" y="${y(25)+3}" font-size="10" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">25</text>
-    <path d="${pathD}" stroke="#5a5a52" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    <line x1="${padL}" x2="${W-padR}" y1="${y(50)}" y2="${y(50)}" stroke="${cssVar('--border-strong')}" stroke-width="0.5" stroke-dasharray="3 4"/>
+    <line x1="${padL}" x2="${W-padR}" y1="${y(75)}" y2="${y(75)}" stroke="${cssVar('--border')}" stroke-width="0.5" stroke-dasharray="2 5"/>
+    <line x1="${padL}" x2="${W-padR}" y1="${y(25)}" y2="${y(25)}" stroke="${cssVar('--border')}" stroke-width="0.5" stroke-dasharray="2 5"/>
+    <text x="${padL-4}" y="${y(75)+3}" font-size="10" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">75</text>
+    <text x="${padL-4}" y="${y(50)+3}" font-size="10" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">50</text>
+    <text x="${padL-4}" y="${y(25)+3}" font-size="10" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">25</text>
+    <path d="${pathD}" stroke="${cssVar('--ink-3')}" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
     <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4" fill="${dotColor}" stroke="#fff" stroke-width="1.5"/>
-    <text x="${padL}" y="${H-6}" font-size="11" fill="#7a7a72" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
-    <text x="${W-padR}" y="${H-6}" font-size="11" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
+    <text x="${padL}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
     <text x="${(W/2).toFixed(0)}" y="${H-6}" font-size="11" fill="rgba(122,20,20,0.6)" text-anchor="middle" font-family="JetBrains Mono" font-weight="500">COVID 2020</text>
   </svg>`;
 }
@@ -1106,13 +1203,13 @@ function buildIndicatorTrajectorySvg(drill, dotColor) {
   return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
     ${recBand}
     ${sdBand}
-    <line x1="${padL}" x2="${W-padR}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="#cdc9bf" stroke-width="0.5" stroke-dasharray="4 4"/>
-    ${yTicks.map(t => `<text x="${padL-6}" y="${y(t.v)+3}" font-size="11" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${t.label}</text>`).join("")}
-    <text x="${W-padR}" y="${y(mean)-4}" font-size="11" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">mean ${Math.round(mean)} bp</text>
-    <path d="${pathD}" stroke="#5a5a52" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    <line x1="${padL}" x2="${W-padR}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="${cssVar('--border-strong')}" stroke-width="0.5" stroke-dasharray="4 4"/>
+    ${yTicks.map(t => `<text x="${padL-6}" y="${y(t.v)+3}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${t.label}</text>`).join("")}
+    <text x="${W-padR}" y="${y(mean)-4}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">mean ${Math.round(mean)} bp</text>
+    <path d="${pathD}" stroke="${cssVar('--ink-3')}" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
     <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4.5" fill="${dotColor}" stroke="#fff" stroke-width="1.6"/>
-    <text x="${padL}" y="${H-6}" font-size="11" fill="#7a7a72" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
-    <text x="${W-padR}" y="${H-6}" font-size="11" fill="#7a7a72" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
+    <text x="${padL}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
     <text x="${(W/2).toFixed(0)}" y="${H-6}" font-size="11" fill="rgba(122,20,20,0.6)" text-anchor="middle" font-family="JetBrains Mono" font-weight="500">COVID 2020</text>
   </svg>`;
 }
