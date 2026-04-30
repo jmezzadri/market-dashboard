@@ -61,9 +61,12 @@ def dashboard_paths():
 
 # ── MANUAL MONTHLY VALUES ─────────────────────────────────────────────────────
 # Update these once per month — takes 2 minutes
-# CAPE: https://www.multpl.com/shiller-pe
-CAPE_VALUE = 34.2
-CAPE_AS_OF = "Mar 2026"
+# CAPE is now scraped live from multpl.com (was: CAPE_VALUE/CAPE_AS_OF hardcoded
+# constants, manually edited monthly per Joe's old workflow). Joe directive
+# 2026-04-30 (Phase 3 PR #3b): swap to live source so Mech 1 Valuation tile
+# is auto-current. Senior Quant pick: multpl scrape (vs robust-shiller library
+# or FRED proxy). multpl.com publishes Shiller's monthly update in HTML; we
+# parse it with safe_multpl_cape() defined below.
 # ISM PMI is now pulled live from FRED NAPMPI (was: ISM_VALUE/ISM_AS_OF
 # hardcoded constants, manually edited monthly per Joe's old workflow).
 # Joe directive 2026-04-30 (Phase 3 PR #3a): swap to live FRED feed so the
@@ -182,6 +185,57 @@ def safe_yahoo(ticker):
         return None
 
 # ── FETCH ─────────────────────────────────────────────────────────────────────
+def safe_multpl_cape():
+    """Scrape Shiller CAPE monthly from multpl.com. Mirrors safe_fred / safe_yahoo
+    contract — returns (value: float, as_of: str) or None on persistent failure.
+
+    Why a scrape and not a library: multpl is the canonical free source for
+    Shiller's Cyclically-Adjusted P/E. The robust-shiller python library is a
+    wrapper over the same data and adds an unnecessary dep. FRED carries
+    SHILLER_PE_RATIO_MONTH but lags multpl by ~1 month.
+
+    Source: https://www.multpl.com/shiller-pe (HTML scrape).
+    Updated: monthly, by Robert Shiller / multpl maintainers.
+    Failure mode: same as safe_fred — log to pipeline_health, return None.
+    """
+    import time, re
+    URL = "https://www.multpl.com/shiller-pe"
+    UA  = "Mozilla/5.0 (compatible; MacroTilt/1.0; +https://macrotilt.com/)"
+    last_err = None
+    for attempt in range(2):
+        try:
+            req = urllib.request.Request(URL, headers={"User-Agent": UA, "Accept": "text/html"})
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                html = resp.read().decode("utf-8", errors="replace")
+            # Anchor on <div id="current">...Shiller PE Ratio</span>:</b> [number]
+            # Verified against live multpl.com HTML 2026-04-30.
+            m = re.search(
+                r'<div\s+id=["\']current["\'][^>]*>.*?Shiller PE Ratio.*?</b>\s*([0-9]+\.[0-9]+)',
+                html, re.DOTALL | re.IGNORECASE,
+            )
+            if not m:
+                last_err = "no CAPE number matched in #current div on multpl.com"
+                if attempt == 0:
+                    time.sleep(5); continue
+                break
+            value = float(m.group(1))
+            # As-of: multpl shows a real-time timestamp like "4:00 PM EDT, Wed Apr 29".
+            # We surface just the day for the indicator chip.
+            ma = re.search(
+                r'<div\s+id=["\']timestamp["\'][^>]*>\s*([^<]+?)\s*</div>',
+                html, re.DOTALL | re.IGNORECASE,
+            )
+            as_of = ma.group(1).strip() if ma else "live"
+            return value, as_of
+        except Exception as e:
+            last_err = str(e)
+            print(f"  ⚠ multpl CAPE attempt {attempt+1}: {e}")
+            if attempt == 0:
+                time.sleep(5); continue
+    _log_pipeline_health("CAPE", f"no fresh CAPE from multpl ({last_err})")
+    return None
+
+
 def fetch_all():
     results = {}
     print("\n── Fetching indicators ───────────────────────────────")
@@ -241,8 +295,9 @@ def fetch_all():
     r = safe_fred("DRTSCILM")
     if r: results["sloos_ci"] = (round(r[0], 1), r[1])
 
-    print("  CAPE (manual monthly)...")
-    results["cape"] = (CAPE_VALUE, CAPE_AS_OF)
+    print("  CAPE (Shiller, multpl.com scrape)...")
+    r = safe_multpl_cape()
+    if r: results["cape"] = (round(r[0], 2), r[1])
 
     print("  ISM Manufacturing PMI (FRED NAPMPI)...")
     r = safe_fred("NAPMPI")
@@ -482,7 +537,7 @@ if __name__ == "__main__":
     #     print(f"\n⚠ Daily AI email skipped: {e}")
 
     print("\n── Manual updates needed monthly ─────────────────────")
-    print(f"  CAPE ({CAPE_VALUE}): https://www.multpl.com/shiller-pe")
+    # CAPE now sourced live from multpl.com (PR #3b 2026-04-30).
     # ISM PMI now sourced live from FRED NAPMPI (PR #3a 2026-04-30).
     print(f"  Bank Unrealized Losses ({BANK_UNREAL_VALUE}): https://www.fdic.gov/analysis/quarterly-banking-profile")
     print("\nEdit the values at the top of this script to update them.")
