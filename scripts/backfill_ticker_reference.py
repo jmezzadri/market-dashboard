@@ -99,9 +99,13 @@ def supabase_get_all(sb_url, sb_key, table, columns, page_size=1000):
         if not body:
             break
         out.extend(body)
-        if len(body) < page_size:
-            break
-        offset += page_size
+        # Bug #1133-9: PostgREST has a server-side max-rows cap (1000) that
+        # overrides the client-requested limit. Advance by len(body), not
+        # page_size, and keep going until the server returns nothing. The
+        # old `len(body) < page_size: break` shortcut tripped on the very
+        # first page when page_size=2000, leaving the script blind to 92%
+        # of the universe.
+        offset += len(body)
     return out
 
 
