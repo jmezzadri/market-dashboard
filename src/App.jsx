@@ -5094,11 +5094,11 @@ const {session}=useSession();
 const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio}=useUserPortfolio();
 const portfolioAuthed=!!session;
 
-// Macro tile: latest 3-composite snapshot (RL/GR/IR) from
-// composite_history_daily.json — same data feeding the Macro Overview tab.
-// One-shot fetch on first render. Replaces the rolled-up COMP100 number
-// that didn't anchor to anything on the destination page.
-const [_macroLatestSnap, setMacroLatestSnap] = useState(null);
+// SPX history snapshot: the Portfolio Insights tile uses composite_history_daily.json's
+// SPXp series as the SPY benchmark for true-period (1W/1M/YTD/TTM) returns.
+// Phase 9 will replace this with prices_eod (Massive). v9_allocation.json drives the
+// Asset Allocation tab. The deprecated 3-composite snapshot (_macroLatestSnap) was
+// removed in PR #1b — modal switched to cycleBoardSnap.
 const [_v9Alloc, setV9Alloc] = useState(null);
 const [_spxHistory, setSpxHistory] = useState(null);
 // Cycle-mechanism board snapshot — same JSON the v11 Macro Overview page
@@ -5119,14 +5119,6 @@ useEffect(() => {
     .then(r => r.ok ? r.json() : null)
     .then(arr => {
       if (cancelled || !Array.isArray(arr) || arr.length === 0) return;
-      const last = arr[arr.length - 1];
-      if (last) {
-        setMacroLatestSnap({
-          RL: Number(last.RL),
-          GR: Number(last.GR),
-          IR: Number(last.IR),
-        });
-      }
       // Slim history → [{d, spx}] for the period-return calculation. Drops
       // null entries and pre-allocates so tile 04 can compute 1W/1M/YTD/TTM
       // returns synchronously.
