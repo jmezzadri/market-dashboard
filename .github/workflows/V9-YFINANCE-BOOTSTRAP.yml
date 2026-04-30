@@ -1,0 +1,43 @@
+# V9-YFINANCE-BOOTSTRAP — one-shot bootstrap of pre-Massive history (2003-01-01
+# through 2024-04-29) for the 18 v9 universe ETFs into public.prices_eod with
+# source='yfinance-bootstrap'.
+#
+# Why this exists: Polygon Basic tier silently caps historical aggs at ~2 years
+# (discovered PR #9-prep UAT 2026-04-30). The hybrid path Joe approved 2026-04-30:
+# yfinance carries the historical bulk once; Massive carries forward from
+# 2024-04-30. After this runs, PR #9-final swaps compute_v9_allocation.py from
+# yfinance to Supabase prices_eod and yfinance never touches the v9 chain again.
+#
+# Wall clock: ~2-3 minutes (yfinance bulk pull, no rate limit on unauth).
+# Trigger: workflow_dispatch only.
+
+name: V9-YFINANCE-BOOTSTRAP
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: v9-yfinance-bootstrap
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install yfinance + pandas
+        run: pip install yfinance pandas
+
+      - name: Run yfinance bootstrap
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PYTHONUNBUFFERED:          "1"
+        run: |
+          python3 scripts/bootstrap_yfinance_to_prices_eod.py
