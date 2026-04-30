@@ -13,6 +13,7 @@ import { useTickerEvents } from "./hooks/useTickerEvents";
 import SubCompositeStrip from "./components/SubCompositeStrip";
 import UniverseFreshness from "./components/UniverseFreshness";
 import { normalizeTickerName } from "./lib/nameFormat";
+import CONGRESS_ROSTER from "./data/congress_roster.json";
 
 const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
@@ -30,30 +31,28 @@ const TAB_META = {
 };
 
 // ── Congressional party lookup ────────────────────────────────────────────────
-// Curated 119th Congress (2025-2027) members appearing in scanner data.
-// Sourced from official US House/Senate rosters. "D" = Democrat, "R" = Republican, "I" = Independent.
-// TODO: replace with server-side enrichment once UW exposes a politician metadata endpoint, or
-// load github.com/unitedstates/congress-legislators data file at scanner-run time.
-const CONGRESS_PARTY = {
-  // House Democrats
-  "April Delaney": "D", "Cleo Fields": "D", "Gilbert Cisneros": "D",
-  "Jonathan Jackson": "D", "Josh Gottheimer": "D", "Lloyd Doggett": "D",
-  "Rick Larsen": "D",
-  // House Republicans
-  "August Lee Pfluger": "R", "Byron Donalds": "R", "David Taylor": "R",
-  "Kevin Hern": "R", "Mark Alford": "R", "Rich McCormick": "R",
-  "Thomas Kean": "R", "Tim Moore": "R", "Warren Davidson": "R",
-  "William Steube": "R",
-  // Senate Democrats / Independents
-  "John Fetterman": "D", "Sheldon Whitehouse": "D", "Tina Smith": "D",
-  // Senate Republicans
-  "John Boozman": "R", "Shelley Capito": "R",
-};
+// Source: github.com/unitedstates/congress-legislators (CC0). Refreshed monthly
+// by .github/workflows/REFRESH-CONGRESS-ROSTER.yml — bundled at build time as
+// src/data/congress_roster.json so the scanner has the full current-Congress
+// roster (~540 names) without a runtime fetch. Indexed by canonical name AND
+// alias (nickname variant) so disclosures using the called-by name resolve.
+const CONGRESS_PARTY_INDEX = (() => {
+  const idx = {};
+  for (const m of (CONGRESS_ROSTER?.members || [])) {
+    if (!m?.name) continue;
+    const party = m.party || null;
+    idx[m.name.trim()] = party;
+    for (const alias of (m.aliases || [])) {
+      if (alias) idx[alias.trim()] = party;
+    }
+  }
+  return idx;
+})();
 function partyOf(row) {
   // Allow upstream enrichment to override (server-side `party` field wins).
   if (row?.party) return String(row.party).toUpperCase().slice(0, 1);
   const n = (row?.name || "").trim();
-  return CONGRESS_PARTY[n] || null;
+  return CONGRESS_PARTY_INDEX[n] || null;
 }
 const PARTY_META = {
   D: { label: "Dem", color: "var(--blue-text)",   bg: "rgba(10,132,255,0.12)", border: "rgba(10,132,255,0.30)" },
