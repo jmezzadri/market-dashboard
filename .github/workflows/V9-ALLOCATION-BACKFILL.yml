@@ -55,7 +55,9 @@ jobs:
 
       - name: Run backfill replay
         env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          FRED_API_KEY:              ${{ secrets.FRED_API_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
           python backfill_allocation_history.py 2>&1 | tee backfill.log
 

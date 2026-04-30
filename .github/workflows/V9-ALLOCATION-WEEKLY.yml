@@ -128,7 +128,9 @@ jobs:
 
       - name: Recompute v9 allocation
         env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          FRED_API_KEY:              ${{ secrets.FRED_API_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python compute_v9_allocation.py
 
       - name: Commit + push if changed

@@ -116,6 +116,10 @@ jobs:
         # computes the current v9 allocation (5 picks, defensive split, leverage state),
         # writes public/v9_allocation.json. Methodology v9 LOCKED 2026-04-25 — see
         # asset-allocation-methodology-v9-LOCKED.md.
+        env:
+          FRED_API_KEY:              ${{ secrets.FRED_API_KEY }}
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python compute_v9_allocation.py
 
       - name: Commit + push v9 allocation if changed
