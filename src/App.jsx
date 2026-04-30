@@ -5574,11 +5574,12 @@ return(
       if (_cbMechs.length) {
         const _cbAvg = _cbMechs.reduce((a,t)=>a+(Number(t.score)||0),0) / _cbMechs.length;
         const _cbR   = Math.round(_cbAvg);
-        if (_cbAvg < 30)        { h = "Risk-on composite,";       em = ` average ${_cbR}/100 — most mechanisms calm.`; }
-        else if (_cbAvg < 50)   { h = "Calm-leaning composite,";  em = ` average ${_cbR}/100 — selective stress only.`; }
-        else if (_cbAvg < 65)   { h = "Mid-cycle composite,";     em = ` average ${_cbR}/100 — selective stress, not system-wide.`; }
-        else if (_cbAvg < 80)   { h = "Cautious composite,";      em = ` average ${_cbR}/100 — multiple mechanisms stretched.`; }
-        else                    { h = "Risk-off composite,";      em = ` average ${_cbR}/100 — system-wide stress.`; }
+        // Bands match the v11 page header copy: 0-25 Risk-on, 25-50 Neutral,
+        // 50-75 Caution, 75-100 Risk-off.
+        if (_cbAvg < 25)        { h = "Risk-on,";  em = ` average ${_cbR}/100 — most mechanisms benign.`; }
+        else if (_cbAvg < 50)   { h = "Neutral,";  em = ` average ${_cbR}/100 — selective heat in a few mechanisms.`; }
+        else if (_cbAvg < 75)   { h = "Caution,";  em = ` average ${_cbR}/100 — multiple mechanisms above the cohort.`; }
+        else                    { h = "Risk-off,"; em = ` average ${_cbR}/100 — broad-based heat across the board.`; }
       }
 
       // Shared styles for orientation tiles
@@ -5677,7 +5678,7 @@ return(
                style={stepTileStyle}>
             <div style={tileTagStyle}>{tileLineAccent} 01 · Macro</div>
             <h3 style={tileH3Style}>Where the cycle <em style={{fontStyle:"italic", color:"var(--accent)"}}>sits today.</em></h3>
-            <p style={tileBlurbStyle}>Six cycle mechanisms — Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth — scored 0 (calm) to 100 (stressed).</p>
+            <p style={tileBlurbStyle}>Six cycle mechanisms — Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth — scored 0–100 across four bands: Risk-on, Neutral, Caution, Risk-off.</p>
             <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
           </div>
 
@@ -5753,24 +5754,25 @@ return(
           // public/MacroTilt_Macro_Overview_Page_v11.html.
           const avg = mechs.reduce((a, t) => a + (Number(t.score)||0), 0) / mechs.length;
           const rounded = Math.round(avg);
+          // Bands match v11 footer copy: 0-25 Risk-on, 25-50 Neutral,
+          // 50-75 Caution, 75-100 Risk-off. No "stress/stressed" copy
+          // anywhere — Joe directive 2026-04-30. Lean on "above/below
+          // the cohort" or band-name vocabulary.
           let label, narrative;
-          if (avg < 30) {
-            label = "Risk-on composite";
-            narrative = "Most mechanisms calm; cycle is in a low-risk regime.";
+          if (avg < 25) {
+            label = "Risk-on";
+            narrative = "Most mechanisms read benign. Cycle is in a low-risk regime.";
           } else if (avg < 50) {
-            label = "Calm-leaning composite";
-            narrative = "Mostly benign reads with selective stress in a few mechanisms.";
-          } else if (avg < 65) {
-            label = "Mid-cycle composite";
+            label = "Neutral";
+            narrative = "Composite sits in the neutral band. A few mechanisms run hot, the rest stay calm.";
+          } else if (avg < 75) {
+            label = "Caution";
             const above = mechs.filter(t => t.score >= avg).map(t => t.name);
             const below = mechs.filter(t => t.score <  avg).map(t => t.name);
-            narrative = `${above.join(" and ")} above the cohort; ${below.join(" and ")} below. Selective stress, not system-wide.`;
-          } else if (avg < 80) {
-            label = "Cautious composite";
-            narrative = "Multiple mechanisms stretched. Defensive posture warranted.";
+            narrative = `${above.join(" and ")} above the cohort; ${below.join(" and ")} below. Heat is selective, not system-wide.`;
           } else {
-            label = "Risk-off composite";
-            narrative = "System-wide stress across most mechanisms.";
+            label = "Risk-off";
+            narrative = "Multiple mechanisms in the upper quartile. Broad-based heat — defensive posture warranted.";
           }
           // Bands per v11 footer copy: 0-25 Risk-on, 25-50 Neutral,
           // 50-75 Caution, 75-100 Risk-off.
@@ -5806,7 +5808,7 @@ return(
                 color:"var(--text)", marginBottom:"var(--space-4)",
                 paddingBottom:"var(--space-3)",
                 borderBottom:"1px solid var(--border-faint)",
-              }}>{label} — average {rounded}/100. {narrative}</div>
+              }}>{label} band — average {rounded}/100. {narrative}</div>
 
               {/* Six mechanism mini-cards — number, name, score/100. Band
                   color on the score; no Elevated/Calm pill (matches v11 dial
