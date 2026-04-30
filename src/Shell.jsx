@@ -23,9 +23,9 @@ export function useTheme() {
     if (typeof window === "undefined") return "light";
     const stored = localStorage.getItem(THEME_KEY);
     if (stored === "light" || stored === "dark") return stored;
-    // Migrate any legacy "auto" pref by resolving to current system pref
-    const sysDark = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches;
-    return sysDark ? "dark" : "light";
+    // First-time visitors land on light. Brand rule: "favor light" — light
+    // is the default; dark is opt-in via the toggle. (Joe directive 2026-04-29.)
+    return "light";
   });
 
   useEffect(() => {
