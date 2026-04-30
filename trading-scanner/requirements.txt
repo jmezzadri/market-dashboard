@@ -10,3 +10,6 @@ schwab-py>=0.0.0a24
 # public.user_scan_data. See scanner/supabase_io.py. Service-role client
 # bypasses RLS so the scanner can write on behalf of every user.
 supabase>=2.3.0
+# SPY sector weights ingest reads SSGA's daily holdings xlsx via openpyxl
+# (pure-Python reader for .xlsx). See scanner/spy_sector_weights.py. Bug #1087.
+openpyxl>=3.1.0
