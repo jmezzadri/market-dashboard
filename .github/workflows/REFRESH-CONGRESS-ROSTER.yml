@@ -1,0 +1,117 @@
+# Pipeline name: reference-congress_roster-monthly
+# Refreshes src/data/congress_roster.json from the public
+# unitedstates/congress-legislators dataset (CC0) on the 1st of each month.
+# Opens a PR if the JSON changed; closes silently if no diff.
+
+name: REFRESH-CONGRESS-ROSTER
+
+on:
+  schedule:
+    # 06:00 ET on the 1st of each month (10:00 UTC)
+    - cron: "0 10 1 * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - name: Download legislators-current.yaml
+        run: |
+          curl -sLo /tmp/legislators-current.yaml \
+            https://raw.githubusercontent.com/unitedstates/congress-legislators/main/legislators-current.yaml
+          test -s /tmp/legislators-current.yaml
+
+      - name: Build congress_roster.json
+        run: |
+          python3 - <<'PY'
+          import yaml, json, datetime, os
+          with open("/tmp/legislators-current.yaml") as f:
+              data = yaml.safe_load(f)
+          roster, seen = [], set()
+          for member in data:
+              name = member.get("name", {})
+              first = (name.get("first") or "").strip()
+              last  = (name.get("last") or "").strip()
+              nick  = (name.get("nickname") or "").strip()
+              full  = (name.get("official_full") or f"{first} {last}").strip()
+              if not full:
+                  continue
+              terms = member.get("terms") or []
+              if not terms:
+                  continue
+              latest = terms[-1]
+              party_full = latest.get("party") or ""
+              chamber = latest.get("type")
+              party_letter = "D" if party_full == "Democrat" else "R" if party_full == "Republican" else "I"
+              chamber_label = "Senate" if chamber == "sen" else "House" if chamber == "rep" else chamber
+              entry = {
+                  "name": full,
+                  "party": party_letter,
+                  "chamber": chamber_label,
+                  "state": latest.get("state") or "",
+              }
+              aliases = set()
+              if nick and nick != first:
+                  aliases.add(f"{nick} {last}")
+              plain = f"{first} {last}"
+              if plain != full:
+                  aliases.add(plain)
+              if aliases:
+                  entry["aliases"] = sorted(aliases)
+              if full in seen:
+                  continue
+              seen.add(full)
+              roster.append(entry)
+          out = {
+              "source": "https://github.com/unitedstates/congress-legislators",
+              "license": "CC0",
+              "generated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "count": len(roster),
+              "members": roster,
+          }
+          with open("src/data/congress_roster.json", "w") as f:
+              json.dump(out, f, indent=2, sort_keys=False)
+          print(f"Wrote {len(roster)} members.")
+          PY
+
+      - name: Detect changes
+        id: diff
+        run: |
+          if git diff --quiet -- src/data/congress_roster.json; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true"  >> $GITHUB_OUTPUT
+          fi
+
+      - name: Open PR if changed
+        if: steps.diff.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(data): refresh congress_roster.json (monthly)"
+          branch: chore/refresh-congress-roster
+          delete-branch: true
+          title: "chore(data): refresh congress_roster.json"
+          body: |
+            Automated monthly refresh of the bundled Congress roster.
+
+            Source: https://github.com/unitedstates/congress-legislators (CC0)
+            Pipeline: reference-congress_roster-monthly
+
+            UAT: spot-check that recent members render the correct D / R / I badge on the Trading Scanner > Congress Activity tab.
+          labels: |
+            automated
+            data-refresh
