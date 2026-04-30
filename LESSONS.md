@@ -1914,3 +1914,52 @@ This rule pairs with LESSONS rule #12 (Lead Dev ships PRs autonomously)
 and rule #35 (numbered-table iteration replies). All three exist for the
 same reason: Joe's bandwidth is limited and he reads tool-call evidence,
 not prose promises.
+
+
+---
+
+## 37 (2026-04-30) — `npm run build` passing is not UAT for modal / rail / tile changes
+
+**The rule.** When you change anything inside a modal, a tab rail, a
+disclosure card, or any subcomponent that's only mounted on user
+interaction, a green `npm run build` is NOT proof the change works.
+You must mount the subcomponent in a real DOM and click into the
+specific tile / card / row your change touched. If you can't do that
+yourself, do not claim "shipped" — surface the gap to Joe.
+
+**Why.** PR #329 declared `const earningsHist = useEarningsHistory(ticker)`
+inside `TickerDetailModal` and referenced it from inside
+`SignalIntelligenceRail` — a subcomponent. The reference was out of
+scope. The ReferenceError only fires when the rail's `renderDetail`
+callback runs, which only happens when the user opens an Earnings tile.
+Static analysis didn't catch it. Vite's build didn't catch it (Vite
+doesn't trace cross-component variable scopes during minification).
+The bug shipped to prod, every Earnings tile crashed with
+*"SOMETHING WENT WRONG — earningsHist is not defined"*, and Joe was the
+one who found it. Hotfix: PR #330.
+
+**How to apply.**
+
+1. Any PR that touches `src/components/TickerDetailModal.jsx`,
+   `SignalIntelligenceRail`, `SignalCard`, `DeepDiveTabs`, or any other
+   subcomponent that only mounts on click → run a real DOM smoke test
+   before merging. Either:
+   a) Spin Vercel preview, click the affected tile, screenshot.
+   b) Run `npm run dev` locally, open the modal, click each affected
+      tile, watch the console for ReferenceError / TypeError.
+   c) If neither is possible (eg agent without browser), don't ship —
+      ask Joe to click-test the preview before merge.
+
+2. Subcomponent variable scoping — when a hook is consumed inside a
+   subcomponent, declare it INSIDE that subcomponent. Grep the JSX
+   block where the variable is used; if the function declaration that
+   wraps that JSX is different from the function declaration that
+   wraps the hook call, you have a scope bug.
+
+3. Acceptance test for any modal/rail change PR: the PR description
+   must list which tiles were exercised. "Build green" alone fails the
+   review.
+
+This rule pairs with LESSONS #33 (UX Designer click-every-tile audit)
+and #36 (action follows announcement). All three exist because Joe is
+the QA backstop only when nothing else is — and he doesn't want to be.
