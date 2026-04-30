@@ -17,14 +17,27 @@ name: WORKFLOW_FAILURE_ALERT
 on:
   workflow_run:
     workflows:
+      # Daily indicator + composite + v9 chain
       - INDICATOR-REFRESH_7AM_WEEKDAYS
       - V9-ALLOCATION-WEEKLY
+      - V9-ALLOCATION-BACKFILL
+      # Intraday scanner triplet
       - TICKER_EVENTS_3X_WEEKDAYS
       - UNIVERSE_SNAPSHOT_3X_WEEKDAYS
       - SCAN_330PM_WEEKDAYS
+      # Weekly + quarterly research
       - SCENARIO-PRECOMPUTE-WEEKLY
       - PHASE1-CALIBRATION
       - HORSE-RACE-V9-VS-EXTENDED
+      # Massive (Polygon) market data — added Phase 3 PR #11a (2026-04-30)
+      # closes the gap that left these silent on failure.
+      - MASSIVE-DAILY
+      - MASSIVE-INITIAL-BACKFILL
+      - MASSIVE-TICKER-REFERENCE-BACKFILL
+      # Other production data feeds — added Phase 3 PR #11a (2026-04-30)
+      - EARNINGS_HISTORY_WEEKLY
+      - SPY_SECTOR_WEIGHTS_DAILY
+      - REFRESH-CONGRESS-ROSTER
     types:
       - completed
 
