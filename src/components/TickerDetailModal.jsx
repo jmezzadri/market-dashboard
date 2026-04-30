@@ -698,7 +698,7 @@ function Field({ label, value }) {
 //   - Buy / Add        → opens PositionEditor in "add" mode (prefilled ticker)
 //   - Edit position    → opens PositionEditor in "edit" mode (held row)
 //   - Watchlist toggle → uses the existing add/remove handlers
-//   - Open in Scanner  → navigates to /#scanner with the modal closed
+// (Open in Scanner button retired in earlier PR — Trading Opps surfaces are reachable via the sidebar)
 // "Set stop alert" is queued — needs backend alert table + cron + notifications.
 // ============================================================================
 function ActionRow({
@@ -1168,7 +1168,7 @@ return(
 
 {/* ── v5 KPI strip (Phase 4b PR-B). 4 cards: 1-week / 1-month /
     YTD return + Position P&L. Each carries a vs-SPY comparator
-    and a tiny sparkline. LESSONS rule #5 (plain-English labels);
+    plus the SPY-relative comparator. LESSONS rule #5 (plain-English labels);
     LESSONS rule #30 (every value from live data). */}
 {(()=>{
   // Pull SPY's matching windows from the same scan (scanData.signals.technicals.SPY).
@@ -1197,14 +1197,13 @@ return(
   // Color rule: green for >=0, red for <0, dim for null.
   const cFor = v => v==null ? "var(--text-dim)" : (v>=0 ? "var(--green-text, #1a8c39)" : "var(--red-text, #c8302a)");
 
-  const KpiCard = ({label, value, comp, color, tip, spark}) => (
+  const KpiCard = ({label, value, comp, color, tip}) => (
     <div style={{background:"var(--surface-solid, var(--paper, #fff))",border:"1px solid var(--border)",borderRadius:"var(--radius-xs, 6px)",padding:"12px 14px",display:"flex",flexDirection:"column"}}>
       <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.16em",color:"var(--text-dim)",marginBottom:4,display:"flex",alignItems:"center",gap:3}}>
         {label}{tip&&<InfoTip def={tip} size={10}/>}
       </div>
       <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color,lineHeight:1.1}}>{value}</div>
       {comp&&<div style={{marginTop:4,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-muted)"}}>{comp}</div>}
-      {spark}
     </div>
   );
 
