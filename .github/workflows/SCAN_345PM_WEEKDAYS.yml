@@ -137,3 +137,15 @@ jobs:
 
           git commit -m "Scan data update [skip ci]"
           git push || echo "Push failed (non-fatal); next scheduled run will retry."
+
+      - name: Compute sector ranks → sector_rank_history
+        # Phase 3 PR #7. Reads the just-published public/latest_scan_data.json,
+        # aggregates per-ticker composites by GICS sector, ranks 1..N, upserts
+        # to public.sector_rank_history. The generate-commentary edge fn
+        # consumes this table to write the daily Sector Outlook tile blurb.
+        if: env.SKIP_RUN != 'true'
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 scripts/compute_sector_ranks.py
