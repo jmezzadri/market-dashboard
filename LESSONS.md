@@ -62,3 +62,90 @@ polling for completion, production deploy in flight, migration applying.
 Finish the action first. A fresh session cannot pick up cleanly mid-action.
 
 ---
+
+## 2026-04-30 — Agent merges autonomously; never ask Joe to click merge
+
+**What happened:** Lead Developer opened PR #357 then PR #358 and ended both
+turns with "🛑 ACTION NEEDED — Click Merge on PR #N" to push the merge click
+onto Joe. Joe pushed back: "Since when am I doing all the merges!!! You do
+it!" The earlier rule that "Joe approves merges" was an over-application of
+the identity-bound-actions rule — merging is not identity-bound. Asking Joe
+to merge every PR turns the agent into a ticket-handler instead of a
+delivery system.
+
+**What you should do instead:** When a PR is ready to merge — code shipped,
+self-UAT clean, sign-offs in PR body — the agent merges it via the GitHub
+API (`PUT /repos/.../pulls/{n}/merge`, squash method default). No ACTION
+NEEDED block. No "click merge" prompt. After merge: delete the source
+branch, run any post-merge verification (deploy monitor, scan dispatch),
+report the outcome. Joe's identity-bound actions are now narrowly scoped to
+(a) credentials/secrets via UI clicks, (b) explicit production-deploy
+go/no-go when asked, (c) financial-data entry, (d) trades/transfers (which
+the agent is forbidden from making anyway). Everything else: agent does it.
+
+---
+
+## 2026-04-30 — Modern SPA auth needs bundle inspection BEFORE planning a REST flow
+
+**What happened:** PR #10 (ZH Premium scrape) initially planned as a
+"~6 hour cookie-based form login build" based on the assumption that ZH
+served a server-side login form. Probe v1 revealed ZH is a Next.js SPA with
+Firebase auth + reCAPTCHA — none of which the original plan accounted for.
+Three probe iterations were needed (instead of one) to land on the right
+build approach (Path 2 manual cookie). Wasted ~1 hour on the wrong mental
+model.
+
+**What you should do instead:** Before promising a build estimate for any
+"login + scrape" task against a third-party site, run a 5-minute
+bundle-inspection probe FIRST: fetch the login page, grep for `<form` /
+`<input type="password"` / `firebase` / `recaptcha` / `signInWith` / SPA
+markers (`<div id="__next">`, `<div id="root">`, `<noscript>JavaScript`).
+If the bundle uses Firebase / Auth0 / Cognito / Okta or similar managed
+auth, plan against headless browser + manual cookie paths from the start —
+direct REST is almost certainly blocked by reCAPTCHA / device check. The
+build estimate should reflect this; surface the auth mechanism in the
+opening status table.
+
+---
+
+## 2026-04-30 — Re-baseline against origin/main + deployed surfaces at the start of every phase
+
+**What happened:** Phase 1 inventory of MacroTilt code made multiple wrong
+"this is dead code" calls (HistoricalChart, useStockRiskMetrics,
+useRiskMetricsBatch, the Insights tab, generate-commentary edge fn) because
+the agent read its local checkout instead of `origin/main` and the deployed
+artifacts. By the time PR #10 started, this had compounded into the agent
+having a stale model of which workflows pass which env vars (caught only
+when UAT-by-look found 0 premium items in production despite the smoke test
+passing).
+
+**What you should do instead:** At the start of every multi-PR phase or
+non-trivial task, run a re-baseline pass: `git log -20 origin/main`, fetch
+the deployed `latest_scan_data.json` / `composite_history_daily.json` etc.
+via raw URL, query the deployed Supabase edge fn(s), and read the actual
+GH Actions workflow files from `origin/main` — not from a local checkout
+that may be days stale. "I read this file" is true only at the moment of
+fetching from `origin/main`. Local copies and prior-session reads can be
+silently stale.
+
+---
+
+## 2026-04-30 — Polygon Basic (Massive) tier silently caps historical aggs at ~2 years
+
+**What happened:** PR #9 backfill UAT discovered Polygon's `/v2/aggs`
+endpoint returns ~501 trading days of data per ticker on the Basic tier,
+regardless of the requested start date. There is no error response and no
+documentation surfacing the cap — the API silently truncates. This blocks
+any v9-style optimizer that needs 5+ years of history from running off
+Polygon alone.
+
+**What you should do instead:** When proposing or estimating a Polygon
+(Massive) backfill, assume the Basic tier returns ≤2 years per ticker
+unless we've verified otherwise. Three viable patterns: (a) stay on
+yfinance for historical bootstrap, (b) upgrade Polygon ($29-79/mo for full
+history), (c) hybrid — one-shot yfinance bootstrap into Supabase
+`prices_eod` + Massive forward-only refresh. Pattern (c) is what shipped
+for v9 — see PR #353/#354. Don't propose a Polygon-only backfill without
+explicit tier confirmation.
+
+---
