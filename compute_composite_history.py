@@ -404,5 +404,43 @@ def main() -> int:
     return 0
 
 
+# ─── PR #15 — pipeline_fetch_log integration ────────────────────────────────
+# After the recompute finishes, write one pipeline_fetch_log row per composite
+# so the freshness chip can distinguish "calc didn't run" from "underlying
+# input is stale." Helper is at scripts/log_pipeline_run.py — silent no-op if
+# Supabase env vars are missing, never blocks the recompute.
+def _log_run(rc: int, duration_ms: int) -> None:
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent / "scripts"))
+        from log_pipeline_run import log_pipeline_run  # noqa: E402
+    except Exception as e:
+        print(f"[log_pipeline_run] WARN import failed: {e!r}", file=sys.stderr)
+        return
+    status = "green" if rc == 0 else "red"
+    err = None if rc == 0 else f"compute_composite_history.py exited rc={rc}"
+    for cid in ("composite-rl-daily", "composite-gr-daily", "composite-ir-daily"):
+        log_pipeline_run(
+            indicator_id=cid,
+            status=status,
+            run_kind="aggregate",
+            run_duration_ms=duration_ms,
+            error_message=err,
+            source="compute_composite_history.py",
+            meta={"script_rc": rc},
+        )
+
+
 if __name__ == "__main__":
-    sys.exit(main())
+    import time as _t
+    _t0 = _t.time()
+    try:
+        rc = main()
+    except SystemExit as _e:
+        rc = int(_e.code) if isinstance(_e.code, int) else (0 if _e.code is None else 1)
+        _log_run(rc, int((_t.time() - _t0) * 1000))
+        raise
+    except Exception:
+        _log_run(1, int((_t.time() - _t0) * 1000))
+        raise
+    _log_run(rc, int((_t.time() - _t0) * 1000))
+    sys.exit(rc)

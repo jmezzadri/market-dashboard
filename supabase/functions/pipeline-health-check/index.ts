@@ -159,9 +159,22 @@ async function handle(req: Request): Promise<Response> {
     ? String((composites[composites.length - 1] as { d: string }).d || "")
     : null;
 
-  // 3) Compute new status + upsert each row
+  // 3) Compute new status + upsert each row + append a row to pipeline_fetch_log
+  //    (PR #15 — gives the pipeline panel its "last 7 attempts" history)
   const updates: Array<Partial<HealthRow> & { indicator_id: string }> = [];
   const alerts: Array<{ row: HealthRow; ageMinutes: number | null }> = [];
+  const logRows: Array<{
+    indicator_id: string;
+    check_at: string;
+    status: "green" | "amber" | "red";
+    age_minutes: number | null;
+    last_value: unknown;
+    error_message: string | null;
+    source: string | null;
+    run_kind: "atomic";
+    run_duration_ms: number | null;
+  }> = [];
+  const runStartedAt = Date.now();
 
   for (const row of rows) {
     let asOf: string | null = null;
@@ -241,6 +254,22 @@ async function handle(req: Request): Promise<Response> {
     });
 
     if (shouldAlert) alerts.push({ row, ageMinutes: ageMin });
+
+    // PR #15 — append a row to pipeline_fetch_log so the pipeline panel
+    // can show the "last 7 attempts" history. We do this whether the
+    // status changed or not — the panel cares about every check, not
+    // just transitions.
+    logRows.push({
+      indicator_id: row.indicator_id,
+      check_at: now.toISOString(),
+      status: newStatus,
+      age_minutes: ageMin,
+      last_value: null,
+      error_message: lastError,
+      source: row.source,
+      run_kind: "atomic",
+      run_duration_ms: null,
+    });
   }
 
   // 4) Upsert in a single batch
@@ -248,6 +277,19 @@ async function handle(req: Request): Promise<Response> {
     .from("pipeline_health")
     .upsert(updates, { onConflict: "indicator_id" });
   if (upErr) return json({ ok: false, error: `upsert: ${upErr.message}` }, 500);
+
+  // 4b) Append the run to pipeline_fetch_log. Compute the per-row run duration
+  //     by attributing the total elapsed time evenly across all rows in the
+  //     batch — close enough for monitoring, and avoids a per-row stopwatch.
+  const runDurationMs = Date.now() - runStartedAt;
+  const perRowMs = logRows.length ? Math.round(runDurationMs / logRows.length) : 0;
+  const stamped = logRows.map((r) => ({ ...r, run_duration_ms: perRowMs }));
+  const { error: logErr } = await supabase.from("pipeline_fetch_log").insert(stamped);
+  if (logErr) {
+    // Don't fail the whole request — the chip already updated correctly via
+    // pipeline_health. The fetch log is for the panel only. Log + continue.
+    console.warn("[pipeline-health-check] pipeline_fetch_log insert failed:", logErr.message);
+  }
 
   // 5) Fire alerts after the DB write (so last_alerted_at is persisted even if
   //    Resend is down — we won't spam retries)
