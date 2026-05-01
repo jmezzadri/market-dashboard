@@ -96,6 +96,7 @@ jobs:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ZEROHEDGE_COOKIE: ${{ secrets.ZEROHEDGE_COOKIE }}
           SCORE_BUY_ALERT: "60"
           SCORE_WATCH_ALERT: "40"
           ALERT_ON_WATCH: "true"
