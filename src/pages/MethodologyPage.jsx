@@ -956,7 +956,7 @@ function AssetAllocationMethodology({ open, onToggle }) {
       <Prose>
         <P><strong>1. Daily prices</strong> for all 25 industry-group proxies + 4 defensive ETFs from yfinance. Baskets are aggregated from constituent names, equal-weighted.</P>
         <P><strong>2. Macro factor panel</strong> — ~32 factors back to 1998-2003 from FRED + Yahoo. Includes the yield curve (10Y minus 2Y), real rates, term premium, breakeven inflation, broad dollar, the Chicago Fed Financial Conditions Index, the St. Louis Financial Stress Index, commercial paper risk, fed funds, the Fed balance sheet, initial jobless claims, industrial production, capacity utilization, consumer sentiment, retail sales, PCE, durable-goods orders, housing starts, the 30-year mortgage rate, M2 money supply year-over-year, bank credit, WTI crude, natural gas, the copper-gold ratio, VIX, SKEW, and SLOOS lending standards (commercial &amp; industrial and commercial real estate).</P>
-        <P><strong>3. Macro composites</strong> — the Risk &amp; Liquidity, Growth, and Inflation &amp; Rates composites from the Today's Macro pipeline (`composite_history_daily.json`). These drive the equity-vs-defensive split and the leverage decision.</P>
+        <P><strong>3. v11 cycle mechanisms</strong> — the Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, and Positioning &amp; Breadth scores from the v11 Cycle Mechanism Board. These drive the equity-vs-defensive split and the leverage decision. (The legacy 3-composite engine — Risk &amp; Liquidity / Growth / Inflation &amp; Rates — was retired in favor of v11 and remains only as historical reference data.)</P>
       </Prose>
 
       {/* — PER-ASSET FACTOR MAPS — */}

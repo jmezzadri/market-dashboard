@@ -37,7 +37,6 @@ import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
 import FreshnessDot from "./components/FreshnessDot";
 import MethodologyPage from "./pages/MethodologyPage";
-import TodayMacro from "./pages/TodayMacro";
 import AssetAllocation from "./pages/AssetAllocation";
 import ScenarioAnalysis from "./pages/ScenarioAnalysis";
 import { useSortableTable as useSortableTable_v1, SortArrow as SortArrow_v1, sortableHeaderProps as sortableHeaderProps_v1 } from "./hooks/useSortableTable.jsx";
@@ -4878,10 +4877,12 @@ const {isAdmin, loading:adminLoading}=useIsAdmin();
 // Legacy redirect: "#portfolio" (old Holdings Detail tab) now lives inside
 // Portfolio & Insights. Any bookmark pointing at #portfolio resolves to
 // #portopps. Bug #1071 — alias four "natural" deep-link hashes that the
-// router previously bounced silently to /#home: /#today-macro is the
-// natural deep-link to the macro-overview composites tab; /#positions and
-// /#watchlist are the two halves of /#portopps; /#asset-allocation is the
-// /#asset-allocation is the natural deep-link to the Asset Allocation tab (v9, shipped 2026-04-25).
+// router previously bounced silently to /#home: /#today-macro is a
+// LEGACY URL alias kept for old bookmarks (the deprecated composites
+// page is gone — the alias just routes to the v11 Macro Overview now);
+// /#positions and /#watchlist are the two halves of /#portopps;
+// /#asset-allocation is the natural deep-link to the Asset Allocation
+// tab (v9, shipped 2026-04-25).
 const HASH_ALIASES={
   "portfolio":"insights",  // bug #1132: insights tab split out 2026-04-27
   "scanner":"portopps",
@@ -5715,7 +5716,7 @@ return(
           band, identical narrative. */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="composite_rl" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="vix" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
           <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open full view →</a>
         </div>
 
@@ -5894,7 +5895,7 @@ return(
         return (
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
-            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities <FreshnessDot indicatorId="composite_rl" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/></h2>
+            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/></h2>
             <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
           </div>
 
@@ -6126,7 +6127,7 @@ return(
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
             <h2 style={cardH2Style}>
-              <span style={cardTagStyle}>04</span>Portfolio Insights <FreshnessDot indicatorId="composite_rl" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/>
+              <span style={cardTagStyle}>04</span>Portfolio Insights <FreshnessDot indicatorId="portfolio_history" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/>
             </h2>
             <a style={cardLinkStyle} onClick={()=>navTo("insights")}>Open →</a>
           </div>
@@ -6364,12 +6365,12 @@ return(
     stance={`${_indCount} INDICATORS`}
     stanceColor="strong"
     freshLine={"Auto-refresh · last poll <6 min ago"}
-    lead={<>Every macro indicator the model uses to score regime stress — <strong style={{fontWeight:600,color:"var(--text)"}}>{_indCount} calibrated series</strong> across Risk &amp; Liquidity, Growth, Inflation &amp; Rates, and other categories. Each is normalized against its long-run mean and standard deviation, then weighted by predictive power (<strong style={{fontWeight:600,color:"var(--text)"}}>AUC for S&amp;P −15% drawdowns</strong>) inside its composite. Hover any row for source, formula, current reading, and meaning. Filter by composite or category at the top. Click a row to open the full indicator detail.</>}
+    lead={<>Every macro indicator the model uses to score regime stress — <strong style={{fontWeight:600,color:"var(--text)"}}>{_indCount} calibrated series</strong> feeding the v11 cycle mechanisms (Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth). Each is normalized against its long-run mean and standard deviation, then weighted by predictive power (<strong style={{fontWeight:600,color:"var(--text)"}}>AUC for S&amp;P −15% drawdowns</strong>) inside its mechanism. Hover any row for source, formula, current reading, and meaning. Filter by category at the top. Click a row to open the full indicator detail.</>}
     kpis={[
       {lbl:"Indicators", v:_indCount, sub:"total tracked"},
-      {lbl:"In composites", v:_weightedCount, col:"var(--green-text)", sub:`feed R&L / Growth / IR · ${_refCount} reference-only`},
+      {lbl:"In mechanisms", v:_weightedCount, col:"var(--green-text)", sub:`feed v11 cycle mechanisms · ${_refCount} reference-only`},
       {lbl:"Sources", v:"8", sub:"FRED · Fed · ICE BofA · ISM · BLS · Shiller…"},
-      {lbl:"Categories", v:_catCount, sub:"R&L, Growth, Infl…"},
+      {lbl:"Categories", v:_catCount, sub:"Equity & Vol, Credit, Rates…"},
     ]}
   /></div>;
 })()}
