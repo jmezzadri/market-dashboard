@@ -138,3 +138,55 @@ export function peekFreshness(indicatorId) {
   if (!cachedRows) return null;
   return cachedRows.get(indicatorId) || null;
 }
+
+// ─── PR #15 — useFetchLog ──────────────────────────────────────────────────
+// Reads the trailing fetch-attempt history for one element. The pipeline
+// panel (PR #17) opens this when the user clicks a chip and shows the
+// last 7 attempts: timestamp, status, error if any.
+//
+// Atomic vs aggregate is recorded in the run_kind column — atomic rows
+// come from the pipeline-health-check edge function (every 30 min),
+// aggregate rows come from the Python recompute jobs that wrap
+// log_pipeline_run() at end-of-run.
+//
+// Caching: this hook does NOT use the shared in-module cache the chip
+// uses, because it's only invoked when the panel is open (one element at
+// a time). We hit Supabase directly per panel-open. If panel performance
+// becomes an issue, a small LRU keyed on (indicatorId, limit) is the
+// right next step.
+//
+// Returns:
+//   { rows: Array<{ id, indicator_id, check_at, status, age_minutes,
+//                   error_message, run_kind, run_duration_ms, meta }>,
+//     loading: boolean,
+//     error: string | null }
+export function useFetchLog(indicatorId, limit = 7) {
+  const [rows, setRows] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!indicatorId) { setRows([]); return; }
+    if (!isSupabaseConfigured) { setRows([]); return; }
+    let cancelled = false;
+    setRows(null);
+    setError(null);
+    supabase
+      .from("pipeline_fetch_log")
+      .select("id, indicator_id, check_at, status, age_minutes, error_message, run_kind, run_duration_ms, meta, source")
+      .eq("indicator_id", indicatorId)
+      .order("check_at", { ascending: false })
+      .limit(Math.max(1, Math.min(50, limit)))
+      .then(({ data, error: err }) => {
+        if (cancelled) return;
+        if (err) {
+          setError(err.message);
+          setRows([]);
+          return;
+        }
+        setRows(data || []);
+      });
+    return () => { cancelled = true; };
+  }, [indicatorId, limit]);
+
+  return { rows: rows ?? [], loading: rows === null, error };
+}
