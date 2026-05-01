@@ -22,13 +22,15 @@ Design:
     - Every fetcher returns items tagged with a `source` name and
       `source_tier="public"` so the frontend can render them without
       gating and a dedupe pass upstream sees every item.
-    - `fetch_zerohedge_premium(creds)` is a stub today. Joe has a ZH
-      Premium subscription he'd like to use, but premium content cannot
-      be redistributed to other dashboard users without violating ZH's
-      ToS + his subscription agreement. Premium path, when wired up,
-      should write to a user-scoped Supabase row so only he sees those
-      items. Current implementation: reads creds from env, logs a
-      "not implemented" warning, and returns [].
+    - `fetch_zerohedge_premium()` is LIVE as of 2026-04-30 (PR #10). Path 2
+      implementation: reads ZEROHEDGE_COOKIE env var (an entire browser
+      Cookie-header string Joe pasted from a logged-in session in Chrome
+      DevTools), sets it on the request, parses the home page's __NEXT_DATA__
+      JSON to find premium-tagged articles. ZH login uses Firebase + reCAPTCHA
+      so direct REST is not viable from CI; the Path 2 cookie gets refreshed
+      manually when ZH expires the session (Drupal default ~3 weeks).
+      Premium content is rendered in the modal user-scoped to Joe — never
+      redistributed to other dashboard users (ZH ToS + sub agreement).
     - Per-source HTTP is sequential with a tight timeout. If a source
       is down the others still ship.
 
@@ -49,6 +51,7 @@ so a malformed feed can't bloat the JSON artifact.
 """
 from __future__ import annotations
 
+import json
 import logging
 import os
 import re
@@ -57,6 +60,13 @@ from typing import Any
 from xml.etree import ElementTree as ET
 
 import requests
+
+# Premium fetch — home page anchor URL. Joe's cookie unlocks the rendered
+# article list; we then walk __NEXT_DATA__ to find premium-tagged entries.
+ZH_HOME_URL = "https://www.zerohedge.com/"
+# Premium articles tend to live under these path prefixes (the-market-ear
+# is the flagship premium contributor; "premium" is sometimes a section).
+_ZH_PREMIUM_PATH_HINTS = ("/the-market-ear", "/premium", "/members-only")
 
 logger = logging.getLogger(__name__)
 
@@ -264,26 +274,199 @@ def fetch_google_news(source: str) -> list[dict[str, Any]]:
     return _fetch(url, source)
 
 
+def _normalize_zh_url(path: str | None) -> str:
+    """Resolve a ZH article path / partial URL into an absolute www.zerohedge.com URL."""
+    if not path:
+        return ""
+    p = path.strip()
+    if p.startswith("http://") or p.startswith("https://"):
+        return p
+    if not p.startswith("/"):
+        p = "/" + p
+    return f"https://www.zerohedge.com{p}"
+
+
+def _looks_premium(node: dict) -> bool:
+    """Heuristic: is this Next.js node a premium article?
+    Checks explicit premium flags first, then path-prefix hints."""
+    if not isinstance(node, dict):
+        return False
+    # Explicit flags any reasonable Drupal/Next.js shape might use
+    for k in ("is_premium", "premium", "isPremium", "field_premium"):
+        v = node.get(k)
+        if v in (True, "true", 1, "1"):
+            return True
+    # Content-type field
+    ct = str(node.get("content_type") or node.get("type") or "").lower()
+    if "premium" in ct:
+        return True
+    # Path / URL hints
+    raw_path = str(node.get("url") or node.get("path") or node.get("alias") or "")
+    if any(hint in raw_path for hint in _ZH_PREMIUM_PATH_HINTS):
+        return True
+    return False
+
+
+def _extract_premium_items_from_next_data(data: Any) -> list[dict[str, Any]]:
+    """Walk the __NEXT_DATA__ tree, harvest article-shaped nodes, keep premium ones.
+
+    An "article-shaped" node has at least a title-like field plus a URL/path-like
+    field. ZH's exact schema isn't documented; this is intentionally permissive
+    so a small CMS schema change doesn't silently drop everything."""
+    out: list[dict[str, Any]] = []
+    seen_urls: set[str] = set()
+
+    def _is_article_shaped(node: dict) -> bool:
+        has_title = any(k in node for k in ("title", "name", "headline"))
+        has_url = any(k in node for k in ("url", "path", "alias", "nid", "node_id"))
+        return has_title and has_url
+
+    def _walk(node: Any) -> None:
+        if isinstance(node, dict):
+            if _is_article_shaped(node) and _looks_premium(node):
+                title = str(
+                    node.get("title")
+                    or node.get("name")
+                    or node.get("headline")
+                    or ""
+                ).strip()
+                url = _normalize_zh_url(
+                    node.get("url") or node.get("path") or node.get("alias")
+                )
+                if title and url and url not in seen_urls:
+                    seen_urls.add(url)
+                    body_excerpt = ""
+                    for body_key in ("teaser", "summary", "body", "field_summary", "excerpt"):
+                        bv = node.get(body_key)
+                        if isinstance(bv, str) and bv.strip():
+                            body_excerpt = _strip_html(bv)
+                            break
+                        # Drupal sometimes nests body under {value: ...}
+                        if isinstance(bv, dict) and isinstance(bv.get("value"), str):
+                            body_excerpt = _strip_html(bv["value"])
+                            break
+                    pub_raw = (
+                        node.get("created")
+                        or node.get("published_at")
+                        or node.get("publish_date")
+                        or node.get("date")
+                        or ""
+                    )
+                    out.append({
+                        "title": title,
+                        "url": url,
+                        "body_excerpt": _truncate(body_excerpt, _MAX_DESCRIPTION_CHARS),
+                        "published": str(pub_raw) if pub_raw else "",
+                        "categories": (
+                            node.get("categories")
+                            or node.get("tags")
+                            or []
+                        ) if isinstance(
+                            node.get("categories") or node.get("tags") or [], list
+                        ) else [],
+                    })
+            for v in node.values():
+                _walk(v)
+        elif isinstance(node, list):
+            for v in node:
+                _walk(v)
+
+    _walk(data)
+    return out
+
+
 def fetch_zerohedge_premium() -> list[dict[str, Any]]:
     """
-    Fetch ZH premium articles using Joe's credentials. Currently stubbed —
-    see module docstring. When implemented:
-      1. Read ZEROHEDGE_USER / ZEROHEDGE_PASS from env (GitHub Actions secrets)
-      2. Establish a cookie-jar session via ZH's login endpoint
-      3. Fetch the premium listing / feed
-      4. Normalize and tag source_tier="premium"
-    Frontend should render these only for Joe (user-scoped Supabase row,
-    RLS-protected). Until wired up, returns [] so the pipeline is a no-op.
+    Fetch ZH premium articles via the cookie Joe pasted as ZEROHEDGE_COOKIE.
+
+    Path 2 design (see PR #10 / 2026-04-30): direct REST login is blocked by
+    ZH's reCAPTCHA-gated /api/v1/user/login endpoint. Instead we ride a
+    real browser session: Joe pastes his entire Cookie header from
+    DevTools as a GH secret; this function sets it on every request, parses
+    the home page's __NEXT_DATA__ JSON for premium-tagged articles, and
+    returns them tagged source_tier="premium". When ZH expires the session
+    we get back a logged-out home page and silently log a warning so the
+    next refresh prompt surfaces in the daily logs.
+
+    Returns [] on missing cookie, expired cookie, fetch failure, or no
+    premium articles found — never raises.
     """
-    if not os.environ.get("ZEROHEDGE_USER"):
-        # No creds configured — silent no-op, not a warning, so scan logs stay clean.
+    cookie = os.environ.get("ZEROHEDGE_COOKIE", "").strip()
+    if not cookie:
+        # No cookie configured — silent no-op, scan logs stay clean.
         return []
-    logger.info(
-        "market_news: ZH premium creds detected but premium fetch not yet "
-        "implemented. Skipping. See scanner/market_news.py docstring for the "
-        "follow-up plan (cookie login + premium listing scrape)."
+
+    sess = requests.Session()
+    sess.headers.update({
+        "User-Agent": _UA,
+        "Cookie": cookie,
+        "Accept": "text/html,application/xhtml+xml",
+    })
+
+    try:
+        resp = sess.get(ZH_HOME_URL, timeout=_HTTP_TIMEOUT)
+        resp.raise_for_status()
+    except Exception as e:
+        logger.warning("market_news: ZH premium home fetch failed: %s", e)
+        return []
+
+    html = resp.text
+
+    # Cookie-expired sniff: ZH home renders a "Join Premium" CTA prominently
+    # only for non-premium / logged-out visitors. If we see no premium markers
+    # in the HTML at all, treat the cookie as expired.
+    has_premium_marker = ("zh_is_p" in html) or ("ust-p" in html)
+    if not has_premium_marker:
+        logger.warning(
+            "market_news: ZH premium — no premium markers in home HTML. "
+            "ZEROHEDGE_COOKIE likely expired. Refresh from Chrome DevTools "
+            "(www.zerohedge.com → Network → request → Cookie header)."
+        )
+        return []
+
+    # Pull __NEXT_DATA__ JSON (Next.js inlines initial page state here).
+    m = re.search(
+        r'<script\s+id="__NEXT_DATA__"[^>]*>(.+?)</script>',
+        html,
+        re.S,
     )
-    return []
+    if not m:
+        logger.warning(
+            "market_news: ZH premium — no __NEXT_DATA__ script tag found in home HTML. "
+            "ZH may have changed their bundle structure."
+        )
+        return []
+
+    try:
+        data = json.loads(m.group(1))
+    except json.JSONDecodeError as e:
+        logger.warning("market_news: ZH premium — __NEXT_DATA__ JSON parse failed: %s", e)
+        return []
+
+    raw_items = _extract_premium_items_from_next_data(data)
+    if not raw_items:
+        logger.info(
+            "market_news: ZH premium — __NEXT_DATA__ parsed but no premium items "
+            "matched our heuristic (looks_premium). Could be a slow news day or "
+            "a schema change."
+        )
+        return []
+
+    # Normalize to the shared item shape, cap to MAX, sort newest-first.
+    out: list[dict[str, Any]] = []
+    for it in raw_items[:_MAX_ITEMS_PER_SOURCE]:
+        out.append({
+            "source": "ZeroHedge Premium",
+            "source_tier": "premium",
+            "headline": it["title"][:300],
+            "description": it["body_excerpt"],
+            "url": it["url"],
+            "published": it["published"],
+            "categories": it["categories"][:4] if isinstance(it["categories"], list) else [],
+        })
+    out.sort(key=lambda x: x.get("published") or "", reverse=True)
+    logger.info("market_news: ZH premium — fetched %d items via cookie session", len(out))
+    return out
 
 
 def _dedupe(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -329,6 +512,12 @@ def get_market_news() -> dict[str, Any]:
     all_items += fetch_google_news("Reuters")
     all_items += fetch_google_news("FT")
     all_items += fetch_google_news("WSJ")
+    # Premium items merge into the main flat list so the modal renders them
+    # alongside public headlines (frontend gates display by source_tier="premium"
+    # to a user-scoped row per ZH ToS — see PR #10 + the premium-rendering work
+    # on the frontend).
+    premium_items = fetch_zerohedge_premium()
+    all_items += premium_items
 
     all_items = _dedupe(all_items)
     # Newest first. Missing dates sort to the bottom.
@@ -337,5 +526,8 @@ def get_market_news() -> dict[str, Any]:
     return {
         "items": all_items,
         "zerohedge_public":  [it for it in all_items if it.get("source") == "ZeroHedge"],
-        "zerohedge_premium": fetch_zerohedge_premium(),
+        # Legacy key kept for back-compat with older frontend bundles. New
+        # frontends should read premium items from `items` (filter by
+        # source_tier == "premium").
+        "zerohedge_premium": premium_items,
     }
