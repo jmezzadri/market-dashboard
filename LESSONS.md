@@ -149,3 +149,23 @@ for v9 — see PR #353/#354. Don't propose a Polygon-only backfill without
 explicit tier confirmation.
 
 ---
+
+## 2026-05-01 — Questions to Joe carry Background + Context + Impact, popup-first
+
+**What happened:** Phase 4 Freshness UX spec was delivered with three open
+questions tucked at the bottom of the markdown file — no popup, no impact
+framing per option. Joe pushed back: this is the same anti-pattern as the
+existing "popup, never buried text" rule, with the added problem that even
+when questions DO get asked, options arrive as bare labels ("strict 7 days,
+or 7 × SLA?") with no statement of what changes for the product if Joe
+picks A vs B.
+
+**What you should do instead:** Every question to Joe — without exception
+— goes through `AskUserQuestion` (popup). When a question genuinely needs
+more context than the popup format can carry, ask inline in chat, but the
+framing requirement still binds. Every question, popup or inline, includes
+(a) **background**, (b) **context** for why this question is on the table
+now, and (c) the **impact** of each option (what changes for Joe / the
+product if he picks it). Option `description` fields in the popup carry
+the impact text directly. Questions buried in spec docs, status tables, or
+trailing prose are forbidden — Joe will not scan for them.
