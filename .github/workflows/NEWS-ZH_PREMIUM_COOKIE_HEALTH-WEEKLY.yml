@@ -1,0 +1,152 @@
+name: NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY
+
+# Per Data Steward pipeline naming convention:
+# <category>-<element>-<cadence> = news-zh_premium_cookie_health-weekly
+#
+# Weekly canary that detects when ZEROHEDGE_COOKIE has expired so Joe gets a
+# refresh prompt BEFORE he notices missing premium content in the modal.
+#
+# Logic:
+#   1. Hit ZH home with the GH-secret cookie.
+#   2. If response lacks premium markers (zh_is_p / ust-p) -> cookie expired
+#      -> email Joe via Resend with refresh instructions.
+#   3. If markers present but premium item count is 0 -> log only (likely a
+#      slow news day, not a cookie issue).
+#   4. If markers present and >=1 items -> all good, silent success.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Saturday 06:30 ET = 11:30 UTC (alongside other weekly slots per
+    # pipeline_schedule normalization). Cookie checks weekly are enough —
+    # Drupal sessions live ~3 weeks.
+    - cron: "30 11 * * SAT"
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install requests
+        run: pip install --quiet requests
+
+      - name: Probe ZH cookie health
+        id: probe
+        env:
+          ZEROHEDGE_COOKIE: ${{ secrets.ZEROHEDGE_COOKIE }}
+        run: |
+          python << 'PYEOF'
+          import os, sys, re, requests
+
+          cookie = os.environ.get("ZEROHEDGE_COOKIE", "").strip()
+          if not cookie:
+              print("FATAL: ZEROHEDGE_COOKIE secret not set")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("status=missing_secret\n")
+              sys.exit(0)
+
+          UA = "Mozilla/5.0 (MacroTilt/1.0; +macrotilt.com)"
+          try:
+              r = requests.get(
+                  "https://www.zerohedge.com/",
+                  headers={"User-Agent": UA, "Cookie": cookie},
+                  timeout=15,
+              )
+          except Exception as e:
+              print(f"FATAL: ZH home fetch failed: {e}")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("status=fetch_failed\n")
+              sys.exit(0)
+
+          html = r.text
+          has_premium_marker = ("zh_is_p" in html) or ("ust-p" in html)
+          print(f"home HTTP {r.status_code}, size={len(html)} bytes")
+          print(f"  premium markers present: {has_premium_marker}")
+
+          if not has_premium_marker:
+              print("ALERT: cookie expired — no premium markers found in home HTML")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("status=cookie_expired\n")
+              sys.exit(0)
+
+          # Markers present — sanity check we can extract __NEXT_DATA__
+          m = re.search(r'<script\s+id="__NEXT_DATA__"[^>]*>(.+?)</script>', html, re.S)
+          if not m:
+              print("WARN: premium markers OK but __NEXT_DATA__ not found")
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+                  f.write("status=no_next_data\n")
+              sys.exit(0)
+
+          # Healthy
+          print("OK: cookie healthy, premium content accessible")
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write("status=healthy\n")
+          PYEOF
+
+      - name: Email Joe via SMTP if cookie expired
+        if: steps.probe.outputs.status == 'cookie_expired' || steps.probe.outputs.status == 'missing_secret'
+        env:
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          STATUS: ${{ steps.probe.outputs.status }}
+        run: |
+          python << 'PYEOF'
+          import os, smtplib, ssl
+          from email.mime.text import MIMEText
+          from email.mime.multipart import MIMEMultipart
+
+          smtp_user = os.environ.get("SMTP_USER", "")
+          smtp_pw = os.environ.get("SMTP_PASSWORD", "")
+          email_from = os.environ.get("EMAIL_FROM") or smtp_user
+          email_to = os.environ.get("EMAIL_TO", "josephmezzadri@gmail.com")
+          status = os.environ.get("STATUS", "unknown")
+
+          if not smtp_user or not smtp_pw:
+              print("SMTP_USER / SMTP_PASSWORD missing; cannot send alert")
+              raise SystemExit(0)
+
+          if status == "cookie_expired":
+              subject = "[MacroTilt] ZeroHedge cookie expired — 2 min to refresh"
+              body_html = """
+              <p>Heads-up — your ZH Premium cookie has expired and the scanner is no longer pulling premium articles into the modal.</p>
+              <p><b>To refresh (2 min, 5 clicks):</b></p>
+              <ol>
+                <li>Open <a href="https://www.zerohedge.com">zerohedge.com</a> in Chrome (logged in)</li>
+                <li>Cmd+Opt+I to open DevTools, click <b>Network</b> tab</li>
+                <li>Reload the page</li>
+                <li>Click any request to www.zerohedge.com -> Headers tab -> find the <code>Cookie:</code> line -> triple-click value -> Cmd+C</li>
+                <li>Open <a href="https://github.com/jmezzadri/market-dashboard/settings/secrets/actions">GitHub repo secrets</a> -> click <b>ZEROHEDGE_COOKIE</b> -> click <b>Update secret</b> -> paste -> Save</li>
+              </ol>
+              <p>Premium content will resume on the next scanner run after you save.</p>
+              <p>-- MacroTilt Data Steward (auto-alert)</p>
+              """
+          else:
+              subject = "[MacroTilt] ZEROHEDGE_COOKIE secret missing"
+              body_html = "<p>The ZEROHEDGE_COOKIE GitHub secret has been deleted or is empty. Premium scrape is silently no-op-ing. Re-add the secret per the refresh instructions in PR #357.</p>"
+
+          msg = MIMEMultipart("alternative")
+          msg["From"] = email_from
+          msg["To"] = email_to
+          msg["Subject"] = subject
+          msg.attach(MIMEText(body_html, "html"))
+
+          context = ssl.create_default_context()
+          with smtplib.SMTP("smtp.gmail.com", 587) as server:
+              server.starttls(context=context)
+              server.login(smtp_user, smtp_pw)
+              server.sendmail(email_from, [email_to], msg.as_string())
+          print(f"SMTP email sent to {email_to}")
+          PYEOF
+
+      - name: Mark workflow as failure if cookie expired (visibility)
+        if: steps.probe.outputs.status == 'cookie_expired' || steps.probe.outputs.status == 'missing_secret'
+        run: |
+          echo "::error::ZEROHEDGE_COOKIE health check FAILED (status=${{ steps.probe.outputs.status }}). Email sent to Joe."
+          exit 1
