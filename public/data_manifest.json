@@ -45,7 +45,12 @@
       "Added dependencies array (upstream element IDs) per element; non-empty for derived/composite/scenario rollups.",
       "Recalibrated freshness_sla_hours per Joe sign-off 2026-05-01: daily=25, weekly=192, monthly=816, quarterly=2496.",
       "Registered 2 previously-uninventoried derived elements (cfnai_3ma, m2_yoy) \u2014 gap surfaced during dep mapping."
-    ]
+    ],
+    "phase4_sla_recalibration_2026_05_01": {
+      "recalibrations_applied": 8,
+      "new_inventory_added": 7,
+      "reason": "Initial PR #13 SLAs were tuned to ideal-cadence assumptions; first day of live chip operation revealed true upstream publishing lag for monthly/quarterly FRED + FDIC series. Recalibrated to match observed publishing cadences."
+    }
   },
   "elements": [
     {
@@ -545,7 +550,7 @@
       "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 192,
+      "freshness_sla_hours": 480,
       "output_destination": "public/indicator_history.json[bank_credit]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -560,7 +565,13 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_calibration": {
+        "recalibrated_at": "2026-05-01",
+        "previous_sla_hours": 192,
+        "new_sla_hours": 480,
+        "reason": "20 days \u2014 FRED H.8 weekly publishes Fri 4:15pm covering Wed-prior. Gives one full week + one missed cycle of slack."
+      }
     },
     {
       "id": "indicator-jobless-weekly",
@@ -632,10 +643,10 @@
       "source_endpoint": "FRED THREEFYTP10 (\u00d7100)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "daily",
+      "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 25,
+      "freshness_sla_hours": 480,
       "output_destination": "public/indicator_history.json[term_premium]",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -650,7 +661,13 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_calibration": {
+        "recalibrated_at": "2026-05-01",
+        "previous_sla_hours": 25,
+        "new_sla_hours": 480,
+        "reason": "20 days \u2014 Fed Board KW term premium is weekly, not daily. Manifest cadence corrected from PR #13 typo."
+      }
     },
     {
       "id": "indicator-cape-monthly",
@@ -725,7 +742,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 2280,
       "output_destination": "public/indicator_history.json[jolts_quits]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -740,7 +757,13 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_calibration": {
+        "recalibrated_at": "2026-05-01",
+        "previous_sla_hours": 816,
+        "new_sla_hours": 2280,
+        "reason": "95 days \u2014 FRED JTSQUR releases ~6-8 weeks after the reference month. Covers worst-case ~90 days from observation date."
+      }
     },
     {
       "id": "indicator-sloos_ci-quarterly",
@@ -755,7 +778,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 2496,
+      "freshness_sla_hours": 3360,
       "output_destination": "public/indicator_history.json[sloos_ci]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -770,7 +793,13 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_calibration": {
+        "recalibrated_at": "2026-05-01",
+        "previous_sla_hours": 2496,
+        "new_sla_hours": 3360,
+        "reason": "140 days \u2014 FRED SLOOS releases ~6 weeks after quarter close. Worst-case 4.5 months from observation."
+      }
     },
     {
       "id": "indicator-sloos_cre-quarterly",
@@ -785,7 +814,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 2496,
+      "freshness_sla_hours": 3360,
       "output_destination": "public/indicator_history.json[sloos_cre]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -800,7 +829,13 @@
       "failure_mode": "Skipped on FRED outage.",
       "owner": "Senior Quant",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_calibration": {
+        "recalibrated_at": "2026-05-01",
+        "previous_sla_hours": 2496,
+        "new_sla_hours": 3360,
+        "reason": "140 days \u2014 same as sloos_ci."
+      }
     },
     {
       "id": "indicator-credit_3y-quarterly",
@@ -845,7 +880,7 @@
       "cadence": "quarterly (manual)",
       "scheduled_fetch_time_et": "n/a \u2014 hand-edited in source file",
       "refresh_trigger": "manual code edit",
-      "freshness_sla_hours": 2496,
+      "freshness_sla_hours": 3840,
       "output_destination": "public/indicator_history.json[bank_unreal]",
       "producer_script": "fetch_history.py / fetch_indicators.py (hardcoded constant)",
       "consumer_surfaces": [
@@ -860,7 +895,13 @@
       "failure_mode": "ALWAYS stale unless hand-edited. Phase 2: pull straight from FDIC QBP PDF parse or replace metric.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_calibration": {
+        "recalibrated_at": "2026-05-01",
+        "previous_sla_hours": 2496,
+        "new_sla_hours": 3840,
+        "reason": "160 days \u2014 FDIC QBP releases ~10 weeks after quarter close. Manual scrape adds extra lag tolerance."
+      }
     },
     {
       "id": "composite-rl-daily",
@@ -2154,7 +2195,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1680,
       "output_destination": "public/indicator_history.json[cfnai_3ma]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -2175,7 +2216,13 @@
       "failure_mode": "Per-indicator try/except; missing \u2192 indicator omitted from JSON; tile shows '\u2014'.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_calibration": {
+        "recalibrated_at": "2026-05-01",
+        "previous_sla_hours": 816,
+        "new_sla_hours": 1680,
+        "reason": "70 days \u2014 FRED CFNAI releases ~25th of following month. Covers worst-case 60-65 days from observation."
+      }
     },
     {
       "id": "indicator-m2_yoy-monthly",
@@ -2190,7 +2237,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1680,
       "output_destination": "public/indicator_history.json[m2_yoy]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -2211,7 +2258,209 @@
       "failure_mode": "Per-indicator try/except; missing \u2192 indicator omitted from JSON; tile shows '\u2014'.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)",
       "release_calendar": "us-business-day",
-      "dependencies": []
+      "dependencies": [],
+      "_sla_calibration": {
+        "recalibrated_at": "2026-05-01",
+        "previous_sla_hours": 816,
+        "new_sla_hours": 1680,
+        "reason": "70 days \u2014 FRED M2SL similar publishing cadence to CFNAI."
+      }
+    },
+    {
+      "id": "indicator-cfnai-monthly",
+      "category": "indicator",
+      "name": "cfnai",
+      "description": "Chicago Fed National Activity Index \u2014 monthly composite of 85 economic indicators measuring overall national activity vs trend.",
+      "sourcing_mode": "STP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED CFNAI",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "monthly",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
+      "freshness_sla_hours": 1680,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[cfnai]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "Indicator grid row"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Per-indicator try/except; missing \u2192 tile shows '\u2014'.",
+      "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)"
+    },
+    {
+      "id": "indicator-fed_bs-weekly",
+      "category": "indicator",
+      "name": "fed_bs",
+      "description": "Federal Reserve total balance sheet \u2014 H.4.1 weekly factors affecting reserve balances. Total assets in $ millions.",
+      "sourcing_mode": "STP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WALCL",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
+      "freshness_sla_hours": 480,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[fed_bs]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "Indicator grid row"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Per-indicator try/except; missing \u2192 tile shows '\u2014'.",
+      "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)"
+    },
+    {
+      "id": "indicator-bank_reserves-weekly",
+      "category": "indicator",
+      "name": "bank_reserves",
+      "description": "Reserve balances with Federal Reserve banks (FRED WRESBAL) \u2014 bank reserve liquidity measure.",
+      "sourcing_mode": "STP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WRESBAL",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 480,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[bank_reserves]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "Indicator grid row"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Per-indicator try/except; missing \u2192 tile shows '\u2014'.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "indicator-tga-weekly",
+      "category": "indicator",
+      "name": "tga",
+      "description": "Treasury General Account balance (FRED WTREGEN) \u2014 Treasury cash at the Fed.",
+      "sourcing_mode": "STP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED WTREGEN",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 480,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[tga]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "Indicator grid row"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Per-indicator try/except; missing \u2192 tile shows '\u2014'.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "indicator-rrp-daily",
+      "category": "indicator",
+      "name": "rrp",
+      "description": "Overnight reverse repo facility take-up (FRED RRPONTSYD) \u2014 money market liquidity gauge.",
+      "sourcing_mode": "STP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED RRPONTSYD",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 25,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[rrp]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "Indicator grid row"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Per-indicator try/except; missing \u2192 tile shows '\u2014'.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "indicator-breakeven_10y-daily",
+      "category": "indicator",
+      "name": "breakeven_10y",
+      "description": "10-year breakeven inflation rate (FRED T10YIE) \u2014 TIPS-derived inflation expectations.",
+      "sourcing_mode": "STP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED T10YIE",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 25,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[breakeven_10y]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "Indicator grid row"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Per-indicator try/except; missing \u2192 tile shows '\u2014'.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "indicator-hy_ig_etf-daily",
+      "category": "indicator",
+      "name": "hy_ig_etf",
+      "description": "LQD \u00f7 HYG ratio \u2014 investment-grade vs high-yield ETF relative strength as a credit-quality proxy.",
+      "sourcing_mode": "computed",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "yfinance LQD + HYG",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 25,
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[hy_ig_etf]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "indicators",
+          "tile": "Indicator grid row"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "Per-indicator try/except; missing \u2192 tile shows '\u2014'.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
@@ -2228,7 +2477,8 @@
     "G11. All workflows fail silently \u2014 no `if: failure()` step, no Slack/email/PagerDuty wire-in. Per project memory, failure-alert was claimed shipped 2026-04-28 but verification needed.",
     "G12. Daily intraday clock-sequenced chain (15:30 SCAN \u2192 15:45 UNIVERSE \u2192 15:50 EVENTS) has no `needs:` or workflow_run dependency \u2014 relies on 15-minute clock buffer. Saturday weekly chain (12:00 V9 \u2192 13:30 SCENARIO) has 90-minute buffer. Phase 3 normalize: either explicit dependency or single window.",
     "G13. Two `LESSONS.md` references in project_instructions, but file does not exist in the repo. The corrections live only in Joe's auto-memory. Phase 2: create LESSONS.md and migrate auto-memory rules into it (binding, in-repo).",
-    "G14. Phase 1 inventory missed 2 derived monthly indicators (cfnai_3ma, m2_yoy) referenced by composite-gr/ir; registered in PR #13. Atomic FRED CFNAI and M2SL series are still not inventoried as separate elements \u2014 Phase 5 follow-up."
+    "G14. Phase 1 inventory missed 2 derived monthly indicators (cfnai_3ma, m2_yoy) referenced by composite-gr/ir; registered in PR #13. Atomic FRED CFNAI and M2SL series are still not inventoried as separate elements \u2014 Phase 5 follow-up.",
+    "G15. Phase 1 missed 7 atomic indicators (cfnai, fed_bs, bank_reserves, tga, rrp, breakeven_10y, hy_ig_etf). Registered in 2026-05-01 recalibration. All present in pipeline_health, missing from manifest until now."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
