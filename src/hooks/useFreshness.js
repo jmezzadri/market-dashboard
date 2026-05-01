@@ -1,49 +1,57 @@
-// useFreshness.js — site-wide data-freshness hook.
+// useFreshness.js — site-wide data-freshness hook (PR #16 rebuild).
 //
-// Reads public.pipeline_health (populated every 30 min by the
-// pipeline-health-check edge function) and returns a RAG status + context
-// for a given indicator.
+// What changed in PR #16
+// ──────────────────────
+// 1. Two-state semantics. The chip is GREEN or RED — no amber. Joe sign-off
+//    2026-05-01: "I dont trust the system yet, I want to see if the data
+//    is stale (RED), or if its operating within SLA (Green)."
 //
-// Usage
-// ─────
-//   const fresh = useFreshness("vix");
-//   // fresh: { status, lastGoodAt, lastCheckAt, source, cadence,
-//   //          cadenceMinutes, lastError, loading, missing }
+// 2. Manifest-driven thresholds. Per-element freshness_sla_hours +
+//    release_calendar come from public/data_manifest.json (PR #13). The
+//    legacy CADENCE_TOLERANCE_MINUTES math is gone.
 //
-//   <FreshnessDot fresh={fresh} onExplain={openReadme}/>
+// 3. Aggregate rollup. When the queried element has dependencies, the
+//    hook walks them and OR-reds. Tooltip names the specific failing
+//    dependency, or — if the aggregate's own calc is stale — the calc
+//    itself.
 //
-// Status semantics
-// ────────────────
-//   green  — last_good_at is within 1× expected cadence → data is current
-//   amber  — 1–2× cadence — overdue but within the soft threshold
-//   red    — >2× cadence, missing, or last fetch errored
+// 4. Trading-calendar awareness comes via the freshnessClock utility
+//    (PR #14). isStaleAgainstSLA(asOf, sla, calendar) skips weekends +
+//    NYSE/business-day holidays as Joe's "Sunday-night-not-stale"
+//    requirement demands.
 //
-// Caching
-// ───────
-//   The hook uses ONE in-module subscription to pipeline_health that all
-//   consumers share — a hundred FreshnessDots on one page hit Supabase
-//   exactly once. The data refreshes every 60s or on visibility change.
+// What stayed the same
+// ────────────────────
+// - Reads public.pipeline_health for last_good_at + last_check_at +
+//   last_error per indicator. Edge function still owns the "did it
+//   refresh" data; chip owns the "is it stale" decision.
+// - Shared in-module subscription so 100 chips on one page hit Supabase
+//   exactly once. 60s refresh cadence + tab-focus refresh.
 //
-// Fallback
-// ────────
-//   When pipeline_health has no row for an indicator (e.g. first deploy,
-//   edge fn cold start, or a newly-added series), the hook returns
-//   `{ status: "unknown", missing: true }` and the FreshnessDot renders
-//   a neutral grey circle instead of a colored one.
-//
+// Status semantics (post-PR-16)
+// ─────────────────────────────
+//   green  — within SLA per manifest AND no upstream pull error AND every
+//            dependency rolls up green
+//   red    — anything else: stale, missing, error, or any input red.
+
 import { useEffect, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
+import { isStaleAgainstSLA, formatRelativeAge } from "../lib/freshnessClock";
+import {
+  getElement,
+  getSLAHours,
+  getReleaseCalendar,
+  getDependencies,
+  subscribeManifest,
+  isManifestLoaded,
+} from "../lib/manifest";
 
-// ─── Shared cache ───────────────────────────────────────────────────────────
-// A single promise + timestamp so every mount of the hook on a page gets the
-// same snapshot. Refreshed every REFRESH_MS or when the tab regains focus.
-// ────────────────────────────────────────────────────────────────────────────
 const REFRESH_MS = 60_000;
 
-let cachedRows = null;        // Map<indicator_id, row>
+let cachedRows = null;        // Map<indicator_id, pipeline_health row>
 let lastFetchAt = 0;
-let inflight = null;          // Promise<Map>
-const listeners = new Set();  // Set<() => void>
+let inflight = null;
+const listeners = new Set();
 
 function notify() { listeners.forEach((fn) => fn()); }
 
@@ -60,7 +68,6 @@ async function fetchRows() {
       "last_good_at, last_check_at, last_value, last_error, status, updated_at"
     );
   if (error) {
-    // Leave the cache alone on error — we keep the last good snapshot.
     // eslint-disable-next-line no-console
     console.warn("[useFreshness] supabase error:", error.message);
     return cachedRows || new Map();
@@ -82,90 +89,175 @@ function ensureFresh() {
   });
 }
 
-// Refresh on tab focus — common "did my data update?" moment for Joe.
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "visible") {
-      lastFetchAt = 0; // force
+      lastFetchAt = 0;
       ensureFresh();
     }
   });
 }
 
+// ─── Element-level status (atomic; no dep walk) ─────────────────────────────
+// Returns the status object the chip needs to render itself for ONE element.
+// Used recursively by the rollup walker, and directly by leaf chips.
+function statusForElement(elementId, fallback) {
+  // 2. Manifest gives us SLA + release_calendar + dependencies.
+  //    Look up the manifest first because manifest entries are keyed by both
+  //    short name (e.g. "vix") AND full id (e.g. "indicator-vix-daily").
+  //    pipeline_health is keyed only by short name — so resolve to the short
+  //    name before reading pipeline_health.
+  const manifestEl = getElement(elementId);
+  const phKey = manifestEl?.name || elementId;
+
+  // 1. Pipeline-health row gives us last_good_at + last_error + label.
+  const phRow = (cachedRows && cachedRows.get(phKey)) || null;
+  // SLA hours: manifest first; fallback to passed-in cadence-derived if absent.
+  const slaHours = manifestEl ? Number(manifestEl.freshness_sla_hours) || 0 : 0;
+  const calendar =
+    (manifestEl && manifestEl.release_calendar) ||
+    (fallback?.calendar) ||
+    "wall-clock";
+
+  // 3. Decide last_good_at: prefer pipeline_health, else fall back to caller's
+  //    asOfIso (which the chip passes when pipeline_health hasn't backfilled).
+  const lastGoodAt = phRow?.last_good_at || fallback?.asOfIso || null;
+  const lastError = phRow?.last_error || null;
+
+  // 4. Two-state decision.
+  let status = "green";
+  let reason = null;
+
+  if (lastError) {
+    status = "red";
+    reason = `Upstream error: ${lastError}`;
+  } else if (!lastGoodAt) {
+    status = "red";
+    reason = "No successful refresh on record";
+  } else if (slaHours > 0) {
+    if (isStaleAgainstSLA(lastGoodAt, slaHours, calendar)) {
+      status = "red";
+      reason = "Past freshness SLA";
+    }
+  }
+
+  return {
+    elementId,
+    status,
+    lastGoodAt,
+    lastError,
+    slaHours,
+    calendar,
+    label: manifestEl?.name || phRow?.label || elementId,
+    description: manifestEl?.description || null,
+    sourceVendor: manifestEl?.source_vendor || phRow?.source || null,
+    reason,
+    missingFromManifest: !manifestEl,
+    missingFromPipelineHealth: !phRow,
+  };
+}
+
+// ─── Aggregate rollup ───────────────────────────────────────────────────────
+// Walks dependencies and returns the worst-case status across the element
+// itself + every input. Includes a `cause` chain so the tooltip can name
+// the specific upstream that fired the red.
+function rollupStatus(elementId, fallback, visited = new Set()) {
+  if (visited.has(elementId)) {
+    // Cycle guard. Shouldn't happen with our manifest, but fail closed.
+    return { elementId, status: "red", reason: "dependency cycle", cause: null, label: elementId };
+  }
+  visited.add(elementId);
+
+  const own = statusForElement(elementId, fallback);
+  const deps = getDependencies(elementId);
+
+  if (!deps.length) {
+    return { ...own, cause: null, redInputs: [] };
+  }
+
+  // Walk every dependency. Collect any that are red.
+  const childResults = deps.map((depId) => rollupStatus(depId, null, visited));
+  const redChildren = childResults.filter((c) => c.status === "red");
+
+  if (own.status === "red" && redChildren.length === 0) {
+    // The aggregate's own calc is stale or errored, but every input is fine.
+    // The chip's tooltip should name the calc itself, not an input.
+    return { ...own, cause: { kind: "self", element: own }, redInputs: [] };
+  }
+  if (redChildren.length > 0) {
+    // Sort red children by oldest last_good_at first — that's the most-stale
+    // and most-likely root cause.
+    redChildren.sort((a, b) => {
+      const ta = a.lastGoodAt ? new Date(a.lastGoodAt).getTime() : 0;
+      const tb = b.lastGoodAt ? new Date(b.lastGoodAt).getTime() : 0;
+      return ta - tb;
+    });
+    return {
+      ...own,
+      status: "red",
+      reason: own.status === "red" ? own.reason : "Upstream input is stale",
+      cause: { kind: "input", element: redChildren[0] },
+      redInputs: redChildren,
+    };
+  }
+  return { ...own, cause: null, redInputs: [] };
+}
+
 // ─── Public hook ────────────────────────────────────────────────────────────
-export function useFreshness(indicatorId) {
+// Same call shape as before:
+//   const fresh = useFreshness("vix");
+//   const fresh = useFreshness("composite_rl");  // walks deps automatically
+// fallback is optional: { asOfIso, calendar } — used only when pipeline_health
+// has no row yet (first deploy) and the manifest can't tell us either.
+export function useFreshness(elementId, fallback) {
   const [, setTick] = useState(0);
 
   useEffect(() => {
     const fn = () => setTick((n) => n + 1);
     listeners.add(fn);
+    const unsubManifest = subscribeManifest(fn);
     ensureFresh();
     const id = setInterval(ensureFresh, REFRESH_MS);
     return () => {
       listeners.delete(fn);
+      unsubManifest();
       clearInterval(id);
     };
   }, []);
 
-  if (!cachedRows) {
-    return { status: "loading", loading: true, missing: false, indicatorId };
+  if (!cachedRows || !isManifestLoaded()) {
+    return { status: "loading", loading: true, missing: false, indicatorId: elementId, elementId };
   }
-  const row = cachedRows.get(indicatorId);
-  if (!row) {
-    return { status: "unknown", loading: false, missing: true, indicatorId };
-  }
+
+  // Build the rolled-up result for this element.
+  const rolled = rollupStatus(elementId, fallback);
   return {
-    status: row.status,
-    lastGoodAt: row.last_good_at,
-    lastCheckAt: row.last_check_at,
-    lastError: row.last_error,
-    lastValue: row.last_value,
-    source: row.source,
-    label: row.label,
-    cadence: row.cadence,
-    cadenceMinutes: row.expected_cadence_minutes,
+    status: rolled.status,             // "green" | "red"
     loading: false,
-    missing: false,
-    indicatorId,
+    missing: rolled.missingFromManifest && rolled.missingFromPipelineHealth,
+    indicatorId: elementId,            // legacy field name
+    elementId,                          // new field name; same value
+    lastGoodAt: rolled.lastGoodAt,
+    lastError: rolled.lastError,
+    label: rolled.label,
+    description: rolled.description,
+    sourceVendor: rolled.sourceVendor,
+    slaHours: rolled.slaHours,
+    calendar: rolled.calendar,
+    reason: rolled.reason,
+    cause: rolled.cause,
+    redInputs: rolled.redInputs || [],
+    formatRelativeAge: () => formatRelativeAge(rolled.lastGoodAt),
   };
 }
 
-// ─── Direct, component-less query — for rare cases where you need a snapshot
-// outside the React lifecycle (e.g. imperative tooltip text). Always returns
-// the cached snapshot; may return null on first call.
-// ────────────────────────────────────────────────────────────────────────────
-export function peekFreshness(indicatorId) {
-  if (!cachedRows) return null;
-  return cachedRows.get(indicatorId) || null;
-}
-
-// ─── PR #15 — useFetchLog ──────────────────────────────────────────────────
-// Reads the trailing fetch-attempt history for one element. The pipeline
-// panel (PR #17) opens this when the user clicks a chip and shows the
-// last 7 attempts: timestamp, status, error if any.
-//
-// Atomic vs aggregate is recorded in the run_kind column — atomic rows
-// come from the pipeline-health-check edge function (every 30 min),
-// aggregate rows come from the Python recompute jobs that wrap
-// log_pipeline_run() at end-of-run.
-//
-// Caching: this hook does NOT use the shared in-module cache the chip
-// uses, because it's only invoked when the panel is open (one element at
-// a time). We hit Supabase directly per panel-open. If panel performance
-// becomes an issue, a small LRU keyed on (indicatorId, limit) is the
-// right next step.
-//
-// Returns:
-//   { rows: Array<{ id, indicator_id, check_at, status, age_minutes,
-//                   error_message, run_kind, run_duration_ms, meta }>,
-//     loading: boolean,
-//     error: string | null }
-export function useFetchLog(indicatorId, limit = 7) {
+// ─── useFetchLog (from PR #15, kept) ───────────────────────────────────────
+export function useFetchLog(elementId, limit = 7) {
   const [rows, setRows] = useState(null);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!indicatorId) { setRows([]); return; }
+    if (!elementId) { setRows([]); return; }
     if (!isSupabaseConfigured) { setRows([]); return; }
     let cancelled = false;
     setRows(null);
@@ -173,7 +265,7 @@ export function useFetchLog(indicatorId, limit = 7) {
     supabase
       .from("pipeline_fetch_log")
       .select("id, indicator_id, check_at, status, age_minutes, error_message, run_kind, run_duration_ms, meta, source")
-      .eq("indicator_id", indicatorId)
+      .eq("indicator_id", elementId)
       .order("check_at", { ascending: false })
       .limit(Math.max(1, Math.min(50, limit)))
       .then(({ data, error: err }) => {
@@ -186,7 +278,13 @@ export function useFetchLog(indicatorId, limit = 7) {
         setRows(data || []);
       });
     return () => { cancelled = true; };
-  }, [indicatorId, limit]);
+  }, [elementId, limit]);
 
   return { rows: rows ?? [], loading: rows === null, error };
+}
+
+// ─── Snapshot peek for non-React contexts ──────────────────────────────────
+export function peekFreshness(elementId) {
+  if (!cachedRows) return null;
+  return cachedRows.get(elementId) || null;
 }
