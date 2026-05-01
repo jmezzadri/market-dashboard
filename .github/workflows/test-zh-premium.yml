@@ -1,0 +1,85 @@
+name: TEST-ZH-PREMIUM
+
+# One-shot smoke test for the new fetch_zerohedge_premium() implementation.
+# Runs on push to the feature branch; uses ZEROHEDGE_COOKIE secret. Output
+# is sanitized — only headline text + URL paths, no cookie values, no body
+# content (which is copyrighted).
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/dev-zh-premium-scrape
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install requests
+        run: pip install --quiet requests
+      - name: Test fetch_zerohedge_premium
+        env:
+          ZEROHEDGE_COOKIE: ${{ secrets.ZEROHEDGE_COOKIE }}
+        run: |
+          cd trading-scanner
+          python -c "
+          import os, sys
+          sys.path.insert(0, '.')
+          print('cookie present:', bool(os.environ.get('ZEROHEDGE_COOKIE')))
+          print('cookie length:', len(os.environ.get('ZEROHEDGE_COOKIE', '')))
+          print()
+          from scanner.market_news import fetch_zerohedge_premium
+          items = fetch_zerohedge_premium()
+          print(f'fetched {len(items)} premium items')
+          print()
+          for i, it in enumerate(items[:10]):
+              # Sanitize: show headline + url path, not body content (copyrighted)
+              url_path = it['url'].replace('https://www.zerohedge.com', '')
+              print(f'  [{i+1}] {it[\"headline\"][:90]}')
+              print(f'      url: {url_path}')
+              print(f'      source: {it[\"source\"]} tier={it[\"source_tier\"]}')
+              print(f'      published: {it[\"published\"][:30]}')
+              print(f'      desc length: {len(it[\"description\"])} chars')
+              print()
+          "
+      - name: Diagnostic — if no items, dump a peek at home page
+        if: always()
+        env:
+          ZEROHEDGE_COOKIE: ${{ secrets.ZEROHEDGE_COOKIE }}
+        run: |
+          python -c "
+          import os, re, requests
+          cookie = os.environ.get('ZEROHEDGE_COOKIE', '')
+          if not cookie:
+              print('no cookie, skipping diagnostic')
+              exit(0)
+          r = requests.get(
+              'https://www.zerohedge.com/',
+              headers={'User-Agent': 'Mozilla/5.0 (MacroTilt/1.0)', 'Cookie': cookie},
+              timeout=15,
+          )
+          html = r.text
+          print(f'home HTTP {r.status_code}, size={len(html)} bytes')
+          print(f'  has \"zh_is_p\" marker: {\"zh_is_p\" in html}')
+          print(f'  has \"ust-p\" marker: {\"ust-p\" in html}')
+          print(f'  has \"the-market-ear\" link: {\"/the-market-ear\" in html}')
+          print(f'  has __NEXT_DATA__ tag: {chr(60)+chr(33)} {\"<script id=\\\"__NEXT_DATA__\\\"\" in html}')
+          # Find first 5 article-shaped links
+          links = sorted(set(re.findall(r'href=\"(/[a-z0-9-]{15,}(?:/[a-z0-9-]+)*)\"', html)))
+          print(f'  unique article-shaped paths (first 10):')
+          for l in links[:10]:
+              print(f'    {l}')
+          # Check if __NEXT_DATA__ has any premium-tagged keys at top level
+          m = re.search(r'<script\s+id=\"__NEXT_DATA__\"[^>]*>(.+?)</script>', html, re.S)
+          if m:
+              nd_text = m.group(1)
+              print(f'  __NEXT_DATA__ size: {len(nd_text)} chars')
+              print(f'    contains \"premium\": {nd_text.count(chr(34)+\"premium\"+chr(34))} occurrences')
+              print(f'    contains \"is_premium\": {nd_text.count(chr(34)+\"is_premium\"+chr(34))} occurrences')
+              print(f'    contains \"the-market-ear\": {nd_text.count(\"the-market-ear\")} occurrences')
+          "
