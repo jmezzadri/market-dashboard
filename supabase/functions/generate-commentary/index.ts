@@ -281,17 +281,84 @@ serve(async (req) => {
     .upsert(macroRow, { onConflict: "generated_date" });
   if (mErr) return json({ error: "macro_write_failed", detail: mErr.message }, 500);
 
-  // Sector commentary is TODO in this first-cut ship — null row so the
-  // frontend renders nothing today. When sector rank history is wired
-  // in (task 5 follow-on), extend below.
-  const sectorRow = {
-    generated_date: new Date().toISOString().slice(0, 10),
+  // Sector commentary — Phase 3 PR #7. Reads the last 5 days of
+  // sector_rank_history (populated daily by scripts/compute_sector_ranks.py
+  // from latest_scan_data.json), identifies the biggest movers (rank delta
+  // >= 3 across 5 days, or composite delta >= 10), and asks Claude Haiku to
+  // write a one-sentence sector outlook blurb. Falls back to a null row
+  // (with a reason) if no movers crossed the threshold OR the upstream
+  // table is empty (first-day or scanner failure scenarios).
+  const today = new Date().toISOString().slice(0, 10);
+  let sectorRow: any = {
+    generated_date: today,
     generated_at: new Date().toISOString(),
     headline: null,
     per_sector: null,
-    reason: "sector_rank_history_not_wired",
+    reason: "no_material_sector_moves",
     evidence: null,
   };
+  try {
+    const { data: ranks, error: rErr } = await sb
+      .from("sector_rank_history")
+      .select("as_of, sector, composite_score, rank_today, ticker_count")
+      .order("as_of", { ascending: false })
+      .limit(60);   // ~5 days * ~12 sectors of headroom
+    if (rErr || !ranks || ranks.length === 0) {
+      sectorRow.reason = rErr ? `sector_rank_query_failed: ${rErr.message}` : "sector_rank_history_empty";
+    } else {
+      // Group by sector; pick latest two rows per sector (today vs ~5d back).
+      const bySector = new Map<string, any[]>();
+      for (const r of ranks) {
+        if (!bySector.has(r.sector)) bySector.set(r.sector, []);
+        bySector.get(r.sector)!.push(r);
+      }
+      const movers: any[] = [];
+      for (const [sector, rows] of bySector) {
+        if (rows.length < 2) continue;
+        const cur = rows[0];
+        const prev = rows[rows.length - 1];   // ~5 trading days back
+        const rankDelta = (prev.rank_today as number) - (cur.rank_today as number);  // positive = improved
+        const compDelta = Number(cur.composite_score) - Number(prev.composite_score);
+        if (Math.abs(rankDelta) >= 3 || Math.abs(compDelta) >= 10) {
+          movers.push({ sector, rankDelta, compDelta, cur, prev });
+        }
+      }
+      movers.sort((a, b) => Math.abs(b.compDelta) - Math.abs(a.compDelta));
+      if (movers.length === 0) {
+        sectorRow.reason = "no_material_sector_moves";
+      } else if (!ANTHROPIC_API_KEY) {
+        sectorRow.reason = "no_anthropic_key";
+      } else {
+        const top = movers.slice(0, 3);
+        const userMsg = top.map(m => {
+          const dir = m.rankDelta > 0 ? "moved up" : "moved down";
+          return `${m.sector}: ${dir} ${Math.abs(m.rankDelta)} ranks (now #${m.cur.rank_today}); composite ${Number(m.cur.composite_score).toFixed(0)} vs ${Number(m.prev.composite_score).toFixed(0)} 5 days ago.`;
+        }).join("\n");
+        const blurb = await callAnthropic(
+          `You are MacroTilt's sector outlook commentator. Given these sector rank shifts over the last 5 trading days, write ONE sentence (max 30 words) tying together what's happening. Plain English, no jargon. No more than one sentence. No emojis.\n\n${userMsg}`,
+          ANTHROPIC_API_KEY,
+        );
+        if (blurb && blurb.length > 5) {
+          sectorRow.headline = blurb;
+          sectorRow.per_sector = top.map(m => ({
+            sector: m.sector,
+            rank_today: m.cur.rank_today,
+            rank_5d_ago: m.prev.rank_today,
+            rank_delta: m.rankDelta,
+            composite_today: Number(m.cur.composite_score),
+            composite_5d_ago: Number(m.prev.composite_score),
+            composite_delta: m.compDelta,
+          }));
+          sectorRow.reason = null;
+          sectorRow.evidence = { movers_considered: movers.length };
+        } else {
+          sectorRow.reason = "anthropic_returned_empty";
+        }
+      }
+    }
+  } catch (e) {
+    sectorRow.reason = `sector_blurb_unhandled: ${(e as Error).message}`;
+  }
   const { error: sErr } = await sb
     .from("sector_commentary")
     .upsert(sectorRow, { onConflict: "generated_date" });
