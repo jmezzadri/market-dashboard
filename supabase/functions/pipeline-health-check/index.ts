@@ -100,11 +100,28 @@ function statusFor(ageMinutes: number, row: HealthRow): "green" | "amber" | "red
   return "red";
 }
 
-function ageMinutesFromIso(iso: string | null | undefined): number | null {
+// PR (timestamp-semantics fix, 2026-05-01): when as_of comes through as a
+// date-only string ("2026-04-30") for a DAILY indicator, anchor the time to
+// 20:00 UTC — that's ~ NYSE close (4pm ET during DST) and the moment FRED
+// daily series have published. Without this, the chip computes age from
+// midnight UTC, which is up to 21 hours BEFORE the data actually appeared,
+// pushing daily chips to red as soon as the next day starts in UTC. Slower
+// cadences leave date-only at 00:00 UTC — their SLA budgets absorb the offset.
+function asOfToMs(iso: string | null | undefined, cadence: CadenceCode | undefined): number | null {
   if (!iso) return null;
-  const t = new Date(iso).getTime();
-  if (Number.isNaN(t)) return null;
-  return Math.max(0, Math.round((Date.now() - t) / 60000));
+  if (iso.length === 10) {
+    const time = cadence === "D" ? "T20:00:00Z" : "T00:00:00Z";
+    const ms = new Date(iso + time).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  const ms = new Date(iso).getTime();
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function ageMinutesFromIso(iso: string | null | undefined, cadence?: CadenceCode): number | null {
+  const ms = asOfToMs(iso, cadence);
+  if (ms == null) return null;
+  return Math.max(0, Math.round((Date.now() - ms) / 60000));
 }
 
 // ─── Data fetchers ──────────────────────────────────────────────────────────
@@ -220,7 +237,7 @@ async function handle(req: Request): Promise<Response> {
       }
     }
 
-    const ageMin = ageMinutesFromIso(asOf);
+    const ageMin = ageMinutesFromIso(asOf, row.cadence);
     let newStatus: "green" | "amber" | "red";
     if (ageMin == null) newStatus = "red";
     else newStatus = statusFor(ageMin, row);
@@ -246,7 +263,7 @@ async function handle(req: Request): Promise<Response> {
       last_check_at: now.toISOString(),
       last_good_at: lastGoodIso
         ? lastGoodIso
-        : (asOf ? new Date(asOf + "T00:00:00Z").toISOString() : row.last_good_at),
+        : (asOf ? new Date(asOfToMs(asOf, row.cadence) ?? Date.now()).toISOString() : row.last_good_at),
       last_error: lastError,
       status: newStatus,
       prev_status: row.status,
