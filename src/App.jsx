@@ -1898,25 +1898,56 @@ return(
 // Composite mapping — derived from public/composite_weights.json so a single
 // edit there propagates here. Keeping inline for now; future refactor can
 // import the JSON at build time.
+// MECHANISM_MAP — maps each indicator to its v11 cycle mechanism.
+// Sprint 1 (LIVE): Valuation, Credit, Growth.
+// Sprint 2 (placeholder): Funding (+ leveraged_loan addition to Credit).
+// Sprint 4 (placeholder): Liquidity & Policy, Positioning & Breadth.
+// Source: methodology-v11.md and data_triage.html row 141-158.
 const COMPOSITE_MAP = {
-  // Risk & Liquidity (R&L) — 3-month forward drawdown
-  anfci:  { composite:"Risk & Liquidity", weight:0.2598 },
-  vix:    { composite:"Risk & Liquidity", weight:0.2537 },
-  stlfsi: { composite:"Risk & Liquidity", weight:0.2434 },
-  cmdi:   { composite:"Risk & Liquidity", weight:0.2431 },
-  // Growth — 6-month forward
-  jobless:    { composite:"Growth", weight:0.3427 },
-  cfnai_3ma:  { composite:"Growth", weight:0.3307 },
-  bkx_spx:    { composite:"Growth", weight:0.3265 },
-  // Inflation & Rates — 18-month forward
-  move:   { composite:"Inflation & Rates", weight:0.5063 },
-  m2_yoy: { composite:"Inflation & Rates", weight:0.4937 },
+  // ── Valuation (Sprint 1 LIVE) ──────────────────────────────────────────
+  cape:        { composite:"Valuation",            sprint:1 },
+  erp:         { composite:"Valuation",            sprint:1 },
+  buffett:     { composite:"Valuation",            sprint:1 },
+  // ── Credit (Sprint 1 LIVE; loan_syn = Sprint 2 add) ────────────────────
+  ig_oas:      { composite:"Credit",               sprint:1 },
+  hy_ig:       { composite:"Credit",               sprint:1 },  // HY OAS spread (manifest name retained)
+  hy_ig_ratio: { composite:"Credit",               sprint:1 },
+  loan_syn:    { composite:"Credit",               sprint:2 },
+  // ── Funding (Sprint 2 placeholder) ─────────────────────────────────────
+  sofr_ois:    { composite:"Funding",              sprint:2 },
+  fra_ois:     { composite:"Funding",              sprint:2 },
+  cdx_basis:   { composite:"Funding",              sprint:2 },
+  xccy_basis:  { composite:"Funding",              sprint:2 },
+  cpff:        { composite:"Funding",              sprint:2 },
+  // ── Growth (Sprint 1 LIVE) ─────────────────────────────────────────────
+  cfnai:       { composite:"Growth",               sprint:1 },
+  cfnai_3ma:   { composite:"Growth",               sprint:1 },
+  jobless:     { composite:"Growth",               sprint:1 },
+  ic4wsa:      { composite:"Growth",               sprint:1 },
+  ism:         { composite:"Growth",               sprint:1 },
+  bkx_spx:     { composite:"Growth",               sprint:1 },
+  bkx_spx_v11: { composite:"Growth",               sprint:1 },
+  // ── Liquidity & Policy (Sprint 4 placeholder) ──────────────────────────
+  anfci:         { composite:"Liquidity & Policy", sprint:4 },
+  real_fedfunds: { composite:"Liquidity & Policy", sprint:4 },
+  m2_yoy:        { composite:"Liquidity & Policy", sprint:4 },
+  term_premium:  { composite:"Liquidity & Policy", sprint:4 },
+  fed_bs:        { composite:"Liquidity & Policy", sprint:4 },
+  // ── Positioning & Breadth (Sprint 4 placeholder) ───────────────────────
+  naaim:       { composite:"Positioning & Breadth", sprint:4 },
+  margin_debt: { composite:"Positioning & Breadth", sprint:4 },
+  put_call:    { composite:"Positioning & Breadth", sprint:4 },
+  spx_200dma:  { composite:"Positioning & Breadth", sprint:4 },
+  adv_dec:     { composite:"Positioning & Breadth", sprint:4 },
 };
 
 const COMPOSITE_TOOLTIPS = {
-  "Risk & Liquidity": "Risk & Liquidity composite — 3-month forward drawdown predictor. AUC 0.69 (95% CI 0.60–0.78), 4 indicators.",
-  "Growth":           "Growth composite — 6-month forward drawdown predictor. AUC 0.66 (95% CI 0.57–0.74), 3 indicators.",
-  "Inflation & Rates":"Inflation & Rates composite — 18-month forward drawdown predictor. AUC 0.60 (95% CI 0.51–0.68), 2 indicators.",
+  "Valuation":              "Valuation cycle mechanism (Sprint 1 LIVE). How richly is the equity market priced relative to its history? Inputs: CAPE, Equity Risk Premium, Buffett Indicator.",
+  "Credit":                 "Credit cycle mechanism (Sprint 1 LIVE). What compensation are investors demanding for corporate-credit risk? Bidirectional read — extreme tightness = complacency, extreme widening = stress. Inputs: IG OAS, HY OAS, HY/IG ratio.",
+  "Funding":                "Funding cycle mechanism (Sprint 2 placeholder). Bank-system funding stress. Greyed on the Macro Overview board until Sprint 2 ships. Inputs: SOFR-OIS, FRA-OIS, CDX basis, x-currency basis, CP-FedFunds.",
+  "Growth":                 "Growth cycle mechanism (Sprint 1 LIVE). How fast is the real economy moving and is it deteriorating? Fires only when indicators are simultaneously extreme AND worsening. Inputs: CFNAI 3-month, IC4WSA jobless, ISM, BKX/SPX.",
+  "Liquidity & Policy":     "Liquidity & Policy cycle mechanism (Sprint 4 placeholder). Bidirectional — tight = cycle peak, ultra-loose = policy reflation. Greyed on the Macro Overview board. Inputs: ANFCI, real Fed funds, M2 YoY, term premium, Fed B/S.",
+  "Positioning & Breadth":  "Positioning & Breadth cycle mechanism (Sprint 4 placeholder). Bidirectional — euphoria + narrow breadth and capitulation + breadth-thrust both read as concerning. Greyed on the Macro Overview board. Inputs: NAAIM, margin debt YoY, put/call, % above 200dma, advance-decline.",
 };
 
 // Lead/Coincident/Lag classification (Senior Quant + Conference Board / NBER convention).
@@ -1987,9 +2018,9 @@ function _cmp(a, b){
   return String(a).localeCompare(String(b));
 }
 
-// Default sort: composite priority (R&L → Growth → Inflation & Rates → N/A),
-// then weight DESC inside each composite.
-const COMP_ORDER = { "Risk & Liquidity":0, "Growth":1, "Inflation & Rates":2, "":3 };
+// Default sort: v11 mechanism priority (Valuation → Credit → Funding → Growth →
+// Liquidity & Policy → Positioning & Breadth → Watch List), then alphabetical within.
+const COMP_ORDER = { "Valuation":0, "Credit":1, "Funding":2, "Growth":3, "Liquidity & Policy":4, "Positioning & Breadth":5, "":6 };
 
 function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   // Subscribe to indicator_history.json hydration so this table re-renders
@@ -2005,7 +2036,7 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
 
   // P6 #20 — search + filter chips. Joe 2026-04-27.
   const [search, setSearch] = useState("");
-  const [filterComposite, setFilterComposite] = useState("all"); // all | rl | growth | ir | reference
+  const [filterComposite, setFilterComposite] = useState("all"); // all | valuation | credit | funding | growth | liqpol | posbreath | reference
   const [filterCategory, setFilterCategory]   = useState("all"); // all | equity | credit | rates | fincond | bank | labor
 
   // Deep-link: when arriving via #indicators?id=X, expand that row and
@@ -2087,10 +2118,13 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   // Filter (composite chip + category chip + free-text search)
   const filtered = rows.filter(r => {
     if (filterComposite !== "all") {
-      if (filterComposite === "rl"        && r.composite !== "Risk & Liquidity") return false;
-      if (filterComposite === "growth"    && r.composite !== "Growth")           return false;
-      if (filterComposite === "ir"        && r.composite !== "Inflation & Rates")return false;
-      if (filterComposite === "reference" && r.composite)                         return false;
+      if (filterComposite === "valuation" && r.composite !== "Valuation")             return false;
+      if (filterComposite === "credit"    && r.composite !== "Credit")                return false;
+      if (filterComposite === "funding"   && r.composite !== "Funding")               return false;
+      if (filterComposite === "growth"    && r.composite !== "Growth")                return false;
+      if (filterComposite === "liqpol"    && r.composite !== "Liquidity & Policy")    return false;
+      if (filterComposite === "posbreath" && r.composite !== "Positioning & Breadth") return false;
+      if (filterComposite === "reference" && r.composite)                              return false;
     }
     if (filterCategory !== "all" && r.cat !== filterCategory) return false;
     if (search.trim()) {
@@ -2228,11 +2262,14 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
         <div style={{display:"inline-flex", gap:4, flexWrap:"wrap"}}>
           <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600}}>COMPOSITE</span>
           {[
-            {k:"all",       label:"All",            col:"var(--text)"},
-            {k:"rl",        label:"R&L",            col:"#4a6fa5"},
-            {k:"growth",    label:"Growth",         col:"#1f9d60"},
-            {k:"ir",        label:"Infl & Rates",   col:"#b8811c"},
-            {k:"reference", label:"Reference-only", col:"var(--text-muted)"},
+            {k:"all",       label:"All",                col:"var(--text)"},
+            {k:"valuation", label:"Valuation",          col:"#7a1414"},
+            {k:"credit",    label:"Credit",             col:"#a04518"},
+            {k:"funding",   label:"Funding",            col:"#b8860b"},
+            {k:"growth",    label:"Growth",             col:"#1f9d60"},
+            {k:"liqpol",    label:"Liquidity & Policy", col:"#4a6fa5"},
+            {k:"posbreath", label:"Positioning",        col:"#7a4a8a"},
+            {k:"reference", label:"Watch List",         col:"var(--text-muted)"},
           ].map(c => (
             <button key={c.k} type="button"
               onClick={() => setFilterComposite(c.k)}
@@ -2291,8 +2328,7 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
                 <Th k="label"     label="Indicator" />
                 <Th k="category"  label="Category" />
                 <Th k="freq"      label="Freq" align="center" width={60} tip="D = Daily · W = Weekly · M = Monthly · Q = Quarterly. The release cadence of the upstream source." />
-                <Th k="composite" label="Composite" tip="Indicators that cleared the AUC predictive threshold (95% CI lower ≥ 0.55) for forward S&P drawdowns are mapped here. R&L = 3-month horizon, Growth = 6-month, Inflation & Rates = 18-month." />
-                <Th k="weight"    label="Weight" align="right" tip="Empirical weight = the indicator's AUC excess (over 0.5) normalized within its composite. Higher AUC implies higher weight. Indicators with — did not clear the predictive threshold." />
+                <Th k="composite" label="Mechanism" tip="The v11 cycle mechanism this indicator feeds. Sprint 1 LIVE: Valuation, Credit, Growth. Sprint 2 placeholder: Funding. Sprint 4 placeholders: Liquidity & Policy, Positioning & Breadth. Watch List = displayed for context but not in any tile rule." />
                 <Th k="type"      label="Type" align="center" tip="Lead = moves before the cycle (Conference Board convention). Coincident = moves with the cycle. Lag = moves after." />
                 <Th k="asof"      label="Last refresh" tip="Date the most recent observation was posted by the source. Daily refresh runs at market close." />
                 <Th k="cur"       label="Current" align="right" />
@@ -2364,16 +2400,6 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
                         )}
                       </td>
                       {/* Weight */}
-                      <td style={{...tdBase, textAlign:"right"}}>
-                        {r.weight != null ? (
-                          <span style={{
-                            fontSize:12, fontWeight:700, color:"var(--text)",
-                            fontFamily:"var(--font-mono)",
-                          }}>{(r.weight * 100).toFixed(1)}%</span>
-                        ) : (
-                          <span style={{color:"var(--text-dim)"}}>—</span>
-                        )}
-                      </td>
                       {/* Type */}
                       <td style={{...tdBase, textAlign:"center"}}>
                         {r.type ? (
@@ -4780,7 +4806,7 @@ const TAB_IDS=["home","overview","indicators","allocation","portopps","insights"
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
-  overview:  {eyebrow:"Today's Macro",        title:"Today's macro overview",  sub:"Three composites — Risk & Liquidity (3-mo), Growth (6-mo), Inflation & Rates (18-mo) — built from the indicators that empirically predict S&P drawdowns. Hover the trajectory chart for any date."},
+  overview:  {eyebrow:"Macro Overview",       title:"Macro Overview",          sub:"Six v11 cycle mechanisms — Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth — read individually and counted. Headline gauge: 0-1 elevated = Constructive, 2 = Watchful, 3 = Defensive setup forming, 4+ = High-conviction defensive."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   allocation:{eyebrow:"Asset Tilt",            title:"Asset Tilt",              sub:"Equity exposure, industry-group overweights, safe-haven sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"The unfiltered daily scan plus your watchlist — scored on five signal sources."},
