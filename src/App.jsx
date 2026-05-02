@@ -7360,7 +7360,7 @@ return(<>
     italicSub={"Sources, scoring, regime thresholds, calibration windows."}
     lead={<>The full methodology — every <strong style={{fontWeight:600,color:"var(--text)"}}>data source</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>formula</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>regime threshold</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>back-test parameter</strong> the model uses. Organized by surface: <strong style={{fontWeight:600,color:"var(--text)"}}>macro composites</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>allocation engine</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>trading opportunities scanner</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>portfolio risk</strong>. If you want to know why a number is what it is, the answer is on this page. Search the indicator reference at the bottom for any specific signal.</>}
   /></div>
-  <MethodologyPage ind={IND} asOf={AS_OF} asOfIso={AS_OF_ISO} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>
+  <MethodologyPage ind={IND} asOf={{...AS_OF}} asOfIso={{...AS_OF_ISO}} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>
 </>)}
 
 
