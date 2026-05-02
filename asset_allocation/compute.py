@@ -150,6 +150,9 @@ def load_composites_from_factor_panel(factor_df: pd.DataFrame) -> pd.DataFrame:
     acquisition layer."""
     public = Path("public")
     candidates = [
+        # PR λ (2026-05-02): Composite kill — composite_history_daily.json was
+        # deleted; this read is now best-effort. Returns empty DataFrame if file
+        # missing (graceful degradation pending Asset Tilt rebuild).
         Path(__file__).resolve().parent.parent / "public" / "composite_history_daily.json",
         Path("/sessions/gifted-nifty-feynman/mnt/macrotilt/market-dashboard/public/composite_history_daily.json"),
     ]
