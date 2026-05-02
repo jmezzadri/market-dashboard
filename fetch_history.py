@@ -601,6 +601,161 @@ def fetch_all():
                           "points": move_anchor,
                           "source": "ICE/BofA MOVE (curated anchor)"}
 
+
+    # ── PR #2B (2026-05-01) — wire 11 v11 mechanism inputs that were
+    # showing hardcoded mock values in public/MacroTilt_Macro_Overview_Page_v11.html.
+    # Each pulls from a free public source per G16 in data_manifest.json. ─────────────────────
+    
+    print("Buffett Indicator (buffett, market cap / GDP) ...")
+    will = safe_fred("WILL5000PR")  # Wilshire 5000 price index, daily
+    gdp = safe_fred("GDP")          # Nominal GDP, quarterly
+    if will is not None and gdp is not None:
+        # Resample WIL daily to quarterly end, divide by GDP, convert to %.
+        will_q = will.resample("QE").last().dropna()
+        df = pd.concat([will_q.rename("w"), gdp.rename("g")], axis=1).ffill().dropna()
+        ratio = (df["w"] / df["g"]) * 100.0  # already in % since both are $bn-ish scale
+        result["buffett"] = {"freq": "Q", "unit": "%",
+                              "points": series_to_points(ratio, round_dp=1)}
+
+    print("Investment-Grade OAS (ig_oas) ...")
+    ig = safe_fred("BAMLC0A0CM")
+    if ig is not None:
+        ig_bps = ig * 100.0  # FRED publishes in % — convert to bps to match hy_oas
+        result["ig_oas"] = {"freq": "D", "unit": "bps",
+                             "points": series_to_points(ig_bps, round_dp=0)}
+        
+        # While we have both: HY/IG ratio (relative-risk premium)
+        hy = safe_fred("BAMLH0A0HYM2")
+        if hy is not None:
+            df = pd.concat([(hy*100.0).rename("hy"), ig_bps.rename("ig")], axis=1).ffill().dropna()
+            ratio = df["hy"] / df["ig"]
+            result["hy_ig_ratio"] = {"freq": "D", "unit": "ratio",
+                                      "points": series_to_points(ratio, round_dp=2)}
+
+    print("FRA-OIS (fra_ois) — modern proxy: SOFR - Fed Funds ...")
+    sofr = safe_fred("SOFR")
+    dff = safe_fred("DFF")
+    if sofr is not None and dff is not None:
+        df = pd.concat([sofr.rename("s"), dff.rename("f")], axis=1).ffill().dropna()
+        spread_bps = (df["s"] - df["f"]) * 100.0
+        result["fra_ois"] = {"freq": "D", "unit": "bps",
+                              "points": series_to_points(spread_bps, round_dp=1)}
+
+    print("Real Fed Funds Rate (real_fedfunds) ...")
+    pce = safe_fred("PCEPILFE")  # Core PCE, monthly
+    if dff is not None and pce is not None:
+        pce_yoy = (pce.pct_change(periods=12) * 100.0).dropna()
+        # Resample DFF monthly avg
+        dff_m = dff.resample("ME").mean().dropna()
+        df = pd.concat([dff_m.rename("ff"), pce_yoy.rename("pce")], axis=1).ffill().dropna()
+        real = df["ff"] - df["pce"]
+        result["real_fedfunds"] = {"freq": "M", "unit": "%",
+                                    "points": series_to_points(real, round_dp=2)}
+
+    print("Equity Risk Premium (erp) — earnings yield - 10y Treasury ...")
+    # Earnings yield = 100 / S&P 500 P/E ratio. Using FRED MULTPL S&P 500 PE Ratio.
+    pe = safe_fred("SP500_PE_RATIO")
+    dgs10 = safe_fred("DGS10")
+    if pe is None:
+        # Fallback: use trailing CAPE (PE10) as a proxy when FRED PE is unavailable.
+        # CAPE is already pulled earlier; cape result has yearly P/E10 data.
+        cape_pts = result.get("cape", {}).get("points", [])
+        if cape_pts:
+            pe = pd.Series({pd.Timestamp(d): v for d, v in cape_pts})
+    if pe is not None and dgs10 is not None:
+        ey = 100.0 / pe   # earnings yield as %
+        # Resample to monthly to match the 10y series cadence
+        dgs_m = dgs10.resample("ME").mean().dropna()
+        ey_m = ey.resample("ME").last().dropna()
+        df = pd.concat([ey_m.rename("ey"), dgs_m.rename("y10")], axis=1).ffill().dropna()
+        erp = df["ey"] - df["y10"]
+        result["erp"] = {"freq": "M", "unit": "%",
+                          "points": series_to_points(erp, round_dp=2)}
+
+    print("CBOE Equity Put/Call Ratio (put_call) ...")
+    # CBOE publishes a daily volume CSV — use the equity-only PCR
+    try:
+        import urllib.request
+        # FRED has a discontinued series; CBOE publishes a daily CSV at:
+        # https://cdn.cboe.com/api/global/us_indices/daily_prices/EQUITY_PUT_CALL_RATIO_TIMESERIES.csv (best-effort)
+        # Yahoo deprecated ^PCC. As a robust substitute use the volatility-implied PCR proxy
+        # (VIX call vs VIX put implied positioning) — but cleaner is a one-shot CBOE CSV pull.
+        pcr_url = "https://cdn.cboe.com/api/global/us_indices/daily_prices/EQUITY_PUT_CALL_RATIO_TIMESERIES.csv"
+        try:
+            req = urllib.request.Request(pcr_url, headers={"User-Agent":"Mozilla/5.0 (macrotilt-data-steward)"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                csv_text = r.read().decode("utf-8", errors="replace")
+            import io
+            pcr_df = pd.read_csv(io.StringIO(csv_text), skiprows=2, names=["date","ratio"])
+            pcr_df["date"] = pd.to_datetime(pcr_df["date"], errors="coerce")
+            pcr_df = pcr_df.dropna(subset=["date","ratio"]).set_index("date").sort_index()
+            pcr_s = pcr_df["ratio"].astype(float)
+            result["put_call"] = {"freq": "D", "unit": "ratio",
+                                   "points": series_to_points(pcr_s, round_dp=2)}
+        except Exception as e:
+            print(f"  CBOE PCR direct pull failed ({e}); leaving put_call as placeholder.")
+    except Exception as e:
+        print(f"  put_call wiring error: {e}")
+
+    print("FINRA Margin Debt YoY (margin_debt) ...")
+    try:
+        # FINRA publishes monthly margin statistics. Public CSV at:
+        # https://www.finra.org/sites/default/files/finra-margin-statistics-csv.csv  (best-effort)
+        finra_url = "https://www.finra.org/sites/default/files/finra-margin-statistics-csv.csv"
+        try:
+            req = urllib.request.Request(finra_url, headers={"User-Agent":"Mozilla/5.0 (macrotilt-data-steward)"})
+            with urllib.request.urlopen(req, timeout=20) as r:
+                csv_text = r.read().decode("utf-8", errors="replace")
+            import io
+            md_df = pd.read_csv(io.StringIO(csv_text))
+            # Column names vary; look for "Year-Month" + "Debit Balances"
+            date_col = next((c for c in md_df.columns if "year" in c.lower() or "month" in c.lower() or "date" in c.lower()), None)
+            debit_col = next((c for c in md_df.columns if "debit" in c.lower() and "margin" in c.lower()), None) or                         next((c for c in md_df.columns if "debit" in c.lower()), None)
+            if date_col and debit_col:
+                md_df["d"] = pd.to_datetime(md_df[date_col], errors="coerce")
+                md_df = md_df.dropna(subset=["d"]).set_index("d").sort_index()
+                debit = pd.to_numeric(md_df[debit_col], errors="coerce").dropna()
+                yoy = (debit.pct_change(12) * 100.0).dropna()
+                result["margin_debt"] = {"freq": "M", "unit": "% YoY",
+                                          "points": series_to_points(yoy, round_dp=1)}
+        except Exception as e:
+            print(f"  FINRA margin debt pull failed ({e}); leaving margin_debt as placeholder.")
+    except Exception as e:
+        print(f"  margin_debt wiring error: {e}")
+
+    print("S&P % above 200dma (spx_200dma) — SPY > 200dma proxy ...")
+    # Polygon prices_eod has SPY but not all 500 constituents (only 3 rows for SPY currently).
+    # Use yfinance SPY for a single-ticker 200dma proxy (% rendering of "is SPY itself above
+    # its 200dma?") — not the full breadth measure but better than mock data. PR #2C will
+    # backfill SPY constituents and compute true breadth.
+    try:
+        spy = safe_yf("SPY")
+        if spy is not None and len(spy) > 200:
+            ma200 = spy.rolling(200).mean()
+            # Convert to a 0-100 binary: 100 when SPY above its own 200dma, 0 below.
+            # Smoothed with a 20-day rolling average to give a percent-over-time feel.
+            above = (spy > ma200).astype(float)
+            smoothed = above.rolling(20).mean() * 100.0
+            smoothed = smoothed.dropna()
+            result["spx_200dma"] = {"freq": "D", "unit": "%",
+                                     "points": series_to_points(smoothed, round_dp=0),
+                                     "_proxy": "SPY above its own 200dma, 20-day rolling pct (true SPX breadth = TBD PR #2C)"}
+    except Exception as e:
+        print(f"  spx_200dma proxy error: {e}")
+
+    print("NYSE Advance-Decline (adv_dec) — Yahoo ^ADV / ^DECN proxy ...")
+    try:
+        adv = safe_yf("^ADV")  # NYSE advancing issues
+        dec = safe_yf("^DECN") # NYSE declining issues
+        if adv is not None and dec is not None:
+            df = pd.concat([adv.rename("a"), dec.rename("d")], axis=1).ffill().dropna()
+            net = df["a"] - df["d"]
+            cum50 = net.rolling(50).sum().dropna()
+            result["adv_dec"] = {"freq": "D", "unit": "issues",
+                                  "points": series_to_points(cum50, round_dp=0)}
+    except Exception as e:
+        print(f"  adv_dec proxy error: {e}")
+
     # Per-indicator stats block + as_of date. This is what the React frontend
     # now reads to render tile values, SD-score regime bands, and the generated
     # state sentence — replacing the hardcoded SD table and d[6..10] in App.jsx.

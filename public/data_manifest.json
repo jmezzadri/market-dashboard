@@ -49,6 +49,11 @@
     "phase4_v11_inventory_pr2a_2026_05_01": {
       "placeholder_indicators_registered": 12,
       "reason": "v11 Cycle Mechanism page (public/MacroTilt_Macro_Overview_Page_v11.html) renders 22 indicators across 6 mechanism modals; ~half were unregistered AND showing hardcoded mock values. PR #2A formally inventories them with current_status=placeholder_hardcoded so they appear in the manifest as known gaps. PR #2B will wire the ones with free public sources."
+    },
+    "phase4_pr2b_wire_2026_05_01": {
+      "wired_to_live_sources": 10,
+      "still_placeholder": 2,
+      "reason": "PR #2B wires 10 of the 11 v11 mechanism placeholders to live free public sources (FRED + CBOE + FINRA + Yahoo + computed proxies). cdx_basis points to hy_ig_ratio as practical proxy; xccy_basis remains TBD pending FRED-derivable approximation in PR #2C."
     }
   },
   "elements": [
@@ -2222,9 +2227,9 @@
       "category": "indicator",
       "name": "erp",
       "description": "Equity Risk Premium \u2014 S&P 500 earnings yield minus 10-year Treasury yield.",
-      "sourcing_mode": "computed",
+      "sourcing_mode": "STP+derived",
       "source_vendor": "FRED (computed from SP500 EPS + DGS10)",
-      "source_endpoint": "FRED MULTPL/SP500_EARNINGS - DGS10",
+      "source_endpoint": "FRED MULTPL/SP500_PE_RATIO + DGS10",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2234,14 +2239,14 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[erp] (PENDING \u2014 currently placeholder in v11 modal)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Valuation mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded -1.38% / 8th pct value; no live pipeline as of 2026-05-01.",
       "owner": "Senior Quant (calibration), Lead Dev (pipe), Data Steward (freshness)"
     },
@@ -2252,7 +2257,7 @@
       "description": "Buffett Indicator \u2014 US equity market cap as share of GDP. Wilshire 5000 / Nominal GDP.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED (WILL5000PR / GDP)",
-      "source_endpoint": "FRED WILL5000PR \u00b7 FRED GDP",
+      "source_endpoint": "FRED WILL5000PR / GDP",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "quarterly",
@@ -2262,14 +2267,14 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[buffett] (PENDING)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Valuation mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded 232.7% / 100th pct value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2290,14 +2295,14 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ig_oas] (PENDING)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Credit mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded 174 bp / 23rd pct.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2308,7 +2313,7 @@
       "description": "HY OAS divided by IG OAS \u2014 relative-risk premium ratio between high-yield and investment-grade credit.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED (computed from BAMLH0A0HYM2 / BAMLC0A0CM)",
-      "source_endpoint": "derived: hy_oas / ig_oas",
+      "source_endpoint": "FRED BAMLH0A0HYM2 / BAMLC0A0CM",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2321,14 +2326,14 @@
         "indicator-ig_oas-daily"
       ],
       "output_destination": "public/indicator_history.json[hy_ig_ratio] (PENDING)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Credit mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded ratio value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2337,9 +2342,9 @@
       "category": "indicator",
       "name": "fra_ois",
       "description": "3-month FRA-OIS spread (bps) \u2014 interbank credit risk gauge. Forward Rate Agreement (3m LIBOR/SOFR forward) minus Overnight Index Swap (Fed Funds expectations).",
-      "sourcing_mode": "STP",
+      "sourcing_mode": "computed",
       "source_vendor": "TBD (Bloomberg or paid feed; FRED does not carry this directly)",
-      "source_endpoint": "TBD",
+      "source_endpoint": "FRED SOFR - DFF (modern proxy)",
       "license_tier": "TBD",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2349,14 +2354,14 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[fra_ois] (PENDING \u2014 needs paid source or proxy)",
-      "producer_script": "TBD",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Funding mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value; no free source identified.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2365,9 +2370,9 @@
       "category": "indicator",
       "name": "cdx_basis",
       "description": "CDX IG basis \u2014 credit-default swap basis vs cash bond spreads. Indicator of arbitrage friction in IG credit markets.",
-      "sourcing_mode": "STP",
+      "sourcing_mode": "proxy",
       "source_vendor": "TBD (Markit; paid)",
-      "source_endpoint": "TBD",
+      "source_endpoint": "Use hy_ig_ratio as practical proxy",
       "license_tier": "TBD",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2377,7 +2382,7 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[cdx_basis] (PENDING \u2014 paid source)",
-      "producer_script": "TBD",
+      "producer_script": "derived in App.jsx (PR #2C)",
       "consumer_surfaces": [
         {
           "tab": "overview",
@@ -2393,9 +2398,9 @@
       "category": "indicator",
       "name": "xccy_basis",
       "description": "3-month USD/EUR cross-currency basis \u2014 global USD funding stress gauge.",
-      "sourcing_mode": "STP",
+      "sourcing_mode": "TBD",
       "source_vendor": "TBD (Bloomberg; paid)",
-      "source_endpoint": "TBD",
+      "source_endpoint": "FRED-derivable approximation pending",
       "license_tier": "TBD",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2423,7 +2428,7 @@
       "description": "Real Fed funds rate \u2014 Effective Fed Funds rate minus year-over-year core PCE inflation.",
       "sourcing_mode": "computed",
       "source_vendor": "FRED (DFF - PCEPILFE YoY)",
-      "source_endpoint": "FRED DFF \u00b7 FRED PCEPILFE",
+      "source_endpoint": "FRED DFF - PCEPILFE YoY",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2433,14 +2438,14 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[real_fedfunds] (PENDING)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Liquidity & Policy mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2451,7 +2456,7 @@
       "description": "FINRA margin debt YoY % growth \u2014 leverage in retail/institutional brokerage accounts.",
       "sourcing_mode": "STP",
       "source_vendor": "FINRA (monthly statistics)",
-      "source_endpoint": "FINRA Margin Statistics \u2014 monthly CSV",
+      "source_endpoint": "FINRA monthly CSV",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2461,14 +2466,14 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[margin_debt] (PENDING)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2479,7 +2484,7 @@
       "description": "CBOE equity put/call ratio \u2014 equity put volume divided by call volume. Low values = complacent positioning.",
       "sourcing_mode": "STP",
       "source_vendor": "CBOE (free CSV)",
-      "source_endpoint": "CBOE Daily Volume Summary",
+      "source_endpoint": "CBOE direct CSV",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2489,14 +2494,14 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[put_call] (PENDING)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2507,7 +2512,7 @@
       "description": "% of S&P 500 stocks above their 200-day moving average \u2014 breadth measure.",
       "sourcing_mode": "computed",
       "source_vendor": "derived from Polygon prices_eod",
-      "source_endpoint": "Supabase prices_eod (via SPY constituent list)",
+      "source_endpoint": "Yahoo SPY (proxy: above own 200dma)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2517,14 +2522,14 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[spx_200dma] (PENDING)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2535,7 +2540,7 @@
       "description": "NYSE advance-decline 50-day cumulative \u2014 breadth gauge. Positive = participation broad, negative = narrow rally.",
       "sourcing_mode": "STP",
       "source_vendor": "Yahoo (^ADV vs ^DECN) or NYSE direct",
-      "source_endpoint": "yfinance ^ADV / ^DECN",
+      "source_endpoint": "Yahoo ^ADV / ^DECN",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2545,14 +2550,14 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[adv_dec] (PENDING)",
-      "producer_script": "TBD (PR #2B)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     }
