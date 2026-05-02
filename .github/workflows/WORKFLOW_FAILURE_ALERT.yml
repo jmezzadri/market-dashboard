@@ -38,6 +38,13 @@ on:
       - EARNINGS_HISTORY_WEEKLY
       - SPY_SECTOR_WEIGHTS_DAILY
       - REFRESH-CONGRESS-ROSTER
+      # Phase 4 cleanup PR η (2026-05-02) — close the workflow-alert watchlist
+      # gap. Each of these was missing on-failure alerting.
+      - V11-CYCLE-MECHANISM_DAILY
+      - DAILY-HOME-SMOKE
+      - NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY
+      - MASSIVE-V9-ETF-BACKFILL
+      - V10-ASSET-ALLOCATION
     types:
       - completed
 
