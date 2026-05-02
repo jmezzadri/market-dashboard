@@ -778,7 +778,7 @@ function _notifyHistReady(){
 function loadIndicatorHistory(){
   if(_histCache)return Promise.resolve(_histCache);
   if(_histPromise)return _histPromise;
-  _histPromise=fetch("/indicator_history.json",{cache:"force-cache"})
+  _histPromise=fetch("/indicator_history.json",{cache:"no-cache"})
     .then(r=>r.ok?r.json():{})
     .then(d=>{
       _histCache=d;
