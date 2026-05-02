@@ -640,6 +640,11 @@ def fetch_all():
         spread_bps = (df["s"] - df["f"]) * 100.0
         result["fra_ois"] = {"freq": "D", "unit": "bps",
                               "points": series_to_points(spread_bps, round_dp=1)}
+        # PR #2C — sofr_ois is the same overnight basis. fra_ois is a 3-month forward
+        # version. Both write the same series; chip differentiates by name + label.
+        # When/if a true 3m FRA-OIS source becomes available, fra_ois flips to that.
+        result["sofr_ois"] = {"freq": "D", "unit": "bps",
+                               "points": series_to_points(spread_bps, round_dp=1)}
 
     print("Real Fed Funds Rate (real_fedfunds) ...")
     pce = safe_fred("PCEPILFE")  # Core PCE, monthly
