@@ -54,6 +54,11 @@
       "wired_to_live_sources": 10,
       "still_placeholder": 2,
       "reason": "PR #2B wires 10 of the 11 v11 mechanism placeholders to live free public sources (FRED + CBOE + FINRA + Yahoo + computed proxies). cdx_basis points to hy_ig_ratio as practical proxy; xccy_basis remains TBD pending FRED-derivable approximation in PR #2C."
+    },
+    "phase4_pr2c_audit_catchup_2026_05_02": {
+      "indicators_added": 2,
+      "consumer_surfaces_updated": 10,
+      "reason": "PR #2A audit missed 2 v11 mechanism indicators (sofr_ois, naaim) and did not record v11 mechanism participation in consumer_surfaces for ~13 existing indicators. PR #2C closes both gaps."
     }
   },
   "elements": [
@@ -125,6 +130,10 @@
         },
         {
           "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Credit mechanism modal \u2014 indicator row (as 'HY OAS' on screen \u2014 naming clash with manifest 'hy_ig'; tracked for cleanup)"
         }
       ],
       "current_status": "live",
@@ -341,6 +350,10 @@
         },
         {
           "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Growth mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live",
@@ -443,6 +456,10 @@
         },
         {
           "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Liquidity & Policy mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live",
@@ -503,6 +520,10 @@
         },
         {
           "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Funding mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live",
@@ -593,6 +614,10 @@
         },
         {
           "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Growth mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live",
@@ -653,6 +678,10 @@
         },
         {
           "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Liquidity & Policy mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live",
@@ -683,6 +712,10 @@
         },
         {
           "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Valuation mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live (PR #349 \u2014 multpl.com scrape, 2026-04-30)",
@@ -713,6 +746,10 @@
         },
         {
           "tab": "readme"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Growth mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live (PR #344 \u2014 FRED NAPMPI series, 2026-04-30)",
@@ -2178,6 +2215,10 @@
         {
           "tab": "indicators",
           "tile": "Indicator grid row"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Growth mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live",
@@ -2214,6 +2255,10 @@
         {
           "tab": "indicators",
           "tile": "Indicator grid row"
+        },
+        {
+          "tab": "overview",
+          "tile": "v11 Liquidity & Policy mechanism modal \u2014 indicator row"
         }
       ],
       "current_status": "live",
@@ -2560,6 +2605,62 @@
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "indicator-sofr_ois-daily",
+      "category": "indicator",
+      "name": "sofr_ois",
+      "description": "SOFR-OIS spread (bps) \u2014 overnight bank-to-bank funding stress measure. Modern equivalent of LIBOR-OIS post-LIBOR cessation.",
+      "sourcing_mode": "computed",
+      "source_vendor": "FRED (SOFR - DFF as practical proxy for OIS)",
+      "source_endpoint": "FRED SOFR - FRED DFF",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 25,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[sofr_ois]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "v11 Funding mechanism modal \u2014 indicator row"
+        }
+      ],
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "v11 modal showed hardcoded mock value; wired in PR #2C.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "indicator-naaim-weekly",
+      "category": "indicator",
+      "name": "naaim",
+      "description": "NAAIM Exposure Index \u2014 weekly survey of active investment managers reporting their average equity exposure (0-200%, 100=fully invested). Sentiment + positioning signal.",
+      "sourcing_mode": "STP",
+      "source_vendor": "NAAIM (National Association of Active Investment Managers, weekly publication)",
+      "source_endpoint": "naaim.org weekly index \u2014 needs scraper or paid feed",
+      "license_tier": "free (with scraper)",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 480,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[naaim] (PENDING)",
+      "producer_script": "TBD (PR #2D)",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
+        }
+      ],
+      "current_status": "placeholder_hardcoded",
+      "failure_mode": "v11 modal shows hardcoded mock value; needs scraper or alternative source.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
@@ -2577,7 +2678,8 @@
     "G12. Daily intraday clock-sequenced chain (15:30 SCAN \u2192 15:45 UNIVERSE \u2192 15:50 EVENTS) has no `needs:` or workflow_run dependency \u2014 relies on 15-minute clock buffer. Saturday weekly chain (12:00 V9 \u2192 13:30 SCENARIO) has 90-minute buffer. Phase 3 normalize: either explicit dependency or single window.",
     "G13. Two `LESSONS.md` references in project_instructions, but file does not exist in the repo. The corrections live only in Joe's auto-memory. Phase 2: create LESSONS.md and migrate auto-memory rules into it (binding, in-repo).",
     "G14. Phase 1 inventory missed 2 derived monthly indicators (cfnai_3ma, m2_yoy) referenced by composite-gr/ir; registered in PR #13. Atomic FRED CFNAI and M2SL series are still not inventoried as separate elements \u2014 Phase 5 follow-up.",
-    "G16. v11 mechanism modals (Macro Overview iframe) render 11 indicators with hardcoded mock values: erp, buffett, ig_oas, hy_ig_ratio, fra_ois, cdx_basis, xccy_basis, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec. All 11 registered in PR #2A with current_status=placeholder_hardcoded. PR #2B will wire the 8 with free public sources (erp, buffett, ig_oas, hy_ig_ratio, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec); 3 require paid feeds (fra_ois, cdx_basis, xccy_basis) \u2014 kept as placeholders pending vendor decision."
+    "G16. v11 mechanism modals (Macro Overview iframe) render 11 indicators with hardcoded mock values: erp, buffett, ig_oas, hy_ig_ratio, fra_ois, cdx_basis, xccy_basis, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec. All 11 registered in PR #2A with current_status=placeholder_hardcoded. PR #2B will wire the 8 with free public sources (erp, buffett, ig_oas, hy_ig_ratio, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec); 3 require paid feeds (fra_ois, cdx_basis, xccy_basis) \u2014 kept as placeholders pending vendor decision.",
+    "G17. Initial v11 audit (PR #2A) missed 2 indicators: sofr_ois (Funding mechanism) and naaim (Positioning & Breadth). Both registered in PR #2C. sofr_ois wired to FRED SOFR-DFF. naaim flagged as placeholder pending scraper or vendor decision. Also surfaces a naming clash: v11 HTML uses `hy_oas` and `hy_ig` (ratio) while manifest uses `hy_ig` (spread) and `hy_ig_ratio` (ratio) \u2014 needs reconciliation in a follow-up cleanup PR."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
