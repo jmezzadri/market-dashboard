@@ -909,112 +909,6 @@
       "dependencies": []
     },
     {
-      "id": "composite-rl-daily",
-      "category": "indicator",
-      "name": "composite_rl",
-      "description": "Risk & Liquidity composite \u2014 EWMA z-score weighted average across the relevant indicator slice.",
-      "sourcing_mode": "derived",
-      "source_vendor": "n/a",
-      "source_endpoint": "indicator_history.json + composite_weights.json",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "n/a \u2014 NO SCHEDULED WORKFLOW",
-      "refresh_trigger": "manual / out-of-band",
-      "freshness_sla_hours": 25,
-      "output_destination": "public/composite_history_daily.json[].RL",
-      "producer_script": "compute_composite_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "home",
-          "tile": "Macro Overview composite dial"
-        },
-        {
-          "tab": "allocation",
-          "tile": "Big Picture \u2014 Risk & Liquidity card"
-        }
-      ],
-      "current_status": "live-no-cron",
-      "failure_mode": "GAP: bug #1036 traces here. compute_composite_history.py has no GH workflow; appended only when run manually. Phase 2: wire into INDICATOR-REFRESH or its own workflow.",
-      "owner": "Senior Quant + Lead Dev \u2014 Phase 2 priority",
-      "release_calendar": "nyse-trading-day",
-      "dependencies": [
-        "indicator-anfci-weekly",
-        "indicator-vix-daily",
-        "indicator-stlfsi-weekly",
-        "indicator-cmdi-weekly"
-      ]
-    },
-    {
-      "id": "composite-gr-daily",
-      "category": "indicator",
-      "name": "composite_gr",
-      "description": "Growth composite \u2014 EWMA z-score weighted average across growth-related indicators.",
-      "sourcing_mode": "derived",
-      "source_vendor": "n/a",
-      "source_endpoint": "indicator_history.json + composite_weights.json",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "n/a \u2014 NO SCHEDULED WORKFLOW",
-      "refresh_trigger": "manual / out-of-band",
-      "freshness_sla_hours": 25,
-      "output_destination": "public/composite_history_daily.json[].GR",
-      "producer_script": "compute_composite_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "home"
-        },
-        {
-          "tab": "allocation",
-          "tile": "Big Picture \u2014 Growth card"
-        }
-      ],
-      "current_status": "live-no-cron",
-      "failure_mode": "Same gap as composite_rl.",
-      "owner": "Senior Quant + Lead Dev",
-      "release_calendar": "nyse-trading-day",
-      "dependencies": [
-        "indicator-jobless-weekly",
-        "indicator-cfnai_3ma-monthly",
-        "indicator-bkx_spx-daily"
-      ]
-    },
-    {
-      "id": "composite-ir-daily",
-      "category": "indicator",
-      "name": "composite_ir",
-      "description": "Inflation & Rates composite \u2014 EWMA z-score weighted average across rates/inflation indicators.",
-      "sourcing_mode": "derived",
-      "source_vendor": "n/a",
-      "source_endpoint": "indicator_history.json + composite_weights.json",
-      "license_tier": "free",
-      "monthly_cost_usd": 0,
-      "cadence": "daily",
-      "scheduled_fetch_time_et": "n/a \u2014 NO SCHEDULED WORKFLOW",
-      "refresh_trigger": "manual / out-of-band",
-      "freshness_sla_hours": 25,
-      "output_destination": "public/composite_history_daily.json[].IR",
-      "producer_script": "compute_composite_history.py",
-      "consumer_surfaces": [
-        {
-          "tab": "home"
-        },
-        {
-          "tab": "allocation",
-          "tile": "Big Picture \u2014 Inflation & Rates card"
-        }
-      ],
-      "current_status": "live-no-cron",
-      "failure_mode": "Same gap as composite_rl.",
-      "owner": "Senior Quant + Lead Dev",
-      "release_calendar": "nyse-trading-day",
-      "dependencies": [
-        "indicator-move-daily",
-        "indicator-m2_yoy-monthly"
-      ]
-    },
-    {
       "id": "indicator-spx_daily",
       "category": "indicator",
       "name": "spx_close_pct",
@@ -2737,7 +2631,8 @@
     "G16. v11 mechanism modals (Macro Overview iframe) render 11 indicators with hardcoded mock values: erp, buffett, ig_oas, hy_ig_ratio, fra_ois, cdx_basis, xccy_basis, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec. All 11 registered in PR #2A with current_status=placeholder_hardcoded. PR #2B will wire the 8 with free public sources (erp, buffett, ig_oas, hy_ig_ratio, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec); 3 require paid feeds (fra_ois, cdx_basis, xccy_basis) \u2014 kept as placeholders pending vendor decision.",
     "G17. Initial v11 audit (PR #2A) missed 2 indicators: sofr_ois (Funding mechanism) and naaim (Positioning & Breadth). Both registered in PR #2C. sofr_ois wired to FRED SOFR-DFF. naaim flagged as placeholder pending scraper or vendor decision. Also surfaces a naming clash: v11 HTML uses `hy_oas` and `hy_ig` (ratio) while manifest uses `hy_ig` (spread) and `hy_ig_ratio` (ratio) \u2014 needs reconciliation in a follow-up cleanup PR.",
     "G18. PR #371 wired several v11 indicators to wrong FRED series (BAMLC0A0CM instead of BAA-DGS10; WILL5000PR instead of NCBCEL; SP500_PE_RATIO instead of derived 1/CAPE). PR \u03b1 corrects all to match methodology-v11.md exact specifications. ic4wsa + bkx_spx_v11 added as parallel pulls (Senior Quant deferral on ICSA-vs-IC4WSA and KBE/SPY-vs-^BKX/^GSPC remains). put_call/margin_debt/adv_dec downgraded to placeholder_hardcoded \u2014 their public free URLs are blocked or deprecated; needs vendor or scraper.",
-    "G19. PR \u03b2 wired CAPE to live multpl.com scrape (1864 rows of monthly Shiller data going back to 1871 \u2014 replaces 31-row interpolated hardcoded anchor). ISM + bank_unreal still hardcoded; flagged needs-paid-feed and needs-FDIC-scraper respectively. Both have explicit CRITICAL DECISION ITEM notes in failure_mode."
+    "G19. PR \u03b2 wired CAPE to live multpl.com scrape (1864 rows of monthly Shiller data going back to 1871 \u2014 replaces 31-row interpolated hardcoded anchor). ISM + bank_unreal still hardcoded; flagged needs-paid-feed and needs-FDIC-scraper respectively. Both have explicit CRITICAL DECISION ITEM notes in failure_mode.",
+    "G20. PR \u03b3 removed composite_rl/gr/ir entries from manifest (deprecated per Joe directive 2026-04-30, item #1 of 12-PR sequence). The composite_history_daily.json + composite_weights.json + composite_event_markers.json artifacts are KEPT in /public/ because asset_allocation/compute.py + asset_allocation/pipeline.py + compute_v9_allocation.py + src/lib/portfolioReturns.js still consume them. Full kill (archive compute_composite_history.py + delete JSONs) is deferred until the Asset Tilt rebuild rewires those consumers \u2014 the \"Under construction\" tile on Home will close that loop."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
