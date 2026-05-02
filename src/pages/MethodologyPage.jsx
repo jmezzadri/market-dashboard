@@ -239,11 +239,11 @@ function Contents({ ind, expand, expandAll, collapseAll }) {
       key: "macro",
       num: "2",
       label: "Macro Overview",
-      sub: `How the ${indCount} indicators roll up into one 0–100 Composite Stress Score and four conviction bands.`,
+      sub: `v11 cycle mechanism board — how the ${indCount} indicators feed six mechanism scores read individually + counted.`,
       id: A("composite-math"),
       children: [
-        { num: "2.1", label: "z-score, sign-flip, tier weights",       id: A("composite-math") },
-        { num: "2.2", label: "Conviction bands + history alignment",   id: A("composite-math") },
+        { num: "2.1", label: "Six cycle mechanisms (Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth)", id: A("composite-math") },
+        { num: "2.2", label: "Four-state lexicon (Normal / Cautionary / Stressed / Distressed) + headline gauge counting", id: A("composite-math") },
       ],
     },
     {
@@ -289,7 +289,7 @@ function Contents({ ind, expand, expandAll, collapseAll }) {
       key: "indicators",
       num: "6",
       label: "All Indicators",
-      sub: `${indCount} macro indicators — source, frequency, last refresh, tier, weight, type, detail.`,
+      sub: `${indCount} macro indicators — source, frequency, last refresh, mechanism, type, detail.`,
       id: A("catmap"),
       children: [
         { num: "6.1", label: "Indicator catalog (sortable, numbered)",    id: A("catmap") },
@@ -659,7 +659,7 @@ function CompositeMath({ ind, weights, open, onToggle }) {
       style={{ display:"flex", flexDirection:"column", gap:14 }}>
       <CollapsibleSectionHeader
         label="2 · MACRO OVERVIEW"
-        sub={`How the ${ind ? Object.keys(ind).length : 0} indicators roll up into one number`}
+        sub={`v11 cycle mechanism board — how the ${ind ? Object.keys(ind).length : 0} indicators feed six mechanism scores`}
         applies={[
           { id:"home",     label:"Home",           path:"#home" },
           { id:"overview", label:"Macro Overview", path:"#overview" },
@@ -670,6 +670,15 @@ function CompositeMath({ ind, weights, open, onToggle }) {
       {open && (<>
 
       <Prose>
+        <P><strong>v11 framework (current).</strong> MacroTilt observes <strong>six cycle mechanisms</strong> that historically describe where the cycle sits: <strong>Valuation, Credit, Funding, Growth, Liquidity &amp; Policy,</strong> and <strong>Positioning &amp; Breadth</strong>. Each mechanism is read against its own ex-ante rule and labeled with the four-state lexicon: <strong>Normal / Cautionary / Stressed / Distressed</strong>. The headline gauge counts how many of the six sit above Normal — 0–1 = Constructive, 2 = Watchful, 3 = Defensive setup forming, 4+ = High-conviction defensive. There is no aggregate composite "stress score" — each mechanism is described qualitatively and counted toward the headline read. v10's single-composite hit-rate framework was retired 2026-04-29 (data couldn't support per-trigger hit-rate claims with only ~10 historical drawdowns in the 21-year sample).</P>
+
+        <P><strong>Per-mechanism inputs.</strong> Valuation: CAPE + Equity Risk Premium + Buffett Indicator. Credit: IG OAS (BAA−DGS10 long-history proxy) + HY OAS + HY/IG ratio. Funding: SOFR-OIS + FRA-OIS + CDX basis + USD/EUR x-currency basis + 3m CP-FedFunds. Growth: CFNAI 3-month + Jobless 4w + ISM Manufacturing PMI + BKX/SPX. Liquidity &amp; Policy: ANFCI + Real Fed Funds + M2 YoY + Term Premium + Fed Balance Sheet. Positioning &amp; Breadth: NAAIM exposure + Margin Debt YoY + Put/Call ratio + % S&amp;P 500 above 200dma + 50d Advance-Decline. Sprint 1 LIVE: Valuation, Credit, Growth. Sprint 2 placeholder: Funding. Sprint 4 placeholder: Liquidity &amp; Policy + Positioning &amp; Breadth.</P>
+
+        <P><strong>Calibration.</strong> Mechanism scores 0–100 come from <code>compute_v11_sprint1_calibration.py</code> running daily 06:30 ET. Output: <code>public/methodology_calibration_v11.json</code>. Each mechanism\'s rule fires when 3 of 4 inputs hit their concerning quartile (or 2 of 4 for partial Cautionary fire). Conservative cuts — Stressed only at full rule-fire, Distressed reserved for fully-fired-and-deteriorating.</P>
+
+        <hr style={{margin:"16px 0", border:"none", borderTop:"1px solid var(--border)"}}/>
+        <P style={{fontStyle:"italic", color:"var(--text-muted)"}}><strong>Legacy v10 composite math (preserved for git-blame readability):</strong> the v9 Asset Allocation engine still uses a single 0–100 Composite Stress Score with four conviction bands (LOW / NORMAL / ELEVATED / EXTREME). v9 is dormant pending Asset Tilt rebuild; the math below documents what v9 does today.</P>
+
         <P><strong>Step 1 — z-score each indicator against its own history.</strong> Mean and standard
         deviation are computed from each indicator's own full history, so the question is <em>"how unusual
         is today's reading for this particular metric?"</em> not <em>"how high is this number?"</em>. A VIX
@@ -1111,7 +1120,7 @@ function SignalScoreMath() {
         <P><strong>One score, one methodology.</strong> Every scanned ticker carries a single directional
         composite on <strong>[−100, +100]</strong>. STRONG BULL / BULLISH / TILT BULL / NEUTRAL / TILT BEAR
         / BEARISH / STRONG BEAR are tier labels on that one composite — <em>there is no second score
-        anywhere</em>. The only 0–100 scale in MacroTilt is the macro Composite Stress Score.</P>
+        anywhere</em>. The 0–100 scales in MacroTilt are the v9 macro Composite Stress Score (legacy, in v9 Asset Allocation context only) and the v11 cycle mechanism scores (one per mechanism on Macro Overview).</P>
 
         <P><strong>The composite is a weighted average of 6 section scores.</strong> Each section
         independently emits a score in [−100, +100] — bullish, bearish, or null for "no qualifying
@@ -1606,7 +1615,7 @@ function HomeSection({ open, onToggle }) {
       {open && (<>
       <Prose>
         <P>The Home page is the cover sheet for the dashboard. It pulls four threads together:</P>
-        <P><strong>Macro composite headline</strong> — the current 0–100 Composite Stress Score and conviction band, sourced from the same engine documented in §2 Macro Overview. Updated daily on weekdays.</P>
+        <P><strong>Macro composite headline</strong> — the current v11 cycle mechanism composite-average (simple average of the six mechanism scores) and band (Risk-on / Neutral / Caution / Risk-off), sourced from <code>cycle_board_snapshot.json</code>. Updated daily.</P>
         <P><strong>Portfolio summary</strong> — your live portfolio value, today's P&amp;L, and trailing time-weighted return (TWR) computed from the daily portfolio_history snapshots described in §5 Portfolio Insights.</P>
         <P><strong>Trading-opportunity tile</strong> — top-ranked tickers by Signal Score from the engine documented in §4 Trading Opportunities, filtered to your watchlist + held positions where applicable.</P>
         <P><strong>Daily news</strong> — multi-source news feed (Unusual Whales headlines, ZeroHedge, Google News fallback for any ticker without a UW URL).</P>
