@@ -748,11 +748,42 @@ def fetch_all():
 
 
 def _fetch_cape_multpl():
-    """Best-effort CAPE history via multpl CSV-ish endpoints. Returns dict of
-    {iso_date: value} or None on failure."""
-    # Skip: multpl doesn't expose a clean API and we don't want to scrape HTML
-    # from an automated job. Use the fallback anchor points instead.
-    return None
+    """Live CAPE history scraped from multpl.com/shiller-pe/table/by-month.
+    Returns dict of {iso_date: value} or None on failure.
+    
+    PR β (2026-05-02): item #3 of approved 12-PR sequence — replace hardcoded
+    CAPE constant with a live source. Joe directive 2026-04-30 (data_triage.html
+    row 19): WIRE — Senior Quant picks between multpl scrape, robust-shiller
+    library, or FRED proxy. multpl scrape is the lowest-friction option and
+    returns 1864 rows of monthly Shiller history going back to 1871.
+    """
+    import urllib.request, re
+    from datetime import datetime
+    try:
+        url = "https://www.multpl.com/shiller-pe/table/by-month"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; macrotilt-data-steward/1.0; +macrotilt.com)"
+        })
+        with urllib.request.urlopen(req, timeout=20) as r:
+            html = r.read().decode("utf-8", errors="replace")
+        rows = re.findall(
+            r"<td[^>]*>([A-Z][a-z]{2}\s+\d{1,2},\s+\d{4})</td>\s*<td[^>]*>\s*(?:&#x2002;)?\s*([\d.]+)\s*</td>",
+            html,
+        )
+        if not rows:
+            return None
+        out = {}
+        for date_str, val_str in rows:
+            try:
+                d = datetime.strptime(date_str, "%b %d, %Y").strftime("%Y-%m-%d")
+                out[d] = float(val_str)
+            except (ValueError, TypeError):
+                continue
+        return out if out else None
+    except Exception as e:
+        print(f"  multpl CAPE scrape failed: {e}")
+        return None
+
 
 
 def _cape_fallback_monthly():
