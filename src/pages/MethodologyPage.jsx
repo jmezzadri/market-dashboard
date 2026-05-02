@@ -918,7 +918,9 @@ function AssetAllocationMethodology({ open, onToggle }) {
       {open && (<>
 
       <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
-        The Asset Allocation tab translates the three macro composites (Risk &amp; Liquidity, Growth, Inflation &amp; Rates) into a concrete portfolio recommendation: which industry groups to overweight, how much equity exposure to take, when to activate the defensive sleeve, and how much leverage to use. The strategy rebalances weekly on Saturdays.
+        <strong>Note (v11 transition, 2026-04-30):</strong> the v9 Asset Allocation engine described below still uses the legacy 3-composite framework (Risk &amp; Liquidity / Growth / Inflation &amp; Rates). The <strong>v11 Cycle Mechanism Board on Macro Overview is the new source of truth</strong> for macro state. The v9 engine remains as-is until the Asset Tilt rebuild rewires its inputs to the v11 mechanisms. This section documents what v9 does today.
+
+        The v9 Asset Allocation tab translates the legacy 3 macro composites (Risk &amp; Liquidity, Growth, Inflation &amp; Rates) into a concrete portfolio recommendation: which industry groups to overweight, how much equity exposure to take, when to activate the defensive sleeve, and how much leverage to use. The strategy rebalances weekly on Saturdays.
       </div>
 
       {/* — UNIVERSE — */}
