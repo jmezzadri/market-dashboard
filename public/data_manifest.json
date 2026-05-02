@@ -696,8 +696,8 @@
       "name": "cape",
       "description": "Shiller CAPE \u2014 cyclically-adjusted P/E ratio for the S&P 500.",
       "sourcing_mode": "curated",
-      "source_vendor": "Hand-curated anchor (multpl.com scrape disabled)",
-      "source_endpoint": "_cape_fallback_monthly hardcoded in fetch_history.py + fetch_indicators.py",
+      "source_vendor": "Shiller / multpl.com",
+      "source_endpoint": "multpl.com/shiller-pe/table/by-month (live HTML scrape)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -705,7 +705,7 @@
       "refresh_trigger": "manual code edit",
       "freshness_sla_hours": 816,
       "output_destination": "public/indicator_history.json[cape]; src/App.jsx IND[]",
-      "producer_script": "scripts/fetch_cape_multpl.py (replaced hardcoded constant)",
+      "producer_script": "fetch_history.py (_fetch_cape_multpl)",
       "consumer_surfaces": [
         {
           "tab": "indicators"
@@ -718,8 +718,8 @@
           "tile": "v11 Valuation mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "live (PR #349 \u2014 multpl.com scrape, 2026-04-30)",
-      "failure_mode": "ALWAYS stale unless Joe hand-edits the constant. Phase 2: replace with live source (multpl scrape, robust-shiller library, or FRED CAPE proxy).",
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "Falls back to _cape_fallback_monthly hardcoded anchor on scrape failure.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -731,7 +731,7 @@
       "description": "ISM Manufacturing PMI \u2014 manufacturing-sector sentiment.",
       "sourcing_mode": "curated",
       "source_vendor": "Hand-curated anchor (FRED NAPM discontinued)",
-      "source_endpoint": "_ism_fallback_monthly hardcoded in fetch_history.py + fetch_indicators.py",
+      "source_endpoint": "NEEDS PAID FEED \u2014 FRED NAPMPI deprecated 2024; ismworld.org direct is paid",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -752,8 +752,8 @@
           "tile": "v11 Growth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "live (PR #344 \u2014 FRED NAPMPI series, 2026-04-30)",
-      "failure_mode": "ALWAYS stale unless hand-edited. Phase 2: source PMI from ISM site scrape, S&P Global PMI, or paid ISM data feed.",
+      "current_status": "placeholder_hardcoded",
+      "failure_mode": "Hardcoded in fetch_history.py _ism_fallback_monthly. CRITICAL DECISION ITEM: pay for ISM feed or accept hardcoded.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -885,7 +885,7 @@
       "description": "Bank unrealized losses on AFS+HTM, % of Tier-1 capital \u2014 banking system fragility.",
       "sourcing_mode": "curated",
       "source_vendor": "FDIC QBP report (manual scrape)",
-      "source_endpoint": "bank_unreal_anchor hardcoded in fetch_history.py + fetch_indicators.py",
+      "source_endpoint": "FDIC QBP \u2014 needs PDF/HTML scraper (banks.data.fdic.gov API exists for some fields)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "quarterly (manual)",
@@ -902,8 +902,8 @@
           "tab": "readme"
         }
       ],
-      "current_status": "stale-by-design",
-      "failure_mode": "ALWAYS stale unless hand-edited. Phase 2: pull straight from FDIC QBP PDF parse or replace metric.",
+      "current_status": "placeholder_hardcoded",
+      "failure_mode": "Hardcoded. FDIC publishes ~60d after quarter-end. Real fix: scraper. Deferred to dedicated follow-up PR.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -2736,7 +2736,8 @@
     "G14. Phase 1 inventory missed 2 derived monthly indicators (cfnai_3ma, m2_yoy) referenced by composite-gr/ir; registered in PR #13. Atomic FRED CFNAI and M2SL series are still not inventoried as separate elements \u2014 Phase 5 follow-up.",
     "G16. v11 mechanism modals (Macro Overview iframe) render 11 indicators with hardcoded mock values: erp, buffett, ig_oas, hy_ig_ratio, fra_ois, cdx_basis, xccy_basis, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec. All 11 registered in PR #2A with current_status=placeholder_hardcoded. PR #2B will wire the 8 with free public sources (erp, buffett, ig_oas, hy_ig_ratio, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec); 3 require paid feeds (fra_ois, cdx_basis, xccy_basis) \u2014 kept as placeholders pending vendor decision.",
     "G17. Initial v11 audit (PR #2A) missed 2 indicators: sofr_ois (Funding mechanism) and naaim (Positioning & Breadth). Both registered in PR #2C. sofr_ois wired to FRED SOFR-DFF. naaim flagged as placeholder pending scraper or vendor decision. Also surfaces a naming clash: v11 HTML uses `hy_oas` and `hy_ig` (ratio) while manifest uses `hy_ig` (spread) and `hy_ig_ratio` (ratio) \u2014 needs reconciliation in a follow-up cleanup PR.",
-    "G18. PR #371 wired several v11 indicators to wrong FRED series (BAMLC0A0CM instead of BAA-DGS10; WILL5000PR instead of NCBCEL; SP500_PE_RATIO instead of derived 1/CAPE). PR \u03b1 corrects all to match methodology-v11.md exact specifications. ic4wsa + bkx_spx_v11 added as parallel pulls (Senior Quant deferral on ICSA-vs-IC4WSA and KBE/SPY-vs-^BKX/^GSPC remains). put_call/margin_debt/adv_dec downgraded to placeholder_hardcoded \u2014 their public free URLs are blocked or deprecated; needs vendor or scraper."
+    "G18. PR #371 wired several v11 indicators to wrong FRED series (BAMLC0A0CM instead of BAA-DGS10; WILL5000PR instead of NCBCEL; SP500_PE_RATIO instead of derived 1/CAPE). PR \u03b1 corrects all to match methodology-v11.md exact specifications. ic4wsa + bkx_spx_v11 added as parallel pulls (Senior Quant deferral on ICSA-vs-IC4WSA and KBE/SPY-vs-^BKX/^GSPC remains). put_call/margin_debt/adv_dec downgraded to placeholder_hardcoded \u2014 their public free URLs are blocked or deprecated; needs vendor or scraper.",
+    "G19. PR \u03b2 wired CAPE to live multpl.com scrape (1864 rows of monthly Shiller data going back to 1871 \u2014 replaces 31-row interpolated hardcoded anchor). ISM + bank_unreal still hardcoded; flagged needs-paid-feed and needs-FDIC-scraper respectively. Both have explicit CRITICAL DECISION ITEM notes in failure_mode."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
