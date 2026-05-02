@@ -2192,9 +2192,9 @@
       "category": "indicator",
       "name": "cfnai_3ma",
       "description": "CFNAI 3-month moving average (smoothed) \u2014 derived in fetch_history.py from FRED CFNAI raw monthly series.",
-      "sourcing_mode": "computed",
+      "sourcing_mode": "STP",
       "source_vendor": "FRED",
-      "source_endpoint": "FRED CFNAI rolling(3).mean()",
+      "source_endpoint": "FRED CFNAIMA3 (direct, not derived)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2273,8 +2273,8 @@
       "name": "erp",
       "description": "Equity Risk Premium \u2014 S&P 500 earnings yield minus 10-year Treasury yield.",
       "sourcing_mode": "STP+derived",
-      "source_vendor": "FRED (computed from SP500 EPS + DGS10)",
-      "source_endpoint": "FRED MULTPL/SP500_PE_RATIO + DGS10",
+      "source_vendor": "FRED + Shiller",
+      "source_endpoint": "(1/CAPE) - DGS10 derived",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2301,8 +2301,8 @@
       "name": "buffett",
       "description": "Buffett Indicator \u2014 US equity market cap as share of GDP. Wilshire 5000 / Nominal GDP.",
       "sourcing_mode": "computed",
-      "source_vendor": "FRED (WILL5000PR / GDP)",
-      "source_endpoint": "FRED WILL5000PR / GDP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED NCBCEL / GDP",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "quarterly",
@@ -2329,14 +2329,14 @@
       "name": "ig_oas",
       "description": "Investment-grade corporate OAS spread (bps) \u2014 option-adjusted spread of US Corporate Master investment-grade index over Treasuries.",
       "sourcing_mode": "STP",
-      "source_vendor": "FRED (ICE BofA via FRED)",
-      "source_endpoint": "FRED BAMLC0A0CM",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED BAA - DGS10 (long-history proxy)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "daily",
+      "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 25,
+      "freshness_sla_hours": 1680,
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[ig_oas] (PENDING)",
@@ -2357,14 +2357,14 @@
       "name": "hy_ig_ratio",
       "description": "HY OAS divided by IG OAS \u2014 relative-risk premium ratio between high-yield and investment-grade credit.",
       "sourcing_mode": "computed",
-      "source_vendor": "FRED (computed from BAMLH0A0HYM2 / BAMLC0A0CM)",
-      "source_endpoint": "FRED BAMLH0A0HYM2 / BAMLC0A0CM",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED BAMLH0A0HYM2 / (BAA - DGS10)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "daily",
+      "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH",
-      "freshness_sla_hours": 25,
+      "freshness_sla_hours": 1680,
       "release_calendar": "us-business-day",
       "dependencies": [
         "indicator-hy_ig-daily",
@@ -2501,7 +2501,7 @@
       "description": "FINRA margin debt YoY % growth \u2014 leverage in retail/institutional brokerage accounts.",
       "sourcing_mode": "STP",
       "source_vendor": "FINRA (monthly statistics)",
-      "source_endpoint": "FINRA monthly CSV",
+      "source_endpoint": "FINRA monthly statistics - URL rotates; needs scraper with publication-date detection",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2511,14 +2511,14 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[margin_debt] (PENDING)",
-      "producer_script": "fetch_history.py",
+      "producer_script": "fetch_history.py (skipped)",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "live_pending_first_workflow_run",
+      "current_status": "placeholder_hardcoded",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2529,7 +2529,7 @@
       "description": "CBOE equity put/call ratio \u2014 equity put volume divided by call volume. Low values = complacent positioning.",
       "sourcing_mode": "STP",
       "source_vendor": "CBOE (free CSV)",
-      "source_endpoint": "CBOE direct CSV",
+      "source_endpoint": "CBOE CSV - URL returns 403 from GH Actions; needs vendor or webdriver scrape",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2539,14 +2539,14 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[put_call] (PENDING)",
-      "producer_script": "fetch_history.py",
+      "producer_script": "fetch_history.py (skipped)",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "live_pending_first_workflow_run",
+      "current_status": "placeholder_hardcoded",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2585,7 +2585,7 @@
       "description": "NYSE advance-decline 50-day cumulative \u2014 breadth gauge. Positive = participation broad, negative = narrow rally.",
       "sourcing_mode": "STP",
       "source_vendor": "Yahoo (^ADV vs ^DECN) or NYSE direct",
-      "source_endpoint": "Yahoo ^ADV / ^DECN",
+      "source_endpoint": "Yahoo ^ADV/^DECN deprecated; needs NYSE direct or alternative",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2595,14 +2595,14 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[adv_dec] (PENDING)",
-      "producer_script": "fetch_history.py",
+      "producer_script": "fetch_history.py (skipped)",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "live_pending_first_workflow_run",
+      "current_status": "placeholder_hardcoded",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2661,6 +2661,62 @@
       "current_status": "placeholder_hardcoded",
       "failure_mode": "v11 modal shows hardcoded mock value; needs scraper or alternative source.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "indicator-ic4wsa-weekly",
+      "category": "indicator",
+      "name": "ic4wsa",
+      "description": "Initial unemployment claims, 4-week moving average \u2014 methodology-v11.md preferred Growth-mechanism input (vs ICSA raw).",
+      "sourcing_mode": "STP",
+      "source_vendor": "FRED",
+      "source_endpoint": "FRED IC4WSA",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "weekly",
+      "scheduled_fetch_time_et": "06:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 480,
+      "release_calendar": "us-business-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[ic4wsa]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "v11 Growth mechanism modal \u2014 Senior Quant pick: IC4WSA preferred per methodology-v11.md"
+        }
+      ],
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "Per-indicator try/except.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "indicator-bkx_spx_v11-daily",
+      "category": "indicator",
+      "name": "bkx_spx_v11",
+      "description": "KBW Bank Index ^BKX / S&P 500 index ^GSPC \u2014 methodology-v11.md preferred Growth-mechanism input (vs KBE/SPY ETFs).",
+      "sourcing_mode": "computed",
+      "source_vendor": "Yahoo Finance",
+      "source_endpoint": "yfinance ^BKX + ^GSPC",
+      "license_tier": "free",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "06:00",
+      "refresh_trigger": "GH workflow INDICATOR-REFRESH",
+      "freshness_sla_hours": 25,
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [],
+      "output_destination": "public/indicator_history.json[bkx_spx_v11]",
+      "producer_script": "fetch_history.py",
+      "consumer_surfaces": [
+        {
+          "tab": "overview",
+          "tile": "v11 Growth mechanism modal \u2014 Senior Quant pick: ^BKX/^GSPC preferred per methodology-v11.md"
+        }
+      ],
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "Per-indicator try/except.",
+      "owner": "Senior Quant, Lead Dev, Data Steward"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
@@ -2679,7 +2735,8 @@
     "G13. Two `LESSONS.md` references in project_instructions, but file does not exist in the repo. The corrections live only in Joe's auto-memory. Phase 2: create LESSONS.md and migrate auto-memory rules into it (binding, in-repo).",
     "G14. Phase 1 inventory missed 2 derived monthly indicators (cfnai_3ma, m2_yoy) referenced by composite-gr/ir; registered in PR #13. Atomic FRED CFNAI and M2SL series are still not inventoried as separate elements \u2014 Phase 5 follow-up.",
     "G16. v11 mechanism modals (Macro Overview iframe) render 11 indicators with hardcoded mock values: erp, buffett, ig_oas, hy_ig_ratio, fra_ois, cdx_basis, xccy_basis, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec. All 11 registered in PR #2A with current_status=placeholder_hardcoded. PR #2B will wire the 8 with free public sources (erp, buffett, ig_oas, hy_ig_ratio, real_fedfunds, margin_debt, put_call, spx_200dma, adv_dec); 3 require paid feeds (fra_ois, cdx_basis, xccy_basis) \u2014 kept as placeholders pending vendor decision.",
-    "G17. Initial v11 audit (PR #2A) missed 2 indicators: sofr_ois (Funding mechanism) and naaim (Positioning & Breadth). Both registered in PR #2C. sofr_ois wired to FRED SOFR-DFF. naaim flagged as placeholder pending scraper or vendor decision. Also surfaces a naming clash: v11 HTML uses `hy_oas` and `hy_ig` (ratio) while manifest uses `hy_ig` (spread) and `hy_ig_ratio` (ratio) \u2014 needs reconciliation in a follow-up cleanup PR."
+    "G17. Initial v11 audit (PR #2A) missed 2 indicators: sofr_ois (Funding mechanism) and naaim (Positioning & Breadth). Both registered in PR #2C. sofr_ois wired to FRED SOFR-DFF. naaim flagged as placeholder pending scraper or vendor decision. Also surfaces a naming clash: v11 HTML uses `hy_oas` and `hy_ig` (ratio) while manifest uses `hy_ig` (spread) and `hy_ig_ratio` (ratio) \u2014 needs reconciliation in a follow-up cleanup PR.",
+    "G18. PR #371 wired several v11 indicators to wrong FRED series (BAMLC0A0CM instead of BAA-DGS10; WILL5000PR instead of NCBCEL; SP500_PE_RATIO instead of derived 1/CAPE). PR \u03b1 corrects all to match methodology-v11.md exact specifications. ic4wsa + bkx_spx_v11 added as parallel pulls (Senior Quant deferral on ICSA-vs-IC4WSA and KBE/SPY-vs-^BKX/^GSPC remains). put_call/margin_debt/adv_dec downgraded to placeholder_hardcoded \u2014 their public free URLs are blocked or deprecated; needs vendor or scraper."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
