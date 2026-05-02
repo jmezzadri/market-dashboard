@@ -792,6 +792,48 @@ def fetch_all():
         result["erp"] = {"freq": "M", "unit": "%",
                           "points": series_to_points(erp_s, round_dp=2)}
 
+    print("NAAIM Exposure Index (naaim) — naaim.org weekly survey scrape ...")
+    # PR ι (2026-05-02): scrape NAAIM\'s public exposure index page. The page
+    # renders an HTML table at /programs/naaim-exposure-index/ with rows like:
+    #   <td>MM/DD/YYYY</td><td>NN.NN</td>...
+    # Weekly survey of active investment managers, free, no API.
+    try:
+        import urllib.request, re as _re
+        from datetime import datetime
+        n_url = "https://www.naaim.org/programs/naaim-exposure-index/"
+        n_req = urllib.request.Request(n_url, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; macrotilt-data-steward/1.0; +macrotilt.com)"
+        })
+        with urllib.request.urlopen(n_req, timeout=20) as r:
+            n_html = r.read().decode("utf-8", errors="replace")
+        # Pattern: <td>MM/DD/YYYY</td>\s*<td>NN.NN</td>
+        n_rows = _re.findall(
+            r"<td>(\d{2}/\d{2}/\d{4})</td>\s*<td>([0-9]+\.?[0-9]*)</td>",
+            n_html
+        )
+        if n_rows:
+            naaim_pts = []
+            for date_str, val_str in n_rows:
+                try:
+                    iso = datetime.strptime(date_str, "%m/%d/%Y").strftime("%Y-%m-%d")
+                    naaim_pts.append([iso, float(val_str)])
+                except Exception:
+                    continue
+            # Dedupe by date (latest wins) + sort
+            seen = {}
+            for d, v in naaim_pts:
+                seen[d] = v
+            naaim_pts = sorted([[d, v] for d, v in seen.items()])
+            if naaim_pts:
+                result["naaim"] = {"freq": "W", "unit": "% exposure",
+                                    "points": naaim_pts,
+                                    "source": "naaim.org weekly survey scrape"}
+                print(f"  NAAIM: {len(naaim_pts)} weekly points scraped")
+        else:
+            print(f"  NAAIM: no rows matched — page structure may have changed")
+    except Exception as e:
+        print(f"  NAAIM scrape failed: {e}")
+
     print("Equity Put/Call Ratio (put_call) — UW universe_snapshots aggregate ...")
     # PR ζ (2026-05-02): replaced the broken CBOE CSV scrape with an aggregation
     # from data we already pay for. UW universe_snapshots holds per-ticker

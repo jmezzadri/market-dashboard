@@ -2534,8 +2534,8 @@
       "name": "naaim",
       "description": "NAAIM Exposure Index \u2014 weekly survey of active investment managers reporting their average equity exposure (0-200%, 100=fully invested). Sentiment + positioning signal.",
       "sourcing_mode": "STP",
-      "source_vendor": "NAAIM (National Association of Active Investment Managers, weekly publication)",
-      "source_endpoint": "naaim.org weekly index \u2014 needs scraper or paid feed",
+      "source_vendor": "NAAIM (free, scraped)",
+      "source_endpoint": "naaim.org/programs/naaim-exposure-index/ \u2014 public HTML table scrape",
       "license_tier": "free (with scraper)",
       "monthly_cost_usd": 0,
       "cadence": "weekly",
@@ -2545,15 +2545,15 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[naaim] (PENDING)",
-      "producer_script": "TBD (PR #2D)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
-      "failure_mode": "v11 modal shows hardcoded mock value; needs scraper or alternative source.",
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "If naaim.org page structure changes, scrape returns 0 rows and chip goes stale (red).",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
     {
@@ -2634,7 +2634,8 @@
     "G19. PR \u03b2 wired CAPE to live multpl.com scrape (1864 rows of monthly Shiller data going back to 1871 \u2014 replaces 31-row interpolated hardcoded anchor). ISM + bank_unreal still hardcoded; flagged needs-paid-feed and needs-FDIC-scraper respectively. Both have explicit CRITICAL DECISION ITEM notes in failure_mode.",
     "G20. PR \u03b3 removed composite_rl/gr/ir entries from manifest (deprecated per Joe directive 2026-04-30, item #1 of 12-PR sequence). The composite_history_daily.json + composite_weights.json + composite_event_markers.json artifacts are KEPT in /public/ because asset_allocation/compute.py + asset_allocation/pipeline.py + compute_v9_allocation.py + src/lib/portfolioReturns.js still consume them. Full kill (archive compute_composite_history.py + delete JSONs) is deferred until the Asset Tilt rebuild rewires those consumers \u2014 the \"Under construction\" tile on Home will close that loop.",
     "G21. PR \u03b6 rewires put_call + adv_dec + spx_200dma + margin_debt to data we already pay for instead of broken free public URLs. put_call aggregates from UW universe_snapshots (sum put_volume / call_volume across ~1700 tickers \u00d7 3 snapshots/day). adv_dec via Postgres RPC compute_advance_decline_50d() over Polygon prices_eod. spx_200dma via Postgres RPC compute_breadth_above_200dma() over Polygon prices_eod (currently returns empty until 200d history accumulates per ticker \u2014 falls back to SPY single-ticker proxy). margin_debt via FINRA monthly statistics page scrape (Mon-YY regex). cdx_basis renders hy_ig_ratio as practical proxy. xccy_basis remains placeholder. ISM PMI source still blocked: FRED removed all ISM series in 2024, ismworld.org is paid; need Joe to confirm free source.",
-    "G22. PR \u03b8 wires ISM Manufacturing PMI to a TradingEconomics scrape after FRED removed all ISM data in 2024. Joe approved 2026-05-02. If scrape fails, the freshness chip turns red and auto-bug fires after 2 consecutive misses (closing the loop on Joe directive that the chip system is the watchdog)."
+    "G22. PR \u03b8 wires ISM Manufacturing PMI to a TradingEconomics scrape after FRED removed all ISM data in 2024. Joe approved 2026-05-02. If scrape fails, the freshness chip turns red and auto-bug fires after 2 consecutive misses (closing the loop on Joe directive that the chip system is the watchdog).",
+    "G23. PR \u03b9 wires NAAIM Exposure Index to public weekly survey table at naaim.org/programs/naaim-exposure-index/. Test scrape returns 10 weekly rows (Mar 4 \u2192 Apr 29 2026). Fragility: if NAAIM changes page structure, chip goes stale."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
