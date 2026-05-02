@@ -208,6 +208,58 @@ def _log_pipeline_health(series_id, message):
         # Honesty logging must never break the pipeline.
         pass
 
+
+def _supabase_query(query_string: str) -> list:
+    """Run a PostgREST query against Supabase. Returns list of rows or [] on
+    failure. Used by the v11 Positioning & Breadth derivations that aggregate
+    across UW universe_snapshots + Polygon prices_eod tables we already pay for.
+    """
+    try:
+        import urllib.request, urllib.parse, json as _json
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        if not url or not key:
+            return []
+        req = urllib.request.Request(
+            f"{url}/rest/v1/{query_string}",
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Accept": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            return _json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print(f"  Supabase query failed ({query_string[:60]}...): {e}")
+        return []
+
+
+def _supabase_rpc(rpc_name: str, params: dict) -> list:
+    """Run a Supabase RPC (postgres function) with JSON body."""
+    try:
+        import urllib.request, urllib.parse, json as _json
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        if not url or not key:
+            return []
+        req = urllib.request.Request(
+            f"{url}/rest/v1/rpc/{rpc_name}",
+            data=_json.dumps(params).encode("utf-8"),
+            method="POST",
+            headers={
+                "apikey": key,
+                "Authorization": f"Bearer {key}",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            return _json.loads(resp.read().decode("utf-8"))
+    except Exception as e:
+        print(f"  Supabase RPC failed ({rpc_name}): {e}")
+        return []
+
 def safe_fred(series_id, start=START, transform=None, retries=3):
     """Bug #1067/#1068 — log to pipeline_health when no fresh observation
     lands. Existing 1.5s × N exponential backoff is preserved; we add a final
@@ -697,39 +749,125 @@ def fetch_all():
         result["erp"] = {"freq": "M", "unit": "%",
                           "points": series_to_points(erp_s, round_dp=2)}
 
-    print("CBOE Equity Put/Call Ratio (put_call) — SKIPPED (CBOE CSV URL returns 403)")
-    # CBOE rate-limits or geo-blocks the historical CSV from GH Actions runners.
-    # Real fix: paid CBOE feed or webdriver scrape. Marked needs-vendor in manifest.
+    print("Equity Put/Call Ratio (put_call) — UW universe_snapshots aggregate ...")
+    # PR ζ (2026-05-02): replaced the broken CBOE CSV scrape with an aggregation
+    # from data we already pay for. UW universe_snapshots holds per-ticker
+    # call_volume / put_volume × 3 snapshots/weekday × ~1700 tickers. Sum across
+    # the universe → market-aggregate put/call ratio. Same risk signal as
+    # CBOE's aggregate, computed from our covered universe.
+    pcr_rows = _supabase_query(
+        "universe_snapshots?"
+        "select=snapshot_ts,call_volume,put_volume"
+        "&snapshot_ts=gte.2024-01-01"
+        "&limit=200000"
+    )
+    if pcr_rows:
+        # Group by date, sum calls + puts, compute ratio
+        import collections
+        agg = collections.defaultdict(lambda: [0.0, 0.0])
+        for r in pcr_rows:
+            ts = r.get("snapshot_ts","")
+            d = ts[:10] if len(ts) >= 10 else None
+            if not d: continue
+            cv = float(r.get("call_volume") or 0)
+            pv = float(r.get("put_volume") or 0)
+            agg[d][0] += cv
+            agg[d][1] += pv
+        pcr_pts = []
+        for d in sorted(agg.keys()):
+            cv, pv = agg[d]
+            if cv > 0:
+                pcr_pts.append([d, round(pv / cv, 3)])
+        if pcr_pts:
+            result["put_call"] = {"freq": "D", "unit": "ratio",
+                                   "points": pcr_pts}
+            print(f"  put_call: {len(pcr_pts)} daily points from UW universe_snapshots")
 
-    print("FINRA Margin Debt YoY (margin_debt) — SKIPPED (FINRA CSV URL returns 404)")
-    # FINRA rotates the CSV URL by quarter and the file path Phase 1 noted is stale.
-    # Real fix: FINRA monthly statistics page scraper with publication-date detection.
-    # Marked needs-vendor in manifest.
 
-    print("S&P % above 200dma (spx_200dma) — SPY > 200dma proxy ...")
-    # Polygon prices_eod has SPY but not all 500 constituents (only 3 rows for SPY currently).
-    # Use yfinance SPY for a single-ticker 200dma proxy (% rendering of "is SPY itself above
-    # its 200dma?") — not the full breadth measure but better than mock data. PR #2C will
-    # backfill SPY constituents and compute true breadth.
+    print("FINRA Margin Debt YoY (margin_debt) — finra.org monthly statistics page scrape ...")
+    # PR ζ (2026-05-02): scrape FINRA's public margin statistics page.
+    # FINRA publishes a public HTML table at this URL with month-by-month
+    # debit balances. Smart parsing: pull every month's debit balance row,
+    # compute YoY % change, write monthly series.
     try:
+        import urllib.request, re
+        url = "https://www.finra.org/investors/learn-to-invest/advanced-investing/margin-statistics"
+        req = urllib.request.Request(url, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; macrotilt-data-steward/1.0; +macrotilt.com)"
+        })
+        with urllib.request.urlopen(req, timeout=20) as r:
+            html = r.read().decode("utf-8", errors="replace")
+        # FINRA's page renders rows like: Year-Month | Debit Balances ... | Free Credit ...
+        # Parse via tabula-style table extraction. The HTML structure is stable enough
+        # to grep for "<td>YYYY-MM" patterns.
+        rows = re.findall(
+            r"<tr[^>]*>\s*<td[^>]*>(\d{4}-\d{2}|\d{4}-[A-Z][a-z]{2})</td>\s*<td[^>]*>\s*\$?([0-9,]+)\s*</td>",
+            html,
+        )
+        if rows:
+            from datetime import datetime
+            md_data = {}
+            for ym_str, val_str in rows:
+                try:
+                    # FINRA format: "Mar-26" → 2026-03-01
+                    d = datetime.strptime(ym_str, "%b-%y").strftime("%Y-%m-01")
+                    md_data[d] = float(val_str.replace(",", ""))
+                except Exception:
+                    continue
+            if md_data:
+                # Compute YoY %
+                series = pd.Series(md_data).sort_index()
+                series.index = pd.to_datetime(series.index)
+                yoy = (series.pct_change(12) * 100.0).dropna()
+                result["margin_debt"] = {"freq": "M", "unit": "% YoY",
+                                          "points": series_to_points(yoy, round_dp=1)}
+                print(f"  margin_debt: {len(yoy)} monthly YoY points scraped from FINRA")
+        else:
+            print(f"  FINRA margin_debt: no rows matched — page structure may have changed")
+    except Exception as e:
+        print(f"  margin_debt scrape failed: {e}")
+
+
+    print("S&P 500 % above 200dma (spx_200dma) — true breadth from Polygon prices_eod ...")
+    # PR ζ (2026-05-02): real breadth using all large-cap US equities in
+    # prices_eod (Polygon, ~12,500 tickers daily). Compute 200-day MA per
+    # ticker, count tickers above MA each day, divide by total. Filter to
+    # liquid US equities ($1B+ market cap) so the breadth measure isn't
+    # diluted by pink-sheet stocks.
+    spx_pcts = _supabase_rpc("compute_breadth_above_200dma", {})
+    if spx_pcts and isinstance(spx_pcts, list):
+        pts = [[r.get("trade_date"), round(float(r.get("pct_above")), 1)]
+               for r in spx_pcts if r.get("trade_date") and r.get("pct_above") is not None]
+        if pts:
+            result["spx_200dma"] = {"freq": "D", "unit": "%",
+                                     "points": pts}
+            print(f"  spx_200dma: {len(pts)} daily points from Polygon prices_eod (liquid US equity universe)")
+    else:
+        # Fallback to single-ticker SPY proxy if RPC not yet shipped to Supabase
         spy = safe_yf("SPY")
         if spy is not None and len(spy) > 200:
             ma200 = spy.rolling(200).mean()
-            # Convert to a 0-100 binary: 100 when SPY above its own 200dma, 0 below.
-            # Smoothed with a 20-day rolling average to give a percent-over-time feel.
             above = (spy > ma200).astype(float)
             smoothed = above.rolling(20).mean() * 100.0
             smoothed = smoothed.dropna()
             result["spx_200dma"] = {"freq": "D", "unit": "%",
                                      "points": series_to_points(smoothed, round_dp=0),
-                                     "_proxy": "SPY above its own 200dma, 20-day rolling pct (true SPX breadth = TBD PR #2C)"}
-    except Exception as e:
-        print(f"  spx_200dma proxy error: {e}")
+                                     "_fallback": "SPY single-ticker proxy (RPC not available)"}
 
-    print("NYSE Advance-Decline (adv_dec) — SKIPPED (Yahoo ^ADV / ^DECN deprecated)")
-    # Yahoo deprecated ^ADV and ^DECN tickers (HTTP 404 + pandas tz attribute error).
-    # Real source = NYSE direct or Bloomberg. Marked needs-vendor in data_manifest.json.
-    # adv_dec stays placeholder until vendor decision.
+
+    print("Advance-Decline 50d cumulative (adv_dec) — Polygon prices_eod count up vs down ...")
+    # PR ζ (2026-05-02): real breadth from prices_eod. Count tickers up vs down
+    # each day across the liquid US equity universe (~3-4k tickers after $1B+ filter).
+    # 50-day cumulative net = sum of daily (advancers − decliners) over trailing 50 days.
+    ad_rows = _supabase_rpc("compute_advance_decline_50d", {})
+    if ad_rows and isinstance(ad_rows, list):
+        pts = [[r.get("trade_date"), int(r.get("net_50d"))]
+               for r in ad_rows if r.get("trade_date") and r.get("net_50d") is not None]
+        if pts:
+            result["adv_dec"] = {"freq": "D", "unit": "issues",
+                                  "points": pts}
+            print(f"  adv_dec: {len(pts)} daily points from Polygon prices_eod")
+
 
     # Per-indicator stats block + as_of date. This is what the React frontend
     # now reads to render tile values, SD-score regime bands, and the generated

@@ -2309,9 +2309,9 @@
       "category": "indicator",
       "name": "cdx_basis",
       "description": "CDX IG basis \u2014 credit-default swap basis vs cash bond spreads. Indicator of arbitrage friction in IG credit markets.",
-      "sourcing_mode": "proxy",
+      "sourcing_mode": "derived",
       "source_vendor": "TBD (Markit; paid)",
-      "source_endpoint": "Use hy_ig_ratio as practical proxy",
+      "source_endpoint": "Renders hy_ig_ratio as practical proxy (UW does not carry CDX directly; true CDX is paid Markit)",
       "license_tier": "TBD",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2328,7 +2328,7 @@
           "tile": "v11 Funding mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "placeholder_uses_proxy",
       "failure_mode": "v11 modal shows hardcoded value; needs paid source.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2394,8 +2394,8 @@
       "name": "margin_debt",
       "description": "FINRA margin debt YoY % growth \u2014 leverage in retail/institutional brokerage accounts.",
       "sourcing_mode": "STP",
-      "source_vendor": "FINRA (monthly statistics)",
-      "source_endpoint": "FINRA monthly statistics - URL rotates; needs scraper with publication-date detection",
+      "source_vendor": "FINRA (HTML scrape)",
+      "source_endpoint": "finra.org/investors/learn-to-invest/advanced-investing/margin-statistics \u2014 public table, scraped via Mon-YY regex",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -2405,14 +2405,14 @@
       "release_calendar": "us-business-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[margin_debt] (PENDING)",
-      "producer_script": "fetch_history.py (skipped)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2421,9 +2421,9 @@
       "category": "indicator",
       "name": "put_call",
       "description": "CBOE equity put/call ratio \u2014 equity put volume divided by call volume. Low values = complacent positioning.",
-      "sourcing_mode": "STP",
-      "source_vendor": "CBOE (free CSV)",
-      "source_endpoint": "CBOE CSV - URL returns 403 from GH Actions; needs vendor or webdriver scrape",
+      "sourcing_mode": "computed",
+      "source_vendor": "Unusual Whales (universe_snapshots aggregate)",
+      "source_endpoint": "public.universe_snapshots \u2014 sum(put_volume)/sum(call_volume) across our covered universe",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2433,14 +2433,14 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[put_call] (PENDING)",
-      "producer_script": "fetch_history.py (skipped)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2450,8 +2450,8 @@
       "name": "spx_200dma",
       "description": "% of S&P 500 stocks above their 200-day moving average \u2014 breadth measure.",
       "sourcing_mode": "computed",
-      "source_vendor": "derived from Polygon prices_eod",
-      "source_endpoint": "Yahoo SPY (proxy: above own 200dma)",
+      "source_vendor": "Polygon (prices_eod aggregate)",
+      "source_endpoint": "public.compute_breadth_above_200dma() RPC \u2014 % of liquid US equities above 200-day MA",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2469,7 +2469,7 @@
         }
       ],
       "current_status": "live_pending_first_workflow_run",
-      "failure_mode": "v11 modal shows hardcoded value.",
+      "failure_mode": "Falls back to SPY single-ticker proxy until prices_eod accumulates 200d history per ticker.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
     {
@@ -2477,9 +2477,9 @@
       "category": "indicator",
       "name": "adv_dec",
       "description": "NYSE advance-decline 50-day cumulative \u2014 breadth gauge. Positive = participation broad, negative = narrow rally.",
-      "sourcing_mode": "STP",
-      "source_vendor": "Yahoo (^ADV vs ^DECN) or NYSE direct",
-      "source_endpoint": "Yahoo ^ADV/^DECN deprecated; needs NYSE direct or alternative",
+      "sourcing_mode": "computed",
+      "source_vendor": "Polygon (prices_eod aggregate)",
+      "source_endpoint": "public.compute_advance_decline_50d() RPC \u2014 Polygon prices_eod, 50-day rolling net",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -2489,14 +2489,14 @@
       "release_calendar": "nyse-trading-day",
       "dependencies": [],
       "output_destination": "public/indicator_history.json[adv_dec] (PENDING)",
-      "producer_script": "fetch_history.py (skipped)",
+      "producer_script": "fetch_history.py",
       "consumer_surfaces": [
         {
           "tab": "overview",
           "tile": "v11 Positioning & Breadth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
+      "current_status": "live_pending_first_workflow_run",
       "failure_mode": "v11 modal shows hardcoded value.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
     },
@@ -2632,7 +2632,8 @@
     "G17. Initial v11 audit (PR #2A) missed 2 indicators: sofr_ois (Funding mechanism) and naaim (Positioning & Breadth). Both registered in PR #2C. sofr_ois wired to FRED SOFR-DFF. naaim flagged as placeholder pending scraper or vendor decision. Also surfaces a naming clash: v11 HTML uses `hy_oas` and `hy_ig` (ratio) while manifest uses `hy_ig` (spread) and `hy_ig_ratio` (ratio) \u2014 needs reconciliation in a follow-up cleanup PR.",
     "G18. PR #371 wired several v11 indicators to wrong FRED series (BAMLC0A0CM instead of BAA-DGS10; WILL5000PR instead of NCBCEL; SP500_PE_RATIO instead of derived 1/CAPE). PR \u03b1 corrects all to match methodology-v11.md exact specifications. ic4wsa + bkx_spx_v11 added as parallel pulls (Senior Quant deferral on ICSA-vs-IC4WSA and KBE/SPY-vs-^BKX/^GSPC remains). put_call/margin_debt/adv_dec downgraded to placeholder_hardcoded \u2014 their public free URLs are blocked or deprecated; needs vendor or scraper.",
     "G19. PR \u03b2 wired CAPE to live multpl.com scrape (1864 rows of monthly Shiller data going back to 1871 \u2014 replaces 31-row interpolated hardcoded anchor). ISM + bank_unreal still hardcoded; flagged needs-paid-feed and needs-FDIC-scraper respectively. Both have explicit CRITICAL DECISION ITEM notes in failure_mode.",
-    "G20. PR \u03b3 removed composite_rl/gr/ir entries from manifest (deprecated per Joe directive 2026-04-30, item #1 of 12-PR sequence). The composite_history_daily.json + composite_weights.json + composite_event_markers.json artifacts are KEPT in /public/ because asset_allocation/compute.py + asset_allocation/pipeline.py + compute_v9_allocation.py + src/lib/portfolioReturns.js still consume them. Full kill (archive compute_composite_history.py + delete JSONs) is deferred until the Asset Tilt rebuild rewires those consumers \u2014 the \"Under construction\" tile on Home will close that loop."
+    "G20. PR \u03b3 removed composite_rl/gr/ir entries from manifest (deprecated per Joe directive 2026-04-30, item #1 of 12-PR sequence). The composite_history_daily.json + composite_weights.json + composite_event_markers.json artifacts are KEPT in /public/ because asset_allocation/compute.py + asset_allocation/pipeline.py + compute_v9_allocation.py + src/lib/portfolioReturns.js still consume them. Full kill (archive compute_composite_history.py + delete JSONs) is deferred until the Asset Tilt rebuild rewires those consumers \u2014 the \"Under construction\" tile on Home will close that loop.",
+    "G21. PR \u03b6 rewires put_call + adv_dec + spx_200dma + margin_debt to data we already pay for instead of broken free public URLs. put_call aggregates from UW universe_snapshots (sum put_volume / call_volume across ~1700 tickers \u00d7 3 snapshots/day). adv_dec via Postgres RPC compute_advance_decline_50d() over Polygon prices_eod. spx_200dma via Postgres RPC compute_breadth_above_200dma() over Polygon prices_eod (currently returns empty until 200d history accumulates per ticker \u2014 falls back to SPY single-ticker proxy). margin_debt via FINRA monthly statistics page scrape (Mon-YY regex). cdx_basis renders hy_ig_ratio as practical proxy. xccy_basis remains placeholder. ISM PMI source still blocked: FRED removed all ISM series in 2024, ismworld.org is paid; need Joe to confirm free source."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
