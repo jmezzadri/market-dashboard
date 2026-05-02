@@ -1,4 +1,19 @@
 #!/usr/bin/env python3
+# ============================================================================
+# DEPRECATED — ARCHIVED 2026-05-02 (PR λ composite kill)
+# ============================================================================
+# The 3-composite framework (Risk & Liquidity / Growth / Inflation & Rates)
+# was deprecated when v11 cycle mechanisms became the Macro Overview anchor.
+# This script is preserved here at scripts/_archive/ for git-blame readability
+# and historical reference. It is no longer in the INDICATOR-REFRESH workflow.
+#
+# The output artifacts (composite_history_daily.json, composite_weights.json,
+# composite_event_markers.json) were also deleted in PR λ.
+#
+# If you need to re-enable: undelete the JSONs, re-add the python step to
+# INDICATOR-REFRESH_7AM_WEEKDAYS.yml, and address the v11 cycle board
+# integration (overlap with the new framework).
+# ============================================================================
 """
 compute_composite_history.py — daily recompute for public/composite_history_daily.json.
 

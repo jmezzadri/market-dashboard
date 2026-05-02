@@ -144,10 +144,22 @@ def load_factor_panel():
 
 
 def load_composites():
-    cd = json.loads((PUBLIC / "composite_history_daily.json").read_text())
-    df = pd.DataFrame(cd)
-    df["d"] = pd.to_datetime(df["d"])
-    return df.set_index("d")[["RL", "GR", "IR"]].astype(float)
+    """Returns composite history if available, else None.
+    
+    PR λ (2026-05-02): Composite kill — composite_history_daily.json was deleted
+    when the v11 cycle mechanism board became the Macro Overview anchor. The v9
+    allocation engine is dormant pending Asset Tilt rebuild; returning None lets
+    consumers handle gracefully without crashing."""
+    p = PUBLIC / "composite_history_daily.json"
+    if not p.exists():
+        return None
+    try:
+        cd = json.loads(p.read_text())
+        df = pd.DataFrame(cd)
+        df["d"] = pd.to_datetime(df["d"])
+        return df.set_index("d")[["RL", "GR", "IR"]].astype(float)
+    except Exception:
+        return None
 
 
 # ────────────────────────────────────────────────────────────────────────────

@@ -83,17 +83,6 @@ CONTRACTS: dict = {
 
     # Composite history — Home Macro lead-in + Asset Allocation timeline +
     # TodayMacro chart. Validated as a non-empty list with the daily fields.
-    "composite_history_daily.json": {
-        "consumed_by": [
-            "src/App.jsx Home Macro lead-in",
-            "src/pages/AssetAllocation.jsx timeline",
-            "src/pages/TodayMacro.jsx chart",
-            "src/components/TickerDetailModal.jsx Macro Composite rail tile (Phase 4b PR-C)",
-        ],
-        "list_min_length": 100,
-        # Each row must contain at least these keys.
-        "list_row_required": ["d", "RL", "GR", "IR"],
-    },
 
     # Indicator history — App-wide hist hook. Schema is sprawling; just
     # require the file to be a non-empty object/list.
@@ -121,16 +110,8 @@ CONTRACTS: dict = {
     },
 
     # Composite weights — methodology page + TodayMacro.
-    "composite_weights.json": {
-        "consumed_by": ["src/pages/TodayMacro.jsx", "src/pages/MethodologyPage.jsx"],
-        "non_empty": True,
-    },
 
     # Composite event markers — TodayMacro lead-time event-study table.
-    "composite_event_markers.json": {
-        "consumed_by": ["src/pages/TodayMacro.jsx event-study table"],
-        "non_empty": True,
-    },
 }
 
 LIVE_BASE = "https://macrotilt.com"
