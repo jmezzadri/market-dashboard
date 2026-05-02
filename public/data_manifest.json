@@ -368,8 +368,8 @@
       "name": "usd",
       "description": "Trade-weighted US Dollar broad index \u2014 global USD strength.",
       "sourcing_mode": "STP",
-      "source_vendor": "Mixed (FRED for history, Yahoo for live tick)",
-      "source_endpoint": "fetch_history.py: FRED DTWEXBGS; fetch_indicators.py: yfinance DX-Y.NYB",
+      "source_vendor": "Yahoo Finance (DX-Y.NYB ICE US Dollar Index)",
+      "source_endpoint": "yfinance DX-Y.NYB (both fetch_history.py and fetch_indicators.py \u2014 unified per PR #121 + PR #1.5)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "daily",
@@ -393,7 +393,7 @@
         }
       ],
       "current_status": "live",
-      "failure_mode": "Skipped; KNOWN ISSUE \u2014 history (DTWEXBGS) and live (DX-Y.NYB) are different scales; PR #121 fixed live tick but historical may still be misaligned.",
+      "failure_mode": "Per-indicator try/except. SD calibration in App.jsx (mean=99, sd=7) is DXY-scale.",
       "owner": "Senior Quant \u2014 Phase 2 review candidate",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -885,7 +885,7 @@
       "description": "Bank unrealized losses on AFS+HTM, % of Tier-1 capital \u2014 banking system fragility.",
       "sourcing_mode": "curated",
       "source_vendor": "FDIC QBP report (manual scrape)",
-      "source_endpoint": "FDIC QBP \u2014 needs PDF/HTML scraper (banks.data.fdic.gov API exists for some fields)",
+      "source_endpoint": "FDIC QBP \u2014 needs PDF/HTML scraper. FDIC public /banks/financials API does not expose raw RCFD8434/B987 fields needed for AOCI aggregate; surface limited to Schedule RC summary fields.",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "quarterly (manual)",
@@ -903,7 +903,7 @@
         }
       ],
       "current_status": "placeholder_hardcoded",
-      "failure_mode": "Hardcoded. FDIC publishes ~60d after quarter-end. Real fix: scraper. Deferred to dedicated follow-up PR.",
+      "failure_mode": "Hardcoded in fetch_history.py. CRITICAL DECISION ITEM (deferred): real fix requires either (a) PDF/HTML scrape of FDIC QBP press release, or (b) discovery of right FDIC API endpoint that exposes Call Report individual schedules. ~2-3 hr engineering investigation.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -2635,7 +2635,8 @@
     "G20. PR \u03b3 removed composite_rl/gr/ir entries from manifest (deprecated per Joe directive 2026-04-30, item #1 of 12-PR sequence). The composite_history_daily.json + composite_weights.json + composite_event_markers.json artifacts are KEPT in /public/ because asset_allocation/compute.py + asset_allocation/pipeline.py + compute_v9_allocation.py + src/lib/portfolioReturns.js still consume them. Full kill (archive compute_composite_history.py + delete JSONs) is deferred until the Asset Tilt rebuild rewires those consumers \u2014 the \"Under construction\" tile on Home will close that loop.",
     "G21. PR \u03b6 rewires put_call + adv_dec + spx_200dma + margin_debt to data we already pay for instead of broken free public URLs. put_call aggregates from UW universe_snapshots (sum put_volume / call_volume across ~1700 tickers \u00d7 3 snapshots/day). adv_dec via Postgres RPC compute_advance_decline_50d() over Polygon prices_eod. spx_200dma via Postgres RPC compute_breadth_above_200dma() over Polygon prices_eod (currently returns empty until 200d history accumulates per ticker \u2014 falls back to SPY single-ticker proxy). margin_debt via FINRA monthly statistics page scrape (Mon-YY regex). cdx_basis renders hy_ig_ratio as practical proxy. xccy_basis remains placeholder. ISM PMI source still blocked: FRED removed all ISM series in 2024, ismworld.org is paid; need Joe to confirm free source.",
     "G22. PR \u03b8 wires ISM Manufacturing PMI to a TradingEconomics scrape after FRED removed all ISM data in 2024. Joe approved 2026-05-02. If scrape fails, the freshness chip turns red and auto-bug fires after 2 consecutive misses (closing the loop on Joe directive that the chip system is the watchdog).",
-    "G23. PR \u03b9 wires NAAIM Exposure Index to public weekly survey table at naaim.org/programs/naaim-exposure-index/. Test scrape returns 10 weekly rows (Mar 4 \u2192 Apr 29 2026). Fragility: if NAAIM changes page structure, chip goes stale."
+    "G23. PR \u03b9 wires NAAIM Exposure Index to public weekly survey table at naaim.org/programs/naaim-exposure-index/. Test scrape returns 10 weekly rows (Mar 4 \u2192 Apr 29 2026). Fragility: if NAAIM changes page structure, chip goes stale.",
+    "G24. PR \u03ba \u2014 manifest cleanup. usd entry corrected to reflect both producers now use DX-Y.NYB (USD source unification, item #5 of approved sequence, complete). bank_unreal entry annotated with FDIC API surface limitation finding \u2014 public /banks/financials endpoint does not expose AOCIROCEH (returned 0 for all banks queried); proper scraper needs the QBP press release HTML or different API endpoint discovery."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
