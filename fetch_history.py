@@ -508,16 +508,58 @@ def fetch_all():
     except Exception as e:
         print(f"  CAPE failed: {e}")
 
-    print("ISM Manufacturing PMI ...")
-    # FRED series NAPMPI (monthly)
-    s = safe_fred("NAPM")  # legacy alias
-    if s is None:
-        s = safe_fred("MANEMP")  # not PMI but leave as skip if none
-    if s is not None and s.max() < 100 and s.min() > 25:
+    print("ISM Manufacturing PMI — TradingEconomics latest scrape + hardcoded historical anchors ...")
+    # PR θ (2026-05-02): FRED removed all ISM data in 2024 (per FRED notice page).
+    # Joe approved scrape from a free public source. TradingEconomics displays the
+    # current month\'s PMI on its US Business Confidence page; we extract that
+    # one value and append/replace into the existing hardcoded historical anchors.
+    # If scrape fails, the chip will go stale (red) on next pipeline-health-check
+    # tick — exactly the freshness behavior we want.
+    ism_data = []
+    try:
+        import urllib.request, re as _re
+        from datetime import datetime
+        te_url = "https://tradingeconomics.com/united-states/business-confidence"
+        te_req = urllib.request.Request(te_url, headers={
+            "User-Agent": "Mozilla/5.0 (compatible; macrotilt-data-steward/1.0; +macrotilt.com)"
+        })
+        with urllib.request.urlopen(te_req, timeout=20) as r:
+            te_html = r.read().decode("utf-8", errors="replace")
+        # Match "(remained unchanged|increased|decreased|fell|rose|at) X.X points in <Month> [YYYY]"
+        m_te = _re.search(
+            r"(?:remained.{0,30}|increased.{0,30}|decreased.{0,30}|fell.{0,30}|rose.{0,30}|at)\s+([0-9]+\.?[0-9]*)\s*points?\s*in\s+([A-Z][a-z]+)(?:\s+(\d{4}))?",
+            te_html
+        )
+        if m_te:
+            val = float(m_te.group(1))
+            month_str = m_te.group(2)
+            year_str = m_te.group(3) or str(datetime.utcnow().year)
+            iso = datetime.strptime(f"{month_str} {year_str}", "%B %Y").strftime("%Y-%m-%d")
+            # Replace the day-of-month with end-of-month
+            from calendar import monthrange
+            dt = datetime.strptime(iso, "%Y-%m-%d")
+            last_day = monthrange(dt.year, dt.month)[1]
+            iso = dt.replace(day=last_day).strftime("%Y-%m-%d")
+            ism_data.append((iso, val))
+            print(f"  ISM live: {val} for {month_str} {year_str} (TradingEconomics)")
+    except Exception as e:
+        print(f"  ISM TradingEconomics scrape FAILED: {e}")
+        # No raise — chip will detect staleness and fire alert.
+
+    # Merge live scrape with historical anchors. Live value wins for matching month.
+    fallback_pts = _ism_fallback_monthly()
+    fallback_dict = {d: v for d, v in fallback_pts}
+    for d, v in ism_data:
+        fallback_dict[d] = v  # live overrides historical anchor for any matching date
+    merged = sorted(fallback_dict.items(), key=lambda x: x[0])
+    result["ism"] = {"freq": "M", "unit": "index",
+                      "points": [[d, v] for d, v in merged],
+                      "source": "TradingEconomics latest + historical anchors"}
+    if False:  # original gated block kept for git-blame readability
+        s = None
         result["ism"] = {"freq": "M", "unit": "index",
-                         "points": series_to_points(s, round_dp=1)}
-    else:
-        print("  ISM PMI: no free long-history series — skipping")
+                         "points": ism_anchor,
+                         "source": "ISM.org (curated anchor)"}
 
     print("JOLTS Quits (jolts_quits) ...")
     s = safe_fred("JTSQUR")
@@ -662,6 +704,7 @@ def fetch_all():
         result["ism"] = {"freq": "M", "unit": "index",
                          "points": ism_anchor,
                          "source": "ISM.org (curated anchor)"}
+
 
     # MOVE fallback
     if "move" not in result:

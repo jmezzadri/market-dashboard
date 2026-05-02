@@ -730,8 +730,8 @@
       "name": "ism",
       "description": "ISM Manufacturing PMI \u2014 manufacturing-sector sentiment.",
       "sourcing_mode": "curated",
-      "source_vendor": "Hand-curated anchor (FRED NAPM discontinued)",
-      "source_endpoint": "NEEDS PAID FEED \u2014 FRED NAPMPI deprecated 2024; ismworld.org direct is paid",
+      "source_vendor": "TradingEconomics (free, scraped) + ISM curated anchors",
+      "source_endpoint": "TradingEconomics scrape (latest value) + hardcoded historical anchors",
       "license_tier": "free",
       "monthly_cost_usd": 0,
       "cadence": "monthly",
@@ -739,7 +739,7 @@
       "refresh_trigger": "manual code edit",
       "freshness_sla_hours": 816,
       "output_destination": "public/indicator_history.json[ism]",
-      "producer_script": "fetch_indicators.py via FRED NAPMPI series",
+      "producer_script": "fetch_history.py \u2014 TradingEconomics scrape with anchor merge",
       "consumer_surfaces": [
         {
           "tab": "indicators"
@@ -752,8 +752,8 @@
           "tile": "v11 Growth mechanism modal \u2014 indicator row"
         }
       ],
-      "current_status": "placeholder_hardcoded",
-      "failure_mode": "Hardcoded in fetch_history.py _ism_fallback_monthly. CRITICAL DECISION ITEM: pay for ISM feed or accept hardcoded.",
+      "current_status": "live_pending_first_workflow_run",
+      "failure_mode": "If TradingEconomics scrape fails, freshness chip will go stale (red) on next pipeline-health-check tick. Hardcoded anchors used as fallback for historical depth.",
       "owner": "Senior Quant \u2014 Phase 2 priority",
       "release_calendar": "us-business-day",
       "dependencies": []
@@ -2633,7 +2633,8 @@
     "G18. PR #371 wired several v11 indicators to wrong FRED series (BAMLC0A0CM instead of BAA-DGS10; WILL5000PR instead of NCBCEL; SP500_PE_RATIO instead of derived 1/CAPE). PR \u03b1 corrects all to match methodology-v11.md exact specifications. ic4wsa + bkx_spx_v11 added as parallel pulls (Senior Quant deferral on ICSA-vs-IC4WSA and KBE/SPY-vs-^BKX/^GSPC remains). put_call/margin_debt/adv_dec downgraded to placeholder_hardcoded \u2014 their public free URLs are blocked or deprecated; needs vendor or scraper.",
     "G19. PR \u03b2 wired CAPE to live multpl.com scrape (1864 rows of monthly Shiller data going back to 1871 \u2014 replaces 31-row interpolated hardcoded anchor). ISM + bank_unreal still hardcoded; flagged needs-paid-feed and needs-FDIC-scraper respectively. Both have explicit CRITICAL DECISION ITEM notes in failure_mode.",
     "G20. PR \u03b3 removed composite_rl/gr/ir entries from manifest (deprecated per Joe directive 2026-04-30, item #1 of 12-PR sequence). The composite_history_daily.json + composite_weights.json + composite_event_markers.json artifacts are KEPT in /public/ because asset_allocation/compute.py + asset_allocation/pipeline.py + compute_v9_allocation.py + src/lib/portfolioReturns.js still consume them. Full kill (archive compute_composite_history.py + delete JSONs) is deferred until the Asset Tilt rebuild rewires those consumers \u2014 the \"Under construction\" tile on Home will close that loop.",
-    "G21. PR \u03b6 rewires put_call + adv_dec + spx_200dma + margin_debt to data we already pay for instead of broken free public URLs. put_call aggregates from UW universe_snapshots (sum put_volume / call_volume across ~1700 tickers \u00d7 3 snapshots/day). adv_dec via Postgres RPC compute_advance_decline_50d() over Polygon prices_eod. spx_200dma via Postgres RPC compute_breadth_above_200dma() over Polygon prices_eod (currently returns empty until 200d history accumulates per ticker \u2014 falls back to SPY single-ticker proxy). margin_debt via FINRA monthly statistics page scrape (Mon-YY regex). cdx_basis renders hy_ig_ratio as practical proxy. xccy_basis remains placeholder. ISM PMI source still blocked: FRED removed all ISM series in 2024, ismworld.org is paid; need Joe to confirm free source."
+    "G21. PR \u03b6 rewires put_call + adv_dec + spx_200dma + margin_debt to data we already pay for instead of broken free public URLs. put_call aggregates from UW universe_snapshots (sum put_volume / call_volume across ~1700 tickers \u00d7 3 snapshots/day). adv_dec via Postgres RPC compute_advance_decline_50d() over Polygon prices_eod. spx_200dma via Postgres RPC compute_breadth_above_200dma() over Polygon prices_eod (currently returns empty until 200d history accumulates per ticker \u2014 falls back to SPY single-ticker proxy). margin_debt via FINRA monthly statistics page scrape (Mon-YY regex). cdx_basis renders hy_ig_ratio as practical proxy. xccy_basis remains placeholder. ISM PMI source still blocked: FRED removed all ISM series in 2024, ismworld.org is paid; need Joe to confirm free source.",
+    "G22. PR \u03b8 wires ISM Manufacturing PMI to a TradingEconomics scrape after FRED removed all ISM data in 2024. Joe approved 2026-05-02. If scrape fails, the freshness chip turns red and auto-bug fires after 2 consecutive misses (closing the loop on Joe directive that the chip system is the watchdog)."
   ],
   "_dead_or_orphaned_artifacts_phase2_candidates": [
     {
