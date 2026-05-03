@@ -33,6 +33,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 import { sendEmail } from "../_shared/email.ts";
+import { isStaleAgainstSLA, type ReleaseCalendar } from "../_shared/freshnessClock.ts";
 
 const SITE_BASE = Deno.env.get("MACROTILT_SITE_BASE") || "https://www.macrotilt.com";
 const ALERT_TO  = Deno.env.get("FRESHNESS_ALERT_TO")   || "josephmezzadri@gmail.com";
@@ -58,6 +59,7 @@ type HealthRow = {
   status: "green" | "amber" | "red";
   prev_status: "green" | "amber" | "red" | null;
   last_alerted_at: string | null;
+  last_7day_alert_at?: string | null;
 };
 
 // ─── Release-schedule tolerances ────────────────────────────────────────────
@@ -158,7 +160,7 @@ async function handle(req: Request): Promise<Response> {
     .select(
       "indicator_id, label, source, cadence, expected_cadence_minutes, " +
       "last_good_at, last_check_at, last_value, last_error, status, " +
-      "prev_status, last_alerted_at"
+      "prev_status, last_alerted_at, last_7day_alert_at"
     );
   if (selErr) return json({ ok: false, error: `select: ${selErr.message}` }, 500);
   const rows = (rowsData || []) as HealthRow[];
@@ -166,9 +168,10 @@ async function handle(req: Request): Promise<Response> {
     return json({ ok: false, error: "pipeline_health is empty — run migration 020 seed" }, 500);
   }
 
-  // 2) Pull the two canonical site files
+  // 2) Pull the two canonical site files + the data manifest
   let indicators: Record<string, { as_of?: string }> = {};
   let composites: Array<Record<string, unknown>> = [];
+  let manifestByName: Record<string, { freshness_sla_hours?: number; release_calendar?: string; name?: string }> = {};
   try {
     [indicators, composites] = await Promise.all([
       fetchIndicatorHistory(),
@@ -179,6 +182,20 @@ async function handle(req: Request): Promise<Response> {
     // a fetch-side failure, not a pipeline failure.
     return json({ ok: false, error: `site fetch: ${(e as Error).message}` }, 502);
   }
+  try {
+    const mr = await fetch(`${SITE_BASE}/data_manifest.json`, { cache: "no-store" });
+    if (mr.ok) {
+      const m = await mr.json();
+      for (const e of (m.elements || []) as Array<Record<string, unknown>>) {
+        const nm = (e.name as string) || (e.id as string);
+        if (nm) manifestByName[nm] = e as { freshness_sla_hours?: number; release_calendar?: string; name?: string };
+      }
+    }
+  } catch (e) {
+    // Manifest fetch failure is non-fatal — we just can't run the manifest-aware
+    // stuck-red check. Legacy status logic still works.
+    console.warn("[pipeline-health-check] manifest fetch failed:", (e as Error).message);
+  }
 
   const compositeLatestIso = composites.length > 0
     ? String((composites[composites.length - 1] as { d: string }).d || "")
@@ -188,6 +205,7 @@ async function handle(req: Request): Promise<Response> {
   //    (PR #15 — gives the pipeline panel its "last 7 attempts" history)
   const updates: Array<Partial<HealthRow> & { indicator_id: string }> = [];
   const alerts: Array<{ row: HealthRow; ageMinutes: number | null }> = [];
+  const escalations: Array<{ row: HealthRow; ageMinutes: number | null; daysStuck: number }> = [];
   const logRows: Array<{
     indicator_id: string;
     check_at: string;
@@ -279,6 +297,43 @@ async function handle(req: Request): Promise<Response> {
     const shouldAlert =
       !skipAlerts && wasGreen && nowRed && lastAlertAge >= ALERT_DEBOUNCE_HOURS;
 
+    // ─── 7-day stuck-red escalation (Joe directive 2026-05-03) ────────────
+    // Re-evaluate "is this red?" against manifest SLA + calendar (matches the
+    // frontend chip). The legacy newStatus above uses cadence + tolerance and
+    // does not account for calendar awareness; using it for stuck-red would
+    // fire false alarms on weekend FRED dailies.
+    const manifestEl = manifestByName[row.indicator_id];
+    const manifestSla = manifestEl?.freshness_sla_hours ?? 0;
+    const manifestCal = (manifestEl?.release_calendar as ReleaseCalendar) || "wall-clock";
+    const manifestStale = manifestSla > 0 && asOf
+      ? isStaleAgainstSLA(asOf, manifestSla, manifestCal)
+      : false;
+
+    // Rolling: when did this row first go red? Use last_alerted_at as proxy
+    // (set on every green→red transition, including the very first one).
+    const firstRedAt = row.last_alerted_at;
+    const elapsedRedHours = firstRedAt
+      ? (Date.now() - new Date(firstRedAt).getTime()) / 3600_000
+      : 0;
+    const last7Age = row.last_7day_alert_at
+      ? (Date.now() - new Date(row.last_7day_alert_at).getTime()) / 3600_000
+      : Infinity;
+
+    const STUCK_HOURS = 168; // 7 days
+    const shouldEscalate7Day =
+      !skipAlerts &&
+      manifestStale &&                           // manifest agrees it is stale (no false alarms)
+      firstRedAt != null &&                      // we have a starting point
+      elapsedRedHours >= STUCK_HOURS &&          // red for 7+ days
+      last7Age >= STUCK_HOURS;                   // havent escalated in last 7 days
+
+    // Reset 7-day timer when the chip just transitioned green→red. Lets the
+    // counter restart fresh after every recovery.
+    let next7DayAlertAt: string | null = row.last_7day_alert_at ?? null;
+    if (wasGreen && nowRed) next7DayAlertAt = null;
+    if (shouldEscalate7Day) next7DayAlertAt = now.toISOString();
+
+
     // Include all NOT NULL columns (label, source, cadence, expected_cadence_minutes)
     // — Supabase's upsert reuses INSERT semantics on conflict, so partial rows
     // trip the column constraints even though the row already exists.
@@ -296,9 +351,11 @@ async function handle(req: Request): Promise<Response> {
       status: newStatus,
       prev_status: row.status,
       last_alerted_at: shouldAlert ? now.toISOString() : row.last_alerted_at,
+      last_7day_alert_at: next7DayAlertAt,
     });
 
     if (shouldAlert) alerts.push({ row, ageMinutes: ageMin });
+    if (shouldEscalate7Day) escalations.push({ row, ageMinutes: ageMin, daysStuck: Math.round(elapsedRedHours / 24) });
 
     // PR #15 — append a row to pipeline_fetch_log so the pipeline panel
     // can show the "last 7 attempts" history. We do this whether the
@@ -364,10 +421,37 @@ async function handle(req: Request): Promise<Response> {
     }
   }
 
+  // 5b) 7-day stuck-red escalation emails — separate digest per indicator.
+  let escalationsSent = 0;
+  for (const { row, ageMinutes, daysStuck } of escalations) {
+    try {
+      await sendEmail({
+        to: ALERT_TO,
+        subject: `[MacroTilt] Stuck red ${daysStuck}d — ${row.label}`,
+        html: `
+          <p>Hi Joe,</p>
+          <p>The <strong>${row.label}</strong> chip has been red for <strong>${daysStuck} days</strong>. The original alert went out when it first turned red; this is the 7-day escalation.</p>
+          <ul>
+            <li><strong>Indicator</strong>: ${row.indicator_id}</li>
+            <li><strong>Source</strong>: ${row.source}</li>
+            <li><strong>Last good</strong>: ${row.last_good_at || "never"}</li>
+            <li><strong>Last error</strong>: ${row.last_error || "—"}</li>
+          </ul>
+          <p><strong>Likely causes</strong>: upstream vendor (FRED / BLS / etc.) is unusually slow, or our pipeline never picked up the next refresh. Check the source's public site (e.g., fred.stlouisfed.org for FRED series) to compare its latest data point with what we have.</p>
+          <p>This escalation repeats once every 7 days while the chip stays red. It resets on the next green recovery.</p>
+        `,
+      });
+      escalationsSent++;
+    } catch (e) {
+      console.error("[pipeline-health-check] 7d escalation Resend error:", (e as Error).message);
+    }
+  }
+
   // 6) Summary
   const green = updates.filter((u) => u.status === "green").length;
   const amber = updates.filter((u) => u.status === "amber").length;
   const red   = updates.filter((u) => u.status === "red").length;
+  // (escalationsSent surfaced in the response below)
 
   // 7) Editorial-narrative gap check (#1078)
   //    The Home page editorial blurb relies on macro_commentary and
