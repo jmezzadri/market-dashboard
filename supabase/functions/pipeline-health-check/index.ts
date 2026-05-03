@@ -135,6 +135,14 @@ async function fetchIndicatorHistory(): Promise<Record<string, { as_of?: string 
 async function fetchCompositeHistory(): Promise<Array<Record<string, unknown>>> {
   const url = `${SITE_BASE}/composite_history_daily.json`;
   const resp = await fetch(url, { cache: "no-store" });
+  if (resp.status === 404) {
+    // PR λ (2026-05-02) retired composite_history_daily.json. Composite-derived
+    // indicators (composite_rl/gr/ir) read this; they were also dropped in
+    // that PR. Returning [] here keeps the rest of the freshness check alive
+    // for the 40+ indicators that don't depend on composites.
+    console.log("composite_history_daily.json 404 — composite kill (PR λ); continuing with empty composites array");
+    return [];
+  }
   if (!resp.ok) throw new Error(`composite_history_daily.json ${resp.status} ${await resp.text()}`);
   return await resp.json();
 }
