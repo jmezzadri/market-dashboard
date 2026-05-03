@@ -45,7 +45,8 @@
       "Added dependencies array (upstream element IDs) per element; non-empty for derived/composite/scenario rollups.",
       "Recalibrated freshness_sla_hours per Joe sign-off 2026-05-01: daily=25, weekly=192, monthly=816, quarterly=2496.",
       "Registered 2 previously-uninventoried derived elements (cfnai_3ma, m2_yoy) \u2014 gap surfaced during dep mapping.",
-      "2026-05-03: Daily SLA recalibrated 25h\u219249h to absorb FRED T+1 publish lag plus weekend rollover. Joe directive 2026-05-03: 'I only want to know when something breaks. No reds on weekends/holidays for legit-cadence elements.'"
+      "2026-05-03: Daily SLA recalibrated 25h\u219249h to absorb FRED T+1 publish lag plus weekend rollover. Joe directive 2026-05-03: 'I only want to know when something breaks. No reds on weekends/holidays for legit-cadence elements.'",
+      "2026-05-03 (b): Monthly SLA 816h\u21921200h, Quarterly SLA 2496h\u21923600h, term_premium reclassified daily\u2192weekly. Reason: FRED publishes monthlies ~3-4 weeks after period end and quarterlies up to 10 weeks after; previous SLAs flipped chips red while FRED was operating on its normal schedule."
     ],
     "phase4_v11_inventory_pr2a_2026_05_01": {
       "placeholder_indicators_registered": 12,
@@ -661,16 +662,16 @@
       "id": "indicator-term_premium-daily",
       "category": "indicator",
       "name": "term_premium",
-      "description": "Kim-Wright 10-year term premium (bps) \u2014 duration risk premium.",
+      "description": "Kim-Wright 10-year term premium (bps) \u2014 duration risk premium. (Fed Board publishes weekly, not daily \u2014 corrected 2026-05-03.)",
       "sourcing_mode": "STP",
       "source_vendor": "FRED",
       "source_endpoint": "FRED THREEFYTP10 (\u00d7100)",
       "license_tier": "free",
       "monthly_cost_usd": 0,
-      "cadence": "daily",
+      "cadence": "weekly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 49,
+      "freshness_sla_hours": 384,
       "output_destination": "public/indicator_history.json[term_premium]",
       "producer_script": "fetch_history.py / fetch_indicators.py",
       "consumer_surfaces": [
@@ -704,7 +705,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "06:00 ET on the 1st (or first business day after)",
       "refresh_trigger": "manual code edit",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1200,
       "output_destination": "public/indicator_history.json[cape]; src/App.jsx IND[]",
       "producer_script": "fetch_history.py (_fetch_cape_multpl)",
       "consumer_surfaces": [
@@ -738,7 +739,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "06:00 ET on the 1st (or first business day after)",
       "refresh_trigger": "manual code edit",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1200,
       "output_destination": "public/indicator_history.json[ism]",
       "producer_script": "fetch_history.py \u2014 TradingEconomics scrape with anchor merge",
       "consumer_surfaces": [
@@ -772,7 +773,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1200,
       "output_destination": "public/indicator_history.json[jolts_quits]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -802,7 +803,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 2496,
+      "freshness_sla_hours": 3600,
       "output_destination": "public/indicator_history.json[sloos_ci]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -832,7 +833,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 2496,
+      "freshness_sla_hours": 3600,
       "output_destination": "public/indicator_history.json[sloos_cre]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -862,7 +863,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "07:00 (read daily)",
       "refresh_trigger": "INDICATOR-REFRESH_7AM_WEEKDAYS",
-      "freshness_sla_hours": 2496,
+      "freshness_sla_hours": 3600,
       "output_destination": "public/indicator_history.json[credit_3y]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -978,7 +979,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "Saturday 08:00",
       "refresh_trigger": "V9-ALLOCATION-WEEKLY",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1200,
       "output_destination": "public/v9_allocation.json (input only)",
       "producer_script": "compute_v9_allocation.py",
       "consumer_surfaces": [
@@ -1005,7 +1006,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "Saturday 08:00",
       "refresh_trigger": "V9-ALLOCATION-WEEKLY",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1200,
       "output_destination": "public/v9_allocation.json (input only)",
       "producer_script": "compute_v9_allocation.py",
       "consumer_surfaces": [
@@ -1149,7 +1150,7 @@
       "cadence": "quarterly",
       "scheduled_fetch_time_et": "15th of Jan/Apr/Jul/Oct, 07:00\u201308:00",
       "refresh_trigger": "PHASE1-CALIBRATION (DRAFT \u2014 uncommitted YAML in workspace folder)",
-      "freshness_sla_hours": 2496,
+      "freshness_sla_hours": 3600,
       "output_destination": "public/scenario_calibration/*.json (4 files)",
       "producer_script": "scripts/calibrate_scenario_panel.py",
       "consumer_surfaces": [
@@ -2095,7 +2096,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1200,
       "output_destination": "public/indicator_history.json[cfnai_3ma]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
@@ -2135,7 +2136,7 @@
       "cadence": "monthly",
       "scheduled_fetch_time_et": "07:00",
       "refresh_trigger": "GH workflow INDICATOR-REFRESH (cron 0 11 * * 1-5 UTC)",
-      "freshness_sla_hours": 816,
+      "freshness_sla_hours": 1200,
       "output_destination": "public/indicator_history.json[m2_yoy]",
       "producer_script": "fetch_history.py",
       "consumer_surfaces": [
