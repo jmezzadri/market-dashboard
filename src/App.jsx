@@ -4838,7 +4838,7 @@ const NAV_ITEMS = [
 // Single helper drives the page heroes for /#overview, /#portopps, /#insights,
 // /#indicators, /#readme. Optional `kpis` array (4 cells) is omitted for the
 // lean methodology variant. `accent` defaults to the brand accent color.
-function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceColor, lead, kpis, freshLine}) {
+function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceColor, lead, kpis, freshLine, freshChip}) {
   const _bold = ()=>({fontWeight:600,color:"var(--text)"});
   // Accent palette: strong = green-text; warn = orange-text; mute = text-dim.
   const _stanceMap = {
@@ -4854,6 +4854,7 @@ function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceCol
           <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--accent)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
             <span style={{display:"inline-block",width:20,height:1,background:"var(--accent)",opacity:0.6}}/>
             {eyebrow}
+            {freshChip && <FreshnessDot indicatorId={freshChip.indicatorId} asOfIso={freshChip.asOfIso||null} style={{marginLeft:4}}/>}
           </div>
           <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.1,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:720}}>
             {headline}{italicAccent && <em style={{fontStyle:"italic",color:"var(--accent)"}}> {italicAccent}</em>}
@@ -6360,6 +6361,11 @@ return(
     Once the React port of v11 is built, this iframe goes away. */}
 {tab==="overview"&&(
 <div style={{padding:0,margin:0,width:"100%"}}>
+<div style={{maxWidth:1240,margin:"0 auto",padding:"14px 24px 6px",display:"flex",alignItems:"center",gap:8,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
+  <span style={{color:"var(--accent)"}}>Data freshness</span>
+  <FreshnessDot indicatorId="cycle_board" asOfIso={null}/>
+  <span style={{color:"var(--text-dim)"}}>· v11 cycle board</span>
+</div>
 <iframe
   src="/MacroTilt_Macro_Overview_Page_v11.html"
   title="Macro Overview"
@@ -6484,6 +6490,7 @@ return(
   const _acctCount = (ACCOUNTS||[]).length;
   return <RichHero
     eyebrow="Portfolio Insights"
+    freshChip={{indicatorId:"portfolio_history", asOfIso:_portfolioReturns?.latestDate||null}}
     headline={"Your real book — "}
     italicAccent={"with the model's risk lens."}
     italicSub={`${_acctCount} account${_acctCount===1?"":"s"} · time-weighted returns · position-level alerts.`}
@@ -6519,6 +6526,7 @@ return(<>
 <div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--accent)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
 <span style={{display:"inline-block",width:20,height:1,background:"var(--accent)",opacity:0.6}}/>
 Trading Opportunities
+<FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||null} style={{marginLeft:4}}/>
 </div>
 <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.1,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:720}}>
 What to act on today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>across the full liquid universe.</em>
