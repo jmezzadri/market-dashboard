@@ -238,3 +238,46 @@ Thursday's data point.
    `pipeline_runs` for it is a bug. The PR template's Data Steward
    sign-off must explicitly call out new chip wires; the safety net
    above is for accidents, not a license to skip registration.
+
+---
+
+## 2026-05-03 (b) — Monthly/quarterly SLAs absorb FRED publish lag
+
+**What happened:** After the daily-SLA bump (25h→49h), three monthly chips
+(cfnai_3ma, m2_yoy) and one daily-mis-classified series (term_premium)
+were still red on Sunday May 3. Investigation: FRED publishes most monthly
+series ~3-4 weeks AFTER period end. So a Mar 1 data point appears at FRED
+around Apr 22-24 and stays unchanged until Apr 1 data publishes ~May 22.
+Our `as_of` is the data_date (Mar 1), so the chip's calendar-aware age
+hits ~50 biz days by early May while FRED is still operating on schedule.
+The 816h (34 biz days) monthly SLA flipped these to red even though the
+pipeline was working fine. Same pattern for quarterly: SLOOS / JOLTS
+quarterly can land 8-10 weeks after quarter end. term_premium was
+classified daily but FRED's THREEFYTP10 is a weekly Fed Board release.
+
+**What you should do instead:** SLAs floor at the worst-case publish lag
+plus one full cadence cycle plus operational grace. New floors:
+
+- daily       → 49h  (covers T+1 publish + weekend)
+- weekly      → 192h (covers Mon-publish weekly + ~1 day slack); 384h for
+                     series with longer FRED-side lag like Kim-Wright
+                     term_premium.
+- monthly     → 1200h (50 biz days; covers data point lasting ~21 biz days
+                       at FRED + ~8 biz days release-window slack + 21 biz
+                       days of next-period accumulation before refresh)
+- quarterly   → 3600h (150 biz days = ~7 months; SLOOS/JOLTS sometimes
+                       land 10 weeks after quarter end + 1 quarter cycle
+                       + grace)
+
+When in doubt, check FRED's CSV for the series and look at the typical
+gap between (data_date) and (when that data point first appears as the
+latest). The SLA must be at least that gap + 1 cadence cycle, otherwise
+the chip will lie red for the entire interval between releases.
+
+**Deeper fix (not in this PR):** the data_date-vs-publish-date convention
+for `as_of` is inverted relative to what the chip wants. The chip is
+asking "did the pipeline last run successfully and recently?" but is
+reading "what's the data point's date?" Migrating monthly/quarterly
+elements to read pipeline_runs.last_run_at (same way massive-* now does)
+would let SLAs return to their cadence-of-data values without needing to
+pad them by typical FRED lag. Filed as a follow-up.
