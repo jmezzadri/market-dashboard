@@ -2613,6 +2613,41 @@
       "current_status": "live_pending_first_workflow_run",
       "failure_mode": "Per-indicator try/except.",
       "owner": "Senior Quant, Lead Dev, Data Steward"
+    },
+    {
+      "id": "site-cycle_board-daily",
+      "category": "indicator",
+      "name": "cycle_board",
+      "description": "v11 six-mechanism cycle board snapshot \u2014 Valuation / Credit / Funding / Growth / Liquidity & Policy / Positioning & Breadth scores feeding the Macro Overview page.",
+      "sourcing_mode": "computed",
+      "source_vendor": "Internal v11 model",
+      "source_endpoint": "compute_v11_sprint1_calibration.py \u2192 public/cycle_board_snapshot.json",
+      "license_tier": "internal",
+      "monthly_cost_usd": 0,
+      "cadence": "daily",
+      "scheduled_fetch_time_et": "07:00",
+      "refresh_trigger": "GH workflow V11-CYCLE-MECHANISM_DAILY",
+      "freshness_sla_hours": 49,
+      "output_destination": "public/cycle_board_snapshot.json",
+      "producer_script": "compute_v11_sprint1_calibration.py",
+      "consumer_surfaces": [
+        {
+          "tab": "home",
+          "tile": "01 Macro Overview tile"
+        },
+        {
+          "tab": "overview",
+          "tile": "Macro Overview page hero chip + iframe board"
+        }
+      ],
+      "current_status": "live",
+      "failure_mode": "If v11 calibration fails, cycle_board_snapshot.json keeps the prior day's payload; chip flips red after SLA.",
+      "owner": "Senior Quant (calibration), Lead Developer (pipe), Data Steward (freshness)",
+      "release_calendar": "nyse-trading-day",
+      "dependencies": [
+        "indicator-vix-daily",
+        "indicator-hy_ig-daily"
+      ]
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
