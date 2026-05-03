@@ -146,6 +146,24 @@ def main():
     # 2. Load all data once
     print("\n[1/3] loading factor panel + composites + ETF returns...")
     factors, composites, monthly_ret = load_all_data()
+    if composites is None:
+        # PR λ (2026-05-02) deleted public/composite_history_daily.json. The
+        # scenario engine extends the v9 optimizer, so it goes dormant alongside
+        # v9 until the Asset Tilt rebuild lands. Write a stub and exit 0 so the
+        # workflow stays green.
+        stub = {
+            "as_of": datetime.now(timezone.utc).isoformat(),
+            "status": "dormant",
+            "reason": (
+                "composite_history_daily.json was retired by PR λ (composite kill); "
+                "the scenario engine inherits v9's dormancy until Asset Tilt rebuild ships."
+            ),
+            "scenarios": {},
+        }
+        out_path = PUBLIC / "scenario_allocations.json"
+        out_path.write_text(json.dumps(stub, indent=2) + "\n")
+        print(f"\n[done] wrote dormant stub to {out_path}")
+        return
     last_dt = factors.resample("M").last().dropna(how="all").index[-1]
     print(f"  factor panel last obs: {last_dt.date()}")
 
