@@ -886,7 +886,7 @@ async function freshLoad() {
   // The URL + key are safe in client per src/lib/supabase.js comments.
   try {
     const SB_URL = "https://yqaqqzseepebrocgibcw.supabase.co";
-    const SB_KEY = "sb_publishable__q_l32rEdPZlC4Bof_C-CnA_xIyLvb_y";
+    const SB_KEY = "sb_publishable__q_l32rEdPZlC4Bxs6dFnA__NqouiGk";
     const resp = await fetch(SB_URL + "/rest/v1/pipeline_health?select=indicator_id,last_good_at,last_error", {
       headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY }
     });
