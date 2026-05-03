@@ -169,3 +169,25 @@ now, and (c) the **impact** of each option (what changes for Joe / the
 product if he picks it). Option `description` fields in the popup carry
 the impact text directly. Questions buried in spec docs, status tables, or
 trailing prose are forbidden — Joe will not scan for them.
+
+---
+
+## 2026-05-02 — Engineering jargon in `AskUserQuestion` popups violates plain-English rule
+
+**What happened:** During the freshness-chip closeout, the popup for the
+"massive-universe red" decision used phrases like "ON CONFLICT DO UPDATE",
+"schema change", "rate limit", "pipeline_runs table", "ingested_at column"
+without translating any of them. Joe pushed back: "you need to speak
+english. This is a fucking LESSON.md. READ It." The existing
+"Joe is a consultant, not a developer" rule already covers this — popup
+content is part of "addressing Joe" and binds the same as chat narration.
+
+**What you should do instead:** Before sending an `AskUserQuestion` popup,
+re-read every option's `label` and `description` like Joe would. Strip or
+inline-define any term that wouldn't show up in a Wall Street Journal
+explainer: column names, table names, SQL clauses, schema/migration,
+HTTP codes, edge functions, cron syntax, JSON paths. Use analogies for
+mechanism ("like a milk carton that only updates its expiration date when
+you POUR milk in"). Keep the Background / Context / Impact framing per
+the 2026-05-01 rule. If you'd hesitate to say a phrase out loud at a
+Manhattan dinner table, it doesn't belong in the popup.
