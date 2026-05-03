@@ -31,7 +31,7 @@ from urllib.request import Request, urlopen
 from urllib.parse import urlencode
 from urllib.error import HTTPError, URLError
 
-THROTTLE_SECONDS = 13       # 60 / 5 calls per minute, with margin
+THROTTLE_SECONDS = 15       # 60 / 5 calls per minute, +25% margin (PR was 13s — May 2 still 429'd)
 PAGE_SIZE = 1000
 
 def env(name, dotenv=None):
@@ -121,6 +121,38 @@ def supabase_patch(sb_url, sb_key, table, filter_, patch):
     if status >= 300:
         raise SystemExit(f"patch {table}: HTTP {status} {body}")
 
+def write_pipeline_run(sb_url, sb_key, pipeline_name, status,
+                       rows_processed=None, duration_seconds=None, error=None):
+    """Stamp pipeline_runs with last successful (or failed) run.
+
+    Migration 040 introduced this table so freshness chips can reflect
+    'did the pipeline run today' rather than 'did new rows land today'.
+    See pipeline-health-check edge fn — it reads from here for massive-*
+    chips."""
+    now_iso = datetime.now(timezone.utc).isoformat()
+    headers = {
+        "apikey": sb_key,
+        "Authorization": f"Bearer {sb_key}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }
+    body = [{
+        "pipeline_name":    pipeline_name,
+        "last_run_at":      now_iso,
+        "last_run_status":  status,
+        "last_error":       error,
+        "rows_processed":   rows_processed,
+        "duration_seconds": duration_seconds,
+        "updated_at":       now_iso,
+    }]
+    url = f"{sb_url}/rest/v1/pipeline_runs?on_conflict=pipeline_name"
+    s, b = http_json(url, method="POST", headers=headers, body=body)
+    if s >= 300:
+        # Don't fail the whole run for a registry-write hiccup; the
+        # data tables are already populated. Log + continue.
+        print(f"  [pipeline_runs] write {pipeline_name} status={status} HTTP {s}: {b}")
+
+
 def update_health(sb_url, sb_key, indicator_id, status, error=None):
     now_iso = datetime.now(timezone.utc).isoformat()
     patch = {
@@ -199,8 +231,10 @@ def main():
         n = supabase_upsert(URL, SK, "universe_master", um_rows, "ticker")
         print(f"  upserted {n} into universe_master")
         update_health(URL, SK, "massive-universe", "green")
+        write_pipeline_run(URL, SK, "massive-universe", "success", rows_processed=len(um_rows))
     except Exception as e:
         update_health(URL, SK, "massive-universe", "red", str(e))
+        write_pipeline_run(URL, SK, "massive-universe", "failure", error=str(e))
         raise
 
     # 2) Daily EOD Prices — most recent trading day.  We try T-1 first,
@@ -242,8 +276,10 @@ def main():
         n = supabase_upsert(URL, SK, "prices_eod", eod_rows, "ticker,trade_date")
         print(f"  upserted {n} into prices_eod for {date_used}")
         update_health(URL, SK, "massive-eod", "green")
+        write_pipeline_run(URL, SK, "massive-eod", "success", rows_processed=len(eod_rows))
     except Exception as e:
         update_health(URL, SK, "massive-eod", "red", str(e))
+        write_pipeline_run(URL, SK, "massive-eod", "failure", error=str(e))
         raise
 
     # 3) Dividends — last 90 days
@@ -273,8 +309,10 @@ def main():
                             "ticker,ex_dividend_date,dividend_type")
         print(f"  upserted {n} into dividends")
         update_health(URL, SK, "massive-corporate-actions", "green")
+        write_pipeline_run(URL, SK, "massive-corporate-actions", "success", rows_processed=len(div_rows))
     except Exception as e:
         update_health(URL, SK, "massive-corporate-actions", "red", str(e))
+        write_pipeline_run(URL, SK, "massive-corporate-actions", "failure", error=str(e))
         raise
 
     # 4) Splits — last 365 days

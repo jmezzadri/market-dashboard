@@ -161,6 +161,15 @@ def _check_one(filename: str, contract: dict, data) -> list[str]:
     out: list[str] = []
     consumers = ", ".join(contract.get("consumed_by", []))
 
+    # PR ο (2026-05-02) introduced a v9 dormant stub written when composites
+    # are retired — it intentionally lacks regime / defensive / methodology /
+    # methodology.* because the v9 model is suspended pending the Asset Tilt
+    # rebuild. The dormant payload is detectable by status == "dormant"; in
+    # that case the consumers are expected to render a "v9 dormant" placeholder
+    # rather than read those fields, so contract violations are not real.
+    if filename == "v9_allocation.json" and isinstance(data, dict) and data.get("status") == "dormant":
+        return []
+
     # File-level non-empty (object or list).
     if contract.get("non_empty"):
         if data in (None, {}, []):
