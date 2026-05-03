@@ -748,6 +748,171 @@
 
 <script>
 // ============================================================================
+// FRESHNESS CHIP SYSTEM — added 2026-05-03 per Joe directive
+// ----------------------------------------------------------------------------
+// The Macro Overview iframe is a static HTML file, so it can't use the React
+// FreshnessDot component. This block ports the same logic inline:
+//   1. Fetches data_manifest.json (SLA + calendar per element)
+//   2. Fetches pipeline_health from Supabase via anon key (last_good_at, last_error)
+//   3. Decorates every cycle mechanism card + every indicator row in the modal
+//      with a chip — green when within SLA, red when stale, grey when unknown.
+// ============================================================================
+var FRESH_STATE = (typeof FRESH_STATE !== 'undefined' && FRESH_STATE) || {
+  cycleBoardAsOf: null,
+  manifest:   {},   // name → element record
+  health:     {},   // indicator_id → { last_good_at, last_error }
+  ready:      false,
+};
+
+var FRESH_NYSE_HOL = new Set([
+  "2024-01-01","2024-01-15","2024-02-19","2024-03-29","2024-05-27","2024-06-19","2024-07-04","2024-09-02","2024-11-28","2024-12-25",
+  "2025-01-01","2025-01-09","2025-01-20","2025-02-17","2025-04-18","2025-05-26","2025-06-19","2025-07-04","2025-09-01","2025-11-27","2025-12-25",
+  "2026-01-01","2026-01-19","2026-02-16","2026-04-03","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-11-26","2026-12-25",
+]);
+var FRESH_FED_HOL = new Set([
+  "2024-01-01","2024-01-15","2024-02-19","2024-05-27","2024-06-19","2024-07-04","2024-09-02","2024-10-14","2024-11-11","2024-11-28","2024-12-25",
+  "2025-01-01","2025-01-09","2025-01-20","2025-02-17","2025-05-26","2025-06-19","2025-07-04","2025-09-01","2025-10-13","2025-11-11","2025-11-27","2025-12-25",
+  "2026-01-01","2026-01-19","2026-02-16","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-10-12","2026-11-11","2026-11-26","2026-12-25",
+]);
+function freshIsoUTC(d){return d.toISOString().slice(0,10);}
+function freshIsCalDay(d, cal) {
+  const w = d.getUTCDay();
+  if (w === 0 || w === 6) return false;
+  const iso = freshIsoUTC(d);
+  if (cal === "nyse-trading-day") return !FRESH_NYSE_HOL.has(iso);
+  if (cal === "us-business-day")  return !FRESH_FED_HOL.has(iso);
+  return true;
+}
+function freshAgeHours(asOfIso, cal, nowMs) {
+  if (!asOfIso) return NaN;
+  const tIso = asOfIso.length === 10 ? asOfIso + "T00:00:00Z" : asOfIso;
+  const asOfMs = new Date(tIso).getTime();
+  if (!Number.isFinite(asOfMs)) return NaN;
+  const end = nowMs || Date.now();
+  if (end <= asOfMs) return 0;
+  const totalH = (end - asOfMs) / 3600000;
+  if (cal === "wall-clock" || !cal) return totalH;
+  const dayMs = 86400000;
+  const startDay = Math.floor(asOfMs / dayMs) * dayMs;
+  const endDay   = Math.floor(end    / dayMs) * dayMs;
+  let skipped = 0;
+  for (let d = startDay; d <= endDay; d += dayMs) {
+    if (freshIsCalDay(new Date(d), cal)) continue;
+    const oS = Math.max(asOfMs, d), oE = Math.min(end, d + dayMs);
+    if (oE > oS) skipped += (oE - oS) / 3600000;
+  }
+  return Math.max(0, totalH - skipped);
+}
+function freshIsStale(asOfIso, slaHours, cal) {
+  if (!slaHours || slaHours <= 0) return false;
+  const a = freshAgeHours(asOfIso, cal);
+  if (!Number.isFinite(a)) return false;
+  return a > slaHours;
+}
+
+function freshFmtRefresh(iso) {
+  if (!iso) return "never";
+  const tIso = iso.length === 10 ? iso + "T00:00:00Z" : iso;
+  const d = new Date(tIso);
+  if (Number.isNaN(+d)) return "never";
+  const dp = d.toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",timeZone:"America/New_York"});
+  const tp = d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"America/New_York"});
+  return dp + " " + tp + " ET";
+}
+
+// Compute chip status for a given element name. Returns { status, reason, lastGoodAt }.
+function freshStatus(elementName, fallbackAsOf) {
+  if (typeof FRESH_STATE === 'undefined' || !FRESH_STATE || !FRESH_STATE.ready) return { status: "loading", reason: "Loading freshness…", lastGoodAt: null };
+  const manifestEl = FRESH_STATE.manifest[elementName];
+  const health = FRESH_STATE.health[elementName];
+  const slaHours = manifestEl ? Number(manifestEl.freshness_sla_hours) || 0 : 0;
+  const cal = (manifestEl && manifestEl.release_calendar) || "wall-clock";
+  const lastGoodAt = (health && health.last_good_at) || fallbackAsOf || null;
+  const lastError  = (health && health.last_error)   || null;
+
+  // Safety net per useFreshness logic — unregistered + no fallback → green untracked.
+  if (!manifestEl && !health && !lastGoodAt) {
+    return { status: "green", reason: "Freshness tracking not yet configured", lastGoodAt: null };
+  }
+  if (lastError) return { status: "red", reason: "Upstream error: " + lastError, lastGoodAt };
+  if (!lastGoodAt) return { status: "red", reason: "No successful refresh on record", lastGoodAt: null };
+  if (slaHours > 0 && freshIsStale(lastGoodAt, slaHours, cal)) {
+    return { status: "red", reason: "Past freshness SLA", lastGoodAt };
+  }
+  return { status: "green", reason: "Operating within SLA", lastGoodAt };
+}
+
+function freshChipHtml(elementName, fallbackAsOf, label) {
+  let s;
+  try { s = freshStatus(elementName, fallbackAsOf); }
+  catch (e) { s = { status: "loading", reason: "Loading freshness…", lastGoodAt: null }; }
+  const cls = s.status === "red" ? "red" : s.status === "loading" ? "loading" : "";
+  const tipBase = (label || elementName);
+  const tip = s.status === "green"
+    ? `Data freshness: green. Last refresh: ${freshFmtRefresh(s.lastGoodAt)}`
+    : s.status === "loading"
+      ? "Checking data freshness…"
+      : `Data freshness: red. ${s.reason}. Last refresh: ${freshFmtRefresh(s.lastGoodAt)}`;
+  return `<span class="fresh-dot ${cls}" title="${tip.replace(/"/g,'&quot;')}" aria-label="${tip.replace(/"/g,'&quot;')}"></span>`;
+}
+
+// Map a cycle-mechanism tile to a representative element name for its chip.
+// All six mechanisms derive from cycle_board_snapshot.json — bind the
+// mechanism chip to that one element. Indicator-row chips bind to each
+// indicator's id (which matches the manifest's `name` field for most).
+function freshTileElement(tile) { return "cycle_board"; }
+
+// Pull manifest + pipeline_health, then re-render dials so chips appear.
+async function freshLoad() {
+  try {
+    const manifestResp = await fetch("/data_manifest.json", { cache: "no-store" });
+    const manifest = await manifestResp.json();
+    (manifest.elements || []).forEach(e => {
+      if (e.name) FRESH_STATE.manifest[e.name] = e;
+      if (e.id)   FRESH_STATE.manifest[e.id]   = e;
+    });
+  } catch (e) { console.warn("[fresh] manifest fetch failed:", e); }
+
+  // Cycle board snapshot — gives us a fallback as_of for the per-mechanism
+  // chips, which all bind to the synthetic "cycle_board" element (no
+  // pipeline_health row exists for it).
+  try {
+    const r = await fetch("/cycle_board_snapshot.json", { cache: "no-store" });
+    const j = await r.json();
+    FRESH_STATE.cycleBoardAsOf = j && j.as_of || null;
+  } catch (e) { console.warn("[fresh] cycle_board_snapshot fetch failed:", e); }
+
+  // Supabase anon read of pipeline_health. Public key + RLS-anon SELECT policy.
+  // The URL + key are safe in client per src/lib/supabase.js comments.
+  try {
+    const SB_URL = "https://yqaqqzseepebrocgibcw.supabase.co";
+    const SB_KEY = "sb_publishable__q_l32rEdPZlC4Bof_C-CnA_xIyLvb_y";
+    const resp = await fetch(SB_URL + "/rest/v1/pipeline_health?select=indicator_id,last_good_at,last_error", {
+      headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY }
+    });
+    const rows = await resp.json();
+    (rows || []).forEach(r => {
+      if (r.indicator_id) FRESH_STATE.health[r.indicator_id] = r;
+    });
+  } catch (e) { console.warn("[fresh] pipeline_health fetch failed:", e); }
+
+  FRESH_STATE.ready = true;
+  // Decorate dials post-load. Modal rows decorate themselves via openModal.
+  if (typeof renderDials === "function") renderDials();
+  // If a modal is already open, re-render it.
+  try {
+    const scrim = document.getElementById("modalScrim");
+    if (scrim && scrim.classList.contains("open")) {
+      const eyebrow = scrim.querySelector(".modal-eyebrow");
+      const tileName = eyebrow && eyebrow.textContent.split("·").pop().trim();
+      const t = TILES.find(x => x.name === tileName);
+      if (t) openModal(t);
+    }
+  } catch (e) {}
+}
+freshLoad();
+
+// ============================================================================
 // Data — Sprint 1 calibration snapshot.
 // IMPORTANT: the home Macro Overview tile (src/App.jsx) renders the SAME six
 // scores + aggregate verdict from public/cycle_board_snapshot.json. If you
@@ -1133,170 +1298,6 @@ renderDials();
 
 
 
-// ============================================================================
-// FRESHNESS CHIP SYSTEM — added 2026-05-03 per Joe directive
-// ----------------------------------------------------------------------------
-// The Macro Overview iframe is a static HTML file, so it can't use the React
-// FreshnessDot component. This block ports the same logic inline:
-//   1. Fetches data_manifest.json (SLA + calendar per element)
-//   2. Fetches pipeline_health from Supabase via anon key (last_good_at, last_error)
-//   3. Decorates every cycle mechanism card + every indicator row in the modal
-//      with a chip — green when within SLA, red when stale, grey when unknown.
-// ============================================================================
-var FRESH_STATE = (typeof FRESH_STATE !== 'undefined' && FRESH_STATE) || {
-  cycleBoardAsOf: null,
-  manifest:   {},   // name → element record
-  health:     {},   // indicator_id → { last_good_at, last_error }
-  ready:      false,
-};
-
-var FRESH_NYSE_HOL = new Set([
-  "2024-01-01","2024-01-15","2024-02-19","2024-03-29","2024-05-27","2024-06-19","2024-07-04","2024-09-02","2024-11-28","2024-12-25",
-  "2025-01-01","2025-01-09","2025-01-20","2025-02-17","2025-04-18","2025-05-26","2025-06-19","2025-07-04","2025-09-01","2025-11-27","2025-12-25",
-  "2026-01-01","2026-01-19","2026-02-16","2026-04-03","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-11-26","2026-12-25",
-]);
-var FRESH_FED_HOL = new Set([
-  "2024-01-01","2024-01-15","2024-02-19","2024-05-27","2024-06-19","2024-07-04","2024-09-02","2024-10-14","2024-11-11","2024-11-28","2024-12-25",
-  "2025-01-01","2025-01-09","2025-01-20","2025-02-17","2025-05-26","2025-06-19","2025-07-04","2025-09-01","2025-10-13","2025-11-11","2025-11-27","2025-12-25",
-  "2026-01-01","2026-01-19","2026-02-16","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-10-12","2026-11-11","2026-11-26","2026-12-25",
-]);
-function freshIsoUTC(d){return d.toISOString().slice(0,10);}
-function freshIsCalDay(d, cal) {
-  const w = d.getUTCDay();
-  if (w === 0 || w === 6) return false;
-  const iso = freshIsoUTC(d);
-  if (cal === "nyse-trading-day") return !FRESH_NYSE_HOL.has(iso);
-  if (cal === "us-business-day")  return !FRESH_FED_HOL.has(iso);
-  return true;
-}
-function freshAgeHours(asOfIso, cal, nowMs) {
-  if (!asOfIso) return NaN;
-  const tIso = asOfIso.length === 10 ? asOfIso + "T00:00:00Z" : asOfIso;
-  const asOfMs = new Date(tIso).getTime();
-  if (!Number.isFinite(asOfMs)) return NaN;
-  const end = nowMs || Date.now();
-  if (end <= asOfMs) return 0;
-  const totalH = (end - asOfMs) / 3600000;
-  if (cal === "wall-clock" || !cal) return totalH;
-  const dayMs = 86400000;
-  const startDay = Math.floor(asOfMs / dayMs) * dayMs;
-  const endDay   = Math.floor(end    / dayMs) * dayMs;
-  let skipped = 0;
-  for (let d = startDay; d <= endDay; d += dayMs) {
-    if (freshIsCalDay(new Date(d), cal)) continue;
-    const oS = Math.max(asOfMs, d), oE = Math.min(end, d + dayMs);
-    if (oE > oS) skipped += (oE - oS) / 3600000;
-  }
-  return Math.max(0, totalH - skipped);
-}
-function freshIsStale(asOfIso, slaHours, cal) {
-  if (!slaHours || slaHours <= 0) return false;
-  const a = freshAgeHours(asOfIso, cal);
-  if (!Number.isFinite(a)) return false;
-  return a > slaHours;
-}
-
-function freshFmtRefresh(iso) {
-  if (!iso) return "never";
-  const tIso = iso.length === 10 ? iso + "T00:00:00Z" : iso;
-  const d = new Date(tIso);
-  if (Number.isNaN(+d)) return "never";
-  const dp = d.toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",timeZone:"America/New_York"});
-  const tp = d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"America/New_York"});
-  return dp + " " + tp + " ET";
-}
-
-// Compute chip status for a given element name. Returns { status, reason, lastGoodAt }.
-function freshStatus(elementName, fallbackAsOf) {
-  if (typeof FRESH_STATE === 'undefined' || !FRESH_STATE || !FRESH_STATE.ready) return { status: "loading", reason: "Loading freshness…", lastGoodAt: null };
-  const manifestEl = FRESH_STATE.manifest[elementName];
-  const health = FRESH_STATE.health[elementName];
-  const slaHours = manifestEl ? Number(manifestEl.freshness_sla_hours) || 0 : 0;
-  const cal = (manifestEl && manifestEl.release_calendar) || "wall-clock";
-  const lastGoodAt = (health && health.last_good_at) || fallbackAsOf || null;
-  const lastError  = (health && health.last_error)   || null;
-
-  // Safety net per useFreshness logic — unregistered + no fallback → green untracked.
-  if (!manifestEl && !health && !lastGoodAt) {
-    return { status: "green", reason: "Freshness tracking not yet configured", lastGoodAt: null };
-  }
-  if (lastError) return { status: "red", reason: "Upstream error: " + lastError, lastGoodAt };
-  if (!lastGoodAt) return { status: "red", reason: "No successful refresh on record", lastGoodAt: null };
-  if (slaHours > 0 && freshIsStale(lastGoodAt, slaHours, cal)) {
-    return { status: "red", reason: "Past freshness SLA", lastGoodAt };
-  }
-  return { status: "green", reason: "Operating within SLA", lastGoodAt };
-}
-
-function freshChipHtml(elementName, fallbackAsOf, label) {
-  let s;
-  try { s = freshStatus(elementName, fallbackAsOf); }
-  catch (e) { s = { status: "loading", reason: "Loading freshness…", lastGoodAt: null }; }
-  const cls = s.status === "red" ? "red" : s.status === "loading" ? "loading" : "";
-  const tipBase = (label || elementName);
-  const tip = s.status === "green"
-    ? `Data freshness: green. Last refresh: ${freshFmtRefresh(s.lastGoodAt)}`
-    : s.status === "loading"
-      ? "Checking data freshness…"
-      : `Data freshness: red. ${s.reason}. Last refresh: ${freshFmtRefresh(s.lastGoodAt)}`;
-  return `<span class="fresh-dot ${cls}" title="${tip.replace(/"/g,'&quot;')}" aria-label="${tip.replace(/"/g,'&quot;')}"></span>`;
-}
-
-// Map a cycle-mechanism tile to a representative element name for its chip.
-// All six mechanisms derive from cycle_board_snapshot.json — bind the
-// mechanism chip to that one element. Indicator-row chips bind to each
-// indicator's id (which matches the manifest's `name` field for most).
-function freshTileElement(tile) { return "cycle_board"; }
-
-// Pull manifest + pipeline_health, then re-render dials so chips appear.
-async function freshLoad() {
-  try {
-    const manifestResp = await fetch("/data_manifest.json", { cache: "no-store" });
-    const manifest = await manifestResp.json();
-    (manifest.elements || []).forEach(e => {
-      if (e.name) FRESH_STATE.manifest[e.name] = e;
-      if (e.id)   FRESH_STATE.manifest[e.id]   = e;
-    });
-  } catch (e) { console.warn("[fresh] manifest fetch failed:", e); }
-
-  // Cycle board snapshot — gives us a fallback as_of for the per-mechanism
-  // chips, which all bind to the synthetic "cycle_board" element (no
-  // pipeline_health row exists for it).
-  try {
-    const r = await fetch("/cycle_board_snapshot.json", { cache: "no-store" });
-    const j = await r.json();
-    FRESH_STATE.cycleBoardAsOf = j && j.as_of || null;
-  } catch (e) { console.warn("[fresh] cycle_board_snapshot fetch failed:", e); }
-
-  // Supabase anon read of pipeline_health. Public key + RLS-anon SELECT policy.
-  // The URL + key are safe in client per src/lib/supabase.js comments.
-  try {
-    const SB_URL = "https://yqaqqzseepebrocgibcw.supabase.co";
-    const SB_KEY = "sb_publishable__q_l32rEdPZlC4Bof_C-CnA_xIyLvb_y";
-    const resp = await fetch(SB_URL + "/rest/v1/pipeline_health?select=indicator_id,last_good_at,last_error", {
-      headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY }
-    });
-    const rows = await resp.json();
-    (rows || []).forEach(r => {
-      if (r.indicator_id) FRESH_STATE.health[r.indicator_id] = r;
-    });
-  } catch (e) { console.warn("[fresh] pipeline_health fetch failed:", e); }
-
-  FRESH_STATE.ready = true;
-  // Decorate dials post-load. Modal rows decorate themselves via openModal.
-  if (typeof renderDials === "function") renderDials();
-  // If a modal is already open, re-render it.
-  try {
-    const scrim = document.getElementById("modalScrim");
-    if (scrim && scrim.classList.contains("open")) {
-      const eyebrow = scrim.querySelector(".modal-eyebrow");
-      const tileName = eyebrow && eyebrow.textContent.split("·").pop().trim();
-      const t = TILES.find(x => x.name === tileName);
-      if (t) openModal(t);
-    }
-  } catch (e) {}
-}
-freshLoad();
 
 
 // ============================================================================
