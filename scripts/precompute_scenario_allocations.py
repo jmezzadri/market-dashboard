@@ -39,6 +39,7 @@ sys.path.insert(0, str(ROOT))
 
 from compute_v9_allocation import (
     load_all_data,
+    load_composites,
     compute_allocation_from_data,
     PUBLIC,
     WINDOW,
@@ -143,14 +144,15 @@ def main():
     scenarios = anchors["scenarios"]
     print(f"  loaded {len(scenarios)} scenarios from {anchor_path.name}")
 
-    # 2. Load all data once
-    print("\n[1/3] loading factor panel + composites + ETF returns...")
-    factors, composites, monthly_ret = load_all_data()
-    if composites is None:
-        # PR λ (2026-05-02) deleted public/composite_history_daily.json. The
-        # scenario engine extends the v9 optimizer, so it goes dormant alongside
-        # v9 until the Asset Tilt rebuild lands. Write a stub and exit 0 so the
-        # workflow stays green.
+    # 2a. Composite-dormancy short-circuit. PR λ (2026-05-02) retired
+    # public/composite_history_daily.json. The scenario engine extends the v9
+    # optimizer, so it goes dormant alongside v9 until the Asset Tilt rebuild
+    # lands. We check composites FIRST — before load_all_data() — to avoid
+    # the prices_eod pull (which needs Supabase env this workflow does not
+    # have, and is wasted work when we're about to short-circuit anyway).
+    print("\n[1/3] checking composite availability (PR λ dormancy gate)...")
+    if load_composites() is None:
+        print("    composites: None — writing dormant stub and exiting 0")
         stub = {
             "as_of": datetime.now(timezone.utc).isoformat(),
             "status": "dormant",
@@ -164,6 +166,10 @@ def main():
         out_path.write_text(json.dumps(stub, indent=2) + "\n")
         print(f"\n[done] wrote dormant stub to {out_path}")
         return
+
+    # 2b. Load full panel (only reached when composites are live)
+    print("\n[1/3] loading factor panel + composites + ETF returns...")
+    factors, composites, monthly_ret = load_all_data()
     last_dt = factors.resample("M").last().dropna(how="all").index[-1]
     print(f"  factor panel last obs: {last_dt.date()}")
 
