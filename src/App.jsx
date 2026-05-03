@@ -5921,7 +5921,7 @@ return(
         return (
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
-            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/></h2>
+            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||scanData?.date_iso||scanData?.date||null} style={{marginLeft:8}}/></h2>
             <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
           </div>
 
@@ -6153,7 +6153,7 @@ return(
         <div style={cardStyle}>
           <div style={cardHeadStyle}>
             <h2 style={cardH2Style}>
-              <span style={cardTagStyle}>04</span>Portfolio Insights <FreshnessDot indicatorId="portfolio_history" asOfIso={scanData?.date_iso||scanData?.date||null} cadence="D" style={{marginLeft:8}}/>
+              <span style={cardTagStyle}>04</span>Portfolio Insights <FreshnessDot indicatorId="portfolio_history" asOfIso={_portfolioReturns?.latestDate||scanData?.scan_time||null} style={{marginLeft:8}}/>
             </h2>
             <a style={cardLinkStyle} onClick={()=>navTo("insights")}>Open →</a>
           </div>

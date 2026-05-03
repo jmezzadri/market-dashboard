@@ -125,10 +125,24 @@ function statusForElement(elementId, fallback) {
   const lastError = phRow?.last_error || null;
 
   // 4. Two-state decision.
+  // Joe directive 2026-05-03: "I only want to know when something breaks."
+  // Concretely, this means red is reserved for:
+  //   - Upstream pull errored (lastError set)
+  //   - Element is registered (manifest entry OR pipeline_health row) AND
+  //     last_good_at is past SLA on the calendar
+  // An element with NO manifest entry AND NO pipeline_health row AND NO
+  // asOfIso fallback is "freshness tracking not configured yet" — render
+  // green and let the tooltip explain. Surfacing a chip that just says
+  // "no record" trains the user to ignore reds.
   let status = "green";
   let reason = null;
 
-  if (lastError) {
+  const isUntracked = !manifestEl && !phRow && !lastGoodAt;
+
+  if (isUntracked) {
+    status = "green";
+    reason = "Freshness tracking not yet configured for this element";
+  } else if (lastError) {
     status = "red";
     reason = `Upstream error: ${lastError}`;
   } else if (!lastGoodAt) {

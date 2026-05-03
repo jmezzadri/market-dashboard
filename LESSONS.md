@@ -191,3 +191,50 @@ mechanism ("like a milk carton that only updates its expiration date when
 you POUR milk in"). Keep the Background / Context / Impact framing per
 the 2026-05-01 rule. If you'd hesitate to say a phrase out loud at a
 Manhattan dinner table, it doesn't belong in the popup.
+
+---
+
+## 2026-05-03 — Red chips are reserved for actual breakage; weekend / unregistered = green
+
+**What happened:** Phase 4 PR #16 made every site chip two-state (green/red,
+no amber). The hook `useFreshness` defaulted UNREGISTERED elements (no
+manifest entry AND no pipeline_health row AND no asOfIso fallback) to RED
+with reason "no successful refresh on record." On Sunday morning May 3
+Joe loaded macrotilt.com and saw the Trading Opportunities tile and
+Portfolio Insights tile both red — the chips were bound to
+`latest_scan_data` and `portfolio_history` and the App.jsx prop names
+(`scanData?.date_iso || scanData?.date`) referenced fields that don't
+exist in the JSON (the actual field is `scan_time`), so the asOfIso
+fallback was always null. Joe pushed back: "I only want to know when
+something breaks!!!!! I dont want red chips over weekends/holidays!!!"
+Separately, several FRED daily series (hy_ig, real_rates) flipped red on
+Sunday because the daily SLA was set at 25h biz-day-aware — which still
+breaches on Sunday morning when 28h of biz-day time has elapsed since
+Thursday's data point.
+
+**What you should do instead:** Three binding rules going forward.
+
+1. **The chip default for unregistered elements is GREEN, not RED.** In
+   `useFreshness`, before any other status decision: if there is no
+   manifest entry AND no pipeline_health row AND no asOfIso fallback, the
+   element is "freshness tracking not yet configured" — render green,
+   not red. A chip that lights red because we forgot to register it is
+   indistinguishable from a chip that lights red because the data is
+   genuinely stale; train the user to ignore reds and the alerting is
+   dead.
+
+2. **Daily-cadence SLAs absorb T+1 publish lag plus a weekend.** FRED
+   publishes most daily series the next business day — so the as_of
+   stays at "yesterday's data date" for a full day after the data was
+   published. The SLA must be at least 49 hours of business-day-aware
+   time (1 biz day for the publish lag + 1 biz day of operational
+   grace + a small buffer for clock drift). The previous 25h value
+   broke Joe's "no reds on weekends" rule and produced false alarms
+   every Sunday morning.
+
+3. **Every FreshnessDot consumer is registered before merge.** Adding a
+   `<FreshnessDot indicatorId="X" .../>` to a tile without registering
+   `X` in `data_manifest.json` AND seeding `pipeline_health` /
+   `pipeline_runs` for it is a bug. The PR template's Data Steward
+   sign-off must explicitly call out new chip wires; the safety net
+   above is for accidents, not a license to skip registration.
