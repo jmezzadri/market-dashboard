@@ -1349,7 +1349,7 @@ function openModal(t) {
                   : "high = concerning";
     h += `<button type="button" class="ind-row" data-indid="${ind.id}" data-tileid="${t.id}">
       <div>
-        <div class="nm">${ind.name}${freshChipHtml(ind.id, null, ind.name)}<span class="nm-meta">${dirText}</span></div>
+        <div class="nm">${ind.name}${freshChipHtml(ind.id, FRESH_STATE.cycleBoardAsOf, ind.name)}<span class="nm-meta">${dirText}</span></div>
         <div class="desc">${ind.desc}</div>
       </div>
       <div>
