@@ -315,31 +315,50 @@ def _load_etf_closes_from_supabase(tickers, start_date="2003-01-01"):
     if not URL or not KEY:
         raise SystemExit("compute_v9_allocation: SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY required")
 
-    # PostgREST `in.(...)` filter for ticker. Cap is 1M rows per request via
-    # the Range/Limit headers; 18 tickers x ~5,300 trading days = ~95K rows
-    # comfortably under the cap.
-    in_clause = f"in.({','.join(tickers)})"
-    qs = urlencode({
-        "select":     "ticker,trade_date,close",
-        "ticker":     in_clause,
-        "trade_date": f"gte.{start_date}",
-        "order":      "trade_date.asc",
-        "limit":      "1000000",
-    })
-    endpoint = f"{URL.rstrip('/')}/rest/v1/prices_eod?{qs}"
-    req = Request(endpoint, headers={
-        "apikey":        KEY,
-        "Authorization": f"Bearer {KEY}",
-        "Accept":        "application/json",
-    })
-    with urlopen(req, timeout=120) as r:
-        rows = _json.loads(r.read().decode("utf-8"))
+    # Supabase PostgREST silently caps results at max_rows (default 1000) —
+    # ?limit=1000000 in the query string is IGNORED. We must paginate via the
+    # Range header. 18 tickers x ~5,870 trading days = ~106K rows total at
+    # 1000-row pages = ~107 round trips. Order by (trade_date, ticker) so the
+    # row index is fully deterministic across pages; we still drop_duplicates
+    # below as a belt-and-suspenders against any tie-breaking edge case.
+    rows = []
+    page = 0
+    PAGE = 1000
+    HARD_STOP = 200  # 200K rows — well above the ~106K we expect
+    while True:
+        qs = urlencode({
+            "select":     "ticker,trade_date,close",
+            "ticker":     f"in.({','.join(tickers)})",
+            "trade_date": f"gte.{start_date}",
+            "order":      "trade_date.asc,ticker.asc",
+        })
+        endpoint = f"{URL.rstrip('/')}/rest/v1/prices_eod?{qs}"
+        req = Request(endpoint, headers={
+            "apikey":        KEY,
+            "Authorization": f"Bearer {KEY}",
+            "Accept":        "application/json",
+            "Range-Unit":    "items",
+            "Range":         f"{page*PAGE}-{(page+1)*PAGE-1}",
+        })
+        with urlopen(req, timeout=120) as r:
+            chunk = _json.loads(r.read().decode("utf-8"))
+        if not chunk:
+            break
+        rows.extend(chunk)
+        if len(chunk) < PAGE:
+            break
+        page += 1
+        if page > HARD_STOP:
+            break
     if not rows:
         raise RuntimeError(
             f"prices_eod returned 0 rows for tickers={tickers} "
             f"start={start_date}. Bootstrap may not have completed."
         )
     df = pd.DataFrame(rows)
+    # Defensive dedup — pagination ties on equal (trade_date, ticker) ordering
+    # keys could in theory yield the same row twice across page boundaries.
+    df = df.drop_duplicates(subset=["ticker", "trade_date"])
     df["trade_date"] = pd.to_datetime(df["trade_date"])
     df["close"] = pd.to_numeric(df["close"], errors="coerce")
     pivoted = df.pivot(index="trade_date", columns="ticker", values="close")
