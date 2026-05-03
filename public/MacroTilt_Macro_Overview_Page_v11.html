@@ -1113,7 +1113,7 @@ function renderDials() {
     let inner = "";
     inner += `<span class="num-tag">${t.num}</span>`;
     if (t.live) inner += `<span class="click-arrow">›</span>`;
-    inner += `<div class="name">${t.name}${t.live ? freshChipHtml(freshTileElement(t), null, t.name) : ""}</div>`;
+    inner += `<div class="name">${t.name}${t.live ? freshChipHtml(freshTileElement(t), FRESH_STATE.cycleBoardAsOf, t.name) : ""}</div>`;
     inner += `<div class="dial-svg-wrap">${buildDialSvg(t.score, t.live, t.band)}</div>`;
     if (t.live) {
       inner += `<div class="dial-score-wrap"><span class="dial-score-num">${t.score}</span><span class="dial-score-suffix">/ 100</span></div>`;
@@ -1144,6 +1144,7 @@ renderDials();
 //      with a chip — green when within SLA, red when stale, grey when unknown.
 // ============================================================================
 var FRESH_STATE = (typeof FRESH_STATE !== 'undefined' && FRESH_STATE) || {
+  cycleBoardAsOf: null,
   manifest:   {},   // name → element record
   health:     {},   // indicator_id → { last_good_at, last_error }
   ready:      false,
@@ -1258,6 +1259,15 @@ async function freshLoad() {
     });
   } catch (e) { console.warn("[fresh] manifest fetch failed:", e); }
 
+  // Cycle board snapshot — gives us a fallback as_of for the per-mechanism
+  // chips, which all bind to the synthetic "cycle_board" element (no
+  // pipeline_health row exists for it).
+  try {
+    const r = await fetch("/cycle_board_snapshot.json", { cache: "no-store" });
+    const j = await r.json();
+    FRESH_STATE.cycleBoardAsOf = j && j.as_of || null;
+  } catch (e) { console.warn("[fresh] cycle_board_snapshot fetch failed:", e); }
+
   // Supabase anon read of pipeline_health. Public key + RLS-anon SELECT policy.
   // The URL + key are safe in client per src/lib/supabase.js comments.
   try {
@@ -1306,7 +1316,7 @@ function openModal(t) {
   let h = "";
   h += `<div class="modal-eyebrow">Cycle mechanism · ${t.name}</div>`;
   h += `<div class="modal-h">
-    <h3>${t.name}${freshChipHtml(freshTileElement(t), null, t.name)}</h3>
+    <h3>${t.name}${freshChipHtml(freshTileElement(t), FRESH_STATE.cycleBoardAsOf, t.name)}</h3>
     <div style="text-align:right;">
       <div class="dial-score-num" style="color:${tileColor};">${t.score}<span class="dial-score-suffix">/ 100</span></div>
       <div class="meta-11" style="margin-top:4px;">composite score</div>
