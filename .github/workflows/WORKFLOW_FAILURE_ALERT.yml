@@ -96,7 +96,7 @@ jobs:
           """
 
           body = json.dumps({
-              "from":    "MacroTilt Watchdog <onboarding@resend.dev>",
+              "from":    "MacroTilt Watchdog <noreply@macrotilt.com>",
               "to":      ["josephmezzadri@gmail.com"],
               "subject": subject,
               "html":    html,
