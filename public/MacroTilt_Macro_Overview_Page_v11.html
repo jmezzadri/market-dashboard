@@ -1143,18 +1143,18 @@ renderDials();
 //   3. Decorates every cycle mechanism card + every indicator row in the modal
 //      with a chip — green when within SLA, red when stale, grey when unknown.
 // ============================================================================
-const FRESH_STATE = {
+var FRESH_STATE = (typeof FRESH_STATE !== 'undefined' && FRESH_STATE) || {
   manifest:   {},   // name → element record
   health:     {},   // indicator_id → { last_good_at, last_error }
   ready:      false,
 };
 
-const FRESH_NYSE_HOL = new Set([
+var FRESH_NYSE_HOL = new Set([
   "2024-01-01","2024-01-15","2024-02-19","2024-03-29","2024-05-27","2024-06-19","2024-07-04","2024-09-02","2024-11-28","2024-12-25",
   "2025-01-01","2025-01-09","2025-01-20","2025-02-17","2025-04-18","2025-05-26","2025-06-19","2025-07-04","2025-09-01","2025-11-27","2025-12-25",
   "2026-01-01","2026-01-19","2026-02-16","2026-04-03","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-11-26","2026-12-25",
 ]);
-const FRESH_FED_HOL = new Set([
+var FRESH_FED_HOL = new Set([
   "2024-01-01","2024-01-15","2024-02-19","2024-05-27","2024-06-19","2024-07-04","2024-09-02","2024-10-14","2024-11-11","2024-11-28","2024-12-25",
   "2025-01-01","2025-01-09","2025-01-20","2025-02-17","2025-05-26","2025-06-19","2025-07-04","2025-09-01","2025-10-13","2025-11-11","2025-11-27","2025-12-25",
   "2026-01-01","2026-01-19","2026-02-16","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-10-12","2026-11-11","2026-11-26","2026-12-25",
@@ -1207,7 +1207,7 @@ function freshFmtRefresh(iso) {
 
 // Compute chip status for a given element name. Returns { status, reason, lastGoodAt }.
 function freshStatus(elementName, fallbackAsOf) {
-  if (!FRESH_STATE.ready) return { status: "loading", reason: "Loading freshness…", lastGoodAt: null };
+  if (typeof FRESH_STATE === 'undefined' || !FRESH_STATE || !FRESH_STATE.ready) return { status: "loading", reason: "Loading freshness…", lastGoodAt: null };
   const manifestEl = FRESH_STATE.manifest[elementName];
   const health = FRESH_STATE.health[elementName];
   const slaHours = manifestEl ? Number(manifestEl.freshness_sla_hours) || 0 : 0;
@@ -1228,7 +1228,9 @@ function freshStatus(elementName, fallbackAsOf) {
 }
 
 function freshChipHtml(elementName, fallbackAsOf, label) {
-  const s = freshStatus(elementName, fallbackAsOf);
+  let s;
+  try { s = freshStatus(elementName, fallbackAsOf); }
+  catch (e) { s = { status: "loading", reason: "Loading freshness…", lastGoodAt: null }; }
   const cls = s.status === "red" ? "red" : s.status === "loading" ? "loading" : "";
   const tipBase = (label || elementName);
   const tip = s.status === "green"
