@@ -6363,7 +6363,7 @@ return(
 <div style={{padding:0,margin:0,width:"100%"}}>
 <div style={{maxWidth:1240,margin:"0 auto",padding:"14px 24px 6px",display:"flex",alignItems:"center",gap:8,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
   <span style={{color:"var(--accent)"}}>Data freshness</span>
-  <FreshnessDot indicatorId="cycle_board" asOfIso={null}/>
+  <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoardSnap?.as_of||null}/>
   <span style={{color:"var(--text-dim)"}}>· v11 cycle board</span>
 </div>
 <iframe
