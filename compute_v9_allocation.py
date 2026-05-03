@@ -379,7 +379,10 @@ def load_all_data():
 
     print("  loading composites...")
     composites = load_composites()
-    print(f"    composites latest: {composites.index[-1].date()}")
+    if composites is None:
+        print("    composites: None (PR λ composite kill — v9 is dormant pending Asset Tilt rebuild)")
+    else:
+        print(f"    composites latest: {composites.index[-1].date()}")
 
     print("  pulling daily ETF prices (Supabase prices_eod / Massive + yfinance-bootstrap)...")
     tickers = list(EQUITY) + list(DEFENSIVE)
@@ -601,6 +604,27 @@ def compute_allocation_from_data(
 def main():
     print("[v9] computing current allocation...")
     factors, composites, monthly_ret = load_all_data()
+
+    if composites is None:
+        # PR λ (2026-05-02) deleted public/composite_history_daily.json. The v9
+        # allocation engine is dormant pending the Asset Tilt rebuild. Write a
+        # stub v9_allocation.json so downstream consumers can detect dormancy
+        # without crashing, and exit 0 so INDICATOR-REFRESH stays green.
+        from datetime import datetime, timezone
+        stub = {
+            "as_of": datetime.now(timezone.utc).isoformat(),
+            "status": "dormant",
+            "reason": "composite_history_daily.json was retired by PR λ (composite kill). v9 is dormant pending Asset Tilt rebuild.",
+            "alpha": None,
+            "equity_share": None,
+            "leverage": None,
+            "picks": [],
+            "selection_confidence": "unavailable",
+        }
+        out_path = PUBLIC / "v9_allocation.json"
+        out_path.write_text(json.dumps(stub, indent=2) + "\n")
+        print(f"\n[done] wrote dormant stub to {out_path}")
+        return
 
     out = compute_allocation_from_data(factors, composites, monthly_ret)
 
