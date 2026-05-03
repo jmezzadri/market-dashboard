@@ -281,3 +281,5 @@ reading "what's the data point's date?" Migrating monthly/quarterly
 elements to read pipeline_runs.last_run_at (same way massive-* now does)
 would let SLAs return to their cadence-of-data values without needing to
 pad them by typical FRED lag. Filed as a follow-up.
+
+<!-- redeploy-tickle -->
