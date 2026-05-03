@@ -209,27 +209,47 @@ async function handle(req: Request): Promise<Response> {
     let lastError: string | null = null;
 
     if (row.source === "massive") {
-      // Massive rows are sourced from Supabase tables, not site JSON.
-      // Read max(ingested_at) from the corresponding table. Bug #1129.
-      const tableName = MASSIVE_TABLE_MAP[row.indicator_id];
-      if (!tableName) {
-        lastError = `unknown massive indicator_id: ${row.indicator_id}`;
-      } else {
-        const { data, error } = await supabase
-          .from(tableName)
-          .select("ingested_at")
-          .order("ingested_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-        if (error) {
-          lastError = `massive query (${tableName}): ${error.message}`;
-        } else if (!data) {
-          // Phase 3 backfill not started yet for ticker_reference is the
-          // expected case here. Stays red until rows arrive.
-          lastError = `${tableName} has no rows yet`;
+      // Massive rows: freshness reflects "did the producer pipeline run
+      // successfully today", NOT "did new rows land in the data table".
+      // The producer (backfill_massive_initial.py) writes to pipeline_runs
+      // on every successful run; we read last_run_at from there.
+      // Migration 040 introduced this contract; before that, this block
+      // read max(ingested_at) from the data table, which lied red whenever
+      // the universe was stable for 2+ days. (May 2 2026 incident.)
+      const { data: runRow, error: runErr } = await supabase
+        .from("pipeline_runs")
+        .select("last_run_at, last_run_status, last_error")
+        .eq("pipeline_name", row.indicator_id)
+        .maybeSingle();
+      if (runErr) {
+        lastError = `pipeline_runs query: ${runErr.message}`;
+      } else if (!runRow) {
+        // Never seeded — fall back to data-table read so chip isn't
+        // permanently dark on a fresh deploy.
+        const tableName = MASSIVE_TABLE_MAP[row.indicator_id];
+        if (!tableName) {
+          lastError = `unknown massive indicator_id: ${row.indicator_id}`;
         } else {
-          lastGoodIso = data.ingested_at as string;
-          asOf = lastGoodIso;
+          const { data, error } = await supabase
+            .from(tableName)
+            .select("ingested_at")
+            .order("ingested_at", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          if (error) {
+            lastError = `massive query (${tableName}): ${error.message}`;
+          } else if (!data) {
+            lastError = `${tableName} has no rows yet`;
+          } else {
+            lastGoodIso = data.ingested_at as string;
+            asOf = lastGoodIso;
+          }
+        }
+      } else {
+        lastGoodIso = runRow.last_run_at as string;
+        asOf = lastGoodIso;
+        if (runRow.last_run_status === "failure") {
+          lastError = runRow.last_error || "last run failed";
         }
       }
     } else if (row.indicator_id.startsWith("composite_")) {
