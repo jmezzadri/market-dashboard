@@ -347,10 +347,21 @@ def main():
     if error_samples:
         print(f"[backfill] error samples: {error_samples}")
 
-    if upserted == 0 and errors == len(targets):
+    # 404 ("not found") means the ticker is delisted on Polygon's end. These
+    # will fail forever and are not a pipeline problem. Only treat real
+    # connectivity / API errors (the ones in error_samples) as failure.
+    real_errors = errors - not_found
+    if upserted == 0 and real_errors == len(targets):
+        # All targets failed for non-404 reasons — likely auth, network, or
+        # Polygon outage. This IS red.
         update_health(URL, SK, "massive-ticker-details", "red",
                       f"all {len(targets)} calls failed; samples: {error_samples}")
         return 2
+
+    if upserted == 0 and not_found == len(targets):
+        # All targets returned 404 (all delisted) — not a failure, but log it.
+        print(f"[backfill] all {len(targets)} targets returned 404 "
+              f"(delisted on Polygon); marking healthy and exiting 0.")
 
     update_health(URL, SK, "massive-ticker-details", "green")
     return 0
