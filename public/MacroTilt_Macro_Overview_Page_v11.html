@@ -2437,6 +2437,48 @@ function buildIndicatorTrajectoryAny(drill, dotColor) {
   </svg>`;
 }
 
+
+// ── Live release-date helpers (Joe directive 2026-05-04 — no hardcoded dates) ──
+// Format an ISO/date-only string as e.g. "Apr 30, 2026" in NY time. Anchor
+// date-only strings at NYSE close so they don't drift to the previous day.
+function freshFmtShortDate(iso) {
+  if (!iso) return null;
+  const tIso = iso.length === 10 ? iso + "T20:00:00Z" : iso;
+  const d = new Date(tIso);
+  if (Number.isNaN(+d)) return null;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+}
+
+// Compute the live "Last release" + "Next release" strings for an indicator
+// id. Falls back to whatever was in DRILLS[id].release if pipeline_health
+// has no row for the indicator.
+function liveReleaseDates(indId, fallback) {
+  const phRow = (FRESH_STATE && FRESH_STATE.health && FRESH_STATE.health[indId]) || null;
+  const lastIso = (phRow && phRow.last_good_at) || null;
+  const lastFmt = freshFmtShortDate(lastIso) || (fallback && fallback.last) || "—";
+
+  // Next-release estimate: cadence-aware step from lastIso. We use the
+  // manifest's cadence when available; otherwise fall back to whatever
+  // string DRILLS[id].release.next had.
+  let nextFmt = (fallback && fallback.next) || "—";
+  const manifestEl = (FRESH_STATE && FRESH_STATE.manifest && FRESH_STATE.manifest[indId]) || null;
+  const cad = manifestEl && manifestEl.cadence;
+  if (lastIso && cad) {
+    const tIso = lastIso.length === 10 ? lastIso + "T20:00:00Z" : lastIso;
+    const d = new Date(tIso);
+    if (!Number.isNaN(+d)) {
+      const next = new Date(d);
+      if (cad === "daily")          next.setUTCDate(next.getUTCDate() + 1);
+      else if (cad === "weekly")    next.setUTCDate(next.getUTCDate() + 7);
+      else if (cad === "monthly")   next.setUTCMonth(next.getUTCMonth() + 1);
+      else if (cad === "quarterly") next.setUTCMonth(next.getUTCMonth() + 3);
+      const nf = freshFmtShortDate(next.toISOString());
+      if (nf) nextFmt = nf;
+    }
+  }
+  return { last: lastFmt, next: nextFmt };
+}
+
 function openIndicatorDrawer(ind, tile) {
   if (!ind) return;
   const drill = DRILLS[ind.id];
@@ -2454,7 +2496,7 @@ function openIndicatorDrawer(ind, tile) {
   h += `<div class="modal-h"><h3>${ind.name}</h3>
     <div style="text-align:right;">
       <div class="dial-score-num">${ind.value}</div>
-      <div class="meta-11" style="margin-top:4px;">as of Apr 30, 2026</div>
+      <div class="meta-11" style="margin-top:4px;">as of ${freshFmtShortDate((FRESH_STATE.health[ind.id]&&FRESH_STATE.health[ind.id].last_good_at)||null) || (drill.release&&drill.release.last) || "—"}</div>
     </div></div>`;
   h += `<p class="body-14" style="margin:0 0 16px;max-width:640px;">${ind.desc}</p>`;
   h += `<div class="kpi-strip">`;
@@ -2505,7 +2547,7 @@ function openIndicatorDrawer(ind, tile) {
 
   h += `<div class="modal-block">
     <div class="modal-block-eyebrow">Release calendar</div>
-    ${[["Frequency",drill.release.freq],["Last release",drill.release.last],["Next release",drill.release.next],["Source",drill.release.source]].map(r=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px dashed var(--border);font-size:14px;"><span style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;font-weight:600;">${r[0]}</span><span style="color:var(--ink);">${r[1]}</span></div>`).join("")}
+    ${(()=>{const lr=liveReleaseDates(ind.id, drill.release);return [["Frequency",drill.release.freq],["Last release",lr.last],["Next release",lr.next],["Source",drill.release.source]];})().map(r=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px dashed var(--border);font-size:14px;"><span style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;font-weight:600;">${r[0]}</span><span style="color:var(--ink);">${r[1]}</span></div>`).join("")}
   </div>`;
 
   h += `<div style="border-top:0.5px solid var(--border);padding-top:16px;font-size:14px;color:var(--ink-2);line-height:1.6;margin-top:4px;">
