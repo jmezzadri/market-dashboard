@@ -411,6 +411,16 @@ export default function AssetTilt({ onOpenTicker }) {
       .then(r => r.ok ? r.json() : null).then(setV10).catch(() => setV10(null));
   }, []);
 
+  // Hooks must be called unconditionally (React rules)
+  const stance = v10?.page_stance;
+  const stanceHeadline = useMemo(() => {
+    if (stance === "Risk On") return "Risk on — full equity, modest leverage where conditions warrant.";
+    if (stance === "Neutral") return "Neutral — full equity, no leverage, watch for transitions.";
+    if (stance === "Cautious" || stance === "Caution") return "Cautious — late-cycle positioning, defensive sleeve activating.";
+    if (stance === "Risk Off") return "Risk off — defensive priority, maximum 50% defensive sleeve.";
+    return "";
+  }, [stance]);
+
   if (!v10 || !cycleBoard) {
     return (
       <main style={{ maxWidth: 1280, margin: "0 auto", padding: "60px 32px" }}>
@@ -420,14 +430,6 @@ export default function AssetTilt({ onOpenTicker }) {
       </main>
     );
   }
-
-  const stance = v10.page_stance;
-  const stanceHeadline = useMemo(() => {
-    if (stance === "Risk On") return "Risk on — full equity, modest leverage where conditions warrant.";
-    if (stance === "Neutral") return "Neutral — full equity, no leverage, watch for transitions.";
-    if (stance === "Cautious" || stance === "Caution") return "Cautious — late-cycle positioning, defensive sleeve activating.";
-    return "Risk off — defensive priority, maximum 50% defensive sleeve.";
-  }, [stance]);
 
   return (
     <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 32px 48px" }}>
