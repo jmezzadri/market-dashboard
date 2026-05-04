@@ -1205,7 +1205,7 @@ function buildVerdictDial() {
     }
     document.getElementById("verdictHeadline").textContent =
       `${label} band — average ${rounded}/100. ${narrative}`;
-  }
+  })();
   const [tx, ty] = polar(R_outer + 8, a_today);
   document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
   document.getElementById("verdictPointer").setAttribute("y2", ty.toFixed(2));
@@ -1217,7 +1217,8 @@ function buildVerdictDial() {
   // so the rotation delta is +(180 - a_today) starting position.
   const startDeg = -(180 - a_today);  // rotate CCW by that amount initially, sweep back to 0
   document.getElementById("verdictPointerGroup").style.setProperty("--from-deg", `${startDeg}deg`);
-})();
+}
+buildVerdictDial();
 
 // ============================================================================
 // Mechanism dial — single sweep animation on first paint
@@ -1303,8 +1304,6 @@ function renderDials() {
     grid.appendChild(card);
   });
 }
-// Initial render — fetch live scores from cycle_board_snapshot.json first,
-// then render. Falls back to hardcoded values if the fetch fails.
 fetch('/cycle_board_snapshot.json?cb=' + Date.now())
   .then(r => r.ok ? r.json() : null)
   .then(snap => {
@@ -1321,13 +1320,13 @@ fetch('/cycle_board_snapshot.json?cb=' + Date.now())
                   : 'darkblood';
         }
       });
+      buildVerdictDial();
+      renderDials();
+    } else {
+      renderDials();
     }
   })
-  .catch(() => {})
-  .finally(() => {
-    buildVerdictDial();
-    renderDials();
-  });
+  .catch(() => { renderDials(); });
 
 
 
