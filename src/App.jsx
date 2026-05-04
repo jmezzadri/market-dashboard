@@ -5129,11 +5129,14 @@ const [_spxHistory, setSpxHistory] = useState(null);
 // reads. Home tile renders the SAME 6 mechanism scores + aggregate verdict
 // so the home preview and /#overview stay in lockstep.
 const [cycleBoardSnap, setCycleBoardSnap] = useState(null);
+  const [v10AllocSnap, setV10AllocSnap] = useState(null);
 useEffect(() => {
   let cancelled = false;
   fetch("/cycle_board_snapshot.json")
     .then(r => r.ok ? r.json() : null)
-    .then(j => { if (!cancelled && j) setCycleBoardSnap(j); })
+    .then(j => { if (!cancelled && j) setCycleBoardSnap(j);
+  fetch("/v10_allocation.json")
+    .then(r => r.ok ? r.json() : null).then(setV10AllocSnap).catch(() => setV10AllocSnap(null)); })
     .catch(() => {});
   return () => { cancelled = true; };
 }, []);
@@ -5682,21 +5685,15 @@ return(
             <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
           </div>
 
-          {/* Asset Tilt hero tile — under construction. The destination
-              page is offline pending Senior Quant calibration sign-off
-              (HY OAS threshold + R&L staleness, see src/pages/AssetAllocation.jsx
-              for full status). Tile is non-interactive so the user isn't
-              dropped onto a placeholder banner. */}
-          <div aria-disabled="true" style={{
-            ...stepTileStyle,
-            cursor:"default", opacity:0.6,
-            background:"var(--surface-3, var(--surface))",
-            borderStyle:"dashed",
-          }}>
+          {/* Asset Tilt hero tile — re-lit 2026-05-04 with v10.1c live engine.
+              Clicks navigate to the full Asset Tilt page. */}
+          <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
+               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
+               style={stepTileStyle}>
             <div style={tileTagStyle}>{tileLineAccent} 02 · Asset Tilt</div>
-            <h3 style={tileH3Style}>Under <em style={{fontStyle:"italic", color:"var(--text-muted)"}}>construction.</em></h3>
-            <p style={tileBlurbStyle}>The asset tilt tool is being rebuilt. New version coming soon.</p>
-            <div style={{...tileFootStyle, color:"var(--text-dim)"}}><span>Coming soon</span></div>
+            <h3 style={tileH3Style}>Where the cycle <em style={{fontStyle:"italic", color:"var(--accent)"}}>says to lean.</em></h3>
+            <p style={tileBlurbStyle}>Equity vs defensive split, leverage, sector and industry-group tilts driven by the six cycle mechanisms. ETF exposure paths included.</p>
+            <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
           </div>
 
           <div role="link" tabIndex={0} onClick={()=>navTo("portopps")}
@@ -5859,47 +5856,57 @@ return(
         </div>
       </div>
 
-      {/* 02 · Asset Tilt — UNDER CONSTRUCTION (2026-04-30).
-          The full v9 allocation surface (selection-confidence strip, top-3 OW,
-          bottom-3 UW, etc.) was retired from the home page on 2026-04-30
-          because the destination page (src/pages/AssetAllocation.jsx) is
-          offline pending Senior Quant calibration sign-off (HY OAS threshold
-          + R&L staleness — see #1122 / #1125). This placeholder keeps the home
-          grid intact without dropping users onto a banner-only page. The
-          full home tile lives in git history; bring it back when the
-          tool ships. */}
-      <div style={{...cardStyle, opacity:0.85}}>
+      {/* 02 · Asset Tilt — re-lit 2026-05-04 with v10.1c live engine.
+          Reads /v10_allocation.json which refreshes nightly at 22:45 UTC. */}
+      <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
+           onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
+           style={{...cardStyle, cursor:"pointer"}}>
         <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Tilt</h2>
-          <span style={{...cardLinkStyle, color:"var(--text-dim)", cursor:"default"}}>Coming soon</span>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Tilt <FreshnessDot indicatorId="v10_allocation" asOfIso={v10AllocSnap?.as_of||null} style={{marginLeft:9}}/></h2>
+          <a style={cardLinkStyle} onClick={(e)=>{e.stopPropagation(); navTo("allocation");}}>Open full view →</a>
         </div>
-        <div style={{
-          padding:"36px 24px",
-          textAlign:"center",
-          border:"1px dashed var(--border-strong, var(--border))",
-          borderRadius:8,
-          background:"var(--surface-3, var(--surface))",
-        }}>
-          <div style={{
-            display:"inline-flex", alignItems:"center", gap:8,
-            padding:"5px 12px", borderRadius:999,
-            background:"var(--darkblood-subtle, rgba(122,20,20,0.14))",
-            color:"var(--darkblood-active, #7a1414)",
-            fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
-            letterSpacing:"0.10em", textTransform:"uppercase",
-            marginBottom:18,
-          }}>
-            <span style={{width:6,height:6,borderRadius:"50%",background:"var(--darkblood-active, #7a1414)"}}/>
-            Under construction
-          </div>
-          <h3 style={{
-            fontFamily:"var(--font-display)", fontSize:22, fontWeight:400,
-            color:"var(--text)", margin:"0 0 10px", letterSpacing:"-0.005em",
-          }}>The asset tilt tool is being rebuilt.</h3>
-          <p style={{
-            fontFamily:"var(--font-body)", fontSize:13, lineHeight:1.6,
-            color:"var(--text-muted)", maxWidth:480, margin:"0 auto",
-          }}>The previous v9 allocation engine has been pulled while we re-calibrate the HY OAS threshold and the R&amp;L staleness rule. The home tile, the navigation card, and the dedicated page will all light back up together when the new model ships.</p>
+        {(() => {
+          if (!v10AllocSnap) {
+            return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
+          }
+          const eq = Math.round((v10AllocSnap.equity_pct||0) * 100);
+          const def = Math.round((v10AllocSnap.defensive_pct||0) * 100);
+          const lev = (v10AllocSnap.leverage||1).toFixed(2);
+          const stance = v10AllocSnap.page_stance || "";
+          const stanceCol = stance === "Risk On" ? "#2e7d32" : stance === "Cautious" || stance === "Caution" ? "#b8860b" : stance === "Risk Off" ? "#b71c1c" : "#9b9384";
+          const sectors = v10AllocSnap.sectors || [];
+          const ow = sectors.filter(s => s.rating === "OW").map(s => s.sector);
+          const uw = sectors.filter(s => s.rating === "UW").map(s => s.sector);
+          return (
+            <>
+              <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-3)"}}>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:38, fontWeight:600, color:stanceCol, lineHeight:1, letterSpacing:"-0.02em"}}>
+                  {eq}<span style={{fontSize:18, fontWeight:400, color:"var(--text-muted)", marginLeft:4}}>/100</span>
+                </div>
+                <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase", fontWeight:600}}>
+                  Equity · {stance}
+                </div>
+              </div>
+              <div style={{fontFamily:"var(--font-display)", fontSize:14, lineHeight:1.55, color:"var(--text)", marginBottom:"var(--space-4)", paddingBottom:"var(--space-3)", borderBottom:"1px solid var(--border-faint)"}}>
+                {eq}% equity, {def}% defensive, {lev}× leverage. {ow.length > 0 ? "OW: " + ow.slice(0,3).join(", ") : ""}{ow.length > 0 && uw.length > 0 ? " · " : ""}{uw.length > 0 ? "UW: " + uw.slice(0,3).join(", ") : ""}.
+              </div>
+              <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"var(--space-2)"}}>
+                {[
+                  {label:"Equity", value:eq+"%"},
+                  {label:"Defensive", value:def+"%"},
+                  {label:"Leverage", value:lev+"×"},
+                ].map(k => (
+                  <div key={k.label} style={{background:"var(--surface)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"10px 12px"}}>
+                    <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.10em", marginBottom:6, fontWeight:600, textTransform:"uppercase"}}>{k.label}</div>
+                    <div style={{fontFamily:"var(--font-mono)", fontSize:24, fontWeight:600, color:"var(--text)", lineHeight:1}}>{k.value}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          );
+        })()}
+        <div style={{marginTop:"var(--space-4)", paddingTop:"var(--space-3)", borderTop:"1px solid var(--border-faint)", fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.06em", display:"flex", justifyContent:"space-between", alignItems:"center", gap:8}}>
+          <span>v10.1c calibration · 2012-2026 backtest CAGR 13.85%, Sharpe 1.034</span>
         </div>
       </div>
 
