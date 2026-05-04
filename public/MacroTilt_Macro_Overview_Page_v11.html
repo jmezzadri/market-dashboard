@@ -1344,8 +1344,8 @@ function openModal(t) {
 
   h += `<div class="modal-block-eyebrow" style="margin-top:8px;">Indicators contributing to this composite</div>`;
   h += `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">
-    Score-weighted: each indicator's 0–100 concerning score divided by the tile's sum-of-scores.
-    Higher scores carry more weight. Click any row for the full indicator drilldown.
+    Simple average — each indicator's 0–100 concerning score is averaged with equal weight.
+    Click any row for the full indicator drilldown.
   </div>`;
   h += `<div class="ind-list">`;
   scores.forEach(({ind, score, band}) => {
@@ -1372,7 +1372,7 @@ function openModal(t) {
         </div>
         <div>
           <div class="score-num" style="color:${scoreColor};">${score}</div>
-          <div class="share-pct">${sharePct}% share</div>
+          
         </div>
       </div>
       <div class="arr">›</div>
@@ -2645,6 +2645,55 @@ function showToast(msg) {
       if (ptr) { ptr.setAttribute('x2', tx.toFixed(2)); ptr.setAttribute('y2', ty.toFixed(2)); }
       var tip = document.getElementById('verdictTip');
       if (tip) { tip.setAttribute('cx', tx.toFixed(2)); tip.setAttribute('cy', ty.toFixed(2)); }
+    })
+    .catch(function() {});
+
+
+  // Also fetch the live calibration JSON to update modal indicator percentiles
+  // and values (otherwise the modal shows stale hardcoded data).
+  fetch('/methodology_calibration_v11.json?cb=' + Date.now())
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(calib) {
+      if (!calib || !Array.isArray(calib.tiles)) return;
+      var tilesById = {};
+      calib.tiles.forEach(function(t) { tilesById[t.id] = t; });
+      TILES.forEach(function(tile) {
+        var liveTile = tilesById[tile.id];
+        if (!liveTile || !Array.isArray(liveTile.indicators)) return;
+        var liveIndById = {};
+        liveTile.indicators.forEach(function(ind) { liveIndById[ind.id] = ind; });
+        (tile.indicators || []).forEach(function(ind) {
+          var live = liveIndById[ind.id];
+          if (!live) return;
+          if (typeof live.percentile === 'number') {
+            ind.percentile = Math.round(live.percentile * 10) / 10;
+          }
+          if (live.current && live.current.value != null) {
+            var origStr = String(ind.value || '');
+            var suffix = '';
+            if (origStr.endsWith('×')) suffix = '×';
+            else if (origStr.endsWith('%')) suffix = '%';
+            else if (origStr.endsWith(' bp')) suffix = ' bp';
+            else if (origStr.endsWith('k')) suffix = 'k';
+            else if (origStr.endsWith('×')) suffix = '×';
+            var v = live.current.value;
+            var formatted;
+            if (Math.abs(v) >= 1000) formatted = v.toFixed(0);
+            else if (Math.abs(v) >= 100) formatted = v.toFixed(1);
+            else if (Math.abs(v) >= 10) formatted = v.toFixed(2);
+            else if (Math.abs(v) >= 1) formatted = v.toFixed(2);
+            else formatted = v.toFixed(3);
+            formatted = formatted.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+            ind.value = formatted + suffix;
+          }
+          // Map calibration direction strings to the static page convention
+          if (live.direction) {
+            if (live.direction === 'high_is_concerning') ind.dir = 'high';
+            else if (live.direction === 'low_is_concerning') ind.dir = 'low';
+            else if (live.direction.indexOf('bidir') === 0) ind.dir = 'bidir';
+          }
+        });
+      });
     })
     .catch(function() {});
 })();
