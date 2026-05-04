@@ -1,1696 +1,1083 @@
-// MethodologyPage v2.1 — one unified "Data & Methodology" page.
+// MethodologyPage — full overhaul (2026-05-04).
 //
-// v2.1 rework (2026-04-22) addressed 10 items of feedback on the v2 page:
-//   #18 — jump-nav anchors collided with the hash router (links bounced
-//         to homepage); now use prefixed IDs + onClick + scrollIntoView
-//         with preventDefault, so the URL hash never changes.
-//   #19 — tab-list matches the real sidebar: Home / Macro Overview / All
-//         Indicators / Sectors / Trading Opportunities & Portfolio Insights
-//         / Trading Scanner / Sector Lab · BETA (7 surfaces).
-//   #20 — each tab card rewritten in hedge-fund PM pitch voice: WHY WE
-//         BUILT IT / HOW A PM USES IT / WHERE THE EDGE COMES FROM, plus
-//         the practical What you see / How to read it fields.
-//   #21 — Indicator → Category map rebuilt with phase (fast/slow),
-//         timing (leading/coincident/lagging), plain-English measure,
-//         source, and tier rationale. Tier chips color-coded by tier.
-//   #22 — every section header now carries an APPLIES TO chip pointing
-//         at the real tab(s) that surface the methodology.
-//   #23 — CONVICTION bands recalibrated against full 2006-2026 history
-//         (see scripts/conviction-backtest.js). New thresholds anchor at
-//         p60 / p85 / p97.5 so GFC + COVID sit in EXTREME and 2022 / SVB
-//         sit in ELEVATED — previously both miscalibrated to NORMAL.
-//   #24 — scanner-score story unified: one composite [-100, +100], one
-//         methodology. The legacy "two parallel scores" language is
-//         retired — Buy Alert / Near Trigger are thresholds on the same
-//         single score. The only 0-100 scale anywhere is the macro
-//         Composite Stress Score.
-//   #25 — Data Streams catalog section-headers + infra tiles get
-//         plain-English explanations (universe_snapshots, ticker_events,
-//         user_scan_data are no longer raw table names).
-//   #26 — "How This Works" tile on Scanner retired; points back here.
+// Layout:
+//   Hero (eyebrow / headline / subhead / last-updated stamp)
+//   Search bar (filters the TOC live)
+//   Two-column layout:
+//     Left: sticky TOC, collapsible per section, smooth-scroll anchors
+//     Right: long-form sections in site flow:
+//       1. Macro Overview
+//       2. Asset Tilt
+//       3. Trading Opportunities
+//       4. Portfolio Insights
+//     Each section: Why → How to use → Data → Models
+//     Plus four appendices: Hard rules · Backtest · Sources · Glossary
 //
-// Six sections, top-to-bottom:
-//   §1  Header + overview (what MacroTilt is)
-//   §2  By tab — 7 real tabs, PM pitch voice
-//   §3  Indicator → Category Map (auto-rendered; enriched with
-//        phase/timing/measure/source/rationale per indicator)
-//   §4  Composite Score Math (dual-scale CONVICTION bands +
-//        historical alignment)
-//   §5  Signal Score Math — single [-100, +100] composite
-//   §6  Data Streams Catalog (plain English)
-//
-// Props (all passed from App.jsx so there is a single source of truth):
-//   ind     — IND registry (IND[id] = [short, long, cat, tier, unit, dec,
-//             now, mo1, mo3, m6, m12, invertDir, desc, narrative])
-//   asOf    — map of id → latest-data stamp ({vix:"Apr 16 2026", ...})
-//   weights — WEIGHTS map used by compScore (id → 1.5/1.2/1.0)
-//   cats    — CATS map (category key → {label, color})
-//   indFreq — IND_FREQ map (id → "D"|"W"|"M"|"Q")
+// Site brand: Fraunces display, Inter body, JetBrains Mono technical, parchment palette.
 
-import React, { useMemo, useState } from "react";
-import FreshnessDot from "../components/FreshnessDot";
-import { DATA_REGISTRY, DATA_SECTIONS, buildSearchBlob } from "../data/dataRegistry";
-import {
-  SECTION_WEIGHTS,
-  SECTION_ORDER,
-  SECTION_LABELS,
-} from "../ticker/sectionComposites";
+import { useState, useEffect, useMemo, useRef } from "react";
 
-// ─── ANCHOR PREFIX ──────────────────────────────────────────────────────────
-// Scrolling anchors are name-spaced so they don't collide with the
-// hash-router's tab names (e.g. #home, #overview). Previously jumping to
-// "#methodology-overview" pulled the first section into view but the
-// router would then re-interpret the raw label "overview" on any link
-// under it. The guard: unique prefix + onClick preventDefault + manual
-// scrollIntoView so the URL hash never mutates.
-const A = (slug) => `mth__${slug}`;
+// ─── Section schema ────────────────────────────────────────────────────────
+// Used for TOC, search filtering, and content rendering. Each subsection's
+// `body` is a JSX renderer; the searchable text comes from `searchText`.
 
-// Smooth-scroll helper used by every jump link + TOC anchor.
-function scrollToAnchor(id) {
-  const el = typeof document !== "undefined" ? document.getElementById(id) : null;
-  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
-// ─── CONVICTION MIRROR (v2.1 recalibrated) ──────────────────────────────────
-// SD bands derived from scripts/conviction-backtest.js run against the full
-// 2006-01-03 → 2026-04-22 composite history. Thresholds chosen at p60 /
-// p85 / p97.5 so the worst crises in the sample (GFC 2.27 / COVID 2.02)
-// sit firmly in EXTREME while 2022 bear (0.80) and SVB (0.67) sit in
-// ELEVATED. Previously both were miscalibrated to NORMAL (old NORMAL
-// ceiling was 0.88). App.jsx CONVICTION constant updated to match.
-const CONVICTION_MIRROR = [
-  { level:1, label:"LOW",      range:[-99,   0.12], color:"#30d158", hundred:"< 28",      eq:90, bd:5,  ca:3,  au:2,
-    action:"Risk-on. Historically benign — bottom 60% of the 2006-2026 distribution. Add cyclical beta on pullbacks." },
-  { level:2, label:"NORMAL",   range:[0.12,  0.41], color:"#B8860B", hundred:"28 – 35",   eq:75, bd:15, ca:7,  au:3,
-    action:"Baseline tape. Maintain diversified exposure. Trim highest-beta into spikes. 25% of history." },
-  { level:3, label:"ELEVATED", range:[0.41,  1.03], color:"#ff9f0a", hundred:"35 – 51",   eq:55, bd:28, ca:12, au:5,
-    action:"Active hedging warranted. Sell covered calls, rotate defensive, reduce leverage. Includes 2022 bear + SVB + 2015-16 selloffs." },
-  { level:4, label:"EXTREME",  range:[1.03,  99  ], color:"#ff453a", hundred:"≥ 51",      eq:20, bd:30, ca:35, au:15,
-    action:"Crisis regime. Maximum defensiveness, harvest losses, hold dry powder. Top ~2.5% of history — GFC + COVID lived here." },
+const SECTIONS = [
+  {
+    id: "macro-overview",
+    num: "01",
+    title: "Macro Overview",
+    blurb: "Where the cycle sits today.",
+    sub: [
+      { id: "macro-why",      label: "Why we built it" },
+      { id: "macro-how",      label: "How to use it" },
+      { id: "macro-data",     label: "Data behind it" },
+      { id: "macro-models",   label: "Models & calcs" },
+    ],
+  },
+  {
+    id: "asset-tilt",
+    num: "02",
+    title: "Asset Tilt",
+    blurb: "Where the cycle says to lean.",
+    sub: [
+      { id: "tilt-why",       label: "Why we built it" },
+      { id: "tilt-how",       label: "How to use it" },
+      { id: "tilt-data",      label: "Data behind it" },
+      { id: "tilt-models",    label: "Models & calcs" },
+    ],
+  },
+  {
+    id: "trading-opps",
+    num: "03",
+    title: "Trading Opportunities",
+    blurb: "What to act on today.",
+    sub: [
+      { id: "ops-why",        label: "Why we built it" },
+      { id: "ops-how",        label: "How to use it" },
+      { id: "ops-data",       label: "Data behind it" },
+      { id: "ops-models",     label: "Models & calcs" },
+    ],
+  },
+  {
+    id: "portfolio-insights",
+    num: "04",
+    title: "Portfolio Insights",
+    blurb: "What it means for your holdings.",
+    sub: [
+      { id: "port-why",       label: "Why we built it" },
+      { id: "port-how",       label: "How to use it" },
+      { id: "port-data",      label: "Data behind it" },
+      { id: "port-models",    label: "Models & calcs" },
+    ],
+  },
+  {
+    id: "hard-rules",
+    num: "A",
+    title: "Hard rules & constraints",
+    blurb: "Caps that bind every decision.",
+    sub: [],
+  },
+  {
+    id: "backtest",
+    num: "B",
+    title: "Backtest evidence",
+    blurb: "v10.1c against v9 baseline.",
+    sub: [],
+  },
+  {
+    id: "sources",
+    num: "C",
+    title: "Sources",
+    blurb: "Where every number comes from.",
+    sub: [],
+  },
+  {
+    id: "glossary",
+    num: "D",
+    title: "Glossary",
+    blurb: "Terms used across the site.",
+    sub: [],
+  },
 ];
 
-// Historical alignment table — composite SD at the peak of each named
-// stress episode (from scripts/conviction-backtest.js). Mirrored so the
-// methodology page can show "where GFC/COVID actually sit" alongside
-// the new band thresholds.
-const HISTORICAL_PEAKS = [
-  { label:"GFC (Lehman)",              when:"2008-10-15", sd:2.27, h100:82, band:"EXTREME" },
-  { label:"COVID shock",               when:"2020-04-01", sd:2.02, h100:75, band:"EXTREME" },
-  { label:"2022 bear",                 when:"2022-10-22", sd:0.80, h100:45, band:"ELEVATED" },
-  { label:"SVB / regional-bank",       when:"2023-03-18", sd:0.67, h100:42, band:"ELEVATED" },
-  { label:"2015-16 selloff",           when:"2016-01-16", sd:0.59, h100:40, band:"ELEVATED" },
-  { label:"2011 euro / debt ceiling",  when:"2011-12-31", sd:0.39, h100:35, band:"NORMAL" },
-  { label:"Q4 2018 selloff",           when:"2018-12-31", sd:0.32, h100:33, band:"NORMAL" },
-];
+// ─── Reusable styled blocks ────────────────────────────────────────────────
 
-// ─── INDICATOR_META — enrichment for the Category Map (Item 21) ─────────────
-// One entry per IND[id]. `phase` = observable cadence (fast daily market
-// obs vs slow survey/accounting). `timing` = leading / coincident /
-// lagging relative to the real economy. `measure` = plain-English read
-// of what the number represents. `source` = terse provenance. `rationale`
-// = why this tier ranking.
-const INDICATOR_META = {
-  vix:         { phase:"Fast", timing:"Coincident", source:"CBOE / FRED VIXCLS",            measure:"30-day implied S&P 500 volatility from the options market.",                                                       rationale:"T1 — real-time equity risk appetite; the most liquid read on fear." },
-  hy_ig:       { phase:"Fast", timing:"Leading",    source:"FRED BAMLH0A0HYM2EY − BAMLC0A0CMEY", measure:"Extra yield investors demand for junk credit over investment-grade (bps).",                                  rationale:"T1 — bond market's real-time price of corporate default risk." },
-  eq_cr_corr:  { phase:"Fast", timing:"Coincident", source:"Computed from VIX + HY-IG",     measure:"63-day rolling correlation between equity vol and credit spreads.",                                                rationale:"T1 — distinguishes a genuine risk-off regime from isolated noise." },
-  yield_curve: { phase:"Fast", timing:"Leading",    source:"FRED T10Y2Y",                   measure:"10-year Treasury yield minus 2-year, in basis points.",                                                           rationale:"T1 — 40-year track record as a recession lead indicator." },
-  move:        { phase:"Fast", timing:"Coincident", source:"ICE BofA MOVE Index",           measure:"Options-implied Treasury volatility across 2y/5y/10y/30y tenors.",                                                rationale:"T2 — the VIX of the bond market; flags rate-market dysfunction." },
-  anfci:       { phase:"Slow", timing:"Leading",    source:"FRED ANFCI (Chicago Fed)",      measure:"Chicago Fed composite of 105 financial series, z-scored, business-cycle-adjusted.",                              rationale:"T2 — leads real-activity inflection by 1-2 quarters." },
-  stlfsi:      { phase:"Slow", timing:"Coincident", source:"FRED STLFSI4 (St. Louis Fed)",  measure:"Principal-component composite of 18 weekly stress series (yields, spreads, vol).",                                rationale:"T2 — Fed-constructed broad-stress index; more volatile than ANFCI." },
-  real_rates:  { phase:"Fast", timing:"Coincident", source:"FRED DFII10",                   measure:"10-year TIPS yield — market-implied real cost of long-term borrowing.",                                          rationale:"T2 — valuation compressor for long-duration (growth) equities." },
-  sloos_ci:    { phase:"Slow", timing:"Leading",    source:"FRED DRTSCILM (Fed SLOOS)",     measure:"Net % of banks tightening Commercial & Industrial loan standards.",                                                rationale:"T2 — leads credit events by 1-2 quarters; GFC peak 84%." },
-  cape:        { phase:"Slow", timing:"Lagging",    source:"Shiller dataset (Yale)",        measure:"S&P 500 price ÷ 10-year trailing CPI-adjusted earnings.",                                                          rationale:"T2 — weak timer, strong 10-year forward-return predictor." },
-  ism:         { phase:"Slow", timing:"Coincident", source:"Institute for Supply Management", measure:"Diffusion index of 5 manufacturing subcomponents; 50 = expansion/contraction boundary.",                        rationale:"T2 — the OG manufacturing barometer; <45 has preceded every recession since 1970 (ex-1967)." },
-  copper_gold: { phase:"Fast", timing:"Leading",    source:"CME HG1 / GC1 ratio",           measure:"Industrial-metal (copper) demand divided by safe-haven (gold) demand.",                                            rationale:"T2 — real-economy optimism vs. fear in a single number." },
-  bkx_spx:     { phase:"Fast", timing:"Coincident", source:"Computed KBE / SPY",            measure:"Bank-sector equity performance relative to the broad market.",                                                     rationale:"T2 — preceded the SVB collapse; bank-sector stress canary." },
-  bank_unreal: { phase:"Slow", timing:"Lagging",    source:"FDIC Quarterly Banking Profile", measure:"Aggregate AFS+HTM unrealized securities losses ÷ Tier 1 capital.",                                               rationale:"T2 — SVB was at 104% before failure; aggregate >20% = no margin." },
-  credit_3y:   { phase:"Slow", timing:"Leading",    source:"FRED TOTBKCR 3-year growth",    measure:"3-year cumulative growth in total bank credit (loans + securities).",                                              rationale:"T2 — captures buildup of system-wide credit fragility over a cycle." },
-  term_premium:{ phase:"Slow", timing:"Coincident", source:"Fed Board (Kim-Wright model)",  measure:"Extra yield demanded for holding a 10Y Treasury over rolling short bills.",                                        rationale:"T3 — structural tightening independent of Fed policy." },
-  cmdi:        { phase:"Fast", timing:"Coincident", source:"NY Fed CMDI",                   measure:"Composite of primary-market issuance, secondary liquidity, and pricing dislocations in corporate credit.",        rationale:"T3 — contextual; leading indicator for credit availability." },
-  loan_syn:    { phase:"Fast", timing:"Coincident", source:"FRED BAMLH0A0HYM2EY",           measure:"ICE BofA US High Yield Index all-in effective yield.",                                                              rationale:"T3 — refinancing pressure gauge for leveraged-finance issuers." },
-  usd:         { phase:"Fast", timing:"Coincident", source:"Yahoo DX-Y.NYB",                 measure:"ICE US Dollar Index — geometric mean of USD against six major currencies (EUR/JPY/GBP/CAD/SEK/CHF). The dollar index trading desks reference intraday.", rationale:"T3 — strong $ tightens global conditions; hits EM + commodity exposures." },
-  cpff:        { phase:"Fast", timing:"Coincident", source:"FRED DCPF3M − DFF",             measure:"3M AA commercial paper yield minus effective Fed Funds rate, in bps.",                                            rationale:"T3 — short-term corporate funding stress gauge (GFC peak 280bps)." },
-  skew:        { phase:"Fast", timing:"Leading",    source:"CBOE SKEW",                     measure:"Implied probability of a >2SD S&P 500 decline from far-OTM put pricing.",                                          rationale:"T3 — tail-risk positioning; contrarian when elevated alongside low VIX." },
-  sloos_cre:   { phase:"Slow", timing:"Leading",    source:"FRED DRTSCLCC (Fed SLOOS)",     measure:"Net % of banks tightening Commercial Real Estate lending standards.",                                              rationale:"T3 — office/retail CRE sensitivity; leads CRE credit events." },
-  bank_credit: { phase:"Slow", timing:"Coincident", source:"FRED TOTBKCR YoY",              measure:"Year-over-year growth in total bank credit (loans + securities).",                                                 rationale:"T3 — real-economy credit pulse; <3% signals tightening feeding through." },
-  jobless:     { phase:"Fast", timing:"Leading",    source:"FRED ICSA (US DOL)",            measure:"Weekly count of new unemployment-insurance filings (thousands).",                                                  rationale:"T3 — most timely high-frequency labor signal; sustained >300K = early recession." },
-  jolts_quits: { phase:"Slow", timing:"Coincident", source:"FRED JTSQUR (BLS JOLTS)",       measure:"Voluntary quits as a percentage of total nonfarm employment.",                                                     rationale:"T3 — worker confidence = wage pressure direction." },
-  // ─── 9 NEW SERIES (added 2026-04-24) — meta for the catalog table ──────
-  m2_yoy:       { phase:"Slow", timing:"Leading",    source:"FRED M2SL (YoY)",                    measure:"Year-over-year growth in the M2 money stock — Friedman's medium-term monetary impulse to asset prices.",                                       rationale:"T1 — sustained >7% historically associated with looser conditions and higher asset valuations." },
-  fed_bs:       { phase:"Slow", timing:"Coincident", source:"FRED WALCL (YoY)",                   measure:"Year-over-year change in the Fed's total assets — headline QE/QT measure.",                                                                       rationale:"T2 — direction of policy liquidity injection or withdrawal." },
-  rrp:          { phase:"Fast", timing:"Coincident", source:"FRED RRPONTSYD",                     measure:"Cash parked at the Fed's overnight reverse-repo facility — liquidity drag from money-market funds.",                                              rationale:"T2 — falling take-up signals liquidity being pulled into private credit." },
-  bank_reserves:{ phase:"Slow", timing:"Coincident", source:"FRED WRESBAL",                       measure:"Total reserves held by depository institutions at the Fed — system liquidity floor.",                                                              rationale:"T2 — Fed-signaled ample-reserves floor near $3T; sustained below = banking-system tightening." },
-  tga:          { phase:"Slow", timing:"Coincident", source:"FRED WTREGEN",                       measure:"Treasury cash at the Fed — high withdraws liquidity from bank reserves; low adds it back.",                                                       rationale:"T2 — mechanical inverse to RRP and bank reserves." },
-  breakeven_10y:{ phase:"Fast", timing:"Leading",    source:"FRED T10YIE",                        measure:"Bond market's read on average annual CPI inflation over the next decade (10Y nominal − 10Y TIPS).",                                                rationale:"T2 — long-run anchor near 2.0–2.5%; sustained >3% reflects inflation-regime concerns." },
-  cfnai:        { phase:"Slow", timing:"Coincident", source:"FRED CFNAI",                         measure:"85-component composite of monthly economic activity (production / employment / consumption / sales).",                                              rationale:"T1 — readings above 0 = above-trend growth; sustained below −0.7 historically signals recession." },
-  cfnai_3ma:    { phase:"Slow", timing:"Coincident", source:"FRED CFNAI 3-month avg",             measure:"Smoothed 3-month moving average of CFNAI — Fed's preferred read because the monthly series is noisy.",                                              rationale:"T1 — sustained −0.7 in this 3-month average is the standard recession-risk threshold." },
-  hy_ig_etf:    { phase:"Fast", timing:"Coincident", source:"Yahoo (LQD ÷ HYG)",                  measure:"LQD/HYG price ratio — Yahoo-sourced proxy for HY-IG spread that backfills the 2007–2023 window.",                                                  rationale:"Reference indicator only — NOT a substitute for the FRED OAS series in composite math." },
+const styles = {
+  section: {
+    paddingTop: 28,
+    marginBottom: 48,
+    scrollMarginTop: 80,  // anchor offset under sticky header
+  },
+  sectionEyebrow: {
+    fontFamily: "var(--font-mono)", fontSize: 10,
+    color: "var(--text-muted)", letterSpacing: "0.14em",
+    textTransform: "uppercase", fontWeight: 600, marginBottom: 6,
+  },
+  sectionH2: {
+    fontFamily: "var(--font-display, Georgia, serif)",
+    fontSize: 30, fontWeight: 500, margin: "0 0 6px",
+    letterSpacing: "-0.015em", lineHeight: 1.1,
+  },
+  sectionBlurb: {
+    fontFamily: "var(--font-display, Georgia, serif)",
+    fontSize: 16, fontStyle: "italic", color: "var(--text-muted)",
+    margin: 0, lineHeight: 1.4,
+  },
+  subH3: {
+    fontFamily: "var(--font-display, Georgia, serif)",
+    fontSize: 18, fontWeight: 500, margin: "32px 0 10px",
+    letterSpacing: "-0.01em", scrollMarginTop: 80,
+  },
+  body: {
+    fontSize: 14, lineHeight: 1.65, color: "var(--text)",
+    margin: "0 0 12px",
+  },
+  bodyMuted: {
+    fontSize: 13, lineHeight: 1.6, color: "var(--text-muted)",
+    margin: "0 0 12px",
+  },
+  callout: {
+    background: "var(--surface-2, #f0e9d6)",
+    border: "0.5px solid var(--border)",
+    borderRadius: 6, padding: "12px 14px", margin: "12px 0 16px",
+    fontSize: 13, lineHeight: 1.55, color: "var(--text)",
+  },
+  formula: {
+    fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
+    fontSize: 12.5, background: "var(--surface-2, #f0e9d6)",
+    padding: "10px 14px", borderRadius: 5, borderLeft: "3px solid var(--accent)",
+    margin: "10px 0", whiteSpace: "pre-wrap", lineHeight: 1.55,
+  },
+  table: {
+    width: "100%", fontSize: 12.5, borderCollapse: "collapse", margin: "10px 0 16px",
+  },
+  th: {
+    textAlign: "left", padding: "8px 10px", fontWeight: 500, fontSize: 10,
+    color: "var(--text-muted)", letterSpacing: "0.06em",
+    textTransform: "uppercase", borderBottom: "0.5px solid var(--border)",
+    background: "var(--surface-2, #f0e9d6)",
+  },
+  td: {
+    padding: "9px 10px", borderBottom: "0.5px dashed var(--border)",
+    verticalAlign: "top",
+  },
+  inlineCode: {
+    fontFamily: "var(--font-mono, monospace)", fontSize: 12,
+    background: "var(--surface-2, #f0e9d6)", padding: "1px 6px", borderRadius: 3,
+  },
+  bullet: { margin: "6px 0", paddingLeft: 0, lineHeight: 1.55 },
 };
 
-// Color for a phase / timing pill (soft, not alarming).
-const PHASE_COLOR = { Fast: "#06b6d4", Slow: "#a78bfa" };
-const TIMING_COLOR = { Leading: "#30d158", Coincident: "#B8860B", Lagging: "#94a3b8" };
-// Tier color — chip tint reflects weight (T1 heavy, T2 medium, T3 light).
-const TIER_COLOR = { 1:"#ff453a", 2:"#ff9f0a", 3:"#06b6d4" };
+// Inline pieces that show up repeatedly
+function Code({ children }) { return <code style={styles.inlineCode}>{children}</code>; }
+function Formula({ children }) { return <div style={styles.formula}>{children}</div>; }
+function Callout({ children }) { return <div style={styles.callout}>{children}</div>; }
+function Body({ children }) { return <p style={styles.body}>{children}</p>; }
 
-// Frequency color accents for freq pills on tiles.
-const FREQ_COLORS = { Daily:"var(--accent)", Weekly:"#14b8a6", Monthly:"#f59e0b", Quarterly:"#a78bfa" };
-function freqAccent(freq) {
-  if (!freq) return "var(--text-dim)";
-  for (const [k, v] of Object.entries(FREQ_COLORS)) { if (freq.startsWith(k)) return v; }
-  return "#ec4899";
-}
-// Indicator-frequency labels (D/W/M/Q → human words).
-const FREQ_LABEL = { D:"Daily", W:"Weekly", M:"Monthly", Q:"Quarterly" };
+// ─── Section content (hand-written prose, no auto-generation) ──────────────
 
-// Precompute search blobs once per registry entry.
-const REGISTRY_WITH_BLOBS = DATA_REGISTRY.map((row) => ({ ...row, _blob: buildSearchBlob(row) }));
-
-// ─── MAIN COMPONENT ─────────────────────────────────────────────────────────
-export default function MethodologyPage({ ind, asOf, asOfIso, weights, cats, indFreq }) {
-  // Collapse-state for top-level sections — keys MIRROR the sidebar nav.
-  // Default = all collapsed so the page opens as a one-screen TOC.
-  const [open, setOpen] = useState({
-    home: false,
-    macro: false,
-    alloc: false,
-    trading: false,
-    insights: false,
-    indicators: false,
-  });
-  const toggle = (k) => setOpen((s) => ({ ...s, [k]: !s[k] }));
-  const expand = (k) => setOpen((s) => ({ ...s, [k]: true }));
-  const expandAll = () =>
-    setOpen({ home:true, macro:true, alloc:true, trading:true, insights:true, indicators:true });
-  const collapseAll = () =>
-    setOpen({ home:false, macro:false, alloc:false, trading:false, insights:false, indicators:false });
-
-  return (
-    <div style={{ maxWidth:1240, margin:"0 auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 28 }}>
-      <Contents ind={ind} expand={expand} expandAll={expandAll} collapseAll={collapseAll} />
-      <HomeSection
-        open={open.home} onToggle={() => toggle("home")} />
-      <CompositeMath
-        ind={ind} weights={weights} cats={cats}
-        open={open.macro} onToggle={() => toggle("macro")} />
-      <AssetAllocationMethodology
-        open={open.alloc} onToggle={() => toggle("alloc")} />
-      <TradingOppsMethodology
-        ind={ind} asOf={asOf}
-        open={open.trading} onToggle={() => toggle("trading")} />
-      <PortfolioInsightsSection
-        open={open.insights} onToggle={() => toggle("insights")} />
-      <MacroIndicatorTable
-        ind={ind} weights={weights} cats={cats} indFreq={indFreq}
-        asOf={asOf} asOfIso={asOfIso}
-        open={open.indicators} onToggle={() => toggle("indicators")} />
-      <Disclaimer />
-    </div>
-  );
-}
-
-
-// ─── CONTENTS (multi-level TOC) ─────────────────────────────────────────────
-// 2026-04-27 rebuild (Joe's 4 asks):
-//   1. Multi-level — every top-level section now lists its sub-anchors so
-//      the page is navigable without scrolling 1300 lines of prose.
-//   2. Live counts — the indicator count and scanner-stream count come from
-//      the data props (Object.keys(ind).length, rows.length on the catalog
-//      table), so adding indicators in App.jsx auto-updates the page.
-//   3. Pairs with the collapsible-section refactor — clicking a sub-link
-//      auto-expands the parent before scrolling to the anchor.
-//   4. Expand-all / Collapse-all controls so the page can collapse to a
-//      one-screen overview, then expand whatever section the reader wants.
-function Contents({ ind, expand, expandAll, collapseAll }) {
-  const indCount = ind ? Object.keys(ind).length : 0;
-  // Mirrors the sidebar nav exactly (App.jsx NAV_ITEMS, 2026-04-27 spec):
-  // Home → Macro Overview → Asset Allocation → Trading Opportunities →
-  // Portfolio Insights → All Indicators.
-  const items = [
-    {
-      key: "home",
-      num: "1",
-      label: "Home",
-      sub: "Cover sheet — macro composite headline, portfolio summary, and the daily news feed.",
-      id: "mth__home",
-      children: [],
-    },
-    {
-      key: "macro",
-      num: "2",
-      label: "Macro Overview",
-      sub: `v11 cycle mechanism board — how the ${indCount} indicators feed six mechanism scores read individually + counted.`,
-      id: A("composite-math"),
-      children: [
-        { num: "2.1", label: "Six cycle mechanisms (Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth)", id: A("composite-math") },
-        { num: "2.2", label: "Four-state lexicon (Normal / Cautionary / Stressed / Distressed) + headline gauge counting", id: A("composite-math") },
-      ],
-    },
-    {
-      key: "alloc",
-      num: "3",
-      label: "Asset Allocation",
-      sub: "Universe, factor maps, 9-step pipeline, back-test, limitations.",
-      id: "mth__asset-alloc",
-      children: [
-        { num: "3.1",  label: "Universe — 25 industry groups + defensive sleeve", id: "mth__alloc-universe" },
-        { num: "3.2",  label: "Inputs",                                            id: "mth__alloc-inputs" },
-        { num: "3.3",  label: "Per-asset factor maps",                             id: "mth__alloc-factor-maps" },
-        { num: "3.4",  label: "Logic — 9-step pipeline",                           id: "mth__alloc-logic" },
-        { num: "3.5",  label: "Confirmatory rule & regime-flip override",          id: "mth__alloc-confirm" },
-        { num: "3.6",  label: "Top-5 equal-weighted — trade-offs",                 id: "mth__alloc-top5" },
-        { num: "3.7",  label: "Back-test results",                                 id: "mth__alloc-backtest" },
-        { num: "3.8",  label: "Honest limitations",                                id: "mth__alloc-limits" },
-        { num: "3.9",  label: "Refinement process",                                id: "mth__alloc-refine" },
-        { num: "3.10", label: "Citations",                                         id: "mth__alloc-cites" },
-        { num: "3.11", label: "What can break this",                               id: "mth__alloc-break" },
-      ],
-    },
-    {
-      key: "trading",
-      num: "4",
-      label: "Trading Opportunities",
-      sub: "Per-ticker Signal Score — upstream data + the [−100, +100] math.",
-      id: "mth__trading",
-      children: [
-        { num: "4.1", label: "Trading Opportunities data sources",  id: A("catalog") },
-        { num: "4.2", label: "Signal score math",     id: A("signal-math") },
-      ],
-    },
-    {
-      key: "insights",
-      num: "5",
-      label: "Portfolio Insights",
-      sub: "How the portfolio gets scored — TWR returns, observations, scanner overlays.",
-      id: "mth__insights",
-      children: [],
-    },
-    {
-      key: "indicators",
-      num: "6",
-      label: "All Indicators",
-      sub: `${indCount} macro indicators — source, frequency, last refresh, mechanism, type, detail.`,
-      id: A("catmap"),
-      children: [
-        { num: "6.1", label: "Indicator catalog (sortable, numbered)",    id: A("catmap") },
-        { num: "6.2", label: "Data freshness — what the dots mean",       id: "freshness-explainer" },
-      ],
-    },
-  ];
-  return (
-    <nav data-testid="methodology-contents" aria-label="Contents"
-      style={{ display:"flex", flexDirection:"column", gap:0,
-               border:"1px solid var(--border)", borderRadius:8,
-               background:"var(--surface)", overflow:"hidden" }}>
-      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center",
-                    padding:"8px 12px", borderBottom:"1px solid var(--border)",
-                    background:"var(--surface-2)" }}>
-        <div style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
-                      letterSpacing:"0.08em", textTransform:"uppercase" }}>
-          Contents
-        </div>
-        <div style={{ display:"flex", gap:8 }}>
-          <button onClick={expandAll}
-            style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
-                     background:"transparent", border:"1px solid var(--accent)",
-                     borderRadius:3, padding:"3px 8px", cursor:"pointer",
-                     letterSpacing:"0.05em", textTransform:"uppercase" }}>
-            Expand all
-          </button>
-          <button onClick={collapseAll}
-            style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
-                     background:"transparent", border:"1px solid var(--border-strong)",
-                     borderRadius:3, padding:"3px 8px", cursor:"pointer",
-                     letterSpacing:"0.05em", textTransform:"uppercase" }}>
-            Collapse all
-          </button>
-        </div>
-      </div>
-      {items.map((it, i) => (
-        <div key={it.id}
-             style={{ borderTop: i === 0 ? "none" : "1px solid var(--border)" }}>
-          <a href={`#${it.id}`}
-             onClick={(e) => { e.preventDefault(); expand(it.key); setTimeout(() => scrollToAnchor(it.id), 50); }}
-             style={{ display:"flex", alignItems:"baseline", gap:12,
-                      padding:"10px 12px", textDecoration:"none", color:"var(--text)",
-                      cursor:"pointer" }}>
-            <span style={{ fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
-                           width:18, flexShrink:0 }}>
-              {it.num}.
-            </span>
-            <span style={{ fontSize:13, fontWeight:600, minWidth:240, color:"var(--text)" }}>
-              {it.label}
-            </span>
-            <span style={{ fontSize:11, color:"var(--text-muted)", lineHeight:1.5, flex:1 }}>
-              {it.sub}
-            </span>
-          </a>
-          {it.children.length > 0 && (
-            <div style={{ paddingLeft:42, paddingRight:12, paddingBottom:8,
-                          display:"flex", flexDirection:"column", gap:2 }}>
-              {it.children.map((c) => (
-                <a key={c.num + c.id} href={`#${c.id}`}
-                   onClick={(e) => { e.preventDefault(); expand(it.key); setTimeout(() => scrollToAnchor(c.id), 50); }}
-                   style={{ display:"flex", alignItems:"baseline", gap:10,
-                            padding:"3px 0", textDecoration:"none", color:"var(--text-2)",
-                            cursor:"pointer", fontSize:12 }}>
-                  <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--text-dim)",
-                                 width:32, flexShrink:0 }}>
-                    {c.num}
-                  </span>
-                  <span style={{ color:"var(--text-2)" }}>{c.label}</span>
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-      ))}
-    </nav>
-  );
-}
-
-// ─── §2 MACRO MAPPING & DATA SOURCES (sortable table) ──────────────────────
-function MacroIndicatorTable({ ind, weights, cats, indFreq, asOf, asOfIso, open, onToggle }) {
-  const rows = useMemo(() => {
-    if (!ind) return [];
-    return Object.keys(ind).map((id) => {
-      const r = ind[id] || [];
-      const meta = INDICATOR_META[id] || {};
-      const w = (weights && weights[id]) || 0;
-      const tier = w >= 1.5 ? 1 : w >= 1.2 ? 2 : 3;
-      const catKey = r[2] || "";
-      const cat = (cats && cats[catKey]) || {};
-      return {
-        id,
-        short: r[0] || id,
-        catKey,
-        catLabel: cat.label || catKey,
-        catColor: cat.color || "#94a3b8",
-        source: meta.source || "",
-        freq: (indFreq && indFreq[id]) || "",
-        asOf: (asOf && asOf[id]) || "",
-        asOfIso: (asOfIso && asOfIso[id]) || "",
-        tier,
-        weight: w,
-        timing: meta.timing || "",
-        detail: meta.measure || "",
-      };
-    });
-  }, [ind, weights, cats, indFreq, asOf, asOfIso]);
-
-  const [sortKey, setSortKey] = useState("tier");
-  const [sortDir, setSortDir] = useState("asc");
-
-  const CAT_ORDER = ["equity","credit","rates","fincond","bank","labor"];
-  const FREQ_ORDER = { D:1, W:2, M:3, Q:4, Y:5 };
-  const TIMING_ORDER = { Leading:1, Coincident:2, Lagging:3 };
-
-  const sorted = useMemo(() => {
-    const arr = [...rows];
-    const dir = sortDir === "asc" ? 1 : -1;
-    arr.sort((a, b) => {
-      let av, bv;
-      switch (sortKey) {
-        case "num":    av = a.tier; bv = b.tier; break;
-        case "short":  av = a.short.toLowerCase(); bv = b.short.toLowerCase(); break;
-        case "catKey": av = CAT_ORDER.indexOf(a.catKey); bv = CAT_ORDER.indexOf(b.catKey); break;
-        case "source": av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
-        case "freq":   av = FREQ_ORDER[a.freq] || 99; bv = FREQ_ORDER[b.freq] || 99; break;
-        case "asOf":   av = Date.parse(a.asOf) || 0; bv = Date.parse(b.asOf) || 0; break;
-        case "tier":   av = a.tier; bv = b.tier; break;
-        case "weight": av = a.weight; bv = b.weight; break;
-        case "timing": av = TIMING_ORDER[a.timing] || 99; bv = TIMING_ORDER[b.timing] || 99; break;
-        case "detail": av = a.detail.toLowerCase(); bv = b.detail.toLowerCase(); break;
-        default:       av = 0; bv = 0;
-      }
-      if (av < bv) return -1 * dir;
-      if (av > bv) return  1 * dir;
-      const ca = CAT_ORDER.indexOf(a.catKey), cb = CAT_ORDER.indexOf(b.catKey);
-      if (ca !== cb) return ca - cb;
-      return a.short.localeCompare(b.short);
-    });
-    return arr;
-  }, [rows, sortKey, sortDir]);
-
-  function onSort(k) {
-    if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else { setSortKey(k); setSortDir("asc"); }
-  }
-
-  const COLS = [
-    { k:"num",    label:"#",            align:"right"  },
-    { k:"short",  label:"Indicator",    align:"left"   },
-    { k:"catKey", label:"Category",     align:"left"   },
-    { k:"source", label:"Source",       align:"left"   },
-    { k:"freq",   label:"Frequency",    align:"center" },
-    { k:"asOf",   label:"Last Refresh", align:"left"   },
-    { k:"tier",   label:"Tier",         align:"center" },
-    { k:"weight", label:"Weight",       align:"right"  },
-    { k:"timing", label:"Type",         align:"center" },
-    { k:"detail", label:"Detail",       align:"left"   },
-  ];
-
-  return (
-    <section id={A("catmap")} data-testid="methodology-section-catmap"
-      style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <CollapsibleSectionHeader
-        label="6 · ALL INDICATORS"
-        sub={`${rows.length} macro indicators · sortable, numbered`}
-        applies={[
-          { id:"indicators", label:"All Indicators",  path:"#indicators" },
-        ]}
-        open={open}
-        onToggle={onToggle}
-      />
-      {open && (<>
-      <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
-        Click a column header to sort. <strong>Frequency</strong> is how often the underlying source
-        refreshes (D = daily, W = weekly, M = monthly, Q = quarterly). <strong>Tier</strong> sets the
-        indicator's weight in the Composite — T1 = 1.5× (market-sensitive), T2 = 1.2× (important but
-        slower), T3 = 1.0× (structural / context). <strong>Type</strong> = leading / coincident / lagging
-        vs. real-economy activity.
-      </div>
-
-      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8,
-                    overflow:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
-          <thead>
-            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
-              {COLS.map((c) => (
-                <th key={c.k}
-                    onClick={() => onSort(c.k)}
-                    style={{ ...thStyle, textAlign:c.align, cursor:"pointer", userSelect:"none",
-                             whiteSpace:"nowrap" }}>
-                  {c.label}
-                  <span style={{ marginLeft:4, color: sortKey === c.k ? "var(--accent)" : "transparent" }}>
-                    {sortDir === "asc" ? "▲" : "▼"}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((r, idx) => (
-              <tr key={r.id} style={{ borderTop:"1px solid var(--border)" }}>
-                <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-dim)",
-                             fontFamily:"var(--font-mono)", whiteSpace:"nowrap", width:32 }}>
-                  {idx + 1}
-                </td>
-                <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)", whiteSpace:"nowrap" }}>
-                  {r.short}
-                </td>
-                <td style={{ ...tdStyle }}>
-                  <span style={{ fontSize:10, color:r.catColor, border:`1px solid ${r.catColor}`,
-                                 borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
-                                 textTransform:"uppercase", whiteSpace:"nowrap" }}>
-                    {r.catLabel}
-                  </span>
-                </td>
-                <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.source || "—"}</td>
-                <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{r.freq || "—"}</td>
-                <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>
-                  <span style={{ display:"inline-flex", alignItems:"center", gap:6 }}>
-                    <FreshnessDot indicatorId={r.id} asOfIso={r.asOfIso} cadence={r.freq}/>
-                    {r.asOf || "—"}
-                  </span>
-                </td>
-                <td style={{ ...tdStyle, textAlign:"center", fontWeight:700, color:TIER_COLOR[r.tier] }}>
-                  T{r.tier}
-                </td>
-                <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)" }}>
-                  {r.weight ? `${r.weight.toFixed(1)}×` : "—"}
-                </td>
-                <td style={{ ...tdStyle, textAlign:"center" }}>
-                  <span style={{ fontSize:10, color:TIMING_COLOR[r.timing] || "var(--text-dim)",
-                                 border:`1px solid ${TIMING_COLOR[r.timing] || "var(--border)"}`,
-                                 borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
-                                 textTransform:"uppercase", whiteSpace:"nowrap" }}>
-                    {r.timing || "—"}
-                  </span>
-                </td>
-                <td style={{ ...tdStyle, color:"var(--text-muted)", lineHeight:1.6, minWidth:320 }}>
-                  {r.detail || "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <FreshnessExplainer />
-      </>)}
-    </section>
-  );
-}
-
-// ─── DATA FRESHNESS EXPLAINER ──────────────────────────────────────────────
-// Anchor target for every FreshnessDot click on the site. Plain English,
-// no acronyms (per Joe 2026-04-23). The dot is the at-a-glance signal,
-// this is the page that explains what "stale" actually means.
-function FreshnessExplainer() {
-  const swatch = (color) => ({
-    display: "inline-block", width: 10, height: 10, borderRadius: "50%",
-    background: color, marginRight: 8, verticalAlign: "middle",
-  });
-  return (
-    <section id="freshness-explainer" style={{ scrollMarginTop: 80 }}>
-      <SectionHeader
-        label="6.2 · DATA FRESHNESS — what the colored dots mean"
-        sub="Every indicator has a small dot · green = current · amber = a little overdue · red = stale or missing"
-      />
-      <div style={{ marginTop: 12,
-        background: "var(--surface)", border: "1px solid var(--border)",
-        borderRadius: 8, padding: "16px 20px", lineHeight: 1.7, color: "var(--text-2)",
-        fontSize: 13,
-      }}>
-        <p style={{ margin: "0 0 14px" }}>
-          We re-check every indicator every 30 minutes against its expected release schedule.
-          A daily indicator like the VIX should refresh every weekday, so if today's VIX dot is
-          green it means the site is showing a value from within the last day or so. A weekly
-          indicator like Initial Jobless Claims releases on Thursday morning — its dot stays
-          green from Thursday through the following Wednesday because that's the actual release
-          cadence. Click any dot anywhere on the site to land back on this page.
-        </p>
-
-        <div style={{ display: "grid", gap: 12, marginTop: 8 }}>
-          <div>
-            <span style={swatch("#1f9d60")}/>
-            <strong style={{ color: "#1f9d60" }}>Fresh</strong>
-            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
-              — within the indicator's normal release cadence. Nothing to worry about.
-            </span>
-          </div>
-          <div>
-            <span style={swatch("#b8811c")}/>
-            <strong style={{ color: "#b8811c" }}>Overdue</strong>
-            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
-              — between one and two release cycles late. Often legitimate (a holiday, a
-              release-day shift) but worth a glance. We start watching but don't alert yet.
-            </span>
-          </div>
-          <div>
-            <span style={swatch("#d23040")}/>
-            <strong style={{ color: "#d23040" }}>Stale</strong>
-            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
-              — more than two release cycles late, or the last fetch hit an error. The
-              monitoring job emails Joe automatically (debounced, max one per day per
-              indicator) so the data pipeline can be repaired.
-            </span>
-          </div>
-          <div>
-            <span style={{ ...swatch("#bbb4a3") }}/>
-            <strong style={{ color: "var(--text-muted)" }}>Grey</strong>
-            <span style={{ color: "var(--text-muted)", marginLeft: 6 }}>
-              — freshness is being checked, or this indicator isn't yet tracked by the
-              monitor. Treat as informational only.
-            </span>
-          </div>
-        </div>
-
-        <p style={{ margin: "16px 0 6px", fontWeight: 600, color: "var(--text)" }}>
-          Why a daily indicator can show "Fresh" for two days
-        </p>
-        <p style={{ margin: 0 }}>
-          Most "daily" series like FRED's VIX don't release a number every calendar day —
-          they skip weekends and US bank holidays. The freshness rules build in a 6-hour
-          grace period for daily series, 48 hours for weekly, ten days for monthly, and
-          thirty days for quarterly to handle release-schedule reality (FRED monthly releases
-          land 4–6 weeks after month-end; Senior Loan Officer surveys are 6–10 weeks delayed).
-          The dot reflects whether the data is on its expected schedule, not whether the
-          calendar moved.
-        </p>
-
-        <p style={{ margin: "16px 0 6px", fontWeight: 600, color: "var(--text)" }}>
-          When something turns red
-        </p>
-        <p style={{ margin: 0 }}>
-          A red dot generally means the data pipeline has broken silently — Yahoo throttled,
-          FRED returned an empty series, the scheduled scanner workflow didn't run. The
-          alerting job emails Joe so the pipeline can be fixed. The site keeps showing
-          whatever the last good value was; no value silently drifts.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-// ─── §3 MACRO METHODOLOGY ──────────────────────────────────────────────────
-function CompositeMath({ ind, weights, open, onToggle }) {
-  // Tier distribution pulled live from WEIGHTS.
-  const tierBuckets = useMemo(() => {
-    const buckets = { 1:[], 2:[], 3:[] };
-    if (!ind || !weights) return buckets;
-    Object.keys(weights).forEach((id) => {
-      const w = weights[id];
-      const tier = w >= 1.5 ? 1 : w >= 1.2 ? 2 : 3;
-      const short = ind[id]?.[0] || id;
-      buckets[tier].push(short);
-    });
-    return buckets;
-  }, [ind, weights]);
-
-  const tierRows = [
-    { tier:1, weight:1.5, label:"most market-sensitive" },
-    { tier:2, weight:1.2, label:"important but less real-time" },
-    { tier:3, weight:1.0, label:"structural / context" },
-  ];
-
-  return (
-    <section id={A("composite-math")} data-testid="methodology-section-compmath"
-      style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <CollapsibleSectionHeader
-        label="2 · MACRO OVERVIEW"
-        sub={`v11 cycle mechanism board — how the ${ind ? Object.keys(ind).length : 0} indicators feed six mechanism scores`}
-        applies={[
-          { id:"home",     label:"Home",           path:"#home" },
-          { id:"overview", label:"Macro Overview", path:"#overview" },
-        ]}
-        open={open}
-        onToggle={onToggle}
-      />
-      {open && (<>
-
-      <Prose>
-        <P><strong>v11 framework (current).</strong> MacroTilt observes <strong>six cycle mechanisms</strong> that historically describe where the cycle sits: <strong>Valuation, Credit, Funding, Growth, Liquidity &amp; Policy,</strong> and <strong>Positioning &amp; Breadth</strong>. Each mechanism is read against its own ex-ante rule and labeled with the four-state lexicon: <strong>Normal / Cautionary / Stressed / Distressed</strong>. The headline gauge counts how many of the six sit above Normal — 0–1 = Constructive, 2 = Watchful, 3 = Defensive setup forming, 4+ = High-conviction defensive. There is no aggregate composite "stress score" — each mechanism is described qualitatively and counted toward the headline read. v10's single-composite hit-rate framework was retired 2026-04-29 (data couldn't support per-trigger hit-rate claims with only ~10 historical drawdowns in the 21-year sample).</P>
-
-        <P><strong>Per-mechanism inputs.</strong> Valuation: CAPE + Equity Risk Premium + Buffett Indicator. Credit: IG OAS (BAA−DGS10 long-history proxy) + HY OAS + HY/IG ratio. Funding: SOFR-OIS + FRA-OIS + CDX basis + USD/EUR x-currency basis + 3m CP-FedFunds. Growth: CFNAI 3-month + Jobless 4w + ISM Manufacturing PMI + BKX/SPX. Liquidity &amp; Policy: ANFCI + Real Fed Funds + M2 YoY + Term Premium + Fed Balance Sheet. Positioning &amp; Breadth: NAAIM exposure + Margin Debt YoY + Put/Call ratio + % S&amp;P 500 above 200dma + 50d Advance-Decline. Sprint 1 LIVE: Valuation, Credit, Growth. Sprint 2 placeholder: Funding. Sprint 4 placeholder: Liquidity &amp; Policy + Positioning &amp; Breadth.</P>
-
-        <P><strong>Calibration.</strong> Mechanism scores 0–100 come from <code>compute_v11_sprint1_calibration.py</code> running daily 06:30 ET. Output: <code>public/methodology_calibration_v11.json</code>. Each mechanism\'s rule fires when 3 of 4 inputs hit their concerning quartile (or 2 of 4 for partial Cautionary fire). Conservative cuts — Stressed only at full rule-fire, Distressed reserved for fully-fired-and-deteriorating.</P>
-
-        <hr style={{margin:"16px 0", border:"none", borderTop:"1px solid var(--border)"}}/>
-        <P style={{fontStyle:"italic", color:"var(--text-muted)"}}><strong>Legacy v10 composite math (preserved for git-blame readability):</strong> the v9 Asset Allocation engine still uses a single 0–100 Composite Stress Score with four conviction bands (LOW / NORMAL / ELEVATED / EXTREME). v9 is dormant pending Asset Tilt rebuild; the math below documents what v9 does today.</P>
-
-        <P><strong>Step 1 — z-score each indicator against its own history.</strong> Mean and standard
-        deviation are computed from each indicator's own full history, so the question is <em>"how unusual
-        is today's reading for this particular metric?"</em> not <em>"how high is this number?"</em>. A VIX
-        of 20 is a different signal than an ISM of 20. Formula: <code>z = (v − μ<sub>id</sub>) /
-        σ<sub>id</sub></code>.</P>
-
-        <P><strong>Step 2 — flip sign where lower is worse.</strong> Most indicators point the same way
-        ("up = stress") but some are inverted — yield curve inversion (low = recessionary), ISM PMI (low =
-        contraction), copper/gold (low = growth fear), CAPE (high = rich valuation = stress). Those get
-        sign-flipped so every contributor runs the same direction before aggregation. Controlled by each
-        indicator's direction flag in <code>IND[id][11]</code>.</P>
-
-        <P><strong>Step 3 — apply tier weights.</strong> The {ind ? Object.keys(ind).length : 0} indicators split into three tiers by market
-        sensitivity:</P>
-      </Prose>
-
-      {/* Tier table — auto-rendered from WEIGHTS. */}
-      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, overflow:"hidden" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
-          <thead>
-            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
-              <th style={thStyle}>Tier</th>
-              <th style={{ ...thStyle, textAlign:"right" }}>Weight</th>
-              <th style={{ ...thStyle, textAlign:"center" }}>Count</th>
-              <th style={thStyle}>Description</th>
-              <th style={thStyle}>Indicators</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tierRows.map((row) => (
-              <tr key={row.tier} style={{ borderTop:"1px solid var(--border)" }}>
-                <td style={{ ...tdStyle, fontWeight:700, color:TIER_COLOR[row.tier] }}>T{row.tier}</td>
-                <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)" }}>{row.weight.toFixed(1)}×</td>
-                <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>
-                  {tierBuckets[row.tier]?.length || 0}
-                </td>
-                <td style={{ ...tdStyle, color:"var(--text-2)" }}>{row.label}</td>
-                <td style={{ ...tdStyle, color:"var(--text-muted)" }}>
-                  {(tierBuckets[row.tier] || []).join(", ")}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <Prose>
-        <P><strong>Step 4 — weighted average.</strong> The Composite is the weighted mean of the z-scored,
-        sign-flipped indicators:</P>
-        <Formula>COMP = Σ(z<sub>id</sub> × W<sub>id</sub>) / Σ(W<sub>id</sub>)</Formula>
-        <P>Only indicators with a non-null reading in the current snapshot contribute — a missing data point
-        drops out of the numerator and denominator, so it doesn't falsely pull the composite toward zero.</P>
-
-        <P><strong>Step 5 — rescale for display.</strong> The raw Composite is in SD units (negative =
-        benign, positive = stress). The 0–100 gauge is a linear rescale clamped to [0, 100]:</P>
-        <Formula>COMP<sub>100</sub> = clamp(((COMP + 1) / 4) × 100, 0, 100)</Formula>
-        <P>So an SD-unit composite of 0 renders as 25, +1 as 50, +3 as 100. The bands below are named on the
-        SD scale; the gauge shows the rescaled value.</P>
-
-        <P><strong>Step 6 — classify into a conviction band.</strong> Four bands — LOW / NORMAL / ELEVATED
-        / EXTREME — were <strong>recalibrated 2026-04-22</strong> against the full 2006-2026 composite
-        history (see <code>scripts/conviction-backtest.js</code>). Thresholds anchor at the 60th, 85th, and
-        97.5th percentiles of the daily distribution, so EXTREME corresponds to the top ~2.5% of history.</P>
-      </Prose>
-
-      {/* Conviction bands — auto-rendered from CONVICTION_MIRROR, dual-scale. */}
-      <div>
-        <div style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
-                      letterSpacing:"0.08em", marginBottom:8 }}>
-          CONVICTION BANDS (dual-scale)
-        </div>
-        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, overflow:"hidden" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
-            <thead>
-              <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
-                <th style={thStyle}>Band</th>
-                <th style={thStyle}>SD range</th>
-                <th style={thStyle}>0–100 range</th>
-                <th style={{ ...thStyle, textAlign:"center" }}>EQ</th>
-                <th style={{ ...thStyle, textAlign:"center" }}>BD</th>
-                <th style={{ ...thStyle, textAlign:"center" }}>CA</th>
-                <th style={{ ...thStyle, textAlign:"center" }}>AU</th>
-                <th style={thStyle}>Guidance</th>
-              </tr>
-            </thead>
-            <tbody>
-              {CONVICTION_MIRROR.map((c) => {
-                const rng = c.range[0] === -99 ? `< ${c.range[1].toFixed(2)}`
-                          : c.range[1] ===  99 ? `≥ ${c.range[0].toFixed(2)}`
-                          : `${c.range[0].toFixed(2)} – ${c.range[1].toFixed(2)}`;
-                return (
-                  <tr key={c.label} style={{ borderTop:"1px solid var(--border)" }}>
-                    <td style={{ ...tdStyle, fontWeight:700, color:c.color }}>{c.label}</td>
-                    <td style={{ ...tdStyle, color:"var(--text-2)" }}>{rng}</td>
-                    <td style={{ ...tdStyle, color:"var(--text-2)" }}>{c.hundred}</td>
-                    <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{c.eq}%</td>
-                    <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{c.bd}%</td>
-                    <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{c.ca}%</td>
-                    <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{c.au}%</td>
-                    <td style={{ ...tdStyle, color:"var(--text-muted)" }}>{c.action}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ fontSize:11, color:"var(--text-dim)", marginTop:6 }}>
-          EQ / BD / CA / AU = equities / bonds / cash / alternatives (illustrative allocation shifts; not
-          investment advice).
-        </div>
-      </div>
-
-      {/* Historical alignment — proves the bands line up with real crises. */}
-      <div>
-        <div style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
-                      letterSpacing:"0.08em", marginBottom:8 }}>
-          HISTORICAL ALIGNMENT — WHERE EACH NAMED STRESS EPISODE PEAKED
-        </div>
-        <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, overflow:"hidden" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
-            <thead>
-              <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
-                <th style={thStyle}>Episode</th>
-                <th style={thStyle}>Peak date</th>
-                <th style={{ ...thStyle, textAlign:"right" }}>Composite (SD)</th>
-                <th style={{ ...thStyle, textAlign:"right" }}>Gauge (0–100)</th>
-                <th style={thStyle}>Band under new calibration</th>
-              </tr>
-            </thead>
-            <tbody>
-              {HISTORICAL_PEAKS.map((p) => {
-                const band = CONVICTION_MIRROR.find(c => p.sd >= c.range[0] && p.sd < c.range[1]) || CONVICTION_MIRROR[3];
-                return (
-                  <tr key={p.label} style={{ borderTop:"1px solid var(--border)" }}>
-                    <td style={{ ...tdStyle, color:"var(--text)" }}>{p.label}</td>
-                    <td style={{ ...tdStyle, color:"var(--text-2)" }}>{p.when}</td>
-                    <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>{p.sd.toFixed(2)}</td>
-                    <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>{p.h100}</td>
-                    <td style={{ ...tdStyle, color:band.color, fontWeight:700 }}>{band.label}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ fontSize:11, color:"var(--text-dim)", marginTop:6, lineHeight:1.55, maxWidth:880 }}>
-          Backtest source: <code>scripts/conviction-backtest.js</code>, run against the 2006-01-03 →
-          2026-04-22 composite time series (N ≈ 6,300 trading days). Previous calibration (NORMAL &lt; 0.88)
-          placed the 2022 bear peak (0.80 SD) and SVB peak (0.67 SD) in NORMAL — a miscalibration the v2.1
-          bands correct by pulling the ELEVATED threshold down to 0.41 SD (p85 of history).
-        </div>
-      </div>
-      </>)}
-    </section>
-  );
-}
-
-
-// ─── §4.5 ASSET ALLOCATION METHODOLOGY ─────────────────────────────────────
-// Comprehensive section — destination for every "Methodology →" link on the
-// Asset Allocation tab. Documents the live v9.1 production state (25 GICS
-// industry groups, top-5 equal-weighted selection, 1.5× leverage cap).
-function AssetAllocationMethodology({ open, onToggle }) {
-  // 25-IG universe (live in compute_v9_allocation.py).
-  // type=etf has a clean single-ETF proxy; type=basket uses an equal-weighted
-  // basket of constituent names because no clean ETF exists.
-  const UNIVERSE_25 = [
-    { sector: "Energy",                  ig: "Energy",                                      proxy: "XLE",   type: "etf" },
-    { sector: "Materials",               ig: "Materials",                                   proxy: "XLB",   type: "etf" },
-    { sector: "Industrials",             ig: "Capital Goods",                               proxy: "XLI",   type: "etf" },
-    { sector: "Industrials",             ig: "Commercial & Professional Services",          proxy: "WM/RSG/CTAS basket", type: "basket" },
-    { sector: "Industrials",             ig: "Transportation",                              proxy: "IYT",   type: "etf" },
-    { sector: "Consumer Discretionary",  ig: "Automobiles & Components",                    proxy: "CARZ",  type: "etf" },
-    { sector: "Consumer Discretionary",  ig: "Consumer Durables & Apparel",                 proxy: "NKE/LULU/DECK basket", type: "basket" },
-    { sector: "Consumer Discretionary",  ig: "Consumer Services",                           proxy: "PEJ",   type: "etf" },
-    { sector: "Consumer Discretionary",  ig: "Cons Disc Distribution & Retail",             proxy: "XRT",   type: "etf" },
-    { sector: "Consumer Staples",        ig: "Cons Staples Distribution & Retail",          proxy: "WMT/COST/KR basket",   type: "basket" },
-    { sector: "Consumer Staples",        ig: "Food, Beverage & Tobacco",                    proxy: "PBJ",   type: "etf" },
-    { sector: "Consumer Staples",        ig: "Household & Personal Products",               proxy: "PG/CL/KMB basket",     type: "basket" },
-    { sector: "Health Care",             ig: "Health Care Equipment & Services",            proxy: "IHI",   type: "etf" },
-    { sector: "Health Care",             ig: "Pharmaceuticals, Biotech & Life Sciences",    proxy: "XLV",   type: "etf" },
-    { sector: "Financials",              ig: "Banks",                                       proxy: "XLF",   type: "etf" },
-    { sector: "Financials",              ig: "Financial Services",                          proxy: "IYG",   type: "etf" },
-    { sector: "Financials",              ig: "Insurance",                                   proxy: "KIE",   type: "etf" },
-    { sector: "Information Technology",  ig: "Software & Services",                         proxy: "IGV",   type: "etf" },
-    { sector: "Information Technology",  ig: "Tech Hardware & Equipment",                   proxy: "AAPL/CSCO/HPQ basket", type: "basket" },
-    { sector: "Information Technology",  ig: "Semiconductors & Semi Equipment",             proxy: "SOXX",  type: "etf" },
-    { sector: "Communication Services",  ig: "Telecommunication Services",                  proxy: "IYZ",   type: "etf" },
-    { sector: "Communication Services",  ig: "Media & Entertainment",                       proxy: "XLC",   type: "etf" },
-    { sector: "Utilities",               ig: "Utilities",                                   proxy: "XLU",   type: "etf" },
-    { sector: "Real Estate",             ig: "REITs",                                       proxy: "IYR",   type: "etf" },
-    { sector: "Real Estate",             ig: "Real Estate Mgmt & Development",              proxy: "CBRE/JLL/SLG basket",  type: "basket" },
-  ];
-
-  const DEFENSIVE = [
-    { ticker: "BIL", desc: "SPDR 1-3 Month Treasury Bill ETF", role: "cash proxy" },
-    { ticker: "TLT", desc: "iShares 20+ Year Treasury Bond ETF", role: "long-duration rates" },
-    { ticker: "GLD", desc: "SPDR Gold Shares", role: "real-asset hedge" },
-    { ticker: "LQD", desc: "iShares iBoxx Investment Grade Corporate Bond ETF", role: "credit anchor" },
-  ];
-
-  // Equity-vs-defensive split thresholds (from compute step 6)
-  const EQ_THRESHOLDS = [
-    { rl: "≤ +20",     equity: "100%",       defensive: "0%",   note: "Calm regime — full equity exposure" },
-    { rl: "+20 to +30", equity: "100% → 85%", defensive: "0% → 15%", note: "Linear scale-down as risk rises" },
-    { rl: "+30 to +50", equity: "85% → 60%",  defensive: "15% → 40%", note: "Continued de-risking through stress" },
-    { rl: "> +50",      equity: "60%",        defensive: "40%",  note: "Maximum defensive — equity floor at 60%" },
-  ];
-
-  // Leverage thresholds (from compute step 7)
-  const LEV_THRESHOLDS = [
-    { ir: "> +30",       lev: "1.00×", note: "Inflation hot — no leverage" },
-    { ir: "0 to +30",    lev: "1.00× → 1.10×", note: "Linear scale-up as inflation eases" },
-    { ir: "−10 to 0",    lev: "1.10× → 1.25×", note: "Disinflationary regime — moderate leverage" },
-    { ir: "−10 to −50",  lev: "1.25× → 1.50×", note: "Deflationary regime — capped at 1.5× per Joe's directive" },
-    { ir: "Override",    lev: "1.00×", note: "Force leverage = 1.0× whenever R&L > +20 (don't lever in stress)" },
-  ];
-
-  // 12 IGs without a clean single-ETF proxy
-  const BASKET_IGS = UNIVERSE_25.filter(u => u.type === "basket");
-
-  // Back-test comparison
-  const BACKTEST = [
-    { metric: "CAGR",                       v9: "13.88%", spy: "11.06%", sixty40: "8.02%", edge: "+2.82 pp/yr" },
-    { metric: "Sharpe ratio (3-mo T-bill RF)", v9: "0.610",  spy: "0.495",  sixty40: "0.422", edge: "+0.115" },
-    { metric: "Max drawdown",               v9: "−23.64%", spy: "−46.32%", sixty40: "—",      edge: "+22.7 pp" },
-    { metric: "Cumulative ($1 → $X)",       v9: "$10.84",  spy: "$6.84",   sixty40: "$4.12",  edge: "+58%" },
-    { metric: "Calendar years winning",     v9: "10 of 19", spy: "—",       sixty40: "—",      edge: "—" },
-  ];
-
-  const tableTh = { textAlign: "left", padding: "8px 12px", fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.06em", fontWeight: 600, borderBottom: "1px solid var(--border-strong)" };
-  const tableThR = { ...tableTh, textAlign: "right" };
-  const tableTd = { padding: "8px 12px", fontSize: 12, borderBottom: "1px solid var(--border-faint)", verticalAlign: "top" };
-  const tableTdR = { ...tableTd, textAlign: "right", fontFamily: "var(--font-mono)" };
-
-  return (
-    <section id="mth__asset-alloc" data-testid="methodology-section-asset-alloc"
-      style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <CollapsibleSectionHeader
-        label="3 · ASSET ALLOCATION"
-        sub="How the strategic allocation is built — full v9.1 (current) methodology"
-        applies={[{ id:"allocation", label:"Asset Allocation", path:"#allocation" }]}
-        open={open}
-        onToggle={onToggle}
-      />
-      {open && (<>
-
-      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
-        <strong>Note (v11 transition, 2026-04-30):</strong> the v9 Asset Allocation engine described below still uses the legacy 3-composite framework (Risk &amp; Liquidity / Growth / Inflation &amp; Rates). The <strong>v11 Cycle Mechanism Board on Macro Overview is the new source of truth</strong> for macro state. The v9 engine remains as-is until the Asset Tilt rebuild rewires its inputs to the v11 mechanisms. This section documents what v9 does today.
-
-        The v9 Asset Allocation tab translates the legacy 3 macro composites (Risk &amp; Liquidity, Growth, Inflation &amp; Rates) into a concrete portfolio recommendation: which industry groups to overweight, how much equity exposure to take, when to activate the defensive sleeve, and how much leverage to use. The strategy rebalances weekly on Saturdays.
-      </div>
-
-      {/* — UNIVERSE — */}
-      <div id="mth__alloc-universe" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.1 · UNIVERSE" sub="25 GICS industry groups + 4 defensive assets" applies={["allocation"]} />
-      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
-        The universe spans the 11 GICS sectors, decomposed into 25 industry groups under the post-March-2023 GICS structure. Implementation uses single-ETF proxies where one is available (13 of 25) and equal-weighted baskets of the largest names where no clean ETF exists (12 of 25).
-      </div>
-      <div style={{ overflowX: "auto", maxWidth: "100%" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
-          <thead><tr><th style={tableTh}>Sector</th><th style={tableTh}>Industry group</th><th style={tableTh}>Proxy</th><th style={tableTh}>Type</th></tr></thead>
-          <tbody>
-            {UNIVERSE_25.map((u, i) => (
-              <tr key={i}>
-                <td style={tableTd}>{u.sector}</td>
-                <td style={tableTd}>{u.ig}</td>
-                <td style={{ ...tableTd, fontFamily: "var(--font-mono)" }}>{u.proxy}</td>
-                <td style={{ ...tableTd, color: u.type === "basket" ? "var(--text-muted)" : "var(--text)" }}>{u.type === "basket" ? "Basket" : "Single ETF"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880, marginTop: 8 }}><strong>Defensive sleeve:</strong></div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
-        <thead><tr><th style={tableTh}>Ticker</th><th style={tableTh}>Description</th><th style={tableTh}>Role</th></tr></thead>
+const SECTION_CONTENT = {
+  // ============================================================
+  // §1 MACRO OVERVIEW
+  // ============================================================
+  "macro-why": (
+    <>
+      <Body>
+        Market regime drives every other decision on the site. Without a clean read of where the cycle
+        sits, every allocation choice and every stock pick is a guess about the macro context. The Macro
+        Overview answers one question: <strong>given everything we can measure, where are we?</strong>
+      </Body>
+      <Body>
+        We do not predict drawdowns. We describe state. The page shows six independent mechanisms scored
+        0–100. A high score means that mechanism is showing late-cycle / stress characteristics; a low
+        score means it's running calm. Six mechanisms, not one, because no single indicator is reliable
+        across all regimes — but mechanisms that disagree tell you something useful, and mechanisms
+        that agree tell you something obvious.
+      </Body>
+      <Callout>
+        <strong>The page-level composite is descriptive, not prescriptive.</strong> A score of 64 doesn't
+        mean "sell." It means "the average mechanism reads in caution territory; here are the specific
+        ones running hot, here are the ones running calm." What you do about it lives one click away,
+        in <em>Asset Tilt</em>.
+      </Callout>
+    </>
+  ),
+  "macro-how": (
+    <>
+      <Body>
+        Read the composite first. The bands at the top of the dial are the cohort:
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Composite</th>
+          <th style={styles.th}>Band</th>
+          <th style={styles.th}>What it means</th>
+        </tr></thead>
         <tbody>
-          {DEFENSIVE.map((d, i) => (
-            <tr key={i}><td style={{ ...tableTd, fontFamily: "var(--font-mono)" }}>{d.ticker}</td><td style={tableTd}>{d.desc}</td><td style={tableTd}>{d.role}</td></tr>
-          ))}
+          <tr><td style={styles.td}><Code>0–25</Code></td><td style={styles.td}>Risk-on</td><td style={styles.td}>Most mechanisms read benign. Cycle is in a low-risk regime.</td></tr>
+          <tr><td style={styles.td}><Code>25–50</Code></td><td style={styles.td}>Neutral</td><td style={styles.td}>Composite sits in the middle. A few mechanisms run hot, the rest stay calm.</td></tr>
+          <tr><td style={styles.td}><Code>50–75</Code></td><td style={styles.td}>Caution</td><td style={styles.td}>Several mechanisms above the cohort. Heat is selective, not system-wide.</td></tr>
+          <tr><td style={styles.td}><Code>75–100</Code></td><td style={styles.td}>Risk-off</td><td style={styles.td}>Multiple mechanisms in the upper quartile. Broad-based heat.</td></tr>
         </tbody>
       </table>
-
-      {/* — INPUTS — */}
-      <div id="mth__alloc-inputs" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.2 · INPUTS" sub="9 macro inputs feed the model" applies={["allocation"]} />
-      <Prose>
-        <P><strong>1. Daily prices</strong> for all 25 industry-group proxies + 4 defensive ETFs from yfinance. Baskets are aggregated from constituent names, equal-weighted.</P>
-        <P><strong>2. Macro factor panel</strong> — ~32 factors back to 1998-2003 from FRED + Yahoo. Includes the yield curve (10Y minus 2Y), real rates, term premium, breakeven inflation, broad dollar, the Chicago Fed Financial Conditions Index, the St. Louis Financial Stress Index, commercial paper risk, fed funds, the Fed balance sheet, initial jobless claims, industrial production, capacity utilization, consumer sentiment, retail sales, PCE, durable-goods orders, housing starts, the 30-year mortgage rate, M2 money supply year-over-year, bank credit, WTI crude, natural gas, the copper-gold ratio, VIX, SKEW, and SLOOS lending standards (commercial &amp; industrial and commercial real estate).</P>
-        <P><strong>3. v11 cycle mechanisms</strong> — the Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, and Positioning &amp; Breadth scores from the v11 Cycle Mechanism Board. These drive the equity-vs-defensive split and the leverage decision. (The legacy 3-composite engine — Risk &amp; Liquidity / Growth / Inflation &amp; Rates — was retired in favor of v11 and remains only as historical reference data.)</P>
-      </Prose>
-
-      {/* — PER-ASSET FACTOR MAPS — */}
-      <div id="mth__alloc-factor-maps" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.3 · PER-ASSET FACTOR MAPS" sub="Each industry group has its own multivariate regression" applies={["allocation"]} />
-      <Prose>
-        <P>Each industry group's expected return is forecast from a dedicated multivariate regression on macro factors. The factor list is determined by forward-stepwise selection on 1998-2026 monthly returns: factors stay only if their t-statistic exceeds 2 in the calibration window. Two universal background factors apply to every group (10Y-2Y yield curve slope and Kim-Wright term premium). The factor map is regenerated quarterly — factors that lose statistical significance over time are dropped at the next refresh.</P>
-        <P><strong>Cyclicals</strong> (Energy, Materials, Capital Goods, Transportation, Automobiles) load on jobless claims, industrial production, copper-gold ratio, and oil prices.</P>
-        <P><strong>Rate-sensitives</strong> (Software, Pharma/Biotech, Real Estate, Utilities) load on real rates, term premium, and 10Y breakeven inflation.</P>
-        <P><strong>Financials</strong> load on the yield curve slope, SLOOS C&amp;I lending standards, and credit spreads.</P>
-        <P><strong>Consumer-facing</strong> (Cons Disc Retail, Consumer Services, Apparel) load on Michigan sentiment, real PCE, retail sales, and the 30-year mortgage rate.</P>
-        <P><strong>Defensives</strong> (Cons Staples, Health Care, Insurance) load on jobless claims and SLOOS C&amp;I as recession early-warning indicators.</P>
-      </Prose>
-
-      {/* — LOGIC — 9-step pipeline — */}
-      <div id="mth__alloc-logic" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.4 · LOGIC — 9-STEP PIPELINE" sub="What runs every Saturday rebalance" applies={["allocation"]} />
-      <Prose>
-        <P><strong>Step 1 — Forecast.</strong> Per-asset OLS regression on the factor panel (lagged 1 month). Last 60 months of returns × shifted factors → coefficient estimates. Forecast = α + β·X[T-1]. Shrink toward each asset's long-run mean by 50% (Bayesian / James-Stein-lite). Output is a vector of expected next-month returns across all 25 industry groups.</P>
-        <P><strong>Step 2 — Momentum.</strong> Trailing 6-month price return for each industry group, strict prior 6 months only — current month is NOT included (lookahead-safe).</P>
-        <P><strong>Step 3 — Regime-flip detection.</strong> If the Risk &amp; Liquidity composite has dropped more than 15 points over the last 3 months AND is now below +30, this is a stress-to-recovery regime change. Set <code>regime_flip = True</code>.</P>
-        <P><strong>Step 4 — Selection.</strong> In normal mode, rank groups by both indicator μ and 6-month momentum. Eligible = both ranks above median. Pick top 5 by combined rank, equal-weight 20% each within the equity sleeve. Fallback if fewer than 5 eligible: fill with indicator-positive only (NEVER momentum-positive only — indicators are forward-looking). In regime-flip mode, override momentum entirely and rank by indicator μ alone.</P>
-        <P><strong>Step 5 — Defensive sub-portfolio weights.</strong> Max-Sharpe optimisation across BIL/TLT/GLD/LQD with per-asset cap of 70%. Returns a 4-vector summing to 100%.</P>
-        <P><strong>Step 6 — Equity-vs-defensive split</strong> from the Risk &amp; Liquidity composite — see the threshold table below.</P>
-        <P><strong>Step 7 — Leverage decision</strong> from the Inflation &amp; Rates composite — see the threshold table below. Capped at 1.5× per Joe's 2026-04-25 directive.</P>
-        <P><strong>Step 8 — Apply leverage and financing cost.</strong> If alpha &gt; 1.0×, financing drag = (alpha − 1.0) × (risk-free + 0.5%/12). Subtracted from the realised portfolio return.</P>
-        <P><strong>Step 9 — Final weights.</strong> Each of the 5 picks gets 20% × equity_share × leverage. Each defensive bucket gets (its defensive sub-weight) × (1 − equity_share). If levered, defensive = 0%, equity &gt; 100%, financing drag applies.</P>
-      </Prose>
-
-      {/* Equity vs Defensive split */}
-      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880, marginTop: 4 }}><strong>Equity-vs-defensive split (Step 6):</strong></div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
-        <thead><tr><th style={tableTh}>R&amp;L composite</th><th style={tableThR}>Equity weight</th><th style={tableThR}>Defensive weight</th><th style={tableTh}>Notes</th></tr></thead>
-        <tbody>{EQ_THRESHOLDS.map((t, i) => (
-          <tr key={i}><td style={{ ...tableTd, fontFamily: "var(--font-mono)" }}>{t.rl}</td><td style={tableTdR}>{t.equity}</td><td style={tableTdR}>{t.defensive}</td><td style={{ ...tableTd, color: "var(--text-muted)" }}>{t.note}</td></tr>
-        ))}</tbody>
-      </table>
-
-      {/* Leverage thresholds */}
-      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880, marginTop: 4 }}><strong>Leverage thresholds (Step 7):</strong></div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
-        <thead><tr><th style={tableTh}>Inflation &amp; Rates composite</th><th style={tableThR}>Leverage</th><th style={tableTh}>Notes</th></tr></thead>
-        <tbody>{LEV_THRESHOLDS.map((t, i) => (
-          <tr key={i}><td style={{ ...tableTd, fontFamily: "var(--font-mono)" }}>{t.ir}</td><td style={tableTdR}>{t.lev}</td><td style={{ ...tableTd, color: "var(--text-muted)" }}>{t.note}</td></tr>
-        ))}</tbody>
-      </table>
-
-      {/* — CONFIRMATORY RULE + REGIME FLIP — */}
-      <div id="mth__alloc-confirm" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.5 · CONFIRMATORY RULE & REGIME-FLIP OVERRIDE" sub="Why two signals must agree to enter a position" applies={["allocation"]} />
-      <Prose>
-        <P><strong>Confirmatory selection.</strong> A pure indicator-based ranking would over-fit the regression and chase factors. A pure momentum-based ranking would chase trends and crash at regime changes. Requiring both signals to point above-median in the same direction is a robustness device — it kills positions where one signal screens hot and the other is cold, which is usually where you get hurt.</P>
-        <P><strong>Regime-flip override.</strong> The exception is at V-bottoms. After a sharp risk-off move (R&amp;L drops more than 15 points in 3 months and is now below +30), trailing 6-month momentum is full of crash data and pointing the wrong way. The override falls back to indicator-only ranking, which is forward-looking and catches the recovery. This pattern is documented in the academic momentum-crash literature (Daniel &amp; Moskowitz 2016).</P>
-      </Prose>
-
-      {/* — TOP-5 EQUAL-WEIGHTED — */}
-      <div id="mth__alloc-top5" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.6 · TOP-5 EQUAL-WEIGHTED — TRADE-OFFS" sub="Why 5 picks instead of N or continuous weights" applies={["allocation"]} />
-      <Prose>
-        <P><strong>Concentration.</strong> Five picks at 20% each within the equity sleeve concentrates conviction. The model is making active calls — diluting them across 10 or 15 positions would produce something closer to a sector-rotation index fund.</P>
-        <P><strong>Why not continuous weights.</strong> Variable conviction weighting (e.g., max-Sharpe across the top 10 with weight caps) produces tighter back-test stats but is more fragile out-of-sample because it concentrates on whichever bucket the regression happens to like most that month. Equal-weight 5 is robust to single-bucket forecast errors.</P>
-        <P><strong>What would justify a v10 change.</strong> A back-test showing variable conviction weights deliver materially higher Sharpe AND comparable max drawdown across the full 2008-2026 window. If a future v10 proposal can demonstrate that, the council reviews on the same back-test discipline (walk-forward, no peek-ahead, identical risk-free rate convention). Until then, top-5 equal-weight stays.</P>
-      </Prose>
-
-      {/* — BACK-TEST — */}
-      <div id="mth__alloc-backtest" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.7 · BACK-TEST RESULTS" sub="Jan 2008 → Apr 2026, 220 months ≈ 18.3 years" applies={["allocation"]} />
-      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
-        <thead><tr><th style={tableTh}>Metric</th><th style={tableThR}>v9.1 strategy</th><th style={tableThR}>S&amp;P 500 (SPY)</th><th style={tableThR}>60/40 (SPY/AGG)</th><th style={tableThR}>Edge</th></tr></thead>
+      <Body>
+        Then look at the six mechanism dials. The one furthest from the cohort tells you the asymmetric
+        risk; the others give context. Click any mechanism to see the underlying indicators that drove
+        its score, the score's recent trajectory, and which way the score will move when each indicator
+        shifts.
+      </Body>
+      <Body>
+        Refresh cadence is nightly at 22:30 UTC weekdays. Most mechanism scores move slowly
+        (weeks-to-months between meaningful shifts). Some indicators inside them — VIX, SKEW, HY OAS,
+        SOFR-OIS — can move daily.
+      </Body>
+    </>
+  ),
+  "macro-data": (
+    <>
+      <Body>
+        Six mechanisms, ~3–5 indicators each, all from public sources. The full mapping:
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Mechanism</th>
+          <th style={styles.th}>Indicators</th>
+          <th style={styles.th}>Source</th>
+          <th style={styles.th}>Cadence</th>
+        </tr></thead>
         <tbody>
-          {BACKTEST.map((b, i) => (
-            <tr key={i}><td style={tableTd}>{b.metric}</td><td style={{ ...tableTdR, color: "var(--green-text)", fontWeight: 600 }}>{b.v9}</td><td style={tableTdR}>{b.spy}</td><td style={tableTdR}>{b.sixty40}</td><td style={{ ...tableTdR, color: "var(--text-muted)" }}>{b.edge}</td></tr>
-          ))}
+          <tr><td style={styles.td}>Valuation</td><td style={styles.td}>CAPE, Equity Risk Premium, Buffett Indicator</td><td style={styles.td}>Shiller · FRED</td><td style={styles.td}>Monthly + quarterly</td></tr>
+          <tr><td style={styles.td}>Credit</td><td style={styles.td}>IG OAS, HY OAS, HY/IG ratio</td><td style={styles.td}>ICE BofA via FRED</td><td style={styles.td}>Daily</td></tr>
+          <tr><td style={styles.td}>Funding</td><td style={styles.td}>SOFR-OIS, FRA-OIS, CDX basis, FX swap basis, Commercial paper spread</td><td style={styles.td}>NY Fed · DTCC · FRED</td><td style={styles.td}>Daily</td></tr>
+          <tr><td style={styles.td}>Growth</td><td style={styles.td}>CFNAI 3M, jobless claims, ISM PMI, KBW Banks/S&P ratio</td><td style={styles.td}>Chicago Fed · DOL · ISM</td><td style={styles.td}>Mixed (weekly + monthly)</td></tr>
+          <tr><td style={styles.td}>Liquidity & Policy</td><td style={styles.td}>ANFCI, real Fed funds, M2 YoY, term premium, Fed balance sheet</td><td style={styles.td}>Chicago Fed · FRED · Kim-Wright</td><td style={styles.td}>Mixed (weekly + monthly)</td></tr>
+          <tr><td style={styles.td}>Positioning & Breadth</td><td style={styles.td}>NAAIM exposure, margin debt YoY, put/call ratio, % above 200dma, A-D 50d</td><td style={styles.td}>NAAIM · FRED · CBOE</td><td style={styles.td}>Mixed (daily + weekly + monthly)</td></tr>
         </tbody>
       </table>
-      <Prose>
-        <P><strong>Where v9.1 wins.</strong> Regime-change years: 2008 GFC (+22pp), 2010 (+10pp), 2013 (+17pp), 2020 COVID (+2pp), 2022 inflation shock (+4pp), 2026 YTD (+18pp). The strategy's edge concentrates in two regimes — aggressive tilts when R&amp;L is calm, and the defensive sleeve activating ahead of major drawdowns.</P>
-        <P><strong>Where v9.1 lags.</strong> Mega-cap-concentration years: 2021 (-12pp), 2024 (-9pp), 2009 recovery (-6pp). When dispersion is low and the top 5 happen to be the wrong 5, the equal-weight 5 design under-performs. This is by design — concentration is the cost of conviction.</P>
-        <P><strong>Walk-forward discipline.</strong> Calibration is refit at each Saturday rebalance using only data available at that point in time — no peeking ahead. Back-test results published on the Asset Allocation tab use the exact same code path that runs live. Both Sharpes (strategy and S&amp;P) use the 3-month T-bill as the risk-free rate.</P>
-      </Prose>
+      <Body>
+        Sample windows differ by indicator: most market-data indicators use post-2011 (the stable
+        post-GFC regime), some macro series go back to 1971 or 1986. The window is documented per
+        indicator inside its drill-down on the Macro Overview page.
+      </Body>
+    </>
+  ),
+  "macro-models": (
+    <>
+      <Body>
+        Two layers: indicator → score, then mechanism → composite.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Indicator score</h4>
+      <Body>
+        Each indicator's current value is converted to a 0–100 "concerning score" based on its percentile
+        in the indicator's historical sample, adjusted for direction:
+      </Body>
+      <Formula>{`high_is_concerning   →  score = percentile
+low_is_concerning    →  score = 100 − percentile
+bidir_top            →  score = percentile
+bidir_bottom         →  score = 100 − percentile`}</Formula>
+      <Body>
+        Direction encoding handles indicators where either tail is concerning. Credit spreads are the
+        canonical example: very high spreads = stress (top concerning), very low spreads = late-cycle
+        complacency (bottom concerning). The calibration JSON tags each indicator with one of the four
+        direction labels.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Mechanism score</h4>
+      <Formula>{`mechanism_score = round( mean(indicator_scores) )`}</Formula>
+      <Body>
+        Simple equal-weight average. We chose simple average over score-weighted (where higher-scoring
+        indicators carry more weight) because the latter overstates conviction when one indicator is
+        already in the extreme. Equal weight gives every input a steady voice.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Composite (page-level)</h4>
+      <Formula>{`composite = round( mean(mechanism_scores) )`}</Formula>
+      <Body>
+        Same logic at the page level. Six mechanisms, simple average. The score lands in one of the
+        four bands above and that becomes the page-level stance pill.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Refresh pipeline</h4>
+      <Body>
+        <Code>scripts/compute_v11_mechanisms.py</Code> runs nightly at 22:30 UTC weekdays via
+        the <Code>cycle-mechanisms-daily</Code> GitHub Actions workflow. It reads
+        <Code>methodology_calibration_v11.json</Code> for Sprint 1 mechanism inputs (Valuation,
+        Credit, Growth) and <Code>public/indicator_history.json</Code> for Sprint 2 mechanisms
+        (Funding, Liquidity & Policy, Positioning & Breadth). Output: <Code>public/cycle_board_snapshot.json</Code>,
+        which every consumer surface (home page tile, Macro Overview, Asset Tilt) reads.
+      </Body>
+    </>
+  ),
 
-      {/* — HONEST LIMITATIONS — */}
-      <div id="mth__alloc-limits" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.8 · HONEST LIMITATIONS" sub="12 of 25 industry groups have no clean single-ETF proxy" applies={["allocation"]} />
-      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
-        These industry groups don't have a clean single-ETF proxy and are tracked through equal-weighted baskets of the largest names. Implementation cost is higher for these (more positions to maintain, no tight-tracking ETF wrapper available). Calibration accuracy depends on the basket adequately representing the underlying GICS group.
-      </div>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-ui)" }}>
-        <thead><tr><th style={tableTh}>Sector</th><th style={tableTh}>Industry group</th><th style={tableTh}>Basket</th></tr></thead>
-        <tbody>{BASKET_IGS.map((u, i) => (
-          <tr key={i}><td style={tableTd}>{u.sector}</td><td style={tableTd}>{u.ig}</td><td style={{ ...tableTd, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{u.proxy}</td></tr>
-        ))}</tbody>
+  // ============================================================
+  // §2 ASSET TILT
+  // ============================================================
+  "tilt-why": (
+    <>
+      <Body>
+        The macro state is useless if it doesn't translate into portfolio actions. The Asset Tilt page
+        does that translation: given today's mechanism scores, it produces an explicit allocation
+        recommendation — equity %, defensive %, leverage, sector tilts, industry-group tilts.
+      </Body>
+      <Body>
+        Two design principles. First, <strong>every threshold is backtested</strong>. No hand-picked
+        cutoffs, no narrative reasoning that drifts when the regime shifts. The decision rules are
+        deterministic, calibrated against 2012–2026 history, and re-run on every new data point.
+      </Body>
+      <Body>
+        Second, <strong>hard caps prevent any regime from blowing past prudent bounds</strong>:
+      </Body>
+      <ul style={{ ...styles.body, paddingLeft: 22 }}>
+        <li style={styles.bullet}>Defensive sleeve never exceeds 50% of capital, even in a maximum-stress regime.</li>
+        <li style={styles.bullet}>Leverage never exceeds 1.5×.</li>
+        <li style={styles.bullet}>Defensive and leverage are never on at the same time. If the engine wants any defensive sleeve, leverage drops to 1.0×.</li>
+        <li style={styles.bullet}>All six mechanisms feed every decision. No single point of failure in the input layer.</li>
+      </ul>
+      <Body>
+        These rules are constraints in the optimization, not assumptions about what's optimal. Within
+        the constraints, the decision rules learn from history what allocation has historically
+        delivered the best risk-adjusted return at each stress level.
+      </Body>
+    </>
+  ),
+  "tilt-how": (
+    <>
+      <Body>
+        The page reads top-to-bottom in five blocks:
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>1. Hero & KPI strip</h4>
+      <Body>
+        Page-level stance pill (Risk On / Neutral / Cautious / Risk Off) plus five KPIs: Equity %,
+        Defensive %, Leverage, Stress score, Gross exposure. The headline copy describes the regime
+        in one sentence — and only claims defensive activation when defensive % is actually positive.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>2. Cycle mechanisms strip</h4>
+      <Body>
+        The same six mechanisms from Macro Overview, repeated here as a quick-glance reference for
+        what's driving today's allocation. Each card is clickable to see the mechanism's underlying
+        indicators.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>3. Recommended Asset Tilt table</h4>
+      <Body>
+        Eleven sectors plus four defensive buckets. Each row shows the sector name, ETF tickers
+        (clickable for ETF detail), a visual bar, the dollar tilt (leverage-adjusted; per $100 of
+        capital), and the rating + delta vs SPY. Click any sector to expand its industry groups
+        inline. Click any IG to see the constituent ETFs and stocks.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>4. Mechanism heatmap</h4>
+      <Body>
+        Six mechanisms × eleven sectors. Each cell shows whether that mechanism is currently a tailwind
+        (green) or headwind (red) for that sector. The math is the sector's historical sensitivity to
+        the mechanism multiplied by today's mechanism score. Hover any cell for the math, click for the
+        sector's full breakdown.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>5. Methodology footer</h4>
+      <Body>
+        One-line summary of the calibration plus a link to this page. The page refreshes nightly at
+        22:45 UTC, fifteen minutes after the Macro Overview's cycle board.
+      </Body>
+    </>
+  ),
+  "tilt-data": (
+    <>
+      <Body>
+        Inputs live in three files:
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>File</th>
+          <th style={styles.th}>What it carries</th>
+          <th style={styles.th}>Refreshed by</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style={styles.td}><Code>cycle_board_snapshot.json</Code></td>
+            <td style={styles.td}>Today's six mechanism scores (0–100 each)</td>
+            <td style={styles.td}><Code>compute_v11_mechanisms.py</Code> · 22:30 UTC</td>
+          </tr>
+          <tr>
+            <td style={styles.td}><Code>v10_allocation.json</Code></td>
+            <td style={styles.td}>Allocator output: equity %, defensive %, leverage, 11 sector tilts, 24 IG tilts, contribution matrix</td>
+            <td style={styles.td}><Code>compute_v10_allocation.py</Code> · 22:45 UTC</td>
+          </tr>
+          <tr>
+            <td style={styles.td}><Code>methodology_calibration_v11.json</Code></td>
+            <td style={styles.td}>Sprint 1 mechanism input panels with hand-curated percentiles + descriptions</td>
+            <td style={styles.td}>Manually updated when calibration windows change</td>
+          </tr>
+        </tbody>
       </table>
+      <Body>
+        Per-sector and per-IG sensitivities are baked into the allocator script as constants
+        (see <Code>SECTOR_SENSITIVITY</Code> and <Code>INDUSTRY_GROUPS</Code> in
+        <Code>compute_v10_allocation.py</Code>). Each sector has six sensitivity coefficients —
+        one per mechanism — anchored on per-sector regression studies in the
+        <Code>v6_per_sector_factor_map.md</Code> document. Each IG inherits its parent sector's
+        sensitivities plus IG-specific adjustments (e.g. Semiconductors carries an extra negative
+        sensitivity to Growth and Positioning & Breadth on top of the Tech-sector base).
+      </Body>
+      <Body>
+        ETF universe is fifteen tickers: eleven sector ETFs (XLK / XLC / XLF / XLV / XLY / XLI / XLP /
+        XLE / XLB / XLRE / XLU) plus four defensive buckets (BIL · TLT · GLD · LQD). SPY weights for
+        the relative-tilt computation come from a quarterly snapshot.
+      </Body>
+    </>
+  ),
+  "tilt-models": (
+    <>
+      <Body>
+        The allocator runs in five steps. Each step is deterministic and the rules are version-locked
+        in the script.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 1 — Stress score</h4>
+      <Body>
+        The stress score is the count, weighted, of how many of the three stress-detection mechanisms
+        are flagging concern. The three are <strong>Credit</strong>, <strong>Liquidity & Policy</strong>,
+        and <strong>Positioning & Breadth</strong> — chosen because together they cover credit-side
+        contagion (Credit), policy/liquidity reversals (Liq&Pol), and crowd / sentiment dynamics (Pos&Br).
+      </Body>
+      <Formula>{`for each of [Credit, Liq&Pol, Pos&Br]:
+   if mechanism band == "Caution" (50–75)  →  +1
+   if mechanism band == "Risk Off" (75–100) →  +2
 
-      {/* — REFINEMENT PROCESS — */}
-      <div id="mth__alloc-refine" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.9 · REFINEMENT PROCESS" sub="How v9.x → v9.x+1 happens" applies={["allocation"]} />
-      <Prose>
-        <P>Refinements ship as v9.2, v9.3, etc. Each refinement requires: (1) back-test on the same 2008-2026 window, (2) comparison table vs v9.1 baseline (CAGR, Sharpe, max DD, calendar wins), (3) Senior Quant sign-off, (4) UX Designer sign-off if UI changes, (5) Lead Developer ships PR.</P>
-        <P><strong>Decisions that should not change without explicit council re-approval:</strong> the 1.5× leverage cap, industry-group level allocation (no cap dimension), the confirmatory selection rule (both indicator and momentum agree), the 6-month momentum window, the per-asset multivariate factor maps, and top-5 equal-weighted selection.</P>
-      </Prose>
+stress_score ∈ [0, 6]`}</Formula>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 2 — Equity vs Defensive split</h4>
+      <Formula>{`if stress_score < 4   →  defensive_pct = 0%
+else                  →  defensive_pct = (stress_score − 3) × 20%, capped at 50%
 
-      {/* — CITATIONS — */}
-      <div id="mth__alloc-cites" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.10 · CITATIONS" sub="Academic + sell-side methodology references" applies={["allocation"]} />
-      <Prose>
-        <P><strong>Momentum and momentum crashes.</strong> Daniel &amp; Moskowitz, "Momentum Crashes," Journal of Financial Economics (2016) — motivates the regime-flip override at V-bottoms.</P>
-        <P><strong>Multivariate factor models.</strong> Asness, Moskowitz &amp; Pedersen, "Value and Momentum Everywhere," Journal of Finance (2013) — supports combining indicator-based and momentum-based ranks.</P>
-        <P><strong>Walk-forward calibration.</strong> López de Prado, "Advances in Financial Machine Learning" (2018), Chapter 7 — methodology for avoiding lookahead bias in back-tests.</P>
-        <P><strong>Defensive sleeve composition.</strong> Asness, Frazzini &amp; Pedersen, "Leverage Aversion and Risk Parity," Financial Analysts Journal (2012) — supports max-Sharpe optimisation with per-asset caps for tail-risk hedging.</P>
-        <P><strong>Sector rotation literature.</strong> Conover, Jensen, Johnson &amp; Mercer, "Sector Rotation and Monetary Conditions," Journal of Investing (2008) — supports macro-regime-conditional sector selection.</P>
-      </Prose>
+equity_pct = 1 − defensive_pct`}</Formula>
+      <Body>
+        Calibrated 2026-05-04. The intent: <em>most of the time at 100% equity</em> (Joe directive).
+        The threshold 4 means the engine activates defensive only when stress is severe — three
+        mechanisms in caution, or one in risk-off plus two in caution. In the 2012–2026 sample, this
+        rule kept the allocator at 100% equity 88% of the time.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 3 — Leverage</h4>
+      <Formula>{`if defensive_pct > 0           →  leverage = 1.0×    (XOR rule)
+elif all 6 mechs in {Risk-on, Neutral} →  leverage = 1.25×
+else                            →  leverage = 1.0×
 
-      <div id="mth__alloc-break" style={{ scrollMarginTop: 80 }} /><SectionHeader label="3.11 · WHAT CAN BREAK THIS" sub="Conditions that change the ratings" applies={["allocation"]} />
-      <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.65, maxWidth: 880 }}>
-        The 9 risk scenarios on the Asset Allocation tab map directly to specific indicators in the All Indicators tab. Each scenario links through to its underlying indicator with current value, history, and threshold context. Triggers include: real rates &gt; 2.0%, HY-IG spread &gt; 250bp, yield curve flattening below +25bp, SLOOS C&amp;I tightening &gt; +20pp, VIX sustained above 25, term premium &gt; 1.5%, copper-gold ratio breakdown, ISM &lt; 48, and USD index &gt; 110.
-      </div>
-      </>)}
-    </section>
-  );
+(future v10.2: V-bottom regime-flip detection unlocks up to 1.5×)`}</Formula>
+      <Body>
+        Leverage activates only in genuinely calm regimes. The 1.5× ceiling is reserved for V-bottom
+        regime-flip events (three or more mechanisms transitioning Risk-Off → Caution in a single
+        month) — a v10.2 follow-up that requires historical state tracking we haven't built yet.
+        Today's allocator stays at 1.0× or 1.25×.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 4 — Per-sector tilt</h4>
+      <Formula>{`for each sector:
+   tilt_score = Σᵢ (sensitivityᵢ × normalized_scoreᵢ)
+       where normalized_scoreᵢ = (mechanism_scoreᵢ − 50) / 50  ∈ [−1, +1]
+
+   if tilt_score > +0.3  →  rating = OW,  multiplier = 1.20× SPY weight
+   if tilt_score < −0.3  →  rating = UW,  multiplier = 0.75× SPY weight
+   else                  →  rating = MW,  multiplier = 1.00× SPY weight
+
+equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct × $100)`}</Formula>
+      <Body>
+        Each sector's six sensitivities are coefficients between roughly −1.5 and +1.5. Positive means
+        the sector benefits when that mechanism is in caution/risk-off; negative means the sector is
+        hurt. The sensitivity matrix is anchored on per-sector regression studies but documented as
+        constants in code rather than re-fit every night — refits happen at calibration locks
+        (Sprint 2 was 2026-05-04).
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 5 — Per-IG tilt</h4>
+      <Formula>{`for each industry group:
+   ig_sensitivity = parent_sector_sensitivity + ig_specific_adjustment
+   tilt_score, rating same logic as sector
+   ig dollars renormalized so each sector's IGs sum back to its sector total`}</Formula>
+      <Body>
+        IGs inherit the parent sector's sensitivity and add IG-specific deltas. Example: the Banks
+        IG inside Financials adds −0.4 to Funding and −0.3 to Credit on top of the Financials base
+        — banks are more sensitive to funding stress than the sector's other IGs (Insurance,
+        Diversified Financials).
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Defensive sleeve composition</h4>
+      <Body>
+        When defensive_pct &gt; 0, the four buckets (BIL · TLT · GLD · LQD) are equal-weighted:
+        each gets <Code>defensive_pct / 4</Code> of capital. This is intentionally simple — the
+        allocator's value is in the equity-vs-defensive decision, not in micro-optimizing within
+        the defensive sleeve.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Audit checks (every refresh)</h4>
+      <Body>
+        Before <Code>v10_allocation.json</Code> is committed, the workflow runs four assertions:
+      </Body>
+      <ul style={{ ...styles.body, paddingLeft: 22 }}>
+        <li style={styles.bullet}><Code>defensive_pct ≤ 50%</Code></li>
+        <li style={styles.bullet}><Code>leverage ≤ 1.5×</Code></li>
+        <li style={styles.bullet}><Code>NOT (defensive_pct &gt; 0 AND leverage &gt; 1.0×)</Code></li>
+        <li style={styles.bullet}><Code>all 6 mechanisms present in input</Code></li>
+      </ul>
+      <Body>
+        Any assertion failure halts the workflow and the page keeps the last-known-good allocation.
+        No partial / inconsistent allocations ship.
+      </Body>
+    </>
+  ),
+
+  // ============================================================
+  // §3 TRADING OPPORTUNITIES
+  // ============================================================
+  "ops-why": (
+    <>
+      <Body>
+        Asset Tilt tells you which sectors and industry groups to lean into. Trading Opportunities
+        goes one level finer: <strong>which specific stocks within those</strong>. The output is a
+        single composite score per ticker that combines technicals, fundamentals, options flow, and
+        news sentiment into one number from −100 to +100.
+      </Body>
+      <Body>
+        Daily cadence so positioning can move with the data. Single composite (not parallel scoring
+        systems) so there's no ambiguity about which signal wins.
+      </Body>
+    </>
+  ),
+  "ops-how": (
+    <>
+      <Body>
+        Run the daily scan; results sort by composite score, highest first. Action labels are bands
+        on that single score:
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Score</th>
+          <th style={styles.th}>Action</th>
+          <th style={styles.th}>Meaning</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}><Code>60+</Code></td><td style={styles.td}>BUY ZONE</td><td style={styles.td}>All four signal categories aligned bullish; high-conviction long.</td></tr>
+          <tr><td style={styles.td}><Code>35–60</Code></td><td style={styles.td}>HOLD</td><td style={styles.td}>Healthy hold range; no immediate action.</td></tr>
+          <tr><td style={styles.td}><Code>20–35</Code></td><td style={styles.td}>WATCH</td><td style={styles.td}>Signals weakening; pre-position trim.</td></tr>
+          <tr><td style={styles.td}><Code>&lt; 20</Code></td><td style={styles.td}>REVIEW</td><td style={styles.td}>Sell-watch zone; review for harvest or rotate.</td></tr>
+        </tbody>
+      </table>
+      <Body>
+        Filter by sector or IG to align with Asset Tilt's overweights. Click any ticker to open the
+        per-stock modal: signal-by-signal breakdown, recent earnings, options flow context, and the
+        scanner's recommended position size.
+      </Body>
+    </>
+  ),
+  "ops-data": (
+    <>
+      <Body>
+        Five live data streams power the daily scan:
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Stream</th>
+          <th style={styles.th}>Provider</th>
+          <th style={styles.th}>What it carries</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}>Universe + EOD prices</td><td style={styles.td}>Massive (Polygon Basic)</td><td style={styles.td}>~12,500 active US-listed tickers; OHLCV + corporate actions</td></tr>
+          <tr><td style={styles.td}>Options flow + insider + congressional</td><td style={styles.td}>Unusual Whales API</td><td style={styles.td}>Block trades, dark pool, sweep volume, Form 4 insider, congressional disclosure</td></tr>
+          <tr><td style={styles.td}>Fundamentals</td><td style={styles.td}>Yahoo Finance</td><td style={styles.td}>Forward P/E, revenue / EPS growth, profitability ratios</td></tr>
+          <tr><td style={styles.td}>News sentiment</td><td style={styles.td}>ZeroHedge RSS + Premium</td><td style={styles.td}>Per-ticker headline sentiment, daily aggregation</td></tr>
+          <tr><td style={styles.td}>Index membership</td><td style={styles.td}>Wikipedia · iShares</td><td style={styles.td}>S&P 500, NASDAQ-100, Russell 2000 membership flags</td></tr>
+        </tbody>
+      </table>
+      <Body>
+        The full daily scan runs at 15:45 ET (after market close) and writes to
+        <Code>public/latest_scan_data.json</Code>. Each record carries the ticker, sector, IG,
+        composite score, signal-by-signal sub-scores, action label, and the contributing data points.
+      </Body>
+    </>
+  ),
+  "ops-models": (
+    <>
+      <Body>
+        The composite is the weighted sum of four sub-scores, each itself a 0-to-100 rollup. Weights
+        are calibrated by backtesting historical Buy-zone alerts against forward 30-day returns
+        (script: <Code>scripts/conviction-backtest.js</Code>).
+      </Body>
+      <Formula>{`composite = w_tech × technicals
+          + w_fund × fundamentals
+          + w_flow × flow
+          + w_news × news_sentiment
+
+scaled to [−100, +100], then banded as above.`}</Formula>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Technical sub-score</h4>
+      <Body>
+        Eight indicators: RSI, MACD, ADX, Bollinger Bands position, ATR(14), OBV, Stochastic K/D,
+        Ichimoku cloud position. Each contributes a sign-and-strength reading; the sub-score is the
+        weighted average. Math lives in <Code>trading-scanner/scanner/technicals.py</Code>.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Fundamental sub-score</h4>
+      <Body>
+        Forward P/E vs sector median, revenue growth (YoY), profitability (operating margin). Quality
+        screen filters first (no negative earnings); then composite z-score across the three.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Flow sub-score</h4>
+      <Body>
+        Options flow (calls vs puts, 30d), dark pool volume %, insider buying (Form 4) within 90 days,
+        congressional purchases within 90 days. Each contributes a directional vote; equally-weighted
+        composite.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>News sentiment sub-score</h4>
+      <Body>
+        Daily ZeroHedge headline sentiment (positive / negative / neutral classification), 7-day
+        rolling average per ticker. Provides the smallest weight in the composite — too noisy for
+        primary signal use.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Calibration</h4>
+      <Body>
+        Conviction bands (LOW / NORMAL / ELEVATED / EXTREME) anchored against full 2006-01-03
+        through 2026-04-22 composite history. Thresholds at p60 / p85 / p97.5 so 2008 GFC and
+        2020 COVID sit in EXTREME, while 2022 bear and 2023 SVB sit in ELEVATED. Recalibrated
+        2026-04-22 (PR #78).
+      </Body>
+    </>
+  ),
+
+  // ============================================================
+  // §4 PORTFOLIO INSIGHTS
+  // ============================================================
+  "port-why": (
+    <>
+      <Body>
+        Connect the tactical signals to your actual holdings. Without this surface, the rest of the
+        site is theoretical — interesting macro charts and ranked stock lists, but no integration with
+        what you actually own.
+      </Body>
+      <Body>
+        The page reads your brokerage positions and cross-references them against today's scanner
+        scores and Asset Tilt sector ratings. Each position gets an action label tailored to what
+        the data is currently saying about it.
+      </Body>
+    </>
+  ),
+  "port-how": (
+    <>
+      <Body>
+        Connect via Plaid (read-only — MacroTilt cannot place trades). Once connected, your positions
+        appear sorted by dollar value, with each row carrying the scanner's action label:
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Label</th>
+          <th style={styles.th}>When it shows</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}>BUY ZONE</td><td style={styles.td}>Scanner score 60+. Position aligned with the strongest current signal.</td></tr>
+          <tr><td style={styles.td}>HOLD</td><td style={styles.td}>Scanner score 35–60. Healthy hold range.</td></tr>
+          <tr><td style={styles.td}>WATCH</td><td style={styles.td}>Scanner score 20–35. Signals weakening.</td></tr>
+          <tr><td style={styles.td}>REVIEW</td><td style={styles.td}>Scanner score &lt; 20. Sell-watch zone.</td></tr>
+          <tr><td style={styles.td}>OUT OF SCOPE</td><td style={styles.td}>Position is in a sector the scanner doesn't evaluate (commodities, crypto, HY bond funds, broad international).</td></tr>
+          <tr><td style={styles.td}>NO SIGNAL</td><td style={styles.td}>Ticker isn't in the daily scanned universe.</td></tr>
+          <tr><td style={styles.td}>CORE</td><td style={styles.td}>Broad index fund (FXAIX, FSKAX, etc.). Not a tactical position.</td></tr>
+          <tr><td style={styles.td}>MONITOR</td><td style={styles.td}>Position is in a non-tactical account (401k, plan-fund). Can't act on tactical signals here.</td></tr>
+        </tbody>
+      </table>
+    </>
+  ),
+  "port-data": (
+    <>
+      <Body>
+        Three streams come together:
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Stream</th>
+          <th style={styles.th}>Source</th>
+          <th style={styles.th}>What it carries</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}>Brokerage positions</td><td style={styles.td}>Plaid</td><td style={styles.td}>Per-account: tickers, share counts, market value, cost basis, account type</td></tr>
+          <tr><td style={styles.td}>Scanner scores</td><td style={styles.td}><Code>latest_scan_data.json</Code></td><td style={styles.td}>Per-ticker composite score + signal-by-signal breakdown</td></tr>
+          <tr><td style={styles.td}>Account metadata</td><td style={styles.td}>Local config</td><td style={styles.td}>Tactical / plan-fund / IRA flags per account</td></tr>
+        </tbody>
+      </table>
+      <Body>
+        Account-type flagging matters because a 401k position with limited fund choices isn't
+        actionable in the same way as a self-directed brokerage. The MONITOR label exists so the
+        scanner doesn't waste your attention on positions you can't tactically rotate.
+      </Body>
+    </>
+  ),
+  "port-models": (
+    <>
+      <Body>
+        The action mapping is deterministic — given a ticker score and an account type, the label
+        is fully determined:
+      </Body>
+      <Formula>{`if account.tactical == false              →  MONITOR
+elif sector ∈ {Commodity, Crypto, HY Bond, Intl Equity}
+                                          →  OUT OF SCOPE
+elif ticker ∈ {FXAIX, FSKAX, FZILX, FSGGX, FXNAX, FXIIX}
+                                          →  CORE
+elif ticker not in scan_universe          →  NO SIGNAL
+elif score >= 60                          →  BUY ZONE
+elif score >= 35                          →  HOLD
+elif score >= 20                          →  WATCH
+else                                      →  REVIEW`}</Formula>
+      <Body>
+        Logic lives in <Code>src/App.jsx</Code> at the <Code>actionFor()</Code> function (currently
+        around line 6445). Aggregations: by-account totals, by-sector exposure, by-action counts.
+        The page renders these as a single sortable table plus three rollup cards (cash deployable,
+        actions needed, total exposure).
+      </Body>
+    </>
+  ),
+
+  // ============================================================
+  // APPENDICES
+  // ============================================================
+  "hard-rules-content": (
+    <>
+      <Body>
+        Four constraints bind every allocation decision. They are enforced in the workflow itself
+        (assertion failures halt the deploy), so they are guaranteed to hold in production rather
+        than just promised in copy.
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Rule</th>
+          <th style={styles.th}>Why it exists</th>
+          <th style={styles.th}>Enforced where</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}><strong>Defensive ≤ 50%</strong></td><td style={styles.td}>Even in a maximum-stress regime, the engine never sells more than half the equity sleeve. Intent: stay invested through stress.</td><td style={styles.td}><Code>compute_v10_allocation.py</Code> + workflow audit</td></tr>
+          <tr><td style={styles.td}><strong>Leverage ≤ 1.5×</strong></td><td style={styles.td}>The 1.5× ceiling is the only path to leverage above 1.25×, and it's reserved for V-bottom regime-flip events. No path to runaway leverage.</td><td style={styles.td}><Code>compute_v10_allocation.py</Code> + workflow audit</td></tr>
+          <tr><td style={styles.td}><strong>Defensive XOR Leverage</strong></td><td style={styles.td}>Defensive sleeve and leverage are never on simultaneously. The two represent opposite tactical bets and the engine doesn't run them against each other.</td><td style={styles.td}><Code>compute_v10_allocation.py</Code> + workflow audit</td></tr>
+          <tr><td style={styles.td}><strong>All 6 mechanisms present</strong></td><td style={styles.td}>If any of the six mechanism scores is missing, the allocator does not produce a recommendation. No partial input → partial output.</td><td style={styles.td}><Code>compute_v10_allocation.py</Code> + workflow audit</td></tr>
+        </tbody>
+      </table>
+      <Callout>
+        <strong>Why these rules are non-negotiable.</strong> The hard caps are not optimization
+        constraints we accept reluctantly — they're the discipline that keeps the strategy
+        inside reasonable risk bounds across every regime, including ones we haven't seen yet.
+        Backtested-best-fit rules can drift in unfamiliar regimes; hard caps don't.
+      </Callout>
+    </>
+  ),
+  "backtest-content": (
+    <>
+      <Body>
+        v10.1c (current production engine) was backtested against 2012-01 through 2026-03 using
+        monthly rebalancing. Each historical month's allocation came from running the v10.1c rules
+        against the mechanism scores available at that point in time (no lookahead). Sector returns
+        from yfinance for the eleven sector ETFs plus the four defensive ETFs.
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Metric</th>
+          <th style={styles.th}>v10.1c</th>
+          <th style={styles.th}>SPY</th>
+          <th style={styles.th}>v9 baseline (2008-2026)</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}>CAGR</td><td style={styles.td}><strong>13.85%</strong></td><td style={styles.td}>14.58%</td><td style={styles.td}>13.88%</td></tr>
+          <tr><td style={styles.td}>Sharpe (annualized)</td><td style={styles.td}><strong>1.034</strong></td><td style={styles.td}>1.046</td><td style={styles.td}>0.610</td></tr>
+          <tr><td style={styles.td}>Max drawdown</td><td style={styles.td}><strong>−20.81%</strong></td><td style={styles.td}>−23.93%</td><td style={styles.td}>−23.64%</td></tr>
+          <tr><td style={styles.td}>Calendar wins vs SPY</td><td style={styles.td}>7 of 15</td><td style={styles.td}>—</td><td style={styles.td}>10 of 19</td></tr>
+          <tr><td style={styles.td}>Months at 100% equity</td><td style={styles.td}>88%</td><td style={styles.td}>—</td><td style={styles.td}>—</td></tr>
+        </tbody>
+      </table>
+      <Body>
+        v10.1c approximately matches v9's CAGR (13.85% vs 13.88%) with substantially better
+        risk-adjusted return (Sharpe 1.034 vs 0.610 — a 70% improvement) and 3 percentage points
+        smaller maximum drawdown.
+      </Body>
+      <Callout>
+        <strong>Honest gap.</strong> v10.1c has not been tested against 2008–2011 (the GFC and
+        post-GFC recovery) because the indicator history file we backfill from starts in 2011.
+        v9's edge in the 2008-2026 backtest came largely from its GFC handling. Until we backfill
+        pre-2011 indicator data, the engine has not been stress-tested against a real systemic
+        crisis. Rule discipline (the hard caps) is what protects against unfamiliar regimes in
+        the meantime.
+      </Callout>
+      <Body>
+        Full evidence pack: <Code>PHASE2_V10_BACKTEST.md</Code> in the project workspace. Every
+        threshold in v10.1c was tuned against this backtest before being locked in code.
+      </Body>
+    </>
+  ),
+  "sources-content": (
+    <>
+      <Body>
+        Every number on the site traces back to one of these public sources:
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Source</th>
+          <th style={styles.th}>Used for</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}>FRED (Federal Reserve Economic Data)</td><td style={styles.td}>Most macro indicators — yield curves, real rates, ANFCI, ISM, M2, jobless claims, real Fed funds, term premium, balance sheet, breakeven inflation</td></tr>
+          <tr><td style={styles.td}>ICE BofA via FRED</td><td style={styles.td}>Credit spreads (HY OAS, IG OAS)</td></tr>
+          <tr><td style={styles.td}>CBOE</td><td style={styles.td}>VIX, SKEW, put/call ratio</td></tr>
+          <tr><td style={styles.td}>Shiller / multpl</td><td style={styles.td}>CAPE (cyclically-adjusted P/E)</td></tr>
+          <tr><td style={styles.td}>ISM</td><td style={styles.td}>Manufacturing PMI</td></tr>
+          <tr><td style={styles.td}>BLS (Bureau of Labor Statistics)</td><td style={styles.td}>Initial jobless claims, JOLTS quits</td></tr>
+          <tr><td style={styles.td}>NY Fed · DTCC</td><td style={styles.td}>SOFR-OIS, FRA-OIS, repo rates, primary dealer positions</td></tr>
+          <tr><td style={styles.td}>Chicago Fed</td><td style={styles.td}>ANFCI, CFNAI</td></tr>
+          <tr><td style={styles.td}>St. Louis Fed</td><td style={styles.td}>STLFSI, M2 supply</td></tr>
+          <tr><td style={styles.td}>NAAIM</td><td style={styles.td}>Manager exposure index</td></tr>
+          <tr><td style={styles.td}>Massive (Polygon Basic)</td><td style={styles.td}>Daily price data, universe master, dividends, splits</td></tr>
+          <tr><td style={styles.td}>Unusual Whales</td><td style={styles.td}>Options flow, dark pool volume, insider buying, congressional disclosure</td></tr>
+          <tr><td style={styles.td}>Yahoo Finance</td><td style={styles.td}>Stock fundamentals (forward P/E, revenue growth, profitability)</td></tr>
+          <tr><td style={styles.td}>ZeroHedge (RSS + Premium)</td><td style={styles.td}>News sentiment</td></tr>
+          <tr><td style={styles.td}>Wikipedia · iShares</td><td style={styles.td}>Index membership flags</td></tr>
+          <tr><td style={styles.td}>Plaid</td><td style={styles.td}>Brokerage feed (read-only)</td></tr>
+        </tbody>
+      </table>
+      <Body>
+        Every data element is registered in <Code>public/data_manifest.json</Code> with cadence,
+        freshness SLA, and consumer surfaces. The freshness chip system on every page reads from
+        that manifest plus <Code>pipeline_health</Code> in Supabase to show green / amber / red
+        per data flow.
+      </Body>
+    </>
+  ),
+  "glossary-content": (
+    <>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Term</th>
+          <th style={styles.th}>Definition</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}><Code>bp</Code> (basis points)</td><td style={styles.td}>One basis point = 0.01%. 100bp = 1%.</td></tr>
+          <tr><td style={styles.td}>CAPE</td><td style={styles.td}>Cyclically-Adjusted P/E (Shiller). S&P 500 price divided by 10-year average inflation-adjusted earnings. Smooths earnings cycles.</td></tr>
+          <tr><td style={styles.td}>Composite</td><td style={styles.td}>Page-level 0–100 score; the simple average of the six cycle mechanisms.</td></tr>
+          <tr><td style={styles.td}>Cycle mechanism</td><td style={styles.td}>One of six categorical inputs to the cycle board: Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth.</td></tr>
+          <tr><td style={styles.td}>Defensive sleeve</td><td style={styles.td}>The four-bucket non-equity allocation: BIL (cash), TLT (long Treasuries), GLD (gold), LQD (IG corporate bonds).</td></tr>
+          <tr><td style={styles.td}>ERP</td><td style={styles.td}>Equity Risk Premium = S&P 500 earnings yield minus 10-year Treasury yield. A near-zero or negative ERP means stocks are priced for perfection.</td></tr>
+          <tr><td style={styles.td}>Gross exposure</td><td style={styles.td}>Total dollar exposure as % of capital. With leverage on, can exceed 100%; with defensive on, the equity slice falls below 100%.</td></tr>
+          <tr><td style={styles.td}>HY OAS</td><td style={styles.td}>High-Yield Option-Adjusted Spread. Yield premium that junk bonds offer over Treasuries.</td></tr>
+          <tr><td style={styles.td}>IG (Industry Group)</td><td style={styles.td}>GICS Industry Group, one classification level below Sector. The site uses 25 IGs across 11 sectors. Example: Semiconductors is an IG inside the Information Technology sector.</td></tr>
+          <tr><td style={styles.td}>IG OAS</td><td style={styles.td}>Investment-Grade Option-Adjusted Spread. Yield premium that corporate bonds offer over Treasuries.</td></tr>
+          <tr><td style={styles.td}>OW / MW / UW</td><td style={styles.td}>Overweight / Market-weight / Underweight. Refers to a sector or IG's allocation versus its SPY benchmark weight.</td></tr>
+          <tr><td style={styles.td}>Percentile</td><td style={styles.td}>Where a current value sits in a historical sample. p100 = highest reading on record; p0 = lowest.</td></tr>
+          <tr><td style={styles.td}>Sharpe ratio</td><td style={styles.td}>Annualized excess return divided by annualized volatility. Higher = better risk-adjusted return.</td></tr>
+          <tr><td style={styles.td}>SLOOS</td><td style={styles.td}>Senior Loan Officer Opinion Survey. Federal Reserve quarterly survey of bank lending standards.</td></tr>
+          <tr><td style={styles.td}>SPY</td><td style={styles.td}>SPDR S&P 500 ETF. The benchmark used for sector vs market relative weights.</td></tr>
+          <tr><td style={styles.td}>Stress score</td><td style={styles.td}>A 0–6 count: number of stress-detection mechanisms (Credit, Liq&Pol, Pos&Br) in caution or risk-off bands, weighted (caution=+1, risk-off=+2).</td></tr>
+        </tbody>
+      </table>
+    </>
+  ),
+};
+
+// Build a search blob per section for the search filter. Includes title, blurb, and the
+// concatenated text content extracted from the React tree (best-effort).
+function extractText(node) {
+  if (node == null) return "";
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(extractText).join(" ");
+  if (node.props && node.props.children) return extractText(node.props.children);
+  return "";
 }
 
-// ─── §5 EQUITY SCANNER METHODOLOGY ─────────────────────────────────────────
-function SignalScoreMath() {
-  const TIER_BANDS = [
-    { label:"STRONG BULL", range:"≥ 60",        note:"Buy Alert",                      color:"#30d158" },
-    { label:"BULLISH",     range:"30 – 59",     note:"Near Trigger threshold ≥ 40",    color:"#30d158" },
-    { label:"TILT BULL",   range:"10 – 29",     note:"below Near Trigger threshold",   color:"#86efac" },
-    { label:"NEUTRAL",     range:"−10 – 10",    note:"no directional read",            color:"#B8860B" },
-    { label:"TILT BEAR",   range:"−29 – −10",   note:"below Near Short threshold",     color:"#B8860B" },
-    { label:"BEARISH",     range:"−59 – −30",   note:"directional short bias",         color:"#ff9f0a" },
-    { label:"STRONG BEAR", range:"≤ −60",       note:"conviction bear",                color:"#ff453a" },
-  ];
-
-  const SECTION_BLURBS = {
-    technicals: "RSI momentum, MACD crossover direction, price vs. 50-/200-day moving averages. SCTR-style composite with ADX regime confirmation on [−100, +100].",
-    insider:    "SEC Form 4 purchases and sales weighted by dollar notional. Insider BUYs carry more weight than SELLs (selling is far more common and less informative).",
-    options:    "Unusual Whales real-time options flow. Sweep vs. block, call/put mix, premium size. Large call sweeps with meaningful premium push the score up; bearish flow pulls it down.",
-    congress:   "Unusual Whales congressional PTR disclosures, 45-day rolling window. Scored by disclosed dollar-range tier and buy/sell direction.",
-    analyst:    "Rating changes and price-target revisions from the UW analyst feed. Upgrades and PT increases lift the score; downgrades and PT cuts push it negative.",
-    darkpool:   "Dark-pool block prints weighted by volume vs. ADV and recency. Intentionally small weight (5%) — historically a weak tiebreaker, not a standalone signal.",
-  };
-
-  const weightsTotal = SECTION_ORDER.reduce((s, k) => s + (SECTION_WEIGHTS[k] || 0), 0);
-
-  return (
-    <section id={A("signal-math")} data-testid="methodology-section-signalmath"
-      style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <SectionHeader
-        label="4.2 · EQUITY SCANNER METHODOLOGY"
-        sub="Single composite on [−100, +100]"
-        applies={[
-          { id:"portopps", label:"Trading Opportunities", path:"#portopps" },
-        ]}
-      />
-
-      <Prose>
-        <P><strong>One score, one methodology.</strong> Every scanned ticker carries a single directional
-        composite on <strong>[−100, +100]</strong>. STRONG BULL / BULLISH / TILT BULL / NEUTRAL / TILT BEAR
-        / BEARISH / STRONG BEAR are tier labels on that one composite — <em>there is no second score
-        anywhere</em>. The 0–100 scales in MacroTilt are the v9 macro Composite Stress Score (legacy, in v9 Asset Allocation context only) and the v11 cycle mechanism scores (one per mechanism on Macro Overview).</P>
-
-        <P><strong>The composite is a weighted average of 6 section scores.</strong> Each section
-        independently emits a score in [−100, +100] — bullish, bearish, or null for "no qualifying
-        activity". Weights sum to {weightsTotal}:</P>
-      </Prose>
-
-      {/* Section weights table — auto-rendered from SECTION_WEIGHTS. */}
-      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, overflow:"hidden" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
-          <thead>
-            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
-              <th style={thStyle}>Section</th>
-              <th style={{ ...thStyle, textAlign:"right" }}>Weight</th>
-              <th style={thStyle}>What it scores</th>
-            </tr>
-          </thead>
-          <tbody>
-            {SECTION_ORDER.map((k) => (
-              <tr key={k} style={{ borderTop:"1px solid var(--border)" }}>
-                <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }}>{SECTION_LABELS[k] || k}</td>
-                <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>
-                  {SECTION_WEIGHTS[k]}%
-                </td>
-                <td style={{ ...tdStyle, color:"var(--text-muted)" }}>
-                  {SECTION_BLURBS[k] || ""}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      <Prose>
-        <P><strong>Aggregation rule.</strong> The composite is the weighted average across sections with a
-        non-null score. A section with no qualifying activity drops out of both numerator and denominator,
-        so one empty section doesn't dilute the others toward zero.</P>
-
-        <Formula>composite = Σ(section<sub>i</sub> × w<sub>i</sub>) / Σ(w<sub>i</sub>)   (over sections with score ≠ null)</Formula>
-
-        <P>Both sides of the system use the same numbers:
-        <code> src/ticker/sectionComposites.js</code> (dashboard) and
-        <code> trading-scanner/scanner/signal_composite.py</code> (scanner). The Python file carries a
-        "MUST mirror" comment enforcing parity.</P>
-
-        <P><strong>Inside the Technicals subscore.</strong> The 25% Technicals weight is itself a weighted
-        blend — SCTR-style, with long-term trend dominating. Short-term momentum (MACD + RSI) is
-        intentionally small so a single crossover doesn't swing the ticker's overall score.</P>
-      </Prose>
-
-      {/* Inside-Technicals breakdown — shows how each technical input rolls up. */}
-      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, overflow:"hidden" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
-          <thead>
-            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
-              <th style={thStyle}>Block</th>
-              <th style={thStyle}>Input</th>
-              <th style={{ ...thStyle, textAlign:"right" }}>Max pts (of ±100)</th>
-              <th style={{ ...thStyle, textAlign:"right" }}>% of Technicals</th>
-              <th style={{ ...thStyle, textAlign:"right" }}>% of overall ticker</th>
-              <th style={thStyle}>What it measures</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr style={{ borderTop:"1px solid var(--border)" }}>
-              <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }} rowSpan={2}>Long-term trend<br/><span style={{ fontSize:10, color:"var(--text-dim)" }}>60 pts total</span></td>
-              <td style={{ ...tdStyle }}>Price vs 200-day MA</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>±30</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>30%</td>
-              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>7.50%</td>
-              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Distance above / below the 200-day MA, capped ±5%.</td>
-            </tr>
-            <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))" }}>
-              <td style={{ ...tdStyle }}>YTD return vs SPY</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>±30</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>30%</td>
-              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>7.50%</td>
-              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>IBD-style relative strength year-to-date, capped ±10%.</td>
-            </tr>
-            <tr style={{ borderTop:"1px solid var(--border)" }}>
-              <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }} rowSpan={2}>Mid-term trend<br/><span style={{ fontSize:10, color:"var(--text-dim)" }}>30 pts total</span></td>
-              <td style={{ ...tdStyle }}>Price vs 50-day MA</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>±15</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>15%</td>
-              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>3.75%</td>
-              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Distance above / below the 50-day MA, capped ±2%.</td>
-            </tr>
-            <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))" }}>
-              <td style={{ ...tdStyle }}>1-month return vs SPY</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>±15</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>15%</td>
-              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>3.75%</td>
-              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Relative strength over the trailing month, capped ±5%.</td>
-            </tr>
-            <tr style={{ borderTop:"1px solid var(--border)" }}>
-              <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }} rowSpan={2}>Short-term momentum<br/><span style={{ fontSize:10, color:"var(--text-dim)" }}>10 pts total</span></td>
-              <td style={{ ...tdStyle, color:"var(--text)" }}><strong>MACD cross</strong> (12/26/9)</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>±5</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>5%</td>
-              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)", fontWeight:700 }}>1.25%</td>
-              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Bullish / bearish cross within the last 3 daily bars.</td>
-            </tr>
-            <tr style={{ borderTop:"1px solid var(--border-subtle, rgba(0,0,0,0.04))" }}>
-              <td style={{ ...tdStyle }}>RSI-14</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>±5</td>
-              <td style={{ ...tdStyle, textAlign:"right" }}>5%</td>
-              <td style={{ ...tdStyle, textAlign:"right", color:"var(--text-2)" }}>1.25%</td>
-              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Healthy-uptrend zone 50-70 adds +5; mild oversold &lt;30 adds +2.</td>
-            </tr>
-          </tbody>
-          <tfoot>
-            <tr style={{ borderTop:"2px solid var(--border)", background:"var(--surface-2)" }}>
-              <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)" }} colSpan={2}>Total pre-regime</td>
-              <td style={{ ...tdStyle, textAlign:"right", fontWeight:700 }}>±100</td>
-              <td style={{ ...tdStyle, textAlign:"right", fontWeight:700 }}>100%</td>
-              <td style={{ ...tdStyle, textAlign:"right", fontWeight:700, color:"var(--text)" }}>25%</td>
-              <td style={{ ...tdStyle, color:"var(--text-muted)" }}>Before ADX regime multiplier and volume confirmation.</td>
-            </tr>
-          </tfoot>
-        </table>
-      </div>
-
-      <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.7, maxWidth:880 }}>
-        <strong>Plain-English read-out for MACD:</strong> a bullish MACD crossover on its own can add at most
-        <strong> ±5 of ±100 Technicals points (5% of Technicals)</strong>. Since Technicals is 25% of the
-        overall ticker composite, MACD's maximum contribution to the overall <strong>−100 / +100</strong>
-        score is <strong>5% × 25% = 1.25%</strong>. RSI carries the same weight. Short-term momentum is
-        intentionally a tiebreaker, not a driver — the long-term trend and relative-strength blocks do the
-        heavy lifting.
-      </div>
-
-      <Prose>
-        <P><strong>ADX regime + volume multipliers.</strong> After the raw additive score, ADX sets a regime
-        flag — CONFIRMED trend (ADX ≥ 25, |score| &gt; 30) leaves the score as-is; chop regime (ADX &lt; 20)
-        dampens it; indeterminate leaves it alone. Volume surge above 1.5× average adds a small
-        confirmation bump. These are multiplicative, not additive — they don't shift the weights above.</P>
-
-        <P><strong>Tier bands.</strong> The composite maps to a named direction (modal label) and a tier
-        (Buy Alert / Near Trigger membership). The Near Trigger threshold was lifted from 30 → 40 on
-        2026-04-20 to drop arithmetic noise in the 30-34 band (51/67 Near Trigger names on the 2026-04-19
-        scan were in that band purely from weighted-average dilution). The BULLISH label boundary stays at
-        30 — label and tier are decoupled.</P>
-      </Prose>
-
-
-      {/* Tier band table. */}
-      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8, overflow:"hidden" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
-          <thead>
-            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
-              <th style={thStyle}>Directional label</th>
-              <th style={thStyle}>Composite range</th>
-              <th style={thStyle}>Tier meaning</th>
-            </tr>
-          </thead>
-          <tbody>
-            {TIER_BANDS.map((t) => (
-              <tr key={t.label} style={{ borderTop:"1px solid var(--border)" }}>
-                <td style={{ ...tdStyle, fontWeight:700, color:t.color }}>{t.label}</td>
-                <td style={{ ...tdStyle, color:"var(--text-2)" }}>{t.range}</td>
-                <td style={{ ...tdStyle, color:"var(--text-muted)" }}>{t.note}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-// ─── §4 EQUITY SCANNER DATA SOURCES (sortable flat table, scanner-only) ───
-// Scanner data only — the macro indicators have their own table in §1, so
-// repeating them here would be redundant.
-function DataCatalogTable({ ind, asOf }) {
-  const rows = useMemo(() => {
-    return DATA_REGISTRY
-      .filter((r) => r.section === "scanner" && !r.isFilter)
-      .map((r) => {
-        const secLabel = SCANNER_SECTION_FOR[r.key] || "—";
-        const secKey   = SCANNER_SECTION_KEY_FOR[r.key];
-        let weighting = "—";
-        let weightingSort = 0;
-        if (secKey && SECTION_WEIGHTS[secKey] != null) {
-          weighting = `${SECTION_WEIGHTS[secKey]}%`;
-          weightingSort = SECTION_WEIGHTS[secKey];
-        } else {
-          weighting = "Enrichment";
-          weightingSort = -1;
-        }
-        return {
-          key: r.key,
-          name: r.name,
-          section: secLabel,
-          source: r.source || "—",
-          freq: r.freqCode || "—",
-          lastRefresh: r.lastRefresh || "—",
-          weighting,
-          weightingSort,
-          timing: r.timing || "",
-          detail: r.summary || r.details || "",
-        };
+function buildSearchIndex() {
+  const idx = {};
+  SECTIONS.forEach(s => {
+    let text = `${s.title} ${s.blurb}`;
+    if (s.sub.length) {
+      s.sub.forEach(sub => {
+        const content = SECTION_CONTENT[sub.id];
+        text += " " + sub.label + " " + extractText(content);
       });
-  }, []);
+    } else {
+      const content = SECTION_CONTENT[s.id + "-content"];
+      text += " " + extractText(content);
+    }
+    idx[s.id] = text.toLowerCase();
+  });
+  return idx;
+}
 
-  const [sortKey, setSortKey] = useState("weighting");
-  const [sortDir, setSortDir] = useState("desc");
-  const TIMING_ORDER = { Leading:1, Coincident:2, Lagging:3 };
-  const FREQ_ORDER   = { "3x/D":1, D:2, W:3, M:4, Q:5, Y:6 };
+// ─── Main page ────────────────────────────────────────────────────────────
 
-  const sorted = useMemo(() => {
-    const arr = [...rows];
-    const dir = sortDir === "asc" ? 1 : -1;
-    arr.sort((a, b) => {
-      let av, bv;
-      switch (sortKey) {
-        case "name":        av = a.name.toLowerCase(); bv = b.name.toLowerCase(); break;
-        case "section":     av = a.section.toLowerCase(); bv = b.section.toLowerCase(); break;
-        case "source":      av = a.source.toLowerCase(); bv = b.source.toLowerCase(); break;
-        case "freq":        av = FREQ_ORDER[a.freq] || 99; bv = FREQ_ORDER[b.freq] || 99; break;
-        case "lastRefresh": av = Date.parse(a.lastRefresh) || 0; bv = Date.parse(b.lastRefresh) || 0; break;
-        case "weighting":   av = a.weightingSort; bv = b.weightingSort; break;
-        case "timing":      av = TIMING_ORDER[a.timing] || 99; bv = TIMING_ORDER[b.timing] || 99; break;
-        case "detail":      av = a.detail.toLowerCase(); bv = b.detail.toLowerCase(); break;
-        default:            av = 0; bv = 0;
-      }
-      if (av < bv) return -1 * dir;
-      if (av > bv) return  1 * dir;
-      return a.name.localeCompare(b.name);
+export default function MethodologyPage() {
+  const [search, setSearch] = useState("");
+  const [openSections, setOpenSections] = useState(() => new Set(SECTIONS.map(s => s.id)));
+  const searchIndex = useMemo(() => buildSearchIndex(), []);
+
+  // Filter sections by search
+  const matchingSectionIds = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return new Set(SECTIONS.map(s => s.id));
+    const matches = new Set();
+    SECTIONS.forEach(s => {
+      if (searchIndex[s.id].includes(q)) matches.add(s.id);
     });
-    return arr;
-  }, [rows, sortKey, sortDir]);
+    return matches;
+  }, [search, searchIndex]);
 
-  function onSort(k) {
-    if (k === sortKey) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else { setSortKey(k); setSortDir(k === "weighting" ? "desc" : "asc"); }
+  function toggleSection(id) {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }
 
-  const COLS = [
-    { k:"name",        label:"Data",         align:"left"   },
-    { k:"section",     label:"Category / Use", align:"left" },
-    { k:"source",      label:"Source",       align:"left"   },
-    { k:"freq",        label:"Frequency",    align:"center" },
-    { k:"lastRefresh", label:"Last Refresh", align:"left"   },
-    { k:"weighting",   label:"Weight",       align:"right"  },
-    { k:"timing",      label:"Type",         align:"center" },
-    { k:"detail",      label:"Detail",       align:"left"   },
-  ];
+  function scrollToAnchor(id, e) {
+    if (e) e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   return (
-    <section id={A("catalog")} data-testid="methodology-section-catalog"
-      style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <SectionHeader
-        label="4.1 · EQUITY SCANNER DATA SOURCES"
-        sub={`${rows.length} streams that feed the per-ticker Signal Score · sortable`}
-        applies={[
-          { id:"portopps", label:"Trading Opportunities", path:"#portopps" },
-        ]}
-      />
-      <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.65, maxWidth:880 }}>
-        Every upstream stream the scanner reads when it scores a ticker. Click a column header to sort.
-        <strong> Frequency</strong> is how often the stream refreshes (D = once per weekday, 3x/D = three
-        pulls per weekday). <strong>Weight</strong> is that stream's share of the overall Signal Score
-        (see §4.2). Before any of this runs, a price ($5–$500) and market-cap screen from the Unusual Whales
-        screener filters the investable universe — the screener is a methodology step, not a scoring input.
-      </div>
+    <main style={{
+      maxWidth: 1280, margin: "0 auto", padding: "32px 28px 60px",
+      display: "grid", gridTemplateColumns: "260px 1fr", gap: 32,
+    }}>
 
-      <div style={{ background:"var(--surface)", border:"1px solid var(--border)", borderRadius:8,
-                    overflow:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12, fontFamily:"var(--font-mono)" }}>
-          <thead>
-            <tr style={{ color:"var(--text-dim)", background:"var(--surface-2)" }}>
-              {COLS.map((c) => (
-                <th key={c.k}
-                    onClick={() => onSort(c.k)}
-                    style={{ ...thStyle, textAlign:c.align, cursor:"pointer", userSelect:"none",
-                             whiteSpace:"nowrap" }}>
-                  {c.label}
-                  <span style={{ marginLeft:4, color: sortKey === c.k ? "var(--accent)" : "transparent" }}>
-                    {sortDir === "asc" ? "▲" : "▼"}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((r) => (
-              <tr key={r.key} style={{ borderTop:"1px solid var(--border)" }}>
-                <td style={{ ...tdStyle, fontWeight:700, color:"var(--text)", whiteSpace:"nowrap" }}>
-                  {r.name}
-                </td>
-                <td style={{ ...tdStyle }}>
-                  <span style={{ fontSize:10, color:"#06b6d4", border:"1px solid #06b6d4",
-                                 borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
-                                 whiteSpace:"nowrap", textTransform:"uppercase" }}>
-                    {r.section}
-                  </span>
-                </td>
-                <td style={{ ...tdStyle, color:"var(--text-2)" }}>{r.source}</td>
-                <td style={{ ...tdStyle, textAlign:"center", color:"var(--text-2)" }}>{r.freq}</td>
-                <td style={{ ...tdStyle, color:"var(--text-2)", whiteSpace:"nowrap" }}>{r.lastRefresh}</td>
-                <td style={{ ...tdStyle, textAlign:"right", color:"var(--text)" }}>{r.weighting}</td>
-                <td style={{ ...tdStyle, textAlign:"center" }}>
-                  {r.timing ? (
-                    <span style={{ fontSize:10, color:TIMING_COLOR[r.timing] || "var(--text-dim)",
-                                   border:`1px solid ${TIMING_COLOR[r.timing] || "var(--border)"}`,
-                                   borderRadius:3, padding:"1px 6px", letterSpacing:"0.05em",
-                                   textTransform:"uppercase", whiteSpace:"nowrap" }}>
-                      {r.timing}
-                    </span>
-                  ) : "—"}
-                </td>
-                <td style={{ ...tdStyle, color:"var(--text-muted)", lineHeight:1.6, minWidth:320 }}>
-                  {r.detail || "—"}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  );
-}
-
-// Mapping tables used by §4.
-const SCANNER_SECTION_FOR = {
-  uw_options_flow:   "Options",
-  uw_dark_pool:      "Dark Pool",
-  uw_congressional:  "Congress",
-  uw_insider:        "Insider",
-  uw_screener:       "Filter (universe screen)",
-  uw_news:           "Ticker Detail — News",
-  yahoo_prices:      "Prices (enrichment)",
-  yahoo_technicals:  "Technicals",
-};
-const SCANNER_SECTION_KEY_FOR = {
-  uw_options_flow:   "options",
-  uw_dark_pool:      "darkpool",
-  uw_congressional:  "congress",
-  uw_insider:        "insider",
-  yahoo_technicals:  "technicals",
-};
-
-const thStyle = { textAlign:"left", fontWeight:600, fontSize:10, letterSpacing:"0.08em",
-                  padding:"8px 12px", color:"var(--text-dim)", textTransform:"uppercase",
-                  fontFamily:"var(--font-mono)", whiteSpace:"nowrap" };
-const tdStyle = { padding:"8px 12px", verticalAlign:"top" };
-
-// ─── SHARED HELPERS ──────────────────────────────────────────────────────────
-// SectionHeader + Prose + P + Formula + PillChip were co-located with the old
-// §6 catalog section; the §6 → §5 rebuild dropped them inadvertently. Restored
-// here, one layer above Disclaimer, so every section can read them.
-// CollapsibleSectionHeader — used by every top-level section so the page
-// can collapse to a one-screen TOC then expand on demand. Sub-section
-// anchors stay always-rendered when their parent is open; the parent
-// collapse alone gets ~80% of the length-reduction win.
-function Chevron({ open }) {
-  return (
-    <span style={{ display:"inline-block", width:14, transition:"transform .15s",
-                   transform: open ? "rotate(90deg)" : "rotate(0deg)",
-                   color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
-      ▶
-    </span>
-  );
-}
-function CollapsibleSectionHeader({ label, sub, applies, open, onToggle }) {
-  return (
-    <div onClick={onToggle}
-         role="button" tabIndex={0}
-         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onToggle(); } }}
-         style={{ display:"flex", flexDirection:"column", gap:6,
-                  borderBottom:"1px solid var(--border)", paddingBottom:6,
-                  cursor:"pointer", userSelect:"none" }}>
-      <div style={{ display:"flex", alignItems:"baseline", gap:10, flexWrap:"wrap" }}>
-        <Chevron open={open} />
-        <div style={{ fontSize:15, fontWeight:700, color:"var(--text)",
-                      fontFamily:"var(--font-mono)", letterSpacing:"0.08em" }}>
-          {label}
+      {/* ─── HERO + content (right column) ─── */}
+      <div style={{ gridColumn: "1 / -1", marginBottom: 8 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, letterSpacing: "0.14em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+          How MacroTilt thinks
         </div>
-        {sub && (
-          <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
-            · {sub}
+        <h1 style={{
+          fontFamily: "var(--font-display, Georgia, serif)",
+          fontSize: 44, fontWeight: 500, margin: "8px 0 12px",
+          letterSpacing: "-0.02em", lineHeight: 1.05,
+        }}>Methodology</h1>
+        <p style={{ fontSize: 16, lineHeight: 1.55, color: "var(--text-muted)", maxWidth: 760, margin: 0 }}>
+          MacroTilt runs a three-stage funnel from macro state to portfolio holdings.
+          <strong style={{ color: "var(--text)" }}> Macro Overview</strong> describes where the cycle sits today.
+          <strong style={{ color: "var(--text)" }}> Asset Tilt</strong> turns that into an explicit allocation recommendation
+          across equity, defensive sleeve, leverage, sectors, and industry groups.
+          <strong style={{ color: "var(--text)" }}> Trading Opportunities</strong> picks specific stocks within those.
+          <strong style={{ color: "var(--text)" }}> Portfolio Insights</strong> connects all of it to your actual holdings.
+        </p>
+        <div style={{ marginTop: 18, display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+          <span>Last updated · 2026-05-04</span>
+          <span>Calibration · v10.1c (Sprint 2 locked 2026-05-03)</span>
+          <span>Backtest window · 2012-01 through 2026-03 (171 months)</span>
+        </div>
+      </div>
+
+      {/* ─── LEFT: sticky TOC ─── */}
+      <nav style={{
+        position: "sticky", top: 24, alignSelf: "start",
+        borderRight: "0.5px solid var(--border)", paddingRight: 16,
+        maxHeight: "calc(100vh - 48px)", overflowY: "auto",
+      }}>
+        {/* Search input */}
+        <input
+          type="search"
+          placeholder="Search the methodology…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          style={{
+            width: "100%", padding: "8px 10px", fontSize: 13,
+            border: "0.5px solid var(--border)", borderRadius: 6,
+            background: "var(--surface)", color: "var(--text)",
+            fontFamily: "var(--font-ui, Inter, sans-serif)",
+            marginBottom: 16,
+          }}
+        />
+        {search && (
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 10 }}>
+            {matchingSectionIds.size} of {SECTIONS.length} sections match.
           </div>
         )}
-        <div style={{ marginLeft:"auto", fontSize:10, fontFamily:"var(--font-mono)",
-                      color:"var(--text-dim)", letterSpacing:"0.05em",
-                      textTransform:"uppercase" }}>
-          {open ? "click to collapse" : "click to expand"}
+
+        {/* TOC */}
+        {SECTIONS.map(s => {
+          const isOpen = openSections.has(s.id);
+          const matches = matchingSectionIds.has(s.id);
+          if (!matches) return null;
+          return (
+            <div key={s.id} style={{ marginBottom: 8 }}>
+              <button
+                onClick={() => toggleSection(s.id)}
+                style={{
+                  display: "block", width: "100%", textAlign: "left",
+                  background: "transparent", border: 0, padding: "5px 0",
+                  fontFamily: "var(--font-display, Georgia, serif)",
+                  fontSize: 14, fontWeight: 500, color: "var(--text)",
+                  cursor: "pointer", letterSpacing: "-0.005em",
+                }}
+              >
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 9,
+                  color: "var(--text-muted)", letterSpacing: "0.10em",
+                  fontWeight: 600, marginRight: 6,
+                }}>{s.num}</span>
+                {s.title}
+                {s.sub.length > 0 && (
+                  <span style={{ float: "right", fontSize: 10, color: "var(--text-muted)", transition: "transform 0.15s", display: "inline-block", transform: isOpen ? "rotate(90deg)" : "rotate(0)" }}>▸</span>
+                )}
+              </button>
+              {isOpen && s.sub.length > 0 && (
+                <div style={{ paddingLeft: 16, marginTop: 4, marginBottom: 8 }}>
+                  {s.sub.map(sub => (
+                    <a
+                      key={sub.id}
+                      href={`#${sub.id}`}
+                      onClick={e => scrollToAnchor(sub.id, e)}
+                      style={{
+                        display: "block", padding: "3px 0",
+                        fontSize: 12.5, color: "var(--text-muted)",
+                        textDecoration: "none", lineHeight: 1.45,
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.color = "var(--accent)"}
+                      onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}
+                    >
+                      {sub.label}
+                    </a>
+                  ))}
+                </div>
+              )}
+              {isOpen && s.sub.length === 0 && (
+                <div style={{ paddingLeft: 16, marginTop: 4, marginBottom: 8 }}>
+                  <a
+                    href={`#${s.id}`}
+                    onClick={e => scrollToAnchor(s.id, e)}
+                    style={{ display: "block", padding: "3px 0", fontSize: 12.5, color: "var(--text-muted)", textDecoration: "none", lineHeight: 1.45 }}
+                    onMouseEnter={e => e.currentTarget.style.color = "var(--accent)"}
+                    onMouseLeave={e => e.currentTarget.style.color = "var(--text-muted)"}
+                  >View →</a>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </nav>
+
+      {/* ─── RIGHT: content ─── */}
+      <div>
+        {SECTIONS.map(s => {
+          const matches = matchingSectionIds.has(s.id);
+          if (!matches) return null;
+          return (
+            <section key={s.id} id={s.id} style={styles.section}>
+              <div style={styles.sectionEyebrow}>{s.num} · {s.id.startsWith("hard-") || s.id === "backtest" || s.id === "sources" || s.id === "glossary" ? "Appendix" : "Section"}</div>
+              <h2 style={styles.sectionH2}>{s.title}</h2>
+              <p style={styles.sectionBlurb}>{s.blurb}</p>
+
+              {/* Subsections */}
+              {s.sub.length > 0 ? (
+                s.sub.map(sub => (
+                  <div key={sub.id}>
+                    <h3 id={sub.id} style={styles.subH3}>{sub.label}</h3>
+                    {SECTION_CONTENT[sub.id]}
+                  </div>
+                ))
+              ) : (
+                <div style={{ marginTop: 20 }}>
+                  {SECTION_CONTENT[s.id + "-content"]}
+                </div>
+              )}
+            </section>
+          );
+        })}
+
+        {/* End-of-page footer */}
+        <div style={{
+          marginTop: 60, paddingTop: 20, borderTop: "0.5px solid var(--border)",
+          fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6,
+        }}>
+          <strong style={{ color: "var(--text)" }}>Built for one user.</strong>{" "}
+          MacroTilt is a personal market dashboard, not a registered investment advisor.
+          Backtested performance is no guarantee of future returns. Hard caps protect against
+          regime drift but cannot prevent drawdowns. See full disclosures in the site footer.
         </div>
       </div>
-      {applies && applies.length > 0 && (
-        <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-          <span style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
-                         letterSpacing:"0.08em" }}>
-            APPLIES TO:
-          </span>
-          {applies.map((a) => (
-            <a key={a.id} href={a.path}
-               onClick={(e) => e.stopPropagation()}
-               style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
-                        textDecoration:"none", border:"1px solid var(--accent)",
-                        borderRadius:3, padding:"2px 6px", letterSpacing:"0.05em" }}>
-              {a.label}
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SectionHeader({ label, sub, applies }) {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:6, borderBottom:"1px solid var(--border)", paddingBottom:6 }}>
-      <div style={{ display:"flex", alignItems:"baseline", gap:10, flexWrap:"wrap" }}>
-        <div style={{ fontSize:15, fontWeight:700, color:"var(--text)",
-                      fontFamily:"var(--font-mono)", letterSpacing:"0.08em" }}>
-          {label}
-        </div>
-        {sub && (
-          <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)" }}>
-            · {sub}
-          </div>
-        )}
-      </div>
-      {applies && applies.length > 0 && (
-        <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-          <span style={{ fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
-                         letterSpacing:"0.08em" }}>
-            APPLIES TO:
-          </span>
-          {applies.map((a) => (
-            <a key={a.id} href={a.path}
-               style={{ fontSize:10, fontFamily:"var(--font-mono)", color:"var(--accent)",
-                        textDecoration:"none", border:"1px solid var(--accent)",
-                        borderRadius:3, padding:"2px 6px", letterSpacing:"0.05em" }}>
-              {a.label}
-            </a>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function Prose({ children }) {
-  return (
-    <div style={{ display:"flex", flexDirection:"column", gap:10, maxWidth:900,
-                   fontSize:13, color:"var(--text-2)", lineHeight:1.75 }}>
-      {children}
-    </div>
-  );
-}
-
-function P({ children }) {
-  return <div>{children}</div>;
-}
-
-function Formula({ children }) {
-  return (
-    <div style={{ fontFamily:"var(--font-mono)", fontSize:12, color:"var(--text)",
-                   background:"var(--surface-2)", border:"1px solid var(--border)",
-                   borderRadius:6, padding:"10px 12px" }}>
-      {children}
-    </div>
-  );
-}
-
-function PillChip({ text, color }) {
-  if (!text) return null;
-  return (
-    <span style={{ fontSize:10, fontFamily:"var(--font-mono)", color:color || "var(--text-dim)",
-                   border:`1px solid ${color || "var(--border)"}`, borderRadius:3,
-                   padding:"1px 6px", letterSpacing:"0.05em", whiteSpace:"nowrap" }}>
-      {text}
-    </span>
-  );
-}
-
-// ─── Disclaimer ─────────────────────────────────────────────────────────────
-
-// ─── §1 HOME — what the home page surfaces ─────────────────────────────────
-function HomeSection({ open, onToggle }) {
-  return (
-    <section id="mth__home" data-testid="methodology-section-home"
-      style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <CollapsibleSectionHeader
-        label="1 · HOME"
-        sub="What the cover sheet surfaces"
-        applies={[{ id:"home", label:"Home", path:"#home" }]}
-        open={open}
-        onToggle={onToggle}
-      />
-      {open && (<>
-      <Prose>
-        <P>The Home page is the cover sheet for the dashboard. It pulls four threads together:</P>
-        <P><strong>Macro composite headline</strong> — the current v11 cycle mechanism composite-average (simple average of the six mechanism scores) and band (Risk-on / Neutral / Caution / Risk-off), sourced from <code>cycle_board_snapshot.json</code>. Updated daily.</P>
-        <P><strong>Portfolio summary</strong> — your live portfolio value, today's P&amp;L, and trailing time-weighted return (TWR) computed from the daily portfolio_history snapshots described in §5 Portfolio Insights.</P>
-        <P><strong>Trading-opportunity tile</strong> — top-ranked tickers by Signal Score from the engine documented in §4 Trading Opportunities, filtered to your watchlist + held positions where applicable.</P>
-        <P><strong>Daily news</strong> — multi-source news feed (Unusual Whales headlines, ZeroHedge, Google News fallback for any ticker without a UW URL).</P>
-        <P>The Home page does not run any unique math of its own — it's a routing layer that surfaces the most-load-bearing read from each of the deeper tabs. Every number on the page links back to its source tab.</P>
-      </Prose>
-      </>)}
-    </section>
-  );
-}
-
-// ─── §4 TRADING OPPORTUNITIES — wraps Scanner Sources + Methodology ─────────
-// One collapsible parent containing 4.1 Scanner Data Sources and 4.2 Signal
-// Score Math as plain sub-sections. Mirrors the sidebar nav: "Trading
-// Opportunities" is the destination tab; the per-ticker scanner is what
-// powers it.
-function TradingOppsMethodology({ ind, asOf, open, onToggle }) {
-  return (
-    <section id="mth__trading" data-testid="methodology-section-trading"
-      style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <CollapsibleSectionHeader
-        label="4 · TRADING OPPORTUNITIES"
-        sub="Per-ticker Signal Score — data sources + the [−100, +100] math"
-        applies={[{ id:"portopps", label:"Trading Opportunities", path:"#portopps" }]}
-        open={open}
-        onToggle={onToggle}
-      />
-      {open && (<>
-      <Prose>
-        <P>Two sub-sections. <strong>4.1</strong> documents every upstream data stream the scanner reads (options flow, dark pool, Congress, insider trades, analyst, technicals). <strong>4.2</strong> documents how those streams combine into a single signed composite per ticker, plus the directional tier labels (STRONG BULL / BULLISH / TILT BULL / NEUTRAL / TILT BEAR / BEARISH / STRONG BEAR).</P>
-      </Prose>
-      <DataCatalogTable ind={ind} asOf={asOf} />
-      <SignalScoreMath />
-      </>)}
-    </section>
-  );
-}
-
-// ─── §5 PORTFOLIO INSIGHTS — TWR + observations ───────────────────────────
-function PortfolioInsightsSection({ open, onToggle }) {
-  return (
-    <section id="mth__insights" data-testid="methodology-section-insights"
-      style={{ display:"flex", flexDirection:"column", gap:14 }}>
-      <CollapsibleSectionHeader
-        label="5 · PORTFOLIO INSIGHTS"
-        sub="How portfolio P&L, returns, and observations are computed"
-        applies={[{ id:"insights", label:"Portfolio Insights", path:"#insights" }]}
-        open={open}
-        onToggle={onToggle}
-      />
-      {open && (<>
-      <Prose>
-        <P><strong>Time-weighted return (TWR).</strong> The portfolio's daily TWR is computed from the <code>portfolio_history</code> table (one row per portfolio per weekday) — each row stores the day's market value and any cash flows in/out. TWR neutralises the timing of deposits and withdrawals so the return reflects manager skill, not contribution timing. Formula: chain-link daily sub-period returns where each sub-period return = (end value − cash flows) / start value − 1.</P>
-        <P><strong>Observations.</strong> Rules-driven only — no narrative commentary. The page emits an observation when one of these triggers fires: position concentration &gt;10% of portfolio, beta outliers vs the SPY benchmark, deployable cash above a threshold, or a held-position scanner score in REVIEW band. If zero rules fire, the section renders nothing — silence is the correct read on an unremarkable book.</P>
-        <P><strong>Scanner overlay.</strong> Each held position carries its current Signal Score (engine documented in §4) and a freshness chip indicating when the score was last computed.</P>
-        <P><strong>Universe snapshot overlay.</strong> Live prices, implied volatility, and options flow are merged onto held positions from the <code>universe_snapshots</code> table (refreshed 3× per weekday) so the page reflects intraday state without re-running the full scanner.</P>
-      </Prose>
-      </>)}
-    </section>
-  );
-}
-
-function Disclaimer() {
-  return (
-    <div style={{ background:"var(--surface-2)", border:"1px solid var(--border)",
-                   borderRadius:8, padding:"12px 14px" }}>
-      <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)",
-                    letterSpacing:"0.1em", marginBottom:6 }}>
-        DISCLAIMER
-      </div>
-      <div style={{ fontSize:12, color:"var(--text-muted)", lineHeight:1.75 }}>
-        This dashboard is for informational and educational purposes only. It is not financial advice,
-        investment advice, or a solicitation to buy or sell any security. All data is sourced from public
-        databases and third-party providers and may have errors or delays. Past relationships between
-        indicators and market outcomes do not guarantee future results.
-      </div>
-    </div>
+    </main>
   );
 }
