@@ -1,0 +1,166 @@
+{
+  "as_of": "2026-05-04",
+  "version": "v10.0",
+  "engine": "Phase 2 \u2014 6-mechanism cycle-board allocator",
+  "mechanism_scores": {
+    "valuation": 99,
+    "credit": 44,
+    "funding": 54,
+    "growth": 42,
+    "liquidity_policy": 59,
+    "positioning_breadth": 63
+  },
+  "mechanism_bands": {
+    "valuation": "risk-off",
+    "credit": "neutral",
+    "funding": "caution",
+    "growth": "neutral",
+    "liquidity_policy": "caution",
+    "positioning_breadth": "caution"
+  },
+  "stress_score": 2,
+  "equity_pct": 0.8334,
+  "defensive_pct": 0.1666,
+  "leverage": 1.0,
+  "gross_exposure": 0.8334,
+  "sectors": [
+    {
+      "sector": "Information Technology",
+      "tilt_score": -0.702,
+      "rating": "UW",
+      "spy_weight": 0.27,
+      "raw_weight": 0.2025,
+      "weight": 0.1731,
+      "dollar": 17.31,
+      "vs_spy_pp": -6.2
+    },
+    {
+      "sector": "Communication Services",
+      "tilt_score": -0.6,
+      "rating": "UW",
+      "spy_weight": 0.09,
+      "raw_weight": 0.0675,
+      "weight": 0.0577,
+      "dollar": 5.77,
+      "vs_spy_pp": -2.1
+    },
+    {
+      "sector": "Financials",
+      "tilt_score": 0.836,
+      "rating": "OW",
+      "spy_weight": 0.13,
+      "raw_weight": 0.156,
+      "weight": 0.1333,
+      "dollar": 13.33,
+      "vs_spy_pp": 3.0
+    },
+    {
+      "sector": "Health Care",
+      "tilt_score": 0.626,
+      "rating": "OW",
+      "spy_weight": 0.13,
+      "raw_weight": 0.156,
+      "weight": 0.1333,
+      "dollar": 13.33,
+      "vs_spy_pp": 3.0
+    },
+    {
+      "sector": "Consumer Discretionary",
+      "tilt_score": -0.408,
+      "rating": "UW",
+      "spy_weight": 0.11,
+      "raw_weight": 0.0825,
+      "weight": 0.0705,
+      "dollar": 7.05,
+      "vs_spy_pp": -2.5
+    },
+    {
+      "sector": "Industrials",
+      "tilt_score": 0.596,
+      "rating": "OW",
+      "spy_weight": 0.09,
+      "raw_weight": 0.108,
+      "weight": 0.0923,
+      "dollar": 9.23,
+      "vs_spy_pp": 2.1
+    },
+    {
+      "sector": "Consumer Staples",
+      "tilt_score": 0.67,
+      "rating": "OW",
+      "spy_weight": 0.06,
+      "raw_weight": 0.072,
+      "weight": 0.0615,
+      "dollar": 6.15,
+      "vs_spy_pp": 1.4
+    },
+    {
+      "sector": "Energy",
+      "tilt_score": 0.788,
+      "rating": "OW",
+      "spy_weight": 0.04,
+      "raw_weight": 0.048,
+      "weight": 0.041,
+      "dollar": 4.1,
+      "vs_spy_pp": 0.9
+    },
+    {
+      "sector": "Materials",
+      "tilt_score": 0.506,
+      "rating": "OW",
+      "spy_weight": 0.02,
+      "raw_weight": 0.024,
+      "weight": 0.0205,
+      "dollar": 2.05,
+      "vs_spy_pp": 0.5
+    },
+    {
+      "sector": "Real Estate",
+      "tilt_score": -0.546,
+      "rating": "UW",
+      "spy_weight": 0.03,
+      "raw_weight": 0.0225,
+      "weight": 0.0192,
+      "dollar": 1.92,
+      "vs_spy_pp": -0.7
+    },
+    {
+      "sector": "Utilities",
+      "tilt_score": 0.454,
+      "rating": "OW",
+      "spy_weight": 0.03,
+      "raw_weight": 0.036,
+      "weight": 0.0308,
+      "dollar": 3.08,
+      "vs_spy_pp": 0.7
+    }
+  ],
+  "defensive": [
+    {
+      "ticker": "BIL",
+      "name": "Cash (1-3M Treasury)",
+      "dollar": 4.17
+    },
+    {
+      "ticker": "TLT",
+      "name": "Long Treasuries",
+      "dollar": 4.17
+    },
+    {
+      "ticker": "GLD",
+      "name": "Gold",
+      "dollar": 4.17
+    },
+    {
+      "ticker": "LQD",
+      "name": "IG Corporate Bonds",
+      "dollar": 4.17
+    }
+  ],
+  "rule_audit": {
+    "max_defensive_50pct": true,
+    "max_leverage_1_5x": true,
+    "defensive_xor_leverage": true,
+    "all_6_mechanisms_used": true
+  }
+}
