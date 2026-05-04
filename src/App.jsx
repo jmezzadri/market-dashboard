@@ -33,6 +33,7 @@ import PositionEditor from "./components/PositionEditor";
 import CloseModal    from "./components/CloseModal";
 import BulkImport from "./components/BulkImport";
 import ImportTransactions from "./components/ImportTransactions";
+import AccountTilesSection from "./components/AccountTilesSection";
 import UniverseFreshness from "./components/UniverseFreshness";
 import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
@@ -7265,21 +7266,20 @@ return(<>
   <TradeHistorySection rows={_txRows} loading={_txLoading} accounts={ACCOUNTS}/>
 )}
 
-{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab */}
-{showInsights&&<div style={sectionPanel}>
-<div style={{...sectionHeader,cursor:"pointer"}} onClick={()=>setAcctBreakdownOpen(v=>!v)}>
-<span style={sectionTitleStyle}>③ ACCOUNT BREAKDOWN</span>
-<div style={{display:"flex",alignItems:"center",gap:14}}>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{ACCOUNTS.length} accounts · position-level detail</span>
-<span style={{fontSize:11,color:ACCENT,fontFamily:"var(--font-mono)"}}>{acctBreakdownOpen?"▾ Hide":"▸ Show"}</span>
-</div>
-</div>
-{acctBreakdownOpen&&(
-<div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:12}}>
-{ACCOUNTS.map(acct=>(<AcctCard key={acct.id} acct={acct} grandTotal={grandTotal} convColor={CONV.color} convLabel={CONV.label} stressScore={COMP100}/>))}
-</div>
+{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab.
+    2026-05-04: replaced AcctCard list with AccountTilesSection — per-account
+    tile grid (NAV / TTM TWR / Sharpe / Beta / Cash) with click-to-expand
+    inline position list using the existing PosCard component. */}
+{showInsights&&(
+  <AccountTilesSection
+    accounts={ACCOUNTS}
+    grandTotal={grandTotal}
+    convColor={CONV.color}
+    convLabel={CONV.label}
+    stressScore={COMP100}
+    PosCard={PosCard}
+  />
 )}
-</div>}
 
 </div>
 );
