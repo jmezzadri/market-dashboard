@@ -5910,7 +5910,7 @@ return(
           );
         })()}
         <div style={{marginTop:"var(--space-4)", paddingTop:"var(--space-3)", borderTop:"1px solid var(--border-faint)", fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.06em", display:"flex", justifyContent:"space-between", alignItems:"center", gap:8}}>
-          <span>v10.1c calibration · 2012-2026 backtest CAGR 13.85%, Sharpe 1.034</span>
+          <span>v10.1c calibration · 2012-2026 backtest CAGR 13.89%, Sharpe 1.029</span>
         </div>
       </div>
 
