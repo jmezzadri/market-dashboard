@@ -1,59 +1,44 @@
 {
-  "_doc": "v11 cycle-mechanism scores. Source of truth read by both the home Macro Overview tile (src/App.jsx) and the v11 page (public/MacroTilt_Macro_Overview_Page_v11.html). The aggregate verdict is COMPUTED from these scores using the same labelFn as v11 \u2014 do not pre-compute it here. // Credit mechanism now carries provisional triggers (HY OAS 500/600bp armed/active) added 2026-04-30. Final calibration deferred to Sprint 2.",
+  "_doc": "v11 cycle-mechanism scores. Source of truth read by both the home Macro Overview tile (src/App.jsx) and the v11 page (public/MacroTilt_Macro_Overview_Page_v11.html). The aggregate verdict is COMPUTED from these scores using the same labelFn as v11 \u2014 do not pre-compute it here. Refreshed nightly by scripts/compute_v11_mechanisms.py at 22:30 UTC weekdays.",
   "as_of": "2026-05-04",
   "framework": "v11 \u2014 six cycle mechanisms",
-  "calibration_label": "Sprint 1 calibration",
+  "calibration_label": "Sprint 2 calibration",
   "mechanisms": [
     {
       "id": "valuation",
       "num": "01",
       "name": "Valuation",
-      "score": 87
+      "score": 99
     },
     {
       "id": "credit",
       "num": "02",
       "name": "Credit",
-      "score": 69,
-      "triggers": [
-        {
-          "input": "hy_oas",
-          "input_label": "HY OAS",
-          "input_source": "FRED BAMLH0A0HYM2",
-          "unit": "bp",
-          "armed_at": 500,
-          "active_at": 600,
-          "provisional_calibration": true,
-          "calibration_note": "Provisional rule-of-thumb thresholds. Mean 426bp / peak 1090bp (COVID 2020). 500bp \u2248 mean + 0.5\u03c3; 600bp \u2248 p90. Final calibration pending v11 Sprint 2 sweep across all 6 mechanisms.",
-          "calibration_target_sprint": "Sprint 2",
-          "supersedes_bug": "#1125",
-          "added": "2026-04-30"
-        }
-      ]
+      "score": 44
     },
     {
       "id": "funding",
       "num": "03",
       "name": "Funding",
-      "score": 30
+      "score": 54
     },
     {
       "id": "growth",
       "num": "04",
       "name": "Growth",
-      "score": 47
+      "score": 42
     },
     {
       "id": "liquidity_policy",
       "num": "05",
       "name": "Liquidity & Policy",
-      "score": 55
+      "score": 59
     },
     {
       "id": "positioning_breadth",
       "num": "06",
       "name": "Positioning & Breadth",
-      "score": 70
+      "score": 63
     }
   ]
 }
