@@ -423,7 +423,7 @@ bidir_bottom         →  score = 100 − percentile`}</Formula>
   "tilt-models": (
     <>
       <Body>
-        The allocator runs in five steps. Each step is deterministic and the rules are version-locked
+        The allocator runs in five steps. Each step is deterministic and the rules are versioned
         in the script.
       </Body>
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 1 — Stress score</h4>
@@ -787,7 +787,7 @@ else                                      →  REVIEW`}</Formula>
       </Callout>
       <Body>
         Full evidence pack: <Code>PHASE2_V10_BACKTEST.md</Code> in the project workspace. Every
-        threshold in v10.1c was tuned against this backtest before being locked in code.
+        threshold in v10.1c was tuned against this backtest before being committed to code.
       </Body>
     </>
   ),
@@ -945,7 +945,7 @@ export default function MethodologyPage() {
         </p>
         <div style={{ marginTop: 18, display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
           <span>Last updated · 2026-05-04</span>
-          <span>Calibration · v10.1c (Sprint 2 locked 2026-05-03)</span>
+          <span>Calibration · v10.1c · Sprint 2 (2026-05-03)</span>
           <span>Backtest window · 2012-01 through 2026-03 (171 months)</span>
         </div>
       </div>
