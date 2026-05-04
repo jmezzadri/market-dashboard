@@ -763,11 +763,13 @@ else                                      →  REVIEW`}</Formula>
   "backtest-content": (
     <>
       <Body>
-        v10.1c (current production engine) was backtested against 2012-01 through 2026-03 (171 months)
-        using monthly rebalancing. Each historical month's allocation came from running the v10.1c
-        rules against the mechanism scores available at that point in time (no lookahead). Sector
-        returns from yfinance for the eleven sector ETFs plus the four defensive ETFs (BIL / TLT /
-        GLD / LQD). Numbers below are from <Code>PHASE2_V10_BACKTEST.md</Code>:
+        v10.1c (current production engine) is backtested against 2012-01 through 2026-03 (171
+        months) using monthly rebalancing. Each historical month's allocation comes from running
+        the v10.1c rules against the mechanism scores available at that point in time (no
+        lookahead). Sector returns from yfinance for the eleven sector ETFs plus the four
+        defensive ETFs (BIL / TLT / GLD / LQD). Numbers below are produced by
+        <Code>scripts/backtest_v10_v11.py</Code> and refreshed in
+        <Code>public/backtest_v10_v11_summary.json</Code>:
       </Body>
       <table style={styles.table}>
         <thead><tr>
@@ -777,25 +779,26 @@ else                                      →  REVIEW`}</Formula>
           <th style={styles.th}>v9 baseline (2008-2026)</th>
         </tr></thead>
         <tbody>
-          <tr><td style={styles.td}>CAGR</td><td style={styles.td}><strong>12.35%</strong></td><td style={styles.td}>14.58%</td><td style={styles.td}>13.88%</td></tr>
-          <tr><td style={styles.td}>Sharpe (annualized)</td><td style={styles.td}><strong>1.065</strong></td><td style={styles.td}>1.046</td><td style={styles.td}>0.610</td></tr>
-          <tr><td style={styles.td}>Max drawdown</td><td style={styles.td}><strong>−20.14%</strong></td><td style={styles.td}>−23.93%</td><td style={styles.td}>−23.64%</td></tr>
-          <tr><td style={styles.td}>Calendar wins vs SPY</td><td style={styles.td}>2 of 15</td><td style={styles.td}>—</td><td style={styles.td}>10 of 19</td></tr>
+          <tr><td style={styles.td}>CAGR</td><td style={styles.td}><strong>13.89%</strong></td><td style={styles.td}>14.66%</td><td style={styles.td}>13.88%</td></tr>
+          <tr><td style={styles.td}>Sharpe (annualized)</td><td style={styles.td}><strong>1.029</strong></td><td style={styles.td}>1.030</td><td style={styles.td}>0.610</td></tr>
+          <tr><td style={styles.td}>Max drawdown</td><td style={styles.td}><strong>−21.36%</strong></td><td style={styles.td}>−23.97%</td><td style={styles.td}>−23.64%</td></tr>
+          <tr><td style={styles.td}>Calendar wins vs SPY</td><td style={styles.td}>5 of 15</td><td style={styles.td}>—</td><td style={styles.td}>10 of 19</td></tr>
+          <tr><td style={styles.td}>Months at 100% equity</td><td style={styles.td}>83%</td><td style={styles.td}>—</td><td style={styles.td}>—</td></tr>
         </tbody>
       </table>
       <Body>
-        The v10.1c value proposition: about 75% better risk-adjusted return than v9 (Sharpe 1.065
-        vs 0.610), slightly better Sharpe than SPY (1.065 vs 1.046), and four percentage points
-        smaller maximum drawdown than SPY (−20.14% vs −23.93%) — at the cost of about 220bp of
+        The v10.1c value proposition: about 70% better risk-adjusted return than v9 (Sharpe 1.029
+        vs 0.610), nearly identical Sharpe to SPY (1.029 vs 1.030), and 2.6 percentage points
+        smaller maximum drawdown than SPY (−21.36% vs −23.97%) — at the cost of about 80bp of
         annualized CAGR vs SPY. The strategy is doing what it's designed to do: take less risk per
         unit of return.
       </Body>
       <Body>
-        Calendar-year wins vs SPY are only 2 of 15 because the defensive sleeve and tech
-        underweight (correctly flagged by stretched Valuation since 2014) have dragged in the
-        post-2012 tech-led bull market. The two years v10.1c outperformed are precisely the years
-        the strategy is built for: 2014 (+0.31pp vs SPY) and 2022 (+2.37pp vs SPY) — the inflation
-        / rates regime.
+        v10.1c outperformed SPY in 5 of 15 calendar years; the standout was 2022 (+2.66pp vs SPY)
+        — precisely the inflation / rates regime the engine is built for. The four other wins
+        (2016, 2019, 2020, 2021) came from sector tilts firing correctly. The largest miss was
+        2024 (−6.25pp vs SPY), where the tech underweight (correctly flagged by stretched
+        Valuation) dragged in a tech-led bull market.
       </Body>
       <Callout>
         <strong>Honest gap.</strong> v10.1c has not been tested against 2008–2011 (the GFC and
