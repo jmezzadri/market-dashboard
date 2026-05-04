@@ -291,3 +291,29 @@ pad them by typical FRED lag. Filed as a follow-up.
 **What happened:** I built a script that updated a data file the home page was already reading. The home page expected the data to have certain labels; my script wrote different labels into the same file. The home page couldn't find the labels it was looking for, so every cycle-board score on the home page rendered as a blank zero. The page didn't crash and no error showed up in the logs — it just looked broken. Joe caught it within a couple of hours of the deploy.
 
 **What you should do instead:** Before shipping anything that writes to or changes a data file in `public/`, search the website's source code for that file's name and find every page that reads from it. Note exactly which labels each page is pulling out. Your new code must keep those exact labels — if you change a label, the page silently breaks. After the deploy goes live, load the actual page in a browser and look at it — "the file was written" is not the same as "the page renders correctly." If you have to change labels, update the page's code in the same pull request as the data change so they ship together.
+
+
+---
+
+## 2026-05-04 (b) — No hardcoded dates anywhere on the site
+
+**What happened:** Several places on the site were stamping dates as plain strings — "tax year 2026", a hardcoded "next release: May 6", a footer that read "as of [hardcoded today]" — instead of pulling from `pipeline_health`, `data_manifest`, or `cycle_board_snapshot`. Every one of them eventually went stale and had to be chased down individually. The page looks fine, the data underneath is hours or days old, and nothing alerts.
+
+**What you should do instead:** Every "current" date displayed in the UI must be sourced from a live registry — `pipeline_health`, `data_manifest.json`, or the cycle_board snapshot. No string literals. If you find yourself typing a month name or year into JSX, stop and ask: "where would this come from if I refreshed at 6am tomorrow?" — that source is the one to read. Hardcoded historical-event labels (e.g. "Dec 2021 — All-time peak") are fine; those are facts of the past, not freshness signals. Calendar reference data (NYSE_HOLIDAYS, US_FEDERAL_HOLIDAYS) is also fine — it has its own annual-refresh schedule and a clear single source.
+
+---
+
+## 2026-05-04 (c) — Every file deletion must grep all imports first
+
+**What happened:** PR #361 deleted `trading-scanner/scanner/schwab.py` with the commit message "0 imports, 0 env refs." The grep that produced that claim only checked the top-level scanner module, not `main.py`, which was importing the file. Every scheduled scan since the merge crashed at module import — but the DST-gate check around the scanner reported the crash as a "skipped" (out-of-window) rather than a failure, so no alert fired. Multi-day silent outage. PR #417 had to drop the dead `from scanner import schwab` line in `main.py` to get the scanner running again.
+
+**What you should do instead:** Before deleting any file, grep the WHOLE repo for the file basename without the extension (`schwab`, not `schwab.py`) AND with the extension. Include all entry points — `main.py`, top-level scripts, GitHub Actions workflows, edge functions. The PR description must paste the actual grep output ("0 results in src/, 0 results in trading-scanner/, 0 results in .github/workflows/"). And separately: any "successful" pipeline run that returns the no-op exit path (gated, skipped, weekend) must be visually distinct from a "successful" run that actually did the work — otherwise a regression that turns every run into a no-op looks identical to a healthy quiet day.
+
+---
+
+## 2026-05-04 (d) — Plain-English rule applies inside AskUserQuestion popups too
+
+**What happened:** Tried to surface a quant decision via popup using option labels like "Dedup, keep highest-scoring share class" and option descriptions full of jargon ("normalized lookup," "reduce step in the scanner"). The popup is part of "addressing Joe" — same audience, same plain-English standard as chat.
+
+**What you should do instead:** Strip jargon from popup option labels and descriptions. Phrase options the way you would phrase them to someone who has never written code. Use the Background / Context / Impact framing inside the description so Joe can decide based on outcomes, not implementation. Words like "dedup," "reduce step," "lookup table," "normalize," "schema," "diff" should not appear in popup text — replace with what they mean ("show only the top scorer," "small list of paired tickers," "treat BRK.A and BRK-A as the same"). The popup is a question, not a code review.
+
