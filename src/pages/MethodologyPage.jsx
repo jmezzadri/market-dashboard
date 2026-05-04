@@ -475,7 +475,7 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         Each sector's six sensitivities are coefficients between roughly −1.5 and +1.5. Positive means
         the sector benefits when that mechanism is in caution/risk-off; negative means the sector is
         hurt. The sensitivity matrix is anchored on per-sector regression studies but documented as
-        constants in code rather than re-fit every night — refits happen at calibration locks
+        constants in code rather than re-fit every night — refits happen on a calibration cadence
         (Sprint 2 was 2026-05-04).
       </Body>
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 5 — Per-IG tilt</h4>
