@@ -23,7 +23,7 @@ from config import (
     SCORE_WATCH_ALERT,
     WIDE_UNIVERSE_ENABLED,
 )
-from scanner import notifier, reporter, schwab, unusual_whales as uw
+from scanner import notifier, reporter, unusual_whales as uw
 from scanner.market_news import get_market_news
 from scanner.price_history import clear_ohlcv_cache, clear_price_changes_cache
 from scanner.signal_composite import (
@@ -580,9 +580,13 @@ def run_scan(scan_type: str = "intraday", *, debug: bool = False) -> None:
         for t, c in watch_scored
     ]
 
-    positions = schwab.get_positions()
-    cash = schwab.get_cash_balance()
-    open_calls = schwab.get_open_options()
+    # Schwab broker integration was removed in PR #361 (the stub was returning
+    # empty defaults anyway; portfolio data flows through load_portfolio_positions
+    # / load_covered_calls below). Keep the no-op placeholders so the rest of the
+    # scan pipeline reads unchanged.
+    positions: list = []
+    cash: float = 0.0
+    open_calls: list = []
 
     portfolio_positions = load_portfolio_positions()
     portfolio_cc = load_covered_calls()
