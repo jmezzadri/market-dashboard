@@ -4915,6 +4915,7 @@ const HASH_ALIASES={
   "positions":"insights",  // bug #1132
   "watchlist":"insights",  // bug #1132 — watchlist sub-panels live in insights
   "asset-allocation":"allocation",
+  "methodology":"readme",  // 2026-05-04 — natural URL for the methodology page
 };
 const resolveHash=(raw)=>{
   // Strip leading # AND any ?query=… suffix so hashes like
@@ -7362,16 +7363,9 @@ return(<>
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
-{tab==="readme" && (<>
-  <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><RichHero
-    eyebrow="FAQ &amp; Methodology"
-    headline={"How the model works — "}
-    italicAccent={"every parameter exposed."}
-    italicSub={"Sources, scoring, regime thresholds, calibration windows."}
-    lead={<>The full methodology — every <strong style={{fontWeight:600,color:"var(--text)"}}>data source</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>formula</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>regime threshold</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>back-test parameter</strong> the model uses. Organized by surface: <strong style={{fontWeight:600,color:"var(--text)"}}>macro composites</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>allocation engine</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>trading opportunities scanner</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>portfolio risk</strong>. If you want to know why a number is what it is, the answer is on this page. Search the indicator reference at the bottom for any specific signal.</>}
-  /></div>
+{tab==="readme" && (
   <MethodologyPage ind={IND} asOf={{...AS_OF}} asOfIso={{...AS_OF_ISO}} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>
-</>)}
+)}
 
 
 {/* close fade-in wrapper around tab content */}
