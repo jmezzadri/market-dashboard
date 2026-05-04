@@ -122,7 +122,7 @@ function colorBeta(v) {
   return "var(--text)";
 }
 
-function Sparkline({ navSeries, tall = false }) {
+function Sparkline({ navSeries, tall = false, compact = false }) {
   if (!navSeries || navSeries.length < 2) {
     return (
       <div style={{ height: 42, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, color: "var(--text-muted)" }}>
@@ -131,7 +131,7 @@ function Sparkline({ navSeries, tall = false }) {
     );
   }
   const W = tall ? 880 : 240;
-  const H = tall ? 58 : 42;
+  const H = tall ? 58 : (compact ? 28 : 42);
   const navs = navSeries.map((s) => s.nav);
   const lo = Math.min(...navs), hi = Math.max(...navs);
   const span = hi - lo || 1;
@@ -155,14 +155,6 @@ function Sparkline({ navSeries, tall = false }) {
   );
 }
 
-// Portfolio-wide TTM TWR + Sharpe — match the values the page header
-// already shows (computed in src/lib/portfolioReturns.js using the
-// aggregate-first Modified Dietz). Hardcoded here so the header tile is
-// consistent with the page header — both should always read the same.
-// If those page-header numbers change methodology, update both in lockstep.
-const PORTFOLIO_TTM_TWR = 0.095;     // +9.5%
-const PORTFOLIO_SHARPE = 0.24;
-
 const ACCOUNT_DOT_COLORS = {
   "EY 401(K)":    "#7a2e2a",
   "Taxable":      "#b58a3d",
@@ -174,86 +166,6 @@ const ACCOUNT_DOT_COLORS = {
 
 // ── component ─────────────────────────────────────────────────────────────
 
-
-// ── HeaderTile — aggregate across all accounts ───────────────────────────
-function HeaderTile({ tiles, grandTotal, aggSeries }) {
-  const totalCash = tiles.reduce((s, t) => s + (t.cash || 0), 0);
-  const totalPositions = tiles.reduce((s, t) => s + (t.positionCount || 0), 0);
-  const weightedBeta = grandTotal > 0
-    ? tiles.reduce((s, t) => s + (t.nav || 0) * (t.beta || 0), 0) / grandTotal
-    : null;
-
-  const wrap = {
-    background: "linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(245,241,234,0.92) 100%)",
-    border: "1.5px solid rgba(122,46,42,0.30)",
-    borderRadius: 12,
-    padding: "20px 24px 22px",
-    boxShadow: "0 6px 22px rgba(122,46,42,0.10), var(--shadow-sm)",
-    marginBottom: 18,
-    display: "flex",
-    flexDirection: "column",
-    gap: 16,
-  };
-  const headRow = { display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" };
-  const eyebrow = { fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4 };
-  const label = { fontFamily: "var(--font-display, var(--font-sans))", fontSize: 22, fontWeight: 500, color: "var(--text)", letterSpacing: "-0.01em" };
-  const meta = { display: "flex", gap: 6, flexWrap: "wrap" };
-  const pill = (extra = {}) => ({ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", padding: "4px 8px", border: "1px solid var(--border)", borderRadius: 4, background: "var(--surface-3)", letterSpacing: "0.04em", ...extra });
-  const headerGrid = { display: "grid", gridTemplateColumns: "1.2fr 1fr 1fr 1fr 1fr", gap: 18, padding: "12px 0", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" };
-  const bigStat = { display: "flex", flexDirection: "column", gap: 4 };
-  const bigLabel = { fontFamily: "var(--font-mono)", fontSize: 9, letterSpacing: "0.10em", color: "var(--text-dim)", textTransform: "uppercase" };
-  const bigValue = (color) => ({ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 700, color: color || "var(--text)", letterSpacing: "-0.02em", lineHeight: 1.05 });
-  const sparkMeta = { display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.03em", marginTop: -4 };
-
-  return (
-    <div style={wrap}>
-      <div style={headRow}>
-        <div>
-          <div style={eyebrow}>YOUR BOOK</div>
-          <div style={label}>All accounts combined</div>
-        </div>
-        <div style={meta}>
-          <span style={pill()}>{tiles.length} accounts</span>
-          <span style={pill()}>{totalPositions} open positions</span>
-          <span style={pill({ borderColor: "#7a2e2a44", color: "#7a2e2a", background: "#7a2e2a0a" })}>Live</span>
-        </div>
-      </div>
-
-      <div style={headerGrid}>
-        <div style={bigStat}>
-          <div style={bigLabel}>TOTAL NAV</div>
-          <div style={bigValue()}>{fmtMoneyCompact(grandTotal)}</div>
-        </div>
-        <div style={bigStat}>
-          <div style={bigLabel}>TTM RETURN</div>
-          <div style={bigValue(colorTwr(PORTFOLIO_TTM_TWR))}>{fmtPct(PORTFOLIO_TTM_TWR, 1)}</div>
-        </div>
-        <div style={bigStat}>
-          <div style={bigLabel}>SHARPE</div>
-          <div style={bigValue(colorSharpe(PORTFOLIO_SHARPE))}>{fmtNum(PORTFOLIO_SHARPE)}</div>
-        </div>
-        <div style={bigStat}>
-          <div style={bigLabel}>BETA</div>
-          <div style={bigValue(colorBeta(weightedBeta))}>{fmtNum(weightedBeta)}</div>
-        </div>
-        <div style={bigStat}>
-          <div style={bigLabel}>{totalCash < 0 ? "NET MARGIN" : "NET CASH"}</div>
-          <div style={bigValue(totalCash < 0 ? "#9a1f1f" : "#3d5a80")}>{fmtMoney(totalCash)}</div>
-        </div>
-      </div>
-
-      <Sparkline navSeries={aggSeries} tall />
-      <div style={sparkMeta}>
-        <span>Total assets, monthly (includes contributions)</span>
-        <span>
-          {aggSeries[0]?.as_of?.slice(0, 7) || ""}
-          {aggSeries.length ? " → " : ""}
-          {aggSeries[aggSeries.length - 1]?.as_of?.slice(0, 7) || ""}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 export default function AccountTilesSection({ accounts, grandTotal, convColor, convLabel, stressScore, PosCard }) {
   const { rows: history, loading: historyLoading } = usePortfolioHistory();
@@ -270,10 +182,14 @@ export default function AccountTilesSection({ accounts, grandTotal, convColor, c
       const nav = positions.reduce((sum, p) => sum + (p.value || 0), 0);
       const cash = positions.filter((p) => (p.asset_class || "").toLowerCase() === "cash" || (p.sector || "").toLowerCase() === "cash")
                            .reduce((sum, p) => sum + (p.value || 0), 0);
-      const exNonCash = positions.filter((p) => (p.asset_class || "").toLowerCase() !== "cash" && (p.sector || "").toLowerCase() !== "cash");
-      const denom = exNonCash.reduce((s, p) => s + Math.max(0, p.value || 0), 0);
+      // Beta methodology: match the page-header portBeta exactly. Includes
+      // ALL positions (cash, margin, holdings) in both numerator and
+      // denominator. Cash positions have beta=0, so they dilute the
+      // weighted average toward zero — this is the desired behavior and
+      // matches portBeta in App.jsx (line ~5323).
+      const denom = positions.reduce((s, p) => s + Math.max(0, p.value || 0), 0);
       const beta = denom > 0
-        ? exNonCash.reduce((s, p) => s + ((Math.max(0, p.value || 0) / denom) * (p.beta || 0)), 0)
+        ? positions.reduce((s, p) => s + ((Math.max(0, p.value || 0) / denom) * (p.beta || 0)), 0)
         : null;
       const stats = computeAccountStats(histByLabel.get(a.label) || []);
       return {
@@ -292,28 +208,6 @@ export default function AccountTilesSection({ accounts, grandTotal, convColor, c
     return out;
   }, [accounts, history]);
 
-  // Aggregate 12-month NAV series across all accounts for the header tile.
-  // For each as_of in any account's history, sum the latest known NAV per
-  // account on that date. Fills with 0 for accounts with no row yet on that
-  // month so the line is monotonically additive.
-  const aggSeries = useMemo(() => {
-    if (!history || history.length === 0) return [];
-    const monthly = new Map();
-    for (const r of history) {
-      if (r.nav == null) continue;
-      const ym = r.as_of.slice(0, 7);
-      if (!monthly.has(ym)) monthly.set(ym, new Map());
-      const acctMap = monthly.get(ym);
-      acctMap.set(r.account_label, Number(r.nav));
-    }
-    const out = [];
-    for (const [ym, acctMap] of [...monthly.entries()].sort((a, b) => a[0] < b[0] ? -1 : 1)) {
-      let sum = 0;
-      for (const v of acctMap.values()) sum += v;
-      out.push({ as_of: ym + "-01", nav: sum });
-    }
-    return out.slice(-12);
-  }, [history]);
 
   const expanded = tiles.find((t) => t.id === expandedId);
 
@@ -335,19 +229,12 @@ export default function AccountTilesSection({ accounts, grandTotal, convColor, c
 
   return (
     <div style={wrap}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
-        <div>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.12em" }}>③ ACCOUNT BREAKDOWN</span>
-        </div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.12em" }}>BY ACCOUNT</span>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
-          {tiles.length} accounts · trailing 12 months · click to expand
+          {tiles.length} accounts · trailing 12 months
         </span>
       </div>
-
-      {/* HEADER TILE — aggregate across all accounts. Wide, accent-bordered,
-          taller than the account tiles. Mirrors the portfolio-wide stats
-          shown at the top of Portfolio Insights. */}
-      <HeaderTile tiles={tiles} grandTotal={grandTotal} aggSeries={aggSeries} />
 
       <div style={grid}>
         {tiles.map((t) => {
@@ -365,40 +252,29 @@ export default function AccountTilesSection({ accounts, grandTotal, convColor, c
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setExpandedId(isExpanded ? null : t.id); }}
             >
               {/* head */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: t.accountColor, flexShrink: 0 }} />
-                  <span style={{ fontFamily: "var(--font-display, var(--font-sans))", fontSize: 16, fontWeight: 500, color: "var(--text)", letterSpacing: "-0.01em" }}>
-                    {t.label}
-                  </span>
-                </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.05em" }}>
-                  {t.positionCount} pos
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: t.accountColor, flexShrink: 0 }} />
+                <span style={{ fontFamily: "var(--font-display, var(--font-sans))", fontSize: 15, fontWeight: 500, color: "var(--text)", letterSpacing: "-0.01em", flex: 1 }}>
+                  {t.label}
+                </span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.05em" }}>
+                  {((t.nav / grandTotal) * 100).toFixed(0)}% of book
                 </span>
               </div>
 
               {/* nav */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: -4 }}>
+              <div style={{ marginTop: -2 }}>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 26, fontWeight: 700, color: "var(--text)", letterSpacing: "-0.02em", lineHeight: 1 }}>
                   {fmtMoneyCompact(t.nav)}
                 </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)" }}>
-                  {grandTotal > 0 ? ((t.nav / grandTotal) * 100).toFixed(1) + "% of book" : ""}
-                </span>
               </div>
 
-              {/* sparkline */}
-              <div style={{ margin: "4px -2px 0" }}>
-                <Sparkline navSeries={t.navSeries} />
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.03em", marginTop: -4 }}>
-                <span>12-mo NAV</span>
-                <span>
-                  {t.navSeries[0]?.as_of?.slice(0, 7) || ""}
-                  {t.navSeries.length ? " → " : ""}
-                  {t.navSeries[t.navSeries.length - 1]?.as_of?.slice(0, 7) || ""}
-                </span>
-              </div>
+              {/* sparkline — hidden on small accounts where auto-scaling misleads */}
+              {t.nav >= 25000 && t.navSeries && t.navSeries.length >= 2 && (
+                <div style={{ margin: "0 -2px" }}>
+                  <Sparkline navSeries={t.navSeries} compact />
+                </div>
+              )}
 
               {/* stats */}
               <div style={statsGrid}>
@@ -416,13 +292,11 @@ export default function AccountTilesSection({ accounts, grandTotal, convColor, c
                 </div>
               </div>
 
-              {/* cash + footer */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 700, padding: "3px 8px", border: `1px solid ${cashChipColor}33`, borderRadius: 4, color: cashChipColor, background: cashChipBg, letterSpacing: "0.05em" }}>
-                  {cashLabel}&nbsp;{fmtMoney(t.cash)}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: isExpanded ? "var(--accent)" : "var(--text-dim)" }}>
-                  {isExpanded ? "▾ Open" : "▸ Click to open"}
+              {/* cash row — quiet single-line readout */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+                <span>{cashLabel} <span style={{ color: t.cash < 0 ? "var(--text-2)" : "var(--text)" }}>{fmtMoney(t.cash)}</span></span>
+                <span style={{ color: isExpanded ? "var(--accent)" : "var(--text-dim)" }}>
+                  {isExpanded ? "▾" : "▸"}
                 </span>
               </div>
             </div>
