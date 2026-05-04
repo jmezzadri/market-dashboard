@@ -19,10 +19,10 @@
     "positioning_breadth": "caution"
   },
   "stress_score": 2,
-  "equity_pct": 0.8334,
-  "defensive_pct": 0.1666,
+  "equity_pct": 1.0,
+  "defensive_pct": 0.0,
   "leverage": 1.0,
-  "gross_exposure": 0.8334,
+  "gross_exposure": 1.0,
   "sectors": [
     {
       "sector": "Information Technology",
@@ -30,8 +30,8 @@
       "rating": "UW",
       "spy_weight": 0.27,
       "raw_weight": 0.2025,
-      "weight": 0.1731,
-      "dollar": 17.31,
+      "weight": 0.2077,
+      "dollar": 20.77,
       "vs_spy_pp": -6.2
     },
     {
@@ -40,8 +40,8 @@
       "rating": "UW",
       "spy_weight": 0.09,
       "raw_weight": 0.0675,
-      "weight": 0.0577,
-      "dollar": 5.77,
+      "weight": 0.0692,
+      "dollar": 6.92,
       "vs_spy_pp": -2.1
     },
     {
@@ -50,8 +50,8 @@
       "rating": "OW",
       "spy_weight": 0.13,
       "raw_weight": 0.156,
-      "weight": 0.1333,
-      "dollar": 13.33,
+      "weight": 0.16,
+      "dollar": 16.0,
       "vs_spy_pp": 3.0
     },
     {
@@ -60,8 +60,8 @@
       "rating": "OW",
       "spy_weight": 0.13,
       "raw_weight": 0.156,
-      "weight": 0.1333,
-      "dollar": 13.33,
+      "weight": 0.16,
+      "dollar": 16.0,
       "vs_spy_pp": 3.0
     },
     {
@@ -70,8 +70,8 @@
       "rating": "UW",
       "spy_weight": 0.11,
       "raw_weight": 0.0825,
-      "weight": 0.0705,
-      "dollar": 7.05,
+      "weight": 0.0846,
+      "dollar": 8.46,
       "vs_spy_pp": -2.5
     },
     {
@@ -80,8 +80,8 @@
       "rating": "OW",
       "spy_weight": 0.09,
       "raw_weight": 0.108,
-      "weight": 0.0923,
-      "dollar": 9.23,
+      "weight": 0.1108,
+      "dollar": 11.08,
       "vs_spy_pp": 2.1
     },
     {
@@ -90,8 +90,8 @@
       "rating": "OW",
       "spy_weight": 0.06,
       "raw_weight": 0.072,
-      "weight": 0.0615,
-      "dollar": 6.15,
+      "weight": 0.0738,
+      "dollar": 7.38,
       "vs_spy_pp": 1.4
     },
     {
@@ -100,8 +100,8 @@
       "rating": "OW",
       "spy_weight": 0.04,
       "raw_weight": 0.048,
-      "weight": 0.041,
-      "dollar": 4.1,
+      "weight": 0.0492,
+      "dollar": 4.92,
       "vs_spy_pp": 0.9
     },
     {
@@ -110,8 +110,8 @@
       "rating": "OW",
       "spy_weight": 0.02,
       "raw_weight": 0.024,
-      "weight": 0.0205,
-      "dollar": 2.05,
+      "weight": 0.0246,
+      "dollar": 2.46,
       "vs_spy_pp": 0.5
     },
     {
@@ -120,8 +120,8 @@
       "rating": "UW",
       "spy_weight": 0.03,
       "raw_weight": 0.0225,
-      "weight": 0.0192,
-      "dollar": 1.92,
+      "weight": 0.0231,
+      "dollar": 2.31,
       "vs_spy_pp": -0.7
     },
     {
@@ -130,33 +130,12 @@
       "rating": "OW",
       "spy_weight": 0.03,
       "raw_weight": 0.036,
-      "weight": 0.0308,
-      "dollar": 3.08,
+      "weight": 0.0369,
+      "dollar": 3.69,
       "vs_spy_pp": 0.7
     }
   ],
-  "defensive": [
-    {
-      "ticker": "BIL",
-      "name": "Cash (1-3M Treasury)",
-      "dollar": 4.17
-    },
-    {
-      "ticker": "TLT",
-      "name": "Long Treasuries",
-      "dollar": 4.17
-    },
-    {
-      "ticker": "GLD",
-      "name": "Gold",
-      "dollar": 4.17
-    },
-    {
-      "ticker": "LQD",
-      "name": "IG Corporate Bonds",
-      "dollar": 4.17
-    }
-  ],
+  "defensive": [],
   "rule_audit": {
     "max_defensive_50pct": true,
     "max_leverage_1_5x": true,
