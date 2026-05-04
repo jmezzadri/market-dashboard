@@ -143,19 +143,15 @@ function convTextColor(conv){return conv.color==="#B8860B"?"var(--yellow-text)":
 // color is rendered directly as text on a light surface.
 function yText(col){return(col==="#B8860B"||col==="#B8860B")?"var(--yellow-text)":col;}
 
+// Joe directive 2026-05-04 — no hardcoded dates. Every entry is "—" on cold
+// load; AS_OF[id] is overwritten at runtime from indicator_history.json's
+// per-series `as_of` field by _applyHistToGlobals (see REAL HISTORY LOADER).
 const AS_OF={
-vix:"Apr 16 2026",hy_ig:"Apr 15 2026",eq_cr_corr:"Apr 17 2026",
-yield_curve:"Apr 16 2026",move:"Apr 16 2026",anfci:"Apr 10 2026",
-stlfsi:"Apr 10 2026",real_rates:"Apr 15 2026",sloos_ci:"Jan 01 2026",
-cape:"Mar 2026",ism:"Mar 2026",copper_gold:"Apr 16 2026",
-bkx_spx:"Apr 16 2026",bank_unreal:"Q4 2025",credit_3y:"Apr 2026",
-term_premium:"Apr 10 2026",cmdi:"Apr 10 2026",loan_syn:"Apr 15 2026",
-usd:"Apr 16 2026",cpff:"Apr 14 2026",skew:"Apr 16 2026",
-sloos_cre:"Jan 01 2026",bank_credit:"Apr 01 2026",jobless:"Apr 11 2026",
-jolts_quits:"Feb 01 2026",
-// New series added 2026-04-24 — placeholders, AS_OF[id] is overwritten at runtime
-// from indicator_history.json's per-series `as_of` field.
-m2_yoy:"—",fed_bs:"—",rrp:"—",bank_reserves:"—",tga:"—",
+vix:"—",hy_ig:"—",eq_cr_corr:"—",yield_curve:"—",move:"—",anfci:"—",
+stlfsi:"—",real_rates:"—",sloos_ci:"—",cape:"—",ism:"—",copper_gold:"—",
+bkx_spx:"—",bank_unreal:"—",credit_3y:"—",term_premium:"—",cmdi:"—",loan_syn:"—",
+usd:"—",cpff:"—",skew:"—",sloos_cre:"—",bank_credit:"—",jobless:"—",
+jolts_quits:"—",m2_yoy:"—",fed_bs:"—",rrp:"—",bank_reserves:"—",tga:"—",
 breakeven_10y:"—",cfnai:"—",cfnai_3ma:"—",hy_ig_etf:"—",
 };
 
