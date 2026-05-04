@@ -678,11 +678,11 @@
 <div class="page-frame">
 
   <div class="page-eyebrow">
-    Macro Overview · Wednesday, April 29, 2026
+    Macro Overview · <span id="page-asof-date">Wednesday, April 29, 2026</span>
   </div>
 
   <div class="cadence-stamp">
-    Refreshed daily · last update Apr 29, 2026 · 06:14 ET &nbsp;·&nbsp;
+    Refreshed daily · last update <span id="page-asof-stamp">Apr 29, 2026</span> &nbsp;·&nbsp;
     Page-level reading typically shifts every several weeks-to-months. Mechanism scores can move daily.
   </div>
 
@@ -880,6 +880,24 @@ async function freshLoad() {
     const r = await fetch("/cycle_board_snapshot.json", { cache: "no-store" });
     const j = await r.json();
     FRESH_STATE.cycleBoardAsOf = j && j.as_of || null;
+    // Populate the page-asof-date / page-asof-stamp spans from the
+    // snapshot's as_of so the iframe header reflects the latest run, not
+    // the date the HTML was committed. (Joe directive 2026-05-04 — top of
+    // overview was showing two different dates.)
+    if (FRESH_STATE.cycleBoardAsOf) {
+      try {
+        const tIso = FRESH_STATE.cycleBoardAsOf.length === 10
+          ? FRESH_STATE.cycleBoardAsOf + "T20:00:00Z"  // anchor at NYSE close so date renders ET-correct
+          : FRESH_STATE.cycleBoardAsOf;
+        const d = new Date(tIso);
+        const longStr = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+        const shortStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+        const eyebrow = document.getElementById("page-asof-date");
+        if (eyebrow) eyebrow.textContent = longStr;
+        const stamp = document.getElementById("page-asof-stamp");
+        if (stamp) stamp.textContent = shortStr;
+      } catch (e) { /* leave the placeholder text as-is */ }
+    }
   } catch (e) { console.warn("[fresh] cycle_board_snapshot fetch failed:", e); }
 
   // Supabase anon read of pipeline_health. Public key + RLS-anon SELECT policy.
