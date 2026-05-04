@@ -61,7 +61,9 @@
       "indicators_added": 2,
       "consumer_surfaces_updated": 10,
       "reason": "PR #2A audit missed 2 v11 mechanism indicators (sofr_ois, naaim) and did not record v11 mechanism participation in consumer_surfaces for ~13 existing indicators. PR #2C closes both gaps."
-    }
+    },
+    "last_updated": "2026-05-04",
+    "last_change": "Added cycle-mechanism-board-daily and v10-allocation-daily (Phase 6 Data Steward registration of v10.1c Asset Tilt pipeline)"
   },
   "elements": [
     {
@@ -2648,6 +2650,47 @@
         "indicator-vix-daily",
         "indicator-hy_ig-daily"
       ]
+    },
+    {
+      "id": "cycle-mechanism-board-daily",
+      "category": "indicator",
+      "description": "Daily refresh of the 6 v11 cycle mechanism scores. Each scored 0-100; bands 0-25 Risk On, 25-50 Neutral, 50-75 Caution, 75-100 Risk Off.",
+      "sourcing_mode": "computed in-house from raw",
+      "source_vendor": "derived from FRED + CBOE + ICE BofA + Shiller",
+      "cadence": "daily (22:30 UTC weekdays)",
+      "refresh_trigger": ".github/workflows/cycle-mechanisms-daily.yml",
+      "freshness_sla_hours": 30,
+      "consumer_surfaces": [
+        "src/App.jsx home Macro Overview tile",
+        "src/pages/MacroOverview.jsx",
+        "src/pages/AssetAllocation.jsx",
+        "public/MacroTilt_Macro_Overview_Page_v11.html"
+      ],
+      "output_path": "public/cycle_board_snapshot.json",
+      "producer_script": "scripts/compute_v11_mechanisms.py",
+      "owner": "Senior Quant",
+      "shipped_in_pr": 408,
+      "shipped_date": "2026-05-04"
+    },
+    {
+      "id": "v10-allocation-daily",
+      "category": "scenario",
+      "description": "v10.1c Asset Tilt allocator output. Reads cycle_board_snapshot.json, applies decision rules (defensive activation at stress >= 4, leverage 1.25x in calm regimes, all 4 hard caps), produces today recommended allocation: equity %, defensive %, leverage, 11 sectors, 24 industry groups, contribution matrix.",
+      "sourcing_mode": "derived from cycle-mechanism-board-daily",
+      "cadence": "daily (22:45 UTC weekdays)",
+      "refresh_trigger": ".github/workflows/v10-allocation-daily.yml",
+      "freshness_sla_hours": 30,
+      "consumer_surfaces": [
+        "src/App.jsx home Asset Tilt preview card",
+        "src/pages/AssetAllocation.jsx full page"
+      ],
+      "output_path": "public/v10_allocation.json",
+      "producer_script": "scripts/compute_v10_allocation.py",
+      "owner": "Senior Quant",
+      "shipped_in_pr": 411,
+      "tuned_in_pr": 416,
+      "backtest_evidence": "PHASE2_V10_BACKTEST.md",
+      "shipped_date": "2026-05-04"
     }
   ],
   "_known_gaps_surfaced_in_phase1": [
