@@ -228,15 +228,16 @@ const SECTION_CONTENT = {
       </Body>
       <Body>
         Refresh cadence is nightly at 22:30 UTC weekdays. Most mechanism scores move slowly
-        (weeks-to-months between meaningful shifts). Some indicators inside them — VIX, SKEW, HY OAS,
-        SOFR-OIS — can move daily.
+        (weeks-to-months between meaningful shifts). Some indicators inside them — HY OAS, IG OAS,
+        VIX, MOVE — can move daily.
       </Body>
     </>
   ),
   "macro-data": (
     <>
       <Body>
-        Six mechanisms, ~3–5 indicators each, all from public sources. The full mapping:
+        Six mechanisms, three or four indicators each, all from public sources. The exact panels
+        running in production today:
       </Body>
       <table style={styles.table}>
         <thead><tr>
@@ -246,14 +247,21 @@ const SECTION_CONTENT = {
           <th style={styles.th}>Cadence</th>
         </tr></thead>
         <tbody>
-          <tr><td style={styles.td}>Valuation</td><td style={styles.td}>CAPE, Equity Risk Premium, Buffett Indicator</td><td style={styles.td}>Shiller · FRED</td><td style={styles.td}>Monthly + quarterly</td></tr>
-          <tr><td style={styles.td}>Credit</td><td style={styles.td}>IG OAS, HY OAS, HY/IG ratio</td><td style={styles.td}>ICE BofA via FRED</td><td style={styles.td}>Daily</td></tr>
-          <tr><td style={styles.td}>Funding</td><td style={styles.td}>SOFR-OIS, FRA-OIS, CDX basis, FX swap basis, Commercial paper spread</td><td style={styles.td}>NY Fed · DTCC · FRED</td><td style={styles.td}>Daily</td></tr>
-          <tr><td style={styles.td}>Growth</td><td style={styles.td}>CFNAI 3M, jobless claims, ISM PMI, KBW Banks/S&P ratio</td><td style={styles.td}>Chicago Fed · DOL · ISM</td><td style={styles.td}>Mixed (weekly + monthly)</td></tr>
-          <tr><td style={styles.td}>Liquidity & Policy</td><td style={styles.td}>ANFCI, real Fed funds, M2 YoY, term premium, Fed balance sheet</td><td style={styles.td}>Chicago Fed · FRED · Kim-Wright</td><td style={styles.td}>Mixed (weekly + monthly)</td></tr>
-          <tr><td style={styles.td}>Positioning & Breadth</td><td style={styles.td}>NAAIM exposure, margin debt YoY, put/call ratio, % above 200dma, A-D 50d</td><td style={styles.td}>NAAIM · FRED · CBOE</td><td style={styles.td}>Mixed (daily + weekly + monthly)</td></tr>
+          <tr><td style={styles.td}>Valuation</td><td style={styles.td}>CAPE (Shiller), Equity Risk Premium (1/CAPE − 10y Treasury), Buffett Indicator (corporate equities ÷ GDP)</td><td style={styles.td}>Shiller · FRED</td><td style={styles.td}>Monthly + quarterly</td></tr>
+          <tr><td style={styles.td}>Credit</td><td style={styles.td}>IG OAS (Baa − 10y), HY OAS, HY/IG ratio</td><td style={styles.td}>ICE BofA via FRED</td><td style={styles.td}>Daily</td></tr>
+          <tr><td style={styles.td}>Funding</td><td style={styles.td}>Commercial paper risk premium, St. Louis Fed Financial Stress Index, Bank reserves at the Fed, Reverse repo balance</td><td style={styles.td}>FRED</td><td style={styles.td}>Daily + weekly</td></tr>
+          <tr><td style={styles.td}>Growth</td><td style={styles.td}>CFNAI 3-month, Jobless claims (4-week average), ISM Manufacturing PMI, Banks vs S&P 500 (BKX/SPX ratio)</td><td style={styles.td}>Chicago Fed · DOL · ISM · Yahoo</td><td style={styles.td}>Mixed (weekly + monthly + daily)</td></tr>
+          <tr><td style={styles.td}>Liquidity & Policy</td><td style={styles.td}>Chicago Fed ANFCI, Fed balance sheet YoY %, SLOOS C&I lending standards, M2 money supply YoY</td><td style={styles.td}>FRED · Chicago Fed</td><td style={styles.td}>Mixed (weekly + monthly + quarterly)</td></tr>
+          <tr><td style={styles.td}>Positioning & Breadth</td><td style={styles.td}>CBOE SKEW, VIX, equity-credit correlation (60-day), MOVE Index (Treasury vol)</td><td style={styles.td}>CBOE · ICE</td><td style={styles.td}>Daily</td></tr>
         </tbody>
       </table>
+      <Body>
+        Sprint 1 panels (Valuation, Credit, Growth) are exposed in
+        <Code>methodology_calibration_v11.json</Code> with hand-curated descriptions, percentile
+        anchors, and direction tags. Sprint 2 panels (Funding, Liquidity & Policy, Positioning &
+        Breadth) are computed live from <Code>indicator_history.json</Code> against the post-2011
+        sample. Both feed the same direction-corrected percentile scoring described below.
+      </Body>
       <Body>
         Sample windows differ by indicator: most market-data indicators use post-2011 (the stable
         post-GFC regime), some macro series go back to 1971 or 1986. The window is documented per
@@ -414,9 +422,12 @@ bidir_bottom         →  score = 100 − percentile`}</Formula>
         sensitivity to Growth and Positioning & Breadth on top of the Tech-sector base).
       </Body>
       <Body>
-        ETF universe is fifteen tickers: eleven sector ETFs (XLK / XLC / XLF / XLV / XLY / XLI / XLP /
-        XLE / XLB / XLRE / XLU) plus four defensive buckets (BIL · TLT · GLD · LQD). SPY weights for
-        the relative-tilt computation come from a quarterly snapshot.
+        Sector ETF universe: eleven GICS sectors with three ETF families to choose from per sector —
+        the SPDR XL series (XLK / XLC / XLF / XLV / XLY / XLI / XLP / XLE / XLB / XLRE / XLU), the
+        Vanguard V series (VGT / VOX / VFH / VHT / VCR / VIS / VDC / VDE / VAW / VNQ / VPU), and the
+        Fidelity F series (FTEC / FCOM / FNCL / FHLC / FDIS / FIDU / FSTA / FENY / FMAT / FREL / FUTY).
+        Plus four defensive buckets: BIL (cash), TLT (long Treasuries), GLD (gold), LQD (IG corporate
+        bonds). SPY weights for the relative-tilt computation come from a quarterly snapshot.
       </Body>
     </>
   ),
@@ -752,10 +763,11 @@ else                                      →  REVIEW`}</Formula>
   "backtest-content": (
     <>
       <Body>
-        v10.1c (current production engine) was backtested against 2012-01 through 2026-03 using
-        monthly rebalancing. Each historical month's allocation came from running the v10.1c rules
-        against the mechanism scores available at that point in time (no lookahead). Sector returns
-        from yfinance for the eleven sector ETFs plus the four defensive ETFs.
+        v10.1c (current production engine) was backtested against 2012-01 through 2026-03 (171 months)
+        using monthly rebalancing. Each historical month's allocation came from running the v10.1c
+        rules against the mechanism scores available at that point in time (no lookahead). Sector
+        returns from yfinance for the eleven sector ETFs plus the four defensive ETFs (BIL / TLT /
+        GLD / LQD). Numbers below are from <Code>PHASE2_V10_BACKTEST.md</Code>:
       </Body>
       <table style={styles.table}>
         <thead><tr>
@@ -765,17 +777,25 @@ else                                      →  REVIEW`}</Formula>
           <th style={styles.th}>v9 baseline (2008-2026)</th>
         </tr></thead>
         <tbody>
-          <tr><td style={styles.td}>CAGR</td><td style={styles.td}><strong>13.85%</strong></td><td style={styles.td}>14.58%</td><td style={styles.td}>13.88%</td></tr>
-          <tr><td style={styles.td}>Sharpe (annualized)</td><td style={styles.td}><strong>1.034</strong></td><td style={styles.td}>1.046</td><td style={styles.td}>0.610</td></tr>
-          <tr><td style={styles.td}>Max drawdown</td><td style={styles.td}><strong>−20.81%</strong></td><td style={styles.td}>−23.93%</td><td style={styles.td}>−23.64%</td></tr>
-          <tr><td style={styles.td}>Calendar wins vs SPY</td><td style={styles.td}>7 of 15</td><td style={styles.td}>—</td><td style={styles.td}>10 of 19</td></tr>
-          <tr><td style={styles.td}>Months at 100% equity</td><td style={styles.td}>88%</td><td style={styles.td}>—</td><td style={styles.td}>—</td></tr>
+          <tr><td style={styles.td}>CAGR</td><td style={styles.td}><strong>12.35%</strong></td><td style={styles.td}>14.58%</td><td style={styles.td}>13.88%</td></tr>
+          <tr><td style={styles.td}>Sharpe (annualized)</td><td style={styles.td}><strong>1.065</strong></td><td style={styles.td}>1.046</td><td style={styles.td}>0.610</td></tr>
+          <tr><td style={styles.td}>Max drawdown</td><td style={styles.td}><strong>−20.14%</strong></td><td style={styles.td}>−23.93%</td><td style={styles.td}>−23.64%</td></tr>
+          <tr><td style={styles.td}>Calendar wins vs SPY</td><td style={styles.td}>2 of 15</td><td style={styles.td}>—</td><td style={styles.td}>10 of 19</td></tr>
         </tbody>
       </table>
       <Body>
-        v10.1c approximately matches v9's CAGR (13.85% vs 13.88%) with substantially better
-        risk-adjusted return (Sharpe 1.034 vs 0.610 — a 70% improvement) and 3 percentage points
-        smaller maximum drawdown.
+        The v10.1c value proposition: about 75% better risk-adjusted return than v9 (Sharpe 1.065
+        vs 0.610), slightly better Sharpe than SPY (1.065 vs 1.046), and four percentage points
+        smaller maximum drawdown than SPY (−20.14% vs −23.93%) — at the cost of about 220bp of
+        annualized CAGR vs SPY. The strategy is doing what it's designed to do: take less risk per
+        unit of return.
+      </Body>
+      <Body>
+        Calendar-year wins vs SPY are only 2 of 15 because the defensive sleeve and tech
+        underweight (correctly flagged by stretched Valuation since 2014) have dragged in the
+        post-2012 tech-led bull market. The two years v10.1c outperformed are precisely the years
+        the strategy is built for: 2014 (+0.31pp vs SPY) and 2022 (+2.37pp vs SPY) — the inflation
+        / rates regime.
       </Body>
       <Callout>
         <strong>Honest gap.</strong> v10.1c has not been tested against 2008–2011 (the GFC and
@@ -802,21 +822,17 @@ else                                      →  REVIEW`}</Formula>
           <th style={styles.th}>Used for</th>
         </tr></thead>
         <tbody>
-          <tr><td style={styles.td}>FRED (Federal Reserve Economic Data)</td><td style={styles.td}>Most macro indicators — yield curves, real rates, ANFCI, ISM, M2, jobless claims, real Fed funds, term premium, balance sheet, breakeven inflation</td></tr>
-          <tr><td style={styles.td}>ICE BofA via FRED</td><td style={styles.td}>Credit spreads (HY OAS, IG OAS)</td></tr>
-          <tr><td style={styles.td}>CBOE</td><td style={styles.td}>VIX, SKEW, put/call ratio</td></tr>
+          <tr><td style={styles.td}>FRED (Federal Reserve Economic Data)</td><td style={styles.td}>Most macro indicators — Buffett Indicator inputs (NCBCEL/GDP), credit spreads (BAA, BAMLH0A0HYM2), CFNAI, jobless claims (IC4WSA), ANFCI, M2 YoY, Fed balance sheet, bank reserves, reverse repo balance, commercial paper risk premium, SLOOS C&I, St. Louis Fed FSI</td></tr>
+          <tr><td style={styles.td}>ICE BofA via FRED</td><td style={styles.td}>HY OAS spread series</td></tr>
+          <tr><td style={styles.td}>CBOE</td><td style={styles.td}>VIX, SKEW</td></tr>
+          <tr><td style={styles.td}>ICE BofA</td><td style={styles.td}>MOVE Index (Treasury volatility)</td></tr>
           <tr><td style={styles.td}>Shiller / multpl</td><td style={styles.td}>CAPE (cyclically-adjusted P/E)</td></tr>
-          <tr><td style={styles.td}>ISM</td><td style={styles.td}>Manufacturing PMI</td></tr>
-          <tr><td style={styles.td}>BLS (Bureau of Labor Statistics)</td><td style={styles.td}>Initial jobless claims, JOLTS quits</td></tr>
-          <tr><td style={styles.td}>NY Fed · DTCC</td><td style={styles.td}>SOFR-OIS, FRA-OIS, repo rates, primary dealer positions</td></tr>
-          <tr><td style={styles.td}>Chicago Fed</td><td style={styles.td}>ANFCI, CFNAI</td></tr>
-          <tr><td style={styles.td}>St. Louis Fed</td><td style={styles.td}>STLFSI, M2 supply</td></tr>
-          <tr><td style={styles.td}>NAAIM</td><td style={styles.td}>Manager exposure index</td></tr>
+          <tr><td style={styles.td}>ISM (via FRED NAPMPI)</td><td style={styles.td}>Manufacturing PMI</td></tr>
+          <tr><td style={styles.td}>Yahoo Finance</td><td style={styles.td}>BKX (banks index) and SPX for the BKX/SPX growth signal; stock fundamentals (forward P/E, revenue growth, profitability) for the Trading Opportunities scanner</td></tr>
           <tr><td style={styles.td}>Massive (Polygon Basic)</td><td style={styles.td}>Daily price data, universe master, dividends, splits</td></tr>
-          <tr><td style={styles.td}>Unusual Whales</td><td style={styles.td}>Options flow, dark pool volume, insider buying, congressional disclosure</td></tr>
-          <tr><td style={styles.td}>Yahoo Finance</td><td style={styles.td}>Stock fundamentals (forward P/E, revenue growth, profitability)</td></tr>
+          <tr><td style={styles.td}>Unusual Whales</td><td style={styles.td}>Options flow, dark pool volume, Form 4 insider buying, congressional disclosure</td></tr>
           <tr><td style={styles.td}>ZeroHedge (RSS + Premium)</td><td style={styles.td}>News sentiment</td></tr>
-          <tr><td style={styles.td}>Wikipedia · iShares</td><td style={styles.td}>Index membership flags</td></tr>
+          <tr><td style={styles.td}>Wikipedia · iShares</td><td style={styles.td}>Index membership flags (S&P 500, NASDAQ-100, Russell 2000)</td></tr>
           <tr><td style={styles.td}>Plaid</td><td style={styles.td}>Brokerage feed (read-only)</td></tr>
         </tbody>
       </table>
@@ -844,7 +860,7 @@ else                                      →  REVIEW`}</Formula>
           <tr><td style={styles.td}>ERP</td><td style={styles.td}>Equity Risk Premium = S&P 500 earnings yield minus 10-year Treasury yield. A near-zero or negative ERP means stocks are priced for perfection.</td></tr>
           <tr><td style={styles.td}>Gross exposure</td><td style={styles.td}>Total dollar exposure as % of capital. With leverage on, can exceed 100%; with defensive on, the equity slice falls below 100%.</td></tr>
           <tr><td style={styles.td}>HY OAS</td><td style={styles.td}>High-Yield Option-Adjusted Spread. Yield premium that junk bonds offer over Treasuries.</td></tr>
-          <tr><td style={styles.td}>IG (Industry Group)</td><td style={styles.td}>GICS Industry Group, one classification level below Sector. The site uses 25 IGs across 11 sectors. Example: Semiconductors is an IG inside the Information Technology sector.</td></tr>
+          <tr><td style={styles.td}>IG (Industry Group)</td><td style={styles.td}>GICS Industry Group, one classification level below Sector. The site uses 24 IGs across 11 sectors. Example: Semiconductors is an IG inside the Information Technology sector.</td></tr>
           <tr><td style={styles.td}>IG OAS</td><td style={styles.td}>Investment-Grade Option-Adjusted Spread. Yield premium that corporate bonds offer over Treasuries.</td></tr>
           <tr><td style={styles.td}>OW / MW / UW</td><td style={styles.td}>Overweight / Market-weight / Underweight. Refers to a sector or IG's allocation versus its SPY benchmark weight.</td></tr>
           <tr><td style={styles.td}>Percentile</td><td style={styles.td}>Where a current value sits in a historical sample. p100 = highest reading on record; p0 = lowest.</td></tr>
