@@ -58,6 +58,34 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python compute_v11_sprint1_calibration.py --out public/methodology_calibration_v11.json
 
+      # Stamp cycle_board_snapshot.json (the file the iframe reads for the
+      # Macro Overview page chips) with today's NY-time date. The mechanisms
+      # block stays as-is — it's the freshness `as_of` we're updating so the
+      # chip reflects "the calibration job ran today". Joe directive
+      # 2026-05-04 — chip should track pipeline-ran-today, not data-date.
+      - name: Stamp cycle_board_snapshot.json as_of
+        run: |
+          python - <<'PY'
+          import json, datetime
+          path = "public/cycle_board_snapshot.json"
+          d = json.load(open(path))
+          # NY-time date (matches the iframe's date display)
+          ny = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=4)
+          d["as_of"] = ny.strftime("%Y-%m-%d")
+          json.dump(d, open(path, "w"), indent=2)
+          print("stamped cycle_board_snapshot.json as_of =", d["as_of"])
+          PY
+
+      - name: Commit + push cycle board updates if changed
+        run: |
+          git add public/methodology_calibration_v11.json public/cycle_board_snapshot.json
+          if git diff --cached --quiet; then
+            echo "no calibration changes to commit"
+            exit 0
+          fi
+          git commit -m "v11 cycle calibration auto-refresh [skip ci]"
+          git push
+
       - name: Commit + push v11 calibration if changed
         run: |
           if git diff --quiet -- public/methodology_calibration_v11.json; then
