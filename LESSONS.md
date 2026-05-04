@@ -283,3 +283,11 @@ would let SLAs return to their cadence-of-data values without needing to
 pad them by typical FRED lag. Filed as a follow-up.
 
 <!-- redeploy-tickle -->
+
+---
+
+## 2026-05-04 — Before changing a data file the website reads, check the website's code first
+
+**What happened:** I built a script that updated a data file the home page was already reading. The home page expected the data to have certain labels; my script wrote different labels into the same file. The home page couldn't find the labels it was looking for, so every cycle-board score on the home page rendered as a blank zero. The page didn't crash and no error showed up in the logs — it just looked broken. Joe caught it within a couple of hours of the deploy.
+
+**What you should do instead:** Before shipping anything that writes to or changes a data file in `public/`, search the website's source code for that file's name and find every page that reads from it. Note exactly which labels each page is pulling out. Your new code must keep those exact labels — if you change a label, the page silently breaks. After the deploy goes live, load the actual page in a browser and look at it — "the file was written" is not the same as "the page renders correctly." If you have to change labels, update the page's code in the same pull request as the data change so they ship together.
