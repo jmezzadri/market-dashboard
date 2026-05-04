@@ -317,3 +317,12 @@ pad them by typical FRED lag. Filed as a follow-up.
 
 **What you should do instead:** Strip jargon from popup option labels and descriptions. Phrase options the way you would phrase them to someone who has never written code. Use the Background / Context / Impact framing inside the description so Joe can decide based on outcomes, not implementation. Words like "dedup," "reduce step," "lookup table," "normalize," "schema," "diff" should not appear in popup text — replace with what they mean ("show only the top scorer," "small list of paired tickers," "treat BRK.A and BRK-A as the same"). The popup is a question, not a code review.
 
+
+
+---
+
+## 2026-05-04 — When the spec lives in a JSON, READ THE JSON — do not invent your own panel
+
+**What happened:** I wrote a script to compute the six v11 cycle mechanism scores nightly. For three of the six mechanisms (Valuation, Credit, Growth), the calibration JSON in the repo (methodology_calibration_v11.json) already specified exactly which indicators to use, what their current readings are, what their historical percentile is, and which direction is concerning. Instead of reading that file, I made up my own list of indicators for those three mechanisms and computed scores from scratch. Result: Credit scored 44 (Neutral) when the calibration spec gave 66 (Caution) — a totally different band, totally different reading. Joe caught it on the page and was rightfully furious.
+
+**What you should do instead:** When a calibration or methodology JSON exists in the repo for the thing you are about to compute, that JSON is the source of truth — read it directly and use its values, do not reinvent the panel. Before writing any compute script for a numeric output that already has a calibration file, search the repo for that calibration file (look for keywords like calibration, methodology, calib, threshold) and check whether it carries the indicator list, percentiles, direction encodings, or thresholds you need. If the calibration JSON has a direction field with values like high_is_concerning / low_is_concerning / bidir_top / bidir_bottom, support all of them — do not silently treat unknown direction strings as high_is_concerning. The general principle: a checked-in spec file for the same domain trumps anything you invent in a script.
