@@ -46,6 +46,56 @@ if (SIGNAL_COLS.length !== SECTION_ORDER.length) {
   console.warn("WatchlistTable: SIGNAL_COLS out of sync with SECTION_ORDER");
 }
 
+// ─── Dual-class share registry ───────────────────────────────────────────────
+// Some companies trade under two share classes (different vote weights /
+// economic rights). The scanner treats each ticker independently, so the
+// same underlying business can appear twice in Buy Alerts / Near Trigger.
+// We tag each row with a small "DUAL-CLASS" badge so the user knows at a
+// glance — hovering it lists the sister ticker(s) in the same group.
+//
+// Lookup is normalized: "BRK.A" / "BRK-A" / "BRKA" all match. Maintain
+// alphabetical order; add a comment explaining the company on every entry.
+const DUAL_CLASS_GROUPS = [
+  ["BATRA", "BATRK"],         // Liberty Atlanta Braves — A / K
+  ["BF.A",  "BF.B"],          // Brown-Forman — voting / non-voting
+  ["BRK.A", "BRK.B"],         // Berkshire Hathaway — original / lower vote
+  ["CRD.A", "CRD.B"],         // Crawford & Co
+  ["CWEN",  "CWEN.A"],        // Clearway Energy — Class C / Class A
+  ["FOX",   "FOXA"],          // Fox Corp — non-voting / voting
+  ["FWONA", "FWONK"],         // Liberty Formula One — A / K
+  ["GEF",   "GEF.B"],         // Greif — A / B
+  ["GOOG",  "GOOGL"],         // Alphabet — Class C non-voting / Class A
+  ["HEI",   "HEI.A"],         // HEICO — common / Class A
+  ["LBRDA", "LBRDK"],         // Liberty Broadband — A / K
+  ["LEN",   "LEN.B"],         // Lennar — Class A / Class B
+  ["LGF.A", "LGF.B"],         // Lions Gate — voting / non-voting
+  ["LSXMA", "LSXMK"],         // Liberty SiriusXM — A / K
+  ["MOG.A", "MOG.B"],         // Moog
+  ["NWS",   "NWSA"],          // News Corp — non-voting / voting
+  ["PBR",   "PBR.A"],         // Petrobras — common ADR / preferred ADR
+  ["RUSHA", "RUSHB"],         // Rush Enterprises — A / B
+  ["TAP",   "TAP.A"],         // Molson Coors — Class B / Class A
+  ["UA",    "UAA"],           // Under Armour — Class C / Class A
+  ["UHAL",  "UHAL.B"],        // U-Haul (AMERCO) — voting / non-voting
+];
+const _normTicker = (t) => String(t || "").toUpperCase().replace(/[.\-]/g, "");
+const _DUAL_CLASS_INDEX = (() => {
+  const idx = {};
+  for (const group of DUAL_CLASS_GROUPS) {
+    for (const t of group) {
+      const key = _normTicker(t);
+      if (!key) continue;
+      idx[key] = group.filter((x) => _normTicker(x) !== key);
+    }
+  }
+  return idx;
+})();
+function dualClassPeersOf(ticker) {
+  const peers = _DUAL_CLASS_INDEX[_normTicker(ticker)];
+  return Array.isArray(peers) && peers.length ? peers : null;
+}
+
+
 // ─── formatters (abbreviated — full set lives in PositionsTable) ─────────────
 const fmt$ = (v) =>
   v == null || !isFinite(v) ? "—" :
@@ -119,23 +169,39 @@ function ScoreCell({ score, direction, emptyHint }) {
 // ─── Column registry ─────────────────────────────────────────────────────────
 const baseCols = [
   {
-    id: "ticker", label: "TICKER", description: "Ticker symbol (OWNED badge if in your positions)",
+    id: "ticker", label: "TICKER", description: "Ticker symbol (OWNED if held; DUAL-CLASS if multiple share classes of the same company exist)",
     align: "left",
     sortValue: (r) => r.ticker,
-    renderCell: (r) => (
-      <>
-        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>
-          {r.ticker}
-        </span>
-        {r.held && (
-          <span style={{
-            marginLeft: 6, fontSize: 9, color: "var(--accent)",
-            border: "1px solid var(--accent)", borderRadius: 3,
-            padding: "1px 4px", fontFamily: "var(--font-mono)", fontWeight: 700,
-          }}>OWNED</span>
-        )}
-      </>
-    ),
+    renderCell: (r) => {
+      const peers = dualClassPeersOf(r.ticker);
+      return (
+        <>
+          <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>
+            {r.ticker}
+          </span>
+          {r.held && (
+            <span style={{
+              marginLeft: 6, fontSize: 9, color: "var(--accent)",
+              border: "1px solid var(--accent)", borderRadius: 3,
+              padding: "1px 4px", fontFamily: "var(--font-mono)", fontWeight: 700,
+            }}>OWNED</span>
+          )}
+          {peers && (
+            <Tip
+              label="DUAL-CLASS"
+              def={`${r.ticker} and ${peers.join(", ")} are different share classes of the same underlying company. Both can appear in scanner output — the score difference is usually small and reflects liquidity or vote weight, not a different business. Pick whichever class you prefer.`}
+            >
+              <span style={{
+                marginLeft: 6, fontSize: 9, color: "var(--text-muted)",
+                border: "1px solid var(--border-strong)", borderRadius: 3,
+                padding: "1px 4px", fontFamily: "var(--font-mono)", fontWeight: 700,
+                cursor: "help",
+              }}>DUAL-CLASS</span>
+            </Tip>
+          )}
+        </>
+      );
+    },
   },
   {
     id: "name", label: "NAME", description: "Company name", align: "left",
