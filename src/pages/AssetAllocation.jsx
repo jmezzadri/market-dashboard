@@ -866,11 +866,26 @@ function HeatmapTile({ contributionMatrix }) {
               <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 500, background: "var(--surface-2, #f0e9d6)" }}>
                 Cycle mechanism
               </th>
-              {sectors.map(s => (
-                <th key={s} style={{ padding: "8px 4px", textAlign: "center", fontWeight: 500, fontFamily: "var(--font-display)", fontSize: 11, background: "var(--surface-2, #f0e9d6)" }}>
-                  {s.split(" ").slice(0, 2).join(" ").substring(0, 10)}
-                </th>
-              ))}
+              {sectors.map(s => {
+                const SHORT = {
+                  "Information Technology": "Tech",
+                  "Communication Services": "Comm",
+                  "Financials": "Fin",
+                  "Health Care": "Health",
+                  "Consumer Discretionary": "Disc",
+                  "Industrials": "Indl",
+                  "Consumer Staples": "Stap",
+                  "Energy": "Energy",
+                  "Materials": "Mat",
+                  "Real Estate": "RE",
+                  "Utilities": "Util",
+                };
+                return (
+                  <th key={s} title={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 500, fontFamily: "var(--font-display)", fontSize: 11, background: "var(--surface-2, #f0e9d6)" }}>
+                    {SHORT[s] || s}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -919,13 +934,18 @@ export default function AssetTilt({ onOpenTicker }) {
   }, []);
 
   const stance = v10?.page_stance;
+  const defensiveActive = (v10?.defensive_pct ?? 0) > 0;
   const stanceHeadline = useMemo(() => {
     if (stance === "Risk On") return "Risk on — full equity, modest leverage where conditions warrant.";
     if (stance === "Neutral") return "Neutral — full equity, no leverage, watch for transitions.";
-    if (stance === "Cautious" || stance === "Caution") return "Cautious — late-cycle positioning, defensive sleeve activating.";
-    if (stance === "Risk Off") return "Risk off — defensive priority, maximum 50% defensive sleeve.";
+    if (stance === "Cautious" || stance === "Caution") {
+      return defensiveActive
+        ? `Cautious — late-cycle positioning, defensive sleeve active at ${Math.round((v10?.defensive_pct ?? 0) * 100)}%.`
+        : "Cautious — late-cycle positioning, defensive sleeve armed but not yet activating.";
+    }
+    if (stance === "Risk Off") return `Risk off — defensive sleeve active at ${Math.round((v10?.defensive_pct ?? 0) * 100)}%, no leverage.`;
     return "";
-  }, [stance]);
+  }, [stance, defensiveActive, v10]);
 
   if (!v10 || !cycleBoard) {
     return (
@@ -954,7 +974,7 @@ export default function AssetTilt({ onOpenTicker }) {
       }}>
         <div style={{ flex: "1 1 360px", minWidth: 0 }}>
           <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>
-            Asset Tilt · {v10.as_of}
+            Asset Tilt
           </div>
           <div style={{ marginTop: 6 }}><StanceBadge stance={stance} /></div>
           <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 500, margin: "10px 0 4px", letterSpacing: "-0.015em", lineHeight: 1.25 }}>
