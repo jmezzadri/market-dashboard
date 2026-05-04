@@ -88,6 +88,51 @@ SECTOR_SENSITIVITY: Dict[str, Dict[str, float]] = {
     "Utilities":                {"valuation": +0.5, "credit": +0.1, "funding":  0.0, "growth": +0.8, "liquidity_policy":  0.0, "positioning_breadth": +0.4},
 }
 
+# 25 GICS Industry Groups — child of each sector with its own sensitivity tweaks.
+# Each IG inherits parent sector sensitivity then adds adjustments.
+# tickers = ETFs that give exposure (most-liquid first).
+INDUSTRY_GROUPS: List[Dict] = [
+    {"id":"semis",       "sector":"Information Technology",  "name":"Semiconductors",            "tickers":["SOXX","SMH","PSI"],          "weight_within_sector":0.46, "adj":{"growth":-0.4,"positioning_breadth":-0.3}},
+    {"id":"software",    "sector":"Information Technology",  "name":"Software",                   "tickers":["IGV","XSW","CLOU"],          "weight_within_sector":0.35, "adj":{"valuation":-0.2,"liquidity_policy":+0.2}},
+    {"id":"hardware",    "sector":"Information Technology",  "name":"Hardware",                   "tickers":["IYW","XLK"],                 "weight_within_sector":0.19, "adj":{}},
+    {"id":"intmedia",    "sector":"Communication Services",  "name":"Interactive Media",          "tickers":["XLC","PNQI"],                "weight_within_sector":0.60, "adj":{"valuation":-0.3,"liquidity_policy":+0.3}},
+    {"id":"telecom",     "sector":"Communication Services",  "name":"Telecom & Media",            "tickers":["IYZ","FCOM"],                "weight_within_sector":0.40, "adj":{"valuation":+0.2,"positioning_breadth":+0.2}},
+    {"id":"banks",       "sector":"Financials",              "name":"Banks",                      "tickers":["KBE","KRE","IAT"],           "weight_within_sector":0.54, "adj":{"funding":-0.4,"credit":-0.3}},
+    {"id":"insurance",   "sector":"Financials",              "name":"Insurance",                  "tickers":["KIE","IAK"],                 "weight_within_sector":0.31, "adj":{"funding":+0.5}},
+    {"id":"divfin",      "sector":"Financials",              "name":"Diversified Financials",     "tickers":["IAI","KCE"],                 "weight_within_sector":0.15, "adj":{"valuation":-0.2}},
+    {"id":"capgoods",    "sector":"Industrials",             "name":"Capital Goods",              "tickers":["XLI","VIS"],                 "weight_within_sector":0.50, "adj":{"growth":-0.2}},
+    {"id":"transport",   "sector":"Industrials",             "name":"Transportation",             "tickers":["IYT","XTN"],                 "weight_within_sector":0.30, "adj":{"growth":-0.3}},
+    {"id":"defense",     "sector":"Industrials",             "name":"Defense & Aerospace",        "tickers":["ITA","XAR","PPA"],           "weight_within_sector":0.20, "adj":{"growth":+0.4,"positioning_breadth":+0.3}},
+    {"id":"pharma",      "sector":"Health Care",             "name":"Pharmaceuticals",            "tickers":["PPH","IHE","XPH"],           "weight_within_sector":0.46, "adj":{"valuation":+0.2,"positioning_breadth":+0.2}},
+    {"id":"devices",     "sector":"Health Care",             "name":"Medical Devices",            "tickers":["IHI","XHE"],                 "weight_within_sector":0.32, "adj":{"growth":+0.2}},
+    {"id":"biotech",     "sector":"Health Care",             "name":"Biotech",                    "tickers":["IBB","XBI","BBH"],           "weight_within_sector":0.22, "adj":{"valuation":-0.4,"positioning_breadth":-0.3}},
+    {"id":"foodbev",     "sector":"Consumer Staples",        "name":"Food & Beverage",            "tickers":["PBJ","XLP"],                 "weight_within_sector":0.62, "adj":{}},
+    {"id":"household",   "sector":"Consumer Staples",        "name":"Household & Personal Care",  "tickers":["XLP","VDC"],                 "weight_within_sector":0.38, "adj":{}},
+    {"id":"retail",      "sector":"Consumer Discretionary",  "name":"Retail",                     "tickers":["XRT","RTH"],                 "weight_within_sector":0.57, "adj":{"growth":-0.2}},
+    {"id":"autos",       "sector":"Consumer Discretionary",  "name":"Autos",                      "tickers":["CARZ","DRIV"],               "weight_within_sector":0.43, "adj":{"growth":-0.3,"credit":-0.3}},
+    {"id":"oilgas",      "sector":"Energy",                  "name":"Oil & Gas",                  "tickers":["XOP","IEO","XLE"],           "weight_within_sector":0.80, "adj":{}},
+    {"id":"oilfield",    "sector":"Energy",                  "name":"Equipment & Services",       "tickers":["OIH","IEZ","XES"],           "weight_within_sector":0.20, "adj":{"growth":-0.4}},
+    {"id":"mining",      "sector":"Materials",               "name":"Metals & Mining",            "tickers":["XME","GDX","SLX"],           "weight_within_sector":0.65, "adj":{"growth":-0.3}},
+    {"id":"chemicals",   "sector":"Materials",               "name":"Chemicals",                  "tickers":["PYZ","XLB"],                 "weight_within_sector":0.35, "adj":{"growth":-0.2}},
+    {"id":"reits",       "sector":"Real Estate",             "name":"REITs",                      "tickers":["VNQ","XLRE","MORT"],         "weight_within_sector":1.00, "adj":{}},
+    {"id":"electric",    "sector":"Utilities",               "name":"Electric & Multi-Utility",   "tickers":["XLU","VPU","FUTY"],          "weight_within_sector":1.00, "adj":{}},
+]
+
+# Sector-level ETFs for inline display in the sector row of the page.
+SECTOR_ETFS: Dict[str, List[str]] = {
+    "Information Technology":   ["XLK","VGT","FTEC"],
+    "Communication Services":   ["XLC","VOX","FCOM"],
+    "Financials":               ["XLF","VFH","FNCL"],
+    "Health Care":              ["XLV","VHT","FHLC"],
+    "Consumer Discretionary":   ["XLY","VCR","FDIS"],
+    "Industrials":              ["XLI","VIS","FIDU"],
+    "Consumer Staples":         ["XLP","VDC","FSTA"],
+    "Energy":                   ["XLE","VDE","FENY"],
+    "Materials":                ["XLB","VAW","FMAT"],
+    "Real Estate":              ["XLRE","VNQ","FREL"],
+    "Utilities":                ["XLU","VPU","FUTY"],
+}
+
 
 def band(score: float) -> str:
     if score < 25: return "risk-on"
@@ -133,31 +178,33 @@ def compute_leverage(mechanism_scores: Dict[str, float], defensive_pct: float, r
 
 
 def compute_sector_tilts(mechanism_scores: Dict[str, float], equity_pct: float) -> List[Dict]:
-    """For each sector: tilt score, rating, and dollar weight."""
+    """For each sector: tilt score, rating, and dollar weight.
+    Also adds the per-mechanism contribution breakdown for the heatmap."""
     rows = []
     for sector in SECTORS:
         sens = SECTOR_SENSITIVITY[sector]
         tilt_score = 0.0
+        contributions = {}
         for mech, sensitivity in sens.items():
             score = mechanism_scores.get(mech, 50)
             normalized = (score - 50) / 50.0  # -1 (deeply risk-on) to +1 (deeply risk-off)
-            tilt_score += sensitivity * normalized
-        # Rating
+            contrib = sensitivity * normalized
+            contributions[mech] = round(contrib, 3)
+            tilt_score += contrib
         if tilt_score > 0.3:
-            rating = "OW"
-            multiplier = 1.20
+            rating, multiplier = "OW", 1.20
         elif tilt_score < -0.3:
-            rating = "UW"
-            multiplier = 0.75
+            rating, multiplier = "UW", 0.75
         else:
-            rating = "MW"
-            multiplier = 1.0
+            rating, multiplier = "MW", 1.0
         rows.append({
             "sector": sector,
             "tilt_score": round(tilt_score, 3),
             "rating": rating,
             "spy_weight": SPY_WEIGHTS[sector],
             "raw_weight": SPY_WEIGHTS[sector] * multiplier,
+            "etfs": SECTOR_ETFS[sector],
+            "contributions": contributions,
         })
     # Normalize so total equity weight = equity_pct
     total_raw = sum(r["raw_weight"] for r in rows)
@@ -166,6 +213,70 @@ def compute_sector_tilts(mechanism_scores: Dict[str, float], equity_pct: float) 
         r["dollar"] = round(r["weight"] * 100, 2)
         r["vs_spy_pp"] = round((r["weight"] / equity_pct - r["spy_weight"]) * 100, 1) if equity_pct > 0 else 0
     return rows
+
+
+def compute_ig_tilts(mechanism_scores: Dict[str, float], sector_rows: List[Dict]) -> List[Dict]:
+    """For each industry group: inherit parent sector sensitivity + IG adjustment,
+    compute IG-level tilt and weight (within the sector's allocation)."""
+    sector_dollar = {r["sector"]: r["dollar"] for r in sector_rows}
+    ig_rows = []
+    for ig in INDUSTRY_GROUPS:
+        parent_sens = SECTOR_SENSITIVITY[ig["sector"]]
+        # Add IG-specific adjustment to parent sector sensitivity
+        sens = {m: parent_sens.get(m, 0) + ig["adj"].get(m, 0) for m in parent_sens}
+        tilt_score = 0.0
+        contributions = {}
+        for mech, sensitivity in sens.items():
+            score = mechanism_scores.get(mech, 50)
+            normalized = (score - 50) / 50.0
+            contrib = sensitivity * normalized
+            contributions[mech] = round(contrib, 3)
+            tilt_score += contrib
+        # IG dollar = parent sector dollar × within-sector weight × tilt-adjusted multiplier
+        if tilt_score > 0.3:
+            rating, multiplier = "OW", 1.15
+        elif tilt_score < -0.3:
+            rating, multiplier = "UW", 0.80
+        else:
+            rating, multiplier = "MW", 1.0
+        base_dollar = sector_dollar[ig["sector"]] * ig["weight_within_sector"]
+        # Apply multiplier; renormalize within sector below
+        ig_rows.append({
+            "id": ig["id"],
+            "name": ig["name"],
+            "sector": ig["sector"],
+            "tickers": ig["tickers"],
+            "tilt_score": round(tilt_score, 3),
+            "rating": rating,
+            "raw_dollar": base_dollar * multiplier,
+            "contributions": contributions,
+        })
+    # Renormalize so each sector's IG dollars sum back to the sector's total
+    for sector in SECTORS:
+        sector_igs = [ig for ig in ig_rows if ig["sector"] == sector]
+        if not sector_igs:
+            continue
+        sector_total = sector_dollar.get(sector, 0)
+        raw_sum = sum(ig["raw_dollar"] for ig in sector_igs)
+        if raw_sum > 0:
+            for ig in sector_igs:
+                ig["dollar"] = round(ig["raw_dollar"] / raw_sum * sector_total, 2)
+        del_keys = ["raw_dollar"]
+        for ig in sector_igs:
+            for k in del_keys:
+                ig.pop(k, None)
+    return ig_rows
+
+
+def compute_contribution_matrix(sector_rows: List[Dict], ig_rows: List[Dict]) -> Dict:
+    """Heatmap data: per-sector and per-IG contribution by mechanism."""
+    return {
+        "by_sector": {r["sector"]: r["contributions"] for r in sector_rows},
+        "by_ig": {ig["id"]: {"name": ig["name"], "sector": ig["sector"],
+                              "contributions": ig["contributions"]} for ig in ig_rows},
+        "rows": ["valuation", "credit", "funding", "growth", "liquidity_policy", "positioning_breadth"],
+        "cols_sectors": SECTORS,
+    }
 
 
 def main() -> None:
@@ -178,6 +289,8 @@ def main() -> None:
     equity_pct = 1.0 - defensive_pct
     leverage = compute_leverage(mechs, defensive_pct, regime_flip=False)
     sectors = compute_sector_tilts(mechs, equity_pct)
+    igs = compute_ig_tilts(mechs, sectors)
+    contribution_matrix = compute_contribution_matrix(sectors, igs)
 
     # Defensive sleeve composition — equal-weight 4 buckets when active
     defensive = []
@@ -187,10 +300,17 @@ def main() -> None:
                               ("GLD", "Gold"), ("LQD", "IG Corporate Bonds")]:
             defensive.append({"ticker": ticker, "name": name, "dollar": round(each, 2)})
 
+    # Page-level stance label
+    if stress_score >= 5: page_stance = "Risk Off"
+    elif stress_score >= 3: page_stance = "Cautious"
+    elif stress_score >= 1: page_stance = "Neutral"
+    else: page_stance = "Risk On"
+
     out = {
         "as_of": snapshot["as_of"],
-        "version": "v10.0",
-        "engine": "Phase 2 — 6-mechanism cycle-board allocator",
+        "version": "v10.1c",
+        "engine": "Phase 2 — 6-mechanism cycle-board allocator (tuned 2026-05-04)",
+        "page_stance": page_stance,
         "mechanism_scores": mechs,
         "mechanism_bands": bands,
         "stress_score": stress_score,
@@ -199,6 +319,8 @@ def main() -> None:
         "leverage": leverage,
         "gross_exposure": round(equity_pct * leverage, 4),
         "sectors": sectors,
+        "industry_groups": igs,
+        "contribution_matrix": contribution_matrix,
         "defensive": defensive,
         "rule_audit": {
             "max_defensive_50pct": defensive_pct <= 0.50,
