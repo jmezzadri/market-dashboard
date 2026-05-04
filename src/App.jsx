@@ -5743,7 +5743,7 @@ return(
           band, identical narrative. */}
       <div style={cardStyle}>
         <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="vix" asOfIso={AS_OF_ISO.vix||AS_OF_ISO.move||null} cadence="D" style={{marginLeft:8}}/></h2>
+          <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoardSnap?.as_of||null} style={{marginLeft:8}}/></h2>
           <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open full view →</a>
         </div>
 
