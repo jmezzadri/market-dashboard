@@ -677,9 +677,7 @@
 
 <div class="page-frame">
 
-  <div class="page-eyebrow">
-    Macro Overview · <span id="page-asof-date">—</span>
-  </div>
+  <div class="page-eyebrow">Macro Overview</div>
 
   <div class="cadence-stamp">
     Refreshed daily · last update <span id="page-asof-stamp">—</span> &nbsp;·&nbsp;
@@ -731,8 +729,7 @@
 
   <div class="page-foot">
     All six cycle mechanisms now live with composite scores and indicator drill-downs.
-    Page-level band: 0–1 elevated reads as Risk-on, 2 as Neutral, 3 as Caution, 4–6 as Risk-off.
-    Calibration source: <code>compute_v11_calibration.py</code> · framework v11.
+    Calibration source: <code>compute_v11_mechanisms.py</code> · framework v11.
   </div>
 </div>
 
@@ -944,7 +941,6 @@ const TILES = [
   {
     id:"valuation", num:"01", name:"Valuation", live:true, score:87, band:"darkblood",
     caption:"Currently at cycle peak — multiple valuation reads in the top quartile of long-run history. Caution advised.",
-    persistence:"Reading at cycle peak since Oct 2024 — 18 consecutive months above the long-run-history threshold.",
     cadence: "Monthly · CAPE/ERP refresh; Buffett quarterly",
     traj: [
       [2016,4,58],[2016,7,60],[2016,10,62],[2017,1,63],[2017,4,64],[2017,7,65],[2017,10,67],
@@ -966,7 +962,6 @@ const TILES = [
   {
     id:"credit", num:"02", name:"Credit", live:true, score:69, band:"oxblood",
     caption:"Spreads pricing complacency — investment-grade and high-yield spreads have not been tighter since before 2008. Late-cycle signature.",
-    persistence:"Spreads tighter than pre-2008 since Sep 2025 — 7 consecutive months in the bottom-quartile complacency regime.",
     cadence: "Daily · ICE BofA via FRED",
     traj: [
       [2016,4,52],[2016,7,55],[2016,10,48],[2017,1,42],[2017,4,40],[2017,7,42],[2017,10,38],
@@ -988,7 +983,6 @@ const TILES = [
   {
     id:"funding", num:"03", name:"Funding", live:true, score:30, band:"amber",
     caption:"Bank-system funding spreads sit in the lower half of post-2018 history. No active funding stress; cross-currency basis is the only mildly stretched read.",
-    persistence:"Funding spreads contained since Apr 2025 — 12 consecutive months without a single SOFR-OIS spike past 25bp.",
     cadence:"Daily · NY Fed + DTCC + FRED",
     traj: [
       [2018,1,18],[2018,7,28],[2019,1,42],[2019,7,35],[2020,1,28],
@@ -1010,7 +1004,6 @@ const TILES = [
   {
     id:"growth", num:"04", name:"Growth", live:true, score:47, band:"amber",
     caption:"Real economy moving at trend — no level-and-trend signal. Jobless claims tight, ISM in expansion.",
-    persistence:"Real economy at trend since Feb 2025 — 14 consecutive months below the level-and-trend threshold.",
     cadence: "Monthly + weekly · CFNAI/ISM monthly, jobless weekly",
     traj: [
       [2016,4,38],[2016,7,42],[2016,10,40],[2017,1,38],[2017,4,35],[2017,7,32],[2017,10,30],
@@ -1033,7 +1026,6 @@ const TILES = [
   {
     id:"liquidity_policy", num:"05", name:"Liquidity & Policy", live:true, score:55, band:"oxblood",
     caption:"Restrictive stance — real Fed funds positive, M2 growth slow, balance sheet still in QT mode. Term premium has normalized but not reversed.",
-    persistence:"Real Fed funds rate above +1% since Sep 2024 — 19 consecutive months in restrictive territory.",
     cadence:"Mixed · ANFCI weekly, real funds + M2 monthly, term premium daily, balance sheet weekly",
     traj: [
       [2018,1,38],[2018,7,42],[2019,1,40],[2019,7,32],[2020,1,28],
@@ -1055,7 +1047,6 @@ const TILES = [
   {
     id:"positioning_breadth", num:"06", name:"Positioning & Breadth", live:true, score:70, band:"oxblood",
     caption:"Investors heavily long; option sentiment is complacent. Breadth is healthy but narrowing as mega-caps lead.",
-    persistence:"Margin debt growth above +15% YoY since Aug 2025 — 9 consecutive months of leveraged-long extension.",
     cadence:"Mixed · NAAIM weekly, margin debt monthly, put/call + breadth daily",
     traj: [
       [2018,1,75],[2018,7,52],[2019,1,42],[2019,7,38],[2020,1,55],
@@ -1164,7 +1155,7 @@ function indicatorConcerningScore(ind) {
 // ============================================================================
 // Aggregate verdict dial — single pointer sweep, no wedge animation.
 // ============================================================================
-(function buildVerdictDial() {
+function buildVerdictDial() {
   const cx = 190, cy = 180, R_outer = 140, R_inner = 90;
   const segments = [
     { id: "wedge-riskon",  a0: 180, a1: 135 },
@@ -1214,7 +1205,7 @@ function indicatorConcerningScore(ind) {
     }
     document.getElementById("verdictHeadline").textContent =
       `${label} band — average ${rounded}/100. ${narrative}`;
-  })();
+  }
   const [tx, ty] = polar(R_outer + 8, a_today);
   document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
   document.getElementById("verdictPointer").setAttribute("y2", ty.toFixed(2));
@@ -1312,7 +1303,32 @@ function renderDials() {
     grid.appendChild(card);
   });
 }
-renderDials();
+// Initial render — fetch live scores from cycle_board_snapshot.json first,
+// then render. Falls back to hardcoded values if the fetch fails.
+fetch('/cycle_board_snapshot.json?cb=' + Date.now())
+  .then(r => r.ok ? r.json() : null)
+  .then(snap => {
+    if (snap && Array.isArray(snap.mechanisms)) {
+      const byId = {};
+      snap.mechanisms.forEach(m => { byId[m.id] = m; });
+      TILES.forEach(t => {
+        const live = byId[t.id];
+        if (live && typeof live.score === 'number') {
+          t.score = live.score;
+          t.band = live.score < 25 ? 'green'
+                  : live.score < 50 ? 'amber'
+                  : live.score < 75 ? 'oxblood'
+                  : 'darkblood';
+        }
+      });
+    }
+  })
+  .catch(() => {})
+  .finally(() => {
+    buildVerdictDial();
+    renderDials();
+  });
+
 
 
 
