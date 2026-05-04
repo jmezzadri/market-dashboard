@@ -25,6 +25,7 @@
 
 import { useMemo, useState } from "react";
 import { usePortfolioHistory } from "../hooks/usePortfolioHistory";
+import PositionsTable from "./PositionsTable";
 
 // ── pure helpers ──────────────────────────────────────────────────────────
 
@@ -167,7 +168,16 @@ const ACCOUNT_DOT_COLORS = {
 // ── component ─────────────────────────────────────────────────────────────
 
 
-export default function AccountTilesSection({ accounts, grandTotal, convColor, convLabel, stressScore, PosCard }) {
+export default function AccountTilesSection({
+  accounts, grandTotal, convColor, convLabel, stressScore,
+  // Per-account positions table action handlers — passed straight through
+  // to <PositionsTable> when an account tile is expanded. Same shape as the
+  // global PositionsTable wiring removed from App.jsx in this PR.
+  scanData,
+  onOpenTicker, onAdd, onEdit, onClose, onDelete,
+  onBulkImport, onImportTransactions, onRescan,
+  rescanBusy, rescanProgress, pricesTs, eventsTs,
+}) {
   const { rows: history, loading: historyLoading } = usePortfolioHistory();
   const [expandedId, setExpandedId] = useState(null);
 
@@ -304,11 +314,15 @@ export default function AccountTilesSection({ accounts, grandTotal, convColor, c
         })}
       </div>
 
-      {/* Inline expand: position list for the clicked account */}
+      {/* Inline expand: full positions table for the clicked account.
+          Reuses the existing PositionsTable component (sortable, editable
+          columns, +Add / per-row Edit / Close / Delete) just filtered to
+          the account's rows. tableKey is unique per account so sort prefs
+          don't bleed between accounts. */}
       {expanded && (
         <div style={{ background: "var(--surface-2)", border: `1px solid ${expanded.accountColor}55`, borderRadius: 10, padding: "14px 18px", marginTop: 6 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 10 }}>
-            <span style={{ fontFamily: "var(--font-display, var(--font-sans))", fontSize: 15, fontWeight: 500, color: "var(--text)" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
+            <span style={{ fontFamily: "var(--font-display, var(--font-sans))", fontSize: 16, fontWeight: 500, color: "var(--text)" }}>
               {expanded.label} positions
             </span>
             <button
@@ -318,25 +332,27 @@ export default function AccountTilesSection({ accounts, grandTotal, convColor, c
               Collapse
             </button>
           </div>
-          {expanded.positions.length === 0 ? (
-            <div style={{ fontSize: 12, color: "var(--text-muted)", padding: "10px 0" }}>No open positions in this account.</div>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {expanded.positions
-                .slice()
-                .sort((a, b) => (b.value || 0) - (a.value || 0))
-                .map((p) => (
-                  <PosCard
-                    key={p.ticker + (p.id || "")}
-                    p={p}
-                    accountTotal={expanded.nav}
-                    convColor={convColor}
-                    convLabel={convLabel}
-                    stressScore={stressScore}
-                  />
-                ))}
-            </div>
-          )}
+          <PositionsTable
+            rows={expanded.positions}
+            grandTotal={expanded.nav}
+            screener={scanData?.signals?.screener || {}}
+            info={scanData?.signals?.info || {}}
+            tableKey={`positions-${expanded.id}`}
+            onOpenTicker={onOpenTicker}
+            emptyMessage="No open positions in this account."
+            onAdd={onAdd}
+            onBulkImport={onBulkImport}
+            onImportTransactions={onImportTransactions}
+            onRescan={onRescan ? () => onRescan(expanded.positions) : undefined}
+            rescanBusy={rescanBusy}
+            rescanProgress={rescanProgress}
+            onEdit={onEdit}
+            onClose={onClose}
+            onDelete={onDelete}
+            pricesTs={pricesTs}
+            eventsTs={eventsTs}
+            footnoteSource="Unusual Whales + Yahoo Finance"
+          />
         </div>
       )}
 
