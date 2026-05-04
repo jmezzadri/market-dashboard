@@ -2,24 +2,24 @@
   "as_of": "2026-05-04",
   "version": "v10.1c",
   "engine": "Phase 2 \u2014 6-mechanism cycle-board allocator (tuned 2026-05-04)",
-  "page_stance": "Neutral",
+  "page_stance": "Cautious",
   "mechanism_scores": {
     "valuation": 99,
-    "credit": 44,
+    "credit": 66,
     "funding": 54,
-    "growth": 42,
+    "growth": 45,
     "liquidity_policy": 59,
     "positioning_breadth": 63
   },
   "mechanism_bands": {
     "valuation": "risk-off",
-    "credit": "neutral",
+    "credit": "caution",
     "funding": "caution",
     "growth": "neutral",
     "liquidity_policy": "caution",
     "positioning_breadth": "caution"
   },
-  "stress_score": 2,
+  "stress_score": 3,
   "equity_pct": 1.0,
   "defensive_pct": 0.0,
   "leverage": 1.0,
@@ -27,7 +27,7 @@
   "sectors": [
     {
       "sector": "Information Technology",
-      "tilt_score": -0.702,
+      "tilt_score": -0.782,
       "rating": "UW",
       "spy_weight": 0.27,
       "raw_weight": 0.2025,
@@ -38,19 +38,19 @@
       ],
       "contributions": {
         "valuation": -0.784,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.024,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.18,
         "positioning_breadth": -0.182
       },
-      "weight": 0.2077,
-      "dollar": 20.77,
-      "vs_spy_pp": -6.2
+      "weight": 0.2203,
+      "dollar": 22.03,
+      "vs_spy_pp": -5.0
     },
     {
       "sector": "Communication Services",
-      "tilt_score": -0.6,
+      "tilt_score": -0.656,
       "rating": "UW",
       "spy_weight": 0.09,
       "raw_weight": 0.0675,
@@ -61,22 +61,22 @@
       ],
       "contributions": {
         "valuation": -0.588,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.016,
-        "growth": 0.032,
+        "growth": 0.02,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.13
       },
-      "weight": 0.0692,
-      "dollar": 6.92,
-      "vs_spy_pp": -2.1
+      "weight": 0.0734,
+      "dollar": 7.34,
+      "vs_spy_pp": -1.7
     },
     {
       "sector": "Financials",
-      "tilt_score": 0.836,
-      "rating": "OW",
+      "tilt_score": 0.14,
+      "rating": "MW",
       "spy_weight": 0.13,
-      "raw_weight": 0.156,
+      "raw_weight": 0.13,
       "etfs": [
         "XLF",
         "VFH",
@@ -84,19 +84,19 @@
       ],
       "contributions": {
         "valuation": 0.686,
-        "credit": 0.18,
+        "credit": -0.48,
         "funding": -0.112,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
-      "weight": 0.16,
-      "dollar": 16.0,
-      "vs_spy_pp": 3.0
+      "weight": 0.1415,
+      "dollar": 14.15,
+      "vs_spy_pp": 1.1
     },
     {
       "sector": "Health Care",
-      "tilt_score": 0.626,
+      "tilt_score": 0.556,
       "rating": "OW",
       "spy_weight": 0.13,
       "raw_weight": 0.156,
@@ -107,19 +107,19 @@
       ],
       "contributions": {
         "valuation": 0.588,
-        "credit": 0.024,
+        "credit": -0.064,
         "funding": -0.016,
-        "growth": -0.048,
+        "growth": -0.03,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.078
       },
-      "weight": 0.16,
-      "dollar": 16.0,
-      "vs_spy_pp": 3.0
+      "weight": 0.1697,
+      "dollar": 16.97,
+      "vs_spy_pp": 4.0
     },
     {
       "sector": "Consumer Discretionary",
-      "tilt_score": -0.408,
+      "tilt_score": -0.732,
       "rating": "UW",
       "spy_weight": 0.11,
       "raw_weight": 0.0825,
@@ -130,22 +130,22 @@
       ],
       "contributions": {
         "valuation": -0.49,
-        "credit": 0.072,
+        "credit": -0.192,
         "funding": -0.032,
-        "growth": 0.16,
+        "growth": 0.1,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.208
       },
-      "weight": 0.0846,
-      "dollar": 8.46,
-      "vs_spy_pp": -2.5
+      "weight": 0.0898,
+      "dollar": 8.98,
+      "vs_spy_pp": -2.0
     },
     {
       "sector": "Industrials",
-      "tilt_score": 0.596,
-      "rating": "OW",
+      "tilt_score": 0.028,
+      "rating": "MW",
       "spy_weight": 0.09,
-      "raw_weight": 0.108,
+      "raw_weight": 0.09,
       "etfs": [
         "XLI",
         "VIS",
@@ -153,19 +153,19 @@
       ],
       "contributions": {
         "valuation": 0.294,
-        "credit": 0.132,
+        "credit": -0.352,
         "funding": -0.04,
-        "growth": 0.224,
+        "growth": 0.14,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
-      "weight": 0.1108,
-      "dollar": 11.08,
-      "vs_spy_pp": 2.1
+      "weight": 0.0979,
+      "dollar": 9.79,
+      "vs_spy_pp": 0.8
     },
     {
       "sector": "Consumer Staples",
-      "tilt_score": 0.67,
+      "tilt_score": 0.712,
       "rating": "OW",
       "spy_weight": 0.06,
       "raw_weight": 0.072,
@@ -176,22 +176,22 @@
       ],
       "contributions": {
         "valuation": 0.686,
-        "credit": -0.0,
+        "credit": 0.0,
         "funding": -0.008,
-        "growth": -0.112,
+        "growth": -0.07,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.104
       },
-      "weight": 0.0738,
-      "dollar": 7.38,
-      "vs_spy_pp": 1.4
+      "weight": 0.0783,
+      "dollar": 7.83,
+      "vs_spy_pp": 1.8
     },
     {
       "sector": "Energy",
-      "tilt_score": 0.788,
-      "rating": "OW",
+      "tilt_score": 0.144,
+      "rating": "MW",
       "spy_weight": 0.04,
-      "raw_weight": 0.048,
+      "raw_weight": 0.04,
       "etfs": [
         "XLE",
         "VDE",
@@ -199,22 +199,22 @@
       ],
       "contributions": {
         "valuation": 0.49,
-        "credit": 0.156,
+        "credit": -0.416,
         "funding": -0.024,
-        "growth": 0.192,
+        "growth": 0.12,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.026
       },
-      "weight": 0.0492,
-      "dollar": 4.92,
-      "vs_spy_pp": 0.9
+      "weight": 0.0435,
+      "dollar": 4.35,
+      "vs_spy_pp": 0.3
     },
     {
       "sector": "Materials",
-      "tilt_score": 0.506,
-      "rating": "OW",
+      "tilt_score": -0.0,
+      "rating": "MW",
       "spy_weight": 0.02,
-      "raw_weight": 0.024,
+      "raw_weight": 0.02,
       "etfs": [
         "XLB",
         "VAW",
@@ -222,19 +222,19 @@
       ],
       "contributions": {
         "valuation": 0.294,
-        "credit": 0.12,
+        "credit": -0.32,
         "funding": -0.032,
-        "growth": 0.176,
+        "growth": 0.11,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.052
       },
-      "weight": 0.0246,
-      "dollar": 2.46,
-      "vs_spy_pp": 0.5
+      "weight": 0.0218,
+      "dollar": 2.18,
+      "vs_spy_pp": 0.2
     },
     {
       "sector": "Real Estate",
-      "tilt_score": -0.546,
+      "tilt_score": -0.948,
       "rating": "UW",
       "spy_weight": 0.03,
       "raw_weight": 0.0225,
@@ -245,19 +245,19 @@
       ],
       "contributions": {
         "valuation": -0.294,
-        "credit": 0.108,
+        "credit": -0.288,
         "funding": -0.08,
-        "growth": 0.016,
+        "growth": 0.01,
         "liquidity_policy": -0.27,
         "positioning_breadth": -0.026
       },
-      "weight": 0.0231,
-      "dollar": 2.31,
-      "vs_spy_pp": -0.7
+      "weight": 0.0245,
+      "dollar": 2.45,
+      "vs_spy_pp": -0.5
     },
     {
       "sector": "Utilities",
-      "tilt_score": 0.454,
+      "tilt_score": 0.546,
       "rating": "OW",
       "spy_weight": 0.03,
       "raw_weight": 0.036,
@@ -268,15 +268,15 @@
       ],
       "contributions": {
         "valuation": 0.49,
-        "credit": -0.012,
+        "credit": 0.032,
         "funding": 0.0,
-        "growth": -0.128,
+        "growth": -0.08,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.104
       },
-      "weight": 0.0369,
-      "dollar": 3.69,
-      "vs_spy_pp": 0.7
+      "weight": 0.0392,
+      "dollar": 3.92,
+      "vs_spy_pp": 0.9
     }
   ],
   "industry_groups": [
@@ -289,17 +289,17 @@
         "SMH",
         "PSI"
       ],
-      "tilt_score": -0.716,
+      "tilt_score": -0.82,
       "rating": "UW",
       "contributions": {
         "valuation": -0.784,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.024,
-        "growth": 0.16,
+        "growth": 0.1,
         "liquidity_policy": 0.18,
         "positioning_breadth": -0.26
       },
-      "dollar": 9.55
+      "dollar": 10.13
     },
     {
       "id": "software",
@@ -310,17 +310,17 @@
         "XSW",
         "CLOU"
       ],
-      "tilt_score": -0.862,
+      "tilt_score": -0.942,
       "rating": "UW",
       "contributions": {
         "valuation": -0.98,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.024,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.216,
         "positioning_breadth": -0.182
       },
-      "dollar": 7.27
+      "dollar": 7.71
     },
     {
       "id": "hardware",
@@ -330,17 +330,17 @@
         "IYW",
         "XLK"
       ],
-      "tilt_score": -0.702,
+      "tilt_score": -0.782,
       "rating": "UW",
       "contributions": {
         "valuation": -0.784,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.024,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.18,
         "positioning_breadth": -0.182
       },
-      "dollar": 3.95
+      "dollar": 4.19
     },
     {
       "id": "intmedia",
@@ -350,17 +350,17 @@
         "XLC",
         "PNQI"
       ],
-      "tilt_score": -0.84,
+      "tilt_score": -0.896,
       "rating": "UW",
       "contributions": {
         "valuation": -0.882,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.016,
-        "growth": 0.032,
+        "growth": 0.02,
         "liquidity_policy": 0.144,
         "positioning_breadth": -0.13
       },
-      "dollar": 4.15
+      "dollar": 4.4
     },
     {
       "id": "telecom",
@@ -370,17 +370,17 @@
         "IYZ",
         "FCOM"
       ],
-      "tilt_score": -0.352,
+      "tilt_score": -0.408,
       "rating": "UW",
       "contributions": {
         "valuation": -0.392,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.016,
-        "growth": 0.032,
+        "growth": 0.02,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.078
       },
-      "dollar": 2.77
+      "dollar": 2.94
     },
     {
       "id": "banks",
@@ -391,17 +391,17 @@
         "KRE",
         "IAT"
       ],
-      "tilt_score": 0.84,
-      "rating": "OW",
+      "tilt_score": 0.012,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.686,
-        "credit": 0.216,
+        "credit": -0.576,
         "funding": -0.144,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
-      "dollar": 8.64
+      "dollar": 7.64
     },
     {
       "id": "insurance",
@@ -411,17 +411,17 @@
         "KIE",
         "IAK"
       ],
-      "tilt_score": 0.876,
-      "rating": "OW",
+      "tilt_score": 0.18,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.686,
-        "credit": 0.18,
+        "credit": -0.48,
         "funding": -0.072,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
-      "dollar": 4.96
+      "dollar": 4.39
     },
     {
       "id": "divfin",
@@ -431,17 +431,17 @@
         "IAI",
         "KCE"
       ],
-      "tilt_score": 0.64,
-      "rating": "OW",
+      "tilt_score": -0.056,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.49,
-        "credit": 0.18,
+        "credit": -0.48,
         "funding": -0.112,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
-      "dollar": 2.4
+      "dollar": 2.12
     },
     {
       "id": "capgoods",
@@ -451,17 +451,17 @@
         "XLI",
         "VIS"
       ],
-      "tilt_score": 0.628,
-      "rating": "OW",
+      "tilt_score": 0.048,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.294,
-        "credit": 0.132,
+        "credit": -0.352,
         "funding": -0.04,
-        "growth": 0.256,
+        "growth": 0.16,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
-      "dollar": 5.54
+      "dollar": 4.89
     },
     {
       "id": "transport",
@@ -471,17 +471,17 @@
         "IYT",
         "XTN"
       ],
-      "tilt_score": 0.644,
-      "rating": "OW",
+      "tilt_score": 0.058,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.294,
-        "credit": 0.132,
+        "credit": -0.352,
         "funding": -0.04,
-        "growth": 0.272,
+        "growth": 0.17,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
-      "dollar": 3.32
+      "dollar": 2.94
     },
     {
       "id": "defense",
@@ -492,17 +492,17 @@
         "XAR",
         "PPA"
       ],
-      "tilt_score": 0.61,
-      "rating": "OW",
+      "tilt_score": 0.066,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.294,
-        "credit": 0.132,
+        "credit": -0.352,
         "funding": -0.04,
-        "growth": 0.16,
+        "growth": 0.1,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.026
       },
-      "dollar": 2.22
+      "dollar": 1.96
     },
     {
       "id": "pharma",
@@ -513,17 +513,17 @@
         "IHE",
         "XPH"
       ],
-      "tilt_score": 0.874,
+      "tilt_score": 0.804,
       "rating": "OW",
       "contributions": {
         "valuation": 0.784,
-        "credit": 0.024,
+        "credit": -0.064,
         "funding": -0.016,
-        "growth": -0.048,
+        "growth": -0.03,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.13
       },
-      "dollar": 7.58
+      "dollar": 8.04
     },
     {
       "id": "devices",
@@ -533,17 +533,17 @@
         "IHI",
         "XHE"
       ],
-      "tilt_score": 0.594,
+      "tilt_score": 0.536,
       "rating": "OW",
       "contributions": {
         "valuation": 0.588,
-        "credit": 0.024,
+        "credit": -0.064,
         "funding": -0.016,
-        "growth": -0.08,
+        "growth": -0.05,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.078
       },
-      "dollar": 5.27
+      "dollar": 5.59
     },
     {
       "id": "biotech",
@@ -554,17 +554,17 @@
         "XBI",
         "BBH"
       ],
-      "tilt_score": 0.156,
+      "tilt_score": 0.086,
       "rating": "MW",
       "contributions": {
         "valuation": 0.196,
-        "credit": 0.024,
+        "credit": -0.064,
         "funding": -0.016,
-        "growth": -0.048,
+        "growth": -0.03,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.0
       },
-      "dollar": 3.15
+      "dollar": 3.34
     },
     {
       "id": "foodbev",
@@ -574,17 +574,17 @@
         "PBJ",
         "XLP"
       ],
-      "tilt_score": 0.67,
+      "tilt_score": 0.712,
       "rating": "OW",
       "contributions": {
         "valuation": 0.686,
-        "credit": -0.0,
+        "credit": 0.0,
         "funding": -0.008,
-        "growth": -0.112,
+        "growth": -0.07,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.104
       },
-      "dollar": 4.58
+      "dollar": 4.85
     },
     {
       "id": "household",
@@ -594,17 +594,17 @@
         "XLP",
         "VDC"
       ],
-      "tilt_score": 0.67,
+      "tilt_score": 0.712,
       "rating": "OW",
       "contributions": {
         "valuation": 0.686,
-        "credit": -0.0,
+        "credit": 0.0,
         "funding": -0.008,
-        "growth": -0.112,
+        "growth": -0.07,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.104
       },
-      "dollar": 2.8
+      "dollar": 2.98
     },
     {
       "id": "retail",
@@ -614,17 +614,17 @@
         "XRT",
         "RTH"
       ],
-      "tilt_score": -0.376,
+      "tilt_score": -0.712,
       "rating": "UW",
       "contributions": {
         "valuation": -0.49,
-        "credit": 0.072,
+        "credit": -0.192,
         "funding": -0.032,
-        "growth": 0.192,
+        "growth": 0.12,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.208
       },
-      "dollar": 4.82
+      "dollar": 5.12
     },
     {
       "id": "autos",
@@ -634,17 +634,17 @@
         "CARZ",
         "DRIV"
       ],
-      "tilt_score": -0.324,
+      "tilt_score": -0.798,
       "rating": "UW",
       "contributions": {
         "valuation": -0.49,
-        "credit": 0.108,
+        "credit": -0.288,
         "funding": -0.032,
-        "growth": 0.208,
+        "growth": 0.13,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.208
       },
-      "dollar": 3.64
+      "dollar": 3.86
     },
     {
       "id": "oilgas",
@@ -655,17 +655,17 @@
         "IEO",
         "XLE"
       ],
-      "tilt_score": 0.788,
-      "rating": "OW",
+      "tilt_score": 0.144,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.49,
-        "credit": 0.156,
+        "credit": -0.416,
         "funding": -0.024,
-        "growth": 0.192,
+        "growth": 0.12,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.026
       },
-      "dollar": 3.94
+      "dollar": 3.48
     },
     {
       "id": "oilfield",
@@ -676,17 +676,17 @@
         "IEZ",
         "XES"
       ],
-      "tilt_score": 0.852,
-      "rating": "OW",
+      "tilt_score": 0.184,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.49,
-        "credit": 0.156,
+        "credit": -0.416,
         "funding": -0.024,
-        "growth": 0.256,
+        "growth": 0.16,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.026
       },
-      "dollar": 0.98
+      "dollar": 0.87
     },
     {
       "id": "mining",
@@ -697,17 +697,17 @@
         "GDX",
         "SLX"
       ],
-      "tilt_score": 0.554,
-      "rating": "OW",
+      "tilt_score": 0.03,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.294,
-        "credit": 0.12,
+        "credit": -0.32,
         "funding": -0.032,
-        "growth": 0.224,
+        "growth": 0.14,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.052
       },
-      "dollar": 1.6
+      "dollar": 1.42
     },
     {
       "id": "chemicals",
@@ -717,17 +717,17 @@
         "PYZ",
         "XLB"
       ],
-      "tilt_score": 0.538,
-      "rating": "OW",
+      "tilt_score": 0.02,
+      "rating": "MW",
       "contributions": {
         "valuation": 0.294,
-        "credit": 0.12,
+        "credit": -0.32,
         "funding": -0.032,
-        "growth": 0.208,
+        "growth": 0.13,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.052
       },
-      "dollar": 0.86
+      "dollar": 0.76
     },
     {
       "id": "reits",
@@ -738,17 +738,17 @@
         "XLRE",
         "MORT"
       ],
-      "tilt_score": -0.546,
+      "tilt_score": -0.948,
       "rating": "UW",
       "contributions": {
         "valuation": -0.294,
-        "credit": 0.108,
+        "credit": -0.288,
         "funding": -0.08,
-        "growth": 0.016,
+        "growth": 0.01,
         "liquidity_policy": -0.27,
         "positioning_breadth": -0.026
       },
-      "dollar": 2.31
+      "dollar": 2.45
     },
     {
       "id": "electric",
@@ -759,106 +759,106 @@
         "VPU",
         "FUTY"
       ],
-      "tilt_score": 0.454,
+      "tilt_score": 0.546,
       "rating": "OW",
       "contributions": {
         "valuation": 0.49,
-        "credit": -0.012,
+        "credit": 0.032,
         "funding": 0.0,
-        "growth": -0.128,
+        "growth": -0.08,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.104
       },
-      "dollar": 3.69
+      "dollar": 3.92
     }
   ],
   "contribution_matrix": {
     "by_sector": {
       "Information Technology": {
         "valuation": -0.784,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.024,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.18,
         "positioning_breadth": -0.182
       },
       "Communication Services": {
         "valuation": -0.588,
-        "credit": 0.012,
+        "credit": -0.032,
         "funding": -0.016,
-        "growth": 0.032,
+        "growth": 0.02,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.13
       },
       "Financials": {
         "valuation": 0.686,
-        "credit": 0.18,
+        "credit": -0.48,
         "funding": -0.112,
-        "growth": 0.096,
+        "growth": 0.06,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
       "Health Care": {
         "valuation": 0.588,
-        "credit": 0.024,
+        "credit": -0.064,
         "funding": -0.016,
-        "growth": -0.048,
+        "growth": -0.03,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.078
       },
       "Consumer Discretionary": {
         "valuation": -0.49,
-        "credit": 0.072,
+        "credit": -0.192,
         "funding": -0.032,
-        "growth": 0.16,
+        "growth": 0.1,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.208
       },
       "Industrials": {
         "valuation": 0.294,
-        "credit": 0.132,
+        "credit": -0.352,
         "funding": -0.04,
-        "growth": 0.224,
+        "growth": 0.14,
         "liquidity_policy": 0.09,
         "positioning_breadth": -0.104
       },
       "Consumer Staples": {
         "valuation": 0.686,
-        "credit": -0.0,
+        "credit": 0.0,
         "funding": -0.008,
-        "growth": -0.112,
+        "growth": -0.07,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.104
       },
       "Energy": {
         "valuation": 0.49,
-        "credit": 0.156,
+        "credit": -0.416,
         "funding": -0.024,
-        "growth": 0.192,
+        "growth": 0.12,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.026
       },
       "Materials": {
         "valuation": 0.294,
-        "credit": 0.12,
+        "credit": -0.32,
         "funding": -0.032,
-        "growth": 0.176,
+        "growth": 0.11,
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.052
       },
       "Real Estate": {
         "valuation": -0.294,
-        "credit": 0.108,
+        "credit": -0.288,
         "funding": -0.08,
-        "growth": 0.016,
+        "growth": 0.01,
         "liquidity_policy": -0.27,
         "positioning_breadth": -0.026
       },
       "Utilities": {
         "valuation": 0.49,
-        "credit": -0.012,
+        "credit": 0.032,
         "funding": 0.0,
-        "growth": -0.128,
+        "growth": -0.08,
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.104
       }
@@ -869,9 +869,9 @@
         "sector": "Information Technology",
         "contributions": {
           "valuation": -0.784,
-          "credit": 0.012,
+          "credit": -0.032,
           "funding": -0.024,
-          "growth": 0.16,
+          "growth": 0.1,
           "liquidity_policy": 0.18,
           "positioning_breadth": -0.26
         }
@@ -881,9 +881,9 @@
         "sector": "Information Technology",
         "contributions": {
           "valuation": -0.98,
-          "credit": 0.012,
+          "credit": -0.032,
           "funding": -0.024,
-          "growth": 0.096,
+          "growth": 0.06,
           "liquidity_policy": 0.216,
           "positioning_breadth": -0.182
         }
@@ -893,9 +893,9 @@
         "sector": "Information Technology",
         "contributions": {
           "valuation": -0.784,
-          "credit": 0.012,
+          "credit": -0.032,
           "funding": -0.024,
-          "growth": 0.096,
+          "growth": 0.06,
           "liquidity_policy": 0.18,
           "positioning_breadth": -0.182
         }
@@ -905,9 +905,9 @@
         "sector": "Communication Services",
         "contributions": {
           "valuation": -0.882,
-          "credit": 0.012,
+          "credit": -0.032,
           "funding": -0.016,
-          "growth": 0.032,
+          "growth": 0.02,
           "liquidity_policy": 0.144,
           "positioning_breadth": -0.13
         }
@@ -917,9 +917,9 @@
         "sector": "Communication Services",
         "contributions": {
           "valuation": -0.392,
-          "credit": 0.012,
+          "credit": -0.032,
           "funding": -0.016,
-          "growth": 0.032,
+          "growth": 0.02,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.078
         }
@@ -929,9 +929,9 @@
         "sector": "Financials",
         "contributions": {
           "valuation": 0.686,
-          "credit": 0.216,
+          "credit": -0.576,
           "funding": -0.144,
-          "growth": 0.096,
+          "growth": 0.06,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.104
         }
@@ -941,9 +941,9 @@
         "sector": "Financials",
         "contributions": {
           "valuation": 0.686,
-          "credit": 0.18,
+          "credit": -0.48,
           "funding": -0.072,
-          "growth": 0.096,
+          "growth": 0.06,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.104
         }
@@ -953,9 +953,9 @@
         "sector": "Financials",
         "contributions": {
           "valuation": 0.49,
-          "credit": 0.18,
+          "credit": -0.48,
           "funding": -0.112,
-          "growth": 0.096,
+          "growth": 0.06,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.104
         }
@@ -965,9 +965,9 @@
         "sector": "Industrials",
         "contributions": {
           "valuation": 0.294,
-          "credit": 0.132,
+          "credit": -0.352,
           "funding": -0.04,
-          "growth": 0.256,
+          "growth": 0.16,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.104
         }
@@ -977,9 +977,9 @@
         "sector": "Industrials",
         "contributions": {
           "valuation": 0.294,
-          "credit": 0.132,
+          "credit": -0.352,
           "funding": -0.04,
-          "growth": 0.272,
+          "growth": 0.17,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.104
         }
@@ -989,9 +989,9 @@
         "sector": "Industrials",
         "contributions": {
           "valuation": 0.294,
-          "credit": 0.132,
+          "credit": -0.352,
           "funding": -0.04,
-          "growth": 0.16,
+          "growth": 0.1,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.026
         }
@@ -1001,9 +1001,9 @@
         "sector": "Health Care",
         "contributions": {
           "valuation": 0.784,
-          "credit": 0.024,
+          "credit": -0.064,
           "funding": -0.016,
-          "growth": -0.048,
+          "growth": -0.03,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.13
         }
@@ -1013,9 +1013,9 @@
         "sector": "Health Care",
         "contributions": {
           "valuation": 0.588,
-          "credit": 0.024,
+          "credit": -0.064,
           "funding": -0.016,
-          "growth": -0.08,
+          "growth": -0.05,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.078
         }
@@ -1025,9 +1025,9 @@
         "sector": "Health Care",
         "contributions": {
           "valuation": 0.196,
-          "credit": 0.024,
+          "credit": -0.064,
           "funding": -0.016,
-          "growth": -0.048,
+          "growth": -0.03,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.0
         }
@@ -1037,9 +1037,9 @@
         "sector": "Consumer Staples",
         "contributions": {
           "valuation": 0.686,
-          "credit": -0.0,
+          "credit": 0.0,
           "funding": -0.008,
-          "growth": -0.112,
+          "growth": -0.07,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.104
         }
@@ -1049,9 +1049,9 @@
         "sector": "Consumer Staples",
         "contributions": {
           "valuation": 0.686,
-          "credit": -0.0,
+          "credit": 0.0,
           "funding": -0.008,
-          "growth": -0.112,
+          "growth": -0.07,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.104
         }
@@ -1061,9 +1061,9 @@
         "sector": "Consumer Discretionary",
         "contributions": {
           "valuation": -0.49,
-          "credit": 0.072,
+          "credit": -0.192,
           "funding": -0.032,
-          "growth": 0.192,
+          "growth": 0.12,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.208
         }
@@ -1073,9 +1073,9 @@
         "sector": "Consumer Discretionary",
         "contributions": {
           "valuation": -0.49,
-          "credit": 0.108,
+          "credit": -0.288,
           "funding": -0.032,
-          "growth": 0.208,
+          "growth": 0.13,
           "liquidity_policy": 0.09,
           "positioning_breadth": -0.208
         }
@@ -1085,9 +1085,9 @@
         "sector": "Energy",
         "contributions": {
           "valuation": 0.49,
-          "credit": 0.156,
+          "credit": -0.416,
           "funding": -0.024,
-          "growth": 0.192,
+          "growth": 0.12,
           "liquidity_policy": 0.0,
           "positioning_breadth": -0.026
         }
@@ -1097,9 +1097,9 @@
         "sector": "Energy",
         "contributions": {
           "valuation": 0.49,
-          "credit": 0.156,
+          "credit": -0.416,
           "funding": -0.024,
-          "growth": 0.256,
+          "growth": 0.16,
           "liquidity_policy": 0.0,
           "positioning_breadth": -0.026
         }
@@ -1109,9 +1109,9 @@
         "sector": "Materials",
         "contributions": {
           "valuation": 0.294,
-          "credit": 0.12,
+          "credit": -0.32,
           "funding": -0.032,
-          "growth": 0.224,
+          "growth": 0.14,
           "liquidity_policy": 0.0,
           "positioning_breadth": -0.052
         }
@@ -1121,9 +1121,9 @@
         "sector": "Materials",
         "contributions": {
           "valuation": 0.294,
-          "credit": 0.12,
+          "credit": -0.32,
           "funding": -0.032,
-          "growth": 0.208,
+          "growth": 0.13,
           "liquidity_policy": 0.0,
           "positioning_breadth": -0.052
         }
@@ -1133,9 +1133,9 @@
         "sector": "Real Estate",
         "contributions": {
           "valuation": -0.294,
-          "credit": 0.108,
+          "credit": -0.288,
           "funding": -0.08,
-          "growth": 0.016,
+          "growth": 0.01,
           "liquidity_policy": -0.27,
           "positioning_breadth": -0.026
         }
@@ -1145,9 +1145,9 @@
         "sector": "Utilities",
         "contributions": {
           "valuation": 0.49,
-          "credit": -0.012,
+          "credit": 0.032,
           "funding": 0.0,
-          "growth": -0.128,
+          "growth": -0.08,
           "liquidity_policy": 0.0,
           "positioning_breadth": 0.104
         }
