@@ -3,38 +3,53 @@
 compute_v11_mechanisms.py — daily compute for the 6 v11 cycle mechanisms.
 
 Reads:
-  - public/indicator_history.json     (existing daily indicator panel)
-  - methodology_calibration_v11.json  (Sprint 1 mechanism definitions)
+  - methodology_calibration_v11.json  (Sprint 1 mechanism definitions — Val/Credit/Growth)
+  - public/indicator_history.json     (live daily indicator panel — Sprint 2 fallback)
 
 Writes:
-  - public/cycle_board_snapshot.json  (CONTRACT-COMPATIBLE shape)
+  - public/cycle_board_snapshot.json  (CONTRACT-COMPATIBLE shape for src/App.jsx)
 
 Schedule: nightly at 22:30 UTC weekdays via .github/workflows/cycle-mechanisms-daily.yml.
 
-CONTRACT (read by src/App.jsx home Macro Overview tile):
+CONTRACT (read by src/App.jsx home Macro Overview tile + AssetTilt page):
   {
     "_doc": "...",
     "as_of": "YYYY-MM-DD",
     "framework": "v11 — six cycle mechanisms",
-    "calibration_label": "Sprint 1 calibration" | "Sprint 2 calibration",
+    "calibration_label": "Sprint 1+2 calibration",
     "mechanisms": [
-      {"id": "valuation",            "num": "01", "name": "Valuation",             "score": 87},
-      {"id": "credit",               "num": "02", "name": "Credit",                "score": 69},
+      {"id": "valuation",            "num": "01", "name": "Valuation",             "score": 99},
+      {"id": "credit",               "num": "02", "name": "Credit",                "score": 67},
       {"id": "funding",              "num": "03", "name": "Funding",               "score": 30},
-      {"id": "growth",               "num": "04", "name": "Growth",                "score": 47},
+      {"id": "growth",               "num": "04", "name": "Growth",                "score": 45},
       {"id": "liquidity_policy",     "num": "05", "name": "Liquidity & Policy",    "score": 55},
       {"id": "positioning_breadth",  "num": "06", "name": "Positioning & Breadth", "score": 70}
     ]
   }
 
-The home tile bands score:
-  0-25 = Risk-on, 25-50 = Neutral, 50-75 = Caution, 75-100 = Risk-off.
+Bands: 0-25 Risk On, 25-50 Neutral, 50-75 Caution, 75-100 Risk Off.
 
-Score derivation (uniform across all 6 mechanisms):
-  For each indicator: concerning_score = direction-corrected percentile (0-100)
-    if high_is_concerning: percentile of current value in post-2011 sample
-    if low_is_concerning:  100 - percentile
-  Mechanism score = mean of its indicator scores.
+SCORING — direction-corrected percentile, averaged across indicators.
+
+  For Sprint 1 mechanisms (Valuation, Credit, Growth): the calibration JSON
+  is the authoritative source. Read each tile's `indicators` array. Each
+  indicator has a precomputed `percentile` and a `direction`. Direction
+  encoding (handled here):
+    - "high_is_concerning"  → score = percentile          (high reading = concerning)
+    - "low_is_concerning"   → score = 100 - percentile    (low reading = concerning)
+    - "bidir_top"           → score = percentile          (current is in top half;
+                                                            being at top is concerning)
+    - "bidir_bottom"        → score = 100 - percentile    (current is in bottom half;
+                                                            being at bottom is concerning,
+                                                            e.g. credit spreads too tight = complacency)
+  Default (missing direction): treat as high_is_concerning.
+
+  For Sprint 2 mechanisms (Funding / Liquidity & Policy / Positioning & Breadth):
+  the calibration JSON does not have indicator panels yet. Fall back to the
+  panels defined below in PANELS, computed from indicator_history.json
+  post-2011 sample.
+
+  Mechanism score = round(mean of indicator scores).
 """
 from __future__ import annotations
 
@@ -46,69 +61,49 @@ from typing import Dict, List, Tuple, Optional
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INDICATOR_HISTORY = REPO_ROOT / "public" / "indicator_history.json"
 SNAPSHOT_OUT = REPO_ROOT / "public" / "cycle_board_snapshot.json"
-CALIB_REF = REPO_ROOT / "methodology_calibration_v11.json"
+# Calibration JSON lives at public/methodology_calibration_v11.json (per repo layout).
+CALIB_PATH = REPO_ROOT / "public" / "methodology_calibration_v11.json"
+# Fallback path for environments that previously had it at the repo root.
+CALIB_PATH_LEGACY = REPO_ROOT / "methodology_calibration_v11.json"
 
-# All 6 mechanism panels — Sprint 1 (Val/Credit/Growth) and Sprint 2 (Funding/Liq&Pol/Pos&Br).
-# Each entry: indicator_id, label, high_is_concerning (True) or low_is_concerning (False).
+# Sprint 1 = read from calibration JSON. Sprint 2 = use the panels below.
+SPRINT1_IDS = {"valuation", "credit", "growth"}
+
+# Sprint 2 fallback panels — used only when the calibration JSON does not
+# carry indicator data for that mechanism. Direction strings match the
+# calibration JSON convention.
 PANELS: Dict[str, dict] = {
-    "valuation": {
-        "num": "01",
-        "name": "Valuation",
-        "indicators": [
-            ("cape",   "Shiller CAPE",                         True),
-            # ERP and Buffett are MONTHLY/QUARTERLY series we don't have in indicator_history yet;
-            # Sprint 1 calibration JSON has them. We pick them up via _calibration_passthrough below.
-        ],
-        "passthrough_from_calibration": ["cape", "erp", "buffett"],
-    },
-    "credit": {
-        "num": "02",
-        "name": "Credit",
-        "indicators": [
-            ("hy_ig",      "HY-IG credit spread",  True),
-            ("hy_ig_etf",  "HY/IG ETF ratio",      False),
-            ("eq_cr_corr", "Equity-credit corr",   True),
-            ("credit_3y",  "3y CDX HY",            True),
-        ],
-    },
+    "valuation":         {"num": "01", "name": "Valuation"},   # Sprint 1 — calibration JSON
+    "credit":            {"num": "02", "name": "Credit"},      # Sprint 1
     "funding": {
         "num": "03",
         "name": "Funding",
         "indicators": [
-            ("cpff",          "Commercial Paper risk premium", True),
-            ("stlfsi",        "St. Louis Fed FSI",             True),
-            ("bank_reserves", "Bank reserves at Fed",          False),
-            ("rrp",           "Reverse repo balance",          False),
+            ("cpff",          "Commercial Paper risk premium", "high_is_concerning"),
+            ("stlfsi",        "St. Louis Fed FSI",             "high_is_concerning"),
+            ("bank_reserves", "Bank reserves at Fed",          "low_is_concerning"),
+            ("rrp",           "Reverse repo balance",          "low_is_concerning"),
         ],
     },
-    "growth": {
-        "num": "04",
-        "name": "Growth",
-        "indicators": [
-            ("ism",          "ISM Manufacturing PMI",       False),
-            ("cfnai_3ma",    "Chicago Fed Activity (3M)",   False),
-            ("jobless",      "Initial Jobless Claims",      True),
-            ("jolts_quits",  "JOLTS Quits Rate",            False),
-        ],
-    },
+    "growth":            {"num": "04", "name": "Growth"},      # Sprint 1
     "liquidity_policy": {
         "num": "05",
         "name": "Liquidity & Policy",
         "indicators": [
-            ("anfci",    "Chicago Fed ANFCI",          True),
-            ("fed_bs",   "Fed Balance Sheet YoY %",    False),
-            ("sloos_ci", "SLOOS C&I lending",          True),
-            ("m2_yoy",   "M2 Money Supply YoY",        False),
+            ("anfci",    "Chicago Fed ANFCI",          "high_is_concerning"),
+            ("fed_bs",   "Fed Balance Sheet YoY %",    "low_is_concerning"),
+            ("sloos_ci", "SLOOS C&I lending",          "high_is_concerning"),
+            ("m2_yoy",   "M2 Money Supply YoY",        "low_is_concerning"),
         ],
     },
     "positioning_breadth": {
         "num": "06",
         "name": "Positioning & Breadth",
         "indicators": [
-            ("skew",       "CBOE SKEW",                       True),
-            ("vix",        "VIX",                             True),
-            ("eq_cr_corr", "Equity-credit correlation (60d)", True),
-            ("move",       "MOVE Index (Treasury vol)",       True),
+            ("skew",       "CBOE SKEW",                       "high_is_concerning"),
+            ("vix",        "VIX",                             "high_is_concerning"),
+            ("eq_cr_corr", "Equity-credit correlation (60d)", "high_is_concerning"),
+            ("move",       "MOVE Index (Treasury vol)",       "high_is_concerning"),
         ],
     },
 }
@@ -116,21 +111,27 @@ PANELS: Dict[str, dict] = {
 QUARTILE_HISTORY_START = "2011-01-01"
 
 
+def direction_corrected_score(percentile: float, direction: str) -> float:
+    """Convert a percentile (0-100) and direction string into a 0-100 concerning-score.
+
+    high_is_concerning: high reading is the bad direction → score = percentile
+    low_is_concerning:  low reading is bad → score = 100 - percentile
+    bidir_top:          current value is in the top half; being there is concerning → score = percentile
+    bidir_bottom:       current is in the bottom half; being there is concerning (e.g. credit spreads
+                        too tight = complacency, late-cycle warning) → score = 100 - percentile
+    """
+    d = (direction or "high_is_concerning").lower()
+    if d in ("low_is_concerning", "bidir_bottom"):
+        return 100.0 - percentile
+    return percentile  # high_is_concerning, bidir_top, default
+
+
 def percentile_of(value: float, sorted_sample: List[float]) -> float:
-    """Returns the percentile (0-100) of value within sorted_sample."""
     n = len(sorted_sample)
     if n == 0:
         return 50.0
     below = sum(1 for v in sorted_sample if v < value)
     return below / n * 100.0
-
-
-def indicator_score(value: float, sample: List[float], high_is_concerning: bool) -> float:
-    """Direction-corrected concerning-score (0-100) for a single indicator."""
-    if value is None or not sample:
-        return 50.0  # neutral fallback
-    pctile = percentile_of(value, sorted(sample))
-    return pctile if high_is_concerning else (100.0 - pctile)
 
 
 def latest_value_and_history(ind: dict, key: str) -> Optional[Tuple[float, List[float]]]:
@@ -145,86 +146,95 @@ def latest_value_and_history(ind: dict, key: str) -> Optional[Tuple[float, List[
     return latest, sample
 
 
-def compute_mechanism_score(mech_id: str, panel: dict, indicators: dict, calib: dict) -> int:
-    scores = []
-    # Live indicators from indicator_history.json
-    for key, _label, high in panel.get("indicators", []):
+def score_mechanism_from_calibration(tile: dict) -> Optional[int]:
+    """Sprint 1: aggregate score from calibration JSON's indicator percentiles."""
+    indicators = tile.get("indicators")
+    if not indicators:
+        return None
+    contribs = []
+    for ind in indicators:
+        pct = ind.get("percentile")
+        if pct is None:
+            continue
+        direction = ind.get("direction", "high_is_concerning")
+        contribs.append(direction_corrected_score(float(pct), direction))
+    if not contribs:
+        return None
+    return round(sum(contribs) / len(contribs))
+
+
+def score_mechanism_from_indicator_history(panel: dict, indicators: dict) -> Optional[int]:
+    """Sprint 2 fallback: compute live percentile from post-2011 sample."""
+    panel_indicators = panel.get("indicators")
+    if not panel_indicators:
+        return None
+    contribs = []
+    for key, _label, direction in panel_indicators:
         loaded = latest_value_and_history(indicators, key)
         if loaded is None:
             continue
-        value, sample = loaded
-        scores.append(indicator_score(value, sample, high))
+        cur, sample = loaded
+        pct = percentile_of(cur, sorted(sample))
+        contribs.append(direction_corrected_score(pct, direction))
+    if not contribs:
+        return None
+    return round(sum(contribs) / len(contribs))
 
-    # For Sprint 1 mechanisms (Valuation in particular), pull pre-computed
-    # quartile/percentile data straight from methodology_calibration_v11.json
-    # — these include monthly/quarterly indicators (CAPE, ERP, Buffett) that
-    # don't live in the daily indicator_history.json.
-    passthrough = panel.get("passthrough_from_calibration", [])
-    if passthrough and calib:
-        for tile in calib.get("tiles", []):
-            if tile.get("id") != mech_id:
-                continue
-            for ind_def in tile.get("indicators", []):
-                if ind_def.get("id") not in passthrough:
-                    continue
-                pctile = ind_def.get("percentile")
-                if pctile is None:
-                    continue
-                direction = ind_def.get("direction", "high_is_concerning")
-                # Sprint 1 calibration encodes percentile in the indicator's
-                # natural direction; convert to concerning-score:
-                #  - high_is_concerning (or unspecified): score = pctile
-                #  - low_is_concerning: score = 100 - pctile
-                if direction == "low_is_concerning":
-                    scores.append(100.0 - pctile)
-                else:
-                    scores.append(pctile)
 
-    if not scores:
-        return 0
-    return round(sum(scores) / len(scores))
+def load_calibration() -> dict:
+    for p in (CALIB_PATH, CALIB_PATH_LEGACY):
+        if p.exists():
+            try:
+                return json.loads(p.read_text())
+            except Exception:
+                pass
+    return {"tiles": []}
 
 
 def main() -> None:
     indicators = json.loads(INDICATOR_HISTORY.read_text())
-    calib = {}
-    if CALIB_REF.exists():
-        try:
-            calib = json.loads(CALIB_REF.read_text())
-        except Exception:
-            calib = {}
+    calib = load_calibration()
+    calib_tiles_by_id = {t.get("id"): t for t in calib.get("tiles", [])}
 
-    mechanisms_out = []
+    out_mechanisms = []
     for mech_id, panel in PANELS.items():
-        score = compute_mechanism_score(mech_id, panel, indicators, calib)
-        mechanisms_out.append({
+        score = None
+        if mech_id in SPRINT1_IDS:
+            tile = calib_tiles_by_id.get(mech_id)
+            if tile is not None:
+                score = score_mechanism_from_calibration(tile)
+        if score is None:
+            score = score_mechanism_from_indicator_history(panel, indicators)
+        if score is None:
+            score = 0
+        out_mechanisms.append({
             "id": mech_id,
             "num": panel["num"],
             "name": panel["name"],
-            "score": score,
+            "score": int(score),
         })
 
     snapshot = {
         "_doc": (
-            "v11 cycle-mechanism scores. Source of truth read by both the home "
-            "Macro Overview tile (src/App.jsx) and the v11 page "
-            "(public/MacroTilt_Macro_Overview_Page_v11.html). The aggregate "
-            "verdict is COMPUTED from these scores using the same labelFn as "
-            "v11 — do not pre-compute it here. Refreshed nightly by "
-            "scripts/compute_v11_mechanisms.py at 22:30 UTC weekdays."
+            "v11 cycle-mechanism scores. Sprint 1 (Valuation/Credit/Growth) reads "
+            "indicator percentiles directly from methodology_calibration_v11.json with "
+            "direction encoding (high/low/bidir_top/bidir_bottom). Sprint 2 (Funding/"
+            "Liquidity & Policy/Positioning & Breadth) computes from indicator_history.json "
+            "post-2011 sample. Refreshed nightly by scripts/compute_v11_mechanisms.py at "
+            "22:30 UTC weekdays."
         ),
         "as_of": dt.date.today().isoformat(),
         "framework": "v11 — six cycle mechanisms",
-        "calibration_label": "Sprint 2 calibration",
-        "mechanisms": mechanisms_out,
+        "calibration_label": "Sprint 1+2 calibration",
+        "mechanisms": out_mechanisms,
     }
     SNAPSHOT_OUT.parent.mkdir(parents=True, exist_ok=True)
     SNAPSHOT_OUT.write_text(json.dumps(snapshot, indent=2) + "\n")
     print(f"Wrote {SNAPSHOT_OUT}")
-    avg = sum(m["score"] for m in mechanisms_out) / len(mechanisms_out)
+    avg = sum(m["score"] for m in out_mechanisms) / len(out_mechanisms)
     band = "Risk-on" if avg < 25 else "Neutral" if avg < 50 else "Caution" if avg < 75 else "Risk-off"
     print(f"Composite average: {round(avg)}/100 ({band})")
-    for m in mechanisms_out:
+    for m in out_mechanisms:
         print(f"  {m['num']} · {m['name']:24s}  score={m['score']:3d}/100")
 
 
