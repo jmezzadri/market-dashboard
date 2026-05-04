@@ -2,10 +2,11 @@ name: cycle-mechanisms-daily
 
 # Daily compute of the 6 v11 cycle mechanisms (Valuation, Credit, Funding,
 # Growth, Liquidity & Policy, Positioning & Breadth). Reads
-# public/indicator_history.json, writes public/cycle_board_snapshot.json.
+# public/indicator_history.json + methodology_calibration_v11.json, writes
+# public/cycle_board_snapshot.json in the contract shape that src/App.jsx and
+# the Macro Overview page consume.
 #
-# Schedule: 22:30 UTC weekdays (after EOD market data lands, before next-day
-# Macro Overview render). Manual dispatch also enabled.
+# Schedule: 22:30 UTC weekdays.
 
 on:
   schedule:
@@ -24,29 +25,34 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Install minimal deps
-        run: |
-          python -m pip install --upgrade pip
-          # Pure-stdlib script — no external deps required at runtime.
-          # If later we add pandas/numpy, add them here.
 
       - name: Run compute
         run: python scripts/compute_v11_mechanisms.py
 
-      - name: Verify snapshot was written
+      - name: Verify snapshot is contract-compatible
         run: |
           test -s public/cycle_board_snapshot.json
-          python -c "import json; d=json.load(open('public/cycle_board_snapshot.json')); assert d['mechanisms'], 'no mechanisms'; print('OK', d['page_stance'], len(d['mechanisms']), 'mechanisms')"
+          python -c "
+          import json
+          d = json.load(open('public/cycle_board_snapshot.json'))
+          assert d.get('as_of'), 'missing as_of'
+          assert d.get('framework'), 'missing framework'
+          assert d.get('calibration_label'), 'missing calibration_label'
+          mechs = d.get('mechanisms', [])
+          assert len(mechs) == 6, f'expected 6 mechanisms, got {len(mechs)}'
+          for m in mechs:
+              assert 'id' in m and 'num' in m and 'name' in m, f'bad mech: {m}'
+              s = m.get('score')
+              assert isinstance(s, int) and 0 <= s <= 100, f'bad score for {m.get(\"id\")}: {s}'
+          print('OK', d['as_of'], 'composite avg', round(sum(m['score'] for m in mechs) / len(mechs)))
+          "
 
       - name: Commit snapshot if changed
         run: |
