@@ -1155,7 +1155,7 @@ function indicatorConcerningScore(ind) {
 // ============================================================================
 // Aggregate verdict dial — single pointer sweep, no wedge animation.
 // ============================================================================
-function buildVerdictDial() {
+(function buildVerdictDial() {
   const cx = 190, cy = 180, R_outer = 140, R_inner = 90;
   const segments = [
     { id: "wedge-riskon",  a0: 180, a1: 135 },
@@ -1217,8 +1217,7 @@ function buildVerdictDial() {
   // so the rotation delta is +(180 - a_today) starting position.
   const startDeg = -(180 - a_today);  // rotate CCW by that amount initially, sweep back to 0
   document.getElementById("verdictPointerGroup").style.setProperty("--from-deg", `${startDeg}deg`);
-}
-buildVerdictDial();
+})();
 
 // ============================================================================
 // Mechanism dial — single sweep animation on first paint
@@ -1304,30 +1303,7 @@ function renderDials() {
     grid.appendChild(card);
   });
 }
-fetch('/cycle_board_snapshot.json?cb=' + Date.now())
-  .then(r => r.ok ? r.json() : null)
-  .then(snap => {
-    if (snap && Array.isArray(snap.mechanisms)) {
-      const byId = {};
-      snap.mechanisms.forEach(m => { byId[m.id] = m; });
-      TILES.forEach(t => {
-        const live = byId[t.id];
-        if (live && typeof live.score === 'number') {
-          t.score = live.score;
-          t.band = live.score < 25 ? 'green'
-                  : live.score < 50 ? 'amber'
-                  : live.score < 75 ? 'oxblood'
-                  : 'darkblood';
-        }
-      });
-      buildVerdictDial();
-      renderDials();
-    } else {
-      renderDials();
-    }
-  })
-  .catch(() => { renderDials(); });
-
+renderDials();
 
 
 
@@ -2599,6 +2575,79 @@ function showToast(msg) {
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.classList.remove("show"); }, 2400);
 }
+</script>
+
+<script>
+// Live-data bootstrap — added 2026-05-04. Fetches cycle_board_snapshot.json
+// and overrides the hardcoded TILES scores so this page stays in sync with
+// Asset Tilt and the home Macro Overview tile. Runs after all the original
+// rendering has completed; mutates TILES, re-renders dials, manually updates
+// the aggregate verdict number + headline + pointer.
+(function liveCycleBoardOverride() {
+  if (typeof TILES === 'undefined') return;
+  fetch('/cycle_board_snapshot.json?cb=' + Date.now())
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(snap) {
+      if (!snap || !Array.isArray(snap.mechanisms)) return;
+      var byId = {};
+      snap.mechanisms.forEach(function(m) { byId[m.id] = m; });
+      var changed = false;
+      TILES.forEach(function(t) {
+        var live = byId[t.id];
+        if (live && typeof live.score === 'number' && live.score !== t.score) {
+          t.score = live.score;
+          t.band = live.score < 25 ? 'green'
+                  : live.score < 50 ? 'amber'
+                  : live.score < 75 ? 'oxblood'
+                  : 'darkblood';
+          changed = true;
+        }
+      });
+      if (!changed) return;
+      // Re-render mechanism dials with new scores
+      if (typeof renderDials === 'function') renderDials();
+      // Recompute aggregate verdict
+      var live = TILES.filter(function(t){ return t.live && typeof t.score === 'number'; });
+      if (!live.length) return;
+      var avg = Math.round(live.reduce(function(a,t){return a + t.score;}, 0) / live.length);
+      // Update verdict number
+      var verdCount = document.getElementById('verdictCount');
+      if (verdCount) {
+        // First text node is the number; preserve the <span class="frac"> after it
+        if (verdCount.firstChild) verdCount.firstChild.nodeValue = String(avg);
+      }
+      // Update verdict headline
+      var label, narrative;
+      if (avg < 25) {
+        label = 'Risk-on';
+        narrative = 'Most mechanisms read benign. Cycle is in a low-risk regime.';
+      } else if (avg < 50) {
+        label = 'Neutral';
+        narrative = 'Composite sits in the neutral band. A few mechanisms run hot, the rest stay calm.';
+      } else if (avg < 75) {
+        label = 'Caution';
+        var above = live.filter(function(t){ return t.score >= avg; }).map(function(t){ return t.name; });
+        var below = live.filter(function(t){ return t.score < avg; }).map(function(t){ return t.name; });
+        narrative = above.join(' and ') + ' above the cohort; ' + below.join(' and ') + ' below. Heat is selective, not system-wide.';
+      } else {
+        label = 'Risk-off';
+        narrative = 'Multiple mechanisms in the upper quartile. Broad-based heat — defensive posture warranted.';
+      }
+      var head = document.getElementById('verdictHeadline');
+      if (head) head.textContent = label + ' band — average ' + avg + '/100. ' + narrative;
+      // Update the verdict pointer angle
+      var a_today = 180 - avg * 1.8;
+      var rad = (a_today * Math.PI) / 180;
+      var cx = 190, cy = 180, R_outer = 140;
+      var tx = cx + (R_outer + 8) * Math.cos(rad);
+      var ty = cy - (R_outer + 8) * Math.sin(rad);
+      var ptr = document.getElementById('verdictPointer');
+      if (ptr) { ptr.setAttribute('x2', tx.toFixed(2)); ptr.setAttribute('y2', ty.toFixed(2)); }
+      var tip = document.getElementById('verdictTip');
+      if (tip) { tip.setAttribute('cx', tx.toFixed(2)); tip.setAttribute('cy', ty.toFixed(2)); }
+    })
+    .catch(function() {});
+})();
 </script>
 </body>
 </html>
