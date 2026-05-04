@@ -7235,23 +7235,7 @@ return(<>
 </div>
 </div>
 
-{/* DEPLOYABLE CASH */}
-<div style={subPanelOuter}>
-<div style={subPanelHeader}>
-<span style={subPanelTitleStyle}>DEPLOYABLE CASH</span>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>TACTICAL ACCOUNTS · {fmt$Full(totalDeployable||0)}</span>
-</div>
-<div style={subPanelBody}>
-<div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-{cashByAcct.length>0?cashByAcct.map(c=>(
-<div key={c.id} style={{...cardStyle,flex:"1 1 180px"}}>
-<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.05em"}}>{c.label}</div>
-<div style={{fontSize:14,fontWeight:800,color:c.cash<0?"#ff453a":"#30d158",fontFamily:"var(--font-mono)",marginTop:3}}>{fmt$Full(c.cash)}</div>
-</div>
-)):<div style={{fontSize:12,color:"var(--text-muted)"}}>No cash in tactical accounts.</div>}
-</div>
-</div>
-</div>
+{/* DEPLOYABLE CASH section removed 2026-05-04 — cash now shown per-account in AccountTilesSection cash chip. */}
 
 </>}
 </div>
