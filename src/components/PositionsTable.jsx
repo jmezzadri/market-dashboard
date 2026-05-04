@@ -16,7 +16,7 @@
 //   info          : { TICKER: { next_earnings_date, marketcap, dividend_yield, has_dividend,... } }
 //                   Used as a fallback when screener row isn't present.
 //   onOpenTicker  : fn(ticker) — open detail modal
-//   onAdd, onBulkImport, onEdit, onClose, onDelete — action bar / row buttons.
+//   onAdd, onBulkImport, onImportTransactions, onEdit, onClose, onDelete — action bar / row buttons.
 //                   onClose ships proceeds to a cash row via the
 //                   close_position RPC; onDelete is data-cleanup only.
 //   emptyMessage  : string shown when rows is empty
@@ -546,7 +546,7 @@ const DEFAULT_WIDTHS = {
 export default function PositionsTable({
   rows, grandTotal, screener, info,
   onOpenTicker, emptyMessage,
-  onAdd, onBulkImport, onRescan, onEdit, onClose, onDelete,
+  onAdd, onBulkImport, onImportTransactions, onRescan, onEdit, onClose, onDelete,
   rescanBusy, rescanProgress,
   tableKey = "positions",
   // Task #25: optional TableFootnote props. When either timestamp or source is
@@ -556,7 +556,7 @@ export default function PositionsTable({
   pricesTs, eventsTs, footnoteSource,
 }) {
   const showActionsCol = Boolean(onEdit || onClose || onDelete);
-  const showActionBar  = Boolean(onAdd || onBulkImport || onRescan);
+  const showActionBar  = Boolean(onAdd || onBulkImport || onImportTransactions || onRescan);
 
   // Load/save column prefs (order + visibility) per user.
   const { prefs, setOrder, setVisible, setWidths, resetToDefaults } = useTablePreferences(tableKey, {
@@ -731,6 +731,11 @@ export default function PositionsTable({
       {showActionBar && onBulkImport && (
         <button type="button" style={topBarBtn} onClick={onBulkImport}>
           Bulk import (CSV/XLSX)
+        </button>
+      )}
+      {showActionBar && onImportTransactions && (
+        <button type="button" style={topBarBtn} onClick={onImportTransactions}>
+          Import broker trades
         </button>
       )}
       {showActionBar && onAdd && (

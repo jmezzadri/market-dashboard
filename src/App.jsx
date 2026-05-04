@@ -32,6 +32,7 @@ import PositionsTable from "./components/PositionsTable";
 import PositionEditor from "./components/PositionEditor";
 import CloseModal    from "./components/CloseModal";
 import BulkImport from "./components/BulkImport";
+import ImportTransactions from "./components/ImportTransactions";
 import UniverseFreshness from "./components/UniverseFreshness";
 import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
@@ -5203,6 +5204,7 @@ const [positionEditor,setPositionEditor]=useState(null);
 // quantity, asset_class, and account_id.
 const [closeModal,setCloseModal]=useState(null);
 const [showBulkImport,setShowBulkImport]=useState(false);
+const [showImportTransactions,setShowImportTransactions]=useState(false);
 // Rescan-all-positions utility. Fans POST /api/scan-ticker over every
 // unique non-CASH ticker in the portfolio with a concurrency-5 pool.
 // Lets users converge stale name/sector/beta without per-row edit+save.
@@ -7218,6 +7220,7 @@ return(<>
   emptyMessage="No positions."
   onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
   onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
+  onImportTransactions={portfolioAuthed?()=>setShowImportTransactions(true):undefined}
   onRescan={portfolioAuthed?()=>handleRescanAllPositions(heldPositions):undefined}
   rescanBusy={rescanState.active}
   rescanProgress={{done:rescanState.done,total:rescanState.total}}
@@ -7342,6 +7345,18 @@ return(<>
       userId={session?.user?.id}
       onClose={()=>setShowBulkImport(false)}
       onDone={async()=>{await refetchPortfolio?.();setShowBulkImport(false);}}
+    />
+  </ErrorBoundary>
+)}
+
+{/* ImportTransactions — Chase brokerage CSV → public.transactions ledger.
+    Different from BulkImport above (which is current holdings). Uses the
+    import_transactions RPC (mig 042) for dedup-aware insert. */}
+{showImportTransactions&&portfolioAuthed&&(
+  <ErrorBoundary label="Import broker trades" onDismiss={()=>setShowImportTransactions(false)}>
+    <ImportTransactions
+      onClose={()=>setShowImportTransactions(false)}
+      onDone={async()=>{await refetchPortfolio?.();}}
     />
   </ErrorBoundary>
 )}
