@@ -1,0 +1,26 @@
+{
+  "_comment": "MacroTilt data element registry per project Data Steward standards. Every element on the site has source, ingestion mode, owner, cadence, freshness SLA, and registered consumers. Schema bootstrapped 2026-05-04 with the broker-import element; existing elements (FRED daily, Massive EOD, etc.) to be backfilled in subsequent Data Steward PRs.",
+  "version": 1,
+  "elements": {
+    "portfolio.transactions-broker-import": {
+      "category": "portfolio",
+      "name": "Broker transaction history (user-uploaded)",
+      "sourcing_mode": "user_upload",
+      "source_vendor": "Chase J.P. Morgan brokerage CSV export (today). Schwab, Fidelity TBD.",
+      "license_tier": "n/a (user-owned data)",
+      "cadence": "ad-hoc (user uploads when they want to refresh)",
+      "refresh_trigger": "User clicks 'Import broker trades' button on Portfolio Insights and submits a CSV via the ImportTransactions modal.",
+      "freshness_sla_hours": null,
+      "freshness_chip": "none — user-driven refresh, freshness UX tracked via the most recent executed_at on public.transactions for the user.",
+      "consumer_surfaces": [
+        "Portfolio Insights → Realized P&L tile (useTransactionsLedger hook)",
+        "Portfolio Insights → Trade History section (TradeHistorySection.jsx)"
+      ],
+      "ingestion_path": "src/components/ImportTransactions.jsx → src/lib/chaseImporter.js → public.import_transactions RPC (supabase/migrations/042_import_transactions_rpc.sql) → public.transactions",
+      "dedup_strategy": "Server-side dedup on (user_id, account_id, ticker, asset_class, side, abs(quantity), executed_at::date). Re-uploading the same file is safe.",
+      "failure_mode": "RPC raises → modal shows the error in plain English. Per-row errors are returned in the response payload (errors[]) and rendered inline.",
+      "owner": "Lead Developer (operations) + Data Steward (registry)",
+      "first_shipped": "2026-05-04 (PR feature/dev-chase-import-2026-05-04)"
+    }
+  }
+}
