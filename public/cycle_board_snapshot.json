@@ -1,7 +1,7 @@
 {
-  "_doc": "v11 cycle-mechanism scores. Source of truth read by both the home Macro Overview tile (src/App.jsx) and the v11 page (public/MacroTilt_Macro_Overview_Page_v11.html). The aggregate verdict is COMPUTED from these scores using the same labelFn as v11 — do not pre-compute it here. // Credit mechanism now carries provisional triggers (HY OAS 500/600bp armed/active) added 2026-04-30. Final calibration deferred to Sprint 2.",
-  "as_of": "2026-04-30",
-  "framework": "v11 — six cycle mechanisms",
+  "_doc": "v11 cycle-mechanism scores. Source of truth read by both the home Macro Overview tile (src/App.jsx) and the v11 page (public/MacroTilt_Macro_Overview_Page_v11.html). The aggregate verdict is COMPUTED from these scores using the same labelFn as v11 \u2014 do not pre-compute it here. // Credit mechanism now carries provisional triggers (HY OAS 500/600bp armed/active) added 2026-04-30. Final calibration deferred to Sprint 2.",
+  "as_of": "2026-05-04",
+  "framework": "v11 \u2014 six cycle mechanisms",
   "calibration_label": "Sprint 1 calibration",
   "mechanisms": [
     {
@@ -24,7 +24,7 @@
           "armed_at": 500,
           "active_at": 600,
           "provisional_calibration": true,
-          "calibration_note": "Provisional rule-of-thumb thresholds. Mean 426bp / peak 1090bp (COVID 2020). 500bp ≈ mean + 0.5σ; 600bp ≈ p90. Final calibration pending v11 Sprint 2 sweep across all 6 mechanisms.",
+          "calibration_note": "Provisional rule-of-thumb thresholds. Mean 426bp / peak 1090bp (COVID 2020). 500bp \u2248 mean + 0.5\u03c3; 600bp \u2248 p90. Final calibration pending v11 Sprint 2 sweep across all 6 mechanisms.",
           "calibration_target_sprint": "Sprint 2",
           "supersedes_bug": "#1125",
           "added": "2026-04-30"
