@@ -11,21 +11,22 @@ Writes:
 Replaces the deprecated v9 allocator that keyed off the now-retired R&L composite.
 v10 keys off the live 6-mechanism cycle board.
 
-DECISION RULES (Phase 2 — every threshold backtestable per Joe directive 2026-05-03):
+DECISION RULES — v10.1c, locked 2026-05-04 after backtest sweep:
 
   1. Equity vs Defensive split — driven by the 3 stress-detection mechanisms:
      Credit, Liquidity & Policy, Positioning & Breadth.
      stress_score = sum over the 3:
          mechanism in caution band (50-75)  → +1
          mechanism in risk-off band (75-100) → +2
-     defensive_pct = stress_score × 8.33%, hard cap 50%.
+     defensive_pct = 0% if stress_score < 4, else (stress_score - 3) × 20%,
+     hard cap 50%. Calibrated 2026-05-04: keeps allocator at 100% equity 88%
+     of the time per Joe directive ("most of the time at 100% equity"); only
+     activates defensive sleeve in genuinely severe stress.
 
-  2. Leverage — driven by Valuation + Funding mechanisms.
-     Default 1.0x.
-     Up to 1.5x ONLY in regime-flip mode (3+ mechanisms transitioning from
-     risk-off to caution in a single month — the V-bottom signal). Not active
-     in v10 v1 since regime-flip detection requires history of recent states;
-     ships as v10.1.
+  2. Leverage — 1.25x when ALL 6 mechanisms read Risk-on or Neutral (no
+     Caution, no Risk-off bands). Otherwise 1.0x. The 1.5x ceiling is reserved
+     for V-bottom regime-flip detection (transition from risk-off to caution
+     across 3+ mechanisms in a single month) — placeholder for v10.2.
 
   3. Defensive XOR leverage — Joe's hard rule: NEVER on at the same time.
      If defensive_pct > 0, leverage forced to 1.0x.
@@ -109,24 +110,26 @@ def compute_stress_score(mechanism_scores: Dict[str, float]) -> int:
 
 
 def compute_defensive_pct(stress_score: int) -> float:
-    """Defensive % from stress score, hard cap 50%."""
-    return min(50.0, stress_score * 8.33) / 100.0
+    """v10.1c: defensive 0% if stress < 4, else (stress-3) × 20%, cap 50%."""
+    if stress_score < 4:
+        return 0.0
+    return min(0.50, (stress_score - 3) * 0.20)
 
 
 def compute_leverage(mechanism_scores: Dict[str, float], defensive_pct: float, regime_flip: bool = False) -> float:
-    """Leverage rule. Joe hard caps: ≤ 1.5x; never with defensive on."""
+    """v10.1c: 1.25x when ALL 6 mechanisms in risk-on or neutral band; else 1.0x.
+    Joe hard caps: ≤ 1.5x; never with defensive on.
+    1.5x ceiling reserved for V-bottom regime-flip (placeholder for v10.2).
+    """
     if defensive_pct > 0:
         return 1.0  # XOR rule
-    if not regime_flip:
-        return 1.0  # No leverage outside V-bottom regime-flip
-    # Regime-flip path (placeholder — v10.1 implements transition detection)
-    val_band = band(mechanism_scores.get("valuation", 50))
-    fund_band = band(mechanism_scores.get("funding", 50))
-    if val_band == "risk-on" and fund_band == "risk-on":
+    bands_present = {band(v) for v in mechanism_scores.values()}
+    all_calm = bands_present <= {"risk-on", "neutral"}
+    if all_calm:
+        return 1.25
+    if regime_flip:
         return 1.5
-    if val_band in ("risk-off",) or fund_band in ("risk-off",):
-        return 1.0
-    return 1.25
+    return 1.0
 
 
 def compute_sector_tilts(mechanism_scores: Dict[str, float], equity_pct: float) -> List[Dict]:
