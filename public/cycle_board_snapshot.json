@@ -1,271 +1,59 @@
 {
-  "version": "v11.0.1",
-  "framework": "cycle-mechanism-counting",
-  "sprint": 2,
-  "as_of": "2026-05-04T02:37:28.517946Z",
-  "page_stance": "Risk On",
-  "stress_mechanism_count": 0,
+  "_doc": "v11 cycle-mechanism scores. Source of truth read by both the home Macro Overview tile (src/App.jsx) and the v11 page (public/MacroTilt_Macro_Overview_Page_v11.html). The aggregate verdict is COMPUTED from these scores using the same labelFn as v11 — do not pre-compute it here. // Credit mechanism now carries provisional triggers (HY OAS 500/600bp armed/active) added 2026-04-30. Final calibration deferred to Sprint 2.",
+  "as_of": "2026-04-30",
+  "framework": "v11 — six cycle mechanisms",
+  "calibration_label": "Sprint 1 calibration",
   "mechanisms": [
     {
-      "id": "funding",
-      "name": "Funding",
-      "state": "Neutral",
-      "concerning_count": 1,
-      "total_indicators": 4,
-      "indicators": [
+      "id": "valuation",
+      "num": "01",
+      "name": "Valuation",
+      "score": 87
+    },
+    {
+      "id": "credit",
+      "num": "02",
+      "name": "Credit",
+      "score": 69,
+      "triggers": [
         {
-          "id": "cpff",
-          "label": "Commercial Paper risk premium",
-          "direction": "high_is_concerning",
-          "current": {
-            "date": "2026-05-01",
-            "value": 17.0,
-            "unit": "bps"
-          },
-          "quartile": 3,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": 2.0,
-            "q50": 7.0,
-            "q75": 18.0,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "stlfsi",
-          "label": "St. Louis Fed Financial Stress Index",
-          "direction": "high_is_concerning",
-          "current": {
-            "date": "2026-04-24",
-            "value": -0.68,
-            "unit": "index"
-          },
-          "quartile": 1,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": -0.62,
-            "q50": -0.37,
-            "q75": -0.06,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "bank_reserves",
-          "label": "Bank reserves at Fed",
-          "direction": "low_is_concerning",
-          "current": {
-            "date": "2026-04-29",
-            "value": 2918.6,
-            "unit": "$bn"
-          },
-          "quartile": 3,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": 1865.1,
-            "q50": 2535.6,
-            "q75": 3190.6,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "rrp",
-          "label": "Reverse repo balance",
-          "direction": "low_is_concerning",
-          "current": {
-            "date": "2026-05-01",
-            "value": 0.6,
-            "unit": "$bn"
-          },
-          "quartile": 1,
-          "in_concerning_quartile": true,
-          "thresholds": {
-            "q25": 6.5,
-            "q50": 107.5,
-            "q75": 395.5,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
+          "input": "hy_oas",
+          "input_label": "HY OAS",
+          "input_source": "FRED BAMLH0A0HYM2",
+          "unit": "bp",
+          "armed_at": 500,
+          "active_at": 600,
+          "provisional_calibration": true,
+          "calibration_note": "Provisional rule-of-thumb thresholds. Mean 426bp / peak 1090bp (COVID 2020). 500bp ≈ mean + 0.5σ; 600bp ≈ p90. Final calibration pending v11 Sprint 2 sweep across all 6 mechanisms.",
+          "calibration_target_sprint": "Sprint 2",
+          "supersedes_bug": "#1125",
+          "added": "2026-04-30"
         }
-      ],
-      "rule": "0 concerning \u2192 Risk On \u00b7 1 \u2192 Neutral \u00b7 2 \u2192 Cautious \u00b7 3+ \u2192 Risk Off",
-      "calibration": "sprint2_locked_2026_05_03"
+      ]
+    },
+    {
+      "id": "funding",
+      "num": "03",
+      "name": "Funding",
+      "score": 30
+    },
+    {
+      "id": "growth",
+      "num": "04",
+      "name": "Growth",
+      "score": 47
     },
     {
       "id": "liquidity_policy",
+      "num": "05",
       "name": "Liquidity & Policy",
-      "state": "Risk On",
-      "concerning_count": 0,
-      "total_indicators": 4,
-      "indicators": [
-        {
-          "id": "anfci",
-          "label": "Chicago Fed ANFCI",
-          "direction": "high_is_concerning",
-          "current": {
-            "date": "2026-04-24",
-            "value": -0.49,
-            "unit": "z-score"
-          },
-          "quartile": 3,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": -0.59,
-            "q50": -0.515,
-            "q75": -0.361,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "fed_bs",
-          "label": "Fed Balance Sheet YoY %",
-          "direction": "low_is_concerning",
-          "current": {
-            "date": "2026-04-29",
-            "value": -0.14,
-            "unit": "% YoY"
-          },
-          "quartile": 2,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": -5.0,
-            "q50": 0.02,
-            "q75": 17.8,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "sloos_ci",
-          "label": "SLOOS C&I lending standards",
-          "direction": "high_is_concerning",
-          "current": {
-            "date": "2026-01-01",
-            "value": 5.3,
-            "unit": "%"
-          },
-          "quartile": 3,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": -10.5,
-            "q50": -2.8,
-            "q75": 8.2,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "m2_yoy",
-          "label": "M2 Money Supply YoY %",
-          "direction": "low_is_concerning",
-          "current": {
-            "date": "2026-03-01",
-            "value": 4.57,
-            "unit": "% YoY"
-          },
-          "quartile": 2,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": 3.99,
-            "q50": 5.93,
-            "q75": 7.32,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        }
-      ],
-      "rule": "0 concerning \u2192 Risk On \u00b7 1 \u2192 Neutral \u00b7 2 \u2192 Cautious \u00b7 3+ \u2192 Risk Off",
-      "calibration": "sprint2_locked_2026_05_03"
+      "score": 55
     },
     {
       "id": "positioning_breadth",
+      "num": "06",
       "name": "Positioning & Breadth",
-      "state": "Neutral",
-      "concerning_count": 1,
-      "total_indicators": 4,
-      "indicators": [
-        {
-          "id": "skew",
-          "label": "CBOE SKEW Index",
-          "direction": "high_is_concerning",
-          "current": {
-            "date": "2026-05-01",
-            "value": 141.4,
-            "unit": "index"
-          },
-          "quartile": 4,
-          "in_concerning_quartile": true,
-          "thresholds": {
-            "q25": 122.5,
-            "q50": 129.7,
-            "q75": 139.6,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "vix",
-          "label": "VIX (S&P 500 implied vol)",
-          "direction": "high_is_concerning",
-          "current": {
-            "date": "2026-05-01",
-            "value": 16.99,
-            "unit": "index"
-          },
-          "quartile": 3,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": 13.65,
-            "q50": 16.41,
-            "q75": 20.63,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "eq_cr_corr",
-          "label": "Equity-Credit Correlation (60d)",
-          "direction": "high_is_concerning",
-          "current": {
-            "date": "2026-05-01",
-            "value": 0.764,
-            "unit": "corr"
-          },
-          "quartile": 3,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": 0.633,
-            "q50": 0.705,
-            "q75": 0.775,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        },
-        {
-          "id": "move",
-          "label": "MOVE Index (Treasury vol)",
-          "direction": "high_is_concerning",
-          "current": {
-            "date": "2026-05-01",
-            "value": 70.4,
-            "unit": "index"
-          },
-          "quartile": 2,
-          "in_concerning_quartile": false,
-          "thresholds": {
-            "q25": 59.0,
-            "q50": 73.0,
-            "q75": 94.0,
-            "history_window": "2011-01-01 to present"
-          },
-          "source": ""
-        }
-      ],
-      "rule": "0 concerning \u2192 Risk On \u00b7 1 \u2192 Neutral \u00b7 2 \u2192 Cautious \u00b7 3+ \u2192 Risk Off",
-      "calibration": "sprint2_locked_2026_05_03"
+      "score": 70
     }
   ]
 }
