@@ -6504,7 +6504,7 @@ return(
     stance={`SIGNED IN · ${_acctCount} ACCOUNTS`}
     stanceColor="strong"
     freshLine={"Synced daily · positions sourced from your portfolio table"}
-    lead={<>Your real portfolio with the model's risk lens applied. <strong style={{fontWeight:600,color:"var(--text)"}}>Allocation</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>time-weighted returns vs the S&amp;P</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>Sharpe ratio</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>position-level alerts</strong>, and <strong style={{fontWeight:600,color:"var(--text)"}}>notable signals</strong> across your holdings. Read it top-to-bottom: snapshot KPIs → portfolio risk → notable signals → positions → account-by-account breakdown. All data is private to your account.</>}
+    lead={`${ACCOUNTS.length} accounts · ${heldPositions.length} open positions · synced daily`}
     kpis={[
       {lbl:"Total wealth", v:_grandTotalK, sub:`across ${_acctCount} account${_acctCount===1?"":"s"}`},
       {lbl:"TTM TWR", v:_ttmPct, col:_ttm!=null && _ttm>=0?"var(--green-text)":_ttm!=null?"var(--red-text)":"var(--text)", sub:"flows netted out"},
@@ -6568,65 +6568,9 @@ Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-t
 </div>
 </>);
 })()}
-{/* SUMMARY BAR — Portfolio Insights only */}
-{showInsights&&(<div style={{background:`${CONV.color}0d`,border:`1px solid ${CONV.color}33`,borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-<div style={{fontSize:11,color:convTextColor(CONV),fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO & INSIGHTS · SNAPSHOT</div>
-{/* Item 28: auto-fit + minmax(140px,1fr) so 6 KPIs fit on desktop but reflow
-    to 2 cols on a 430px phone (previously forced repeat(6,1fr) — boxes at
-    ~58px, dollar values overflowed off viewport). */}
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:8}}>
-{/* Total Wealth + Port. Beta removed 2026-04-28 — already in the hero KPI
-    strip above, was duplicating wealth + beta on the same surface. */}
-{[
-  {label:"Holdings",value:`${heldPositions.length}`,col:"var(--text)"},
-  {label:"Buy Alerts",value:buyCount,col:"var(--green-text)",accent:"#30d158"},
-  {label:"Near Trigger",value:watchCount,col:"var(--yellow-text)",accent:"#B8860B"},
-  {label:"Watchlist",value:`${WATCHLIST.length}`,col:"var(--text)"},
-].map(({label,value,col,accent})=>(
-<div key={label} style={{background:accent?`${accent}14`:"var(--surface-2)",border:accent?`1px solid ${accent}55`:"1px solid transparent",borderLeft:accent?`3px solid ${accent}`:"1px solid transparent",borderRadius:5,padding:"10px 12px"}}>
-<div style={{fontSize:10,color:accent?col:"var(--text-2)",fontFamily:"monospace",marginBottom:4,fontWeight:accent?700:400,letterSpacing:accent?"0.08em":"normal"}}>{label.toUpperCase()}</div>
-<div style={{fontSize:14,fontWeight:800,color:col,fontFamily:"monospace"}}>{value}</div>
-</div>
-))}
-</div>
-</div>
-)}
+{/* PORTFOLIO & INSIGHTS · SNAPSHOT removed 2026-05-04 (Joe directive) — scanner queue counts, not portfolio facts. */}
 
-{/* PORTFOLIO RISK METRICS — Sharpe + annualized return + vol from the
-    same portfolio_history aggregate series powering tile 04. Joe spec
-    2026-04-27 (P5 #18). Independent gate: only renders on insights tab
-    AND when we have enough portfolio_history to compute. */}
-{showInsights && _portfolioSharpe && (
-<div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"14px 16px",marginBottom:12}}>
-<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8,fontWeight:700}}>PORTFOLIO RISK · TIME-WEIGHTED</div>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:8}}>
-{(()=>{
-  const s=_portfolioSharpe;
-  const fmtPct=v=>v==null?"—":((v>=0?"+":"")+(v*100).toFixed(2)+"%");
-  const fmtPctMag=v=>v==null?"—":(v*100).toFixed(2)+"%";
-  const sharpeCol=s.sharpe>=1?"var(--green-text)":s.sharpe>=0.5?"var(--text)":s.sharpe>=0?"var(--yellow-text)":"var(--orange-text)";
-  return(<>
-    <div style={{background:"var(--surface-3)",borderRadius:5,padding:"10px 12px"}}>
-      <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:4,fontWeight:600,letterSpacing:"0.08em"}}>SHARPE RATIO</div>
-      <div style={{fontSize:18,fontWeight:800,color:sharpeCol,fontFamily:"monospace"}}>{s.sharpe.toFixed(2)}</div>
-      <div style={{fontSize:10,color:"var(--text-dim)",marginTop:4}}>RFR {(s.rfrAnnual*100).toFixed(2)}% (3M T-bill)</div>
-    </div>
-    <div style={{background:"var(--surface-3)",borderRadius:5,padding:"10px 12px"}}>
-      <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:4,fontWeight:600,letterSpacing:"0.08em"}}>ANNUALIZED TWR</div>
-      <div style={{fontSize:18,fontWeight:800,color:s.annualR>=0?"var(--green-text)":"var(--orange-text)",fontFamily:"monospace"}}>{fmtPct(s.annualR)}</div>
-      <div style={{fontSize:10,color:"var(--text-dim)",marginTop:4}}>flows netted out</div>
-    </div>
-    <div style={{background:"var(--surface-3)",borderRadius:5,padding:"10px 12px"}}>
-      <div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:4,fontWeight:600,letterSpacing:"0.08em"}}>ANN VOLATILITY</div>
-      <div style={{fontSize:18,fontWeight:800,color:s.annualVol>0.20?"var(--orange-text)":"var(--text)",fontFamily:"monospace"}}>{fmtPctMag(s.annualVol)}</div>
-      <div style={{fontSize:10,color:"var(--text-dim)",marginTop:4}}>{s.periods} periods · {s.spanDays} days</div>
-    </div>
-  </>);
-})()}
-</div>
-<div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.04em",marginTop:6}}>Computed from portfolio_history aggregate (Modified Dietz). Sharpe = (annualized return − RFR) / annualized vol. Window: {_portfolioSharpe.spanDays} days, {_portfolioSharpe.periods} flow-netted periods.</div>
-</div>
-)}
+{/* PORTFOLIO RISK · TIME-WEIGHTED block removed 2026-05-04 (Joe directive) — duplicated KPI strip Sharpe; +83.88% annualized + 330% vol were inflated by the early small-NAV period and were misleading. */}
 
 {/* NAV-OVER-TIME · TIME-WEIGHTED — Phase 3 PR #8. Inline SVG line chart of
     aggregated portfolio NAV from portfolio_history (Modified Dietz aggregate
@@ -6895,7 +6839,7 @@ return(<>
 {/* SECTION 2 — PORTFOLIO INSIGHTS (only on insights tab) */}
 {showInsights&&<div style={sectionPanel}>
 <div style={sectionHeader}>
-<span style={sectionTitleStyle}>② PORTFOLIO INSIGHTS</span>
+<span style={sectionTitleStyle}>ALLOCATION</span>
 <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${Math.round(grandTotal).toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
 </div>
 <div style={{padding:"12px 16px"}}>
@@ -6913,7 +6857,7 @@ return(<>
 <div style={subPanelOuter}>
 <div style={subPanelHeader}>
 <span style={subPanelTitleStyle}>ALLOCATION</span>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>WEALTH BY ACCOUNT & ASSET CLASS</span>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>ASSET CLASS · BONDS / STOCKS / CASH SPLIT</span>
 </div>
 <div style={subPanelBody}>
 {(()=>{
@@ -6970,271 +6914,15 @@ return(
 </div>
 );
 };
-return(<>
-{renderBar2("WEALTH BY ACCOUNT","accounts",acctData,"acct")}
-{renderBar2("ASSET CLASS MIX","classes",assetData,"asset")}
-</>);
+return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
 })()}
 </div>
 </div>
 {/* /ALLOCATION sub-panel */}
 
-{/* NOTABLE — rules-driven; renders nothing if zero rules fire. Keep terse:
-    one short sentence per line. Never pad with "you're well-diversified"
-    type observations — that's visual noise, not signal. Signals on YOUR
-    tickers are prioritized over generic portfolio-beta/drawdown lines
-    because those are derivable from the positions list above; the
-    scanner composite and flow/insider/congress signals are not. Order:
-      Priority 1 — Signal changes on holdings (composite flips, conviction
-                   stacks, congress/insider buys on names you own)
-      Priority 2 — Cross-account exposure + risk flags (concentration,
-                   sector cluster, cross-account holds)
-      Priority 3 — Portfolio-level notes (deployable cash, beta outlier)
-      Priority 4 — Material drawdowns (severe only — ≤-35% or > $5K loss)
-    Rule: if fewer than 2 signal-based lines fire, we still show cross-
-    account & cash lines because those are inherently useful. We do NOT
-    force more drawdown lines just to fill space. */}
-{(()=>{
-  const lines=[];
-  const signals=scanData?.signals;
+{/* NOTABLE block removed 2026-05-04 (Joe directive) — composite tilts and sector clusters were scanner output, not portfolio facts. */}
 
-  // Broad index / commodity-wrapper / cash tickers that aren't meaningful
-  // "concentrations" even if >10% — they're diversified by construction.
-  // 2026-04-23 (#1018): extended the cash list so literal CASH / FDIC /
-  // Core-Cash tickers can never surface as composite-scored holdings in
-  // Notable. The scanner-score sell-watch rule was the path that slipped
-  // a "CASH composite -49" line through before this commit.
-  const NOT_A_CONCENTRATION=new Set([
-    "FXAIX","FSKAX","FXIIX","FZILX","FSGGX","FXNAX", // broad index
-    "JHYUX",                                          // HY bond fund
-    "NHXINT906",                                      // intl-equity 529 fund
-    "SPAXX","QACDS","CASH","FDIC","CORE-CASH","CORECASH", // money-market / cash
-  ]);
-
-  // Tickers we'll evaluate for signal-based insights — deduplicated set of
-  // the user's in-scope tactical holdings. Broad-index funds and cash
-  // don't have composite signals, so exclude them early.
-  const signalTickers=new Set();
-  heldPositions.forEach(p=>{
-    if(!p.acctTactical)return;
-    if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return;
-    if(BROAD_INDEX_FUNDS.has(p.ticker))return;
-    if(NOT_A_CONCENTRATION.has(p.ticker))return;
-    signalTickers.add(p.ticker);
-  });
-
-  // ── PRIORITY 1 — Signal changes on holdings ──
-  // For each in-scope holding, compute the full composite and surface rules
-  // that give Joe info he can't derive from the positions list.
-  const signalLines=[];
-  signalTickers.forEach(t=>{
-    const composite=signals?computeSectionComposites(t,{signals}):null;
-    if(!composite)return;
-    const ov=composite.overall?.score;
-    const sections=composite.sections||{};
-
-    // (a) Strong bullish composite on a holding (>=40) — conviction to add.
-    // 2026-04-23: threshold raised from +30 → +40 to keep this panel from
-    // filling with marginal reads. Joe feedback: "80% of 14 items aren't
-    // notable" — bar should be material-move-only.
-    if(ov!=null&&ov>=40){
-      signalLines.push({col:"#30d158",body:`${t} composite +${ov} — strong bullish tilt across ${Object.values(sections).filter(s=>s?.score>0).length} of 6 categories`,pri:1});
-    }
-    // (b) Strong bearish composite on a holding (<=-30) — sell-watch
-    else if(ov!=null&&ov<=-30){
-      signalLines.push({col:"#ff453a",body:`${t} composite ${ov} — bearish read, review position`,pri:1});
-    }
-
-    // (c) Conviction stack — four or more sections strongly bullish
-    // (each score >= +40). Fires even if overall is moderate. Threshold
-    // raised 2026-04-23 (was 3 sections @ +30) to match the tightened bar.
-    const strongBull=Object.entries(sections).filter(([,s])=>s?.score!=null&&s.score>=40).map(([k])=>k);
-    if(strongBull.length>=4){
-      const names=strongBull.map(k=>k.toUpperCase()).slice(0,4).join("/");
-      // Only add if we haven't already flagged this ticker with the overall rule
-      if(!signalLines.some(l=>l.body.startsWith(`${t} composite`))){
-        signalLines.push({col:"#30d158",body:`${t} bullish stack — ${names} all >+40`,pri:1});
-      }
-    }
-
-    // (d) Congress buy on a ticker you already hold
-    const congBuys=(signals?.congress_buys||[]).filter(r=>(r?.ticker||"").toUpperCase()===t);
-    if(congBuys.length>0){
-      const buyers=new Set(congBuys.map(r=>r.member||r.name)).size;
-      signalLines.push({col:"#0a84ff",body:`${t} — ${congBuys.length} recent congressional buy${congBuys.length===1?"":"s"} (${buyers} member${buyers===1?"":"s"})`,pri:1});
-    }
-
-    // (e) Insider buy on a ticker you already hold (material only — $50K+)
-    const insBuys=(signals?.insider_buys||[]).filter(r=>{
-      if((r?.ticker||"").toUpperCase()!==t)return false;
-      const val=Number(r.transaction_value||r.value||0);
-      return val>=50000;
-    });
-    if(insBuys.length>0){
-      signalLines.push({col:"#bf5af2",body:`${t} — insider open-market buy${insBuys.length===1?"":"s"} filed (${insBuys.length})`,pri:1});
-    }
-  });
-  // Cap signal lines at 4 (was 6) — keeps the panel scannable and forces
-  // the largest positions to win ties since heldPositions is $-sorted.
-  signalLines.slice(0,4).forEach(l=>lines.push(l));
-
-  // ── PRIORITY 2 — Cross-account exposure + risk flags ──
-
-  // Single-stock concentrations >10% of total wealth
-  Object.entries(heldByTicker).forEach(([ticker,info])=>{
-    if(NOT_A_CONCENTRATION.has(ticker))return;
-    const pct=info.total/grandTotal*100;
-    if(pct>=10){
-      lines.push({col:"#ff9f0a",body:`${ticker} is ${pct.toFixed(1)}% of total wealth — single-name concentration`,pri:2});
-    }
-  });
-
-  // Sector concentration — any non-broad single sector >30% of tactical
-  // book (excludes funds/cash that aren't sector-specific).
-  const sectorTot={};
-  let tacTot=0;
-  heldPositions.forEach(p=>{
-    if(!p.acctTactical)return;
-    if(BROAD_INDEX_FUNDS.has(p.ticker))return;
-    if(p.sector==="Cash")return;
-    if(!p.sector||p.sector==="—")return;
-    sectorTot[p.sector]=(sectorTot[p.sector]||0)+p.value;
-    tacTot+=p.value;
-  });
-  if(tacTot>0){
-    Object.entries(sectorTot).forEach(([sector,val])=>{
-      const pct=val/tacTot*100;
-      if(pct>=30){
-        lines.push({col:"#ff9f0a",body:`${sector} sector is ${pct.toFixed(0)}% of tactical book — sector cluster`,pri:2});
-      }
-    });
-  }
-
-  // (Cross-account single-ticker exposure line removed 2026-04-23 — that's
-  // derivable from the positions table and was padding the panel. Keep
-  // only signals that add information beyond what's on screen.)
-
-  // Sell-watch zone — rewritten 2026-04-23 (#1018). Previously used the
-  // 0-100 scanner score with a `< 20` threshold, which rendered lines like
-  // "NVDA scanner score 13 — sell-watch zone" that looked bearish on a
-  // signed-composite (-100/+100) mental model where +13 is mildly bullish.
-  // Now uses the same client-side composite engine as the watchlist / modal
-  // / BUY-NEAR-TRIGGER buckets, with a signed threshold of composite ≤ -20.
-  // Skips tickers already flagged by Priority 1 (composite ≤ -30 = "bearish
-  // read, review") so we don't double-surface the same bearish holding.
-  // Cash / money-market / broad-index / out-of-scope positions continue to
-  // be filtered identically to the signalTickers loop above.
-  heldPositions.forEach(p=>{
-    if(!p.acctTactical)return;
-    if(p.sector==="Cash")return;
-    if(SCANNER_OUT_OF_SCOPE_SECTORS.has(p.sector))return;
-    if(BROAD_INDEX_FUNDS.has(p.ticker))return;
-    if(NOT_A_CONCENTRATION.has(p.ticker))return;
-    const composite=signals?computeSectionComposites(p.ticker,{signals}):null;
-    const ov=composite?.overall?.score;
-    if(ov==null)return;
-    if(ov>-20)return; // not in sell-watch band
-    // Already surfaced by Priority 1 bearish rule (<= -30)? Skip to avoid
-    // duplicate lines on the same ticker.
-    if(signalLines.some(l=>l.body.startsWith(`${p.ticker} composite`)))return;
-    lines.push({col:"#ff453a",body:`${p.ticker} composite ${ov} — sell-watch zone`,pri:2});
-  });
-
-  // ── PRIORITY 3 — Portfolio-level notes ──
-
-  // Deployable cash (tactical accounts only)
-  if(totalDeployable>5000){
-    lines.push({col:"#30d158",body:`${fmt$K(totalDeployable)} deployable cash across ${cashByAcct.length} tactical account${cashByAcct.length===1?"":"s"}`,pri:3});
-  }
-
-  // Portfolio-beta outlier — only surface at extremes so it's not constant noise
-  if(portBeta>1.3){
-    lines.push({col:"#ff9f0a",body:`Portfolio beta ${portBeta.toFixed(2)} — elevated equity sensitivity`,pri:3});
-  }else if(portBeta<0.6){
-    lines.push({col:"#B8860B",body:`Portfolio beta ${portBeta.toFixed(2)} — defensive vs. market`,pri:3});
-  }
-
-  // ── PRIORITY 4 — Material drawdowns (severe only) ──
-  // Previously fired at -25% on any position — created noise. Now only
-  // fires when drawdown is ≤-35% OR dollar loss exceeds $5K. Cap at 2.
-  const drawdownLines=[];
-  heldPositions.forEach(p=>{
-    if(!p.avgCost||p.sector==="Cash")return;
-    const pnlPct=(p.price/p.avgCost-1)*100;
-    const pnl$=p.value-p.avgCost*p.quantity;
-    if(pnlPct<=-35||pnl$<=-5000){
-      drawdownLines.push({col:"#ff453a",body:`${p.ticker} ${pnlPct.toFixed(0)}% vs. cost (${fmt$K(pnl$)} · ${p.acctLabel})`,pri:4});
-    }
-  });
-  drawdownLines.slice(0,2).forEach(l=>lines.push(l));
-
-  // Hard cap on total rendered lines — stay on one page, force the
-  // bar higher if everything else is low-signal. (Joe feedback 2026-04-23.)
-  const MAX_NOTABLE=8;
-  if(lines.length>MAX_NOTABLE)lines.length=MAX_NOTABLE;
-
-  if(lines.length===0)return null;
-  return(
-    <div style={subPanelOuter}>
-    <div style={subPanelHeader}>
-    <span style={subPanelTitleStyle}>NOTABLE</span>
-    <span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{lines.length} insight{lines.length===1?"":"s"}</span>
-    </div>
-    <div style={subPanelBody}>
-    <div style={{display:"flex",flexDirection:"column",gap:4}}>
-    {lines.map((l,i)=>(
-      <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"6px 10px",background:"var(--surface)",borderLeft:`3px solid ${l.col}`,borderRadius:4}}>
-      <span style={{width:6,height:6,borderRadius:"50%",background:l.col,flexShrink:0}}/>
-      <span style={{fontSize:12,color:"var(--text)",fontFamily:"var(--font-mono)"}}>{l.body}</span>
-      </div>
-    ))}
-    </div>
-    </div>
-    </div>
-  );
-})()}
-
-{/* POSITIONS — sortable table. Default sort: % of wealth DESC (biggest
-    exposure first). Click column headers to re-sort. Row click opens the
-    detail modal. Columns: Ticker, Name, Sector, Price, Cost Basis, PnL $,
-    PnL %, Beta, % Wealth, Account. Bug #1071 — id anchor lets /#positions
-    deep-link scroll here. */}
-<div id="section-positions" style={subPanelOuter}>
-<div style={subPanelHeader}>
-<span style={subPanelTitleStyle}>POSITIONS</span>
-<span style={{display:"flex",alignItems:"center",gap:10}}>
-{/* Same freshness chip as the dashboard header — makes the PnL Day column
-    readable as "today, not yesterday" for any authenticated user. Also
-    stamps ticker-events freshness so news/insider/congress data is visibly
-    current. */}
-<UniverseFreshness pricesTs={universeSnapshotTs} eventsTs={scanData?.ticker_events_ts}/>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>CLICK A ROW FOR DETAIL · SORT BY ANY COLUMN</span>
-</span>
-</div>
-<div style={subPanelBody}>
-<PositionsTable
-  rows={heldPositions}
-  grandTotal={grandTotal}
-  screener={scanData?.signals?.screener||{}}
-  info={scanData?.signals?.info||{}}
-  tableKey="positions"
-  onOpenTicker={(t)=>setTickerDetail(t)}
-  emptyMessage="No positions."
-  onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
-  onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
-  onImportTransactions={portfolioAuthed?()=>setShowImportTransactions(true):undefined}
-  onRescan={portfolioAuthed?()=>handleRescanAllPositions(heldPositions):undefined}
-  rescanBusy={rescanState.active}
-  rescanProgress={{done:rescanState.done,total:rescanState.total}}
-  onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
-  onClose={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
-  onDelete={portfolioAuthed?deletePositionInline:undefined}
-  pricesTs={universeSnapshotTs}
-  eventsTs={scanData?.ticker_events_ts}
-  footnoteSource="Unusual Whales + Yahoo Finance"
-/>
-</div>
-</div>
+{/* POSITIONS global table removed 2026-05-04 (Joe directive) — positions now live inside per-account expand on AccountTilesSection. Click an account tile to see its positions table with all the same features (Edit columns, +Add, per-row Edit/Close/Delete). */}
 
 {/* DEPLOYABLE CASH section removed 2026-05-04 — cash now shown per-account in AccountTilesSection cash chip. */}
 
@@ -7262,7 +6950,19 @@ return(<>
     convColor={CONV.color}
     convLabel={CONV.label}
     stressScore={COMP100}
-    PosCard={PosCard}
+    scanData={scanData}
+    onOpenTicker={(t)=>setTickerDetail(t)}
+    onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
+    onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
+    onClose={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
+    onDelete={portfolioAuthed?deletePositionInline:undefined}
+    onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
+    onImportTransactions={portfolioAuthed?()=>setShowImportTransactions(true):undefined}
+    onRescan={portfolioAuthed?(rows)=>handleRescanAllPositions(rows):undefined}
+    rescanBusy={rescanState.active}
+    rescanProgress={{done:rescanState.done,total:rescanState.total}}
+    pricesTs={universeSnapshotTs}
+    eventsTs={scanData?.ticker_events_ts}
   />
 )}
 
