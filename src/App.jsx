@@ -1,5 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import Scanner from "./Scanner";
+import MacroOverviewPageV2 from "./v2/pages/MacroOverviewPage";
+
+// Cutover feature flag — set ?v=2 in URL to render new design.
+// Default OFF until Joe approves preview.
+const V2_ENABLED = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("v") === "2";
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
   Sidebar, SidebarToggleButton,
@@ -6366,7 +6371,8 @@ return(
     replaced by the v11 design (see PR #314, #315, #316). The static
     mockup file lives at public/MacroTilt_Macro_Overview_Page_v11.html.
     Once the React port of v11 is built, this iframe goes away. */}
-{tab==="overview"&&(
+{tab==="overview" && V2_ENABLED && <MacroOverviewPageV2 />}
+{tab==="overview" && !V2_ENABLED && (
 <div style={{padding:0,margin:0,width:"100%"}}>
 <div style={{maxWidth:1240,margin:"0 auto",padding:"14px 24px 6px",display:"flex",alignItems:"center",gap:8,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
   <span style={{color:"var(--accent)"}}>Data freshness</span>
