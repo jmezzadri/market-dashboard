@@ -4,6 +4,12 @@ import MacroOverviewPageV2 from "./v2/pages/MacroOverviewPage";
 import HomePageV2 from "./v2/pages/HomePage";
 import IndicatorsPageV2 from "./v2/pages/IndicatorsPage";
 import AssetTiltPageV2 from "./v2/pages/AssetTiltPage";
+import TradingOppsPageV2 from "./v2/pages/TradingOppsPage";
+import InsightsPageV2 from "./v2/pages/InsightsPage";
+import MethodologyPageV2 from "./v2/pages/MethodologyPage";
+import ScenariosPageV2 from "./v2/pages/ScenariosPage";
+import AdminPageV2 from "./v2/pages/AdminPage";
+
 
 // Cutover feature flag — set ?v=2 in URL to render new design.
 // Default OFF until Joe approves preview.
@@ -6327,8 +6333,10 @@ return(
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
-{(tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
-{(tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
+{V2_ENABLED && tab==="portopps" && <TradingOppsPageV2 />}
+{V2_ENABLED && tab==="insights" && <InsightsPageV2 />}
+{!V2_ENABLED && {(tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}}
+{!V2_ENABLED && {(tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
 const heldByTicker={};
 ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
   if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
@@ -6951,23 +6959,27 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
 )}
 
 {/* ADMIN · UW API USAGE — gated by useIsAdmin() above. Task #30. */}
-{tab==="admin" && <AdminUsage/>}
+{tab==="admin" && V2_ENABLED && <AdminPageV2 />}
+{tab==="admin" && !V2_ENABLED && <AdminUsage/>}
 
 {/* ADMIN · BUGS — gated by useIsAdmin() above. Task #36. */}
-{tab==="bugs" && <AdminBugs/>}
+{V2_ENABLED && tab==="bugs" && <AdminPageV2 />}
+{!V2_ENABLED && {tab==="bugs" && <AdminBugs/>}}
 
 {/* SECTOR LAB — admin-gated experimental sandbox for sector-engine overlays.
     Read-only mirror of the live Sectors tab + cycle-stage chip prototype.
     Zero changes to live SectorsTab. Promotion = move one render line. */}
 {tab==="lab" && <SectorLab/>}
-{tab==="scenarios" && <ScenarioAnalysis/>}
+{tab==="scenarios" && V2_ENABLED && <ScenariosPageV2 />}
+{tab==="scenarios" && !V2_ENABLED && <ScenarioAnalysis/>}
 
 {/* Unified Data & Methodology page — one searchable tile per upstream
     data stream (25 macro indicators + 8 scanner signals + 3 infra streams).
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
-{tab==="readme" && (<>
+{tab==="readme" && V2_ENABLED && <MethodologyPageV2 />}
+{tab==="readme" && !V2_ENABLED && (<>
   <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><RichHero
     eyebrow="FAQ &amp; Methodology"
     headline={"How the model works — "}
