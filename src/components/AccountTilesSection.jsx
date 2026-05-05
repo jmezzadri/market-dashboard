@@ -226,11 +226,11 @@ export default function AccountTilesSection({
   const wrap = { background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "20px 24px 24px", boxShadow: "var(--shadow-sm)", backdropFilter: "blur(20px)" };
   const grid = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: 16, marginBottom: 18 };
   const tile = (active) => ({
-    background: "rgba(255,255,255,0.92)",
+    background: "var(--surface-2)",
     border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
     borderRadius: 10,
     padding: "16px 18px",
-    boxShadow: active ? "0 4px 14px rgba(0,0,0,0.08)" : "var(--shadow-sm)",
+    boxShadow: active ? "var(--shadow-md)" : "var(--shadow-sm)",
     cursor: "pointer",
     display: "flex",
     flexDirection: "column",
