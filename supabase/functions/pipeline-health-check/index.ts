@@ -127,7 +127,7 @@ function ageMinutesFromIso(iso: string | null | undefined, cadence?: CadenceCode
 }
 
 // ─── Data fetchers ──────────────────────────────────────────────────────────
-async function fetchIndicatorHistory(): Promise<Record<string, { as_of?: string }>> {
+async function fetchIndicatorHistory(): Promise<Record<string, { as_of?: string }> & { __meta__?: { generated_at_utc?: string } }> {
   const url = `${SITE_BASE}/indicator_history.json`;
   const resp = await fetch(url, { cache: "no-store" });
   if (!resp.ok) throw new Error(`indicator_history.json ${resp.status} ${await resp.text()}`);
@@ -278,7 +278,25 @@ async function handle(req: Request): Promise<Response> {
       if (!rec) {
         lastError = "indicator not present in indicator_history.json";
       } else {
-        asOf = rec.as_of ?? null;
+        // 2026-05-04 hotfix — chip freshness reflects the PRODUCER (did the
+        // fetch script run successfully today?), not the data_date the
+        // upstream feed currently happens to publish. Per LESSONS rule
+        // 2026-05-03 (b) "deeper fix": the data_date-vs-publish-date
+        // convention for as_of is inverted relative to what the chip wants.
+        //
+        // indicator_history.json carries a top-level __meta__.generated_at_utc
+        // stamped on every successful fetch_history.py run. Use that as the
+        // freshness signal so a Friday-close FRED daily doesn't lie red on
+        // Monday afternoon just because FRED publishes T+1 to T+3.
+        //
+        // If the per-indicator fetch errored inside an otherwise-successful
+        // run, the producer writes last_error to this row via
+        // _log_pipeline_health; that surfaces in the chip tooltip. The
+        // staleness signal still reads from the meta-block — we are
+        // explicitly choosing "did the pipeline run" over "what was the
+        // most recent published data point" as the chip semantics.
+        const metaAt = indicators.__meta__?.generated_at_utc ?? null;
+        asOf = metaAt || rec.as_of || null;
         if (!asOf) lastError = "no as_of field";
       }
     }
