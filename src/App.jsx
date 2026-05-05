@@ -6335,8 +6335,8 @@ return(
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
 {V2_ENABLED && tab==="portopps" && <TradingOppsPageV2 />}
 {V2_ENABLED && tab==="insights" && <InsightsPageV2 />}
-{!V2_ENABLED && {(tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}}
-{!V2_ENABLED && {(tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
+{!V2_ENABLED && (tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
+{!V2_ENABLED && (tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
 const heldByTicker={};
 ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
   if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
@@ -6964,7 +6964,7 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
 
 {/* ADMIN · BUGS — gated by useIsAdmin() above. Task #36. */}
 {V2_ENABLED && tab==="bugs" && <AdminPageV2 />}
-{!V2_ENABLED && {tab==="bugs" && <AdminBugs/>}}
+{!V2_ENABLED && tab==="bugs" && <AdminBugs/>}
 
 {/* SECTOR LAB — admin-gated experimental sandbox for sector-engine overlays.
     Read-only mirror of the live Sectors tab + cycle-stage chip prototype.
