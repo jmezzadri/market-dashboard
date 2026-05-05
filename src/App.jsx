@@ -33,6 +33,8 @@ import PositionsTable from "./components/PositionsTable";
 import PositionEditor from "./components/PositionEditor";
 import CloseModal    from "./components/CloseModal";
 import BulkImport from "./components/BulkImport";
+import ImportTransactions from "./components/ImportTransactions";
+import AccountTilesSection from "./components/AccountTilesSection";
 import UniverseFreshness from "./components/UniverseFreshness";
 import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
@@ -5204,6 +5206,7 @@ const [positionEditor,setPositionEditor]=useState(null);
 // quantity, asset_class, and account_id.
 const [closeModal,setCloseModal]=useState(null);
 const [showBulkImport,setShowBulkImport]=useState(false);
+const [showImportTransactions,setShowImportTransactions]=useState(false);
 // Rescan-all-positions utility. Fans POST /api/scan-ticker over every
 // unique non-CASH ticker in the portfolio with a concurrency-5 pool.
 // Lets users converge stale name/sector/beta without per-row edit+save.
