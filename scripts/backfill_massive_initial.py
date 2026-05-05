@@ -77,6 +77,25 @@ def http_json(url, method="GET", headers=None, body=None, timeout=60):
     except URLError as e:
         return 0, {"error": str(e)}
 
+
+def http_json_retry(url, max_attempts=5, **kwargs):
+    """Retry wrapper that backs off exponentially on HTTP 429.
+
+    Polygon free tier hits 429 on universe pagination when consumed too
+    quickly. The May 2 2026 incident: a single 429 on universe page 2
+    killed the entire MASSIVE-DAILY run. With this wrapper, the same
+    429 sleeps 30s, 60s, 120s, 240s, 480s and then gives up.
+    """
+    delay = 30
+    for attempt in range(1, max_attempts + 1):
+        status, body = http_json(url, **kwargs)
+        if status != 429:
+            return status, body
+        print(f"  HTTP 429 on attempt {attempt}/{max_attempts}; sleeping {delay}s before retry")
+        time.sleep(delay)
+        delay = min(delay * 2, 480)
+    return status, body
+
 def dedupe_by_keys(rows, keys):
     """Keep the LAST row for each (k1,k2,...) tuple.  Polygon dividends
     sometimes return multiple records for the same (ticker, ex_date, type)
@@ -175,7 +194,7 @@ def fetch_paginated(base_url, params, key, throttle=True, label=""):
     page = 0
     while url:
         page += 1
-        status, body = http_json(url, timeout=60)
+        status, body = http_json_retry(url, timeout=60)
         if status >= 300:
             raise SystemExit(f"{label} page {page} HTTP {status}: {body}")
         results = body.get("results", []) if isinstance(body, dict) else []
@@ -256,7 +275,7 @@ def main():
             d = (date.today() - timedelta(days=back)).isoformat()
             url = (f"https://api.polygon.io/v2/aggs/grouped/locale/us/"
                    f"market/stocks/{d}?adjusted=true&apiKey={KEY}")
-            status, body = http_json(url, timeout=60)
+            status, body = http_json_retry(url, timeout=60)
             if status >= 300 or not isinstance(body, dict):
                 print(f"  {d}: HTTP {status} {body}")
                 continue
