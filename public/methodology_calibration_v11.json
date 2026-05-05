@@ -2,7 +2,7 @@
   "version": "v11.0.0",
   "framework": "cycle-mechanism-counting",
   "sprint": 1,
-  "as_of": "2026-05-04",
+  "as_of": "2026-05-05",
   "lexicon": {
     "states": [
       "Normal",
@@ -63,8 +63,8 @@
           "source_url": "https://www.multpl.com/shiller-pe",
           "sample_window": "post-2011 (15y)",
           "current": {
-            "date": "2026-05-01",
-            "value": 41.06
+            "date": "2026-05-04",
+            "value": 40.9
           },
           "percentile": 100.0,
           "quartile": 4,
@@ -559,7 +559,7 @@
             ],
             [
               "2026-05-31",
-              41.06
+              40.9
             ]
           ],
           "direction": "high",
@@ -567,26 +567,26 @@
           "kpis": [
             {
               "label": "1-month change",
-              "value": 2.72,
-              "value_pct": 7.1,
+              "value": 2.56,
+              "value_pct": 6.7,
               "direction": "up"
             },
             {
               "label": "3-month change",
-              "value": 1.53,
-              "value_pct": 3.9,
+              "value": 1.37,
+              "value_pct": 3.5,
               "direction": "up"
             },
             {
               "label": "1-year change",
-              "value": 5.98,
-              "value_pct": 17.0,
+              "value": 5.82,
+              "value_pct": 16.6,
               "direction": "up"
             },
             {
               "label": "Distance from peak",
               "value": 0.0,
-              "peak_value": 41.06,
+              "peak_value": 40.9,
               "peak_date": "2026-05",
               "direction": "flat"
             }
@@ -627,7 +627,7 @@
               "peer_id": "hy_oas",
               "peer_name": "HY OAS",
               "corr_1y": -0.46,
-              "corr_5y": -0.71,
+              "corr_5y": -0.72,
               "n_1y": 12,
               "n_5y": 36
             },
@@ -663,7 +663,7 @@
             "source": "Shiller / multpl (curated monthly)",
             "source_url": "https://www.multpl.com/shiller-pe"
           },
-          "composite_share_pct": 33.7
+          "composite_share_pct": 33.4
         },
         {
           "id": "erp",
@@ -676,10 +676,10 @@
           "source_url": "https://fred.stlouisfed.org/series/DGS10",
           "sample_window": "post-2011 (15y)",
           "current": {
-            "date": "2026-04-30",
-            "value": -1.79
+            "date": "2026-05-31",
+            "value": -1.95
           },
-          "percentile": 1.6,
+          "percentile": 0.5,
           "quartile": 1,
           "direction": "low_is_concerning",
           "history": [
@@ -1418,31 +1418,35 @@
             [
               "2026-04-30",
               -1.7918
+            ],
+            [
+              "2026-05-31",
+              -1.945
             ]
           ],
-          "concerning_score": 97,
+          "concerning_score": 99,
           "kpis": [
             {
               "label": "1-month change",
-              "value": -0.1471,
-              "value_pct": 8.9,
+              "value": -0.1533,
+              "value_pct": 8.6,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -0.0299,
-              "value_pct": 1.7,
+              "value": -0.5047,
+              "value_pct": 35.0,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -0.6864,
-              "value_pct": 62.1,
+              "value": -0.3856,
+              "value_pct": 24.7,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -5.1208,
+              "value": -5.274,
               "peak_value": 3.329,
               "peak_date": "2020-03",
               "direction": "dn"
@@ -1478,20 +1482,20 @@
             {
               "peer_id": "cape",
               "peer_name": "CAPE (Shiller)",
-              "corr_1y": -0.41,
-              "corr_5y": -0.16,
+              "corr_1y": -0.19,
+              "corr_5y": -0.17,
               "n_1y": 12,
               "n_5y": 60
             }
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-01",
-            "next_release": "2026-05-02 (T+1)",
+            "last_release": "2026-05-04",
+            "next_release": "2026-05-05 (T+1)",
             "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
             "source_url": "https://fred.stlouisfed.org/series/DGS10"
           },
-          "composite_share_pct": 32.7
+          "composite_share_pct": 33.1
         },
         {
           "id": "buffett",
@@ -2502,31 +2506,31 @@
             "source": "FRED: NCBCEL / GDP (quarterly)",
             "source_url": "https://fred.stlouisfed.org/series/NCBCEL"
           },
-          "composite_share_pct": 33.7
+          "composite_share_pct": 33.4
         }
       ],
       "current_state": "Stressed",
       "rule_status": "3 of 3 indicators in concerning quartile",
-      "as_of": "2026-05-04",
-      "composite_score": 99,
+      "as_of": "2026-05-05",
+      "composite_score": 100,
       "composite_breakdown": [
         {
           "indicator_id": "cape",
           "name": "CAPE (Shiller)",
           "concerning_score": 100,
-          "share_pct": 33.7
+          "share_pct": 33.4
         },
         {
           "indicator_id": "erp",
           "name": "Equity Risk Premium",
-          "concerning_score": 97,
-          "share_pct": 32.7
+          "concerning_score": 99,
+          "share_pct": 33.1
         },
         {
           "indicator_id": "buffett",
           "name": "Buffett Indicator",
           "concerning_score": 100,
-          "share_pct": 33.7
+          "share_pct": 33.4
         }
       ],
       "headline_caption": "Cycle-peak valuation \u2014 multiple reads in the top quartile of long-run history."
@@ -3172,7 +3176,7 @@
           "data_caveat": "ICE BofA license restricts FRED's free history to post-2011. GFC 2008 peak (~2,000bp) is out of sample.",
           "current": {
             "date": "2026-05-31",
-            "value": 277.0
+            "value": 278.0
           },
           "percentile": 8.1,
           "quartile": 1,
@@ -3323,7 +3327,7 @@
             ],
             [
               "2026-05-31",
-              277.0
+              278.0
             ]
           ],
           "direction": "bidir_bottom",
@@ -3331,25 +3335,25 @@
           "kpis": [
             {
               "label": "1-month change",
-              "value": -6.0,
-              "value_pct": -2.1,
+              "value": -5.0,
+              "value_pct": -1.8,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -35.0,
-              "value_pct": -11.2,
+              "value": -34.0,
+              "value_pct": -10.9,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -55.0,
-              "value_pct": -16.6,
+              "value": -54.0,
+              "value_pct": -16.3,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -192.0,
+              "value": -191.0,
               "peak_value": 469.0,
               "peak_date": "2023-05",
               "direction": "dn"
@@ -3370,7 +3374,7 @@
               "peer_id": "cape",
               "peer_name": "CAPE (Shiller)",
               "corr_1y": -0.46,
-              "corr_5y": -0.71,
+              "corr_5y": -0.72,
               "n_1y": 12,
               "n_5y": 36
             },
@@ -3401,8 +3405,8 @@
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-04",
-            "next_release": "2026-05-05 (T+1)",
+            "last_release": "2026-05-05",
+            "next_release": "2026-05-06 (T+1)",
             "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
             "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
           },
@@ -3645,8 +3649,8 @@
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-04",
-            "next_release": "2026-05-05 (T+1)",
+            "last_release": "2026-05-05",
+            "next_release": "2026-05-06 (T+1)",
             "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
             "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
           },
@@ -3655,7 +3659,7 @@
       ],
       "current_state": "Cautionary",
       "rule_status": "2 of 3 in bottom quartile",
-      "as_of": "2026-05-04",
+      "as_of": "2026-05-05",
       "composite_score": 69,
       "composite_breakdown": [
         {
@@ -4283,7 +4287,7 @@
             "source": "FRED: CFNAIMA3 (monthly)",
             "source_url": "https://fred.stlouisfed.org/series/CFNAIMA3"
           },
-          "composite_share_pct": 8.7
+          "composite_share_pct": 8.6
         },
         {
           "id": "jobless",
@@ -4867,7 +4871,7 @@
             "source": "FRED: IC4WSA (weekly)",
             "source_url": "https://fred.stlouisfed.org/series/IC4WSA"
           },
-          "composite_share_pct": 45.7
+          "composite_share_pct": 45.5
         },
         {
           "id": "ism",
@@ -5135,7 +5139,7 @@
           "trend_60d": "falling",
           "concerning": true,
           "deteriorating": true,
-          "percentile": 5.4,
+          "percentile": 5.1,
           "quartile": 1,
           "direction": "low_is_concerning",
           "history": [
@@ -5629,32 +5633,32 @@
             ],
             [
               "2026-05-31",
-              0.0885
+              0.0882
             ]
           ],
-          "concerning_score": 89,
+          "concerning_score": 90,
           "kpis": [
             {
               "label": "1-month change",
+              "value": -0.0011,
+              "value_pct": -1.2,
+              "direction": "dn"
+            },
+            {
+              "label": "3-month change",
               "value": -0.0008,
               "value_pct": -0.9,
               "direction": "dn"
             },
             {
-              "label": "3-month change",
-              "value": -0.0005,
-              "value_pct": -0.6,
-              "direction": "dn"
-            },
-            {
               "label": "1-year change",
-              "value": -0.0018,
-              "value_pct": -2.0,
+              "value": -0.0021,
+              "value_pct": -2.3,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -0.3467,
+              "value": -0.347,
               "peak_value": 0.4352,
               "peak_date": "2006-07",
               "direction": "dn"
@@ -5690,7 +5694,7 @@
             {
               "peer_id": "erp",
               "peer_name": "Equity Risk Premium",
-              "corr_1y": -0.06,
+              "corr_1y": -0.1,
               "corr_5y": -0.11,
               "n_1y": 12,
               "n_5y": 60
@@ -5703,25 +5707,25 @@
             "source": "Yahoo: ^BKX, ^GSPC (daily)",
             "source_url": "https://finance.yahoo.com/quote/%5EBKX"
           },
-          "composite_share_pct": 40.6
+          "composite_share_pct": 40.9
         }
       ],
       "current_state": "Cautionary",
       "rule_status": "1 of 4 concerning \u00b7 3 of 4 deteriorating over 60d",
-      "as_of": "2026-05-04",
+      "as_of": "2026-05-05",
       "composite_score": 55,
       "composite_breakdown": [
         {
           "indicator_id": "cfnai_3ma",
           "name": "CFNAI 3-month",
           "concerning_score": 19,
-          "share_pct": 8.7
+          "share_pct": 8.6
         },
         {
           "indicator_id": "jobless",
           "name": "Jobless claims (4w)",
           "concerning_score": 100,
-          "share_pct": 45.7
+          "share_pct": 45.5
         },
         {
           "indicator_id": "ism",
@@ -5732,8 +5736,8 @@
         {
           "indicator_id": "bkx_spx",
           "name": "Banks vs S&P 500 (BKX/SPX)",
-          "concerning_score": 89,
-          "share_pct": 40.6
+          "concerning_score": 90,
+          "share_pct": 40.9
         }
       ],
       "headline_caption": "Soft patches forming in the real-economy reads."
