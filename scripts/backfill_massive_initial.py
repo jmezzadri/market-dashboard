@@ -370,6 +370,33 @@ def main():
         # we just log and continue.
         print(f"  splits backfill failed (non-fatal): {e}")
 
+    # 5) Refresh positions.price from prices_eod (Joe directive 2026-05-04)
+    #    The EOD ingest above writes to public.prices_eod. This step copies
+    #    the latest close into public.positions.price + value for every
+    #    active stock position. Without this, positions stay at whatever
+    #    was last written there (often months old or NULL after manual
+    #    cleanup) — exactly the staleness Joe caught tonight comparing
+    #    his $109K Macrotilt to $101K Chase.
+    print("\n[5/5] Refresh positions.price from prices_eod (mig 046)…")
+    try:
+        # Call the SECURITY DEFINER function via PostgREST RPC
+        rpc_url = f"{URL}/rest/v1/rpc/refresh_positions_from_eod"
+        rpc_headers = {
+            "apikey": SK,
+            "Authorization": f"Bearer {SK}",
+            "Content-Type": "application/json",
+        }
+        status, body = http_json(rpc_url, method="POST", headers=rpc_headers, body={})
+        if status >= 300:
+            print(f"  RPC call HTTP {status}: {body}")
+        else:
+            row = body[0] if isinstance(body, list) and body else body
+            n = row.get("rows_updated", 0) if isinstance(row, dict) else 0
+            asof = row.get("prices_as_of") if isinstance(row, dict) else None
+            print(f"  refreshed {n} active stock positions; prices as of {asof}")
+    except Exception as e:
+        print(f"  positions.price refresh failed (non-fatal): {e}")
+
     elapsed = time.time() - started
     print(f"\n[backfill] done in {elapsed:.1f}s")
 

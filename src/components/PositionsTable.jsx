@@ -553,7 +553,7 @@ export default function PositionsTable({
   // supplied, a compact caption renders under the table so the freshness +
   // provenance stays attached to the data even when the user scrolls past
   // the section header.
-  pricesTs, eventsTs, footnoteSource,
+  pricesTs, eventsTs, footnoteSource, pricesAsOfDate,
 }) {
   const showActionsCol = Boolean(onEdit || onClose || onDelete);
   const showActionBar  = Boolean(onAdd || onBulkImport || onImportTransactions || onRescan);
@@ -988,7 +988,7 @@ export default function PositionsTable({
       {/* Task #25: footnote keeps freshness + source attached to the table
           body — useful on long portfolios where the section header scrolls
           off-screen. Renders null if no ts / source is provided. */}
-      <TableFootnote pricesTs={pricesTs} eventsTs={eventsTs} source={footnoteSource} />
+      <TableFootnote pricesAsOfDate={pricesAsOfDate} pricesTs={pricesTs} eventsTs={eventsTs} source={footnoteSource} />
     </>
   );
 }
