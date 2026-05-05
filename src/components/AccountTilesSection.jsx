@@ -25,6 +25,7 @@
 
 import { useMemo, useState } from "react";
 import { usePortfolioHistory } from "../hooks/usePortfolioHistory";
+import { usePricesAsOfDate } from "../hooks/usePricesAsOfDate";
 import PositionsTable from "./PositionsTable";
 
 // ── pure helpers ──────────────────────────────────────────────────────────
@@ -179,6 +180,7 @@ export default function AccountTilesSection({
   rescanBusy, rescanProgress, pricesTs, eventsTs,
 }) {
   const { rows: history, loading: historyLoading } = usePortfolioHistory();
+  const pricesAsOfDate = usePricesAsOfDate();
   const [expandedId, setExpandedId] = useState(null);
 
   const tiles = useMemo(() => {
@@ -352,6 +354,7 @@ export default function AccountTilesSection({
             pricesTs={pricesTs}
             eventsTs={eventsTs}
             footnoteSource="Unusual Whales + Yahoo Finance"
+            pricesAsOfDate={pricesAsOfDate}
           />
         </div>
       )}
