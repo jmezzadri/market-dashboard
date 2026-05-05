@@ -1,7 +1,14 @@
 # MASSIVE-DAILY — daily refresh of Massive-sourced tables.
 #
-# Runs every weekday at 22:00 UTC (= 18:00 ET, ~30 min after US market
-# close + Polygon's T+0 publish window).  Also triggerable on demand
+# Runs every weekday at three fire windows after US market close so a
+# dropped GitHub schedule (which has happened — May 4 2026 incident)
+# does not silently swallow the day's refresh:
+#   - 22:00 UTC = 18:00 ET   (primary, ~30 min after market close)
+#   - 00:00 UTC = 20:00 ET   (backup A, fires next-day Tue-Sat)
+#   - 03:00 UTC = 23:00 ET   (backup B, fires next-day Tue-Sat)
+# Backups B and A are no-ops when the primary already ran (the script
+# is idempotent — universe + prices + corp actions all upsert by
+# natural key, so re-running is safe).  Also triggerable on demand
 # via workflow_dispatch.
 #
 # Same backfill script as the one-shot MASSIVE-INITIAL-BACKFILL, but
@@ -16,8 +23,11 @@ name: MASSIVE-DAILY
 
 on:
   schedule:
-    # Mon–Fri at 22:00 UTC (after US market close).  Cron is UTC.
-    - cron: "0 22 * * 1-5"
+    # Cron is UTC. Three weekday fire windows so a dropped or delayed
+    # GitHub schedule is recovered the same evening (idempotent script).
+    - cron: "0 22 * * 1-5"   # Primary: Mon-Fri 18:00 ET
+    - cron: "0 0  * * 2-6"   # Backup A: Mon-Fri 20:00 ET (Tue-Sat 00:00 UTC)
+    - cron: "0 3  * * 2-6"   # Backup B: Mon-Fri 23:00 ET (Tue-Sat 03:00 UTC)
   workflow_dispatch: {}
 
 jobs:
