@@ -4,52 +4,86 @@ import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
 import Drawer from '../components/Drawer';
 
-function scoreBand(score) {
-  if (score == null) return { id: 'unknown', label: '—', cls: 'placeholder' };
-  if (score < 25) return { id: 'r-on', label: 'Risk On', cls: 'r-on' };
-  if (score < 50) return { id: 'r-neu', label: 'Neutral', cls: 'r-neu' };
-  if (score < 75) return { id: 'r-cau', label: 'Cautionary', cls: 'r-cau' };
-  return { id: 'r-off', label: 'Risk Off', cls: 'r-off' };
+/** Canonical mechanism → input map. Mirrors scripts/compute_v11_mechanisms.py PANELS. */
+const PANELS = {
+  valuation: {
+    num: '01', name: 'Valuation',
+    inputs: [
+      { id: 'cape',    name: 'CAPE (Shiller)',           direction: 'high_is_concerning' },
+      { id: 'erp',     name: 'Equity Risk Premium',      direction: 'low_is_concerning' },
+      { id: 'buffett', name: 'Buffett Indicator',        direction: 'high_is_concerning' },
+    ],
+  },
+  credit: {
+    num: '02', name: 'Credit',
+    inputs: [
+      { id: 'ig_oas',      name: 'IG OAS',          direction: 'bidir_bottom' },
+      { id: 'hy_oas',      name: 'HY OAS',          direction: 'bidir_bottom' },
+      { id: 'hy_ig_ratio', name: 'HY / IG ratio',   direction: 'bidir_bottom' },
+    ],
+  },
+  funding: {
+    num: '03', name: 'Funding',
+    inputs: [
+      { id: 'cpff',          name: 'Commercial Paper risk premium', direction: 'high_is_concerning' },
+      { id: 'stlfsi',        name: 'St. Louis Fed FSI',             direction: 'high_is_concerning' },
+      { id: 'bank_reserves', name: 'Bank reserves at Fed',          direction: 'low_is_concerning' },
+      { id: 'rrp',           name: 'Reverse repo balance',          direction: 'low_is_concerning' },
+    ],
+  },
+  growth: {
+    num: '04', name: 'Growth',
+    inputs: [
+      { id: 'cfnai_3ma', name: 'CFNAI 3-month',           direction: 'low_is_concerning' },
+      { id: 'jobless',   name: 'Initial Claims (4-wk)',   direction: 'high_is_concerning' },
+      { id: 'ism',       name: 'ISM Manufacturing PMI',   direction: 'low_is_concerning' },
+      { id: 'bkx_spx',   name: 'BKX / SPX ratio',         direction: 'low_is_concerning' },
+    ],
+  },
+  liquidity_policy: {
+    num: '05', name: 'Liquidity & Policy',
+    inputs: [
+      { id: 'anfci',    name: 'Chicago Fed ANFCI',     direction: 'high_is_concerning' },
+      { id: 'fed_bs',   name: 'Fed Balance Sheet YoY', direction: 'low_is_concerning' },
+      { id: 'sloos_ci', name: 'SLOOS C&I lending',     direction: 'high_is_concerning' },
+      { id: 'm2_yoy',   name: 'M2 Money Supply YoY',   direction: 'low_is_concerning' },
+    ],
+  },
+  positioning_breadth: {
+    num: '06', name: 'Positioning & Breadth',
+    inputs: [
+      { id: 'skew',       name: 'CBOE SKEW',                       direction: 'high_is_concerning' },
+      { id: 'vix',        name: 'VIX',                             direction: 'high_is_concerning' },
+      { id: 'eq_cr_corr', name: 'Equity-credit correlation (60d)', direction: 'high_is_concerning' },
+      { id: 'move',       name: 'MOVE Index (Treasury vol)',       direction: 'high_is_concerning' },
+    ],
+  },
+};
+
+const QUARTILE_START = '2011-01-01';
+
+function bandFromScore(score) {
+  if (score == null) return { id: 'unknown', cls: 'placeholder', label: '—' };
+  if (score < 25) return { id: 'r-on', cls: 'r-on', label: 'Risk On' };
+  if (score < 50) return { id: 'r-neu', cls: 'r-neu', label: 'Neutral' };
+  if (score < 75) return { id: 'r-cau', cls: 'r-cau', label: 'Cautionary' };
+  return { id: 'r-off', cls: 'r-off', label: 'Risk Off' };
 }
 
-function pctBand(pct, direction) {
-  if (pct == null) return 'r-neu';
-  if (direction === 'low') {
-    if (pct <= 15) return 'r-off';
-    if (pct <= 25) return 'r-cau';
-    if (pct >= 75) return 'r-on';
-    return 'r-neu';
-  }
-  if (pct >= 85) return 'r-off';
-  if (pct >= 75) return 'r-cau';
-  if (pct <= 25) return 'r-on';
-  return 'r-neu';
+function directionCorrectedScore(pct, direction) {
+  const d = (direction || 'high_is_concerning').toLowerCase();
+  if (d === 'low_is_concerning' || d === 'bidir_bottom') return 100 - pct;
+  return pct;
 }
 
-function sparkPath(history, w = 54, h = 18) {
-  const last = (history || []).slice(-12);
-  if (last.length < 2) return '';
-  const vs = last.map((p) => Array.isArray(p) ? p[1] : p.value);
-  const min = Math.min(...vs); const max = Math.max(...vs);
-  return last.map((p, i) => {
-    const v = Array.isArray(p) ? p[1] : p.value;
-    const x = (i / (last.length - 1)) * w;
-    const y = h - ((v - min) / ((max - min) || 1)) * h;
-    return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
-  }).join(' ');
+function percentileRank(value, samples) {
+  if (samples.length === 0) return 50;
+  let below = 0;
+  for (let i = 0; i < samples.length; i++) if (samples[i] < value) below++;
+  return (below / samples.length) * 100;
 }
 
-function sparkClass(history) {
-  const last = (history || []).slice(-3);
-  if (last.length < 2) return 'flat';
-  const a = Array.isArray(last[0]) ? last[0][1] : last[0].value;
-  const b = Array.isArray(last[last.length - 1]) ? last[last.length - 1][1] : last[last.length - 1].value;
-  if (b > a * 1.01) return 'up';
-  if (b < a * 0.99) return 'down';
-  return 'flat';
-}
-
-function fmtVal(v) {
+function fmtVal(v, unit) {
   if (v == null) return '—';
   if (typeof v !== 'number') return String(v);
   const av = Math.abs(v);
@@ -58,64 +92,183 @@ function fmtVal(v) {
   return v.toFixed(2);
 }
 
+function fmtRelativeAge(iso) {
+  if (!iso) return '—';
+  const dt = new Date(iso); const now = Date.now();
+  const days = Math.floor((now - dt.getTime()) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+function sparkPath(history, w = 54, h = 18) {
+  const last = (history || []).slice(-12);
+  if (last.length < 2) return '';
+  const vs = last.map((p) => p[1]);
+  const min = Math.min(...vs); const max = Math.max(...vs);
+  return last.map((p, i) => {
+    const x = (i / (last.length - 1)) * w;
+    const y = h - ((p[1] - min) / ((max - min) || 1)) * h;
+    return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
+  }).join(' ');
+}
+
+function pctBandClass(pct, direction) {
+  if (pct == null) return 'r-neu';
+  const dcs = directionCorrectedScore(pct, direction);
+  if (dcs >= 85) return 'r-off';
+  if (dcs >= 75) return 'r-cau';
+  if (dcs <= 25) return 'r-on';
+  return 'r-neu';
+}
+
+/** Compute composite history series for a mechanism — 0-100 score per date.
+ * Uses direction-corrected percentile of the value at each date vs the full sample.
+ * Only includes dates where ALL mechanism indicators have a value (after Q-START).
+ */
+function computeCompositeHistory(panel, indicatorHistory) {
+  const inds = (panel.inputs || []).map((inp) => {
+    const ih = indicatorHistory?.[inp.id];
+    if (!ih?.points) return null;
+    const filtered = ih.points.filter(([d, v]) => v != null && d >= QUARTILE_START);
+    if (filtered.length < 30) return null;
+    const sortedSample = [...filtered.map((p) => p[1])].sort((a, b) => a - b);
+    return { id: inp.id, direction: inp.direction, points: filtered, sample: sortedSample };
+  }).filter(Boolean);
+  if (inds.length === 0) return [];
+
+  // sample = 1 point per month from the union of dates (use the date set with most points)
+  const allDates = new Set();
+  inds.forEach((ind) => ind.points.forEach(([d]) => allDates.add(d)));
+  const dates = Array.from(allDates).sort();
+  // downsample to monthly
+  const monthly = [];
+  let lastMonth = null;
+  for (const d of dates) {
+    const m = d.slice(0, 7);
+    if (m !== lastMonth) { monthly.push(d); lastMonth = m; }
+  }
+
+  const out = [];
+  for (const date of monthly) {
+    const scores = [];
+    for (const ind of inds) {
+      // find latest point on or before date
+      let latest = null;
+      for (const [d, v] of ind.points) {
+        if (d <= date) latest = v; else break;
+      }
+      if (latest == null) continue;
+      const pct = percentileRank(latest, ind.sample);
+      scores.push(directionCorrectedScore(pct, ind.direction));
+    }
+    if (scores.length >= Math.max(2, Math.floor(inds.length * 0.6))) {
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      out.push([date, +avg.toFixed(1)]);
+    }
+  }
+  return out;
+}
+
 function useMacroData() {
   const [snap, setSnap] = useState(null);
   const [calib, setCalib] = useState(null);
+  const [v10, setV10] = useState(null);
+  const [history, setHistory] = useState(null);
   const [err, setErr] = useState(null);
   useEffect(() => {
     Promise.all([
       fetch('/cycle_board_snapshot.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
       fetch('/methodology_calibration_v11.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
-    ]).then(([s, c]) => { setSnap(s); setCalib(c); }).catch((e) => setErr(e?.message || 'fetch failed'));
+      fetch('/v10_allocation.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
+      fetch('/indicator_history.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
+    ]).then(([s, c, v, h]) => { setSnap(s); setCalib(c); setV10(v); setHistory(h); }).catch((e) => setErr(e?.message));
   }, []);
-  return { snap, calib, err };
+  return { snap, calib, v10, history, err };
 }
 
-function deriveMechanisms(snap, calib) {
+function deriveMechanisms(snap, calib, v10, history) {
   const ORDER = ['valuation', 'credit', 'funding', 'growth', 'liquidity_policy', 'positioning_breadth'];
-  const NAMES = {
-    valuation: 'Valuation', credit: 'Credit', funding: 'Funding',
-    growth: 'Growth', liquidity_policy: 'Liquidity & Policy', positioning_breadth: 'Positioning & Breadth',
-  };
-  const calibTiles = {};
-  (calib?.tiles || []).forEach((t) => { calibTiles[t.id] = t; });
   const snapMechs = {};
   (snap?.mechanisms || []).forEach((m) => { snapMechs[m.id] = m; });
+  const calibTiles = {};
+  (calib?.tiles || []).forEach((t) => { calibTiles[t.id] = t; });
 
   return ORDER.map((id) => {
-    const c = calibTiles[id]; const s = snapMechs[id];
-    const live = (c?.live === true) || !!(s?.state && s?.indicators?.length);
-    const cycleScore = s?.score != null ? s.score : null;
+    const panel = PANELS[id];
+    const sm = snapMechs[id];
+    const ct = calibTiles[id];
+    // Score: v10 (latest), then snapshot, then calibration headline
+    const score = v10?.mechanism_scores?.[id] ?? sm?.score ?? null;
+    const band = bandFromScore(score);
+    const v10Band = v10?.mechanism_bands?.[id]; // 'risk-off'/'caution'/'neutral'/'risk-on' string
+
+    // Build indicators list: prefer calibration JSON (rich Sprint 1 detail),
+    // fall back to PANELS+indicator_history (Sprint 2/4)
     let indicators = [];
-    if (c?.indicators?.length) {
-      indicators = c.indicators.map((i) => ({
-        id: i.id, name: i.name || i.id, unit: i.unit || '',
+    if (ct?.indicators?.length) {
+      indicators = ct.indicators.map((i) => ({
+        id: i.id,
+        name: i.name || i.id,
+        unit: i.unit || '',
         current: i.current || null,
         percentile: i.percentile != null ? Math.round(i.percentile) : null,
-        quartile: i.quartile, direction: i.direction,
-        soWhat: i.so_what || '', description: i.description || '',
-        source: i.source || '', sampleWindow: i.sample_window || '',
-        history: i.history || [], kpis: i.kpis || [],
-        episodes: i.episodes || [], comovement: i.comovement || [],
-        compositeShare: i.composite_share_pct, release: i.release || null,
+        quartile: i.quartile,
+        direction: i.direction,
+        soWhat: i.so_what || '',
+        description: i.description || '',
+        source: i.source || '',
+        sampleWindow: i.sample_window || '',
+        history: i.history || (history?.[i.id]?.points || []),
+        kpis: i.kpis || [],
+        episodes: i.episodes || [],
+        comovement: i.comovement || [],
+        compositeShare: i.composite_share_pct,
+        release: i.release || null,
       }));
-    } else if (s?.indicators?.length) {
-      indicators = s.indicators.map((i) => ({
-        id: i.id, name: i.label || i.id, unit: i.current?.unit || '',
-        current: i.current, percentile: null, quartile: i.quartile,
-        direction: i.direction === 'high_is_concerning' ? 'high' : i.direction === 'low_is_concerning' ? 'low' : null,
-        soWhat: '', description: '', source: i.source || '', history: [],
-      }));
+    } else if (panel?.inputs?.length) {
+      indicators = panel.inputs.map((inp) => {
+        const ih = history?.[inp.id];
+        const points = ih?.points || [];
+        const filtered = points.filter(([d, v]) => v != null && d >= QUARTILE_START);
+        const lastPt = filtered.length ? filtered[filtered.length - 1] : null;
+        const sample = filtered.map((p) => p[1]).sort((a, b) => a - b);
+        const pct = lastPt ? Math.round(percentileRank(lastPt[1], sample)) : null;
+        return {
+          id: inp.id,
+          name: inp.name,
+          unit: ih?.unit || '',
+          current: lastPt ? { value: lastPt[1], date: lastPt[0], unit: ih?.unit || '' } : null,
+          percentile: pct,
+          direction: inp.direction === 'low_is_concerning' ? 'low' : inp.direction === 'bidir_bottom' ? 'low' : 'high',
+          rawDirection: inp.direction,
+          soWhat: '',
+          description: '',
+          source: 'pipeline_health',
+          history: filtered,
+        };
+      });
     }
-    const flagged = indicators.filter((i) => i.percentile != null
-      ? (i.direction === 'low' ? i.percentile <= 25 : i.percentile >= 75)
-      : false).length;
+
+    const flagged = indicators.filter((i) => {
+      if (i.percentile == null) return false;
+      const dcs = directionCorrectedScore(i.percentile, i.rawDirection || (i.direction === 'low' ? 'low_is_concerning' : 'high_is_concerning'));
+      return dcs >= 75;
+    }).length;
+
     return {
-      id, name: NAMES[id], live, score: cycleScore,
-      band: scoreBand(cycleScore), state: s?.state || null,
-      ruleText: typeof s?.rule === 'string' ? s.rule : (typeof c?.rule === 'object' ? c.rule.description : ''),
-      indicators, flagged, total: indicators.length,
-      shortDesc: c?.description_short || '',
+      id, name: panel?.name || id, num: panel?.num || '',
+      score, band,
+      v10Band, // for tile color we prefer v10's actual band string
+      bandClass: v10Band ? (v10Band === 'risk-off' ? 'r-off' : v10Band === 'caution' ? 'r-cau' : v10Band === 'neutral' ? 'r-neu' : v10Band === 'risk-on' ? 'r-on' : band.cls) : band.cls,
+      bandLabel: v10Band ? (v10Band === 'risk-off' ? 'Risk Off' : v10Band === 'caution' ? 'Cautionary' : v10Band === 'neutral' ? 'Neutral' : v10Band === 'risk-on' ? 'Risk On' : band.label) : band.label,
+      indicators,
+      flagged,
+      total: indicators.length,
+      shortDesc: ct?.description_short || '',
+      ruleText: typeof sm?.rule === 'string' ? sm.rule : (typeof ct?.rule === 'object' ? ct.rule.description : ''),
+      compositeHistory: computeCompositeHistory(panel || { inputs: [] }, history),
     };
   });
 }
@@ -129,31 +282,29 @@ function IndicatorDetail({ ind, mechName }) {
     <>
       <div className="t-eyebrow accent">{mechName} · indicator</div>
       <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>{ind.name}</h3>
-      <p className="t-body" style={{ maxWidth: '62ch' }}>{ind.description || '—'}</p>
+      {ind.description && <p className="t-body" style={{ maxWidth: '62ch' }}>{ind.description}</p>}
       <div className="v2-drawer-grid">
         <div className="v2-drawer-stat">
           <div className="lbl">Current reading</div>
-          <div className="v">{fmtVal(lastValue)}{ind.unit ? <span style={{ fontSize: 14, color: 'var(--ink-2)', marginLeft: 3 }}>{ind.unit}</span> : null}</div>
+          <div className="v">{fmtVal(lastValue, ind.unit)}{ind.unit ? <span style={{ fontSize: 14, color: 'var(--ink-2)', marginLeft: 3 }}>{ind.unit}</span> : null}</div>
           <div className="sub2">As of {asOfDate}</div>
         </div>
         <div className="v2-drawer-stat">
-          <div className="lbl">Percentile</div>
+          <div className="lbl">Percentile (15y)</div>
           <div className="v">{ind.percentile != null ? <>{ind.percentile}<span style={{ fontSize: 14, color: 'var(--ink-2)' }}>th</span></> : '—'}</div>
           <div className="sub2">{ind.percentile != null ? (ind.percentile >= 75 ? 'top quartile' : ind.percentile <= 25 ? 'bottom quartile' : 'mid-range') : ''}</div>
         </div>
         <div className="v2-drawer-stat">
-          <div className="lbl">1-year change</div>
-          <div className={`v ${chgClass}`}>{oneYearKpi ? `${oneYearKpi.value > 0 ? '+' : ''}${oneYearKpi.value.toFixed(2)}` : '—'}</div>
-          <div className="sub2">{oneYearKpi?.value_pct != null ? `${oneYearKpi.value_pct > 0 ? '+' : ''}${oneYearKpi.value_pct.toFixed(1)}%` : ''}</div>
+          <div className="lbl">{oneYearKpi ? '1-year change' : 'Series'}</div>
+          <div className={`v ${chgClass}`} style={oneYearKpi ? {} : { fontSize: 22 }}>
+            {oneYearKpi ? `${oneYearKpi.value > 0 ? '+' : ''}${oneYearKpi.value.toFixed(2)}` : `${ind.history?.length || 0} pts`}
+          </div>
+          <div className="sub2">{oneYearKpi?.value_pct != null ? `${oneYearKpi.value_pct > 0 ? '+' : ''}${oneYearKpi.value_pct.toFixed(1)}%` : (ind.direction === 'low' || ind.rawDirection?.includes('low') ? 'Low flags' : 'High flags')}</div>
         </div>
       </div>
-      {ind.history?.length >= 2 ? (
+      {ind.history?.length >= 2 && (
         <MTChart data={ind.history} initialRange="5Y"
           timeframes={[{key:'1Y',label:'1Y'},{key:'3Y',label:'3Y'},{key:'5Y',label:'5Y'},{key:'10Y',label:'10Y'},{key:'MAX',label:'MAX'}]} />
-      ) : (
-        <div className="v2-chart" style={{ textAlign: 'center', padding: 36, color: 'var(--ink-2)' }}>
-          History series not yet available for this indicator.
-        </div>
       )}
       {ind.soWhat && (
         <div className="v2-drawer-section">
@@ -187,7 +338,6 @@ function IndicatorDetail({ ind, mechName }) {
         <span className="t-eyebrow">Source · cadence</span>
         <div className="v2-drawer-row"><span className="lbl">Source</span><span className="val">{ind.source || '—'}</span></div>
         <div className="v2-drawer-row"><span className="lbl">Cadence</span><span className="val">{ind.release?.frequency || '—'}</span></div>
-        <div className="v2-drawer-row"><span className="lbl">Sample window</span><span className="val">{ind.sampleWindow || '—'}</span></div>
         {ind.compositeShare != null && (
           <div className="v2-drawer-row"><span className="lbl">Composite share</span><span className="val">{ind.compositeShare.toFixed(1)}% of {mechName}</span></div>
         )}
@@ -197,39 +347,52 @@ function IndicatorDetail({ ind, mechName }) {
 }
 
 function MechanismOverview({ mech, onPickIndicator }) {
-  const sb = mech.band;
   return (
     <>
       <div className="t-eyebrow accent">{mech.name} · cycle mechanism</div>
       <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>
-        {mech.name}{mech.state ? ` — ${mech.state}` : ''}
+        {mech.name} — {mech.bandLabel}
       </h3>
       {mech.shortDesc && <p className="t-body" style={{ maxWidth: '62ch' }}>{mech.shortDesc}</p>}
+
       <div className="v2-drawer-grid">
         <div className="v2-drawer-stat">
           <div className="lbl">Composite score</div>
-          <div className={`v ${sb.cls === 'r-off' ? 'down' : sb.cls === 'r-cau' ? 'warn' : sb.cls === 'r-on' ? 'up' : ''}`}>
+          <div className={`v ${mech.bandClass === 'r-off' ? 'down' : mech.bandClass === 'r-cau' ? 'warn' : mech.bandClass === 'r-on' ? 'up' : ''}`}>
             {mech.score != null ? Math.round(mech.score) : '—'}{mech.score != null ? <span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /100</span> : null}
           </div>
-          <div className="sub2">{sb.label}</div>
+          <div className="sub2">{mech.bandLabel}</div>
         </div>
         <div className="v2-drawer-stat">
           <div className="lbl">Inputs flagged</div>
           <div className="v">{mech.flagged}<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /{mech.total}</span></div>
-          <div className="sub2">tail of cohort</div>
+          <div className="sub2">{mech.flagged === 0 ? 'all benign' : 'in top quartile'}</div>
         </div>
         <div className="v2-drawer-stat">
-          <div className="lbl">State</div>
-          <div className="v" style={{ fontSize: 22 }}>{mech.state || '—'}</div>
-          <div className="sub2">v11 framework</div>
+          <div className="lbl">History points</div>
+          <div className="v" style={{ fontSize: 22 }}>{mech.compositeHistory.length}</div>
+          <div className="sub2">monthly composite series</div>
         </div>
       </div>
+
+      {/* Composite mechanism history chart — derived from underlying indicator percentiles */}
+      {mech.compositeHistory.length >= 12 && (
+        <MTChart
+          data={mech.compositeHistory}
+          initialRange="5Y"
+          timeframes={[{key:'1Y',label:'1Y'},{key:'3Y',label:'3Y'},{key:'5Y',label:'5Y'},{key:'10Y',label:'10Y'},{key:'MAX',label:'MAX'}]}
+          yFormat={(v) => v.toFixed(0)}
+          tipFormat={(v) => `${v.toFixed(1)} /100`}
+        />
+      )}
+
       {mech.ruleText && (
         <div className="v2-drawer-section">
           <span className="t-eyebrow">Rule</span>
           <p className="t-body" style={{ marginTop: 0 }}>{mech.ruleText}</p>
         </div>
       )}
+
       <div className="v2-drawer-section">
         <span className="t-eyebrow">Underlying indicators · click any to drill in</span>
         <div className="v2-ind-list">
@@ -237,15 +400,15 @@ function MechanismOverview({ mech, onPickIndicator }) {
             <p style={{ color: 'var(--ink-2)', fontSize: 13, padding: '14px 0' }}>Indicators not yet wired for this mechanism.</p>
           )}
           {mech.indicators.map((ind) => {
-            const band = pctBand(ind.percentile, ind.direction === 'low' ? 'low' : 'high');
+            const band = pctBandClass(ind.percentile, ind.rawDirection || (ind.direction === 'low' ? 'low_is_concerning' : 'high_is_concerning'));
             return (
               <div key={ind.id} className={`v2-ind-row ${band}`} onClick={() => onPickIndicator(ind.id)}>
                 <span className="dot" />
                 <span className="name">{ind.name}</span>
-                <span className="val">{fmtVal(ind.current?.value)}<span className="unit">{ind.unit}</span></span>
+                <span className="val">{fmtVal(ind.current?.value, ind.unit)}<span className="unit">{ind.unit}</span></span>
                 <span className="pct">{ind.percentile != null ? `${ind.percentile}th pct` : '—'}</span>
-                <svg className={`spark ${sparkClass(ind.history)}`} viewBox="0 0 54 18">
-                  <path d={sparkPath(ind.history)} />
+                <svg className="spark" viewBox="0 0 54 18" style={{ color: band === 'r-off' ? 'var(--down)' : band === 'r-cau' ? 'var(--warn)' : band === 'r-on' ? 'var(--up)' : 'var(--ink-2)' }}>
+                  <path d={sparkPath(ind.history)} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
                 <span className="arr">→</span>
               </div>
@@ -258,17 +421,22 @@ function MechanismOverview({ mech, onPickIndicator }) {
 }
 
 export default function MacroOverviewPage() {
-  const { snap, calib, err } = useMacroData();
+  const { snap, calib, v10, history, err } = useMacroData();
   const [openMechId, setOpenMechId] = useState(null);
   const [openIndId, setOpenIndId] = useState(null);
-  const mechanisms = useMemo(() => deriveMechanisms(snap, calib), [snap, calib]);
-  const liveCount = mechanisms.filter((m) => m.live).length;
-  const flaggedTotal = mechanisms.filter((m) => m.live && m.flagged > 0).length;
-  const headlineState = snap?.page_stance || calib?.headline_gauge?.verdict_label || 'Loading';
-  const headlineSub = calib?.headline_gauge?.headline_sentence || null;
+
+  const mechanisms = useMemo(() => deriveMechanisms(snap, calib, v10, history), [snap, calib, v10, history]);
+  const liveCount = mechanisms.filter((m) => m.score != null).length;
+  const flaggedTotal = mechanisms.filter((m) => m.bandClass === 'r-off' || m.bandClass === 'r-cau').length;
+  const headlineState = v10?.page_stance || snap?.page_stance || calib?.headline_gauge?.verdict_label || 'Loading';
+  const compositeAvg = mechanisms.length
+    ? Math.round(mechanisms.reduce((a, m) => a + (m.score || 0), 0) / mechanisms.length)
+    : null;
+
   function open(mechId) { setOpenMechId(mechId); setOpenIndId(null); }
   function close() { setOpenMechId(null); setOpenIndId(null); }
   function back() { setOpenIndId(null); }
+
   const openMech = mechanisms.find((m) => m.id === openMechId);
   const openInd = openMech?.indicators.find((i) => i.id === openIndId);
 
@@ -287,29 +455,26 @@ export default function MacroOverviewPage() {
             <h1 className="t-display" style={{ margin: 0, color: 'var(--ink-0)' }}>{headlineState}.</h1>
             <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />
           </div>
-          {headlineSub && (
-            <p className="t-body" style={{ marginTop: 14, maxWidth: '62ch' }}>{headlineSub}</p>
-          )}
           <div className="v2-stats" style={{ marginTop: 28 }}>
             <div className={`s ${flaggedTotal > 0 ? 'warn' : ''}`}>
               <span className="lbl">Mechanisms flagged</span>
               <span className="v"><CountUp to={flaggedTotal} /><span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /{liveCount}</span></span>
-              <span className="d">live mechanisms above Neutral</span>
+              <span className="d">above Neutral</span>
+            </div>
+            <div className="s">
+              <span className="lbl">Composite</span>
+              <span className="v"><CountUp to={compositeAvg != null ? compositeAvg : 0} /><span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /100</span></span>
+              <span className="d">average across {liveCount}</span>
             </div>
             <div className="s">
               <span className="lbl">Calibrated indicators</span>
               <span className="v"><CountUp to={mechanisms.reduce((sum, m) => sum + (m.indicators?.length || 0), 0)} /></span>
-              <span className="d">across {liveCount} live mechanisms</span>
+              <span className="d">across {liveCount} mechanisms</span>
             </div>
             <div className="s">
               <span className="lbl">Framework</span>
               <span className="v" style={{ fontSize: 24 }}>v{(calib?.version || snap?.version || '11.0').replace(/^v/, '')}</span>
               <span className="d">cycle-mechanism counting</span>
-            </div>
-            <div className="s">
-              <span className="lbl">Sprint</span>
-              <span className="v" style={{ fontSize: 24 }}>{calib?.sprint || snap?.sprint || '—'}</span>
-              <span className="d">{calib?.tiles?.filter((t) => t.live).length || 0} live, {(calib?.tiles?.length || 6) - (calib?.tiles?.filter((t) => t.live).length || 0)} calibrating</span>
             </div>
           </div>
         </div>
@@ -317,46 +482,38 @@ export default function MacroOverviewPage() {
 
       <div className="v2-shell">
         <div className="v2-mech-grid" style={{ marginTop: 32 }}>
-          {mechanisms.map((m, idx) => (
+          {mechanisms.map((m) => (
             <article key={m.id}
-              className={`v2-tile ${m.live ? '' : 'placeholder'}`}
-              onClick={() => m.live && open(m.id)}
-              tabIndex={m.live ? 0 : -1}>
-              <div className={`v2-mech-state-bar ${m.band.cls === 'placeholder' ? 'placeholder' : m.band.cls}`} />
+              className="v2-tile"
+              onClick={() => open(m.id)}
+              tabIndex={0}>
+              <div className={`v2-mech-state-bar ${m.bandClass}`} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-                <span style={{ fontFamily: 'Fraunces,serif', fontSize: 14, color: 'var(--accent)' }}>0{idx + 1}</span>
-                <span className={`v2-pill ${m.band.cls}`}>{m.live ? m.band.label : 'Calibrating'}</span>
+                <span style={{ fontFamily: 'Fraunces,serif', fontSize: 14, color: 'var(--accent)' }}>{m.num}</span>
+                <span className={`v2-pill ${m.bandClass}`}>{m.bandLabel}</span>
               </div>
-              <h3 className="t-tile" style={{ margin: 0, color: m.live ? 'var(--ink-0)' : 'var(--ink-2)' }}>{m.name}</h3>
-              {m.live ? (
-                <>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '18px 0 8px' }}>
-                    <span style={{ fontFamily: 'Fraunces,serif', fontSize: 48, fontVariationSettings: '"opsz" 96,"wght" 400', lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
-                      <CountUp to={m.score != null ? Math.round(m.score) : 0} />
-                    </span>
-                    <span style={{ color: 'var(--ink-2)', fontSize: 14 }}>/100</span>
-                  </div>
-                  <p style={{ color: 'var(--ink-2)', fontSize: 12, margin: 0 }}>
-                    {m.flagged} of {m.total} inputs flagged
-                  </p>
-                  <div style={{ marginTop: 'auto', paddingTop: 14, fontSize: 11, color: 'var(--accent)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 500 }}>
-                    Open mechanism →
-                  </div>
-                </>
-              ) : (
-                <div style={{ margin: 'auto 0', color: 'var(--ink-2)', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
-                  <span style={{ display: 'block', color: 'var(--accent)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', marginBottom: 10 }}>Awaiting calibration</span>
-                  Sprint {m.id === 'funding' ? '2' : '4'}
-                </div>
-              )}
+              <h3 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>{m.name}</h3>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '18px 0 8px' }}>
+                <span style={{ fontFamily: 'Fraunces,serif', fontSize: 48, fontVariationSettings: '"opsz" 96,"wght" 400', lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
+                  <CountUp to={m.score != null ? Math.round(m.score) : 0} />
+                </span>
+                <span style={{ color: 'var(--ink-2)', fontSize: 14 }}>/100</span>
+              </div>
+              <p style={{ color: 'var(--ink-2)', fontSize: 12, margin: 0 }}>
+                {m.flagged} of {m.total} inputs flagged
+              </p>
+              <div style={{ marginTop: 'auto', paddingTop: 14, fontSize: 11, color: 'var(--accent)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 500 }}>
+                Open mechanism →
+              </div>
             </article>
           ))}
         </div>
+
         <div style={{ margin: '48px 0 24px', paddingTop: 24, borderTop: '1px solid var(--line-0)', textAlign: 'center', color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>
           {(() => {
             const sources = new Set();
             mechanisms.forEach((m) => m.indicators.forEach((i) => { if (i.source) sources.add(i.source.split(' ')[0]); }));
-            return Array.from(sources).join(' · ') || 'sources loading…';
+            return Array.from(sources).join(' · ') || 'sources via FRED · CBOE · ICE BofA · Shiller · Kim-Wright Fed · ISM · BLS';
           })()}
           {' · '}v{(calib?.version || '11.0').replace(/^v/, '')}
         </div>
