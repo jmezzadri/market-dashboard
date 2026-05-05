@@ -187,3 +187,49 @@ export function formatRelativeAge(asOfIso, nowMs) {
   const months = Math.round(days / 30);
   return `${months} month${months === 1 ? "" : "s"} ago`;
 }
+
+
+// ─── Trading-session date helpers ────────────────────────────────────────────
+// Phase 4 follow-up (2026-05-04, Joe directive): UI footers + chips that label
+// what data IS rather than when a script ran. Returns the most recent NYSE
+// trading-session date as of `now`, in the user's mental model:
+//
+//   - Past 4:00 PM ET on a trading day  → that day
+//   - Pre-4:00 PM ET on a trading day   → previous trading day (today's close
+//                                         hasn't happened yet)
+//   - Weekend / NYSE holiday            → most recent trading day
+//
+// Returns a Date anchored to ET midnight of the trading-session date. Caller
+// formats. Useful as the freshness anchor for end-of-day data: "Prices: latest
+// close · Mon, May 4, 2026" rather than "Prices: Updated 4:06 PM ET" (which
+// described when the script ran, not when the data is from).
+export function latestTradingSessionDate(nowMs) {
+  const _now = nowMs ? new Date(nowMs) : new Date();
+  // Compute "now" expressed in ET wall-clock so we can compare against 4 PM ET.
+  const etNow = new Date(_now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const closedToday = etNow.getHours() >= 16; // 4 PM ET = market close
+  // Walk back from today (or yesterday if pre-close) until we hit a trading day.
+  const probe = new Date(etNow);
+  if (!closedToday) probe.setDate(probe.getDate() - 1);
+  for (let i = 0; i < 14; i++) {
+    if (isNYSETradingDay(probe)) return probe;
+    probe.setDate(probe.getDate() - 1);
+  }
+  return etNow; // fallback (would only hit on a 14-day market closure)
+}
+
+// Format helper — "Mon, May 4, 2026" style. Anchored to ET so the label means
+// the same thing for every user regardless of browser locale.
+export function formatTradingDayLabel(date, opts) {
+  if (!date) return null;
+  const _opts = opts || {};
+  const _date = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(_date.getTime())) return null;
+  return _date.toLocaleDateString("en-US", {
+    timeZone: "America/New_York",
+    weekday: _opts.weekday === false ? undefined : "short",
+    month:   "short",
+    day:     "numeric",
+    year:    _opts.year === false ? undefined : "numeric",
+  });
+}
