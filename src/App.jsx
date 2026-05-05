@@ -7271,21 +7271,30 @@ return(<>
   <TradeHistorySection rows={_txRows} loading={_txLoading} accounts={ACCOUNTS}/>
 )}
 
-{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab */}
-{showInsights&&<div style={sectionPanel}>
-<div style={{...sectionHeader,cursor:"pointer"}} onClick={()=>setAcctBreakdownOpen(v=>!v)}>
-<span style={sectionTitleStyle}>③ ACCOUNT BREAKDOWN</span>
-<div style={{display:"flex",alignItems:"center",gap:14}}>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{ACCOUNTS.length} accounts · position-level detail</span>
-<span style={{fontSize:11,color:ACCENT,fontFamily:"var(--font-mono)"}}>{acctBreakdownOpen?"▾ Hide":"▸ Show"}</span>
-</div>
-</div>
-{acctBreakdownOpen&&(
-<div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:12}}>
-{ACCOUNTS.map(acct=>(<AcctCard key={acct.id} acct={acct} grandTotal={grandTotal} convColor={CONV.color} convLabel={CONV.label} stressScore={COMP100}/>))}
-</div>
+{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab.
+    Restored 2026-05-04 after PR #448 silently dropped the wiring. */}
+{showInsights&&(
+  <AccountTilesSection
+    accounts={ACCOUNTS}
+    grandTotal={grandTotal}
+    convColor={CONV.color}
+    convLabel={CONV.label}
+    stressScore={COMP100}
+    scanData={scanData}
+    onOpenTicker={(t)=>setTickerDetail(t)}
+    onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
+    onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
+    onClose={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
+    onDelete={portfolioAuthed?deletePositionInline:undefined}
+    onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
+    onImportTransactions={portfolioAuthed?()=>setShowImportTransactions(true):undefined}
+    onRescan={portfolioAuthed?(rows)=>handleRescanAllPositions(rows):undefined}
+    rescanBusy={rescanState.active}
+    rescanProgress={{done:rescanState.done,total:rescanState.total}}
+    pricesTs={universeSnapshotTs}
+    eventsTs={scanData?.ticker_events_ts}
+  />
 )}
-</div>}
 
 </div>
 );
@@ -7351,6 +7360,17 @@ return(<>
       userId={session?.user?.id}
       onClose={()=>setShowBulkImport(false)}
       onDone={async()=>{await refetchPortfolio?.();setShowBulkImport(false);}}
+    />
+  </ErrorBoundary>
+)}
+
+{/* ImportTransactions — Chase brokerage CSV → public.transactions ledger.
+    Restored 2026-05-04 after PR #448 silently dropped the wiring. */}
+{showImportTransactions&&portfolioAuthed&&(
+  <ErrorBoundary label="Import broker trades" onDismiss={()=>setShowImportTransactions(false)}>
+    <ImportTransactions
+      onClose={()=>setShowImportTransactions(false)}
+      onDone={async()=>{await refetchPortfolio?.();}}
     />
   </ErrorBoundary>
 )}
