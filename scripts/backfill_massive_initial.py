@@ -237,13 +237,22 @@ def main():
         write_pipeline_run(URL, SK, "massive-universe", "failure", error=str(e))
         raise
 
-    # 2) Daily EOD Prices — most recent trading day.  We try T-1 first,
-    #    fall back T-2, T-3, T-4 (covers weekends + market holidays).
+    # 2) Daily EOD Prices — most recent trading day.  We try T-0 first
+    #    (today's close — Polygon publishes within minutes of 4PM ET on
+    #    Basic tier), then fall back T-1, T-2, T-3, T-4 (covers weekends
+    #    + market holidays + the case where this script runs before today's
+    #    bars have published).
+    #
+    #    BUG FIX 2026-05-04: prior loop was range(1, 6) — never asked for
+    #    today's date, so the script always lagged 1 trading day even when
+    #    run after market close. Joe caught the discrepancy vs his Chase
+    #    holdings. Now starts at back=0 (today) and falls back if today
+    #    isn't published yet.
     print("\n[2/4] Daily EOD Prices (Daily Market Summary, 1 call)…")
     try:
         eod_rows = []
         date_used = None
-        for back in range(1, 6):
+        for back in range(0, 6):
             d = (date.today() - timedelta(days=back)).isoformat()
             url = (f"https://api.polygon.io/v2/aggs/grouped/locale/us/"
                    f"market/stocks/{d}?adjusted=true&apiKey={KEY}")
