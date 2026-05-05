@@ -3,6 +3,7 @@ import Scanner from "./Scanner";
 import MacroOverviewPageV2 from "./v2/pages/MacroOverviewPage";
 import HomePageV2 from "./v2/pages/HomePage";
 import IndicatorsPageV2 from "./v2/pages/IndicatorsPage";
+import AssetTiltPageV2 from "./v2/pages/AssetTiltPage";
 
 // Cutover feature flag — set ?v=2 in URL to render new design.
 // Default OFF until Joe approves preview.
@@ -6320,7 +6321,8 @@ return(
 })()}
 {tab==="indicators"&&(<AllIndicatorsTable deeplinkId={indicatorDeeplink} onDeeplinkConsumed={()=>setIndicatorDeeplink(null)}/>)}
 
-{tab==="allocation"&&<AssetAllocation onOpenTicker={(t)=>setTickerDetail(t)}/>}
+{tab==="allocation" && V2_ENABLED && <AssetTiltPageV2 />}
+{tab==="allocation" && !V2_ENABLED && <AssetAllocation onOpenTicker={(t)=>setTickerDetail(t)}/>}
 
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
