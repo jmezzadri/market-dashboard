@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import Scanner from "./Scanner";
 import MacroOverviewPageV2 from "./v2/pages/MacroOverviewPage";
+import HomePageV2 from "./v2/pages/HomePage";
 
 // Cutover feature flag — set ?v=2 in URL to render new design.
 // Default OFF until Joe approves preview.
@@ -5457,7 +5458,8 @@ return(
     3-col (Sectors | Scan | Methodology) → full-width Headlines.
     Mockup source: design-lab/home-current.html (locked 2026-04-23).
     ───────────────────────────────────────────────────────────────────── */}
-{tab==="home" && (()=>{
+{tab==="home" && V2_ENABLED && <HomePageV2 />}
+{tab==="home" && !V2_ENABLED && (()=>{
 
   // (HEADLINE_BY_CONV / LEDE_BY_CONV / STATE_BY_CONV constants removed
   // 2026-04-27 — orphaned after welcome hero replaced the page head;
