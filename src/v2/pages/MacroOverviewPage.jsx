@@ -83,6 +83,26 @@ function percentileRank(value, samples) {
   return (below / samples.length) * 100;
 }
 
+function vendorOnly(s) {
+  if (!s) return '—';
+  let v = String(s).split(/[(:]/)[0].trim();
+  v = v.split(' / ')[0].trim();
+  return v || s;
+}
+
+function cadenceFromHistory(history) {
+  if (!history || history.length < 2) return '—';
+  const a = history[history.length - 2][0];
+  const b = history[history.length - 1][0];
+  const da = new Date(a.length === 7 ? a + '-01' : a);
+  const db = new Date(b.length === 7 ? b + '-01' : b);
+  const gap = (db - da) / (1000 * 60 * 60 * 24);
+  if (gap < 4) return 'Daily';
+  if (gap < 10) return 'Weekly';
+  if (gap < 45) return 'Monthly';
+  return 'Quarterly';
+}
+
 function fmtVal(v, unit) {
   if (v == null) return '—';
   if (typeof v !== 'number') return String(v);
@@ -285,17 +305,17 @@ function IndicatorDetail({ ind, mechName }) {
       {ind.description && <p className="t-body" style={{ maxWidth: '62ch' }}>{ind.description}</p>}
       <div className="v2-drawer-grid">
         <div className="v2-drawer-stat">
-          <div className="lbl">Current reading</div>
+          <div className="lbl" title="Most recent value we have for this indicator.">Current reading</div>
           <div className="v">{fmtVal(lastValue, ind.unit)}{ind.unit ? <span style={{ fontSize: 14, color: 'var(--ink-2)', marginLeft: 3 }}>{ind.unit}</span> : null}</div>
           <div className="sub2">As of {asOfDate}</div>
         </div>
         <div className="v2-drawer-stat">
-          <div className="lbl">Percentile (15y)</div>
+          <div className="lbl" title="Where the current reading sits in the indicator&apos;s 15y baseline distribution. 0 = lowest reading in 15y; 100 = highest.">Percentile vs 15y</div>
           <div className="v">{ind.percentile != null ? <>{ind.percentile}<span style={{ fontSize: 14, color: 'var(--ink-2)' }}>th</span></> : '—'}</div>
           <div className="sub2">{ind.percentile != null ? (ind.percentile >= 75 ? 'top quartile' : ind.percentile <= 25 ? 'bottom quartile' : 'mid-range') : ''}</div>
         </div>
         <div className="v2-drawer-stat">
-          <div className="lbl">{oneYearKpi ? '1-year change' : 'Series'}</div>
+          <div className="lbl" title="Change in the indicator&apos;s reading over the last year (when we have a 1-year KPI), otherwise the count of historical observations.">{oneYearKpi ? '1-year change' : 'Series'}</div>
           <div className={`v ${chgClass}`} style={oneYearKpi ? {} : { fontSize: 22 }}>
             {oneYearKpi ? `${oneYearKpi.value > 0 ? '+' : ''}${oneYearKpi.value.toFixed(2)}` : `${ind.history?.length || 0} pts`}
           </div>
@@ -303,8 +323,25 @@ function IndicatorDetail({ ind, mechName }) {
         </div>
       </div>
       {ind.history?.length >= 2 && (
-        <MTChart data={ind.history} initialRange="5Y"
-          timeframes={[{key:'1Y',label:'1Y'},{key:'3Y',label:'3Y'},{key:'5Y',label:'5Y'},{key:'10Y',label:'10Y'},{key:'MAX',label:'MAX'}]} />
+        <MTChart
+          data={ind.history}
+          initialRange="5Y"
+          timeframes={[{key:'1Y',label:'1Y'},{key:'3Y',label:'3Y'},{key:'5Y',label:'5Y'},{key:'10Y',label:'10Y'},{key:'MAX',label:'MAX'}]}
+          tintBands={(() => {
+            const cutHist = ind.history.slice(-260 * 5);
+            if (cutHist.length < 4) return null;
+            const vals = cutHist.map((p) => p[1]).filter((v) => v != null && !Number.isNaN(v));
+            if (vals.length < 4) return null;
+            const sorted = [...vals].sort((a, b) => a - b);
+            const q = (frac) => sorted[Math.max(0, Math.min(sorted.length - 1, Math.floor(sorted.length * frac)))];
+            return {
+              p25: q(0.25),
+              p50: q(0.50),
+              p75: q(0.75),
+              direction: ind.direction === 'low' || (typeof ind.direction === 'string' && ind.direction.startsWith('low')) ? 'low' : 'high',
+            };
+          })()}
+        />
       )}
       {ind.soWhat && (
         <div className="v2-drawer-section">
@@ -314,7 +351,7 @@ function IndicatorDetail({ ind, mechName }) {
       )}
       {ind.episodes?.length > 0 && (
         <div className="v2-drawer-section">
-          <span className="t-eyebrow">Top-quartile episodes · 6m and 12m SPX returns</span>
+          <span className="t-eyebrow" title="Historical episodes when this indicator was in its top quartile, and how SPX performed 6 and 12 months later.">When this indicator was in its top quartile · 6m / 12m SPX after</span>
           {ind.episodes.map((ep, i) => (
             <div className="v2-drawer-row" key={i}>
               <span className="lbl">{ep.period} ({ind.name} {ep.value})</span>
@@ -325,7 +362,7 @@ function IndicatorDetail({ ind, mechName }) {
       )}
       {ind.comovement?.length > 0 && (
         <div className="v2-drawer-section">
-          <span className="t-eyebrow">Comoves with</span>
+          <span className="t-eyebrow" title="Indicators that historically move in step with this one — useful to know what else this reading implies.">Moves in step with</span>
           {ind.comovement.map((cm, i) => (
             <div className="v2-drawer-row" key={i}>
               <span className="lbl">{cm.peer_name}</span>
@@ -335,11 +372,13 @@ function IndicatorDetail({ ind, mechName }) {
         </div>
       )}
       <div className="v2-drawer-section">
-        <span className="t-eyebrow">Source · cadence</span>
-        <div className="v2-drawer-row"><span className="lbl">Source</span><span className="val">{ind.source || '—'}</span></div>
-        <div className="v2-drawer-row"><span className="lbl">Cadence</span><span className="val">{ind.release?.frequency || '—'}</span></div>
+        <span className="t-eyebrow" title="The data vendor we license this series from, plus the freshness date of the latest reading.">Source · As of</span>
+        <div className="v2-drawer-row"><span className="lbl" title="Original data vendor.">Vendor</span><span className="val">{vendorOnly(ind.source)}</span></div>
+        <div className="v2-drawer-row"><span className="lbl" title="Date of the most recent reading we have on file for this indicator.">As of</span><span className="val">{ind.current?.date || (ind.history?.length ? ind.history[ind.history.length - 1][0] : '—')}</span></div>
+        <div className="v2-drawer-row"><span className="lbl" title="How frequently the vendor publishes a new reading.">Cadence</span><span className="val">{ind.release?.frequency || cadenceFromHistory(ind.history)}</span></div>
+        <div className="v2-drawer-row"><span className="lbl" title="The historical window we use to compute the percentile and tint-band cutoffs.">Baseline window</span><span className="val">{ind.sampleWindow || '5y trailing'}</span></div>
         {ind.compositeShare != null && (
-          <div className="v2-drawer-row"><span className="lbl">Composite share</span><span className="val">{ind.compositeShare.toFixed(1)}% of {mechName}</span></div>
+          <div className="v2-drawer-row"><span className="lbl" title="How much this indicator weighs into the mechanism composite score.">Weight in {mechName} composite</span><span className="val">{ind.compositeShare.toFixed(1)}%</span></div>
         )}
       </div>
     </>
@@ -357,19 +396,19 @@ function MechanismOverview({ mech, onPickIndicator }) {
 
       <div className="v2-drawer-grid">
         <div className="v2-drawer-stat">
-          <div className="lbl">Composite score</div>
+          <div className="lbl" title="Mechanism composite — average of the underlying indicators&apos; direction-corrected percentiles vs 5y baseline. 0 = supportive of risk; 100 = defensive.">Composite score</div>
           <div className={`v ${mech.bandClass === 'r-off' ? 'down' : mech.bandClass === 'r-cau' ? 'warn' : mech.bandClass === 'r-on' ? 'up' : ''}`}>
             {mech.score != null ? Math.round(mech.score) : '—'}{mech.score != null ? <span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /100</span> : null}
           </div>
           <div className="sub2">{mech.bandLabel}</div>
         </div>
         <div className="v2-drawer-stat">
-          <div className="lbl">Inputs flagged</div>
+          <div className="lbl" title="Number of underlying indicators currently in their tail (top quartile for high-is-elevated, bottom quartile for low-is-elevated).">Inputs flagged</div>
           <div className="v">{mech.flagged}<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /{mech.total}</span></div>
-          <div className="sub2">{mech.flagged === 0 ? 'all benign' : 'in top quartile'}</div>
+          <div className="sub2" title="Whether any underlying indicators are currently in their tail.">{mech.flagged === 0 ? 'all benign' : 'in top quartile'}</div>
         </div>
         <div className="v2-drawer-stat">
-          <div className="lbl">History points</div>
+          <div className="lbl" title="Number of monthly composite readings we have on file for this mechanism, going back to the start of the calibration window.">Months of history</div>
           <div className="v" style={{ fontSize: 22 }}>{mech.compositeHistory.length}</div>
           <div className="sub2">monthly composite series</div>
         </div>
@@ -383,6 +422,7 @@ function MechanismOverview({ mech, onPickIndicator }) {
           timeframes={[{key:'1Y',label:'1Y'},{key:'3Y',label:'3Y'},{key:'5Y',label:'5Y'},{key:'10Y',label:'10Y'},{key:'MAX',label:'MAX'}]}
           yFormat={(v) => v.toFixed(0)}
           tipFormat={(v) => `${v.toFixed(1)} /100`}
+          tintBands={{ p25: 25, p50: 50, p75: 75, direction: 'high' }}
         />
       )}
 
@@ -457,22 +497,22 @@ export default function MacroOverviewPage() {
           </div>
           <div className="v2-stats" style={{ marginTop: 28 }}>
             <div className={`s ${flaggedTotal > 0 ? 'warn' : ''}`}>
-              <span className="lbl">Mechanisms flagged</span>
+              <span className="lbl" title="Number of cycle mechanisms whose composite reading is currently in Cautionary or Risk Off territory.">Mechanisms flagged</span>
               <span className="v"><CountUp to={flaggedTotal} /><span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /{liveCount}</span></span>
               <span className="d">above Neutral</span>
             </div>
             <div className="s">
-              <span className="lbl">Composite</span>
-              <span className="v"><CountUp to={compositeAvg != null ? compositeAvg : 0} /><span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /100</span></span>
+              <span className="lbl" title="Average composite score across all live cycle mechanisms. 0 = supportive of risk; 100 = defensive.">Composite</span>
+              <span className="v">{compositeAvg != null ? <CountUp to={compositeAvg} /> : <span style={{ color: 'var(--ink-2)' }}>—</span>}<span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /100</span></span>
               <span className="d">average across {liveCount}</span>
             </div>
             <div className="s">
-              <span className="lbl">Calibrated indicators</span>
+              <span className="lbl" title="Total number of underlying indicators feeding the live cycle mechanisms.">Calibrated indicators</span>
               <span className="v"><CountUp to={mechanisms.reduce((sum, m) => sum + (m.indicators?.length || 0), 0)} /></span>
               <span className="d">across {liveCount} mechanisms</span>
             </div>
             <div className="s">
-              <span className="lbl">Framework</span>
+              <span className="lbl" title="Version of the cycle-counting framework. v11 = six-mechanism descriptive board.">Framework</span>
               <span className="v" style={{ fontSize: 24 }}>v{(calib?.version || snap?.version || '11.0').replace(/^v/, '')}</span>
               <span className="d">cycle-mechanism counting</span>
             </div>
@@ -495,7 +535,7 @@ export default function MacroOverviewPage() {
               <h3 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>{m.name}</h3>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '18px 0 8px' }}>
                 <span style={{ fontFamily: 'Fraunces,serif', fontSize: 48, fontVariationSettings: '"opsz" 96,"wght" 400', lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
-                  <CountUp to={m.score != null ? Math.round(m.score) : 0} />
+                  {m.score != null ? <CountUp to={Math.round(m.score)} /> : <span style={{ color: 'var(--ink-2)' }}>—</span>}
                 </span>
                 <span style={{ color: 'var(--ink-2)', fontSize: 14 }}>/100</span>
               </div>
@@ -511,9 +551,11 @@ export default function MacroOverviewPage() {
 
         <div style={{ margin: '48px 0 24px', paddingTop: 24, borderTop: '1px solid var(--line-0)', textAlign: 'center', color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>
           {(() => {
-            const sources = new Set();
-            mechanisms.forEach((m) => m.indicators.forEach((i) => { if (i.source) sources.add(i.source.split(' ')[0]); }));
-            return Array.from(sources).join(' · ') || 'sources via FRED · CBOE · ICE BofA · Shiller · Kim-Wright Fed · ISM · BLS';
+            const vendors = new Set();
+            mechanisms.forEach((m) => m.indicators.forEach((i) => { if (i.source) vendors.add(vendorOnly(i.source)); }));
+            const asOf = snap?.as_of || calib?.as_of || null;
+            const vList = Array.from(vendors).join(' · ');
+            return (vList || 'FRED · CBOE · ICE BofA · Shiller · Kim-Wright Fed · ISM · BLS') + (asOf ? ' · As of ' + asOf : '');
           })()}
           {' · '}v{(calib?.version || '11.0').replace(/^v/, '')}
         </div>

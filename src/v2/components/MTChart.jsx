@@ -29,6 +29,7 @@ function sliceByRange(data, range) {
 export default function MTChart({
   data, timeframes = DEFAULT_TF, initialRange = '3Y',
   yFormat, tipFormat, height = 200, width = 600,
+  tintBands = null, // {p25, p50, p75, direction: 'high'|'low'} — paints calibrated Risk On/Neutral/Cautionary/Risk Off bands
 }) {
   const [range, setRange] = useState(initialRange);
   const [hoverIdx, setHoverIdx] = useState(null);
@@ -149,6 +150,36 @@ export default function MTChart({
             <stop offset="100%" stopColor="var(--accent)" stopOpacity="0" />
           </linearGradient>
         </defs>
+                {tintBands && tintBands.p25 != null && tintBands.p50 != null && tintBands.p75 != null && (() => {
+          // Map percentile cuts to SVG y-coords using current yMin/yMax
+          const yAt = (v) => pad.t + (H - pad.t - pad.b) * (1 - (v - yMin) / (yMax - yMin));
+          const dir = tintBands.direction === 'low' ? 'low' : 'high';
+          // For 'high' direction (high reading = risk off): top→p75 = Risk Off, p75→p50 = Cautionary, p50→p25 = Neutral, p25→bottom = Risk On
+          // For 'low' direction: invert.
+          const yTop = pad.t;
+          const yBot = H - pad.b;
+          const y25 = Math.max(yTop, Math.min(yBot, yAt(tintBands.p25)));
+          const y50 = Math.max(yTop, Math.min(yBot, yAt(tintBands.p50)));
+          const y75 = Math.max(yTop, Math.min(yBot, yAt(tintBands.p75)));
+          const xL = pad.l, xW = W - pad.r - pad.l;
+          // bands listed top-down by SVG y (smaller y = higher value for 'high' direction)
+          const bands = dir === 'high'
+            ? [
+                { y0: yTop, y1: y75, fill: 'rgba(224,123,134,0.10)' },   // Risk Off
+                { y0: y75,  y1: y50, fill: 'rgba(232,197,118,0.10)' },   // Cautionary
+                { y0: y50,  y1: y25, fill: 'rgba(245,241,232,0.03)' },   // Neutral
+                { y0: y25,  y1: yBot, fill: 'rgba(109,212,158,0.10)' }, // Risk On
+              ]
+            : [
+                { y0: yTop, y1: y75, fill: 'rgba(109,212,158,0.10)' },  // top values = Risk On (low direction)
+                { y0: y75,  y1: y50, fill: 'rgba(245,241,232,0.03)' },   // Neutral
+                { y0: y50,  y1: y25, fill: 'rgba(232,197,118,0.10)' },   // Cautionary
+                { y0: y25,  y1: yBot, fill: 'rgba(224,123,134,0.10)' },// Risk Off (low values)
+              ];
+          return bands.map((b, i) => (
+            <rect key={'tband-' + i} x={xL} y={Math.min(b.y0, b.y1)} width={xW} height={Math.abs(b.y1 - b.y0)} fill={b.fill} />
+          ));
+        })()}
         <g>{ticks.map((t, i) => (<line key={i} className="grid" x1={pad.l} x2={W - pad.r} y1={t.y} y2={t.y} />))}</g>
         <g>{ticks.map((t, i) => (<text key={i} className="yLabel" x={pad.l - 6} y={t.y + 3} textAnchor="end">{t.label}</text>))}</g>
         {sliced.length >= 2 && (

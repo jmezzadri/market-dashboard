@@ -5,22 +5,22 @@
   "as_of": "2026-05-04",
   "lexicon": {
     "states": [
-      "Normal",
+      "Risk On",
+      "Neutral",
       "Cautionary",
-      "Stressed",
-      "Distressed"
+      "Risk Off"
     ],
     "tooltips": {
-      "Normal": "Tile rule is not met. Mechanism is reading constructively or neutrally.",
-      "Cautionary": "Tile rule is partially met. Watch but do not act.",
-      "Stressed": "Tile rule is fully met. Mechanism is signaling its concerning regime.",
-      "Distressed": "Tile rule is fully met AND deteriorating over the last 60 trading days."
+      "Risk On": "Mechanism reads supportively for risk assets \u2014 bottom quartile vs its 5y baseline.",
+      "Neutral": "Mechanism sits between the 25th and 50th percentile vs its 5y baseline.",
+      "Cautionary": "Mechanism sits between the 50th and 75th percentile vs its 5y baseline \u2014 early defensive setup forming.",
+      "Risk Off": "Mechanism sits above the 75th percentile vs its 5y baseline \u2014 defensive posture warranted."
     },
     "headline_thresholds": {
-      "Constructive": "0\u20131 mechanisms elevated",
-      "Watchful": "2 mechanisms elevated",
-      "Defensive setup forming": "3 mechanisms elevated",
-      "High-conviction defensive": "4+ mechanisms elevated"
+      "Constructive": "0\u20131 mechanisms in Cautionary or Risk Off",
+      "Watchful": "2 mechanisms in Cautionary or Risk Off",
+      "Defensive setup forming": "3 mechanisms in Cautionary or Risk Off",
+      "High-conviction defensive": "4+ mechanisms in Cautionary or Risk Off"
     }
   },
   "headline_gauge": {
@@ -29,13 +29,12 @@
     "n_total": 6,
     "verdict": "Defensive setup forming",
     "verdict_label": "Risk-off setup forming",
-    "verdict_state": "Stressed",
+    "verdict_state": "Risk Off",
     "breakdown": {
       "Cautionary": 2,
-      "Stressed": 1,
-      "Distressed": 0
+      "Risk Off": 1
     },
-    "headline_sentence": "Risk-off setup forming. 3 of 3 live cycle mechanisms elevated above Normal \u2014 1 in Stressed territory, 2 Cautionary.",
+    "headline_sentence": "Risk-off setup forming. 3 of 3 live cycle mechanisms elevated above Neutral \u2014 1 in Risk Off territory, 2 Cautionary.",
     "subheadline": "3 of 3 cycle mechanisms are elevated. The defensive setup is forming."
   },
   "tiles": [
@@ -48,7 +47,7 @@
       "description_long": "Valuation indicators measure how much investors are paying per dollar of earnings, GDP, or risk premium. When several measures simultaneously sit in the top quartile of their long-run distribution, the equity market is showing the cycle-peak signature \u2014 high prices, high prices for risk, narrow risk premium.",
       "rule": {
         "logic": "concerning_if_three_of_four_in_concerning_quartile",
-        "description": "Stressed when 3 of 4 indicators sit in their concerning quartile. For CAPE, P/E, and Buffett indicator the concerning quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Distressed when 3 of 4 AND worsening over 60 trading days.",
+        "description": "Risk Off when the composite percentile is at or above the 75th vs its 5y baseline. For CAPE, P/E, and Buffett indicator the top-tail quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when the composite percentile sits between the 50th and 75th. (deepening reading is reflected in the 60-day trajectory chart on the drawer).",
         "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; trailing P/E joins in Sprint 1.5 once long-history Shiller series is staged."
       },
       "indicators": [
@@ -2505,8 +2504,8 @@
           "composite_share_pct": 33.7
         }
       ],
-      "current_state": "Stressed",
-      "rule_status": "3 of 3 indicators in concerning quartile",
+      "current_state": "Risk Off",
+      "rule_status": "3 of 3 indicators in the top-tail quartile vs 5y baseline",
       "as_of": "2026-05-04",
       "composite_score": 99,
       "composite_breakdown": [
@@ -3412,7 +3411,7 @@
           "id": "hy_ig_ratio",
           "name": "HY/IG ratio",
           "unit": "ratio",
-          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect \u2014 captures whether credit markets are pricing the junk-vs-quality differential normally or in a stressed/complacent way.",
+          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect \u2014 captures whether credit markets are pricing the junk-vs-quality differential normally or in a stressed/early-stage risk-off way.",
           "so_what": "Mid-distribution today. The junk-vs-quality differential is priced normally; nothing unusual either way in the relative pricing of high-yield to investment-grade.",
           "formula": "HY/IG ratio = HY OAS / IG OAS proxy (Baa \u2212 DGS10)",
           "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
@@ -3698,7 +3697,7 @@
       "description_long": "The Growth tile aggregates four real-economy reads: a broad activity index (CFNAI), an early labor-market signal (jobless claims), a manufacturing PMI proxy (ISM headline), and the bank-relative-equity signal (BKX vs S&P). The Growth rule fires only when indicators are BOTH at extreme levels AND deteriorating over 60 trading days \u2014 the 'AND' avoids permanently-elevated false alarms.",
       "rule": {
         "logic": "level_AND_trend",
-        "description": "Stressed when 3 of 4 indicators are both extreme (|z| > 1) AND deteriorating over 60 trading days. Cautionary when 2 of 4. Distressed when 3 of 4 AND deteriorating across all four."
+        "description": "Risk Off when the composite percentile is at or above the 75th and trending higher over 60 trading days. Cautionary when the composite percentile sits between the 50th and 75th. (deteriorating trajectory is shown on the drawer chart)."
       },
       "indicators": [
         {
@@ -5707,7 +5706,7 @@
         }
       ],
       "current_state": "Cautionary",
-      "rule_status": "1 of 4 concerning \u00b7 3 of 4 deteriorating over 60d",
+      "rule_status": "1 of 4 elevated \u00b7 3 of 4 deteriorating over 60d",
       "as_of": "2026-05-04",
       "composite_score": 55,
       "composite_breakdown": [
@@ -5783,5 +5782,17 @@
     ],
     "composite_share": "score-weighted-with-transparency",
     "lessons_rule_31_acknowledged": true
+  },
+  "state_lexicon": [
+    "Risk On",
+    "Neutral",
+    "Cautionary",
+    "Risk Off"
+  ],
+  "state_explanations": {
+    "Risk On": "Mechanism sits in the bottom quartile vs its 5y baseline \u2014 supportive of risk assets.",
+    "Neutral": "Mechanism sits between the 25th and 50th percentile vs its 5y baseline \u2014 neither tailwind nor headwind.",
+    "Cautionary": "Mechanism sits between the 50th and 75th percentile vs its 5y baseline \u2014 early defensive setup forming.",
+    "Risk Off": "Mechanism sits above the 75th percentile vs its 5y baseline \u2014 defensive posture warranted."
   }
 }

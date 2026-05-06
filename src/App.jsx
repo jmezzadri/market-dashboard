@@ -9,7 +9,6 @@ import InsightsPageV2 from "./v2/pages/InsightsPage";
 import MethodologyPageV2 from "./v2/pages/MethodologyPage";
 import ScenariosPageV2 from "./v2/pages/ScenariosPage";
 import AdminPageV2 from "./v2/pages/AdminPage";
-import MarcusHero from "./v2/components/MarcusHero";
 
 
 // Cutover feature flag — set ?v=2 in URL to render new design.
@@ -6334,8 +6333,10 @@ return(
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
-{(tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
-{(tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
+{V2_ENABLED && tab==="portopps" && <TradingOppsPageV2 />}
+{V2_ENABLED && tab==="insights" && <InsightsPageV2 />}
+{!V2_ENABLED && (tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
+{!V2_ENABLED && (tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
 const heldByTicker={};
 ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
   if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
@@ -6409,8 +6410,7 @@ return(
   const _sharpeStr = _sharpe!=null ? _sharpe.toFixed(2) : "—";
   const _grandTotalK = grandTotal>=1000 ? `$${Math.round(grandTotal/1000).toLocaleString()}K` : `$${Math.round(grandTotal).toLocaleString()}`;
   const _acctCount = (ACCOUNTS||[]).length;
-  const _Hero = V2_ENABLED ? MarcusHero : RichHero;
-  return <_Hero
+  return <RichHero
     eyebrow="Portfolio Insights"
     freshChip={{indicatorId:"portfolio_history", asOfIso:_portfolioReturns?.latestDate||null}}
     headline={"Your real book — "}
@@ -6439,25 +6439,6 @@ const _subline=(buyCount>0||watchCount>0)
 const _stanceColor=_scanT?"var(--green-text, #1f8a5a)":"var(--orange-text, #a5760a)";
 const _stanceBg=_scanT?"rgba(31,138,90,0.12)":"rgba(165,118,10,0.12)";
 const _b=()=>({fontWeight:600,color:"var(--text)"});
-if (V2_ENABLED) {
-  return <MarcusHero
-    eyebrow="Trading Opportunities"
-    freshChip={{indicatorId:"latest_scan_data", asOfIso:scanData?.scan_time||null}}
-    headline={"What to act on today — "}
-    italicAccent={"across the full liquid universe."}
-    italicSub={_subline}
-    stance={_scanT?"SCAN COMPLETE":"AWAITING SCAN"}
-    stanceColor={_scanT?"strong":"warn"}
-    freshLine={"Daily scan · Last run: "+_scanLabel}
-    lead={"Today's buy alerts and near-triggers — surfaced from a daily scan of "+universeCount.toLocaleString()+" liquid US equities ($1B+ market cap). Each ticker is graded on a composite blending five signals: technical indicators (MACD, RSI), congressional trades, insider Form 4 filings, dark-pool prints, and unusual options flow. Composite of 60+ is a buy alert; 35-59 sits on near-trigger watch."}
-    kpis={[
-      {lbl:"Buy alerts", v:buyCount, sub:"score 60+", col:buyCount>0?"var(--green-text)":"var(--text)"},
-      {lbl:"Near triggers", v:watchCount, sub:"score 35-59", col:watchCount>0?"var(--yellow-text)":"var(--text)"},
-      {lbl:"Watchlist", v:watchlistSize, sub:"tracked tickers"},
-      {lbl:"Universe", v:universeCount.toLocaleString(), sub:"US equities scored"},
-    ]}
-  />;
-}
 return(<>
 {/* Rich hero — strawman 2, ship copy. Anchors the page so first-time
     readers know what they're looking at before the signal tiles. */}
@@ -6978,67 +6959,34 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
 )}
 
 {/* ADMIN · UW API USAGE — gated by useIsAdmin() above. Task #30. */}
-{tab==="admin" && <>
-  {V2_ENABLED && <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><MarcusHero
-    eyebrow="Admin · API Usage"
-    headline={"Vendor health — "}
-    italicAccent={"Polygon, Unusual Whales, FRED, ZeroHedge."}
-    italicSub={"Daily usage, rate-limit headroom, monthly run-rate vs cost."}
-    stance={"INTERNAL"}
-    stanceColor={"mute"}
-    freshLine={"Auto-refreshed nightly"}
-    lead={"Monitor every paid feed in one place. If a vendor is throttling or about to exceed quota, this page is where it surfaces first."}
-  /></div>}
-  <AdminUsage/>
-</>}
+{tab==="admin" && V2_ENABLED && <AdminPageV2 />}
+{tab==="admin" && !V2_ENABLED && <AdminUsage/>}
 
 {/* ADMIN · BUGS — gated by useIsAdmin() above. Task #36. */}
-{tab==="bugs" && <>
-  {V2_ENABLED && <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><MarcusHero
-    eyebrow="Admin · Bug Inventory"
-    headline={"Defect register — "}
-    italicAccent={"triage, build, UAT, close."}
-    italicSub={"Public bug reports plus internal P0 / P1 / P2 backlog."}
-    stance={"INTERNAL"}
-    stanceColor={"mute"}
-    freshLine={"Auto-refreshed on every triage sweep"}
-    lead={"Every defect on the site is tracked here. Filter by status, severity, or assignee. Click any row for full detail, fix history, and UAT evidence."}
-  /></div>}
-  <AdminBugs/>
-</>}
+{V2_ENABLED && tab==="bugs" && <AdminPageV2 />}
+{!V2_ENABLED && tab==="bugs" && <AdminBugs/>}
 
 {/* SECTOR LAB — admin-gated experimental sandbox for sector-engine overlays.
     Read-only mirror of the live Sectors tab + cycle-stage chip prototype.
     Zero changes to live SectorsTab. Promotion = move one render line. */}
 {tab==="lab" && <SectorLab/>}
-{tab==="scenarios" && <>
-  {V2_ENABLED && <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><MarcusHero
-    eyebrow="Scenarios"
-    headline={"Stress the model — "}
-    italicAccent={"named events, bespoke shocks, composite stress."}
-    italicSub={"How the v10 allocator and macro composites respond when the world breaks."}
-    stance={"CCAR-ALIGNED"}
-    stanceColor={"warn"}
-    freshLine={"Calibration windows on each scenario"}
-    lead={"Apply a historical stress (2008, 2020, taper-tantrum) or build a bespoke correlated shock. The scenario engine flows through the v10 sector allocator and surfaces the new tilt, the composite reading, and the realized P&L drift."}
-  /></div>}
-  <ScenarioAnalysis/>
-</>}
+{tab==="scenarios" && V2_ENABLED && <ScenariosPageV2 />}
+{tab==="scenarios" && !V2_ENABLED && <ScenarioAnalysis/>}
 
 {/* Unified Data & Methodology page — one searchable tile per upstream
     data stream (25 macro indicators + 8 scanner signals + 3 infra streams).
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
-{tab==="readme" && (<>
-  {(() => { const _Hero = V2_ENABLED ? MarcusHero : RichHero; return (
-  <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><_Hero
+{tab==="readme" && V2_ENABLED && <MethodologyPageV2 />}
+{tab==="readme" && !V2_ENABLED && (<>
+  <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><RichHero
     eyebrow="FAQ &amp; Methodology"
     headline={"How the model works — "}
     italicAccent={"every parameter exposed."}
     italicSub={"Sources, scoring, regime thresholds, calibration windows."}
     lead={<>The full methodology — every <strong style={{fontWeight:600,color:"var(--text)"}}>data source</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>formula</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>regime threshold</strong>, every <strong style={{fontWeight:600,color:"var(--text)"}}>back-test parameter</strong> the model uses. Organized by surface: <strong style={{fontWeight:600,color:"var(--text)"}}>macro composites</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>allocation engine</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>trading opportunities scanner</strong>, <strong style={{fontWeight:600,color:"var(--text)"}}>portfolio risk</strong>. If you want to know why a number is what it is, the answer is on this page. Search the indicator reference at the bottom for any specific signal.</>}
-  /></div>); })()}
+  /></div>
   <MethodologyPage ind={IND} asOf={{...AS_OF}} asOfIso={{...AS_OF_ISO}} weights={WEIGHTS} cats={CATS} indFreq={IND_FREQ}/>
 </>)}
 
