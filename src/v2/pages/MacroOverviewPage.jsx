@@ -265,7 +265,7 @@ function deriveMechanisms(snap, calib, v10, history) {
           rawDirection: inp.direction,
           soWhat: '',
           description: '',
-          source: 'pipeline_health',
+          source: 'FRED',
           history: filtered,
         };
       });
@@ -468,7 +468,17 @@ export default function MacroOverviewPage() {
   const mechanisms = useMemo(() => deriveMechanisms(snap, calib, v10, history), [snap, calib, v10, history]);
   const liveCount = mechanisms.filter((m) => m.score != null).length;
   const flaggedTotal = mechanisms.filter((m) => m.bandClass === 'r-off' || m.bandClass === 'r-cau').length;
-  const headlineState = v10?.page_stance || snap?.page_stance || calib?.headline_gauge?.verdict_label || 'Loading';
+  const rawStance = v10?.page_stance || snap?.page_stance || calib?.headline_gauge?.verdict_label || 'Loading';
+  // Theme #3: collapse any non-v2-lexicon variants to the canonical four
+  const STANCE_MAP = {
+    'Cautious': 'Cautionary',
+    'Stressed': 'Risk Off',
+    'Distressed': 'Risk Off',
+    'Concerning': 'Cautionary',
+    'Complacent': 'Cautionary',
+    'Normal': 'Neutral',
+  };
+  const headlineState = STANCE_MAP[rawStance] || rawStance;
   const compositeAvg = mechanisms.length
     ? Math.round(mechanisms.reduce((a, m) => a + (m.score || 0), 0) / mechanisms.length)
     : null;
