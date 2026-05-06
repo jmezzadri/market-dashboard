@@ -11,7 +11,6 @@ import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
 import { useTickerEvents } from "./hooks/useTickerEvents";
 import SubCompositeStrip from "./components/SubCompositeStrip";
-import UniverseFreshness from "./components/UniverseFreshness";
 import { normalizeTickerName } from "./lib/nameFormat";
 import CONGRESS_ROSTER from "./data/congress_roster.json";
 
