@@ -158,7 +158,7 @@ def check_fixture(fixture_path: Path, verbose: bool = False) -> list[str]:
             if label.lower() not in line.lower():
                 continue
             window = "\n".join(lines[max(0, i - 8):i + 6])
-            if re.search(r"\b(tip|tooltip|title|aria-label)\s*=", window, re.IGNORECASE):
+            if re.search(r"\b(tip|tooltip|title|aria-label)\s*[=:]", window, re.IGNORECASE):
                 seen_tooltip = True
                 break
             if re.search(r"<Tooltip\b", window):

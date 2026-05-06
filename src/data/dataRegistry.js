@@ -58,7 +58,7 @@ export const DATA_REGISTRY = [
     source:"FRED (ICE BofA)", seriesId:"composite of HY OAS deciles",
     freq:"Daily", category:"credit", tier:2,
     powers:["Composite Stress Score","Credit Markets category"],
-    summary:"Composite of distressed HY OAS levels — share of bonds trading at wide spreads.",
+    summary:"Composite of deep-stress HY OAS levels — share of bonds trading at wide spreads.",
     keywords:["distress","default","hy","junk"] },
   { key:"hy_yield", section:"macro", indId:"hy_yield", name:"HY Effective Yield", longName:"ICE BofA US HY Effective Yield",
     source:"FRED (ICE BofA)", seriesId:"BAMLH0A0HYM2EY",

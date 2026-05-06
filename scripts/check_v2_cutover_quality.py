@@ -61,7 +61,11 @@ USER_FACING_JSON = [
     ROOT / "public" / "scenario_allocations.json",
 ]
 
-V2_PAGE_FILES = list((ROOT / "src" / "v2").rglob("*.jsx")) + list((ROOT / "src" / "v2").rglob("*.js"))
+V2_PAGE_FILES = (
+    list((ROOT / "src" / "v2").rglob("*.jsx"))
+    + list((ROOT / "src" / "v2").rglob("*.js"))
+    + list((ROOT / "src" / "data").rglob("*.js"))    # indicator registry, etc — imported by v2 surfaces
+)
 V2_STYLES = list((ROOT / "src" / "v2").rglob("*.css"))
 
 # ─── BANNED LEXICON (THEME #3) ────────────────────────────────────────
@@ -150,13 +154,13 @@ def is_user_facing_string_in_jsx(line: str) -> bool:
         return False
     if "import " in s and " from " in s: return False
     # Remap-table key — banned word in quotes followed by ':' and a v2-lexicon value
-    if re.search(r"[\"'`](?:Stressed|Distressed|Concerning|Complacent|complacency|complacent|Normal)[\"'`]\s*:\s*[\"'`](?:Risk On|Neutral|Cautionary|Risk Off)[\"'`]", line):
+    if re.search(r"[\"'`](?:Stressed|Distressed|Concerning|Complacent|complacency|complacent|Normal|Cautious)[\"'`]\s*:\s*[\"'`](?:Risk On|Neutral|Cautionary|Risk Off)[\"'`]", line, re.IGNORECASE):
         return False
     # JSX: text node between tags
-    if re.search(r">[^<]*\b(?:Stressed|Distressed|Concerning|Complacent|complacency|complacent)\b[^<]*<", line):
+    if re.search(r">[^<]*\b(?:stressed|distressed|concerning|complacent|complacency)\b[^<]*<", line, re.IGNORECASE):
         return True
     # In a JSX/attribute string literal
-    if re.search(r"[\"'`][^\"'`]*\b(?:Stressed|Distressed|Concerning|Complacent|complacency|complacent)\b[^\"'`]*[\"'`]", line):
+    if re.search(r"[\"'`][^\"'`]*\b(?:stressed|distressed|concerning|complacent|complacency)\b[^\"'`]*[\"'`]", line, re.IGNORECASE):
         return True
     return False
 
@@ -221,7 +225,7 @@ def check_json_file(path: Path, hits: Hits) -> None:
                 return
             # Lexicon (every string field — entire JSON is read by the page eventually)
             for term in BANNED_LEXICON:
-                if re.search(rf"\b{term}\b", obj):
+                if re.search(rf"\b{term}\b", obj, re.IGNORECASE):
                     hits.add("#3 lexicon", str(path.relative_to(ROOT)), location, obj)
             for pattern in BANNED_NORMAL_PATTERNS:
                 if re.search(pattern, obj):
@@ -251,7 +255,7 @@ def check_jsx_file(path: Path, hits: Hits) -> None:
     for i, line in enumerate(text_no_comments.splitlines(), 1):
         # Lexicon — only if it looks user-facing
         for term in BANNED_LEXICON:
-            if re.search(rf"\b{term}\b", line) and is_user_facing_string_in_jsx(line):
+            if re.search(rf"\b{term}\b", line, re.IGNORECASE) and is_user_facing_string_in_jsx(line):
                 hits.add("#3 lexicon", rel, f"L{i}", line.strip())
         for pattern in BANNED_NORMAL_PATTERNS:
             if re.search(pattern, line) and is_user_facing_string_in_jsx(line):

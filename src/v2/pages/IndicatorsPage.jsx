@@ -92,6 +92,8 @@ function relativeAge(iso) {
 
 export default function IndicatorsPage() {
   const [hist, setHist] = useState(null);
+  const [calib, setCalib] = useState(null);
+  const [manifest, setManifest] = useState(null);
   const [err, setErr] = useState(null);
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -99,10 +101,65 @@ export default function IndicatorsPage() {
 
   useEffect(() => {
     fetch('/indicator_history.json', { cache: 'no-cache' })
-      .then((r) => r.ok ? r.json() : null)
-      .then(setHist)
-      .catch((e) => setErr(e?.message));
+      .then((r) => r.ok ? r.json() : null).then(setHist).catch((e) => setErr(e?.message));
+    fetch('/methodology_calibration_v11.json', { cache: 'no-cache' })
+      .then((r) => r.ok ? r.json() : null).then(setCalib).catch(() => {});
+    fetch('/data_manifest.json', { cache: 'no-cache' })
+      .then((r) => r.ok ? r.json() : null).then(setManifest).catch(() => {});
   }, []);
+
+  // Deep-link: read ?id=X out of the hash on mount + on hashchange.
+  // Hash format: #indicators?id=vix
+  useEffect(() => {
+    function syncFromHash() {
+      const m = (window.location.hash || '').match(/[?&]id=([\w_-]+)/);
+      setOpenId(m ? m[1] : null);
+    }
+    syncFromHash();
+    window.addEventListener('hashchange', syncFromHash);
+    return () => window.removeEventListener('hashchange', syncFromHash);
+  }, []);
+
+  // Build mechanism + share lookup from calibration tiles
+  const mechFor = useMemo(() => {
+    const out = {};
+    (calib?.tiles || []).forEach((t) => {
+      (t.indicators || []).forEach((ind) => {
+        out[ind.id] = { mech_id: t.id, mech_name: t.name, share: ind.composite_share_pct };
+      });
+    });
+    return out;
+  }, [calib]);
+
+  // Build tier lookup from manifest (license_tier collapsed to a short label)
+  const tierFor = useMemo(() => {
+    const out = {};
+    const els = manifest?.elements;
+    if (!Array.isArray(els)) return out;
+    els.forEach((e) => {
+      if (e.category !== 'indicator' || !e.name) return;
+      const lt = String(e.license_tier || '').toLowerCase();
+      let tier = 'free';
+      if (lt.startsWith('paid')) tier = 'paid';
+      else if (lt === 'internal') tier = 'internal';
+      else if (lt === 'tbd' || lt === 'unknown' || !lt) tier = 'tbd';
+      out[e.name] = tier;
+    });
+    return out;
+  }, [manifest]);
+
+  // Manifest-derived live source list (for footer)
+  const manifestSources = useMemo(() => {
+    const els = manifest?.elements;
+    if (!Array.isArray(els)) return [];
+    const out = new Set();
+    els.forEach((e) => {
+      if (e.category !== 'indicator') return;
+      const v = (e.source_vendor || '').split(/[(:]/)[0].trim();
+      if (v) out.add(v);
+    });
+    return Array.from(out).sort();
+  }, [manifest]);
 
   // Build the row list from registry IND (ordered) ∩ history JSON
   const rows = useMemo(() => {
@@ -115,6 +172,7 @@ export default function IndicatorsPage() {
       const value = last?.[1];
       const pct = pctRank(value, h.points);
       const dir = h.stats?.direction || 'hw';
+      const mech = mechFor[id];
       out.push({
         id,
         name: meta[0],
@@ -132,10 +190,14 @@ export default function IndicatorsPage() {
         points: h.points || [],
         stats: h.stats || {},
         freq: h.freq || '',
+        mech_id:   mech?.mech_id   || null,
+        mech_name: mech?.mech_name || null,
+        share:     mech?.share     != null ? Number(mech.share) : null,
+        tier:      tierFor[id]     || null,
       });
     });
     return out;
-  }, [hist]);
+  }, [hist, mechFor, tierFor]);
 
   // filter + search
   const filtered = useMemo(() => {
@@ -179,7 +241,7 @@ export default function IndicatorsPage() {
             <div className={`s ${flaggedCount > 0 ? 'warn' : ''}`}>
               <span className="lbl">In alert tail</span>
               <span className="v"><CountUp to={flaggedCount} /></span>
-              <span className="d">in concerning quartile</span>
+              <span className="d">in alert quartile</span>
             </div>
             <div className="s">
               <span className="lbl" title="Number of monthly composite readings on file for this indicator.">Months of history</span>
@@ -232,13 +294,24 @@ export default function IndicatorsPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr>
-                {['Indicator', 'Family', 'Reading', 'Percentile', 'Trend', 'Direction', 'Last update'].map((h, i) => (
-                  <th key={h} style={{
-                    textAlign: i === 2 || i === 3 || i === 6 ? 'right' : 'left',
-                    padding: '14px 24px', fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase',
+                {[
+                  { label: 'Indicator',   align: 'left',  tip: '' },
+                  { label: 'Mechanism',   align: 'left',  tip: 'Which v11 cycle mechanism this indicator feeds, if any.' },
+                  { label: 'Family',      align: 'left',  tip: 'Indicator family — Equity, Credit, Rates, Financial conditions, Bank & Money, Labor & Growth.' },
+                  { label: 'Tier',        align: 'left',  tip: 'License tier of the data feed: free public, paid vendor, or internal.' },
+                  { label: 'Reading',     align: 'right', tip: 'Most recent reading available.' },
+                  { label: 'Percentile',  align: 'right', tip: 'Where the current reading sits in the indicator\'s 15y distribution.' },
+                  { label: 'Share',       align: 'right', tip: 'Indicator\'s share of its mechanism composite score, when calibrated.' },
+                  { label: 'Trend',       align: 'left',  tip: 'Twelve-month spark line.' },
+                  { label: 'Direction',   align: 'left',  tip: 'Whether elevated, depressed, or both extremes are alert-side.' },
+                  { label: 'Last update', align: 'right', tip: 'How recently the source vendor published a fresh reading.' },
+                ].map((c) => (
+                  <th key={c.label} title={c.tip || undefined} style={{
+                    textAlign: c.align,
+                    padding: '14px 18px', fontSize: 10.5, letterSpacing: '.14em', textTransform: 'uppercase',
                     color: 'var(--ink-2)', fontWeight: 500, borderBottom: '1px solid var(--line-1)',
                     background: 'var(--bg-1)', position: 'sticky', top: 0,
-                  }}>{h}</th>
+                  }}>{c.label}</th>
                 ))}
               </tr>
             </thead>
@@ -252,41 +325,62 @@ export default function IndicatorsPage() {
                     style={{ cursor: 'pointer', transition: 'background 180ms ease' }}
                     onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-2)'}
                     onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}>
-                    <td style={{ padding: '14px 24px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-0)', fontWeight: 500 }}>{row.name}</td>
-                    <td style={{ padding: '14px 24px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-1)' }}>
-                      <span style={{ fontSize: 10, fontWeight: 500, padding: '3px 8px', borderRadius: 4, letterSpacing: '.04em',
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-0)', fontWeight: 500 }}>{row.name}</td>
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-1)' }}>
+                      {row.mech_name ? (
+                        <a href="#overview" className="v2-cta" onClick={(e) => e.stopPropagation()} title={`Open ${row.mech_name} on Macro Overview.`}>
+                          {row.mech_name}
+                        </a>
+                      ) : <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>—</span>}
+                    </td>
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-1)' }}>
+                      <span style={{ fontSize: 10, fontWeight: 500, padding: '3px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '.04em',
                         background: 'var(--bg-2)', color: 'var(--ink-1)', border: '1px solid var(--line-1)' }}>
                         {row.familyLabel}
                       </span>
                     </td>
-                    <td style={{ padding: '14px 24px', borderBottom: '1px solid var(--line-0)', textAlign: 'right' }}>
-                      <span style={{ fontFamily: 'Fraunces,serif', fontFeatureSettings: '"tnum"', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 16, color: 'var(--ink-0)' }}>
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-1)' }}>
+                      {row.tier ? (
+                        <span style={{
+                          fontSize: 10, fontWeight: 500, padding: '3px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '.04em',
+                          background: 'var(--bg-2)',
+                          color: row.tier === 'paid' ? 'var(--accent)' : row.tier === 'internal' ? 'var(--info)' : row.tier === 'tbd' ? 'var(--ink-3)' : 'var(--ink-1)',
+                          border: '1px solid var(--line-1)',
+                          textTransform: 'capitalize',
+                        }}>{row.tier}</span>
+                      ) : <span style={{ color: 'var(--ink-3)', fontSize: 11 }}>—</span>}
+                    </td>
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', textAlign: 'right' }}>
+                      <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontFeatureSettings: '"tnum"', fontSize: 15, fontWeight: 500, color: 'var(--ink-0)' }}>
                         {formatVal(row.value, row.decimals)}
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--ink-2)', marginLeft: 3 }}>{row.unit}</span>
                     </td>
-                    <td style={{ padding: '14px 24px', borderBottom: '1px solid var(--line-0)', textAlign: 'right' }}>
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', textAlign: 'right' }}>
                       {row.pct != null ? (
                         <span className={`v2-pill ${band}`}>{row.pct}<span style={{ fontSize: 9, marginLeft: 1, opacity: .7 }}>th</span></span>
                       ) : <span style={{ color: 'var(--ink-3)' }}>—</span>}
                     </td>
-                    <td style={{ padding: '14px 24px', borderBottom: '1px solid var(--line-0)' }}>
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', textAlign: 'right', color: 'var(--ink-1)', fontSize: 12, fontFeatureSettings: '"tnum"' }}>
+                      {row.share != null ? `${row.share.toFixed(1)}%` : <span style={{ color: 'var(--ink-3)' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)' }}>
                       <svg width="80" height="24" viewBox="0 0 80 24"
                         style={{ color: sCls === 'up' ? 'var(--up)' : sCls === 'down' ? 'var(--down)' : 'var(--ink-2)' }}>
                         <path d={sparkPath(row.points)} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     </td>
-                    <td style={{ padding: '14px 24px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-2)', fontSize: 12 }}>
-                      {row.direction === 'hw' ? 'High flags' : row.direction === 'lw' ? 'Low flags' : row.direction === 'bw' ? 'Bidirectional' : '—'}
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-2)', fontSize: 12 }}>
+                      {row.direction === 'hw' ? 'High = elevated' : row.direction === 'lw' ? 'Low = elevated' : row.direction === 'bw' ? 'Both extremes elevated' : '—'}
                     </td>
-                    <td style={{ padding: '14px 24px', borderBottom: '1px solid var(--line-0)', textAlign: 'right', color: 'var(--ink-2)', fontSize: 12, fontFeatureSettings: '"tnum"' }}>
+                    <td style={{ padding: '14px 18px', borderBottom: '1px solid var(--line-0)', textAlign: 'right', color: 'var(--ink-2)', fontSize: 12, fontFeatureSettings: '"tnum"' }}>
                       {relativeAge(row.asOf)}
                     </td>
                   </tr>
                 );
               })}
               {filtered.length === 0 && (
-                <tr><td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-2)' }}>
+                <tr><td colSpan="10" style={{ padding: '32px', textAlign: 'center', color: 'var(--ink-2)' }}>
                   No indicators match {search ? `“${search}”` : 'this filter'}.
                 </td></tr>
               )}
@@ -295,12 +389,19 @@ export default function IndicatorsPage() {
         </div>
 
         <div style={{ margin: '48px 0 24px', paddingTop: 24, borderTop: '1px solid var(--line-0)', textAlign: 'center', color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>
-          {rows.length} series · sources via FRED · CBOE · ICE BofA · Shiller · Kim-Wright Fed · ISM · BLS · NY Fed
+          {rows.length} series · sourced from {manifestSources.length ? manifestSources.join(' · ') : 'data registry'}
         </div>
       </div>
 
       {/* DRAWER */}
-      <Drawer open={openInd != null} onClose={() => setOpenId(null)}>
+      <Drawer open={openInd != null} onClose={() => {
+        setOpenId(null);
+        // Clear any deep-link ?id= so re-navigation doesn't reopen the drawer
+        try {
+          const cur = window.location.hash || '';
+          if (/[?&]id=/.test(cur)) window.location.hash = cur.split('?')[0] || '#indicators';
+        } catch (_) { /* ignore */ }
+      }}>
         {openInd && (
           <>
             <div className="t-eyebrow accent">{openInd.familyLabel} · indicator</div>
@@ -349,7 +450,7 @@ export default function IndicatorsPage() {
             <div className="v2-drawer-section">
               <span className="t-eyebrow">Series</span>
               <div className="v2-drawer-row"><span className="lbl">Frequency</span><span className="val">{openInd.freq || '—'}</span></div>
-              <div className="v2-drawer-row"><span className="lbl">Direction</span><span className="val">{openInd.direction === 'hw' ? 'High flags' : openInd.direction === 'lw' ? 'Low flags' : openInd.direction === 'bw' ? 'Bidirectional' : '—'}</span></div>
+              <div className="v2-drawer-row"><span className="lbl">Direction</span><span className="val">{openInd.direction === 'hw' ? 'High = elevated' : openInd.direction === 'lw' ? 'Low = elevated' : openInd.direction === 'bw' ? 'Both extremes elevated' : '—'}</span></div>
               <div className="v2-drawer-row"><span className="lbl">Sample window</span><span className="val">{openInd.stats?.window || '—'}</span></div>
               <div className="v2-drawer-row"><span className="lbl">Outlier handling</span><span className="val">{openInd.stats?.winsorize || '—'}</span></div>
             </div>
