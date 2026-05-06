@@ -139,3 +139,38 @@
 .v2-tip .tipDelta.up{color:var(--up);}
 .v2-tip .tipDelta.down{color:var(--down);}
 @media (prefers-reduced-motion: reduce){.v2-chart-svg .line,.v2-chart-svg .area,.v2-tip{transition:none !important;}.v2-fchip::before{animation:none;}}
+
+/* ─── v2 cutover: kill the legacy body radial gradient ───────────────────
+   The legacy theme.css applies `background: var(--bg-grad)` with
+   `background-attachment: fixed` to <body>. That makes the perceived page
+   color depend on viewport size, scroll position, and content height — so
+   every tab looks like a slightly different shade. When ANY v2 surface
+   is mounted, kill the gradient and force the solid token bg.  Joe
+   reported the inconsistency 2026-05-06; this is the fix. */
+body:has(.v2-root){
+  background: var(--bg-0) !important;
+  background-image: none !important;
+  background-attachment: initial !important;
+}
+/* The legacy <main className="fade-in main-padded mt-home"> wraps the v2
+   page. Make sure no padding-driven peek of body color leaks through. */
+body:has(.v2-root) > main,
+body:has(.v2-root) > div > main{
+  background: var(--bg-0) !important;
+  background-image: none !important;
+}
+/* Belt-and-suspenders for browsers without :has() — the v2-root itself
+   covers full viewport so any sliver of body bg below short content
+   doesn't show. */
+.v2-root{min-height:100vh;}
+/* Dark theme variant — same override, dark token */
+[data-theme="dark"] body:has(.v2-root){
+  background: var(--bg-0) !important;
+  background-image: none !important;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) body:has(.v2-root){
+    background: var(--bg-0) !important;
+    background-image: none !important;
+  }
+}
