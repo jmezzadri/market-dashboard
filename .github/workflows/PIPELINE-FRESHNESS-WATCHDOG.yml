@@ -1,0 +1,175 @@
+# PIPELINE-FRESHNESS-WATCHDOG — every-30-min freshness sweep.
+#
+# Why
+# ───
+# GitHub Actions cron is unreliable. Two consecutive incidents in May 2026:
+# Mon-Tue MASSIVE-DAILY missed two scheduled fires; Wed UNIVERSE_SNAPSHOT_3X
+# and TICKER_EVENTS_3X had ZERO scheduled fires for the entire day. Backup
+# cron entries help when SOME fires land, but if GH drops them all, no
+# amount of YAML cron redundancy saves us. This workflow is the durable
+# answer: it runs every 30 min during market hours, queries the actual
+# data tables in Supabase, and re-dispatches the per-pipeline workflow
+# whenever freshness exceeds the SLA. Each dispatched workflow has its
+# own idempotency-by-data gate, so a duplicate dispatch is a no-op.
+#
+# How
+# ───
+# For each watched pipeline:
+#   1. Query Supabase for the most recent row (max(ts)).
+#   2. Compute age in minutes.
+#   3. If age > SLA AND we are inside the pipeline's valid-run window
+#      (e.g. don't fire MASSIVE-DAILY at 9 AM ET) → dispatch via gh CLI.
+#   4. Otherwise log "fresh, no action" and move on.
+#
+# This workflow itself uses 4 cron entries (every 30 min, market-hours
+# wide window) so even if GitHub drops some watchdog fires, the rest
+# catch the staleness.
+#
+# Permissions: actions:write so `gh workflow run` can dispatch siblings.
+
+name: PIPELINE-FRESHNESS-WATCHDOG
+
+on:
+  schedule:
+    # Every 30 min during the US trading day, weekdays. Time-of-day windows
+    # are intentionally wide so a 60-90 min cron drift still fires inside
+    # market hours. UTC.
+    - cron: '0,30 14-23 * * 1-5'   # 14:00 UTC = 10:00 ET (EDT) — covers 10 AM to 7:30 PM ET
+    - cron: '0,30 0-3 * * 2-6'     # next-day 00:00-03:30 UTC = 8 PM-11:30 PM ET prior day
+  workflow_dispatch: {}
+
+concurrency:
+  group: pipeline-freshness-watchdog
+  cancel-in-progress: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: write
+      contents: read
+    env:
+      GH_TOKEN:                  ${{ secrets.GITHUB_TOKEN }}
+      SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - name: Sweep — query freshness, dispatch stale pipelines
+        run: |
+          python3 - <<'PY'
+          import os, json, urllib.request, datetime, subprocess, sys
+
+          SUPA_URL = os.environ["SUPABASE_URL"]
+          SUPA_KEY = os.environ["SUPABASE_SERVICE_ROLE_KEY"]
+
+          # ─── Watchlist config ────────────────────────────────────────────
+          # Each entry says where to read freshness from, what the SLA is,
+          # and which workflow to dispatch when stale. Time windows are in
+          # ET (NYSE local) — outside the window we skip dispatch even if
+          # stale (e.g. don't fire MASSIVE-DAILY at 9 AM ET; it expects
+          # post-close data and the upstream Polygon publish hasn't
+          # happened yet anyway).
+          PIPELINES = [
+              {
+                  "name":     "universe_snapshots",
+                  "table":    "universe_snapshots",
+                  "ts_col":   "snapshot_ts",
+                  "sla_min":  90,
+                  "workflow": "UNIVERSE_SNAPSHOT_3X_WEEKDAYS.yml",
+                  "et_window": (10, 17),   # 10 AM-5 PM ET
+              },
+              {
+                  "name":     "ticker_events",
+                  "table":    "ticker_events",
+                  "ts_col":   "event_ts",
+                  "sla_min":  90,
+                  "workflow": "TICKER_EVENTS_3X_WEEKDAYS.yml",
+                  "et_window": (10, 17),
+              },
+              {
+                  "name":     "massive-eod",
+                  "table":    "prices_eod",
+                  "ts_col":   "ingested_at",
+                  "sla_min":  24 * 60,     # 24h — daily
+                  "workflow": "MASSIVE-DAILY.yml",
+                  "et_window": (18, 23),    # only attempt 6 PM-11 PM ET
+              },
+          ]
+
+          # ─── Helpers ────────────────────────────────────────────────────
+          def supa_get(path):
+              req = urllib.request.Request(
+                  f"{SUPA_URL}{path}",
+                  headers={"apikey": SUPA_KEY, "Authorization": f"Bearer {SUPA_KEY}"},
+              )
+              with urllib.request.urlopen(req, timeout=10) as r:
+                  return json.loads(r.read().decode())
+
+          def latest_ts(table, ts_col):
+              rows = supa_get(f"/rest/v1/{table}?select={ts_col}&order={ts_col}.desc&limit=1")
+              if not rows: return None
+              return rows[0][ts_col]
+
+          def age_minutes(iso_ts):
+              if not iso_ts: return None
+              s = iso_ts.replace("Z", "+00:00")
+              dt = datetime.datetime.fromisoformat(s)
+              now = datetime.datetime.now(datetime.timezone.utc)
+              return int((now - dt).total_seconds() / 60)
+
+          def et_hour_now():
+              # Compute current hour in America/New_York. Python 3.9+ zoneinfo.
+              from zoneinfo import ZoneInfo
+              return datetime.datetime.now(ZoneInfo("America/New_York")).hour
+
+          def dispatch(workflow_file):
+              # Use gh CLI which uses GITHUB_TOKEN with actions:write.
+              repo = os.environ.get("GITHUB_REPOSITORY", "jmezzadri/market-dashboard")
+              cmd = ["gh", "workflow", "run", workflow_file, "--ref", "main", "--repo", repo]
+              r = subprocess.run(cmd, capture_output=True, text=True)
+              return r.returncode == 0, (r.stdout + r.stderr).strip()
+
+          # ─── Sweep ──────────────────────────────────────────────────────
+          et_h = et_hour_now()
+          print(f"=== Watchdog sweep — current hour ET = {et_h} ===\n")
+
+          any_dispatched = False
+          for p in PIPELINES:
+              try:
+                  ts = latest_ts(p["table"], p["ts_col"])
+              except Exception as e:
+                  print(f"[{p['name']}] ERROR querying Supabase: {e}")
+                  continue
+
+              age = age_minutes(ts)
+              window_lo, window_hi = p["et_window"]
+              in_window = window_lo <= et_h <= window_hi
+
+              status = f"latest={ts}  age={age}min  sla={p['sla_min']}min  window=ET {window_lo}-{window_hi}"
+
+              if age is None:
+                  print(f"[{p['name']}] NO ROWS — skipping ({status})")
+                  continue
+
+              if age <= p["sla_min"]:
+                  print(f"[{p['name']}] FRESH — no action ({status})")
+                  continue
+
+              if not in_window:
+                  print(f"[{p['name']}] STALE but outside window — no dispatch ({status})")
+                  continue
+
+              ok, msg = dispatch(p["workflow"])
+              if ok:
+                  print(f"[{p['name']}] STALE → DISPATCHED {p['workflow']}  ({status})")
+                  any_dispatched = True
+              else:
+                  print(f"[{p['name']}] STALE → DISPATCH FAILED: {msg}  ({status})")
+                  # Don't fail the workflow on a single dispatch failure;
+                  # next sweep will retry.
+
+          if any_dispatched:
+              print("\nSummary: dispatched at least one stale pipeline.")
+          else:
+              print("\nSummary: nothing to do, all watched pipelines fresh.")
+          PY
