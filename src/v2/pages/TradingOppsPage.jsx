@@ -54,15 +54,15 @@ export default function TradingOppsPage() {
               buys.slice(0, 12).map((p, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: i < buys.length - 1 ? '1px solid var(--line-0)' : 'none', fontSize: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
-                    <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 500', fontSize: 18, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 60 }}>{p.ticker || p.symbol}</span>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 60 }}>{p.ticker || p.symbol}</span>
                     <div style={{ color: 'var(--ink-1)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.name || p.security_name}
                       <span style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', display: 'block', marginTop: 2 }}>{p.sector} {p.industry_group ? `· ${p.industry_group}` : ''}</span>
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                    {p.last_price != null && <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 15, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 64, textAlign: 'right' }}>${p.last_price.toFixed(2)}</span>}
-                    <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 18, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 32, textAlign: 'right' }}>{p.composite_score || p.score}</span>
+                    {p.last_price != null && <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 15, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 64, textAlign: 'right' }}>${p.last_price.toFixed(2)}</span>}
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 32, textAlign: 'right' }}>{p.composite_score || p.score}</span>
                   </div>
                 </div>
               ))}
@@ -78,13 +78,13 @@ export default function TradingOppsPage() {
               nears.slice(0, 12).map((p, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: i < nears.length - 1 ? '1px solid var(--line-0)' : 'none', fontSize: 14 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 0 }}>
-                    <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 500', fontSize: 18, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 60 }}>{p.ticker || p.symbol}</span>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 60 }}>{p.ticker || p.symbol}</span>
                     <div style={{ color: 'var(--ink-1)', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {p.name || p.security_name}
                       <span style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', display: 'block', marginTop: 2 }}>{p.sector}</span>
                     </div>
                   </div>
-                  <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 18, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 32, textAlign: 'right' }}>{p.composite_score || p.score}</span>
+                  <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 32, textAlign: 'right' }}>{p.composite_score || p.score}</span>
                 </div>
               ))}
           </div>
@@ -101,13 +101,13 @@ export default function TradingOppsPage() {
                 {insider.slice(0, 8).map((it, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: i < 7 ? '1px solid var(--line-0)' : 'none', fontSize: 13, gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                      <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 500', fontSize: 15, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 50 }}>{it.ticker || it.symbol}</span>
+                      <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 15, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 50 }}>{it.ticker || it.symbol}</span>
                       <div style={{ color: 'var(--ink-1)', fontSize: 12.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {it.insider_name || it.name} · {it.title}
                         <span style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', display: 'block' }}>{it.transaction_date || it.date}</span>
                       </div>
                     </div>
-                    <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 14, fontFeatureSettings: '"tnum"', color: 'var(--up)' }}>+${it.value_usd ? `${(it.value_usd / 1e6).toFixed(1)}M` : '—'}</span>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 14, fontFeatureSettings: '"tnum"', color: 'var(--up)' }}>+${it.value_usd ? `${(it.value_usd / 1e6).toFixed(1)}M` : '—'}</span>
                   </div>
                 ))}
               </div>
@@ -121,13 +121,13 @@ export default function TradingOppsPage() {
                 {congress.slice(0, 8).map((it, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 0', borderBottom: i < 7 ? '1px solid var(--line-0)' : 'none', fontSize: 13, gap: 12 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
-                      <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 500', fontSize: 15, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 50 }}>{it.ticker || it.symbol}</span>
+                      <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 15, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', minWidth: 50 }}>{it.ticker || it.symbol}</span>
                       <div style={{ color: 'var(--ink-1)', fontSize: 12.5 }}>
                         {it.member} ({it.party || '?'}) · {it.action || it.transaction_type}
                         <span style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', display: 'block' }}>{it.transaction_date || it.date}</span>
                       </div>
                     </div>
-                    <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 14, fontFeatureSettings: '"tnum"', color: it.action === 'sale' ? 'var(--down)' : 'var(--up)' }}>{it.amount_range || '—'}</span>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 14, fontFeatureSettings: '"tnum"', color: it.action === 'sale' ? 'var(--down)' : 'var(--up)' }}>{it.amount_range || '—'}</span>
                   </div>
                 ))}
               </div>

@@ -110,11 +110,11 @@ export default function HomePage() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingBottom: 6, textAlign: 'right' }}>
               <span className="t-eyebrow">Today's stance</span>
-              <span style={{ fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 144,"wght" 400', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--warn)', fontFeatureSettings:'"tnum"' }}>
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--warn)', fontFeatureSettings:'"tnum"' }}>
                 {compAvg != null ? <CountUp to={compAvg} /> : '—'}
                 {compAvg != null && <span style={{ fontSize: 24, color: 'var(--ink-2)', marginLeft: 2 }}>/100</span>}
               </span>
-              <span style={{ fontFamily:'Fraunces,serif', fontStyle:'italic', fontSize:18, color:'var(--ink-0)' }}>{stanceLabel}</span>
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:18, color:'var(--ink-0)' }}>{stanceLabel}</span>
               <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />
             </div>
           </div>
@@ -131,11 +131,11 @@ export default function HomePage() {
               <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />
             </div>
             <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:14, marginBottom:14 }}>
-              <span style={{ fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 144,"wght" 400', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--warn)', fontFeatureSettings:'"tnum"' }}>
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--warn)', fontFeatureSettings:'"tnum"' }}>
                 {compAvg != null ? <CountUp to={compAvg} /> : '—'}
                 {compAvg != null && <span style={{ fontSize:22, color:'var(--ink-2)', marginLeft:4 }}>/100</span>}
               </span>
-              <span style={{ fontFamily:'Fraunces,serif', fontStyle:'italic', fontSize:22, color:'var(--ink-0)' }}>{compBand.label}</span>
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:22, color:'var(--ink-0)' }}>{compBand.label}</span>
             </div>
             <p style={{ color:'var(--ink-1)', fontSize:14, lineHeight:1.55, paddingBottom:16, borderBottom:'1px solid var(--line-0)', margin:0 }}>
               {snap?.headline || `${mechs.length} mechanism${mechs.length===1?'':'s'} live · ${mechs.filter((m)=>m.concerning_count > 0).length} above Neutral.`}
@@ -148,7 +148,7 @@ export default function HomePage() {
                 return (
                   <div key={id} style={{ background:'var(--bg-2)', borderRadius:8, padding:'10px 8px', textAlign:'center', borderTop:`2px solid ${m ? `var(--${sb.cls === 'r-off' ? 'down' : sb.cls === 'r-cau' ? 'warn' : sb.cls === 'r-on' ? 'up' : sb.cls === 'r-neu' ? 'info' : 'ink-3'})` : 'var(--ink-3)'}`, opacity: m ? 1 : .55 }}>
                     <div style={{ fontSize:9, letterSpacing:'.1em', textTransform:'uppercase', color:'var(--ink-2)', fontWeight:500, marginBottom:6, lineHeight:1.2, minHeight:22, display:'flex', alignItems:'center', justifyContent:'center' }}>{labelMap[id]}</div>
-                    <div style={{ fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 36,"wght" 400', fontSize:22, color:m ? 'var(--ink-0)' : 'var(--ink-3)', fontFeatureSettings:'"tnum"', lineHeight:1 }}>
+                    <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:22, color:m ? 'var(--ink-0)' : 'var(--ink-3)', fontFeatureSettings:'"tnum"', lineHeight:1 }}>
                       {m?.score != null ? Math.round(m.score) : '—'}
                     </div>
                   </div>
@@ -164,11 +164,11 @@ export default function HomePage() {
               <FreshnessChip elementId="v10_allocation" fallback={v10?.as_of} />
             </div>
             <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:14, marginBottom:14 }}>
-              <span style={{ fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 144,"wght" 400', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--up)', fontFeatureSettings:'"tnum"' }}>
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--up)', fontFeatureSettings:'"tnum"' }}>
                 {eqPct != null ? <CountUp to={eqPct} /> : '—'}
                 {eqPct != null && <span style={{ fontSize:22, color:'var(--ink-2)', marginLeft:2 }}>%</span>}
               </span>
-              <span style={{ fontFamily:'Fraunces,serif', fontStyle:'italic', fontSize:22, color:'var(--ink-0)' }}>{stance} · {lev}× lev</span>
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:22, color:'var(--ink-0)' }}>{stance} · {lev}× lev</span>
             </div>
             {eqPct != null && (
               <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
@@ -187,13 +187,13 @@ export default function HomePage() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                 <div>
                   <div style={{ fontSize:10, letterSpacing:'.14em', textTransform:'uppercase', color:'var(--up)', fontWeight:500, marginBottom:6 }}>Overweight</div>
-                  <div style={{ fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 36,"wght" 400', fontSize:13, color:'var(--ink-0)', lineHeight:1.7 }}>
+                  <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:13, color:'var(--ink-0)', lineHeight:1.7 }}>
                     {ow.length ? ow.map((s) => <div key={s.sector}>{s.sector}</div>) : <span style={{ color:'var(--ink-2)' }}>—</span>}
                   </div>
                 </div>
                 <div>
                   <div style={{ fontSize:10, letterSpacing:'.14em', textTransform:'uppercase', color:'var(--down)', fontWeight:500, marginBottom:6 }}>Underweight</div>
-                  <div style={{ fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 36,"wght" 400', fontSize:13, color:'var(--ink-0)', lineHeight:1.7 }}>
+                  <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:13, color:'var(--ink-0)', lineHeight:1.7 }}>
                     {uw.length ? uw.map((s) => <div key={s.sector}>{s.sector}</div>) : <span style={{ color:'var(--ink-2)' }}>—</span>}
                   </div>
                 </div>
@@ -208,7 +208,7 @@ export default function HomePage() {
               <FreshnessChip elementId="portfolio_history" />
             </div>
             <div style={{ margin:'auto 0', textAlign:'center', color:'var(--ink-2)', fontSize:13, padding:'40px 0' }}>
-              <div style={{ fontFamily:'Fraunces,serif', fontStyle:'italic', fontSize:18, color:'var(--ink-1)', marginBottom:10 }}>
+              <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:18, color:'var(--ink-1)', marginBottom:10 }}>
                 Sign in to view your portfolio
               </div>
               <div style={{ fontSize:11, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--accent)', fontWeight:500 }}>
@@ -231,12 +231,12 @@ export default function HomePage() {
               <div>
                 {[...buys.map((p) => ({ ...p, tag: 'Buy', tagCls: 'up' })), ...nears.map((p) => ({ ...p, tag: 'Near', tagCls: 'warn' }))].slice(0, 5).map((p, i) => (
                   <div key={i} style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'11px 0', borderBottom:i<4 ? '1px solid var(--line-0)' : 'none', fontSize:14, gap:12 }}>
-                    <span style={{ fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 36,"wght" 500', fontSize:18, color:'var(--ink-0)', fontFeatureSettings:'"tnum"', minWidth:54 }}>{p.ticker || p.symbol}</span>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:18, color:'var(--ink-0)', fontFeatureSettings:'"tnum"', minWidth:54 }}>{p.ticker || p.symbol}</span>
                     <span style={{ flex:1, color:'var(--ink-1)', fontSize:13 }}>
                       <span style={{ fontSize:10, letterSpacing:'.14em', fontWeight:500, textTransform:'uppercase', color:`var(--${p.tagCls})`, marginRight:8 }}>{p.tag}</span>
                       {p.reason || p.signal_summary || ''}
                     </span>
-                    <span style={{ fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 36,"wght" 400', fontSize:18, color:'var(--ink-0)', fontFeatureSettings:'"tnum"', minWidth:36, textAlign:'right' }}>{p.composite_score || p.score || ''}</span>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:18, color:'var(--ink-0)', fontFeatureSettings:'"tnum"', minWidth:36, textAlign:'right' }}>{p.composite_score || p.score || ''}</span>
                   </div>
                 ))}
               </div>
@@ -256,7 +256,7 @@ export default function HomePage() {
               <div style={{ display:'grid', gridTemplateColumns:'repeat(2, 1fr)', gap:'0 32px' }} className="v2-hl-grid">
                 {headlines.map((h, i) => (
                   <div key={i} style={{ display:'flex', justifyContent:'space-between', gap:14, padding:'12px 0', borderBottom:i<headlines.length-2 ? '1px solid var(--line-0)' : 'none' }}>
-                    <a href={h.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color:'var(--ink-0)', textDecoration:'none', fontSize:14, lineHeight:1.45, fontFamily:'Fraunces,serif', fontVariationSettings:'"opsz" 18,"wght" 400', flex:1 }}>{h.title || h.headline}</a>
+                    <a href={h.url || '#'} target="_blank" rel="noopener noreferrer" style={{ color:'var(--ink-0)', textDecoration:'none', fontSize:14, lineHeight:1.45, fontFamily: 'Inter,system-ui,-apple-system,sans-serif', flex:1 }}>{h.title || h.headline}</a>
                     <div style={{ fontSize:10.5, letterSpacing:'.08em', color:'var(--ink-2)', textTransform:'uppercase', textAlign:'right', whiteSpace:'nowrap', flexShrink:0, fontWeight:500 }}>
                       {h.source && <span style={{ color:'var(--accent)', marginRight:6 }}>{h.source}</span>}
                       {h.time || h.published_at?.slice(11,16) || ''}

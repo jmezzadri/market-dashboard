@@ -53,7 +53,7 @@ export default function AdminPageV2() {
               {err && <tr><td colSpan="6" style={{ padding: 32, textAlign: 'center', color: 'var(--down)' }}>{err}</td></tr>}
               {bugs.map((b) => (
                 <tr key={b.report_number}>
-                  <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-0)', fontFamily: 'Fraunces,serif', fontFeatureSettings: '"tnum"', fontSize: 14 }}>{b.report_number}</td>
+                  <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-0)', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontFeatureSettings: '"tnum"', fontSize: 14 }}>{b.report_number}</td>
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)' }}>
                     <span className={`v2-pill ${b.priority === 'P0' ? 'r-off' : b.priority === 'P1' ? 'r-cau' : 'r-neu'}`} style={{ minWidth: 30, justifyContent: 'center' }}>{b.priority}</span>
                   </td>

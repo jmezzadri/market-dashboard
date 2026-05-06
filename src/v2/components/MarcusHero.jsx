@@ -53,8 +53,7 @@ export default function MarcusHero({
               {freshChip && <FreshnessChip elementId={freshChip.indicatorId} fallback={freshChip.asOfIso} />}
             </div>
             <h1 style={{
-              fontFamily: 'Fraunces, serif',
-              fontVariationSettings: '"opsz" 144, "SOFT" 30, "wght" 400',
+              fontFamily: 'Inter,system-ui,-apple-system,sans-serif',
               fontSize: 'clamp(30px, 4vw, 44px)',
               lineHeight: 1.06,
               letterSpacing: '-0.018em',
@@ -65,11 +64,11 @@ export default function MarcusHero({
             }}>
               {headline}
               {italicAccent && (
-                <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>{italicAccent}</em>
+                <em style={{ color: 'var(--accent)' }}>{italicAccent}</em>
               )}
             </h1>
             {italicSub && (
-              <div style={{ fontFamily: 'Fraunces, serif', fontStyle: 'italic', fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+              <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 16, color: 'var(--ink-2)', lineHeight: 1.5 }}>
                 {italicSub}
               </div>
             )}
@@ -111,8 +110,7 @@ export default function MarcusHero({
                 <div key={i} style={{ background: 'var(--bg-2)', border: '1px solid var(--line-0)', borderRadius: 10, padding: '12px 16px' }}>
                   <div className="t-eyebrow" style={{ fontSize: 10, letterSpacing: '0.12em', marginBottom: 6 }}>{k.lbl}</div>
                   <div style={{
-                    fontFamily: 'Fraunces, serif',
-                    fontVariationSettings: '"opsz" 96, "wght" 400',
+                    fontFamily: 'Inter,system-ui,-apple-system,sans-serif',
                     fontSize: 26, lineHeight: 1.1, color: col,
                     fontFeatureSettings: '"tnum","lnum"',
                   }}>

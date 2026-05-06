@@ -40,7 +40,7 @@ export default function ScenariosPageV2() {
                 {(s.key_metrics || s.kpis || []).slice(0, 3).map((k, j) => (
                   <div key={j} style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-2)', marginBottom: 6 }}>{k.label}</div>
-                    <div style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 22, fontFeatureSettings: '"tnum"', color: k.value < 0 ? 'var(--down)' : 'var(--up)' }}>{k.value > 0 ? '+' : ''}{k.value}{k.unit || ''}</div>
+                    <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 22, fontFeatureSettings: '"tnum"', color: k.value < 0 ? 'var(--down)' : 'var(--up)' }}>{k.value > 0 ? '+' : ''}{k.value}{k.unit || ''}</div>
                   </div>
                 ))}
               </div>

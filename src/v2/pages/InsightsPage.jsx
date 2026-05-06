@@ -37,7 +37,7 @@ export default function InsightsPage() {
           <div className="v2-hero-row">
             <div>
               <div className="t-eyebrow accent" style={{ marginBottom: 14 }}>Total net liquidation</div>
-              <div style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 144,"SOFT" 30,"wght" 400', fontSize: 'clamp(48px,6vw,80px)', lineHeight: .95, letterSpacing: '-.025em', color: 'var(--ink-0)', fontFeatureSettings: '"tnum","lnum"' }}>
+              <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 'clamp(48px,6vw,80px)', lineHeight: .95, letterSpacing: '-.025em', color: 'var(--ink-0)', fontFeatureSettings: '"tnum","lnum"' }}>
                 {posLoading ? '—' : (
                   <>
                     <span style={{ fontSize: '.5em', color: 'var(--ink-2)', marginRight: 4, verticalAlign: '0.18em' }}>$</span>
@@ -81,7 +81,7 @@ export default function InsightsPage() {
                 <span className="t-eyebrow">{a.label || a.account_name || 'Account'}</span>
                 <span className="t-eyebrow accent">{a.account_type || ''}</span>
               </div>
-              <div style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 96,"wght" 400', fontSize: 30, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
+              <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 30, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
                 <span style={{ fontSize: '.55em', color: 'var(--ink-2)', marginRight: 2, verticalAlign: '0.18em' }}>$</span>
                 <CountUp to={Math.round(a.market_value || a.total_value || 0)} format={(v) => Math.round(v).toLocaleString('en-US')} />
               </div>

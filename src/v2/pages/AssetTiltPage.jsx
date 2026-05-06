@@ -117,7 +117,7 @@ export default function AssetTiltPage() {
                   <div style={{ height: 5, background: 'var(--bg-2)', borderRadius: 'var(--r-pill)', overflow: 'hidden' }}>
                     <div style={{ height: '100%', background: 'var(--accent)', width: `${(s.weight / maxW) * 100}%`, borderRadius: 'var(--r-pill)' }} />
                   </div>
-                  <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 15, color: 'var(--ink-1)', fontFeatureSettings: '"tnum"', textAlign: 'right' }}>{(s.weight * 100).toFixed(1)}%</span>
+                  <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 15, color: 'var(--ink-1)', fontFeatureSettings: '"tnum"', textAlign: 'right' }}>{(s.weight * 100).toFixed(1)}%</span>
                 </div>
               );
             })}
@@ -134,7 +134,7 @@ export default function AssetTiltPage() {
                   <div style={{ color: 'var(--ink-0)', fontSize: 13.5 }}>{ig.name}</div>
                   <div style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', marginTop: 2 }}>{ig.sector}</div>
                 </div>
-                <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 18, color: 'var(--up)', fontFeatureSettings: '"tnum"' }}>+{ig.tilt_score?.toFixed(2)}</span>
+                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--up)', fontFeatureSettings: '"tnum"' }}>+{ig.tilt_score?.toFixed(2)}</span>
               </div>
             ))}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', color: 'var(--ink-2)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', fontWeight: 500 }}>
@@ -148,7 +148,7 @@ export default function AssetTiltPage() {
                   <div style={{ color: 'var(--ink-0)', fontSize: 13.5 }}>{ig.name}</div>
                   <div style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', marginTop: 2 }}>{ig.sector}</div>
                 </div>
-                <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 18, color: 'var(--down)', fontFeatureSettings: '"tnum"' }}>{ig.tilt_score?.toFixed(2)}</span>
+                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--down)', fontFeatureSettings: '"tnum"' }}>{ig.tilt_score?.toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -195,12 +195,12 @@ export default function AssetTiltPage() {
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-1)' }}>{ig.sector}</td>
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-2)', fontSize: 11, fontFeatureSettings: '"tnum"', letterSpacing: '.04em' }}>{(ig.tickers || []).join(' · ')}</td>
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)' }}>
-                    <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 15, fontFeatureSettings: '"tnum"', color: ig.tilt_score >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 15, fontFeatureSettings: '"tnum"', color: ig.tilt_score >= 0 ? 'var(--up)' : 'var(--down)' }}>
                       {ig.tilt_score >= 0 ? '+' : ''}{ig.tilt_score?.toFixed(2)}
                     </span>
                   </td>
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', textAlign: 'right' }}>
-                    <span style={{ fontFamily: 'Fraunces,serif', fontFeatureSettings: '"tnum"', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 15, color: 'var(--ink-0)' }}>${ig.dollar?.toFixed(2)}K</span>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontFeatureSettings: '"tnum"', fontSize: 15, color: 'var(--ink-0)' }}>${ig.dollar?.toFixed(2)}K</span>
                   </td>
                 </tr>
               ))}
@@ -256,7 +256,7 @@ export default function AssetTiltPage() {
                         ...(up ? { right: '50%', width: `${segW}%` } : { left: '50%', width: `${segW}%` }),
                       }} />
                     </div>
-                    <span style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 14, fontFeatureSettings: '"tnum"', textAlign: 'right', color: up ? 'var(--up)' : 'var(--down)' }}>
+                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 14, fontFeatureSettings: '"tnum"', textAlign: 'right', color: up ? 'var(--up)' : 'var(--down)' }}>
                       {up ? '+' : ''}{v?.toFixed(2)}
                     </span>
                   </div>

@@ -540,12 +540,12 @@ export default function MacroOverviewPage() {
               tabIndex={0}>
               <div className={`v2-mech-state-bar ${m.bandClass}`} />
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-                <span style={{ fontFamily: 'Fraunces,serif', fontSize: 14, color: 'var(--accent)' }}>{m.num}</span>
+                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 14, color: 'var(--accent)' }}>{m.num}</span>
                 <span className={`v2-pill ${m.bandClass}`}>{m.bandLabel}</span>
               </div>
               <h3 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>{m.name}</h3>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '18px 0 8px' }}>
-                <span style={{ fontFamily: 'Fraunces,serif', fontSize: 48, fontVariationSettings: '"opsz" 96,"wght" 400', lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
+                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 48, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
                   {m.score != null ? <CountUp to={Math.round(m.score)} /> : <span style={{ color: 'var(--ink-2)' }}>—</span>}
                 </span>
                 <span style={{ color: 'var(--ink-2)', fontSize: 14 }}>/100</span>
