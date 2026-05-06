@@ -336,3 +336,19 @@ pad them by typical FRED lag. Filed as a follow-up.
 
 **What you should do instead:** Before writing any methodology copy that names an indicator, source, formula, threshold, ETF, or count, open the file that produces that thing in production. For v11 cycle mechanisms read `methodology_calibration_v11.json` (Sprint 1 panels) and `scripts/compute_v11_mechanisms.py` PANELS dict (Sprint 2 panels). For the allocator, open `scripts/compute_v10_allocation.py` and read SECTOR_SENSITIVITY, SECTOR_ETFS, INDUSTRY_GROUPS, and the threshold constants. For backtest numbers, run `scripts/backtest_v10_v11.py` and quote the produced JSON, never quote a number from a pre-existing markdown doc without first re-running the harness — docs go stale, code is current. Cross-check every named entity (indicator key, ticker, dollar amount, percentage) against the code before shipping. If a number lives only in a `.md` file with no harness behind it, file a follow-up to either reproduce it from a script or drop the claim.
 
+
+---
+
+## 2026-05-06 — "Done" means quality gate passed AND specialist sign-offs
+
+**What happened:** Joe spent his evening QA-ing the same class of dumb mistakes — banned lexicon ("complacency" missed because round 1 only matched "Complacent"), hardcoded numbers in copy strings ("At 284 bp..." when live reading was 277), internal table names leaking through ("PIPELINE_HEALTH" rendered in a footer source line), Apple-blue clashing with v2 champagne, and CountUp animations stuck at 0. Each was regex-checkable. The agent's "council of three specialists" was theater — single-head sign-off, no independent eyeball, no enforced gate.
+
+**What you should do instead:** Three binding rules going forward.
+
+1. **The CI quality gate is the floor, not the ceiling.** `scripts/check_v2_cutover_quality.py` runs on every push to feature branches via `.github/workflows/V2-CUTOVER-QUALITY-GATE.yml`. It fails the build on banned lexicon (#3), hardcoded numbers in copy (#4/#5), internal plumbing leaks (#5), internal scoring jargon (#7), and Apple-blue / legacy palette (#10). Do not push a branch that doesn't pass it. If it surfaces a false positive, edit the exemption list (e.g. `EXEMPT_HISTORICAL_NUMBER_STRINGS`, the `is_plumbing_leak_in_jsx` heuristic) — never weaken the rule.
+
+2. **For any v2 PR that touches user-facing copy or visuals, spawn a UX Designer and Senior Quant sub-agent before claiming done.** Use the Task tool with `subagent_type` set per specialist; pass ONLY the diff + the relevant brand spec or methodology JSON; ask each one to (a) approve or (b) return a punchlist. The sub-agents do not know what the lead just shipped, so the review is real. If either returns a punchlist, fix and re-spawn — do NOT pass partial sign-off through to Joe. This rule is operational immediately for the v2 cutover; the prompt templates live in `.claude/agents/` (next session work).
+
+3. **The agent's "done" message can only fire after rules 1 and 2 above have cleared.** If the gate fails or a sub-agent returns a punchlist, the agent fixes and re-runs the gate without surfacing the failure to Joe. Joe is the third reviewer, not the first. The chat status table that opens every turn (per the 2026-04-30 table-only rule) must include a row stating which gates passed and which sub-agents signed off, with concrete evidence (commit SHA the gate ran against, a one-line digest of each sub-agent verdict).
+
+**Applies to:** all v2 cutover work, any PR that touches `src/v2/**`, `public/*.json`, or methodology copy.

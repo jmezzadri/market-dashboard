@@ -182,7 +182,7 @@ export default function IndicatorsPage() {
               <span className="d">in concerning quartile</span>
             </div>
             <div className="s">
-              <span className="lbl">History points</span>
+              <span className="lbl" title="Number of monthly composite readings on file for this indicator.">Months of history</span>
               <span className="v"><CountUp to={Math.round(rows.reduce((s, x) => s + (x.points?.length || 0), 0) / 1000)} format={(v) => `${Math.round(v)}K`} /></span>
               <span className="d">across all series</span>
             </div>

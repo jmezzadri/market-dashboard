@@ -1,0 +1,35 @@
+name: V2-CUTOVER-QUALITY-GATE
+
+# Hard pre-merge check on v2 cutover rules — themes #3 / #4 / #5 / #7 / #10
+# from Joe's 2026-05-05 punch. Fails the build on any banned-lexicon hit,
+# hardcoded number in copy, internal table-name leak, internal jargon, or
+# Apple-blue / legacy palette. See LESSONS rule 2026-05-06.
+
+on:
+  pull_request:
+    paths:
+      - "public/*.json"
+      - "src/v2/**"
+      - "scripts/check_v2_cutover_quality.py"
+      - ".github/workflows/V2-CUTOVER-QUALITY-GATE.yml"
+  push:
+    branches:
+      - "feature/ux-overhaul-cutover-2026-05"
+      - "feature/ux-**"
+      - "feature/v2-**"
+
+jobs:
+  cutover-quality-gate:
+    name: Enforce 12-theme cutover rules
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch head
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run cutover quality gate
+        run: python scripts/check_v2_cutover_quality.py
