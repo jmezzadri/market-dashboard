@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
+import { useSession } from '../../auth/useSession';
 
 /**
  * HomePage v2 — cutover.
@@ -48,6 +49,13 @@ function navTo(hash) {
 
 export default function HomePage() {
   const { snap, v10, scan, err } = useHomeData();
+  const { user, loading: authLoading } = useSession();
+  const greetingName = user
+    ? (user.user_metadata?.first_name
+       || user.user_metadata?.full_name?.split(' ')[0]
+       || (user.email ? user.email.split('@')[0] : '')
+       || 'there')
+    : null;
 
   // Composite avg from snapshot mechanisms
   const mechs = snap?.mechanisms || [];
@@ -70,17 +78,21 @@ export default function HomePage() {
     ? (compAvg < 25 ? 'Risk On' : compAvg < 50 ? 'Neutral' : compAvg < 75 ? 'Cautionary' : 'Risk Off')
     : 'Loading';
 
-  // Top scan picks
+  // Top scan picks — read from the actual JSON shape:
+  //   scan.buy_opportunities (>=80 score)
+  //   scan.watch_items       (70-79 score)
+  //   scan.sell_alerts       (low scores)
   const buys = useMemo(() => {
-    const picks = scan?.signals?.composite_picks || scan?.picks || [];
-    return picks.filter((p) => (p.composite_score || p.score || 0) >= 80).slice(0, 5);
+    const list = Array.isArray(scan?.buy_opportunities) ? scan.buy_opportunities
+               : Array.isArray(scan?.signals?.composite_picks) ? scan.signals.composite_picks.filter(p => (p.composite_score||p.score||0)>=80)
+               : [];
+    return list.slice(0, 5);
   }, [scan]);
   const nears = useMemo(() => {
-    const picks = scan?.signals?.composite_picks || scan?.picks || [];
-    return picks.filter((p) => {
-      const s = p.composite_score || p.score || 0;
-      return s >= 70 && s < 80;
-    }).slice(0, 3);
+    const list = Array.isArray(scan?.watch_items) ? scan.watch_items
+               : Array.isArray(scan?.signals?.composite_picks) ? scan.signals.composite_picks.filter(p => { const s=p.composite_score||p.score||0; return s>=70 && s<80; })
+               : [];
+    return list.slice(0, 3);
   }, [scan]);
 
   // Headlines
@@ -105,8 +117,12 @@ export default function HomePage() {
         <div className="v2-shell">
           <div className="v2-hero-row">
             <div>
-              <div className="t-eyebrow accent" style={{ marginBottom: 14 }}>Welcome back</div>
-              <h1 className="t-display" style={{ margin: 0, color: 'var(--ink-0)' }}>Joe.</h1>
+              <div className="t-eyebrow accent" style={{ marginBottom: 14 }}>
+                {authLoading ? '' : (user ? 'Welcome back' : 'MacroTilt')}
+              </div>
+              <h1 className="t-display" style={{ margin: 0, color: 'var(--ink-0)' }}>
+                {authLoading ? '—' : (user ? `${greetingName}.` : 'Today.')}
+              </h1>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingBottom: 6, textAlign: 'right' }}>
               <span className="t-eyebrow">Today's stance</span>
@@ -209,7 +225,7 @@ export default function HomePage() {
             </div>
             <div style={{ margin:'auto 0', textAlign:'center', color:'var(--ink-2)', fontSize:13, padding:'40px 0' }}>
               <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:18, color:'var(--ink-1)', marginBottom:10 }}>
-                Sign in to view your portfolio
+                {user ? 'Open Insights to view your portfolio' : 'Sign in to view your portfolio'}
               </div>
               <div style={{ fontSize:11, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--accent)', fontWeight:500 }}>
                 Open Insights →

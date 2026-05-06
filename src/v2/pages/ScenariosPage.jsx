@@ -8,7 +8,12 @@ export default function ScenariosPageV2() {
     fetch('/scenario_allocations.json', { cache: 'no-cache' })
       .then((r) => r.ok ? r.json() : null).then(setData).catch(() => {});
   }, []);
-  const scenarios = data?.scenarios || data?.canned || [];
+  const rawScenarios = data?.scenarios ?? data?.canned;
+  const scenarios = Array.isArray(rawScenarios)
+    ? rawScenarios
+    : (rawScenarios && typeof rawScenarios === 'object')
+      ? Object.values(rawScenarios)
+      : [];
   return (
     <div className="v2-root">
       <header className="v2-hero">
@@ -26,9 +31,21 @@ export default function ScenariosPageV2() {
       </header>
       <div className="v2-shell" style={{ marginTop: 32 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 18 }} className="v2-asset-grid">
-          {scenarios.length === 0 && (
+          {scenarios.length === 0 && data?.status === 'dormant' && (
+            <div style={{ gridColumn: 'span 2', textAlign: 'center', color: 'var(--ink-2)', padding: 48, fontSize: 14, lineHeight: 1.6 }}>
+              <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--ink-1)', marginBottom: 12 }}>
+                Scenario engine paused
+              </div>
+              <div style={{ maxWidth: '52ch', margin: '0 auto' }}>
+                The bespoke shock builder and historical scenario set are
+                being rebuilt against the v10 allocator. Targeted to ship
+                with the Asset Tilt Sankey rebuild.
+              </div>
+            </div>
+          )}
+          {scenarios.length === 0 && data?.status !== 'dormant' && (
             <div style={{ gridColumn: 'span 2', textAlign: 'center', color: 'var(--ink-2)', padding: 48 }}>
-              Loading scenarios from /scenario_allocations.json…
+              Loading scenarios…
             </div>
           )}
           {scenarios.map((s, i) => (
@@ -37,7 +54,7 @@ export default function ScenariosPageV2() {
               <h3 className="t-tile" style={{ margin: '8px 0 0', color: 'var(--ink-0)' }}>{s.name || s.title || s.scenario || '—'}</h3>
               {s.description && <p className="t-body" style={{ marginTop: 8 }}>{s.description}</p>}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, paddingTop: 14, marginTop: 'auto' }}>
-                {(s.key_metrics || s.kpis || []).slice(0, 3).map((k, j) => (
+                {(Array.isArray(s.key_metrics) ? s.key_metrics : Array.isArray(s.kpis) ? s.kpis : []).slice(0, 3).map((k, j) => (
                   <div key={j} style={{ textAlign: 'center' }}>
                     <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-2)', marginBottom: 6 }}>{k.label}</div>
                     <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 22, fontFeatureSettings: '"tnum"', color: k.value < 0 ? 'var(--down)' : 'var(--up)' }}>{k.value > 0 ? '+' : ''}{k.value}{k.unit || ''}</div>

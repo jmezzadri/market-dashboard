@@ -30,7 +30,9 @@ export default function AssetTiltPage() {
   const defPct = v10?.defensive_pct != null ? Math.round(v10.defensive_pct * 100) : null;
   const lev = v10?.leverage;
   const stress = v10?.stress_score;
-  const stance = v10?.page_stance || '—';
+  const STANCE_MAP = { 'Cautious':'Cautionary', 'Stressed':'Risk Off', 'Distressed':'Risk Off', 'Concerning':'Cautionary', 'Complacent':'Cautionary', 'Normal':'Neutral' };
+  const rawStance = v10?.page_stance || '—';
+  const stance = STANCE_MAP[rawStance] || rawStance;
   const sectors = v10?.sectors || [];
   const igs = v10?.industry_groups || [];
   const igsSorted = useMemo(() => [...igs].sort((a, b) => (b.tilt_score || 0) - (a.tilt_score || 0)), [igs]);
@@ -134,7 +136,7 @@ export default function AssetTiltPage() {
                   <div style={{ color: 'var(--ink-0)', fontSize: 13.5 }}>{ig.name}</div>
                   <div style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', marginTop: 2 }}>{ig.sector}</div>
                 </div>
-                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--up)', fontFeatureSettings: '"tnum"' }}>+{ig.tilt_score?.toFixed(2)}</span>
+                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 16, color: 'var(--up)', fontFeatureSettings: '"tnum"' }}>${(ig.dollar || 0).toFixed(0)}</span>
               </div>
             ))}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', color: 'var(--ink-2)', fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', fontWeight: 500 }}>
@@ -148,7 +150,7 @@ export default function AssetTiltPage() {
                   <div style={{ color: 'var(--ink-0)', fontSize: 13.5 }}>{ig.name}</div>
                   <div style={{ color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.04em', marginTop: 2 }}>{ig.sector}</div>
                 </div>
-                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--down)', fontFeatureSettings: '"tnum"' }}>{ig.tilt_score?.toFixed(2)}</span>
+                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 16, color: 'var(--down)', fontFeatureSettings: '"tnum"' }}>${(ig.dollar || 0).toFixed(0)}</span>
               </div>
             ))}
           </div>
@@ -195,8 +197,8 @@ export default function AssetTiltPage() {
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-1)' }}>{ig.sector}</td>
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', color: 'var(--ink-2)', fontSize: 11, fontFeatureSettings: '"tnum"', letterSpacing: '.04em' }}>{(ig.tickers || []).join(' · ')}</td>
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)' }}>
-                    <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 15, fontFeatureSettings: '"tnum"', color: ig.tilt_score >= 0 ? 'var(--up)' : 'var(--down)' }}>
-                      {ig.tilt_score >= 0 ? '+' : ''}{ig.tilt_score?.toFixed(2)}
+                    <span style={{ fontSize: 14, color: ig.tilt_score >= 0 ? 'var(--up)' : 'var(--down)' }}>
+                      {ig.tilt_score >= 0 ? '↑' : '↓'}
                     </span>
                   </td>
                   <td style={{ padding: '14px 28px', borderBottom: '1px solid var(--line-0)', textAlign: 'right' }}>
@@ -225,9 +227,9 @@ export default function AssetTiltPage() {
             </div>
             <div className="v2-drawer-grid">
               <div className="v2-drawer-stat">
-                <div className="lbl">Tilt score</div>
-                <div className={`v ${openIgRecord.tilt_score >= 0 ? 'up' : 'down'}`}>
-                  {openIgRecord.tilt_score >= 0 ? '+' : ''}{openIgRecord.tilt_score?.toFixed(2)}
+                <div className="lbl">Position</div>
+                <div className={`v ${openIgRecord.tilt_score >= 0 ? 'up' : 'down'}`} style={{ fontSize: 22 }}>
+                  {openIgRecord.tilt_score >= 0 ? 'Overweight' : 'Underweight'}
                 </div>
               </div>
               <div className="v2-drawer-stat">
