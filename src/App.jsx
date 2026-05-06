@@ -11,9 +11,10 @@ import ScenariosPageV2 from "./v2/pages/ScenariosPage";
 import AdminPageV2 from "./v2/pages/AdminPage";
 
 
-// Cutover feature flag — set ?v=2 in URL to render new design.
-// Default OFF until Joe approves preview.
-const V2_ENABLED = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("v") === "2";
+// Cutover feature flag — DEFAULT ON 2026-05-06 per Joe directive.
+// Escape hatch: append ?v=1 to URL to force legacy rendering.
+const V2_ENABLED = typeof window === "undefined" ? false :
+  new URLSearchParams(window.location.search).get("v") !== "1";
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
   Sidebar, SidebarToggleButton,
