@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
+import { useSession } from '../../auth/useSession';
 
 /**
  * HomePage v2 — cutover.
@@ -48,6 +49,13 @@ function navTo(hash) {
 
 export default function HomePage() {
   const { snap, v10, scan, err } = useHomeData();
+  const { user, loading: authLoading } = useSession();
+  const greetingName = user
+    ? (user.user_metadata?.first_name
+       || user.user_metadata?.full_name?.split(' ')[0]
+       || (user.email ? user.email.split('@')[0] : '')
+       || 'there')
+    : null;
 
   // Composite avg from snapshot mechanisms
   const mechs = snap?.mechanisms || [];
@@ -109,8 +117,12 @@ export default function HomePage() {
         <div className="v2-shell">
           <div className="v2-hero-row">
             <div>
-              <div className="t-eyebrow accent" style={{ marginBottom: 14 }}>Welcome back</div>
-              <h1 className="t-display" style={{ margin: 0, color: 'var(--ink-0)' }}>Joe.</h1>
+              <div className="t-eyebrow accent" style={{ marginBottom: 14 }}>
+                {authLoading ? '' : (user ? 'Welcome back' : 'MacroTilt')}
+              </div>
+              <h1 className="t-display" style={{ margin: 0, color: 'var(--ink-0)' }}>
+                {authLoading ? '—' : (user ? `${greetingName}.` : 'Today.')}
+              </h1>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingBottom: 6, textAlign: 'right' }}>
               <span className="t-eyebrow">Today's stance</span>
