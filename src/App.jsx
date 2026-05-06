@@ -9,6 +9,7 @@ import InsightsPageV2 from "./v2/pages/InsightsPage";
 import MethodologyPageV2 from "./v2/pages/MethodologyPage";
 import ScenariosPageV2 from "./v2/pages/ScenariosPage";
 import AdminPageV2 from "./v2/pages/AdminPage";
+import V2ErrorBoundary from "./v2/components/ErrorBoundary";
 
 
 // Cutover feature flag — REVERTED to default-OFF 2026-05-06 (P0 rollback).
@@ -5363,7 +5364,7 @@ return(
     3-col (Sectors | Scan | Methodology) → full-width Headlines.
     Mockup source: design-lab/home-current.html (locked 2026-04-23).
     ───────────────────────────────────────────────────────────────────── */}
-{tab==="home" && V2_ENABLED && <HomePageV2 />}
+{tab==="home" && V2_ENABLED && <V2ErrorBoundary><HomePageV2 /></V2ErrorBoundary>}
 {tab==="home" && !V2_ENABLED && (()=>{
 
   // (HEADLINE_BY_CONV / LEDE_BY_CONV / STATE_BY_CONV constants removed
@@ -6278,7 +6279,7 @@ return(
     replaced by the v11 design (see PR #314, #315, #316). The static
     mockup file lives at public/MacroTilt_Macro_Overview_Page_v11.html.
     Once the React port of v11 is built, this iframe goes away. */}
-{tab==="overview" && V2_ENABLED && <MacroOverviewPageV2 />}
+{tab==="overview" && V2_ENABLED && <V2ErrorBoundary><MacroOverviewPageV2 /></V2ErrorBoundary>}
 {tab==="overview" && !V2_ENABLED && (
 <div style={{padding:0,margin:0,width:"100%"}}>
 <div style={{maxWidth:1240,margin:"0 auto",padding:"14px 24px 6px",display:"flex",alignItems:"center",gap:8,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
@@ -6302,7 +6303,7 @@ return(
 )}
 
 {/* INDICATORS */}
-{tab==="indicators" && V2_ENABLED && <IndicatorsPageV2 />}
+{tab==="indicators" && V2_ENABLED && <V2ErrorBoundary><IndicatorsPageV2 /></V2ErrorBoundary>}
 {tab==="indicators" && !V2_ENABLED && (()=>{
   const _indCount = Object.keys(IND||{}).length;
   // Truth: an indicator is "in composites" iff it has a COMPOSITE_MAP entry
@@ -6329,14 +6330,14 @@ return(
 })()}
 {tab==="indicators"&&(<AllIndicatorsTable deeplinkId={indicatorDeeplink} onDeeplinkConsumed={()=>setIndicatorDeeplink(null)}/>)}
 
-{tab==="allocation" && V2_ENABLED && <AssetTiltPageV2 />}
+{tab==="allocation" && V2_ENABLED && <V2ErrorBoundary><AssetTiltPageV2 /></V2ErrorBoundary>}
 {tab==="allocation" && !V2_ENABLED && <AssetAllocation onOpenTicker={(t)=>setTickerDetail(t)}/>}
 
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
-{V2_ENABLED && tab==="portopps" && <TradingOppsPageV2 />}
-{V2_ENABLED && tab==="insights" && <InsightsPageV2 />}
+{V2_ENABLED && tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 /></V2ErrorBoundary>}
+{V2_ENABLED && tab==="insights" && <V2ErrorBoundary><InsightsPageV2 /></V2ErrorBoundary>}
 {!V2_ENABLED && (tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
 {!V2_ENABLED && (tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
 const heldByTicker={};
@@ -6967,11 +6968,11 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
 )}
 
 {/* ADMIN · UW API USAGE — gated by useIsAdmin() above. Task #30. */}
-{tab==="admin" && V2_ENABLED && <AdminPageV2 />}
+{tab==="admin" && V2_ENABLED && <V2ErrorBoundary><AdminPageV2 /></V2ErrorBoundary>}
 {tab==="admin" && !V2_ENABLED && <AdminUsage/>}
 
 {/* ADMIN · BUGS — gated by useIsAdmin() above. Task #36. */}
-{V2_ENABLED && tab==="bugs" && <AdminPageV2 />}
+{V2_ENABLED && tab==="bugs" && <V2ErrorBoundary><AdminPageV2 /></V2ErrorBoundary>}
 {!V2_ENABLED && tab==="bugs" && <AdminBugs/>}
 
 {/* SECTOR LAB — admin-gated experimental sandbox for sector-engine overlays.
@@ -6986,7 +6987,7 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
     Replaces the prior two-column FAQ + Indicator Reference + Data Freshness
     stack so there is one source of truth for "where does each number come
     from, how often does it update, and what does it power?". */}
-{tab==="readme" && V2_ENABLED && <MethodologyPageV2 />}
+{tab==="readme" && V2_ENABLED && <V2ErrorBoundary><MethodologyPageV2 /></V2ErrorBoundary>}
 {tab==="readme" && !V2_ENABLED && (<>
   <div style={{maxWidth:1240,margin:"0 auto",padding:"0 24px"}}><RichHero
     eyebrow="FAQ &amp; Methodology"

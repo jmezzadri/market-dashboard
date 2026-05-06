@@ -8,7 +8,7 @@ export default function AdminPageV2() {
   const [err, setErr] = useState(null);
   useEffect(() => {
     if (!supabase) { setErr('supabase not initialized'); setLoading(false); return; }
-    supabase.from('bug_reports')
+    supabase.from('open tickets')
       .select('report_number, priority, status, title, reporter_email, created_at')
       .not('status', 'in', '(closed,wontfix,duplicate,verified_closed,resolved)')
       .order('created_at', { ascending: false })
@@ -36,7 +36,7 @@ export default function AdminPageV2() {
             <div className="s down"><span className="lbl">Open P0</span><span className="v"><CountUp to={counts.P0} /></span><span className="d">blockers</span></div>
             <div className="s warn"><span className="lbl">Open P1</span><span className="v"><CountUp to={counts.P1} /></span><span className="d">user impact</span></div>
             <div className="s"><span className="lbl">Open P2</span><span className="v"><CountUp to={counts.P2} /></span><span className="d">paper cuts</span></div>
-            <div className="s"><span className="lbl">Total open</span><span className="v"><CountUp to={bugs.length} /></span><span className="d">bug_reports table</span></div>
+            <div className="s"><span className="lbl">Total open</span><span className="v"><CountUp to={bugs.length} /></span><span className="d">open tickets</span></div>
           </div>
         </div>
       </header>
@@ -49,7 +49,7 @@ export default function AdminPageV2() {
               ))}</tr>
             </thead>
             <tbody>
-              {loading && <tr><td colSpan="6" style={{ padding: 32, textAlign: 'center', color: 'var(--ink-2)' }}>Loading from bug_reports…</td></tr>}
+              {loading && <tr><td colSpan="6" style={{ padding: 32, textAlign: 'center', color: 'var(--ink-2)' }}>Loading from open tickets…</td></tr>}
               {err && <tr><td colSpan="6" style={{ padding: 32, textAlign: 'center', color: 'var(--down)' }}>{err}</td></tr>}
               {bugs.map((b) => (
                 <tr key={b.report_number}>

@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
 import MTChart from '../components/MTChart';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import usePortfolioHistory from '../../hooks/usePortfolioHistory';
+import { useSession } from '../../auth/useSession';
 
 export default function InsightsPage() {
   const { positions, accounts, loading: posLoading } = useUserPortfolio();
+  const { session, loading: authLoading } = useSession();
+  const isAuthed = !!session;
   const navHistory = usePortfolioHistory({ since: null });
   const [navPoints, setNavPoints] = useState([]);
 
@@ -22,8 +25,21 @@ export default function InsightsPage() {
     }
   }, [navHistory]);
 
-  const totalNav = (positions || []).reduce((s, p) => s + (p.market_value || 0), 0);
-  const accountList = accounts || [];
+  // Each account in the hook output carries a positions[] array. Sum
+  // those to produce per-account NAV. Total NAV is the sum across accounts.
+  // The hook also reshapes legacy shapes — `value` is the canonical position field.
+  const accountList = useMemo(() => {
+    const list = Array.isArray(accounts) ? accounts : [];
+    return list.map((a) => {
+      const pos = Array.isArray(a.positions) ? a.positions : [];
+      const value = pos.reduce((s, p) => s + (Number(p.value) || Number(p.market_value) || 0), 0);
+      return { ...a, value, positionCount: pos.length };
+    }).sort((x, y) => y.value - x.value);
+  }, [accounts]);
+  const totalNav = useMemo(
+    () => accountList.reduce((s, a) => s + (a.value || 0), 0),
+    [accountList]
+  );
 
   return (
     <div className="v2-root">
@@ -83,22 +99,27 @@ export default function InsightsPage() {
               </div>
               <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 30, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
                 <span style={{ fontSize: '.55em', color: 'var(--ink-2)', marginRight: 2, verticalAlign: '0.18em' }}>$</span>
-                <CountUp to={Math.round(a.market_value || a.total_value || 0)} format={(v) => Math.round(v).toLocaleString('en-US')} />
+                <CountUp to={Math.round(a.value || 0)} format={(v) => Math.round(v).toLocaleString('en-US')} />
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 11, color: 'var(--ink-2)' }}>
-                <span>{a.position_count || 0} positions</span>
+                <span>{a.positionCount} positions</span>
                 <span style={{ fontFeatureSettings: '"tnum"' }}>{a.last_synced_at ? new Date(a.last_synced_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
               </div>
             </div>
           ))}
         </div>
-        {(!posLoading && accountList.length === 0) && (
+        {(!authLoading && !isAuthed) && (
           <div style={{ marginTop: 32, padding: 32, background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-tile)', textAlign: 'center', color: 'var(--ink-2)' }}>
-            Sign in to load portfolio. (Insights shows real account balances when authenticated.)
+            Sign in to load your portfolio.
+          </div>
+        )}
+        {(isAuthed && !posLoading && accountList.length === 0) && (
+          <div style={{ marginTop: 32, padding: 32, background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-tile)', textAlign: 'center', color: 'var(--ink-2)' }}>
+            No accounts on file. Add a position from the editor to populate this view.
           </div>
         )}
         <div style={{ margin: '48px 0 24px', paddingTop: 24, borderTop: '1px solid var(--line-0)', textAlign: 'center', color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>
-          accounts · prices_eod nightly · positions live from Chase / Schwab / IRAs / UTMA imports
+          Accounts · End-of-day prices nightly · Positions imported from Chase, Schwab, Fidelity
         </div>
       </div>
     </div>

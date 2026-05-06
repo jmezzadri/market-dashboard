@@ -60,7 +60,20 @@
     "#0071e3",
     "#007AFF"
   ],
-  "exempt_locations": [],
+  "exempt_locations": [
+    {
+      "file": "src/v2/pages/AssetTiltPage.jsx",
+      "line_pattern": "['\\\"`](Stressed|Distressed|Concerning|Complacent|Normal|Cautious)['\\\"`]\\s*:\\s*['\\\"`](Risk On|Neutral|Cautionary|Risk Off)['\\\"`]",
+      "tokens": [
+        "Stressed",
+        "Distressed",
+        "Concerning",
+        "Complacent",
+        "Normal"
+      ],
+      "reason": "STANCE_MAP defensive remap collapsing legacy producer labels to v2 lexicon."
+    }
+  ],
   "_meta": {
     "schema_version": 1,
     "ux_designer_signoff": "round-2 APPROVE 2026-05-06 (post Inter / focus-visible / class-based hover refactor)",

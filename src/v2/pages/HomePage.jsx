@@ -70,17 +70,21 @@ export default function HomePage() {
     ? (compAvg < 25 ? 'Risk On' : compAvg < 50 ? 'Neutral' : compAvg < 75 ? 'Cautionary' : 'Risk Off')
     : 'Loading';
 
-  // Top scan picks
+  // Top scan picks — read from the actual JSON shape:
+  //   scan.buy_opportunities (>=80 score)
+  //   scan.watch_items       (70-79 score)
+  //   scan.sell_alerts       (low scores)
   const buys = useMemo(() => {
-    const picks = scan?.signals?.composite_picks || scan?.picks || [];
-    return picks.filter((p) => (p.composite_score || p.score || 0) >= 80).slice(0, 5);
+    const list = Array.isArray(scan?.buy_opportunities) ? scan.buy_opportunities
+               : Array.isArray(scan?.signals?.composite_picks) ? scan.signals.composite_picks.filter(p => (p.composite_score||p.score||0)>=80)
+               : [];
+    return list.slice(0, 5);
   }, [scan]);
   const nears = useMemo(() => {
-    const picks = scan?.signals?.composite_picks || scan?.picks || [];
-    return picks.filter((p) => {
-      const s = p.composite_score || p.score || 0;
-      return s >= 70 && s < 80;
-    }).slice(0, 3);
+    const list = Array.isArray(scan?.watch_items) ? scan.watch_items
+               : Array.isArray(scan?.signals?.composite_picks) ? scan.signals.composite_picks.filter(p => { const s=p.composite_score||p.score||0; return s>=70 && s<80; })
+               : [];
+    return list.slice(0, 3);
   }, [scan]);
 
   // Headlines
@@ -209,7 +213,7 @@ export default function HomePage() {
             </div>
             <div style={{ margin:'auto 0', textAlign:'center', color:'var(--ink-2)', fontSize:13, padding:'40px 0' }}>
               <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:18, color:'var(--ink-1)', marginBottom:10 }}>
-                Sign in to view your portfolio
+                {user ? 'Open Insights to view your portfolio' : 'Sign in to view your portfolio'}
               </div>
               <div style={{ fontSize:11, letterSpacing:'.06em', textTransform:'uppercase', color:'var(--accent)', fontWeight:500 }}>
                 Open Insights →

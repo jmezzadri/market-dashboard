@@ -9,7 +9,7 @@ the Cycle Mechanism Board page reads at runtime.
 Framework (locked 2026-04-29 by Joe + Senior Quant + UX Designer):
   * Descriptive cycle-mechanism counting, NOT predictive trigger firing.
   * 4-state lexicon applied per tile: Normal / Cautionary / Risk Off / Risk Off (deeper).
-  * Headline gauge counts how many tiles sit above Normal.
+  * Headline gauge counts how many tiles sit above the cohort.
     0-1  = Constructive
     2    = Watchful
     3    = Defensive setup forming
@@ -20,8 +20,8 @@ Framework (locked 2026-04-29 by Joe + Senior Quant + UX Designer):
 
 Conservative state-mapping rule (per Joe directive):
   * Normal     = rule not met
-  * Cautionary = rule partially met (e.g. 2 of 4 in concerning quartile)
-  * Risk Off   = rule fully met (e.g. 3 of 4 in concerning quartile)
+  * Cautionary = rule partially met (e.g. 2 of 4 in top-tail quartile)
+  * Risk Off   = rule fully met (e.g. 3 of 4 in top-tail quartile)
   * Risk Off (deeper) = rule fully met AND deteriorating over last 60 trading days
 
 Plain-English description copy authored by Senior Quant; UX Designer signed
@@ -248,15 +248,15 @@ def compute_episodes(series_monthly: pd.Series,
                      k: int = 3,
                      limit: int = 5) -> list[dict]:
     """Definition B (locked 2026-04-29 with Joe): episodes are 3-month-confirmed
-    entries into the indicator's 'concerning' zone (the quartile it currently sits
+    entries into the indicator's 'elevated' zone (the quartile it currently sits
     in, if extreme). On the monthly grid; quarterly indicators auto-pass via
     forward-fill, daily are resampled to month-end first.
 
     direction:
-      'high'         -> top quartile = concerning (e.g. CAPE, Buffett)
-      'low'          -> bottom quartile = concerning (e.g. ERP, ISM, BKX/SPX)
-      'bidir_top'    -> top quartile = concerning (used when current state is in top)
-      'bidir_bottom' -> bottom quartile = concerning (used when current state is in bottom)
+      'high'         -> top quartile = elevated (e.g. CAPE, Buffett)
+      'low'          -> bottom quartile = elevated (e.g. ERP, ISM, BKX/SPX)
+      'bidir_top'    -> top quartile = elevated (used when current state is in top)
+      'bidir_bottom' -> bottom quartile = elevated (used when current state is in bottom)
 
     Returns last `limit` episodes (most recent last) with SPX 6m / 12m forward
     price-returns from the entry date. Forward-return language must use base
@@ -427,10 +427,10 @@ def enrich_all_indicators(tiles: list[dict],
     """Walk every live tile's indicators and inject:
       * direction        — 'high' | 'low' | 'bidir_top' | 'bidir_bottom'
       * kpis             — 4-tile KPI strip (1M / 3M / 1Y change + distance from peak)
-      * episodes         — last 5 entries into concerning zone with SPX 6m/12m
+      * episodes         — last 5 entries into elevated zone with SPX 6m/12m
       * comovement       — top 4 peers by |5y corr|, both 1y and 5y reported
       * release          — frequency, last_release, next_release, source, url
-      * composite_score  — 0–100 concerning score (used for tile-composite share)
+      * composite_score  — 0–100 elevated score (used for tile-composite share)
 
     Reads the underlying monthly series from SERIES_CACHE. SPX monthly closes
     are loaded once via _ensure_spx_monthly().
@@ -450,7 +450,7 @@ def enrich_all_indicators(tiles: list[dict],
             if series is None or series.empty:
                 continue
             s = series.dropna().sort_index()
-            # Determine direction (the quartile that is concerning for THIS indicator)
+            # Determine direction (the quartile that is elevated for THIS indicator)
             # Default rules per Sprint 1:
             cur_pct = float(ind.get("percentile") or 0.0)
             if "direction" in ind and ind["direction"]:
@@ -481,13 +481,13 @@ def enrich_all_indicators(tiles: list[dict],
                     direction = "high"
             ind["direction"] = direction
 
-            # Concerning score 0–100 (used by composite-contribution row in drawer)
+            # Elevated score 0–100 (used by composite-contribution row in drawer)
             if direction in ("high", "bidir_top"):
-                ind["concerning_score"] = round(cur_pct)
+                ind["alert_score"] = round(cur_pct)
             elif direction in ("low", "bidir_bottom"):
-                ind["concerning_score"] = round(100 - cur_pct)
+                ind["alert_score"] = round(100 - cur_pct)
             else:
-                ind["concerning_score"] = round(abs(cur_pct - 50) * 2)
+                ind["alert_score"] = round(abs(cur_pct - 50) * 2)
 
             # KPIs (frequency-neutral; uses monthly grid)
             ind["kpis"] = compute_kpis(s, unit=ind.get("unit", "ratio"))
@@ -523,17 +523,17 @@ def enrich_all_indicators(tiles: list[dict],
         # Re-compute tile composite (score-weighted) and stash both score and
         # share map for the drawer (per Joe directive 2026-04-29: score-weighted
         # with transparency).
-        live_inds = [i for i in tile.get("indicators", []) if i.get("concerning_score") is not None]
+        live_inds = [i for i in tile.get("indicators", []) if i.get("alert_score") is not None]
         if live_inds:
-            scores = [int(i["concerning_score"]) for i in live_inds]
+            scores = [int(i["alert_score"]) for i in live_inds]
             tile_composite = round(sum(scores) / len(scores))
             score_sum = sum(scores) or 1
             shares = []
             for i in live_inds:
-                share = round((int(i["concerning_score"]) / score_sum) * 100.0, 1)
+                share = round((int(i["alert_score"]) / score_sum) * 100.0, 1)
                 i["composite_share_pct"] = share
                 shares.append({"indicator_id": i.get("id"), "name": i.get("name"),
-                               "concerning_score": int(i["concerning_score"]),
+                               "alert_score": int(i["alert_score"]),
                                "share_pct": share})
             tile["composite_score"] = tile_composite
             tile["composite_breakdown"] = shares
@@ -605,7 +605,7 @@ def points_to_series(points: list) -> pd.Series:
 
 def build_valuation_tile(existing: dict) -> dict:
     """Valuation tile.
-    Concerning rule: 3 of 4 in top quartile of 15y+ distribution (cycle peak).
+    Elevated rule: 3 of 4 in top quartile of 15y+ distribution (cycle peak).
     """
     indicators: list[dict] = []
 
@@ -724,7 +724,7 @@ def build_valuation_tile(existing: dict) -> dict:
         "description_long": "Valuation indicators measure how much investors are paying per dollar of earnings, GDP, or risk premium. When several measures simultaneously sit in the top quartile of their long-run distribution, the equity market is showing the cycle-peak signature — high prices, high prices for risk, narrow risk premium.",
         "rule": {
             "logic": "concerning_if_three_of_four_in_concerning_quartile",
-            "description": "Risk Off when 3 of 4 indicators sit in their concerning quartile. For CAPE, P/E, and Buffett indicator the concerning quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Risk Off (deeper) when 3 of 4 AND worsening over 60 trading days.",
+            "description": "Risk Off when 3 of 4 indicators sit in their top-tail quartile. For CAPE, P/E, and Buffett indicator the top-tail quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Risk Off (deeper) when 3 of 4 AND worsening over 60 trading days.",
             "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; trailing P/E joins in Sprint 1.5 once long-history Shiller series is staged.",
         },
         "indicators": indicators,
@@ -740,7 +740,7 @@ def compute_valuation_state(indicators: list[dict]) -> dict:
         return {"state": "Normal", "status": "no indicators"}
     n_concerning = 0
     for ind in indicators:
-        # Default direction: high-is-concerning (top quartile)
+        # Default direction: high-is-elevated (top quartile)
         direction = ind.get("direction", "high_is_concerning")
         q = ind.get("quartile", 0)
         if direction == "high_is_concerning" and q == 4:
@@ -760,7 +760,7 @@ def compute_valuation_state(indicators: list[dict]) -> dict:
         state = "Normal"
     return {
         "state": state,
-        "status": f"{n_concerning} of {n} indicators in concerning quartile",
+        "status": f"{n_concerning} of {n} indicators in top-tail quartile",
         "n_concerning": n_concerning,
         "n_indicators": n,
     }
@@ -772,7 +772,7 @@ def compute_valuation_state(indicators: list[dict]) -> dict:
 
 def build_credit_tile(existing: dict) -> dict:
     """Credit tile.
-    Bidirectional concerning rule:
+    Bidirectional elevated rule:
       * Risk Off: 3 of 4 spreads in top quartile (real stress)
       * Complacency-Cautionary: 3 of 4 in bottom quartile (priced for perfection)
     Sprint 1 ships 3 indicators; lev loan spread is Sprint 2.
@@ -821,7 +821,7 @@ def build_credit_tile(existing: dict) -> dict:
                 "name": "HY OAS",
                 "unit": "bp",
                 "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
-                "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk — a read consistent with late-cycle caution rather than imminent stress.",
+                "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk — a read consistent with late-cycle caution rather than imminent risk-off.",
                 "formula": "HY OAS = ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
                 "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
                 "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
@@ -921,7 +921,7 @@ def compute_credit_state(indicators: list[dict]) -> dict:
 
 def build_growth_tile(existing: dict) -> dict:
     """Growth tile.
-    Concerning rule: 3 of 4 deteriorating (z < -1 AND worsening over last 60d).
+    Elevated rule: 3 of 4 deteriorating (z < -1 AND worsening over last 60d).
     The AND is critical — avoids permanently-elevated failure mode.
     """
     indicators: list[dict] = []
@@ -946,13 +946,13 @@ def build_growth_tile(existing: dict) -> dict:
         cur_dt = s.index[-1].strftime("%Y-%m-%d")
         # Trend over last 60 trading days
         trend = trend_60d(s)
-        # "Concerning" = z < -1 AND trending down (for lower_is_concerning)
+        # "Elevated" = z < -1 AND trending down (for lower_is_concerning)
         # OR z > 1 AND trending up (for higher_is_concerning, e.g. jobless)
         if lower_is_concerning:
-            concerning = (cur_z < -1.0) and (trend == "falling")
+            elevated = (cur_z < -1.0) and (trend == "falling")
         else:
-            concerning = (cur_z > 1.0) and (trend == "rising")
-        # Soft "deteriorating but not yet concerning" = directional pressure only
+            elevated = (cur_z > 1.0) and (trend == "rising")
+        # Soft "deteriorating but not yet elevated" = directional pressure only
         deteriorating = (lower_is_concerning and trend == "falling") or (
             not lower_is_concerning and trend == "rising"
         )
@@ -971,7 +971,7 @@ def build_growth_tile(existing: dict) -> dict:
             "current": {"date": cur_dt, "value": round(cur_val, 2)},
             "z_score": round(cur_z, 2),
             "trend_60d": trend,
-            "concerning": concerning,
+            "elevated": elevated,
             "deteriorating": deteriorating,
             "percentile": round(pct, 1),
             "quartile": quartile_of(pct),
@@ -1052,7 +1052,7 @@ def compute_growth_state(indicators: list[dict]) -> dict:
     if not indicators:
         return {"state": "Normal", "status": "no indicators"}
     n = len(indicators)
-    n_concerning = sum(1 for i in indicators if i.get("concerning"))
+    n_concerning = sum(1 for i in indicators if i.get("elevated"))
     n_deteriorating = sum(1 for i in indicators if i.get("deteriorating"))
     full = max(3, int(np.ceil(n * 0.75)))
     partial = max(2, int(np.ceil(n * 0.50)))
@@ -1066,7 +1066,7 @@ def compute_growth_state(indicators: list[dict]) -> dict:
         state = "Normal"
     return {
         "state": state,
-        "status": f"{n_concerning} of {n} concerning · {n_deteriorating} of {n} deteriorating over 60d",
+        "status": f"{n_concerning} of {n} elevated · {n_deteriorating} of {n} deteriorating over 60d",
         "n_concerning": n_concerning,
         "n_deteriorating": n_deteriorating,
         "n_indicators": n,
@@ -1086,7 +1086,7 @@ def compute_growth_state(indicators: list[dict]) -> dict:
 TILE_CAPTIONS: dict[str, dict[str, str]] = {
     "valuation": {
         "Normal":      "Equities priced reasonably vs long-run history.",
-        "Cautionary":  "Equity prices stretching — multiple valuation reads pushing toward concerning.",
+        "Cautionary":  "Equity prices stretching — multiple valuation reads pushing toward elevated.",
         "Risk Off":    "Cycle-peak valuation — multiple reads in the top quartile of long-run history.",
         "Risk Off (deeper)":  "Cycle-peak valuation, and still rising over the last 60 days.",
     },
@@ -1136,7 +1136,7 @@ def headline_caption_for(tile: dict) -> str:
 
 
 def headline_gauge(tiles: list[dict]) -> dict:
-    """Count how many of N live tiles sit above Normal and produce the page
+    """Count how many of N live tiles sit above the cohort and produce the page
     verdict (Risk-on / Neutral / Risk-off / High-conviction risk-off) per the
     locked Macro Overview thesis (2026-04-29 with Joe).
     """
@@ -1209,7 +1209,7 @@ def _editorial_sentence(n_elev: int, n_live: int, verdict_label: str, n_stress: 
         cautionary_count = n_elev - n_dist - n_stress
         pieces.append(f"{cautionary_count} Cautionary")
     detail = ", ".join(pieces) if pieces else ""
-    return f"{verdict_label}. {n_elev} of {n_live} live cycle mechanisms elevated above Normal" + (f" — {detail}." if detail else ".")
+    return f"{verdict_label}. {n_elev} of {n_live} live cycle mechanisms elevated above the cohort" + (f" — {detail}." if detail else ".")
 
 
 def _subheadline(n_elev: int, n_live: int, n_stress: int, n_dist: int, n_caut: int) -> str:
@@ -1221,7 +1221,7 @@ def _subheadline(n_elev: int, n_live: int, n_stress: int, n_dist: int, n_caut: i
     if n_elev <= 1:
         return f"{n_elev} of {n_live} cycle mechanisms is showing concern. Macro setup remains constructive."
     if n_elev == 2:
-        return f"{n_elev} of {n_live} cycle mechanisms are elevated above Normal. Mixed setup — neither risk-on nor risk-off cleanly."
+        return f"{n_elev} of {n_live} cycle mechanisms are elevated above the cohort. Mixed setup — neither risk-on nor risk-off cleanly."
     if n_elev == 3:
         return f"{n_elev} of {n_live} cycle mechanisms are elevated. The defensive setup is forming."
     return f"{n_elev} of {n_live} cycle mechanisms are elevated. High-conviction defensive setup."
@@ -1312,7 +1312,7 @@ def main():
             "tooltips": {
                 "Normal": "Tile rule is not met. Mechanism is reading constructively or neutrally.",
                 "Cautionary": "Tile rule is partially met. Watch but do not act.",
-                "Risk Off": "Tile rule is fully met. Mechanism is signaling its concerning regime.",
+                "Risk Off": "Tile rule is fully met. Mechanism is signaling its alert regime.",
                 "Risk Off (deeper)": "Tile rule is fully met AND deteriorating over the last 60 trading days.",
             },
             "headline_thresholds": {

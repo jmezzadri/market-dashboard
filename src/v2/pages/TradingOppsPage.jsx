@@ -10,15 +10,19 @@ export default function TradingOppsPage() {
       .then((r) => r.ok ? r.json() : null).then(setScan).catch((e) => setErr(e?.message));
   }, []);
 
-  const picks = scan?.signals?.composite_picks || scan?.picks || [];
-  const buys = picks.filter((p) => (p.composite_score || p.score || 0) >= 80);
-  const nears = picks.filter((p) => {
-    const s = p.composite_score || p.score || 0;
-    return s >= 70 && s < 80;
-  });
-  const insider = scan?.signals?.insider_buys?.items || scan?.signals?.insider?.items || [];
-  const congress = scan?.signals?.congress_trades?.items || scan?.signals?.congress?.items || [];
-  const universeSize = scan?.meta?.universe_size || scan?.universe_size || null;
+  // Real scan JSON shape: { buy_opportunities, watch_items, sell_alerts,
+  //   portfolio_positions, watchlist, score_by_ticker, wide_universe }
+  const buys = Array.isArray(scan?.buy_opportunities) ? scan.buy_opportunities
+             : Array.isArray(scan?.signals?.composite_picks) ? scan.signals.composite_picks.filter(p => (p.composite_score||p.score||0)>=80)
+             : [];
+  const nears = Array.isArray(scan?.watch_items) ? scan.watch_items
+              : Array.isArray(scan?.signals?.composite_picks) ? scan.signals.composite_picks.filter(p => { const s=p.composite_score||p.score||0; return s>=70 && s<80; })
+              : [];
+  const insider = Array.isArray(scan?.signals?.insider_buys?.items) ? scan.signals.insider_buys.items
+                : Array.isArray(scan?.signals?.insider?.items) ? scan.signals.insider.items
+                : [];
+  const universeSize = Array.isArray(scan?.wide_universe) ? scan.wide_universe.length
+                     : (scan?.meta?.universe_size || scan?.universe_size || null);
 
   return (
     <div className="v2-root">
@@ -136,7 +140,7 @@ export default function TradingOppsPage() {
         )}
 
         <div style={{ margin: '48px 0 24px', paddingTop: 24, borderTop: '1px solid var(--line-0)', textAlign: 'center', color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>
-          scan refreshed 16:30 ET · sources from latest_scan_data.json
+          scan refreshed 16:30 ET · sourced from Unusual Whales · SEC Form 4 · Yahoo Finance
         </div>
       </div>
 
