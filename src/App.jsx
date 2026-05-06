@@ -11,6 +11,7 @@ import SidebarAuth from "./auth/SidebarAuth";
 import LoginScreen from "./auth/LoginScreen";
 import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
+import DataFreshness from "./components/DataFreshness";
 import { latestTradingSessionDate, formatTradingDayLabel } from "./lib/freshnessClock";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import AdminUsage from "./AdminUsage";
@@ -6545,7 +6546,7 @@ What to act on today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>
 <span style={{width:6,height:6,borderRadius:"50%",background:_stanceColor}}/>
 {_scanT?"SCAN COMPLETE":"AWAITING SCAN"}
 </span>
-<div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",letterSpacing:"0.04em",marginTop:6}}>Daily scan · Last run: {_scanLabel}</div>
+
 </div>
 </div>
 <p style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.65,maxWidth:920,margin:"0 0 18px"}}>
@@ -6731,11 +6732,17 @@ Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-t
 {showTrading&&<div style={sectionPanel}>
 <div style={sectionHeader}>
 <span style={sectionTitleStyle}>① TRADING OPPORTUNITIES</span>
-<div style={{display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
-{/* Universe-snapshot freshness — signed-in only, hidden pre-auth. */}
-<UniverseFreshness pricesTs={universeSnapshotTs} eventsTs={scanData?.ticker_events_ts}/>
 <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{buyCount} triggered · {watchCount} near · {rebucketOther.length} other</span>
 </div>
+{/* 2026-05-06 — single consolidated freshness line replacing the
+    historical mix of "Daily scan · Last run", UniverseFreshness chip,
+    inline scanLabel, and orange "VERY STALE" banner. Joe directive. */}
+<div style={{padding:"10px 16px 0 16px"}}>
+  <DataFreshness
+    scanTs={scanData?.scan_time}
+    pricesTs={universeSnapshotTs}
+    eventsTs={scanData?.ticker_events_ts}
+  />
 </div>
 <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
 
