@@ -28,19 +28,19 @@ const STREAM_DEFAULTS = {
     label: "Scan",
     staleHours: 24,
     staleReason: "daily scan may have failed",
-    tip: "The 1x/day composite score that powers buy alerts (60+) and near-triggers (35-59). Combines six signals per ticker: technicals (MACD / RSI / moving averages), insider Form 4 filings, options flow, congressional trades, analyst ratings, and dark-pool prints. Runs at 3:30 PM ET on US trading days. Source: Unusual Whales + the scanner's internal scoring engine.",
+    tip: "The single composite score (one number per ticker, 0-100) used to rank what's tradeable today. Recomputed once a day at 3:30 PM ET. Rolls up six inputs into one number: technicals (MACD / RSI / moving averages), insider buying and selling, options flow, congressional trades, analyst ratings, and dark-pool activity. A ticker scoring 60+ is a buy alert; 35-59 is a near-trigger. This stream is the SCORE only - to read the underlying individual events behind a ticker, see Events.",
   },
   prices: {
     label: "Prices",
     staleHours: 24,
     staleReason: "prices feed may have failed",
-    tip: "The 3x/weekday quote and options snapshot used by the Trading Opportunities tables, position price/share, and PnL Day. Pulls last close, prev close, % change, market cap, IV rank, options volume + premium, put/call ratio, and 52-week range from the Unusual Whales screener API. Fires at 10:00 AM, 1:00 PM, and 3:45 PM ET on US trading days.",
+    tip: "What each ticker is trading for right now. Refreshed 3x per US trading day (10:00 AM, 1:00 PM, and 3:45 PM ET). Includes last close, prior close and day change, market cap, implied volatility rank, options volume and premium, put/call ratio, and 52-week high/low. This is the live-quote feed used by the price column in every table on the site. Source: Unusual Whales screener API.",
   },
   events: {
     label: "Events",
     staleHours: 24,
     staleReason: "events feed may have failed",
-    tip: "The 3x/weekday event stream powering per-ticker insider, congress, dark-pool, and news rows. Sources are four Unusual Whales firehoses: Form 4 insider buys/sells (market-wide), congressional disclosed trades (market-wide), dark-pool prints (>= $1B universe), and news (filtered to your tracked tickers). Fires alongside the Prices stream at 10:00 AM, 1:00 PM, and 3:45 PM ET.",
+    tip: "The raw individual event rows behind each ticker - the actual insider Form 4 filings, congressional disclosed trades, dark-pool prints, and news headlines you can scroll through on a ticker's detail drawer. Refreshed 3x per US trading day at 10:00 AM, 1:00 PM, and 3:45 PM ET. The Scan stream rolls these up into a single score; the Events stream is the row-level detail behind that score. Source: four Unusual Whales firehoses (Form 4, congress disclosures, dark-pool, news).",
   },
 };
 
