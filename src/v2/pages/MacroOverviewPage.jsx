@@ -467,6 +467,7 @@ export default function MacroOverviewPage() {
 
   const mechanisms = useMemo(() => deriveMechanisms(snap, calib, v10, history), [snap, calib, v10, history]);
   const liveCount = mechanisms.filter((m) => m.score != null).length;
+  const liveScores = mechanisms.filter((m) => m.score != null).map((m) => m.score);
   const flaggedTotal = mechanisms.filter((m) => m.bandClass === 'r-off' || m.bandClass === 'r-cau').length;
   const rawStance = v10?.page_stance || snap?.page_stance || calib?.headline_gauge?.verdict_label || 'Loading';
   // Theme #3: collapse any non-v2-lexicon variants to the canonical four
@@ -479,8 +480,8 @@ export default function MacroOverviewPage() {
     'Normal': 'Neutral',
   };
   const headlineState = STANCE_MAP[rawStance] || rawStance;
-  const compositeAvg = mechanisms.length
-    ? Math.round(mechanisms.reduce((a, m) => a + (m.score || 0), 0) / mechanisms.length)
+  const compositeAvg = liveScores.length
+    ? Math.round(liveScores.reduce((a, b) => a + b, 0) / liveScores.length)
     : null;
 
   function open(mechId) { setOpenMechId(mechId); setOpenIndId(null); }
@@ -508,17 +509,17 @@ export default function MacroOverviewPage() {
           <div className="v2-stats" style={{ marginTop: 28 }}>
             <div className={`s ${flaggedTotal > 0 ? 'warn' : ''}`}>
               <span className="lbl" title="Number of cycle mechanisms whose composite reading is currently in Cautionary or Risk Off territory.">Mechanisms flagged</span>
-              <span className="v"><CountUp to={flaggedTotal} /><span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /{liveCount}</span></span>
+              <span className="v">{liveCount > 0 ? flaggedTotal : <span style={{ color: 'var(--ink-2)' }}>—</span>}<span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /{liveCount > 0 ? liveCount : 6}</span></span>
               <span className="d">above Neutral</span>
             </div>
             <div className="s">
               <span className="lbl" title="Average composite score across all live cycle mechanisms. 0 = supportive of risk; 100 = defensive.">Composite</span>
-              <span className="v">{compositeAvg != null ? <CountUp to={compositeAvg} /> : <span style={{ color: 'var(--ink-2)' }}>—</span>}<span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /100</span></span>
+              <span className="v">{compositeAvg != null ? compositeAvg : <span style={{ color: 'var(--ink-2)' }}>—</span>}<span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /100</span></span>
               <span className="d">average across {liveCount}</span>
             </div>
             <div className="s">
               <span className="lbl" title="Total number of underlying indicators feeding the live cycle mechanisms.">Calibrated indicators</span>
-              <span className="v"><CountUp to={mechanisms.reduce((sum, m) => sum + (m.indicators?.length || 0), 0)} /></span>
+              <span className="v">{mechanisms.reduce((sum, m) => sum + (m.indicators?.length || 0), 0)}</span>
               <span className="d">across {liveCount} mechanisms</span>
             </div>
             <div className="s">

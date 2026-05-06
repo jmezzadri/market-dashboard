@@ -668,7 +668,7 @@
           "id": "erp",
           "name": "Equity Risk Premium",
           "unit": "percent",
-          "description": "How much extra yield investors demand to own stocks vs 10-year Treasuries. Computed as earnings yield (1/CAPE) minus the 10-year yield. A near-zero or negative ERP means stocks are priced for perfection.",
+          "description": "How much extra yield investors demand to own stocks vs 10-year Treasuries. Computed as earnings yield (1/CAPE) minus the 10-year yield. A near-zero or negative ERP means stocks are priced for benign credit conditions.",
           "so_what": "When ERP is at or below zero, investors are accepting less from stocks than they could get risk-free from Treasuries. Historically that compression has marked late-cycle equity tops.",
           "formula": "ERP = (1 / CAPE) \u00d7 100 \u2212 10-year Treasury yield",
           "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
@@ -2536,11 +2536,11 @@
       "order": 2,
       "live": true,
       "description_short": "Compensation investors demand for default risk on corporate bonds.",
-      "description_long": "Credit spreads describe how much extra yield bond investors require over risk-free Treasuries to take corporate-credit risk. The Credit tile reads as bidirectional: extreme tightness reads as cycle-peak complacency, extreme widening reads as actual stress arriving. Both are interesting in opposite ways.",
+      "description_long": "Credit spreads describe how much extra yield bond investors require over risk-free Treasuries to take corporate-credit risk. The Credit tile reads as bidirectional: extreme tightness reads as cycle-peak Cautionary territory, extreme widening reads as actual Risk Off arriving. Both are interesting in opposite ways.",
       "rule": {
         "logic": "bidirectional",
         "stressed_condition": "3 of 4 spreads in top quartile (real stress arriving)",
-        "complacency_condition": "3 of 4 spreads in bottom quartile (priced for perfection)",
+        "cautionary_condition": "3 of 4 spreads in bottom quartile (priced for benign credit conditions)",
         "cautionary_at": "2 of 4 in either tail",
         "distressed_addendum": "stressed_condition AND deteriorating over 60d",
         "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; leveraged-loan spread joins in Sprint 2."
@@ -2550,8 +2550,8 @@
           "id": "ig_oas",
           "name": "IG OAS (Baa \u2212 10y)",
           "unit": "bp",
-          "description": "Yield premium investors require to own investment-grade Baa-rated corporate bonds over equal-maturity Treasuries. Widens in stress, compresses in complacency.",
-          "so_what": "Today's IG OAS sits in the bottom quartile of post-1986 history. Investors are pricing very little default-risk premium into investment-grade credit \u2014 the 'priced for perfection' read.",
+          "description": "Yield premium investors require to own investment-grade Baa-rated corporate bonds over equal-maturity Treasuries. Widens in stress, compresses in Cautionary territory.",
+          "so_what": "IG OAS sits in the bottom quartile of post-1986 history. Investors are pricing very little default-risk premium into investment-grade credit \u2014 the 'priced for benign credit conditions' read.",
           "formula": "IG OAS proxy = Moody's Baa yield \u2212 10-year Treasury yield, in basis points",
           "source": "FRED: BAA \u2212 DGS10 (monthly)",
           "source_url": "https://fred.stlouisfed.org/series/BAA",
@@ -3162,8 +3162,8 @@
           "id": "hy_oas",
           "name": "HY OAS",
           "unit": "bp",
-          "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
-          "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle complacency rather than imminent stress.",
+          "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for benign credit conditions; wide spreads = stress is here.",
+          "so_what": "Currently HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle Cautionary territory rather than actual Risk Off arriving.",
           "formula": "HY OAS = ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
           "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
           "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
@@ -3676,7 +3676,7 @@
           "share_pct": 13.6
         }
       ],
-      "headline_caption": "Credit complacency \u2014 high-yield and IG spreads pricing minimal default risk."
+      "headline_caption": "Credit Cautionary territory \u2014 high-yield and IG spreads pricing minimal default risk."
     },
     {
       "id": "funding",
@@ -4873,7 +4873,7 @@
           "name": "ISM Manufacturing PMI",
           "unit": "index",
           "description": "Institute for Supply Management's composite manufacturing index. Below 50 = contraction, above = expansion. Used as a proxy for the new-orders subindex (paid feed). Caveat noted in methodology.",
-          "so_what": "At 52.7 ISM is in expansion territory. Trend is mildly down over 60 days but still well above contraction (50).",
+          "so_what": "Currently ISM is in expansion territory. Trend is mildly down over 60 days but still well above contraction (50).",
           "formula": "ISM Manufacturing Purchasing Managers' Index headline composite",
           "source": "FRED: NAPMPI (monthly)",
           "source_url": "https://fred.stlouisfed.org/series/NAPMPI",
