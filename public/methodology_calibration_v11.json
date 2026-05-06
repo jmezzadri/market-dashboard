@@ -2539,10 +2539,10 @@
       "description_long": "Credit spreads describe how much extra yield bond investors require over risk-free Treasuries to take corporate-credit risk. The Credit tile reads as bidirectional: extreme tightness reads as cycle-peak Cautionary territory, extreme widening reads as actual Risk Off arriving. Both are interesting in opposite ways.",
       "rule": {
         "logic": "bidirectional",
-        "stressed_condition": "3 of 4 spreads in top quartile (real stress arriving)",
+        "risk_off_condition": "3 of 4 spreads in top quartile (Risk Off arriving)",
         "cautionary_condition": "3 of 4 spreads in bottom quartile (priced for benign credit conditions)",
         "cautionary_at": "2 of 4 in either tail",
-        "distressed_addendum": "stressed_condition AND deteriorating over 60d",
+        "risk_off_addendum": "risk_off_condition AND deteriorating over 60d",
         "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; leveraged-loan spread joins in Sprint 2."
       },
       "indicators": [
@@ -3411,7 +3411,7 @@
           "id": "hy_ig_ratio",
           "name": "HY/IG ratio",
           "unit": "ratio",
-          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect \u2014 captures whether credit markets are pricing the junk-vs-quality differential normally or in a stressed/early-stage risk-off way.",
+          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect \u2014 captures whether credit markets are pricing the junk-vs-quality differential normally or in an early-stage risk-off way.",
           "so_what": "Mid-distribution today. The junk-vs-quality differential is priced normally; nothing unusual either way in the relative pricing of high-yield to investment-grade.",
           "formula": "HY/IG ratio = HY OAS / IG OAS proxy (Baa \u2212 DGS10)",
           "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
@@ -5794,5 +5794,30 @@
     "Neutral": "Mechanism sits between the 25th and 50th percentile vs its 5y baseline \u2014 neither tailwind nor headwind.",
     "Cautionary": "Mechanism sits between the 50th and 75th percentile vs its 5y baseline \u2014 early defensive setup forming.",
     "Risk Off": "Mechanism sits above the 75th percentile vs its 5y baseline \u2014 defensive posture warranted."
+  },
+  "allocator_bounds": {
+    "description": "Hard bounds the v10 allocator must obey on every run. Sourced from scripts/compute_v10_allocation.py constants and rule_audit checks emitted in v10_allocation.json.",
+    "rules": [
+      {
+        "id": "max_defensive_sleeve",
+        "label": "Defensive sleeve maxes at 50% of net liquidation.",
+        "producer_check": "max_defensive_50pct"
+      },
+      {
+        "id": "max_leverage",
+        "label": "Leverage maxes at 1.5\u00d7.",
+        "producer_check": "max_leverage_1_5x"
+      },
+      {
+        "id": "defensive_xor_leverage",
+        "label": "Defensive XOR leverage \u2014 never both at once.",
+        "producer_check": "defensive_xor_leverage"
+      },
+      {
+        "id": "all_six_mechanisms",
+        "label": "All six cycle mechanisms feed the per-IG tilt \u2014 none can be muted.",
+        "producer_check": "all_6_mechanisms_used"
+      }
+    ]
   }
 }

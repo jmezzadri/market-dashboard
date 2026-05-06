@@ -8,7 +8,7 @@ the Cycle Mechanism Board page reads at runtime.
 
 Framework (locked 2026-04-29 by Joe + Senior Quant + UX Designer):
   * Descriptive cycle-mechanism counting, NOT predictive trigger firing.
-  * 4-state lexicon applied per tile: Normal / Cautionary / Stressed / Distressed.
+  * 4-state lexicon applied per tile: Normal / Cautionary / Risk Off / Risk Off (deeper).
   * Headline gauge counts how many tiles sit above Normal.
     0-1  = Constructive
     2    = Watchful
@@ -21,8 +21,8 @@ Framework (locked 2026-04-29 by Joe + Senior Quant + UX Designer):
 Conservative state-mapping rule (per Joe directive):
   * Normal     = rule not met
   * Cautionary = rule partially met (e.g. 2 of 4 in concerning quartile)
-  * Stressed   = rule fully met (e.g. 3 of 4 in concerning quartile)
-  * Distressed = rule fully met AND deteriorating over last 60 trading days
+  * Risk Off   = rule fully met (e.g. 3 of 4 in concerning quartile)
+  * Risk Off (deeper) = rule fully met AND deteriorating over last 60 trading days
 
 Plain-English description copy authored by Senior Quant; UX Designer signed
 off on length and tone. Tooltip copy lives inline in this JSON so the React
@@ -724,7 +724,7 @@ def build_valuation_tile(existing: dict) -> dict:
         "description_long": "Valuation indicators measure how much investors are paying per dollar of earnings, GDP, or risk premium. When several measures simultaneously sit in the top quartile of their long-run distribution, the equity market is showing the cycle-peak signature — high prices, high prices for risk, narrow risk premium.",
         "rule": {
             "logic": "concerning_if_three_of_four_in_concerning_quartile",
-            "description": "Stressed when 3 of 4 indicators sit in their concerning quartile. For CAPE, P/E, and Buffett indicator the concerning quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Distressed when 3 of 4 AND worsening over 60 trading days.",
+            "description": "Risk Off when 3 of 4 indicators sit in their concerning quartile. For CAPE, P/E, and Buffett indicator the concerning quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Risk Off (deeper) when 3 of 4 AND worsening over 60 trading days.",
             "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; trailing P/E joins in Sprint 1.5 once long-history Shiller series is staged.",
         },
         "indicators": indicators,
@@ -751,9 +751,9 @@ def compute_valuation_state(indicators: list[dict]) -> dict:
     threshold_full = max(3, int(np.ceil(n * 0.75)))  # 3 of 4 → 3; with 3 inds → 3
     threshold_partial = max(2, int(np.ceil(n * 0.50)))
     if n_concerning >= threshold_full:
-        state = "Stressed"
-        # Distressed addendum: would also need deteriorating-over-60d; Sprint 1
-        # surfaces this via tile metadata; not auto-promoted to Distressed yet.
+        state = "Risk Off"
+        # Risk Off (deeper) addendum: would also need deteriorating-over-60d; Sprint 1
+        # surfaces this via tile metadata; not auto-promoted to Risk Off (deeper) yet.
     elif n_concerning >= threshold_partial:
         state = "Cautionary"
     else:
@@ -773,7 +773,7 @@ def compute_valuation_state(indicators: list[dict]) -> dict:
 def build_credit_tile(existing: dict) -> dict:
     """Credit tile.
     Bidirectional concerning rule:
-      * Stressed: 3 of 4 spreads in top quartile (real stress)
+      * Risk Off: 3 of 4 spreads in top quartile (real stress)
       * Complacency-Cautionary: 3 of 4 in bottom quartile (priced for perfection)
     Sprint 1 ships 3 indicators; lev loan spread is Sprint 2.
     """
@@ -794,7 +794,7 @@ def build_credit_tile(existing: dict) -> dict:
                 "id": "ig_oas",
                 "name": "IG OAS (Baa − 10y)",
                 "unit": "bp",
-                "description": "Yield premium investors require to own investment-grade Baa-rated corporate bonds over equal-maturity Treasuries. Widens in stress, compresses in complacency.",
+                "description": "Yield premium investors require to own investment-grade Baa-rated corporate bonds over equal-maturity Treasuries. Widens in stress, compresses in caution.",
                 "so_what": "Today's IG OAS sits in the bottom quartile of post-1986 history. Investors are pricing very little default-risk premium into investment-grade credit — the 'priced for perfection' read.",
                 "formula": "IG OAS proxy = Moody's Baa yield − 10-year Treasury yield, in basis points",
                 "source": "FRED: BAA − DGS10 (monthly)",
@@ -821,7 +821,7 @@ def build_credit_tile(existing: dict) -> dict:
                 "name": "HY OAS",
                 "unit": "bp",
                 "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
-                "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk — a read consistent with late-cycle complacency rather than imminent stress.",
+                "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk — a read consistent with late-cycle caution rather than imminent stress.",
                 "formula": "HY OAS = ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
                 "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
                 "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
@@ -857,7 +857,7 @@ def build_credit_tile(existing: dict) -> dict:
                     "id": "hy_ig_ratio",
                     "name": "HY/IG ratio",
                     "unit": "ratio",
-                    "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect — captures whether credit markets are pricing the junk-vs-quality differential normally or in a stressed/complacent way.",
+                    "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect — captures whether credit markets are pricing the junk-vs-quality differential normally or in an early-stage risk-off way.",
                     "so_what": "Mid-distribution today. The junk-vs-quality differential is priced normally; nothing unusual either way in the relative pricing of high-yield to investment-grade.",
                     "formula": "HY/IG ratio = HY OAS / IG OAS proxy (Baa − DGS10)",
                     "source": "Derived: HY OAS / (BAA − DGS10)",
@@ -879,13 +879,13 @@ def build_credit_tile(existing: dict) -> dict:
         "order": 2,
         "live": True,
         "description_short": "Compensation investors demand for default risk on corporate bonds.",
-        "description_long": "Credit spreads describe how much extra yield bond investors require over risk-free Treasuries to take corporate-credit risk. The Credit tile reads as bidirectional: extreme tightness reads as cycle-peak complacency, extreme widening reads as actual stress arriving. Both are interesting in opposite ways.",
+        "description_long": "Credit spreads describe how much extra yield bond investors require over risk-free Treasuries to take corporate-credit risk. The Credit tile reads as bidirectional: extreme tightness reads as cycle-peak caution, extreme widening reads as actual stress arriving. Both are interesting in opposite ways.",
         "rule": {
             "logic": "bidirectional",
-            "stressed_condition": "3 of 4 spreads in top quartile (real stress arriving)",
+            "risk_off_condition": "3 of 4 spreads in top quartile (Risk Off arriving)",
             "complacency_condition": "3 of 4 spreads in bottom quartile (priced for perfection)",
             "cautionary_at": "2 of 4 in either tail",
-            "distressed_addendum": "stressed_condition AND deteriorating over 60d",
+            "risk_off_addendum": "risk_off_condition AND deteriorating over 60d",
             "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; leveraged-loan spread joins in Sprint 2.",
         },
         "indicators": indicators,
@@ -896,7 +896,7 @@ def build_credit_tile(existing: dict) -> dict:
 
 
 def compute_credit_state(indicators: list[dict]) -> dict:
-    """Bidirectional credit rule. Top quartile = stress, bottom = complacency."""
+    """Bidirectional credit rule. Top quartile = stress, bottom = caution."""
     if not indicators:
         return {"state": "Normal", "status": "no indicators"}
     n_top = sum(1 for i in indicators if i.get("quartile") == 4)
@@ -905,13 +905,13 @@ def compute_credit_state(indicators: list[dict]) -> dict:
     full = max(3, int(np.ceil(n * 0.75)))
     partial = max(2, int(np.ceil(n * 0.50)))
     if n_top >= full:
-        return {"state": "Stressed", "status": f"{n_top} of {n} in top quartile (stress)", "regime": "stress"}
+        return {"state": "Risk Off", "status": f"{n_top} of {n} in top quartile (stress)", "regime": "stress"}
     if n_bot >= full:
-        return {"state": "Stressed", "status": f"{n_bot} of {n} in bottom quartile (complacency)", "regime": "complacency"}
+        return {"state": "Risk Off", "status": f"{n_bot} of {n} in bottom quartile (caution)", "regime": "caution"}
     if n_top >= partial:
         return {"state": "Cautionary", "status": f"{n_top} of {n} in top quartile", "regime": "stress"}
     if n_bot >= partial:
-        return {"state": "Cautionary", "status": f"{n_bot} of {n} in bottom quartile", "regime": "complacency"}
+        return {"state": "Cautionary", "status": f"{n_bot} of {n} in bottom quartile", "regime": "caution"}
     return {"state": "Normal", "status": f"{n_top} top / {n_bot} bottom of {n}", "regime": "neutral"}
 
 
@@ -1039,7 +1039,7 @@ def build_growth_tile(existing: dict) -> dict:
         "description_long": "The Growth tile aggregates four real-economy reads: a broad activity index (CFNAI), an early labor-market signal (jobless claims), a manufacturing PMI proxy (ISM headline), and the bank-relative-equity signal (BKX vs S&P). The Growth rule fires only when indicators are BOTH at extreme levels AND deteriorating over 60 trading days — the 'AND' avoids permanently-elevated false alarms.",
         "rule": {
             "logic": "level_AND_trend",
-            "description": "Stressed when 3 of 4 indicators are both extreme (|z| > 1) AND deteriorating over 60 trading days. Cautionary when 2 of 4. Distressed when 3 of 4 AND deteriorating across all four.",
+            "description": "Risk Off when 3 of 4 indicators are both extreme (|z| > 1) AND deteriorating over 60 trading days. Cautionary when 2 of 4. Risk Off (deeper) when 3 of 4 AND deteriorating across all four.",
         },
         "indicators": indicators,
         "current_state": state["state"],
@@ -1057,9 +1057,9 @@ def compute_growth_state(indicators: list[dict]) -> dict:
     full = max(3, int(np.ceil(n * 0.75)))
     partial = max(2, int(np.ceil(n * 0.50)))
     if n_concerning >= full and n_deteriorating == n:
-        state = "Distressed"
+        state = "Risk Off (deeper)"
     elif n_concerning >= full:
-        state = "Stressed"
+        state = "Risk Off"
     elif n_concerning >= partial or n_deteriorating >= full:
         state = "Cautionary"
     else:
@@ -1087,38 +1087,38 @@ TILE_CAPTIONS: dict[str, dict[str, str]] = {
     "valuation": {
         "Normal":      "Equities priced reasonably vs long-run history.",
         "Cautionary":  "Equity prices stretching — multiple valuation reads pushing toward concerning.",
-        "Stressed":    "Cycle-peak valuation — multiple reads in the top quartile of long-run history.",
-        "Distressed":  "Cycle-peak valuation, and still rising over the last 60 days.",
+        "Risk Off":    "Cycle-peak valuation — multiple reads in the top quartile of long-run history.",
+        "Risk Off (deeper)":  "Cycle-peak valuation, and still rising over the last 60 days.",
     },
     "credit": {
         "Normal":      "Credit spreads in their normal range.",
-        "Cautionary":  "Credit complacency — high-yield and IG spreads pricing minimal default risk.",
-        "Stressed":    "Credit complacency at extreme — every spread tight, late-cycle signature.",
-        "Distressed":  "Credit fully signalling complacency, deteriorating over the last 60 days.",
+        "Cautionary":  "Credit caution — high-yield and IG spreads pricing minimal default risk.",
+        "Risk Off":    "Credit caution at extreme — every spread tight, late-cycle signature.",
+        "Risk Off (deeper)":  "Credit fully signalling caution, deteriorating over the last 60 days.",
     },
     "funding": {
         "Normal":      "Bank-system funding markets normal.",
         "Cautionary":  "Funding markets showing stress in some venues.",
-        "Stressed":    "Bank-system funding stress arriving.",
-        "Distressed":  "Funding stress and deteriorating.",
+        "Risk Off":    "Bank-system funding stress arriving.",
+        "Risk Off (deeper)":  "Funding stress and deteriorating.",
     },
     "growth": {
         "Normal":      "Real economy moving at trend — no level-and-trend signal.",
         "Cautionary":  "Soft patches forming in the real-economy reads.",
-        "Stressed":    "Real economy weakening across multiple measures.",
-        "Distressed":  "Real economy weakening and deteriorating across the board.",
+        "Risk Off":    "Real economy weakening across multiple measures.",
+        "Risk Off (deeper)":  "Real economy weakening and deteriorating across the board.",
     },
     "liquidity_policy": {
         "Normal":      "Financial conditions accommodative; policy not restrictive.",
         "Cautionary":  "Financial conditions tightening on some measures.",
-        "Stressed":    "Financial conditions restrictive — policy headwind.",
-        "Distressed":  "Financial conditions extreme and deteriorating.",
+        "Risk Off":    "Financial conditions restrictive — policy headwind.",
+        "Risk Off (deeper)":  "Financial conditions extreme and deteriorating.",
     },
     "positioning_breadth": {
         "Normal":      "Investor positioning balanced; market breadth healthy.",
         "Cautionary":  "Positioning extreme on some measures or breadth narrowing.",
-        "Stressed":    "Positioning crowded and breadth deteriorating.",
-        "Distressed":  "Positioning at extreme; breadth collapsing.",
+        "Risk Off":    "Positioning crowded and breadth deteriorating.",
+        "Risk Off (deeper)":  "Positioning at extreme; breadth collapsing.",
     },
 }
 
@@ -1142,8 +1142,8 @@ def headline_gauge(tiles: list[dict]) -> dict:
     """
     live = [t for t in tiles if t.get("live")]
     elevated = [t for t in live if t["current_state"] != "Normal"]
-    n_distressed = sum(1 for t in live if t["current_state"] == "Distressed")
-    n_stressed = sum(1 for t in live if t["current_state"] == "Stressed")
+    n_distressed = sum(1 for t in live if t["current_state"] == "Risk Off (deeper)")
+    n_stressed = sum(1 for t in live if t["current_state"] == "Risk Off")
     n_cautionary = sum(1 for t in live if t["current_state"] == "Cautionary")
     n_live = len(live)
     n_elev = len(elevated)
@@ -1167,11 +1167,11 @@ def headline_gauge(tiles: list[dict]) -> dict:
     elif n_elev == 3:
         verdict = "Defensive setup forming"
         verdict_label = "Risk-off setup forming"
-        verdict_state = "Stressed"
+        verdict_state = "Risk Off"
     else:
         verdict = "High-conviction defensive"
         verdict_label = "High-conviction risk-off"
-        verdict_state = "Distressed"
+        verdict_state = "Risk Off (deeper)"
     return {
         "n_elevated": n_elev,
         "n_live": n_live,
@@ -1182,11 +1182,11 @@ def headline_gauge(tiles: list[dict]) -> dict:
         # New: page-level verdict shipped with the Risk-on / Neutral / Risk-off
         # / High-conviction risk-off naming.
         "verdict_label": verdict_label,
-        "verdict_state": verdict_state,  # Normal / Cautionary / Stressed / Distressed
+        "verdict_state": verdict_state,  # Normal / Cautionary / Risk Off / Risk Off (deeper)
         "breakdown": {
             "Cautionary": n_cautionary,
-            "Stressed": n_stressed,
-            "Distressed": n_distressed,
+            "Risk Off": n_stressed,
+            "Risk Off (deeper)": n_distressed,
         },
         "headline_sentence": _editorial_sentence(n_elev, n_live, verdict_label, n_stressed, n_distressed),
         "subheadline": _subheadline(n_elev, n_live, n_stressed, n_distressed, n_cautionary),
@@ -1202,9 +1202,9 @@ def _editorial_sentence(n_elev: int, n_live: int, verdict_label: str, n_stress: 
         return f"{verdict_label}. All {n_live} live cycle mechanisms reading Normal."
     pieces = []
     if n_dist:
-        pieces.append(f"{n_dist} in Distressed territory")
+        pieces.append(f"{n_dist} in Risk Off (deeper) territory")
     if n_stress:
-        pieces.append(f"{n_stress} in Stressed territory")
+        pieces.append(f"{n_stress} in Risk Off territory")
     if n_elev > (n_dist + n_stress):
         cautionary_count = n_elev - n_dist - n_stress
         pieces.append(f"{cautionary_count} Cautionary")
@@ -1308,12 +1308,12 @@ def main():
         "sprint": SPRINT,
         "as_of": AS_OF,
         "lexicon": {
-            "states": ["Normal", "Cautionary", "Stressed", "Distressed"],
+            "states": ["Normal", "Cautionary", "Risk Off", "Risk Off (deeper)"],
             "tooltips": {
                 "Normal": "Tile rule is not met. Mechanism is reading constructively or neutrally.",
                 "Cautionary": "Tile rule is partially met. Watch but do not act.",
-                "Stressed": "Tile rule is fully met. Mechanism is signaling its concerning regime.",
-                "Distressed": "Tile rule is fully met AND deteriorating over the last 60 trading days.",
+                "Risk Off": "Tile rule is fully met. Mechanism is signaling its concerning regime.",
+                "Risk Off (deeper)": "Tile rule is fully met AND deteriorating over the last 60 trading days.",
             },
             "headline_thresholds": {
                 "Constructive": "0–1 mechanisms elevated",
