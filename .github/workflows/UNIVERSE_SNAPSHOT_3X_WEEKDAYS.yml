@@ -21,15 +21,18 @@ name: UNIVERSE_SNAPSHOT_3X_WEEKDAYS
 
 on:
   schedule:
-    # 10:00 America/New_York
-    - cron: '0 14 * * 1-5'    # 10:00 EDT (UTC-4)
-    - cron: '0 15 * * 1-5'    # 10:00 EST (UTC-5)
-    # 13:00 America/New_York
+    # Three primary slots + a +60-min backup for each so a dropped or
+    # late GitHub fire is recovered the same hour. Idempotency check
+    # below means a backup fire after a successful primary is a no-op.
+    - cron: '0 14 * * 1-5'    # 10:00 EDT
+    - cron: '0 15 * * 1-5'    # 10:00 EST + 11:00 EDT backup
+    - cron: '0 16 * * 1-5'    # 11:00 EST backup
     - cron: '0 17 * * 1-5'    # 13:00 EDT
-    - cron: '0 18 * * 1-5'    # 13:00 EST
-    # 15:45 America/New_York — 15 min before the existing SCAN_345PM run
+    - cron: '0 18 * * 1-5'    # 13:00 EST + 14:00 EDT backup
+    - cron: '0 19 * * 1-5'    # 14:00 EST backup
     - cron: '45 19 * * 1-5'   # 15:45 EDT
-    - cron: '45 20 * * 1-5'   # 15:45 EST
+    - cron: '45 20 * * 1-5'   # 15:45 EST + 16:45 EDT backup
+    - cron: '45 21 * * 1-5'   # 16:45 EST backup
   workflow_dispatch:
 
 concurrency:
@@ -44,41 +47,38 @@ jobs:
       contents: read
 
     steps:
-      - name: DST gate — fire inside a 15-min window after each NY slot
-        # Only gate scheduled runs; workflow_dispatch always proceeds.
-        #
-        # Bug #1033/#1032: relaxed from strict minute-exact equality on the
-        # NY-local clock to a 15-minute window starting at each target slot.
-        # GitHub's cron scheduler routinely slips a few minutes, and strict
-        # equality was silently dropping every scheduled run (e.g.
-        # ticker_events last logged to api_usage_log on 2026-04-22 for this
-        # reason). The sister DST cron entries fall well outside these
-        # windows by construction, so no double-firing.
+      - name: Idempotency gate — skip if a universe_snapshots row was written in the last 50 min
+        # Replaces the strict 15-min slot gate. New rule: if Supabase shows
+        # a successful write to universe_snapshots in the last 50 min, skip
+        # (no-op). Otherwise proceed. Absorbs GitHub Actions cron drift
+        # (which dropped today's 10:00 + 13:00 ET fires entirely on Wed
+        # May 6 2026), and makes the +60-min backup cron entries safe —
+        # they only do work when the primary fire failed or hasn't happened.
+        # workflow_dispatch always proceeds (manual recovery dispatch).
         if: github.event_name == 'schedule'
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          NY_HM=$(TZ=America/New_York date +%H:%M)
-          NY_H=${NY_HM%:*}
-          NY_M=${NY_HM#*:}
-          NY_H=${NY_H#0}; NY_M=${NY_M#0}
-          MINS=$(( NY_H * 60 + NY_M ))
-          HIT=""
-          for SLOT in 10:00 13:00 15:45; do
-            SH=${SLOT%:*}; SM=${SLOT#*:}
-            SH=${SH#0}; SM=${SM#0}
-            SLOT_START=$(( SH * 60 + SM ))
-            SLOT_END=$(( SLOT_START + 49 ))   # widened from 15min to 50min — see PR #284 + LESSONS rule #32 for cron-drift context
-            if [ "$MINS" -ge "$SLOT_START" ] && [ "$MINS" -le "$SLOT_END" ]; then
-              HIT="$SLOT"
-              break
-            fi
-          done
-          if [ -z "$HIT" ]; then
-            echo "::notice::Skipping — NYC local is $NY_HM, outside slot windows. DST-matched cron will handle today."
+          LATEST=$(curl -fsS --max-time 8 \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_URL/rest/v1/universe_snapshots?select=snapshot_ts&order=snapshot_ts.desc&limit=1" \
+            | python3 -c "import sys,json; r=json.load(sys.stdin); print(r[0]['snapshot_ts'] if r else '')")
+          if [ -z "$LATEST" ]; then
+            echo "::notice::No prior universe_snapshots row — proceeding (cold start)."
+            exit 0
+          fi
+          NOW_EPOCH=$(date -u +%s)
+          LATEST_EPOCH=$(python3 -c "import datetime,sys; s='$LATEST'.replace('Z','+00:00'); print(int(datetime.datetime.fromisoformat(s).timestamp()))")
+          AGE_MIN=$(( (NOW_EPOCH - LATEST_EPOCH) / 60 ))
+          echo "Latest universe_snapshots row: $LATEST  ·  age: ${AGE_MIN} min"
+          if [ "$AGE_MIN" -lt 50 ]; then
+            echo "::notice::Idempotent skip — last write was ${AGE_MIN} min ago (< 50)."
             echo "SKIP_RUN=true" >> "$GITHUB_ENV"
           else
-            echo "✓ NYC time is $NY_HM, inside 15-min window for slot $HIT — proceeding."
+            echo "✓ Last write was ${AGE_MIN} min ago — proceeding."
           fi
-
       - name: Checkout repository
         if: env.SKIP_RUN != 'true'
         uses: actions/checkout@v4.2.2
