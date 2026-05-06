@@ -15,7 +15,7 @@
 import { useState, useEffect, useRef } from "react";
 import { InfoTip, Tip } from "../InfoTip";
 import HistoricalChart from "./HistoricalChart";
-import UniverseFreshness from "./UniverseFreshness";
+import DataFreshness from "./DataFreshness";
 import { computeSectionComposites, colorForDirection } from "../ticker/sectionComposites";
 import { normalizeTickerName } from "../lib/nameFormat";
 import { supabase } from "../lib/supabase";
@@ -1247,7 +1247,7 @@ return(
         {dayPct>=0?"▲ +":"▼ "}{fmt$(Math.abs(price-prevClose))} · {dayPct>=0?"+":""}{dayPct.toFixed(2)}%
       </div>
     )}
-    {(scanData?.universe_snapshot_ts||scanData?.ticker_events_ts)&&<div style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><UniverseFreshness pricesTs={scanData.universe_snapshot_ts} eventsTs={scanData.ticker_events_ts} compact/></div>}
+    {(scanData?.universe_snapshot_ts||scanData?.ticker_events_ts)&&<div style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><DataFreshness pricesTs={scanData.universe_snapshot_ts} eventsTs={scanData.ticker_events_ts} compact/></div>}
   </div>
 </div>
 
