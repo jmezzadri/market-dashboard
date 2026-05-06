@@ -11,10 +11,10 @@ import ScenariosPageV2 from "./v2/pages/ScenariosPage";
 import AdminPageV2 from "./v2/pages/AdminPage";
 
 
-// Cutover feature flag — DEFAULT ON 2026-05-06 per Joe directive.
-// Escape hatch: append ?v=1 to URL to force legacy rendering.
-const V2_ENABLED = typeof window === "undefined" ? false :
-  new URLSearchParams(window.location.search).get("v") !== "1";
+// Cutover feature flag — REVERTED to default-OFF 2026-05-06 (P0 rollback).
+// v2 cutover branch is broken in production; legacy v1 restored as default.
+// Append ?v=2 to URL to access the cutover preview for triage.
+const V2_ENABLED = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("v") === "2";
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
   Sidebar, SidebarToggleButton,
