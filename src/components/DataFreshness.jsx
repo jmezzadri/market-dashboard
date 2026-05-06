@@ -76,7 +76,7 @@ function etDateKey(iso) {
   } catch { return null; }
 }
 
-export default function DataFreshness({ scanTs, pricesTs, eventsTs, style }) {
+export default function DataFreshness({ scanTs, pricesTs, eventsTs, style, compact = false }) {
   const streams = [
     { key: "scan",   ts: scanTs },
     { key: "prices", ts: pricesTs },
@@ -114,30 +114,34 @@ export default function DataFreshness({ scanTs, pricesTs, eventsTs, style }) {
     <div
       data-testid="data-freshness"
       style={{
-        fontSize: 11,
+        fontSize: compact ? 10 : 11,
         fontFamily: "var(--font-mono)",
         letterSpacing: "0.04em",
-        padding: "8px 12px",
-        borderRadius: 6,
-        border: anyStale
-          ? "1px solid rgba(255,159,10,0.35)"
-          : "1px solid var(--border-faint)",
-        background: anyStale ? "rgba(255,159,10,0.06)" : "transparent",
+        padding: compact ? "2px 0" : "8px 12px",
+        borderRadius: compact ? 0 : 6,
+        border: compact
+          ? "none"
+          : (anyStale ? "1px solid rgba(255,159,10,0.35)" : "1px solid var(--border-faint)"),
+        background: compact ? "transparent" : (anyStale ? "rgba(255,159,10,0.06)" : "transparent"),
         color: anyStale ? "var(--orange-text)" : "var(--text-muted)",
         display: "flex",
         alignItems: "center",
         flexWrap: "wrap",
         rowGap: 4,
-        columnGap: 8,
+        columnGap: compact ? 6 : 8,
         ...style,
       }}
     >
-      <span style={{ color: "var(--text-dim)", fontWeight: 700, letterSpacing: "0.08em" }}>
-        DATA FRESHNESS
-      </span>
+      {!compact && (
+        <span style={{ color: "var(--text-dim)", fontWeight: 700, letterSpacing: "0.08em" }}>
+          DATA FRESHNESS
+        </span>
+      )}
       {items.map((it, i) => (
         <React.Fragment key={it.label}>
-          <span aria-hidden="true" style={{ color: "var(--text-dim)" }}>·</span>
+          {(!compact || i > 0) && (
+            <span aria-hidden="true" style={{ color: "var(--text-dim)" }}>·</span>
+          )}
           <span style={{ color: it.isStale ? "var(--orange-text)" : "var(--text)" }}>
             <Tip label={it.label.toUpperCase()} def={it.tip}>
               <strong style={{
