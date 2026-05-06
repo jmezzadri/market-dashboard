@@ -21,6 +21,9 @@ export default function TradingOppsPage() {
   const insider = Array.isArray(scan?.signals?.insider_buys?.items) ? scan.signals.insider_buys.items
                 : Array.isArray(scan?.signals?.insider?.items) ? scan.signals.insider.items
                 : [];
+  const congress = Array.isArray(scan?.signals?.congress_trades?.items) ? scan.signals.congress_trades.items
+                 : Array.isArray(scan?.signals?.congress?.items) ? scan.signals.congress.items
+                 : [];
   const universeSize = Array.isArray(scan?.wide_universe) ? scan.wide_universe.length
                      : (scan?.meta?.universe_size || scan?.universe_size || null);
 

@@ -31,7 +31,19 @@ export default function ScenariosPageV2() {
       </header>
       <div className="v2-shell" style={{ marginTop: 32 }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 18 }} className="v2-asset-grid">
-          {scenarios.length === 0 && (
+          {scenarios.length === 0 && data?.status === 'dormant' && (
+            <div style={{ gridColumn: 'span 2', textAlign: 'center', color: 'var(--ink-2)', padding: 48, fontSize: 14, lineHeight: 1.6 }}>
+              <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 18, color: 'var(--ink-1)', marginBottom: 12 }}>
+                Scenario engine paused
+              </div>
+              <div style={{ maxWidth: '52ch', margin: '0 auto' }}>
+                The bespoke shock builder and historical scenario set are
+                being rebuilt against the v10 allocator. Targeted to ship
+                with the Asset Tilt Sankey rebuild.
+              </div>
+            </div>
+          )}
+          {scenarios.length === 0 && data?.status !== 'dormant' && (
             <div style={{ gridColumn: 'span 2', textAlign: 'center', color: 'var(--ink-2)', padding: 48 }}>
               Loading scenarios…
             </div>
