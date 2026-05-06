@@ -1,0 +1,129 @@
+{
+  "tab_id": "macro_overview",
+  "page_file": "src/v2/pages/MacroOverviewPage.jsx",
+  "description": "Macro Overview tab \u2014 anchored on the v11 Cycle Mechanism Board (six mechanisms \u00d7 calibrated indicators) per methodology-v11. UAT-passed in Chrome MCP at commit 9d40792.",
+  "required_section_headings": [
+    "Underlying indicators \u00b7 click any to drill in",
+    "cycle mechanism"
+  ],
+  "required_labels": [
+    "Mechanisms flagged",
+    "Inputs flagged",
+    "Composite",
+    "Composite score",
+    "Calibrated indicators",
+    "Framework",
+    "Current reading",
+    "Percentile vs 15y",
+    "Months of history",
+    "Cadence",
+    "Baseline window",
+    "Source",
+    "Vendor",
+    "Series",
+    "Rule",
+    "So what",
+    "Moves in step with"
+  ],
+  "required_lexicon_states": [
+    "Risk On",
+    "Neutral",
+    "Cautionary",
+    "Risk Off"
+  ],
+  "required_mechanisms": [
+    {
+      "id": "valuation",
+      "name": "Valuation"
+    },
+    {
+      "id": "credit",
+      "name": "Credit"
+    },
+    {
+      "id": "funding",
+      "name": "Funding"
+    },
+    {
+      "id": "growth",
+      "name": "Growth"
+    },
+    {
+      "id": "liquidity_policy",
+      "name": "Liquidity & Policy"
+    },
+    {
+      "id": "positioning_breadth",
+      "name": "Positioning & Breadth"
+    }
+  ],
+  "required_tooltips_for_labels": [
+    "Mechanisms flagged",
+    "Inputs flagged",
+    "Composite",
+    "Calibrated indicators",
+    "Current reading",
+    "Months of history",
+    "Cadence"
+  ],
+  "required_source_attribution_pattern": "Source \u00b7 As of",
+  "required_drilldown_targets": [
+    "Mechanism \u2192 Inputs (drawer rows)",
+    "Indicator \u2192 vendor + history chart (per-row drawer)",
+    "Composite \u2192 6 mechanisms (hero)"
+  ],
+  "required_chart_features": [
+    "MTChart imported and used",
+    "tintBands prop wired on at least one chart"
+  ],
+  "banned_strings_in_rendered_paths": [
+    "Stressed",
+    "Distressed",
+    "Concerning",
+    "Complacent",
+    "complacency",
+    "complacent",
+    "Tilt points",
+    "History points",
+    "OVR",
+    "Sharpe contribution",
+    "pipeline_health",
+    "indicator_history",
+    "INDICATOR-REFRESH",
+    "MASSIVE-DAILY",
+    "V10-ASSET-ALLOCATION",
+    "V9-ALLOCATION",
+    "DAILY-HOME-SMOKE",
+    "#0071e3",
+    "#007AFF"
+  ],
+  "exempt_locations": [
+    {
+      "file": "src/v2/pages/MacroOverviewPage.jsx",
+      "line_pattern": "['\\\"`](Stressed|Distressed|Concerning|Complacent|Normal|Cautious)['\\\"`]\\s*:\\s*['\\\"`](Risk On|Neutral|Cautionary|Risk Off)['\\\"`]",
+      "tokens": [
+        "Stressed",
+        "Distressed",
+        "Concerning",
+        "Complacent",
+        "Normal"
+      ],
+      "reason": "STANCE_MAP defensive remap collapsing legacy labels to v2 lexicon."
+    },
+    {
+      "file": "src/v2/pages/MacroOverviewPage.jsx",
+      "line_pattern": "\\bindicatorId=|\\belementId=",
+      "tokens": [
+        "indicator_history"
+      ],
+      "reason": "indicatorId / elementId props on FreshnessChip \u2014 programmatic, not rendered."
+    }
+  ],
+  "_meta": {
+    "schema_version": 1,
+    "locked_at_commit": "9d40792",
+    "ux_designer_signoff": "round-2 UAT 2026-05-06",
+    "senior_quant_signoff": "round-2 UAT 2026-05-06",
+    "lead_developer_uat": "Chrome MCP 2026-05-06"
+  }
+}

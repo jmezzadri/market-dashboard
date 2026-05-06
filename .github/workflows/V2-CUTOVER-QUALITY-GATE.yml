@@ -11,6 +11,8 @@ on:
       - "public/*.json"
       - "src/v2/**"
       - "scripts/check_v2_cutover_quality.py"
+      - "scripts/check_v2_snapshot_fixtures.py"
+      - "fixtures/v2_snapshots/**"
       - ".github/workflows/V2-CUTOVER-QUALITY-GATE.yml"
   push:
     branches:
@@ -33,3 +35,6 @@ jobs:
 
       - name: Run cutover quality gate
         run: python scripts/check_v2_cutover_quality.py
+
+      - name: Run snapshot fixture checks
+        run: python scripts/check_v2_snapshot_fixtures.py --report
