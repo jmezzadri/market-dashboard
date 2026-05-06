@@ -1497,43 +1497,11 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   if (view === "landing") {
     return (
       <main style={{ maxWidth: 1440, margin: "0 auto", padding: "var(--space-4) var(--space-8) var(--space-10)" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", flexWrap: "wrap", gap: 12, marginBottom: "var(--space-6)" }}>
-          <div className="section-eyebrow">Latest scan</div>
-          <span style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-            {/* Data-freshness chip — sits next to the scan time so the user
-                can see both the 1x/day scan and the 3x/day price + 3x/day
-                events refresh stamps at a glance. Rendered nothing for
-                signed-out. */}
-            <UniverseFreshness pricesTs={data?.universe_snapshot_ts} eventsTs={data?.ticker_events_ts} />
-            <span style={{ fontSize: 12, color: "var(--text-dim)", fontFamily: "var(--font-mono)" }}>{scanLabel}</span>
-          </span>
-        </div>
-
-        {staleCopy && (
-          <div
-            role="status"
-            aria-live="polite"
-            style={{
-              display: "flex", alignItems: "flex-start", gap: 10,
-              padding: "10px 14px",
-              marginBottom: "var(--space-5)",
-              background: "rgba(255,159,10,0.10)",     // amber tint on --orange
-              border: "1px solid rgba(255,159,10,0.35)",
-              borderRadius: "var(--radius-sm)",
-              fontSize: 13, lineHeight: 1.45,
-              color: "var(--orange-text)",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            <span aria-hidden="true" style={{ fontSize: 14, lineHeight: 1.3 }}>⚠</span>
-            <span>
-              <strong style={{ fontWeight: 700, marginRight: 6 }}>
-                {isVeryStale ? "VERY STALE" : "STALE"}
-              </strong>
-              {staleCopy}
-            </span>
-          </div>
-        )}
+        {/* 2026-05-06 — eyebrow + UniverseFreshness chip + scanLabel and the
+            orange "VERY STALE" banner all retired. The Trading Opps surface
+            now renders a single consolidated <DataFreshness> line above this
+            tile grid. Keeping the Scanner component pure-content avoids the
+            four-labels-on-one-page UX problem Joe flagged. */}
 
         <div className="scanner-tile-grid" style={{
           display: "grid",
