@@ -12,12 +12,10 @@ import AdminPageV2 from "./v2/pages/AdminPage";
 import V2ErrorBoundary from "./v2/components/ErrorBoundary";
 
 
-// Cutover feature flag — DEFAULT ON 2026-05-06 (Joe approved post-audit).
-// v2 build verified clean on Vercel preview before this flip; error boundary
-// + CountUp first-frame fix + data-shape parser fixes all live.
-// Escape hatch: append ?v=1 to URL to force legacy rendering.
-const V2_ENABLED = typeof window === "undefined" ? false :
-  new URLSearchParams(window.location.search).get("v") !== "1";
+// Cutover feature flag — REVERTED to default-OFF 2026-05-06 (P0 rollback).
+// v2 cutover NOT acceptable to Joe in current state. Legacy v1 restored.
+// Append ?v=2 to URL to access the cutover preview for triage.
+const V2_ENABLED = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("v") === "2";
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
   Sidebar, SidebarToggleButton,
