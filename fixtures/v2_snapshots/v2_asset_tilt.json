@@ -1,0 +1,74 @@
+{
+  "tab_id": "asset_tilt",
+  "page_file": "src/v2/pages/AssetTiltPage.jsx",
+  "description": "Asset Tilt tab \u2014 allocation snapshot anchored on the v10 engine. Theme #8: links back to Macro Overview for the cycle mechanism board (no longer re-renders the 6-mechanism strip). Locked at the post-strip-removal commit; sub-agents UX Designer + Senior Quant signed off.",
+  "required_section_headings": [
+    "Sectors",
+    "Top & bottom tilts",
+    "Industry groups"
+  ],
+  "required_labels": [
+    "Stress",
+    "Equity",
+    "Defensive",
+    "Leverage",
+    "Cycle says",
+    "see Macro Overview",
+    "Top 5 \u00b7 bottom 5",
+    "GICS",
+    "Contribution by mechanism"
+  ],
+  "required_lexicon_states": [],
+  "required_mechanisms": [],
+  "required_tooltips_for_labels": [
+    "Top 5 \u00b7 bottom 5",
+    "see Macro Overview"
+  ],
+  "required_source_attribution_pattern": "refreshed",
+  "required_drilldown_targets": [
+    "Industry group \u2192 tickers (per-row drawer)",
+    "Sectors \u2192 industry-group breakdown",
+    "Cycle says \u2192 Macro Overview (#overview)"
+  ],
+  "required_chart_features": [],
+  "required_internal_links": [
+    {
+      "href": "#overview",
+      "context": "Cycle says link must route to Macro Overview tab"
+    }
+  ],
+  "banned_strings_in_rendered_paths": [
+    "Stressed",
+    "Distressed",
+    "Concerning",
+    "Complacent",
+    "complacency",
+    "complacent",
+    "Tilt points",
+    "History points",
+    "OVR",
+    "Sharpe contribution",
+    "5 + 5",
+    "5+5",
+    "pipeline_health",
+    "indicator_history",
+    "INDICATOR-REFRESH",
+    "MASSIVE-DAILY",
+    "V10-ASSET-ALLOCATION",
+    "V9-ALLOCATION",
+    "DAILY-HOME-SMOKE",
+    "#0071e3",
+    "#007AFF"
+  ],
+  "exempt_locations": [],
+  "_meta": {
+    "schema_version": 1,
+    "ux_designer_signoff": "round-2 APPROVE 2026-05-06 (post Inter / focus-visible / class-based hover refactor)",
+    "senior_quant_signoff": "APPROVE 2026-05-06 \u2014 calc surface untouched (stance traces to v10.page_stance)",
+    "lead_developer_uat": "vite build clean; both gates green; awaiting Chrome MCP UAT after deploy",
+    "open_followups": [
+      "Hero {stance} lean. postfix is inconsistent with new link's stance-only render \u2014 separate follow-up, not strip-removal scope.",
+      "Industry-group drawer 'Tilt score' label is borderline theme #7 \u2014 separate follow-up."
+    ]
+  }
+}

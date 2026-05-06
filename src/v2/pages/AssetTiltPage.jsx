@@ -9,20 +9,6 @@ import Drawer from '../components/Drawer';
  * mechanism_scores, mechanism_bands, sectors, industry_groups with tickers + contributions + dollar).
  */
 
-function bandClass(band) {
-  if (band === 'risk-off') return 'r-off';
-  if (band === 'caution') return 'r-cau';
-  if (band === 'neutral') return 'r-neu';
-  if (band === 'risk-on') return 'r-on';
-  return 'placeholder';
-}
-function bandLabel(band) {
-  if (band === 'risk-off') return 'Risk Off';
-  if (band === 'caution') return 'Cautionary';
-  if (band === 'neutral') return 'Neutral';
-  if (band === 'risk-on') return 'Risk On';
-  return '—';
-}
 const MECH_LABELS = {
   valuation: 'Valuation', credit: 'Credit', funding: 'Funding',
   growth: 'Growth', liquidity_policy: 'Liquidity & Policy', positioning_breadth: 'Positioning & Breadth',
@@ -100,29 +86,19 @@ export default function AssetTiltPage() {
       </header>
 
       <div className="v2-shell">
-        {/* 6 MECHANISM STRIP */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 8, padding: '24px 0 0' }}>
-          {Object.entries(MECH_LABELS).map(([id, label], i) => {
-            const score = v10?.mechanism_scores?.[id];
-            const band = bandClass(v10?.mechanism_bands?.[id]);
-            return (
-              <div key={id} style={{
-                background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 12,
-                padding: '14px 16px', position: 'relative', overflow: 'hidden',
-              }}>
-                <div style={{
-                  position: 'absolute', top: 0, left: 0, right: 0, height: 2,
-                  background: band === 'r-off' ? 'var(--down)' : band === 'r-cau' ? 'var(--warn)' : band === 'r-neu' ? 'var(--info)' : band === 'r-on' ? 'var(--up)' : 'var(--ink-3)',
-                }} />
-                <div style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--ink-2)', fontWeight: 500, marginBottom: 8 }}>0{i+1} {label.replace('Liquidity & Policy', 'Liq & Pol').replace('Positioning & Breadth', 'Pos & Br')}</div>
-                <div style={{ fontFamily: 'Fraunces,serif', fontVariationSettings: '"opsz" 36,"wght" 400', fontSize: 30, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
-                  {score != null ? <CountUp to={score} /> : '—'}
-                </div>
-                <div style={{ fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', color: 'var(--ink-2)', marginTop: 4, fontWeight: 500 }}>{bandLabel(v10?.mechanism_bands?.[id])}</div>
-              </div>
-            );
-          })}
-        </div>
+        {/* Theme #8: cycle mechanism strip lives only on Macro Overview.
+            Asset Tilt links back, never re-renders.  Bug #1164. */}
+        <a
+          href="#overview"
+          className="v2-cycle-link"
+          title="The cycle mechanism board lives on Macro Overview. Click to see all six mechanisms."
+        >
+          <span style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span className="t-eyebrow accent" style={{ marginRight: 4 }}>Cycle says</span>
+            <span className="stance">{stance || '—'}</span>
+          </span>
+          <span className="cta">see Macro Overview →</span>
+        </a>
 
         {/* 2-COL: SECTORS + TOP/BOTTOM */}
         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 18, padding: '32px 0 0' }} className="v2-asset-grid">
@@ -150,7 +126,7 @@ export default function AssetTiltPage() {
           <div style={{ background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-tile)', padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', borderBottom: '1px solid var(--line-0)', paddingBottom: 14, marginBottom: 14 }}>
               <h2 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>Top &amp; bottom tilts</h2>
-              <span className="t-eyebrow">5 + 5</span>
+              <span className="t-eyebrow" title="The five industry groups with the largest overweight versus the five with the largest underweight.">Top 5 · bottom 5</span>
             </div>
             {top.map((ig) => (
               <div key={ig.id} onClick={() => setOpenIg(ig.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid var(--line-0)', fontSize: 13, cursor: 'pointer' }}>

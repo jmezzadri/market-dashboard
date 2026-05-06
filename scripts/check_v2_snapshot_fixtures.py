@@ -39,12 +39,16 @@ FIXTURE_DIR = ROOT / "fixtures" / "v2_snapshots"
 
 
 def find_lines_containing(text: str, needle: str) -> list[int]:
-    """Return 1-indexed line numbers where needle (literal) appears."""
-    needle_lower = needle.lower()
+    """Return 1-indexed line numbers where needle (literal) appears.
+    Both the line and the needle are HTML-entity decoded before
+    comparison so a fixture asking for 'Top & bottom tilts' matches
+    JSX source that reads 'Top &amp; bottom tilts'."""
+    import html as _html
+    needle_lower = _html.unescape(needle).lower()
     return [
         i + 1
         for i, line in enumerate(text.splitlines())
-        if needle_lower in line.lower()
+        if needle_lower in _html.unescape(line).lower()
     ]
 
 
@@ -111,7 +115,9 @@ def check_fixture(fixture_path: Path, verbose: bool = False) -> list[str]:
     page_file = ROOT / f["page_file"]
     if not page_file.exists():
         return [f"page file missing: {f['page_file']}"]
-    text = page_file.read_text()
+    raw_text = page_file.read_text()
+    import html as _html
+    text = _html.unescape(raw_text)
 
     tab = f["tab_id"]
 
@@ -151,7 +157,7 @@ def check_fixture(fixture_path: Path, verbose: bool = False) -> list[str]:
         for i, line in enumerate(lines):
             if label.lower() not in line.lower():
                 continue
-            window = "\n".join(lines[max(0, i - 4):i + 6])
+            window = "\n".join(lines[max(0, i - 8):i + 6])
             if re.search(r"\b(tip|tooltip|title|aria-label)\s*=", window, re.IGNORECASE):
                 seen_tooltip = True
                 break
@@ -180,8 +186,8 @@ def check_fixture(fixture_path: Path, verbose: bool = False) -> list[str]:
 
     # Banned strings in rendered paths
     for banned in f.get("banned_strings_in_rendered_paths", []):
-        for ln in find_lines_containing(text, banned):
-            line_text = line_at(text, ln)
+        for ln in find_lines_containing(raw_text, banned):
+            line_text = line_at(raw_text, ln)
             if not is_in_jsx_text_or_attr(line_text, banned):
                 continue
             # Check exempt locations
