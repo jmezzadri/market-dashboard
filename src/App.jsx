@@ -52,7 +52,6 @@ import CloseModal    from "./components/CloseModal";
 import BulkImport from "./components/BulkImport";
 import ImportTransactions from "./components/ImportTransactions";
 import AccountTilesSection from "./components/AccountTilesSection";
-import UniverseFreshness from "./components/UniverseFreshness";
 import HistoricalChart from "./components/HistoricalChart";
 import useStockRiskMetrics from "./hooks/useStockRiskMetrics";
 import FreshnessDot from "./components/FreshnessDot";
