@@ -2,7 +2,7 @@
   "version": "v11.0.0",
   "framework": "cycle-mechanism-counting",
   "sprint": 1,
-  "as_of": "2026-05-05",
+  "as_of": "2026-05-06",
   "lexicon": {
     "states": [
       "Normal",
@@ -13,7 +13,7 @@
     "tooltips": {
       "Normal": "Tile rule is not met. Mechanism is reading constructively or neutrally.",
       "Cautionary": "Tile rule is partially met. Watch but do not act.",
-      "Risk Off": "Tile rule is fully met. Mechanism is signaling its elevated regime.",
+      "Risk Off": "Tile rule is fully met. Mechanism is signaling its concerning regime.",
       "Risk Off (deeper)": "Tile rule is fully met AND deteriorating over the last 60 trading days."
     },
     "headline_thresholds": {
@@ -35,7 +35,7 @@
       "Risk Off": 1,
       "Risk Off (deeper)": 0
     },
-    "headline_sentence": "Risk-off setup forming. 3 of 3 live cycle mechanisms elevated above the cohort \u2014 1 in Risk Off territory, 2 Cautionary.",
+    "headline_sentence": "Risk-off setup forming. 3 of 3 live cycle mechanisms elevated above Normal \u2014 1 in Risk Off territory, 2 Cautionary.",
     "subheadline": "3 of 3 cycle mechanisms are elevated. The defensive setup is forming."
   },
   "tiles": [
@@ -48,7 +48,7 @@
       "description_long": "Valuation indicators measure how much investors are paying per dollar of earnings, GDP, or risk premium. When several measures simultaneously sit in the top quartile of their long-run distribution, the equity market is showing the cycle-peak signature \u2014 high prices, high prices for risk, narrow risk premium.",
       "rule": {
         "logic": "concerning_if_three_of_four_in_concerning_quartile",
-        "description": "Risk Off when 3 of 4 indicators sit in their elevated quartile. For CAPE, P/E, and Buffett indicator the elevated quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Risk Off (deeper) when 3 of 4 AND worsening over 60 trading days.",
+        "description": "Risk Off when 3 of 4 indicators sit in their concerning quartile. For CAPE, P/E, and Buffett indicator the concerning quartile is the top 25% (rich valuation). For equity risk premium it is the bottom 25% (no compensation for owning stocks vs bonds). Cautionary when 2 of 4. Risk Off (deeper) when 3 of 4 AND worsening over 60 trading days.",
         "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; trailing P/E joins in Sprint 1.5 once long-history Shiller series is staged."
       },
       "indicators": [
@@ -63,8 +63,8 @@
           "source_url": "https://www.multpl.com/shiller-pe",
           "sample_window": "post-2011 (15y)",
           "current": {
-            "date": "2026-05-04",
-            "value": 40.9
+            "date": "2026-05-05",
+            "value": 41.24
           },
           "percentile": 100.0,
           "quartile": 4,
@@ -559,7 +559,7 @@
             ],
             [
               "2026-05-31",
-              40.9
+              41.24
             ]
           ],
           "direction": "high",
@@ -567,26 +567,26 @@
           "kpis": [
             {
               "label": "1-month change",
-              "value": 2.56,
-              "value_pct": 6.7,
+              "value": 2.9,
+              "value_pct": 7.6,
               "direction": "up"
             },
             {
               "label": "3-month change",
-              "value": 1.37,
-              "value_pct": 3.5,
+              "value": 1.71,
+              "value_pct": 4.3,
               "direction": "up"
             },
             {
               "label": "1-year change",
-              "value": 5.82,
-              "value_pct": 16.6,
+              "value": 6.16,
+              "value_pct": 17.6,
               "direction": "up"
             },
             {
               "label": "Distance from peak",
               "value": 0.0,
-              "peak_value": 40.9,
+              "peak_value": 41.24,
               "peak_date": "2026-05",
               "direction": "flat"
             }
@@ -626,8 +626,8 @@
             {
               "peer_id": "hy_oas",
               "peer_name": "HY OAS",
-              "corr_1y": -0.46,
-              "corr_5y": -0.72,
+              "corr_1y": -0.45,
+              "corr_5y": -0.71,
               "n_1y": 12,
               "n_5y": 36
             },
@@ -669,7 +669,7 @@
           "id": "erp",
           "name": "Equity Risk Premium",
           "unit": "percent",
-          "description": "How much extra yield investors demand to own stocks vs 10-year Treasuries. Computed as earnings yield (1/CAPE) minus the 10-year yield. A near-zero or negative ERP means stocks are priced for benign conditions.",
+          "description": "How much extra yield investors demand to own stocks vs 10-year Treasuries. Computed as earnings yield (1/CAPE) minus the 10-year yield. A near-zero or negative ERP means stocks are priced for perfection.",
           "so_what": "When ERP is at or below zero, investors are accepting less from stocks than they could get risk-free from Treasuries. Historically that compression has marked late-cycle equity tops.",
           "formula": "ERP = (1 / CAPE) \u00d7 100 \u2212 10-year Treasury yield",
           "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
@@ -677,7 +677,7 @@
           "sample_window": "post-2011 (15y)",
           "current": {
             "date": "2026-05-31",
-            "value": -1.95
+            "value": -2.03
           },
           "percentile": 0.5,
           "quartile": 1,
@@ -1421,32 +1421,32 @@
             ],
             [
               "2026-05-31",
-              -1.945
+              -2.0252
             ]
           ],
           "concerning_score": 99,
           "kpis": [
             {
               "label": "1-month change",
-              "value": -0.1533,
-              "value_pct": 8.6,
+              "value": -0.2334,
+              "value_pct": 13.0,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -0.5047,
-              "value_pct": 35.0,
+              "value": -0.5849,
+              "value_pct": 40.6,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -0.3856,
-              "value_pct": 24.7,
+              "value": -0.4658,
+              "value_pct": 29.9,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -5.274,
+              "value": -5.3542,
               "peak_value": 3.329,
               "peak_date": "2020-03",
               "direction": "dn"
@@ -1482,16 +1482,16 @@
             {
               "peer_id": "cape",
               "peer_name": "CAPE (Shiller)",
-              "corr_1y": -0.19,
-              "corr_5y": -0.17,
+              "corr_1y": -0.28,
+              "corr_5y": -0.18,
               "n_1y": 12,
               "n_5y": 60
             }
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-04",
-            "next_release": "2026-05-05 (T+1)",
+            "last_release": "2026-05-05",
+            "next_release": "2026-05-06 (T+1)",
             "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
             "source_url": "https://fred.stlouisfed.org/series/DGS10"
           },
@@ -2510,8 +2510,8 @@
         }
       ],
       "current_state": "Risk Off",
-      "rule_status": "3 of 3 indicators in elevated quartile",
-      "as_of": "2026-05-05",
+      "rule_status": "3 of 3 indicators in concerning quartile",
+      "as_of": "2026-05-06",
       "composite_score": 100,
       "composite_breakdown": [
         {
@@ -2544,11 +2544,11 @@
       "description_long": "Credit spreads describe how much extra yield bond investors require over risk-free Treasuries to take corporate-credit risk. The Credit tile reads as bidirectional: extreme tightness reads as cycle-peak caution, extreme widening reads as actual stress arriving. Both are interesting in opposite ways.",
       "rule": {
         "logic": "bidirectional",
-        "complacency_condition": "3 of 4 spreads in bottom quartile (priced for benign conditions)",
+        "risk_off_condition": "3 of 4 spreads in top quartile (Risk Off arriving)",
+        "complacency_condition": "3 of 4 spreads in bottom quartile (priced for perfection)",
         "cautionary_at": "2 of 4 in either tail",
-        "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; leveraged-loan spread joins in Sprint 2.",
-        "risk_off_condition": "3 of 4 spreads in top quartile (real stress arriving)",
-        "risk_off_addendum": "stressed_condition AND deteriorating over 60d"
+        "risk_off_addendum": "risk_off_condition AND deteriorating over 60d",
+        "sprint_1_note": "Sprint 1 ships with 3 of 4 indicators; leveraged-loan spread joins in Sprint 2."
       },
       "indicators": [
         {
@@ -2556,7 +2556,7 @@
           "name": "IG OAS (Baa \u2212 10y)",
           "unit": "bp",
           "description": "Yield premium investors require to own investment-grade Baa-rated corporate bonds over equal-maturity Treasuries. Widens in stress, compresses in caution.",
-          "so_what": "Today's IG OAS sits in the bottom quartile of post-1986 history. Investors are pricing very little default-risk premium into investment-grade credit \u2014 the 'priced for benign conditions' read.",
+          "so_what": "Today's IG OAS sits in the bottom quartile of post-1986 history. Investors are pricing very little default-risk premium into investment-grade credit \u2014 the 'priced for perfection' read.",
           "formula": "IG OAS proxy = Moody's Baa yield \u2212 10-year Treasury yield, in basis points",
           "source": "FRED: BAA \u2212 DGS10 (monthly)",
           "source_url": "https://fred.stlouisfed.org/series/BAA",
@@ -3167,8 +3167,8 @@
           "id": "hy_oas",
           "name": "HY OAS",
           "unit": "bp",
-          "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for benign conditions; wide spreads = stress is here.",
-          "so_what": "HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle caution rather than imminent risk-off.",
+          "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
+          "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle caution rather than imminent stress.",
           "formula": "HY OAS = ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
           "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
           "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
@@ -3176,7 +3176,7 @@
           "data_caveat": "ICE BofA license restricts FRED's free history to post-2011. GFC 2008 peak (~2,000bp) is out of sample.",
           "current": {
             "date": "2026-05-31",
-            "value": 278.0
+            "value": 277.0
           },
           "percentile": 8.1,
           "quartile": 1,
@@ -3327,7 +3327,7 @@
             ],
             [
               "2026-05-31",
-              278.0
+              277.0
             ]
           ],
           "direction": "bidir_bottom",
@@ -3335,25 +3335,25 @@
           "kpis": [
             {
               "label": "1-month change",
-              "value": -5.0,
-              "value_pct": -1.8,
+              "value": -6.0,
+              "value_pct": -2.1,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -34.0,
-              "value_pct": -10.9,
+              "value": -35.0,
+              "value_pct": -11.2,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -54.0,
-              "value_pct": -16.3,
+              "value": -55.0,
+              "value_pct": -16.6,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -191.0,
+              "value": -192.0,
               "peak_value": 469.0,
               "peak_date": "2023-05",
               "direction": "dn"
@@ -3373,8 +3373,8 @@
             {
               "peer_id": "cape",
               "peer_name": "CAPE (Shiller)",
-              "corr_1y": -0.46,
-              "corr_5y": -0.72,
+              "corr_1y": -0.45,
+              "corr_5y": -0.71,
               "n_1y": 12,
               "n_5y": 36
             },
@@ -3405,8 +3405,8 @@
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-05",
-            "next_release": "2026-05-06 (T+1)",
+            "last_release": "2026-05-06",
+            "next_release": "2026-05-07 (T+1)",
             "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
             "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
           },
@@ -3416,7 +3416,7 @@
           "id": "hy_ig_ratio",
           "name": "HY/IG ratio",
           "unit": "ratio",
-          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect \u2014 captures whether credit markets are pricing the junk-vs-quality differential normally or in a risk-off/cautionary way.",
+          "description": "Ratio of high-yield spread to investment-grade spread. Strips out the level effect \u2014 captures whether credit markets are pricing the junk-vs-quality differential normally or in an early-stage risk-off way.",
           "so_what": "Mid-distribution today. The junk-vs-quality differential is priced normally; nothing unusual either way in the relative pricing of high-yield to investment-grade.",
           "formula": "HY/IG ratio = HY OAS / IG OAS proxy (Baa \u2212 DGS10)",
           "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
@@ -3649,8 +3649,8 @@
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-05",
-            "next_release": "2026-05-06 (T+1)",
+            "last_release": "2026-05-06",
+            "next_release": "2026-05-07 (T+1)",
             "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
             "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
           },
@@ -3659,7 +3659,7 @@
       ],
       "current_state": "Cautionary",
       "rule_status": "2 of 3 in bottom quartile",
-      "as_of": "2026-05-05",
+      "as_of": "2026-05-06",
       "composite_score": 69,
       "composite_breakdown": [
         {
@@ -3721,6 +3721,7 @@
           },
           "z_score": 0.15,
           "trend_60d": "falling",
+          "concerning": false,
           "deteriorating": true,
           "percentile": 59.7,
           "quartile": 3,
@@ -4280,14 +4281,13 @@
             }
           ],
           "release": {
-            "frequency": "M",
-            "last_release": "2026-04-23",
-            "next_release": "2026-05-23 (~30d)",
+            "frequency": "Monthly",
+            "last_release": "",
+            "next_release": "",
             "source": "FRED: CFNAIMA3 (monthly)",
             "source_url": "https://fred.stlouisfed.org/series/CFNAIMA3"
           },
-          "composite_share_pct": 8.6,
-          "alert_threshold": false
+          "composite_share_pct": 8.7
         },
         {
           "id": "jobless",
@@ -4305,6 +4305,7 @@
           },
           "z_score": -0.46,
           "trend_60d": "falling",
+          "concerning": false,
           "deteriorating": false,
           "percentile": 0.1,
           "quartile": 1,
@@ -4870,8 +4871,7 @@
             "source": "FRED: IC4WSA (weekly)",
             "source_url": "https://fred.stlouisfed.org/series/IC4WSA"
           },
-          "composite_share_pct": 45.5,
-          "alert_threshold": false
+          "composite_share_pct": 45.7
         },
         {
           "id": "ism",
@@ -4889,6 +4889,7 @@
           },
           "z_score": -0.06,
           "trend_60d": "falling",
+          "concerning": false,
           "deteriorating": true,
           "percentile": 55.3,
           "quartile": 3,
@@ -5118,8 +5119,7 @@
             "source": "FRED: NAPMPI (monthly)",
             "source_url": "https://fred.stlouisfed.org/series/NAPMPI"
           },
-          "composite_share_pct": 5.0,
-          "alert_threshold": false
+          "composite_share_pct": 5.0
         },
         {
           "id": "bkx_spx",
@@ -5132,13 +5132,14 @@
           "source_url": "https://finance.yahoo.com/quote/%5EBKX",
           "sample_window": "post-2006 (20y)",
           "current": {
-            "date": "2026-05-04",
+            "date": "2026-05-06",
             "value": 0.09
           },
           "z_score": -1.07,
           "trend_60d": "falling",
+          "concerning": true,
           "deteriorating": true,
-          "percentile": 5.1,
+          "percentile": 5.4,
           "quartile": 1,
           "direction": "low_is_concerning",
           "history": [
@@ -5632,32 +5633,32 @@
             ],
             [
               "2026-05-31",
-              0.0882
+              0.0885
             ]
           ],
-          "concerning_score": 90,
+          "concerning_score": 89,
           "kpis": [
             {
               "label": "1-month change",
-              "value": -0.0011,
-              "value_pct": -1.2,
-              "direction": "dn"
-            },
-            {
-              "label": "3-month change",
               "value": -0.0008,
               "value_pct": -0.9,
               "direction": "dn"
             },
             {
+              "label": "3-month change",
+              "value": -0.0005,
+              "value_pct": -0.6,
+              "direction": "dn"
+            },
+            {
               "label": "1-year change",
-              "value": -0.0021,
-              "value_pct": -2.3,
+              "value": -0.0018,
+              "value_pct": -2.0,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -0.347,
+              "value": -0.3467,
               "peak_value": 0.4352,
               "peak_date": "2006-07",
               "direction": "dn"
@@ -5706,26 +5707,25 @@
             "source": "Yahoo: ^BKX, ^GSPC (daily)",
             "source_url": "https://finance.yahoo.com/quote/%5EBKX"
           },
-          "composite_share_pct": 40.9,
-          "alert_threshold": true
+          "composite_share_pct": 40.6
         }
       ],
       "current_state": "Cautionary",
-      "rule_status": "1 of 4 elevated \u00b7 3 of 4 deteriorating over 60d",
-      "as_of": "2026-05-05",
+      "rule_status": "1 of 4 concerning \u00b7 3 of 4 deteriorating over 60d",
+      "as_of": "2026-05-06",
       "composite_score": 55,
       "composite_breakdown": [
         {
           "indicator_id": "cfnai_3ma",
           "name": "CFNAI 3-month",
           "concerning_score": 19,
-          "share_pct": 8.6
+          "share_pct": 8.7
         },
         {
           "indicator_id": "jobless",
           "name": "Jobless claims (4w)",
           "concerning_score": 100,
-          "share_pct": 45.5
+          "share_pct": 45.7
         },
         {
           "indicator_id": "ism",
@@ -5736,8 +5736,8 @@
         {
           "indicator_id": "bkx_spx",
           "name": "Banks vs S&P 500 (BKX/SPX)",
-          "concerning_score": 90,
-          "share_pct": 40.9
+          "concerning_score": 89,
+          "share_pct": 40.6
         }
       ],
       "headline_caption": "Soft patches forming in the real-economy reads."
@@ -5787,30 +5787,5 @@
     ],
     "composite_share": "score-weighted-with-transparency",
     "lessons_rule_31_acknowledged": true
-  },
-  "allocator_bounds": {
-    "description": "Hard bounds the v10 allocator must obey on every run. Sourced from scripts/compute_v10_allocation.py constants and rule_audit checks emitted in v10_allocation.json.",
-    "rules": [
-      {
-        "id": "max_defensive_sleeve",
-        "label": "Defensive sleeve maxes of net liquidation.",
-        "producer_check": "max_defensive_50pct"
-      },
-      {
-        "id": "max_leverage",
-        "label": "Leverage maxes at 1.5\u00d7.",
-        "producer_check": "max_leverage_1_5x"
-      },
-      {
-        "id": "defensive_xor_leverage",
-        "label": "Defensive XOR leverage \u2014 never both at once.",
-        "producer_check": "defensive_xor_leverage"
-      },
-      {
-        "id": "all_six_mechanisms",
-        "label": "All six cycle mechanisms feed the per-IG tilt \u2014 none can be muted.",
-        "producer_check": "all_6_mechanisms_used"
-      }
-    ]
   }
 }
