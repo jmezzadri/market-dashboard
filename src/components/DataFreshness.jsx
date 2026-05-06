@@ -21,11 +21,27 @@
 
 import React from "react";
 import { ageHoursAgainstCalendar } from "../lib/freshnessClock";
+import { Tip } from "../InfoTip";
 
 const STREAM_DEFAULTS = {
-  scan:   { label: "Scan",   staleHours: 24, staleReason: "daily scan may have failed" },
-  prices: { label: "Prices", staleHours: 24, staleReason: "prices feed may have failed" },
-  events: { label: "Events", staleHours: 24, staleReason: "events feed may have failed" },
+  scan: {
+    label: "Scan",
+    staleHours: 24,
+    staleReason: "daily scan may have failed",
+    tip: "The 1x/day composite score that powers buy alerts (60+) and near-triggers (35-59). Combines six signals per ticker: technicals (MACD / RSI / moving averages), insider Form 4 filings, options flow, congressional trades, analyst ratings, and dark-pool prints. Runs at 3:30 PM ET on US trading days. Source: Unusual Whales + the scanner's internal scoring engine.",
+  },
+  prices: {
+    label: "Prices",
+    staleHours: 24,
+    staleReason: "prices feed may have failed",
+    tip: "The 3x/weekday quote and options snapshot used by the Trading Opportunities tables, position price/share, and PnL Day. Pulls last close, prev close, % change, market cap, IV rank, options volume + premium, put/call ratio, and 52-week range from the Unusual Whales screener API. Fires at 10:00 AM, 1:00 PM, and 3:45 PM ET on US trading days.",
+  },
+  events: {
+    label: "Events",
+    staleHours: 24,
+    staleReason: "events feed may have failed",
+    tip: "The 3x/weekday event stream powering per-ticker insider, congress, dark-pool, and news rows. Sources are four Unusual Whales firehoses: Form 4 insider buys/sells (market-wide), congressional disclosed trades (market-wide), dark-pool prints (>= $1B universe), and news (filtered to your tracked tickers). Fires alongside the Prices stream at 10:00 AM, 1:00 PM, and 3:45 PM ET.",
+  },
 };
 
 function fmtETTime(iso) {
@@ -89,7 +105,7 @@ export default function DataFreshness({ scanTs, pricesTs, eventsTs, style }) {
     } else {
       detail = `${fmtETDate(ts) || ""} ${fmtETTime(ts) || ""} ET`;
     }
-    return { label: cfg.label, detail, isStale };
+    return { label: cfg.label, detail, isStale, tip: cfg.tip };
   });
 
   const anyStale = items.some(x => x.isStale);
@@ -123,7 +139,13 @@ export default function DataFreshness({ scanTs, pricesTs, eventsTs, style }) {
         <React.Fragment key={it.label}>
           <span aria-hidden="true" style={{ color: "var(--text-dim)" }}>·</span>
           <span style={{ color: it.isStale ? "var(--orange-text)" : "var(--text)" }}>
-            <strong style={{ fontWeight: 700 }}>{it.label}:</strong>{" "}
+            <Tip label={it.label.toUpperCase()} def={it.tip}>
+              <strong style={{
+                fontWeight: 700,
+                cursor: it.tip ? "help" : "default",
+                borderBottom: it.tip ? "1px dotted var(--text-dim)" : "none",
+              }}>{it.label}:</strong>
+            </Tip>{" "}
             <span style={{ fontWeight: 400 }}>{it.detail}</span>
           </span>
         </React.Fragment>
