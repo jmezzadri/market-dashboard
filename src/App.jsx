@@ -5546,8 +5546,27 @@ return(
           alignItems:"end",
           padding:"var(--space-3) 0 var(--space-5)",
           borderBottom:"1px solid var(--border-faint)",
+          position:"relative",
+          overflow:"hidden",
         }}>
-          <div>
+          {/* Ambient orbital arcs — Option A spec, static (no animation, accessible by default). */}
+          <div aria-hidden="true" style={{
+            position:"absolute",
+            right:-180, top:"50%", transform:"translateY(-50%)",
+            width:580, height:580,
+            opacity:0.10,
+            pointerEvents:"none",
+            zIndex:0,
+          }}>
+            <svg viewBox="-200 -200 400 400" style={{width:"100%", height:"100%"}}>
+              <circle r="80"  fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
+              <circle r="120" fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
+              <circle r="160" fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
+              <circle r="200" fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
+              <circle r="240" fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
+            </svg>
+          </div>
+          <div style={{position:"relative", zIndex:1}}>
             <div style={{
               fontFamily:"var(--font-mono)", fontSize:11,
               color:"var(--accent)", letterSpacing:"0.18em", textTransform:"uppercase",
@@ -5572,7 +5591,7 @@ return(
               A six-mechanism macro cycle board and a watchlist scanner. Asset tilt engine in rebuild.
             </p>
           </div>
-          <div style={{paddingBottom:"var(--space-2)"}}>
+          <div style={{paddingBottom:"var(--space-2)", position:"relative", zIndex:1}}>
             <div style={{
               fontFamily:"var(--font-mono)", fontSize:10,
               color:"var(--text-dim)", letterSpacing:"0.18em", textTransform:"uppercase",
