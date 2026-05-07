@@ -11,6 +11,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useUserPortfolio } from "../hooks/useUserPortfolio";
+import { SectorModal, IGModal } from "./AssetAllocation";
 
 // ════════════════════════════════════════════════════════════════════════
 // REAL ENGINE OUTPUT — Sprint 2: precomputed stressed allocations
@@ -633,8 +634,59 @@ const STYLES = `
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════════════════════
 
-export default function ScenarioAnalysis() {
+export default function ScenarioAnalysis({ onOpenTicker }) {
   const [mode, setMode] = useState("canned");
+  // Wire-through to the same modals Asset Tilt uses, so a sector click here
+  // opens the same rich modal there. v10_allocation.json carries the data.
+  const [v10, setV10] = useState(null);
+  const [sectorModal, setSectorModal] = useState(null);
+  const [igModal, setIgModal] = useState(null);
+  useEffect(() => {
+    fetch("/v10_allocation.json", { cache: "no-cache" })
+      .then(r => r.ok ? r.json() : null).then(setV10).catch(() => setV10(null));
+  }, []);
+  // Map Scenarios sector names + synthetic asset IDs → real Asset Tilt
+  // sector names / tickers, so the click-target hits the right modal data.
+  const SCEN_TO_AT_SECTOR = {
+    "Technology": "Information Technology",
+    "Communication Services": "Communication Services",
+    "Financials": "Financials",
+    "Discretionary": "Consumer Discretionary",
+    "Industrials": "Industrials",
+    "Materials": "Materials",
+    "Energy": "Energy",
+    "Healthcare": "Health Care",
+    "Staples": "Consumer Staples",
+    "Utilities": "Utilities",
+    "Real Estate": "Real Estate",
+  };
+  // Synthetic-asset id → real ticker for TickerDetailModal
+  const SCEN_TO_TICKER = {
+    BIL: "BIL", TLT: "TLT", GLD: "GLD", LQD: "LQD",
+    HY:  "HYG", INTL: "VXUS", BTC: "IBIT", SPX: "SPY",
+    CSH: null, // cash has no ticker — click is a no-op
+  };
+  const openSectorByName = (scenName) => {
+    if (!v10) return;
+    const atName = SCEN_TO_AT_SECTOR[scenName];
+    if (!atName) return;
+    const sec = v10.sectors.find(x => x.sector === atName);
+    if (sec) setSectorModal(sec);
+  };
+  const openIGByName = (igName, parentScenName) => {
+    if (!v10) return;
+    const parentAtName = SCEN_TO_AT_SECTOR[parentScenName];
+    const ig = v10.industry_groups.find(x => x.name === igName && x.sector === parentAtName);
+    if (ig) setIgModal(ig);
+  };
+  const handleAssetClick = (s) => {
+    if (s.assetClass === "Equity" && SCEN_TO_AT_SECTOR[s.name]) {
+      openSectorByName(s.name);
+    } else {
+      const t = SCEN_TO_TICKER[s.id];
+      if (t && onOpenTicker) onOpenTicker(t);
+    }
+  };
   const [scenario, setScenario] = useState(null);
   const [horizon, setHorizon] = useState("3mo");
   const [prop, setProp] = useState("realistic");
@@ -827,13 +879,15 @@ export default function ScenarioAnalysis() {
             sectors lead/lag. L2 takes the substance row alone; L3 + L4 sit
             below in the 2-column grid. */}
         <div style={{ marginTop: "var(--s-3)" }}>
-          <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} mode={mode} scenarioId={scenario} effShocks={effShocks} />
+          <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} mode={mode} scenarioId={scenario} effShocks={effShocks} onAssetClick={handleAssetClick} />
         </div>
         <div className="output-grid">
           <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
-          <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} />
+          <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} onAssetClick={handleAssetClick} onOpenTicker={onOpenTicker} />
         </div>
       </div>
+      {sectorModal && v10 && <SectorModal sector={sectorModal} igs={v10.industry_groups} onClose={() => setSectorModal(null)} onIGClick={(ig) => { setSectorModal(null); setIgModal(ig); }} onEtfClick={(e) => onOpenTicker && onOpenTicker(e.t || e)} />}
+      {igModal && v10 && <IGModal ig={igModal} sectorIGs={v10.industry_groups.filter(x => x.sector === igModal.sector)} parentSector={v10.sectors.find(x => x.sector === igModal.sector)} onClose={() => setIgModal(null)} onEtfClick={(e) => onOpenTicker && onOpenTicker(e.t || e)} onBackToSector={(sector) => { setIgModal(null); setSectorModal(sector); }} onTickerClick={(t) => onOpenTicker && onOpenTicker(t)} />}
     </>
   );
 }
@@ -916,7 +970,7 @@ function L1Panel({ hasShock, composites }) {
   );
 }
 
-function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode, scenarioId, effShocks }) {
+function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode, scenarioId, effShocks, onAssetClick, onOpenIG }) {
   if (!hasShock) {
     return (
       <div className="panel">
@@ -971,7 +1025,7 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
 
   return (
     <div className="panel">
-      <div className="panel-eyebrow">L2 · Asset class &amp; sector reaction · click an equity row for industry-group drill-down</div>
+      <div className="panel-eyebrow">L2 · Asset class &amp; sector reaction · click any row to open the asset detail</div>
       <h3 className="panel-title">{headline}{window ? <span style={{fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-3)", marginLeft:8, fontWeight:400}}>{window}</span> : null}</h3>
       <div style={{fontSize:12, color:"var(--ink-2)", marginBottom:6}}>How asset classes and sectors performed over the stressed period.</div>
       <div className="action-subline" style={{fontStyle:"normal"}}>{narrative}</div>
@@ -1018,8 +1072,8 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
             <div key={s.id}>
               <div
                 className={"sector-row" + (expandedSector === s.id ? " expanded" : "")}
-                onClick={() => expandable && setExpandedSector(expandedSector === s.id ? null : s.id)}
-                style={{cursor: expandable ? "pointer" : "default", gridTemplateColumns:"28px minmax(140px, 220px) 70px 60px 70px minmax(140px, 1fr) 60px", gap:10}}
+                onClick={() => onAssetClick && onAssetClick(s)}
+                style={{cursor: "pointer", gridTemplateColumns:"28px minmax(140px, 220px) 70px 60px 70px minmax(140px, 1fr) 60px", gap:10}}
               >
                 <span className="sector-rank">#{i+1}</span>
                 <span className="sector-name">{s.name}</span>
@@ -1035,21 +1089,7 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
                 </span>
                 <span className="sector-tkr" style={{textAlign:"right"}}>{s.id}</span>
               </div>
-              {expandedSector === s.id && expandable && (
-                <div className="ig-list">
-                  {s.igs.map((ig, idx) => {
-                    const variance = Math.abs(s.shockPct) * 0.5;
-                    const offset = (idx - (s.igs.length - 1) / 2) / Math.max(1, (s.igs.length - 1) / 2) * variance;
-                    const pct = s.shockPct + offset;
-                    return (
-                      <div key={ig.name} className="ig-row">
-                        <span className="ig-name">{ig.name}</span>
-                        <span className={"ig-pct " + (pct > 0 ? "up" : "down")}>{pct >= 0 ? "+" : ""}{pct.toFixed(1)}%</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+
             </div>
           );
         })}
@@ -1135,7 +1175,7 @@ function L3Panel({ hasShock, pnl, horizon, portfolioTotal = PORTFOLIO_TOTAL, por
   );
 }
 
-function L4Panel({ hasShock, tilts, score, mode, scenarioId, engineData }) {
+function L4Panel({ hasShock, tilts, score, mode, scenarioId, engineData, onAssetClick, onOpenTicker }) {
   // Sprint 2: real engine output for canned scenarios. Bespoke (custom shock)
   // mode still uses sector-loadings math below — composite stress + arbitrary-shock
   // engine wiring lands later.
@@ -1181,7 +1221,7 @@ function L4Panel({ hasShock, tilts, score, mode, scenarioId, engineData }) {
   const renderRow = (t) => {
     const isHeavy = t.stressed >= 10;
     return (
-      <div key={t.id} className="action-row" style={{gridTemplateColumns:"1fr 80px 110px"}}>
+      <div key={t.id} className="action-row" style={{gridTemplateColumns:"1fr 80px 110px", cursor:"pointer"}} onClick={() => onAssetClick && onAssetClick(t)}>
         <span className="action-name"><b style={{fontFamily:"var(--font-ui)", color:"var(--ink-2)", fontSize:11, marginRight:6}}>{t.id}</b>{t.name}</span>
         <span className="action-delta" style={{color:isHeavy ? "var(--ink-0)" : "var(--ink-1)"}}>{t.stressed}%</span>
         <span className="action-detail">{t.current}% baseline</span>

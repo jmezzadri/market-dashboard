@@ -1,0 +1,47 @@
+{
+  "as_of": "2026-05-01",
+  "acceptance_threshold_mae": 0.08,
+  "scenarios": {
+    "gfc_2008": {
+      "oos_mae": null,
+      "passed": null,
+      "note": "requires sector returns from Sprint 1 Track 3"
+    },
+    "covid_2020": {
+      "oos_mae": null,
+      "passed": null,
+      "note": "requires sector returns from Sprint 1 Track 3"
+    },
+    "inflation_2022": {
+      "oos_mae": null,
+      "passed": null,
+      "note": "requires sector returns from Sprint 1 Track 3"
+    },
+    "q4_2018": {
+      "oos_mae": null,
+      "passed": null,
+      "note": "requires sector returns from Sprint 1 Track 3"
+    },
+    "ai_2024": {
+      "oos_mae": null,
+      "passed": null,
+      "note": "requires sector returns from Sprint 1 Track 3"
+    },
+    "black_monday_1987": {
+      "oos_mae": null,
+      "passed": null,
+      "note": "requires sector returns from Sprint 1 Track 3"
+    },
+    "dotcom_slow_2000": {
+      "oos_mae": null,
+      "passed": null,
+      "note": "requires sector returns from Sprint 1 Track 3"
+    },
+    "dotcom_capitulation_2002": {
+      "oos_mae": null,
+      "passed": null,
+      "note": "requires sector returns from Sprint 1 Track 3"
+    }
+  },
+  "todo": "Track 3 produces sector_loadings_ccar.json which feeds this back-test."
+}

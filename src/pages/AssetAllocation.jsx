@@ -912,7 +912,7 @@ function CompositionChart({ rows, totalLabel = "Sector total" }) {
   );
 }
 
-function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
+export function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
   if (!sector) return null;
   const sectorIGs = igs.filter(ig => ig.sector === sector.sector);
   const sectorEtfs = SECTOR_ETFS[sector.sector] || [];
@@ -961,7 +961,7 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
   );
 }
 
-function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBackToSector, onTickerClick }) {
+export function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBackToSector, onTickerClick }) {
   if (!ig) return null;
   const detail = IG_DETAIL[ig.id] || { etfs: [], stocks: [] };
   // Real sector-avg-IG benchmark: total $ in this sector ÷ number of IGs in it.
