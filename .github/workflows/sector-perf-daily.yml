@@ -1,0 +1,52 @@
+name: sector-perf-daily
+
+# Daily compute of per-sector 1M / 3M / TTM returns + TTM realized vol.
+# Reads sector ETF EOD prices from Yahoo Finance, writes
+# public/sector_perf.json. Asset Tilt page reads this for the
+# performance + volatility columns in the equity sectors table.
+#
+# Schedule: 22:50 UTC weekdays — after EOD close, 5 min after v10
+# allocator runs so a freshly-deployed page picks up both at once.
+
+on:
+  schedule:
+    - cron: "50 22 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: sector-perf-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install yfinance
+        run: pip install yfinance==0.2.40
+
+      - name: Run sector perf script
+        run: python scripts/compute_sector_perf.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "macrotilt-bot"
+          git config user.email "macrotilt-bot@users.noreply.github.com"
+          git add public/sector_perf.json
+          if git diff --cached --quiet; then
+            echo "No changes — skipping."
+          else
+            git commit -m "sector-perf-daily: refresh sector_perf.json [skip ci]"
+            git push
+          fi
