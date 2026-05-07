@@ -136,33 +136,62 @@ function SortArrow({ dir }) {
 // is still excluded from the weighted OVR composite (sectionComposites.js
 // guards on r.score != null) — this is a pure visual change. No math.
 function ScoreCell({ score, direction, emptyHint }) {
+  // Empty-state: clean em-dash (Bloomberg-grade neutrality), reason on hover.
   if (score == null && emptyHint) {
     return (
       <Tip def={emptyHint}>
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            fontWeight: 600,
-            color: "var(--text-dim)",
-            border: "1px dashed var(--border)",
-            borderRadius: 4,
-            padding: "1px 6px",
-            opacity: 0.7,
-            letterSpacing: "0.04em",
-          }}
-        >
-          no activity
-        </span>
+        <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontSize: 12, fontWeight: 500 }}>—</span>
       </Tip>
     );
   }
   const col = score == null ? "var(--text-dim)" : colorForDirection(direction);
   const display = score == null ? "—" : (score >= 0 ? "+" : "") + score;
   return (
-    <span style={{ color: col, fontFamily: "var(--font-mono)", fontWeight: 700, fontSize: 12 }}>
+    <span style={{ color: col, fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 600, fontSize: 12 }}>
       {display}
     </span>
+  );
+}
+
+
+// ─── Watch button (per-row action) ──────────────────────────────────────────
+// Renders inline in the trailing column. If the user is signed in:
+//   - Already on watchlist: shows muted "✓ Watching" with click-to-remove.
+//   - Not on watchlist:     shows accent "+ Watch" with click-to-add.
+// Signed-out: shows "+ Watch" but click prompts sign-in (handled upstream).
+function WatchActionCell({ ticker, onWatchlist, onAdd, onRemove, busy, portfolioAuthed }) {
+  const handle = (e) => {
+    e.stopPropagation();
+    if (!portfolioAuthed) { onAdd?.(ticker); return; }
+    if (onWatchlist) onRemove?.(ticker);
+    else             onAdd?.(ticker);
+  };
+  const label = onWatchlist ? "✓ Watching" : "+ Watch";
+  const color = onWatchlist ? "var(--text-muted)" : "var(--accent)";
+  return (
+    <button
+      type="button"
+      onClick={handle}
+      disabled={busy}
+      style={{
+        background: "transparent",
+        border: "1px solid " + (onWatchlist ? "var(--border)" : "var(--accent)"),
+        color: color,
+        borderRadius: 4,
+        padding: "2px 8px",
+        fontFamily: "var(--font-ui)",
+        fontSize: 10,
+        fontWeight: 600,
+        letterSpacing: "0.04em",
+        cursor: busy ? "wait" : "pointer",
+        whiteSpace: "nowrap",
+        opacity: busy ? 0.5 : 1,
+        transition: "all 120ms",
+      }}
+      title={portfolioAuthed ? (onWatchlist ? "Remove from watchlist" : "Add to watchlist") : "Sign in to track tickers"}
+    >
+      {label}
+    </button>
   );
 }
 
@@ -395,7 +424,16 @@ const riskCols = [
   },
 ];
 
-const COLUMNS = [...baseCols, ...signalCols, overallCol, ...riskCols];
+const watchCol = {
+  id: "_watch",
+  label: "",
+  description: "Add or remove this ticker from your watchlist.",
+  align: "center",
+  // The cell renderer reads watchProps from the row object, which the
+  // table injects when it receives onAdd / onRemove / userWatchlistTickers.
+  renderCell: (r) => r._watch || null,
+};
+const COLUMNS = [...baseCols, ...signalCols, overallCol, ...riskCols, watchCol];
 
 // Defaults preserve the pre-36 layout: ticker, name, sector, 6 signal cols, OVR.
 const DEFAULT_ORDER = [
@@ -407,11 +445,15 @@ const DEFAULT_ORDER = [
   "price", "dayChangePct", "marketcap", "ivRank", "divYield",
   "nextEarnings", "week52", "theme",
   "beta_2y", "annVol_2y", "maxDD_2y", "var10d99",
+,
+  "_watch",
 ];
 const DEFAULT_VISIBLE = [
   "ticker", "name", "sector",
   ...SIGNAL_COLS.map((c) => c.key),
   "overall",
+,
+  "_watch",
 ];
 
 // Default column widths (px).
@@ -438,13 +480,29 @@ const DEFAULT_WIDTHS = {
   annVol_2y:     90,
   maxDD_2y:      90,
   var10d99:      110,
+  _watch: 90,
 };
 
 export default function WatchlistTable({
   rows, signals, screener, info,
   onOpenTicker, heldTickers, emptyMessage,
   tableKey = "watchlist_other",
+  userWatchlistTickers,    // Set<string> of tickers already on the user's watchlist
+  onAddToWatchlist,        // (ticker: string) => Promise<void>
+  onRemoveFromWatchlist,   // (ticker: string) => Promise<void>
+  portfolioAuthed = false, // bool — is the user signed in
 }) {
+  const [watchBusy, setWatchBusy] = useState(null);
+  const onAdd = async (t) => {
+    if (!onAddToWatchlist) return;
+    setWatchBusy(t);
+    try { await onAddToWatchlist(t); } finally { setWatchBusy(null); }
+  };
+  const onRemove = async (t) => {
+    if (!onRemoveFromWatchlist) return;
+    setWatchBusy(t);
+    try { await onRemoveFromWatchlist(t); } finally { setWatchBusy(null); }
+  };
   const screenerMap = screener || {};
   const infoMap     = info     || {};
 
@@ -488,8 +546,19 @@ export default function WatchlistTable({
       const prev     = sc.prev_close != null ? Number(sc.prev_close) : null;
       const dayChangePct = (price != null && prev) ? (price / prev - 1) * 100 : null;
 
+      const onWatchlist = userWatchlistTickers ? userWatchlistTickers.has(t) : false;
       return {
         ticker: t,
+        _watch: (
+          <WatchActionCell
+            ticker={t}
+            onWatchlist={onWatchlist}
+            onAdd={onAdd}
+            onRemove={onRemove}
+            busy={watchBusy === t}
+            portfolioAuthed={portfolioAuthed}
+          />
+        ),
         name: normalizeTickerName(rawName),
         sector: sc.sector || inf.sector || "",
         theme: w.theme || "",
@@ -511,7 +580,7 @@ export default function WatchlistTable({
         _risk:    _riskByTicker[t] || null,
       };
     });
-  }, [rows, signals, screenerMap, infoMap, heldTickers, _riskByTicker]);
+  }, [rows, signals, screenerMap, infoMap, heldTickers, _riskByTicker, userWatchlistTickers, watchBusy, portfolioAuthed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [sortCol, setSortCol] = useState("overall");
   const [sortDir, setSortDir] = useState("desc");
@@ -737,8 +806,9 @@ export default function WatchlistTable({
                   <td
                     key={col.id}
                     style={{
-                      padding: "7px 6px",
+                      padding: "5px 8px",
                       textAlign: col.align,
+                      fontVariantNumeric: "tabular-nums",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",

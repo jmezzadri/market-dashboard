@@ -5031,6 +5031,33 @@ const [sidebarOpen,setSidebarOpen]=useState(false);
 const {session}=useSession();
 const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio}=useUserPortfolio();
 const portfolioAuthed=!!session;
+// Set of tickers already on the user's watchlist — used by WatchlistTable
+// to flip "+ Watch" → "✓ Watching" per row.
+const userWatchlistTickers = useMemo(
+  () => new Set((userWatchlistRows || []).map(r => String(r?.ticker || "").toUpperCase()).filter(Boolean)),
+  [userWatchlistRows]
+);
+// Add / remove handlers passed to every WatchlistTable instance. Both
+// no-op gracefully when signed out (the button still renders to encourage
+// sign-in; the upstream click is intercepted at the auth gate).
+const onAddToWatchlist = async (t) => {
+  if (!session?.user?.id) return;
+  const ticker = String(t || "").toUpperCase();
+  if (!ticker) return;
+  const { error } = await supabase.from("watchlist").insert({
+    user_id: session.user.id,
+    ticker,
+  });
+  if (!error) { refetchPortfolio?.(); scanTicker?.(ticker); }
+};
+const onRemoveFromWatchlist = async (t) => {
+  if (!session?.user?.id) return;
+  const ticker = String(t || "").toUpperCase();
+  if (!ticker) return;
+  const { error } = await supabase.from("watchlist").delete()
+    .match({ user_id: session.user.id, ticker });
+  if (!error) refetchPortfolio?.();
+};
 
 // SPX history snapshot: the Portfolio Insights tile uses composite_history_daily.json's
 // SPXp series as the SPY benchmark for true-period (1W/1M/YTD/TTM) returns.
@@ -6730,6 +6757,10 @@ return(<>
     info={infoMap}
     tableKey="watchlist_buy"
     heldTickers={heldTickers}
+    userWatchlistTickers={userWatchlistTickers}
+    onAddToWatchlist={onAddToWatchlist}
+    onRemoveFromWatchlist={onRemoveFromWatchlist}
+    portfolioAuthed={portfolioAuthed}
     onOpenTicker={(t)=>setTickerDetail(t)}
     emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
   />
@@ -6742,6 +6773,10 @@ return(<>
     info={infoMap}
     tableKey="watchlist_near"
     heldTickers={heldTickers}
+    userWatchlistTickers={userWatchlistTickers}
+    onAddToWatchlist={onAddToWatchlist}
+    onRemoveFromWatchlist={onRemoveFromWatchlist}
+    portfolioAuthed={portfolioAuthed}
     onOpenTicker={(t)=>setTickerDetail(t)}
     emptyMessage="Nothing near trigger today."
   />
@@ -6755,6 +6790,10 @@ return(<>
       info={infoMap}
       tableKey="watchlist_other"
       heldTickers={heldTickers}
+      userWatchlistTickers={userWatchlistTickers}
+      onAddToWatchlist={onAddToWatchlist}
+      onRemoveFromWatchlist={onRemoveFromWatchlist}
+      portfolioAuthed={portfolioAuthed}
       onOpenTicker={(t)=>setTickerDetail(t)}
       emptyMessage="No tickers on your watchlist. Add one below."
     />
