@@ -1128,36 +1128,25 @@ export default function AssetTilt({ onOpenTicker }) {
       </div>
 
 
-      {/* RECOMMENDED ASSET TILT */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "8px 0 12px" }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0 }}>
-          Recommended Asset Tilt — per $100 of capital, leveraged to ${grossDollar.toFixed(0)} gross
-        </h2>
-        <FreshnessDot indicatorId="v10_allocation" asOfIso={v10.as_of} />
-      </div>
+      {/* No banal "Recommended Asset Tilt — per $100..." header, no
+          equity/leverage/defensive summary bar — both statements of state with
+          zero tilt-direction signal. The freshness chip moves into the table
+          header below; substance starts at the equity sector list. */}
       <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
-        {/* Asset class summary bar */}
-        <div style={{ padding: "16px 20px", borderBottom: "0.5px solid var(--border)" }}>
-          <div style={{ display: "flex", height: 14, borderRadius: 4, overflow: "hidden", background: "var(--surface-2)" }}>
-            <div style={{ width: `${v10.equity_pct * 100}%`, background: "var(--accent)" }} />
-            <div style={{ width: `${(v10.gross_exposure - v10.equity_pct) * 100}%`, background: "var(--text-muted)" }} />
-            <div style={{ width: `${v10.defensive_pct * 100}%`, background: "var(--text-muted)" }} />
-          </div>
-          <div style={{ display: "flex", gap: 14, fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
-            <span><span style={{ display: "inline-block", width: 8, height: 8, background: "var(--accent)", borderRadius: 2, marginRight: 4 }} />Equity {(v10.equity_pct * 100).toFixed(0)}%</span>
-            <span><span style={{ display: "inline-block", width: 8, height: 8, background: "var(--text-muted)", borderRadius: 2, marginRight: 4 }} />Leverage +{((lev - 1) * 100).toFixed(0)}%</span>
-            <span><span style={{ display: "inline-block", width: 8, height: 8, background: "var(--text-muted)", borderRadius: 2, marginRight: 4 }} />Defensive {(v10.defensive_pct * 100).toFixed(0)}%</span>
-          </div>
-        </div>
-        {/* Equity sector header */}
+        {/* Equity sector header (freshness chip rides on this row now that the
+            old summary bar is gone). */}
         <div style={{
           display: "grid", gridTemplateColumns: "1.6fr 80px 80px 80px",
-          gap: 12, padding: "10px 14px",
+          gap: 12, padding: "12px 14px 10px",
           fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
           letterSpacing: "0.06em", textTransform: "uppercase",
           borderBottom: "0.5px solid var(--border)", background: "var(--surface-2)",
+          alignItems: "center",
         }}>
-          <div>Equity sectors · click name or ETF for detail · click row to expand IGs</div>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            Equity sectors · click name or ETF for detail · click row to expand IGs
+            <FreshnessDot indicatorId="v10_allocation" asOfIso={v10.as_of} />
+          </div>
           <div>Visual</div>
           <div style={{ textAlign: "right" }}>Tilt</div>
           <div style={{ textAlign: "right" }}>vs SPY · Rating</div>
