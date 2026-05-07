@@ -31,11 +31,15 @@ name: PIPELINE-FRESHNESS-WATCHDOG
 
 on:
   schedule:
-    # Every 30 min during the US trading day, weekdays. Time-of-day windows
-    # are intentionally wide so a 60-90 min cron drift still fires inside
-    # market hours. UTC.
-    - cron: '0,30 14-23 * * 1-5'   # 14:00 UTC = 10:00 ET (EDT) — covers 10 AM to 7:30 PM ET
-    - cron: '0,30 0-3 * * 2-6'     # next-day 00:00-03:30 UTC = 8 PM-11:30 PM ET prior day
+    # Every 10 min during the US trading day, weekdays. GitHub Actions cron
+    # is unreliable enough that 30-min cadence dropped ALL of today's
+    # market-hours fires (May 7 2026 incident — zero watchdog fires
+    # between 09:46 UTC and 18:00 UTC despite 16 expected). 10-min cadence
+    # ≈ 60 fires per market-hours window; even if GH drops 80% of them
+    # the watchdog still gets enough samples to keep data inside its SLA.
+    # Joe directive 2026-05-07.
+    - cron: '*/10 14-23 * * 1-5'   # 14:00 UTC = 10:00 ET (EDT) — every 10 min, 10 AM to 7 PM ET
+    - cron: '*/10 0-3 * * 2-6'     # next-day 00:00-03:50 UTC = 8 PM-11:50 PM ET prior day
   workflow_dispatch: {}
 
 concurrency:
