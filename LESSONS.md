@@ -352,3 +352,15 @@ pad them by typical FRED lag. Filed as a follow-up.
 3. **The agent's "done" message can only fire after rules 1 and 2 above have cleared.** If the gate fails or a sub-agent returns a punchlist, the agent fixes and re-runs the gate without surfacing the failure to Joe. Joe is the third reviewer, not the first. The chat status table that opens every turn (per the 2026-04-30 table-only rule) must include a row stating which gates passed and which sub-agents signed off, with concrete evidence (commit SHA the gate ran against, a one-line digest of each sub-agent verdict).
 
 **Applies to:** all v2 cutover work, any PR that touches `src/v2/**`, `public/*.json`, or methodology copy.
+
+
+---
+
+## 2026-05-07 — Never stack new fixes on a feature branch with unresolved regressions on other surfaces
+
+**What happened:** I built five Scenarios fixes on top of `feature/design-system-consolidation-2026-05` (PR #462) because that's where the most recent UX work was happening. Joe loaded the preview to test my modal-close fix and saw a black-arc / pink-gauge regression on Macro Overview — caused by an earlier theme commit on the SAME branch, not by my work, but my commits were now bundled into a PR he'd be expected to merge as one unit. He was rightly furious: from his seat, asking him to merge PR #462 to ship a "simple modal-close fix" looked like I was asking him to ship a broken Macro Overview at the same time.
+
+**What you should do instead:** Before stacking new commits onto an existing feature branch, load the preview URL of that branch and audit the surfaces you're NOT touching for regressions. If you find any — even one — fork your work to a fresh branch off `main` and open a separate PR. The rule of thumb: a PR's merge gate is the WHOLE branch, not your portion of it; if any other commit on the branch isn't ready to ship, your commits aren't ready to ship either. The cost of forking is ~30 seconds (cherry-pick onto a fresh branch); the cost of dragging unrelated regressions into a "simple fix" PR is Joe's evening and his trust.
+
+**Applies to:** All. Especially when the existing branch has more than 5 commits since `main`, OR when the existing branch's purpose is a broad theme/redesign (where regressions on other surfaces are likely).
+
