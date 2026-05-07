@@ -744,6 +744,121 @@ function MechanismModal({ mechanism, onClose }) {
   );
 }
 
+function AllocationChart({ macroTiltWeight, benchmarkWeight, benchmarkLabel = "SPY weight" }) {
+  // Two side-by-side horizontal bars: MacroTilt allocation vs benchmark.
+  // Used inside Sector / IG modals to lead with a visual instead of a text table.
+  const mt = Math.max(0, macroTiltWeight || 0);
+  const bm = Math.max(0, benchmarkWeight || 0);
+  const max = Math.max(mt, bm, 0.01);
+  const fmtPct = (v) => `${(v * 100).toFixed(1)}%`;
+  const delta = mt - bm;
+  const deltaCol = delta > 0 ? "var(--green)" : delta < 0 ? "var(--red)" : "var(--text-muted)";
+  return (
+    <div style={{ marginTop: 18 }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "baseline",
+        marginBottom: 10,
+      }}>
+        <div style={{
+          fontSize: 11, fontWeight: 600, letterSpacing: "0.16em",
+          textTransform: "uppercase", color: "var(--text-muted)",
+        }}>Allocation vs benchmark</div>
+        <div style={{
+          fontSize: 12, fontWeight: 600, color: deltaCol,
+          fontVariantNumeric: "tabular-nums",
+        }}>
+          {delta >= 0 ? "+" : ""}{(delta * 100).toFixed(1)}pp
+        </div>
+      </div>
+      {[
+        { lbl: "MacroTilt", val: mt, col: "var(--accent)" },
+        { lbl: benchmarkLabel, val: bm, col: "var(--text-muted)" },
+      ].map((row) => (
+        <div key={row.lbl} style={{
+          display: "grid", gridTemplateColumns: "92px 1fr 56px",
+          gap: 12, alignItems: "center", padding: "6px 0",
+        }}>
+          <div style={{ fontSize: 12, color: "var(--text-2)" }}>{row.lbl}</div>
+          <div style={{
+            height: 8, background: "var(--surface-2)", borderRadius: 4, overflow: "hidden",
+          }}>
+            <div style={{
+              height: "100%",
+              width: `${(row.val / max) * 100}%`,
+              background: row.col,
+              transition: "width 220ms",
+            }} />
+          </div>
+          <div style={{
+            fontSize: 12, fontWeight: 600, textAlign: "right",
+            fontVariantNumeric: "tabular-nums", color: "var(--text)",
+          }}>{fmtPct(row.val)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function CompositionChart({ rows, totalLabel = "Sector total" }) {
+  // Stacked horizontal bar showing how this sector's $ allocation breaks down
+  // across its industry groups. Used inside SectorModal under the AllocationChart.
+  if (!rows || !rows.length) return null;
+  const total = rows.reduce((s, r) => s + (r.dollar || 0), 0);
+  if (total <= 0) return null;
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "baseline",
+        marginBottom: 10,
+      }}>
+        <div style={{
+          fontSize: 11, fontWeight: 600, letterSpacing: "0.16em",
+          textTransform: "uppercase", color: "var(--text-muted)",
+        }}>Industry group breakdown</div>
+        <div style={{
+          fontSize: 12, color: "var(--text-muted)",
+          fontVariantNumeric: "tabular-nums",
+        }}>{totalLabel} ${total.toFixed(2)}</div>
+      </div>
+      <div style={{
+        display: "flex", height: 14, borderRadius: 4,
+        overflow: "hidden", background: "var(--surface-2)",
+      }}>
+        {rows.map((r, i) => {
+          const pct = (r.dollar || 0) / total;
+          const shade = i % 2 === 0 ? "var(--accent)" : "var(--text-muted)";
+          return (
+            <div key={r.id || r.name} title={`${r.name}: $${(r.dollar || 0).toFixed(2)} (${(pct * 100).toFixed(0)}%)`} style={{
+              width: `${pct * 100}%`,
+              background: shade,
+              opacity: i % 2 === 0 ? 0.85 : 0.6,
+              transition: "opacity 160ms",
+            }} />
+          );
+        })}
+      </div>
+      <div style={{
+        display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 10,
+        fontSize: 11, color: "var(--text-2)",
+      }}>
+        {rows.map((r, i) => (
+          <span key={r.id || r.name} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+            <span style={{
+              display: "inline-block", width: 8, height: 8, borderRadius: 2,
+              background: i % 2 === 0 ? "var(--accent)" : "var(--text-muted)",
+              opacity: i % 2 === 0 ? 0.85 : 0.6,
+            }} />
+            {r.name}
+            <span style={{ color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+              ${(r.dollar || 0).toFixed(2)}
+            </span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
   if (!sector) return null;
   const sectorIGs = igs.filter(ig => ig.sector === sector.sector);
@@ -758,7 +873,9 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
       }}>{RATING_LABEL[sector.rating]}</span>}
       onClose={onClose}
     >
-      <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "20px 0 4px", fontWeight: 600 }}>
+      <AllocationChart macroTiltWeight={sector.weight} benchmarkWeight={sector.spy_weight} />
+      <CompositionChart rows={sectorIGs} totalLabel="Sector total" />
+      <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "26px 0 4px", fontWeight: 600 }}>
         ETFs that give exposure to this sector
       </h4>
       <ETFTable etfs={sectorEtfs} />
@@ -806,7 +923,8 @@ function IGModal({ ig, onClose }) {
       }}>{RATING_LABEL[ig.rating]}</span>}
       onClose={onClose}
     >
-      <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "20px 0 4px", fontWeight: 600 }}>
+      <AllocationChart macroTiltWeight={(ig.dollar || 0) / 100} benchmarkWeight={0} benchmarkLabel="Sector avg IG" />
+      <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "26px 0 4px", fontWeight: 600 }}>
         ETFs that give exposure
       </h4>
       <ETFTable etfs={detail.etfs} />
