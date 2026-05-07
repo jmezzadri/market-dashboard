@@ -6628,9 +6628,32 @@ return(<>
       onRemoveFromWatchlist={onRemoveFromWatchlist}
       portfolioAuthed={portfolioAuthed}
       onOpenTicker={(t)=>setTickerDetail(t)}
-      emptyMessage="No tickers on your watchlist. Add one below."
+      emptyMessage={portfolioAuthed
+        ? "No tickers on your watchlist. Add one below."
+        : "Sign in to add tickers to your watchlist."}
     />
-    {portfolioAuthed&&<WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>}
+    {portfolioAuthed
+      ? <WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>
+      : (
+        <div style={{
+          marginTop:12, padding:"12px 14px",
+          background:"var(--surface)", border:"1px solid var(--border-faint)",
+          borderRadius:8, display:"flex", alignItems:"center",
+          justifyContent:"space-between", gap:14, flexWrap:"wrap",
+        }}>
+          <div style={{fontSize:13, color:"var(--text-2)", lineHeight:1.4}}>
+            Sign in to add tickers to your watchlist and run the scanner over your real names.
+          </div>
+          <button type="button"
+            onClick={()=>setShowPortoppsLogin(true)}
+            style={{
+              padding:"8px 14px", fontSize:13, fontWeight:600,
+              color:"#fff", background:"var(--accent)", border:"none",
+              borderRadius:"var(--radius-sm)", cursor:"pointer",
+              whiteSpace:"nowrap",
+            }}>Sign in</button>
+        </div>
+      )}
   </>
 )}
 {/* Coverage disclaimer. Subcomposites require single-name fundamentals +
