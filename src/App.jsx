@@ -6046,19 +6046,28 @@ return(
           </div>
 
           {/* 6 ACCOUNT SUB-TILES — Joe directive 2026-05-07.
-              One sub-tile per account showing Value + TTM return. Pads
-              to 6 with empty placeholders. Same shared sub-tile styles. */}
+              One sub-tile per account showing Value + per-account TTM
+              return (bug #1171 fix — was rendering whole-book TTM into
+              every card). Pads to 6 with empty placeholders. */}
           {(() => {
-            const _portTTM = _portReturns?.TTM;
-            const _ttmStr  = _portTTM == null ? "—" : (_portTTM >= 0 ? "+" : "") + (_portTTM * 100).toFixed(1) + "%";
-            const _ttmCol  = _portTTM == null ? "var(--text-dim)" : _portTTM >= 0 ? "var(--accent)" : "var(--text)";
-            const _accts = (ACCOUNTS || []).slice(0, 6).map(a => ({
-              id: a.id || a.label || "_", label: a.label || "Account",
-              value: (a.positions || []).reduce((sum, p) => sum + (p.value || 0), 0),
-              _empty: false,
-            }));
+            const _byAcct = _portfolioReturns?.periodReturnsByAccount || {};
+            const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + (v * 100).toFixed(1) + "%";
+            const _accts = (ACCOUNTS || []).slice(0, 6).map(a => {
+              // Match by account label first, then by id, since
+              // portfolio_history keys on account_label.
+              const ttm = _byAcct[a.label] != null ? _byAcct[a.label].TTM
+                        : _byAcct[a.id]    != null ? _byAcct[a.id].TTM
+                        : null;
+              return {
+                id: a.id || a.label || "_",
+                label: a.label || "Account",
+                value: (a.positions || []).reduce((sum, p) => sum + (p.value || 0), 0),
+                ttm,
+                _empty: false,
+              };
+            });
             while (_accts.length < 6) {
-              _accts.push({id:"_e"+_accts.length, label:"#"+(_accts.length+1), value:null, _empty:true});
+              _accts.push({id:"_e"+_accts.length, label:"#"+(_accts.length+1), value:null, ttm:null, _empty:true});
             }
             const fmt$ = v => v == null ? "—"
               : v >= 1000000 ? "$" + (v/1000000).toFixed(1) + "M"
@@ -6066,12 +6075,12 @@ return(
               :                "$" + Math.round(v).toLocaleString();
             return (
               <div style={stGridStyle}>
-                {_accts.map((a, i) => (
+                {_accts.map((a) => (
                   <div key={a.id} style={a._empty ? {...stStyle, cursor:"default"} : stStyle}
                        onClick={()=>{ if (!a._empty) navTo("insights"); }}>
                     <div style={stEyebrowStyle}>{a.label}</div>
                     <div style={stValueStyle(a._empty ? "var(--text-dim)" : "var(--text)")}>{fmt$(a.value)}</div>
-                    <div style={stMetaStyle}>{a._empty ? "—" : `TTM ${_ttmStr}`}</div>
+                    <div style={stMetaStyle}>{a._empty ? "—" : `TTM ${fmtPct(a.ttm)}`}</div>
                   </div>
                 ))}
               </div>
