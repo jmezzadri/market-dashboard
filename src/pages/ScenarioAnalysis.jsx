@@ -1136,7 +1136,7 @@ function L4Panel({ hasShock, tilts, score, mode, scenarioId, engineData }) {
       {warn && <div className="action-warn">{warn}</div>}
       <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"var(--font-ui)", fontStyle:"italic"}}>
         {mode === "bespoke"
-          ? "Demo math — bespoke shocks use illustrative sector tilts. Engine wiring for arbitrary shocks ships in Sprint 2.5."
+          ? "Demo math — bespoke shocks use illustrative sector tilts. Engine wiring for arbitrary shocks coming soon."
           : "Loading engine output…"}
       </div>
     </div>
@@ -1182,7 +1182,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
 
   const subline = (
     <>
-      Re-ran <span className="mono">compute_v9_allocation</span> with the {scenario.name} CCAR shock translated to the v9 panel. <b>{kept.length}</b> picks held, <b>{added.length}</b> added, <b>{removed.length}</b> dropped. Equity share <span className="mono">{equityShareCurr}% → {equityShareStr}%</span>, alpha <span className="mono">{alphaCurr}% → {alphaStr}%</span>.
+      Re-ran the optimizer with the {scenario.name} CCAR shock translated to the model panel. <b>{kept.length}</b> picks held, <b>{added.length}</b> added, <b>{removed.length}</b> dropped. Equity share <span className="mono">{equityShareCurr}% → {equityShareStr}%</span>, alpha <span className="mono">{alphaCurr}% → {alphaStr}%</span>.
     </>
   );
 
@@ -1198,7 +1198,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
 
   return (
     <div className="panel">
-      <div className="panel-eyebrow">L4 · Stressed allocation · live v9 engine output</div>
+      <div className="panel-eyebrow">L4 · Stressed allocation · live engine output</div>
       <h3 className="panel-title">{headline}</h3>
       <div className="action-subline">{subline}</div>
 
@@ -1271,7 +1271,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
       </div>
 
       <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"var(--font-ui)", fontStyle:"italic"}}>
-        Live v9 engine output · panel as of {asOf} · engine output not yet validated against historical actuals (Sprint 3 acceptance gates pending). Composites held at current values in v1; Sprint 2.5 will stress them too.
+        Live engine output · panel as of {asOf} · engine output not yet validated against historical actuals (acceptance gates pending). Composites held at current values for now; future iterations will stress them too.
       </div>
     </div>
   );

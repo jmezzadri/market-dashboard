@@ -97,7 +97,7 @@ function SignalIntelligenceRail({
 
   // Tile 2 — Asset Tilt
   const tiltTile = (() => {
-    if (!v9Alloc) return { state: "loading", value: "…", meta: "Loading v9 allocation", detail: null };
+    if (!v9Alloc) return { state: "loading", value: "…", meta: "Loading allocation model", detail: null };
     const picks = v9Alloc.picks || [];
     const defens = v9Alloc.defensive || [];
     const directPick = picks.find(p => (p.ticker || "").toUpperCase() === (ticker || "").toUpperCase())
@@ -116,7 +116,7 @@ function SignalIntelligenceRail({
         meta: `Direct pick · ${directPick.fund || directPick.name || ticker}`,
         detail: (
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            <div>v9 leverages this name directly. Weight <b>{w.toFixed(1)}%</b> of total portfolio. Indicator rank <b>{directPick.indicator_rank ?? "—"}</b>, momentum rank <b>{directPick.momentum_rank ?? "—"}</b>.</div>
+            <div>The model leverages this name directly. Weight <b>{w.toFixed(1)}%</b> of total portfolio. Indicator rank <b>{directPick.indicator_rank ?? "—"}</b>, momentum rank <b>{directPick.momentum_rank ?? "—"}</b>.</div>
             {align}
           </div>
         ),
@@ -130,17 +130,17 @@ function SignalIntelligenceRail({
         meta: `${sector} sleeve · proxy ${sectorPick.ticker}`,
         detail: (
           <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            <div>v9 model is overweight the <b>{sector}</b> sector via {sectorPick.fund || sectorPick.ticker} ({w.toFixed(1)}% of portfolio). The model leans toward this sector but does not single-name {ticker}.</div>
+            <div>The model is overweight the <b>{sector}</b> sector via {sectorPick.fund || sectorPick.ticker} ({w.toFixed(1)}% of portfolio). The model leans toward this sector but does not single-name {ticker}.</div>
             {align}
           </div>
         ),
       };
     }
     return {
-      state: "loading", value: "Not in model", meta: "Outside v9 picks",
+      state: "loading", value: "Not in model", meta: "Outside the model's picks",
       detail: (
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
-          <div>v9 has not selected {ticker}{sector ? ` or its sector (${sector})` : ""} this rebalance.</div>
+          <div>The model has not selected {ticker}{sector ? ` or its sector (${sector})` : ""} this rebalance.</div>
           <div style={{fontStyle:"italic",color:"var(--accent)"}}>{owns ? "Holding it is a discretionary bet vs the model." : "Adding it would be a discretionary bet vs the model."}</div>
         </div>
       ),
