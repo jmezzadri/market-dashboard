@@ -6489,6 +6489,138 @@ Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-t
 
 {/* PORTFOLIO RISK block removed 2026-05-04 (re-deleted after PR #448 regression). */}
 
+{/* Inline signal tiles — moved BELOW the Buy Alerts / Near Trigger tables
+    per Joe's UAT 2026-04-28: tiles are evidence/diagnostics for the names
+    surfaced above, so they read as supporting context rather than primary. */}
+{showTrading&&<div style={{marginBottom:14}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>}
+{/* SECTION 2 — PORTFOLIO INSIGHTS (only on insights tab) */}
+{showInsights&&<div style={sectionPanel}>
+<div style={sectionHeader}>
+<span style={sectionTitleStyle}>ALLOCATION</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${Math.round(grandTotal).toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
+</div>
+<div style={{padding:"12px 16px"}}>
+{ACCOUNTS.length===0?(
+  portfolioAuthed?(
+    <OnboardingPanel userId={session?.user?.id} onDone={refetchPortfolio}/>
+  ):(
+    <div style={{padding:"28px 16px",textAlign:"center",color:"var(--text-muted)",fontSize:13,lineHeight:1.55}}>
+      Sign in to populate allocation, positions, and risk insights with your own data.
+    </div>
+  )
+):<>
+
+{/* ALLOCATION (wealth bars) */}
+<div style={subPanelOuter}>
+<div style={subPanelHeader}>
+<span style={subPanelTitleStyle}>ALLOCATION</span>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>ASSET CLASS · BONDS / STOCKS / CASH SPLIT</span>
+</div>
+<div style={subPanelBody}>
+{(()=>{
+const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
+// Account rows in Supabase carry color=null for legacy users (pre-palette
+// migration). Without a fallback, WEALTH BY ACCOUNT bar slices render
+// transparent against the dark background and the bar looks empty.
+// Deterministic fallback by DB sort-order index so colors don't flip on
+// the value-sorted acctData re-sort below.
+const ACCT_PALETTE=["#4a6fa5","#ff9f0a","#14b8a6","#a855f7","#B8860B","#6366f1","#64748b","#f97316"];
+const acctData=ACCOUNTS.map((acc,i)=>{
+const t=acc.positions.reduce((a,p)=>a+p.value,0);
+return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color||ACCT_PALETTE[i%ACCT_PALETTE.length],value:t};
+}).sort((a,b)=>b.value-a.value);
+const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
+{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val}
+));
+// Gross / net split. Negative values (margin debits, short positions) break
+// stacked-bar flex math — `flex: -0.08` collapses every segment to minWidth
+// because CSS treats negative flex-grow as 0. We stack positives only and
+// compute segment % against GROSS (sum of positives) so the bar renders and
+// the slice labels sum to 100%. Liabilities still surface in the legend with
+// their signed value + signed % of gross so Joe sees the debit faithfully.
+// Header meta shows net (grandTotal) when it differs from gross.
+const renderBar2=(title,unit,segs,key)=>{
+const gross=segs.reduce((a,s)=>a+Math.max(0,s.value),0)||1;
+const net=segs.reduce((a,s)=>a+s.value,0);
+const hasLiab=segs.some(s=>s.value<0);
+// When liabilities exist, count positive segments only for the class
+// count — debt is a liability row, not an asset class.
+const posCount=segs.filter(s=>s.value>0).length;
+const meta=hasLiab
+  ?`${posCount} ${unit} · ${fmt$K(gross)} gross · ${fmt$K(net)} net`
+  :`${segs.length} ${unit} · ${fmt$K(net)}`;
+return(
+<div key={key} style={{marginBottom:14}}>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600}}>{title}</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{meta}</span>
+</div>
+<div style={{display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10}}>
+{segs.filter(s=>s.value>0).map(s=>(<div key={s.id} title={`${s.name} · ${fmt$K(s.value)} · ${(s.value/gross*100).toFixed(1)}%`} style={{flex:s.value/gross,background:s.color,minWidth:2}}/>))}
+</div>
+<div style={{display:"flex",flexWrap:"wrap",rowGap:6,columnGap:18}}>
+{segs.map(s=>(
+<div key={s.id} style={{display:"flex",alignItems:"center",gap:7}}>
+<div style={{width:9,height:9,borderRadius:2,flexShrink:0,background:s.color,opacity:s.value<0?0.4:1}}/>
+<span style={{fontSize:12,color:"var(--text)",fontWeight:500}}>{s.name}</span>
+<span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{fmt$K(s.value)}</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{(s.value/gross*100).toFixed(0)}%</span>
+</div>
+))}
+</div>
+</div>
+);
+};
+return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
+})()}
+</div>
+</div>
+{/* /ALLOCATION sub-panel */}
+
+{/* NOTABLE block removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
+
+{/* POSITIONS global table removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
+
+{/* DEPLOYABLE CASH removed 2026-05-04 — per-tile cash chip in AccountTilesSection covers it. */}
+
+</>}
+</div>
+</div>}
+
+{/* TRADE HISTORY — Phase 5B. Collapsible ledger over public.transactions
+    (BUY/SELL/OPEN/CLOSE) with date-window, ticker, account, and options-only
+    filters + CSV export. Rendered between Positions and Account Breakdown
+    so the page reads top-to-bottom: KPIs → risk → realized P&L → positions
+    → trade history → account-by-account. */}
+{showInsights && portfolioAuthed && (
+  <TradeHistorySection rows={_txRows} loading={_txLoading} accounts={ACCOUNTS}/>
+)}
+
+{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab.
+    Restored 2026-05-04 after PR #448 silently dropped the wiring. */}
+{showInsights&&(
+  <AccountTilesSection
+    accounts={ACCOUNTS}
+    grandTotal={grandTotal}
+    convColor={CONV.color}
+    convLabel={CONV.label}
+    stressScore={COMP100}
+    scanData={scanData}
+    onOpenTicker={(t)=>setTickerDetail(t)}
+    onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
+    onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
+    onClose={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
+    onDelete={portfolioAuthed?deletePositionInline:undefined}
+    onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
+    onImportTransactions={portfolioAuthed?()=>setShowImportTransactions(true):undefined}
+    onRescan={portfolioAuthed?(rows)=>handleRescanAllPositions(rows):undefined}
+    rescanBusy={rescanState.active}
+    rescanProgress={{done:rescanState.done,total:rescanState.total}}
+    pricesTs={universeSnapshotTs}
+    eventsTs={scanData?.ticker_events_ts}
+  />
+)}
+
 {/* NAV-OVER-TIME · TIME-WEIGHTED — Phase 3 PR #8. Inline SVG line chart of
     aggregated portfolio NAV from portfolio_history (Modified Dietz aggregate
     series). Optional SPY benchmark line rebased to the portfolio's first NAV
@@ -6755,137 +6887,6 @@ return(<>
 </div>
 </div>}
 
-{/* Inline signal tiles — moved BELOW the Buy Alerts / Near Trigger tables
-    per Joe's UAT 2026-04-28: tiles are evidence/diagnostics for the names
-    surfaced above, so they read as supporting context rather than primary. */}
-{showTrading&&<div style={{marginBottom:14}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>}
-{/* SECTION 2 — PORTFOLIO INSIGHTS (only on insights tab) */}
-{showInsights&&<div style={sectionPanel}>
-<div style={sectionHeader}>
-<span style={sectionTitleStyle}>ALLOCATION</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${Math.round(grandTotal).toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
-</div>
-<div style={{padding:"12px 16px"}}>
-{ACCOUNTS.length===0?(
-  portfolioAuthed?(
-    <OnboardingPanel userId={session?.user?.id} onDone={refetchPortfolio}/>
-  ):(
-    <div style={{padding:"28px 16px",textAlign:"center",color:"var(--text-muted)",fontSize:13,lineHeight:1.55}}>
-      Sign in to populate allocation, positions, and risk insights with your own data.
-    </div>
-  )
-):<>
-
-{/* ALLOCATION (wealth bars) */}
-<div style={subPanelOuter}>
-<div style={subPanelHeader}>
-<span style={subPanelTitleStyle}>ALLOCATION</span>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>ASSET CLASS · BONDS / STOCKS / CASH SPLIT</span>
-</div>
-<div style={subPanelBody}>
-{(()=>{
-const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
-// Account rows in Supabase carry color=null for legacy users (pre-palette
-// migration). Without a fallback, WEALTH BY ACCOUNT bar slices render
-// transparent against the dark background and the bar looks empty.
-// Deterministic fallback by DB sort-order index so colors don't flip on
-// the value-sorted acctData re-sort below.
-const ACCT_PALETTE=["#4a6fa5","#ff9f0a","#14b8a6","#a855f7","#B8860B","#6366f1","#64748b","#f97316"];
-const acctData=ACCOUNTS.map((acc,i)=>{
-const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color||ACCT_PALETTE[i%ACCT_PALETTE.length],value:t};
-}).sort((a,b)=>b.value-a.value);
-const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
-{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val}
-));
-// Gross / net split. Negative values (margin debits, short positions) break
-// stacked-bar flex math — `flex: -0.08` collapses every segment to minWidth
-// because CSS treats negative flex-grow as 0. We stack positives only and
-// compute segment % against GROSS (sum of positives) so the bar renders and
-// the slice labels sum to 100%. Liabilities still surface in the legend with
-// their signed value + signed % of gross so Joe sees the debit faithfully.
-// Header meta shows net (grandTotal) when it differs from gross.
-const renderBar2=(title,unit,segs,key)=>{
-const gross=segs.reduce((a,s)=>a+Math.max(0,s.value),0)||1;
-const net=segs.reduce((a,s)=>a+s.value,0);
-const hasLiab=segs.some(s=>s.value<0);
-// When liabilities exist, count positive segments only for the class
-// count — debt is a liability row, not an asset class.
-const posCount=segs.filter(s=>s.value>0).length;
-const meta=hasLiab
-  ?`${posCount} ${unit} · ${fmt$K(gross)} gross · ${fmt$K(net)} net`
-  :`${segs.length} ${unit} · ${fmt$K(net)}`;
-return(
-<div key={key} style={{marginBottom:14}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600}}>{title}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{meta}</span>
-</div>
-<div style={{display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10}}>
-{segs.filter(s=>s.value>0).map(s=>(<div key={s.id} title={`${s.name} · ${fmt$K(s.value)} · ${(s.value/gross*100).toFixed(1)}%`} style={{flex:s.value/gross,background:s.color,minWidth:2}}/>))}
-</div>
-<div style={{display:"flex",flexWrap:"wrap",rowGap:6,columnGap:18}}>
-{segs.map(s=>(
-<div key={s.id} style={{display:"flex",alignItems:"center",gap:7}}>
-<div style={{width:9,height:9,borderRadius:2,flexShrink:0,background:s.color,opacity:s.value<0?0.4:1}}/>
-<span style={{fontSize:12,color:"var(--text)",fontWeight:500}}>{s.name}</span>
-<span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{fmt$K(s.value)}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{(s.value/gross*100).toFixed(0)}%</span>
-</div>
-))}
-</div>
-</div>
-);
-};
-return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
-})()}
-</div>
-</div>
-{/* /ALLOCATION sub-panel */}
-
-{/* NOTABLE block removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
-
-{/* POSITIONS global table removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
-
-{/* DEPLOYABLE CASH removed 2026-05-04 — per-tile cash chip in AccountTilesSection covers it. */}
-
-</>}
-</div>
-</div>}
-
-{/* TRADE HISTORY — Phase 5B. Collapsible ledger over public.transactions
-    (BUY/SELL/OPEN/CLOSE) with date-window, ticker, account, and options-only
-    filters + CSV export. Rendered between Positions and Account Breakdown
-    so the page reads top-to-bottom: KPIs → risk → realized P&L → positions
-    → trade history → account-by-account. */}
-{showInsights && portfolioAuthed && (
-  <TradeHistorySection rows={_txRows} loading={_txLoading} accounts={ACCOUNTS}/>
-)}
-
-{/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab.
-    Restored 2026-05-04 after PR #448 silently dropped the wiring. */}
-{showInsights&&(
-  <AccountTilesSection
-    accounts={ACCOUNTS}
-    grandTotal={grandTotal}
-    convColor={CONV.color}
-    convLabel={CONV.label}
-    stressScore={COMP100}
-    scanData={scanData}
-    onOpenTicker={(t)=>setTickerDetail(t)}
-    onAdd={portfolioAuthed?()=>setPositionEditor({mode:"add"}):undefined}
-    onEdit={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
-    onClose={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
-    onDelete={portfolioAuthed?deletePositionInline:undefined}
-    onBulkImport={portfolioAuthed?()=>setShowBulkImport(true):undefined}
-    onImportTransactions={portfolioAuthed?()=>setShowImportTransactions(true):undefined}
-    onRescan={portfolioAuthed?(rows)=>handleRescanAllPositions(rows):undefined}
-    rescanBusy={rescanState.active}
-    rescanProgress={{done:rescanState.done,total:rescanState.total}}
-    pricesTs={universeSnapshotTs}
-    eventsTs={scanData?.ticker_events_ts}
-  />
-)}
 
 </div>
 );

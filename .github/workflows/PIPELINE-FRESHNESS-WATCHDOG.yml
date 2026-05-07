@@ -94,6 +94,19 @@ jobs:
                   "workflow": "MASSIVE-DAILY.yml",
                   "et_window": (18, 23),    # only attempt 6 PM-11 PM ET
               },
+              {
+                  # Joe directive 2026-05-07 — watchdog now also tracks the
+                  # daily scan output. SCAN updates a static file in the
+                  # repo (public/latest_scan_data.json), not a Supabase
+                  # table, so the freshness fetcher is "json_url".
+                  "name":     "scan",
+                  "fetcher":  "json_url",
+                  "url":      "https://macrotilt.com/latest_scan_data.json",
+                  "ts_key":   "scan_time",
+                  "sla_min":  20 * 60,     # 20h — daily; SCAN runs once per US trading day
+                  "workflow": "SCAN_345PM_WEEKDAYS.yml",
+                  "et_window": (15, 23),    # post-15:00 ET (the SCAN gate skips earlier)
+              },
           ]
 
           # ─── Helpers ────────────────────────────────────────────────────
@@ -109,6 +122,18 @@ jobs:
               rows = supa_get(f"/rest/v1/{table}?select={ts_col}&order={ts_col}.desc&limit=1")
               if not rows: return None
               return rows[0][ts_col]
+
+          def latest_ts_from_url(url, ts_key):
+              # Joe directive 2026-05-07 — pipelines that publish to a static
+              # JSON file (not a Supabase table) read freshness via this path.
+              try:
+                  req = urllib.request.Request(url, headers={"User-Agent": "macrotilt-watchdog"})
+                  with urllib.request.urlopen(req, timeout=10) as r:
+                      doc = json.loads(r.read().decode())
+                  return doc.get(ts_key)
+              except Exception as e:
+                  print(f"  (url-fetch error: {e})")
+                  return None
 
           def age_minutes(iso_ts):
               if not iso_ts: return None
@@ -135,10 +160,14 @@ jobs:
 
           any_dispatched = False
           for p in PIPELINES:
+              fetcher = p.get("fetcher", "supabase")
               try:
-                  ts = latest_ts(p["table"], p["ts_col"])
+                  if fetcher == "json_url":
+                      ts = latest_ts_from_url(p["url"], p["ts_key"])
+                  else:
+                      ts = latest_ts(p["table"], p["ts_col"])
               except Exception as e:
-                  print(f"[{p['name']}] ERROR querying Supabase: {e}")
+                  print(f"[{p['name']}] ERROR fetching freshness: {e}")
                   continue
 
               age = age_minutes(ts)
