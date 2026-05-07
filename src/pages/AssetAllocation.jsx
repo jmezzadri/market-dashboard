@@ -540,10 +540,6 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
             background: "transparent", border: "none", padding: 0, font: "inherit",
             color: "var(--text)", fontWeight: 600, cursor: "pointer",
           }}>{sector.sector}</button>
-          <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 8 }}>via</span>
-          {sectorEtfs.map(e => (
-            <EtfChip key={e.t} etf={e} onClick={onEtfClick} />
-          ))}
           <span
             aria-label={open ? "Collapse industry groups" : "Expand industry groups"}
             style={{
@@ -586,10 +582,6 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
           }}>
             <div>
               <strong style={{ color: "var(--text)" }}>{ig.name}</strong>
-              <span style={{ fontSize: 10, color: "var(--text-muted)", marginLeft: 6 }}>via</span>
-              {(ig.tickers || []).map(t => (
-                <EtfChip key={t} etf={{ t }} onClick={(e) => onEtfClick({ t, sector: ig.sector })} />
-              ))}
             </div>
             <div style={{ height: 4, background: "var(--bg)", borderRadius: 2, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${Math.min(100, igTilt * 5)}%`, background: "var(--accent)" }} />
@@ -669,7 +661,7 @@ function ModalShell({ title, subtitle, badge, onClose, children }) {
   );
 }
 
-function ETFTable({ etfs }) {
+function ETFTable({ etfs, onEtfClick }) {
   if (!etfs || !etfs.length) return null;
   return (
     <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", marginTop: 4 }}>
@@ -682,8 +674,17 @@ function ETFTable({ etfs }) {
       </thead>
       <tbody>
         {etfs.map(e => (
-          <tr key={e.t} style={{ borderBottom: "0.5px dashed var(--border)" }}>
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}><strong>{e.t}</strong></td>
+          <tr key={e.t}
+            onClick={() => onEtfClick && onEtfClick(e)}
+            style={{
+              borderBottom: "0.5px dashed var(--border)",
+              cursor: onEtfClick ? "pointer" : "default",
+              transition: "background 120ms",
+            }}
+            onMouseEnter={(ev) => { if (onEtfClick) ev.currentTarget.style.background = "var(--surface-2)"; }}
+            onMouseLeave={(ev) => { ev.currentTarget.style.background = "transparent"; }}
+          >
+            <td style={{ padding: "8px", fontFamily: "var(--font-mono)", color: onEtfClick ? "var(--accent)" : "var(--text)" }}><strong>{e.t}</strong></td>
             <td style={{ padding: "8px", fontSize: 12 }}>{e.n}</td>
             <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}>{e.er}</td>
             <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}>{e.aum}</td>
@@ -695,7 +696,7 @@ function ETFTable({ etfs }) {
   );
 }
 
-function StockTable({ stocks }) {
+function StockTable({ stocks, onTickerClick }) {
   if (!stocks || !stocks.length) return null;
   return (
     <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", marginTop: 4 }}>
@@ -878,7 +879,7 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
       <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "26px 0 4px", fontWeight: 600 }}>
         ETFs that give exposure to this sector
       </h4>
-      <ETFTable etfs={sectorEtfs} />
+      <ETFTable etfs={sectorEtfs} onEtfClick={onEtfClick} />
       <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "22px 0 4px", fontWeight: 600 }}>
         Industry groups inside this sector ({sectorIGs.length})
       </h4>
@@ -910,7 +911,7 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
   );
 }
 
-function IGModal({ ig, onClose }) {
+function IGModal({ ig, onClose, onEtfClick }) {
   if (!ig) return null;
   const detail = IG_DETAIL[ig.id] || { etfs: [], stocks: [] };
   return (
@@ -927,7 +928,7 @@ function IGModal({ ig, onClose }) {
       <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "26px 0 4px", fontWeight: 600 }}>
         ETFs that give exposure
       </h4>
-      <ETFTable etfs={detail.etfs} />
+      <ETFTable etfs={detail.etfs} onEtfClick={onEtfClick} />
       <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "22px 0 4px", fontWeight: 600 }}>
         Top constituent stocks
       </h4>
@@ -1214,7 +1215,7 @@ export default function AssetTilt({ onOpenTicker }) {
       {/* MODALS */}
       {mechModal && <MechanismModal mechanism={mechModal} onClose={() => setMechModal(null)} />}
       {sectorModal && <SectorModal sector={sectorModal} igs={v10.industry_groups} onClose={() => setSectorModal(null)} onIGClick={(ig) => { setSectorModal(null); setIgModal(ig); }} onEtfClick={setEtfModal} />}
-      {igModal && <IGModal ig={igModal} onClose={() => setIgModal(null)} />}
+      {igModal && <IGModal ig={igModal} onClose={() => setIgModal(null)} onEtfClick={(e) => setEtfModal(e)} />}
       {etfModal && <ETFModal etf={etfModal} onClose={() => setEtfModal(null)} />}
     </main>
   );
