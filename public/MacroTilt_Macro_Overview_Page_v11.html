@@ -698,13 +698,18 @@
       <!-- Aggregate verdict dial — 4 wedges, current position pointed to.
            Wedge labels are factual band names, not state pill words. -->
       <svg class="verdict-svg" viewBox="0 0 380 230" id="verdictDial">
-        <!-- Wedges all neutral; the verdict dot is the only band indicator. Joe directive 2026-05-07. -->
-        <path d="" id="wedge-riskon"  fill="#ececea" />
-        <path d="" id="wedge-neutral" fill="#ececea" />
-        <path d="" id="wedge-caution" fill="#ececea" />
-        <path d="" id="wedge-riskoff" fill="#ececea" />
+        <!-- Composite gauge wedges — Option A teal at 4 progressive opacity steps.
+             Light on the left (Risk On) -> dark on the right (Risk Off). -->
+        <path d="" id="wedge-riskon"  fill="rgba(14,85,96,0.18)" />
+        <path d="" id="wedge-neutral" fill="rgba(14,85,96,0.42)" />
+        <path d="" id="wedge-caution" fill="rgba(14,85,96,0.68)" />
+        <path d="" id="wedge-riskoff" fill="rgba(14,85,96,0.92)" />
 
-        <!-- Band labels removed 2026-05-07 (Joe directive) — band name in headline carries the signal. -->
+        <!-- Band labels under the gauge — restored 2026-05-07 (revised). -->
+        <text x="65"  y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="start"  letter-spacing="0.18em" font-weight="600">RISK-ON</text>
+        <text x="155" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="middle" letter-spacing="0.18em" font-weight="600">NEUTRAL</text>
+        <text x="245" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="middle" letter-spacing="0.18em" font-weight="600">CAUTION</text>
+        <text x="325" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="end"    letter-spacing="0.18em" font-weight="600">RISK-OFF</text>
 
         <!-- Pointer group rotates from leftmost (180°) to current angle. -->
         <g class="verdict-pointer-group" id="verdictPointerGroup">
@@ -1184,16 +1189,9 @@ function indicatorConcerningScore(ind) {
   // Today's pointer — angle from average score across LIVE tiles
   const liveTiles = TILES.filter(t => t.live);
   const avgScore = liveTiles.reduce((a, t) => a + t.score, 0) / liveTiles.length;
-  // Joe directive 2026-05-07 — paint the active band wedge with the
-  // Option A brand teal so the dial board carries the brand accent.
-  // Inactive wedges stay neutral gray (already set as fill="#ececea"
-  // in the SVG markup); we only override the active band here.
-  const _activeWedgeId = avgScore < 25 ? "wedge-riskon"
-                       : avgScore < 50 ? "wedge-neutral"
-                       : avgScore < 75 ? "wedge-caution"
-                       :                 "wedge-riskoff";
-  const _activeWedge = document.getElementById(_activeWedgeId);
-  if (_activeWedge) _activeWedge.setAttribute("fill", "#0e5560");
+  // Active-wedge override removed 2026-05-07 (revised) — wedges now
+  // render as a 4-step teal gradient (light Risk On -> dark Risk Off);
+  // the needle position alone marks the current score.
   const a_today = 180 - avgScore * 1.8;
   // Populate verdict text from the same average.
   // Bands per page header copy: 0-25 Risk-on, 25-50 Neutral,
@@ -1209,7 +1207,8 @@ function indicatorConcerningScore(ind) {
     else if (avgScore < 50) label = "Neutral";
     else if (avgScore < 75) label = "Caution";
     else                    label = "Risk-off";
-    document.getElementById("verdictHeadline").textContent = `${label} · ${rounded}/100`;
+    // Score already shown in verdictCount above; headline is just the band name.
+    document.getElementById("verdictHeadline").textContent = `${label} band`;
   })();
   const [tx, ty] = polar(R_outer + 8, a_today);
   document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
@@ -1232,18 +1231,19 @@ function buildDialSvg(score, isLive, band) {
   const cx = W / 2, cy = H - 12;
   const R_outer = 92, R_inner = 64;
 
-  // Joe directive 2026-05-07 — drop the colored band coding.
-  // All wedges read as one neutral arc; the active band gets a single
-  // accent fill (Option A teal — brand color), the rest stay light gray.
-  // Keeps the dial board monochrome with one accent, the way the rest
-  // of the app does it.
-  const NEUTRAL = "#ececea";
-  const ACCENT  = "#0e5560"; // Option A brand teal
+  // Joe directive 2026-05-07 (revised) — every dial uses the same
+  // 4-step Option A teal gradient. Light teal on the left (Risk On) ->
+  // progressively darker teal to the right (Risk Off). Same treatment
+  // as the big composite gauge so all 7 dials read as one family.
+  const W_RISKON  = "rgba(14,85,96,0.18)";
+  const W_NEUTRAL = "rgba(14,85,96,0.42)";
+  const W_CAUTION = "rgba(14,85,96,0.68)";
+  const W_RISKOFF = "rgba(14,85,96,0.92)";
   const wedges = [
-    { from: 0,   to: 25,  active: ACCENT, subtle: NEUTRAL },
-    { from: 25,  to: 50,  active: ACCENT, subtle: NEUTRAL },
-    { from: 50,  to: 75,  active: ACCENT, subtle: NEUTRAL },
-    { from: 75,  to: 100, active: ACCENT, subtle: NEUTRAL },
+    { from: 0,   to: 25,  active: W_RISKON,  subtle: W_RISKON  },
+    { from: 25,  to: 50,  active: W_NEUTRAL, subtle: W_NEUTRAL },
+    { from: 50,  to: 75,  active: W_CAUTION, subtle: W_CAUTION },
+    { from: 75,  to: 100, active: W_RISKOFF, subtle: W_RISKOFF },
   ];
   const scoreToDeg = (s) => 180 - Math.max(0, Math.min(100, s)) * 1.8;
   const polar = (r, deg) => {
@@ -2636,7 +2636,7 @@ function showToast(msg) {
       else if (avg < 75) label = 'Caution';
       else               label = 'Risk-off';
       var head = document.getElementById('verdictHeadline');
-      if (head) head.textContent = label + ' · ' + avg + '/100';
+      if (head) head.textContent = label + ' band';
       // Update the verdict pointer angle
       var a_today = 180 - avg * 1.8;
       var rad = (a_today * Math.PI) / 180;
