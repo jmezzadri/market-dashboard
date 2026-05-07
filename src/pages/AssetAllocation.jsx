@@ -600,9 +600,12 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
         </div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right",
-          color: sector.vs_spy_pp > 0 ? "var(--green)" : sector.vs_spy_pp < 0 ? "var(--red)" : "var(--text-muted)",
+          color: Math.abs(sector.vs_spy_pp ?? 0) < 0.5 ? "var(--text-muted)"
+                 : Math.abs(sector.vs_spy_pp ?? 0) < 2   ? "rgba(14,85,96,0.55)"
+                 : Math.abs(sector.vs_spy_pp ?? 0) < 5   ? "rgba(14,85,96,0.80)"
+                 :                                         "var(--accent)",
         }}>
-          {sector.vs_spy_pp > 0 ? "+" : ""}{sector.vs_spy_pp}% {sector.rating}
+          {sector.vs_spy_pp > 0 ? "+" : ""}{sector.vs_spy_pp}%
         </div>
       </div>
       {open && sectorIGs.map(ig => {
@@ -625,9 +628,11 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
             </div>
             <div style={{
               fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right",
-              color: ig.rating === "OW" ? "var(--green)" : ig.rating === "UW" ? "var(--red)" : "var(--text-muted)",
+              color: ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 2 ? "var(--accent)"
+                     : ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 0.5 ? "rgba(14,85,96,0.65)"
+                     : "var(--text-muted)",
             }}>
-              {ig.rating}
+              {ig.vs_spy_pp != null ? `${ig.vs_spy_pp > 0 ? "+" : ""}${ig.vs_spy_pp}%` : "—"}
             </div>
           </div>
         );
@@ -914,11 +919,8 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
   return (
     <ModalShell
       title={sector.sector}
-      subtitle={`Sector · ${sector.rating === "OW" ? "Overweight" : sector.rating === "UW" ? "Underweight" : "Market weight"} · $${sector.dollar.toFixed(2)} of $100 capital · vs SPY ${sector.vs_spy_pp >= 0 ? "+" : ""}${sector.vs_spy_pp}%`}
-      badge={<span style={{
-        background: RATING_BG[sector.rating], color: RATING_TEXT[sector.rating],
-        fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 999,
-      }}>{RATING_LABEL[sector.rating]}</span>}
+      subtitle={`Sector · $${sector.dollar.toFixed(2)} of $100 capital · vs SPY ${sector.vs_spy_pp >= 0 ? "+" : ""}${sector.vs_spy_pp}%`}
+      badge={null}
       onClose={onClose}
     >
       <AllocationChart macroTiltWeight={sector.weight} benchmarkWeight={sector.spy_weight} />
@@ -947,10 +949,11 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
             </div>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>${ig.dollar.toFixed(2)}</span>
             <span style={{
-              fontSize: 10, fontWeight: 600,
-              padding: "2px 8px", borderRadius: 999,
-              background: RATING_BG[ig.rating], color: RATING_TEXT[ig.rating],
-            }}>{ig.rating}</span>
+              fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600,
+              color: ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 2 ? "var(--accent)"
+                     : ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 0.5 ? "rgba(14,85,96,0.65)"
+                     : "var(--text-muted)",
+            }}>{ig.vs_spy_pp != null ? `${ig.vs_spy_pp > 0 ? "+" : ""}${ig.vs_spy_pp}%` : "—"}</span>
           </button>
         ))}
       </div>
@@ -987,10 +990,7 @@ function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBackToSec
           {" · Industry Group · $"}{ig.dollar.toFixed(2)}{" of $100 capital"}
         </span>
       }
-      badge={<span style={{
-        background: RATING_BG[ig.rating], color: RATING_TEXT[ig.rating],
-        fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 999,
-      }}>{RATING_LABEL[ig.rating]}</span>}
+      badge={null}
       onClose={onClose}
     >
       <AllocationChart macroTiltWeight={(ig.dollar || 0) / 100} benchmarkWeight={avgPerIG / 100} benchmarkLabel={`Avg IG in ${ig.sector}`} />
@@ -1017,12 +1017,13 @@ function HeatmapTile({ contributionMatrix }) {
   };
   const cellColor = (v) => {
     if (Math.abs(v) < 0.15) return { bg: "rgba(94,94,99,0.10)", color: "var(--text-muted)" };
-    if (v > 0.7) return { bg: "rgba(47,157,106,0.55)", color: "#fff" };
-    if (v > 0.3) return { bg: "rgba(47,157,106,0.30)", color: "var(--text)" };
-    if (v > 0) return { bg: "rgba(47,157,106,0.15)", color: "var(--text)" };
-    if (v < -0.7) return { bg: "rgba(200,70,88,0.55)", color: "#fff" };
-    if (v < -0.3) return { bg: "rgba(200,70,88,0.30)", color: "var(--text)" };
-    return { bg: "rgba(200,70,88,0.15)", color: "var(--text)" };
+    // Joe directive 2026-05-07 — heatmap = shades of teal by magnitude.
+    // Direction (tailwind / headwind) read from the +/- sign in the number.
+    const a = Math.abs(v);
+    if (a > 0.7) return { bg: "rgba(14,85,96,0.55)", color: "#fff" };
+    if (a > 0.3) return { bg: "rgba(14,85,96,0.30)", color: "var(--text)" };
+    if (a > 0)   return { bg: "rgba(14,85,96,0.15)", color: "var(--text)" };
+    return { bg: "transparent", color: "var(--text-muted)" };
   };
   return (
     <div style={{
@@ -1032,8 +1033,7 @@ function HeatmapTile({ contributionMatrix }) {
       <div style={{ padding: 16, fontSize: 13, lineHeight: 1.5, borderBottom: "0.5px solid var(--border)" }}>
         <strong>How to read this:</strong>{" "}
         Each cell shows how much each cycle mechanism is helping or hurting that sector right now.
-        <span style={{ color: "var(--green)" }}> +green</span> = tailwind ·
-        <span style={{ color: "var(--red)" }}> −red</span> = headwind · grey = neutral.
+        Darker teal = stronger effect; <span style={{ fontWeight: 600 }}>+</span> tailwind, <span style={{ fontWeight: 600 }}>−</span> headwind, blank = neutral.
       </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 11 }}>
@@ -1141,39 +1141,43 @@ export default function AssetTilt({ onOpenTicker }) {
 
   return (
     <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 32px 48px" }}>
-      {/* HERO — Asset Tilt is about TILT. The headline names the engine's
-          two loudest calls: the strongest underweight and the strongest
-          overweight versus SPY, with magnitudes. No macro band, no
-          statement of state, no decorative meta-header. */}
-      {(() => {
-        const hero = tiltHero(v10.sectors);
-        return (
-          <section style={{
-            padding: "24px 28px", background: "var(--surface)",
-            border: "0.5px solid var(--border)", borderRadius: 12, marginBottom: 16,
-          }}>
-            <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>
-              Asset Tilt
+      {/* HERO — Recommended Positioning + methodology paragraph. Joe directive
+          2026-05-07: drop the "X points out of Tech" headline, show 3
+          positioning tiles, surface methodology paragraph at the top. */}
+      <section style={{ marginBottom: 18 }}>
+        <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 12 }}>
+          Asset Tilt · Recommended Positioning
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 18 }}>
+          {[
+            { label: "Leverage",          value: lev.toFixed(2) + "×",                            sub: "gross " + grossDollar.toFixed(0) + "% of capital" },
+            { label: "Equity allocation", value: Math.round((v10.equity_pct || 0) * 100) + "%",   sub: "across 11 GICS sectors" },
+            { label: "Defensive sleeve",  value: Math.round((v10.defensive_pct || 0) * 100) + "%", sub: defensiveActive ? "BIL · TLT · GLD · LQD" : "armed · not yet activating" },
+          ].map(t => (
+            <div key={t.label} style={{
+              background: "var(--surface)", border: "0.5px solid var(--border)",
+              borderRadius: 10, padding: "16px 18px",
+              display: "flex", flexDirection: "column",
+            }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>
+                {t.label}
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 32, fontWeight: 600, color: "var(--accent)", lineHeight: 1, letterSpacing: "-0.015em" }}>
+                {t.value}
+              </div>
+              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.4 }}>
+                {t.sub}
+              </div>
             </div>
-            {hero ? (
-              <>
-                <h1 style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 400, margin: "10px 0 0", letterSpacing: "-0.018em", lineHeight: 1.15 }}>
-                  {hero.botMag} points out of <em style={{ fontStyle: "italic", color: "var(--accent)" }}>{hero.botShort}</em>,{" "}
-                  {hero.topMag} into <em style={{ fontStyle: "italic", color: "var(--accent)" }}>{hero.topShort}</em>.
-                </h1>
-                <p style={{ marginTop: 12, color: "var(--text-muted)", fontSize: 14, lineHeight: 1.5, maxWidth: "62ch" }}>
-                  Strongest underweight: <strong style={{ color: "var(--text-2)", fontWeight: 600 }}>{hero.botFull}</strong> at {hero.botMag}% under the SPY weight.
-                  Strongest overweight: <strong style={{ color: "var(--text-2)", fontWeight: 600 }}>{hero.topFull}</strong> at {hero.topMag}% over.
-                </p>
-              </>
-            ) : (
-              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 500, margin: "10px 0 0", letterSpacing: "-0.015em", lineHeight: 1.2 }}>
-                Recommendations broadly track the benchmark.
-              </h1>
-            )}
-          </section>
-        );
-      })()}
+          ))}
+        </div>
+        <div style={{ padding: "16px 20px", background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
+          The engine reads the six cycle mechanisms from Macro Overview and applies backtested decision rules.
+          Hard caps: defensive ≤ 50%, leverage ≤ 1.5×.
+          Calibration (2026-05-04) backtests CAGR 13.85%, Sharpe 1.034, max drawdown −20.81% over 2012-2026.{" "}
+          <a href="#methodology" style={{ color: "var(--accent)", fontWeight: 500 }}>Read the full methodology →</a>
+        </div>
+      </section>
 
       {/* Asset Tilt does NOT show macro reads — this is a pure deep-link to Macro Overview.
           Cycle / mechanism / regime data belongs on the Macro Overview tab (single source of truth).
@@ -1267,14 +1271,8 @@ export default function AssetTilt({ onOpenTicker }) {
       </div>
       <HeatmapTile contributionMatrix={v10.contribution_matrix} />
 
-      {/* METHODOLOGY FOOTER */}
-      <div style={{ marginTop: 32, padding: 18, background: "var(--surface-2)", borderRadius: 8, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
-        <strong style={{ color: "var(--text)" }}>How this page works.</strong>{" "}
-        The engine reads the six cycle mechanisms from Macro Overview and applies backtested decision rules.
-        Hard caps: defensive ≤ 50%, leverage ≤ 1.5×, defensive and leverage never on at the same time.
-        v10.1c calibration (2026-05-04) backtests CAGR 13.85%, Sharpe 1.034, max drawdown −20.81% over 2012-2026.{" "}
-        <a href="#methodology" style={{ color: "var(--accent)" }}>Read the full methodology →</a>
-      </div>
+      {/* Bottom methodology footer killed 2026-05-07 — methodology paragraph
+          is now in the hero at the top of the page. */}
 
       {/* MODALS */}
       {mechModal && <MechanismModal mechanism={mechModal} onClose={() => setMechModal(null)} />}
