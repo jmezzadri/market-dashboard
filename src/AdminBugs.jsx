@@ -42,19 +42,19 @@ function normStatus(s) { return LEGACY_ALIAS[s] || s || "new"; }
 
 const STATUS_META = {
   new:               { label: "New",               color: "#60a5fa", group: "open" },
-  triaged:           { label: "Triaged",           color: "#a78bfa", group: "open" },
+  triaged:           { label: "Triaged",           color: "var(--accent)", group: "open" },
   awaiting_approval: { label: "Awaiting approval", color: "#B8860B", group: "awaiting_approval" },
-  approved:          { label: "Approved",          color: "#f59e0b", group: "in_flight" },
-  merged:            { label: "Merged",            color: "#34d399", group: "in_flight" },
+  approved:          { label: "Approved",          color: "var(--text-muted)", group: "in_flight" },
+  merged:            { label: "Merged",            color: "var(--green)", group: "in_flight" },
   deployed:          { label: "Deployed",          color: "#10b981", group: "in_flight" },
   verified_closed:   { label: "Closed",            color: "#6b7280", group: "closed" },
-  reopened:          { label: "Reopened",          color: "#ef4444", group: "open" },
+  reopened:          { label: "Reopened",          color: "var(--red)", group: "open" },
   wontfix:           { label: "Won't fix",         color: "#475569", group: "wontfix" },
   duplicate:         { label: "Duplicate",         color: "#475569", group: "wontfix" },
   needs_info:        { label: "Needs info",        color: "#475569", group: "wontfix" },
 };
 function statusLabel(raw) { const m = STATUS_META[normStatus(raw)]; return m?.label || raw; }
-function statusColor(raw) { const m = STATUS_META[normStatus(raw)]; return m?.color || "#9ca3af"; }
+function statusColor(raw) { const m = STATUS_META[normStatus(raw)]; return m?.color || "var(--text-muted)"; }
 function statusGroup(raw) { const m = STATUS_META[normStatus(raw)]; return m?.group || "open"; }
 
 // Detect "state desync" — the row's authoritative status disagrees with
@@ -179,9 +179,9 @@ function whereText(r) {
   } catch { return "—"; }
 }
 function complexityColor(c) {
-  if (c === "H") return "#ef4444";
+  if (c === "H") return "var(--red)";
   if (c === "M") return "#B8860B";
-  if (c === "L") return "#34d399";
+  if (c === "L") return "var(--green)";
   return "var(--text-muted)";
 }
 
@@ -191,7 +191,7 @@ function complexityColor(c) {
 // the current filter is unambiguous. The separate filter-pill row below the
 // strip was removed on the tile-first redesign (2026-04-24).
 function KpiTile({ label, value, sub, tone, active, onClick }) {
-  const toneColor = tone === "good" ? "#34d399" : tone === "warn" ? "#B8860B" : tone === "bad" ? "#ef4444" : "var(--text)";
+  const toneColor = tone === "good" ? "var(--green)" : tone === "warn" ? "#B8860B" : tone === "bad" ? "var(--red)" : "var(--text)";
   const borderColor = active ? "var(--accent, #2563eb)" : "var(--border)";
   const bg = active ? "rgba(37, 99, 235, 0.06)" : "var(--surface)";
   return (
@@ -429,7 +429,7 @@ function Screenshot({ path }) {
   }, [path]);
 
   if (!path) return <div style={{ fontSize: 12, color: "var(--text-muted)" }}>No screenshot.</div>;
-  if (err) return <div style={{ fontSize: 12, color: "#ef4444" }}>Screenshot load failed: {err}</div>;
+  if (err) return <div style={{ fontSize: 12, color: "var(--red)" }}>Screenshot load failed: {err}</div>;
   if (!url) return <div style={{ fontSize: 12, color: "var(--text-muted)" }}>Loading screenshot…</div>;
   return (
     <a href={url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
@@ -670,10 +670,10 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
           disabled={isPending}
           style={{
             background: "transparent",
-            border: "1px solid #ef4444",
+            border: "1px solid var(--red)",
             borderRadius: 6,
             padding: "9px 14px",
-            color: "#ef4444",
+            color: "var(--red)",
             fontSize: 13,
             fontWeight: 600,
             cursor: isPending ? "wait" : "pointer",
@@ -721,8 +721,8 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
         borderRadius: 8,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ width: 8, height: 8, borderRadius: 4, background: "#ef4444" }} />
-          <div style={{ fontSize: 11, fontFamily: "monospace", color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+          <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--red)" }} />
+          <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
             Reopen — tell the fix-builder what's still broken
           </div>
         </div>
@@ -750,7 +750,7 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
             onClick={() => { if (canSubmit) onReopen(row.id, trimmed); }}
             disabled={!canSubmit}
             style={{
-              background: canSubmit ? "#ef4444" : "transparent",
+              background: canSubmit ? "var(--red)" : "transparent",
               color: canSubmit ? "white" : "var(--text-muted)",
               border: canSubmit ? "none" : "1px solid var(--border)",
               borderRadius: 6,
@@ -813,7 +813,7 @@ function ActionRow({ row, onMarkDeployed, onCloseBug, onReopen, onDismiss, pendi
 function actionBtnStyle(tone, disabled) {
   const base = { borderRadius: 6, padding: "7px 12px", fontSize: 12, fontWeight: 600, cursor: disabled ? "wait" : "pointer", opacity: disabled ? 0.6 : 1 };
   if (tone === "good")    return { ...base, background: "#10b981", color: "white", border: "none" };
-  if (tone === "bad")     return { ...base, background: "transparent", color: "#ef4444", border: "1px solid #ef4444" };
+  if (tone === "bad")     return { ...base, background: "transparent", color: "var(--red)", border: "1px solid var(--red)" };
   if (tone === "primary") return { ...base, background: "var(--accent, #2563eb)", color: "white", border: "none" };
   return { ...base, background: "transparent", color: "var(--text-2)", border: "1px solid var(--border)" };
 }
@@ -909,7 +909,7 @@ function SidePanel({ row, onClose, onActed }) {
       )}
 
       {actions.error && (
-        <div style={{ fontSize: 12, color: "#ef4444", fontFamily: "monospace", padding: "6px 10px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6 }}>
+        <div style={{ fontSize: 12, color: "var(--red)", fontFamily: "monospace", padding: "6px 10px", background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: 6 }}>
           Action failed: {actions.error.message || String(actions.error)}
         </div>
       )}
@@ -963,7 +963,7 @@ function SidePanel({ row, onClose, onActed }) {
       {/* Console errors */}
       {Array.isArray(row.console_errors) && row.console_errors.length > 0 && (
         <Section title={`Console errors (${row.console_errors.length})`}>
-          <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "monospace", fontSize: 11, color: "#ef4444", lineHeight: 1.45, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 6, padding: 10, maxHeight: 160, overflow: "auto" }}>
+          <pre style={{ whiteSpace: "pre-wrap", margin: 0, fontFamily: "monospace", fontSize: 11, color: "var(--red)", lineHeight: 1.45, background: "rgba(239,68,68,0.06)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 6, padding: 10, maxHeight: 160, overflow: "auto" }}>
             {row.console_errors.map((e, i) => (typeof e === "string" ? e : JSON.stringify(e))).join("\n")}
           </pre>
         </Section>
@@ -1256,7 +1256,7 @@ export default function AdminBugs() {
       </div>
 
       {error && (
-        <div style={{ background: "var(--surface)", border: "1px solid #ef4444", borderRadius: 8, padding: "12px 14px", color: "#ef4444", fontSize: 12, marginBottom: 12, fontFamily: "monospace" }}>
+        <div style={{ background: "var(--surface)", border: "1px solid var(--red)", borderRadius: 8, padding: "12px 14px", color: "var(--red)", fontSize: 12, marginBottom: 12, fontFamily: "monospace" }}>
           Query failed: {error.message || String(error)}
         </div>
       )}

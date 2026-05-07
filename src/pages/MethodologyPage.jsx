@@ -137,14 +137,14 @@ const styles = {
     margin: "0 0 12px",
   },
   callout: {
-    background: "var(--surface-2, var(--surface-2))",
+    background: "var(--surface-2)",
     border: "0.5px solid var(--border)",
     borderRadius: 6, padding: "12px 14px", margin: "12px 0 16px",
     fontSize: 13, lineHeight: 1.55, color: "var(--text)",
   },
   formula: {
     fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
-    fontSize: 12.5, background: "var(--surface-2, var(--surface-2))",
+    fontSize: 12.5, background: "var(--surface-2)",
     padding: "10px 14px", borderRadius: 5, borderLeft: "3px solid var(--accent)",
     margin: "10px 0", whiteSpace: "pre-wrap", lineHeight: 1.55,
   },
@@ -155,7 +155,7 @@ const styles = {
     textAlign: "left", padding: "8px 10px", fontWeight: 500, fontSize: 10,
     color: "var(--text-muted)", letterSpacing: "0.06em",
     textTransform: "uppercase", borderBottom: "0.5px solid var(--border)",
-    background: "var(--surface-2, var(--surface-2))",
+    background: "var(--surface-2)",
   },
   td: {
     padding: "9px 10px", borderBottom: "0.5px dashed var(--border)",
@@ -163,7 +163,7 @@ const styles = {
   },
   inlineCode: {
     fontFamily: "var(--font-mono, monospace)", fontSize: 12,
-    background: "var(--surface-2, var(--surface-2))", padding: "1px 6px", borderRadius: 3,
+    background: "var(--surface-2)", padding: "1px 6px", borderRadius: 3,
   },
   bullet: { margin: "6px 0", paddingLeft: 0, lineHeight: 1.55 },
 };

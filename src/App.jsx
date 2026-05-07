@@ -265,12 +265,12 @@ const ACCENT="#4a6fa5";
 // signal. Previously every entry shared ACCENT — Item 22 in Master Bug
 // Inventory: detail modal + card left-bar were visually uncategorized.
 const CATS={
-equity:  {label:"Equity & Vol",        color:"#8b5cf6"}, // violet
-credit:  {label:"Credit Markets",      color:"#f59e0b"}, // amber
-rates:   {label:"Rates & Duration",    color:"#06b6d4"}, // cyan
-fincond: {label:"Financial Conditions",color:"#ec4899"}, // pink
-bank:    {label:"Bank & Money Supply", color:"#14b8a6"}, // teal
-labor:   {label:"Labor & Economy",     color:"#3b82f6"}, // blue
+equity:  {label:"Equity & Vol",        color:"var(--text-muted)"}, // violet
+credit:  {label:"Credit Markets",      color:"var(--text-muted)"}, // amber
+rates:   {label:"Rates & Duration",    color:"var(--text-muted)"}, // cyan
+fincond: {label:"Financial Conditions",color:"var(--text-muted)"}, // pink
+bank:    {label:"Bank & Money Supply", color:"var(--accent)"}, // teal
+labor:   {label:"Labor & Economy",     color:"var(--text-muted)"}, // blue
 };
 
 function fmtV(id,v){
@@ -1310,7 +1310,7 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 ))}
 {/* Right axis — S&P levels */}
 {spTicks.map(v=>(
-<text key={v} x={pL+IW+4} y={ypSP(v)+3} fill="#3b82f688" fontSize="6" fontFamily="monospace">{v>=1000?(v/1000)+"k":v}</text>
+<text key={v} x={pL+IW+4} y={ypSP(v)+3} fill="var(--text-muted)88" fontSize="6" fontFamily="monospace">{v>=1000?(v/1000)+"k":v}</text>
 ))}
 {/* Crisis markers */}
 {marks.map(cm=>(
@@ -1881,7 +1881,7 @@ const TYPE_TOOLTIP_BY_VAL = {
   "Coincident":"Coincident — moves with the cycle. Useful as a real-time gauge of current conditions.",
   "Lag":       "Lag — moves after the cycle. Useful for confirming a regime shift, less so for anticipating one.",
 };
-const TYPE_COLOR = { "Lead":"#22c55e", "Coincident":"#94a3b8", "Lag":"#a78bfa" };
+const TYPE_COLOR = { "Lead":"var(--green)", "Coincident":"#94a3b8", "Lag":"var(--accent)" };
 
 // Per-category plain-English description (shown in chip tooltip).
 const CATEGORY_TOOLTIPS = {
@@ -4493,7 +4493,7 @@ return(
 </div>
 
 {error&&(
-<div style={{padding:"10px 14px",background:"#ef444410",border:"1px solid #ef444433",borderRadius:4,marginBottom:12}}>
+<div style={{padding:"10px 14px",background:"var(--red)10",border:"1px solid var(--red)33",borderRadius:4,marginBottom:12}}>
 <div style={{fontSize:12,color:"var(--red)",fontFamily:"monospace"}}>{error}</div>
 </div>
 )}
@@ -5259,7 +5259,7 @@ const cls=
   "Individual Stocks";
 assetRollup[cls]=(assetRollup[cls]||0)+p.value;
 });
-const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"var(--yellow)","HY Bonds":"#14b8a6","Precious Metals":"#B8860B","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"#dc2626"};
+const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"var(--yellow)","HY Bonds":"var(--accent)","Precious Metals":"#B8860B","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"var(--red)"};
 
 // ── Tile-grid home view computations ─────────────────────────────────────────
 const portCount = scanData?.portfolio_positions?.length || 0;
@@ -6052,7 +6052,7 @@ return(
         const _allocTotal = Object.values(_alloc).reduce((a,b)=>a+b, 0);
         const _allocColors = {
           "Equities":"#4a6fa5",
-          "Fixed Income":"#14b8a6",
+          "Fixed Income":"var(--accent)",
           "Commodities":"#B8860B",
           "Crypto":"#a855f7",
           "Cash":"var(--text-dim)",
@@ -6790,7 +6790,7 @@ const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"
 // transparent against the dark background and the bar looks empty.
 // Deterministic fallback by DB sort-order index so colors don't flip on
 // the value-sorted acctData re-sort below.
-const ACCT_PALETTE=["#4a6fa5","var(--yellow)","#14b8a6","#a855f7","#B8860B","#6366f1","#64748b","#f97316"];
+const ACCT_PALETTE=["#4a6fa5","var(--yellow)","var(--accent)","#a855f7","#B8860B","#6366f1","#64748b","var(--text-muted)"];
 const acctData=ACCOUNTS.map((acc,i)=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
 return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color||ACCT_PALETTE[i%ACCT_PALETTE.length],value:t};

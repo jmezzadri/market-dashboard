@@ -25,7 +25,7 @@ const RATING_BG = {
   "MW":  "rgba(155,147,132,0.18)",
   "UW":  "rgba(183,28,28,0.18)",
 };
-const RATING_TEXT = { "OW":  "#1c6f2c", "MW":  "#6b6357", "UW":  "var(--red)" };
+const RATING_TEXT = { "OW":  "var(--green)", "MW":  "var(--text-muted)", "UW":  "var(--red)" };
 const RATING_LABEL = { OW: "Overweight", MW: "Market wt", UW: "Underweight" };
 
 // Sector-level ETFs with metadata so they can be clicked and detail-viewed
@@ -446,7 +446,7 @@ function flowColor(f) {
 // ─── Sub-components ──────────────────────────────────────────────────────
 
 function StanceBadge({ stance }) {
-  const color = STANCE_COLOR[stance] || "#6b6357";
+  const color = STANCE_COLOR[stance] || "var(--text-muted)";
   const bg = stance === "Risk On" ? "rgba(46,125,50,0.14)" :
              stance === "Cautious" || stance === "Caution" ? "rgba(184,134,11,0.16)" :
              stance === "Risk Off" ? "rgba(183,28,28,0.16)" :
@@ -474,7 +474,7 @@ function MechanismCard({ mechanism, onClick }) {
       borderLeft: `3px solid ${BAND_COLOR[b]}`,
       cursor: "pointer", transition: "background 0.12s",
     }}
-    onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2, var(--surface-2))"}
+    onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"}
     onMouseLeave={(e) => e.currentTarget.style.background = "var(--surface)"}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
         <div style={{ fontSize: 9, fontFamily: "var(--font-mono)", color: "var(--text-muted)", letterSpacing: "0.10em", fontWeight: 600 }}>
@@ -494,7 +494,7 @@ function MechanismCard({ mechanism, onClick }) {
 function KPIBox({ label, value }) {
   return (
     <div style={{
-      padding: "10px 14px", background: "var(--surface-2, var(--surface-2))",
+      padding: "10px 14px", background: "var(--surface-2)",
       borderRadius: 6, borderLeft: "3px solid var(--accent)",
     }}>
       <div style={{ fontSize: 9, color: "var(--text-muted)", letterSpacing: "0.10em", fontWeight: 600, textTransform: "uppercase" }}>
@@ -533,7 +533,7 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
         gap: 12, padding: "10px 14px",
         cursor: "pointer", alignItems: "center", fontSize: 13,
       }}
-      onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2, var(--surface-2))"}
+      onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"}
       onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
         <div>
           <button onClick={(e) => { e.stopPropagation(); onSectorClick(sector); }} style={{
@@ -550,11 +550,11 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
             transform: open ? "rotate(90deg)" : "rotate(0deg)",
           }}>▸</span>
         </div>
-        <div style={{ height: 6, background: "var(--surface-2, var(--surface-2))", borderRadius: 3, overflow: "hidden" }}>
+        <div style={{ height: 6, background: "var(--surface-2)", borderRadius: 3, overflow: "hidden" }}>
           <div style={{
             height: "100%",
             width: `${Math.min(100, tilt * 2.5)}%`,
-            background: "var(--accent, #1d3557)",
+            background: "var(--accent)",
           }} />
         </div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right" }}>
@@ -573,7 +573,7 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
           <div key={ig.id} onClick={(e) => { e.stopPropagation(); onIGClick(ig); }} style={{
             display: "grid", gridTemplateColumns: "1.6fr 80px 80px 80px", gap: 12,
             padding: "8px 14px 8px 36px", fontSize: 12,
-            background: "var(--surface-2, var(--surface-2))", borderTop: "0.5px dotted var(--border)",
+            background: "var(--surface-2)", borderTop: "0.5px dotted var(--border)",
             alignItems: "center", cursor: "pointer",
           }}>
             <div>
@@ -584,7 +584,7 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
               ))}
             </div>
             <div style={{ height: 4, background: "var(--bg, #f5efe1)", borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.min(100, igTilt * 5)}%`, background: "var(--accent, #1d3557)" }} />
+              <div style={{ height: "100%", width: `${Math.min(100, igTilt * 5)}%`, background: "var(--accent)" }} />
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right" }}>
               ${igTilt.toFixed(2)}
@@ -616,7 +616,7 @@ function DefensiveRow({ bucket, dollar }) {
           {bucket.name}
         </span>
       </div>
-      <div style={{ height: 6, background: "var(--surface-2, var(--surface-2))", borderRadius: 3, overflow: "hidden" }}>
+      <div style={{ height: 6, background: "var(--surface-2)", borderRadius: 3, overflow: "hidden" }}>
         <div style={{ height: "100%", width: `${Math.min(100, dollar * 2.5)}%`, background: "var(--text-muted)" }} />
       </div>
       <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right" }}>
@@ -763,7 +763,7 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
             display: "grid", gridTemplateColumns: "1fr auto auto",
             gap: 12, alignItems: "center", textAlign: "left",
             padding: "10px 12px", border: "0.5px solid var(--border)",
-            borderRadius: 6, background: "var(--surface-2, var(--surface-2))",
+            borderRadius: 6, background: "var(--surface-2)",
             cursor: "pointer", fontFamily: "var(--font-ui)",
           }}>
             <div>
@@ -863,7 +863,7 @@ function HeatmapTile({ contributionMatrix }) {
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 11 }}>
           <thead>
             <tr>
-              <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 500, background: "var(--surface-2, var(--surface-2))" }}>
+              <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 500, background: "var(--surface-2)" }}>
                 Cycle mechanism
               </th>
               {sectors.map(s => {
@@ -881,7 +881,7 @@ function HeatmapTile({ contributionMatrix }) {
                   "Utilities": "Util",
                 };
                 return (
-                  <th key={s} title={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 500, fontFamily: "var(--font-display)", fontSize: 11, background: "var(--surface-2, var(--surface-2))" }}>
+                  <th key={s} title={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 500, fontFamily: "var(--font-display)", fontSize: 11, background: "var(--surface-2)" }}>
                     {SHORT[s] || s}
                   </th>
                 );
@@ -990,18 +990,62 @@ export default function AssetTilt({ onOpenTicker }) {
         </div>
       </section>
 
-      {/* MECHANISMS */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "8px 0 12px" }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0 }}>
-          Cycle mechanisms — what's driving the engine
-        </h2>
-        <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoard.as_of} />
-      </div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 12, marginBottom: 20 }}>
-        {cycleBoard.mechanisms.map(m => (
-          <MechanismCard key={m.id} mechanism={m} onClick={setMechModal} />
-        ))}
-      </div>
+      {/* CYCLE — single read + deep-link to Macro Overview (full six live there) */}
+      <a
+        href="#overview"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 16,
+          padding: "16px 20px",
+          margin: "8px 0 24px",
+          background: "var(--surface)",
+          border: "0.5px solid var(--border)",
+          borderRadius: 12,
+          textDecoration: "none",
+          color: "var(--text)",
+          transition: "border-color 160ms",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
+      >
+        <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
+          <span
+            style={{
+              fontSize: 11,
+              fontWeight: 600,
+              letterSpacing: "0.16em",
+              textTransform: "uppercase",
+              color: "var(--text-muted)",
+            }}
+          >
+            Cycle says
+          </span>
+          {(() => {
+            // Find the strongest mechanism (highest score) to show as the lead read.
+            const top = [...cycleBoard.mechanisms].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
+            if (!top) return <span style={{ fontSize: 14, color: "var(--text-muted)" }}>—</span>;
+            return (
+              <span style={{ fontSize: 14, color: "var(--text-2)" }}>
+                <strong style={{ color: "var(--text)", fontWeight: 600 }}>{top.label}</strong>
+                {" "}is the loudest read at{" "}
+                <strong style={{ color: "var(--accent)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
+                  {Math.round(top.score)}/100
+                </strong>
+                {" — see all six on Macro Overview."}
+              </span>
+            );
+          })()}
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoard.as_of} />
+          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--accent)", letterSpacing: "0.04em" }}>
+            View on Macro Overview →
+          </span>
+        </div>
+      </a>
+
 
       {/* RECOMMENDED ASSET TILT */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", margin: "8px 0 12px" }}>
@@ -1013,14 +1057,14 @@ export default function AssetTilt({ onOpenTicker }) {
       <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
         {/* Asset class summary bar */}
         <div style={{ padding: "16px 20px", borderBottom: "0.5px solid var(--border)" }}>
-          <div style={{ display: "flex", height: 14, borderRadius: 4, overflow: "hidden", background: "var(--surface-2, var(--surface-2))" }}>
-            <div style={{ width: `${v10.equity_pct * 100}%`, background: "var(--accent, #1d3557)" }} />
-            <div style={{ width: `${(v10.gross_exposure - v10.equity_pct) * 100}%`, background: "#b87333" }} />
+          <div style={{ display: "flex", height: 14, borderRadius: 4, overflow: "hidden", background: "var(--surface-2)" }}>
+            <div style={{ width: `${v10.equity_pct * 100}%`, background: "var(--accent)" }} />
+            <div style={{ width: `${(v10.gross_exposure - v10.equity_pct) * 100}%`, background: "var(--text-muted)" }} />
             <div style={{ width: `${v10.defensive_pct * 100}%`, background: "var(--text-muted)" }} />
           </div>
           <div style={{ display: "flex", gap: 14, fontSize: 11, color: "var(--text-muted)", marginTop: 8 }}>
-            <span><span style={{ display: "inline-block", width: 8, height: 8, background: "var(--accent, #1d3557)", borderRadius: 2, marginRight: 4 }} />Equity {(v10.equity_pct * 100).toFixed(0)}%</span>
-            <span><span style={{ display: "inline-block", width: 8, height: 8, background: "#b87333", borderRadius: 2, marginRight: 4 }} />Leverage +{((lev - 1) * 100).toFixed(0)}%</span>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, background: "var(--accent)", borderRadius: 2, marginRight: 4 }} />Equity {(v10.equity_pct * 100).toFixed(0)}%</span>
+            <span><span style={{ display: "inline-block", width: 8, height: 8, background: "var(--text-muted)", borderRadius: 2, marginRight: 4 }} />Leverage +{((lev - 1) * 100).toFixed(0)}%</span>
             <span><span style={{ display: "inline-block", width: 8, height: 8, background: "var(--text-muted)", borderRadius: 2, marginRight: 4 }} />Defensive {(v10.defensive_pct * 100).toFixed(0)}%</span>
           </div>
         </div>
@@ -1030,7 +1074,7 @@ export default function AssetTilt({ onOpenTicker }) {
           gap: 12, padding: "10px 14px",
           fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
           letterSpacing: "0.06em", textTransform: "uppercase",
-          borderBottom: "0.5px solid var(--border)", background: "var(--surface-2, var(--surface-2))",
+          borderBottom: "0.5px solid var(--border)", background: "var(--surface-2)",
         }}>
           <div>Equity sectors · click name or ETF for detail · click row to expand IGs</div>
           <div>Visual</div>
@@ -1055,7 +1099,7 @@ export default function AssetTilt({ onOpenTicker }) {
           fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
           letterSpacing: "0.06em", textTransform: "uppercase",
           borderTop: "0.5px solid var(--border)", borderBottom: "0.5px solid var(--border)",
-          background: "var(--surface-2, var(--surface-2))",
+          background: "var(--surface-2)",
         }}>
           <div>Defensive sleeve · 4 buckets, equal-weight when active</div>
           <div>Visual</div>
@@ -1069,7 +1113,7 @@ export default function AssetTilt({ onOpenTicker }) {
         <div style={{
           display: "grid", gridTemplateColumns: "1.6fr 80px 80px 80px",
           gap: 12, padding: "12px 14px", fontSize: 13, fontWeight: 600,
-          background: "var(--surface-2, var(--surface-2))",
+          background: "var(--surface-2)",
         }}>
           <div>Total tilt (equity × leverage + defensive)</div>
           <div></div>
@@ -1089,7 +1133,7 @@ export default function AssetTilt({ onOpenTicker }) {
       <HeatmapTile contributionMatrix={v10.contribution_matrix} />
 
       {/* METHODOLOGY FOOTER */}
-      <div style={{ marginTop: 32, padding: 18, background: "var(--surface-2, var(--surface-2))", borderRadius: 8, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
+      <div style={{ marginTop: 32, padding: 18, background: "var(--surface-2)", borderRadius: 8, fontSize: 13, color: "var(--text-muted)", lineHeight: 1.5 }}>
         <strong style={{ color: "var(--text)" }}>How this page works.</strong>{" "}
         The engine reads the six cycle mechanisms from Macro Overview and applies backtested decision rules.
         Hard caps: defensive ≤ 50%, leverage ≤ 1.5×, defensive and leverage never on at the same time.
