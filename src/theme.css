@@ -21,8 +21,8 @@
      • BANNED FAMILIES: parchment, champagne, mustard, ochre, oxblood-warm,
        muted forest, golden tan, cream-cream. Every shade in the warm family
        is off-limits.
-     • BANNED SATURATION: Apple iOS-bright palette (#30d158, #ff453a, #ff9f0a,
-       #0a84ff, #bf5af2). Folded to neutral cool tones via --yellow / --orange
+     • BANNED SATURATION: Apple iOS-bright palette (var(--green), var(--red), var(--yellow),
+       var(--accent), var(--text-muted)). Folded to neutral cool tones via --yellow / --orange
        / --blue / --purple aliases below.
 
    Auto light/dark via prefers-color-scheme; manual override via

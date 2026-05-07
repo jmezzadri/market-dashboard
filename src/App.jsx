@@ -109,10 +109,10 @@ return(p.dir==="lw"||p.dir==="nw")?-r:r;
 // sdColor returns bright Apple-system colors — good for fills, dots, bars.
 function sdColor(s){
 if(s==null)return"var(--text-dim)";
-if(s<0.5) return"#30d158";   // Low — green
+if(s<0.5) return"var(--green)";   // Low — green
 if(s<1.0) return"#B8860B";   // Normal — yellow
-if(s<1.75)return"#ff9f0a";   // Elevated — amber
-return              "#ff453a"; // Extreme — red
+if(s<1.75)return"var(--yellow)";   // Elevated — amber
+return              "var(--red)"; // Extreme — red
 }
 // sdTextColor returns the *-text variant — auto-darkens on light theme so small
 // text remains readable on white. Use this anywhere the SD color is applied to
@@ -142,13 +142,13 @@ function sdTo100(s){return Math.round(Math.max(0,Math.min(100,((s+1)/4)*100)));}
 //   ELEVATED: 0.41 ≤ SD < 1.03  (top ~12.5% excl. tail — 2022 bear 0.80, SVB 0.67, 2015-16 0.59)
 //   EXTREME : SD ≥ 1.03  (top ~2.5% — GFC peak 2.27, COVID peak 2.02)
 const CONVICTION=[
-{level:1,label:"LOW",      range:[-99,0.12], color:"#30d158", eq:90,bd:5, ca:3, au:2,
+{level:1,label:"LOW",      range:[-99,0.12], color:"var(--green)", eq:90,bd:5, ca:3, au:2,
  action:"Risk-on. Historically benign conditions. Consider adding cyclical beta."},
 {level:2,label:"NORMAL",   range:[0.12,0.41],color:"#B8860B", eq:75,bd:15,ca:7, au:3,
  action:"Market baseline. Maintain diversified exposure. Trim highest-beta on spikes."},
-{level:3,label:"ELEVATED", range:[0.41,1.03],color:"#ff9f0a", eq:55,bd:28,ca:12,au:5,
+{level:3,label:"ELEVATED", range:[0.41,1.03],color:"var(--yellow)", eq:55,bd:28,ca:12,au:5,
  action:"Active hedging warranted. Sell covered calls. Rotate defensive. Reduce leverage."},
-{level:4,label:"EXTREME",  range:[1.03,99],  color:"#ff453a", eq:20,bd:30,ca:35,au:15,
+{level:4,label:"EXTREME",  range:[1.03,99],  color:"var(--red)", eq:20,bd:30,ca:35,au:15,
  action:"Crisis regime. Maximum defensiveness. Harvest losses. Hold dry powder."},
 ];
 function getConv(s){return CONVICTION.find(c=>s>=c.range[0]&&s<c.range[1])||CONVICTION[3];}
@@ -202,7 +202,7 @@ function staleness(id){
   const todayUtc=Date.UTC(today.getUTCFullYear(),today.getUTCMonth(),today.getUTCDate());
   const days=Math.max(0,Math.round((todayUtc-d.getTime())/86400000));
   const ok=days<=limit;
-  return {label:ok?"FRESH":"STALE", color:ok?"#30d158":"#ff9f0a", days, limit, ok, iso};
+  return {label:ok?"FRESH":"STALE", color:ok?"var(--green)":"var(--yellow)", days, limit, ok, iso};
 }
 
 // Tiny pill used on indicator tiles / modals when the data is older than
@@ -217,7 +217,7 @@ function StalePill({id,compact=false}){
     <span title={`${cadLbl.toUpperCase()} indicator — last refresh ${st.iso} (${st.days}d ago, expected ≤${st.limit}d).`}
       style={{
         fontSize:compact?9:10,
-        color:"#ff9f0a",
+        color:"var(--yellow)",
         background:"rgba(255,159,10,0.12)",
         border:"1px solid rgba(255,159,10,0.45)",
         borderRadius:3,
@@ -325,11 +325,11 @@ let CONV=getConv(COMP);
 
 // ── TREND SIGNAL ────────────────────────────────────────────────────────────
 function trendSignal(vel){
-if(vel>0.12) return{label:"Rising Fast",  arrow:"▲▲",col:"#ff453a"};
-if(vel>0.05) return{label:"Rising",       arrow:"▲", col:"#ff9f0a"};
+if(vel>0.12) return{label:"Rising Fast",  arrow:"▲▲",col:"var(--red)"};
+if(vel>0.05) return{label:"Rising",       arrow:"▲", col:"var(--yellow)"};
 if(vel>0.02) return{label:"Edging Up",    arrow:"↗", col:"#B8860B"};
-if(vel<-0.12)return{label:"Easing Fast",  arrow:"▼▼",col:"#30d158"};
-if(vel<-0.05)return{label:"Easing",       arrow:"▼", col:"#30d158"};
+if(vel<-0.12)return{label:"Easing Fast",  arrow:"▼▼",col:"var(--green)"};
+if(vel<-0.05)return{label:"Easing",       arrow:"▼", col:"var(--green)"};
 if(vel<-0.02)return{label:"Edging Down",  arrow:"↘", col:"#86efac"};
 return              {label:"Stable",       arrow:"→", col:"var(--text-2)"};
 }
@@ -337,9 +337,9 @@ let TREND_SIG=trendSignal(VEL);
 
 function trendArrow(current,prior){
 const d=current-prior;
-if(d>5)  return{arrow:"▲",col:"#ff453a",label:"Rising"};
-if(d>1)  return{arrow:"↗",col:"#ff9f0a",label:"Edging up"};
-if(d<-5) return{arrow:"▼",col:"#30d158",label:"Easing"};
+if(d>5)  return{arrow:"▲",col:"var(--red)",label:"Rising"};
+if(d>1)  return{arrow:"↗",col:"var(--yellow)",label:"Edging up"};
+if(d<-5) return{arrow:"▼",col:"var(--green)",label:"Easing"};
 if(d<-1) return{arrow:"↘",col:"#86efac",label:"Edging down"};
 return{arrow:"→",col:"var(--text-2)",label:"Stable"};
 }
@@ -390,8 +390,8 @@ const COMP_HIST=[
 ];
 
 const COMP_CRISES=[
-{label:"GFC",year:"Q4 '08",color:"#ff453a"},
-{label:"COVID",year:"Q2 '20",color:"#ff9f0a"},
+{label:"GFC",year:"Q4 '08",color:"var(--red)"},
+{label:"COVID",year:"Q2 '20",color:"var(--yellow)"},
 {label:"Rate Shock",year:"Q3 '22",color:"#B8860B"},
 ];
 
@@ -832,10 +832,10 @@ return out;
 }
 
 const STRESS_HIST_BANDS=[
-{lo:0,hi:20,col:"#30d158",label:"LOW"},
+{lo:0,hi:20,col:"var(--green)",label:"LOW"},
 {lo:20,hi:50,col:"#B8860B",label:"NORMAL"},
-{lo:50,hi:75,col:"#ff9f0a",label:"ELEVATED"},
-{lo:75,hi:100,col:"#ff453a",label:"EXTREME"},
+{lo:50,hi:75,col:"var(--yellow)",label:"ELEVATED"},
+{lo:75,hi:100,col:"var(--red)",label:"EXTREME"},
 ];
 
 // ── PORTFOLIO ───────────────────────────────────────────────────────────────
@@ -1762,7 +1762,7 @@ return(
         <div style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:"var(--radius-md)",padding:"var(--space-3)",marginBottom:"var(--space-3)"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:6}}>
             <span>12-MONTH RANGE</span>
-            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"#30d158"}}>{fmtV(id,rangeStats.mean)}</span> · elev <span style={{color:"#ff9f0a"}}>{fmtV(id,rangeStats.mean+rangeStats.sd)}</span> · ext <span style={{color:"#ff453a"}}>{fmtV(id,rangeStats.mean+rangeStats.sd*2)}</span></span>
+            <span style={{color:"var(--text-dim)"}}>avg <span style={{color:"var(--green)"}}>{fmtV(id,rangeStats.mean)}</span> · elev <span style={{color:"var(--yellow)"}}>{fmtV(id,rangeStats.mean+rangeStats.sd)}</span> · ext <span style={{color:"var(--red)"}}>{fmtV(id,rangeStats.mean+rangeStats.sd*2)}</span></span>
           </div>
           <RangeBar sMin={sMin} sMax={sMax} sp={rangeStats} cur={cur} col={col}/>
           <div style={{display:"flex",justifyContent:"space-between",fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",marginTop:3}}>
@@ -2173,9 +2173,9 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
           <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600}}>COMPOSITE</span>
           {[
             {k:"all",       label:"All",                col:"var(--text)"},
-            {k:"valuation", label:"Valuation",          col:"#7a1414"},
-            {k:"credit",    label:"Credit",             col:"#a04518"},
-            {k:"funding",   label:"Funding",            col:"#b8860b"},
+            {k:"valuation", label:"Valuation",          col:"var(--red)"},
+            {k:"credit",    label:"Credit",             col:"var(--red)"},
+            {k:"funding",   label:"Funding",            col:"var(--yellow)"},
             {k:"growth",    label:"Growth",             col:"#1f9d60"},
             {k:"liqpol",    label:"Liquidity & Policy", col:"#4a6fa5"},
             {k:"posbreath", label:"Positioning",        col:"#7a4a8a"},
@@ -2667,7 +2667,7 @@ return(
   style={{fontSize:11,fontFamily:"var(--font-mono)",fontWeight:700,color:"#fff",background:val.trim()?"var(--accent)":"var(--text-dim)",border:"none",borderRadius:4,padding:"6px 12px",cursor:busy||!val.trim()?"default":"pointer",letterSpacing:"0.05em"}}>
   {busy?"…":"+ ADD"}
 </button>
-{msg&&<div style={{flexBasis:"100%",fontSize:12,color:msg.kind==="warn"?"#b8860b":"#c8302a",fontFamily:"var(--font-mono)",marginTop:6,padding:"6px 8px",borderRadius:4,background:msg.kind==="warn"?"rgba(255,179,0,0.08)":"rgba(255,69,58,0.08)",border:msg.kind==="warn"?"1px solid rgba(255,179,0,0.25)":"1px solid rgba(255,69,58,0.25)"}}>{msg.text}</div>}
+{msg&&<div style={{flexBasis:"100%",fontSize:12,color:msg.kind==="warn"?"var(--yellow)":"var(--red)",fontFamily:"var(--font-mono)",marginTop:6,padding:"6px 8px",borderRadius:4,background:msg.kind==="warn"?"rgba(255,179,0,0.08)":"rgba(255,69,58,0.08)",border:msg.kind==="warn"?"1px solid rgba(255,179,0,0.25)":"1px solid rgba(255,69,58,0.25)"}}>{msg.text}</div>}
 </form>);
 }
 
@@ -2680,7 +2680,7 @@ return(
 function PosCard({p,accountTotal,convColor,convLabel,stressScore}){
 const [exp,setExp]=useState(false);
 const pct=((p.value||0)/accountTotal*100).toFixed(1);
-const bCol=p.beta>1.5?"#ff453a":p.beta>1.0?"#ff9f0a":p.beta>0.5?"#B8860B":"#30d158";
+const bCol=p.beta>1.5?"var(--red)":p.beta>1.0?"var(--yellow)":p.beta>0.5?"#B8860B":"var(--green)";
 return(
 <div onClick={e=>{e.stopPropagation();setExp(x=>!x);}}
 style={{background:"var(--surface-2)",border:`1px solid ${exp?"#4a6fa555":"var(--border)"}`,borderRadius:6,padding:"10px 12px",cursor:"pointer"}}>
@@ -2731,7 +2731,7 @@ const pctOfTotal=(total/grandTotal*100).toFixed(1);
 const acctBeta=total>0
   ?acct.positions.reduce((a,p)=>a+((p.value||0)/total)*(p.beta||0),0)
   :0;
-const betaCol=acctBeta>1.3?"#ff9f0a":acctBeta<0.6?"#B8860B":"var(--text)";
+const betaCol=acctBeta>1.3?"var(--yellow)":acctBeta<0.6?"#B8860B":"var(--text)";
 return(
 <div style={{background:"var(--surface)",border:`1px solid ${ACCENT}33`,borderRadius:8,overflow:"hidden"}}>
 <div onClick={()=>setOpen(o=>!o)} style={{padding:"12px 14px",cursor:"pointer",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
@@ -2991,11 +2991,11 @@ return scores.reduce((a,b)=>a+b,0)/scores.length;
 }
 
 function outlookLabel(score){
-if(score>0.85)return{label:"OVERWEIGHT", color:"#30d158",short:"OW"};
+if(score>0.85)return{label:"OVERWEIGHT", color:"var(--green)",short:"OW"};
 if(score>0.65)return{label:"SLIGHT OW",  color:"#86efac",short:"+="};
 if(score>0.40)return{label:"NEUTRAL",    color:"var(--text-muted)",short:"=" };
-if(score>0.20)return{label:"SLIGHT UW",  color:"#ff9f0a",short:"-="};
-return              {label:"UNDERWEIGHT",color:"#ff453a",short:"UW"};
+if(score>0.20)return{label:"SLIGHT UW",  color:"var(--yellow)",short:"-="};
+return              {label:"UNDERWEIGHT",color:"var(--red)",short:"UW"};
 }
 
 function SectorCard({sector,rank,totalSectors}){
@@ -3032,7 +3032,7 @@ style={{background:expanded?"var(--border-faint)":"var(--surface)",border:`1px s
 </div>
 <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
   {topHeadwinds.map(h=>{
-    const col=h.impact>1.2?"#ff453a":h.impact>0.5?"#ff9f0a":"var(--text)";
+    const col=h.impact>1.2?"var(--red)":h.impact>0.5?"var(--yellow)":"var(--text)";
     return <div key={h.key} style={{padding:"2px 7px",borderRadius:3,background:col+"15",border:`1px solid ${col}33`,fontSize:11,color:col,fontFamily:"monospace"}}>↓ {FACTOR_DISPLAY.find(f=>f.key===h.key)?.label||h.key}</div>;
   })}
 </div>
@@ -3057,7 +3057,7 @@ style={{background:expanded?"var(--border-faint)":"var(--surface)",border:`1px s
               const stress=FACTOR_SCORES[k]||0;
               const isHead=w>0;
               const impact=Math.abs(w)*stress;
-              const col=!isHead?"#30d158":impact>0.8?"#ff453a":impact>0.3?"#ff9f0a":"var(--text)";
+              const col=!isHead?"var(--green)":impact>0.8?"var(--red)":impact>0.3?"var(--yellow)":"var(--text)";
               return <span key={k} style={{fontSize:10,color:col,background:col+"15",padding:"1px 5px",borderRadius:2,fontFamily:"monospace"}}>{isHead?"↓":"↑"}{FACTOR_DISPLAY.find(f=>f.key===k)?.label||k}</span>;
             })}
           </div>
@@ -3113,8 +3113,8 @@ return(
       <div style={{display:"flex",gap:5,flexWrap:"wrap",alignItems:"center"}}>
         <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace"}}>TOP HEADWINDS:</div>
         {topFactors.length===0
-          ?<div style={{fontSize:11,color:"#30d158",fontFamily:"monospace",fontStyle:"italic"}}>None — no factors elevated</div>
-          :topFactors.map(f=>{const col=f.stress>1.2?"#ff453a":"#ff9f0a";return(
+          ?<div style={{fontSize:11,color:"var(--green)",fontFamily:"monospace",fontStyle:"italic"}}>None — no factors elevated</div>
+          :topFactors.map(f=>{const col=f.stress>1.2?"var(--red)":"var(--yellow)";return(
             <div key={f.key} style={{background:col+"15",border:`1px solid ${col}33`,borderRadius:4,padding:"3px 8px",fontSize:11,color:col,fontFamily:"monospace"}}>{f.label} {sdLabel(f.stress)}</div>
           );})}
       </div>
@@ -3184,11 +3184,11 @@ function detectCycleStage(){
   const d=ism-(ism3??ism);
   const rising=d>0.3,falling=d<-0.3;
   const ycNote=(yc!=null)?` · Curve ${yc>=0?"+":""}${yc.toFixed(0)} basis points`:"";
-  if(ism>=50&&rising) return{label:"EARLY / MID EXPANSION",stageKey:"EXPANSION",color:"#30d158",
+  if(ism>=50&&rising) return{label:"EARLY / MID EXPANSION",stageKey:"EXPANSION",color:"var(--green)",
     desc:`Manufacturing ${ism.toFixed(1)} above 50 and rising (3-month change ${d>=0?"+":""}${d.toFixed(1)})${ycNote}`};
-  if(ism>=50&&falling)return{label:"LATE EXPANSION / SLOWDOWN",stageKey:"SLOWDOWN",color:"#ff9f0a",
+  if(ism>=50&&falling)return{label:"LATE EXPANSION / SLOWDOWN",stageKey:"SLOWDOWN",color:"var(--yellow)",
     desc:`Manufacturing ${ism.toFixed(1)} above 50 but falling (3-month change ${d.toFixed(1)})${ycNote}`};
-  if(ism<50&&falling) return{label:"CONTRACTION",stageKey:"CONTRACTION",color:"#ff453a",
+  if(ism<50&&falling) return{label:"CONTRACTION",stageKey:"CONTRACTION",color:"var(--red)",
     desc:`Manufacturing ${ism.toFixed(1)} below 50 and still falling (3-month change ${d.toFixed(1)})${ycNote}`};
   if(ism<50&&rising)  return{label:"EARLY RECOVERY",stageKey:"RECOVERY",color:"#64d2ff",
     desc:`Manufacturing ${ism.toFixed(1)} below 50 but turning up (3-month change +${d.toFixed(1)})${ycNote}`};
@@ -3198,9 +3198,9 @@ function detectCycleStage(){
 
 // 4-stage business cycle order used for the Lab cycle diagram.
 const CYCLE_STAGES_LAB=[
-  {key:"EXPANSION",   label:"EXPANSION",   color:"#30d158", rule:"manufacturing above 50 and rising"},
-  {key:"SLOWDOWN",    label:"SLOWDOWN",    color:"#ff9f0a", rule:"manufacturing above 50 but falling"},
-  {key:"CONTRACTION", label:"CONTRACTION", color:"#ff453a", rule:"manufacturing below 50 and still falling"},
+  {key:"EXPANSION",   label:"EXPANSION",   color:"var(--green)", rule:"manufacturing above 50 and rising"},
+  {key:"SLOWDOWN",    label:"SLOWDOWN",    color:"var(--yellow)", rule:"manufacturing above 50 but falling"},
+  {key:"CONTRACTION", label:"CONTRACTION", color:"var(--red)", rule:"manufacturing below 50 and still falling"},
   {key:"RECOVERY",    label:"RECOVERY",    color:"#64d2ff", rule:"manufacturing below 50 but turning up"},
 ];
 
@@ -3310,10 +3310,10 @@ function levelBucketV4_Lab(comp,horizon){
     NORMAL:"Neutral asset tilt · rebalance quarterly",
     BENIGN:"Overweight equities on 12m view · extend duration · add cyclical cap-weights",
   };
-  if(comp>cuts.p90) return{label:"EXTREME", color:"#ff453a",tilt:tilt.EXTREME};
-  if(comp>cuts.p75) return{label:"ELEVATED",color:"#ff9f0a",tilt:tilt.ELEVATED};
+  if(comp>cuts.p90) return{label:"EXTREME", color:"var(--red)",tilt:tilt.EXTREME};
+  if(comp>cuts.p75) return{label:"ELEVATED",color:"var(--yellow)",tilt:tilt.ELEVATED};
   if(comp>cuts.p25) return{label:"NORMAL",  color:"#B8860B",tilt:tilt.NORMAL};
-  return              {label:"BENIGN",  color:"#30d158",tilt:tilt.BENIGN};
+  return              {label:"BENIGN",  color:"var(--green)",tilt:tilt.BENIGN};
 }
 
 // Top contributors from the v4-selected indicators only — drives "what's pushing
@@ -3337,17 +3337,17 @@ function alignmentFlagV4_Lab(near,strat,nearBucket,stratBucket){
   const diff=near-strat;
   const aDiff=Math.abs(diff);
 
-  if(bothExtreme) return{label:"◆ JOINT EXTREME · DE-RISK NOW",color:"#ff453a",
+  if(bothExtreme) return{label:"◆ JOINT EXTREME · DE-RISK NOW",color:"var(--red)",
     desc:"Both tactical AND strategic composites are in the top decile simultaneously. Back-test 2011-2026 (n=640 such days): mean forward 60-day S&P return -2.55%, mean forward 252-day return -1.18%. THIS is the de-risk signal — reduce gross exposure across both horizons."};
-  if(oneExtreme) return{label:"◇ SINGLE-TILE EXTREME · INFORMATIONAL ONLY",color:"#ff9f0a",
+  if(oneExtreme) return{label:"◇ SINGLE-TILE EXTREME · INFORMATIONAL ONLY",color:"var(--yellow)",
     desc:"One tile is in the top decile, the other is not. Back-test: single-tile EXTREME alone is NOT actionable — historically it's been noise or even modestly bullish (EXTREME tactical + NEUTRAL strategic averaged +8.05% forward 60d return). Wait for the second tile to confirm before trimming exposure across both horizons."};
-  if(bothBenign) return{label:"ALIGNED · BOTH BENIGN",color:"#30d158",
+  if(bothBenign) return{label:"ALIGNED · BOTH BENIGN",color:"var(--green)",
     desc:"Both composites in the bottom quartile. Coherent risk-on backdrop — tactical and strategic exposures can run symmetrically long."};
   if(aDiff<0.3) return{label:"ALIGNED · NORMAL",color:"var(--text-2)",
     desc:"Tactical and strategic reads are coherent; posture is straightforward — no horizon gap to arbitrage."};
-  if(diff>0) return{label:"DIVERGENT · TACTICAL HOTTER",color:"#ff9f0a",
+  if(diff>0) return{label:"DIVERGENT · TACTICAL HOTTER",color:"var(--yellow)",
     desc:"Near-term stress while slow movers stay calm — tactical drawdown inside a stable regime. Fade spikes, don't de-risk strategically. Short-term hedges earn more than long-term cash."};
-  return{label:"DIVERGENT · STRATEGIC HOTTER",color:"#ff9f0a",
+  return{label:"DIVERGENT · STRATEGIC HOTTER",color:"var(--yellow)",
     desc:"Slow movers flashing caution while near-term is calm — classic late-cycle melt-up setup. Short-term bid, long-term vulnerable. Trim into rallies, build strategic defense even as tactical tilt stays invested."};
 }
 
@@ -3645,7 +3645,7 @@ const ismSpark=sparkSeries_Lab("ism");
 const yc=IND.yield_curve?.[6];
 const ycSpark=sparkSeries_Lab("yield_curve");
 const emProb=emRecessionProbPct_Lab(yc);
-const emCol=emProb==null?"var(--text-muted)":emProb>=30?"#ff453a":emProb>=15?"#ff9f0a":"#30d158";
+const emCol=emProb==null?"var(--text-muted)":emProb>=30?"var(--red)":emProb>=15?"var(--yellow)":"var(--green)";
 
 // ── Factor rows ───────────────────────────────────────────────────────────
 const factorRows=FACTOR_DISPLAY_LAB.map(f=>{
@@ -3713,7 +3713,7 @@ const OOS_TACT=WF_STATS_LAB.tact, OOS_STRAT=WF_STATS_LAB.strat;
 const SIGNAL_STRENGTH=(()=>{
   // % of OOS years where composite beat coin-flip AUC 0.5, averaged across both horizons
   const pct=Math.round(((OOS_TACT.yrsAboveCoin+OOS_STRAT.yrsAboveCoin)/(OOS_TACT.yrsTotal+OOS_STRAT.yrsTotal))*100);
-  return{pct,label:pct>=60?"strong":pct>=45?"mixed":"weak",color:pct>=60?"#30d158":pct>=45?"#B8860B":"#ff9f0a"};
+  return{pct,label:pct>=60?"strong":pct>=45?"mixed":"weak",color:pct>=60?"var(--green)":pct>=45?"#B8860B":"var(--yellow)"};
 })();
 
 // ── Capital allocation bridge — convert regime into sector ETF tilts ──
@@ -3809,7 +3809,7 @@ return(
       <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:4}}>
         <span>◀ DE-RISK</span><span>NEUTRAL</span><span>ADD RISK ▶</span>
       </div>
-      <div style={{position:"relative",height:18,background:"linear-gradient(to right, #ff453a22 0%, #ff453a11 25%, var(--border) 50%, #30d15811 75%, #30d15822 100%)",borderRadius:3,overflow:"hidden"}}>
+      <div style={{position:"relative",height:18,background:"linear-gradient(to right, var(--red)22 0%, var(--red)11 25%, var(--border) 50%, var(--green)11 75%, var(--green)22 100%)",borderRadius:3,overflow:"hidden"}}>
         {/* Marker for tactical */}
         <div title={`Tactical ${NEAR_COMP_LAB.toFixed(2)}`} style={{position:"absolute",top:0,bottom:0,left:`calc(${Math.max(2,Math.min(98,50-NEAR_COMP_LAB*25))}% - 2px)`,width:4,background:NEAR_BUCKET.color,borderRadius:2,boxShadow:"0 0 4px rgba(0,0,0,0.2)"}}/>
         {/* Marker for strategic */}
@@ -3879,7 +3879,7 @@ return(
           {/* Top contributors — visual chips */}
           <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
             {t.movers.map(m=>(
-              <span key={m.id} style={{fontSize:10,fontFamily:"monospace",padding:"2px 6px",borderRadius:2,background:m.contrib>=0?"#ff453a15":"#30d15815",color:m.contrib>=0?"#ff453a":"#30d158",border:`1px solid ${m.contrib>=0?"#ff453a55":"#30d15855"}`}}>
+              <span key={m.id} style={{fontSize:10,fontFamily:"monospace",padding:"2px 6px",borderRadius:2,background:m.contrib>=0?"var(--red)15":"var(--green)15",color:m.contrib>=0?"var(--red)":"var(--green)",border:`1px solid ${m.contrib>=0?"var(--red)55":"var(--green)55"}`}}>
                 {m.label} {m.contrib>=0?"+":""}{m.contrib.toFixed(2)}
               </span>
             ))}
@@ -3932,7 +3932,7 @@ return(
         </thead>
         <tbody>
           {ALLOC_ROWS_FINAL.map(r=>{
-            const tiltCol=r.tilt>0.5?"#30d158":r.tilt<-0.5?"#ff453a":"var(--text-2)";
+            const tiltCol=r.tilt>0.5?"var(--green)":r.tilt<-0.5?"var(--red)":"var(--text-2)";
             const barWidth=Math.min(40,Math.abs(r.tilt)*10);
             return(
               <tr key={r.tkr} style={{borderBottom:"1px solid var(--border-faint)"}}>
@@ -3948,7 +3948,7 @@ return(
                 </td>
                 <td style={{padding:"6px 8px",color:"var(--text)",textAlign:"right",fontWeight:700}}>{r.newPct.toFixed(1)}%</td>
                 <td style={{padding:"6px 8px",color:tiltCol,textAlign:"right",fontWeight:700}}>{r.dollarImpact>=0?"+":"-"}${Math.abs(Math.round(r.dollarImpact)).toLocaleString()}</td>
-                <td style={{padding:"6px 8px",color:r.fwd>=0?"#30d158":"#ff453a",textAlign:"right"}}>{r.fwd>=0?"+":""}{r.fwd.toFixed(1)}%</td>
+                <td style={{padding:"6px 8px",color:r.fwd>=0?"var(--green)":"var(--red)",textAlign:"right"}}>{r.fwd>=0?"+":""}{r.fwd.toFixed(1)}%</td>
               </tr>
             );
           })}
@@ -3975,9 +3975,9 @@ return(
         return(
           <button key={s.id} onClick={()=>setScenarioId(isSel?null:s.id)}
             style={{padding:"6px 12px",fontSize:11,fontFamily:"monospace",letterSpacing:"0.05em",
-              background:isSel?"#ff453a20":"var(--surface-2)",
-              color:isSel?"#ff453a":"var(--text)",
-              border:`1px solid ${isSel?"#ff453a":"var(--border)"}`,
+              background:isSel?"var(--red)20":"var(--surface-2)",
+              color:isSel?"var(--red)":"var(--text)",
+              border:`1px solid ${isSel?"var(--red)":"var(--border)"}`,
               borderRadius:3,cursor:"pointer",fontWeight:isSel?700:400}}>
             {s.name}
           </button>
@@ -4007,7 +4007,7 @@ return(
             <input type="range" min="-4" max="4" step="0.5" value={customZ}
               onChange={e=>setCustomZ(parseFloat(e.target.value))}
               style={{flex:1}}/>
-            <span style={{fontSize:13,fontFamily:"monospace",color:customZ>=0?"#ff453a":"#30d158",fontWeight:700,minWidth:44,textAlign:"right"}}>
+            <span style={{fontSize:13,fontFamily:"monospace",color:customZ>=0?"var(--red)":"var(--green)",fontWeight:700,minWidth:44,textAlign:"right"}}>
               {customZ>=0?"+":""}{customZ.toFixed(1)}
             </span>
           </div>
@@ -4024,7 +4024,7 @@ return(
         {/* Scenario narrative (if canned) */}
         {selectedScenario&&(
           <div style={{fontSize:11,color:"var(--text-2)",lineHeight:1.5,fontStyle:"italic",borderLeft:"2px solid var(--border)",paddingLeft:10}}>
-            {stressOut.narrative} S&P over the window: <b style={{color:stressOut.spx>=0?"#30d158":"#ff453a"}}>{stressOut.spx>=0?"+":""}{stressOut.spx}%</b>.
+            {stressOut.narrative} S&P over the window: <b style={{color:stressOut.spx>=0?"var(--green)":"var(--red)"}}>{stressOut.spx>=0?"+":""}{stressOut.spx}%</b>.
           </div>
         )}
         {/* ROW 1: COMPOSITE INDICATOR impact */}
@@ -4038,7 +4038,7 @@ return(
               {label:"Longer-term composite",cur:STRAT_COMP_LAB,delta:stressOut.compStrat},
             ].map((x,i)=>{
               const after=x.cur+x.delta;
-              const afterCol=after>1.2?"#ff453a":after>0.5?"#ff9f0a":after<-0.5?"#30d158":"var(--text-2)";
+              const afterCol=after>1.2?"var(--red)":after>0.5?"var(--yellow)":after<-0.5?"var(--green)":"var(--text-2)";
               return(
                 <div key={i}>
                   <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",marginBottom:4}}>{x.label}</div>
@@ -4046,7 +4046,7 @@ return(
                     <span style={{color:"var(--text-2)"}}>{x.cur>=0?"+":""}{x.cur.toFixed(2)}</span>
                     <span style={{color:"var(--text-dim)"}}>→</span>
                     <span style={{color:afterCol,fontWeight:700,fontSize:14}}>{after>=0?"+":""}{after.toFixed(2)}</span>
-                    <span style={{color:x.delta>=0?"#ff453a":"#30d158",fontSize:10,marginLeft:4}}>
+                    <span style={{color:x.delta>=0?"var(--red)":"var(--green)",fontSize:10,marginLeft:4}}>
                       ({x.delta>=0?"+":""}{x.delta.toFixed(2)})
                     </span>
                   </div>
@@ -4064,7 +4064,7 @@ return(
           <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))",gap:6}}>
             {SECTOR_ETFS_LAB.map(e=>{
               const p=stressOut.sectorPct[e.tkr]??0;
-              const col=p>0?"#30d158":p<0?"#ff453a":"var(--text-2)";
+              const col=p>0?"var(--green)":p<0?"var(--red)":"var(--text-2)";
               const mag=Math.min(100,Math.abs(p)*2);
               return(
                 <div key={e.tkr} style={{fontSize:11,fontFamily:"monospace",display:"flex",alignItems:"center",gap:6}}>
@@ -4081,12 +4081,12 @@ return(
         </div>
 
         {/* ROW 3: PORTFOLIO $ impact */}
-        <div style={{background:stressOut.portfolioUSD>=0?"#30d15815":"#ff453a15",border:`2px solid ${stressOut.portfolioUSD>=0?"#30d158":"#ff453a"}`,borderRadius:6,padding:"14px 16px"}}>
+        <div style={{background:stressOut.portfolioUSD>=0?"var(--green)15":"var(--red)15",border:`2px solid ${stressOut.portfolioUSD>=0?"var(--green)":"var(--red)"}`,borderRadius:6,padding:"14px 16px"}}>
           <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginBottom:6}}>
             STEP 3 · IMPACT ON YOUR PORTFOLIO (at S&P sector weights)
           </div>
           <div style={{display:"flex",alignItems:"baseline",gap:10,flexWrap:"wrap"}}>
-            <span style={{fontSize:28,fontWeight:800,fontFamily:"var(--font-display, Fraunces)",color:stressOut.portfolioUSD>=0?"#30d158":"#ff453a"}}>
+            <span style={{fontSize:28,fontWeight:800,fontFamily:"var(--font-display, Fraunces)",color:stressOut.portfolioUSD>=0?"var(--green)":"var(--red)"}}>
               {stressOut.portfolioUSD>=0?"+":"-"}${Math.abs(Math.round(stressOut.portfolioUSD)).toLocaleString()}
             </span>
             <span style={{fontSize:13,color:"var(--text-2)",fontFamily:"monospace"}}>
@@ -4105,7 +4105,7 @@ return(
     )}
 
     <Explainer_Lab
-      accent={"#ff453a"}
+      accent={"var(--red)"}
       what={`Runs a factor-level shock through the sector × factor loading matrix to estimate sector returns, then aggregates to a dollar P&L at your portfolio size. Canned scenarios use historical episode returns directly; custom shocks propagate via factor correlation.`}
       now={stressOut?`${selectedScenario?`Replaying ${selectedScenario.name}.`:`Custom ${customFactor} shock of ${customZ>=0?"+":""}${customZ.toFixed(1)} standard deviations, correlated to the other 8 factors.`} Portfolio impact shown in step 3 below.`:`No scenario selected. Pick one above to see the cascade.`}
     />
@@ -4147,13 +4147,13 @@ return(
         <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>Manufacturing PMI · coincident growth</div>
         <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:6}}>
           <div>
-            <span style={{fontSize:20,fontWeight:800,color:ism!=null&&ism>=50?"#30d158":"#ff453a",fontFamily:"monospace"}}>{ism!=null?ism.toFixed(1):"—"}</span>
+            <span style={{fontSize:20,fontWeight:800,color:ism!=null&&ism>=50?"var(--green)":"var(--red)",fontFamily:"monospace"}}>{ism!=null?ism.toFixed(1):"—"}</span>
             <span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",marginLeft:6}}>as of {AS_OF.ism||"—"}</span>
           </div>
-          <LabSpark series={ismSpark} color={ism!=null&&ism>=50?"#30d158":"#ff453a"} w={72} h={22}/>
+          <LabSpark series={ismSpark} color={ism!=null&&ism>=50?"var(--green)":"var(--red)"} w={72} h={22}/>
         </div>
         <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace"}}>
-          3-month change · <span style={{color:ismDelta==null?"var(--text-muted)":ismDelta>0?"#30d158":"#ff453a",fontWeight:700}}>{ismDelta==null?"—":`${ismDelta>=0?"+":""}${ismDelta.toFixed(1)}`}</span>
+          3-month change · <span style={{color:ismDelta==null?"var(--text-muted)":ismDelta>0?"var(--green)":"var(--red)",fontWeight:700}}>{ismDelta==null?"—":`${ismDelta>=0?"+":""}${ismDelta.toFixed(1)}`}</span>
           <span style={{color:"var(--text-muted)",marginLeft:10}}>above 50 = expansion, below 45 = recession-consistent</span>
         </div>
       </div>
@@ -4162,11 +4162,11 @@ return(
         <div style={{fontSize:10,color:"var(--text-2)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:6}}>10-year minus 2-year Treasury spread · leading growth</div>
         <div style={{display:"flex",alignItems:"baseline",justifyContent:"space-between",gap:8,marginBottom:6}}>
           <div>
-            <span style={{fontSize:20,fontWeight:800,color:yc==null?"var(--text-muted)":yc<0?"#ff453a":yc<40?"#ff9f0a":"#30d158",fontFamily:"monospace"}}>{yc==null?"—":`${yc>=0?"+":""}${yc.toFixed(0)}`}</span>
+            <span style={{fontSize:20,fontWeight:800,color:yc==null?"var(--text-muted)":yc<0?"var(--red)":yc<40?"var(--yellow)":"var(--green)",fontFamily:"monospace"}}>{yc==null?"—":`${yc>=0?"+":""}${yc.toFixed(0)}`}</span>
             <span style={{fontSize:11,color:"var(--text-muted)",marginLeft:4,fontFamily:"monospace"}}>basis points</span>
-            <span style={{fontSize:11,color:yc==null?"var(--text-muted)":yc<0?"#ff453a":"var(--text-muted)",fontFamily:"monospace",marginLeft:8,fontWeight:yc!=null&&yc<0?700:400}}>{yc==null?"":yc<0?"INVERTED":"POSITIVE"}</span>
+            <span style={{fontSize:11,color:yc==null?"var(--text-muted)":yc<0?"var(--red)":"var(--text-muted)",fontFamily:"monospace",marginLeft:8,fontWeight:yc!=null&&yc<0?700:400}}>{yc==null?"":yc<0?"INVERTED":"POSITIVE"}</span>
           </div>
-          <LabSpark series={ycSpark} color={yc==null?"#888":yc<0?"#ff453a":"#30d158"} w={72} h={22}/>
+          <LabSpark series={ycSpark} color={yc==null?"#888":yc<0?"var(--red)":"var(--green)"} w={72} h={22}/>
         </div>
         <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace"}}>
           Recession probability (12-month) · <span style={{color:emCol,fontWeight:700}}>{emProb==null?"—":`${emProb.toFixed(1)}%`}</span>
@@ -4186,7 +4186,7 @@ return(
     <div style={{fontSize:11,color:"var(--text)",fontFamily:"monospace",letterSpacing:"0.15em",marginBottom:8}}>2 · MACRO FACTOR SCORES · {factorRows.length} factors · click a row to see its indicators</div>
     <div style={{display:"flex",flexDirection:"column",gap:4}}>
       {factorRows.map(r=>{
-        const col=r.raw>1.2?"#ff453a":r.raw>0.5?"#ff9f0a":"#30d158";
+        const col=r.raw>1.2?"var(--red)":r.raw>0.5?"var(--yellow)":"var(--green)";
         const barPct=Math.max(3,Math.min(100,(r.raw/2)*100));
         const isOpen=openFactor===r.key;
         return(
@@ -4211,7 +4211,7 @@ return(
                   <div style={{color:"var(--text-2)"}}>as of</div>
                   <div style={{color:"var(--text-2)"}}>TREND</div>
                   {r.contribs.map(c=>{
-                    const sdCol=c.sd==null?"var(--text-muted)":c.sd>1.2?"#ff453a":c.sd>0.5?"#ff9f0a":c.sd<-0.5?"#30d158":"var(--text-2)";
+                    const sdCol=c.sd==null?"var(--text-muted)":c.sd>1.2?"var(--red)":c.sd>0.5?"var(--yellow)":c.sd<-0.5?"var(--green)":"var(--text-2)";
                     return(<Fragment key={c.id}>
                       <div style={{color:"var(--text)"}}>{c.label} <span style={{color:"var(--text-dim)",fontSize:10}}>· {c.id}</span></div>
                       <div style={{color:"var(--text)",textAlign:"right"}}>{c.value==null?"—":fmtV(c.id,c.value)}</div>
@@ -4228,7 +4228,7 @@ return(
       })}
     </div>
     <Explainer_Lab
-      accent={"#ff9f0a"}
+      accent={"var(--yellow)"}
       what={`Each macro factor rolls up its contributing indicators into one stress score (in standard deviations from a 5-year mean). Values below 0.5 are benign, 0.5-1.2 are elevated, above 1.2 are extreme. Same formula drives the sector ranking.`}
       now={`${factorRows.filter(r=>r.raw>1.2).length} factors in the extreme zone, ${factorRows.filter(r=>r.raw>0.5&&r.raw<=1.2).length} elevated. Click a row to see which indicators are driving it.`}
     />
@@ -4250,7 +4250,7 @@ return(
         </thead>
         <tbody>
           {indRows.map((r,i)=>{
-            const sdCol=r.sd==null?"var(--text-muted)":r.sd>1.2?"#ff453a":r.sd>0.5?"#ff9f0a":r.sd<-0.5?"#30d158":"var(--text-2)";
+            const sdCol=r.sd==null?"var(--text-muted)":r.sd>1.2?"var(--red)":r.sd>0.5?"var(--yellow)":r.sd<-0.5?"var(--green)":"var(--text-2)";
             return(
               <tr key={`${r.id}-${r.factor}-${i}`} style={{borderBottom:"1px solid var(--border-faint)"}}>
                 <td style={{padding:"4px 8px",color:"var(--text)"}}>{r.label} <span style={{color:"var(--text-dim)"}}>· {r.id}</span></td>
@@ -4265,7 +4265,7 @@ return(
       </table>
     </div>
     <Explainer_Lab
-      accent={"#ff9f0a"}
+      accent={"var(--yellow)"}
       what={`Every indicator feeding the macro factors, flat. An indicator appears in multiple rows if it contributes to more than one factor. Stress is the indicator's distance from its 5-year average in standard deviations, direction-adjusted so positive always means risky.`}
       now={`${indRows.filter(r=>r.sd!=null&&r.sd>1.2).length} indicators at extreme stress, ${indRows.filter(r=>r.sd!=null&&r.sd>0.5&&r.sd<=1.2).length} elevated. Sort by stress to see what's driving the regime.`}
     />
@@ -4298,11 +4298,11 @@ return(
                   if(load>0){
                     const intensity=Math.min(1,absL/3);
                     bg=`rgba(255,69,58,${(intensity*0.5).toFixed(2)})`;
-                    fg=intensity>0.6?"#fff":"#ff453a";
+                    fg=intensity>0.6?"#fff":"var(--red)";
                   }else if(load<0){
                     const intensity=Math.min(1,absL/3);
                     bg=`rgba(48,209,88,${(intensity*0.5).toFixed(2)})`;
-                    fg=intensity>0.6?"#fff":"#30d158";
+                    fg=intensity>0.6?"#fff":"var(--green)";
                   }
                   return<td key={f.key} style={{padding:"4px 6px",textAlign:"center",background:bg,color:fg,fontWeight:load!==0?700:400}}>{load===0?"·":load.toFixed(1)}</td>;
                 })}
@@ -4314,7 +4314,7 @@ return(
       </table>
     </div>
     <Explainer_Lab
-      accent={"#ff9f0a"}
+      accent={"var(--yellow)"}
       what={`How much each sector moves with each macro factor. Red cells = sector gets hurt when that factor is stressed (positive loading). Green cells = sector benefits (negative loading). This is the engine that turns macro factor scores into a sector ranking.`}
       now={`Top-ranked sector today: ${matrixRows[0]?.name}. Bottom-ranked: ${matrixRows[matrixRows.length-1]?.name}. Hover the ALIGNMENT note at the top to see the translation into trade recommendations.`}
     />
@@ -4340,7 +4340,7 @@ return(
       })}
     </div>
     <Explainer_Lab
-      accent={"#ff9f0a"}
+      accent={"var(--yellow)"}
       what={`Bottom-up sector ranking: each sector's score combines its factor sensitivities (Section 4) with current factor stress levels (Section 2). Higher score = more favorable macro setup.`}
       now={`Leader: ${scored[0]?.name}. Laggard: ${scored[scored.length-1]?.name}. Use in combination with the capital allocation bridge above for the trade-ticket view.`}
     />
@@ -4373,8 +4373,8 @@ return(
           <div style={{fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.1em",marginBottom:3}}>YEAR-BY-YEAR TRACK RECORD (tactical · strategic)</div>
           <div style={{display:"grid",gridTemplateColumns:`repeat(${WALKFORWARD_OOS_LAB.length},1fr)`,gap:2}}>
             {WALKFORWARD_OOS_LAB.map(r=>{
-              const tColor=r.tact==null?"var(--border)":r.tact>=0.5?"#30d158":r.tact>=0.4?"#ff9f0a":"#ff453a";
-              const sColor=r.strat==null?"var(--border)":r.strat>=0.5?"#30d158":r.strat>=0.4?"#ff9f0a":"#ff453a";
+              const tColor=r.tact==null?"var(--border)":r.tact>=0.5?"var(--green)":r.tact>=0.4?"var(--yellow)":"var(--red)";
+              const sColor=r.strat==null?"var(--border)":r.strat>=0.5?"var(--green)":r.strat>=0.4?"var(--yellow)":"var(--red)";
               return(
                 <div key={r.year} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1}}>
                   <div title={`${r.year} tactical: ${r.tact==null?"—":r.tact.toFixed(2)}`} style={{width:"100%",height:10,background:tColor,opacity:0.85,borderRadius:1}}/>
@@ -4494,7 +4494,7 @@ return(
 
 {error&&(
 <div style={{padding:"10px 14px",background:"#ef444410",border:"1px solid #ef444433",borderRadius:4,marginBottom:12}}>
-<div style={{fontSize:12,color:"#ff453a",fontFamily:"monospace"}}>{error}</div>
+<div style={{fontSize:12,color:"var(--red)",fontFamily:"monospace"}}>{error}</div>
 </div>
 )}
 
@@ -5259,7 +5259,7 @@ const cls=
   "Individual Stocks";
 assetRollup[cls]=(assetRollup[cls]||0)+p.value;
 });
-const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"#ff9f0a","HY Bonds":"#14b8a6","Precious Metals":"#B8860B","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"#dc2626"};
+const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"var(--yellow)","HY Bonds":"#14b8a6","Precious Metals":"#B8860B","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"#dc2626"};
 
 // ── Tile-grid home view computations ─────────────────────────────────────────
 const portCount = scanData?.portfolio_positions?.length || 0;
@@ -5374,10 +5374,10 @@ return(
   const regimePillCSS = (regime) => {
     // sdLabel → mockup stance mapping
     const map = {
-      "Low":      {label:"Risk-on",  color:"var(--up, #30d158)"},
+      "Low":      {label:"Risk-on",  color:"var(--up, var(--green))"},
       "Normal":   {label:"Neutral",  color:"var(--text-muted)"},
       "Elevated": {label:"Caution",  color:"var(--warn, #B8860B)"},
-      "Extreme":  {label:"Risk-off", color:"var(--down, #ff453a)"},
+      "Extreme":  {label:"Risk-off", color:"var(--down, var(--red))"},
       "No Data":  {label:"—",        color:"var(--text-dim)"},
     };
     return map[regime] || map["Normal"];
@@ -5692,9 +5692,9 @@ return(
           const bandFor = (s) => s < 25 ? "risk-on" : s < 50 ? "neutral" : s < 75 ? "caution" : "risk-off";
           const bandColor = (band) => ({
             "risk-on":  "#4a7c4a",
-            "neutral":  "#b8860b",
-            "caution":  "#a04518",
-            "risk-off": "#7a1414",
+            "neutral":  "var(--yellow)",
+            "caution":  "var(--red)",
+            "risk-off": "var(--red)",
           })[band] || "var(--text-muted)";
           const aggBand = bandFor(avg);
           const aggCol  = bandColor(aggBand);
@@ -5789,7 +5789,7 @@ return(
           const def = Math.round((v10AllocSnap.defensive_pct||0) * 100);
           const lev = (v10AllocSnap.leverage||1).toFixed(2);
           const stance = v10AllocSnap.page_stance || "";
-          const stanceCol = stance === "Risk On" ? "#2e7d32" : stance === "Cautious" || stance === "Caution" ? "#b8860b" : stance === "Risk Off" ? "#b71c1c" : "#9b9384";
+          const stanceCol = stance === "Risk On" ? "var(--green)" : stance === "Cautious" || stance === "Caution" ? "var(--yellow)" : stance === "Risk Off" ? "var(--red)" : "var(--text-muted)";
           const sectors = v10AllocSnap.sectors || [];
           const ow = sectors.filter(s => s.rating === "OW").map(s => s.sector);
           const uw = sectors.filter(s => s.rating === "UW").map(s => s.sector);
@@ -6163,7 +6163,7 @@ return(
                     const spyR  = _spyReturns?.[k];     // decimal
                     const diff = (portR != null && spyR != null) ? portR - spyR : null;
                     const fmtPct = v => v == null ? "—" : (v>=0?"+":"") + (v*100).toFixed(1) + "%";
-                    const diffCol = diff == null ? "var(--text-muted)" : diff >= 0 ? "#30d158" : "#ff453a";
+                    const diffCol = diff == null ? "var(--text-muted)" : diff >= 0 ? "var(--green)" : "var(--red)";
                     const portCol = portR == null ? "var(--text-muted)" : portR >= 0 ? "var(--text)" : "var(--text)";
                     return (
                       <div key={k} style={{display:"grid", gridTemplateColumns:"36px 1fr auto", gap:8, alignItems:"baseline"}}>
@@ -6205,7 +6205,7 @@ return(
         }}>
           <span style={{
             width:6, height:6, borderRadius:"50%",
-            background: headlines.length>0 ? "var(--up, #30d158)" : "var(--text-dim)",
+            background: headlines.length>0 ? "var(--up, var(--green))" : "var(--text-dim)",
             display:"inline-block",
           }}/>
           {headlines.length>0
@@ -6369,10 +6369,10 @@ const actionFor=p=>{
   if(BROAD_INDEX_FUNDS.has(p.ticker))return{label:"CORE",color:"var(--accent)",reason:"Broad-market index fund — not a tactical position.",detail:`${p.ticker} is a diversified index holding. Do not manage tactically on daily scanner signals; it's a long-term core holding. Review allocation relative to age-based glide path, not market regime.`};
   const sc=scoreByTicker[p.ticker];
   if(sc==null)return{label:"NO SIGNAL",color:"var(--text-dim)",reason:"Not scored in the latest scan.",detail:`The scanner runs a scored universe of equity tickers; ${p.ticker} isn't currently included. This is a scanner coverage gap, not a sell signal. Task #9 tracks adding held positions to the always-scored list so this gets proper signal data.`};
-  if(sc>=60)return{label:"BUY ZONE",color:"#30d158",reason:`Score ${sc} — meets the 60+ buy threshold.`,detail:`Composite scanner score of ${sc} combines Congressional trades, insider buying, options flow, and technical momentum. A score ≥60 is the algorithmic buy threshold. Consider adding to the position if cash is available and allocation permits. See full scanner detail for the component breakdown.`};
+  if(sc>=60)return{label:"BUY ZONE",color:"var(--green)",reason:`Score ${sc} — meets the 60+ buy threshold.`,detail:`Composite scanner score of ${sc} combines Congressional trades, insider buying, options flow, and technical momentum. A score ≥60 is the algorithmic buy threshold. Consider adding to the position if cash is available and allocation permits. See full scanner detail for the component breakdown.`};
   if(sc>=35)return{label:"HOLD",color:"#B8860B",reason:`Score ${sc} — in the healthy hold range.`,detail:`Score ${sc} is within the 35–60 hold band. No action needed. The scanner is not flagging a reason to trim or add. Monitor for score drift below 35 (weakening) or above 60 (add candidate).`};
-  if(sc>=20)return{label:"WATCH",color:"#ff9f0a",reason:`Score ${sc} — signals weakening.`,detail:`Score ${sc} has dropped into the 20–35 weakening band. Underlying signals (flow, insider activity, technicals) are deteriorating but haven't reached sell-watch territory. Tighten your stop-loss and do not add to the position. Consider trimming if score crosses below 20 or the position breaks its SL.`};
-  return{label:"REVIEW",color:"#ff453a",reason:`Score ${sc} — in the sell-watch zone.`,detail:`Score ${sc} is below the 20 sell-watch threshold. Scanner components are bearish (weak flow, no insider support, deteriorating technicals). Not an automatic sell — but actively review the thesis: is there a catalyst you're waiting for? Otherwise, trim or exit on any bounce. Check full scanner detail for the specific weak components.`};
+  if(sc>=20)return{label:"WATCH",color:"var(--yellow)",reason:`Score ${sc} — signals weakening.`,detail:`Score ${sc} has dropped into the 20–35 weakening band. Underlying signals (flow, insider activity, technicals) are deteriorating but haven't reached sell-watch territory. Tighten your stop-loss and do not add to the position. Consider trimming if score crosses below 20 or the position breaks its SL.`};
+  return{label:"REVIEW",color:"var(--red)",reason:`Score ${sc} — in the sell-watch zone.`,detail:`Score ${sc} is below the 20 sell-watch threshold. Scanner components are bearish (weak flow, no insider support, deteriorating technicals). Not an automatic sell — but actively review the thesis: is there a catalyst you're waiting for? Otherwise, trim or exit on any bounce. Check full scanner detail for the specific weak components.`};
 };
 const fmt$K=v=>v>=1000?`$${Math.round(v/1000).toLocaleString()}K`:`$${Math.round(v).toLocaleString()}`;
 const fmt$Full=v=>`$${Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}`;
@@ -6703,7 +6703,7 @@ const subPanel=(accentCol,title,criteria,count,children)=>(
 return(<>
 {/* Bug #1071 — anchor for /#watchlist deep-link scroll */}
 <div id="section-watchlist" style={{height:0}} aria-hidden="true"/>
-{subPanel("#30d158","BUY ALERTS","(Composite Score ≥ 60)",`${triggered.length} today`,
+{subPanel("var(--green)","BUY ALERTS","(Composite Score ≥ 60)",`${triggered.length} today`,
   <WatchlistTable
     rows={toWlRows(triggered)}
     signals={scanData?.signals}
@@ -6790,7 +6790,7 @@ const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"
 // transparent against the dark background and the bar looks empty.
 // Deterministic fallback by DB sort-order index so colors don't flip on
 // the value-sorted acctData re-sort below.
-const ACCT_PALETTE=["#4a6fa5","#ff9f0a","#14b8a6","#a855f7","#B8860B","#6366f1","#64748b","#f97316"];
+const ACCT_PALETTE=["#4a6fa5","var(--yellow)","#14b8a6","#a855f7","#B8860B","#6366f1","#64748b","#f97316"];
 const acctData=ACCOUNTS.map((acc,i)=>{
 const t=acc.positions.reduce((a,p)=>a+p.value,0);
 return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color||ACCT_PALETTE[i%ACCT_PALETTE.length],value:t};

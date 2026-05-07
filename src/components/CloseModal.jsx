@@ -311,13 +311,13 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
           )}
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, marginBottom: 6 }}>
             <span style={{ color: "var(--text-muted)" }}>{cashLabel}</span>
-            <span style={{ fontWeight: 700, fontFamily: "var(--font-mono)", color: cashSign > 0 ? "#30d158" : "#ff453a" }}>
+            <span style={{ fontWeight: 700, fontFamily: "var(--font-mono)", color: cashSign > 0 ? "var(--green)" : "var(--red)" }}>
               {fmt$(Math.abs(netCash))}
             </span>
           </div>
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
             <span style={{ color: "var(--text-muted)" }}>realized profit/loss (avg-cost basis)</span>
-            <span style={{ fontWeight: 700, fontFamily: "var(--font-mono)", color: realizedPnL >= 0 ? "#30d158" : "#ff453a" }}>
+            <span style={{ fontWeight: 700, fontFamily: "var(--font-mono)", color: realizedPnL >= 0 ? "var(--green)" : "var(--red)" }}>
               {realizedPnL >= 0 ? "+" : "−"}{fmt$(Math.abs(realizedPnL))}
             </span>
           </div>
@@ -325,7 +325,7 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
 
         {err && (
           <div style={{
-            padding: 10, marginBottom: 12, fontSize: 12, color: "#ff453a",
+            padding: 10, marginBottom: 12, fontSize: 12, color: "var(--red)",
             background: "rgba(255,69,58,0.08)",
             border: "1px solid rgba(255,69,58,0.3)",
             borderRadius: 6,

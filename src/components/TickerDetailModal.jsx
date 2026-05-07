@@ -50,7 +50,7 @@ function SignalIntelligenceRail({
   const fmtSigned = v => v == null ? "—" : `${v >= 0 ? "+" : ""}${v}`;
   const ragColor = state => state === "green" ? "var(--green-text, #1a8c39)"
                           : state === "amber" ? "var(--yellow-text, #B8860B)"
-                          : state === "red"   ? "var(--red-text, #c8302a)"
+                          : state === "red"   ? "var(--red-text, var(--red))"
                           : "var(--text-dim)";
 
   // Tile 1 — Macro Cycle Board (v11). Reads the same six-mechanism snapshot
@@ -391,7 +391,7 @@ function SignalIntelligenceRail({
         const Empty = ({ msg }) => <div style={{fontSize:11.5,color:"var(--text-muted)",fontStyle:"italic"}}>{msg}</div>;
         const Row = ({ who, what, amt, sign }) => {
           const c = sign === "pos" ? "var(--green-text, #1a8c39)"
-                  : sign === "neg" ? "var(--red-text, #c8302a)"
+                  : sign === "neg" ? "var(--red-text, var(--red))"
                   : "var(--text)";
           return (
             <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:8,alignItems:"baseline",fontSize:12,padding:"3px 0"}}>
@@ -516,7 +516,7 @@ function SignalIntelligenceRail({
                     const beat = q.beat === true;
                     const miss = q.beat === false;
                     const pct = q.surprisePct;
-                    const dotColor = beat ? "var(--green-text, #2ec27e)" : miss ? "var(--red-text, #c8302a)" : "var(--text-muted)";
+                    const dotColor = beat ? "var(--green-text, #2ec27e)" : miss ? "var(--red-text, var(--red))" : "var(--text-muted)";
                     const sign = pct > 0 ? "+" : "";
                     const pctTxt = pct == null ? "—" : `${sign}${Number(pct).toFixed(1)}%`;
                     const date = q.date ? String(q.date) : "—";
@@ -597,7 +597,7 @@ function SignalCard({ title, state, value, meta, detail, ragColor, renderDetail,
 
 function FlowRow({ label, count, positive, elevated, scrollToSection }) {
   const color = positive ? "var(--green-text, #1a8c39)"
-              : positive === false ? "var(--red-text, #c8302a)"
+              : positive === false ? "var(--red-text, var(--red))"
               : elevated ? "var(--yellow-text, #B8860B)"
               : "var(--text)";
   const target = label.toLowerCase().includes("congress") || label.toLowerCase().includes("insider") ? "sec-activity"
@@ -817,13 +817,13 @@ function ActionRow({
   };
   const btnPrimary = {
     ...btnBase,
-    background: "var(--accent, #0071e3)",
-    border: "1px solid var(--accent, #0071e3)",
+    background: "var(--accent)",
+    border: "1px solid var(--accent)",
     color: "var(--surface-solid, #fff)",
   };
   const btnDanger = {
     ...btnBase,
-    color: "var(--red-text, #c8302a)",
+    color: "var(--red-text, var(--red))",
     border: "1px solid rgba(200,48,42,0.35)",
   };
 
@@ -1131,13 +1131,13 @@ const Kpi=({label,value,color,sub,tip})=>(
 {sub&&<div style={{fontSize:9,color:"var(--text-dim)",marginTop:2}}>{sub}</div>}
 </div>
 );
-const rsiColor=rsi==null?"var(--text-dim)":rsi>=70?"#ff453a":rsi<=30?"#30d158":"var(--text)";
-const macdColor=macd==="bullish"?"#30d158":macd==="bearish"?"#ff453a":"var(--text)";
-const ma50Color=above50==null?"var(--text-dim)":above50?"#30d158":"#ff453a";
-const ma200Color=above200==null?"var(--text-dim)":above200?"#30d158":"#ff453a";
-const volColor=vol==null?"var(--text-dim)":vol>=2?"#30d158":vol>=1?"var(--text)":"var(--text-dim)";
-const ivRankColor=ivRank==null?"var(--text-dim)":ivRank>=70?"#ff453a":ivRank<=30?"#30d158":"var(--text)";
-const techScoreCol=techScore==null?"var(--text-dim)":techScore>=2?"#30d158":techScore>=-1?"var(--text)":"#ff453a";
+const rsiColor=rsi==null?"var(--text-dim)":rsi>=70?"var(--red)":rsi<=30?"var(--green)":"var(--text)";
+const macdColor=macd==="bullish"?"var(--green)":macd==="bearish"?"var(--red)":"var(--text)";
+const ma50Color=above50==null?"var(--text-dim)":above50?"var(--green)":"var(--red)";
+const ma200Color=above200==null?"var(--text-dim)":above200?"var(--green)":"var(--red)";
+const volColor=vol==null?"var(--text-dim)":vol>=2?"var(--green)":vol>=1?"var(--text)":"var(--text-dim)";
+const ivRankColor=ivRank==null?"var(--text-dim)":ivRank>=70?"var(--red)":ivRank<=30?"var(--green)":"var(--text)";
+const techScoreCol=techScore==null?"var(--text-dim)":techScore>=2?"var(--green)":techScore>=-1?"var(--text)":"var(--red)";
 // Section composites — signed −100..+100 per category, with weighted overall.
 // This is the "distill the signals" view: legacy 0–100 is bullish-only, these
 // expose direction. See ./ticker/sectionComposites.js for the math.
@@ -1210,7 +1210,7 @@ return(
       {watchlistEntry&&!heldIn.length&&!isManualTrack&&<span style={{color:"var(--text-muted)",letterSpacing:"0.16em"}}>· WATCHLIST</span>}
       {portfolioAuthed&&(onUserWatchlist
         ?<Tip def="Remove this ticker from your watchlist"><button type="button" onClick={removeFromWatchlist} disabled={wlBusy}
-          style={{fontSize:10,marginLeft:6,color:"#c8302a",background:"transparent",border:"1px solid rgba(200,48,42,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.06em"}}>{wlBusy?"…":"− REMOVE"}</button></Tip>
+          style={{fontSize:10,marginLeft:6,color:"var(--red)",background:"transparent",border:"1px solid rgba(200,48,42,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.06em"}}>{wlBusy?"…":"− REMOVE"}</button></Tip>
         :<Tip def="Add this ticker to your watchlist"><button type="button" onClick={addToWatchlist} disabled={wlBusy}
           style={{fontSize:10,marginLeft:6,color:"var(--accent)",background:"var(--accent-soft)",border:"1px solid rgba(0,113,227,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.06em"}}>{wlBusy?"…":"+ WATCHLIST"}</button></Tip>
       )}
@@ -1237,13 +1237,13 @@ return(
         {(shortDesc||"").replace(/\s*\.\.\.\s*$/,"").replace(/\s*…\s*$/,"")}
       </div>
     ):null}
-    {wlError&&<div style={{fontSize:11,color:"#c8302a",fontFamily:"var(--font-mono)",marginTop:4}}>{wlError}</div>}
+    {wlError&&<div style={{fontSize:11,color:"var(--red)",fontFamily:"var(--font-mono)",marginTop:4}}>{wlError}</div>}
   </div>
   {/* RIGHT — price + delta */}
   <div style={{textAlign:"right",flexShrink:0}}>
     <div className="num" style={{fontFamily:"var(--font-mono)",fontSize:30,fontWeight:600,color:"var(--text)",lineHeight:1}}>{price?fmt$(price):"—"}</div>
     {dayPct!=null&&prevClose!=null&&price!=null&&(
-      <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,letterSpacing:"0.06em",color:dayPct>=0?"var(--green-text, #1a8c39)":"var(--red-text, #c8302a)"}}>
+      <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:12,fontWeight:600,letterSpacing:"0.06em",color:dayPct>=0?"var(--green-text, #1a8c39)":"var(--red-text, var(--red))"}}>
         {dayPct>=0?"▲ +":"▼ "}{fmt$(Math.abs(price-prevClose))} · {dayPct>=0?"+":""}{dayPct.toFixed(2)}%
       </div>
     )}
@@ -1285,7 +1285,7 @@ return(
   const heldQty = heldIn.reduce((acc,h)=>acc + (Number(h.p.quantity)||0), 0);
 
   // Color rule: green for >=0, red for <0, dim for null.
-  const cFor = v => v==null ? "var(--text-dim)" : (v>=0 ? "var(--green-text, #1a8c39)" : "var(--red-text, #c8302a)");
+  const cFor = v => v==null ? "var(--text-dim)" : (v>=0 ? "var(--green-text, #1a8c39)" : "var(--red-text, var(--red))");
 
   const KpiCard = ({label, value, comp, color, tip}) => (
     <div style={{background:"var(--surface-solid, var(--paper, #fff))",border:"1px solid var(--border)",borderRadius:"var(--radius-xs, 6px)",padding:"12px 14px",display:"flex",flexDirection:"column"}}>

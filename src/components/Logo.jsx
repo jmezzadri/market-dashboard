@@ -79,7 +79,7 @@ export function Wordmark({
       <span
         style={{
           fontStyle: italicTilt ? "italic" : "normal",
-          color: "var(--mt-accent-warm, #d9b27a)",
+          color: "var(--accent)",
         }}
       >
         TILT

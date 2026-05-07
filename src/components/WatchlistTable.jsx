@@ -237,7 +237,7 @@ const baseCols = [
     align: "right",
     sortValue: (r) => r.dayChangePct,
     renderCell: (r) => {
-      const c = r.dayChangePct == null ? "var(--text-muted)" : r.dayChangePct >= 0 ? "#30d158" : "#ff453a";
+      const c = r.dayChangePct == null ? "var(--text-muted)" : r.dayChangePct >= 0 ? "var(--green)" : "var(--red)";
       return (
         <span style={{ fontFamily: "var(--font-mono)", color: c, fontWeight: 600 }}>
           {fmtPctSigned(r.dayChangePct)}

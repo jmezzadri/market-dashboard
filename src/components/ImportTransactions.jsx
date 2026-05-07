@@ -294,7 +294,7 @@ export default function ImportTransactions({ onClose, onDone }) {
         )}
 
         {submitErr && (
-          <div style={{ padding: 10, marginBottom: 14, fontSize: 12, color: "#ff453a", background: "rgba(255,69,58,0.08)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 6 }}>
+          <div style={{ padding: 10, marginBottom: 14, fontSize: 12, color: "var(--red)", background: "rgba(255,69,58,0.08)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 6 }}>
             {submitErr}
           </div>
         )}
