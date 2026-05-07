@@ -1028,7 +1028,7 @@ export default function AssetTilt({ onOpenTicker }) {
             if (!top) return <span style={{ fontSize: 14, color: "var(--text-muted)" }}>—</span>;
             return (
               <span style={{ fontSize: 14, color: "var(--text-2)" }}>
-                <strong style={{ color: "var(--text)", fontWeight: 600 }}>{top.label}</strong>
+                <strong style={{ color: "var(--text)", fontWeight: 600 }}>{top.name}</strong>
                 {" "}is the loudest read at{" "}
                 <strong style={{ color: "var(--accent)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
                   {Math.round(top.score)}/100
