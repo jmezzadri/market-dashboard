@@ -426,6 +426,40 @@ const DEFENSIVE_BUCKETS = [
   {ticker:"LQD", name:"IG Corporate Bonds"},
 ];
 
+
+// Short editorial names for sector hero copy. GICS full names are accurate
+// but read as boilerplate; these are how a PM actually says them.
+const SECTOR_SHORT = {
+  "Information Technology":  "Tech",
+  "Communication Services":  "Comm Services",
+  "Consumer Discretionary":  "Consumer Disc",
+  "Consumer Staples":        "Staples",
+  "Health Care":             "Healthcare",
+  "Real Estate":             "REITs",
+  "Financials":              "Financials",
+  "Industrials":             "Industrials",
+  "Energy":                  "Energy",
+  "Materials":               "Materials",
+  "Utilities":               "Utilities",
+};
+function tiltHero(sectors) {
+  if (!sectors || !sectors.length) return null;
+  const sorted = [...sectors].sort((a, b) => (b.vs_spy_pp ?? 0) - (a.vs_spy_pp ?? 0));
+  const top = sorted[0];
+  const bot = sorted[sorted.length - 1];
+  if (!top || !bot) return null;
+  const topMag = Math.round(Math.abs(top.vs_spy_pp ?? 0));
+  const botMag = Math.round(Math.abs(bot.vs_spy_pp ?? 0));
+  if (topMag < 1 && botMag < 1) return null;
+  return {
+    topShort: SECTOR_SHORT[top.sector] || top.sector,
+    botShort: SECTOR_SHORT[bot.sector] || bot.sector,
+    topFull: top.sector,
+    botFull: bot.sector,
+    topMag, botMag,
+  };
+}
+
 function bandOf(score) {
   if (score < 25) return "risk-on";
   if (score < 50) return "neutral";
@@ -1093,23 +1127,39 @@ export default function AssetTilt({ onOpenTicker }) {
 
   return (
     <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 32px 48px" }}>
-      {/* HERO — Asset Tilt is about TILT, not statements of state.
-          'Cautious' regime context lives in the headline; the 4 KPI banalities
-          (equity %, defensive %, leverage, gross) are now retired since they're
-          all readable straight off the recommendation table below. The Stress KPI
-          and the StanceBadge pill were both macro reads that belonged on
-          Macro Overview, not here. */}
-      <section style={{
-        padding: "24px 28px", background: "var(--surface)",
-        border: "0.5px solid var(--border)", borderRadius: 12, marginBottom: 16,
-      }}>
-        <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>
-          Asset Tilt
-        </div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 500, margin: "10px 0 0", letterSpacing: "-0.015em", lineHeight: 1.2 }}>
-          {stanceHeadline}
-        </h1>
-      </section>
+      {/* HERO — Asset Tilt is about TILT. The headline names the engine's
+          two loudest calls: the strongest underweight and the strongest
+          overweight versus SPY, with magnitudes. No macro band, no
+          statement of state, no decorative meta-header. */}
+      {(() => {
+        const hero = tiltHero(v10.sectors);
+        return (
+          <section style={{
+            padding: "24px 28px", background: "var(--surface)",
+            border: "0.5px solid var(--border)", borderRadius: 12, marginBottom: 16,
+          }}>
+            <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>
+              Asset Tilt
+            </div>
+            {hero ? (
+              <>
+                <h1 style={{ fontFamily: "var(--font-display)", fontSize: 30, fontWeight: 400, margin: "10px 0 0", letterSpacing: "-0.018em", lineHeight: 1.15 }}>
+                  {hero.botMag} points out of <em style={{ fontStyle: "italic", color: "var(--accent)" }}>{hero.botShort}</em>,{" "}
+                  {hero.topMag} into <em style={{ fontStyle: "italic", color: "var(--accent)" }}>{hero.topShort}</em>.
+                </h1>
+                <p style={{ marginTop: 12, color: "var(--text-muted)", fontSize: 14, lineHeight: 1.5, maxWidth: "62ch" }}>
+                  Strongest underweight: <strong style={{ color: "var(--text-2)", fontWeight: 600 }}>{hero.botFull}</strong> at {hero.botMag}% under the SPY weight.
+                  Strongest overweight: <strong style={{ color: "var(--text-2)", fontWeight: 600 }}>{hero.topFull}</strong> at {hero.topMag}% over.
+                </p>
+              </>
+            ) : (
+              <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 500, margin: "10px 0 0", letterSpacing: "-0.015em", lineHeight: 1.2 }}>
+                Recommendations broadly track the benchmark.
+              </h1>
+            )}
+          </section>
+        );
+      })()}
 
       {/* Asset Tilt does NOT show macro reads — this is a pure deep-link to Macro Overview.
           Cycle / mechanism / regime data belongs on the Macro Overview tab (single source of truth).
