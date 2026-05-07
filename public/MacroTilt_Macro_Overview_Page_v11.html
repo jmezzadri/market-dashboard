@@ -85,10 +85,14 @@
   /* Verdict dial wedges + text — fills are inline SVG attrs which CSS
      can override. Map each wedge id and label color via CSS so theme
      toggle just works without touching JS. */
-  :root[data-theme="dark"] #wedge-riskon  { fill: rgba(255,255,255,0.05); }
-  :root[data-theme="dark"] #wedge-neutral { fill: rgba(255,255,255,0.05); }
-  :root[data-theme="dark"] #wedge-caution { fill: rgba(255,255,255,0.05); }
-  :root[data-theme="dark"] #wedge-riskoff { fill: rgba(255,255,255,0.05); }
+  /* Dark-mode gradient — pale teal at progressive opacity so the wedges
+     remain visible against a dark surface. Mirrors the light-mode gradient
+     direction (light Risk-On -> dark Risk-Off) but uses a lighter base
+     hue so it shows on black instead of getting eaten by it. */
+  :root[data-theme="dark"] #wedge-riskon  { fill: rgba(180, 220, 225, 0.14); }
+  :root[data-theme="dark"] #wedge-neutral { fill: rgba(150, 205, 215, 0.30); }
+  :root[data-theme="dark"] #wedge-caution { fill: rgba(120, 190, 205, 0.50); }
+  :root[data-theme="dark"] #wedge-riskoff { fill: rgba( 90, 175, 195, 0.78); }
   :root[data-theme="dark"] .verdict-svg text[fill="#7a7a72"] { fill: #888884; }
   :root[data-theme="dark"] .verdict-svg text[fill="#1a1a1a"] { fill: #fafaf7; }
   :root[data-theme="dark"] .verdict-svg line[stroke="#1a1a1a"] { stroke: #fafaf7; }
