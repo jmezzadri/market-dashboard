@@ -827,7 +827,7 @@ export default function ScenarioAnalysis() {
             sectors lead/lag. L2 takes the substance row alone; L3 + L4 sit
             below in the 2-column grid. */}
         <div style={{ marginTop: "var(--s-3)" }}>
-          <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} mode={mode} scenarioId={scenario} effShocks={effShocks} pnl={realPnl} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} />
+          <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} mode={mode} scenarioId={scenario} effShocks={effShocks} />
         </div>
         <div className="output-grid">
           <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
@@ -916,7 +916,7 @@ function L1Panel({ hasShock, composites }) {
   );
 }
 
-function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode, scenarioId, effShocks, pnl, portfolioTotal, portfolioSource }) {
+function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode, scenarioId, effShocks }) {
   if (!hasShock) {
     return (
       <div className="panel">
@@ -967,19 +967,7 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
     window = null;
   }
 
-  // Whitespace-fillers: scenario summary chips at the top + portfolio P&L
-  // contribution per sector at the right, when we have a real book.
-  const portfolioByName = (pnl?.positions || []).reduce((acc, p) => {
-    acc[p.sector] = (acc[p.sector] || 0) + (p.dollar || 0);
-    return acc;
-  }, {});
-  const haveBook = Math.abs(portfolioTotal || 0) > 1;
   const maxAbsShock = Math.max(...allSorted.map(s => Math.abs(s.shockPct)), 0.01);
-  const fmtUsd = v => {
-    const a = Math.abs(v);
-    if (a >= 1000) return (v < 0 ? "-$" : "$") + (a / 1000).toFixed(1) + "K";
-    return (v < 0 ? "-$" : "$") + a.toFixed(0);
-  };
 
   return (
     <div className="panel">
@@ -997,7 +985,7 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
         </div>
       )}
 
-      <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:0, padding:"10px 14px", background:"var(--bg-2)", border:"1px solid var(--line-1)", borderRadius:"var(--r-sm)", marginBottom:"var(--s-3)"}}>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:0, padding:"10px 14px", background:"var(--bg-2)", border:"1px solid var(--line-1)", borderRadius:"var(--r-sm)", marginBottom:"var(--s-3)"}}>
         <div style={{paddingRight:14, borderRight:"1px solid var(--line-1)"}}>
           <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>Equity sleeve avg</div>
           <div className={"action-delta " + (equityAvg < 0 ? "down" : "up")} style={{textAlign:"left"}}>{equityAvg >= 0 ? "+" : ""}{equityAvg.toFixed(1)}%</div>
@@ -1006,37 +994,32 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
           <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>Defensive sleeve avg</div>
           <div className={"action-delta " + (defensiveAvg < 0 ? "down" : "up")} style={{textAlign:"left"}}>{defensiveAvg >= 0 ? "+" : ""}{defensiveAvg.toFixed(1)}%</div>
         </div>
-        <div style={{paddingLeft:14, paddingRight:14, borderRight: haveBook ? "1px solid var(--line-1)" : "none"}}>
+        <div style={{paddingLeft:14}}>
           <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>Equity-vs-defensive spread</div>
           <div className={"action-delta " + (spread < 0 ? "down" : "up")} style={{textAlign:"left"}}>{spread >= 0 ? "+" : ""}{spread.toFixed(1)}%</div>
         </div>
-        <div style={{paddingLeft:14}}>
-          <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>{haveBook ? (portfolioSource === "user" ? "Your book impact" : "Demo book impact") : "Book impact"}</div>
-          <div className={"action-delta " + ((pnl?.total || 0) < 0 ? "down" : "up")} style={{textAlign:"left", color: !haveBook ? "var(--ink-3)" : undefined}}>{haveBook ? fmtUsd(pnl.total) : "—"}</div>
-        </div>
       </div>
 
-      <div style={{display:"grid", gridTemplateColumns:"28px minmax(140px, 220px) 70px 60px 70px minmax(140px, 1fr) 70px", gap:10, padding:"4px 0 6px", borderBottom:"1px solid var(--line-1)", fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>
+      <div style={{display:"grid", gridTemplateColumns:"28px minmax(140px, 220px) 70px 60px 70px minmax(140px, 1fr) 60px", gap:10, padding:"4px 0 6px", borderBottom:"1px solid var(--line-1)", fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>
         <span>#</span>
         <span>Asset / Sector</span>
         <span style={{textAlign:"left"}}>Class</span>
         <span style={{textAlign:"right"}}>Curr %</span>
         <span style={{textAlign:"right"}}>Shock %</span>
         <span style={{textAlign:"center"}}>← Down · Up →</span>
-        <span style={{textAlign:"right"}}>{haveBook ? "Book $" : "Tkr"}</span>
+        <span style={{textAlign:"right"}}>Tkr</span>
       </div>
 
       <div className="sector-list" style={{maxHeight:"420px"}}>
         {allSorted.map((s, i) => {
           const isEquity = s.assetClass === "Equity";
           const expandable = isEquity && s.igs && s.igs.length > 0;
-          const dollarHit = portfolioByName[s.name] || 0;
           return (
             <div key={s.id}>
               <div
                 className={"sector-row" + (expandedSector === s.id ? " expanded" : "")}
                 onClick={() => expandable && setExpandedSector(expandedSector === s.id ? null : s.id)}
-                style={{cursor: expandable ? "pointer" : "default", gridTemplateColumns:"28px minmax(140px, 220px) 70px 60px 70px minmax(140px, 1fr) 70px", gap:10}}
+                style={{cursor: expandable ? "pointer" : "default", gridTemplateColumns:"28px minmax(140px, 220px) 70px 60px 70px minmax(140px, 1fr) 60px", gap:10}}
               >
                 <span className="sector-rank">#{i+1}</span>
                 <span className="sector-name">{s.name}</span>
@@ -1050,10 +1033,7 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
                     : <span style={{position:"absolute", right:"50%", top:0, bottom:0, width:`${(Math.abs(s.shockPct) / maxAbsShock) * 50}%`, background:"var(--down)", opacity:.7, borderRadius:2}} />
                   }
                 </span>
-                {haveBook
-                  ? <span style={{fontFamily:"var(--font-ui)", fontSize:11, color: dollarHit === 0 ? "var(--ink-3)" : (dollarHit < 0 ? "var(--down)" : "var(--up)"), textAlign:"right", fontWeight:600}}>{dollarHit === 0 ? "—" : fmtUsd(dollarHit)}</span>
-                  : <span className="sector-tkr" style={{textAlign:"right"}}>{s.id}</span>
-                }
+                <span className="sector-tkr" style={{textAlign:"right"}}>{s.id}</span>
               </div>
               {expandedSector === s.id && expandable && (
                 <div className="ig-list">
