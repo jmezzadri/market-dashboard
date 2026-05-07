@@ -5041,7 +5041,12 @@ const userWatchlistTickers = useMemo(
 // no-op gracefully when signed out (the button still renders to encourage
 // sign-in; the upstream click is intercepted at the auth gate).
 const onAddToWatchlist = async (t) => {
-  if (!session?.user?.id) return;
+  // Signed-out: drop the user on the sign-in screen instead of silently
+  // failing. The button is now actionable in both states.
+  if (!session?.user?.id) {
+    setShowPortoppsLogin(true);
+    return;
+  }
   const ticker = String(t || "").toUpperCase();
   if (!ticker) return;
   const { error } = await supabase.from("watchlist").insert({
@@ -5051,7 +5056,10 @@ const onAddToWatchlist = async (t) => {
   if (!error) { refetchPortfolio?.(); scanTicker?.(ticker); }
 };
 const onRemoveFromWatchlist = async (t) => {
-  if (!session?.user?.id) return;
+  if (!session?.user?.id) {
+    setShowPortoppsLogin(true);
+    return;
+  }
   const ticker = String(t || "").toUpperCase();
   if (!ticker) return;
   const { error } = await supabase.from("watchlist").delete()
@@ -6749,7 +6757,7 @@ const subPanel=(accentCol,title,criteria,count,children)=>(
 return(<>
 {/* Bug #1071 — anchor for /#watchlist deep-link scroll */}
 <div id="section-watchlist" style={{height:0}} aria-hidden="true"/>
-{subPanel("var(--green)","BUY ALERTS","(Composite Score ≥ 60)",`${triggered.length} today`,
+{subPanel("var(--green)","BUY ALERTS","Top scoring names from today's scan",`${triggered.length} today`,
   <WatchlistTable
     rows={toWlRows(triggered)}
     signals={scanData?.signals}
@@ -6765,7 +6773,7 @@ return(<>
     emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
   />
 )}
-{subPanel("#B8860B","NEAR TRIGGER","(Composite Score 40–59)",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
+{subPanel("var(--accent)","NEAR TRIGGER","Sitting just below the buy threshold",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
   <WatchlistTable
     rows={toWlRows(nearTrigger)}
     signals={scanData?.signals}
@@ -6781,7 +6789,7 @@ return(<>
     emptyMessage="Nothing near trigger today."
   />
 )}
-{subPanel("#64748b","OTHER WATCHLIST",null,`${rebucketOther.length} tracking`,
+{subPanel("var(--text-muted)","YOUR WATCHLIST", portfolioAuthed ? "Your tracked tickers" : "Sign in to populate · empty in this preview", `${rebucketOther.length} tracking`,
   <>
     <WatchlistTable
       rows={rebucketOther}
