@@ -12,75 +12,83 @@
      shadows. Bars are neutral; the dot carries the band color.
      ============================================================= */
 
+
+  /* ============================================================
+     PALETTE — Option A 'Citadel teal hybrid'.
+     KEEP IN SYNC with src/theme.css. The single source of truth for
+     the dashboard palette lives in src/theme.css. This iframe runs
+     in its own document context (CSS variables don't cross iframe
+     boundaries), so the same hex values are duplicated here. If you
+     change the palette in src/theme.css, mirror it here.
+     ============================================================ */
   :root {
     color-scheme: light;
 
-    /* ---- Surface neutrals ---- */
-    --bg: #fafaf7;
-    --surface: #fbfaf6;
-    --border: #e0ddd5;
-    --border-strong: #cdc9bf;
+    /* Surfaces */
+    --bg:             #fafaf7;
+    --surface:        #ffffff;
+    --border:         rgba(14,17,21,0.10);
+    --border-strong:  rgba(14,17,21,0.18);
 
-    /* ---- Ink ---- */
-    --ink: #1a1a1a;
-    --ink-2: #3a3a32;
-    --ink-3: #5a5a52;
-    --muted: #7a7a72;
-    --muted-2: #9a9a92;
+    /* Ink */
+    --ink:    #0e1115;
+    --ink-2:  #2a2a2e;
+    --ink-3:  #5e5e63;
+    --muted:  #98989f;
+    --muted-2:#98989f;
 
-    /* ---- State palette — single source of truth.
-       Four state hues × 2 brightnesses. No parallel hex codes. ---- */
-    --green-active: #4a7c4a;
-    --green-subtle: #d8e6d8;
-    --amber-active: #b8860b;
-    --amber-subtle: #efe2c2;
-    --oxblood-active: #a04518;
-    --oxblood-subtle: #e6cfc1;
-    --darkblood-active: #7a1414;
-    --darkblood-subtle: #e1c5c5;
+    /* State bands — Risk-On / Neutral / Caution / Risk-Off.
+       Cool palette, no banned warm tones (parchment/ochre/oxblood).
+       Active = full chroma; subtle = soft tint for chip backgrounds. */
+    --green-active:    #2f9d6a;     /* Risk-On — cool forest */
+    --green-subtle:    rgba(47,157,106,0.12);
+    --amber-active:    #6b7a85;     /* Neutral — cool slate (banned ochre folded) */
+    --amber-subtle:    rgba(107,122,133,0.12);
+    --oxblood-active:  #a4626d;     /* Caution — desaturated cool wine (banned warm folded) */
+    --oxblood-subtle:  rgba(164,98,109,0.12);
+    --darkblood-active:#c84658;     /* Risk-Off — cool wine */
+    --darkblood-subtle:rgba(200,70,88,0.12);
 
-    /* ---- Typography ---- */
+    /* Typography — TWO families, mono retired.
+       --mono kept as alias to --body for backward-compat with inline
+       font-family="JetBrains Mono" SVG attrs left for step-2 sweep. */
     --display: 'Fraunces', Georgia, 'Times New Roman', serif;
-    --body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    --mono: 'JetBrains Mono', SFMono-Regular, Menlo, monospace;
+    --body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   }
 
-  /* ============================================================
-     DARK THEME — surfaces invert, ink lightens, state colors
-     brighten so they keep their semantic read on dark backgrounds.
-     v11 reads parent dashboard's [data-theme] and mirrors it.
-     ============================================================ */
+  /* DARK THEME — surfaces invert, ink lightens. State colors lift to
+     the dark-mode equivalents from src/theme.css. */
   :root[data-theme="dark"] {
     color-scheme: dark;
 
-    --bg: #1a1a17;
-    --surface: #242421;
-    --border: #3a3a36;
-    --border-strong: #4a4a44;
+    --bg:             #0e1115;
+    --surface:        #16191e;
+    --border:         rgba(255,255,255,0.06);
+    --border-strong:  rgba(255,255,255,0.12);
 
-    --ink: #fafaf7;
-    --ink-2: #d8d8d4;
-    --ink-3: #a8a8a4;
-    --muted: #888884;
-    --muted-2: #686864;
+    --ink:    #f5f5f7;
+    --ink-2:  #d2d2d7;
+    --ink-3:  #98989f;
+    --muted:  #6e6e74;
+    --muted-2:#98989f;
 
-    --green-active: #6ba66b;
-    --green-subtle: #1f3520;
-    --amber-active: #d4a73d;
-    --amber-subtle: #3a2e16;
-    --oxblood-active: #c66830;
-    --oxblood-subtle: #3a201a;
-    --darkblood-active: #c44040;
-    --darkblood-subtle: #3a1818;
+    --green-active:    #4ec18a;     /* Risk-On (dark) */
+    --green-subtle:    rgba(78,193,138,0.16);
+    --amber-active:    #98a4b0;     /* Neutral (dark) — cool slate */
+    --amber-subtle:    rgba(152,164,176,0.16);
+    --oxblood-active:  #c08a93;     /* Caution (dark) — desaturated wine */
+    --oxblood-subtle:  rgba(192,138,147,0.16);
+    --darkblood-active:#e07484;     /* Risk-Off (dark) */
+    --darkblood-subtle:rgba(224,116,132,0.16);
   }
-
   /* Verdict dial wedges + text — fills are inline SVG attrs which CSS
      can override. Map each wedge id and label color via CSS so theme
      toggle just works without touching JS. */
-  :root[data-theme="dark"] #wedge-riskon  { fill: #1f3520; }
-  :root[data-theme="dark"] #wedge-neutral { fill: #d4a73d; }
-  :root[data-theme="dark"] #wedge-caution { fill: #3a201a; }
-  :root[data-theme="dark"] #wedge-riskoff { fill: #3a1818; }
+  :root[data-theme="dark"] #wedge-riskon  { fill: var(--green-subtle); }
+  :root[data-theme="dark"] #wedge-neutral { fill: var(--amber-subtle); }
+  :root[data-theme="dark"] #wedge-caution { fill: var(--oxblood-subtle); }
+  :root[data-theme="dark"] #wedge-riskoff { fill: var(--darkblood-subtle); }
   :root[data-theme="dark"] .verdict-svg text[fill="#7a7a72"] { fill: #888884; }
   :root[data-theme="dark"] .verdict-svg text[fill="#1a1a1a"] { fill: #fafaf7; }
   :root[data-theme="dark"] .verdict-svg line[stroke="#1a1a1a"] { stroke: #fafaf7; }
@@ -691,7 +699,7 @@
            Wedge labels are factual band names, not state pill words. -->
       <svg class="verdict-svg" viewBox="0 0 380 230" id="verdictDial">
         <path d="" id="wedge-riskon"  fill="#d8e6d8" />
-        <path d="" id="wedge-neutral" fill="#b8860b" />
+        <path d="" id="wedge-neutral" fill="var(--yellow)" />
         <path d="" id="wedge-caution" fill="#e6cfc1" />
         <path d="" id="wedge-riskoff" fill="#e1c5c5" />
 

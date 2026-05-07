@@ -523,7 +523,7 @@ export default function MacroOverviewPage() {
               <span className="d">across {liveCount} mechanisms</span>
             </div>
             <div className="s">
-              <span className="lbl" title="Version of the cycle-counting framework. v11 = six-mechanism descriptive board.">Framework</span>
+              <span className="lbl" title="The cycle-counting framework: a six-mechanism descriptive board.">Framework</span>
               <span className="v" style={{ fontSize: 24 }}>v{(calib?.version || snap?.version || '11.0').replace(/^v/, '')}</span>
               <span className="d">cycle-mechanism counting</span>
             </div>

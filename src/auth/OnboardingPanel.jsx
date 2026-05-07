@@ -485,7 +485,7 @@ export default function OnboardingPanel({ userId, onDone }) {
       )}
 
       {submitError && (
-        <div style={{ marginTop: 14, padding: 10, fontSize: 12, color: "var(--danger, #ff3b30)", background: "rgba(255,59,48,0.08)", border: "1px solid rgba(255,59,48,0.3)", borderRadius: "var(--radius-sm)" }}>
+        <div style={{ marginTop: 14, padding: 10, fontSize: 12, color: "var(--red)", background: "rgba(255,59,48,0.08)", border: "1px solid rgba(255,59,48,0.3)", borderRadius: "var(--radius-sm)" }}>
           {submitError}
         </div>
       )}

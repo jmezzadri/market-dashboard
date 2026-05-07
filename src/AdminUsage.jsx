@@ -19,11 +19,11 @@ import { useSortableTable, SortArrow, sortableHeaderProps } from "./hooks/useSor
 
 const SOURCE_COLORS = {
   universe_snapshot:  "#60a5fa",   // blue
-  ticker_events:      "#a78bfa",   // violet
-  daily_scanner:      "#34d399",   // green
+  ticker_events:      "var(--accent)",   // violet
+  daily_scanner:      "var(--green)",   // green
   scan_on_add:        "#B8860B",   // amber
   indicator_refresh:  "#f472b6",   // pink
-  ad_hoc:             "#9ca3af",   // gray
+  ad_hoc:             "var(--text-muted)",   // gray
 };
 const SOURCE_LABELS = {
   universe_snapshot:  "Universe snapshot",
@@ -35,7 +35,7 @@ const SOURCE_LABELS = {
 };
 const SOURCE_ORDER = ["universe_snapshot","ticker_events","daily_scanner","scan_on_add","indicator_refresh","ad_hoc"];
 
-const STATUS_COLORS = { success:"#34d399", partial:"#B8860B", failed:"#ef4444" };
+const STATUS_COLORS = { success:"var(--green)", partial:"#B8860B", failed:"var(--red)" };
 
 // ET day key — matches the convention used elsewhere in the app.
 function etDayKey(iso) {
@@ -150,7 +150,7 @@ function useApiUsageLog(days = 30) {
 
 // ── KPI TILE ────────────────────────────────────────────────────────────────
 function KpiTile({ label, value, sub, tone }) {
-  const toneColor = tone === "good" ? "#34d399" : tone === "warn" ? "#B8860B" : tone === "bad" ? "#ef4444" : "var(--text)";
+  const toneColor = tone === "good" ? "var(--green)" : tone === "warn" ? "#B8860B" : tone === "bad" ? "var(--red)" : "var(--text)";
   return (
     <div style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px",display:"flex",flexDirection:"column",gap:4}}>
       <div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",letterSpacing:"0.1em",textTransform:"uppercase"}}>{label}</div>
@@ -220,7 +220,7 @@ function StackedCalls({ rows, grain }) {
                 const h = (p.v / Math.max(1,maxTotal)) * plotH;
                 const y = PAD_T + plotH - acc - h;
                 acc += h;
-                return <rect key={p.src} x={x} y={y} width={barW} height={h} fill={SOURCE_COLORS[p.src]||"#9ca3af"} />;
+                return <rect key={p.src} x={x} y={y} width={barW} height={h} fill={SOURCE_COLORS[p.src]||"var(--text-muted)"} />;
               })}
               {(i===0 || i===perBucket.length-1 || i%labelEvery===0) && (
                 <text x={x+barW/2} y={H-8} textAnchor="middle" fontSize="9" fill="var(--text-muted)" fontFamily="monospace">
@@ -273,8 +273,8 @@ function PeakRpm({ rows, grain }) {
           const y = yScale(t);
           return (
             <g key={i}>
-              <line x1={PAD_L} y1={y} x2={W-PAD_R} y2={y} stroke={t===120?"#ef4444":"var(--border)"} strokeWidth={t===120?"1":"0.5"} strokeDasharray={t===0||t===120?"0":"2 3"} />
-              <text x={PAD_L - 6} y={y+3} textAnchor="end" fontSize="9" fill={t===120?"#ef4444":"var(--text-muted)"} fontFamily="monospace">{t}</text>
+              <line x1={PAD_L} y1={y} x2={W-PAD_R} y2={y} stroke={t===120?"var(--red)":"var(--border)"} strokeWidth={t===120?"1":"0.5"} strokeDasharray={t===0||t===120?"0":"2 3"} />
+              <text x={PAD_L - 6} y={y+3} textAnchor="end" fontSize="9" fill={t===120?"var(--red)":"var(--text-muted)"} fontFamily="monospace">{t}</text>
             </g>
           );
         })}
@@ -313,7 +313,7 @@ function RemainingDailyByEndpoint({ rows }) {
         {latest.map(r => {
           const used = Math.max(0, (Number(r.limit_daily)||0) - (Number(r.remaining_daily)||0));
           const pct = r.limit_daily > 0 ? Math.min(100, Math.round((used / r.limit_daily) * 100)) : 0;
-          const tone = pct >= 85 ? "#ef4444" : pct >= 60 ? "#B8860B" : "#34d399";
+          const tone = pct >= 85 ? "var(--red)" : pct >= 60 ? "#B8860B" : "var(--green)";
           return (
             <div key={r.source} style={{display:"grid",gridTemplateColumns:"140px 1fr 140px",alignItems:"center",gap:10}}>
               <div style={{fontSize:12,color:"var(--text-2)"}}>{SOURCE_LABELS[r.source]||r.source}</div>
@@ -391,7 +391,7 @@ function Td({ children, align="left", style }) {
   return <td style={{textAlign:align,padding:"7px 10px",color:"var(--text)",fontVariantNumeric:"tabular-nums",...style}}>{children}</td>;
 }
 function SourceChip({ source }) {
-  const color = SOURCE_COLORS[source] || "#9ca3af";
+  const color = SOURCE_COLORS[source] || "var(--text-muted)";
   return (
     <span style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:11,color:"var(--text-2)"}}>
       <span style={{width:8,height:8,borderRadius:2,background:color}}/>
@@ -400,7 +400,7 @@ function SourceChip({ source }) {
   );
 }
 function StatusPill({ status }) {
-  const c = STATUS_COLORS[status] || "#9ca3af";
+  const c = STATUS_COLORS[status] || "var(--text-muted)";
   return (
     <span style={{display:"inline-block",padding:"2px 8px",borderRadius:999,border:`1px solid ${c}`,color:c,fontSize:10,textTransform:"uppercase",fontFamily:"monospace",letterSpacing:"0.05em"}}>
       {status || "—"}
@@ -426,7 +426,7 @@ function Legend({ sources }) {
     <div style={{display:"flex",flexWrap:"wrap",gap:12,padding:"4px 2px 0",fontSize:11,color:"var(--text-muted)"}}>
       {sources.map(s => (
         <span key={s} style={{display:"inline-flex",alignItems:"center",gap:6}}>
-          <span style={{width:10,height:10,borderRadius:2,background:SOURCE_COLORS[s]||"#9ca3af"}}/>
+          <span style={{width:10,height:10,borderRadius:2,background:SOURCE_COLORS[s]||"var(--text-muted)"}}/>
           {SOURCE_LABELS[s]||s}
         </span>
       ))}
@@ -551,7 +551,7 @@ export default function AdminUsage() {
       </div>
 
       {error && (
-        <div style={{background:"var(--surface)",border:"1px solid #ef4444",borderRadius:8,padding:"12px 14px",color:"#ef4444",fontSize:12,marginBottom:12,fontFamily:"monospace"}}>
+        <div style={{background:"var(--surface)",border:"1px solid var(--red)",borderRadius:8,padding:"12px 14px",color:"var(--red)",fontSize:12,marginBottom:12,fontFamily:"monospace"}}>
           Query failed: {error.message || String(error)}
         </div>
       )}

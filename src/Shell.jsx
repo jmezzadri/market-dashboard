@@ -156,7 +156,7 @@ export function Hero({ regime, score, narrativeOneLine, pref, setPref, compact =
         <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
           {menuButton}
           <a href="#home" className="hero-brand" aria-label="MacroTilt home" style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            <Monogram size={28} color="var(--accent, #d9b27a)" />
+            <Monogram size={28} color="var(--accent)" />
             <Wordmark size={13} />
           </a>
           <span className="hero-meta-divider" aria-hidden="true"/>
@@ -248,7 +248,7 @@ export function SectionHeader({ eyebrow, title, sub, onBack, backLabel = "Home" 
           <span style={{ fontSize: 14 }}>←</span> {backLabel}
         </button>
         <span className="section-brand-mark" aria-hidden="true" style={{ display: "inline-flex", marginLeft: 4 }}>
-          <Monogram size={22} color="var(--accent, #d9b27a)" />
+          <Monogram size={22} color="var(--accent)" />
         </span>
       </div>
       <div>
@@ -287,7 +287,7 @@ export function Sidebar({ items, activeId, onSelect, open = false, onClose, foot
       {open && <div className="sidebar-backdrop" onClick={onClose}/>}
       <aside className={`sidebar${open ? " sidebar--open" : ""}`} aria-label="Primary navigation">
         <div className="sidebar-brand" style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <Monogram size={30} color="var(--accent, #d9b27a)" />
+          <Monogram size={30} color="var(--accent)" />
           <Wordmark size={14} />
         </div>
         <nav className="sidebar-nav">
@@ -356,7 +356,7 @@ export function Footer({ leftText, rightText }) {
         {/* Col 1 · Brand */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <Monogram size={32} color="var(--accent, #d9b27a)" />
+            <Monogram size={32} color="var(--accent)" />
             <Wordmark size={13} />
           </div>
           <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, maxWidth: 260 }}>

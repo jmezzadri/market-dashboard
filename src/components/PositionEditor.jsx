@@ -120,7 +120,7 @@ const secondaryBtn = {
   borderRadius: "var(--radius-sm, 6px)", cursor: "pointer",
 };
 const dangerBtn = {
-  padding: "9px 14px", fontSize: 13, color: "#ff453a",
+  padding: "9px 14px", fontSize: 13, color: "var(--red)",
   background: "transparent", border: "1px solid rgba(255,69,58,0.4)",
   borderRadius: "var(--radius-sm, 6px)", cursor: "pointer",
 };
@@ -829,7 +829,7 @@ export default function PositionEditor({
                     const cost   = qtyAbs * perCt;
                     const isShort = isOption && direction === "short";
                     const sign = isShort ? "+" : "−";
-                    const col  = isShort ? "#30d158" : "#ff453a";
+                    const col  = isShort ? "var(--green)" : "var(--red)";
                     const acct = (cashByAcct || []).find(c => c.id === (cashAccountId || ""));
                     const curCash = acct?.cash;
                     return (
@@ -868,7 +868,7 @@ export default function PositionEditor({
             borderRadius: "var(--radius-sm, 6px)",
             fontSize: 12, color: "var(--text)",
           }}>
-            <span style={{ fontWeight: 700, color: "#30d158", fontFamily: "var(--font-mono)" }}>
+            <span style={{ fontWeight: 700, color: "var(--green)", fontFamily: "var(--font-mono)" }}>
               MERGE
             </span>{" "}
             You already have <strong>{Math.abs(existingHeld.quantity)}</strong>
@@ -1332,13 +1332,13 @@ export default function PositionEditor({
             </div></Tip>
             <div>
               <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
-              <span style={{ color: pnlDollars == null ? "var(--text-muted)" : pnlDollars >= 0 ? "#30d158" : "#ff453a" }}>
+              <span style={{ color: pnlDollars == null ? "var(--text-muted)" : pnlDollars >= 0 ? "var(--green)" : "var(--red)" }}>
                 {fmt$(pnlDollars)}
               </span>
             </div>
             <div>
               <span style={{ color: "var(--text-muted)" }}>PnL %: </span>
-              <span style={{ color: pnlPct == null ? "var(--text-muted)" : pnlPct >= 0 ? "#30d158" : "#ff453a" }}>
+              <span style={{ color: pnlPct == null ? "var(--text-muted)" : pnlPct >= 0 ? "var(--green)" : "var(--red)" }}>
                 {fmtPct(pnlPct)}
               </span>
             </div>
@@ -1357,7 +1357,7 @@ export default function PositionEditor({
             <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(optCurrentValue)}</div>
             <div style={{ gridColumn: "span 2" }}>
               <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
-              <span style={{ color: optPnl$ == null ? "var(--text-muted)" : optPnl$ >= 0 ? "#30d158" : "#ff453a" }}>
+              <span style={{ color: optPnl$ == null ? "var(--text-muted)" : optPnl$ >= 0 ? "var(--green)" : "var(--red)" }}>
                 {fmt$(optPnl$)}
               </span>
             </div>
@@ -1376,7 +1376,7 @@ export default function PositionEditor({
             <div><span style={{ color: "var(--text-muted)" }}>Current value: </span>{fmt$(genCurrentValue)}</div>
             <div style={{ gridColumn: "span 2" }}>
               <span style={{ color: "var(--text-muted)" }}>PnL $: </span>
-              <span style={{ color: genPnl$ == null ? "var(--text-muted)" : genPnl$ >= 0 ? "#30d158" : "#ff453a" }}>
+              <span style={{ color: genPnl$ == null ? "var(--text-muted)" : genPnl$ >= 0 ? "var(--green)" : "var(--red)" }}>
                 {fmt$(genPnl$)}
               </span>
             </div>
@@ -1384,7 +1384,7 @@ export default function PositionEditor({
         )}
 
         {err && (
-          <div style={{ padding: 10, marginBottom: 12, fontSize: 12, color: "#ff453a", background: "rgba(255,69,58,0.08)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 6 }}>
+          <div style={{ padding: 10, marginBottom: 12, fontSize: 12, color: "var(--red)", background: "rgba(255,69,58,0.08)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 6 }}>
             {err}
           </div>
         )}
@@ -1398,7 +1398,7 @@ export default function PositionEditor({
                   <button type="button"
                     style={{
                       padding: "9px 14px", fontSize: 13, fontWeight: 600,
-                      color: "#fff", background: "#30d158", border: "none",
+                      color: "#fff", background: "var(--green)", border: "none",
                       borderRadius: "var(--radius-sm, 6px)", cursor: "pointer",
                     }}
                     disabled={submitting}
@@ -1416,7 +1416,7 @@ export default function PositionEditor({
             )}
             {isEdit && confirmDelete && (
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                <span style={{ fontSize: 12, color: "#ff453a", fontFamily: "var(--font-mono)" }}>
+                <span style={{ fontSize: 12, color: "var(--red)", fontFamily: "var(--font-mono)" }}>
                   Delete entry — no cash credit. Sure?
                 </span>
                 <button type="button" style={dangerBtn} disabled={submitting} onClick={handleDelete}>

@@ -227,7 +227,7 @@ const secondaryBtn = {
 };
 const dangerBtn = {
   padding: "9px 14px", fontSize: 13, color: "#fff",
-  background: "#ff453a", border: "none",
+  background: "var(--red)", border: "none",
   borderRadius: "var(--radius-sm, 6px)", cursor: "pointer",
 };
 const label = {
@@ -240,7 +240,7 @@ const modePill = (active, tone = "accent") => ({
   fontFamily: "var(--font-mono)", letterSpacing: "0.06em",
   color: active ? "#fff" : "var(--text-muted)",
   background: active
-    ? (tone === "danger" ? "#ff453a" : "var(--accent)")
+    ? (tone === "danger" ? "var(--red)" : "var(--accent)")
     : "var(--surface-2)",
   border: "1px solid var(--border)",
   borderRadius: "var(--radius-sm, 6px)",
@@ -592,7 +592,7 @@ export default function BulkImport({ userId, onClose, onDone }) {
         )}
 
         {submitErr && (
-          <div style={{ padding: 10, marginBottom: 12, fontSize: 12, color: "#ff453a", background: "rgba(255,69,58,0.08)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 6 }}>
+          <div style={{ padding: 10, marginBottom: 12, fontSize: 12, color: "var(--red)", background: "rgba(255,69,58,0.08)", border: "1px solid rgba(255,69,58,0.3)", borderRadius: 6 }}>
             {submitErr}
           </div>
         )}

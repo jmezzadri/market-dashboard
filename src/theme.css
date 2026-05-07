@@ -1,16 +1,39 @@
 /* ============================================================================
-   Market Dashboard — Apple-style Theme System
-   - Inter (UI/body) + JetBrains Mono (numbers/code)
-   - Auto light/dark via prefers-color-scheme
-   - Manual override via [data-theme="light"|"dark"] on <html>
-   - Glassmorphism tokens (--glass-*) for tile/panel surfaces
+   MacroTilt — Theme System (Option A · Citadel teal hybrid)
+   ----------------------------------------------------------------------------
+   Single source of truth for every palette, surface, type, radius, shadow,
+   and motion token. NO competing palette systems. NO data-mt-theme. NO
+   src/v2/styles/tokens.css. NO inline .scenarios-page block.
+
+   Two typefaces visible on the page:
+     • Fraunces (serif, weight 300–500) — page H1 + hero numbers ONLY
+     • Inter (sans, weight 300–600)     — everything else
+   Mono is RETIRED from the design language. The --font-mono token is kept
+   as a backward-compat alias to --font-ui (resolves to Inter) so legacy
+   inline references degrade gracefully to Inter with tabular figures while
+   we sweep them out in step 2.
+
+   Palette discipline:
+     • One brand accent — deep teal — used for active nav, primary CTA, hero
+       numbers, link text. NEVER as decorative wallpaper.
+     • Direction green/red ONLY for actual direction (positive/negative).
+       Never decorative. Cool tones (forest / wine), not iOS-bright.
+     • BANNED FAMILIES: parchment, champagne, mustard, ochre, oxblood-warm,
+       muted forest, golden tan, cream-cream. Every shade in the warm family
+       is off-limits.
+     • BANNED SATURATION: Apple iOS-bright palette (var(--green), var(--red), var(--yellow),
+       var(--accent), var(--text-muted)). Folded to neutral cool tones via --yellow / --orange
+       / --blue / --purple aliases below.
+
+   Auto light/dark via prefers-color-scheme; manual override via
+   [data-theme="light"|"dark"] on <html>.
    ========================================================================= */
 
-/* ───────── Self-hosted fonts (Phase 2 rollout) ─────────
-   Fraunces = display serif (variable optical-size + weight 300-700, ital + roman)
+/* ───────── Self-hosted fonts ─────────
+   Fraunces = display serif (variable opsz + weight 300-700, ital + roman)
    Inter    = body UI (variable weight 100-900)
-   JetBrains Mono = tabular numerics (variable weight 400-700)
-   WOFF2 files ship from /public/fonts/ — no CDN, no external DNS. */
+   JetBrains Mono is RETIRED — @font-face removed. Existing --font-mono
+   references resolve through to Inter via the alias defined in :root. */
 @font-face {
   font-family: 'Fraunces';
   font-style: normal;
@@ -35,84 +58,108 @@
   src: url('/fonts/inter.woff2') format('woff2-variations'),
        url('/fonts/inter.woff2') format('woff2');
 }
-@font-face {
-  font-family: 'JetBrains Mono';
-  font-style: normal;
-  font-weight: 400 700;
-  font-display: swap;
-  src: url('/fonts/jetbrains-mono.woff2') format('woff2-variations'),
-       url('/fonts/jetbrains-mono.woff2') format('woff2');
-}
 
-/* ───────── Light theme (default) ───────── */
+/* ───────── Light theme (default) — Option A teal ───────── */
 :root {
-  --bg:            #f5f5f7;       /* Apple system gray */
-  --bg-grad:       radial-gradient(ellipse at top, #ffffff 0%, #f0f0f3 60%, #e8e8ec 100%);
-  --surface:       rgba(255,255,255,0.72);
-  --surface-2:     rgba(255,255,255,0.55);
-  --surface-3:     rgba(0,0,0,0.025);
+  /* Surfaces */
+  --bg:            #fafaf7;
+  --bg-grad:       radial-gradient(ellipse at top, #ffffff 0%, #fafaf7 60%, #f0f0ec 100%);
+  --surface:       #ffffff;
+  --surface-2:     #f4f5f7;
+  --surface-3:     rgba(14,85,96,0.04);
   --surface-solid: #ffffff;
-  --hover:         rgba(0,0,0,0.04);
+  --hover:         rgba(14,85,96,0.06);
 
-  --border:        rgba(0,0,0,0.08);
-  --border-strong: rgba(0,0,0,0.14);
-  --border-faint:  rgba(0,0,0,0.05);
+  /* Borders */
+  --border:        rgba(14,17,21,0.10);
+  --border-strong: rgba(14,17,21,0.18);
+  --border-faint:  rgba(14,17,21,0.06);
 
-  --text:          #0a0a0c;
+  /* Text */
+  --text:          #0e1115;
   --text-2:        #2a2a2e;
   --text-muted:    #5e5e63;
-  --text-dim:      #86868b;
+  --text-dim:      #98989f;
 
-  --accent:        #0071e3;        /* Apple system blue */
-  --accent-soft:   rgba(0,113,227,0.10);
-  --link:          #0071e3;
+  /* Brand accent — single deep teal */
+  --accent:        #0e5560;
+  --accent-soft:   rgba(14,85,96,0.10);
+  --link:          #0e5560;
 
+  /* Shadows */
   --shadow-sm:  0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
   --shadow-md:  0 4px 14px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
   --shadow-lg:  0 16px 48px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
   --shadow-glow:0 0 0 1px rgba(255,255,255,0.6) inset, 0 8px 32px rgba(0,0,0,0.08);
 
-  --glass-bg:    rgba(255,255,255,0.65);
+  /* Glass surfaces */
+  --glass-bg:    rgba(255,255,255,0.85);
   --glass-blur:  saturate(180%) blur(24px);
-  --glass-bord:  rgba(255,255,255,0.55);
+  --glass-bord:  rgba(255,255,255,0.6);
 
-  /* Stress / semantic — kept consistent across themes for meaning */
-  --green:  #30d158;
-  --yellow: #B8860B;
-  --orange: #ff9f0a;
-  --red:    #ff453a;
-  --blue:   #0a84ff;
-  --purple: #bf5af2;
+  /* Direction — cool tones, NOT iOS-bright */
+  --green:       #2f9d6a;     /* cool forest */
+  --red:         #c84658;     /* cool wine */
+  --green-text:  #1f7a4f;
+  --red-text:    #a82e3f;
 
-  /* Text-on-light variants — same semantics, higher contrast for body/small text on white */
-  --green-text:  #1a8c39;
-  --yellow-text: #B8860B;   /* darkgoldenrod ochre — passes AA on cream and dark alike */
-  --orange-text: #c2570a;
-  --red-text:    #c8302a;
-  --blue-text:   #0066cc;
-  --purple-text: #8a3ed1;
+  /* Backward-compat aliases — fold iOS-bright tokens to neutral / accent.
+     Components still reading --yellow / --orange / --blue / --purple receive
+     a muted slate or the brand accent — visual hierarchy moves to layout. */
+  --yellow:       #6b7a85;
+  --yellow-text:  #4a5765;
+  --orange:       #6b7a85;
+  --orange-text:  #4a5765;
+  --blue:         #0e5560;    /* alias to brand accent */
+  --blue-text:    #0e5560;
+  --purple:       #5e5e63;
+  --purple-text:  #2a2a2e;
 
+  /* Radii */
   --radius-xs: 6px;
   --radius-sm: 10px;
-  --radius-md: 16px;
+  --radius-md: 14px;
   --radius-lg: 22px;
   --radius-xl: 28px;
 
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
+  /* Spacing */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
   --space-10: 40px;
   --space-12: 48px;
 
-  --font-ui:  'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
-              'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  --font-mono:'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;  /* Phase 2 — editorial display serif */
+  /* Typography — TWO families only, mono retired */
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-ui:      'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text',
+                  'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono:    var(--font-ui);  /* RETIRED — alias for legacy refs */
 
+  /* Type role tokens — Option A spec.
+     Components opt in by referencing the role tokens; this lets the
+     visual sweep in step 2 be a token swap rather than file-by-file edits. */
+  --t-h1-size:        clamp(42px, 4.6vw, 62px);
+  --t-h1-weight:      400;
+  --t-hero-num-size:  clamp(54px, 6vw, 80px);
+  --t-hero-num-wt:    300;
+  --t-section-size:   22px;
+  --t-section-wt:     500;
+  --t-tile-size:      17px;
+  --t-tile-wt:        500;
+  --t-eyebrow-size:   11px;
+  --t-eyebrow-wt:     600;
+  --t-eyebrow-track:  0.16em;
+  --t-body-size:      14.5px;
+  --t-body-wt:        400;
+  --t-body-line:      1.55;
+  --t-stat-size:      30px;
+  --t-stat-wt:        400;
+
+  /* Motion */
   --ease:        cubic-bezier(0.32, 0.72, 0, 1);
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
   --dur-fast:    160ms;
@@ -122,91 +169,100 @@
   color-scheme: light;
 }
 
-/* ───────── Dark theme — auto ───────── */
+/* ───────── Dark theme — auto via prefers-color-scheme ───────── */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    /* Dark-navy palette (2026-04-19) — shifted from neutral gray/black
-       toward a deep navy base so surfaces feel more financial-terminal
-       than generic system-dark. */
-    --bg:            #070c1a;
-    --bg-grad:       radial-gradient(ellipse at top, #1a2747 0%, #0f172d 60%, #050913 100%);
-    --surface:       rgba(26,38,65,0.72);
-    --surface-2:     rgba(18,28,50,0.55);
+    --bg:            #0e1115;
+    --bg-grad:       radial-gradient(ellipse at top, #1c2027 0%, #16191e 60%, #0a0c10 100%);
+    --surface:       #16191e;
+    --surface-2:     #1c2027;
     --surface-3:     rgba(255,255,255,0.04);
-    --surface-solid: #141d36;
+    --surface-solid: #16191e;
     --hover:         rgba(255,255,255,0.06);
 
-    --border:        rgba(255,255,255,0.08);
-    --border-strong: rgba(255,255,255,0.16);
-    --border-faint:  rgba(255,255,255,0.05);
+    --border:        rgba(255,255,255,0.06);
+    --border-strong: rgba(255,255,255,0.12);
+    --border-faint:  rgba(255,255,255,0.04);
 
     --text:          #f5f5f7;
     --text-2:        #d2d2d7;
     --text-muted:    #98989f;
     --text-dim:      #6e6e74;
 
-    --accent:        #0a84ff;        /* Apple system blue (dark) */
-    --accent-soft:   rgba(10,132,255,0.18);
-    --link:          #2997ff;
+    --accent:        #5fb5c4;     /* lifted teal for dark surfaces */
+    --accent-soft:   rgba(95,181,196,0.12);
+    --link:          #5fb5c4;
 
     --shadow-sm:  0 1px 2px rgba(0,0,0,0.40);
     --shadow-md:  0 4px 14px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.30);
     --shadow-lg:  0 16px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
     --shadow-glow:0 0 0 1px rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.50);
 
-    --glass-bg:    rgba(26,38,65,0.62);
-    --glass-bord:  rgba(255,255,255,0.10);
+    --glass-bg:    rgba(28,32,39,0.75);
+    --glass-bord:  rgba(255,255,255,0.08);
 
-    /* On dark, the bright semantic colors read fine as text */
-    --green-text:  #30d158;
-    --yellow-text: #B8860B;
-    --orange-text: #ff9f0a;
-    --red-text:    #ff453a;
-    --blue-text:   #0a84ff;
-    --purple-text: #bf5af2;
+    --green:       #4ec18a;
+    --red:         #e07484;
+    --green-text:  #4ec18a;
+    --red-text:    #e07484;
+
+    --yellow:       #6e7a85;
+    --yellow-text:  #98a4b0;
+    --orange:       #6e7a85;
+    --orange-text:  #98a4b0;
+    --blue:         #5fb5c4;
+    --blue-text:    #5fb5c4;
+    --purple:       #98989f;
+    --purple-text:  #d2d2d7;
 
     color-scheme: dark;
   }
 }
 
-/* ───────── Manual dark override ───────── */
+/* ───────── Manual dark override ([data-theme="dark"] on <html>) ───────── */
 :root[data-theme="dark"] {
-  /* Dark-navy palette (2026-04-19) — see note in the @media block above. */
-  --bg:            #070c1a;
-  --bg-grad:       radial-gradient(ellipse at top, #1a2747 0%, #0f172d 60%, #050913 100%);
-  --surface:       rgba(26,38,65,0.72);
-  --surface-2:     rgba(18,28,50,0.55);
+  --bg:            #0e1115;
+  --bg-grad:       radial-gradient(ellipse at top, #1c2027 0%, #16191e 60%, #0a0c10 100%);
+  --surface:       #16191e;
+  --surface-2:     #1c2027;
   --surface-3:     rgba(255,255,255,0.04);
-  --surface-solid: #141d36;
+  --surface-solid: #16191e;
   --hover:         rgba(255,255,255,0.06);
 
-  --border:        rgba(255,255,255,0.08);
-  --border-strong: rgba(255,255,255,0.16);
-  --border-faint:  rgba(255,255,255,0.05);
+  --border:        rgba(255,255,255,0.06);
+  --border-strong: rgba(255,255,255,0.12);
+  --border-faint:  rgba(255,255,255,0.04);
 
   --text:          #f5f5f7;
   --text-2:        #d2d2d7;
   --text-muted:    #98989f;
   --text-dim:      #6e6e74;
 
-  --accent:        #0a84ff;
-  --accent-soft:   rgba(10,132,255,0.18);
-  --link:          #2997ff;
+  --accent:        #5fb5c4;
+  --accent-soft:   rgba(95,181,196,0.12);
+  --link:          #5fb5c4;
 
   --shadow-sm:  0 1px 2px rgba(0,0,0,0.40);
   --shadow-md:  0 4px 14px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.30);
   --shadow-lg:  0 16px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.35);
   --shadow-glow:0 0 0 1px rgba(255,255,255,0.06) inset, 0 8px 32px rgba(0,0,0,0.50);
 
-  --glass-bg:    rgba(26,38,65,0.62);
-  --glass-bord:  rgba(255,255,255,0.10);
+  --glass-bg:    rgba(28,32,39,0.75);
+  --glass-bord:  rgba(255,255,255,0.08);
 
-  --green-text:  #30d158;
-  --yellow-text: #B8860B;
-  --orange-text: #ff9f0a;
-  --red-text:    #ff453a;
-  --blue-text:   #0a84ff;
-  --purple-text: #bf5af2;
+  --green:       #4ec18a;
+  --red:         #e07484;
+  --green-text:  #4ec18a;
+  --red-text:    #e07484;
+
+  --yellow:       #6e7a85;
+  --yellow-text:  #98a4b0;
+  --orange:       #6e7a85;
+  --orange-text:  #98a4b0;
+  --blue:         #5fb5c4;
+  --blue-text:    #5fb5c4;
+  --purple:       #98989f;
+  --purple-text:  #d2d2d7;
 
   color-scheme: dark;
 }
@@ -648,7 +704,7 @@ a:hover { text-decoration: underline; }
 }
 .sidebar-brand-mark {
   width: 32px; height: 32px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--accent) 0%, #5856d6 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--text) 100%);
   display: grid; place-items: center;
   color: #fff;
   font-weight: 700; font-size: 13px; letter-spacing: -0.02em;
@@ -870,286 +926,3 @@ a:hover { text-decoration: underline; }
   .app-main { margin-left: 0; }
 }
 
-/* ============================================================================
-   Phase 2 design tokens — LOCKED 2026-04-22
-   Defined but NOT APPLIED yet. Step 4 of the Phase 2 rollout will flip the
-   selectors that use these, behind the `data-mt-theme` attribute. Until then,
-   adding these tokens has zero visual effect — existing --bg/--text/--accent
-   remain the authoritative values.
-
-   Palette reference: /design-lab (mnt/macrotilt/design-lab/index.html § 02)
-   Font reference:    Fraunces (display) · Inter (body) · JetBrains Mono (num)
-   ========================================================================= */
-
-:root {
-  /* ── Typography stack ── */
-  --mt-font-display: "Fraunces", Georgia, "Times New Roman", serif;
-  --mt-font-body:    "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-  --mt-font-mono:    "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-
-  /* ── Spacing scale ── */
-  --mt-s-1: 4px;  --mt-s-2: 8px;  --mt-s-3: 12px; --mt-s-4: 16px;
-  --mt-s-5: 24px; --mt-s-6: 32px; --mt-s-7: 48px; --mt-s-8: 64px;
-
-  /* ── Radius scale ── */
-  --mt-r-sm: 4px; --mt-r-md: 6px; --mt-r-lg: 8px;
-
-  /* ── Motion ── */
-  --mt-motion-fast: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
-  --mt-motion-med:  180ms cubic-bezier(0.2, 0.8, 0.2, 1);
-
-  /* ── Semantic colors (direction-neutral, same across themes) ── */
-  --mt-up:   #3dd38c;   /* data-up green */
-  --mt-down: #ff5c6c;   /* data-down red */
-  --mt-warn: #B8860B;   /* caution ochre (darkgoldenrod) — passes AA on parchment + dark */
-  --mt-info: #7aa7ff;   /* info blue */
-}
-
-/* Dark Phase-2 palette — engaged by setting [data-mt-theme="dark"] on <html> in Step 4 */
-[data-mt-theme="dark"] {
-  --mt-bg-0:   #0a0b0d;  /* neutral ink (replaces the legacy navy #070c1a) */
-  --mt-bg-1:   #0f1115;  /* card surface */
-  --mt-bg-2:   #151820;  /* hover surface */
-  --mt-bg-3:   #1c2029;  /* elevated surface */
-  --mt-bg-rail:#0d0f13;  /* left-rail navigation bg */
-
-  --mt-ink-0:  #f5f6f8;  /* body text */
-  --mt-ink-1:  #b4b9c3;  /* secondary text */
-  --mt-ink-2:  #7e8593;  /* tertiary / labels */
-  --mt-ink-3:  #545a66;  /* muted / eyebrow */
-
-  --mt-line-0: #1c2029;  /* hairline borders */
-  --mt-line-1: #2a2f3a;  /* stronger borders */
-
-  --mt-accent-warm:     #d9b27a;  /* parchment (primary brand accent) */
-  --mt-accent-warm-dim: #a88957;  /* parchment dimmed */
-  --mt-oxblood:         #4a1520;  /* iOS app-icon background */
-}
-
-/* Paper / light Phase-2 palette — engaged by [data-mt-theme="paper"] */
-[data-mt-theme="paper"] {
-  --mt-bg-0:   #fafaf5;
-  --mt-bg-1:   #f3f2ec;
-  --mt-bg-2:   #edebe3;
-  --mt-bg-3:   #e5e2d8;
-  --mt-bg-rail:#f1f0e8;
-
-  --mt-ink-0:  #1a1814;
-  --mt-ink-1:  #3a362d;
-  --mt-ink-2:  #6b6557;
-  --mt-ink-3:  #9a9282;
-
-  --mt-line-0: #e0ddd2;
-  --mt-line-1: #cdc9bb;
-
-  --mt-accent-warm:     #8a6a3d;
-  --mt-accent-warm-dim: #b89866;
-  --mt-oxblood:         #6a1d2c;
-
-  /* paper-mode data colors (slightly darker to preserve contrast on cream) */
-  --mt-up:   #1f8a5a;
-  --mt-down: #b83746;
-  --mt-warn: #B8860B;
-  --mt-info: #3a67b3;
-}
-
-/* Utility — tabular-nums helper (will be applied globally in Step 4) */
-.mt-num, .mt-mono {
-  font-family: var(--mt-font-mono);
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-/* ============================================================================
-   Phase 2 · Step 4a — visual overlay, flag-gated via ?theme=phase2
-   Overrides legacy accent / surface / text tokens inside [data-mt-theme="dark"]
-   so every component that reads var(--accent) / var(--blue) / var(--green) etc
-   gets parchment + neutral ink — no component code changes.
-
-   Data-semantic text (--green-text / --red-text / --yellow-text) is preserved
-   so positive/negative/caution numbers keep their meaning.
-   ========================================================================= */
-
-:root[data-mt-theme="dark"],
-[data-mt-theme="dark"] {
-  /* Neutral ink background replaces legacy navy */
-  --bg:            #0a0b0d;
-  --bg-grad:       radial-gradient(ellipse at top, #15181f 0%, #0d0f13 55%, #07080a 100%);
-  --surface:       rgba(15, 17, 21, 0.72);
-  --surface-2:     rgba(21, 24, 32, 0.55);
-  --surface-3:     rgba(28, 32, 41, 1);
-  --surface-solid: #0f1115;
-  --hover:         rgba(217, 178, 122, 0.08);
-
-  --border:        #1c2029;
-  --border-strong: #2a2f3a;
-  --border-faint:  rgba(217, 178, 122, 0.08);
-
-  --text:          #f5f6f8;
-  --text-2:        #b4b9c3;
-  --text-muted:    #7e8593;
-  --text-dim:      #545a66;
-
-  /* ── DECORATIVE accents → parchment (cards, borders, highlights, pills) ── */
-  --accent:        #d9b27a;
-  --accent-soft:   rgba(217, 178, 122, 0.14);
-  --link:          #d9b27a;
-  --blue:          #d9b27a;
-  --yellow:        #d9b27a;
-  --green:         #d9b27a;
-  --orange:        #d9b27a;
-  --purple:        #d9b27a;
-  --red:           #ff5c6c;   /* kept — red has meaning even in brand contexts */
-
-  /* ── DATA-SEMANTIC text colors — KEPT so positive/negative/caution render correctly ── */
-  --green-text:    #3dd38c;
-  --red-text:      #ff5c6c;
-  --yellow-text:   #B8860B;   /* ochre (darkgoldenrod) — readable on parchment and dark ink alike */
-  --orange-text:   #e8a15a;
-  --blue-text:     #d9b27a;   /* this is "info" not up/down, safe to parchment */
-  --purple-text:   #d9b27a;   /* same — categorical label */
-
-  --glass-bg:    rgba(15, 17, 21, 0.62);
-  --glass-bord:  rgba(217, 178, 122, 0.10);
-
-  --shadow-sm:  0 1px 2px rgba(0,0,0,0.60);
-  --shadow-md:  0 4px 14px rgba(0,0,0,0.70), 0 2px 6px rgba(0,0,0,0.40);
-  --shadow-lg:  0 16px 48px rgba(0,0,0,0.75), 0 4px 12px rgba(0,0,0,0.45);
-  --shadow-glow:0 0 0 1px rgba(217,178,122,0.08) inset, 0 8px 32px rgba(0,0,0,0.55);
-
-  color-scheme: dark;
-
-  /* ── Typography: Fraunces display + tabular-nums body ── */
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-/* Fraunces on H1 / H2 / H3 — !important to beat Inter Display inline selectors
-   used throughout the existing component library. */
-[data-mt-theme="dark"] h1,
-[data-mt-theme="dark"] h2,
-[data-mt-theme="dark"] h3 {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif !important;
-  font-weight: 400 !important;
-  font-variation-settings: "opsz" 144 !important;
-  letter-spacing: -0.01em !important;
-}
-
-/* Italic accent spans within headings use parchment */
-[data-mt-theme="dark"] h1 em,
-[data-mt-theme="dark"] h2 em,
-[data-mt-theme="dark"] h3 em {
-  font-style: italic;
-  color: #d9b27a;
-  font-weight: 400;
-}
-
-/* Monospace numerics keep JBMono + tabular lining figures */
-[data-mt-theme="dark"] .num,
-[data-mt-theme="dark"] .mono,
-[data-mt-theme="dark"] [data-num] {
-  font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-/* Composite-score / large-metric tiles get Fraunces display treatment too
-   so the dashboard numbers read as editorial rather than terminal. */
-[data-mt-theme="dark"] .tile-value,
-[data-mt-theme="dark"] .hero-composite,
-[data-mt-theme="dark"] .composite-score,
-[data-mt-theme="dark"] .big-number {
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 400;
-  font-variation-settings: "opsz" 144;
-  letter-spacing: -0.01em;
-}
-
-/* ── Phase 2 paper palette — triggered when data-theme="light" is set ──
-   Cream background, darker parchment text, same brand rhythm as dark mode
-   just on a light canvas. Engaged by the inline script when the user's
-   sun/moon toggle flips the existing data-theme to "light". */
-:root[data-mt-theme="paper"],
-[data-mt-theme="paper"] {
-  --bg:            #fafaf5;
-  --bg-grad:       radial-gradient(ellipse at top, #ffffff 0%, #f5f4ee 55%, #edebe3 100%);
-  --surface:       rgba(243, 242, 236, 0.72);
-  --surface-2:     rgba(237, 235, 227, 0.85);
-  --surface-3:     rgba(0, 0, 0, 0.03);
-  --surface-solid: #f3f2ec;
-  --hover:         rgba(138, 106, 61, 0.08);
-
-  --border:        #e0ddd2;
-  --border-strong: #cdc9bb;
-  --border-faint:  rgba(138, 106, 61, 0.10);
-
-  --text:          #1a1814;
-  --text-2:        #3a362d;
-  --text-muted:    #6b6557;
-  --text-dim:      #9a9282;
-
-  /* Darker parchment reads on cream */
-  --accent:        #8a6a3d;
-  --accent-soft:   rgba(138, 106, 61, 0.12);
-  --link:          #8a6a3d;
-  --blue:          #8a6a3d;
-  --yellow:        #8a6a3d;
-  --green:         #8a6a3d;
-  --orange:        #8a6a3d;
-  --purple:        #8a6a3d;
-  --red:           #b83746;
-
-  /* Data-semantic text — darker on cream for contrast */
-  --green-text:    #1f8a5a;
-  --red-text:      #b83746;
-  --yellow-text:   #B8860B;
-  --orange-text:   #c2570a;
-  --blue-text:     #8a6a3d;
-  --purple-text:   #8a6a3d;
-
-  --glass-bg:    rgba(243, 242, 236, 0.72);
-  --glass-bord:  rgba(138, 106, 61, 0.12);
-
-  --shadow-sm:  0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
-  --shadow-md:  0 4px 14px rgba(0,0,0,0.06), 0 2px 6px rgba(0,0,0,0.04);
-  --shadow-lg:  0 16px 48px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
-
-  color-scheme: light;
-}
-
-/* Fraunces on H1/H2/H3 — applies to both paper and dark Phase 2 variants */
-[data-mt-theme="paper"] h1,
-[data-mt-theme="paper"] h2,
-[data-mt-theme="paper"] h3 {
-  font-family: "Fraunces", Georgia, "Times New Roman", serif !important;
-  font-weight: 400 !important;
-  font-variation-settings: "opsz" 144 !important;
-  letter-spacing: -0.01em !important;
-  color: #1a1814;
-}
-
-[data-mt-theme="paper"] h1 em,
-[data-mt-theme="paper"] h2 em,
-[data-mt-theme="paper"] h3 em {
-  font-style: italic;
-  color: #8a6a3d;
-  font-weight: 400;
-}
-
-[data-mt-theme="paper"] .num,
-[data-mt-theme="paper"] .mono,
-[data-mt-theme="paper"] [data-num] {
-  font-family: "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
-  font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum";
-}
-
-[data-mt-theme="paper"] .tile-value,
-[data-mt-theme="paper"] .hero-composite,
-[data-mt-theme="paper"] .composite-score,
-[data-mt-theme="paper"] .big-number {
-  font-family: "Fraunces", Georgia, serif;
-  font-weight: 400;
-  font-variation-settings: "opsz" 144;
-  letter-spacing: -0.01em;
-}

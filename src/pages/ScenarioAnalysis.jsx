@@ -441,20 +441,61 @@ function formatDollar(amt) {
 // ════════════════════════════════════════════════════════════════════════
 
 const STYLES = `
-.scenarios-page { --s-1:4px; --s-2:8px; --s-3:16px; --s-4:24px; --s-5:32px; --s-6:48px; --s-7:64px;
-  --r-sm:4px; --r-md:6px; --r-lg:8px; --r-xl:10px;
-  --accent-parchment:#d9b27a; --accent-burgundy:#9d3545; --accent-warm:var(--accent-parchment);
-  --bg-0:#fafaf5; --bg-1:#fff; --bg-2:#f3f1e9; --bg-3:#eae6d8;
-  --ink-0:#17181c; --ink-1:#44474f; --ink-2:#6b6f78; --ink-3:#9a9ea8;
-  --line-0:rgba(0,0,0,.06); --line-1:rgba(0,0,0,.12);
-  --up:#1f9d60; --down:#d23040; --warn:#b8811c; --info:#2862c2;
-  font-family:Inter,-apple-system,system-ui,sans-serif; font-size:14px; line-height:1.5;
-  color:var(--ink-0); background:var(--bg-0); max-width:1320px; margin:0 auto;
-  padding:var(--s-5) var(--s-5) var(--s-7);
+.scenarios-page {
+  /* Spacing — map to global --space-* tokens */
+  --s-1: var(--space-1);    /* 4px  */
+  --s-2: var(--space-2);    /* 8px  */
+  --s-3: var(--space-4);    /* 16px */
+  --s-4: var(--space-6);    /* 24px */
+  --s-5: var(--space-8);    /* 32px */
+  --s-6: var(--space-12);   /* 48px */
+  --s-7: 64px;              /* no global 64px equivalent */
+
+  /* Radii — keep close to local intent */
+  --r-sm: 4px;
+  --r-md: var(--radius-xs);   /* 6px  */
+  --r-lg: 8px;
+  --r-xl: var(--radius-sm);   /* 10px */
+
+  /* Brand: parchment/burgundy variants now resolve to the brand teal */
+  --accent-parchment: var(--accent);
+  --accent-burgundy:  var(--accent);
+  --accent-warm:      var(--accent);
+
+  /* Surfaces inherit from the global palette → dark mode now works on this page */
+  --bg-0: var(--bg);
+  --bg-1: var(--surface);
+  --bg-2: var(--surface-2);
+  --bg-3: var(--surface-3);
+
+  /* Ink */
+  --ink-0: var(--text);
+  --ink-1: var(--text-2);
+  --ink-2: var(--text-muted);
+  --ink-3: var(--text-dim);
+
+  /* Lines */
+  --line-0: var(--border-faint);
+  --line-1: var(--border);
+
+  /* Direction stays semantic; banned ochre and Apple-bright blue folded to neutral / accent */
+  --up:   var(--green);
+  --down: var(--red);
+  --warn: var(--text-muted);
+  --info: var(--accent);
+
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: var(--s-5) var(--s-5) var(--s-7);
 }
-.scenarios-page .num,.scenarios-page .mono { font-family:"JetBrains Mono","SF Mono",Menlo,monospace; font-variant-numeric:tabular-nums; }
+.scenarios-page .num,.scenarios-page .mono { font-family:var(--font-ui); font-variant-numeric:tabular-nums; }
 .scenarios-page .tab-head { display:flex; align-items:flex-end; justify-content:space-between; gap:var(--s-5); margin-bottom:var(--s-4); padding-bottom:var(--s-3); border-bottom:1px solid var(--line-1); }
-.scenarios-page .crumb { font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:var(--s-2); }
+.scenarios-page .crumb { font-family:var(--font-ui); font-size:11px; font-weight:600; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:var(--s-2); }
 .scenarios-page h1.title { font-family:Fraunces,Georgia,serif; font-weight:400; font-size:34px; letter-spacing:-.015em; line-height:1.1; color:var(--ink-0); }
 .scenarios-page .lede { font-size:14px; color:var(--ink-1); max-width:600px; margin-top:var(--s-2); }
 .scenarios-page .lede em { font-style:italic; color:var(--accent-burgundy); }
@@ -464,7 +505,7 @@ const STYLES = `
 .scenarios-page .mode-toggle button:hover:not(.active) { background:var(--bg-2); }
 .scenarios-page .builder { background:var(--bg-1); border:1px solid var(--line-1); border-radius:var(--r-xl); padding:var(--s-3) var(--s-4); margin-bottom:var(--s-4); }
 .scenarios-page .builder-row { display:flex; align-items:center; gap:var(--s-3); flex-wrap:wrap; }
-.scenarios-page .builder-label { font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); }
+.scenarios-page .builder-label { font-family:var(--font-ui); font-size:10px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-2); }
 .scenarios-page .scenario-chips { display:flex; gap:6px; flex-wrap:wrap; }
 .scenarios-page .chip { font-size:12px; font-weight:500; padding:6px 11px; border:1px solid var(--line-1); border-radius:999px; background:var(--bg-1); color:var(--ink-1); cursor:pointer; white-space:nowrap; transition:all 120ms; }
 .scenarios-page .chip:hover:not(.active) { background:var(--bg-2); }
@@ -472,7 +513,7 @@ const STYLES = `
 .scenarios-page .chip.proxy::after { content:" ※"; color:var(--warn); font-weight:700; }
 .scenarios-page .chip.low-conf::before { content:"◐ "; color:var(--warn); font-weight:600; }
 .scenarios-page .horizon-tabs { display:inline-flex; border:1px solid var(--line-1); border-radius:var(--r-md); overflow:hidden; background:var(--bg-1); }
-.scenarios-page .horizon-tabs button { font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:500; padding:6px 14px; border:none; background:transparent; color:var(--ink-1); cursor:pointer; }
+.scenarios-page .horizon-tabs button { font-family:var(--font-ui); font-size:12px; font-weight:500; padding:6px 14px; border:none; background:transparent; color:var(--ink-1); cursor:pointer; }
 .scenarios-page .horizon-tabs button.active { background:var(--bg-3); color:var(--ink-0); font-weight:600; }
 .scenarios-page .horizon-tabs button:hover:not(.active) { background:var(--bg-2); }
 .scenarios-page .prop-toggle { display:inline-flex; gap:var(--s-2); align-items:center; padding:5px 10px; background:var(--bg-2); border:1px solid var(--line-1); border-radius:var(--r-md); font-size:12px; cursor:pointer; transition:all 120ms; }
@@ -481,12 +522,12 @@ const STYLES = `
 .scenarios-page .prop-toggle.bespoke .dot { background:var(--warn); }
 .scenarios-page .prop-toggle strong { color:var(--ink-0); }
 .scenarios-page .coherence { display:inline-flex; align-items:center; gap:8px; padding:7px 13px; background:rgba(31,157,96,.08); border:1px solid rgba(31,157,96,.25); border-radius:var(--r-md); font-size:12px; color:var(--ink-1); transition:all 200ms; }
-.scenarios-page .coherence .score { font-family:"JetBrains Mono",monospace; font-weight:700; font-size:14px; color:var(--up); }
+.scenarios-page .coherence .score { font-family:var(--font-ui); font-weight:700; font-size:14px; color:var(--up); }
 .scenarios-page .coherence.unusual { background:rgba(216,178,122,.08); border-color:rgba(216,178,122,.4); }
 .scenarios-page .coherence.unusual .score { color:var(--accent-parchment); }
-.scenarios-page .coherence.rare { background:rgba(184,129,28,.08); border-color:rgba(184,129,28,.3); }
+.scenarios-page .coherence.rare { background:rgba(107,122,133,.08); border-color:rgba(107,122,133,.3); }
 .scenarios-page .coherence.rare .score { color:var(--warn); }
-.scenarios-page .coherence.exotic { background:rgba(157,53,69,.08); border-color:rgba(157,53,69,.3); }
+.scenarios-page .coherence.exotic { background:rgba(14,85,96,.08); border-color:rgba(14,85,96,.3); }
 .scenarios-page .coherence.exotic .score { color:var(--accent-burgundy); }
 .scenarios-page .factor-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px var(--s-4); margin-top:var(--s-3); }
 .scenarios-page .factor { display:grid; grid-template-columns:100px 1fr 60px 80px 22px; align-items:center; gap:7px; padding:4px 0; }
@@ -501,26 +542,26 @@ const STYLES = `
 .scenarios-page .factor.auto input[type="range"]::-webkit-slider-thumb { background:var(--ink-3); }
 .scenarios-page .factor.auto input[type="range"]::-moz-range-thumb { background:var(--ink-3); }
 .scenarios-page .factor.auto input[type="range"] { pointer-events:none; opacity:.7; }
-.scenarios-page .factor-val { font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:600; color:var(--ink-0); text-align:right; }
-.scenarios-page .factor-nominal { font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:500; color:var(--ink-2); text-align:right; }
+.scenarios-page .factor-val { font-family:var(--font-ui); font-size:11px; font-weight:600; color:var(--ink-0); text-align:right; }
+.scenarios-page .factor-nominal { font-family:var(--font-ui); font-size:11px; font-weight:500; color:var(--ink-2); text-align:right; }
 .scenarios-page .factor.driver .factor-nominal { color:var(--accent-burgundy); }
 .scenarios-page .factor.auto .factor-val { color:var(--ink-2); font-weight:500; }
 .scenarios-page .factor-pin { font-size:13px; color:var(--ink-3); text-align:center; cursor:pointer; user-select:none; transition:color 120ms; }
 .scenarios-page .factor-pin:hover { color:var(--ink-1); }
 .scenarios-page .factor.pinned .factor-pin { color:var(--accent-burgundy); }
-.scenarios-page .reset-btn { font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:500; padding:5px 11px; border:1px solid var(--line-1); border-radius:var(--r-md); background:var(--bg-1); color:var(--ink-1); cursor:pointer; transition:all 120ms; }
+.scenarios-page .reset-btn { font-family:var(--font-ui); font-size:11px; font-weight:500; padding:5px 11px; border:1px solid var(--line-1); border-radius:var(--r-md); background:var(--bg-1); color:var(--ink-1); cursor:pointer; transition:all 120ms; }
 .scenarios-page .reset-btn:hover { background:var(--bg-2); color:var(--ink-0); }
 .scenarios-page .so-what { background:linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 100%); border:1px solid var(--line-1); border-left:4px solid var(--accent-burgundy); border-radius:var(--r-xl); padding:var(--s-3) var(--s-4); margin-bottom:var(--s-4); transition:all 200ms; }
 .scenarios-page .so-what.exotic { border-left-color:var(--warn); }
-.scenarios-page .so-what .label { font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-burgundy); margin-bottom:6px; }
+.scenarios-page .so-what .label { font-family:var(--font-ui); font-size:10px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--accent-burgundy); margin-bottom:6px; }
 .scenarios-page .so-what.exotic .label { color:var(--warn); }
 .scenarios-page .so-what .punchline { font-family:Fraunces,serif; font-weight:500; font-size:20px; line-height:1.3; letter-spacing:-.005em; color:var(--ink-0); margin-bottom:6px; }
 .scenarios-page .so-what .punchline em { font-style:italic; color:var(--accent-burgundy); }
 .scenarios-page .so-what.exotic .punchline em { color:var(--warn); }
 .scenarios-page .so-what .takeaway { font-size:13px; color:var(--ink-1); max-width:920px; }
-.scenarios-page .output-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-3); margin-top:var(--s-3); }
+.scenarios-page .output-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-3); margin-top:var(--s-3); align-items:start; }
 .scenarios-page .panel { background:var(--bg-1); border:1px solid var(--line-1); border-radius:var(--r-xl); padding:var(--s-3) var(--s-4); transition:all 200ms; }
-.scenarios-page .panel-eyebrow { font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin-bottom:2px; }
+.scenarios-page .panel-eyebrow { font-family:var(--font-ui); font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin-bottom:2px; }
 .scenarios-page .panel-title { font-family:Fraunces,serif; font-weight:500; font-size:18px; letter-spacing:-.005em; color:var(--ink-0); margin-bottom:var(--s-3); }
 .scenarios-page .composite-bars { display:flex; flex-direction:column; gap:8px; }
 .scenarios-page .bar-row { display:grid; grid-template-columns:84px 1fr 110px; gap:var(--s-3); align-items:center; }
@@ -530,55 +571,55 @@ const STYLES = `
 .scenarios-page .bar-fill.up { background:var(--up); }
 .scenarios-page .bar-fill.down { background:var(--down); }
 .scenarios-page .bar-fill.neutral { background:var(--ink-3); }
-.scenarios-page .bar-delta { font-family:"JetBrains Mono",monospace; font-size:12px; font-weight:600; text-align:right; }
+.scenarios-page .bar-delta { font-family:var(--font-ui); font-size:12px; font-weight:600; text-align:right; }
 .scenarios-page .sector-list { display:flex; flex-direction:column; max-height:380px; overflow-y:auto; }
 .scenarios-page .sector-row { display:grid; grid-template-columns:28px 1fr 50px 70px; gap:8px; align-items:center; padding:7px 0; border-bottom:1px solid var(--line-0); cursor:pointer; transition:background 120ms; }
 .scenarios-page .sector-row:hover { background:var(--bg-2); }
 .scenarios-page .sector-row:last-child { border-bottom:none; }
 .scenarios-page .sector-row.expanded { background:var(--bg-2); border-bottom-color:var(--line-1); }
-.scenarios-page .sector-rank { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-3); }
+.scenarios-page .sector-rank { font-family:var(--font-ui); font-size:11px; color:var(--ink-3); }
 .scenarios-page .sector-name { font-size:13px; color:var(--ink-0); }
-.scenarios-page .sector-tkr { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-2); }
-.scenarios-page .sector-pct { font-family:"JetBrains Mono",monospace; font-size:13px; font-weight:600; text-align:right; }
+.scenarios-page .sector-tkr { font-family:var(--font-ui); font-size:11px; color:var(--ink-2); }
+.scenarios-page .sector-pct { font-family:var(--font-ui); font-size:13px; font-weight:600; text-align:right; }
 .scenarios-page .sector-pct.up { color:var(--up); }
 .scenarios-page .sector-pct.down { color:var(--down); }
 .scenarios-page .ig-list { padding:6px 0 6px 32px; background:var(--bg-2); border-bottom:1px solid var(--line-0); }
 .scenarios-page .ig-row { display:grid; grid-template-columns:1fr 70px; gap:8px; padding:4px 0; font-size:12px; }
 .scenarios-page .ig-name { color:var(--ink-1); }
-.scenarios-page .ig-pct { font-family:"JetBrains Mono",monospace; font-weight:500; text-align:right; }
+.scenarios-page .ig-pct { font-family:var(--font-ui); font-weight:500; text-align:right; }
 .scenarios-page .ig-pct.up { color:var(--up); }
 .scenarios-page .ig-pct.down { color:var(--down); }
-.scenarios-page .sector-divider { font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); padding:10px 0 6px; margin-top:4px; border-top:1px solid var(--line-1); }
+.scenarios-page .sector-divider { font-family:var(--font-ui); font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); padding:10px 0 6px; margin-top:4px; border-top:1px solid var(--line-1); }
 .scenarios-page .portfolio-table { width:100%; border-collapse:collapse; font-size:12px; }
-.scenarios-page .portfolio-table th { font-family:"JetBrains Mono",monospace; font-size:9px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); text-align:left; padding:5px 6px 5px 0; border-bottom:1px solid var(--line-1); }
+.scenarios-page .portfolio-table th { font-family:var(--font-ui); font-size:9px; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3); text-align:left; padding:5px 6px 5px 0; border-bottom:1px solid var(--line-1); }
 .scenarios-page .portfolio-table th.right { text-align:right; }
 .scenarios-page .portfolio-table td { padding:6px 6px 6px 0; border-bottom:1px solid var(--line-0); }
-.scenarios-page .portfolio-table td.mono { font-family:"JetBrains Mono",monospace; font-variant-numeric:tabular-nums; }
+.scenarios-page .portfolio-table td.mono { font-family:var(--font-ui); font-variant-numeric:tabular-nums; }
 .scenarios-page .portfolio-table td.right { text-align:right; }
 .scenarios-page .portfolio-table td.up { color:var(--up); font-weight:600; }
 .scenarios-page .portfolio-table td.down { color:var(--down); font-weight:600; }
 .scenarios-page .portfolio-table tr.total td { border-top:2px solid var(--line-1); border-bottom:none; padding-top:9px; font-weight:700; }
 .scenarios-page .action-subline { font-size:13px; color:var(--ink-2); margin-bottom:var(--s-3); font-style:italic; }
 .scenarios-page .action-section { margin-bottom:var(--s-3); }
-.scenarios-page .action-section-head { font-family:"JetBrains Mono",monospace; font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--line-1); }
+.scenarios-page .action-section-head { font-family:var(--font-ui); font-size:10px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; color:var(--ink-3); margin-bottom:6px; padding-bottom:4px; border-bottom:1px solid var(--line-1); }
 .scenarios-page .action-row { display:grid; grid-template-columns:1fr 80px 110px; gap:8px; align-items:baseline; padding:6px 0; font-size:13px; }
 .scenarios-page .action-name { color:var(--ink-0); }
-.scenarios-page .action-name .ac-tag { font-family:"JetBrains Mono",monospace; font-size:9px; font-weight:600; color:var(--ink-3); margin-left:6px; letter-spacing:.1em; text-transform:uppercase; }
-.scenarios-page .action-delta { font-family:"JetBrains Mono",monospace; font-weight:700; font-size:15px; text-align:right; }
+.scenarios-page .action-name .ac-tag { font-family:var(--font-ui); font-size:9px; font-weight:600; color:var(--ink-3); margin-left:6px; letter-spacing:.1em; text-transform:uppercase; }
+.scenarios-page .action-delta { font-family:var(--font-ui); font-weight:700; font-size:15px; text-align:right; }
 .scenarios-page .action-delta.up { color:var(--up); }
 .scenarios-page .action-delta.down { color:var(--down); }
-.scenarios-page .action-detail { font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-2); text-align:right; }
+.scenarios-page .action-detail { font-family:var(--font-ui); font-size:11px; color:var(--ink-2); text-align:right; }
 .scenarios-page .action-empty { font-size:12px; color:var(--ink-3); font-style:italic; padding:6px 0; }
-.scenarios-page .action-footer { margin-top:var(--s-3); padding-top:var(--s-3); border-top:1px solid var(--line-1); font-family:"JetBrains Mono",monospace; font-size:11px; font-weight:500; color:var(--ink-1); line-height:1.7; }
+.scenarios-page .action-footer { margin-top:var(--s-3); padding-top:var(--s-3); border-top:1px solid var(--line-1); font-family:var(--font-ui); font-size:11px; font-weight:500; color:var(--ink-1); line-height:1.7; }
 .scenarios-page .action-footer .ac-pill { display:inline-block; padding:2px 8px; margin-right:6px; background:var(--bg-2); border-radius:999px; }
 .scenarios-page .action-warn { margin-top:var(--s-2); font-size:11px; color:var(--warn); font-style:italic; }
-.scenarios-page .disclosure { font-family:"JetBrains Mono",monospace; font-size:10px; color:var(--ink-2); padding:7px 11px; background:var(--bg-2); border-left:2px solid var(--accent-warm); border-radius:var(--r-sm); margin-top:var(--s-2); }
-.scenarios-page .legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:var(--s-3); padding:8px 12px; background:rgba(216,178,122,.06); border:1px dashed var(--accent-parchment); border-radius:var(--r-sm); font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--ink-1); }
+.scenarios-page .disclosure { font-family:var(--font-ui); font-size:10px; color:var(--ink-2); padding:7px 11px; background:var(--bg-2); border-left:2px solid var(--accent-warm); border-radius:var(--r-sm); margin-top:var(--s-2); }
+.scenarios-page .legend { display:flex; flex-wrap:wrap; align-items:center; gap:14px; margin-top:var(--s-3); padding:8px 12px; background:rgba(216,178,122,.06); border:1px dashed var(--accent-parchment); border-radius:var(--r-sm); font-family:var(--font-ui); font-size:11px; color:var(--ink-1); }
 .scenarios-page .legend .legend-label { font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-2); padding-right:6px; border-right:1px solid var(--line-1); }
 .scenarios-page .legend .legend-item { display:inline-flex; align-items:center; gap:6px; }
 .scenarios-page .legend .lg-marker { color:var(--warn); font-weight:700; font-size:13px; }
 .scenarios-page .empty-state { text-align:center; padding:var(--s-5) 0; font-size:13px; color:var(--ink-3); }
-.scenarios-page .demo-banner { background:rgba(216,178,122,.15); border:1px dashed var(--accent-parchment); padding:8px 14px; border-radius:var(--r-sm); margin-bottom:var(--s-4); font-size:12px; font-family:"JetBrains Mono",monospace; color:var(--ink-1); }
+.scenarios-page .demo-banner { background:rgba(216,178,122,.15); border:1px dashed var(--accent-parchment); padding:8px 14px; border-radius:var(--r-sm); margin-bottom:var(--s-4); font-size:12px; font-family:var(--font-ui); color:var(--ink-1); }
 .scenarios-page .demo-banner b { color:var(--accent-burgundy); }
 
 @media (max-width: 980px) {
@@ -688,7 +729,7 @@ export default function ScenarioAnalysis() {
       <div className="scenarios-page">
         <div className="demo-banner">
           <b>Scenario Analysis v2</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
-          <b>L1–L3 demo math</b> uses sector loadings empirically refit against 2006–2026 monthly factor history (Senior Quant rebuild, 2026-04-28 — fixes Bug #1108 directional sign error on Energy under inflation). <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> shows live v9 engine output for canned scenarios — picks come from the production optimizer fed a stressed factor panel. Out-of-sample accuracy gates land in Sprint 3.
+          <b>L1–L3 math</b> uses sector loadings refit against 2006–2026 monthly factor history. <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> shows live engine output for historical scenarios — picks come from the production optimizer fed a stressed factor panel.
         </div>
 
 
@@ -700,7 +741,7 @@ export default function ScenarioAnalysis() {
           </div>
           <div className="mode-toggle">
             <button className={mode === "canned" ? "active" : ""} onClick={() => onModeChange("canned")}>Canned scenario</button>
-            <button className={mode === "bespoke" ? "active" : ""} onClick={() => onModeChange("bespoke")}>Bespoke shock</button>
+            <button className={mode === "bespoke" ? "active" : ""} onClick={() => onModeChange("bespoke")}>Custom shock</button>
           </div>
         </div>
 
@@ -734,7 +775,7 @@ export default function ScenarioAnalysis() {
               <div className="builder-label">Propagation</div>
               <div className={"prop-toggle" + (prop === "bespoke" ? " bespoke" : "")} onClick={onPropToggle}>
                 <span className="dot"></span>
-                <strong>{prop === "realistic" ? "Realistic" : "Bespoke"}</strong>
+                <strong>{prop === "realistic" ? "Realistic" : "Custom"}</strong>
                 <span style={{color:"var(--ink-2)"}}>{prop === "realistic" ? " · single driver · others auto-propagate" : " · each pinned slider moves freely · Coherence Score warns on rare combos"}</span>
               </div>
               <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
@@ -774,15 +815,21 @@ export default function ScenarioAnalysis() {
                 );
               })}
             </div>
-            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Bespoke mode: pin any factors you want to move freely. Pinned factors override the covariance; unpinned factors auto-propagate from your pins."}</div>
+            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: pin any factors you want to move freely. The other factors auto-propagate from your pins based on historical correlations."}</div>
           </div>
         )}
 
         {hasShock && <SoWhatHero mode={mode} scenario={scenario} score={score} pnl={realPnl} horizonText={horizonText} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} />}
 
-        <div className="output-grid">
-          <L1Panel hasShock={hasShock} composites={composites} />
+        {/* L1 (3 macro composites) was retired — composites are deprecated per
+            the v11 cycle-mechanism cutover. Composites belong on Macro Overview
+            anyway; Scenarios is about how a shock hits the BOOK and WHICH
+            sectors lead/lag. L2 takes the substance row alone; L3 + L4 sit
+            below in the 2-column grid. */}
+        <div style={{ marginTop: "var(--s-3)" }}>
           <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} />
+        </div>
+        <div className="output-grid">
           <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
           <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} />
         </div>
@@ -809,16 +856,18 @@ function SoWhatHero({ mode, scenario, score, pnl, horizonText, portfolioTotal = 
     );
     takeaway = sc.narrative + (sc.proxy ? " Note: pre-1996 proxies in use; magnitudes are approximations." : "") + (sc.lowConf ? " Low-confidence calibration — single recent episode." : "");
   } else {
-    label = `So what · Bespoke · ${horizonText} forward · Coherence ${score} / 100`;
+    label = `So what · Custom · ${horizonText} forward · Coherence ${score} / 100`;
+    const dollarStr = (Math.abs(pnl.total) / 1000).toFixed(0) + "K";
+    const lossOrGain = pnl.total < 0 ? "hit" : "gain";
     if (score < 5) {
-      punchline = <><em>Exotic factor combination</em> — not corroborated by any historical regime. Engine output: <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "loss" : "gain"}</em>, but treat as exploratory only.</>;
-      takeaway = "Pinned factors are forcing an internal contradiction the covariance can't resolve coherently. Useful for thought experiments; the L4 re-allocation should not be acted on until the combination is corroborated by a real regime.";
+      punchline = <>This factor combination hasn't shown up in market history. The engine projects a <em>${dollarStr} {lossOrGain}</em> on your book — useful as a what-if, not as an allocation call.</>;
+      takeaway = "When the factors you've pinned haven't moved together historically, the model can't anchor the read to a real regime. Use this for exploration; the recommended re-allocation in L4 isn't meant to be acted on.";
     } else if (score < 25) {
-      punchline = <>Historically rare combination. Your ${(PT / 1000).toFixed(0)}K book takes <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "hit" : "gain"}</em>. Engine response is calibrated but uncertainty is elevated.</>;
-      takeaway = "Less than 25% of weekly observations 1985–2026 produced this combination. Engine output is mathematically valid; treat L4 re-allocation as one among several plausible responses.";
+      punchline = <>This combination is rare in market history. Your book would take a <em>${dollarStr} {lossOrGain}</em>. The model's response is mathematically valid, but uncertainty is elevated.</>;
+      takeaway = "Fewer than 25% of weekly observations from 1985–2026 produced this combination. Treat the recommended re-allocation as one option among several.";
     } else {
-      punchline = <>Coherent factor regime. Your ${(PT / 1000).toFixed(0)}K book takes <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "hit" : "gain"}</em> over {horizonText}.</>;
-      takeaway = "Factor combination is consistent with historical regimes. Engine output carries normal calibration confidence.";
+      punchline = <>This combination is consistent with historical regimes. Your book would take a <em>${dollarStr} {lossOrGain}</em> over {horizonText}.</>;
+      takeaway = "The model's output carries normal calibration confidence.";
     }
   }
   return (
@@ -860,7 +909,7 @@ function L1Panel({ hasShock, composites }) {
         {renderBar("Growth", CURRENT_COMPOSITES.growth, grNew, false)}
         {renderBar("Inflation & Rates", CURRENT_COMPOSITES.ir, irNew, true)}
       </div>
-      <div style={{marginTop:"var(--s-3)", fontSize:11, color:"var(--ink-2)", fontFamily:"\"JetBrains Mono\",monospace"}}>
+      <div style={{marginTop:"var(--s-3)", fontSize:11, color:"var(--ink-2)", fontFamily:"var(--font-ui)"}}>
         {hasShock ? "Composite shocks derived from factor z-scores via current weights." : "Pick a scenario or move sliders to see composite shifts."}
       </div>
     </div>
@@ -878,61 +927,57 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector }) {
     );
   }
   const ranked = SECTORS.map(s => ({ ...s, shockPct: sectorPcts[s.id] }));
-  const equity = ranked.filter(s => s.assetClass === "Equity").sort((a, b) => b.shockPct - a.shockPct);
-  const other = ranked.filter(s => s.assetClass !== "Equity").sort((a, b) => b.shockPct - a.shockPct);
+  // ONE unified ranked list (best at top → worst at bottom). Equity and
+  // non-equity rendered in the same list so the visible top row always
+  // matches the headline. Equity rows stay clickable for IG drill-down;
+  // non-equity rows are tagged inline.
   const allSorted = [...ranked].sort((a, b) => b.shockPct - a.shockPct);
   const best = allSorted[0], worst = allSorted[allSorted.length - 1];
-  const equityAllDown = equity.every(s => s.shockPct < 0);
-  const otherAllUp = other.every(s => s.shockPct > 0);
   let headline;
-  if (equityAllDown && otherAllUp) headline = `Risk-off rotation: ${best.name} bid · ${worst.name} hit hardest`;
-  else if (best.shockPct > 0 && worst.shockPct < 0) headline = `${best.name} leads · ${worst.name} worst`;
-  else if (allSorted.every(s => s.shockPct < 0)) headline = `All assets negative · ${best.name} cushions`;
-  else if (allSorted.every(s => s.shockPct > 0)) headline = `Broad-based bid · ${best.name} leads`;
-  else headline = "Mixed response across assets";
+  if (allSorted.every(s => s.shockPct < 0)) headline = `Every asset down · ${best.name} cushions best`;
+  else if (allSorted.every(s => s.shockPct > 0)) headline = `Broad bid · ${best.name} leads`;
+  else headline = `${best.name} leads · ${worst.name} hit hardest`;
   return (
     <div className="panel">
       <div className="panel-eyebrow">L2 · Sector shock + Other · click an equity row for IG drill-down</div>
       <h3 className="panel-title">{headline}</h3>
       <div className="sector-list">
-        {equity.map((s, i) => (
-          <div key={s.id}>
-            <div className={"sector-row" + (expandedSector === s.id ? " expanded" : "")} onClick={() => setExpandedSector(expandedSector === s.id ? null : s.id)}>
-              <span className="sector-rank">#{i+1}</span>
-              <span className="sector-name">{s.name}</span>
-              <span className="sector-tkr">{s.id}</span>
-              <span className={"sector-pct " + (s.shockPct > 0 ? "up" : "down")}>{s.shockPct >= 0 ? "+" : ""}{s.shockPct.toFixed(1)}%</span>
-            </div>
-            {expandedSector === s.id && s.igs.length > 0 && (
-              <div className="ig-list">
-                {s.igs.map((ig, idx) => {
-                  const variance = Math.abs(s.shockPct) * 0.5;
-                  const offset = (idx - (s.igs.length - 1) / 2) / Math.max(1, (s.igs.length - 1) / 2) * variance;
-                  const pct = s.shockPct + offset;
-                  return (
-                    <div key={ig.name} className="ig-row">
-                      <span className="ig-name">{ig.name}</span>
-                      <span className={"ig-pct " + (pct > 0 ? "up" : "down")}>{pct >= 0 ? "+" : ""}{pct.toFixed(1)}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-        {other.length > 0 && (
-          <>
-            <div className="sector-divider">DEFENSIVE SLEEVE · Bills · UST · Gold · IG</div>
-            {other.map((s, i) => (
-              <div key={s.id} className="sector-row" style={{cursor:"default"}}>
+        {allSorted.map((s, i) => {
+          const isEquity = s.assetClass === "Equity";
+          const expandable = isEquity && s.igs && s.igs.length > 0;
+          return (
+            <div key={s.id}>
+              <div
+                className={"sector-row" + (expandedSector === s.id ? " expanded" : "")}
+                onClick={() => expandable && setExpandedSector(expandedSector === s.id ? null : s.id)}
+                style={{cursor: expandable ? "pointer" : "default"}}
+              >
                 <span className="sector-rank">#{i+1}</span>
-                <span className="sector-name">{s.name}</span>
+                <span className="sector-name">
+                  {s.name}
+                  {!isEquity && <span style={{marginLeft:8, fontSize:9, fontWeight:600, letterSpacing:".10em", textTransform:"uppercase", color:"var(--ink-3)"}}>Defensive</span>}
+                </span>
                 <span className="sector-tkr">{s.id}</span>
                 <span className={"sector-pct " + (s.shockPct > 0 ? "up" : "down")}>{s.shockPct >= 0 ? "+" : ""}{s.shockPct.toFixed(1)}%</span>
               </div>
-            ))}
-          </>
-        )}
+              {expandedSector === s.id && expandable && (
+                <div className="ig-list">
+                  {s.igs.map((ig, idx) => {
+                    const variance = Math.abs(s.shockPct) * 0.5;
+                    const offset = (idx - (s.igs.length - 1) / 2) / Math.max(1, (s.igs.length - 1) / 2) * variance;
+                    const pct = s.shockPct + offset;
+                    return (
+                      <div key={ig.name} className="ig-row">
+                        <span className="ig-name">{ig.name}</span>
+                        <span className={"ig-pct " + (pct > 0 ? "up" : "down")}>{pct >= 0 ? "+" : ""}{pct.toFixed(1)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -961,13 +1006,23 @@ function L3Panel({ hasShock, pnl, horizon, portfolioTotal = PORTFOLIO_TOTAL, por
   const others = sortedPositions.slice(5);
   const totalCls = pnl.total < 0 ? "down" : "up";
   const uncoveredValue = (portfolioUncovered || []).reduce((s, p) => s + Math.abs(p.value || 0), 0);
+  const isDemo = portfolioSource !== "user";
   return (
     <div className="panel">
       <div className="panel-eyebrow">L3 · Your portfolio · {eyebrowSuffix}</div>
-      <h3 className="panel-title" style={{color: pnl.total < 0 ? "var(--down)" : pnl.total > 0 ? "var(--up)" : "var(--ink-0)"}}>
-        {formatDollar(pnl.total)} · {Math.abs(totalPct).toFixed(1)}% of book · {horizon} horizon
-      </h3>
-      <table className="portfolio-table">
+      {isDemo ? (
+        <>
+          <h3 className="panel-title">Sign in to see how your real positions react.</h3>
+          <p style={{fontSize:13, color:"var(--ink-2)", marginTop:"var(--s-2)", marginBottom:"var(--s-3)"}}>
+            The table below is a generic 5-name sample for illustration. Your numbers will replace it once you sign in.
+          </p>
+        </>
+      ) : (
+        <h3 className="panel-title" style={{color: pnl.total < 0 ? "var(--down)" : pnl.total > 0 ? "var(--up)" : "var(--ink-0)"}}>
+          {formatDollar(pnl.total)} · {Math.abs(totalPct).toFixed(1)}% of book · {horizon} horizon
+        </h3>
+      )}
+      <table className="portfolio-table" style={isDemo ? {opacity: 0.7} : {}}>
         <thead>
           <tr><th>Ticker</th><th>Sector</th><th className="right">Weight</th><th className="right">Shock %</th><th className="right">P&amp;L $</th></tr>
         </thead>
@@ -994,7 +1049,7 @@ function L3Panel({ hasShock, pnl, horizon, portfolioTotal = PORTFOLIO_TOTAL, por
         </tbody>
       </table>
       {portfolioSource === "user" && (
-        <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"\"JetBrains Mono\",monospace", fontStyle:"italic", lineHeight:1.5}}>
+        <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"var(--font-ui)", fontStyle:"italic", lineHeight:1.5}}>
           Live read of your real positions ($
           {(Math.abs(PT) / 1000).toFixed(0)}K across {pnl.positions.length} modeled
           {portfolioUncovered.length > 0 ? ` + ${portfolioUncovered.length} not modeled (~$${(uncoveredValue/1000).toFixed(0)}K — options, illiquids)` : ""}
@@ -1079,9 +1134,9 @@ function L4Panel({ hasShock, tilts, score, mode, scenarioId, engineData }) {
         {classRollup.map(c => <span key={c.cls} className="ac-pill"><strong>{c.cls}</strong> {c.cur}% → {c.str}%</span>)}
       </div>
       {warn && <div className="action-warn">{warn}</div>}
-      <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"\"JetBrains Mono\",monospace", fontStyle:"italic"}}>
+      <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"var(--font-ui)", fontStyle:"italic"}}>
         {mode === "bespoke"
-          ? "Demo math — bespoke shocks use illustrative sector tilts. Engine wiring for arbitrary shocks ships in Sprint 2.5."
+          ? "Demo math — bespoke shocks use illustrative sector tilts. Engine wiring for arbitrary shocks coming soon."
           : "Loading engine output…"}
       </div>
     </div>
@@ -1127,7 +1182,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
 
   const subline = (
     <>
-      Re-ran <span className="mono">compute_v9_allocation</span> with the {scenario.name} CCAR shock translated to the v9 panel. <b>{kept.length}</b> picks held, <b>{added.length}</b> added, <b>{removed.length}</b> dropped. Equity share <span className="mono">{equityShareCurr}% → {equityShareStr}%</span>, alpha <span className="mono">{alphaCurr}% → {alphaStr}%</span>.
+      Re-ran the optimizer with the {scenario.name} CCAR shock translated to the model panel. <b>{kept.length}</b> picks held, <b>{added.length}</b> added, <b>{removed.length}</b> dropped. Equity share <span className="mono">{equityShareCurr}% → {equityShareStr}%</span>, alpha <span className="mono">{alphaCurr}% → {alphaStr}%</span>.
     </>
   );
 
@@ -1143,7 +1198,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
 
   return (
     <div className="panel">
-      <div className="panel-eyebrow">L4 · Stressed allocation · live v9 engine output</div>
+      <div className="panel-eyebrow">L4 · Stressed allocation · live engine output</div>
       <h3 className="panel-title">{headline}</h3>
       <div className="action-subline">{subline}</div>
 
@@ -1154,7 +1209,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
             <div key={p.ticker} className="action-row">
               <span className="action-name"><b>{p.ticker}</b> · {p.name}</span>
               <span className="action-delta up">{fmtW(p.weight)}</span>
-              <span className="action-detail" style={{fontFamily:"\"JetBrains Mono\",monospace"}}>μ {fmtMu(p.expected_return_monthly)}</span>
+              <span className="action-detail" style={{fontFamily:"var(--font-ui)"}}>μ {fmtMu(p.expected_return_monthly)}</span>
             </div>
           ))}
         </div>
@@ -1166,7 +1221,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
             <div key={p.ticker} className="action-row">
               <span className="action-name"><b>{p.ticker}</b> · {p.name}</span>
               <span className="action-delta down">−{fmtW(p.weight)}</span>
-              <span className="action-detail" style={{fontFamily:"\"JetBrains Mono\",monospace"}}>was {fmtW(p.weight)}</span>
+              <span className="action-detail" style={{fontFamily:"var(--font-ui)"}}>was {fmtW(p.weight)}</span>
             </div>
           ))}
         </div>
@@ -1180,7 +1235,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
               <div key={p.ticker} className="action-row">
                 <span className="action-name"><b>{p.ticker}</b> · {p.name}</span>
                 <span className="action-delta" style={{color:"var(--ink-1)"}}>{fmtW(p.weight)}</span>
-                <span className="action-detail" style={{fontFamily:"\"JetBrains Mono\",monospace", color: d && d.val > 0 ? "var(--up)" : d && d.val < 0 ? "var(--down)" : "var(--ink-3)"}}>
+                <span className="action-detail" style={{fontFamily:"var(--font-ui)", color: d && d.val > 0 ? "var(--up)" : d && d.val < 0 ? "var(--down)" : "var(--ink-3)"}}>
                   μ {fmtMu(p.expected_return_monthly)}{d ? ` (${d.str})` : ""}
                 </span>
               </div>
@@ -1199,7 +1254,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
             <div key={d.ticker} className="action-row">
               <span className="action-name"><b>{d.ticker}</b> · {d.fund}</span>
               <span className={"action-delta " + (dir || "")} style={!dir ? {color:"var(--ink-3)"} : {}}>{fmtW(d.weight)}</span>
-              <span className="action-detail" style={{fontFamily:"\"JetBrains Mono\",monospace", color:"var(--ink-3)"}}>
+              <span className="action-detail" style={{fontFamily:"var(--font-ui)", color:"var(--ink-3)"}}>
                 {b ? `was ${fmtW(b.weight)}` : "new"}
               </span>
             </div>
@@ -1215,8 +1270,8 @@ function L4PanelReal({ scenario, baseline, asOf }) {
         <span className="ac-pill"><strong>Picks</strong> {stressed.selection_confidence}</span>
       </div>
 
-      <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"\"JetBrains Mono\",monospace", fontStyle:"italic"}}>
-        Live v9 engine output · panel as of {asOf} · engine output not yet validated against historical actuals (Sprint 3 acceptance gates pending). Composites held at current values in v1; Sprint 2.5 will stress them too.
+      <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"var(--font-ui)", fontStyle:"italic"}}>
+        Live engine output · panel as of {asOf} · engine output not yet validated against historical actuals (acceptance gates pending). Composites held at current values for now; future iterations will stress them too.
       </div>
     </div>
   );
