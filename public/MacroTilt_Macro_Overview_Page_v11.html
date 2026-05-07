@@ -1195,24 +1195,13 @@ function indicatorConcerningScore(ind) {
   (function populateVerdict() {
     const rounded = Math.round(avgScore);
     document.getElementById("verdictCount").firstChild.nodeValue = String(rounded);
-    let label, narrative;
-    if (avgScore < 25) {
-      label = "Risk-on";
-      narrative = "Most mechanisms read benign. Cycle is in a low-risk regime.";
-    } else if (avgScore < 50) {
-      label = "Neutral";
-      narrative = "Composite sits in the neutral band. A few mechanisms run hot, the rest stay calm.";
-    } else if (avgScore < 75) {
-      label = "Caution";
-      const above = liveTiles.filter(t => t.score >= avgScore).map(t => t.name);
-      const below = liveTiles.filter(t => t.score <  avgScore).map(t => t.name);
-      narrative = `${above.join(" and ")} above the cohort; ${below.join(" and ")} below. Heat is selective, not system-wide.`;
-    } else {
-      label = "Risk-off";
-      narrative = "Multiple mechanisms in the upper quartile. Broad-based heat — defensive posture warranted.";
-    }
-    document.getElementById("verdictHeadline").textContent =
-      `${label} band — average ${rounded}/100. ${narrative}`;
+    // Joe directive 2026-05-07 — short headline only, no narrative paragraph.
+    let label;
+    if      (avgScore < 25) label = "Risk-on";
+    else if (avgScore < 50) label = "Neutral";
+    else if (avgScore < 75) label = "Caution";
+    else                    label = "Risk-off";
+    document.getElementById("verdictHeadline").textContent = `${label} · ${rounded}/100`;
   })();
   const [tx, ty] = polar(R_outer + 8, a_today);
   document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
@@ -1235,11 +1224,17 @@ function buildDialSvg(score, isLive, band) {
   const cx = W / 2, cy = H - 12;
   const R_outer = 92, R_inner = 64;
 
+  // Joe directive 2026-05-07 — drop the colored band coding.
+  // All wedges read as one neutral arc; the active band gets a single
+  // accent fill (teal), the rest stay light gray. Keeps the dial board
+  // monochrome with one accent, the way the rest of the app does it.
+  const NEUTRAL = "#ececea";
+  const ACCENT  = "#0e1115"; // ink — the same color as the needle
   const wedges = [
-    { from: 0,   to: 25,  ...BAND_COLORS.green },
-    { from: 25,  to: 50,  ...BAND_COLORS.amber },
-    { from: 50,  to: 75,  ...BAND_COLORS.oxblood },
-    { from: 75,  to: 100, ...BAND_COLORS.darkblood },
+    { from: 0,   to: 25,  active: ACCENT, subtle: NEUTRAL },
+    { from: 25,  to: 50,  active: ACCENT, subtle: NEUTRAL },
+    { from: 50,  to: 75,  active: ACCENT, subtle: NEUTRAL },
+    { from: 75,  to: 100, active: ACCENT, subtle: NEUTRAL },
   ];
   const scoreToDeg = (s) => 180 - Math.max(0, Math.min(100, s)) * 1.8;
   const polar = (r, deg) => {
@@ -2625,24 +2620,14 @@ function showToast(msg) {
         if (verdCount.firstChild) verdCount.firstChild.nodeValue = String(avg);
       }
       // Update verdict headline
-      var label, narrative;
-      if (avg < 25) {
-        label = 'Risk-on';
-        narrative = 'Most mechanisms read benign. Cycle is in a low-risk regime.';
-      } else if (avg < 50) {
-        label = 'Neutral';
-        narrative = 'Composite sits in the neutral band. A few mechanisms run hot, the rest stay calm.';
-      } else if (avg < 75) {
-        label = 'Caution';
-        var above = live.filter(function(t){ return t.score >= avg; }).map(function(t){ return t.name; });
-        var below = live.filter(function(t){ return t.score < avg; }).map(function(t){ return t.name; });
-        narrative = above.join(' and ') + ' above the cohort; ' + below.join(' and ') + ' below. Heat is selective, not system-wide.';
-      } else {
-        label = 'Risk-off';
-        narrative = 'Multiple mechanisms in the upper quartile. Broad-based heat — defensive posture warranted.';
-      }
+      // Joe directive 2026-05-07 — short headline only, no narrative paragraph.
+      var label;
+      if      (avg < 25) label = 'Risk-on';
+      else if (avg < 50) label = 'Neutral';
+      else if (avg < 75) label = 'Caution';
+      else               label = 'Risk-off';
       var head = document.getElementById('verdictHeadline');
-      if (head) head.textContent = label + ' band — average ' + avg + '/100. ' + narrative;
+      if (head) head.textContent = label + ' · ' + avg + '/100';
       // Update the verdict pointer angle
       var a_today = 180 - avg * 1.8;
       var rad = (a_today * Math.PI) / 180;

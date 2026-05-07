@@ -5530,10 +5530,11 @@ return(
         const _cbR   = Math.round(_cbAvg);
         // Bands match the v11 page header copy: 0-25 Risk-on, 25-50 Neutral,
         // 50-75 Caution, 75-100 Risk-off.
-        if (_cbAvg < 25)        { h = "Risk-on,";  em = ` average ${_cbR}/100 — most mechanisms benign.`; }
-        else if (_cbAvg < 50)   { h = "Neutral,";  em = ` average ${_cbR}/100 — selective heat in a few mechanisms.`; }
-        else if (_cbAvg < 75)   { h = "Caution,";  em = ` average ${_cbR}/100 — multiple mechanisms above the cohort.`; }
-        else                    { h = "Risk-off,"; em = ` average ${_cbR}/100 — broad-based heat across the board.`; }
+        // Short band name + score only. No prose; the dial board does the work.
+        if (_cbAvg < 25)        { h = "Risk-on";  em = ` · ${_cbR}/100`; }
+        else if (_cbAvg < 50)   { h = "Neutral";  em = ` · ${_cbR}/100`; }
+        else if (_cbAvg < 75)   { h = "Caution";  em = ` · ${_cbR}/100`; }
+        else                    { h = "Risk-off"; em = ` · ${_cbR}/100`; }
       }
 
       // Shared styles for orientation tiles
@@ -5641,40 +5642,10 @@ return(
           </div>
         </div>
 
-        {/* ── ORIENTATION TILES ── */}
-        <section className="mt-home-steps" style={{
-          display:"grid", gridTemplateColumns:"repeat(3, minmax(0, 1fr))",
-          gap:"var(--space-4)", marginTop:"var(--space-5)",
-        }}>
-          <div role="link" tabIndex={0} onClick={()=>navTo("overview")}
-               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("overview"); } }}
-               style={stepTileStyle}>
-            <div style={tileTagStyle}>{tileLineAccent} 01 · Macro</div>
-            <h3 style={tileH3Style}>Where the cycle <em style={{fontStyle:"italic", color:"var(--accent)"}}>sits today.</em></h3>
-            <p style={tileBlurbStyle}>Six cycle mechanisms — Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth — scored 0–100 across four bands: Risk-on, Neutral, Caution, Risk-off.</p>
-            <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
-          </div>
-
-          {/* Asset Tilt hero tile — re-lit 2026-05-04 with v10.1c live engine.
-              Clicks navigate to the full Asset Tilt page. */}
-          <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
-               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
-               style={stepTileStyle}>
-            <div style={tileTagStyle}>{tileLineAccent} 02 · Asset Tilt</div>
-            <h3 style={tileH3Style}>Where the cycle <em style={{fontStyle:"italic", color:"var(--accent)"}}>says to lean.</em></h3>
-            <p style={tileBlurbStyle}>Equity vs defensive split, leverage, sector and industry-group tilts driven by the six cycle mechanisms. ETF exposure paths included.</p>
-            <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
-          </div>
-
-          <div role="link" tabIndex={0} onClick={()=>navTo("portopps")}
-               onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("portopps"); } }}
-               style={stepTileStyle}>
-            <div style={tileTagStyle}>{tileLineAccent} 03 · Opportunities</div>
-            <h3 style={tileH3Style}>What to act <em style={{fontStyle:"italic", color:"var(--accent)"}}>on today.</em></h3>
-            <p style={tileBlurbStyle}>Today's actionable names from the full daily scan plus your watchlist — buy alerts, near-triggers, and the signal sources behind them.</p>
-            <div style={tileFootStyle}><span>Open<span style={arrowStyle}>→</span></span></div>
-          </div>
-        </section>
+        {/* ORIENTATION TILES retired 2026-05-07 — the left nav already
+            lists Macro Overview / Asset Tilt / Trading Opportunities, so
+            a duplicated 3-card index on the home page was pure redundancy.
+            Joe directive. */}
 
         {/* MISSION + EVIDENCE strip removed 2026-04-30 — every cell
             (outperformance, drawdown, Sharpe, calibration) was sourced from
@@ -5726,30 +5697,20 @@ return(
           // anywhere — Joe directive 2026-04-30. Lean on "above/below
           // the cohort" or band-name vocabulary.
           let label, narrative;
-          if (avg < 25) {
-            label = "Risk-on";
-            narrative = "Most mechanisms read benign. Cycle is in a low-risk regime.";
-          } else if (avg < 50) {
-            label = "Neutral";
-            narrative = "Composite sits in the neutral band. A few mechanisms run hot, the rest stay calm.";
-          } else if (avg < 75) {
-            label = "Caution";
-            const above = mechs.filter(t => t.score >= avg).map(t => t.name);
-            const below = mechs.filter(t => t.score <  avg).map(t => t.name);
-            narrative = `${above.join(" and ")} above the cohort; ${below.join(" and ")} below. Heat is selective, not system-wide.`;
-          } else {
-            label = "Risk-off";
-            narrative = "Multiple mechanisms in the upper quartile. Broad-based heat — defensive posture warranted.";
-          }
+          // Single short label per band — no narrative paragraph.
+          // The six mechanism cards below already say what's hot.
+          if      (avg < 25) { label = "Risk-on";  }
+          else if (avg < 50) { label = "Neutral";  }
+          else if (avg < 75) { label = "Caution";  }
+          else               { label = "Risk-off"; }
+          narrative = "";
           // Bands per v11 footer copy: 0-25 Risk-on, 25-50 Neutral,
           // 50-75 Caution, 75-100 Risk-off.
           const bandFor = (s) => s < 25 ? "risk-on" : s < 50 ? "neutral" : s < 75 ? "caution" : "risk-off";
-          const bandColor = (band) => ({
-            "risk-on":  "#4a7c4a",
-            "neutral":  "var(--yellow)",
-            "caution":  "var(--red)",
-            "risk-off": "var(--red)",
-          })[band] || "var(--text-muted)";
+          // Joe directive 2026-05-07: drop the colored band coding.
+          // Composite number is rendered in primary ink; the band name
+          // alongside is the only band signal needed.
+          const bandColor = () => "var(--text)";
           const aggBand = bandFor(avg);
           const aggCol  = bandColor(aggBand);
 
@@ -5839,45 +5800,44 @@ return(
           if (!v10AllocSnap) {
             return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
           }
-          const eq = Math.round((v10AllocSnap.equity_pct||0) * 100);
-          const def = Math.round((v10AllocSnap.defensive_pct||0) * 100);
-          const lev = (v10AllocSnap.leverage||1).toFixed(2);
-          const stance = v10AllocSnap.page_stance || "";
-          const stanceCol = stance === "Risk On" ? "var(--green)" : stance === "Cautious" || stance === "Caution" ? "var(--yellow)" : stance === "Risk Off" ? "var(--red)" : "var(--text-muted)";
-          const sectors = v10AllocSnap.sectors || [];
-          const ow = sectors.filter(s => s.rating === "OW").map(s => s.sector);
-          const uw = sectors.filter(s => s.rating === "UW").map(s => s.sector);
+          // TILT-DIRECTION PREVIEW — top overweights + bottom underweights.
+          // No macro/regime data, no statements of state, no prose summary —
+          // those belong on Macro Overview, not on a tile that says "Asset
+          // Tilt". The home tile mirrors the Asset Tilt page hero pattern.
+          const sectors = (v10AllocSnap.sectors || []).slice();
+          const sorted  = sectors.sort((a,b)=>(b.vs_spy_pp ?? 0)-(a.vs_spy_pp ?? 0));
+          const tops    = sorted.filter(s => (s.vs_spy_pp ?? 0) > 0).slice(0,3);
+          const bots    = sorted.filter(s => (s.vs_spy_pp ?? 0) < 0).slice(-3).reverse();
+          const fmtMag  = v => (v >= 0 ? "+" : "") + Math.round(v) + "%";
+          const rowStyle = {display:"grid", gridTemplateColumns:"1fr 60px", alignItems:"baseline", padding:"6px 0", borderBottom:"1px solid var(--border-faint)", fontSize:13, fontFamily:"var(--font-display)"};
+          const labelStyle = {color:"var(--text)", fontWeight:400};
+          const magStyle = (pos) => ({textAlign:"right", fontFamily:"var(--font-mono)", fontWeight:600, fontSize:13, color: pos ? "var(--accent)" : "var(--text-2)"});
+          const groupHeadStyle = {fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.12em", textTransform:"uppercase", fontWeight:600, marginBottom:6, marginTop:14};
           return (
             <>
-              <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-3)"}}>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:38, fontWeight:600, color:stanceCol, lineHeight:1, letterSpacing:"-0.02em"}}>
-                  {eq}<span style={{fontSize:18, fontWeight:400, color:"var(--text-muted)", marginLeft:4}}>/100</span>
+              <div style={{...groupHeadStyle, marginTop:0}}>Top overweights vs SPY</div>
+              {tops.length === 0 && (
+                <div style={{padding:"6px 0", fontSize:12, color:"var(--text-muted)", fontStyle:"italic"}}>Engine recommendations broadly track the benchmark.</div>
+              )}
+              {tops.map(s => (
+                <div key={s.sector} style={rowStyle}>
+                  <span style={labelStyle}>{s.sector}</span>
+                  <span style={magStyle(true)}>{fmtMag(s.vs_spy_pp ?? 0)}</span>
                 </div>
-                <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase", fontWeight:600}}>
-                  Equity · {stance}
+              ))}
+              <div style={groupHeadStyle}>Top underweights vs SPY</div>
+              {bots.length === 0 && (
+                <div style={{padding:"6px 0", fontSize:12, color:"var(--text-muted)", fontStyle:"italic"}}>—</div>
+              )}
+              {bots.map(s => (
+                <div key={s.sector} style={rowStyle}>
+                  <span style={labelStyle}>{s.sector}</span>
+                  <span style={magStyle(false)}>{fmtMag(s.vs_spy_pp ?? 0)}</span>
                 </div>
-              </div>
-              <div style={{fontFamily:"var(--font-display)", fontSize:14, lineHeight:1.55, color:"var(--text)", marginBottom:"var(--space-4)", paddingBottom:"var(--space-3)", borderBottom:"1px solid var(--border-faint)"}}>
-                {eq}% equity, {def}% defensive, {lev}× leverage. {ow.length > 0 ? "OW: " + ow.slice(0,3).join(", ") : ""}{ow.length > 0 && uw.length > 0 ? " · " : ""}{uw.length > 0 ? "UW: " + uw.slice(0,3).join(", ") : ""}.
-              </div>
-              <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"var(--space-2)"}}>
-                {[
-                  {label:"Equity", value:eq+"%"},
-                  {label:"Defensive", value:def+"%"},
-                  {label:"Leverage", value:lev+"×"},
-                ].map(k => (
-                  <div key={k.label} style={{background:"var(--surface)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"10px 12px"}}>
-                    <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.10em", marginBottom:6, fontWeight:600, textTransform:"uppercase"}}>{k.label}</div>
-                    <div style={{fontFamily:"var(--font-mono)", fontSize:24, fontWeight:600, color:"var(--text)", lineHeight:1}}>{k.value}</div>
-                  </div>
-                ))}
-              </div>
+              ))}
             </>
           );
         })()}
-        <div style={{marginTop:"var(--space-4)", paddingTop:"var(--space-3)", borderTop:"1px solid var(--border-faint)", fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)", letterSpacing:"0.06em", display:"flex", justifyContent:"space-between", alignItems:"center", gap:8}}>
-          <span>Latest calibration · 2012-2026 backtest CAGR 13.85%, Sharpe 1.034</span>
-        </div>
       </div>
 
       {/* 03 · Trading Opportunities — top-of-book names, not just counts */}
