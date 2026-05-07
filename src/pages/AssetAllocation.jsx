@@ -6,6 +6,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import FreshnessDot from "../components/FreshnessDot";
+import { useSortableTable } from "../hooks/useSortableTable";
+import { InfoTip } from "../InfoTip";
 
 const STANCE_COLOR = {
   "Risk On":  "var(--green)",
@@ -555,84 +557,172 @@ function EtfChip({ etf, onClick }) {
   );
 }
 
-function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick }) {
-  const [open, setOpen] = useState(false);
+function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, onIGClick, onEtfClick }) {
+  const [openSectorKey, setOpenSectorKey] = useState(null);
+
+  // Enrich each sector row with perf + vol from sector_perf.json
+  const rows = useMemo(() => sectors.map(sec => {
+    const perf = sectorPerf?.sectors?.[sec.sector] || {};
+    const tiltDollar = sec.dollar * leverage;
+    return {
+      ...sec,
+      tiltDollar,
+      perf_1m: perf.perf_1m ?? null,
+      perf_3m: perf.perf_3m ?? null,
+      perf_ttm: perf.perf_ttm ?? null,
+      vol_ttm: perf.vol_ttm ?? null,
+      proxy: perf.proxy || null,
+    };
+  }), [sectors, leverage, sectorPerf]);
+
+  const cols = [
+    { id: "sector",   label: "Sector",                 align: "left",  sortValue: r => r.sector },
+    { id: "vs_spy",   label: "Tilt vs SPY",            align: "left",  sortValue: r => r.vs_spy_pp },
+    { id: "alloc",    label: "Recommended Allocation", align: "right", sortValue: r => r.tiltDollar },
+    { id: "p1m",      label: "1M",                      align: "right", sortValue: r => r.perf_1m },
+    { id: "p3m",      label: "3M",                      align: "right", sortValue: r => r.perf_3m },
+    { id: "pttm",     label: "TTM",                     align: "right", sortValue: r => r.perf_ttm },
+    { id: "vol",      label: "Vol",                     align: "right", sortValue: r => r.vol_ttm },
+    { id: "rating",   label: "Rating",                  align: "right", sortValue: r => ({ "OW": 2, "MW": 1, "UW": 0 }[r.rating] ?? -1) },
+  ];
+  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({
+    rows, columns: cols, defaultColId: "alloc", defaultDir: "desc",
+  });
+
+  const grid = "1.55fr 1fr 110px 64px 64px 64px 64px 80px";
+  const sortArrow = (id) => sortCol === id ? (sortDir === "asc" ? " ↑" : " ↓") : "";
+
+  // Tooltip copy — plain English, exposed via InfoTip on the perf/vol headers
+  const proxyDef = "Each sector is represented by its primary Select Sector SPDR ETF — Tech is XLK, Financials is XLF, Health Care is XLV, and so on. These are the most-traded sector funds, so the price you see is what an investor would actually capture if they bought the sector.";
+  const returnDef = "Returns are price-only close-to-close (no dividends reinvested). 1M = trailing 21 trading days, 3M = trailing 63, TTM = trailing 252. Total-return numbers (including dividends) would be slightly higher.";
+  const volDef = "Trailing 12-month annualized realized volatility. Standard deviation of daily log returns over the last 252 trading days, scaled to a yearly figure (multiplied by √252). This is the historical realized vol — not implied vol from options.";
+
+  return (
+    <>
+      <div style={{
+        display: "grid", gridTemplateColumns: grid,
+        gap: 10, padding: "12px 14px 10px",
+        fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
+        letterSpacing: "0.06em", textTransform: "uppercase",
+        borderBottom: "0.5px solid var(--border)", background: "var(--surface-2)",
+        alignItems: "center",
+      }}>
+        <div onClick={() => toggleSort("sector")} style={{cursor:"pointer", display:"inline-flex", alignItems:"center", gap:8}}>
+          Equity sectors{sortArrow("sector")}
+          <FreshnessDot indicatorId="v10_allocation" asOfIso={asOf} />
+        </div>
+        <div onClick={() => toggleSort("vs_spy")} style={{cursor:"pointer"}}>Tilt vs SPY{sortArrow("vs_spy")}</div>
+        <div onClick={() => toggleSort("alloc")} style={{textAlign:"right", cursor:"pointer"}}>Recommended Allocation{sortArrow("alloc")}</div>
+        <div onClick={() => toggleSort("p1m")} style={{textAlign:"right", cursor:"pointer"}}>1M{sortArrow("p1m")} <InfoTip def={proxyDef + " " + returnDef} /></div>
+        <div onClick={() => toggleSort("p3m")} style={{textAlign:"right", cursor:"pointer"}}>3M{sortArrow("p3m")} <InfoTip def={proxyDef + " " + returnDef} /></div>
+        <div onClick={() => toggleSort("pttm")} style={{textAlign:"right", cursor:"pointer"}}>TTM{sortArrow("pttm")} <InfoTip def={proxyDef + " " + returnDef} /></div>
+        <div onClick={() => toggleSort("vol")} style={{textAlign:"right", cursor:"pointer"}}>Vol{sortArrow("vol")} <InfoTip def={proxyDef + " " + volDef} /></div>
+        <div onClick={() => toggleSort("rating")} style={{textAlign:"right", cursor:"pointer"}}>Rating{sortArrow("rating")}</div>
+      </div>
+      {sorted.map(s => (
+        <SectorTableRow
+          key={s.sector}
+          sector={s}
+          igs={igs}
+          leverage={leverage}
+          isOpen={openSectorKey === s.sector}
+          onToggle={() => setOpenSectorKey(openSectorKey === s.sector ? null : s.sector)}
+          onSectorClick={onSectorClick}
+          onIGClick={onIGClick}
+          grid={grid}
+        />
+      ))}
+    </>
+  );
+}
+
+function SectorTableRow({ sector, igs, leverage, isOpen, onToggle, onSectorClick, onIGClick, grid }) {
   const sectorIGs = igs.filter(ig => ig.sector === sector.sector);
-  const tilt = sector.dollar * leverage;  // Tilt = leverage-adjusted dollar
-  const sectorEtfs = SECTOR_ETFS[sector.sector] || [];
+  const tilt = sector.tiltDollar;
+  // Tilt-vs-SPY bar — diverging horizontal bar, scaled to ±10% (clamped),
+  // green for OW (positive), red for UW (negative).
+  const vs = sector.vs_spy_pp ?? 0;
+  const fillPct = Math.min(50, Math.abs(vs) / 10 * 50);
+  const tiltColor = vs > 0 ? "var(--green)" : vs < 0 ? "var(--red)" : "var(--text-muted)";
+  const fmtPct = (v) => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+  const fmtVol = (v) => v == null ? "—" : v.toFixed(1) + "%";
   return (
     <div style={{ borderBottom: "0.5px solid var(--border)" }}>
-      <div onClick={() => setOpen(!open)} style={{
-        display: "grid", gridTemplateColumns: "1.6fr 80px 80px 80px",
-        gap: 12, padding: "10px 14px",
+      <div onClick={() => onSectorClick(sector)} style={{
+        display: "grid", gridTemplateColumns: grid,
+        gap: 10, padding: "11px 14px",
         cursor: "pointer", alignItems: "center", fontSize: 13,
       }}
       onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"}
       onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-        <div>
-          <button onClick={(e) => { e.stopPropagation(); onSectorClick(sector); }} style={{
-            background: "transparent", border: "none", padding: 0, font: "inherit",
-            color: "var(--text)", fontWeight: 600, cursor: "pointer",
-          }}>{sector.sector}</button>
-          <span
-            aria-label={open ? "Collapse industry groups" : "Expand industry groups"}
-            style={{
-              display: "inline-flex", alignItems: "center", justifyContent: "center",
-              width: 22, height: 22, marginLeft: 10,
-              borderRadius: 6, fontSize: 11, fontWeight: 600,
-              color: "var(--text-muted)",
-              background: "var(--surface-2)",
-              border: "0.5px solid var(--border)",
-              transition: "transform 0.15s, color 0.15s, border-color 0.15s",
-              transform: open ? "rotate(90deg)" : "rotate(0deg)",
-            }}
-          >▸</span>
+        <div style={{display:"flex", alignItems:"center", gap:8}}>
+          <span style={{ fontWeight: 600 }}>{sector.sector}</span>
+          {sectorIGs.length > 0 && (
+            <span
+              role="button"
+              aria-label={isOpen ? "Collapse industry groups" : "Expand industry groups"}
+              onClick={(e) => { e.stopPropagation(); onToggle(); }}
+              style={{
+                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                width: 22, height: 22, marginLeft: 4,
+                borderRadius: 6, fontSize: 11, fontWeight: 600,
+                color: "var(--text-muted)", background: "var(--surface-2)",
+                border: "0.5px solid var(--border)",
+                transition: "transform 0.15s",
+                transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
+                cursor: "pointer",
+              }}
+            >▸</span>
+          )}
         </div>
-        <div style={{ height: 6, background: "var(--surface-2)", borderRadius: 3, overflow: "hidden" }}>
-          <div style={{
-            height: "100%",
-            width: `${Math.min(100, tilt * 2.5)}%`,
-            background: "var(--accent)",
-          }} />
+        {/* Tilt-vs-SPY diverging bar — bigger, with the % inside */}
+        <div style={{ position: "relative", height: 18, background: "var(--surface-2)", borderRadius: 4 }}>
+          <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:1, background:"var(--border)" }} />
+          {vs >= 0
+            ? <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:`${fillPct}%`, background:tiltColor, opacity:0.8, borderRadius:"0 4px 4px 0" }} />
+            : <div style={{ position:"absolute", right:"50%", top:0, bottom:0, width:`${fillPct}%`, background:tiltColor, opacity:0.8, borderRadius:"4px 0 0 4px" }} />
+          }
+          <div style={{ position:"absolute", left:0, right:0, top:0, bottom:0, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600, color:"var(--text)" }}>
+            {vs > 0 ? "+" : ""}{vs.toFixed(1)}%
+          </div>
         </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right" }}>
-          ${tilt.toFixed(2)}
-        </div>
-        <div style={{
-          fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right",
-          color: Math.abs(sector.vs_spy_pp ?? 0) < 0.5 ? "var(--text-muted)"
-                 : Math.abs(sector.vs_spy_pp ?? 0) < 2   ? "rgba(14,85,96,0.55)"
-                 : Math.abs(sector.vs_spy_pp ?? 0) < 5   ? "rgba(14,85,96,0.80)"
-                 :                                         "var(--accent)",
-        }}>
-          {sector.vs_spy_pp > 0 ? "+" : ""}{sector.vs_spy_pp}%
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, textAlign: "right" }}>${tilt.toFixed(2)}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: sector.perf_1m == null ? "var(--text-muted)" : sector.perf_1m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(sector.perf_1m)}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: sector.perf_3m == null ? "var(--text-muted)" : sector.perf_3m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(sector.perf_3m)}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: sector.perf_ttm == null ? "var(--text-muted)" : sector.perf_ttm < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(sector.perf_ttm)}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: "var(--text-2)" }}>{fmtVol(sector.vol_ttm)}</div>
+        <div style={{ textAlign: "right" }}>
+          <span style={{
+            display: "inline-block", padding: "3px 9px", fontSize: 10, fontWeight: 600,
+            background: RATING_BG[sector.rating], color: RATING_TEXT[sector.rating],
+            borderRadius: 999,
+          }}>{sector.rating}</span>
         </div>
       </div>
-      {open && sectorIGs.map(ig => {
-        const igTilt = ig.dollar * leverage;
+      {isOpen && sectorIGs.map(ig => {
+        const igTilt = (ig.dollar || 0) * leverage;
         return (
           <div key={ig.id} onClick={(e) => { e.stopPropagation(); onIGClick(ig); }} style={{
-            display: "grid", gridTemplateColumns: "1.6fr 80px 80px 80px", gap: 12,
+            display: "grid", gridTemplateColumns: grid, gap: 10,
             padding: "8px 14px 8px 36px", fontSize: 12,
             background: "var(--surface-2)", borderTop: "0.5px dotted var(--border)",
             alignItems: "center", cursor: "pointer",
           }}>
-            <div>
-              <strong style={{ color: "var(--text)" }}>{ig.name}</strong>
+            <div><strong>{ig.name}</strong></div>
+            <div style={{ position:"relative", height:10, background:"var(--bg)", borderRadius:3 }}>
+              <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:1, background:"var(--border)" }} />
+              {(ig.vs_spy_pp ?? 0) >= 0
+                ? <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:`${Math.min(50, Math.abs(ig.vs_spy_pp ?? 0) / 5 * 50)}%`, background:"var(--green)", opacity:0.8, borderRadius:"0 3px 3px 0" }} />
+                : <div style={{ position:"absolute", right:"50%", top:0, bottom:0, width:`${Math.min(50, Math.abs(ig.vs_spy_pp ?? 0) / 5 * 50)}%`, background:"var(--red)", opacity:0.8, borderRadius:"3px 0 0 3px" }} />
+              }
             </div>
-            <div style={{ height: 4, background: "var(--bg)", borderRadius: 2, overflow: "hidden" }}>
-              <div style={{ height: "100%", width: `${Math.min(100, igTilt * 5)}%`, background: "var(--accent)" }} />
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right" }}>
-              ${igTilt.toFixed(2)}
-            </div>
-            <div style={{
-              fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right",
-              color: ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 2 ? "var(--accent)"
-                     : ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 0.5 ? "rgba(14,85,96,0.65)"
-                     : "var(--text-muted)",
-            }}>
-              {ig.vs_spy_pp != null ? `${ig.vs_spy_pp > 0 ? "+" : ""}${ig.vs_spy_pp}%` : "—"}
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right" }}>${igTilt.toFixed(2)}</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right", color: "var(--text-muted)" }}>—</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right", color: "var(--text-muted)" }}>—</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right", color: "var(--text-muted)" }}>—</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right", color: "var(--text-muted)" }}>—</div>
+            <div style={{ textAlign: "right" }}>
+              <span style={{ display:"inline-block", padding:"2px 7px", fontSize:9, fontWeight:600, background:RATING_BG[ig.rating], color:RATING_TEXT[ig.rating], borderRadius:999 }}>{ig.rating}</span>
             </div>
           </div>
         );
@@ -1007,7 +1097,7 @@ export function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBa
 }
 
 
-function HeatmapTile({ contributionMatrix }) {
+function HeatmapTile({ contributionMatrix, mechanismScores }) {
   if (!contributionMatrix) return null;
   const sectors = contributionMatrix.cols_sectors;
   const mechs = contributionMatrix.rows;
@@ -1042,33 +1132,23 @@ function HeatmapTile({ contributionMatrix }) {
               <th style={{ padding: "8px 12px", textAlign: "left", fontWeight: 500, background: "var(--surface-2)" }}>
                 Cycle mechanism
               </th>
-              {sectors.map(s => {
-                const SHORT = {
-                  "Information Technology": "Tech",
-                  "Communication Services": "Comm",
-                  "Financials": "Fin",
-                  "Health Care": "Health",
-                  "Consumer Discretionary": "Disc",
-                  "Industrials": "Indl",
-                  "Consumer Staples": "Stap",
-                  "Energy": "Energy",
-                  "Materials": "Mat",
-                  "Real Estate": "RE",
-                  "Utilities": "Util",
-                };
-                return (
-                  <th key={s} title={s} style={{ padding: "8px 6px", textAlign: "center", fontWeight: 500, fontFamily: "var(--font-display)", fontSize: 11, background: "var(--surface-2)" }}>
-                    {SHORT[s] || s}
-                  </th>
-                );
-              })}
+              {sectors.map(s => (
+                <th key={s} title={s} style={{ padding: "10px 4px 6px", verticalAlign:"bottom", textAlign:"center", fontWeight:500, fontFamily:"var(--font-display)", fontSize:11, background:"var(--surface-2)", height: 130 }}>
+                  <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", margin: "0 auto", color:"var(--text)" }}>{s}</div>
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {mechs.map(m => (
               <tr key={m}>
                 <td style={{ padding: "5px 12px", fontWeight: 500, fontSize: 12 }}>
-                  {MECH_LABEL[m]}
+                  <span style={{ color: "var(--text)" }}>{MECH_LABEL[m]}</span>
+                  {mechanismScores && mechanismScores[m] != null && (
+                    <span style={{ marginLeft: 8, fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>
+                      {Math.round(mechanismScores[m])} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>/ 100</span>
+                    </span>
+                  )}
                 </td>
                 {sectors.map(s => {
                   const v = contributionMatrix.by_sector[s]?.[m] ?? 0;
@@ -1100,12 +1180,15 @@ export default function AssetTilt({ onOpenTicker }) {
   const [mechModal, setMechModal] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
+  const [sectorPerf, setSectorPerf] = useState(null);
 
   useEffect(() => {
     fetch("/cycle_board_snapshot.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setCycleBoard).catch(() => setCycleBoard(null));
     fetch("/v10_allocation.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setV10).catch(() => setV10(null));
+    fetch("/sector_perf.json", { cache: "no-cache" })
+      .then(r => r.ok ? r.json() : null).then(setSectorPerf).catch(() => setSectorPerf(null));
   }, []);
 
   const stance = v10?.page_stance;
@@ -1141,99 +1224,75 @@ export default function AssetTilt({ onOpenTicker }) {
 
   return (
     <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 32px 48px" }}>
-      {/* HERO — Recommended Positioning + methodology paragraph. Joe directive
-          2026-05-07: drop the "X points out of Tech" headline, show 3
-          positioning tiles, surface methodology paragraph at the top. */}
-      <section style={{ marginBottom: 18 }}>
-        <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 12 }}>
-          Asset Tilt · Recommended Positioning
+      {/* HERO — Joe directive 2026-05-07: Goal · Engine · Calibration · Results.
+          Sleek brand block; methodology link at the bottom. */}
+      <section style={{ marginBottom: 22 }}>
+        <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 10 }}>
+          Asset Tilt
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 18 }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, margin: "0 0 18px", letterSpacing: "-0.018em", lineHeight: 1.18, color: "var(--text)" }}>
+          Designed to beat the S&P 500 on a risk-adjusted basis.
+        </h1>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
+          <div style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 10, padding: "16px 18px" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>Goal</div>
+            <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
+              A back-tested model that seeks to beat the S&P 500 on a risk-adjusted basis over the long run.
+            </div>
+          </div>
+          <div style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 10, padding: "16px 18px" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>The Engine</div>
+            <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
+              Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway — e.g., max leverage 150%, max defensive 50%.
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
           {[
-            { label: "Leverage",          value: lev.toFixed(2) + "×",                            sub: "gross " + grossDollar.toFixed(0) + "% of capital" },
-            { label: "Equity allocation", value: Math.round((v10.equity_pct || 0) * 100) + "%",   sub: "across 11 GICS sectors" },
-            { label: "Defensive sleeve",  value: Math.round((v10.defensive_pct || 0) * 100) + "%", sub: defensiveActive ? "BIL · TLT · GLD · LQD" : "armed · not yet activating" },
+            { label: "CAGR",          value: "13.85%",      sub: "vs SPY 11.61% over 2012–2026" },
+            { label: "Sharpe",        value: "1.034",        sub: "annual, risk-free Fed funds" },
+            { label: "Max drawdown",  value: "−20.81%",     sub: "peak-to-trough, 2012–2026" },
+            { label: "Calibration",   value: "Jan 2012",    sub: "through May 2026" },
           ].map(t => (
             <div key={t.label} style={{
               background: "var(--surface)", border: "0.5px solid var(--border)",
-              borderRadius: 10, padding: "16px 18px",
+              borderRadius: 10, padding: "14px 16px",
               display: "flex", flexDirection: "column",
             }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
                 {t.label}
               </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 32, fontWeight: 600, color: "var(--accent)", lineHeight: 1, letterSpacing: "-0.015em" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 600, color: "var(--text)", lineHeight: 1.05, letterSpacing: "-0.015em" }}>
                 {t.value}
               </div>
-              <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.4 }}>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.35 }}>
                 {t.sub}
               </div>
             </div>
           ))}
         </div>
-        <div style={{ padding: "16px 20px", background: "var(--surface-2)", border: "0.5px solid var(--border)", borderRadius: 10, fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
-          The engine reads the six cycle mechanisms from Macro Overview and applies backtested decision rules.
-          Hard caps: defensive ≤ 50%, leverage ≤ 1.5×.
-          Calibration (2026-05-04) backtests CAGR 13.85%, Sharpe 1.034, max drawdown −20.81% over 2012-2026.{" "}
-          <a href="#methodology" style={{ color: "var(--accent)", fontWeight: 500 }}>Read the full methodology →</a>
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+          <a href="#methodology" style={{ fontSize: 13, fontWeight: 500, color: "var(--accent)" }}>Read the full methodology →</a>
         </div>
       </section>
 
-      {/* Asset Tilt does NOT show macro reads — this is a pure deep-link to Macro Overview.
-          Cycle / mechanism / regime data belongs on the Macro Overview tab (single source of truth).
-          See LESSONS rule: 'Macro Overview data belongs only on Macro Overview'. */}
-      <div style={{ margin: "8px 0 24px", display: "flex", justifyContent: "flex-end" }}>
-        <a
-          href="#overview"
-          style={{
-            fontSize: 13, fontWeight: 500, color: "var(--accent)",
-            letterSpacing: "0.04em", textDecoration: "none",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
-        >
-          See the cycle on Macro Overview →
-        </a>
-      </div>
 
-
-      {/* No banal "Recommended Asset Tilt — per $100..." header, no
-          equity/leverage/defensive summary bar — both statements of state with
-          zero tilt-direction signal. The freshness chip moves into the table
-          header below; substance starts at the equity sector list. */}
+      {/* Equity sector table — sortable, with 1M/3M/TTM/Vol columns and a
+          larger Tilt-vs-SPY bar. Joe directive 2026-05-07. */}
       <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
-        {/* Equity sector header (freshness chip rides on this row now that the
-            old summary bar is gone). */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "1.6fr 80px 80px 80px",
-          gap: 12, padding: "12px 14px 10px",
-          fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
-          letterSpacing: "0.06em", textTransform: "uppercase",
-          borderBottom: "0.5px solid var(--border)", background: "var(--surface-2)",
-          alignItems: "center",
-        }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-            Equity sectors · click name or ETF for detail · click row to expand IGs
-            <FreshnessDot indicatorId="v10_allocation" asOfIso={v10.as_of} />
-          </div>
-          <div>Visual</div>
-          <div style={{ textAlign: "right" }}>Tilt</div>
-          <div style={{ textAlign: "right" }}>vs SPY · Rating</div>
-        </div>
-        {v10.sectors.map(s => (
-          <SectorRow
-            key={s.sector}
-            sector={s}
-            igs={v10.industry_groups}
-            leverage={lev}
-            onSectorClick={setSectorModal}
-            onIGClick={setIgModal}
-            onEtfClick={(e) => onOpenTicker(e.t || e)}
-          />
-        ))}
+        <SectorTable
+          sectors={v10.sectors}
+          igs={v10.industry_groups}
+          leverage={lev}
+          asOf={v10.as_of}
+          sectorPerf={sectorPerf}
+          onSectorClick={setSectorModal}
+          onIGClick={setIgModal}
+          onEtfClick={(e) => onOpenTicker(e.t || e)}
+        />
         {/* Defensive sleeve header */}
         <div style={{
-          display: "grid", gridTemplateColumns: "1.6fr 80px 80px 80px",
+          display: "grid", gridTemplateColumns: "1.6fr 1fr 110px 80px",
           gap: 12, padding: "10px 14px",
           fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
           letterSpacing: "0.06em", textTransform: "uppercase",
@@ -1241,8 +1300,8 @@ export default function AssetTilt({ onOpenTicker }) {
           background: "var(--surface-2)",
         }}>
           <div>Defensive sleeve · 4 buckets, equal-weight when active</div>
-          <div>Visual</div>
-          <div style={{ textAlign: "right" }}>Tilt</div>
+          <div>Tilt vs SPY</div>
+          <div style={{ textAlign: "right" }}>Recommended Allocation</div>
           <div style={{ textAlign: "right" }}>State</div>
         </div>
         {DEFENSIVE_BUCKETS.map(b => (
@@ -1250,11 +1309,11 @@ export default function AssetTilt({ onOpenTicker }) {
         ))}
         {/* Total row */}
         <div style={{
-          display: "grid", gridTemplateColumns: "1.6fr 80px 80px 80px",
+          display: "grid", gridTemplateColumns: "1.6fr 1fr 110px 80px",
           gap: 12, padding: "12px 14px", fontSize: 13, fontWeight: 600,
           background: "var(--surface-2)",
         }}>
-          <div>Total tilt (equity × leverage + defensive)</div>
+          <div>Total recommended allocation (equity × leverage + defensive)</div>
           <div></div>
           <div style={{ fontFamily: "var(--font-mono)", textAlign: "right" }}>${grossDollar.toFixed(2)}</div>
           <div style={{ fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", fontWeight: 400 }}>
@@ -1269,7 +1328,7 @@ export default function AssetTilt({ onOpenTicker }) {
           Which mechanisms are tailwinds vs headwinds for each sector right now?
         </h2>
       </div>
-      <HeatmapTile contributionMatrix={v10.contribution_matrix} />
+      <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} />
 
       {/* Bottom methodology footer killed 2026-05-07 — methodology paragraph
           is now in the hero at the top of the page. */}

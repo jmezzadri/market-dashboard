@@ -1,0 +1,111 @@
+{
+  "as_of": "2026-05-07T22:41:12+00:00",
+  "version": "v1",
+  "method": {
+    "proxy": "Primary Select Sector SPDR ETF per GICS sector \u2014 Tech \u2192 XLK, Communication Services \u2192 XLC, Financials \u2192 XLF, Health Care \u2192 XLV, Consumer Discretionary \u2192 XLY, Industrials \u2192 XLI, Consumer Staples \u2192 XLP, Energy \u2192 XLE, Materials \u2192 XLB, Real Estate \u2192 XLRE, Utilities \u2192 XLU.",
+    "returns": "Price-only adjusted close, close-to-close. 1M = trailing 21 trading days, 3M = trailing 63, TTM = trailing 252.",
+    "volatility": "Annualized realized vol = stdev of daily log returns over the trailing 252 trading days \u00d7 sqrt(252). Standard realized-vol convention.",
+    "source": "Yahoo Finance daily adjusted close."
+  },
+  "sectors": {
+    "Information Technology": {
+      "perf_1m": 19.76,
+      "perf_3m": 25.27,
+      "perf_ttm": 59.74,
+      "vol_ttm": 20.6,
+      "proxy": "XLK",
+      "last_close": 169.69,
+      "last_date": "2026-05-07"
+    },
+    "Communication Services": {
+      "perf_1m": 3.14,
+      "perf_3m": 1.33,
+      "perf_ttm": 21.72,
+      "vol_ttm": 13.2,
+      "proxy": "XLC",
+      "last_close": 117.38,
+      "last_date": "2026-05-07"
+    },
+    "Financials": {
+      "perf_1m": 0.68,
+      "perf_3m": -2.77,
+      "perf_ttm": 6.48,
+      "vol_ttm": 14.6,
+      "proxy": "XLF",
+      "last_close": 51.55,
+      "last_date": "2026-05-07"
+    },
+    "Health Care": {
+      "perf_1m": -3.31,
+      "perf_3m": -6.15,
+      "perf_ttm": 9.66,
+      "vol_ttm": 15.4,
+      "proxy": "XLV",
+      "last_close": 144.72,
+      "last_date": "2026-05-07"
+    },
+    "Consumer Discretionary": {
+      "perf_1m": 8.18,
+      "perf_3m": 2.22,
+      "perf_ttm": 22.33,
+      "vol_ttm": 18.7,
+      "proxy": "XLY",
+      "last_close": 119.88,
+      "last_date": "2026-05-07"
+    },
+    "Industrials": {
+      "perf_1m": 2.09,
+      "perf_3m": 3.63,
+      "perf_ttm": 32.12,
+      "vol_ttm": 15.6,
+      "proxy": "XLI",
+      "last_close": 174.0,
+      "last_date": "2026-05-07"
+    },
+    "Consumer Staples": {
+      "perf_1m": 1.45,
+      "perf_3m": -2.84,
+      "perf_ttm": 6.09,
+      "vol_ttm": 12.6,
+      "proxy": "XLP",
+      "last_close": 83.98,
+      "last_date": "2026-05-07"
+    },
+    "Energy": {
+      "perf_1m": -3.62,
+      "perf_3m": 7.86,
+      "perf_ttm": 43.43,
+      "vol_ttm": 20.1,
+      "proxy": "XLE",
+      "last_close": 55.95,
+      "last_date": "2026-05-07"
+    },
+    "Materials": {
+      "perf_1m": -0.68,
+      "perf_3m": 2.23,
+      "perf_ttm": 25.24,
+      "vol_ttm": 16.6,
+      "proxy": "XLB",
+      "last_close": 51.4,
+      "last_date": "2026-05-07"
+    },
+    "Real Estate": {
+      "perf_1m": 4.62,
+      "perf_3m": 8.41,
+      "perf_ttm": 10.47,
+      "vol_ttm": 13.8,
+      "proxy": "XLRE",
+      "last_close": 44.4,
+      "last_date": "2026-05-07"
+    },
+    "Utilities": {
+      "perf_1m": -3.55,
+      "perf_3m": 5.42,
+      "perf_ttm": 15.26,
+      "vol_ttm": 14.3,
+      "proxy": "XLU",
+      "last_close": 45.12,
+      "last_date": "2026-05-07"
+    }
+  }
+}
