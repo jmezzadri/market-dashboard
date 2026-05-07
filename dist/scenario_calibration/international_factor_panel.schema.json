@@ -1,0 +1,67 @@
+{
+  "version": "1.1-stub",
+  "status": "deferred",
+  "note": "International CCAR variables (12) deferred to v1.1 per Joe directive 2026-04-27. Schema reserved for forward compatibility.",
+  "international_factors": [
+    {
+      "id": "euro_real_gdp",
+      "name": "Eurozone real GDP",
+      "cadence": "Q"
+    },
+    {
+      "id": "euro_cpi",
+      "name": "Eurozone CPI",
+      "cadence": "Q"
+    },
+    {
+      "id": "euro_unemployment",
+      "name": "Eurozone unemployment",
+      "cadence": "Q"
+    },
+    {
+      "id": "uk_real_gdp",
+      "name": "UK real GDP",
+      "cadence": "Q"
+    },
+    {
+      "id": "uk_cpi",
+      "name": "UK CPI",
+      "cadence": "Q"
+    },
+    {
+      "id": "japan_real_gdp",
+      "name": "Japan real GDP",
+      "cadence": "Q"
+    },
+    {
+      "id": "japan_cpi",
+      "name": "Japan CPI",
+      "cadence": "Q"
+    },
+    {
+      "id": "china_real_gdp",
+      "name": "China real GDP",
+      "cadence": "Q"
+    },
+    {
+      "id": "asia_dev_real_gdp",
+      "name": "Developing Asia real GDP",
+      "cadence": "Q"
+    },
+    {
+      "id": "fx_eur_usd",
+      "name": "EUR/USD",
+      "cadence": "W"
+    },
+    {
+      "id": "fx_gbp_usd",
+      "name": "GBP/USD",
+      "cadence": "W"
+    },
+    {
+      "id": "fx_jpy_usd",
+      "name": "JPY/USD",
+      "cadence": "W"
+    }
+  ]
+}

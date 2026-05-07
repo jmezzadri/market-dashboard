@@ -6910,7 +6910,7 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
     Zero changes to live SectorsTab. Promotion = move one render line. */}
 {tab==="lab" && <SectorLab/>}
 {tab==="scenarios" && V2_ENABLED && <ScenariosPageV2 />}
-{tab==="scenarios" && !V2_ENABLED && <ScenarioAnalysis/>}
+{tab==="scenarios" && !V2_ENABLED && <ScenarioAnalysis onOpenTicker={(t)=>setTickerDetail(t)}/>}
 
 {/* Unified Data & Methodology page — one searchable tile per upstream
     data stream (25 macro indicators + 8 scanner signals + 3 infra streams).
