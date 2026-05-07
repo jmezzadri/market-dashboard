@@ -602,7 +602,7 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
           fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right",
           color: sector.vs_spy_pp > 0 ? "var(--green)" : sector.vs_spy_pp < 0 ? "var(--red)" : "var(--text-muted)",
         }}>
-          {sector.vs_spy_pp > 0 ? "+" : ""}{sector.vs_spy_pp}pp {sector.rating}
+          {sector.vs_spy_pp > 0 ? "+" : ""}{sector.vs_spy_pp}% {sector.rating}
         </div>
       </div>
       {open && sectorIGs.map(ig => {
@@ -811,7 +811,7 @@ function AllocationChart({ macroTiltWeight, benchmarkWeight, benchmarkLabel = "S
           fontSize: 12, fontWeight: 600, color: deltaCol,
           fontVariantNumeric: "tabular-nums",
         }}>
-          {delta >= 0 ? "+" : ""}{(delta * 100).toFixed(1)}pp
+          {delta >= 0 ? "+" : ""}{(delta * 100).toFixed(1)}%
         </div>
       </div>
       {[
@@ -914,7 +914,7 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
   return (
     <ModalShell
       title={sector.sector}
-      subtitle={`Sector · ${sector.rating === "OW" ? "Overweight" : sector.rating === "UW" ? "Underweight" : "Market weight"} · $${sector.dollar.toFixed(2)} of $100 capital · vs SPY ${sector.vs_spy_pp >= 0 ? "+" : ""}${sector.vs_spy_pp}pp`}
+      subtitle={`Sector · ${sector.rating === "OW" ? "Overweight" : sector.rating === "UW" ? "Underweight" : "Market weight"} · $${sector.dollar.toFixed(2)} of $100 capital · vs SPY ${sector.vs_spy_pp >= 0 ? "+" : ""}${sector.vs_spy_pp}%`}
       badge={<span style={{
         background: RATING_BG[sector.rating], color: RATING_TEXT[sector.rating],
         fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 999,

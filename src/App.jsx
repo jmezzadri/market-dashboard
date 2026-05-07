@@ -1852,12 +1852,12 @@ const COMPOSITE_MAP = {
 };
 
 const COMPOSITE_TOOLTIPS = {
-  "Valuation":              "Valuation cycle mechanism (Sprint 1 LIVE). How richly is the equity market priced relative to its history? Inputs: CAPE, Equity Risk Premium, Buffett Indicator.",
-  "Credit":                 "Credit cycle mechanism (Sprint 1 LIVE). What compensation are investors demanding for corporate-credit risk? Bidirectional read — extreme tightness = complacency, extreme widening = stress. Inputs: IG OAS, HY OAS, HY/IG ratio.",
-  "Funding":                "Funding cycle mechanism (Sprint 2 placeholder). Bank-system funding stress. Greyed on the Macro Overview board until Sprint 2 ships. Inputs: SOFR-OIS, FRA-OIS, CDX basis, x-currency basis, CP-FedFunds.",
-  "Growth":                 "Growth cycle mechanism (Sprint 1 LIVE). How fast is the real economy moving and is it deteriorating? Fires only when indicators are simultaneously extreme AND worsening. Inputs: CFNAI 3-month, IC4WSA jobless, ISM, BKX/SPX.",
-  "Liquidity & Policy":     "Liquidity & Policy cycle mechanism (Sprint 4 placeholder). Bidirectional — tight = cycle peak, ultra-loose = policy reflation. Greyed on the Macro Overview board. Inputs: ANFCI, real Fed funds, M2 YoY, term premium, Fed B/S.",
-  "Positioning & Breadth":  "Positioning & Breadth cycle mechanism (Sprint 4 placeholder). Bidirectional — euphoria + narrow breadth and capitulation + breadth-thrust both read as concerning. Greyed on the Macro Overview board. Inputs: NAAIM, margin debt YoY, put/call, % above 200dma, advance-decline.",
+  "Valuation":              "Valuation cycle mechanism. How richly is the equity market priced relative to its history? Inputs: CAPE, Equity Risk Premium, Buffett Indicator.",
+  "Credit":                 "Credit cycle mechanism. What compensation are investors demanding for corporate-credit risk? Bidirectional read — extreme tightness = complacency, extreme widening = stress. Inputs: IG OAS, HY OAS, HY/IG ratio.",
+  "Funding":                "Funding cycle mechanism. Bank-system funding stress. Inputs: SOFR-OIS, FRA-OIS, CDX basis, x-currency basis, CP-FedFunds.",
+  "Growth":                 "Growth cycle mechanism. How fast is the real economy moving and is it deteriorating? Fires only when indicators are simultaneously extreme AND worsening. Inputs: CFNAI 3-month, IC4WSA jobless, ISM, BKX/SPX.",
+  "Liquidity & Policy":     "Liquidity & Policy cycle mechanism. Bidirectional — tight = cycle peak, ultra-loose = policy reflation. Inputs: ANFCI, real Fed funds, M2 YoY, term premium, Fed B/S.",
+  "Positioning & Breadth":  "Positioning & Breadth cycle mechanism. Bidirectional — euphoria + narrow breadth and capitulation + breadth-thrust both read as concerning. Inputs: NAAIM, margin debt YoY, put/call, % above 200dma, advance-decline.",
 };
 
 // Lead/Coincident/Lag classification (Senior Quant + Conference Board / NBER convention).
@@ -2238,7 +2238,7 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
                 <Th k="label"     label="Indicator" />
                 <Th k="category"  label="Category" />
                 <Th k="freq"      label="Freq" align="center" width={60} tip="D = Daily · W = Weekly · M = Monthly · Q = Quarterly. The release cadence of the upstream source." />
-                <Th k="composite" label="Mechanism" tip="The v11 cycle mechanism this indicator feeds. Sprint 1 LIVE: Valuation, Credit, Growth. Sprint 2 placeholder: Funding. Sprint 4 placeholders: Liquidity & Policy, Positioning & Breadth. Watch List = displayed for context but not in any tile rule." />
+                <Th k="composite" label="Mechanism" tip="The cycle mechanism this indicator feeds. Watch List = displayed for context but not in any tile rule." />
                 <Th k="type"      label="Type" align="center" tip="Lead = moves before the cycle (Conference Board convention). Coincident = moves with the cycle. Lag = moves after." />
                 <Th k="asof"      label="Last refresh" tip="Date the most recent observation was posted by the source. Daily refresh runs at market close." />
                 <Th k="cur"       label="Current" align="right" />
@@ -4716,7 +4716,7 @@ const TAB_IDS=["home","overview","indicators","allocation","portopps","insights"
 
 // Map tabs → human metadata for the Shell SectionHeader
 const TAB_META={
-  overview:  {eyebrow:"Macro Overview",       title:"Macro Overview",          sub:"Six v11 cycle mechanisms — Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth — read individually and counted. Headline gauge: 0-1 elevated = Constructive, 2 = Watchful, 3 = Defensive setup forming, 4+ = High-conviction defensive."},
+  overview:  {eyebrow:"Macro Overview",       title:"Macro Overview",          sub:"Six cycle mechanisms — Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth — read individually and counted. Headline gauge: 0-1 elevated = Constructive, 2 = Watchful, 3 = Defensive setup forming, 4+ = High-conviction defensive."},
   indicators:{eyebrow:"All Indicators",       title:"Calibrated indicators",sub:"Each indicator is normalized against its long-run mean and standard deviation. Filter by category."},
   allocation:{eyebrow:"Asset Tilt",            title:"Asset Tilt",              sub:"Equity exposure, industry-group overweights, safe-haven sleeve, and risk scenarios — anchored to a $100 illustrative portfolio."},
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"The unfiltered daily scan plus your watchlist — scored on five signal sources."},
@@ -5819,7 +5819,7 @@ return(
           color:"var(--text-dim)", letterSpacing:"0.06em",
           display:"flex", justifyContent:"space-between", alignItems:"center", gap:8,
         }}>
-          <span>{cycleBoardSnap?.calibration_label || "Sprint 1 calibration"} · framework v11</span>
+          <span>{cycleBoardSnap?.calibration_label || "Latest calibration"}</span>
           <a onClick={()=>navTo("overview")} style={{
             color:"var(--accent)", cursor:"pointer", fontWeight:600,
           }}>Open dial board, indicator drill-downs →</a>
@@ -6338,7 +6338,7 @@ return(
 <div style={{maxWidth:1240,margin:"0 auto",padding:"14px 24px 6px",display:"flex",alignItems:"center",gap:8,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
   <span style={{color:"var(--accent)"}}>Data freshness</span>
   <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoardSnap?.as_of||null}/>
-  <span style={{color:"var(--text-dim)"}}>· v11 cycle board</span>
+  <span style={{color:"var(--text-dim)"}}>· cycle board</span>
 </div>
 <iframe
   src="/MacroTilt_Macro_Overview_Page_v11.html"
@@ -6372,10 +6372,10 @@ return(
     stance={`${_indCount} INDICATORS`}
     stanceColor="strong"
     freshLine={"Auto-refresh · last poll <6 min ago"}
-    lead={<>Every macro indicator the model uses to score regime stress — <strong style={{fontWeight:600,color:"var(--text)"}}>{_indCount} calibrated series</strong> feeding the v11 cycle mechanisms (Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth). Each is normalized against its long-run mean and standard deviation, then weighted by predictive power (<strong style={{fontWeight:600,color:"var(--text)"}}>AUC for S&amp;P −15% drawdowns</strong>) inside its mechanism. Hover any row for source, formula, current reading, and meaning. Filter by category at the top. Click a row to open the full indicator detail.</>}
+    lead={<>Every macro indicator the model uses to score regime stress — <strong style={{fontWeight:600,color:"var(--text)"}}>{_indCount} calibrated series</strong> feeding the six cycle mechanisms (Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth). Each is normalized against its long-run mean and standard deviation, then weighted by predictive power (<strong style={{fontWeight:600,color:"var(--text)"}}>AUC for S&amp;P −15% drawdowns</strong>) inside its mechanism. Hover any row for source, formula, current reading, and meaning. Filter by category at the top. Click a row to open the full indicator detail.</>}
     kpis={[
       {lbl:"Indicators", v:_indCount, sub:"total tracked"},
-      {lbl:"In mechanisms", v:_weightedCount, col:"var(--green-text)", sub:`feed v11 cycle mechanisms · ${_refCount} reference-only`},
+      {lbl:"In mechanisms", v:_weightedCount, col:"var(--green-text)", sub:`feed cycle mechanisms · ${_refCount} reference-only`},
       {lbl:"Sources", v:"8", sub:"FRED · Fed · ICE BofA · ISM · BLS · Shiller…"},
       {lbl:"Categories", v:_catCount, sub:"Equity & Vol, Credit, Rates…"},
     ]}
@@ -7070,7 +7070,7 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
 
 <Footer
   leftText={tab==="portopps"?"SOURCES · FRED · CBOE · ICE BofA · Unusual Whales · Yahoo Finance · SEC Form 4 · Congressional Disclosures":"SOURCES · FRED · CBOE · ICE BofA · FDIC · ISM · BLS · Shiller · Kim-Wright Fed · SLOOS Fed"}
-  rightText="⚠ NOT INVESTMENT ADVICE · v10"
+  rightText="⚠ NOT INVESTMENT ADVICE"
 />
 
 </div>{/* close .app-main */}

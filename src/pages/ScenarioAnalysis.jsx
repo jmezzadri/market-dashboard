@@ -729,7 +729,7 @@ export default function ScenarioAnalysis() {
       <div className="scenarios-page">
         <div className="demo-banner">
           <b>Scenario Analysis v2</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
-          <b>L1–L3 demo math</b> uses sector loadings empirically refit against 2006–2026 monthly factor history (Senior Quant rebuild, 2026-04-28 — fixes Bug #1108 directional sign error on Energy under inflation). <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> shows live v9 engine output for canned scenarios — picks come from the production optimizer fed a stressed factor panel. Out-of-sample accuracy gates land in Sprint 3.
+          <b>L1–L3 math</b> uses sector loadings refit against 2006–2026 monthly factor history. <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> shows live engine output for historical scenarios — picks come from the production optimizer fed a stressed factor panel.
         </div>
 
 
