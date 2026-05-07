@@ -408,7 +408,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
           <span style={{
             display:"inline-flex", alignItems:"center", gap:6,
             fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
-            background:"var(--surface-solid, var(--paper, #fff))",
+            background:"var(--surface-solid)",
             border:"1px solid var(--border)",
             color:"var(--text)",
             padding:"4px 10px", borderRadius:14,
@@ -422,7 +422,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
             <span key={c} style={{
               display:"inline-flex", alignItems:"center", gap:6,
               fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
-              background:"var(--surface-solid, var(--paper, #fff))",
+              background:"var(--surface-solid)",
               border:"1px solid var(--border)",
               color:"var(--text)",
               padding:"4px 6px 4px 10px", borderRadius:14,
@@ -494,7 +494,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
             return (
               <div ref={pickerRef} style={{
                 position:"absolute", top:"100%", right:0, marginTop:6,
-                background:"var(--surface-solid, var(--paper, #fff))",
+                background:"var(--surface-solid)",
                 border:"1px solid var(--border)",
                 borderRadius:"var(--radius-xs, 6px)",
                 boxShadow:"var(--shadow-md)",

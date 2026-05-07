@@ -437,9 +437,9 @@ function bandLabel(b) {
 }
 function flowColor(f) {
   if (!f) return "var(--text-muted)";
-  if (f.includes("strong inflow")) return "var(--green, var(--green))";
-  if (f.includes("inflow")) return "var(--green, var(--green))";
-  if (f.includes("outflow")) return "var(--red, var(--red))";
+  if (f.includes("strong inflow")) return "var(--green)";
+  if (f.includes("inflow")) return "var(--green)";
+  if (f.includes("outflow")) return "var(--red)";
   return "var(--text-muted)";
 }
 
@@ -544,11 +544,19 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
           {sectorEtfs.map(e => (
             <EtfChip key={e.t} etf={e} onClick={onEtfClick} />
           ))}
-          <span style={{
-            display: "inline-block", marginLeft: 6, fontSize: 10,
-            transition: "transform 0.15s",
-            transform: open ? "rotate(90deg)" : "rotate(0deg)",
-          }}>▸</span>
+          <span
+            aria-label={open ? "Collapse industry groups" : "Expand industry groups"}
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              width: 22, height: 22, marginLeft: 10,
+              borderRadius: 6, fontSize: 11, fontWeight: 600,
+              color: "var(--text-muted)",
+              background: "var(--surface-2)",
+              border: "0.5px solid var(--border)",
+              transition: "transform 0.15s, color 0.15s, border-color 0.15s",
+              transform: open ? "rotate(90deg)" : "rotate(0deg)",
+            }}
+          >▸</span>
         </div>
         <div style={{ height: 6, background: "var(--surface-2)", borderRadius: 3, overflow: "hidden" }}>
           <div style={{
@@ -562,7 +570,7 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
         </div>
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right",
-          color: sector.vs_spy_pp > 0 ? "var(--green, var(--green))" : sector.vs_spy_pp < 0 ? "var(--red, var(--red))" : "var(--text-muted)",
+          color: sector.vs_spy_pp > 0 ? "var(--green)" : sector.vs_spy_pp < 0 ? "var(--red)" : "var(--text-muted)",
         }}>
           {sector.vs_spy_pp > 0 ? "+" : ""}{sector.vs_spy_pp}pp {sector.rating}
         </div>
@@ -583,7 +591,7 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
                 <EtfChip key={t} etf={{ t }} onClick={(e) => onEtfClick({ t, sector: ig.sector })} />
               ))}
             </div>
-            <div style={{ height: 4, background: "var(--bg, #f5efe1)", borderRadius: 2, overflow: "hidden" }}>
+            <div style={{ height: 4, background: "var(--bg)", borderRadius: 2, overflow: "hidden" }}>
               <div style={{ height: "100%", width: `${Math.min(100, igTilt * 5)}%`, background: "var(--accent)" }} />
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right" }}>
@@ -591,7 +599,7 @@ function SectorRow({ sector, igs, leverage, onSectorClick, onIGClick, onEtfClick
             </div>
             <div style={{
               fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right",
-              color: ig.rating === "OW" ? "var(--green, var(--green))" : ig.rating === "UW" ? "var(--red, var(--red))" : "var(--text-muted)",
+              color: ig.rating === "OW" ? "var(--green)" : ig.rating === "UW" ? "var(--red)" : "var(--text-muted)",
             }}>
               {ig.rating}
             </div>
@@ -704,7 +712,7 @@ function StockTable({ stocks }) {
             <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}><strong>{s.t}</strong></td>
             <td style={{ padding: "8px" }}>{s.n}</td>
             <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}>{s.px}</td>
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)", color: s.d5.startsWith("+") ? "var(--green, var(--green))" : s.d5.startsWith("−") ? "var(--red, var(--red))" : "var(--text-muted)" }}>{s.d5}</td>
+            <td style={{ padding: "8px", fontFamily: "var(--font-mono)", color: s.d5.startsWith("+") ? "var(--green)" : s.d5.startsWith("−") ? "var(--red)" : "var(--text-muted)" }}>{s.d5}</td>
             <td style={{ padding: "8px", color: flowColor(s.flow) }}>{s.flow}</td>
           </tr>
         ))}
@@ -856,8 +864,8 @@ function HeatmapTile({ contributionMatrix }) {
       <div style={{ padding: 16, fontSize: 13, lineHeight: 1.5, borderBottom: "0.5px solid var(--border)" }}>
         <strong>How to read this:</strong>{" "}
         Each cell shows how much each cycle mechanism is helping or hurting that sector right now.
-        <span style={{ color: "var(--green, var(--green))" }}> +green</span> = tailwind ·
-        <span style={{ color: "var(--red, var(--red))" }}> −red</span> = headwind · grey = neutral.
+        <span style={{ color: "var(--green)" }}> +green</span> = tailwind ·
+        <span style={{ color: "var(--red)" }}> −red</span> = headwind · grey = neutral.
       </div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 11 }}>

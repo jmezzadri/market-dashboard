@@ -4752,8 +4752,8 @@ function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceCol
   const _bold = ()=>({fontWeight:600,color:"var(--text)"});
   // Accent palette: strong = green-text; warn = orange-text; mute = text-dim.
   const _stanceMap = {
-    strong: {color:"var(--green-text, #1f8a5a)", bg:"rgba(31,138,90,0.12)"},
-    warn:   {color:"var(--orange-text, #a5760a)", bg:"rgba(165,118,10,0.12)"},
+    strong: {color:"var(--green-text)", bg:"rgba(31,138,90,0.12)"},
+    warn:   {color:"var(--text-muted)", bg:"rgba(165,118,10,0.12)"},
     mute:   {color:"var(--text-muted)",           bg:"var(--surface-3)"},
   };
   const _s = _stanceMap[stanceColor||"strong"] || _stanceMap.strong;
@@ -5374,10 +5374,10 @@ return(
   const regimePillCSS = (regime) => {
     // sdLabel → mockup stance mapping
     const map = {
-      "Low":      {label:"Risk-on",  color:"var(--up, var(--green))"},
+      "Low":      {label:"Risk-on",  color:"var(--green)"},
       "Normal":   {label:"Neutral",  color:"var(--text-muted)"},
-      "Elevated": {label:"Caution",  color:"var(--warn, #B8860B)"},
-      "Extreme":  {label:"Risk-off", color:"var(--down, var(--red))"},
+      "Elevated": {label:"Caution",  color:"var(--yellow)"},
+      "Extreme":  {label:"Risk-off", color:"var(--red)"},
       "No Data":  {label:"—",        color:"var(--text-dim)"},
     };
     return map[regime] || map["Normal"];
@@ -5908,7 +5908,7 @@ return(
                   <div style={{
                     fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
                     fontSize:14, fontWeight:500,
-                    color: isBuy ? "var(--accent)" : "var(--warn, #B8860B)",
+                    color: isBuy ? "var(--accent)" : "var(--yellow)",
                   }}>{r.ovr}</div>
                 </div>
               );
@@ -6205,7 +6205,7 @@ return(
         }}>
           <span style={{
             width:6, height:6, borderRadius:"50%",
-            background: headlines.length>0 ? "var(--up, var(--green))" : "var(--text-dim)",
+            background: headlines.length>0 ? "var(--green)" : "var(--text-dim)",
             display:"inline-block",
           }}/>
           {headlines.length>0
@@ -6438,7 +6438,7 @@ const _scanLabel=_scanT?_scanT.toLocaleString("en-US",{timeZone:"America/New_Yor
 const _subline=(buyCount>0||watchCount>0)
   ?`${buyCount} buy alert${buyCount===1?"":"s"} · ${watchCount} near trigger today.`
   :"Awaiting today's scan run — buy alerts and near-triggers populate after 3:30 PM ET.";
-const _stanceColor=_scanT?"var(--green-text, #1f8a5a)":"var(--orange-text, #a5760a)";
+const _stanceColor=_scanT?"var(--green-text)":"var(--text-muted)";
 const _stanceBg=_scanT?"rgba(31,138,90,0.12)":"rgba(165,118,10,0.12)";
 const _b=()=>({fontWeight:600,color:"var(--text)"});
 return(<>

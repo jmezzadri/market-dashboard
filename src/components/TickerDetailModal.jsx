@@ -567,7 +567,7 @@ function SignalCard({ title, state, value, meta, detail, ragColor, renderDetail,
     <div
       onClick={()=>setOpen(o=>!o)}
       style={{
-        background: "var(--surface-solid, var(--paper, #fff))",
+        background: "var(--surface-solid)",
         border: "1px solid var(--border)",
         borderLeft: `3px solid ${stripe}`,
         borderRadius: "var(--radius-xs, 6px)",
@@ -667,7 +667,7 @@ function DeepDiveTabs({ deepDive, ticker, riskMetrics, heldIn }) {
   return (
     <div style={{
       marginTop: "var(--space-4)",
-      background: "var(--surface-solid, var(--paper, #fff))",
+      background: "var(--surface-solid)",
       border: "1px solid var(--border)",
       borderRadius: "var(--radius-xs, 6px)",
       overflow: "hidden",
@@ -810,7 +810,7 @@ function ActionRow({
     textTransform: "uppercase",
     border: "1px solid var(--border)",
     borderRadius: "var(--radius-xs, 6px)",
-    background: "var(--surface-solid, var(--paper, #fff))",
+    background: "var(--surface-solid)",
     color: "var(--text)",
     cursor: "pointer",
     transition: "all 0.12s ease",
@@ -1288,7 +1288,7 @@ return(
   const cFor = v => v==null ? "var(--text-dim)" : (v>=0 ? "var(--green-text, #1a8c39)" : "var(--red-text, var(--red))");
 
   const KpiCard = ({label, value, comp, color, tip}) => (
-    <div style={{background:"var(--surface-solid, var(--paper, #fff))",border:"1px solid var(--border)",borderRadius:"var(--radius-xs, 6px)",padding:"12px 14px",display:"flex",flexDirection:"column"}}>
+    <div style={{background:"var(--surface-solid)",border:"1px solid var(--border)",borderRadius:"var(--radius-xs, 6px)",padding:"12px 14px",display:"flex",flexDirection:"column"}}>
       <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.16em",color:"var(--text-dim)",marginBottom:4,display:"flex",alignItems:"center",gap:3}}>
         {label}{tip&&<InfoTip def={tip} size={10}/>}
       </div>

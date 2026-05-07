@@ -62,7 +62,7 @@ const secondaryBtn = {
   border: "1px solid var(--border)", borderRadius: 6, cursor: "pointer",
 };
 const TH = { padding: "8px 10px", fontSize: 10, fontFamily: "var(--font-mono)", letterSpacing: "0.05em", color: "var(--text-muted)", textAlign: "left", borderBottom: "1px solid var(--border)", whiteSpace: "nowrap" };
-const TD = { padding: "7px 10px", fontSize: 12, color: "var(--text)", borderBottom: "1px solid var(--border-soft, var(--border))" };
+const TD = { padding: "7px 10px", fontSize: 12, color: "var(--text)", borderBottom: "1px solid var(--border)" };
 
 function fmt$(v) {
   if (v == null || isNaN(v)) return "—";
@@ -158,7 +158,7 @@ export default function ImportTransactions({ onClose, onDone }) {
             <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}>
               IMPORT BROKER TRADES
             </div>
-            <h3 style={{ fontFamily: "var(--font-display, var(--font-sans))", fontSize: 22, fontWeight: 600, color: "var(--text)", margin: "2px 0 0" }}>
+            <h3 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 600, color: "var(--text)", margin: "2px 0 0" }}>
               Add transactions from your broker
             </h3>
             <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 4 }}>

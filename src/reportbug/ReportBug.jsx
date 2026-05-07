@@ -521,7 +521,7 @@ function ReportBugModal({ onClose, precaptureBlob, onRetake }) {
             padding: "10px 12px",
             borderRadius: 6,
             background: "var(--red-bg, rgba(255,69,58,0.1))",
-            border: "1px solid var(--red, var(--red))",
+            border: "1px solid var(--red)",
             color: "var(--red-text, var(--red))",
             fontSize: 13,
             lineHeight: 1.5,
