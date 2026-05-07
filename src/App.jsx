@@ -5723,68 +5723,31 @@ return(
               }}>
                 <div style={{
                   fontFamily:"var(--font-mono)", fontSize:38, fontWeight:600,
-                  color:aggCol, lineHeight:1, letterSpacing:"-0.02em",
+                  color:"var(--accent)", lineHeight:1, letterSpacing:"-0.02em",
                 }}>{rounded}<span style={{fontSize:18, fontWeight:400, color:"var(--text-muted)", marginLeft:4}}>/ 100</span></div>
                 <div style={{
                   fontFamily:"var(--font-mono)", fontSize:10,
-                  color:"var(--text-muted)", letterSpacing:"0.10em",
+                  color:"var(--accent)", letterSpacing:"0.12em",
                   textTransform:"uppercase", fontWeight:600,
                 }}>composite average</div>
               </div>
-              <div style={{
-                fontFamily:"var(--font-display)", fontSize:14, lineHeight:1.55,
-                color:"var(--text)", marginBottom:"var(--space-4)",
-                paddingBottom:"var(--space-3)",
-                borderBottom:"1px solid var(--border-faint)",
-              }}>{label} band — average {rounded}/100. {narrative}</div>
+              {/* Composite subline removed 2026-05-07 — the 6 sub-tiles
+                  below carry the per-mechanism data; "{label} band - {N}/100"
+                  duplicates what the eyebrow already says. */}
 
-              {/* Six mechanism mini-cards — number, name, score/100. Band
-                  color on the score; no Elevated/Calm pill (matches v11 dial
-                  cards which dont show one either). */}
-              <div style={{
-                display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
-                gap:"var(--space-2)",
-              }}>
-                {mechs.map(m => {
-                  const col = bandColor(bandFor(m.score));
-                  return (
-                    <div key={m.id} onClick={()=>navTo("overview")} style={{
-                      background:"var(--surface)",
-                      border:`1px solid ${col}33`,
-                      borderRadius:6, padding:"10px 12px",
-                      cursor:"pointer",
-                    }}>
-                      <div style={{
-                        fontFamily:"var(--font-mono)", fontSize:9,
-                        color:"var(--text-muted)", letterSpacing:"0.10em",
-                        marginBottom:6, fontWeight:600, textTransform:"uppercase",
-                      }}>{m.num} · {m.name}</div>
-                      <div style={{
-                        fontFamily:"var(--font-mono)", fontSize:24,
-                        fontWeight:600, color:col, lineHeight:1,
-                      }}>{m.score}<span style={{fontSize:11, fontWeight:400, color:"var(--text-muted)", marginLeft:3}}>/ 100</span></div>
-                    </div>
-                  );
-                })}
+              {/* Six mechanism sub-tiles — same outer/inner styling as the
+                  other 3 home tiles. Eyebrow in brand teal; number in ink. */}
+              <div style={stGridStyle}>
+                {mechs.map(m => (
+                  <div key={m.id} onClick={()=>navTo("overview")} style={stStyle}>
+                    <div style={stEyebrowStyle}>{m.num} · {m.name}</div>
+                    <div style={stValueStyle("var(--accent)")}>{m.score}<span style={{fontSize:11, fontWeight:400, color:"var(--text-muted)", marginLeft:3}}>/ 100</span></div>
+                  </div>
+                ))}
               </div>
             </>
           );
         })()}
-
-        {/* Footer */}
-        <div style={{
-          marginTop:"var(--space-4)",
-          paddingTop:"var(--space-3)",
-          borderTop:"1px solid var(--border-faint)",
-          fontFamily:"var(--font-mono)", fontSize:10,
-          color:"var(--text-dim)", letterSpacing:"0.06em",
-          display:"flex", justifyContent:"space-between", alignItems:"center", gap:8,
-        }}>
-          <span>{cycleBoardSnap?.calibration_label || "Latest calibration"}</span>
-          <a onClick={()=>navTo("overview")} style={{
-            color:"var(--accent)", cursor:"pointer", fontWeight:600,
-          }}>Open dial board, indicator drill-downs →</a>
-        </div>
       </div>
 
       {/* 02 · Asset Tilt — re-lit 2026-05-04 with v10.1c live engine.
@@ -5800,52 +5763,28 @@ return(
           if (!v10AllocSnap) {
             return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
           }
-          // SYMMETRIC SUB-TILE GRID — 6 cells in 3x2.
-          // Top row = 3 top OVERWEIGHTS vs SPY (teal accent).
-          // Bottom row = 3 top UNDERWEIGHTS vs SPY (ink).
-          // Same outer/inner styling as the Macro Overview mechanism cards
-          // and the Portfolio Insights quadrant — Joe directive 2026-05-07
-          // (4 symmetric tiles, 4-6 sub-tiles each).
+          // 6 sub-tiles · top 3 OW + top 3 UW · shared module-level styles.
           const sectors = (v10AllocSnap.sectors || []).slice();
           const sorted  = sectors.sort((a,b)=>(b.vs_spy_pp ?? 0)-(a.vs_spy_pp ?? 0));
           const tops    = sorted.filter(s => (s.vs_spy_pp ?? 0) > 0).slice(0,3);
           const bots    = sorted.filter(s => (s.vs_spy_pp ?? 0) < 0).slice(-3).reverse();
-          // Pad to 3 each so the grid stays symmetric even on a quiet day.
           while (tops.length < 3) tops.push({sector:"—", vs_spy_pp:null, _empty:true});
           while (bots.length < 3) bots.push({sector:"—", vs_spy_pp:null, _empty:true});
           const fmtMag = v => v == null ? "—" : (v >= 0 ? "+" : "") + Math.round(v) + "%";
-          const stStyle = {
-            background:"var(--surface)", border:"1px solid var(--border-faint)",
-            borderRadius:6, padding:"12px",
-          };
-          const stEyebrow = (kind) => ({
-            fontFamily:"var(--font-mono)", fontSize:9,
-            color: kind === "OW" ? "var(--accent)" : "var(--text-muted)",
-            letterSpacing:"0.12em", textTransform:"uppercase",
-            marginBottom:6, fontWeight:600,
-          });
-          const stMag = (pos, empty) => ({
-            fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600,
-            color: empty ? "var(--text-dim)" : pos ? "var(--accent)" : "var(--text)",
-            lineHeight:1, letterSpacing:"-0.01em",
-          });
-          const stName = {
-            fontSize:12, color:"var(--text-2)", marginTop:6, lineHeight:1.3,
-          };
           return (
-            <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"var(--space-2)"}}>
-              {tops.map((s, i) => (
+            <div style={stGridStyle}>
+              {tops.map((sec, i) => (
                 <div key={"ow"+i} style={stStyle} onClick={()=>navTo("allocation")}>
-                  <div style={stEyebrow("OW")}>OW · #{i+1}</div>
-                  <div style={stMag(true, s._empty)}>{fmtMag(s.vs_spy_pp)}</div>
-                  <div style={stName}>{s.sector}</div>
+                  <div style={stEyebrowStyle}>OW · #{i+1}</div>
+                  <div style={stValueStyle(sec._empty ? "var(--text-dim)" : "var(--accent)")}>{fmtMag(sec.vs_spy_pp)}</div>
+                  <div style={stSubStyle}>{sec.sector}</div>
                 </div>
               ))}
-              {bots.map((s, i) => (
+              {bots.map((sec, i) => (
                 <div key={"uw"+i} style={stStyle} onClick={()=>navTo("allocation")}>
-                  <div style={stEyebrow("UW")}>UW · #{i+1}</div>
-                  <div style={stMag(false, s._empty)}>{fmtMag(s.vs_spy_pp)}</div>
-                  <div style={stName}>{s.sector}</div>
+                  <div style={stEyebrowStyle}>UW · #{i+1}</div>
+                  <div style={stValueStyle(sec._empty ? "var(--text-dim)" : "var(--text)")}>{fmtMag(sec.vs_spy_pp)}</div>
+                  <div style={stSubStyle}>{sec.sector}</div>
                 </div>
               ))}
             </div>
@@ -5872,52 +5811,24 @@ return(
             <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
           </div>
 
-          {/* SYMMETRIC SUB-TILE GRID — 6 cells in 3x2.
-              Each cell = one of the top 6 candidate tickers, ranked by
-              overall score. BUY (>= 60) score in teal, NEAR (40-59) in
-              amber-text, others in ink. Same outer/inner styling as the
-              other 3 home tiles — Joe directive 2026-05-07. */}
+          {/* 6 sub-tiles — top 6 candidate tickers ranked by overall score.
+              Shared module-level styles. Footer stripped — Joe directive
+              2026-05-07 (no inconsistent footnotes between tiles). */}
           {(() => {
-            // Pull the top 6 names by overall score from the buy + near
-            // pools (drop "other" — they're below the 40 threshold).
             const ranked = [...rebucketBuy, ...rebucketNear]
               .filter(r => r && typeof r.ovr === "number")
               .sort((a, b) => b.ovr - a.ovr)
               .slice(0, 6);
-            // Pad to 6 so the grid stays symmetric on a quiet day.
             while (ranked.length < 6) ranked.push({_empty:true});
-            const stStyle = {
-              background:"var(--surface)", border:"1px solid var(--border-faint)",
-              borderRadius:6, padding:"12px", cursor:"pointer",
-            };
-            const stEyebrow = (kind) => ({
-              fontFamily:"var(--font-mono)", fontSize:9,
-              color: kind === "BUY" ? "var(--accent)" : kind === "NEAR" ? "var(--text-muted)" : "var(--text-dim)",
-              letterSpacing:"0.12em", textTransform:"uppercase",
-              marginBottom:6, fontWeight:600,
-            });
-            const stScore = (kind, empty) => ({
-              fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600,
-              color: empty ? "var(--text-dim)" : kind === "BUY" ? "var(--accent)" : "var(--text)",
-              lineHeight:1, letterSpacing:"-0.01em",
-            });
-            const stTicker = {
-              fontSize:12, color:"var(--text-2)", marginTop:6, lineHeight:1.3,
-              fontFamily:"var(--font-display)", fontWeight:500,
-            };
-            const stSector = {
-              fontSize:10, color:"var(--text-muted)", marginTop:2,
-              whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
-            };
             return (
-              <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"var(--space-2)"}}>
+              <div style={stGridStyle}>
                 {ranked.map((r, i) => {
                   if (r._empty) {
                     return (
                       <div key={"e"+i} style={{...stStyle, cursor:"default"}}>
-                        <div style={stEyebrow("EMPTY")}>#{i+1}</div>
-                        <div style={stScore("EMPTY", true)}>—</div>
-                        <div style={stSector}>—</div>
+                        <div style={stEyebrowStyle}>#{i+1}</div>
+                        <div style={stValueStyle("var(--text-dim)")}>—</div>
+                        <div style={stSubStyle}>—</div>
                       </div>
                     );
                   }
@@ -5925,28 +5836,16 @@ return(
                   const sect = _sectorFor(r.ticker);
                   return (
                     <div key={r.ticker} style={stStyle} onClick={()=>navTo("portopps")}>
-                      <div style={stEyebrow(kind)}>#{i+1} · {kind}</div>
-                      <div style={stScore(kind, false)}>{r.ovr}</div>
-                      <div style={stTicker}>{r.ticker}</div>
-                      {sect && <div style={stSector}>{sect}</div>}
+                      <div style={stEyebrowStyle}>#{i+1} · {kind}</div>
+                      <div style={stValueStyle(kind === "BUY" ? "var(--accent)" : "var(--text)")}>{r.ovr}</div>
+                      <div style={stSubStyle}>{r.ticker}</div>
+                      {sect && <div style={stMetaStyle}>{sect}</div>}
                     </div>
                   );
                 })}
               </div>
             );
           })()}
-
-          {/* Last scan timestamp */}
-          <div style={{
-            marginTop:"var(--space-3)", paddingTop:"var(--space-3)",
-            borderTop:"1px solid var(--border-faint)",
-            fontSize:11, color:"var(--text-dim)",
-            fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
-            display:"flex", justifyContent:"space-between",
-          }}>
-            <span>Buy {buyCount} · Near {watchCount} · Other {rebucketOther.length}</span>
-            <span>Last scan · {lastScanLabel}</span>
-          </div>
         </div>);
       })()}
 
@@ -6100,110 +5999,38 @@ return(
             <a style={cardLinkStyle} onClick={()=>navTo("insights")}>Open →</a>
           </div>
 
-          {/* QUADRANT GRID: 2 rows × 2 cols. Top: Current Value | Beta.
-              Bottom: Asset Allocation pie | Returns vs SPY. */}
-          <div style={{
-            display:"grid", gridTemplateColumns:"1fr 1fr",
-            gap:"var(--space-4)", padding:"var(--space-3) 0",
-          }}>
-
-            {/* Q1 · CURRENT VALUE */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Current Value</div>
-              <div className="num" style={tileBig("var(--text)")}>${_fmt$K(grandTotal)}</div>
-              <div style={tileSub}>{positionCount} position{positionCount===1?"":"s"} · {ACCOUNTS.length} account{ACCOUNTS.length===1?"":"s"}</div>
-            </div>
-
-            {/* Q2 · PORTFOLIO BETA */}
-            <div style={tileStyle}>
-              <div style={tileEyebrow}>Portfolio Beta</div>
-              <div className="num" style={tileBig(portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)")}>{portBeta.toFixed(2)}</div>
-              <div style={tileSub}>1.0 = market · weighted by position $</div>
-            </div>
-
-            {/* Q3 · ASSET ALLOCATION (donut chart + legend).
-                Renamed 2026-04-30 from "Asset Tilt" → "Asset Class Mix"
-                so this portfolio-allocation donut doesn't collide visually
-                with the (under-construction) Asset Tilt model card above. */}
-            <div style={{...tileStyle, gridColumn:"1 / 2"}}>
-              <div style={tileEyebrow}>Asset Class Mix</div>
-              {_allocTotal > 0 ? (
-                <div style={{display:"flex", alignItems:"center", gap:12, marginTop:8}}>
-                  {/* SVG donut */}
-                  <svg viewBox="0 0 42 42" width="80" height="80" style={{flexShrink:0}}>
-                    <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="var(--surface)" strokeWidth="6"/>
-                    {(() => {
-                      const order = ["Equities","Fixed Income","Commodities","Crypto","Cash"];
-                      let offset = 25;  // start at top (12 o'clock)
-                      const arcs = [];
-                      for (const k of order) {
-                        const v = _alloc[k];
-                        if (v <= 0) continue;
-                        const pct = (v / _allocTotal) * 100;
-                        arcs.push(
-                          <circle key={k}
-                            cx="21" cy="21" r="15.915" fill="transparent"
-                            stroke={_allocColors[k]} strokeWidth="6"
-                            strokeDasharray={`${pct.toFixed(2)} ${(100-pct).toFixed(2)}`}
-                            strokeDashoffset={offset.toFixed(2)}
-                            transform="rotate(-90 21 21)"
-                          />
-                        );
-                        offset = ((offset - pct) % 100 + 100) % 100;
-                      }
-                      return arcs;
-                    })()}
-                  </svg>
-                  {/* Legend */}
-                  <div style={{flex:1, display:"flex", flexDirection:"column", gap:3, fontSize:11, fontFamily:"var(--font-mono)", minWidth:0}}>
-                    {["Equities","Fixed Income","Commodities","Crypto","Cash"].map(k => {
-                      const v = _alloc[k];
-                      if (v <= 0) return null;
-                      const pct = ((v/_allocTotal)*100);
-                      return (
-                        <div key={k} style={{display:"grid", gridTemplateColumns:"10px 1fr auto", gap:6, alignItems:"center"}}>
-                          <span style={{width:8, height:8, borderRadius:2, background:_allocColors[k]}}/>
-                          <span style={{color:"var(--text)"}}>{k}</span>
-                          <span style={{color:"var(--text-muted)"}}>{pct<1?"<1":pct.toFixed(0)}%</span>
-                        </div>
-                      );
-                    })}
+          {/* 6 ACCOUNT SUB-TILES — Joe directive 2026-05-07.
+              One sub-tile per account showing Value + TTM return. Pads
+              to 6 with empty placeholders. Same shared sub-tile styles. */}
+          {(() => {
+            const _portTTM = _portReturns?.TTM;
+            const _ttmStr  = _portTTM == null ? "—" : (_portTTM >= 0 ? "+" : "") + (_portTTM * 100).toFixed(1) + "%";
+            const _ttmCol  = _portTTM == null ? "var(--text-dim)" : _portTTM >= 0 ? "var(--accent)" : "var(--text)";
+            const _accts = (ACCOUNTS || []).slice(0, 6).map(a => ({
+              id: a.id || a.label || "_", label: a.label || "Account",
+              value: (a.positions || []).reduce((sum, p) => sum + (p.value || 0), 0),
+              _empty: false,
+            }));
+            while (_accts.length < 6) {
+              _accts.push({id:"_e"+_accts.length, label:"#"+(_accts.length+1), value:null, _empty:true});
+            }
+            const fmt$ = v => v == null ? "—"
+              : v >= 1000000 ? "$" + (v/1000000).toFixed(1) + "M"
+              : v >= 1000    ? "$" + Math.round(v/1000).toLocaleString() + "K"
+              :                "$" + Math.round(v).toLocaleString();
+            return (
+              <div style={stGridStyle}>
+                {_accts.map((a, i) => (
+                  <div key={a.id} style={a._empty ? {...stStyle, cursor:"default"} : stStyle}
+                       onClick={()=>{ if (!a._empty) navTo("insights"); }}>
+                    <div style={stEyebrowStyle}>{a.label}</div>
+                    <div style={stValueStyle(a._empty ? "var(--text-dim)" : "var(--text)")}>{fmt$(a.value)}</div>
+                    <div style={stMetaStyle}>{a._empty ? "—" : `TTM ${_ttmStr}`}</div>
                   </div>
-                </div>
-              ) : (
-                <div style={{...tileSub, marginTop:8}}>No positions yet.</div>
-              )}
-            </div>
-
-            {/* Q4 · RETURNS vs SPY — real TWR from portfolio_history */}
-            <div style={{...tileStyle, gridColumn:"2 / 3"}}>
-              <div style={tileEyebrow}>Returns · TWR vs S&P 500</div>
-              {_portReturns ? (
-                <div style={{marginTop:8, display:"flex", flexDirection:"column", gap:4, fontFamily:"var(--font-mono)", fontSize:12}}>
-                  {["1W","1M","YTD","TTM"].map(k => {
-                    const portR = _portReturns[k];     // decimal
-                    const spyR  = _spyReturns?.[k];     // decimal
-                    const diff = (portR != null && spyR != null) ? portR - spyR : null;
-                    const fmtPct = v => v == null ? "—" : (v>=0?"+":"") + (v*100).toFixed(1) + "%";
-                    const diffCol = diff == null ? "var(--text-muted)" : diff >= 0 ? "var(--green)" : "var(--red)";
-                    const portCol = portR == null ? "var(--text-muted)" : portR >= 0 ? "var(--text)" : "var(--text)";
-                    return (
-                      <div key={k} style={{display:"grid", gridTemplateColumns:"36px 1fr auto", gap:8, alignItems:"baseline"}}>
-                        <span style={{color:"var(--text-muted)", fontSize:10, letterSpacing:"0.06em"}}>{k}</span>
-                        <span style={{color:portCol}}>{fmtPct(portR)}</span>
-                        <span style={{color:diffCol, fontSize:11}}>{diff==null?"":(diff>=0?"+":"") + (diff*100).toFixed(1)+" vs SPY"}</span>
-                      </div>
-                    );
-                  })}
-                  <div style={{fontSize:9, color:"var(--text-dim)", marginTop:4, fontFamily:"var(--font-ui)", lineHeight:1.4}}>
-                    Real time-weighted return; flows netted out (Modified Dietz). Aggregate of all accounts.
-                  </div>
-                </div>
-              ) : (
-                <div style={{...tileSub, marginTop:8}}>Sign in to view portfolio returns.</div>
-              )}
-            </div>
-          </div>
+                ))}
+              </div>
+            );
+          })()}
 
         </div>);
       })()}
@@ -6410,6 +6237,43 @@ const subPanelHeader={padding:"8px 12px",background:"var(--surface)",borderBotto
 const subPanelTitleStyle={fontSize:11,color:"var(--text-2)",fontFamily:"var(--font-mono)",letterSpacing:"0.1em",fontWeight:700};
 const subPanelBody={padding:"10px 12px"};
 const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"10px 12px"};
+// SHARED SUB-TILE STYLES — used by every home-page tile so every sub-cell on
+// the home grid reads as one visual family. Joe directive 2026-05-07: stop
+// the per-tile drift in fonts / borders / fills.
+const stStyle = {
+  background: "var(--surface)",
+  border: "1px solid var(--border-faint)",
+  borderRadius: 6,
+  padding: "12px",
+  cursor: "pointer",
+  display: "flex", flexDirection: "column",
+};
+// All sub-tile eyebrows are the brand teal — that's where the accent lives.
+const stEyebrowStyle = {
+  fontFamily: "var(--font-mono)", fontSize: 9,
+  color: "var(--accent)", letterSpacing: "0.12em",
+  textTransform: "uppercase", marginBottom: 6, fontWeight: 600,
+};
+// Big number — caller passes color (teal for positive, ink default).
+const stValueStyle = (col) => ({
+  fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 600,
+  color: col || "var(--text)", lineHeight: 1, letterSpacing: "-0.01em",
+});
+// Sub label under the value — sector / ticker / account name etc.
+const stSubStyle = {
+  fontSize: 12, color: "var(--text-2)", marginTop: 6, lineHeight: 1.3,
+  fontFamily: "var(--font-display)", fontWeight: 500,
+};
+// Smaller meta line beneath the sub label (TTM return, sector, etc.).
+const stMetaStyle = {
+  fontSize: 10, color: "var(--text-muted)", marginTop: 2,
+  fontFamily: "var(--font-mono)", letterSpacing: "0.04em",
+};
+// Sub-tile grid — 3 columns by default. Tiles can override.
+const stGridStyle = {
+  display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "var(--space-2)",
+};
 const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
 const showTrading=tab==="portopps";
 const showInsights=tab==="insights";
