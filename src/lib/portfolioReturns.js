@@ -180,6 +180,77 @@ function indexAtOrBefore(aggregate, dateStr) {
   return best;
 }
 
+// Per-account NAV walk in the same shape as the aggregate, so we can run
+// chainTWR per account and surface periodReturnsByAccount on the home tile
+// (Joe directive 2026-05-07: each account sub-tile shows ITS OWN TTM, not
+// the whole-book number). Bug #1171.
+function buildPerAccountWalk(series) {
+  // series rows: { as_of, nav, contributions, withdrawals, monthly_return }
+  // Sort defensively.
+  const sorted = [...series].sort((a, b) => a.as_of < b.as_of ? -1 : 1);
+  // If we have any nav rows, anchor on the latest known NAV and walk
+  // backward via monthly_return where nav is missing — same convention
+  // as buildAccountSeries.
+  let anchorIdx = -1;
+  for (let i = sorted.length - 1; i >= 0; i--) {
+    if (sorted[i].nav != null) { anchorIdx = i; break; }
+  }
+  const out = [];
+  if (anchorIdx >= 0) {
+    // Walk forward, propagating the latest nav across return-only rows.
+    // For return-only rows BEFORE the anchor, walk backward from the anchor.
+    const navByAsof = {};
+    for (const r of sorted) if (r.nav != null) navByAsof[r.as_of] = Number(r.nav);
+    let curNav = Number(sorted[anchorIdx].nav);
+    for (let i = anchorIdx - 1; i >= 0; i--) {
+      const r = sorted[i];
+      if (r.monthly_return != null && navByAsof[r.as_of] == null) {
+        const ret = Number(r.monthly_return);
+        if (ret > -1) curNav = curNav / (1 + ret);
+        navByAsof[r.as_of] = curNav;
+      } else if (r.nav != null) {
+        curNav = Number(r.nav);
+      }
+    }
+    curNav = Number(sorted[anchorIdx].nav);
+    for (let i = anchorIdx + 1; i < sorted.length; i++) {
+      const r = sorted[i];
+      if (r.nav != null) {
+        curNav = Number(r.nav);
+        navByAsof[r.as_of] = curNav;
+      } else if (r.monthly_return != null) {
+        curNav = curNav * (1 + Number(r.monthly_return));
+        navByAsof[r.as_of] = curNav;
+      }
+    }
+    for (const r of sorted) {
+      if (navByAsof[r.as_of] != null) {
+        out.push({
+          as_of: r.as_of,
+          nav: navByAsof[r.as_of],
+          contributions: Number(r.contributions || 0),
+          withdrawals: Number(r.withdrawals || 0),
+        });
+      }
+    }
+  } else {
+    // Pure-return account, no NAV anchor → synthesize a normalized NAV
+    // index starting at 100. Period returns derived from this index are
+    // exactly the chained monthly returns; flows aren't measurable so
+    // contributions/withdrawals stay 0.
+    let idx = 100;
+    for (const r of sorted) {
+      if (r.monthly_return != null) {
+        idx = idx * (1 + Number(r.monthly_return));
+        out.push({
+          as_of: r.as_of, nav: idx, contributions: 0, withdrawals: 0,
+        });
+      }
+    }
+  }
+  return out;
+}
+
 // Public API: compute period returns from portfolio_history rows.
 // Returns { aggregate, periodReturns: { "1W", "1M", "YTD", "TTM" }, latestNav }
 export function computePortfolioReturns(rows) {
@@ -213,6 +284,28 @@ export function computePortfolioReturns(rows) {
   const oneMBase = indexAtOrBefore(aggregate, dateMinus(30));
   const ttmBase = indexAtOrBefore(aggregate, dateMinus(365));
 
+  // Per-account period returns — bug #1171 fix. Each account's series gets
+  // the same chainTWR / period-anchor logic as the aggregate.
+  const periodReturnsByAccount = {};
+  for (const [label, series] of accountSeries) {
+    const acctWalk = buildPerAccountWalk(series);
+    if (acctWalk.length < 2) {
+      periodReturnsByAccount[label] = { "1W": null, "1M": null, "YTD": null, "TTM": null };
+      continue;
+    }
+    const acctLatestIdx = acctWalk.length - 1;
+    const acctYtdBase = indexAtOrBefore(acctWalk, yearStart);
+    const acctOneWBase = indexAtOrBefore(acctWalk, dateMinus(7));
+    const acctOneMBase = indexAtOrBefore(acctWalk, dateMinus(30));
+    const acctTtmBase  = indexAtOrBefore(acctWalk, dateMinus(365));
+    periodReturnsByAccount[label] = {
+      "1W":  chainTWR(acctWalk, acctOneWBase, acctLatestIdx),
+      "1M":  chainTWR(acctWalk, acctOneMBase, acctLatestIdx),
+      "YTD": chainTWR(acctWalk, acctYtdBase,  acctLatestIdx),
+      "TTM": chainTWR(acctWalk, acctTtmBase,  acctLatestIdx),
+    };
+  }
+
   return {
     aggregate,
     latestNav: latest.nav,
@@ -223,6 +316,7 @@ export function computePortfolioReturns(rows) {
       "YTD": chainTWR(aggregate, ytdBase, latestIdx),
       "TTM": chainTWR(aggregate, ttmBase, latestIdx),
     },
+    periodReturnsByAccount,
   };
 }
 
