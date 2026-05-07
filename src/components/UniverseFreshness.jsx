@@ -218,7 +218,7 @@ export default function UniverseFreshness({ ts, pricesTs, eventsTs, style, compa
   }
   const title = titleParts.join(" ");
 
-  const staleColor = "var(--accent-red, #c0392b)";
+  const staleColor = "var(--red)";
   const badgeBg = "rgba(192, 57, 43, 0.12)";
   const badgeBorder = "rgba(192, 57, 43, 0.35)";
 

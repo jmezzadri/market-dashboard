@@ -266,7 +266,7 @@ export default function AccountTilesSection({
               {/* head */}
               <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: t.accountColor, flexShrink: 0 }} />
-                <span style={{ fontFamily: "var(--font-display, var(--font-sans))", fontSize: 15, fontWeight: 500, color: "var(--text)", letterSpacing: "-0.01em", flex: 1 }}>
+                <span style={{ fontFamily: "var(--font-display)", fontSize: 15, fontWeight: 500, color: "var(--text)", letterSpacing: "-0.01em", flex: 1 }}>
                   {t.label}
                 </span>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.05em" }}>
@@ -324,7 +324,7 @@ export default function AccountTilesSection({
       {expanded && (
         <div style={{ background: "var(--surface-2)", border: `1px solid ${expanded.accountColor}55`, borderRadius: 10, padding: "14px 18px", marginTop: 6 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-            <span style={{ fontFamily: "var(--font-display, var(--font-sans))", fontSize: 16, fontWeight: 500, color: "var(--text)" }}>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 500, color: "var(--text)" }}>
               {expanded.label} positions
             </span>
             <button

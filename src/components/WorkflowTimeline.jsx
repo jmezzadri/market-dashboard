@@ -52,10 +52,10 @@ const STAGES = [
 
 const STAGE_META = {
   filed:             { label: "Filed",              color: "#60a5fa", sla_h:  24 },
-  triaged:           { label: "Triaged",            color: "#a78bfa", sla_h:   8 },
+  triaged:           { label: "Triaged",            color: "var(--accent)", sla_h:   8 },
   awaiting_approval: { label: "Awaiting approval",  color: "#B8860B", sla_h:  48 },
-  approved:          { label: "Approved",           color: "#f59e0b", sla_h:  24 },
-  merged:            { label: "Merged",             color: "#34d399", sla_h:   1 },
+  approved:          { label: "Approved",           color: "var(--text-muted)", sla_h:  24 },
+  merged:            { label: "Merged",             color: "var(--green)", sla_h:   1 },
   deployed:          { label: "Deployed",           color: "#10b981", sla_h:  24 },
   verified_closed:   { label: "Verified closed",    color: "#6b7280", sla_h: null },
 };
@@ -129,9 +129,9 @@ function ownerFor(stage, row) {
 }
 
 function ownerColor(tone) {
-  if (tone === "claude") return "#a78bfa";
+  if (tone === "claude") return "var(--accent)";
   if (tone === "joe")    return "#B8860B";
-  if (tone === "auto")   return "#34d399";
+  if (tone === "auto")   return "var(--green)";
   if (tone === "info")   return "#60a5fa";
   return "#6b7280";
 }
@@ -217,7 +217,7 @@ function slaState(row, stage, active) {
 }
 
 function slaColor(state) {
-  if (state === "breached") return "#ef4444";
+  if (state === "breached") return "var(--red)";
   if (state === "warning")  return "#B8860B";
   return "#10b981";
 }
@@ -354,7 +354,7 @@ function StageConnector({ complete }) {
       position: "absolute",
       left: 8.5, top: 18, bottom: 0,
       width: 1,
-      background: complete ? "#34d399" : "var(--border)",
+      background: complete ? "var(--green)" : "var(--border)",
     }}/>
   );
 }
@@ -391,9 +391,9 @@ function SlaChip({ sla }) {
 
 function OwnerLegend() {
   const items = [
-    { label: "Claude", color: "#a78bfa" },
+    { label: "Claude", color: "var(--accent)" },
     { label: "Joe",    color: "#B8860B" },
-    { label: "Auto",   color: "#34d399" },
+    { label: "Auto",   color: "var(--green)" },
   ];
   return (
     <div style={{ display: "flex", gap: 6 }}>
@@ -420,14 +420,14 @@ function BlockerBanner({ blockers }) {
       fontSize: 12,
       color: "var(--text)",
     }}>
-      <div style={{ fontSize: 10, fontFamily: "monospace", color: "#ef4444", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 4 }}>
+      <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--red)", textTransform: "uppercase", letterSpacing: "0.08em", fontWeight: 700, marginBottom: 4 }}>
         ⏸ Blocked — this bug can't start until:
       </div>
       <ul style={{ margin: 0, paddingLeft: 16 }}>
         {blockers.map(b => (
           <li key={b.id} style={{ fontSize: 12, color: "var(--text-2)", marginBottom: 2 }}>
             <b style={{ fontFamily: "monospace", color: "var(--text)" }}>#{b.report_number}</b>
-            {b.status && <span style={{ fontSize: 10, fontFamily: "monospace", color: "#a78bfa", marginLeft: 6 }}>[{b.status}]</span>}
+            {b.status && <span style={{ fontSize: 10, fontFamily: "monospace", color: "var(--accent)", marginLeft: 6 }}>[{b.status}]</span>}
             {b.title && <span style={{ marginLeft: 6 }}>{b.title}</span>}
           </li>
         ))}
@@ -559,13 +559,13 @@ function stageBody(row, stage) {
             </div>
           )}
           <div style={{ marginTop: 6 }}>
-            UAT owner: <b style={{ color: auto ? "#a78bfa" : "#B8860B" }}>
+            UAT owner: <b style={{ color: auto ? "var(--accent)" : "#B8860B" }}>
               {auto ? "Claude — auto-UAT via Chrome" : "Joe — manual UAT on live site"}
             </b>
           </div>
           {auto && row.auto_uat_checklist && (
             <div style={{ marginTop: 6, padding: "6px 8px", background: "rgba(167,139,250,0.06)", border: "1px solid rgba(167,139,250,0.3)", borderRadius: 4 }}>
-              <div style={{ fontSize: 10, fontFamily: "monospace", color: "#a78bfa", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
+              <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--accent)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 3 }}>
                 UAT checklist
               </div>
               <div style={{ whiteSpace: "pre-wrap", fontSize: 12 }}>{row.auto_uat_checklist}</div>

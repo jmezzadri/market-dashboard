@@ -408,7 +408,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
           <span style={{
             display:"inline-flex", alignItems:"center", gap:6,
             fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
-            background:"var(--surface-solid, var(--paper, #fff))",
+            background:"var(--surface-solid)",
             border:"1px solid var(--border)",
             color:"var(--text)",
             padding:"4px 10px", borderRadius:14,
@@ -422,7 +422,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
             <span key={c} style={{
               display:"inline-flex", alignItems:"center", gap:6,
               fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600,
-              background:"var(--surface-solid, var(--paper, #fff))",
+              background:"var(--surface-solid)",
               border:"1px solid var(--border)",
               color:"var(--text)",
               padding:"4px 6px 4px 10px", borderRadius:14,
@@ -494,7 +494,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
             return (
               <div ref={pickerRef} style={{
                 position:"absolute", top:"100%", right:0, marginTop:6,
-                background:"var(--surface-solid, var(--paper, #fff))",
+                background:"var(--surface-solid)",
                 border:"1px solid var(--border)",
                 borderRadius:"var(--radius-xs, 6px)",
                 boxShadow:"var(--shadow-md)",
@@ -846,7 +846,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
               </span>
             </div>
             <svg viewBox={`0 0 ${W} 60`} preserveAspectRatio="none" style={{width:"100%", height:60, display:"block"}}>
-              <line x1="0" y1="18" x2={W} y2="18" stroke="var(--red-text, #c8302a)" strokeWidth="1" strokeDasharray="3 3" opacity="0.4"/>
+              <line x1="0" y1="18" x2={W} y2="18" stroke="var(--red-text, var(--red))" strokeWidth="1" strokeDasharray="3 3" opacity="0.4"/>
               <line x1="0" y1="42" x2={W} y2="42" stroke="var(--green-text, #1a8c39)" strokeWidth="1" strokeDasharray="3 3" opacity="0.4"/>
               <line x1="0" y1="30" x2={W} y2="30" stroke="var(--text-dim)" strokeWidth="0.5" strokeDasharray="2 4" opacity="0.5"/>
               <path d={primaryPrices.map((p, i) => rsi14[i] != null
@@ -878,7 +878,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
                   const x = xToPx(i) - barW / 2;
                   const up = i > 0 && primaryPrices[i].c >= primaryPrices[i-1].c;
                   return <rect key={i} x={x} y={50 - h} width={barW} height={h}
-                               fill={up ? "var(--green-text, #1a8c39)" : "var(--red-text, #c8302a)"}
+                               fill={up ? "var(--green-text, #1a8c39)" : "var(--red-text, var(--red))"}
                                opacity="0.5"/>;
                 })}
               </svg>

@@ -120,12 +120,12 @@ function annualizedPct(currentValue, totalCost, holdingDays) {
 }
 
 const pnlColor = (v) =>
-  v == null ? "var(--text-muted)" : v >= 0 ? "#30d158" : "#ff453a";
+  v == null ? "var(--text-muted)" : v >= 0 ? "var(--green)" : "var(--red)";
 const betaColor = (v) =>
   v == null ? "var(--text-dim)"
-  : v > 1.5 ? "#ff453a"
-  : v > 1.0 ? "#ff9f0a"
-  : v > 0.5 ? "#B8860B" : "#30d158";
+  : v > 1.5 ? "var(--red)"
+  : v > 1.0 ? "var(--yellow)"
+  : v > 0.5 ? "#B8860B" : "var(--green)";
 
 function SortArrow({ dir }) {
   if (!dir) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
@@ -958,7 +958,7 @@ export default function PositionsTable({
                     {onClose && (
                       <Tip def="Close position — proceeds to a cash row, position soft-archived for history">
                         <button type="button"
-                          style={{ ...actionBtn, marginRight: 4, color: "#30d158", borderColor: "rgba(48,209,88,0.4)" }}
+                          style={{ ...actionBtn, marginRight: 4, color: "var(--green)", borderColor: "rgba(48,209,88,0.4)" }}
                           onClick={(e) => { e.stopPropagation(); onClose(row._raw); }}>
                           Close
                         </button>
@@ -967,7 +967,7 @@ export default function PositionsTable({
                     {onDelete && (
                       <Tip def="Delete entry — no cash impact. Use only for fixing wrong entries; for closing a real trade use Close instead.">
                         <button type="button"
-                          style={{ ...actionBtn, color: "#ff453a", borderColor: "rgba(255,69,58,0.35)" }}
+                          style={{ ...actionBtn, color: "var(--red)", borderColor: "rgba(255,69,58,0.35)" }}
                           onClick={(e) => { e.stopPropagation(); onDelete(row._raw); }}>
                           Delete
                         </button>

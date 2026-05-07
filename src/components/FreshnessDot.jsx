@@ -216,7 +216,7 @@ export function FreshnessDotLabel({ indicatorId, onExplain }) {
         gap: 6,
         fontSize: 11,
         fontFamily: "var(--font-mono, monospace)",
-        color: "var(--text-muted, #888)",
+        color: "var(--text-muted)",
         cursor: onExplain ? "pointer" : "default",
       }}
       title={buildTooltip(f)}

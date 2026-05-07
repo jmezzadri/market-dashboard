@@ -52,7 +52,7 @@ export default class ErrorBoundary extends Component {
               boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
             }}
           >
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#ff9f0a", letterSpacing: "0.06em", marginBottom: 6 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: "var(--yellow)", letterSpacing: "0.06em", marginBottom: 6 }}>
               SOMETHING WENT WRONG
             </div>
             <div style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 10 }}>
@@ -73,7 +73,7 @@ export default class ErrorBoundary extends Component {
                 type="button"
                 onClick={dismiss}
                 style={{
-                  background: "var(--accent,#0a84ff)", color: "#fff", border: 0,
+                  background: "var(--accent,var(--accent))", color: "#fff", border: 0,
                   borderRadius: 6, padding: "7px 14px", fontSize: 13, fontWeight: 600,
                   cursor: "pointer",
                 }}

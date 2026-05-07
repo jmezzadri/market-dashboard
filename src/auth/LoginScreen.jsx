@@ -303,7 +303,7 @@ export default function LoginScreen() {
       {/* Brand wordmark above the sign-in card */}
       <div style={{ display: "flex", justifyContent: "center", marginTop: "min(8vh, 64px)" }}>
         <span className="login-brand-logo" style={{ display: "inline-flex", alignItems: "center", gap: 10 }}>
-          <Monogram size={40} color="var(--accent, #d9b27a)" />
+          <Monogram size={40} color="var(--accent)" />
           <Wordmark size={17} />
         </span>
       </div>
@@ -397,7 +397,7 @@ export default function LoginScreen() {
               {busy ? "Signing in…" : "Sign in"}
             </button>
             {errorMsg && (
-              <div style={{ marginTop: 12, fontSize: 12, color: "var(--danger, #ff3b30)" }}>
+              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
                 {errorMsg}
               </div>
             )}
@@ -463,7 +463,7 @@ export default function LoginScreen() {
               {busy ? "Creating account…" : "Create account"}
             </button>
             {errorMsg && (
-              <div style={{ marginTop: 12, fontSize: 12, color: "var(--danger, #ff3b30)" }}>
+              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
                 {errorMsg}
               </div>
             )}
@@ -500,7 +500,7 @@ export default function LoginScreen() {
               {busy ? "Sending…" : "Email me a code"}
             </button>
             {errorMsg && (
-              <div style={{ marginTop: 12, fontSize: 12, color: "var(--danger, #ff3b30)" }}>
+              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
                 {errorMsg}
               </div>
             )}
@@ -549,7 +549,7 @@ export default function LoginScreen() {
               {busy ? "Verifying…" : "Sign in"}
             </button>
             {errorMsg && (
-              <div style={{ marginTop: 12, fontSize: 12, color: "var(--danger, #ff3b30)" }}>
+              <div style={{ marginTop: 12, fontSize: 12, color: "var(--red)" }}>
                 {errorMsg}
               </div>
             )}

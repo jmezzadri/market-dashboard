@@ -21,9 +21,9 @@ const TAB_META = {
   // "overview" (Buy & Watch list) tile retired 2026-04-19: Portfolio & Insights
   // (portopps) now surfaces the same buy alerts / near-trigger / watchlist data
   // with populated 6-bar composites, making this tile redundant.
-  congress:    { eyebrow: "Congressional",     title: "Congress activity",      sub: "Disclosed equity trades by U.S. Senators and Representatives in the last 45 days (buys and sells).", accent: "#0a84ff" },
-  insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider activity",       sub: "Open-market buys and sells by company officers, directors, and 10% holders filed with the SEC.",    accent: "#bf5af2" },
-  flow:        { eyebrow: "Options Flow",      title: "Unusual flow alerts",    sub: "Large or unusual call and put options activity flagged by Unusual Whales.",           accent: "#ff9f0a" },
+  congress:    { eyebrow: "Congressional",     title: "Congress activity",      sub: "Disclosed equity trades by U.S. Senators and Representatives in the last 45 days (buys and sells).", accent: "var(--accent)" },
+  insiders:    { eyebrow: "Form 4 Insiders",   title: "Insider activity",       sub: "Open-market buys and sells by company officers, directors, and 10% holders filed with the SEC.",    accent: "var(--text-muted)" },
+  flow:        { eyebrow: "Options Flow",      title: "Unusual flow alerts",    sub: "Large or unusual call and put options activity flagged by Unusual Whales.",           accent: "var(--yellow)" },
   technicals:  { eyebrow: "Per-ticker signals", title: "Technicals",            sub: "Composite SIGNAL score (-100 to +100, SCTR-weighted with ADX regime filter), plus RSI, MACD, moving averages, IV rank, and relative volume.", accent: "#B8860B" },
   // "methodology" tile retired 2026-04-22 — the scanner tile now links to the
   // site-wide Methodology page (#readme) rather than rendering its own copy.
@@ -1561,7 +1561,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
             title={TAB_META.insiders.title}
             sub="Top 3 Form 4 trades by dollar value — 10%-owner and officer buys flagged."
             accent={TAB_META.insiders.accent}
-            kpi={{ value: insiderN, unit: "Form 4s", color: insiderN > 0 ? "#bf5af2" : "var(--text-muted)" }}
+            kpi={{ value: insiderN, unit: "Form 4s", color: insiderN > 0 ? "var(--text-muted)" : "var(--text-muted)" }}
             onClick={() => setView("insiders")}
           >
             <AnomalyList
@@ -1609,7 +1609,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
             title={TAB_META.flow.title}
             sub={`Top 3 by premium · Calls ${fmtMoney(totalCallPrem)} · Puts ${fmtMoney(totalPutPrem)}`}
             accent={TAB_META.flow.accent}
-            kpi={{ value: flowN, unit: "alerts", color: flowN > 0 ? "#ff9f0a" : "var(--text-muted)" }}
+            kpi={{ value: flowN, unit: "alerts", color: flowN > 0 ? "var(--yellow)" : "var(--text-muted)" }}
             onClick={() => setView("flow")}
           >
             <AnomalyList

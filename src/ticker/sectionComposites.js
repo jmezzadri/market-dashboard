@@ -457,9 +457,9 @@ export function computeSectionComposites(ticker, scanData) {
 // Color palette helper for direction — used by modal pills and badges.
 export function colorForDirection(direction) {
   switch (direction) {
-    case "bullish":    return "#30d158";
+    case "bullish":    return "var(--green)";
     case "tilt-bull":  return "#86d9a0";
-    case "bearish":    return "#ff453a";
+    case "bearish":    return "var(--red)";
     case "tilt-bear":  return "#ff9580";
     default:           return "var(--text-dim)";
   }

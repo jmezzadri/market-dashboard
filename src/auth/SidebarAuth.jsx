@@ -10,7 +10,7 @@ export default function SidebarAuth() {
   const { session, user, loading } = useSession();
 
   if (!isSupabaseConfigured) {
-    return <span>v10 · {new Date().getFullYear()}</span>;
+    return <span>MacroTilt · {new Date().getFullYear()}</span>;
   }
   if (loading) return <span>…</span>;
 
