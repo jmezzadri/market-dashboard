@@ -6472,21 +6472,18 @@ Trading Opportunities
 <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||null} style={{marginLeft:4}}/>
 </div>
 {(() => {
-  // Editorial headline naming the actual top buy alerts. No more methodology
-  // paragraph (moved to the methodology page); no more banal KPI tiles
-  // (Buy alerts/Near triggers/Watchlist/Universe are statements of state
-  // already visible in the table headers below).
-  const buys = (scanData?.buy_opportunities || []).slice(0, 2);
-  const watches = (scanData?.watch_items || []);
+  // Pull from rebucketBuy / rebucketNear — same source that feeds the
+  // BUY ALERTS / NEAR TRIGGER tables below. rebucketBuy is [{ticker, ovr}].
+  const buys = (rebucketBuy || []).slice(0, 2);
   let headline;
   if (buys.length === 0) {
-    headline = <>No buy alerts today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>{watches.length} on near-trigger watch.</em></>;
+    headline = <>No buy alerts today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>{watchCount} on near-trigger watch.</em></>;
   } else if (buys.length === 1) {
     const t = buys[0];
-    headline = <><em style={{fontStyle:"italic",color:"var(--accent)"}}>{t.ticker || t.t}</em> leads today's buys at {Math.round(t.composite ?? t.score ?? 0)}.</>;
+    headline = <><em style={{fontStyle:"italic",color:"var(--accent)"}}>{t.ticker}</em> leads today's buys at {Math.round(t.ovr ?? 0)}.</>;
   } else {
     const a = buys[0], b = buys[1];
-    headline = <><em style={{fontStyle:"italic",color:"var(--accent)"}}>{a.ticker || a.t}</em> and <em style={{fontStyle:"italic",color:"var(--accent)"}}>{b.ticker || b.t}</em> lead today's buys at {Math.round(a.composite ?? a.score ?? 0)} and {Math.round(b.composite ?? b.score ?? 0)}.</>;
+    headline = <><em style={{fontStyle:"italic",color:"var(--accent)"}}>{a.ticker}</em> and <em style={{fontStyle:"italic",color:"var(--accent)"}}>{b.ticker}</em> lead today's buys at {Math.round(a.ovr ?? 0)} and {Math.round(b.ovr ?? 0)}.</>;
   }
   return (
     <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.15,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:820}}>
