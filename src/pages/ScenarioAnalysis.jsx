@@ -821,9 +821,15 @@ export default function ScenarioAnalysis() {
 
         {hasShock && <SoWhatHero mode={mode} scenario={scenario} score={score} pnl={realPnl} horizonText={horizonText} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} />}
 
-        <div className="output-grid">
-          <L1Panel hasShock={hasShock} composites={composites} />
+        {/* L1 (3 macro composites) was retired — composites are deprecated per
+            the v11 cycle-mechanism cutover. Composites belong on Macro Overview
+            anyway; Scenarios is about how a shock hits the BOOK and WHICH
+            sectors lead/lag. L2 takes the substance row alone; L3 + L4 sit
+            below in the 2-column grid. */}
+        <div style={{ marginTop: "var(--s-3)" }}>
           <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} />
+        </div>
+        <div className="output-grid">
           <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
           <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} />
         </div>

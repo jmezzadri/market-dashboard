@@ -6471,10 +6471,30 @@ return(<>
 Trading Opportunities
 <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||null} style={{marginLeft:4}}/>
 </div>
-<h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.1,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:720}}>
-What to act on today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>across the full liquid universe.</em>
-</h1>
-<div style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontStyle:"italic",fontSize:16,color:"var(--text-muted)"}}>{_subline}</div>
+{(() => {
+  // Editorial headline naming the actual top buy alerts. No more methodology
+  // paragraph (moved to the methodology page); no more banal KPI tiles
+  // (Buy alerts/Near triggers/Watchlist/Universe are statements of state
+  // already visible in the table headers below).
+  const buys = (scanData?.buy_opportunities || []).slice(0, 2);
+  const watches = (scanData?.watch_items || []);
+  let headline;
+  if (buys.length === 0) {
+    headline = <>No buy alerts today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>{watches.length} on near-trigger watch.</em></>;
+  } else if (buys.length === 1) {
+    const t = buys[0];
+    headline = <><em style={{fontStyle:"italic",color:"var(--accent)"}}>{t.ticker || t.t}</em> leads today's buys at {Math.round(t.composite ?? t.score ?? 0)}.</>;
+  } else {
+    const a = buys[0], b = buys[1];
+    headline = <><em style={{fontStyle:"italic",color:"var(--accent)"}}>{a.ticker || a.t}</em> and <em style={{fontStyle:"italic",color:"var(--accent)"}}>{b.ticker || b.t}</em> lead today's buys at {Math.round(a.composite ?? a.score ?? 0)} and {Math.round(b.composite ?? b.score ?? 0)}.</>;
+  }
+  return (
+    <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.15,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:820}}>
+      {headline}
+    </h1>
+  );
+})()}
+<div style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontStyle:"italic",fontSize:15,color:"var(--text-muted)"}}>{_subline}</div>
 </div>
 <div style={{textAlign:"right",flex:"0 0 auto"}}>
 <span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:999,background:_stanceBg,color:_stanceColor,fontWeight:600,fontSize:12,fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>
@@ -6483,23 +6503,6 @@ What to act on today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>
 </span>
 
 </div>
-</div>
-<p style={{fontSize:14,color:"var(--text-muted)",lineHeight:1.65,maxWidth:920,margin:"0 0 18px"}}>
-Today's <strong style={_b()}>buy alerts</strong> and <strong style={_b()}>near-triggers</strong> — surfaced from a daily scan of <strong style={_b()}>{universeCount.toLocaleString()} liquid US equities</strong> ($1B+ market cap). Each ticker is graded on a composite blending five signals: <strong style={_b()}>technical indicators</strong> (MACD, RSI), <strong style={_b()}>congressional trades</strong>, <strong style={_b()}>insider Form 4 filings</strong>, <strong style={_b()}>dark-pool prints</strong>, and <strong style={_b()}>unusual options flow</strong>. A composite of <strong style={_b()}>60+</strong> is a buy alert; <strong style={_b()}>35–59</strong> sits on near-trigger watch. Read it top-to-bottom: signal sources → scan summary → buy alerts → near-triggers.
-</p>
-<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit, minmax(140px, 1fr))",gap:10}}>
-{[
-{lbl:"Buy alerts",v:buyCount,sub:"score 60+",col:buyCount>0?"var(--green-text)":"var(--text)"},
-{lbl:"Near triggers",v:watchCount,sub:"score 35–59",col:watchCount>0?"var(--yellow-text)":"var(--text)"},
-{lbl:"Watchlist",v:watchlistSize,sub:"tracked tickers",col:"var(--text)"},
-{lbl:"Universe",v:universeCount.toLocaleString(),sub:"US equities scored",col:"var(--text)"},
-].map((k,i)=>(
-<div key={i} style={{background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"12px 14px"}}>
-<div style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase",fontWeight:600}}>{k.lbl}</div>
-<div className="num" style={{fontFamily:"var(--font-mono)",fontSize:22,fontWeight:500,color:k.col,marginTop:4,fontVariantNumeric:"tabular-nums"}}>{k.v}</div>
-<div style={{fontSize:10,color:"var(--text-dim)",marginTop:2,letterSpacing:"0.04em"}}>{k.sub}</div>
-</div>
-))}
 </div>
 </div>
 </>);
