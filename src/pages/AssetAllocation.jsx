@@ -743,8 +743,17 @@ function StockTable({ stocks, onTickerClick }) {
       </thead>
       <tbody>
         {stocks.map(s => (
-          <tr key={s.t} style={{ borderBottom: "0.5px dashed var(--border)" }}>
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}><strong>{s.t}</strong></td>
+          <tr key={s.t}
+            onClick={() => onTickerClick && onTickerClick(s.t)}
+            style={{
+              borderBottom: "0.5px dashed var(--border)",
+              cursor: onTickerClick ? "pointer" : "default",
+              transition: "background 120ms",
+            }}
+            onMouseEnter={(ev) => { if (onTickerClick) ev.currentTarget.style.background = "var(--surface-2)"; }}
+            onMouseLeave={(ev) => { ev.currentTarget.style.background = "transparent"; }}
+          >
+            <td style={{ padding: "8px", fontFamily: "var(--font-mono)", color: onTickerClick ? "var(--accent)" : "var(--text)" }}><strong>{s.t}</strong></td>
             <td style={{ padding: "8px" }}>{s.n}</td>
             <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}>{s.px}</td>
             <td style={{ padding: "8px", fontFamily: "var(--font-mono)", color: s.d5.startsWith("+") ? "var(--green)" : s.d5.startsWith("−") ? "var(--red)" : "var(--text-muted)" }}>{s.d5}</td>
@@ -945,20 +954,42 @@ function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
   );
 }
 
-function IGModal({ ig, onClose, onEtfClick }) {
+function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBackToSector, onTickerClick }) {
   if (!ig) return null;
   const detail = IG_DETAIL[ig.id] || { etfs: [], stocks: [] };
+  // Real sector-avg-IG benchmark: total $ in this sector ÷ number of IGs in it.
+  // Was 0% before (placeholder), which made every chart look like a +X.Xpp
+  // "vs nothing" delta — meaningless.
+  const siblings = sectorIGs && sectorIGs.length ? sectorIGs : [ig];
+  const sectorTotal = siblings.reduce((s, x) => s + (x.dollar || 0), 0);
+  const avgPerIG = sectorTotal > 0 ? sectorTotal / siblings.length : 0;
   return (
     <ModalShell
       title={ig.name}
-      subtitle={`${ig.sector} · Industry Group · $${ig.dollar.toFixed(2)} of $100 capital`}
+      subtitle={
+        <span>
+          {parentSector && onBackToSector ? (
+            <button
+              onClick={() => onBackToSector(parentSector)}
+              style={{
+                background: "transparent", border: "none", padding: 0,
+                color: "var(--accent)", cursor: "pointer", fontSize: 12,
+                fontFamily: "inherit", marginRight: 6,
+              }}
+            >← {ig.sector}</button>
+          ) : (
+            <span style={{ marginRight: 6 }}>{ig.sector}</span>
+          )}
+          {" · Industry Group · $"}{ig.dollar.toFixed(2)}{" of $100 capital"}
+        </span>
+      }
       badge={<span style={{
         background: RATING_BG[ig.rating], color: RATING_TEXT[ig.rating],
         fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 999,
       }}>{RATING_LABEL[ig.rating]}</span>}
       onClose={onClose}
     >
-      <AllocationChart macroTiltWeight={(ig.dollar || 0) / 100} benchmarkWeight={0} benchmarkLabel="Sector avg IG" />
+      <AllocationChart macroTiltWeight={(ig.dollar || 0) / 100} benchmarkWeight={avgPerIG / 100} benchmarkLabel={`Avg IG in ${ig.sector}`} />
       <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "26px 0 4px", fontWeight: 600 }}>
         ETFs that give exposure
       </h4>
@@ -966,31 +997,11 @@ function IGModal({ ig, onClose, onEtfClick }) {
       <h4 style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--text-muted)", margin: "22px 0 4px", fontWeight: 600 }}>
         Top constituent stocks
       </h4>
-      <StockTable stocks={detail.stocks} />
+      <StockTable stocks={detail.stocks} onTickerClick={onTickerClick} />
     </ModalShell>
   );
 }
 
-function ETFModal({ etf, onClose }) {
-  if (!etf) return null;
-  return (
-    <ModalShell
-      title={etf.t}
-      subtitle={etf.n || "ETF detail"}
-      onClose={onClose}
-    >
-      <table style={{ width: "100%", fontSize: 13, marginTop: 16 }}>
-        <tbody>
-          {etf.n && <tr><td style={{ padding: "8px 0", color: "var(--text-muted)", width: 140 }}>Full name</td><td>{etf.n}</td></tr>}
-          {etf.er && <tr><td style={{ padding: "8px 0", color: "var(--text-muted)" }}>Expense ratio</td><td style={{ fontFamily: "var(--font-mono)" }}>{etf.er}</td></tr>}
-          {etf.aum && <tr><td style={{ padding: "8px 0", color: "var(--text-muted)" }}>AUM</td><td style={{ fontFamily: "var(--font-mono)" }}>{etf.aum}</td></tr>}
-          {etf.flow && <tr><td style={{ padding: "8px 0", color: "var(--text-muted)" }}>30-day flow</td><td style={{ color: flowColor(etf.flow) }}>{etf.flow}</td></tr>}
-          {etf.sector && <tr><td style={{ padding: "8px 0", color: "var(--text-muted)" }}>Sector exposure</td><td>{etf.sector}</td></tr>}
-        </tbody>
-      </table>
-    </ModalShell>
-  );
-}
 
 function HeatmapTile({ contributionMatrix }) {
   if (!contributionMatrix) return null;
@@ -1085,7 +1096,6 @@ export default function AssetTilt({ onOpenTicker }) {
   const [mechModal, setMechModal] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
-  const [etfModal, setEtfModal] = useState(null);
 
   useEffect(() => {
     fetch("/cycle_board_snapshot.json", { cache: "no-cache" })
@@ -1210,7 +1220,7 @@ export default function AssetTilt({ onOpenTicker }) {
             leverage={lev}
             onSectorClick={setSectorModal}
             onIGClick={setIgModal}
-            onEtfClick={setEtfModal}
+            onEtfClick={(e) => onOpenTicker(e.t || e)}
           />
         ))}
         {/* Defensive sleeve header */}
@@ -1264,9 +1274,8 @@ export default function AssetTilt({ onOpenTicker }) {
 
       {/* MODALS */}
       {mechModal && <MechanismModal mechanism={mechModal} onClose={() => setMechModal(null)} />}
-      {sectorModal && <SectorModal sector={sectorModal} igs={v10.industry_groups} onClose={() => setSectorModal(null)} onIGClick={(ig) => { setSectorModal(null); setIgModal(ig); }} onEtfClick={setEtfModal} />}
-      {igModal && <IGModal ig={igModal} onClose={() => setIgModal(null)} onEtfClick={(e) => setEtfModal(e)} />}
-      {etfModal && <ETFModal etf={etfModal} onClose={() => setEtfModal(null)} />}
+      {sectorModal && <SectorModal sector={sectorModal} igs={v10.industry_groups} onClose={() => setSectorModal(null)} onIGClick={(ig) => { setSectorModal(null); setIgModal(ig); }} onEtfClick={(e) => onOpenTicker(e.t || e)} />}
+      {igModal && <IGModal ig={igModal} sectorIGs={v10.industry_groups.filter(x => x.sector === igModal.sector)} parentSector={v10.sectors.find(s => s.sector === igModal.sector)} onClose={() => setIgModal(null)} onEtfClick={(e) => onOpenTicker(e.t || e)} onBackToSector={(sector) => { setIgModal(null); setSectorModal(sector); }} onTickerClick={(t) => onOpenTicker(t)} />}
     </main>
   );
 }
