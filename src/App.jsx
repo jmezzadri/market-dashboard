@@ -4951,6 +4951,10 @@ useEffect(()=>{
 // heldPositions render below.)
 const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [tickerDetail,setTickerDetail]=useState(null);
+// Auto-close any open modal when the user switches pages — the modal state
+// lives at App level (or inside the page), but the sidebar nav doesn't
+// dismiss it. Without this the modal hangs over the next page.
+useEffect(()=>{ setTickerDetail(null); },[tab]);
 // rawScanData is the public artifact straight from the CDN (no user data).
 // `scanData` (below) is the merged version — per-user watchlist rows from
 // Supabase (user_scan_data) are layered in so AMAT/CRWD/CAT/KTOS etc. carry
