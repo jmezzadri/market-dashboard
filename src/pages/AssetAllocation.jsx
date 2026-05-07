@@ -870,12 +870,13 @@ function CompositionChart({ rows, totalLabel = "Sector total" }) {
       }}>
         {rows.map((r, i) => {
           const pct = (r.dollar || 0) / total;
-          const shade = i % 2 === 0 ? "var(--accent)" : "var(--text-muted)";
+          // Monotone teal: each segment dims further so all are distinct.
+          const op = Math.max(0.25, 0.90 - i * 0.20);
           return (
             <div key={r.id || r.name} title={`${r.name}: $${(r.dollar || 0).toFixed(2)} (${(pct * 100).toFixed(0)}%)`} style={{
               width: `${pct * 100}%`,
-              background: shade,
-              opacity: i % 2 === 0 ? 0.85 : 0.6,
+              background: "var(--accent)",
+              opacity: op,
               transition: "opacity 160ms",
             }} />
           );
@@ -885,19 +886,22 @@ function CompositionChart({ rows, totalLabel = "Sector total" }) {
         display: "flex", flexWrap: "wrap", gap: "6px 14px", marginTop: 10,
         fontSize: 11, color: "var(--text-2)",
       }}>
-        {rows.map((r, i) => (
+        {rows.map((r, i) => {
+          const op = Math.max(0.25, 0.90 - i * 0.20);
+          return (
           <span key={r.id || r.name} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
             <span style={{
               display: "inline-block", width: 8, height: 8, borderRadius: 2,
-              background: i % 2 === 0 ? "var(--accent)" : "var(--text-muted)",
-              opacity: i % 2 === 0 ? 0.85 : 0.6,
+              background: "var(--accent)",
+              opacity: op,
             }} />
             {r.name}
             <span style={{ color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
               ${(r.dollar || 0).toFixed(2)}
             </span>
           </span>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
