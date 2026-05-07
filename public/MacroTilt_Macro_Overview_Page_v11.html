@@ -1184,6 +1184,16 @@ function indicatorConcerningScore(ind) {
   // Today's pointer — angle from average score across LIVE tiles
   const liveTiles = TILES.filter(t => t.live);
   const avgScore = liveTiles.reduce((a, t) => a + t.score, 0) / liveTiles.length;
+  // Joe directive 2026-05-07 — paint the active band wedge with the
+  // Option A brand teal so the dial board carries the brand accent.
+  // Inactive wedges stay neutral gray (already set as fill="#ececea"
+  // in the SVG markup); we only override the active band here.
+  const _activeWedgeId = avgScore < 25 ? "wedge-riskon"
+                       : avgScore < 50 ? "wedge-neutral"
+                       : avgScore < 75 ? "wedge-caution"
+                       :                 "wedge-riskoff";
+  const _activeWedge = document.getElementById(_activeWedgeId);
+  if (_activeWedge) _activeWedge.setAttribute("fill", "#0e5560");
   const a_today = 180 - avgScore * 1.8;
   // Populate verdict text from the same average.
   // Bands per page header copy: 0-25 Risk-on, 25-50 Neutral,
@@ -1224,10 +1234,11 @@ function buildDialSvg(score, isLive, band) {
 
   // Joe directive 2026-05-07 — drop the colored band coding.
   // All wedges read as one neutral arc; the active band gets a single
-  // accent fill (teal), the rest stay light gray. Keeps the dial board
-  // monochrome with one accent, the way the rest of the app does it.
+  // accent fill (Option A teal — brand color), the rest stay light gray.
+  // Keeps the dial board monochrome with one accent, the way the rest
+  // of the app does it.
   const NEUTRAL = "#ececea";
-  const ACCENT  = "#0e1115"; // ink — the same color as the needle
+  const ACCENT  = "#0e5560"; // Option A brand teal
   const wedges = [
     { from: 0,   to: 25,  active: ACCENT, subtle: NEUTRAL },
     { from: 25,  to: 50,  active: ACCENT, subtle: NEUTRAL },

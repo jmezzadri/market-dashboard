@@ -5800,42 +5800,55 @@ return(
           if (!v10AllocSnap) {
             return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
           }
-          // TILT-DIRECTION PREVIEW — top overweights + bottom underweights.
-          // No macro/regime data, no statements of state, no prose summary —
-          // those belong on Macro Overview, not on a tile that says "Asset
-          // Tilt". The home tile mirrors the Asset Tilt page hero pattern.
+          // SYMMETRIC SUB-TILE GRID — 6 cells in 3x2.
+          // Top row = 3 top OVERWEIGHTS vs SPY (teal accent).
+          // Bottom row = 3 top UNDERWEIGHTS vs SPY (ink).
+          // Same outer/inner styling as the Macro Overview mechanism cards
+          // and the Portfolio Insights quadrant — Joe directive 2026-05-07
+          // (4 symmetric tiles, 4-6 sub-tiles each).
           const sectors = (v10AllocSnap.sectors || []).slice();
           const sorted  = sectors.sort((a,b)=>(b.vs_spy_pp ?? 0)-(a.vs_spy_pp ?? 0));
           const tops    = sorted.filter(s => (s.vs_spy_pp ?? 0) > 0).slice(0,3);
           const bots    = sorted.filter(s => (s.vs_spy_pp ?? 0) < 0).slice(-3).reverse();
-          const fmtMag  = v => (v >= 0 ? "+" : "") + Math.round(v) + "%";
-          const rowStyle = {display:"grid", gridTemplateColumns:"1fr 60px", alignItems:"baseline", padding:"6px 0", borderBottom:"1px solid var(--border-faint)", fontSize:13, fontFamily:"var(--font-display)"};
-          const labelStyle = {color:"var(--text)", fontWeight:400};
-          const magStyle = (pos) => ({textAlign:"right", fontFamily:"var(--font-mono)", fontWeight:600, fontSize:13, color: pos ? "var(--accent)" : "var(--text-2)"});
-          const groupHeadStyle = {fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.12em", textTransform:"uppercase", fontWeight:600, marginBottom:6, marginTop:14};
+          // Pad to 3 each so the grid stays symmetric even on a quiet day.
+          while (tops.length < 3) tops.push({sector:"—", vs_spy_pp:null, _empty:true});
+          while (bots.length < 3) bots.push({sector:"—", vs_spy_pp:null, _empty:true});
+          const fmtMag = v => v == null ? "—" : (v >= 0 ? "+" : "") + Math.round(v) + "%";
+          const stStyle = {
+            background:"var(--surface)", border:"1px solid var(--border-faint)",
+            borderRadius:6, padding:"12px",
+          };
+          const stEyebrow = (kind) => ({
+            fontFamily:"var(--font-mono)", fontSize:9,
+            color: kind === "OW" ? "var(--accent)" : "var(--text-muted)",
+            letterSpacing:"0.12em", textTransform:"uppercase",
+            marginBottom:6, fontWeight:600,
+          });
+          const stMag = (pos, empty) => ({
+            fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600,
+            color: empty ? "var(--text-dim)" : pos ? "var(--accent)" : "var(--text)",
+            lineHeight:1, letterSpacing:"-0.01em",
+          });
+          const stName = {
+            fontSize:12, color:"var(--text-2)", marginTop:6, lineHeight:1.3,
+          };
           return (
-            <>
-              <div style={{...groupHeadStyle, marginTop:0}}>Top overweights vs SPY</div>
-              {tops.length === 0 && (
-                <div style={{padding:"6px 0", fontSize:12, color:"var(--text-muted)", fontStyle:"italic"}}>Engine recommendations broadly track the benchmark.</div>
-              )}
-              {tops.map(s => (
-                <div key={s.sector} style={rowStyle}>
-                  <span style={labelStyle}>{s.sector}</span>
-                  <span style={magStyle(true)}>{fmtMag(s.vs_spy_pp ?? 0)}</span>
+            <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"var(--space-2)"}}>
+              {tops.map((s, i) => (
+                <div key={"ow"+i} style={stStyle} onClick={()=>navTo("allocation")}>
+                  <div style={stEyebrow("OW")}>OW · #{i+1}</div>
+                  <div style={stMag(true, s._empty)}>{fmtMag(s.vs_spy_pp)}</div>
+                  <div style={stName}>{s.sector}</div>
                 </div>
               ))}
-              <div style={groupHeadStyle}>Top underweights vs SPY</div>
-              {bots.length === 0 && (
-                <div style={{padding:"6px 0", fontSize:12, color:"var(--text-muted)", fontStyle:"italic"}}>—</div>
-              )}
-              {bots.map(s => (
-                <div key={s.sector} style={rowStyle}>
-                  <span style={labelStyle}>{s.sector}</span>
-                  <span style={magStyle(false)}>{fmtMag(s.vs_spy_pp ?? 0)}</span>
+              {bots.map((s, i) => (
+                <div key={"uw"+i} style={stStyle} onClick={()=>navTo("allocation")}>
+                  <div style={stEyebrow("UW")}>UW · #{i+1}</div>
+                  <div style={stMag(false, s._empty)}>{fmtMag(s.vs_spy_pp)}</div>
+                  <div style={stName}>{s.sector}</div>
                 </div>
               ))}
-            </>
+            </div>
           );
         })()}
       </div>
@@ -5859,86 +5872,81 @@ return(
             <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
           </div>
 
-          {/* Headline number — candidates today */}
-          <div style={{display:"flex", alignItems:"baseline", gap:"var(--space-3)", marginBottom:"var(--space-4)"}}>
-            <div className="num" style={{
-              fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-              fontSize:44, fontWeight:500, color: (buyCount + watchCount) > 0 ? "var(--accent)" : "var(--text-muted)",
-              letterSpacing:"-0.01em", lineHeight:1,
-            }}>{buyCount + watchCount}</div>
-            <div style={{
-              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-              letterSpacing:"0.12em", textTransform:"uppercase", lineHeight:1.3,
-            }}>candidates<br/>today</div>
-          </div>
-
-          {/* Compact counts strip */}
-          <div style={{
-            display:"flex", alignItems:"center", justifyContent:"space-between",
-            padding:"var(--space-2) 0",
-            borderBottom:"1px solid var(--border-faint)",
-            fontSize:11, fontFamily:"var(--font-mono)", color:"var(--text-muted)",
-            letterSpacing:"0.06em", textTransform:"uppercase",
-          }}>
-            <span>Buy {buyCount} · Near {watchCount} · Other {rebucketOther.length}</span>
-            <span style={{color:"var(--text-dim)"}}>60/40/0 thresholds</span>
-          </div>
-
-          {/* Top-of-book: top 3 names with their overall scores. The
-              highest-score name in the scanner is far more useful than
-              three count lines. */}
-          <div style={{
-            marginTop:"var(--space-2)",
-            display:"flex", flexDirection:"column",
-          }}>
-            <div style={{
-              padding:"var(--space-3) 0 var(--space-2)",
-              fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-              letterSpacing:"0.14em", textTransform:"uppercase",
-            }}>Top candidates</div>
-            {rowHasData ? _topBuys.map((r, i) => {
-              const sect = _sectorFor(r.ticker);
-              const isLast = i === _topBuys.length - 1;
-              const isBuy  = r.ovr >= 60;
-              return (
-                <div key={r.ticker}
-                     onClick={()=>navTo("portopps")}
-                     style={{
-                       display:"flex", alignItems:"center", justifyContent:"space-between",
-                       padding:"var(--space-2) 0",
-                       borderBottom:isLast ? "none" : "1px solid var(--border-faint)",
-                       cursor:"pointer", gap:"var(--space-3)",
-                     }}>
-                  <div style={{minWidth:0, flex:1, display:"flex", alignItems:"baseline", gap:"var(--space-3)"}}>
-                    <span style={{
-                      fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-dim)",
-                      width:20, flexShrink:0,
-                    }}>#{i+1}</span>
-                    <div style={{minWidth:0}}>
-                      <div style={{fontSize:13, color:"var(--text)", fontWeight:500, lineHeight:1.2}}>{r.ticker}</div>
-                      {sect && <div style={{fontSize:10, color:"var(--text-muted)", marginTop:1, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{sect}</div>}
+          {/* SYMMETRIC SUB-TILE GRID — 6 cells in 3x2.
+              Each cell = one of the top 6 candidate tickers, ranked by
+              overall score. BUY (>= 60) score in teal, NEAR (40-59) in
+              amber-text, others in ink. Same outer/inner styling as the
+              other 3 home tiles — Joe directive 2026-05-07. */}
+          {(() => {
+            // Pull the top 6 names by overall score from the buy + near
+            // pools (drop "other" — they're below the 40 threshold).
+            const ranked = [...rebucketBuy, ...rebucketNear]
+              .filter(r => r && typeof r.ovr === "number")
+              .sort((a, b) => b.ovr - a.ovr)
+              .slice(0, 6);
+            // Pad to 6 so the grid stays symmetric on a quiet day.
+            while (ranked.length < 6) ranked.push({_empty:true});
+            const stStyle = {
+              background:"var(--surface)", border:"1px solid var(--border-faint)",
+              borderRadius:6, padding:"12px", cursor:"pointer",
+            };
+            const stEyebrow = (kind) => ({
+              fontFamily:"var(--font-mono)", fontSize:9,
+              color: kind === "BUY" ? "var(--accent)" : kind === "NEAR" ? "var(--text-muted)" : "var(--text-dim)",
+              letterSpacing:"0.12em", textTransform:"uppercase",
+              marginBottom:6, fontWeight:600,
+            });
+            const stScore = (kind, empty) => ({
+              fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600,
+              color: empty ? "var(--text-dim)" : kind === "BUY" ? "var(--accent)" : "var(--text)",
+              lineHeight:1, letterSpacing:"-0.01em",
+            });
+            const stTicker = {
+              fontSize:12, color:"var(--text-2)", marginTop:6, lineHeight:1.3,
+              fontFamily:"var(--font-display)", fontWeight:500,
+            };
+            const stSector = {
+              fontSize:10, color:"var(--text-muted)", marginTop:2,
+              whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis",
+            };
+            return (
+              <div style={{display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:"var(--space-2)"}}>
+                {ranked.map((r, i) => {
+                  if (r._empty) {
+                    return (
+                      <div key={"e"+i} style={{...stStyle, cursor:"default"}}>
+                        <div style={stEyebrow("EMPTY")}>#{i+1}</div>
+                        <div style={stScore("EMPTY", true)}>—</div>
+                        <div style={stSector}>—</div>
+                      </div>
+                    );
+                  }
+                  const kind = r.ovr >= 60 ? "BUY" : "NEAR";
+                  const sect = _sectorFor(r.ticker);
+                  return (
+                    <div key={r.ticker} style={stStyle} onClick={()=>navTo("portopps")}>
+                      <div style={stEyebrow(kind)}>#{i+1} · {kind}</div>
+                      <div style={stScore(kind, false)}>{r.ovr}</div>
+                      <div style={stTicker}>{r.ticker}</div>
+                      {sect && <div style={stSector}>{sect}</div>}
                     </div>
-                  </div>
-                  <div style={{
-                    fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums",
-                    fontSize:14, fontWeight:500,
-                    color: isBuy ? "var(--accent)" : "var(--yellow)",
-                  }}>{r.ovr}</div>
-                </div>
-              );
-            }) : (
-              <div style={{
-                padding:"var(--space-3) 0", fontSize:12, color:"var(--text-muted)",
-              }}>No candidates on the watchlist today.</div>
-            )}
-          </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
 
           {/* Last scan timestamp */}
           <div style={{
-            marginTop:"auto", paddingTop:"var(--space-3)",
+            marginTop:"var(--space-3)", paddingTop:"var(--space-3)",
+            borderTop:"1px solid var(--border-faint)",
             fontSize:11, color:"var(--text-dim)",
             fontFamily:"var(--font-mono)", letterSpacing:"0.06em",
-          }}>Last scan · {lastScanLabel}</div>
+            display:"flex", justifyContent:"space-between",
+          }}>
+            <span>Buy {buyCount} · Near {watchCount} · Other {rebucketOther.length}</span>
+            <span>Last scan · {lastScanLabel}</span>
+          </div>
         </div>);
       })()}
 
