@@ -85,10 +85,10 @@
   /* Verdict dial wedges + text — fills are inline SVG attrs which CSS
      can override. Map each wedge id and label color via CSS so theme
      toggle just works without touching JS. */
-  :root[data-theme="dark"] #wedge-riskon  { fill: var(--green-subtle); }
-  :root[data-theme="dark"] #wedge-neutral { fill: var(--amber-subtle); }
-  :root[data-theme="dark"] #wedge-caution { fill: var(--oxblood-subtle); }
-  :root[data-theme="dark"] #wedge-riskoff { fill: var(--darkblood-subtle); }
+  :root[data-theme="dark"] #wedge-riskon  { fill: rgba(255,255,255,0.05); }
+  :root[data-theme="dark"] #wedge-neutral { fill: rgba(255,255,255,0.05); }
+  :root[data-theme="dark"] #wedge-caution { fill: rgba(255,255,255,0.05); }
+  :root[data-theme="dark"] #wedge-riskoff { fill: rgba(255,255,255,0.05); }
   :root[data-theme="dark"] .verdict-svg text[fill="#7a7a72"] { fill: #888884; }
   :root[data-theme="dark"] .verdict-svg text[fill="#1a1a1a"] { fill: #fafaf7; }
   :root[data-theme="dark"] .verdict-svg line[stroke="#1a1a1a"] { stroke: #fafaf7; }
@@ -698,15 +698,13 @@
       <!-- Aggregate verdict dial — 4 wedges, current position pointed to.
            Wedge labels are factual band names, not state pill words. -->
       <svg class="verdict-svg" viewBox="0 0 380 230" id="verdictDial">
-        <path d="" id="wedge-riskon"  fill="#d8e6d8" />
-        <path d="" id="wedge-neutral" fill="var(--yellow)" />
-        <path d="" id="wedge-caution" fill="#e6cfc1" />
-        <path d="" id="wedge-riskoff" fill="#e1c5c5" />
+        <!-- Wedges all neutral; the verdict dot is the only band indicator. Joe directive 2026-05-07. -->
+        <path d="" id="wedge-riskon"  fill="#ececea" />
+        <path d="" id="wedge-neutral" fill="#ececea" />
+        <path d="" id="wedge-caution" fill="#ececea" />
+        <path d="" id="wedge-riskoff" fill="#ececea" />
 
-        <text x="65"  y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="start"  letter-spacing="0.08em" font-weight="600">RISK-ON</text>
-        <text x="155" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="middle" letter-spacing="0.08em" font-weight="600">NEUTRAL</text>
-        <text x="245" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="middle" letter-spacing="0.08em" font-weight="600">CAUTION</text>
-        <text x="325" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="end"    letter-spacing="0.08em" font-weight="600">RISK-OFF</text>
+        <!-- Band labels removed 2026-05-07 (Joe directive) — band name in headline carries the signal. -->
 
         <!-- Pointer group rotates from leftmost (180°) to current angle. -->
         <g class="verdict-pointer-group" id="verdictPointerGroup">
