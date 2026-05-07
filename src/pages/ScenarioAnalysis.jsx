@@ -559,7 +559,7 @@ const STYLES = `
 .scenarios-page .so-what .punchline em { font-style:italic; color:var(--accent-burgundy); }
 .scenarios-page .so-what.exotic .punchline em { color:var(--warn); }
 .scenarios-page .so-what .takeaway { font-size:13px; color:var(--ink-1); max-width:920px; }
-.scenarios-page .output-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-3); margin-top:var(--s-3); }
+.scenarios-page .output-grid { display:grid; grid-template-columns:1fr 1fr; gap:var(--s-3); margin-top:var(--s-3); align-items:start; }
 .scenarios-page .panel { background:var(--bg-1); border:1px solid var(--line-1); border-radius:var(--r-xl); padding:var(--s-3) var(--s-4); transition:all 200ms; }
 .scenarios-page .panel-eyebrow { font-family:var(--font-ui); font-size:10px; font-weight:600; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-3); margin-bottom:2px; }
 .scenarios-page .panel-title { font-family:Fraunces,serif; font-weight:500; font-size:18px; letter-spacing:-.005em; color:var(--ink-0); margin-bottom:var(--s-3); }
@@ -741,7 +741,7 @@ export default function ScenarioAnalysis() {
           </div>
           <div className="mode-toggle">
             <button className={mode === "canned" ? "active" : ""} onClick={() => onModeChange("canned")}>Canned scenario</button>
-            <button className={mode === "bespoke" ? "active" : ""} onClick={() => onModeChange("bespoke")}>Bespoke shock</button>
+            <button className={mode === "bespoke" ? "active" : ""} onClick={() => onModeChange("bespoke")}>Custom shock</button>
           </div>
         </div>
 
@@ -775,7 +775,7 @@ export default function ScenarioAnalysis() {
               <div className="builder-label">Propagation</div>
               <div className={"prop-toggle" + (prop === "bespoke" ? " bespoke" : "")} onClick={onPropToggle}>
                 <span className="dot"></span>
-                <strong>{prop === "realistic" ? "Realistic" : "Bespoke"}</strong>
+                <strong>{prop === "realistic" ? "Realistic" : "Custom"}</strong>
                 <span style={{color:"var(--ink-2)"}}>{prop === "realistic" ? " · single driver · others auto-propagate" : " · each pinned slider moves freely · Coherence Score warns on rare combos"}</span>
               </div>
               <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
@@ -815,7 +815,7 @@ export default function ScenarioAnalysis() {
                 );
               })}
             </div>
-            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Bespoke mode: pin any factors you want to move freely. Pinned factors override the covariance; unpinned factors auto-propagate from your pins."}</div>
+            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: pin any factors you want to move freely. The other factors auto-propagate from your pins based on historical correlations."}</div>
           </div>
         )}
 
@@ -850,16 +850,18 @@ function SoWhatHero({ mode, scenario, score, pnl, horizonText, portfolioTotal = 
     );
     takeaway = sc.narrative + (sc.proxy ? " Note: pre-1996 proxies in use; magnitudes are approximations." : "") + (sc.lowConf ? " Low-confidence calibration — single recent episode." : "");
   } else {
-    label = `So what · Bespoke · ${horizonText} forward · Coherence ${score} / 100`;
+    label = `So what · Custom · ${horizonText} forward · Coherence ${score} / 100`;
+    const dollarStr = (Math.abs(pnl.total) / 1000).toFixed(0) + "K";
+    const lossOrGain = pnl.total < 0 ? "hit" : "gain";
     if (score < 5) {
-      punchline = <><em>Exotic factor combination</em> — not corroborated by any historical regime. Engine output: <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "loss" : "gain"}</em>, but treat as exploratory only.</>;
-      takeaway = "Pinned factors are forcing an internal contradiction the covariance can't resolve coherently. Useful for thought experiments; the L4 re-allocation should not be acted on until the combination is corroborated by a real regime.";
+      punchline = <>This factor combination hasn't shown up in market history. The engine projects a <em>${dollarStr} {lossOrGain}</em> on your book — useful as a what-if, not as an allocation call.</>;
+      takeaway = "When the factors you've pinned haven't moved together historically, the model can't anchor the read to a real regime. Use this for exploration; the recommended re-allocation in L4 isn't meant to be acted on.";
     } else if (score < 25) {
-      punchline = <>Historically rare combination. Your ${(PT / 1000).toFixed(0)}K book takes <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "hit" : "gain"}</em>. Engine response is calibrated but uncertainty is elevated.</>;
-      takeaway = "Less than 25% of weekly observations 1985–2026 produced this combination. Engine output is mathematically valid; treat L4 re-allocation as one among several plausible responses.";
+      punchline = <>This combination is rare in market history. Your book would take a <em>${dollarStr} {lossOrGain}</em>. The model's response is mathematically valid, but uncertainty is elevated.</>;
+      takeaway = "Fewer than 25% of weekly observations from 1985–2026 produced this combination. Treat the recommended re-allocation as one option among several.";
     } else {
-      punchline = <>Coherent factor regime. Your ${(PT / 1000).toFixed(0)}K book takes <em>${(Math.abs(pnl.total) / 1000).toFixed(0)}K {pnl.total < 0 ? "hit" : "gain"}</em> over {horizonText}.</>;
-      takeaway = "Factor combination is consistent with historical regimes. Engine output carries normal calibration confidence.";
+      punchline = <>This combination is consistent with historical regimes. Your book would take a <em>${dollarStr} {lossOrGain}</em> over {horizonText}.</>;
+      takeaway = "The model's output carries normal calibration confidence.";
     }
   }
   return (
@@ -919,61 +921,57 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector }) {
     );
   }
   const ranked = SECTORS.map(s => ({ ...s, shockPct: sectorPcts[s.id] }));
-  const equity = ranked.filter(s => s.assetClass === "Equity").sort((a, b) => b.shockPct - a.shockPct);
-  const other = ranked.filter(s => s.assetClass !== "Equity").sort((a, b) => b.shockPct - a.shockPct);
+  // ONE unified ranked list (best at top → worst at bottom). Equity and
+  // non-equity rendered in the same list so the visible top row always
+  // matches the headline. Equity rows stay clickable for IG drill-down;
+  // non-equity rows are tagged inline.
   const allSorted = [...ranked].sort((a, b) => b.shockPct - a.shockPct);
   const best = allSorted[0], worst = allSorted[allSorted.length - 1];
-  const equityAllDown = equity.every(s => s.shockPct < 0);
-  const otherAllUp = other.every(s => s.shockPct > 0);
   let headline;
-  if (equityAllDown && otherAllUp) headline = `Risk-off rotation: ${best.name} bid · ${worst.name} hit hardest`;
-  else if (best.shockPct > 0 && worst.shockPct < 0) headline = `${best.name} leads · ${worst.name} worst`;
-  else if (allSorted.every(s => s.shockPct < 0)) headline = `All assets negative · ${best.name} cushions`;
-  else if (allSorted.every(s => s.shockPct > 0)) headline = `Broad-based bid · ${best.name} leads`;
-  else headline = "Mixed response across assets";
+  if (allSorted.every(s => s.shockPct < 0)) headline = `Every asset down · ${best.name} cushions best`;
+  else if (allSorted.every(s => s.shockPct > 0)) headline = `Broad bid · ${best.name} leads`;
+  else headline = `${best.name} leads · ${worst.name} hit hardest`;
   return (
     <div className="panel">
       <div className="panel-eyebrow">L2 · Sector shock + Other · click an equity row for IG drill-down</div>
       <h3 className="panel-title">{headline}</h3>
       <div className="sector-list">
-        {equity.map((s, i) => (
-          <div key={s.id}>
-            <div className={"sector-row" + (expandedSector === s.id ? " expanded" : "")} onClick={() => setExpandedSector(expandedSector === s.id ? null : s.id)}>
-              <span className="sector-rank">#{i+1}</span>
-              <span className="sector-name">{s.name}</span>
-              <span className="sector-tkr">{s.id}</span>
-              <span className={"sector-pct " + (s.shockPct > 0 ? "up" : "down")}>{s.shockPct >= 0 ? "+" : ""}{s.shockPct.toFixed(1)}%</span>
-            </div>
-            {expandedSector === s.id && s.igs.length > 0 && (
-              <div className="ig-list">
-                {s.igs.map((ig, idx) => {
-                  const variance = Math.abs(s.shockPct) * 0.5;
-                  const offset = (idx - (s.igs.length - 1) / 2) / Math.max(1, (s.igs.length - 1) / 2) * variance;
-                  const pct = s.shockPct + offset;
-                  return (
-                    <div key={ig.name} className="ig-row">
-                      <span className="ig-name">{ig.name}</span>
-                      <span className={"ig-pct " + (pct > 0 ? "up" : "down")}>{pct >= 0 ? "+" : ""}{pct.toFixed(1)}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        ))}
-        {other.length > 0 && (
-          <>
-            <div className="sector-divider">DEFENSIVE SLEEVE · Bills · UST · Gold · IG</div>
-            {other.map((s, i) => (
-              <div key={s.id} className="sector-row" style={{cursor:"default"}}>
+        {allSorted.map((s, i) => {
+          const isEquity = s.assetClass === "Equity";
+          const expandable = isEquity && s.igs && s.igs.length > 0;
+          return (
+            <div key={s.id}>
+              <div
+                className={"sector-row" + (expandedSector === s.id ? " expanded" : "")}
+                onClick={() => expandable && setExpandedSector(expandedSector === s.id ? null : s.id)}
+                style={{cursor: expandable ? "pointer" : "default"}}
+              >
                 <span className="sector-rank">#{i+1}</span>
-                <span className="sector-name">{s.name}</span>
+                <span className="sector-name">
+                  {s.name}
+                  {!isEquity && <span style={{marginLeft:8, fontSize:9, fontWeight:600, letterSpacing:".10em", textTransform:"uppercase", color:"var(--ink-3)"}}>Defensive</span>}
+                </span>
                 <span className="sector-tkr">{s.id}</span>
                 <span className={"sector-pct " + (s.shockPct > 0 ? "up" : "down")}>{s.shockPct >= 0 ? "+" : ""}{s.shockPct.toFixed(1)}%</span>
               </div>
-            ))}
-          </>
-        )}
+              {expandedSector === s.id && expandable && (
+                <div className="ig-list">
+                  {s.igs.map((ig, idx) => {
+                    const variance = Math.abs(s.shockPct) * 0.5;
+                    const offset = (idx - (s.igs.length - 1) / 2) / Math.max(1, (s.igs.length - 1) / 2) * variance;
+                    const pct = s.shockPct + offset;
+                    return (
+                      <div key={ig.name} className="ig-row">
+                        <span className="ig-name">{ig.name}</span>
+                        <span className={"ig-pct " + (pct > 0 ? "up" : "down")}>{pct >= 0 ? "+" : ""}{pct.toFixed(1)}%</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -1002,13 +1000,23 @@ function L3Panel({ hasShock, pnl, horizon, portfolioTotal = PORTFOLIO_TOTAL, por
   const others = sortedPositions.slice(5);
   const totalCls = pnl.total < 0 ? "down" : "up";
   const uncoveredValue = (portfolioUncovered || []).reduce((s, p) => s + Math.abs(p.value || 0), 0);
+  const isDemo = portfolioSource !== "user";
   return (
     <div className="panel">
       <div className="panel-eyebrow">L3 · Your portfolio · {eyebrowSuffix}</div>
-      <h3 className="panel-title" style={{color: pnl.total < 0 ? "var(--down)" : pnl.total > 0 ? "var(--up)" : "var(--ink-0)"}}>
-        {formatDollar(pnl.total)} · {Math.abs(totalPct).toFixed(1)}% of book · {horizon} horizon
-      </h3>
-      <table className="portfolio-table">
+      {isDemo ? (
+        <>
+          <h3 className="panel-title">Sign in to see how your real positions react.</h3>
+          <p style={{fontSize:13, color:"var(--ink-2)", marginTop:"var(--s-2)", marginBottom:"var(--s-3)"}}>
+            The table below is a generic 5-name sample for illustration. Your numbers will replace it once you sign in.
+          </p>
+        </>
+      ) : (
+        <h3 className="panel-title" style={{color: pnl.total < 0 ? "var(--down)" : pnl.total > 0 ? "var(--up)" : "var(--ink-0)"}}>
+          {formatDollar(pnl.total)} · {Math.abs(totalPct).toFixed(1)}% of book · {horizon} horizon
+        </h3>
+      )}
+      <table className="portfolio-table" style={isDemo ? {opacity: 0.7} : {}}>
         <thead>
           <tr><th>Ticker</th><th>Sector</th><th className="right">Weight</th><th className="right">Shock %</th><th className="right">P&amp;L $</th></tr>
         </thead>
