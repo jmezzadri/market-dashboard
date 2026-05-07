@@ -5482,6 +5482,34 @@ return(
     padding:"var(--space-5)",
     display:"flex", flexDirection:"column",
   };
+  // SHARED SUB-TILE STYLES — every home-page sub-cell uses these so the
+  // grid reads as one family. Joe directive 2026-05-07.
+  const stStyle = {
+    background:"var(--surface)", border:"1px solid var(--border-faint)",
+    borderRadius:6, padding:"12px", cursor:"pointer",
+    display:"flex", flexDirection:"column",
+  };
+  const stEyebrowStyle = {
+    fontFamily:"var(--font-mono)", fontSize:9,
+    color:"var(--accent)", letterSpacing:"0.12em",
+    textTransform:"uppercase", marginBottom:6, fontWeight:600,
+  };
+  const stValueStyle = (col) => ({
+    fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600,
+    color: col || "var(--text)", lineHeight:1, letterSpacing:"-0.01em",
+  });
+  const stSubStyle = {
+    fontSize:12, color:"var(--text-2)", marginTop:6, lineHeight:1.3,
+    fontFamily:"var(--font-display)", fontWeight:500,
+  };
+  const stMetaStyle = {
+    fontSize:10, color:"var(--text-muted)", marginTop:2,
+    fontFamily:"var(--font-mono)", letterSpacing:"0.04em",
+  };
+  const stGridStyle = {
+    display:"grid", gridTemplateColumns:"repeat(3, 1fr)",
+    gap:"var(--space-2)",
+  };
   const cardHeadStyle = {
     display:"flex", alignItems:"baseline", justifyContent:"space-between",
     paddingBottom:"var(--space-2)",
@@ -6237,43 +6265,6 @@ const subPanelHeader={padding:"8px 12px",background:"var(--surface)",borderBotto
 const subPanelTitleStyle={fontSize:11,color:"var(--text-2)",fontFamily:"var(--font-mono)",letterSpacing:"0.1em",fontWeight:700};
 const subPanelBody={padding:"10px 12px"};
 const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-faint)",borderRadius:6,padding:"10px 12px"};
-// SHARED SUB-TILE STYLES — used by every home-page tile so every sub-cell on
-// the home grid reads as one visual family. Joe directive 2026-05-07: stop
-// the per-tile drift in fonts / borders / fills.
-const stStyle = {
-  background: "var(--surface)",
-  border: "1px solid var(--border-faint)",
-  borderRadius: 6,
-  padding: "12px",
-  cursor: "pointer",
-  display: "flex", flexDirection: "column",
-};
-// All sub-tile eyebrows are the brand teal — that's where the accent lives.
-const stEyebrowStyle = {
-  fontFamily: "var(--font-mono)", fontSize: 9,
-  color: "var(--accent)", letterSpacing: "0.12em",
-  textTransform: "uppercase", marginBottom: 6, fontWeight: 600,
-};
-// Big number — caller passes color (teal for positive, ink default).
-const stValueStyle = (col) => ({
-  fontFamily: "var(--font-mono)", fontSize: 22, fontWeight: 600,
-  color: col || "var(--text)", lineHeight: 1, letterSpacing: "-0.01em",
-});
-// Sub label under the value — sector / ticker / account name etc.
-const stSubStyle = {
-  fontSize: 12, color: "var(--text-2)", marginTop: 6, lineHeight: 1.3,
-  fontFamily: "var(--font-display)", fontWeight: 500,
-};
-// Smaller meta line beneath the sub label (TTM return, sector, etc.).
-const stMetaStyle = {
-  fontSize: 10, color: "var(--text-muted)", marginTop: 2,
-  fontFamily: "var(--font-mono)", letterSpacing: "0.04em",
-};
-// Sub-tile grid — 3 columns by default. Tiles can override.
-const stGridStyle = {
-  display: "grid", gridTemplateColumns: "repeat(3, 1fr)",
-  gap: "var(--space-2)",
-};
 const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
 const showTrading=tab==="portopps";
 const showInsights=tab==="insights";
