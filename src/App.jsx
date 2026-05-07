@@ -4951,6 +4951,13 @@ useEffect(()=>{
 // heldPositions render below.)
 const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [tickerDetail,setTickerDetail]=useState(null);
+// Joe directive 2026-05-07 — modals auto-close on nav change. When the
+// user clicks a left-nav item while the global ticker detail modal is
+// open, the tab changes; this effect clears tickerDetail so the modal
+// dismisses with the page change. Per-page modals (SectorModal, IGModal,
+// MechanismModal) auto-clear because their parent page unmounts on
+// tab change.
+useEffect(() => { setTickerDetail(null); }, [tab]);
 // rawScanData is the public artifact straight from the CDN (no user data).
 // `scanData` (below) is the merged version — per-user watchlist rows from
 // Supabase (user_scan_data) are layered in so AMAT/CRWD/CAT/KTOS etc. carry
@@ -5703,10 +5710,13 @@ return(
           This card runs the SAME math against the same JSON, so the
           home preview and /#overview show identical numbers, identical
           band, identical narrative. */}
-      <div style={cardStyle}>
+      <div role="link" tabIndex={0}
+           onClick={()=>navTo("overview")}
+           onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("overview"); } }}
+           style={{...cardStyle, cursor:"pointer"}}>
         <div style={cardHeadStyle}>
           <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoardSnap?.as_of||null} style={{marginLeft:8}}/></h2>
-          <a style={cardLinkStyle} onClick={()=>navTo("overview")}>Open full view →</a>
+          <a style={cardLinkStyle} onClick={(e)=>{e.stopPropagation(); navTo("overview");}}>Open full view →</a>
         </div>
 
         {(() => {
@@ -5835,10 +5845,13 @@ return(
         };
         const rowHasData = _topBuys.length > 0;
         return (
-        <div style={cardStyle}>
+        <div role="link" tabIndex={0}
+             onClick={()=>navTo("portopps")}
+             onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("portopps"); } }}
+             style={{...cardStyle, cursor:"pointer"}}>
           <div style={cardHeadStyle}>
             <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||scanData?.date_iso||scanData?.date||null} style={{marginLeft:8}}/></h2>
-            <a style={cardLinkStyle} onClick={()=>navTo("portopps")}>Open →</a>
+            <a style={cardLinkStyle} onClick={(e)=>{e.stopPropagation(); navTo("portopps");}}>Open →</a>
           </div>
 
           {/* 6 sub-tiles — top 6 candidate tickers ranked by overall score.
@@ -6021,12 +6034,15 @@ return(
           : null;
 
         return (
-        <div style={cardStyle}>
+        <div role="link" tabIndex={0}
+             onClick={()=>navTo("insights")}
+             onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("insights"); } }}
+             style={{...cardStyle, cursor:"pointer"}}>
           <div style={cardHeadStyle}>
             <h2 style={cardH2Style}>
               <span style={cardTagStyle}>04</span>Portfolio Insights <FreshnessDot indicatorId="portfolio_history" asOfIso={_portfolioReturns?.latestDate||scanData?.scan_time||null} style={{marginLeft:8}}/>
             </h2>
-            <a style={cardLinkStyle} onClick={()=>navTo("insights")}>Open →</a>
+            <a style={cardLinkStyle} onClick={(e)=>{e.stopPropagation(); navTo("insights");}}>Open →</a>
           </div>
 
           {/* 6 ACCOUNT SUB-TILES — Joe directive 2026-05-07.
