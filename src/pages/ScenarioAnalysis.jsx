@@ -974,6 +974,7 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
     return acc;
   }, {});
   const haveBook = Math.abs(portfolioTotal || 0) > 1;
+  const maxAbsShock = Math.max(...allSorted.map(s => Math.abs(s.shockPct)), 0.01);
   const fmtUsd = v => {
     const a = Math.abs(v);
     if (a >= 1000) return (v < 0 ? "-$" : "$") + (a / 1000).toFixed(1) + "K";
@@ -996,26 +997,32 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
         </div>
       )}
 
-      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, padding:"8px 10px", background:"var(--bg-2)", border:"1px solid var(--line-1)", borderRadius:"var(--r-sm)", marginBottom:"var(--s-3)"}}>
-        <div>
+      <div style={{display:"grid", gridTemplateColumns:"repeat(4, 1fr)", gap:0, padding:"10px 14px", background:"var(--bg-2)", border:"1px solid var(--line-1)", borderRadius:"var(--r-sm)", marginBottom:"var(--s-3)"}}>
+        <div style={{paddingRight:14, borderRight:"1px solid var(--line-1)"}}>
           <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>Equity sleeve avg</div>
           <div className={"action-delta " + (equityAvg < 0 ? "down" : "up")} style={{textAlign:"left"}}>{equityAvg >= 0 ? "+" : ""}{equityAvg.toFixed(1)}%</div>
         </div>
-        <div>
+        <div style={{paddingLeft:14, paddingRight:14, borderRight:"1px solid var(--line-1)"}}>
           <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>Defensive sleeve avg</div>
           <div className={"action-delta " + (defensiveAvg < 0 ? "down" : "up")} style={{textAlign:"left"}}>{defensiveAvg >= 0 ? "+" : ""}{defensiveAvg.toFixed(1)}%</div>
         </div>
-        <div style={{gridColumn:"1 / span 2", fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-2)", paddingTop:4, borderTop:"1px dashed var(--line-1)"}}>
-          Equity-vs-defensive spread <b style={{color:"var(--ink-1)"}}>{spread >= 0 ? "+" : ""}{spread.toFixed(1)}%</b>{haveBook ? <> · Your book impact <b className={pnl.total < 0 ? "" : ""} style={{color: pnl.total < 0 ? "var(--down)" : "var(--up)"}}>{fmtUsd(pnl.total)}</b> {portfolioSource === "user" ? "(real positions)" : "(demo book)"}</> : null}
+        <div style={{paddingLeft:14, paddingRight:14, borderRight: haveBook ? "1px solid var(--line-1)" : "none"}}>
+          <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>Equity-vs-defensive spread</div>
+          <div className={"action-delta " + (spread < 0 ? "down" : "up")} style={{textAlign:"left"}}>{spread >= 0 ? "+" : ""}{spread.toFixed(1)}%</div>
+        </div>
+        <div style={{paddingLeft:14}}>
+          <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>{haveBook ? (portfolioSource === "user" ? "Your book impact" : "Demo book impact") : "Book impact"}</div>
+          <div className={"action-delta " + ((pnl?.total || 0) < 0 ? "down" : "up")} style={{textAlign:"left", color: !haveBook ? "var(--ink-3)" : undefined}}>{haveBook ? fmtUsd(pnl.total) : "—"}</div>
         </div>
       </div>
 
-      <div style={{display:"grid", gridTemplateColumns:"28px 1fr 56px 70px 70px 80px", gap:8, padding:"4px 0 6px", borderBottom:"1px solid var(--line-1)", fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>
+      <div style={{display:"grid", gridTemplateColumns:"28px minmax(140px, 220px) 70px 60px 70px minmax(140px, 1fr) 70px", gap:10, padding:"4px 0 6px", borderBottom:"1px solid var(--line-1)", fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>
         <span>#</span>
         <span>Asset / Sector</span>
         <span style={{textAlign:"left"}}>Class</span>
         <span style={{textAlign:"right"}}>Curr %</span>
         <span style={{textAlign:"right"}}>Shock %</span>
+        <span style={{textAlign:"center"}}>← Down · Up →</span>
         <span style={{textAlign:"right"}}>{haveBook ? "Book $" : "Tkr"}</span>
       </div>
 
@@ -1029,13 +1036,20 @@ function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode
               <div
                 className={"sector-row" + (expandedSector === s.id ? " expanded" : "")}
                 onClick={() => expandable && setExpandedSector(expandedSector === s.id ? null : s.id)}
-                style={{cursor: expandable ? "pointer" : "default", gridTemplateColumns:"28px 1fr 56px 70px 70px 80px"}}
+                style={{cursor: expandable ? "pointer" : "default", gridTemplateColumns:"28px minmax(140px, 220px) 70px 60px 70px minmax(140px, 1fr) 70px", gap:10}}
               >
                 <span className="sector-rank">#{i+1}</span>
                 <span className="sector-name">{s.name}</span>
                 <span style={{fontFamily:"var(--font-ui)", fontSize:10, color:"var(--ink-3)", letterSpacing:".10em", textTransform:"uppercase"}}>{isEquity ? "Equity" : "Defensive"}</span>
                 <span style={{fontFamily:"var(--font-ui)", fontSize:12, color:"var(--ink-2)", textAlign:"right"}}>{(s.current || 0).toFixed(0)}%</span>
                 <span className={"sector-pct " + (s.shockPct > 0 ? "up" : "down")}>{s.shockPct >= 0 ? "+" : ""}{s.shockPct.toFixed(1)}%</span>
+                <span style={{position:"relative", height:8, alignSelf:"center"}}>
+                  <span style={{position:"absolute", left:"50%", top:0, bottom:0, width:1, background:"var(--line-1)"}} />
+                  {s.shockPct >= 0
+                    ? <span style={{position:"absolute", left:"50%", top:0, bottom:0, width:`${(Math.abs(s.shockPct) / maxAbsShock) * 50}%`, background:"var(--up)", opacity:.7, borderRadius:2}} />
+                    : <span style={{position:"absolute", right:"50%", top:0, bottom:0, width:`${(Math.abs(s.shockPct) / maxAbsShock) * 50}%`, background:"var(--down)", opacity:.7, borderRadius:2}} />
+                  }
+                </span>
                 {haveBook
                   ? <span style={{fontFamily:"var(--font-ui)", fontSize:11, color: dollarHit === 0 ? "var(--ink-3)" : (dollarHit < 0 ? "var(--down)" : "var(--up)"), textAlign:"right", fontWeight:600}}>{dollarHit === 0 ? "—" : fmtUsd(dollarHit)}</span>
                   : <span className="sector-tkr" style={{textAlign:"right"}}>{s.id}</span>
