@@ -645,6 +645,16 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     fetch("/v10_allocation.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setV10).catch(() => setV10(null));
   }, []);
+  // Escape-key closes whichever modal is on top
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== "Escape") return;
+      if (igModal) setIgModal(null);
+      else if (sectorModal) setSectorModal(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [igModal, sectorModal]);
   // Map Scenarios sector names + synthetic asset IDs → real Asset Tilt
   // sector names / tickers, so the click-target hits the right modal data.
   const SCEN_TO_AT_SECTOR = {
