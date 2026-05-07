@@ -5791,28 +5791,30 @@ return(
           if (!v10AllocSnap) {
             return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
           }
-          // 6 sub-tiles · top 3 OW + top 3 UW · shared module-level styles.
+          // TOP 6 SECTOR ALLOCATIONS by absolute weight — Joe directive
+          // 2026-05-07. Drop the OW/UW vs-SPY framing: IT can be the
+          // single largest position at 22% of capital and still read as
+          // "-5% UW" against the SPY 27% tech weight, which is misleading
+          // on a tile labeled 'Asset Tilt'. Show what we actually own.
           const sectors = (v10AllocSnap.sectors || []).slice();
-          const sorted  = sectors.sort((a,b)=>(b.vs_spy_pp ?? 0)-(a.vs_spy_pp ?? 0));
-          const tops    = sorted.filter(s => (s.vs_spy_pp ?? 0) > 0).slice(0,3);
-          const bots    = sorted.filter(s => (s.vs_spy_pp ?? 0) < 0).slice(-3).reverse();
-          while (tops.length < 3) tops.push({sector:"—", vs_spy_pp:null, _empty:true});
-          while (bots.length < 3) bots.push({sector:"—", vs_spy_pp:null, _empty:true});
-          const fmtMag = v => v == null ? "—" : (v >= 0 ? "+" : "") + Math.round(v) + "%";
+          const top6   = sectors
+            .map(s => ({...s, _w: s.weight ?? 0}))
+            .sort((a,b) => b._w - a._w)
+            .slice(0, 6);
+          while (top6.length < 6) top6.push({sector:"—", weight:null, vs_spy_pp:null, _empty:true});
+          const fmtPct = v => v == null ? "—" : (v * 100).toFixed(1) + "%";
+          const fmtDelta = v => v == null ? "" : (v >= 0 ? "+" : "") + Math.round(v) + "% vs SPY";
           return (
             <div style={stGridStyle}>
-              {tops.map((sec, i) => (
-                <div key={"ow"+i} style={stStyle} onClick={()=>navTo("allocation")}>
-                  <div style={stEyebrowStyle}>OW · #{i+1}</div>
-                  <div style={stValueStyle(sec._empty ? "var(--text-dim)" : "var(--accent)")}>{fmtMag(sec.vs_spy_pp)}</div>
+              {top6.map((sec, i) => (
+                <div key={"alloc"+i} style={sec._empty ? {...stStyle, cursor:"default"} : stStyle}
+                     onClick={()=>{ if (!sec._empty) navTo("allocation"); }}>
+                  <div style={stEyebrowStyle}>#{i+1}</div>
+                  <div style={stValueStyle(sec._empty ? "var(--text-dim)" : "var(--accent)")}>{fmtPct(sec.weight)}</div>
                   <div style={stSubStyle}>{sec.sector}</div>
-                </div>
-              ))}
-              {bots.map((sec, i) => (
-                <div key={"uw"+i} style={stStyle} onClick={()=>navTo("allocation")}>
-                  <div style={stEyebrowStyle}>UW · #{i+1}</div>
-                  <div style={stValueStyle(sec._empty ? "var(--text-dim)" : "var(--text)")}>{fmtMag(sec.vs_spy_pp)}</div>
-                  <div style={stSubStyle}>{sec.sector}</div>
+                  {!sec._empty && sec.vs_spy_pp != null && Math.abs(sec.vs_spy_pp) >= 1 && (
+                    <div style={stMetaStyle}>{fmtDelta(sec.vs_spy_pp)}</div>
+                  )}
                 </div>
               ))}
             </div>
