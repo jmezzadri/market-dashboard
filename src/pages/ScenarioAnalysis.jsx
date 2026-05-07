@@ -525,9 +525,9 @@ const STYLES = `
 .scenarios-page .coherence .score { font-family:var(--font-ui); font-weight:700; font-size:14px; color:var(--up); }
 .scenarios-page .coherence.unusual { background:rgba(216,178,122,.08); border-color:rgba(216,178,122,.4); }
 .scenarios-page .coherence.unusual .score { color:var(--accent-parchment); }
-.scenarios-page .coherence.rare { background:rgba(184,129,28,.08); border-color:rgba(184,129,28,.3); }
+.scenarios-page .coherence.rare { background:rgba(107,122,133,.08); border-color:rgba(107,122,133,.3); }
 .scenarios-page .coherence.rare .score { color:var(--warn); }
-.scenarios-page .coherence.exotic { background:rgba(157,53,69,.08); border-color:rgba(157,53,69,.3); }
+.scenarios-page .coherence.exotic { background:rgba(14,85,96,.08); border-color:rgba(14,85,96,.3); }
 .scenarios-page .coherence.exotic .score { color:var(--accent-burgundy); }
 .scenarios-page .factor-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px var(--s-4); margin-top:var(--s-3); }
 .scenarios-page .factor { display:grid; grid-template-columns:100px 1fr 60px 80px 22px; align-items:center; gap:7px; padding:4px 0; }

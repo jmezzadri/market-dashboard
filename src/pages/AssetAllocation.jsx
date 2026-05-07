@@ -21,9 +21,9 @@ const BAND_COLOR = {
   "risk-off": "var(--red)",
 };
 const RATING_BG = {
-  "OW":  "rgba(46,125,50,0.18)",
-  "MW":  "rgba(155,147,132,0.18)",
-  "UW":  "rgba(183,28,28,0.18)",
+  "OW":  "rgba(47,157,106,0.18)",
+  "MW":  "rgba(94,94,99,0.18)",
+  "UW":  "rgba(200,70,88,0.18)",
 };
 const RATING_TEXT = { "OW":  "var(--green)", "MW":  "var(--text-muted)", "UW":  "var(--red)" };
 const RATING_LABEL = { OW: "Overweight", MW: "Market wt", UW: "Underweight" };
@@ -447,10 +447,10 @@ function flowColor(f) {
 
 function StanceBadge({ stance }) {
   const color = STANCE_COLOR[stance] || "var(--text-muted)";
-  const bg = stance === "Risk On" ? "rgba(46,125,50,0.14)" :
-             stance === "Cautious" || stance === "Caution" ? "rgba(184,134,11,0.16)" :
-             stance === "Risk Off" ? "rgba(183,28,28,0.16)" :
-             "rgba(155,147,132,0.16)";
+  const bg = stance === "Risk On" ? "rgba(47,157,106,0.14)" :
+             stance === "Cautious" || stance === "Caution" ? "rgba(107,122,133,0.16)" :
+             stance === "Risk Off" ? "rgba(200,70,88,0.16)" :
+             "rgba(94,94,99,0.16)";
   return (
     <span style={{
       display: "inline-flex", alignItems: "center", gap: 6,
@@ -966,13 +966,13 @@ function HeatmapTile({ contributionMatrix }) {
     growth: "Growth", liquidity_policy: "Liquidity & Policy", positioning_breadth: "Positioning & Breadth",
   };
   const cellColor = (v) => {
-    if (Math.abs(v) < 0.15) return { bg: "rgba(155,147,132,0.10)", color: "var(--text-muted)" };
-    if (v > 0.7) return { bg: "rgba(46,125,50,0.55)", color: "#fff" };
-    if (v > 0.3) return { bg: "rgba(46,125,50,0.30)", color: "var(--text)" };
-    if (v > 0) return { bg: "rgba(46,125,50,0.15)", color: "var(--text)" };
-    if (v < -0.7) return { bg: "rgba(183,28,28,0.55)", color: "#fff" };
-    if (v < -0.3) return { bg: "rgba(183,28,28,0.30)", color: "var(--text)" };
-    return { bg: "rgba(183,28,28,0.15)", color: "var(--text)" };
+    if (Math.abs(v) < 0.15) return { bg: "rgba(94,94,99,0.10)", color: "var(--text-muted)" };
+    if (v > 0.7) return { bg: "rgba(47,157,106,0.55)", color: "#fff" };
+    if (v > 0.3) return { bg: "rgba(47,157,106,0.30)", color: "var(--text)" };
+    if (v > 0) return { bg: "rgba(47,157,106,0.15)", color: "var(--text)" };
+    if (v < -0.7) return { bg: "rgba(200,70,88,0.55)", color: "#fff" };
+    if (v < -0.3) return { bg: "rgba(200,70,88,0.30)", color: "var(--text)" };
+    return { bg: "rgba(200,70,88,0.15)", color: "var(--text)" };
   };
   return (
     <div style={{
@@ -1092,85 +1092,40 @@ export default function AssetTilt({ onOpenTicker }) {
 
   return (
     <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 32px 48px" }}>
-      {/* HERO */}
+      {/* HERO — Asset Tilt is about TILT, not statements of state.
+          'Cautious' regime context lives in the headline; the 4 KPI banalities
+          (equity %, defensive %, leverage, gross) are now retired since they're
+          all readable straight off the recommendation table below. The Stress KPI
+          and the StanceBadge pill were both macro reads that belonged on
+          Macro Overview, not here. */}
       <section style={{
         padding: "24px 28px", background: "var(--surface)",
         border: "0.5px solid var(--border)", borderRadius: 12, marginBottom: 16,
-        display: "flex", flexWrap: "wrap", gap: 24, alignItems: "flex-start", justifyContent: "space-between",
       }}>
-        <div style={{ flex: "1 1 360px", minWidth: 0 }}>
-          <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>
-            Asset Tilt
-          </div>
-          <div style={{ marginTop: 6 }}><StanceBadge stance={stance} /></div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 26, fontWeight: 500, margin: "10px 0 4px", letterSpacing: "-0.015em", lineHeight: 1.25 }}>
-            {stanceHeadline}
-          </h1>
+        <div style={{ fontSize: 10, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>
+          Asset Tilt
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(110px, 1fr))", gap: 10, minWidth: 540 }}>
-          <KPIBox label="Equity" value={`${(v10.equity_pct * 100).toFixed(0)}%`} />
-          <KPIBox label="Defensive" value={`${(v10.defensive_pct * 100).toFixed(0)}%`} />
-          <KPIBox label="Leverage" value={`${lev.toFixed(2)}×`} />
-          <KPIBox label="Stress" value={`${v10.stress_score}/6`} />
-          <KPIBox label="Gross" value={`${(v10.gross_exposure * 100).toFixed(0)}%`} />
-        </div>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 500, margin: "10px 0 0", letterSpacing: "-0.015em", lineHeight: 1.2 }}>
+          {stanceHeadline}
+        </h1>
       </section>
 
-      {/* CYCLE — single read + deep-link to Macro Overview (full six live there) */}
-      <a
-        href="#overview"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: 16,
-          padding: "16px 20px",
-          margin: "8px 0 24px",
-          background: "var(--surface)",
-          border: "0.5px solid var(--border)",
-          borderRadius: 12,
-          textDecoration: "none",
-          color: "var(--text)",
-          transition: "border-color 160ms",
-        }}
-        onMouseEnter={(e) => { e.currentTarget.style.borderColor = "var(--accent)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.borderColor = "var(--border)"; }}
-      >
-        <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.16em",
-              textTransform: "uppercase",
-              color: "var(--text-muted)",
-            }}
-          >
-            Cycle says
-          </span>
-          {(() => {
-            // Find the strongest mechanism (highest score) to show as the lead read.
-            const top = [...cycleBoard.mechanisms].sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
-            if (!top) return <span style={{ fontSize: 14, color: "var(--text-muted)" }}>—</span>;
-            return (
-              <span style={{ fontSize: 14, color: "var(--text-2)" }}>
-                <strong style={{ color: "var(--text)", fontWeight: 600 }}>{top.name}</strong>
-                {" "}is the loudest read at{" "}
-                <strong style={{ color: "var(--accent)", fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>
-                  {Math.round(top.score)}/100
-                </strong>
-                {" — see all six on Macro Overview."}
-              </span>
-            );
-          })()}
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoard.as_of} />
-          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--accent)", letterSpacing: "0.04em" }}>
-            View on Macro Overview →
-          </span>
-        </div>
-      </a>
+      {/* Asset Tilt does NOT show macro reads — this is a pure deep-link to Macro Overview.
+          Cycle / mechanism / regime data belongs on the Macro Overview tab (single source of truth).
+          See LESSONS rule: 'Macro Overview data belongs only on Macro Overview'. */}
+      <div style={{ margin: "8px 0 24px", display: "flex", justifyContent: "flex-end" }}>
+        <a
+          href="#overview"
+          style={{
+            fontSize: 13, fontWeight: 500, color: "var(--accent)",
+            letterSpacing: "0.04em", textDecoration: "none",
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
+        >
+          See the cycle on Macro Overview →
+        </a>
+      </div>
 
 
       {/* RECOMMENDED ASSET TILT */}

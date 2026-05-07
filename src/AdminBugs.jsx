@@ -43,7 +43,7 @@ function normStatus(s) { return LEGACY_ALIAS[s] || s || "new"; }
 const STATUS_META = {
   new:               { label: "New",               color: "#60a5fa", group: "open" },
   triaged:           { label: "Triaged",           color: "var(--accent)", group: "open" },
-  awaiting_approval: { label: "Awaiting approval", color: "#B8860B", group: "awaiting_approval" },
+  awaiting_approval: { label: "Awaiting approval", color: "var(--yellow)", group: "awaiting_approval" },
   approved:          { label: "Approved",          color: "var(--text-muted)", group: "in_flight" },
   merged:            { label: "Merged",            color: "var(--green)", group: "in_flight" },
   deployed:          { label: "Deployed",          color: "#10b981", group: "in_flight" },
@@ -104,8 +104,8 @@ function DesyncChip({ reasons }) {
       style={{
         display: "inline-flex", alignItems: "center", gap: 3,
         fontSize: 10, fontFamily: "monospace", fontWeight: 700,
-        color: "#B8860B", padding: "1px 5px", borderRadius: 3,
-        border: "1px solid #B8860B", background: "rgba(184,134,11,0.10)",
+        color: "var(--yellow)", padding: "1px 5px", borderRadius: 3,
+        border: "1px solid var(--yellow)", background: "rgba(107,122,133,0.10)",
         textTransform: "uppercase", letterSpacing: "0.08em",
         marginLeft: 6, cursor: "help",
       }}>
@@ -180,7 +180,7 @@ function whereText(r) {
 }
 function complexityColor(c) {
   if (c === "H") return "var(--red)";
-  if (c === "M") return "#B8860B";
+  if (c === "M") return "var(--yellow)";
   if (c === "L") return "var(--green)";
   return "var(--text-muted)";
 }
@@ -191,7 +191,7 @@ function complexityColor(c) {
 // the current filter is unambiguous. The separate filter-pill row below the
 // strip was removed on the tile-first redesign (2026-04-24).
 function KpiTile({ label, value, sub, tone, active, onClick }) {
-  const toneColor = tone === "good" ? "var(--green)" : tone === "warn" ? "#B8860B" : tone === "bad" ? "var(--red)" : "var(--text)";
+  const toneColor = tone === "good" ? "var(--green)" : tone === "warn" ? "var(--yellow)" : tone === "bad" ? "var(--red)" : "var(--text)";
   const borderColor = active ? "var(--accent, #2563eb)" : "var(--border)";
   const bg = active ? "rgba(37, 99, 235, 0.06)" : "var(--surface)";
   return (
@@ -250,7 +250,7 @@ function UatModeBadge({ row }) {
   if (s !== "deployed") return null;
   const mode = (row?.uat_mode || "manual").toLowerCase();
   const isManual = mode === "manual";
-  const color = isManual ? "#B8860B" : "#60a5fa";
+  const color = isManual ? "var(--yellow)" : "#60a5fa";
   const label = isManual ? "UAT: you" : "UAT: auto";
   return (
     <span
@@ -529,8 +529,8 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
       gap: 12,
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        <span style={{ width: 8, height: 8, borderRadius: 4, background: "#B8860B" }} />
-        <div style={{ fontSize: 11, fontFamily: "monospace", color: "#B8860B", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+        <span style={{ width: 8, height: 8, borderRadius: 4, background: "var(--yellow)" }} />
+        <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--yellow)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
           Proposed fix — awaiting your approval
         </div>
         {gated && (
@@ -538,7 +538,7 @@ function ProposedFixCard({ row, onApprove, onReject, pending }) {
             marginLeft: "auto",
             fontSize: 10,
             fontFamily: "monospace",
-            color: "#B8860B",
+            color: "var(--yellow)",
             background: "rgba(251, 191, 36, 0.15)",
             border: "1px solid rgba(251, 191, 36, 0.45)",
             borderRadius: 4,
