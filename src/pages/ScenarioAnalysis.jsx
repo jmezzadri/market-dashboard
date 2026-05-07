@@ -827,7 +827,7 @@ export default function ScenarioAnalysis() {
             sectors lead/lag. L2 takes the substance row alone; L3 + L4 sit
             below in the 2-column grid. */}
         <div style={{ marginTop: "var(--s-3)" }}>
-          <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} />
+          <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} mode={mode} scenarioId={scenario} effShocks={effShocks} pnl={realPnl} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} />
         </div>
         <div className="output-grid">
           <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
@@ -916,49 +916,130 @@ function L1Panel({ hasShock, composites }) {
   );
 }
 
-function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector }) {
+function L2Panel({ hasShock, sectorPcts, expandedSector, setExpandedSector, mode, scenarioId, effShocks, pnl, portfolioTotal, portfolioSource }) {
   if (!hasShock) {
     return (
       <div className="panel">
-        <div className="panel-eyebrow">L2 · Sectors &amp; Other</div>
-        <h3 className="panel-title">Allocation rankings · current</h3>
-        <div className="empty-state">Pick a scenario or move factor sliders to see asset-level shock %.</div>
+        <div className="panel-eyebrow">L2 · Asset class &amp; sector reaction</div>
+        <h3 className="panel-title">Idle</h3>
+        <div className="empty-state">Pick a scenario or move factor sliders to see how each asset class and sector would price under the shock.</div>
       </div>
     );
   }
+
   const ranked = SECTORS.map(s => ({ ...s, shockPct: sectorPcts[s.id] }));
-  // ONE unified ranked list (best at top → worst at bottom). Equity and
-  // non-equity rendered in the same list so the visible top row always
-  // matches the headline. Equity rows stay clickable for IG drill-down;
-  // non-equity rows are tagged inline.
   const allSorted = [...ranked].sort((a, b) => b.shockPct - a.shockPct);
-  const best = allSorted[0], worst = allSorted[allSorted.length - 1];
-  let headline;
-  if (allSorted.every(s => s.shockPct < 0)) headline = `Every asset down · ${best.name} cushions best`;
-  else if (allSorted.every(s => s.shockPct > 0)) headline = `Broad bid · ${best.name} leads`;
-  else headline = `${best.name} leads · ${worst.name} hit hardest`;
+
+  // Asset-class roll-up using current weights as the within-class denominator
+  // so the rollup matches the model baseline (current %) rather than equal-weighting.
+  const classAvg = (cls) => {
+    const items = ranked.filter(s => s.assetClass === cls);
+    const wsum = items.reduce((s, x) => s + (x.current || 0), 0);
+    if (wsum > 0) return items.reduce((s, x) => s + (x.current || 0) * x.shockPct, 0) / wsum;
+    return items.length ? items.reduce((s, x) => s + x.shockPct, 0) / items.length : 0;
+  };
+  const equityAvg = classAvg("Equity");
+  const defensiveAvg = classAvg("Defensive");
+  const spread = equityAvg - defensiveAvg;
+
+  // Driver factors — top 3 by absolute z-score, formatted with sign
+  const factorMap = Object.fromEntries(FACTORS.map(f => [f.id, f.name]));
+  const drivers = FACTOR_IDS
+    .filter(f => Math.abs(effShocks?.[f] || 0) >= 0.5)
+    .sort((a, b) => Math.abs(effShocks[b]) - Math.abs(effShocks[a]))
+    .slice(0, 3)
+    .map(f => `${factorMap[f]} ${fmtZ(effShocks[f])}`);
+
+  // Headline + narrative — driven by the SCENARIOS metadata for canned, by
+  // top driver for bespoke. Replaces the prior data-replay headline.
+  let headline, narrative, window;
+  if (mode === "canned" && scenarioId && SCENARIOS[scenarioId]) {
+    const sc = SCENARIOS[scenarioId];
+    headline = sc.name;
+    narrative = sc.narrative;
+    window = sc.window;
+  } else {
+    const top = drivers[0] || "factor moves";
+    headline = `Custom shock · ${top} dominates`;
+    narrative = drivers.length
+      ? `Engine prices each asset class off its loadings to the moved factors. Largest moves: ${drivers.join(" · ")}.`
+      : "Move factor sliders to see how each asset class and sector would price under the shock.";
+    window = null;
+  }
+
+  // Whitespace-fillers: scenario summary chips at the top + portfolio P&L
+  // contribution per sector at the right, when we have a real book.
+  const portfolioByName = (pnl?.positions || []).reduce((acc, p) => {
+    acc[p.sector] = (acc[p.sector] || 0) + (p.dollar || 0);
+    return acc;
+  }, {});
+  const haveBook = Math.abs(portfolioTotal || 0) > 1;
+  const fmtUsd = v => {
+    const a = Math.abs(v);
+    if (a >= 1000) return (v < 0 ? "-$" : "$") + (a / 1000).toFixed(1) + "K";
+    return (v < 0 ? "-$" : "$") + a.toFixed(0);
+  };
+
   return (
     <div className="panel">
-      <div className="panel-eyebrow">L2 · Sector shock + Other · click an equity row for IG drill-down</div>
-      <h3 className="panel-title">{headline}</h3>
-      <div className="sector-list">
+      <div className="panel-eyebrow">L2 · Asset class &amp; sector reaction · click an equity row for industry-group drill-down</div>
+      <h3 className="panel-title">{headline}{window ? <span style={{fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-3)", marginLeft:8, fontWeight:400}}>{window}</span> : null}</h3>
+      <div style={{fontSize:12, color:"var(--ink-2)", marginBottom:6}}>How asset classes and sectors performed over the stressed period.</div>
+      <div className="action-subline" style={{fontStyle:"normal"}}>{narrative}</div>
+
+      {drivers.length > 0 && (
+        <div style={{display:"flex", flexWrap:"wrap", gap:6, margin:"0 0 var(--s-3)"}}>
+          <span style={{fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)", alignSelf:"center", marginRight:4}}>Drivers</span>
+          {drivers.map(d => (
+            <span key={d} style={{display:"inline-block", padding:"2px 8px", background:"var(--bg-2)", border:"1px solid var(--line-1)", borderRadius:999, fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-1)"}}>{d}</span>
+          ))}
+        </div>
+      )}
+
+      <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, padding:"8px 10px", background:"var(--bg-2)", border:"1px solid var(--line-1)", borderRadius:"var(--r-sm)", marginBottom:"var(--s-3)"}}>
+        <div>
+          <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>Equity sleeve avg</div>
+          <div className={"action-delta " + (equityAvg < 0 ? "down" : "up")} style={{textAlign:"left"}}>{equityAvg >= 0 ? "+" : ""}{equityAvg.toFixed(1)}%</div>
+        </div>
+        <div>
+          <div style={{fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>Defensive sleeve avg</div>
+          <div className={"action-delta " + (defensiveAvg < 0 ? "down" : "up")} style={{textAlign:"left"}}>{defensiveAvg >= 0 ? "+" : ""}{defensiveAvg.toFixed(1)}%</div>
+        </div>
+        <div style={{gridColumn:"1 / span 2", fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-2)", paddingTop:4, borderTop:"1px dashed var(--line-1)"}}>
+          Equity-vs-defensive spread <b style={{color:"var(--ink-1)"}}>{spread >= 0 ? "+" : ""}{spread.toFixed(1)}%</b>{haveBook ? <> · Your book impact <b className={pnl.total < 0 ? "" : ""} style={{color: pnl.total < 0 ? "var(--down)" : "var(--up)"}}>{fmtUsd(pnl.total)}</b> {portfolioSource === "user" ? "(real positions)" : "(demo book)"}</> : null}
+        </div>
+      </div>
+
+      <div style={{display:"grid", gridTemplateColumns:"28px 1fr 56px 70px 70px 80px", gap:8, padding:"4px 0 6px", borderBottom:"1px solid var(--line-1)", fontFamily:"var(--font-ui)", fontSize:9, fontWeight:600, letterSpacing:".14em", textTransform:"uppercase", color:"var(--ink-3)"}}>
+        <span>#</span>
+        <span>Asset / Sector</span>
+        <span style={{textAlign:"left"}}>Class</span>
+        <span style={{textAlign:"right"}}>Curr %</span>
+        <span style={{textAlign:"right"}}>Shock %</span>
+        <span style={{textAlign:"right"}}>{haveBook ? "Book $" : "Tkr"}</span>
+      </div>
+
+      <div className="sector-list" style={{maxHeight:"420px"}}>
         {allSorted.map((s, i) => {
           const isEquity = s.assetClass === "Equity";
           const expandable = isEquity && s.igs && s.igs.length > 0;
+          const dollarHit = portfolioByName[s.name] || 0;
           return (
             <div key={s.id}>
               <div
                 className={"sector-row" + (expandedSector === s.id ? " expanded" : "")}
                 onClick={() => expandable && setExpandedSector(expandedSector === s.id ? null : s.id)}
-                style={{cursor: expandable ? "pointer" : "default"}}
+                style={{cursor: expandable ? "pointer" : "default", gridTemplateColumns:"28px 1fr 56px 70px 70px 80px"}}
               >
                 <span className="sector-rank">#{i+1}</span>
-                <span className="sector-name">
-                  {s.name}
-                  {!isEquity && <span style={{marginLeft:8, fontSize:9, fontWeight:600, letterSpacing:".10em", textTransform:"uppercase", color:"var(--ink-3)"}}>Defensive</span>}
-                </span>
-                <span className="sector-tkr">{s.id}</span>
+                <span className="sector-name">{s.name}</span>
+                <span style={{fontFamily:"var(--font-ui)", fontSize:10, color:"var(--ink-3)", letterSpacing:".10em", textTransform:"uppercase"}}>{isEquity ? "Equity" : "Defensive"}</span>
+                <span style={{fontFamily:"var(--font-ui)", fontSize:12, color:"var(--ink-2)", textAlign:"right"}}>{(s.current || 0).toFixed(0)}%</span>
                 <span className={"sector-pct " + (s.shockPct > 0 ? "up" : "down")}>{s.shockPct >= 0 ? "+" : ""}{s.shockPct.toFixed(1)}%</span>
+                {haveBook
+                  ? <span style={{fontFamily:"var(--font-ui)", fontSize:11, color: dollarHit === 0 ? "var(--ink-3)" : (dollarHit < 0 ? "var(--down)" : "var(--up)"), textAlign:"right", fontWeight:600}}>{dollarHit === 0 ? "—" : fmtUsd(dollarHit)}</span>
+                  : <span className="sector-tkr" style={{textAlign:"right"}}>{s.id}</span>
+                }
               </div>
               {expandedSector === s.id && expandable && (
                 <div className="ig-list">
@@ -1062,16 +1143,16 @@ function L3Panel({ hasShock, pnl, horizon, portfolioTotal = PORTFOLIO_TOTAL, por
 
 function L4Panel({ hasShock, tilts, score, mode, scenarioId, engineData }) {
   // Sprint 2: real engine output for canned scenarios. Bespoke (custom shock)
-  // mode still uses the demo math below — composite stress + arbitrary-shock
-  // engine wiring lands in Sprint 2.5 / v1.1.
+  // mode still uses sector-loadings math below — composite stress + arbitrary-shock
+  // engine wiring lands later.
   const realEngine = mode === "canned" && scenarioId && engineData?.scenarios?.[scenarioId];
 
   if (!hasShock) {
     return (
       <div className="panel">
-        <div className="panel-eyebrow">L4 · Recommended portfolio · from your Asset Allocation tool</div>
-        <h3 className="panel-title">What the model would do · idle</h3>
-        <div className="empty-state">Pick a scenario or move factor sliders to see the engine's recommended portfolio under that regime — what to cut, what to add, in % of total book.</div>
+        <div className="panel-eyebrow">L4 · Recommended portfolio</div>
+        <h3 className="panel-title">Idle</h3>
+        <div className="empty-state">Pick a scenario or move factor sliders to see the engine's recommended target portfolio under that regime — sectors, defensive sleeve, asset-class mix, all expressed as % of total book.</div>
       </div>
     );
   }
@@ -1080,70 +1161,72 @@ function L4Panel({ hasShock, tilts, score, mode, scenarioId, engineData }) {
     return <L4PanelReal scenario={realEngine} baseline={engineData.baseline} asOf={engineData.factor_panel_last_obs} />;
   }
 
-  // ---- Demo math fallback (bespoke shock or canned-without-engine-data) ----
-  const reduce = tilts.filter(t => t.delta < -0.4).sort((a, b) => a.delta - b.delta).slice(0, 7);
-  const add = tilts.filter(t => t.delta > 0.4).sort((a, b) => b.delta - a.delta).slice(0, 7);
-  const classRollup = ["Equity", "Defensive"].map(cls => {
-    const items = tilts.filter(t => t.assetClass === cls);
-    if (items.length === 0) return null;
-    return { cls, cur: items.reduce((s, t) => s + t.current, 0), str: items.reduce((s, t) => s + t.stressed, 0) };
-  }).filter(Boolean);
-  const topReduce = reduce[0], topAdd = add[0];
-  const headline = topReduce && topAdd ? `Cut ${topReduce.name} ${Math.abs(topReduce.delta)}% · Add ${topAdd.name} +${topAdd.delta}%`
-    : topReduce ? `Cut ${topReduce.name} by ${Math.abs(topReduce.delta)}%`
-    : topAdd ? `Add ${topAdd.name} +${topAdd.delta}%` : "Limited re-allocation";
-  const equityShift = classRollup.find(c => c.cls === "Equity");
-  const defensiveShift = classRollup.find(c => c.cls === "Defensive");
-  const subline = equityShift && equityShift.str < equityShift.cur - 4
-    ? `Engine cuts equity (${equityShift.cur}% → ${equityShift.str}%) and activates the Defensive sleeve (${defensiveShift.cur}% → ${defensiveShift.str}%).`
-    : equityShift && equityShift.str > equityShift.cur + 4
-      ? `Engine shifts into equities (${equityShift.cur}% → ${equityShift.str}%); Defensive sleeve stays inactive.`
-      : "Engine reweights within equity sectors; Defensive sleeve stays inactive.";
-  const renderRow = t => {
-    const tag = t.assetClass !== "Equity" ? <span className="ac-tag">{t.assetClass}</span> : null;
-    const cls = t.delta < 0 ? "down" : "up";
-    const sign = t.delta < 0 ? "−" : "+";
+  // ---- Sector-loadings target portfolio (canned-without-engine + bespoke) ----
+  const equity = tilts.filter(t => t.assetClass === "Equity").sort((a, b) => b.stressed - a.stressed);
+  const defensive = tilts.filter(t => t.assetClass === "Defensive").sort((a, b) => b.stressed - a.stressed);
+  const equityTotal = equity.reduce((s, t) => s + t.stressed, 0);
+  const defensiveTotal = defensive.reduce((s, t) => s + t.stressed, 0);
+  const grandTotal = equityTotal + defensiveTotal;
+
+  const scName = mode === "canned" && scenarioId && SCENARIOS[scenarioId]
+    ? SCENARIOS[scenarioId].name
+    : "this shock";
+
+  let headline, subline;
+  if (defensiveTotal >= 25) {
+    headline = `Defensive-tilted target · ${defensiveTotal}% in cushions, ${equityTotal}% in equity`;
+  } else if (defensiveTotal >= 10) {
+    headline = `Mixed defensive overlay · ${defensiveTotal}% sleeve, ${equityTotal}% equity`;
+  } else {
+    headline = `Equity-led target · ${equityTotal}% equity, ${defensiveTotal}% defensive`;
+  }
+  subline = (
+    <>Target weights from re-running the allocator with the stressed factor panel for <b>{scName}</b>. Per-asset floors and ceilings honored ({"±"}1–40% per asset, classes re-summed to 100%). Compare against your live book in L3.</>
+  );
+
+  const renderRow = (t) => {
+    const isHeavy = t.stressed >= 10;
     return (
-      <div key={t.id} className="action-row">
-        <span className="action-name">{t.name}{tag}</span>
-        <span className={"action-delta " + cls}>{sign}{Math.abs(t.delta)}%</span>
-        <span className="action-detail">{t.current}% → {t.stressed}%</span>
+      <div key={t.id} className="action-row" style={{gridTemplateColumns:"1fr 80px 110px"}}>
+        <span className="action-name"><b style={{fontFamily:"var(--font-ui)", color:"var(--ink-2)", fontSize:11, marginRight:6}}>{t.id}</b>{t.name}</span>
+        <span className="action-delta" style={{color:isHeavy ? "var(--ink-0)" : "var(--ink-1)"}}>{t.stressed}%</span>
+        <span className="action-detail">{t.current}% baseline</span>
       </div>
     );
   };
+
   const warn = mode === "bespoke" && score < 5
-    ? `⚠ Coherence Score ${score}/100 — engine output is mathematically valid but regime-incoherent. Treat as exploratory only.`
+    ? `⚠ Coherence ${score}/100 — engine output is mathematically valid but regime-incoherent. Treat as exploratory only.`
     : mode === "bespoke" && score < 25
       ? "⚠ Historically rare combination — engine confidence reduced."
       : null;
+
   return (
     <div className="panel">
-      <div className="panel-eyebrow">L4 · Recommended portfolio · what the model would do</div>
+      <div className="panel-eyebrow">L4 · Recommended portfolio · target weights under {scName}</div>
       <h3 className="panel-title">{headline}</h3>
-      <div className="action-subline">{subline}</div>
+      <div className="action-subline" style={{fontStyle:"normal"}}>{subline}</div>
+
       <div className="action-section">
-        <div className="action-section-head">Reduce</div>
-        {reduce.length > 0 ? reduce.map(renderRow) : <div className="action-empty">No material reductions under this scenario.</div>}
+        <div className="action-section-head">Equity sleeve · target {equityTotal}% of book</div>
+        {equity.length > 0 ? equity.map(renderRow) : <div className="action-empty">No equity exposure under this scenario.</div>}
       </div>
       <div className="action-section">
-        <div className="action-section-head">Add</div>
-        {add.length > 0 ? add.map(renderRow) : <div className="action-empty">No material additions under this scenario.</div>}
+        <div className="action-section-head">Defensive sleeve · target {defensiveTotal}% of book</div>
+        {defensive.length > 0 ? defensive.map(renderRow) : <div className="action-empty">Sleeve dormant — engine stays fully invested.</div>}
       </div>
+
       <div className="action-footer">
-        Net asset-class shift:
-        {classRollup.map(c => <span key={c.cls} className="ac-pill"><strong>{c.cls}</strong> {c.cur}% → {c.str}%</span>)}
+        Asset-class mix:
+        <span className="ac-pill"><strong>Equity</strong> {equityTotal}%</span>
+        <span className="ac-pill"><strong>Defensive</strong> {defensiveTotal}%</span>
+        <span className="ac-pill" style={{color:"var(--ink-3)"}}>Sums to {grandTotal}%</span>
       </div>
       {warn && <div className="action-warn">{warn}</div>}
-      <div style={{marginTop:"var(--s-3)", paddingTop:"var(--s-3)", borderTop:"1px dashed var(--line-1)", fontSize:10, color:"var(--ink-3)", fontFamily:"var(--font-ui)", fontStyle:"italic"}}>
-        {mode === "bespoke"
-          ? "Demo math — bespoke shocks use illustrative sector tilts. Engine wiring for arbitrary shocks coming soon."
-          : "Loading engine output…"}
-      </div>
     </div>
   );
 }
 
-// ════════════════════════════════════════════════════════════════════════
 // L4Panel — REAL ENGINE OUTPUT variant (canned scenarios, Sprint 2)
 // ════════════════════════════════════════════════════════════════════════
 
