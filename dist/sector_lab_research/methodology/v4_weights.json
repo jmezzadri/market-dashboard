@@ -1,0 +1,98 @@
+{
+  "tactical": {
+    "vix": {
+      "weight": 0.20799999999999996,
+      "sign": 1
+    },
+    "move": {
+      "weight": 0.23399999999999999,
+      "sign": 1
+    },
+    "anfci": {
+      "weight": 0.18199999999999994,
+      "sign": 1
+    },
+    "stlfsi": {
+      "weight": 0.1100000000000001,
+      "sign": 1
+    },
+    "cpff": {
+      "weight": 0.262,
+      "sign": 1
+    },
+    "jobless": {
+      "weight": 0.17599999999999993,
+      "sign": 1
+    },
+    "cmdi": {
+      "weight": 0.15599999999999992,
+      "sign": 1
+    },
+    "term_premium": {
+      "weight": 0.18999999999999995,
+      "sign": 1
+    },
+    "cape": {
+      "weight": 0.3360000000000001,
+      "sign": 1
+    },
+    "jolts_quits": {
+      "weight": 0.1499999999999999,
+      "sign": 1
+    },
+    "bank_unreal": {
+      "weight": 0.30000000000000004,
+      "sign": 1
+    }
+  },
+  "strategic": {
+    "vix": {
+      "weight": 0.28,
+      "sign": 1
+    },
+    "move": {
+      "weight": 0.31000000000000005,
+      "sign": 1
+    },
+    "copper_gold": {
+      "weight": 0.12199999999999989,
+      "sign": -1
+    },
+    "stlfsi": {
+      "weight": 0.16599999999999993,
+      "sign": 1
+    },
+    "loan_syn": {
+      "weight": 0.45199999999999996,
+      "sign": -1
+    },
+    "term_premium": {
+      "weight": 0.22399999999999998,
+      "sign": 1
+    },
+    "cape": {
+      "weight": 0.784,
+      "sign": 1
+    },
+    "ism": {
+      "weight": 0.43999999999999995,
+      "sign": -1
+    },
+    "sloos_ci": {
+      "weight": 0.1080000000000001,
+      "sign": -1
+    },
+    "sloos_cre": {
+      "weight": 0.15799999999999992,
+      "sign": 1
+    },
+    "bank_unreal": {
+      "weight": 0.15999999999999992,
+      "sign": 1
+    }
+  },
+  "selection_threshold_auc": 0.55,
+  "selection_threshold_strat_edge": 0.05,
+  "weight_formula": "(max(AUC, 1-AUC) - 0.5) * 2",
+  "rationale": "AUC weighting amplifies high-edge indicators; equal-weighted mean dilutes signal."
+}

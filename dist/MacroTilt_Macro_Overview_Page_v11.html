@@ -1,0 +1,2710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>MacroTilt — Macro Overview v11 (clickable mockup)</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* =============================================================
+     v11 — single visual layer.
+     ONE surface, ONE palette, ONE typography hierarchy, ONE
+     animation. No card gradients, no radial highlights, no resting
+     shadows. Bars are neutral; the dot carries the band color.
+     ============================================================= */
+
+
+  /* ============================================================
+     PALETTE — Option A 'Citadel teal hybrid'.
+     KEEP IN SYNC with src/theme.css. The single source of truth for
+     the dashboard palette lives in src/theme.css. This iframe runs
+     in its own document context (CSS variables don't cross iframe
+     boundaries), so the same hex values are duplicated here. If you
+     change the palette in src/theme.css, mirror it here.
+     ============================================================ */
+  :root {
+    color-scheme: light;
+
+    /* Surfaces */
+    --bg:             #fafaf7;
+    --surface:        #ffffff;
+    --border:         rgba(14,17,21,0.10);
+    --border-strong:  rgba(14,17,21,0.18);
+
+    /* Ink */
+    --ink:    #0e1115;
+    --ink-2:  #2a2a2e;
+    --ink-3:  #5e5e63;
+    --muted:  #98989f;
+    --muted-2:#98989f;
+
+    /* State bands — Risk-On / Neutral / Caution / Risk-Off.
+       Cool palette, no banned warm tones (parchment/ochre/oxblood).
+       Active = full chroma; subtle = soft tint for chip backgrounds. */
+    --green-active:    #2f9d6a;     /* Risk-On — cool forest */
+    --green-subtle:    rgba(47,157,106,0.12);
+    --amber-active:    #6b7a85;     /* Neutral — cool slate (banned ochre folded) */
+    --amber-subtle:    rgba(107,122,133,0.12);
+    --oxblood-active:  #a4626d;     /* Caution — desaturated cool wine (banned warm folded) */
+    --oxblood-subtle:  rgba(164,98,109,0.12);
+    --darkblood-active:#c84658;     /* Risk-Off — cool wine */
+    --darkblood-subtle:rgba(200,70,88,0.12);
+
+    /* Typography — TWO families, mono retired.
+       --mono kept as alias to --body for backward-compat with inline
+       font-family="JetBrains Mono" SVG attrs left for step-2 sweep. */
+    --display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  /* DARK THEME — surfaces invert, ink lightens. State colors lift to
+     the dark-mode equivalents from src/theme.css. */
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+
+    --bg:             #0e1115;
+    --surface:        #16191e;
+    --border:         rgba(255,255,255,0.06);
+    --border-strong:  rgba(255,255,255,0.12);
+
+    --ink:    #f5f5f7;
+    --ink-2:  #d2d2d7;
+    --ink-3:  #98989f;
+    --muted:  #6e6e74;
+    --muted-2:#98989f;
+
+    --green-active:    #4ec18a;     /* Risk-On (dark) */
+    --green-subtle:    rgba(78,193,138,0.16);
+    --amber-active:    #98a4b0;     /* Neutral (dark) — cool slate */
+    --amber-subtle:    rgba(152,164,176,0.16);
+    --oxblood-active:  #c08a93;     /* Caution (dark) — desaturated wine */
+    --oxblood-subtle:  rgba(192,138,147,0.16);
+    --darkblood-active:#e07484;     /* Risk-Off (dark) */
+    --darkblood-subtle:rgba(224,116,132,0.16);
+  }
+  /* Verdict dial wedges + text — fills are inline SVG attrs which CSS
+     can override. Map each wedge id and label color via CSS so theme
+     toggle just works without touching JS. */
+  :root[data-theme="dark"] #wedge-riskon  { fill: var(--green-subtle); }
+  :root[data-theme="dark"] #wedge-neutral { fill: var(--amber-subtle); }
+  :root[data-theme="dark"] #wedge-caution { fill: var(--oxblood-subtle); }
+  :root[data-theme="dark"] #wedge-riskoff { fill: var(--darkblood-subtle); }
+  :root[data-theme="dark"] .verdict-svg text[fill="#7a7a72"] { fill: #888884; }
+  :root[data-theme="dark"] .verdict-svg text[fill="#1a1a1a"] { fill: #fafaf7; }
+  :root[data-theme="dark"] .verdict-svg line[stroke="#1a1a1a"] { stroke: #fafaf7; }
+  :root[data-theme="dark"] .verdict-svg circle[fill="#1a1a1a"] { fill: #fafaf7; }
+  :root[data-theme="dark"] .verdict-svg circle[stroke="#fff"] { stroke: #1a1a17; }
+
+  /* Modal scrim darker on dark theme so it still reads as overlay */
+  :root[data-theme="dark"] .modal-scrim { background: rgba(0,0,0,0.6); }
+
+  /* Indicator-row hover tint adapts */
+  :root[data-theme="dark"] .ind-row:hover { background: rgba(212,167,61,0.06); }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--ink); }
+  button { font-family: inherit; }
+
+  .page-frame {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 40px 36px 80px;
+  }
+
+  /* ============================================================
+     ONE typography hierarchy. Five sizes total.
+     38  — verdict count + dial scores
+     28  — modal title
+     22  — verdict headline
+     14  — body text
+     11  — eyebrows / mono labels / metadata
+     ============================================================ */
+  .h-display-38 { font-family: var(--display); font-weight: 300; font-size: 38px; line-height: 1; letter-spacing: -0.02em; }
+  .h-display-28 { font-family: var(--display); font-weight: 400; font-size: 28px; line-height: 1.15; letter-spacing: -0.012em; }
+  .h-display-22 { font-family: var(--display); font-weight: 400; font-size: 22px; line-height: 1.32; letter-spacing: -0.006em; }
+  .body-14 { font-size: 14px; line-height: 1.6; color: var(--ink-2); }
+  .meta-11 { font-family: var(--mono); font-weight: 600; font-size: 11px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--muted); }
+
+  /* ============================================================
+     ONE surface treatment. Used by verdict-block, dial-card, modal-card.
+     - Plain off-white, 0.5px border-strong, 12px radius.
+     - No internal gradient, no radial highlight, no resting shadow.
+     - Hover lifts 2px and adds a soft shadow — that's the only depth cue.
+     ============================================================ */
+  .surface {
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+  }
+  .surface-interactive {
+    cursor: pointer;
+    transition: transform 220ms cubic-bezier(0.16,1,0.3,1),
+                box-shadow 220ms cubic-bezier(0.16,1,0.3,1);
+  }
+  .surface-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(26,26,26,0.06);
+  }
+
+  /* ============================================================
+     PAGE HEADER
+     ============================================================ */
+  .page-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+  }
+  .cadence-stamp {
+    font-size: 11px;
+    color: var(--muted);
+    margin-bottom: 22px;
+    line-height: 1.6;
+  }
+
+  /* ============================================================
+     VERDICT BLOCK
+     - Same surface as cards.
+     - 380px dial column on left, headline + count + explainer on right.
+     ============================================================ */
+  .verdict-block {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    gap: 36px;
+    align-items: center;
+    padding: 28px 32px;
+    margin-bottom: 32px;
+  }
+  .verdict-svg-wrap { position: relative; }
+  .verdict-svg { display: block; width: 100%; height: auto; }
+
+  .verdict-count {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .verdict-count .frac {
+    font-family: var(--mono);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+    margin-left: 2px;
+    vertical-align: 6px;
+  }
+  .verdict-sublabel {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 18px;
+  }
+  .verdict-headline {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.32;
+    letter-spacing: -0.006em;
+    margin: 0 0 12px;
+    color: var(--ink);
+    max-width: 600px;
+  }
+  .verdict-explainer {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.6;
+    max-width: 600px;
+  }
+  .verdict-explainer a { font-weight: 500; }
+
+  /* ============================================================
+     DIAL GRID — 3 columns, 6 cards
+     ============================================================ */
+  .dials-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 16px;
+  }
+  .dial-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px;
+  }
+  .dial-card {
+    position: relative;
+    padding: 22px 20px 20px;
+    text-align: center;
+    user-select: none;
+  }
+  .dial-card.placeholder {
+    cursor: pointer;
+    opacity: 0.55;
+  }
+  .dial-card.placeholder:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .dial-card .num-tag {
+    position: absolute;
+    top: 14px;
+    left: 18px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted-2);
+    letter-spacing: 0.10em;
+  }
+  .dial-card .click-arrow {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    font-size: 14px;
+    color: var(--muted-2);
+    opacity: 0;
+    transition: opacity 160ms ease, transform 160ms ease;
+  }
+  .dial-card:hover .click-arrow {
+    opacity: 0.8;
+    transform: translateX(2px);
+  }
+  .dial-card .name {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1.22;
+    letter-spacing: -0.006em;
+    margin: 4px 0 12px;
+    color: var(--ink);
+  }
+  .dial-card.placeholder .name { font-style: italic; color: var(--muted); }
+
+  .dial-svg-wrap {
+    position: relative;
+    margin: 4px auto 8px;
+    max-width: 220px;
+  }
+  .dial-svg { display: block; width: 100%; height: auto; }
+
+  .dial-score-wrap { margin-top: -8px; margin-bottom: 8px; }
+  .dial-score-num {
+    font-family: var(--display);
+    font-weight: 300;
+    font-size: 38px;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .dial-score-suffix {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    margin-left: 4px;
+  }
+  .dial-card .caption {
+    font-size: 14px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    padding: 0 4px;
+    min-height: 56px;
+    margin-top: 6px;
+    text-align: left;
+  }
+  .dial-card.placeholder .caption {
+    color: var(--muted);
+    font-style: italic;
+  }
+  .dial-card .ships-in {
+    font-family: var(--display);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 22px;
+    color: var(--muted-2);
+  }
+  .since-line {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 0.5px dashed var(--border);
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--ink-2);
+    text-align: left;
+  }
+  .cadence-line {
+    margin-top: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    text-align: left;
+  }
+
+  /* ============================================================
+     ONE animation. Dial pointer sweep on first paint, 800ms ease-out.
+     Wedges show static. Reduced-motion users get static everything.
+     ============================================================ */
+  .dial-pointer-group {
+    transform-origin: var(--pivot-x) var(--pivot-y);
+    animation: pointerSweep 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .verdict-pointer-group {
+    transform-origin: 190px 180px;
+    animation: pointerSweep 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes pointerSweep {
+    from { transform: rotate(var(--from-deg)); }
+    to   { transform: rotate(0deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .dial-pointer-group, .verdict-pointer-group {
+      animation: none !important;
+      transform: none !important;
+    }
+  }
+
+  /* ============================================================
+     FOOTER
+     ============================================================ */
+  .page-foot {
+    margin-top: 48px;
+    padding-top: 18px;
+    border-top: 0.5px dashed var(--border);
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+  .page-foot code {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--ink-2);
+  }
+
+  /* ============================================================
+     MODAL — same surface treatment as cards
+     ============================================================ */
+  .modal-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 9000;
+    background: rgba(26,26,26,0.42);
+    display: none;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 60px 32px;
+  }
+  .modal-scrim.open { display: flex; }
+  .modal-card {
+    position: relative;
+    width: 100%;
+    max-width: 940px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(26,26,26,0.18);
+    padding: 32px 36px 44px;
+  }
+  .modal-close {
+    position: absolute;
+    top: 14px;
+    right: 18px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 22px;
+    line-height: 1;
+    color: var(--muted);
+  }
+  .modal-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .modal-h {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+  }
+  .modal-h h3 {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 28px;
+    letter-spacing: -0.012em;
+    margin: 0;
+  }
+  .modal-block {
+    padding: 14px 16px;
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+    margin-bottom: 18px;
+  }
+  .modal-block-eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+  .kpi {
+    padding: 12px 14px 10px;
+    background: var(--surface);
+    border: 0.5px solid var(--border-strong);
+    border-radius: 12px;
+  }
+  .kpi .lbl {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .kpi .val {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    margin-top: 4px;
+    line-height: 1;
+  }
+  .kpi .val.up { color: var(--oxblood-active); }
+  .kpi .val.dn { color: var(--green-active); }
+  .kpi .meta {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  /* ============================================================
+     INDICATOR ROW — neutral track, dot color carries the band
+     ============================================================ */
+  .ind-list { margin-top: 14px; }
+  .ind-row {
+    display: grid;
+    grid-template-columns: 1.4fr 168px 1fr 18px;
+    gap: 18px;
+    align-items: center;
+    padding: 14px 6px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 0.5px dashed var(--border);
+    text-align: left;
+    cursor: pointer;
+    transition: background 120ms ease;
+  }
+  .ind-row:hover { background: rgba(184,134,11,0.04); }
+  .ind-row .nm {
+    font-size: 14px;
+    color: var(--ink);
+    font-weight: 500;
+  }
+  .ind-row .nm-meta {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.04em;
+    margin-left: 8px;
+    text-transform: none;
+  }
+  .ind-row .desc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+    line-height: 1.5;
+  }
+
+  /* The unified neutral track. Same color, same height, same width
+     for every indicator regardless of directionality. The dot carries
+     the band color via inline style. */
+  .qbar {
+    position: relative;
+    width: 140px;
+    height: 8px;
+    border-radius: 4px;
+    background: var(--border);
+  }
+  .qbar-ends {
+    display: flex;
+    justify-content: space-between;
+    width: 140px;
+    margin-top: 4px;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+  }
+  .qd {
+    position: absolute;
+    top: -3px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 1.5px solid #fff;
+    box-shadow: 0 0 0 0.5px var(--border-strong);
+  }
+
+  .ind-row .meta-r {
+    display: grid;
+    grid-template-columns: 1fr 56px;
+    gap: 8px;
+    align-items: center;
+  }
+  .ind-row .v {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .ind-row .pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    margin-top: 2px;
+  }
+  .ind-row .score-num {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 22px;
+    line-height: 1;
+    text-align: right;
+  }
+  .ind-row .share-pct {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.02em;
+    text-align: right;
+    margin-top: 4px;
+  }
+  .ind-row .arr {
+    font-size: 14px;
+    color: var(--muted);
+    text-align: right;
+  }
+
+  /* ============================================================
+     RESPONSIVE
+     ============================================================ */
+  @media (max-width: 980px) {
+    .dial-grid { grid-template-columns: repeat(2, 1fr); }
+    .verdict-block { grid-template-columns: 1fr; }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 600px) {
+    .dial-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ============================================================
+     TOAST
+     ============================================================ */
+  .toast {
+    position: fixed;
+    bottom: 32px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 12px 22px;
+    background: var(--ink);
+    color: #fff;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    border-radius: 8px;
+    box-shadow: 0 12px 24px rgba(0,0,0,0.18);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 200ms ease;
+    z-index: 10000;
+  }
+  .toast.show { opacity: 1; }
+
+  /* ============================================================
+     v11 — freshness chip system (added 2026-05-03 per Joe directive
+     to surface freshness on every cycle mechanism + indicator inside
+     the iframe, mirroring the React FreshnessDot component).
+     ============================================================ */
+  .fresh-dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--green-active);
+    margin-left: 8px;
+    cursor: help;
+    flex-shrink: 0;
+    vertical-align: middle;
+  }
+  .fresh-dot.red    { background: var(--darkblood-active); }
+  .fresh-dot.unknown{ background: var(--muted-2); }
+  .fresh-dot.loading{ background: var(--muted-2); opacity: 0.4; }
+
+  </style>
+</head>
+<body>
+
+<div class="page-frame">
+
+  <div class="page-eyebrow">Macro Overview</div>
+
+  <div class="cadence-stamp">
+    Refreshed daily · last update <span id="page-asof-stamp">—</span> &nbsp;·&nbsp;
+    Page-level reading typically shifts every several weeks-to-months. Mechanism scores can move daily.
+  </div>
+
+  <!-- ============================ AGGREGATE VERDICT ============================ -->
+  <section class="surface verdict-block">
+    <div class="verdict-svg-wrap">
+      <!-- Aggregate verdict dial — 4 wedges, current position pointed to.
+           Wedge labels are factual band names, not state pill words. -->
+      <svg class="verdict-svg" viewBox="0 0 380 230" id="verdictDial">
+        <path d="" id="wedge-riskon"  fill="#d8e6d8" />
+        <path d="" id="wedge-neutral" fill="var(--yellow)" />
+        <path d="" id="wedge-caution" fill="#e6cfc1" />
+        <path d="" id="wedge-riskoff" fill="#e1c5c5" />
+
+        <text x="65"  y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="start"  letter-spacing="0.08em" font-weight="600">RISK-ON</text>
+        <text x="155" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="middle" letter-spacing="0.08em" font-weight="600">NEUTRAL</text>
+        <text x="245" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="middle" letter-spacing="0.08em" font-weight="600">CAUTION</text>
+        <text x="325" y="220" font-family="JetBrains Mono" font-size="10" fill="#7a7a72" text-anchor="end"    letter-spacing="0.08em" font-weight="600">RISK-OFF</text>
+
+        <!-- Pointer group rotates from leftmost (180°) to current angle. -->
+        <g class="verdict-pointer-group" id="verdictPointerGroup">
+          <line x1="190" y1="180" x2="" y2="" id="verdictPointer"
+                stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" />
+          <circle cx="190" cy="180" r="6" fill="#1a1a1a"/>
+          <circle cx="" cy="" r="4.5" fill="#1a1a1a" stroke="#fff" stroke-width="1.8" id="verdictTip"/>
+        </g>
+      </svg>
+    </div>
+    <div>
+      <div class="verdict-count" id="verdictCount">—<span class="frac" id="verdictFrac">/ 100</span></div>
+      <div class="verdict-sublabel" id="verdictSublabel">composite average</div>
+      <h1 class="verdict-headline" id="verdictHeadline">
+        Loading composite reading…
+      </h1>
+      <div class="verdict-explainer">
+        Six cycle mechanisms scored 0–100, simple-averaged into one page-level composite. Bands: <strong>0–25</strong> Risk-on, <strong>25–50</strong> Neutral, <strong>50–75</strong> Caution, <strong>75–100</strong> Risk-off. We don't predict downturns — we describe where you are. <a href="#">Methodology</a>.</div>
+    </div>
+  </section>
+
+  <!-- ============================ MECHANISM DIALS ============================ -->
+  <div class="dials-eyebrow">Six cycle mechanisms — click any card</div>
+
+  <div class="dial-grid" id="dialGrid">
+    <!-- Cards rendered by JS so the dial wedges can be programmatic. -->
+  </div>
+
+  <div class="page-foot">
+    All six cycle mechanisms now live with composite scores and indicator drill-downs.
+    Calibration source: <code>compute_v11_mechanisms.py</code> · framework v11.
+  </div>
+</div>
+
+<!-- =================================== MODAL =================================== -->
+<div class="modal-scrim" id="modalScrim" onclick="if(event.target===this)closeModal()">
+  <article class="modal-card" id="modalCard">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">×</button>
+    <div id="modalBody"></div>
+  </article>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================================
+// FRESHNESS CHIP SYSTEM — added 2026-05-03 per Joe directive
+// ----------------------------------------------------------------------------
+// The Macro Overview iframe is a static HTML file, so it can't use the React
+// FreshnessDot component. This block ports the same logic inline:
+//   1. Fetches data_manifest.json (SLA + calendar per element)
+//   2. Fetches pipeline_health from Supabase via anon key (last_good_at, last_error)
+//   3. Decorates every cycle mechanism card + every indicator row in the modal
+//      with a chip — green when within SLA, red when stale, grey when unknown.
+// ============================================================================
+var FRESH_STATE = (typeof FRESH_STATE !== 'undefined' && FRESH_STATE) || {
+  cycleBoardAsOf: null,
+  manifest:   {},   // name → element record
+  health:     {},   // indicator_id → { last_good_at, last_error }
+  ready:      false,
+};
+
+var FRESH_NYSE_HOL = new Set([
+  "2024-01-01","2024-01-15","2024-02-19","2024-03-29","2024-05-27","2024-06-19","2024-07-04","2024-09-02","2024-11-28","2024-12-25",
+  "2025-01-01","2025-01-09","2025-01-20","2025-02-17","2025-04-18","2025-05-26","2025-06-19","2025-07-04","2025-09-01","2025-11-27","2025-12-25",
+  "2026-01-01","2026-01-19","2026-02-16","2026-04-03","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-11-26","2026-12-25",
+]);
+var FRESH_FED_HOL = new Set([
+  "2024-01-01","2024-01-15","2024-02-19","2024-05-27","2024-06-19","2024-07-04","2024-09-02","2024-10-14","2024-11-11","2024-11-28","2024-12-25",
+  "2025-01-01","2025-01-09","2025-01-20","2025-02-17","2025-05-26","2025-06-19","2025-07-04","2025-09-01","2025-10-13","2025-11-11","2025-11-27","2025-12-25",
+  "2026-01-01","2026-01-19","2026-02-16","2026-05-25","2026-06-19","2026-07-03","2026-09-07","2026-10-12","2026-11-11","2026-11-26","2026-12-25",
+]);
+function freshIsoUTC(d){return d.toISOString().slice(0,10);}
+function freshIsCalDay(d, cal) {
+  const w = d.getUTCDay();
+  if (w === 0 || w === 6) return false;
+  const iso = freshIsoUTC(d);
+  if (cal === "nyse-trading-day") return !FRESH_NYSE_HOL.has(iso);
+  if (cal === "us-business-day")  return !FRESH_FED_HOL.has(iso);
+  return true;
+}
+function freshAgeHours(asOfIso, cal, nowMs) {
+  if (!asOfIso) return NaN;
+  const tIso = asOfIso.length === 10 ? asOfIso + "T00:00:00Z" : asOfIso;
+  const asOfMs = new Date(tIso).getTime();
+  if (!Number.isFinite(asOfMs)) return NaN;
+  const end = nowMs || Date.now();
+  if (end <= asOfMs) return 0;
+  const totalH = (end - asOfMs) / 3600000;
+  if (cal === "wall-clock" || !cal) return totalH;
+  const dayMs = 86400000;
+  const startDay = Math.floor(asOfMs / dayMs) * dayMs;
+  const endDay   = Math.floor(end    / dayMs) * dayMs;
+  let skipped = 0;
+  for (let d = startDay; d <= endDay; d += dayMs) {
+    if (freshIsCalDay(new Date(d), cal)) continue;
+    const oS = Math.max(asOfMs, d), oE = Math.min(end, d + dayMs);
+    if (oE > oS) skipped += (oE - oS) / 3600000;
+  }
+  return Math.max(0, totalH - skipped);
+}
+function freshIsStale(asOfIso, slaHours, cal) {
+  if (!slaHours || slaHours <= 0) return false;
+  const a = freshAgeHours(asOfIso, cal);
+  if (!Number.isFinite(a)) return false;
+  return a > slaHours;
+}
+
+function freshFmtRefresh(iso) {
+  if (!iso) return "never";
+  const tIso = iso.length === 10 ? iso + "T00:00:00Z" : iso;
+  const d = new Date(tIso);
+  if (Number.isNaN(+d)) return "never";
+  const dp = d.toLocaleDateString("en-US",{year:"numeric",month:"short",day:"numeric",timeZone:"America/New_York"});
+  const tp = d.toLocaleTimeString("en-US",{hour:"numeric",minute:"2-digit",timeZone:"America/New_York"});
+  return dp + " " + tp + " ET";
+}
+
+// Compute chip status for a given element name. Returns { status, reason, lastGoodAt }.
+function freshStatus(elementName, fallbackAsOf) {
+  if (typeof FRESH_STATE === 'undefined' || !FRESH_STATE || !FRESH_STATE.ready) return { status: "loading", reason: "Loading freshness…", lastGoodAt: null };
+  const manifestEl = FRESH_STATE.manifest[elementName];
+  const health = FRESH_STATE.health[elementName];
+  const slaHours = manifestEl ? Number(manifestEl.freshness_sla_hours) || 0 : 0;
+  const cal = (manifestEl && manifestEl.release_calendar) || "wall-clock";
+  const lastGoodAt = (health && health.last_good_at) || fallbackAsOf || null;
+  const lastError  = (health && health.last_error)   || null;
+
+  // Safety net per useFreshness logic — unregistered + no fallback → green untracked.
+  if (!manifestEl && !health && !lastGoodAt) {
+    return { status: "green", reason: "Freshness tracking not yet configured", lastGoodAt: null };
+  }
+  if (lastError) return { status: "red", reason: "Upstream error: " + lastError, lastGoodAt };
+  if (!lastGoodAt) return { status: "red", reason: "No successful refresh on record", lastGoodAt: null };
+  if (slaHours > 0 && freshIsStale(lastGoodAt, slaHours, cal)) {
+    return { status: "red", reason: "Past freshness SLA", lastGoodAt };
+  }
+  return { status: "green", reason: "Operating within SLA", lastGoodAt };
+}
+
+function freshChipHtml(elementName, fallbackAsOf, label) {
+  let s;
+  try { s = freshStatus(elementName, fallbackAsOf); }
+  catch (e) { s = { status: "loading", reason: "Loading freshness…", lastGoodAt: null }; }
+  const cls = s.status === "red" ? "red" : s.status === "loading" ? "loading" : "";
+  const tipBase = (label || elementName);
+  const tip = s.status === "green"
+    ? `Data freshness: green. Last refresh: ${freshFmtRefresh(s.lastGoodAt)}`
+    : s.status === "loading"
+      ? "Checking data freshness…"
+      : `Data freshness: red. ${s.reason}. Last refresh: ${freshFmtRefresh(s.lastGoodAt)}`;
+  return `<span class="fresh-dot ${cls}" title="${tip.replace(/"/g,'&quot;')}" aria-label="${tip.replace(/"/g,'&quot;')}"></span>`;
+}
+
+// Map a cycle-mechanism tile to a representative element name for its chip.
+// All six mechanisms derive from cycle_board_snapshot.json — bind the
+// mechanism chip to that one element. Indicator-row chips bind to each
+// indicator's id (which matches the manifest's `name` field for most).
+function freshTileElement(tile) { return "cycle_board"; }
+
+// Pull manifest + pipeline_health, then re-render dials so chips appear.
+async function freshLoad() {
+  try {
+    const manifestResp = await fetch("/data_manifest.json", { cache: "no-store" });
+    const manifest = await manifestResp.json();
+    (manifest.elements || []).forEach(e => {
+      if (e.name) FRESH_STATE.manifest[e.name] = e;
+      if (e.id)   FRESH_STATE.manifest[e.id]   = e;
+    });
+  } catch (e) { console.warn("[fresh] manifest fetch failed:", e); }
+
+  // Cycle board snapshot — gives us a fallback as_of for the per-mechanism
+  // chips, which all bind to the synthetic "cycle_board" element (no
+  // pipeline_health row exists for it).
+  try {
+    const r = await fetch("/cycle_board_snapshot.json", { cache: "no-store" });
+    const j = await r.json();
+    FRESH_STATE.cycleBoardAsOf = j && j.as_of || null;
+    // Populate the page-asof-date / page-asof-stamp spans from the
+    // snapshot's as_of so the iframe header reflects the latest run, not
+    // the date the HTML was committed. (Joe directive 2026-05-04 — top of
+    // overview was showing two different dates.)
+    if (FRESH_STATE.cycleBoardAsOf) {
+      try {
+        const tIso = FRESH_STATE.cycleBoardAsOf.length === 10
+          ? FRESH_STATE.cycleBoardAsOf + "T20:00:00Z"  // anchor at NYSE close so date renders ET-correct
+          : FRESH_STATE.cycleBoardAsOf;
+        const d = new Date(tIso);
+        const longStr = d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+        const shortStr = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+        const eyebrow = document.getElementById("page-asof-date");
+        if (eyebrow) eyebrow.textContent = longStr;
+        const stamp = document.getElementById("page-asof-stamp");
+        if (stamp) stamp.textContent = shortStr;
+      } catch (e) { /* leave the placeholder text as-is */ }
+    }
+  } catch (e) { console.warn("[fresh] cycle_board_snapshot fetch failed:", e); }
+
+  // Supabase anon read of pipeline_health. Public key + RLS-anon SELECT policy.
+  // The URL + key are safe in client per src/lib/supabase.js comments.
+  try {
+    const SB_URL = "https://yqaqqzseepebrocgibcw.supabase.co";
+    const SB_KEY = "sb_publishable__q_l32rEdPZlC4Bxs6dFnA__NqouiGk";
+    const resp = await fetch(SB_URL + "/rest/v1/pipeline_health?select=indicator_id,last_good_at,last_error", {
+      headers: { apikey: SB_KEY, Authorization: "Bearer " + SB_KEY }
+    });
+    const rows = await resp.json();
+    (rows || []).forEach(r => {
+      if (r.indicator_id) FRESH_STATE.health[r.indicator_id] = r;
+    });
+  } catch (e) { console.warn("[fresh] pipeline_health fetch failed:", e); }
+
+  FRESH_STATE.ready = true;
+  // Decorate dials post-load. Modal rows decorate themselves via openModal.
+  if (typeof renderDials === "function") renderDials();
+  // If a modal is already open, re-render it.
+  try {
+    const scrim = document.getElementById("modalScrim");
+    if (scrim && scrim.classList.contains("open")) {
+      const eyebrow = scrim.querySelector(".modal-eyebrow");
+      const tileName = eyebrow && eyebrow.textContent.split("·").pop().trim();
+      const t = TILES.find(x => x.name === tileName);
+      if (t) openModal(t);
+    }
+  } catch (e) {}
+}
+freshLoad();
+
+// ============================================================================
+// Data — Sprint 1 calibration snapshot.
+// IMPORTANT: the home Macro Overview tile (src/App.jsx) renders the SAME six
+// scores + aggregate verdict from public/cycle_board_snapshot.json. If you
+// change any score, band, or elevated-flag below, also update that JSON so
+// the home preview stays in lockstep with this page.
+// ============================================================================
+
+const RECESSIONS = [["2020-02","2020-04"]];
+
+const TILES = [
+  {
+    id:"valuation", num:"01", name:"Valuation", live:true, score:87, band:"darkblood",
+    caption:"Currently at cycle peak — multiple valuation reads in the top quartile of long-run history. Caution advised.",
+    cadence: "Monthly · CAPE/ERP refresh; Buffett quarterly",
+    traj: [
+      [2016,4,58],[2016,7,60],[2016,10,62],[2017,1,63],[2017,4,64],[2017,7,65],[2017,10,67],
+      [2018,1,71],[2018,4,69],[2018,7,70],[2018,10,67],[2019,1,69],[2019,4,72],[2019,7,73],[2019,10,72],
+      [2020,1,75],[2020,4,52],[2020,7,68],[2020,10,73],
+      [2021,1,79],[2021,4,82],[2021,7,84],[2021,10,86],
+      [2022,1,84],[2022,4,80],[2022,7,75],[2022,10,77],
+      [2023,1,79],[2023,4,80],[2023,7,82],[2023,10,84],
+      [2024,1,84],[2024,4,85],[2024,7,86],[2024,10,86],
+      [2025,1,86],[2025,4,86],[2025,7,86],[2025,10,87],
+      [2026,1,87],[2026,4,87],
+    ],
+    indicators:[
+      { id:"cape", name:"CAPE (Shiller)", value:"34.2×", percentile:77, dir:"high", desc:"Cyclically-adjusted price-to-earnings ratio.", sample:"post-2011 (15y)", sampleMin:"21.1", sampleMax:"38.6" },
+      { id:"erp",  name:"Equity Risk Premium", value:"-1.38%", percentile:8, dir:"low", desc:"S&P 500 earnings yield minus 10-year Treasury yield.", sample:"post-2011 (15y)", sampleMin:"-2.4%", sampleMax:"+2.8%" },
+      { id:"buffett", name:"Buffett Indicator", value:"232.7%", percentile:100, dir:"high", desc:"U.S. equity market cap as share of GDP.", sample:"post-1970 (~55y)", sampleMin:"32%", sampleMax:"232%" },
+    ],
+  },
+  {
+    id:"credit", num:"02", name:"Credit", live:true, score:69, band:"oxblood",
+    caption:"Spreads pricing complacency — investment-grade and high-yield spreads have not been tighter since before 2008. Late-cycle signature.",
+    cadence: "Daily · ICE BofA via FRED",
+    traj: [
+      [2016,4,52],[2016,7,55],[2016,10,48],[2017,1,42],[2017,4,40],[2017,7,42],[2017,10,38],
+      [2018,1,42],[2018,4,46],[2018,7,48],[2018,10,58],[2019,1,68],[2019,4,52],[2019,7,55],[2019,10,50],
+      [2020,1,55],[2020,3,95],[2020,4,89],[2020,7,72],[2020,10,62],
+      [2021,1,55],[2021,4,52],[2021,7,50],[2021,10,55],
+      [2022,1,58],[2022,4,68],[2022,7,75],[2022,10,82],
+      [2023,1,80],[2023,4,72],[2023,7,68],[2023,10,72],
+      [2024,1,68],[2024,4,62],[2024,7,68],[2024,10,72],
+      [2025,1,73],[2025,4,72],[2025,7,71],[2025,10,70],
+      [2026,1,69],[2026,4,69],
+    ],
+    indicators:[
+      { id:"ig_oas", name:"IG OAS (Baa − 10y)", value:"174 bp", percentile:23, dir:"bidir", desc:"Investment-grade Baa premium over Treasuries.", sample:"post-1986 (~40y)", sampleMin:"120 bp", sampleMax:"628 bp" },
+      { id:"hy_oas", name:"HY OAS",            value:"285 bp", percentile:16, dir:"bidir", desc:"High-yield (junk) corporate spread over Treasuries.", sample:"post-2011 (15y)", sampleMin:"265 bp", sampleMax:"880 bp" },
+      { id:"hy_ig", name:"HY/IG ratio",        value:"1.89×",  percentile:47, dir:"bidir", desc:"High-yield spread divided by investment-grade spread.", sample:"post-2011 (15y)", sampleMin:"1.42×", sampleMax:"3.10×" },
+    ],
+  },
+  {
+    id:"funding", num:"03", name:"Funding", live:true, score:30, band:"amber",
+    caption:"Bank-system funding spreads sit in the lower half of post-2018 history. No active funding stress; cross-currency basis is the only mildly stretched read.",
+    cadence:"Daily · NY Fed + DTCC + FRED",
+    traj: [
+      [2018,1,18],[2018,7,28],[2019,1,42],[2019,7,35],[2020,1,28],
+      [2020,3,95],[2020,4,75],[2020,7,32],[2020,10,25],
+      [2021,1,18],[2021,7,15],[2022,1,22],[2022,7,38],
+      [2023,1,52],[2023,3,68],[2023,7,42],[2023,10,38],
+      [2024,1,32],[2024,4,28],[2024,7,30],[2024,10,28],
+      [2025,1,32],[2025,4,28],[2025,7,30],[2025,10,32],
+      [2026,1,30],[2026,4,30],
+    ],
+    indicators:[
+      { id:"sofr_ois", name:"SOFR-OIS spread", value:"12 bp", percentile:18, dir:"high", desc:"Front-end secured-vs-unsecured funding spread.", sample:"post-2018 (8y)", sampleMin:"0 bp", sampleMax:"110 bp" },
+      { id:"fra_ois", name:"FRA-OIS spread", value:"14 bp", percentile:22, dir:"high", desc:"3-month forward funding stress proxy.", sample:"post-2018 (8y)", sampleMin:"0 bp", sampleMax:"90 bp" },
+      { id:"cdx_basis", name:"CDX IG basis", value:"0.5 bp", percentile:32, dir:"high", desc:"Cash vs CDS dislocation in IG credit.", sample:"post-2014 (12y)", sampleMin:"-2 bp", sampleMax:"12 bp" },
+      { id:"xccy_basis", name:"3m USD/EUR x-ccy basis", value:"-12 bp", percentile:38, dir:"low", desc:"USD-funding stress proxy via FX swap basis.", sample:"post-2010 (16y)", sampleMin:"-120 bp", sampleMax:"+5 bp" },
+      { id:"cpff", name:"3m CP − Fed Funds", value:"22 bp", percentile:24, dir:"high", desc:"Corporate short-term funding cost over policy rate.", sample:"post-2006 (20y)", sampleMin:"5 bp", sampleMax:"280 bp" },
+    ],
+  },
+  {
+    id:"growth", num:"04", name:"Growth", live:true, score:47, band:"amber",
+    caption:"Real economy moving at trend — no level-and-trend signal. Jobless claims tight, ISM in expansion.",
+    cadence: "Monthly + weekly · CFNAI/ISM monthly, jobless weekly",
+    traj: [
+      [2016,4,38],[2016,7,42],[2016,10,40],[2017,1,38],[2017,4,35],[2017,7,32],[2017,10,30],
+      [2018,1,32],[2018,4,30],[2018,7,32],[2018,10,42],[2019,1,48],[2019,4,42],[2019,7,40],[2019,10,38],
+      [2020,1,42],[2020,3,95],[2020,4,92],[2020,7,72],[2020,10,55],
+      [2021,1,42],[2021,4,32],[2021,7,28],[2021,10,30],
+      [2022,1,38],[2022,4,52],[2022,7,62],[2022,10,68],
+      [2023,1,72],[2023,4,68],[2023,7,58],[2023,10,52],
+      [2024,1,55],[2024,4,52],[2024,7,50],[2024,10,48],
+      [2025,1,52],[2025,4,48],[2025,7,46],[2025,10,47],
+      [2026,1,46],[2026,4,47],
+    ],
+    indicators:[
+      { id:"cfnai", name:"CFNAI 3-month", value:"-0.03", percentile:60, dir:"low", desc:"Chicago Fed National Activity Index.", sample:"post-2006 (20y)", sampleMin:"-4.7", sampleMax:"+1.8" },
+      { id:"jobless", name:"Jobless claims (4w)", value:"214k", percentile:12, dir:"high", desc:"Initial unemployment claims, 4-week average.", sample:"post-2006 (20y)", sampleMin:"189k", sampleMax:"5,310k" },
+      { id:"ism", name:"ISM Manufacturing PMI", value:"52.7", percentile:54, dir:"low", desc:"ISM headline composite.", sample:"post-2006 (20y)", sampleMin:"37.6", sampleMax:"63.7" },
+      { id:"bkx_spx", name:"Banks vs S&P 500", value:"0.09×", percentile:8, dir:"low", desc:"KBW Bank Index relative to S&P 500.", sample:"post-2006 (20y)", sampleMin:"0.07×", sampleMax:"0.21×" },
+    ],
+  },
+  {
+    id:"liquidity_policy", num:"05", name:"Liquidity & Policy", live:true, score:55, band:"oxblood",
+    caption:"Restrictive stance — real Fed funds positive, M2 growth slow, balance sheet still in QT mode. Term premium has normalized but not reversed.",
+    cadence:"Mixed · ANFCI weekly, real funds + M2 monthly, term premium daily, balance sheet weekly",
+    traj: [
+      [2018,1,38],[2018,7,42],[2019,1,40],[2019,7,32],[2020,1,28],
+      [2020,3,82],[2020,4,75],[2020,7,18],[2020,10,15],
+      [2021,1,12],[2021,7,15],[2022,1,32],[2022,7,52],
+      [2023,1,68],[2023,7,72],[2023,10,68],
+      [2024,1,62],[2024,4,60],[2024,7,58],[2024,10,56],
+      [2025,1,55],[2025,4,55],[2025,7,55],[2025,10,55],
+      [2026,1,55],[2026,4,55],
+    ],
+    indicators:[
+      { id:"anfci", name:"Adj. Financial Conditions (ANFCI)", value:"-0.15", percentile:45, dir:"bidir", desc:"Chicago Fed adjusted financial conditions index, neutral=0.", sample:"post-1971 (55y)", sampleMin:"-1.5", sampleMax:"+5.0" },
+      { id:"real_fedfunds", name:"Real Fed funds rate", value:"+1.4%", percentile:78, dir:"high", desc:"Fed funds rate minus core PCE inflation.", sample:"post-1971 (55y)", sampleMin:"-3.5%", sampleMax:"+9.5%" },
+      { id:"m2_yoy", name:"M2 growth (YoY)", value:"+3.8%", percentile:62, dir:"low", desc:"Money supply growth; low = tight policy.", sample:"post-1980 (45y)", sampleMin:"-4.5%", sampleMax:"+27%" },
+      { id:"term_premium", name:"10y term premium (Kim-Wright)", value:"+45 bp", percentile:55, dir:"bidir", desc:"Compensation for holding duration; sub-zero = QE distortion.", sample:"post-1990 (35y)", sampleMin:"-120 bp", sampleMax:"+280 bp" },
+      { id:"fed_bs", name:"Fed balance sheet trajectory", value:"$6.7T", percentile:60, dir:"bidir", desc:"Total Fed assets; rising = QE, falling = QT.", sample:"post-2008 (18y)", sampleMin:"$0.9T", sampleMax:"$9.0T" },
+    ],
+  },
+  {
+    id:"positioning_breadth", num:"06", name:"Positioning & Breadth", live:true, score:70, band:"oxblood",
+    caption:"Investors heavily long; option sentiment is complacent. Breadth is healthy but narrowing as mega-caps lead.",
+    cadence:"Mixed · NAAIM weekly, margin debt monthly, put/call + breadth daily",
+    traj: [
+      [2018,1,75],[2018,7,52],[2019,1,42],[2019,7,38],[2020,1,55],
+      [2020,3,15],[2020,4,28],[2020,7,52],[2020,10,62],
+      [2021,1,82],[2021,7,78],[2022,1,72],[2022,7,38],
+      [2023,1,42],[2023,7,55],[2023,10,52],
+      [2024,1,62],[2024,4,68],[2024,7,72],[2024,10,68],
+      [2025,1,68],[2025,4,72],[2025,7,70],[2025,10,72],
+      [2026,1,70],[2026,4,70],
+    ],
+    indicators:[
+      { id:"naaim", name:"NAAIM exposure", value:"+89", percentile:88, dir:"bidir", desc:"Active manager equity exposure index; extremes signal positioning crowding.", sample:"post-2006 (20y)", sampleMin:"-60", sampleMax:"+120" },
+      { id:"margin_debt", name:"Margin debt YoY", value:"+18.2%", percentile:82, dir:"high", desc:"Year-over-year change in NYSE margin debt.", sample:"post-1997 (28y)", sampleMin:"-22%", sampleMax:"+30%" },
+      { id:"put_call", name:"Put/call ratio (CBOE)", value:"0.62", percentile:18, dir:"low", desc:"Equity put volume / call volume; low = complacent.", sample:"post-2006 (20y)", sampleMin:"0.40", sampleMax:"1.80" },
+      { id:"spx_200dma", name:"% of S&P > 200dma", value:"74%", percentile:68, dir:"bidir", desc:"Breadth health; very high or very low both flag turning points.", sample:"post-2006 (20y)", sampleMin:"0%", sampleMax:"92%" },
+      { id:"adv_dec", name:"Advance-Decline 50d", value:"+0.6", percentile:62, dir:"bidir", desc:"50-day cumulative net advancers ratio.", sample:"post-2006 (20y)", sampleMin:"-3.0", sampleMax:"+3.0" },
+    ],
+  },
+];
+
+// Map band identifier → palette colors
+// ----------------------------------------------------------------------------
+// Theme sync — v11 mirrors the parent dashboard's [data-theme]. Same-origin
+// iframes can read the parent's documentElement directly. On theme change,
+// re-render the dials so the SVG fills pick up the new CSS-var values.
+// ----------------------------------------------------------------------------
+function syncThemeFromParent() {
+  let parentTheme = "light";
+  try {
+    parentTheme = (window.parent && window.parent !== window
+      && window.parent.document.documentElement.dataset.theme) || "light";
+  } catch (e) { parentTheme = "light"; }
+  document.documentElement.setAttribute("data-theme", parentTheme);
+}
+syncThemeFromParent();
+try {
+  if (window.parent && window.parent !== window) {
+    const obs = new MutationObserver(() => {
+      syncThemeFromParent();
+      BAND_COLORS = bandColors();
+      // Re-render dials so JS-built SVGs pick up the new palette
+      if (typeof renderDials === "function") renderDials();
+      // If a modal is open, re-open it so its trajectory SVG re-renders too
+      try {
+        const scrim = document.getElementById("modalScrim");
+        if (scrim && scrim.classList.contains("open")) {
+          const eyebrow = scrim.querySelector(".modal-eyebrow");
+          const tileName = eyebrow && eyebrow.textContent.split("·").pop().trim();
+          const t = TILES.find(x => x.name === tileName);
+          if (t) openModal(t);
+        }
+      } catch (e) { /* ignore modal re-render failure */ }
+    });
+    obs.observe(window.parent.document.documentElement, {
+      attributes: true, attributeFilter: ["data-theme"],
+    });
+  }
+} catch (e) { /* cross-origin or missing parent — skip observer */ }
+
+// Read a CSS variable from :root (theme-aware)
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+// Theme-aware band colors. Read fresh on every call so theme changes propagate.
+function bandColors() {
+  return {
+    green:     { active: cssVar("--green-active"),     subtle: cssVar("--green-subtle") },
+    amber:     { active: cssVar("--amber-active"),     subtle: cssVar("--amber-subtle") },
+    oxblood:   { active: cssVar("--oxblood-active"),   subtle: cssVar("--oxblood-subtle") },
+    darkblood: { active: cssVar("--darkblood-active"), subtle: cssVar("--darkblood-subtle") },
+  };
+}
+// Backwards-compat alias for the rest of the script. Treat as a snapshot
+// (re-read by re-rendering on theme change).
+let BAND_COLORS = bandColors();
+
+// Score → band (matches the Sprint 1 calibration thresholds)
+function scoreToBand(score) {
+  if (score < 25) return "green";
+  if (score < 50) return "amber";
+  if (score < 75) return "oxblood";
+  return "darkblood";
+}
+
+// Dot color for an indicator row — band of where the indicator currently sits
+// in its sample distribution. For bidirectional indicators the color tracks
+// distance from the middle. The bar itself stays neutral; the dot does the
+// visual storytelling.
+function indicatorDotBand(ind) {
+  // Translate percentile + directionality into a 0-100 "concerning" score,
+  // then bucket the score into a band.
+  let concerning;
+  if (ind.dir === "low")        concerning = 100 - ind.percentile;
+  else if (ind.dir === "bidir") concerning = Math.abs(ind.percentile - 50) * 2;
+  else                          concerning = ind.percentile;
+  return scoreToBand(concerning);
+}
+
+function indicatorConcerningScore(ind) {
+  if (ind.dir === "low")  return Math.round(100 - ind.percentile);
+  if (ind.dir === "bidir") return Math.round(Math.abs(ind.percentile - 50) * 2);
+  return Math.round(ind.percentile);
+}
+
+// ============================================================================
+// Aggregate verdict dial — single pointer sweep, no wedge animation.
+// ============================================================================
+(function buildVerdictDial() {
+  const cx = 190, cy = 180, R_outer = 140, R_inner = 90;
+  const segments = [
+    { id: "wedge-riskon",  a0: 180, a1: 135 },
+    { id: "wedge-neutral", a0: 135, a1: 90  },
+    { id: "wedge-caution", a0: 90,  a1: 45  },
+    { id: "wedge-riskoff", a0: 45,  a1: 0   },
+  ];
+  function polar(r, deg) {
+    const rad = (deg * Math.PI) / 180;
+    return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
+  }
+  segments.forEach(s => {
+    const [x0o, y0o] = polar(R_outer, s.a0);
+    const [x1o, y1o] = polar(R_outer, s.a1);
+    const [x1i, y1i] = polar(R_inner, s.a1);
+    const [x0i, y0i] = polar(R_inner, s.a0);
+    const d = `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${R_outer} ${R_outer} 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${R_inner} ${R_inner} 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+    document.getElementById(s.id).setAttribute("d", d);
+  });
+  // Today's pointer — angle from average score across LIVE tiles
+  const liveTiles = TILES.filter(t => t.live);
+  const avgScore = liveTiles.reduce((a, t) => a + t.score, 0) / liveTiles.length;
+  const a_today = 180 - avgScore * 1.8;
+  // Populate verdict text from the same average.
+  // Bands per page header copy: 0-25 Risk-on, 25-50 Neutral,
+  // 50-75 Caution, 75-100 Risk-off. No "stress/stressed" anywhere
+  // (Joe directive 2026-04-30) — describe heat using "above/below
+  // the cohort" and the band names.
+  (function populateVerdict() {
+    const rounded = Math.round(avgScore);
+    document.getElementById("verdictCount").firstChild.nodeValue = String(rounded);
+    let label, narrative;
+    if (avgScore < 25) {
+      label = "Risk-on";
+      narrative = "Most mechanisms read benign. Cycle is in a low-risk regime.";
+    } else if (avgScore < 50) {
+      label = "Neutral";
+      narrative = "Composite sits in the neutral band. A few mechanisms run hot, the rest stay calm.";
+    } else if (avgScore < 75) {
+      label = "Caution";
+      const above = liveTiles.filter(t => t.score >= avgScore).map(t => t.name);
+      const below = liveTiles.filter(t => t.score <  avgScore).map(t => t.name);
+      narrative = `${above.join(" and ")} above the cohort; ${below.join(" and ")} below. Heat is selective, not system-wide.`;
+    } else {
+      label = "Risk-off";
+      narrative = "Multiple mechanisms in the upper quartile. Broad-based heat — defensive posture warranted.";
+    }
+    document.getElementById("verdictHeadline").textContent =
+      `${label} band — average ${rounded}/100. ${narrative}`;
+  })();
+  const [tx, ty] = polar(R_outer + 8, a_today);
+  document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
+  document.getElementById("verdictPointer").setAttribute("y2", ty.toFixed(2));
+  document.getElementById("verdictTip").setAttribute("cx", tx.toFixed(2));
+  document.getElementById("verdictTip").setAttribute("cy", ty.toFixed(2));
+
+  // Set up the sweep animation: pointer starts at leftmost (180°) and
+  // rotates CW to rest at 0° offset. SVG rotation is CW, our angle math is CCW,
+  // so the rotation delta is +(180 - a_today) starting position.
+  const startDeg = -(180 - a_today);  // rotate CCW by that amount initially, sweep back to 0
+  document.getElementById("verdictPointerGroup").style.setProperty("--from-deg", `${startDeg}deg`);
+})();
+
+// ============================================================================
+// Mechanism dial — single sweep animation on first paint
+// ============================================================================
+function buildDialSvg(score, isLive, band) {
+  const W = 220, H = 140;
+  const cx = W / 2, cy = H - 12;
+  const R_outer = 92, R_inner = 64;
+
+  const wedges = [
+    { from: 0,   to: 25,  ...BAND_COLORS.green },
+    { from: 25,  to: 50,  ...BAND_COLORS.amber },
+    { from: 50,  to: 75,  ...BAND_COLORS.oxblood },
+    { from: 75,  to: 100, ...BAND_COLORS.darkblood },
+  ];
+  const scoreToDeg = (s) => 180 - Math.max(0, Math.min(100, s)) * 1.8;
+  const polar = (r, deg) => {
+    const rad = (deg * Math.PI) / 180;
+    return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
+  };
+  const activeIdx = isLive
+    ? (score < 25 ? 0 : score < 50 ? 1 : score < 75 ? 2 : 3)
+    : -1;
+
+  let out = `<svg class="dial-svg" viewBox="0 0 ${W} ${H}">`;
+  // Wedges — static, no animation
+  wedges.forEach((w, i) => {
+    const a0 = scoreToDeg(w.from), a1 = scoreToDeg(w.to);
+    const [x0o, y0o] = polar(R_outer, a0);
+    const [x1o, y1o] = polar(R_outer, a1);
+    const [x1i, y1i] = polar(R_inner, a1);
+    const [x0i, y0i] = polar(R_inner, a0);
+    const d = `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${R_outer} ${R_outer} 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${R_inner} ${R_inner} 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+    const isActive = i === activeIdx;
+    const fill = isActive ? w.active : (isLive ? w.subtle : cssVar("--border"));
+    out += `<path d="${d}" fill="${fill}"/>`;
+  });
+  // Pointer — sweeps from leftmost (180°) to current position. Line starts
+  // AT the pivot and extends all the way to the tip outside the outer ring,
+  // so the needle reads as one continuous element. (Earlier version started
+  // the line at the inner ring, leaving a visual gap between pivot and line.)
+  if (isLive) {
+    const a = scoreToDeg(score);
+    const [px, py] = polar(R_outer + 6, a);
+    const startDeg = -(180 - a);
+    out += `<g class="dial-pointer-group" style="--from-deg:${startDeg}deg; --pivot-x:${cx}px; --pivot-y:${cy}px;">`;
+    out += `<line x1="${cx}" y1="${cy}" x2="${px.toFixed(2)}" y2="${py.toFixed(2)}" stroke="${cssVar('--ink')}" stroke-width="2.4" stroke-linecap="round"/>`;
+    out += `<circle cx="${px.toFixed(2)}" cy="${py.toFixed(2)}" r="3.8" fill="${cssVar('--ink')}" stroke="#fff" stroke-width="1.6"/>`;
+    out += `<circle cx="${cx}" cy="${cy}" r="4" fill="${cssVar('--ink')}"/>`;
+    out += `</g>`;
+  }
+  out += "</svg>";
+  return out;
+}
+
+function renderDials() {
+  const grid = document.getElementById("dialGrid");
+  grid.innerHTML = "";
+  TILES.forEach(t => {
+    const card = document.createElement("button");
+    card.type = "button";
+    card.className = "surface dial-card" + (t.live ? " surface-interactive" : " placeholder");
+    card.style.border = "0.5px solid var(--border-strong)";
+    // Click handler for both live and placeholder cards. openModal() routes
+    // placeholders to a toast ("ships in Sprint N") and live tiles to the modal.
+    card.addEventListener("click", () => openModal(t));
+    let inner = "";
+    inner += `<span class="num-tag">${t.num}</span>`;
+    if (t.live) inner += `<span class="click-arrow">›</span>`;
+    inner += `<div class="name">${t.name}${t.live ? freshChipHtml(freshTileElement(t), FRESH_STATE.cycleBoardAsOf, t.name) : ""}</div>`;
+    inner += `<div class="dial-svg-wrap">${buildDialSvg(t.score, t.live, t.band)}</div>`;
+    if (t.live) {
+      inner += `<div class="dial-score-wrap"><span class="dial-score-num">${t.score}</span><span class="dial-score-suffix">/ 100</span></div>`;
+    } else {
+      inner += `<div class="dial-score-wrap"><span class="ships-in">${t.ships}</span></div>`;
+    }
+    inner += `<div class="caption">${t.caption}</div>`;
+    if (t.live) {
+      inner += `<div class="since-line">${t.persistence || ""}</div>`;
+      inner += `<div class="cadence-line">Refreshes ${t.cadence || ""}</div>`;
+    }
+    card.innerHTML = inner;
+    grid.appendChild(card);
+  });
+}
+renderDials();
+
+
+
+
+
+// ============================================================================
+// Modal
+// ============================================================================
+function openModal(t) {
+  if (!t.live) {
+    showToast(`${t.name} ships in ${t.ships}.`);
+    return;
+  }
+  const body = document.getElementById("modalBody");
+  const inds = t.indicators || [];
+  const scores = inds.map(ind => ({ ind, score: indicatorConcerningScore(ind), band: indicatorDotBand(ind) }));
+  const totalScore = scores.reduce((a,b) => a + b.score, 0) || 1;
+  const tileColor = BAND_COLORS[t.band].active;
+
+  let h = "";
+  h += `<div class="modal-eyebrow">Cycle mechanism · ${t.name}</div>`;
+  h += `<div class="modal-h">
+    <h3>${t.name}${freshChipHtml(freshTileElement(t), FRESH_STATE.cycleBoardAsOf, t.name)}</h3>
+    <div style="text-align:right;">
+      <div class="dial-score-num" style="color:${tileColor};">${t.score}<span class="dial-score-suffix">/ 100</span></div>
+      <div class="meta-11" style="margin-top:4px;">composite score</div>
+    </div>
+  </div>`;
+  h += `<p class="body-14" style="margin:0 0 18px;max-width:720px;">${t.caption}</p>`;
+
+  if (t.traj) {
+    h += `<div class="modal-block">
+      <div class="modal-block-eyebrow">10-year trajectory · ${t.cadence || ""}</div>
+      <div style="position:relative;">${buildModalTrajectorySvg(t)}</div>
+      <div style="font-size:14px;color:var(--ink-3);font-style:italic;margin-top:10px;">${t.persistence || ""}</div>
+    </div>`;
+  }
+
+  h += `<div class="modal-block-eyebrow" style="margin-top:8px;">Indicators contributing to this composite</div>`;
+  h += `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">
+    Simple average — each indicator's 0–100 concerning score is averaged with equal weight.
+    Click any row for the full indicator drilldown.
+  </div>`;
+  h += `<div class="ind-list">`;
+  scores.forEach(({ind, score, band}) => {
+    const pos = Math.max(0, Math.min(100, ind.percentile));
+    const sharePct = Math.round((score / totalScore) * 100 * 10) / 10;
+    const dotColor = BAND_COLORS[band].active;
+    const scoreColor = BAND_COLORS[band].active;
+    const dirText = ind.dir === "low" ? "low = concerning"
+                  : ind.dir === "bidir" ? "extremes = concerning"
+                  : "high = concerning";
+    h += `<button type="button" class="ind-row" data-indid="${ind.id}" data-tileid="${t.id}">
+      <div>
+        <div class="nm">${ind.name}${freshChipHtml(ind.id, FRESH_STATE.cycleBoardAsOf, ind.name)}<span class="nm-meta">${dirText}</span></div>
+        <div class="desc">${ind.desc}</div>
+      </div>
+      <div>
+        <div class="qbar"><span class="qd" style="left:calc(${pos}% - 7px); background:${dotColor};"></span></div>
+        <div class="qbar-ends"><span>${ind.sampleMin || "low"}</span><span>${ind.sampleMax || "high"}</span></div>
+      </div>
+      <div class="meta-r">
+        <div>
+          <div class="v">${ind.value}</div>
+          <div class="pct">${ind.percentile}th pct · ${ind.sample}</div>
+        </div>
+        <div>
+          <div class="score-num" style="color:${scoreColor};">${score}</div>
+          
+        </div>
+      </div>
+      <div class="arr">›</div>
+    </button>`;
+  });
+  h += `</div>`;
+
+  h += `<div style="margin-top:24px;padding-top:14px;border-top:0.5px dashed var(--border);font-size:11px;color:var(--muted);line-height:1.6;">
+    <strong style="color:var(--ink);font-weight:600;">Methodology.</strong>
+    The ${t.name} composite is the simple average of its indicators' 0–100 concerning scores.
+    Each indicator's score derives from its current percentile in the indicator's stated sample window.
+    See the <a href="#methodology" style="color:var(--ink);">methodology page</a> for the full rule.
+  </div>`;
+
+  body.innerHTML = h;
+
+  body.querySelectorAll(".ind-row").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const indId = btn.dataset.indid;
+      const ind = (t.indicators || []).find(i => i.id === indId);
+      openIndicatorDrawer(ind, t);
+    });
+  });
+
+  document.getElementById("modalScrim").classList.add("open");
+  document.getElementById("modalCard").scrollTop = 0;
+}
+
+function buildModalTrajectorySvg(tile) {
+  if (!tile.traj || tile.traj.length < 2) return "";
+  const W = 760, H = 130;
+  const padL = 36, padR = 8, padT = 10, padB = 22;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const points = tile.traj;
+  const N = points.length;
+  const x = (i) => padL + (i / Math.max(1, N - 1)) * innerW;
+  const y = (s) => padT + (1 - s / 100) * innerH;
+  const dotColor = BAND_COLORS[tile.band].active;
+  const pathD = points.map((p,i) => `${i===0?"M":"L"}${x(i).toFixed(1)},${y(p[2]).toFixed(1)}`).join(" ");
+  let recStart = -1, recEnd = -1;
+  points.forEach((p,i) => {
+    if (recStart === -1 && p[0]===2020 && p[1]>=2) recStart = i;
+    if (p[0]===2020 && p[1]<=4) recEnd = i;
+  });
+  let recBand = "";
+  if (recStart >= 0 && recEnd >= recStart) {
+    const x1 = x(recStart), x2 = x(recEnd);
+    recBand = `<rect x="${x1}" y="${padT}" width="${(x2-x1).toFixed(1)}" height="${innerH}" fill="rgba(122,20,20,0.10)"/>`;
+  }
+  const lastX = x(N-1), lastY = y(points[N-1][2]);
+  const firstYr = points[0][0], lastYr = points[N-1][0];
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+    ${recBand}
+    <line x1="${padL}" x2="${W-padR}" y1="${y(50)}" y2="${y(50)}" stroke="${cssVar('--border-strong')}" stroke-width="0.5" stroke-dasharray="3 4"/>
+    <line x1="${padL}" x2="${W-padR}" y1="${y(75)}" y2="${y(75)}" stroke="${cssVar('--border')}" stroke-width="0.5" stroke-dasharray="2 5"/>
+    <line x1="${padL}" x2="${W-padR}" y1="${y(25)}" y2="${y(25)}" stroke="${cssVar('--border')}" stroke-width="0.5" stroke-dasharray="2 5"/>
+    <text x="${padL-4}" y="${y(75)+3}" font-size="10" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">75</text>
+    <text x="${padL-4}" y="${y(50)+3}" font-size="10" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">50</text>
+    <text x="${padL-4}" y="${y(25)+3}" font-size="10" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">25</text>
+    <path d="${pathD}" stroke="${cssVar('--ink-3')}" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4" fill="${dotColor}" stroke="#fff" stroke-width="1.5"/>
+    <text x="${padL}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
+    <text x="${(W/2).toFixed(0)}" y="${H-6}" font-size="11" fill="rgba(122,20,20,0.6)" text-anchor="middle" font-family="JetBrains Mono" font-weight="500">COVID 2020</text>
+  </svg>`;
+}
+
+// ============================================================================
+// Indicator-level history chart (basis points, not 0-100 composite score)
+// ----------------------------------------------------------------------------
+// Renders the indicator's actual measured value over 10 years. Y-axis spans
+// observed min→max with a small margin. Mean line + ±1 SD shaded band give
+// the eye a baseline. COVID recession band shaded behind the curve.
+// ============================================================================
+function buildIndicatorTrajectorySvg(drill, dotColor) {
+  if (!drill.traj_bp || drill.traj_bp.length < 2) return "";
+  const W = 760, H = 180;
+  const padL = 44, padR = 12, padT = 12, padB = 24;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const points = drill.traj_bp;
+  const N = points.length;
+  // Compute axis bounds with a 5% margin
+  const vals = points.map(p => p[2]);
+  const vMin = Math.min(...vals), vMax = Math.max(...vals);
+  const vRange = vMax - vMin;
+  const yMin = Math.max(0, vMin - vRange * 0.05);
+  const yMax = vMax + vRange * 0.05;
+  const mean = vals.reduce((a,b)=>a+b, 0) / N;
+  const variance = vals.reduce((a,b)=>a + (b - mean)**2, 0) / N;
+  const sd = Math.sqrt(variance);
+  const x = (i) => padL + (i / Math.max(1, N - 1)) * innerW;
+  const y = (v) => padT + (1 - (v - yMin) / (yMax - yMin)) * innerH;
+  const pathD = points.map((p,i) => `${i===0?"M":"L"}${x(i).toFixed(1)},${y(p[2]).toFixed(1)}`).join(" ");
+  // COVID recession band
+  let recStart = -1, recEnd = -1;
+  points.forEach((p,i) => {
+    if (recStart === -1 && p[0]===2020 && p[1]>=2) recStart = i;
+    if (p[0]===2020 && p[1]<=4) recEnd = i;
+  });
+  let recBand = "";
+  if (recStart >= 0 && recEnd >= recStart) {
+    const x1 = x(recStart), x2 = x(recEnd);
+    recBand = `<rect x="${x1}" y="${padT}" width="${(x2-x1).toFixed(1)}" height="${innerH}" fill="rgba(122,20,20,0.10)"/>`;
+  }
+  // ±1 SD band
+  const sdTopY = y(mean + sd), sdBotY = y(mean - sd);
+  const sdBand = `<rect x="${padL}" y="${sdTopY.toFixed(1)}" width="${innerW}" height="${(sdBotY - sdTopY).toFixed(1)}" fill="rgba(122,20,20,0.04)"/>`;
+  // Y axis labels
+  const yTicks = [
+    { v: Math.round(yMax / 100) * 100, label: Math.round(yMax / 100) * 100 + "" },
+    { v: Math.round(mean / 100) * 100, label: Math.round(mean / 100) * 100 + "" },
+    { v: Math.round((yMin + 50) / 100) * 100, label: Math.round((yMin + 50) / 100) * 100 + "" },
+  ].filter((t, i, arr) => arr.findIndex(o => o.v === t.v) === i);
+  const lastX = x(N-1), lastY = y(points[N-1][2]);
+  const firstYr = points[0][0], lastYr = points[N-1][0];
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+    ${recBand}
+    ${sdBand}
+    <line x1="${padL}" x2="${W-padR}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="${cssVar('--border-strong')}" stroke-width="0.5" stroke-dasharray="4 4"/>
+    ${yTicks.map(t => `<text x="${padL-6}" y="${y(t.v)+3}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${t.label}</text>`).join("")}
+    <text x="${W-padR}" y="${y(mean)-4}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">mean ${Math.round(mean)} bp</text>
+    <path d="${pathD}" stroke="${cssVar('--ink-3')}" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4.5" fill="${dotColor}" stroke="#fff" stroke-width="1.6"/>
+    <text x="${padL}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
+    <text x="${(W/2).toFixed(0)}" y="${H-6}" font-size="11" fill="rgba(122,20,20,0.6)" text-anchor="middle" font-family="JetBrains Mono" font-weight="500">COVID 2020</text>
+  </svg>`;
+}
+
+// ============================================================================
+// Indicator drawer — DRILLS object keyed by indicator id. Each entry
+// follows the same shape so the same render path works for all 10
+// indicators. When an indicator id is not in DRILLS, the drawer falls
+// back to a minimal stub.
+// ============================================================================
+// ============================================================================
+// Indicator drill-down data (DRILLS) — keyed by indicator id. Each entry
+// follows the same shape: header_label, axis_label, unit_fmt(v), kpis,
+// traj (10y monthly history in natural unit), episodes, comovement, release,
+// source_url, formula, caveat.
+// ============================================================================
+const fmtBp = v => `${Math.round(v)} bp`;
+const fmtX  = v => `${v.toFixed(1)}\u00d7`;
+const fmtPct = v => `${v.toFixed(1)}%`;
+const fmtK  = v => `${Math.round(v)}k`;
+const fmtN  = v => v.toFixed(2);
+
+const DRILLS = {
+  // ─── VALUATION TILE ───
+  cape: {
+    header_label: "Robert Shiller \u00b7 Monthly",
+    axis_label: "ratio",
+    unit_fmt: fmtX,
+    kpis: [
+      { lbl:"1-month change", val:"-0.4\u00d7", meta:"vs 90d avg +0.2\u00d7", dir:"dn" },
+      { lbl:"3-month change", val:"+0.8\u00d7", meta:"slow drift higher", dir:"up" },
+      { lbl:"1-year change",  val:"+1.6\u00d7", meta:"sustained re-rating", dir:"up" },
+      { lbl:"Distance from peak", val:"-4.4\u00d7", meta:"peak: 38.6\u00d7 / Dec 2021", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,26.4],[2016,7,26.8],[2016,10,27.1],[2017,1,28.5],[2017,4,29.1],[2017,7,30.2],[2017,10,31.5],
+      [2018,1,33.3],[2018,4,32.5],[2018,7,32.7],[2018,10,30.6],[2019,1,28.5],[2019,4,30.4],[2019,7,29.8],[2019,10,29.5],
+      [2020,1,30.8],[2020,3,24.8],[2020,4,26.5],[2020,7,30.1],[2020,10,30.6],
+      [2021,1,33.3],[2021,4,36.5],[2021,7,38.2],[2021,10,38.6],
+      [2022,1,38.0],[2022,4,33.5],[2022,7,29.4],[2022,10,28.6],
+      [2023,1,30.0],[2023,4,30.5],[2023,7,32.0],[2023,10,30.4],
+      [2024,1,32.0],[2024,4,32.6],[2024,7,33.5],[2024,10,33.8],
+      [2025,1,34.0],[2025,4,33.9],[2025,7,34.0],[2025,10,34.5],
+      [2026,1,34.6],[2026,4,34.2],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Today's read \u2014 top quartile", spx6:null, spx12:null },
+      { period:"Dec 2021", note:"All-time peak before 2022 selloff", spx6:"-12%", spx12:"-19%" },
+      { period:"Sep 2018", note:"Mid-cycle Trump tax-cut peak", spx6:"-7%", spx12:"+0%" },
+      { period:"Jan 2007", note:"Housing-cycle peak", spx6:"+5%", spx12:"-9%" },
+      { period:"Mar 2000", note:"Dotcom peak", spx6:"-8%", spx12:"-22%" },
+    ],
+    comovement: [
+      { peer:"Equity Risk Premium", c1y:"-0.94", c5y:"-0.90", n1:"12", n5:"60" },
+      { peer:"Buffett Indicator",   c1y:"+0.88", c5y:"+0.79", n1:"4",  n5:"20" },
+      { peer:"S&P 500",             c1y:"+0.85", c5y:"+0.78", n1:"12", n5:"60" },
+      { peer:"Real rates",          c1y:"-0.42", c5y:"-0.38", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"—", next:"—", source:"Robert Shiller \u00b7 shillerdata.com" },
+    source_url: "https://shillerdata.com/",
+    formula: "Real S&P 500 price divided by 10-year trailing inflation-adjusted earnings.",
+    caveat: "Slow-moving series; turning points lag market peaks by 6\u201312 months.",
+  },
+
+  erp: {
+    header_label: "Derived \u00b7 S&P operating earnings + DGS10 \u00b7 Daily",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"-0.05%", meta:"earnings yield flat", dir:"dn" },
+      { lbl:"3-month change", val:"-0.21%", meta:"yields edging up", dir:"dn" },
+      { lbl:"1-year change",  val:"-1.45%", meta:"compressing", dir:"dn" },
+      { lbl:"Distance from peak", val:"-4.18%", meta:"peak: +2.8% / Dec 2009", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,1.5],[2016,7,1.4],[2016,10,1.2],[2017,1,1.0],[2017,4,0.9],[2017,7,0.8],[2017,10,0.6],
+      [2018,1,0.4],[2018,4,0.3],[2018,7,0.2],[2018,10,0.5],[2019,1,1.1],[2019,4,1.0],[2019,7,1.2],[2019,10,1.4],
+      [2020,1,1.3],[2020,3,2.1],[2020,4,1.8],[2020,7,1.6],[2020,10,1.8],
+      [2021,1,1.5],[2021,4,1.2],[2021,7,1.0],[2021,10,0.6],
+      [2022,1,0.2],[2022,4,-0.5],[2022,7,-1.0],[2022,10,-1.5],
+      [2023,1,-1.7],[2023,4,-1.6],[2023,7,-1.4],[2023,10,-1.2],
+      [2024,1,-0.8],[2024,4,-0.6],[2024,7,-0.7],[2024,10,-0.9],
+      [2025,1,-1.0],[2025,4,-1.1],[2025,7,-1.2],[2025,10,-1.3],
+      [2026,1,-1.33],[2026,4,-1.38],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Today's read \u2014 bottom quartile (rich)", spx6:null, spx12:null },
+      { period:"Oct 2022", note:"Cycle low \u2014 yields shock peak", spx6:"+15%", spx12:"+20%" },
+      { period:"Oct 2018", note:"Powell-pivot setup", spx6:"+12%", spx12:"+10%" },
+      { period:"Jul 2007", note:"Housing-cycle wide", spx6:"-3%", spx12:"-15%" },
+      { period:"Jun 2000", note:"Dotcom-era ERP near zero", spx6:"-5%", spx12:"-13%" },
+    ],
+    comovement: [
+      { peer:"CAPE (Shiller)",   c1y:"-0.94", c5y:"-0.90", n1:"12", n5:"60" },
+      { peer:"Real rates",       c1y:"+0.85", c5y:"+0.79", n1:"12", n5:"60" },
+      { peer:"10y Treasury",     c1y:"+0.72", c5y:"+0.68", n1:"12", n5:"60" },
+      { peer:"S&P 500",          c1y:"-0.55", c5y:"-0.48", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"S&P + FRED \u00b7 derived" },
+    source_url: "https://fred.stlouisfed.org/series/DGS10",
+    formula: "S&P 500 12-month trailing earnings yield minus 10-year Treasury yield.",
+    caveat: "Sensitive to earnings revisions; can flip on a single quarter of S&P EPS surprise.",
+  },
+
+  buffett: {
+    header_label: "Federal Reserve Z.1 + BEA \u00b7 Quarterly",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"+1.4 pp", meta:"price + low GDP", dir:"up" },
+      { lbl:"3-month change", val:"+5.2 pp", meta:"new highs week-over-week", dir:"up" },
+      { lbl:"1-year change",  val:"+14.8 pp", meta:"sustained run", dir:"up" },
+      { lbl:"Distance from peak", val:"0 pp", meta:"all-time high reading", dir:"up" },
+    ],
+    traj: [
+      [2016,4,148],[2016,7,151],[2016,10,153],[2017,1,158],[2017,4,162],[2017,7,166],[2017,10,170],
+      [2018,1,178],[2018,4,176],[2018,7,180],[2018,10,167],[2019,1,162],[2019,4,170],[2019,7,170],[2019,10,172],
+      [2020,1,180],[2020,3,135],[2020,4,148],[2020,7,170],[2020,10,178],
+      [2021,1,190],[2021,4,195],[2021,7,196],[2021,10,197],
+      [2022,1,194],[2022,4,180],[2022,7,170],[2022,10,165],
+      [2023,1,178],[2023,4,182],[2023,7,190],[2023,10,192],
+      [2024,1,205],[2024,4,210],[2024,7,215],[2024,10,218],
+      [2025,1,222],[2025,4,224],[2025,7,227],[2025,10,229],
+      [2026,1,231],[2026,4,232.7],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"All-time high \u2014 above 2021 peak", spx6:null, spx12:null },
+      { period:"Oct 2021", note:"Pandemic-era peak (197%)", spx6:"-10%", spx12:"-19%" },
+      { period:"Mar 2000", note:"Dotcom peak (~148%)", spx6:"-9%", spx12:"-22%" },
+      { period:"Sep 2007", note:"Pre-GFC peak (~110%)", spx6:"-12%", spx12:"-30%" },
+      { period:"Dec 1968", note:"Nifty-Fifty peak (~87%)", spx6:"-3%", spx12:"+8%" },
+    ],
+    comovement: [
+      { peer:"S&P 500",            c1y:"+0.94", c5y:"+0.90", n1:"4",  n5:"20" },
+      { peer:"CAPE (Shiller)",     c1y:"+0.88", c5y:"+0.79", n1:"4",  n5:"20" },
+      { peer:"Margin debt YoY",    c1y:"+0.71", c5y:"+0.62", n1:"4",  n5:"20" },
+      { peer:"Real GDP growth",    c1y:"-0.22", c5y:"-0.18", n1:"4",  n5:"20" },
+    ],
+    release: { freq:"Quarterly", last:"—", next:"—", source:"Fed Z.1 + BEA GDP" },
+    source_url: "https://fred.stlouisfed.org/graph/?g=qLC",
+    formula: "Total U.S. equity market capitalization divided by nominal GDP.",
+    caveat: "Buffett himself called this \u201cprobably the best single measure\u201d in 2001; modern critique points to globalization tilt.",
+  },
+
+  // ─── CREDIT TILE ───
+  ig_oas: {
+    header_label: "FRED \u00b7 BAMLC0A0CM \u00b7 Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+5 bp", meta:"slight widening", dir:"up" },
+      { lbl:"3-month change", val:"-8 bp", meta:"net tighter", dir:"dn" },
+      { lbl:"1-year change",  val:"-22 bp", meta:"in compression cycle", dir:"dn" },
+      { lbl:"Distance from peak", val:"-454 bp", meta:"peak: 628bp / Dec 2008", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,260],[2016,7,220],[2016,10,180],[2017,1,160],[2017,4,150],[2017,7,140],[2017,10,140],
+      [2018,1,140],[2018,4,150],[2018,7,150],[2018,10,170],[2019,1,210],[2019,4,170],[2019,7,170],[2019,10,165],
+      [2020,1,165],[2020,3,400],[2020,4,300],[2020,7,200],[2020,10,180],
+      [2021,1,160],[2021,4,150],[2021,7,150],[2021,10,160],
+      [2022,1,170],[2022,4,210],[2022,7,260],[2022,10,280],
+      [2023,1,250],[2023,4,240],[2023,7,210],[2023,10,220],
+      [2024,1,200],[2024,4,196],[2024,7,180],[2024,10,170],
+      [2025,1,175],[2025,4,180],[2025,7,170],[2025,10,165],
+      [2026,1,169],[2026,4,174],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Bottom-quartile compression", spx6:null, spx12:null },
+      { period:"Apr 2024", note:"Prior tight read pre-AI rally", spx6:"+10%", spx12:"+18%" },
+      { period:"Jul 2021", note:"Pandemic-era tights", spx6:"-3%", spx12:"-15%" },
+      { period:"Jan 2018", note:"Late-cycle tights", spx6:"+1%", spx12:"-5%" },
+      { period:"Feb 2007", note:"Pre-GFC tightest", spx6:"-1%", spx12:"-12%" },
+    ],
+    comovement: [
+      { peer:"HY OAS",         c1y:"+0.89", c5y:"+0.85", n1:"12", n5:"60" },
+      { peer:"VIX",            c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"S&P 500",        c1y:"-0.42", c5y:"-0.36", n1:"12", n5:"60" },
+      { peer:"Real rates",     c1y:"-0.18", c5y:"-0.12", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"FRED \u00b7 ICE BofA \u00b7 BAMLC0A0CM" },
+    source_url: "https://fred.stlouisfed.org/series/BAMLC0A0CM",
+    formula: "ICE BofA US Corporate Index Option-Adjusted Spread, in basis points.",
+    caveat: "Index composition shifts; modern IG has more BBB exposure than 2008-era.",
+  },
+
+  hy_ig: {
+    header_label: "Derived \u00b7 BAMLH0A0HYM2 / BAMLC0A0CM \u00b7 Daily",
+    axis_label: "ratio",
+    unit_fmt: fmtX,
+    kpis: [
+      { lbl:"1-month change", val:"-0.05\u00d7", meta:"compressing", dir:"dn" },
+      { lbl:"3-month change", val:"-0.12\u00d7", meta:"sustained tighter", dir:"dn" },
+      { lbl:"1-year change",  val:"+0.08\u00d7", meta:"normalizing from 2024 lows", dir:"up" },
+      { lbl:"Distance from peak", val:"-1.21\u00d7", meta:"peak: 3.10\u00d7 / Mar 2020", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,2.77],[2016,7,2.64],[2016,10,2.61],[2017,1,2.56],[2017,4,2.63],[2017,7,2.68],[2017,10,2.57],
+      [2018,1,2.54],[2018,4,2.43],[2018,7,2.43],[2018,10,2.50],[2019,1,2.43],[2019,4,2.35],[2019,7,2.32],[2019,10,2.42],
+      [2020,1,2.39],[2020,3,2.73],[2020,4,2.73],[2020,7,2.45],[2020,10,2.44],
+      [2021,1,2.28],[2021,4,2.07],[2021,7,2.00],[2021,10,1.94],
+      [2022,1,1.94],[2022,4,1.88],[2022,7,1.81],[2022,10,1.82],
+      [2023,1,1.84],[2023,4,1.90],[2023,7,1.90],[2023,10,1.93],
+      [2024,1,1.93],[2024,4,2.01],[2024,7,1.97],[2024,10,1.94],
+      [2025,1,1.94],[2025,4,2.00],[2025,7,1.97],[2025,10,1.88],
+      [2026,1,1.94],[2026,4,1.89],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Mid-range \u2014 not extreme either way", spx6:null, spx12:null },
+      { period:"Jul 2024", note:"Most-recent low (peak HY-IG decoupling)", spx6:"+3%", spx12:"+9%" },
+      { period:"Mar 2020", note:"COVID peak ratio (3.10\u00d7) \u2014 HY blew out faster", spx6:"+38%", spx12:"+55%" },
+      { period:"Feb 2016", note:"Energy-cycle peak (~2.85\u00d7)", spx6:"+7%", spx12:"+19%" },
+      { period:"Aug 2014", note:"Mid-cycle compression", spx6:"-5%", spx12:"+1%" },
+    ],
+    comovement: [
+      { peer:"HY OAS",        c1y:"+0.92", c5y:"+0.88", n1:"12", n5:"60" },
+      { peer:"VIX",           c1y:"+0.62", c5y:"+0.55", n1:"12", n5:"60" },
+      { peer:"IG OAS",        c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"S&P 500",       c1y:"-0.38", c5y:"-0.32", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"FRED \u00b7 derived" },
+    source_url: "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+    formula: "HY OAS divided by IG OAS \u2014 the relative-risk premium ratio.",
+    caveat: "Sensitive to denominator; small IG OAS moves can swing the ratio.",
+  },
+
+  // ─── GROWTH TILE ───
+  cfnai: {
+    header_label: "Chicago Fed \u00b7 CFNAIMA3 \u00b7 Monthly",
+    axis_label: "score",
+    unit_fmt: fmtN,
+    kpis: [
+      { lbl:"1-month change", val:"-0.04", meta:"slight cooling", dir:"dn" },
+      { lbl:"3-month change", val:"-0.12", meta:"moderating", dir:"dn" },
+      { lbl:"1-year change",  val:"-0.18", meta:"trend-pace deceleration", dir:"dn" },
+      { lbl:"Distance from peak", val:"-1.83", meta:"peak: +1.80 / Apr 2021", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,-0.20],[2016,7,-0.15],[2016,10,-0.10],[2017,1,0.05],[2017,4,0.18],[2017,7,0.22],[2017,10,0.20],
+      [2018,1,0.40],[2018,4,0.30],[2018,7,0.15],[2018,10,0.10],[2019,1,-0.05],[2019,4,-0.10],[2019,7,-0.20],[2019,10,-0.30],
+      [2020,1,-0.40],[2020,3,-4.70],[2020,4,-3.00],[2020,7,1.20],[2020,10,0.80],
+      [2021,1,1.00],[2021,4,1.80],[2021,7,0.50],[2021,10,0.40],
+      [2022,1,0.30],[2022,4,0.25],[2022,7,-0.10],[2022,10,-0.40],
+      [2023,1,-0.40],[2023,4,-0.20],[2023,7,-0.10],[2023,10,-0.05],
+      [2024,1,0.10],[2024,4,0.18],[2024,7,0.15],[2024,10,0.10],
+      [2025,1,0.05],[2025,4,0.04],[2025,7,0.00],[2025,10,-0.02],
+      [2026,1,-0.02],[2026,4,-0.03],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Trend-pace read", spx6:null, spx12:null },
+      { period:"Oct 2022", note:"Recession-scare trough", spx6:"+12%", spx12:"+20%" },
+      { period:"Dec 2019", note:"Pre-COVID slowdown", spx6:"-5%", spx12:"+18%" },
+      { period:"Aug 2015", note:"Industrial-slowdown trough", spx6:"-2%", spx12:"+10%" },
+      { period:"Jun 2009", note:"GFC trough", spx6:"+25%", spx12:"+38%" },
+    ],
+    comovement: [
+      { peer:"ISM Manufacturing", c1y:"+0.88", c5y:"+0.82", n1:"12", n5:"60" },
+      { peer:"Banks vs S&P",      c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"Jobless claims",    c1y:"-0.62", c5y:"-0.55", n1:"12", n5:"60" },
+      { peer:"S&P 500 12mo",      c1y:"+0.55", c5y:"+0.42", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"—", next:"—", source:"Chicago Fed" },
+    source_url: "https://fred.stlouisfed.org/series/CFNAIMA3",
+    formula: "85 monthly indicators weighted into a single index, 3-month moving average.",
+    caveat: "Revised back ~2 years on every release; recent prints are tentative.",
+  },
+
+  jobless: {
+    header_label: "DOL \u00b7 ICSA \u00b7 Weekly",
+    axis_label: "k",
+    unit_fmt: v => `${Math.round(v)}k`,
+    kpis: [
+      { lbl:"1-month change", val:"-8k", meta:"labor-market tight", dir:"dn" },
+      { lbl:"3-month change", val:"+12k", meta:"slight uptick", dir:"up" },
+      { lbl:"1-year change",  val:"-22k", meta:"tightening", dir:"dn" },
+      { lbl:"Distance from peak", val:"-5,096k", meta:"peak: 5,310k / Apr 2020", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,260],[2016,7,255],[2016,10,250],[2017,1,242],[2017,4,238],[2017,7,235],[2017,10,232],
+      [2018,1,228],[2018,4,225],[2018,7,222],[2018,10,218],[2019,1,220],[2019,4,215],[2019,7,212],[2019,10,210],
+      [2020,1,212],[2020,3,3300],[2020,4,5310],[2020,7,1300],[2020,10,790],
+      [2021,1,470],[2021,4,400],[2021,7,300],[2021,10,265],
+      [2022,1,232],[2022,4,205],[2022,7,225],[2022,10,210],
+      [2023,1,205],[2023,4,225],[2023,7,235],[2023,10,212],
+      [2024,1,210],[2024,4,225],[2024,7,232],[2024,10,220],
+      [2025,1,215],[2025,4,222],[2025,7,218],[2025,10,212],
+      [2026,1,222],[2026,4,214],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Bottom-quartile (tight labor)", spx6:null, spx12:null },
+      { period:"Sep 2022", note:"Post-recovery tights", spx6:"+10%", spx12:"+22%" },
+      { period:"Dec 2018", note:"Late-cycle tights", spx6:"+12%", spx12:"+22%" },
+      { period:"Mar 2014", note:"Mid-expansion tights", spx6:"+5%", spx12:"+13%" },
+      { period:"Sep 2006", note:"Pre-GFC tights", spx6:"-3%", spx12:"-10%" },
+    ],
+    comovement: [
+      { peer:"CFNAI",            c1y:"-0.62", c5y:"-0.55", n1:"12", n5:"60" },
+      { peer:"ISM Manufacturing", c1y:"-0.42", c5y:"-0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500",          c1y:"-0.38", c5y:"-0.32", n1:"12", n5:"60" },
+      { peer:"Banks vs S&P",     c1y:"-0.28", c5y:"-0.22", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Weekly (Thu)", last:"—", next:"—", source:"U.S. Department of Labor" },
+    source_url: "https://fred.stlouisfed.org/series/ICSA",
+    formula: "4-week moving average of initial unemployment insurance claims.",
+    caveat: "Holiday weeks and seasonal-adjustment factors can produce noisy single-week prints.",
+  },
+
+  ism: {
+    header_label: "Institute for Supply Management \u00b7 Monthly",
+    axis_label: "PMI",
+    unit_fmt: v => v.toFixed(1),
+    kpis: [
+      { lbl:"1-month change", val:"+0.4", meta:"expansion territory", dir:"up" },
+      { lbl:"3-month change", val:"+1.2", meta:"firming", dir:"up" },
+      { lbl:"1-year change",  val:"+3.8", meta:"cyclical recovery", dir:"up" },
+      { lbl:"Distance from peak", val:"-11.0", meta:"peak: 63.7 / Mar 2021", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,50.8],[2016,7,52.6],[2016,10,51.9],[2017,1,55.4],[2017,4,54.7],[2017,7,56.3],[2017,10,58.6],
+      [2018,1,59.4],[2018,4,58.4],[2018,7,58.7],[2018,10,57.1],[2019,1,56.0],[2019,4,52.9],[2019,7,51.3],[2019,10,48.5],
+      [2020,1,50.0],[2020,3,49.1],[2020,4,41.6],[2020,7,54.6],[2020,10,58.8],
+      [2021,1,60.5],[2021,4,60.6],[2021,7,59.4],[2021,10,60.6],
+      [2022,1,57.5],[2022,4,55.4],[2022,7,52.7],[2022,10,49.3],
+      [2023,1,47.0],[2023,4,47.1],[2023,7,46.5],[2023,10,46.7],
+      [2024,1,49.1],[2024,4,49.2],[2024,7,46.8],[2024,10,48.5],
+      [2025,1,50.9],[2025,4,49.3],[2025,7,50.5],[2025,10,51.5],
+      [2026,1,52.0],[2026,4,52.7],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Mid-expansion (54th pct)", spx6:null, spx12:null },
+      { period:"Mar 2021", note:"Cycle peak (63.7) post-COVID", spx6:"-2%", spx12:"+8%" },
+      { period:"Feb 2018", note:"Tax-cut peak (60.8)", spx6:"-2%", spx12:"-2%" },
+      { period:"Jul 2014", note:"Industrial-cycle peak (~57)", spx6:"-3%", spx12:"+5%" },
+      { period:"Nov 2006", note:"Pre-GFC peak (~57)", spx6:"+2%", spx12:"-13%" },
+    ],
+    comovement: [
+      { peer:"CFNAI",            c1y:"+0.88", c5y:"+0.82", n1:"12", n5:"60" },
+      { peer:"Copper/gold",      c1y:"+0.62", c5y:"+0.55", n1:"12", n5:"60" },
+      { peer:"Banks vs S&P",     c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"S&P 500 6mo",      c1y:"+0.42", c5y:"+0.35", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"—", next:"—", source:"ISM" },
+    source_url: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/",
+    formula: "Diffusion index of 5 sub-components (new orders, production, employment, supplier deliveries, inventories).",
+    caveat: "Sub-50 readings have preceded every recession since 1970 \u2014 with false positives in 1995, 2012, 2015, and 2024.",
+  },
+
+  bkx_spx: {
+    header_label: "Derived \u00b7 KBE / SPY \u00b7 Daily",
+    axis_label: "ratio",
+    unit_fmt: v => `${v.toFixed(2)}\u00d7`,
+    kpis: [
+      { lbl:"1-month change", val:"+0.001\u00d7", meta:"flat", dir:"dn" },
+      { lbl:"3-month change", val:"-0.002\u00d7", meta:"underperforming", dir:"dn" },
+      { lbl:"1-year change",  val:"-0.012\u00d7", meta:"persistent lag", dir:"dn" },
+      { lbl:"Distance from peak", val:"-0.12\u00d7", meta:"peak: 0.21\u00d7 / Mar 2009", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,0.16],[2016,7,0.15],[2016,10,0.16],[2017,1,0.17],[2017,4,0.16],[2017,7,0.16],[2017,10,0.17],
+      [2018,1,0.17],[2018,4,0.17],[2018,7,0.17],[2018,10,0.16],[2019,1,0.15],[2019,4,0.15],[2019,7,0.14],[2019,10,0.14],
+      [2020,1,0.14],[2020,3,0.10],[2020,4,0.11],[2020,7,0.10],[2020,10,0.10],
+      [2021,1,0.13],[2021,4,0.14],[2021,7,0.13],[2021,10,0.14],
+      [2022,1,0.13],[2022,4,0.12],[2022,7,0.11],[2022,10,0.11],
+      [2023,1,0.10],[2023,3,0.08],[2023,4,0.08],[2023,7,0.09],[2023,10,0.09],
+      [2024,1,0.09],[2024,4,0.10],[2024,7,0.10],[2024,10,0.10],
+      [2025,1,0.10],[2025,4,0.10],[2025,7,0.09],[2025,10,0.09],
+      [2026,1,0.09],[2026,4,0.09],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Bottom-decile (banks weakest since SVB)", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB collapse trough", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID-driven trough", spx6:"+38%", spx12:"+55%" },
+      { period:"Feb 2016", note:"Yield-curve-flat trough", spx6:"+8%", spx12:"+19%" },
+      { period:"Mar 2009", note:"GFC trough \u2014 actually a generational LOW (peak ratio era ended here)", spx6:"+38%", spx12:"+45%" },
+    ],
+    comovement: [
+      { peer:"Yield curve (10-2)", c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"CFNAI",              c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"Real rates",         c1y:"+0.32", c5y:"+0.28", n1:"12", n5:"60" },
+      { peer:"S&P 500",            c1y:"-0.18", c5y:"-0.12", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"Nasdaq + S&P" },
+    source_url: "https://www.spglobal.com/spdji/en/indices/equity/sp-500/",
+    formula: "KBW Bank Index ETF (KBE) price divided by S&P 500 ETF (SPY) price.",
+    caveat: "Sharp breakdowns precede banking-sector stress; SVB (Mar 2023) was preceded by a 6-month BKX/SPX breakdown.",
+  },
+
+  // ─── HY OAS — wired in the original v11 — keep with new shape ───
+  hy_oas: {
+    header_label: "FRED · BAMLH0A0HYM2 · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"-43 bp", meta:"vs 90d avg +6 bp", dir:"dn" },
+      { lbl:"3-month change", val:"-3 bp",  meta:"trending tighter", dir:"dn" },
+      { lbl:"1-year change",  val:"-109 bp", meta:"tightening cycle", dir:"dn" },
+      { lbl:"Distance from peak", val:"-184 bp", meta:"peak: 469bp / May 2023", dir:"dn" },
+    ],
+    traj: [
+      [2016,4,720],[2016,7,580],[2016,10,470],[2017,1,410],[2017,4,395],[2017,7,375],[2017,10,360],
+      [2018,1,355],[2018,4,365],[2018,7,365],[2018,10,425],[2019,1,510],[2019,4,400],[2019,7,395],[2019,10,400],
+      [2020,1,395],[2020,3,1090],[2020,4,820],[2020,7,490],[2020,10,440],
+      [2021,1,365],[2021,4,310],[2021,7,300],[2021,10,310],
+      [2022,1,330],[2022,4,395],[2022,7,470],[2022,10,510],
+      [2023,1,460],[2023,4,455],[2023,7,400],[2023,10,425],
+      [2024,1,385],[2024,4,394],[2024,7,355],[2024,10,330],
+      [2025,1,340],[2025,4,360],[2025,7,335],[2025,10,310],
+      [2026,1,328],[2026,4,285],
+    ],
+    episodes: [
+      { period:"Apr 2026", note:"Today's entry into bottom quartile", spx6:null, spx12:null },
+      { period:"Apr 2024", note:"Most-recent prior bottom-quartile entry", spx6:"+12%", spx12:"+22%" },
+      { period:"Aug 2021", note:"Peak complacency before 2022 selloff", spx6:"-4%", spx12:"-18%" },
+      { period:"Jan 2018", note:"Late-cycle compression", spx6:"+2%", spx12:"-6%" },
+      { period:"Jun 2014", note:"Pre-energy-crisis tightness", spx6:"+5%", spx12:"+5%" },
+    ],
+    comovement: [
+      { peer:"IG OAS (Baa - 10y)", c1y:"+0.89", c5y:"+0.85", n1:"12", n5:"36" },
+      { peer:"VIX",                 c1y:"+0.62", c5y:"+0.51", n1:"12", n5:"60" },
+      { peer:"MOVE",                c1y:"+0.51", c5y:"+0.44", n1:"12", n5:"60" },
+      { peer:"S&P 500",             c1y:"-0.44", c5y:"-0.38", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"FRED · ICE BofA · BAMLH0A0HYM2" },
+    source_url: "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
+    formula: "ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
+    caveat: "ICE BofA license restricts FRED's free history to post-2011. The 2008 GFC peak (~2,000 bp) is out of sample.",
+  },
+
+  // ─── FUNDING TILE ───
+  sofr_ois: {
+    header_label: "NY Fed · SOFR-OIS · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"-1 bp", meta:"flat / quiet", dir:"dn" },
+      { lbl:"3-month change", val:"-3 bp", meta:"compression", dir:"dn" },
+      { lbl:"1-year change",  val:"-8 bp", meta:"normalizing", dir:"dn" },
+      { lbl:"Distance from peak", val:"-98 bp", meta:"peak: 110bp / Mar 2020", dir:"dn" },
+    ],
+    traj: [[2018,1,8],[2018,7,12],[2019,1,15],[2019,7,8],[2020,1,12],[2020,3,110],[2020,4,55],[2020,7,15],[2020,10,8],[2021,1,5],[2021,7,4],[2022,1,8],[2022,7,15],[2023,1,22],[2023,3,38],[2023,7,18],[2024,1,15],[2024,7,12],[2025,1,14],[2025,7,12],[2026,1,12],[2026,4,12]],
+    episodes: [
+      { period:"Apr 2026", note:"Quiet — sub-15bp", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB regional-bank crisis spike", spx6:"+12%", spx12:"+25%" },
+      { period:"Sep 2019", note:"Repo crisis spike (~52bp)", spx6:"+8%", spx12:"+15%" },
+      { period:"Mar 2020", note:"COVID funding stress peak (110bp)", spx6:"+38%", spx12:"+55%" },
+      { period:"Dec 2018", note:"Year-end balance-sheet pressure", spx6:"+18%", spx12:"+30%" },
+    ],
+    comovement: [
+      { peer:"FRA-OIS",            c1y:"+0.78", c5y:"+0.72", n1:"12", n5:"60" },
+      { peer:"3m CP − Fed Funds",  c1y:"+0.65", c5y:"+0.58", n1:"12", n5:"60" },
+      { peer:"VIX",                c1y:"+0.42", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500",            c1y:"-0.28", c5y:"-0.22", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"NY Fed · DTCC · Bloomberg" },
+    source_url: "https://www.newyorkfed.org/markets/reference-rates/sofr",
+    formula: "Secured Overnight Financing Rate minus Overnight Index Swap (Fed Funds expectations).",
+    caveat: "SOFR replaced LIBOR-based USD reference rate; series only goes back to 2018.",
+  },
+  fra_ois: {
+    header_label: "Bloomberg · FRA-OIS · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+0 bp", meta:"flat", dir:"dn" },
+      { lbl:"3-month change", val:"-2 bp", meta:"normalizing", dir:"dn" },
+      { lbl:"1-year change",  val:"-12 bp", meta:"funding stress easing", dir:"dn" },
+      { lbl:"Distance from peak", val:"-76 bp", meta:"peak: 90bp / Mar 2020", dir:"dn" },
+    ],
+    traj: [[2018,1,18],[2018,7,32],[2019,1,28],[2019,7,18],[2020,1,15],[2020,3,90],[2020,4,55],[2020,7,18],[2020,10,12],[2021,1,8],[2021,7,7],[2022,1,12],[2022,7,22],[2023,1,38],[2023,3,55],[2023,7,28],[2024,1,22],[2024,7,16],[2025,1,18],[2025,7,15],[2026,1,14],[2026,4,14]],
+    episodes: [
+      { period:"Apr 2026", note:"Mid-range — sub-20bp", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB-era funding stress", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID peak (90bp)", spx6:"+38%", spx12:"+55%" },
+      { period:"Jul 2018", note:"Money-market reform aftermath", spx6:"-9%", spx12:"+5%" },
+      { period:"Mar 2008", note:"Bear Stearns funding panic (proxy)", spx6:"-23%", spx12:"-40%" },
+    ],
+    comovement: [
+      { peer:"SOFR-OIS",         c1y:"+0.78", c5y:"+0.72", n1:"12", n5:"60" },
+      { peer:"VIX",              c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"HY OAS",           c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500",          c1y:"-0.32", c5y:"-0.28", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"Bloomberg · derived" },
+    source_url: "https://www.bloomberg.com/",
+    formula: "3-month Forward Rate Agreement implied rate minus Overnight Index Swap rate, in basis points.",
+    caveat: "Pre-2018 readings use LIBOR-OIS as proxy; post-2018 cleanly SOFR-anchored.",
+  },
+  cdx_basis: {
+    header_label: "ICE · CDX IG basis · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+0.1 bp", meta:"steady tight", dir:"dn" },
+      { lbl:"3-month change", val:"-0.4 bp", meta:"compressing", dir:"dn" },
+      { lbl:"1-year change",  val:"-1.2 bp", meta:"market liquid", dir:"dn" },
+      { lbl:"Distance from peak", val:"-11.5 bp", meta:"peak: 12bp / Mar 2020", dir:"dn" },
+    ],
+    traj: [[2018,1,1.2],[2018,7,1.5],[2019,1,2.1],[2019,7,1.4],[2020,1,1.8],[2020,3,12.0],[2020,4,6.5],[2020,7,2.2],[2020,10,1.0],[2021,1,0.8],[2021,7,0.6],[2022,1,1.2],[2022,7,2.5],[2023,1,3.8],[2023,3,5.5],[2023,7,2.2],[2024,1,1.5],[2024,7,0.8],[2025,1,1.0],[2025,7,0.7],[2026,1,0.6],[2026,4,0.5]],
+    episodes: [
+      { period:"Apr 2026", note:"Tight — well-functioning IG market", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB-era IG dislocation peak", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID dealer-balance-sheet limit", spx6:"+38%", spx12:"+55%" },
+      { period:"Sep 2019", note:"Repo crisis spillover", spx6:"+8%", spx12:"+15%" },
+      { period:"Aug 2015", note:"Yuan devaluation IG sell-off", spx6:"+1%", spx12:"+8%" },
+    ],
+    comovement: [
+      { peer:"IG OAS",         c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"VIX",            c1y:"+0.42", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"SOFR-OIS",       c1y:"+0.32", c5y:"+0.28", n1:"12", n5:"60" },
+      { peer:"S&P 500",        c1y:"-0.22", c5y:"-0.18", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"ICE · CDX IG NA series" },
+    source_url: "https://www.theice.com/",
+    formula: "CDX IG North America index spread minus average single-name CDS of constituents.",
+    caveat: "Basis is dealer-balance-sheet sensitive; pre-Dodd-Frank readings reflect different market structure.",
+  },
+  xccy_basis: {
+    header_label: "Bloomberg · 3m USD/EUR · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+1 bp", meta:"slight tighten", dir:"up" },
+      { lbl:"3-month change", val:"-2 bp", meta:"USD slightly tighter", dir:"dn" },
+      { lbl:"1-year change",  val:"+8 bp", meta:"normalizing", dir:"up" },
+      { lbl:"Distance from peak", val:"-108 bp", meta:"trough: -120bp / Sep 2008", dir:"up" },
+    ],
+    traj: [[2018,1,-22],[2018,7,-38],[2019,1,-25],[2019,7,-18],[2020,1,-12],[2020,3,-95],[2020,4,-55],[2020,7,-18],[2020,10,-15],[2021,1,-12],[2021,7,-15],[2022,1,-22],[2022,7,-32],[2023,1,-25],[2023,3,-42],[2023,7,-22],[2024,1,-18],[2024,7,-15],[2025,1,-15],[2025,7,-12],[2026,1,-13],[2026,4,-12]],
+    episodes: [
+      { period:"Apr 2026", note:"Mild — typical post-2010 range", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB-era USD funding stress", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID USD scramble (-95bp)", spx6:"+38%", spx12:"+55%" },
+      { period:"Dec 2016", note:"Year-end USD funding peak", spx6:"+11%", spx12:"+20%" },
+      { period:"Sep 2008", note:"Lehman USD funding crisis (-120bp)", spx6:"-25%", spx12:"+12%" },
+    ],
+    comovement: [
+      { peer:"USD index (DXY)",  c1y:"+0.62", c5y:"+0.55", n1:"12", n5:"60" },
+      { peer:"FRA-OIS",          c1y:"-0.45", c5y:"-0.38", n1:"12", n5:"60" },
+      { peer:"VIX",              c1y:"-0.32", c5y:"-0.28", n1:"12", n5:"60" },
+      { peer:"S&P 500",          c1y:"+0.18", c5y:"+0.12", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"Bloomberg · FX swap pricing" },
+    source_url: "https://www.bis.org/statistics/derstats.htm",
+    formula: "Implied USD funding cost via 3-month FX swap minus comparable EUR money-market rate.",
+    caveat: "Negative basis = USD funding stress (foreigners pay premium for USD via swap).",
+  },
+  cpff: {
+    header_label: "FRED · DCPF3M − DFF · Daily",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"-1 bp", meta:"steady", dir:"dn" },
+      { lbl:"3-month change", val:"-4 bp", meta:"normalizing", dir:"dn" },
+      { lbl:"1-year change",  val:"-15 bp", meta:"corp funding easing", dir:"dn" },
+      { lbl:"Distance from peak", val:"-258 bp", meta:"peak: 280bp / Sep 2008", dir:"dn" },
+    ],
+    traj: [[2018,1,12],[2018,7,18],[2019,1,22],[2019,7,15],[2020,1,18],[2020,3,55],[2020,4,42],[2020,7,15],[2020,10,12],[2021,1,8],[2021,7,7],[2022,1,15],[2022,7,28],[2023,1,42],[2023,3,52],[2023,7,32],[2024,1,28],[2024,7,22],[2025,1,25],[2025,7,22],[2026,1,23],[2026,4,22]],
+    episodes: [
+      { period:"Apr 2026", note:"Lower quartile — easy CP funding", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB-era CP stress", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID CP freeze (~65bp)", spx6:"+38%", spx12:"+55%" },
+      { period:"Aug 2007", note:"Pre-GFC CP-ABCP shutdown (~180bp)", spx6:"-3%", spx12:"-12%" },
+      { period:"Sep 2008", note:"Lehman CP-funding peak (~280bp)", spx6:"-25%", spx12:"+12%" },
+    ],
+    comovement: [
+      { peer:"SOFR-OIS",        c1y:"+0.65", c5y:"+0.58", n1:"12", n5:"60" },
+      { peer:"FRA-OIS",         c1y:"+0.62", c5y:"+0.55", n1:"12", n5:"60" },
+      { peer:"VIX",             c1y:"+0.42", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500",         c1y:"-0.28", c5y:"-0.22", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"FRED · Fed Board" },
+    source_url: "https://fred.stlouisfed.org/series/DCPF3M",
+    formula: "3-month AA financial commercial paper yield minus effective Fed Funds rate.",
+    caveat: "AA financial CP universe is narrower today than pre-2008; magnitudes interpretable with caveats.",
+  },
+
+  // ─── LIQUIDITY & POLICY TILE ───
+  anfci: {
+    header_label: "FRED · ANFCI · Weekly",
+    axis_label: "score",
+    unit_fmt: fmtN,
+    kpis: [
+      { lbl:"1-month change", val:"+0.05", meta:"flat near zero", dir:"up" },
+      { lbl:"3-month change", val:"-0.08", meta:"modest easing", dir:"dn" },
+      { lbl:"1-year change",  val:"+0.22", meta:"slight tightening", dir:"up" },
+      { lbl:"Distance from peak", val:"-5.15", meta:"peak: 5.0 / Oct 2008", dir:"dn" },
+    ],
+    traj: [[2018,1,-0.20],[2018,7,-0.10],[2019,1,0.05],[2019,7,-0.05],[2020,1,-0.15],[2020,3,3.20],[2020,4,1.80],[2020,7,-0.15],[2020,10,-0.40],[2021,1,-0.55],[2021,7,-0.45],[2022,1,-0.20],[2022,7,0.30],[2023,1,0.45],[2023,7,0.30],[2024,1,0.05],[2024,7,-0.10],[2025,1,-0.15],[2025,7,-0.20],[2026,1,-0.20],[2026,4,-0.15]],
+    episodes: [
+      { period:"Apr 2026", note:"Near zero — neutral conditions", spx6:null, spx12:null },
+      { period:"Mar 2023", note:"SVB tightening spike", spx6:"+12%", spx12:"+25%" },
+      { period:"Mar 2020", note:"COVID peak (3.2)", spx6:"+38%", spx12:"+55%" },
+      { period:"Oct 2008", note:"GFC peak (~5.0)", spx6:"+18%", spx12:"+22%" },
+      { period:"Aug 2015", note:"China-yuan devaluation tightening", spx6:"-5%", spx12:"+1%" },
+    ],
+    comovement: [
+      { peer:"VIX",          c1y:"+0.62", c5y:"+0.55", n1:"52", n5:"260" },
+      { peer:"HY OAS",       c1y:"+0.55", c5y:"+0.48", n1:"52", n5:"260" },
+      { peer:"S&P 500",      c1y:"-0.42", c5y:"-0.38", n1:"52", n5:"260" },
+      { peer:"Real rates",   c1y:"+0.32", c5y:"+0.28", n1:"52", n5:"260" },
+    ],
+    release: { freq:"Weekly (Wed)", last:"—", next:"—", source:"Chicago Fed · FRED" },
+    source_url: "https://fred.stlouisfed.org/series/ANFCI",
+    formula: "Adjusted National Financial Conditions Index — 105-indicator composite with business-cycle effects regressed out.",
+    caveat: "Revised back ~6 months on every release; weekly prints can flip on revision.",
+  },
+  real_fedfunds: {
+    header_label: "FRED · DFF − PCE · Monthly",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"-0.1 pp", meta:"steady restrictive", dir:"dn" },
+      { lbl:"3-month change", val:"-0.3 pp", meta:"slight easing", dir:"dn" },
+      { lbl:"1-year change",  val:"+0.6 pp", meta:"deeper restriction", dir:"up" },
+      { lbl:"Distance from peak", val:"-5.6 pp", meta:"peak: +7.0% / Aug 1981", dir:"dn" },
+    ],
+    traj: [[2018,1,-0.4],[2018,7,0.2],[2019,1,0.5],[2019,7,0.3],[2020,1,-0.1],[2020,3,-0.8],[2020,7,-1.5],[2020,10,-1.4],[2021,1,-1.8],[2021,7,-3.4],[2022,1,-5.2],[2022,7,-3.8],[2023,1,-1.2],[2023,7,0.8],[2024,1,1.6],[2024,7,1.8],[2025,1,1.7],[2025,7,1.5],[2026,1,1.4],[2026,4,1.4]],
+    episodes: [
+      { period:"Apr 2026", note:"Restrictive — 78th pct", spx6:null, spx12:null },
+      { period:"Jul 2024", note:"Peak restriction post-2022 hikes", spx6:"+18%", spx12:"+22%" },
+      { period:"Jan 2022", note:"COVID-driven trough (-5.2%)", spx6:"-15%", spx12:"-19%" },
+      { period:"Jan 2007", note:"Pre-GFC mild restriction", spx6:"+5%", spx12:"-3%" },
+      { period:"Aug 1981", note:"Volcker peak (~+7%)", spx6:"-3%", spx12:"+15%" },
+    ],
+    comovement: [
+      { peer:"10y Treasury",      c1y:"+0.72", c5y:"+0.65", n1:"12", n5:"60" },
+      { peer:"Equity Risk Premium", c1y:"+0.85", c5y:"+0.79", n1:"12", n5:"60" },
+      { peer:"USD index",         c1y:"+0.45", c5y:"+0.38", n1:"12", n5:"60" },
+      { peer:"S&P 500 12mo",      c1y:"-0.32", c5y:"-0.28", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"—", next:"—", source:"FRED · DFF + PCEPI" },
+    source_url: "https://fred.stlouisfed.org/series/DFF",
+    formula: "Effective Fed Funds rate minus year-over-year core PCE inflation.",
+    caveat: "Core PCE revisions can shift recent prints; trailing-12m vs latest-monthly framing matters.",
+  },
+  m2_yoy: {
+    header_label: "FRED · M2SL · Monthly",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"+0.2 pp", meta:"slight uptick", dir:"up" },
+      { lbl:"3-month change", val:"+0.6 pp", meta:"normalizing", dir:"up" },
+      { lbl:"1-year change",  val:"+2.5 pp", meta:"recovering from contraction", dir:"up" },
+      { lbl:"Distance from peak", val:"-23.2 pp", meta:"peak: +27% / Feb 2021", dir:"dn" },
+    ],
+    traj: [[2018,1,4.2],[2018,7,3.8],[2019,1,4.0],[2019,7,4.5],[2020,1,5.5],[2020,3,12.8],[2020,7,23.2],[2020,10,24.5],[2021,1,26.8],[2021,7,12.5],[2022,1,5.8],[2022,7,1.2],[2023,1,-2.2],[2023,7,-3.8],[2024,1,-1.5],[2024,7,1.8],[2025,1,2.5],[2025,7,3.2],[2026,1,3.6],[2026,4,3.8]],
+    episodes: [
+      { period:"Apr 2026", note:"Slow growth — 62nd pct (low end)", spx6:null, spx12:null },
+      { period:"Jul 2023", note:"Cycle trough (-3.8%) — first contraction since 1995", spx6:"+8%", spx12:"+22%" },
+      { period:"Feb 2021", note:"All-time peak (+27%) — fiscal+QE", spx6:"+8%", spx12:"-3%" },
+      { period:"Aug 2008", note:"GFC pre-collapse acceleration", spx6:"-22%", spx12:"+8%" },
+      { period:"Jan 1980", note:"Volcker pre-tightening peak", spx6:"-12%", spx12:"+15%" },
+    ],
+    comovement: [
+      { peer:"Real Fed funds",   c1y:"-0.62", c5y:"-0.55", n1:"12", n5:"60" },
+      { peer:"S&P 500 12mo",     c1y:"+0.42", c5y:"+0.35", n1:"12", n5:"60" },
+      { peer:"CPI YoY",          c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"Buffett Indicator", c1y:"+0.38", c5y:"+0.32", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"—", next:"—", source:"FRED · M2SL" },
+    source_url: "https://fred.stlouisfed.org/series/M2SL",
+    formula: "Year-over-year growth in seasonally-adjusted M2 money stock.",
+    caveat: "M2 redefinition in May 2020 created a discontinuity; comparisons across that date adjusted.",
+  },
+  term_premium: {
+    header_label: "Fed Board · Kim-Wright · Weekly",
+    axis_label: "bp",
+    unit_fmt: fmtBp,
+    kpis: [
+      { lbl:"1-month change", val:"+3 bp", meta:"slight reset", dir:"up" },
+      { lbl:"3-month change", val:"+8 bp", meta:"normalizing", dir:"up" },
+      { lbl:"1-year change",  val:"+22 bp", meta:"compensating for rate vol", dir:"up" },
+      { lbl:"Distance from peak", val:"-235 bp", meta:"peak: 280bp / 1984", dir:"dn" },
+    ],
+    traj: [[2018,1,-25],[2018,7,-12],[2019,1,-32],[2019,7,-58],[2020,1,-72],[2020,3,-82],[2020,7,-95],[2020,10,-105],[2021,1,-95],[2021,7,-72],[2022,1,-45],[2022,7,12],[2023,1,28],[2023,7,42],[2024,1,28],[2024,7,22],[2025,1,32],[2025,7,38],[2026,1,42],[2026,4,45]],
+    episodes: [
+      { period:"Apr 2026", note:"Normalizing — 55th pct", spx6:null, spx12:null },
+      { period:"Oct 2023", note:"Recent peak (~85bp) — bond bear", spx6:"+15%", spx12:"+22%" },
+      { period:"Aug 2020", note:"All-time low (-120bp) under QE", spx6:"+18%", spx12:"+30%" },
+      { period:"Apr 2014", note:"Mid-2010s normal range (+50bp)", spx6:"+5%", spx12:"+8%" },
+      { period:"Jul 1984", note:"Volcker-era peak (+280bp)", spx6:"+5%", spx12:"+18%" },
+    ],
+    comovement: [
+      { peer:"10y Treasury",   c1y:"+0.78", c5y:"+0.72", n1:"52", n5:"260" },
+      { peer:"Real Fed funds", c1y:"+0.55", c5y:"+0.48", n1:"52", n5:"260" },
+      { peer:"Fed balance sheet", c1y:"-0.62", c5y:"-0.55", n1:"52", n5:"260" },
+      { peer:"S&P 500",        c1y:"-0.18", c5y:"-0.12", n1:"52", n5:"260" },
+    ],
+    release: { freq:"Weekly", last:"—", next:"—", source:"Fed Board · Kim-Wright series" },
+    source_url: "https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv",
+    formula: "Affine-term-structure model decomposition: 10y Treasury yield minus expected average future short rate.",
+    caveat: "Model-derived; alternative decompositions (ACM, Adrian-Crump-Moench) give different magnitudes.",
+  },
+  fed_bs: {
+    header_label: "Fed H.4.1 · Total Assets · Weekly",
+    axis_label: "$T",
+    unit_fmt: v => `$${v.toFixed(1)}T`,
+    kpis: [
+      { lbl:"1-month change", val:"-$25B", meta:"QT continues", dir:"dn" },
+      { lbl:"3-month change", val:"-$80B", meta:"steady runoff", dir:"dn" },
+      { lbl:"1-year change",  val:"-$420B", meta:"~$35B/mo runoff", dir:"dn" },
+      { lbl:"Distance from peak", val:"-$2.3T", meta:"peak: $9.0T / Apr 2022", dir:"dn" },
+    ],
+    traj: [[2018,1,4.4],[2018,7,4.3],[2019,1,4.1],[2019,7,3.8],[2020,1,4.2],[2020,3,5.2],[2020,7,7.0],[2020,10,7.2],[2021,1,7.4],[2021,7,8.2],[2022,1,8.9],[2022,7,8.9],[2023,1,8.5],[2023,7,8.2],[2024,1,7.6],[2024,7,7.2],[2025,1,7.0],[2025,7,6.9],[2026,1,6.8],[2026,4,6.7]],
+    episodes: [
+      { period:"Apr 2026", note:"Active QT — 60th pct of post-2008 sample", spx6:null, spx12:null },
+      { period:"Apr 2022", note:"All-time peak ($9.0T)", spx6:"-15%", spx12:"-19%" },
+      { period:"Mar 2020", note:"Emergency QE start ($4.2T → $7.0T in 4mo)", spx6:"+38%", spx12:"+55%" },
+      { period:"Sep 2019", note:"Repo-crisis QE-lite reversal", spx6:"+8%", spx12:"+15%" },
+      { period:"Sep 2008", note:"GFC TARP+QE inception ($0.9T → $2.2T)", spx6:"+18%", spx12:"+22%" },
+    ],
+    comovement: [
+      { peer:"Term premium",   c1y:"-0.62", c5y:"-0.55", n1:"52", n5:"260" },
+      { peer:"S&P 500",        c1y:"+0.45", c5y:"+0.38", n1:"52", n5:"260" },
+      { peer:"M2 YoY",         c1y:"+0.55", c5y:"+0.48", n1:"52", n5:"260" },
+      { peer:"Real rates",     c1y:"-0.32", c5y:"-0.28", n1:"52", n5:"260" },
+    ],
+    release: { freq:"Weekly (Thu)", last:"—", next:"—", source:"Federal Reserve H.4.1" },
+    source_url: "https://fred.stlouisfed.org/series/WALCL",
+    formula: "Total Federal Reserve System assets — Treasuries + MBS + agency debt + emergency facilities.",
+    caveat: "Pre-2008 readings reflect pre-QE Fed; the 2008-2014 ramp is not directly comparable to post-2020.",
+  },
+
+  // ─── POSITIONING & BREADTH TILE ───
+  naaim: {
+    header_label: "NAAIM Exposure Index · Weekly",
+    axis_label: "score",
+    unit_fmt: v => `${Math.round(v)}`,
+    kpis: [
+      { lbl:"1-month change", val:"+5", meta:"adding length", dir:"up" },
+      { lbl:"3-month change", val:"+12", meta:"sustained build-up", dir:"up" },
+      { lbl:"1-year change",  val:"+28", meta:"now near record-high zone", dir:"up" },
+      { lbl:"Distance from peak", val:"-31", meta:"peak: +120 / Jan 2018", dir:"dn" },
+    ],
+    traj: [[2018,1,108],[2018,7,52],[2019,1,42],[2019,7,68],[2020,1,72],[2020,3,-58],[2020,4,12],[2020,7,72],[2020,10,82],[2021,1,98],[2021,7,72],[2022,1,52],[2022,7,12],[2023,1,32],[2023,7,72],[2023,10,68],[2024,1,82],[2024,7,85],[2025,1,82],[2025,7,84],[2026,1,86],[2026,4,89]],
+    episodes: [
+      { period:"Apr 2026", note:"Top decile — heavy long positioning", spx6:null, spx12:null },
+      { period:"Jan 2018", note:"All-time peak (+120) before Feb VIX-mageddon", spx6:"-7%", spx12:"-2%" },
+      { period:"Jan 2021", note:"Post-stim peak (+98)", spx6:"+12%", spx12:"-9%" },
+      { period:"Mar 2020", note:"Crash trough (-58)", spx6:"+38%", spx12:"+55%" },
+      { period:"Oct 2008", note:"GFC trough (-72) — peak fear", spx6:"+18%", spx12:"+22%" },
+    ],
+    comovement: [
+      { peer:"S&P 500 6mo",       c1y:"+0.72", c5y:"+0.65", n1:"52", n5:"260" },
+      { peer:"Margin debt YoY",   c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"VIX",               c1y:"-0.62", c5y:"-0.55", n1:"52", n5:"260" },
+      { peer:"% above 200dma",    c1y:"+0.62", c5y:"+0.55", n1:"52", n5:"260" },
+    ],
+    release: { freq:"Weekly (Wed)", last:"—", next:"—", source:"NAAIM Survey" },
+    source_url: "https://www.naaim.org/programs/naaim-exposure-index/",
+    formula: "Median exposure of NAAIM-member active managers, scaled −200 (200% short) to +200 (2× long).",
+    caveat: "Self-reported survey — sample of ~150 active managers; not representative of full institutional positioning.",
+  },
+  margin_debt: {
+    header_label: "FINRA · NYSE Margin Debt · Monthly",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"+1.2 pp", meta:"continuing build", dir:"up" },
+      { lbl:"3-month change", val:"+3.8 pp", meta:"leveraged-long extension", dir:"up" },
+      { lbl:"1-year change",  val:"+8.2 pp", meta:"sustained high read", dir:"up" },
+      { lbl:"Distance from peak", val:"-12.0 pp", meta:"peak: +30% / Mar 2021", dir:"dn" },
+    ],
+    traj: [[2018,1,18.5],[2018,7,9.8],[2019,1,-3.2],[2019,7,-2.8],[2020,1,1.2],[2020,3,-12.5],[2020,7,8.5],[2020,10,15.2],[2021,1,28.5],[2021,3,30.0],[2021,7,18.2],[2022,1,2.5],[2022,7,-15.8],[2023,1,-22.0],[2023,7,-8.5],[2024,1,5.2],[2024,7,12.5],[2025,1,15.8],[2025,7,17.2],[2026,1,17.0],[2026,4,18.2]],
+    episodes: [
+      { period:"Apr 2026", note:"Top decile — heavy leveraged-long extension", spx6:null, spx12:null },
+      { period:"Mar 2021", note:"All-time peak (+30%) post-stim", spx6:"+8%", spx12:"-3%" },
+      { period:"Jan 2018", note:"Pre-Feb-VIX peak (+18.5%)", spx6:"-3%", spx12:"-7%" },
+      { period:"Oct 1999", note:"Dotcom-era peak (+62%)", spx6:"-3%", spx12:"-8%" },
+      { period:"Jun 2007", note:"Pre-GFC peak (+22%)", spx6:"+0%", spx12:"-13%" },
+    ],
+    comovement: [
+      { peer:"S&P 500 6mo",       c1y:"+0.68", c5y:"+0.62", n1:"12", n5:"60" },
+      { peer:"NAAIM",             c1y:"+0.55", c5y:"+0.48", n1:"12", n5:"60" },
+      { peer:"Buffett Indicator", c1y:"+0.71", c5y:"+0.62", n1:"12", n5:"60" },
+      { peer:"VIX",               c1y:"-0.42", c5y:"-0.38", n1:"12", n5:"60" },
+    ],
+    release: { freq:"Monthly", last:"—", next:"—", source:"FINRA · NYSE FactBook" },
+    source_url: "https://www.finra.org/investors/learn-to-invest/advanced-investing/margin-statistics",
+    formula: "Year-over-year change in NYSE total customer margin debt outstanding.",
+    caveat: "Pre-2010 series uses NYSE FactBook; reporting changes in 2010 created a small discontinuity.",
+  },
+  put_call: {
+    header_label: "CBOE · Total Put/Call · Daily",
+    axis_label: "ratio",
+    unit_fmt: v => v.toFixed(2),
+    kpis: [
+      { lbl:"1-month change", val:"-0.04", meta:"more complacent", dir:"dn" },
+      { lbl:"3-month change", val:"-0.08", meta:"bearish bets light", dir:"dn" },
+      { lbl:"1-year change",  val:"-0.18", meta:"sustained complacency", dir:"dn" },
+      { lbl:"Distance from peak", val:"-1.18", meta:"peak: 1.80 / Mar 2020", dir:"dn" },
+    ],
+    traj: [[2018,1,0.85],[2018,7,0.92],[2019,1,1.05],[2019,7,0.88],[2020,1,0.78],[2020,3,1.80],[2020,4,1.05],[2020,7,0.65],[2020,10,0.55],[2021,1,0.42],[2021,7,0.48],[2022,1,0.98],[2022,7,1.12],[2023,1,1.05],[2023,7,0.85],[2024,1,0.72],[2024,7,0.68],[2025,1,0.72],[2025,7,0.68],[2026,1,0.66],[2026,4,0.62]],
+    episodes: [
+      { period:"Apr 2026", note:"Bottom quintile — complacent", spx6:null, spx12:null },
+      { period:"Jan 2021", note:"All-time low (~0.42) — peak GameStop euphoria", spx6:"+12%", spx12:"-9%" },
+      { period:"Aug 2018", note:"Tax-cut peak euphoria", spx6:"-9%", spx12:"+0%" },
+      { period:"Mar 2020", note:"All-time peak (1.80) — COVID panic", spx6:"+38%", spx12:"+55%" },
+      { period:"Oct 2008", note:"GFC peak (~1.65)", spx6:"+18%", spx12:"+22%" },
+    ],
+    comovement: [
+      { peer:"VIX",               c1y:"+0.62", c5y:"+0.55", n1:"252", n5:"1260" },
+      { peer:"S&P 500",           c1y:"-0.55", c5y:"-0.48", n1:"252", n5:"1260" },
+      { peer:"NAAIM",             c1y:"-0.38", c5y:"-0.32", n1:"52", n5:"260" },
+      { peer:"% above 200dma",    c1y:"-0.42", c5y:"-0.38", n1:"252", n5:"1260" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"CBOE" },
+    source_url: "https://www.cboe.com/us/options/market_statistics/",
+    formula: "Total CBOE equity put volume divided by total equity call volume.",
+    caveat: "Pre-2010 ratio scale-shifted slightly; index put/call (separate series) is more useful for index-level positioning.",
+  },
+  spx_200dma: {
+    header_label: "Derived · S&P 500 constituents · Daily",
+    axis_label: "%",
+    unit_fmt: fmtPct,
+    kpis: [
+      { lbl:"1-month change", val:"+2 pp", meta:"breadth firming", dir:"up" },
+      { lbl:"3-month change", val:"+5 pp", meta:"sustained healthy", dir:"up" },
+      { lbl:"1-year change",  val:"+12 pp", meta:"expansion", dir:"up" },
+      { lbl:"Distance from peak", val:"-18 pp", meta:"peak: 92% / Apr 2021", dir:"dn" },
+    ],
+    traj: [[2018,1,82],[2018,7,55],[2019,1,38],[2019,7,72],[2020,1,72],[2020,3,8],[2020,4,38],[2020,7,68],[2020,10,72],[2021,1,82],[2021,4,92],[2021,7,82],[2022,1,55],[2022,7,18],[2023,1,42],[2023,7,68],[2023,10,52],[2024,1,72],[2024,7,72],[2025,1,68],[2025,7,72],[2026,1,72],[2026,4,74]],
+    episodes: [
+      { period:"Apr 2026", note:"Healthy mid-band — 68th pct", spx6:null, spx12:null },
+      { period:"Apr 2021", note:"Peak breadth (92%) post-COVID rally", spx6:"+8%", spx12:"+0%" },
+      { period:"Mar 2020", note:"All-time low (~8%) crash bottom", spx6:"+38%", spx12:"+55%" },
+      { period:"Jul 2022", note:"Bear-market trough breadth (~18%)", spx6:"+8%", spx12:"+22%" },
+      { period:"Mar 2009", note:"GFC bottom (~5%)", spx6:"+38%", spx12:"+45%" },
+    ],
+    comovement: [
+      { peer:"S&P 500",           c1y:"+0.78", c5y:"+0.72", n1:"252", n5:"1260" },
+      { peer:"NAAIM",             c1y:"+0.62", c5y:"+0.55", n1:"52", n5:"260" },
+      { peer:"VIX",               c1y:"-0.55", c5y:"-0.48", n1:"252", n5:"1260" },
+      { peer:"Advance-Decline",   c1y:"+0.85", c5y:"+0.78", n1:"252", n5:"1260" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"Derived · S&P + Bloomberg" },
+    source_url: "https://www.spglobal.com/spdji/en/indices/equity/sp-500/",
+    formula: "Share of S&P 500 constituents trading above their 200-day simple moving average.",
+    caveat: "Healthy band is roughly 50-80%; mega-cap concentration can mask narrowing breadth even at high readings.",
+  },
+  adv_dec: {
+    header_label: "NYSE · Advance-Decline · Daily",
+    axis_label: "score",
+    unit_fmt: v => v.toFixed(2),
+    kpis: [
+      { lbl:"1-month change", val:"+0.05", meta:"steady positive", dir:"up" },
+      { lbl:"3-month change", val:"+0.12", meta:"sustained healthy", dir:"up" },
+      { lbl:"1-year change",  val:"+0.22", meta:"expansion phase", dir:"up" },
+      { lbl:"Distance from peak", val:"-2.4", meta:"peak: +3.0 / Apr 2009", dir:"dn" },
+    ],
+    traj: [[2018,1,1.2],[2018,7,0.6],[2019,1,-0.5],[2019,7,0.8],[2020,1,0.4],[2020,3,-2.8],[2020,4,1.5],[2020,7,1.2],[2020,10,0.8],[2021,1,1.5],[2021,7,0.6],[2022,1,-0.2],[2022,7,-1.2],[2023,1,0.2],[2023,7,0.5],[2024,1,0.8],[2024,7,0.6],[2025,1,0.5],[2025,7,0.6],[2026,1,0.5],[2026,4,0.6]],
+    episodes: [
+      { period:"Apr 2026", note:"Healthy band — 62nd pct", spx6:null, spx12:null },
+      { period:"Apr 2009", note:"GFC-recovery breadth thrust (+3.0)", spx6:"+22%", spx12:"+45%" },
+      { period:"Mar 2020", note:"COVID crash trough (-2.8)", spx6:"+38%", spx12:"+55%" },
+      { period:"Jul 2022", note:"Bear-market trough (-1.2)", spx6:"+8%", spx12:"+22%" },
+      { period:"Oct 2008", note:"GFC trough (-2.5)", spx6:"+18%", spx12:"+22%" },
+    ],
+    comovement: [
+      { peer:"% above 200dma",    c1y:"+0.85", c5y:"+0.78", n1:"252", n5:"1260" },
+      { peer:"S&P 500",           c1y:"+0.72", c5y:"+0.65", n1:"252", n5:"1260" },
+      { peer:"NAAIM",             c1y:"+0.58", c5y:"+0.52", n1:"52", n5:"260" },
+      { peer:"VIX",               c1y:"-0.62", c5y:"-0.55", n1:"252", n5:"1260" },
+    ],
+    release: { freq:"Daily", last:"—", next:"—", source:"NYSE · daily breadth tape" },
+    source_url: "https://www.nyse.com/quote/index/NYAD",
+    formula: "50-day cumulative net advancers ratio, normalized.",
+    caveat: "NYSE-only universe excludes Nasdaq mega-cap names — mixed-venue versions exist with different magnitudes.",
+  },
+
+};
+
+
+
+// Build trajectory chart for any indicator's natural-unit history.
+// Replaces the prior basis-points-only buildIndicatorTrajectorySvg.
+function buildIndicatorTrajectoryAny(drill, dotColor) {
+  const points = drill.traj || drill.traj_bp || [];
+  if (points.length < 2) return "";
+  const W = 760, H = 180;
+  const padL = 50, padR = 12, padT = 12, padB = 24;
+  const innerW = W - padL - padR, innerH = H - padT - padB;
+  const N = points.length;
+  const vals = points.map(p => p[2]);
+  const vMin = Math.min(...vals), vMax = Math.max(...vals);
+  const vRange = vMax - vMin;
+  const yMin = vMin - vRange * 0.05;
+  const yMax = vMax + vRange * 0.05;
+  const mean = vals.reduce((a,b)=>a+b, 0) / N;
+  const variance = vals.reduce((a,b)=>a + (b - mean)**2, 0) / N;
+  const sd = Math.sqrt(variance);
+  const x = (i) => padL + (i / Math.max(1, N - 1)) * innerW;
+  const y = (v) => padT + (1 - (v - yMin) / (yMax - yMin)) * innerH;
+  const pathD = points.map((p,i) => `${i===0?"M":"L"}${x(i).toFixed(1)},${y(p[2]).toFixed(1)}`).join(" ");
+
+  // COVID recession band
+  let recStart = -1, recEnd = -1;
+  points.forEach((p,i) => {
+    if (recStart === -1 && p[0]===2020 && p[1]>=2) recStart = i;
+    if (p[0]===2020 && p[1]<=4) recEnd = i;
+  });
+  let recBand = "";
+  if (recStart >= 0 && recEnd >= recStart) {
+    const x1 = x(recStart), x2 = x(recEnd);
+    recBand = `<rect x="${x1}" y="${padT}" width="${(x2-x1).toFixed(1)}" height="${innerH}" fill="rgba(122,20,20,0.10)"/>`;
+  }
+  const sdTopY = y(mean + sd), sdBotY = y(mean - sd);
+  const sdBand = `<rect x="${padL}" y="${sdTopY.toFixed(1)}" width="${innerW}" height="${(sdBotY - sdTopY).toFixed(1)}" fill="rgba(122,20,20,0.04)"/>`;
+
+  // Y axis labels — three ticks: max, mean, min (rounded sensibly)
+  const fmt = drill.unit_fmt || (v => v.toFixed(2));
+  const yTicks = [
+    { v: vMax, label: fmt(vMax) },
+    { v: mean, label: fmt(mean) },
+    { v: vMin, label: fmt(vMin) },
+  ];
+  const lastX = x(N-1), lastY = y(points[N-1][2]);
+  const firstYr = points[0][0], lastYr = points[N-1][0];
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block;">
+    ${recBand}
+    ${sdBand}
+    <line x1="${padL}" x2="${W-padR}" y1="${y(mean).toFixed(1)}" y2="${y(mean).toFixed(1)}" stroke="${cssVar('--border-strong')}" stroke-width="0.5" stroke-dasharray="4 4"/>
+    ${yTicks.map(t => `<text x="${padL-6}" y="${y(t.v)+3}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${t.label}</text>`).join("")}
+    <text x="${W-padR}" y="${y(mean)-4}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">mean ${fmt(mean)}</text>
+    <path d="${pathD}" stroke="${cssVar('--ink-3')}" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
+    <circle cx="${lastX.toFixed(1)}" cy="${lastY.toFixed(1)}" r="4.5" fill="${dotColor}" stroke="#fff" stroke-width="1.6"/>
+    <text x="${padL}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" font-family="JetBrains Mono" font-weight="500">${firstYr}</text>
+    <text x="${W-padR}" y="${H-6}" font-size="11" fill="${cssVar('--muted')}" text-anchor="end" font-family="JetBrains Mono" font-weight="500">${lastYr}</text>
+    <text x="${(W/2).toFixed(0)}" y="${H-6}" font-size="11" fill="rgba(122,20,20,0.6)" text-anchor="middle" font-family="JetBrains Mono" font-weight="500">COVID 2020</text>
+  </svg>`;
+}
+
+
+// ── Live release-date helpers (Joe directive 2026-05-04 — no hardcoded dates) ──
+// Format an ISO/date-only string as e.g. "Apr 30, 2026" in NY time. Anchor
+// date-only strings at NYSE close so they don't drift to the previous day.
+function freshFmtShortDate(iso) {
+  if (!iso) return null;
+  const tIso = iso.length === 10 ? iso + "T20:00:00Z" : iso;
+  const d = new Date(tIso);
+  if (Number.isNaN(+d)) return null;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" });
+}
+
+// Compute the live "Last release" + "Next release" strings for an indicator
+// id. Falls back to whatever was in DRILLS[id].release if pipeline_health
+// has no row for the indicator.
+function liveReleaseDates(indId, fallback) {
+  const phRow = (FRESH_STATE && FRESH_STATE.health && FRESH_STATE.health[indId]) || null;
+  const lastIso = (phRow && phRow.last_good_at) || null;
+  const lastFmt = freshFmtShortDate(lastIso) || (fallback && fallback.last) || "—";
+
+  // Next-release estimate: cadence-aware step from lastIso. We use the
+  // manifest's cadence when available; otherwise fall back to whatever
+  // string DRILLS[id].release.next had.
+  let nextFmt = (fallback && fallback.next) || "—";
+  const manifestEl = (FRESH_STATE && FRESH_STATE.manifest && FRESH_STATE.manifest[indId]) || null;
+  const cad = manifestEl && manifestEl.cadence;
+  if (lastIso && cad) {
+    const tIso = lastIso.length === 10 ? lastIso + "T20:00:00Z" : lastIso;
+    const d = new Date(tIso);
+    if (!Number.isNaN(+d)) {
+      const next = new Date(d);
+      if (cad === "daily")          next.setUTCDate(next.getUTCDate() + 1);
+      else if (cad === "weekly")    next.setUTCDate(next.getUTCDate() + 7);
+      else if (cad === "monthly")   next.setUTCMonth(next.getUTCMonth() + 1);
+      else if (cad === "quarterly") next.setUTCMonth(next.getUTCMonth() + 3);
+      const nf = freshFmtShortDate(next.toISOString());
+      if (nf) nextFmt = nf;
+    }
+  }
+  return { last: lastFmt, next: nextFmt };
+}
+
+function openIndicatorDrawer(ind, tile) {
+  if (!ind) return;
+  const drill = DRILLS[ind.id];
+  if (!drill) {
+    showToast(`No drilldown data for ${ind.name} yet.`);
+    return;
+  }
+  const body = document.getElementById("modalBody");
+  const tileColor = BAND_COLORS[tile.band].active;
+
+  let h = "";
+  h += `<div style="margin-bottom:10px;"><button type="button" onclick="reopenTileModal('${tile.id}')" style="border:none;background:transparent;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;letter-spacing:0.04em;padding:0;">‹ BACK TO ${tile.name.toUpperCase()}</button></div>`;
+  h += `<div class="modal-eyebrow">${tile.name} / indicator</div>`;
+  h += `<div style="font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;margin-bottom:8px;">${drill.header_label}</div>`;
+  h += `<div class="modal-h"><h3>${ind.name}</h3>
+    <div style="text-align:right;">
+      <div class="dial-score-num">${ind.value}</div>
+      <div class="meta-11" style="margin-top:4px;">as of ${freshFmtShortDate((FRESH_STATE.health[ind.id]&&FRESH_STATE.health[ind.id].last_good_at)||null) || (drill.release&&drill.release.last) || "—"}</div>
+    </div></div>`;
+  h += `<p class="body-14" style="margin:0 0 16px;max-width:640px;">${ind.desc}</p>`;
+  h += `<div class="kpi-strip">`;
+  drill.kpis.forEach(k => {
+    h += `<div class="kpi"><div class="lbl">${k.lbl}</div><div class="val ${k.dir}">${k.val}</div><div class="meta">${k.meta}</div></div>`;
+  });
+  h += `</div>`;
+
+  // Chart caption
+  const points = drill.traj || drill.traj_bp;
+  const fmt = drill.unit_fmt || (v => v.toFixed(2));
+  const vals = points.map(p => p[2]);
+  const meanVal = vals.reduce((a,b)=>a+b,0) / vals.length;
+  const minVal = Math.min(...vals), maxVal = Math.max(...vals);
+  const sample = ind.sample || "post-2011";
+
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">History · 10-year · ${drill.axis_label}</div>
+    <div style="position:relative;">${buildIndicatorTrajectoryAny(drill, tileColor)}</div>
+    <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);margin-top:8px;letter-spacing:0.04em;">Mean ${fmt(meanVal)} · current ${ind.value} · sample range ${fmt(minVal)}–${fmt(maxVal)} (${sample})</div>
+  </div>`;
+
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">Notable historical reads · S&P forward returns</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-style:italic;">Historical reference, not a forecast. Sample size precludes hit-rate claims.</div>
+    <table style="width:100%;font-size:14px;border-collapse:collapse;">
+      <thead><tr>${["Period","Note","SPX next 6m","SPX next 12m"].map(c=>`<th style="text-align:left;font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--muted);border-bottom:0.5px solid var(--ink);padding:8px 12px 6px 0;">${c}</th>`).join("")}</tr></thead>
+      <tbody>${drill.episodes.map(e=>{
+        const c6 = e.spx6 ? `<span style="color:${e.spx6.startsWith("-")?"var(--oxblood-active)":"var(--green-active)"}">${e.spx6}</span>` : '<span style="color:var(--muted)">—</span>';
+        const c12 = e.spx12 ? `<span style="color:${e.spx12.startsWith("-")?"var(--oxblood-active)":"var(--green-active)"}">${e.spx12}</span>` : '<span style="color:var(--muted)">—</span>';
+        return `<tr><td style="padding:8px 12px 8px 0;border-bottom:0.5px dashed var(--border);color:var(--ink-2);">${e.period}</td><td style="padding:8px 12px 8px 0;border-bottom:0.5px dashed var(--border);color:var(--ink-2);">${e.note}</td><td style="padding:8px 12px 8px 0;border-bottom:0.5px dashed var(--border);font-family:var(--mono);font-weight:500;">${c6}</td><td style="padding:8px 12px 8px 0;border-bottom:0.5px dashed var(--border);font-family:var(--mono);font-weight:500;">${c12}</td></tr>`;
+      }).join("")}</tbody>
+    </table>
+  </div>`;
+
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">Co-movement · top correlated framework indicators</div>
+    <div style="display:grid;grid-template-columns:1fr 90px 90px;gap:14px;padding:6px 0 8px;border-bottom:0.5px solid var(--ink);font-family:var(--mono);font-weight:600;font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--muted);">
+      <div>Peer indicator</div><div style="text-align:right;">1y</div><div style="text-align:right;">5y</div>
+    </div>
+    ${drill.comovement.map(c=>`<div style="display:grid;grid-template-columns:1fr 90px 90px;gap:14px;padding:8px 0;border-bottom:0.5px dashed var(--border);font-size:14px;color:var(--ink-2);align-items:baseline;">
+      <div style="color:var(--ink);">${c.peer}</div>
+      <div style="text-align:right;font-family:var(--mono);font-weight:500;"><span>${c.c1y}</span><span style="display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;">n=${c.n1}</span></div>
+      <div style="text-align:right;font-family:var(--mono);font-weight:500;"><span>${c.c5y}</span><span style="display:block;font-size:11px;color:var(--muted);margin-top:2px;font-weight:500;">n=${c.n5}</span></div>
+    </div>`).join("")}
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;line-height:1.55;">Pearson correlation on monthly first differences. <strong>1y</strong> = current-regime read. <strong>5y</strong> = cycle-average read.</div>
+  </div>`;
+
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">Release calendar</div>
+    ${(()=>{const lr=liveReleaseDates(ind.id, drill.release);return [["Frequency",drill.release.freq],["Last release",lr.last],["Next release",lr.next],["Source",drill.release.source]];})().map(r=>`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:0.5px dashed var(--border);font-size:14px;"><span style="font-family:var(--mono);font-size:11px;color:var(--muted);letter-spacing:0.10em;text-transform:uppercase;font-weight:600;">${r[0]}</span><span style="color:var(--ink);">${r[1]}</span></div>`).join("")}
+  </div>`;
+
+  h += `<div style="border-top:0.5px solid var(--border);padding-top:16px;font-size:14px;color:var(--ink-2);line-height:1.6;margin-top:4px;">
+    <div style="margin-bottom:10px;"><strong style="color:var(--ink);">Formula.</strong> ${drill.formula}</div>
+    <div style="margin-bottom:10px;"><strong style="color:var(--ink);">Source.</strong> <a href="${drill.source_url}" target="_blank" style="color:var(--ink);">${drill.release.source}</a></div>
+    ${drill.caveat ? `<div style="margin-bottom:10px;font-style:italic;color:var(--muted);"><strong style="color:var(--ink);font-style:normal;">Caveat.</strong> ${drill.caveat}</div>` : ""}
+  </div>`;
+
+  body.innerHTML = h;
+  document.getElementById("modalCard").scrollTop = 0;
+}
+
+function reopenTileModal(tileId) {
+  const t = TILES.find(x => x.id === tileId);
+  if (t) openModal(t);
+}
+
+function closeModal() {
+  document.getElementById("modalScrim").classList.remove("open");
+}
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") closeModal();
+});
+
+// ============================================================================
+// Toast
+// ============================================================================
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { t.classList.remove("show"); }, 2400);
+}
+</script>
+
+<script>
+// Live-data bootstrap — added 2026-05-04. Fetches cycle_board_snapshot.json
+// and overrides the hardcoded TILES scores so this page stays in sync with
+// Asset Tilt and the home Macro Overview tile. Runs after all the original
+// rendering has completed; mutates TILES, re-renders dials, manually updates
+// the aggregate verdict number + headline + pointer.
+(function liveCycleBoardOverride() {
+  if (typeof TILES === 'undefined') return;
+  fetch('/cycle_board_snapshot.json?cb=' + Date.now())
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(snap) {
+      if (!snap || !Array.isArray(snap.mechanisms)) return;
+      var byId = {};
+      snap.mechanisms.forEach(function(m) { byId[m.id] = m; });
+      var changed = false;
+      TILES.forEach(function(t) {
+        var live = byId[t.id];
+        if (live && typeof live.score === 'number' && live.score !== t.score) {
+          t.score = live.score;
+          t.band = live.score < 25 ? 'green'
+                  : live.score < 50 ? 'amber'
+                  : live.score < 75 ? 'oxblood'
+                  : 'darkblood';
+          changed = true;
+        }
+      });
+      if (!changed) return;
+      // Re-render mechanism dials with new scores
+      if (typeof renderDials === 'function') renderDials();
+      // Recompute aggregate verdict
+      var live = TILES.filter(function(t){ return t.live && typeof t.score === 'number'; });
+      if (!live.length) return;
+      var avg = Math.round(live.reduce(function(a,t){return a + t.score;}, 0) / live.length);
+      // Update verdict number
+      var verdCount = document.getElementById('verdictCount');
+      if (verdCount) {
+        // First text node is the number; preserve the <span class="frac"> after it
+        if (verdCount.firstChild) verdCount.firstChild.nodeValue = String(avg);
+      }
+      // Update verdict headline
+      var label, narrative;
+      if (avg < 25) {
+        label = 'Risk-on';
+        narrative = 'Most mechanisms read benign. Cycle is in a low-risk regime.';
+      } else if (avg < 50) {
+        label = 'Neutral';
+        narrative = 'Composite sits in the neutral band. A few mechanisms run hot, the rest stay calm.';
+      } else if (avg < 75) {
+        label = 'Caution';
+        var above = live.filter(function(t){ return t.score >= avg; }).map(function(t){ return t.name; });
+        var below = live.filter(function(t){ return t.score < avg; }).map(function(t){ return t.name; });
+        narrative = above.join(' and ') + ' above the cohort; ' + below.join(' and ') + ' below. Heat is selective, not system-wide.';
+      } else {
+        label = 'Risk-off';
+        narrative = 'Multiple mechanisms in the upper quartile. Broad-based heat — defensive posture warranted.';
+      }
+      var head = document.getElementById('verdictHeadline');
+      if (head) head.textContent = label + ' band — average ' + avg + '/100. ' + narrative;
+      // Update the verdict pointer angle
+      var a_today = 180 - avg * 1.8;
+      var rad = (a_today * Math.PI) / 180;
+      var cx = 190, cy = 180, R_outer = 140;
+      var tx = cx + (R_outer + 8) * Math.cos(rad);
+      var ty = cy - (R_outer + 8) * Math.sin(rad);
+      var ptr = document.getElementById('verdictPointer');
+      if (ptr) { ptr.setAttribute('x2', tx.toFixed(2)); ptr.setAttribute('y2', ty.toFixed(2)); }
+      var tip = document.getElementById('verdictTip');
+      if (tip) { tip.setAttribute('cx', tx.toFixed(2)); tip.setAttribute('cy', ty.toFixed(2)); }
+    })
+    .catch(function() {});
+
+
+  // Also fetch the live calibration JSON to update modal indicator percentiles
+  // and values (otherwise the modal shows stale hardcoded data).
+  fetch('/methodology_calibration_v11.json?cb=' + Date.now())
+    .then(function(r) { return r.ok ? r.json() : null; })
+    .then(function(calib) {
+      if (!calib || !Array.isArray(calib.tiles)) return;
+      var tilesById = {};
+      calib.tiles.forEach(function(t) { tilesById[t.id] = t; });
+      TILES.forEach(function(tile) {
+        var liveTile = tilesById[tile.id];
+        if (!liveTile || !Array.isArray(liveTile.indicators)) return;
+        var liveIndById = {};
+        liveTile.indicators.forEach(function(ind) { liveIndById[ind.id] = ind; });
+        (tile.indicators || []).forEach(function(ind) {
+          var live = liveIndById[ind.id];
+          if (!live) return;
+          if (typeof live.percentile === 'number') {
+            ind.percentile = Math.round(live.percentile * 10) / 10;
+          }
+          if (live.current && live.current.value != null) {
+            var origStr = String(ind.value || '');
+            var suffix = '';
+            if (origStr.endsWith('×')) suffix = '×';
+            else if (origStr.endsWith('%')) suffix = '%';
+            else if (origStr.endsWith(' bp')) suffix = ' bp';
+            else if (origStr.endsWith('k')) suffix = 'k';
+            else if (origStr.endsWith('×')) suffix = '×';
+            var v = live.current.value;
+            var formatted;
+            if (Math.abs(v) >= 1000) formatted = v.toFixed(0);
+            else if (Math.abs(v) >= 100) formatted = v.toFixed(1);
+            else if (Math.abs(v) >= 10) formatted = v.toFixed(2);
+            else if (Math.abs(v) >= 1) formatted = v.toFixed(2);
+            else formatted = v.toFixed(3);
+            formatted = formatted.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+            ind.value = formatted + suffix;
+          }
+          // Map calibration direction strings to the static page convention
+          if (live.direction) {
+            if (live.direction === 'high_is_concerning') ind.dir = 'high';
+            else if (live.direction === 'low_is_concerning') ind.dir = 'low';
+            else if (live.direction.indexOf('bidir') === 0) ind.dir = 'bidir';
+          }
+        });
+      });
+    })
+    .catch(function() {});
+})();
+</script>
+</body>
+</html>

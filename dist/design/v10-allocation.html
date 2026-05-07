@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MacroTilt — Recommended Allocation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..800;1,9..144,300..800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Inter", -apple-system, system-ui, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+  --bg: #fafaf5;
+  --bg-1: #ffffff;
+  --bg-2: #f3f1e9;
+  --bg-3: #eae6d8;
+  --ink-0: #17181c;
+  --ink-1: #44474f;
+  --ink-2: #6b6f78;
+  --ink-3: #9a9ea8;
+  --line: rgba(0,0,0,0.08);
+  --line-strong: rgba(0,0,0,0.16);
+  --accent: #d9b27a;
+  --accent-deep: #a87a3a;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-body);
+  font-size: 16px; line-height: 1.6;
+  color: var(--ink-0); background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+.shell {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 56px 32px 96px;
+}
+
+/* Header */
+.header { padding-bottom: 32px; border-bottom: 1px solid var(--line); margin-bottom: 48px; }
+.eyebrow {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--accent-deep);
+  margin-bottom: 12px;
+}
+h1 {
+  font-family: var(--font-display); font-weight: 300;
+  font-size: clamp(40px, 5vw, 56px); line-height: 1.05;
+  letter-spacing: -0.02em; color: var(--ink-0);
+  margin-bottom: 16px;
+}
+.dek {
+  font-family: var(--font-display); font-style: italic;
+  font-weight: 300; font-size: 20px; line-height: 1.4;
+  color: var(--ink-1); max-width: 56ch; margin-bottom: 20px;
+}
+.asof {
+  font-size: 13px; color: var(--ink-2);
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.asof strong { color: var(--ink-0); font-weight: 500; }
+
+/* Section heading */
+h2 {
+  font-family: var(--font-display); font-weight: 400;
+  font-size: 28px; color: var(--ink-0);
+  margin-bottom: 8px; letter-spacing: -0.01em;
+}
+h2 + .sub {
+  font-size: 14px; color: var(--ink-2); margin-bottom: 24px;
+}
+.section { margin-bottom: 64px; }
+
+/* Allocation table — the centerpiece */
+.alloc {
+  border-top: 1px solid var(--line-strong);
+}
+.alloc-row {
+  display: grid;
+  grid-template-columns: 280px 1fr 70px;
+  gap: 24px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  transition: background 100ms;
+}
+.alloc-row:hover { background: rgba(0,0,0,0.015); }
+.alloc-row.expanded { background: var(--bg-1); }
+.alloc-name {
+  font-size: 15px; font-weight: 500; color: var(--ink-0);
+  display: flex; align-items: center; gap: 10px;
+}
+.alloc-name .caret {
+  font-size: 10px; color: var(--ink-3);
+  transition: transform 150ms;
+  width: 8px;
+}
+.alloc-row.expanded .caret { transform: rotate(90deg); color: var(--accent-deep); }
+.alloc-name .gics {
+  font-size: 11px; color: var(--ink-3); font-weight: 400;
+  letter-spacing: 0.02em;
+  margin-top: 2px; display: block;
+}
+.alloc-name-wrap { display: flex; flex-direction: column; }
+.alloc-bar {
+  height: 22px;
+  background: var(--bg-2);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.alloc-bar-fill {
+  height: 100%;
+  background: var(--ink-0);
+  border-radius: 2px;
+  transition: width 400ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.alloc-row.ballast .alloc-bar-fill { background: var(--ink-3); }
+.alloc-pct {
+  font-family: var(--font-mono);
+  font-size: 16px; font-weight: 500;
+  color: var(--ink-0);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Total row */
+.alloc-total {
+  display: grid;
+  grid-template-columns: 280px 1fr 70px;
+  gap: 24px;
+  align-items: center;
+  padding: 16px 0;
+  border-top: 2px solid var(--ink-0);
+  margin-top: 4px;
+}
+.alloc-total .label {
+  font-family: var(--font-display); font-size: 18px;
+  color: var(--ink-0);
+}
+.alloc-total .pct {
+  font-family: var(--font-mono); font-size: 18px;
+  font-weight: 500; color: var(--ink-0);
+  text-align: right;
+}
+
+/* Expanded panel */
+.alloc-detail {
+  display: none;
+  padding: 0 0 24px 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--bg-1);
+}
+.alloc-row.expanded + .alloc-detail { display: block; }
+.alloc-detail-inner {
+  padding: 8px 0 0 280px;
+}
+@media (max-width: 720px) {
+  .alloc-detail-inner { padding: 8px 0 0 0; }
+}
+.alloc-detail p {
+  font-size: 14px; color: var(--ink-1);
+  line-height: 1.6; max-width: 64ch;
+  margin-bottom: 12px;
+}
+.alloc-detail p strong { color: var(--ink-0); }
+.alloc-detail .meta {
+  display: flex; flex-wrap: wrap; gap: 16px 24px;
+  font-size: 12px; color: var(--ink-2);
+  padding-top: 8px; margin-top: 4px;
+  border-top: 1px dashed var(--line);
+}
+.alloc-detail .meta .label {
+  font-weight: 600; letter-spacing: 0.06em;
+  text-transform: uppercase; font-size: 10px;
+  color: var(--ink-3); margin-right: 6px;
+}
+.alloc-detail .meta .val { color: var(--ink-1); }
+.alloc-detail .tickers {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px;
+}
+.alloc-detail .tickers .t {
+  font-family: var(--font-mono); font-size: 11px;
+  background: var(--bg-2); padding: 3px 8px;
+  border-radius: 3px; color: var(--ink-0);
+}
+
+/* Why section — narrative */
+.why-block { background: var(--bg-1); border: 1px solid var(--line);
+  border-radius: 8px; padding: 32px;
+}
+.why-block p {
+  font-family: var(--font-display); font-weight: 300;
+  font-size: 17px; line-height: 1.6; color: var(--ink-1);
+  margin-bottom: 16px; max-width: 64ch;
+}
+.why-block p strong {
+  color: var(--ink-0); font-weight: 500; font-style: normal;
+}
+.why-block p:last-child { margin-bottom: 0; }
+.why-block .pull {
+  font-family: var(--font-display); font-style: italic;
+  font-size: 22px; font-weight: 300; line-height: 1.45;
+  color: var(--ink-0); margin-bottom: 24px;
+  padding-left: 16px; border-left: 3px solid var(--accent);
+}
+
+/* Risks */
+.risk-list { display: flex; flex-direction: column; gap: 12px; }
+.risk-card {
+  background: var(--bg-1); border: 1px solid var(--line);
+  border-left: 2px solid #9d3545;
+  border-radius: 6px; padding: 20px 24px;
+}
+.risk-card h4 {
+  font-family: var(--font-body); font-size: 14px;
+  font-weight: 600; color: var(--ink-0); margin-bottom: 8px;
+}
+.risk-card p { font-size: 13px; color: var(--ink-1); margin: 0; }
+.risk-card p + p {
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px dashed var(--line);
+  font-style: italic; color: var(--ink-2);
+}
+
+/* Footer */
+.footer-links {
+  margin-top: 64px; padding-top: 24px;
+  border-top: 1px solid var(--line);
+  display: flex; gap: 12px; flex-wrap: wrap;
+  font-size: 13px; color: var(--ink-2);
+}
+.footer-links a {
+  color: var(--ink-1); text-decoration: none;
+  background: var(--bg-2); padding: 6px 12px;
+  border-radius: 4px;
+}
+.footer-links a:hover { background: var(--bg-3); }
+.footer-links .right { margin-left: auto; color: var(--ink-3); font-size: 11px; }
+
+@media (max-width: 720px) {
+  .alloc-row, .alloc-total {
+    grid-template-columns: 1fr 60px;
+    grid-template-areas: "name pct" "bar bar";
+  }
+  .alloc-name-wrap { grid-area: name; }
+  .alloc-bar { grid-area: bar; height: 6px; }
+  .alloc-pct { grid-area: pct; }
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="eyebrow">MacroTilt · Recommended Allocation</div>
+    <h1>Aggressive equity tilt — AI infrastructure, energy discipline, and selective cyclicals.</h1>
+    <p class="dek">Macro composites are calm. Growth is firming. The model leans into industries with both fundamental tailwinds and confirming price momentum.</p>
+    <div class="asof">
+      As of <strong>April 25, 2026</strong> · Last rebalance <strong>April 18, 2026</strong> · Next <strong>May 2, 2026</strong>
+    </div>
+  </div>
+
+  <!-- THE ALLOCATION -->
+  <section class="section">
+    <h2>What to hold</h2>
+    <div class="sub">16 industries plus defensive ballast. Click any row for the rationale.</div>
+    <div class="alloc" id="allocList"></div>
+    <div class="alloc-total">
+      <span class="label">Total</span>
+      <span></span>
+      <span class="pct">100.0%</span>
+    </div>
+  </section>
+
+  <!-- WHY -->
+  <section class="section">
+    <h2>Why</h2>
+    <div class="sub">The macro setup driving this allocation.</div>
+    <div class="why-block">
+      <p class="pull">Three macro composites are aligned for the first time since 2022 — Risk &amp; Liquidity calm, Growth firming, Inflation &amp; Rates neutral. That's the setup the back-test calls "lean in," and the allocation reflects it.</p>
+
+      <p><strong>Risk &amp; Liquidity sits at &minus;6.7 (calm).</strong> Credit spreads have tightened 90 basis points since January. Short-end funding eased as the Fed signaled patience. The composite has improved 11 points over the quarter — that's the green light to take risk.</p>
+
+      <p><strong>Growth is firming at +3.2.</strong> ISM Manufacturing finally crossed 50 for the first time since 2022. Jobless claims flat at trend. Capex revisions across mega-cap tech are positive. The economy isn't booming, but the broad-based growth signal is what the model needs to add equity beta.</p>
+
+      <p><strong>Inflation &amp; Rates is neutral at &minus;1.1.</strong> Not stressed, but not cooperative either — 10-year yields are range-bound near 4.5%. That's why the model holds 14% in defensive ballast (cash, short-duration treasuries, gold) and stays underweight rate-sensitive industries like Real Estate and Utilities even though their fundamentals are stable.</p>
+
+      <p>The largest single position is <strong>Software at 16%</strong> — AI infrastructure capex is still expanding and ISM new orders are confirming the cycle. The biggest weekly increase is <strong>Oil &amp; Gas Exploration &amp; Production, raised to 6%</strong> — capital discipline is holding for the third consecutive year, crude steady above $80/bbl, cash flow without the overinvestment trap. Trimmed: <strong>Consumer Staples to 4%</strong> (defensive premium has compressed) and <strong>Real Estate to 1%</strong> (rates path no longer trending lower).</p>
+    </div>
+  </section>
+
+  <!-- RISKS -->
+  <section class="section">
+    <h2>What would change this view</h2>
+    <div class="sub">The four scenarios that would force a rebalance away from this allocation.</div>
+    <div class="risk-list">
+      <div class="risk-card">
+        <h4>Crude breaks below $70/bbl</h4>
+        <p>Oil &amp; Gas E&amp;P goes from cash machine to capital trap. Capital discipline narrative collapses.</p>
+        <p>Move: Oil &amp; Gas back to 2%. Add to Consumer Staples and Insurance for defensive carry.</p>
+      </div>
+      <div class="risk-card">
+        <h4>Credit spreads widen &gt; 100 bp in two weeks</h4>
+        <p>Risk &amp; Liquidity composite flips from calm to elevated. Aggressive stance no longer justified.</p>
+        <p>Move: Trim Software and Semiconductors. Raise defensive ballast from 14% to 30%.</p>
+      </div>
+      <div class="risk-card">
+        <h4>Unemployment claims spike above 280k for three weeks</h4>
+        <p>Growth composite rolls over. Retail and Aerospace &amp; Defense repriced first; AI capex demand follows with a lag.</p>
+        <p>Move: Defensive stance. Cut equity exposure to 60%. Overweights collapse to MedDevices + Staples.</p>
+      </div>
+      <div class="risk-card">
+        <h4>10-year yield breaks above 5.0%</h4>
+        <p>Inflation &amp; Rates composite turns stressed. Long-duration cyclicals (Real Estate, Utilities, Software) repriced lower.</p>
+        <p>Move: Software to 8%. Hold Oil &amp; Gas and Banks (rate beneficiaries). Defensive ballast to 25%.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="footer-links">
+    <a href="#">Methodology</a>
+    <a href="#">Back-test (2008–2026)</a>
+    <a href="#">Calibration evidence</a>
+    <a href="#">Run log</a>
+    <span class="right">Pipeline run #1734 · ran Fri 5:31pm ET · all data fresh</span>
+  </div>
+
+</div>
+
+<script>
+const ALLOCATION = [
+  { name:"Software", gics:"Information Technology · Software & Services", pct:16.0,
+    rationale:"AI infrastructure capex still expanding. <strong>ISM new orders accelerating</strong> — the regression points to ISM (t=2.8), the semis cycle (t=2.1), and earnings revisions (t=3.2) all driving this rating. 6-month price momentum confirms at +8.4%. Hold this position unless ISM rolls over.",
+    tickers:["MSFT","ORCL","ADBE","NOW","CRM","INTU"], etf:"IGV", priorPct:15.5 },
+  { name:"Semiconductors", gics:"Information Technology · Semiconductors", pct:14.0,
+    rationale:"Cycle indicator (semi book-to-bill) at multi-year highs. AI-capex demand still expanding into hyperscaler 2026 budgets. <strong>Largest weekly increase</strong> after Oil &amp; Gas. Watch hyperscaler capex guidance for the kill-trigger.",
+    tickers:["NVDA","AVGO","AMD","TSM","ASML","INTC"], etf:"SMH", priorPct:12.0 },
+  { name:"Communication Services", gics:"Communication Services (sector)", pct:11.0,
+    rationale:"Mega-cap platforms still doing the heavy lifting — cash generative, AI-adjacent, margin resilient. <strong>Concentration risk:</strong> top three names (META, GOOGL, NFLX) are 65% of the cap-weighted ETF. Hold flat at +2 pts overweight.",
+    tickers:["META","GOOGL","DIS","NFLX","TMUS"], etf:"XLC", priorPct:11.0 },
+  { name:"Banks", gics:"Financials · Banks", pct:7.0,
+    rationale:"Yield curve no longer inverted. Net-interest-margin expansion thesis intact for both regional and money-center banks. Credit costs contained — non-performing loan ratio still falling. <strong>Tilt to regionals</strong> over money centers in this stance.",
+    tickers:["JPM","BAC","WFC","C","USB","PNC"], etf:"KBE", priorPct:6.5 },
+  { name:"Oil & Gas Exploration & Production", gics:"Energy · Oil, Gas & Consumable Fuels", pct:6.0,
+    rationale:"<strong>Capital discipline holding for the third consecutive year.</strong> Crude steady above $80/bbl plus a tightening rig count means cash flow without the overinvestment trap that ended prior cycles. Largest weekly increase (was 2%). Crude $70/bbl is the kill-trigger.",
+    tickers:["XOM","CVX","COP","EOG","PXD","OXY"], etf:"XOP", priorPct:2.0 },
+  { name:"Aerospace & Defense", gics:"Industrials · Aerospace & Defense", pct:4.0,
+    rationale:"Defense order book robust on geopolitics; commercial aero recovering on travel demand. Trimmed slightly (-0.5 pts) as the boost from the prior capex spike normalizes. Held at +1.5 pts overweight; provides ballast if growth rolls over.",
+    tickers:["BA","LMT","RTX","GD","NOC","TDG"], etf:"ITA", priorPct:4.5 },
+  { name:"Biotech", gics:"Health Care · Biotechnology", pct:4.0,
+    rationale:"FDA approval cadence elevated. Pipeline maturity in obesity / oncology supports forward earnings. Hold at +2 pts overweight.",
+    tickers:["AMGN","GILD","VRTX","REGN","BIIB"], etf:"IBB", priorPct:4.0 },
+  { name:"Medical Devices", gics:"Health Care · Health Care Equipment", pct:4.0,
+    rationale:"Defensive sleeve; demographic tailwind real but priced. No acute catalyst this cycle. Hold at benchmark; tilt to procedure-volume names (ISRG, SYK) over diagnostics.",
+    tickers:["ISRG","TMO","MDT","BSX","SYK","ABT"], etf:"IHI", priorPct:4.0 },
+  { name:"Retail", gics:"Consumer Discretionary · Retailing", pct:4.0,
+    rationale:"<strong>Credit-card delinquencies ticking up.</strong> Consumer is still spending but at the margin the tailwind is weakening. Trimmed -1 pt this rebalance. Avoid leveraged consumer names; mega-cap e-commerce stays in via the bucket weight.",
+    tickers:["AMZN","HD","LOW","TJX","COST"], etf:"XRT", priorPct:5.0 },
+  { name:"Consumer Staples", gics:"Consumer Staples (sector)", pct:4.0,
+    rationale:"Defensive premium has compressed and the sector's been bid up. With macro composites supportive there's no need to pay up for safety. <strong>Trimmed -2 pts</strong> — used as funding source for the Oil &amp; Gas and Software overweights.",
+    tickers:["PG","KO","PEP","WMT","COST","MO"], etf:"XLP", priorPct:6.0 },
+  { name:"Insurance", gics:"Financials · Insurance", pct:3.0,
+    rationale:"Premium pricing power solid but reinvestment yield gains mostly priced in. Hold at benchmark; no edge.",
+    tickers:["BRK.B","PGR","ALL","TRV","CB"], etf:"KIE", priorPct:3.0 },
+  { name:"Mega-Cap Growth", gics:"Cross-cutting overlay (top 7-10 mega-caps)", pct:3.0,
+    rationale:"Cross-cutting bucket overlaying the top 7-10 mega-caps. Held flat — same names already drive Software, Semiconductors, and Comm Services overweights. Tracks net mega-cap concentration vs the S&amp;P top 7-10.",
+    tickers:["AAPL","MSFT","GOOGL","AMZN","META","NVDA","TSLA"], etf:"MGK", priorPct:3.5 },
+  { name:"Materials", gics:"Materials (sector)", pct:2.0,
+    rationale:"China demand unclear. Copper-gold ratio neutral. Position at benchmark; no edge.",
+    tickers:["LIN","APD","SHW","ECL","FCX"], etf:"XLB", priorPct:2.0 },
+  { name:"Transports", gics:"Industrials · Transportation", pct:2.0,
+    rationale:"Freight volumes recovering as goods inventory destocking ends. Mild overweight. Rails over parcel for cycle exposure.",
+    tickers:["UPS","FDX","UNP","CSX","NSC","ODFL"], etf:"IYT", priorPct:1.5 },
+  { name:"Real Estate", gics:"Real Estate (sector)", pct:1.0,
+    rationale:"<strong>Rate path no longer trending lower.</strong> Commercial real-estate office overhang persists. Removed from active picks this cycle. Trim. Re-engage if 10-year breaks below 4%.",
+    tickers:["PLD","EQIX","AMT","CCI","SPG"], etf:"XLRE", priorPct:2.0 },
+  { name:"Utilities", gics:"Utilities (sector)", pct:1.0,
+    rationale:"Bond proxy with rates not cooperating. AI-driven power demand is a real story but the regulatory recovery lag makes it hard to monetize this year. Min weight only.",
+    tickers:["NEE","SO","DUK","D","AEP"], etf:"XLU", priorPct:1.0 },
+  { name:"Defensive ballast", gics:"Cash + short-duration treasuries + gold", pct:14.0, ballast:true,
+    rationale:"Held at 14% to provide downside protection given Inflation &amp; Rates composite is neutral (not cooperative). Composition: 8% cash &amp; T-bills, 4% short-duration treasuries, 2% gold. Raise to 30% if Risk &amp; Liquidity composite flips to elevated.",
+    tickers:[], etf:"BIL / SHY / GLD", priorPct:14.0 },
+];
+
+const maxPct = Math.max(...ALLOCATION.map(b => b.pct));
+const root = document.getElementById('allocList');
+let html = '';
+ALLOCATION.forEach((b, idx) => {
+  const widthPct = (b.pct / maxPct) * 100;
+  const dPct = b.pct - b.priorPct;
+  const dStr = dPct === 0 ? 'unchanged'
+              : `${dPct>0?'+':''}${dPct.toFixed(1)} pts vs last week`;
+  html += `
+    <div class="alloc-row ${b.ballast?'ballast':''}" data-idx="${idx}">
+      <div class="alloc-name-wrap">
+        <span class="alloc-name"><span class="caret">▶</span>${b.name}</span>
+        <span class="gics">${b.gics}</span>
+      </div>
+      <div class="alloc-bar"><div class="alloc-bar-fill" style="width:${widthPct.toFixed(1)}%"></div></div>
+      <span class="alloc-pct">${b.pct.toFixed(1)}%</span>
+    </div>
+    <div class="alloc-detail" data-idx="${idx}">
+      <div class="alloc-detail-inner">
+        <p>${b.rationale}</p>
+        <div class="meta">
+          <div><span class="label">Change this week</span><span class="val">${dStr}</span></div>
+          <div><span class="label">ETF</span><span class="val" style="font-family:var(--font-mono);">${b.etf}</span></div>
+          ${b.tickers.length ? `<div style="width:100%;"><span class="label">Examples</span><div class="tickers">${b.tickers.map(t=>`<span class="t">${t}</span>`).join('')}</div></div>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
+});
+root.innerHTML = html;
+
+document.querySelectorAll('.alloc-row').forEach(row => {
+  row.addEventListener('click', () => {
+    const idx = row.dataset.idx;
+    const detail = document.querySelector(`.alloc-detail[data-idx="${idx}"]`);
+    const wasOpen = row.classList.contains('expanded');
+    document.querySelectorAll('.alloc-row.expanded').forEach(r => r.classList.remove('expanded'));
+    if (!wasOpen) row.classList.add('expanded');
+  });
+});
+</script>
+</body>
+</html>
