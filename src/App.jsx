@@ -6517,7 +6517,7 @@ Trading Opportunities
 The names worth your attention &mdash; <em style={{fontStyle:"italic",color:"var(--accent)",fontWeight:500}}>before the market notices.</em>
 </h1>
 <p style={{fontFamily:"var(--font-ui)",fontSize:16,color:"var(--text-2)",lineHeight:1.55,margin:"10px 0 0",maxWidth:720}}>
-An equity scanner that combines technical momentum, insider Form-4s, unusual options flow, congressional trades, and analyst ratings into one 0&ndash;100 composite. Names above 75 trigger a buy alert; 50&ndash;75 sit on the near-trigger watch.
+An equity scanner that combines technical momentum, insider Form-4s, unusual options flow, congressional trades, and analyst ratings into one signed composite ranging from &minus;100 (bearish) to +100 (bullish). Names scoring above +75 trigger a buy alert; +50 to +75 sit on the near-trigger watch.
 </p>
 <div style={{fontFamily:"var(--font-ui)",fontSize:13,color:"var(--text-muted)",fontStyle:"italic",marginTop:8}}>{_subline}</div>
 </div>
