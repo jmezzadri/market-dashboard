@@ -557,7 +557,7 @@ function EtfChip({ etf, onClick }) {
   );
 }
 
-function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, onIGClick, onEtfClick }) {
+function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBuckets, defensivePerBucket, onSectorClick, onIGClick, onEtfClick }) {
   const [openSectorKey, setOpenSectorKey] = useState(null);
 
   // Enrich each sector row with perf + vol from sector_perf.json
@@ -572,8 +572,29 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, 
       perf_ttm: perf.perf_ttm ?? null,
       vol_ttm: perf.vol_ttm ?? null,
       proxy: perf.proxy || null,
+      _isDefensive: false,
     };
   }), [sectors, leverage, sectorPerf]);
+
+  // Defensive bucket rows — same shape as equity rows. perf/vol pulled from
+  // the same sector_perf.json keyed by the bucket ticker. tiltDollar = the
+  // current allocation per bucket (0 when sleeve inactive).
+  const defensiveRows = useMemo(() => (defensiveBuckets || []).map(b => {
+    const perf = sectorPerf?.sectors?.[b.ticker] || {};
+    return {
+      sector: b.name,
+      ticker: b.ticker,
+      tiltDollar: defensivePerBucket || 0,
+      vs_spy_pp: null,
+      rating: null,
+      perf_1m: perf.perf_1m ?? null,
+      perf_3m: perf.perf_3m ?? null,
+      perf_ttm: perf.perf_ttm ?? null,
+      vol_ttm: perf.vol_ttm ?? null,
+      proxy: perf.proxy || b.ticker,
+      _isDefensive: true,
+    };
+  }), [defensiveBuckets, defensivePerBucket, sectorPerf]);
 
   const cols = [
     { id: "sector",   label: "Sector",                 align: "left",  sortValue: r => r.sector },
@@ -601,8 +622,8 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, 
     <>
       <div style={{
         display: "grid", gridTemplateColumns: grid,
-        gap: 10, padding: "12px 14px 10px",
-        fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
+        gap: 10, padding: "14px 14px 12px",
+        fontSize: 12, fontWeight: 600, color: "var(--text)",
         letterSpacing: "0.06em", textTransform: "uppercase",
         borderBottom: "0.5px solid var(--border)", background: "var(--surface-2)",
         alignItems: "center",
@@ -632,7 +653,55 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, 
           grid={grid}
         />
       ))}
+      {defensiveRows.map(d => (
+        <DefensiveTableRow key={d.ticker} bucket={d} grid={grid} onClick={() => onEtfClick && onEtfClick(d.ticker)} />
+      ))}
     </>
+  );
+}
+
+// Defensive sub-row rendered inside the SectorTable so the page reads as one
+// continuous table. Tilt vs SPY = N/A (these are not in SPY); Recommended
+// Allocation = the dollar amount (0 when sleeve inactive); 1M/3M/TTM/Vol pulled
+// from sector_perf.json; Rating = N/A.
+function DefensiveTableRow({ bucket, grid, onClick }) {
+  const fmtPct = (v) => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+  const fmtVol = (v) => v == null ? "—" : v.toFixed(1) + "%";
+  const isOff = (bucket.tiltDollar || 0) < 0.01;
+  return (
+    <div style={{ borderBottom: "0.5px solid var(--border)" }}>
+      <div
+        onClick={onClick}
+        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"}
+        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+        style={{
+          display: "grid", gridTemplateColumns: grid,
+          gap: 10, padding: "11px 14px",
+          alignItems: "center", fontSize: 13,
+          opacity: isOff ? 0.85 : 1,
+          cursor: onClick ? "pointer" : "default",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 600 }}>{bucket.sector}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.08em" }}>{bucket.ticker}</span>
+        </div>
+        {/* Tilt vs SPY — N/A for defensive */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>N/A</div>
+        {/* Recommended Allocation in dollars */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, textAlign: "right", color: isOff ? "var(--text-muted)" : "var(--text)" }}>${bucket.tiltDollar.toFixed(2)}</div>
+        {/* 1M / 3M / TTM */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_1m == null ? "var(--text-muted)" : bucket.perf_1m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_1m)}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_3m == null ? "var(--text-muted)" : bucket.perf_3m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_3m)}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_ttm == null ? "var(--text-muted)" : bucket.perf_ttm < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_ttm)}</div>
+        {/* Vol */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: "var(--text-2)" }}>{fmtVol(bucket.vol_ttm)}</div>
+        {/* Rating — N/A */}
+        <div style={{ textAlign: "right" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)" }}>N/A</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1133,8 +1202,8 @@ function HeatmapTile({ contributionMatrix, mechanismScores }) {
                 Cycle mechanism
               </th>
               {sectors.map(s => (
-                <th key={s} title={s} style={{ padding: "10px 4px 6px", verticalAlign:"bottom", textAlign:"center", fontWeight:500, fontFamily:"var(--font-display)", fontSize:11, background:"var(--surface-2)", height: 130 }}>
-                  <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", margin: "0 auto", color:"var(--text)" }}>{s}</div>
+                <th key={s} title={s} style={{ padding: "10px 6px 8px", textAlign:"center", fontWeight:500, fontFamily:"var(--font-display)", fontSize:11, background:"var(--surface-2)", color:"var(--text)", lineHeight:1.2, verticalAlign:"bottom" }}>
+                  {s}
                 </th>
               ))}
             </tr>
@@ -1224,111 +1293,100 @@ export default function AssetTilt({ onOpenTicker }) {
 
   return (
     <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 32px 48px" }}>
-      {/* HERO — Joe directive 2026-05-07: Goal · Engine · Calibration · Results.
-          Sleek brand block; methodology link at the bottom. */}
-      <section style={{ marginBottom: 22 }}>
-        <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 10 }}>
-          Asset Tilt
-        </div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, margin: "0 0 18px", letterSpacing: "-0.018em", lineHeight: 1.18, color: "var(--text)" }}>
-          Designed to beat the S&P 500 on a risk-adjusted basis.
-        </h1>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 18 }}>
-          <div style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 10, padding: "16px 18px" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>Goal</div>
-            <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
-              A back-tested model that seeks to beat the S&P 500 on a risk-adjusted basis over the long run.
-            </div>
+      {/* HERO — Joe mockup 2026-05-08 v3:
+          LEFT (~2/3): eyebrow + h1 + Engine subtitle.
+          RIGHT (~1/3): "Key Statistics vs. S&P 500" card with 4 KPI cells. */}
+      <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)", gap: 24, alignItems: "stretch", marginBottom: 22 }}>
+        <div>
+          <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 10 }}>
+            Asset Tilt
           </div>
-          <div style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 10, padding: "16px 18px" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>The Engine</div>
-            <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
-              Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway — e.g., max leverage 150%, max defensive 50%.
-            </div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, margin: "0 0 18px", letterSpacing: "-0.018em", lineHeight: 1.18, color: "var(--text)" }}>
+            A back-tested model that seeks to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat the S&P 500 on a risk-adjusted basis</em> over the long run.
+          </h1>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.45, color: "var(--text-2)", margin: 0, maxWidth: 920, fontWeight: 400, letterSpacing: "-0.005em" }}>
+            Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway &mdash; e.g., max leverage 150%, max defensive 50%.
+          </p>
+        </div>
+        <aside style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, padding: "16px 18px", display: "flex", flexDirection: "column" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 500, color: "var(--text)", textAlign: "center", marginBottom: 14, letterSpacing: "-0.005em" }}>
+            Key Statistics vs. S&amp;P 500
           </div>
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
-          {[
-            { label: "CAGR",          value: "13.85%",      sub: "vs SPY 11.61% over 2012–2026" },
-            { label: "Sharpe",        value: "1.034",        sub: "annual, risk-free Fed funds" },
-            { label: "Max drawdown",  value: "−20.81%",     sub: "peak-to-trough, 2012–2026" },
-            { label: "Calibration",   value: "Jan 2012",    sub: "through May 2026" },
-          ].map(t => (
-            <div key={t.label} style={{
-              background: "var(--surface)", border: "0.5px solid var(--border)",
-              borderRadius: 10, padding: "14px 16px",
-              display: "flex", flexDirection: "column",
-            }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
-                {t.label}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1 }}>
+            {[
+              { label: "CAGR",         value: "13.85%",  sub: "vs SPY 11.61%" },
+              { label: "Sharpe",       value: "1.034",    sub: "annualized" },
+              { label: "Max Drawdown", value: "−20.81%", sub: "peak-to-trough" },
+              { label: "Calibration",  value: "Jan 2012", sub: "through May 2026" },
+            ].map(t => (
+              <div key={t.label} style={{
+                background: "var(--surface-2)", border: "0.5px solid var(--border-faint)",
+                borderRadius: 8, padding: "12px 12px",
+                display: "flex", flexDirection: "column",
+              }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
+                  {t.label}
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 600, color: "var(--text)", lineHeight: 1.05, letterSpacing: "-0.015em" }}>
+                  {t.value}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.3 }}>
+                  {t.sub}
+                </div>
               </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 600, color: "var(--text)", lineHeight: 1.05, letterSpacing: "-0.015em" }}>
-                {t.value}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.35 }}>
-                {t.sub}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
-          <a href="#methodology" style={{ fontSize: 13, fontWeight: 500, color: "var(--accent)" }}>Read the full methodology →</a>
-        </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, textAlign: "center" }}>
+            <a href="#methodology" style={{ fontSize: 11, fontWeight: 500, color: "var(--accent)", letterSpacing: "0.04em" }}>Read the full methodology &rarr;</a>
+          </div>
+        </aside>
       </section>
 
 
-      {/* Equity sector table — sortable, with 1M/3M/TTM/Vol columns and a
-          larger Tilt-vs-SPY bar. Joe directive 2026-05-07. */}
+      {/* Recommended Allocations — Joe mockup 2026-05-08 v3. Wraps the
+          sortable sector table + defensive sleeve + total row in a labeled
+          card so the page reads as 3 distinct blocks: hero, allocations,
+          heatmap. */}
       <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ padding: "14px 18px 12px", borderBottom: "0.5px solid var(--border)", background: "var(--surface)" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Recommended Allocations</h2>
+        </div>
         <SectorTable
           sectors={v10.sectors}
           igs={v10.industry_groups}
           leverage={lev}
           asOf={v10.as_of}
           sectorPerf={sectorPerf}
+          defensiveBuckets={DEFENSIVE_BUCKETS}
+          defensivePerBucket={defensivePerBucket}
           onSectorClick={setSectorModal}
           onIGClick={setIgModal}
           onEtfClick={(e) => onOpenTicker(e.t || e)}
         />
-        {/* Defensive sleeve header */}
+        {/* Total row — appears at the bottom of the unified table. */}
         <div style={{
-          display: "grid", gridTemplateColumns: "1.6fr 1fr 110px 80px",
-          gap: 12, padding: "10px 14px",
-          fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
-          letterSpacing: "0.06em", textTransform: "uppercase",
-          borderTop: "0.5px solid var(--border)", borderBottom: "0.5px solid var(--border)",
-          background: "var(--surface-2)",
-        }}>
-          <div>Defensive sleeve · 4 buckets, equal-weight when active</div>
-          <div>Tilt vs SPY</div>
-          <div style={{ textAlign: "right" }}>Recommended Allocation</div>
-          <div style={{ textAlign: "right" }}>State</div>
-        </div>
-        {DEFENSIVE_BUCKETS.map(b => (
-          <DefensiveRow key={b.ticker} bucket={b} dollar={defensivePerBucket} />
-        ))}
-        {/* Total row */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "1.6fr 1fr 110px 80px",
-          gap: 12, padding: "12px 14px", fontSize: 13, fontWeight: 600,
-          background: "var(--surface-2)",
+          display: "grid", gridTemplateColumns: "1.55fr 1fr 110px 64px 64px 64px 64px 80px",
+          gap: 10, padding: "12px 14px", fontSize: 13, fontWeight: 600,
+          background: "var(--surface-2)", borderTop: "1px solid var(--border)",
         }}>
           <div>Total recommended allocation (equity × leverage + defensive)</div>
           <div></div>
           <div style={{ fontFamily: "var(--font-mono)", textAlign: "right" }}>${grossDollar.toFixed(2)}</div>
-          <div style={{ fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", fontWeight: 400 }}>
+          <div></div><div></div><div></div><div></div>
+          <div style={{ fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", fontWeight: 400, fontSize: 11 }}>
             {lev.toFixed(2)}× gross
           </div>
         </div>
       </section>
 
-      {/* HEATMAP */}
-      <div style={{ margin: "8px 0 12px" }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0 }}>
-          Which mechanisms are tailwinds vs headwinds for each sector right now?
-        </h2>
-      </div>
-      <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} />
+      {/* HEATMAP — wrapped in a labeled card to match Recommended Allocations. */}
+      <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ padding: "14px 18px 12px", borderBottom: "0.5px solid var(--border)", background: "var(--surface)" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Heatmap</h2>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>Which mechanisms are tailwinds vs headwinds for each sector right now.</div>
+        </div>
+        <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} />
+      </section>
 
       {/* Bottom methodology footer killed 2026-05-07 — methodology paragraph
           is now in the hero at the top of the page. */}
