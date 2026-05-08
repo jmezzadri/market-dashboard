@@ -89,10 +89,10 @@
      remain visible against a dark surface. Mirrors the light-mode gradient
      direction (light Risk-On -> dark Risk-Off) but uses a lighter base
      hue so it shows on black instead of getting eaten by it. */
-  :root[data-theme="dark"] #wedge-riskon  { fill: rgba(180, 220, 225, 0.14); }
-  :root[data-theme="dark"] #wedge-neutral { fill: rgba(150, 205, 215, 0.30); }
-  :root[data-theme="dark"] #wedge-caution { fill: rgba(120, 190, 205, 0.50); }
-  :root[data-theme="dark"] #wedge-riskoff { fill: rgba( 90, 175, 195, 0.78); }
+  :root[data-theme="dark"] #wedge-riskon  { fill: rgba(127, 188, 198, 0.18); }
+  :root[data-theme="dark"] #wedge-neutral { fill: rgba(127, 188, 198, 0.42); }
+  :root[data-theme="dark"] #wedge-caution { fill: rgba(127, 188, 198, 0.68); }
+  :root[data-theme="dark"] #wedge-riskoff { fill: rgba(127, 188, 198, 0.92); }
   :root[data-theme="dark"] .verdict-svg text[fill="#7a7a72"] { fill: #888884; }
   :root[data-theme="dark"] .verdict-svg text[fill="#1a1a1a"] { fill: #fafaf7; }
   :root[data-theme="dark"] .verdict-svg line[stroke="#1a1a1a"] { stroke: #fafaf7; }
@@ -170,6 +170,21 @@
     text-transform: uppercase;
     color: var(--muted);
     margin-bottom: 14px;
+  }
+  .page-hero-h1 {
+    font-family: 'Fraunces', Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(28px, 3.4vw, 38px);
+    line-height: 1.18;
+    letter-spacing: -0.012em;
+    color: var(--ink);
+    margin: 0 0 12px;
+    max-width: 980px;
+  }
+  .page-hero-h1 em {
+    font-style: italic;
+    color: var(--accent);
+    font-weight: 500;
   }
   .cadence-stamp {
     font-size: 11px;
@@ -683,6 +698,16 @@
   .fresh-dot.unknown{ background: var(--muted-2); }
   .fresh-dot.loading{ background: var(--muted-2); opacity: 0.4; }
 
+  /* Joe directive 2026-05-08: dark-theme override for the JS-generated
+     small dial wedges. The W_* constants in script land hard-coded with
+     dark teal rgba(14,85,96,X) which reads as near-black on the dark
+     surface. Force the bright-teal palette in dark mode so the small
+     dials and the composite gauge share one color identity. */
+  :root[data-theme="dark"] .dial-svg path[fill="rgba(14,85,96,0.18)"] { fill: rgba(127,188,198,0.18) !important; }
+  :root[data-theme="dark"] .dial-svg path[fill="rgba(14,85,96,0.42)"] { fill: rgba(127,188,198,0.42) !important; }
+  :root[data-theme="dark"] .dial-svg path[fill="rgba(14,85,96,0.68)"] { fill: rgba(127,188,198,0.68) !important; }
+  :root[data-theme="dark"] .dial-svg path[fill="rgba(14,85,96,0.92)"] { fill: rgba(127,188,198,0.92) !important; }
+
   </style>
 </head>
 <body>
@@ -691,9 +716,10 @@
 
   <div class="page-eyebrow">Macro Overview</div>
 
+  <h1 class="page-hero-h1">Cycle mechanisms provide a bird&apos;s eye view of the <em>macro backdrop</em> &mdash; calibrated to historical cycles.</h1>
+
   <div class="cadence-stamp">
-    Refreshed daily · last update <span id="page-asof-stamp">—</span> &nbsp;·&nbsp;
-    Page-level reading typically shifts every several weeks-to-months. Mechanism scores can move daily.
+    Refreshed daily · last update <span id="page-asof-stamp">—</span>
   </div>
 
   <!-- ============================ AGGREGATE VERDICT ============================ -->
@@ -954,7 +980,7 @@ const RECESSIONS = [["2020-02","2020-04"]];
 
 const TILES = [
   {
-    id:"valuation", num:"01", name:"Valuation", live:true, score:87, band:"darkblood",
+    id:"valuation", num:"01", name:"Equity Valuations", live:true, score:87, band:"darkblood",
     caption:"Currently at cycle peak — multiple valuation reads in the top quartile of long-run history. Caution advised.",
     cadence: "Monthly · CAPE/ERP refresh; Buffett quarterly",
     traj: [

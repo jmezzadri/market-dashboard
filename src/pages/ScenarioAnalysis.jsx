@@ -789,12 +789,6 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     <>
       <style>{STYLES}</style>
       <div className="scenarios-page">
-        <div className="demo-banner">
-          <b>Scenario Analysis v2</b> · 8 historical scenarios + 12 factor sliders · click chips, drag sliders, toggle modes — outputs update in real time.<br/>
-          <b>L1–L3 math</b> uses sector loadings refit against 2006–2026 monthly factor history. <b style={{color:"var(--accent-burgundy)"}}>L4 panel</b> shows live engine output for historical scenarios — picks come from the production optimizer fed a stressed factor panel.
-        </div>
-
-
         <div className="tab-head">
           <div>
             <div className="crumb">04 · Scenario Analysis</div>
