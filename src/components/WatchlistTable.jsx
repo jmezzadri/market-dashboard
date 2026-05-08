@@ -469,13 +469,13 @@ const DEFAULT_WIDTHS = {
   nextEarnings:  125,
   week52:        150,
   theme:         220,
-  technicals:    70,
-  insider:       70,
-  options:       70,
-  congress:      70,
-  analyst:       70,
-  darkpool:      70,
-  overall:       80,
+  technicals:    100,
+  insider:       110,
+  options:       100,
+  congress:      120,
+  analyst:       110,
+  darkpool:      90,
+  overall:       90,
   beta_2y:       90,
   annVol_2y:     90,
   maxDD_2y:      90,
@@ -680,12 +680,12 @@ export default function WatchlistTable({
 
   const headerStyle = {
     fontSize: 10, fontWeight: 700, color: "var(--text-muted)",
-    fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
+    fontFamily: "var(--font-mono)", letterSpacing: "0.06em",
     padding: "6px 6px",
     borderBottom: "1px solid var(--border)",
     background: "var(--surface-3)", position: "sticky", top: 0,
-    userSelect: "none", whiteSpace: "nowrap",
-    overflow: "hidden", textOverflow: "ellipsis",
+    userSelect: "none", whiteSpace: "normal", lineHeight: 1.25,
+    verticalAlign: "bottom",
   };
 
   // --- Resizable columns ----------------------------------------------------
