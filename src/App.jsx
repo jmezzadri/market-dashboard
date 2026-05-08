@@ -6509,9 +6509,8 @@ return(<>
     gauge 380x230 viewBox with R 140/90 filled wedges. */}
 <section style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:36,alignItems:"start",marginBottom:32}}>
 <div style={{minWidth:0}}>
-<div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:14,display:"inline-flex",alignItems:"center",gap:10}}>
+<div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:14}}>
 Trading Opportunities
-<FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||null} style={{marginLeft:4}}/>
 </div>
 <h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 12px"}}>
 The names worth your attention &mdash; <em style={{fontStyle:"italic",color:"var(--accent)",fontWeight:500}}>before the market notices.</em>
