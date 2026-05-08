@@ -654,7 +654,7 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBucket
         />
       ))}
       {defensiveRows.map(d => (
-        <DefensiveTableRow key={d.ticker} bucket={d} grid={grid} />
+        <DefensiveTableRow key={d.ticker} bucket={d} grid={grid} onClick={() => onEtfClick && onEtfClick(d.ticker)} />
       ))}
     </>
   );
@@ -664,18 +664,24 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBucket
 // continuous table. Tilt vs SPY = N/A (these are not in SPY); Recommended
 // Allocation = the dollar amount (0 when sleeve inactive); 1M/3M/TTM/Vol pulled
 // from sector_perf.json; Rating = N/A.
-function DefensiveTableRow({ bucket, grid }) {
+function DefensiveTableRow({ bucket, grid, onClick }) {
   const fmtPct = (v) => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
   const fmtVol = (v) => v == null ? "—" : v.toFixed(1) + "%";
   const isOff = (bucket.tiltDollar || 0) < 0.01;
   return (
     <div style={{ borderBottom: "0.5px solid var(--border)" }}>
-      <div style={{
-        display: "grid", gridTemplateColumns: grid,
-        gap: 10, padding: "11px 14px",
-        alignItems: "center", fontSize: 13,
-        opacity: isOff ? 0.85 : 1,
-      }}>
+      <div
+        onClick={onClick}
+        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"}
+        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+        style={{
+          display: "grid", gridTemplateColumns: grid,
+          gap: 10, padding: "11px 14px",
+          alignItems: "center", fontSize: 13,
+          opacity: isOff ? 0.85 : 1,
+          cursor: onClick ? "pointer" : "default",
+        }}
+      >
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <span style={{ fontWeight: 600 }}>{bucket.sector}</span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.08em" }}>{bucket.ticker}</span>
