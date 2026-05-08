@@ -5036,7 +5036,7 @@ const [sidebarOpen,setSidebarOpen]=useState(false);
 // Session-scoped portfolio — returns empty arrays when unauthenticated so the
 // tiles render a zero-state rather than leaking someone else's data.
 const {session}=useSession();
-const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio}=useUserPortfolio();
+const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio, isAuthed:_isAuthed}=useUserPortfolio();
 const portfolioAuthed=!!session;
 // Set of tickers already on the user's watchlist — used by WatchlistTable
 // to flip "+ Watch" → "✓ Watching" per row.
@@ -5538,6 +5538,160 @@ return(
     letterSpacing:"0.1em", textTransform:"uppercase", textDecoration:"none",
     cursor:"pointer", whiteSpace:"nowrap",
   };
+  // Shared embedded-headline style for the 4 home tiles. The whole sentence
+  // renders in Fraunces serif so it reads as one editorial headline (matches
+  // the hero family); the tool name span is bigger + italic + accent.
+  const tileExplainStyle = {
+    fontFamily:"var(--font-display)", fontWeight:400, fontSize:19,
+    color:"var(--text)", lineHeight:1.32, letterSpacing:"-0.005em",
+    margin:"0 0 var(--space-3)", display:"block",
+  };
+  const tileNameStyle = {
+    fontFamily:"var(--font-display)", fontWeight:500, fontStyle:"italic",
+    fontSize:30, color:"var(--accent)", letterSpacing:"-0.012em",
+    lineHeight:1, marginRight:3, marginLeft:1,
+  };
+  const tileSigninStyle = {
+    fontFamily:"var(--font-ui)", fontSize:11, color:"var(--text-dim)",
+    fontStyle:"italic", marginLeft:6, fontWeight:400, letterSpacing:0,
+  };
+  // Tile head row: tag + freshness dot only (no h2 title — folded into
+  // the embedded explanation sentence). No "Open" link — full tile is
+  // the click target. Joe directive 2026-05-07.
+  const cardHeadSlimStyle = {
+    display:"flex", alignItems:"center", gap:8,
+    marginBottom:"var(--space-2)",
+  };
+  // Mini dial sub-tile (Macro Overview): half-moon gauge in teal opacity.
+  const DialMini = ({ score, num, name }) => {
+    const s = Math.max(0, Math.min(100, Number(score) || 0));
+    // Band → teal opacity. 0-25 risk-on (faintest), 25-50 neutral, 50-75
+    // caution, 75-100 risk-off (full teal).
+    const band = s < 25 ? "Risk-on" : s < 50 ? "Neutral" : s < 75 ? "Caution" : "Risk-off";
+    const stroke = s < 25 ? "rgba(14,85,96,.18)"
+                 : s < 50 ? "rgba(14,85,96,.32)"
+                 : s < 75 ? "rgba(14,85,96,.55)"
+                 :          "var(--accent)";
+    const dash = s * 1.32;
+    const angle = Math.PI - (s * 1.8 * Math.PI / 180);
+    const nx = (50 + 38 * Math.cos(angle)).toFixed(1);
+    const ny = (52 - 38 * Math.sin(angle)).toFixed(1);
+    return (
+      <>
+        <div style={stEyebrowStyle}>{num} · {name}</div>
+        <svg viewBox="0 0 100 60" width="92" height="56">
+          <path d="M 8 52 A 42 42 0 0 1 92 52" fill="none" stroke="rgba(14,85,96,.10)" strokeWidth="9"/>
+          <path d="M 8 52 A 42 42 0 0 1 92 52" fill="none" stroke={stroke} strokeWidth="9" strokeDasharray={`${dash},200`}/>
+          <line x1="50" y1="52" x2={nx} y2={ny} stroke="currentColor" strokeWidth="1.4"/>
+          <circle cx="50" cy="52" r="2.5" fill="currentColor"/>
+        </svg>
+        <div style={{...stValueStyle("var(--text)"), fontSize:22, marginTop:2}}>
+          {s}<span style={{fontSize:10, fontWeight:400, color:"var(--text-muted)", marginLeft:3}}>/ 100</span>
+        </div>
+        <div style={stMetaStyle}>{band}</div>
+      </>
+    );
+  };
+  // Diverging tilt bar (Asset Tilt): red-left / green-right is replaced by
+  // teal-only — direction is shown by which side of center the bar grows.
+  const TiltBarMini = ({ sectorName, weight, vsSpyPp }) => {
+    const w = weight == null ? null : (weight * 100);
+    const vs = vsSpyPp == null ? null : Number(vsSpyPp);
+    if (w == null) return (<>
+      <div style={{...stEyebrowStyle, textAlign:"left", width:"100%", textTransform:"uppercase"}}>{sectorName}</div>
+      <div style={{...stValueStyle("var(--text-dim)"), fontSize:22}}>—</div>
+    </>);
+    const fill = vs == null ? 0 : Math.min(50, Math.abs(vs) / 10 * 50);
+    const side = (vs ?? 0) >= 0 ? "left" : "right";
+    const radius = side === "left" ? "0 3px 3px 0" : "3px 0 0 3px";
+    const tealMag = vs == null ? "rgba(14,85,96,.22)"
+                  : Math.abs(vs) >= 3 ? "var(--accent)"
+                  : Math.abs(vs) >= 1 ? "rgba(14,85,96,.55)"
+                  :                     "rgba(14,85,96,.32)";
+    const sign = (vs ?? 0) >= 0 ? "+" : "−";
+    return (<>
+      <div style={{fontFamily:"var(--font-ui)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase", marginBottom:4, fontWeight:600, textAlign:"left", width:"100%"}}>{sectorName}</div>
+      <div style={{...stValueStyle("var(--text)"), fontSize:22, textAlign:"left", width:"100%"}}>{w.toFixed(1)}%</div>
+      <div style={{position:"relative", width:"100%", height:14, background:"rgba(14,85,96,.10)", borderRadius:3, margin:"10px 0 4px"}}>
+        <div style={{position:"absolute", left:"50%", top:0, bottom:0, width:1, background:"var(--border)"}} />
+        <div style={{position:"absolute", [side]:"50%", top:0, bottom:0, width:`${fill}%`, background:tealMag, borderRadius:radius}} />
+      </div>
+      {vs != null && <div style={stMetaStyle}>{sign}{Math.abs(vs)}% vs SPY</div>}
+    </>);
+  };
+  // Account donut (Portfolio Insights): 4-segment ring with hover tooltip.
+  // Bucket map: Equities / Bonds / Other / Cash. Roll commodities + crypto
+  // into "Other" per Joe directive 2026-05-07.
+  const _bucketPosition = (p) => {
+    if (p.sector === "Cash") return "Cash";
+    if (["HY Bonds","Bonds","Treasuries","Fixed Income","IG Corp Bond","USTs (20+yr)","T-Bills (1-3mo)"].includes(p.sector)) return "Bonds";
+    const t = (p.ticker || "").toUpperCase();
+    if (["GLD","SLV","GDX","GDXJ","COPX","CPER","DBA","PDBC","DBC","USO","UNG","FBTC","ETHE","GBTC","IBIT","ETHA","COIN"].includes(t)) return "Other";
+    if (["Commodity","Metals","Crypto","Gold"].includes(p.sector)) return "Other";
+    return "Equities";
+  };
+  const _accountBuckets = (acct) => {
+    const out = { Equities:0, Bonds:0, Other:0, Cash:0 };
+    (acct?.positions || []).forEach(p => {
+      const v = Number(p.value || 0);
+      if (v <= 0) return;
+      out[_bucketPosition(p)] += v;
+    });
+    const total = Object.values(out).reduce((a,b)=>a+b, 0);
+    const pcts = total > 0
+      ? { Equities: out.Equities/total*100, Bonds: out.Bonds/total*100,
+          Other: out.Other/total*100, Cash: out.Cash/total*100, _total: total }
+      : { Equities: 0, Bonds: 0, Other: 0, Cash: 0, _total: 0 };
+    return pcts;
+  };
+  const AccountDonut = ({ ttm, buckets }) => {
+    const R = 32, SW = 8;
+    const CIRC = 2 * Math.PI * R;
+    const segs = [
+      ["Equities", buckets.Equities, "var(--accent)"],
+      ["Bonds",    buckets.Bonds,    "rgba(14,85,96,.70)"],
+      ["Other",    buckets.Other,    "rgba(14,85,96,.45)"],
+      ["Cash",     buckets.Cash,     "var(--text-dim)"],
+    ];
+    let offset = 0;
+    const ttmStr = ttm == null ? "—" : (ttm >= 0 ? "+" : "") + (ttm * 100).toFixed(1) + "%";
+    return (
+      <div className="mt-donut-wrap" style={{position:"relative", display:"flex", flexDirection:"column", alignItems:"center", margin:"6px 0 8px"}}>
+        <div className="mt-donut-tip" style={{
+          position:"absolute", bottom:"100%", left:"50%",
+          transform:"translateX(-50%) translateY(-8px)",
+          background:"var(--text)", color:"var(--surface)",
+          padding:"9px 12px", borderRadius:6, fontSize:11, lineHeight:1.55,
+          whiteSpace:"nowrap", opacity:0, pointerEvents:"none",
+          transition:"opacity .12s", fontFamily:"var(--font-ui)",
+          boxShadow:"0 4px 12px rgba(0,0,0,.18)", zIndex:5, minWidth:130,
+        }}>
+          {segs.map(([name, pct, color]) => (
+            <div key={name} style={{display:"flex", justifyContent:"space-between", gap:18}}>
+              <span><span style={{display:"inline-block", width:8, height:8, borderRadius:2, marginRight:7, verticalAlign:"middle", background:color}} />{name}</span>
+              <span style={{fontFamily:"var(--font-mono)"}}>{pct.toFixed(0)}%</span>
+            </div>
+          ))}
+        </div>
+        <svg viewBox="0 0 80 80" width="92" height="92">
+          <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(14,85,96,.10)" strokeWidth={SW}/>
+          {segs.map(([name, pct, color]) => {
+            if (!pct) return null;
+            const dash = (pct/100) * CIRC;
+            const dashOffset = -offset;
+            offset += dash;
+            return (
+              <circle key={name} cx="40" cy="40" r={R} fill="none" stroke={color}
+                strokeWidth={SW} strokeDasharray={`${dash.toFixed(2)},${CIRC.toFixed(2)}`}
+                strokeDashoffset={dashOffset.toFixed(2)} transform="rotate(-90 40 40)"/>
+            );
+          })}
+          <text x="40" y="42" textAnchor="middle" fontFamily="var(--font-mono)" fontSize="13" fontWeight="600" fill="var(--accent)">{ttmStr}</text>
+          <text x="40" y="54" textAnchor="middle" fontFamily="var(--font-ui)" fontSize="7" fill="var(--text-muted)" letterSpacing="1.2">TTM</text>
+        </svg>
+      </div>
+    );
+  };
 
   return (
   <main className="fade-in main-padded mt-home" style={{
@@ -5650,30 +5804,11 @@ return(
             <h1 style={{
               fontFamily:"var(--font-display)", fontWeight:400,
               fontSize:"clamp(34px, 4.2vw, 46px)",
-              lineHeight:1.08, letterSpacing:"-0.012em",
-              color:"var(--text)", margin:0, marginBottom:"var(--space-3)",
+              lineHeight:1.18, letterSpacing:"-0.018em",
+              color:"var(--text)", margin:0, marginBottom:0,
             }}>
-              Designed to beat benchmarks on a risk-adjusted basis using <em style={{fontStyle:"italic", color:"var(--accent)"}}>discipline, not instinct.</em>
+              Purpose-built tools designed to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat benchmarks</em> on a risk-adjusted basis using <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>discipline, not instinct.</em>
             </h1>
-            <p style={{
-              fontSize:16, color:"var(--text-muted)", lineHeight:1.55,
-              maxWidth:"62ch", margin:0,
-            }}>
-              A six-mechanism macro cycle board and a watchlist scanner. Asset tilt engine in rebuild.
-            </p>
-          </div>
-          <div style={{paddingBottom:"var(--space-2)", position:"relative", zIndex:1}}>
-            <div style={{
-              fontFamily:"var(--font-mono)", fontSize:10,
-              color:"var(--text-dim)", letterSpacing:"0.18em", textTransform:"uppercase",
-              marginBottom:"var(--space-3)",
-            }}>Today's stance</div>
-            <div style={{
-              fontFamily:"var(--font-display)", fontStyle:"italic", fontWeight:400,
-              fontSize:"clamp(18px, 2vw, 22px)", lineHeight:1.25, color:"var(--text)",
-            }}>
-              {h}<span style={{color:"var(--accent)"}}>{em}</span>
-            </div>
           </div>
         </div>
 
@@ -5714,10 +5849,11 @@ return(
            onClick={()=>navTo("overview")}
            onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("overview"); } }}
            style={{...cardStyle, cursor:"pointer"}}>
-        <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>01</span>Macro Overview <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoardSnap?.as_of||null} style={{marginLeft:8}}/></h2>
-          <a style={cardLinkStyle} onClick={(e)=>{e.stopPropagation(); navTo("overview");}}>Open full view →</a>
+        <div style={cardHeadSlimStyle}>
+          <span style={cardTagStyle}>01</span>
+          <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoardSnap?.as_of||null} style={{marginLeft:"auto"}}/>
         </div>
+        <p style={tileExplainStyle}>A <span style={tileNameStyle}>Macro Overview</span> of the markets across 6 cycle mechanisms — calibrated to historical stress.</p>
 
         {(() => {
           if (!cycleBoardSnap) {
@@ -5753,37 +5889,13 @@ return(
           const aggCol  = bandColor(aggBand);
 
           return (
-            <>
-              {/* Composite-average headline — exact pattern from v11 */}
-              <div style={{
-                display:"flex", alignItems:"baseline", gap:"var(--space-3)",
-                marginBottom:"var(--space-3)",
-              }}>
-                <div style={{
-                  fontFamily:"var(--font-mono)", fontSize:38, fontWeight:600,
-                  color:"var(--accent)", lineHeight:1, letterSpacing:"-0.02em",
-                }}>{rounded}<span style={{fontSize:18, fontWeight:400, color:"var(--text-muted)", marginLeft:4}}>/ 100</span></div>
-                <div style={{
-                  fontFamily:"var(--font-mono)", fontSize:10,
-                  color:"var(--accent)", letterSpacing:"0.12em",
-                  textTransform:"uppercase", fontWeight:600,
-                }}>composite average</div>
-              </div>
-              {/* Composite subline removed 2026-05-07 — the 6 sub-tiles
-                  below carry the per-mechanism data; "{label} band - {N}/100"
-                  duplicates what the eyebrow already says. */}
-
-              {/* Six mechanism sub-tiles — same outer/inner styling as the
-                  other 3 home tiles. Eyebrow in brand teal; number in ink. */}
-              <div style={stGridStyle}>
-                {mechs.map(m => (
-                  <div key={m.id} onClick={()=>navTo("overview")} style={stStyle}>
-                    <div style={stEyebrowStyle}>{m.num} · {m.name}</div>
-                    <div style={stValueStyle("var(--accent)")}>{m.score}<span style={{fontSize:11, fontWeight:400, color:"var(--text-muted)", marginLeft:3}}>/ 100</span></div>
-                  </div>
-                ))}
-              </div>
-            </>
+            <div style={{...stGridStyle, alignItems:"stretch"}}>
+              {mechs.map(m => (
+                <div key={m.id} onClick={()=>navTo("overview")} style={{...stStyle, alignItems:"center"}}>
+                  <DialMini score={m.score} num={m.num} name={m.name} />
+                </div>
+              ))}
+            </div>
           );
         })()}
       </div>
@@ -5793,10 +5905,11 @@ return(
       <div role="link" tabIndex={0} onClick={()=>navTo("allocation")}
            onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("allocation"); } }}
            style={{...cardStyle, cursor:"pointer"}}>
-        <div style={cardHeadStyle}>
-          <h2 style={cardH2Style}><span style={cardTagStyle}>02</span>Asset Tilt <FreshnessDot indicatorId="v10_allocation" asOfIso={v10AllocSnap?.as_of||null} style={{marginLeft:9}}/></h2>
-          <a style={cardLinkStyle} onClick={(e)=>{e.stopPropagation(); navTo("allocation");}}>Open full view →</a>
+        <div style={cardHeadSlimStyle}>
+          <span style={cardTagStyle}>02</span>
+          <FreshnessDot indicatorId="v10_allocation" asOfIso={v10AllocSnap?.as_of||null} style={{marginLeft:"auto"}}/>
         </div>
+        <p style={tileExplainStyle}>An <span style={tileNameStyle}>Asset Tilt Engine</span> for optimal portfolio allocation — back-tested rigorously.</p>
         {(() => {
           if (!v10AllocSnap) {
             return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
@@ -5817,14 +5930,9 @@ return(
           return (
             <div style={stGridStyle}>
               {top6.map((sec, i) => (
-                <div key={"alloc"+i} style={sec._empty ? {...stStyle, cursor:"default"} : stStyle}
+                <div key={"alloc"+i} style={sec._empty ? {...stStyle, cursor:"default", alignItems:"flex-start"} : {...stStyle, alignItems:"flex-start"}}
                      onClick={()=>{ if (!sec._empty) navTo("allocation"); }}>
-                  <div style={stEyebrowStyle}>#{i+1}</div>
-                  <div style={stValueStyle(sec._empty ? "var(--text-dim)" : "var(--accent)")}>{fmtPct(sec.weight)}</div>
-                  <div style={stSubStyle}>{sec.sector}</div>
-                  {!sec._empty && sec.vs_spy_pp != null && Math.abs(sec.vs_spy_pp) >= 1 && (
-                    <div style={stMetaStyle}>{fmtDelta(sec.vs_spy_pp)}</div>
-                  )}
+                  <TiltBarMini sectorName={sec.sector} weight={sec.weight} vsSpyPp={sec.vs_spy_pp} />
                 </div>
               ))}
             </div>
@@ -5849,10 +5957,11 @@ return(
              onClick={()=>navTo("portopps")}
              onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("portopps"); } }}
              style={{...cardStyle, cursor:"pointer"}}>
-          <div style={cardHeadStyle}>
-            <h2 style={cardH2Style}><span style={cardTagStyle}>03</span>Trading Opportunities <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||scanData?.date_iso||scanData?.date||null} style={{marginLeft:8}}/></h2>
-            <a style={cardLinkStyle} onClick={(e)=>{e.stopPropagation(); navTo("portopps");}}>Open →</a>
+          <div style={cardHeadSlimStyle}>
+            <span style={cardTagStyle}>03</span>
+            <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||scanData?.date_iso||scanData?.date||null} style={{marginLeft:"auto"}}/>
           </div>
+          <p style={tileExplainStyle}>An <span style={tileNameStyle}>Equity Scanner</span> that analyzes hundreds of data points to identify specific trading opportunities.</p>
 
           {/* 6 sub-tiles — top 6 candidate tickers ranked by overall score.
               Shared module-level styles. Footer stripped — Joe directive
@@ -5863,26 +5972,38 @@ return(
               .sort((a, b) => b.ovr - a.ovr)
               .slice(0, 6);
             while (ranked.length < 6) ranked.push({_empty:true});
+            const fillFor = (sc) => sc >= 75 ? "var(--accent)"
+                                    : sc >= 55 ? "rgba(14,85,96,.55)"
+                                    :            "rgba(14,85,96,.32)";
             return (
-              <div style={stGridStyle}>
+              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-2)"}}>
                 {ranked.map((r, i) => {
                   if (r._empty) {
                     return (
-                      <div key={"e"+i} style={{...stStyle, cursor:"default"}}>
-                        <div style={stEyebrowStyle}>#{i+1}</div>
-                        <div style={stValueStyle("var(--text-dim)")}>—</div>
-                        <div style={stSubStyle}>—</div>
+                      <div key={"e"+i} style={{background:"var(--surface)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"10px 14px", display:"grid", gridTemplateColumns:"48px 1fr auto", gap:12, alignItems:"center", cursor:"default"}}>
+                        <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>#{i+1}</div>
+                        <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
+                          <div style={{fontFamily:"var(--font-display)", fontSize:18, fontWeight:500, color:"var(--text-dim)", lineHeight:1}}>—</div>
+                          <div style={{position:"relative", width:"100%", height:5, background:"var(--surface-2)", borderRadius:2}}/>
+                          <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>—</div>
+                        </div>
+                        <div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text-dim)", minWidth:32, textAlign:"right"}}>—</div>
                       </div>
                     );
                   }
                   const kind = r.ovr >= 60 ? "BUY" : "NEAR";
                   const sect = _sectorFor(r.ticker);
                   return (
-                    <div key={r.ticker} style={stStyle} onClick={()=>navTo("portopps")}>
-                      <div style={stEyebrowStyle}>#{i+1} · {kind}</div>
-                      <div style={stValueStyle(kind === "BUY" ? "var(--accent)" : "var(--text)")}>{r.ovr}</div>
-                      <div style={stSubStyle}>{r.ticker}</div>
-                      {sect && <div style={stMetaStyle}>{sect}</div>}
+                    <div key={r.ticker} onClick={()=>navTo("portopps")} style={{background:"var(--surface)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"10px 14px", display:"grid", gridTemplateColumns:"48px 1fr auto", gap:12, alignItems:"center", cursor:"pointer"}}>
+                      <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>#{i+1} {kind}</div>
+                      <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
+                        <div style={{fontFamily:"var(--font-display)", fontSize:18, fontWeight:500, color:"var(--text)", lineHeight:1}}>{r.ticker}</div>
+                        <div style={{position:"relative", width:"100%", height:5, background:"var(--surface-2)", borderRadius:2}}>
+                          <div style={{position:"absolute", left:0, top:0, bottom:0, width:`${Math.max(0,Math.min(100, r.ovr))}%`, background:fillFor(r.ovr), borderRadius:2}}/>
+                        </div>
+                        <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>{sect || "—"}</div>
+                      </div>
+                      <div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text)", minWidth:32, textAlign:"right"}}>{r.ovr}</div>
                     </div>
                   );
                 })}
@@ -6038,23 +6159,47 @@ return(
              onClick={()=>navTo("insights")}
              onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("insights"); } }}
              style={{...cardStyle, cursor:"pointer"}}>
-          <div style={cardHeadStyle}>
-            <h2 style={cardH2Style}>
-              <span style={cardTagStyle}>04</span>Portfolio Insights <FreshnessDot indicatorId="portfolio_history" asOfIso={_portfolioReturns?.latestDate||scanData?.scan_time||null} style={{marginLeft:8}}/>
-            </h2>
-            <a style={cardLinkStyle} onClick={(e)=>{e.stopPropagation(); navTo("insights");}}>Open →</a>
+          <div style={cardHeadSlimStyle}>
+            <span style={cardTagStyle}>04</span>
+            <FreshnessDot indicatorId="portfolio_history" asOfIso={_portfolioReturns?.latestDate||scanData?.scan_time||null} style={{marginLeft:"auto"}}/>
           </div>
+          <p style={tileExplainStyle}><span style={tileNameStyle}>Your Portfolio</span> overlaid with MacroTilt&apos;s signal intelligence.</p>
 
-          {/* 6 ACCOUNT SUB-TILES — Joe directive 2026-05-07.
-              One sub-tile per account showing Value + per-account TTM
-              return (bug #1171 fix — was rendering whole-book TTM into
-              every card). Pads to 6 with empty placeholders. */}
+          {/* SIGNED-OUT → single CTA card with an illustrative demo donut.
+              SIGNED-IN  → 6 account donuts (4-segment Equities/Bonds/Other/
+              Cash, per-account TTM in the center). Joe directive 2026-05-07. */}
           {(() => {
+            const haveAccounts = _isAuthed && Array.isArray(ACCOUNTS) && ACCOUNTS.length > 0;
+            if (!haveAccounts) {
+              // Demo donut — illustrative segments only, faded so it reads as
+              // "what you would see when signed in" without being mistaken
+              // for live data.
+              const demoBuckets = { Equities: 70, Bonds: 18, Other: 4, Cash: 8, _total: 100 };
+              return (
+                <div style={{
+                  flex:1, display:"flex", flexDirection:"column", alignItems:"center",
+                  justifyContent:"center", textAlign:"center",
+                  padding:"var(--space-4) var(--space-3)",
+                  background:"var(--surface)", border:"1px dashed var(--border)",
+                  borderRadius:8, gap:"var(--space-3)",
+                }}>
+                  <div style={{opacity:0.55, pointerEvents:"none"}}>
+                    <AccountDonut ttm={0.156} buckets={demoBuckets} />
+                  </div>
+                  <div style={{fontFamily:"var(--font-display)", fontWeight:500, fontSize:18, color:"var(--text)", letterSpacing:"-0.005em", maxWidth:340}}>
+                    Sign in to see your portfolio overlaid with MacroTilt&apos;s signal intelligence.
+                  </div>
+                  <div style={{fontFamily:"var(--font-ui)", fontSize:12, color:"var(--text-muted)", maxWidth:380, lineHeight:1.5}}>
+                    Account allocations, per-account returns, and signal intelligence — private to your account.
+                  </div>
+                  <div style={{fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600, color:"var(--accent)", letterSpacing:"0.1em", textTransform:"uppercase", marginTop:"var(--space-2)"}}>
+                    Sign in →
+                  </div>
+                </div>
+              );
+            }
             const _byAcct = _portfolioReturns?.periodReturnsByAccount || {};
-            const fmtPct = v => v == null ? "—" : (v >= 0 ? "+" : "") + (v * 100).toFixed(1) + "%";
-            const _accts = (ACCOUNTS || []).slice(0, 6).map(a => {
-              // Match by account label first, then by id, since
-              // portfolio_history keys on account_label.
+            const _accts = ACCOUNTS.slice(0, 6).map(a => {
               const ttm = _byAcct[a.label] != null ? _byAcct[a.label].TTM
                         : _byAcct[a.id]    != null ? _byAcct[a.id].TTM
                         : null;
@@ -6062,13 +6207,10 @@ return(
                 id: a.id || a.label || "_",
                 label: a.label || "Account",
                 value: (a.positions || []).reduce((sum, p) => sum + (p.value || 0), 0),
+                buckets: _accountBuckets(a),
                 ttm,
-                _empty: false,
               };
             });
-            while (_accts.length < 6) {
-              _accts.push({id:"_e"+_accts.length, label:"#"+(_accts.length+1), value:null, ttm:null, _empty:true});
-            }
             const fmt$ = v => v == null ? "—"
               : v >= 1000000 ? "$" + (v/1000000).toFixed(1) + "M"
               : v >= 1000    ? "$" + Math.round(v/1000).toLocaleString() + "K"
@@ -6076,11 +6218,11 @@ return(
             return (
               <div style={stGridStyle}>
                 {_accts.map((a) => (
-                  <div key={a.id} style={a._empty ? {...stStyle, cursor:"default"} : stStyle}
-                       onClick={()=>{ if (!a._empty) navTo("insights"); }}>
-                    <div style={stEyebrowStyle}>{a.label}</div>
-                    <div style={stValueStyle(a._empty ? "var(--text-dim)" : "var(--text)")}>{fmt$(a.value)}</div>
-                    <div style={stMetaStyle}>{a._empty ? "—" : `TTM ${fmtPct(a.ttm)}`}</div>
+                  <div key={a.id} style={{...stStyle, alignItems:"center"}}
+                       onClick={()=>navTo("insights")}>
+                    <div style={{...stEyebrowStyle, color:"var(--text-muted)"}}>{a.label}</div>
+                    <AccountDonut ttm={a.ttm} buckets={a.buckets} />
+                    <div style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:14, fontWeight:600, color:"var(--text)"}}>{fmt$(a.value)}</div>
                   </div>
                 ))}
               </div>
