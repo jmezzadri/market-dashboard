@@ -5036,7 +5036,7 @@ const [sidebarOpen,setSidebarOpen]=useState(false);
 // Session-scoped portfolio — returns empty arrays when unauthenticated so the
 // tiles render a zero-state rather than leaking someone else's data.
 const {session}=useSession();
-const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio}=useUserPortfolio();
+const {accounts:ACCOUNTS, watchlist:userWatchlistRows, refetch:refetchPortfolio, isAuthed:_isAuthed}=useUserPortfolio();
 const portfolioAuthed=!!session;
 // Set of tickers already on the user's watchlist — used by WatchlistTable
 // to flip "+ Watch" → "✓ Watching" per row.
@@ -6163,15 +6163,43 @@ return(
             <span style={cardTagStyle}>04</span>
             <FreshnessDot indicatorId="portfolio_history" asOfIso={_portfolioReturns?.latestDate||scanData?.scan_time||null} style={{marginLeft:"auto"}}/>
           </div>
-          <p style={tileExplainStyle}><span style={tileNameStyle}>Your Portfolio</span> overlaid with MacroTilt&apos;s signal intelligence. <span style={tileSigninStyle}>Sign-in required.</span></p>
+          <p style={tileExplainStyle}><span style={tileNameStyle}>Your Portfolio</span> overlaid with MacroTilt&apos;s signal intelligence.</p>
 
-          {/* 6 ACCOUNT DONUT SUB-TILES — Joe directive 2026-05-07.
-              Each account: 4-segment donut (Equities / Bonds / Other /
-              Cash) with per-account TTM in the center and account value
-              below. Hover the donut for the % breakdown by bucket. */}
+          {/* SIGNED-OUT → single CTA card with an illustrative demo donut.
+              SIGNED-IN  → 6 account donuts (4-segment Equities/Bonds/Other/
+              Cash, per-account TTM in the center). Joe directive 2026-05-07. */}
           {(() => {
+            const haveAccounts = _isAuthed && Array.isArray(ACCOUNTS) && ACCOUNTS.length > 0;
+            if (!haveAccounts) {
+              // Demo donut — illustrative segments only, faded so it reads as
+              // "what you would see when signed in" without being mistaken
+              // for live data.
+              const demoBuckets = { Equities: 70, Bonds: 18, Other: 4, Cash: 8, _total: 100 };
+              return (
+                <div style={{
+                  flex:1, display:"flex", flexDirection:"column", alignItems:"center",
+                  justifyContent:"center", textAlign:"center",
+                  padding:"var(--space-4) var(--space-3)",
+                  background:"var(--surface)", border:"1px dashed var(--border)",
+                  borderRadius:8, gap:"var(--space-3)",
+                }}>
+                  <div style={{opacity:0.55, pointerEvents:"none"}}>
+                    <AccountDonut ttm={0.156} buckets={demoBuckets} />
+                  </div>
+                  <div style={{fontFamily:"var(--font-display)", fontWeight:500, fontSize:18, color:"var(--text)", letterSpacing:"-0.005em", maxWidth:340}}>
+                    Sign in to see your portfolio overlaid with MacroTilt&apos;s signal intelligence.
+                  </div>
+                  <div style={{fontFamily:"var(--font-ui)", fontSize:12, color:"var(--text-muted)", maxWidth:380, lineHeight:1.5}}>
+                    Account allocations, per-account returns, and signal intelligence — private to your account.
+                  </div>
+                  <div style={{fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600, color:"var(--accent)", letterSpacing:"0.1em", textTransform:"uppercase", marginTop:"var(--space-2)"}}>
+                    Sign in →
+                  </div>
+                </div>
+              );
+            }
             const _byAcct = _portfolioReturns?.periodReturnsByAccount || {};
-            const _accts = (ACCOUNTS || []).slice(0, 6).map(a => {
+            const _accts = ACCOUNTS.slice(0, 6).map(a => {
               const ttm = _byAcct[a.label] != null ? _byAcct[a.label].TTM
                         : _byAcct[a.id]    != null ? _byAcct[a.id].TTM
                         : null;
@@ -6181,12 +6209,8 @@ return(
                 value: (a.positions || []).reduce((sum, p) => sum + (p.value || 0), 0),
                 buckets: _accountBuckets(a),
                 ttm,
-                _empty: false,
               };
             });
-            while (_accts.length < 6) {
-              _accts.push({id:"_e"+_accts.length, label:"#"+(_accts.length+1), value:null, ttm:null, buckets:{Equities:0,Bonds:0,Other:0,Cash:0,_total:0}, _empty:true});
-            }
             const fmt$ = v => v == null ? "—"
               : v >= 1000000 ? "$" + (v/1000000).toFixed(1) + "M"
               : v >= 1000    ? "$" + Math.round(v/1000).toLocaleString() + "K"
@@ -6194,11 +6218,11 @@ return(
             return (
               <div style={stGridStyle}>
                 {_accts.map((a) => (
-                  <div key={a.id} style={a._empty ? {...stStyle, cursor:"default", alignItems:"center"} : {...stStyle, alignItems:"center"}}
-                       onClick={()=>{ if (!a._empty) navTo("insights"); }}>
+                  <div key={a.id} style={{...stStyle, alignItems:"center"}}
+                       onClick={()=>navTo("insights")}>
                     <div style={{...stEyebrowStyle, color:"var(--text-muted)"}}>{a.label}</div>
                     <AccountDonut ttm={a.ttm} buckets={a.buckets} />
-                    <div style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:14, fontWeight:600, color:a._empty?"var(--text-dim)":"var(--text)"}}>{fmt$(a.value)}</div>
+                    <div style={{fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", fontSize:14, fontWeight:600, color:"var(--text)"}}>{fmt$(a.value)}</div>
                   </div>
                 ))}
               </div>
