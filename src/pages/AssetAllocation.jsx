@@ -1276,7 +1276,7 @@ export default function AssetTilt({ onOpenTicker }) {
 
   if (!v10 || !cycleBoard) {
     return (
-      <main style={{ maxWidth: 1280, margin: "0 auto", padding: "60px 32px" }}>
+      <main style={{ maxWidth: 1216, margin: "0 auto", padding: "60px 32px" }}>
         <div style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)", fontSize: 12 }}>
           Loading Asset Tilt…
         </div>
@@ -1292,11 +1292,11 @@ export default function AssetTilt({ onOpenTicker }) {
   const defensivePerBucket = defensiveTotal / DEFENSIVE_BUCKETS.length;
 
   return (
-    <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 32px 48px" }}>
+    <main style={{ maxWidth: 1216, margin: "0 auto", padding: "24px 32px 48px" }}>
       {/* HERO — Joe mockup 2026-05-08 v3:
           LEFT (~2/3): eyebrow + h1 + Engine subtitle.
           RIGHT (~1/3): "Key Statistics vs. S&P 500" card with 4 KPI cells. */}
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 36, alignItems: "center", marginBottom: 32 }}>
+      <section style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 36, alignItems: "start", marginBottom: 32 }}>
         <div>
           <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 14 }}>
             Asset Tilt
