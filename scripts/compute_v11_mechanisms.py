@@ -18,7 +18,7 @@ CONTRACT (read by src/App.jsx home Macro Overview tile + AssetTilt page):
     "framework": "v11 — six cycle mechanisms",
     "calibration_label": "Sprint 1+2 calibration",
     "mechanisms": [
-      {"id": "valuation",            "num": "01", "name": "Valuation",             "score": 99},
+      {"id": "valuation",            "num": "01", "name": "Equity Valuations",     "score": 99},
       {"id": "credit",               "num": "02", "name": "Credit",                "score": 67},
       {"id": "funding",              "num": "03", "name": "Funding",               "score": 30},
       {"id": "growth",               "num": "04", "name": "Growth",                "score": 45},
@@ -73,7 +73,7 @@ SPRINT1_IDS = {"valuation", "credit", "growth"}
 # carry indicator data for that mechanism. Direction strings match the
 # calibration JSON convention.
 PANELS: Dict[str, dict] = {
-    "valuation":         {"num": "01", "name": "Valuation"},   # Sprint 1 — calibration JSON
+    "valuation":         {"num": "01", "name": "Equity Valuations"},   # Sprint 1 — calibration JSON
     "credit":            {"num": "02", "name": "Credit"},      # Sprint 1
     "funding": {
         "num": "03",
