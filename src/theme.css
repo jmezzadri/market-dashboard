@@ -926,3 +926,6 @@ a:hover { text-decoration: underline; }
   .app-main { margin-left: 0; }
 }
 
+
+/* Home donut tooltip (Joe directive 2026-05-07) */
+.mt-donut-wrap:hover .mt-donut-tip { opacity: 1 !important; }
