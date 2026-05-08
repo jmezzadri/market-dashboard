@@ -5695,8 +5695,8 @@ return(
 
   return (
   <main className="fade-in main-padded mt-home" style={{
-    maxWidth:1360, margin:"0 auto",
-    padding:"var(--space-3) var(--space-8) var(--space-8)",
+    maxWidth:1280, margin:"0 auto",
+    padding:"24px 32px 48px",
     display:"flex", flexDirection:"column", gap:"var(--space-5)",
   }}>
 
@@ -5793,18 +5793,16 @@ return(
           </div>
           <div style={{position:"relative", zIndex:1}}>
             <div style={{
-              fontFamily:"var(--font-mono)", fontSize:11,
-              color:"var(--accent)", letterSpacing:"0.18em", textTransform:"uppercase",
-              marginBottom:"var(--space-3)",
-              display:"flex", alignItems:"center", gap:"var(--space-2)",
+              fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600,
+              color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase",
+              marginBottom:14,
             }}>
-              <span style={{width:20, height:1, background:"var(--accent)", opacity:0.6, display:"inline-block"}}/>
               MacroTilt
             </div>
             <h1 style={{
               fontFamily:"var(--font-display)", fontWeight:400,
-              fontSize:"clamp(34px, 4.2vw, 46px)",
-              lineHeight:1.18, letterSpacing:"-0.018em",
+              fontSize:"clamp(28px, 3.4vw, 38px)",
+              lineHeight:1.18, letterSpacing:"-0.012em",
               color:"var(--text)", margin:0, marginBottom:0,
             }}>
               Purpose-built tools designed to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat benchmarks</em> on a risk-adjusted basis using <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>discipline, not instinct.</em>
@@ -6317,21 +6315,16 @@ return(
   />
 )}
 
-<div className="fade-in" style={{maxWidth:1440, margin:"0 auto"}}>
+<div className="fade-in" style={{maxWidth:1280, margin:"0 auto"}}>
 
-{/* OVERVIEW — v11 mockup served from /public as an iframe.
-    The previous SD-score / composite / category-tile layout has been
-    replaced by the v11 design (see PR #314, #315, #316). The static
-    mockup file lives at public/MacroTilt_Macro_Overview_Page_v11.html.
-    Once the React port of v11 is built, this iframe goes away. */}
+{/* OVERVIEW — v11 mockup served from /public as an iframe. Outer width
+    + padding match Home / Asset Tilt / Trading Opps so the four pages
+    feel identical at the top of the viewport. The freshness strip
+    above the iframe was removed 2026-05-08 (Joe directive: page-to-
+    page parity); freshness lives on each mechanism dial inside. */}
 {tab==="overview" && V2_ENABLED && <V2ErrorBoundary><MacroOverviewPageV2 /></V2ErrorBoundary>}
 {tab==="overview" && !V2_ENABLED && (
 <div style={{padding:0,margin:0,width:"100%"}}>
-<div style={{maxWidth:1240,margin:"0 auto",padding:"14px 24px 6px",display:"flex",alignItems:"center",gap:8,fontFamily:"var(--font-mono)",fontSize:11,color:"var(--text-dim)",letterSpacing:"0.06em",textTransform:"uppercase"}}>
-  <span style={{color:"var(--accent)"}}>Data freshness</span>
-  <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoardSnap?.as_of||null}/>
-  <span style={{color:"var(--text-dim)"}}>· cycle board</span>
-</div>
 <iframe
   src="/MacroTilt_Macro_Overview_Page_v11.html"
   title="Macro Overview"
@@ -6438,7 +6431,7 @@ const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,pad
 const showTrading=tab==="portopps";
 const showInsights=tab==="insights";
 return(
-<div style={{padding:"14px 20px",display:"flex",flexDirection:"column",maxWidth:1100,margin:"0 auto"}}>
+<div style={{padding:"24px 32px 48px",display:"flex",flexDirection:"column",maxWidth:1280,margin:"0 auto"}}>
 {/* INLINE SIGN-IN CTA — only when not authed. Per B2 spec: portopps is
     publicly clickable, but shows zero-state + a contextual prompt instead
     of a full LoginScreen. Signing in swaps the skeleton for real data. */}
@@ -6566,13 +6559,7 @@ An equity scanner that combines technical momentum, insider Form-4s, unusual opt
     TRIGGER / YOUR WATCHLIST). One table. Row tints: green for >=75 (buy),
     soft green for 50-75 (near), no tint for <50. */}
 {showTrading&&<div style={sectionPanel}>
-<div style={{padding:"10px 16px 0 16px"}}>
-  <DataFreshness
-    scanTs={scanData?.scan_time}
-    pricesTs={universeSnapshotTs}
-    eventsTs={scanData?.ticker_events_ts}
-  />
-</div>
+
 <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
 
 {(()=>{
@@ -6619,6 +6606,14 @@ return (<>
   : null}
 </>);
 })()}
+{/* DATA FRESHNESS moved to bottom of the panel — Joe directive 2026-05-08. */}
+<div style={{padding:"12px 16px 0",borderTop:"1px solid var(--border-faint)",marginTop:8}}>
+  <DataFreshness
+    scanTs={scanData?.scan_time}
+    pricesTs={universeSnapshotTs}
+    eventsTs={scanData?.ticker_events_ts}
+  />
+</div>
 
 </div>
 </div>}
