@@ -29,6 +29,7 @@
     --surface:        #ffffff;
     --border:         rgba(14,17,21,0.10);
     --border-strong:  rgba(14,17,21,0.18);
+    --accent:         #0e5560;
 
     /* Ink */
     --ink:    #0e1115;
@@ -66,6 +67,7 @@
     --surface:        #16191e;
     --border:         rgba(255,255,255,0.06);
     --border-strong:  rgba(255,255,255,0.12);
+    --accent:         #7fbcc6;
 
     --ink:    #f5f5f7;
     --ink-2:  #d2d2d7;
@@ -198,6 +200,74 @@
      - Same surface as cards.
      - 380px dial column on left, headline + count + explainer on right.
      ============================================================ */
+  /* Joe directive 2026-05-08: headline + composite gauge sit in one row.
+     Left column (~2/3): eyebrow + h1 + cadence + explainer.
+     Right column (~1/3): compact composite gauge + count + band label. */
+  .hero-row {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 36px;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .hero-row .hero-left {
+    min-width: 0;
+  }
+  .hero-row .hero-right {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px 14px;
+    text-align: center;
+  }
+  .hero-right .composite-eyebrow {
+    font-family: var(--body);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink-3);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .hero-right .verdict-count {
+    margin-top: 6px;
+  }
+  .hero-right .verdict-sublabel {
+    margin-bottom: 4px;
+  }
+  .hero-right .verdict-headline {
+    font-size: 18px;
+    margin: 6px 0 0;
+  }
+  .hero-right .verdict-svg-wrap {
+    margin-bottom: 8px;
+  }
+  .hero-right .verdict-svg {
+    max-width: 280px;
+    margin: 0 auto;
+    display: block;
+  }
+  .hero-explainer {
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    max-width: 720px;
+    margin-top: 10px;
+  }
+  .hero-explainer a {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  /* Below 980px, stack: headline first, composite below. */
+  @media (max-width: 980px) {
+    .hero-row {
+      grid-template-columns: 1fr;
+    }
+    .hero-row .hero-right {
+      max-width: 360px;
+    }
+  }
   .verdict-block {
     display: grid;
     grid-template-columns: 380px 1fr;
@@ -650,7 +720,75 @@
      ============================================================ */
   @media (max-width: 980px) {
     .dial-grid { grid-template-columns: repeat(2, 1fr); }
-    .verdict-block { grid-template-columns: 1fr; }
+    /* Joe directive 2026-05-08: headline + composite gauge sit in one row.
+     Left column (~2/3): eyebrow + h1 + cadence + explainer.
+     Right column (~1/3): compact composite gauge + count + band label. */
+  .hero-row {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 36px;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .hero-row .hero-left {
+    min-width: 0;
+  }
+  .hero-row .hero-right {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px 14px;
+    text-align: center;
+  }
+  .hero-right .composite-eyebrow {
+    font-family: var(--body);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--ink-3);
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .hero-right .verdict-count {
+    margin-top: 6px;
+  }
+  .hero-right .verdict-sublabel {
+    margin-bottom: 4px;
+  }
+  .hero-right .verdict-headline {
+    font-size: 18px;
+    margin: 6px 0 0;
+  }
+  .hero-right .verdict-svg-wrap {
+    margin-bottom: 8px;
+  }
+  .hero-right .verdict-svg {
+    max-width: 280px;
+    margin: 0 auto;
+    display: block;
+  }
+  .hero-explainer {
+    font-family: var(--body);
+    font-size: 13px;
+    color: var(--ink-2);
+    line-height: 1.55;
+    max-width: 720px;
+    margin-top: 10px;
+  }
+  .hero-explainer a {
+    color: var(--accent);
+    font-weight: 500;
+  }
+  /* Below 980px, stack: headline first, composite below. */
+  @media (max-width: 980px) {
+    .hero-row {
+      grid-template-columns: 1fr;
+    }
+    .hero-row .hero-right {
+      max-width: 360px;
+    }
+  }
+  .verdict-block { grid-template-columns: 1fr; }
     .kpi-strip { grid-template-columns: repeat(2, 1fr); }
   }
   @media (max-width: 600px) {
@@ -714,52 +852,42 @@
 
 <div class="page-frame">
 
-  <div class="page-eyebrow">Macro Overview</div>
-
-  <h1 class="page-hero-h1">Cycle mechanisms provide a bird&apos;s eye view of the <em>macro backdrop</em> &mdash; calibrated to historical cycles.</h1>
-
-  <div class="cadence-stamp">
-    Refreshed daily · last update <span id="page-asof-stamp">—</span>
-  </div>
-
-  <!-- ============================ AGGREGATE VERDICT ============================ -->
-  <section class="surface verdict-block">
-    <div class="verdict-svg-wrap">
-      <!-- Aggregate verdict dial — 4 wedges, current position pointed to.
-           Wedge labels are factual band names, not state pill words. -->
-      <svg class="verdict-svg" viewBox="0 0 380 230" id="verdictDial">
-        <!-- Composite gauge wedges — Option A teal at 4 progressive opacity steps.
-             Light on the left (Risk On) -> dark on the right (Risk Off). -->
-        <path d="" id="wedge-riskon"  fill="rgba(14,85,96,0.18)" />
-        <path d="" id="wedge-neutral" fill="rgba(14,85,96,0.42)" />
-        <path d="" id="wedge-caution" fill="rgba(14,85,96,0.68)" />
-        <path d="" id="wedge-riskoff" fill="rgba(14,85,96,0.92)" />
-
-        <!-- Band labels under the gauge — restored 2026-05-07 (revised). -->
-        <text x="65"  y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="start"  letter-spacing="0.18em" font-weight="600">RISK-ON</text>
-        <text x="155" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="middle" letter-spacing="0.18em" font-weight="600">NEUTRAL</text>
-        <text x="245" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="middle" letter-spacing="0.18em" font-weight="600">CAUTION</text>
-        <text x="325" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="end"    letter-spacing="0.18em" font-weight="600">RISK-OFF</text>
-
-        <!-- Pointer group rotates from leftmost (180°) to current angle. -->
-        <g class="verdict-pointer-group" id="verdictPointerGroup">
-          <line x1="190" y1="180" x2="" y2="" id="verdictPointer"
-                stroke="#1a1a1a" stroke-width="2.5" stroke-linecap="round" />
-          <circle cx="190" cy="180" r="6" fill="#1a1a1a"/>
-          <circle cx="" cy="" r="4.5" fill="#1a1a1a" stroke="#fff" stroke-width="1.8" id="verdictTip"/>
-        </g>
-      </svg>
+  <header class="hero-row">
+    <div class="hero-left">
+      <div class="page-eyebrow">Macro Overview</div>
+      <h1 class="page-hero-h1">Cycle mechanisms provide a bird&apos;s eye view of the <em>macro backdrop</em> &mdash; calibrated to historical cycles.</h1>
+      <div class="cadence-stamp">
+        Refreshed daily · last update <span id="page-asof-stamp">—</span>
+      </div>
+      <div class="hero-explainer">
+        Six cycle mechanisms scored 0&ndash;100, simple-averaged into one page-level composite. Bands: <strong>0&ndash;25</strong> Risk-on, <strong>25&ndash;50</strong> Neutral, <strong>50&ndash;75</strong> Caution, <strong>75&ndash;100</strong> Risk-off. We don&apos;t predict downturns &mdash; we describe where you are. <a href="#">Methodology</a>.
+      </div>
     </div>
-    <div>
+    <div class="hero-right">
+      <div class="composite-eyebrow">Composite</div>
+      <div class="verdict-svg-wrap">
+        <svg class="verdict-svg" viewBox="0 0 380 230" id="verdictDial">
+          <path d="" id="wedge-riskon"  fill="rgba(14,85,96,0.18)" />
+          <path d="" id="wedge-neutral" fill="rgba(14,85,96,0.42)" />
+          <path d="" id="wedge-caution" fill="rgba(14,85,96,0.68)" />
+          <path d="" id="wedge-riskoff" fill="rgba(14,85,96,0.92)" />
+          <text x="65"  y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="start"  letter-spacing="0.18em" font-weight="600">RISK-ON</text>
+          <text x="155" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="middle" letter-spacing="0.18em" font-weight="600">NEUTRAL</text>
+          <text x="245" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="middle" letter-spacing="0.18em" font-weight="600">CAUTION</text>
+          <text x="325" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="end"    letter-spacing="0.18em" font-weight="600">RISK-OFF</text>
+          <g class="verdict-pointer-group" id="verdictPointerGroup">
+            <line x1="190" y1="180" x2="" y2="" id="verdictPointer"
+                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
+            <circle cx="190" cy="180" r="6" fill="currentColor"/>
+            <circle cx="" cy="" r="4.5" fill="currentColor" stroke="var(--bg)" stroke-width="1.8" id="verdictTip"/>
+          </g>
+        </svg>
+      </div>
       <div class="verdict-count" id="verdictCount">—<span class="frac" id="verdictFrac">/ 100</span></div>
       <div class="verdict-sublabel" id="verdictSublabel">composite average</div>
-      <h1 class="verdict-headline" id="verdictHeadline">
-        Loading composite reading…
-      </h1>
-      <div class="verdict-explainer">
-        Six cycle mechanisms scored 0–100, simple-averaged into one page-level composite. Bands: <strong>0–25</strong> Risk-on, <strong>25–50</strong> Neutral, <strong>50–75</strong> Caution, <strong>75–100</strong> Risk-off. We don't predict downturns — we describe where you are. <a href="#">Methodology</a>.</div>
+      <h2 class="verdict-headline" id="verdictHeadline">Loading…</h2>
     </div>
-  </section>
+  </header>
 
   <!-- ============================ MECHANISM DIALS ============================ -->
   <div class="dials-eyebrow">Six cycle mechanisms — click any card</div>

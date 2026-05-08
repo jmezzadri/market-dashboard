@@ -1233,12 +1233,9 @@ export default function AssetTilt({ onOpenTicker }) {
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, margin: "0 0 18px", letterSpacing: "-0.018em", lineHeight: 1.18, color: "var(--text)" }}>
           A back-tested model that seeks to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat the S&P 500</em> on a risk-adjusted basis over the long run.
         </h1>
-        <div style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 10, padding: "16px 18px", marginBottom: 18 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--accent)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 8, fontWeight: 600 }}>The Engine</div>
-          <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 }}>
-            Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway — e.g., max leverage 150%, max defensive 50%.
-          </div>
-        </div>
+        <p style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.45, color: "var(--text-2)", margin: "0 0 22px", maxWidth: 920, fontWeight: 400, letterSpacing: "-0.005em" }}>
+          Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway &mdash; e.g., max leverage 150%, max defensive 50%.
+        </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
           {[
             { label: "CAGR",          value: "13.85%",      sub: "vs SPY 11.61% over 2012–2026" },
