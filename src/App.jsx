@@ -6431,7 +6431,7 @@ const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,pad
 const showTrading=tab==="portopps";
 const showInsights=tab==="insights";
 return(
-<div style={{padding:"24px 32px 48px",display:"flex",flexDirection:"column",maxWidth:1280,margin:"0 auto"}}>
+<div style={{padding:"24px 32px 48px",display:"flex",flexDirection:"column",maxWidth:1216,margin:"0 auto"}}>
 {/* INLINE SIGN-IN CTA — only when not authed. Per B2 spec: portopps is
     publicly clickable, but shows zero-state + a contextual prompt instead
     of a full LoginScreen. Signing in swaps the skeleton for real data. */}
