@@ -1224,51 +1224,64 @@ export default function AssetTilt({ onOpenTicker }) {
 
   return (
     <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 32px 48px" }}>
-      {/* HERO — Joe directive 2026-05-07: Goal · Engine · Calibration · Results.
-          Sleek brand block; methodology link at the bottom. */}
-      <section style={{ marginBottom: 22 }}>
-        <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 10 }}>
-          Asset Tilt
+      {/* HERO — Joe mockup 2026-05-08 v3:
+          LEFT (~2/3): eyebrow + h1 + Engine subtitle.
+          RIGHT (~1/3): "Key Statistics vs. S&P 500" card with 4 KPI cells. */}
+      <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)", gap: 24, alignItems: "stretch", marginBottom: 22 }}>
+        <div>
+          <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 10 }}>
+            Asset Tilt
+          </div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, margin: "0 0 18px", letterSpacing: "-0.018em", lineHeight: 1.18, color: "var(--text)" }}>
+            A back-tested model that seeks to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat the S&P 500 on a risk-adjusted basis</em> over the long run.
+          </h1>
+          <p style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.45, color: "var(--text-2)", margin: 0, maxWidth: 920, fontWeight: 400, letterSpacing: "-0.005em" }}>
+            Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway &mdash; e.g., max leverage 150%, max defensive 50%.
+          </p>
         </div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, margin: "0 0 18px", letterSpacing: "-0.018em", lineHeight: 1.18, color: "var(--text)" }}>
-          A back-tested model that seeks to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat the S&P 500</em> on a risk-adjusted basis over the long run.
-        </h1>
-        <p style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.45, color: "var(--text-2)", margin: "0 0 22px", maxWidth: 920, fontWeight: 400, letterSpacing: "-0.005em" }}>
-          Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway &mdash; e.g., max leverage 150%, max defensive 50%.
-        </p>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 14 }}>
-          {[
-            { label: "CAGR",          value: "13.85%",      sub: "vs SPY 11.61% over 2012–2026" },
-            { label: "Sharpe",        value: "1.034",        sub: "annual, risk-free Fed funds" },
-            { label: "Max drawdown",  value: "−20.81%",     sub: "peak-to-trough, 2012–2026" },
-            { label: "Calibration",   value: "Jan 2012",    sub: "through May 2026" },
-          ].map(t => (
-            <div key={t.label} style={{
-              background: "var(--surface)", border: "0.5px solid var(--border)",
-              borderRadius: 10, padding: "14px 16px",
-              display: "flex", flexDirection: "column",
-            }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 6, fontWeight: 600 }}>
-                {t.label}
+        <aside style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, padding: "16px 18px", display: "flex", flexDirection: "column" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 500, color: "var(--text)", textAlign: "center", marginBottom: 14, letterSpacing: "-0.005em" }}>
+            Key Statistics vs. S&amp;P 500
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1 }}>
+            {[
+              { label: "CAGR",         value: "13.85%",  sub: "vs SPY 11.61%" },
+              { label: "Sharpe",       value: "1.034",    sub: "annualized" },
+              { label: "Max Drawdown", value: "−20.81%", sub: "peak-to-trough" },
+              { label: "Calibration",  value: "Jan 2012", sub: "through May 2026" },
+            ].map(t => (
+              <div key={t.label} style={{
+                background: "var(--surface-2)", border: "0.5px solid var(--border-faint)",
+                borderRadius: 8, padding: "12px 12px",
+                display: "flex", flexDirection: "column",
+              }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)", letterSpacing: "0.14em", textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
+                  {t.label}
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 18, fontWeight: 600, color: "var(--text)", lineHeight: 1.05, letterSpacing: "-0.015em" }}>
+                  {t.value}
+                </div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 4, lineHeight: 1.3 }}>
+                  {t.sub}
+                </div>
               </div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: 24, fontWeight: 600, color: "var(--text)", lineHeight: 1.05, letterSpacing: "-0.015em" }}>
-                {t.value}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6, lineHeight: 1.35 }}>
-                {t.sub}
-              </div>
-            </div>
-          ))}
-        </div>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
-          <a href="#methodology" style={{ fontSize: 13, fontWeight: 500, color: "var(--accent)" }}>Read the full methodology →</a>
-        </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 12, textAlign: "center" }}>
+            <a href="#methodology" style={{ fontSize: 11, fontWeight: 500, color: "var(--accent)", letterSpacing: "0.04em" }}>Read the full methodology &rarr;</a>
+          </div>
+        </aside>
       </section>
 
 
-      {/* Equity sector table — sortable, with 1M/3M/TTM/Vol columns and a
-          larger Tilt-vs-SPY bar. Joe directive 2026-05-07. */}
+      {/* Recommended Allocations — Joe mockup 2026-05-08 v3. Wraps the
+          sortable sector table + defensive sleeve + total row in a labeled
+          card so the page reads as 3 distinct blocks: hero, allocations,
+          heatmap. */}
       <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ padding: "14px 18px 12px", borderBottom: "0.5px solid var(--border)", background: "var(--surface)" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Recommended Allocations</h2>
+        </div>
         <SectorTable
           sectors={v10.sectors}
           igs={v10.industry_groups}
@@ -1311,13 +1324,14 @@ export default function AssetTilt({ onOpenTicker }) {
         </div>
       </section>
 
-      {/* HEATMAP */}
-      <div style={{ margin: "8px 0 12px" }}>
-        <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0 }}>
-          Which mechanisms are tailwinds vs headwinds for each sector right now?
-        </h2>
-      </div>
-      <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} />
+      {/* HEATMAP — wrapped in a labeled card to match Recommended Allocations. */}
+      <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20 }}>
+        <div style={{ padding: "14px 18px 12px", borderBottom: "0.5px solid var(--border)", background: "var(--surface)" }}>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Heatmap</h2>
+          <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>Which mechanisms are tailwinds vs headwinds for each sector right now.</div>
+        </div>
+        <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} />
+      </section>
 
       {/* Bottom methodology footer killed 2026-05-07 — methodology paragraph
           is now in the hero at the top of the page. */}
