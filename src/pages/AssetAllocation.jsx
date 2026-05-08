@@ -1296,15 +1296,15 @@ export default function AssetTilt({ onOpenTicker }) {
       {/* HERO — Joe mockup 2026-05-08 v3:
           LEFT (~2/3): eyebrow + h1 + Engine subtitle.
           RIGHT (~1/3): "Key Statistics vs. S&P 500" card with 4 KPI cells. */}
-      <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)", gap: 24, alignItems: "stretch", marginBottom: 22 }}>
+      <section style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 36, alignItems: "center", marginBottom: 32 }}>
         <div>
-          <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 10 }}>
+          <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 14 }}>
             Asset Tilt
           </div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, margin: "0 0 18px", letterSpacing: "-0.018em", lineHeight: 1.18, color: "var(--text)" }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.4vw, 38px)", fontWeight: 400, margin: "0 0 12px", letterSpacing: "-0.012em", lineHeight: 1.18, color: "var(--text)" }}>
             A back-tested model that seeks to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat the S&P 500 on a risk-adjusted basis</em> over the long run.
           </h1>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.45, color: "var(--text-2)", margin: 0, maxWidth: 920, fontWeight: 400, letterSpacing: "-0.005em" }}>
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.55, color: "var(--text-2)", margin: "10px 0 0", maxWidth: 720, fontWeight: 400 }}>
             Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway &mdash; e.g., max leverage 150%, max defensive 50%.
           </p>
         </div>

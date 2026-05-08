@@ -6493,59 +6493,68 @@ const _topPick = _topBuy || _topNear;
 const _topScore = _topPick ? Math.round(_topPick.ovr ?? 0) : 0;
 const _topTicker = _topPick ? _topPick.ticker : "—";
 const _topBand = _topScore >= 60 ? "Buy zone" : _topScore >= 35 ? "Near trigger" : _topScore > 0 ? "Watch" : "Awaiting scan";
-// Animated needle sweep — start at 0, animate to _topScore on mount.
-// Score → angle: 0 → 180° (left), 100 → 0° (right). 1.8° per point.
-const _topAngle = 180 - _topScore * 1.8;
+// MO-mirroring gauge geometry: viewBox 380x230, cx=190 cy=180, R_outer=140, R_inner=90.
+// Filled wedge paths (NOT strokes), 4 bands at 25-pct increments, pointer sweep
+// from -(180 - a_today)deg → 0deg on mount.
+const _aToday = 180 - _topScore * 1.8;
+const _polar = (r, deg) => { const rad = deg * Math.PI / 180; return [190 + r * Math.cos(rad), 180 - r * Math.sin(rad)]; };
+const _wedge = (a0, a1) => {
+  const [x0o, y0o] = _polar(140, a0);
+  const [x1o, y1o] = _polar(140, a1);
+  const [x1i, y1i] = _polar(90, a1);
+  const [x0i, y0i] = _polar(90, a0);
+  return `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A 140 140 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A 90 90 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+};
+const [_tipX, _tipY] = _polar(148, _aToday);
 const _bandColor = _topScore >= 60 ? "var(--green)" : _topScore >= 35 ? "var(--gold, #a87c1f)" : "var(--text-muted)";
+const _startDeg = -(180 - _aToday);
 return(<>
-{/* New hero (2-col) — same pattern as Macro Overview + Asset Tilt:
-    LEFT = hardcoded witty headline + informative subtitle.
-    RIGHT = animated scoreboard square summarizing today's scan. */}
-<section style={{display:"grid",gridTemplateColumns:"minmax(0, 1fr) 360px",gap:36,alignItems:"stretch",marginBottom:18,padding:"4px 0"}}>
+{/* Trading Opps hero — exact MO mirror.
+    Spec: .hero-row grid 1fr 360px gap 36, eyebrow Inter 11px/0.10em,
+    h1 Fraunces clamp(28-38)/1.18/-0.012em, subtitle Inter 16/1.55,
+    right card 1px border 12 radius 18-20-14 pad text-center,
+    gauge 380x230 viewBox with R 140/90 filled wedges. */}
+<section style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:36,alignItems:"center",marginBottom:32,padding:"4px 0"}}>
 <div style={{minWidth:0}}>
-<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:14,display:"inline-flex",alignItems:"center",gap:10}}>
-<span style={{display:"inline-block",width:32,height:1,background:"var(--text-muted)"}}/>
+<div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:14,display:"inline-flex",alignItems:"center",gap:10}}>
 Trading Opportunities
 <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||null} style={{marginLeft:4}}/>
 </div>
-<h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 14px",maxWidth:820}}>
+<h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 12px",maxWidth:980}}>
 The names worth your attention &mdash; <em style={{fontStyle:"italic",color:"var(--accent)",fontWeight:500}}>before the market notices.</em>
 </h1>
-<p style={{fontFamily:"var(--font-ui)",fontSize:14,color:"var(--text-2)",lineHeight:1.55,margin:"0 0 8px",maxWidth:760}}>
+<p style={{fontFamily:"var(--font-ui)",fontSize:16,color:"var(--text-2)",lineHeight:1.55,margin:"10px 0 0",maxWidth:720}}>
 An equity scanner that combines technical momentum, insider Form-4s, unusual options flow, congressional trades, and analyst ratings into one 0&ndash;100 composite. Names above 60 trigger a buy alert; 35&ndash;60 sit on the near-trigger watch.
 </p>
-<div style={{fontFamily:"var(--font-ui)",fontSize:13,color:"var(--text-muted)",fontStyle:"italic"}}>{_subline}</div>
+<div style={{fontFamily:"var(--font-ui)",fontSize:13,color:"var(--text-muted)",fontStyle:"italic",marginTop:8}}>{_subline}</div>
 </div>
 
 <aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 14px",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
-<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.18em",marginBottom:8}}>Today&apos;s scan</div>
-{/* Animated half-moon gauge — needle sweeps from 0 to _topScore on mount.
-    Colors mirror Macro Overview's teal opacity stepping. */}
-<svg viewBox="0 0 200 120" width="200" height="120" style={{display:"block"}}>
-<path d="M 16 104 A 84 84 0 0 1 184 104" fill="none" stroke="rgba(14,85,96,0.10)" strokeWidth="14"/>
-<path d="M 16 104 A 84 84 0 0 1 184 104" fill="none" stroke="rgba(14,85,96,0.18)" strokeWidth="14" strokeDasharray="66, 600"/>
-<path d="M 16 104 A 84 84 0 0 1 184 104" fill="none" stroke="rgba(14,85,96,0.42)" strokeWidth="14" strokeDasharray="66, 600" strokeDashoffset="-66"/>
-<path d="M 16 104 A 84 84 0 0 1 184 104" fill="none" stroke="rgba(14,85,96,0.68)" strokeWidth="14" strokeDasharray="66, 600" strokeDashoffset="-132"/>
-<path d="M 16 104 A 84 84 0 0 1 184 104" fill="none" stroke="var(--accent)" strokeWidth="14" strokeDasharray="66, 600" strokeDashoffset="-198"/>
-<g style={{transformOrigin:"100px 104px",animation:"port-needle 1100ms cubic-bezier(.4,.0,.2,1) 100ms both"}}>
-<line x1="100" y1="104" x2={(100 + 78 * Math.cos(_topAngle * Math.PI / 180)).toFixed(2)} y2={(104 - 78 * Math.sin(_topAngle * Math.PI / 180)).toFixed(2)} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
-<circle cx="100" cy="104" r="5" fill="currentColor"/>
-<circle cx={(100 + 78 * Math.cos(_topAngle * Math.PI / 180)).toFixed(2)} cy={(104 - 78 * Math.sin(_topAngle * Math.PI / 180)).toFixed(2)} r="3.5" fill="currentColor"/>
+<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.18em",marginBottom:4}}>Today&apos;s scan</div>
+<svg viewBox="0 0 380 230" style={{display:"block",maxWidth:280,width:"100%",margin:"0 auto"}}>
+<path d={_wedge(180, 135)} fill="rgba(14,85,96,0.18)"/>
+<path d={_wedge(135, 90)} fill="rgba(14,85,96,0.42)"/>
+<path d={_wedge(90, 45)} fill="rgba(14,85,96,0.68)"/>
+<path d={_wedge(45, 0)} fill="rgba(14,85,96,0.92)"/>
+<g className="to-pointer" style={{transformOrigin:"190px 180px",animation:"toPointerSweep 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards"}}>
+<line x1="190" y1="180" x2={_tipX.toFixed(2)} y2={_tipY.toFixed(2)} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+<circle cx="190" cy="180" r="6" fill="currentColor"/>
+<circle cx={_tipX.toFixed(2)} cy={_tipY.toFixed(2)} r="4.5" fill="currentColor" stroke="var(--surface)" strokeWidth="1.8"/>
 </g>
 </svg>
-<div style={{fontFamily:"var(--font-mono)",fontSize:34,fontWeight:600,color:"var(--text)",letterSpacing:"-0.02em",lineHeight:1,marginTop:4}}>
-{_topScore}<span style={{fontSize:14,fontWeight:400,color:"var(--text-muted)",marginLeft:4}}>/ 100</span>
+<div style={{fontFamily:"var(--font-mono)",fontSize:38,fontWeight:600,color:"var(--text)",letterSpacing:"-0.02em",lineHeight:1,marginTop:6}}>
+{_topScore}<span style={{fontSize:18,fontWeight:400,color:"var(--text-muted)",marginLeft:4}}>/ 100</span>
 </div>
-<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.14em",marginTop:6}}>top score &middot; <span style={{color:"var(--text)"}}>{_topTicker}</span></div>
-<div style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:500,color:_bandColor,marginTop:8,letterSpacing:"-0.005em"}}>{_topBand}</div>
-<div style={{display:"flex",gap:14,marginTop:12,paddingTop:12,borderTop:"1px solid var(--border-faint)",width:"100%",justifyContent:"space-around"}}>
+<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.14em",marginTop:4,marginBottom:4}}>top score &middot; <span style={{color:"var(--text)"}}>{_topTicker}</span></div>
+<div style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:500,color:_bandColor,margin:"6px 0 0",letterSpacing:"-0.005em"}}>{_topBand}</div>
+<div style={{display:"flex",gap:14,marginTop:14,paddingTop:12,borderTop:"1px solid var(--border-faint)",width:"100%",justifyContent:"space-around"}}>
 <div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{buyCount}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>buys</div></div>
 <div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{watchCount}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>near</div></div>
 <div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{(WATCHLIST||[]).length}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>tracking</div></div>
 </div>
 </aside>
 </section>
-<style>{`@keyframes port-needle { from { transform: rotate(${(180 - _topAngle).toFixed(1)}deg) scale(0); transform-origin: 100px 104px; opacity: 0.4; } to { transform: rotate(0deg) scale(1); transform-origin: 100px 104px; opacity: 1; } }`}</style>
+<style>{`@keyframes toPointerSweep { from { transform: rotate(${_startDeg.toFixed(1)}deg); } to { transform: rotate(0deg); } } @media (prefers-reduced-motion: reduce) { .to-pointer { animation: none !important; } }`}</style>
 </>);
 })()}
 {/* SNAPSHOT removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
