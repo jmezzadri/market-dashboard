@@ -31,6 +31,11 @@ SECTOR_PROXY = {
     "Materials":                "XLB",
     "Real Estate":              "XLRE",
     "Utilities":                "XLU",
+    # Defensive sleeve buckets — same proxy ETFs the engine uses.
+    "BIL":                      "BIL",
+    "TLT":                      "TLT",
+    "GLD":                      "GLD",
+    "LQD":                      "LQD",
 }
 WINDOWS = {"perf_1m": 21, "perf_3m": 63, "perf_ttm": 252}
 

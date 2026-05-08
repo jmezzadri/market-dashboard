@@ -557,7 +557,7 @@ function EtfChip({ etf, onClick }) {
   );
 }
 
-function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, onIGClick, onEtfClick }) {
+function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBuckets, defensivePerBucket, onSectorClick, onIGClick, onEtfClick }) {
   const [openSectorKey, setOpenSectorKey] = useState(null);
 
   // Enrich each sector row with perf + vol from sector_perf.json
@@ -572,8 +572,29 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, 
       perf_ttm: perf.perf_ttm ?? null,
       vol_ttm: perf.vol_ttm ?? null,
       proxy: perf.proxy || null,
+      _isDefensive: false,
     };
   }), [sectors, leverage, sectorPerf]);
+
+  // Defensive bucket rows — same shape as equity rows. perf/vol pulled from
+  // the same sector_perf.json keyed by the bucket ticker. tiltDollar = the
+  // current allocation per bucket (0 when sleeve inactive).
+  const defensiveRows = useMemo(() => (defensiveBuckets || []).map(b => {
+    const perf = sectorPerf?.sectors?.[b.ticker] || {};
+    return {
+      sector: b.name,
+      ticker: b.ticker,
+      tiltDollar: defensivePerBucket || 0,
+      vs_spy_pp: null,
+      rating: null,
+      perf_1m: perf.perf_1m ?? null,
+      perf_3m: perf.perf_3m ?? null,
+      perf_ttm: perf.perf_ttm ?? null,
+      vol_ttm: perf.vol_ttm ?? null,
+      proxy: perf.proxy || b.ticker,
+      _isDefensive: true,
+    };
+  }), [defensiveBuckets, defensivePerBucket, sectorPerf]);
 
   const cols = [
     { id: "sector",   label: "Sector",                 align: "left",  sortValue: r => r.sector },
@@ -601,8 +622,8 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, 
     <>
       <div style={{
         display: "grid", gridTemplateColumns: grid,
-        gap: 10, padding: "12px 14px 10px",
-        fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
+        gap: 10, padding: "14px 14px 12px",
+        fontSize: 12, fontWeight: 600, color: "var(--text)",
         letterSpacing: "0.06em", textTransform: "uppercase",
         borderBottom: "0.5px solid var(--border)", background: "var(--surface-2)",
         alignItems: "center",
@@ -632,7 +653,49 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, onSectorClick, 
           grid={grid}
         />
       ))}
+      {defensiveRows.map(d => (
+        <DefensiveTableRow key={d.ticker} bucket={d} grid={grid} />
+      ))}
     </>
+  );
+}
+
+// Defensive sub-row rendered inside the SectorTable so the page reads as one
+// continuous table. Tilt vs SPY = N/A (these are not in SPY); Recommended
+// Allocation = the dollar amount (0 when sleeve inactive); 1M/3M/TTM/Vol pulled
+// from sector_perf.json; Rating = N/A.
+function DefensiveTableRow({ bucket, grid }) {
+  const fmtPct = (v) => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+  const fmtVol = (v) => v == null ? "—" : v.toFixed(1) + "%";
+  const isOff = (bucket.tiltDollar || 0) < 0.01;
+  return (
+    <div style={{ borderBottom: "0.5px solid var(--border)" }}>
+      <div style={{
+        display: "grid", gridTemplateColumns: grid,
+        gap: 10, padding: "11px 14px",
+        alignItems: "center", fontSize: 13,
+        opacity: isOff ? 0.85 : 1,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontWeight: 600 }}>{bucket.sector}</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.08em" }}>{bucket.ticker}</span>
+        </div>
+        {/* Tilt vs SPY — N/A for defensive */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>N/A</div>
+        {/* Recommended Allocation in dollars */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, textAlign: "right", color: isOff ? "var(--text-muted)" : "var(--text)" }}>${bucket.tiltDollar.toFixed(2)}</div>
+        {/* 1M / 3M / TTM */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_1m == null ? "var(--text-muted)" : bucket.perf_1m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_1m)}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_3m == null ? "var(--text-muted)" : bucket.perf_3m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_3m)}</div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_ttm == null ? "var(--text-muted)" : bucket.perf_ttm < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_ttm)}</div>
+        {/* Vol */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: "var(--text-2)" }}>{fmtVol(bucket.vol_ttm)}</div>
+        {/* Rating — N/A */}
+        <div style={{ textAlign: "right" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)" }}>N/A</span>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -1288,37 +1351,23 @@ export default function AssetTilt({ onOpenTicker }) {
           leverage={lev}
           asOf={v10.as_of}
           sectorPerf={sectorPerf}
+          defensiveBuckets={DEFENSIVE_BUCKETS}
+          defensivePerBucket={defensivePerBucket}
           onSectorClick={setSectorModal}
           onIGClick={setIgModal}
           onEtfClick={(e) => onOpenTicker(e.t || e)}
         />
-        {/* Defensive sleeve header */}
+        {/* Total row — appears at the bottom of the unified table. */}
         <div style={{
-          display: "grid", gridTemplateColumns: "1.6fr 1fr 110px 80px",
-          gap: 12, padding: "10px 14px",
-          fontSize: 10, fontWeight: 600, color: "var(--text-muted)",
-          letterSpacing: "0.06em", textTransform: "uppercase",
-          borderTop: "0.5px solid var(--border)", borderBottom: "0.5px solid var(--border)",
-          background: "var(--surface-2)",
-        }}>
-          <div>Defensive sleeve · 4 buckets, equal-weight when active</div>
-          <div>Tilt vs SPY</div>
-          <div style={{ textAlign: "right" }}>Recommended Allocation</div>
-          <div style={{ textAlign: "right" }}>State</div>
-        </div>
-        {DEFENSIVE_BUCKETS.map(b => (
-          <DefensiveRow key={b.ticker} bucket={b} dollar={defensivePerBucket} />
-        ))}
-        {/* Total row */}
-        <div style={{
-          display: "grid", gridTemplateColumns: "1.6fr 1fr 110px 80px",
-          gap: 12, padding: "12px 14px", fontSize: 13, fontWeight: 600,
-          background: "var(--surface-2)",
+          display: "grid", gridTemplateColumns: "1.55fr 1fr 110px 64px 64px 64px 64px 80px",
+          gap: 10, padding: "12px 14px", fontSize: 13, fontWeight: 600,
+          background: "var(--surface-2)", borderTop: "1px solid var(--border)",
         }}>
           <div>Total recommended allocation (equity × leverage + defensive)</div>
           <div></div>
           <div style={{ fontFamily: "var(--font-mono)", textAlign: "right" }}>${grossDollar.toFixed(2)}</div>
-          <div style={{ fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", fontWeight: 400 }}>
+          <div></div><div></div><div></div><div></div>
+          <div style={{ fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text-muted)", fontWeight: 400, fontSize: 11 }}>
             {lev.toFixed(2)}× gross
           </div>
         </div>
