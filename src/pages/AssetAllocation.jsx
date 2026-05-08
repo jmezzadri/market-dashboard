@@ -1296,23 +1296,23 @@ export default function AssetTilt({ onOpenTicker }) {
       {/* HERO — Joe mockup 2026-05-08 v3:
           LEFT (~2/3): eyebrow + h1 + Engine subtitle.
           RIGHT (~1/3): "Key Statistics vs. S&P 500" card with 4 KPI cells. */}
-      <section style={{ display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(280px, 1fr)", gap: 24, alignItems: "stretch", marginBottom: 22 }}>
+      <section style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 36, alignItems: "center", marginBottom: 32 }}>
         <div>
-          <div style={{ fontSize: 10, letterSpacing: "0.14em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 10 }}>
+          <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 14 }}>
             Asset Tilt
           </div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: 32, fontWeight: 400, margin: "0 0 18px", letterSpacing: "-0.018em", lineHeight: 1.18, color: "var(--text)" }}>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.4vw, 38px)", fontWeight: 400, margin: "0 0 12px", letterSpacing: "-0.012em", lineHeight: 1.18, color: "var(--text)" }}>
             A back-tested model that seeks to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat the S&P 500 on a risk-adjusted basis</em> over the long run.
           </h1>
-          <p style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.45, color: "var(--text-2)", margin: 0, maxWidth: 920, fontWeight: 400, letterSpacing: "-0.005em" }}>
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.55, color: "var(--text-2)", margin: "10px 0 0", maxWidth: 720, fontWeight: 400 }}>
             Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway &mdash; e.g., max leverage 150%, max defensive 50%.
           </p>
         </div>
-        <aside style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, padding: "16px 18px", display: "flex", flexDirection: "column" }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 500, color: "var(--text)", textAlign: "center", marginBottom: 14, letterSpacing: "-0.005em" }}>
+        <aside style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px 14px", display: "flex", flexDirection: "column", textAlign: "center" }}>
+          <div style={{ fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.18em", marginBottom: 14 }}>
             Key Statistics vs. S&amp;P 500
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1, textAlign: "left" }}>
             {[
               { label: "CAGR",         value: "13.85%",  sub: "vs SPY 11.61%" },
               { label: "Sharpe",       value: "1.034",    sub: "annualized" },
@@ -1336,7 +1336,7 @@ export default function AssetTilt({ onOpenTicker }) {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 12, textAlign: "center" }}>
+          <div style={{ marginTop: 12 }}>
             <a href="#methodology" style={{ fontSize: 11, fontWeight: 500, color: "var(--accent)", letterSpacing: "0.04em" }}>Read the full methodology &rarr;</a>
           </div>
         </aside>

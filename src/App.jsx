@@ -5336,8 +5336,8 @@ const _nearBucket = [];
 _unionTickers.forEach(t => {
   const ovr = _ovrOf(t);
   if (ovr == null) return;
-  if (ovr >= 60) _buyBucket.push({ ticker: t, ovr });
-  else if (ovr >= 40) _nearBucket.push({ ticker: t, ovr });
+  if (ovr >= 75) _buyBucket.push({ ticker: t, ovr });
+  else if (ovr >= 50) _nearBucket.push({ ticker: t, ovr });
 });
 _buyBucket.sort((a, b) => b.ovr - a.ovr);
 _nearBucket.sort((a, b) => b.ovr - a.ovr);
@@ -6487,63 +6487,85 @@ const _subline=(buyCount>0||watchCount>0)
 const _stanceColor=_scanT?"var(--green-text)":"var(--text-muted)";
 const _stanceBg=_scanT?"rgba(31,138,90,0.12)":"rgba(165,118,10,0.12)";
 const _b=()=>({fontWeight:600,color:"var(--text)"});
+const _topBuy = (rebucketBuy || [])[0] || null;
+const _topNear = (rebucketNear || [])[0] || null;
+const _topPick = _topBuy || _topNear;
+const _topScore = _topPick ? Math.round(_topPick.ovr ?? 0) : 0;
+const _topTicker = _topPick ? _topPick.ticker : "—";
+const _topBand = _topScore >= 75 ? "Buy zone" : _topScore >= 50 ? "Near trigger" : _topScore > 0 ? "Watch" : "Awaiting scan";
+// MO-mirroring gauge geometry: viewBox 380x230, cx=190 cy=180, R_outer=140, R_inner=90.
+// Filled wedge paths (NOT strokes), 4 bands at 25-pct increments, pointer sweep
+// from -(180 - a_today)deg → 0deg on mount.
+const _aToday = 180 - _topScore * 1.8;
+const _polar = (r, deg) => { const rad = deg * Math.PI / 180; return [190 + r * Math.cos(rad), 180 - r * Math.sin(rad)]; };
+const _wedge = (a0, a1) => {
+  const [x0o, y0o] = _polar(140, a0);
+  const [x1o, y1o] = _polar(140, a1);
+  const [x1i, y1i] = _polar(90, a1);
+  const [x0i, y0i] = _polar(90, a0);
+  return `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A 140 140 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A 90 90 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+};
+const [_tipX, _tipY] = _polar(148, _aToday);
+const _bandColor = _topScore >= 75 ? "var(--green)" : _topScore >= 50 ? "var(--gold, #a87c1f)" : "var(--text-muted)";
+const _startDeg = -(180 - _aToday);
 return(<>
-{/* Rich hero — strawman 2, ship copy. Anchors the page so first-time
-    readers know what they're looking at before the signal tiles. */}
-<div style={{background:"var(--surface)",border:"1px solid var(--border-faint)",borderRadius:8,padding:"24px 24px 22px",marginBottom:14}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:24,flexWrap:"wrap",marginBottom:14}}>
-<div style={{flex:"1 1 360px",minWidth:0}}>
-<div style={{fontFamily:"var(--font-mono)",fontSize:11,color:"var(--accent)",letterSpacing:"0.18em",textTransform:"uppercase",marginBottom:10,display:"flex",alignItems:"center",gap:10}}>
-<span style={{display:"inline-block",width:20,height:1,background:"var(--accent)",opacity:0.6}}/>
+{/* Trading Opps hero — exact MO mirror.
+    Spec: .hero-row grid 1fr 360px gap 36, eyebrow Inter 11px/0.10em,
+    h1 Fraunces clamp(28-38)/1.18/-0.012em, subtitle Inter 16/1.55,
+    right card 1px border 12 radius 18-20-14 pad text-center,
+    gauge 380x230 viewBox with R 140/90 filled wedges. */}
+<section style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:36,alignItems:"center",marginBottom:32,padding:"4px 0"}}>
+<div style={{minWidth:0}}>
+<div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:14,display:"inline-flex",alignItems:"center",gap:10}}>
 Trading Opportunities
 <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||null} style={{marginLeft:4}}/>
 </div>
-{(() => {
-  // Pull from rebucketBuy / rebucketNear — same source that feeds the
-  // BUY ALERTS / NEAR TRIGGER tables below. rebucketBuy is [{ticker, ovr}].
-  const buys = (rebucketBuy || []).slice(0, 2);
-  let headline;
-  if (buys.length === 0) {
-    headline = <>No buy alerts today — <em style={{fontStyle:"italic",color:"var(--accent)"}}>{watchCount} on near-trigger watch.</em></>;
-  } else if (buys.length === 1) {
-    const t = buys[0];
-    headline = <><em style={{fontStyle:"italic",color:"var(--accent)"}}>{t.ticker}</em> leads today's buys at {Math.round(t.ovr ?? 0)}.</>;
-  } else {
-    const a = buys[0], b = buys[1];
-    headline = <><em style={{fontStyle:"italic",color:"var(--accent)"}}>{a.ticker}</em> and <em style={{fontStyle:"italic",color:"var(--accent)"}}>{b.ticker}</em> lead today's buys at {Math.round(a.ovr ?? 0)} and {Math.round(b.ovr ?? 0)}.</>;
-  }
-  return (
-    <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontSize:32,fontWeight:400,lineHeight:1.15,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 10px",maxWidth:820}}>
-      {headline}
-    </h1>
-  );
-})()}
-<div style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontStyle:"italic",fontSize:15,color:"var(--text-muted)"}}>{_subline}</div>
+<h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 12px",maxWidth:980}}>
+The names worth your attention &mdash; <em style={{fontStyle:"italic",color:"var(--accent)",fontWeight:500}}>before the market notices.</em>
+</h1>
+<p style={{fontFamily:"var(--font-ui)",fontSize:16,color:"var(--text-2)",lineHeight:1.55,margin:"10px 0 0",maxWidth:720}}>
+An equity scanner that combines technical momentum, insider Form-4s, unusual options flow, congressional trades, and analyst ratings into one 0&ndash;100 composite. Names above 75 trigger a buy alert; 50&ndash;75 sit on the near-trigger watch.
+</p>
+<div style={{fontFamily:"var(--font-ui)",fontSize:13,color:"var(--text-muted)",fontStyle:"italic",marginTop:8}}>{_subline}</div>
 </div>
-<div style={{textAlign:"right",flex:"0 0 auto"}}>
-<span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"6px 12px",borderRadius:999,background:_stanceBg,color:_stanceColor,fontWeight:600,fontSize:12,fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>
-<span style={{width:6,height:6,borderRadius:"50%",background:_stanceColor}}/>
-{_scanT?"SCAN COMPLETE":"AWAITING SCAN"}
-</span>
 
+<aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 14px",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
+<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.18em",marginBottom:4}}>Today&apos;s scan</div>
+<svg viewBox="0 0 380 230" style={{display:"block",maxWidth:280,width:"100%",margin:"0 auto"}}>
+<path d={_wedge(180, 135)} fill="rgba(14,85,96,0.18)"/>
+<path d={_wedge(135, 90)} fill="rgba(14,85,96,0.42)"/>
+<path d={_wedge(90, 45)} fill="rgba(14,85,96,0.68)"/>
+<path d={_wedge(45, 0)} fill="rgba(14,85,96,0.92)"/>
+<g className="to-pointer" style={{transformOrigin:"190px 180px",animation:"toPointerSweep 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards"}}>
+<line x1="190" y1="180" x2={_tipX.toFixed(2)} y2={_tipY.toFixed(2)} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
+<circle cx="190" cy="180" r="6" fill="currentColor"/>
+<circle cx={_tipX.toFixed(2)} cy={_tipY.toFixed(2)} r="4.5" fill="currentColor" stroke="var(--surface)" strokeWidth="1.8"/>
+</g>
+</svg>
+<div style={{fontFamily:"var(--font-mono)",fontSize:38,fontWeight:600,color:"var(--text)",letterSpacing:"-0.02em",lineHeight:1,marginTop:6}}>
+{_topScore}<span style={{fontSize:18,fontWeight:400,color:"var(--text-muted)",marginLeft:4}}>/ 100</span>
 </div>
+<div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.14em",marginTop:4,marginBottom:4}}>top score &middot; <span style={{color:"var(--text)"}}>{_topTicker}</span></div>
+<div style={{fontFamily:"var(--font-display)",fontSize:18,fontWeight:500,color:_bandColor,margin:"6px 0 0",letterSpacing:"-0.005em"}}>{_topBand}</div>
+<div style={{display:"flex",gap:14,marginTop:14,paddingTop:12,borderTop:"1px solid var(--border-faint)",width:"100%",justifyContent:"space-around"}}>
+<div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{buyCount}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>buys</div></div>
+<div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{watchCount}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>near</div></div>
+<div><div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:600,color:"var(--text)"}}>{(WATCHLIST||[]).length}</div><div style={{fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase"}}>tracking</div></div>
 </div>
-</div>
+</aside>
+</section>
+<style>{`@keyframes toPointerSweep { from { transform: rotate(${_startDeg.toFixed(1)}deg); } to { transform: rotate(0deg); } } @media (prefers-reduced-motion: reduce) { .to-pointer { animation: none !important; } }`}</style>
 </>);
 })()}
 {/* SNAPSHOT removed 2026-05-04 (Joe directive, re-deleted after PR #448 regression). */}
 
 {/* PORTFOLIO RISK block removed 2026-05-04 (re-deleted after PR #448 regression). */}
 
-{/* SECTION 1 — TRADING OPPS (only on portopps tab) */}
+{/* SECTION 1 — UNIFIED TRADING OPPS TABLE (only on portopps tab).
+    Joe directive 2026-05-08: drop the 3-section split (BUY ALERTS / NEAR
+    TRIGGER / YOUR WATCHLIST). One table. Row tints: green for >=75 (buy),
+    soft green for 50-75 (near), no tint for <50. */}
 {showTrading&&<div style={sectionPanel}>
-<div style={sectionHeader}>
-<span style={sectionTitleStyle}>① TRADING OPPORTUNITIES</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{buyCount} triggered · {watchCount} near · {rebucketOther.length} other</span>
-</div>
-{/* 2026-05-06 — single consolidated freshness line replacing the
-    historical mix of "Daily scan · Last run", UniverseFreshness chip,
-    inline scanLabel, and orange "VERY STALE" banner. Joe directive. */}
 <div style={{padding:"10px 16px 0 16px"}}>
   <DataFreshness
     scanTs={scanData?.scan_time}
@@ -6554,127 +6576,47 @@ Trading Opportunities
 <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
 
 {(()=>{
-// Translate scanner output rows ({ticker, score, current_price, ...}) into
-// the {ticker, name, theme} shape that WatchlistTable consumes. Name comes
-// from the screener full_name when available; theme is left blank (BUY /
-// NEAR have no theme copy — the panel title IS the theme).
-const screenerMap=scanData?.signals?.screener||{};
-// Item 36: info map powers Div Yield / Next Earnings / Market Cap / etc.
-// columns in Positions & Watchlist tables. Falls back to {} so callers can
-// always safely do info[ticker]?.field.
-const infoMap=scanData?.signals?.info||{};
-const toWlRows=(items)=>(items||[]).map(it=>({
-  ticker:it.ticker,
-  name:screenerMap[it.ticker]?.full_name||"",
-  theme:"",
-}));
-
-// SUB-PANEL 1: SCANNER — TRIGGERED (green accent)
-// Source: client-side OVR rebucket (see rebucketBuy in outer scope). Keeps
-// tile contents in lockstep with the OVR column, regardless of scanner drift.
-const triggered=rebucketBuy;
-// SUB-PANEL 2: SCANNER — WATCH / NEAR TRIGGER (yellow accent)
-const nearTrigger=rebucketNear;
-// subPanel now accepts an optional `criteria` chip rendered next to the
-// title in muted weight — lets users see at a glance *why* a ticker is in
-// the Buy Alerts vs Near Trigger bucket without opening the modal.
-const subPanel=(accentCol,title,criteria,count,children)=>(
-<div style={{background:"var(--surface-2)",border:`1px solid ${accentCol}55`,borderLeft:`3px solid ${accentCol}`,borderRadius:6,overflow:"hidden"}}>
-<div style={{padding:"8px 12px",background:`${accentCol}14`,borderBottom:`1px solid ${accentCol}22`,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
-<span style={{display:"flex",alignItems:"baseline",gap:8,flexWrap:"wrap",minWidth:0}}>
-  <span style={{fontSize:11,fontWeight:700,color:accentCol,fontFamily:"var(--font-mono)",letterSpacing:"0.08em"}}>{title}</span>
-  {criteria&&<span style={{fontSize:10,fontWeight:500,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.04em"}}>{criteria}</span>}
-</span>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",whiteSpace:"nowrap"}}>{count}</span>
-</div>
-<div style={{padding:"8px 10px",display:"flex",flexDirection:"column",gap:6}}>{children}</div>
-</div>
-);
-
-return(<>
-{/* Bug #1071 — anchor for /#watchlist deep-link scroll */}
+// Build ONE unified table: triggered (>=75) + nearTrigger (50-75) + watchlist (<50).
+// Joe directive 2026-05-08: row tints distinguish bands; no separate tables.
+const screenerMap = scanData?.signals?.screener || {};
+const infoMap = scanData?.signals?.info || {};
+const _seen = new Set();
+const _rows = [];
+// Order: buy first, near second, then watchlist below threshold.
+[...rebucketBuy, ...rebucketNear].forEach(it => {
+  const t = String(it.ticker || "").toUpperCase();
+  if (_seen.has(t)) return;
+  _seen.add(t);
+  _rows.push({ ticker: it.ticker, name: screenerMap[it.ticker]?.full_name || "", theme: "" });
+});
+(rebucketOther || []).forEach(r => {
+  const t = String(r?.ticker || "").toUpperCase();
+  if (_seen.has(t)) return;
+  _seen.add(t);
+  _rows.push({ ticker: r.ticker, name: r.name || screenerMap[r.ticker]?.full_name || "", theme: r.theme || "" });
+});
+return (<>
 <div id="section-watchlist" style={{height:0}} aria-hidden="true"/>
-{subPanel("var(--green)","BUY ALERTS","Top scoring names from today's scan",`${triggered.length} today`,
-  <WatchlistTable
-    rows={toWlRows(triggered)}
-    signals={scanData?.signals}
-    screener={screenerMap}
-    info={infoMap}
-    tableKey="watchlist_buy"
-    heldTickers={heldTickers}
-    userWatchlistTickers={userWatchlistTickers}
-    onAddToWatchlist={onAddToWatchlist}
-    onRemoveFromWatchlist={onRemoveFromWatchlist}
-    portfolioAuthed={portfolioAuthed}
-    onOpenTicker={(t)=>setTickerDetail(t)}
-    emptyMessage={`No buy alerts today · Last scan: ${lastScanLabel}`}
-  />
-)}
-{subPanel("var(--accent)","NEAR TRIGGER","Sitting just below the buy threshold",`${nearTrigger.length} name${nearTrigger.length===1?"":"s"}`,
-  <WatchlistTable
-    rows={toWlRows(nearTrigger)}
-    signals={scanData?.signals}
-    screener={screenerMap}
-    info={infoMap}
-    tableKey="watchlist_near"
-    heldTickers={heldTickers}
-    userWatchlistTickers={userWatchlistTickers}
-    onAddToWatchlist={onAddToWatchlist}
-    onRemoveFromWatchlist={onRemoveFromWatchlist}
-    portfolioAuthed={portfolioAuthed}
-    onOpenTicker={(t)=>setTickerDetail(t)}
-    emptyMessage="Nothing near trigger today."
-  />
-)}
-{subPanel("var(--text-muted)","YOUR WATCHLIST", portfolioAuthed ? "Your tracked tickers" : "Sign in to populate · empty in this preview", `${rebucketOther.length} tracking`,
-  <>
-    <WatchlistTable
-      rows={rebucketOther}
-      signals={scanData?.signals}
-      screener={screenerMap}
-      info={infoMap}
-      tableKey="watchlist_other"
-      heldTickers={heldTickers}
-      userWatchlistTickers={userWatchlistTickers}
-      onAddToWatchlist={onAddToWatchlist}
-      onRemoveFromWatchlist={onRemoveFromWatchlist}
-      portfolioAuthed={portfolioAuthed}
-      onOpenTicker={(t)=>setTickerDetail(t)}
-      emptyMessage={portfolioAuthed
-        ? "No tickers on your watchlist. Add one below."
-        : "Sign in to add tickers to your watchlist."}
-    />
-    {portfolioAuthed
-      ? <WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>
-      : (
-        <div style={{
-          marginTop:12, padding:"12px 14px",
-          background:"var(--surface)", border:"1px solid var(--border-faint)",
-          borderRadius:8, display:"flex", alignItems:"center",
-          justifyContent:"space-between", gap:14, flexWrap:"wrap",
-        }}>
-          <div style={{fontSize:13, color:"var(--text-2)", lineHeight:1.4}}>
-            Sign in to add tickers to your watchlist and run the scanner over your real names.
-          </div>
-          <button type="button"
-            onClick={()=>setShowPortoppsLogin(true)}
-            style={{
-              padding:"8px 14px", fontSize:13, fontWeight:600,
-              color:"#fff", background:"var(--accent)", border:"none",
-              borderRadius:"var(--radius-sm)", cursor:"pointer",
-              whiteSpace:"nowrap",
-            }}>Sign in</button>
-        </div>
-      )}
-  </>
-)}
-{/* Coverage disclaimer. Subcomposites require single-name fundamentals +
-    options flow + insider/congress feeds, which don't exist for funds,
-    ETFs, or crypto proxies (BTCUSD/ETHUSD). Keeps blank strips interpretable
-    rather than looking like a bug. */}
-<div style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.04em",textAlign:"center",padding:"6px 4px 2px",opacity:0.75}}>
-  Subcomposite scores (TECH / OPT / INS / CON / ANL / DP) available for single-name equities only — blank on funds, ETFs, and crypto proxies.
-</div>
+<WatchlistTable
+  rows={_rows}
+  signals={scanData?.signals}
+  screener={screenerMap}
+  info={infoMap}
+  tableKey="watchlist_unified"
+  heldTickers={heldTickers}
+  userWatchlistTickers={userWatchlistTickers}
+  onAddToWatchlist={onAddToWatchlist}
+  onRemoveFromWatchlist={onRemoveFromWatchlist}
+  portfolioAuthed={portfolioAuthed}
+  onOpenTicker={(t)=>setTickerDetail(t)}
+  tintByScore={true}
+  emptyMessage={portfolioAuthed
+    ? `No buy alerts, near-triggers, or watchlist names today · Last scan: ${lastScanLabel}`
+    : "Sign in to populate the unified watchlist."}
+/>
+{portfolioAuthed
+  ? <WatchlistAddInput session={session} watchlistRows={userWatchlistRows} refetchPortfolio={refetchPortfolio} onTickerAdded={scanTicker}/>
+  : null}
 </>);
 })()}
 

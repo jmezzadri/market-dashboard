@@ -33,12 +33,12 @@ import TableColumnPicker from "./TableColumnPicker";
 import { useTablePreferences } from "../hooks/useTablePreferences";
 
 const SIGNAL_COLS = [
-  { key: "technicals", short: "TECH", long: "Technicals (25%)" },
-  { key: "insider",    short: "INS",  long: "Insiders (25%)" },
-  { key: "options",    short: "OPT",  long: "Option Flow (20%)" },
-  { key: "congress",   short: "CON",  long: "Congress (15%)" },
-  { key: "analyst",    short: "ANL",  long: "Analyst (10%)" },
-  { key: "darkpool",   short: "DP",   long: "Dark Pool (5%)" },
+  { key: "technicals", short: "Technical",             long: "Technicals (25%)" },
+  { key: "insider",    short: "Insider Transactions",  long: "Insiders (25%)" },
+  { key: "options",    short: "Options Flow",          long: "Option Flow (20%)" },
+  { key: "congress",   short: "Congressional Trades",  long: "Congress (15%)" },
+  { key: "analyst",    short: "Analyst Ratings",       long: "Analyst (10%)" },
+  { key: "darkpool",   short: "Dark Pool",             long: "Dark Pool (5%)" },
 ];
 
 if (SIGNAL_COLS.length !== SECTION_ORDER.length) {
@@ -362,7 +362,7 @@ const signalCols = SIGNAL_COLS.map((c) => ({
 
 const overallCol = {
   id: "overall",
-  label: "OVR",
+  label: "Overall",
   description: "Overall weighted composite (−100 bearish → +100 bullish)",
   align: "center",
   sortValue: (r) => r.overall.score,
@@ -469,13 +469,13 @@ const DEFAULT_WIDTHS = {
   nextEarnings:  125,
   week52:        150,
   theme:         220,
-  technicals:    70,
-  insider:       70,
-  options:       70,
-  congress:      70,
-  analyst:       70,
-  darkpool:      70,
-  overall:       80,
+  technicals:    100,
+  insider:       110,
+  options:       100,
+  congress:      120,
+  analyst:       110,
+  darkpool:      90,
+  overall:       90,
   beta_2y:       90,
   annVol_2y:     90,
   maxDD_2y:      90,
@@ -491,6 +491,7 @@ export default function WatchlistTable({
   onAddToWatchlist,        // (ticker: string) => Promise<void>
   onRemoveFromWatchlist,   // (ticker: string) => Promise<void>
   portfolioAuthed = false, // bool — is the user signed in
+  tintByScore = false,
 }) {
   const [watchBusy, setWatchBusy] = useState(null);
   const onAdd = async (t) => {
@@ -679,12 +680,12 @@ export default function WatchlistTable({
 
   const headerStyle = {
     fontSize: 10, fontWeight: 700, color: "var(--text-muted)",
-    fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
+    fontFamily: "var(--font-mono)", letterSpacing: "0.06em",
     padding: "6px 6px",
     borderBottom: "1px solid var(--border)",
     background: "var(--surface-3)", position: "sticky", top: 0,
-    userSelect: "none", whiteSpace: "nowrap",
-    overflow: "hidden", textOverflow: "ellipsis",
+    userSelect: "none", whiteSpace: "normal", lineHeight: 1.25,
+    verticalAlign: "bottom",
   };
 
   // --- Resizable columns ----------------------------------------------------
@@ -790,17 +791,29 @@ export default function WatchlistTable({
             </tr>
           </thead>
           <tbody>
-            {sorted.map((row) => (
+            {sorted.map((row) => {
+              const _score = row?.overall?.score;
+              const _bg = tintByScore && typeof _score === "number"
+                ? (_score >= 75 ? "rgba(46,125,79,0.10)"
+                   : _score >= 50 ? "rgba(46,125,79,0.04)"
+                   : "var(--surface-2)")
+                : "var(--surface-2)";
+              const _bgHover = tintByScore && typeof _score === "number"
+                ? (_score >= 75 ? "rgba(46,125,79,0.16)"
+                   : _score >= 50 ? "rgba(46,125,79,0.08)"
+                   : "var(--surface-3)")
+                : "var(--surface-3)";
+              return (
               <tr
                 key={row.ticker}
                 onClick={() => onOpenTicker?.(row.ticker)}
                 style={{
                   cursor: "pointer",
                   borderBottom: "1px solid var(--border-faint)",
-                  background: "var(--surface-2)",
+                  background: _bg,
                 }}
-                onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-3)"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "var(--surface-2)"}
+                onMouseEnter={(e) => e.currentTarget.style.background = _bgHover}
+                onMouseLeave={(e) => e.currentTarget.style.background = _bg}
               >
                 {visibleColumns.map((col) => (
                   <td
@@ -818,7 +831,8 @@ export default function WatchlistTable({
                   </td>
                 ))}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
