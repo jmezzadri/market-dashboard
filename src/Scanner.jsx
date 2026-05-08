@@ -1504,7 +1504,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
 
         <div className="scanner-tile-grid" style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+          gridTemplateColumns: "repeat(2, 1fr)",
           gap: "var(--space-4)",
         }}>
           {/* "Buy & Watch list" tile retired 2026-04-19 — see TAB_META note above.
