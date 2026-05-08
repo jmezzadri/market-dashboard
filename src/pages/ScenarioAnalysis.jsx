@@ -958,7 +958,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
         <div style={_tableCard}>
           <div style={_tableHead}>
             <h2 style={_tableTitle}>Your Portfolio</h2>
-            <div style={_tableSub}>{portfolioSource === "demo" ? "Illustrative $100,000 book — sign in to apply the scenario to your real positions." : "Your real positions across all accounts."}</div>
+            <div style={_tableSub}>{(() => { const tot = (realPnl.positions || []).reduce((s,p)=>s+(p.value||0),0); const totK = (tot/1000).toFixed(0); return portfolioSource === "demo" ? `Illustrative $${totK}K book — sign in to apply the scenario to your real positions.` : "Your real positions across all accounts."; })()}</div>
           </div>
           <div style={{ display:"grid", gridTemplateColumns:"1fr 1.2fr 110px 110px 110px 90px" }}>
             <div style={_th}>Ticker</div>
