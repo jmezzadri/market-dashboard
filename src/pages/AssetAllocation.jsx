@@ -1133,8 +1133,8 @@ function HeatmapTile({ contributionMatrix, mechanismScores }) {
                 Cycle mechanism
               </th>
               {sectors.map(s => (
-                <th key={s} title={s} style={{ padding: "10px 4px 6px", verticalAlign:"bottom", textAlign:"center", fontWeight:500, fontFamily:"var(--font-display)", fontSize:11, background:"var(--surface-2)", height: 130 }}>
-                  <div style={{ writingMode: "vertical-rl", transform: "rotate(180deg)", whiteSpace: "nowrap", margin: "0 auto", color:"var(--text)" }}>{s}</div>
+                <th key={s} title={s} style={{ padding: "10px 6px 8px", textAlign:"center", fontWeight:500, fontFamily:"var(--font-display)", fontSize:11, background:"var(--surface-2)", color:"var(--text)", lineHeight:1.2, verticalAlign:"bottom" }}>
+                  {s}
                 </th>
               ))}
             </tr>
