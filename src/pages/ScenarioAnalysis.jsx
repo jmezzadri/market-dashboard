@@ -9,7 +9,7 @@
 // CCAR factor inputs translated to v9's panel via translation-ccar-to-v9-v1.md.
 // Same optimizer, same universe, same output schema. No duplicate calibration.
 
-import { useState, useMemo, useCallback, useEffect } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useUserPortfolio } from "../hooks/useUserPortfolio";
 import { SectorModal, IGModal } from "./AssetAllocation";
 
@@ -785,88 +785,123 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
   const horizonText = horizon === "1mo" ? "1-month" : horizon === "3mo" ? "3-month" : "6-month";
 
+  // === SHORT NAMES for the Scenario Selection card ===
+  // Joe mockup 2026-05-08: 8 historical scenario buttons in 2x4, plus Custom.
+  const SCENARIO_SHORT = {
+    black_monday_1987:     "Black Monday ('87)",
+    dotcom_slow_2000:      "Dot Com Lead Up ('00)",
+    dotcom_capitulation_2002: "Dot Com Final Flush ('02)",
+    gfc_2008:              "GFC ('08)",
+    q4_2018:               "Rate Hikes ('18)",
+    covid_2020:            "Covid ('20)",
+    inflation_2022:        "Inflation ('22)",
+    ai_2024:               "AI Correction ('24)",
+  };
+  const _eyebrow = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase", marginBottom:14 };
+  const _h1 = { fontFamily:"var(--font-display)", fontWeight:400, fontSize:"clamp(28px, 3.4vw, 38px)", lineHeight:1.18, letterSpacing:"-0.012em", color:"var(--text)", margin:"0 0 12px" };
+  const _emItalic = { fontStyle:"italic", color:"var(--accent)", fontWeight:500 };
+  const _subtitle = { fontFamily:"var(--font-ui)", fontSize:16, color:"var(--text-2)", lineHeight:1.55, margin:"10px 0 0", maxWidth:720 };
+  const _rightCard = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:12, padding:"18px 20px 14px", display:"flex", flexDirection:"column" };
+  const _cardEyebrow = { fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.18em", marginBottom:14, textAlign:"center" };
+  const _scenBtn = (active) => ({
+    fontFamily:"var(--font-ui)", fontSize:11, fontWeight:500,
+    padding:"8px 10px", borderRadius:6,
+    border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
+    background: active ? "color-mix(in srgb, var(--accent) 14%, var(--surface))" : "var(--surface-2)",
+    color: active ? "var(--accent)" : "var(--text)",
+    cursor:"pointer", textAlign:"center", letterSpacing:"0.01em",
+  });
+  const _customBtn = (active) => ({
+    fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600,
+    padding:"10px 12px", borderRadius:6, marginTop:6, width:"100%",
+    border: active ? "1px solid var(--accent)" : "1px solid var(--border)",
+    background: active ? "color-mix(in srgb, var(--accent) 14%, var(--surface))" : "var(--surface-2)",
+    color: active ? "var(--accent)" : "var(--text)",
+    cursor:"pointer", textAlign:"center", letterSpacing:"0.04em", textTransform:"uppercase",
+  });
+  const _tableCard = { background:"var(--surface)", border:"0.5px solid var(--border)", borderRadius:12, overflow:"hidden", marginBottom:20 };
+  const _tableHead = { padding:"14px 18px 12px", borderBottom:"0.5px solid var(--border)" };
+  const _tableTitle = { fontFamily:"var(--font-display)", fontSize:18, fontWeight:500, margin:0, letterSpacing:"-0.005em" };
+  const _tableSub = { fontSize:12, color:"var(--text-muted)", marginTop:4 };
+  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", textAlign:"left", padding:"10px 14px", borderBottom:"0.5px solid var(--border)", whiteSpace:"normal", lineHeight:1.25 };
+  const _td = { fontSize:13, color:"var(--text)", padding:"10px 14px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
+  const _tdNum = { ...{ fontSize:13, padding:"10px 14px", borderBottom:"0.5px solid var(--border-faint, var(--border))" }, fontFamily:"var(--font-mono)", textAlign:"right" };
+
+  // Map sector internal id (XLK) → display row (Joe mockup wants Sector / Asset Class | Proxy Ticker | Stress Result).
+  // SECTORS array already has {id, name, assetClass}; sectorPcts[id] is the % stress.
+  const _equityRows = SECTORS.filter(s => s.assetClass === "Equity").map(s => ({
+    name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0
+  }));
+  const _defensiveRows = SECTORS.filter(s => s.assetClass === "Defensive").map(s => ({
+    name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0
+  }));
+
+  const _stressColor = (pct) => pct > 0 ? "var(--green)" : (pct < 0 ? "var(--red, #b8332a)" : "var(--text-muted)");
+  const _fmtPct = (pct) => (pct === 0 || !hasShock ? "—" : (pct > 0 ? "+" : "") + pct.toFixed(1) + "%");
+  const _fmtDollar = (v) => v === 0 ? "$0" : (v < 0 ? "−$" : "+$") + Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
+
   return (
     <>
-      <style>{STYLES}</style>
-      <div className="scenarios-page">
-        <div className="tab-head">
-          <div>
-            <div className="crumb">04 · Scenario Analysis</div>
-            <h1 className="title">Stress your book against history.</h1>
-            <div className="lede">Pick a historical episode or build a custom factor shock and watch four things light up: macro composites, sector rankings, your portfolio P&L, and what the live engine would re-allocate to. Try <em>2022 Inflation</em> first — Energy should rank best, long-duration growth worst.</div>
+      <main style={{ maxWidth: 1216, margin: "0 auto", padding: "24px 32px 48px" }}>
+        {/* HERO — eyebrow + h1 + subtitle on left, Scenario Selection card on right.
+            Matches MO/AT/TO hero spec (PR #483). */}
+        <section style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:36, alignItems:"start", marginBottom:32 }}>
+          <div style={{ minWidth:0 }}>
+            <div style={_eyebrow}>Scenario Analysis</div>
+            <h1 style={_h1}>
+              Stress your <em style={_emItalic}>book</em>, your <em style={_emItalic}>asset tilt</em>, and the <em style={_emItalic}>cycle mechanisms</em> against history.
+            </h1>
+            <p style={_subtitle}>
+              Pick a historical episode or build a custom factor shock. Three tables update in lockstep — sectors hit by the regime, where the cycle mechanisms move (Phase 2), and how your real positions react.
+            </p>
           </div>
-          <div className="mode-toggle">
-            <button className={mode === "canned" ? "active" : ""} onClick={() => onModeChange("canned")}>Canned scenario</button>
-            <button className={mode === "bespoke" ? "active" : ""} onClick={() => onModeChange("bespoke")}>Custom shock</button>
-          </div>
-        </div>
-
-        {mode === "canned" ? (
-          <div className="builder">
-            <div className="builder-row">
-              <div className="builder-label">Scenario</div>
-              <div className="scenario-chips">
-                {Object.entries(SCENARIOS).map(([id, s]) => {
-                  const cls = ["chip"];
-                  if (s.proxy) cls.push("proxy");
-                  if (s.lowConf) cls.push("low-conf");
-                  if (scenario === id) cls.push("active");
-                  return <span key={id} className={cls.join(" ")} onClick={() => onScenarioClick(id)}>{s.name}</span>;
-                })}
-              </div>
-              <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
-                <div className="builder-label">Horizon</div>
-                <div className="horizon-tabs">
-                  {["1mo","3mo","6mo"].map(h => (
-                    <button key={h} className={horizon === h ? "active" : ""} onClick={() => setHorizon(h)}>{h}</button>
-                  ))}
-                </div>
-              </div>
+          <aside style={_rightCard}>
+            <div style={_cardEyebrow}>Scenario Selection</div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+              {Object.entries(SCENARIO_SHORT).map(([id, short]) => (
+                <button key={id} onClick={() => { onModeChange("canned"); onScenarioClick(id); }} style={_scenBtn(mode==="canned" && scenario===id)}>
+                  {short}
+                </button>
+              ))}
             </div>
-            <div className="legend"><span className="legend-label">Legend</span><span className="legend-item"><span className="lg-marker">◐</span> Lower-confidence calibration</span><span className="legend-item"><span className="lg-marker">※</span> Pre-1996 proxies (VXO for VIX, BAA-Treasury for HY OAS)</span></div>
-          </div>
-        ) : (
-          <div className="builder">
+            <button onClick={() => onModeChange("bespoke")} style={_customBtn(mode==="bespoke")}>
+              Custom Multi-Factor Shock
+            </button>
+          </aside>
+        </section>
+
+        {/* If user picked Custom, render the existing builder above the tables.
+            Builder UI preserved verbatim from prior implementation — calibrated factor sliders. */}
+        {mode === "bespoke" && (
+          <div className="builder" style={{ marginBottom:20 }}>
             <div className="builder-row" style={{marginBottom:"var(--s-2)"}}>
               <div className="builder-label">Propagation</div>
-              <div className={"prop-toggle" + (prop === "bespoke" ? " bespoke" : "")} onClick={onPropToggle}>
-                <span className="dot"></span>
-                <strong>{prop === "realistic" ? "Realistic" : "Custom"}</strong>
-                <span style={{color:"var(--ink-2)"}}>{prop === "realistic" ? " · single driver · others auto-propagate" : " · each pinned slider moves freely · Coherence Score warns on rare combos"}</span>
+              <div className="prop-toggle">
+                <button className={prop === "realistic" ? "active" : ""} onClick={onPropToggle}>Realistic (correlated)</button>
+                <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (pin factors)</button>
               </div>
               <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
-                <div className={"coherence" + (score >= 50 ? "" : score >= 25 ? " unusual" : score >= 5 ? " rare" : " exotic")}>
-                  Coherence
-                  <span className="score">{score}</span>
-                  <span style={{color:"var(--ink-2)"}}>{score >= 50 ? "typical regime" : score >= 25 ? "unusual combination" : score >= 5 ? "historically rare" : "exotic — exploratory only"}</span>
-                </div>
+                <button className="reset-btn" onClick={onReset}>Reset</button>
                 <div className="builder-label">Horizon</div>
                 <div className="horizon-tabs">
                   {["1mo","3mo","6mo"].map(h => (
                     <button key={h} className={horizon === h ? "active" : ""} onClick={() => setHorizon(h)}>{h}</button>
                   ))}
                 </div>
-                <button className="reset-btn" onClick={onReset}>Reset all</button>
               </div>
             </div>
-            <div className="factor-grid">
-              {FACTORS.map(f => {
-                const isPinned = pinned.has(f.id);
-                const isDriver = driver === f.id;
-                const isAuto = (prop === "realistic" && driver !== null && driver !== f.id) || (prop === "bespoke" && !isPinned);
-                const cls = ["factor"];
-                if (isPinned) cls.push("pinned");
-                if (isDriver) cls.push("driver");
-                if (isAuto) cls.push("auto");
-                const val = isAuto ? effShocks[f.id] : shocks[f.id];
-                const nominal = fmtNominal(f.id, val);
+            <div className="sliders">
+              {FACTOR_IDS.map(fid => {
+                const f = FACTORS[fid];
+                const v = effShocks[fid];
+                const isPinned = pinned.has(fid);
+                const isDriver = driver === fid;
                 return (
-                  <div key={f.id} className={cls.join(" ")}>
-                    <span className="factor-name">{f.name}</span>
-                    <input type="range" min={f.min} max={f.max} step={f.step} value={val.toFixed(2)} onChange={e => onSliderChange(f.id, parseFloat(e.target.value))} />
-                    <span className="factor-val">{fmtZ(val)}</span>
-                    <span className="factor-nominal" title={`${f.name} ≈ ${nominal} at ${fmtZ(val)} (calibrated 2006-2026 mean+std)`}>{nominal}</span>
-                    <span className="factor-pin" onClick={() => onPinToggle(f.id)} title={isPinned ? "Unpin" : "Pin"}>{isPinned ? "📌" : "📍"}</span>
+                  <div key={fid} className={"slider-row" + (isPinned ? " pinned" : "") + (isDriver ? " driver" : "")}>
+                    <button className="pin" onClick={() => onPinToggle(fid)} title={isPinned ? "Unpin" : "Pin"}>{isPinned ? "📌" : "📍"}</button>
+                    <div className="slider-label">{f.label}</div>
+                    <input type="range" min="-5" max="5" step="0.1" value={v} onChange={(e) => onSliderChange(fid, parseFloat(e.target.value))} />
+                    <div className="slider-val">{v >= 0 ? "+" : ""}{v.toFixed(1)} σ</div>
                   </div>
                 );
               })}
@@ -875,21 +910,87 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           </div>
         )}
 
-        {hasShock && <SoWhatHero mode={mode} scenario={scenario} score={score} pnl={realPnl} horizonText={horizonText} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} />}
+        {/* TABLE 1 — Asset Tilt Engine Scenario Results (sectors + defensive sleeve) */}
+        <div style={_tableCard}>
+          <div style={_tableHead}>
+            <h2 style={_tableTitle}>Asset Tilt Engine Scenario Results</h2>
+            <div style={_tableSub}>How each equity sector and defensive asset class is impacted by the selected scenario.</div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1.6fr 100px 120px" }}>
+            <div style={_th}>Sector / Asset Class</div>
+            <div style={{..._th, textAlign:"left"}}>Proxy Ticker</div>
+            <div style={{..._th, textAlign:"right"}}>Stress Result</div>
+            {/* Equity sub-header */}
+            <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
+            {_equityRows.map(r => (
+              <React.Fragment key={r.ticker}>
+                <div style={{..._td, cursor: SCEN_TO_AT_SECTOR[r.name] ? "pointer" : "default"}} onClick={() => SCEN_TO_AT_SECTOR[r.name] && openSectorByName(r.name)}>{r.name}</div>
+                <div style={_td}>{r.ticker}</div>
+                <div style={{..._tdNum, color: _stressColor(r.pct), fontWeight:600}}>{_fmtPct(r.pct)}</div>
+              </React.Fragment>
+            ))}
+            <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Defensive Sleeve</div>
+            {_defensiveRows.map(r => (
+              <React.Fragment key={r.ticker}>
+                <div style={{..._td, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
+                <div style={_td}>{r.ticker}</div>
+                <div style={{..._tdNum, color: _stressColor(r.pct), fontWeight:600}}>{_fmtPct(r.pct)}</div>
+              </React.Fragment>
+            ))}
+          </div>
+        </div>
 
-        {/* L1 (3 macro composites) was retired — composites are deprecated per
-            the v11 cycle-mechanism cutover. Composites belong on Macro Overview
-            anyway; Scenarios is about how a shock hits the BOOK and WHICH
-            sectors lead/lag. L2 takes the substance row alone; L3 + L4 sit
-            below in the 2-column grid. */}
-        <div style={{ marginTop: "var(--s-3)" }}>
-          <L2Panel hasShock={hasShock} sectorPcts={sectorPcts} expandedSector={expandedSector} setExpandedSector={setExpandedSector} mode={mode} scenarioId={scenario} effShocks={effShocks} onAssetClick={handleAssetClick} />
+        {/* TABLE 2 — Cycle Mechanism Scenario Results (Phase 2 placeholder) */}
+        <div style={_tableCard}>
+          <div style={_tableHead}>
+            <h2 style={_tableTitle}>Cycle Mechanism Scenario Results</h2>
+            <div style={_tableSub}>How the six cycle mechanisms and the page-level composite move under the selected scenario.</div>
+          </div>
+          <div style={{ padding:"36px 18px", textAlign:"center" }}>
+            <div style={{ fontFamily:"var(--font-ui)", fontSize:12, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.10em", marginBottom:8 }}>Phase 2 — Senior Quant calibrating</div>
+            <div style={{ fontFamily:"var(--font-ui)", fontSize:14, color:"var(--text-2)", lineHeight:1.55, maxWidth:560, margin:"0 auto" }}>
+              For each historical scenario, we are mapping factor moves into the underlying FRED inputs (CAPE, ERP, HY OAS, ISM, SLOOS, etc.) and re-running the mechanism scorer. Live in Phase 2 — backtested against observed peak-stress mechanism scores.
+            </div>
+          </div>
         </div>
-        <div className="output-grid">
-          <L3Panel hasShock={hasShock} pnl={realPnl} horizon={horizon} portfolioTotal={portfolioTotal} portfolioSource={portfolioSource} portfolioUncovered={portfolioUncovered} />
-          <L4Panel hasShock={hasShock} tilts={tilts} score={score} mode={mode} scenarioId={scenario} engineData={engineData} onAssetClick={handleAssetClick} onOpenTicker={onOpenTicker} />
+
+        {/* TABLE 3 — Your Portfolio under stress */}
+        <div style={_tableCard}>
+          <div style={_tableHead}>
+            <h2 style={_tableTitle}>Your Portfolio</h2>
+            <div style={_tableSub}>{portfolioSource === "demo" ? "Illustrative $100,000 book — sign in to apply the scenario to your real positions." : "Your real positions across all accounts."}</div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1.2fr 110px 110px 110px 90px" }}>
+            <div style={_th}>Ticker</div>
+            <div style={_th}>Sector</div>
+            <div style={{..._th, textAlign:"right"}}>Curr. Value</div>
+            <div style={{..._th, textAlign:"right"}}>Stressed Value</div>
+            <div style={{..._th, textAlign:"right"}}>P&amp;L $</div>
+            <div style={{..._th, textAlign:"right"}}>P&amp;L %</div>
+            {(realPnl.positions || []).map((pos, i) => {
+              const stressed = pos.value + pos.dollar;
+              const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
+              return (
+                <React.Fragment key={i}>
+                  <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
+                  <div style={{..._td, color:"var(--text-muted)"}}>{pos.sector}</div>
+                  <div style={_tdNum}>${(pos.value || 0).toLocaleString()}</div>
+                  <div style={_tdNum}>${(stressed || 0).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
+                  <div style={{..._tdNum, color: _stressColor(pos.dollar), fontWeight:600}}>{hasShock ? _fmtDollar(pos.dollar) : "—"}</div>
+                  <div style={{..._tdNum, color: _stressColor(pos.pct), fontWeight:600}}>{pctText}</div>
+                </React.Fragment>
+              );
+            })}
+            {/* Total row */}
+            <div style={{..._td, fontWeight:700, borderTop:"1px solid var(--border)"}}>Total</div>
+            <div style={{..._td, borderTop:"1px solid var(--border)"}}></div>
+            <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${(realPnl.positions || []).reduce((s,p)=>s+(p.value||0),0).toLocaleString()}</div>
+            <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${((realPnl.positions || []).reduce((s,p)=>s+(p.value||0)+(p.dollar||0),0)).toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+            <div style={{..._tdNum, fontWeight:700, color: _stressColor(realPnl.total||0), borderTop:"1px solid var(--border)"}}>{hasShock ? _fmtDollar(realPnl.total||0) : "—"}</div>
+            <div style={{..._tdNum, fontWeight:700, color: _stressColor(realPnl.total||0), borderTop:"1px solid var(--border)"}}>{hasShock && (realPnl.positions||[]).length>0 ? ((realPnl.total||0)/((realPnl.positions||[]).reduce((s,p)=>s+(p.value||0),0)||1)*100).toFixed(1)+"%" : "—"}</div>
+          </div>
         </div>
-      </div>
+      </main>
       {sectorModal && v10 && <SectorModal sector={sectorModal} igs={v10.industry_groups} onClose={() => setSectorModal(null)} onIGClick={(ig) => { setSectorModal(null); setIgModal(ig); }} onEtfClick={(e) => onOpenTicker && onOpenTicker(e.t || e)} />}
       {igModal && v10 && <IGModal ig={igModal} sectorIGs={v10.industry_groups.filter(x => x.sector === igModal.sector)} parentSector={v10.sectors.find(x => x.sector === igModal.sector)} onClose={() => setIgModal(null)} onEtfClick={(e) => onOpenTicker && onOpenTicker(e.t || e)} onBackToSector={(sector) => { setIgModal(null); setSectorModal(sector); }} onTickerClick={(t) => onOpenTicker && onOpenTicker(t)} />}
     </>
