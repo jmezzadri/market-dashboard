@@ -1308,11 +1308,11 @@ export default function AssetTilt({ onOpenTicker }) {
             Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway &mdash; e.g., max leverage 150%, max defensive 50%.
           </p>
         </div>
-        <aside style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, padding: "16px 18px", display: "flex", flexDirection: "column" }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 500, color: "var(--text)", textAlign: "center", marginBottom: 14, letterSpacing: "-0.005em" }}>
+        <aside style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px 14px", display: "flex", flexDirection: "column", textAlign: "center" }}>
+          <div style={{ fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.18em", marginBottom: 14 }}>
             Key Statistics vs. S&amp;P 500
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1, textAlign: "left" }}>
             {[
               { label: "CAGR",         value: "13.85%",  sub: "vs SPY 11.61%" },
               { label: "Sharpe",       value: "1.034",    sub: "annualized" },
@@ -1336,7 +1336,7 @@ export default function AssetTilt({ onOpenTicker }) {
               </div>
             ))}
           </div>
-          <div style={{ marginTop: 12, textAlign: "center" }}>
+          <div style={{ marginTop: 12 }}>
             <a href="#methodology" style={{ fontSize: 11, fontWeight: 500, color: "var(--accent)", letterSpacing: "0.04em" }}>Read the full methodology &rarr;</a>
           </div>
         </aside>
