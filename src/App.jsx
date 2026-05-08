@@ -6507,19 +6507,19 @@ return(<>
     h1 Fraunces clamp(28-38)/1.18/-0.012em, subtitle Inter 16/1.55,
     right card 1px border 12 radius 18-20-14 pad text-center,
     gauge 380x230 viewBox with R 140/90 filled wedges. */}
-<section style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:36,alignItems:"center",marginBottom:32,padding:"4px 0"}}>
+<section style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:36,alignItems:"start",marginBottom:32}}>
 <div style={{minWidth:0}}>
 <div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:14,display:"inline-flex",alignItems:"center",gap:10}}>
 Trading Opportunities
 <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||null} style={{marginLeft:4}}/>
 </div>
-<h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 12px",maxWidth:980}}>
+<h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 12px"}}>
 The names worth your attention &mdash; <em style={{fontStyle:"italic",color:"var(--accent)",fontWeight:500}}>before the market notices.</em>
 </h1>
 <p style={{fontFamily:"var(--font-ui)",fontSize:16,color:"var(--text-2)",lineHeight:1.55,margin:"10px 0 0",maxWidth:720}}>
 An equity scanner that combines technical momentum, insider Form-4s, unusual options flow, congressional trades, and analyst ratings into one signed composite ranging from &minus;100 (bearish) to +100 (bullish). Names scoring above +75 trigger a buy alert; +50 to +75 sit on the near-trigger watch.
 </p>
-<div style={{fontFamily:"var(--font-ui)",fontSize:13,color:"var(--text-muted)",fontStyle:"italic",marginTop:8}}>{_subline}</div>
+
 </div>
 
 <aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 14px",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>

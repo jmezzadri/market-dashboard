@@ -1296,7 +1296,7 @@ export default function AssetTilt({ onOpenTicker }) {
       {/* HERO — Joe mockup 2026-05-08 v3:
           LEFT (~2/3): eyebrow + h1 + Engine subtitle.
           RIGHT (~1/3): "Key Statistics vs. S&P 500" card with 4 KPI cells. */}
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 36, alignItems: "center", marginBottom: 32 }}>
+      <section style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 36, alignItems: "start", marginBottom: 32 }}>
         <div>
           <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 14 }}>
             Asset Tilt
