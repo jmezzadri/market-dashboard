@@ -542,19 +542,19 @@
       "calibration_status": "seeded",
       "values": {
         "cape": {
-          "value": 13.0,
-          "as_of": "2008-11-30",
-          "source_note": "CAPE bottomed near 13 in Nov 2008 (multpl.com / Shiller data)"
+          "value": 15.26,
+          "as_of": "2008-11-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-01 = 15.26 (was 13.0 as_of 2008-11-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: CAPE bottomed near 13 in Nov 2008 (multpl.com / Shiller data)"
         },
         "erp": {
-          "value": 4.17,
-          "as_of": "2008-11-30",
-          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/13.0 − 3.53% = 4.17%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
+          "value": 2.29,
+          "as_of": "2008-10-31",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-10-31 = 2.29 (was 4.17 as_of 2008-11-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/13.0 − 3.53% = 4.17%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
-          "value": 58.0,
-          "as_of": "2008-Q4",
-          "source_note": "Wilshire fell ~50% from 2007 peak; GDP modestly down"
+          "value": 69.0,
+          "as_of": "2009-01-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2009-01-01 = 69.0 (was 58.0 as_of 2008-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Wilshire fell ~50% from 2007 peak; GDP modestly down"
         },
         "hy_oas": {
           "value": 1900,
@@ -562,9 +562,9 @@
           "source_note": "FRED BAMLH0A0HYM2 hit 1971 bps Dec 15 2008"
         },
         "ig_oas": {
-          "value": 620,
-          "as_of": "2008-12-08",
-          "source_note": "FRED BAMLC0A0CM peaked ~620 in Dec 2008"
+          "value": 520.0,
+          "as_of": "2008-11-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-01 = 520.0 (was 620 as_of 2008-12-08). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED BAMLC0A0CM peaked ~620 in Dec 2008"
         },
         "ig_hy_ratio": {
           "value": 0.33,
@@ -572,19 +572,19 @@
           "source_note": "derived (620/1900)"
         },
         "cpff": {
-          "value": 275,
-          "as_of": "2008-10-10",
-          "source_note": "3M CP-OIS spread spiked >200bps post-Lehman"
+          "value": 85.0,
+          "as_of": "2008-11-14",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-14 = 85.0 (was 275 as_of 2008-10-10). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: 3M CP-OIS spread spiked >200bps post-Lehman"
         },
         "stlfsi": {
-          "value": 7.3,
-          "as_of": "2008-10-17",
-          "source_note": "FRED STLFSI4 hit 7.32 Oct 2008 (record)"
+          "value": 6.02,
+          "as_of": "2008-11-14",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-14 = 6.02 (was 7.3 as_of 2008-10-17). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED STLFSI4 hit 7.32 Oct 2008 (record)"
         },
         "bank_reserves": {
-          "value": 840.0,
-          "as_of": "2008-12-31",
-          "source_note": "WRESBAL ~$840B end-Dec 2008 (post-QE1 surge — Senior Quant validation 2026-05-09 corrected from 0.74)"
+          "value": 633.8,
+          "as_of": "2008-11-19",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-19 = 633.8 (was 840.0 as_of 2008-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WRESBAL ~$840B end-Dec 2008 (post-QE1 surge — Senior Quant validation 2026-05-09 corrected from 0.74)"
         },
         "rrp": {
           "value": null,
@@ -607,29 +607,29 @@
           "source_note": "Q4 2008 advance GDP -8.4% (revised; GDPNow not live until 2014, used realized print as proxy)"
         },
         "anfci": {
-          "value": 4.0,
-          "as_of": "2008-10-31",
-          "source_note": "FRED NFCI peaked ~4.0 in Oct 2008 (Senior Quant validation 2026-05-09 — corrected from 4.5)"
+          "value": 3.6,
+          "as_of": "2008-11-14",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-14 = 3.6 (was 4.0 as_of 2008-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED NFCI peaked ~4.0 in Oct 2008 (Senior Quant validation 2026-05-09 — corrected from 4.5)"
         },
         "fed_bs_yoy": {
-          "value": 140,
-          "as_of": "2008-12-31",
-          "source_note": "WALCL grew from $0.9T to $2.2T over 2008 (~140% YoY)"
+          "value": 145.46,
+          "as_of": "2008-11-19",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-19 = 145.46 (was 140 as_of 2008-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WALCL grew from $0.9T to $2.2T over 2008 (~140% YoY)"
         },
         "sloos_ci": {
-          "value": 83,
-          "as_of": "2008-Q4",
-          "source_note": "Q4 2008 SLOOS net % tightening C&I = 83.6"
+          "value": 64.2,
+          "as_of": "2009-01-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2009-01-01 = 64.2 (was 83 as_of 2008-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Q4 2008 SLOOS net % tightening C&I = 83.6"
         },
         "m2_yoy": {
-          "value": 7.5,
-          "as_of": "2008-12-31",
-          "source_note": "M2 YoY ~+7.5% end-Dec 2008 (FRED M2SL — Senior Quant validation 2026-05-09 corrected from 9.5)"
+          "value": 7.69,
+          "as_of": "2008-11-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-01 = 7.69 (was 7.5 as_of 2008-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: M2 YoY ~+7.5% end-Dec 2008 (FRED M2SL — Senior Quant validation 2026-05-09 corrected from 9.5)"
         },
         "skew": {
-          "value": 118,
-          "as_of": "2008-10-15",
-          "source_note": "CBOE SKEW elevated 115-125 range Oct-Nov 2008"
+          "value": 114.9,
+          "as_of": "2008-11-20",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 114.9 (was 118 as_of 2008-10-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: CBOE SKEW elevated 115-125 range Oct-Nov 2008"
         },
         "vix": {
           "value": 80.9,
@@ -637,14 +637,14 @@
           "source_note": "VIX intraday 80.86 Nov 20 2008 (record high)"
         },
         "eq_cr_corr": {
-          "value": 0.85,
-          "as_of": "2008-Q4",
-          "source_note": "Equity-credit corr near 0.85 at GFC peak"
+          "value": 0.66,
+          "as_of": "2008-11-20",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 0.66 (was 0.85 as_of 2008-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Equity-credit corr near 0.85 at GFC peak"
         },
         "move": {
-          "value": 213,
-          "as_of": "2008-10-31",
-          "source_note": "MOVE Index peaked ~213 Oct 2008 (Senior Quant validation 2026-05-09 — corrected from 260; original value likely confused with VIX peak)"
+          "value": 211.6,
+          "as_of": "2008-11-20",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 211.6 (was 213 as_of 2008-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: MOVE Index peaked ~213 Oct 2008 (Senior Quant validation 2026-05-09 — corrected from 260; original value likely confused with VIX peak)"
         }
       }
     },
@@ -654,19 +654,19 @@
       "calibration_status": "draft",
       "values": {
         "cape": {
-          "value": 28.4,
-          "as_of": "2018-12-24",
-          "source_note": "Shiller CAPE ~28.4 at Dec 24 SPX trough (multpl.com / Shiller dataset)"
+          "value": 28.29,
+          "as_of": "2018-12-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-01 = 28.29 (was 28.4 as_of 2018-12-24). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Shiller CAPE ~28.4 at Dec 24 SPX trough (multpl.com / Shiller dataset)"
         },
         "erp": {
-          "value": 0.69,
-          "as_of": "2018-12-24",
-          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/28.4 − 2.83% = 0.69%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
+          "value": 0.19,
+          "as_of": "2018-11-30",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-11-30 = 0.19 (was 0.69 as_of 2018-12-24). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/28.4 − 2.83% = 0.69%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
-          "value": 138.0,
-          "as_of": "2018-12-31",
-          "source_note": "Wilshire 5000 fell ~20% from Sep '18 peak; ratio ~138% end-Q4"
+          "value": 150.8,
+          "as_of": "2019-01-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2019-01-01 = 150.8 (was 138.0 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Wilshire 5000 fell ~20% from Sep '18 peak; ratio ~138% end-Q4"
         },
         "hy_oas": {
           "value": 533,
@@ -674,9 +674,9 @@
           "source_note": "FRED BAMLH0A0HYM2 closed 537 bps Dec 24 '18 (cycle peak)"
         },
         "ig_oas": {
-          "value": 158,
-          "as_of": "2018-12-24",
-          "source_note": "FRED BAMLC0A0CM closed 158 bps Dec 24 '18"
+          "value": 212.0,
+          "as_of": "2018-12-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-01 = 212.0 (was 158 as_of 2018-12-24). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED BAMLC0A0CM closed 158 bps Dec 24 '18"
         },
         "ig_hy_ratio": {
           "value": 0.3,
@@ -684,24 +684,24 @@
           "source_note": "derived (158/533)"
         },
         "cpff": {
-          "value": 25,
-          "as_of": "2018-12-31",
-          "source_note": "3M CP-OIS spread modest ~25 bps end-2018; funding stress contained"
+          "value": 16.0,
+          "as_of": "2018-12-21",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-21 = 16.0 (was 25 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: 3M CP-OIS spread modest ~25 bps end-2018; funding stress contained"
         },
         "stlfsi": {
-          "value": 0.5,
-          "as_of": "2018-12-31",
-          "source_note": "FRED STLFSI4 ~0.5 Dec '18 (modestly elevated, well below GFC/COVID)"
+          "value": 0.54,
+          "as_of": "2018-12-21",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-21 = 0.54 (was 0.5 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED STLFSI4 ~0.5 Dec '18 (modestly elevated, well below GFC/COVID)"
         },
         "bank_reserves": {
-          "value": 1600.0,
-          "as_of": "2018-12-31",
-          "source_note": "WRESBAL ~$1.6T end-2018 (declining via QT from $2.5T peak)"
+          "value": 1699.1,
+          "as_of": "2018-12-19",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-19 = 1699.1 (was 1600.0 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WRESBAL ~$1.6T end-2018 (declining via QT from $2.5T peak)"
         },
         "rrp": {
-          "value": 0.001,
-          "as_of": "2018-12-31",
-          "source_note": "RRP minimal usage Dec '18 (~$1B daily, well below 2022 peak)"
+          "value": 8.0,
+          "as_of": "2018-12-24",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 8.0 (was 0.001 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: RRP minimal usage Dec '18 (~$1B daily, well below 2022 peak)"
         },
         "ism_mfg": {
           "value": 54.1,
@@ -719,44 +719,44 @@
           "source_note": "Atlanta Fed GDPNow Q4 2018 final ~2.7%"
         },
         "anfci": {
-          "value": -0.4,
-          "as_of": "2018-12-28",
-          "source_note": "FRED NFCI Dec 28 '18 ~-0.40 (still loose but tightened from -0.7 in Sep)"
+          "value": -0.39,
+          "as_of": "2018-12-21",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-21 = -0.39 (was -0.4 as_of 2018-12-28). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED NFCI Dec 28 '18 ~-0.40 (still loose but tightened from -0.7 in Sep)"
         },
         "fed_bs_yoy": {
-          "value": -9.0,
-          "as_of": "2018-12-31",
-          "source_note": "WALCL ~$4.0T Dec '18 vs ~$4.4T Dec '17 = -9% YoY (active QT)"
+          "value": -8.17,
+          "as_of": "2018-12-19",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-19 = -8.17 (was -9.0 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WALCL ~$4.0T Dec '18 vs ~$4.4T Dec '17 = -9% YoY (active QT)"
         },
         "sloos_ci": {
-          "value": 6.6,
-          "as_of": "2018-Q4",
-          "source_note": "Q4 2018 SLOOS net % tightening C&I = +6.6 (modest tightening; Q3 '08 peak comparator was +84)"
+          "value": 2.8,
+          "as_of": "2019-01-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2019-01-01 = 2.8 (was 6.6 as_of 2018-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Q4 2018 SLOOS net % tightening C&I = +6.6 (modest tightening; Q3 '08 peak comparator was +84)"
         },
         "m2_yoy": {
-          "value": 3.6,
-          "as_of": "2018-12-31",
-          "source_note": "M2 YoY ~+3.6% Dec '18"
+          "value": 3.64,
+          "as_of": "2018-12-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-01 = 3.64 (was 3.6 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: M2 YoY ~+3.6% Dec '18"
         },
         "skew": {
-          "value": 125,
-          "as_of": "2018-12-31",
-          "source_note": "CBOE SKEW averaged ~125 Dec '18"
+          "value": 118.3,
+          "as_of": "2018-12-24",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 118.3 (was 125 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: CBOE SKEW averaged ~125 Dec '18"
         },
         "vix": {
-          "value": 36.07,
+          "value": 36.1,
           "as_of": "2018-12-24",
-          "source_note": "VIX close 36.07 Dec 24 '18 (cycle peak)"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 36.1 (was 36.07 as_of 2018-12-24). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: VIX close 36.07 Dec 24 '18 (cycle peak)"
         },
         "eq_cr_corr": {
-          "value": 0.55,
-          "as_of": "2018-12-31",
-          "source_note": "Equity-credit 60d corr ~0.55 Dec '18 (elevated but not panic)"
+          "value": 0.77,
+          "as_of": "2018-12-24",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 0.77 (was 0.55 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Equity-credit 60d corr ~0.55 Dec '18 (elevated but not panic)"
         },
         "move": {
-          "value": 88,
-          "as_of": "2018-12-15",
-          "source_note": "MOVE peaked ~88 mid-Dec '18 (low by historical-stress standards)"
+          "value": 66.0,
+          "as_of": "2018-12-24",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 66.0 (was 88 as_of 2018-12-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: MOVE peaked ~88 mid-Dec '18 (low by historical-stress standards)"
         }
       }
     },
@@ -765,29 +765,29 @@
       "calibration_status": "seeded",
       "values": {
         "cape": {
-          "value": 24.8,
-          "as_of": "2020-03-23",
-          "source_note": "CAPE bottomed near 24.8 on Mar 23 2020"
+          "value": 24.82,
+          "as_of": "2020-03-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-01 = 24.82 (was 24.8 as_of 2020-03-23). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: CAPE bottomed near 24.8 on Mar 23 2020"
         },
         "erp": {
-          "value": 3.16,
-          "as_of": "2020-03-23",
-          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/24.8 − 0.87% = 3.16%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
+          "value": 1.75,
+          "as_of": "2020-02-29",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-02-29 = 1.75 (was 3.16 as_of 2020-03-23). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/24.8 − 0.87% = 3.16%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
-          "value": 120,
-          "as_of": "2020-03-31",
-          "source_note": "Wilshire fell ~35% from Feb peak; GDP collapsed Q1"
+          "value": 173.1,
+          "as_of": "2020-04-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-04-01 = 173.1 (was 120 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Wilshire fell ~35% from Feb peak; GDP collapsed Q1"
         },
         "hy_oas": {
-          "value": 1100,
-          "as_of": "2020-03-23",
-          "source_note": "BAMLH0A0HYM2 peaked 1087 bps Mar 23 2020"
+          "value": 880.0,
+          "as_of": "2020-03-31",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-31 = 880.0 (was 1100 as_of 2020-03-23). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: BAMLH0A0HYM2 peaked 1087 bps Mar 23 2020"
         },
         "ig_oas": {
-          "value": 402,
-          "as_of": "2020-03-23",
-          "source_note": "BAMLC0A0CM peaked 402 bps Mar 23 2020"
+          "value": 316.0,
+          "as_of": "2020-03-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-01 = 316.0 (was 402 as_of 2020-03-23). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: BAMLC0A0CM peaked 402 bps Mar 23 2020"
         },
         "ig_hy_ratio": {
           "value": 0.37,
@@ -795,24 +795,24 @@
           "source_note": "derived (402/1087)"
         },
         "cpff": {
-          "value": 140,
+          "value": 197.0,
           "as_of": "2020-03-20",
-          "source_note": "3M CP-OIS spread ~140 bps before Fed CPFF restart"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-20 = 197.0 (was 140 as_of 2020-03-20). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: 3M CP-OIS spread ~140 bps before Fed CPFF restart"
         },
         "stlfsi": {
-          "value": 5.5,
+          "value": 5.66,
           "as_of": "2020-03-20",
-          "source_note": "FRED STLFSI4 ~5.50 in Mar 2020"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-20 = 5.66 (was 5.5 as_of 2020-03-20). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED STLFSI4 ~5.50 in Mar 2020"
         },
         "bank_reserves": {
-          "value": 3200.0,
-          "as_of": "2020-04-30",
-          "source_note": "WRESBAL surged $1.7T → $3.2T post Fed QE infinity"
+          "value": 1895.6,
+          "as_of": "2020-03-18",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-18 = 1895.6 (was 3200.0 as_of 2020-04-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WRESBAL surged $1.7T → $3.2T post Fed QE infinity"
         },
         "rrp": {
-          "value": 0,
-          "as_of": "2020-03-31",
-          "source_note": "RRP usage minimal during stress"
+          "value": 26.9,
+          "as_of": "2020-03-23",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 26.9 (was 0 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: RRP usage minimal during stress"
         },
         "ism_mfg": {
           "value": 41.5,
@@ -830,44 +830,44 @@
           "source_note": "Q2 2020 advance -32.9% annualized"
         },
         "anfci": {
-          "value": 2.3,
-          "as_of": "2020-03-31",
-          "source_note": "FRED NFCI peaked ~2.30 in late Mar 2020 (Senior Quant validation 2026-05-09 — corrected from 2.8)"
+          "value": 0.29,
+          "as_of": "2020-03-20",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-20 = 0.29 (was 2.3 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED NFCI peaked ~2.30 in late Mar 2020 (Senior Quant validation 2026-05-09 — corrected from 2.8)"
         },
         "fed_bs_yoy": {
-          "value": 90,
-          "as_of": "2020-06-30",
-          "source_note": "WALCL ~$7.2T Jun 2020 vs ~$3.8T Jun 2019 = +90% YoY (Senior Quant validation 2026-05-09 — corrected from 75; original used Mar→Jun growth rate vs YoY)"
+          "value": 17.8,
+          "as_of": "2020-03-18",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-18 = 17.8 (was 90 as_of 2020-06-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WALCL ~$7.2T Jun 2020 vs ~$3.8T Jun 2019 = +90% YoY (Senior Quant validation 2026-05-09 — corrected from 75; original used Mar→Jun growth rate vs YoY)"
         },
         "sloos_ci": {
-          "value": 71,
-          "as_of": "2020-Q2",
-          "source_note": "Q2 2020 SLOOS net % tightening C&I = 71.2"
+          "value": 41.5,
+          "as_of": "2020-04-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-04-01 = 41.5 (was 71 as_of 2020-Q2). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Q2 2020 SLOOS net % tightening C&I = 71.2"
         },
         "m2_yoy": {
-          "value": 25.0,
-          "as_of": "2020-06-30",
-          "source_note": "M2 surged ~+25% YoY by Jun 2020 with stimulus + Fed reserves (FRED M2SL — Senior Quant validation 2026-05-09 corrected from 18.0)"
+          "value": 10.14,
+          "as_of": "2020-03-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-01 = 10.14 (was 25.0 as_of 2020-06-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: M2 surged ~+25% YoY by Jun 2020 with stimulus + Fed reserves (FRED M2SL — Senior Quant validation 2026-05-09 corrected from 18.0)"
         },
         "skew": {
-          "value": 135,
-          "as_of": "2020-03-15",
-          "source_note": "SKEW elevated mid-March"
+          "value": 117.1,
+          "as_of": "2020-03-23",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 117.1 (was 135 as_of 2020-03-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: SKEW elevated mid-March"
         },
         "vix": {
-          "value": 82.7,
-          "as_of": "2020-03-16",
-          "source_note": "VIX intraday 85.5 Mar 18, close 82.7 Mar 16"
+          "value": 61.6,
+          "as_of": "2020-03-23",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 61.6 (was 82.7 as_of 2020-03-16). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: VIX intraday 85.5 Mar 18, close 82.7 Mar 16"
         },
         "eq_cr_corr": {
-          "value": 0.8,
-          "as_of": "2020-03-31",
-          "source_note": "Equity-credit corr ~0.80 at COVID peak"
+          "value": 0.91,
+          "as_of": "2020-03-23",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 0.91 (was 0.8 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Equity-credit corr ~0.80 at COVID peak"
         },
         "move": {
-          "value": 164,
-          "as_of": "2020-03-09",
-          "source_note": "MOVE peaked 164 Mar 9 2020"
+          "value": 135.4,
+          "as_of": "2020-03-23",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 135.4 (was 164 as_of 2020-03-09). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: MOVE peaked 164 Mar 9 2020"
         }
       }
     },
@@ -876,19 +876,19 @@
       "calibration_status": "seeded",
       "values": {
         "cape": {
-          "value": 27.6,
-          "as_of": "2022-10-12",
-          "source_note": "CAPE bottomed ~27.6 Oct 2022"
+          "value": 27.08,
+          "as_of": "2022-10-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-01 = 27.08 (was 27.6 as_of 2022-10-12). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: CAPE bottomed ~27.6 Oct 2022"
         },
         "erp": {
-          "value": -0.36,
-          "as_of": "2022-10-12",
-          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/27.6 − 3.98% = -0.36%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
+          "value": 0.02,
+          "as_of": "2022-09-30",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-09-30 = 0.02 (was -0.36 as_of 2022-10-12). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/27.6 − 3.98% = -0.36%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
-          "value": 150,
-          "as_of": "2022-10-31",
-          "source_note": "Wilshire fell 25% from peak; GDP nominal still growing"
+          "value": 157.1,
+          "as_of": "2022-10-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-01 = 157.1 (was 150 as_of 2022-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Wilshire fell 25% from peak; GDP nominal still growing"
         },
         "hy_oas": {
           "value": 600,
@@ -896,9 +896,9 @@
           "source_note": "HY OAS peaked ~603 bps Sep-Oct 2022"
         },
         "ig_oas": {
-          "value": 165,
-          "as_of": "2022-10-31",
-          "source_note": "IG OAS peaked ~165 bps Oct 2022"
+          "value": 243.0,
+          "as_of": "2022-10-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-01 = 243.0 (was 165 as_of 2022-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: IG OAS peaked ~165 bps Oct 2022"
         },
         "ig_hy_ratio": {
           "value": 0.27,
@@ -906,24 +906,24 @@
           "source_note": "derived (165/600)"
         },
         "cpff": {
-          "value": 35,
-          "as_of": "2022-10-31",
-          "source_note": "3M CP-OIS spread modest, ~35 bps"
+          "value": 47.0,
+          "as_of": "2022-10-07",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-07 = 47.0 (was 35 as_of 2022-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: 3M CP-OIS spread modest, ~35 bps"
         },
         "stlfsi": {
-          "value": 1.2,
-          "as_of": "2022-10-31",
-          "source_note": "STLFSI4 modestly elevated, ~1.2"
+          "value": 0.17,
+          "as_of": "2022-10-07",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-07 = 0.17 (was 1.2 as_of 2022-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: STLFSI4 modestly elevated, ~1.2"
         },
         "bank_reserves": {
-          "value": 3000.0,
-          "as_of": "2022-12-31",
-          "source_note": "WRESBAL declining, ~$3.0T end-2022"
+          "value": 3087.9,
+          "as_of": "2022-10-12",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 3087.9 (was 3000.0 as_of 2022-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WRESBAL declining, ~$3.0T end-2022"
         },
         "rrp": {
-          "value": 2200,
-          "as_of": "2022-12-30",
-          "source_note": "RRP record $2.55T late-Dec 2022 (~$2.2T avg Q4)"
+          "value": 2247.2,
+          "as_of": "2022-10-12",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 2247.2 (was 2200 as_of 2022-12-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: RRP record $2.55T late-Dec 2022 (~$2.2T avg Q4)"
         },
         "ism_mfg": {
           "value": 48.4,
@@ -941,44 +941,44 @@
           "source_note": "Q4 2022 advance GDP +2.9%"
         },
         "anfci": {
-          "value": 0.3,
-          "as_of": "2022-10-31",
-          "source_note": "NFCI peaked ~0.30 in Oct 2022"
+          "value": -0.01,
+          "as_of": "2022-10-07",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-07 = -0.01 (was 0.3 as_of 2022-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: NFCI peaked ~0.30 in Oct 2022"
         },
         "fed_bs_yoy": {
-          "value": -3.0,
-          "as_of": "2022-12-31",
-          "source_note": "WALCL began QT, -3% YoY by year-end"
+          "value": 3.28,
+          "as_of": "2022-10-12",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 3.28 (was -3.0 as_of 2022-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WALCL began QT, -3% YoY by year-end"
         },
         "sloos_ci": {
-          "value": 39,
-          "as_of": "2022-Q4",
-          "source_note": "Q4 2022 SLOOS net % tightening C&I = 39.1"
+          "value": 39.1,
+          "as_of": "2022-10-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-01 = 39.1 (was 39 as_of 2022-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Q4 2022 SLOOS net % tightening C&I = 39.1"
         },
         "m2_yoy": {
-          "value": -1.0,
-          "as_of": "2022-12-31",
-          "source_note": "M2 contracted YoY for first time in decades"
+          "value": 1.42,
+          "as_of": "2022-10-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-01 = 1.42 (was -1.0 as_of 2022-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: M2 contracted YoY for first time in decades"
         },
         "skew": {
-          "value": 135,
-          "as_of": "2022-04-30",
-          "source_note": "SKEW persistently elevated through 2022"
+          "value": 120.0,
+          "as_of": "2022-10-12",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 120.0 (was 135 as_of 2022-04-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: SKEW persistently elevated through 2022"
         },
         "vix": {
-          "value": 36.5,
+          "value": 33.6,
           "as_of": "2022-10-12",
-          "source_note": "VIX peaked 36.5 Oct 12 2022"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 33.6 (was 36.5 as_of 2022-10-12). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: VIX peaked 36.5 Oct 12 2022"
         },
         "eq_cr_corr": {
-          "value": 0.65,
-          "as_of": "2022-Q4",
-          "source_note": "Equity-credit corr ~0.65 in 2022"
+          "value": 0.9,
+          "as_of": "2022-10-12",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 0.9 (was 0.65 as_of 2022-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Equity-credit corr ~0.65 in 2022"
         },
         "move": {
-          "value": 160,
-          "as_of": "2022-10-21",
-          "source_note": "MOVE peaked 160 Oct 2022 (UK gilt spillover)"
+          "value": 160.7,
+          "as_of": "2022-10-12",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 160.7 (was 160 as_of 2022-10-21). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: MOVE peaked 160 Oct 2022 (UK gilt spillover)"
         }
       }
     },
@@ -988,29 +988,29 @@
       "calibration_status": "draft",
       "values": {
         "cape": {
-          "value": 36.0,
-          "as_of": "2024-08-05",
-          "source_note": "Shiller CAPE ~36 at Aug 5 trough (post-correction)"
+          "value": 35.08,
+          "as_of": "2024-08-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-01 = 35.08 (was 36.0 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Shiller CAPE ~36 at Aug 5 trough (post-correction)"
         },
         "erp": {
-          "value": -1.09,
-          "as_of": "2024-08-05",
-          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/36.0 − 3.87% = -1.09%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
+          "value": -1.43,
+          "as_of": "2024-07-31",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-07-31 = -1.43 (was -1.09 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/36.0 − 3.87% = -1.09%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
-          "value": 195,
-          "as_of": "2024-07-31",
-          "source_note": "Wilshire 5000 / GDP ≈ 195% mid-2024 (record territory)"
+          "value": 208.0,
+          "as_of": "2024-07-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-07-01 = 208.0 (was 195 as_of 2024-07-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Wilshire 5000 / GDP ≈ 195% mid-2024 (record territory)"
         },
         "hy_oas": {
-          "value": 388,
+          "value": 393.0,
           "as_of": "2024-08-05",
-          "source_note": "FRED BAMLH0A0HYM2 close ~388 bps Aug 5 '24 (intraday wider)"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 393.0 (was 388 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED BAMLH0A0HYM2 close ~388 bps Aug 5 '24 (intraday wider)"
         },
         "ig_oas": {
-          "value": 105,
-          "as_of": "2024-08-05",
-          "source_note": "FRED BAMLC0A0CM close ~105 bps Aug 5 '24"
+          "value": 151.0,
+          "as_of": "2024-08-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-01 = 151.0 (was 105 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED BAMLC0A0CM close ~105 bps Aug 5 '24"
         },
         "ig_hy_ratio": {
           "value": 0.27,
@@ -1018,24 +1018,24 @@
           "source_note": "derived (105/388)"
         },
         "cpff": {
-          "value": 10,
-          "as_of": "2024-08-31",
-          "source_note": "3M CP-OIS spread ~10 bps Aug '24 (calm)"
+          "value": -14.0,
+          "as_of": "2024-08-02",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-02 = -14.0 (was 10 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: 3M CP-OIS spread ~10 bps Aug '24 (calm)"
         },
         "stlfsi": {
-          "value": -0.3,
-          "as_of": "2024-08-31",
-          "source_note": "FRED STLFSI4 ~-0.3 Aug '24 (below average — calm)"
+          "value": -0.34,
+          "as_of": "2024-08-02",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-02 = -0.34 (was -0.3 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED STLFSI4 ~-0.3 Aug '24 (below average — calm)"
         },
         "bank_reserves": {
-          "value": 3400.0,
-          "as_of": "2024-08-31",
-          "source_note": "WRESBAL ~$3.4T Aug '24"
+          "value": 3293.5,
+          "as_of": "2024-07-31",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-07-31 = 3293.5 (was 3400.0 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WRESBAL ~$3.4T Aug '24"
         },
         "rrp": {
-          "value": 300,
-          "as_of": "2024-08-31",
-          "source_note": "RRP balance ~$300B Aug '24 (well off the $2.55T Dec '22 peak; declining as QT progresses)"
+          "value": 316.2,
+          "as_of": "2024-08-05",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 316.2 (was 300 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: RRP balance ~$300B Aug '24 (well off the $2.55T Dec '22 peak; declining as QT progresses)"
         },
         "ism_mfg": {
           "value": 46.8,
@@ -1053,44 +1053,44 @@
           "source_note": "Atlanta Fed GDPNow Q3 2024 mid-quarter ~2.5%"
         },
         "anfci": {
-          "value": -0.5,
-          "as_of": "2024-08-09",
-          "source_note": "FRED NFCI ~-0.5 Aug '24 (loose)"
+          "value": -0.36,
+          "as_of": "2024-08-02",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-02 = -0.36 (was -0.5 as_of 2024-08-09). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: FRED NFCI ~-0.5 Aug '24 (loose)"
         },
         "fed_bs_yoy": {
-          "value": -11.0,
-          "as_of": "2024-08-31",
-          "source_note": "WALCL ~$7.2T Aug '24 vs ~$8.1T Aug '23 = -11% YoY (active QT)"
+          "value": -12.53,
+          "as_of": "2024-07-31",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-07-31 = -12.53 (was -11.0 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: WALCL ~$7.2T Aug '24 vs ~$8.1T Aug '23 = -11% YoY (active QT)"
         },
         "sloos_ci": {
-          "value": 7.7,
-          "as_of": "2024-Q3",
-          "source_note": "Q3 2024 SLOOS net % tightening C&I = +7.7"
+          "value": 7.9,
+          "as_of": "2024-07-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-07-01 = 7.9 (was 7.7 as_of 2024-Q3). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Q3 2024 SLOOS net % tightening C&I = +7.7"
         },
         "m2_yoy": {
-          "value": 1.5,
-          "as_of": "2024-08-31",
-          "source_note": "M2 YoY ~+1.5% Aug '24 (recovering from negative '23)"
+          "value": 1.97,
+          "as_of": "2024-08-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-01 = 1.97 (was 1.5 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: M2 YoY ~+1.5% Aug '24 (recovering from negative '23)"
         },
         "skew": {
-          "value": 140,
+          "value": 145.3,
           "as_of": "2024-08-05",
-          "source_note": "CBOE SKEW ~140 average Aug '24 (chronically elevated through 2024)"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 145.3 (was 140 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: CBOE SKEW ~140 average Aug '24 (chronically elevated through 2024)"
         },
         "vix": {
-          "value": 38.57,
+          "value": 38.6,
           "as_of": "2024-08-05",
-          "source_note": "VIX close 38.57 Aug 5 '24; intraday spike to 65.73 (record short-period spike)"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 38.6 (was 38.57 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: VIX close 38.57 Aug 5 '24; intraday spike to 65.73 (record short-period spike)"
         },
         "eq_cr_corr": {
-          "value": 0.5,
-          "as_of": "2024-08-09",
-          "source_note": "Equity-credit 60d corr ~0.50 Aug '24"
+          "value": 0.67,
+          "as_of": "2024-08-05",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 0.67 (was 0.5 as_of 2024-08-09). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: Equity-credit 60d corr ~0.50 Aug '24"
         },
         "move": {
-          "value": 105,
+          "value": 121.2,
           "as_of": "2024-08-05",
-          "source_note": "MOVE Index ~105 Aug 5 '24 (modestly elevated)"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 121.2 (was 105 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: MOVE Index ~105 Aug 5 '24 (modestly elevated)"
         }
       }
     }

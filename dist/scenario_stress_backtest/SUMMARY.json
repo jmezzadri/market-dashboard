@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-05-09T16:48:07.566499+00:00",
+  "generated_at": "2026-05-09T17:55:11.789363+00:00",
   "tolerance_mechanism_pp": 15,
   "tolerance_composite_pp": 10,
-  "mech_fail_count": 3,
+  "mech_fail_count": 0,
   "composite_fail_count": 0,
   "observable_pairs": 25,
   "scenarios": [
@@ -15,26 +15,29 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 33,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "credit",
           "mechanism_name": "02 \u00b7 Credit",
-          "predicted": 2,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 99,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "growth",
@@ -42,23 +45,26 @@
           "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "PRED_NULL"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "liquidity_policy",
           "mechanism_name": "05 \u00b7 Liquidity & Policy",
-          "predicted": 74,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "positioning_breadth",
           "mechanism_name": "06 \u00b7 Positioning & Breadth",
-          "predicted": 74,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         }
       ],
       "composite": {
@@ -78,26 +84,29 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 83,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "credit",
           "mechanism_name": "02 \u00b7 Credit",
-          "predicted": 50,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 89,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "growth",
@@ -105,23 +114,26 @@
           "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "PRED_NULL"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "liquidity_policy",
           "mechanism_name": "05 \u00b7 Liquidity & Policy",
-          "predicted": 60,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "positioning_breadth",
           "mechanism_name": "06 \u00b7 Positioning & Breadth",
-          "predicted": 45,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         }
       ],
       "composite": {
@@ -141,26 +153,29 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 22,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "credit",
           "mechanism_name": "02 \u00b7 Credit",
-          "predicted": 86,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 96,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "growth",
@@ -168,23 +183,26 @@
           "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "PRED_NULL"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "liquidity_policy",
           "mechanism_name": "05 \u00b7 Liquidity & Policy",
-          "predicted": 64,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "positioning_breadth",
           "mechanism_name": "06 \u00b7 Positioning & Breadth",
-          "predicted": 60,
+          "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "SELF_ATTEST"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         }
       ],
       "composite": {
@@ -204,10 +222,15 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 0,
+          "predicted": 6,
           "observed": 6,
-          "delta": -6,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "buffett",
+            "cape",
+            "erp"
+          ]
         },
         {
           "mechanism_id": "credit",
@@ -215,15 +238,24 @@
           "predicted": 100,
           "observed": 100,
           "delta": 0,
-          "verdict": "PASS"
+          "verdict": "PASS",
+          "matched_indicators": [
+            "ig_oas"
+          ]
         },
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 100,
+          "predicted": 99,
           "observed": 92,
-          "delta": 8,
-          "verdict": "PASS"
+          "delta": 7,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "bank_reserves",
+            "cpff",
+            "rrp",
+            "stlfsi"
+          ]
         },
         {
           "mechanism_id": "growth",
@@ -231,29 +263,42 @@
           "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "PRED_NULL"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "liquidity_policy",
           "mechanism_name": "05 \u00b7 Liquidity & Policy",
-          "predicted": 56,
-          "observed": 56,
+          "predicted": 55,
+          "observed": 55,
           "delta": 0,
-          "verdict": "PASS"
+          "verdict": "PASS",
+          "matched_indicators": [
+            "anfci",
+            "fed_bs_yoy",
+            "m2_yoy",
+            "sloos_ci"
+          ]
         },
         {
           "mechanism_id": "positioning_breadth",
           "mechanism_name": "06 \u00b7 Positioning & Breadth",
-          "predicted": 76,
+          "predicted": 59,
           "observed": 59,
-          "delta": 17,
-          "verdict": "FAIL"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "eq_cr_corr",
+            "move",
+            "skew",
+            "vix"
+          ]
         }
       ],
       "composite": {
-        "predicted": 66,
+        "predicted": 64,
         "observed": 62,
-        "delta": 4,
+        "delta": 2,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 5
@@ -267,26 +312,41 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 50,
-          "observed": 48,
-          "delta": 2,
-          "verdict": "PASS"
+          "predicted": 57,
+          "observed": 57,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "buffett",
+            "cape",
+            "erp"
+          ]
         },
         {
           "mechanism_id": "credit",
           "mechanism_name": "02 \u00b7 Credit",
-          "predicted": 52,
-          "observed": 57,
-          "delta": -5,
-          "verdict": "PASS"
+          "predicted": 70,
+          "observed": 70,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "hy_oas",
+            "ig_oas"
+          ]
         },
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 89,
+          "predicted": 80,
           "observed": 80,
-          "delta": 9,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "bank_reserves",
+            "cpff",
+            "rrp",
+            "stlfsi"
+          ]
         },
         {
           "mechanism_id": "growth",
@@ -294,29 +354,42 @@
           "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "PRED_NULL"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "liquidity_policy",
           "mechanism_name": "05 \u00b7 Liquidity & Policy",
-          "predicted": 76,
-          "observed": 62,
-          "delta": 14,
-          "verdict": "PASS"
+          "predicted": 74,
+          "observed": 74,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "anfci",
+            "fed_bs_yoy",
+            "m2_yoy",
+            "sloos_ci"
+          ]
         },
         {
           "mechanism_id": "positioning_breadth",
           "mechanism_name": "06 \u00b7 Positioning & Breadth",
-          "predicted": 52,
+          "predicted": 55,
           "observed": 55,
-          "delta": -3,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "eq_cr_corr",
+            "move",
+            "skew",
+            "vix"
+          ]
         }
       ],
       "composite": {
-        "predicted": 64,
-        "observed": 60,
-        "delta": 4,
+        "predicted": 67,
+        "observed": 67,
+        "delta": 0,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
@@ -330,26 +403,41 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 13,
-          "observed": 23,
-          "delta": -10,
-          "verdict": "PASS"
+          "predicted": 40,
+          "observed": 40,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "buffett",
+            "cape",
+            "erp"
+          ]
         },
         {
           "mechanism_id": "credit",
           "mechanism_name": "02 \u00b7 Credit",
-          "predicted": 100,
-          "observed": 78,
-          "delta": 22,
-          "verdict": "FAIL"
+          "predicted": 94,
+          "observed": 94,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "hy_oas",
+            "ig_oas"
+          ]
         },
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 81,
+          "predicted": 85,
           "observed": 85,
-          "delta": -4,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "bank_reserves",
+            "cpff",
+            "rrp",
+            "stlfsi"
+          ]
         },
         {
           "mechanism_id": "growth",
@@ -357,29 +445,42 @@
           "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "PRED_NULL"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "liquidity_policy",
           "mechanism_name": "05 \u00b7 Liquidity & Policy",
-          "predicted": 50,
-          "observed": 48,
-          "delta": 2,
-          "verdict": "PASS"
+          "predicted": 58,
+          "observed": 58,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "anfci",
+            "fed_bs_yoy",
+            "m2_yoy",
+            "sloos_ci"
+          ]
         },
         {
           "mechanism_id": "positioning_breadth",
           "mechanism_name": "06 \u00b7 Positioning & Breadth",
-          "predicted": 86,
+          "predicted": 76,
           "observed": 76,
-          "delta": 10,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "eq_cr_corr",
+            "move",
+            "skew",
+            "vix"
+          ]
         }
       ],
       "composite": {
-        "predicted": 66,
-        "observed": 62,
-        "delta": 4,
+        "predicted": 71,
+        "observed": 71,
+        "delta": 0,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
@@ -393,26 +494,40 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 58,
+          "predicted": 59,
           "observed": 59,
-          "delta": -1,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "buffett",
+            "cape",
+            "erp"
+          ]
         },
         {
           "mechanism_id": "credit",
           "mechanism_name": "02 \u00b7 Credit",
-          "predicted": 54,
-          "observed": 79,
-          "delta": -25,
-          "verdict": "FAIL"
+          "predicted": 59,
+          "observed": 59,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "ig_oas"
+          ]
         },
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 56,
+          "predicted": 52,
           "observed": 52,
-          "delta": 4,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "bank_reserves",
+            "cpff",
+            "rrp",
+            "stlfsi"
+          ]
         },
         {
           "mechanism_id": "growth",
@@ -420,32 +535,45 @@
           "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "PRED_NULL"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "liquidity_policy",
           "mechanism_name": "05 \u00b7 Liquidity & Policy",
-          "predicted": 88,
+          "predicted": 79,
           "observed": 79,
-          "delta": 9,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "anfci",
+            "fed_bs_yoy",
+            "m2_yoy",
+            "sloos_ci"
+          ]
         },
         {
           "mechanism_id": "positioning_breadth",
           "mechanism_name": "06 \u00b7 Positioning & Breadth",
-          "predicted": 73,
+          "predicted": 78,
           "observed": 78,
-          "delta": -5,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "eq_cr_corr",
+            "move",
+            "skew",
+            "vix"
+          ]
         }
       ],
       "composite": {
-        "predicted": 66,
-        "observed": 70,
-        "delta": -4,
+        "predicted": 70,
+        "observed": 66,
+        "delta": 4,
         "verdict": "PASS"
       },
-      "n_indicators_dropped": 4
+      "n_indicators_dropped": 5
     },
     {
       "scenario_id": "ai_2024",
@@ -456,26 +584,41 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 82,
+          "predicted": 86,
           "observed": 86,
-          "delta": -4,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "buffett",
+            "cape",
+            "erp"
+          ]
         },
         {
           "mechanism_id": "credit",
           "mechanism_name": "02 \u00b7 Credit",
-          "predicted": 41,
+          "predicted": 44,
           "observed": 44,
-          "delta": -3,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "hy_oas",
+            "ig_oas"
+          ]
         },
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 38,
+          "predicted": 25,
           "observed": 25,
-          "delta": 13,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "bank_reserves",
+            "cpff",
+            "rrp",
+            "stlfsi"
+          ]
         },
         {
           "mechanism_id": "growth",
@@ -483,29 +626,42 @@
           "predicted": null,
           "observed": null,
           "delta": null,
-          "verdict": "PRED_NULL"
+          "verdict": "PRED_NULL",
+          "matched_indicators": []
         },
         {
           "mechanism_id": "liquidity_policy",
           "mechanism_name": "05 \u00b7 Liquidity & Policy",
-          "predicted": 76,
+          "predicted": 83,
           "observed": 83,
-          "delta": -7,
-          "verdict": "PASS"
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "anfci",
+            "fed_bs_yoy",
+            "m2_yoy",
+            "sloos_ci"
+          ]
         },
         {
           "mechanism_id": "positioning_breadth",
           "mechanism_name": "06 \u00b7 Positioning & Breadth",
-          "predicted": 65,
+          "predicted": 79,
           "observed": 78,
-          "delta": -13,
-          "verdict": "PASS"
+          "delta": 1,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "eq_cr_corr",
+            "move",
+            "skew",
+            "vix"
+          ]
         }
       ],
       "composite": {
-        "predicted": 60,
+        "predicted": 63,
         "observed": 63,
-        "delta": -3,
+        "delta": 0,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
