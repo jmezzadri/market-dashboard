@@ -364,3 +364,11 @@ pad them by typical FRED lag. Filed as a follow-up.
 
 **Applies to:** All. Especially when the existing branch has more than 5 commits since `main`, OR when the existing branch's purpose is a broad theme/redesign (where regressions on other surfaces are likely).
 
+
+## 2026-05-08 — When the user provides exact copy, use it verbatim
+
+**What happened:** Joe's Scenario Analysis mockup included a specific headline ("See how your portfolio, and Macro Tilt's engines react under stress — run custom multi-factor shocks or use our historical scenarios"). I synthesized my own headline + subtitle ("Stress your book, your asset tilt, and the cycle mechanisms against history" + a generic explainer) instead of using what he wrote. He had to point this out: "This is the header btw — I already told you this."
+
+**What you should do instead:** When the user provides any user-facing copy in a mockup, screenshot, or chat — headline, subtitle, button label, error message, footer text — transcribe it verbatim. Treat the user's words as the spec. Italicize / bold per the mockup's visual hint, but do not paraphrase, condense, or "improve." If the copy doesn't fit the layout, flag the constraint and ask before rewording. Specifically, before shipping any hero on a page where the user supplied a mockup, paste the mockup's copy into a search of the deployed text and confirm a hit.
+
+**Applies to:** All. Especially heroes, page subtitles, modal titles, button labels, error/empty states.
