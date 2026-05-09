@@ -1003,10 +1003,9 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                 <div style={_tableSub}>How the six cycle mechanisms and the page-level composite move under the selected scenario.</div>
               </div>
               <div style={{ padding:"36px 18px", textAlign:"center" }}>
-                <div style={{ fontFamily:"var(--font-ui)", fontSize:12, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.10em", marginBottom:8 }}>Phase 2 — Senior Quant calibrating</div>
-                <div style={{ fontFamily:"var(--font-ui)", fontSize:14, color:"var(--text-2)", lineHeight:1.55, maxWidth:480, margin:"0 auto" }}>
-                  Each mechanism is built from a different mix of inputs &mdash; CAPE / ERP / Buffett ratio (Shiller, Wilshire/GDP) for Equity Valuations; HY OAS and IG-HY ratio (ICE BofA via FRED) for Credit; NY Fed funding stress, DTCC GCF, and cross-currency basis for Funding; ISM, GDPNow, and SLOOS (Fed) for Growth; Fed balance sheet, real yield, and SLOOS for Liq &amp; Pol; AAII, NAAIM, FINRA margin debt, and Citi PULSE for Pos &amp; Br. Phase 2 maps each scenario&apos;s factor moves into peak-stress values for these inputs and re-runs the live mechanism scorer; backtested against observed peak-stress mechanism scores.
-                </div>
+                <div style={{ fontFamily:"var(--font-ui)", fontSize:12, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.10em", marginBottom:8 }}>Phase 2 — calibration approved, table wires next</div>
+                <div style={{ fontFamily:"var(--font-ui)", fontSize:14, color:"var(--text-2)", lineHeight:1.55, maxWidth:520, margin:"0 auto" }}>
+                  Each mechanism scores from a panel of indicators with approved Phase 2 calibration values. Equity Valuations: CAPE, equity risk premium, Buffett ratio (Shiller dataset, Wilshire 5000 / GDP). Credit: HY OAS, IG OAS, IG&ndash;HY ratio (ICE BofA via FRED). Funding: commercial paper risk premium, St. Louis Fed FSI, bank reserves at Fed, reverse repo balance. Growth: ISM Manufacturing, ISM Services, Atlanta Fed GDPNow. Liquidity &amp; Policy: Chicago Fed ANFCI, Fed balance sheet YoY, SLOOS C&amp;I tightening, M2 YoY. Positioning &amp; Breadth: CBOE SKEW, VIX, equity&ndash;credit correlation, MOVE Index. Each scenario&apos;s peak-stress value for every indicator is re-percentiled against the live post-2011 sample and direction-corrected on the same 0&ndash;100 scale as today&apos;s composite. Backtest tolerance bands &plusmn;15pp per mechanism, &plusmn;10 on the page-level composite.</div>
               </div>
             </div>
 

@@ -428,3 +428,45 @@ native technical language.
 
 **Applies to:** All. Treated as a hard rule with the same weight as the
 existing Plain English rule.
+
+---
+
+## 2026-05-09 — File reachability is not page UAT
+
+**What happened:** After merging Phase 2C and the deploy went live, I claimed
+the work was "verified" based on three things: the squash merge succeeded,
+the `scenario-stress-daily` workflow ran clean on the merge commit, and
+`macrotilt.com/scenario_stress.json` returned HTTP 200 with the right
+`calibration_version`. Joe pushed back: "Did you UAT?" Reading my own
+status table afterward, the answer was no — every check I'd done was
+file-reachability or build-status, not a single rendered page. When I
+actually loaded the live site, I found a stale placeholder block on
+Scenario Analysis that contradicted the just-shipped calibration JSON
+(it named indicators that aren't in the calibration at all). That's
+a LESSONS rule violation that had been live for days and would have
+stayed live until someone happened to look — which is the exact failure
+mode the 2026-04-30 "always view the rendered page" rule was meant to
+prevent.
+
+**What you should do instead:** "Verified" means a human (or the agent
+acting as one) loaded the rendered page on the live URL and read it.
+After every deploy, even a producer-only deploy that doesn't change any
+visible surface, I must:
+
+1. Identify every page that consumes any file the deploy touched
+   (including transitive consumers — methodology drawers, tooltips, and
+   "phase placeholder" copy that names the file's domain).
+2. Load each of those pages in the live browser via the Chrome tools.
+3. Read what's actually on the page (not the bundle, not the JSON, not
+   the workflow run log) and compare against what the deploy should
+   produce.
+4. Surface anything stale, contradicting, or clearly pre-existing-but-now-broken
+   in the same status update.
+
+File reachability (`curl … 200`) and contract-level smoke tests
+(workflow assertions on the JSON shape) are necessary but not sufficient.
+A deploy can land a perfect new file and leave a page nearby that lies
+about it. Page UAT is what catches that — file UAT can't.
+
+**Applies to:** All. Every deploy that touches the data or copy on any
+user-visible surface.
