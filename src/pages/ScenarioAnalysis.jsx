@@ -939,15 +939,36 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           </div>
         )}
 
-        {/* RESET STRIP — clears any active scenario or custom shock so the user
-            can compare against baseline. */}
-        {(scenario || hasShock) && (
-          <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
+        {/* CONTROLS STRIP — Horizon toggle (always visible) + Reset (when shock active).
+            Horizon controls how far forward the stress is projected: 1mo (mult 0.5),
+            3mo (mult 1.0, default), 6mo (mult 1.55). The same multipliers existed
+            before the layout rewrite; just exposing the UI now. */}
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+            <span style={{ fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase" }}>Horizon</span>
+            <div style={{ display:"inline-flex", border:"1px solid var(--border)", borderRadius:6, overflow:"hidden" }}>
+              {[
+                { id:"1mo", label:"1M" },
+                { id:"3mo", label:"3M" },
+                { id:"6mo", label:"6M" },
+              ].map((h, i) => (
+                <button key={h.id} onClick={() => setHorizon(h.id)} style={{
+                  fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600,
+                  padding:"6px 14px",
+                  background: horizon===h.id ? "color-mix(in srgb, var(--accent) 14%, var(--surface))" : "var(--surface)",
+                  color: horizon===h.id ? "var(--accent)" : "var(--text-2)",
+                  border:"none", borderLeft: i>0 ? "1px solid var(--border)" : "none",
+                  cursor:"pointer", letterSpacing:"0.04em",
+                }}>{h.label}</button>
+              ))}
+            </div>
+          </div>
+          {(scenario || hasShock) && (
             <button onClick={() => { onModeChange("canned"); setScenario(null); onReset(); }} style={{ fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, padding:"6px 12px", borderRadius:6, border:"1px solid var(--border)", background:"var(--surface-2, var(--surface))", color:"var(--text-2)", cursor:"pointer", letterSpacing:"0.04em", textTransform:"uppercase" }}>
               ↺ Reset all shocks
             </button>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* TWO-COLUMN GRID — Joe mockup 2026-05-08:
             LEFT (~0.95fr): Asset Tilt Engine Scenario Results.
