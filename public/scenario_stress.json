@@ -62,7 +62,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 1,
+          "score": 33,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -79,14 +79,14 @@
             },
             {
               "id": "erp",
-              "value": 3.2,
+              "value": -1.83,
               "as_of": "1987-10-31",
               "direction": "low_is_concerning",
-              "percentile": 98.4,
-              "score": 2,
+              "percentile": 1.1,
+              "score": 99,
               "history_key": "erp",
               "history_sample_size": 185,
-              "source_note": "Per Q8 Senior Quant decision 2026-05-08: pre-1997 (no TIPS) substitute = 10y nominal Treasury 9.0% minus contemporary expected inflation ~4.5% (Cleveland Fed expected inflation series proxy) = real rate 4.5%. Earnings yield 1/CAPE = 1/13 = 7.7%. ERP = 7.7 - 4.5 = 3.2%."
+              "source_note": "v11 methodology: (1/CAPE \u00d7 100) \u2212 DGS10 monthly mean. 100/13.0 \u2212 9.52% = -1.83%. Original calibration used a (1/CAPE \u2212 10y TIPS) convention \u2014 retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
             },
             {
               "id": "buffett",
@@ -250,7 +250,7 @@
           ]
         }
       ],
-      "composite_score": 50,
+      "composite_score": 56,
       "indicators_scored_total": 12,
       "indicators_dropped": [
         {
@@ -299,7 +299,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 81,
+          "score": 83,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -316,14 +316,14 @@
             },
             {
               "id": "erp",
-              "value": -1.7,
+              "value": -3.99,
               "as_of": "2000-03-31",
               "direction": "low_is_concerning",
-              "percentile": 3.8,
-              "score": 96,
+              "percentile": 0.0,
+              "score": 100,
               "history_key": "erp",
               "history_sample_size": 185,
-              "source_note": "Earnings yield 1/CAPE \u2248 2.26% minus 10y TIPS \u2248 4.0% Mar '00 = NEGATIVE ERP. Investors paying for stocks below the risk-free rate \u2014 extreme valuation signal characteristic of 'Lead Up' archetype."
+              "source_note": "v11 methodology: (1/CAPE \u00d7 100) \u2212 DGS10 monthly mean. 100/44.2 \u2212 6.26% = -3.99%. Original calibration used a (1/CAPE \u2212 10y TIPS) convention \u2014 retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
             },
             {
               "id": "buffett",
@@ -564,7 +564,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 6,
+          "score": 22,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -581,14 +581,14 @@
             },
             {
               "id": "erp",
-              "value": 2.5,
+              "value": 0.82,
               "as_of": "2002-10-09",
               "direction": "low_is_concerning",
-              "percentile": 85.4,
-              "score": 15,
+              "percentile": 37.3,
+              "score": 63,
               "history_key": "erp",
               "history_sample_size": 185,
-              "source_note": "Earnings yield 1/CAPE \u2248 4.76% minus 10y TIPS \u2248 2.3% Oct '02"
+              "source_note": "v11 methodology: (1/CAPE \u00d7 100) \u2212 DGS10 monthly mean. 100/21.0 \u2212 3.94% = 0.82%. Original calibration used a (1/CAPE \u2212 10y TIPS) convention \u2014 retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
             },
             {
               "id": "buffett",
@@ -796,7 +796,7 @@
           ]
         }
       ],
-      "composite_score": 62,
+      "composite_score": 66,
       "indicators_scored_total": 16,
       "indicators_dropped": [
         {
@@ -846,14 +846,14 @@
             },
             {
               "id": "erp",
-              "value": 5.2,
+              "value": 4.17,
               "as_of": "2008-11-30",
               "direction": "low_is_concerning",
               "percentile": 100.0,
               "score": 0,
               "history_key": "erp",
               "history_sample_size": 185,
-              "source_note": "Earnings yield 1/CAPE = 1/13 = 7.7% minus 10y TIPS Nov '08 ~2.5% = ~5.2% (Senior Quant validation 2026-05-09 \u2014 corrected from initial 7.5)"
+              "source_note": "v11 methodology: (1/CAPE \u00d7 100) \u2212 DGS10 monthly mean. 100/13.0 \u2212 3.53% = 4.17%. Original calibration used a (1/CAPE \u2212 10y TIPS) convention \u2014 retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
             },
             {
               "id": "buffett",
@@ -1094,7 +1094,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 33,
+          "score": 50,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -1111,14 +1111,14 @@
             },
             {
               "id": "erp",
-              "value": 2.5,
+              "value": 0.69,
               "as_of": "2018-12-24",
               "direction": "low_is_concerning",
-              "percentile": 85.4,
-              "score": 15,
+              "percentile": 33.5,
+              "score": 66,
               "history_key": "erp",
               "history_sample_size": 185,
-              "source_note": "Earnings yield 1/CAPE \u2248 3.5% minus 10y TIPS \u2248 1.0% Dec '18"
+              "source_note": "v11 methodology: (1/CAPE \u00d7 100) \u2212 DGS10 monthly mean. 100/28.4 \u2212 2.83% = 0.69%. Original calibration used a (1/CAPE \u2212 10y TIPS) convention \u2014 retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
             },
             {
               "id": "buffett",
@@ -1337,7 +1337,7 @@
           ]
         }
       ],
-      "composite_score": 61,
+      "composite_score": 64,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {
@@ -1383,14 +1383,14 @@
             },
             {
               "id": "erp",
-              "value": 4.0,
+              "value": 3.16,
               "as_of": "2020-03-23",
               "direction": "low_is_concerning",
-              "percentile": 100.0,
-              "score": 0,
+              "percentile": 97.8,
+              "score": 2,
               "history_key": "erp",
               "history_sample_size": 185,
-              "source_note": "Earnings yield ~4% + 10y TIPS -0.6%"
+              "source_note": "v11 methodology: (1/CAPE \u00d7 100) \u2212 DGS10 monthly mean. 100/24.8 \u2212 0.87% = 3.16%. Original calibration used a (1/CAPE \u2212 10y TIPS) convention \u2014 retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
             },
             {
               "id": "buffett",
@@ -1638,7 +1638,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 43,
+          "score": 58,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -1655,14 +1655,14 @@
             },
             {
               "id": "erp",
-              "value": 1.5,
+              "value": -0.36,
               "as_of": "2022-10-12",
               "direction": "low_is_concerning",
-              "percentile": 63.8,
-              "score": 36,
+              "percentile": 20.0,
+              "score": 80,
               "history_key": "erp",
               "history_sample_size": 185,
-              "source_note": "Earnings yield ~3.6% - 10y TIPS ~2.1%"
+              "source_note": "v11 methodology: (1/CAPE \u00d7 100) \u2212 DGS10 monthly mean. 100/27.6 \u2212 3.98% = -0.36%. Original calibration used a (1/CAPE \u2212 10y TIPS) convention \u2014 retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
             },
             {
               "id": "buffett",
@@ -1881,7 +1881,7 @@
           ]
         }
       ],
-      "composite_score": 63,
+      "composite_score": 66,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {
@@ -1910,7 +1910,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 72,
+          "score": 82,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -1927,14 +1927,14 @@
             },
             {
               "id": "erp",
-              "value": 1.1,
+              "value": -1.09,
               "as_of": "2024-08-05",
               "direction": "low_is_concerning",
-              "percentile": 44.3,
-              "score": 56,
+              "percentile": 15.1,
+              "score": 85,
               "history_key": "erp",
               "history_sample_size": 185,
-              "source_note": "Earnings yield 1/CAPE \u2248 2.78% minus 10y TIPS \u2248 1.7% Aug '24"
+              "source_note": "v11 methodology: (1/CAPE \u00d7 100) \u2212 DGS10 monthly mean. 100/36.0 \u2212 3.87% = -1.09%. Original calibration used a (1/CAPE \u2212 10y TIPS) convention \u2014 retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
             },
             {
               "id": "buffett",
@@ -2153,7 +2153,7 @@
           ]
         }
       ],
-      "composite_score": 58,
+      "composite_score": 60,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {

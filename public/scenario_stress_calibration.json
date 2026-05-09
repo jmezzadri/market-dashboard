@@ -212,9 +212,9 @@
           "source_note": "Shiller CAPE bottomed near 13 Oct '87 from pre-crash ~16 (multpl.com / Shiller dataset)"
         },
         "erp": {
-          "value": 3.2,
+          "value": -1.83,
           "as_of": "1987-10-31",
-          "source_note": "Per Q8 Senior Quant decision 2026-05-08: pre-1997 (no TIPS) substitute = 10y nominal Treasury 9.0% minus contemporary expected inflation ~4.5% (Cleveland Fed expected inflation series proxy) = real rate 4.5%. Earnings yield 1/CAPE = 1/13 = 7.7%. ERP = 7.7 - 4.5 = 3.2%."
+          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/13.0 − 9.52% = -1.83%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
           "value": 52,
@@ -324,9 +324,9 @@
           "source_note": "Shiller CAPE peaked 44.2 Mar '00 (record at time; per Shiller dataset)"
         },
         "erp": {
-          "value": -1.7,
+          "value": -3.99,
           "as_of": "2000-03-31",
-          "source_note": "Earnings yield 1/CAPE ≈ 2.26% minus 10y TIPS ≈ 4.0% Mar '00 = NEGATIVE ERP. Investors paying for stocks below the risk-free rate — extreme valuation signal characteristic of 'Lead Up' archetype."
+          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/44.2 − 6.26% = -3.99%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
           "value": 146,
@@ -436,9 +436,9 @@
           "source_note": "Shiller CAPE ~21 at Oct 9 SPX trough (multpl.com / Shiller dataset)"
         },
         "erp": {
-          "value": 2.5,
+          "value": 0.82,
           "as_of": "2002-10-09",
-          "source_note": "Earnings yield 1/CAPE ≈ 4.76% minus 10y TIPS ≈ 2.3% Oct '02"
+          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/21.0 − 3.94% = 0.82%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
           "value": 85,
@@ -547,9 +547,9 @@
           "source_note": "CAPE bottomed near 13 in Nov 2008 (multpl.com / Shiller data)"
         },
         "erp": {
-          "value": 5.2,
+          "value": 4.17,
           "as_of": "2008-11-30",
-          "source_note": "Earnings yield 1/CAPE = 1/13 = 7.7% minus 10y TIPS Nov '08 ~2.5% = ~5.2% (Senior Quant validation 2026-05-09 — corrected from initial 7.5)"
+          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/13.0 − 3.53% = 4.17%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
           "value": 58.0,
@@ -659,9 +659,9 @@
           "source_note": "Shiller CAPE ~28.4 at Dec 24 SPX trough (multpl.com / Shiller dataset)"
         },
         "erp": {
-          "value": 2.5,
+          "value": 0.69,
           "as_of": "2018-12-24",
-          "source_note": "Earnings yield 1/CAPE ≈ 3.5% minus 10y TIPS ≈ 1.0% Dec '18"
+          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/28.4 − 2.83% = 0.69%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
           "value": 138.0,
@@ -770,9 +770,9 @@
           "source_note": "CAPE bottomed near 24.8 on Mar 23 2020"
         },
         "erp": {
-          "value": 4.0,
+          "value": 3.16,
           "as_of": "2020-03-23",
-          "source_note": "Earnings yield ~4% + 10y TIPS -0.6%"
+          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/24.8 − 0.87% = 3.16%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
           "value": 120,
@@ -881,9 +881,9 @@
           "source_note": "CAPE bottomed ~27.6 Oct 2022"
         },
         "erp": {
-          "value": 1.5,
+          "value": -0.36,
           "as_of": "2022-10-12",
-          "source_note": "Earnings yield ~3.6% - 10y TIPS ~2.1%"
+          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/27.6 − 3.98% = -0.36%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
           "value": 150,
@@ -993,9 +993,9 @@
           "source_note": "Shiller CAPE ~36 at Aug 5 trough (post-correction)"
         },
         "erp": {
-          "value": 1.1,
+          "value": -1.09,
           "as_of": "2024-08-05",
-          "source_note": "Earnings yield 1/CAPE ≈ 2.78% minus 10y TIPS ≈ 1.7% Aug '24"
+          "source_note": "v11 methodology: (1/CAPE × 100) − DGS10 monthly mean. 100/36.0 − 3.87% = -1.09%. Original calibration used a (1/CAPE − 10y TIPS) convention — retuned 2026-05-09 to match the methodology-v11.md formula and the indicator_history.json ERP series produced by fetch_history.py line 796 (ey monthly minus DGS10 monthly mean)."
         },
         "buffett": {
           "value": 195,
