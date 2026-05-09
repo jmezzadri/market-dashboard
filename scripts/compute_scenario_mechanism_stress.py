@@ -84,6 +84,8 @@ MECHANISM_ORDER = [
 INDICATOR_HISTORY_ALIAS: Dict[str, str] = {
     "hy_oas": "hy_ig",          # indicator_history calls the HY OAS series "hy_ig"
     "fed_bs_yoy": "fed_bs",     # indicator_history fed_bs is already YoY %
+    "ism_mfg": "ism",           # indicator_history has combined PMI; mfg + svc both
+    "ism_svc": "ism",           # alias to it until split backfill ships
 }
 
 # Indicators known to have no usable full-sample in indicator_history.json.
@@ -91,9 +93,8 @@ INDICATOR_HISTORY_ALIAS: Dict[str, str] = {
 # Queue closing each as a Phase 2 follow-up.
 INDICATORS_NO_HISTORY = {
     "ig_hy_ratio",   # only 72 monthly points (2023-05 onward) — too short to percentile
-    "ism_mfg",       # indicator_history has combined "ism", not split mfg/svc
-    "ism_svc",       # indicator_history has combined "ism", not split mfg/svc
-    "gdpnow",        # not in indicator_history.json yet (FRED GDPNOW pull pending)
+    # ism_mfg/ism_svc/gdpnow now have indicator_history coverage (gdpnow backfilled
+    # 2026-05-09; ism_mfg + ism_svc aliased to combined ism series).
 }
 
 

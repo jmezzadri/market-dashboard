@@ -74,7 +74,18 @@ SPRINT1_IDS = {"valuation", "credit", "growth"}
 # calibration JSON convention.
 PANELS: Dict[str, dict] = {
     "valuation":         {"num": "01", "name": "Equity Valuations"},   # Sprint 1 — calibration JSON
-    "credit":            {"num": "02", "name": "Credit"},      # Sprint 1
+    "credit": {
+        "num": "02",
+        "name": "Credit",
+        # Sprint 2 fallback for credit — kicks in when methodology_calibration_v11.json's
+        # credit tile is empty (e.g., FRED build_credit_tile failed or wasn't run).
+        # Bug surfaced 2026-05-09: empty Sprint 1 tile + missing fallback fell through
+        # to score=0, which falsely read as 'credit at peak loose / minimum stress'.
+        "indicators": [
+            ("hy_ig",  "HY OAS",  "high_is_concerning"),
+            ("ig_oas", "IG OAS",  "high_is_concerning"),
+        ],
+    },
     "funding": {
         "num": "03",
         "name": "Funding",
@@ -85,7 +96,17 @@ PANELS: Dict[str, dict] = {
             ("rrp",           "Reverse repo balance",          "low_is_concerning"),
         ],
     },
-    "growth":            {"num": "04", "name": "Growth"},      # Sprint 1
+    "growth": {
+        "num": "04",
+        "name": "Growth",
+        # Sprint 2 fallback. methodology-v11 calls for ISM Manufacturing + ISM Services
+        # + GDPNow split, but FRED only carries the combined ISM series free. Use what
+        # we have until ism_mfg/ism_svc backfill ships.
+        "indicators": [
+            ("ism",    "ISM PMI (combined)", "low_is_concerning"),
+            ("gdpnow", "Atlanta Fed GDPNow", "low_is_concerning"),
+        ],
+    },
     "liquidity_policy": {
         "num": "05",
         "name": "Liquidity & Policy",
@@ -205,13 +226,14 @@ def main() -> None:
                 score = score_mechanism_from_calibration(tile)
         if score is None:
             score = score_mechanism_from_indicator_history(panel, indicators)
-        if score is None:
-            score = 0
+        # Bug surfaced 2026-05-09: a None score used to fall through to 0, which
+        # misread as 'minimum stress / peak risk-on'. Now we emit null and the
+        # consumer handles it (UI shows '—').
         out_mechanisms.append({
             "id": mech_id,
             "num": panel["num"],
             "name": panel["name"],
-            "score": int(score),
+            "score": int(score) if score is not None else None,
         })
 
     snapshot = {
@@ -231,11 +253,16 @@ def main() -> None:
     SNAPSHOT_OUT.parent.mkdir(parents=True, exist_ok=True)
     SNAPSHOT_OUT.write_text(json.dumps(snapshot, indent=2) + "\n")
     print(f"Wrote {SNAPSHOT_OUT}")
-    avg = sum(m["score"] for m in out_mechanisms) / len(out_mechanisms)
-    band = "Risk-on" if avg < 25 else "Neutral" if avg < 50 else "Caution" if avg < 75 else "Risk-off"
-    print(f"Composite average: {round(avg)}/100 ({band})")
+    scored = [m["score"] for m in out_mechanisms if m["score"] is not None]
+    if scored:
+        avg = sum(scored) / len(scored)
+        band = "Risk-on" if avg < 25 else "Neutral" if avg < 50 else "Caution" if avg < 75 else "Risk-off"
+        print(f"Composite average ({len(scored)}/{len(out_mechanisms)} mechanisms scored): {round(avg)}/100 ({band})")
+    else:
+        print("Composite average: no mechanisms scored")
     for m in out_mechanisms:
-        print(f"  {m['num']} · {m['name']:24s}  score={m['score']:3d}/100")
+        s = m["score"]
+        print(f"  {m['num']} · {m['name']:24s}  score={(str(s)+'/100' if s is not None else '— / 100'):>10s}")
 
 
 if __name__ == "__main__":

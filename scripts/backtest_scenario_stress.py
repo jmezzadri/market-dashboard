@@ -62,14 +62,13 @@ COMPOSITE_TOLERANCE_PP = 10
 INDICATOR_HISTORY_ALIAS: Dict[str, str] = {
     "hy_oas": "hy_ig",
     "fed_bs_yoy": "fed_bs",
+    "ism_mfg": "ism",
+    "ism_svc": "ism",
 }
 
 # Same documented-no-history list the producer uses.
 INDICATORS_NO_HISTORY = {
     "ig_hy_ratio",
-    "ism_mfg",
-    "ism_svc",
-    "gdpnow",
 }
 
 MECHANISM_ORDER = [
