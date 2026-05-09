@@ -113,7 +113,7 @@
       "mechanism": "funding",
       "source": "FRED (WRESBAL)",
       "direction": "low_is_concerning",
-      "unit": "$T"
+      "unit": "$B"
     },
     "rrp": {
       "name": "Reverse Repo balance",
@@ -232,7 +232,7 @@
           "source_note": "Per Q7 Senior Quant decision 2026-05-08 (extends Q1 substitute logic to IG): Moody's AAA corporate yield Oct '87 ≈ 10.5% minus 10y Treasury ~9.0% = ~150 bps. Source: FRED AAA + DGS10. BAMLC0A0CM series begins 1996. Tag: proxy."
         },
         "ig_hy_ratio": {
-          "value": 0.60,
+          "value": 0.6,
           "as_of": "1987-10-31",
           "source_note": "derived (150/250) — both legs use pre-1996 proxies per Q1/Q7"
         },
@@ -247,7 +247,7 @@
           "source_note": "Dropped — FRED STLFSI4 series begins December 1993. Funding mechanism re-aggregates per Q5 over CPFF + bank reserves (RRP also dropped per Q4)."
         },
         "bank_reserves": {
-          "value": 0.04,
+          "value": 40.0,
           "as_of": "1987-10-31",
           "source_note": "WRESBAL ~$40B Oct '87 (pre-IOER era structural low — banks held minimal reserves; Fed didn't pay interest on reserves until 2008)"
         },
@@ -359,7 +359,7 @@
           "source_note": "FRED STLFSI4 ~0 Mar '00 (calm — peak euphoria)"
         },
         "bank_reserves": {
-          "value": 0.04,
+          "value": 40.0,
           "as_of": "2000-03-31",
           "source_note": "WRESBAL ~$40B Mar '00 (pre-IOER era structural low)"
         },
@@ -414,7 +414,7 @@
           "source_note": "VIX ~24 Mar 10 '00 Nasdaq peak (low for that era; pre-2008 VIX averaged higher than post-GFC norms)"
         },
         "eq_cr_corr": {
-          "value": 0.40,
+          "value": 0.4,
           "as_of": "2000-03-31",
           "source_note": "Equity-credit 60d corr ~0.40 Mar '00 (low — bull-market complacency, equity and credit decoupled)"
         },
@@ -471,7 +471,7 @@
           "source_note": "FRED STLFSI4 ~0.5 Oct '02 (modestly elevated; well below GFC)"
         },
         "bank_reserves": {
-          "value": 0.04,
+          "value": 40.0,
           "as_of": "2002-10-31",
           "source_note": "WRESBAL ~$40B Oct '02 (pre-IOER era; banks held minimal reserves structurally)"
         },
@@ -582,7 +582,7 @@
           "source_note": "FRED STLFSI4 hit 7.32 Oct 2008 (record)"
         },
         "bank_reserves": {
-          "value": 0.84,
+          "value": 840.0,
           "as_of": "2008-12-31",
           "source_note": "WRESBAL ~$840B end-Dec 2008 (post-QE1 surge — Senior Quant validation 2026-05-09 corrected from 0.74)"
         },
@@ -679,7 +679,7 @@
           "source_note": "FRED BAMLC0A0CM closed 158 bps Dec 24 '18"
         },
         "ig_hy_ratio": {
-          "value": 0.30,
+          "value": 0.3,
           "as_of": "2018-12-24",
           "source_note": "derived (158/533)"
         },
@@ -694,7 +694,7 @@
           "source_note": "FRED STLFSI4 ~0.5 Dec '18 (modestly elevated, well below GFC/COVID)"
         },
         "bank_reserves": {
-          "value": 1.6,
+          "value": 1600.0,
           "as_of": "2018-12-31",
           "source_note": "WRESBAL ~$1.6T end-2018 (declining via QT from $2.5T peak)"
         },
@@ -805,7 +805,7 @@
           "source_note": "FRED STLFSI4 ~5.50 in Mar 2020"
         },
         "bank_reserves": {
-          "value": 3.2,
+          "value": 3200.0,
           "as_of": "2020-04-30",
           "source_note": "WRESBAL surged $1.7T → $3.2T post Fed QE infinity"
         },
@@ -916,7 +916,7 @@
           "source_note": "STLFSI4 modestly elevated, ~1.2"
         },
         "bank_reserves": {
-          "value": 3.0,
+          "value": 3000.0,
           "as_of": "2022-12-31",
           "source_note": "WRESBAL declining, ~$3.0T end-2022"
         },
@@ -1028,7 +1028,7 @@
           "source_note": "FRED STLFSI4 ~-0.3 Aug '24 (below average — calm)"
         },
         "bank_reserves": {
-          "value": 3.4,
+          "value": 3400.0,
           "as_of": "2024-08-31",
           "source_note": "WRESBAL ~$3.4T Aug '24"
         },
@@ -1083,7 +1083,7 @@
           "source_note": "VIX close 38.57 Aug 5 '24; intraday spike to 65.73 (record short-period spike)"
         },
         "eq_cr_corr": {
-          "value": 0.50,
+          "value": 0.5,
           "as_of": "2024-08-09",
           "source_note": "Equity-credit 60d corr ~0.50 Aug '24"
         },
