@@ -31,9 +31,28 @@ from scanner.signal_intelligence_v2.insider import (
     OPPORTUNISTIC_SELL_WEIGHT,
     CLUSTER_SELL_THRESHOLD,
 )
+from scanner.signal_intelligence_v2.options import compute_options_signal
+from scanner.signal_intelligence_v2.analyst import compute_analyst_signal
+from scanner.signal_intelligence_v2.congress import compute_congress_signal
+from scanner.signal_intelligence_v2.technicals import compute_technicals_signal
+from scanner.signal_intelligence_v2.rollup import (
+    compute_signal_intelligence,
+    DEFAULT_WEIGHTS,
+    BAND_CUTOFFS,
+)
 
 __all__ = [
+    # Per-Signal entry points
     "compute_insider_signal",
+    "compute_options_signal",
+    "compute_analyst_signal",
+    "compute_congress_signal",
+    "compute_technicals_signal",
+    # Rollup
+    "compute_signal_intelligence",
+    "DEFAULT_WEIGHTS",
+    "BAND_CUTOFFS",
+    # Insider helpers / constants
     "classify_routine",
     "INSIDER_WINDOW_DAYS",
     "INSIDER_MIN_DOLLAR",
