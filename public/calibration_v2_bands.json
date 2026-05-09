@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "source": "placeholder",
+  "description": "8-band classifier on MT Score, with per-band historical population %, mean 21-day excess return, and hit rate (% beat SPY in predicted direction).",
+  "bands": [
+    {
+      "label": "Buy Signal",
+      "min_score": 75,
+      "max_score": 100,
+      "n_obs": 0,
+      "population_pct": 0.0,
+      "mean_excess_pct": 0.0,
+      "hit_rate_pct": 0.0
+    },
+    {
+      "label": "Strong Bullish",
+      "min_score": 50,
+      "max_score": 75,
+      "n_obs": 0,
+      "population_pct": 0.0,
+      "mean_excess_pct": 0.0,
+      "hit_rate_pct": 0.0
+    },
+    {
+      "label": "Moderate Bullish",
+      "min_score": 25,
+      "max_score": 50,
+      "n_obs": 0,
+      "population_pct": 0.0,
+      "mean_excess_pct": 0.0,
+      "hit_rate_pct": 0.0
+    },
+    {
+      "label": "Weak Bullish",
+      "min_score": 0,
+      "max_score": 25,
+      "n_obs": 0,
+      "population_pct": 0.0,
+      "mean_excess_pct": 0.0,
+      "hit_rate_pct": 0.0
+    },
+    {
+      "label": "Weak Bearish",
+      "min_score": -25,
+      "max_score": 0,
+      "n_obs": 0,
+      "population_pct": 0.0,
+      "mean_excess_pct": 0.0,
+      "hit_rate_pct": 0.0
+    },
+    {
+      "label": "Moderate Bearish",
+      "min_score": -50,
+      "max_score": -25,
+      "n_obs": 0,
+      "population_pct": 0.0,
+      "mean_excess_pct": 0.0,
+      "hit_rate_pct": 0.0
+    },
+    {
+      "label": "Strong Bearish",
+      "min_score": -75,
+      "max_score": -50,
+      "n_obs": 0,
+      "population_pct": 0.0,
+      "mean_excess_pct": 0.0,
+      "hit_rate_pct": 0.0
+    },
+    {
+      "label": "Sell Trigger",
+      "min_score": -100,
+      "max_score": -75,
+      "n_obs": 0,
+      "population_pct": 0.0,
+      "mean_excess_pct": 0.0,
+      "hit_rate_pct": 0.0
+    }
+  ]
+}
