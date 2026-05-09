@@ -69,6 +69,7 @@ def score_ticker(
     closes_for_indicators: Sequence[float],
     insider_history: list[dict[str, Any]],
     require_first_buy: bool = True,
+    data_source: str = "memory",
 ) -> SignalResult:
     """
     Score one ticker on one date through the full v4.1 pipeline.
@@ -99,6 +100,7 @@ def score_ticker(
         avg_volume_22d=avg_volume_22d,
         insider_history=insider_history,
         require_first_buy=require_first_buy,
+        data_source=data_source,
     )
     gate_pass = gate_diag["all_pass"]
 
