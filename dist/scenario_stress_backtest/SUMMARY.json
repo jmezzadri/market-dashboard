@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-05-09T16:04:31.326000+00:00",
+  "generated_at": "2026-05-09T16:39:24.496905+00:00",
   "tolerance_mechanism_pp": 15,
   "tolerance_composite_pp": 10,
-  "mech_fail_count": 9,
+  "mech_fail_count": 6,
   "composite_fail_count": 0,
   "observable_pairs": 25,
   "scenarios": [
@@ -78,7 +78,7 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 65,
+          "predicted": 81,
           "observed": null,
           "delta": null,
           "verdict": "SELF_ATTEST"
@@ -125,7 +125,7 @@
         }
       ],
       "composite": {
-        "predicted": 62,
+        "predicted": 65,
         "observed": null,
         "delta": null,
         "verdict": "SELF_ATTEST"
@@ -267,10 +267,10 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 20,
+          "predicted": 33,
           "observed": 48,
-          "delta": -28,
-          "verdict": "FAIL"
+          "delta": -15,
+          "verdict": "PASS"
         },
         {
           "mechanism_id": "credit",
@@ -314,9 +314,9 @@
         }
       ],
       "composite": {
-        "predicted": 59,
+        "predicted": 61,
         "observed": 60,
-        "delta": -1,
+        "delta": 1,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
@@ -330,10 +330,10 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 7,
+          "predicted": 13,
           "observed": 23,
-          "delta": -16,
-          "verdict": "FAIL"
+          "delta": -10,
+          "verdict": "PASS"
         },
         {
           "mechanism_id": "credit",
@@ -377,9 +377,9 @@
         }
       ],
       "composite": {
-        "predicted": 69,
+        "predicted": 70,
         "observed": 62,
-        "delta": 7,
+        "delta": 8,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
@@ -393,9 +393,9 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 26,
+          "predicted": 43,
           "observed": 59,
-          "delta": -33,
+          "delta": -16,
           "verdict": "FAIL"
         },
         {
@@ -440,9 +440,9 @@
         }
       ],
       "composite": {
-        "predicted": 63,
+        "predicted": 66,
         "observed": 70,
-        "delta": -7,
+        "delta": -4,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
@@ -456,10 +456,10 @@
         {
           "mechanism_id": "valuation",
           "mechanism_name": "01 \u00b7 Equity Valuations",
-          "predicted": 47,
+          "predicted": 72,
           "observed": 86,
-          "delta": -39,
-          "verdict": "FAIL"
+          "delta": -14,
+          "verdict": "PASS"
         },
         {
           "mechanism_id": "credit",
@@ -503,9 +503,9 @@
         }
       ],
       "composite": {
-        "predicted": 58,
+        "predicted": 63,
         "observed": 63,
-        "delta": -5,
+        "delta": 0,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
