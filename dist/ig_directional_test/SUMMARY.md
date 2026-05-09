@@ -11,8 +11,8 @@ Sign-off gate: directional alignment ≥ **75%**.
 | telecom | IYZ | Communication Services | 6 | 4 | 67% | ✗ fail |
 | banks | KBE | Financials | 5 | 4 | 80% | ✓ pass |
 | insurance | KIE | Financials | 5 | 4 | 80% | ✓ pass |
-| divfin | IAI | Financials | 3 | 3 | 100% | ✓ pass |
-| capgoods | XLI | Industrials | 0 | 0 | — | n/a |
+| divfin | IAI | Financials | 5 | 4 | 80% | ✓ pass |
+| capgoods | XLI | Industrials | 7 | 5 | 71% | ✗ fail |
 | transport | IYT | Industrials | 5 | 5 | 100% | ✓ pass |
 | defense | ITA | Industrials | 5 | 4 | 80% | ✓ pass |
 | pharma | PPH | Health Care | 7 | 4 | 57% | ✗ fail |
@@ -29,5 +29,5 @@ Sign-off gate: directional alignment ≥ **75%**.
 | reits | VNQ | Real Estate | 5 | 4 | 80% | ✓ pass |
 | electric | XLU | Utilities | 7 | 5 | 71% | ✗ fail |
 
-**Overall directional alignment:** 100/119 = 84%
+**Overall directional alignment:** 106/128 = 83%
 **Phase 2 sign-off gate:** ✓ PASS

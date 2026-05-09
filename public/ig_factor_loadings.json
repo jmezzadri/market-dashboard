@@ -18,7 +18,7 @@
   ],
   "directional_gate": 0.75,
   "ig_count": 24,
-  "directional_overall_rate": 0.84,
+  "directional_overall_rate": 0.828,
   "directional_overall_passes": true,
   "industry_groups": [
     {
@@ -40,6 +40,7 @@
         "putcall": 0.5,
         "breadth": -0.7
       },
+      "beta_vs_spy": 1.734,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Technology' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -119,6 +120,7 @@
         "putcall": 0.5,
         "breadth": -0.7
       },
+      "beta_vs_spy": 1.1,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Technology' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -198,6 +200,7 @@
         "putcall": 0.5,
         "breadth": -0.7
       },
+      "beta_vs_spy": 1.311,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Technology' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -277,6 +280,7 @@
         "putcall": 0.45,
         "breadth": -0.65
       },
+      "beta_vs_spy": 0.97,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Communication Services' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -356,6 +360,7 @@
         "putcall": 0.45,
         "breadth": -0.65
       },
+      "beta_vs_spy": 0.845,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Communication Services' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -435,6 +440,7 @@
         "putcall": 0.55,
         "breadth": -0.65
       },
+      "beta_vs_spy": 0.946,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Financials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -514,6 +520,7 @@
         "putcall": 0.55,
         "breadth": -0.65
       },
+      "beta_vs_spy": 0.658,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Financials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -593,12 +600,13 @@
         "putcall": 0.55,
         "breadth": -0.65
       },
+      "beta_vs_spy": 1.091,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Financials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
-        "n_observable": 3,
-        "n_correct": 3,
-        "rate": 1.0,
+        "n_observable": 5,
+        "n_correct": 4,
+        "rate": 0.8,
         "passes_gate": true,
         "scenarios": {
           "black_monday_1987": {
@@ -627,9 +635,9 @@
           },
           "q4_2018": {
             "predicted_stress": 6.765,
-            "realized_return": null,
-            "match": null,
-            "reason": "yfinance returned no price data for this window"
+            "realized_return": -0.1597,
+            "match": true,
+            "reason": null
           },
           "covid_2020": {
             "predicted_stress": 14.535,
@@ -645,9 +653,9 @@
           },
           "ai_2024": {
             "predicted_stress": 5.585,
-            "realized_return": 0.0,
-            "match": null,
-            "reason": "near-zero predicted or realized"
+            "realized_return": 0.0228,
+            "match": false,
+            "reason": null
           }
         }
       },
@@ -672,12 +680,13 @@
         "putcall": 0.4,
         "breadth": -0.55
       },
+      "beta_vs_spy": 1.009,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Industrials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
-        "n_observable": 0,
-        "n_correct": 0,
-        "rate": null,
+        "n_observable": 7,
+        "n_correct": 5,
+        "rate": 0.714,
         "passes_gate": false,
         "scenarios": {
           "black_monday_1987": {
@@ -688,45 +697,45 @@
           },
           "dotcom_slow_2000": {
             "predicted_stress": 7.25,
-            "realized_return": null,
-            "match": null,
-            "reason": "yfinance returned no price data for this window"
+            "realized_return": 0.125,
+            "match": false,
+            "reason": null
           },
           "dotcom_capitulation_2002": {
             "predicted_stress": 9.62,
-            "realized_return": 0.0,
-            "match": null,
-            "reason": "near-zero predicted or realized"
+            "realized_return": -0.0656,
+            "match": true,
+            "reason": null
           },
           "gfc_2008": {
             "predicted_stress": 13.56,
-            "realized_return": 0.0,
-            "match": null,
-            "reason": "near-zero predicted or realized"
+            "realized_return": -0.3858,
+            "match": true,
+            "reason": null
           },
           "q4_2018": {
             "predicted_stress": 6.47,
-            "realized_return": 0.0,
-            "match": null,
-            "reason": "near-zero predicted or realized"
+            "realized_return": -0.2373,
+            "match": true,
+            "reason": null
           },
           "covid_2020": {
             "predicted_stress": 11.695,
-            "realized_return": 0.0,
-            "match": null,
-            "reason": "near-zero predicted or realized"
+            "realized_return": -0.4158,
+            "match": true,
+            "reason": null
           },
           "inflation_2022": {
             "predicted_stress": 6.885,
-            "realized_return": 0.0,
-            "match": null,
-            "reason": "near-zero predicted or realized"
+            "realized_return": -0.1821,
+            "match": true,
+            "reason": null
           },
           "ai_2024": {
             "predicted_stress": 4.245,
-            "realized_return": 0.0,
-            "match": null,
-            "reason": "near-zero predicted or realized"
+            "realized_return": 0.0309,
+            "match": false,
+            "reason": null
           }
         }
       },
@@ -751,6 +760,7 @@
         "putcall": 0.4,
         "breadth": -0.55
       },
+      "beta_vs_spy": 1.193,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Industrials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -830,6 +840,7 @@
         "putcall": 0.4,
         "breadth": -0.55
       },
+      "beta_vs_spy": 0.727,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Industrials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -909,6 +920,7 @@
         "putcall": 0.3,
         "breadth": -0.35
       },
+      "beta_vs_spy": 0.452,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Healthcare' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -988,6 +1000,7 @@
         "putcall": 0.3,
         "breadth": -0.35
       },
+      "beta_vs_spy": 0.831,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Healthcare' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1067,6 +1080,7 @@
         "putcall": 0.3,
         "breadth": -0.35
       },
+      "beta_vs_spy": 0.713,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Healthcare' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1146,6 +1160,7 @@
         "putcall": 0.2,
         "breadth": -0.3
       },
+      "beta_vs_spy": 0.509,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Staples' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1225,6 +1240,7 @@
         "putcall": 0.2,
         "breadth": -0.3
       },
+      "beta_vs_spy": 0.512,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Staples' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1304,6 +1320,7 @@
         "putcall": 0.5,
         "breadth": -0.6
       },
+      "beta_vs_spy": 1.191,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Discretionary' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1383,6 +1400,7 @@
         "putcall": 0.5,
         "breadth": -0.6
       },
+      "beta_vs_spy": 1.358,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Discretionary' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1462,6 +1480,7 @@
         "putcall": 0.2,
         "breadth": -0.3
       },
+      "beta_vs_spy": 0.575,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Energy' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1541,6 +1560,7 @@
         "putcall": 0.2,
         "breadth": -0.3
       },
+      "beta_vs_spy": 0.893,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Energy' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1620,6 +1640,7 @@
         "putcall": 0.35,
         "breadth": -0.5
       },
+      "beta_vs_spy": 1.233,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Materials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1699,6 +1720,7 @@
         "putcall": 0.35,
         "breadth": -0.5
       },
+      "beta_vs_spy": 1.248,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Materials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1778,6 +1800,7 @@
         "putcall": 0.45,
         "breadth": -0.55
       },
+      "beta_vs_spy": 1.024,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Real Estate' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {
@@ -1857,6 +1880,7 @@
         "putcall": 0.2,
         "breadth": -0.3
       },
+      "beta_vs_spy": 0.626,
       "loading_source": "parent_sector_inherit",
       "loading_source_note": "v1: inherits parent-sector loadings for 'Utilities' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
       "directional_test": {

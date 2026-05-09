@@ -643,6 +643,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const [cycleStress, setCycleStress] = useState(null);
   const [currentBoard, setCurrentBoard] = useState(null);
   const [indicatorHistory, setIndicatorHistory] = useState(null);
+  const [igLoadings, setIgLoadings] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
   useEffect(() => {
@@ -678,6 +679,16 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
       .then((r) => r.ok ? r.json() : Promise.reject(new Error("indicator_history.json HTTP " + r.status)))
       .then(setIndicatorHistory)
       .catch((err) => { console.warn("[Phase 2E] indicator_history.json fetch failed", err); });
+  }, []);
+
+  // Phase 2G — load per-IG factor loadings (parent-sector inheritance + per-IG
+  // beta vs SPY) so the Asset Tilt Engine table can show live stress numbers
+  // for every IG row. Refreshed weekly by compute_ig_factor_loadings.py.
+  useEffect(() => {
+    fetch("/ig_factor_loadings.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("ig_factor_loadings.json HTTP " + r.status)))
+      .then(setIgLoadings)
+      .catch((err) => { console.warn("[Phase 2G] ig_factor_loadings.json fetch failed", err); });
   }, []);
   // Escape-key closes whichever modal is on top
   useEffect(() => {
@@ -753,6 +764,25 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const effShocks = useMemo(() => getEffectiveShocks(stateObj), [mode, scenario, prop, driver, shocks, pinned]);
   const hasShock = Object.values(effShocks).some(v => Math.abs(v) > 0.05);
   const sectorPcts = useMemo(() => sectorShocks(effShocks, horizon), [effShocks, horizon]);
+
+  // Phase 2G — per-IG stress %. Same dot-product math as sectorShocks(), but
+  // IG-specific: parent-sector loadings (from ig_factor_loadings.json, v1
+  // parent_sector_inherit) × the IG's own beta vs SPY, then horizon-scaled.
+  // {ig_id: pct}.
+  const igPcts = useMemo(() => {
+    const out = {};
+    if (!igLoadings || !Array.isArray(igLoadings.industry_groups)) return out;
+    const horizonMult = horizon === "1mo" ? 0.5 : horizon === "3mo" ? 1.0 : 1.55;
+    igLoadings.industry_groups.forEach((ig) => {
+      if (!ig.loadings || ig.beta_vs_spy == null) return;
+      let total = 0;
+      Object.entries(ig.loadings).forEach(([f, l]) => {
+        total += (l || 0) * (effShocks[f] || 0);
+      });
+      out[ig.id] = -1.4 * ig.beta_vs_spy * total * horizonMult;
+    });
+    return out;
+  }, [igLoadings, effShocks, horizon]);
   const composites = useMemo(() => compositeShock(effShocks), [effShocks]);
   const pnl = useMemo(() => portfolioPnL(sectorPcts), [sectorPcts]);
   const score = useMemo(() => coherence(effShocks), [effShocks]);
@@ -1010,6 +1040,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
           {/* LEFT COLUMN — TABLE 1: Asset Tilt Engine Scenario Results */}
           <Table1AssetTilt
+            igPcts={igPcts}
+            igLoadings={igLoadings}
             equityParents={_equityParents}
             defensiveRows={_defensiveRows}
             expandedSectors={expandedSectors}
@@ -1814,7 +1846,24 @@ function L4PanelReal({ scenario, baseline, asOf }) {
 
 // Table 1 — sortable, sectors collapsible (default collapsed), IGs use v10 proxy ETFs.
 // IG-level stress shows "—" with note (Phase 2 calibration).
-function Table1AssetTilt({ equityParents, defensiveRows, expandedSectors, toggleSectorExpanded, openSectorByName, openIGByName, onOpenTicker, stressColor, fmtPct, tableCard, tableHead, tableTitle, tableSub, scenToAt }) {
+function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, expandedSectors, toggleSectorExpanded, openSectorByName, openIGByName, onOpenTicker, stressColor, fmtPct, tableCard, tableHead, tableTitle, tableSub, scenToAt }) {
+  // Phase 2G — look up per-IG stress %. v10's industry_groups list keys IGs by
+  // a flat id ("semis", "software", …); ig_factor_loadings.json uses the same
+  // id keys. ScenarioAnalysis's IG rows here only carry name + proxy, so we
+  // resolve via name → ig_id by walking igLoadings.
+  const igIdByName = useMemo(() => {
+    const m = {};
+    if (igLoadings && Array.isArray(igLoadings.industry_groups)) {
+      igLoadings.industry_groups.forEach((ig) => { if (ig.name) m[ig.name] = ig.id; });
+    }
+    return m;
+  }, [igLoadings]);
+  const igStressFor = (igName) => {
+    const id = igIdByName[igName];
+    if (!id || !igPcts) return null;
+    const v = igPcts[id];
+    return (v === undefined || v === null) ? null : v;
+  };
   const cols = [
     { id:"name",   label:"Sector / Industry Group", align:"left",  sortValue: r => r.name },
     { id:"ticker", label:"Proxy",                   align:"left",  sortValue: r => r.ticker || "" },
@@ -1855,13 +1904,19 @@ function Table1AssetTilt({ equityParents, defensiveRows, expandedSectors, toggle
               </div>
               <div style={_td}>{s.ticker}</div>
               <div style={{..._tdNum, color: stressColor(s.pct), fontWeight:600}}>{fmtPct(s.pct)}</div>
-              {isExpanded && s.igs.map((ig, ix) => (
-                <React.Fragment key={s.id + "-" + ix}>
-                  <div style={{..._td, paddingLeft:42, color:"var(--text-2)", fontSize:12, cursor:"pointer"}} onClick={() => openIGByName && openIGByName(ig.name, s.name)}>↳ {ig.name}</div>
-                  <div style={{..._td, fontSize:12, color:"var(--text-muted)"}}>{ig.proxy}</div>
-                  <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="IG-level stress calibration is Phase 2">—</div>
-                </React.Fragment>
-              ))}
+              {isExpanded && s.igs.map((ig, ix) => {
+                const igPct = igStressFor(ig.name);
+                return (
+                  <React.Fragment key={s.id + "-" + ix}>
+                    <div style={{..._td, paddingLeft:42, color:"var(--text-2)", fontSize:12, cursor:"pointer"}} onClick={() => openIGByName && openIGByName(ig.name, s.name)}>↳ {ig.name}</div>
+                    <div style={{..._td, fontSize:12, color:"var(--text-muted)"}}>{ig.proxy}</div>
+                    {igPct === null
+                      ? <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="No factor loadings available for this IG">—</div>
+                      : <div style={{..._tdNum, fontSize:12, color: stressColor(igPct), fontWeight:600}}>{fmtPct(igPct)}</div>
+                    }
+                  </React.Fragment>
+                );
+              })}
             </React.Fragment>
           );
         })}
@@ -1875,7 +1930,7 @@ function Table1AssetTilt({ equityParents, defensiveRows, expandedSectors, toggle
         ))}
       </div>
       <div style={{ padding:"10px 14px", fontFamily:"var(--font-ui)", fontSize:11, color:"var(--text-muted)", fontStyle:"italic", borderTop:"0.5px solid var(--border)" }}>
-        Industry-group level stress calibration is Phase 2 — IGs currently show "—" until per-IG factor loadings ship.
+        IG stress = parent-sector factor loadings × IG-specific beta vs SPY, horizon-scaled (Phase 2F v1 inheritance, directional regime test 83% pass).
       </div>
     </div>
   );
