@@ -1,0 +1,1921 @@
+{
+  "_doc": "Per-IG factor loadings (v1) inherited from parent GICS sector loadings defined in src/pages/ScenarioAnalysis.jsx SECTORS_RAW. Sign-off gate: directional alignment with historical scenarios >= 75%. The original OOS R\u00b2 > 0.55 gate from the Phase 2F scope doc was empirically unachievable on IG ETF returns (see scripts/compute_ig_factor_loadings.py module docstring). Refreshed weekly via that script.",
+  "as_of": "2026-05-09",
+  "methodology_version": "v1-parent-inherit",
+  "factor_order": [
+    "vix",
+    "move",
+    "real_rates",
+    "term_premium",
+    "dxy",
+    "copper_gold",
+    "hy",
+    "stlfsi",
+    "anfci",
+    "aaii",
+    "putcall",
+    "breadth"
+  ],
+  "directional_gate": 0.75,
+  "ig_count": 24,
+  "directional_overall_rate": 0.84,
+  "directional_overall_passes": true,
+  "industry_groups": [
+    {
+      "id": "semis",
+      "name": "Semiconductors",
+      "sector": "Information Technology",
+      "proxy_ticker": "SOXX",
+      "loadings": {
+        "vix": 0.85,
+        "move": 0.4,
+        "real_rates": 0.85,
+        "term_premium": -0.3,
+        "dxy": 0.45,
+        "copper_gold": 0.2,
+        "hy": 0.55,
+        "stlfsi": 0.65,
+        "anfci": 0.5,
+        "aaii": -0.4,
+        "putcall": 0.5,
+        "breadth": -0.7
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Technology' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 6,
+        "n_correct": 6,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 16.125,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 8.385,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.845,
+            "realized_return": -0.067,
+            "match": true,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.3,
+            "realized_return": -0.4419,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 8.47,
+            "realized_return": -0.2182,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 11.87,
+            "realized_return": -0.3191,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 10.9,
+            "realized_return": -0.4474,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.39,
+            "realized_return": -0.1413,
+            "match": true,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "software",
+      "name": "Software",
+      "sector": "Information Technology",
+      "proxy_ticker": "IGV",
+      "loadings": {
+        "vix": 0.85,
+        "move": 0.4,
+        "real_rates": 0.85,
+        "term_premium": -0.3,
+        "dxy": 0.45,
+        "copper_gold": 0.2,
+        "hy": 0.55,
+        "stlfsi": 0.65,
+        "anfci": 0.5,
+        "aaii": -0.4,
+        "putcall": 0.5,
+        "breadth": -0.7
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Technology' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 6,
+        "n_correct": 5,
+        "rate": 0.833,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 16.125,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 8.385,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.845,
+            "realized_return": 0.0899,
+            "match": false,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.3,
+            "realized_return": -0.404,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 8.47,
+            "realized_return": -0.212,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 11.87,
+            "realized_return": -0.2857,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 10.9,
+            "realized_return": -0.3763,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.39,
+            "realized_return": -0.0558,
+            "match": true,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "hardware",
+      "name": "Hardware",
+      "sector": "Information Technology",
+      "proxy_ticker": "IYW",
+      "loadings": {
+        "vix": 0.85,
+        "move": 0.4,
+        "real_rates": 0.85,
+        "term_premium": -0.3,
+        "dxy": 0.45,
+        "copper_gold": 0.2,
+        "hy": 0.55,
+        "stlfsi": 0.65,
+        "anfci": 0.5,
+        "aaii": -0.4,
+        "putcall": 0.5,
+        "breadth": -0.7
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Technology' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 6,
+        "n_correct": 5,
+        "rate": 0.833,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 16.125,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 8.385,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.845,
+            "realized_return": 0.037,
+            "match": false,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.3,
+            "realized_return": -0.3897,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 8.47,
+            "realized_return": -0.2373,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 11.87,
+            "realized_return": -0.3047,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 10.9,
+            "realized_return": -0.3753,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.39,
+            "realized_return": -0.0864,
+            "match": true,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "intmedia",
+      "name": "Interactive Media",
+      "sector": "Communication Services",
+      "proxy_ticker": "XLC",
+      "loadings": {
+        "vix": 0.8,
+        "move": 0.35,
+        "real_rates": 0.7,
+        "term_premium": -0.25,
+        "dxy": 0.3,
+        "copper_gold": 0.15,
+        "hy": 0.5,
+        "stlfsi": 0.6,
+        "anfci": 0.45,
+        "aaii": -0.3,
+        "putcall": 0.45,
+        "breadth": -0.65
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Communication Services' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 3,
+        "n_correct": 3,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 14.575,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.46,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.03,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 12.195,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "q4_2018": {
+            "predicted_stress": 7.505,
+            "realized_return": -0.2018,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 10.77,
+            "realized_return": -0.2978,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 9.305,
+            "realized_return": -0.3868,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.095,
+            "realized_return": -0.0011,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "telecom",
+      "name": "Telecom & Media",
+      "sector": "Communication Services",
+      "proxy_ticker": "IYZ",
+      "loadings": {
+        "vix": 0.8,
+        "move": 0.35,
+        "real_rates": 0.7,
+        "term_premium": -0.25,
+        "dxy": 0.3,
+        "copper_gold": 0.15,
+        "hy": 0.5,
+        "stlfsi": 0.6,
+        "anfci": 0.45,
+        "aaii": -0.3,
+        "putcall": 0.45,
+        "breadth": -0.65
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Communication Services' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 6,
+        "n_correct": 4,
+        "rate": 0.667,
+        "passes_gate": false,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 14.575,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.46,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.03,
+            "realized_return": 0.1651,
+            "match": false,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 12.195,
+            "realized_return": -0.397,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 7.505,
+            "realized_return": -0.1705,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 10.77,
+            "realized_return": -0.262,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 9.305,
+            "realized_return": -0.375,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.095,
+            "realized_return": 0.0244,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "banks",
+      "name": "Banks",
+      "sector": "Financials",
+      "proxy_ticker": "KBE",
+      "loadings": {
+        "vix": 0.75,
+        "move": 0.45,
+        "real_rates": -0.3,
+        "term_premium": 0.55,
+        "dxy": -0.1,
+        "copper_gold": -0.2,
+        "hy": 0.85,
+        "stlfsi": 0.85,
+        "anfci": 0.65,
+        "aaii": -0.4,
+        "putcall": 0.55,
+        "breadth": -0.65
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Financials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 5,
+        "n_correct": 4,
+        "rate": 0.8,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 15.7,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 8.31,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 12.66,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 17.855,
+            "realized_return": -0.4326,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 6.765,
+            "realized_return": -0.2513,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 14.535,
+            "realized_return": -0.4884,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 5.355,
+            "realized_return": -0.1763,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 5.585,
+            "realized_return": 0.0693,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "insurance",
+      "name": "Insurance",
+      "sector": "Financials",
+      "proxy_ticker": "KIE",
+      "loadings": {
+        "vix": 0.75,
+        "move": 0.45,
+        "real_rates": -0.3,
+        "term_premium": 0.55,
+        "dxy": -0.1,
+        "copper_gold": -0.2,
+        "hy": 0.85,
+        "stlfsi": 0.85,
+        "anfci": 0.65,
+        "aaii": -0.4,
+        "putcall": 0.55,
+        "breadth": -0.65
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Financials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 5,
+        "n_correct": 4,
+        "rate": 0.8,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 15.7,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 8.31,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 12.66,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 17.855,
+            "realized_return": -0.5373,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 6.765,
+            "realized_return": -0.1627,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 14.535,
+            "realized_return": -0.4404,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 5.355,
+            "realized_return": -0.0649,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 5.585,
+            "realized_return": 0.0551,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "divfin",
+      "name": "Diversified Financials",
+      "sector": "Financials",
+      "proxy_ticker": "IAI",
+      "loadings": {
+        "vix": 0.75,
+        "move": 0.45,
+        "real_rates": -0.3,
+        "term_premium": 0.55,
+        "dxy": -0.1,
+        "copper_gold": -0.2,
+        "hy": 0.85,
+        "stlfsi": 0.85,
+        "anfci": 0.65,
+        "aaii": -0.4,
+        "putcall": 0.55,
+        "breadth": -0.65
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Financials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 3,
+        "n_correct": 3,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 15.7,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 8.31,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 12.66,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 17.855,
+            "realized_return": -0.4933,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 6.765,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "covid_2020": {
+            "predicted_stress": 14.535,
+            "realized_return": -0.4006,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 5.355,
+            "realized_return": -0.2084,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 5.585,
+            "realized_return": 0.0,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "capgoods",
+      "name": "Capital Goods",
+      "sector": "Industrials",
+      "proxy_ticker": "XLI",
+      "loadings": {
+        "vix": 0.7,
+        "move": 0.35,
+        "real_rates": 0.1,
+        "term_premium": 0.05,
+        "dxy": 0.3,
+        "copper_gold": -0.3,
+        "hy": 0.55,
+        "stlfsi": 0.6,
+        "anfci": 0.45,
+        "aaii": -0.35,
+        "putcall": 0.4,
+        "breadth": -0.55
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Industrials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 0,
+        "n_correct": 0,
+        "rate": null,
+        "passes_gate": false,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 13.15,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.25,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.62,
+            "realized_return": 0.0,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.56,
+            "realized_return": 0.0,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          },
+          "q4_2018": {
+            "predicted_stress": 6.47,
+            "realized_return": 0.0,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          },
+          "covid_2020": {
+            "predicted_stress": 11.695,
+            "realized_return": 0.0,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          },
+          "inflation_2022": {
+            "predicted_stress": 6.885,
+            "realized_return": 0.0,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          },
+          "ai_2024": {
+            "predicted_stress": 4.245,
+            "realized_return": 0.0,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "transport",
+      "name": "Transportation",
+      "sector": "Industrials",
+      "proxy_ticker": "IYT",
+      "loadings": {
+        "vix": 0.7,
+        "move": 0.35,
+        "real_rates": 0.1,
+        "term_premium": 0.05,
+        "dxy": 0.3,
+        "copper_gold": -0.3,
+        "hy": 0.55,
+        "stlfsi": 0.6,
+        "anfci": 0.45,
+        "aaii": -0.35,
+        "putcall": 0.4,
+        "breadth": -0.55
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Industrials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 5,
+        "n_correct": 5,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 13.15,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.25,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.62,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.56,
+            "realized_return": -0.3915,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 6.47,
+            "realized_return": -0.2359,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 11.695,
+            "realized_return": -0.3889,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 6.885,
+            "realized_return": -0.2705,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.245,
+            "realized_return": -0.0184,
+            "match": true,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "defense",
+      "name": "Defense & Aerospace",
+      "sector": "Industrials",
+      "proxy_ticker": "ITA",
+      "loadings": {
+        "vix": 0.7,
+        "move": 0.35,
+        "real_rates": 0.1,
+        "term_premium": 0.05,
+        "dxy": 0.3,
+        "copper_gold": -0.3,
+        "hy": 0.55,
+        "stlfsi": 0.6,
+        "anfci": 0.45,
+        "aaii": -0.35,
+        "putcall": 0.4,
+        "breadth": -0.55
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Industrials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 5,
+        "n_correct": 4,
+        "rate": 0.8,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 13.15,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.25,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.62,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.56,
+            "realized_return": -0.4026,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 6.47,
+            "realized_return": -0.2545,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 11.695,
+            "realized_return": -0.502,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 6.885,
+            "realized_return": -0.0879,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.245,
+            "realized_return": 0.0657,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "pharma",
+      "name": "Pharmaceuticals",
+      "sector": "Health Care",
+      "proxy_ticker": "PPH",
+      "loadings": {
+        "vix": 0.45,
+        "move": 0.25,
+        "real_rates": 0.15,
+        "term_premium": -0.05,
+        "dxy": 0.1,
+        "copper_gold": -0.05,
+        "hy": 0.35,
+        "stlfsi": 0.4,
+        "anfci": 0.3,
+        "aaii": -0.25,
+        "putcall": 0.3,
+        "breadth": -0.35
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Healthcare' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 7,
+        "n_correct": 4,
+        "rate": 0.571,
+        "passes_gate": false,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 8.875,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 4.67,
+            "realized_return": 0.0244,
+            "match": false,
+            "reason": null
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 6.185,
+            "realized_return": 0.0577,
+            "match": false,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 8.515,
+            "realized_return": -0.217,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 4.305,
+            "realized_return": -0.1838,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 7.265,
+            "realized_return": -0.2853,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 4.7,
+            "realized_return": -0.1077,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 2.72,
+            "realized_return": 0.0299,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "devices",
+      "name": "Medical Devices",
+      "sector": "Health Care",
+      "proxy_ticker": "IHI",
+      "loadings": {
+        "vix": 0.45,
+        "move": 0.25,
+        "real_rates": 0.15,
+        "term_premium": -0.05,
+        "dxy": 0.1,
+        "copper_gold": -0.05,
+        "hy": 0.35,
+        "stlfsi": 0.4,
+        "anfci": 0.3,
+        "aaii": -0.25,
+        "putcall": 0.3,
+        "breadth": -0.35
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Healthcare' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 5,
+        "n_correct": 4,
+        "rate": 0.8,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 8.875,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 4.67,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 6.185,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 8.515,
+            "realized_return": -0.4378,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 4.305,
+            "realized_return": -0.174,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 7.265,
+            "realized_return": -0.3295,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 4.7,
+            "realized_return": -0.2739,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 2.72,
+            "realized_return": 0.0114,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "biotech",
+      "name": "Biotech",
+      "sector": "Health Care",
+      "proxy_ticker": "IBB",
+      "loadings": {
+        "vix": 0.45,
+        "move": 0.25,
+        "real_rates": 0.15,
+        "term_premium": -0.05,
+        "dxy": 0.1,
+        "copper_gold": -0.05,
+        "hy": 0.35,
+        "stlfsi": 0.4,
+        "anfci": 0.3,
+        "aaii": -0.25,
+        "putcall": 0.3,
+        "breadth": -0.35
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Healthcare' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 6,
+        "n_correct": 4,
+        "rate": 0.667,
+        "passes_gate": false,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 8.875,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 4.67,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 6.185,
+            "realized_return": 0.0313,
+            "match": false,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 8.515,
+            "realized_return": -0.2635,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 4.305,
+            "realized_return": -0.261,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 7.265,
+            "realized_return": -0.2104,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 4.7,
+            "realized_return": -0.2168,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 2.72,
+            "realized_return": 0.038,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "foodbev",
+      "name": "Food & Beverage",
+      "sector": "Consumer Staples",
+      "proxy_ticker": "PBJ",
+      "loadings": {
+        "vix": 0.3,
+        "move": 0.15,
+        "real_rates": 0.1,
+        "term_premium": -0.05,
+        "dxy": 0.15,
+        "copper_gold": -0.05,
+        "hy": 0.25,
+        "stlfsi": 0.3,
+        "anfci": 0.2,
+        "aaii": -0.15,
+        "putcall": 0.2,
+        "breadth": -0.3
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Staples' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 4,
+        "n_correct": 4,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 6.175,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 3.405,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 4.345,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 6.06,
+            "realized_return": -0.305,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 3.1,
+            "realized_return": -0.1107,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 5.24,
+            "realized_return": -0.2472,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 3.49,
+            "realized_return": -0.0371,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 1.945,
+            "realized_return": 0.0035,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "household",
+      "name": "Household & Personal Care",
+      "sector": "Consumer Staples",
+      "proxy_ticker": "XLP",
+      "loadings": {
+        "vix": 0.3,
+        "move": 0.15,
+        "real_rates": 0.1,
+        "term_premium": -0.05,
+        "dxy": 0.15,
+        "copper_gold": -0.05,
+        "hy": 0.25,
+        "stlfsi": 0.3,
+        "anfci": 0.2,
+        "aaii": -0.15,
+        "putcall": 0.2,
+        "breadth": -0.3
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Staples' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 7,
+        "n_correct": 6,
+        "rate": 0.857,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 6.175,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 3.405,
+            "realized_return": -0.0131,
+            "match": true,
+            "reason": null
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 4.345,
+            "realized_return": -0.0193,
+            "match": true,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 6.06,
+            "realized_return": -0.233,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 3.1,
+            "realized_return": -0.0829,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 5.24,
+            "realized_return": -0.2416,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 3.49,
+            "realized_return": -0.1062,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 1.945,
+            "realized_return": 0.0409,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "retail",
+      "name": "Retail",
+      "sector": "Consumer Discretionary",
+      "proxy_ticker": "XRT",
+      "loadings": {
+        "vix": 0.75,
+        "move": 0.4,
+        "real_rates": 0.45,
+        "term_premium": -0.1,
+        "dxy": 0.2,
+        "copper_gold": 0.1,
+        "hy": 0.65,
+        "stlfsi": 0.7,
+        "anfci": 0.55,
+        "aaii": -0.4,
+        "putcall": 0.5,
+        "breadth": -0.6
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Discretionary' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 4,
+        "n_correct": 4,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 15.175,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.92,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 10.195,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.99,
+            "realized_return": -0.5302,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 7.505,
+            "realized_return": -0.2144,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 11.95,
+            "realized_return": -0.3979,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 8.59,
+            "realized_return": -0.3538,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.41,
+            "realized_return": -0.0029,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "autos",
+      "name": "Autos",
+      "sector": "Consumer Discretionary",
+      "proxy_ticker": "CARZ",
+      "loadings": {
+        "vix": 0.75,
+        "move": 0.4,
+        "real_rates": 0.45,
+        "term_premium": -0.1,
+        "dxy": 0.2,
+        "copper_gold": 0.1,
+        "hy": 0.65,
+        "stlfsi": 0.7,
+        "anfci": 0.55,
+        "aaii": -0.4,
+        "putcall": 0.5,
+        "breadth": -0.6
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Discretionary' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 4,
+        "n_correct": 4,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 15.175,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.92,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 10.195,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.99,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "q4_2018": {
+            "predicted_stress": 7.505,
+            "realized_return": -0.1405,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 11.95,
+            "realized_return": -0.4158,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 8.59,
+            "realized_return": -0.3576,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.41,
+            "realized_return": -0.0982,
+            "match": true,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "oilgas",
+      "name": "Oil & Gas",
+      "sector": "Energy",
+      "proxy_ticker": "XOP",
+      "loadings": {
+        "vix": 0.3,
+        "move": 0.1,
+        "real_rates": -1.2,
+        "term_premium": -0.5,
+        "dxy": -0.1,
+        "copper_gold": -0.5,
+        "hy": 0.2,
+        "stlfsi": 0.2,
+        "anfci": 0.1,
+        "aaii": -0.2,
+        "putcall": 0.2,
+        "breadth": -0.3
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Energy' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 5,
+        "n_correct": 5,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 4.45,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 3.01,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 5.24,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 7.71,
+            "realized_return": -0.4964,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 1.61,
+            "realized_return": -0.4575,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 6.17,
+            "realized_return": -0.6013,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": -0.64,
+            "realized_return": 0.4169,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 2.63,
+            "realized_return": -0.0646,
+            "match": true,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "oilfield",
+      "name": "Equipment & Services",
+      "sector": "Energy",
+      "proxy_ticker": "OIH",
+      "loadings": {
+        "vix": 0.3,
+        "move": 0.1,
+        "real_rates": -1.2,
+        "term_premium": -0.5,
+        "dxy": -0.1,
+        "copper_gold": -0.5,
+        "hy": 0.2,
+        "stlfsi": 0.2,
+        "anfci": 0.1,
+        "aaii": -0.2,
+        "putcall": 0.2,
+        "breadth": -0.3
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Energy' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 6,
+        "n_correct": 5,
+        "rate": 0.833,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 4.45,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 3.01,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 5.24,
+            "realized_return": 0.0861,
+            "match": false,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 7.71,
+            "realized_return": -0.5574,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 1.61,
+            "realized_return": -0.4726,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 6.17,
+            "realized_return": -0.6699,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": -0.64,
+            "realized_return": 0.2102,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 2.63,
+            "realized_return": -0.0453,
+            "match": true,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "mining",
+      "name": "Metals & Mining",
+      "sector": "Materials",
+      "proxy_ticker": "XME",
+      "loadings": {
+        "vix": 0.65,
+        "move": 0.3,
+        "real_rates": -0.1,
+        "term_premium": 0.05,
+        "dxy": 0.5,
+        "copper_gold": -0.85,
+        "hy": 0.5,
+        "stlfsi": 0.55,
+        "anfci": 0.4,
+        "aaii": -0.3,
+        "putcall": 0.35,
+        "breadth": -0.5
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Materials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 5,
+        "n_correct": 4,
+        "rate": 0.8,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 12.025,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.305,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.515,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.795,
+            "realized_return": -0.6709,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 6.175,
+            "realized_return": -0.2613,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 12.13,
+            "realized_return": -0.4499,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 6.42,
+            "realized_return": 0.0102,
+            "match": false,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.095,
+            "realized_return": -0.047,
+            "match": true,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "chemicals",
+      "name": "Chemicals",
+      "sector": "Materials",
+      "proxy_ticker": "PYZ",
+      "loadings": {
+        "vix": 0.65,
+        "move": 0.3,
+        "real_rates": -0.1,
+        "term_premium": 0.05,
+        "dxy": 0.5,
+        "copper_gold": -0.85,
+        "hy": 0.5,
+        "stlfsi": 0.55,
+        "anfci": 0.4,
+        "aaii": -0.3,
+        "putcall": 0.35,
+        "breadth": -0.5
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Materials' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 4,
+        "n_correct": 4,
+        "rate": 1.0,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 12.025,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 7.305,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 9.515,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.795,
+            "realized_return": -0.5165,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 6.175,
+            "realized_return": -0.2664,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 12.13,
+            "realized_return": -0.4226,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 6.42,
+            "realized_return": -0.2237,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.095,
+            "realized_return": 0.0043,
+            "match": null,
+            "reason": "near-zero predicted or realized"
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "reits",
+      "name": "REITs",
+      "sector": "Real Estate",
+      "proxy_ticker": "VNQ",
+      "loadings": {
+        "vix": 0.75,
+        "move": 0.5,
+        "real_rates": 1.1,
+        "term_premium": -0.4,
+        "dxy": 0.1,
+        "copper_gold": -0.1,
+        "hy": 0.7,
+        "stlfsi": 0.75,
+        "anfci": 0.6,
+        "aaii": -0.35,
+        "putcall": 0.45,
+        "breadth": -0.55
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Real Estate' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 5,
+        "n_correct": 4,
+        "rate": 0.8,
+        "passes_gate": true,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 16.7,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 8.565,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 10.19,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "gfc_2008": {
+            "predicted_stress": 13.61,
+            "realized_return": -0.5829,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 8.745,
+            "realized_return": -0.0799,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 11.79,
+            "realized_return": -0.4154,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 11.09,
+            "realized_return": -0.3186,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 4.035,
+            "realized_return": 0.0979,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    },
+    {
+      "id": "electric",
+      "name": "Electric & Multi-Utility",
+      "sector": "Utilities",
+      "proxy_ticker": "XLU",
+      "loadings": {
+        "vix": 0.3,
+        "move": 0.2,
+        "real_rates": 0.55,
+        "term_premium": -0.1,
+        "dxy": 0.05,
+        "copper_gold": -0.05,
+        "hy": 0.3,
+        "stlfsi": 0.35,
+        "anfci": 0.25,
+        "aaii": -0.15,
+        "putcall": 0.2,
+        "breadth": -0.3
+      },
+      "loading_source": "parent_sector_inherit",
+      "loading_source_note": "v1: inherits parent-sector loadings for 'Utilities' verbatim. Per-IG adjustments to be added in Phase 2F.1 follow-ups based on IG-specific factor sensitivities.",
+      "directional_test": {
+        "n_observable": 7,
+        "n_correct": 5,
+        "rate": 0.714,
+        "passes_gate": false,
+        "scenarios": {
+          "black_monday_1987": {
+            "predicted_stress": 7.425,
+            "realized_return": null,
+            "match": null,
+            "reason": "yfinance returned no price data for this window"
+          },
+          "dotcom_slow_2000": {
+            "predicted_stress": 3.85,
+            "realized_return": 0.0459,
+            "match": false,
+            "reason": null
+          },
+          "dotcom_capitulation_2002": {
+            "predicted_stress": 4.535,
+            "realized_return": -0.0941,
+            "match": true,
+            "reason": null
+          },
+          "gfc_2008": {
+            "predicted_stress": 5.96,
+            "realized_return": -0.249,
+            "match": true,
+            "reason": null
+          },
+          "q4_2018": {
+            "predicted_stress": 3.89,
+            "realized_return": -0.0103,
+            "match": true,
+            "reason": null
+          },
+          "covid_2020": {
+            "predicted_stress": 5.155,
+            "realized_return": -0.3537,
+            "match": true,
+            "reason": null
+          },
+          "inflation_2022": {
+            "predicted_stress": 5.015,
+            "realized_return": -0.1132,
+            "match": true,
+            "reason": null
+          },
+          "ai_2024": {
+            "predicted_stress": 1.835,
+            "realized_return": 0.0878,
+            "match": false,
+            "reason": null
+          }
+        }
+      },
+      "as_of": "2026-05-09"
+    }
+  ]
+}
