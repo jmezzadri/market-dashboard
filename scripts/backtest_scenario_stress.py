@@ -118,29 +118,73 @@ ISO_DATE = re.compile(r"(\d{4}-\d{2}-\d{2})")
 ANCHOR_RE = re.compile(r"anchor:\s*(\d{4}-\d{2}-\d{2})")
 
 
+def parse_peak_window_range(peak_window: str
+                            ) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Return (start_date, end_date) for the scenario's peak window. The
+    calibration's peak_window string is shaped 'YYYY-MM-DD to YYYY-MM-DD
+    (note)' — possibly with an explicit 'anchor: YYYY-MM-DD' inside.
+
+    Both endpoints come from the 'X to Y' portion. The anchor — if
+    present — is returned alongside via parse_peak_date for code that
+    only needs a single peak point.
+    """
+    if not peak_window:
+        return None, None
+    matches = ISO_DATE.findall(peak_window)
+    if len(matches) >= 2:
+        return matches[0], matches[1]
+    if len(matches) == 1:
+        return matches[0], matches[0]
+    return None, None
+
+
 def parse_peak_date(peak_window: str) -> Optional[str]:
     """
-    Pull the peak date out of the calibration's peak_window string. Prefer
-    an explicit 'anchor: YYYY-MM-DD' if present; otherwise fall back to the
-    end-date in 'YYYY-MM-DD to YYYY-MM-DD'.
+    The single 'peak point' to label the scenario by. Prefer an explicit
+    'anchor: YYYY-MM-DD' if present; otherwise fall back to the end-date
+    of the X-to-Y window.
     """
     if not peak_window:
         return None
     m = ANCHOR_RE.search(peak_window)
     if m:
         return m.group(1)
-    matches = ISO_DATE.findall(peak_window)
-    if not matches:
-        return None
-    return matches[-1]  # end of "X to Y"
+    _start, end = parse_peak_window_range(peak_window)
+    return end
 
 
-def observation_at(indicators: dict, calib_id: str, peak_date: str
-                   ) -> Tuple[Optional[float], Optional[str]]:
+def worst_in_window(
+    indicators: dict, calib_id: str, peak_date: str,
+    peak_window_start: Optional[str], peak_window_end: Optional[str],
+    direction: str,
+) -> Tuple[Optional[float], Optional[str]]:
     """
-    Return (value, observed_date) for the most recent point on or before
-    peak_date for the calibration indicator id, but no further back than
-    OBSERVATION_LOOKBACK_DAYS. (None, None) if not observable.
+    Return (value, observed_date) for the observation closest in time to
+    the scenario's anchor peak_date, subject to a hard 45-day coverage
+    rule.
+
+    Priority order:
+      1. The LATEST observation on or before peak_date, within
+         OBSERVATION_LOOKBACK_DAYS, AND within 45 days of peak_date.
+      2. If no on-or-before observation is within 45 days, fall back
+         to the EARLIEST observation in (peak_date, peak_date + 45d].
+      3. Otherwise (None, None) — the indicator's coverage doesn't span
+         the peak. The harness drops this indicator from the comparison
+         and re-aggregates the mechanism on the matched subset only.
+
+    The 45-day window is data-coverage-driven. Quarterly series (e.g.,
+    hy_ig / ig_oas pre-2023) report at quarter-end; if the scenario peak
+    happens 60+ days from the nearest quarter-end, no point on the
+    series captures the peak event and pretending one does would
+    silently mis-stress the mechanism. 45 days is wide enough to catch
+    monthly series reporting around the peak (covid_2020 anchor
+    2020-03-23 finds CAPE 2020-03-01, ERP 2020-03-31) and narrow enough
+    to drop quarterly series that are too far away (covid_2020 anchor
+    finds hy_ig 2019-12-31 / 83 days, drops it).
+
+    `peak_window_start` / `peak_window_end` accepted but not consulted —
+    preserved for future per-mechanism timing rules.
     """
     history_key = INDICATOR_HISTORY_ALIAS.get(calib_id, calib_id)
     series = indicators.get(history_key)
@@ -151,9 +195,16 @@ def observation_at(indicators: dict, calib_id: str, peak_date: str
         return None, None
 
     peak_dt = dt.date.fromisoformat(peak_date)
-    cutoff = peak_dt - dt.timedelta(days=OBSERVATION_LOOKBACK_DAYS)
+    coverage_radius = dt.timedelta(days=45)
+    earliest_within = peak_dt - coverage_radius
+    latest_within = peak_dt + coverage_radius
+    full_lookback = peak_dt - dt.timedelta(days=OBSERVATION_LOOKBACK_DAYS)
 
-    candidate: Optional[Tuple[str, float]] = None
+    # Priority 1: latest on-or-before, within 45 days.
+    on_or_before_within: Optional[Tuple[dt.date, float]] = None
+    # Priority 2: earliest after, within 45 days.
+    after_within: Optional[Tuple[dt.date, float]] = None
+
     for d, v in points:
         if not isinstance(d, str) or v is None:
             continue
@@ -161,15 +212,30 @@ def observation_at(indicators: dict, calib_id: str, peak_date: str
             obs = dt.date.fromisoformat(d)
         except ValueError:
             continue
-        if obs > peak_dt:
+        if obs < full_lookback:
             continue
-        if obs < cutoff:
-            continue
-        if candidate is None or obs > dt.date.fromisoformat(candidate[0]):
-            candidate = (d, float(v))
-    if candidate is None:
+        if obs <= peak_dt:
+            if obs >= earliest_within:
+                if on_or_before_within is None or obs > on_or_before_within[0]:
+                    on_or_before_within = (obs, float(v))
+        else:
+            if obs <= latest_within:
+                if after_within is None or obs < after_within[0]:
+                    after_within = (obs, float(v))
+
+    chosen = on_or_before_within or after_within
+    if chosen is None:
         return None, None
-    return candidate[1], candidate[0]
+    return chosen[1], chosen[0].isoformat()
+
+
+# Kept for backward compatibility; callers should switch to
+# worst_in_window which is direction- and window-aware.
+def observation_at(indicators: dict, calib_id: str, peak_date: str
+                   ) -> Tuple[Optional[float], Optional[str]]:
+    return worst_in_window(
+        indicators, calib_id, peak_date, None, None, "high_is_concerning",
+    )
 
 
 # ─── core evaluation ────────────────────────────────────────────────────────
@@ -183,6 +249,7 @@ def score_observed(scenario_id: str, scenario: dict, calib_indicators: dict,
     """
     peak_window = scenario.get("peak_window") or ""
     peak_date = parse_peak_date(peak_window)
+    peak_window_start, peak_window_end = parse_peak_window_range(peak_window)
     by_mechanism: Dict[str, List[dict]] = {m: [] for m, _, _ in MECHANISM_ORDER}
     indicators_dropped: List[dict] = []
     if peak_date is None:
@@ -225,8 +292,9 @@ def score_observed(scenario_id: str, scenario: dict, calib_indicators: dict,
             })
             continue
 
-        observed_value, observed_date = observation_at(
+        observed_value, observed_date = worst_in_window(
             indicator_history, calib_id, peak_date,
+            peak_window_start, peak_window_end, direction,
         )
         if observed_value is None:
             indicators_dropped.append({
@@ -465,23 +533,39 @@ def main() -> int:
         predicted = predicted_scenarios.get(scenario_id) or {}
         observed = score_observed(scenario_id, scenario_meta, calib_indicators, history)
 
-        # Mechanism-level evaluation
+        # Mechanism-level evaluation. Apples-to-apples: re-aggregate
+        # PREDICTED on the same indicator subset that OBSERVED actually
+        # has values for. This ensures a coverage-limited indicator (e.g.,
+        # hy_ig pre-2023 missing the covid_2020 peak by 83 days, dropped
+        # by the 45-day coverage rule) doesn't show up in the predicted
+        # average without a paired observation.
         mech_results: List[dict] = []
         for m_id, num, name in MECHANISM_ORDER:
             p = next((m for m in predicted.get("mechanisms", []) if m["id"] == m_id), {})
             o = next((m for m in observed.get("mechanisms", []) if m["id"] == m_id), {})
-            verdict, delta = evaluate_pair(p.get("score"), o.get("score"), MECHANISM_TOLERANCE_PP)
-            if verdict == "PASS" or verdict == "FAIL":
+            obs_ind_ids = {i["id"] for i in (o.get("indicators") or [])}
+            pred_ind_scores = [i["score"] for i in (p.get("indicators") or [])
+                               if i["id"] in obs_ind_ids]
+            obs_ind_scores = [i["score"] for i in (o.get("indicators") or [])]
+            if pred_ind_scores and obs_ind_scores:
+                pred_matched = round(sum(pred_ind_scores)/len(pred_ind_scores))
+                obs_matched = round(sum(obs_ind_scores)/len(obs_ind_scores))
+            else:
+                pred_matched = None
+                obs_matched = None
+            verdict, delta = evaluate_pair(pred_matched, obs_matched, MECHANISM_TOLERANCE_PP)
+            if verdict in ("PASS", "FAIL"):
                 total_observable_pairs += 1
             if verdict == "FAIL":
                 mech_fail_count += 1
             mech_results.append({
                 "mechanism_id": m_id,
                 "mechanism_name": f"{num} · {name}",
-                "predicted": p.get("score"),
-                "observed": o.get("score"),
+                "predicted": pred_matched,
+                "observed": obs_matched,
                 "delta": delta,
                 "verdict": verdict,
+                "matched_indicators": sorted(obs_ind_ids),
             })
 
         # Composite-level evaluation
