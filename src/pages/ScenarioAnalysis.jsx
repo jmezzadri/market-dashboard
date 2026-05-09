@@ -640,11 +640,32 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // Wire-through to the same modals Asset Tilt uses, so a sector click here
   // opens the same rich modal there. v10_allocation.json carries the data.
   const [v10, setV10] = useState(null);
+  const [cycleStress, setCycleStress] = useState(null);
+  const [currentBoard, setCurrentBoard] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
   useEffect(() => {
     fetch("/v10_allocation.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setV10).catch(() => setV10(null));
+  }, []);
+
+  // Phase 2D/2E — load the scenario stress snapshot + current cycle board so
+  // the Cycle Mechanism Scenario Results table can render `current → stressed`
+  // for the selected scenario. Both files refresh nightly via their
+  // respective producers; cache: no-cache so the table always shows the
+  // latest published numbers.
+  useEffect(() => {
+    fetch("/scenario_stress.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("scenario_stress.json HTTP " + r.status)))
+      .then(setCycleStress)
+      .catch((err) => { console.warn("[Phase 2E] scenario_stress.json fetch failed", err); });
+  }, []);
+
+  useEffect(() => {
+    fetch("/cycle_board_snapshot.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_board_snapshot.json HTTP " + r.status)))
+      .then(setCurrentBoard)
+      .catch((err) => { console.warn("[Phase 2E] cycle_board_snapshot.json fetch failed", err); });
   }, []);
   // Escape-key closes whichever modal is on top
   useEffect(() => {
@@ -996,18 +1017,18 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           {/* RIGHT COLUMN — TABLE 2 (placeholder) + TABLE 3 (Your Portfolio) stacked */}
           <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
 
-            {/* TABLE 2 — Cycle Mechanism Scenario Results (Phase 2 placeholder) */}
-            <div style={_tableCard}>
-              <div style={_tableHead}>
-                <h2 style={_tableTitle}>Cycle Mechanism Scenario Results</h2>
-                <div style={_tableSub}>How the six cycle mechanisms and the page-level composite move under the selected scenario.</div>
-              </div>
-              <div style={{ padding:"36px 18px", textAlign:"center" }}>
-                <div style={{ fontFamily:"var(--font-ui)", fontSize:12, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.10em", marginBottom:8 }}>Phase 2 — calibration approved, table wires next</div>
-                <div style={{ fontFamily:"var(--font-ui)", fontSize:14, color:"var(--text-2)", lineHeight:1.55, maxWidth:520, margin:"0 auto" }}>
-                  Each mechanism scores from a panel of indicators with approved Phase 2 calibration values. Equity Valuations: CAPE, equity risk premium, Buffett ratio (Shiller dataset, Wilshire 5000 / GDP). Credit: HY OAS, IG OAS, IG&ndash;HY ratio (ICE BofA via FRED). Funding: commercial paper risk premium, St. Louis Fed FSI, bank reserves at Fed, reverse repo balance. Growth: ISM Manufacturing, ISM Services, Atlanta Fed GDPNow. Liquidity &amp; Policy: Chicago Fed ANFCI, Fed balance sheet YoY, SLOOS C&amp;I tightening, M2 YoY. Positioning &amp; Breadth: CBOE SKEW, VIX, equity&ndash;credit correlation, MOVE Index. Each scenario&apos;s peak-stress value for every indicator is re-percentiled against the live post-2011 sample and direction-corrected on the same 0&ndash;100 scale as today&apos;s composite. Backtest tolerance bands &plusmn;15pp per mechanism, &plusmn;10 on the page-level composite.</div>
-              </div>
-            </div>
+            {/* TABLE 2 — Cycle Mechanism Scenario Results (Phase 2E live) */}
+            <CycleMechanismScenarioResultsTable
+              mode={mode}
+              scenarioId={scenario}
+              scenarioName={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : null}
+              cycleStress={cycleStress}
+              currentBoard={currentBoard}
+              tableCard={_tableCard}
+              tableHead={_tableHead}
+              tableTitle={_tableTitle}
+              tableSub={_tableSub}
+            />
 
             {/* TABLE 3 — Your Portfolio under stress */}
             <Table3Portfolio
@@ -1032,6 +1053,210 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     </>
   );
 }
+
+
+// ────────────────────────────────────────────────────────────────────────
+// CycleMechanismScenarioResultsTable — Phase 2E
+// Renders the 6 cycle mechanisms × {current, stressed, Δ} table for the
+// selected canned scenario, plus the page-level composite delta. Data:
+//   - currentBoard.mechanisms[] (from /cycle_board_snapshot.json, live v11 scorer)
+//   - cycleStress.scenarios[scenarioId].mechanisms[] (from /scenario_stress.json,
+//     Phase 2C producer)
+//   - cycleStress.scenarios[scenarioId].composite_score (page-level page composite)
+// "Current" composite is the simple average of currentBoard mechanism scores
+// (matches the producer's simple-average composite convention so current and
+// stressed are on the same scale).
+// ────────────────────────────────────────────────────────────────────────
+function CycleMechanismScenarioResultsTable({
+  mode, scenarioId, scenarioName, cycleStress, currentBoard,
+  tableCard, tableHead, tableTitle, tableSub,
+}) {
+  const [expanded, setExpanded] = useState(null);
+
+  const stressed = (cycleStress && scenarioId) ? cycleStress.scenarios?.[scenarioId] : null;
+  const isReady = mode === "canned" && stressed && currentBoard;
+
+  // Build current-mechanism map keyed by id for fast joins.
+  const currentById = useMemo(() => {
+    if (!currentBoard?.mechanisms) return {};
+    return Object.fromEntries(currentBoard.mechanisms.map((m) => [m.id, m]));
+  }, [currentBoard]);
+
+  // Compute current composite as simple-average of available mechanism scores
+  // (same convention the Phase 2C producer uses for the stressed composite).
+  const currentComposite = useMemo(() => {
+    if (!currentBoard?.mechanisms) return null;
+    const scored = currentBoard.mechanisms.filter((m) => m.score !== null && m.score !== undefined);
+    if (!scored.length) return null;
+    return Math.round(scored.reduce((s, m) => s + m.score, 0) / scored.length);
+  }, [currentBoard]);
+
+  if (!isReady) {
+    return (
+      <div style={tableCard}>
+        <div style={tableHead}>
+          <h2 style={tableTitle}>Cycle Mechanism Scenario Results</h2>
+          <div style={tableSub}>How the six cycle mechanisms and the page-level composite move under the selected scenario.</div>
+        </div>
+        <div style={{ padding:"36px 18px", textAlign:"center", fontFamily:"var(--font-ui)", fontSize:13, color:"var(--text-muted)" }}>
+          {mode === "bespoke"
+            ? "Cycle Mechanism table renders only for canned historical scenarios. Switch back to a canned scenario to see the table."
+            : (cycleStress === null || currentBoard === null)
+              ? "Loading scenario stress snapshot…"
+              : "Pick a scenario above to see how each cycle mechanism would move under that historical regime."}
+        </div>
+      </div>
+    );
+  }
+
+  // Mechanism rows in the same order as the producer + live v11 dashboard.
+  const MECH_ORDER = ["valuation", "credit", "funding", "growth", "liquidity_policy", "positioning_breadth"];
+  const rows = MECH_ORDER.map((id) => {
+    const cur = currentById[id];
+    const str = stressed.mechanisms?.find((m) => m.id === id);
+    return {
+      id,
+      name: str?.name || cur?.name || id,
+      num: str?.num || cur?.num || "",
+      currentScore: cur?.score ?? null,
+      stressedScore: str?.score ?? null,
+      indicators: str?.indicators || [],
+      indicatorsScored: str?.indicators_scored ?? null,
+      indicatorsPanel: str?.indicators_panel ?? null,
+    };
+  });
+
+  const renderDelta = (cur, str) => {
+    if (cur === null || cur === undefined || str === null || str === undefined) {
+      return <span style={{ color:"var(--text-muted)", fontFamily:"var(--font-mono)" }}>—</span>;
+    }
+    const d = str - cur;
+    const sign = d > 0 ? "+" : d < 0 ? "−" : "±";
+    const absD = Math.abs(d);
+    // High-is-stress mechanisms: positive delta means MORE stress (bad).
+    // Page-level convention is high = more risk-off, so up = direction "down" tone.
+    const tone = d > 0 ? "var(--neg, #b03030)" : d < 0 ? "var(--pos, #2a7a4f)" : "var(--text-muted)";
+    return (
+      <span style={{ color: tone, fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
+        {sign}{absD}
+      </span>
+    );
+  };
+
+  const cellNum = { fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", textAlign:"right" };
+  const cellMuted = { fontFamily:"var(--font-mono)", color:"var(--text-muted)", fontVariantNumeric:"tabular-nums", textAlign:"right" };
+
+  return (
+    <div style={tableCard}>
+      <div style={tableHead}>
+        <h2 style={tableTitle}>Cycle Mechanism Scenario Results</h2>
+        <div style={tableSub}>
+          How the six cycle mechanisms and the page-level composite move under {scenarioName || "the selected scenario"}.{" "}
+          <span style={{ color:"var(--text-muted)" }}>
+            Calibration {cycleStress?.calibration_version || "—"} · as of {cycleStress?.as_of || "—"}
+          </span>
+        </div>
+      </div>
+      <div style={{ overflow:"auto" }}>
+        <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:"var(--font-ui)", fontSize:13 }}>
+          <thead>
+            <tr style={{ background:"var(--surface-2, #f8f9fa)", color:"var(--text-muted)", fontSize:11, textTransform:"uppercase", letterSpacing:"0.06em" }}>
+              <th style={{ padding:"10px 14px", textAlign:"left", fontWeight:600 }}>Mechanism</th>
+              <th style={{ padding:"10px 14px", textAlign:"right", fontWeight:600 }}>Current</th>
+              <th style={{ padding:"10px 14px", textAlign:"right", fontWeight:600 }}>Under stress</th>
+              <th style={{ padding:"10px 14px", textAlign:"right", fontWeight:600 }}>Δ</th>
+              <th style={{ padding:"10px 14px", textAlign:"right", fontWeight:600 }}>Inputs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const isOpen = expanded === r.id;
+              return (
+                <React.Fragment key={r.id}>
+                  <tr
+                    onClick={() => setExpanded(isOpen ? null : r.id)}
+                    style={{ cursor:"pointer", borderTop:"0.5px solid var(--border)" }}
+                  >
+                    <td style={{ padding:"10px 14px" }}>
+                      <span style={{ color:"var(--text-muted)", fontFamily:"var(--font-mono)", marginRight:8 }}>{r.num}</span>
+                      <span>{r.name}</span>
+                    </td>
+                    <td style={{ padding:"10px 14px", ...(r.currentScore === null ? cellMuted : cellNum) }}>
+                      {r.currentScore === null ? "—" : r.currentScore}
+                    </td>
+                    <td style={{ padding:"10px 14px", ...(r.stressedScore === null ? cellMuted : cellNum) }}>
+                      {r.stressedScore === null ? "—" : r.stressedScore}
+                    </td>
+                    <td style={{ padding:"10px 14px", textAlign:"right" }}>
+                      {renderDelta(r.currentScore, r.stressedScore)}
+                    </td>
+                    <td style={{ padding:"10px 14px", textAlign:"right", color:"var(--text-muted)", fontVariantNumeric:"tabular-nums" }}>
+                      {r.indicatorsScored !== null ? `${r.indicatorsScored} of ${r.indicatorsPanel}` : "—"}
+                    </td>
+                  </tr>
+                  {isOpen && r.indicators.length > 0 && (
+                    <tr>
+                      <td colSpan={5} style={{ padding:"0 14px 14px", background:"var(--surface-2, #fafafa)" }}>
+                        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
+                          <thead>
+                            <tr style={{ color:"var(--text-muted)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.06em" }}>
+                              <th style={{ padding:"6px 10px", textAlign:"left", fontWeight:600 }}>Indicator</th>
+                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Calibrated value</th>
+                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Percentile</th>
+                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Score</th>
+                              <th style={{ padding:"6px 10px", textAlign:"left", fontWeight:600 }}>As of</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {r.indicators.map((ind) => (
+                              <tr key={ind.id} style={{ borderTop:"0.5px dashed var(--border)" }}>
+                                <td style={{ padding:"6px 10px" }}>{ind.id}</td>
+                                <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
+                                  {ind.value}
+                                </td>
+                                <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", color:"var(--text-muted)" }}>
+                                  {ind.percentile}%
+                                </td>
+                                <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
+                                  {ind.score}
+                                </td>
+                                <td style={{ padding:"6px 10px", color:"var(--text-muted)" }}>{ind.as_of || "—"}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+            {/* COMPOSITE row */}
+            <tr style={{ borderTop:"1px solid var(--border)", background:"var(--surface-2, #fafafa)", fontWeight:600 }}>
+              <td style={{ padding:"12px 14px" }}>Page-level composite</td>
+              <td style={{ padding:"12px 14px", ...cellNum }}>
+                {currentComposite === null ? "—" : currentComposite}
+              </td>
+              <td style={{ padding:"12px 14px", ...(stressed.composite_score === null || stressed.composite_score === undefined ? cellMuted : cellNum) }}>
+                {stressed.composite_score ?? "—"}
+              </td>
+              <td style={{ padding:"12px 14px", textAlign:"right" }}>
+                {renderDelta(currentComposite, stressed.composite_score ?? null)}
+              </td>
+              <td style={{ padding:"12px 14px", textAlign:"right", color:"var(--text-muted)", fontVariantNumeric:"tabular-nums" }}>
+                {stressed.indicators_scored_total ?? "—"}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style={{ padding:"10px 14px", fontSize:11, color:"var(--text-muted)", borderTop:"0.5px solid var(--border)" }}>
+        Higher score = more risk-off. Click a mechanism row to see the indicator-level panel that drives it.
+      </div>
+    </div>
+  );
+}
+
 
 // ════════════════════════════════════════════════════════════════════════
 // SUB-COMPONENTS
