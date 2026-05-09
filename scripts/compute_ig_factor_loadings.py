@@ -138,6 +138,49 @@ def parse_scenario_windows(jsx_src: str) -> Dict[str, Tuple[str, str]]:
     return out
 
 
+# ───── yfinance pull: 5y monthly beta vs SPY (batched) ─────
+def fetch_betas_batch(tickers: List[str], end: dt.date) -> Dict[str, float]:
+    """Compute 5y monthly log-return beta vs SPY for every ticker in one
+    yfinance call. Monthly horizon balances signal vs noise; daily would
+    take 24× longer with the same answer to two decimal places.
+    Returns {ticker: beta} for tickers that produced enough data; missing
+    tickers are simply not in the dict."""
+    try:
+        import yfinance as yf
+    except ImportError:
+        return {}
+    start = end - dt.timedelta(days=365 * 5 + 60)
+    syms = list(dict.fromkeys(list(tickers) + ["SPY"]))
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        df = yf.download(syms, start=start.isoformat(), end=end.isoformat(),
+                         interval="1mo", progress=False, auto_adjust=False)
+    if df is None or "Adj Close" not in df.columns.get_level_values(0):
+        return {}
+    adj = df["Adj Close"].dropna(how="all")
+    if "SPY" not in adj.columns or len(adj) < 24:
+        return {}
+    log_r = (adj.shift(-1) / adj - 1).dropna(how="all")
+    spy = log_r["SPY"].dropna()
+    betas: Dict[str, float] = {}
+    for t in tickers:
+        if t not in log_r.columns:
+            continue
+        s = log_r[t].dropna()
+        common = s.index.intersection(spy.index)
+        if len(common) < 24:
+            continue
+        a = s.loc[common].values.astype(float)
+        b = spy.loc[common].values.astype(float)
+        import numpy as _np
+        var_b = float(_np.var(b))
+        if var_b <= 0:
+            continue
+        cov = float(_np.mean((a - a.mean()) * (b - b.mean())))
+        betas[t] = round(cov / var_b, 3)
+    return betas
+
+
 # ───── yfinance pull for scenario-window IG returns ─────
 def fetch_window_return(ticker: str, start: str, end: str) -> Optional[float]:
     try:
@@ -197,6 +240,13 @@ def main() -> int:
     total_observable = 0
     end = dt.date.today()
 
+    # Batch-fetch betas for all IG proxies in one yfinance call.
+    proxy_set = [(ig.get("tickers") or [None])[0] for ig in igs]
+    proxy_set = [p for p in proxy_set if p]
+    print(f"Fetching betas for {len(proxy_set)} proxy ETFs in batch...")
+    beta_by_ticker = fetch_betas_batch(proxy_set, end)
+    print(f"  betas resolved: {len(beta_by_ticker)} of {len(proxy_set)}\n")
+
     for ig in igs:
         ig_id = ig.get("id")
         proxy = (ig.get("tickers") or [None])[0]
@@ -224,6 +274,9 @@ def main() -> int:
             continue
         # Pad to FACTOR_ORDER (defaults 0 for any factor missing)
         loadings_full = {f: float(loadings.get(f, 0.0)) for f in FACTOR_ORDER}
+
+        # Per-IG beta vs SPY pulled from the batched fetch above.
+        beta = beta_by_ticker.get(proxy) if proxy else None
 
         # Directional test against each scenario
         scenario_results: Dict[str, dict] = {}
@@ -278,6 +331,7 @@ def main() -> int:
             "sector": sector,
             "proxy_ticker": proxy,
             "loadings": loadings_full,
+            "beta_vs_spy": round(beta, 3) if beta is not None else None,
             "loading_source": "parent_sector_inherit",
             "loading_source_note": (
                 f"v1: inherits parent-sector loadings for '{load_key}' verbatim. "
