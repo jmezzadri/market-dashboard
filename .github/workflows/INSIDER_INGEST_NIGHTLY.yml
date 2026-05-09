@@ -1,0 +1,122 @@
+name: INSIDER_INGEST_NIGHTLY
+
+# Nightly ingest of UW /insider/transactions into Supabase insider_history.
+# Mirrors the SCAN_330PM_WEEKDAYS.yml pattern: three weekday fire windows,
+# idempotent UPSERT means subsequent fires are no-ops.
+#
+# This is the "fuel" for v4.1's Gate 1.1 first-buy classifier. Without it,
+# the production gate has to pull fresh from UW per scoring call, which is
+# infeasible at universe scale. With it, the classifier is one indexed
+# Postgres query.
+#
+# Required GitHub secrets (already configured for SCAN_330PM_WEEKDAYS):
+#   UNUSUAL_WHALES_API_KEY
+#   UW_CLIENT_API_ID                (default: 100001)
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+
+on:
+  schedule:
+    # Three weekday fire windows, EDT half (Mar-Nov, UTC-4):
+    - cron: '0 22 * * 1-5'   # primary  6:00 PM EDT
+    - cron: '0 0 * * 2-6'    # backup A 8:00 PM EDT (next-day 00:00 UTC)
+    - cron: '0 3 * * 2-6'    # backup B 11:00 PM EDT (next-day 03:00 UTC)
+    # EST half (Nov-Mar, UTC-5):
+    - cron: '0 23 * * 1-5'   # primary  6:00 PM EST
+    - cron: '0 1 * * 2-6'    # backup A 8:00 PM EST
+    - cron: '0 4 * * 2-6'    # backup B 11:00 PM EST
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: "YYYY-MM-DD start (default: 7 days ago)"
+        required: false
+      end_date:
+        description: "YYYY-MM-DD end (default: today)"
+        required: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scanner deps
+        working-directory: trading-scanner
+        run: |
+          pip install --upgrade pip
+          pip install requests
+
+      - name: Compute date range
+        id: dates
+        run: |
+          if [ -n "${{ inputs.start_date }}" ]; then
+            START="${{ inputs.start_date }}"
+          else
+            # Default: 7 days ago (overlap window for safety on cron drift)
+            START=$(date -u -d "7 days ago" +%Y-%m-%d)
+          fi
+          if [ -n "${{ inputs.end_date }}" ]; then
+            END="${{ inputs.end_date }}"
+          else
+            END=$(date -u +%Y-%m-%d)
+          fi
+          echo "start=$START" >> $GITHUB_OUTPUT
+          echo "end=$END" >> $GITHUB_OUTPUT
+          echo "Ingest window: $START -> $END"
+
+      - name: Idempotency check (skip if today already ingested)
+        id: idempotent
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          # If we already ingested for today's date, skip the run.
+          # Look for events with ingested_at on today (UTC).
+          TODAY=$(date -u +%Y-%m-%d)
+          COUNT=$(curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                       -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                       -H "Prefer: count=exact" \
+                       "$SUPABASE_URL/rest/v1/insider_history?select=id&limit=1&ingested_at=gte.${TODAY}T00:00:00Z" \
+                       -I 2>&1 | grep -i content-range | grep -oE '/[0-9]+$' | tr -d /)
+          echo "Events ingested today: ${COUNT:-0}"
+          if [ "${COUNT:-0}" != "0" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "Already ingested today — skipping."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Run ingest
+        if: steps.idempotent.outputs.skip != 'true'
+        working-directory: trading-scanner
+        env:
+          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
+          UW_CLIENT_API_ID: ${{ secrets.UW_CLIENT_API_ID || '100001' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          PYTHONPATH=. python3 -m scanner.signal_intelligence_v4.insider_ingest \
+            --start "${{ steps.dates.outputs.start }}" \
+            --end   "${{ steps.dates.outputs.end }}" \
+            --max-seconds 600
+
+      - name: Surface ingest summary
+        if: steps.idempotent.outputs.skip != 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -s -X POST -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                          -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                          -H "Content-Type: application/json" \
+                          "$SUPABASE_URL/rest/v1/rpc/select" 2>/dev/null || true
+          # Use a simple GET with count for visibility in the run log
+          curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "Prefer: count=exact" \
+                  "$SUPABASE_URL/rest/v1/insider_history?select=id&limit=1" \
+                  -I 2>&1 | grep -i content-range || true

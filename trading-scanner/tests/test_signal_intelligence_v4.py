@@ -271,3 +271,52 @@ def test_score_ticker_repeat_buyer_passes_under_v4_0_fallback():
         require_first_buy=False,
     )
     assert result.gate_pass is True
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# data_source param — production switch
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_data_source_memory_is_default():
+    """Default data_source='memory' uses in-memory list, no env vars needed."""
+    today = date(2026, 4, 1)
+    history = [_ev(today - timedelta(days=10), "Alice CEO")]
+    result = apply_gates(
+        ticker="TEST", score_date=today,
+        today_close=100, avg_volume_22d=1_000_000,
+        insider_history=history,
+    )
+    # Should pass without any Supabase env vars
+    assert result["data_source"] == "memory"
+    assert result["gate_1_insider"]["passes"] is True
+
+
+def test_data_source_supabase_requires_ticker():
+    """data_source='supabase' without ticker should error."""
+    today = date(2026, 4, 1)
+    with pytest.raises(ValueError, match="ticker"):
+        insider_gate_passes(
+            score_date=today,
+            insider_history=[_ev(today, "Alice")],
+            data_source="supabase",
+            ticker=None,
+        )
+
+
+def test_data_source_supabase_path_imports_correctly():
+    """data_source='supabase' should import insider_ingest without error.
+
+    We don't actually call query_first_buy here (no live Supabase in tests),
+    but the import should resolve. With an empty 30-day window the gate
+    short-circuits before hitting Supabase.
+    """
+    today = date(2026, 4, 1)
+    # No P-buys → gate fails on the 30-day window before any first-buy lookup
+    result = insider_gate_passes(
+        score_date=today,
+        insider_history=[],
+        data_source="supabase",
+        ticker="TEST",
+    )
+    assert result["passes"] is False
+    assert result["data_source"] == "supabase"

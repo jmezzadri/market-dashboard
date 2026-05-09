@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>MacroTilt v4.1 — High Conviction</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a0a;
+    color: #e8e8e8;
+    font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
+    font-size: 13px;
+    padding: 24px;
+    line-height: 1.4;
+  }
+  .header {
+    border-bottom: 1px solid #ff8800;
+    padding-bottom: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 12px;
+    letter-spacing: 0.06em;
+  }
+  .header .title { color: #ff8800; font-weight: bold; }
+  .header .meta { color: #888; }
+  .scan-time { color: #44ddff; }
+
+  .filter-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #222;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+  }
+  .filter-row .label { color: #888; }
+  .filter-row .val { color: #e8e8e8; }
+  .filter-row .pass { color: #00cc66; }
+
+  .panel-title {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    color: #888;
+    margin-bottom: 12px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #333;
+  }
+  .panel-title .accent { color: #ff8800; }
+  .panel-title .count { color: #e8e8e8; }
+
+  .card {
+    border: 1px solid #2a2a2a;
+    background: #141414;
+    margin-bottom: 12px;
+    padding: 16px 20px;
+    display: grid;
+    grid-template-columns: 130px 1fr 230px;
+    gap: 24px;
+    align-items: center;
+  }
+  .card.high-conviction { border-left: 3px solid #ff8800; }
+  .card.watch          { border-left: 3px solid #44ddff; }
+
+  /* Left column: ticker + price */
+  .ticker-block .ticker {
+    font-size: 22px;
+    font-weight: bold;
+    color: #fff;
+    letter-spacing: 0.04em;
+  }
+  .ticker-block .price {
+    font-size: 14px;
+    color: #00cc66;
+    margin-top: 2px;
+  }
+  .ticker-block .change { color: #00cc66; font-size: 11px; }
+  .ticker-block .change.neg { color: #ff5555; }
+
+  /* Middle column: insider anchor */
+  .anchor .label {
+    font-size: 10px;
+    color: #888;
+    letter-spacing: 0.1em;
+    margin-bottom: 4px;
+  }
+  .anchor .buyer {
+    color: #fff;
+    font-size: 14px;
+    margin-bottom: 2px;
+  }
+  .anchor .role {
+    color: #ffcc44;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    margin-bottom: 4px;
+  }
+  .anchor .amount {
+    color: #00cc66;
+    font-size: 13px;
+    font-weight: bold;
+  }
+  .anchor .first-flag {
+    display: inline-block;
+    background: #ff8800;
+    color: #000;
+    padding: 1px 6px;
+    font-size: 9px;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  /* Right column: score + pillars */
+  .score-block { text-align: right; }
+  .score-block .alpha {
+    font-size: 28px;
+    font-weight: bold;
+    color: #ff8800;
+    letter-spacing: 0.02em;
+  }
+  .score-block .alpha .denom {
+    color: #555;
+    font-size: 14px;
+    font-weight: normal;
+  }
+  .score-block .band {
+    font-size: 10px;
+    color: #ff8800;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+  }
+  .score-block.watch .band   { color: #44ddff; }
+  .score-block.watch .alpha  { color: #44ddff; }
+
+  .pillars {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+    font-size: 10px;
+    margin-top: 8px;
+  }
+  .pillar {
+    padding: 3px 8px;
+    background: #1f1f1f;
+    border: 1px solid #333;
+    letter-spacing: 0.06em;
+  }
+  .pillar.on  { color: #00cc66; border-color: #2a4a3a; background: #102018; }
+  .pillar.off { color: #ff5555; border-color: #4a2a2a; background: #201010; }
+
+  .footer-row {
+    margin-top: 6px;
+    color: #666;
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    text-align: right;
+  }
+
+  .universe-meta {
+    margin-top: 32px;
+    padding-top: 16px;
+    border-top: 1px dashed #2a2a2a;
+    color: #555;
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+  }
+  .universe-meta strong { color: #888; }
+
+  /* Group titles */
+  h2 {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: #888;
+    margin: 28px 0 12px;
+    text-transform: uppercase;
+  }
+  h2 .group-color { color: #ff8800; }
+  h2 .group-watch { color: #44ddff; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">MACROTILT &nbsp;//&nbsp; SIGNAL INTELLIGENCE v4.1 &nbsp;//&nbsp; HIGH CONVICTION TERMINAL</div>
+  <div class="meta">SCAN <span class="scan-time">2026-05-09 16:00:18 ET</span> &nbsp;|&nbsp; LATENCY 0.4s</div>
+</div>
+
+<div class="filter-row">
+  <div><span class="label">UNIVERSE:</span> <span class="val">SMALL/MID-CAP $300M-$3B</span></div>
+  <div><span class="label">GATE 1.1:</span> <span class="pass">FIRST-BUY · 12mo</span></div>
+  <div><span class="label">GATE 2:</span> <span class="pass">PRICE&gt;$5 · ADV&gt;500K</span></div>
+  <div><span class="label">GATE 3:</span> <span class="pass">EX-HEDGE</span></div>
+  <div><span class="label">EXITS:</span> <span class="val">20-SMA · INSIDER-S · 21d-DEAD</span></div>
+</div>
+
+<h2><span class="group-color">▌</span> HIGH CONVICTION &nbsp; <span style="color:#444;">|</span> &nbsp; SCORE ≥ 45 <span style="color:#444;">|</span> 2 NAMES</h2>
+
+<div class="card high-conviction">
+  <div class="ticker-block">
+    <div class="ticker">VRDN</div>
+    <div class="price">$28.41 <span class="change">+4.2%</span></div>
+  </div>
+  <div class="anchor">
+    <div class="label">▶ FIRST-BUY ANCHOR</div>
+    <div class="buyer">FERRY KEITH R <span class="first-flag">FIRST-BUY 12MO+</span></div>
+    <div class="role">CHIEF EXECUTIVE OFFICER · 2026-05-02</div>
+    <div class="amount">$847,000  &nbsp;<span style="color:#888;font-weight:normal">(30,000 sh @ $28.23)</span></div>
+  </div>
+  <div class="score-block">
+    <div class="band">BUY · HIGH CONVICTION</div>
+    <div class="alpha">65<span class="denom"> /100</span></div>
+    <div class="pillars">
+      <span class="pillar on">RVOL 1.8 ✓</span>
+      <span class="pillar on">SQUEEZE ✓</span>
+      <span class="pillar on">TREND ✓</span>
+    </div>
+    <div class="footer-row">RSI 58 · BB 3.4% · 50-SMA $26.18</div>
+  </div>
+</div>
+
+<div class="card high-conviction">
+  <div class="ticker-block">
+    <div class="ticker">UPBD</div>
+    <div class="price">$22.07 <span class="change">+1.7%</span></div>
+  </div>
+  <div class="anchor">
+    <div class="label">▶ FIRST-BUY ANCHOR</div>
+    <div class="buyer">JOHNSON MIRIAM L <span class="first-flag">FIRST-BUY 12MO+</span></div>
+    <div class="role">DIRECTOR · 2026-05-06</div>
+    <div class="amount">$220,700  &nbsp;<span style="color:#888;font-weight:normal">(10,000 sh @ $22.07)</span></div>
+  </div>
+  <div class="score-block">
+    <div class="band">BUY · HIGH CONVICTION</div>
+    <div class="alpha">45<span class="denom"> /100</span></div>
+    <div class="pillars">
+      <span class="pillar on">RVOL 1.6 ✓</span>
+      <span class="pillar off">SQUEEZE ✗</span>
+      <span class="pillar on">TREND ✓</span>
+    </div>
+    <div class="footer-row">RSI 51 · BB 5.1% · 50-SMA $20.84</div>
+  </div>
+</div>
+
+<h2><span class="group-watch">▌</span> WATCH &nbsp; <span style="color:#444;">|</span> &nbsp; SCORE 20-44 <span style="color:#444;">|</span> 4 NAMES</h2>
+
+<div class="card watch">
+  <div class="ticker-block">
+    <div class="ticker">UMH</div>
+    <div class="price">$17.62 <span class="change">+2.4%</span></div>
+  </div>
+  <div class="anchor">
+    <div class="label">▶ FIRST-BUY ANCHOR</div>
+    <div class="buyer">LANDY SAMUEL A <span class="first-flag">FIRST-BUY 12MO+</span></div>
+    <div class="role">DIRECTOR · 2026-04-28</div>
+    <div class="amount">$132,150  &nbsp;<span style="color:#888;font-weight:normal">(7,500 sh @ $17.62)</span></div>
+  </div>
+  <div class="score-block watch">
+    <div class="band">WATCH</div>
+    <div class="alpha">25<span class="denom"> /100</span></div>
+    <div class="pillars">
+      <span class="pillar on">RVOL 1.7 ✓</span>
+      <span class="pillar off">SQUEEZE ✗</span>
+      <span class="pillar off">TREND ✗</span>
+    </div>
+    <div class="footer-row">RSI 38 · BB 4.8% · 50-SMA $17.91 (below)</div>
+  </div>
+</div>
+
+<div class="card watch">
+  <div class="ticker-block">
+    <div class="ticker">TSSI</div>
+    <div class="price">$11.94 <span class="change">+5.8%</span></div>
+  </div>
+  <div class="anchor">
+    <div class="label">▶ FIRST-BUY ANCHOR</div>
+    <div class="buyer">HEATON LARRY II <span class="first-flag">FIRST-BUY 12MO+</span></div>
+    <div class="role">CHIEF FINANCIAL OFFICER · 2026-05-08</div>
+    <div class="amount">$119,400  &nbsp;<span style="color:#888;font-weight:normal">(10,000 sh @ $11.94)</span></div>
+  </div>
+  <div class="score-block watch">
+    <div class="band">WATCH</div>
+    <div class="alpha">25<span class="denom"> /100</span></div>
+    <div class="pillars">
+      <span class="pillar on">RVOL 2.1 ✓</span>
+      <span class="pillar off">SQUEEZE ✗</span>
+      <span class="pillar off">TREND ✗</span>
+    </div>
+    <div class="footer-row">RSI 71 · OVERBOUGHT FLAG · BB 6.2%</div>
+  </div>
+</div>
+
+<div class="card watch">
+  <div class="ticker-block">
+    <div class="ticker">CMPR</div>
+    <div class="price">$54.18 <span class="change">+0.8%</span></div>
+  </div>
+  <div class="anchor">
+    <div class="label">▶ FIRST-BUY ANCHOR</div>
+    <div class="buyer">KEANE ROBERT P <span class="first-flag">FIRST-BUY 12MO+</span></div>
+    <div class="role">CHIEF EXECUTIVE OFFICER · 2026-05-05</div>
+    <div class="amount">$108,360  &nbsp;<span style="color:#888;font-weight:normal">(2,000 sh @ $54.18)</span></div>
+  </div>
+  <div class="score-block watch">
+    <div class="band">WATCH</div>
+    <div class="alpha">20<span class="denom"> /100</span></div>
+    <div class="pillars">
+      <span class="pillar on">RVOL 1.6 ✓</span>
+      <span class="pillar off">SQUEEZE ✗</span>
+      <span class="pillar off">TREND ✗</span>
+    </div>
+    <div class="footer-row">RSI 47 · BB 5.4% · 50-SMA $54.92 (below)</div>
+  </div>
+</div>
+
+<div class="card watch">
+  <div class="ticker-block">
+    <div class="ticker">FROG</div>
+    <div class="price">$32.41 <span class="change neg">-0.6%</span></div>
+  </div>
+  <div class="anchor">
+    <div class="label">▶ FIRST-BUY ANCHOR</div>
+    <div class="buyer">SHIMRAT SHLOMI <span class="first-flag">FIRST-BUY 12MO+</span></div>
+    <div class="role">DIRECTOR · 2026-05-01</div>
+    <div class="amount">$97,230  &nbsp;<span style="color:#888;font-weight:normal">(3,000 sh @ $32.41)</span></div>
+  </div>
+  <div class="score-block watch">
+    <div class="band">WATCH</div>
+    <div class="alpha">20<span class="denom"> /100</span></div>
+    <div class="pillars">
+      <span class="pillar on">RVOL 1.5 ✓</span>
+      <span class="pillar off">SQUEEZE ✗</span>
+      <span class="pillar off">TREND ✗</span>
+    </div>
+    <div class="footer-row">RSI 44 · BB 4.9% · 50-SMA $33.07 (below)</div>
+  </div>
+</div>
+
+<div class="universe-meta">
+  <strong>SCAN UNIVERSE</strong> 1,987 small/mid-cap tickers passed liquidity (price&gt;$5 + ADV&gt;500K)<br>
+  <strong>GATE 1 PASSES</strong> 38 tickers (1.9% — names with insider P-buy in 30d)<br>
+  <strong>GATE 1.1 PASSES</strong> 23 tickers (1.2% — first-buy filter applied)<br>
+  <strong>SURFACED</strong> 6 names (2 High Conviction · 4 Watch) — score ≥ 20 after pillars<br>
+  <strong>NEXT REFRESH</strong> tonight 22:00 UTC after market close + UW insider feed update<br>
+  <br>
+  <strong>EXIT MONITOR</strong> 0 open positions today. When v4.1 wires into the live scanner, this row tracks technical-break / insider-sale / dead-money exits per holding.
+</div>
+
+</body>
+</html>
