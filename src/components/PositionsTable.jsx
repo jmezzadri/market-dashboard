@@ -245,11 +245,26 @@ const COLUMNS = [
     description: "shares × current price — what it's worth now",
     align: "right",
     sortValue: (r) => r.currentValue,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
-        {fmt$Full(r.currentValue)}
-      </span>
-    ),
+    renderCell: (r) => {
+      // Have-Price gate (Joe directive — bug 1155). When the position has
+      // no fresh market price we refuse to display ANY value here — even
+      // if the persisted positions.value column still has the cost-basis
+      // fallback from the original row insert. The price itself is the
+      // source of truth; fall through to a muted "(no price yet)" label
+      // so the column does not lie about current market value.
+      if (r.price == null) {
+        return (
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--ink-2,#666)", fontStyle: "italic" }}>
+            (no price yet)
+          </span>
+        );
+      }
+      return (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
+          {fmt$Full(r.currentValue)}
+        </span>
+      );
+    },
   },
   {
     id: "pnlDay$",
@@ -586,8 +601,15 @@ export default function PositionsTable({
       const avgCost  = p.avgCost != null ? Number(p.avgCost) : null;
       const valueDb  = p.value   != null ? Number(p.value)   : null;
 
-      const currentValue = valueDb != null ? valueDb
-                         : (quantity != null && price != null ? quantity * price : null);
+      // Have-Price gate (Joe directive — bug 1155). The persisted
+      // positions.value column can hold a cost-basis fallback (qty *
+      // avg_cost) from the row's original insert when no live price has
+      // been ingested yet. Trusting it would silently show stale cost
+      // basis as "current value". Require a non-null `price` before any
+      // currentValue is computed.
+      const currentValue = price != null
+        ? (quantity != null ? quantity * price : valueDb)
+        : null;
       const totalCost    = (quantity != null && avgCost != null) ? quantity * avgCost : null;
 
       const pnl$   = (currentValue != null && totalCost != null) ? currentValue - totalCost : null;
