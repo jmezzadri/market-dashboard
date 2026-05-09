@@ -11,16 +11,48 @@
       "cadence": "ad-hoc (user uploads when they want to refresh)",
       "refresh_trigger": "User clicks 'Import broker trades' button on Portfolio Insights and submits a CSV via the ImportTransactions modal.",
       "freshness_sla_hours": null,
-      "freshness_chip": "none — user-driven refresh, freshness UX tracked via the most recent executed_at on public.transactions for the user.",
+      "freshness_chip": "none \u2014 user-driven refresh, freshness UX tracked via the most recent executed_at on public.transactions for the user.",
       "consumer_surfaces": [
-        "Portfolio Insights → Realized P&L tile (useTransactionsLedger hook)",
-        "Portfolio Insights → Trade History section (TradeHistorySection.jsx)"
+        "Portfolio Insights \u2192 Realized P&L tile (useTransactionsLedger hook)",
+        "Portfolio Insights \u2192 Trade History section (TradeHistorySection.jsx)"
       ],
-      "ingestion_path": "src/components/ImportTransactions.jsx → src/lib/chaseImporter.js → public.import_transactions RPC (supabase/migrations/042_import_transactions_rpc.sql) → public.transactions",
+      "ingestion_path": "src/components/ImportTransactions.jsx \u2192 src/lib/chaseImporter.js \u2192 public.import_transactions RPC (supabase/migrations/042_import_transactions_rpc.sql) \u2192 public.transactions",
       "dedup_strategy": "Server-side dedup on (user_id, account_id, ticker, asset_class, side, abs(quantity), executed_at::date). Re-uploading the same file is safe.",
-      "failure_mode": "RPC raises → modal shows the error in plain English. Per-row errors are returned in the response payload (errors[]) and rendered inline.",
+      "failure_mode": "RPC raises \u2192 modal shows the error in plain English. Per-row errors are returned in the response payload (errors[]) and rendered inline.",
       "owner": "Lead Developer (operations) + Data Steward (registry)",
       "first_shipped": "2026-05-04 (PR feature/dev-chase-import-2026-05-04)"
+    },
+    "scanner.insider-history-uw": {
+      "category": "scanner",
+      "name": "Insider transaction history (UW)",
+      "sourcing_mode": "vendor_pull",
+      "source_vendor": "Unusual Whales \u2014 /insider/transactions",
+      "license_tier": "Massive (existing UW API access)",
+      "cadence": "daily nightly ingest (workflow: INSIDER_INGEST_NIGHTLY.yml)",
+      "refresh_trigger": "Nightly at 02:00 ET \u2014 INSIDER_INGEST_NIGHTLY.yml runs trading-scanner/scanner/signal_intelligence_v4/insider_ingest.py over the prior day.",
+      "freshness_sla_hours": 36,
+      "freshness_chip": "green if last ingested_at < 36h, amber if 36-72h, red if >72h",
+      "consumer_surfaces": [
+        "Trading Opportunities (/#portopps) \u2014 every ticker that runs through the v4.1 first-buy classifier",
+        "Every ticker modal that shows v4.1 / MT Score data"
+      ],
+      "ingestion_path": "trading-scanner/scanner/signal_intelligence_v4/insider_ingest.py \u2192 public.insider_history (supabase/migrations/050_insider_history.sql)",
+      "dedup_strategy": "Primary key (id from UW). UPSERT with Prefer: resolution=merge-duplicates. Re-runs are idempotent.",
+      "failure_mode": "UW endpoint does not honor a ticker filter at our API tier \u2014 backfill pulls global stream by date range and filters client-side. Rate limits handled with exponential backoff in upsert_batch / fetch_chunk.",
+      "owner": "Data Steward",
+      "universe_range_marketcap": "$300M - $25B (Common Stock + ADR)",
+      "universe_range_marketcap_previous": "$300M - $3B",
+      "universe_expanded_on": "2026-05-09",
+      "last_full_backfill": {
+        "date": "2026-05-09",
+        "window_start": "2025-04-09",
+        "window_end": "2026-05-09",
+        "tickers_backfilled": 57,
+        "tickers_with_zero_events": 31,
+        "events_upserted": 1140,
+        "ticker_list_artifact": "v41_backfill_tickers_3B_25B.txt"
+      },
+      "first_shipped": "2026-05-09 (PR feature/dev-data-steward-universe-25b-backfill)"
     }
   }
 }
