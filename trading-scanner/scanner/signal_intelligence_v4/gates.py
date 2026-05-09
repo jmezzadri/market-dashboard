@@ -28,6 +28,10 @@ LIQUIDITY_AVG_VOLUME_FLOOR = 500_000  # Gate 2: 22-day avg volume > 500k
 MAGNITUDE_BPS = 0.0002              # 2 bps of market cap
 MAGNITUDE_FLOOR_DOLLARS = 500_000   # $500k absolute floor
 
+# Pre-PR-#510 magnitude floor (used when magnitude_mode='absolute' for the
+# v4.1.0 production parity backtest leg). Insider P-buy aggregate >= $1M.
+ABSOLUTE_MAGNITUDE_FLOOR_DOLLARS = 1_000_000  # $1M absolute, no cap normalization
+
 # High-Conviction sizing tiebreaker — score >= 45 requires this stricter
 # threshold to land in the High Conviction band (else falls to Watch).
 HC_MAGNITUDE_BPS = 0.0005           # 5 bps of market cap
@@ -134,6 +138,7 @@ def insider_gate_passes(
     ticker: str | None = None,
     data_source: str = "memory",
     market_cap: float | None = None,
+    magnitude_mode: str = "capnorm",
 ) -> dict[str, Any]:
     """
     Apply Gate 1 + Gate 1.1 (first-buy filter) to one ticker on one score date.
@@ -221,8 +226,14 @@ def insider_gate_passes(
         for e in p_buys_in_window
     )
 
-    # Cap-normalized magnitude check. When no cap supplied, skip (legacy).
-    if market_cap is None:
+    # Magnitude check. magnitude_mode='absolute' uses the pre-PR-#510 $1M
+    # absolute floor (Run A — current production parity). 'capnorm' uses the
+    # cap-normalized max(2 bps × cap, $500k) (Run B — proposed). When market_cap
+    # is None and mode is capnorm we skip the check (legacy behavior).
+    if magnitude_mode == "absolute":
+        threshold_used = ABSOLUTE_MAGNITUDE_FLOOR_DOLLARS
+        magnitude_passes = total_dollar >= threshold_used
+    elif market_cap is None:
         threshold_used = MAGNITUDE_FLOOR_DOLLARS
         magnitude_passes = True
     else:
@@ -239,6 +250,7 @@ def insider_gate_passes(
         "total_dollar": total_dollar,
         "magnitude_passes": magnitude_passes,
         "magnitude_threshold": threshold_used,
+        "magnitude_mode": magnitude_mode,
         "data_source": data_source,
     }
 
@@ -269,6 +281,7 @@ def apply_gates(
     require_first_buy: bool = True,
     data_source: str = "memory",
     market_cap: float | None = None,
+    magnitude_mode: str = "capnorm",
 ) -> dict[str, Any]:
     """
     Apply all three gates. Returns full diagnostic.
@@ -293,6 +306,7 @@ def apply_gates(
         ticker=ticker,
         data_source=data_source,
         market_cap=market_cap,
+        magnitude_mode=magnitude_mode,
     )
     all_pass = g1["passes"] and g2 and g3
     return {
