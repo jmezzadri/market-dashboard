@@ -219,8 +219,11 @@ jobs:
               # pipeline_fetch_log carries one row per watchdog (or producer)
               # check, with status in {ok, stale, error, ...}. Past sweeps
               # that called the pipeline stale leave a row here.
-              since = (datetime.datetime.now(datetime.timezone.utc)
-                       - datetime.timedelta(days=days)).isoformat()
+              since_dt = (datetime.datetime.now(datetime.timezone.utc)
+                          - datetime.timedelta(days=days))
+              # PostgREST gte requires a URL-safe timestamp; the raw
+              # `+00:00` offset breaks the parser as `+` decodes to space.
+              since = urllib.parse.quote(since_dt.isoformat())
               path = (f"/rest/v1/pipeline_fetch_log?select=status,check_at"
                       f"&indicator_id=eq.{indicator_id}"
                       f"&status=in.(stale,error)"
