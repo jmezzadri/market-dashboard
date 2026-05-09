@@ -11,6 +11,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useUserPortfolio } from "../hooks/useUserPortfolio";
+import { useSortableTable, SortArrow, sortableHeaderProps } from "../hooks/useSortableTable";
 import { SectorModal, IGModal } from "./AssetAllocation";
 
 // ════════════════════════════════════════════════════════════════════════
@@ -704,6 +705,16 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const [shocks, setShocks] = useState(() => Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
   const [pinned, setPinned] = useState(() => new Set());
   const [expandedSector, setExpandedSector] = useState(null);
+  // Joe directive 2026-05-08: Asset Tilt sectors are collapseable, default collapsed.
+  const [expandedSectors, setExpandedSectors] = useState(() => new Set());
+  const toggleSectorExpanded = useCallback((sectorId) => {
+    setExpandedSectors(prev => {
+      const next = new Set(prev);
+      if (next.has(sectorId)) next.delete(sectorId);
+      else next.add(sectorId);
+      return next;
+    });
+  }, []);
 
   const stateObj = { mode, scenario, horizon, prop, driver, shocks, pinned };
   const effShocks = useMemo(() => getEffectiveShocks(stateObj), [mode, scenario, prop, driver, shocks, pinned]);
@@ -829,15 +840,32 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
   // Anchor to the same 11 GICS + 4 defensive that the Asset Tilt page uses
   // (Joe directive 2026-05-08: drop synthetic INTL / BTC / SPX / HY / CSH).
-  // IGs come from each GICS sector's igs[] array (25 total across the 11 sectors).
+  // IGs come from v10.industry_groups (the same dataset Asset Tilt uses) so we
+  // get the calibrated proxy ETFs (e.g. SOXX for Semis). IG-level stress is
+  // intentionally left as null in v1 — Joe correction 2026-05-08: the
+  // "all IGs inherit parent sector stress" approximation was wrong; proper
+  // IG-level factor calibration is Phase 2.
   const GICS_IDS = ["XLK","XLC","XLF","XLY","XLI","XLB","XLE","XLV","XLP","XLU","XLRE"];
   const DEFENSIVE_IDS = ["BIL","TLT","GLD","LQD"];
-  const _equityParents = SECTORS.filter(s => GICS_IDS.includes(s.id)).map(s => ({
-    id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0,
-    igs: (s.igs || []).map(ig => ({ name: ig.name, pct: sectorPcts[s.id] || 0 }))
-  }));
+  // Map Scenarios sector name → Asset Tilt sector name (already declared above as SCEN_TO_AT_SECTOR)
+  const _v10IGsBySector = (() => {
+    const m = {};
+    if (!v10 || !Array.isArray(v10.industry_groups)) return m;
+    v10.industry_groups.forEach(ig => {
+      if (!m[ig.sector]) m[ig.sector] = [];
+      m[ig.sector].push({ id: ig.id, name: ig.name, proxy: (ig.tickers || [])[0] || "—", pct: null });
+    });
+    return m;
+  })();
+  const _equityParents = SECTORS.filter(s => GICS_IDS.includes(s.id)).map(s => {
+    const atName = SCEN_TO_AT_SECTOR[s.name] || s.name;
+    return {
+      id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0,
+      igs: _v10IGsBySector[atName] || []
+    };
+  });
   const _defensiveRows = SECTORS.filter(s => DEFENSIVE_IDS.includes(s.id)).map(s => ({
-    name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0
+    id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0
   }));
 
   const _stressColor = (pct) => pct > 0 ? "var(--green)" : (pct < 0 ? "var(--red, #b8332a)" : "var(--text-muted)");
@@ -914,48 +942,38 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           </div>
         )}
 
+        {/* RESET STRIP — clears any active scenario or custom shock so the user
+            can compare against baseline. */}
+        {(scenario || hasShock) && (
+          <div style={{ display:"flex", justifyContent:"flex-end", marginBottom:12 }}>
+            <button onClick={() => { onModeChange("canned"); setScenario(null); onReset(); }} style={{ fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, padding:"6px 12px", borderRadius:6, border:"1px solid var(--border)", background:"var(--surface-2, var(--surface))", color:"var(--text-2)", cursor:"pointer", letterSpacing:"0.04em", textTransform:"uppercase" }}>
+              ↺ Reset all shocks
+            </button>
+          </div>
+        )}
+
         {/* TWO-COLUMN GRID — Joe mockup 2026-05-08:
-            LEFT (~0.95fr): Asset Tilt Engine Scenario Results (one tall card with
-              11 GICS sectors + 25 nested IGs + Defensive Sleeve).
-            RIGHT (~1.05fr): Cycle Mechanism Scenario Results (top, placeholder)
-              + Your Portfolio (bottom). Stacked. */}
+            LEFT (~0.95fr): Asset Tilt Engine Scenario Results.
+            RIGHT (~1.05fr): Cycle Mechanism Scenario Results + Your Portfolio. */}
         <div style={{ display:"grid", gridTemplateColumns:"0.95fr 1.05fr", gap:20, alignItems:"start" }}>
 
           {/* LEFT COLUMN — TABLE 1: Asset Tilt Engine Scenario Results */}
-          <div style={_tableCard}>
-            <div style={_tableHead}>
-              <h2 style={_tableTitle}>Asset Tilt Engine Scenario Results</h2>
-              <div style={_tableSub}>How each equity sector, industry group, and defensive asset class is impacted by the selected scenario.</div>
-            </div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 80px 90px" }}>
-              <div style={_th}>Sector / Industry Group</div>
-              <div style={{..._th, textAlign:"left"}}>Proxy</div>
-              <div style={{..._th, textAlign:"right"}}>Stress</div>
-              <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
-              {_equityParents.map(s => (
-                <React.Fragment key={s.id}>
-                  <div style={{..._td, fontWeight:600, cursor: SCEN_TO_AT_SECTOR[s.name] ? "pointer" : "default"}} onClick={() => SCEN_TO_AT_SECTOR[s.name] && openSectorByName(s.name)}>{s.name}</div>
-                  <div style={_td}>{s.ticker}</div>
-                  <div style={{..._tdNum, color: _stressColor(s.pct), fontWeight:600}}>{_fmtPct(s.pct)}</div>
-                  {s.igs.map((ig, ix) => (
-                    <React.Fragment key={s.id + "-" + ix}>
-                      <div style={{..._td, paddingLeft:32, color:"var(--text-2)", fontSize:12, cursor: "pointer"}} onClick={() => openIGByName(ig.name, s.name)}>↳ {ig.name}</div>
-                      <div style={{..._td, fontSize:12, color:"var(--text-muted)"}}>—</div>
-                      <div style={{..._tdNum, color: _stressColor(ig.pct), fontSize:12}}>{_fmtPct(ig.pct)}</div>
-                    </React.Fragment>
-                  ))}
-                </React.Fragment>
-              ))}
-              <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Defensive Sleeve</div>
-              {_defensiveRows.map(r => (
-                <React.Fragment key={r.ticker}>
-                  <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
-                  <div style={_td}>{r.ticker}</div>
-                  <div style={{..._tdNum, color: _stressColor(r.pct), fontWeight:600}}>{_fmtPct(r.pct)}</div>
-                </React.Fragment>
-              ))}
-            </div>
-          </div>
+          <Table1AssetTilt
+            equityParents={_equityParents}
+            defensiveRows={_defensiveRows}
+            expandedSectors={expandedSectors}
+            toggleSectorExpanded={toggleSectorExpanded}
+            openSectorByName={openSectorByName}
+            openIGByName={openIGByName}
+            onOpenTicker={onOpenTicker}
+            stressColor={_stressColor}
+            fmtPct={_fmtPct}
+            tableCard={_tableCard}
+            tableHead={_tableHead}
+            tableTitle={_tableTitle}
+            tableSub={_tableSub}
+            scenToAt={SCEN_TO_AT_SECTOR}
+          />
 
           {/* RIGHT COLUMN — TABLE 2 (placeholder) + TABLE 3 (Your Portfolio) stacked */}
           <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
@@ -969,46 +987,25 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
               <div style={{ padding:"36px 18px", textAlign:"center" }}>
                 <div style={{ fontFamily:"var(--font-ui)", fontSize:12, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.10em", marginBottom:8 }}>Phase 2 — Senior Quant calibrating</div>
                 <div style={{ fontFamily:"var(--font-ui)", fontSize:14, color:"var(--text-2)", lineHeight:1.55, maxWidth:480, margin:"0 auto" }}>
-                  For each historical scenario, we are mapping factor moves into the underlying FRED inputs (CAPE, ERP, HY OAS, ISM, SLOOS, etc.) and re-running the mechanism scorer. Live in Phase 2 — backtested against observed peak-stress mechanism scores.
+                  Each mechanism is built from a different mix of inputs &mdash; CAPE / ERP / Buffett ratio (Shiller, Wilshire/GDP) for Equity Valuations; HY OAS and IG-HY ratio (ICE BofA via FRED) for Credit; NY Fed funding stress, DTCC GCF, and cross-currency basis for Funding; ISM, GDPNow, and SLOOS (Fed) for Growth; Fed balance sheet, real yield, and SLOOS for Liq &amp; Pol; AAII, NAAIM, FINRA margin debt, and Citi PULSE for Pos &amp; Br. Phase 2 maps each scenario&apos;s factor moves into peak-stress values for these inputs and re-runs the live mechanism scorer; backtested against observed peak-stress mechanism scores.
                 </div>
               </div>
             </div>
 
             {/* TABLE 3 — Your Portfolio under stress */}
-            <div style={_tableCard}>
-              <div style={_tableHead}>
-                <h2 style={_tableTitle}>Your Portfolio</h2>
-                <div style={_tableSub}>{(() => { const tot = (realPnl.positions || []).reduce((s,p)=>s+(p.value||0),0); const totK = (tot/1000).toFixed(0); return portfolioSource === "demo" ? `Illustrative $${totK}K book — sign in to apply the scenario to your real positions.` : "Your real positions across all accounts."; })()}</div>
-              </div>
-              <div style={{ display:"grid", gridTemplateColumns:"60px 1.1fr 75px 75px 75px 60px" }}>
-                <div style={_th}>Ticker</div>
-                <div style={_th}>Sector</div>
-                <div style={{..._th, textAlign:"right"}}>Curr.</div>
-                <div style={{..._th, textAlign:"right"}}>Stressed</div>
-                <div style={{..._th, textAlign:"right"}}>P&amp;L $</div>
-                <div style={{..._th, textAlign:"right"}}>P&amp;L %</div>
-                {(realPnl.positions || []).map((pos, i) => {
-                  const stressed = pos.value + pos.dollar;
-                  const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
-                  return (
-                    <React.Fragment key={i}>
-                      <div style={{..._td, fontWeight:600, fontSize:12, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
-                      <div style={{..._td, color:"var(--text-muted)", fontSize:12}}>{pos.sector}</div>
-                      <div style={{..._tdNum, fontSize:12}}>${(pos.value || 0).toLocaleString()}</div>
-                      <div style={{..._tdNum, fontSize:12}}>${(stressed || 0).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
-                      <div style={{..._tdNum, color: _stressColor(pos.dollar), fontWeight:600, fontSize:12}}>{hasShock ? _fmtDollar(pos.dollar) : "—"}</div>
-                      <div style={{..._tdNum, color: _stressColor(pos.pct), fontWeight:600, fontSize:12}}>{pctText}</div>
-                    </React.Fragment>
-                  );
-                })}
-                <div style={{..._td, fontWeight:700, borderTop:"1px solid var(--border)", fontSize:12}}>Total</div>
-                <div style={{..._td, borderTop:"1px solid var(--border)"}}></div>
-                <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)", fontSize:12}}>${(realPnl.positions || []).reduce((s,p)=>s+(p.value||0),0).toLocaleString()}</div>
-                <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)", fontSize:12}}>${((realPnl.positions || []).reduce((s,p)=>s+(p.value||0)+(p.dollar||0),0)).toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-                <div style={{..._tdNum, fontWeight:700, color: _stressColor(realPnl.total||0), borderTop:"1px solid var(--border)", fontSize:12}}>{hasShock ? _fmtDollar(realPnl.total||0) : "—"}</div>
-                <div style={{..._tdNum, fontWeight:700, color: _stressColor(realPnl.total||0), borderTop:"1px solid var(--border)", fontSize:12}}>{hasShock && (realPnl.positions||[]).length>0 ? ((realPnl.total||0)/((realPnl.positions||[]).reduce((s,p)=>s+(p.value||0),0)||1)*100).toFixed(1)+"%" : "—"}</div>
-              </div>
-            </div>
+            <Table3Portfolio
+              positions={realPnl.positions || []}
+              total={realPnl.total || 0}
+              hasShock={hasShock}
+              portfolioSource={portfolioSource}
+              onOpenTicker={onOpenTicker}
+              stressColor={_stressColor}
+              fmtDollar={_fmtDollar}
+              tableCard={_tableCard}
+              tableHead={_tableHead}
+              tableTitle={_tableTitle}
+              tableSub={_tableSub}
+            />
 
           </div>
         </div>
@@ -1521,3 +1518,136 @@ function L4PanelReal({ scenario, baseline, asOf }) {
   );
 }
 
+
+// ════════════════════════════════════════════════════════════════════════
+// Phase 1 sub-components (Joe mockup 2026-05-08 v2)
+// ════════════════════════════════════════════════════════════════════════
+
+// Table 1 — sortable, sectors collapsible (default collapsed), IGs use v10 proxy ETFs.
+// IG-level stress shows "—" with note (Phase 2 calibration).
+function Table1AssetTilt({ equityParents, defensiveRows, expandedSectors, toggleSectorExpanded, openSectorByName, openIGByName, onOpenTicker, stressColor, fmtPct, tableCard, tableHead, tableTitle, tableSub, scenToAt }) {
+  const cols = [
+    { id:"name",   label:"Sector / Industry Group", align:"left",  sortValue: r => r.name },
+    { id:"ticker", label:"Proxy",                   align:"left",  sortValue: r => r.ticker || "" },
+    { id:"pct",    label:"Stress",                  align:"right", sortValue: r => r.pct ?? null },
+  ];
+  const eq = useSortableTable({ rows: equityParents, columns: cols, defaultColId: "pct", defaultDir: "asc" });
+  const df = useSortableTable({ rows: defensiveRows, columns: cols, defaultColId: "pct", defaultDir: "desc" });
+
+  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 14px", borderBottom:"0.5px solid var(--border)", whiteSpace:"normal", lineHeight:1.25, cursor:"pointer", userSelect:"none" };
+  const _td = { fontSize:13, color:"var(--text)", padding:"10px 14px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
+  const _tdNum = { fontSize:13, padding:"10px 14px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right" };
+
+  const Header = () => (
+    <>
+      <div style={{..._th, textAlign:"left"}} onClick={() => eq.toggleSort("name")}>Sector / Industry Group <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
+      <div style={{..._th, textAlign:"left"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
+      <div style={{..._th, textAlign:"right"}} onClick={() => eq.toggleSort("pct")}>Stress <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>
+    </>
+  );
+
+  return (
+    <div style={tableCard}>
+      <div style={tableHead}>
+        <h2 style={tableTitle}>Asset Tilt Engine Scenario Results</h2>
+        <div style={tableSub}>How each equity sector, industry group, and defensive asset class is impacted by the selected scenario. Click a sector row to expand its industry groups.</div>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 70px 90px" }}>
+        <Header/>
+        <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
+        {eq.sorted.map(s => {
+          const isExpanded = expandedSectors.has(s.id);
+          const chev = isExpanded ? "▾" : "▸";
+          return (
+            <React.Fragment key={s.id}>
+              <div style={{..._td, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:6}} onClick={() => toggleSectorExpanded(s.id)}>
+                <span style={{ fontSize:10, color:"var(--text-muted)", width:12, display:"inline-block" }}>{chev}</span>
+                <span onClick={(e) => { e.stopPropagation(); if (scenToAt[s.name]) openSectorByName(s.name); }} style={{textDecoration: scenToAt[s.name] ? "underline" : "none", textDecorationColor:"rgba(128,128,128,0.35)", textUnderlineOffset:3}}>{s.name}</span>
+              </div>
+              <div style={_td}>{s.ticker}</div>
+              <div style={{..._tdNum, color: stressColor(s.pct), fontWeight:600}}>{fmtPct(s.pct)}</div>
+              {isExpanded && s.igs.map((ig, ix) => (
+                <React.Fragment key={s.id + "-" + ix}>
+                  <div style={{..._td, paddingLeft:42, color:"var(--text-2)", fontSize:12, cursor:"pointer"}} onClick={() => openIGByName && openIGByName(ig.name, s.name)}>↳ {ig.name}</div>
+                  <div style={{..._td, fontSize:12, color:"var(--text-muted)"}}>{ig.proxy}</div>
+                  <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="IG-level stress calibration is Phase 2">—</div>
+                </React.Fragment>
+              ))}
+            </React.Fragment>
+          );
+        })}
+        <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Defensive Sleeve</div>
+        {df.sorted.map(r => (
+          <React.Fragment key={r.ticker}>
+            <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
+            <div style={_td}>{r.ticker}</div>
+            <div style={{..._tdNum, color: stressColor(r.pct), fontWeight:600}}>{fmtPct(r.pct)}</div>
+          </React.Fragment>
+        ))}
+      </div>
+      <div style={{ padding:"10px 14px", fontFamily:"var(--font-ui)", fontSize:11, color:"var(--text-muted)", fontStyle:"italic", borderTop:"0.5px solid var(--border)" }}>
+        Industry-group level stress calibration is Phase 2 — IGs currently show "—" until per-IG factor loadings ship.
+      </div>
+    </div>
+  );
+}
+
+// Table 3 — sortable Your Portfolio table with proper column widths so P&L doesn't wrap.
+function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTicker, stressColor, fmtDollar, tableCard, tableHead, tableTitle, tableSub }) {
+  const rows = positions.map(p => ({
+    ticker: p.ticker, sector: p.sector, value: p.value || 0, dollar: p.dollar || 0, pct: p.pct || 0,
+    stressed: (p.value || 0) + (p.dollar || 0)
+  }));
+  const cols = [
+    { id:"ticker",   label:"Ticker",   align:"left",  sortValue: r => r.ticker },
+    { id:"sector",   label:"Sector",   align:"left",  sortValue: r => r.sector },
+    { id:"value",    label:"Curr.",    align:"right", sortValue: r => r.value },
+    { id:"stressed", label:"Stressed", align:"right", sortValue: r => r.stressed },
+    { id:"dollar",   label:"P&L $",    align:"right", sortValue: r => r.dollar },
+    { id:"pct",      label:"P&L %",    align:"right", sortValue: r => r.pct },
+  ];
+  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({ rows, columns: cols, defaultColId: "value", defaultDir: "desc" });
+  const totalCurr = rows.reduce((s,r) => s + r.value, 0);
+  const totalStressed = rows.reduce((s,r) => s + r.stressed, 0);
+  const totalPctNum = totalCurr > 0 ? (total / totalCurr) * 100 : 0;
+  const totK = (totalCurr/1000).toFixed(0);
+  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 12px", borderBottom:"0.5px solid var(--border)", whiteSpace:"nowrap", cursor:"pointer", userSelect:"none" };
+  const _td = { fontSize:12, color:"var(--text)", padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
+  const _tdNum = { fontSize:12, padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right", whiteSpace:"nowrap" };
+  // Wider P&L $ column so "−$11,092" fits without wrap.
+  return (
+    <div style={tableCard}>
+      <div style={tableHead}>
+        <h2 style={tableTitle}>Your Portfolio</h2>
+        <div style={tableSub}>{portfolioSource === "demo" ? `Illustrative $${totK}K book — sign in to apply the scenario to your real positions.` : "Your real positions across all accounts."}</div>
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"60px 1fr 80px 80px 90px 70px" }}>
+        <div style={{..._th, textAlign:"left"}} onClick={() => toggleSort("ticker")}>Ticker <SortArrow dir={sortCol==="ticker"?sortDir:null}/></div>
+        <div style={{..._th, textAlign:"left"}} onClick={() => toggleSort("sector")}>Sector <SortArrow dir={sortCol==="sector"?sortDir:null}/></div>
+        <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("value")}>Curr. <SortArrow dir={sortCol==="value"?sortDir:null}/></div>
+        <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("stressed")}>Stressed <SortArrow dir={sortCol==="stressed"?sortDir:null}/></div>
+        <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("dollar")}>P&amp;L $ <SortArrow dir={sortCol==="dollar"?sortDir:null}/></div>
+        <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("pct")}>P&amp;L % <SortArrow dir={sortCol==="pct"?sortDir:null}/></div>
+        {sorted.map((pos, i) => {
+          const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
+          return (
+            <React.Fragment key={i}>
+              <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
+              <div style={{..._td, color:"var(--text-muted)"}}>{pos.sector}</div>
+              <div style={_tdNum}>${pos.value.toLocaleString()}</div>
+              <div style={_tdNum}>${pos.stressed.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
+              <div style={{..._tdNum, color: stressColor(pos.dollar), fontWeight:600}}>{hasShock ? fmtDollar(pos.dollar) : "—"}</div>
+              <div style={{..._tdNum, color: stressColor(pos.pct), fontWeight:600}}>{pctText}</div>
+            </React.Fragment>
+          );
+        })}
+        <div style={{..._td, fontWeight:700, borderTop:"1px solid var(--border)"}}>Total</div>
+        <div style={{..._td, borderTop:"1px solid var(--border)"}}></div>
+        <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${totalCurr.toLocaleString()}</div>
+        <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${totalStressed.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+        <div style={{..._tdNum, fontWeight:700, color: stressColor(total), borderTop:"1px solid var(--border)"}}>{hasShock ? fmtDollar(total) : "—"}</div>
+        <div style={{..._tdNum, fontWeight:700, color: stressColor(total), borderTop:"1px solid var(--border)"}}>{hasShock ? totalPctNum.toFixed(1)+"%" : "—"}</div>
+      </div>
+    </div>
+  );
+}
