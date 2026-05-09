@@ -15,3 +15,5 @@ dist-*/
 # Local convenience wrappers (not deployed)
 fire-brief.command
 brief-preview.html
+scripts/v4_harness/__pycache__/
+logs/
