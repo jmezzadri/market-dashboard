@@ -881,11 +881,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           <div style={{ minWidth:0 }}>
             <div style={_eyebrow}>Scenario Analysis</div>
             <h1 style={_h1}>
-              Stress your <em style={_emItalic}>book</em>, your <em style={_emItalic}>asset tilt</em>, and the <em style={_emItalic}>cycle mechanisms</em> against history.
+              See how your portfolio, and Macro Tilt&apos;s engines react under stress &ndash; run custom <em style={_emItalic}>multi-factor shocks</em> or use our <em style={_emItalic}>historical scenarios</em>.
             </h1>
-            <p style={_subtitle}>
-              Pick a historical episode or build a custom factor shock. Three tables update in lockstep — sectors hit by the regime, where the cycle mechanisms move (Phase 2), and how your real positions react.
-            </p>
           </div>
           <aside style={_rightCard}>
             <div style={_cardEyebrow}>Scenario Selection</div>
