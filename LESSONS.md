@@ -372,3 +372,59 @@ pad them by typical FRED lag. Filed as a follow-up.
 **What you should do instead:** When the user provides any user-facing copy in a mockup, screenshot, or chat — headline, subtitle, button label, error message, footer text — transcribe it verbatim. Treat the user's words as the spec. Italicize / bold per the mockup's visual hint, but do not paraphrase, condense, or "improve." If the copy doesn't fit the layout, flag the constraint and ask before rewording. Specifically, before shipping any hero on a page where the user supplied a mockup, paste the mockup's copy into a search of the deployed text and confirm a hit.
 
 **Applies to:** All. Especially heroes, page subtitles, modal titles, button labels, error/empty states.
+
+
+---
+
+## 2026-05-08 — Specialists don't bounce specialist calls back to Joe
+
+**What happened:** Senior Quant surfaced the Dot Com Lead Up '00 window choice
+as a popup question to Joe. The window choice (Feb–Apr 2000 vs Sep '00–Mar '01
+vs both) is an archetype call inside the Senior Quant scope — not a
+stakeholder-level call. Joe pushed back: "I have no idea. My lead quant
+created this scenario! You tell me." This is the same pattern as the
+existing Lead-Developer-owns-Lead-Developer-calls rule, extended to the
+other specialist roles.
+
+**What you should do instead:** Specialist scope-and-archetype decisions
+(Senior Quant scenario windows and panel composition; UX Designer
+color/spacing calls inside the locked palette; Lead Developer branch hygiene
+and stash/discard choices; Data Steward freshness-chip thresholds) get made
+by the specialist silently and documented in the relevant artifact
+(calibration JSON, design notes, branch description, manifest entry).
+Surface to Joe only when the decision is irreversible (production deploy,
+schema migration, vendor cancellation, force-push) or genuinely cross-domain
+(e.g., a quant decision that materially changes UX, or a UX decision that
+breaks a calibrated chart).
+
+**Applies to:** All specialists.
+
+---
+
+## 2026-05-08 — Terminal/devops jargon is forbidden when talking to Joe
+
+**What happened:** Lead Developer used the word "bash" twice in one turn to
+refer to internal command-line tooling — first as "bash sandbox out of disk,"
+then as "when bash is back." Joe responded both times with the same
+correction. This is the exact pattern the existing global Plain English rule
+already forbids ("Words like 'JSX,' 'webhook,' 'idempotent,' 'CORS,' 'diff,'
+'rebase' should be replaced with plain language") — terms in this category
+belong on that list and so do "sandbox," "shell," "container," "venv,"
+"pipx," "useradd," "PAT," "RPC," "stdout," "stderr," "stash," "rebase,"
+"force-push," "fast-forward," "merge conflict resolution."
+
+**What you should do instead:** Before sending any response, scan for
+terminal/devops jargon and replace with plain language describing the
+OUTCOME rather than the MECHANISM. The internal command-line tool is "the
+command-line I use to run things" if it must be named at all. "Sandbox out
+of disk" → "my tooling is offline." "Push to remote" → "save to GitHub."
+"Open a PR" → "open a pull request" (acceptable — Joe knows what a pull
+request is) OR "queue this work for your sign-off." "Vercel deploy" → "ship
+to the live site." When in doubt, describe what the user sees ("the live
+site at macrotilt.com," "the code on GitHub," "your file on your computer")
+rather than what the tool does. Internal infrastructure failures are
+diagnosed and worked around silently — never described to Joe in their
+native technical language.
+
+**Applies to:** All. Treated as a hard rule with the same weight as the
+existing Plain English rule.
