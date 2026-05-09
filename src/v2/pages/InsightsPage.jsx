@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
+import { usePricesAsOfDate } from '../../hooks/usePricesAsOfDate';
 import MTChart from '../components/MTChart';
 import { useUserPortfolio } from '../../hooks/useUserPortfolio';
 import usePortfolioHistory from '../../hooks/usePortfolioHistory';
@@ -41,6 +42,17 @@ export default function InsightsPage() {
     [accountList]
   );
 
+  // Prices-as-of freshness chip (Joe directive — bug 1155).
+  // Pinned to the `massive-eod` indicator in pipeline_health (the
+  // green/red signal for daily EOD price ingest). The chip's label
+  // shows the trade_date of the most recent prices_eod row so Joe
+  // can see at a glance which trading day his NAV was priced from,
+  // and the chip turns red when that pipeline goes past its SLA.
+  const pricesAsOfDate = usePricesAsOfDate();
+  const pricesAsOfLabel = pricesAsOfDate
+    ? `Prices as of ${new Date(pricesAsOfDate + 'T16:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+    : 'Prices —';
+
   return (
     <div className="v2-root">
       <header className="v2-hero">
@@ -62,7 +74,10 @@ export default function InsightsPage() {
                 )}
               </div>
             </div>
-            <FreshnessChip elementId="portfolio_history" />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+              <FreshnessChip elementId="portfolio_history" />
+              <FreshnessChip elementId="massive-eod" label={pricesAsOfLabel} />
+            </div>
           </div>
         </div>
       </header>
