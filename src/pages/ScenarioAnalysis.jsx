@@ -1629,8 +1629,8 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
   const totalPctNum = totalCurr > 0 ? (total / totalCurr) * 100 : 0;
   const totK = (totalCurr/1000).toFixed(0);
   const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 12px", borderBottom:"0.5px solid var(--border)", whiteSpace:"nowrap", cursor:"pointer", userSelect:"none" };
-  const _td = { fontSize:12, color:"var(--text)", padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
-  const _tdNum = { fontSize:12, padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right", whiteSpace:"nowrap" };
+  const _td = { fontSize:12, color:"var(--text)", padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", minWidth:0 };
+  const _tdNum = { fontSize:12, padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis", minWidth:0 };
   // Wider P&L $ column so "−$11,092" fits without wrap.
   return (
     <div style={tableCard}>
@@ -1638,7 +1638,7 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
         <h2 style={tableTitle}>Your Portfolio</h2>
         <div style={tableSub}>{portfolioSource === "demo" ? `Illustrative $${totK}K book — sign in to apply the scenario to your real positions.` : "Your real positions across all accounts."}</div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"60px 1fr 80px 80px 90px 70px" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"minmax(60px, 110px) minmax(90px, 200px) minmax(78px, 120px) minmax(78px, 120px) minmax(78px, 120px) minmax(60px, 80px)" }}>
         <div style={{..._th, textAlign:"left"}} onClick={() => toggleSort("ticker")}>Ticker <SortArrow dir={sortCol==="ticker"?sortDir:null}/></div>
         <div style={{..._th, textAlign:"left"}} onClick={() => toggleSort("sector")}>Sector <SortArrow dir={sortCol==="sector"?sortDir:null}/></div>
         <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("value")}>Curr. <SortArrow dir={sortCol==="value"?sortDir:null}/></div>
@@ -1649,9 +1649,9 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
           const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
           return (
             <React.Fragment key={i}>
-              <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
-              <div style={{..._td, color:"var(--text-muted)"}}>{pos.sector}</div>
-              <div style={_tdNum}>${pos.value.toLocaleString()}</div>
+              <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} title={pos.ticker} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
+              <div style={{..._td, color:"var(--text-muted)"}} title={pos.sector}>{pos.sector}</div>
+              <div style={_tdNum}>${pos.value.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
               <div style={_tdNum}>${pos.stressed.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
               <div style={{..._tdNum, color: stressColor(pos.dollar), fontWeight:600}}>{hasShock ? fmtDollar(pos.dollar) : "—"}</div>
               <div style={{..._tdNum, color: stressColor(pos.pct), fontWeight:600}}>{pctText}</div>
@@ -1660,7 +1660,7 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
         })}
         <div style={{..._td, fontWeight:700, borderTop:"1px solid var(--border)"}}>Total</div>
         <div style={{..._td, borderTop:"1px solid var(--border)"}}></div>
-        <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${totalCurr.toLocaleString()}</div>
+        <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${totalCurr.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
         <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${totalStressed.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
         <div style={{..._tdNum, fontWeight:700, color: stressColor(total), borderTop:"1px solid var(--border)"}}>{hasShock ? fmtDollar(total) : "—"}</div>
         <div style={{..._tdNum, fontWeight:700, color: stressColor(total), borderTop:"1px solid var(--border)"}}>{hasShock ? totalPctNum.toFixed(1)+"%" : "—"}</div>
