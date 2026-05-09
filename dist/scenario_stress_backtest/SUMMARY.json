@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-05-09T17:55:11.789363+00:00",
+  "generated_at": "2026-05-09T18:18:10.819603+00:00",
   "tolerance_mechanism_pp": 15,
   "tolerance_composite_pp": 10,
   "mech_fail_count": 0,
   "composite_fail_count": 0,
-  "observable_pairs": 25,
+  "observable_pairs": 29,
   "scenarios": [
     {
       "scenario_id": "black_monday_1987",
@@ -68,7 +68,7 @@
         }
       ],
       "composite": {
-        "predicted": 56,
+        "predicted": 48,
         "observed": null,
         "delta": null,
         "verdict": "SELF_ATTEST"
@@ -137,7 +137,7 @@
         }
       ],
       "composite": {
-        "predicted": 65,
+        "predicted": 57,
         "observed": null,
         "delta": null,
         "verdict": "SELF_ATTEST"
@@ -206,7 +206,7 @@
         }
       ],
       "composite": {
-        "predicted": 66,
+        "predicted": 65,
         "observed": null,
         "delta": null,
         "verdict": "SELF_ATTEST"
@@ -296,9 +296,9 @@
         }
       ],
       "composite": {
-        "predicted": 64,
+        "predicted": 70,
         "observed": 62,
-        "delta": 2,
+        "delta": 8,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 5
@@ -351,11 +351,15 @@
         {
           "mechanism_id": "growth",
           "mechanism_name": "04 \u00b7 Growth",
-          "predicted": null,
-          "observed": null,
-          "delta": null,
-          "verdict": "PRED_NULL",
-          "matched_indicators": []
+          "predicted": 39,
+          "observed": 39,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "gdpnow",
+            "ism_mfg",
+            "ism_svc"
+          ]
         },
         {
           "mechanism_id": "liquidity_policy",
@@ -387,12 +391,12 @@
         }
       ],
       "composite": {
-        "predicted": 67,
-        "observed": 67,
+        "predicted": 62,
+        "observed": 62,
         "delta": 0,
         "verdict": "PASS"
       },
-      "n_indicators_dropped": 4
+      "n_indicators_dropped": 1
     },
     {
       "scenario_id": "covid_2020",
@@ -442,11 +446,15 @@
         {
           "mechanism_id": "growth",
           "mechanism_name": "04 \u00b7 Growth",
-          "predicted": null,
-          "observed": null,
-          "delta": null,
-          "verdict": "PRED_NULL",
-          "matched_indicators": []
+          "predicted": 88,
+          "observed": 88,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "gdpnow",
+            "ism_mfg",
+            "ism_svc"
+          ]
         },
         {
           "mechanism_id": "liquidity_policy",
@@ -478,12 +486,12 @@
         }
       ],
       "composite": {
-        "predicted": 71,
-        "observed": 71,
+        "predicted": 74,
+        "observed": 74,
         "delta": 0,
         "verdict": "PASS"
       },
-      "n_indicators_dropped": 4
+      "n_indicators_dropped": 1
     },
     {
       "scenario_id": "inflation_2022",
@@ -532,11 +540,13 @@
         {
           "mechanism_id": "growth",
           "mechanism_name": "04 \u00b7 Growth",
-          "predicted": null,
-          "observed": null,
-          "delta": null,
-          "verdict": "PRED_NULL",
-          "matched_indicators": []
+          "predicted": 20,
+          "observed": 20,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "gdpnow"
+          ]
         },
         {
           "mechanism_id": "liquidity_policy",
@@ -568,12 +578,12 @@
         }
       ],
       "composite": {
-        "predicted": 70,
-        "observed": 66,
-        "delta": 4,
+        "predicted": 68,
+        "observed": 58,
+        "delta": 10,
         "verdict": "PASS"
       },
-      "n_indicators_dropped": 5
+      "n_indicators_dropped": 4
     },
     {
       "scenario_id": "ai_2024",
@@ -623,11 +633,15 @@
         {
           "mechanism_id": "growth",
           "mechanism_name": "04 \u00b7 Growth",
-          "predicted": null,
-          "observed": null,
-          "delta": null,
-          "verdict": "PRED_NULL",
-          "matched_indicators": []
+          "predicted": 71,
+          "observed": 71,
+          "delta": 0,
+          "verdict": "PASS",
+          "matched_indicators": [
+            "gdpnow",
+            "ism_mfg",
+            "ism_svc"
+          ]
         },
         {
           "mechanism_id": "liquidity_policy",
@@ -659,12 +673,12 @@
         }
       ],
       "composite": {
-        "predicted": 63,
-        "observed": 63,
-        "delta": 0,
+        "predicted": 65,
+        "observed": 64,
+        "delta": 1,
         "verdict": "PASS"
       },
-      "n_indicators_dropped": 4
+      "n_indicators_dropped": 1
     }
   ]
 }

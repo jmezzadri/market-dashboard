@@ -704,19 +704,19 @@
           "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 8.0 (was 0.001 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: RRP minimal usage Dec '18 (~$1B daily, well below 2022 peak)"
         },
         "ism_mfg": {
-          "value": 54.1,
+          "value": 54.3,
           "as_of": "2018-12-31",
-          "source_note": "Dec 2018 ISM Manufacturing = 54.1 (down from 59.3 in Aug; cycle peak past)"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-31 = 54.3 (was 54.1 as_of 2018-12-31). Original note: Dec 2018 ISM Manufacturing = 54.1 (down from 59.3 in Aug; cycle peak past)"
         },
         "ism_svc": {
-          "value": 57.6,
+          "value": 54.3,
           "as_of": "2018-12-31",
-          "source_note": "Dec 2018 ISM Services = 57.6 (still healthy expansion)"
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-31 = 54.3 (was 57.6 as_of 2018-12-31). Original note: Dec 2018 ISM Services = 57.6 (still healthy expansion)"
         },
         "gdpnow": {
-          "value": 2.7,
-          "as_of": "2018-12-31",
-          "source_note": "Atlanta Fed GDPNow Q4 2018 final ~2.7%"
+          "value": 2.67,
+          "as_of": "2019-01-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2019-01-01 = 2.67 (was 2.7 as_of 2018-12-31). Original note: Atlanta Fed GDPNow Q4 2018 final ~2.7%"
         },
         "anfci": {
           "value": -0.39,
@@ -815,19 +815,19 @@
           "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 26.9 (was 0 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: RRP usage minimal during stress"
         },
         "ism_mfg": {
-          "value": 41.5,
-          "as_of": "2020-04-30",
-          "source_note": "Apr 2020 ISM Mfg = 41.5"
+          "value": 49.1,
+          "as_of": "2020-03-31",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-31 = 49.1 (was 41.5 as_of 2020-04-30). Original note: Apr 2020 ISM Mfg = 41.5"
         },
         "ism_svc": {
-          "value": 41.8,
-          "as_of": "2020-04-30",
-          "source_note": "Apr 2020 ISM Services = 41.8"
+          "value": 49.1,
+          "as_of": "2020-03-31",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-31 = 49.1 (was 41.8 as_of 2020-04-30). Original note: Apr 2020 ISM Services = 41.8"
         },
         "gdpnow": {
-          "value": -30.0,
-          "as_of": "2020-Q2",
-          "source_note": "Q2 2020 advance -32.9% annualized"
+          "value": -32.08,
+          "as_of": "2020-04-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-04-01 = -32.08 (was -30.0 as_of 2020-Q2). Original note: Q2 2020 advance -32.9% annualized"
         },
         "anfci": {
           "value": 0.29,
@@ -936,9 +936,9 @@
           "source_note": "Dec 2022 ISM Services dipped to 49.6"
         },
         "gdpnow": {
-          "value": 2.5,
-          "as_of": "2022-Q4",
-          "source_note": "Q4 2022 advance GDP +2.9%"
+          "value": 3.53,
+          "as_of": "2022-10-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-01 = 3.53 (was 2.5 as_of 2022-Q4). Original note: Q4 2022 advance GDP +2.9%"
         },
         "anfci": {
           "value": -0.01,
@@ -1038,19 +1038,19 @@
           "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 316.2 (was 300 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario × indicator) pair to score apples-to-apples. Original note: RRP balance ~$300B Aug '24 (well off the $2.55T Dec '22 peak; declining as QT progresses)"
         },
         "ism_mfg": {
-          "value": 46.8,
-          "as_of": "2024-07-31",
-          "source_note": "Jul 2024 ISM Manufacturing = 46.8 (sub-50 contraction; trigger for Aug 5 stress)"
+          "value": 48.5,
+          "as_of": "2024-06-30",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-06-30 = 48.5 (was 46.8 as_of 2024-07-31). Original note: Jul 2024 ISM Manufacturing = 46.8 (sub-50 contraction; trigger for Aug 5 stress)"
         },
         "ism_svc": {
-          "value": 51.4,
-          "as_of": "2024-07-31",
-          "source_note": "Jul 2024 ISM Services = 51.4 (just above 50)"
+          "value": 48.5,
+          "as_of": "2024-06-30",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-06-30 = 48.5 (was 51.4 as_of 2024-07-31). Original note: Jul 2024 ISM Services = 51.4 (just above 50)"
         },
         "gdpnow": {
-          "value": 2.5,
-          "as_of": "2024-08-15",
-          "source_note": "Atlanta Fed GDPNow Q3 2024 mid-quarter ~2.5%"
+          "value": 2.79,
+          "as_of": "2024-07-01",
+          "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-07-01 = 2.79 (was 2.5 as_of 2024-08-15). Original note: Atlanta Fed GDPNow Q3 2024 mid-quarter ~2.5%"
         },
         "anfci": {
           "value": -0.36,

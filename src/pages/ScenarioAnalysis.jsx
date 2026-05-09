@@ -642,6 +642,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const [v10, setV10] = useState(null);
   const [cycleStress, setCycleStress] = useState(null);
   const [currentBoard, setCurrentBoard] = useState(null);
+  const [indicatorHistory, setIndicatorHistory] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
   useEffect(() => {
@@ -666,6 +667,17 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
       .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_board_snapshot.json HTTP " + r.status)))
       .then(setCurrentBoard)
       .catch((err) => { console.warn("[Phase 2E] cycle_board_snapshot.json fetch failed", err); });
+  }, []);
+
+  // Phase 2E feedback fix — fetch indicator_history so the per-indicator
+  // drilldown can show the live "current reading" for each indicator next
+  // to the calibrated stressed value. Same convention as the rest of the
+  // dashboard: latest non-null point in the series.
+  useEffect(() => {
+    fetch("/indicator_history.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("indicator_history.json HTTP " + r.status)))
+      .then(setIndicatorHistory)
+      .catch((err) => { console.warn("[Phase 2E] indicator_history.json fetch failed", err); });
   }, []);
   // Escape-key closes whichever modal is on top
   useEffect(() => {
@@ -1024,6 +1036,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
               scenarioName={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : null}
               cycleStress={cycleStress}
               currentBoard={currentBoard}
+              indicatorHistory={indicatorHistory}
               tableCard={_tableCard}
               tableHead={_tableHead}
               tableTitle={_tableTitle}
@@ -1068,10 +1081,33 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 // stressed are on the same scale).
 // ────────────────────────────────────────────────────────────────────────
 function CycleMechanismScenarioResultsTable({
-  mode, scenarioId, scenarioName, cycleStress, currentBoard,
+  mode, scenarioId, scenarioName, cycleStress, currentBoard, indicatorHistory,
   tableCard, tableHead, tableTitle, tableSub,
 }) {
   const [expanded, setExpanded] = useState(null);
+
+  // Mirror the producer + harness alias map so the drilldown can find each
+  // calibration indicator's series in indicator_history.json.
+  const HISTORY_ALIAS = {
+    hy_oas: "hy_ig",
+    fed_bs_yoy: "fed_bs",
+    ism_mfg: "ism",
+    ism_svc: "ism",
+  };
+
+  // Pull the latest non-null value for an indicator from indicator_history.
+  function liveReading(calibId) {
+    if (!indicatorHistory) return null;
+    const key = HISTORY_ALIAS[calibId] || calibId;
+    const series = indicatorHistory[key];
+    const pts = series && series.points;
+    if (!Array.isArray(pts)) return null;
+    for (let i = pts.length - 1; i >= 0; i--) {
+      const [d, v] = pts[i];
+      if (v !== null && v !== undefined) return { date: d, value: v };
+    }
+    return null;
+  }
 
   const stressed = (cycleStress && scenarioId) ? cycleStress.scenarios?.[scenarioId] : null;
   const isReady = mode === "canned" && stressed && currentBoard;
@@ -1201,28 +1237,39 @@ function CycleMechanismScenarioResultsTable({
                           <thead>
                             <tr style={{ color:"var(--text-muted)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.06em" }}>
                               <th style={{ padding:"6px 10px", textAlign:"left", fontWeight:600 }}>Indicator</th>
-                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Calibrated value</th>
-                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Percentile</th>
-                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Score</th>
-                              <th style={{ padding:"6px 10px", textAlign:"left", fontWeight:600 }}>As of</th>
+                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Current reading</th>
+                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Under stress</th>
+                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Change</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {r.indicators.map((ind) => (
-                              <tr key={ind.id} style={{ borderTop:"0.5px dashed var(--border)" }}>
-                                <td style={{ padding:"6px 10px" }}>{ind.id}</td>
-                                <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
-                                  {ind.value}
-                                </td>
-                                <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", color:"var(--text-muted)" }}>
-                                  {ind.percentile}%
-                                </td>
-                                <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
-                                  {ind.score}
-                                </td>
-                                <td style={{ padding:"6px 10px", color:"var(--text-muted)" }}>{ind.as_of || "—"}</td>
-                              </tr>
-                            ))}
+                            {r.indicators.map((ind) => {
+                              const live = liveReading(ind.id);
+                              const stressed = ind.value;
+                              const cur = live ? live.value : null;
+                              const change = (cur != null && stressed != null) ? (stressed - cur) : null;
+                              const fmt = (v) => v == null ? "—" : (typeof v === "number" ? (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)) : String(v));
+                              const changeTone = change == null ? "var(--text-muted)" : change > 0 ? "var(--neg, #b03030)" : change < 0 ? "var(--pos, #2a7a4f)" : "var(--text-muted)";
+                              return (
+                                <tr key={ind.id} style={{ borderTop:"0.5px dashed var(--border)" }}>
+                                  <td style={{ padding:"6px 10px" }}>
+                                    {ind.id}
+                                    <span style={{ marginLeft:8, color:"var(--text-muted)", fontSize:10 }}>
+                                      {live && live.date ? `as of ${live.date}` : ""}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
+                                    {fmt(cur)}
+                                  </td>
+                                  <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
+                                    {fmt(stressed)}
+                                  </td>
+                                  <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", color: changeTone }}>
+                                    {change == null ? "—" : (change > 0 ? "+" : change < 0 ? "−" : "±") + fmt(Math.abs(change))}
+                                  </td>
+                                </tr>
+                              );
+                            })}
                           </tbody>
                         </table>
                       </td>
