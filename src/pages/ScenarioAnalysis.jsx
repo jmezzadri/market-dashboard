@@ -827,12 +827,16 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const _td = { fontSize:13, color:"var(--text)", padding:"10px 14px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
   const _tdNum = { ...{ fontSize:13, padding:"10px 14px", borderBottom:"0.5px solid var(--border-faint, var(--border))" }, fontFamily:"var(--font-mono)", textAlign:"right" };
 
-  // Map sector internal id (XLK) → display row (Joe mockup wants Sector / Asset Class | Proxy Ticker | Stress Result).
-  // SECTORS array already has {id, name, assetClass}; sectorPcts[id] is the % stress.
-  const _equityRows = SECTORS.filter(s => s.assetClass === "Equity").map(s => ({
-    name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0
+  // Anchor to the same 11 GICS + 4 defensive that the Asset Tilt page uses
+  // (Joe directive 2026-05-08: drop synthetic INTL / BTC / SPX / HY / CSH).
+  // IGs come from each GICS sector's igs[] array (25 total across the 11 sectors).
+  const GICS_IDS = ["XLK","XLC","XLF","XLY","XLI","XLB","XLE","XLV","XLP","XLU","XLRE"];
+  const DEFENSIVE_IDS = ["BIL","TLT","GLD","LQD"];
+  const _equityParents = SECTORS.filter(s => GICS_IDS.includes(s.id)).map(s => ({
+    id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0,
+    igs: (s.igs || []).map(ig => ({ name: ig.name, pct: sectorPcts[s.id] || 0 }))
   }));
-  const _defensiveRows = SECTORS.filter(s => s.assetClass === "Defensive").map(s => ({
+  const _defensiveRows = SECTORS.filter(s => DEFENSIVE_IDS.includes(s.id)).map(s => ({
     name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0
   }));
 
@@ -910,84 +914,102 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           </div>
         )}
 
-        {/* TABLE 1 — Asset Tilt Engine Scenario Results (sectors + defensive sleeve) */}
-        <div style={_tableCard}>
-          <div style={_tableHead}>
-            <h2 style={_tableTitle}>Asset Tilt Engine Scenario Results</h2>
-            <div style={_tableSub}>How each equity sector and defensive asset class is impacted by the selected scenario.</div>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1.6fr 100px 120px" }}>
-            <div style={_th}>Sector / Asset Class</div>
-            <div style={{..._th, textAlign:"left"}}>Proxy Ticker</div>
-            <div style={{..._th, textAlign:"right"}}>Stress Result</div>
-            {/* Equity sub-header */}
-            <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
-            {_equityRows.map(r => (
-              <React.Fragment key={r.ticker}>
-                <div style={{..._td, cursor: SCEN_TO_AT_SECTOR[r.name] ? "pointer" : "default"}} onClick={() => SCEN_TO_AT_SECTOR[r.name] && openSectorByName(r.name)}>{r.name}</div>
-                <div style={_td}>{r.ticker}</div>
-                <div style={{..._tdNum, color: _stressColor(r.pct), fontWeight:600}}>{_fmtPct(r.pct)}</div>
-              </React.Fragment>
-            ))}
-            <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Defensive Sleeve</div>
-            {_defensiveRows.map(r => (
-              <React.Fragment key={r.ticker}>
-                <div style={{..._td, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
-                <div style={_td}>{r.ticker}</div>
-                <div style={{..._tdNum, color: _stressColor(r.pct), fontWeight:600}}>{_fmtPct(r.pct)}</div>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+        {/* TWO-COLUMN GRID — Joe mockup 2026-05-08:
+            LEFT (~0.95fr): Asset Tilt Engine Scenario Results (one tall card with
+              11 GICS sectors + 25 nested IGs + Defensive Sleeve).
+            RIGHT (~1.05fr): Cycle Mechanism Scenario Results (top, placeholder)
+              + Your Portfolio (bottom). Stacked. */}
+        <div style={{ display:"grid", gridTemplateColumns:"0.95fr 1.05fr", gap:20, alignItems:"start" }}>
 
-        {/* TABLE 2 — Cycle Mechanism Scenario Results (Phase 2 placeholder) */}
-        <div style={_tableCard}>
-          <div style={_tableHead}>
-            <h2 style={_tableTitle}>Cycle Mechanism Scenario Results</h2>
-            <div style={_tableSub}>How the six cycle mechanisms and the page-level composite move under the selected scenario.</div>
-          </div>
-          <div style={{ padding:"36px 18px", textAlign:"center" }}>
-            <div style={{ fontFamily:"var(--font-ui)", fontSize:12, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.10em", marginBottom:8 }}>Phase 2 — Senior Quant calibrating</div>
-            <div style={{ fontFamily:"var(--font-ui)", fontSize:14, color:"var(--text-2)", lineHeight:1.55, maxWidth:560, margin:"0 auto" }}>
-              For each historical scenario, we are mapping factor moves into the underlying FRED inputs (CAPE, ERP, HY OAS, ISM, SLOOS, etc.) and re-running the mechanism scorer. Live in Phase 2 — backtested against observed peak-stress mechanism scores.
+          {/* LEFT COLUMN — TABLE 1: Asset Tilt Engine Scenario Results */}
+          <div style={_tableCard}>
+            <div style={_tableHead}>
+              <h2 style={_tableTitle}>Asset Tilt Engine Scenario Results</h2>
+              <div style={_tableSub}>How each equity sector, industry group, and defensive asset class is impacted by the selected scenario.</div>
+            </div>
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 80px 90px" }}>
+              <div style={_th}>Sector / Industry Group</div>
+              <div style={{..._th, textAlign:"left"}}>Proxy</div>
+              <div style={{..._th, textAlign:"right"}}>Stress</div>
+              <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
+              {_equityParents.map(s => (
+                <React.Fragment key={s.id}>
+                  <div style={{..._td, fontWeight:600, cursor: SCEN_TO_AT_SECTOR[s.name] ? "pointer" : "default"}} onClick={() => SCEN_TO_AT_SECTOR[s.name] && openSectorByName(s.name)}>{s.name}</div>
+                  <div style={_td}>{s.ticker}</div>
+                  <div style={{..._tdNum, color: _stressColor(s.pct), fontWeight:600}}>{_fmtPct(s.pct)}</div>
+                  {s.igs.map((ig, ix) => (
+                    <React.Fragment key={s.id + "-" + ix}>
+                      <div style={{..._td, paddingLeft:32, color:"var(--text-2)", fontSize:12, cursor: "pointer"}} onClick={() => openIGByName(ig.name, s.name)}>↳ {ig.name}</div>
+                      <div style={{..._td, fontSize:12, color:"var(--text-muted)"}}>—</div>
+                      <div style={{..._tdNum, color: _stressColor(ig.pct), fontSize:12}}>{_fmtPct(ig.pct)}</div>
+                    </React.Fragment>
+                  ))}
+                </React.Fragment>
+              ))}
+              <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Defensive Sleeve</div>
+              {_defensiveRows.map(r => (
+                <React.Fragment key={r.ticker}>
+                  <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
+                  <div style={_td}>{r.ticker}</div>
+                  <div style={{..._tdNum, color: _stressColor(r.pct), fontWeight:600}}>{_fmtPct(r.pct)}</div>
+                </React.Fragment>
+              ))}
             </div>
           </div>
-        </div>
 
-        {/* TABLE 3 — Your Portfolio under stress */}
-        <div style={_tableCard}>
-          <div style={_tableHead}>
-            <h2 style={_tableTitle}>Your Portfolio</h2>
-            <div style={_tableSub}>{(() => { const tot = (realPnl.positions || []).reduce((s,p)=>s+(p.value||0),0); const totK = (tot/1000).toFixed(0); return portfolioSource === "demo" ? `Illustrative $${totK}K book — sign in to apply the scenario to your real positions.` : "Your real positions across all accounts."; })()}</div>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1.2fr 110px 110px 110px 90px" }}>
-            <div style={_th}>Ticker</div>
-            <div style={_th}>Sector</div>
-            <div style={{..._th, textAlign:"right"}}>Curr. Value</div>
-            <div style={{..._th, textAlign:"right"}}>Stressed Value</div>
-            <div style={{..._th, textAlign:"right"}}>P&amp;L $</div>
-            <div style={{..._th, textAlign:"right"}}>P&amp;L %</div>
-            {(realPnl.positions || []).map((pos, i) => {
-              const stressed = pos.value + pos.dollar;
-              const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
-              return (
-                <React.Fragment key={i}>
-                  <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
-                  <div style={{..._td, color:"var(--text-muted)"}}>{pos.sector}</div>
-                  <div style={_tdNum}>${(pos.value || 0).toLocaleString()}</div>
-                  <div style={_tdNum}>${(stressed || 0).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
-                  <div style={{..._tdNum, color: _stressColor(pos.dollar), fontWeight:600}}>{hasShock ? _fmtDollar(pos.dollar) : "—"}</div>
-                  <div style={{..._tdNum, color: _stressColor(pos.pct), fontWeight:600}}>{pctText}</div>
-                </React.Fragment>
-              );
-            })}
-            {/* Total row */}
-            <div style={{..._td, fontWeight:700, borderTop:"1px solid var(--border)"}}>Total</div>
-            <div style={{..._td, borderTop:"1px solid var(--border)"}}></div>
-            <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${(realPnl.positions || []).reduce((s,p)=>s+(p.value||0),0).toLocaleString()}</div>
-            <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${((realPnl.positions || []).reduce((s,p)=>s+(p.value||0)+(p.dollar||0),0)).toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-            <div style={{..._tdNum, fontWeight:700, color: _stressColor(realPnl.total||0), borderTop:"1px solid var(--border)"}}>{hasShock ? _fmtDollar(realPnl.total||0) : "—"}</div>
-            <div style={{..._tdNum, fontWeight:700, color: _stressColor(realPnl.total||0), borderTop:"1px solid var(--border)"}}>{hasShock && (realPnl.positions||[]).length>0 ? ((realPnl.total||0)/((realPnl.positions||[]).reduce((s,p)=>s+(p.value||0),0)||1)*100).toFixed(1)+"%" : "—"}</div>
+          {/* RIGHT COLUMN — TABLE 2 (placeholder) + TABLE 3 (Your Portfolio) stacked */}
+          <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+
+            {/* TABLE 2 — Cycle Mechanism Scenario Results (Phase 2 placeholder) */}
+            <div style={_tableCard}>
+              <div style={_tableHead}>
+                <h2 style={_tableTitle}>Cycle Mechanism Scenario Results</h2>
+                <div style={_tableSub}>How the six cycle mechanisms and the page-level composite move under the selected scenario.</div>
+              </div>
+              <div style={{ padding:"36px 18px", textAlign:"center" }}>
+                <div style={{ fontFamily:"var(--font-ui)", fontSize:12, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.10em", marginBottom:8 }}>Phase 2 — Senior Quant calibrating</div>
+                <div style={{ fontFamily:"var(--font-ui)", fontSize:14, color:"var(--text-2)", lineHeight:1.55, maxWidth:480, margin:"0 auto" }}>
+                  For each historical scenario, we are mapping factor moves into the underlying FRED inputs (CAPE, ERP, HY OAS, ISM, SLOOS, etc.) and re-running the mechanism scorer. Live in Phase 2 — backtested against observed peak-stress mechanism scores.
+                </div>
+              </div>
+            </div>
+
+            {/* TABLE 3 — Your Portfolio under stress */}
+            <div style={_tableCard}>
+              <div style={_tableHead}>
+                <h2 style={_tableTitle}>Your Portfolio</h2>
+                <div style={_tableSub}>{(() => { const tot = (realPnl.positions || []).reduce((s,p)=>s+(p.value||0),0); const totK = (tot/1000).toFixed(0); return portfolioSource === "demo" ? `Illustrative $${totK}K book — sign in to apply the scenario to your real positions.` : "Your real positions across all accounts."; })()}</div>
+              </div>
+              <div style={{ display:"grid", gridTemplateColumns:"60px 1.1fr 75px 75px 75px 60px" }}>
+                <div style={_th}>Ticker</div>
+                <div style={_th}>Sector</div>
+                <div style={{..._th, textAlign:"right"}}>Curr.</div>
+                <div style={{..._th, textAlign:"right"}}>Stressed</div>
+                <div style={{..._th, textAlign:"right"}}>P&amp;L $</div>
+                <div style={{..._th, textAlign:"right"}}>P&amp;L %</div>
+                {(realPnl.positions || []).map((pos, i) => {
+                  const stressed = pos.value + pos.dollar;
+                  const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
+                  return (
+                    <React.Fragment key={i}>
+                      <div style={{..._td, fontWeight:600, fontSize:12, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
+                      <div style={{..._td, color:"var(--text-muted)", fontSize:12}}>{pos.sector}</div>
+                      <div style={{..._tdNum, fontSize:12}}>${(pos.value || 0).toLocaleString()}</div>
+                      <div style={{..._tdNum, fontSize:12}}>${(stressed || 0).toLocaleString(undefined, {maximumFractionDigits:0})}</div>
+                      <div style={{..._tdNum, color: _stressColor(pos.dollar), fontWeight:600, fontSize:12}}>{hasShock ? _fmtDollar(pos.dollar) : "—"}</div>
+                      <div style={{..._tdNum, color: _stressColor(pos.pct), fontWeight:600, fontSize:12}}>{pctText}</div>
+                    </React.Fragment>
+                  );
+                })}
+                <div style={{..._td, fontWeight:700, borderTop:"1px solid var(--border)", fontSize:12}}>Total</div>
+                <div style={{..._td, borderTop:"1px solid var(--border)"}}></div>
+                <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)", fontSize:12}}>${(realPnl.positions || []).reduce((s,p)=>s+(p.value||0),0).toLocaleString()}</div>
+                <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)", fontSize:12}}>${((realPnl.positions || []).reduce((s,p)=>s+(p.value||0)+(p.dollar||0),0)).toLocaleString(undefined,{maximumFractionDigits:0})}</div>
+                <div style={{..._tdNum, fontWeight:700, color: _stressColor(realPnl.total||0), borderTop:"1px solid var(--border)", fontSize:12}}>{hasShock ? _fmtDollar(realPnl.total||0) : "—"}</div>
+                <div style={{..._tdNum, fontWeight:700, color: _stressColor(realPnl.total||0), borderTop:"1px solid var(--border)", fontSize:12}}>{hasShock && (realPnl.positions||[]).length>0 ? ((realPnl.total||0)/((realPnl.positions||[]).reduce((s,p)=>s+(p.value||0),0)||1)*100).toFixed(1)+"%" : "—"}</div>
+              </div>
+            </div>
+
           </div>
         </div>
       </main>
