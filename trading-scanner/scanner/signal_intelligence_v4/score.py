@@ -11,7 +11,10 @@ from datetime import date
 from enum import Enum
 from typing import Any, Sequence
 
-from scanner.signal_intelligence_v4.gates import apply_gates
+from scanner.signal_intelligence_v4.gates import (
+    apply_gates,
+    hc_magnitude_threshold,
+)
 from scanner.signal_intelligence_v4.pillars import score_pillars
 
 
@@ -36,6 +39,7 @@ class SignalResult:
     score: int
     band: Band
     insider_dollar_tiebreaker: float
+    hc_eligible: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -45,15 +49,22 @@ class SignalResult:
             "score": self.score,
             "band": self.band.value,
             "insider_dollar_tiebreaker": self.insider_dollar_tiebreaker,
+            "hc_eligible": self.hc_eligible,
             "gate_diagnostic": self.gate_diagnostic,
             "pillar_diagnostic": self.pillar_diagnostic,
         }
 
 
-def _band(score: int, gate_pass: bool) -> Band:
+def _band(score: int, gate_pass: bool, hc_eligible: bool = True) -> Band:
+    """Map (score, gate_pass, hc_eligible) → surface band.
+
+    A name only lands in High Conviction when its insider P-buy aggregate
+    also clears the cap-normalized HC threshold (max(5 bps × cap, $5M)).
+    Names that score >= 45 but fall short on HC dollar size demote to Watch.
+    """
     if not gate_pass:
         return Band.NOT_SURFACED
-    if score >= HIGH_CONVICTION_THRESHOLD:
+    if score >= HIGH_CONVICTION_THRESHOLD and hc_eligible:
         return Band.HIGH_CONVICTION
     if score >= WATCH_THRESHOLD:
         return Band.WATCH
@@ -70,6 +81,7 @@ def score_ticker(
     insider_history: list[dict[str, Any]],
     require_first_buy: bool = True,
     data_source: str = "memory",
+    market_cap: float | None = None,
 ) -> SignalResult:
     """
     Score one ticker on one date through the full v4.1 pipeline.
@@ -101,6 +113,7 @@ def score_ticker(
         insider_history=insider_history,
         require_first_buy=require_first_buy,
         data_source=data_source,
+        market_cap=market_cap,
     )
     gate_pass = gate_diag["all_pass"]
 
@@ -111,7 +124,15 @@ def score_ticker(
         closes=closes_for_indicators,
     )
     score = pillar_diag["score_final"] if gate_pass else 0
-    band = _band(score, gate_pass)
+    insider_dollar = gate_diag["gate_1_insider"]["total_dollar"]
+
+    # High-Conviction sizing tiebreaker: even a 45+ score is demoted to
+    # Watch if the insider aggregate doesn't clear the cap-normalized HC
+    # threshold (max(5 bps × cap, $5M)). When market_cap is unknown we
+    # fall back to the absolute floor only.
+    hc_threshold = hc_magnitude_threshold(market_cap if market_cap is not None else 0)
+    hc_eligible = bool(gate_pass and insider_dollar >= hc_threshold)
+    band = _band(score, gate_pass, hc_eligible)
 
     return SignalResult(
         ticker=ticker.upper(),
@@ -121,5 +142,6 @@ def score_ticker(
         pillar_diagnostic=pillar_diag,
         score=score,
         band=band,
-        insider_dollar_tiebreaker=gate_diag["gate_1_insider"]["total_dollar"],
+        insider_dollar_tiebreaker=insider_dollar,
+        hc_eligible=hc_eligible,
     )

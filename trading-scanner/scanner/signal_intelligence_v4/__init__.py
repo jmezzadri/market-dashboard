@@ -16,6 +16,8 @@ from scanner.signal_intelligence_v4.gates import (
     apply_gates,
     insider_gate_passes,
     is_first_buy,
+    magnitude_threshold,
+    hc_magnitude_threshold,
     HEDGE_TICKERS,
 )
 from scanner.signal_intelligence_v4.pillars import (
@@ -37,7 +39,9 @@ from scanner.signal_intelligence_v4.score import (
 
 __all__ = [
     # Gates
-    "apply_gates", "insider_gate_passes", "is_first_buy", "HEDGE_TICKERS",
+    "apply_gates", "insider_gate_passes", "is_first_buy",
+    "magnitude_threshold", "hc_magnitude_threshold",
+    "HEDGE_TICKERS",
     # Pillars
     "aggression_pillar", "squeeze_pillar", "momentum_pillar",
     "overbought_red_flag", "score_pillars",
