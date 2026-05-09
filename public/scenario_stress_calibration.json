@@ -1,5 +1,5 @@
 {
-  "_doc": "Phase 2 \u2014 Scenario Stress Calibration. Per-scenario peak-stress values for the indicators feeding the 6 cycle mechanisms. Senior Quant validates / extends each row before producer wires (Phase 2C).",
+  "_doc": "Phase 2 — Scenario Stress Calibration. Per-scenario peak-stress values for the indicators feeding the 6 cycle mechanisms. Senior Quant validates / extends each row before producer wires (Phase 2C).",
   "version": "phase2b-decisions-locked-2026-05-08",
   "framework": "v11 cycle mechanisms",
   "as_of": "2026-05-08",
@@ -20,13 +20,13 @@
         "rule": "For pre-2014 scenarios, use the BEA advance-GDP release for the quarter aligned with the scenario peak in place of GDPNow.",
         "specifics": [
           "Footnote: 'real-time forecast unavailable; realized print used'.",
-          "Already applied in seeded GFC '08 (Q4 '08 \u2248 -8% advance print)."
+          "Already applied in seeded GFC '08 (Q4 '08 ≈ -8% advance print)."
         ]
       },
       "q3_sloos_quarter_alignment": {
         "rule": "For SLOOS C&I tightening, pin to the quarterly survey whose period contains the scenario peak window.",
         "specifics": [
-          "GFC '08 peak Oct '08 \u2192 SLOOS Q4 '08 (released Nov '08).",
+          "GFC '08 peak Oct '08 → SLOOS Q4 '08 (released Nov '08).",
           "Document chosen quarter explicitly in source_note.",
           "Already applied in seeded GFC '08 + COVID '20."
         ]
@@ -36,7 +36,7 @@
         "specifics": [
           "RRP facility launched September 2013; pre-2013 scenarios cannot have a meaningful value.",
           "Set value=null and as_of=null with explanatory source_note.",
-          "GFC '08 seed must be re-seeded \u2014 currently has rrp=0 which mechanically scores as a stress signal and distorts funding mechanism upward.",
+          "GFC '08 seed must be re-seeded — currently has rrp=0 which mechanically scores as a stress signal and distorts funding mechanism upward.",
           "Funding mechanism for pre-2013 scenarios aggregates over 3 inputs (CPFF, STLFSI, bank reserves) instead of 4."
         ]
       },
@@ -46,7 +46,7 @@
           "Same logic as the live cycle-mechanism scorer in scripts/compute_v11_mechanisms.py.",
           "If a mechanism's panel has 4 inputs and a scenario has only 3 calibrated, mechanism score = simple-average of the 3.",
           "No bespoke per-scenario aggregation rules. No imputation from correlated proxies.",
-          "Backtest tolerance bands (\u00b115pp per mechanism, \u00b110 on composite) apply uniformly across scenarios regardless of how many indicators were calibrated."
+          "Backtest tolerance bands (±15pp per mechanism, ±10 on composite) apply uniformly across scenarios regardless of how many indicators were calibrated."
         ]
       }
     }
@@ -203,7 +203,7 @@
   "scenarios": {
     "black_monday_1987": {
       "peak_window": "1987-10-19 to 1987-10-26 (anchor: 1987-10-19 SPX -22.6% close)",
-      "scenario_archetype": "single-day equity shock from a strong real economy \u2014 financial-system shock without macro recession context. Calibrates over 16 of 22 indicators (6 series didn't exist in 1987: STLFSI [1993], ISM Services [1997], SLOOS [1990], SKEW [1990], MOVE [1988], RRP [2013]). Plus 4 substitutes per Q1/Q7/Q8 methodology decisions: VIX\u2192VXO, HY\u2192BAA-Treasury, IG\u2192AAA-Treasury, ERP real-rate via 10y nominal minus contemporary expected inflation.",
+      "scenario_archetype": "single-day equity shock from a strong real economy — financial-system shock without macro recession context. Calibrates over 16 of 22 indicators (6 series didn't exist in 1987: STLFSI [1993], ISM Services [1997], SLOOS [1990], SKEW [1990], MOVE [1988], RRP [2013]). Plus 4 substitutes per Q1/Q7/Q8 methodology decisions: VIX→VXO, HY→BAA-Treasury, IG→AAA-Treasury, ERP real-rate via 10y nominal minus contemporary expected inflation.",
       "calibration_status": "draft",
       "values": {
         "cape": {
@@ -219,42 +219,42 @@
         "buffett": {
           "value": 52,
           "as_of": "1987-12-31",
-          "source_note": "Wilshire 5000 Q4 '87 \u2248 $2.5T / GDP \u2248 $4.8T = ~52% (pre-crash Aug '87 ratio was ~71% \u2014 record at that time)"
+          "source_note": "Wilshire 5000 Q4 '87 ≈ $2.5T / GDP ≈ $4.8T = ~52% (pre-crash Aug '87 ratio was ~71% — record at that time)"
         },
         "hy_oas": {
           "value": 250,
           "as_of": "1987-10-31",
-          "source_note": "Per Q1 substitute: Moody's BAA corporate yield Oct '87 \u2248 11.5% minus 10y Treasury ~9.0% = ~250 bps. Source: FRED BAA + DGS10. BAMLH0A0HYM2 series begins 1996. Tag: proxy."
+          "source_note": "Per Q1 substitute: Moody's BAA corporate yield Oct '87 ≈ 11.5% minus 10y Treasury ~9.0% = ~250 bps. Source: FRED BAA + DGS10. BAMLH0A0HYM2 series begins 1996. Tag: proxy."
         },
         "ig_oas": {
           "value": 150,
           "as_of": "1987-10-31",
-          "source_note": "Per Q7 Senior Quant decision 2026-05-08 (extends Q1 substitute logic to IG): Moody's AAA corporate yield Oct '87 \u2248 10.5% minus 10y Treasury ~9.0% = ~150 bps. Source: FRED AAA + DGS10. BAMLC0A0CM series begins 1996. Tag: proxy."
+          "source_note": "Per Q7 Senior Quant decision 2026-05-08 (extends Q1 substitute logic to IG): Moody's AAA corporate yield Oct '87 ≈ 10.5% minus 10y Treasury ~9.0% = ~150 bps. Source: FRED AAA + DGS10. BAMLC0A0CM series begins 1996. Tag: proxy."
         },
         "ig_hy_ratio": {
           "value": 0.60,
           "as_of": "1987-10-31",
-          "source_note": "derived (150/250) \u2014 both legs use pre-1996 proxies per Q1/Q7"
+          "source_note": "derived (150/250) — both legs use pre-1996 proxies per Q1/Q7"
         },
         "cpff": {
           "value": 80,
           "as_of": "1987-10-31",
-          "source_note": "Post-crash 3M CP-OIS spread spiked. Estimate ~80 bps Oct '87. DRAFT \u2014 verify against FRED CPF3M minus FFTAR archive (CPF3M series may have limited pre-2001 history)."
+          "source_note": "Post-crash 3M CP-OIS spread spiked. Estimate ~80 bps Oct '87. DRAFT — verify against FRED CPF3M minus FFTAR archive (CPF3M series may have limited pre-2001 history)."
         },
         "stlfsi": {
           "value": null,
           "as_of": null,
-          "source_note": "Dropped \u2014 FRED STLFSI4 series begins December 1993. Funding mechanism re-aggregates per Q5 over CPFF + bank reserves (RRP also dropped per Q4)."
+          "source_note": "Dropped — FRED STLFSI4 series begins December 1993. Funding mechanism re-aggregates per Q5 over CPFF + bank reserves (RRP also dropped per Q4)."
         },
         "bank_reserves": {
           "value": 0.04,
           "as_of": "1987-10-31",
-          "source_note": "WRESBAL ~$40B Oct '87 (pre-IOER era structural low \u2014 banks held minimal reserves; Fed didn't pay interest on reserves until 2008)"
+          "source_note": "WRESBAL ~$40B Oct '87 (pre-IOER era structural low — banks held minimal reserves; Fed didn't pay interest on reserves until 2008)"
         },
         "rrp": {
           "value": null,
           "as_of": null,
-          "source_note": "Dropped \u2014 RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08."
+          "source_note": "Dropped — RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08."
         },
         "ism_mfg": {
           "value": 60.4,
@@ -264,7 +264,7 @@
         "ism_svc": {
           "value": null,
           "as_of": null,
-          "source_note": "Dropped \u2014 ISM Non-Manufacturing (Services) PMI series began 1997. Growth mechanism re-aggregates per Q5 over ISM Mfg + GDPNow proxy."
+          "source_note": "Dropped — ISM Non-Manufacturing (Services) PMI series began 1997. Growth mechanism re-aggregates per Q5 over ISM Mfg + GDPNow proxy."
         },
         "gdpnow": {
           "value": 6.9,
@@ -274,7 +274,7 @@
         "anfci": {
           "value": 1.0,
           "as_of": "1987-10-31",
-          "source_note": "Chicago Fed NFCI spiked to ~+1.0 Oct '87 (post-crash financial stress reading; FRED NFCI archive \u2014 series goes back to 1971 weekly)"
+          "source_note": "Chicago Fed NFCI spiked to ~+1.0 Oct '87 (post-crash financial stress reading; FRED NFCI archive — series goes back to 1971 weekly)"
         },
         "fed_bs_yoy": {
           "value": 8.0,
@@ -284,7 +284,7 @@
         "sloos_ci": {
           "value": null,
           "as_of": null,
-          "source_note": "Dropped \u2014 SLOOS survey began 1990. Liquidity & policy mechanism re-aggregates per Q5 over ANFCI + Fed BS YoY + M2 YoY."
+          "source_note": "Dropped — SLOOS survey began 1990. Liquidity & policy mechanism re-aggregates per Q5 over ANFCI + Fed BS YoY + M2 YoY."
         },
         "m2_yoy": {
           "value": 3.0,
@@ -294,28 +294,28 @@
         "skew": {
           "value": null,
           "as_of": null,
-          "source_note": "Dropped \u2014 CBOE SKEW Index began 1990. Positioning & breadth mechanism re-aggregates per Q5 over VIX (substitute VXO) + eq-credit correlation."
+          "source_note": "Dropped — CBOE SKEW Index began 1990. Positioning & breadth mechanism re-aggregates per Q5 over VIX (substitute VXO) + eq-credit correlation."
         },
         "vix": {
           "value": 150,
           "as_of": "1987-10-19",
-          "source_note": "Per Q1 substitute: VXO (Black-Scholes-derived precursor; CBOE constructed retroactively from S&P 100 options) spiked to ~150 on Oct 19 '87 close. DRAFT \u2014 VXO Oct '87 reconstructions vary by source (range 100\u2013150); 150 represents the panic-peak reading. Tag: proxy."
+          "source_note": "Per Q1 substitute: VXO (Black-Scholes-derived precursor; CBOE constructed retroactively from S&P 100 options) spiked to ~150 on Oct 19 '87 close. DRAFT — VXO Oct '87 reconstructions vary by source (range 100–150); 150 represents the panic-peak reading. Tag: proxy."
         },
         "eq_cr_corr": {
           "value": 0.7,
           "as_of": "1987-10-31",
-          "source_note": "60d correlation derived from S&P + Moody's BAA-Treasury proxy (BAMLH0A0HYM2 doesn't exist pre-1996). Estimate ~0.70 in Oct '87 panic. DRAFT \u2014 needs reconstruction in Phase 2C producer using BAA proxy."
+          "source_note": "60d correlation derived from S&P + Moody's BAA-Treasury proxy (BAMLH0A0HYM2 doesn't exist pre-1996). Estimate ~0.70 in Oct '87 panic. DRAFT — needs reconstruction in Phase 2C producer using BAA proxy."
         },
         "move": {
           "value": null,
           "as_of": null,
-          "source_note": "Dropped \u2014 MOVE Index began 1988. Positioning & breadth mechanism re-aggregates per Q5 (already noted under SKEW drop)."
+          "source_note": "Dropped — MOVE Index began 1988. Positioning & breadth mechanism re-aggregates per Q5 (already noted under SKEW drop)."
         }
       }
     },
     "dotcom_slow_2000": {
       "peak_window": "2000-02-01 to 2000-04-30 (anchor: 2000-03-10 Nasdaq peak)",
-      "scenario_archetype": "pre-crash valuation/positioning extreme \u2014 captures peak euphoria, not realized stress (Dot Com Final Flush '02 handles realized-stress side)",
+      "scenario_archetype": "pre-crash valuation/positioning extreme — captures peak euphoria, not realized stress (Dot Com Final Flush '02 handles realized-stress side)",
       "calibration_status": "draft",
       "values": {
         "cape": {
@@ -326,12 +326,12 @@
         "erp": {
           "value": -1.7,
           "as_of": "2000-03-31",
-          "source_note": "Earnings yield 1/CAPE \u2248 2.26% minus 10y TIPS \u2248 4.0% Mar '00 = NEGATIVE ERP. Investors paying for stocks below the risk-free rate \u2014 extreme valuation signal characteristic of 'Lead Up' archetype."
+          "source_note": "Earnings yield 1/CAPE ≈ 2.26% minus 10y TIPS ≈ 4.0% Mar '00 = NEGATIVE ERP. Investors paying for stocks below the risk-free rate — extreme valuation signal characteristic of 'Lead Up' archetype."
         },
         "buffett": {
           "value": 146,
           "as_of": "2000-03-31",
-          "source_note": "Wilshire 5000 / GDP \u2248 146% Mar '00 (record at time per Buffett's 2001 Fortune article)"
+          "source_note": "Wilshire 5000 / GDP ≈ 146% Mar '00 (record at time per Buffett's 2001 Fortune article)"
         },
         "hy_oas": {
           "value": 470,
@@ -356,7 +356,7 @@
         "stlfsi": {
           "value": 0.0,
           "as_of": "2000-03-31",
-          "source_note": "FRED STLFSI4 ~0 Mar '00 (calm \u2014 peak euphoria)"
+          "source_note": "FRED STLFSI4 ~0 Mar '00 (calm — peak euphoria)"
         },
         "bank_reserves": {
           "value": 0.04,
@@ -366,7 +366,7 @@
         "rrp": {
           "value": null,
           "as_of": null,
-          "source_note": "Dropped \u2014 RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08, funding mechanism re-aggregates over CPFF + STLFSI + bank reserves."
+          "source_note": "Dropped — RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08, funding mechanism re-aggregates over CPFF + STLFSI + bank reserves."
         },
         "ism_mfg": {
           "value": 55.7,
@@ -416,7 +416,7 @@
         "eq_cr_corr": {
           "value": 0.40,
           "as_of": "2000-03-31",
-          "source_note": "Equity-credit 60d corr ~0.40 Mar '00 (low \u2014 bull-market complacency, equity and credit decoupled)"
+          "source_note": "Equity-credit 60d corr ~0.40 Mar '00 (low — bull-market complacency, equity and credit decoupled)"
         },
         "move": {
           "value": 115,
@@ -427,7 +427,7 @@
     },
     "dotcom_capitulation_2002": {
       "peak_window": "2002-08-01 to 2002-10-31 (anchor: 2002-10-09 SPX cycle low)",
-      "scenario_archetype": "realized-stress capitulation \u2014 late-cycle credit blowup + earnings fraud (Enron/WorldCom) + telecom bankruptcies; SPX peak-to-trough 2000\u20132002 \u2248 -49%",
+      "scenario_archetype": "realized-stress capitulation — late-cycle credit blowup + earnings fraud (Enron/WorldCom) + telecom bankruptcies; SPX peak-to-trough 2000–2002 ≈ -49%",
       "calibration_status": "draft",
       "values": {
         "cape": {
@@ -438,7 +438,7 @@
         "erp": {
           "value": 2.5,
           "as_of": "2002-10-09",
-          "source_note": "Earnings yield 1/CAPE \u2248 4.76% minus 10y TIPS \u2248 2.3% Oct '02"
+          "source_note": "Earnings yield 1/CAPE ≈ 4.76% minus 10y TIPS ≈ 2.3% Oct '02"
         },
         "buffett": {
           "value": 85,
@@ -478,7 +478,7 @@
         "rrp": {
           "value": null,
           "as_of": null,
-          "source_note": "Dropped \u2014 RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08, funding mechanism re-aggregates over CPFF + STLFSI + bank reserves."
+          "source_note": "Dropped — RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08, funding mechanism re-aggregates over CPFF + STLFSI + bank reserves."
         },
         "ism_mfg": {
           "value": 50.6,
@@ -538,7 +538,7 @@
       }
     },
     "gfc_2008": {
-      "peak_window": "2008-09-15 to 2008-11-20 (Lehman\u2192TARP rescue)",
+      "peak_window": "2008-09-15 to 2008-11-20 (Lehman→TARP rescue)",
       "calibration_status": "seeded",
       "values": {
         "cape": {
@@ -547,9 +547,9 @@
           "source_note": "CAPE bottomed near 13 in Nov 2008 (multpl.com / Shiller data)"
         },
         "erp": {
-          "value": 7.5,
+          "value": 5.2,
           "as_of": "2008-11-30",
-          "source_note": "Earnings yield surge from 13\u00d7 P/E + collapsing 10y TIPS"
+          "source_note": "Earnings yield 1/CAPE = 1/13 = 7.7% minus 10y TIPS Nov '08 ~2.5% = ~5.2% (Senior Quant validation 2026-05-09 — corrected from initial 7.5)"
         },
         "buffett": {
           "value": 58.0,
@@ -582,9 +582,9 @@
           "source_note": "FRED STLFSI4 hit 7.32 Oct 2008 (record)"
         },
         "bank_reserves": {
-          "value": 0.74,
+          "value": 0.84,
           "as_of": "2008-12-31",
-          "source_note": "WRESBAL ~$740B end-2008 (post-QE1 surge)"
+          "source_note": "WRESBAL ~$840B end-Dec 2008 (post-QE1 surge — Senior Quant validation 2026-05-09 corrected from 0.74)"
         },
         "rrp": {
           "value": null,
@@ -607,9 +607,9 @@
           "source_note": "Q4 2008 advance GDP -8.4% (revised; GDPNow not live until 2014, used realized print as proxy)"
         },
         "anfci": {
-          "value": 4.5,
+          "value": 4.0,
           "as_of": "2008-10-31",
-          "source_note": "FRED NFCI peaked >4.0 in Oct 2008"
+          "source_note": "FRED NFCI peaked ~4.0 in Oct 2008 (Senior Quant validation 2026-05-09 — corrected from 4.5)"
         },
         "fed_bs_yoy": {
           "value": 140,
@@ -622,9 +622,9 @@
           "source_note": "Q4 2008 SLOOS net % tightening C&I = 83.6"
         },
         "m2_yoy": {
-          "value": 9.5,
+          "value": 7.5,
           "as_of": "2008-12-31",
-          "source_note": "M2 grew accelerating into year-end"
+          "source_note": "M2 YoY ~+7.5% end-Dec 2008 (FRED M2SL — Senior Quant validation 2026-05-09 corrected from 9.5)"
         },
         "skew": {
           "value": 118,
@@ -642,15 +642,15 @@
           "source_note": "Equity-credit corr near 0.85 at GFC peak"
         },
         "move": {
-          "value": 260,
+          "value": 213,
           "as_of": "2008-10-31",
-          "source_note": "MOVE peaked 260+ Oct 2008"
+          "source_note": "MOVE Index peaked ~213 Oct 2008 (Senior Quant validation 2026-05-09 — corrected from 260; original value likely confused with VIX peak)"
         }
       }
     },
     "q4_2018": {
       "peak_window": "2018-10-03 to 2018-12-24 (anchor: 2018-12-24 SPX cycle low / VIX peak)",
-      "scenario_archetype": "rate-hikes-into-slowdown selloff \u2014 Fed QT + late-cycle ISM rollover + trade tensions; equity peak-to-trough ~20%",
+      "scenario_archetype": "rate-hikes-into-slowdown selloff — Fed QT + late-cycle ISM rollover + trade tensions; equity peak-to-trough ~20%",
       "calibration_status": "draft",
       "values": {
         "cape": {
@@ -661,7 +661,7 @@
         "erp": {
           "value": 2.5,
           "as_of": "2018-12-24",
-          "source_note": "Earnings yield 1/CAPE \u2248 3.5% minus 10y TIPS \u2248 1.0% Dec '18"
+          "source_note": "Earnings yield 1/CAPE ≈ 3.5% minus 10y TIPS ≈ 1.0% Dec '18"
         },
         "buffett": {
           "value": 138.0,
@@ -807,7 +807,7 @@
         "bank_reserves": {
           "value": 3.2,
           "as_of": "2020-04-30",
-          "source_note": "WRESBAL surged $1.7T \u2192 $3.2T post Fed QE infinity"
+          "source_note": "WRESBAL surged $1.7T → $3.2T post Fed QE infinity"
         },
         "rrp": {
           "value": 0,
@@ -830,14 +830,14 @@
           "source_note": "Q2 2020 advance -32.9% annualized"
         },
         "anfci": {
-          "value": 2.8,
+          "value": 2.3,
           "as_of": "2020-03-31",
-          "source_note": "NFCI peaked ~2.80 in late Mar 2020"
+          "source_note": "FRED NFCI peaked ~2.30 in late Mar 2020 (Senior Quant validation 2026-05-09 — corrected from 2.8)"
         },
         "fed_bs_yoy": {
-          "value": 75,
+          "value": 90,
           "as_of": "2020-06-30",
-          "source_note": "WALCL: $4.2T \u2192 $7.2T over Mar-Jun (~75% YoY)"
+          "source_note": "WALCL ~$7.2T Jun 2020 vs ~$3.8T Jun 2019 = +90% YoY (Senior Quant validation 2026-05-09 — corrected from 75; original used Mar→Jun growth rate vs YoY)"
         },
         "sloos_ci": {
           "value": 71,
@@ -845,9 +845,9 @@
           "source_note": "Q2 2020 SLOOS net % tightening C&I = 71.2"
         },
         "m2_yoy": {
-          "value": 18.0,
+          "value": 25.0,
           "as_of": "2020-06-30",
-          "source_note": "M2 surged with stimulus + Fed reserves"
+          "source_note": "M2 surged ~+25% YoY by Jun 2020 with stimulus + Fed reserves (FRED M2SL — Senior Quant validation 2026-05-09 corrected from 18.0)"
         },
         "skew": {
           "value": 135,
@@ -984,7 +984,7 @@
     },
     "ai_2024": {
       "peak_window": "2024-07-01 to 2024-08-09 (anchor: 2024-08-05 Yen carry unwind / VIX spike)",
-      "scenario_archetype": "single-day vol spike on positioning unwind \u2014 Yen carry unwind + AI capex doubts + ISM-Mfg sub-50; 3-week SPX drawdown ~9%",
+      "scenario_archetype": "single-day vol spike on positioning unwind — Yen carry unwind + AI capex doubts + ISM-Mfg sub-50; 3-week SPX drawdown ~9%",
       "calibration_status": "draft",
       "values": {
         "cape": {
@@ -995,12 +995,12 @@
         "erp": {
           "value": 1.1,
           "as_of": "2024-08-05",
-          "source_note": "Earnings yield 1/CAPE \u2248 2.78% minus 10y TIPS \u2248 1.7% Aug '24"
+          "source_note": "Earnings yield 1/CAPE ≈ 2.78% minus 10y TIPS ≈ 1.7% Aug '24"
         },
         "buffett": {
           "value": 195,
           "as_of": "2024-07-31",
-          "source_note": "Wilshire 5000 / GDP \u2248 195% mid-2024 (record territory)"
+          "source_note": "Wilshire 5000 / GDP ≈ 195% mid-2024 (record territory)"
         },
         "hy_oas": {
           "value": 388,
@@ -1025,7 +1025,7 @@
         "stlfsi": {
           "value": -0.3,
           "as_of": "2024-08-31",
-          "source_note": "FRED STLFSI4 ~-0.3 Aug '24 (below average \u2014 calm)"
+          "source_note": "FRED STLFSI4 ~-0.3 Aug '24 (below average — calm)"
         },
         "bank_reserves": {
           "value": 3.4,
