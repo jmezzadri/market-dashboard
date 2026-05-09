@@ -1,0 +1,81 @@
+name: scenario-stress-daily
+
+# Daily compute of Phase 2 scenario-stress mechanism scores. Reads
+# public/scenario_stress_calibration.json (Phase 2A scope + Phase 2B values)
+# and public/indicator_history.json (live full-sample), writes
+# public/scenario_stress.json — the contract the Scenario Analysis page's
+# Cycle Mechanism Results table reads at Phase 2E.
+#
+# Schedule: 23:00 UTC weekdays (30 minutes after cycle-mechanisms-daily, so
+# the live composite has settled before the scenario stress recomputes).
+
+on:
+  schedule:
+    - cron: "0 23 * * 1-5"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "public/scenario_stress_calibration.json"
+      - "scripts/compute_scenario_mechanism_stress.py"
+
+concurrency:
+  group: scenario-stress-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run compute
+        run: python scripts/compute_scenario_mechanism_stress.py
+
+      - name: Verify snapshot is contract-compatible
+        run: |
+          test -s public/scenario_stress.json
+          python -c "
+          import json
+          d = json.load(open('public/scenario_stress.json'))
+          assert d.get('as_of'), 'missing as_of'
+          assert d.get('framework') == 'v11 cycle mechanisms', f'framework mismatch: {d.get(\"framework\")}'
+          assert d.get('calibration_version'), 'missing calibration_version'
+          scenarios = d.get('scenarios', {})
+          assert len(scenarios) >= 8, f'expected >= 8 scenarios, got {len(scenarios)}'
+          for sid, s in scenarios.items():
+              mechs = s.get('mechanisms', [])
+              assert len(mechs) == 6, f'{sid}: expected 6 mechanisms, got {len(mechs)}'
+              for m in mechs:
+                  s_ = m.get('score')
+                  if s_ is not None:
+                      assert isinstance(s_, int) and 0 <= s_ <= 100, f'{sid}/{m.get(\"id\")}: bad score {s_}'
+              comp = s.get('composite_score')
+              if comp is not None:
+                  assert isinstance(comp, int) and 0 <= comp <= 100, f'{sid}: bad composite {comp}'
+          print('OK', d['as_of'], 'scenarios:', len(scenarios))
+          for sid, s in scenarios.items():
+              print(f'  {sid:30s} composite={s[\"composite_score\"]} scored={s[\"indicators_scored_total\"]}')
+          "
+
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name "macrotilt-bot"
+          git config user.email "macrotilt-bot@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain public/scenario_stress.json)" ]]; then
+            git add public/scenario_stress.json
+            git commit -m "scenario-stress-daily: refresh scenario_stress.json [skip ci]"
+            git push origin HEAD:main
+          else
+            echo "No change in public/scenario_stress.json"
+          fi
