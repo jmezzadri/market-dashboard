@@ -1,0 +1,1045 @@
+{
+  "_doc": "Phase 2 \u2014 Scenario Stress Calibration. Per-scenario peak-stress values for the indicators feeding the 6 cycle mechanisms. Senior Quant validates / extends each row before producer wires (Phase 2C).",
+  "version": "phase2-scope-2026-05-08",
+  "framework": "v11 cycle mechanisms",
+  "as_of": "2026-05-08",
+  "indicators": {
+    "cape": {
+      "name": "CAPE (Shiller)",
+      "mechanism": "valuation",
+      "source": "Shiller dataset (Yale)",
+      "direction": "high_is_concerning",
+      "unit": "ratio"
+    },
+    "erp": {
+      "name": "Equity Risk Premium",
+      "mechanism": "valuation",
+      "source": "Shiller dataset (1/CAPE - 10y TIPS)",
+      "direction": "low_is_concerning",
+      "unit": "%"
+    },
+    "buffett": {
+      "name": "Buffett ratio (Wilshire 5000 / GDP)",
+      "mechanism": "valuation",
+      "source": "Wilshire 5000 / BEA GDP",
+      "direction": "high_is_concerning",
+      "unit": "%"
+    },
+    "hy_oas": {
+      "name": "HY OAS",
+      "mechanism": "credit",
+      "source": "ICE BofA via FRED (BAMLH0A0HYM2)",
+      "direction": "high_is_concerning",
+      "unit": "bps"
+    },
+    "ig_oas": {
+      "name": "IG OAS",
+      "mechanism": "credit",
+      "source": "ICE BofA via FRED (BAMLC0A0CM)",
+      "direction": "high_is_concerning",
+      "unit": "bps"
+    },
+    "ig_hy_ratio": {
+      "name": "IG / HY spread ratio",
+      "mechanism": "credit",
+      "source": "derived (IG OAS / HY OAS)",
+      "direction": "low_is_concerning",
+      "unit": "ratio"
+    },
+    "cpff": {
+      "name": "Commercial Paper risk premium (CPFF)",
+      "mechanism": "funding",
+      "source": "FRED (CPFF)",
+      "direction": "high_is_concerning",
+      "unit": "bps"
+    },
+    "stlfsi": {
+      "name": "St. Louis Fed Financial Stress Index",
+      "mechanism": "funding",
+      "source": "FRED (STLFSI4)",
+      "direction": "high_is_concerning",
+      "unit": "std"
+    },
+    "bank_reserves": {
+      "name": "Bank reserves at Fed",
+      "mechanism": "funding",
+      "source": "FRED (WRESBAL)",
+      "direction": "low_is_concerning",
+      "unit": "$T"
+    },
+    "rrp": {
+      "name": "Reverse Repo balance",
+      "mechanism": "funding",
+      "source": "FRED (RRPONTSYD)",
+      "direction": "low_is_concerning",
+      "unit": "$B"
+    },
+    "ism_mfg": {
+      "name": "ISM Manufacturing PMI",
+      "mechanism": "growth",
+      "source": "ISM",
+      "direction": "low_is_concerning",
+      "unit": "index (50=expand)"
+    },
+    "ism_svc": {
+      "name": "ISM Services PMI",
+      "mechanism": "growth",
+      "source": "ISM",
+      "direction": "low_is_concerning",
+      "unit": "index (50=expand)"
+    },
+    "gdpnow": {
+      "name": "Atlanta Fed GDPNow",
+      "mechanism": "growth",
+      "source": "Atlanta Fed",
+      "direction": "low_is_concerning",
+      "unit": "%"
+    },
+    "anfci": {
+      "name": "Chicago Fed ANFCI",
+      "mechanism": "liquidity_policy",
+      "source": "FRED (NFCI)",
+      "direction": "high_is_concerning",
+      "unit": "std"
+    },
+    "fed_bs_yoy": {
+      "name": "Fed Balance Sheet YoY %",
+      "mechanism": "liquidity_policy",
+      "source": "FRED (WALCL YoY %)",
+      "direction": "low_is_concerning",
+      "unit": "%"
+    },
+    "sloos_ci": {
+      "name": "SLOOS C&I lending tightening (net %)",
+      "mechanism": "liquidity_policy",
+      "source": "Fed SLOOS",
+      "direction": "high_is_concerning",
+      "unit": "%"
+    },
+    "m2_yoy": {
+      "name": "M2 Money Supply YoY %",
+      "mechanism": "liquidity_policy",
+      "source": "FRED (M2SL YoY)",
+      "direction": "low_is_concerning",
+      "unit": "%"
+    },
+    "skew": {
+      "name": "CBOE SKEW",
+      "mechanism": "positioning_breadth",
+      "source": "CBOE",
+      "direction": "high_is_concerning",
+      "unit": "index"
+    },
+    "vix": {
+      "name": "VIX",
+      "mechanism": "positioning_breadth",
+      "source": "CBOE",
+      "direction": "high_is_concerning",
+      "unit": "index"
+    },
+    "eq_cr_corr": {
+      "name": "Equity-credit correlation (60d)",
+      "mechanism": "positioning_breadth",
+      "source": "derived (S&P vs HYG)",
+      "direction": "high_is_concerning",
+      "unit": "corr"
+    },
+    "move": {
+      "name": "MOVE Index (Treasury vol)",
+      "mechanism": "positioning_breadth",
+      "source": "ICE BofA",
+      "direction": "high_is_concerning",
+      "unit": "index"
+    }
+  },
+  "scenarios": {
+    "black_monday_1987": {
+      "peak_window": "TBD \u2014 Senior Quant",
+      "calibration_status": "pending",
+      "values": {
+        "cape": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "erp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "buffett": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "hy_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_hy_ratio": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "cpff": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "stlfsi": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "bank_reserves": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "rrp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_mfg": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_svc": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "gdpnow": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "anfci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "fed_bs_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "sloos_ci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "m2_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "skew": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "vix": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "eq_cr_corr": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "move": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        }
+      }
+    },
+    "dotcom_slow_2000": {
+      "peak_window": "TBD \u2014 Senior Quant",
+      "calibration_status": "pending",
+      "values": {
+        "cape": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "erp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "buffett": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "hy_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_hy_ratio": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "cpff": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "stlfsi": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "bank_reserves": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "rrp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_mfg": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_svc": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "gdpnow": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "anfci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "fed_bs_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "sloos_ci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "m2_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "skew": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "vix": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "eq_cr_corr": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "move": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        }
+      }
+    },
+    "dotcom_capitulation_2002": {
+      "peak_window": "TBD \u2014 Senior Quant",
+      "calibration_status": "pending",
+      "values": {
+        "cape": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "erp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "buffett": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "hy_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_hy_ratio": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "cpff": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "stlfsi": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "bank_reserves": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "rrp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_mfg": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_svc": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "gdpnow": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "anfci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "fed_bs_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "sloos_ci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "m2_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "skew": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "vix": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "eq_cr_corr": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "move": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        }
+      }
+    },
+    "gfc_2008": {
+      "peak_window": "2008-09-15 to 2008-11-20 (Lehman\u2192TARP rescue)",
+      "calibration_status": "seeded",
+      "values": {
+        "cape": {
+          "value": 13.0,
+          "as_of": "2008-11-30",
+          "source_note": "CAPE bottomed near 13 in Nov 2008 (multpl.com / Shiller data)"
+        },
+        "erp": {
+          "value": 7.5,
+          "as_of": "2008-11-30",
+          "source_note": "Earnings yield surge from 13\u00d7 P/E + collapsing 10y TIPS"
+        },
+        "buffett": {
+          "value": 58.0,
+          "as_of": "2008-Q4",
+          "source_note": "Wilshire fell ~50% from 2007 peak; GDP modestly down"
+        },
+        "hy_oas": {
+          "value": 1900,
+          "as_of": "2008-12-15",
+          "source_note": "FRED BAMLH0A0HYM2 hit 1971 bps Dec 15 2008"
+        },
+        "ig_oas": {
+          "value": 620,
+          "as_of": "2008-12-08",
+          "source_note": "FRED BAMLC0A0CM peaked ~620 in Dec 2008"
+        },
+        "ig_hy_ratio": {
+          "value": 0.33,
+          "as_of": "2008-12-15",
+          "source_note": "derived (620/1900)"
+        },
+        "cpff": {
+          "value": 275,
+          "as_of": "2008-10-10",
+          "source_note": "3M CP-OIS spread spiked >200bps post-Lehman"
+        },
+        "stlfsi": {
+          "value": 7.3,
+          "as_of": "2008-10-17",
+          "source_note": "FRED STLFSI4 hit 7.32 Oct 2008 (record)"
+        },
+        "bank_reserves": {
+          "value": 0.74,
+          "as_of": "2008-12-31",
+          "source_note": "WRESBAL ~$740B end-2008 (post-QE1 surge)"
+        },
+        "rrp": {
+          "value": 0,
+          "as_of": "2008-12-31",
+          "source_note": "RRP facility didn't exist yet (launched 2013)"
+        },
+        "ism_mfg": {
+          "value": 32.4,
+          "as_of": "2008-12-31",
+          "source_note": "Dec 2008 ISM Mfg = 32.4 (cycle low)"
+        },
+        "ism_svc": {
+          "value": 37.8,
+          "as_of": "2008-11-30",
+          "source_note": "Nov 2008 ISM Services = 37.8 (record low at time)"
+        },
+        "gdpnow": {
+          "value": -8.0,
+          "as_of": "2008-Q4",
+          "source_note": "Q4 2008 advance GDP -8.4% (revised; GDPNow not live until 2014, used realized print as proxy)"
+        },
+        "anfci": {
+          "value": 4.5,
+          "as_of": "2008-10-31",
+          "source_note": "FRED NFCI peaked >4.0 in Oct 2008"
+        },
+        "fed_bs_yoy": {
+          "value": 140,
+          "as_of": "2008-12-31",
+          "source_note": "WALCL grew from $0.9T to $2.2T over 2008 (~140% YoY)"
+        },
+        "sloos_ci": {
+          "value": 83,
+          "as_of": "2008-Q4",
+          "source_note": "Q4 2008 SLOOS net % tightening C&I = 83.6"
+        },
+        "m2_yoy": {
+          "value": 9.5,
+          "as_of": "2008-12-31",
+          "source_note": "M2 grew accelerating into year-end"
+        },
+        "skew": {
+          "value": 118,
+          "as_of": "2008-10-15",
+          "source_note": "CBOE SKEW elevated 115-125 range Oct-Nov 2008"
+        },
+        "vix": {
+          "value": 80.9,
+          "as_of": "2008-11-20",
+          "source_note": "VIX intraday 80.86 Nov 20 2008 (record high)"
+        },
+        "eq_cr_corr": {
+          "value": 0.85,
+          "as_of": "2008-Q4",
+          "source_note": "Equity-credit corr near 0.85 at GFC peak"
+        },
+        "move": {
+          "value": 260,
+          "as_of": "2008-10-31",
+          "source_note": "MOVE peaked 260+ Oct 2008"
+        }
+      }
+    },
+    "q4_2018": {
+      "peak_window": "TBD \u2014 Senior Quant",
+      "calibration_status": "pending",
+      "values": {
+        "cape": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "erp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "buffett": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "hy_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_hy_ratio": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "cpff": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "stlfsi": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "bank_reserves": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "rrp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_mfg": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_svc": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "gdpnow": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "anfci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "fed_bs_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "sloos_ci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "m2_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "skew": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "vix": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "eq_cr_corr": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "move": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        }
+      }
+    },
+    "covid_2020": {
+      "peak_window": "2020-02-19 to 2020-03-23 (5-week selloff)",
+      "calibration_status": "seeded",
+      "values": {
+        "cape": {
+          "value": 24.8,
+          "as_of": "2020-03-23",
+          "source_note": "CAPE bottomed near 24.8 on Mar 23 2020"
+        },
+        "erp": {
+          "value": 4.0,
+          "as_of": "2020-03-23",
+          "source_note": "Earnings yield ~4% + 10y TIPS -0.6%"
+        },
+        "buffett": {
+          "value": 120,
+          "as_of": "2020-03-31",
+          "source_note": "Wilshire fell ~35% from Feb peak; GDP collapsed Q1"
+        },
+        "hy_oas": {
+          "value": 1100,
+          "as_of": "2020-03-23",
+          "source_note": "BAMLH0A0HYM2 peaked 1087 bps Mar 23 2020"
+        },
+        "ig_oas": {
+          "value": 402,
+          "as_of": "2020-03-23",
+          "source_note": "BAMLC0A0CM peaked 402 bps Mar 23 2020"
+        },
+        "ig_hy_ratio": {
+          "value": 0.37,
+          "as_of": "2020-03-23",
+          "source_note": "derived (402/1087)"
+        },
+        "cpff": {
+          "value": 140,
+          "as_of": "2020-03-20",
+          "source_note": "3M CP-OIS spread ~140 bps before Fed CPFF restart"
+        },
+        "stlfsi": {
+          "value": 5.5,
+          "as_of": "2020-03-20",
+          "source_note": "FRED STLFSI4 ~5.50 in Mar 2020"
+        },
+        "bank_reserves": {
+          "value": 3.2,
+          "as_of": "2020-04-30",
+          "source_note": "WRESBAL surged $1.7T \u2192 $3.2T post Fed QE infinity"
+        },
+        "rrp": {
+          "value": 0,
+          "as_of": "2020-03-31",
+          "source_note": "RRP usage minimal during stress"
+        },
+        "ism_mfg": {
+          "value": 41.5,
+          "as_of": "2020-04-30",
+          "source_note": "Apr 2020 ISM Mfg = 41.5"
+        },
+        "ism_svc": {
+          "value": 41.8,
+          "as_of": "2020-04-30",
+          "source_note": "Apr 2020 ISM Services = 41.8"
+        },
+        "gdpnow": {
+          "value": -30.0,
+          "as_of": "2020-Q2",
+          "source_note": "Q2 2020 advance -32.9% annualized"
+        },
+        "anfci": {
+          "value": 2.8,
+          "as_of": "2020-03-31",
+          "source_note": "NFCI peaked ~2.80 in late Mar 2020"
+        },
+        "fed_bs_yoy": {
+          "value": 75,
+          "as_of": "2020-06-30",
+          "source_note": "WALCL: $4.2T \u2192 $7.2T over Mar-Jun (~75% YoY)"
+        },
+        "sloos_ci": {
+          "value": 71,
+          "as_of": "2020-Q2",
+          "source_note": "Q2 2020 SLOOS net % tightening C&I = 71.2"
+        },
+        "m2_yoy": {
+          "value": 18.0,
+          "as_of": "2020-06-30",
+          "source_note": "M2 surged with stimulus + Fed reserves"
+        },
+        "skew": {
+          "value": 135,
+          "as_of": "2020-03-15",
+          "source_note": "SKEW elevated mid-March"
+        },
+        "vix": {
+          "value": 82.7,
+          "as_of": "2020-03-16",
+          "source_note": "VIX intraday 85.5 Mar 18, close 82.7 Mar 16"
+        },
+        "eq_cr_corr": {
+          "value": 0.8,
+          "as_of": "2020-03-31",
+          "source_note": "Equity-credit corr ~0.80 at COVID peak"
+        },
+        "move": {
+          "value": 164,
+          "as_of": "2020-03-09",
+          "source_note": "MOVE peaked 164 Mar 9 2020"
+        }
+      }
+    },
+    "inflation_2022": {
+      "peak_window": "2022-01-03 to 2022-10-12 (peak-to-trough on SPX)",
+      "calibration_status": "seeded",
+      "values": {
+        "cape": {
+          "value": 27.6,
+          "as_of": "2022-10-12",
+          "source_note": "CAPE bottomed ~27.6 Oct 2022"
+        },
+        "erp": {
+          "value": 1.5,
+          "as_of": "2022-10-12",
+          "source_note": "Earnings yield ~3.6% - 10y TIPS ~2.1%"
+        },
+        "buffett": {
+          "value": 150,
+          "as_of": "2022-10-31",
+          "source_note": "Wilshire fell 25% from peak; GDP nominal still growing"
+        },
+        "hy_oas": {
+          "value": 600,
+          "as_of": "2022-09-30",
+          "source_note": "HY OAS peaked ~603 bps Sep-Oct 2022"
+        },
+        "ig_oas": {
+          "value": 165,
+          "as_of": "2022-10-31",
+          "source_note": "IG OAS peaked ~165 bps Oct 2022"
+        },
+        "ig_hy_ratio": {
+          "value": 0.27,
+          "as_of": "2022-10-31",
+          "source_note": "derived (165/600)"
+        },
+        "cpff": {
+          "value": 35,
+          "as_of": "2022-10-31",
+          "source_note": "3M CP-OIS spread modest, ~35 bps"
+        },
+        "stlfsi": {
+          "value": 1.2,
+          "as_of": "2022-10-31",
+          "source_note": "STLFSI4 modestly elevated, ~1.2"
+        },
+        "bank_reserves": {
+          "value": 3.0,
+          "as_of": "2022-12-31",
+          "source_note": "WRESBAL declining, ~$3.0T end-2022"
+        },
+        "rrp": {
+          "value": 2200,
+          "as_of": "2022-12-30",
+          "source_note": "RRP record $2.55T late-Dec 2022 (~$2.2T avg Q4)"
+        },
+        "ism_mfg": {
+          "value": 48.4,
+          "as_of": "2022-12-31",
+          "source_note": "Dec 2022 ISM Mfg = 48.4 (sub-50 contraction)"
+        },
+        "ism_svc": {
+          "value": 49.6,
+          "as_of": "2022-12-31",
+          "source_note": "Dec 2022 ISM Services dipped to 49.6"
+        },
+        "gdpnow": {
+          "value": 2.5,
+          "as_of": "2022-Q4",
+          "source_note": "Q4 2022 advance GDP +2.9%"
+        },
+        "anfci": {
+          "value": 0.3,
+          "as_of": "2022-10-31",
+          "source_note": "NFCI peaked ~0.30 in Oct 2022"
+        },
+        "fed_bs_yoy": {
+          "value": -3.0,
+          "as_of": "2022-12-31",
+          "source_note": "WALCL began QT, -3% YoY by year-end"
+        },
+        "sloos_ci": {
+          "value": 39,
+          "as_of": "2022-Q4",
+          "source_note": "Q4 2022 SLOOS net % tightening C&I = 39.1"
+        },
+        "m2_yoy": {
+          "value": -1.0,
+          "as_of": "2022-12-31",
+          "source_note": "M2 contracted YoY for first time in decades"
+        },
+        "skew": {
+          "value": 135,
+          "as_of": "2022-04-30",
+          "source_note": "SKEW persistently elevated through 2022"
+        },
+        "vix": {
+          "value": 36.5,
+          "as_of": "2022-10-12",
+          "source_note": "VIX peaked 36.5 Oct 12 2022"
+        },
+        "eq_cr_corr": {
+          "value": 0.65,
+          "as_of": "2022-Q4",
+          "source_note": "Equity-credit corr ~0.65 in 2022"
+        },
+        "move": {
+          "value": 160,
+          "as_of": "2022-10-21",
+          "source_note": "MOVE peaked 160 Oct 2022 (UK gilt spillover)"
+        }
+      }
+    },
+    "ai_2024": {
+      "peak_window": "TBD \u2014 Senior Quant",
+      "calibration_status": "pending",
+      "values": {
+        "cape": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "erp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "buffett": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "hy_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_oas": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ig_hy_ratio": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "cpff": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "stlfsi": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "bank_reserves": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "rrp": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_mfg": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "ism_svc": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "gdpnow": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "anfci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "fed_bs_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "sloos_ci": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "m2_yoy": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "skew": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "vix": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "eq_cr_corr": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        },
+        "move": {
+          "value": null,
+          "as_of": null,
+          "source_note": "TBD \u2014 Senior Quant Phase 2B"
+        }
+      }
+    }
+  }
+}
