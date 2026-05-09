@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-05-09T16:39:24.496905+00:00",
+  "generated_at": "2026-05-09T16:44:31.818789+00:00",
   "tolerance_mechanism_pp": 15,
   "tolerance_composite_pp": 10,
-  "mech_fail_count": 6,
+  "mech_fail_count": 4,
   "composite_fail_count": 0,
   "observable_pairs": 25,
   "scenarios": [
@@ -283,9 +283,9 @@
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 92,
+          "predicted": 89,
           "observed": 80,
-          "delta": 12,
+          "delta": 9,
           "verdict": "PASS"
         },
         {
@@ -346,9 +346,9 @@
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 100,
+          "predicted": 81,
           "observed": 85,
-          "delta": 15,
+          "delta": -4,
           "verdict": "PASS"
         },
         {
@@ -377,9 +377,9 @@
         }
       ],
       "composite": {
-        "predicted": 70,
+        "predicted": 66,
         "observed": 62,
-        "delta": 8,
+        "delta": 4,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
@@ -409,10 +409,10 @@
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 73,
+          "predicted": 56,
           "observed": 52,
-          "delta": 21,
-          "verdict": "FAIL"
+          "delta": 4,
+          "verdict": "PASS"
         },
         {
           "mechanism_id": "growth",
@@ -440,9 +440,9 @@
         }
       ],
       "composite": {
-        "predicted": 66,
+        "predicted": 63,
         "observed": 70,
-        "delta": -4,
+        "delta": -7,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4
@@ -472,10 +472,10 @@
         {
           "mechanism_id": "funding",
           "mechanism_name": "03 \u00b7 Funding",
-          "predicted": 60,
+          "predicted": 38,
           "observed": 25,
-          "delta": 35,
-          "verdict": "FAIL"
+          "delta": 13,
+          "verdict": "PASS"
         },
         {
           "mechanism_id": "growth",
@@ -503,9 +503,9 @@
         }
       ],
       "composite": {
-        "predicted": 63,
+        "predicted": 58,
         "observed": 63,
-        "delta": 0,
+        "delta": -5,
         "verdict": "PASS"
       },
       "n_indicators_dropped": 4

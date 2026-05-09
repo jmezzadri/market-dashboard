@@ -154,7 +154,7 @@
             },
             {
               "id": "bank_reserves",
-              "value": 0.04,
+              "value": 40.0,
               "as_of": "1987-10-31",
               "direction": "low_is_concerning",
               "percentile": 0.0,
@@ -402,7 +402,7 @@
             },
             {
               "id": "bank_reserves",
-              "value": 0.04,
+              "value": 40.0,
               "as_of": "2000-03-31",
               "direction": "low_is_concerning",
               "percentile": 0.0,
@@ -667,7 +667,7 @@
             },
             {
               "id": "bank_reserves",
-              "value": 0.04,
+              "value": 40.0,
               "as_of": "2002-10-31",
               "direction": "low_is_concerning",
               "percentile": 0.0,
@@ -932,7 +932,7 @@
             },
             {
               "id": "bank_reserves",
-              "value": 0.84,
+              "value": 840.0,
               "as_of": "2008-12-31",
               "direction": "low_is_concerning",
               "percentile": 0.0,
@@ -1169,7 +1169,7 @@
           "id": "funding",
           "num": "03",
           "name": "Funding",
-          "score": 92,
+          "score": 89,
           "indicators_scored": 4,
           "indicators_panel": 4,
           "indicators": [
@@ -1197,11 +1197,11 @@
             },
             {
               "id": "bank_reserves",
-              "value": 1.6,
+              "value": 1600.0,
               "as_of": "2018-12-31",
               "direction": "low_is_concerning",
-              "percentile": 0.0,
-              "score": 100,
+              "percentile": 14.9,
+              "score": 85,
               "history_key": "bank_reserves",
               "history_sample_size": 801,
               "source_note": "WRESBAL ~$1.6T end-2018 (declining via QT from $2.5T peak)"
@@ -1441,7 +1441,7 @@
           "id": "funding",
           "num": "03",
           "name": "Funding",
-          "score": 100,
+          "score": 81,
           "indicators_scored": 4,
           "indicators_panel": 4,
           "indicators": [
@@ -1469,11 +1469,11 @@
             },
             {
               "id": "bank_reserves",
-              "value": 3.2,
+              "value": 3200.0,
               "as_of": "2020-04-30",
               "direction": "low_is_concerning",
-              "percentile": 0.0,
-              "score": 100,
+              "percentile": 75.5,
+              "score": 24,
               "history_key": "bank_reserves",
               "history_sample_size": 801,
               "source_note": "WRESBAL surged $1.7T \u2192 $3.2T post Fed QE infinity"
@@ -1609,7 +1609,7 @@
           ]
         }
       ],
-      "composite_score": 70,
+      "composite_score": 66,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {
@@ -1713,7 +1713,7 @@
           "id": "funding",
           "num": "03",
           "name": "Funding",
-          "score": 73,
+          "score": 56,
           "indicators_scored": 4,
           "indicators_panel": 4,
           "indicators": [
@@ -1741,11 +1741,11 @@
             },
             {
               "id": "bank_reserves",
-              "value": 3.0,
+              "value": 3000.0,
               "as_of": "2022-12-31",
               "direction": "low_is_concerning",
-              "percentile": 0.0,
-              "score": 100,
+              "percentile": 66.7,
+              "score": 33,
               "history_key": "bank_reserves",
               "history_sample_size": 801,
               "source_note": "WRESBAL declining, ~$3.0T end-2022"
@@ -1881,7 +1881,7 @@
           ]
         }
       ],
-      "composite_score": 66,
+      "composite_score": 63,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {
@@ -1985,7 +1985,7 @@
           "id": "funding",
           "num": "03",
           "name": "Funding",
-          "score": 60,
+          "score": 38,
           "indicators_scored": 4,
           "indicators_panel": 4,
           "indicators": [
@@ -2013,11 +2013,11 @@
             },
             {
               "id": "bank_reserves",
-              "value": 3.4,
+              "value": 3400.0,
               "as_of": "2024-08-31",
               "direction": "low_is_concerning",
-              "percentile": 0.0,
-              "score": 100,
+              "percentile": 88.1,
+              "score": 12,
               "history_key": "bank_reserves",
               "history_sample_size": 801,
               "source_note": "WRESBAL ~$3.4T Aug '24"
@@ -2153,7 +2153,7 @@
           ]
         }
       ],
-      "composite_score": 63,
+      "composite_score": 58,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {
