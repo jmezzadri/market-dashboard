@@ -929,3 +929,32 @@ a:hover { text-decoration: underline; }
 
 /* Home donut tooltip (Joe directive 2026-05-07) */
 .mt-donut-wrap:hover .mt-donut-tip { opacity: 1 !important; }
+
+/* ───────── v2 hero · decorative .arc element (bug #1176) ─────────
+   Every v2 page renders a <div class="arc"><svg><circle/>×8</svg></div>
+   inside its <header class="v2-hero">. Without rules, the SVG circles
+   default to fill: black and the upper-right of the hero shows a
+   solid black quarter-disc that overlaps the hero copy. The intended
+   look is concentric stroked arcs at very low opacity — decorative
+   wallpaper, not foreground ink.
+
+   These rules only target the arc inside .v2-hero so any non-v2 use
+   of the .arc class is left untouched. Inline-styled hero content in
+   the .v2-shell is layered above the arc via z-index.
+   --------------------------------------------------------------- */
+.v2-hero            { position: relative; overflow: hidden; }
+.v2-hero .arc       {
+  position: absolute;
+  top: 0; bottom: 0; right: 0; left: 50%;
+  pointer-events: none;
+  z-index: 0;
+  color: var(--ink-2, #6b7280);
+}
+.v2-hero .arc svg   { width: 100%; height: 100%; display: block; }
+.v2-hero .arc circle {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1;
+  opacity: 0.06;
+}
+.v2-hero > .v2-shell { position: relative; z-index: 1; }
