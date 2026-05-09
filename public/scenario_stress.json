@@ -299,7 +299,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 65,
+          "score": 81,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -330,8 +330,8 @@
               "value": 146,
               "as_of": "2000-03-31",
               "direction": "high_is_concerning",
-              "percentile": 0.0,
-              "score": 0,
+              "percentile": 47.5,
+              "score": 48,
               "history_key": "buffett",
               "history_sample_size": 61,
               "source_note": "Wilshire 5000 / GDP \u2248 146% Mar '00 (record at time per Buffett's 2001 Fortune article)"
@@ -531,7 +531,7 @@
           ]
         }
       ],
-      "composite_score": 62,
+      "composite_score": 65,
       "indicators_scored_total": 16,
       "indicators_dropped": [
         {
@@ -1094,7 +1094,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 20,
+          "score": 33,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -1125,8 +1125,8 @@
               "value": 138.0,
               "as_of": "2018-12-31",
               "direction": "high_is_concerning",
-              "percentile": 0.0,
-              "score": 0,
+              "percentile": 37.7,
+              "score": 38,
               "history_key": "buffett",
               "history_sample_size": 61,
               "source_note": "Wilshire 5000 fell ~20% from Sep '18 peak; ratio ~138% end-Q4"
@@ -1337,7 +1337,7 @@
           ]
         }
       ],
-      "composite_score": 59,
+      "composite_score": 61,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {
@@ -1366,7 +1366,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 7,
+          "score": 13,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -1397,8 +1397,8 @@
               "value": 120,
               "as_of": "2020-03-31",
               "direction": "high_is_concerning",
-              "percentile": 0.0,
-              "score": 0,
+              "percentile": 16.4,
+              "score": 16,
               "history_key": "buffett",
               "history_sample_size": 61,
               "source_note": "Wilshire fell ~35% from Feb peak; GDP collapsed Q1"
@@ -1609,7 +1609,7 @@
           ]
         }
       ],
-      "composite_score": 69,
+      "composite_score": 70,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {
@@ -1638,7 +1638,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 26,
+          "score": 43,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -1669,8 +1669,8 @@
               "value": 150,
               "as_of": "2022-10-31",
               "direction": "high_is_concerning",
-              "percentile": 0.0,
-              "score": 0,
+              "percentile": 52.5,
+              "score": 52,
               "history_key": "buffett",
               "history_sample_size": 61,
               "source_note": "Wilshire fell 25% from peak; GDP nominal still growing"
@@ -1881,7 +1881,7 @@
           ]
         }
       ],
-      "composite_score": 63,
+      "composite_score": 66,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {
@@ -1910,7 +1910,7 @@
           "id": "valuation",
           "num": "01",
           "name": "Equity Valuations",
-          "score": 47,
+          "score": 72,
           "indicators_scored": 3,
           "indicators_panel": 3,
           "indicators": [
@@ -1941,8 +1941,8 @@
               "value": 195,
               "as_of": "2024-07-31",
               "direction": "high_is_concerning",
-              "percentile": 0.0,
-              "score": 0,
+              "percentile": 75.4,
+              "score": 75,
               "history_key": "buffett",
               "history_sample_size": 61,
               "source_note": "Wilshire 5000 / GDP \u2248 195% mid-2024 (record territory)"
@@ -2153,7 +2153,7 @@
           ]
         }
       ],
-      "composite_score": 58,
+      "composite_score": 63,
       "indicators_scored_total": 17,
       "indicators_dropped": [
         {

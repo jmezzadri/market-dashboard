@@ -721,12 +721,17 @@ def fetch_all():
     
     print("Buffett Indicator (buffett, NCBCEL / GDP) — methodology-v11.md ...")
     # Per methodology-v11.md: nonfinancial corporate equity market cap as a percentage of GDP.
-    # FRED NCBCEL is in $bn; GDP also in $bn — ratio × 100 = percent. Both quarterly.
-    ncbcel = safe_fred("NCBCEL")
-    gdp = safe_fred("GDP")
+    # IMPORTANT — unit fix 2026-05-09 (bug surfaced by Phase 2D backtest harness):
+    # FRED NCBCEL is reported in MILLIONS of $; FRED GDP is reported in BILLIONS of $.
+    # The previous formula assumed both were in $bn and produced values 1000× too high
+    # (e.g. Q4 2018 stored as 133,514 instead of the correct ~133.5% of GDP). Convert
+    # NCBCEL to $bn first by dividing by 1000, then take the ratio. Matches the
+    # canonical formula in compute_v11_sprint1_calibration.py line 687.
+    ncbcel = safe_fred("NCBCEL")  # Millions of U.S. Dollars
+    gdp = safe_fred("GDP")          # Billions of U.S. Dollars
     if ncbcel is not None and gdp is not None:
         df = pd.concat([ncbcel.rename("e"), gdp.rename("g")], axis=1).ffill().dropna()
-        ratio = (df["e"] / df["g"]) * 100.0
+        ratio = (df["e"] / 1000.0 / df["g"]) * 100.0  # NCBCEL ($M → $B) / GDP ($B) × 100
         result["buffett"] = {"freq": "Q", "unit": "%",
                               "points": series_to_points(ratio, round_dp=1)}
 
