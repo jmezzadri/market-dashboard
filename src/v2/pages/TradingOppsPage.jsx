@@ -89,6 +89,24 @@ const COLUMNS = [
 const COL_KEYS = COLUMNS.map(c => c.key);
 const DEFAULT_VISIBLE = COLUMNS.filter(c => c.default).map(c => c.key);
 
+// ─── Display helpers ──────────────────────────────────────────────────────
+// Long company names + SIC sector strings push score columns off-screen.
+// Strip trailing descriptors and title-case sector data for visual unity.
+function shortName(name) {
+  if (!name) return "—";
+  return String(name)
+    .replace(/\s+Class\s+[A-Z](\s+Common Stock)?$/i, "")
+    .replace(/\s+Common Stock$/i, "")
+    .replace(/\s+Common Shares$/i, "")
+    .replace(/,\s+(Inc|Ltd|LP|L\.P|Plc|PLC|Corp)\.?$/i, "")
+    .trim();
+}
+function titleCaseSector(s) {
+  if (!s) return "—";
+  return String(s).toLowerCase().replace(/\b(\w)/g, c => c.toUpperCase());
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────
 // localStorage helpers
 // ─────────────────────────────────────────────────────────────────────────
@@ -661,7 +679,19 @@ function renderCell(row, key) {
   if (key === "ticker") return (
     <span style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{row.ticker}</span>
   );
-  if (key === "name" || key === "sector" || key === "ig" || key === "tag" || key === "ins_date" || key === "next_er" || key === "range_52") {
+  if (key === "name") {
+    const display = shortName(v);
+    return <span title={String(v)} style={{ display: "inline-block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
+  }
+  if (key === "sector") {
+    const display = titleCaseSector(v);
+    return <span title={String(v)} style={{ display: "inline-block", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
+  }
+  if (key === "ig") {
+    const display = titleCaseSector(v);
+    return <span title={String(v)} style={{ display: "inline-block", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
+  }
+  if (key === "tag" || key === "ins_date" || key === "next_er" || key === "range_52") {
     return <span>{v || "—"}</span>;
   }
   if (key === "price") return <span>{Number.isFinite(Number(v)) ? `$${Number(v).toFixed(2)}` : "—"}</span>;
@@ -762,7 +792,7 @@ function TickerDossierModal({ row, onClose }) {
           <h2 style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, fontSize: 28, color: "var(--text)", display: "inline-flex", alignItems: "baseline", gap: 12, margin: 0 }}>
             {r.ticker}
             <span style={{ fontSize: 14, color: "var(--text-muted)", fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)", fontWeight: 400 }}>
-              {r.name} · {r.sector}{r.ig && r.ig !== "—" && r.ig !== r.sector ? " · " + r.ig : ""}
+              {shortName(r.name)} · {titleCaseSector(r.sector)}{r.ig && r.ig !== "—" && r.ig !== r.sector ? " · " + titleCaseSector(r.ig) : ""}
             </span>
           </h2>
           <button
@@ -786,7 +816,7 @@ function TickerDossierModal({ row, onClose }) {
             <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
               <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>Market Cap</div>
               <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, fontSize: 22, color: "var(--text)" }}>{fmtMcap(r.mcap)}</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{r.ig && r.ig !== "—" ? r.ig : r.sector}</div>
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{r.ig && r.ig !== "—" ? titleCaseSector(r.ig) : titleCaseSector(r.sector)}</div>
             </div>
             <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
               <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>MT Score</div>
