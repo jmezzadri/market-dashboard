@@ -34,6 +34,7 @@ import pytest
 
 from scanner.signal_intelligence_v5.composite import (
     DEFAULT_WEIGHTS,
+    EQUAL_WEIGHTS,
     SIGNAL_KEYS,
     _apply_cap_discount,
     assign_band,
@@ -103,8 +104,9 @@ def test_cap_discount_redistribution_sums_to_one_at_all_caps():
 
 
 def test_cap_discount_redistribution_at_50b_halves_insider_grows_others():
+    # Use EQUAL_WEIGHTS (Phase 2 baseline) — Phase 3 DEFAULT is calibrated.
     factor = insider_weight_factor(50_000_000_000)
-    out = _apply_cap_discount(dict(DEFAULT_WEIGHTS), factor)
+    out = _apply_cap_discount(dict(EQUAL_WEIGHTS), factor)
     # Insider weight halved: 1/6 * 0.5 = 1/12
     assert out["insider"] == pytest.approx(1.0 / 12.0, abs=1e-9)
     # Other five share the freed 1/12 equally, each gets 1/6 + 1/60 = 11/60
@@ -137,6 +139,7 @@ def test_all_subscores_at_minus_50_yields_minus_50():
 
 def test_mixed_subscores_matches_weighted_average_at_floor():
     # At $500M cap, factor = 1.0 -> straight equal-weight average.
+    # Use EQUAL_WEIGHTS (Phase 2 baseline) — Phase 3 DEFAULT is calibrated.
     subs = {
         "insider":        80,
         "options":        20,
@@ -146,7 +149,7 @@ def test_mixed_subscores_matches_weighted_average_at_floor():
         "short_interest": -30,
     }
     expected = sum(subs.values()) / 6  # 100/6 = 16.666...
-    out = compute_composite(subs, market_cap=500_000_000)
+    out = compute_composite(subs, market_cap=500_000_000, weights=EQUAL_WEIGHTS)
     assert out["mt_score"] == pytest.approx(round(expected, 2), abs=0.01)
 
 
@@ -226,8 +229,8 @@ def test_cap_discount_reduces_insider_influence_at_megacap():
         "analyst":         50,
         "short_interest":  50,
     }
-    small = compute_composite(subs, market_cap=500_000_000)
-    mega = compute_composite(subs, market_cap=4_000_000_000_000)
+    small = compute_composite(subs, market_cap=500_000_000, weights=EQUAL_WEIGHTS)
+    mega = compute_composite(subs, market_cap=4_000_000_000_000, weights=EQUAL_WEIGHTS)
 
     # At $500M no discount: equal-weight average = (-100+5*50)/6 = 25.0
     assert small["mt_score"] == pytest.approx(25.0, abs=0.1)

@@ -79,8 +79,22 @@ SIGNAL_KEYS: list[str] = [
     "short_interest",
 ]
 
-# Equal-weight v1 — each signal carries 1/6 of the score.
-DEFAULT_WEIGHTS: dict[str, float] = {k: 1.0 / 6.0 for k in SIGNAL_KEYS}
+# Equal-weight v1 (original Phase 2 default).
+EQUAL_WEIGHTS: dict[str, float] = {k: 1.0 / 6.0 for k in SIGNAL_KEYS}
+
+# Phase 3 calibrated weights (Run C-floored), derived from per-signal
+# bullish + bearish alpha × hit-rate calibration on the 52-week 2025-05
+# to 2026-05 walk-forward, with a 1/6 baseline floor preserved for
+# signals that did not have enough historical data to score.
+# See V5_BACKTEST_REPORT_2026-05-10.md Section 5 for the math.
+DEFAULT_WEIGHTS: dict[str, float] = {
+    "insider":        0.3630,   # 36.30% — best signal: +7.18% alpha when strong, 61% hit rate
+    "options":        0.1667,   # 16.67% — 1/6 floor (historical data only on 2026-05-10)
+    "congress":       0.1667,   # 16.67% — 1/6 floor (only 13 strong-signal obs across the year)
+    "technicals":     0.0869,   # 8.69%  — calibrated: +3.42% alpha when strong, 56% hit rate
+    "analyst":        0.0500,   # 5.00%  — calibrated: +1.65% alpha when strong, 56.6% hit rate
+    "short_interest": 0.1667,   # 16.67% — 1/6 floor (only 93 tickers populated)
+}
 
 # Insider cap-discount anchors (per Joe's locked spec).
 CAP_DISCOUNT_FLOOR_USD = 500_000_000      # below this -> factor 1.00
