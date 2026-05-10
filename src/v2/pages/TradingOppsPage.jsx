@@ -1135,13 +1135,13 @@ export default function TradingOppsPage() {
             Trading Opps: failed to load scan ({error}).
           </div>
         )}
-        {!loading && !error && rows.length === 0 && (
+        {!loading && !error && allRows.length === 0 && (
           <div style={{ padding: 32, color: "var(--text-muted)", fontSize: 13, textAlign: "center", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", background: "var(--surface)" }}>
             No scan data yet — the daily scan runs tonight. Once it completes, the universe and the surface bands will populate here automatically.
           </div>
         )}
 
-        {!loading && !error && rows.length > 0 && (
+        {!loading && !error && allRows.length > 0 && (
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", overflow: "hidden" }}>
             <div style={{ overflowX: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 1400 }}>
