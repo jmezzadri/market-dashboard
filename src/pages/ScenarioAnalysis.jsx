@@ -624,10 +624,23 @@ const STYLES = `
 .scenarios-page .demo-banner { background:rgba(216,178,122,.15); border:1px dashed var(--accent-parchment); padding:8px 14px; border-radius:var(--r-sm); margin-bottom:var(--s-4); font-size:12px; font-family:var(--font-ui); color:var(--ink-1); }
 .scenarios-page .demo-banner b { color:var(--accent-burgundy); }
 
+/* ── bespoke shock sliders (added 2026-05-10 — were missing entirely) ── */
+.scenarios-page .sliders { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 24px; margin-top:var(--s-3); }
+.scenarios-page .slider-row { display:grid; grid-template-columns:28px 120px 1fr 60px; align-items:center; gap:10px; padding:6px 8px; border-radius:var(--r-sm); }
+.scenarios-page .slider-row:hover { background:var(--bg-2); }
+.scenarios-page .slider-row.pinned { background:rgba(216,178,122,.10); }
+.scenarios-page .slider-row.driver { background:rgba(184,70,47,.06); border-left:2px solid var(--accent-burgundy); }
+.scenarios-page .slider-row .pin { background:transparent; border:none; cursor:pointer; font-size:14px; padding:2px 4px; color:var(--ink-2); }
+.scenarios-page .slider-row .pin:hover { color:var(--ink-0); }
+.scenarios-page .slider-row .slider-label { font-family:var(--font-ui); font-size:12px; color:var(--ink-1); font-weight:500; }
+.scenarios-page .slider-row input[type="range"] { width:100%; accent-color:var(--accent-burgundy); }
+.scenarios-page .slider-row .slider-val { font-family:var(--font-ui); font-variant-numeric:tabular-nums; font-size:12px; color:var(--ink-0); text-align:right; font-weight:500; }
+
 @media (max-width: 980px) {
   .scenarios-page .output-grid { grid-template-columns:1fr; }
   .scenarios-page .factor-grid { grid-template-columns:1fr; }
   .scenarios-page .tab-head { flex-direction:column; align-items:flex-start; gap:var(--s-3); }
+  .scenarios-page .sliders { grid-template-columns:1fr; }
 }
 `;
 
@@ -937,7 +950,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
   return (
     <>
-      <main style={{ maxWidth: 1216, margin: "0 auto", padding: "24px 32px 48px" }}>
+      <style dangerouslySetInnerHTML={{ __html: STYLES }} />
+      <main className="scenarios-page" style={{ maxWidth: 1216, margin: "0 auto", padding: "24px 32px 48px" }}>
         {/* HERO — eyebrow + h1 + subtitle on left, Scenario Selection card on right.
             Matches MO/AT/TO hero spec (PR #483). */}
         <section style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:36, alignItems:"start", marginBottom:32 }}>
