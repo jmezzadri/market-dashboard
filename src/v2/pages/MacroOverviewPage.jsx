@@ -511,6 +511,9 @@ export default function MacroOverviewPage() {
           </svg>
         </div>
         <div className="v2-shell">
+          <div style={{ marginBottom: 8 }}>
+            <span className="t-eyebrow" style={{ color: 'var(--ink-2)', letterSpacing: '.10em' }}>v11 · legacy hero · v2 panel below is the new primary read</span>
+          </div>
           <div className="v2-hero-row">
             <h1 className="t-display" style={{ margin: 0, color: 'var(--ink-0)' }}>{headlineState}.</h1>
             <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />

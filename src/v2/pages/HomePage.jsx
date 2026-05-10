@@ -48,6 +48,15 @@ function navTo(hash) {
 }
 
 export default function HomePage() {
+  // v2 spec PR 3.1 — Home macro tile shows 3 v2 headlines @ 6m alongside the
+  // legacy composite + 6-mechanism mini bar (legacy stays during transition).
+  const [cycleV2, setCycleV2] = useState(null);
+  useEffect(() => {
+    fetch("/cycle_v2.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
+      .then(setCycleV2)
+      .catch((err) => { console.warn("[Home · v2 PR 3.1] cycle_v2.json fetch failed", err); });
+  }, []);
   const { snap, v10, scan, err } = useHomeData();
   const { user, loading: authLoading } = useSession();
   const greetingName = user
@@ -156,21 +165,38 @@ export default function HomePage() {
             <p style={{ color:'var(--ink-1)', fontSize:14, lineHeight:1.55, paddingBottom:16, borderBottom:'1px solid var(--line-0)', margin:0 }}>
               {snap?.headline || `${mechs.length} mechanism${mechs.length===1?'':'s'} live · ${mechs.filter((m)=>m.concerning_count > 0).length} above Neutral.`}
             </p>
-            <div style={{ display:'grid', gridTemplateColumns:'repeat(6, 1fr)', gap:6, marginTop:14 }}>
-              {['valuation','credit','funding','growth','liquidity_policy','positioning_breadth'].map((id) => {
-                const m = mechs.find((x) => x.id === id);
-                const sb = scoreBand(m?.score);
-                const labelMap = { valuation:'Val', credit:'Credit', funding:'Funding', growth:'Growth', liquidity_policy:'Liq&Pol', positioning_breadth:'Pos&Br' };
-                return (
-                  <div key={id} style={{ background:'var(--bg-2)', borderRadius:8, padding:'10px 8px', textAlign:'center', borderTop:`2px solid ${m ? `var(--${sb.cls === 'r-off' ? 'down' : sb.cls === 'r-cau' ? 'warn' : sb.cls === 'r-on' ? 'up' : sb.cls === 'r-neu' ? 'info' : 'ink-3'})` : 'var(--ink-3)'}`, opacity: m ? 1 : .55 }}>
-                    <div style={{ fontSize:9, letterSpacing:'.1em', textTransform:'uppercase', color:'var(--ink-2)', fontWeight:500, marginBottom:6, lineHeight:1.2, minHeight:22, display:'flex', alignItems:'center', justifyContent:'center' }}>{labelMap[id]}</div>
-                    <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:22, color:m ? 'var(--ink-0)' : 'var(--ink-3)', fontFeatureSettings:'"tnum"', lineHeight:1 }}>
-                      {m?.score != null ? Math.round(m.score) : '—'}
-                    </div>
+            {cycleV2 && cycleV2.headlines && (
+              <div style={{ marginTop: 14 }}>
+                <div style={{ fontSize:9, letterSpacing:'.1em', textTransform:'uppercase', color:'var(--ink-2)', fontWeight:500, marginBottom:6 }}>
+                  v2 @ 6m
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6 }}>
+                  {[
+                    { id: 'cycle_value',   short: 'Setup'   },
+                    { id: 'market_stress', short: 'Stress'  },
+                    { id: 'real_economy', short: 'Real Econ' },
+                  ].map(({ id, short }) => {
+                    const h = cycleV2.headlines[id];
+                    const v = h && h.scores_by_horizon ? h.scores_by_horizon['6m'] : null;
+                    const tone = v == null ? 'ink-3' : v < 25 ? 'up' : v < 50 ? 'info' : v < 75 ? 'warn' : 'down';
+                    return (
+                      <div key={id} style={{ background:'var(--bg-2)', borderRadius:8, padding:'10px 8px', textAlign:'center', borderTop:`2px solid var(--${tone})` }}>
+                        <div style={{ fontSize:9, letterSpacing:'.1em', textTransform:'uppercase', color:'var(--ink-2)', fontWeight:500, marginBottom:6, lineHeight:1.2, minHeight:22, display:'flex', alignItems:'center', justifyContent:'center' }}>{short}</div>
+                        <div style={{ fontFamily:'Inter,system-ui,-apple-system,sans-serif', fontSize:22, color: v == null ? 'var(--ink-3)' : 'var(--ink-0)', fontFeatureSettings:'"tnum"', lineHeight:1 }}>
+                          {v == null ? '—' : v}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {cycleV2.regimes && cycleV2.regimes['6m'] && (
+                  <div style={{ marginTop: 10, fontSize: 11, color: 'var(--ink-2)' }}>
+                    <strong style={{ color: 'var(--ink-0)', fontWeight: 600 }}>{cycleV2.regimes['6m'].label}</strong>
+                    {' · '}{cycleV2.regimes['6m'].recommended_action}
                   </div>
-                );
-              })}
-            </div>
+                )}
+              </div>
+            )}
           </article>
 
           {/* CARD 2 · ASSET TILT (with sector mini-list folded in) */}
