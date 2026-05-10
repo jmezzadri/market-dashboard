@@ -160,3 +160,85 @@ The full Run B as proposed should not ship. The HC band (4 signals total, 0% win
 ---
 
 *Run with `python3 trading-scanner/scripts/run_v4_backtest.py --run A|B --output ...` on commit 9f45ca8 of `feature/quant-v4-harness-phase-3-execute`. Raw outputs at `/Users/joemezzadri/Documents/market-dashboard/v4_backtest_run_{A,B}.parquet`.*
+
+---
+
+## Section 8 — Run C: $8B universe validation
+
+**Decision:** Joe asked for a third run that holds the cap-normalized magnitude rule fixed and trims the universe ceiling to $8B (the SMID-cap zone, dropping the $8B-$25B band where Run B beat SPY only 41.2% of the time). Section 7's recommendation suggested $300M-$8B as a candidate; Run C tests whether that holds up versus Run A's tighter $300M-$3B core.
+
+### 8.1 Three-way head-to-head
+
+All metrics across the same 52-week scan window (2025-05-12 → 2026-05-04). Sharpe is computed on the equal-weighted basket of signals per scan date, restricted to scan dates with realized 21-day forward returns (matches the SPY benchmark convention in Section 2.5).
+
+| Metric                              |     SPY | Run A ($3B + abs floor) | Run B ($25B + capnorm) | **Run C ($8B + capnorm)** |
+| :---------------------------------- | ------: | ----------------------: | ---------------------: | ------------------------: |
+| Total signals                       |       — |                      83 |                    153 |                       **133** |
+| Realized signals                    |      48 |                      70 |                    135 |                       **118** |
+| Mean 21-day return                  |  +1.80% |                  +8.68% |                 +6.92% |                   **+7.24%** |
+| Win rate (21-day > 0)               |   77.1% |                   74.3% |                  65.2% |                   **66.9%** |
+| Sharpe (annualized, sqrt(12))       |    1.93 |                    0.97 |                   0.69 |                   **0.68** |
+| Max DD (compounded EW basket)       |  -15.8% |                  -82.1% |                 -75.9% |                   **-81.7%** |
+| Beats SPY (per-signal)              |       — |                   62.9% |                  55.6% |                   **57.6%** |
+| Mean alpha vs SPY (per signal)      |       — |               +7.21 pp  |              +5.35 pp |                   **+5.71 pp** |
+
+**Reading the table.** Run C sits between A and B but is closer to B than to A. Trimming the universe from $25B to $8B picks up 0.3 pp of mean return, 1.7 pp of win rate, and 0.4 pp of mean alpha vs Run B — small wins, all in the right direction. But Run C is decisively worse than Run A on every risk-adjusted metric: Sharpe 0.68 vs 0.97 (-30%), win rate 66.9% vs 74.3% (-7.4 pp), alpha vs SPY +5.71 pp vs +7.21 pp (-1.5 pp), and beats-SPY rate 57.6% vs 62.9% (-5.3 pp). The universe expansion from $3B to $8B does not pay for itself — the alpha-per-trade dilution from the $2B-$8B band exceeds the value of the extra signals.
+
+### 8.2 Cap-bucket breakdown (Run C only)
+
+| Cap bucket    | Signals (realized) | Mean 21-day return | Win rate | Mean SPY return on those dates | Mean alpha | % beat SPY |
+| :------------ | -----------------: | -----------------: | -------: | -----------------------------: | ---------: | ---------: |
+| $300M – $2B   |                 59 |          **+9.78%** |    74.6% |                         +1.49% | **+8.29 pp** |     62.7% |
+| $2B – $8B     |                 59 |              +4.71% |    59.3% |                         +1.57% |   +3.14 pp  |     **52.5%** |
+
+**Plain English.** The $300M-$2B bucket is doing all the work. Its +8.29 pp alpha at a 63% beat rate is real outperformance — exactly what the theory predicts (insider buying as a small-cap-specific information edge). The $2B-$8B bucket is +3.14 pp alpha at a 53% beat rate — barely better than coin flip. This is the same pattern Section 3 showed for Run B's mid-cap bucket; Run C adding signals here does not change the underlying physics. The narrowing from $8B-$25B to $8B does prevent the worst dilution (Run B's $8B-$25B bucket beat SPY only 41.2%), but the $2B-$8B bucket alone still drags the headline below Run A.
+
+### 8.3 Names enabled by Run C vs Run A
+
+Run C adds 50 (scan_date, ticker) signals not in Run A. Of these, 36 are in the $3B-$8B universe expansion zone (genuinely new — Run A's universe stops at $3B); the other 14 are in the $300M-$3B range but cleared the cap-normalized $500k floor while failing the absolute $1M floor. Top 10 in the $3B-$8B band by realized 21-day return:
+
+| Scan date  | Ticker | Mkt cap on date | Score | Band  | Insider $ aggregate | 21-day fwd |
+| :--------- | :----- | --------------: | ----: | :---- | ------------------: | ---------: |
+| 2025-11-03 | APGE   |          $3.78B |    20 | Watch |            $60.75M  | **+37.17%** |
+| 2025-09-08 | LUMN   |          $5.27B |    20 | Watch |             $1.39M  |    +34.96% |
+| 2025-08-11 | REZI   |          $4.16B |    20 | Watch |            $35.69M  |    +31.78% |
+| 2025-08-18 | REZI   |          $4.81B |    20 | Watch |            $65.35M  |    +24.66% |
+| 2026-02-09 | RAL    |          $4.61B |    25 | Watch |             $1.18M  |    +11.15% |
+| 2025-06-23 | GBDC   |          $3.75B |    25 | Watch |           $319.00M  |     +8.63% |
+| 2025-12-22 | AVTR   |          $7.67B |    25 | Watch |             $5.82M  |     +4.98% |
+| 2025-08-18 | TFX    |          $5.31B |    20 | Watch |             $1.46M  |     +4.81% |
+| 2025-08-18 | AUB    |          $4.81B |    20 | Watch |             $1.25M  |     +4.79% |
+| 2025-11-24 | RHP    |          $5.93B |    20 | Watch |             $1.99M  |     +3.90% |
+
+Notes: REZI (Resideo Technologies) hit twice on consecutive Mondays. APGE (Apogee Therapeutics) had the largest insider concentration ($60.75M) and the biggest payoff (+37.17%). The top of the list looks fine; the bottom of the list (single-digit returns at ~$5B caps) is consistent with Run B's $2B-$8B bucket being only marginally above SPY — the median signal in this band is mediocre, the tails do the work.
+
+### 8.4 Recommendation
+
+**Ship Run A's universe with cap-normalized magnitude — i.e., $300M-$3B + capnorm. Do not ship Run C.**
+
+Three configurations are now on the table:
+
+| Configuration                              | Signals | Mean ret | Win rate | Sharpe | Beats SPY | Alpha    |
+| :----------------------------------------- | ------: | -------: | -------: | -----: | --------: | -------: |
+| Run A ($300M-$3B + absolute $1M floor)     |      83 |   +8.68% |    74.3% |   0.97 |     62.9% | +7.21 pp |
+| **$300M-$3B + capnorm (Run A spec + capnorm)** |  **97** | **+10.06%** | **76.2%** | **0.99** | **65.5%** | **+8.62 pp** |
+| Run C ($300M-$8B + capnorm)                |     133 |   +7.24% |    66.9% |   0.68 |     57.6% | +5.71 pp |
+
+The middle row — Run A's universe with the cap-normalized magnitude rule swapped in — is the dominating configuration on every metric except total signal count. It is a strict superset of Run A's signals (every Run A signal also fires here, plus 14 small-cap names that the old absolute $1M floor blocked at sub-$500M caps where the cap-normalized $500k floor lets them through). Those 14 added names are pulling the headline up: mean return rises from +8.68% to +10.06%, win rate rises from 74.3% to 76.2%, alpha vs SPY rises from +7.21 pp to +8.62 pp. The Sharpe is essentially unchanged (0.99 vs 0.97). This is what the cap-normalization was designed to do — read $500k of insider buying at a $300M company as material conviction without lowering the bar at the larger end of the cap range.
+
+The decision question Joe asked — "does Run C beat Run A AND beat SPY meaningfully?" — answers as: Run C does beat SPY meaningfully (+5.71 pp alpha at a 57.6% beat rate is real outperformance), but it does NOT beat Run A on alpha-per-trade, win rate, Sharpe, or beats-SPY rate. The 50 extra signals Run C generates relative to Run A are not pulling their weight; the average new $3B-$8B signal returns less than the average $300M-$3B signal and beats SPY less often.
+
+**Honest framing — alpha-per-trade vs total alpha across more trades.** This is the real choice Joe is being asked to make, and both numbers point the same way:
+
+- **Alpha per signal (intensity):** Run A spec + capnorm gives **+8.62 pp** of alpha per signal at a **65.5%** beat rate. Run C gives +5.71 pp at 57.6%. The tighter spec wins by 2.9 pp per signal.
+- **Total alpha across all signals (volume × intensity):** if you sum (signal alpha × number of signals) and divide by SPY's mean to express in SPY-units of edge, Run A spec + capnorm delivers ~836 pp-signal-units of total alpha (97 × 8.62) versus Run C's ~759 pp-signal-units (133 × 5.71). Even though Run C fires 36 more signals, the per-signal dilution drags the volume-adjusted total below the tighter spec.
+
+There is no horizon on which Run C wins. The only reason to ship Run C would be if Joe specifically wants more weekly signal volume for diversification reasons (more lottery tickets), accepting lower alpha per ticket. The data does not support that trade — the extra tickets are losing tickets on average.
+
+The $2B-$8B sub-bucket finding is what kills Run C: 52.5% beats-SPY rate is statistically indistinguishable from a coin flip. We are paying real return-dispersion cost (the bigger names contribute volatility that drags the Sharpe) for a near-zero expected-alpha edge. The $8B-$25B bucket in Run B was even worse (41.2%); trimming it helped, but the $2B-$8B bucket is still not pulling its weight.
+
+**Ship the cap-normalized magnitude rule. Keep the universe at $300M-$3B.** This is a single-lever change from current production: the magnitude floor moves from `$1M absolute` to `max(2 bps × cap, $500k)`. It captures all 14 newly-eligible small-cap names without admitting any large-cap dilution. The HC band stays cap-normalized at `max(5 bps × cap, $5M)` (no change there). PR #510 already implements this; it should ship as proposed for the magnitude logic, but the universe ceiling change in PR #510 should be reverted to $3B before shipping.
+
+---
+
+*Run C executed via the same harness as Run A/B (`python3 trading-scanner/scripts/run_v4_backtest.py --run C --output ...`) — the new `--run C` preset uses universe $300M-$8B, `magnitude_mode='capnorm'`, `require_first_buy=True`. The Run C parquet was derived directly from the Run B parquet by filtering market_cap to <= $8B, since the harness's pillar/gate/score logic and the Phase 1 inputs are identical between B and C inside the overlapping cap band — every Run B row with cap in [$300M, $8B] is bit-for-bit a valid Run C row. This was verified against 17 dates run natively through the harness on commit `feature/quant-v4-harness-phase-4-run-c-validation`; zero discrepancies. SPY benchmark recomputed from yfinance daily closes (auto_adjust=False) to match Section 2.5's UW-sourced numbers; SPY mean +1.80% / Sharpe 1.93 / DD -15.8% reconciles to within rounding. Raw Run C parquet at `/Users/joemezzadri/Documents/market-dashboard/v4_backtest_run_C.parquet`.*
