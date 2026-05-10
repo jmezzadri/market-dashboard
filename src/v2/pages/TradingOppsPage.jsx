@@ -157,6 +157,31 @@ function dayClass(v) {
 // joins ticker_reference + universe_snapshots in two follow-up queries.
 // ─────────────────────────────────────────────────────────────────────────
 
+// Normalize gate_diagnostic shape from scanner output to the keys the
+// page reads. Scanner emits gate_1_insider/gate_2_liquidity/gate_3_anti_hedge
+// (per signal_intelligence_v4/gates.py); the page reads insider_first_buy /
+// liquidity / index_hedge. Translate once here so the rest of the component
+// stays stable to a future scanner-side rename.
+function normalizeGateDiagnostic(gd) {
+  if (!gd || typeof gd !== "object") return gd;
+  if (gd.insider_first_buy || gd.liquidity || gd.index_hedge) return gd;
+  const ins = gd.gate_1_insider || {};
+  const out = { ...gd };
+  out.insider_first_buy = {
+    pass: ins.passes === true,
+    has_p_buy_30d: (ins.p_buys_in_window || 0) > 0 || ins.passes === true,
+    latest_buy_date: ins.latest_buy_date || null,
+    total_dollar: ins.total_dollar ?? null,
+    unique_p_buyers: ins.unique_p_buyers ?? null,
+    first_buyers: ins.first_buyers || [],
+    magnitude_passes: ins.magnitude_passes === true,
+    magnitude_threshold: ins.magnitude_threshold ?? null,
+  };
+  out.liquidity = { pass: gd.gate_2_liquidity === true };
+  out.index_hedge = { pass: gd.gate_3_anti_hedge === true };
+  return out;
+}
+
 function shapeRow(scan, ref, snap) {
   let group = "fail";
   const band = scan?.band;
@@ -255,7 +280,8 @@ function useScanData() {
           .order("score", { ascending: false });
         if (cancelled) return;
         if (scanRes.error) throw scanRes.error;
-        const scanRows = scanRes.data || [];
+        const rawRows = scanRes.data || [];
+        const scanRows = rawRows.map(r => ({ ...r, gate_diagnostic: normalizeGateDiagnostic(r.gate_diagnostic) }));
 
         const tickers = scanRows.map(r => r.ticker);
         const TICK_BATCH = 800;
