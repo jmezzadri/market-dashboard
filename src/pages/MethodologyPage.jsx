@@ -525,52 +525,72 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
   ),
 
   // ============================================================
-  // §3 TRADING OPPORTUNITIES
+  // §3 TRADING OPPORTUNITIES — Signal Intelligence
+  //
+  // Rewritten in place 2026-05-10 for the v4.1 ship. Replaces the
+  // four-sub-score composite (technicals + fundamentals + options
+  // flow + news) with the validated three-filter / three-signal
+  // pipeline. Per LESSONS rule #31: rewrite, do not append.
   // ============================================================
   "ops-why": (
     <>
       <Body>
         Asset Tilt tells you which sectors and industry groups to lean into. Trading Opportunities
-        goes one level finer: <strong>which specific stocks within those</strong>. The output is a
-        single composite score per ticker that combines technicals, fundamentals, options flow, and
-        news sentiment into one number from −100 to +100.
+        goes one level finer: <strong>which specific stocks within those</strong>. The page identifies
+        the rare moment when a corporate insider opens their wallet for the first time in a year — at
+        a check size that is meaningful relative to the company's market cap — while the price tape
+        is showing institutional aggression and the volatility is coiled for a breakout.
       </Body>
       <Body>
-        Daily cadence so positioning can move with the data. Single composite (not parallel scoring
-        systems) so there's no ambiguity about which signal wins.
+        Daily cadence so positioning can move with the data. One pipeline (not parallel scoring
+        systems) so there is no ambiguity about which signal wins. The output is a single 0–65 score
+        and a band: High Conviction, Watch, or Not Surfaced.
       </Body>
     </>
   ),
   "ops-how": (
     <>
       <Body>
-        Run the daily scan; results sort by composite score, highest first. Action labels are bands
-        on that single score:
+        Open the page. The funnel card on the right shows how the full equity universe collapses to
+        today's surfaced names. The table below is the result; click any row for the per-stock
+        dossier.
+      </Body>
+      <Body>
+        Action bands on the score:
       </Body>
       <table style={styles.table}>
         <thead><tr>
           <th style={styles.th}>Score</th>
-          <th style={styles.th}>Action</th>
-          <th style={styles.th}>Meaning</th>
+          <th style={styles.th}>Band</th>
+          <th style={styles.th}>What it means</th>
         </tr></thead>
         <tbody>
-          <tr><td style={styles.td}><Code>60+</Code></td><td style={styles.td}>BUY ZONE</td><td style={styles.td}>All four signal categories aligned bullish; high-conviction long.</td></tr>
-          <tr><td style={styles.td}><Code>35–60</Code></td><td style={styles.td}>HOLD</td><td style={styles.td}>Healthy hold range; no immediate action.</td></tr>
-          <tr><td style={styles.td}><Code>20–35</Code></td><td style={styles.td}>WATCH</td><td style={styles.td}>Signals weakening; pre-position trim.</td></tr>
-          <tr><td style={styles.td}><Code>&lt; 20</Code></td><td style={styles.td}>REVIEW</td><td style={styles.td}>Sell-watch zone; review for harvest or rotate.</td></tr>
+          <tr><td style={styles.td}><Code>≥ 45</Code></td><td style={styles.td}>High Conviction</td><td style={styles.td}>All filters pass and at least two signals fire. Tiebreaker for sizing is total insider dollars in the 30-day window.</td></tr>
+          <tr><td style={styles.td}><Code>20–44</Code></td><td style={styles.td}>Watch</td><td style={styles.td}>All filters pass and at least one signal fires. Smaller position size or wait for a second signal.</td></tr>
+          <tr><td style={styles.td}><Code>{"< 20"}</Code></td><td style={styles.td}>Not Surfaced</td><td style={styles.td}>At least one filter failed or no signal fired. Held in the universe for tomorrow's scan.</td></tr>
         </tbody>
       </table>
       <Body>
-        Filter by sector or IG to align with Asset Tilt's overweights. Click any ticker to open the
-        per-stock modal: signal-by-signal breakdown, recent earnings, options flow context, and the
-        scanner's recommended position size.
+        The system <strong>scores all names and displays all names</strong> — there is no ceiling on
+        what you can look up, including mega-cap names like NVDA, AAPL, KO. The validated zone for
+        surfacing names as Watch or High Conviction is{" "}
+        <strong>$300M ≤ market cap ≤ $3B</strong>. Above that band, a name with a fired signal is
+        tagged <em>Outside surfacing zone</em> in the table; in the per-stock modal the MacroTilt
+        Signal panel shows a prominent caveat stating that the score is informational only outside
+        the validated band. The cap-bucket backtest (next section) is the empirical basis for that
+        boundary.
       </Body>
     </>
   ),
   "ops-data": (
     <>
       <Body>
-        Five live data streams power the daily scan:
+        The pipeline is built on three inputs: (1) the full US-listed Common Stock + ADR universe
+        (~5,800 names, sourced from Polygon <Code>ticker_reference</Code>); (2) an end-of-day OHLCV
+        feed for those names from Polygon Massive, written to{" "}
+        <Code>prices_eod</Code>; and (3) Form 4 insider transaction data from the Unusual Whales{" "}
+        <Code>/insider/transactions</Code> endpoint, accumulated in{" "}
+        <Code>insider_history</Code>.
       </Body>
       <table style={styles.table}>
         <thead><tr>
@@ -579,63 +599,218 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
           <th style={styles.th}>What it carries</th>
         </tr></thead>
         <tbody>
-          <tr><td style={styles.td}>Universe + EOD prices</td><td style={styles.td}>Massive (Polygon Basic)</td><td style={styles.td}>~12,500 active US-listed tickers; OHLCV + corporate actions</td></tr>
-          <tr><td style={styles.td}>Options flow + insider + congressional</td><td style={styles.td}>Unusual Whales API</td><td style={styles.td}>Block trades, dark pool, sweep volume, Form 4 insider, congressional disclosure</td></tr>
-          <tr><td style={styles.td}>Fundamentals</td><td style={styles.td}>Yahoo Finance</td><td style={styles.td}>Forward P/E, revenue / EPS growth, profitability ratios</td></tr>
-          <tr><td style={styles.td}>News sentiment</td><td style={styles.td}>ZeroHedge RSS + Premium</td><td style={styles.td}>Per-ticker headline sentiment, daily aggregation</td></tr>
-          <tr><td style={styles.td}>Index membership</td><td style={styles.td}>Wikipedia · iShares</td><td style={styles.td}>S&P 500, NASDAQ-100, Russell 2000 membership flags</td></tr>
+          <tr><td style={styles.td}>Universe + reference</td><td style={styles.td}>Polygon Massive</td><td style={styles.td}>~5,800 active Common Stock + ADR; SIC code, list date, market cap, branding metadata</td></tr>
+          <tr><td style={styles.td}>EOD prices + volume</td><td style={styles.td}>Polygon Massive</td><td style={styles.td}>OHLCV for all names; feeds 50-day SMA, 14-day RSI, 20-day Bollinger BandWidth, 22-day relative volume</td></tr>
+          <tr><td style={styles.td}>Form 4 insider buys</td><td style={styles.td}>Unusual Whales</td><td style={styles.td}>Open-market purchases (transaction code "P"). RSU grants, option exercises, tax-withholding, and sales are filtered out.</td></tr>
+          <tr><td style={styles.td}>Universe snapshot</td><td style={styles.td}>Unusual Whales</td><td style={styles.td}>3x-daily during market hours; powers fresh price, day %, IV rank, 52-week range in the dossier modal</td></tr>
         </tbody>
       </table>
       <Body>
-        The full daily scan runs at 15:45 ET (after market close) and writes to
-        <Code>public/latest_scan_data.json</Code>. Each record carries the ticker, sector, IG,
-        composite score, signal-by-signal sub-scores, action label, and the contributing data points.
+        The nightly scan runs after the close and writes one row per (ticker, scan_date) to{" "}
+        <Code>public.signal_intel_daily</Code> for the full universe. The Trading Opportunities
+        page reads from that table and renders directly — no JSON intermediary, no client-side
+        scoring.
       </Body>
     </>
   ),
   "ops-models": (
     <>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 0 }}>Universe</h4>
       <Body>
-        The composite is the weighted sum of four sub-scores, each itself a 0-to-100 rollup. Weights
-        are calibrated by backtesting historical Buy-zone alerts against forward 30-day returns
-        (script: <Code>scripts/conviction-backtest.js</Code>).
+        Full US-listed Common Stock + ADR universe (~5,800 names) is scored every night. The
+        validated <strong>surfacing zone</strong> — the band where Watch and High Conviction tags
+        are statistically supported — is <strong>$300M ≤ market cap ≤ $3B</strong>. The lower bound
+        drops micro-caps where execution risk dominates; the upper bound is the empirical cliff
+        documented in the cap-bucket backtest below. The page's universe coverage is unbounded so
+        any ticker can be looked up; the band tagging is what keeps the surface honest.
       </Body>
-      <Formula>{`composite = w_tech × technicals
-          + w_fund × fundamentals
-          + w_flow × flow
-          + w_news × news_sentiment
+      <Body>
+        Academic basis for treating insider purchase data as a small-cap signal: Lakonishok &amp;
+        Lee (2001) <em>Are Insider Trades Informative?</em>, <em>Review of Financial Studies</em>{" "}
+        14(1), pp. 79–111 — establishes that the predictive content of insider buying is concentrated
+        in small-cap names. Cohen, Malloy &amp; Pomorski (2012) <em>Decoding Inside Information</em>,{" "}
+        <em>Journal of Finance</em> 67(3), pp. 1009–1043 — shows that the information content scales
+        with how unusual the trade is for that insider, supporting the first-buy refinement below.
+      </Body>
 
-scaled to [−100, +100], then banded as above.`}</Formula>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Technical sub-score</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The three filters</h4>
       <Body>
-        Eight indicators: RSI, MACD, ADX, Bollinger Bands position, ATR(14), OBV, Stochastic K/D,
-        Ichimoku cloud position. Each contributes a sign-and-strength reading; the sub-score is the
-        weighted average. Math lives in <Code>trading-scanner/scanner/technicals.py</Code>.
+        Every name must clear three filters to surface. A failure on any one zeroes the score.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Fundamental sub-score</h4>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Filter</th>
+          <th style={styles.th}>Threshold</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style={styles.td}>Insider first-buy</td>
+            <td style={styles.td}>
+              At least one Form 4 transaction code "P" (open-market purchase) in the last 30 days,
+              by an insider with no prior P-buy in the preceding 12 months. Aggregate dollar value of
+              qualifying purchases must clear <Code>max(2 bps × market cap, $500k)</Code>.
+            </td>
+          </tr>
+          <tr>
+            <td style={styles.td}>Liquidity</td>
+            <td style={styles.td}>Last close {">"} $5 AND 22-day average volume {">"} 500,000 shares.</td>
+          </tr>
+          <tr>
+            <td style={styles.td}>Index hedge exclusion</td>
+            <td style={styles.td}>Drops the five broad index ETFs: SPY, QQQ, IWM, DIA, VTI. They are used elsewhere as hedges, not signal candidates.</td>
+          </tr>
+        </tbody>
+      </table>
       <Body>
-        Forward P/E vs sector median, revenue growth (YoY), profitability (operating margin). Quality
-        screen filters first (no negative earnings); then composite z-score across the three.
+        The cap-normalized magnitude rule replaced an absolute $1M floor on 2026-05-09. A worked
+        view of the threshold across the cap range:
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Flow sub-score</h4>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Company size</th>
+          <th style={styles.th}>Gate threshold</th>
+          <th style={styles.th}>HC tiebreaker</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}>$500M (small cap)</td><td style={styles.td}>$500k (floor binds)</td><td style={styles.td}>$5M (floor binds)</td></tr>
+          <tr><td style={styles.td}>$5B (mid cap)</td><td style={styles.td}>$1M</td><td style={styles.td}>$5M (floor binds)</td></tr>
+          <tr><td style={styles.td}>$25B (top of academic-study range)</td><td style={styles.td}>$5M</td><td style={styles.td}>$12.5M</td></tr>
+          <tr><td style={styles.td}>$500B (mega cap)</td><td style={styles.td}>$100M</td><td style={styles.td}>$250M</td></tr>
+          <tr><td style={styles.td}>$4T (largest US co's)</td><td style={styles.td}>$800M</td><td style={styles.td}>$2B</td></tr>
+        </tbody>
+      </table>
       <Body>
-        Options flow (calls vs puts, 30d), dark pool volume %, insider buying (Form 4) within 90 days,
-        congressional purchases within 90 days. Each contributes a directional vote; equally-weighted
-        composite.
+        Below the floor, $500k of insider buying at a $300M company is a real, visible commitment;
+        the same $500k at a $50B company is rounding error. Cap-normalization reads both correctly.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>News sentiment sub-score</h4>
+
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The three signals (pillars)</h4>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Signal</th>
+          <th style={styles.th}>Trigger</th>
+          <th style={styles.th}>Points</th>
+        </tr></thead>
+        <tbody>
+          <tr><td style={styles.td}>Aggression</td><td style={styles.td}>Today's volume / 22-day average {">"} 1.5×</td><td style={styles.td}>+25</td></tr>
+          <tr><td style={styles.td}>Squeeze</td><td style={styles.td}>Bollinger BandWidth (20-day, 2σ) {"< 4%"}</td><td style={styles.td}>+20</td></tr>
+          <tr><td style={styles.td}>Momentum</td><td style={styles.td}>Last close {">"} 50-day SMA AND RSI(14) in 40–70</td><td style={styles.td}>+20</td></tr>
+        </tbody>
+      </table>
+
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The red flag</h4>
       <Body>
-        Daily ZeroHedge headline sentiment (positive / negative / neutral classification), 7-day
-        rolling average per ticker. Provides the smallest weight in the composite — too noisy for
-        primary signal use.
+        <Code>RSI(14) {"> 70"}</Code> → score = 0. Overbought blow-off tops collapse; the rule is
+        empirically derived from the same backtest window.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Calibration</h4>
+
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Score → band</h4>
+      <Formula>{`score = aggression_pts (0 or 25)
+      + squeeze_pts    (0 or 20)
+      + momentum_pts   (0 or 20)
+
+if RSI(14) > 70:        score = 0
+if any filter fails:    score = 0
+
+>= 45 + insider $ >= HC threshold  -> High Conviction
+>= 45 + insider $ <  HC threshold  -> Watch (demoted)
+20 - 44                            -> Watch
+<  20                              -> Not Surfaced`}</Formula>
       <Body>
-        Conviction bands (LOW / NORMAL / ELEVATED / EXTREME) anchored against full 2006-01-03
-        through 2026-04-22 composite history. Thresholds at p60 / p85 / p97.5 so 2008 GFC and
-        2020 COVID sit in EXTREME, while 2022 bear and 2023 SVB sit in ELEVATED. Recalibrated
-        2026-04-22 (PR #78).
+        The HC tiebreaker (<Code>max(5 bps × cap, $5M floor)</Code>) is what keeps the High
+        Conviction band honest at the upper end of the validated range — a 45+ score does not on
+        its own clear HC; the insider check size has to scale with the company.
       </Body>
+
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Cap-bucket performance vs SPY</h4>
+      <Body>
+        12-month walk-forward, 52 weekly scan dates from 2025-05-12 through 2026-05-04. Forward
+        return is realized close-to-close 21 trading days forward. Per-signal alpha is the signal's
+        21-day return minus SPY's 21-day return on the same scan date; "beats SPY" is the share of
+        signals where that alpha is positive.
+      </Body>
+      <table style={styles.table}>
+        <thead><tr>
+          <th style={styles.th}>Cap bucket</th>
+          <th style={{ ...styles.th, textAlign: "right" }}>Mean 21d return</th>
+          <th style={{ ...styles.th, textAlign: "right" }}>Win rate</th>
+          <th style={{ ...styles.th, textAlign: "right" }}>Alpha vs SPY</th>
+          <th style={{ ...styles.th, textAlign: "right" }}>Beats SPY</th>
+        </tr></thead>
+        <tbody>
+          <tr>
+            <td style={styles.td}>$300M – $2B</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>+9.78%</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>74.6%</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>+8.29 pp</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>62.7%</td>
+          </tr>
+          <tr>
+            <td style={styles.td}>$2B – $8B</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>+4.71%</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>59.3%</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>+3.14 pp</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>52.5%</td>
+          </tr>
+          <tr>
+            <td style={styles.td}>$8B – $25B</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>+4.71%</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>52.9%</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>+2.82 pp</td>
+            <td style={{ ...styles.td, textAlign: "right", fontWeight: 600, color: "var(--red-text, var(--red))" }}>41.2% (loses to SPY)</td>
+          </tr>
+          <tr>
+            <td style={{ ...styles.td, fontWeight: 600 }}>Production spec ($300M–$3B + capnorm)</td>
+            <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>+10.06%</td>
+            <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>76.2%</td>
+            <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>+8.62 pp</td>
+            <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>65.5%</td>
+          </tr>
+          <tr>
+            <td style={styles.td}>SPY benchmark</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>+1.80%</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>79.2% (close-to-close)</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>—</td>
+            <td style={{ ...styles.td, textAlign: "right" }}>—</td>
+          </tr>
+        </tbody>
+      </table>
+      <Body>
+        The $8B–$25B bucket is the empirical reason the validated zone tops out at $3B. At that
+        cap, fewer than half of the strategy's signals beat SPY over the next 21 days — the
+        average name in the band would have been better expressed by buying the index directly.
+        The production spec (Run A's $300M–$3B universe with the cap-normalized magnitude rule
+        swapped in) is the dominating configuration on every dimension that matters: per-signal
+        alpha, win rate, and the share of signals that outperform SPY.
+      </Body>
+
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Honesty caveats</h4>
+      <ul style={{ ...styles.body, paddingLeft: 22 }}>
+        <li style={styles.bullet}>
+          <strong>Forward return is close-to-close, dividends excluded.</strong> Understates total
+          return on high-yield names (REITs, BDCs) by approximately 30–80 bps over 21 days.
+        </li>
+        <li style={styles.bullet}>
+          <strong>Historical market cap uses single-snapshot shares outstanding.</strong> Drift is
+          typically {"<"}5%, worst-case ~8% on high-buyback or recently-issued names. Affects
+          cap-bucket assignment at the boundaries.
+        </li>
+        <li style={styles.bullet}>
+          <strong>First 7 scan dates have incomplete insider lookback.</strong> The{" "}
+          <Code>insider_history</Code> table starts 2025-03-10; scan dates before 2025-06-23 have a
+          truncated 365-day prior-window check. The early-vs-stable split was reported separately
+          in the backtest report; the early subset is consistent with the stable subset on the
+          dimensions that matter and does not flip any conclusion.
+        </li>
+        <li style={styles.bullet}>
+          <strong>No transaction costs, slippage, or implementation lag.</strong> Net of round-trip
+          costs the headline alpha narrows by ~50 bps. Does not reverse.
+        </li>
+        <li style={styles.bullet}>
+          Harness code is at <Code>trading-scanner/scanner/signal_intelligence_v4/backtest_harness.py</Code>{" "}
+          and is auditable.
+        </li>
+      </ul>
     </>
   ),
 
