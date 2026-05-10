@@ -531,3 +531,20 @@ pair where data flows through Supabase, Edge Functions, JSON files in
 **What you should do instead:** When a component renders class names, scan theme.css (or the component's own styles file) for rules that target those class names BEFORE shipping. If a class controls visibility/positioning (drawer, modal, scrim, popover), the rules must be present, not assumed. Run a quick grep: `grep -n ".v2-drawer\|.v2-scrim" src/theme.css` — if it returns nothing, the component is shipping naked and the inactive state will leak visible debris. The same applies to `.v2-stats`, `.v2-hero`, any layout class — if the JSX uses it, the CSS must define it.
 
 **Applies to:** All UX Designer and Lead Dev work that introduces or relies on shared class names.
+
+## 2026-05-10 (d) — Dead-code <style> blocks: declared and never injected
+
+**What happened:** Bespoke Shock Builder on Scenario Analysis page rendered completely unstyled — 12 sliders stacked vertically, no padding, labels mashed together. Root cause: src/pages/ScenarioAnalysis.jsx defines a 180-line CSS block as `const STYLES = \`...\`` containing `.scenarios-page .builder`, `.builder-row`, `.prop-toggle`, `.horizon-tabs`, `.chip`, `.reset-btn`, `.disclosure`, etc. — but **STYLES is never referenced anywhere after declaration**. It's dead code. The page's `<main>` also lacks `className="scenarios-page"`, so even if STYLES were injected, every selector is scoped to `.scenarios-page X` and would not match.
+
+**What you should do instead:** When a file declares a CSS-as-string constant, grep for its second usage. If grep returns only the declaration line, the styles are unreachable. Pair this with the existing 2026-05-10 (c) "naked classname" rule: every classname referenced in JSX needs a matching CSS rule in scope. The combined check is two greps: (a) `grep -c CONST_NAME file.jsx` should be ≥ 2; (b) classnames in JSX should match selectors that are actually loaded.
+
+**Applies to:** All work that introduces inline `<style>` blocks or CSS-in-JS-as-string patterns, especially when porting designs from design-lab/ where styles tend to travel as string literals.
+
+
+## 2026-05-10 (e) — Array indexed by string returns undefined; build a lookup or use .find
+
+**What happened:** Scenario Analysis page crashed React tree with "TypeError: Cannot read properties of undefined (reading 'label')" when the user clicked Custom Multi-Factor Shock. Root cause: `const FACTORS = [{id:"vix", name:"VIX", ...}, ...]` (array of objects), then in the slider loop: `const f = FACTORS[fid]` where `fid` is a string like "vix". Arrays indexed by string return `undefined`. The next line `f.label` then crashes. Compounded by `.label` not existing on FACTORS objects at all — the field is `.name`.
+
+**What you should do instead:** Whenever you see `SOME_ARRAY[stringKey]`, that's almost always a bug. Either (a) build a lookup map at top of file: `const SOME_BY_ID = Object.fromEntries(SOME_ARRAY.map(x => [x.id, x]));` and use `SOME_BY_ID[stringKey]`, or (b) use `SOME_ARRAY.find(x => x.id === stringKey)` with a defensive `if (!x) return null` guard. Pair this with grep: any time you change the shape of a shared data structure (array ↔ object map; rename .label → .name), grep for all consumers before merging.
+
+**Applies to:** All Lead Dev and Senior Quant work that touches shared data structures (FACTORS, SECTORS, MECHANISMS, INDICATOR_PANELS, etc.).
