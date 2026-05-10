@@ -6374,10 +6374,10 @@ return(
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
-{V2_ENABLED && tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 /></V2ErrorBoundary>}
+{tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 /></V2ErrorBoundary>}
 {V2_ENABLED && tab==="insights" && <V2ErrorBoundary><InsightsPageV2 /></V2ErrorBoundary>}
-{!V2_ENABLED && (tab==="insights"||tab==="portopps")&&!portfolioAuthed&&showPortoppsLogin&&<LoginScreen/>}
-{!V2_ENABLED && (tab==="portopps"||tab==="insights")&&!(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
+{!V2_ENABLED && tab==="insights" && !portfolioAuthed && showPortoppsLogin && <LoginScreen/>}
+{!V2_ENABLED && tab==="insights" && !(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
 const heldByTicker={};
 ACCOUNTS.forEach(acc=>acc.positions.forEach(p=>{
   if(!heldByTicker[p.ticker])heldByTicker[p.ticker]={total:0,accounts:[]};
