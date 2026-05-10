@@ -514,3 +514,20 @@ that doesn't list the JSONB key paths is not validating the contract.
 **Applies to:** Every PR that touches one side of a producer/consumer
 pair where data flows through Supabase, Edge Functions, JSON files in
 `dist/`, or any other intermediate store.
+
+## 2026-05-10 (b) — UAT means clicking through every surface, not just the changed page
+
+**What happened:** Shipped 5 v2 PRs (#524–528 spec ROllout, then #529 + #530 hot-fixes). Self-UAT on each PR only walked the surface that PR touched — and Joe still found two un-noticed bugs by reloading other pages: (1) every v2 page rendered a stray "×" character above its footer because `<aside class="v2-drawer">` was rendering unconditionally with no CSS rules to hide it when closed; (2) the legacy Macro Overview hero stats block ran together as "Mechanisms flagged3 /6above Neutral" because `.v2-stats`, `.s`, `.lbl`, `.v`, `.d` had no CSS at all. Both were already on `main` for at least one prior session.
+
+**What you should do instead:** After ANY release that ships CSS or shared components, walk EVERY page in the v2 nav (Home, Macro Overview, Asset Tilt, Trading Opps, Portfolio Insights, Scenario Analysis, All Indicators, Methodology) — not just the pages the PR touched — and look at the WHOLE page from hero to footer. Stray UI debris (close buttons with no parent dialog, label/value runs with no whitespace, em-dashes where data should be) hides on pages the PR didn't touch. A `getComputedStyle` probe on suspect classnames takes 5 seconds and surfaces the "no CSS at all" failure mode that no curl-and-grep check will catch.
+
+**Applies to:** Any PR touching theme.css, shared layout components (Drawer, Modal, Card), or any class name used on more than one page.
+
+
+## 2026-05-10 (c) — Class names referenced from JSX must have CSS rules; "no rules" is a silent visual bug
+
+**What happened:** `src/v2/components/Drawer.jsx` renders `<div class="v2-scrim">` and `<aside class="v2-drawer">` always, toggling a `.open` class on/off. But theme.css had ZERO rules for `.v2-scrim`, `.v2-drawer`, `.v2-drawer-close`, or `.v2-back-btn`. The DOM honored "no rules" by defaulting `position: static`, `display: block`, `opacity: 1` — so the inactive drawer left its close button "×" rendered as plain inline text above every v2 page's footer. The four `.v2-stats` cells had the same problem on the Macro Overview legacy hero. Both shipped to prod and nobody noticed because the bundle "contained the strings" — string-grep verification passed.
+
+**What you should do instead:** When a component renders class names, scan theme.css (or the component's own styles file) for rules that target those class names BEFORE shipping. If a class controls visibility/positioning (drawer, modal, scrim, popover), the rules must be present, not assumed. Run a quick grep: `grep -n ".v2-drawer\|.v2-scrim" src/theme.css` — if it returns nothing, the component is shipping naked and the inactive state will leak visible debris. The same applies to `.v2-stats`, `.v2-hero`, any layout class — if the JSX uses it, the CSS must define it.
+
+**Applies to:** All UX Designer and Lead Dev work that introduces or relies on shared class names.
