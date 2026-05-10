@@ -548,3 +548,55 @@ pair where data flows through Supabase, Edge Functions, JSON files in
 **What you should do instead:** Whenever you see `SOME_ARRAY[stringKey]`, that's almost always a bug. Either (a) build a lookup map at top of file: `const SOME_BY_ID = Object.fromEntries(SOME_ARRAY.map(x => [x.id, x]));` and use `SOME_BY_ID[stringKey]`, or (b) use `SOME_ARRAY.find(x => x.id === stringKey)` with a defensive `if (!x) return null` guard. Pair this with grep: any time you change the shape of a shared data structure (array ↔ object map; rename .label → .name), grep for all consumers before merging.
 
 **Applies to:** All Lead Dev and Senior Quant work that touches shared data structures (FACTORS, SECTORS, MECHANISMS, INDICATOR_PANELS, etc.).
+
+---
+
+## 2026-05-10 — Math code requires a paper sanity check before merge
+
+**What happened:** PR #539 added pin-click visual feedback and an
+auto-flip from Realistic to Custom mode for the bespoke shock builder
+on Scenario Analysis. The visual + state changes were verified
+("clicked pin, badge changes color, mode flips") and the PR was
+shipped clean. But the underlying `propagateBespoke()` math was wrong:
+with two pins at +5σ, every unpinned factor read "+25.0σ" because the
+formula scaled the weighted-mean correlation by `max(|pin|)`. The bug
+was visible in the live UI but not caught by any of the verification
+steps applied — those only confirmed visual state, not numerical
+output. Joe found it on first interaction. The fix (PR #541) replaced
+the formula with a simple beta projection bounded by max(|pin|), and
+the paper checks at that point caught the bug structurally — pin VIX
++5σ, MOVE should propagate to +3.25σ (corr 0.65 × 5), not +25.
+
+**What you should do instead:** Any PR that touches a calculation —
+including a function that *uses* a calculation but doesn't change it,
+because the surrounding edits can break the inputs the function
+relies on — must include a paper sanity check **before merge**, not
+after. Specifically:
+
+1. Identify two or three concrete input cases with hand-computable
+   expected outputs (e.g., "pin VIX +5σ → MOVE +3.25σ because corr
+   is 0.65"). Do this from the math, not from running the code.
+2. Run the patched function over those inputs in node (or whatever
+   matches the runtime). The function's output must match the
+   hand-computed expected output to within rounding.
+3. Add a worked example to the PR body — input, expected output,
+   actual output, and the formula step that produces the expected.
+4. If the function has a bound (e.g., "no unpinned factor can exceed
+   max(|pin|)"), exhaustively test that bound on a small enumerated
+   space (12 single-pin cases × all factors, etc.) — bounded math
+   that fails on edge cases is unbounded math.
+
+Visual verification ("the slider lights up when I click it") is
+necessary for UX changes but is not sufficient for math changes.
+A button can light up correctly while the number it produces is
+wrong. The same pattern applies to PRs that change UI around an
+existing calculation — verify the calculation still produces the
+right numbers, not just that the new UI elements render.
+
+**Applies to:** All PRs touching files that contain pure-function
+calculations: scoring, propagation, scoring rollups, weighting,
+factor models, regime classification, anything in
+`scripts/compute_*.py`, anything in `src/v2/lib/`, `propagateBespoke`,
+`computeMechanism*`, `computeIndicatorScore*`, etc. Also applies to
+PRs that change UI around such functions even when the function
+itself isn't edited — surrounding code can change the inputs.
