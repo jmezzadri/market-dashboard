@@ -332,3 +332,139 @@ This data layer exposes EXACTLY the inputs those modules consume — no more,
 no less. If Phase 2 finds itself needing additional data not surfaced here,
 that's a signal to update this Phase 1 doc and back-fill, not to layer
 ad-hoc queries inside the loop.
+
+---
+
+## 8. Phase 2 — Harness scaffold (shipped)
+
+Phase 2 layers the **walk-forward loop** on top of the Phase 1 data layer.
+It does not run any actual A-vs-B comparison; that is Phase 3.
+
+### 8a. Files
+
+- `trading-scanner/scanner/signal_intelligence_v4/backtest_harness.py`
+  — the harness module. Public entry point: `run_walkforward(...)`. Plus
+  four bulk fetchers (`fetch_prices_for_window`,
+  `fetch_marketcap_at_date`, `fetch_insider_history_for_window`,
+  `fetch_forward_returns`) and a `_process_scan_date` helper.
+- `trading-scanner/scripts/run_v4_backtest.py` — CLI runner. Parses
+  `--run {A,B}`, loads Phase 1 artifacts, dispatches to the harness.
+
+### 8b. How the harness uses each Phase 1 deliverable
+
+| Phase 1 deliverable | Phase 2 use |
+|---|---|
+| `historical_marketcap` table | `fetch_marketcap_at_date()` — one query per scan date returns latest cap on/before the effective date for every ticker in the universe. Used to filter into `[cap_min, cap_max]` BEFORE pulling expensive inputs, AND to feed `score_ticker(market_cap=...)` for cap-normalized magnitude. |
+| `forward_returns_21d` table | `fetch_forward_returns()` — one query per scan date returns the 21d forward return for every in-band ticker. Joined to results in memory. |
+| `prices_eod` (yfinance-deepened) | `fetch_prices_for_window()` — pulls 120 calendar days of (close, volume) for all in-band tickers in ONE query. Caller computes 51-trailing-close window + 22-day avg volume in memory. |
+| `insider_history` | `fetch_insider_history_for_window()` — pulls 425 days (30-day gate window + 365-day first-buy lookback + 30-day buffer) of events for all in-band tickers in ONE query. Passed straight into `score_ticker(data_source="memory")`. |
+| `v41_backtest_scan_dates_2026.txt` | Default `--scan-dates` arg in `run_v4_backtest.py`. |
+| `v41_backtest_universe_per_date.json` | Default `--universe`. The harness also reads `scan_date_to_effective_date` from this file so holiday Mondays look up the prior trading day for every input. |
+
+### 8c. SQL-roundtrip discipline
+
+For each scan date the harness runs **exactly 4 queries**, regardless of universe
+size: marketcap, prices, insiders, forward returns. Bulk fetch with `WHERE
+ticker IN (...)`. The full backtest is therefore `52 * 4 = 208` queries total,
+not `52 * 2,800 * 4 = 583K`. This is what gets us to the <30-min target.
+
+### 8d. Smoke test results (2026-05-09)
+
+Smoke configuration: 3 dates × 50 random tickers each.
+
+```
+Run A (300M-3B, require_first_buy=True):
+  total_rows: 85   (only 85 of 150 sampled tickers fall in 300M-3B band)
+  scored_rows: 81
+  skip_reasons: {out_of_universe_cap_band:65, lt_51_closes:4}
+  signals_fired: 0
+  band_distribution: {Not Surfaced: 81}
+
+Run B (300M-25B, require_first_buy=False):
+  total_rows: 150
+  scored_rows: 145
+  skip_reasons: {lt_51_closes:5}
+  signals_fired: 1   (NAVN, 2026-04-06, score 20, fwd_return +47.4%)
+  band_distribution: {Not Surfaced: 144, Watch: 1}
+  forward returns non-null: 49 of 145 (the rest are scan dates within the
+  21-trading-day forward window relative to today=2026-05-09)
+```
+
+Single full-universe-day timing (2026-04-06, 2,834 tickers, Run-B preset): **33.3s walltime**.
+
+### 8e. Performance characteristics
+
+| Measure | Value |
+|---|---|
+| Full universe, single scan date | ~33 sec |
+| Throughput (rows / sec) | ~85 / sec |
+| Full backtest extrapolation (52 dates) | ~29 min |
+| SQL queries per full run | 208 |
+| Memory peak (smoke) | <500 MB pandas + supabase JSON buffers |
+
+Target was <30 min; we land just inside.
+
+### 8f. Skip-reason breakdown (smoke + single-day full run)
+
+| Reason | Run-A (300M-3B band) | Run-B (300M-25B band) |
+|---|---|---|
+| `out_of_universe_cap_band` | 65 / 150 | 0 / 150 |
+| `lt_51_closes` | 4 | 5 (full day: 45 / 2,834) |
+| `no_avg_volume` | 0 | 0 (full day: 1 / 2,834) |
+| `no_marketcap_row` | 0 | 0 |
+| `no_prices` | 0 | 0 |
+| `stale_prices` | 0 | 0 |
+| `score_error` | 0 | 0 |
+| `scored_ok` | 81 | 145 (full day: 2,788 / 2,834) |
+
+The dominant skip in Run A is the cap-band filter — expected, because the
+smoke samples uniformly from a 300M-25B universe but Run A is the tighter
+300M-3B slice. The dominant skip in Run B (and the full-day run) is
+`lt_51_closes` — recent IPOs / dual-class share quirks per
+section 1d above. ~1.6% loss on the full universe matches the data layer's
+documented coverage (92.7% have ≥250 days, 1.7% have <51 days).
+
+### 8g. Phase 3 — how to run A vs B
+
+```bash
+# Prereqs (already in place):
+#   - SUPABASE_ACCESS_TOKEN env var
+#   - PYTHONPATH includes the trading-scanner repo root
+#   - fastparquet installed (pyarrow wheel works too if pre-installed)
+
+cd trading-scanner
+
+# Run A: tight band + first-buy required
+PYTHONPATH=. python scripts/run_v4_backtest.py \
+    --run A --output /tmp/run_A.parquet
+
+# Run B: wide band + first-buy NOT required
+PYTHONPATH=. python scripts/run_v4_backtest.py \
+    --run B --output /tmp/run_B.parquet
+
+# Each takes ~30 minutes. Output is one parquet per run.
+# Phase 3's task is to load both, aggregate score x band x fwd_return,
+# and produce the comparison report.
+```
+
+### 8h. Output schema (per row)
+
+| Column | Type | Notes |
+|---|---|---|
+| `scan_date` | str | Canonical Monday label from the scan-dates file (may be a holiday). |
+| `ticker` | str | Symbol, uppercased. |
+| `market_cap` | float | Dollars on the effective date. None when no marketcap row. |
+| `score` | int | Pillar score 0-65. None when skipped. |
+| `band` | str | "High Conviction" / "Watch" / "Not Surfaced". None when skipped. |
+| `gate_pass` | bool | All-three-gates pass flag. |
+| `hc_eligible` | bool | True only when score>=45 AND insider $ >= 5bps × cap (or $5M floor). |
+| `insider_total_dollar` | float | 30-day insider P-buy aggregate ($). |
+| `fwd_return_21d` | float | 21-trading-day forward total return (close-to-close). Null when window not yet realized. |
+| `skip_reason` | str | None when scored OK; otherwise one of the reasons in 8f. |
+
+### 8i. Phase-3 blockers — none in scaffold; one process note
+
+The harness is wired to read PR #510's cap-normalized magnitude logic
+(`hc_magnitude_threshold` / `magnitude_threshold` in `gates.py`). PR #510's
+commit was cherry-picked onto the Phase 2 branch because it had not yet
+landed on the Phase 1 base — confirm any pre-Phase-3 rebase preserves it.
