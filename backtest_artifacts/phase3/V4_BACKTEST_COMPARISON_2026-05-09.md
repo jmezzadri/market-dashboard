@@ -34,6 +34,50 @@ Across all 52 weekly scan dates (2025-05-12 → 2026-05-04). Forward returns are
 
 ---
 
+## Section 2.5 — SPY benchmark over the same 12-month window
+
+The Sharpe and mean-return numbers in Section 2 are not informative on their own — a 1.97 Sharpe in a market that returned +30% on a 1.93 Sharpe of its own is a different conclusion than the same number in a flat or down tape. This section anchors the strategy to the index over the identical 52-week scan window.
+
+**SPY benchmark construction.** SPY 21-trading-day forward close-to-close return, computed at each of the 52 weekly scan dates (2025-05-12 → 2026-05-04). 48 of 52 scans have realized 21-day returns; the 4 most recent are still pending (same convention as the strategy table). Source: Unusual Whales `/stock/SPY/ohlc/1d` regular-session bars. The basket used in the table below treats one SPY return per scan date as one observation, parallel to how the strategy's Sharpe is computed.
+
+| Metric                              |     SPY |   Run A | Run A vs SPY |   Run B | Run B vs SPY |
+| :---------------------------------- | ------: | ------: | -----------: | ------: | -----------: |
+| Mean 21-day return                  |  +1.80% |  +8.68% |   +6.88 pp |  +6.92% |   +5.12 pp |
+| Win rate (21-day > 0)               |   79.2% |   74.3% |   −4.9 pp |   65.2% |   −14.0 pp |
+| Sharpe (annualized, sqrt(12))       |    1.93 |    0.97 |   −0.96   |    0.69 |   −1.24   |
+| Max drawdown (compounded EW basket) |  −15.9% |  −82%   |   −66 pp  |  −76%   |   −60 pp  |
+
+**Paired-window check.** SPY restricted to ONLY the scan dates where the strategy actually fired a signal (35 dates for A, 38 for B): SPY mean = +1.28% / Sharpe = 1.81 (A-paired); SPY mean = +1.20% / Sharpe = 1.68 (B-paired). The strategy's signal-fire dates coincide with slightly weaker-than-average SPY weeks, which means the alpha is marginally understated by the full-window comparison and marginally overstated by the paired comparison. Both tell the same story — the strategy outperforms SPY on raw return, underperforms SPY on risk-adjusted return.
+
+**Per-signal alpha vs SPY.** Pairing each signal to SPY's return on the same scan date (signal_return − SPY_return on that date):
+
+| Run | Signals (realized) | Mean alpha per signal | % of signals beating SPY |
+| :-- | -----------------: | --------------------: | -----------------------: |
+| A   |                 70 |             **+7.19 pp** |                    62.9% |
+| B   |                135 |             **+5.34 pp** |                    55.6% |
+
+### Cap-bucket alpha (Run B)
+
+Each Run B signal paired with SPY's return on the same scan date, then averaged within cap bucket:
+
+| Cap bucket    | Signals | Mean strategy return | Mean SPY return on those dates | Mean alpha | % beat SPY |
+| :------------ | ------: | -------------------: | -----------------------------: | ---------: | ---------: |
+| $300M – $2B   |      59 |               +9.78% |                         +1.53% | **+8.29 pp** |     62.7% |
+| $2B – $8B     |      59 |               +4.71% |                         +1.28% |   +3.12 pp  |     52.5% |
+| $8B – $25B    |      17 |               +4.68% |                         +1.78% |   +2.82 pp  |     41.2% |
+
+### Plain English
+
+**Did the strategy beat SPY?** On raw return, yes — clearly. Run A made +8.7% per 21-day signal vs SPY's +1.8%; Run B made +6.9% vs the same +1.8%. On a per-signal alpha basis (signal vs SPY on the same scan date), Run A delivered +7.19 pp of alpha and Run B delivered +5.34 pp. About 63% of Run A signals and 56% of Run B signals beat SPY over the 21-day forward window.
+
+**Did it beat SPY on a risk-adjusted basis?** No — this is the catch. SPY's Sharpe over the period is 1.93, which is unusually high (the tape ran +21% with a single −16% drawdown, a very smooth bull market). The strategy's Sharpe of 0.97 (Run A) and 0.69 (Run B) reflects much larger position-level swings — a single NEGG +239% week and a few −40-60% weeks dominate the variance. The strategy generates more return per dollar invested but at much higher volatility per dollar. Whether this is good or bad depends on Joe's sizing: if a Run A signal is one position out of 20 in an otherwise diversified book, the per-position +7.19 pp alpha is the right number to look at. If a Run A signal is the whole book, the Sharpe gap matters and SPY is the better trade.
+
+**Was the alpha concentrated in the small-cap bucket?** Yes, decisively. The $300M–$2B bucket delivered **+8.29 pp of alpha per signal at a 63% beat rate** — clean outperformance. The $2B–$8B bucket delivered **+3.12 pp at a 53% beat rate** — barely better than coin flip. The $8B–$25B bucket delivered **+2.82 pp at a 41% beat rate** — fewer than half the signals beat SPY. The pattern is consistent with the structural argument for insider buying as a small-cap signal: insiders have asymmetric information advantages where company-specific news matters more than market beta, and that's exactly where small-caps live. At $8B+ cap, an insider's edge is largely already in the price; the strategy's 41% beat rate in that bucket means most of those signals would have been better expressed by buying SPY.
+
+**Bottom line.** The strategy's positive alpha is real and concentrated where the theory says it should be — small-caps under $2B. Run B's universe expansion to $25B dilutes the alpha rather than adds to it. This reinforces the Section 7 recommendation to ship cap-normalized magnitude with a tightened universe ceiling (≤ $8B).
+
+---
+
 ## Section 3 — Cap-bucket breakdown (Run B only)
 
 | Cap bucket   | Signal count | Mean 21-day return | Win rate |
