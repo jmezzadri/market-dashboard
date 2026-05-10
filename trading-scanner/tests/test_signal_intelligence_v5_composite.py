@@ -156,6 +156,13 @@ def test_mixed_subscores_matches_weighted_average_at_floor():
 def test_none_subscore_excluded_from_denominator():
     # Three Nones + three +60s -> straight equal-weight average of the
     # three +60s = +60 (not +30 as it would be if Nones counted as 0).
+    #
+    # v5.1: must pass weights=EQUAL_WEIGHTS explicitly. Under the calibrated
+    # DEFAULT_WEIGHTS the technicals+analyst+short_interest trio is only
+    # 30.36% of the total weight, which falls below the new
+    # MIN_COVERAGE_WEIGHT_FRACTION (0.40) honest-score guard and now
+    # returns Insufficient Data.
+    from scanner.signal_intelligence_v5.composite import EQUAL_WEIGHTS
     subs = {
         "insider": None,
         "options": None,
@@ -164,7 +171,7 @@ def test_none_subscore_excluded_from_denominator():
         "analyst": 60,
         "short_interest": 60,
     }
-    out = compute_composite(subs, market_cap=1e9)
+    out = compute_composite(subs, market_cap=1e9, weights=EQUAL_WEIGHTS)
     assert out["mt_score"] == pytest.approx(60.0, abs=1e-6)
 
 

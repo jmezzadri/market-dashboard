@@ -58,6 +58,31 @@ const COLUMNS = [
     tt: { label: "Analyst actions", body: "Recent upgrades, downgrades, price target changes from Wall Street equity research. Calibrated weight 5.0%." } },
   { key: "sub_short_interest", label: "Short Interest", group: "Signals", numeric: true, default: false,
     tt: { label: "Short interest", body: "Borrowed and sold short, vs prior period. Calibration pending - on equal-weight floor (16.7%)." } },
+
+  // ── v5.1 (2026-05-10): legacy columns restored as toggleable ──
+  // Joe noted the prior production table had ~25 columns; the v5 rewrite
+  // dropped them to 15. These are sourced from universe_snapshots (52W
+  // range, IV rank) and the v5 diagnostic.scorer_components (RVOL, RSI,
+  // BB band-width, % vs SMA, insider buy count and total $). All default
+  // off so the table stays tidy; users can toggle in the column menu.
+  { key: "range_52w", label: "52W Range",        group: "Quote",     numeric: false, default: false,
+    tt: { label: "52-week range", body: "Low to high over the trailing 52 weeks. Source: universe snapshots." } },
+  { key: "iv_rank",   label: "IV Rank",          group: "Quote",     numeric: true,  default: false,
+    tt: { label: "Implied volatility rank", body: "0 to 100 percentile of 30-day implied volatility over the trailing year. Source: universe snapshots." } },
+  { key: "rsi_14",    label: "RSI(14)",          group: "Technicals",numeric: true,  default: false,
+    tt: { label: "14-day RSI", body: "Relative Strength Index over a 14-day window. Above 70 is conventionally overbought; below 30 oversold." } },
+  { key: "bb_bw",     label: "BB Band-Width",    group: "Technicals",numeric: true,  default: false,
+    tt: { label: "Bollinger band-width", body: "Width of the 20-day Bollinger bands, as a percent of the 20-day moving average. Compression below 5% is a squeeze setup." } },
+  { key: "rvol_20d",  label: "RVOL (20d)",       group: "Technicals",numeric: true,  default: false,
+    tt: { label: "Relative volume (20-day)", body: "Today's volume divided by the 20-day average volume. Above 1.5x is unusual activity." } },
+  { key: "pct_50ma",  label: "% vs 50d MA",      group: "Technicals",numeric: true,  default: false,
+    tt: { label: "% vs 50-day moving average", body: "Today's close as a percent distance from the 50-day simple moving average." } },
+  { key: "pct_200ma", label: "% vs 200d MA",     group: "Technicals",numeric: true,  default: false,
+    tt: { label: "% vs 200-day moving average", body: "Today's close as a percent distance from the 200-day simple moving average." } },
+  { key: "ins_buys",  label: "Insider buys (#)", group: "Signals",   numeric: true,  default: false,
+    tt: { label: "Insider buys (count)", body: "Number of Form 4 open-market buy events by company officers and directors in the recent window." } },
+  { key: "ins_buy_$", label: "Insider buys ($)", group: "Signals",   numeric: true,  default: false,
+    tt: { label: "Insider buys (dollar value)", body: "Total dollar value of recent Form 4 open-market buy events by company officers and directors." } },
 ];
 
 const COL_KEYS = COLUMNS.map(c => c.key);
@@ -91,7 +116,11 @@ function loadColState() {
   } catch (e) { /* ignore */ }
 
   if (!saved) {
-    return { order: [...COL_KEYS], visible: [...DEFAULT_VISIBLE], sort: { key: "score", dir: "desc" }, filter: "all" };
+    // v5.1 (2026-05-10): default filter is "actionable" - Strong Buy +
+    // Watch Buy + Watch Sell + Strong Sell - to keep the first render
+    // fast. Neutral and Insufficient Data are one click away via the
+    // filter chips.
+    return { order: [...COL_KEYS], visible: [...DEFAULT_VISIBLE], sort: { key: "score", dir: "desc" }, filter: "actionable" };
   }
   const order = (saved.order || []).filter(k => COL_KEYS.includes(k));
   COL_KEYS.forEach(k => { if (!order.includes(k)) order.push(k); });
@@ -135,10 +164,11 @@ function dayClass(v) {
 }
 
 function bandGroup(b) {
-  if (b === "Strong Buy")  return "strong_buy";
-  if (b === "Watch Buy")   return "watch_buy";
-  if (b === "Watch Sell")  return "watch_sell";
-  if (b === "Strong Sell") return "strong_sell";
+  if (b === "Strong Buy")        return "strong_buy";
+  if (b === "Watch Buy")         return "watch_buy";
+  if (b === "Watch Sell")        return "watch_sell";
+  if (b === "Strong Sell")       return "strong_sell";
+  if (b === "Insufficient Data") return "insufficient";
   return "neutral";
 }
 
@@ -156,6 +186,25 @@ function shapeRow(scan, ref, snap) {
     dayPct = ((close - Number(snap.prev_close)) / Number(snap.prev_close)) * 100;
   }
   const subs = scan?.sub_scores || {};
+  // v5.1: pull the scorer components so the restored legacy columns can
+  // render (RVOL, RSI, BB band-width, % vs SMA, insider buy count and $).
+  const sc      = (scan?.diagnostic && scan.diagnostic.scorer_components) || {};
+  const techC   = sc.technicals || {};
+  const insC    = sc.insider    || {};
+  const high52  = Number(snap?.week_52_high);
+  const low52   = Number(snap?.week_52_low);
+  const rangeStr = (Number.isFinite(low52) && Number.isFinite(high52) && low52 > 0 && high52 > 0)
+    ? `$${low52.toFixed(2)}–$${high52.toFixed(2)}`
+    : null;
+  const ivRank  = Number(snap?.iv_rank);
+  const rsi14   = Number(techC.rsi14);
+  const bbBw    = Number(techC.bb_bandwidth);
+  const rvol    = Number(techC.rvol_20d);
+  const sma50   = Number(techC.sma50);
+  const sma200  = Number(techC.sma200);
+  const todayC  = Number(techC.today_close);
+  const pct50   = (Number.isFinite(todayC) && Number.isFinite(sma50)  && sma50  > 0) ? ((todayC - sma50)  / sma50)  * 100 : null;
+  const pct200  = (Number.isFinite(todayC) && Number.isFinite(sma200) && sma200 > 0) ? ((todayC - sma200) / sma200) * 100 : null;
   return {
     ticker: scan.ticker,
     name: ref?.name || snap?.full_name || scan.ticker,
@@ -175,6 +224,16 @@ function shapeRow(scan, ref, snap) {
     sub_short_interest: subs.short_interest == null ? null : Number(subs.short_interest),
     so_what: scan?.so_what || null,
     cap_discount: Number.isFinite(Number(scan?.cap_discount)) ? Number(scan.cap_discount) : null,
+    // ── Legacy columns restored (v5.1, 2026-05-10) ──
+    range_52w: rangeStr,
+    iv_rank:   Number.isFinite(ivRank) ? ivRank : null,
+    rsi_14:    Number.isFinite(rsi14)  ? rsi14  : null,
+    bb_bw:     Number.isFinite(bbBw)   ? bbBw * 100 : null, // percent
+    rvol_20d:  Number.isFinite(rvol)   ? rvol   : null,
+    pct_50ma:  pct50,
+    pct_200ma: pct200,
+    ins_buys:  Number.isFinite(Number(insC.buy_count))         ? Number(insC.buy_count)         : null,
+    "ins_buy_$": Number.isFinite(Number(insC.buy_dollar_total)) ? Number(insC.buy_dollar_total) : null,
     _raw: { scan, ref, snap },
   };
 }
@@ -185,7 +244,7 @@ function useScanData() {
     scanDate: null,
     loading: true,
     error: null,
-    totals: { universe_all: null, universe_v5: null, has_indicators: null, signal_insider: 0, signal_options: 0, signal_congress: 0, signal_technicals: 0, signal_analyst: 0, signal_short_interest: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 },
+    totals: { universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 },
   });
 
   useEffect(() => {
@@ -221,15 +280,10 @@ function useScanData() {
         }
         if (cancelled) return;
 
-        // 3. Total universe count (all common stock + ADR in ticker_reference).
-        let universeAll = null;
-        try {
-          const u = await supabase
-            .from("ticker_reference")
-            .select("ticker", { count: "exact", head: true })
-            .in("type", ["CS", "ADRC"]);
-          universeAll = u?.count ?? null;
-        } catch (_) { /* ignore */ }
+        // 3. (v5.1 cleanup) Removed the "total US-listed equities" count
+        //    query - it kept returning null and silently falling back to the
+        //    same number as the row below it, producing the "3304/3304"
+        //    funnel Joe rejected on 2026-05-10.
 
         // 4. Joins for the table — name + sector + price + day %.
         const tickers = scanRows.map(r => r.ticker);
@@ -262,23 +316,16 @@ function useScanData() {
 
         const shaped = scanRows.map(s => shapeRow(s, refByT.get(s.ticker), snapByT.get(s.ticker)));
 
-        // 5. Funnel counts.
+        // 5. Funnel counts. v5.1 (2026-05-10):
+        //    - drop signal-coverage rows from the funnel (Joe found them
+        //      confusing - they showed numbers that didn't narrow)
+        //    - add scored_with_mt (mt_score IS NOT NULL) and insufficient
+        //      (band === "Insufficient Data") for the new 3-step funnel
         const universeV5 = scanRows.length;
-        const hasIndicators = scanRows.length;
-        const signalCount = (key) => scanRows.filter(r => {
-          const v = (r.sub_scores || {})[key];
-          return v != null && Number.isFinite(Number(v));
-        }).length;
         const totals = {
-          universe_all: universeAll ?? universeV5,
-          universe_v5: universeV5,
-          has_indicators: hasIndicators,
-          signal_insider:        signalCount("insider"),
-          signal_options:        signalCount("options"),
-          signal_congress:       signalCount("congress"),
-          signal_technicals:     signalCount("technicals"),
-          signal_analyst:        signalCount("analyst"),
-          signal_short_interest: signalCount("short_interest"),
+          universe_v5:        universeV5,
+          scored_with_mt:     scanRows.filter(r => r.mt_score != null && Number.isFinite(Number(r.mt_score))).length,
+          insufficient:       scanRows.filter(r => r.band === "Insufficient Data").length,
           strong_buy:   scanRows.filter(r => r.band === "Strong Buy").length,
           watch_buy:    scanRows.filter(r => r.band === "Watch Buy").length,
           neutral:      scanRows.filter(r => r.band === "Neutral").length,
@@ -294,7 +341,7 @@ function useScanData() {
           totals,
         });
       } catch (err) {
-        if (!cancelled) setState({ rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: { universe_all: null, universe_v5: null, has_indicators: null, signal_insider: 0, signal_options: 0, signal_congress: 0, signal_technicals: 0, signal_analyst: 0, signal_short_interest: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 } });
+        if (!cancelled) setState({ rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: { universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 } });
       }
     })();
     return () => { cancelled = true; };
@@ -383,21 +430,30 @@ function AnimatedCount({ value, durationMs = 900 }) {
 
 function FunnelCard({ totals, scanDate }) {
   const ts = scanDate ? new Date(`${scanDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · EOD" : "Pending";
-  const max = Math.max(1, totals?.universe_all || 1);
+
+  // v5.1 fix (2026-05-10): Joe saw "3304 / 3304 / 3304" - identical counts in
+  // a "funnel" that was not narrowing. The total-US-listed row was failing
+  // silently when its query returned no count, so it fell back to the same
+  // 3304 as the row below it. Per the LESSONS rule "either trust the
+  // number or don't show it", that row is gone. The funnel now narrows
+  // honestly: scanned -> has-MT-score -> insufficient-data.
+  const u_v5     = totals?.universe_v5      || 0;
+  const u_scored = totals?.scored_with_mt   || 0;  // mt_score IS NOT NULL
+  const u_thin   = totals?.insufficient     || 0;  // band = "Insufficient Data"
+  const max = Math.max(1, u_v5);
   const pct = (n) => Math.max(2, Math.min(100, Math.round(((n || 0) / max) * 100)));
 
-  // Funnel steps: total US-listed -> v5 universe -> signal coverage.
-  const universeSteps = [
-    { key: "universe_all", count: totals?.universe_all, label: "Total US-listed equities", tip: "Every Common Stock and ADR Polygon tracks on US exchanges (about 5,800 names)." },
-    { key: "universe_v5",  count: totals?.universe_v5,  label: "Universe (market cap >= $300M, close > $5)", tip: "The universe we score every day. About 3,300 names that clear the size and price floor." },
-  ];
-  const signalSteps = [
-    { key: "signal_insider",        count: totals?.signal_insider,        label: "Insider signal coverage",       tip: "Names with at least one open-market Form 4 buy in the recent window. The highest-weighted signal (36.3%)." },
-    { key: "signal_technicals",     count: totals?.signal_technicals,     label: "Technicals signal coverage",    tip: "Names with enough price history to compute Bollinger BandWidth, RSI, and the 50-day moving average. Calibrated weight 8.7%." },
-    { key: "signal_analyst",        count: totals?.signal_analyst,        label: "Analyst signal coverage",       tip: "Names with recent Wall Street upgrades, downgrades, or price target changes. Calibrated weight 5.0%." },
-    { key: "signal_options",        count: totals?.signal_options,        label: "Options signal coverage",       tip: "Names with unusual options flow data. On equal-weight floor (16.7%) - full backfill pending.", amber: true },
-    { key: "signal_congress",       count: totals?.signal_congress,       label: "Congress signal coverage",      tip: "Names with disclosed US senator or representative trades. On equal-weight floor (16.7%) - thin history.", amber: true },
-    { key: "signal_short_interest", count: totals?.signal_short_interest, label: "Short interest signal coverage",tip: "Names with short interest data. On equal-weight floor (16.7%) - sparse coverage.", amber: true },
+  const funnelSteps = [
+    { key: "universe_v5", count: u_v5,
+      label: "Scanned today",
+      tip: "Every US Common Stock and ADR with market cap >= $300M and last close > $5. The full universe we score every day." },
+    { key: "scored",      count: u_scored,
+      label: "Has MacroTilt score",
+      tip: "Names with at least 3 of 6 signals firing and combined weight >= 40% of the calibrated total. Only these get a numeric score and band." },
+    { key: "insufficient", count: u_thin,
+      label: "Insufficient signal coverage",
+      tip: "Names with fewer than 3 signals firing. The individual signal columns still show, but no composite score is computed.",
+      amber: true },
   ];
 
   // Band tile config. Strong Buy / Strong Sell pulse to mark the actionable extremes.
@@ -431,7 +487,7 @@ function FunnelCard({ totals, scanDate }) {
         </span>
       </div>
 
-      {[...universeSteps, ...signalSteps].map((s) => (
+      {funnelSteps.map((s) => (
         <div key={s.key} style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
           <Tooltip label={s.label} body={s.tip}>
             <span style={{ fontSize: 12, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -616,6 +672,50 @@ function renderCell(row, key) {
   if (key === "sub_insider" || key === "sub_options" || key === "sub_congress" || key === "sub_technicals" || key === "sub_analyst" || key === "sub_short_interest") {
     return <SubScoreCell value={v} />;
   }
+  // ── v5.1 restored legacy columns ──
+  if (key === "range_52w") {
+    if (!v) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    return <span style={{ fontFamily: "var(--font-mono)", fontSize: 11.5, color: "var(--text-2)" }}>{String(v)}</span>;
+  }
+  if (key === "iv_rank") {
+    if (v == null || !Number.isFinite(Number(v))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    const n = Number(v);
+    const c = n >= 70 ? "var(--red-text, var(--red))" : n >= 40 ? "var(--yellow-text)" : "var(--text-muted)";
+    return <span style={{ color: c, fontWeight: 600 }}>{n.toFixed(0)}</span>;
+  }
+  if (key === "rsi_14") {
+    if (v == null || !Number.isFinite(Number(v))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    const n = Number(v);
+    const c = n >= 70 ? "var(--red-text, var(--red))" : n <= 30 ? "var(--yellow-text, var(--text))" : "var(--text-2)";
+    return <span style={{ color: c, fontWeight: 600 }}>{n.toFixed(0)}</span>;
+  }
+  if (key === "bb_bw") {
+    if (v == null || !Number.isFinite(Number(v))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    const n = Number(v);
+    const c = n < 5 ? "var(--yellow-text)" : "var(--text-2)";
+    return <span style={{ color: c }}>{n.toFixed(1)}%</span>;
+  }
+  if (key === "rvol_20d") {
+    if (v == null || !Number.isFinite(Number(v))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    const n = Number(v);
+    const c = n >= 1.5 ? "var(--green-text, var(--green))" : n < 0.7 ? "var(--yellow-text)" : "var(--text-2)";
+    return <span style={{ color: c }}>{n.toFixed(2)}×</span>;
+  }
+  if (key === "pct_50ma" || key === "pct_200ma") {
+    if (v == null || !Number.isFinite(Number(v))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    const n = Number(v);
+    const c = n > 0 ? "var(--green-text, var(--green))" : n < 0 ? "var(--red-text, var(--red))" : "var(--text-muted)";
+    return <span style={{ color: c }}>{`${n > 0 ? "+" : ""}${n.toFixed(1)}%`}</span>;
+  }
+  if (key === "ins_buys") {
+    if (v == null || !Number.isFinite(Number(v))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    return <span style={{ color: "var(--text-2)", fontWeight: 600 }}>{Number(v).toFixed(0)}</span>;
+  }
+  if (key === "ins_buy_$") {
+    if (v == null || !Number.isFinite(Number(v))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    const n = Number(v);
+    return <span style={{ color: "var(--text-2)" }}>{n >= 1e6 ? `$${(n/1e6).toFixed(1)}M` : n >= 1e3 ? `$${(n/1e3).toFixed(0)}K` : `$${n.toFixed(0)}`}</span>;
+  }
   if (v == null) return <span style={{ color: "var(--text-dim)" }}>—</span>;
   return <span>{String(v)}</span>;
 }
@@ -650,11 +750,13 @@ export default function TradingOppsPage({ onOpenTicker }) {
     return allRows.filter(r => {
       if (q && !(r.ticker || "").toLowerCase().includes(q) && !(r.name || "").toLowerCase().includes(q)) return false;
       switch (colState.filter) {
+        case "actionable":   return r.band === "Strong Buy" || r.band === "Watch Buy" || r.band === "Watch Sell" || r.band === "Strong Sell";
         case "strong_buy":   return r.band === "Strong Buy";
         case "watch_buy":    return r.band === "Watch Buy";
         case "neutral":      return r.band === "Neutral";
         case "watch_sell":   return r.band === "Watch Sell";
         case "strong_sell":  return r.band === "Strong Sell";
+        case "insufficient": return r.band === "Insufficient Data";
         case "held":         return r.band !== null; // placeholder - "Held" filter is wired by portfolio overlay (out of v5 scope)
         case "watchlist":    return r.band !== null; // placeholder - "Watchlist" filter is wired elsewhere
         case "all":
@@ -676,14 +778,15 @@ export default function TradingOppsPage({ onOpenTicker }) {
     });
   }, [filtered, colState.sort]);
 
-  // Row groups: Strong Buy > Watch Buy > Strong Sell > Watch Sell > Neutral.
-  const groupOrder = ["strong_buy", "watch_buy", "strong_sell", "watch_sell", "neutral"];
+  // Row groups: Strong Buy > Watch Buy > Strong Sell > Watch Sell > Neutral > Insufficient Data.
+  const groupOrder = ["strong_buy", "watch_buy", "strong_sell", "watch_sell", "neutral", "insufficient"];
   const groupMeta = {
-    strong_buy:  { label: "Strong Buy",  dot: "var(--green-text, var(--green))" },
-    watch_buy:   { label: "Watch Buy",   dot: "var(--yellow-text, var(--yellow))" },
-    strong_sell: { label: "Strong Sell", dot: "var(--red-text, var(--red))" },
-    watch_sell:  { label: "Watch Sell",  dot: "var(--yellow-text, var(--yellow))" },
-    neutral:     { label: "Neutral",     dot: "var(--text-dim)" },
+    strong_buy:   { label: "Strong Buy",        dot: "var(--green-text, var(--green))" },
+    watch_buy:    { label: "Watch Buy",         dot: "var(--yellow-text, var(--yellow))" },
+    strong_sell:  { label: "Strong Sell",       dot: "var(--red-text, var(--red))" },
+    watch_sell:   { label: "Watch Sell",        dot: "var(--yellow-text, var(--yellow))" },
+    neutral:      { label: "Neutral",           dot: "var(--text-dim)" },
+    insufficient: { label: "Insufficient Data", dot: "var(--text-dim)" },
   };
 
   const visibleCols = colState.order.filter(k => colState.visible.includes(k));
@@ -741,12 +844,14 @@ export default function TradingOppsPage({ onOpenTicker }) {
   };
 
   const filterChips = [
+    { f: "actionable",   label: "Actionable" },
     { f: "all",          label: "All" },
     { f: "strong_buy",   label: "Strong Buy" },
     { f: "watch_buy",    label: "Watch Buy" },
     { f: "neutral",      label: "Neutral" },
     { f: "watch_sell",   label: "Watch Sell" },
     { f: "strong_sell",  label: "Strong Sell" },
+    { f: "insufficient", label: "Insufficient Data" },
     { f: "held",         label: "Held" },
     { f: "watchlist",    label: "Watchlist" },
   ];

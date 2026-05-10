@@ -59,41 +59,48 @@ function SignalIntelligenceRail({
   // the deprecated 3-composite scale).
   // Tile 1 — MacroTilt Signal (v5 — six signals + bidirectional bands).
   // Reads from signal_intel_v5_daily.
+  //
+  // v5.1 fixes (2026-05-10, per Joe's UAT):
+  //   - Default state collapsed (defaultOpen removed at render site).
+  //   - Generic signal descriptions moved to hover tooltips.
+  //   - Per-signal row shows ACTUAL numbers (e.g. "3 buys / 1 sell" for
+  //     insider) from `diagnostic.scorer_components`, not a generic blurb.
+  //   - Insider weight readout now reads `weights_used.insider` directly
+  //     instead of recomputing 0.363 * capDisc (which diverged from the
+  //     table when the daily scan ran on equal-weight defaults).
+  //   - Handles the new "Insufficient Data" band emitted when coverage
+  //     drops below the honest-score threshold (3 of 6 signals AND >=40%
+  //     of combined weight).
   const mtSignalTile = (() => {
     const sig = mtSignal;
     if (!sig) return { state: "loading", value: "...", meta: "Loading MacroTilt signal", detail: null };
-    const score = Number(sig.mt_score);
-    if (!Number.isFinite(score)) {
-      return { state: "neutral", value: "--", meta: "No data for this name today.", detail: null };
-    }
-    const band = sig.band || "Neutral";
-    // Five-band coloring. Strong = green/red; Watch = amber; Neutral = dim.
-    const stateForBand = (b) =>
-      b === "Strong Buy"  ? "green"
-    : b === "Watch Buy"   ? "amber"
-    : b === "Strong Sell" ? "red"
-    : b === "Watch Sell"  ? "amber"
-    : "neutral";
-    const state = stateForBand(band);
-    const value = `${score > 0 ? "+" : ""}${score.toFixed(0)}`;
-    const meta = `${band} - ${sig.so_what || ""}`;
-
-    const subs = sig.sub_scores || {};
+    const subs    = sig.sub_scores || {};
     const weights = sig.weights_used || {};
     const capDisc = Number(sig.cap_discount);
-    const mcap = Number(sig.market_cap);
+    const mcap    = Number(sig.market_cap);
+    const comps   = (sig.diagnostic && sig.diagnostic.scorer_components) || {};
+    const score   = Number(sig.mt_score);
+    const band    = sig.band || (Number.isFinite(score) ? "Neutral" : "No Data");
 
-    // Signal display order + plain-English label per signal.
-    const SIGNAL_ORDER = [
-      { key: "insider",        label: "Insider buying",  desc: "Form 4 open-market buys by company officers and directors. Most predictive of all six signals." },
-      { key: "technicals",     label: "Technicals",      desc: "20-day Bollinger BandWidth, 14-day RSI, distance to 50-day moving average, relative volume." },
-      { key: "analyst",        label: "Analyst actions", desc: "Recent upgrades, downgrades, price target changes from Wall Street equity research." },
-      { key: "options",        label: "Options flow",    desc: "Unusual call and put volume vs open interest. Calibration pending - full history backfill in progress." },
-      { key: "congress",       label: "Congress trades", desc: "Disclosed buy and sell trades by US senators and representatives. Calibration pending - thin history." },
-      { key: "short_interest", label: "Short interest",  desc: "Borrowed and sold short, vs prior period. Calibration pending - sparse coverage." },
-    ];
+    // Five-band coloring + 7th "Insufficient Data" amber.
+    const stateForBand = (b) =>
+      b === "Strong Buy"        ? "green"
+    : b === "Watch Buy"         ? "amber"
+    : b === "Strong Sell"       ? "red"
+    : b === "Watch Sell"        ? "amber"
+    : b === "Insufficient Data" ? "amber"
+    : "neutral";
+    const state = stateForBand(band);
 
-    // Pretty-format sub-score with sign and band tag.
+    // Headline value: numeric score OR "—" for missing/insufficient.
+    const value = Number.isFinite(score)
+      ? `${score > 0 ? "+" : ""}${score.toFixed(0)}`
+      : "—";
+    const meta = sig.so_what
+      ? `${band} - ${sig.so_what}`
+      : band;
+
+    // Format helpers.
     const fmtSub = (v) => {
       if (v == null || !Number.isFinite(Number(v))) return null;
       const n = Number(v);
@@ -109,49 +116,161 @@ function SignalIntelligenceRail({
       return "var(--text-muted)";
     };
     const fmtWeight = (w) => {
-      if (w == null || !Number.isFinite(Number(w))) return "--";
+      if (w == null || !Number.isFinite(Number(w))) return "—";
       return `${(Number(w) * 100).toFixed(1)}%`;
     };
+    const fmtMoney = (n) => {
+      const x = Number(n);
+      if (!Number.isFinite(x) || x === 0) return null;
+      if (Math.abs(x) >= 1e9) return `$${(x/1e9).toFixed(1)}B`;
+      if (Math.abs(x) >= 1e6) return `$${(x/1e6).toFixed(1)}M`;
+      if (Math.abs(x) >= 1e3) return `$${(x/1e3).toFixed(0)}K`;
+      return `$${x.toFixed(0)}`;
+    };
 
-    // Cap-discount note for mega-caps.
-    const showCapNote = Number.isFinite(capDisc) && capDisc < 0.999;
+    // Per-signal "actual result" line — built from diagnostic.scorer_components.
+    // Falls back to "—" when no data.
+    const resultLine = (key) => {
+      const c = comps[key] || {};
+      if (key === "insider") {
+        const buys  = Number(c.buy_count || 0);
+        const sells = Number(c.sell_count || 0);
+        if (buys === 0 && sells === 0) return null;
+        const buy$  = fmtMoney(c.buy_dollar_total);
+        const sell$ = fmtMoney(c.sell_dollar_total);
+        const firstBuy = c.first_buy_fires ? " · first buy in 12mo" : "";
+        const parts = [];
+        if (buys)  parts.push(`${buys} buy${buys===1?"":"s"}${buy$  ? ` (${buy$})`  : ""}`);
+        if (sells) parts.push(`${sells} sell${sells===1?"":"s"}${sell$ ? ` (${sell$})` : ""}`);
+        return parts.join(" · ") + firstBuy;
+      }
+      if (key === "analyst") {
+        const n   = Number(c.action_count || 0);
+        if (n === 0) return null;
+        const gap = c.pt_gap_pct;
+        const gapStr = (gap != null && Number.isFinite(Number(gap)))
+          ? ` · target ${Number(gap) >= 0 ? "+" : ""}${Number(gap).toFixed(0)}% vs spot`
+          : "";
+        return `${n} action${n===1?"":"s"} in 90d${gapStr}`;
+      }
+      if (key === "technicals") {
+        const rsi  = c.rsi14;
+        const bw   = c.bb_bandwidth;
+        const rv   = c.rvol_20d;
+        const parts = [];
+        if (rsi != null) parts.push(`RSI ${Number(rsi).toFixed(0)}`);
+        if (bw  != null) parts.push(`band width ${(Number(bw)*100).toFixed(1)}%`);
+        if (rv  != null) parts.push(`RVOL ${Number(rv).toFixed(2)}×`);
+        return parts.length ? parts.join(" · ") : null;
+      }
+      if (key === "options") {
+        const callP = Number(c.call_premium || 0);
+        const putP  = Number(c.put_premium  || 0);
+        const sw    = Number(c.sweep_count   || 0);
+        if (callP === 0 && putP === 0 && sw === 0) return null;
+        const parts = [];
+        const callStr = fmtMoney(callP);
+        const putStr  = fmtMoney(putP);
+        if (callStr) parts.push(`calls ${callStr}`);
+        if (putStr)  parts.push(`puts ${putStr}`);
+        if (sw)      parts.push(`${sw} sweep${sw===1?"":"s"}`);
+        return parts.join(" · ");
+      }
+      if (key === "congress") {
+        const b = Number(c.buy_count || 0);
+        const s = Number(c.sell_count || 0);
+        const u = Number(c.unique_buyers || 0);
+        if (b === 0 && s === 0) return null;
+        const parts = [];
+        if (b) parts.push(`${b} buy${b===1?"":"s"}`);
+        if (s) parts.push(`${s} sell${s===1?"":"s"}`);
+        if (u) parts.push(`${u} unique members`);
+        return parts.join(" · ");
+      }
+      if (key === "short_interest") {
+        const si  = c.latest_si_pct_of_float;
+        const ctb = c.latest_ctb_pct;
+        const reg = c.regime;
+        const parts = [];
+        if (si  != null) parts.push(`${Number(si).toFixed(1)}% of float short`);
+        if (ctb != null) parts.push(`cost-to-borrow ${Number(ctb).toFixed(1)}%`);
+        if (reg)         parts.push(String(reg).replace(/_/g, " "));
+        return parts.length ? parts.join(" · ") : null;
+      }
+      return null;
+    };
+
+    // Signal display order + label + hover tooltip text.
+    // Tooltip uses the native title attribute -- zero infrastructure, hovers
+    // over the label cell.
+    const SIGNAL_ORDER = [
+      { key: "insider",        label: "Insider buying",  tip: "Form 4 open-market buys and sells by company officers and directors. Highest-weighted signal -- best predictor in the backtest." },
+      { key: "technicals",     label: "Technicals",      tip: "20-day Bollinger BandWidth, 14-day RSI, distance to 50-day moving average, 20-day relative volume." },
+      { key: "analyst",        label: "Analyst actions", tip: "Recent upgrades, downgrades, and price-target changes from Wall Street equity research analysts." },
+      { key: "options",        label: "Options flow",    tip: "Unusual call and put premium vs open interest, plus sweep order count. Calibration pending while history backfills." },
+      { key: "congress",       label: "Congress trades", tip: "Disclosed buy and sell trades by US senators and representatives in the last 90 days. Calibration pending -- thin history." },
+      { key: "short_interest", label: "Short interest",  tip: "Percent of float sold short and the cost-to-borrow trend. Calibration pending -- sparse coverage." },
+    ];
+
+    // Cap-discount note for mega-caps -- now reads weights_used.insider
+    // directly so it matches the table column exactly.
+    const liveInsiderW = Number(weights.insider);
+    const showCapNote =
+      Number.isFinite(capDisc) && capDisc < 0.999 && Number.isFinite(liveInsiderW);
     const capNote = showCapNote ? (() => {
-      // The insider weight starts at 36.30% (calibrated base). At this cap it
-      // is `36.30 * capDisc`. The freed weight redistributes pro-rata to the
-      // other five.
-      const newInsiderPct = (0.363 * capDisc * 100);
       const capStr = Number.isFinite(mcap) && mcap > 0
         ? (mcap >= 1e12 ? `$${(mcap/1e12).toFixed(1)}T` : mcap >= 1e9 ? `$${(mcap/1e9).toFixed(0)}B` : `$${(mcap/1e6).toFixed(0)}M`)
         : "this cap";
       return (
-        <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-muted)",fontSize:11.5,lineHeight:1.45}}>
-          <b style={{color:"var(--text-2)"}}>Insider weight reduced to {newInsiderPct.toFixed(1)}% at {capStr}.</b>{" "}
-          Insider buys are statistically less informative at larger market caps - a $1M purchase moves the dial at a $500M company but is rounding error at a $500B company (Lakonishok & Lee 2001). The freed weight is shifted pro-rata to the other five signals.
+        <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-muted)",fontSize:11.5,lineHeight:1.45}}
+             title="At a $500M cap the insider weight is at full strength. By $50B it has dropped to half, and by $500B it is one-quarter. The freed weight is redistributed pro-rata to the other five signals so the total always sums to 100%.">
+          <b style={{color:"var(--text-2)"}}>Insider weight reduced to {(liveInsiderW * 100).toFixed(1)}% at {capStr}.</b>{" "}
+          Insider buys carry less information at larger market caps. Hover for the mechanism.
         </div>
       );
     })() : null;
 
+    // "Insufficient Data" banner when the row failed the coverage guard.
+    const insufficientNote = band === "Insufficient Data" ? (
+      <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-2)",fontSize:11.5,lineHeight:1.45}}>
+        <b>Not enough signal coverage for a composite score today.</b>{" "}
+        {Number.isFinite(Number(sig.signals_fired)) ? `${sig.signals_fired} of 6 signals had data.` : ""}{" "}
+        The individual signals below are still honest -- read them directly.
+      </div>
+    ) : null;
+
     const detail = (
       <div style={{display:"flex",flexDirection:"column",gap:10,fontSize:12}}>
+        {insufficientNote}
         {capNote}
         <div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Signals (sub-score &middot; weight)</div>
+          <div style={{display:"grid",gridTemplateColumns:"140px 64px 64px 1fr",gap:8,padding:"3px 0",fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",borderBottom:"1px solid var(--border-faint, var(--border))"}}>
+            <span>Signal</span>
+            <span>Score</span>
+            <span>Weight</span>
+            <span>Today's reading</span>
+          </div>
           {SIGNAL_ORDER.map((s, i) => {
             const sub = subs[s.key];
-            const w = weights[s.key];
+            const w   = weights[s.key];
             const subStr = fmtSub(sub);
+            const result = resultLine(s.key);
+            const isLast = i === SIGNAL_ORDER.length - 1;
             return (
-              <div key={"sig"+i} style={{display:"grid",gridTemplateColumns:"140px 64px 64px 1fr",gap:8,alignItems:"baseline",padding:"5px 0",borderBottom:i < SIGNAL_ORDER.length - 1 ? "1px solid var(--border-faint, var(--border))" : "none"}}>
-                <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.04em",color:"var(--text-2)",textTransform:"uppercase",fontWeight:600}}>{s.label}</span>
-                <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)"}}>{subStr == null ? "no data" : subStr}</span>
+              <div key={"sig"+i} style={{display:"grid",gridTemplateColumns:"140px 64px 64px 1fr",gap:8,alignItems:"baseline",padding:"6px 0",borderBottom: isLast ? "none" : "1px solid var(--border-faint, var(--border))"}}>
+                <span title={s.tip} style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.04em",color:"var(--text-2)",textTransform:"uppercase",fontWeight:600,cursor:"help",borderBottom:"1px dotted var(--text-dim)"}}>{s.label}</span>
+                <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)"}}>{subStr == null ? "—" : subStr}</span>
                 <span style={{color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontSize:11}}>{fmtWeight(w)}</span>
-                <span style={{color:"var(--text-muted)",fontSize:11,lineHeight:1.4}}>{s.desc}</span>
+                <span style={{color: result ? "var(--text)" : "var(--text-dim)", fontSize:11.5, lineHeight:1.4}}>
+                  {result || "no data"}
+                </span>
               </div>
             );
           })}
         </div>
-        <div style={{borderTop:"1px solid var(--border-faint, var(--border))",paddingTop:8,fontSize:11.5,color:"var(--text-muted)",lineHeight:1.5}}>
-          <b style={{color:"var(--text-2)"}}>Backtest expectation</b> - 12-month walk-forward, 52 weekly Mondays through May 2026. Strong Buy band: +7.21 percentage points alpha vs SPY, beats SPY 55.4% of weeks, Sharpe 3.00 (vs SPY 2.87). All meaningful alpha lives in the $300M to $8B cap range.
+        <div style={{borderTop:"1px solid var(--border-faint, var(--border))",paddingTop:8,fontSize:11,color:"var(--text-muted)",lineHeight:1.5}}
+             title="Backtest period: 52 weekly Mondays through May 2026. Walk-forward calibration -- weights re-fit on the last 12 months only. Alpha measured on close-to-close 21-day returns.">
+          <b style={{color:"var(--text-2)"}}>Backtest:</b> Strong Buy band beats SPY 55% of weeks, +7.2pp alpha, Sharpe 3.0 vs SPY 2.9. Hover for window.
         </div>
       </div>
     );
@@ -249,15 +368,59 @@ function SignalIntelligenceRail({
   })();
 
   // Tile 3 — Technical Indicators
+  //
+  // v5.1 fix (2026-05-10): when opened from the v5 Trading Opportunities
+  // page, the legacy `tech` (from scanData.signals.technicals) and
+  // `composite.sections.technicals` are often empty for mega-cap names
+  // not in the v4 screener universe. We now fall back to the v5
+  // `mtSignal.diagnostic.scorer_components.technicals` block, which is
+  // populated for every name in the v5 universe (~3,300 names).
   const techTile = (() => {
     const techSec = composite?.sections?.technicals;
-    const score = techSec?.score;
+    // v5 fallback: pull the technicals component block when legacy is missing.
+    const v5Tech = (mtSignal && mtSignal.diagnostic && mtSignal.diagnostic.scorer_components)
+      ? (mtSignal.diagnostic.scorer_components.technicals || {})
+      : {};
+    // Prefer the v5 sub-score (range -100..+100) when no legacy composite score is present.
+    const v5SubScore = (mtSignal && mtSignal.sub_scores) ? mtSignal.sub_scores.technicals : null;
+    const score = techSec?.score != null ? techSec.score
+                : (v5SubScore != null ? Number(v5SubScore) : null);
     const state = score == null ? "loading"
                 : score >= 25 ? "green"
                 : score <= -25 ? "red"
                 : "amber";
     const value = score == null ? "…" : fmtSigned(score);
     const rows = [];
+
+    // ── v5-component-sourced rows (mega-cap fallback path) ──
+    // Mirror the rows the legacy block produces so the layout looks the same.
+    if (v5Tech.rsi14 != null && tech?.rsi_14 == null) {
+      const rsi = Number(v5Tech.rsi14);
+      rows.push({ label: "RSI(14)", val: rsi.toFixed(0), color: rsi >= 70 ? "red" : rsi <= 30 ? "amber" : "green" });
+    }
+    if (v5Tech.sma50 != null && v5Tech.today_close != null && tech?.pct_vs_50ma == null) {
+      const c = Number(v5Tech.today_close), s = Number(v5Tech.sma50);
+      if (s > 0) {
+        const p = ((c - s) / s) * 100;
+        rows.push({ label: "% vs 50d MA", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p > 5 ? "green" : p < -5 ? "red" : "amber" });
+      }
+    }
+    if (v5Tech.sma200 != null && v5Tech.today_close != null && tech?.pct_vs_200ma == null) {
+      const c = Number(v5Tech.today_close), s = Number(v5Tech.sma200);
+      if (s > 0) {
+        const p = ((c - s) / s) * 100;
+        rows.push({ label: "% vs 200d MA", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p > 10 ? "green" : p < -10 ? "red" : "amber" });
+      }
+    }
+    if (v5Tech.bb_bandwidth != null) {
+      const bw = Number(v5Tech.bb_bandwidth) * 100;
+      // Squeeze regime: band-width < 5% historically tight.
+      rows.push({ label: "Bollinger band-width", val: `${bw.toFixed(2)}%`, color: bw < 5 ? "amber" : "green" });
+    }
+    if (v5Tech.rvol_20d != null && tech?.vol_surge == null) {
+      const rv = Number(v5Tech.rvol_20d);
+      rows.push({ label: "Relative volume (20d)", val: `${rv.toFixed(2)}× avg`, color: rv >= 1.5 ? "green" : rv < 0.7 ? "amber" : "amber" });
+    }
     // Render every technical the scanner emits — the data shape is fixed in
     // trading-scanner/scanner/screener_unusual_whales.py / technicals.py and
     // we surface every field that's populated. Color = direction.
@@ -429,8 +592,7 @@ function SignalIntelligenceRail({
         <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.16em",color:"var(--text-dim)"}}>Signal Intelligence</span>
         <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:"0.14em"}}>click to expand</span>
       </div>
-      <SignalCard title="MacroTilt Signal" {...mtSignalTile} ragColor={ragColor} defaultOpen />
-      <SignalCard title="Asset Tilt" {...tiltTile} ragColor={ragColor} />
+      <SignalCard title="MacroTilt Signal" {...mtSignalTile} ragColor={ragColor} />
       <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
         const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
         const fmtBeta = v => v == null ? "—" : v.toFixed(2);
