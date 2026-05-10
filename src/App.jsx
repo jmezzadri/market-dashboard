@@ -1951,9 +1951,19 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
       .catch((err) => { console.warn("[All Indicators · v2 PR 2] cycle_v2.json fetch failed", err); });
   }, []);
   const cycleV2ById = useMemo(() => {
+    // v2 PR 2.1 — key the lookup by BOTH the v2 indicator id AND the
+    // history_key so legacy table rows that use the history_key as their
+    // id (e.g. "hy_ig" → v2 "hy_oas", "ism" → v2 "ism_mfg") match.
     const m = {};
     if (cycleV2 && Array.isArray(cycleV2.indicators)) {
-      cycleV2.indicators.forEach((row) => { if (row.id) m[row.id] = row; });
+      cycleV2.indicators.forEach((row) => {
+        if (row.id) m[row.id] = row;
+        if (row.history_key && !m[row.history_key]) m[row.history_key] = row;
+      });
+      // Legacy table has a single "ism" row that should map to ism_mfg
+      // (manufacturing PMI is the canonical headline ISM number).
+      const ismMfg = cycleV2.indicators.find((r) => r.id === "ism_mfg");
+      if (ismMfg && !m["ism"]) m["ism"] = ismMfg;
     }
     return m;
   }, [cycleV2]);
