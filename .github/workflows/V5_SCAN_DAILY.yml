@@ -1,0 +1,85 @@
+name: V5_SCAN_DAILY
+
+# v5 Signal Intelligence — daily composite scan.
+#
+# Runs once a day at 17:00 ET, AFTER all six Phase-1 ingest workflows
+# (insider / options / congress / analyst / short-interest / technicals)
+# have finished their morning runs. Walks the v5 universe (~3,300 names),
+# blends each ticker's six sub-scores into the composite MT Score with
+# the insider cap-discount applied, assigns one of five bands, and
+# upserts to public.signal_intel_v5_daily.
+#
+# Until Phase 4 merges, the v4.1 daily scan (SCAN_330PM_WEEKDAYS) stays
+# the live source for the Trading Opportunities UI. This workflow runs
+# in parallel and lets us QA the v5 numbers before swap.
+#
+# Required GitHub secrets (already configured for the Phase 1 ingests):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   SUPABASE_ACCESS_TOKEN
+
+on:
+  schedule:
+    # 17:00 ET = 21:00 UTC during EDT (Mar-Nov, UTC-4)
+    - cron: '0 21 * * 1-5'
+    # 17:00 ET = 22:00 UTC during EST (Nov-Mar, UTC-5)
+    - cron: '0 22 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      scan_date:
+        description: "YYYY-MM-DD; defaults to today (UTC)"
+        required: false
+      limit:
+        description: "Score only first N tickers (smoke test)"
+        required: false
+      tickers:
+        description: "Comma-separated explicit tickers (bypasses universe)"
+        required: false
+      dry_run:
+        description: "Score only, do not write to Supabase"
+        required: false
+        default: "false"
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scanner deps
+        working-directory: trading-scanner
+        run: |
+          pip install --upgrade pip
+          pip install requests
+
+      - name: Run v5 composite scan
+        working-directory: trading-scanner
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.scan_date }}" ]; then ARGS="$ARGS --scan-date ${{ inputs.scan_date }}"; fi
+          if [ -n "${{ inputs.limit }}" ];     then ARGS="$ARGS --limit ${{ inputs.limit }}"; fi
+          if [ -n "${{ inputs.tickers }}" ];   then ARGS="$ARGS --tickers ${{ inputs.tickers }}"; fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          PYTHONPATH=. python3 run_v5_scanner.py $ARGS
+
+      - name: Surface row count for today
+        if: inputs.dry_run != 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          TODAY=$(date -u +%F)
+          curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "Prefer: count=exact" \
+                  "$SUPABASE_URL/rest/v1/signal_intel_v5_daily?scan_date=eq.$TODAY&select=ticker&limit=1" \
+                  -I 2>&1 | grep -i content-range || true
