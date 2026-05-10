@@ -958,3 +958,52 @@ a:hover { text-decoration: underline; }
   opacity: 0.06;
 }
 .v2-hero > .v2-shell { position: relative; z-index: 1; }
+
+
+/* ───────── v2 hero stats grid (legacy v11 hero) ─────────
+   Fixes pre-existing spacing bug where .v2-stats was a plain block,
+   .s was inline, and .lbl/.v/.d spans rendered back-to-back with no
+   whitespace (e.g. "Mechanisms flagged3 /6above Neutral").
+   The four .s cells lay out as a 4-column grid on desktop and collapse
+   to 2-up then 1-up on narrower screens. Inside each cell, label sits
+   on top, the big numeric value in the middle, and the small
+   description below.
+   --------------------------------------------------------------- */
+.v2-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 24px;
+}
+.v2-stats .s {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.v2-stats .s .lbl {
+  display: block;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--ink-2, #6b7280);
+}
+.v2-stats .s .v {
+  display: block;
+  font-family: var(--font-display, 'Fraunces', serif);
+  font-size: 40px;
+  line-height: 1.05;
+  color: var(--ink-0, #0f1115);
+}
+.v2-stats .s .d {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-2, #6b7280);
+}
+.v2-stats .s.warn .v { color: var(--accent, #b8462f); }
+
+@media (max-width: 880px) {
+  .v2-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 480px) {
+  .v2-stats { grid-template-columns: 1fr; }
+}
