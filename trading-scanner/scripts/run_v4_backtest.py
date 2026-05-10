@@ -4,6 +4,7 @@ v4.1 walk-forward backtest CLI runner.
 Usage:
     python scripts/run_v4_backtest.py --run A --output /tmp/run_A.parquet
     python scripts/run_v4_backtest.py --run B --output /tmp/run_B.parquet
+    python scripts/run_v4_backtest.py --run C --output /tmp/run_C.parquet
     python scripts/run_v4_backtest.py --run A --smoke --output /tmp/smoke_A.parquet
 
 Requires SUPABASE_ACCESS_TOKEN env var. PYTHONPATH must include the
@@ -13,13 +14,19 @@ Run A : universe $300M-$3B,  require_first_buy=True, magnitude_mode='absolute'
         (current production spec, pre-PR-#510 — $1M absolute insider floor)
 Run B : universe $300M-$25B, require_first_buy=True, magnitude_mode='capnorm'
         (proposed spec — cap-normalized magnitude from PR #510)
+Run C : universe $300M-$8B,  require_first_buy=True, magnitude_mode='capnorm'
+        (validation spec — same magnitude rule as Run B but the universe
+        ceiling is tightened to $8B, the SMID-cap zone. Run B's cap-bucket
+        alpha analysis showed the $8B-$25B band beat SPY only 41.2% of
+        the time; Run C tests whether trimming that band keeps the
+        magnitude-rule benefit while recovering Run A's edge.)
 
-The ONLY differences between A and B are the universe ceiling and the
-magnitude rule. Both runs use require_first_buy=True (v4.1 default), the
+The ONLY differences between runs are the universe ceiling and the
+magnitude rule. All runs use require_first_buy=True (v4.1 default), the
 same liquidity gate ($5 / 500k), the same anti-hedge gate, the same
 pillars, the same red-flag, and the same HC tiebreaker (5 bps × cap, $5M
-floor) — HC is sizing on top of the gate, applied identically in both
-runs.
+floor) — HC is sizing on top of the gate, applied identically across
+all runs.
 """
 from __future__ import annotations
 
@@ -62,6 +69,12 @@ RUN_PRESETS = {
         "require_first_buy": True,
         "magnitude_mode": "capnorm",
     },
+    "C": {
+        "cap_min": 300_000_000.0,
+        "cap_max": 8_000_000_000.0,
+        "require_first_buy": True,
+        "magnitude_mode": "capnorm",
+    },
 }
 
 
@@ -71,7 +84,7 @@ def _progress(scan_iso, i, total):
 
 def main() -> int:
     p = argparse.ArgumentParser(description="v4.1 walk-forward backtest runner")
-    p.add_argument("--run", choices=["A", "B"], required=True)
+    p.add_argument("--run", choices=["A", "B", "C"], required=True)
     p.add_argument("--output", required=True)
     p.add_argument("--scan-dates", default=str(DEFAULT_SCAN_DATES))
     p.add_argument("--universe", default=str(DEFAULT_UNIVERSE))
