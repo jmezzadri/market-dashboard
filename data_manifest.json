@@ -57,4 +57,134 @@
     "realecon.ism_mfg": {
       "category": "indicator",
       "name": "ISM Manufacturing PMI",
-    
+      "sourcing_mode": "scrape",
+      "source_vendor": "investing.com",
+      "license_tier": "free",
+      "cadence": "monthly",
+      "scheduled_fetch_et": "10:00",
+      "freshness_sla_hours": 1080,
+      "consumer_surfaces": [
+        "Macro Overview · Real Economy headline",
+        "Scenario Analysis · Cycle Mechanism Results",
+        "All Indicators · Real Economy sub-composite",
+        "Home · Macro tile (regime classifier input)"
+      ],
+      "failure_mode": "scrape returns no parseable rows OR site blocks bot",
+      "owner": "Data Steward",
+      "producer_workflow": ".github/workflows/REFRESH-ISM-MONTHLY.yml",
+      "producer_script": "scripts/refresh_ism.py",
+      "registered_at": "2026-05-10",
+      "registered_via": "Joe directive 2026-05-10 — ISM v2 spec + bug #1178"
+    },
+    "realecon.ism_svc": {
+      "category": "indicator",
+      "name": "ISM Services PMI",
+      "sourcing_mode": "scrape",
+      "source_vendor": "investing.com",
+      "license_tier": "free",
+      "cadence": "monthly",
+      "scheduled_fetch_et": "10:00",
+      "freshness_sla_hours": 1080,
+      "consumer_surfaces": [
+        "Macro Overview · Real Economy headline",
+        "Scenario Analysis · Cycle Mechanism Results",
+        "All Indicators · Real Economy sub-composite",
+        "Home · Macro tile (regime classifier input)"
+      ],
+      "failure_mode": "scrape returns no parseable rows OR site blocks bot",
+      "owner": "Data Steward",
+      "producer_workflow": ".github/workflows/REFRESH-ISM-MONTHLY.yml",
+      "producer_script": "scripts/refresh_ism.py",
+      "registered_at": "2026-05-10",
+      "registered_via": "Joe directive 2026-05-10 — ISM v2 spec + bug #1178"
+    },
+    "cycle_v2.headline.cycle_value": {
+      "category": "indicator",
+      "sourcing_mode": "computed",
+      "source_vendor": "internal",
+      "license_tier": "—",
+      "cadence": "daily",
+      "scheduled_fetch_et": "18:30",
+      "freshness_sla_hours": 72,
+      "consumer_surfaces": [
+        "Home macro tile",
+        "Macro Overview",
+        "Scenario Analysis",
+        "All Indicators"
+      ],
+      "failure_mode": "compute_cycle_v2.py exits non-zero / yfinance SPY fetch fails",
+      "owner": "Senior Quant",
+      "producer_workflow": ".github/workflows/CYCLE-V2-DAILY.yml",
+      "producer_script": "scripts/compute_cycle_v2.py",
+      "registered_at": "2026-05-10",
+      "registered_via": "v2 spec PR 1 — Joe approval 2026-05-10",
+      "name": "Cycle & Value (Setup) headline — v2"
+    },
+    "cycle_v2.headline.market_stress": {
+      "category": "indicator",
+      "sourcing_mode": "computed",
+      "source_vendor": "internal",
+      "license_tier": "—",
+      "cadence": "daily",
+      "scheduled_fetch_et": "18:30",
+      "freshness_sla_hours": 72,
+      "consumer_surfaces": [
+        "Home macro tile",
+        "Macro Overview",
+        "Scenario Analysis",
+        "All Indicators"
+      ],
+      "failure_mode": "compute_cycle_v2.py exits non-zero / yfinance SPY fetch fails",
+      "owner": "Senior Quant",
+      "producer_workflow": ".github/workflows/CYCLE-V2-DAILY.yml",
+      "producer_script": "scripts/compute_cycle_v2.py",
+      "registered_at": "2026-05-10",
+      "registered_via": "v2 spec PR 1 — Joe approval 2026-05-10",
+      "name": "Market Stress (Panic) headline — v2"
+    },
+    "cycle_v2.headline.real_economy": {
+      "category": "indicator",
+      "sourcing_mode": "computed",
+      "source_vendor": "internal",
+      "license_tier": "—",
+      "cadence": "daily",
+      "scheduled_fetch_et": "18:30",
+      "freshness_sla_hours": 72,
+      "consumer_surfaces": [
+        "Home macro tile",
+        "Macro Overview",
+        "Scenario Analysis",
+        "All Indicators"
+      ],
+      "failure_mode": "compute_cycle_v2.py exits non-zero / yfinance SPY fetch fails",
+      "owner": "Senior Quant",
+      "producer_workflow": ".github/workflows/CYCLE-V2-DAILY.yml",
+      "producer_script": "scripts/compute_cycle_v2.py",
+      "registered_at": "2026-05-10",
+      "registered_via": "v2 spec PR 1 — Joe approval 2026-05-10",
+      "name": "Real Economy (Truth) headline — v2"
+    },
+    "cycle_v2.regime_label": {
+      "category": "indicator",
+      "sourcing_mode": "computed",
+      "source_vendor": "internal",
+      "license_tier": "—",
+      "cadence": "daily",
+      "scheduled_fetch_et": "18:30",
+      "freshness_sla_hours": 72,
+      "consumer_surfaces": [
+        "Home macro tile",
+        "Macro Overview",
+        "Scenario Analysis",
+        "All Indicators"
+      ],
+      "failure_mode": "compute_cycle_v2.py exits non-zero / yfinance SPY fetch fails",
+      "owner": "Senior Quant",
+      "producer_workflow": ".github/workflows/CYCLE-V2-DAILY.yml",
+      "producer_script": "scripts/compute_cycle_v2.py",
+      "registered_at": "2026-05-10",
+      "registered_via": "v2 spec PR 1 — Joe approval 2026-05-10",
+      "name": "v2 regime label — 4-cell from Setup × Stress"
+    }
+  }
+}

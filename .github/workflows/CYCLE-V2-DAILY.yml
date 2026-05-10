@@ -1,0 +1,61 @@
+# CYCLE-V2-DAILY — refreshes the v2 Cycle Mechanism panel.
+#
+# WHY
+# ───
+# Per CYCLE_MECHANISM_V2_SPEC.md (Joe approval 2026-05-10), v2 ships
+# alongside the v1 single-composite producer until the 2026-05-31 cutover.
+# This workflow runs scripts/compute_cycle_v2.py daily, computes the IC
+# profile + per-horizon sub-composite scores + 3 headlines + regime
+# label, and commits public/cycle_v2.json.
+#
+# SCHEDULE
+# ────────
+# Weekdays at 22:30 UTC (~6:30 PM ET) — after FRED's daily refresh and
+# after the v1 cycle-mechanism producer (which runs at 22:00 UTC).
+#
+# OUTPUTS
+# ───────
+# public/cycle_v2.json — consumed by:
+#   • Macro Overview · 3 headline gauges + regime label
+#   • Scenario Analysis · Cycle Mechanism table (when wired in PR 4)
+#   • Home page · Macro tile (when wired in PR 3)
+#   • All Indicators detail view (signal_type chips, IC profiles)
+
+name: CYCLE-V2-DAILY
+
+on:
+  schedule:
+    - cron: "30 22 * * 1-5"      # weekdays 22:30 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: cycle-v2-daily
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install python deps
+        run: |
+          pip install --break-system-packages numpy yfinance
+      - name: Run v2 producer
+        run: python3 scripts/compute_cycle_v2.py
+      - name: Commit if updated
+        run: |
+          if [[ -n "$(git status --porcelain public/cycle_v2.json)" ]]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add public/cycle_v2.json
+            git commit -m "Cycle v2 daily refresh — $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit."
+          fi
