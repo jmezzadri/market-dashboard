@@ -626,12 +626,14 @@ const STYLES = `
 
 /* ── bespoke shock sliders (added 2026-05-10 — were missing entirely) ── */
 .scenarios-page .sliders { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 24px; margin-top:var(--s-3); }
-.scenarios-page .slider-row { display:grid; grid-template-columns:28px 120px 1fr 60px; align-items:center; gap:10px; padding:6px 8px; border-radius:var(--r-sm); }
+.scenarios-page .slider-row { display:grid; grid-template-columns:28px 120px 1fr 60px; align-items:center; gap:10px; padding:6px 8px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
 .scenarios-page .slider-row:hover { background:var(--bg-2); }
-.scenarios-page .slider-row.pinned { background:rgba(216,178,122,.10); }
-.scenarios-page .slider-row.driver { background:rgba(184,70,47,.06); border-left:2px solid var(--accent-burgundy); }
-.scenarios-page .slider-row .pin { background:transparent; border:none; cursor:pointer; font-size:14px; padding:2px 4px; color:var(--ink-2); }
-.scenarios-page .slider-row .pin:hover { color:var(--ink-0); }
+.scenarios-page .slider-row.pinned { background:rgba(216,178,122,.28); border-left-color:var(--accent-parchment, #d8b27a); box-shadow:inset 0 0 0 1px rgba(216,178,122,.45); }
+.scenarios-page .slider-row.driver { background:rgba(184,70,47,.10); border-left-color:var(--accent-burgundy); }
+.scenarios-page .slider-row .pin { background:transparent; border:none; cursor:pointer; font-size:14px; padding:2px 4px; color:var(--ink-2); transition:transform 100ms; }
+.scenarios-page .slider-row .pin:hover { color:var(--ink-0); transform:scale(1.18); }
+.scenarios-page .slider-row.pinned .pin { color:var(--accent-burgundy); filter:drop-shadow(0 1px 1px rgba(0,0,0,0.15)); }
+.scenarios-page .slider-row.pinned .slider-label { color:var(--ink-0); font-weight:600; }
 .scenarios-page .slider-row .slider-label { font-family:var(--font-ui); font-size:12px; color:var(--ink-1); font-weight:500; }
 .scenarios-page .slider-row input[type="range"] { width:100%; accent-color:var(--accent-burgundy); }
 .scenarios-page .slider-row .slider-val { font-family:var(--font-ui); font-variant-numeric:tabular-nums; font-size:12px; color:var(--ink-0); text-align:right; font-weight:500; }
@@ -833,7 +835,10 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     else setPinned(prev => new Set(prev).add(fid));
   }, [prop]);
 
-  // Pin toggle
+  // Pin toggle. In Realistic mode, the first pin auto-flips us to Custom
+  // mode — otherwise pinning would have no math effect (Realistic uses an
+  // implicit driver) and the user would correctly conclude that pinning
+  // does nothing. The active driver, if any, is preserved as a pin.
   const onPinToggle = useCallback(fid => {
     setPinned(prev => {
       const next = new Set(prev);
@@ -843,7 +848,16 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           setDriver(null);
           setShocks(s => ({ ...s, [fid]: 0 }));
         }
-      } else { next.add(fid); }
+      } else {
+        next.add(fid);
+        // If we are still in Realistic mode, switch to Custom on first pin
+        // so the pin actually drives the math.
+        if (prop === "realistic") {
+          setProp("bespoke");
+          if (driver && driver !== fid) next.add(driver);
+          setDriver(null);
+        }
+      }
       return next;
     });
   }, [prop, driver]);
