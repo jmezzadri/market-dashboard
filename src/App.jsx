@@ -4960,7 +4960,7 @@ useEffect(() => {
   (async () => {
     try {
       const r = await supabase
-        .from("signal_intel_daily")
+        .from("signal_intel_v5_daily")
         .select("*")
         .eq("ticker", String(t).toUpperCase())
         .order("scan_date", { ascending: false })

@@ -57,72 +57,101 @@ function SignalIntelligenceRail({
   // that drives the Macro Overview page. Bands per v11 footer: 0-25 Risk-on,
   // 25-50 Neutral, 50-75 Caution, 75-100 Risk-off (lower = better, opposite of
   // the deprecated 3-composite scale).
-  // Tile 1 — MacroTilt Signal (replaces legacy Macro Composite per Joe directive 2026-05-10).
-  // Pulls from signal_intel_daily for the current ticker.
+  // Tile 1 — MacroTilt Signal (v5 — six signals + bidirectional bands).
+  // Reads from signal_intel_v5_daily.
   const mtSignalTile = (() => {
     const sig = mtSignal;
-    if (!sig) return { state: "loading", value: "…", meta: "Loading MacroTilt signal", detail: null };
-    const score = Number(sig.score) || 0;
-    const band = sig.band || "Not Surfaced";
-    const surfacingZone = sig.surfacing_zone === true;
+    if (!sig) return { state: "loading", value: "...", meta: "Loading MacroTilt signal", detail: null };
+    const score = Number(sig.mt_score);
+    if (!Number.isFinite(score)) {
+      return { state: "neutral", value: "--", meta: "No data for this name today.", detail: null };
+    }
+    const band = sig.band || "Neutral";
+    // Five-band coloring. Strong = green/red; Watch = amber; Neutral = dim.
+    const stateForBand = (b) =>
+      b === "Strong Buy"  ? "green"
+    : b === "Watch Buy"   ? "amber"
+    : b === "Strong Sell" ? "red"
+    : b === "Watch Sell"  ? "amber"
+    : "neutral";
+    const state = stateForBand(band);
+    const value = `${score > 0 ? "+" : ""}${score.toFixed(0)}`;
+    const meta = `${band} - ${sig.so_what || ""}`;
+
+    const subs = sig.sub_scores || {};
+    const weights = sig.weights_used || {};
+    const capDisc = Number(sig.cap_discount);
     const mcap = Number(sig.market_cap);
-    const inZone = Number.isFinite(mcap) && mcap >= 300_000_000 && mcap <= 3_000_000_000;
-    const state = band === "High Conviction" ? "green" : band === "Watch" ? "amber" : "neutral";
-    const value = `${score}/65`;
-    const meta = inZone
-      ? `${band} · validated zone ($300M-$3B)`
-      : `${band} · outside validated zone — for reference`;
-    const gd = sig.gate_diagnostic || {};
-    const pd = sig.pillar_diagnostic || {};
-    const filterRow = (label, pass, note) => ({ label, pass, note });
-    const filters = [
-      filterRow("Insider first-buy", gd?.insider_first_buy?.pass, gd?.insider_first_buy?.has_p_buy_30d ? "buy in 30d" : "no qualifying buy"),
-      filterRow("Liquidity", gd?.liquidity?.pass, "price > $5 · 22d avg vol > 500k"),
-      filterRow("Index hedge", gd?.index_hedge?.pass !== false, "not in SPY/QQQ/IWM/DIA/VTI"),
+
+    // Signal display order + plain-English label per signal.
+    const SIGNAL_ORDER = [
+      { key: "insider",        label: "Insider buying",  desc: "Form 4 open-market buys by company officers and directors. Most predictive of all six signals." },
+      { key: "technicals",     label: "Technicals",      desc: "20-day Bollinger BandWidth, 14-day RSI, distance to 50-day moving average, relative volume." },
+      { key: "analyst",        label: "Analyst actions", desc: "Recent upgrades, downgrades, price target changes from Wall Street equity research." },
+      { key: "options",        label: "Options flow",    desc: "Unusual call and put volume vs open interest. Calibration pending - full history backfill in progress." },
+      { key: "congress",       label: "Congress trades", desc: "Disclosed buy and sell trades by US senators and representatives. Calibration pending - thin history." },
+      { key: "short_interest", label: "Short interest",  desc: "Borrowed and sold short, vs prior period. Calibration pending - sparse coverage." },
     ];
-    const signalRow = (label, fired, points, note) => ({ label, fired, points, note });
-    const signals = [
-      signalRow("Aggression", !!pd?.aggression?.fired, 25, pd?.aggression?.rvol != null ? `RVOL ${Number(pd.aggression.rvol).toFixed(2)}x · threshold 1.5x` : "RVOL > 1.5x"),
-      signalRow("Squeeze", !!pd?.squeeze?.fired, 20, pd?.squeeze?.bbw != null ? `BB ${Number(pd.squeeze.bbw*100).toFixed(1)}% · threshold <4%` : "Bollinger BandWidth < 4%"),
-      signalRow("Momentum", !!pd?.momentum?.fired, 20, pd?.momentum?.rsi != null ? `RSI ${Number(pd.momentum.rsi).toFixed(0)} · 50-SMA cross` : "Close > 50-SMA AND RSI 40-70"),
-    ];
-    const insiderDol = Number(gd?.insider_first_buy?.total_dollar) || 0;
-    const insThreshold = Math.max(0.0002 * (Number.isFinite(mcap) ? mcap : 0), 500_000);
+
+    // Pretty-format sub-score with sign and band tag.
+    const fmtSub = (v) => {
+      if (v == null || !Number.isFinite(Number(v))) return null;
+      const n = Number(v);
+      return `${n > 0 ? "+" : ""}${n.toFixed(0)}`;
+    };
+    const subColor = (v) => {
+      if (v == null || !Number.isFinite(Number(v))) return "var(--text-dim)";
+      const n = Number(v);
+      if (n >=  50) return "var(--green-text, var(--green))";
+      if (n >=  20) return "var(--yellow-text, var(--text))";
+      if (n <= -50) return "var(--red-text, var(--red))";
+      if (n <= -20) return "var(--yellow-text, var(--text))";
+      return "var(--text-muted)";
+    };
+    const fmtWeight = (w) => {
+      if (w == null || !Number.isFinite(Number(w))) return "--";
+      return `${(Number(w) * 100).toFixed(1)}%`;
+    };
+
+    // Cap-discount note for mega-caps.
+    const showCapNote = Number.isFinite(capDisc) && capDisc < 0.999;
+    const capNote = showCapNote ? (() => {
+      // The insider weight starts at 36.30% (calibrated base). At this cap it
+      // is `36.30 * capDisc`. The freed weight redistributes pro-rata to the
+      // other five.
+      const newInsiderPct = (0.363 * capDisc * 100);
+      const capStr = Number.isFinite(mcap) && mcap > 0
+        ? (mcap >= 1e12 ? `$${(mcap/1e12).toFixed(1)}T` : mcap >= 1e9 ? `$${(mcap/1e9).toFixed(0)}B` : `$${(mcap/1e6).toFixed(0)}M`)
+        : "this cap";
+      return (
+        <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-muted)",fontSize:11.5,lineHeight:1.45}}>
+          <b style={{color:"var(--text-2)"}}>Insider weight reduced to {newInsiderPct.toFixed(1)}% at {capStr}.</b>{" "}
+          Insider buys are statistically less informative at larger market caps - a $1M purchase moves the dial at a $500M company but is rounding error at a $500B company (Lakonishok & Lee 2001). The freed weight is shifted pro-rata to the other five signals.
+        </div>
+      );
+    })() : null;
+
     const detail = (
       <div style={{display:"flex",flexDirection:"column",gap:10,fontSize:12}}>
-        {!inZone && (
-          <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-muted)",fontSize:11.5,lineHeight:1.45}}>
-            <b style={{color:"var(--text-2)"}}>Score shown for reference.</b> The Watch / High Conviction surfacing tags are validated only for stocks in the $300M-$3B range (where insider-buy alpha is statistically meaningful). Outside that range, the score is informational.
-          </div>
-        )}
+        {capNote}
         <div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Filters</div>
-          {filters.map((f,i)=>(
-            <div key={"f"+i} style={{display:"grid",gridTemplateColumns:"110px 60px 1fr",gap:8,alignItems:"center",padding:"3px 0",fontSize:12}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{f.label}</span>
-              <span style={{color: f.pass ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))", fontWeight:600}}>{f.pass ? "✓ Pass" : "✗ Fail"}</span>
-              <span style={{color:"var(--text-2)",fontSize:11.5}}>{f.note}</span>
-            </div>
-          ))}
+          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Signals (sub-score &middot; weight)</div>
+          {SIGNAL_ORDER.map((s, i) => {
+            const sub = subs[s.key];
+            const w = weights[s.key];
+            const subStr = fmtSub(sub);
+            return (
+              <div key={"sig"+i} style={{display:"grid",gridTemplateColumns:"140px 64px 64px 1fr",gap:8,alignItems:"baseline",padding:"5px 0",borderBottom:i < SIGNAL_ORDER.length - 1 ? "1px solid var(--border-faint, var(--border))" : "none"}}>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.04em",color:"var(--text-2)",textTransform:"uppercase",fontWeight:600}}>{s.label}</span>
+                <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)"}}>{subStr == null ? "no data" : subStr}</span>
+                <span style={{color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontSize:11}}>{fmtWeight(w)}</span>
+                <span style={{color:"var(--text-muted)",fontSize:11,lineHeight:1.4}}>{s.desc}</span>
+              </div>
+            );
+          })}
         </div>
-        <div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Signals</div>
-          {signals.map((s,i)=>(
-            <div key={"s"+i} style={{display:"grid",gridTemplateColumns:"110px 60px 1fr",gap:8,alignItems:"center",padding:"3px 0",fontSize:12}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{s.label}</span>
-              <span style={{color: s.fired ? "var(--green-text, var(--green))" : "var(--text-muted)", fontWeight:600}}>{s.fired ? `✓ +${s.points}` : "0"}</span>
-              <span style={{color:"var(--text-2)",fontSize:11.5}}>{s.note}</span>
-            </div>
-          ))}
-        </div>
-        <div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Insider conviction</div>
-          <div style={{fontSize:12,color:"var(--text-2)"}}>
-            ${(insiderDol/1000).toFixed(0)}k aggregate in 30-day window · threshold ${(insThreshold/1000).toFixed(0)}k (max 2 bps of cap, $500k floor)
-          </div>
-        </div>
-        <div style={{borderTop:"1px solid var(--border-faint, var(--border))",paddingTop:8,fontSize:11.5,color:"var(--text-muted)",lineHeight:1.45}}>
-          <b style={{color:"var(--text-2)"}}>Backtest expectation</b> · 12-month walk-forward · production spec ($300M-$3B + cap-norm magnitude): mean +10.06%, win 76.2%, +8.62 percentage points alpha vs SPY, beats SPY 65.5% of weeks.
+        <div style={{borderTop:"1px solid var(--border-faint, var(--border))",paddingTop:8,fontSize:11.5,color:"var(--text-muted)",lineHeight:1.5}}>
+          <b style={{color:"var(--text-2)"}}>Backtest expectation</b> - 12-month walk-forward, 52 weekly Mondays through May 2026. Strong Buy band: +7.21 percentage points alpha vs SPY, beats SPY 55.4% of weeks, Sharpe 3.00 (vs SPY 2.87). All meaningful alpha lives in the $300M to $8B cap range.
         </div>
       </div>
     );

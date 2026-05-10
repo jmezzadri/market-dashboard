@@ -1,27 +1,19 @@
-// TradingOppsPage — Phase B (v4.1 Signal Intelligence ship, 2026-05-10)
+// TradingOppsPage — v5 ship.
 //
-// Reads from public.signal_intel_daily (populated by run_v4_scanner.py).
-// Joins ticker reference / universe snapshot for company name + sector +
-// 1-day change + IV rank. Renders the v4.1 mockup approved 2026-05-09:
+// Reads from public.signal_intel_v5_daily (populated daily by
+// trading-scanner/run_v5_scanner.py via .github/workflows/V5_SCAN_DAILY.yml).
+// Joins ticker_reference (name, sic_description) and universe_snapshots
+// (full_name, sector, close, prev_close, perc_change, iv_rank, 52wk,
+// snapshot_ts) just like v4.1 did.
 //
-//   • Hero (1440px, 32px Fraunces H2, 11px JetBrains Mono eyebrow with
-//     0.12em tracking) on the left; "Today's Funnel" summary card on
-//     the right (320px, animated bars + counters, SPY benchmark line).
-//   • Toolbar — filter chips + ticker search + columns dropdown + add.
-//   • 23-column scanner table — draggable headers, click-to-sort,
-//     hover-tooltipped headers, 4 group dividers (High Conviction →
-//     Watch → Outside surfacing zone → All others). Default-visible
-//     subset of 10 columns; full set toggleable. Persisted to
-//     localStorage under `mt-portopps-cols-v1`.
-//   • Per-ticker dossier modal (works for ANY ticker, in-universe or
-//     off). Quote tiles, MacroTilt Signal panel, dossier tiles, short
-//     interest placeholder, "so what" plain-English line. The signal
-//     panel carries a prominent caveat for tickers above the validated
-//     surfacing zone ($300M-$3B).
+// The page hero pairs a SectionHeader left column with a right-side
+// glassmorphic funnel card. The table below shows the full universe
+// scored, grouped by band, with 11 default columns including all six
+// signal sub-scores. Clicking any row opens the global TickerDetailModal
+// via the onOpenTicker prop, which renders the MacroTilt Signal tile
+// (first tile in the right rail).
 //
-// Theme parity: zero hex codes. Every color reads from the existing
-// theme.css tokens (--text, --surface, --border, --accent, --green,
-// --red, --yellow, etc.). Both light and dark theme verified.
+// Theme parity: every color is a CSS variable. Light + dark both clean.
 
 import { useEffect, useMemo, useRef, useState, Fragment } from "react";
 import { supabase } from "../../lib/supabase";
@@ -30,68 +22,48 @@ import { supabase } from "../../lib/supabase";
 // Constants
 // ─────────────────────────────────────────────────────────────────────────
 
-const SURFACE_CAP_FLOOR = 300_000_000;
-const SURFACE_CAP_CEILING = 3_000_000_000;
+// Per LESSONS rule: NO version strings in user-facing copy. The column
+// storage key is internal so it carries a private version tag.
+const STORAGE_KEY_COLS = "mt-portopps-cols-v5-1";
 
-const STORAGE_KEY_COLS = "mt-portopps-cols-v1";
-
-// 23-column schema. `default:true` = visible at first load (10 columns).
-// Group keys feed the column dropdown's section grouping.
+// 16-column schema. `default:true` = visible at first load (11 columns).
 const COLUMNS = [
   { key: "ticker",   label: "Ticker",         group: "Identity",     numeric: false, default: true,
     tt: { label: "Identity", body: "Stock symbol. Click any row to open the full dossier modal." } },
   { key: "name",     label: "Name",           group: "Identity",     numeric: false, default: true,
     tt: { label: "Identity", body: "Company name. Source: Polygon ticker reference." } },
   { key: "sector",   label: "Sector",         group: "Identity",     numeric: false, default: true,
-    tt: { label: "Identity", body: "GICS sector — 11 top-level buckets (Technology, Healthcare, Financials, etc.)." } },
+    tt: { label: "Identity", body: "GICS sector - 11 top-level buckets." } },
   { key: "ig",       label: "Industry Group", group: "Identity",     numeric: false, default: true,
-    tt: { label: "Identity", body: "GICS industry group — 25 sub-sector buckets (Semiconductors, Pharmaceuticals, Banks, etc.)." } },
-  { key: "tag",      label: "Tag",            group: "Identity",     numeric: false, default: false,
-    tt: { label: "Identity", body: "Custom thematic tag. Visible only when signed in; blank otherwise." } },
+    tt: { label: "Identity", body: "GICS industry group - finer-grained classification within the sector." } },
   { key: "price",    label: "Price",          group: "Quote",        numeric: true,  default: true,
-    tt: { label: "Quote", body: "Last close. Source: Polygon Massive (EOD)." } },
+    tt: { label: "Quote", body: "Last close. Source: Polygon Massive (end-of-day)." } },
   { key: "day_pct",  label: "Day %",          group: "Quote",        numeric: true,  default: true,
     tt: { label: "Quote", body: "1-day return vs prior close." } },
   { key: "mcap",     label: "Mkt Cap",        group: "Quote",        numeric: true,  default: true,
     tt: { label: "Quote", body: "Market capitalization. Source: Polygon ticker reference." } },
-  { key: "range_52", label: "52W Range",      group: "Quote",        numeric: false, default: false,
-    tt: { label: "Quote", body: "Position within trailing 52-week price range." } },
   { key: "score",    label: "MT Score",       group: "Signal",       numeric: true,  default: true,
-    tt: { label: "MacroTilt Score", body: "Sum of signal points (Aggression 25 / Squeeze 20 / Momentum 20). Capped at 65. RSI > 70 zeroes the score." } },
+    tt: { label: "MacroTilt Score", body: "Weighted blend of six signals, range -100 to +100. Positive = bullish tilt, negative = bearish tilt." } },
   { key: "band",     label: "Band",           group: "Signal",       numeric: false, default: true,
-    tt: { label: "MacroTilt Score", body: "Score >= 45 High Conviction; 20-44 Watch; below 20 Not Surfaced. Above $3B cap shows as Outside surfacing zone." } },
-  { key: "gates",    label: "Filters",        group: "Signal",       numeric: false, default: true,
-    tt: { label: "MacroTilt Score", body: "Three filters (Insider first-buy / Liquidity / Index hedge). Pass green, fail red. Any fail = score 0." } },
-  { key: "pillars",  label: "Signals",        group: "Signal",       numeric: false, default: true,
-    tt: { label: "MacroTilt Score", body: "Aggression (RVOL > 1.5x +25) / Squeeze (BB BandWidth < 4% +20) / Momentum (close > 50-SMA and RSI 40-70 +20)." } },
-  { key: "rvol",     label: "RVOL",           group: "Signal",       numeric: true,  default: false,
-    tt: { label: "MacroTilt Score", body: "Today's volume divided by 22-day average. > 1.5x fires Aggression." } },
-  { key: "bbw",      label: "BB %",           group: "Signal",       numeric: true,  default: false,
-    tt: { label: "MacroTilt Score", body: "Bollinger BandWidth (20-day, 2 sigma). < 4% fires Squeeze." } },
-  { key: "rsi",      label: "RSI 14",         group: "Signal",       numeric: true,  default: false,
-    tt: { label: "MacroTilt Score", body: "14-day Relative Strength Index. 40-70 healthy. > 70 zeroes score." } },
-  { key: "sma_pct",  label: "% to 50-SMA",    group: "Signal",       numeric: true,  default: false,
-    tt: { label: "MacroTilt Score", body: "Distance of last close from 50-day SMA. Positive = above trend." } },
-  { key: "ins_date", label: "Latest P-buy",   group: "Signal",       numeric: false, default: false,
-    tt: { label: "MacroTilt Score", body: "Most recent open-market insider purchase by a buyer with no prior P-buy in 12 months." } },
-  { key: "ins_dol",  label: "Insider $",      group: "Signal",       numeric: true,  default: false,
-    tt: { label: "MacroTilt Score", body: "Total dollar value of qualifying insider purchases in the 30-day window. High Conviction sizing tiebreaker." } },
-  { key: "iv_rank",  label: "IV Rank",        group: "Options",      numeric: true,  default: false,
-    tt: { label: "Options", body: "Implied volatility rank, last 12 months. Source: Unusual Whales." } },
-  { key: "div_yld",  label: "Div Yield",      group: "Fundamentals", numeric: true,  default: false,
-    tt: { label: "Fundamentals", body: "Trailing 12-month dividend yield." } },
-  { key: "next_er",  label: "Next Earnings",  group: "Fundamentals", numeric: false, default: false,
-    tt: { label: "Fundamentals", body: "Next earnings date." } },
-  { key: "v1_comp",  label: "Legacy Score",   group: "Legacy",       numeric: true,  default: false,
-    tt: { label: "Legacy", body: "Prior 6-signal composite (-100 to +100). Reference only." } },
+    tt: { label: "MacroTilt Score", body: "Strong Sell, Watch Sell, Neutral, Watch Buy, Strong Buy. Cutoffs at -50, -20, +20, +50." } },
+  { key: "sub_insider", label: "Insider",     group: "Signals",      numeric: true, default: true,
+    tt: { label: "Insider buying", body: "Form 4 open-market buys by company officers and directors. Highest-weighted signal (36.3%). Most predictive in backtest." } },
+  { key: "sub_options", label: "Options",     group: "Signals",      numeric: true, default: false,
+    tt: { label: "Options flow", body: "Unusual call and put volume vs open interest. Calibration pending - on equal-weight floor (16.7%) while full history backfills." } },
+  { key: "sub_congress", label: "Congress",   group: "Signals",      numeric: true, default: false,
+    tt: { label: "Congress trades", body: "Disclosed buy and sell trades by US senators and representatives. Calibration pending - on equal-weight floor (16.7%)." } },
+  { key: "sub_technicals", label: "Technicals", group: "Signals",    numeric: true, default: true,
+    tt: { label: "Technicals", body: "Bollinger BandWidth, 14-day RSI, distance to 50-day moving average, relative volume. Calibrated weight 8.7%." } },
+  { key: "sub_analyst", label: "Analyst",     group: "Signals",      numeric: true, default: true,
+    tt: { label: "Analyst actions", body: "Recent upgrades, downgrades, price target changes from Wall Street equity research. Calibrated weight 5.0%." } },
+  { key: "sub_short_interest", label: "Short Interest", group: "Signals", numeric: true, default: false,
+    tt: { label: "Short interest", body: "Borrowed and sold short, vs prior period. Calibration pending - on equal-weight floor (16.7%)." } },
 ];
 
 const COL_KEYS = COLUMNS.map(c => c.key);
 const DEFAULT_VISIBLE = COLUMNS.filter(c => c.default).map(c => c.key);
 
 // ─── Display helpers ──────────────────────────────────────────────────────
-// Long company names + SIC sector strings push score columns off-screen.
-// Strip trailing descriptors and title-case sector data for visual unity.
 function shortName(name) {
   if (!name) return "—";
   return String(name)
@@ -156,113 +128,53 @@ function fmtDay(n) {
   return `${v > 0 ? "+" : ""}${v.toFixed(2)}%`;
 }
 
-function fmtMoney(v) {
-  if (v == null || !Number.isFinite(Number(v))) return "—";
-  const n = Number(v);
-  if (n >= 1e6) return `$${(n / 1e6).toFixed(2)}M`;
-  if (n >= 1e3) return `$${Math.round(n / 1e3)}k`;
-  return `$${Math.round(n)}`;
-}
-
 function dayClass(v) {
   const n = Number(v);
   if (!Number.isFinite(n) || n === 0) return "muted-val";
   return n > 0 ? "pos-val" : "neg-val";
 }
 
-// ─────────────────────────────────────────────────────────────────────────
-// Data hydration — pulls signal_intel_daily for the latest scan date and
-// joins ticker_reference + universe_snapshots in two follow-up queries.
-// ─────────────────────────────────────────────────────────────────────────
-
-// Normalize gate_diagnostic shape from scanner output to the keys the
-// page reads. Scanner emits gate_1_insider/gate_2_liquidity/gate_3_anti_hedge
-// (per signal_intelligence_v4/gates.py); the page reads insider_first_buy /
-// liquidity / index_hedge. Translate once here so the rest of the component
-// stays stable to a future scanner-side rename.
-function normalizeGateDiagnostic(gd) {
-  if (!gd || typeof gd !== "object") return gd;
-  if (gd.insider_first_buy || gd.liquidity || gd.index_hedge) return gd;
-  const ins = gd.gate_1_insider || {};
-  const out = { ...gd };
-  out.insider_first_buy = {
-    pass: ins.passes === true,
-    has_p_buy_30d: (ins.p_buys_in_window || 0) > 0 || ins.passes === true,
-    latest_buy_date: ins.latest_buy_date || null,
-    total_dollar: ins.total_dollar ?? null,
-    unique_p_buyers: ins.unique_p_buyers ?? null,
-    first_buyers: ins.first_buyers || [],
-    magnitude_passes: ins.magnitude_passes === true,
-    magnitude_threshold: ins.magnitude_threshold ?? null,
-  };
-  out.liquidity = { pass: gd.gate_2_liquidity === true };
-  out.index_hedge = { pass: gd.gate_3_anti_hedge === true };
-  return out;
+function bandGroup(b) {
+  if (b === "Strong Buy")  return "strong_buy";
+  if (b === "Watch Buy")   return "watch_buy";
+  if (b === "Watch Sell")  return "watch_sell";
+  if (b === "Strong Sell") return "strong_sell";
+  return "neutral";
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Data hydration — pulls signal_intel_v5_daily for the latest scan date
+// and joins ticker_reference + universe_snapshots in follow-up queries.
+// ─────────────────────────────────────────────────────────────────────────
+
 function shapeRow(scan, ref, snap) {
-  let group = "fail";
-  const band = scan?.band;
-  if (band === "High Conviction") group = "high";
-  else if (band === "Watch") group = "watch";
-  else if (band === "Outside surfacing zone") group = "outside";
-
-  const pd = scan?.pillar_diagnostic || {};
-  const pillars = [
-    pd.aggression?.fired ? 1 : 0,
-    pd.squeeze?.fired ? 1 : 0,
-    pd.momentum?.fired ? 1 : 0,
-  ];
-  const gd = scan?.gate_diagnostic || {};
-  const gates = [
-    gd.insider_first_buy?.pass ? 1 : 0,
-    gd.liquidity?.pass ? 1 : 0,
-    gd.index_hedge?.pass ? 1 : 0,
-  ];
-
   const close = Number(snap?.close ?? 0) || null;
-  let range52 = null;
-  const hi = Number(snap?.week_52_high);
-  const lo = Number(snap?.week_52_low);
-  if (Number.isFinite(close) && Number.isFinite(hi) && Number.isFinite(lo) && hi > lo) {
-    range52 = `${Math.round(((close - lo) / (hi - lo)) * 100)}%`;
-  }
-
   let dayPct = null;
   const pc = Number(snap?.perc_change);
   if (Number.isFinite(pc)) dayPct = pc;
   else if (Number.isFinite(close) && Number.isFinite(Number(snap?.prev_close)) && Number(snap?.prev_close) > 0) {
     dayPct = ((close - Number(snap.prev_close)) / Number(snap.prev_close)) * 100;
   }
-
+  const subs = scan?.sub_scores || {};
   return {
     ticker: scan.ticker,
-    group,
     name: ref?.name || snap?.full_name || scan.ticker,
     sector: snap?.sector || ref?.sic_description || "—",
     ig: ref?.sic_description || "—",
-    tag: "",
     price: close,
     day_pct: dayPct,
     mcap: scan?.market_cap != null ? Number(scan.market_cap) : null,
-    range_52: range52,
-    score: scan?.score ?? 0,
-    band: scan?.band || "Not Surfaced",
-    gates,
-    pillars,
-    rvol: pd?.aggression?.rvol ?? null,
-    bbw: pd?.squeeze?.bandwidth_pct ?? null,
-    rsi: pd?.momentum?.rsi ?? null,
-    sma_pct: pd?.momentum?.sma50_pct ?? null,
-    ins_date: gd?.insider_first_buy?.latest_buy_date || "—",
-    ins_dol: scan?.insider_dollar_30d ?? 0,
-    iv_rank: snap?.iv_rank != null ? Math.round(Number(snap.iv_rank)) : null,
-    div_yld: null,
-    next_er: null,
-    v1_comp: null,
-    surfacing_zone: !!scan?.surfacing_zone,
-    short_interest_pct: scan?.short_interest_pct ?? null,
-    short_interest_as_of: scan?.short_interest_as_of ?? null,
+    score: Number.isFinite(Number(scan?.mt_score)) ? Number(scan.mt_score) : null,
+    band: scan?.band || "Neutral",
+    band_group: bandGroup(scan?.band),
+    sub_insider: subs.insider == null ? null : Number(subs.insider),
+    sub_options: subs.options == null ? null : Number(subs.options),
+    sub_congress: subs.congress == null ? null : Number(subs.congress),
+    sub_technicals: subs.technicals == null ? null : Number(subs.technicals),
+    sub_analyst: subs.analyst == null ? null : Number(subs.analyst),
+    sub_short_interest: subs.short_interest == null ? null : Number(subs.short_interest),
+    so_what: scan?.so_what || null,
+    cap_discount: Number.isFinite(Number(scan?.cap_discount)) ? Number(scan.cap_discount) : null,
     _raw: { scan, ref, snap },
   };
 }
@@ -273,16 +185,16 @@ function useScanData() {
     scanDate: null,
     loading: true,
     error: null,
-    totals: { universe: null, mcapBand: null, hasIndicators: null, liquid: null, postHedge: null, insider: null, firstBuy: null, watch: 0, hc: 0 },
+    totals: { universe_all: null, universe_v5: null, has_indicators: null, signal_insider: 0, signal_options: 0, signal_congress: 0, signal_technicals: 0, signal_analyst: 0, signal_short_interest: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 },
   });
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
-        // 1. Latest scan date
+        // 1. Latest scan date in v5
         const latestRes = await supabase
-          .from("signal_intel_daily")
+          .from("signal_intel_v5_daily")
           .select("scan_date")
           .order("scan_date", { ascending: false })
           .limit(1);
@@ -292,16 +204,15 @@ function useScanData() {
           return;
         }
 
-        // 2. Pull ALL rows of today's scan via paginated range (.select() default
-        // caps at 1000 rows; we need every row for the table + funnel counts).
+        // 2. Pull ALL rows of today's scan via paginated range.
         let scanRows = [];
         const PAGE = 1000;
         for (let from = 0; from < 20000; from += PAGE) {
           const r = await supabase
-            .from("signal_intel_daily")
+            .from("signal_intel_v5_daily")
             .select("*")
             .eq("scan_date", latest)
-            .order("score", { ascending: false })
+            .order("mt_score", { ascending: false, nullsFirst: false })
             .range(from, from + PAGE - 1);
           if (r.error) throw r.error;
           if (!r.data || r.data.length === 0) break;
@@ -309,19 +220,18 @@ function useScanData() {
           if (r.data.length < PAGE) break;
         }
         if (cancelled) return;
-        scanRows = scanRows.map(r => ({ ...r, gate_diagnostic: normalizeGateDiagnostic(r.gate_diagnostic) }));
 
-        // 3. Total universe count (all common stock + ADR in ticker_reference)
-        let universeTotal = null;
+        // 3. Total universe count (all common stock + ADR in ticker_reference).
+        let universeAll = null;
         try {
           const u = await supabase
             .from("ticker_reference")
             .select("ticker", { count: "exact", head: true })
             .in("type", ["CS", "ADRC"]);
-          universeTotal = u?.count ?? null;
-        } catch (_) { /* fallback below */ }
+          universeAll = u?.count ?? null;
+        } catch (_) { /* ignore */ }
 
-        // 4. Joins for the table — name + sector + price + 52w from snapshots
+        // 4. Joins for the table — name + sector + price + day %.
         const tickers = scanRows.map(r => r.ticker);
         const TICK_BATCH = 800;
 
@@ -352,32 +262,39 @@ function useScanData() {
 
         const shaped = scanRows.map(s => shapeRow(s, refByT.get(s.ticker), snapByT.get(s.ticker)));
 
-        // 5. Funnel counts — derived from the FULL scanRows set so the
-        // funnel narrows monotonically. Total comes from ticker_reference
-        // count (everything, not just what's been scored).
-        const HEDGE = ["SPY","QQQ","IWM","DIA","VTI"];
-        const universe = universeTotal ?? scanRows.length;
-        const mcapBand = scanRows.filter(r => r.market_cap != null && Number(r.market_cap) >= SURFACE_CAP_FLOOR && Number(r.market_cap) <= SURFACE_CAP_CEILING).length;
-        const hasIndicators = scanRows.length; // signal_intel_daily already requires 51+ closes upstream
-        const liquid = scanRows.filter(r => r.gate_diagnostic?.liquidity?.pass === true).length;
-        const postHedge = scanRows.filter(r => r.gate_diagnostic?.liquidity?.pass === true && !HEDGE.includes(String(r.ticker || "").toUpperCase())).length;
-        const insider = scanRows.filter(r => {
-          const gd = r.gate_diagnostic || {};
-          return gd.insider_first_buy?.has_p_buy_30d || gd.insider_first_buy?.pass;
+        // 5. Funnel counts.
+        const universeV5 = scanRows.length;
+        const hasIndicators = scanRows.length;
+        const signalCount = (key) => scanRows.filter(r => {
+          const v = (r.sub_scores || {})[key];
+          return v != null && Number.isFinite(Number(v));
         }).length;
-        const firstBuy = scanRows.filter(r => r.gate_diagnostic?.insider_first_buy?.pass === true).length;
-        const watch = scanRows.filter(r => r.band === "Watch").length;
-        const hc = scanRows.filter(r => r.band === "High Conviction").length;
+        const totals = {
+          universe_all: universeAll ?? universeV5,
+          universe_v5: universeV5,
+          has_indicators: hasIndicators,
+          signal_insider:        signalCount("insider"),
+          signal_options:        signalCount("options"),
+          signal_congress:       signalCount("congress"),
+          signal_technicals:     signalCount("technicals"),
+          signal_analyst:        signalCount("analyst"),
+          signal_short_interest: signalCount("short_interest"),
+          strong_buy:   scanRows.filter(r => r.band === "Strong Buy").length,
+          watch_buy:    scanRows.filter(r => r.band === "Watch Buy").length,
+          neutral:      scanRows.filter(r => r.band === "Neutral").length,
+          watch_sell:   scanRows.filter(r => r.band === "Watch Sell").length,
+          strong_sell:  scanRows.filter(r => r.band === "Strong Sell").length,
+        };
 
         setState({
           rows: shaped,
           scanDate: latest,
           loading: false,
           error: null,
-          totals: { universe, mcapBand, hasIndicators, liquid, postHedge, insider, firstBuy, watch, hc },
+          totals,
         });
       } catch (err) {
-        if (!cancelled) setState({ rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: { universe: null, mcapBand: null, hasIndicators: null, liquid: null, postHedge: null, insider: null, firstBuy: null, watch: 0, hc: 0 } });
+        if (!cancelled) setState({ rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: { universe_all: null, universe_v5: null, has_indicators: null, signal_insider: 0, signal_options: 0, signal_congress: 0, signal_technicals: 0, signal_analyst: 0, signal_short_interest: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 } });
       }
     })();
     return () => { cancelled = true; };
@@ -387,8 +304,7 @@ function useScanData() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Tooltip component (used on funnel steps + table headers + result cards).
-// Pure CSS hover; works in light + dark theme via existing tokens.
+// Tooltip component.
 // ─────────────────────────────────────────────────────────────────────────
 
 function Tooltip({ label, body, children, side = "top" }) {
@@ -467,17 +383,30 @@ function AnimatedCount({ value, durationMs = 900 }) {
 
 function FunnelCard({ totals, scanDate }) {
   const ts = scanDate ? new Date(`${scanDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · EOD" : "Pending";
-  const max = Math.max(1, totals?.universe || 1);
+  const max = Math.max(1, totals?.universe_all || 1);
   const pct = (n) => Math.max(2, Math.min(100, Math.round(((n || 0) / max) * 100)));
 
-  const steps = [
-    { key: "universe", count: totals?.universe, label: "Total US-listed equities", tip: "Every Common Stock and ADR Polygon tracks on US exchanges." },
-    { key: "mcapBand", count: totals?.mcapBand, label: "Market cap $300M-$3B", tip: "Validated surfacing range. Lower bound drops micro-caps; upper bound drops mid- and mega-caps where the insider signal weakens." },
-    { key: "hasIndicators", count: totals?.hasIndicators, label: "Has indicator history", tip: "Names with at least 50 trading days of price + volume data — required for 50-day SMA, 14-day RSI, BB BandWidth, and 22-day relative volume." },
-    { key: "liquid", count: totals?.liquid, label: "Liquidity threshold", tip: "Last close > $5 AND 22-day average daily volume > 500,000 shares." },
-    { key: "postHedge", count: totals?.postHedge, label: "Index hedge exclusion", tip: "Drops the five broad index ETFs (SPY, QQQ, IWM, DIA, VTI). Used elsewhere as hedges; not signal candidates." },
-    { key: "insider", count: totals?.insider, label: "Insider open-market buy (30d)", tip: "Names with at least one Form 4 transaction code 'P' (open-market purchase) in the last 30 days. Source: Unusual Whales /insider/transactions.", amber: true },
-    { key: "firstBuy", count: totals?.firstBuy, label: "First-buy classifier", tip: "Of insider-buy names, keeps only those where at least one buyer made no purchase of this same stock in the prior 12 months. Backtest: first-buys outperform repeat-buys by 4-15 percentage points over 21 days.", amber: true },
+  // Funnel steps: total US-listed -> v5 universe -> signal coverage.
+  const universeSteps = [
+    { key: "universe_all", count: totals?.universe_all, label: "Total US-listed equities", tip: "Every Common Stock and ADR Polygon tracks on US exchanges (about 5,800 names)." },
+    { key: "universe_v5",  count: totals?.universe_v5,  label: "Universe (market cap >= $300M, close > $5)", tip: "The universe we score every day. About 3,300 names that clear the size and price floor." },
+  ];
+  const signalSteps = [
+    { key: "signal_insider",        count: totals?.signal_insider,        label: "Insider signal coverage",       tip: "Names with at least one open-market Form 4 buy in the recent window. The highest-weighted signal (36.3%)." },
+    { key: "signal_technicals",     count: totals?.signal_technicals,     label: "Technicals signal coverage",    tip: "Names with enough price history to compute Bollinger BandWidth, RSI, and the 50-day moving average. Calibrated weight 8.7%." },
+    { key: "signal_analyst",        count: totals?.signal_analyst,        label: "Analyst signal coverage",       tip: "Names with recent Wall Street upgrades, downgrades, or price target changes. Calibrated weight 5.0%." },
+    { key: "signal_options",        count: totals?.signal_options,        label: "Options signal coverage",       tip: "Names with unusual options flow data. On equal-weight floor (16.7%) - full backfill pending.", amber: true },
+    { key: "signal_congress",       count: totals?.signal_congress,       label: "Congress signal coverage",      tip: "Names with disclosed US senator or representative trades. On equal-weight floor (16.7%) - thin history.", amber: true },
+    { key: "signal_short_interest", count: totals?.signal_short_interest, label: "Short interest signal coverage",tip: "Names with short interest data. On equal-weight floor (16.7%) - sparse coverage.", amber: true },
+  ];
+
+  // Band tile config. Strong Buy / Strong Sell pulse to mark the actionable extremes.
+  const bands = [
+    { key: "strong_sell", count: totals?.strong_sell, label: "Strong Sell", color: "var(--red-text, var(--red))",    bg: "var(--surface-3, var(--surface-2))", pulse: true },
+    { key: "watch_sell",  count: totals?.watch_sell,  label: "Watch Sell",  color: "var(--yellow-text, var(--text))", bg: "var(--surface-3, var(--surface-2))", pulse: false },
+    { key: "neutral",     count: totals?.neutral,     label: "Neutral",     color: "var(--text-muted)",               bg: "var(--surface-3, var(--surface-2))", pulse: false },
+    { key: "watch_buy",   count: totals?.watch_buy,   label: "Watch Buy",   color: "var(--yellow-text, var(--text))", bg: "var(--surface-3, var(--surface-2))", pulse: false },
+    { key: "strong_buy",  count: totals?.strong_buy,  label: "Strong Buy",  color: "var(--green-text, var(--green))", bg: "var(--accent-soft, var(--surface-2))", pulse: true },
   ];
 
   return (
@@ -495,14 +424,14 @@ function FunnelCard({ totals, scanDate }) {
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--border-faint, var(--border))" }}>
         <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-          Today's Funnel
+          Today's Scan
         </span>
         <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.04em" }}>
           {ts}
         </span>
       </div>
 
-      {steps.map((s, i) => (
+      {[...universeSteps, ...signalSteps].map((s) => (
         <div key={s.key} style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
           <Tooltip label={s.label} body={s.tip}>
             <span style={{ fontSize: 12, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -528,53 +457,34 @@ function FunnelCard({ totals, scanDate }) {
         </div>
       ))}
 
-      <div style={{ height: 1, background: "var(--border-faint, var(--border))", margin: "10px 0 12px" }} />
+      <div style={{ height: 1, background: "var(--border-faint, var(--border))", margin: "12px 0 12px" }} />
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-        <Tooltip label="Watch" body="Names that pass all filters AND fire at least one of the three signals (Aggression / Squeeze / Momentum). Backtest 21-day win rate ~62%.">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
+        {bands.map((b) => (
           <div
+            key={b.key}
+            className={b.pulse ? "mt-band-pulse" : undefined}
             style={{
-              background: "var(--surface-3, var(--surface-2))",
+              background: b.bg,
               border: "1px solid var(--border-faint, var(--border))",
-              borderRadius: "var(--r-md, 16px)",
-              padding: "12px 14px",
-              cursor: "help",
+              borderRadius: 10,
+              padding: "10px 6px",
+              textAlign: "center",
               minWidth: 0,
-              flex: 1,
             }}
           >
-            <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 9, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>
-              Watch
+            <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 8.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>
+              {b.label}
             </div>
-            <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 32, fontWeight: 700, lineHeight: 1, color: "var(--yellow-text, var(--text))" }}>
-              <AnimatedCount value={totals?.watch} />
-            </div>
-          </div>
-        </Tooltip>
-        <Tooltip label="High Conviction" body="Names that fire two or three signals at once. Backtest 21-day win rate ~70%. Tiebreaker for sizing is total insider dollars in the 30-day window.">
-          <div
-            style={{
-              background: "var(--surface-3, var(--surface-2))",
-              border: "1px solid var(--border-faint, var(--border))",
-              borderRadius: "var(--r-md, 16px)",
-              padding: "12px 14px",
-              cursor: "help",
-              minWidth: 0,
-              flex: 1,
-            }}
-          >
-            <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 9, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>
-              High Conviction
-            </div>
-            <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 32, fontWeight: 700, lineHeight: 1, color: "var(--green-text, var(--green))" }}>
-              <AnimatedCount value={totals?.hc} />
+            <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 22, fontWeight: 700, lineHeight: 1, color: b.color }}>
+              <AnimatedCount value={b.count} />
             </div>
           </div>
-        </Tooltip>
+        ))}
       </div>
 
       <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border-faint, var(--border))", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.55 }}>
-        Strategy alpha vs SPY: <strong style={{ color: "var(--green-text, var(--green))" }}>+8.62 percentage points</strong> · Beats SPY <strong style={{ color: "var(--text)" }}>65.5%</strong> of weeks · 12-month backtest.
+        Strategy alpha vs SPY: <strong style={{ color: "var(--green-text, var(--green))" }}>+7.21 percentage points</strong> · Beats SPY <strong style={{ color: "var(--text)" }}>55.4%</strong> of weeks · Sharpe <strong style={{ color: "var(--text)" }}>3.00</strong> · 12-month backtest.
       </div>
     </div>
   );
@@ -587,7 +497,7 @@ function FunnelCard({ totals, scanDate }) {
 function Hero({ totals, scanDate }) {
   return (
     <div style={{ maxWidth: 1440, margin: "0 auto", padding: "24px 32px 16px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 320px", gap: 32, alignItems: "start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: 32, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
           <div>
             <div
@@ -614,12 +524,12 @@ function Hero({ totals, scanDate }) {
                 margin: 0,
               }}
             >
-              The names worth your attention{" "}
-              <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>— before the market notices.</em>
+              Every US stock, six signals, one score{" "}
+              <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>— ranked top to bottom every day.</em>
             </h2>
           </div>
           <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--text-muted)", maxWidth: 720, marginTop: 8, margin: "8px 0 0" }}>
-            A funnel from the full equity universe down to a handful of high-conviction names. Three filters narrow the field; three signals score what's left. Click any row for the full ticker dossier.
+            Every US-listed equity over $300 million in market cap is scored daily across six independent signals - insider buying, options flow, congress trades, technicals, analyst actions, short interest. The blended MacroTilt Score runs from -100 to +100 and sorts every name into one of five bands. Click any row for the full ticker dossier.
           </p>
         </div>
         <FunnelCard totals={totals} scanDate={scanDate} />
@@ -633,94 +543,66 @@ function Hero({ totals, scanDate }) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function ScoreCell({ value }) {
-  if (value == null) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+  if (value == null || !Number.isFinite(Number(value))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
   const n = Number(value);
-  const color = n >= 45 ? "var(--green-text, var(--green))" : n >= 20 ? "var(--yellow-text, var(--text))" : "var(--text-dim)";
+  const color = n >=  50 ? "var(--green-text, var(--green))"
+              : n >=  20 ? "var(--yellow-text, var(--text))"
+              : n <= -50 ? "var(--red-text, var(--red))"
+              : n <= -20 ? "var(--yellow-text, var(--text))"
+              :            "var(--text-muted)";
+  const sign = n > 0 ? "+" : "";
   return (
     <span style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 700, fontSize: 15, color }}>
-      {n}
+      {sign}{n.toFixed(0)}
     </span>
   );
 }
 
 function BandPill({ value }) {
   let bg, fg, label = value || "—";
-  if (value === "High Conviction") { bg = "var(--accent-soft, var(--surface-2))"; fg = "var(--green-text, var(--green))"; label = "High"; }
-  else if (value === "Watch") { bg = "var(--surface-3, var(--surface-2))"; fg = "var(--yellow-text, var(--text))"; }
-  else if (value === "Outside surfacing zone") { bg = "var(--surface-3, var(--surface-2))"; fg = "var(--text-muted)"; label = "Outside zone"; }
-  else { bg = "var(--surface-3, var(--surface-2))"; fg = "var(--red-text, var(--red))"; label = "Not surfaced"; }
+  if      (value === "Strong Buy")  { bg = "var(--accent-soft, var(--surface-2))"; fg = "var(--green-text, var(--green))"; }
+  else if (value === "Watch Buy")   { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--yellow-text, var(--text))"; }
+  else if (value === "Neutral")     { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--text-muted)"; }
+  else if (value === "Watch Sell")  { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--yellow-text, var(--text))"; }
+  else if (value === "Strong Sell") { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--red-text, var(--red))"; }
+  else                              { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--text-dim)"; }
   return (
-    <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 9px", borderRadius: 999, fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600, background: bg, color: fg }}>
+    <span style={{ display: "inline-flex", alignItems: "center", padding: "3px 9px", borderRadius: 999, fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600, background: bg, color: fg, whiteSpace: "nowrap" }}>
       {label}
     </span>
   );
 }
 
-function GateTrio({ value }) {
-  if (!Array.isArray(value)) return <span style={{ color: "var(--text-dim)" }}>—</span>;
-  return (
-    <span style={{ display: "inline-flex", gap: 3, fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, fontWeight: 600 }}>
-      {value.map((g, i) => (
-        <span
-          key={i}
-          style={{
-            width: 18, height: 18, display: "inline-flex", alignItems: "center", justifyContent: "center",
-            borderRadius: 4, lineHeight: 1,
-            background: g ? "var(--accent-soft, var(--surface-2))" : "var(--surface-3, var(--surface-2))",
-            color: g ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))",
-          }}
-        >
-          {g ? "✓" : "✗"}
-        </span>
-      ))}
-    </span>
-  );
-}
-
-function PillarTrio({ value }) {
-  if (!Array.isArray(value)) return <span style={{ color: "var(--text-dim)" }}>—</span>;
-  const labels = ["A", "S", "M"];
-  return (
-    <span style={{ display: "inline-flex", gap: 3, fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, fontWeight: 600 }}>
-      {value.map((p, i) => (
-        <span
-          key={i}
-          style={{
-            minWidth: 22, padding: "2px 6px", display: "inline-flex", alignItems: "center", justifyContent: "center",
-            borderRadius: 4, lineHeight: 1,
-            background: p ? "var(--accent-soft, var(--surface-2))" : "var(--surface-3, var(--surface-2))",
-            color: p ? "var(--accent)" : "var(--text-dim)",
-          }}
-        >
-          {labels[i]}
-        </span>
-      ))}
-    </span>
-  );
+function SubScoreCell({ value }) {
+  if (value == null || !Number.isFinite(Number(value))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+  const n = Number(value);
+  const color = n >=  50 ? "var(--green-text, var(--green))"
+              : n >=  20 ? "var(--yellow-text, var(--text))"
+              : n <= -50 ? "var(--red-text, var(--red))"
+              : n <= -20 ? "var(--yellow-text, var(--text))"
+              :            "var(--text-muted)";
+  const sign = n > 0 ? "+" : "";
+  return <span style={{ color, fontWeight: 600 }}>{sign}{n.toFixed(0)}</span>;
 }
 
 function renderCell(row, key) {
   const v = row[key];
-  if (v == null) return <span style={{ color: "var(--text-dim)" }}>—</span>;
   if (key === "ticker") return (
     <span style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, color: "var(--text)", fontSize: 14 }}>{row.ticker}</span>
   );
   if (key === "name") {
     const display = shortName(v);
-    return <span title={String(v)} style={{ display: "inline-block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
+    return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
   }
   if (key === "sector") {
     const display = titleCaseSector(v);
-    return <span title={String(v)} style={{ display: "inline-block", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
+    return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
   }
   if (key === "ig") {
     const display = titleCaseSector(v);
-    return <span title={String(v)} style={{ display: "inline-block", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
+    return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
   }
-  if (key === "tag" || key === "ins_date" || key === "next_er" || key === "range_52") {
-    return <span>{v || "—"}</span>;
-  }
-  if (key === "price") return <span>{Number.isFinite(Number(v)) ? `$${Number(v).toFixed(2)}` : "—"}</span>;
+  if (key === "price") return <span>{Number.isFinite(Number(v)) ? `$${Number(v).toFixed(2)}` : <span style={{ color: "var(--text-dim)" }}>—</span>}</span>;
   if (key === "day_pct") {
     const formatted = fmtDay(v);
     if (formatted == null) return <span style={{ color: "var(--text-dim)" }}>—</span>;
@@ -729,22 +611,12 @@ function renderCell(row, key) {
     return <span style={{ color: c }}>{formatted}</span>;
   }
   if (key === "mcap") return <span>{fmtMcap(v)}</span>;
-  if (key === "rvol") return <span>{Number(v).toFixed(2)}x</span>;
-  if (key === "bbw") return <span>{(Number(v) >= 0 ? "+" : "") + Number(v).toFixed(1) + "%"}</span>;
-  if (key === "sma_pct") return <span>{(Number(v) >= 0 ? "+" : "") + Number(v).toFixed(1) + "%"}</span>;
-  if (key === "rsi" || key === "iv_rank") return <span>{Math.round(Number(v))}</span>;
-  if (key === "ins_dol") return <span>{v ? fmtMoney(v) : <span style={{ color: "var(--text-dim)" }}>—</span>}</span>;
-  if (key === "div_yld") return <span>{v ? Number(v).toFixed(2) + "%" : <span style={{ color: "var(--text-dim)" }}>—</span>}</span>;
   if (key === "score") return <ScoreCell value={v} />;
   if (key === "band") return <BandPill value={v} />;
-  if (key === "gates") return <GateTrio value={v} />;
-  if (key === "pillars") return <PillarTrio value={v} />;
-  if (key === "v1_comp") {
-    const n = Number(v);
-    if (!Number.isFinite(n)) return <span style={{ color: "var(--text-dim)" }}>—</span>;
-    const cls = n > 0 ? "var(--green-text, var(--green))" : n < 0 ? "var(--red-text, var(--red))" : "var(--text-muted)";
-    return <span style={{ color: cls }}>{n > 0 ? "+" : ""}{n}</span>;
+  if (key === "sub_insider" || key === "sub_options" || key === "sub_congress" || key === "sub_technicals" || key === "sub_analyst" || key === "sub_short_interest") {
+    return <SubScoreCell value={v} />;
   }
+  if (v == null) return <span style={{ color: "var(--text-dim)" }}>—</span>;
   return <span>{String(v)}</span>;
 }
 
@@ -778,12 +650,13 @@ export default function TradingOppsPage({ onOpenTicker }) {
     return allRows.filter(r => {
       if (q && !(r.ticker || "").toLowerCase().includes(q) && !(r.name || "").toLowerCase().includes(q)) return false;
       switch (colState.filter) {
-        case "high": return r.group === "high";
-        case "watch": return r.group === "watch" || r.group === "high";
-        case "gate": return r.group === "high" || r.group === "watch";
-        case "insider": return Number(r.ins_dol) > 0;
-        case "held":
-        case "watchlist": return r.group === "outside" || r.group === "high" || r.group === "watch";
+        case "strong_buy":   return r.band === "Strong Buy";
+        case "watch_buy":    return r.band === "Watch Buy";
+        case "neutral":      return r.band === "Neutral";
+        case "watch_sell":   return r.band === "Watch Sell";
+        case "strong_sell":  return r.band === "Strong Sell";
+        case "held":         return r.band !== null; // placeholder - "Held" filter is wired by portfolio overlay (out of v5 scope)
+        case "watchlist":    return r.band !== null; // placeholder - "Watchlist" filter is wired elsewhere
         case "all":
         default: return true;
       }
@@ -795,6 +668,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
     const dir = colState.sort.dir === "asc" ? 1 : -1;
     return [...filtered].sort((a, b) => {
       const av = a[k]; const bv = b[k];
+      if (av == null && bv == null) return 0;
       if (av == null) return 1;
       if (bv == null) return -1;
       if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
@@ -802,12 +676,14 @@ export default function TradingOppsPage({ onOpenTicker }) {
     });
   }, [filtered, colState.sort]);
 
-  const groupOrder = ["high", "watch", "outside", "fail"];
+  // Row groups: Strong Buy > Watch Buy > Strong Sell > Watch Sell > Neutral.
+  const groupOrder = ["strong_buy", "watch_buy", "strong_sell", "watch_sell", "neutral"];
   const groupMeta = {
-    high:    { label: "High Conviction",        dot: "var(--green-text, var(--green))" },
-    watch:   { label: "Watch",                  dot: "var(--yellow-text, var(--yellow))" },
-    outside: { label: "Outside surfacing zone", dot: "var(--text-dim)" },
-    fail:    { label: "All others",             dot: "var(--text-dim)" },
+    strong_buy:  { label: "Strong Buy",  dot: "var(--green-text, var(--green))" },
+    watch_buy:   { label: "Watch Buy",   dot: "var(--yellow-text, var(--yellow))" },
+    strong_sell: { label: "Strong Sell", dot: "var(--red-text, var(--red))" },
+    watch_sell:  { label: "Watch Sell",  dot: "var(--yellow-text, var(--yellow))" },
+    neutral:     { label: "Neutral",     dot: "var(--text-dim)" },
   };
 
   const visibleCols = colState.order.filter(k => colState.visible.includes(k));
@@ -836,12 +712,12 @@ export default function TradingOppsPage({ onOpenTicker }) {
     if (!t) return;
     if (allRows.some(r => r.ticker === t)) { alert(`${t} is already in the table.`); return; }
     setExtraRows(prev => [...prev, {
-      ticker: t, group: "outside", name: "(custom add)", sector: "—", ig: "—",
-      tag: "", price: null, day_pct: null, mcap: null, range_52: null,
-      score: 0, band: "Not Surfaced", gates: [0, 0, 0], pillars: [0, 0, 0],
-      rvol: null, bbw: null, rsi: null, sma_pct: null, ins_date: "—", ins_dol: 0,
-      iv_rank: null, div_yld: null, next_er: null, v1_comp: null,
-      surfacing_zone: false, _raw: {},
+      ticker: t, name: "(custom add)", sector: "—", ig: "—",
+      price: null, day_pct: null, mcap: null,
+      score: null, band: "Neutral", band_group: "neutral",
+      sub_insider: null, sub_options: null, sub_congress: null,
+      sub_technicals: null, sub_analyst: null, sub_short_interest: null,
+      so_what: null, cap_discount: null, _raw: {},
     }]);
   };
 
@@ -864,21 +740,24 @@ export default function TradingOppsPage({ onOpenTicker }) {
     });
   };
 
+  const filterChips = [
+    { f: "all",          label: "All" },
+    { f: "strong_buy",   label: "Strong Buy" },
+    { f: "watch_buy",    label: "Watch Buy" },
+    { f: "neutral",      label: "Neutral" },
+    { f: "watch_sell",   label: "Watch Sell" },
+    { f: "strong_sell",  label: "Strong Sell" },
+    { f: "held",         label: "Held" },
+    { f: "watchlist",    label: "Watchlist" },
+  ];
+
   return (
     <div style={{ minHeight: "100vh" }}>
       <Hero totals={totals} scanDate={scanDate} />
 
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", marginTop: 24, marginBottom: 16 }}>
-          {[
-            { f: "all",       label: "All" },
-            { f: "high",      label: "High Conviction" },
-            { f: "watch",     label: "Watch" },
-            { f: "gate",      label: "Filter-pass" },
-            { f: "insider",   label: "Insider activity" },
-            { f: "held",      label: "Held" },
-            { f: "watchlist", label: "Watchlist" },
-          ].map(c => {
+          {filterChips.map(c => {
             const active = colState.filter === c.f;
             return (
               <button
@@ -906,7 +785,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
 
           <input
             type="text"
-            placeholder="Search ticker…"
+            placeholder="Search ticker..."
             value={searchQ}
             onChange={(e) => setSearchQ(e.target.value)}
             style={{
@@ -927,13 +806,13 @@ export default function TradingOppsPage({ onOpenTicker }) {
               onClick={(e) => { e.stopPropagation(); setColMenuOpen(o => !o); }}
               style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-2)", padding: "6px 13px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)", display: "inline-flex", alignItems: "center", gap: 6 }}
             >
-              ⚙ Columns
+              Columns
               <span style={{ color: "var(--text-dim)", marginLeft: 6 }}>{colState.visible.length}/{COLUMNS.length}</span>
             </button>
             {colMenuOpen && (
               <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.20))", padding: 8, zIndex: 50, minWidth: 280, maxHeight: 460, overflowY: "auto" }}>
                 <div style={{ fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", padding: "6px 10px 8px", fontWeight: 600, borderBottom: "1px solid var(--border-faint, var(--border))", marginBottom: 4, fontFamily: "var(--font-mono, JetBrains Mono, monospace)" }}>
-                  Show / hide · Drag headers to reorder
+                  Show / hide &middot; Drag headers to reorder
                 </div>
                 {(() => {
                   const groups = {};
@@ -969,13 +848,13 @@ export default function TradingOppsPage({ onOpenTicker }) {
             onClick={handleAddTicker}
             style={{ background: "var(--accent)", border: "1px solid var(--accent)", color: "var(--surface)", padding: "6px 13px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)", display: "inline-flex", alignItems: "center", gap: 6 }}
           >
-            ＋ Add ticker
+            + Add ticker
           </button>
         </div>
 
         {loading && (
           <div style={{ padding: 32, color: "var(--text-muted)", fontSize: 13, textAlign: "center", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", background: "var(--surface)" }}>
-            Loading scan…
+            Loading scan...
           </div>
         )}
         {!loading && error && (
@@ -985,7 +864,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
         )}
         {!loading && !error && allRows.length === 0 && (
           <div style={{ padding: 32, color: "var(--text-muted)", fontSize: 13, textAlign: "center", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", background: "var(--surface)" }}>
-            No scan data yet — the daily scan runs tonight. Once it completes, the universe and the surface bands will populate here automatically.
+            No scan data yet - the daily scan runs after market close. Once it completes, the universe and the band counts will populate here automatically.
           </div>
         )}
 
@@ -999,7 +878,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                       const c = COLUMNS.find(x => x.key === k);
                       if (!c) return null;
                       const isSort = colState.sort.key === k;
-                      const arrow = isSort ? (colState.sort.dir === "asc" ? "▲" : "▼") : "⇅";
+                      const arrow = isSort ? (colState.sort.dir === "asc" ? "↑" : "↓") : "";
                       return (
                         <th
                           key={k}
@@ -1029,7 +908,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                           <Tooltip label={c.tt.label} body={c.tt.body} side="bottom">
                             <span>
                               {c.label}
-                              <span style={{ marginLeft: 4, color: isSort ? "var(--accent)" : "var(--text-dim)", fontSize: 9 }}>{arrow}</span>
+                              {arrow && <span style={{ marginLeft: 4, color: "var(--accent)", fontSize: 9 }}>{arrow}</span>}
                             </span>
                           </Tooltip>
                         </th>
@@ -1039,7 +918,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                 </thead>
                 <tbody>
                   {groupOrder.map(g => {
-                    const groupRows = sorted.filter(r => r.group === g);
+                    const groupRows = sorted.filter(r => r.band_group === g);
                     if (!groupRows.length) return null;
                     return (
                       <Fragment key={g}>
@@ -1048,7 +927,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                             <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 8 }}>
                               <span style={{ width: 8, height: 8, borderRadius: "50%", background: groupMeta[g].dot }} />
                               {groupMeta[g].label}
-                              <span style={{ fontWeight: 500, color: "var(--text-muted)", fontSize: 11 }}>· {groupRows.length}</span>
+                              <span style={{ fontWeight: 500, color: "var(--text-muted)", fontSize: 11 }}>&middot; {groupRows.length}</span>
                             </span>
                           </td>
                         </tr>
@@ -1091,7 +970,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
         )}
 
         <div style={{ margin: "32px 0 24px", paddingTop: 16, borderTop: "1px solid var(--border-faint, var(--border))", textAlign: "center", color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "var(--font-mono, JetBrains Mono, monospace)" }}>
-          Daily scan refreshes after market close · Sourced from Polygon Massive · Unusual Whales · SEC Form 4
+          Daily scan refreshes after market close &middot; Sources: Polygon Massive &middot; Unusual Whales &middot; SEC Form 4 &middot; Quiver Quant
         </div>
       </div>
 
@@ -1099,6 +978,13 @@ export default function TradingOppsPage({ onOpenTicker }) {
         .mt-tt:hover .mt-tt-body { opacity: 1 !important; }
         th.mt-drag-over { background: var(--accent-soft, var(--surface-2)) !important; }
         th.mt-drag-source { opacity: 0.4; }
+        @keyframes mt-band-pulse-anim {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
+          50%      { box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.04); }
+        }
+        .mt-band-pulse {
+          animation: mt-band-pulse-anim 2.4s ease-in-out infinite;
+        }
       `}</style>
     </div>
   );
