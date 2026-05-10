@@ -1117,6 +1117,14 @@ function CycleMechanismScenarioResultsTable({
   tableCard, tableHead, tableTitle, tableSub,
 }) {
   const [expanded, setExpanded] = useState(null);
+  const [cycleV2, setCycleV2] = useState(null);
+  const [v2Horizon, setV2Horizon] = useState("6m");
+  useEffect(() => {
+    fetch("/cycle_v2.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
+      .then(setCycleV2)
+      .catch((err) => { console.warn("[Scenario Analysis · v2 PR 4] cycle_v2.json fetch failed", err); });
+  }, []);
 
   // Mirror the producer + harness alias map so the drilldown can find each
   // calibration indicator's series in indicator_history.json.
@@ -1225,6 +1233,57 @@ function CycleMechanismScenarioResultsTable({
           </span>
         </div>
       </div>
+      {cycleV2 && cycleV2.headlines && cycleV2.regimes && (
+        <div style={{ padding:"14px 18px", borderBottom:"0.5px solid var(--border)", background:"var(--surface-2, var(--surface))" }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10, gap:14, flexWrap:"wrap" }}>
+            <div style={{ fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em" }}>
+              v2 · Today's headline reads (full per-scenario v2 rollup ships in v2.1)
+            </div>
+            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+              {["1m","3m","6m","12m"].map((h) => (
+                <button key={h} onClick={() => setV2Horizon(h)} style={{
+                  fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600,
+                  padding:"3px 8px",
+                  background: v2Horizon === h ? "color-mix(in srgb, var(--accent) 14%, var(--surface))" : "var(--surface)",
+                  color: v2Horizon === h ? "var(--accent)" : "var(--text-2)",
+                  border:"1px solid var(--border)", borderRadius:4, cursor:"pointer",
+                }}>{h}</button>
+              ))}
+            </div>
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:10 }}>
+            {["cycle_value","market_stress","real_economy"].map((hid) => {
+              const h = cycleV2.headlines[hid];
+              if (!h) return null;
+              const v = h.scores_by_horizon[v2Horizon];
+              const band = v == null ? "—" : v < 25 ? "Risk On" : v < 50 ? "Neutral" : v < 75 ? "Caution" : "Risk Off";
+              return (
+                <div key={hid} style={{ padding:"10px 12px", background:"var(--surface)", border:"0.5px solid var(--border)", borderRadius:8 }}>
+                  <div style={{ fontSize:10, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>{h.label}</div>
+                  <div style={{ display:"flex", alignItems:"baseline", gap:6, marginTop:4 }}>
+                    <span style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600, color:"var(--text)" }}>{v == null ? "—" : v}</span>
+                    <span style={{ fontSize:11, color:"var(--text-muted)" }}>/ 100 · {band}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div style={{ marginTop:10, display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:14, flexWrap:"wrap" }}>
+            <div>
+              <span style={{ fontSize:10, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Regime · {v2Horizon}</span>
+              <div style={{ fontFamily:"var(--font-ui)", fontSize:14, fontWeight:600, color:"var(--text)", marginTop:2 }}>
+                {cycleV2.regimes[v2Horizon].label}
+              </div>
+            </div>
+            <div style={{ textAlign:"right", maxWidth:380 }}>
+              <span style={{ fontSize:10, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Recommended action</span>
+              <div style={{ fontFamily:"var(--font-ui)", fontSize:12, color:"var(--text)", marginTop:2 }}>
+                {cycleV2.regimes[v2Horizon].recommended_action}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div style={{ overflow:"auto" }}>
         <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:"var(--font-ui)", fontSize:13 }}>
           <thead>
