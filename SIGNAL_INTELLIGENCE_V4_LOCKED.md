@@ -8,9 +8,9 @@
 
 ## What this is
 
-A long-only equity scanner targeting **small/mid-cap names** ($300M-$3B market cap) where **information asymmetry between insiders/whales and retail price action is statistically meaningful**. The scanner produces ~2-3 actionable trades per week with a 62-70% historical win rate on a 21-day hold horizon.
+A long-only equity scanner targeting **small- and mid-cap names** ($300M–$25B market cap) where **information asymmetry between insiders/whales and retail price action is statistically meaningful**. The scanner produces ~2-3 actionable trades per week with a 62-70% historical win rate on a 21-day hold horizon.
 
-The scanner identifies the rare moment when **a corporate insider opens their wallet for the first time in a year, while institutional money is showing aggression in the price tape and the volatility is coiled for a breakout.**
+The scanner identifies the rare moment when **a corporate insider opens their wallet for the first time in a year — and writes a check large relative to the company's size — while institutional money is showing aggression in the price tape and the volatility is coiled for a breakout.**
 
 ---
 
@@ -20,20 +20,55 @@ The scanner identifies the rare moment when **a corporate insider opens their wa
 
 | Filter | Value |
 |---|---|
-| Market cap | $300M ≤ mcap ≤ $3B |
+| Market cap | $300M ≤ mcap ≤ $25B |
 | Issue type | Common Stock only (no ETFs / ADRs / preferred) |
 | Liquidity floor | 22-day average dollar volume > 500k shares (Gate 2) |
 | Anti-hedge exclusion | Excludes SPY, QQQ, IWM, DIA, VTI (Gate 3) |
-| Approximate size | ~2,000 names |
+| Approximate size | ~3,500 names |
+
+The ceiling moved from $3B to $25B on 2026-05-09 once the magnitude rule became cap-normalized. With a fixed dollar threshold, a $5 million insider buy at a $20B company looked the same as a $5 million buy at a $500M company — clearly not the same signal. Switching to "basis points of market cap" lets the gate read both correctly. See **Cap-normalized magnitude threshold** below.
 
 ### Mandatory Gates (PASS / FAIL — required to surface)
 
 | # | Gate | Trigger |
 |---|---|---|
-| **1** | **Insider Purchase** | 1+ insider P-buy (transaction_code = 'P' ONLY — filters RSU grants, options exercises, tax sales) within last 30 days |
+| **1.0** | **Insider Purchase** | 1+ insider P-buy (transaction_code = 'P' ONLY — filters RSU grants, options exercises, tax sales) within last 30 days |
 | **1.1** | **First-Buy Filter** | At least one of those P-buyers must have **NO prior P-buy in the 12 months preceding** the current 30-day window |
+| **1.2** | **Cap-normalized magnitude** | Aggregate dollar value of those P-buys (across the 30-day window) ≥ **max(2 bps × market cap, $500k floor)** |
 | **2** | **Liquidity** | Price > $5 AND 22-day avg dollar volume > 500k shares |
 | **3** | **Anti-Hedge** | Ticker is NOT in {SPY, QQQ, IWM, DIA, VTI} |
+
+---
+
+## Cap-normalized magnitude threshold
+
+**Why this exists.** The earlier v4 rule used a fixed $500k absolute threshold for the insider P-buy aggregate. That works at small caps — $500k of insider buying at a $400M company is a real, visible commitment. At a $20B company, $500k is rounding error from a CFO who happened to top up their position. Both used to clear the same gate, which made the High Conviction band noisy at the upper end of the universe.
+
+**The fix.** Express the threshold as a fraction of company size, with a floor so small caps don't get a free pass.
+
+- **Gate threshold** (must clear to surface at all): max(**2 basis points** × market cap, **$500,000**).
+- **High Conviction threshold** (must clear to land in the top band, else demoted to Watch even at a 45+ score): max(**5 basis points** × market cap, **$5,000,000**).
+
+A "basis point" is 1/100th of a percent. 2 bps = 0.02% = $2,000 of dollar value per $10M of market cap.
+
+**Worked examples.**
+
+| Company size | Gate threshold | HC threshold | What clears the gate / HC | What fails |
+|---|---:|---:|---|---|
+| **$500M** (small cap) | $500k (floor binds) | $5M (floor binds) | Gate: $500k+ aggregate. HC: $5M+ — i.e., one big insider check, rare at this size. | Gate: $400k aggregate (below floor). |
+| **$5B** (mid cap) | $1M | $5M (floor binds) | Gate: $1M+. HC: $5M+ — one whale or multiple meaningful checks. | Gate: $750k. |
+| **$25B** (top of universe) | $5M | $12.5M | Gate: $5M+. HC: $12.5M+ (or score 45+ but stays at Watch otherwise). | Gate: $4M. |
+| **$500B** (mega cap, beyond universe) | $100M | $250M | (informational — not in scope) | Anything below. |
+| **$4T** (largest US co's) | $800M | $2B | (informational — not in scope) | Anything below. |
+
+Rules of thumb: at $25B and below the gate threshold tracks 2 bps of cap; the floor only binds for the smallest sub-$2.5B names. The HC threshold's floor binds up through ~$2.5B; above that it tracks 5 bps.
+
+**Academic basis.** The "size-normalize the insider signal" idea is not new. Two studies in particular:
+
+- **Lakonishok & Lee (2001)** — *Are Insider Trades Informative?*, *Review of Financial Studies* 14(1), pp. 79-111. The original large-sample finding that insider buying is informative — and that the predictive content is concentrated in small-cap names. Established that the same dollar amount of insider activity carries different information depending on the size of the firm.
+- **Cohen, Malloy & Pomorski (2012)** — *Decoding Inside Information*, *Journal of Finance* 67(3), pp. 1009-1043. Showed that the information content of insider trades scales with how unusual the trade is for that insider — the "first buy in a long time" being the strongest signal. Indirectly supports treating the magnitude as relative to the firm: a $5M trade by a CEO who normally trades in $100k blocks is a structurally different event from the same $5M coming from a fund-style insider.
+
+Both papers cut the same way: the predictive value of insider purchase data depends on the relationship between the trade and the company, not on the raw dollar amount.
 
 ### Scoring Pillars (additive, max 65)
 
@@ -57,7 +92,7 @@ The scanner identifies the rare moment when **a corporate insider opens their wa
 | **Watch** | ≥ 20 | **63.2%** | +5.84% | ~2.6 |
 | Below threshold | < 20 | not surfaced | — | — |
 
-Tiebreaker for multiple surface candidates: **largest total dollar amount** of insider P-buys in the 30-day window.
+Tiebreaker for multiple surface candidates: **largest total dollar amount** of insider P-buys in the 30-day window. To land in High Conviction, a 45+ score must additionally clear the cap-normalized HC threshold (max(5 bps × market cap, $5M)) — names that score 45+ but fall short on this size check are demoted to Watch.
 
 ### Exit Rules (applied nightly to open positions)
 
@@ -165,7 +200,8 @@ Per Joe 2026-05-09:
 | v3 (3+ insider gate) | Retired | 0 signals at large-cap |
 | v3.1 (1+ insider gate) | Retired | Worked at small-cap, partial validation |
 | **v4.0** | **Validated** | Gate-and-pillar; small-cap universe; 62-70% backtest win rate |
-| **v4.1** | **LOCKED** | Adds first-buy filter (12mo no prior P-buy); production blueprint |
+| **v4.1** | Validated | Adds first-buy filter (12mo no prior P-buy) on top of v4.0 |
+| **v4.1 (current)** | **LOCKED** | Universe expanded to $300M–$25B and magnitude threshold replaced with cap-normalized rule (2 bps gate / 5 bps HC, with $500k / $5M floors). 2026-05-09. |
 
 ---
 

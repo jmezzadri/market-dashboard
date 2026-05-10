@@ -20,8 +20,10 @@ from scanner.signal_intelligence_v4 import (
     HEDGE_TICKERS,
     apply_gates,
     aggression_pillar,
+    hc_magnitude_threshold,
     is_first_buy,
     insider_gate_passes,
+    magnitude_threshold,
     momentum_pillar,
     overbought_red_flag,
     score_pillars,
@@ -30,12 +32,28 @@ from scanner.signal_intelligence_v4 import (
 )
 
 
+# Default market cap for fixtures predating the cap-normalized magnitude rule.
+# At $2B, the gate threshold is max(2 bps × $2B, $500k) = $400k, so the existing
+# "_ev(...) at amount=1000, stock_price=50" → $50k aggregate would FAIL the
+# magnitude check. Tests that need to focus on the first-buy path pass a
+# market_cap of None (default) to skip the magnitude check, OR use the helper
+# below to set an amount large enough to clear the $400k threshold.
+DEFAULT_MARKET_CAP = 2_000_000_000  # $2B
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _ev(d: date, owner: str, code: str = "P", amount: int = 1000,
+def _ev(d: date, owner: str, code: str = "P", amount: int = 10_000,
         stock_price: float = 50.0, is_officer: bool = True):
+    """Default insider event = 10,000 shares × $50 = $500k aggregate.
+
+    At $2B market cap (DEFAULT_MARKET_CAP), the cap-normalized magnitude
+    threshold is max(2 bps × $2B, $500k) = $500k, so a single default _ev
+    JUST clears the gate. Tests that need to fail magnitude can pass a
+    smaller amount or set market_cap higher.
+    """
     return {"date": d, "owner": owner, "transaction_code": code,
             "amount": amount, "stock_price": stock_price, "is_officer": is_officer}
 
@@ -51,7 +69,7 @@ def test_gate_1_passes_with_one_first_buyer():
     assert result["passes"] is True
     assert result["unique_p_buyers"] == 1
     assert "alice ceo" in result["first_buyers"]
-    assert result["total_dollar"] == 50000.0
+    assert result["total_dollar"] == 500_000.0
 
 
 def test_gate_1_fails_when_only_repeat_buyer():
@@ -117,14 +135,16 @@ def test_is_first_buy_helper():
 
 def test_gate_2_blocks_low_price():
     result = apply_gates("LOWPX", date(2026, 4, 1), today_close=4.99,
-                        avg_volume_22d=1_000_000, insider_history=[])
+                        avg_volume_22d=1_000_000, insider_history=[],
+                        market_cap=DEFAULT_MARKET_CAP)
     assert result["gate_2_liquidity"] is False
     assert result["all_pass"] is False
 
 
 def test_gate_2_blocks_low_volume():
     result = apply_gates("ILLIQUID", date(2026, 4, 1), today_close=20,
-                        avg_volume_22d=100_000, insider_history=[])
+                        avg_volume_22d=100_000, insider_history=[],
+                        market_cap=DEFAULT_MARKET_CAP)
     assert result["gate_2_liquidity"] is False
 
 
@@ -132,7 +152,8 @@ def test_gate_3_blocks_hedge_tickers():
     for t in HEDGE_TICKERS:
         result = apply_gates(t, date(2026, 4, 1), today_close=400,
                             avg_volume_22d=10_000_000,
-                            insider_history=[_ev(date(2026, 3, 25), "X")])
+                            insider_history=[_ev(date(2026, 3, 25), "X")],
+                            market_cap=DEFAULT_MARKET_CAP)
         assert result["gate_3_anti_hedge"] is False, f"{t} should be blocked"
 
 
@@ -214,6 +235,7 @@ def test_score_ticker_actionable_path():
         avg_volume_22d=1_000_000,
         closes_for_indicators=closes,
         insider_history=history,
+        market_cap=DEFAULT_MARKET_CAP,
     )
     assert result.gate_pass is True
     assert result.score >= 25            # at least Aggression (RVOL 1.8 > 1.5)
@@ -232,6 +254,7 @@ def test_score_ticker_blocks_when_gate_fails():
         avg_volume_22d=1_000_000,
         closes_for_indicators=closes,
         insider_history=[],
+        market_cap=DEFAULT_MARKET_CAP,
     )
     assert result.gate_pass is False
     assert result.score == 0
@@ -251,6 +274,7 @@ def test_score_ticker_repeat_buyer_blocked_under_v4_1():
         volume_today=2_000_000, avg_volume_22d=1_000_000,
         closes_for_indicators=closes, insider_history=history,
         require_first_buy=True,
+        market_cap=DEFAULT_MARKET_CAP,
     )
     assert result.gate_pass is False
     assert result.band == Band.NOT_SURFACED
@@ -269,6 +293,7 @@ def test_score_ticker_repeat_buyer_passes_under_v4_0_fallback():
         volume_today=2_000_000, avg_volume_22d=1_000_000,
         closes_for_indicators=closes, insider_history=history,
         require_first_buy=False,
+        market_cap=DEFAULT_MARKET_CAP,
     )
     assert result.gate_pass is True
 
@@ -285,6 +310,7 @@ def test_data_source_memory_is_default():
         ticker="TEST", score_date=today,
         today_close=100, avg_volume_22d=1_000_000,
         insider_history=history,
+        market_cap=DEFAULT_MARKET_CAP,
     )
     # Should pass without any Supabase env vars
     assert result["data_source"] == "memory"
@@ -320,3 +346,135 @@ def test_data_source_supabase_path_imports_correctly():
     )
     assert result["passes"] is False
     assert result["data_source"] == "supabase"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Cap-normalized magnitude threshold (v4.1.1, 2026-05-09)
+# ─────────────────────────────────────────────────────────────────────────────
+
+def test_magnitude_threshold_caps_normalized():
+    """Verify the threshold math at $500M, $5B, $25B, $500B, $4T.
+
+    Gate threshold = max(2 bps × cap, $500k floor).
+    HC threshold   = max(5 bps × cap, $5M floor).
+    """
+    # $500M — both floors bind
+    assert magnitude_threshold(500_000_000) == 500_000           # max($100k, $500k)
+    assert hc_magnitude_threshold(500_000_000) == 5_000_000      # max($250k, $5M)
+
+    # $5B — gate ratio binds, HC floor binds
+    assert magnitude_threshold(5_000_000_000) == 1_000_000       # max($1M, $500k)
+    assert hc_magnitude_threshold(5_000_000_000) == 5_000_000    # max($2.5M, $5M)
+
+    # $25B — both ratios bind
+    assert magnitude_threshold(25_000_000_000) == 5_000_000      # max($5M, $500k)
+    assert hc_magnitude_threshold(25_000_000_000) == 12_500_000  # max($12.5M, $5M)
+
+    # $500B — both ratios bind, well above floors
+    assert magnitude_threshold(500_000_000_000) == 100_000_000   # max($100M, $500k)
+    assert hc_magnitude_threshold(500_000_000_000) == 250_000_000  # max($250M, $5M)
+
+    # $4T — mega-cap
+    assert magnitude_threshold(4_000_000_000_000) == 800_000_000  # max($800M, $500k)
+    assert hc_magnitude_threshold(4_000_000_000_000) == 2_000_000_000  # max($2B, $5M)
+
+
+def test_gate_1_fails_when_magnitude_below_threshold_at_large_cap():
+    """At a $25B cap, the gate threshold is $5M (2 bps × $25B).
+
+    A buy aggregating to $5M JUST clears; $4M aggregate fails.
+    """
+    today = date(2026, 4, 1)
+    cap = 25_000_000_000  # $25B → $5M gate threshold
+
+    # $5M aggregate — 100k shares × $50 = $5,000,000 → clears (>= 5M)
+    history_pass = [_ev(today - timedelta(days=10), "Alice CEO",
+                        amount=100_000, stock_price=50.0)]
+    result_pass = insider_gate_passes(
+        today, history_pass, require_first_buy=True, market_cap=cap,
+    )
+    assert result_pass["total_dollar"] == 5_000_000.0
+    assert result_pass["magnitude_passes"] is True
+    assert result_pass["passes"] is True
+
+    # $4M aggregate — 80k shares × $50 = $4,000,000 → fails
+    history_fail = [_ev(today - timedelta(days=10), "Alice CEO",
+                        amount=80_000, stock_price=50.0)]
+    result_fail = insider_gate_passes(
+        today, history_fail, require_first_buy=True, market_cap=cap,
+    )
+    assert result_fail["total_dollar"] == 4_000_000.0
+    assert result_fail["magnitude_passes"] is False
+    assert result_fail["passes"] is False
+
+
+def test_high_conviction_requires_hc_magnitude():
+    """At $25B cap, HC threshold is $12.5M (5 bps × $25B).
+
+    A score >= 45 with $10M insider $ → demoted to Watch.
+    Same setup with $15M insider $ → lands in High Conviction.
+    """
+    today = date(2026, 4, 1)
+    cap = 25_000_000_000  # $25B
+    # Closes engineered to land RSI in 40-70 + close > 50-SMA + tight band:
+    # all three pillars fire → score 65.
+    closes = [100.0 + 0.05 * (-1) ** i for i in range(60)]
+
+    # $10M insider $ — clears gate ($5M) but NOT HC ($12.5M) → Watch
+    history_watch = [_ev(today - timedelta(days=10), "Alice CEO",
+                         amount=200_000, stock_price=50.0)]  # $10M
+    result_watch = score_ticker(
+        ticker="BIG", score_date=today, today_close=closes[-1],
+        volume_today=1_800_000, avg_volume_22d=1_000_000,
+        closes_for_indicators=closes, insider_history=history_watch,
+        market_cap=cap,
+    )
+    assert result_watch.gate_pass is True
+    assert result_watch.score >= 45
+    assert result_watch.hc_eligible is False
+    assert result_watch.band == Band.WATCH
+
+    # $15M insider $ — clears both gate ($5M) and HC ($12.5M) → High Conviction
+    history_hc = [_ev(today - timedelta(days=10), "Alice CEO",
+                      amount=300_000, stock_price=50.0)]  # $15M
+    result_hc = score_ticker(
+        ticker="BIG", score_date=today, today_close=closes[-1],
+        volume_today=1_800_000, avg_volume_22d=1_000_000,
+        closes_for_indicators=closes, insider_history=history_hc,
+        market_cap=cap,
+    )
+    assert result_hc.gate_pass is True
+    assert result_hc.score >= 45
+    assert result_hc.hc_eligible is True
+    assert result_hc.band == Band.HIGH_CONVICTION
+
+
+def test_floor_binds_at_small_cap():
+    """At $300M cap, 2 bps × $300M = $60k → $500k FLOOR binds.
+
+    $400k aggregate fails ($400k < $500k); $600k clears.
+    """
+    today = date(2026, 4, 1)
+    cap = 300_000_000  # $300M
+
+    # $400k — below floor → fails
+    history_fail = [_ev(today - timedelta(days=10), "Alice CEO",
+                        amount=8_000, stock_price=50.0)]  # $400k
+    result_fail = insider_gate_passes(
+        today, history_fail, require_first_buy=True, market_cap=cap,
+    )
+    assert result_fail["total_dollar"] == 400_000.0
+    assert result_fail["magnitude_threshold"] == 500_000
+    assert result_fail["magnitude_passes"] is False
+    assert result_fail["passes"] is False
+
+    # $600k — above floor → clears
+    history_pass = [_ev(today - timedelta(days=10), "Alice CEO",
+                        amount=12_000, stock_price=50.0)]  # $600k
+    result_pass = insider_gate_passes(
+        today, history_pass, require_first_buy=True, market_cap=cap,
+    )
+    assert result_pass["total_dollar"] == 600_000.0
+    assert result_pass["magnitude_threshold"] == 500_000
+    assert result_pass["magnitude_passes"] is True
+    assert result_pass["passes"] is True
