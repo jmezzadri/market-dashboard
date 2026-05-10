@@ -461,6 +461,15 @@ function MechanismOverview({ mech, onPickIndicator }) {
 }
 
 export default function MacroOverviewPage() {
+  // v2 spec PR 3 — fetch cycle_v2.json for the new 3-headline panel.
+  const [cycleV2, setCycleV2] = React.useState(null);
+  const [v2Horizon, setV2Horizon] = React.useState("6m");
+  React.useEffect(() => {
+    fetch("/cycle_v2.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
+      .then(setCycleV2)
+      .catch((err) => { console.warn("[Macro Overview · v2 PR 3] cycle_v2.json fetch failed", err); });
+  }, []);
   const { snap, calib, v10, history, err } = useMacroData();
   const [openMechId, setOpenMechId] = useState(null);
   const [openIndId, setOpenIndId] = useState(null);
@@ -532,7 +541,80 @@ export default function MacroOverviewPage() {
       </header>
 
       <div className="v2-shell">
-        <div className="v2-mech-grid" style={{ marginTop: 32 }}>
+
+        {/* v2 spec PR 3 — 3-headline panel + regime classifier */}
+        {cycleV2 && cycleV2.headlines && (
+          <section style={{ marginTop: 32, padding: '24px 0 8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, gap: 14, flexWrap: 'wrap' }}>
+              <div>
+                <div className="t-eyebrow accent">v2 cycle mechanism — horizon-aware</div>
+                <h2 className="t-tile" style={{ margin: '4px 0 0', color: 'var(--ink-0)' }}>Where are we, and what's next?</h2>
+              </div>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <span style={{ fontSize: 11, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Decision horizon</span>
+                {["1m","3m","6m","12m"].map((h) => (
+                  <button key={h} onClick={() => setV2Horizon(h)} style={{
+                    fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 11, fontWeight: 600,
+                    padding: '6px 12px',
+                    background: v2Horizon === h ? 'color-mix(in srgb, var(--accent) 14%, var(--surface))' : 'var(--surface)',
+                    color: v2Horizon === h ? 'var(--accent)' : 'var(--ink-2)',
+                    border: '1px solid var(--line-1)', borderRadius: 6, cursor: 'pointer', letterSpacing: '.04em',
+                  }}>{h}</button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+              {["cycle_value","market_stress","real_economy"].map((hid) => {
+                const h = cycleV2.headlines[hid];
+                if (!h) return null;
+                const v = h.scores_by_horizon[v2Horizon];
+                const band = v == null ? '—' : v < 25 ? 'Risk On' : v < 50 ? 'Neutral' : v < 75 ? 'Caution' : 'Risk Off';
+                return (
+                  <article key={hid} className="v2-tile" style={{ minHeight: 'auto' }}>
+                    <div className="t-eyebrow accent" style={{ marginBottom: 10 }}>{h.tagline}</div>
+                    <h3 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>{h.label}</h3>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '14px 0 4px' }}>
+                      <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 48, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
+                        {v == null ? '—' : v}
+                      </span>
+                      <span style={{ color: 'var(--ink-2)', fontSize: 14 }}>/100</span>
+                    </div>
+                    <p style={{ color: 'var(--ink-2)', fontSize: 12, margin: 0 }}>{band}</p>
+                    <p style={{ color: 'var(--ink-2)', fontSize: 11, margin: '8px 0 0' }}>{h.question}</p>
+                  </article>
+                );
+              })}
+            </div>
+
+            {cycleV2.regimes && cycleV2.regimes[v2Horizon] && (
+              <div style={{ marginTop: 14, padding: '14px 18px', background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 14 }}>
+                  <div>
+                    <span className="t-eyebrow accent">Regime · {v2Horizon}</span>
+                    <h4 style={{ margin: '4px 0 0', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 24, fontWeight: 500, color: 'var(--ink-0)' }}>
+                      {cycleV2.regimes[v2Horizon].label}
+                    </h4>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <span className="t-eyebrow">Recommended action</span>
+                    <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--ink-0)', maxWidth: 460 }}>
+                      {cycleV2.regimes[v2Horizon].recommended_action}
+                    </p>
+                  </div>
+                </div>
+                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--ink-2)', fontStyle: 'italic' }}>
+                  {cycleV2.regimes[v2Horizon].real_economy_caption}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
+        <div style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid var(--line-0)' }}>
+          <div className="t-eyebrow" style={{ color: 'var(--ink-2)', marginBottom: 8 }}>Legacy · v11 six-mechanism panel (deprecated 2026-05-31)</div>
+        </div>
+        <div className="v2-mech-grid" style={{ marginTop: 12 }}>
           {mechanisms.map((m) => (
             <article key={m.id}
               className="v2-tile"
