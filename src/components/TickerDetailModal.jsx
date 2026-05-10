@@ -937,7 +937,7 @@ function ActionRow({
 }
 
 
-export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,cycleBoardSnap,v9Alloc,onOpenAddPosition,onOpenEditPosition,onClosePosition}){
+export default function TickerDetailModal({ticker,scanData,accounts,watchlistRows,portfolioAuthed,refetchPortfolio,onClose,onTickerAdded,scanBusy,cycleBoardSnap,v9Alloc,mtSignal,onOpenAddPosition,onOpenEditPosition,onClosePosition}){
 const [descExpanded,setDescExpanded]=useState(false);
 const [wlBusy,setWlBusy]=useState(false);
 const [wlError,setWlError]=useState(null);
@@ -1467,6 +1467,7 @@ return(
   sc={sc}
   cycleBoardSnap={cycleBoardSnap}
   v9Alloc={v9Alloc}
+  mtSignal={mtSignal}
   riskMetrics={_riskMetrics}
   heldIn={heldIn}
   sector={sector}
