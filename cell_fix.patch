@@ -1,0 +1,31 @@
+--- a/src/v2/pages/TradingOppsPage.jsx
++++ b/src/v2/pages/TradingOppsPage.jsx
+@@ -89,6 +89,28 @@
+ const COL_KEYS = COLUMNS.map(c => c.key);
+ const DEFAULT_VISIBLE = COLUMNS.filter(c => c.default).map(c => c.key);
+ 
++// ─────────────────────────────────────────────────────────────────────────
++// Display helpers — keep table cells from blowing the column widths out
++// (long company names + SIC sector strings push score columns off-screen).
++// ─────────────────────────────────────────────────────────────────────────
++
++const TRAILING_DESCRIPTOR = / (Common Stock|Class [A-Z](?: Common Stock)?| Inc\.?|, Inc\.?|, LP|, L\.P\.| Ltd\.?| Limited| Corp\.?| Corporation| Holdings?| Holding Company| Group| Group Class [A-Z]| Plc| PLC|\s*$)+$/i;
++function shortName(name) {
++  if (!name) return "—";
++  // Drop trailing "Common Stock" / "Class A Common Stock" / "Inc." style noise
++  // so cells stay in budget. Full name is preserved in the title tooltip.
++  return String(name).replace(/\s+Class\s+[A-Z](\s+Common Stock)?$/i, "")
++                     .replace(/\s+Common Stock$/i, "")
++                     .replace(/\s+Common Shares$/i, "")
++                     .trim();
++}
++
++function titleCaseSector(s) {
++  if (!s) return "—";
++  // ticker_reference.sector mixes GICS Title Case + SIC ALL CAPS.
++  // Title-case everything for visual consistency.
++  return String(s).toLowerCase().replace(/\b(\w)/g, c => c.toUpperCase());
++}
++
+ // ─────────────────────────────────────────────────────────────────────────
+ // localStorage helpers

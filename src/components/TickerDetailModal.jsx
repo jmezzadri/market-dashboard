@@ -37,7 +37,7 @@ import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 // cycleBoardSnap, v9Alloc, scanData feeds); no hardcoded narrative.
 // ============================================================================
 function SignalIntelligenceRail({
-  ticker, composite, tech, scanData, sc, cycleBoardSnap, v9Alloc,
+  ticker, composite, tech, scanData, sc, cycleBoardSnap, v9Alloc, mtSignal,
   riskMetrics, heldIn,
   sector, isFund,
   congressBuys, congressSells, insiderBuys, insiderSells,
@@ -57,6 +57,78 @@ function SignalIntelligenceRail({
   // that drives the Macro Overview page. Bands per v11 footer: 0-25 Risk-on,
   // 25-50 Neutral, 50-75 Caution, 75-100 Risk-off (lower = better, opposite of
   // the deprecated 3-composite scale).
+  // Tile 1 — MacroTilt Signal (replaces legacy Macro Composite per Joe directive 2026-05-10).
+  // Pulls from signal_intel_daily for the current ticker.
+  const mtSignalTile = (() => {
+    const sig = mtSignal;
+    if (!sig) return { state: "loading", value: "…", meta: "Loading MacroTilt signal", detail: null };
+    const score = Number(sig.score) || 0;
+    const band = sig.band || "Not Surfaced";
+    const surfacingZone = sig.surfacing_zone === true;
+    const mcap = Number(sig.market_cap);
+    const inZone = Number.isFinite(mcap) && mcap >= 300_000_000 && mcap <= 3_000_000_000;
+    const state = band === "High Conviction" ? "green" : band === "Watch" ? "amber" : "neutral";
+    const value = `${score}/65`;
+    const meta = inZone
+      ? `${band} · validated zone ($300M-$3B)`
+      : `${band} · outside validated zone — for reference`;
+    const gd = sig.gate_diagnostic || {};
+    const pd = sig.pillar_diagnostic || {};
+    const filterRow = (label, pass, note) => ({ label, pass, note });
+    const filters = [
+      filterRow("Insider first-buy", gd?.insider_first_buy?.pass, gd?.insider_first_buy?.has_p_buy_30d ? "buy in 30d" : "no qualifying buy"),
+      filterRow("Liquidity", gd?.liquidity?.pass, "price > $5 · 22d avg vol > 500k"),
+      filterRow("Index hedge", gd?.index_hedge?.pass !== false, "not in SPY/QQQ/IWM/DIA/VTI"),
+    ];
+    const signalRow = (label, fired, points, note) => ({ label, fired, points, note });
+    const signals = [
+      signalRow("Aggression", !!pd?.aggression?.fired, 25, pd?.aggression?.rvol != null ? `RVOL ${Number(pd.aggression.rvol).toFixed(2)}x · threshold 1.5x` : "RVOL > 1.5x"),
+      signalRow("Squeeze", !!pd?.squeeze?.fired, 20, pd?.squeeze?.bbw != null ? `BB ${Number(pd.squeeze.bbw*100).toFixed(1)}% · threshold <4%` : "Bollinger BandWidth < 4%"),
+      signalRow("Momentum", !!pd?.momentum?.fired, 20, pd?.momentum?.rsi != null ? `RSI ${Number(pd.momentum.rsi).toFixed(0)} · 50-SMA cross` : "Close > 50-SMA AND RSI 40-70"),
+    ];
+    const insiderDol = Number(gd?.insider_first_buy?.total_dollar) || 0;
+    const insThreshold = Math.max(0.0002 * (Number.isFinite(mcap) ? mcap : 0), 500_000);
+    const detail = (
+      <div style={{display:"flex",flexDirection:"column",gap:10,fontSize:12}}>
+        {!inZone && (
+          <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-muted)",fontSize:11.5,lineHeight:1.45}}>
+            <b style={{color:"var(--text-2)"}}>Score shown for reference.</b> The Watch / High Conviction surfacing tags are validated only for stocks in the $300M-$3B range (where insider-buy alpha is statistically meaningful). Outside that range, the score is informational.
+          </div>
+        )}
+        <div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Filters</div>
+          {filters.map((f,i)=>(
+            <div key={"f"+i} style={{display:"grid",gridTemplateColumns:"110px 60px 1fr",gap:8,alignItems:"center",padding:"3px 0",fontSize:12}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{f.label}</span>
+              <span style={{color: f.pass ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))", fontWeight:600}}>{f.pass ? "✓ Pass" : "✗ Fail"}</span>
+              <span style={{color:"var(--text-2)",fontSize:11.5}}>{f.note}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Signals</div>
+          {signals.map((s,i)=>(
+            <div key={"s"+i} style={{display:"grid",gridTemplateColumns:"110px 60px 1fr",gap:8,alignItems:"center",padding:"3px 0",fontSize:12}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{s.label}</span>
+              <span style={{color: s.fired ? "var(--green-text, var(--green))" : "var(--text-muted)", fontWeight:600}}>{s.fired ? `✓ +${s.points}` : "0"}</span>
+              <span style={{color:"var(--text-2)",fontSize:11.5}}>{s.note}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Insider conviction</div>
+          <div style={{fontSize:12,color:"var(--text-2)"}}>
+            ${(insiderDol/1000).toFixed(0)}k aggregate in 30-day window · threshold ${(insThreshold/1000).toFixed(0)}k (max 2 bps of cap, $500k floor)
+          </div>
+        </div>
+        <div style={{borderTop:"1px solid var(--border-faint, var(--border))",paddingTop:8,fontSize:11.5,color:"var(--text-muted)",lineHeight:1.45}}>
+          <b style={{color:"var(--text-2)"}}>Backtest expectation</b> · 12-month walk-forward · production spec ($300M-$3B + cap-norm magnitude): mean +10.06%, win 76.2%, +8.62 percentage points alpha vs SPY, beats SPY 65.5% of weeks.
+        </div>
+      </div>
+    );
+    return { state, value, meta, detail };
+  })();
+
   const macroTile = (() => {
     if (!cycleBoardSnap) return { state: "loading", value: "…", meta: "Loading cycle board", detail: null };
     const mechs = cycleBoardSnap.mechanisms || [];
@@ -328,7 +400,7 @@ function SignalIntelligenceRail({
         <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.16em",color:"var(--text-dim)"}}>Signal Intelligence</span>
         <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:"0.14em"}}>click to expand</span>
       </div>
-      <SignalCard title="Macro Composite" {...macroTile} ragColor={ragColor} defaultOpen />
+      <SignalCard title="MacroTilt Signal" {...mtSignalTile} ragColor={ragColor} defaultOpen />
       <SignalCard title="Asset Tilt" {...tiltTile} ragColor={ragColor} />
       <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
         const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";

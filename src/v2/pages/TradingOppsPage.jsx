@@ -280,6 +280,7 @@ function useScanData() {
     let cancelled = false;
     (async () => {
       try {
+        // 1. Latest scan date
         const latestRes = await supabase
           .from("signal_intel_daily")
           .select("scan_date")
@@ -291,16 +292,36 @@ function useScanData() {
           return;
         }
 
-        const scanRes = await supabase
-          .from("signal_intel_daily")
-          .select("*")
-          .eq("scan_date", latest)
-          .order("score", { ascending: false });
+        // 2. Pull ALL rows of today's scan via paginated range (.select() default
+        // caps at 1000 rows; we need every row for the table + funnel counts).
+        let scanRows = [];
+        const PAGE = 1000;
+        for (let from = 0; from < 20000; from += PAGE) {
+          const r = await supabase
+            .from("signal_intel_daily")
+            .select("*")
+            .eq("scan_date", latest)
+            .order("score", { ascending: false })
+            .range(from, from + PAGE - 1);
+          if (r.error) throw r.error;
+          if (!r.data || r.data.length === 0) break;
+          scanRows = scanRows.concat(r.data);
+          if (r.data.length < PAGE) break;
+        }
         if (cancelled) return;
-        if (scanRes.error) throw scanRes.error;
-        const rawRows = scanRes.data || [];
-        const scanRows = rawRows.map(r => ({ ...r, gate_diagnostic: normalizeGateDiagnostic(r.gate_diagnostic) }));
+        scanRows = scanRows.map(r => ({ ...r, gate_diagnostic: normalizeGateDiagnostic(r.gate_diagnostic) }));
 
+        // 3. Total universe count (all common stock + ADR in ticker_reference)
+        let universeTotal = null;
+        try {
+          const u = await supabase
+            .from("ticker_reference")
+            .select("ticker", { count: "exact", head: true })
+            .in("type", ["CS", "ADRC"]);
+          universeTotal = u?.count ?? null;
+        } catch (_) { /* fallback below */ }
+
+        // 4. Joins for the table — name + sector + price + 52w from snapshots
         const tickers = scanRows.map(r => r.ticker);
         const TICK_BATCH = 800;
 
@@ -331,15 +352,20 @@ function useScanData() {
 
         const shaped = scanRows.map(s => shapeRow(s, refByT.get(s.ticker), snapByT.get(s.ticker)));
 
-        const universe = scanRows.length;
+        // 5. Funnel counts — derived from the FULL scanRows set so the
+        // funnel narrows monotonically. Total comes from ticker_reference
+        // count (everything, not just what's been scored).
+        const HEDGE = ["SPY","QQQ","IWM","DIA","VTI"];
+        const universe = universeTotal ?? scanRows.length;
         const mcapBand = scanRows.filter(r => r.market_cap != null && Number(r.market_cap) >= SURFACE_CAP_FLOOR && Number(r.market_cap) <= SURFACE_CAP_CEILING).length;
-        const liquid = scanRows.filter(r => r.gate_diagnostic?.liquidity?.pass).length;
-        const postHedge = scanRows.filter(r => r.gate_diagnostic?.index_hedge?.pass !== false).length;
+        const hasIndicators = scanRows.length; // signal_intel_daily already requires 51+ closes upstream
+        const liquid = scanRows.filter(r => r.gate_diagnostic?.liquidity?.pass === true).length;
+        const postHedge = scanRows.filter(r => r.gate_diagnostic?.liquidity?.pass === true && !HEDGE.includes(String(r.ticker || "").toUpperCase())).length;
         const insider = scanRows.filter(r => {
           const gd = r.gate_diagnostic || {};
           return gd.insider_first_buy?.has_p_buy_30d || gd.insider_first_buy?.pass;
         }).length;
-        const firstBuy = scanRows.filter(r => r.gate_diagnostic?.insider_first_buy?.pass).length;
+        const firstBuy = scanRows.filter(r => r.gate_diagnostic?.insider_first_buy?.pass === true).length;
         const watch = scanRows.filter(r => r.band === "Watch").length;
         const hc = scanRows.filter(r => r.band === "High Conviction").length;
 
@@ -348,7 +374,7 @@ function useScanData() {
           scanDate: latest,
           loading: false,
           error: null,
-          totals: { universe, mcapBand, hasIndicators: universe, liquid, postHedge, insider, firstBuy, watch, hc },
+          totals: { universe, mcapBand, hasIndicators, liquid, postHedge, insider, firstBuy, watch, hc },
         });
       } catch (err) {
         if (!cancelled) setState({ rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: { universe: null, mcapBand: null, hasIndicators: null, liquid: null, postHedge: null, insider: null, firstBuy: null, watch: 0, hc: 0 } });
@@ -723,248 +749,14 @@ function renderCell(row, key) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// TickerDossierModal — works for any ticker (in-universe or off).
-// ─────────────────────────────────────────────────────────────────────────
-
-function SignalRow({ label, children }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 12, padding: "8px 0", borderBottom: "1px solid var(--border-faint, var(--border))" }}>
-      <span style={{ fontSize: 12, color: "var(--text-muted)" }}>{label}</span>
-      <span style={{ fontSize: 12, color: "var(--text)", fontVariantNumeric: "tabular-nums", fontFamily: "var(--font-mono, JetBrains Mono, monospace)" }}>{children}</span>
-    </div>
-  );
-}
-
-function PassFail({ pass }) {
-  if (pass == null) return <span style={{ color: "var(--text-muted)" }}>—</span>;
-  return pass
-    ? <span style={{ color: "var(--green-text, var(--green))" }}>✓ Pass</span>
-    : <span style={{ color: "var(--red-text, var(--red))" }}>✗ Fail</span>;
-}
-
-function FiredOrZero({ fired, points }) {
-  return fired
-    ? <span style={{ color: "var(--green-text, var(--green))" }}>✓ +{points}</span>
-    : <span style={{ color: "var(--text-muted)" }}>0</span>;
-}
-
-function TickerDossierModal({ row, onClose }) {
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === "Escape") onClose(); };
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
-  }, [onClose]);
-
-  if (!row) return null;
-  const r = row;
-  const cap = Number(r.mcap);
-  const aboveZone = Number.isFinite(cap) && cap > SURFACE_CAP_CEILING;
-  const belowZone = Number.isFinite(cap) && cap < SURFACE_CAP_FLOOR;
-  const offZone = aboveZone || belowZone || !Number.isFinite(cap);
-
-  const dayPctFormatted = fmtDay(r.day_pct);
-  const soWhat = r.band === "High Conviction"
-    ? "High-conviction surface — every filter passes and at least two signals fire. The cap-bucket backtest expects the average $300M-$2B name in this band to deliver +9.78% over 21 days at a 74.6% win rate."
-    : r.band === "Watch"
-    ? "Watch surface — filters pass and at least one signal fires. Smaller position size or wait for a second signal to fire. The 12-month walk-forward expects ~+5.84% over 21 days at ~62% win rate."
-    : r.band === "Outside surfacing zone"
-    ? "Outside the validated surfacing zone. The score is shown for reference; above the $3B ceiling the academic and backtest evidence supporting Watch / High Conviction tags is materially weaker."
-    : "Not surfaced today — at least one filter failed or the score is below the threshold. Held in the universe for tomorrow's scan.";
-
-  return (
-    <div
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.50)",
-        zIndex: 200,
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        padding: "40px 20px",
-        overflowY: "auto",
-      }}
-    >
-      <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.20))", maxWidth: 1100, width: "100%", overflow: "hidden" }}>
-        <div style={{ padding: "22px 28px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)", position: "sticky", top: 0 }}>
-          <h2 style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, fontSize: 28, color: "var(--text)", display: "inline-flex", alignItems: "baseline", gap: 12, margin: 0 }}>
-            {r.ticker}
-            <span style={{ fontSize: 14, color: "var(--text-muted)", fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)", fontWeight: 400 }}>
-              {shortName(r.name)} · {titleCaseSector(r.sector)}{r.ig && r.ig !== "—" && r.ig !== r.sector ? " · " + titleCaseSector(r.ig) : ""}
-            </span>
-          </h2>
-          <button
-            onClick={onClose}
-            aria-label="Close"
-            style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-2)", width: 32, height: 32, borderRadius: "50%", cursor: "pointer", fontSize: 16 }}
-          >
-            ×
-          </button>
-        </div>
-
-        <div style={{ padding: "24px 28px 28px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 24 }}>
-            <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
-              <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>Last Close</div>
-              <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, fontSize: 22, color: "var(--text)" }}>{Number.isFinite(Number(r.price)) ? `$${Number(r.price).toFixed(2)}` : "—"}</div>
-              <div style={{ fontSize: 11, color: dayClass(r.day_pct) === "pos-val" ? "var(--green-text, var(--green))" : dayClass(r.day_pct) === "neg-val" ? "var(--red-text, var(--red))" : "var(--text-muted)", marginTop: 4 }}>
-                {dayPctFormatted ? `${dayPctFormatted} today` : "Day change unavailable"}
-              </div>
-            </div>
-            <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
-              <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>Market Cap</div>
-              <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, fontSize: 22, color: "var(--text)" }}>{fmtMcap(r.mcap)}</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{r.ig && r.ig !== "—" ? titleCaseSector(r.ig) : titleCaseSector(r.sector)}</div>
-            </div>
-            <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
-              <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>MT Score</div>
-              <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, fontSize: 22, color: r.score >= 45 ? "var(--green-text, var(--green))" : r.score >= 20 ? "var(--yellow-text, var(--text))" : "var(--text-muted)" }}>
-                {r.score}
-              </div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>{r.band}</div>
-            </div>
-            <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
-              <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 6, fontWeight: 600 }}>Legacy Score</div>
-              <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, fontSize: 22, color: "var(--text-muted)" }}>—</div>
-              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>Prior 6-signal · retired</div>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
-            <div style={{ background: "var(--accent-soft, var(--surface-2))", border: "1px solid var(--accent)", borderRadius: 12, padding: 18 }}>
-              <h3 style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--accent)", fontWeight: 600, margin: "0 0 14px" }}>
-                MacroTilt Signal
-              </h3>
-
-              {offZone && (
-                <div style={{ marginBottom: 14, padding: "10px 14px", background: "var(--surface-2)", border: "1px solid var(--border-strong, var(--border))", borderRadius: 8, fontSize: 12, lineHeight: 1.55, color: "var(--text-2)" }}>
-                  <strong style={{ color: "var(--text)" }}>Score shown for reference.</strong>{" "}
-                  {aboveZone
-                    ? "Validated surfacing zone is $300M-$3B. Above that, treat the score as informational — the academic and backtest evidence supporting Watch / High Conviction tags weakens with cap."
-                    : belowZone
-                    ? "Below the $300M floor. Sub-$300M names are scored but not surfaced — the validated zone starts at $300M."
-                    : "Market cap unavailable. The score is shown for reference; surfacing requires a cap inside $300M-$3B."}
-                </div>
-              )}
-
-              <SignalRow label="Filter — Insider first-buy">
-                <PassFail pass={r.gates?.[0] === 1} />
-                {" · "}
-                {r.ins_date && r.ins_date !== "—" ? `latest ${r.ins_date}` : "no qualifying buy"}
-                {r.ins_dol > 0 ? ` · ${fmtMoney(r.ins_dol)}` : ""}
-              </SignalRow>
-              <SignalRow label="Filter — Liquidity">
-                <PassFail pass={r.gates?.[1] === 1} />
-                {" · price > $5 AND 22-day avg vol > 500k"}
-              </SignalRow>
-              <SignalRow label="Filter — Index hedge">
-                <PassFail pass={r.gates?.[2] === 1} />
-                {" · not in {SPY, QQQ, IWM, DIA, VTI}"}
-              </SignalRow>
-              <SignalRow label="Signal — Aggression">
-                <FiredOrZero fired={r.pillars?.[0] === 1} points={25} />
-                {r.rvol != null ? ` · RVOL ${Number(r.rvol).toFixed(2)}x (threshold 1.5x)` : ""}
-              </SignalRow>
-              <SignalRow label="Signal — Squeeze">
-                <FiredOrZero fired={r.pillars?.[1] === 1} points={20} />
-                {r.bbw != null ? ` · BB BandWidth ${Number(r.bbw).toFixed(1)}% (threshold < 4%)` : ""}
-              </SignalRow>
-              <SignalRow label="Signal — Momentum">
-                <FiredOrZero fired={r.pillars?.[2] === 1} points={20} />
-                {r.rsi != null ? ` · RSI ${Math.round(Number(r.rsi))}` : ""}
-                {r.sma_pct != null ? `, ${Number(r.sma_pct) >= 0 ? "+" : ""}${Number(r.sma_pct).toFixed(1)}% to 50-SMA` : ""}
-              </SignalRow>
-              <SignalRow label="Red flag (RSI > 70)">
-                {r.rsi != null && Number(r.rsi) > 70
-                  ? <span style={{ color: "var(--red-text, var(--red))" }}>✗ Triggered — score zeroed</span>
-                  : <span style={{ color: "var(--green-text, var(--green))" }}>— clear</span>}
-              </SignalRow>
-              <SignalRow label="Backtest expectation">
-                <span style={{ color: "var(--text-muted)" }}>
-                  $300M-$3B + capnorm · +10.06% mean 21d / 76.2% win / +8.62 percentage points alpha vs SPY (12-month walk-forward)
-                </span>
-              </SignalRow>
-            </div>
-          </div>
-
-          <div style={{ marginBottom: 24 }}>
-            <h3 style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, margin: "0 0 10px" }}>
-              Dossier
-            </h3>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-              <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Insider Activity</span>
-                  <span style={{ color: "var(--text-muted)", fontSize: 10 }}>UW</span>
-                </div>
-                <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-                  {r.ins_dol > 0
-                    ? `Latest open-market buy ${r.ins_date} · ${fmtMoney(r.ins_dol)} aggregate (30d window)`
-                    : "No qualifying open-market buys in last 30 days."}
-                </div>
-              </div>
-              <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Options Flow</span>
-                  <span style={{ color: "var(--text-muted)", fontSize: 10 }}>UW</span>
-                </div>
-                <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-                  {r.iv_rank != null
-                    ? `IV Rank ${Math.round(Number(r.iv_rank))}% · ${Number(r.iv_rank) > 60 ? "premium expensive — sell-premium structures favored." : Number(r.iv_rank) < 30 ? "premium cheap — long-vol structures favored." : "premium reasonable."}`
-                    : "No options data available."}
-                </div>
-              </div>
-              <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Trend</span>
-                  <span style={{ color: "var(--text-muted)", fontSize: 10 }}>EOD</span>
-                </div>
-                <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-                  {r.sma_pct != null
-                    ? `Price ${Number(r.sma_pct) >= 0 ? "above" : "below"} 50-SMA by ${Math.abs(Number(r.sma_pct)).toFixed(1)}%`
-                    : "No trend data available."}
-                  {r.rsi != null ? ` · RSI ${Math.round(Number(r.rsi))}` : ""}
-                  {r.range_52 ? ` · 52w range ${r.range_52}` : ""}
-                </div>
-              </div>
-              <div style={{ background: "var(--surface-2)", border: "1px solid var(--border-faint, var(--border))", borderRadius: 10, padding: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-                  <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Short Interest</span>
-                  <span style={{ color: "var(--text-muted)", fontSize: 10 }}>Sprint 2</span>
-                </div>
-                <div style={{ fontSize: 13, color: "var(--text-2)", lineHeight: 1.5 }}>
-                  Short Interest data feed lands sprint 2 (#1177). UW endpoint wires Mon-Tue 5/11-5/12 before earnings catalysts.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <h3 style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, margin: "0 0 10px" }}>
-              So what
-            </h3>
-            <p style={{ fontSize: 13, lineHeight: 1.55, color: "var(--text-2)", margin: 0 }}>
-              {soWhat}
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─────────────────────────────────────────────────────────────────────────
 // Main page
 // ─────────────────────────────────────────────────────────────────────────
 
-export default function TradingOppsPage() {
+export default function TradingOppsPage({ onOpenTicker }) {
   const { rows, scanDate, loading, error, totals } = useScanData();
   const [colState, setColState] = useState(() => loadColState());
   const [searchQ, setSearchQ] = useState("");
   const [colMenuOpen, setColMenuOpen] = useState(false);
-  const [openTicker, setOpenTicker] = useState(null);
   const [extraRows, setExtraRows] = useState([]);
   const colMenuRef = useRef(null);
   const dragKeyRef = useRef(null);
@@ -1263,7 +1055,7 @@ export default function TradingOppsPage() {
                         {groupRows.map(r => (
                           <tr
                             key={r.ticker + "-" + g}
-                            onClick={() => setOpenTicker(r)}
+                            onClick={() => { if (typeof onOpenTicker === "function") onOpenTicker(r.ticker); }}
                             style={{ cursor: "pointer", transition: "background 0.12s" }}
                             onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover)"; }}
                             onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
@@ -1302,8 +1094,6 @@ export default function TradingOppsPage() {
           Daily scan refreshes after market close · Sourced from Polygon Massive · Unusual Whales · SEC Form 4
         </div>
       </div>
-
-      {openTicker && <TickerDossierModal row={openTicker} onClose={() => setOpenTicker(null)} />}
 
       <style>{`
         .mt-tt:hover .mt-tt-body { opacity: 1 !important; }

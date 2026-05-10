@@ -4951,6 +4951,25 @@ useEffect(()=>{
 // heldPositions render below.)
 const [scannerFocusTicker,setScannerFocusTicker]=useState(null);
 const [tickerDetail,setTickerDetail]=useState(null);
+const [mtSignal, setMtSignal] = useState(null);
+useEffect(() => {
+  if (!tickerDetail) { setMtSignal(null); return; }
+  const t = typeof tickerDetail === "string" ? tickerDetail : tickerDetail?.ticker;
+  if (!t) { setMtSignal(null); return; }
+  let cancelled = false;
+  (async () => {
+    try {
+      const r = await supabase
+        .from("signal_intel_daily")
+        .select("*")
+        .eq("ticker", String(t).toUpperCase())
+        .order("scan_date", { ascending: false })
+        .limit(1);
+      if (!cancelled) setMtSignal(r?.data?.[0] || null);
+    } catch (e) { if (!cancelled) setMtSignal(null); }
+  })();
+  return () => { cancelled = true; };
+}, [tickerDetail]);
 // Joe directive 2026-05-07 — modals auto-close on nav change. When the
 // user clicks a left-nav item while the global ticker detail modal is
 // open, the tab changes; this effect clears tickerDetail so the modal
@@ -6374,7 +6393,7 @@ return(
 {/* PORTFOLIO & OPPORTUNITIES — consolidated tile (Phase 2). Publicly
     clickable since Track B2 — unauthenticated visitors see a zero-state
     skeleton + inline sign-in CTA; session data unlocks on sign-in. */}
-{tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 /></V2ErrorBoundary>}
+{tab==="portopps" && <V2ErrorBoundary><TradingOppsPageV2 onOpenTicker={(t)=>setTickerDetail(t)} /></V2ErrorBoundary>}
 {V2_ENABLED && tab==="insights" && <V2ErrorBoundary><InsightsPageV2 /></V2ErrorBoundary>}
 {!V2_ENABLED && tab==="insights" && !portfolioAuthed && showPortoppsLogin && <LoginScreen/>}
 {!V2_ENABLED && tab==="insights" && !(showPortoppsLogin&&!portfolioAuthed)&&(()=>{
@@ -6914,7 +6933,7 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
     of the modal navigates to the Scanner tab with that ticker focused. */}
 {tickerDetail&&(
   <ErrorBoundary label={`${tickerDetail} detail`} onDismiss={()=>setTickerDetail(null)}>
-    <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS} cycleBoardSnap={cycleBoardSnap} v9Alloc={_v9Alloc}
+    <TickerDetailModal ticker={tickerDetail} scanData={scanData} accounts={ACCOUNTS} cycleBoardSnap={cycleBoardSnap} v9Alloc={_v9Alloc} mtSignal={mtSignal}
       onClosePosition={portfolioAuthed?(rawRow)=>setCloseModal({position:rawRow}):undefined}
       onOpenAddPosition={portfolioAuthed?(t)=>setPositionEditor({mode:"add",ticker:t}):undefined}
       onOpenEditPosition={portfolioAuthed?(rawRow)=>setPositionEditor({mode:"edit",existing:rawRow}):undefined}
