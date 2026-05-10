@@ -1939,6 +1939,25 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   // cells as em-dashes on first paint and never recover unless something else
   // higher in the tree triggers a re-render before navigation.
   useHistReady();
+  // v2 spec PR 2 — fetch cycle_v2.json so we can surface the v2 indicator schema
+  // (signal_type_at_horizon + horizon_sensitive flag + sub-composite membership).
+  // The legacy Lead/Coincident/Lag column stays — those are different questions
+  // (cycle timing vs stress direction). v2 chips render alongside as a new column.
+  const [cycleV2, setCycleV2] = useState(null);
+  useEffect(() => {
+    fetch("/cycle_v2.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
+      .then(setCycleV2)
+      .catch((err) => { console.warn("[All Indicators · v2 PR 2] cycle_v2.json fetch failed", err); });
+  }, []);
+  const cycleV2ById = useMemo(() => {
+    const m = {};
+    if (cycleV2 && Array.isArray(cycleV2.indicators)) {
+      cycleV2.indicators.forEach((row) => { if (row.id) m[row.id] = row; });
+    }
+    return m;
+  }, [cycleV2]);
+
   const [sortKey, setSortKey] = useState("default");
   const [sortDir, setSortDir] = useState("asc");
   // Reg #7: openIds is a Set so we can expand-all / collapse-all.
@@ -2240,6 +2259,7 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
                 <Th k="freq"      label="Freq" align="center" width={60} tip="D = Daily · W = Weekly · M = Monthly · Q = Quarterly. The release cadence of the upstream source." />
                 <Th k="composite" label="Mechanism" tip="The cycle mechanism this indicator feeds. Watch List = displayed for context but not in any tile rule." />
                 <Th k="type"      label="Type" align="center" tip="Lead = moves before the cycle (Conference Board convention). Coincident = moves with the cycle. Lag = moves after." />
+                <Th k="signal_v2"  label="Predictive @ 6m" align="center" tip="v2 (PR 1 spec) — momentum: high reading predicts LOW forward return at 6m (de-risk). mean_reversion: high reading predicts HIGH forward return at 6m (opportunity / capitulation buy). flat: |IC| < 0.10 at 6m, no signal." />
                 <Th k="asof"      label="Last refresh" tip="Date the most recent observation was posted by the source. Daily refresh runs at market close." />
                 <Th k="cur"       label="Current" align="right" />
                 <Th k="v3m"       label="3M ago" align="right" tip="Value at approximately 90 days back, walked from the indicator's history series. — when lookback exceeds the available history." />
@@ -2326,6 +2346,49 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
                         ) : (
                           <span style={{color:"var(--text-dim)"}}>—</span>
                         )}
+                      </td>
+                      {/* Predictive @ 6m (v2 PR 2) — signal_type chip at the primary horizon */}
+                      <td style={{...tdBase, textAlign:"center"}}>
+                        {(() => {
+                          const v2 = cycleV2ById[r.id];
+                          if (!v2 || !v2.signal_type_at_horizon) {
+                            return <span style={{color:"var(--text-dim)"}}>—</span>;
+                          }
+                          const st = v2.signal_type_at_horizon["6m"];
+                          const ic = v2.ic_profile && v2.ic_profile["6m"];
+                          const color = st === "momentum" ? "var(--accent)" :
+                                        st === "mean_reversion" ? "var(--green)" :
+                                        "var(--text-dim)";
+                          const tip = st === "momentum"
+                            ? "Momentum at 6m. High reading predicts LOW forward return — de-risk."
+                            : st === "mean_reversion"
+                            ? "Mean-reversion at 6m. High reading predicts HIGH forward return — opportunity / capitulation buy."
+                            : "|IC| < 0.10 at 6m. No statistically meaningful signal at this horizon.";
+                          return (
+                            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+                              <Tip def={tip}>
+                                <span style={{
+                                  display:"inline-block",
+                                  fontSize:10, fontWeight:700, color,
+                                  border:`1px solid ${color}55`,
+                                  background: color + "15",
+                                  borderRadius:3, padding:"2px 7px", fontFamily:"var(--font-mono)",
+                                  letterSpacing:"0.03em", textTransform:"uppercase",
+                                }}>{st === "mean_reversion" ? "mean-rev" : st}</span>
+                              </Tip>
+                              {v2.horizon_sensitive && (
+                                <Tip def="Horizon-sensitive: signal_type flips across horizons. Tactical (1m) and strategic (12m) reads disagree on this indicator. Open detail view for full IC profile.">
+                                  <span style={{fontSize:10, color:"var(--warn, var(--accent))", fontWeight:700}}>↔</span>
+                                </Tip>
+                              )}
+                              {ic != null && (
+                                <span style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)"}}>
+                                  IC {ic >= 0 ? "+" : ""}{ic.toFixed(2)}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
                       {/* Last refresh — FreshnessDot is the at-a-glance signal next to the date */}
                       <td style={{...tdBase, fontSize:12, color:"var(--text-2)", fontFamily:"var(--font-mono)"}}>
