@@ -82,6 +82,7 @@ def score_ticker(
     require_first_buy: bool = True,
     data_source: str = "memory",
     market_cap: float | None = None,
+    magnitude_mode: str = "capnorm",
 ) -> SignalResult:
     """
     Score one ticker on one date through the full v4.1 pipeline.
@@ -114,6 +115,7 @@ def score_ticker(
         require_first_buy=require_first_buy,
         data_source=data_source,
         market_cap=market_cap,
+        magnitude_mode=magnitude_mode,
     )
     gate_pass = gate_diag["all_pass"]
 

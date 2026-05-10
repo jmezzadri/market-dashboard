@@ -9,11 +9,17 @@ Usage:
 Requires SUPABASE_ACCESS_TOKEN env var. PYTHONPATH must include the
 trading-scanner repo root so that `scanner.signal_intelligence_v4` resolves.
 
-Run A : universe $300M-$3B,  require_first_buy=True   (v4.1 production gate)
-Run B : universe $300M-$25B, require_first_buy=False  (v4.0 fallback for compare)
+Run A : universe $300M-$3B,  require_first_buy=True, magnitude_mode='absolute'
+        (current production spec, pre-PR-#510 — $1M absolute insider floor)
+Run B : universe $300M-$25B, require_first_buy=True, magnitude_mode='capnorm'
+        (proposed spec — cap-normalized magnitude from PR #510)
 
-Phase 2 ships the SCAFFOLD (this script + harness module + a smoke test).
-Phase 3 will execute Run A vs Run B and produce the comparison report.
+The ONLY differences between A and B are the universe ceiling and the
+magnitude rule. Both runs use require_first_buy=True (v4.1 default), the
+same liquidity gate ($5 / 500k), the same anti-hedge gate, the same
+pillars, the same red-flag, and the same HC tiebreaker (5 bps × cap, $5M
+floor) — HC is sizing on top of the gate, applied identically in both
+runs.
 """
 from __future__ import annotations
 
@@ -48,11 +54,13 @@ RUN_PRESETS = {
         "cap_min": 300_000_000.0,
         "cap_max": 3_000_000_000.0,
         "require_first_buy": True,
+        "magnitude_mode": "absolute",
     },
     "B": {
         "cap_min": 300_000_000.0,
         "cap_max": 25_000_000_000.0,
-        "require_first_buy": False,
+        "require_first_buy": True,
+        "magnitude_mode": "capnorm",
     },
 }
 
@@ -70,6 +78,9 @@ def main() -> int:
     p.add_argument("--smoke", action="store_true",
                    help="Smoke: 3 recent scan dates x 50 random tickers each")
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument("--start-idx", type=int, default=None,
+                   help="Run only scan_dates[start_idx:end_idx]")
+    p.add_argument("--end-idx", type=int, default=None)
     args = p.parse_args()
 
     if "SUPABASE_ACCESS_TOKEN" not in os.environ:
@@ -95,9 +106,17 @@ def main() -> int:
         print(f"Smoke mode: {len(scan_dates)} dates x ~50 tickers = "
               f"{sum(len(v) for v in universe.values())} pairs")
 
+    if args.start_idx is not None or args.end_idx is not None:
+        s = args.start_idx or 0
+        e = args.end_idx if args.end_idx is not None else len(scan_dates)
+        scan_dates = scan_dates[s:e]
+        print(f"Sliced scan_dates [{s}:{e}] -> {len(scan_dates)} dates: "
+              f"{scan_dates[0] if scan_dates else 'none'} .. {scan_dates[-1] if scan_dates else 'none'}")
+
     print(f"\nRun {args.run} config:")
     print(f"  cap range:        ${preset['cap_min']:,.0f} - ${preset['cap_max']:,.0f}")
     print(f"  require_first_buy: {preset['require_first_buy']}")
+    print(f"  magnitude_mode:    {preset['magnitude_mode']}")
     print(f"  output:           {args.output}\n")
 
     t0 = time.time()
@@ -109,6 +128,7 @@ def main() -> int:
         require_first_buy=preset["require_first_buy"],
         output_path=args.output,
         scan_date_to_effective_date=eff_map,
+        magnitude_mode=preset["magnitude_mode"],
         progress_callback=_progress,
     )
     walltime = time.time() - t0

@@ -201,6 +201,7 @@ def _process_scan_date(
     cap_min: float,
     cap_max: float,
     require_first_buy: bool,
+    magnitude_mode: str = "capnorm",
 ) -> tuple[list[_ScanRow], dict[str, int]]:
     """Score every ticker in universe on scan_date_iso. Returns (rows, skip_counts)."""
     eff_date = datetime.strptime(eff_date_iso, "%Y-%m-%d").date()
@@ -285,6 +286,7 @@ def _process_scan_date(
                 require_first_buy=require_first_buy,
                 data_source="memory",
                 market_cap=market_cap,
+                magnitude_mode=magnitude_mode,
             )
         except Exception as e:  # noqa: BLE001
             rows.append(_ScanRow(scan_date_iso, ticker, market_cap, None, None,
@@ -318,6 +320,7 @@ def run_walkforward(
     output_path: str = "backtest_results.parquet",
     *,
     scan_date_to_effective_date: dict | None = None,
+    magnitude_mode: str = "capnorm",
     progress_callback=None,
 ) -> dict:
     """Loop scan_dates x universe; assemble Phase 1 inputs; call score_ticker;
@@ -344,6 +347,7 @@ def run_walkforward(
             cap_min=universe_cap_min,
             cap_max=universe_cap_max,
             require_first_buy=require_first_buy,
+            magnitude_mode=magnitude_mode,
         )
         all_rows.extend(rows)
         for k, v in skips.items():
@@ -380,6 +384,7 @@ def run_walkforward(
         "scan_dates_processed": len(iso_dates),
         "output_path": output_path,
         "require_first_buy": require_first_buy,
+        "magnitude_mode": magnitude_mode,
         "cap_band": {"min": universe_cap_min, "max": universe_cap_max},
     }
 
