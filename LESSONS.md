@@ -600,3 +600,43 @@ factor models, regime classification, anything in
 `computeMechanism*`, `computeIndicatorScore*`, etc. Also applies to
 PRs that change UI around such functions even when the function
 itself isn't edited — surrounding code can change the inputs.
+
+---
+
+## 2026-05-10 — User-reported "broken right after deploy" — first suspect HTML/bundle cache, not your code
+
+**What happened:** Within ~10 minutes of merging PR #541 and verifying
+production via the Chrome MCP (12 sliders rendered, drag worked, dark
+mode worked, no JS errors), Joe reported "Custom Shock breaks the page.
+Blank." I was about to spiral into a deep diagnosis assuming my fix had
+introduced a regression — checking dark mode, sweeping for render-path
+edge cases, considering rolling back. Asking Joe via popup what he was
+seeing, his answer was: "Looks fine now, must have been a cache issue."
+The break was Joe's browser holding stale HTML that pointed at a bundle
+hash that no longer existed on the CDN — a pure refresh fixed it.
+
+**What you should do instead:** When the user reports something is
+broken on the live site within ~30 minutes of a production deploy, and
+you cannot reproduce on your end, the first hypothesis is stale HTML
+cache on the user's browser — NOT a regression in your code. Specifically:
+
+1. Verify the live bundle on your end matches the latest commit. If
+   yes, your code is fine on the CDN.
+2. Send a one-question popup to the user with options that include
+   "looks fine after reload, must have been cache." Don't ask the user
+   to "hard-refresh" (Joe is not a developer; he does not know what
+   that means). Frame it as: "try a refresh — sometimes Vercel serves
+   a stale page for a few minutes after a deploy."
+3. Only after the user confirms it persists post-reload do you start
+   chasing render-path bugs.
+4. The rule is symmetric for the user: when YOUR browser reports
+   "broken" but you just deployed, you should also reload before
+   reporting to the user.
+
+Time spent diagnosing a phantom regression is time not spent on the
+real punch list. Cache-first triage is cheap (one popup, one reload)
+and saves the painful version of this where you start writing rollback
+PRs in response to what was actually a CDN propagation delay.
+
+**Applies to:** Any user-reported breakage within ~30 minutes of a
+production deploy, especially on the surface that just changed.

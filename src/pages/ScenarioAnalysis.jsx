@@ -193,6 +193,51 @@ const fmtNominal = (factorId, sigma) => {
   return b.fmt(v);
 };
 
+// Slider id → key in public/indicator_history.json. Some IDs differ from
+// history keys (dxy → usd in the data feed, hy → hy_ig). aaii/putcall/breadth
+// are not tracked in the history feed; those sliders default to z = 0
+// (slider sits at baseline mean) until a feed is added.
+const FACTOR_HISTORY_KEYS = {
+  vix: "vix",
+  move: "move",
+  real_rates: "real_rates",
+  term_premium: "term_premium",
+  dxy: "usd",
+  copper_gold: "copper_gold",
+  hy: "hy_ig",
+  stlfsi: "stlfsi",
+  anfci: "anfci",
+  aaii: null,
+  putcall: null,
+  breadth: null,
+};
+
+// Convert today's reading on an indicator-history series into a σ-z
+// relative to FACTOR_BASELINES (the calibration the σ readout uses).
+// Result: slider position reflects where the factor sits in real life RIGHT
+// NOW. Custom mode starts from these readings so users shock from reality,
+// not from a synthetic zero.
+function getCurrentReadings(indicatorHistory) {
+  const out = {};
+  FACTOR_IDS.forEach(fid => {
+    const histKey = FACTOR_HISTORY_KEYS[fid];
+    const baseline = FACTOR_BASELINES[fid];
+    if (!histKey || !baseline || !indicatorHistory || !indicatorHistory[histKey]) {
+      out[fid] = 0;
+      return;
+    }
+    const points = indicatorHistory[histKey].points;
+    if (!points || !points.length) { out[fid] = 0; return; }
+    const lastValue = points[points.length - 1][1];
+    if (typeof lastValue !== "number" || !isFinite(lastValue) || !baseline.std) {
+      out[fid] = 0;
+      return;
+    }
+    out[fid] = (lastValue - baseline.mean) / baseline.std;
+  });
+  return out;
+}
+
 const CORR_PAIRS = {
   "vix|move": 0.65, "vix|real_rates": -0.30, "vix|term_premium": 0.10, "vix|dxy": 0.15,
   "vix|copper_gold": -0.45, "vix|hy": 0.75, "vix|stlfsi": 0.80, "vix|anfci": 0.60,
@@ -329,25 +374,6 @@ function propagateRealistic(driverId, driverZ) {
   FACTOR_IDS.forEach(f => { out[f] = driverZ * getCorr(driverId, f); });
   return out;
 }
-function propagateBespoke(pinnedShocks) {
-  // Simple beta projection bounded by the pins themselves.
-  // Pinned values are preserved exactly. Each unpinned factor =
-  //   average over pinned factors of (corr(pin, factor) * pinShock).
-  // For two pins the unpinned output is bounded by the larger |pin|;
-  // for one pin it equals (corr × pin), which is by definition ≤ |pin|.
-  // This replaces an over-amplifying formula that scaled the weighted
-  // mean by max(|pin|), pushing every unpinned factor to ±5σ.
-  const out = { ...pinnedShocks };
-  const pinnedKeys = Object.keys(pinnedShocks);
-  if (pinnedKeys.length === 0) return Object.fromEntries(FACTOR_IDS.map(f => [f, 0]));
-  FACTOR_IDS.forEach(f => {
-    if (out[f] !== undefined) return;
-    let sum = 0;
-    pinnedKeys.forEach(p => { sum += getCorr(p, f) * pinnedShocks[p]; });
-    out[f] = sum / pinnedKeys.length;
-  });
-  return out;
-}
 function getEffectiveShocks(state) {
   if (state.mode === "canned") {
     return state.scenario ? { ...SCENARIOS[state.scenario].factors } : Object.fromEntries(FACTOR_IDS.map(f => [f, 0]));
@@ -355,9 +381,11 @@ function getEffectiveShocks(state) {
   if (state.prop === "realistic" && state.driver) {
     return propagateRealistic(state.driver, state.shocks[state.driver]);
   }
-  const pinnedShocks = {};
-  state.pinned.forEach(p => { if (Math.abs(state.shocks[p]) > 0.01) pinnedShocks[p] = state.shocks[p]; });
-  return propagateBespoke(pinnedShocks);
+  // Custom mode: each slider is independent. No propagation, no pins.
+  // Plausibility of the combination is reported separately by the
+  // coherence() badge — input control and plausibility check are
+  // intentionally decoupled here.
+  return { ...state.shocks };
 }
 function coherence(shocks) {
   const factors = FACTOR_IDS.filter(f => Math.abs(shocks[f]) > 0.05);
@@ -543,8 +571,6 @@ const STYLES = `
 .scenarios-page .factor input[type="range"] { -webkit-appearance:none; appearance:none; width:100%; height:4px; background:var(--bg-3); border-radius:999px; outline:none; cursor:pointer; transition:background 120ms; }
 .scenarios-page .factor input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--ink-0); border:2px solid var(--bg-1); box-shadow:0 1px 3px rgba(0,0,0,.2); cursor:pointer; transition:all 120ms; }
 .scenarios-page .factor input[type="range"]::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--ink-0); border:2px solid var(--bg-1); box-shadow:0 1px 3px rgba(0,0,0,.2); cursor:pointer; }
-.scenarios-page .factor.pinned input[type="range"]::-webkit-slider-thumb { background:var(--accent-burgundy); }
-.scenarios-page .factor.pinned input[type="range"]::-moz-range-thumb { background:var(--accent-burgundy); }
 .scenarios-page .factor.driver input[type="range"]::-webkit-slider-thumb { background:var(--accent-burgundy); transform:scale(1.15); }
 .scenarios-page .factor.driver input[type="range"]::-moz-range-thumb { background:var(--accent-burgundy); }
 .scenarios-page .factor.auto input[type="range"]::-webkit-slider-thumb { background:var(--ink-3); }
@@ -556,7 +582,6 @@ const STYLES = `
 .scenarios-page .factor.auto .factor-val { color:var(--ink-2); font-weight:500; }
 .scenarios-page .factor-pin { font-size:13px; color:var(--ink-3); text-align:center; cursor:pointer; user-select:none; transition:color 120ms; }
 .scenarios-page .factor-pin:hover { color:var(--ink-1); }
-.scenarios-page .factor.pinned .factor-pin { color:var(--accent-burgundy); }
 .scenarios-page .reset-btn { font-family:var(--font-ui); font-size:11px; font-weight:500; padding:5px 11px; border:1px solid var(--line-1); border-radius:var(--r-md); background:var(--bg-1); color:var(--ink-1); cursor:pointer; transition:all 120ms; }
 .scenarios-page .reset-btn:hover { background:var(--bg-2); color:var(--ink-0); }
 .scenarios-page .so-what { background:linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 100%); border:1px solid var(--line-1); border-left:4px solid var(--accent-burgundy); border-radius:var(--r-xl); padding:var(--s-3) var(--s-4); margin-bottom:var(--s-4); transition:all 200ms; }
@@ -632,14 +657,9 @@ const STYLES = `
 
 /* ── bespoke shock sliders (added 2026-05-10 — were missing entirely) ── */
 .scenarios-page .sliders { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 24px; margin-top:var(--s-3); }
-.scenarios-page .slider-row { display:grid; grid-template-columns:28px 110px 1fr 96px; align-items:center; gap:10px; padding:6px 8px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
+.scenarios-page .slider-row { display:grid; grid-template-columns:120px 1fr 96px; align-items:center; gap:12px; padding:6px 8px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
 .scenarios-page .slider-row:hover { background:var(--bg-2); }
-.scenarios-page .slider-row.pinned { background:rgba(216,178,122,.28); border-left-color:var(--accent-parchment, #d8b27a); box-shadow:inset 0 0 0 1px rgba(216,178,122,.45); }
 .scenarios-page .slider-row.driver { background:rgba(184,70,47,.10); border-left-color:var(--accent-burgundy); }
-.scenarios-page .slider-row .pin { background:transparent; border:none; cursor:pointer; font-size:14px; padding:2px 4px; color:var(--ink-2); transition:transform 100ms; }
-.scenarios-page .slider-row .pin:hover { color:var(--ink-0); transform:scale(1.18); }
-.scenarios-page .slider-row.pinned .pin { color:var(--accent-burgundy); filter:drop-shadow(0 1px 1px rgba(0,0,0,0.15)); }
-.scenarios-page .slider-row.pinned .slider-label { color:var(--ink-0); font-weight:600; }
 .scenarios-page .slider-row .slider-label { font-family:var(--font-ui); font-size:12px; color:var(--ink-1); font-weight:500; }
 .scenarios-page .slider-row input[type="range"] { width:100%; accent-color:var(--accent-burgundy); }
 .scenarios-page .slider-row .slider-val { display:flex; flex-direction:column; align-items:flex-end; line-height:1.15; font-family:var(--font-ui); font-variant-numeric:tabular-nums; }
@@ -770,7 +790,6 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const [prop, setProp] = useState("realistic");
   const [driver, setDriver] = useState(null);
   const [shocks, setShocks] = useState(() => Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
-  const [pinned, setPinned] = useState(() => new Set());
   const [expandedSector, setExpandedSector] = useState(null);
   // Joe directive 2026-05-08: Asset Tilt sectors are collapseable, default collapsed.
   const [expandedSectors, setExpandedSectors] = useState(() => new Set());
@@ -783,8 +802,24 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     });
   }, []);
 
-  const stateObj = { mode, scenario, horizon, prop, driver, shocks, pinned };
-  const effShocks = useMemo(() => getEffectiveShocks(stateObj), [mode, scenario, prop, driver, shocks, pinned]);
+  // When indicator_history first loads, seed Custom-mode sliders with
+  // today's live readings (only if the user hasn't already started shocking
+  // values). This makes "click Custom Multi-Factor Shock" land you at
+  // reality instead of zeros.
+  const [readingsSeeded, setReadingsSeeded] = useState(false);
+  useEffect(() => {
+    if (readingsSeeded) return;
+    if (!indicatorHistory) return;
+    if (mode !== "bespoke" || prop !== "bespoke") return;
+    // Only auto-seed if the user is at the all-zeros default.
+    const anyDirty = FACTOR_IDS.some(f => Math.abs(shocks[f] || 0) > 0.01);
+    if (anyDirty) return;
+    setShocks(getCurrentReadings(indicatorHistory));
+    setReadingsSeeded(true);
+  }, [indicatorHistory, mode, prop, shocks, readingsSeeded]);
+
+  const stateObj = { mode, scenario, horizon, prop, driver, shocks };
+  const effShocks = useMemo(() => getEffectiveShocks(stateObj), [mode, scenario, prop, driver, shocks]);
   const hasShock = Object.values(effShocks).some(v => Math.abs(v) > 0.05);
   const sectorPcts = useMemo(() => sectorShocks(effShocks, horizon), [effShocks, horizon]);
 
@@ -821,76 +856,58 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const portfolioSource = userPortfolio.source;
   const portfolioUncovered = userPortfolio.uncovered;
 
-  // Mode toggle
+  // Mode toggle. Entering bespoke seeds shocks based on prop:
+  //   - Custom (prop = "bespoke")  → start at today's live readings
+  //   - Realistic (prop = "realistic") → start at 0 (slider becomes driver)
+  // Canned mode clears the scenario selection on exit.
   const onModeChange = useCallback(m => {
     setMode(m);
     if (m === "bespoke") {
-      setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+      if (prop === "bespoke") {
+        setShocks(getCurrentReadings(indicatorHistory));
+      } else {
+        setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+      }
       setDriver(null);
-      setPinned(new Set());
     } else {
       setScenario(null);
     }
-  }, []);
+  }, [prop, indicatorHistory]);
 
   // Scenario click
   const onScenarioClick = useCallback(id => setScenario(s => s === id ? null : id), []);
 
-  // Slider change
+  // Slider change. Realistic mode tags the dragged factor as the
+  // driver (propagation source). Custom mode: each slider is independent,
+  // the value lands in state.shocks and nothing else is affected.
   const onSliderChange = useCallback((fid, v) => {
     setShocks(prev => ({ ...prev, [fid]: v }));
     if (prop === "realistic") setDriver(fid);
-    else setPinned(prev => new Set(prev).add(fid));
   }, [prop]);
 
-  // Pin toggle. In Realistic mode, the first pin auto-flips us to Custom
-  // mode — otherwise pinning would have no math effect (Realistic uses an
-  // implicit driver) and the user would correctly conclude that pinning
-  // does nothing. The active driver, if any, is preserved as a pin.
-  const onPinToggle = useCallback(fid => {
-    setPinned(prev => {
-      const next = new Set(prev);
-      if (next.has(fid)) {
-        next.delete(fid);
-        if (prop === "realistic" && driver === fid) {
-          setDriver(null);
-          setShocks(s => ({ ...s, [fid]: 0 }));
-        }
-      } else {
-        next.add(fid);
-        // If we are still in Realistic mode, switch to Custom on first pin
-        // so the pin actually drives the math.
-        if (prop === "realistic") {
-          setProp("bespoke");
-          if (driver && driver !== fid) next.add(driver);
-          setDriver(null);
-        }
-      }
-      return next;
-    });
-  }, [prop, driver]);
-
-  // Prop toggle (Realistic ↔ Bespoke)
+  // Prop toggle (Realistic ↔ Custom).
+  // Realistic → all sliders reset to 0; first drag becomes the driver.
+  // Custom → seed from today's live readings so the user shocks from reality.
   const onPropToggle = useCallback(() => {
     if (prop === "realistic") {
       setProp("bespoke");
-      if (driver) setPinned(prev => new Set(prev).add(driver));
+      setShocks(getCurrentReadings(indicatorHistory));
       setDriver(null);
     } else {
       setProp("realistic");
-      let maxAbs = 0, maxId = null;
-      FACTOR_IDS.forEach(f => { if (Math.abs(shocks[f]) > maxAbs) { maxAbs = Math.abs(shocks[f]); maxId = f; } });
-      setPinned(new Set());
-      setDriver(maxId);
-      if (maxId) setShocks(s => Object.fromEntries(FACTOR_IDS.map(f => [f, f === maxId ? s[f] : 0])));
+      setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+      setDriver(null);
     }
-  }, [prop, driver, shocks]);
+  }, [prop, indicatorHistory]);
 
   const onReset = useCallback(() => {
-    setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+    if (prop === "bespoke") {
+      setShocks(getCurrentReadings(indicatorHistory));
+    } else {
+      setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+    }
     setDriver(null);
-    setPinned(new Set());
-  }, []);
+  }, [prop, indicatorHistory]);
 
   const horizonText = horizon === "1mo" ? "1-month" : horizon === "3mo" ? "3-month" : "6-month";
 
@@ -1027,13 +1044,11 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                 const f = FACTORS.find(x => x.id === fid);
                 if (!f) return null;
                 const v = effShocks[fid];
-                const isPinned = pinned.has(fid);
                 const isDriver = driver === fid;
                 const nominal = fmtNominal(fid, v);
                 const clampedV = Math.max(-5, Math.min(5, v));
                 return (
-                  <div key={fid} className={"slider-row" + (isPinned ? " pinned" : "") + (isDriver ? " driver" : "")}>
-                    <button className="pin" onClick={() => onPinToggle(fid)} title={isPinned ? "Unpin" : "Pin"}>{isPinned ? "📌" : "📍"}</button>
+                  <div key={fid} className={"slider-row" + (isDriver ? " driver" : "")}>
                     <div className="slider-label">{f.name}</div>
                     <input type="range" min="-5" max="5" step="0.1" value={clampedV} onChange={(e) => onSliderChange(fid, parseFloat(e.target.value))} />
                     <div className="slider-val">
@@ -1044,7 +1059,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                 );
               })}
             </div>
-            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: pin any factors you want to move freely. The other factors auto-propagate from your pins based on historical correlations."}</div>
+            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: every slider is independent — drag any one and only that factor moves. Sliders start at today's live reading; the coherence indicator below flags combinations that haven't shown up together historically."}</div>
           </div>
         )}
 
@@ -1465,7 +1480,7 @@ function SoWhatHero({ mode, scenario, score, pnl, horizonText, portfolioTotal = 
     const lossOrGain = pnl.total < 0 ? "hit" : "gain";
     if (score < 5) {
       punchline = <>This factor combination hasn't shown up in market history. The engine projects a <em>${dollarStr} {lossOrGain}</em> on your book — useful as a what-if, not as an allocation call.</>;
-      takeaway = "When the factors you've pinned haven't moved together historically, the model can't anchor the read to a real regime. Use this for exploration; the recommended re-allocation in L4 isn't meant to be acted on.";
+      takeaway = "When the factors you've shocked haven't moved together historically, the model can't anchor the read to a real regime. Use this for exploration; the recommended re-allocation in L4 isn't meant to be acted on.";
     } else if (score < 25) {
       punchline = <>This combination is rare in market history. Your book would take a <em>${dollarStr} {lossOrGain}</em>. The model's response is mathematically valid, but uncertainty is elevated.</>;
       takeaway = "Fewer than 25% of weekly observations from 1985–2026 produced this combination. Treat the recommended re-allocation as one option among several.";
