@@ -984,14 +984,19 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
             </div>
             <div className="sliders">
               {FACTOR_IDS.map(fid => {
-                const f = FACTORS[fid];
+                // FACTORS is an ARRAY of {id,name,min,max,step} — not a lookup
+                // map — so FACTORS[fid] returns undefined for a string fid.
+                // Use .find() to locate the factor entry, and read .name (the
+                // actual field) rather than the non-existent .label.
+                const f = FACTORS.find(x => x.id === fid);
+                if (!f) return null;
                 const v = effShocks[fid];
                 const isPinned = pinned.has(fid);
                 const isDriver = driver === fid;
                 return (
                   <div key={fid} className={"slider-row" + (isPinned ? " pinned" : "") + (isDriver ? " driver" : "")}>
                     <button className="pin" onClick={() => onPinToggle(fid)} title={isPinned ? "Unpin" : "Pin"}>{isPinned ? "📌" : "📍"}</button>
-                    <div className="slider-label">{f.label}</div>
+                    <div className="slider-label">{f.name}</div>
                     <input type="range" min="-5" max="5" step="0.1" value={v} onChange={(e) => onSliderChange(fid, parseFloat(e.target.value))} />
                     <div className="slider-val">{v >= 0 ? "+" : ""}{v.toFixed(1)} σ</div>
                   </div>
