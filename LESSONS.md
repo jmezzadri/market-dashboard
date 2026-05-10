@@ -470,3 +470,47 @@ about it. Page UAT is what catches that — file UAT can't.
 
 **Applies to:** All. Every deploy that touches the data or copy on any
 user-visible surface.
+
+---
+
+## 2026-05-10 — Rewriting one side of a producer/consumer contract requires auditing the unchanged side too
+
+**What happened:** PR #522 rewrote `src/v2/pages/TradingOppsPage.jsx` from
+scratch (consumer side) but did not touch `trading-scanner/scanner/
+signal_intelligence_v4/gates.py` (producer side, untouched since v4
+shipped). The new page read `gate_diagnostic.insider_first_buy.pass`,
+`.liquidity.pass`, `.index_hedge.pass` — keys the producer never emitted.
+The producer always emitted `gate_1_insider`, `gate_2_liquidity`,
+`gate_3_anti_hedge`. The PR build passed (`npm run build` doesn't
+type-check JSONB blobs), the producer/consumer contract validator
+didn't catch it (no schema entry for `signal_intel_daily.gate_diagnostic`),
+and the live UAT funnel rail showed `0` for the liquid / insider /
+firstBuy steps after the production cutover. A `normalizeGateDiagnostic()`
+adapter was shipped as a same-day hotfix to translate at hydration time.
+
+**What you should do instead:** When rewriting one side of a
+producer→consumer pair (Python script writing to Supabase JSONB,
+read by React), the rewriting agent must:
+
+1. Open the OTHER side and confirm every JSONB key the rewrite reads
+   is actually emitted by the unchanged side. `grep` the producer for
+   every nested key the consumer references, including key paths
+   inside `gate_diagnostic`, `pillar_diagnostic`, and any other JSONB
+   column.
+2. If the keys diverge, decide BEFORE merging: rename the producer to
+   match (and re-run the producer to backfill the table), rename the
+   consumer to match (read the producer keys directly), or add a
+   `normalize…()` adapter at the consumer's hydration boundary.
+3. Add a CONTRACTS dict entry to `scripts/check_producer_contracts.py`
+   for the specific JSONB key paths used by the consumer, so the next
+   producer-side rename trips the PR-CONTRACT-CHECK workflow before merge.
+4. The producer is also "the unchanged side" when the producer is
+   rewritten — the rule is symmetric. Whichever side is touched, the
+   other is the side that needs auditing.
+
+A passing build is not a passing contract. A passing contract validator
+that doesn't list the JSONB key paths is not validating the contract.
+
+**Applies to:** Every PR that touches one side of a producer/consumer
+pair where data flows through Supabase, Edge Functions, JSON files in
+`dist/`, or any other intermediate store.
