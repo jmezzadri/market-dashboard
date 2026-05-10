@@ -330,18 +330,21 @@ function propagateRealistic(driverId, driverZ) {
   return out;
 }
 function propagateBespoke(pinnedShocks) {
+  // Simple beta projection bounded by the pins themselves.
+  // Pinned values are preserved exactly. Each unpinned factor =
+  //   average over pinned factors of (corr(pin, factor) * pinShock).
+  // For two pins the unpinned output is bounded by the larger |pin|;
+  // for one pin it equals (corr × pin), which is by definition ≤ |pin|.
+  // This replaces an over-amplifying formula that scaled the weighted
+  // mean by max(|pin|), pushing every unpinned factor to ±5σ.
   const out = { ...pinnedShocks };
   const pinnedKeys = Object.keys(pinnedShocks);
   if (pinnedKeys.length === 0) return Object.fromEntries(FACTOR_IDS.map(f => [f, 0]));
   FACTOR_IDS.forEach(f => {
     if (out[f] !== undefined) return;
-    let weightedSum = 0, weightSum = 0;
-    pinnedKeys.forEach(p => {
-      const c = getCorr(p, f);
-      weightedSum += c * pinnedShocks[p];
-      weightSum += Math.abs(c);
-    });
-    out[f] = weightSum > 0 ? weightedSum / weightSum * Math.max(...pinnedKeys.map(k => Math.abs(pinnedShocks[k]))) * Math.sign(weightedSum) : 0;
+    let sum = 0;
+    pinnedKeys.forEach(p => { sum += getCorr(p, f) * pinnedShocks[p]; });
+    out[f] = sum / pinnedKeys.length;
   });
   return out;
 }
@@ -629,7 +632,7 @@ const STYLES = `
 
 /* ── bespoke shock sliders (added 2026-05-10 — were missing entirely) ── */
 .scenarios-page .sliders { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 24px; margin-top:var(--s-3); }
-.scenarios-page .slider-row { display:grid; grid-template-columns:28px 120px 1fr 60px; align-items:center; gap:10px; padding:6px 8px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
+.scenarios-page .slider-row { display:grid; grid-template-columns:28px 110px 1fr 96px; align-items:center; gap:10px; padding:6px 8px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
 .scenarios-page .slider-row:hover { background:var(--bg-2); }
 .scenarios-page .slider-row.pinned { background:rgba(216,178,122,.28); border-left-color:var(--accent-parchment, #d8b27a); box-shadow:inset 0 0 0 1px rgba(216,178,122,.45); }
 .scenarios-page .slider-row.driver { background:rgba(184,70,47,.10); border-left-color:var(--accent-burgundy); }
@@ -639,7 +642,9 @@ const STYLES = `
 .scenarios-page .slider-row.pinned .slider-label { color:var(--ink-0); font-weight:600; }
 .scenarios-page .slider-row .slider-label { font-family:var(--font-ui); font-size:12px; color:var(--ink-1); font-weight:500; }
 .scenarios-page .slider-row input[type="range"] { width:100%; accent-color:var(--accent-burgundy); }
-.scenarios-page .slider-row .slider-val { font-family:var(--font-ui); font-variant-numeric:tabular-nums; font-size:12px; color:var(--ink-0); text-align:right; font-weight:500; }
+.scenarios-page .slider-row .slider-val { display:flex; flex-direction:column; align-items:flex-end; line-height:1.15; font-family:var(--font-ui); font-variant-numeric:tabular-nums; }
+.scenarios-page .slider-row .slider-val .sigma { font-size:12px; font-weight:600; color:var(--ink-0); }
+.scenarios-page .slider-row .slider-val .nominal { font-size:10.5px; color:var(--ink-2); margin-top:1px; }
 
 @media (max-width: 980px) {
   .scenarios-page .output-grid { grid-template-columns:1fr; }
@@ -1024,12 +1029,17 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                 const v = effShocks[fid];
                 const isPinned = pinned.has(fid);
                 const isDriver = driver === fid;
+                const nominal = fmtNominal(fid, v);
+                const clampedV = Math.max(-5, Math.min(5, v));
                 return (
                   <div key={fid} className={"slider-row" + (isPinned ? " pinned" : "") + (isDriver ? " driver" : "")}>
                     <button className="pin" onClick={() => onPinToggle(fid)} title={isPinned ? "Unpin" : "Pin"}>{isPinned ? "📌" : "📍"}</button>
                     <div className="slider-label">{f.name}</div>
-                    <input type="range" min="-5" max="5" step="0.1" value={v} onChange={(e) => onSliderChange(fid, parseFloat(e.target.value))} />
-                    <div className="slider-val">{v >= 0 ? "+" : ""}{v.toFixed(1)} σ</div>
+                    <input type="range" min="-5" max="5" step="0.1" value={clampedV} onChange={(e) => onSliderChange(fid, parseFloat(e.target.value))} />
+                    <div className="slider-val">
+                      <span className="sigma">{v >= 0 ? "+" : ""}{v.toFixed(1)}σ</span>
+                      {nominal ? <span className="nominal">{nominal}</span> : null}
+                    </div>
                   </div>
                 );
               })}
