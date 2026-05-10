@@ -1023,7 +1023,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
               <div className="builder-label">Propagation</div>
               <div className="prop-toggle">
                 <button className={prop === "realistic" ? "active" : ""} onClick={onPropToggle}>Realistic (correlated)</button>
-                <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (pin factors)</button>
+                <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (independent)</button>
               </div>
               <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
                 <button className="reset-btn" onClick={onReset}>Reset</button>
