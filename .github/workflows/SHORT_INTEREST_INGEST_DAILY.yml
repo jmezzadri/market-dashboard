@@ -1,0 +1,63 @@
+name: SHORT_INTEREST_INGEST_DAILY
+
+# Daily ingest of FINRA bi-monthly + UW continuous metrics.
+# Per SHORT_INTEREST_DATA_FEED_DESIGN.md (Joe-approved 2026-05-10).
+# Two tables: short_interest (FINRA), short_interest_daily (UW).
+
+on:
+  schedule:
+    - cron: '0 10 * * 1-5'    # 06:00 ET EDT
+    - cron: '0 11 * * 1-5'    # 06:00 ET EST
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Only ingest first N tickers (testing)"
+        required: false
+      tickers:
+        description: "Comma-separated explicit ticker list"
+        required: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scanner deps
+        working-directory: trading-scanner
+        run: |
+          pip install --upgrade pip
+          pip install requests
+
+      - name: Run ingest
+        working-directory: trading-scanner
+        env:
+          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
+          UW_CLIENT_API_ID: ${{ secrets.UW_CLIENT_API_ID || '100001' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.limit }}" ]; then ARGS="--limit ${{ inputs.limit }}"; fi
+          if [ -n "${{ inputs.tickers }}" ]; then ARGS="--tickers ${{ inputs.tickers }}"; fi
+          PYTHONPATH=. python3 -m scanner.signal_intelligence_v5.short_interest_ingest \
+            --max-seconds 2700 $ARGS
+
+      - name: Surface row counts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          for tbl in short_interest short_interest_daily; do
+            echo "=== $tbl ==="
+            curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                    -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                    -H "Prefer: count=exact" \
+                    "$SUPABASE_URL/rest/v1/$tbl?select=ticker&limit=1" \
+                    -I 2>&1 | grep -i content-range || true
+          done

@@ -1,0 +1,54 @@
+name: CONGRESS_INGEST_DAILY
+
+# Daily ingest of UW /congress/recent-trades -> congress_trades_daily.
+# Walks pagination until the lookback window is covered. Idempotent UPSERT.
+
+on:
+  schedule:
+    - cron: '0 10 * * 1-5'
+    - cron: '0 11 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      days_back:
+        description: "Lookback window in days (default 14)"
+        required: false
+        default: '14'
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scanner deps
+        working-directory: trading-scanner
+        run: |
+          pip install --upgrade pip
+          pip install requests
+
+      - name: Run ingest
+        working-directory: trading-scanner
+        env:
+          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
+          UW_CLIENT_API_ID: ${{ secrets.UW_CLIENT_API_ID || '100001' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          DAYS=${{ inputs.days_back || '14' }}
+          PYTHONPATH=. python3 -m scanner.signal_intelligence_v5.congress_ingest \
+            --days-back $DAYS --max-seconds 1500
+
+      - name: Surface row count
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "Prefer: count=exact" \
+                  "$SUPABASE_URL/rest/v1/congress_trades_daily?select=ticker&limit=1" \
+                  -I 2>&1 | grep -i content-range || true
