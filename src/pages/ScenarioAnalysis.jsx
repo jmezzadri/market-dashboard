@@ -518,11 +518,14 @@ const STYLES = `
 .scenarios-page .horizon-tabs button { font-family:var(--font-ui); font-size:12px; font-weight:500; padding:6px 14px; border:none; background:transparent; color:var(--ink-1); cursor:pointer; }
 .scenarios-page .horizon-tabs button.active { background:var(--bg-3); color:var(--ink-0); font-weight:600; }
 .scenarios-page .horizon-tabs button:hover:not(.active) { background:var(--bg-2); }
-.scenarios-page .prop-toggle { display:inline-flex; gap:var(--s-2); align-items:center; padding:5px 10px; background:var(--bg-2); border:1px solid var(--line-1); border-radius:var(--r-md); font-size:12px; cursor:pointer; transition:all 120ms; }
-.scenarios-page .prop-toggle:hover { background:var(--bg-3); }
-.scenarios-page .prop-toggle .dot { width:8px; height:8px; border-radius:50%; background:var(--up); }
-.scenarios-page .prop-toggle.bespoke .dot { background:var(--warn); }
-.scenarios-page .prop-toggle strong { color:var(--ink-0); }
+/* Segmented control — used for the PROPAGATION (Realistic / Custom) toggle.
+   Mirrors the look of .horizon-tabs so the page reads as one design language. */
+.scenarios-page .prop-toggle { display:inline-flex; border:1px solid var(--line-1); border-radius:var(--r-md); overflow:hidden; background:var(--bg-1); }
+.scenarios-page .prop-toggle button { font-family:var(--font-ui); font-size:12px; font-weight:500; padding:6px 14px; border:none; background:transparent; color:var(--ink-1); cursor:pointer; transition:background 120ms, color 120ms; white-space:nowrap; }
+.scenarios-page .prop-toggle button + button { border-left:1px solid var(--line-1); }
+.scenarios-page .prop-toggle button:hover:not(.active) { background:var(--bg-2); }
+.scenarios-page .prop-toggle button.active { background:var(--ink-0); color:var(--bg-1); font-weight:600; }
+.scenarios-page .prop-toggle .dot { display:none; } /* legacy single-button decoration, no longer used */
 .scenarios-page .coherence { display:inline-flex; align-items:center; gap:8px; padding:7px 13px; background:rgba(31,157,96,.08); border:1px solid rgba(31,157,96,.25); border-radius:var(--r-md); font-size:12px; color:var(--ink-1); transition:all 200ms; }
 .scenarios-page .coherence .score { font-family:var(--font-ui); font-weight:700; font-size:14px; color:var(--up); }
 .scenarios-page .coherence.unusual { background:rgba(216,178,122,.08); border-color:rgba(216,178,122,.4); }
