@@ -13,7 +13,7 @@
   "ic_gate": 0.1,
   "validation_summary": {
     "n_indicators_total": 38,
-    "n_passes_ic_gate": 30,
+    "n_passes_ic_gate": 29,
     "n_horizon_sensitive": 1
   },
   "indicators": [
@@ -26,9 +26,9 @@
       "current_value_as_of": "2026-05-08",
       "current_score": 100,
       "ic_profile": {
-        "1m": -0.04,
-        "3m": -0.056,
-        "6m": -0.061,
+        "1m": -0.042,
+        "3m": -0.059,
+        "6m": -0.063,
         "12m": -0.166
       },
       "signal_type_at_horizon": {
@@ -53,10 +53,10 @@
       "current_value_as_of": "2026-05-31",
       "current_score": 100,
       "ic_profile": {
-        "1m": -0.028,
+        "1m": -0.03,
         "3m": -0.074,
         "6m": -0.059,
-        "12m": -0.104
+        "12m": -0.102
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -80,10 +80,10 @@
       "current_value_as_of": "2026-01-01",
       "current_score": 99,
       "ic_profile": {
-        "1m": 0.13,
-        "3m": 0.073,
-        "6m": -0.014,
-        "12m": -0.267
+        "1m": 0.108,
+        "3m": 0.031,
+        "6m": -0.028,
+        "12m": -0.246
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -108,9 +108,9 @@
       "current_score": 97,
       "ic_profile": {
         "1m": 0.053,
-        "3m": 0.046,
-        "6m": 0.057,
-        "12m": 0.078
+        "3m": 0.045,
+        "6m": 0.054,
+        "12m": 0.079
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -134,10 +134,10 @@
       "current_value_as_of": "2026-05-07",
       "current_score": 12,
       "ic_profile": {
-        "1m": 0.234,
-        "3m": 0.318,
-        "6m": 0.399,
-        "12m": 0.483
+        "1m": 0.228,
+        "3m": 0.312,
+        "6m": 0.393,
+        "12m": 0.467
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -161,10 +161,10 @@
       "current_value_as_of": "2026-05-31",
       "current_score": 7,
       "ic_profile": {
-        "1m": 0.016,
-        "3m": 0.088,
-        "6m": 0.096,
-        "12m": 0.269
+        "1m": 0.017,
+        "3m": 0.09,
+        "6m": 0.097,
+        "12m": 0.271
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -188,8 +188,8 @@
       "current_value_as_of": "2026-05-31",
       "current_score": 24,
       "ic_profile": {
-        "1m": -0.097,
-        "3m": 0.301,
+        "1m": -0.088,
+        "3m": 0.289,
         "6m": null,
         "12m": null
       },
@@ -215,10 +215,10 @@
       "current_value_as_of": "2026-05-01",
       "current_score": 0,
       "ic_profile": {
-        "1m": 0.08,
-        "3m": 0.179,
-        "6m": 0.26,
-        "12m": 0.487
+        "1m": 0.072,
+        "3m": 0.191,
+        "6m": 0.278,
+        "12m": 0.488
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -242,10 +242,10 @@
       "current_value_as_of": "2026-05-07",
       "current_score": 27,
       "ic_profile": {
-        "1m": 0.232,
-        "3m": 0.304,
-        "6m": 0.501,
-        "12m": 0.561
+        "1m": 0.243,
+        "3m": 0.315,
+        "6m": 0.51,
+        "12m": 0.58
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -298,7 +298,7 @@
       "ic_profile": {
         "1m": -0.115,
         "3m": -0.23,
-        "6m": -0.249,
+        "6m": -0.248,
         "12m": -0.207
       },
       "signal_type_at_horizon": {
@@ -350,10 +350,10 @@
       "current_value_as_of": "2026-05-31",
       "current_score": 75,
       "ic_profile": {
-        "1m": 0.04,
-        "3m": 0.064,
-        "6m": 0.09,
-        "12m": 0.117
+        "1m": 0.041,
+        "3m": 0.059,
+        "6m": 0.095,
+        "12m": 0.113
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -379,8 +379,8 @@
       "ic_profile": {
         "1m": -0.049,
         "3m": -0.084,
-        "6m": -0.051,
-        "12m": -0.01
+        "6m": -0.052,
+        "12m": -0.011
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -404,8 +404,8 @@
       "current_value_as_of": "2026-05-06",
       "current_score": 59,
       "ic_profile": {
-        "1m": -0.016,
-        "3m": -0.015,
+        "1m": -0.017,
+        "3m": -0.014,
         "6m": -0.051,
         "12m": -0.002
       },
@@ -431,10 +431,10 @@
       "current_value_as_of": "2026-05-06",
       "current_score": 27,
       "ic_profile": {
-        "1m": -0.024,
-        "3m": 0.003,
-        "6m": -0.028,
-        "12m": -0.007
+        "1m": -0.021,
+        "3m": 0.0,
+        "6m": -0.022,
+        "12m": -0.01
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -458,10 +458,10 @@
       "current_value_as_of": "2026-04-29",
       "current_score": 35,
       "ic_profile": {
-        "1m": 0.021,
-        "3m": 0.069,
+        "1m": 0.022,
+        "3m": 0.068,
         "6m": 0.114,
-        "12m": 0.084
+        "12m": 0.083
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -485,9 +485,9 @@
       "current_value_as_of": "2025-12-31",
       "current_score": 66,
       "ic_profile": {
-        "1m": 0.148,
-        "3m": 0.113,
-        "6m": 0.169,
+        "1m": 0.125,
+        "3m": 0.108,
+        "6m": 0.136,
         "12m": null
       },
       "signal_type_at_horizon": {
@@ -515,7 +515,7 @@
         "1m": -0.075,
         "3m": -0.125,
         "6m": -0.124,
-        "12m": -0.012
+        "12m": -0.011
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -541,8 +541,8 @@
       "ic_profile": {
         "1m": 0.134,
         "3m": 0.12,
-        "6m": 0.009,
-        "12m": 0.219
+        "6m": 0.008,
+        "12m": 0.218
       },
       "signal_type_at_horizon": {
         "1m": "mean_reversion",
@@ -566,10 +566,10 @@
       "current_value_as_of": "2026-05-01",
       "current_score": 60,
       "ic_profile": {
-        "1m": 0.028,
-        "3m": 0.062,
+        "1m": 0.027,
+        "3m": 0.061,
         "6m": 0.034,
-        "12m": 0.23
+        "12m": 0.229
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -648,9 +648,9 @@
       "current_score": 89,
       "ic_profile": {
         "1m": 0.072,
-        "3m": 0.127,
+        "3m": 0.131,
         "6m": 0.135,
-        "12m": 0.207
+        "12m": 0.208
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -674,10 +674,10 @@
       "current_value_as_of": "2026-05-06",
       "current_score": 90,
       "ic_profile": {
-        "1m": -0.011,
-        "3m": 0.025,
-        "6m": 0.02,
-        "12m": 0.073
+        "1m": -0.012,
+        "3m": 0.024,
+        "6m": 0.019,
+        "12m": 0.072
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -701,10 +701,10 @@
       "current_value_as_of": "2026-04-01",
       "current_score": 36,
       "ic_profile": {
-        "1m": 0.052,
-        "3m": 0.062,
-        "6m": 0.061,
-        "12m": 0.145
+        "1m": 0.059,
+        "3m": 0.07,
+        "6m": 0.081,
+        "12m": 0.168
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -728,18 +728,18 @@
       "current_value_as_of": "2026-04-01",
       "current_score": 32,
       "ic_profile": {
-        "1m": 0.073,
-        "3m": 0.084,
-        "6m": 0.095,
-        "12m": 0.19
+        "1m": 0.074,
+        "3m": 0.092,
+        "6m": 0.102,
+        "12m": 0.179
       },
       "signal_type_at_horizon": {
         "1m": "flat",
         "3m": "flat",
-        "6m": "flat",
+        "6m": "mean_reversion",
         "12m": "mean_reversion"
       },
-      "primary_signal_type": "flat",
+      "primary_signal_type": "mean_reversion",
       "horizon_sensitive": false,
       "passes_ic_gate": true,
       "scoring": "threshold",
@@ -755,10 +755,10 @@
       "current_value_as_of": "2026-04-01",
       "current_score": 18,
       "ic_profile": {
-        "1m": -0.106,
-        "3m": -0.078,
-        "6m": -0.114,
-        "12m": 0.052
+        "1m": -0.103,
+        "3m": -0.093,
+        "6m": -0.1,
+        "12m": 0.061
       },
       "signal_type_at_horizon": {
         "1m": "momentum",
@@ -782,20 +782,20 @@
       "current_value_as_of": "2026-05-02",
       "current_score": 20,
       "ic_profile": {
-        "1m": 0.056,
-        "3m": 0.114,
-        "6m": 0.108,
-        "12m": 0.026
+        "1m": 0.016,
+        "3m": 0.047,
+        "6m": 0.045,
+        "12m": -0.037
       },
       "signal_type_at_horizon": {
         "1m": "flat",
-        "3m": "mean_reversion",
-        "6m": "mean_reversion",
+        "3m": "flat",
+        "6m": "flat",
         "12m": "flat"
       },
-      "primary_signal_type": "mean_reversion",
+      "primary_signal_type": "flat",
       "horizon_sensitive": false,
-      "passes_ic_gate": true,
+      "passes_ic_gate": false,
       "scoring": "threshold",
       "lookback_start": null,
       "scored_value": 200.0
@@ -809,18 +809,18 @@
       "current_value_as_of": "2026-03-01",
       "current_score": 75,
       "ic_profile": {
-        "1m": 0.017,
-        "3m": 0.04,
-        "6m": 0.093,
-        "12m": 0.113
+        "1m": 0.014,
+        "3m": 0.052,
+        "6m": 0.116,
+        "12m": 0.146
       },
       "signal_type_at_horizon": {
         "1m": "flat",
         "3m": "flat",
-        "6m": "flat",
+        "6m": "mean_reversion",
         "12m": "mean_reversion"
       },
-      "primary_signal_type": "flat",
+      "primary_signal_type": "mean_reversion",
       "horizon_sensitive": false,
       "passes_ic_gate": true,
       "scoring": "threshold",
@@ -836,10 +836,10 @@
       "current_value_as_of": "2026-03-01",
       "current_score": 52,
       "ic_profile": {
-        "1m": 0.034,
-        "3m": -0.005,
-        "6m": -0.005,
-        "12m": 0.163
+        "1m": 0.032,
+        "3m": -0.007,
+        "6m": -0.013,
+        "12m": 0.164
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -863,10 +863,10 @@
       "current_value_as_of": "2026-05-08",
       "current_score": 61,
       "ic_profile": {
-        "1m": 0.04,
-        "3m": 0.049,
-        "6m": 0.074,
-        "12m": 0.25
+        "1m": 0.031,
+        "3m": 0.043,
+        "6m": 0.095,
+        "12m": 0.233
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -919,7 +919,7 @@
       "ic_profile": {
         "1m": 0.037,
         "3m": 0.01,
-        "6m": -0.027,
+        "6m": -0.026,
         "12m": 0.057
       },
       "signal_type_at_horizon": {
@@ -944,7 +944,7 @@
       "current_value_as_of": "2026-05-08",
       "current_score": 71,
       "ic_profile": {
-        "1m": -0.087,
+        "1m": -0.088,
         "3m": -0.166,
         "6m": -0.142,
         "12m": -0.221
@@ -997,10 +997,10 @@
       "current_value_as_of": "2026-05-08",
       "current_score": 72,
       "ic_profile": {
-        "1m": -0.03,
-        "3m": -0.084,
-        "6m": -0.158,
-        "12m": -0.259
+        "1m": -0.028,
+        "3m": -0.085,
+        "6m": -0.156,
+        "12m": -0.262
       },
       "signal_type_at_horizon": {
         "1m": "flat",
@@ -1158,21 +1158,21 @@
       "label": "Real Economy",
       "scores_by_horizon": {
         "1m": 18,
-        "3m": 80,
-        "6m": 49,
+        "3m": null,
+        "6m": 37,
         "12m": 49
       },
       "n_scored_by_horizon": {
         "1m": 1,
-        "3m": 1,
-        "6m": 2,
+        "3m": 0,
+        "6m": 3,
         "12m": 5
       },
       "n_eligible_by_horizon": {
-        "1m": 7,
-        "3m": 7,
-        "6m": 7,
-        "12m": 7
+        "1m": 6,
+        "3m": 6,
+        "6m": 6,
+        "12m": 6
       },
       "n_indicators_total": 7
     },
@@ -1253,13 +1253,13 @@
       ],
       "scores_by_horizon": {
         "1m": 18,
-        "3m": 80,
-        "6m": 49,
+        "3m": null,
+        "6m": 37,
         "12m": 49
       },
       "n_subcomposites_by_horizon": {
         "1m": 1,
-        "3m": 1,
+        "3m": 0,
         "6m": 1,
         "12m": 1
       }
@@ -1277,18 +1277,18 @@
     "3m": {
       "label": "Mixed regime",
       "recommended_action": "Neutral \u2014 wait for confirmation",
-      "real_economy_caption": "real economy weakening \u2014 market read confirmed for risk-off / suspect for risk-on",
+      "real_economy_caption": "real economy reading unavailable",
       "setup": 59,
       "stress": 57,
-      "real_economy": 80
+      "real_economy": null
     },
     "6m": {
       "label": "Mixed regime",
       "recommended_action": "Neutral \u2014 wait for confirmation",
-      "real_economy_caption": "real economy mid-range \u2014 market read uncorroborated",
+      "real_economy_caption": "real economy expanding \u2014 market read confirmed for risk-on / fragile for risk-off",
       "setup": 54,
       "stress": 53,
-      "real_economy": 49
+      "real_economy": 37
     },
     "12m": {
       "label": "Late-cycle correction",
