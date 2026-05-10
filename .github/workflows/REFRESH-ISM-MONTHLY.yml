@@ -1,0 +1,66 @@
+# REFRESH-ISM-MONTHLY — monthly scrape of ISM Manufacturing + Services PMI.
+#
+# WHY
+# ───
+# ISM PMI data is license-restricted on FRED (NAPM and family series all
+# return 400). The free path is to scrape investing.com's economic-calendar
+# pages once a month, after both Mfg and Svc have published the prior
+# month's reading.
+#
+# SCHEDULE
+# ────────
+# - Mfg releases on the 1st business day of the new month at ~10:00 ET.
+# - Svc releases on the 3rd business day at ~10:00 ET.
+# - Run on the 5th of every month at 14:00 UTC (10:00 ET) so both are out.
+# - Plus weekly retry every Monday during the first 14 days as a safety net
+#   in case the 5th lands on a weekend or the scrape hits a transient
+#   investing.com hiccup.
+#
+# FAILURE MODE
+# ────────────
+# If the scrape returns no parseable rows, the script exits non-zero. The
+# PIPELINE-FRESHNESS-WATCHDOG flags ISM stale, an issue is auto-filed, and
+# Joe drops the latest XLSX as a manual fallback (see scripts/refresh_ism.py
+# module docstring).
+#
+# IDEMPOTENCE
+# ───────────
+# Re-running with no new releases is a no-op. The script writes
+# indicator_history.json only when it appends new monthly readings.
+
+name: REFRESH-ISM-MONTHLY
+
+on:
+  schedule:
+    - cron: "0 14 5 * *"           # the 5th of every month, 14:00 UTC = 10:00 ET
+    - cron: "0 14 1-14 * 1"        # every Monday in the first 14 days, 14:00 UTC, retry safety net
+  workflow_dispatch: {}             # manual trigger
+
+concurrency:
+  group: refresh-ism-monthly
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run refresh_ism.py
+        run: python3 scripts/refresh_ism.py
+      - name: Commit if updated
+        run: |
+          if [[ -n "$(git status --porcelain public/indicator_history.json)" ]]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add public/indicator_history.json
+            git commit -m "ISM PMI monthly refresh — $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit."
+          fi
