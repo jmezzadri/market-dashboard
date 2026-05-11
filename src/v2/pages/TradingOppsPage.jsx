@@ -449,10 +449,10 @@ function FunnelCard({ totals, scanDate }) {
       tip: "Every US Common Stock and ADR with market cap >= $300M and last close > $5. The full universe we score every day." },
     { key: "scored",      count: u_scored,
       label: "Has MacroTilt score",
-      tip: "Names with at least 3 of 6 signals firing and combined weight >= 40% of the calibrated total. Only these get a numeric score and band." },
+      tip: "Names with at least 2 of 6 signals firing and combined weight >= 10% of the calibrated total. Only these get a numeric score and band." },
     { key: "insufficient", count: u_thin,
       label: "Insufficient signal coverage",
-      tip: "Names with fewer than 3 signals firing. The individual signal columns still show, but no composite score is computed.",
+      tip: "Names with only 1 signal firing or very thin coverage. The individual signal columns still show, but no composite score is computed.",
       amber: true },
   ];
 
@@ -508,7 +508,7 @@ function FunnelCard({ totals, scanDate }) {
             />
           </span>
           <span style={{ flex: "0 0 auto", fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 50, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-            {s.count == null ? "—" : <AnimatedCount value={s.count} />}
+            {s.count == null ? "—" : Number(s.count).toLocaleString()}
           </span>
         </div>
       ))}
@@ -533,7 +533,7 @@ function FunnelCard({ totals, scanDate }) {
               {b.label}
             </div>
             <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 22, fontWeight: 700, lineHeight: 1, color: b.color }}>
-              <AnimatedCount value={b.count} />
+              {b.count == null ? "—" : Number(b.count).toLocaleString()}
             </div>
           </div>
         ))}
