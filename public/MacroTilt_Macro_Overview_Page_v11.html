@@ -863,22 +863,23 @@
     <div class="hero-right">
       <div class="composite-eyebrow">Three headline composites</div>
       <div id="v2HeadlineStrip" style="margin-top:14px; display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; text-align:center;">
-        <div>
+        <div onclick="openHeadlineModal('cycle_value')" style="cursor:pointer; padding:6px 4px; border-radius:6px; transition:background 0.15s;" onmouseover="this.style.background='rgba(14,85,96,0.06)'" onmouseout="this.style.background='transparent'" title="Click to dig into Cycle & Value">
           <div style="font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--muted-2); letter-spacing:0.10em; text-transform:uppercase;">Cycle &amp; Value</div>
           <div id="v2HeadlineCycleValue" style="font-family:var(--display); font-weight:300; font-size:44px; line-height:1; letter-spacing:-0.02em; color:var(--ink); margin-top:8px;">76</div>
           <div style="font-family:var(--mono); font-size:9px; color:var(--muted-2); letter-spacing:0.08em; margin-top:3px;">RISK-OFF</div>
         </div>
-        <div>
+        <div onclick="openHeadlineModal('market_stress')" style="cursor:pointer; padding:6px 4px; border-radius:6px; transition:background 0.15s;" onmouseover="this.style.background='rgba(14,85,96,0.06)'" onmouseout="this.style.background='transparent'" title="Click to dig into Market Stress">
           <div style="font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--muted-2); letter-spacing:0.10em; text-transform:uppercase;">Market Stress</div>
           <div id="v2HeadlineMarketStress" style="font-family:var(--display); font-weight:300; font-size:44px; line-height:1; letter-spacing:-0.02em; color:var(--ink); margin-top:8px;">41</div>
           <div style="font-family:var(--mono); font-size:9px; color:var(--muted-2); letter-spacing:0.08em; margin-top:3px;">NEUTRAL</div>
         </div>
-        <div>
+        <div onclick="openHeadlineModal('real_economy')" style="cursor:pointer; padding:6px 4px; border-radius:6px; transition:background 0.15s;" onmouseover="this.style.background='rgba(14,85,96,0.06)'" onmouseout="this.style.background='transparent'" title="Click to dig into Real Economy">
           <div style="font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--muted-2); letter-spacing:0.10em; text-transform:uppercase;">Real Economy</div>
           <div id="v2HeadlineRealEconomy" style="font-family:var(--display); font-weight:300; font-size:44px; line-height:1; letter-spacing:-0.02em; color:var(--ink); margin-top:8px;">42</div>
           <div style="font-family:var(--mono); font-size:9px; color:var(--muted-2); letter-spacing:0.08em; margin-top:3px;">NEUTRAL</div>
         </div>
       </div>
+      <div style="margin-top:10px; text-align:center; font-family:var(--mono); font-size:9px; color:var(--muted-2); letter-spacing:0.08em; text-transform:uppercase;">Click any headline to dig in</div>
     </div>
   </header>
 
@@ -2676,6 +2677,126 @@ function openIndicatorDrawer(ind, tile) {
 function reopenTileModal(tileId) {
   const t = TILES.find(x => x.id === tileId);
   if (t) openModal(t);
+}
+
+// ============================================================================
+// Headline modal — Joe directive 2026-05-11
+// ============================================================================
+// Click the Cycle & Value / Market Stress / Real Economy strip and a modal
+// opens explaining: what this headline measures, the question it answers,
+// the sub-composites that feed it (clickable to drill into the existing
+// sub-composite modal), and where to read more.
+// ----------------------------------------------------------------------------
+const HEADLINE_DEFS = {
+  cycle_value: {
+    label: "Cycle & Value",
+    tagline: "The Setup",
+    question: "Is the structural backdrop high-risk or low-risk?",
+    explanation: "Where we are in the long cycle. How stretched equity valuations are, where rates sit in their historical range, and whether money and bank balance sheets are loose or tight. High scores = late-cycle setup; low scores = early-expansion setup.",
+    subs: ["Equities", "Rates", "MoneyBanking"],
+  },
+  market_stress: {
+    label: "Market Stress",
+    tagline: "The Panic",
+    question: "Are markets calm or fearful right now?",
+    explanation: "Real-time stress in credit spreads, funding markets, positioning, and volatility. High scores = panic / risk-off pricing; low scores = calm conditions. This is the fast-moving piece — it can go from low to high in a week.",
+    subs: ["Credit", "Funding", "PositioningVol"],
+  },
+  real_economy: {
+    label: "Real Economy",
+    tagline: "The Truth",
+    question: "Is the economy actually growing or rolling over?",
+    explanation: "Hard and soft data on growth, employment, and activity. Manufacturing, services, GDPNow, jobless claims, JOLTS, the Chicago Fed activity index, and the copper / gold ratio. High scores = recession-leaning prints; low scores = expansion prints.",
+    subs: ["RealEconomy"],
+  },
+};
+
+function bandForScore(s) {
+  if (s == null) return "neutral";
+  if (s < 25) return "celadon";
+  if (s < 50) return "neutral";
+  if (s < 75) return "oxblood";
+  return "darkblood";
+}
+
+function bandLabel(s) {
+  if (s == null) return "—";
+  if (s < 25) return "Risk-on";
+  if (s < 50) return "Neutral";
+  if (s < 75) return "Cautionary";
+  return "Risk-off";
+}
+
+function openHeadlineModal(headlineId) {
+  const def = HEADLINE_DEFS[headlineId];
+  if (!def) return;
+
+  // Pull live sub-composite scores from TILES (already updated by
+  // liveCycleBoardOverride / v2 wiring), then average for the headline.
+  const subTiles = def.subs.map(subId => TILES.find(t => t.id === subId)).filter(Boolean);
+  const subScores = subTiles.map(t => t.score).filter(s => typeof s === "number");
+  const headlineScore = subScores.length ? Math.round(subScores.reduce((a, b) => a + b, 0) / subScores.length) : null;
+  const headlineBand = bandForScore(headlineScore);
+  const tileColor = (BAND_COLORS && BAND_COLORS[headlineBand]) ? BAND_COLORS[headlineBand].active : "var(--ink)";
+
+  const body = document.getElementById("modalBody");
+
+  let h = "";
+  h += `<div class="modal-eyebrow">Headline composite · ${def.tagline}</div>`;
+  h += `<div class="modal-h">
+    <h3>${def.label}</h3>
+    <div style="text-align:right;">
+      <div class="dial-score-num" style="color:${tileColor};">${headlineScore == null ? "—" : headlineScore}<span class="dial-score-suffix">/ 100</span></div>
+      <div class="meta-11" style="margin-top:4px;">${bandLabel(headlineScore)} band · headline avg</div>
+    </div>
+  </div>`;
+  h += `<p class="body-14" style="margin:0 0 18px;max-width:720px;">${def.explanation}</p>`;
+  h += `<div style="margin:0 0 22px; padding:12px 14px; background:rgba(14,85,96,0.05); border-left:3px solid var(--ink-2,#0e5560); font-size:13px; color:var(--ink); font-style:italic; max-width:720px;">
+    The question this answers: <strong style="font-style:normal;">${def.question}</strong>
+  </div>`;
+
+  h += `<div class="modal-block-eyebrow" style="margin-top:8px;">Built from · click any row to dig into that sub-composite</div>`;
+  h += `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">
+    Each sub-composite is the simple average of its indicators' 0–100 concerning scores. This headline is the simple average of the sub-composites listed below.
+  </div>`;
+  h += `<div class="ind-list">`;
+  subTiles.forEach(t => {
+    const band = bandForScore(t.score);
+    const scoreColor = (BAND_COLORS && BAND_COLORS[band]) ? BAND_COLORS[band].active : "var(--ink)";
+    h += `<button type="button" class="ind-row" data-subid="${t.id}">
+      <div>
+        <div class="nm">${t.name}<span class="nm-meta">${(t.indicators || []).length} indicators</span></div>
+        <div class="desc">${t.caption || ""}</div>
+      </div>
+      <div></div>
+      <div class="meta-r">
+        <div>
+          <div class="score-num" style="color:${scoreColor};">${t.score == null ? "—" : t.score}</div>
+          <div class="pct">${bandLabel(t.score)}</div>
+        </div>
+      </div>
+      <div class="arr">›</div>
+    </button>`;
+  });
+  h += `</div>`;
+
+  h += `<div style="margin-top:24px;padding-top:14px;border-top:0.5px dashed var(--border);font-size:11px;color:var(--muted);line-height:1.6;">
+    <strong style="color:var(--ink);font-weight:600;">Methodology.</strong>
+    The three headline composites (Cycle &amp; Value · Market Stress · Real Economy) describe the three forces that move markets through the cycle. Each is the simple average of its sub-composites; each sub-composite is the simple average of its 4–7 indicators' 0–100 concerning scores. The same numbers drive the cycle stress on the Scenario Analysis tab.
+  </div>`;
+
+  body.innerHTML = h;
+
+  body.querySelectorAll(".ind-row").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const subId = btn.dataset.subid;
+      const tile = TILES.find(t => t.id === subId);
+      if (tile) openModal(tile);
+    });
+  });
+
+  document.getElementById("modalScrim").classList.add("open");
+  document.getElementById("modalCard").scrollTop = 0;
 }
 
 function closeModal() {
