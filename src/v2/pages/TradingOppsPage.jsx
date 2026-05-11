@@ -383,6 +383,36 @@ function useScanData() {
           });
         }
 
+        // v5.1 (g): universe_snapshots only carries the v4 screener slice
+        // (the names UW pulls daily) -- mega-caps and the long tail of
+        // small caps fall back to prices_eod for the close. Query the
+        // missing tickers separately and stitch the price into snapByT
+        // so shapeRow can render a real price.
+        const PRICE_BATCH = 500;
+        const missingForPrice = tickers.filter(t => {
+          const s = snapByT.get(t);
+          return !s || s.close == null || Number(s.close) <= 0;
+        });
+        for (let i = 0; i < missingForPrice.length; i += PRICE_BATCH) {
+          const slice = missingForPrice.slice(i, i + PRICE_BATCH);
+          // For each ticker get the most recent prices_eod row.
+          const r = await supabase
+            .from("prices_eod")
+            .select("ticker,close,trade_date")
+            .in("ticker", slice)
+            .order("trade_date", { ascending: false })
+            .limit(PRICE_BATCH * 8);
+          const seen = new Set();
+          (r?.data || []).forEach(row => {
+            if (seen.has(row.ticker)) return;
+            seen.add(row.ticker);
+            const existing = snapByT.get(row.ticker) || { ticker: row.ticker };
+            existing.close = Number(row.close);
+            existing._priceFromEOD = true;
+            snapByT.set(row.ticker, existing);
+          });
+        }
+
         if (cancelled) return;
 
         const shaped = scanRows.map(s => shapeRow(s, refByT.get(s.ticker), snapByT.get(s.ticker)));
