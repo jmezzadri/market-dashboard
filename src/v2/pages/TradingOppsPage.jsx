@@ -32,10 +32,10 @@ const COLUMNS = [
     tt: { label: "Identity", body: "Stock symbol. Click any row to open the full dossier modal." } },
   { key: "name",     label: "Name",           group: "Identity",     numeric: false, default: true,
     tt: { label: "Identity", body: "Company name. Source: Polygon ticker reference." } },
-  { key: "sector",   label: "Sector",         group: "Identity",     numeric: false, default: true,
-    tt: { label: "Identity", body: "GICS sector - 11 top-level buckets." } },
-  { key: "ig",       label: "Industry Group", group: "Identity",     numeric: false, default: true,
-    tt: { label: "Identity", body: "GICS industry group - finer-grained classification within the sector." } },
+  { key: "sector",   label: "Sector",         group: "Identity",     numeric: false, default: true, categorical: true,
+    tt: { label: "Sector", body: "GICS sector when available (e.g. Technology, Health Care, Real Estate). Renders '—' when no GICS sector is on record for the name. NOTE: we do not currently have a clean GICS Industry Group level on file -- the column to the right is GICS Industry (the lowest tier of the GICS hierarchy)." } },
+  { key: "ig",       label: "Industry",       group: "Identity",     numeric: false, default: true, categorical: true,
+    tt: { label: "Industry", body: "GICS Industry (the lowest tier of GICS classification). Source: Polygon SIC description (treated as Industry-level for now). The proper GICS hierarchy is Sector -> Industry Group -> Industry; the Industry Group tier needs a real GICS feed and is currently a gap." } },
   { key: "price",    label: "Price",          group: "Quote",        numeric: true,  default: true,
     tt: { label: "Quote", body: "Last close. Source: Polygon Massive (end-of-day)." } },
   { key: "day_pct",  label: "Day %",          group: "Quote",        numeric: true,  default: true,
@@ -44,8 +44,8 @@ const COLUMNS = [
     tt: { label: "Quote", body: "Market capitalization. Source: Polygon ticker reference." } },
   { key: "score",    label: "MT Score",       group: "Signal",       numeric: true,  default: true,
     tt: { label: "MacroTilt Score", body: "Weighted blend of six signals, range -100 to +100. Positive = bullish tilt, negative = bearish tilt." } },
-  { key: "band",     label: "Band",           group: "Signal",       numeric: false, default: true,
-    tt: { label: "MacroTilt Score", body: "Strong Sell, Watch Sell, Neutral, Watch Buy, Strong Buy. Cutoffs at -50, -20, +20, +50." } },
+  { key: "band",     label: "Band",           group: "Signal",       numeric: false, default: true, categorical: true,
+    tt: { label: "MacroTilt Score", body: "Strong Sell, Sell Watch, Neutral, Buy Watch, Strong Buy. Cutoffs at -50, -20, +20, +50." } },
   { key: "sub_insider", label: "Insider",     group: "Signals",      numeric: true, default: true,
     tt: { label: "Insider buying", body: "Form 4 open-market buys and sells over the last 30 days. Sub-score range -100 to +100. Buys dominate -> positive; sells dominate -> negative. 10b5-1 routine sales filtered out. A 'first buy in 12 months' classifier amplifies when a quiet officer steps in. Highest-weighted signal in the composite (36.3%) -- most predictive in the backtest." } },
   { key: "sub_options", label: "Options",     group: "Signals",      numeric: true, default: false,
@@ -260,8 +260,12 @@ function shapeRow(scan, ref, snap) {
   // SECTOR: prefer the real GICS sector from universe_snapshots; if absent,
   // derive a coarse sector from the SIC code (so we don't show the same
   // SIC description in both Sector AND Industry Group cells).
+  // v5.5: Joe's rule -- anchor to gold-source GICS only. Use the real
+  // sector from universe_snapshots when present; show "—" when not.
+  // The previous SIC-code-to-fake-GICS mapping (which produced things
+  // like "Banking" or "Industrial Machinery") is gone.
   const snapSector = snap?.sector && String(snap.sector).trim() ? snap.sector : null;
-  const derivedSector = snapSector || sicCodeToSector(ref?.sic_code);
+  const derivedSector = snapSector;
   return {
     ticker: scan.ticker,
     name: ref?.name || snap?.full_name || scan.ticker,
@@ -516,117 +520,96 @@ function AnimatedCount({ value, durationMs = 900 }) {
 function FunnelCard({ totals, scanDate }) {
   const ts = scanDate ? new Date(`${scanDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · EOD" : "Pending";
 
-  // v5.1 (i): start the funnel at the FULL Polygon Massive US-listed
-  // universe so Joe can see the real narrowing -- 12,629 down to 3,304
-  // down to 2,996. The prior version started at the post-filter scan
-  // universe (3,304), which read like "every US stock" -- not true.
-  const u_total  = totals?.massive_total    || null; // ~12,629
-  const u_v5     = totals?.universe_v5      || 0;
-  const u_scored = totals?.scored_with_mt   || 0;
-  const u_thin   = totals?.insufficient     || 0;
+  // v5.5 (Joe's mockup): summary table = Total Universe / MacroTilt Gate /
+  // Weak Signals · Missing Data. Then 4 band tiles: Strong Buy, Buy Watch,
+  // Sell Watch, Strong Sell. No Neutral tile.
+  const u_total = totals?.massive_total || null;  // ~12,629
+  const u_v5    = totals?.universe_v5   || 0;     // 3,304
+  const u_weak  = totals?.neutral       || 0;     // names in the Neutral band -- "weak signal / missing data" in v5.2 reality
 
-  // Stages flow top-to-bottom. Each names the gate the prior count had
-  // to clear. v5.2: dropped the coverage gate -- every stock now gets a
-  // score (missing signals contribute 0). Funnel is just universe -> bands.
-  const stages = [
-    {
-      key: "massive_total",
-      label: "All US-listed equities",
-      count: u_total,
-      gate: "Polygon Massive: every Common Stock and ADR listed on US exchanges",
-    },
-    {
-      key: "universe_v5",
-      label: "MacroTilt scan universe",
-      count: u_v5,
-      gate: "filter: market cap >= $300M AND last close > $5",
-    },
+  const summaryRows = [
+    { key: "total",  label: "Total Universe", count: u_total, subline: null },
+    { key: "gate",   label: "MacroTilt Gate", count: u_v5,
+      subline: "Mkt Cap: ≥$300M, Price: >$5" },
+    { key: "weak",   label: "Weak Signals / Missing Data", count: u_weak, subline: null },
   ];
 
-  // Band tile config. Strong Buy / Strong Sell pulse to mark the actionable extremes.
-  const bands = [
-    { key: "strong_sell", count: totals?.strong_sell, label: "Strong Sell", color: "var(--red-text, var(--red))",    bg: "var(--surface-3, var(--surface-2))", pulse: true },
-    { key: "watch_sell",  count: totals?.watch_sell,  label: "Watch Sell",  color: "var(--yellow-text, var(--text))", bg: "var(--surface-3, var(--surface-2))", pulse: false },
-    { key: "neutral",     count: totals?.neutral,     label: "Neutral",     color: "var(--text-muted)",               bg: "var(--surface-3, var(--surface-2))", pulse: false },
-    { key: "watch_buy",   count: totals?.watch_buy,   label: "Watch Buy",   color: "var(--yellow-text, var(--text))", bg: "var(--surface-3, var(--surface-2))", pulse: false },
-    { key: "strong_buy",  count: totals?.strong_buy,  label: "Strong Buy",  color: "var(--green-text, var(--green))", bg: "var(--accent-soft, var(--surface-2))", pulse: true },
+  const tiles = [
+    { key: "strong_buy",  count: totals?.strong_buy,  label: "Strong Buy",  color: "var(--green-text, var(--green))" },
+    { key: "watch_buy",   count: totals?.watch_buy,   label: "Buy Watch",   color: "var(--text-2)" },
+    { key: "watch_sell",  count: totals?.watch_sell,  label: "Sell Watch",  color: "var(--text-2)" },
+    { key: "strong_sell", count: totals?.strong_sell, label: "Strong Sell", color: "var(--red-text, var(--red))" },
   ];
 
   return (
     <div
       style={{
-        padding: "20px 22px",
-        borderRadius: "var(--r-lg, 22px)",
+        padding: "16px 16px 14px",
+        borderRadius: "var(--r-lg, 14px)",
         border: "1px solid var(--border)",
         background: "var(--glass-bg, var(--surface))",
-        backdropFilter: "var(--glass-blur, blur(10px))",
-        WebkitBackdropFilter: "var(--glass-blur, blur(10px))",
         minWidth: 280,
         boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))",
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, paddingBottom: 12, borderBottom: "1px solid var(--border-faint, var(--border))" }}>
-        <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, fontWeight: 600, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-          Today's Scan
+      {/* Header: "Today's Scan" centered, EOD date small-right */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+        <span style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 500, fontSize: 16, color: "var(--text)", margin: "0 auto" }}>
+          Today&rsquo;s Scan
         </span>
-        <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, color: "var(--text-dim)", letterSpacing: "0.04em" }}>
+        <span style={{ position: "absolute", fontFamily: "var(--font-ui, Inter)", fontSize: 11, color: "var(--text-muted)", right: 22, marginTop: -2 }}>
           {ts}
         </span>
       </div>
 
-      {/* Staged funnel — each row names the gate that produced its count. */}
-      {stages.map((s, i) => {
-        const isLast = i === stages.length - 1;
-        return (
-          <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-              <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 9.5, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)" }}>
-                {s.label}
+      {/* Summary rows -- one bordered table per Joe's mockup */}
+      <div style={{ border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden", marginBottom: 10 }}>
+        {summaryRows.map((r, i) => (
+          <div key={r.key} style={{
+              display: "flex",
+              alignItems: r.subline ? "flex-start" : "center",
+              justifyContent: "space-between",
+              padding: "10px 14px",
+              borderBottom: i < summaryRows.length - 1 ? "1px solid var(--border)" : "none",
+              gap: 12,
+            }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, minWidth: 0 }}>
+              <span style={{ fontFamily: "var(--font-ui, Inter)", fontSize: 13, color: "var(--text)" }}>
+                {r.label}
               </span>
-              <span style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-                {s.count == null ? "—" : Number(s.count).toLocaleString()}
-              </span>
+              {r.subline && (
+                <span style={{ fontFamily: "var(--font-ui, Inter)", fontSize: 11, color: "var(--text-muted)" }}>
+                  {r.subline}
+                </span>
+              )}
             </div>
-            <span style={{ fontSize: 10.5, color: "var(--text-dim)", lineHeight: 1.4, fontStyle: "italic" }}>
-              {s.gate}
+            <span style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 600, fontSize: 18, color: "var(--text)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+              {r.count == null ? "—" : Number(r.count).toLocaleString()}
             </span>
-            {!isLast && (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 0 2px", color: "var(--text-dim)", fontSize: 10, fontFamily: "var(--font-mono)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
-                <span aria-hidden="true">↓</span>
-                <span>gate</span>
-                <span style={{ flex: 1, height: 1, background: "var(--border-faint, var(--border))" }} />
-              </div>
-            )}
-          </div>
-        );
-      })}
-
-      <div style={{ height: 1, background: "var(--border-faint, var(--border))", margin: "14px 0 12px" }} />
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
-        {bands.map((b) => (
-          <div
-            key={b.key}
-            className={b.pulse ? "mt-band-pulse" : undefined}
-            style={{
-              background: b.bg,
-              border: "1px solid var(--border-faint, var(--border))",
-              borderRadius: 10,
-              padding: "10px 6px",
-              textAlign: "center",
-              minWidth: 0,
-            }}
-          >
-            <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 8.5, fontWeight: 600, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-muted)", marginBottom: 4 }}>
-              {b.label}
-            </div>
-            <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 22, fontWeight: 700, lineHeight: 1, color: b.color }}>
-              {b.count == null ? "—" : Number(b.count).toLocaleString()}
-            </div>
           </div>
         ))}
       </div>
 
+      {/* 4 band tiles -- Strong Buy / Buy Watch / Sell Watch / Strong Sell */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
+        {tiles.map(t => (
+          <div key={t.key} style={{
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              padding: "8px 4px 10px",
+              textAlign: "center",
+              background: "var(--surface)",
+              minWidth: 0,
+            }}>
+            <div style={{ fontFamily: "var(--font-ui, Inter)", fontSize: 10.5, fontWeight: 500, color: "var(--text-muted)", marginBottom: 4, lineHeight: 1.2 }}>
+              {t.label}
+            </div>
+            <div style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 22, fontWeight: 600, lineHeight: 1, color: t.color, fontVariantNumeric: "tabular-nums" }}>
+              {t.count == null ? "—" : Number(t.count).toLocaleString()}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -636,42 +619,30 @@ function FunnelCard({ totals, scanDate }) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function Hero({ totals, scanDate }) {
+  // v5.5 (Joe's mockup): single big sentence on the left, summary card on
+  // the right. Phrase uses italic accent on "proprietary signal intelligence"
+  // and on "MacroTilt Score" -- matches the site's existing italic-accent
+  // pattern (Fraunces italic in --accent color).
   return (
-    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "24px 32px 16px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 360px", gap: 32, alignItems: "start" }}>
+    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "32px 32px 16px" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: 36, alignItems: "start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-          <div>
-            <div
-              style={{
-                fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--text-muted)",
-                marginBottom: 6,
-              }}
-            >
-              Trading Opportunities
-            </div>
-            <h2
-              style={{
-                fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
-                fontSize: 32,
-                fontWeight: 700,
-                letterSpacing: "-0.025em",
-                lineHeight: 1.05,
-                color: "var(--text)",
-                margin: 0,
-              }}
-            >
-              Six signals. One score.{" "}
-              <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>Ranked top to bottom every day.</em>
-            </h2>
-          </div>
-          <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text-muted)", maxWidth: 720, marginTop: 8, margin: "8px 0 0" }}>
-            Insider buying · options flow · congress trades · technicals · analyst actions · short interest. The universe filter and the coverage gate live in the funnel on the right. Click any row for the full dossier.
-          </p>
+          <h2
+            style={{
+              fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
+              fontSize: 30,
+              fontWeight: 500,
+              letterSpacing: "-0.015em",
+              lineHeight: 1.18,
+              color: "var(--text)",
+              margin: 0,
+            }}
+          >
+            Cutting through the noise with{" "}
+            <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>proprietary signal intelligence</em>
+            {" "}to identify trading opportunities &ndash; six signals rolled into an overall{" "}
+            <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>MacroTilt Score</em>.
+          </h2>
         </div>
         <FunnelCard totals={totals} scanDate={scanDate} />
       </div>
@@ -700,11 +671,13 @@ function ScoreCell({ value }) {
 }
 
 function BandPill({ value }) {
+  // v5.5: display labels "Buy Watch" / "Sell Watch" (per Joe's mockup);
+  // underlying band string in the DB stays "Watch Buy" / "Watch Sell".
   let bg, fg, label = value || "—";
   if      (value === "Strong Buy")  { bg = "var(--accent-soft, var(--surface-2))"; fg = "var(--green-text, var(--green))"; }
-  else if (value === "Watch Buy")   { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--yellow-text, var(--text))"; }
+  else if (value === "Watch Buy")   { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--yellow-text, var(--text))"; label = "Buy Watch"; }
   else if (value === "Neutral")     { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--text-muted)"; }
-  else if (value === "Watch Sell")  { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--yellow-text, var(--text))"; }
+  else if (value === "Watch Sell")  { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--yellow-text, var(--text))"; label = "Sell Watch"; }
   else if (value === "Strong Sell") { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--red-text, var(--red))"; }
   else                              { bg = "var(--surface-3, var(--surface-2))";   fg = "var(--text-dim)"; }
   return (
@@ -861,6 +834,12 @@ export default function TradingOppsPage({ onOpenTicker }) {
     const colFilters = Array.isArray(colState.colFilters) ? colState.colFilters : [];
     const matchOne = (row, f) => {
       const v = row[f.key];
+      // v5.5: "in" op holds an ARRAY of allowed values -- multi-select.
+      // Used for categorical columns (Band, Sector, Industry).
+      if (f.op === "in") {
+        if (!Array.isArray(f.value) || f.value.length === 0) return true;
+        return f.value.some(x => String(v).toLowerCase() === String(x).toLowerCase());
+      }
       if (v == null) return false;
       if (f.op === "contains") {
         return String(v).toLowerCase().includes(String(f.value).toLowerCase());
@@ -877,7 +856,6 @@ export default function TradingOppsPage({ onOpenTicker }) {
           case "!=": return nA !== nB;
         }
       }
-      // String fallback for "=" / "!="
       if (f.op === "=")  return String(v).toLowerCase() === String(f.value).toLowerCase();
       if (f.op === "!=") return String(v).toLowerCase() !== String(f.value).toLowerCase();
       return false;
@@ -998,9 +976,9 @@ export default function TradingOppsPage({ onOpenTicker }) {
     { f: "actionable",   label: "Actionable" },
     { f: "all",          label: "All" },
     { f: "strong_buy",   label: "Strong Buy" },
-    { f: "watch_buy",    label: "Watch Buy" },
+    { f: "watch_buy",    label: "Buy Watch" },
     { f: "neutral",      label: "Neutral" },
-    { f: "watch_sell",   label: "Watch Sell" },
+    { f: "watch_sell",   label: "Sell Watch" },
     { f: "strong_sell",  label: "Strong Sell" },
   ];
 
@@ -1022,8 +1000,16 @@ export default function TradingOppsPage({ onOpenTicker }) {
               return (
                 <span key={f.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 8px 4px 10px", borderRadius: 999, background: "var(--accent-soft, var(--surface-2))", border: "1px solid var(--border)", color: "var(--text-2)", fontSize: 11.5, fontFamily: "var(--font-ui)" }}>
                   <span style={{ fontWeight: 600 }}>{c?.label || f.key}</span>
-                  <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{f.op}</span>
-                  <span style={{ fontFamily: "var(--font-mono)" }}>{f.value}</span>
+                  <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                    {f.op === "in" ? "is one of" : f.op}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)" }}>
+                    {Array.isArray(f.value)
+                      ? (f.value.length <= 2
+                          ? f.value.join(", ")
+                          : `${f.value.slice(0, 2).join(", ")} +${f.value.length - 2}`)
+                      : String(f.value)}
+                  </span>
                   <button type="button" onClick={() => removeColFilter(f.id)} aria-label="Remove filter"
                     style={{ background: "transparent", border: 0, color: "var(--text-muted)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "0 2px" }}>×</button>
                 </span>
@@ -1092,49 +1078,100 @@ export default function TradingOppsPage({ onOpenTicker }) {
                 <span style={{ color: "var(--accent)", fontWeight: 600 }}>{colState.colFilters.length}</span>
               )}
             </button>
-            {filterPanelOpen && (
-              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.20))", padding: 12, zIndex: 50, width: 320 }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", paddingBottom: 8, borderBottom: "1px solid var(--border-faint, var(--border))", marginBottom: 10 }}>
-                  Add column filter
+            {filterPanelOpen && (() => {
+              // v5.5: context-aware popover. Categorical column -> multi-select
+              // checkbox list of distinct values. Numeric column -> operator + value.
+              const selectedCol = COLUMNS.find(c => c.key === draftFilter.key) || COLUMNS[0];
+              const isCategorical = !!selectedCol.categorical;
+              // Distinct values for the selected column (sorted).
+              const distinct = isCategorical ? Array.from(new Set(allRows.map(r => r[draftFilter.key]).filter(x => x != null && String(x).trim() !== ""))).sort((a, b) => String(a).localeCompare(String(b))) : [];
+              const selectedSet = new Set(Array.isArray(draftFilter.value) ? draftFilter.value : []);
+              const toggleVal = (v) => setDraftFilter(d => {
+                const cur = new Set(Array.isArray(d.value) ? d.value : []);
+                if (cur.has(v)) cur.delete(v); else cur.add(v);
+                return { ...d, op: "in", value: [...cur] };
+              });
+              return (
+                <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.20))", padding: 12, zIndex: 50, width: 340, maxHeight: 460, overflowY: "auto" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", paddingBottom: 8, borderBottom: "1px solid var(--border-faint, var(--border))", marginBottom: 10 }}>
+                    Add column filter
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                      Column
+                      <select value={draftFilter.key}
+                        onChange={e => {
+                          const newKey = e.target.value;
+                          const c = COLUMNS.find(x => x.key === newKey);
+                          // Reset draft when switching column type.
+                          setDraftFilter(d => c?.categorical
+                            ? { key: newKey, op: "in", value: [] }
+                            : { key: newKey, op: ">", value: "" });
+                        }}
+                        style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)" }}>
+                        {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                      </select>
+                    </label>
+
+                    {isCategorical ? (
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                          Pick values ({selectedSet.size} selected of {distinct.length})
+                        </div>
+                        <div style={{ maxHeight: 240, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface-2)" }}>
+                          {distinct.length === 0 ? (
+                            <div style={{ padding: "10px 12px", fontSize: 11.5, color: "var(--text-dim)", fontStyle: "italic" }}>No values available for this column.</div>
+                          ) : distinct.map(val => (
+                            <label key={String(val)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", fontSize: 12, color: "var(--text-2)", cursor: "pointer", borderBottom: "1px solid var(--border-faint, var(--border))" }}>
+                              <input type="checkbox" checked={selectedSet.has(val)} onChange={() => toggleVal(val)} style={{ accentColor: "var(--accent)", cursor: "pointer" }} />
+                              <span>{String(val)}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                          Operator
+                          <select value={draftFilter.op === "in" ? ">" : draftFilter.op}
+                            onChange={e => setDraftFilter(d => ({ ...d, op: e.target.value }))}
+                            style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)" }}>
+                            <option value=">">{"greater than (>)"}</option>
+                            <option value=">=">{"greater or equal (>=)"}</option>
+                            <option value="<">{"less than (<)"}</option>
+                            <option value="<=">{"less or equal (<=)"}</option>
+                            <option value="=">{"equals (=)"}</option>
+                            <option value="!=">{"not equal (!=)"}</option>
+                            <option value="contains">{"contains text"}</option>
+                          </select>
+                        </label>
+                        <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                          Value
+                          <input type="text" value={typeof draftFilter.value === "string" ? draftFilter.value : ""}
+                            onChange={e => setDraftFilter(d => ({ ...d, value: e.target.value }))}
+                            onKeyDown={e => { if (e.key === "Enter" && draftFilter.value !== "") { addColFilter(draftFilter); setDraftFilter({ key: draftFilter.key, op: draftFilter.op, value: "" }); setFilterPanelOpen(false); } }}
+                            placeholder="e.g. 50, 1000000000"
+                            style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)", boxSizing: "border-box" }} />
+                        </label>
+                      </>
+                    )}
+
+                    <button type="button"
+                      disabled={isCategorical ? selectedSet.size === 0 : draftFilter.value === ""}
+                      onClick={() => {
+                        if (isCategorical && selectedSet.size === 0) return;
+                        if (!isCategorical && draftFilter.value === "") return;
+                        addColFilter(draftFilter);
+                        setDraftFilter(isCategorical ? { key: draftFilter.key, op: "in", value: [] } : { key: draftFilter.key, op: draftFilter.op, value: "" });
+                        setFilterPanelOpen(false);
+                      }}
+                      style={{ marginTop: 4, padding: "8px 12px", borderRadius: 8, background: (isCategorical ? selectedSet.size === 0 : draftFilter.value === "") ? "var(--surface-2)" : "var(--accent)", border: "1px solid var(--accent)", color: (isCategorical ? selectedSet.size === 0 : draftFilter.value === "") ? "var(--text-dim)" : "var(--surface)", fontSize: 12, fontFamily: "var(--font-ui)", cursor: (isCategorical ? selectedSet.size === 0 : draftFilter.value === "") ? "default" : "pointer", fontWeight: 600 }}>
+                      Apply
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
-                    Column
-                    <select value={draftFilter.key} onChange={e => setDraftFilter(d => ({ ...d, key: e.target.value }))}
-                      style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)" }}>
-                      {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-                    </select>
-                  </label>
-                  <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
-                    Operator
-                    <select value={draftFilter.op} onChange={e => setDraftFilter(d => ({ ...d, op: e.target.value }))}
-                      style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)" }}>
-                      <option value=">">{`greater than (>)`}</option>
-                      <option value=">=">{`greater or equal (>=)`}</option>
-                      <option value="<">{`less than (<)`}</option>
-                      <option value="<=">{`less or equal (<=)`}</option>
-                      <option value="=">{`equals (=)`}</option>
-                      <option value="!=">{`not equal (!=)`}</option>
-                      <option value="contains">{`contains text`}</option>
-                    </select>
-                  </label>
-                  <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
-                    Value
-                    <input type="text" value={draftFilter.value}
-                      onChange={e => setDraftFilter(d => ({ ...d, value: e.target.value }))}
-                      onKeyDown={e => { if (e.key === "Enter" && draftFilter.value !== "") { addColFilter(draftFilter); setDraftFilter(d => ({ ...d, value: "" })); setFilterPanelOpen(false); } }}
-                      placeholder="e.g. 50, Technology"
-                      style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)", boxSizing: "border-box" }} />
-                  </label>
-                  <button type="button"
-                    disabled={draftFilter.value === ""}
-                    onClick={() => { addColFilter(draftFilter); setDraftFilter(d => ({ ...d, value: "" })); setFilterPanelOpen(false); }}
-                    style={{ marginTop: 4, padding: "8px 12px", borderRadius: 8, background: draftFilter.value === "" ? "var(--surface-2)" : "var(--accent)", border: "1px solid var(--accent)", color: draftFilter.value === "" ? "var(--text-dim)" : "var(--surface)", fontSize: 12, fontFamily: "var(--font-ui)", cursor: draftFilter.value === "" ? "default" : "pointer", fontWeight: 600 }}>
-                    Apply
-                  </button>
-                </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
 
           <div ref={colMenuRef} style={{ position: "relative", display: "inline-block" }}>
