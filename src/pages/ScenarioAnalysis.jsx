@@ -1133,6 +1133,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
             {/* TABLE 2 — Cycle Mechanism Scenario Results (Phase 2E live) */}
             <CycleMechanismScenarioResultsTable
               mode={mode}
+              scenarioId={scenario}
               scenarioName={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : null}
               effShocks={effShocks}
               indicatorHistory={indicatorHistory}
@@ -1259,7 +1260,45 @@ function v2ThresholdScore(value, anchors, direction) {
   return ((value - p) / (n - p)) * 50;
 }
 
-function computeV2Stress(shocks, cycleV2, indicatorHistory) {
+// Peak-of-stress date for each canned scenario (best single-day proxy for
+// the regime). Used to look up actual historical indicator readings from
+// public/indicator_history.json so the stress tile shows REAL values from
+// that episode — not factor-derived recomputations of 6 indicators.
+const SCENARIO_PEAK_DATES = {
+  black_monday_1987:        "1987-10-19",
+  dotcom_slow_2000:         "2002-07-23",
+  dotcom_capitulation_2002: "2002-10-09",
+  gfc_2008:                 "2008-11-20",
+  q4_2018:                  "2018-12-24",
+  covid_2020:               "2020-03-23",
+  inflation_2022:           "2022-10-13",
+  ai_2024:                  "2024-08-05",
+};
+
+// Walk an indicator's points and return the value on or before the target
+// date (within `windowDays` of it). Returns null if no point falls in the
+// window. Sorted lookup since points are date-ascending.
+function getHistoricalValueNear(points, targetDateStr, windowDays = 21) {
+  if (!Array.isArray(points) || !points.length) return null;
+  const target = new Date(targetDateStr).getTime();
+  if (isNaN(target)) return null;
+  const windowMs = windowDays * 86400000;
+  let best = null;
+  let bestDist = Infinity;
+  for (const pt of points) {
+    if (!pt || pt[1] === null || pt[1] === undefined || typeof pt[1] !== "number") continue;
+    const d = new Date(pt[0]).getTime();
+    if (isNaN(d)) continue;
+    const dist = Math.abs(d - target);
+    if (dist <= windowMs && dist < bestDist) {
+      best = pt[1];
+      bestDist = dist;
+    }
+  }
+  return best;
+}
+
+function computeV2Stress(shocks, cycleV2, indicatorHistory, scenarioId) {
   if (!cycleV2 || !cycleV2.indicators) return null;
   const indicatorById = Object.fromEntries(cycleV2.indicators.map(ind => [ind.id, ind]));
   const indicatorsBySub = {};
@@ -1269,9 +1308,48 @@ function computeV2Stress(shocks, cycleV2, indicatorHistory) {
   const stressedScores = {};
   for (const ind of cycleV2.indicators) stressedScores[ind.id] = ind.current_score;
 
+  // PASS 1 — for canned scenarios, look up each indicator's actual historical
+  // reading at the scenario's peak-stress date. This is the honest answer:
+  // not a factor-derived recompute, but what the indicator actually was that
+  // day. Covers all 38 indicators when history exists; pre-2006 / sparse-series
+  // indicators silently fall through to PASS 2.
+  const peakDate = scenarioId && SCENARIO_PEAK_DATES[scenarioId];
+  if (peakDate) {
+    for (const ind of cycleV2.indicators) {
+      const histKey = ind.history_key;
+      const hist = indicatorHistory && indicatorHistory[histKey];
+      if (!hist || !hist.points) continue;
+      const histValue = getHistoricalValueNear(hist.points, peakDate, 30);
+      if (histValue === null) continue;
+      if (ind.scoring === "threshold") {
+        const anchors = V2_THRESHOLDS[ind.id];
+        if (anchors) stressedScores[ind.id] = v2ThresholdScore(histValue, anchors, anchors.direction);
+      } else {
+        const lookbackStart = ind.lookback_start ? new Date(ind.lookback_start) : new Date(0);
+        const sample = [];
+        for (const pt of hist.points) {
+          const v = pt[1];
+          if (v === null || v === undefined || typeof v !== "number") continue;
+          if (new Date(pt[0]) < lookbackStart) continue;
+          sample.push(v);
+        }
+        stressedScores[ind.id] = v2PercentileScore(histValue, sample, ind.direction);
+      }
+    }
+  }
+
+  // PASS 2 — for any indicator that's also in the bespoke shock vector,
+  // apply the user's σ shock as well (in custom mode this is the only
+  // signal; in canned mode it backfills indicators not found in history).
   for (const [factorId, indId] of Object.entries(SHOCK_FACTOR_TO_V2)) {
     const sigma = shocks && shocks[factorId];
     if (sigma === undefined || sigma === null) continue;
+    // Skip if a historical lookup already produced a stressed score for this
+    // indicator in canned mode — the historical reading is the source of truth.
+    if (peakDate && indicatorHistory && indicatorHistory[indicatorById[indId]?.history_key]?.points) {
+      const histValue = getHistoricalValueNear(indicatorHistory[indicatorById[indId].history_key].points, peakDate, 30);
+      if (histValue !== null) continue;
+    }
     const baseline = FACTOR_BASELINES[factorId];
     const ind = indicatorById[indId];
     if (!baseline || !ind) continue;
@@ -1328,7 +1406,7 @@ function computeV2Stress(shocks, cycleV2, indicatorHistory) {
 }
 
 function CycleMechanismScenarioResultsTable({
-  mode, scenarioName, effShocks, indicatorHistory,
+  mode, scenarioId, scenarioName, effShocks, indicatorHistory,
   tableCard, tableHead, tableTitle, tableSub,
 }) {
   const [cycleV2, setCycleV2] = useState(null);
@@ -1344,8 +1422,8 @@ function CycleMechanismScenarioResultsTable({
   // default render on it - otherwise the tile looks dead on first load.
   const stress = useMemo(() => {
     if (!cycleV2) return null;
-    return computeV2Stress(effShocks || {}, cycleV2, indicatorHistory);
-  }, [cycleV2, indicatorHistory, effShocks]);
+    return computeV2Stress(effShocks || {}, cycleV2, indicatorHistory, scenarioId);
+  }, [cycleV2, indicatorHistory, effShocks, scenarioId]);
 
   const tileTodayReadings = useMemo(
     () => indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])),
