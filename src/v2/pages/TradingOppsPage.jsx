@@ -18,6 +18,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, Fragment } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabase";
+import ScannerTilesStrip from "../../components/ScannerTilesStrip";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Constants
@@ -1038,6 +1039,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
       <Hero totals={totals} scanDate={scanDate} />
 
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
+        <ScannerTilesStrip />
         {/* v5.4 (item 3): column-filter strip. Active filters render as
             removable chips. "+ Add filter" opens a popover with column /
             operator / value pickers. */}

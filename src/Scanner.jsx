@@ -1245,7 +1245,36 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   // Start on the landing page (tile grid). The prior focusTicker → "overview"
   // deep-link behavior was retired 2026-04-19 along with the Buy & Watch list
   // tile; portopps is now the canonical surface for per-ticker detail.
-  const [view, setView] = useState("landing");
+  // On mount, if Trading Opps' ScannerTilesStrip stashed a target view
+  // (e.g. "congress"), jump straight into that detail tab instead of the
+  // landing tile grid. Marker is cleared after read so a manual visit to
+  // #scanner still lands on the tile grid.
+  const initialView = (() => {
+    try {
+      const m = sessionStorage.getItem("mt:scanner:initial-view");
+      if (m) {
+        sessionStorage.removeItem("mt:scanner:initial-view");
+        if (["congress","insiders","flow","technicals"].includes(m)) return m;
+      }
+    } catch (_) { /* private mode etc. */ }
+    return "landing";
+  })();
+  const [view, setView] = useState(initialView);
+
+  // Bridge: ScannerTilesStrip (rendered higher on the same page) dispatches
+  // a "mt:scanner:set-view" custom event when a tile is clicked. Listen here
+  // and call setView so the user lands on the right detail tab without a
+  // navigation round-trip.
+  useEffect(() => {
+    function onSetView(e) {
+      const v = e?.detail?.view;
+      if (["congress","insiders","flow","technicals","landing"].includes(v)) {
+        setView(v);
+      }
+    }
+    window.addEventListener("mt:scanner:set-view", onSetView);
+    return () => window.removeEventListener("mt:scanner:set-view", onSetView);
+  }, []);
   const [rawData, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

@@ -6771,7 +6771,7 @@ return (<>
 {/* Inline signal tiles — moved BELOW the Buy Alerts / Near Trigger tables
     per Joe's UAT 2026-04-28: tiles are evidence/diagnostics for the names
     surfaced above, so they read as supporting context rather than primary. */}
-{showTrading&&<div style={{marginBottom:14}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>}
+{showTrading&&<div id="mt-inline-scanner" style={{marginBottom:14, scrollMarginTop:80}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>}
 {/* SECTION 2 — PORTFOLIO INSIGHTS (only on insights tab) */}
 {showInsights&&<div style={sectionPanel}>
 <div style={sectionHeader}>
