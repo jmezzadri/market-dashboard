@@ -1417,7 +1417,7 @@ function renderDials() {
     } else {
       inner += `<div class="dial-score-wrap"><span class="ships-in">${t.ships}</span></div>`;
     }
-    inner += `<div class="caption">${t.caption}</div>`;
+    inner += `<div class="caption">${captionForState(t.id, t.score) || t.caption}</div>`;
     if (t.live) {
       inner += `<div class="since-line">${t.persistence || ""}</div>`;
       inner += `<div class="cadence-line">Refreshes ${t.cadence || ""}</div>`;
@@ -2597,11 +2597,26 @@ function liveReleaseDates(indId, fallback) {
   return { last: lastFmt, next: nextFmt };
 }
 
+// Some indicator IDs were renamed in the v2 framework but their DRILLS keys
+// kept the old names. Alias them so the existing drilldown content still
+// loads. Plain-mapping only — no new content, just routing.
+const DRILL_ALIASES = {
+  cfnai_3ma:   "cfnai",
+  hy_ig_ratio: "hy_ig",
+  ism_mfg:     "ism",
+  ism_svc:     "ism",
+};
+
 function openIndicatorDrawer(ind, tile) {
   if (!ind) return;
-  const drill = DRILLS[ind.id];
+  const drill = DRILLS[ind.id] || DRILLS[DRILL_ALIASES[ind.id]];
   if (!drill) {
-    showToast(`No drilldown data for ${ind.name} yet.`);
+    // Lite drawer — show what we DO have on the indicator itself (name,
+    // value, percentile, sample window, direction, description). No
+    // trajectory chart, no episode table, no co-movement table — those
+    // require full DRILLS metadata that hasn't been written for this
+    // indicator yet. Better than the prior toast-and-bail behavior.
+    openIndicatorDrawerLite(ind, tile);
     return;
   }
   const body = document.getElementById("modalBody");
@@ -2683,63 +2698,106 @@ function reopenTileModal(tileId) {
   if (t) openModal(t);
 }
 
+// Lite indicator drawer — used when full DRILLS metadata isn't written for
+// this indicator yet. Shows the basics so the click isn't a dead end:
+// indicator name, current value, percentile placement, score, sample window,
+// description, direction. No trajectory / no co-movement / no episode table.
+function openIndicatorDrawerLite(ind, tile) {
+  if (!ind) return;
+  const body = document.getElementById("modalBody");
+  const tileColor = (BAND_COLORS && BAND_COLORS[tile.band]) ? BAND_COLORS[tile.band].active : "var(--ink)";
+  const pct = Math.max(0, Math.min(100, ind.percentile));
+  const dirText = ind.dir === "low" ? "low values = more cautionary"
+                : ind.dir === "bidir" ? "extremes either way = more cautionary"
+                : "high values = more cautionary";
+  let h = "";
+  h += `<div style="margin-bottom:10px;"><button type="button" onclick="reopenTileModal('${tile.id}')" style="border:none;background:transparent;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);cursor:pointer;letter-spacing:0.04em;padding:0;">‹ BACK TO ${tile.name.toUpperCase()}</button></div>`;
+  h += `<div class="modal-eyebrow">${tile.name} / indicator</div>`;
+  h += `<div class="modal-h"><h3>${ind.name}</h3>
+    <div style="text-align:right;">
+      <div class="dial-score-num">${ind.value}</div>
+      <div class="meta-11" style="margin-top:4px;">current value</div>
+    </div></div>`;
+  h += `<p class="body-14" style="margin:0 0 18px;max-width:640px;">${ind.desc || ""}</p>`;
+
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">Where this sits in its history</div>
+    <div style="margin:14px 0 6px;">
+      <div class="qbar" style="position:relative;height:8px;background:var(--surface-2,rgba(0,0,0,0.05));border-radius:4px;">
+        <span class="qd" style="position:absolute;top:50%;left:calc(${pct}% - 7px);transform:translateY(-50%);width:14px;height:14px;border-radius:50%;background:${tileColor};display:block;"></span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:6px;letter-spacing:0.04em;">
+        <span>${ind.sampleMin || "low"}</span>
+        <span>${ind.sampleMax || "high"}</span>
+      </div>
+    </div>
+    <div style="font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:8px;letter-spacing:0.04em;">${ind.percentile}th percentile in ${ind.sample || "the sample window"} · ${dirText}</div>
+  </div>`;
+
+  h += `<div style="border-top:0.5px solid var(--border);padding-top:16px;margin-top:18px;font-size:13px;color:var(--ink-2);line-height:1.6;">
+    Full drilldown — trajectory chart, co-movement table, release calendar — hasn't been written for this indicator yet. The numbers and percentile above ARE live; the deeper context tabs are still to come.
+  </div>`;
+
+  body.innerHTML = h;
+  document.getElementById("modalCard").scrollTop = 0;
+}
+
 // ============================================================================
 // Band-aware sub-composite captions — Joe directive 2026-05-11
 // ============================================================================
-// The previous static captions on TILES were written months ago against a
-// snapshot of scores. As scores moved, captions stayed put — most damaging
-// was the Equities caption claiming "not weighted into the headline" (left
-// over from the forecast/IC-gate methodology that was retired when the page
-// switched to state-based math). Pick caption by current score band so the
-// prose always matches the number.
+// Static captions on TILES drifted as scores moved (most damaging: Equities
+// claiming "not weighted into the headline" — left over from the retired
+// forecast/IC-gate methodology). Pick caption by current score band so the
+// prose always matches the number. Table inlined inside the function so the
+// caller doesn't depend on top-level const init order — captionForState is
+// a function declaration and is hoisted, callable from anywhere on the page.
 // ----------------------------------------------------------------------------
-const SUB_CAPTIONS = {
-  Equities: {
-    risk_on:    "Equity valuations cheap relative to history — CAPE, ERP, and Buffett ratio in the bottom quartile of long-run history.",
-    neutral:    "Equity valuations within normal historical range — neither cheap nor stretched.",
-    cautionary: "Equity valuations stretched — CAPE, ERP, and Buffett ratio above long-run medians.",
-    risk_off:   "Equity valuations at cycle extremes — CAPE, ERP, and Buffett ratio all in the top quartile of long-run history.",
-  },
-  Rates: {
-    risk_on:    "Rates structure benign — curve normal-shaped, term premium contained, real yields below neutral.",
-    neutral:    "Rates near neutral — curve and term premium in normal historical ranges.",
-    cautionary: "Rates tightening at the margin — flatter curve, rising term premium, real yields restrictive.",
-    risk_off:   "Rates flashing late-cycle — flat or inverted curve, elevated term premium, real yields restrictive.",
-  },
-  MoneyBanking: {
-    risk_on:    "Money and bank balance sheets accommodative — M2 growth healthy, ample reserves, credit expanding.",
-    neutral:    "Money growth and bank credit near long-run trend.",
-    cautionary: "Money growth slowing and bank balance sheets tightening at the margin.",
-    risk_off:   "Money supply growth and bank credit in restrictive territory — late-cycle tightening signature.",
-  },
-  Credit: {
-    risk_on:    "Credit spreads tight — high-yield and IG OAS in the lower half of history, investor demand for credit firm.",
-    neutral:    "Credit spreads near long-run medians — no notable stress, no notable euphoria.",
-    cautionary: "Credit spreads widening — HY OAS and HY/IG ratio drifting higher, risk repricing underway.",
-    risk_off:   "Credit spreads at panic levels — HY OAS and HY/IG ratio both flashing dislocation.",
-  },
-  Funding: {
-    risk_on:    "Bank-system funding spreads at the low end of post-2018 history — plumbing well-oiled.",
-    neutral:    "Funding spreads in the lower half of post-2018 history — funding markets benign.",
-    cautionary: "Funding spreads widening — commercial paper and SOFR-OIS pricing modest pressure.",
-    risk_off:   "Funding markets pressured — spreads wide, financial conditions tight.",
-  },
-  PositioningVol: {
-    risk_on:    "Vol low, breadth wide — investor positioning long, calm conditions across equities and rates.",
-    neutral:    "Vol mid-range — positioning balanced, neither leaning long nor defensive.",
-    cautionary: "Vol creeping higher, breadth narrowing — positioning at the margin getting defensive.",
-    risk_off:   "Vol elevated — VIX, MOVE, and SKEW all above long-run norms; positioning defensive.",
-  },
-  RealEconomy: {
-    risk_on:    "Real economy expanding — ISM, jobless claims, and Atlanta Fed nowcast all printing growth.",
-    neutral:    "Real economy reading mid-range — neither expanding decisively nor contracting.",
-    cautionary: "Real economy softening — ISM rolling over, jobless claims drifting up, GDPNow decelerating.",
-    risk_off:   "Real economy contracting — ISM below 50, jobless claims elevated, growth nowcast negative.",
-  },
-};
-
 function captionForState(subId, score) {
-  const set = SUB_CAPTIONS[subId];
+  const T = {
+    Equities: {
+      risk_on:    "Equity valuations cheap relative to history — CAPE, ERP, and Buffett ratio in the bottom quartile of long-run history.",
+      neutral:    "Equity valuations within normal historical range — neither cheap nor stretched.",
+      cautionary: "Equity valuations stretched — CAPE, ERP, and Buffett ratio above long-run medians.",
+      risk_off:   "Equity valuations at cycle extremes — CAPE, ERP, and Buffett ratio all in the top quartile of long-run history.",
+    },
+    Rates: {
+      risk_on:    "Rates structure benign — curve normal-shaped, term premium contained, real yields below neutral.",
+      neutral:    "Rates near neutral — curve and term premium in normal historical ranges.",
+      cautionary: "Rates tightening at the margin — flatter curve, rising term premium, real yields restrictive.",
+      risk_off:   "Rates flashing late-cycle — flat or inverted curve, elevated term premium, real yields restrictive.",
+    },
+    MoneyBanking: {
+      risk_on:    "Money and bank balance sheets accommodative — M2 growth healthy, ample reserves, credit expanding.",
+      neutral:    "Money growth and bank credit near long-run trend.",
+      cautionary: "Money growth slowing and bank balance sheets tightening at the margin.",
+      risk_off:   "Money supply growth and bank credit in restrictive territory — late-cycle tightening signature.",
+    },
+    Credit: {
+      risk_on:    "Credit spreads tight — high-yield and IG OAS in the lower half of history, investor demand for credit firm.",
+      neutral:    "Credit spreads near long-run medians — no notable stress, no notable euphoria.",
+      cautionary: "Credit spreads widening — HY OAS and HY/IG ratio drifting higher, risk repricing underway.",
+      risk_off:   "Credit spreads at panic levels — HY OAS and HY/IG ratio both flashing dislocation.",
+    },
+    Funding: {
+      risk_on:    "Bank-system funding spreads at the low end of post-2018 history — plumbing well-oiled.",
+      neutral:    "Funding spreads in the lower half of post-2018 history — funding markets benign.",
+      cautionary: "Funding spreads widening — commercial paper and SOFR-OIS pricing modest pressure.",
+      risk_off:   "Funding markets pressured — spreads wide, financial conditions tight.",
+    },
+    PositioningVol: {
+      risk_on:    "Vol low, breadth wide — investor positioning long, calm conditions across equities and rates.",
+      neutral:    "Vol mid-range — positioning balanced, neither leaning long nor defensive.",
+      cautionary: "Vol creeping higher, breadth narrowing — positioning at the margin getting defensive.",
+      risk_off:   "Vol elevated — VIX, MOVE, and SKEW all above long-run norms; positioning defensive.",
+    },
+    RealEconomy: {
+      risk_on:    "Real economy expanding — ISM, jobless claims, and Atlanta Fed nowcast all printing growth.",
+      neutral:    "Real economy reading mid-range — neither expanding decisively nor contracting.",
+      cautionary: "Real economy softening — ISM rolling over, jobless claims drifting up, GDPNow decelerating.",
+      risk_off:   "Real economy contracting — ISM below 50, jobless claims elevated, growth nowcast negative.",
+    },
+  };
+  const set = T[subId];
   if (!set || score == null) return null;
   if (score < 25) return set.risk_on;
   if (score < 50) return set.neutral;
@@ -2849,18 +2907,9 @@ function openHeadlineModal(headlineId) {
   });
   h += `</div>`;
 
-  // Action footer — Macro Overview is diagnostic ("where are we?"). Portfolio
-  // ACTION lives on Scenario Analysis. Send the user there explicitly.
-  h += `<div style="margin-top:22px; padding:14px 16px; background:rgba(14,85,96,0.06); border-left:3px solid var(--ink-2,#0e5560); border-radius:4px; max-width:720px;">
-    <div style="font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--muted-2); letter-spacing:0.10em; text-transform:uppercase; margin-bottom:6px;">What to do about it</div>
-    <div style="font-size:13px; color:var(--ink); line-height:1.5;">
-      Macro Overview tells you <em>where we are</em>. To see what this regime means for your portfolio — and how it would react under historical shocks or a custom stress — open <a href="#scenarios" onclick="if(window.parent && window.parent.location) window.parent.location.hash='#scenarios'; return true;" style="color:var(--ink-2,#0e5560); font-weight:600;">Scenario Analysis →</a>
-    </div>
-  </div>`;
-
-  h += `<div style="margin-top:18px;padding-top:14px;border-top:0.5px dashed var(--border);font-size:11px;color:var(--muted);line-height:1.6;">
+  h += `<div style="margin-top:24px;padding-top:14px;border-top:0.5px dashed var(--border);font-size:11px;color:var(--muted);line-height:1.6;">
     <strong style="color:var(--ink);font-weight:600;">Methodology.</strong>
-    The three headline composites (Cycle &amp; Value · Market Stress · Real Economy) describe the three forces that move markets through the cycle. Each headline is the simple average of its sub-composites; each sub-composite is the simple average of its 4–7 indicators' 0–100 concerning scores (0 = lowest-risk / strongest, 100 = highest-risk / most cautionary). The same numbers drive the cycle stress on the Scenario Analysis tab.
+    The three headline composites (Cycle &amp; Value · Market Stress · Real Economy) describe the three forces that move markets through the cycle. Each headline is the simple average of its sub-composites; each sub-composite is the simple average of its 4–7 indicators' 0–100 concerning scores (0 = lowest-risk / strongest, 100 = highest-risk / most cautionary).
   </div>`;
 
   body.innerHTML = h;
