@@ -27,26 +27,8 @@ const TILES = [
   { id: "technicals", eyebrow: "Per-ticker signal", title: "Technicals", accent: "#B8860B" },
 ];
 
-// ── Helpers ────────────────────────────────────────────────────────────────
-function fmtMoney(n) {
-  const v = Math.abs(Number(n) || 0);
-  if (v >= 1e9) return `$${(v / 1e9).toFixed(1)}B`;
-  if (v >= 1e6) return `$${(v / 1e6).toFixed(1)}M`;
-  if (v >= 1e3) return `$${(v / 1e3).toFixed(0)}K`;
-  return `$${v.toFixed(0)}`;
-}
-
 // Congress amount strings are bucket ranges ("$1,001 - $15,000"); take the
 // midpoint so the top trade can be ranked by approximate dollar size.
-function congressAmountMidpoint(amt) {
-  if (!amt || typeof amt !== "string") return 0;
-  const nums = amt.match(/[\d,]+/g);
-  if (!nums) return 0;
-  const vals = nums.map(s => Number(s.replace(/,/g, ""))).filter(n => Number.isFinite(n) && n > 0);
-  if (vals.length >= 2) return (vals[0] + vals[1]) / 2;
-  return vals[0] || 0;
-}
-
 // ── Tile click → jump into the inline Scanner detail view ──────────────────
 // The standalone /#scanner route was retired; Scanner.jsx now mounts inline
 // at the bottom of /#portopps. Clicking a strip tile:
@@ -71,119 +53,6 @@ function openScannerView(viewId) {
   }
 }
 
-// ── Tile content (top-1 noteworthy item per surface) ───────────────────────
-function topCongress(data) {
-  const all = [
-    ...(data?.signals?.congress_buys  || []),
-    ...(data?.signals?.congress_sells || []),
-  ];
-  const ranked = all
-    .map(r => ({ row: r, amtMid: congressAmountMidpoint(r.amounts) }))
-    .filter(x => x.amtMid > 0)
-    .sort((a, b) => b.amtMid - a.amtMid);
-  return ranked[0] || null;
-}
-
-function topInsider(data) {
-  const all = [
-    ...(data?.signals?.insider_buys  || []),
-    ...(data?.signals?.insider_sales || []),
-  ];
-  const ranked = all
-    .map(r => {
-      const shares = Math.abs(Number(r.amount) || 0);
-      const px = Number(r.price || r.stock_price || 0);
-      const usd = shares * px;
-      return { row: r, usd, isBuy: (Number(r.amount) || 0) > 0 };
-    })
-    .filter(x => x.usd > 0)
-    .sort((a, b) => b.usd - a.usd);
-  return ranked[0] || null;
-}
-
-function topFlow(data) {
-  const all = [
-    ...((data?.signals?.flow_alerts || []).map(r => ({ ...r, _side: "call" }))),
-    ...((data?.signals?.put_flow_alerts || []).map(r => ({ ...r, _side: "put" }))),
-  ];
-  const ranked = all
-    .map(r => ({ row: r, prem: Number(r.total_premium) || 0 }))
-    .filter(x => x.prem > 0)
-    .sort((a, b) => b.prem - a.prem);
-  return ranked[0] || null;
-}
-
-function topTechnical(data) {
-  const all = Object.entries(data?.signals?.technicals || {})
-    .map(([ticker, v]) => ({
-      ticker,
-      score: Number(v?.composite?.score ?? 0),
-      label: v?.composite?.label || "",
-    }))
-    .filter(x => x.score !== 0)
-    .sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
-  return all[0] || null;
-}
-
-// ── Tile renderers (the one-line preview body) ─────────────────────────────
-function CongressPreview({ data }) {
-  const top = topCongress(data);
-  if (!top) return <span style={{ color: "var(--text-muted)" }}>No recent trades</span>;
-  const isBuy = /buy/i.test(top.row.txn_type || "");
-  const side = isBuy ? "BUY" : "SELL";
-  const sideCol = isBuy ? "var(--green-text)" : "var(--red-text)";
-  return (
-    <>
-      <span style={{ fontWeight: 700, color: "var(--text)" }}>{top.row.ticker}</span>
-      <span style={{ color: sideCol, fontWeight: 700, marginLeft: 6 }}>{side}</span>
-      <span className="num" style={{ color: "var(--text-2)", marginLeft: 6 }}>{fmtMoney(top.amtMid)}</span>
-    </>
-  );
-}
-
-function InsiderPreview({ data }) {
-  const top = topInsider(data);
-  if (!top) return <span style={{ color: "var(--text-muted)" }}>No Form 4 activity</span>;
-  const side = top.isBuy ? "BUY" : "SELL";
-  const sideCol = top.isBuy ? "var(--green-text)" : "var(--red-text)";
-  return (
-    <>
-      <span style={{ fontWeight: 700, color: "var(--text)" }}>{top.row.ticker}</span>
-      <span style={{ color: sideCol, fontWeight: 700, marginLeft: 6 }}>{side}</span>
-      <span className="num" style={{ color: "var(--text-2)", marginLeft: 6 }}>{fmtMoney(top.usd)}</span>
-    </>
-  );
-}
-
-function FlowPreview({ data }) {
-  const top = topFlow(data);
-  if (!top) return <span style={{ color: "var(--text-muted)" }}>No unusual flow</span>;
-  const isCall = top.row._side === "call";
-  const sideCol = isCall ? "var(--green-text)" : "var(--red-text)";
-  return (
-    <>
-      <span style={{ fontWeight: 700, color: "var(--text)" }}>{top.row.ticker}</span>
-      <span style={{ color: sideCol, fontWeight: 700, marginLeft: 6 }}>{isCall ? "CALL" : "PUT"}</span>
-      <span className="num" style={{ color: "var(--text-2)", marginLeft: 6 }}>{fmtMoney(top.prem)}</span>
-    </>
-  );
-}
-
-function TechnicalPreview({ data }) {
-  const top = topTechnical(data);
-  if (!top) return <span style={{ color: "var(--text-muted)" }}>No signal</span>;
-  const isBull = top.score > 0;
-  const col = isBull ? "var(--green-text)" : "var(--red-text)";
-  const sign = isBull ? "+" : "";
-  return (
-    <>
-      <span style={{ fontWeight: 700, color: "var(--text)" }}>{top.ticker}</span>
-      <span className="num" style={{ color: col, fontWeight: 700, marginLeft: 6 }}>{sign}{top.score.toFixed(0)}</span>
-      <span style={{ color: "var(--text-muted)", marginLeft: 6, fontSize: 10.5 }}>{top.label || ""}</span>
-    </>
-  );
-}
-
 // ── Tile shell ─────────────────────────────────────────────────────────────
 function TileShell({ meta, kpi, kpiUnit, kpiColor, children, onClick }) {
   const [hover, setHover] = useState(false);
@@ -199,7 +68,7 @@ function TileShell({ meta, kpi, kpiUnit, kpiColor, children, onClick }) {
         flexDirection: "column",
         alignItems: "stretch",
         textAlign: "left",
-        padding: "12px 14px",
+        padding: "10px 14px",
         background: "var(--surface)",
         border: "1px solid var(--border)",
         borderRadius: "var(--r-md, 12px)",
@@ -207,7 +76,7 @@ function TileShell({ meta, kpi, kpiUnit, kpiColor, children, onClick }) {
         fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)",
         boxShadow: hover ? "var(--shadow-md, 0 2px 8px rgba(0,0,0,0.06))" : "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))",
         transition: "box-shadow 0.15s",
-        gap: 8,
+        gap: 6,
         minWidth: 0,
       }}
     >
@@ -246,11 +115,6 @@ function TileShell({ meta, kpi, kpiUnit, kpiColor, children, onClick }) {
         </span>
       </div>
 
-      {/* one-line preview */}
-      <div style={{
-        fontSize: 11.5, color: "var(--text-2)", fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
-        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0,
-      }}>{children}</div>
     </button>
   );
 }
@@ -287,13 +151,7 @@ export default function ScannerTilesStrip() {
   const techN     = Object.keys(data?.signals?.technicals  || {}).length;
 
   return (
-    <div
-      style={{
-        maxWidth: 1440,
-        margin: "0 auto",
-        padding: "16px 32px 4px",
-      }}
-    >
+    <div style={{ marginTop: 24, marginBottom: 12 }}>
       <div
         className="mt-scanner-tiles-strip"
         style={{
@@ -309,9 +167,7 @@ export default function ScannerTilesStrip() {
           kpiUnit={loading ? "" : "trades"}
           kpiColor={congressN > 0 ? "var(--accent)" : "var(--text-muted)"}
           onClick={() => openScannerView("congress")}
-        >
-          {loading ? "Loading…" : error ? "Data unavailable" : <CongressPreview data={data} />}
-        </TileShell>
+        />
 
         {/* Insiders */}
         <TileShell
@@ -320,9 +176,7 @@ export default function ScannerTilesStrip() {
           kpiUnit={loading ? "" : "Form 4s"}
           kpiColor={insiderN > 0 ? "#bf5af2" : "var(--text-muted)"}
           onClick={() => openScannerView("insiders")}
-        >
-          {loading ? "Loading…" : error ? "Data unavailable" : <InsiderPreview data={data} />}
-        </TileShell>
+        />
 
         {/* Flow */}
         <TileShell
@@ -331,9 +185,7 @@ export default function ScannerTilesStrip() {
           kpiUnit={loading ? "" : "alerts"}
           kpiColor={flowN > 0 ? "#ff9f0a" : "var(--text-muted)"}
           onClick={() => openScannerView("flow")}
-        >
-          {loading ? "Loading…" : error ? "Data unavailable" : <FlowPreview data={data} />}
-        </TileShell>
+        />
 
         {/* Technicals */}
         <TileShell
@@ -342,9 +194,7 @@ export default function ScannerTilesStrip() {
           kpiUnit={loading ? "" : "scored"}
           kpiColor={techN > 0 ? "#B8860B" : "var(--text-muted)"}
           onClick={() => openScannerView("technicals")}
-        >
-          {loading ? "Loading…" : error ? "Data unavailable" : <TechnicalPreview data={data} />}
-        </TileShell>
+        />
       </div>
 
       {/* Responsive: collapse to 2x2 below 1024px */}

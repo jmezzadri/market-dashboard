@@ -1036,10 +1036,10 @@ export default function TradingOppsPage({ onOpenTicker }) {
 
   return (
     <div style={{ minHeight: "100vh" }}>
-      <ScannerTilesStrip />
       <Hero totals={totals} scanDate={scanDate} />
 
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
+        <ScannerTilesStrip />
         {/* v5.4 (item 3): column-filter strip. Active filters render as
             removable chips. "+ Add filter" opens a popover with column /
             operator / value pickers. */}
