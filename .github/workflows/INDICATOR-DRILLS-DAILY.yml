@@ -1,0 +1,54 @@
+# INDICATOR-DRILLS-DAILY — regenerates the auto-computed indicator drilldown bundle.
+#
+# WHY
+# ───
+# Hand-written DRILLS in MacroTilt_Macro_Overview_Page_v11.html cover ~17 of
+# 38 v2 indicators. The other 17 get auto-computed KPIs + co-movement +
+# release metadata via scripts/generate_indicator_drills.py. As
+# indicator_history.json refreshes, the generated KPIs need to refresh too.
+#
+# SCHEDULE
+# ────────
+# Daily 23:00 UTC — after CYCLE-V2-DAILY (22:30 UTC) writes the latest
+# cycle_v2.json and indicator_history.json.
+#
+# OUTPUTS
+# ───────
+# public/indicator_drills_generated.json — consumed by openIndicatorDrawer
+# on the Macro Overview page.
+
+name: INDICATOR-DRILLS-DAILY
+
+on:
+  schedule:
+    - cron: "0 23 * * 1-5"      # weekdays 23:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: indicator-drills-daily
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run generator
+        run: python3 scripts/generate_indicator_drills.py
+      - name: Commit if updated
+        run: |
+          if [[ -n "$(git status --porcelain public/indicator_drills_generated.json)" ]]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add public/indicator_drills_generated.json
+            git commit -m "Indicator drills daily refresh — $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit."
+          fi
