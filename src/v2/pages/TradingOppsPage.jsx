@@ -726,12 +726,14 @@ function renderCell(row, key) {
     return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
   }
   if (key === "sector") {
-    const display = titleCaseSector(v);
-    return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 160, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
+    // v5.5b: GICS values come pre-cased ('Information Technology', 'REITs').
+    // Don't run titleCaseSector -- it would mangle 'REITs' into 'Reits'.
+    const display = v || "—";
+    return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 200, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
   }
   if (key === "ig") {
-    const display = titleCaseSector(v);
-    return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
+    const display = v || "—";
+    return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
   }
   if (key === "price") {
     // Number(null) === 0 quirk: must short-circuit on v == null first or
