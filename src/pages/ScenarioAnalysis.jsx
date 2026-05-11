@@ -929,7 +929,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const SCENARIO_SHORT = {
     black_monday_1987:     "Black Monday ('87)",
     dotcom_slow_2000:      "Dot Com Lead Up ('00)",
-    dotcom_capitulation_2002: "Dot Com Final Flush ('02)",
+    dotcom_capitulation_2002: "Dot Com Flush ('02)",
     gfc_2008:              "GFC ('08)",
     q4_2018:               "Rate Hikes ('18)",
     covid_2020:            "Covid ('20)",
@@ -1010,7 +1010,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           <div style={{ minWidth:0 }}>
             <div style={_eyebrow}>Scenario Analysis</div>
             <h1 style={_h1}>
-              How your book reacts under a <em style={_emItalic}>custom shock</em> or a <em style={_emItalic}>historical scenario</em>.
+              See how your portfolio, and Macro Tilt&apos;s engines react under stress &ndash; run custom <em style={_emItalic}>multi-factor shocks</em> or use our <em style={_emItalic}>historical scenarios</em>.
             </h1>
           </div>
           <aside style={_rightCard}>
