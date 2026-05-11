@@ -142,33 +142,47 @@ export default async function handler(req, res) {
   // cron jobs auto-send `Authorization: Bearer <CRON_SECRET>` when the env
   // var is set on the project, so we accept that. Manual triggers can also
   // pass `x-cron-secret: <secret>` or `?token=<secret>`.
-  const secret = process.env.CRON_SECRET || process.env.SHARED_BATCH_TOKEN;
-  if (secret) {
-    const auth = req.headers.authorization || "";
-    const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : null;
-    const sent = bearer || req.headers["x-cron-secret"] || (req.query && req.query.token);
-    if (sent !== secret) {
-      res.status(401).json({ error: "unauthorized" });
+  try {
+    const secret = process.env.CRON_SECRET || process.env.SHARED_BATCH_TOKEN;
+    if (secret) {
+      const auth = req.headers.authorization || "";
+      const bearer = auth.startsWith("Bearer ") ? auth.slice(7) : null;
+      const sent = bearer || req.headers["x-cron-secret"] || (req.query && req.query.token);
+      if (sent !== secret) {
+        res.status(401).json({ error: "unauthorized" });
+        return;
+      }
+    }
+
+    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      res.status(500).json({
+        error: "supabase env missing",
+        have_url: !!process.env.SUPABASE_URL,
+        have_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+      });
       return;
     }
-  }
+    if (!process.env.UNUSUAL_WHALES_API_KEY) {
+      res.status(500).json({ error: "UNUSUAL_WHALES_API_KEY not configured on server" });
+      return;
+    }
 
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY,
-    { auth: { persistSession: false } }
-  );
+    const supabase = createClient(
+      process.env.SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY,
+      { auth: { persistSession: false } }
+    );
 
-  // Pull every open option row across all users. Service role bypasses RLS.
-  const { data: rows, error: qErr } = await supabase
-    .from("positions")
-    .select("id, ticker, contract_type, strike, expiration, multiplier")
-    .eq("asset_class", "option")
-    .is("closed_at", null);
-  if (qErr) {
-    res.status(500).json({ error: "positions query failed", detail: qErr.message });
-    return;
-  }
+    // Pull every open option row across all users. Service role bypasses RLS.
+    const { data: rows, error: qErr } = await supabase
+      .from("positions")
+      .select("id, ticker, contract_type, strike, expiration, multiplier")
+      .eq("asset_class", "option")
+      .is("closed_at", null);
+    if (qErr) {
+      res.status(500).json({ error: "positions query failed", detail: qErr.message });
+      return;
+    }
 
   const details = [];
   let updated = 0;
@@ -230,13 +244,20 @@ export default async function handler(req, res) {
     }
   }
 
-  res.status(200).json({
-    ok: failed === 0,
-    positions_seen: (rows || []).length,
-    updated,
-    failed,
-    details,
-  });
+    res.status(200).json({
+      ok: failed === 0,
+      positions_seen: (rows || []).length,
+      updated,
+      failed,
+      details,
+    });
+  } catch (e) {
+    res.status(500).json({
+      error: "handler crash",
+      message: e?.message || String(e),
+      stack: e?.stack ? String(e.stack).split("\n").slice(0, 5) : null,
+    });
+  }
 }
 
 export const config = {
