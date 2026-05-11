@@ -981,7 +981,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           <div style={{ minWidth:0 }}>
             <div style={_eyebrow}>Scenario Analysis</div>
             <h1 style={_h1}>
-              See how your portfolio, and Macro Tilt&apos;s engines react under stress &ndash; run custom <em style={_emItalic}>multi-factor shocks</em> or use our <em style={_emItalic}>historical scenarios</em>.
+              How your book reacts under a <em style={_emItalic}>custom shock</em> or a <em style={_emItalic}>historical scenario</em>.
             </h1>
           </div>
           <aside style={_rightCard}>
@@ -1313,20 +1313,23 @@ function CycleMechanismScenarioResultsTable({
     fetch("/cycle_v2.json", { cache: "no-cache" })
       .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
       .then(setCycleV2)
-      .catch((err) => { console.warn("[Scenario Analysis Â· v2 stress] cycle_v2.json fetch failed", err); });
+      .catch((err) => { console.warn("[Scenario Analysis · v2 stress] cycle_v2.json fetch failed", err); });
   }, []);
 
+  // Show today's reads as soon as cycle_v2.json lands. indicator_history
+  // is only needed to recompute scores under shock, so don't block the
+  // default render on it - otherwise the tile looks dead on first load.
   const stress = useMemo(() => {
-    if (!cycleV2 || !indicatorHistory) return null;
+    if (!cycleV2) return null;
     return computeV2Stress(effShocks || {}, cycleV2, indicatorHistory);
   }, [cycleV2, indicatorHistory, effShocks]);
 
-  if (!cycleV2 || !indicatorHistory) {
+  if (!cycleV2) {
     return (
       <div style={tableCard}>
         <div style={tableHead}>
-          <h2 style={tableTitle}>Cycle stress Â· v2</h2>
-          <div style={tableSub}>Loading v2 cycle dataâ¦</div>
+          <h2 style={tableTitle}>Cycle Mechanisms</h2>
+          <div style={tableSub}>Loading...</div>
         </div>
       </div>
     );
@@ -1335,8 +1338,8 @@ function CycleMechanismScenarioResultsTable({
     return (
       <div style={tableCard}>
         <div style={tableHead}>
-          <h2 style={tableTitle}>Cycle stress Â· v2</h2>
-          <div style={tableSub}>Could not compute v2 stress â check console.</div>
+          <h2 style={tableTitle}>Cycle Mechanisms</h2>
+          <div style={tableSub}>Could not compute - check console.</div>
         </div>
       </div>
     );
@@ -1346,9 +1349,9 @@ function CycleMechanismScenarioResultsTable({
 
   const subtitle = mode === "canned"
     ? (scenarioName
-        ? `How each v2 sub-composite and headline reads under ${scenarioName} vs today.`
-        : "Pick a scenario above to see how each v2 cycle area would read under that historical regime.")
-    : "Drag any factor slider above. The v2 cycle areas below recompute live — every indicator that maps to a shocked factor is re-percentile-ranked against its historical sample.";
+        ? `How each cycle mechanism reads under ${scenarioName} vs today.`
+        : "Today's cycle reads. Pick a scenario above to see how each mechanism would shift.")
+    : "Today's cycle reads. Drag any slider above to see live impact on each mechanism.";
 
   const renderDelta = (cur, str) => {
     if (cur === null || str === null || cur === undefined || str === undefined) {
@@ -1377,7 +1380,7 @@ function CycleMechanismScenarioResultsTable({
   return (
     <div style={tableCard}>
       <div style={tableHead}>
-        <h2 style={tableTitle}>Cycle stress · v2</h2>
+        <h2 style={tableTitle}>Cycle Mechanisms</h2>
         <div style={tableSub}>{subtitle}</div>
       </div>
 
@@ -1419,7 +1422,7 @@ function CycleMechanismScenarioResultsTable({
 
       <div style={{ padding: "0 18px 16px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.5fr", gap: 6, paddingBottom: 6, borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-            <div>Sub-composite</div>
+            <div>Mechanism</div>
             <div style={{ textAlign: "right" }}>Today</div>
             <div style={{ textAlign: "right" }}>{hasShock ? "Stressed" : ""}</div>
             <div style={{ textAlign: "right" }}>{hasShock ? "Δ" : ""}</div>
@@ -1441,8 +1444,7 @@ function CycleMechanismScenarioResultsTable({
       </div>
 
       <div style={{ padding: "8px 18px 14px", fontFamily: "var(--font-ui)", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.4 }}>
-        v2 cycle stress · state-based scoring (no horizon-IC sign-flip) ·
-        higher = more cautionary · {cycleV2.as_of ? "as of " + cycleV2.as_of : ""}
+        Higher score = more cautionary. {cycleV2.as_of ? "Refreshed " + cycleV2.as_of + "." : ""}
       </div>
     </div>
   );
