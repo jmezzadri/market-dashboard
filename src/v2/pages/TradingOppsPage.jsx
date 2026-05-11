@@ -528,8 +528,9 @@ function FunnelCard({ totals, scanDate }) {
   const u_scored = totals?.scored_with_mt   || 0;
   const u_thin   = totals?.insufficient     || 0;
 
-  // Stages flow top-to-bottom. Each one names the gate the prior count
-  // had to clear to be counted here.
+  // Stages flow top-to-bottom. Each names the gate the prior count had
+  // to clear. v5.2: dropped the coverage gate -- every stock now gets a
+  // score (missing signals contribute 0). Funnel is just universe -> bands.
   const stages = [
     {
       key: "massive_total",
@@ -542,12 +543,6 @@ function FunnelCard({ totals, scanDate }) {
       label: "MacroTilt scan universe",
       count: u_v5,
       gate: "filter: market cap >= $300M AND last close > $5",
-    },
-    {
-      key: "scored",
-      label: "Cleared the coverage gate",
-      count: u_scored,
-      gate: "at least 2 of 6 signals firing AND >= 10% of calibrated weight",
     },
   ];
 
@@ -608,19 +603,6 @@ function FunnelCard({ totals, scanDate }) {
           </div>
         );
       })}
-
-      {/* Side-note for the rows that failed the coverage gate. */}
-      <div style={{ marginTop: 10, padding: "8px 10px", borderRadius: 8, background: "var(--surface-3, var(--surface-2))", border: "1px solid var(--border-faint, var(--border))", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
-        <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>
-          Insufficient signal coverage
-          <span style={{ display: "block", fontSize: 10, color: "var(--text-dim)", fontStyle: "italic" }}>
-            fewer than 2 signals OR less than 10% weight
-          </span>
-        </span>
-        <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 14, fontWeight: 600, color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
-          {u_thin == null ? "—" : Number(u_thin).toLocaleString()}
-        </span>
-      </div>
 
       <div style={{ height: 1, background: "var(--border-faint, var(--border))", margin: "14px 0 12px" }} />
 
@@ -956,6 +938,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
   // v5.1 (d): Held and Watchlist were placeholder filter chips that
   // returned every row when clicked -- confusing during UAT. Hidden until
   // the portfolio overlay is actually wired up (out of v5 scope).
+  // v5.2: dropped Insufficient Data chip (the band no longer exists).
   const filterChips = [
     { f: "actionable",   label: "Actionable" },
     { f: "all",          label: "All" },
@@ -964,7 +947,6 @@ export default function TradingOppsPage({ onOpenTicker }) {
     { f: "neutral",      label: "Neutral" },
     { f: "watch_sell",   label: "Watch Sell" },
     { f: "strong_sell",  label: "Strong Sell" },
-    { f: "insufficient", label: "Insufficient Data" },
   ];
 
   return (
