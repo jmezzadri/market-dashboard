@@ -177,6 +177,59 @@ function bandGroup(b) {
 // and joins ticker_reference + universe_snapshots in follow-up queries.
 // ─────────────────────────────────────────────────────────────────────────
 
+// v5.1 (e): SIC code -> rough GICS sector mapping so the Sector column
+// is not literally the same string as Industry Group. SIC divisions are
+// coarser than GICS so the mapping is approximate, but it gives Joe a
+// useful Sector / Industry distinction instead of two identical cells.
+// Full mapping at https://www.osha.gov/data/sic-manual; pruned to the
+// divisions that show up in our universe.
+function sicCodeToSector(sicCode) {
+  if (!sicCode) return null;
+  const n = parseInt(String(sicCode).trim().slice(0, 4), 10);
+  if (!Number.isFinite(n) || n <= 0) return null;
+  if (n >= 100 && n <= 999)   return "Agriculture & Forestry";
+  if (n >= 1000 && n <= 1499) return "Mining";
+  if (n >= 1500 && n <= 1799) return "Construction";
+  if (n >= 2000 && n <= 2199) return "Food & Beverage";
+  if (n >= 2200 && n <= 2399) return "Textiles & Apparel";
+  if (n >= 2400 && n <= 2599) return "Lumber, Wood & Furniture";
+  if (n >= 2600 && n <= 2799) return "Paper, Print & Publishing";
+  // 28xx covers chemicals AND pharma -- split at 2830 for health care.
+  if (n >= 2830 && n <= 2839) return "Health Care";
+  if (n >= 2800 && n <= 2899) return "Chemicals";
+  if (n >= 2900 && n <= 2999) return "Energy (Refining)";
+  if (n >= 3000 && n <= 3299) return "Rubber, Plastics & Stone";
+  if (n >= 3300 && n <= 3399) return "Metals & Mining";
+  if (n >= 3400 && n <= 3499) return "Industrial Metals";
+  if (n >= 3500 && n <= 3599) return "Industrial Machinery";
+  if (n >= 3600 && n <= 3699) return "Electronics & Hardware";
+  if (n >= 3700 && n <= 3799) return "Transportation Equipment";
+  // 38xx = instruments + medical devices.
+  if (n >= 3840 && n <= 3851) return "Health Care";
+  if (n >= 3800 && n <= 3899) return "Industrial Instruments";
+  if (n >= 3900 && n <= 3999) return "Misc. Manufacturing";
+  // 4xxx = transport / comms / utilities.
+  if (n >= 4800 && n <= 4899) return "Communications";
+  if (n >= 4900 && n <= 4999) return "Utilities";
+  if (n >= 4000 && n <= 4799) return "Transportation";
+  if (n >= 5000 && n <= 5199) return "Wholesale Trade";
+  if (n >= 5200 && n <= 5999) return "Retail";
+  // 60s = financials.
+  if (n >= 6000 && n <= 6199) return "Banking";
+  if (n >= 6200 && n <= 6299) return "Capital Markets";
+  if (n >= 6300 && n <= 6499) return "Insurance";
+  if (n >= 6500 && n <= 6599) return "Real Estate";
+  if (n >= 6700 && n <= 6799) return "Holding Companies & Investment";
+  // 7xxx-8xxx = services. 8000s mostly health/education.
+  if (n >= 8000 && n <= 8099) return "Health Care";
+  if (n >= 8200 && n <= 8299) return "Education";
+  if (n >= 7370 && n <= 7379) return "Software & IT Services";
+  if (n >= 7000 && n <= 7999) return "Consumer & Business Services";
+  if (n >= 8100 && n <= 8999) return "Professional Services";
+  if (n >= 9100 && n <= 9999) return "Public Administration";
+  return null;
+}
+
 function shapeRow(scan, ref, snap) {
   const close = Number(snap?.close ?? 0) || null;
   let dayPct = null;
@@ -205,10 +258,15 @@ function shapeRow(scan, ref, snap) {
   const todayC  = Number(techC.today_close);
   const pct50   = (Number.isFinite(todayC) && Number.isFinite(sma50)  && sma50  > 0) ? ((todayC - sma50)  / sma50)  * 100 : null;
   const pct200  = (Number.isFinite(todayC) && Number.isFinite(sma200) && sma200 > 0) ? ((todayC - sma200) / sma200) * 100 : null;
+  // SECTOR: prefer the real GICS sector from universe_snapshots; if absent,
+  // derive a coarse sector from the SIC code (so we don't show the same
+  // SIC description in both Sector AND Industry Group cells).
+  const snapSector = snap?.sector && String(snap.sector).trim() ? snap.sector : null;
+  const derivedSector = snapSector || sicCodeToSector(ref?.sic_code);
   return {
     ticker: scan.ticker,
     name: ref?.name || snap?.full_name || scan.ticker,
-    sector: snap?.sector || ref?.sic_description || "—",
+    sector: derivedSector || "—",
     ig: ref?.sic_description || "—",
     price: close,
     day_pct: dayPct,
@@ -431,29 +489,28 @@ function AnimatedCount({ value, durationMs = 900 }) {
 function FunnelCard({ totals, scanDate }) {
   const ts = scanDate ? new Date(`${scanDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · EOD" : "Pending";
 
-  // v5.1 fix (2026-05-10): Joe saw "3304 / 3304 / 3304" - identical counts in
-  // a "funnel" that was not narrowing. The total-US-listed row was failing
-  // silently when its query returned no count, so it fell back to the same
-  // 3304 as the row below it. Per the LESSONS rule "either trust the
-  // number or don't show it", that row is gone. The funnel now narrows
-  // honestly: scanned -> has-MT-score -> insufficient-data.
+  // v5.1 (e): real staged-funnel layout per Joe's UAT. The previous
+  // version was two bars and a dot, which doesn't read as a funnel.
+  // Now each stage names the GATE that produced its count.
   const u_v5     = totals?.universe_v5      || 0;
   const u_scored = totals?.scored_with_mt   || 0;  // mt_score IS NOT NULL
   const u_thin   = totals?.insufficient     || 0;  // band = "Insufficient Data"
-  const max = Math.max(1, u_v5);
-  const pct = (n) => Math.max(2, Math.min(100, Math.round(((n || 0) / max) * 100)));
 
-  const funnelSteps = [
-    { key: "universe_v5", count: u_v5,
-      label: "Scanned today",
-      tip: "Every US Common Stock and ADR with market cap >= $300M and last close > $5. The full universe we score every day." },
-    { key: "scored",      count: u_scored,
-      label: "Has MacroTilt score",
-      tip: "Names with at least 2 of 6 signals firing and combined weight >= 10% of the calibrated total. Only these get a numeric score and band." },
-    { key: "insufficient", count: u_thin,
-      label: "Insufficient signal coverage",
-      tip: "Names with only 1 signal firing or very thin coverage. The individual signal columns still show, but no composite score is computed.",
-      amber: true },
+  // Stages flow top-to-bottom. Each one names the gate the prior count
+  // had to clear to be counted here.
+  const stages = [
+    {
+      key: "universe_v5",
+      label: "Scan universe",
+      count: u_v5,
+      gate: "Common Stock + ADR · market cap >= $300M · last close > $5",
+    },
+    {
+      key: "scored",
+      label: "Cleared the coverage gate",
+      count: u_scored,
+      gate: "at least 2 of 6 signals firing AND >= 10% of calibrated weight",
+    },
   ];
 
   // Band tile config. Strong Buy / Strong Sell pulse to mark the actionable extremes.
@@ -487,33 +544,47 @@ function FunnelCard({ totals, scanDate }) {
         </span>
       </div>
 
-      {funnelSteps.map((s) => (
-        <div key={s.key} style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, padding: "7px 0" }}>
-          <Tooltip label={s.label} body={s.tip}>
-            <span style={{ fontSize: 12, color: "var(--text-2)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-              {s.label}
-              <span aria-hidden="true" style={{ width: 13, height: 13, borderRadius: "50%", border: "1px solid var(--text-dim)", color: "var(--text-dim)", fontSize: 9, display: "inline-flex", alignItems: "center", justifyContent: "center", lineHeight: 1 }}>i</span>
+      {/* Staged funnel — each row names the gate that produced its count. */}
+      {stages.map((s, i) => {
+        const isLast = i === stages.length - 1;
+        return (
+          <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+              <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 9.5, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)" }}>
+                {s.label}
+              </span>
+              <span style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontSize: 22, fontWeight: 700, lineHeight: 1, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
+                {s.count == null ? "—" : Number(s.count).toLocaleString()}
+              </span>
+            </div>
+            <span style={{ fontSize: 10.5, color: "var(--text-dim)", lineHeight: 1.4, fontStyle: "italic" }}>
+              {s.gate}
             </span>
-          </Tooltip>
-          <span style={{ flex: 1, height: 6, background: "var(--surface-3, var(--surface-2))", borderRadius: 999, overflow: "hidden", position: "relative" }}>
-            <span
-              style={{
-                display: "block",
-                height: "100%",
-                background: s.amber ? "var(--yellow, var(--accent))" : "var(--accent)",
-                borderRadius: 999,
-                width: s.count == null ? "0%" : `${pct(s.count)}%`,
-                transition: "width 1.2s cubic-bezier(0.22, 1, 0.36, 1)",
-              }}
-            />
-          </span>
-          <span style={{ flex: "0 0 auto", fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 13, fontWeight: 600, color: "var(--text)", minWidth: 50, textAlign: "right", fontVariantNumeric: "tabular-nums" }}>
-            {s.count == null ? "—" : Number(s.count).toLocaleString()}
-          </span>
-        </div>
-      ))}
+            {!isLast && (
+              <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "6px 0 2px", color: "var(--text-dim)", fontSize: 10, fontFamily: "var(--font-mono)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
+                <span aria-hidden="true">↓</span>
+                <span>gate</span>
+                <span style={{ flex: 1, height: 1, background: "var(--border-faint, var(--border))" }} />
+              </div>
+            )}
+          </div>
+        );
+      })}
 
-      <div style={{ height: 1, background: "var(--border-faint, var(--border))", margin: "12px 0 12px" }} />
+      {/* Side-note for the rows that failed the coverage gate. */}
+      <div style={{ marginTop: 10, padding: "8px 10px", borderRadius: 8, background: "var(--surface-3, var(--surface-2))", border: "1px solid var(--border-faint, var(--border))", display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
+        <span style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>
+          Insufficient signal coverage
+          <span style={{ display: "block", fontSize: 10, color: "var(--text-dim)", fontStyle: "italic" }}>
+            fewer than 2 signals OR less than 10% weight
+          </span>
+        </span>
+        <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 14, fontWeight: 600, color: "var(--text-2)", fontVariantNumeric: "tabular-nums" }}>
+          {u_thin == null ? "—" : Number(u_thin).toLocaleString()}
+        </span>
+      </div>
+
+      <div style={{ height: 1, background: "var(--border-faint, var(--border))", margin: "14px 0 12px" }} />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 6 }}>
         {bands.map((b) => (
@@ -539,9 +610,6 @@ function FunnelCard({ totals, scanDate }) {
         ))}
       </div>
 
-      <div style={{ marginTop: 14, paddingTop: 12, borderTop: "1px solid var(--border-faint, var(--border))", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.55 }}>
-        Strategy alpha vs SPY: <strong style={{ color: "var(--green-text, var(--green))" }}>+7.21 percentage points</strong> · Beats SPY <strong style={{ color: "var(--text)" }}>55.4%</strong> of weeks · Sharpe <strong style={{ color: "var(--text)" }}>3.00</strong> · 12-month backtest.
-      </div>
     </div>
   );
 }
@@ -580,12 +648,12 @@ function Hero({ totals, scanDate }) {
                 margin: 0,
               }}
             >
-              Every US stock, six signals, one score{" "}
+              Every US stock above $300M and $5, six signals, one score{" "}
               <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>— ranked top to bottom every day.</em>
             </h2>
           </div>
           <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--text-muted)", maxWidth: 720, marginTop: 8, margin: "8px 0 0" }}>
-            Every US-listed equity over $300 million in market cap is scored daily across six independent signals - insider buying, options flow, congress trades, technicals, analyst actions, short interest. The blended MacroTilt Score runs from -100 to +100 and sorts every name into one of five bands. Click any row for the full ticker dossier.
+            Every US-listed Common Stock and ADR with a market cap above $300 million and a share price above $5 is run through six independent signals - insider buying, options flow, congress trades, technicals, analyst actions, short interest. Names with at least two signals firing and 10% of the calibrated weight covered get a blended MacroTilt Score from -100 to +100 and one of five bands; the rest land in <strong style={{color: "var(--text-2)"}}>Insufficient Data</strong>. Click any row for the full ticker dossier.
           </p>
         </div>
         <FunnelCard totals={totals} scanDate={scanDate} />
@@ -658,7 +726,12 @@ function renderCell(row, key) {
     const display = titleCaseSector(v);
     return <span title={String(v || "")} style={{ display: "inline-block", maxWidth: 180, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom" }}>{display}</span>;
   }
-  if (key === "price") return <span>{Number.isFinite(Number(v)) ? `$${Number(v).toFixed(2)}` : <span style={{ color: "var(--text-dim)" }}>—</span>}</span>;
+  if (key === "price") {
+    // Number(null) === 0 quirk: must short-circuit on v == null first or
+    // every missing-close row would render as $0.00. (Joe caught this 5/10.)
+    if (v == null || !Number.isFinite(Number(v)) || Number(v) <= 0) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+    return <span>{`$${Number(v).toFixed(2)}`}</span>;
+  }
   if (key === "day_pct") {
     const formatted = fmtDay(v);
     if (formatted == null) return <span style={{ color: "var(--text-dim)" }}>—</span>;

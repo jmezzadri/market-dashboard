@@ -96,9 +96,10 @@ function SignalIntelligenceRail({
     const value = Number.isFinite(score)
       ? `${score > 0 ? "+" : ""}${score.toFixed(0)}`
       : "—";
-    const meta = sig.so_what
-      ? `${band} - ${sig.so_what}`
-      : band;
+    // v5.1 (e): Joe wants the so_what summary OUT of the tile header strip
+    // (was reading like a sentence-long header). The plain band label is
+    // enough at a glance; the full so_what stays inside the expanded panel.
+    const meta = band;
 
     // Format helpers.
     const fmtSub = (v) => {
@@ -201,8 +202,10 @@ function SignalIntelligenceRail({
     };
 
     // Signal display order + label + hover tooltip text.
-    // Tooltip uses the native title attribute -- zero infrastructure, hovers
-    // over the label cell.
+    // v5.1 (e): the native title attribute fires after ~1.5s of dwell and
+    // sometimes not at all -- Joe couldn't get tooltips to show in UAT.
+    // Switched to a React-controlled hover popover via the local
+    // HoverTip component below.
     const SIGNAL_ORDER = [
       { key: "insider",        label: "Insider buying",  tip: "Form 4 open-market buys and sells by company officers and directors. Highest-weighted signal -- best predictor in the backtest." },
       { key: "technicals",     label: "Technicals",      tip: "20-day Bollinger BandWidth, 14-day RSI, distance to 50-day moving average, 20-day relative volume." },
@@ -212,8 +215,10 @@ function SignalIntelligenceRail({
       { key: "short_interest", label: "Short interest",  tip: "Percent of float sold short and the cost-to-borrow trend. Calibration pending -- sparse coverage." },
     ];
 
-    // Cap-discount note for mega-caps -- now reads weights_used.insider
-    // directly so it matches the table column exactly.
+    // Cap-discount chip for mega-caps -- now reads weights_used.insider
+    // directly so it matches the table column exactly, AND uses the real
+    // Tip component (portal-rendered, fast hover) instead of the title
+    // attribute (slow OS-level tooltip that Joe couldn't get to fire).
     const liveInsiderW = Number(weights.insider);
     const showCapNote =
       Number.isFinite(capDisc) && capDisc < 0.999 && Number.isFinite(liveInsiderW);
@@ -222,11 +227,15 @@ function SignalIntelligenceRail({
         ? (mcap >= 1e12 ? `$${(mcap/1e12).toFixed(1)}T` : mcap >= 1e9 ? `$${(mcap/1e9).toFixed(0)}B` : `$${(mcap/1e6).toFixed(0)}M`)
         : "this cap";
       return (
-        <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-muted)",fontSize:11.5,lineHeight:1.45}}
-             title="At a $500M cap the insider weight is at full strength. By $50B it has dropped to half, and by $500B it is one-quarter. The freed weight is redistributed pro-rata to the other five signals so the total always sums to 100%.">
-          <b style={{color:"var(--text-2)"}}>Insider weight reduced to {(liveInsiderW * 100).toFixed(1)}% at {capStr}.</b>{" "}
-          Insider buys carry less information at larger market caps. Hover for the mechanism.
-        </div>
+        <Tip
+          label="Insider cap-discount mechanism"
+          def={"At a $500M cap the insider weight is at full strength. By $50B it has dropped to half, and by $500B it is one-quarter. The freed weight is redistributed pro-rata to the other five signals so the total always sums to 100%. Anchor: Lakonishok & Lee 2001 -- a $1M insider buy moves the dial at a $500M company but is rounding error at $500B."}
+        >
+          <span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 9px",borderRadius:999,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-2)",fontSize:11,lineHeight:1.3,cursor:"help",fontWeight:600}}>
+            Insider weight {(liveInsiderW * 100).toFixed(1)}% at {capStr}
+            <span style={{width:13,height:13,borderRadius:"50%",border:"1px solid var(--text-dim)",color:"var(--text-dim)",fontSize:9,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,fontWeight:400}}>i</span>
+          </span>
+        </Tip>
       );
     })() : null;
 
@@ -239,42 +248,195 @@ function SignalIntelligenceRail({
       </div>
     ) : null;
 
+    // v5.1 (e): the so_what plain-English summary that used to sit in the
+    // tile header (`band - so_what`) now lives inside the expanded panel,
+    // above the signals table. Joe wanted the header strip stripped down
+    // to just the band.
+    const soWhatLine = sig.so_what && band !== "Insufficient Data" ? (
+      <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-2)",fontSize:12,lineHeight:1.45,fontStyle:"italic"}}>
+        {sig.so_what}
+      </div>
+    ) : null;
+
+    // v5.1 (e): MT Signal tile is now just the COMPOSITE math (no per-signal
+    // "today's reading" -- that data lives in the dedicated Insider / Analyst /
+    // Short Interest / Technical Indicators / Unusual Flow tiles below).
+    // Joe rightly pointed out we had Technical Indicators + Unusual Flow as
+    // separate tiles AND were re-rendering the same data inside MT Signal,
+    // which made the tile look like a crammed catch-all.
     const detail = (
       <div style={{display:"flex",flexDirection:"column",gap:10,fontSize:12}}>
         {insufficientNote}
+        {soWhatLine}
         {capNote}
         <div>
-          <div style={{display:"grid",gridTemplateColumns:"140px 64px 64px 1fr",gap:8,padding:"3px 0",fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",borderBottom:"1px solid var(--border-faint, var(--border))"}}>
+          <div style={{display:"grid",gridTemplateColumns:"170px 80px 80px",gap:8,padding:"3px 0",fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",borderBottom:"1px solid var(--border-faint, var(--border))"}}>
             <span>Signal</span>
-            <span>Score</span>
-            <span>Weight</span>
-            <span>Today's reading</span>
+            <span style={{textAlign:"right"}}>Sub-score</span>
+            <span style={{textAlign:"right"}}>Weight</span>
           </div>
           {SIGNAL_ORDER.map((s, i) => {
             const sub = subs[s.key];
             const w   = weights[s.key];
             const subStr = fmtSub(sub);
-            const result = resultLine(s.key);
             const isLast = i === SIGNAL_ORDER.length - 1;
             return (
-              <div key={"sig"+i} style={{display:"grid",gridTemplateColumns:"140px 64px 64px 1fr",gap:8,alignItems:"baseline",padding:"6px 0",borderBottom: isLast ? "none" : "1px solid var(--border-faint, var(--border))"}}>
-                <span title={s.tip} style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.04em",color:"var(--text-2)",textTransform:"uppercase",fontWeight:600,cursor:"help",borderBottom:"1px dotted var(--text-dim)"}}>{s.label}</span>
-                <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)"}}>{subStr == null ? "—" : subStr}</span>
-                <span style={{color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontSize:11}}>{fmtWeight(w)}</span>
-                <span style={{color: result ? "var(--text)" : "var(--text-dim)", fontSize:11.5, lineHeight:1.4}}>
-                  {result || "no data"}
-                </span>
+              <div key={"sig"+i} style={{display:"grid",gridTemplateColumns:"170px 80px 80px",gap:8,alignItems:"baseline",padding:"6px 0",borderBottom: isLast ? "none" : "1px solid var(--border-faint, var(--border))"}}>
+                <Tip label={s.label} def={s.tip}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.04em",color:"var(--text-2)",textTransform:"uppercase",fontWeight:600,cursor:"help",borderBottom:"1px dotted var(--text-dim)"}}>{s.label}</span>
+                </Tip>
+                <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)",textAlign:"right"}}>{subStr == null ? "—" : subStr}</span>
+                <span style={{color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontSize:11,textAlign:"right"}}>{fmtWeight(w)}</span>
               </div>
             );
           })}
         </div>
-        <div style={{borderTop:"1px solid var(--border-faint, var(--border))",paddingTop:8,fontSize:11,color:"var(--text-muted)",lineHeight:1.5}}
-             title="Backtest period: 52 weekly Mondays through May 2026. Walk-forward calibration -- weights re-fit on the last 12 months only. Alpha measured on close-to-close 21-day returns.">
-          <b style={{color:"var(--text-2)"}}>Backtest:</b> Strong Buy band beats SPY 55% of weeks, +7.2pp alpha, Sharpe 3.0 vs SPY 2.9. Hover for window.
+        <div style={{fontSize:10.5,color:"var(--text-dim)",fontStyle:"italic",lineHeight:1.4}}>
+          Today's per-signal readings live in the dedicated tiles below (Insider Activity, Analyst Actions, Short Interest, Technical Indicators, Unusual Flow). Backtest stats and weight calibration live on the Methodology page.
         </div>
       </div>
     );
-    return { state, value, meta, detail };
+    return { state, value, meta, detail, _comps: comps, _subs: subs, _weights: weights };
+  })();
+
+  // ─── Dedicated per-signal tiles (v5.1 e) ────────────────────────────────
+  // Joe's UX complaint: Technical Indicators and Unusual Flow already exist
+  // as separate tiles; Insider / Analyst / Short Interest deserve the same
+  // treatment instead of being crammed into MacroTilt Signal. These three
+  // tiles read straight from mtSignal.diagnostic.scorer_components.
+  const sig = mtSignal;
+  const subsForTiles    = (sig && sig.sub_scores) || {};
+  const weightsForTiles = (sig && sig.weights_used) || {};
+  const compsForTiles   = (sig && sig.diagnostic && sig.diagnostic.scorer_components) || {};
+
+  const subStateColor = (v) => {
+    if (v == null || !Number.isFinite(Number(v))) return "neutral";
+    const n = Number(v);
+    if (n >=  50) return "green";
+    if (n >=  20) return "amber";
+    if (n <= -50) return "red";
+    if (n <= -20) return "amber";
+    return "neutral";
+  };
+  const fmtSubSimple = (v) => {
+    if (v == null || !Number.isFinite(Number(v))) return "—";
+    const n = Number(v);
+    return `${n > 0 ? "+" : ""}${n.toFixed(0)}`;
+  };
+  const fmtMoneyT = (n) => {
+    const x = Number(n);
+    if (!Number.isFinite(x) || x === 0) return null;
+    if (Math.abs(x) >= 1e9) return `$${(x/1e9).toFixed(1)}B`;
+    if (Math.abs(x) >= 1e6) return `$${(x/1e6).toFixed(1)}M`;
+    if (Math.abs(x) >= 1e3) return `$${(x/1e3).toFixed(0)}K`;
+    return `$${x.toFixed(0)}`;
+  };
+
+  // Insider Activity ----------------------------------------------------
+  const insiderTile = (() => {
+    if (!sig) return { state: "loading", value: "…", meta: "Loading insider signal", detail: null };
+    const c = compsForTiles.insider || {};
+    const sub = subsForTiles.insider;
+    const w   = weightsForTiles.insider;
+    const buys  = Number(c.buy_count || 0);
+    const sells = Number(c.sell_count || 0);
+    if (sub == null && buys === 0 && sells === 0) {
+      return { state: "neutral", value: "—", meta: "No Form 4 activity in the recent window", detail: null };
+    }
+    const value = fmtSubSimple(sub);
+    const buy$  = fmtMoneyT(c.buy_dollar_total);
+    const sell$ = fmtMoneyT(c.sell_dollar_total);
+    const bullets = [];
+    if (buys)  bullets.push(`${buys} buy${buys===1?"":"s"}${buy$  ? ` (${buy$})`  : ""}`);
+    if (sells) bullets.push(`${sells} sell${sells===1?"":"s"}${sell$ ? ` (${sell$})` : ""}`);
+    if (c.first_buy_fires) bullets.push("first buy in 12 months");
+    const meta = bullets.length ? bullets.join(" · ") : "no Form 4 events";
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Buys</span><span style={{textAlign:"right"}}>{buys}{buy$  ? ` (${buy$})`  : ""}</span>
+        <span style={{color:"var(--text-muted)"}}>Sells (ex-10b5-1)</span><span style={{textAlign:"right"}}>{sells}{sell$ ? ` (${sell$})` : ""}</span>
+        <span style={{color:"var(--text-muted)"}}>First buy in 12 months?</span><span style={{textAlign:"right"}}>{c.first_buy_fires ? "yes" : "no"}</span>
+        {c.buy_bps_of_mcap != null && (
+          <><span style={{color:"var(--text-muted)"}}>Buy $ as bps of mkt cap</span><span style={{fontFamily:"var(--font-mono)",textAlign:"right"}}>{Number(c.buy_bps_of_mcap).toFixed(2)} bps</span></>
+        )}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Source: SEC EDGAR Form 4, last 30 days. Sells are filtered to remove 10b5-1 routine plan disposals.
+        </span>
+      </div>
+    );
+    return { state: subStateColor(sub), value, meta, detail };
+  })();
+
+  // Analyst Actions -----------------------------------------------------
+  const analystTile = (() => {
+    if (!sig) return { state: "loading", value: "…", meta: "Loading analyst signal", detail: null };
+    const c = compsForTiles.analyst || {};
+    const sub = subsForTiles.analyst;
+    const w   = weightsForTiles.analyst;
+    const n   = Number(c.action_count || 0);
+    if (sub == null && n === 0) {
+      return { state: "neutral", value: "—", meta: "No analyst actions in last 90 days", detail: null };
+    }
+    const value = fmtSubSimple(sub);
+    const gap = c.pt_gap_pct;
+    const bullets = [];
+    if (n) bullets.push(`${n} action${n===1?"":"s"} in 90d`);
+    if (gap != null && Number.isFinite(Number(gap))) bullets.push(`target ${Number(gap)>=0?"+":""}${Number(gap).toFixed(0)}% vs spot`);
+    const meta = bullets.length ? bullets.join(" · ") : "no analyst signal";
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Actions in last 90d</span><span style={{textAlign:"right"}}>{n}</span>
+        {c.spot != null && <><span style={{color:"var(--text-muted)"}}>Spot</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>${Number(c.spot).toFixed(2)}</span></>}
+        {c.avg_target != null && <><span style={{color:"var(--text-muted)"}}>Avg price target</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>${Number(c.avg_target).toFixed(2)}</span></>}
+        {gap != null && Number.isFinite(Number(gap)) && (
+          <><span style={{color:"var(--text-muted)"}}>Target vs spot</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)",fontWeight:600,color:Number(gap)>0?"var(--green-text,var(--green))":Number(gap)<0?"var(--red-text,var(--red))":"var(--text)"}}>{Number(gap)>=0?"+":""}{Number(gap).toFixed(1)}%</span></>
+        )}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Net upgrades minus downgrades, weighted by analyst tier; combined with the average price-target gap to spot.
+        </span>
+      </div>
+    );
+    return { state: subStateColor(sub), value, meta, detail };
+  })();
+
+  // Short Interest ------------------------------------------------------
+  const siTile = (() => {
+    if (!sig) return { state: "loading", value: "…", meta: "Loading short interest", detail: null };
+    const c = compsForTiles.short_interest || {};
+    const sub = subsForTiles.short_interest;
+    const w   = weightsForTiles.short_interest;
+    const siPct = c.latest_si_pct_of_float;
+    const ctb   = c.latest_ctb_pct;
+    const regime = c.regime;
+    if (sub == null && siPct == null && ctb == null) {
+      return { state: "neutral", value: "—", meta: "No short interest data", detail: null };
+    }
+    const value = fmtSubSimple(sub);
+    const bullets = [];
+    if (siPct != null) bullets.push(`${Number(siPct).toFixed(1)}% of float short`);
+    if (ctb   != null) bullets.push(`cost-to-borrow ${Number(ctb).toFixed(1)}%`);
+    if (regime) bullets.push(String(regime).replace(/_/g, " "));
+    const meta = bullets.length ? bullets.join(" · ") : "no short interest signal";
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        {siPct != null && <><span style={{color:"var(--text-muted)"}}>% of float short (latest)</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(siPct).toFixed(1)}%</span></>}
+        {c.prev_si_pct_of_float != null && <><span style={{color:"var(--text-muted)"}}>% of float short (prior)</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(c.prev_si_pct_of_float).toFixed(1)}%</span></>}
+        {c.rising_si_pp != null && <><span style={{color:"var(--text-muted)"}}>Change in SI %</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(c.rising_si_pp) >= 0 ? "+" : ""}{Number(c.rising_si_pp).toFixed(2)}pp</span></>}
+        {ctb != null && <><span style={{color:"var(--text-muted)"}}>Cost-to-borrow</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(ctb).toFixed(2)}%</span></>}
+        {c.days_to_earnings != null && <><span style={{color:"var(--text-muted)"}}>Days to earnings</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(c.days_to_earnings)}</span></>}
+        {regime && <><span style={{color:"var(--text-muted)"}}>Regime</span><span style={{textAlign:"right"}}>{String(regime).replace(/_/g, " ")}</span></>}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Three regimes: high SI + rising cost-to-borrow above 50-SMA = bearish; high SI + cheap borrow into earnings = squeeze setup; falling SI + rising price = capitulation.
+        </span>
+      </div>
+    );
+    return { state: subStateColor(sub), value, meta, detail };
   })();
 
   const macroTile = (() => {
@@ -608,6 +770,9 @@ function SignalIntelligenceRail({
         <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:"0.14em"}}>click to expand</span>
       </div>
       <SignalCard title="MacroTilt Signal" {...mtSignalTile} ragColor={ragColor} />
+      <SignalCard title="Insider Activity" {...insiderTile} ragColor={ragColor} />
+      <SignalCard title="Analyst Actions" {...analystTile} ragColor={ragColor} />
+      <SignalCard title="Short Interest" {...siTile} ragColor={ragColor} />
       <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
         const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
         const fmtBeta = v => v == null ? "—" : v.toFixed(2);
