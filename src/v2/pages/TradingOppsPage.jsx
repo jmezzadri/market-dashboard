@@ -116,11 +116,7 @@ function loadColState() {
   } catch (e) { /* ignore */ }
 
   if (!saved) {
-    // v5.1 (2026-05-10): default filter is "actionable" - Strong Buy +
-    // Watch Buy + Watch Sell + Strong Sell - to keep the first render
-    // fast. Neutral and Insufficient Data are one click away via the
-    // filter chips.
-    return { order: [...COL_KEYS], visible: [...DEFAULT_VISIBLE], sort: { key: "score", dir: "desc" }, filter: "actionable" };
+    return { order: [...COL_KEYS], visible: [...DEFAULT_VISIBLE], sort: { key: "score", dir: "desc" }, filter: "actionable", colFilters: [] };
   }
   const order = (saved.order || []).filter(k => COL_KEYS.includes(k));
   COL_KEYS.forEach(k => { if (!order.includes(k)) order.push(k); });
@@ -131,6 +127,7 @@ function loadColState() {
     visible,
     sort: saved.sort || { key: "score", dir: "desc" },
     filter: saved.filter || "all",
+    colFilters: Array.isArray(saved.colFilters) ? saved.colFilters : [],
   };
 }
 
@@ -835,6 +832,10 @@ export default function TradingOppsPage({ onOpenTicker }) {
   const [searchQ, setSearchQ] = useState("");
   const [colMenuOpen, setColMenuOpen] = useState(false);
   const [extraRows, setExtraRows] = useState([]);
+  // v5.4 (item 3): filter-panel state.
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const filterPanelRef = useRef(null);
+  const [draftFilter, setDraftFilter] = useState({ key: "score", op: ">", value: "" });
   const colMenuRef = useRef(null);
   const dragKeyRef = useRef(null);
 
@@ -843,6 +844,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
   useEffect(() => {
     const onDoc = (e) => {
       if (colMenuRef.current && !colMenuRef.current.contains(e.target)) setColMenuOpen(false);
+      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target)) setFilterPanelOpen(false);
     };
     document.addEventListener("click", onDoc);
     return () => document.removeEventListener("click", onDoc);
@@ -852,22 +854,58 @@ export default function TradingOppsPage({ onOpenTicker }) {
 
   const filtered = useMemo(() => {
     const q = searchQ.toLowerCase().trim();
+    // v5.4 item 3: column filters (in addition to the band pills + search).
+    // Each colFilter = { id, key, op, value }.
+    //   op = ">", ">=", "<", "<=", "=", "!=", "contains"
+    //   For string columns, contains uses lower-case substring match.
+    const colFilters = Array.isArray(colState.colFilters) ? colState.colFilters : [];
+    const matchOne = (row, f) => {
+      const v = row[f.key];
+      if (v == null) return false;
+      if (f.op === "contains") {
+        return String(v).toLowerCase().includes(String(f.value).toLowerCase());
+      }
+      const nA = Number(v);
+      const nB = Number(f.value);
+      if (Number.isFinite(nA) && Number.isFinite(nB)) {
+        switch (f.op) {
+          case ">":  return nA >  nB;
+          case ">=": return nA >= nB;
+          case "<":  return nA <  nB;
+          case "<=": return nA <= nB;
+          case "=":  return nA === nB;
+          case "!=": return nA !== nB;
+        }
+      }
+      // String fallback for "=" / "!="
+      if (f.op === "=")  return String(v).toLowerCase() === String(f.value).toLowerCase();
+      if (f.op === "!=") return String(v).toLowerCase() !== String(f.value).toLowerCase();
+      return false;
+    };
     return allRows.filter(r => {
       if (q && !(r.ticker || "").toLowerCase().includes(q) && !(r.name || "").toLowerCase().includes(q)) return false;
+      // Band-chip filter (existing).
+      let bandOK = true;
       switch (colState.filter) {
-        case "actionable":   return r.band === "Strong Buy" || r.band === "Watch Buy" || r.band === "Watch Sell" || r.band === "Strong Sell";
-        case "strong_buy":   return r.band === "Strong Buy";
-        case "watch_buy":    return r.band === "Watch Buy";
-        case "neutral":      return r.band === "Neutral";
-        case "watch_sell":   return r.band === "Watch Sell";
-        case "strong_sell":  return r.band === "Strong Sell";
-        case "held":         return r.band !== null; // placeholder - "Held" filter is wired by portfolio overlay (out of v5 scope)
-        case "watchlist":    return r.band !== null; // placeholder - "Watchlist" filter is wired elsewhere
+        case "actionable":   bandOK = r.band === "Strong Buy" || r.band === "Watch Buy" || r.band === "Watch Sell" || r.band === "Strong Sell"; break;
+        case "strong_buy":   bandOK = r.band === "Strong Buy"; break;
+        case "watch_buy":    bandOK = r.band === "Watch Buy"; break;
+        case "neutral":      bandOK = r.band === "Neutral"; break;
+        case "watch_sell":   bandOK = r.band === "Watch Sell"; break;
+        case "strong_sell":  bandOK = r.band === "Strong Sell"; break;
+        case "held":         bandOK = r.band !== null; break; // placeholder
+        case "watchlist":    bandOK = r.band !== null; break; // placeholder
         case "all":
-        default: return true;
+        default: bandOK = true;
       }
+      if (!bandOK) return false;
+      // Column filters (all must pass).
+      for (const f of colFilters) {
+        if (!matchOne(r, f)) return false;
+      }
+      return true;
     });
-  }, [allRows, searchQ, colState.filter]);
+  }, [allRows, searchQ, colState.filter, colState.colFilters]);
 
   const sorted = useMemo(() => {
     const k = colState.sort.key;
@@ -903,6 +941,11 @@ export default function TradingOppsPage({ onOpenTicker }) {
   };
 
   const setFilter = (f) => setColState(s => ({ ...s, filter: f }));
+
+  // v5.4 (item 3): column filter helpers.
+  const addColFilter  = (f)  => setColState(s => ({ ...s, colFilters: [ ...(s.colFilters || []), { ...f, id: Date.now() + Math.random() } ] }));
+  const removeColFilter = (id) => setColState(s => ({ ...s, colFilters: (s.colFilters || []).filter(x => x.id !== id) }));
+  const clearColFilters = ()  => setColState(s => ({ ...s, colFilters: [] }));
 
   const toggleCol = (k) => {
     setColState(s => {
@@ -966,7 +1009,34 @@ export default function TradingOppsPage({ onOpenTicker }) {
       <Hero totals={totals} scanDate={scanDate} />
 
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", marginTop: 24, marginBottom: 16 }}>
+        {/* v5.4 (item 3): column-filter strip. Active filters render as
+            removable chips. "+ Add filter" opens a popover with column /
+            operator / value pickers. */}
+        {(colState.colFilters || []).length > 0 && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "10px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", marginTop: 24 }}>
+            <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginRight: 4 }}>
+              Filters
+            </span>
+            {(colState.colFilters || []).map(f => {
+              const c = COLUMNS.find(x => x.key === f.key);
+              return (
+                <span key={f.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 8px 4px 10px", borderRadius: 999, background: "var(--accent-soft, var(--surface-2))", border: "1px solid var(--border)", color: "var(--text-2)", fontSize: 11.5, fontFamily: "var(--font-ui)" }}>
+                  <span style={{ fontWeight: 600 }}>{c?.label || f.key}</span>
+                  <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>{f.op}</span>
+                  <span style={{ fontFamily: "var(--font-mono)" }}>{f.value}</span>
+                  <button type="button" onClick={() => removeColFilter(f.id)} aria-label="Remove filter"
+                    style={{ background: "transparent", border: 0, color: "var(--text-muted)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "0 2px" }}>×</button>
+                </span>
+              );
+            })}
+            <button type="button" onClick={clearColFilters}
+              style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", padding: "4px 10px", borderRadius: 999, fontSize: 11, cursor: "pointer", fontFamily: "var(--font-ui)" }}>
+              Clear all
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", marginTop: (colState.colFilters||[]).length > 0 ? 8 : 24, marginBottom: 16 }}>
           {filterChips.map(c => {
             const active = colState.filter === c.f;
             return (
@@ -1009,6 +1079,63 @@ export default function TradingOppsPage({ onOpenTicker }) {
               fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)",
             }}
           />
+
+          {/* v5.4 (item 3): + Filter popover. */}
+          <div ref={filterPanelRef} style={{ position: "relative", display: "inline-block" }}>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setFilterPanelOpen(o => !o); }}
+              style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-2)", padding: "6px 13px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "var(--font-ui)", display: "inline-flex", alignItems: "center", gap: 6 }}
+            >
+              + Filter
+              {(colState.colFilters || []).length > 0 && (
+                <span style={{ color: "var(--accent)", fontWeight: 600 }}>{colState.colFilters.length}</span>
+              )}
+            </button>
+            {filterPanelOpen && (
+              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.20))", padding: 12, zIndex: 50, width: 320 }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", paddingBottom: 8, borderBottom: "1px solid var(--border-faint, var(--border))", marginBottom: 10 }}>
+                  Add column filter
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                    Column
+                    <select value={draftFilter.key} onChange={e => setDraftFilter(d => ({ ...d, key: e.target.value }))}
+                      style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)" }}>
+                      {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                    </select>
+                  </label>
+                  <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                    Operator
+                    <select value={draftFilter.op} onChange={e => setDraftFilter(d => ({ ...d, op: e.target.value }))}
+                      style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)" }}>
+                      <option value=">">{`greater than (>)`}</option>
+                      <option value=">=">{`greater or equal (>=)`}</option>
+                      <option value="<">{`less than (<)`}</option>
+                      <option value="<=">{`less or equal (<=)`}</option>
+                      <option value="=">{`equals (=)`}</option>
+                      <option value="!=">{`not equal (!=)`}</option>
+                      <option value="contains">{`contains text`}</option>
+                    </select>
+                  </label>
+                  <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
+                    Value
+                    <input type="text" value={draftFilter.value}
+                      onChange={e => setDraftFilter(d => ({ ...d, value: e.target.value }))}
+                      onKeyDown={e => { if (e.key === "Enter" && draftFilter.value !== "") { addColFilter(draftFilter); setDraftFilter(d => ({ ...d, value: "" })); setFilterPanelOpen(false); } }}
+                      placeholder="e.g. 50, Technology"
+                      style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)", boxSizing: "border-box" }} />
+                  </label>
+                  <button type="button"
+                    disabled={draftFilter.value === ""}
+                    onClick={() => { addColFilter(draftFilter); setDraftFilter(d => ({ ...d, value: "" })); setFilterPanelOpen(false); }}
+                    style={{ marginTop: 4, padding: "8px 12px", borderRadius: 8, background: draftFilter.value === "" ? "var(--surface-2)" : "var(--accent)", border: "1px solid var(--accent)", color: draftFilter.value === "" ? "var(--text-dim)" : "var(--surface)", fontSize: 12, fontFamily: "var(--font-ui)", cursor: draftFilter.value === "" ? "default" : "pointer", fontWeight: 600 }}>
+                    Apply
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
 
           <div ref={colMenuRef} style={{ position: "relative", display: "inline-block" }}>
             <button
