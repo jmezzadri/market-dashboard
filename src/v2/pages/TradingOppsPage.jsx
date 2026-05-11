@@ -718,7 +718,19 @@ function BandPill({ value }) {
 }
 
 function SubScoreCell({ value }) {
-  if (value == null || !Number.isFinite(Number(value))) return <span style={{ color: "var(--text-dim)" }}>—</span>;
+  // v5.3: distinguish "data missing for this name" (null -> n/a, italic +
+  // amber dot) from "data fetched, score is exactly zero / quiet" (0 ->
+  // plain "0" in normal text). Joe's call: "0 = we checked and there is
+  // no insider buys/sells; — = we don't have the data."
+  if (value == null || !Number.isFinite(Number(value))) {
+    return (
+      <span style={{ color: "var(--text-dim)", fontStyle: "italic", display: "inline-flex", alignItems: "center", gap: 4 }}
+            title="No data for this signal on this name today (pipeline gap)">
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--yellow, #b89000)", opacity: 0.7 }} aria-hidden="true" />
+        n/a
+      </span>
+    );
+  }
   const n = Number(value);
   const color = n >=  50 ? "var(--green-text, var(--green))"
               : n >=  20 ? "var(--yellow-text, var(--text))"
