@@ -714,3 +714,25 @@ the sub-composite check.
 **What you should do instead:** When wrapping up shipped work and asking Joe to validate, the response is "open page X, click button Y, expect to see Z." Forbidden in UAT instructions: PR / issue / commit numbers, commit hashes, env var names, API endpoint paths, API field names, time SLAs in hours, words like "endpoint / route / handler / RPC / blob / tree / OCC / NBBO." Bug numbers (#1181, etc.) are fine because they're visible in the bug UI. Internal engineering chatter (Senior Quant signed off, etc.) can stay in the lead-in, but the actual "what to test" block must be readable by someone who has never opened a developer tool.
 
 **Applies to:** All response wrap-ups where Joe is being asked to verify shipped work on macrotilt.com.
+
+---
+
+## 2026-05-11 — Negative position value has multiple meanings; don't collapse them into one bucket
+
+**What happened:** The Portfolio Insights allocation rollup classified every
+position with `value < 0` as "Margin Debt". A sold-short LUNR $35 call
+(qty -10 × $142.50 mark = -$1,425) got labeled as borrowed cash. Joe
+correctly flagged that he has no margin debt — it was an open option
+obligation, structurally different from borrowed cash.
+
+**What you should do instead:** Whenever the data model permits negative
+values for structurally different reasons (margin borrowing, short equity,
+short options, accrued obligations, manual adjustments), the bucketing
+logic must dispatch on the *kind* of row, not just the sign. Specifically:
+switch on `assetClass` + `direction` + `sector` before falling into a
+default liability bucket. When touching any "value < 0" branch, audit
+every other negative-value path in the same file for the same conflation.
+
+**Applies to:** All allocation / rollup / aggregation logic — App.jsx
+assetRollup, account cash chips, any new tile that summarizes book NAV.
+
