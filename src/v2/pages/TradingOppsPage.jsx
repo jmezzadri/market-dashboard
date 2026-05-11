@@ -306,19 +306,35 @@ function shapeRow(scan, ref, snap) {
   };
 }
 
-function useScanData() {
-  const [state, setState] = useState({
-    rows: [],
-    scanDate: null,
-    loading: true,
-    error: null,
-    totals: { massive_total: null, universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 },
-  });
+// ── In-session cache for the scan data ────────────────────────────────────
+// The Trading Opps fetch costs ~9 Supabase round trips (latest_scan_date +
+// paginated scan rows + paginated ticker_state_current + the ticker_reference
+// count). On every fresh mount that's 2-4s. By caching the resolved state at
+// module scope, re-entering /#portopps paints instantly from cache, then
+// background-refreshes if the cache is older than CACHE_FRESH_MS.
+//
+// Cache shape:
+//   _scanCache.state         — the same state object useScanData returns
+//   _scanCache.fetchedAt     — ms epoch of last successful fetch (0 = never)
+//   _scanCache.pending       — Promise of an in-flight fetch (null otherwise)
+//   _scanCache.subscribers   — Set<setState> of mounted hooks to notify on update
+const CACHE_FRESH_MS = 5 * 60 * 1000; // 5 minutes
+const _EMPTY_TOTALS = { massive_total: null, universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 };
+const _scanCache = {
+  state: null,
+  fetchedAt: 0,
+  pending: null,
+  subscribers: new Set(),
+};
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
+function _notifyScanSubscribers() {
+  for (const setter of _scanCache.subscribers) {
+    try { setter(_scanCache.state); } catch (_) { /* setter unmounted */ }
+  }
+}
+
+async function _fetchScanDataOnce() {
+  try {
         // 1. Latest scan date in v5
         const latestRes = await supabase
           .from("signal_intel_v5_daily")
@@ -327,8 +343,10 @@ function useScanData() {
           .limit(1);
         const latest = latestRes?.data?.[0]?.scan_date;
         if (!latest) {
-          if (!cancelled) setState(s => ({ ...s, loading: false }));
-          return;
+          _scanCache.state = { rows: [], scanDate: null, loading: false, error: null, totals: _EMPTY_TOTALS };
+          _scanCache.fetchedAt = Date.now();
+          _notifyScanSubscribers();
+          return _scanCache.state;
         }
 
         // 2. Pull ALL rows of today's scan via paginated range.
@@ -346,7 +364,6 @@ function useScanData() {
           scanRows = scanRows.concat(r.data);
           if (r.data.length < PAGE) break;
         }
-        if (cancelled) return;
 
         // 3. (v5.1 cleanup) Removed the "total US-listed equities" count
         //    query - it kept returning null and silently falling back to the
@@ -399,7 +416,6 @@ function useScanData() {
           });
         }
 
-        if (cancelled) return;
 
         const shaped = scanRows.map(s => shapeRow(s, refByT.get(s.ticker), snapByT.get(s.ticker)));
 
@@ -430,18 +446,53 @@ function useScanData() {
           strong_sell:  scanRows.filter(r => r.band === "Strong Sell").length,
         };
 
-        setState({
-          rows: shaped,
-          scanDate: latest,
-          loading: false,
-          error: null,
-          totals,
-        });
-      } catch (err) {
-        if (!cancelled) setState({ rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: { massive_total: null, universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 } });
-      }
-    })();
-    return () => { cancelled = true; };
+        _scanCache.state = { rows: shaped, scanDate: latest, loading: false, error: null, totals };
+        _scanCache.fetchedAt = Date.now();
+        _notifyScanSubscribers();
+        return _scanCache.state;
+  } catch (err) {
+    _scanCache.state = { rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: _EMPTY_TOTALS };
+    _scanCache.fetchedAt = Date.now();
+    _notifyScanSubscribers();
+    return _scanCache.state;
+  }
+}
+
+function _ensureScanData() {
+  if (_scanCache.pending) return _scanCache.pending;
+  _scanCache.pending = (async () => {
+    try {
+      const result = await _fetchScanDataOnce();
+      return result;
+    } finally {
+      _scanCache.pending = null;
+    }
+  })();
+  return _scanCache.pending;
+}
+
+function useScanData() {
+  // Initial state: serve from cache if we have one (even if stale — the
+  // background refresh below will replace it). Otherwise show loading.
+  const [state, setState] = useState(
+    _scanCache.state || { rows: [], scanDate: null, loading: true, error: null, totals: _EMPTY_TOTALS }
+  );
+
+  useEffect(() => {
+    _scanCache.subscribers.add(setState);
+    const now = Date.now();
+    const isFresh = _scanCache.state && (now - _scanCache.fetchedAt) < CACHE_FRESH_MS;
+    if (!_scanCache.state) {
+      // First-ever fetch (or after a failure that left state null)
+      _ensureScanData();
+    } else if (!isFresh) {
+      // Stale — kick a background refresh; cache is served from initial state
+      _ensureScanData();
+    }
+    // If fresh: nothing to do; cached state is already in `state`.
+    return () => {
+      _scanCache.subscribers.delete(setState);
+    };
   }, []);
 
   return state;
