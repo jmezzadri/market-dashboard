@@ -791,6 +791,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // values). This makes "click Custom Multi-Factor Shock" land you at
   // reality instead of zeros.
   const [readingsSeeded, setReadingsSeeded] = useState(false);
+  const [builderCollapsed, setBuilderCollapsed] = useState(false);
+  const currentReadingsZ = useMemo(() => indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])), [indicatorHistory]);
   useEffect(() => {
     if (readingsSeeded) return;
     if (!indicatorHistory) return;
@@ -812,7 +814,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     () => indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])),
     [indicatorHistory]
   );
-  const hasShock = (mode === "canned" && scenario) || Object.entries(effShocks).some(([f, v]) => Math.abs((v || 0) - (todayReadingsForShock[f] || 0)) > 0.05);
+  const hasShock = (mode === "canned" && scenario)
+    || (mode === "bespoke" && Object.entries(effShocks).some(([f, v]) => Math.abs((v || 0) - (todayReadingsForShock[f] || 0)) > 0.05));
   const sectorPcts = useMemo(() => sectorShocks(effShocks, horizon), [effShocks, horizon]);
 
   // Phase 2G — per-IG stress %. Same dot-product math as sectorShocks(), but
@@ -907,13 +910,17 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   }, [prop, indicatorHistory]);
 
   const onReset = useCallback(() => {
-    if (prop === "bespoke") {
-      setShocks(getCurrentReadings(indicatorHistory));
-    } else {
-      setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
-    }
+    // Full reset: clear mode, scenario, driver, AND restore sliders to
+    // today's live readings. Cycle Mechanism tile + downstream all return
+    // to default state. Previously onReset only cleared shocks/driver, so
+    // a Reset-after-canned-then-drag flow left the page in an in-between
+    // bespoke state with stress numbers still showing.
+    setMode("canned");
+    setScenario(null);
+    setProp("bespoke");
     setDriver(null);
-  }, [prop, indicatorHistory]);
+    setShocks(getCurrentReadings(indicatorHistory));
+  }, [indicatorHistory]);
 
   const horizonText = horizon === "1mo" ? "1-month" : horizon === "3mo" ? "3-month" : "6-month";
 
@@ -1021,28 +1028,58 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           </aside>
         </section>
 
-        {/* If user picked Custom, render the existing builder above the tables.
-            Builder UI preserved verbatim from prior implementation — calibrated factor sliders. */}
-        {/* Bespoke shock builder — always visible. Dragging any slider in canned mode auto-flips to bespoke. */}
+        {/* Bespoke shock builder — always rendered but collapsible.
+            Click the chevron to hide the 12 sliders when not in use. */}
         {(
           <div className="builder" style={{ marginBottom:20 }}>
             <div className="builder-row" style={{marginBottom:"var(--s-2)"}}>
-              <div className="builder-label">Propagation</div>
-              <div className="prop-toggle">
-                <button className={prop === "realistic" ? "active" : ""} onClick={onPropToggle}>Realistic (correlated)</button>
-                <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (independent)</button>
-              </div>
-              <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
-                <button className="reset-btn" onClick={onReset}>Reset</button>
-                <div className="builder-label">Horizon</div>
-                <div className="horizon-tabs">
-                  {["1mo","3mo","6mo"].map(h => (
-                    <button key={h} className={horizon === h ? "active" : ""} onClick={() => setHorizon(h)}>{h}</button>
-                  ))}
+              <button
+                onClick={() => setBuilderCollapsed(c => !c)}
+                aria-label={builderCollapsed ? "Expand bespoke shock builder" : "Collapse bespoke shock builder"}
+                style={{
+                  background: "var(--bg-2)",
+                  border: "1px solid var(--line-1)",
+                  borderRadius: "var(--r-sm)",
+                  cursor: "pointer",
+                  padding: "7px 14px",
+                  color: "var(--ink-0)",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontSize: 16, lineHeight: 1, color: "var(--accent)" }}>{builderCollapsed ? "▸" : "▾"}</span>
+                <span>{builderCollapsed ? "Show bespoke shock builder" : "Hide bespoke shock builder"}</span>
+              </button>
+              {!builderCollapsed && <div className="builder-label">Propagation</div>}
+              {!builderCollapsed && (
+                <div className="prop-toggle">
+                  <button className={prop === "realistic" ? "active" : ""} onClick={onPropToggle}>Realistic (correlated)</button>
+                  <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (independent)</button>
                 </div>
+              )}
+              <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
+                {!builderCollapsed && <button className="reset-btn" onClick={onReset}>Reset</button>}
+                {!builderCollapsed && <div className="builder-label">Horizon</div>}
+                {!builderCollapsed && (
+                  <div className="horizon-tabs">
+                    {["1mo","3mo","6mo"].map(h => (
+                      <button key={h} className={horizon === h ? "active" : ""} onClick={() => setHorizon(h)}>{h}</button>
+                    ))}
+                  </div>
+                )}
+                {builderCollapsed && (() => {
+                  const shocked = FACTOR_IDS.filter(fid => Math.abs((effShocks[fid] || 0) - (currentReadingsZ?.[fid] || 0)) > 0.05);
+                  if (!shocked.length) return <span style={{ fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-2)" }}>No active shocks · sliders at today\u2019s readings</span>;
+                  const summary = shocked.slice(0,3).map(f => `${(FACTORS.find(x=>x.id===f)?.name || f)} ${effShocks[f] >= 0 ? "+" : ""}${effShocks[f].toFixed(1)}\u03c3`).join(" \u00b7 ");
+                  return <span style={{ fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-1)", fontWeight:600 }}>{shocked.length} factor{shocked.length === 1 ? "" : "s"} shocked \u00b7 {summary}{shocked.length > 3 ? ` + ${shocked.length - 3} more` : ""}</span>;
+                })()}
               </div>
             </div>
-            <div className="sliders">
+            {!builderCollapsed && <div className="sliders">
               {FACTOR_IDS.map(fid => {
                 // FACTORS is an ARRAY of {id,name,min,max,step} — not a lookup
                 // map — so FACTORS[fid] returns undefined for a string fid.
@@ -1065,8 +1102,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                   </div>
                 );
               })}
-            </div>
-            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: every slider is independent — drag any one and only that factor moves. Sliders start at today's live reading; the coherence indicator below flags combinations that haven't shown up together historically."}</div>
+            </div>}
+            {!builderCollapsed && <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: every slider is independent — drag any one and only that factor moves. Sliders start at today’s live reading; the coherence indicator below flags combinations that haven’t shown up together historically."}</div>}
           </div>
         )}
 
@@ -1429,7 +1466,12 @@ function CycleMechanismScenarioResultsTable({
     () => indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])),
     [indicatorHistory]
   );
-  const hasShock = (mode === "canned" && scenarioName) || (effShocks && Object.entries(effShocks).some(([f, v]) => Math.abs((v || 0) - (tileTodayReadings[f] || 0)) > 0.05));
+  // hasShock = active scenario OR bespoke-mode delta-from-today.
+  // In canned mode WITHOUT a scenario, getEffectiveShocks returns zeros
+  // (not today's readings), so a raw delta-from-today check incorrectly
+  // flags it as shocked. Gate by mode to fix.
+  const hasShock = (mode === "canned" && scenarioName)
+    || (mode === "bespoke" && effShocks && Object.entries(effShocks).some(([f, v]) => Math.abs((v || 0) - (tileTodayReadings[f] || 0)) > 0.05));
 
   if (!cycleV2) {
     return (
