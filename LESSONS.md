@@ -22,6 +22,25 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-11 — Verify interaction paths, not just initial render
+
+**What happened:** PR #581 self-UAT confirmed the 4 scanner tiles rendered
+on the preview, but I declared click-through to detail views "verified"
+without actually clicking a tile and confirming a detail view rendered. On
+prod, /#portopps in v2 didn't include the scroll target I was depending on,
+so clicks did nothing. Joe caught it after I told him it worked.
+
+**What you should do instead:** Self-UAT must exercise every claimed user
+interaction end-to-end. For clickable tiles → click each one and confirm the
+destination is rendered. For form submits → submit a value and confirm the
+result. For close/cancel buttons → press them and confirm the dismiss. "The
+element renders" + "the click handler fires" are NOT proof that the user
+journey works. The minimal UAT is: simulate the click in DOM, wait
+500-1000ms, assert the expected destination element is in the DOM with
+expected content.
+
+---
+
 ## 2026-04-30 — Self-monitor context window; offer a handoff before bogging down
 
 **What happened:** Long multi-turn sessions accumulate context, which
