@@ -6540,29 +6540,77 @@ return(
 </div>
 )}
 {showInsights&&portfolioAuthed&&(()=>{
+  // Portfolio Insights hero — two-col layout mirroring Trading Opps /
+  // Macro Overview. Left: eyebrow + serif headline + italic accent +
+  // subtitle. Right: bordered "Key Statistics vs. S&P 500" card with
+  // 4 stats — Total Wealth, TTM Performance, Portfolio Beta, Portfolio
+  // Sharpe — each carrying an S&P comparison line below the value.
   const _ttm = _portfolioReturns?.periodReturns?.TTM;
   const _ttmPct = _ttm!=null ? `${_ttm>=0?"+":""}${(_ttm*100).toFixed(1)}%` : "—";
   const _sharpe = _portfolioSharpe?.sharpe;
   const _sharpeStr = _sharpe!=null ? _sharpe.toFixed(2) : "—";
   const _grandTotalK = grandTotal>=1000 ? `$${Math.round(grandTotal/1000).toLocaleString()}K` : `$${Math.round(grandTotal).toLocaleString()}`;
   const _acctCount = (ACCOUNTS||[]).length;
-  return <RichHero
-    eyebrow="Portfolio Insights"
-    freshChip={{indicatorId:"portfolio_history", asOfIso:_portfolioReturns?.latestDate||null}}
-    headline={"Your real book — "}
-    italicAccent={"with the model's risk lens."}
-    italicSub={`${_acctCount} account${_acctCount===1?"":"s"} · time-weighted returns · position-level alerts.`}
-    stance={`SIGNED IN · ${_acctCount} ACCOUNTS`}
-    stanceColor="strong"
-    freshLine={"Synced daily · positions sourced from your portfolio table"}
-    lead={`${ACCOUNTS.length} accounts · ${heldPositions.length} open positions · synced daily`}
-    kpis={[
-      {lbl:"Total wealth", v:_grandTotalK, sub:`across ${_acctCount} account${_acctCount===1?"":"s"}`},
-      {lbl:"TTM TWR", v:_ttmPct, col:_ttm!=null && _ttm>=0?"var(--green-text)":_ttm!=null?"var(--red-text)":"var(--text)", sub:"flows netted out"},
-      {lbl:"Sharpe ratio", v:_sharpeStr, sub:"vs 5% T-bill"},
-      {lbl:"Portfolio beta", v:portBeta!=null?portBeta.toFixed(2):"—", col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)", sub:"weighted by $"},
-    ]}
-  />;
+  // S&P TTM via existing helper, anchored to portfolio's latest date.
+  const _latestDate = _portfolioReturns?.latestDate || null;
+  const _spyRet = (_spxHistory && _latestDate) ? computeSpyReturns(_spxHistory, _latestDate) : null;
+  const _spyTtm = _spyRet?.TTM;
+  const _spyTtmStr = _spyTtm!=null ? `${_spyTtm>=0?"+":""}${(_spyTtm*100).toFixed(1)}%` : "—";
+  // S&P Sharpe — same math as portfolio Sharpe (computePortfolioSharpe)
+  // applied to month-end SPX closes over the trailing 12 months. Apples-
+  // to-apples with the portfolio number above.
+  const _spySharpeStr = (()=>{
+    if (!Array.isArray(_spxHistory) || _spxHistory.length < 24) return "—";
+    const last = _spxHistory[_spxHistory.length - 1];
+    const lastT = new Date(last.d + "T00:00:00Z").getTime();
+    const cutoff = new Date(lastT - 365 * 86400000).toISOString().slice(0, 10);
+    const recent = _spxHistory.filter(p => p.d >= cutoff && p.spx > 0);
+    const byMonth = {};
+    for (const p of recent) byMonth[p.d.slice(0,7)] = p;  // keep last of month
+    const months = Object.values(byMonth).sort((a,b)=>a.d.localeCompare(b.d));
+    if (months.length < 12) return "—";
+    const s = computePortfolioSharpe(
+      months.map(m => ({as_of: m.d, nav: m.spx, contributions: 0, withdrawals: 0})),
+      0.05
+    );
+    return s?.sharpe!=null ? s.sharpe.toFixed(2) : "—";
+  })();
+  const cells = [
+    {lbl:"Total Wealth", v:_grandTotalK, sub:`${_acctCount} account${_acctCount===1?"":"s"}`},
+    {lbl:"TTM Performance", v:_ttmPct, sub:`S&P ${_spyTtmStr}`, col:_ttm!=null && _ttm>=0?"var(--green-text)":_ttm!=null?"var(--red-text)":"var(--text)"},
+    {lbl:"Portfolio Beta", v:portBeta!=null?portBeta.toFixed(2):"—", sub:"S&P 1.00", col:portBeta>1.3?"var(--orange-text)":portBeta<0.6?"var(--yellow-text)":"var(--text)"},
+    {lbl:"Portfolio Sharpe", v:_sharpeStr, sub:`S&P ${_spySharpeStr}`},
+  ];
+  return (
+    <section style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:36,alignItems:"start",marginBottom:32}}>
+      <div style={{minWidth:0}}>
+        <div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
+          Portfolio Insights
+          <FreshnessDot indicatorId="portfolio_history" asOfIso={_latestDate}/>
+        </div>
+        <h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 12px"}}>
+          Your portfolio and watchlist &ndash; <em style={{fontStyle:"italic",color:"var(--accent)",fontWeight:500}}>augmented with MacroTilt&rsquo;s signal intelligence.</em>
+        </h1>
+        <p style={{fontFamily:"var(--font-ui)",fontSize:16,color:"var(--text-2)",lineHeight:1.55,margin:"10px 0 0",maxWidth:720}}>
+          {_acctCount} account{_acctCount===1?"":"s"} &middot; {heldPositions.length} open position{heldPositions.length===1?"":"s"} &middot; synced daily. Time-weighted returns, position-level alerts, and the same scanner signals you see on Trading Opps applied to every name you own.
+        </p>
+      </div>
+      <aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 16px"}}>
+        <div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",textAlign:"center",marginBottom:12}}>
+          Key Statistics <span style={{color:"var(--text-dim)"}}>vs. S&amp;P 500</span>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {cells.map(c=>(
+            <div key={c.lbl} style={{textAlign:"center",padding:"10px 8px",border:"1px solid var(--border-faint)",borderRadius:8,background:"var(--surface-2)"}}>
+              <div style={{fontFamily:"var(--font-ui)",fontSize:10,color:"var(--text-muted)",letterSpacing:"0.06em",textTransform:"uppercase",marginBottom:4}}>{c.lbl}</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:20,fontWeight:700,color:c.col||"var(--text)",letterSpacing:"-0.01em",lineHeight:1.1}}>{c.v}</div>
+              <div style={{fontFamily:"var(--font-ui)",fontSize:10,color:"var(--text-dim)",marginTop:4,letterSpacing:"0.04em"}}>{c.sub}</div>
+            </div>
+          ))}
+        </div>
+      </aside>
+    </section>
+  );
 })()}
 {showTrading&&(()=>{
 const universeCount=Object.keys(scanData?.signals?.screener||{}).length;
@@ -6720,7 +6768,7 @@ return (<>
 {showInsights&&<div style={sectionPanel}>
 <div style={sectionHeader}>
 <span style={sectionTitleStyle}>ALLOCATION</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>${Math.round(grandTotal).toLocaleString()} · Beta {portBeta.toFixed(2)} · {heldPositions.length} positions</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{heldPositions.length} position{heldPositions.length===1?"":"s"}</span>
 </div>
 <div style={{padding:"12px 16px"}}>
 {ACCOUNTS.length===0?(
@@ -6733,68 +6781,55 @@ return (<>
   )
 ):<>
 
-{/* ALLOCATION (wealth bars) */}
+{/* ALLOCATION (per-class bar chart). Joe directive 2026-05-11: previous
+    stacked horizontal bar collapsed all six classes onto one row; this
+    rebuilds as one labeled bar per asset class, sorted by $ value
+    descending. Bar width is proportional to the class's value relative
+    to the largest class (max-scaled) so dominant holdings read clearly.
+    Margin debt / shorts (negative values) render as muted rows with the
+    signed value and no bar drawn. % is computed against gross (sum of
+    positive values) so positives sum to 100%. */}
 <div style={subPanelOuter}>
-<div style={subPanelHeader}>
-<span style={subPanelTitleStyle}>ALLOCATION</span>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>ASSET CLASS · BONDS / STOCKS / CASH SPLIT</span>
-</div>
 <div style={subPanelBody}>
 {(()=>{
-const ACCT_LABEL2={brokerage:"JPM Brokerage",k401:"401(k)",roth:"Roth IRA",hsa:"HSA","529s":"Scarlett 529","529e":"Ethan 529"};
-// Account rows in Supabase carry color=null for legacy users (pre-palette
-// migration). Without a fallback, WEALTH BY ACCOUNT bar slices render
-// transparent against the dark background and the bar looks empty.
-// Deterministic fallback by DB sort-order index so colors don't flip on
-// the value-sorted acctData re-sort below.
-const ACCT_PALETTE=["#4a6fa5","var(--yellow)","var(--accent)","#a855f7","#B8860B","#6366f1","#64748b","var(--text-muted)"];
-const acctData=ACCOUNTS.map((acc,i)=>{
-const t=acc.positions.reduce((a,p)=>a+p.value,0);
-return{id:acc.id,name:ACCT_LABEL2[acc.id]||acc.label,color:acc.color||ACCT_PALETTE[i%ACCT_PALETTE.length],value:t};
-}).sort((a,b)=>b.value-a.value);
-const assetData=Object.entries(assetRollup).sort((a,b)=>b[1]-a[1]).map(([cls,val])=>(
-{id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val}
-));
-// Gross / net split. Negative values (margin debits, short positions) break
-// stacked-bar flex math — `flex: -0.08` collapses every segment to minWidth
-// because CSS treats negative flex-grow as 0. We stack positives only and
-// compute segment % against GROSS (sum of positives) so the bar renders and
-// the slice labels sum to 100%. Liabilities still surface in the legend with
-// their signed value + signed % of gross so Joe sees the debit faithfully.
-// Header meta shows net (grandTotal) when it differs from gross.
-const renderBar2=(title,unit,segs,key)=>{
-const gross=segs.reduce((a,s)=>a+Math.max(0,s.value),0)||1;
-const net=segs.reduce((a,s)=>a+s.value,0);
-const hasLiab=segs.some(s=>s.value<0);
-// When liabilities exist, count positive segments only for the class
-// count — debt is a liability row, not an asset class.
-const posCount=segs.filter(s=>s.value>0).length;
-const meta=hasLiab
-  ?`${posCount} ${unit} · ${fmt$K(gross)} gross · ${fmt$K(net)} net`
-  :`${segs.length} ${unit} · ${fmt$K(net)}`;
+const assetData=Object.entries(assetRollup)
+  .map(([cls,val])=>({id:cls,name:cls,color:rollupColors[cls]||"#5c6370",value:val}))
+  .sort((a,b)=>b.value-a.value);
+const gross=assetData.reduce((a,s)=>a+Math.max(0,s.value),0)||1;
+const net=assetData.reduce((a,s)=>a+s.value,0);
+const hasLiab=assetData.some(s=>s.value<0);
+const posCount=assetData.filter(s=>s.value>0).length;
+const maxPositive=Math.max(...assetData.map(s=>s.value),0)||1;
 return(
-<div key={key} style={{marginBottom:14}}>
-<div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:8}}>
-<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600}}>{title}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{meta}</span>
+<div>
+<div style={{display:"flex",justifyContent:"space-between",alignItems:"baseline",marginBottom:14}}>
+<span style={{fontSize:10,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.12em",fontWeight:600}}>ASSET CLASS MIX</span>
+<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{hasLiab?`${posCount} classes · ${fmt$K(gross)} gross · ${fmt$K(net)} net`:`${posCount} classes · ${fmt$K(net)}`}</span>
 </div>
-<div style={{display:"flex",height:10,borderRadius:6,overflow:"hidden",background:"var(--border-faint)",gap:2,marginBottom:10}}>
-{segs.filter(s=>s.value>0).map(s=>(<div key={s.id} title={`${s.name} · ${fmt$K(s.value)} · ${(s.value/gross*100).toFixed(1)}%`} style={{flex:s.value/gross,background:s.color,minWidth:2}}/>))}
+<div style={{display:"flex",flexDirection:"column",gap:10}}>
+{assetData.map(s=>{
+const isLiab=s.value<0;
+const pctOfGross=(s.value/gross)*100;
+const barPct=isLiab?0:Math.max(0,(s.value/maxPositive)*100);
+return(
+<div key={s.id} style={{display:"grid",gridTemplateColumns:"160px 1fr 150px",alignItems:"center",columnGap:14}} title={`${s.name} · ${fmt$K(s.value)} · ${pctOfGross.toFixed(1)}%`}>
+<div style={{display:"flex",alignItems:"center",gap:8,minWidth:0}}>
+<div style={{width:9,height:9,borderRadius:2,flexShrink:0,background:s.color,opacity:isLiab?0.4:1}}/>
+<span style={{fontSize:12,color:"var(--text)",fontWeight:500,whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis"}}>{s.name}</span>
 </div>
-<div style={{display:"flex",flexWrap:"wrap",rowGap:6,columnGap:18}}>
-{segs.map(s=>(
-<div key={s.id} style={{display:"flex",alignItems:"center",gap:7}}>
-<div style={{width:9,height:9,borderRadius:2,flexShrink:0,background:s.color,opacity:s.value<0?0.4:1}}/>
-<span style={{fontSize:12,color:"var(--text)",fontWeight:500}}>{s.name}</span>
-<span style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)"}}>{fmt$K(s.value)}</span>
-<span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>{(s.value/gross*100).toFixed(0)}%</span>
+<div style={{height:10,background:"var(--border-faint)",borderRadius:5,overflow:"hidden",position:"relative"}}>
+{!isLiab&&<div style={{height:"100%",width:`${barPct}%`,background:s.color,borderRadius:5,transition:"width 280ms ease-out"}}/>}
 </div>
-))}
+<div style={{display:"flex",justifyContent:"flex-end",alignItems:"baseline",gap:10,fontFamily:"var(--font-mono)"}}>
+<span style={{fontSize:12,color:isLiab?"var(--text-2)":"var(--text)",fontWeight:600}}>{fmt$K(s.value)}</span>
+<span style={{fontSize:11,color:"var(--text-dim)",minWidth:42,textAlign:"right"}}>{isLiab?`${pctOfGross.toFixed(1)}%`:`${pctOfGross.toFixed(0)}%`}</span>
 </div>
 </div>
 );
-};
-return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
+})}
+</div>
+</div>
+);
 })()}
 </div>
 </div>
@@ -6844,12 +6879,12 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
   />
 )}
 
-{/* NAV-OVER-TIME · TIME-WEIGHTED — Phase 3 PR #8. Inline SVG line chart of
-    aggregated portfolio NAV from portfolio_history (Modified Dietz aggregate
-    series). Optional SPY benchmark line rebased to the portfolio's first NAV
-    so the comparison is visual + apples-to-apples (both start at the same
-    point). No chart library — pure SVG to keep the bundle thin. */}
-{showInsights && _portfolioReturns?.aggregate && _portfolioReturns.aggregate.length >= 2 && (()=>{
+{/* NAV-OVER-TIME chart REMOVED 2026-05-11 per Joe directive. The line
+    chart added more visual noise than insight (axis scaling on small
+    accounts misled; aggregate-first TWR was already in the Key Stats
+    card). If you want the chart back, see commit history before
+    PR feature/ux-pi-cleanup-v2. */}
+{false && showInsights && _portfolioReturns?.aggregate && _portfolioReturns.aggregate.length >= 2 && (()=>{
   const agg = _portfolioReturns.aggregate;
   // Slim history → [{d, spx}] from composite_history_daily.json (already
   // pulled by the existing _spxHistory effect).
@@ -6935,11 +6970,12 @@ return renderBar2("ASSET CLASS MIX","classes",assetData,"asset");
   );
 })()}
 
-{/* REALIZED P&L · CLOSED TRADES — Phase 5A. 4 cards (YTD/1M/3M/Lifetime),
-    each shows total realized P&L; tooltip breaks short-term vs long-term.
-    Sourced from public.transactions.realized_pnl + is_long_term, windowed
-    on executed_at. Empty state if no closes yet. Insights tab only. */}
-{showInsights && portfolioAuthed && (() => {
+{/* REALIZED P&L · CLOSED TRADES REMOVED 2026-05-11 per Joe directive.
+    The four-card tile (YTD / 1M / 3M / Lifetime) duplicated information
+    already accessible in TradeHistorySection above (which lists every
+    closed trade with realized P&L on each row, plus CSV export). Keep
+    the underlying transactions math — it still powers Trade History. */}
+{false && showInsights && portfolioAuthed && (() => {
   const fmt$ = v => {
     const n = Math.round(v||0);
     const abs = Math.abs(n).toLocaleString();

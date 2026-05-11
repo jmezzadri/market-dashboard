@@ -46,6 +46,21 @@ import { Tip } from "../InfoTip";
 import TableColumnPicker from "./TableColumnPicker";
 import TableFootnote from "./TableFootnote";
 import { useTablePreferences } from "../hooks/useTablePreferences";
+import { computeSectionComposites, colorForDirection } from "../ticker/sectionComposites";
+
+// Trading Opps signal columns (technicals/insider/options/congress/
+// analyst/dark-pool sub-scores + OVR composite). Joe directive 2026-05-11:
+// surface the same scanner intelligence next to every owned name on the
+// Portfolio Insights position tables. Columns + scoring logic mirror the
+// Trading Opps watchlist exactly so OVR here = OVR on Trading Opps.
+const SIGNAL_COLS = [
+  { key: "technicals", short: "Technical",             long: "Technicals (25% of OVR)" },
+  { key: "insider",    short: "Insider",               long: "Insider Form-4 buys/sells (25%)" },
+  { key: "options",    short: "Options",               long: "Options flow (20%)" },
+  { key: "congress",   short: "Congress",              long: "Congressional trade disclosures (15%)" },
+  { key: "analyst",    short: "Analyst",               long: "Analyst ratings (10%)" },
+  { key: "darkpool",   short: "Dark Pool",             long: "Dark-pool prints (5%)" },
+];
 
 // ─── formatters ──────────────────────────────────────────────────────────────
 const fmt$Full = (v) =>
@@ -126,6 +141,20 @@ const betaColor = (v) =>
   : v > 1.5 ? "var(--red)"
   : v > 1.0 ? "var(--yellow)"
   : v > 0.5 ? "#B8860B" : "var(--green)";
+
+// Signal-section score cell — mirrors Trading Opps. Positive scores
+// render in the section's direction color (green/red); null renders as
+// muted em-dash. No tinting or pills here — the position rows are
+// already P&L-colored, layering more color noise would clutter them.
+function ScoreCell({ score, direction }) {
+  const col = score == null ? "var(--text-dim)" : colorForDirection(direction);
+  const display = score == null ? "—" : (score >= 0 ? "+" : "") + score;
+  return (
+    <span style={{ color: col, fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 600, fontSize: 12 }}>
+      {display}
+    </span>
+  );
+}
 
 function SortArrow({ dir }) {
   if (!dir) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
@@ -491,6 +520,54 @@ const COLUMNS = [
       );
     },
   },
+  // ── Trading Opps columns merged in 2026-05-11 (Joe directive). Same
+  // scoring + thresholds as the watchlist; OVR here matches OVR there
+  // for the same ticker on the same scan. ────────────────────────────
+  {
+    id: "ivRank",
+    label: "IV RANK",
+    description: "Implied volatility rank (0-100). Higher = richer option premium relative to this name's own 1-year range. Useful when sizing covered calls / short puts against existing positions.",
+    align: "right",
+    sortValue: (r) => r.ivRank,
+    renderCell: (r) => (
+      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+        {r.ivRank == null ? "—" : Number(r.ivRank).toFixed(1)}
+      </span>
+    ),
+  },
+  {
+    id: "week52",
+    label: "52W RANGE",
+    description: "52-week low / high. Quick gut-check on where the current price sits in its yearly range.",
+    align: "right",
+    sortValue: (r) => r.weekHigh,
+    renderCell: (r) => (
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
+        {r.weekLow != null && r.weekHigh != null
+          ? `$${Number(r.weekLow).toFixed(2)} – $${Number(r.weekHigh).toFixed(2)}`
+          : "—"}
+      </span>
+    ),
+  },
+  ...SIGNAL_COLS.map((c) => ({
+    id: c.key,
+    label: c.short.toUpperCase(),
+    description: c.long,
+    align: "center",
+    sortValue: (r) => r.sections?.[c.key]?.score ?? null,
+    renderCell: (r) => {
+      const s = r.sections?.[c.key] || {};
+      return <ScoreCell score={s.score} direction={s.direction} />;
+    },
+  })),
+  {
+    id: "overall",
+    label: "OVR",
+    description: "Overall composite (−100 bearish → +100 bullish). Weighted blend of all six signal sections. Same number you see on the Trading Opps screen.",
+    align: "center",
+    sortValue: (r) => r.overall?.score ?? null,
+    renderCell: (r) => <ScoreCell score={r.overall?.score} direction={r.overall?.direction} />,
+  },
   {
     // Pinned rightmost, always visible, never draggable.
     id: "actions",
@@ -512,17 +589,25 @@ const COLUMNS = [
 //
 // P&L cluster (Total Cost -> Current Value -> Total PNL $ -> PNL %) is
 // adjacent on purpose - those four columns tell the cost-basis story.
+// 2026-05-11 (Joe directive): Trading Opps signal columns now ride
+// next to the portfolio P&L block. OVR sits adjacent to actions so the
+// scanner's verdict is the last thing the eye lands on. Sub-section
+// scores (TECH / INSIDER / OPTIONS / CONGRESS / ANALYST / DARK POOL)
+// follow the OVR, plus IV RANK + 52W RANGE for option-overlay context.
 const DEFAULT_ORDER = [
   "ticker", "name", "quantity", "price", "avgCost", "pnlDay$", "pnlDayPct",
   "totalCost", "currentValue", "pnl$", "pnlPct",
   "purchaseDate", "holdingDays", "beta",
   "beta_2y", "annVol_2y", "maxDD_2y", "var10d99",
   "wealthPct", "account", "marketcap", "divYield", "nextEarnings",
+  "ivRank", "week52",
+  "technicals", "insider", "options", "congress", "analyst", "darkpool",
+  "overall",
   "actions",
 ];
 
-// Defaults-visible matches DEFAULT_ORDER. The rest (sector, annualizedPnl)
-// are still available via the picker.
+// Defaults-visible matches DEFAULT_ORDER. Sector + annualizedPnl remain
+// opt-in via the column picker.
 const DEFAULT_VISIBLE = [...DEFAULT_ORDER];
 
 // Default column widths (px) - used when user has not dragged a custom
@@ -555,11 +640,24 @@ const DEFAULT_WIDTHS = {
   marketcap:     100,
   divYield:      95,
   nextEarnings:  125,
+  ivRank:        85,
+  week52:        160,
+  technicals:    90,
+  insider:       85,
+  options:       85,
+  congress:      90,
+  analyst:       85,
+  darkpool:      95,
+  overall:       80,
   actions:       90,
 };
 
 export default function PositionsTable({
   rows, grandTotal, screener, info,
+  // 2026-05-11: full `scanData.signals` object — passed from caller so each
+  // row can compute the same OVR / sub-section scores users see on Trading
+  // Opps. Without it, signal cells render as em-dash but nothing crashes.
+  signals,
   onOpenTicker, emptyMessage,
   onAdd, onBulkImport, onRescan, onEdit, onClose, onDelete,
   rescanBusy, rescanProgress,
@@ -645,6 +743,31 @@ export default function PositionsTable({
 
       const nextEarnings = inf.next_earnings_date || sc.next_earnings_date || null;
 
+      // Trading Opps signal scores — same function the watchlist uses, so
+      // every OVR / sub-score on this row matches what shows up on the
+      // Trading Opps screen for the same ticker. Falls back to a null
+      // shape when `signals` isn't wired (e.g. caller hasn't passed it),
+      // which renders every signal cell as an em-dash rather than crash.
+      const composite = (signals
+        ? computeSectionComposites(T, { signals })
+        : null) || { sections: {}, overall: { score: null, direction: null } };
+      const sectionScores = {};
+      SIGNAL_COLS.forEach(c => {
+        const s = composite.sections?.[c.key];
+        sectionScores[c.key] = {
+          score:     s?.score ?? null,
+          direction: s?.direction ?? null,
+          note:      s?.note ?? null,
+        };
+      });
+
+      // Extended scanner fields available on every Trading Opps row:
+      // implied-vol rank, 52-week range. Pull from screener first, info
+      // as fallback.
+      const ivRank   = sc.iv_rank != null ? Number(sc.iv_rank) : (inf.iv_rank != null ? Number(inf.iv_rank) : null);
+      const weekLow  = sc.week_52_low  != null ? Number(sc.week_52_low)  : (inf.week_52_low  != null ? Number(inf.week_52_low)  : null);
+      const weekHigh = sc.week_52_high != null ? Number(sc.week_52_high) : (inf.week_52_high != null ? Number(inf.week_52_high) : null);
+
       return {
         ticker: T,
         name: p.name || "",
@@ -668,6 +791,12 @@ export default function PositionsTable({
         divYield,
         hasDividend,
         nextEarnings,
+        // Trading Opps fields merged in 2026-05-11.
+        sections: sectionScores,
+        overall:  { score: composite.overall?.score ?? null, direction: composite.overall?.direction ?? null },
+        ivRank,
+        weekLow,
+        weekHigh,
         // Item 41: asset-class carry-through for displayTicker + downstream filters.
         assetClass:   p.assetClass   || "stock",
         contractType: p.contractType || null,
@@ -680,7 +809,7 @@ export default function PositionsTable({
         _raw: p,
       };
     });
-  }, [rows, grandTotal, screenerMap, infoMap, _riskByTicker]);
+  }, [rows, grandTotal, screenerMap, infoMap, _riskByTicker, signals]);
 
   // ─── Sort state ────────────────────────────────────────────────────────────
   const [sortCol, setSortCol] = useState("wealthPct");

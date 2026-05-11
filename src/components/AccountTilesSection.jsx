@@ -237,7 +237,11 @@ export default function AccountTilesSection({
     gap: 12,
     transition: "transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease",
   });
-  const statsGrid = { display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 4, padding: "10px 0 8px", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" };
+  // Account tile stats — TTM Return + Sharpe only. Joe directive 2026-05-11:
+  // Beta was blank on most accounts and added noise; the sparkline auto-scale
+  // misled on small accounts. Tile reads cleaner as name → balance → 2 stats
+  // → cash row.
+  const statsGrid = { display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 4, padding: "10px 0 8px", borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" };
 
   return (
     <div style={wrap}>
@@ -281,14 +285,11 @@ export default function AccountTilesSection({
                 </span>
               </div>
 
-              {/* sparkline — hidden on small accounts where auto-scaling misleads */}
-              {t.nav >= 25000 && t.navSeries && t.navSeries.length >= 2 && (
-                <div style={{ margin: "0 -2px" }}>
-                  <Sparkline navSeries={t.navSeries} compact />
-                </div>
-              )}
+              {/* sparkline removed 2026-05-11 — Joe directive. Auto-scaling
+                  misled on small accounts; the line added no insight at
+                  this tile size. */}
 
-              {/* stats */}
+              {/* stats — TTM RETURN + SHARPE only. BETA dropped 2026-05-11. */}
               <div style={statsGrid}>
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.07em", marginBottom: 4 }}>TTM RETURN</div>
@@ -297,10 +298,6 @@ export default function AccountTilesSection({
                 <div style={{ textAlign: "center" }}>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.07em", marginBottom: 4 }}>SHARPE</div>
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 700, color: colorSharpe(t.sharpe) }}>{fmtNum(t.sharpe)}</div>
-                </div>
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-dim)", letterSpacing: "0.07em", marginBottom: 4 }}>BETA</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 15, fontWeight: 700, color: colorBeta(t.beta) }}>{fmtNum(t.beta)}</div>
                 </div>
               </div>
 
@@ -339,6 +336,7 @@ export default function AccountTilesSection({
             grandTotal={expanded.nav}
             screener={scanData?.signals?.screener || {}}
             info={scanData?.signals?.info || {}}
+            signals={scanData?.signals || null}
             tableKey={`positions-${expanded.id}`}
             onOpenTicker={onOpenTicker}
             emptyMessage="No open positions in this account."
