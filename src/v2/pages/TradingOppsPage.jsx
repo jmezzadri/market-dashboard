@@ -304,7 +304,7 @@ function useScanData() {
     scanDate: null,
     loading: true,
     error: null,
-    totals: { universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 },
+    totals: { massive_total: null, universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 },
   });
 
   useEffect(() => {
@@ -394,13 +394,23 @@ function useScanData() {
 
         const shaped = scanRows.map(s => shapeRow(s, refByT.get(s.ticker), snapByT.get(s.ticker)));
 
-        // 5. Funnel counts. v5.1 (2026-05-10):
-        //    - drop signal-coverage rows from the funnel (Joe found them
-        //      confusing - they showed numbers that didn't narrow)
-        //    - add scored_with_mt (mt_score IS NOT NULL) and insufficient
-        //      (band === "Insufficient Data") for the new 3-step funnel
+        // 5. Funnel counts.
+        // v5.1 (i): query the ALL-US-listed total from ticker_reference so
+        // the funnel starts at the real Polygon Massive count (~12,629)
+        // not the post-filter scan universe (3,304). Falls back to null
+        // when the count query fails so the funnel doesn't lie with a
+        // duplicate number.
+        let massiveTotal = null;
+        try {
+          const mt = await supabase
+            .from("ticker_reference")
+            .select("ticker", { count: "exact", head: true });
+          if (Number.isFinite(Number(mt?.count))) massiveTotal = Number(mt.count);
+        } catch (_) { /* leave null */ }
+
         const universeV5 = scanRows.length;
         const totals = {
+          massive_total:      massiveTotal,
           universe_v5:        universeV5,
           scored_with_mt:     scanRows.filter(r => r.mt_score != null && Number.isFinite(Number(r.mt_score))).length,
           insufficient:       scanRows.filter(r => r.band === "Insufficient Data").length,
@@ -419,7 +429,7 @@ function useScanData() {
           totals,
         });
       } catch (err) {
-        if (!cancelled) setState({ rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: { universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 } });
+        if (!cancelled) setState({ rows: [], scanDate: null, loading: false, error: err?.message || String(err), totals: { massive_total: null, universe_v5: null, scored_with_mt: 0, insufficient: 0, strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 } });
       }
     })();
     return () => { cancelled = true; };
@@ -509,21 +519,29 @@ function AnimatedCount({ value, durationMs = 900 }) {
 function FunnelCard({ totals, scanDate }) {
   const ts = scanDate ? new Date(`${scanDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · EOD" : "Pending";
 
-  // v5.1 (e): real staged-funnel layout per Joe's UAT. The previous
-  // version was two bars and a dot, which doesn't read as a funnel.
-  // Now each stage names the GATE that produced its count.
+  // v5.1 (i): start the funnel at the FULL Polygon Massive US-listed
+  // universe so Joe can see the real narrowing -- 12,629 down to 3,304
+  // down to 2,996. The prior version started at the post-filter scan
+  // universe (3,304), which read like "every US stock" -- not true.
+  const u_total  = totals?.massive_total    || null; // ~12,629
   const u_v5     = totals?.universe_v5      || 0;
-  const u_scored = totals?.scored_with_mt   || 0;  // mt_score IS NOT NULL
-  const u_thin   = totals?.insufficient     || 0;  // band = "Insufficient Data"
+  const u_scored = totals?.scored_with_mt   || 0;
+  const u_thin   = totals?.insufficient     || 0;
 
   // Stages flow top-to-bottom. Each one names the gate the prior count
   // had to clear to be counted here.
   const stages = [
     {
+      key: "massive_total",
+      label: "All US-listed equities",
+      count: u_total,
+      gate: "Polygon Massive: every Common Stock and ADR listed on US exchanges",
+    },
+    {
       key: "universe_v5",
-      label: "Scan universe",
+      label: "MacroTilt scan universe",
       count: u_v5,
-      gate: "Common Stock + ADR · market cap >= $300M · last close > $5",
+      gate: "filter: market cap >= $300M AND last close > $5",
     },
     {
       key: "scored",
@@ -668,12 +686,12 @@ function Hero({ totals, scanDate }) {
                 margin: 0,
               }}
             >
-              Every US stock above $300M and $5, six signals, one score{" "}
-              <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>— ranked top to bottom every day.</em>
+              Six signals. One score.{" "}
+              <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>Ranked top to bottom every day.</em>
             </h2>
           </div>
-          <p style={{ fontSize: 15, lineHeight: 1.5, color: "var(--text-muted)", maxWidth: 720, marginTop: 8, margin: "8px 0 0" }}>
-            Every US-listed Common Stock and ADR with a market cap above $300 million and a share price above $5 is run through six independent signals - insider buying, options flow, congress trades, technicals, analyst actions, short interest. Names with at least two signals firing and 10% of the calibrated weight covered get a blended MacroTilt Score from -100 to +100 and one of five bands; the rest land in <strong style={{color: "var(--text-2)"}}>Insufficient Data</strong>. Click any row for the full ticker dossier.
+          <p style={{ fontSize: 14, lineHeight: 1.5, color: "var(--text-muted)", maxWidth: 720, marginTop: 8, margin: "8px 0 0" }}>
+            Insider buying · options flow · congress trades · technicals · analyst actions · short interest. The universe filter and the coverage gate live in the funnel on the right. Click any row for the full dossier.
           </p>
         </div>
         <FunnelCard totals={totals} scanDate={scanDate} />
