@@ -2,6 +2,27 @@
   "_comment": "MacroTilt data element registry per project Data Steward standards. Every element on the site has source, ingestion mode, owner, cadence, freshness SLA, and registered consumers. Schema bootstrapped 2026-05-04 with the broker-import element; existing elements (FRED daily, Massive EOD, etc.) to be backfilled in subsequent Data Steward PRs.",
   "version": 1,
   "elements": {
+    "market.option-mark-uw": {
+      "category": "market",
+      "name": "Option contract mark (NBBO mid, per-contract)",
+      "sourcing_mode": "vendor_pull",
+      "source_vendor": "Unusual Whales — /api/option-contract/{OCC}/historic?limit=1",
+      "license_tier": "Massive (existing UW API access)",
+      "cadence": "daily, 16:30 ET weekdays (post-close mark) — driven by Vercel cron in vercel.json (schedule: 30 20 * * 1-5 UTC during EDT)",
+      "refresh_trigger": "Vercel cron hits /api/options-mark-batch with CRON_SECRET. Function pulls every open option position across all users, computes mark = (nbbo_bid + nbbo_ask) / 2 (fallback last_price), writes positions.price = mark * multiplier and positions.manual_price = mark.",
+      "freshness_sla_hours": 20,
+      "freshness_chip": "green if last refresh < 20h, amber 20-72h, red >72h or upstream failure",
+      "consumer_surfaces": [
+        "Portfolio Insights — every option row's CURRENT VALUE / unrealized P&L",
+        "TickerDetailModal — option positions in the HELD POSITIONS list",
+        "PositionEditor (option block) — CURRENT MARK / SHARE is now optional; live mark fills automatically after the next batch run"
+      ],
+      "ingestion_path": "Vercel serverless api/options-mark-batch.js -> UW historic endpoint -> Supabase positions table (service-role UPDATE).",
+      "dedup_strategy": "Idempotent UPDATE by position id; running twice in a row is safe and just overwrites with the same value.",
+      "failure_mode": "Per-position try/catch — one bad OCC symbol or one transient UW 429 does not take down the batch. Failed rows are accumulated into the response details[] for log inspection. Two consecutive failures across the batch should auto-file a P1 bug per project rule (TODO: wire alert).",
+      "owner": "Data Steward (ownership) + Lead Developer (operations)",
+      "first_shipped": "2026-05-11 (bug #1185)"
+    },
     "portfolio.transactions-broker-import": {
       "category": "portfolio",
       "name": "Broker transaction history (user-uploaded)",
