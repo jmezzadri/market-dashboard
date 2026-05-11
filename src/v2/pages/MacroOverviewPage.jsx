@@ -569,7 +569,7 @@ const SUB_META = {
   Credit: {
     num: '04', name: 'Credit', headline: 'market_stress', headlineLabel: 'Market Stress',
     captions: {
-      'r-on':  'Spreads sitting at extreme tights — investment-grade and high-yield haven't been this compressed since before 2008. Late-cycle signature.',
+      'r-on':  'Spreads sitting at extreme tights — investment-grade and high-yield have not been this compressed since before 2008. Late-cycle signature.',
       'r-neu': 'Credit spreads sitting around long-run averages. Neither pricing panic nor euphoria.',
       'r-cau': 'Spreads widening from prior tights — credit markets stepping back from peak risk appetite.',
       'r-off': 'Credit spreads in panic territory — high-yield OAS and IG/HY ratio both flashing dislocation.',
@@ -695,6 +695,7 @@ export default function MacroOverviewPage() {
                   <div style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 44, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>{compAvg ?? '—'}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-2)', letterSpacing: '.10em', marginLeft: 4 }}>/ 100</span></div>
                   <div style={{ fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>{compBand.label} band</div>
                 </div>
+              </div>
             </section>
           );
         })()}
