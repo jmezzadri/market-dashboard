@@ -42,6 +42,7 @@
 
 import { useMemo, useState } from "react";
 import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
+import useV5ScanBatch from "../hooks/useV5ScanBatch";
 import { Tip } from "../InfoTip";
 import TableColumnPicker from "./TableColumnPicker";
 import TableFootnote from "./TableFootnote";
@@ -568,6 +569,148 @@ const COLUMNS = [
     sortValue: (r) => r.overall?.score ?? null,
     renderCell: (r) => <ScoreCell score={r.overall?.score} direction={r.overall?.direction} />,
   },
+  // ── v5 Trading Opps columns merged in 2026-05-11 (Joe directive). These
+  // come from public.signal_intel_v5_daily — the live engine that powers
+  // the Trading Opps page. Numbers here match Trading Opps exactly for
+  // the same ticker on the same scan_date. ───────────────────────────────
+  {
+    id: "mt_score",
+    label: "MT SCORE",
+    description: "MacroTilt Score — weighted blend of six v5 signals (−100 bearish to +100 bullish). The live engine that powers Trading Opps.",
+    align: "center",
+    sortValue: (r) => r._v5?.mt_score ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.mt_score;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v >= 50 ? "var(--green-text, var(--green))" : v >= 20 ? "var(--green)" : v <= -50 ? "var(--red-text, var(--red))" : v <= -20 ? "var(--red)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: col, fontSize: 13 }}>{v >= 0 ? "+" : ""}{Number(v).toFixed(1)}</span>;
+    },
+  },
+  {
+    id: "band",
+    label: "BAND",
+    description: "Strong Sell / Sell Watch / Neutral / Buy Watch / Strong Buy. Cutoffs at MT Score −50, −20, +20, +50.",
+    align: "center",
+    sortValue: (r) => {
+      const order = { "Strong Sell": -2, "Sell Watch": -1, "Neutral": 0, "Buy Watch": 1, "Strong Buy": 2 };
+      return order[r._v5?.band] ?? null;
+    },
+    renderCell: (r) => {
+      const b = r._v5?.band;
+      if (!b) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = b === "Strong Buy" ? "var(--green-text, var(--green))" : b === "Buy Watch" ? "var(--green)" : b === "Sell Watch" ? "var(--red)" : b === "Strong Sell" ? "var(--red-text, var(--red))" : "var(--text-muted)";
+      return <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, color: col }}>{b}</span>;
+    },
+  },
+  {
+    id: "ig",
+    label: "INDUSTRY GROUP",
+    description: "GICS Industry Group (25 mid-level buckets). Derived from the ticker's SIC code via the same SIC→GICS mapping the Trading Opps page uses.",
+    align: "left",
+    sortValue: (r) => (r._v5?.ig || "").toLowerCase(),
+    renderCell: (r) => (
+      <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }} title={r._v5?.ig}>
+        {r._v5?.ig || "—"}
+      </span>
+    ),
+  },
+  {
+    id: "sub_short_interest",
+    label: "SHORT INT",
+    description: "Short Interest sub-score (−100 to +100). Rising SI + rising borrow cost above 50-day SMA = bearish; high SI + cheap borrow into earnings = bullish squeeze setup. Currently on equal-weight floor (16.7%) while history accrues.",
+    align: "center",
+    sortValue: (r) => r._v5?.sub_short_interest ?? null,
+    renderCell: (r) => <ScoreCell score={r._v5?.sub_short_interest} direction={r._v5?.sub_short_interest > 0 ? "bullish" : r._v5?.sub_short_interest < 0 ? "bearish" : null} />,
+  },
+  {
+    id: "rsi_14",
+    label: "RSI(14)",
+    description: "14-day Relative Strength Index. >70 conventionally overbought (red); <30 oversold (amber); 30–70 normal trend.",
+    align: "right",
+    sortValue: (r) => r._v5?.rsi_14 ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.rsi_14;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 70 ? "var(--red-text)" : v < 30 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(1)}</span>;
+    },
+  },
+  {
+    id: "bb_bw",
+    label: "BB BAND-WIDTH",
+    description: "Bollinger band-width as percent of the 20-day moving average. <5% = compression / squeeze (amber). >15% = expansion / trend in motion.",
+    align: "right",
+    sortValue: (r) => r._v5?.bb_bw ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.bb_bw;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v < 0.05 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(2)}%</span>;
+    },
+  },
+  {
+    id: "rvol_20d",
+    label: "RVOL (20d)",
+    description: "Today's volume divided by the 20-day average. ≥1.5× = unusual activity (green); <0.7× = quiet (amber); 1.0× = average.",
+    align: "right",
+    sortValue: (r) => r._v5?.rvol_20d ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.rvol_20d;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v >= 1.5 ? "var(--green-text)" : v < 0.7 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}×</span>;
+    },
+  },
+  {
+    id: "pct_50ma",
+    label: "% VS 50D MA",
+    description: "Today's close as a percent distance from the 50-day SMA. >+5% uptrend; <−5% downtrend; between = ranging.",
+    align: "right",
+    sortValue: (r) => r._v5?.pct_50ma ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.pct_50ma;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 5 ? "var(--green-text)" : v < -5 ? "var(--red-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
+    },
+  },
+  {
+    id: "pct_200ma",
+    label: "% VS 200D MA",
+    description: "Today's close as a percent distance from the 200-day SMA. >+10% strong long-term uptrend; <−10% downtrend; between = sideways.",
+    align: "right",
+    sortValue: (r) => r._v5?.pct_200ma ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.pct_200ma;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 10 ? "var(--green-text)" : v < -10 ? "var(--red-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
+    },
+  },
+  {
+    id: "ins_buys",
+    label: "INSIDER BUYS (#)",
+    description: "Number of Form 4 open-market buy events by company officers / directors in the recent window.",
+    align: "right",
+    sortValue: (r) => r._v5?.ins_buys ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.ins_buys;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{v}</span>;
+    },
+  },
+  {
+    id: "ins_buy_$",
+    label: "INSIDER BUYS ($)",
+    description: "Total dollar value of recent Form 4 open-market buy events.",
+    align: "right",
+    sortValue: (r) => r._v5?.["ins_buy_$"] ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.["ins_buy_$"];
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{fmtMarketCap(v)}</span>;
+    },
+  },
   {
     // Pinned rightmost, always visible, never draggable.
     id: "actions",
@@ -603,6 +746,11 @@ const DEFAULT_ORDER = [
   "ivRank", "week52",
   "technicals", "insider", "options", "congress", "analyst", "darkpool",
   "overall",
+  // v5 Trading Opps columns merged 2026-05-11.
+  "mt_score", "band", "ig",
+  "sub_short_interest",
+  "rsi_14", "bb_bw", "rvol_20d", "pct_50ma", "pct_200ma",
+  "ins_buys", "ins_buy_$",
   "actions",
 ];
 
@@ -649,6 +797,18 @@ const DEFAULT_WIDTHS = {
   analyst:       85,
   darkpool:      95,
   overall:       80,
+  // v5 columns 2026-05-11
+  mt_score:      100,
+  band:          120,
+  ig:            210,
+  sub_short_interest: 100,
+  rsi_14:        85,
+  bb_bw:         115,
+  rvol_20d:      100,
+  pct_50ma:      105,
+  pct_200ma:     110,
+  ins_buys:      120,
+  "ins_buy_$":   130,
   actions:       90,
 };
 
@@ -686,6 +846,11 @@ export default function PositionsTable({
   // (SPY shared); subsequent renders are instant.
   const _tickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
   const { metrics: _riskByTicker } = useRiskMetricsBatch(_tickers);
+  // 2026-05-11 (Joe directive): bring the LIVE v5 Trading Opps columns
+  // (MT Score, Band, Industry Group, Short Interest sub-score, RSI,
+  // BB BW, RVOL, % vs 50/200 MA, insider buy count/$) onto every position
+  // row so Portfolio Insights and Trading Opps tell the same story.
+  const { byTicker: _v5ByTicker } = useV5ScanBatch(_tickers);
 
   // Enrich each raw row once so sort + render read from the same shape.
   const enriched = useMemo(() => {
@@ -797,6 +962,11 @@ export default function PositionsTable({
         ivRank,
         weekLow,
         weekHigh,
+        // v5 live signal_intel row (MT Score / Band / IG / sub-scores /
+        // RSI / BB BW / RVOL / % vs SMA / insider buys). Defaults to a
+        // null record so column renderers can safely read fields without
+        // optional-chain noise.
+        _v5: _v5ByTicker[T] || null,
         // Item 41: asset-class carry-through for displayTicker + downstream filters.
         assetClass:   p.assetClass   || "stock",
         contractType: p.contractType || null,
@@ -809,7 +979,7 @@ export default function PositionsTable({
         _raw: p,
       };
     });
-  }, [rows, grandTotal, screenerMap, infoMap, _riskByTicker, signals]);
+  }, [rows, grandTotal, screenerMap, infoMap, _riskByTicker, signals, _v5ByTicker]);
 
   // ─── Sort state ────────────────────────────────────────────────────────────
   const [sortCol, setSortCol] = useState("wealthPct");
