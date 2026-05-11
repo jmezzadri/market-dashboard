@@ -201,6 +201,8 @@ function sicCodeToSector(sicCode) {
   if (n >= 3000 && n <= 3299) return "Rubber, Plastics & Stone";
   if (n >= 3300 && n <= 3399) return "Metals & Mining";
   if (n >= 3400 && n <= 3499) return "Industrial Metals";
+  // 3570-3579 are computers + office equipment (part of GICS Information Technology).
+  if (n >= 3570 && n <= 3579) return "Electronics & Hardware";
   if (n >= 3500 && n <= 3599) return "Industrial Machinery";
   if (n >= 3600 && n <= 3699) return "Electronics & Hardware";
   if (n >= 3700 && n <= 3799) return "Transportation Equipment";
@@ -357,14 +359,25 @@ function useScanData() {
           (r?.data || []).forEach(row => refByT.set(row.ticker, row));
         }
 
+        // v5.1 (e fix): the snapshots query was returning the default
+        // PostgREST page of 1000 rows. With 800 tickers each having 3-5
+        // snapshots, that page didn't cover every ticker's latest -- most
+        // rows then rendered Price as "—". We now (a) shrink the batch so
+        // the result page comfortably holds every ticker's history, and
+        // (b) restrict to the recent 5-day window so we only load the
+        // latest snapshot per ticker, not the entire history.
         const snapByT = new Map();
-        for (let i = 0; i < tickers.length; i += TICK_BATCH) {
-          const slice = tickers.slice(i, i + TICK_BATCH);
+        const SNAP_BATCH = 250;
+        const SNAP_SINCE = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
+        for (let i = 0; i < tickers.length; i += SNAP_BATCH) {
+          const slice = tickers.slice(i, i + SNAP_BATCH);
           const r = await supabase
             .from("universe_snapshots")
             .select("ticker,full_name,sector,close,prev_close,perc_change,iv_rank,week_52_high,week_52_low,marketcap,snapshot_ts")
             .in("ticker", slice)
-            .order("snapshot_ts", { ascending: false });
+            .gte("snapshot_ts", SNAP_SINCE)
+            .order("snapshot_ts", { ascending: false })
+            .limit(SNAP_BATCH * 4);
           (r?.data || []).forEach(row => {
             if (!snapByT.has(row.ticker)) snapByT.set(row.ticker, row);
           });
