@@ -512,33 +512,11 @@ export default function MacroOverviewPage() {
         </div>
         <div className="v2-shell">
           <div style={{ marginBottom: 8 }}>
-            <span className="t-eyebrow" style={{ color: 'var(--ink-2)', letterSpacing: '.10em' }}>v11 · legacy hero · v2 panel below is the new primary read</span>
+            <span className="t-eyebrow accent" style={{ letterSpacing: '.10em' }}>Macro Overview</span>
           </div>
           <div className="v2-hero-row">
             <h1 className="t-display" style={{ margin: 0, color: 'var(--ink-0)' }}>{headlineState}.</h1>
             <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />
-          </div>
-          <div className="v2-stats" style={{ marginTop: 28 }}>
-            <div className={`s ${flaggedTotal > 0 ? 'warn' : ''}`}>
-              <span className="lbl" title="Number of cycle mechanisms whose composite reading is currently in Cautionary or Risk Off territory.">Mechanisms flagged</span>
-              <span className="v">{liveCount > 0 ? flaggedTotal : <span style={{ color: 'var(--ink-2)' }}>—</span>}<span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /{liveCount > 0 ? liveCount : 6}</span></span>
-              <span className="d">above Neutral</span>
-            </div>
-            <div className="s">
-              <span className="lbl" title="Average composite score across all live cycle mechanisms. 0 = supportive of risk; 100 = defensive.">Composite</span>
-              <span className="v">{compositeAvg != null ? compositeAvg : <span style={{ color: 'var(--ink-2)' }}>—</span>}<span style={{ fontSize: 18, color: 'var(--ink-2)' }}> /100</span></span>
-              <span className="d">average across {liveCount}</span>
-            </div>
-            <div className="s">
-              <span className="lbl" title="Total number of underlying indicators feeding the live cycle mechanisms.">Calibrated indicators</span>
-              <span className="v">{mechanisms.reduce((sum, m) => sum + (m.indicators?.length || 0), 0)}</span>
-              <span className="d">across {liveCount} mechanisms</span>
-            </div>
-            <div className="s">
-              <span className="lbl" title="The cycle-counting framework: a six-mechanism descriptive board.">Framework</span>
-              <span className="v" style={{ fontSize: 24 }}>v{(calib?.version || snap?.version || '11.0').replace(/^v/, '')}</span>
-              <span className="d">cycle-mechanism counting</span>
-            </div>
           </div>
         </div>
       </header>
@@ -614,36 +592,47 @@ export default function MacroOverviewPage() {
           </section>
         )}
 
-        <div style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid var(--line-0)' }}>
-          <div className="t-eyebrow" style={{ color: 'var(--ink-2)', marginBottom: 8 }}>Legacy · v11 six-mechanism panel (deprecated 2026-05-31)</div>
-        </div>
-        <div className="v2-mech-grid" style={{ marginTop: 12 }}>
-          {mechanisms.map((m) => (
-            <article key={m.id}
-              className="v2-tile"
-              onClick={() => open(m.id)}
-              tabIndex={0}>
-              <div className={`v2-mech-state-bar ${m.bandClass}`} />
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 14, color: 'var(--accent)' }}>{m.num}</span>
-                <span className={`v2-pill ${m.bandClass}`}>{m.bandLabel}</span>
-              </div>
-              <h3 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>{m.name}</h3>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, margin: '18px 0 8px' }}>
-                <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 48, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
-                  {m.score != null ? <CountUp to={Math.round(m.score)} /> : <span style={{ color: 'var(--ink-2)' }}>—</span>}
-                </span>
-                <span style={{ color: 'var(--ink-2)', fontSize: 14 }}>/100</span>
-              </div>
-              <p style={{ color: 'var(--ink-2)', fontSize: 12, margin: 0 }}>
-                {m.flagged} of {m.total} inputs flagged
-              </p>
-              <div style={{ marginTop: 'auto', paddingTop: 14, fontSize: 11, color: 'var(--accent)', letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 500 }}>
-                Open mechanism →
-              </div>
-            </article>
-          ))}
-        </div>
+        {/* v2 sub-composite breakdown — what's driving each headline. */}
+        {cycleV2 && cycleV2.subcomposites && (
+          <div style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid var(--line-0)' }}>
+            <div className="t-eyebrow accent" style={{ marginBottom: 4 }}>Mechanism breakdown · {v2Horizon}</div>
+            <h2 className="t-tile" style={{ margin: '0 0 4px', color: 'var(--ink-0)' }}>What's driving each headline</h2>
+            <p style={{ color: 'var(--ink-2)', fontSize: 13, margin: '0 0 16px' }}>
+              Cycle &amp; Value = Equities + Rates + Money / Banking. Market Stress = Credit + Funding + Positioning / Vol. Real Economy stands alone.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+              {(() => {
+                const ORDER = ["Equities","Rates","MoneyBanking","Credit","Funding","PositioningVol","RealEconomy"];
+                const NUMS = { Equities: "01", Rates: "02", MoneyBanking: "03", Credit: "04", Funding: "05", PositioningVol: "06", RealEconomy: "07" };
+                return ORDER.filter(id => cycleV2.subcomposites[id]).map((id) => {
+                  const s = cycleV2.subcomposites[id];
+                  const score = s.scores_by_horizon?.[v2Horizon];
+                  const band = bandFromScore(score);
+                  const nScored = s.n_scored_by_horizon?.[v2Horizon] ?? 0;
+                  const nTotal = s.n_indicators_total ?? 0;
+                  return (
+                    <article key={id} className="tile" style={{ cursor: 'default', minHeight: 180 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                        <span className="tile-eyebrow">{NUMS[id]}</span>
+                        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-2, rgba(0,0,0,0.05))', color: 'var(--text-2)', letterSpacing: '.04em', textTransform: 'uppercase' }}>{band.label}</span>
+                      </div>
+                      <h3 className="tile-title" style={{ margin: 0 }}>{s.label}</h3>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 'auto' }}>
+                        <span style={{ fontFamily: 'var(--font-display, var(--font-ui))', fontSize: 44, lineHeight: 1, fontFeatureSettings: '"tnum"', color: 'var(--text)' }}>
+                          {score != null ? <CountUp to={Math.round(score)} /> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>/100</span>
+                      </div>
+                      <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>
+                        {nScored} of {nTotal} indicators scoring at this horizon
+                      </p>
+                    </article>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        )}
 
         <div style={{ margin: '48px 0 24px', paddingTop: 24, borderTop: '1px solid var(--line-0)', textAlign: 'center', color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>
           {(() => {
