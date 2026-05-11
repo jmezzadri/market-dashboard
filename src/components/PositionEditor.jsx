@@ -407,6 +407,9 @@ export default function PositionEditor({
   }, [isEdit, tickerClean, accountLabelClean, accounts, heldPositions, assetClass]);
 
   // ── Phase 4: default the cash-debit toggle to ON for tactical accounts ──
+  // #1182 v2: cashAccountId is ALWAYS the same as the position account now —
+  // the duplicate CASH ACCOUNT dropdown was removed. Re-sync whenever the
+  // user changes the account selection.
   useEffect(() => {
     if (isEdit) return;
     if (assetClass === "cash") { setPayFromCash(false); return; }
@@ -415,7 +418,7 @@ export default function PositionEditor({
     );
     const isTactical = acct?.tactical ?? true;
     setPayFromCash(isTactical);
-    if (acct && !cashAccountId) setCashAccountId(acct.id);
+    if (acct) setCashAccountId(acct.id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, assetClass, accountLabelClean, accounts]);
 
@@ -853,70 +856,11 @@ export default function PositionEditor({
               />
               PAY FROM CASH (atomic debit + ledger entry)
             </label>
-            {payFromCash && (
-              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                <div>
-                  <label style={label}>CASH ACCOUNT</label>
-                  <select
-                    style={input}
-                    value={cashAccountId || ""}
-                    onChange={(e) => setCashAccountId(e.target.value)}
-                  >
-                    {(accounts || []).map((a) => (
-                      <option key={a.id} value={a.id}>{a.label}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label style={label}>CASH IMPACT</label>
-                  {(() => {
-                    // Compute cost basis preview from current form state
-                    const isOption = assetClass === "option";
-                    const qtyAbs = isOption ? Math.abs(contracts || 0) : Math.abs(shares || 0);
-                    const perCt  = isOption ? (entryPrem || 0) * (multiplier || 100) : (avgCost || 0);
-                    const grossCost = qtyAbs * perCt;
-                    // #1182 issue 1: fees affect cash impact — long buy adds
-                    // fees to the debit, short open subtracts fees from the
-                    // credit. Mirror the RPC math.
-                    const isShort = isOption && direction === "short";
-                    // For longs: cash debit = grossCost + fees (more out).
-                    // For shorts: cash credit = grossCost - fees (less in).
-                    const netCash = isShort ? (grossCost - fees) : (grossCost + fees);
-                    const sign = isShort ? "+" : "−";
-                    const col  = isShort ? "var(--green)" : "var(--red)";
-                    const acct = (cashByAcct || []).find(c => c.id === (cashAccountId || ""));
-                    const curCash = acct?.cash;
-                    return (
-                      <div style={{
-                        padding: "8px 10px", fontSize: 13,
-                        background: "var(--surface)", border: "1px solid var(--border)",
-                        borderRadius: "var(--radius-sm, 6px)",
-                        fontFamily: "var(--font-mono)", color: "var(--text)",
-                      }}>
-                        <div style={{ fontWeight: 700, color: col }}>
-                          {sign}${netCash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                        </div>
-                        {fees > 0 && (
-                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-                            gross ${grossCost.toLocaleString(undefined, {maximumFractionDigits: 2})} − fees ${fees.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
-                          </div>
-                        )}
-                        {curCash != null && (
-                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
-                            cash {curCash >= 0 ? "$" : "−$"}{Math.abs(curCash).toLocaleString(undefined, {maximumFractionDigits: 0})}
-                            {" → "}
-                            {(curCash + (isShort ? netCash : -netCash)) >= 0 ? "$" : "−$"}{Math.abs(curCash + (isShort ? netCash : -netCash)).toLocaleString(undefined, {maximumFractionDigits: 0})}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-            {/* #1182 issue 1: FEES input inside the pay-from-cash block.
-                Universal across asset classes. RPC accepts p_fees with
-                default 0; we now actually pass it through. */}
+            {/* #1182 v2: collapsed the duplicate CASH ACCOUNT dropdown.
+                Cash is always credited/debited from the same account the
+                position lives in (the ACCOUNT dropdown above this block).
+                useEffect below keeps cashAccountId synced. The Pay-From-Cash
+                block now shows just FEES and the live CASH IMPACT preview. */}
             {payFromCash && (
               <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <div>
@@ -933,7 +877,50 @@ export default function PositionEditor({
                       : "Most brokers charge $0 on US stock; leave blank if so."}
                   </div>
                 </div>
-                <div />
+                <div>
+                  <label style={label}>CASH IMPACT</label>
+                  {(() => {
+                    const isOption = assetClass === "option";
+                    const qtyAbs = isOption ? Math.abs(contracts || 0) : Math.abs(shares || 0);
+                    const perCt  = isOption ? (entryPrem || 0) * (multiplier || 100) : (avgCost || 0);
+                    const grossCost = qtyAbs * perCt;
+                    const isShort = isOption && direction === "short";
+                    const netCash = isShort ? (grossCost - fees) : (grossCost + fees);
+                    const sign = isShort ? "+" : "−";
+                    const col  = isShort ? "var(--green)" : "var(--red)";
+                    const acct = (cashByAcct || []).find(c => c.id === (cashAccountId || ""));
+                    const curCash = acct?.cash;
+                    return (
+                      <div style={{
+                        padding: "8px 10px", fontSize: 13,
+                        background: "var(--surface)", border: "1px solid var(--border)",
+                        borderRadius: "var(--radius-sm, 6px)",
+                        fontFamily: "var(--font-mono)", color: "var(--text)",
+                      }}>
+                        <div style={{ fontWeight: 700, color: col }}>
+                          {sign}${netCash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </div>
+                        {accountLabel && (
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                            in <strong>{accountLabel}</strong>
+                          </div>
+                        )}
+                        {fees > 0 && (
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                            gross ${grossCost.toLocaleString(undefined, {maximumFractionDigits: 2})} − fees ${fees.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          </div>
+                        )}
+                        {curCash != null && (
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                            cash {curCash >= 0 ? "$" : "−$"}{Math.abs(curCash).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                            {" → "}
+                            {(curCash + (isShort ? netCash : -netCash)) >= 0 ? "$" : "−$"}{Math.abs(curCash + (isShort ? netCash : -netCash)).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
               </div>
             )}
           </div>
