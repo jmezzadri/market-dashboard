@@ -857,44 +857,40 @@
       <div class="page-eyebrow">Macro Overview</div>
       <h1 class="page-hero-h1">Cycle mechanisms provide a bird&apos;s eye view of the <em>macro backdrop</em> &mdash; calibrated to historical cycles.</h1>
       <div class="hero-explainer">
-        Six cycle mechanisms scored 0&ndash;100, simple-averaged into one page-level composite. Bands: <strong>0&ndash;25</strong> Risk-on, <strong>25&ndash;50</strong> Neutral, <strong>50&ndash;75</strong> Caution, <strong>75&ndash;100</strong> Risk-off. We don&apos;t predict downturns &mdash; we describe where you are. <a href="#">Methodology</a>.
+        Seven sub-composites scored 0&ndash;100, grouped into three headlines: <strong>Cycle &amp; Value</strong>, <strong>Market Stress</strong>, and <strong>Real Economy</strong>. Bands: <strong>0&ndash;25</strong> Risk-on, <strong>25&ndash;50</strong> Neutral, <strong>50&ndash;75</strong> Cautionary, <strong>75&ndash;100</strong> Risk-off. We don&apos;t predict downturns &mdash; we describe where you are. <a href="#">Methodology</a>.
       </div>
     </div>
     <div class="hero-right">
-      <div class="composite-eyebrow">Composite</div>
-      <div class="verdict-svg-wrap">
-        <svg class="verdict-svg" viewBox="0 0 380 230" id="verdictDial">
-          <path d="" id="wedge-riskon"  fill="rgba(14,85,96,0.18)" />
-          <path d="" id="wedge-neutral" fill="rgba(14,85,96,0.42)" />
-          <path d="" id="wedge-caution" fill="rgba(14,85,96,0.68)" />
-          <path d="" id="wedge-riskoff" fill="rgba(14,85,96,0.92)" />
-          <text x="65"  y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="start"  letter-spacing="0.18em" font-weight="600">RISK-ON</text>
-          <text x="155" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="middle" letter-spacing="0.18em" font-weight="600">NEUTRAL</text>
-          <text x="245" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="middle" letter-spacing="0.18em" font-weight="600">CAUTION</text>
-          <text x="325" y="220" font-family="Inter, sans-serif" font-size="9" fill="#5e5e63" text-anchor="end"    letter-spacing="0.18em" font-weight="600">RISK-OFF</text>
-          <g class="verdict-pointer-group" id="verdictPointerGroup">
-            <line x1="190" y1="180" x2="" y2="" id="verdictPointer"
-                  stroke="currentColor" stroke-width="2.5" stroke-linecap="round" />
-            <circle cx="190" cy="180" r="6" fill="currentColor"/>
-            <circle cx="" cy="" r="4.5" fill="currentColor" stroke="var(--bg)" stroke-width="1.8" id="verdictTip"/>
-          </g>
-        </svg>
+      <div class="composite-eyebrow">Three headline composites</div>
+      <div id="v2HeadlineStrip" style="margin-top:14px; display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; text-align:center;">
+        <div>
+          <div style="font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--muted-2); letter-spacing:0.10em; text-transform:uppercase;">Cycle &amp; Value</div>
+          <div id="v2HeadlineCycleValue" style="font-family:var(--display); font-weight:300; font-size:44px; line-height:1; letter-spacing:-0.02em; color:var(--ink); margin-top:8px;">76</div>
+          <div style="font-family:var(--mono); font-size:9px; color:var(--muted-2); letter-spacing:0.08em; margin-top:3px;">RISK-OFF</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--muted-2); letter-spacing:0.10em; text-transform:uppercase;">Market Stress</div>
+          <div id="v2HeadlineMarketStress" style="font-family:var(--display); font-weight:300; font-size:44px; line-height:1; letter-spacing:-0.02em; color:var(--ink); margin-top:8px;">41</div>
+          <div style="font-family:var(--mono); font-size:9px; color:var(--muted-2); letter-spacing:0.08em; margin-top:3px;">NEUTRAL</div>
+        </div>
+        <div>
+          <div style="font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--muted-2); letter-spacing:0.10em; text-transform:uppercase;">Real Economy</div>
+          <div id="v2HeadlineRealEconomy" style="font-family:var(--display); font-weight:300; font-size:44px; line-height:1; letter-spacing:-0.02em; color:var(--ink); margin-top:8px;">42</div>
+          <div style="font-family:var(--mono); font-size:9px; color:var(--muted-2); letter-spacing:0.08em; margin-top:3px;">NEUTRAL</div>
+        </div>
       </div>
-      <div class="verdict-count" id="verdictCount">—<span class="frac" id="verdictFrac">/ 100</span></div>
-      <div class="verdict-sublabel" id="verdictSublabel">composite average</div>
-      <h2 class="verdict-headline" id="verdictHeadline">Loading…</h2>
     </div>
   </header>
 
   <!-- ============================ MECHANISM DIALS ============================ -->
-  <div class="dials-eyebrow">Six cycle mechanisms — click any card</div>
+  <div class="dials-eyebrow">Seven sub-composites — click any card</div>
 
   <div class="dial-grid" id="dialGrid">
     <!-- Cards rendered by JS so the dial wedges can be programmatic. -->
   </div>
 
   <div class="page-foot">
-    All six cycle mechanisms now live with composite scores and indicator drill-downs.
+    All seven v2 sub-composites now live with composite scores and indicator drill-downs. Three headlines (Cycle & Value · Market Stress · Real Economy) summarised in the composite gauge above.
     Calibration source: <code>compute_v11_mechanisms.py</code> · framework v11.
   </div>
 </div>
@@ -1103,132 +1099,101 @@ freshLoad();
 
 const RECESSIONS = [["2020-02","2020-04"]];
 
+// Auto-generated v2 TILES — Joe directive 2026-05-11.
+// Static snapshot from /public/cycle_v2.json @ 2026-05-10.
 const TILES = [
   {
-    id:"valuation", num:"01", name:"Equity Valuations", live:true, score:87, band:"darkblood",
-    caption:"Currently at cycle peak — multiple valuation reads in the top quartile of long-run history. Caution advised.",
+    id:"Equities", num:"01", name:"Equities", live:true, score:99, band:"darkblood",
+    caption:"Equity valuation indicators do not pass the predictive-power gate at 6m today — visible for context but not weighted into the headline.",
     cadence: "Monthly · CAPE/ERP refresh; Buffett quarterly",
-    traj: [
-      [2016,4,58],[2016,7,60],[2016,10,62],[2017,1,63],[2017,4,64],[2017,7,65],[2017,10,67],
-      [2018,1,71],[2018,4,69],[2018,7,70],[2018,10,67],[2019,1,69],[2019,4,72],[2019,7,73],[2019,10,72],
-      [2020,1,75],[2020,4,52],[2020,7,68],[2020,10,73],
-      [2021,1,79],[2021,4,82],[2021,7,84],[2021,10,86],
-      [2022,1,84],[2022,4,80],[2022,7,75],[2022,10,77],
-      [2023,1,79],[2023,4,80],[2023,7,82],[2023,10,84],
-      [2024,1,84],[2024,4,85],[2024,7,86],[2024,10,86],
-      [2025,1,86],[2025,4,86],[2025,7,86],[2025,10,87],
-      [2026,1,87],[2026,4,87],
-    ],
+    traj: [],
     indicators:[
-      { id:"cape", name:"CAPE (Shiller)", value:"34.2×", percentile:77, dir:"high", desc:"Cyclically-adjusted price-to-earnings ratio.", sample:"post-2011 (15y)", sampleMin:"21.1", sampleMax:"38.6" },
-      { id:"erp",  name:"Equity Risk Premium", value:"-1.38%", percentile:8, dir:"low", desc:"S&P 500 earnings yield minus 10-year Treasury yield.", sample:"post-2011 (15y)", sampleMin:"-2.4%", sampleMax:"+2.8%" },
-      { id:"buffett", name:"Buffett Indicator", value:"232.7%", percentile:100, dir:"high", desc:"U.S. equity market cap as share of GDP.", sample:"post-1970 (~55y)", sampleMin:"32%", sampleMax:"232%" },
+      { id:'cape', name:'CAPE (Shiller)', value:'42.0×', percentile:100, dir:'high', desc:'Cyclically-adjusted price-to-earnings ratio.', sample:'post-1986 (~40y)', sampleMin:"—", sampleMax:"—" },
+      { id:'erp', name:'Equity Risk Premium', value:'-2.03%', percentile:100, dir:'low', desc:'S&P 500 earnings yield minus 10-year Treasury yield.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'buffett', name:'Buffett Indicator', value:'230%', percentile:99, dir:'high', desc:'U.S. equity market cap as share of GDP.', sample:'post-1970 (~55y)', sampleMin:"—", sampleMax:"—" },
+      { id:'bkx_spx', name:'BKX / SPX ratio', value:'0.087', percentile:97, dir:'low', desc:'Bank stock index relative to S&P 500 — leadership / lag indicator.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
     ],
   },
   {
-    id:"credit", num:"02", name:"Credit", live:true, score:69, band:"oxblood",
-    caption:"Spreads pricing complacency — investment-grade and high-yield spreads have not been tighter since before 2008. Late-cycle signature.",
+    id:"Rates", num:"02", name:"Rates", live:true, score:78, band:"darkblood",
+    caption:"Rates structure flashing late-cycle signals — flat curve, elevated term premium, real yields restrictive.",
+    cadence: "Daily · FRED · Kim-Wright Fed",
+    traj: [],
+    indicators:[
+      { id:'yield_curve', name:'10Y–2Y slope', value:'48 bp', percentile:66, dir:'low', desc:'Steepness of the Treasury curve. Inversion historically precedes recessions.', sample:'post-1986 (~40y)', sampleMin:"—", sampleMax:"—" },
+      { id:'term_premium', name:'Term premium', value:'70 bp', percentile:84, dir:'high', desc:'Compensation for duration risk in 10Y Treasuries (Kim–Wright).', sample:'post-1990 (~35y)', sampleMin:"—", sampleMax:"—" },
+      { id:'breakeven_10y', name:'10Y breakeven', value:'2.45%', percentile:88, dir:'high', desc:'Market-implied inflation expectations over 10 years.', sample:'post-2003 (~23y)', sampleMin:"—", sampleMax:"—" },
+      { id:'real_fedfunds', name:'Real Fed Funds', value:'+0.44%', percentile:75, dir:'high', desc:'Fed Funds minus realized inflation.', sample:'post-2007 (~19y)', sampleMin:"—", sampleMax:"—" },
+    ],
+  },
+  {
+    id:"MoneyBanking", num:"03", name:"Money / Banking", live:true, score:51, band:"oxblood",
+    caption:"Money supply growth and bank credit are in restrictive territory — late-cycle tightening signature.",
+    cadence: "Weekly · FRED · Fed H.4.1",
+    traj: [],
+    indicators:[
+      { id:'m2_yoy', name:'M2 YoY', value:'+4.57%', percentile:66, dir:'low', desc:'Year-over-year change in M2 money stock.', sample:'post-2007 (~19y)', sampleMin:"—", sampleMax:"—" },
+      { id:'fed_bs', name:'Fed Balance Sheet YoY', value:'-0.02', percentile:59, dir:'low', desc:'YoY change in Fed System Open Market Account (trillions USD).', sample:'post-2007 (~19y)', sampleMin:"—", sampleMax:"—" },
+      { id:'bank_reserves', name:'Bank reserves at Fed', value:'$3032.6B', percentile:27, dir:'low', desc:'Aggregate reserves balance held at Federal Reserve banks.', sample:'post-2007 (~19y)', sampleMin:"—", sampleMax:"—" },
+      { id:'bank_credit', name:'Bank credit YoY', value:'+5.96%', percentile:35, dir:'low', desc:'Year-over-year change in commercial bank credit.', sample:'post-2007 (~19y)', sampleMin:"—", sampleMax:"—" },
+      { id:'bank_unreal', name:'Bank unrealized losses', value:'19.9%', percentile:66, dir:'high', desc:'Unrealized loss on bank securities portfolio as % of capital.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+    ],
+  },
+  {
+    id:"Credit", num:"04", name:"Credit", live:true, score:14, band:"celadon",
+    caption:"Credit spreads in panic territory — high-yield OAS and IG/HY ratio both flashing dislocation.",
     cadence: "Daily · ICE BofA via FRED",
-    traj: [
-      [2016,4,52],[2016,7,55],[2016,10,48],[2017,1,42],[2017,4,40],[2017,7,42],[2017,10,38],
-      [2018,1,42],[2018,4,46],[2018,7,48],[2018,10,58],[2019,1,68],[2019,4,52],[2019,7,55],[2019,10,50],
-      [2020,1,55],[2020,3,95],[2020,4,89],[2020,7,72],[2020,10,62],
-      [2021,1,55],[2021,4,52],[2021,7,50],[2021,10,55],
-      [2022,1,58],[2022,4,68],[2022,7,75],[2022,10,82],
-      [2023,1,80],[2023,4,72],[2023,7,68],[2023,10,72],
-      [2024,1,68],[2024,4,62],[2024,7,68],[2024,10,72],
-      [2025,1,73],[2025,4,72],[2025,7,71],[2025,10,70],
-      [2026,1,69],[2026,4,69],
-    ],
+    traj: [],
     indicators:[
-      { id:"ig_oas", name:"IG OAS (Baa − 10y)", value:"174 bp", percentile:23, dir:"bidir", desc:"Investment-grade Baa premium over Treasuries.", sample:"post-1986 (~40y)", sampleMin:"120 bp", sampleMax:"628 bp" },
-      { id:"hy_oas", name:"HY OAS",            value:"285 bp", percentile:16, dir:"bidir", desc:"High-yield (junk) corporate spread over Treasuries.", sample:"post-2011 (15y)", sampleMin:"265 bp", sampleMax:"880 bp" },
-      { id:"hy_ig", name:"HY/IG ratio",        value:"1.89×",  percentile:47, dir:"bidir", desc:"High-yield spread divided by investment-grade spread.", sample:"post-2011 (15y)", sampleMin:"1.42×", sampleMax:"3.10×" },
+      { id:'hy_oas', name:'HY OAS', value:'279 bp', percentile:12, dir:'high', desc:'High-yield (junk) corporate spread over Treasuries.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'ig_oas', name:'IG OAS', value:'162 bp', percentile:7, dir:'high', desc:'Investment-grade Baa premium over Treasuries.', sample:'post-1986 (~40y)', sampleMin:"—", sampleMax:"—" },
+      { id:'hy_ig_ratio', name:'HY / IG ratio', value:'1.72×', percentile:24, dir:'high', desc:'Ratio of HY OAS to IG OAS — credit-risk dispersion.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'cmdi', name:'Corporate Bond MDI', value:'0.0', percentile:0, dir:'high', desc:'Bond market distress index — issuance frictions.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'loan_syn', name:'HY effective yield', value:'6.85%', percentile:27, dir:'high', desc:'All-in cost of high-yield credit.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
     ],
   },
   {
-    id:"funding", num:"03", name:"Funding", live:true, score:30, band:"amber",
-    caption:"Bank-system funding spreads sit in the lower half of post-2018 history. No active funding stress; cross-currency basis is the only mildly stretched read.",
-    cadence:"Daily · NY Fed + DTCC + FRED",
-    traj: [
-      [2018,1,18],[2018,7,28],[2019,1,42],[2019,7,35],[2020,1,28],
-      [2020,3,95],[2020,4,75],[2020,7,32],[2020,10,25],
-      [2021,1,18],[2021,7,15],[2022,1,22],[2022,7,38],
-      [2023,1,52],[2023,3,68],[2023,7,42],[2023,10,38],
-      [2024,1,32],[2024,4,28],[2024,7,30],[2024,10,28],
-      [2025,1,32],[2025,4,28],[2025,7,30],[2025,10,32],
-      [2026,1,30],[2026,4,30],
-    ],
+    id:"Funding", num:"05", name:"Funding", live:true, score:46, band:"neutral",
+    caption:"Bank-system funding spreads sit in the lower half of post-2018 history. Funding markets benign.",
+    cadence: "Daily · NY Fed · DTCC · FRED",
+    traj: [],
     indicators:[
-      { id:"sofr_ois", name:"SOFR-OIS spread", value:"12 bp", percentile:18, dir:"high", desc:"Front-end secured-vs-unsecured funding spread.", sample:"post-2018 (8y)", sampleMin:"0 bp", sampleMax:"110 bp" },
-      { id:"fra_ois", name:"FRA-OIS spread", value:"14 bp", percentile:22, dir:"high", desc:"3-month forward funding stress proxy.", sample:"post-2018 (8y)", sampleMin:"0 bp", sampleMax:"90 bp" },
-      { id:"cdx_basis", name:"CDX IG basis", value:"0.5 bp", percentile:32, dir:"high", desc:"Cash vs CDS dislocation in IG credit.", sample:"post-2014 (12y)", sampleMin:"-2 bp", sampleMax:"12 bp" },
-      { id:"xccy_basis", name:"3m USD/EUR x-ccy basis", value:"-12 bp", percentile:38, dir:"low", desc:"USD-funding stress proxy via FX swap basis.", sample:"post-2010 (16y)", sampleMin:"-120 bp", sampleMax:"+5 bp" },
-      { id:"cpff", name:"3m CP − Fed Funds", value:"22 bp", percentile:24, dir:"high", desc:"Corporate short-term funding cost over policy rate.", sample:"post-2006 (20y)", sampleMin:"5 bp", sampleMax:"280 bp" },
+      { id:'cpff', name:'CP risk premium', value:'4 bp', percentile:31, dir:'high', desc:'Commercial paper rate spread over OIS.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'stlfsi', name:'STLFSI', value:'-0.67', percentile:17, dir:'high', desc:'St. Louis Fed Financial Stress Index. Composite of 18 weekly market series.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'anfci', name:'ANFCI', value:'-0.46', percentile:60, dir:'high', desc:'Chicago Fed Adjusted National Financial Conditions Index.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'fra_ois', name:'FRA-OIS spread', value:'-3 bp', percentile:17, dir:'high', desc:'Forward rate agreement spread over OIS — banking-system funding stress.', sample:'post-2018 (~8y)', sampleMin:"—", sampleMax:"—" },
+      { id:'sofr_ois', name:'SOFR-OIS spread', value:'-3 bp', percentile:17, dir:'high', desc:'Repo funding cost relative to overnight index swap.', sample:'post-2018 (~8y)', sampleMin:"—", sampleMax:"—" },
+      { id:'rrp', name:'Reverse repo', value:'$0.8T', percentile:89, dir:'low', desc:'Reverse repo facility balance — excess money-market liquidity.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'tga', name:'Treasury General Account', value:'$877B', percentile:90, dir:'high', desc:'Treasury operating cash balance at the Fed.', sample:'post-2007 (~19y)', sampleMin:"—", sampleMax:"—" },
     ],
   },
   {
-    id:"growth", num:"04", name:"Growth", live:true, score:47, band:"amber",
-    caption:"Real economy moving at trend — no level-and-trend signal. Jobless claims tight, ISM in expansion.",
-    cadence: "Monthly + weekly · CFNAI/ISM monthly, jobless weekly",
-    traj: [
-      [2016,4,38],[2016,7,42],[2016,10,40],[2017,1,38],[2017,4,35],[2017,7,32],[2017,10,30],
-      [2018,1,32],[2018,4,30],[2018,7,32],[2018,10,42],[2019,1,48],[2019,4,42],[2019,7,40],[2019,10,38],
-      [2020,1,42],[2020,3,95],[2020,4,92],[2020,7,72],[2020,10,55],
-      [2021,1,42],[2021,4,32],[2021,7,28],[2021,10,30],
-      [2022,1,38],[2022,4,52],[2022,7,62],[2022,10,68],
-      [2023,1,72],[2023,4,68],[2023,7,58],[2023,10,52],
-      [2024,1,55],[2024,4,52],[2024,7,50],[2024,10,48],
-      [2025,1,52],[2025,4,48],[2025,7,46],[2025,10,47],
-      [2026,1,46],[2026,4,47],
-    ],
+    id:"PositioningVol", num:"06", name:"Positioning / Vol", live:true, score:64, band:"oxblood",
+    caption:"Vol creeping higher, breadth narrowing — positioning at the margin getting defensive.",
+    cadence: "Daily · CBOE · NAAIM",
+    traj: [],
     indicators:[
-      { id:"cfnai", name:"CFNAI 3-month", value:"-0.03", percentile:60, dir:"low", desc:"Chicago Fed National Activity Index.", sample:"post-2006 (20y)", sampleMin:"-4.7", sampleMax:"+1.8" },
-      { id:"jobless", name:"Jobless claims (4w)", value:"214k", percentile:12, dir:"high", desc:"Initial unemployment claims, 4-week average.", sample:"post-2006 (20y)", sampleMin:"189k", sampleMax:"5,310k" },
-      { id:"ism", name:"ISM Manufacturing PMI", value:"52.7", percentile:54, dir:"low", desc:"ISM headline composite.", sample:"post-2006 (20y)", sampleMin:"37.6", sampleMax:"63.7" },
-      { id:"bkx_spx", name:"Banks vs S&P 500", value:"0.09×", percentile:8, dir:"low", desc:"KBW Bank Index relative to S&P 500.", sample:"post-2006 (20y)", sampleMin:"0.07×", sampleMax:"0.21×" },
+      { id:'vix', name:'VIX', value:'17.2', percentile:56, dir:'high', desc:'30-day implied S&P volatility.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'move', name:'MOVE', value:'67', percentile:40, dir:'high', desc:'30-day implied Treasury volatility.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'skew', name:'SKEW', value:'138.2', percentile:71, dir:'high', desc:'Tail-risk premium in S&P options.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'naaim', name:'NAAIM exposure', value:'97', percentile:50, dir:'low', desc:'NAAIM equity exposure index — active manager positioning.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'spx_200dma', name:'% S&P > 200dma', value:'100%', percentile:72, dir:'low', desc:'Breadth of S&P 500 above its 200-day moving average.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
+      { id:'eq_cr_corr', name:'Equity / Credit corr.', value:'0.797', percentile:79, dir:'high', desc:'Rolling correlation between stocks and corporate bonds — risk-on/off proxy.', sample:'post-2011 (15y)', sampleMin:"—", sampleMax:"—" },
     ],
   },
   {
-    id:"liquidity_policy", num:"05", name:"Liquidity & Policy", live:true, score:55, band:"oxblood",
-    caption:"Restrictive stance — real Fed funds positive, M2 growth slow, balance sheet still in QT mode. Term premium has normalized but not reversed.",
-    cadence:"Mixed · ANFCI weekly, real funds + M2 monthly, term premium daily, balance sheet weekly",
-    traj: [
-      [2018,1,38],[2018,7,42],[2019,1,40],[2019,7,32],[2020,1,28],
-      [2020,3,82],[2020,4,75],[2020,7,18],[2020,10,15],
-      [2021,1,12],[2021,7,15],[2022,1,32],[2022,7,52],
-      [2023,1,68],[2023,7,72],[2023,10,68],
-      [2024,1,62],[2024,4,60],[2024,7,58],[2024,10,56],
-      [2025,1,55],[2025,4,55],[2025,7,55],[2025,10,55],
-      [2026,1,55],[2026,4,55],
-    ],
+    id:"RealEconomy", num:"07", name:"Real Economy", live:true, score:42, band:"neutral",
+    caption:"Real economy reading mid-range — neither expanding decisively nor contracting.",
+    cadence: "Monthly · ISM · BLS · Atlanta Fed",
+    traj: [],
     indicators:[
-      { id:"anfci", name:"Adj. Financial Conditions (ANFCI)", value:"-0.15", percentile:45, dir:"bidir", desc:"Chicago Fed adjusted financial conditions index, neutral=0.", sample:"post-1971 (55y)", sampleMin:"-1.5", sampleMax:"+5.0" },
-      { id:"real_fedfunds", name:"Real Fed funds rate", value:"+1.4%", percentile:78, dir:"high", desc:"Fed funds rate minus core PCE inflation.", sample:"post-1971 (55y)", sampleMin:"-3.5%", sampleMax:"+9.5%" },
-      { id:"m2_yoy", name:"M2 growth (YoY)", value:"+3.8%", percentile:62, dir:"low", desc:"Money supply growth; low = tight policy.", sample:"post-1980 (45y)", sampleMin:"-4.5%", sampleMax:"+27%" },
-      { id:"term_premium", name:"10y term premium (Kim-Wright)", value:"+45 bp", percentile:55, dir:"bidir", desc:"Compensation for holding duration; sub-zero = QE distortion.", sample:"post-1990 (35y)", sampleMin:"-120 bp", sampleMax:"+280 bp" },
-      { id:"fed_bs", name:"Fed balance sheet trajectory", value:"$6.7T", percentile:60, dir:"bidir", desc:"Total Fed assets; rising = QE, falling = QT.", sample:"post-2008 (18y)", sampleMin:"$0.9T", sampleMax:"$9.0T" },
-    ],
-  },
-  {
-    id:"positioning_breadth", num:"06", name:"Positioning & Breadth", live:true, score:70, band:"oxblood",
-    caption:"Investors heavily long; option sentiment is complacent. Breadth is healthy but narrowing as mega-caps lead.",
-    cadence:"Mixed · NAAIM weekly, margin debt monthly, put/call + breadth daily",
-    traj: [
-      [2018,1,75],[2018,7,52],[2019,1,42],[2019,7,38],[2020,1,55],
-      [2020,3,15],[2020,4,28],[2020,7,52],[2020,10,62],
-      [2021,1,82],[2021,7,78],[2022,1,72],[2022,7,38],
-      [2023,1,42],[2023,7,55],[2023,10,52],
-      [2024,1,62],[2024,4,68],[2024,7,72],[2024,10,68],
-      [2025,1,68],[2025,4,72],[2025,7,70],[2025,10,72],
-      [2026,1,70],[2026,4,70],
-    ],
-    indicators:[
-      { id:"naaim", name:"NAAIM exposure", value:"+89", percentile:88, dir:"bidir", desc:"Active manager equity exposure index; extremes signal positioning crowding.", sample:"post-2006 (20y)", sampleMin:"-60", sampleMax:"+120" },
-      { id:"margin_debt", name:"Margin debt YoY", value:"+18.2%", percentile:82, dir:"high", desc:"Year-over-year change in NYSE margin debt.", sample:"post-1997 (28y)", sampleMin:"-22%", sampleMax:"+30%" },
-      { id:"put_call", name:"Put/call ratio (CBOE)", value:"0.62", percentile:18, dir:"low", desc:"Equity put volume / call volume; low = complacent.", sample:"post-2006 (20y)", sampleMin:"0.40", sampleMax:"1.80" },
-      { id:"spx_200dma", name:"% of S&P > 200dma", value:"74%", percentile:68, dir:"bidir", desc:"Breadth health; very high or very low both flag turning points.", sample:"post-2006 (20y)", sampleMin:"0%", sampleMax:"92%" },
-      { id:"adv_dec", name:"Advance-Decline 50d", value:"+0.6", percentile:62, dir:"bidir", desc:"50-day cumulative net advancers ratio.", sample:"post-2006 (20y)", sampleMin:"-3.0", sampleMax:"+3.0" },
+      { id:'ism_mfg', name:'ISM Manufacturing', value:'52.7', percentile:36, dir:'low', desc:'Purchasing Managers Index for manufacturing. Below 50 = contraction.', sample:'thresholds: 40/50/60', sampleMin:"—", sampleMax:"—" },
+      { id:'ism_svc', name:'ISM Services', value:'53.6', percentile:32, dir:'low', desc:'Purchasing Managers Index for services. Below 50 = contraction.', sample:'thresholds: 40/50/60', sampleMin:"—", sampleMax:"—" },
+      { id:'gdpnow', name:'GDPNow', value:'+3.75%', percentile:18, dir:'low', desc:'Atlanta Fed real-time GDP nowcast (annualized).', sample:'thresholds: -3.0/1.5/5.0', sampleMin:"—", sampleMax:"—" },
+      { id:'jobless', name:'Initial Claims (4-wk)', value:'200k', percentile:20, dir:'high', desc:'Four-week average of new unemployment-insurance claims.', sample:'thresholds: 350/230/180', sampleMin:"—", sampleMax:"—" },
+      { id:'jolts_quits', name:'JOLTS quits rate', value:'2.00', percentile:75, dir:'low', desc:'Voluntary quits as % of total employment — labor-market tightness.', sample:'thresholds: 1.5/2.5/3.5', sampleMin:"—", sampleMax:"—" },
+      { id:'cfnai_3ma', name:'CFNAI 3-month', value:'-0.03', percentile:52, dir:'low', desc:'Chicago Fed National Activity Index, 3-month average.', sample:'thresholds: -1.0/0.0/1.0', sampleMin:"—", sampleMax:"—" },
+      { id:'copper_gold', name:'Copper / Gold YoY', value:'0.132', percentile:61, dir:'low', desc:'Ratio of copper price to gold price — global cyclical demand proxy.', sample:'thresholds: -20/0/20', sampleMin:"—", sampleMax:"—" },
     ],
   },
 ];
@@ -1322,6 +1287,7 @@ function indicatorConcerningScore(ind) {
 // Aggregate verdict dial — single pointer sweep, no wedge animation.
 // ============================================================================
 (function buildVerdictDial() {
+  if (!document.getElementById("wedge-riskon")) return;
   const cx = 190, cy = 180, R_outer = 140, R_inner = 90;
   const segments = [
     { id: "wedge-riskon",  a0: 180, a1: 135 },
@@ -1339,11 +1305,11 @@ function indicatorConcerningScore(ind) {
     const [x1i, y1i] = polar(R_inner, s.a1);
     const [x0i, y0i] = polar(R_inner, s.a0);
     const d = `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${R_outer} ${R_outer} 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${R_inner} ${R_inner} 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
-    document.getElementById(s.id).setAttribute("d", d);
+    const el = document.getElementById(s.id); if (el) el.setAttribute("d", d);
   });
   // Today's pointer — angle from average score across LIVE tiles
-  const liveTiles = TILES.filter(t => t.live);
-  const avgScore = liveTiles.reduce((a, t) => a + t.score, 0) / liveTiles.length;
+  const liveTiles = TILES.filter(t => t.live && t.score !== null && t.score !== undefined);
+  const avgScore = liveTiles.length ? liveTiles.reduce((a, t) => a + t.score, 0) / liveTiles.length : 50;
   // Active-wedge override removed 2026-05-07 (revised) — wedges now
   // render as a 4-step teal gradient (light Risk On -> dark Risk Off);
   // the needle position alone marks the current score.
@@ -1353,18 +1319,7 @@ function indicatorConcerningScore(ind) {
   // 50-75 Caution, 75-100 Risk-off. No "stress/stressed" anywhere
   // (Joe directive 2026-04-30) — describe heat using "above/below
   // the cohort" and the band names.
-  (function populateVerdict() {
-    const rounded = Math.round(avgScore);
-    document.getElementById("verdictCount").firstChild.nodeValue = String(rounded);
-    // Joe directive 2026-05-07 — short headline only, no narrative paragraph.
-    let label;
-    if      (avgScore < 25) label = "Risk-on";
-    else if (avgScore < 50) label = "Neutral";
-    else if (avgScore < 75) label = "Caution";
-    else                    label = "Risk-off";
-    // Score already shown in verdictCount above; headline is just the band name.
-    document.getElementById("verdictHeadline").textContent = `${label} band`;
-  })();
+  // populateVerdict() removed 2026-05-11 — verdict elements no longer exist.
   const [tx, ty] = polar(R_outer + 8, a_today);
   document.getElementById("verdictPointer").setAttribute("x2", tx.toFixed(2));
   document.getElementById("verdictPointer").setAttribute("y2", ty.toFixed(2));
@@ -1457,7 +1412,7 @@ function renderDials() {
     inner += `<div class="name">${t.name}${t.live ? freshChipHtml(freshTileElement(t), FRESH_STATE.cycleBoardAsOf, t.name) : ""}</div>`;
     inner += `<div class="dial-svg-wrap">${buildDialSvg(t.score, t.live, t.band)}</div>`;
     if (t.live) {
-      inner += `<div class="dial-score-wrap"><span class="dial-score-num">${t.score}</span><span class="dial-score-suffix">/ 100</span></div>`;
+      inner += `<div class="dial-score-wrap"><span class="dial-score-num">${t.score == null ? "—" : t.score}</span><span class="dial-score-suffix">/ 100</span></div>`;
     } else {
       inner += `<div class="dial-score-wrap"><span class="ships-in">${t.ships}</span></div>`;
     }
@@ -1495,7 +1450,7 @@ function openModal(t) {
   h += `<div class="modal-h">
     <h3>${t.name}${freshChipHtml(freshTileElement(t), FRESH_STATE.cycleBoardAsOf, t.name)}</h3>
     <div style="text-align:right;">
-      <div class="dial-score-num" style="color:${tileColor};">${t.score}<span class="dial-score-suffix">/ 100</span></div>
+      <div class="dial-score-num" style="color:${tileColor};">${t.score == null ? "—" : t.score}<span class="dial-score-suffix">/ 100</span></div>
       <div class="meta-11" style="margin-top:4px;">composite score</div>
     </div>
   </div>`;
