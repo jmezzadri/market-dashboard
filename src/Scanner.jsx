@@ -1241,15 +1241,16 @@ function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = fals
 // rather than rendering a parallel (and drift-prone) copy here.
 
 // ── Main Scanner component ────────────────────────────────────────────────────
-export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTicker }) {
+export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTicker, embeddedMode = false, forceInitialView = null, onClose = null }) {
   // Start on the landing page (tile grid). The prior focusTicker → "overview"
   // deep-link behavior was retired 2026-04-19 along with the Buy & Watch list
   // tile; portopps is now the canonical surface for per-ticker detail.
-  // On mount, if Trading Opps' ScannerTilesStrip stashed a target view
-  // (e.g. "congress"), jump straight into that detail tab instead of the
-  // landing tile grid. Marker is cleared after read so a manual visit to
-  // #scanner still lands on the tile grid.
+  // Initial view priority: forceInitialView prop (modal/embedded callers)
+  // > sessionStorage marker (cross-page nav) > "landing".
   const initialView = (() => {
+    if (forceInitialView && ["congress","insiders","flow","technicals"].includes(forceInitialView)) {
+      return forceInitialView;
+    }
     try {
       const m = sessionStorage.getItem("mt:scanner:initial-view");
       if (m) {
@@ -1734,7 +1735,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
   return (
     <div style={{ maxWidth: 1440, margin: "0 auto" }}>
       <div style={{ padding: "var(--space-4) var(--space-8) var(--space-3)" }}>
-        <button onClick={() => setView("landing")} style={{
+        <button onClick={() => embeddedMode && onClose ? onClose() : setView("landing")} style={{
           display: "inline-flex", alignItems: "center", gap: 6,
           fontSize: 13, fontWeight: 500, color: "var(--text-muted)",
           padding: "6px 12px", borderRadius: 999,
@@ -1745,7 +1746,7 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
           onMouseEnter={e => { e.currentTarget.style.background = "var(--hover)"; e.currentTarget.style.color = "var(--text)"; }}
           onMouseLeave={e => { e.currentTarget.style.background = "var(--surface-3)"; e.currentTarget.style.color = "var(--text-muted)"; }}
         >
-          <span style={{ fontSize: 14 }}>←</span> All scanner sections
+          <span style={{ fontSize: 14 }}>{embeddedMode ? "✕" : "←"}</span> {embeddedMode ? "Close" : "All scanner sections"}
         </button>
         <div style={{ marginTop: "var(--space-3)" }}>
           {meta?.eyebrow && <div className="section-eyebrow" style={{ marginBottom: 6 }}>{meta.eyebrow}</div>}

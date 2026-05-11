@@ -19,6 +19,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState, Fragment } from 
 import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabase";
 import ScannerTilesStrip from "../../components/ScannerTilesStrip";
+import Scanner from "../../Scanner";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Constants
@@ -1020,6 +1021,23 @@ export default function TradingOppsPage({ onOpenTicker }) {
     });
   };
 
+  // Scanner detail modal state. ScannerTilesStrip clicks set this to one of
+  // congress|insiders|flow|technicals; the modal renders <Scanner /> with
+  // that view forced. Null = modal closed.
+  const [scannerView, setScannerView] = useState(null);
+  // Lock body scroll while modal is open.
+  useEffect(() => {
+    if (!scannerView) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => { if (e.key === "Escape") setScannerView(null); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [scannerView]);
+
   // v5.1 (d): Held and Watchlist were placeholder filter chips that
   // returned every row when clicked -- confusing during UAT. Hidden until
   // the portfolio overlay is actually wired up (out of v5 scope).
@@ -1035,11 +1053,12 @@ export default function TradingOppsPage({ onOpenTicker }) {
   ];
 
   return (
+    <>
     <div style={{ minHeight: "100vh" }}>
       <Hero totals={totals} scanDate={scanDate} />
 
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
-        <ScannerTilesStrip />
+        <ScannerTilesStrip onTileClick={(v) => setScannerView(v)} />
         {/* v5.4 (item 3): column-filter strip. Active filters render as
             removable chips. "+ Add filter" opens a popover with column /
             operator / value pickers. */}
@@ -1402,5 +1421,41 @@ export default function TradingOppsPage({ onOpenTicker }) {
         }
       `}</style>
     </div>
+
+    {scannerView && (
+      <div
+        onClick={() => setScannerView(null)}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "rgba(8,12,18,0.55)",
+          backdropFilter: "blur(2px)",
+          zIndex: 1000,
+          overflow: "auto",
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            margin: "32px auto",
+            maxWidth: 1280,
+            background: "var(--surface)",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--r-lg, 14px)",
+            boxShadow: "0 18px 48px rgba(0,0,0,0.18)",
+            overflow: "hidden",
+          }}
+        >
+          <Scanner
+            key={scannerView}
+            embeddedMode
+            forceInitialView={scannerView}
+            onClose={() => setScannerView(null)}
+            onOpenTicker={onOpenTicker}
+          />
+        </div>
+      </div>
+    )}
+    </>
   );
 }
