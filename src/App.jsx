@@ -6771,7 +6771,7 @@ return (<>
 {/* Inline signal tiles — moved BELOW the Buy Alerts / Near Trigger tables
     per Joe's UAT 2026-04-28: tiles are evidence/diagnostics for the names
     surfaced above, so they read as supporting context rather than primary. */}
-{showTrading&&<div id="mt-inline-scanner" style={{marginBottom:14, scrollMarginTop:80}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>}
+{showTrading&&<div style={{marginBottom:14}}><Scanner onOpenTicker={(t)=>setTickerDetail(t)}/></div>}
 {/* SECTION 2 — PORTFOLIO INSIGHTS (only on insights tab) */}
 {showInsights&&<div style={sectionPanel}>
 <div style={sectionHeader}>
@@ -6853,14 +6853,10 @@ return(
 </div>
 </div>}
 
-{/* TRADE HISTORY — Phase 5B. Collapsible ledger over public.transactions
-    (BUY/SELL/OPEN/CLOSE) with date-window, ticker, account, and options-only
-    filters + CSV export. Rendered between Positions and Account Breakdown
-    so the page reads top-to-bottom: KPIs → risk → realized P&L → positions
-    → trade history → account-by-account. */}
-{showInsights && portfolioAuthed && (
-  <TradeHistorySection rows={_txRows} loading={_txLoading} accounts={ACCOUNTS}/>
-)}
+{/* TRADE HISTORY moved to the bottom of the page 2026-05-11 per Joe
+    directive — see TradeHistorySection rendered after the Watchlist
+    section below. Page now reads top-to-bottom: hero → allocation →
+    accounts → watchlist → trade history. */}
 
 {/* ACCOUNT-BY-ACCOUNT BREAKDOWN — only on insights tab.
     Restored 2026-05-04 after PR #448 silently dropped the wiring. */}
@@ -6924,6 +6920,15 @@ return(
       />
     </div>
   </div>
+)}
+
+{/* TRADE HISTORY — Phase 5B. Collapsible ledger over public.transactions
+    (BUY/SELL/OPEN/CLOSE) with date-window, ticker, account, and options-only
+    filters + CSV export. Moved to bottom of the page 2026-05-11 per Joe
+    directive so the page reads top-to-bottom: hero → allocation →
+    accounts → watchlist → trade history. */}
+{showInsights && portfolioAuthed && (
+  <TradeHistorySection rows={_txRows} loading={_txLoading} accounts={ACCOUNTS}/>
 )}
 
 {/* NAV-OVER-TIME chart REMOVED 2026-05-11 per Joe directive. The line
