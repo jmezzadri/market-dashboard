@@ -1,5 +1,10 @@
 # PIPELINE-FRESHNESS-WATCHDOG — every-30-min freshness sweep.
 #
+# Note (2026-05-10): file-backed indicators that don't have a Supabase row
+# (e.g. ISM PMI from refresh_ism.py → public/indicator_history.json) are NOT
+# in this watchdog's Supabase-tables watchlist. Their freshness is tracked
+# via data_manifest.json + the v11 useFreshness chip on each consumer surface.
+#
 # Why
 # ───
 # GitHub Actions cron is unreliable. Two consecutive incidents in May 2026:

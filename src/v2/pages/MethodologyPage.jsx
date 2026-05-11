@@ -137,8 +137,9 @@ export default function MethodologyPageV2() {
   const headline = calib?.headline_gauge || {};
 
   const sections = useMemo(() => ([
+    { id: 'v2-framework', label: 'v2 framework (PR 1-5)' },
     { id: 'lexicon',   label: 'Lexicon' },
-    { id: 'headline',  label: 'Headline gauge' },
+    { id: 'headline',  label: 'Headline gauge (v1, legacy)' },
     ...tiles.map((t) => ({ id: `mech-${t.id}`, label: t.name })),
     { id: 'allocator', label: 'Allocator (v10)' },
     { id: 'sources',   label: 'Sources' },
@@ -183,6 +184,49 @@ export default function MethodologyPageV2() {
             <a key={s.id} href={`#${s.id}`} className="chip">{s.label}</a>
           ))}
         </nav>
+
+        {/* v2 Framework section — Joe approval 2026-05-10 (PR 1-5 of CYCLE_MECHANISM_V2_SPEC.md) */}
+        <section
+          id="v2-framework"
+          style={{ background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 'var(--r-tile)', padding: 28, marginTop: 24, scrollMarginTop: 80 }}
+        >
+          <div className="t-eyebrow accent">cycle mechanism — v2 (current)</div>
+          <h2 className="t-tile" style={{ margin: '6px 0 0', color: 'var(--ink-0)' }}>Predictive Power, not data display</h2>
+          <p className="t-body" style={{ marginTop: 14, maxWidth: '64ch' }}>
+            v1 of the cycle dashboard mashed six mechanisms into a single 0-100 composite. The bug: those six mechanisms move at different points in the cycle and in different directions during stress, so averaging them cancelled the signal — Black Monday 1987 read 48 (Neutral) and today reads 54 (Caution), which is exactly backward. v2 rebuilds the framework around two dimensions and a hard predictive-power gate.
+          </p>
+          <h3 className="t-tile" style={{ margin: '24px 0 0', color: 'var(--ink-0)', fontSize: 18 }}>Two dimensions, not one</h3>
+          <p className="t-body" style={{ marginTop: 8, maxWidth: '64ch' }}>
+            Cycle timing (Lead / Coincident / Lag — Conference Board convention) answers <em>when</em> an indicator moves relative to the cycle. Stress direction (momentum / mean_reversion / flat — set by the indicator's IC sign at each forward horizon) answers <em>which way</em> the indicator predicts forward returns. They're different questions; both stay on the dashboard.
+          </p>
+          <h3 className="t-tile" style={{ margin: '24px 0 0', color: 'var(--ink-0)', fontSize: 18 }}>Seven sub-composites, three headlines</h3>
+          <p className="t-body" style={{ marginTop: 8, maxWidth: '64ch' }}>
+            <strong>Sub-composites:</strong> Equities · Credit · Rates · Money/Banking · Funding · Real Economy · Positioning/Vol. Each indicator belongs to one sub-composite and carries a full IC profile at four forward horizons (1m, 3m, 6m, 12m).<br/>
+            <strong>Headlines:</strong> Cycle &amp; Value (Setup — Equities + Rates + Money/Banking) · Market Stress (Panic — Credit + Funding + Positioning/Vol) · Real Economy (Truth — Real Economy alone). Equal-weight average within each headline.
+          </p>
+          <h3 className="t-tile" style={{ margin: '24px 0 0', color: 'var(--ink-0)', fontSize: 18 }}>Horizon-aware scoring</h3>
+          <p className="t-body" style={{ marginTop: 8, maxWidth: '64ch' }}>
+            Every indicator's percentile score is the same regardless of horizon. What changes is the SIGN of its contribution to the sub-composite at the selected horizon. At horizons where the indicator's IC is negative (momentum), high score contributes raw — "more cautionary." At horizons where the IC is positive (mean-reversion), high score contributes inverted (100 minus raw) — "opportunity at this horizon." This is why Buffett at the 95th percentile reads as low cycle risk at 1m (FOMO momentum still alive) and high cycle risk at 12m (multi-quarter valuation drag). Four indicators today flip signal direction across horizons: Buffett, bank reserves, USD, CFNAI. Each carries a horizon-sensitive ↔ chip on the All Indicators page.
+          </p>
+          <h3 className="t-tile" style={{ margin: '24px 0 0', color: 'var(--ink-0)', fontSize: 18 }}>Predictive-power gate</h3>
+          <p className="t-body" style={{ marginTop: 8, maxWidth: '64ch' }}>
+            Every indicator must clear |IC| ≥ 0.10 at at least one forward horizon against SPY total return — otherwise it stays visible for context but contributes zero to scoring. Today: 30 of 38 indicators clear the gate. Real Economy uses absolute thresholds instead of percentile (PMI 40/50/60, jobless 350K/230K/180K, etc. per spec section 6.2) and is graded directly against the level, no IC test required.
+          </p>
+          <h3 className="t-tile" style={{ margin: '24px 0 0', color: 'var(--ink-0)', fontSize: 18 }}>Regime classifier + recommended action</h3>
+          <p className="t-body" style={{ marginTop: 8, maxWidth: '64ch' }}>
+            Four regime labels are read off the 2x2 of (Setup) × (Stress) at the selected horizon, with Real Economy as the fact-check caption. Each regime maps to a horizon-specific recommended action:
+          </p>
+          <ul className="t-body" style={{ marginTop: 8, maxWidth: '64ch', paddingLeft: 22 }}>
+            <li><strong>HIGH Setup · LOW Stress = Late-cycle setup</strong> → Pull a little risk off (1-3m); de-risk strategically (12m).</li>
+            <li><strong>HIGH Setup · HIGH Stress = Late-cycle correction</strong> → Hedge entries (1m); pull a lot of risk off, hedges on (3-6m).</li>
+            <li><strong>LOW Setup · HIGH Stress = Capitulation / panic</strong> → Sell covered calls (1-3m); capitulation buy (6m); lever up (12m).</li>
+            <li><strong>LOW Setup · LOW Stress = Early expansion</strong> → Risk-on / leverage (1-6m); strategic overweight equities (12m).</li>
+          </ul>
+          <h3 className="t-tile" style={{ margin: '24px 0 0', color: 'var(--ink-0)', fontSize: 18 }}>Transition window</h3>
+          <p className="t-body" style={{ marginTop: 8, maxWidth: '64ch' }}>
+            v1 (single 0-100 composite) and v2 are running side by side from 2026-05-10 through 2026-05-31. After that, v1 is removed and v2 becomes the sole source of truth. Full spec lives in <code>CYCLE_MECHANISM_V2_SPEC.md</code> at the repo root.
+          </p>
+        </section>
 
         {/* Lexicon (theme #3) */}
         <section

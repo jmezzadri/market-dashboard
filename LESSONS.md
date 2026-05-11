@@ -514,3 +514,166 @@ that doesn't list the JSONB key paths is not validating the contract.
 **Applies to:** Every PR that touches one side of a producer/consumer
 pair where data flows through Supabase, Edge Functions, JSON files in
 `dist/`, or any other intermediate store.
+
+## 2026-05-10 (b) — UAT means clicking through every surface, not just the changed page
+
+**What happened:** Shipped 5 v2 PRs (#524–528 spec ROllout, then #529 + #530 hot-fixes). Self-UAT on each PR only walked the surface that PR touched — and Joe still found two un-noticed bugs by reloading other pages: (1) every v2 page rendered a stray "×" character above its footer because `<aside class="v2-drawer">` was rendering unconditionally with no CSS rules to hide it when closed; (2) the legacy Macro Overview hero stats block ran together as "Mechanisms flagged3 /6above Neutral" because `.v2-stats`, `.s`, `.lbl`, `.v`, `.d` had no CSS at all. Both were already on `main` for at least one prior session.
+
+**What you should do instead:** After ANY release that ships CSS or shared components, walk EVERY page in the v2 nav (Home, Macro Overview, Asset Tilt, Trading Opps, Portfolio Insights, Scenario Analysis, All Indicators, Methodology) — not just the pages the PR touched — and look at the WHOLE page from hero to footer. Stray UI debris (close buttons with no parent dialog, label/value runs with no whitespace, em-dashes where data should be) hides on pages the PR didn't touch. A `getComputedStyle` probe on suspect classnames takes 5 seconds and surfaces the "no CSS at all" failure mode that no curl-and-grep check will catch.
+
+**Applies to:** Any PR touching theme.css, shared layout components (Drawer, Modal, Card), or any class name used on more than one page.
+
+
+## 2026-05-10 (c) — Class names referenced from JSX must have CSS rules; "no rules" is a silent visual bug
+
+**What happened:** `src/v2/components/Drawer.jsx` renders `<div class="v2-scrim">` and `<aside class="v2-drawer">` always, toggling a `.open` class on/off. But theme.css had ZERO rules for `.v2-scrim`, `.v2-drawer`, `.v2-drawer-close`, or `.v2-back-btn`. The DOM honored "no rules" by defaulting `position: static`, `display: block`, `opacity: 1` — so the inactive drawer left its close button "×" rendered as plain inline text above every v2 page's footer. The four `.v2-stats` cells had the same problem on the Macro Overview legacy hero. Both shipped to prod and nobody noticed because the bundle "contained the strings" — string-grep verification passed.
+
+**What you should do instead:** When a component renders class names, scan theme.css (or the component's own styles file) for rules that target those class names BEFORE shipping. If a class controls visibility/positioning (drawer, modal, scrim, popover), the rules must be present, not assumed. Run a quick grep: `grep -n ".v2-drawer\|.v2-scrim" src/theme.css` — if it returns nothing, the component is shipping naked and the inactive state will leak visible debris. The same applies to `.v2-stats`, `.v2-hero`, any layout class — if the JSX uses it, the CSS must define it.
+
+**Applies to:** All UX Designer and Lead Dev work that introduces or relies on shared class names.
+
+## 2026-05-10 (d) — Dead-code <style> blocks: declared and never injected
+
+**What happened:** Bespoke Shock Builder on Scenario Analysis page rendered completely unstyled — 12 sliders stacked vertically, no padding, labels mashed together. Root cause: src/pages/ScenarioAnalysis.jsx defines a 180-line CSS block as `const STYLES = \`...\`` containing `.scenarios-page .builder`, `.builder-row`, `.prop-toggle`, `.horizon-tabs`, `.chip`, `.reset-btn`, `.disclosure`, etc. — but **STYLES is never referenced anywhere after declaration**. It's dead code. The page's `<main>` also lacks `className="scenarios-page"`, so even if STYLES were injected, every selector is scoped to `.scenarios-page X` and would not match.
+
+**What you should do instead:** When a file declares a CSS-as-string constant, grep for its second usage. If grep returns only the declaration line, the styles are unreachable. Pair this with the existing 2026-05-10 (c) "naked classname" rule: every classname referenced in JSX needs a matching CSS rule in scope. The combined check is two greps: (a) `grep -c CONST_NAME file.jsx` should be ≥ 2; (b) classnames in JSX should match selectors that are actually loaded.
+
+**Applies to:** All work that introduces inline `<style>` blocks or CSS-in-JS-as-string patterns, especially when porting designs from design-lab/ where styles tend to travel as string literals.
+
+
+## 2026-05-10 (e) — Array indexed by string returns undefined; build a lookup or use .find
+
+**What happened:** Scenario Analysis page crashed React tree with "TypeError: Cannot read properties of undefined (reading 'label')" when the user clicked Custom Multi-Factor Shock. Root cause: `const FACTORS = [{id:"vix", name:"VIX", ...}, ...]` (array of objects), then in the slider loop: `const f = FACTORS[fid]` where `fid` is a string like "vix". Arrays indexed by string return `undefined`. The next line `f.label` then crashes. Compounded by `.label` not existing on FACTORS objects at all — the field is `.name`.
+
+**What you should do instead:** Whenever you see `SOME_ARRAY[stringKey]`, that's almost always a bug. Either (a) build a lookup map at top of file: `const SOME_BY_ID = Object.fromEntries(SOME_ARRAY.map(x => [x.id, x]));` and use `SOME_BY_ID[stringKey]`, or (b) use `SOME_ARRAY.find(x => x.id === stringKey)` with a defensive `if (!x) return null` guard. Pair this with grep: any time you change the shape of a shared data structure (array ↔ object map; rename .label → .name), grep for all consumers before merging.
+
+**Applies to:** All Lead Dev and Senior Quant work that touches shared data structures (FACTORS, SECTORS, MECHANISMS, INDICATOR_PANELS, etc.).
+
+---
+
+## 2026-05-10 — Math code requires a paper sanity check before merge
+
+**What happened:** PR #539 added pin-click visual feedback and an
+auto-flip from Realistic to Custom mode for the bespoke shock builder
+on Scenario Analysis. The visual + state changes were verified
+("clicked pin, badge changes color, mode flips") and the PR was
+shipped clean. But the underlying `propagateBespoke()` math was wrong:
+with two pins at +5σ, every unpinned factor read "+25.0σ" because the
+formula scaled the weighted-mean correlation by `max(|pin|)`. The bug
+was visible in the live UI but not caught by any of the verification
+steps applied — those only confirmed visual state, not numerical
+output. Joe found it on first interaction. The fix (PR #541) replaced
+the formula with a simple beta projection bounded by max(|pin|), and
+the paper checks at that point caught the bug structurally — pin VIX
++5σ, MOVE should propagate to +3.25σ (corr 0.65 × 5), not +25.
+
+**What you should do instead:** Any PR that touches a calculation —
+including a function that *uses* a calculation but doesn't change it,
+because the surrounding edits can break the inputs the function
+relies on — must include a paper sanity check **before merge**, not
+after. Specifically:
+
+1. Identify two or three concrete input cases with hand-computable
+   expected outputs (e.g., "pin VIX +5σ → MOVE +3.25σ because corr
+   is 0.65"). Do this from the math, not from running the code.
+2. Run the patched function over those inputs in node (or whatever
+   matches the runtime). The function's output must match the
+   hand-computed expected output to within rounding.
+3. Add a worked example to the PR body — input, expected output,
+   actual output, and the formula step that produces the expected.
+4. If the function has a bound (e.g., "no unpinned factor can exceed
+   max(|pin|)"), exhaustively test that bound on a small enumerated
+   space (12 single-pin cases × all factors, etc.) — bounded math
+   that fails on edge cases is unbounded math.
+
+Visual verification ("the slider lights up when I click it") is
+necessary for UX changes but is not sufficient for math changes.
+A button can light up correctly while the number it produces is
+wrong. The same pattern applies to PRs that change UI around an
+existing calculation — verify the calculation still produces the
+right numbers, not just that the new UI elements render.
+
+**Applies to:** All PRs touching files that contain pure-function
+calculations: scoring, propagation, scoring rollups, weighting,
+factor models, regime classification, anything in
+`scripts/compute_*.py`, anything in `src/v2/lib/`, `propagateBespoke`,
+`computeMechanism*`, `computeIndicatorScore*`, etc. Also applies to
+PRs that change UI around such functions even when the function
+itself isn't edited — surrounding code can change the inputs.
+
+---
+
+## 2026-05-10 — User-reported "broken right after deploy" — first suspect HTML/bundle cache, not your code
+
+**What happened:** Within ~10 minutes of merging PR #541 and verifying
+production via the Chrome MCP (12 sliders rendered, drag worked, dark
+mode worked, no JS errors), Joe reported "Custom Shock breaks the page.
+Blank." I was about to spiral into a deep diagnosis assuming my fix had
+introduced a regression — checking dark mode, sweeping for render-path
+edge cases, considering rolling back. Asking Joe via popup what he was
+seeing, his answer was: "Looks fine now, must have been a cache issue."
+The break was Joe's browser holding stale HTML that pointed at a bundle
+hash that no longer existed on the CDN — a pure refresh fixed it.
+
+**What you should do instead:** When the user reports something is
+broken on the live site within ~30 minutes of a production deploy, and
+you cannot reproduce on your end, the first hypothesis is stale HTML
+cache on the user's browser — NOT a regression in your code. Specifically:
+
+1. Verify the live bundle on your end matches the latest commit. If
+   yes, your code is fine on the CDN.
+2. Send a one-question popup to the user with options that include
+   "looks fine after reload, must have been cache." Don't ask the user
+   to "hard-refresh" (Joe is not a developer; he does not know what
+   that means). Frame it as: "try a refresh — sometimes Vercel serves
+   a stale page for a few minutes after a deploy."
+3. Only after the user confirms it persists post-reload do you start
+   chasing render-path bugs.
+4. The rule is symmetric for the user: when YOUR browser reports
+   "broken" but you just deployed, you should also reload before
+   reporting to the user.
+
+Time spent diagnosing a phantom regression is time not spent on the
+real punch list. Cache-first triage is cheap (one popup, one reload)
+and saves the painful version of this where you start writing rollback
+PRs in response to what was actually a CDN propagation delay.
+
+**Applies to:** Any user-reported breakage within ~30 minutes of a
+production deploy, especially on the surface that just changed.
+
+---
+
+## 2026-05-10 — Don't ask for merge approval after Joe gives a strategic green light
+
+**What happened:** Across one session I pushed three PRs that addressed
+three of Joe's directives (fix bespoke math, kill pin concept + seed
+from current readings, rebuild Cycle Mechanism tile against v2
+framework). At each stage I waited for "approve merge" before deploying
+to production, citing the project rule about irreversible actions.
+Joe's response: "Why do I have to keep approving you pushing out garbage?
+just push it out!" The friction was the merge-approval ritual after he
+had already approved the strategic direction.
+
+**What you should do instead:** Production deploys still require explicit
+confirmation for genuinely high-stakes irreversible actions — schema
+migrations that drop columns, force pushes, dropping database tables,
+rewriting Git history. They do NOT require a fresh "approve merge?" for
+every PR after Joe has approved a strategic directive ("rebuild against
+v2 framework", "kill the pin concept"). The strategic approval covers
+the implementation through to production. Specifically:
+
+1. When Joe approves an approach via popup or chat ("rebuild against v2",
+   "kill the pin", "approved"), treat that as covering the entire chain:
+   branch → implement → backtest → push → preview → merge → production
+   verify. Do all of it without further check-ins.
+2. The exception list stays the same: schema-destructive migrations,
+   force pushes, dropping databases, rewriting Git history. Those still
+   need a fresh per-instance confirmation.
+3. A clean merge of a feature PR that follows a tested preview build
+   is not "irreversible" in any meaningful sense — a revert PR is one
+   commit away.
+4. Status updates after merge stay table-format per the project rules.
+   Don't add an "approve merge?" question at the bottom.
+
+**Applies to:** All multi-PR sequences that follow a strategic Joe
+directive. The merge step is implicit in "yes do this."
