@@ -1130,87 +1130,38 @@ export default function TradingOppsPage({ onOpenTicker }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {/* v5.3: group by band ONLY when sorting by the band-aware
-                      keys (score or band). When sorting by ticker / sector /
-                      RSI / anything else, render the full table flat -- per
-                      Joe's request: "sorting by ticker should not separate
-                      different bands". */}
-                  {(colState.sort.key === "score" || colState.sort.key === "band") ? (
-                    groupOrder.map(g => {
-                      const groupRows = sorted.filter(r => r.band_group === g);
-                      if (!groupRows.length) return null;
-                      return (
-                        <Fragment key={g}>
-                          <tr>
-                            <td colSpan={visibleCols.length} style={{ background: "var(--surface-2)", padding: "10px", borderBottom: "1px solid var(--border)", borderTop: "1px solid var(--border)" }}>
-                              <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 8 }}>
-                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: groupMeta[g].dot }} />
-                                {groupMeta[g].label}
-                                <span style={{ fontWeight: 500, color: "var(--text-muted)", fontSize: 11 }}>&middot; {groupRows.length}</span>
-                              </span>
-                            </td>
-                          </tr>
-                          {groupRows.map(r => (
-                          <tr
-                            key={r.ticker + "-" + g}
-                            onClick={() => { if (typeof onOpenTicker === "function") onOpenTicker(r.ticker); }}
-                            style={{ cursor: "pointer", transition: "background 0.12s" }}
-                            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover)"; }}
-                            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                          >
-                            {visibleCols.map(k => {
-                              const c = COLUMNS.find(x => x.key === k);
-                              return (
-                                <td
-                                  key={k}
-                                  style={{
-                                    padding: "11px 10px",
-                                    borderBottom: "1px solid var(--border-faint, var(--border))",
-                                    color: "var(--text-2)",
-                                    whiteSpace: "nowrap",
-                                    textAlign: c?.numeric ? "right" : "left",
-                                    fontVariantNumeric: c?.numeric ? "tabular-nums" : "normal",
-                                    fontFamily: c?.numeric ? "var(--font-mono, JetBrains Mono, monospace)" : undefined,
-                                  }}
-                                >
-                                  {renderCell(r, k)}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </Fragment>
-                    );
-                  })
-                  ) : (
-                    // Flat sort branch -- no band headers between rows.
-                    sorted.map(r => (
-                      <tr
-                        key={r.ticker}
-                        onClick={() => { if (typeof onOpenTicker === "function") onOpenTicker(r.ticker); }}
-                        style={{ cursor: "pointer", transition: "background 0.12s" }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover)"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                      >
-                        {visibleCols.map(k => {
-                          const c = COLUMNS.find(x => x.key === k);
-                          return (
-                            <td key={k} style={{
-                              padding: "11px 10px",
-                              borderBottom: "1px solid var(--border-faint, var(--border))",
-                              color: "var(--text-2)",
-                              whiteSpace: "nowrap",
-                              textAlign: c?.numeric ? "right" : "left",
-                              fontVariantNumeric: c?.numeric ? "tabular-nums" : "normal",
-                              fontFamily: c?.numeric ? "var(--font-mono, JetBrains Mono, monospace)" : undefined,
-                            }}>
-                              {renderCell(r, k)}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))
-                  )}
+                  {/* v5.3 (c): band-group header rows removed. Band is a
+                      column on every row -- a "WATCH BUY · 19" row above
+                      19 watch-buy rows added nothing. Table renders flat
+                      under any sort. (Joe: "We don't need the table
+                      headers and to split the table for each band, we
+                      have it as a column already.") */}
+                  {sorted.map(r => (
+                    <tr
+                      key={r.ticker}
+                      onClick={() => { if (typeof onOpenTicker === "function") onOpenTicker(r.ticker); }}
+                      style={{ cursor: "pointer", transition: "background 0.12s" }}
+                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover)"; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                    >
+                      {visibleCols.map(k => {
+                        const c = COLUMNS.find(x => x.key === k);
+                        return (
+                          <td key={k} style={{
+                            padding: "11px 10px",
+                            borderBottom: "1px solid var(--border-faint, var(--border))",
+                            color: "var(--text-2)",
+                            whiteSpace: "nowrap",
+                            textAlign: c?.numeric ? "right" : "left",
+                            fontVariantNumeric: c?.numeric ? "tabular-nums" : "normal",
+                            fontFamily: c?.numeric ? "var(--font-mono, JetBrains Mono, monospace)" : undefined,
+                          }}>
+                            {renderCell(r, k)}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
