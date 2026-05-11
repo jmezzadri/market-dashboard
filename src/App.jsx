@@ -6414,8 +6414,11 @@ return(
     feel identical at the top of the viewport. The freshness strip
     above the iframe was removed 2026-05-08 (Joe directive: page-to-
     page parity); freshness lives on each mechanism dial inside. */}
-{tab==="overview" && V2_ENABLED && <V2ErrorBoundary><MacroOverviewPageV2 /></V2ErrorBoundary>}
-{tab==="overview" && !V2_ENABLED && (
+{/* Macro Overview — v2 React rebuilds didn\'t hit the brand bar (multiple attempts 2026-05-10..11);
+    falling back to the legacy static HTML which Joe approves of. v2 framework data is still wired
+    into Scenario Analysis and Home — only this page reverts. Pick up the visual rebuild in a fresh
+    session against the legacy file as the reference. */}
+{tab==="overview" && (
 <div style={{padding:0,margin:0,width:"100%"}}>
 <iframe
   src="/MacroTilt_Macro_Overview_Page_v11.html"
