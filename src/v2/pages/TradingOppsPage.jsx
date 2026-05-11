@@ -1447,6 +1447,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
           }}
         >
           <Scanner
+            key={scannerView}
             embeddedMode
             forceInitialView={scannerView}
             onClose={() => setScannerView(null)}
