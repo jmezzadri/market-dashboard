@@ -15,7 +15,8 @@
 //
 // Theme parity: every color is a CSS variable. Light + dark both clean.
 
-import { useEffect, useMemo, useRef, useState, Fragment } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, Fragment } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabase";
 
 // ─────────────────────────────────────────────────────────────────────────
@@ -448,46 +449,81 @@ function useScanData() {
 // Tooltip component.
 // ─────────────────────────────────────────────────────────────────────────
 
-function Tooltip({ label, body, children, side = "top" }) {
-  const top = side === "top";
-  const positionStyle = top
-    ? { bottom: "calc(100% + 8px)" }
-    : { top: "calc(100% + 8px)" };
+function Tooltip({ label, body, children, side = "bottom" }) {
+  // v5.5d: portal-rendered, fixed-positioned, viewport-clamped.
+  // Previous implementation used position:absolute inside the <th>, which
+  // overflowed adjacent columns and rendered as visible "hanging" block
+  // text on sticky-header sort. Now mounts to document.body with explicit
+  // hover gate and viewport clamping borrowed from the project Tip
+  // component (src/InfoTip.jsx).
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ x: 0, y: 0, flip: false });
+  const anchorRef = useRef(null);
+  const TT_W = 300;
+
+  useLayoutEffect(() => {
+    if (!open || !anchorRef.current) return;
+    const r = anchorRef.current.getBoundingClientRect();
+    const margin = 8;
+    const wantX = r.left + r.width / 2 - TT_W / 2;
+    const clampedX = Math.max(margin, Math.min(wantX, window.innerWidth - TT_W - margin));
+    const flipAbove = side === "top" || (r.bottom + 160 > window.innerHeight);
+    setPos({
+      x: clampedX,
+      y: flipAbove ? r.top - 8 : r.bottom + 8,
+      flip: flipAbove,
+    });
+  }, [open, side]);
+
   return (
-    <span className="mt-tt" style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 5, cursor: "help" }}>
-      {children}
+    <>
       <span
-        className="mt-tt-body"
-        style={{
-          position: "absolute",
-          ...positionStyle,
-          left: "50%",
-          transform: "translateX(-50%)",
-          background: "var(--text)",
-          color: "var(--surface)",
-          padding: "8px 12px",
-          borderRadius: 6,
-          fontSize: 11,
-          lineHeight: 1.5,
-          width: 240,
-          textAlign: "left",
-          textTransform: "none",
-          letterSpacing: 0,
-          fontWeight: 400,
-          opacity: 0,
-          pointerEvents: "none",
-          transition: "opacity 0.15s",
-          zIndex: 100,
-          boxShadow: "var(--shadow-md, 0 4px 14px rgba(0,0,0,0.15))",
-          fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)",
-        }}
+        ref={anchorRef}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onFocus={() => setOpen(true)}
+        onBlur={() => setOpen(false)}
+        style={{ display: "inline-flex", alignItems: "center", gap: 5, cursor: "help" }}
       >
-        <span style={{ color: "var(--accent)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", marginBottom: 4, display: "block", fontWeight: 600 }}>
-          {label}
-        </span>
-        {body}
+        {children}
       </span>
-    </span>
+      {open && typeof document !== "undefined" && createPortal(
+        <div
+          role="tooltip"
+          style={{
+            position: "fixed",
+            left: pos.x,
+            top: pos.flip ? undefined : pos.y,
+            bottom: pos.flip ? window.innerHeight - pos.y : undefined,
+            width: TT_W,
+            padding: "10px 12px",
+            background: "var(--surface-solid, #fff)",
+            color: "var(--text, #111)",
+            border: "1px solid var(--border, #d4d7db)",
+            borderRadius: 8,
+            fontSize: 12,
+            lineHeight: 1.5,
+            fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+            zIndex: 9999,
+            pointerEvents: "none",
+            whiteSpace: "normal",
+            letterSpacing: 0,
+            textTransform: "none",
+            fontWeight: 400,
+            textAlign: "left",
+          }}
+        >
+          {label && (
+            <div style={{ color: "var(--accent)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", marginBottom: 4, fontWeight: 600 }}>
+              {label}
+            </div>
+          )}
+          {body}
+        </div>,
+        document.body
+      )}
+    </>
   );
 }
 
@@ -1268,7 +1304,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                           onDragEnd={onDragEnd}
                           onDragOver={(e) => onDragOver(e, k)}
                           onDrop={(e) => onDrop(e, k)}
-                          onClick={(e) => { if (!e.target.classList.contains("mt-tt-body")) sortBy(k); }}
+                          onClick={(e) => { if (!e.target.closest('[role="tooltip"]')) sortBy(k); }}
                           style={{
                             position: "sticky",
                             top: 0,
@@ -1345,7 +1381,6 @@ export default function TradingOppsPage({ onOpenTicker }) {
       </div>
 
       <style>{`
-        .mt-tt:hover .mt-tt-body { opacity: 1 !important; }
         th.mt-drag-over { background: var(--accent-soft, var(--surface-2)) !important; }
         th.mt-drag-source { opacity: 0.4; }
         @keyframes mt-band-pulse-anim {
