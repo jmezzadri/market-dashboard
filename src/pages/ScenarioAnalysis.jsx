@@ -193,6 +193,51 @@ const fmtNominal = (factorId, sigma) => {
   return b.fmt(v);
 };
 
+// Slider id → key in public/indicator_history.json. Some IDs differ from
+// history keys (dxy → usd in the data feed, hy → hy_ig). aaii/putcall/breadth
+// are not tracked in the history feed; those sliders default to z = 0
+// (slider sits at baseline mean) until a feed is added.
+const FACTOR_HISTORY_KEYS = {
+  vix: "vix",
+  move: "move",
+  real_rates: "real_rates",
+  term_premium: "term_premium",
+  dxy: "usd",
+  copper_gold: "copper_gold",
+  hy: "hy_ig",
+  stlfsi: "stlfsi",
+  anfci: "anfci",
+  aaii: null,
+  putcall: null,
+  breadth: null,
+};
+
+// Convert today's reading on an indicator-history series into a σ-z
+// relative to FACTOR_BASELINES (the calibration the σ readout uses).
+// Result: slider position reflects where the factor sits in real life RIGHT
+// NOW. Custom mode starts from these readings so users shock from reality,
+// not from a synthetic zero.
+function getCurrentReadings(indicatorHistory) {
+  const out = {};
+  FACTOR_IDS.forEach(fid => {
+    const histKey = FACTOR_HISTORY_KEYS[fid];
+    const baseline = FACTOR_BASELINES[fid];
+    if (!histKey || !baseline || !indicatorHistory || !indicatorHistory[histKey]) {
+      out[fid] = 0;
+      return;
+    }
+    const points = indicatorHistory[histKey].points;
+    if (!points || !points.length) { out[fid] = 0; return; }
+    const lastValue = points[points.length - 1][1];
+    if (typeof lastValue !== "number" || !isFinite(lastValue) || !baseline.std) {
+      out[fid] = 0;
+      return;
+    }
+    out[fid] = (lastValue - baseline.mean) / baseline.std;
+  });
+  return out;
+}
+
 const CORR_PAIRS = {
   "vix|move": 0.65, "vix|real_rates": -0.30, "vix|term_premium": 0.10, "vix|dxy": 0.15,
   "vix|copper_gold": -0.45, "vix|hy": 0.75, "vix|stlfsi": 0.80, "vix|anfci": 0.60,
@@ -329,25 +374,6 @@ function propagateRealistic(driverId, driverZ) {
   FACTOR_IDS.forEach(f => { out[f] = driverZ * getCorr(driverId, f); });
   return out;
 }
-function propagateBespoke(pinnedShocks) {
-  // Simple beta projection bounded by the pins themselves.
-  // Pinned values are preserved exactly. Each unpinned factor =
-  //   average over pinned factors of (corr(pin, factor) * pinShock).
-  // For two pins the unpinned output is bounded by the larger |pin|;
-  // for one pin it equals (corr × pin), which is by definition ≤ |pin|.
-  // This replaces an over-amplifying formula that scaled the weighted
-  // mean by max(|pin|), pushing every unpinned factor to ±5σ.
-  const out = { ...pinnedShocks };
-  const pinnedKeys = Object.keys(pinnedShocks);
-  if (pinnedKeys.length === 0) return Object.fromEntries(FACTOR_IDS.map(f => [f, 0]));
-  FACTOR_IDS.forEach(f => {
-    if (out[f] !== undefined) return;
-    let sum = 0;
-    pinnedKeys.forEach(p => { sum += getCorr(p, f) * pinnedShocks[p]; });
-    out[f] = sum / pinnedKeys.length;
-  });
-  return out;
-}
 function getEffectiveShocks(state) {
   if (state.mode === "canned") {
     return state.scenario ? { ...SCENARIOS[state.scenario].factors } : Object.fromEntries(FACTOR_IDS.map(f => [f, 0]));
@@ -355,9 +381,11 @@ function getEffectiveShocks(state) {
   if (state.prop === "realistic" && state.driver) {
     return propagateRealistic(state.driver, state.shocks[state.driver]);
   }
-  const pinnedShocks = {};
-  state.pinned.forEach(p => { if (Math.abs(state.shocks[p]) > 0.01) pinnedShocks[p] = state.shocks[p]; });
-  return propagateBespoke(pinnedShocks);
+  // Custom mode: each slider is independent. No propagation, no pins.
+  // Plausibility of the combination is reported separately by the
+  // coherence() badge — input control and plausibility check are
+  // intentionally decoupled here.
+  return { ...state.shocks };
 }
 function coherence(shocks) {
   const factors = FACTOR_IDS.filter(f => Math.abs(shocks[f]) > 0.05);
@@ -543,8 +571,6 @@ const STYLES = `
 .scenarios-page .factor input[type="range"] { -webkit-appearance:none; appearance:none; width:100%; height:4px; background:var(--bg-3); border-radius:999px; outline:none; cursor:pointer; transition:background 120ms; }
 .scenarios-page .factor input[type="range"]::-webkit-slider-thumb { -webkit-appearance:none; appearance:none; width:14px; height:14px; border-radius:50%; background:var(--ink-0); border:2px solid var(--bg-1); box-shadow:0 1px 3px rgba(0,0,0,.2); cursor:pointer; transition:all 120ms; }
 .scenarios-page .factor input[type="range"]::-moz-range-thumb { width:14px; height:14px; border-radius:50%; background:var(--ink-0); border:2px solid var(--bg-1); box-shadow:0 1px 3px rgba(0,0,0,.2); cursor:pointer; }
-.scenarios-page .factor.pinned input[type="range"]::-webkit-slider-thumb { background:var(--accent-burgundy); }
-.scenarios-page .factor.pinned input[type="range"]::-moz-range-thumb { background:var(--accent-burgundy); }
 .scenarios-page .factor.driver input[type="range"]::-webkit-slider-thumb { background:var(--accent-burgundy); transform:scale(1.15); }
 .scenarios-page .factor.driver input[type="range"]::-moz-range-thumb { background:var(--accent-burgundy); }
 .scenarios-page .factor.auto input[type="range"]::-webkit-slider-thumb { background:var(--ink-3); }
@@ -556,7 +582,6 @@ const STYLES = `
 .scenarios-page .factor.auto .factor-val { color:var(--ink-2); font-weight:500; }
 .scenarios-page .factor-pin { font-size:13px; color:var(--ink-3); text-align:center; cursor:pointer; user-select:none; transition:color 120ms; }
 .scenarios-page .factor-pin:hover { color:var(--ink-1); }
-.scenarios-page .factor.pinned .factor-pin { color:var(--accent-burgundy); }
 .scenarios-page .reset-btn { font-family:var(--font-ui); font-size:11px; font-weight:500; padding:5px 11px; border:1px solid var(--line-1); border-radius:var(--r-md); background:var(--bg-1); color:var(--ink-1); cursor:pointer; transition:all 120ms; }
 .scenarios-page .reset-btn:hover { background:var(--bg-2); color:var(--ink-0); }
 .scenarios-page .so-what { background:linear-gradient(180deg,var(--bg-1) 0%,var(--bg-2) 100%); border:1px solid var(--line-1); border-left:4px solid var(--accent-burgundy); border-radius:var(--r-xl); padding:var(--s-3) var(--s-4); margin-bottom:var(--s-4); transition:all 200ms; }
@@ -632,14 +657,9 @@ const STYLES = `
 
 /* ── bespoke shock sliders (added 2026-05-10 — were missing entirely) ── */
 .scenarios-page .sliders { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 24px; margin-top:var(--s-3); }
-.scenarios-page .slider-row { display:grid; grid-template-columns:28px 110px 1fr 96px; align-items:center; gap:10px; padding:6px 8px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
+.scenarios-page .slider-row { display:grid; grid-template-columns:120px 1fr 96px; align-items:center; gap:12px; padding:6px 8px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
 .scenarios-page .slider-row:hover { background:var(--bg-2); }
-.scenarios-page .slider-row.pinned { background:rgba(216,178,122,.28); border-left-color:var(--accent-parchment, #d8b27a); box-shadow:inset 0 0 0 1px rgba(216,178,122,.45); }
 .scenarios-page .slider-row.driver { background:rgba(184,70,47,.10); border-left-color:var(--accent-burgundy); }
-.scenarios-page .slider-row .pin { background:transparent; border:none; cursor:pointer; font-size:14px; padding:2px 4px; color:var(--ink-2); transition:transform 100ms; }
-.scenarios-page .slider-row .pin:hover { color:var(--ink-0); transform:scale(1.18); }
-.scenarios-page .slider-row.pinned .pin { color:var(--accent-burgundy); filter:drop-shadow(0 1px 1px rgba(0,0,0,0.15)); }
-.scenarios-page .slider-row.pinned .slider-label { color:var(--ink-0); font-weight:600; }
 .scenarios-page .slider-row .slider-label { font-family:var(--font-ui); font-size:12px; color:var(--ink-1); font-weight:500; }
 .scenarios-page .slider-row input[type="range"] { width:100%; accent-color:var(--accent-burgundy); }
 .scenarios-page .slider-row .slider-val { display:flex; flex-direction:column; align-items:flex-end; line-height:1.15; font-family:var(--font-ui); font-variant-numeric:tabular-nums; }
@@ -663,8 +683,6 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // Wire-through to the same modals Asset Tilt uses, so a sector click here
   // opens the same rich modal there. v10_allocation.json carries the data.
   const [v10, setV10] = useState(null);
-  const [cycleStress, setCycleStress] = useState(null);
-  const [currentBoard, setCurrentBoard] = useState(null);
   const [indicatorHistory, setIndicatorHistory] = useState(null);
   const [igLoadings, setIgLoadings] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
@@ -679,20 +697,6 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // for the selected scenario. Both files refresh nightly via their
   // respective producers; cache: no-cache so the table always shows the
   // latest published numbers.
-  useEffect(() => {
-    fetch("/scenario_stress.json", { cache: "no-cache" })
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error("scenario_stress.json HTTP " + r.status)))
-      .then(setCycleStress)
-      .catch((err) => { console.warn("[Phase 2E] scenario_stress.json fetch failed", err); });
-  }, []);
-
-  useEffect(() => {
-    fetch("/cycle_board_snapshot.json", { cache: "no-cache" })
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_board_snapshot.json HTTP " + r.status)))
-      .then(setCurrentBoard)
-      .catch((err) => { console.warn("[Phase 2E] cycle_board_snapshot.json fetch failed", err); });
-  }, []);
-
   // Phase 2E feedback fix — fetch indicator_history so the per-indicator
   // drilldown can show the live "current reading" for each indicator next
   // to the calibrated stressed value. Same convention as the rest of the
@@ -770,7 +774,6 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const [prop, setProp] = useState("realistic");
   const [driver, setDriver] = useState(null);
   const [shocks, setShocks] = useState(() => Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
-  const [pinned, setPinned] = useState(() => new Set());
   const [expandedSector, setExpandedSector] = useState(null);
   // Joe directive 2026-05-08: Asset Tilt sectors are collapseable, default collapsed.
   const [expandedSectors, setExpandedSectors] = useState(() => new Set());
@@ -783,8 +786,24 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     });
   }, []);
 
-  const stateObj = { mode, scenario, horizon, prop, driver, shocks, pinned };
-  const effShocks = useMemo(() => getEffectiveShocks(stateObj), [mode, scenario, prop, driver, shocks, pinned]);
+  // When indicator_history first loads, seed Custom-mode sliders with
+  // today's live readings (only if the user hasn't already started shocking
+  // values). This makes "click Custom Multi-Factor Shock" land you at
+  // reality instead of zeros.
+  const [readingsSeeded, setReadingsSeeded] = useState(false);
+  useEffect(() => {
+    if (readingsSeeded) return;
+    if (!indicatorHistory) return;
+    if (mode !== "bespoke" || prop !== "bespoke") return;
+    // Only auto-seed if the user is at the all-zeros default.
+    const anyDirty = FACTOR_IDS.some(f => Math.abs(shocks[f] || 0) > 0.01);
+    if (anyDirty) return;
+    setShocks(getCurrentReadings(indicatorHistory));
+    setReadingsSeeded(true);
+  }, [indicatorHistory, mode, prop, shocks, readingsSeeded]);
+
+  const stateObj = { mode, scenario, horizon, prop, driver, shocks };
+  const effShocks = useMemo(() => getEffectiveShocks(stateObj), [mode, scenario, prop, driver, shocks]);
   const hasShock = Object.values(effShocks).some(v => Math.abs(v) > 0.05);
   const sectorPcts = useMemo(() => sectorShocks(effShocks, horizon), [effShocks, horizon]);
 
@@ -821,76 +840,58 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const portfolioSource = userPortfolio.source;
   const portfolioUncovered = userPortfolio.uncovered;
 
-  // Mode toggle
+  // Mode toggle. Entering bespoke seeds shocks based on prop:
+  //   - Custom (prop = "bespoke")  → start at today's live readings
+  //   - Realistic (prop = "realistic") → start at 0 (slider becomes driver)
+  // Canned mode clears the scenario selection on exit.
   const onModeChange = useCallback(m => {
     setMode(m);
     if (m === "bespoke") {
-      setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+      if (prop === "bespoke") {
+        setShocks(getCurrentReadings(indicatorHistory));
+      } else {
+        setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+      }
       setDriver(null);
-      setPinned(new Set());
     } else {
       setScenario(null);
     }
-  }, []);
+  }, [prop, indicatorHistory]);
 
   // Scenario click
   const onScenarioClick = useCallback(id => setScenario(s => s === id ? null : id), []);
 
-  // Slider change
+  // Slider change. Realistic mode tags the dragged factor as the
+  // driver (propagation source). Custom mode: each slider is independent,
+  // the value lands in state.shocks and nothing else is affected.
   const onSliderChange = useCallback((fid, v) => {
     setShocks(prev => ({ ...prev, [fid]: v }));
     if (prop === "realistic") setDriver(fid);
-    else setPinned(prev => new Set(prev).add(fid));
   }, [prop]);
 
-  // Pin toggle. In Realistic mode, the first pin auto-flips us to Custom
-  // mode — otherwise pinning would have no math effect (Realistic uses an
-  // implicit driver) and the user would correctly conclude that pinning
-  // does nothing. The active driver, if any, is preserved as a pin.
-  const onPinToggle = useCallback(fid => {
-    setPinned(prev => {
-      const next = new Set(prev);
-      if (next.has(fid)) {
-        next.delete(fid);
-        if (prop === "realistic" && driver === fid) {
-          setDriver(null);
-          setShocks(s => ({ ...s, [fid]: 0 }));
-        }
-      } else {
-        next.add(fid);
-        // If we are still in Realistic mode, switch to Custom on first pin
-        // so the pin actually drives the math.
-        if (prop === "realistic") {
-          setProp("bespoke");
-          if (driver && driver !== fid) next.add(driver);
-          setDriver(null);
-        }
-      }
-      return next;
-    });
-  }, [prop, driver]);
-
-  // Prop toggle (Realistic ↔ Bespoke)
+  // Prop toggle (Realistic ↔ Custom).
+  // Realistic → all sliders reset to 0; first drag becomes the driver.
+  // Custom → seed from today's live readings so the user shocks from reality.
   const onPropToggle = useCallback(() => {
     if (prop === "realistic") {
       setProp("bespoke");
-      if (driver) setPinned(prev => new Set(prev).add(driver));
+      setShocks(getCurrentReadings(indicatorHistory));
       setDriver(null);
     } else {
       setProp("realistic");
-      let maxAbs = 0, maxId = null;
-      FACTOR_IDS.forEach(f => { if (Math.abs(shocks[f]) > maxAbs) { maxAbs = Math.abs(shocks[f]); maxId = f; } });
-      setPinned(new Set());
-      setDriver(maxId);
-      if (maxId) setShocks(s => Object.fromEntries(FACTOR_IDS.map(f => [f, f === maxId ? s[f] : 0])));
+      setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+      setDriver(null);
     }
-  }, [prop, driver, shocks]);
+  }, [prop, indicatorHistory]);
 
   const onReset = useCallback(() => {
-    setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+    if (prop === "bespoke") {
+      setShocks(getCurrentReadings(indicatorHistory));
+    } else {
+      setShocks(Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+    }
     setDriver(null);
-    setPinned(new Set());
-  }, []);
+  }, [prop, indicatorHistory]);
 
   const horizonText = horizon === "1mo" ? "1-month" : horizon === "3mo" ? "3-month" : "6-month";
 
@@ -1006,7 +1007,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
               <div className="builder-label">Propagation</div>
               <div className="prop-toggle">
                 <button className={prop === "realistic" ? "active" : ""} onClick={onPropToggle}>Realistic (correlated)</button>
-                <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (pin factors)</button>
+                <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (independent)</button>
               </div>
               <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
                 <button className="reset-btn" onClick={onReset}>Reset</button>
@@ -1027,13 +1028,11 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                 const f = FACTORS.find(x => x.id === fid);
                 if (!f) return null;
                 const v = effShocks[fid];
-                const isPinned = pinned.has(fid);
                 const isDriver = driver === fid;
                 const nominal = fmtNominal(fid, v);
                 const clampedV = Math.max(-5, Math.min(5, v));
                 return (
-                  <div key={fid} className={"slider-row" + (isPinned ? " pinned" : "") + (isDriver ? " driver" : "")}>
-                    <button className="pin" onClick={() => onPinToggle(fid)} title={isPinned ? "Unpin" : "Pin"}>{isPinned ? "📌" : "📍"}</button>
+                  <div key={fid} className={"slider-row" + (isDriver ? " driver" : "")}>
                     <div className="slider-label">{f.name}</div>
                     <input type="range" min="-5" max="5" step="0.1" value={clampedV} onChange={(e) => onSliderChange(fid, parseFloat(e.target.value))} />
                     <div className="slider-val">
@@ -1044,7 +1043,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                 );
               })}
             </div>
-            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: pin any factors you want to move freely. The other factors auto-propagate from your pins based on historical correlations."}</div>
+            <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: every slider is independent — drag any one and only that factor moves. Sliders start at today's live reading; the coherence indicator below flags combinations that haven't shown up together historically."}</div>
           </div>
         )}
 
@@ -1110,10 +1109,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
             {/* TABLE 2 — Cycle Mechanism Scenario Results (Phase 2E live) */}
             <CycleMechanismScenarioResultsTable
               mode={mode}
-              scenarioId={scenario}
               scenarioName={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : null}
-              cycleStress={cycleStress}
-              currentBoard={currentBoard}
+              effShocks={effShocks}
               indicatorHistory={indicatorHistory}
               tableCard={_tableCard}
               tableHead={_tableHead}
@@ -1147,295 +1144,305 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
 
 // ────────────────────────────────────────────────────────────────────────
-// CycleMechanismScenarioResultsTable — Phase 2E
-// Renders the 6 cycle mechanisms × {current, stressed, Δ} table for the
-// selected canned scenario, plus the page-level composite delta. Data:
-//   - currentBoard.mechanisms[] (from /cycle_board_snapshot.json, live v11 scorer)
-//   - cycleStress.scenarios[scenarioId].mechanisms[] (from /scenario_stress.json,
-//     Phase 2C producer)
-//   - cycleStress.scenarios[scenarioId].composite_score (page-level page composite)
-// "Current" composite is the simple average of currentBoard mechanism scores
-// (matches the producer's simple-average composite convention so current and
-// stressed are on the same scale).
+// CycleMechanismScenarioResultsTable — v2 stress (rebuilt 2026-05-10).
+// Renders 3 v2 headlines (Cycle & Value / Market Stress / Real Economy)
+// plus 7 sub-composites — each as current → stressed → Δ. Stress is
+// computed live in the browser via computeV2Stress() from the effShocks
+// vector. Works for canned scenarios AND Custom mode (the v11 6-mechanism
+// table previously here only worked for canned). State-based scoring; see
+// engine block above for the math + state-vs-forecast rationale.
 // ────────────────────────────────────────────────────────────────────────
+
+// ════════════════════════════════════════════════════════════════════════
+// V2 STRESS ENGINE — Joe directive 2026-05-10
+// ════════════════════════════════════════════════════════════════════════
+// Computes v2 sub-composite + headline stress from a 12-factor shock vector.
+// Works for canned scenarios AND Custom mode. Replaces v11 6-mechanism table.
+//
+// Math chain: shock σ → stressed nominal value (FACTOR_BASELINES.mean +
+// σ × std) → percentile-rank against indicator's historical points → direction-
+// correct (0..100 cautionary) → average across all indicators in the sub-
+// composite → average sub-composites per headline.
+//
+// State-based (no IC sign-flip, no IC gate): the gate + sign-flip are
+// forecast-quality filters used by Macro Overview's horizon-aware v2 reads.
+// For a stress tile users expect concerning indicators to push concerning
+// scores UP. State-vs-forecast split captured in PR body + LESSONS.
+// ────────────────────────────────────────────────────────────────────────
+
+const SHOCK_FACTOR_TO_V2 = {
+  vix:          "vix",
+  move:         "move",
+  hy:           "hy_oas",
+  stlfsi:       "stlfsi",
+  anfci:        "anfci",
+  term_premium: "term_premium",
+};
+
+const V2_THRESHOLDS = {
+  ism_mfg:     { max_stress: 40,   neutral: 50,  peak_strength: 60,  direction: "low_is_concerning" },
+  ism_svc:     { max_stress: 40,   neutral: 50,  peak_strength: 60,  direction: "low_is_concerning" },
+  gdpnow:      { max_stress: -3.0, neutral: 1.5, peak_strength: 5.0, direction: "low_is_concerning" },
+  jobless:     { max_stress: 350,  neutral: 230, peak_strength: 180, direction: "high_is_concerning" },
+  jolts_quits: { max_stress: 1.5,  neutral: 2.5, peak_strength: 3.5, direction: "low_is_concerning" },
+  cfnai_3ma:   { max_stress: -1.0, neutral: 0.0, peak_strength: 1.0, direction: "low_is_concerning" },
+  copper_gold: { max_stress: -20,  neutral: 0,   peak_strength: 20,  direction: "low_is_concerning" },
+};
+
+const V2_HEADLINES_DEF = {
+  cycle_value:   { label: "Cycle & Value",  tagline: "The Setup",  subcomposites: ["Equities", "Rates", "MoneyBanking"] },
+  market_stress: { label: "Market Stress",  tagline: "The Panic",  subcomposites: ["Credit", "Funding", "PositioningVol"] },
+  real_economy:  { label: "Real Economy",   tagline: "The Truth",  subcomposites: ["RealEconomy"] },
+};
+
+const V2_REGIME_DEFS = [
+  { s_lo: 60, s_hi: 100, st_lo:  0, st_hi: 40, label: "Late-cycle setup",       action: "Pull a little risk off — strategic trim, raise quality" },
+  { s_lo: 60, s_hi: 100, st_lo: 60, st_hi: 100, label: "Late-cycle correction", action: "Pull a lot of risk off — hedges on" },
+  { s_lo:  0, s_hi:  40, st_lo: 60, st_hi: 100, label: "Capitulation / panic",  action: "Capitulation buy — mean-reversion plays out" },
+  { s_lo:  0, s_hi:  40, st_lo:  0, st_hi:  40, label: "Early expansion",       action: "Risk-on / leverage in line with risk tolerance" },
+];
+
+function classifyV2Regime(setup, stress) {
+  if (setup === null || stress === null || setup === undefined || stress === undefined) {
+    return { label: "Mixed regime", action: "Neutral — wait for confirmation" };
+  }
+  for (const r of V2_REGIME_DEFS) {
+    if (r.s_lo <= setup && setup <= r.s_hi && r.st_lo <= stress && stress <= r.st_hi) {
+      return { label: r.label, action: r.action };
+    }
+  }
+  return { label: "Mixed regime", action: "Neutral — wait for confirmation" };
+}
+
+function v2PercentileScore(value, sample, direction) {
+  if (!sample.length) return 50;
+  let below = 0;
+  for (const v of sample) if (v < value) below++;
+  const pct = below / sample.length * 100;
+  return direction === "low_is_concerning" ? 100 - pct : pct;
+}
+
+function v2ThresholdScore(value, anchors, direction) {
+  const ms = anchors.max_stress, n = anchors.neutral, p = anchors.peak_strength;
+  if (direction === "low_is_concerning") {
+    if (value <= ms) return 100;
+    if (value >= p) return 0;
+    if (value <= n) return 100 - ((value - ms) / (n - ms)) * 50;
+    return 50 - ((value - n) / (p - n)) * 50;
+  }
+  if (value >= ms) return 100;
+  if (value <= p) return 0;
+  if (value >= n) return 50 + ((value - n) / (ms - n)) * 50;
+  return ((value - p) / (n - p)) * 50;
+}
+
+function computeV2Stress(shocks, cycleV2, indicatorHistory) {
+  if (!cycleV2 || !cycleV2.indicators) return null;
+  const indicatorById = Object.fromEntries(cycleV2.indicators.map(ind => [ind.id, ind]));
+  const indicatorsBySub = {};
+  for (const ind of cycleV2.indicators) {
+    (indicatorsBySub[ind.sub_composite] = indicatorsBySub[ind.sub_composite] || []).push(ind);
+  }
+  const stressedScores = {};
+  for (const ind of cycleV2.indicators) stressedScores[ind.id] = ind.current_score;
+
+  for (const [factorId, indId] of Object.entries(SHOCK_FACTOR_TO_V2)) {
+    const sigma = shocks && shocks[factorId];
+    if (sigma === undefined || sigma === null) continue;
+    const baseline = FACTOR_BASELINES[factorId];
+    const ind = indicatorById[indId];
+    if (!baseline || !ind) continue;
+    const stressedValue = baseline.mean + sigma * baseline.std;
+
+    if (ind.scoring === "threshold") {
+      const anchors = V2_THRESHOLDS[indId];
+      if (anchors) stressedScores[indId] = v2ThresholdScore(stressedValue, anchors, anchors.direction);
+    } else {
+      const histKey = ind.history_key;
+      const hist = indicatorHistory && indicatorHistory[histKey];
+      if (!hist || !hist.points) continue;
+      const lookbackStart = ind.lookback_start ? new Date(ind.lookback_start) : new Date(0);
+      const sample = [];
+      for (const pt of hist.points) {
+        const v = pt[1];
+        if (v === null || v === undefined || typeof v !== "number") continue;
+        if (new Date(pt[0]) < lookbackStart) continue;
+        sample.push(v);
+      }
+      stressedScores[indId] = v2PercentileScore(stressedValue, sample, ind.direction);
+    }
+  }
+
+  function avgInds(subId, useStressed) {
+    const inds = indicatorsBySub[subId] || [];
+    const vals = inds
+      .map(i => useStressed ? stressedScores[i.id] : i.current_score)
+      .filter(v => v !== null && v !== undefined && !isNaN(v));
+    if (!vals.length) return null;
+    return vals.reduce((a, b) => a + b, 0) / vals.length;
+  }
+
+  const subcomposites = {};
+  for (const subId of Object.keys(indicatorsBySub)) {
+    subcomposites[subId] = { current: avgInds(subId, false), stressed: avgInds(subId, true) };
+  }
+
+  const headlines = {};
+  for (const [hId, hDef] of Object.entries(V2_HEADLINES_DEF)) {
+    const cs = hDef.subcomposites.map(s => subcomposites[s] && subcomposites[s].current).filter(x => x !== null && x !== undefined);
+    const ss = hDef.subcomposites.map(s => subcomposites[s] && subcomposites[s].stressed).filter(x => x !== null && x !== undefined);
+    headlines[hId] = {
+      label: hDef.label, tagline: hDef.tagline, subcomposites: hDef.subcomposites,
+      current: cs.length ? Math.round(cs.reduce((a, b) => a + b) / cs.length) : null,
+      stressed: ss.length ? Math.round(ss.reduce((a, b) => a + b) / ss.length) : null,
+    };
+  }
+  const regime = {
+    current: classifyV2Regime(headlines.cycle_value.current, headlines.market_stress.current),
+    stressed: classifyV2Regime(headlines.cycle_value.stressed, headlines.market_stress.stressed),
+  };
+  return { headlines, subcomposites, stressedScores, regime };
+}
+
 function CycleMechanismScenarioResultsTable({
-  mode, scenarioId, scenarioName, cycleStress, currentBoard, indicatorHistory,
+  mode, scenarioName, effShocks, indicatorHistory,
   tableCard, tableHead, tableTitle, tableSub,
 }) {
-  const [expanded, setExpanded] = useState(null);
   const [cycleV2, setCycleV2] = useState(null);
-  const [v2Horizon, setV2Horizon] = useState("6m");
   useEffect(() => {
     fetch("/cycle_v2.json", { cache: "no-cache" })
       .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
       .then(setCycleV2)
-      .catch((err) => { console.warn("[Scenario Analysis · v2 PR 4] cycle_v2.json fetch failed", err); });
+      .catch((err) => { console.warn("[Scenario Analysis Â· v2 stress] cycle_v2.json fetch failed", err); });
   }, []);
 
-  // Mirror the producer + harness alias map so the drilldown can find each
-  // calibration indicator's series in indicator_history.json.
-  const HISTORY_ALIAS = {
-    hy_oas: "hy_ig",
-    fed_bs_yoy: "fed_bs",
-    ism_mfg: "ism",
-    ism_svc: "ism",
-  };
+  const stress = useMemo(() => {
+    if (!cycleV2 || !indicatorHistory) return null;
+    return computeV2Stress(effShocks || {}, cycleV2, indicatorHistory);
+  }, [cycleV2, indicatorHistory, effShocks]);
 
-  // Pull the latest non-null value for an indicator from indicator_history.
-  function liveReading(calibId) {
-    if (!indicatorHistory) return null;
-    const key = HISTORY_ALIAS[calibId] || calibId;
-    const series = indicatorHistory[key];
-    const pts = series && series.points;
-    if (!Array.isArray(pts)) return null;
-    for (let i = pts.length - 1; i >= 0; i--) {
-      const [d, v] = pts[i];
-      if (v !== null && v !== undefined) return { date: d, value: v };
-    }
-    return null;
-  }
-
-  const stressed = (cycleStress && scenarioId) ? cycleStress.scenarios?.[scenarioId] : null;
-  const isReady = mode === "canned" && stressed && currentBoard;
-
-  // Build current-mechanism map keyed by id for fast joins.
-  const currentById = useMemo(() => {
-    if (!currentBoard?.mechanisms) return {};
-    return Object.fromEntries(currentBoard.mechanisms.map((m) => [m.id, m]));
-  }, [currentBoard]);
-
-  // Compute current composite as simple-average of available mechanism scores
-  // (same convention the Phase 2C producer uses for the stressed composite).
-  const currentComposite = useMemo(() => {
-    if (!currentBoard?.mechanisms) return null;
-    const scored = currentBoard.mechanisms.filter((m) => m.score !== null && m.score !== undefined);
-    if (!scored.length) return null;
-    return Math.round(scored.reduce((s, m) => s + m.score, 0) / scored.length);
-  }, [currentBoard]);
-
-  if (!isReady) {
+  if (!cycleV2 || !indicatorHistory) {
     return (
       <div style={tableCard}>
         <div style={tableHead}>
-          <h2 style={tableTitle}>Cycle Mechanism Scenario Results</h2>
-          <div style={tableSub}>How the six cycle mechanisms and the page-level composite move under the selected scenario.</div>
+          <h2 style={tableTitle}>Cycle stress Â· v2</h2>
+          <div style={tableSub}>Loading v2 cycle dataâ¦</div>
         </div>
-        <div style={{ padding:"36px 18px", textAlign:"center", fontFamily:"var(--font-ui)", fontSize:13, color:"var(--text-muted)" }}>
-          {mode === "bespoke"
-            ? "Cycle Mechanism table renders only for canned historical scenarios. Switch back to a canned scenario to see the table."
-            : (cycleStress === null || currentBoard === null)
-              ? "Loading scenario stress snapshot…"
-              : "Pick a scenario above to see how each cycle mechanism would move under that historical regime."}
+      </div>
+    );
+  }
+  if (!stress) {
+    return (
+      <div style={tableCard}>
+        <div style={tableHead}>
+          <h2 style={tableTitle}>Cycle stress Â· v2</h2>
+          <div style={tableSub}>Could not compute v2 stress â check console.</div>
         </div>
       </div>
     );
   }
 
-  // Mechanism rows in the same order as the producer + live v11 dashboard.
-  const MECH_ORDER = ["valuation", "credit", "funding", "growth", "liquidity_policy", "positioning_breadth"];
-  const rows = MECH_ORDER.map((id) => {
-    const cur = currentById[id];
-    const str = stressed.mechanisms?.find((m) => m.id === id);
-    return {
-      id,
-      name: str?.name || cur?.name || id,
-      num: str?.num || cur?.num || "",
-      currentScore: cur?.score ?? null,
-      stressedScore: str?.score ?? null,
-      indicators: str?.indicators || [],
-      indicatorsScored: str?.indicators_scored ?? null,
-      indicatorsPanel: str?.indicators_panel ?? null,
-    };
-  });
+  const hasShock = effShocks && Object.values(effShocks).some(v => Math.abs(v) > 0.05);
+
+  const subtitle = mode === "canned"
+    ? (scenarioName
+        ? `How each v2 sub-composite and headline reads under ${scenarioName} vs today.`
+        : "Pick a scenario above to see how each v2 cycle area would read under that historical regime.")
+    : "Drag any factor slider above. The v2 cycle areas below recompute live — every indicator that maps to a shocked factor is re-percentile-ranked against its historical sample.";
 
   const renderDelta = (cur, str) => {
-    if (cur === null || cur === undefined || str === null || str === undefined) {
+    if (cur === null || str === null || cur === undefined || str === undefined) {
       return <span style={{ color:"var(--text-muted)", fontFamily:"var(--font-mono)" }}>—</span>;
     }
-    const d = str - cur;
-    const sign = d > 0 ? "+" : d < 0 ? "−" : "±";
-    const absD = Math.abs(d);
-    // High-is-stress mechanisms: positive delta means MORE stress (bad).
-    // Page-level convention is high = more risk-off, so up = direction "down" tone.
-    const tone = d > 0 ? "var(--neg, #b03030)" : d < 0 ? "var(--pos, #2a7a4f)" : "var(--text-muted)";
-    return (
-      <span style={{ color: tone, fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
-        {sign}{absD}
-      </span>
-    );
+    const c = Math.round(cur), s = Math.round(str);
+    const d = s - c;
+    if (d === 0) return <span style={{ color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>±0</span>;
+    const tone = d > 0 ? "var(--neg, #b03030)" : "var(--pos, #2a7a4f)";
+    const sign = d > 0 ? "+" : "−";
+    return <span style={{ color: tone, fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>{sign}{Math.abs(d)}</span>;
   };
 
-  const cellNum = { fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", textAlign:"right" };
-  const cellMuted = { fontFamily:"var(--font-mono)", color:"var(--text-muted)", fontVariantNumeric:"tabular-nums", textAlign:"right" };
+  const SUB_ORDER = ["Equities", "Rates", "MoneyBanking", "Credit", "Funding", "PositioningVol", "RealEconomy"];
+  const SUB_LABELS = {
+    Equities: "Equities", Rates: "Rates", MoneyBanking: "Money / Banking",
+    Credit: "Credit", Funding: "Funding", PositioningVol: "Positioning / Vol",
+    RealEconomy: "Real Economy",
+  };
+
+  const headlineCard = { border: "0.5px solid var(--border)", borderRadius: "var(--r-sm)", padding: "12px 14px", background: "var(--surface-2, var(--surface))", flex: "1 1 0", minWidth: 0 };
+  const headlineLabel = { fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 };
+  const headlineNum = { fontFamily: "var(--font-display, var(--font-ui))", fontSize: 28, fontWeight: 600, lineHeight: 1, fontVariantNumeric: "tabular-nums" };
+  const headlineNumDim = { ...headlineNum, color: "var(--text-muted)" };
 
   return (
     <div style={tableCard}>
       <div style={tableHead}>
-        <h2 style={tableTitle}>Cycle Mechanism Scenario Results</h2>
-        <div style={tableSub}>
-          How the six cycle mechanisms and the page-level composite move under {scenarioName || "the selected scenario"}.{" "}
-          <span style={{ color:"var(--text-muted)" }}>
-            Calibration {cycleStress?.calibration_version || "—"} · as of {cycleStress?.as_of || "—"}
-          </span>
-        </div>
+        <h2 style={tableTitle}>Cycle stress · v2</h2>
+        <div style={tableSub}>{subtitle}</div>
       </div>
-      {cycleV2 && cycleV2.headlines && cycleV2.regimes && (
-        <div style={{ padding:"14px 18px", borderBottom:"0.5px solid var(--border)", background:"var(--surface-2, var(--surface))" }}>
-          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"baseline", marginBottom:10, gap:14, flexWrap:"wrap" }}>
-            <div style={{ fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em" }}>
-              v2 · Today's headline reads (full per-scenario v2 rollup ships in v2.1)
-            </div>
-            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-              {["1m","3m","6m","12m"].map((h) => (
-                <button key={h} onClick={() => setV2Horizon(h)} style={{
-                  fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600,
-                  padding:"3px 8px",
-                  background: v2Horizon === h ? "color-mix(in srgb, var(--accent) 14%, var(--surface))" : "var(--surface)",
-                  color: v2Horizon === h ? "var(--accent)" : "var(--text-2)",
-                  border:"1px solid var(--border)", borderRadius:4, cursor:"pointer",
-                }}>{h}</button>
-              ))}
-            </div>
-          </div>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3, 1fr)", gap:10 }}>
-            {["cycle_value","market_stress","real_economy"].map((hid) => {
-              const h = cycleV2.headlines[hid];
-              if (!h) return null;
-              const v = h.scores_by_horizon[v2Horizon];
-              const band = v == null ? "—" : v < 25 ? "Risk On" : v < 50 ? "Neutral" : v < 75 ? "Caution" : "Risk Off";
-              return (
-                <div key={hid} style={{ padding:"10px 12px", background:"var(--surface)", border:"0.5px solid var(--border)", borderRadius:8 }}>
-                  <div style={{ fontSize:10, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>{h.label}</div>
-                  <div style={{ display:"flex", alignItems:"baseline", gap:6, marginTop:4 }}>
-                    <span style={{ fontFamily:"var(--font-mono)", fontSize:22, fontWeight:600, color:"var(--text)" }}>{v == null ? "—" : v}</span>
-                    <span style={{ fontSize:11, color:"var(--text-muted)" }}>/ 100 · {band}</span>
+
+      <div style={{ padding: "14px 18px", display: "flex", gap: 12, flexWrap: "wrap" }}>
+        {Object.entries(stress.headlines).map(([hId, h]) => (
+          <div key={hId} style={headlineCard}>
+            <div style={headlineLabel}>{h.label}</div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
+              <div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-ui)", marginBottom: 2 }}>today</div>
+                <div style={hasShock ? headlineNumDim : headlineNum}>{h.current ?? "—"}</div>
+              </div>
+              {hasShock && (
+                <>
+                  <div style={{ color: "var(--text-muted)", fontSize: 16 }}>→</div>
+                  <div>
+                    <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-ui)", marginBottom: 2 }}>stressed</div>
+                    <div style={headlineNum}>{h.stressed ?? "—"}</div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ marginTop:10, display:"flex", justifyContent:"space-between", alignItems:"baseline", gap:14, flexWrap:"wrap" }}>
-            <div>
-              <span style={{ fontSize:10, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Regime · {v2Horizon}</span>
-              <div style={{ fontFamily:"var(--font-ui)", fontSize:14, fontWeight:600, color:"var(--text)", marginTop:2 }}>
-                {cycleV2.regimes[v2Horizon].label}
-              </div>
-            </div>
-            <div style={{ textAlign:"right", maxWidth:380 }}>
-              <span style={{ fontSize:10, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em" }}>Recommended action</span>
-              <div style={{ fontFamily:"var(--font-ui)", fontSize:12, color:"var(--text)", marginTop:2 }}>
-                {cycleV2.regimes[v2Horizon].recommended_action}
-              </div>
+                  <div style={{ marginLeft: "auto", alignSelf: "flex-end" }}>{renderDelta(h.current, h.stressed)}</div>
+                </>
+              )}
             </div>
           </div>
-        </div>
-      )}
-      <div style={{ overflow:"auto" }}>
-        <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:"var(--font-ui)", fontSize:13 }}>
-          <thead>
-            <tr style={{ background:"var(--surface-2, #f8f9fa)", color:"var(--text-muted)", fontSize:11, textTransform:"uppercase", letterSpacing:"0.06em" }}>
-              <th style={{ padding:"10px 14px", textAlign:"left", fontWeight:600 }}>Mechanism</th>
-              <th style={{ padding:"10px 14px", textAlign:"right", fontWeight:600 }}>Current</th>
-              <th style={{ padding:"10px 14px", textAlign:"right", fontWeight:600 }}>Under stress</th>
-              <th style={{ padding:"10px 14px", textAlign:"right", fontWeight:600 }}>Δ</th>
-              <th style={{ padding:"10px 14px", textAlign:"right", fontWeight:600 }}>Inputs</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => {
-              const isOpen = expanded === r.id;
-              return (
-                <React.Fragment key={r.id}>
-                  <tr
-                    onClick={() => setExpanded(isOpen ? null : r.id)}
-                    style={{ cursor:"pointer", borderTop:"0.5px solid var(--border)" }}
-                  >
-                    <td style={{ padding:"10px 14px" }}>
-                      <span style={{ color:"var(--text-muted)", fontFamily:"var(--font-mono)", marginRight:8 }}>{r.num}</span>
-                      <span>{r.name}</span>
-                    </td>
-                    <td style={{ padding:"10px 14px", ...(r.currentScore === null ? cellMuted : cellNum) }}>
-                      {r.currentScore === null ? "—" : r.currentScore}
-                    </td>
-                    <td style={{ padding:"10px 14px", ...(r.stressedScore === null ? cellMuted : cellNum) }}>
-                      {r.stressedScore === null ? "—" : r.stressedScore}
-                    </td>
-                    <td style={{ padding:"10px 14px", textAlign:"right" }}>
-                      {renderDelta(r.currentScore, r.stressedScore)}
-                    </td>
-                    <td style={{ padding:"10px 14px", textAlign:"right", color:"var(--text-muted)", fontVariantNumeric:"tabular-nums" }}>
-                      {r.indicatorsScored !== null ? `${r.indicatorsScored} of ${r.indicatorsPanel}` : "—"}
-                    </td>
-                  </tr>
-                  {isOpen && r.indicators.length > 0 && (
-                    <tr>
-                      <td colSpan={5} style={{ padding:"0 14px 14px", background:"var(--surface-2, #fafafa)" }}>
-                        <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-                          <thead>
-                            <tr style={{ color:"var(--text-muted)", fontSize:10, textTransform:"uppercase", letterSpacing:"0.06em" }}>
-                              <th style={{ padding:"6px 10px", textAlign:"left", fontWeight:600 }}>Indicator</th>
-                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Current reading</th>
-                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Under stress</th>
-                              <th style={{ padding:"6px 10px", textAlign:"right", fontWeight:600 }}>Change</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {r.indicators.map((ind) => {
-                              const live = liveReading(ind.id);
-                              const stressed = ind.value;
-                              const cur = live ? live.value : null;
-                              const change = (cur != null && stressed != null) ? (stressed - cur) : null;
-                              const fmt = (v) => v == null ? "—" : (typeof v === "number" ? (Math.abs(v) >= 100 ? v.toFixed(0) : v.toFixed(2)) : String(v));
-                              const changeTone = change == null ? "var(--text-muted)" : change > 0 ? "var(--neg, #b03030)" : change < 0 ? "var(--pos, #2a7a4f)" : "var(--text-muted)";
-                              return (
-                                <tr key={ind.id} style={{ borderTop:"0.5px dashed var(--border)" }}>
-                                  <td style={{ padding:"6px 10px" }}>
-                                    {ind.id}
-                                    <span style={{ marginLeft:8, color:"var(--text-muted)", fontSize:10 }}>
-                                      {live && live.date ? `as of ${live.date}` : ""}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
-                                    {fmt(cur)}
-                                  </td>
-                                  <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>
-                                    {fmt(stressed)}
-                                  </td>
-                                  <td style={{ padding:"6px 10px", textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums", color: changeTone }}>
-                                    {change == null ? "—" : (change > 0 ? "+" : change < 0 ? "−" : "±") + fmt(Math.abs(change))}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </td>
-                    </tr>
-                  )}
-                </React.Fragment>
-              );
-            })}
-            {/* COMPOSITE row */}
-            <tr style={{ borderTop:"1px solid var(--border)", background:"var(--surface-2, #fafafa)", fontWeight:600 }}>
-              <td style={{ padding:"12px 14px" }}>Page-level composite</td>
-              <td style={{ padding:"12px 14px", ...cellNum }}>
-                {currentComposite === null ? "—" : currentComposite}
-              </td>
-              <td style={{ padding:"12px 14px", ...(stressed.composite_score === null || stressed.composite_score === undefined ? cellMuted : cellNum) }}>
-                {stressed.composite_score ?? "—"}
-              </td>
-              <td style={{ padding:"12px 14px", textAlign:"right" }}>
-                {renderDelta(currentComposite, stressed.composite_score ?? null)}
-              </td>
-              <td style={{ padding:"12px 14px", textAlign:"right", color:"var(--text-muted)", fontVariantNumeric:"tabular-nums" }}>
-                {stressed.indicators_scored_total ?? "—"}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        ))}
       </div>
-      <div style={{ padding:"10px 14px", fontSize:11, color:"var(--text-muted)", borderTop:"0.5px solid var(--border)" }}>
-        Higher score = more risk-off. Click a mechanism row to see the indicator-level panel that drives it.
+
+      <div style={{ padding: "0 18px 14px", display: "flex", flexWrap: "wrap", gap: 14, alignItems: "baseline" }}>
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+          Regime
+        </div>
+        <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 17, fontWeight: 500 }}>
+          {hasShock ? `${stress.regime.current.label} → ${stress.regime.stressed.label}` : stress.regime.current.label}
+        </div>
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--text-muted)", marginLeft: "auto" }}>
+          {hasShock ? stress.regime.stressed.action : stress.regime.current.action}
+        </div>
+      </div>
+
+      <div style={{ padding: "0 18px 16px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.5fr", gap: 6, paddingBottom: 6, borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+            <div>Sub-composite</div>
+            <div style={{ textAlign: "right" }}>Today</div>
+            <div style={{ textAlign: "right" }}>{hasShock ? "Stressed" : ""}</div>
+            <div style={{ textAlign: "right" }}>{hasShock ? "Δ" : ""}</div>
+        </div>
+        {SUB_ORDER.map(subId => {
+          const s = stress.subcomposites[subId];
+          if (!s) return null;
+          const curRound = s.current === null ? null : Math.round(s.current);
+          const strRound = s.stressed === null ? null : Math.round(s.stressed);
+          return (
+            <div key={subId} style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.5fr", gap: 6, padding: "6px 0", borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 12, alignItems: "center" }}>
+                <div style={{ color: "var(--ink-0)" }}>{SUB_LABELS[subId] || subId}</div>
+                <div style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: hasShock ? "var(--text-muted)" : "var(--ink-0)" }}>{curRound ?? "—"}</div>
+                <div style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink-0)" }}>{hasShock ? (strRound ?? "—") : ""}</div>
+                <div style={{ textAlign: "right" }}>{hasShock ? renderDelta(s.current, s.stressed) : null}</div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div style={{ padding: "8px 18px 14px", fontFamily: "var(--font-ui)", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.4 }}>
+        v2 cycle stress · state-based scoring (no horizon-IC sign-flip) ·
+        higher = more cautionary · {cycleV2.as_of ? "as of " + cycleV2.as_of : ""}
       </div>
     </div>
   );
@@ -1465,7 +1472,7 @@ function SoWhatHero({ mode, scenario, score, pnl, horizonText, portfolioTotal = 
     const lossOrGain = pnl.total < 0 ? "hit" : "gain";
     if (score < 5) {
       punchline = <>This factor combination hasn't shown up in market history. The engine projects a <em>${dollarStr} {lossOrGain}</em> on your book — useful as a what-if, not as an allocation call.</>;
-      takeaway = "When the factors you've pinned haven't moved together historically, the model can't anchor the read to a real regime. Use this for exploration; the recommended re-allocation in L4 isn't meant to be acted on.";
+      takeaway = "When the factors you've shocked haven't moved together historically, the model can't anchor the read to a real regime. Use this for exploration; the recommended re-allocation in L4 isn't meant to be acted on.";
     } else if (score < 25) {
       punchline = <>This combination is rare in market history. Your book would take a <em>${dollarStr} {lossOrGain}</em>. The model's response is mathematically valid, but uncertainty is elevated.</>;
       takeaway = "Fewer than 25% of weekly observations from 1985–2026 produced this combination. Treat the recommended re-allocation as one option among several.";
