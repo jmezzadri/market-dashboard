@@ -843,6 +843,9 @@ export default function TradingOppsPage({ onOpenTicker }) {
     });
   };
 
+  // v5.1 (d): Held and Watchlist were placeholder filter chips that
+  // returned every row when clicked -- confusing during UAT. Hidden until
+  // the portfolio overlay is actually wired up (out of v5 scope).
   const filterChips = [
     { f: "actionable",   label: "Actionable" },
     { f: "all",          label: "All" },
@@ -852,8 +855,6 @@ export default function TradingOppsPage({ onOpenTicker }) {
     { f: "watch_sell",   label: "Watch Sell" },
     { f: "strong_sell",  label: "Strong Sell" },
     { f: "insufficient", label: "Insufficient Data" },
-    { f: "held",         label: "Held" },
-    { f: "watchlist",    label: "Watchlist" },
   ];
 
   return (

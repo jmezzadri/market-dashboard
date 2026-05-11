@@ -497,6 +497,21 @@ function SignalIntelligenceRail({
       const above = Number(tech.ichimoku_tenkan) > Number(tech.ichimoku_kijun);
       rows.push({ label: "Ichimoku", val: above ? "tenkan above kijun" : "tenkan below kijun", color: above ? "green" : "red" });
     }
+    // v5.1 (d): cleaner empty state when the technicals scorer skipped this
+    // name (e.g. reason='too_few_closes'). Show a plain "No technicals data"
+    // line instead of "Composite ... 0 indicators in scope" which read like
+    // a broken tile during Joe's UAT.
+    if (rows.length === 0) {
+      const v5SkipReason = v5Tech && v5Tech.reason ? String(v5Tech.reason).replace(/_/g, ' ') : null;
+      return {
+        state: score == null ? "loading" : state,
+        value: score == null ? "—" : value,
+        meta: v5SkipReason
+          ? `No technicals data (${v5SkipReason})`
+          : "No technicals data on this name today",
+        detail: rows,
+      };
+    }
     return { state, value, meta: `Composite ${value} · ${rows.length} indicators in scope`, detail: rows };
   })();
 
