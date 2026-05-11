@@ -706,3 +706,11 @@ agent is editorializing rather than executing. Specifically:
 **Applies to:** All UI work. UX Designer and Lead Developer both bind to
 this rule. Sign-off on a PR with unsolicited UX additions should fail
 the sub-composite check.
+
+## 2026-05-11 — Post-ship UAT instructions must be click-path English, not code-speak
+
+**What happened:** Closed out the position-management UX work + option-mark feed work with status tables full of PR numbers, commit SHAs, env var names, OCC option symbols, API field names like `nbbo_bid` and `chains[0]`, freshness SLAs in hours. Joe asked "why are you talking in code? what do you want me to test?"
+
+**What you should do instead:** When wrapping up shipped work and asking Joe to validate, the response is "open page X, click button Y, expect to see Z." Forbidden in UAT instructions: PR / issue / commit numbers, commit hashes, env var names, API endpoint paths, API field names, time SLAs in hours, words like "endpoint / route / handler / RPC / blob / tree / OCC / NBBO." Bug numbers (#1181, etc.) are fine because they're visible in the bug UI. Internal engineering chatter (Senior Quant signed off, etc.) can stay in the lead-in, but the actual "what to test" block must be readable by someone who has never opened a developer tool.
+
+**Applies to:** All response wrap-ups where Joe is being asked to verify shipped work on macrotilt.com.
