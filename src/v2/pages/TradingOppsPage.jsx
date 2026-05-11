@@ -345,71 +345,48 @@ function useScanData() {
         //    same number as the row below it, producing the "3304/3304"
         //    funnel Joe rejected on 2026-05-10.
 
-        // 4. Joins for the table — name + sector + price + day %.
+        // 4. Joins for the table. v5.1 (h) -- replaced the prior 3-table
+        // dance (ticker_reference + universe_snapshots + prices_eod) with
+        // a single query against the new `ticker_state_current` view.
+        // The view stitches every per-ticker fact into one row at the DB
+        // layer: name, GICS sector, SIC description, last close (with
+        // built-in prices_eod fallback), 52W range, IV rank, market cap.
+        // The page never has to know which source each field came from.
         const tickers = scanRows.map(r => r.ticker);
         const TICK_BATCH = 800;
 
         const refByT = new Map();
+        const stateByT = new Map();
         for (let i = 0; i < tickers.length; i += TICK_BATCH) {
           const slice = tickers.slice(i, i + TICK_BATCH);
           const r = await supabase
-            .from("ticker_reference")
-            .select("ticker,name,sic_description,sic_code")
+            .from("ticker_state_current")
+            .select("ticker,ticker_name,gics_sector,sic_description,sic_code,last_close,prev_close_snap,day_perc_change,week_52_high,week_52_low,iv_rank,market_cap,snap_full_name")
             .in("ticker", slice);
-          (r?.data || []).forEach(row => refByT.set(row.ticker, row));
-        }
-
-        // v5.1 (e fix): the snapshots query was returning the default
-        // PostgREST page of 1000 rows. With 800 tickers each having 3-5
-        // snapshots, that page didn't cover every ticker's latest -- most
-        // rows then rendered Price as "—". We now (a) shrink the batch so
-        // the result page comfortably holds every ticker's history, and
-        // (b) restrict to the recent 5-day window so we only load the
-        // latest snapshot per ticker, not the entire history.
-        const snapByT = new Map();
-        const SNAP_BATCH = 250;
-        const SNAP_SINCE = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
-        for (let i = 0; i < tickers.length; i += SNAP_BATCH) {
-          const slice = tickers.slice(i, i + SNAP_BATCH);
-          const r = await supabase
-            .from("universe_snapshots")
-            .select("ticker,full_name,sector,close,prev_close,perc_change,iv_rank,week_52_high,week_52_low,marketcap,snapshot_ts")
-            .in("ticker", slice)
-            .gte("snapshot_ts", SNAP_SINCE)
-            .order("snapshot_ts", { ascending: false })
-            .limit(SNAP_BATCH * 4);
           (r?.data || []).forEach(row => {
-            if (!snapByT.has(row.ticker)) snapByT.set(row.ticker, row);
+            stateByT.set(row.ticker, row);
+            // Keep refByT populated as a shim for the legacy shapeRow signature.
+            refByT.set(row.ticker, { ticker: row.ticker, name: row.ticker_name, sic_description: row.sic_description, sic_code: row.sic_code });
           });
         }
 
-        // v5.1 (g): universe_snapshots only carries the v4 screener slice
-        // (the names UW pulls daily) -- mega-caps and the long tail of
-        // small caps fall back to prices_eod for the close. Query the
-        // missing tickers separately and stitch the price into snapByT
-        // so shapeRow can render a real price.
-        const PRICE_BATCH = 500;
-        const missingForPrice = tickers.filter(t => {
-          const s = snapByT.get(t);
-          return !s || s.close == null || Number(s.close) <= 0;
-        });
-        for (let i = 0; i < missingForPrice.length; i += PRICE_BATCH) {
-          const slice = missingForPrice.slice(i, i + PRICE_BATCH);
-          // For each ticker get the most recent prices_eod row.
-          const r = await supabase
-            .from("prices_eod")
-            .select("ticker,close,trade_date")
-            .in("ticker", slice)
-            .order("trade_date", { ascending: false })
-            .limit(PRICE_BATCH * 8);
-          const seen = new Set();
-          (r?.data || []).forEach(row => {
-            if (seen.has(row.ticker)) return;
-            seen.add(row.ticker);
-            const existing = snapByT.get(row.ticker) || { ticker: row.ticker };
-            existing.close = Number(row.close);
-            existing._priceFromEOD = true;
-            snapByT.set(row.ticker, existing);
+        // v5.1 (h): the prior 30+ lines of fallback fetching (snapshots
+        // with date filter + prices_eod for tickers missing a snapshot)
+        // is now ONE join inside the `ticker_state_current` view. Convert
+        // every state-view row into the snap-shape shapeRow expects.
+        const snapByT = new Map();
+        for (const [ticker, row] of stateByT.entries()) {
+          snapByT.set(ticker, {
+            ticker,
+            full_name: row.snap_full_name,
+            sector: row.gics_sector,
+            close: row.last_close,
+            prev_close: row.prev_close_snap,
+            perc_change: row.day_perc_change,
+            iv_rank: row.iv_rank,
+            week_52_high: row.week_52_high,
+            week_52_low: row.week_52_low,
+            marketcap: row.market_cap,
           });
         }
 
