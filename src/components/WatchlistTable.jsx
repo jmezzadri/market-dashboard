@@ -562,7 +562,12 @@ const v5Cols = [
   },
 ];
 
-const COLUMNS = [...baseCols, ...signalCols, overallCol, ...v5Cols, ...riskCols, watchCol];
+// v4 signal cluster (signalCols + overallCol) removed 2026-05-11 per Joe
+// directive — replaced by v5Cols (MT Score / Band / sub_short_interest /
+// etc.) which read from public.signal_intel_v5_daily, the live engine
+// that powers Trading Opps. signalCols + overallCol definitions left in
+// place above in case a follow-up needs them again.
+const COLUMNS = [...baseCols, ...v5Cols, ...riskCols, watchCol];
 
 // Joe directive 2026-05-11: show every column by default (was: only
 // ticker/name/sector/6 signals/OVR visible, everything else hidden behind
@@ -572,9 +577,8 @@ const COLUMNS = [...baseCols, ...signalCols, overallCol, ...v5Cols, ...riskCols,
 // risk metrics tail-end the table.
 const DEFAULT_ORDER = [
   "ticker", "name", "sector",
-  ...SIGNAL_COLS.map((c) => c.key),
-  "overall",
-  // v5 cluster — MT Score, Band, IG, then v5 technicals + insider deep-dive
+  // v4 signal sub-scores + OVR removed 2026-05-11 (Joe directive) —
+  // replaced by v5 cluster below.
   "mt_score", "band", "ig",
   "sub_short_interest",
   "rsi_14", "bb_bw", "rvol_20d", "pct_50ma", "pct_200ma",
@@ -599,13 +603,8 @@ const DEFAULT_WIDTHS = {
   nextEarnings:  125,
   week52:        150,
   theme:         220,
-  technicals:    100,
-  insider:       110,
-  options:       100,
-  congress:      120,
-  analyst:       110,
-  darkpool:      90,
-  overall:       90,
+  // v4 signal width entries (technicals/insider/options/congress/analyst/
+  // darkpool/overall) retired 2026-05-11 with the columns themselves.
   beta_2y:       90,
   annVol_2y:     90,
   maxDD_2y:      90,

@@ -550,25 +550,13 @@ const COLUMNS = [
       </span>
     ),
   },
-  ...SIGNAL_COLS.map((c) => ({
-    id: c.key,
-    label: c.short.toUpperCase(),
-    description: c.long,
-    align: "center",
-    sortValue: (r) => r.sections?.[c.key]?.score ?? null,
-    renderCell: (r) => {
-      const s = r.sections?.[c.key] || {};
-      return <ScoreCell score={s.score} direction={s.direction} />;
-    },
-  })),
-  {
-    id: "overall",
-    label: "OVR",
-    description: "Overall composite (−100 bearish → +100 bullish). Weighted blend of all six signal sections. Same number you see on the Trading Opps screen.",
-    align: "center",
-    sortValue: (r) => r.overall?.score ?? null,
-    renderCell: (r) => <ScoreCell score={r.overall?.score} direction={r.overall?.direction} />,
-  },
+  // v4 signal cluster (TECH / INSIDER / OPTIONS / CONGRESS / ANALYST /
+  // DARK POOL / OVR) removed 2026-05-11 per Joe directive — replaced by
+  // the v5 columns below (MT Score / Band / sub_short_interest / etc.)
+  // which read from public.signal_intel_v5_daily, the live engine that
+  // powers Trading Opps. Definitions retired here; helper imports +
+  // row enrichment (r.sections, r.overall) left in place in case a
+  // follow-up needs them again.
   // ── v5 Trading Opps columns merged in 2026-05-11 (Joe directive). These
   // come from public.signal_intel_v5_daily — the live engine that powers
   // the Trading Opps page. Numbers here match Trading Opps exactly for
@@ -744,9 +732,7 @@ const DEFAULT_ORDER = [
   "beta_2y", "annVol_2y", "maxDD_2y", "var10d99",
   "wealthPct", "account", "marketcap", "divYield", "nextEarnings",
   "ivRank", "week52",
-  "technicals", "insider", "options", "congress", "analyst", "darkpool",
-  "overall",
-  // v5 Trading Opps columns merged 2026-05-11.
+  // v5 Trading Opps columns merged 2026-05-11. v4 signal cluster removed.
   "mt_score", "band", "ig",
   "sub_short_interest",
   "rsi_14", "bb_bw", "rvol_20d", "pct_50ma", "pct_200ma",
@@ -790,14 +776,7 @@ const DEFAULT_WIDTHS = {
   nextEarnings:  125,
   ivRank:        85,
   week52:        160,
-  technicals:    90,
-  insider:       85,
-  options:       85,
-  congress:      90,
-  analyst:       85,
-  darkpool:      95,
-  overall:       80,
-  // v5 columns 2026-05-11
+  // v5 columns 2026-05-11 (v4 signal cluster widths retired)
   mt_score:      100,
   band:          120,
   ig:            210,
