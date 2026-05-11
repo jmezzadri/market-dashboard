@@ -128,8 +128,20 @@ CAP_DISCOUNT_SLOPE_PER_LOG = 0.25         # factor drops 0.25 per log10 unit
 # any two are 33.34% -- the cap discount keeps the union below 40% for
 # mega-caps where insider's reduced share is redistributed pro-rata to
 # the floor signals).
-MIN_COVERAGE_WEIGHT_FRACTION = 0.40
-MIN_COVERAGE_SIGNALS = 3
+# Calibration note (revised 2026-05-10 after live retrofit on 983 rows):
+#   The 0.40 weight guard was too strict for today's data coverage. The
+#   most common 2-signal pair on the universe right now is technicals
+#   (8.69%) + analyst (5.00%) = 13.69% weight - those names were getting
+#   shunted to "Insufficient Data" en masse (2,288 of 3,304). The
+#   dishonest case Joe rejected was American Tower at 5% (analyst-only) -
+#   the 2-signals guard alone catches it. The weight guard is now at
+#   0.10 so analyst+anything-else >= 10% combined passes, but lone-signal
+#   rows still fail.
+#
+#   When the data backfill (options / congress / short interest history)
+#   completes, this can be tightened. For now: 2 signals AND >= 10% weight.
+MIN_COVERAGE_WEIGHT_FRACTION = 0.10
+MIN_COVERAGE_SIGNALS = 2
 INSUFFICIENT_DATA_BAND = "Insufficient Data"
 
 

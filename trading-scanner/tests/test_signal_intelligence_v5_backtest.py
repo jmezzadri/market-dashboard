@@ -103,11 +103,23 @@ def test_composite_excludes_none_subscores_from_denominator():
         "insider": 80, "options": None, "congress": None,
         "technicals": 40, "analyst": None, "short_interest": None,
     }
-    # Default behavior at calibrated weights: 2 of 6 fires -> Insufficient Data.
+    # Default behavior at calibrated weights: insider(36.3%)+technicals(8.7%)
+    # = 45% weight, 2 signals -> passes both coverage guards (>= 2 signals
+    # AND >= 40% weight) so the composite IS computed.
     res = v5c.compute_composite(sub_scores, market_cap=500_000_000)
-    assert res["mt_score"] is None
-    assert res["band"] == "Insufficient Data"
+    assert res["mt_score"] is not None
+    assert res["band"] in ("Watch Buy", "Strong Buy")
     assert res["signals_fired"] == 2
+
+    # If only one signal fires, the row always fails the signals guard
+    # (>= 2 required). Even insider alone at 36.3% weight is gated -- a
+    # single-signal score is too brittle.
+    sub_lone = {"insider": 80, "options": None, "congress": None,
+                "technicals": None, "analyst": None, "short_interest": None}
+    res_lone = v5c.compute_composite(sub_lone, market_cap=500_000_000)
+    assert res_lone["mt_score"] is None
+    assert res_lone["band"] == "Insufficient Data"
+    assert res_lone["signals_fired"] == 1
 
     # When the test wants to verify the old none-handling math directly, it
     # has to use 3 firing signals so the coverage guard does not strip the
