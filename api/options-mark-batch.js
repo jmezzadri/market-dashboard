@@ -260,8 +260,3 @@ export default async function handler(req, res) {
   }
 }
 
-export const config = {
-  // 30 second max — even with 100 open option positions and 2 UW calls each
-  // we should finish well under this. UW retry adds ~3s worst case per call.
-  maxDuration: 30,
-};
