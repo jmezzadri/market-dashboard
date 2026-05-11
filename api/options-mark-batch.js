@@ -188,6 +188,7 @@ export default async function handler(req, res) {
   let updated = 0;
   let failed = 0;
 
+  const debug = !!(req.query && (req.query.debug === "1" || req.query.debug === "true"));
   for (const row of rows || []) {
     let occ;
     try {
@@ -204,7 +205,14 @@ export default async function handler(req, res) {
       const { mark, source } = computeMark(histRow);
       if (mark == null) {
         failed++;
-        details.push({ position_id: row.id, ticker: row.ticker, occ, error: "no mark in UW response (bid/ask/last all blank)" });
+        const dbg = debug
+          ? {
+              raw_top_keys: json && typeof json === "object" && !Array.isArray(json) ? Object.keys(json) : (Array.isArray(json) ? "array" : typeof json),
+              raw_row_keys: histRow && typeof histRow === "object" ? Object.keys(histRow) : typeof histRow,
+              raw_row: histRow,
+            }
+          : {};
+        details.push({ position_id: row.id, ticker: row.ticker, occ, error: "no mark in UW response (bid/ask/last all blank)", ...dbg });
         continue;
       }
       const mult = Number(row.multiplier) || 100;
