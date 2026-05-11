@@ -1141,7 +1141,7 @@ const TILES = [
     ],
   },
   {
-    id:"Credit", num:"04", name:"Credit", live:true, score:14, band:"celadon",
+    id:"Credit", num:"04", name:"Credit", live:true, score:14, band:"green",
     caption:"Credit spreads in panic territory — high-yield OAS and IG/HY ratio both flashing dislocation.",
     cadence: "Daily · ICE BofA via FRED",
     traj: [],
@@ -1154,7 +1154,7 @@ const TILES = [
     ],
   },
   {
-    id:"Funding", num:"05", name:"Funding", live:true, score:46, band:"neutral",
+    id:"Funding", num:"05", name:"Funding", live:true, score:46, band:"amber",
     caption:"Bank-system funding spreads sit in the lower half of post-2018 history. Funding markets benign.",
     cadence: "Daily · NY Fed · DTCC · FRED",
     traj: [],
@@ -1183,7 +1183,7 @@ const TILES = [
     ],
   },
   {
-    id:"RealEconomy", num:"07", name:"Real Economy", live:true, score:42, band:"neutral",
+    id:"RealEconomy", num:"07", name:"Real Economy", live:true, score:42, band:"amber",
     caption:"Real economy reading mid-range — neither expanding decisively nor contracting.",
     cadence: "Monthly · ISM · BLS · Atlanta Fed",
     traj: [],
@@ -1455,9 +1455,13 @@ function openModal(t) {
       <div class="meta-11" style="margin-top:4px;">composite score</div>
     </div>
   </div>`;
-  h += `<p class="body-14" style="margin:0 0 18px;max-width:720px;">${t.caption}</p>`;
+  const liveCaption = captionForState(t.id, t.score) || t.caption;
+  h += `<p class="body-14" style="margin:0 0 18px;max-width:720px;">${liveCaption}</p>`;
 
-  if (t.traj) {
+  // Trajectory chart — only render if there's actually data. Many tiles have
+  // empty traj after the v2 wiring, and an empty chart slot is worse than
+  // no chart slot. Joe directive 2026-05-11.
+  if (t.traj && t.traj.length >= 2) {
     h += `<div class="modal-block">
       <div class="modal-block-eyebrow">10-year trajectory · ${t.cadence || ""}</div>
       <div style="position:relative;">${buildModalTrajectorySvg(t)}</div>
@@ -2680,6 +2684,70 @@ function reopenTileModal(tileId) {
 }
 
 // ============================================================================
+// Band-aware sub-composite captions — Joe directive 2026-05-11
+// ============================================================================
+// The previous static captions on TILES were written months ago against a
+// snapshot of scores. As scores moved, captions stayed put — most damaging
+// was the Equities caption claiming "not weighted into the headline" (left
+// over from the forecast/IC-gate methodology that was retired when the page
+// switched to state-based math). Pick caption by current score band so the
+// prose always matches the number.
+// ----------------------------------------------------------------------------
+const SUB_CAPTIONS = {
+  Equities: {
+    risk_on:    "Equity valuations cheap relative to history — CAPE, ERP, and Buffett ratio in the bottom quartile of long-run history.",
+    neutral:    "Equity valuations within normal historical range — neither cheap nor stretched.",
+    cautionary: "Equity valuations stretched — CAPE, ERP, and Buffett ratio above long-run medians.",
+    risk_off:   "Equity valuations at cycle extremes — CAPE, ERP, and Buffett ratio all in the top quartile of long-run history.",
+  },
+  Rates: {
+    risk_on:    "Rates structure benign — curve normal-shaped, term premium contained, real yields below neutral.",
+    neutral:    "Rates near neutral — curve and term premium in normal historical ranges.",
+    cautionary: "Rates tightening at the margin — flatter curve, rising term premium, real yields restrictive.",
+    risk_off:   "Rates flashing late-cycle — flat or inverted curve, elevated term premium, real yields restrictive.",
+  },
+  MoneyBanking: {
+    risk_on:    "Money and bank balance sheets accommodative — M2 growth healthy, ample reserves, credit expanding.",
+    neutral:    "Money growth and bank credit near long-run trend.",
+    cautionary: "Money growth slowing and bank balance sheets tightening at the margin.",
+    risk_off:   "Money supply growth and bank credit in restrictive territory — late-cycle tightening signature.",
+  },
+  Credit: {
+    risk_on:    "Credit spreads tight — high-yield and IG OAS in the lower half of history, investor demand for credit firm.",
+    neutral:    "Credit spreads near long-run medians — no notable stress, no notable euphoria.",
+    cautionary: "Credit spreads widening — HY OAS and HY/IG ratio drifting higher, risk repricing underway.",
+    risk_off:   "Credit spreads at panic levels — HY OAS and HY/IG ratio both flashing dislocation.",
+  },
+  Funding: {
+    risk_on:    "Bank-system funding spreads at the low end of post-2018 history — plumbing well-oiled.",
+    neutral:    "Funding spreads in the lower half of post-2018 history — funding markets benign.",
+    cautionary: "Funding spreads widening — commercial paper and SOFR-OIS pricing modest pressure.",
+    risk_off:   "Funding markets pressured — spreads wide, financial conditions tight.",
+  },
+  PositioningVol: {
+    risk_on:    "Vol low, breadth wide — investor positioning long, calm conditions across equities and rates.",
+    neutral:    "Vol mid-range — positioning balanced, neither leaning long nor defensive.",
+    cautionary: "Vol creeping higher, breadth narrowing — positioning at the margin getting defensive.",
+    risk_off:   "Vol elevated — VIX, MOVE, and SKEW all above long-run norms; positioning defensive.",
+  },
+  RealEconomy: {
+    risk_on:    "Real economy expanding — ISM, jobless claims, and Atlanta Fed nowcast all printing growth.",
+    neutral:    "Real economy reading mid-range — neither expanding decisively nor contracting.",
+    cautionary: "Real economy softening — ISM rolling over, jobless claims drifting up, GDPNow decelerating.",
+    risk_off:   "Real economy contracting — ISM below 50, jobless claims elevated, growth nowcast negative.",
+  },
+};
+
+function captionForState(subId, score) {
+  const set = SUB_CAPTIONS[subId];
+  if (!set || score == null) return null;
+  if (score < 25) return set.risk_on;
+  if (score < 50) return set.neutral;
+  if (score < 75) return set.cautionary;
+  return set.risk_off;
+}
+
+// ============================================================================
 // Headline modal — Joe directive 2026-05-11
 // ============================================================================
 // Click the Cycle & Value / Market Stress / Real Economy strip and a modal
@@ -2763,10 +2831,11 @@ function openHeadlineModal(headlineId) {
   subTiles.forEach(t => {
     const band = bandForScore(t.score);
     const scoreColor = (BAND_COLORS && BAND_COLORS[band]) ? BAND_COLORS[band].active : "var(--ink)";
+    const subCaption = captionForState(t.id, t.score) || t.caption || "";
     h += `<button type="button" class="ind-row" data-subid="${t.id}">
       <div>
         <div class="nm">${t.name}<span class="nm-meta">${(t.indicators || []).length} indicators</span></div>
-        <div class="desc">${t.caption || ""}</div>
+        <div class="desc">${subCaption}</div>
       </div>
       <div></div>
       <div class="meta-r">
@@ -2780,9 +2849,18 @@ function openHeadlineModal(headlineId) {
   });
   h += `</div>`;
 
-  h += `<div style="margin-top:24px;padding-top:14px;border-top:0.5px dashed var(--border);font-size:11px;color:var(--muted);line-height:1.6;">
+  // Action footer — Macro Overview is diagnostic ("where are we?"). Portfolio
+  // ACTION lives on Scenario Analysis. Send the user there explicitly.
+  h += `<div style="margin-top:22px; padding:14px 16px; background:rgba(14,85,96,0.06); border-left:3px solid var(--ink-2,#0e5560); border-radius:4px; max-width:720px;">
+    <div style="font-family:var(--mono); font-size:9.5px; font-weight:600; color:var(--muted-2); letter-spacing:0.10em; text-transform:uppercase; margin-bottom:6px;">What to do about it</div>
+    <div style="font-size:13px; color:var(--ink); line-height:1.5;">
+      Macro Overview tells you <em>where we are</em>. To see what this regime means for your portfolio — and how it would react under historical shocks or a custom stress — open <a href="#scenarios" onclick="if(window.parent && window.parent.location) window.parent.location.hash='#scenarios'; return true;" style="color:var(--ink-2,#0e5560); font-weight:600;">Scenario Analysis →</a>
+    </div>
+  </div>`;
+
+  h += `<div style="margin-top:18px;padding-top:14px;border-top:0.5px dashed var(--border);font-size:11px;color:var(--muted);line-height:1.6;">
     <strong style="color:var(--ink);font-weight:600;">Methodology.</strong>
-    The three headline composites (Cycle &amp; Value · Market Stress · Real Economy) describe the three forces that move markets through the cycle. Each is the simple average of its sub-composites; each sub-composite is the simple average of its 4–7 indicators' 0–100 concerning scores. The same numbers drive the cycle stress on the Scenario Analysis tab.
+    The three headline composites (Cycle &amp; Value · Market Stress · Real Economy) describe the three forces that move markets through the cycle. Each headline is the simple average of its sub-composites; each sub-composite is the simple average of its 4–7 indicators' 0–100 concerning scores (0 = lowest-risk / strongest, 100 = highest-risk / most cautionary). The same numbers drive the cycle stress on the Scenario Analysis tab.
   </div>`;
 
   body.innerHTML = h;
@@ -2839,6 +2917,10 @@ function showToast(msg) {
         var live = byId[t.id];
         if (live && typeof live.score === 'number' && live.score !== t.score) {
           t.score = live.score;
+          // Band names must match BAND_COLORS keys: green / amber /
+          // oxblood / darkblood. Some TILES literals used celadon/neutral
+          // which crashed the modal — those are fixed in the literal block
+          // itself; this branch follows the same canonical names.
           t.band = live.score < 25 ? 'green'
                   : live.score < 50 ? 'amber'
                   : live.score < 75 ? 'oxblood'
