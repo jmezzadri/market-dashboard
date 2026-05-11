@@ -1,0 +1,62 @@
+# CYCLE-V2-HISTORY-WEEKLY — refreshes the historical sub-composite + headline series.
+#
+# WHY
+# ───
+# Joe directive 2026-05-11: every composite, sub-composite, and indicator
+# needs a real chart with selectable timeframe + crosshair. Indicators
+# already have history in indicator_history.json. Sub-composites and
+# headlines didn't until this producer landed. compute_cycle_v2_history.py
+# walks indicator history back to 2010-01-01 and emits weekly Friday
+# series for the 7 sub-composites + 3 headlines.
+#
+# SCHEDULE
+# ────────
+# Saturdays at 12:00 UTC — after the week's last CYCLE-V2-DAILY runs
+# and after FRED has settled. Weekly is enough; the series is weekly
+# Fridays and the most recent point only changes when a new Friday
+# closes. Adding a daily run wouldn't change anything.
+#
+# OUTPUTS
+# ───────
+# public/cycle_v2_history.json — consumed by:
+#   • Macro Overview · headline modal chart (3 surfaces)
+#   • Macro Overview · sub-composite modal chart (7 surfaces)
+
+name: CYCLE-V2-HISTORY-WEEKLY
+
+on:
+  schedule:
+    - cron: "0 12 * * 6"      # Saturday 12:00 UTC
+  workflow_dispatch: {}
+
+concurrency:
+  group: cycle-v2-history-weekly
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install python deps
+        run: |
+          pip install --break-system-packages numpy
+      - name: Run history producer
+        run: python3 scripts/compute_cycle_v2_history.py
+      - name: Commit if updated
+        run: |
+          if [[ -n "$(git status --porcelain public/cycle_v2_history.json)" ]]; then
+            git config user.name "github-actions"
+            git config user.email "github-actions@github.com"
+            git add public/cycle_v2_history.json
+            git commit -m "Cycle v2 history refresh — $(date -u +%Y-%m-%d)"
+            git push
+          else
+            echo "No changes to commit."
+          fi

@@ -906,6 +906,11 @@
 
 <div class="toast" id="toast"></div>
 
+<!-- Reusable time-series chart (TimeSeriesChart.mount). Loaded ahead of the
+     page scripts so openModal/openHeadlineModal/openIndicatorDrawer can
+     mount charts without a delayed-callback dance. -->
+<script src="/time_series_chart.js"></script>
+
 <script>
 // ============================================================================
 // FRESHNESS CHIP SYSTEM — added 2026-05-03 per Joe directive
@@ -1458,18 +1463,16 @@ function openModal(t) {
   const liveCaption = captionForState(t.id, t.score) || t.caption;
   h += `<p class="body-14" style="margin:0 0 18px;max-width:720px;">${liveCaption}</p>`;
 
-  // Trajectory chart — only render if there's actually data. Many tiles have
-  // empty traj after the v2 wiring, and an empty chart slot is worse than
-  // no chart slot. Joe directive 2026-05-11.
-  if (t.traj && t.traj.length >= 2) {
-    h += `<div class="modal-block">
-      <div class="modal-block-eyebrow">10-year trajectory · ${t.cadence || ""}</div>
-      <div style="position:relative;">${buildModalTrajectorySvg(t)}</div>
-      <div style="font-size:14px;color:var(--ink-3);font-style:italic;margin-top:10px;">${t.persistence || ""}</div>
-    </div>`;
-  }
+  // History chart — Joe directive 2026-05-11. Pulls weekly sub-composite
+  // history from cycle_v2_history.json, mounted after innerHTML by the
+  // loadCycleHistory() promise below.
+  const subHistSlotId = `mt-tsc-sub-${t.id}`;
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">History · weekly · ${t.name} composite score</div>
+    <div id="${subHistSlotId}" style="margin-top:8px;"></div>
+  </div>`;
 
-  h += `<div class="modal-block-eyebrow" style="margin-top:8px;">Indicators contributing to this composite</div>`;
+  h += `<div class="modal-block-eyebrow" style="margin-top:18px;">Indicators contributing to this composite</div>`;
   h += `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">
     Simple average — each indicator's 0–100 concerning score is averaged with equal weight.
     Click any row for the full indicator drilldown.
@@ -1515,6 +1518,13 @@ function openModal(t) {
   </div>`;
 
   body.innerHTML = h;
+
+  // Mount sub-composite history chart.
+  loadCycleHistory().then(hist => {
+    if (!hist || !hist.series || !hist.series.subcomposites) return;
+    const points = hist.series.subcomposites[t.id] || [];
+    mountChartInto(subHistSlotId, points, "score");
+  });
 
   body.querySelectorAll(".ind-row").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -2646,9 +2656,10 @@ function openIndicatorDrawer(ind, tile) {
   const minVal = Math.min(...vals), maxVal = Math.max(...vals);
   const sample = ind.sample || "post-2011";
 
+  const indHistSlotId = `mt-tsc-ind-${ind.id}`;
   h += `<div class="modal-block">
-    <div class="modal-block-eyebrow">History · 10-year · ${drill.axis_label}</div>
-    <div style="position:relative;">${buildIndicatorTrajectoryAny(drill, tileColor)}</div>
+    <div class="modal-block-eyebrow">History · ${drill.axis_label}</div>
+    <div id="${indHistSlotId}" style="margin-top:8px;"></div>
     <div style="font-family:var(--mono);font-size:11px;font-weight:500;color:var(--muted);margin-top:8px;letter-spacing:0.04em;">Mean ${fmt(meanVal)} · current ${ind.value} · sample range ${fmt(minVal)}–${fmt(maxVal)} (${sample})</div>
   </div>`;
 
@@ -2690,13 +2701,131 @@ function openIndicatorDrawer(ind, tile) {
   </div>`;
 
   body.innerHTML = h;
+
+  // Mount indicator history chart. Source priority: indicator_history.json
+  // (the canonical long history) → drill.traj (legacy short series) as
+  // fallback when indicator_history doesn't have the key.
+  mountIndicatorChart(indHistSlotId, ind, drill);
+
   document.getElementById("modalCard").scrollTop = 0;
+}
+
+// Pull points for an indicator's chart. Prefers indicator_history.json (the
+// canonical multi-year series). Falls back to drill.traj (legacy short series
+// formatted as [year, month, value]).
+function pointsForIndicator(ind, drill) {
+  return loadIndicatorHistory().then(hist => {
+    if (hist && hist[ind.id] && Array.isArray(hist[ind.id].points)) {
+      // Already in [date_str, value] shape.
+      return hist[ind.id].points.filter(p => p[1] != null);
+    }
+    if (drill && Array.isArray(drill.traj)) {
+      // Convert [year, month, value] → [date_str, value].
+      return drill.traj.map(p => {
+        const mm = String(p[1]).padStart(2, "0");
+        return [`${p[0]}-${mm}-15`, p[2]];
+      }).filter(p => p[1] != null);
+    }
+    if (drill && Array.isArray(drill.traj_bp)) {
+      return drill.traj_bp.map(p => {
+        const mm = String(p[1]).padStart(2, "0");
+        return [`${p[0]}-${mm}-15`, p[2]];
+      }).filter(p => p[1] != null);
+    }
+    return [];
+  });
+}
+
+function mountIndicatorChart(slotId, ind, drill) {
+  pointsForIndicator(ind, drill).then(points => {
+    // Try to format the y-axis decimals based on typical indicator magnitude.
+    let decimals = 2;
+    if (points.length) {
+      const sample = Math.abs(points[points.length - 1][1]);
+      if (sample >= 1000) decimals = 0;
+      else if (sample >= 100) decimals = 1;
+      else if (sample >= 10) decimals = 2;
+      else decimals = 3;
+    }
+    const unit = (drill && drill.axis_label) ? drill.axis_label : "";
+    mountChartInto(slotId, points, "value", { unit, decimals });
+  });
 }
 
 function reopenTileModal(tileId) {
   const t = TILES.find(x => x.id === tileId);
   if (t) openModal(t);
 }
+
+// ============================================================================
+// Cycle history cache — Joe directive 2026-05-11
+// ============================================================================
+// One fetch per page load; subsequent modal opens read from the cache. Powers
+// the charts on the headline + sub-composite modals (the indicator drawers
+// pull from indicator_history.json or DRILLS.traj directly).
+let CYCLE_HISTORY_CACHE = null;
+let CYCLE_HISTORY_PROMISE = null;
+function loadCycleHistory() {
+  if (CYCLE_HISTORY_CACHE) return Promise.resolve(CYCLE_HISTORY_CACHE);
+  if (CYCLE_HISTORY_PROMISE) return CYCLE_HISTORY_PROMISE;
+  CYCLE_HISTORY_PROMISE = fetch("/cycle_v2_history.json?cb=" + Date.now())
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { CYCLE_HISTORY_CACHE = d; return d; })
+    .catch(() => null);
+  return CYCLE_HISTORY_PROMISE;
+}
+
+// Default bands for the 0-100 score chart — visual cue for the 4 macro
+// regimes. Sub-composite + headline charts use these; indicator charts
+// don't (they're on raw value, not 0-100).
+const SCORE_BANDS = [
+  { y0: 0,   y1: 25,  color: "rgba(46,125,50,0.06)"  },  // risk-on
+  { y0: 75,  y1: 100, color: "rgba(176,48,48,0.06)"  },  // risk-off
+];
+
+// Mount a TimeSeriesChart into a div with the given id, fed by points.
+// `kind` is "score" for 0-100 sub-composite/headline charts, "value" for
+// indicator raw-value charts.
+function mountChartInto(divId, points, kind, opts) {
+  const el = document.getElementById(divId);
+  if (!el) return;
+  if (!window.MacroTilt || !window.MacroTilt.TimeSeriesChart) {
+    el.innerHTML = '<div style="font-family:var(--mono);font-size:11px;color:var(--muted);padding:14px 0;">chart engine not loaded</div>';
+    return;
+  }
+  const base = {
+    points: points || [],
+    accent: "var(--ink-2, #0e5560)",
+    defaultTimeframe: "5Y",
+  };
+  if (kind === "score") {
+    base.unit = "score";
+    base.decimals = 0;
+    base.domain = "score";
+    base.bands = SCORE_BANDS;
+  } else {
+    base.unit = (opts && opts.unit) || "";
+    base.decimals = (opts && opts.decimals) != null ? opts.decimals : 2;
+    base.domain = "auto";
+  }
+  window.MacroTilt.TimeSeriesChart.mount(el, Object.assign(base, opts || {}));
+}
+
+// indicator_history.json loaded once and cached. drives the indicator charts.
+let INDICATOR_HISTORY_CACHE = null;
+let INDICATOR_HISTORY_PROMISE = null;
+function loadIndicatorHistory() {
+  if (INDICATOR_HISTORY_CACHE) return Promise.resolve(INDICATOR_HISTORY_CACHE);
+  if (INDICATOR_HISTORY_PROMISE) return INDICATOR_HISTORY_PROMISE;
+  INDICATOR_HISTORY_PROMISE = fetch("/indicator_history.json?cb=" + Date.now())
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { INDICATOR_HISTORY_CACHE = d; return d; })
+    .catch(() => null);
+  return INDICATOR_HISTORY_PROMISE;
+}
+// Fire-and-forget warmup so charts feel instant on first click.
+loadCycleHistory();
+loadIndicatorHistory();
 
 // Lite indicator drawer — used when full DRILLS metadata isn't written for
 // this indicator yet. Shows the basics so the click isn't a dead end:
@@ -2720,6 +2849,12 @@ function openIndicatorDrawerLite(ind, tile) {
     </div></div>`;
   h += `<p class="body-14" style="margin:0 0 18px;max-width:640px;">${ind.desc || ""}</p>`;
 
+  const liteHistSlotId = `mt-tsc-ind-${ind.id}`;
+  h += `<div class="modal-block">
+    <div class="modal-block-eyebrow">History</div>
+    <div id="${liteHistSlotId}" style="margin-top:8px;"></div>
+  </div>`;
+
   h += `<div class="modal-block">
     <div class="modal-block-eyebrow">Where this sits in its history</div>
     <div style="margin:14px 0 6px;">
@@ -2735,10 +2870,14 @@ function openIndicatorDrawerLite(ind, tile) {
   </div>`;
 
   h += `<div style="border-top:0.5px solid var(--border);padding-top:16px;margin-top:18px;font-size:13px;color:var(--ink-2);line-height:1.6;">
-    Full drilldown — trajectory chart, co-movement table, release calendar — hasn't been written for this indicator yet. The numbers and percentile above ARE live; the deeper context tabs are still to come.
+    Extra context (co-movement table, episode table, release calendar) hasn't been written for this indicator yet. The chart, current value, and percentile above ARE live.
   </div>`;
 
   body.innerHTML = h;
+
+  // Mount lite-drawer history chart from indicator_history.
+  mountIndicatorChart(liteHistSlotId, ind, null);
+
   document.getElementById("modalCard").scrollTop = 0;
 }
 
@@ -2881,7 +3020,14 @@ function openHeadlineModal(headlineId) {
     The question this answers: <strong style="font-style:normal;">${def.question}</strong>
   </div>`;
 
-  h += `<div class="modal-block-eyebrow" style="margin-top:8px;">Built from · click any row to dig into that sub-composite</div>`;
+  // History chart for this headline. Slot is mounted async after body.innerHTML.
+  const histSlotId = `mt-tsc-headline-${headlineId}`;
+  h += `<div class="modal-block" style="margin-top:8px;">
+    <div class="modal-block-eyebrow">History · weekly · ${def.label} composite score</div>
+    <div id="${histSlotId}" style="margin-top:8px;"></div>
+  </div>`;
+
+  h += `<div class="modal-block-eyebrow" style="margin-top:18px;">Built from · click any row to dig into that sub-composite</div>`;
   h += `<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.5;">
     Each sub-composite is the simple average of its indicators' 0–100 concerning scores. This headline is the simple average of the sub-composites listed below.
   </div>`;
@@ -2920,6 +3066,13 @@ function openHeadlineModal(headlineId) {
       const tile = TILES.find(t => t.id === subId);
       if (tile) openModal(tile);
     });
+  });
+
+  // Mount headline history chart.
+  loadCycleHistory().then(hist => {
+    if (!hist || !hist.series || !hist.series.headlines) return;
+    const points = hist.series.headlines[headlineId] || [];
+    mountChartInto(histSlotId, points, "score");
   });
 
   document.getElementById("modalScrim").classList.add("open");
