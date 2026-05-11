@@ -1073,9 +1073,9 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                 )}
                 {builderCollapsed && (() => {
                   const shocked = FACTOR_IDS.filter(fid => Math.abs((effShocks[fid] || 0) - (currentReadingsZ?.[fid] || 0)) > 0.05);
-                  if (!shocked.length) return <span style={{ fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-2)" }}>No active shocks · sliders at today\u2019s readings</span>;
-                  const summary = shocked.slice(0,3).map(f => `${(FACTORS.find(x=>x.id===f)?.name || f)} ${effShocks[f] >= 0 ? "+" : ""}${effShocks[f].toFixed(1)}\u03c3`).join(" \u00b7 ");
-                  return <span style={{ fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-1)", fontWeight:600 }}>{shocked.length} factor{shocked.length === 1 ? "" : "s"} shocked \u00b7 {summary}{shocked.length > 3 ? ` + ${shocked.length - 3} more` : ""}</span>;
+                  if (!shocked.length) return <span style={{ fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-2)" }}>No active shocks · sliders at today’s readings</span>;
+                  const summary = shocked.slice(0,3).map(f => `${(FACTORS.find(x=>x.id===f)?.name || f)} ${effShocks[f] >= 0 ? "+" : ""}${effShocks[f].toFixed(1)}σ`).join(" · ");
+                  return <span style={{ fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-1)", fontWeight:600 }}>{shocked.length} factor{shocked.length === 1 ? "" : "s"} shocked · {summary}{shocked.length > 3 ? ` + ${shocked.length - 3} more` : ""}</span>;
                 })()}
               </div>
             </div>
