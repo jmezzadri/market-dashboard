@@ -465,9 +465,17 @@ function Tooltip({ label, body, children, side = "bottom" }) {
     if (!open || !anchorRef.current) return;
     const r = anchorRef.current.getBoundingClientRect();
     const margin = 8;
+    const TT_H_APPROX = 170;   // generous; we don't know body height yet
     const wantX = r.left + r.width / 2 - TT_W / 2;
     const clampedX = Math.max(margin, Math.min(wantX, window.innerWidth - TT_W - margin));
-    const flipAbove = side === "top" || (r.bottom + 160 > window.innerHeight);
+    // Prefer above when caller asked OR there isn't enough room below.
+    let flipAbove;
+    if (side === "top") {
+      // If anchor is near the top, fall back to below.
+      flipAbove = r.top >= TT_H_APPROX + margin;
+    } else {
+      flipAbove = r.bottom + TT_H_APPROX > window.innerHeight;
+    }
     setPos({
       x: clampedX,
       y: flipAbove ? r.top - 8 : r.bottom + 8,
@@ -1325,7 +1333,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                             userSelect: "none",
                           }}
                         >
-                          <Tooltip label={c.tt.label} body={c.tt.body} side="bottom">
+                          <Tooltip label={c.tt.label} body={c.tt.body} side="top">
                             <span>
                               {c.label}
                               {arrow && <span style={{ marginLeft: 4, color: "var(--accent)", fontSize: 9 }}>{arrow}</span>}
