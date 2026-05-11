@@ -47,18 +47,27 @@ function congressAmountMidpoint(amt) {
   return vals[0] || 0;
 }
 
-// ── Tile click → jump into Scanner detail view ─────────────────────────────
+// ── Tile click → jump into the inline Scanner detail view ──────────────────
+// The standalone /#scanner route was retired; Scanner.jsx now mounts inline
+// at the bottom of /#portopps. Clicking a strip tile:
+//   1. fires a window event Scanner.jsx listens for and uses to call setView
+//      ("congress" | "insiders" | "flow" | "technicals")
+//   2. smooth-scrolls the page down to the inline Scanner anchor so the
+//      detail view is on screen
+// A sessionStorage fallback covers the rare case where the user is not on
+// /#portopps when the click happens (Scanner reads it on its next mount).
 function openScannerView(viewId) {
   try {
     sessionStorage.setItem("mt:scanner:initial-view", viewId);
-  } catch (_) { /* ignore (private mode etc.) */ }
-  // Route to #scanner. App.jsx hash-tab logic will mount Scanner; Scanner.jsx
-  // reads the marker on mount and switches off the landing view.
-  if (window.location.hash !== "#scanner") {
-    window.location.hash = "#scanner";
-  } else {
-    // already on #scanner — force re-render via hash event
-    window.dispatchEvent(new HashChangeEvent("hashchange"));
+  } catch (_) { /* private mode etc. */ }
+  // Fire the in-page event for the live Scanner instance.
+  try {
+    window.dispatchEvent(new CustomEvent("mt:scanner:set-view", { detail: { view: viewId } }));
+  } catch (_) { /* IE-ish browsers */ }
+  // Smooth-scroll to the inline Scanner anchor (added in App.jsx).
+  const anchor = document.getElementById("mt-inline-scanner");
+  if (anchor && typeof anchor.scrollIntoView === "function") {
+    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 }
 

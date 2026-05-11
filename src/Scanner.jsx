@@ -1260,6 +1260,21 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
     return "landing";
   })();
   const [view, setView] = useState(initialView);
+
+  // Bridge: ScannerTilesStrip (rendered higher on the same page) dispatches
+  // a "mt:scanner:set-view" custom event when a tile is clicked. Listen here
+  // and call setView so the user lands on the right detail tab without a
+  // navigation round-trip.
+  useEffect(() => {
+    function onSetView(e) {
+      const v = e?.detail?.view;
+      if (["congress","insiders","flow","technicals","landing"].includes(v)) {
+        setView(v);
+      }
+    }
+    window.addEventListener("mt:scanner:set-view", onSetView);
+    return () => window.removeEventListener("mt:scanner:set-view", onSetView);
+  }, []);
   const [rawData, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
