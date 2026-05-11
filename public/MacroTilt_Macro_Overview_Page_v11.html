@@ -2917,8 +2917,11 @@ function showToast(msg) {
         var live = byId[t.id];
         if (live && typeof live.score === 'number' && live.score !== t.score) {
           t.score = live.score;
-          t.band = live.score < 25 ? 'green'
-                  : live.score < 50 ? 'amber'
+          // Band names must match BAND_COLORS keys (celadon / neutral /
+          // oxblood / darkblood). The old code emitted "green"/"amber"
+          // which crashed the modal when those tiles were clicked.
+          t.band = live.score < 25 ? 'celadon'
+                  : live.score < 50 ? 'neutral'
                   : live.score < 75 ? 'oxblood'
                   : 'darkblood';
           changed = true;
