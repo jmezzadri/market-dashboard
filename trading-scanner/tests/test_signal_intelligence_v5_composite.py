@@ -172,13 +172,13 @@ def test_none_subscore_excluded_from_denominator():
         "short_interest": 60,
     }
     out = compute_composite(subs, market_cap=1e9, weights=EQUAL_WEIGHTS)
-    assert out["mt_score"] == pytest.approx(60.0, abs=1e-6)
+    assert out["mt_score"] == pytest.approx(30.0, abs=0.5)  # v5.2: 3 of 6 firing at +60 with equal weights -> 60*(3/6) = 30
 
 
 def test_all_none_returns_no_data():
     out = compute_composite({k: None for k in SIGNAL_KEYS}, market_cap=1e9)
-    assert out["mt_score"] is None
-    assert out["band"] == "No Data"
+    assert out["mt_score"] == 0.0  # v5.2: missing = 0 contribution
+    assert out["band"] == "Neutral"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -405,5 +405,6 @@ def test_compute_mt_score_with_all_none_returns_no_data():
         patch(f"{mod}.composite.short_interest_score.score", return_value=none_payload),
     ):
         out = compute_mt_score("ZZZZ", date(2026, 5, 10), market_cap=1e9)
-    assert out["mt_score"] is None
-    assert out["band"] == "No Data"
+    # v5.2: missing = 0 contribution -> 0 / Neutral (no No Data band)
+    assert out["mt_score"] == 0.0
+    assert out["band"] == "Neutral"

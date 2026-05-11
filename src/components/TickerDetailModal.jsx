@@ -239,14 +239,9 @@ function SignalIntelligenceRail({
       );
     })() : null;
 
-    // "Insufficient Data" banner when the row failed the coverage guard.
-    const insufficientNote = band === "Insufficient Data" ? (
-      <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-2)",fontSize:11.5,lineHeight:1.45}}>
-        <b>Not enough signal coverage for a composite score today.</b>{" "}
-        {Number.isFinite(Number(sig.signals_fired)) ? `${sig.signals_fired} of 6 signals had data.` : ""}{" "}
-        The individual signals below are still honest -- read them directly.
-      </div>
-    ) : null;
+    // v5.2: no more Insufficient Data banner -- every stock gets a score
+    // under the simpler "missing = 0 contribution" math.
+    const insufficientNote = null;
 
     // v5.1 (e): the so_what plain-English summary that used to sit in the
     // tile header (`band - so_what`) now lives inside the expanded panel,
@@ -333,15 +328,24 @@ function SignalIntelligenceRail({
   };
 
   // Insider Activity ----------------------------------------------------
+  // v5.2 (a): distinguish "data unavailable" (pipeline gap; components
+  // block missing or has no buy_count field at all) from "no signal"
+  // (data fetched cleanly, just no Form 4 events to report).
   const insiderTile = (() => {
     if (!sig) return { state: "loading", value: "…", meta: "Loading insider signal", detail: null };
-    const c = compsForTiles.insider || {};
+    const compsBlock = (sig && sig.diagnostic && sig.diagnostic.scorer_components) || null;
+    const c = compsForTiles.insider || null;
     const sub = subsForTiles.insider;
     const w   = weightsForTiles.insider;
+    // Pipeline gap: the scan didn't write an insider components block at all.
+    if (!c || c.buy_count == null) {
+      return { state: "neutral", value: "n/a", meta: "Insider data unavailable for this name today (pipeline gap)", detail: null };
+    }
     const buys  = Number(c.buy_count || 0);
     const sells = Number(c.sell_count || 0);
-    if (sub == null && buys === 0 && sells === 0) {
-      return { state: "neutral", value: "—", meta: "No Form 4 activity in the recent window", detail: null };
+    // Confirmed quiet: data fetched, no Form 4 events.
+    if (buys === 0 && sells === 0) {
+      return { state: "neutral", value: "0", meta: "No Form 4 buys or sells in the last 30 days", detail: null };
     }
     const value = fmtSubSimple(sub);
     const buy$  = fmtMoneyT(c.buy_dollar_total);
@@ -372,12 +376,15 @@ function SignalIntelligenceRail({
   // Analyst Actions -----------------------------------------------------
   const analystTile = (() => {
     if (!sig) return { state: "loading", value: "…", meta: "Loading analyst signal", detail: null };
-    const c = compsForTiles.analyst || {};
+    const c = compsForTiles.analyst || null;
     const sub = subsForTiles.analyst;
     const w   = weightsForTiles.analyst;
-    const n   = Number(c.action_count || 0);
-    if (sub == null && n === 0) {
-      return { state: "neutral", value: "—", meta: "No analyst actions in last 90 days", detail: null };
+    if (!c || c.action_count == null) {
+      return { state: "neutral", value: "n/a", meta: "Analyst data unavailable for this name today (pipeline gap)", detail: null };
+    }
+    const n = Number(c.action_count || 0);
+    if (n === 0) {
+      return { state: "neutral", value: "0", meta: "No analyst upgrades, downgrades, or price-target changes in the last 90 days", detail: null };
     }
     const value = fmtSubSimple(sub);
     const gap = c.pt_gap_pct;
@@ -406,15 +413,15 @@ function SignalIntelligenceRail({
   // Short Interest ------------------------------------------------------
   const siTile = (() => {
     if (!sig) return { state: "loading", value: "…", meta: "Loading short interest", detail: null };
-    const c = compsForTiles.short_interest || {};
+    const c = compsForTiles.short_interest || null;
     const sub = subsForTiles.short_interest;
     const w   = weightsForTiles.short_interest;
+    if (!c || (c.latest_si_pct_of_float == null && c.latest_ctb_pct == null)) {
+      return { state: "neutral", value: "n/a", meta: "Short interest data unavailable for this name today (pipeline gap)", detail: null };
+    }
     const siPct = c.latest_si_pct_of_float;
     const ctb   = c.latest_ctb_pct;
     const regime = c.regime;
-    if (sub == null && siPct == null && ctb == null) {
-      return { state: "neutral", value: "—", meta: "No short interest data", detail: null };
-    }
     const value = fmtSubSimple(sub);
     const bullets = [];
     if (siPct != null) bullets.push(`${Number(siPct).toFixed(1)}% of float short`);

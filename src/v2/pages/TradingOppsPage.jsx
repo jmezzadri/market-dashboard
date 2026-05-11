@@ -164,11 +164,11 @@ function dayClass(v) {
 }
 
 function bandGroup(b) {
+  // v5.2: no more Insufficient Data band -- every stock gets a score.
   if (b === "Strong Buy")        return "strong_buy";
   if (b === "Watch Buy")         return "watch_buy";
   if (b === "Watch Sell")        return "watch_sell";
   if (b === "Strong Sell")       return "strong_sell";
-  if (b === "Insufficient Data") return "insufficient";
   return "neutral";
 }
 
@@ -867,7 +867,6 @@ export default function TradingOppsPage({ onOpenTicker }) {
         case "neutral":      return r.band === "Neutral";
         case "watch_sell":   return r.band === "Watch Sell";
         case "strong_sell":  return r.band === "Strong Sell";
-        case "insufficient": return r.band === "Insufficient Data";
         case "held":         return r.band !== null; // placeholder - "Held" filter is wired by portfolio overlay (out of v5 scope)
         case "watchlist":    return r.band !== null; // placeholder - "Watchlist" filter is wired elsewhere
         case "all":

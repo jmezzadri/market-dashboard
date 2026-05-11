@@ -403,9 +403,13 @@ def compute_composite(
     factor = insider_weight_factor(market_cap)
     discounted = _apply_cap_discount(base, factor)
 
-    # Walk the signals, applying weights only to non-null sub-scores.
+    # v5.2 (2026-05-11) -- per Joe: every stock gets a score. Missing
+    # signals contribute 0 to the weighted sum (denominator stays at
+    # 1.0). No coverage gate, no Insufficient Data band, no special case.
+    # The American Tower honesty problem is now handled by the math
+    # itself: a single low-weight signal at +100 produces a small total
+    # contribution (e.g. analyst +100 at 5% weight -> +5 = Neutral).
     weighted_sum = 0.0
-    weight_used = 0.0
     signals_fired = 0
     clean_subs: dict[str, float | None] = {}
     for k in SIGNAL_KEYS:
@@ -421,52 +425,11 @@ def compute_composite(
         clean_subs[k] = fv
         w = discounted.get(k, 0.0)
         weighted_sum += fv * w
-        weight_used += w
         signals_fired += 1
 
-    # No signals at all -> "No Data" (distinct from "Insufficient Data").
-    if weight_used <= 0:
-        return {
-            "mt_score": None,
-            "band": "No Data",
-            "sub_scores": clean_subs,
-            "weights_used": discounted,
-            "cap_discount_applied": factor,
-            "coverage_weight": 0.0,
-            "signals_fired": 0,
-            "so_what": "No signals firing - insufficient data on this name today.",
-        }
-
-    # Honest-score guard: if too few signals fired or their combined weight
-    # is below MIN_COVERAGE_WEIGHT_FRACTION, do not surface a composite.
-    # This is what prevents the American Tower +100 dishonest framing where
-    # one weak-weight signal (analyst, 5%) dominated the score because the
-    # rest of the row was null. See module-level note for the calibration.
-    if (signals_fired < MIN_COVERAGE_SIGNALS
-            or weight_used < MIN_COVERAGE_WEIGHT_FRACTION):
-        # Build a short, honest "so what" that names which signals fired.
-        fired_keys = [k for k in SIGNAL_KEYS if clean_subs.get(k) is not None]
-        if fired_keys:
-            labels = ", ".join(SIGNAL_LABEL[k] for k in fired_keys)
-            so_what = (
-                f"Only {signals_fired} of 6 signals had data today "
-                f"({labels}). Not enough coverage for an honest composite "
-                f"score - rely on the individual signals above."
-            )
-        else:
-            so_what = "No signals firing - insufficient data on this name today."
-        return {
-            "mt_score": None,
-            "band": INSUFFICIENT_DATA_BAND,
-            "sub_scores": clean_subs,
-            "weights_used": discounted,
-            "cap_discount_applied": factor,
-            "coverage_weight": round(weight_used, 4),
-            "signals_fired": signals_fired,
-            "so_what": so_what,
-        }
-
-    mt_raw = weighted_sum / weight_used
+    # Denominator is the FULL calibrated weight (1.0 after cap-discount
+    # redistribution) regardless of how many signals fired today.
+    mt_raw = weighted_sum  # weights sum to 1.0 already
     mt_score = round(_clamp(mt_raw, -100.0, 100.0), 2)
     band = assign_band(mt_score)
     so_what = so_what_summary(mt_score, band, clean_subs)
@@ -477,7 +440,6 @@ def compute_composite(
         "sub_scores": clean_subs,
         "weights_used": discounted,
         "cap_discount_applied": factor,
-        "coverage_weight": round(weight_used, 4),
         "signals_fired": signals_fired,
         "so_what": so_what,
     }

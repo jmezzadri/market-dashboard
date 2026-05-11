@@ -108,7 +108,8 @@ def test_composite_excludes_none_subscores_from_denominator():
     # AND >= 40% weight) so the composite IS computed.
     res = v5c.compute_composite(sub_scores, market_cap=500_000_000)
     assert res["mt_score"] is not None
-    assert res["band"] in ("Watch Buy", "Strong Buy")
+    assert res["mt_score"] > 20  # v5.2: insider 80 + tech 40 weighted = ~32
+    assert res["band"] in ("Watch Buy", "Strong Buy")  # v5.2: 80*0.363 + 40*0.087 = 32.5 -> Watch Buy
     assert res["signals_fired"] == 2
 
     # If only one signal fires, the row always fails the signals guard
@@ -117,8 +118,8 @@ def test_composite_excludes_none_subscores_from_denominator():
     sub_lone = {"insider": 80, "options": None, "congress": None,
                 "technicals": None, "analyst": None, "short_interest": None}
     res_lone = v5c.compute_composite(sub_lone, market_cap=500_000_000)
-    assert res_lone["mt_score"] is None
-    assert res_lone["band"] == "Insufficient Data"
+    assert res_lone["mt_score"] > 0  # v5.2: insider 80 at 36.3% weight = ~29
+    assert res_lone["band"] == "Watch Buy"  # v5.2: insider 80 * 36.3% weight = ~29
     assert res_lone["signals_fired"] == 1
 
     # When the test wants to verify the old none-handling math directly, it
@@ -131,16 +132,16 @@ def test_composite_excludes_none_subscores_from_denominator():
     res3 = v5c.compute_composite(sub_scores_3, market_cap=500_000_000,
                                   weights=v5c.EQUAL_WEIGHTS)
     # Weighted mean over 3 firing signals (each 1/6) = (80 + 40 + 0) / 3 = 40
-    assert res3["mt_score"] == pytest.approx(40.0, abs=0.5)
+    assert res3["mt_score"] == pytest.approx(20.0, abs=0.5)  # v5.2: (80+40+0)*(1/6) = 20
     assert res3["band"] in ("Watch Buy", "Strong Buy", "Neutral")
 
 
 def test_composite_all_none_returns_no_data():
     """Every sub_score None -> mt_score=None, band='No Data'."""
-    res = v5c.compute_composite({k: None for k in v5c.SIGNAL_KEYS},
-                                 market_cap=1_000_000_000)
-    assert res["mt_score"] is None
-    assert res["band"] == "No Data"
+    res = v5c.compute_composite({k: None for k in v5c.SIGNAL_KEYS}, market_cap=1_000_000_000)
+    # v5.2: missing = 0 contribution -> score = 0 -> Neutral (no No Data band)
+    assert res["mt_score"] == 0.0
+    assert res["band"] == "Neutral"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
