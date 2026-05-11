@@ -22,6 +22,7 @@
 
 import { useMemo, useState } from "react";
 import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
+import useV5ScanBatch from "../hooks/useV5ScanBatch";
 import { Tip } from "../InfoTip";
 import {
   computeSectionComposites,
@@ -433,7 +434,135 @@ const watchCol = {
   // table injects when it receives onAdd / onRemove / userWatchlistTickers.
   renderCell: (r) => r._watch || null,
 };
-const COLUMNS = [...baseCols, ...signalCols, overallCol, ...riskCols, watchCol];
+// ── v5 Trading Opps columns merged 2026-05-11 (Joe directive). Numbers
+// here match the Trading Opps page exactly for the same ticker on the
+// same scan_date. ───────────────────────────────────────────────────────
+const v5Cols = [
+  {
+    id: "mt_score", label: "MT SCORE", description: "MacroTilt Score — weighted blend of six v5 signals (−100 bearish → +100 bullish). Live engine that powers Trading Opps.",
+    align: "center",
+    sortValue: (r) => r._v5?.mt_score ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.mt_score;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v >= 50 ? "var(--green-text, var(--green))" : v >= 20 ? "var(--green)" : v <= -50 ? "var(--red-text, var(--red))" : v <= -20 ? "var(--red)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: col, fontSize: 13 }}>{v >= 0 ? "+" : ""}{Number(v).toFixed(1)}</span>;
+    },
+  },
+  {
+    id: "band", label: "BAND", description: "Strong Sell / Sell Watch / Neutral / Buy Watch / Strong Buy. Cutoffs at MT Score −50, −20, +20, +50.",
+    align: "center",
+    sortValue: (r) => {
+      const order = { "Strong Sell": -2, "Sell Watch": -1, "Neutral": 0, "Buy Watch": 1, "Strong Buy": 2 };
+      return order[r._v5?.band] ?? null;
+    },
+    renderCell: (r) => {
+      const b = r._v5?.band;
+      if (!b) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = b === "Strong Buy" ? "var(--green-text, var(--green))" : b === "Buy Watch" ? "var(--green)" : b === "Sell Watch" ? "var(--red)" : b === "Strong Sell" ? "var(--red-text, var(--red))" : "var(--text-muted)";
+      return <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, color: col }}>{b}</span>;
+    },
+  },
+  {
+    id: "ig", label: "INDUSTRY GROUP", description: "GICS Industry Group (25 mid-level buckets). Derived from SIC code via the same SIC→GICS mapping Trading Opps uses.",
+    align: "left",
+    sortValue: (r) => (r._v5?.ig || "").toLowerCase(),
+    renderCell: (r) => (
+      <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }} title={r._v5?.ig}>
+        {r._v5?.ig || "—"}
+      </span>
+    ),
+  },
+  {
+    id: "sub_short_interest", label: "SHORT INT", description: "Short Interest sub-score (−100 to +100). Rising SI + rising borrow cost above 50-day SMA = bearish; high SI + cheap borrow into earnings = bullish squeeze setup.",
+    align: "center",
+    sortValue: (r) => r._v5?.sub_short_interest ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.sub_short_interest;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v >= 20 ? "var(--green-text)" : v <= -20 ? "var(--red-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 600, color: col, fontSize: 12 }}>{v >= 0 ? "+" : ""}{Number(v).toFixed(0)}</span>;
+    },
+  },
+  {
+    id: "rsi_14", label: "RSI(14)", description: "14-day Relative Strength Index. >70 conventionally overbought; <30 oversold.",
+    align: "right",
+    sortValue: (r) => r._v5?.rsi_14 ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.rsi_14;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 70 ? "var(--red-text)" : v < 30 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(1)}</span>;
+    },
+  },
+  {
+    id: "bb_bw", label: "BB BAND-WIDTH", description: "Bollinger band-width as percent of 20-day MA. <5% = compression / squeeze (amber). >15% = expansion / trend in motion.",
+    align: "right",
+    sortValue: (r) => r._v5?.bb_bw ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.bb_bw;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v < 0.05 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(2)}%</span>;
+    },
+  },
+  {
+    id: "rvol_20d", label: "RVOL (20d)", description: "Today's volume / 20-day average. ≥1.5× = unusual activity (green); <0.7× = quiet (amber); 1.0× = average.",
+    align: "right",
+    sortValue: (r) => r._v5?.rvol_20d ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.rvol_20d;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v >= 1.5 ? "var(--green-text)" : v < 0.7 ? "var(--orange-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}×</span>;
+    },
+  },
+  {
+    id: "pct_50ma", label: "% VS 50D MA", description: "Today's close as percent distance from the 50-day SMA. >+5% uptrend; <−5% downtrend.",
+    align: "right",
+    sortValue: (r) => r._v5?.pct_50ma ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.pct_50ma;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 5 ? "var(--green-text)" : v < -5 ? "var(--red-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
+    },
+  },
+  {
+    id: "pct_200ma", label: "% VS 200D MA", description: "Today's close as percent distance from the 200-day SMA. >+10% strong uptrend; <−10% downtrend.",
+    align: "right",
+    sortValue: (r) => r._v5?.pct_200ma ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.pct_200ma;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const col = v > 10 ? "var(--green-text)" : v < -10 ? "var(--red-text)" : "var(--text)";
+      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
+    },
+  },
+  {
+    id: "ins_buys", label: "INSIDER BUYS (#)", description: "Number of Form 4 open-market buy events by officers / directors in the recent window.",
+    align: "right",
+    sortValue: (r) => r._v5?.ins_buys ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.ins_buys;
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{v}</span>;
+    },
+  },
+  {
+    id: "ins_buy_$", label: "INSIDER BUYS ($)", description: "Total $ value of recent Form 4 open-market buy events.",
+    align: "right",
+    sortValue: (r) => r._v5?.["ins_buy_$"] ?? null,
+    renderCell: (r) => {
+      const v = r._v5?.["ins_buy_$"];
+      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+      const m = v >= 1e9 ? `$${(v/1e9).toFixed(2)}B` : v >= 1e6 ? `$${(v/1e6).toFixed(1)}M` : v >= 1e3 ? `$${(v/1e3).toFixed(0)}K` : `$${v.toFixed(0)}`;
+      return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{m}</span>;
+    },
+  },
+];
+
+const COLUMNS = [...baseCols, ...signalCols, overallCol, ...v5Cols, ...riskCols, watchCol];
 
 // Joe directive 2026-05-11: show every column by default (was: only
 // ticker/name/sector/6 signals/OVR visible, everything else hidden behind
@@ -445,6 +574,11 @@ const DEFAULT_ORDER = [
   "ticker", "name", "sector",
   ...SIGNAL_COLS.map((c) => c.key),
   "overall",
+  // v5 cluster — MT Score, Band, IG, then v5 technicals + insider deep-dive
+  "mt_score", "band", "ig",
+  "sub_short_interest",
+  "rsi_14", "bb_bw", "rvol_20d", "pct_50ma", "pct_200ma",
+  "ins_buys", "ins_buy_$",
   "price", "dayChangePct", "marketcap", "ivRank", "divYield",
   "nextEarnings", "week52", "theme",
   "beta_2y", "annVol_2y", "maxDD_2y", "var10d99",
@@ -476,6 +610,18 @@ const DEFAULT_WIDTHS = {
   annVol_2y:     90,
   maxDD_2y:      90,
   var10d99:      110,
+  // v5 columns 2026-05-11
+  mt_score:           100,
+  band:               110,
+  ig:                 210,
+  sub_short_interest: 100,
+  rsi_14:             85,
+  bb_bw:              115,
+  rvol_20d:           100,
+  pct_50ma:           105,
+  pct_200ma:          110,
+  ins_buys:           115,
+  "ins_buy_$":        130,
   _watch: 90,
 };
 
@@ -512,6 +658,10 @@ export default function WatchlistTable({
   // P5 #35 — risk metrics for visible tickers, opt-in columns
   const _tickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
   const { metrics: _riskByTicker } = useRiskMetricsBatch(_tickers);
+  // 2026-05-11 — v5 Trading Opps engine. Joe wants the same MT Score /
+  // Band / Industry Group / sub_short_interest / RSI / BB BW / RVOL /
+  // % vs SMA / insider buy stats here as on Trading Opps.
+  const { byTicker: _v5ByTicker } = useV5ScanBatch(_tickers);
 
   const enriched = useMemo(() => {
     return (rows || []).map((w) => {
@@ -575,9 +725,10 @@ export default function WatchlistTable({
         weekLow:  sc.week_52_low  != null ? Number(sc.week_52_low)  : null,
         weekHigh: sc.week_52_high != null ? Number(sc.week_52_high) : null,
         _risk:    _riskByTicker[t] || null,
+        _v5:      _v5ByTicker[t] || null,
       };
     });
-  }, [rows, signals, screenerMap, infoMap, heldTickers, _riskByTicker, userWatchlistTickers, watchBusy, portfolioAuthed]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [rows, signals, screenerMap, infoMap, heldTickers, _riskByTicker, _v5ByTicker, userWatchlistTickers, watchBusy, portfolioAuthed]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [sortCol, setSortCol] = useState("overall");
   const [sortDir, setSortDir] = useState("desc");
