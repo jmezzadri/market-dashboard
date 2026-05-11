@@ -1085,6 +1085,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
           {/* LEFT COLUMN — TABLE 1: Asset Tilt Engine Scenario Results */}
           <Table1AssetTilt
+            hasShock={hasShock}
             igPcts={igPcts}
             igLoadings={igLoadings}
             equityParents={_equityParents}
@@ -1960,7 +1961,7 @@ function L4PanelReal({ scenario, baseline, asOf }) {
 
 // Table 1 — sortable, sectors collapsible (default collapsed), IGs use v10 proxy ETFs.
 // IG-level stress shows "—" with note (Phase 2 calibration).
-function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, expandedSectors, toggleSectorExpanded, openSectorByName, openIGByName, onOpenTicker, stressColor, fmtPct, tableCard, tableHead, tableTitle, tableSub, scenToAt }) {
+function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, expandedSectors, toggleSectorExpanded, openSectorByName, openIGByName, onOpenTicker, stressColor, fmtPct, tableCard, tableHead, tableTitle, tableSub, scenToAt, hasShock }) {
   // Phase 2G — look up per-IG stress %. v10's industry_groups list keys IGs by
   // a flat id ("semis", "software", …); ig_factor_loadings.json uses the same
   // id keys. ScenarioAnalysis's IG rows here only carry name + proxy, so we
@@ -1994,17 +1995,17 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
     <>
       <div style={{..._th, textAlign:"left"}} onClick={() => eq.toggleSort("name")}>Sector / Industry Group <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
       <div style={{..._th, textAlign:"left"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
-      <div style={{..._th, textAlign:"right"}} onClick={() => eq.toggleSort("pct")}>Stress <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>
+      {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => eq.toggleSort("pct")}>Stress <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
     </>
   );
 
   return (
     <div style={tableCard}>
       <div style={tableHead}>
-        <h2 style={tableTitle}>Asset Tilt Engine Scenario Results</h2>
-        <div style={tableSub}>How each equity sector, industry group, and defensive asset class is impacted by the selected scenario. Click a sector row to expand its industry groups.</div>
+        <h2 style={tableTitle}>Asset Tilt Engine</h2>
+        <div style={tableSub}>{hasShock ? "How each equity sector, industry group, and defensive asset class is impacted by the selected scenario. Click a sector row to expand its industry groups." : "Pick a scenario above (or run a custom shock) to see how each sector and industry group would move."}</div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 70px 90px" }}>
+      <div style={{ display:"grid", gridTemplateColumns: hasShock ? "1fr 70px 90px" : "1fr 70px" }}>
         <Header/>
         <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
         {eq.sorted.map(s => {
@@ -2017,17 +2018,17 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
                 <span onClick={(e) => { e.stopPropagation(); if (scenToAt[s.name]) openSectorByName(s.name); }} style={{textDecoration: scenToAt[s.name] ? "underline" : "none", textDecorationColor:"rgba(128,128,128,0.35)", textUnderlineOffset:3}}>{s.name}</span>
               </div>
               <div style={_td}>{s.ticker}</div>
-              <div style={{..._tdNum, color: stressColor(s.pct), fontWeight:600}}>{fmtPct(s.pct)}</div>
+              {hasShock && <div style={{..._tdNum, color: stressColor(s.pct), fontWeight:600}}>{fmtPct(s.pct)}</div>}
               {isExpanded && s.igs.map((ig, ix) => {
                 const igPct = igStressFor(ig.name);
                 return (
                   <React.Fragment key={s.id + "-" + ix}>
                     <div style={{..._td, paddingLeft:42, color:"var(--text-2)", fontSize:12, cursor:"pointer"}} onClick={() => openIGByName && openIGByName(ig.name, s.name)}>↳ {ig.name}</div>
                     <div style={{..._td, fontSize:12, color:"var(--text-muted)"}}>{ig.proxy}</div>
-                    {igPct === null
+                    {hasShock && (igPct === null
                       ? <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="No factor loadings available for this IG">—</div>
                       : <div style={{..._tdNum, fontSize:12, color: stressColor(igPct), fontWeight:600}}>{fmtPct(igPct)}</div>
-                    }
+                    )}
                   </React.Fragment>
                 );
               })}
@@ -2039,7 +2040,7 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
           <React.Fragment key={r.ticker}>
             <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
             <div style={_td}>{r.ticker}</div>
-            <div style={{..._tdNum, color: stressColor(r.pct), fontWeight:600}}>{fmtPct(r.pct)}</div>
+            {hasShock && <div style={{..._tdNum, color: stressColor(r.pct), fontWeight:600}}>{fmtPct(r.pct)}</div>}
           </React.Fragment>
         ))}
       </div>
@@ -2077,15 +2078,15 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
     <div style={tableCard}>
       <div style={tableHead}>
         <h2 style={tableTitle}>Your Portfolio</h2>
-        <div style={tableSub}>{portfolioSource === "demo" ? `Illustrative $${totK}K book — sign in to apply the scenario to your real positions.` : "Your real positions across all accounts."}</div>
+        <div style={tableSub}>{!hasShock ? (portfolioSource === "demo" ? `Illustrative $${totK}K book. Pick a scenario or run a custom shock to see position-level P&L.` : "Your real positions across all accounts. Pick a scenario or run a custom shock to see position-level P&L.") : (portfolioSource === "demo" ? `Illustrative $${totK}K book — sign in to apply the scenario to your real positions.` : "Your real positions across all accounts.")}</div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns:"minmax(60px, 110px) minmax(90px, 200px) minmax(78px, 120px) minmax(78px, 120px) minmax(78px, 120px) minmax(60px, 80px)" }}>
+      <div style={{ display:"grid", gridTemplateColumns: hasShock ? "minmax(60px, 110px) minmax(90px, 200px) minmax(78px, 120px) minmax(78px, 120px) minmax(78px, 120px) minmax(60px, 80px)" : "minmax(60px, 110px) minmax(90px, 220px) minmax(78px, 140px)" }}>
         <div style={{..._th, textAlign:"left"}} onClick={() => toggleSort("ticker")}>Ticker <SortArrow dir={sortCol==="ticker"?sortDir:null}/></div>
         <div style={{..._th, textAlign:"left"}} onClick={() => toggleSort("sector")}>Sector <SortArrow dir={sortCol==="sector"?sortDir:null}/></div>
         <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("value")}>Curr. <SortArrow dir={sortCol==="value"?sortDir:null}/></div>
-        <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("stressed")}>Stressed <SortArrow dir={sortCol==="stressed"?sortDir:null}/></div>
-        <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("dollar")}>P&amp;L $ <SortArrow dir={sortCol==="dollar"?sortDir:null}/></div>
-        <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("pct")}>P&amp;L % <SortArrow dir={sortCol==="pct"?sortDir:null}/></div>
+        {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("stressed")}>Stressed <SortArrow dir={sortCol==="stressed"?sortDir:null}/></div>}
+        {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("dollar")}>P&amp;L $ <SortArrow dir={sortCol==="dollar"?sortDir:null}/></div>}
+        {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("pct")}>P&amp;L % <SortArrow dir={sortCol==="pct"?sortDir:null}/></div>}
         {sorted.map((pos, i) => {
           const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
           return (
@@ -2093,18 +2094,18 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
               <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} title={pos.ticker} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
               <div style={{..._td, color:"var(--text-muted)"}} title={pos.sector}>{pos.sector}</div>
               <div style={_tdNum}>${pos.value.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
-              <div style={_tdNum}>${pos.stressed.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
-              <div style={{..._tdNum, color: stressColor(pos.dollar), fontWeight:600}}>{hasShock ? fmtDollar(pos.dollar) : "—"}</div>
-              <div style={{..._tdNum, color: stressColor(pos.pct), fontWeight:600}}>{pctText}</div>
+              {hasShock && <div style={_tdNum}>${pos.stressed.toLocaleString(undefined, {maximumFractionDigits:0})}</div>}
+              {hasShock && <div style={{..._tdNum, color: stressColor(pos.dollar), fontWeight:600}}>{fmtDollar(pos.dollar)}</div>}
+              {hasShock && <div style={{..._tdNum, color: stressColor(pos.pct), fontWeight:600}}>{pctText}</div>}
             </React.Fragment>
           );
         })}
         <div style={{..._td, fontWeight:700, borderTop:"1px solid var(--border)"}}>Total</div>
         <div style={{..._td, borderTop:"1px solid var(--border)"}}></div>
         <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${totalCurr.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
-        <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${totalStressed.toLocaleString(undefined,{maximumFractionDigits:0})}</div>
-        <div style={{..._tdNum, fontWeight:700, color: stressColor(total), borderTop:"1px solid var(--border)"}}>{hasShock ? fmtDollar(total) : "—"}</div>
-        <div style={{..._tdNum, fontWeight:700, color: stressColor(total), borderTop:"1px solid var(--border)"}}>{hasShock ? totalPctNum.toFixed(1)+"%" : "—"}</div>
+        {hasShock && <div style={{..._tdNum, fontWeight:700, borderTop:"1px solid var(--border)"}}>${totalStressed.toLocaleString(undefined,{maximumFractionDigits:0})}</div>}
+        {hasShock && <div style={{..._tdNum, fontWeight:700, color: stressColor(total), borderTop:"1px solid var(--border)"}}>{fmtDollar(total)}</div>}
+        {hasShock && <div style={{..._tdNum, fontWeight:700, color: stressColor(total), borderTop:"1px solid var(--border)"}}>{totalPctNum.toFixed(1)+"%"}</div>}
       </div>
     </div>
   );
