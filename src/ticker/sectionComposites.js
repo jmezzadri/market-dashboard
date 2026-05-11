@@ -358,8 +358,14 @@ function analystComposite(ratings, currentPrice) {
     { label: `${nBuy} Buy / ${nHold} Hold / ${nSell} Sell`, points: Math.round(recMix) },
   ];
   if (avgPT != null) {
+    // upside can be null when avgPT is known but currentPrice is missing
+    // (e.g. a freshly-scored ticker with no spot price). Don't try to format
+    // null.toFixed -- skip the upside fragment in that case.
+    const upsideStr = upside != null
+      ? ` — ${upside >= 0 ? "+" : ""}${upside.toFixed(1)}% vs $${(currentPrice || 0).toFixed(2)}`
+      : "";
     components.push({
-      label: `Avg PT $${avgPT.toFixed(2)} — ${upside >= 0 ? "+" : ""}${upside.toFixed(1)}% vs $${(currentPrice || 0).toFixed(2)}`,
+      label: `Avg PT $${avgPT.toFixed(2)}${upsideStr}`,
       points: Math.round(ptScore),
     });
   } else {
