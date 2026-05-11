@@ -1141,7 +1141,7 @@ const TILES = [
     ],
   },
   {
-    id:"Credit", num:"04", name:"Credit", live:true, score:14, band:"celadon",
+    id:"Credit", num:"04", name:"Credit", live:true, score:14, band:"green",
     caption:"Credit spreads in panic territory — high-yield OAS and IG/HY ratio both flashing dislocation.",
     cadence: "Daily · ICE BofA via FRED",
     traj: [],
@@ -1154,7 +1154,7 @@ const TILES = [
     ],
   },
   {
-    id:"Funding", num:"05", name:"Funding", live:true, score:46, band:"neutral",
+    id:"Funding", num:"05", name:"Funding", live:true, score:46, band:"amber",
     caption:"Bank-system funding spreads sit in the lower half of post-2018 history. Funding markets benign.",
     cadence: "Daily · NY Fed · DTCC · FRED",
     traj: [],
@@ -1183,7 +1183,7 @@ const TILES = [
     ],
   },
   {
-    id:"RealEconomy", num:"07", name:"Real Economy", live:true, score:42, band:"neutral",
+    id:"RealEconomy", num:"07", name:"Real Economy", live:true, score:42, band:"amber",
     caption:"Real economy reading mid-range — neither expanding decisively nor contracting.",
     cadence: "Monthly · ISM · BLS · Atlanta Fed",
     traj: [],
@@ -2917,11 +2917,12 @@ function showToast(msg) {
         var live = byId[t.id];
         if (live && typeof live.score === 'number' && live.score !== t.score) {
           t.score = live.score;
-          // Band names must match BAND_COLORS keys (celadon / neutral /
-          // oxblood / darkblood). The old code emitted "green"/"amber"
-          // which crashed the modal when those tiles were clicked.
-          t.band = live.score < 25 ? 'celadon'
-                  : live.score < 50 ? 'neutral'
+          // Band names must match BAND_COLORS keys: green / amber /
+          // oxblood / darkblood. Some TILES literals used celadon/neutral
+          // which crashed the modal — those are fixed in the literal block
+          // itself; this branch follows the same canonical names.
+          t.band = live.score < 25 ? 'green'
+                  : live.score < 50 ? 'amber'
                   : live.score < 75 ? 'oxblood'
                   : 'darkblood';
           changed = true;
