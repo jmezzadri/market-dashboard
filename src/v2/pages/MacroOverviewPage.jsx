@@ -537,7 +537,7 @@ function Dial({ score, isLive = true, size = 'card' }) {
 // matching caption for the current band displays on the card.
 const SUB_META = {
   Equities: {
-    num: '01', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
+    num: '01', name: 'Equities', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
     captions: {
       'r-on':  'Valuations broadly cheap relative to long-run history — equity risk premium expanded, drawdown setup attractive.',
       'r-neu': 'Valuations sitting around the middle of their long-run distribution. Neither rich nor cheap.',
@@ -547,7 +547,7 @@ const SUB_META = {
     cadence: 'Monthly · CAPE/ERP refresh; Buffett quarterly',
   },
   Rates: {
-    num: '02', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
+    num: '02', name: 'Rates', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
     captions: {
       'r-on':  'Curve steep and term premium positive — early-cycle rates posture, supportive setup.',
       'r-neu': 'Rates structure mid-cycle — neither inverted enough to flag risk-off nor steep enough to flag risk-on.',
@@ -557,19 +557,19 @@ const SUB_META = {
     cadence: 'Daily · FRED · Kim–Wright Fed',
   },
   MoneyBanking: {
-    num: '03', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
+    num: '03', name: 'Money / Banking', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
     captions: {
       'r-on':  'Money supply expanding, bank reserves ample, credit growth healthy — reflationary setup.',
       'r-neu': 'Bank-system liquidity sitting around average. Neither stretched nor flooding.',
       'r-cau': 'Money supply growth and bank credit are in restrictive territory — late-cycle tightening signature.',
-      'r-off': 'Bank-system liquidity drained — reserves low, M2 contracting, unrealized losses elevated. Pre-stress regime.',
+      'r-off': 'Bank-system liquidity drained — reserves low, M2 contracting, unrealized losses elevated. Risk-off setup.',
     },
     cadence: 'Weekly · FRED · Fed H.4.1',
   },
   Credit: {
-    num: '04', headline: 'market_stress', headlineLabel: 'Market Stress',
+    num: '04', name: 'Credit', headline: 'market_stress', headlineLabel: 'Market Stress',
     captions: {
-      'r-on':  'Spreads pricing complacency — investment-grade and high-yield spreads have not been tighter since before 2008. Late-cycle signature.',
+      'r-on':  'Spreads sitting at extreme tights — investment-grade and high-yield have not been this compressed since before 2008. Late-cycle signature.',
       'r-neu': 'Credit spreads sitting around long-run averages. Neither pricing panic nor euphoria.',
       'r-cau': 'Spreads widening from prior tights — credit markets stepping back from peak risk appetite.',
       'r-off': 'Credit spreads in panic territory — high-yield OAS and IG/HY ratio both flashing dislocation.',
@@ -577,27 +577,27 @@ const SUB_META = {
     cadence: 'Daily · ICE BofA via FRED',
   },
   Funding: {
-    num: '05', headline: 'market_stress', headlineLabel: 'Market Stress',
+    num: '05', name: 'Funding', headline: 'market_stress', headlineLabel: 'Market Stress',
     captions: {
-      'r-on':  'Bank-system funding spreads sit in the lower half of post-2018 history. No active funding stress.',
+      'r-on':  'Bank-system funding spreads sit in the lower half of post-2018 history. Funding markets benign.',
       'r-neu': 'Funding spreads mid-range — TGA balance and reverse-repo neither flooding nor draining.',
       'r-cau': 'Funding indicators tightening — TGA build, RRP fading, CP spread widening. Liquidity at the margin getting expensive.',
-      'r-off': 'Funding stress active — STLFSI and ANFCI in elevated territory, CP risk premium spiking. Money markets dislocated.',
+      'r-off': 'Funding indicators elevated — STLFSI and ANFCI in the upper quartile, CP risk premium spiking. Money markets dislocated.',
     },
     cadence: 'Daily · NY Fed · DTCC · FRED',
   },
   PositioningVol: {
-    num: '06', headline: 'market_stress', headlineLabel: 'Market Stress',
+    num: '06', name: 'Positioning / Vol', headline: 'market_stress', headlineLabel: 'Market Stress',
     captions: {
       'r-on':  'Vol low, breadth strong, equity-credit correlation in trend mode. Positioning posture supportive.',
       'r-neu': 'Vol and positioning indicators sitting around long-run averages.',
       'r-cau': 'Vol creeping higher, breadth narrowing — positioning at the margin getting defensive.',
-      'r-off': 'Vol elevated and breadth thin — VIX, MOVE, and SKEW all flagging stress. Positioning crowded one-way.',
+      'r-off': 'Vol elevated and breadth thin — VIX, MOVE, and SKEW all in the upper quartile. Positioning crowded one-way.',
     },
     cadence: 'Daily · CBOE · NAAIM',
   },
   RealEconomy: {
-    num: '07', headline: 'real_economy', headlineLabel: 'Real Economy',
+    num: '07', name: 'Real Economy', headline: 'real_economy', headlineLabel: 'Real Economy',
     captions: {
       'r-on':  'Real economy expanding — ISM in expansion, GDPNow positive, jobless claims low. Backdrop confirms risk-on.',
       'r-neu': 'Real economy reading mid-range — neither expanding decisively nor contracting.',
@@ -657,50 +657,31 @@ export default function MacroOverviewPage() {
 
   return (
     <div className="v2-root">
-      <header className="v2-hero">
-        <div className="arc" aria-hidden="true">
-          <svg viewBox="0 0 600 600" preserveAspectRatio="xMaxYMid slice">
-            <g transform="translate(420 300)">
-              {[60,100,140,180,220,260,300,340].map((r) => <circle key={r} r={r} />)}
-            </g>
-          </svg>
-        </div>
-        <div className="v2-shell">
-          <div style={{ marginBottom: 8 }}>
-            <span className="t-eyebrow accent" style={{ letterSpacing: '.10em' }}>Macro Overview</span>
-          </div>
-          <div className="v2-hero-row">
-            <h1 className="t-display" style={{ margin: 0, color: 'var(--ink-0)' }}>{headlineState}.</h1>
-            <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />
-          </div>
-        </div>
-      </header>
 
       <div className="v2-shell">
 
-        {/* HERO — left: prose explainer; right: composite dial.
-            Composite = average of all v2 sub-composite scores at the
-            selected horizon. */}
+        {/* HERO — single tight row: eyebrow + h1 + composite chip + horizon. */}
         {cycleV2 && cycleV2.subcomposites && (() => {
           const subOrder = ['Equities','Rates','MoneyBanking','Credit','Funding','PositioningVol','RealEconomy'];
           const scoresArr = subOrder.map(s => cycleV2.subcomposites[s]?.scores_by_horizon?.[v2Horizon]).filter(v => v != null);
           const compAvg = scoresArr.length ? Math.round(scoresArr.reduce((a,b)=>a+b,0) / scoresArr.length) : null;
           const compBand = bandFromScore(compAvg);
           return (
-            <section style={{ marginTop: 24, padding: '20px 0 16px', display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 1fr)', gap: 36, alignItems: 'start' }}>
+            <section style={{ marginTop: 16, padding: '12px 0 12px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 24, alignItems: 'start' }}>
               <div>
-                <h1 className="t-display" style={{ margin: '0 0 12px', color: 'var(--ink-0)', fontSize: 'clamp(28px, 3vw, 38px)', lineHeight: 1.18 }}>
-                  Cycle mechanisms provide a bird&apos;s eye view of the <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>macro backdrop</em> &mdash; calibrated to historical cycles.
+                <div className="t-eyebrow accent" style={{ marginBottom: 6, letterSpacing: '.10em' }}>Macro Overview · {snap?.as_of || calib?.as_of || ''}</div>
+                <h1 className="t-display" style={{ margin: '0 0 10px', color: 'var(--ink-0)', fontSize: 'clamp(22px, 2.2vw, 28px)', lineHeight: 1.22 }}>
+                  Where the cycle sits today, scored against history.
                 </h1>
-                <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.6, margin: 0, maxWidth: 720 }}>
-                  Seven sub-composites scored 0&ndash;100, grouped into three headlines (Cycle &amp; Value, Market Stress, Real Economy). Bands: <strong>0&ndash;25</strong> Risk-on, <strong>25&ndash;50</strong> Neutral, <strong>50&ndash;75</strong> Cautionary, <strong>75&ndash;100</strong> Risk-off. We don&apos;t predict downturns &mdash; we describe where you are.
+                <p style={{ color: 'var(--ink-2)', fontSize: 13, lineHeight: 1.55, margin: 0, maxWidth: 640 }}>
+                  Seven sub-composites scored 0&ndash;100, grouped into three headlines below. <strong>0&ndash;25</strong> Risk-on · <strong>25&ndash;50</strong> Neutral · <strong>50&ndash;75</strong> Cautionary · <strong>75&ndash;100</strong> Risk-off.
                 </p>
-                <div style={{ marginTop: 18, display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 11, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Decision horizon</span>
+                <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 10, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '.10em' }}>Horizon</span>
                   {['1m','3m','6m','12m'].map((h) => (
                     <button key={h} onClick={() => setV2Horizon(h)} style={{
                       fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 11, fontWeight: 600,
-                      padding: '6px 12px',
+                      padding: '5px 12px',
                       background: v2Horizon === h ? 'color-mix(in srgb, var(--accent) 14%, var(--surface))' : 'var(--surface)',
                       color: v2Horizon === h ? 'var(--accent)' : 'var(--ink-2)',
                       border: '1px solid var(--line-1)', borderRadius: 6, cursor: 'pointer', letterSpacing: '.04em',
@@ -708,15 +689,12 @@ export default function MacroOverviewPage() {
                   ))}
                 </div>
               </div>
-              <div className="tile" style={{ padding: '20px 22px', cursor: 'default' }}>
-                <div className="tile-eyebrow" style={{ textAlign: 'center', marginBottom: 8 }}>Composite</div>
-                <Dial score={compAvg} size="hero" />
-                <div style={{ textAlign: 'center', marginTop: 6 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 38, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>{compAvg ?? '—'}</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em', textTransform: 'uppercase', marginLeft: 6 }}>/ 100</span>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, whiteSpace: 'nowrap' }}>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 10, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '.10em', marginBottom: 2 }}>Composite</div>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 44, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>{compAvg ?? '—'}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-2)', letterSpacing: '.10em', marginLeft: 4 }}>/ 100</span></div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>{compBand.label} band</div>
                 </div>
-                <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>composite average</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, color: 'var(--ink-0)' }}>{compBand.label} band</div>
               </div>
             </section>
           );
