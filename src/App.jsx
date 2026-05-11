@@ -5374,13 +5374,21 @@ const portBeta=grandTotal>0
 // index funds); everything else falls through to "Individual Stocks".
 const assetRollup={};
 ACCOUNTS.flatMap(acc=>acc.positions).forEach(p=>{
-// Balance-sheet split: negative-value positions (margin debits, shorts)
-// are liabilities, not asset classes. Bucketing them separately keeps
-// Cash reading as a true asset ($2,267 from brokerage + HSA is long
-// cash) and surfaces the debt as its own legend row, so gross = total
-// assets, net = gross − debt, and gross − net = exactly the debt.
-if((p.value||0)<0){
-  assetRollup["Margin Debt"]=(assetRollup["Margin Debt"]||0)+p.value;
+// Balance-sheet split. Joe correction 2026-05-11: previous code lumped
+// every negative-value row into "Margin Debt", which mis-labeled short
+// option positions (e.g. a sold-short call) as borrowed cash. They're
+// open option obligations, not debt. Split by what the row actually is:
+//   - asset_class === "option" && direction === "short"  →  "Short Options"
+//   - sector === "Cash" && value < 0                     →  "Margin Debt"
+//   - any other negative row                             →  "Other Liabilities"
+// True cash debit = real margin balance; short option mark = what it
+// would cost to buy back today, which is a different beast.
+const v=p.value||0;
+if(v<0){
+  const isShortOption=p.assetClass==="option"&&p.direction==="short";
+  const isMarginCash=p.sector==="Cash";
+  const bucket=isShortOption?"Short Options":(isMarginCash?"Margin Debt":"Other Liabilities");
+  assetRollup[bucket]=(assetRollup[bucket]||0)+v;
   return;
 }
 const cls=
@@ -5393,7 +5401,7 @@ const cls=
   "Individual Stocks";
 assetRollup[cls]=(assetRollup[cls]||0)+p.value;
 });
-const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"var(--yellow)","HY Bonds":"var(--accent)","Precious Metals":"#B8860B","Crypto":"#a855f7","Cash":"var(--text-dim)","Margin Debt":"var(--red)"};
+const rollupColors={"Index Funds":"#4a6fa5","Intl Equity":"#6366f1","Individual Stocks":"var(--yellow)","HY Bonds":"var(--accent)","Precious Metals":"#B8860B","Crypto":"#a855f7","Cash":"var(--text-dim)","Short Options":"#a87c1f","Margin Debt":"var(--red)","Other Liabilities":"var(--text-2)"};
 
 // ── Tile-grid home view computations ─────────────────────────────────────────
 const portCount = scanData?.portfolio_positions?.length || 0;
@@ -6877,6 +6885,45 @@ return(
     pricesTs={universeSnapshotTs}
     eventsTs={scanData?.ticker_events_ts}
   />
+)}
+
+{/* WATCHLIST — Joe directive 2026-05-11. Rendered below the account
+    tiles on Portfolio Insights so the page reads top-to-bottom:
+    KPIs → allocation → trade history → account tiles → watchlist.
+    Same WatchlistTable component as Trading Opps, scoped to the
+    user's saved watchlist rows. Add/remove handlers are the existing
+    ones already wired for Trading Opps — no new data plumbing. */}
+{showInsights && portfolioAuthed && (
+  <div style={sectionPanel}>
+    <div style={sectionHeader}>
+      <span style={sectionTitleStyle}>WATCHLIST</span>
+      <span style={{fontSize:11,color:"var(--text-dim)",fontFamily:"var(--font-mono)"}}>
+        {(userWatchlistRows||[]).length} ticker{(userWatchlistRows||[]).length===1?"":"s"} tracked
+      </span>
+    </div>
+    <div style={{padding:"12px 16px",display:"flex",flexDirection:"column",gap:10}}>
+      <WatchlistTable
+        rows={userWatchlistRows||[]}
+        signals={scanData?.signals}
+        screener={scanData?.signals?.screener || {}}
+        info={scanData?.signals?.info || {}}
+        tableKey="watchlist_insights"
+        heldTickers={heldTickers}
+        userWatchlistTickers={userWatchlistTickers}
+        onAddToWatchlist={onAddToWatchlist}
+        onRemoveFromWatchlist={onRemoveFromWatchlist}
+        portfolioAuthed={portfolioAuthed}
+        onOpenTicker={(t)=>setTickerDetail(t)}
+        emptyMessage="Your watchlist is empty. Add a ticker below to start tracking names alongside your portfolio."
+      />
+      <WatchlistAddInput
+        session={session}
+        watchlistRows={userWatchlistRows}
+        refetchPortfolio={refetchPortfolio}
+        onTickerAdded={scanTicker}
+      />
+    </div>
+  </div>
 )}
 
 {/* NAV-OVER-TIME chart REMOVED 2026-05-11 per Joe directive. The line
