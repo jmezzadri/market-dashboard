@@ -1449,10 +1449,128 @@ function computeV2Stress(shocks, cycleV2, indicatorHistory, scenarioId) {
   return { headlines, subcomposites, stressedScores, regime };
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// CYCLE MECHANISMS DRILLDOWN METADATA — Joe directive 2026-05-11
+// ════════════════════════════════════════════════════════════════════════
+// Click any headline or sub-composite row and a panel opens below the table
+// explaining what the number means in plain English: what this measures,
+// the question it answers, and (for sub-composites) which indicators feed
+// it with their current readings + scores.
+//
+// Headline explanations are anchored to the 3 v2 headlines (Cycle & Value /
+// Market Stress / Real Economy). Sub-composite explanations are anchored
+// to the 7 sub-composites. Indicator labels are short plain-English names
+// for the 38 indicators in cycle_v2.json (id → label).
+// ────────────────────────────────────────────────────────────────────────
+
+const HEADLINE_DRILL = {
+  cycle_value: {
+    label: "Cycle & Value",
+    tagline: "The Setup",
+    question: "Is the structural backdrop high-risk or low-risk?",
+    explanation: "Where we are in the long cycle. How stretched equity valuations are, where rates sit in their historical range, and whether money and bank balance sheets are loose or tight. High scores = late-cycle setup; low scores = early-expansion setup.",
+    subs: ["Equities", "Rates", "MoneyBanking"],
+  },
+  market_stress: {
+    label: "Market Stress",
+    tagline: "The Panic",
+    question: "Are markets calm or fearful right now?",
+    explanation: "Real-time stress in credit spreads, funding markets, positioning, and volatility. High scores = panic / risk-off pricing; low scores = calm conditions. This is the fast-moving piece — it can go from low to high in a week.",
+    subs: ["Credit", "Funding", "PositioningVol"],
+  },
+  real_economy: {
+    label: "Real Economy",
+    tagline: "The Truth",
+    question: "Is the economy actually growing or rolling over?",
+    explanation: "Hard and soft data on growth, employment, and activity. Manufacturing, services, GDPNow, jobless claims, JOLTS, the Chicago Fed index, and the copper / gold ratio. High scores = recession-leaning prints; low scores = expansion prints.",
+    subs: ["RealEconomy"],
+  },
+};
+
+const SUB_DRILL = {
+  Equities: {
+    headline: "cycle_value",
+    what: "How stretched equity prices are versus long-run valuation history. CAPE, equity-risk premium, Buffett ratio (market cap / GDP), and bank-vs-S&P relative performance.",
+    indicators: ["cape", "erp", "buffett", "bkx_spx"],
+  },
+  Rates: {
+    headline: "cycle_value",
+    what: "Where interest rates sit in their historical regime. Curve shape (10y minus 2y), term premium, 10-year breakeven inflation, and real fed funds.",
+    indicators: ["yield_curve", "term_premium", "breakeven_10y", "real_fedfunds"],
+  },
+  MoneyBanking: {
+    headline: "cycle_value",
+    what: "How loose or tight money and bank balance sheets are. M2 year-over-year growth, Fed balance sheet, bank reserves, total bank credit, and bank unrealized losses on held-to-maturity portfolios.",
+    indicators: ["m2_yoy", "fed_bs", "bank_reserves", "bank_credit", "bank_unreal"],
+  },
+  Credit: {
+    headline: "market_stress",
+    what: "What investors are charging to take credit risk. High-yield and investment-grade option-adjusted spreads, HY / IG ratio, the Moody's distress index, and the senior loan officer survey.",
+    indicators: ["hy_oas", "ig_oas", "hy_ig_ratio", "cmdi", "loan_syn"],
+  },
+  Funding: {
+    headline: "market_stress",
+    what: "Plumbing of the funding markets. Commercial paper, the St. Louis and Chicago financial conditions indices, FRA-OIS, SOFR-OIS, the Fed reverse repo facility, and the Treasury General Account.",
+    indicators: ["cpff", "stlfsi", "anfci", "fra_ois", "sofr_ois", "rrp", "tga"],
+  },
+  PositioningVol: {
+    headline: "market_stress",
+    what: "Investor positioning and volatility regime. VIX, MOVE (rates vol), SKEW, NAAIM exposure survey, S&P percent above its 200-day, and equity-credit correlation.",
+    indicators: ["vix", "move", "skew", "naaim", "spx_200dma", "eq_cr_corr"],
+  },
+  RealEconomy: {
+    headline: "real_economy",
+    what: "The hard-data side of the cycle. ISM manufacturing, ISM services, GDPNow, initial jobless claims, JOLTS quits, the Chicago Fed national activity index three-month average, and the copper / gold ratio.",
+    indicators: ["ism_mfg", "ism_svc", "gdpnow", "jobless", "jolts_quits", "cfnai_3ma", "copper_gold"],
+  },
+};
+
+const INDICATOR_LABELS = {
+  cape: "CAPE (Shiller P/E)",
+  erp: "Equity-risk premium",
+  buffett: "Buffett ratio (mkt cap / GDP)",
+  bkx_spx: "Banks vs S&P (BKX / SPX)",
+  yield_curve: "Yield curve (10y − 2y)",
+  term_premium: "Term premium (10y)",
+  breakeven_10y: "Breakeven inflation (10y)",
+  real_fedfunds: "Real fed funds rate",
+  m2_yoy: "M2 money supply (YoY)",
+  fed_bs: "Fed balance sheet",
+  bank_reserves: "Bank reserves at Fed",
+  bank_credit: "Bank credit total",
+  bank_unreal: "Bank unrealized losses (HTM)",
+  hy_oas: "High-yield OAS spread",
+  ig_oas: "Investment-grade OAS spread",
+  hy_ig_ratio: "HY / IG ratio",
+  cmdi: "Moody's distress index",
+  loan_syn: "Senior loan officer survey",
+  cpff: "Commercial paper funding",
+  stlfsi: "St. Louis financial conditions",
+  anfci: "Chicago financial conditions",
+  fra_ois: "FRA-OIS spread",
+  sofr_ois: "SOFR-OIS spread",
+  rrp: "Fed reverse repo balance",
+  tga: "Treasury General Account",
+  vix: "VIX (equity vol)",
+  move: "MOVE (rates vol)",
+  skew: "SKEW index",
+  naaim: "NAAIM exposure survey",
+  spx_200dma: "S&P % above 200-day",
+  eq_cr_corr: "Equity-credit correlation",
+  ism_mfg: "ISM Manufacturing",
+  ism_svc: "ISM Services",
+  gdpnow: "GDPNow (Atlanta Fed)",
+  jobless: "Initial jobless claims",
+  jolts_quits: "JOLTS quits rate",
+  cfnai_3ma: "Chicago Fed activity (3mo avg)",
+  copper_gold: "Copper / gold ratio",
+};
+
 function CycleMechanismScenarioResultsTable({
   mode, scenarioId, scenarioName, effShocks, indicatorHistory,
   tableCard, tableHead, tableTitle, tableSub,
 }) {
+  const [activeDrill, setActiveDrill] = useState(null);
   const [cycleV2, setCycleV2] = useState(null);
   useEffect(() => {
     fetch("/cycle_v2.json", { cache: "no-cache" })
@@ -1540,9 +1658,16 @@ function CycleMechanismScenarioResultsTable({
       </div>
 
       <div style={{ padding: "14px 18px", display: "flex", gap: 12, flexWrap: "wrap" }}>
-        {Object.entries(stress.headlines).map(([hId, h]) => (
-          <div key={hId} style={headlineCard}>
-            <div style={headlineLabel}>{h.label}</div>
+        {Object.entries(stress.headlines).map(([hId, h]) => {
+          const isActive = activeDrill && activeDrill.type === "headline" && activeDrill.id === hId;
+          return (
+          <div key={hId}
+               onClick={() => setActiveDrill(isActive ? null : { type: "headline", id: hId })}
+               style={{ ...headlineCard, cursor: "pointer", outline: isActive ? "1.5px solid var(--accent, #0e5560)" : "none", outlineOffset: isActive ? -1 : 0 }}>
+            <div style={{ ...headlineLabel, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span>{h.label}</span>
+              <span style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: 0, textTransform: "none" }}>{isActive ? "▾" : "▸"}</span>
+            </div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" }}>
               <div>
                 <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-ui)", marginBottom: 2 }}>today</div>
@@ -1560,7 +1685,8 @@ function CycleMechanismScenarioResultsTable({
               )}
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div style={{ padding: "0 18px 14px", display: "flex", flexWrap: "wrap", gap: 14, alignItems: "baseline" }}>
@@ -1587,9 +1713,15 @@ function CycleMechanismScenarioResultsTable({
           if (!s) return null;
           const curRound = s.current === null ? null : Math.round(s.current);
           const strRound = s.stressed === null ? null : Math.round(s.stressed);
+          const isActive = activeDrill && activeDrill.type === "sub" && activeDrill.id === subId;
           return (
-            <div key={subId} style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.5fr", gap: 6, padding: "6px 0", borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 12, alignItems: "center" }}>
-                <div style={{ color: "var(--ink-0)" }}>{SUB_LABELS[subId] || subId}</div>
+            <div key={subId}
+                 onClick={() => setActiveDrill(isActive ? null : { type: "sub", id: subId })}
+                 style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.5fr", gap: 6, padding: "6px 0", borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 12, alignItems: "center", cursor: "pointer", background: isActive ? "var(--surface-2, rgba(14,85,96,0.05))" : "transparent" }}>
+                <div style={{ color: "var(--ink-0)", display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ color: "var(--text-muted)", fontSize: 10 }}>{isActive ? "▾" : "▸"}</span>
+                  <span>{SUB_LABELS[subId] || subId}</span>
+                </div>
                 <div style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: hasShock ? "var(--text-muted)" : "var(--ink-0)" }}>{curRound ?? "—"}</div>
                 <div style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink-0)" }}>{hasShock ? (strRound ?? "—") : ""}</div>
                 <div style={{ textAlign: "right" }}>{hasShock ? renderDelta(s.current, s.stressed) : null}</div>
@@ -1597,6 +1729,120 @@ function CycleMechanismScenarioResultsTable({
           );
         })}
       </div>
+
+      {/* Drilldown panel — click a headline or sub-composite row above to open. */}
+      {activeDrill && (() => {
+        const indicatorById = Object.fromEntries((cycleV2.indicators || []).map(i => [i.id, i]));
+        if (activeDrill.type === "headline") {
+          const meta = HEADLINE_DRILL[activeDrill.id];
+          const h = stress.headlines[activeDrill.id];
+          if (!meta || !h) return null;
+          return (
+            <div style={{ margin: "0 18px 18px", padding: "16px 18px", background: "var(--surface-2, rgba(14,85,96,0.05))", border: "0.5px solid var(--border)", borderRadius: "var(--r-sm)", position: "relative" }}>
+              <button onClick={() => setActiveDrill(null)}
+                style={{ position: "absolute", top: 8, right: 10, background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 14, padding: 4 }}
+                aria-label="Close drilldown">✕</button>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                {meta.tagline} · headline
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
+                <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 600 }}>{meta.label}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                  Today {h.current ?? "—"}{hasShock ? ` → Stressed ${h.stressed ?? "—"}` : ""}
+                </div>
+              </div>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--ink-0)", lineHeight: 1.5, marginBottom: 12 }}>
+                {meta.explanation}
+              </div>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 12 }}>
+                The question this answers: {meta.question}
+              </div>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                Built from
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                {meta.subs.map(subId => {
+                  const sub = stress.subcomposites[subId];
+                  if (!sub) return null;
+                  return (
+                    <div key={subId}
+                         onClick={() => setActiveDrill({ type: "sub", id: subId })}
+                         style={{ display: "flex", justifyContent: "space-between", padding: "4px 8px", borderRadius: 3, cursor: "pointer", fontFamily: "var(--font-ui)", fontSize: 12, background: "var(--surface, white)" }}>
+                      <span>{SUB_LABELS[subId] || subId} <span style={{ color: "var(--text-muted)", fontSize: 10 }}>(click to dig in →)</span></span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink-0)" }}>
+                        {sub.current === null ? "—" : Math.round(sub.current)}{hasShock ? ` → ${sub.stressed === null ? "—" : Math.round(sub.stressed)}` : ""}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        }
+        if (activeDrill.type === "sub") {
+          const meta = SUB_DRILL[activeDrill.id];
+          const sub = stress.subcomposites[activeDrill.id];
+          if (!meta || !sub) return null;
+          return (
+            <div style={{ margin: "0 18px 18px", padding: "16px 18px", background: "var(--surface-2, rgba(14,85,96,0.05))", border: "0.5px solid var(--border)", borderRadius: "var(--r-sm)", position: "relative" }}>
+              <button onClick={() => setActiveDrill(null)}
+                style={{ position: "absolute", top: 8, right: 10, background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 14, padding: 4 }}
+                aria-label="Close drilldown">✕</button>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 4 }}>
+                Sub-composite · feeds {HEADLINE_DRILL[meta.headline]?.label || meta.headline}
+              </div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 12, marginBottom: 10, flexWrap: "wrap" }}>
+                <div style={{ fontFamily: "var(--font-display, var(--font-ui))", fontSize: 22, fontWeight: 600 }}>{SUB_LABELS[activeDrill.id] || activeDrill.id}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: 14, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+                  Today {sub.current === null ? "—" : Math.round(sub.current)}{hasShock ? ` → Stressed ${sub.stressed === null ? "—" : Math.round(sub.stressed)}` : ""}
+                </div>
+              </div>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, color: "var(--ink-0)", lineHeight: 1.5, marginBottom: 12 }}>
+                {meta.what}
+              </div>
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 6 }}>
+                Indicators feeding this score
+              </div>
+              <div style={{ display: "grid", gridTemplateColumns: "1.4fr 0.5fr 0.7fr 0.7fr 0.5fr", gap: 8, padding: "4px 0", borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.08em" }}>
+                <div>Indicator</div>
+                <div style={{ textAlign: "right" }}>Value</div>
+                <div style={{ textAlign: "right" }}>Today</div>
+                <div style={{ textAlign: "right" }}>{hasShock ? "Stressed" : ""}</div>
+                <div style={{ textAlign: "right" }}>{hasShock ? "Δ" : ""}</div>
+              </div>
+              {meta.indicators.map(indId => {
+                const ind = indicatorById[indId];
+                if (!ind) return null;
+                const curScore = ind.current_score;
+                const strScore = stress.stressedScores ? stress.stressedScores[indId] : null;
+                const fmt = (v) => v === null || v === undefined ? "—" : (typeof v === "number" ? Math.round(v) : v);
+                const fmtVal = (v) => {
+                  if (v === null || v === undefined) return "—";
+                  if (typeof v !== "number") return String(v);
+                  const a = Math.abs(v);
+                  if (a >= 1000) return v.toFixed(0);
+                  if (a >= 100) return v.toFixed(0);
+                  if (a >= 10) return v.toFixed(1);
+                  return v.toFixed(2);
+                };
+                return (
+                  <div key={indId} style={{ display: "grid", gridTemplateColumns: "1.4fr 0.5fr 0.7fr 0.7fr 0.5fr", gap: 8, padding: "4px 0", borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 11, alignItems: "center" }}>
+                    <div style={{ color: "var(--ink-0)" }}>{INDICATOR_LABELS[indId] || indId}</div>
+                    <div style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--text-muted)" }}>{fmtVal(ind.current_value)}</div>
+                    <div style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: hasShock ? "var(--text-muted)" : "var(--ink-0)" }}>{fmt(curScore)}</div>
+                    <div style={{ textAlign: "right", fontFamily: "var(--font-mono)", fontVariantNumeric: "tabular-nums", color: "var(--ink-0)" }}>{hasShock ? fmt(strScore) : ""}</div>
+                    <div style={{ textAlign: "right" }}>{hasShock ? renderDelta(curScore, strScore) : null}</div>
+                  </div>
+                );
+              })}
+              <div style={{ fontFamily: "var(--font-ui)", fontSize: 10, color: "var(--text-muted)", marginTop: 8, lineHeight: 1.5 }}>
+                Each indicator scores 0–100 (0 = lowest-risk / strongest, 100 = highest-risk / most cautionary). The sub-composite is the simple average of its indicators.
+              </div>
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       <div style={{ padding: "8px 18px 14px", fontFamily: "var(--font-ui)", fontSize: 10, color: "var(--text-muted)", lineHeight: 1.4 }}>
         Higher score = more cautionary. {cycleV2.as_of ? "Refreshed " + cycleV2.as_of + "." : ""}
