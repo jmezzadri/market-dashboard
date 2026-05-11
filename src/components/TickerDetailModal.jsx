@@ -867,8 +867,8 @@ function ActionRow({
   ticker, heldIn, portfolioAuthed, onUserWatchlist, removeFromWatchlist, wlBusy,
   onOpenAddPosition, onOpenEditPosition, onClosePosition, onClose,
 }) {
-  const heldRow = heldIn?.[0]?.p || null;
   const owns = heldIn && heldIn.length > 0;
+  const multiHeld = owns && heldIn.length > 1;
 
   const btnBase = {
     display: "inline-flex",
@@ -898,40 +898,130 @@ function ActionRow({
     color: "var(--red-text, var(--red))",
     border: "1px solid rgba(200,48,42,0.35)",
   };
+  const btnSmall = {
+    ...btnBase,
+    padding: "5px 10px",
+    fontSize: 10,
+    letterSpacing: "0.04em",
+  };
+
+  // #1181/#1183: human-readable per-row label so Joe can tell the stock
+  // position from the option position on the same ticker.
+  const describeRow = (p) => {
+    if (!p) return "";
+    const cls = (p.asset_class || p.assetClass || "stock").toUpperCase();
+    if (cls === "OPTION") {
+      const dir  = (p.direction || "").toUpperCase();
+      const typ  = (p.contract_type || p.contractType || "").toUpperCase();
+      const k    = p.strike != null ? `$${p.strike}` : "?";
+      const exp  = p.expiration || "?";
+      const qty  = Math.abs(Number(p.quantity || 0));
+      return `${dir || "?"} ${qty} ${typ || "?"} ${k} ${exp}`;
+    }
+    const qty = Math.abs(Number(p.quantity || 0));
+    return `${cls} · ${qty}${cls === "CASH" ? "" : (cls === "BOND" ? " bonds" : (cls === "CRYPTO" ? " units" : " shares"))}`;
+  };
+
+  // #1181: Sell entry — opens CloseModal with qty pre-filled to 0 so the
+  // user must explicitly type the amount sold (vs. defaulting to full close).
+  const handleSell = (raw) => {
+    if (!raw) return;
+    // Clone with explicit sellMode flag so CloseModal can render the "0" qty
+    // default. The downstream Close handler already supports partial close.
+    onClosePosition?.({ ...raw, __sellMode: true });
+  };
 
   return (
     <div style={{
       marginTop: "var(--space-4)",
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 10,
       paddingTop: "var(--space-4)",
       borderTop: "1px solid var(--border-faint)",
     }}>
-      {portfolioAuthed && owns && (<>
-        <button type="button" onClick={()=>onOpenEditPosition?.(heldRow)} style={btnPrimary}>
-          Edit position
-        </button>
-        <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnBase}>
-          + Buy / Add
-        </button>
-        <button type="button" onClick={()=>onClosePosition?.(heldRow)} style={btnDanger}>
-          Close position
-        </button>
-      </>)}
-      {portfolioAuthed && !owns && (
-        <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnPrimary}>
-          + Buy / Add
-        </button>
+      {/* #1183: multi-position list — one row per held position with its own
+          Edit / Sell / Close buttons. Single-position case falls through to
+          the legacy single button row below. */}
+      {portfolioAuthed && multiHeld && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+          <div style={{
+            fontSize: 10, color: "var(--text-muted)",
+            fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
+            marginBottom: 2,
+          }}>
+            HELD POSITIONS ({heldIn.length})
+          </div>
+          {heldIn.map((h, i) => {
+            const p = h?.p;
+            if (!p) return null;
+            return (
+              <div key={p.id || i} style={{
+                display: "flex", flexWrap: "wrap", alignItems: "center", gap: 6,
+                padding: "6px 8px",
+                background: "var(--surface-2, rgba(0,0,0,0.03))",
+                border: "1px solid var(--border-faint)",
+                borderRadius: "var(--radius-xs, 6px)",
+              }}>
+                <div style={{
+                  flex: "1 1 200px", fontSize: 11, fontFamily: "var(--font-mono)",
+                  color: "var(--text)",
+                }}>
+                  {describeRow(p)}
+                </div>
+                <button type="button" style={btnSmall} onClick={() => onOpenEditPosition?.(p)}>
+                  Edit
+                </button>
+                <button type="button" style={btnSmall} onClick={() => handleSell(p)}>
+                  Sell
+                </button>
+                <button type="button" style={{...btnSmall, color:"var(--red-text, var(--red))", borderColor:"rgba(200,48,42,0.35)"}} onClick={() => onClosePosition?.(p)}>
+                  Close
+                </button>
+              </div>
+            );
+          })}
+        </div>
       )}
-      {portfolioAuthed && onUserWatchlist && (
-        <button type="button" onClick={removeFromWatchlist} disabled={wlBusy} style={{...btnBase, color:"var(--text-muted)"}}>
-          {wlBusy ? "…" : "− Remove from watchlist"}
+
+      <div style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: 10,
+      }}>
+        {/* Single-position case: classic Edit / Buy / Sell / Close action row. */}
+        {portfolioAuthed && owns && !multiHeld && (<>
+          <button type="button" onClick={()=>onOpenEditPosition?.(heldIn[0].p)} style={btnPrimary}>
+            Edit position
+          </button>
+          <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnBase}>
+            + Buy / Add
+          </button>
+          <button type="button" onClick={()=>handleSell(heldIn[0].p)} style={btnBase}>
+            Sell some
+          </button>
+          <button type="button" onClick={()=>onClosePosition?.(heldIn[0].p)} style={btnDanger}>
+            Close position
+          </button>
+        </>)}
+        {/* Multi-position case: the per-row list above already covers Edit/Sell/Close.
+            Keep Buy/Add available as a global ticker-level action. */}
+        {portfolioAuthed && multiHeld && (
+          <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnBase}>
+            + Buy / Add (new position)
+          </button>
+        )}
+        {portfolioAuthed && !owns && (
+          <button type="button" onClick={()=>onOpenAddPosition?.(ticker)} style={btnPrimary}>
+            + Buy / Add
+          </button>
+        )}
+        {portfolioAuthed && onUserWatchlist && (
+          <button type="button" onClick={removeFromWatchlist} disabled={wlBusy} style={{...btnBase, color:"var(--text-muted)"}}>
+            {wlBusy ? "…" : "− Remove from watchlist"}
+          </button>
+        )}
+        <button type="button" onClick={onClose} style={{...btnBase, marginLeft:"auto", color:"var(--text-muted)"}}>
+          Close
         </button>
-      )}
-      <button type="button" onClick={onClose} style={{...btnBase, marginLeft:"auto", color:"var(--text-muted)"}}>
-        Close
-      </button>
+      </div>
     </div>
   );
 }

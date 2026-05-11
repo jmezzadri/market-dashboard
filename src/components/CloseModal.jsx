@@ -104,8 +104,13 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
 
   // Form state — defaults are the most likely close ("sell whole position
   // at today's mark") so a single Confirm click ships the typical case.
+  //
+  // #1181: when caller sets __sellMode (via the Sell button on TickerDetail),
+  // start qty empty so the user types the partial amount instead of seeing
+  // a full-close default that has to be edited down.
+  const sellMode = !!position.__sellMode;
   const [closingPrice,   setClosingPrice]   = useState(livePrice);
-  const [closeQty,       setCloseQty]       = useState(fullQty);
+  const [closeQty,       setCloseQty]       = useState(sellMode ? "" : fullQty);
   const [executedAt,     setExecutedAt]     = useState(todayISO());
   const [cashAccountId,  setCashAccountId]  = useState(position.accountId || "");
   const [fees,           setFees]           = useState(0);
@@ -180,10 +185,13 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
     <div style={backdrop} onClick={onCancel}>
       <div style={modal} onClick={(e) => e.stopPropagation()}>
         {/* ── header ────────────────────────────────────────────────── */}
+        {/* #1181: dynamic title — partial = "SELL ...", full = "CLOSE POSITION". */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14 }}>
           <div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.08em" }}>
-              CLOSE POSITION
+              {closeQtyN > 0 && closeQtyN < fullQty
+                ? (isOption ? "SELL CONTRACTS" : "SELL SHARES")
+                : "CLOSE POSITION"}
             </div>
             <h3 style={{ fontSize: 17, fontWeight: 700, color: "var(--text)", margin: "2px 0 0" }}>
               {ticker} {acctLabel ? `· ${acctLabel}` : ""}
@@ -340,7 +348,11 @@ export default function CloseModal({ position, accounts, onCancel, onClosed }) {
             Cancel
           </button>
           <button type="button" style={primaryBtn} disabled={submitting} onClick={handleSubmit}>
-            {submitting ? "Closing…" : "Close Position"}
+            {submitting
+              ? "Working…"
+              : (closeQtyN > 0 && closeQtyN < fullQty
+                  ? `Sell ${closeQtyN} ${isOption ? (closeQtyN === 1 ? "contract" : "contracts") : (closeQtyN === 1 ? "share" : "shares")}`
+                  : "Close Position")}
           </button>
         </div>
       </div>

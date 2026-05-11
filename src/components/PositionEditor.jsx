@@ -296,6 +296,13 @@ export default function PositionEditor({
   const [markPSStr,    setMarkPSStr]    = useState(inputVal(_initMarkPerShare));
   const [markPS,       setMarkPS]       = useState(_initMarkPerShare);
 
+  // #1182 issue 1: explicit fees input (Chase charges $0.65/contract on
+  // options — that money was being silently dropped because the editor
+  // hardcoded p_fees=0 on the add_position RPC call). Universal field
+  // across classes; default 0.
+  const [feesStr, setFeesStr] = useState("");
+  const fees = parseNum(feesStr) || 0;
+
   // ── submit state ──────────────────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false);
   const [err, setErr] = useState("");
@@ -492,8 +499,15 @@ export default function PositionEditor({
         const signedQty = isOption
           ? (direction === "short" ? -contracts : contracts)
           : shares;
+        // #1182 issue 2: if user left CURRENT MARK blank, fall back to
+        // ENTRY PREMIUM for options (or AVG COST for stock/bond/crypto)
+        // — entry premium IS today's mark at the moment of trade entry.
+        const effectiveMarkPS = (markPS == null || !Number.isFinite(markPS) || markPS === 0)
+          ? entryPrem : markPS;
+        const effectivePrice  = (price == null || !Number.isFinite(price) || price === 0)
+          ? avgCost   : price;
         const avgPerCt   = isOption ? entryPrem * multiplier : avgCost;
-        const pricePerCt = isOption ? markPS    * multiplier : price;
+        const pricePerCt = isOption ? effectiveMarkPS * multiplier : effectivePrice;
         const multX      = isOption ? multiplier : 1;
         const { data, error } = await supabase.rpc("add_position", {
           p_account_id:          account_id,
@@ -505,7 +519,8 @@ export default function PositionEditor({
           p_executed_at:         new Date(`${purchaseDate || new Date().toISOString().slice(0,10)}T16:00:00`).toISOString(),
           p_pay_from_cash:       true,
           p_cash_account_id:     cashAccountId || account_id,
-          p_fees:                0,
+          // #1182 issue 1: pass through user-entered fees (was hardcoded 0).
+          p_fees:                fees,
           p_contract_type:       isOption ? contractType : null,
           p_direction:           isOption ? direction    : null,
           p_strike:              isOption ? strike       : null,
@@ -514,7 +529,7 @@ export default function PositionEditor({
           p_sector:              sector || null,
           p_name:                tickerClean,
           p_purchase_date:       purchaseDate || null,
-          p_manual_price:        isOption ? markPS : (manualMarkStock ? price : null),
+          p_manual_price:        isOption ? effectiveMarkPS : (manualMarkStock ? effectivePrice : null),
           p_merge_into_existing: true,
           p_notes:               null,
         });
@@ -743,33 +758,61 @@ export default function PositionEditor({
           </button>
         </div>
 
-        {/* Asset class picker */}
+        {/* Asset class picker
+            #1184: in EDIT mode the buttons are disabled — you cannot change
+            the asset class of a row that already exists (different schemas
+            for stock vs option vs bond vs crypto vs cash). Switching here
+            silently corrupted the form by re-using stock cost/share as
+            option premium / multiplier. Only ADD mode shows the picker as
+            interactive. */}
         <div style={{ marginBottom: 12 }}>
           <label style={label}>ASSET CLASS</label>
           <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
             {CLASSES.map((c) => {
               const active = assetClass === c.id;
+              const locked = isEdit;
               return (
                 <button
                   key={c.id}
                   type="button"
+                  disabled={locked && !active}
                   onClick={() => {
+                    if (locked) return; // #1184 — class locked in edit mode
+                    // #1184: reset class-specific state so stock $25.45 doesn't
+                    // bleed into option premium $0.25 (divide-by-multiplier bug).
                     setAssetClass(c.id);
+                    if (c.id !== "stock") {
+                      // clear stock-derived strings so they don't render junk
+                      setShares(null);   setSharesStr("");
+                      setAvgCost(null);  setAvgCostStr("");
+                      setPrice(null);    setMarkPerShareStr("");
+                      setTotalCostStr(""); setCurrentValueStr("");
+                    }
+                    if (c.id !== "option") {
+                      // clear option-block state
+                      setContracts(null); setContractsStr("");
+                      setEntryPrem(null); setEntryPremStr("");
+                      setMarkPS(null);    setMarkPSStr("");
+                      setStrike(null);    setStrikeStr("");
+                      setExpiration("");
+                    }
                     // CASH shortcut: auto-set the ticker so the cash branch
                     // picks it up even if the user hadn't typed anything.
                     if (c.id === "cash") setTicker("CASH");
                     if (c.id !== "cash" && tickerClean === "CASH") setTicker("");
                   }}
+                  title={locked && !active ? "Asset class is fixed for an existing position — delete and re-add to change type" : undefined}
                   style={{
                     padding: "6px 12px",
                     fontSize: 12,
                     fontFamily: "var(--font-mono)",
                     fontWeight: active ? 700 : 500,
-                    color: active ? "#fff" : "var(--text-muted)",
+                    color: active ? "#fff" : (locked ? "var(--text-muted)" : "var(--text-muted)"),
                     background: active ? "var(--accent)" : "transparent",
                     border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
                     borderRadius: "var(--radius-sm, 6px)",
-                    cursor: "pointer",
+                    cursor: (locked && !active) ? "not-allowed" : "pointer",
+                    opacity: (locked && !active) ? 0.4 : 1,
                   }}
                 >
                   {c.label}
@@ -777,6 +820,11 @@ export default function PositionEditor({
               );
             })}
           </div>
+          {isEdit && (
+            <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 6 }}>
+              Asset class is fixed for an existing position. To change type, delete this entry and add it back.
+            </div>
+          )}
         </div>
 
         {/* ── Phase 4 buy-side cash debit (#1099 fold-in) ───────────────────
@@ -826,8 +874,14 @@ export default function PositionEditor({
                     const isOption = assetClass === "option";
                     const qtyAbs = isOption ? Math.abs(contracts || 0) : Math.abs(shares || 0);
                     const perCt  = isOption ? (entryPrem || 0) * (multiplier || 100) : (avgCost || 0);
-                    const cost   = qtyAbs * perCt;
+                    const grossCost = qtyAbs * perCt;
+                    // #1182 issue 1: fees affect cash impact — long buy adds
+                    // fees to the debit, short open subtracts fees from the
+                    // credit. Mirror the RPC math.
                     const isShort = isOption && direction === "short";
+                    // For longs: cash debit = grossCost + fees (more out).
+                    // For shorts: cash credit = grossCost - fees (less in).
+                    const netCash = isShort ? (grossCost - fees) : (grossCost + fees);
                     const sign = isShort ? "+" : "−";
                     const col  = isShort ? "var(--green)" : "var(--red)";
                     const acct = (cashByAcct || []).find(c => c.id === (cashAccountId || ""));
@@ -840,19 +894,46 @@ export default function PositionEditor({
                         fontFamily: "var(--font-mono)", color: "var(--text)",
                       }}>
                         <div style={{ fontWeight: 700, color: col }}>
-                          {sign}${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          {sign}${netCash.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                         </div>
+                        {fees > 0 && (
+                          <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                            gross ${grossCost.toLocaleString(undefined, {maximumFractionDigits: 2})} − fees ${fees.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                          </div>
+                        )}
                         {curCash != null && (
                           <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
                             cash {curCash >= 0 ? "$" : "−$"}{Math.abs(curCash).toLocaleString(undefined, {maximumFractionDigits: 0})}
                             {" → "}
-                            {(curCash + (isShort ? cost : -cost)) >= 0 ? "$" : "−$"}{Math.abs(curCash + (isShort ? cost : -cost)).toLocaleString(undefined, {maximumFractionDigits: 0})}
+                            {(curCash + (isShort ? netCash : -netCash)) >= 0 ? "$" : "−$"}{Math.abs(curCash + (isShort ? netCash : -netCash)).toLocaleString(undefined, {maximumFractionDigits: 0})}
                           </div>
                         )}
                       </div>
                     );
                   })()}
                 </div>
+              </div>
+            )}
+            {/* #1182 issue 1: FEES input inside the pay-from-cash block.
+                Universal across asset classes. RPC accepts p_fees with
+                default 0; we now actually pass it through. */}
+            {payFromCash && (
+              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={label}>FEES / COMMISSIONS (OPTIONAL)</label>
+                  <input
+                    type="number" step="0.01" style={input}
+                    value={feesStr}
+                    onChange={(e) => setFeesStr(e.target.value)}
+                    placeholder={assetClass === "option" ? "e.g. 6.50 for 10 × $0.65/ct" : "e.g. 0.00"}
+                  />
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
+                    {assetClass === "option"
+                      ? "Chase ≈ $0.65 / contract; Fidelity / Schwab similar."
+                      : "Most brokers charge $0 on US stock; leave blank if so."}
+                  </div>
+                </div>
+                <div />
               </div>
             )}
           </div>
@@ -880,24 +961,54 @@ export default function PositionEditor({
           </div>
         )}
 
-        {/* Account + Ticker row */}
+        {/* Account + Ticker row
+            #1182 issue 3: was a free-text input duplicated against the CASH
+            ACCOUNT dropdown above. Collapsed to a single dropdown of existing
+            accounts + an explicit "+ New account…" choice that reveals an
+            inline text field — so the common case (pick an existing account)
+            is a one-click action with no typing. */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 12 }}>
           <div>
             <label style={label}>ACCOUNT</label>
-            <input
-              style={input}
-              value={accountLabel}
-              onChange={(e) => setAccountLabel(e.target.value)}
-              list="position-editor-account-suggestions"
-              placeholder="Brokerage, Roth IRA, 401(k)…"
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <datalist id="position-editor-account-suggestions">
-              {(accounts || []).map((a) => (
-                <option key={a.id} value={a.label} />
-              ))}
-            </datalist>
+            {(() => {
+              const existingLabels = (accounts || []).map(a => (a.label || "").trim()).filter(Boolean);
+              const accountIsNew = accountLabel && !existingLabels.some(l => l.toLowerCase() === accountLabel.trim().toLowerCase());
+              const selectVal = accountIsNew ? "__new__" : accountLabel;
+              return (
+                <>
+                  <select
+                    style={input}
+                    value={selectVal}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "__new__") {
+                        setAccountLabel("");   // user will type
+                      } else {
+                        setAccountLabel(v);
+                        // Auto-sync cash-debit target to position account by default.
+                        const a = (accounts || []).find(a => (a.label || "").trim() === v.trim());
+                        if (a) setCashAccountId(a.id);
+                      }
+                    }}
+                  >
+                    <option value="" disabled>Select account…</option>
+                    {(accounts || []).map((a) => (
+                      <option key={a.id} value={a.label}>{a.label}</option>
+                    ))}
+                    <option value="__new__">+ New account…</option>
+                  </select>
+                  {(accountIsNew || selectVal === "__new__") && (
+                    <input
+                      style={{ ...input, marginTop: 6 }}
+                      value={accountLabel}
+                      onChange={(e) => setAccountLabel(e.target.value)}
+                      placeholder="New account label (e.g. Roth IRA)"
+                      autoFocus
+                    />
+                  )}
+                </>
+              );
+            })()}
           </div>
           <div>
             <label style={label}>
@@ -1208,19 +1319,22 @@ export default function PositionEditor({
                 />
               </div>
               <div>
-                <label style={label}>CURRENT MARK / SHARE (MANUAL)</label>
+                <label style={label}>CURRENT MARK / SHARE (OPTIONAL)</label>
                 <input
                   style={input}
                   value={markPSStr}
                   onChange={(e) => { setMarkPSStr(e.target.value); setMarkPS(parseNum(e.target.value)); }}
                   inputMode="decimal"
-                  placeholder="3.25"
+                  placeholder="leave blank to use entry premium"
                 />
               </div>
             </div>
             <div style={{ fontSize: 10, color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: 4 }}>
-              No live options feed in V1 — type today's mark manually.
-              Short positions flip to a negative position value automatically.
+              {/* #1182 issue 2: at trade entry, current mark = entry premium.
+                  Leaving CURRENT MARK blank defaults it to ENTRY PREMIUM on save —
+                  no more typing both fields with the same number.
+                  Live options pricing feed is queued (bug #1185). */}
+              No live options feed yet (bug #1185 queued). At trade entry, leave CURRENT MARK blank — it defaults to ENTRY PREMIUM. Short positions flip to a negative position value automatically.
             </div>
           </div>
         )}
