@@ -679,7 +679,7 @@ const STYLES = `
 // ════════════════════════════════════════════════════════════════════════
 
 export default function ScenarioAnalysis({ onOpenTicker }) {
-  const [mode, setMode] = useState("canned");
+  const [mode, setMode] = useState("bespoke");
   // Wire-through to the same modals Asset Tilt uses, so a sector click here
   // opens the same rich modal there. v10_allocation.json carries the data.
   const [v10, setV10] = useState(null);
@@ -771,7 +771,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   };
   const [scenario, setScenario] = useState(null);
   const [horizon, setHorizon] = useState("3mo");
-  const [prop, setProp] = useState("realistic");
+  const [prop, setProp] = useState("bespoke");
   const [driver, setDriver] = useState(null);
   const [shocks, setShocks] = useState(() => Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
   const [expandedSector, setExpandedSector] = useState(null);
@@ -804,7 +804,15 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
   const stateObj = { mode, scenario, horizon, prop, driver, shocks };
   const effShocks = useMemo(() => getEffectiveShocks(stateObj), [mode, scenario, prop, driver, shocks]);
-  const hasShock = Object.values(effShocks).some(v => Math.abs(v) > 0.05);
+  // hasShock is delta-from-today, not absolute. Sliders default to today's
+  // live z-readings; that's a 'looking at the world' state, not a shock.
+  // A shock is only when the user has nudged a factor away from today (or
+  // a canned scenario is loaded).
+  const todayReadingsForShock = useMemo(
+    () => indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])),
+    [indicatorHistory]
+  );
+  const hasShock = (mode === "canned" && scenario) || Object.entries(effShocks).some(([f, v]) => Math.abs((v || 0) - (todayReadingsForShock[f] || 0)) > 0.05);
   const sectorPcts = useMemo(() => sectorShocks(effShocks, horizon), [effShocks, horizon]);
 
   // Phase 2G — per-IG stress %. Same dot-product math as sectorShocks(), but
@@ -861,13 +869,27 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // Scenario click
   const onScenarioClick = useCallback(id => setScenario(s => s === id ? null : id), []);
 
-  // Slider change. Realistic mode tags the dragged factor as the
-  // driver (propagation source). Custom mode: each slider is independent,
-  // the value lands in state.shocks and nothing else is affected.
+  // Slider change.
+  //  - canned: any drag exits the canned scenario and seeds bespoke with
+  //    the scenario's factor vector (so the drag edits that vector
+  //    instead of starting from zero).
+  //  - realistic: dragged factor becomes the propagation driver.
+  //  - custom: each slider independent; new value lands in state.shocks.
   const onSliderChange = useCallback((fid, v) => {
+    if (mode === "canned") {
+      const startingShocks = scenario && SCENARIOS[scenario]
+        ? { ...SCENARIOS[scenario].factors }
+        : (indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
+      setShocks({ ...startingShocks, [fid]: v });
+      setMode("bespoke");
+      setProp("bespoke");
+      setScenario(null);
+      setDriver(null);
+      return;
+    }
     setShocks(prev => ({ ...prev, [fid]: v }));
     if (prop === "realistic") setDriver(fid);
-  }, [prop]);
+  }, [mode, prop, scenario, indicatorHistory]);
 
   // Prop toggle (Realistic ↔ Custom).
   // Realistic → all sliders reset to 0; first drag becomes the driver.
@@ -1001,7 +1023,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
         {/* If user picked Custom, render the existing builder above the tables.
             Builder UI preserved verbatim from prior implementation — calibrated factor sliders. */}
-        {mode === "bespoke" && (
+        {/* Bespoke shock builder — always visible. Dragging any slider in canned mode auto-flips to bespoke. */}
+        {(
           <div className="builder" style={{ marginBottom:20 }}>
             <div className="builder-row" style={{marginBottom:"var(--s-2)"}}>
               <div className="builder-label">Propagation</div>
@@ -1142,7 +1165,6 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     </>
   );
 }
-
 
 // ────────────────────────────────────────────────────────────────────────
 // CycleMechanismScenarioResultsTable — v2 stress (rebuilt 2026-05-10).
@@ -1325,6 +1347,12 @@ function CycleMechanismScenarioResultsTable({
     return computeV2Stress(effShocks || {}, cycleV2, indicatorHistory);
   }, [cycleV2, indicatorHistory, effShocks]);
 
+  const tileTodayReadings = useMemo(
+    () => indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])),
+    [indicatorHistory]
+  );
+  const hasShock = (mode === "canned" && scenarioName) || (effShocks && Object.entries(effShocks).some(([f, v]) => Math.abs((v || 0) - (tileTodayReadings[f] || 0)) > 0.05));
+
   if (!cycleV2) {
     return (
       <div style={tableCard}>
@@ -1346,7 +1374,6 @@ function CycleMechanismScenarioResultsTable({
     );
   }
 
-  const hasShock = effShocks && Object.values(effShocks).some(v => Math.abs(v) > 0.05);
 
   const subtitle = mode === "canned"
     ? (scenarioName
@@ -1450,7 +1477,6 @@ function CycleMechanismScenarioResultsTable({
     </div>
   );
 }
-
 
 // ════════════════════════════════════════════════════════════════════════
 // SUB-COMPONENTS
@@ -1953,7 +1979,6 @@ function L4PanelReal({ scenario, baseline, asOf }) {
     </div>
   );
 }
-
 
 // ════════════════════════════════════════════════════════════════════════
 // Phase 1 sub-components (Joe mockup 2026-05-08 v2)
