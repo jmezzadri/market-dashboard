@@ -679,7 +679,7 @@ const STYLES = `
 // ════════════════════════════════════════════════════════════════════════
 
 export default function ScenarioAnalysis({ onOpenTicker }) {
-  const [mode, setMode] = useState("bespoke");
+  const [mode, setMode] = useState("canned");
   // Wire-through to the same modals Asset Tilt uses, so a sector click here
   // opens the same rich modal there. v10_allocation.json carries the data.
   const [v10, setV10] = useState(null);
@@ -771,7 +771,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   };
   const [scenario, setScenario] = useState(null);
   const [horizon, setHorizon] = useState("3mo");
-  const [prop, setProp] = useState("bespoke");
+  const [prop, setProp] = useState("realistic");
   const [driver, setDriver] = useState(null);
   const [shocks, setShocks] = useState(() => Object.fromEntries(FACTOR_IDS.map(f => [f, 0])));
   const [expandedSector, setExpandedSector] = useState(null);
@@ -791,7 +791,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // values). This makes "click Custom Multi-Factor Shock" land you at
   // reality instead of zeros.
   const [readingsSeeded, setReadingsSeeded] = useState(false);
-  const [builderCollapsed, setBuilderCollapsed] = useState(false);
+  const [builderCollapsed, setBuilderCollapsed] = useState(true);
   const currentReadingsZ = useMemo(() => indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])), [indicatorHistory]);
   useEffect(() => {
     if (readingsSeeded) return;
