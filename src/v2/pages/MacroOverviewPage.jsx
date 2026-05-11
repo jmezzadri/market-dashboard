@@ -460,6 +460,161 @@ function MechanismOverview({ mech, onPickIndicator }) {
   );
 }
 
+
+// ─── <Dial> — semicircle gauge ported from MacroTilt_Macro_Overview_Page_v11.html ──
+// 4 wedges (teal gradient, Risk-on → Risk-off) + pointer line + dot. Single
+// source of visual truth across the composite hero dial and every card.
+// score: 0..100 (or null). isLive: false renders a grey placeholder wedge set.
+function Dial({ score, isLive = true, size = 'card' }) {
+  const W = size === 'hero' ? 380 : 220;
+  const H = size === 'hero' ? 230 : 140;
+  const cx = W / 2;
+  const cy = H - (size === 'hero' ? 50 : 12);
+  const R_outer = size === 'hero' ? 140 : 92;
+  const R_inner = size === 'hero' ? 90 : 64;
+  const FILLS = [
+    'rgba(14,85,96,0.18)',
+    'rgba(14,85,96,0.42)',
+    'rgba(14,85,96,0.68)',
+    'rgba(14,85,96,0.92)',
+  ];
+  const wedges = [
+    { from: 0,   to: 25  },
+    { from: 25,  to: 50  },
+    { from: 50,  to: 75  },
+    { from: 75,  to: 100 },
+  ];
+  const scoreToDeg = (s) => 180 - Math.max(0, Math.min(100, s)) * 1.8;
+  const polar = (r, deg) => {
+    const rad = (deg * Math.PI) / 180;
+    return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
+  };
+  const paths = wedges.map((w, i) => {
+    const a0 = scoreToDeg(w.from), a1 = scoreToDeg(w.to);
+    const [x0o, y0o] = polar(R_outer, a0);
+    const [x1o, y1o] = polar(R_outer, a1);
+    const [x1i, y1i] = polar(R_inner, a1);
+    const [x0i, y0i] = polar(R_inner, a0);
+    const d = `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${R_outer} ${R_outer} 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${R_inner} ${R_inner} 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
+    return <path key={i} d={d} fill={FILLS[i]} fillOpacity={isLive ? 1 : 0.35} />;
+  });
+  let pointer = null;
+  if (isLive && score != null && Number.isFinite(score)) {
+    const a = scoreToDeg(score);
+    const [px, py] = polar(R_outer + 6, a);
+    pointer = (
+      <g>
+        <line x1={cx} y1={cy} x2={px.toFixed(2)} y2={py.toFixed(2)} stroke="var(--ink-0)" strokeWidth="2.4" strokeLinecap="round" />
+        <circle cx={px.toFixed(2)} cy={py.toFixed(2)} r="3.8" fill="var(--ink-0)" stroke="var(--bg-0, #fff)" strokeWidth="1.6" />
+        <circle cx={cx} cy={cy} r="4" fill="var(--ink-0)" />
+      </g>
+    );
+  }
+  const labelY = H - 8;
+  // Labels only on the hero dial (room for 4 spread-out strings).
+  // Card dials are too narrow at 220px to fit RISK-ON / NEUTRAL /
+  // CAUTION / RISK-OFF without collision, so we omit them and rely on
+  // the card's band-coloured pointer + score readout.
+  const labelStyle = { fontFamily: 'Inter, sans-serif', fontSize: 9, fill: 'var(--ink-2)', letterSpacing: '0.14em', fontWeight: 600 };
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', width: '100%', height: 'auto' }}>
+      {paths}
+      {pointer}
+      {size === 'hero' && (
+        <>
+          <text x={cx - R_outer + 8} y={labelY} textAnchor="start" {...labelStyle}>RISK-ON</text>
+          <text x={cx - R_outer * 0.35} y={labelY} textAnchor="middle" {...labelStyle}>NEUTRAL</text>
+          <text x={cx + R_outer * 0.35} y={labelY} textAnchor="middle" {...labelStyle}>CAUTION</text>
+          <text x={cx + R_outer - 8} y={labelY} textAnchor="end" {...labelStyle}>RISK-OFF</text>
+        </>
+      )}
+    </svg>
+  );
+}
+
+// ─── Sub-composite metadata: prose captions by band + source/cadence ─────
+// Captions hand-written to mirror the legacy Macro Overview's voice. The
+// matching caption for the current band displays on the card.
+const SUB_META = {
+  Equities: {
+    num: '01', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
+    captions: {
+      'r-on':  'Valuations broadly cheap relative to long-run history — equity risk premium expanded, drawdown setup attractive.',
+      'r-neu': 'Valuations sitting around the middle of their long-run distribution. Neither rich nor cheap.',
+      'r-cau': 'Valuations elevated — CAPE, ERP, and Buffett are skewed into the upper half of long-run history. Risk-reward less favorable.',
+      'r-off': 'At cycle peak — CAPE, ERP, and Buffett ratio all sit in the top quartile of long-run history. Caution advised.',
+    },
+    cadence: 'Monthly · CAPE/ERP refresh; Buffett quarterly',
+  },
+  Rates: {
+    num: '02', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
+    captions: {
+      'r-on':  'Curve steep and term premium positive — early-cycle rates posture, supportive setup.',
+      'r-neu': 'Rates structure mid-cycle — neither inverted enough to flag risk-off nor steep enough to flag risk-on.',
+      'r-cau': 'Rates structure flashing late-cycle signals — flat curve, elevated term premium, real yields restrictive.',
+      'r-off': 'Late-cycle rates regime — inverted curve, high real rates, term premium working against risk assets.',
+    },
+    cadence: 'Daily · FRED · Kim–Wright Fed',
+  },
+  MoneyBanking: {
+    num: '03', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
+    captions: {
+      'r-on':  'Money supply expanding, bank reserves ample, credit growth healthy — reflationary setup.',
+      'r-neu': 'Bank-system liquidity sitting around average. Neither stretched nor flooding.',
+      'r-cau': 'Money supply growth and bank credit are in restrictive territory — late-cycle tightening signature.',
+      'r-off': 'Bank-system liquidity drained — reserves low, M2 contracting, unrealized losses elevated. Pre-stress regime.',
+    },
+    cadence: 'Weekly · FRED · Fed H.4.1',
+  },
+  Credit: {
+    num: '04', headline: 'market_stress', headlineLabel: 'Market Stress',
+    captions: {
+      'r-on':  'Spreads pricing complacency — investment-grade and high-yield spreads have not been tighter since before 2008. Late-cycle signature.',
+      'r-neu': 'Credit spreads sitting around long-run averages. Neither pricing panic nor euphoria.',
+      'r-cau': 'Spreads widening from prior tights — credit markets stepping back from peak risk appetite.',
+      'r-off': 'Credit spreads in panic territory — high-yield OAS and IG/HY ratio both flashing dislocation.',
+    },
+    cadence: 'Daily · ICE BofA via FRED',
+  },
+  Funding: {
+    num: '05', headline: 'market_stress', headlineLabel: 'Market Stress',
+    captions: {
+      'r-on':  'Bank-system funding spreads sit in the lower half of post-2018 history. No active funding stress.',
+      'r-neu': 'Funding spreads mid-range — TGA balance and reverse-repo neither flooding nor draining.',
+      'r-cau': 'Funding indicators tightening — TGA build, RRP fading, CP spread widening. Liquidity at the margin getting expensive.',
+      'r-off': 'Funding stress active — STLFSI and ANFCI in elevated territory, CP risk premium spiking. Money markets dislocated.',
+    },
+    cadence: 'Daily · NY Fed · DTCC · FRED',
+  },
+  PositioningVol: {
+    num: '06', headline: 'market_stress', headlineLabel: 'Market Stress',
+    captions: {
+      'r-on':  'Vol low, breadth strong, equity-credit correlation in trend mode. Positioning posture supportive.',
+      'r-neu': 'Vol and positioning indicators sitting around long-run averages.',
+      'r-cau': 'Vol creeping higher, breadth narrowing — positioning at the margin getting defensive.',
+      'r-off': 'Vol elevated and breadth thin — VIX, MOVE, and SKEW all flagging stress. Positioning crowded one-way.',
+    },
+    cadence: 'Daily · CBOE · NAAIM',
+  },
+  RealEconomy: {
+    num: '07', headline: 'real_economy', headlineLabel: 'Real Economy',
+    captions: {
+      'r-on':  'Real economy expanding — ISM in expansion, GDPNow positive, jobless claims low. Backdrop confirms risk-on.',
+      'r-neu': 'Real economy reading mid-range — neither expanding decisively nor contracting.',
+      'r-cau': 'Real economy softening — ISM near 50, jobless trending up, growth indicators weakening.',
+      'r-off': 'Real economy contracting — ISM below 50, jobless rising, CFNAI negative. Hard data confirming risk-off.',
+    },
+    cadence: 'Monthly · ISM · BLS · Atlanta Fed',
+  },
+};
+
+// Headline section metadata (3 v2 headlines, tagline + question)
+const HEADLINE_META = {
+  cycle_value:   { label: 'Cycle & Value',  tagline: 'The Setup',  question: 'Is the structural backdrop high-risk or low-risk?' },
+  market_stress: { label: 'Market Stress',  tagline: 'The Panic',  question: 'Are the markets actually breaking right now?' },
+  real_economy:  { label: 'Real Economy',   tagline: 'The Truth',  question: 'Is the real world confirming what the market is saying?' },
+};
+
 export default function MacroOverviewPage() {
   // v2 spec PR 3 — fetch cycle_v2.json for the new 3-headline panel.
   const [cycleV2, setCycleV2] = React.useState(null);
@@ -523,113 +678,125 @@ export default function MacroOverviewPage() {
 
       <div className="v2-shell">
 
-        {/* v2 spec PR 3 — 3-headline panel + regime classifier */}
-        {cycleV2 && cycleV2.headlines && (
-          <section style={{ marginTop: 32, padding: '24px 0 8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16, gap: 14, flexWrap: 'wrap' }}>
+        {/* HERO — left: prose explainer; right: composite dial.
+            Composite = average of all v2 sub-composite scores at the
+            selected horizon. */}
+        {cycleV2 && cycleV2.subcomposites && (() => {
+          const subOrder = ['Equities','Rates','MoneyBanking','Credit','Funding','PositioningVol','RealEconomy'];
+          const scoresArr = subOrder.map(s => cycleV2.subcomposites[s]?.scores_by_horizon?.[v2Horizon]).filter(v => v != null);
+          const compAvg = scoresArr.length ? Math.round(scoresArr.reduce((a,b)=>a+b,0) / scoresArr.length) : null;
+          const compBand = bandFromScore(compAvg);
+          return (
+            <section style={{ marginTop: 24, padding: '20px 0 16px', display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(280px, 1fr)', gap: 36, alignItems: 'start' }}>
               <div>
-                <div className="t-eyebrow accent">v2 cycle mechanism — horizon-aware</div>
-                <h2 className="t-tile" style={{ margin: '4px 0 0', color: 'var(--ink-0)' }}>Where are we, and what's next?</h2>
-              </div>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Decision horizon</span>
-                {["1m","3m","6m","12m"].map((h) => (
-                  <button key={h} onClick={() => setV2Horizon(h)} style={{
-                    fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 11, fontWeight: 600,
-                    padding: '6px 12px',
-                    background: v2Horizon === h ? 'color-mix(in srgb, var(--accent) 14%, var(--surface))' : 'var(--surface)',
-                    color: v2Horizon === h ? 'var(--accent)' : 'var(--ink-2)',
-                    border: '1px solid var(--line-1)', borderRadius: 6, cursor: 'pointer', letterSpacing: '.04em',
-                  }}>{h}</button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-              {["cycle_value","market_stress","real_economy"].map((hid) => {
-                const h = cycleV2.headlines[hid];
-                if (!h) return null;
-                const v = h.scores_by_horizon[v2Horizon];
-                const band = v == null ? '—' : v < 25 ? 'Risk On' : v < 50 ? 'Neutral' : v < 75 ? 'Caution' : 'Risk Off';
-                return (
-                  <article key={hid} className="v2-tile" style={{ minHeight: 'auto' }}>
-                    <div className="t-eyebrow accent" style={{ marginBottom: 10 }}>{h.tagline}</div>
-                    <h3 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>{h.label}</h3>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '14px 0 4px' }}>
-                      <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 48, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"' }}>
-                        {v == null ? '—' : v}
-                      </span>
-                      <span style={{ color: 'var(--ink-2)', fontSize: 14 }}>/100</span>
-                    </div>
-                    <p style={{ color: 'var(--ink-2)', fontSize: 12, margin: 0 }}>{band}</p>
-                    <p style={{ color: 'var(--ink-2)', fontSize: 11, margin: '8px 0 0' }}>{h.question}</p>
-                  </article>
-                );
-              })}
-            </div>
-
-            {cycleV2.regimes && cycleV2.regimes[v2Horizon] && (
-              <div style={{ marginTop: 14, padding: '14px 18px', background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 14 }}>
-                  <div>
-                    <span className="t-eyebrow accent">Regime · {v2Horizon}</span>
-                    <h4 style={{ margin: '4px 0 0', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 24, fontWeight: 500, color: 'var(--ink-0)' }}>
-                      {cycleV2.regimes[v2Horizon].label}
-                    </h4>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span className="t-eyebrow">Recommended action</span>
-                    <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--ink-0)', maxWidth: 460 }}>
-                      {cycleV2.regimes[v2Horizon].recommended_action}
-                    </p>
-                  </div>
-                </div>
-                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--ink-2)', fontStyle: 'italic' }}>
-                  {cycleV2.regimes[v2Horizon].real_economy_caption}
+                <h1 className="t-display" style={{ margin: '0 0 12px', color: 'var(--ink-0)', fontSize: 'clamp(28px, 3vw, 38px)', lineHeight: 1.18 }}>
+                  Cycle mechanisms provide a bird&apos;s eye view of the <em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>macro backdrop</em> &mdash; calibrated to historical cycles.
+                </h1>
+                <p style={{ color: 'var(--ink-2)', fontSize: 14, lineHeight: 1.6, margin: 0, maxWidth: 720 }}>
+                  Seven sub-composites scored 0&ndash;100, grouped into three headlines (Cycle &amp; Value, Market Stress, Real Economy). Bands: <strong>0&ndash;25</strong> Risk-on, <strong>25&ndash;50</strong> Neutral, <strong>50&ndash;75</strong> Cautionary, <strong>75&ndash;100</strong> Risk-off. We don&apos;t predict downturns &mdash; we describe where you are.
+                </p>
+                <div style={{ marginTop: 18, display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <span style={{ fontSize: 11, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '.08em' }}>Decision horizon</span>
+                  {['1m','3m','6m','12m'].map((h) => (
+                    <button key={h} onClick={() => setV2Horizon(h)} style={{
+                      fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 11, fontWeight: 600,
+                      padding: '6px 12px',
+                      background: v2Horizon === h ? 'color-mix(in srgb, var(--accent) 14%, var(--surface))' : 'var(--surface)',
+                      color: v2Horizon === h ? 'var(--accent)' : 'var(--ink-2)',
+                      border: '1px solid var(--line-1)', borderRadius: 6, cursor: 'pointer', letterSpacing: '.04em',
+                    }}>{h}</button>
+                  ))}
                 </div>
               </div>
-            )}
-          </section>
-        )}
+              <div className="tile" style={{ padding: '20px 22px', cursor: 'default' }}>
+                <div className="tile-eyebrow" style={{ textAlign: 'center', marginBottom: 8 }}>Composite</div>
+                <Dial score={compAvg} size="hero" />
+                <div style={{ textAlign: 'center', marginTop: 6 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 38, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>{compAvg ?? '—'}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em', textTransform: 'uppercase', marginLeft: 6 }}>/ 100</span>
+                </div>
+                <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginBottom: 6 }}>composite average</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, color: 'var(--ink-0)' }}>{compBand.label} band</div>
+              </div>
+            </section>
+          );
+        })()}
 
-        {/* v2 sub-composite breakdown — what's driving each headline. */}
-        {cycleV2 && cycleV2.subcomposites && (
-          <div style={{ marginTop: 32, paddingTop: 16, borderTop: '1px solid var(--line-0)' }}>
-            <div className="t-eyebrow accent" style={{ marginBottom: 4 }}>Mechanism breakdown · {v2Horizon}</div>
-            <h2 className="t-tile" style={{ margin: '0 0 4px', color: 'var(--ink-0)' }}>What's driving each headline</h2>
-            <p style={{ color: 'var(--ink-2)', fontSize: 13, margin: '0 0 16px' }}>
-              Cycle &amp; Value = Equities + Rates + Money / Banking. Market Stress = Credit + Funding + Positioning / Vol. Real Economy stands alone.
-            </p>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
-              {(() => {
-                const ORDER = ["Equities","Rates","MoneyBanking","Credit","Funding","PositioningVol","RealEconomy"];
-                const NUMS = { Equities: "01", Rates: "02", MoneyBanking: "03", Credit: "04", Funding: "05", PositioningVol: "06", RealEconomy: "07" };
-                return ORDER.filter(id => cycleV2.subcomposites[id]).map((id) => {
-                  const s = cycleV2.subcomposites[id];
+        {/* SECTIONS — one per v2 headline, with sub-composite dial cards under each. */}
+        {cycleV2 && cycleV2.subcomposites && Object.entries(HEADLINE_META).map(([hid, hMeta]) => {
+          const subsInHeadline = Object.entries(SUB_META).filter(([_, m]) => m.headline === hid);
+          if (!subsInHeadline.length) return null;
+          const h = cycleV2.headlines && cycleV2.headlines[hid];
+          const headlineScore = h && h.scores_by_horizon ? h.scores_by_horizon[v2Horizon] : null;
+          const headlineBand = bandFromScore(headlineScore);
+          return (
+            <section key={hid} style={{ marginTop: 36, paddingTop: 22, borderTop: '1px solid var(--line-0)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, gap: 14, flexWrap: 'wrap' }}>
+                <div>
+                  <div className="t-eyebrow accent" style={{ marginBottom: 4 }}>{hMeta.tagline} &middot; {v2Horizon}</div>
+                  <h2 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>{hMeta.label}</h2>
+                  <p style={{ color: 'var(--ink-2)', fontSize: 12, margin: '4px 0 0' }}>{hMeta.question}</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 36, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.012em' }}>{headlineScore != null ? Math.round(headlineScore) : '—'}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '0.10em', marginLeft: 6 }}>/ 100</span></div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase' }}>{headlineBand.label}</div>
+                </div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+                {subsInHeadline.map(([subId, meta]) => {
+                  const s = cycleV2.subcomposites[subId];
+                  if (!s) return null;
                   const score = s.scores_by_horizon?.[v2Horizon];
                   const band = bandFromScore(score);
+                  const caption = score == null ? 'Not scored at this horizon — fewer than two indicators pass the predictive-power gate.' : (meta.captions[band.cls] || '');
                   const nScored = s.n_scored_by_horizon?.[v2Horizon] ?? 0;
                   const nTotal = s.n_indicators_total ?? 0;
                   return (
-                    <article key={id} className="tile" style={{ cursor: 'default', minHeight: 180 }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                        <span className="tile-eyebrow">{NUMS[id]}</span>
-                        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 4, background: 'var(--bg-2, rgba(0,0,0,0.05))', color: 'var(--text-2)', letterSpacing: '.04em', textTransform: 'uppercase' }}>{band.label}</span>
+                    <article key={subId} className="tile" style={{ cursor: 'default', padding: '20px 18px', textAlign: 'left' }}>
+                      <div style={{ position: 'relative' }}>
+                        <span style={{ position: 'absolute', top: -4, left: 0, fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em' }}>{meta.num}</span>
                       </div>
-                      <h3 className="tile-title" style={{ margin: 0 }}>{s.label}</h3>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 'auto' }}>
-                        <span style={{ fontFamily: 'var(--font-display, var(--font-ui))', fontSize: 44, lineHeight: 1, fontFeatureSettings: '"tnum"', color: 'var(--text)' }}>
-                          {score != null ? <CountUp to={Math.round(score)} /> : <span style={{ color: 'var(--text-muted)' }}>—</span>}
+                      <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, lineHeight: 1.2, letterSpacing: '-0.006em', color: 'var(--ink-0)', margin: '4px 0 12px', textAlign: 'center' }}>{s.label}</h3>
+                      <div style={{ maxWidth: 220, margin: '4px auto 8px' }}>
+                        <Dial score={score ?? null} isLive={score != null} />
+                      </div>
+                      <div style={{ textAlign: 'center', marginTop: -8, marginBottom: 8 }}>
+                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 36, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>
+                          {score != null ? Math.round(score) : '—'}
                         </span>
-                        <span style={{ color: 'var(--text-muted)', fontSize: 14 }}>/100</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em', textTransform: 'uppercase', marginLeft: 4 }}>/ 100</span>
                       </div>
-                      <p style={{ color: 'var(--text-muted)', fontSize: 12, margin: 0 }}>
-                        {nScored} of {nTotal} indicators scoring at this horizon
-                      </p>
+                      <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, margin: '6px 0 12px', minHeight: 60 }}>{caption}</p>
+                      <div style={{ paddingTop: 12, borderTop: '0.5px dashed var(--line-1)', fontSize: 10, color: 'var(--ink-2)', letterSpacing: '.04em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                        Refreshes {meta.cadence} &middot; {nScored} of {nTotal} indicators scoring at this horizon
+                      </div>
                     </article>
                   );
-                });
-              })()}
+                })}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* REGIME chip + recommended action — preserved from prior v2 panel */}
+        {cycleV2 && cycleV2.regimes && cycleV2.regimes[v2Horizon] && (
+          <div style={{ marginTop: 28, padding: '16px 20px', background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 12 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 14 }}>
+              <div>
+                <span className="t-eyebrow accent">Regime &middot; {v2Horizon}</span>
+                <h4 style={{ margin: '4px 0 0', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 24, fontWeight: 500, color: 'var(--ink-0)' }}>
+                  {cycleV2.regimes[v2Horizon].label}
+                </h4>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <span className="t-eyebrow">Recommended action</span>
+                <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--ink-0)', maxWidth: 460 }}>
+                  {cycleV2.regimes[v2Horizon].recommended_action}
+                </p>
+              </div>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--ink-2)', fontStyle: 'italic' }}>
+              {cycleV2.regimes[v2Horizon].real_economy_caption}
             </div>
           </div>
         )}
