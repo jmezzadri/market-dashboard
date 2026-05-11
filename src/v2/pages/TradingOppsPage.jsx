@@ -119,7 +119,7 @@ function loadColState() {
   } catch (e) { /* ignore */ }
 
   if (!saved) {
-    return { order: [...COL_KEYS], visible: [...DEFAULT_VISIBLE], sort: { key: "score", dir: "desc" }, filter: "actionable", colFilters: [] };
+    return { order: [...COL_KEYS], visible: [...DEFAULT_VISIBLE], sort: { key: "score", dir: "desc" }, filter: "all", colFilters: [] };
   }
   const order = (saved.order || []).filter(k => COL_KEYS.includes(k));
   COL_KEYS.forEach(k => { if (!order.includes(k)) order.push(k); });
@@ -129,7 +129,7 @@ function loadColState() {
     order,
     visible,
     sort: saved.sort || { key: "score", dir: "desc" },
-    filter: saved.filter || "all",
+    filter: (saved.filter && saved.filter !== "actionable") ? saved.filter : "all",
     colFilters: Array.isArray(saved.colFilters) ? saved.colFilters : [],
   };
 }
@@ -1123,7 +1123,6 @@ export default function TradingOppsPage({ onOpenTicker }) {
   // the portfolio overlay is actually wired up (out of v5 scope).
   // v5.2: dropped Insufficient Data chip (the band no longer exists).
   const filterChips = [
-    { f: "actionable",   label: "Actionable" },
     { f: "all",          label: "All" },
     { f: "strong_buy",   label: "Strong Buy" },
     { f: "watch_buy",    label: "Buy Watch" },
