@@ -504,9 +504,9 @@ function Dial({ score, isLive = true, size = 'card' }) {
     const [px, py] = polar(R_outer + 6, a);
     pointer = (
       <g>
-        <line x1={cx} y1={cy} x2={px.toFixed(2)} y2={py.toFixed(2)} stroke="var(--ink-0)" strokeWidth="2.4" strokeLinecap="round" />
-        <circle cx={px.toFixed(2)} cy={py.toFixed(2)} r="3.8" fill="var(--ink-0)" stroke="var(--bg-0, #fff)" strokeWidth="1.6" />
-        <circle cx={cx} cy={cy} r="4" fill="var(--ink-0)" />
+        <line x1={cx} y1={cy} x2={px.toFixed(2)} y2={py.toFixed(2)} stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" />
+        <circle cx={px.toFixed(2)} cy={py.toFixed(2)} r="4.0" fill="var(--accent)" stroke="var(--bg-0, #fff)" strokeWidth="1.6" />
+        <circle cx={cx} cy={cy} r="4" fill="var(--accent)" />
       </g>
     );
   }
@@ -667,7 +667,7 @@ export default function MacroOverviewPage() {
           const compAvg = scoresArr.length ? Math.round(scoresArr.reduce((a,b)=>a+b,0) / scoresArr.length) : null;
           const compBand = bandFromScore(compAvg);
           return (
-            <section style={{ marginTop: 16, padding: '12px 0 12px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', gap: 24, alignItems: 'start' }}>
+            <section style={{ marginTop: 12, padding: '12px 0 16px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 28, alignItems: 'start' }}>
               <div>
                 <div className="t-eyebrow accent" style={{ marginBottom: 6, letterSpacing: '.10em' }}>Macro Overview · {snap?.as_of || calib?.as_of || ''}</div>
                 <h1 className="t-display" style={{ margin: '0 0 10px', color: 'var(--ink-0)', fontSize: 'clamp(22px, 2.2vw, 28px)', lineHeight: 1.22 }}>
@@ -689,12 +689,17 @@ export default function MacroOverviewPage() {
                   ))}
                 </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, whiteSpace: 'nowrap' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 10, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '.10em', marginBottom: 2 }}>Composite</div>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 44, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>{compAvg ?? '—'}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-2)', letterSpacing: '.10em', marginLeft: 4 }}>/ 100</span></div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>{compBand.label} band</div>
+              <div className="tile" style={{ padding: '20px 24px', cursor: 'default', minWidth: 280, alignSelf: 'start' }}>
+                <div className="tile-eyebrow" style={{ textAlign: 'center', marginBottom: 6 }}>Composite</div>
+                <div style={{ maxWidth: 260, margin: '0 auto' }}>
+                  <Dial score={compAvg} size="hero" />
                 </div>
+                <div style={{ textAlign: 'center', marginTop: 4 }}>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 44, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>{compAvg ?? '—'}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em', textTransform: 'uppercase', marginLeft: 6 }}>/ 100</span>
+                </div>
+                <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>composite average</div>
+                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, color: 'var(--ink-0)', marginTop: 4 }}>{compBand.label} band</div>
               </div>
             </section>
           );
@@ -745,7 +750,7 @@ export default function MacroOverviewPage() {
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em', textTransform: 'uppercase', marginLeft: 4 }}>/ 100</span>
                       </div>
                       <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, margin: '6px 0 12px', minHeight: 60 }}>{caption}</p>
-                      <div style={{ paddingTop: 12, borderTop: '0.5px dashed var(--line-1)', fontSize: 10, color: 'var(--ink-2)', letterSpacing: '.04em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)' }}>
+                      <div style={{ paddingTop: 12, borderTop: '0.5px dashed var(--line-1)', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.01em', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>
                         Refreshes {meta.cadence} &middot; {nScored} of {nTotal} indicators scoring at this horizon
                       </div>
                     </article>
