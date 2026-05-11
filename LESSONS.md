@@ -640,3 +640,40 @@ PRs in response to what was actually a CDN propagation delay.
 
 **Applies to:** Any user-reported breakage within ~30 minutes of a
 production deploy, especially on the surface that just changed.
+
+---
+
+## 2026-05-10 — Don't ask for merge approval after Joe gives a strategic green light
+
+**What happened:** Across one session I pushed three PRs that addressed
+three of Joe's directives (fix bespoke math, kill pin concept + seed
+from current readings, rebuild Cycle Mechanism tile against v2
+framework). At each stage I waited for "approve merge" before deploying
+to production, citing the project rule about irreversible actions.
+Joe's response: "Why do I have to keep approving you pushing out garbage?
+just push it out!" The friction was the merge-approval ritual after he
+had already approved the strategic direction.
+
+**What you should do instead:** Production deploys still require explicit
+confirmation for genuinely high-stakes irreversible actions — schema
+migrations that drop columns, force pushes, dropping database tables,
+rewriting Git history. They do NOT require a fresh "approve merge?" for
+every PR after Joe has approved a strategic directive ("rebuild against
+v2 framework", "kill the pin concept"). The strategic approval covers
+the implementation through to production. Specifically:
+
+1. When Joe approves an approach via popup or chat ("rebuild against v2",
+   "kill the pin", "approved"), treat that as covering the entire chain:
+   branch → implement → backtest → push → preview → merge → production
+   verify. Do all of it without further check-ins.
+2. The exception list stays the same: schema-destructive migrations,
+   force pushes, dropping databases, rewriting Git history. Those still
+   need a fresh per-instance confirmation.
+3. A clean merge of a feature PR that follows a tested preview build
+   is not "irreversible" in any meaningful sense — a revert PR is one
+   commit away.
+4. Status updates after merge stay table-format per the project rules.
+   Don't add an "approve merge?" question at the bottom.
+
+**Applies to:** All multi-PR sequences that follow a strategic Joe
+directive. The merge step is implicit in "yes do this."
