@@ -49,6 +49,40 @@ def _supa_headers() -> dict[str, str]:
     }
 
 
+# v5.4: FINRA Reg SHO files don't carry shares outstanding -- pull it
+# from ticker_reference so the SI table doesn't leave float_shares NULL
+# and silently zero-score every name. Cached for the lifetime of this
+# process.
+_SHARES_CACHE: dict[str, float | None] = {}
+def _fetch_shares_outstanding(ticker: str) -> float | None:
+    t = ticker.upper()
+    if t in _SHARES_CACHE:
+        return _SHARES_CACHE[t]
+    url = f"{_supa_url()}/rest/v1/ticker_reference"
+    params = [
+        ("select", "share_class_shares_outstanding,weighted_shares_outstanding"),
+        ("ticker", f"eq.{t}"),
+        ("limit", "1"),
+    ]
+    try:
+        r = requests.get(url, headers={**_supa_headers(), "Prefer": ""},
+                         params=params, timeout=10)
+        if r.status_code >= 400:
+            _SHARES_CACHE[t] = None
+            return None
+        rows = r.json()
+        if not rows:
+            _SHARES_CACHE[t] = None
+            return None
+        v = rows[0].get("share_class_shares_outstanding") or rows[0].get("weighted_shares_outstanding")
+        v = float(v) if v else None
+        _SHARES_CACHE[t] = v
+        return v
+    except Exception:
+        _SHARES_CACHE[t] = None
+        return None
+
+
 def _uw_headers() -> dict[str, str]:
     return {
         "Authorization": f"Bearer {os.environ['UNUSUAL_WHALES_API_KEY']}",
@@ -116,17 +150,27 @@ def fetch_finra(ticker: str) -> list[dict[str, Any]]:
 def upsert_finra(ticker: str, settlements: list[dict[str, Any]]) -> int:
     if not settlements:
         return 0
+    # v5.4: Resolve shares outstanding once per ticker call so each row
+    # can carry both float_shares AND the derived short_interest_float_pct.
+    shares_out = _fetch_shares_outstanding(ticker)
     rows = []
     for s in settlements:
+        shares = s.get("short_interest_shares")
+        pct = None
+        if shares is not None and shares_out and shares_out > 0:
+            try:
+                pct = round((float(shares) / float(shares_out)) * 100.0, 4)
+            except (TypeError, ValueError):
+                pct = None
         rows.append({
             "ticker": ticker.upper(),
             "as_of_date": s["as_of_date"],
             "source": "finra",
-            "short_interest_shares": s.get("short_interest_shares"),
-            "short_interest_float_pct": None,
+            "short_interest_shares": shares,
+            "short_interest_float_pct": pct,
             "days_to_cover": s.get("days_to_cover"),
-            "float_shares": None,
-            "shares_outstanding": None,
+            "float_shares": shares_out,
+            "shares_outstanding": shares_out,
             "avg_daily_volume": s.get("avg_daily_volume"),
             "squeeze_score": None,
             "raw": s.get("raw"),

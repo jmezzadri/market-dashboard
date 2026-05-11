@@ -149,19 +149,39 @@ def compute_short_interest_signal(
         return None, {"reason": "no_si_data"}
 
     # ── Pull the latest readings ─────────────────────────────────────────────
+    # v5.4: short_interest_float_pct is NULL on every row in production
+    # because the FINRA ingest never computes it. Derive on the fly from
+    # short_interest_shares / float_shares (or shares_outstanding as
+    # fallback) so the scorer actually reflects the underlying data.
+    def _si_pct(row):
+        if row is None:
+            return None
+        precomputed = row.get("short_interest_float_pct")
+        if precomputed is not None:
+            try:
+                v = float(precomputed)
+                if v > 0:
+                    return v
+            except (TypeError, ValueError):
+                pass
+        shares = row.get("short_interest_shares")
+        float_sh = row.get("float_shares") or row.get("shares_outstanding")
+        try:
+            shares = float(shares) if shares is not None else None
+            float_sh = float(float_sh) if float_sh is not None else None
+        except (TypeError, ValueError):
+            return None
+        if shares is None or not float_sh or float_sh <= 0:
+            return None
+        return (shares / float_sh) * 100.0   # percent of float
+
     latest_si_pct = None
     prev_si_pct = None
     rising_si_pp = None
     if finra_rows:
-        try:
-            latest_si_pct = float(finra_rows[0].get("short_interest_float_pct") or 0)
-        except (TypeError, ValueError):
-            latest_si_pct = None
+        latest_si_pct = _si_pct(finra_rows[0])
         if len(finra_rows) > 1:
-            try:
-                prev_si_pct = float(finra_rows[1].get("short_interest_float_pct") or 0)
-            except (TypeError, ValueError):
-                prev_si_pct = None
+            prev_si_pct = _si_pct(finra_rows[1])
         if latest_si_pct is not None and prev_si_pct is not None:
             rising_si_pp = latest_si_pct - prev_si_pct
 
