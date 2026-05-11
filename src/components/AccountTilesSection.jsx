@@ -23,7 +23,7 @@
 // UX: brand-token compliant, Liquid Glass surface, Fraunces label,
 // JetBrains Mono numbers. Hover lifts; click toggles inline expand.
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { usePortfolioHistory } from "../hooks/usePortfolioHistory";
 import { usePricesAsOfDate } from "../hooks/usePricesAsOfDate";
 import PositionsTable from "./PositionsTable";
@@ -313,55 +313,132 @@ export default function AccountTilesSection({
         })}
       </div>
 
-      {/* Inline expand: full positions table for the clicked account.
-          Reuses the existing PositionsTable component (sortable, editable
-          columns, +Add / per-row Edit / Close / Delete) just filtered to
-          the account's rows. tableKey is unique per account so sort prefs
-          don't bleed between accounts. */}
-      {expanded && (
-        <div style={{ background: "var(--surface-2)", border: `1px solid ${expanded.accountColor}55`, borderRadius: 10, padding: "14px 18px", marginTop: 6 }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12 }}>
-            <span style={{ fontFamily: "var(--font-display)", fontSize: 16, fontWeight: 500, color: "var(--text)" }}>
-              {expanded.label} positions
-            </span>
-            <button
-              onClick={() => setExpandedId(null)}
-              style={{ fontFamily: "var(--font-mono)", fontSize: 11, padding: "4px 10px", background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer" }}
-            >
-              Collapse
-            </button>
-          </div>
-          <PositionsTable
-            rows={expanded.positions}
-            grandTotal={expanded.nav}
-            screener={scanData?.signals?.screener || {}}
-            info={scanData?.signals?.info || {}}
-            signals={scanData?.signals || null}
-            tableKey={`positions-${expanded.id}`}
-            onOpenTicker={onOpenTicker}
-            emptyMessage="No open positions in this account."
-            onAdd={onAdd}
-            onBulkImport={onBulkImport}
-            onImportTransactions={onImportTransactions}
-            onRescan={onRescan ? () => onRescan(expanded.positions) : undefined}
-            rescanBusy={rescanBusy}
-            rescanProgress={rescanProgress}
-            onEdit={onEdit}
-            onClose={onClose}
-            onDelete={onDelete}
-            pricesTs={pricesTs}
-            eventsTs={eventsTs}
-            footnoteSource="Unusual Whales + Yahoo Finance"
-            pricesAsOfDate={pricesAsOfDate}
-          />
-        </div>
-      )}
-
       {historyLoading && tiles.every((t) => !t.navSeries.length) && (
         <div style={{ fontSize: 11, color: "var(--text-muted)", textAlign: "center", padding: "8px 0" }}>
           Loading 12-month history…
         </div>
       )}
+
+      {/* Full-page modal: click an account tile → modal opens with that
+          account's PositionsTable. Joe directive 2026-05-11: replaces the
+          previous inline-expand-below pattern. Modal sized at 95vw × 92vh
+          so the 36-column position table breathes and the user can read
+          across without horizontal scrolling on a large monitor.
+          Reuses the existing PositionsTable component (sortable, editable
+          columns, +Add / per-row Edit / Close / Delete) filtered to the
+          account's rows. tableKey is unique per account so sort prefs
+          don't bleed between accounts. */}
+      {expanded && (
+        <AccountPositionsModal
+          expanded={expanded}
+          onClose={() => setExpandedId(null)}
+          scanData={scanData}
+          onOpenTicker={onOpenTicker}
+          onAdd={onAdd}
+          onBulkImport={onBulkImport}
+          onImportTransactions={onImportTransactions}
+          onRescan={onRescan}
+          rescanBusy={rescanBusy}
+          rescanProgress={rescanProgress}
+          onEdit={onEdit}
+          onClose2={onClose}
+          onDelete={onDelete}
+          pricesTs={pricesTs}
+          eventsTs={eventsTs}
+          pricesAsOfDate={pricesAsOfDate}
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Per-account positions modal ───────────────────────────────────────────
+// Full-page overlay with the same PositionsTable rendered inline before.
+// Lifted out so esc-to-close + click-backdrop-to-close can be scoped
+// cleanly without re-rendering the tile grid on every keystroke.
+function AccountPositionsModal({
+  expanded, onClose, scanData,
+  onOpenTicker, onAdd, onBulkImport, onImportTransactions,
+  onRescan, rescanBusy, rescanProgress,
+  onEdit, onClose2, onDelete,
+  pricesTs, eventsTs, pricesAsOfDate,
+}) {
+  // Esc key closes the modal. Listener registered on mount, cleaned up on
+  // unmount, so it doesn't intercept Esc anywhere else in the app.
+  useEffect(() => {
+    const handler = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const backdrop = {
+    position: "fixed", inset: 0, background: "rgba(0,0,0,0.55)",
+    display: "flex", alignItems: "center", justifyContent: "center",
+    zIndex: 1000, padding: "3vh 2vw",
+  };
+  const panel = {
+    width: "min(1640px, 96vw)",
+    maxHeight: "94vh",
+    overflowY: "auto",
+    background: "var(--surface-solid, var(--surface))",
+    border: `1px solid ${expanded.accountColor}66`,
+    borderRadius: 12,
+    boxShadow: "0 20px 60px rgba(0,0,0,0.4)",
+    padding: "18px 22px 16px",
+  };
+
+  return (
+    <div
+      style={backdrop}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`${expanded.label} positions`}
+    >
+      <div style={panel}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: expanded.accountColor }} />
+            <span style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 500, color: "var(--text)" }}>
+              {expanded.label} positions
+            </span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
+              {expanded.positions.length} row{expanded.positions.length === 1 ? "" : "s"} · ${Math.round(expanded.nav).toLocaleString()} NAV
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{ fontFamily: "var(--font-mono)", fontSize: 11, padding: "6px 12px", background: "var(--surface-3)", border: "1px solid var(--border)", borderRadius: 4, color: "var(--text-muted)", cursor: "pointer" }}
+            aria-label="Close"
+          >
+            ✕ Close
+          </button>
+        </div>
+        <PositionsTable
+          rows={expanded.positions}
+          grandTotal={expanded.nav}
+          screener={scanData?.signals?.screener || {}}
+          info={scanData?.signals?.info || {}}
+          signals={scanData?.signals || null}
+          tableKey={`positions-${expanded.id}`}
+          onOpenTicker={onOpenTicker}
+          emptyMessage="No open positions in this account."
+          onAdd={onAdd}
+          onBulkImport={onBulkImport}
+          onImportTransactions={onImportTransactions}
+          onRescan={onRescan ? () => onRescan(expanded.positions) : undefined}
+          rescanBusy={rescanBusy}
+          rescanProgress={rescanProgress}
+          onEdit={onEdit}
+          onClose={onClose2}
+          onDelete={onDelete}
+          pricesTs={pricesTs}
+          eventsTs={eventsTs}
+          footnoteSource="Unusual Whales + Yahoo Finance"
+          pricesAsOfDate={pricesAsOfDate}
+        />
+      </div>
     </div>
   );
 }
