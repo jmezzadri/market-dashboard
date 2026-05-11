@@ -363,6 +363,39 @@ function SignalIntelligenceRail({
     if (sells) bullets.push(`${sells} sell${sells===1?"":"s"}${sell$ ? ` (${sell$})` : ""}`);
     if (c.first_buy_fires) bullets.push("first buy in 12 months");
     const meta = bullets.length ? bullets.join(" · ") : "no Form 4 events";
+    // v5.4 (item 11): list the individual Form 4 events when expanded.
+    const fmtDate = d => {
+      if (!d) return "";
+      const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
+      return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    };
+    const events = [...(insiderBuys || []).map(e => ({...e, _dir: 'buy'})),
+                    ...(insiderSells || []).map(e => ({...e, _dir: 'sell'}))]
+      .sort((a, b) => String(b.date || b.transaction_date || '').localeCompare(String(a.date || a.transaction_date || '')))
+      .slice(0, 12);
+    const eventList = events.length ? (
+      <div style={{marginTop:6,gridColumn:"1 / -1"}}>
+        <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",marginBottom:4}}>
+          Recent Form 4 events
+        </div>
+        {events.map((e, i) => {
+          const who = e.name || e.officer_name || e.insider || "Insider";
+          const date = fmtDate(e.date || e.transaction_date);
+          const amt = e.value || e.dollar_value || e.amount;
+          const dollars = amt ? fmtMoneyT(amt) : null;
+          const dir = e._dir === 'buy' ? "BUY" : "SELL";
+          const col = e._dir === 'buy' ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))";
+          return (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"42px 1fr auto auto",gap:8,alignItems:"baseline",padding:"3px 0",fontSize:11.5,borderBottom: i < events.length - 1 ? "1px solid var(--border-faint, var(--border))" : "none"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,color: col,fontWeight:600}}>{dir}</span>
+              <span style={{color:"var(--text-2)"}} title={who}>{String(who).slice(0,32)}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:"var(--text-muted)"}}>{date}</span>
+              <span style={{fontFamily:"var(--font-mono)",fontWeight:600,color:col,minWidth:60,textAlign:"right"}}>{dollars || "—"}</span>
+            </div>
+          );
+        })}
+      </div>
+    ) : null;
     const detail = (
       <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
         <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
@@ -373,12 +406,154 @@ function SignalIntelligenceRail({
         {c.buy_bps_of_mcap != null && (
           <><span style={{color:"var(--text-muted)"}}>Buy $ as bps of mkt cap</span><span style={{fontFamily:"var(--font-mono)",textAlign:"right"}}>{Number(c.buy_bps_of_mcap).toFixed(2)} bps</span></>
         )}
+        {eventList}
         <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
           Source: SEC EDGAR Form 4, last 30 days. Sells are filtered to remove 10b5-1 routine plan disposals.
         </span>
       </div>
     );
     return { state: subStateColor(sub), value, meta, detail };
+  })();
+
+  // Congress Trades --------------------------------------------------------
+  // v5.4 (item 11): dedicated tile, separate from Unusual Flow. Shows the
+  // disclosed trades (member, date, direction, amount).
+  const congressTile = (() => {
+    const cBuys  = congressBuys  || [];
+    const cSells = congressSells || [];
+    const compC  = compsForTiles.congress || null;
+    const sub    = subsForTiles.congress;
+    const w      = weightsForTiles.congress;
+    if ((!compC || compC.buy_count == null) && cBuys.length === 0 && cSells.length === 0) {
+      return { state: "neutral", value: "n/a", meta: "Congress trade data unavailable for this name today", detail: null };
+    }
+    const buys  = compC ? Number(compC.buy_count  || 0) : cBuys.length;
+    const sells = compC ? Number(compC.sell_count || 0) : cSells.length;
+    if (buys === 0 && sells === 0) {
+      return { state: "neutral", value: "0", meta: "No disclosed congressional trades in the last 90 days", detail: null };
+    }
+    const value = sub != null ? fmtSubSimple(sub) : `${buys}/${sells}`;
+    const meta = [
+      buys  ? `${buys} buy${buys===1?"":"s"}`   : null,
+      sells ? `${sells} sell${sells===1?"":"s"}` : null,
+      compC?.unique_buyers ? `${compC.unique_buyers} unique members` : null,
+    ].filter(Boolean).join(" · ") || "no congress signal";
+    const fmtD = d => {
+      if (!d) return "";
+      const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
+      return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    };
+    const allRows = [...cBuys.map(e => ({...e,_d:'buy'})), ...cSells.map(e => ({...e,_d:'sell'}))]
+      .sort((a,b) => String(b.trade_date||b.disclosure_date||b.date||'').localeCompare(String(a.trade_date||a.disclosure_date||a.date||'')))
+      .slice(0, 12);
+    const eventList = allRows.length ? (
+      <div style={{marginTop:6,gridColumn:"1 / -1"}}>
+        <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",marginBottom:4}}>
+          Disclosed congressional trades
+        </div>
+        {allRows.map((e, i) => {
+          const who = e.member || e.representative || e.senator || e.name || "Member";
+          const date = fmtD(e.trade_date || e.disclosure_date || e.date);
+          const amt = e.amount_max || e.amount || e.amount_range || e.value;
+          const dollars = (typeof amt === 'number') ? fmtMoneyT(amt) : (typeof amt === 'string' ? amt : null);
+          const dir = e._d === 'buy' ? "BUY" : "SELL";
+          const col = e._d === 'buy' ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))";
+          return (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"42px 1fr auto auto",gap:8,alignItems:"baseline",padding:"3px 0",fontSize:11.5,borderBottom: i < allRows.length - 1 ? "1px solid var(--border-faint, var(--border))" : "none"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,color:col,fontWeight:600}}>{dir}</span>
+              <span style={{color:"var(--text-2)"}} title={who}>{String(who).slice(0,32)}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:"var(--text-muted)"}}>{date}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:col,minWidth:60,textAlign:"right"}}>{dollars || "—"}</span>
+            </div>
+          );
+        })}
+      </div>
+    ) : null;
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{sub != null ? fmtSubSimple(sub) : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Buys</span><span style={{textAlign:"right"}}>{buys}</span>
+        <span style={{color:"var(--text-muted)"}}>Sells</span><span style={{textAlign:"right"}}>{sells}</span>
+        {compC?.unique_buyers != null && <><span style={{color:"var(--text-muted)"}}>Unique members</span><span style={{textAlign:"right"}}>{compC.unique_buyers}</span></>}
+        {eventList}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Source: STOCK Act disclosures, last 90 days. Amounts are reported as ranges; the upper bound is shown.
+        </span>
+      </div>
+    );
+    return { state: sub == null ? "neutral" : subStateColor(sub), value, meta, detail };
+  })();
+
+  // Options Flow ------------------------------------------------------
+  // v5.4 (item 11): dedicated tile for unusual options flow events
+  // (calls / puts / sweeps). Split from the lumped Unusual Flow tile.
+  const optionsTile = (() => {
+    const fCalls = flowCalls || [];
+    const fPuts  = flowPuts  || [];
+    const compO  = compsForTiles.options || null;
+    const sub    = subsForTiles.options;
+    const w      = weightsForTiles.options;
+    if (!compO && fCalls.length === 0 && fPuts.length === 0) {
+      return { state: "neutral", value: "n/a", meta: "Options flow data unavailable for this name today", detail: null };
+    }
+    const callCt = fCalls.length;
+    const putCt  = fPuts.length;
+    if (callCt === 0 && putCt === 0) {
+      return { state: "neutral", value: "0", meta: "No unusual options flow events in last scan", detail: null };
+    }
+    const value = sub != null ? fmtSubSimple(sub) : `${callCt}/${putCt}`;
+    const meta = [
+      callCt ? `${callCt} call alert${callCt===1?"":"s"}` : null,
+      putCt  ? `${putCt} put alert${putCt===1?"":"s"}`   : null,
+    ].filter(Boolean).join(" · ") || "no flow events";
+    const fmtD = d => {
+      if (!d) return "";
+      const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
+      return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    };
+    const allEvents = [...fCalls.map(e => ({...e,_d:'call'})), ...fPuts.map(e => ({...e,_d:'put'}))]
+      .sort((a,b) => String(b.alert_time||b.date||'').localeCompare(String(a.alert_time||a.date||'')))
+      .slice(0, 12);
+    const eventList = allEvents.length ? (
+      <div style={{marginTop:6,gridColumn:"1 / -1"}}>
+        <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",marginBottom:4}}>
+          Unusual flow alerts
+        </div>
+        {allEvents.map((e, i) => {
+          const date = fmtD(e.alert_time || e.date);
+          const strike = e.strike || e.strike_price;
+          const expiry = e.expiry || e.expiration;
+          const prem   = e.total_premium || e.premium || e.notional;
+          const dollars = prem ? fmtMoneyT(prem) : null;
+          const dir = e._d === 'call' ? "CALL" : "PUT";
+          const col = e._d === 'call' ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))";
+          const desc = strike ? `$${strike}${expiry ? ` exp ${expiry.slice(0,10)}` : ""}` : (e.title || "alert");
+          return (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"42px 1fr auto auto",gap:8,alignItems:"baseline",padding:"3px 0",fontSize:11.5,borderBottom: i < allEvents.length - 1 ? "1px solid var(--border-faint, var(--border))" : "none"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,color:col,fontWeight:600}}>{dir}</span>
+              <span style={{color:"var(--text-2)"}} title={desc}>{String(desc).slice(0,32)}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:"var(--text-muted)"}}>{date}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:col,minWidth:60,textAlign:"right"}}>{dollars || "—"}</span>
+            </div>
+          );
+        })}
+      </div>
+    ) : null;
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{sub != null ? fmtSubSimple(sub) : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Call alerts</span><span style={{textAlign:"right",color:callCt>0?"var(--green-text, var(--green))":"var(--text-2)"}}>{callCt}</span>
+        <span style={{color:"var(--text-muted)"}}>Put alerts</span><span style={{textAlign:"right",color:putCt>0?"var(--red-text, var(--red))":"var(--text-2)"}}>{putCt}</span>
+        {compO?.sweep_count != null && <><span style={{color:"var(--text-muted)"}}>Sweep orders</span><span style={{textAlign:"right"}}>{compO.sweep_count}</span></>}
+        {eventList}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Source: Unusual Whales unusual options activity feed.
+        </span>
+      </div>
+    );
+    return { state: sub == null ? "neutral" : subStateColor(sub), value, meta, detail };
   })();
 
   // Analyst Actions -----------------------------------------------------
@@ -807,7 +982,9 @@ function SignalIntelligenceRail({
         </div>
       )} />
       <SignalCard title="Analyst Actions" {...analystTile} ragColor={ragColor} />
-      <SignalCard title="Unusual Flow" {...flowTile} ragColor={ragColor} renderDetail={detail => {
+      <SignalCard title="Options Flow" {...optionsTile} ragColor={ragColor} />
+      <SignalCard title="Congress Trades" {...congressTile} ragColor={ragColor} />
+      {false && <SignalCard title="Unusual Flow" {...flowTile} ragColor={ragColor} renderDetail={detail => {
         // LESSONS rule #33 — every category section ALWAYS renders with an
         // explicit empty-state line when no events. Never silently hide a
         // section just because it has zero events for this ticker.
@@ -906,7 +1083,7 @@ function SignalIntelligenceRail({
             </Section>
           </div>
         );
-      }} />
+      }} />}
       <SignalCard title="Short Interest" {...siTile} ragColor={ragColor} />
       <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
         const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
