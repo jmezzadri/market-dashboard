@@ -435,26 +435,22 @@ const watchCol = {
 };
 const COLUMNS = [...baseCols, ...signalCols, overallCol, ...riskCols, watchCol];
 
-// Defaults preserve the pre-36 layout: ticker, name, sector, 6 signal cols, OVR.
+// Joe directive 2026-05-11: show every column by default (was: only
+// ticker/name/sector/6 signals/OVR visible, everything else hidden behind
+// the picker). The picker still works for opt-out. Column order keeps the
+// signal-and-OVR block adjacent on the left since that's the primary scan
+// surface; portfolio-style cols (price/marketcap/yield/earnings) follow;
+// risk metrics tail-end the table.
 const DEFAULT_ORDER = [
   "ticker", "name", "sector",
   ...SIGNAL_COLS.map((c) => c.key),
   "overall",
-  // Remaining columns are appended so the picker shows them in a predictable
-  // order, but they start hidden.
   "price", "dayChangePct", "marketcap", "ivRank", "divYield",
   "nextEarnings", "week52", "theme",
   "beta_2y", "annVol_2y", "maxDD_2y", "var10d99",
-,
   "_watch",
 ];
-const DEFAULT_VISIBLE = [
-  "ticker", "name", "sector",
-  ...SIGNAL_COLS.map((c) => c.key),
-  "overall",
-,
-  "_watch",
-];
+const DEFAULT_VISIBLE = [...DEFAULT_ORDER];
 
 // Default column widths (px).
 const DEFAULT_WIDTHS = {
