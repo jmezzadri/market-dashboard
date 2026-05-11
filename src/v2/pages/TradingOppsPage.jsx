@@ -47,17 +47,17 @@ const COLUMNS = [
   { key: "band",     label: "Band",           group: "Signal",       numeric: false, default: true,
     tt: { label: "MacroTilt Score", body: "Strong Sell, Watch Sell, Neutral, Watch Buy, Strong Buy. Cutoffs at -50, -20, +20, +50." } },
   { key: "sub_insider", label: "Insider",     group: "Signals",      numeric: true, default: true,
-    tt: { label: "Insider buying", body: "Form 4 open-market buys by company officers and directors. Highest-weighted signal (36.3%). Most predictive in backtest." } },
+    tt: { label: "Insider buying", body: "Form 4 open-market buys and sells over the last 30 days. Sub-score range -100 to +100. Buys dominate -> positive; sells dominate -> negative. 10b5-1 routine sales filtered out. A 'first buy in 12 months' classifier amplifies when a quiet officer steps in. Highest-weighted signal in the composite (36.3%) -- most predictive in the backtest." } },
   { key: "sub_options", label: "Options",     group: "Signals",      numeric: true, default: false,
-    tt: { label: "Options flow", body: "Unusual call and put volume vs open interest. Calibration pending - on equal-weight floor (16.7%) while full history backfills." } },
+    tt: { label: "Options flow", body: "30-day call vs put premium ratio (log-scale), ask-side vs bid-side bias, and unusual-size sweep count. Bullish when calls dominate AND sweeps hit the ask; bearish when puts dominate AND sweeps hit the bid. Sub-score -100 to +100. Currently on the 16.7% equal-weight floor pending more history." } },
   { key: "sub_congress", label: "Congress",   group: "Signals",      numeric: true, default: false,
-    tt: { label: "Congress trades", body: "Disclosed buy and sell trades by US senators and representatives. Calibration pending - on equal-weight floor (16.7%)." } },
+    tt: { label: "Congress trades", body: "Disclosed buy and sell trades by US senators and representatives over the trailing 90 days, weighted by tier and amount band. Cluster bonus when multiple unique members trade the same direction. Sub-score -100 to +100. On the 16.7% floor while history is sparse." } },
   { key: "sub_technicals", label: "Technicals", group: "Signals",    numeric: true, default: true,
-    tt: { label: "Technicals", body: "Bollinger BandWidth, 14-day RSI, distance to 50-day moving average, relative volume. Calibrated weight 8.7%." } },
+    tt: { label: "Technicals", body: "Composite of 14-day RSI (>70 overbought, <30 oversold), Bollinger band-width (<5% = squeeze setup), distance to the 50-day SMA (above = trend, below = breakdown), and 20-day relative volume (>=1.5x = unusual activity). Sub-score -100 to +100. Calibrated weight 8.7%." } },
   { key: "sub_analyst", label: "Analyst",     group: "Signals",      numeric: true, default: true,
-    tt: { label: "Analyst actions", body: "Recent upgrades, downgrades, price target changes from Wall Street equity research. Calibrated weight 5.0%." } },
+    tt: { label: "Analyst actions", body: "Net upgrades minus downgrades over the trailing 90 days, weighted by broker tier (top 1.0x, major 0.7x, other 0.5x). Combined with the average price-target gap to spot: >=+15% saturates bullish, <=-15% saturates bearish. Sub-score -100 to +100. Calibrated weight 5.0%." } },
   { key: "sub_short_interest", label: "Short Interest", group: "Signals", numeric: true, default: false,
-    tt: { label: "Short interest", body: "Borrowed and sold short, vs prior period. Calibration pending - on equal-weight floor (16.7%)." } },
+    tt: { label: "Short interest", body: "Percent of float sold short and cost-to-borrow trend. Three regimes: rising SI + rising CTB above the 50-day SMA = bearish (smart money short); high SI + cheap borrow into earnings = bullish squeeze setup; falling SI + rising price = bullish capitulation. Sub-score -100 to +100. On the 16.7% floor while coverage is sparse." } },
 
   // ── v5.1 (2026-05-10): legacy columns restored as toggleable ──
   // Joe noted the prior production table had ~25 columns; the v5 rewrite
@@ -70,15 +70,15 @@ const COLUMNS = [
   { key: "iv_rank",   label: "IV Rank",          group: "Quote",     numeric: true,  default: false,
     tt: { label: "Implied volatility rank", body: "0 to 100 percentile of 30-day implied volatility over the trailing year. Source: universe snapshots." } },
   { key: "rsi_14",    label: "RSI(14)",          group: "Technicals",numeric: true,  default: false,
-    tt: { label: "14-day RSI", body: "Relative Strength Index over a 14-day window. Above 70 is conventionally overbought; below 30 oversold." } },
+    tt: { label: "14-day RSI", body: "Relative Strength Index over a 14-day window. >70 conventionally overbought (cell turns red), <30 oversold (cell turns amber). Mid-range (30-70) is normal trend." } },
   { key: "bb_bw",     label: "BB Band-Width",    group: "Technicals",numeric: true,  default: false,
-    tt: { label: "Bollinger band-width", body: "Width of the 20-day Bollinger bands, as a percent of the 20-day moving average. Compression below 5% is a squeeze setup." } },
+    tt: { label: "Bollinger band-width", body: "Width of the 20-day Bollinger bands as a percent of the 20-day moving average. <5% = compression / squeeze setup (cell turns amber) -- a break is coming, just not direction. >15% = expansion / trend in motion." } },
   { key: "rvol_20d",  label: "RVOL (20d)",       group: "Technicals",numeric: true,  default: false,
-    tt: { label: "Relative volume (20-day)", body: "Today's volume divided by the 20-day average volume. Above 1.5x is unusual activity." } },
+    tt: { label: "Relative volume (20-day)", body: "Today's volume divided by the 20-day average. >=1.5x = unusual activity (green); <0.7x = quiet (amber). 1.0x is exactly average." } },
   { key: "pct_50ma",  label: "% vs 50d MA",      group: "Technicals",numeric: true,  default: false,
-    tt: { label: "% vs 50-day moving average", body: "Today's close as a percent distance from the 50-day simple moving average." } },
+    tt: { label: "% vs 50-day moving average", body: "Today's close as a percent distance from the 50-day SMA. >+5% = uptrend; <-5% = downtrend; between = ranging. Color = direction." } },
   { key: "pct_200ma", label: "% vs 200d MA",     group: "Technicals",numeric: true,  default: false,
-    tt: { label: "% vs 200-day moving average", body: "Today's close as a percent distance from the 200-day simple moving average." } },
+    tt: { label: "% vs 200-day moving average", body: "Today's close as a percent distance from the 200-day SMA. >+10% = strong long-term trend up; <-10% = down-trend; between = sideways. Color = direction." } },
   { key: "ins_buys",  label: "Insider buys (#)", group: "Signals",   numeric: true,  default: false,
     tt: { label: "Insider buys (count)", body: "Number of Form 4 open-market buy events by company officers and directors in the recent window." } },
   { key: "ins_buy_$", label: "Insider buys ($)", group: "Signals",   numeric: true,  default: false,
@@ -1068,7 +1068,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
 
         {!loading && !error && allRows.length > 0 && (
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", overflow: "hidden" }}>
-            <div style={{ overflowX: "auto" }}>
+            <div style={{ overflowX: "auto", maxHeight: "70vh", overflowY: "auto" }}>
               <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 1400 }}>
                 <thead>
                   <tr>
@@ -1087,7 +1087,9 @@ export default function TradingOppsPage({ onOpenTicker }) {
                           onDrop={(e) => onDrop(e, k)}
                           onClick={(e) => { if (!e.target.classList.contains("mt-tt-body")) sortBy(k); }}
                           style={{
-                            position: "relative",
+                            position: "sticky",
+                            top: 0,
+                            zIndex: 5,
                             background: "var(--surface-2)",
                             fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
                             fontSize: 10,
@@ -1098,6 +1100,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                             padding: "11px 10px",
                             textAlign: c.numeric ? "right" : "left",
                             borderBottom: "1px solid var(--border)",
+                            boxShadow: "0 1px 0 var(--border)",
                             cursor: "pointer",
                             whiteSpace: "nowrap",
                             userSelect: "none",
@@ -1115,21 +1118,27 @@ export default function TradingOppsPage({ onOpenTicker }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {groupOrder.map(g => {
-                    const groupRows = sorted.filter(r => r.band_group === g);
-                    if (!groupRows.length) return null;
-                    return (
-                      <Fragment key={g}>
-                        <tr>
-                          <td colSpan={visibleCols.length} style={{ background: "var(--surface-2)", padding: "10px", borderBottom: "1px solid var(--border)", borderTop: "1px solid var(--border)" }}>
-                            <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 8 }}>
-                              <span style={{ width: 8, height: 8, borderRadius: "50%", background: groupMeta[g].dot }} />
-                              {groupMeta[g].label}
-                              <span style={{ fontWeight: 500, color: "var(--text-muted)", fontSize: 11 }}>&middot; {groupRows.length}</span>
-                            </span>
-                          </td>
-                        </tr>
-                        {groupRows.map(r => (
+                  {/* v5.3: group by band ONLY when sorting by the band-aware
+                      keys (score or band). When sorting by ticker / sector /
+                      RSI / anything else, render the full table flat -- per
+                      Joe's request: "sorting by ticker should not separate
+                      different bands". */}
+                  {(colState.sort.key === "score" || colState.sort.key === "band") ? (
+                    groupOrder.map(g => {
+                      const groupRows = sorted.filter(r => r.band_group === g);
+                      if (!groupRows.length) return null;
+                      return (
+                        <Fragment key={g}>
+                          <tr>
+                            <td colSpan={visibleCols.length} style={{ background: "var(--surface-2)", padding: "10px", borderBottom: "1px solid var(--border)", borderTop: "1px solid var(--border)" }}>
+                              <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 8 }}>
+                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: groupMeta[g].dot }} />
+                                {groupMeta[g].label}
+                                <span style={{ fontWeight: 500, color: "var(--text-muted)", fontSize: 11 }}>&middot; {groupRows.length}</span>
+                              </span>
+                            </td>
+                          </tr>
+                          {groupRows.map(r => (
                           <tr
                             key={r.ticker + "-" + g}
                             onClick={() => { if (typeof onOpenTicker === "function") onOpenTicker(r.ticker); }}
@@ -1160,7 +1169,36 @@ export default function TradingOppsPage({ onOpenTicker }) {
                         ))}
                       </Fragment>
                     );
-                  })}
+                  })
+                  ) : (
+                    // Flat sort branch -- no band headers between rows.
+                    sorted.map(r => (
+                      <tr
+                        key={r.ticker}
+                        onClick={() => { if (typeof onOpenTicker === "function") onOpenTicker(r.ticker); }}
+                        style={{ cursor: "pointer", transition: "background 0.12s" }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover)"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                      >
+                        {visibleCols.map(k => {
+                          const c = COLUMNS.find(x => x.key === k);
+                          return (
+                            <td key={k} style={{
+                              padding: "11px 10px",
+                              borderBottom: "1px solid var(--border-faint, var(--border))",
+                              color: "var(--text-2)",
+                              whiteSpace: "nowrap",
+                              textAlign: c?.numeric ? "right" : "left",
+                              fontVariantNumeric: c?.numeric ? "tabular-nums" : "normal",
+                              fontFamily: c?.numeric ? "var(--font-mono, JetBrains Mono, monospace)" : undefined,
+                            }}>
+                              {renderCell(r, k)}
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

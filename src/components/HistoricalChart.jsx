@@ -672,13 +672,10 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
               ]}
               onToggle={k => setMarkers(m => ({ ...m, [k]: !m[k] }))}
             />
-            <CustomizeGroup label="Display"
-              items={[
-                {key:"crosshair", label:"Crosshair", on:display.crosshair},
-                {key:"logScale",  label:"Log scale", on:display.logScale},
-              ]}
-              onToggle={k => setDisplay(d => ({ ...d, [k]: !d[k] }))}
-            />
+            {/* v5.3 (a): Crosshair + Log scale toggles removed -- they
+                weren't actually wired to anything. Crosshair is always on
+                via onMouseMove; the log-scale switch never reached the
+                y-axis renderer. */}
           </div>
         )}
 

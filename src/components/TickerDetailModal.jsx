@@ -206,13 +206,21 @@ function SignalIntelligenceRail({
     // sometimes not at all -- Joe couldn't get tooltips to show in UAT.
     // Switched to a React-controlled hover popover via the local
     // HoverTip component below.
+    // v5.3: each tooltip now spells out the gate / trigger thresholds we
+    // use, not just what the signal is.
     const SIGNAL_ORDER = [
-      { key: "insider",        label: "Insider buying",  tip: "Form 4 open-market buys and sells by company officers and directors. Highest-weighted signal -- best predictor in the backtest." },
-      { key: "technicals",     label: "Technicals",      tip: "20-day Bollinger BandWidth, 14-day RSI, distance to 50-day moving average, 20-day relative volume." },
-      { key: "analyst",        label: "Analyst actions", tip: "Recent upgrades, downgrades, and price-target changes from Wall Street equity research analysts." },
-      { key: "options",        label: "Options flow",    tip: "Unusual call and put premium vs open interest, plus sweep order count. Calibration pending while history backfills." },
-      { key: "congress",       label: "Congress trades", tip: "Disclosed buy and sell trades by US senators and representatives in the last 90 days. Calibration pending -- thin history." },
-      { key: "short_interest", label: "Short interest",  tip: "Percent of float sold short and the cost-to-borrow trend. Calibration pending -- sparse coverage." },
+      { key: "insider",        label: "Insider buying",
+        tip: "Form 4 open-market buys and sells by officers and directors over the trailing 30 days. Sub-score scales with dollar size as a fraction of market cap, capped at +/-100. 10b5-1 routine sales are filtered out. Bullish if buys dominate (positive sub-score); bearish if sells dominate. A 'first buy in 12 months' classifier amplifies the signal when an officer who hasn't bought recently steps in." },
+      { key: "technicals",     label: "Technicals",
+        tip: "Composite of four readings: 14-day RSI (overbought >70, oversold <30), Bollinger band-width (squeeze setup when <5% of price), distance to the 50-day moving average (above = trend, below = breakdown), and 20-day relative volume (unusual activity >=1.5x average). Each contributes points toward a -100/+100 sub-score." },
+      { key: "analyst",        label: "Analyst actions",
+        tip: "Net upgrades minus downgrades over the trailing 90 days, weighted by broker tier (top firms count 1.0x, major 0.7x, others 0.5x). Combined with the average price-target gap vs spot: targets >=15% above spot saturate bullish, <=-15% saturate bearish." },
+      { key: "options",        label: "Options flow",
+        tip: "30-day call vs put premium ratio (log-scale), ask-side vs bid-side bias, and unusual-size sweep count. Bullish when calls dominate AND sweeps hit the ask; bearish when puts dominate AND sweeps hit the bid. Calibration pending while the daily history backfills." },
+      { key: "congress",       label: "Congress trades",
+        tip: "Disclosed buy and sell trades by US senators and representatives over the trailing 90 days, weighted by tier and amount band. Cluster bonus when multiple unique members trade the same name in the same direction. Calibration pending -- thin history per name." },
+      { key: "short_interest", label: "Short interest",
+        tip: "Percent of float sold short and cost-to-borrow trend. Three regimes: rising SI + rising CTB above the 50-day moving average = bearish (smart money short); high SI + cheap borrow into earnings = bullish squeeze setup; falling SI + rising price = bullish capitulation. Calibration pending -- sparse coverage today." },
     ];
 
     // Cap-discount chip for mega-caps -- now reads weights_used.insider
@@ -388,15 +396,24 @@ function SignalIntelligenceRail({
     }
     const value = fmtSubSimple(sub);
     const gap = c.pt_gap_pct;
+    const ups   = Number(c.upgrades   || 0);
+    const downs = Number(c.downgrades || 0);
+    const inits = Number(c.initiations || 0);
+    const mts   = Number(c.maintained || 0);
     const bullets = [];
-    if (n) bullets.push(`${n} action${n===1?"":"s"} in 90d`);
+    if (ups || downs) bullets.push(`${ups} upgrade${ups===1?"":"s"} · ${downs} downgrade${downs===1?"":"s"}`);
+    else if (n) bullets.push(`${n} action${n===1?"":"s"} in 90d`);
     if (gap != null && Number.isFinite(Number(gap))) bullets.push(`target ${Number(gap)>=0?"+":""}${Number(gap).toFixed(0)}% vs spot`);
     const meta = bullets.length ? bullets.join(" · ") : "no analyst signal";
     const detail = (
       <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
         <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
         <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
-        <span style={{color:"var(--text-muted)"}}>Actions in last 90d</span><span style={{textAlign:"right"}}>{n}</span>
+        <span style={{color:"var(--text-muted)"}}>Total actions in last 90d</span><span style={{textAlign:"right"}}>{n}</span>
+        <span style={{color:"var(--text-muted)"}}>Upgrades</span><span style={{textAlign:"right",color: ups > 0 ? "var(--green-text, var(--green))" : "var(--text-2)"}}>{ups}</span>
+        <span style={{color:"var(--text-muted)"}}>Downgrades</span><span style={{textAlign:"right",color: downs > 0 ? "var(--red-text, var(--red))" : "var(--text-2)"}}>{downs}</span>
+        <span style={{color:"var(--text-muted)"}}>Initiations</span><span style={{textAlign:"right"}}>{inits}</span>
+        <span style={{color:"var(--text-muted)"}}>Maintained / reiterated</span><span style={{textAlign:"right"}}>{mts}</span>
         {c.spot != null && <><span style={{color:"var(--text-muted)"}}>Spot</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>${Number(c.spot).toFixed(2)}</span></>}
         {c.avg_target != null && <><span style={{color:"var(--text-muted)"}}>Avg price target</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>${Number(c.avg_target).toFixed(2)}</span></>}
         {gap != null && Number.isFinite(Number(gap)) && (
@@ -778,33 +795,6 @@ function SignalIntelligenceRail({
       </div>
       <SignalCard title="MacroTilt Signal" {...mtSignalTile} ragColor={ragColor} />
       <SignalCard title="Insider Activity" {...insiderTile} ragColor={ragColor} />
-      <SignalCard title="Analyst Actions" {...analystTile} ragColor={ragColor} />
-      <SignalCard title="Short Interest" {...siTile} ragColor={ragColor} />
-      <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
-        const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
-        const fmtBeta = v => v == null ? "—" : v.toFixed(2);
-        const fmt$ = v => v == null ? null : "$" + Math.round(v).toLocaleString();
-        const Row = ({ label, val, color }) => (
-          <div style={{display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"center",fontSize:12}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{label}</span>
-            <span style={{color:"var(--text)"}}>{val}</span>
-            <span style={{width:8,height:8,borderRadius:"50%",background:ragColor(color)}}/>
-          </div>
-        );
-        return (
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            <Row label="Beta · vs SPY"  val={fmtBeta(detail.beta)}             color={detail.flags.beta}/>
-            <Row label="Annualized vol" val={fmtPctMag(detail.annVol)}         color={detail.flags.annVol}/>
-            <Row label="Max drawdown"   val={fmtPctMag(detail.maxDD)}          color={detail.flags.maxDD}/>
-            <Row label="10-day 99% VaR" val={fmtPctMag(detail.var10d99) + (detail.var$ ? " · ~" + fmt$(detail.var$) : "")} color={detail.flags.var10}/>
-            {detail.sourceWindow && (
-              <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
-                Source: Yahoo daily · {detail.sourceWindow}
-              </div>
-            )}
-          </div>
-        );
-      }} />
       <SignalCard title="Technical Indicators" {...techTile} ragColor={ragColor} renderDetail={detail => (
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
           {detail.map((r,i)=>(
@@ -816,6 +806,7 @@ function SignalIntelligenceRail({
           ))}
         </div>
       )} />
+      <SignalCard title="Analyst Actions" {...analystTile} ragColor={ragColor} />
       <SignalCard title="Unusual Flow" {...flowTile} ragColor={ragColor} renderDetail={detail => {
         // LESSONS rule #33 — every category section ALWAYS renders with an
         // explicit empty-state line when no events. Never silently hide a
@@ -913,6 +904,32 @@ function SignalIntelligenceRail({
                      sign="neutral" amt={fmtMoney(r.premium) || "—"} />
               ))}
             </Section>
+          </div>
+        );
+      }} />
+      <SignalCard title="Short Interest" {...siTile} ragColor={ragColor} />
+      <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
+        const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
+        const fmtBeta = v => v == null ? "—" : v.toFixed(2);
+        const fmt$ = v => v == null ? null : "$" + Math.round(v).toLocaleString();
+        const Row = ({ label, val, color }) => (
+          <div style={{display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"center",fontSize:12}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{label}</span>
+            <span style={{color:"var(--text)"}}>{val}</span>
+            <span style={{width:8,height:8,borderRadius:"50%",background:ragColor(color)}}/>
+          </div>
+        );
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <Row label="Beta · vs SPY"  val={fmtBeta(detail.beta)}             color={detail.flags.beta}/>
+            <Row label="Annualized vol" val={fmtPctMag(detail.annVol)}         color={detail.flags.annVol}/>
+            <Row label="Max drawdown"   val={fmtPctMag(detail.maxDD)}          color={detail.flags.maxDD}/>
+            <Row label="10-day 99% VaR" val={fmtPctMag(detail.var10d99) + (detail.var$ ? " · ~" + fmt$(detail.var$) : "")} color={detail.flags.var10}/>
+            {detail.sourceWindow && (
+              <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
+                Source: Yahoo daily · {detail.sourceWindow}
+              </div>
+            )}
           </div>
         );
       }} />

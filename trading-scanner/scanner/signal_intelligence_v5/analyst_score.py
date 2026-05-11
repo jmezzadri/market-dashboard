@@ -165,10 +165,31 @@ def compute_analyst_signal(rows: list[dict[str, Any]],
     if not rows and spot is None:
         return None, {"reason": "no_data"}
 
-    # 1. Action component
+    # 1. Action component + v5.3 breakdown counts so the modal tile can
+    # show "5 upgrades · 1 downgrade" instead of just "X actions".
+    up_count = down_count = init_count = maintained_count = 0
     if rows:
-        action_raw = sum(_action_pts(r) for r in rows)
+        per_row = [_action_pts(r) for r in rows]
+        action_raw = sum(per_row)
         action_pts = _clamp(action_raw * ACTION_SCALE, -ACTION_MAX, ACTION_MAX)
+        for r, pts in zip(rows, per_row):
+            a = (r.get("action") or "").strip().lower()
+            if a == "upgraded":
+                up_count += 1
+            elif a == "downgraded":
+                down_count += 1
+            elif a == "initiated":
+                init_count += 1
+            elif a in ("maintained", "reiterated"):
+                maintained_count += 1
+            else:
+                # Fallback: classify by the points contribution sign.
+                if pts > 0:
+                    up_count += 1
+                elif pts < 0:
+                    down_count += 1
+                else:
+                    maintained_count += 1
     else:
         action_raw = 0.0
         action_pts = 0.0
@@ -193,6 +214,10 @@ def compute_analyst_signal(rows: list[dict[str, Any]],
 
     components = {
         "action_count": len(rows),
+        "upgrades": up_count,
+        "downgrades": down_count,
+        "initiations": init_count,
+        "maintained": maintained_count,
         "action_raw_points": round(action_raw, 2),
         "action_pts": round(action_pts, 2),
         "spot": round(spot, 2) if spot is not None else None,
