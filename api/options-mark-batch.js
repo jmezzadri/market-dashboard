@@ -154,10 +154,10 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!process.env.SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    if (!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL) || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
       res.status(500).json({
         error: "supabase env missing",
-        have_url: !!process.env.SUPABASE_URL,
+        have_url: !!(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
         have_key: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
       });
       return;
@@ -168,7 +168,7 @@ export default async function handler(req, res) {
     }
 
     const supabase = createClient(
-      process.env.SUPABASE_URL,
+      (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL),
       process.env.SUPABASE_SERVICE_ROLE_KEY,
       { auth: { persistSession: false } }
     );
