@@ -1,14 +1,7 @@
-// ScannerTilesStrip — compact 4-tile row for Trading Opps page header.
-//
-// Surfaces the four signal feeds that previously lived as a 2x2 tile grid on
-// the standalone Scanner page (Congress · Insiders · Flow · Technicals).
-// The Scanner route is still mounted (#scanner) and owns the full detail
-// tables; this strip is the new entry point into those views from the top of
-// Trading Opps.
-//
-// Tile click writes the requested detail view to sessionStorage and routes
-// the user to #scanner. Scanner.jsx reads the marker on mount and jumps
-// straight into the right tab. No nav re-architecture, no duplicated detail.
+// ScannerTilesStrip — compact 4-tile row that sits just above the
+// Trading Opps filter chip bar. Surfaces the four signal feeds (Congress,
+// Insiders, Flow, Technicals) with title + count. Click a tile -> parent
+// opens the matching detail tab in a Scanner modal.
 //
 // Compact spec: forced 4-column grid >= 1024px, 2x2 < 1024px, smaller
 // padding / font scale than the legacy Scanner landing.
@@ -29,29 +22,6 @@ const TILES = [
 
 // Congress amount strings are bucket ranges ("$1,001 - $15,000"); take the
 // midpoint so the top trade can be ranked by approximate dollar size.
-// ── Tile click → jump into the inline Scanner detail view ──────────────────
-// The standalone /#scanner route was retired; Scanner.jsx now mounts inline
-// at the bottom of /#portopps. Clicking a strip tile:
-//   1. fires a window event Scanner.jsx listens for and uses to call setView
-//      ("congress" | "insiders" | "flow" | "technicals")
-//   2. smooth-scrolls the page down to the inline Scanner anchor so the
-//      detail view is on screen
-// A sessionStorage fallback covers the rare case where the user is not on
-// /#portopps when the click happens (Scanner reads it on its next mount).
-function openScannerView(viewId) {
-  try {
-    sessionStorage.setItem("mt:scanner:initial-view", viewId);
-  } catch (_) { /* private mode etc. */ }
-  // Fire the in-page event for the live Scanner instance.
-  try {
-    window.dispatchEvent(new CustomEvent("mt:scanner:set-view", { detail: { view: viewId } }));
-  } catch (_) { /* IE-ish browsers */ }
-  // Smooth-scroll to the inline Scanner anchor (added in App.jsx).
-  const anchor = document.getElementById("mt-inline-scanner");
-  if (anchor && typeof anchor.scrollIntoView === "function") {
-    anchor.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
-}
 
 // ── Tile shell ─────────────────────────────────────────────────────────────
 function TileShell({ meta, kpi, kpiUnit, kpiColor, children, onClick }) {
@@ -120,7 +90,7 @@ function TileShell({ meta, kpi, kpiUnit, kpiColor, children, onClick }) {
 }
 
 // ── Main component ────────────────────────────────────────────────────────
-export default function ScannerTilesStrip() {
+export default function ScannerTilesStrip({ onTileClick }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -166,7 +136,7 @@ export default function ScannerTilesStrip() {
           kpi={loading ? "—" : congressN}
           kpiUnit={loading ? "" : "trades"}
           kpiColor={congressN > 0 ? "var(--accent)" : "var(--text-muted)"}
-          onClick={() => openScannerView("congress")}
+          onClick={() => onTileClick && onTileClick("congress")}
         />
 
         {/* Insiders */}
@@ -175,7 +145,7 @@ export default function ScannerTilesStrip() {
           kpi={loading ? "—" : insiderN}
           kpiUnit={loading ? "" : "Form 4s"}
           kpiColor={insiderN > 0 ? "#bf5af2" : "var(--text-muted)"}
-          onClick={() => openScannerView("insiders")}
+          onClick={() => onTileClick && onTileClick("insiders")}
         />
 
         {/* Flow */}
@@ -184,7 +154,7 @@ export default function ScannerTilesStrip() {
           kpi={loading ? "—" : flowN}
           kpiUnit={loading ? "" : "alerts"}
           kpiColor={flowN > 0 ? "#ff9f0a" : "var(--text-muted)"}
-          onClick={() => openScannerView("flow")}
+          onClick={() => onTileClick && onTileClick("flow")}
         />
 
         {/* Technicals */}
@@ -193,7 +163,7 @@ export default function ScannerTilesStrip() {
           kpi={loading ? "—" : techN}
           kpiUnit={loading ? "" : "scored"}
           kpiColor={techN > 0 ? "#B8860B" : "var(--text-muted)"}
-          onClick={() => openScannerView("technicals")}
+          onClick={() => onTileClick && onTileClick("technicals")}
         />
       </div>
 
