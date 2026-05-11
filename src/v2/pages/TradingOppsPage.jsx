@@ -357,6 +357,7 @@ async function _fetchScanDataOnce() {
             .from("signal_intel_v5_daily")
             .select("*")
             .eq("scan_date", latest)
+            .in("band", ["Strong Buy", "Watch Buy", "Watch Sell", "Strong Sell"])
             .order("mt_score", { ascending: false, nullsFirst: false })
             .range(from, from + PAGE - 1);
           if (r.error) throw r.error;
@@ -433,17 +434,45 @@ async function _fetchScanDataOnce() {
           if (Number.isFinite(Number(mt?.count))) massiveTotal = Number(mt.count);
         } catch (_) { /* leave null */ }
 
-        const universeV5 = scanRows.length;
+        // Fetch ALL bands (just the band column, not full rows) so the funnel
+        // and band tiles still show the true totals even though the table is
+        // filtered to actionable rows only. One small round-trip, ~30KB.
+        let allBandsCounts = { strong_buy: 0, watch_buy: 0, watch_sell: 0, strong_sell: 0, neutral: 0, insufficient: 0, total: 0 };
+        try {
+          let allBandRows = [];
+          for (let from = 0; from < 20000; from += 1000) {
+            const r = await supabase
+              .from("signal_intel_v5_daily")
+              .select("band")
+              .eq("scan_date", latest)
+              .range(from, from + 999);
+            if (r.error) break;
+            if (!r.data || r.data.length === 0) break;
+            allBandRows = allBandRows.concat(r.data);
+            if (r.data.length < 1000) break;
+          }
+          allBandsCounts.total = allBandRows.length;
+          for (const b of allBandRows) {
+            if (b.band === "Strong Buy")        allBandsCounts.strong_buy++;
+            else if (b.band === "Watch Buy")    allBandsCounts.watch_buy++;
+            else if (b.band === "Watch Sell")   allBandsCounts.watch_sell++;
+            else if (b.band === "Strong Sell")  allBandsCounts.strong_sell++;
+            else if (b.band === "Insufficient Data") allBandsCounts.insufficient++;
+            else                                 allBandsCounts.neutral++;
+          }
+        } catch (_) { /* leave zeros */ }
+
+        const universeV5 = allBandsCounts.total || scanRows.length;
         const totals = {
           massive_total:      massiveTotal,
           universe_v5:        universeV5,
           scored_with_mt:     scanRows.filter(r => r.mt_score != null && Number.isFinite(Number(r.mt_score))).length,
-          insufficient:       scanRows.filter(r => r.band === "Insufficient Data").length,
-          strong_buy:   scanRows.filter(r => r.band === "Strong Buy").length,
-          watch_buy:    scanRows.filter(r => r.band === "Watch Buy").length,
-          neutral:      scanRows.filter(r => r.band === "Neutral").length,
-          watch_sell:   scanRows.filter(r => r.band === "Watch Sell").length,
-          strong_sell:  scanRows.filter(r => r.band === "Strong Sell").length,
+          insufficient:       allBandsCounts.insufficient,
+          strong_buy:         allBandsCounts.strong_buy,
+          watch_buy:          allBandsCounts.watch_buy,
+          neutral:            allBandsCounts.neutral,
+          watch_sell:         allBandsCounts.watch_sell,
+          strong_sell:        allBandsCounts.strong_sell,
         };
 
         _scanCache.state = { rows: shaped, scanDate: latest, loading: false, error: null, totals };
@@ -1098,7 +1127,6 @@ export default function TradingOppsPage({ onOpenTicker }) {
     { f: "all",          label: "All" },
     { f: "strong_buy",   label: "Strong Buy" },
     { f: "watch_buy",    label: "Buy Watch" },
-    { f: "neutral",      label: "Neutral" },
     { f: "watch_sell",   label: "Sell Watch" },
     { f: "strong_sell",  label: "Strong Sell" },
   ];
