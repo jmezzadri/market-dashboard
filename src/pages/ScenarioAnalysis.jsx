@@ -907,12 +907,12 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     inflation_2022:        "Inflation ('22)",
     ai_2024:               "AI Correction ('24)",
   };
-  const _eyebrow = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase", marginBottom:14 };
-  const _h1 = { fontFamily:"var(--font-display)", fontWeight:400, fontSize:"clamp(28px, 3.4vw, 38px)", lineHeight:1.18, letterSpacing:"-0.012em", color:"var(--text)", margin:"0 0 12px" };
+  const _eyebrow = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase", marginBottom:6 };
+  const _h1 = { fontFamily:"var(--font-display)", fontWeight:400, fontSize:"clamp(22px, 2.4vw, 28px)", lineHeight:1.22, letterSpacing:"-0.012em", color:"var(--text)", margin:"0 0 0" };
   const _emItalic = { fontStyle:"italic", color:"var(--accent)", fontWeight:500 };
   const _subtitle = { fontFamily:"var(--font-ui)", fontSize:16, color:"var(--text-2)", lineHeight:1.55, margin:"10px 0 0", maxWidth:720 };
-  const _rightCard = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:12, padding:"18px 20px 14px", display:"flex", flexDirection:"column" };
-  const _cardEyebrow = { fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.18em", marginBottom:14, textAlign:"center" };
+  const _rightCard = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:12, padding:"12px 14px 10px", display:"flex", flexDirection:"column" };
+  const _cardEyebrow = { fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.18em", marginBottom:8, textAlign:"center" };
   const _scenBtn = (active) => ({
     fontFamily:"var(--font-ui)", fontSize:11, fontWeight:500,
     padding:"8px 10px", borderRadius:6,
@@ -977,7 +977,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
       <main className="scenarios-page" style={{ maxWidth: 1216, margin: "0 auto", padding: "24px 32px 48px" }}>
         {/* HERO — eyebrow + h1 + subtitle on left, Scenario Selection card on right.
             Matches MO/AT/TO hero spec (PR #483). */}
-        <section style={{ display:"grid", gridTemplateColumns:"1fr 360px", gap:36, alignItems:"start", marginBottom:32 }}>
+        <section style={{ display:"grid", gridTemplateColumns:"1fr 340px", gap:24, alignItems:"start", marginBottom:14 }}>
           <div style={{ minWidth:0 }}>
             <div style={_eyebrow}>Scenario Analysis</div>
             <h1 style={_h1}>
