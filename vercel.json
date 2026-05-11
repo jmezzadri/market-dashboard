@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/options-mark-batch",
+      "schedule": "30 20 * * 1-5"
+    }
+  ]
+}
