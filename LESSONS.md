@@ -677,3 +677,32 @@ the implementation through to production. Specifically:
 
 **Applies to:** All multi-PR sequences that follow a strategic Joe
 directive. The merge step is implicit in "yes do this."
+---
+
+## 2026-05-11 — Don't insert unsolicited "helper" UX onto random surfaces
+
+**What happened:** While fixing real bugs on the Macro Overview headline
+modal (stale captions, blank charts), I also inserted a "What to do about
+it → Scenario Analysis" accent callout. Joe didn't ask for it. His
+response: "I hate it - Remove this. Half ass bullshit you start adding
+to random places on the website. DONT DO THIS AGAIN."
+
+**What you should do instead:** When fixing a specific bug or filling a
+specific request, ship only the things asked for. Helpful-seeming
+additions — explanatory callouts, navigation hints, cross-tab links,
+empty-state copy that wasn't requested — are not in scope. They land
+as clutter, dilute Joe's mental model of the page, and signal that the
+agent is editorializing rather than executing. Specifically:
+
+1. If a fix is "rewrite this caption," don't also add a callout, a tip,
+   an arrow link, or any new component to the surface.
+2. If a feature request is "make X clickable," don't also add explanatory
+   prose underneath, a tutorial line, or a related-content footer.
+3. The bar for adding new UX surface is an explicit Joe ask. "I think this
+   would help" is not an ask.
+4. Scope creep is silent. Removing it later costs another PR and reads as
+   churn. Don't add it in the first place.
+
+**Applies to:** All UI work. UX Designer and Lead Developer both bind to
+this rule. Sign-off on a PR with unsolicited UX additions should fail
+the sub-composite check.
