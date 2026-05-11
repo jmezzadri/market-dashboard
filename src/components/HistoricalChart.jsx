@@ -103,7 +103,10 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const customizeRef = useRef(null);
   const customizeBtnRef = useRef(null);
-  const DEFAULT_OVERLAYS = { ma50: true, ma200: true, bollinger: false };
+  // v5.4: chart defaults to a CLEAN view -- just the price line. Joe's
+  // call: "default the chart to actually being clean. remove the 50d
+  // and 200d MA." Overlays remain toggleable in the customize panel.
+  const DEFAULT_OVERLAYS = { ma50: false, ma200: false, bollinger: false }; // v5.4: clean default
   const DEFAULT_SUBPANES = { rsi: false, volume: false };
   const DEFAULT_MARKERS  = { earnings: false, dividends: false, splits: false };
   const DEFAULT_DISPLAY  = { crosshair: true, logScale: false };
@@ -672,13 +675,10 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
               ]}
               onToggle={k => setMarkers(m => ({ ...m, [k]: !m[k] }))}
             />
-            <CustomizeGroup label="Display"
-              items={[
-                {key:"crosshair", label:"Crosshair", on:display.crosshair},
-                {key:"logScale",  label:"Log scale", on:display.logScale},
-              ]}
-              onToggle={k => setDisplay(d => ({ ...d, [k]: !d[k] }))}
-            />
+            {/* v5.3 (a): Crosshair + Log scale toggles removed -- they
+                weren't actually wired to anything. Crosshair is always on
+                via onMouseMove; the log-scale switch never reached the
+                y-axis renderer. */}
           </div>
         )}
 

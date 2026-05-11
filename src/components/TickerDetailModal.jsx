@@ -57,76 +57,585 @@ function SignalIntelligenceRail({
   // that drives the Macro Overview page. Bands per v11 footer: 0-25 Risk-on,
   // 25-50 Neutral, 50-75 Caution, 75-100 Risk-off (lower = better, opposite of
   // the deprecated 3-composite scale).
-  // Tile 1 — MacroTilt Signal (replaces legacy Macro Composite per Joe directive 2026-05-10).
-  // Pulls from signal_intel_daily for the current ticker.
+  // Tile 1 — MacroTilt Signal (v5 — six signals + bidirectional bands).
+  // Reads from signal_intel_v5_daily.
+  //
+  // v5.1 fixes (2026-05-10, per Joe's UAT):
+  //   - Default state collapsed (defaultOpen removed at render site).
+  //   - Generic signal descriptions moved to hover tooltips.
+  //   - Per-signal row shows ACTUAL numbers (e.g. "3 buys / 1 sell" for
+  //     insider) from `diagnostic.scorer_components`, not a generic blurb.
+  //   - Insider weight readout now reads `weights_used.insider` directly
+  //     instead of recomputing 0.363 * capDisc (which diverged from the
+  //     table when the daily scan ran on equal-weight defaults).
+  //   - Handles the new "Insufficient Data" band emitted when coverage
+  //     drops below the honest-score threshold (3 of 6 signals AND >=40%
+  //     of combined weight).
   const mtSignalTile = (() => {
     const sig = mtSignal;
-    if (!sig) return { state: "loading", value: "…", meta: "Loading MacroTilt signal", detail: null };
-    const score = Number(sig.score) || 0;
-    const band = sig.band || "Not Surfaced";
-    const surfacingZone = sig.surfacing_zone === true;
-    const mcap = Number(sig.market_cap);
-    const inZone = Number.isFinite(mcap) && mcap >= 300_000_000 && mcap <= 3_000_000_000;
-    const state = band === "High Conviction" ? "green" : band === "Watch" ? "amber" : "neutral";
-    const value = `${score}/65`;
-    const meta = inZone
-      ? `${band} · validated zone ($300M-$3B)`
-      : `${band} · outside validated zone — for reference`;
-    const gd = sig.gate_diagnostic || {};
-    const pd = sig.pillar_diagnostic || {};
-    const filterRow = (label, pass, note) => ({ label, pass, note });
-    const filters = [
-      filterRow("Insider first-buy", gd?.insider_first_buy?.pass, gd?.insider_first_buy?.has_p_buy_30d ? "buy in 30d" : "no qualifying buy"),
-      filterRow("Liquidity", gd?.liquidity?.pass, "price > $5 · 22d avg vol > 500k"),
-      filterRow("Index hedge", gd?.index_hedge?.pass !== false, "not in SPY/QQQ/IWM/DIA/VTI"),
+    if (!sig) return { state: "loading", value: "...", meta: "Loading MacroTilt signal", detail: null };
+    const subs    = sig.sub_scores || {};
+    const weights = sig.weights_used || {};
+    const capDisc = Number(sig.cap_discount);
+    const mcap    = Number(sig.market_cap);
+    const comps   = (sig.diagnostic && sig.diagnostic.scorer_components) || {};
+    const score   = Number(sig.mt_score);
+    const band    = sig.band || (Number.isFinite(score) ? "Neutral" : "No Data");
+
+    // Five-band coloring + 7th "Insufficient Data" amber.
+    const stateForBand = (b) =>
+      b === "Strong Buy"        ? "green"
+    : b === "Watch Buy"         ? "amber"
+    : b === "Strong Sell"       ? "red"
+    : b === "Watch Sell"        ? "amber"
+    : b === "Insufficient Data" ? "amber"
+    : "neutral";
+    const state = stateForBand(band);
+
+    // Headline value: numeric score OR "—" for missing/insufficient.
+    const value = Number.isFinite(score)
+      ? `${score > 0 ? "+" : ""}${score.toFixed(0)}`
+      : "—";
+    // v5.1 (e): Joe wants the so_what summary OUT of the tile header strip
+    // (was reading like a sentence-long header). The plain band label is
+    // enough at a glance; the full so_what stays inside the expanded panel.
+    const meta = band;
+
+    // Format helpers.
+    const fmtSub = (v) => {
+      if (v == null || !Number.isFinite(Number(v))) return null;
+      const n = Number(v);
+      return `${n > 0 ? "+" : ""}${n.toFixed(0)}`;
+    };
+    const subColor = (v) => {
+      if (v == null || !Number.isFinite(Number(v))) return "var(--text-dim)";
+      const n = Number(v);
+      if (n >=  50) return "var(--green-text, var(--green))";
+      if (n >=  20) return "var(--yellow-text, var(--text))";
+      if (n <= -50) return "var(--red-text, var(--red))";
+      if (n <= -20) return "var(--yellow-text, var(--text))";
+      return "var(--text-muted)";
+    };
+    const fmtWeight = (w) => {
+      if (w == null || !Number.isFinite(Number(w))) return "—";
+      return `${(Number(w) * 100).toFixed(1)}%`;
+    };
+    const fmtMoney = (n) => {
+      const x = Number(n);
+      if (!Number.isFinite(x) || x === 0) return null;
+      if (Math.abs(x) >= 1e9) return `$${(x/1e9).toFixed(1)}B`;
+      if (Math.abs(x) >= 1e6) return `$${(x/1e6).toFixed(1)}M`;
+      if (Math.abs(x) >= 1e3) return `$${(x/1e3).toFixed(0)}K`;
+      return `$${x.toFixed(0)}`;
+    };
+
+    // Per-signal "actual result" line — built from diagnostic.scorer_components.
+    // Falls back to "—" when no data.
+    const resultLine = (key) => {
+      const c = comps[key] || {};
+      if (key === "insider") {
+        const buys  = Number(c.buy_count || 0);
+        const sells = Number(c.sell_count || 0);
+        if (buys === 0 && sells === 0) return null;
+        const buy$  = fmtMoney(c.buy_dollar_total);
+        const sell$ = fmtMoney(c.sell_dollar_total);
+        const firstBuy = c.first_buy_fires ? " · first buy in 12mo" : "";
+        const parts = [];
+        if (buys)  parts.push(`${buys} buy${buys===1?"":"s"}${buy$  ? ` (${buy$})`  : ""}`);
+        if (sells) parts.push(`${sells} sell${sells===1?"":"s"}${sell$ ? ` (${sell$})` : ""}`);
+        return parts.join(" · ") + firstBuy;
+      }
+      if (key === "analyst") {
+        const n   = Number(c.action_count || 0);
+        if (n === 0) return null;
+        const gap = c.pt_gap_pct;
+        const gapStr = (gap != null && Number.isFinite(Number(gap)))
+          ? ` · target ${Number(gap) >= 0 ? "+" : ""}${Number(gap).toFixed(0)}% vs spot`
+          : "";
+        return `${n} action${n===1?"":"s"} in 90d${gapStr}`;
+      }
+      if (key === "technicals") {
+        const rsi  = c.rsi14;
+        const bw   = c.bb_bandwidth;
+        const rv   = c.rvol_20d;
+        const parts = [];
+        if (rsi != null) parts.push(`RSI ${Number(rsi).toFixed(0)}`);
+        if (bw  != null) parts.push(`band width ${(Number(bw)*100).toFixed(1)}%`);
+        if (rv  != null) parts.push(`RVOL ${Number(rv).toFixed(2)}×`);
+        return parts.length ? parts.join(" · ") : null;
+      }
+      if (key === "options") {
+        const callP = Number(c.call_premium || 0);
+        const putP  = Number(c.put_premium  || 0);
+        const sw    = Number(c.sweep_count   || 0);
+        if (callP === 0 && putP === 0 && sw === 0) return null;
+        const parts = [];
+        const callStr = fmtMoney(callP);
+        const putStr  = fmtMoney(putP);
+        if (callStr) parts.push(`calls ${callStr}`);
+        if (putStr)  parts.push(`puts ${putStr}`);
+        if (sw)      parts.push(`${sw} sweep${sw===1?"":"s"}`);
+        return parts.join(" · ");
+      }
+      if (key === "congress") {
+        const b = Number(c.buy_count || 0);
+        const s = Number(c.sell_count || 0);
+        const u = Number(c.unique_buyers || 0);
+        if (b === 0 && s === 0) return null;
+        const parts = [];
+        if (b) parts.push(`${b} buy${b===1?"":"s"}`);
+        if (s) parts.push(`${s} sell${s===1?"":"s"}`);
+        if (u) parts.push(`${u} unique members`);
+        return parts.join(" · ");
+      }
+      if (key === "short_interest") {
+        const si  = c.latest_si_pct_of_float;
+        const ctb = c.latest_ctb_pct;
+        const reg = c.regime;
+        const parts = [];
+        if (si  != null) parts.push(`${Number(si).toFixed(1)}% of float short`);
+        if (ctb != null) parts.push(`cost-to-borrow ${Number(ctb).toFixed(1)}%`);
+        if (reg)         parts.push(String(reg).replace(/_/g, " "));
+        return parts.length ? parts.join(" · ") : null;
+      }
+      return null;
+    };
+
+    // Signal display order + label + hover tooltip text.
+    // v5.1 (e): the native title attribute fires after ~1.5s of dwell and
+    // sometimes not at all -- Joe couldn't get tooltips to show in UAT.
+    // Switched to a React-controlled hover popover via the local
+    // HoverTip component below.
+    // v5.3: each tooltip now spells out the gate / trigger thresholds we
+    // use, not just what the signal is.
+    const SIGNAL_ORDER = [
+      { key: "insider",        label: "Insider buying",
+        tip: "Form 4 open-market buys and sells by officers and directors over the trailing 30 days. Sub-score scales with dollar size as a fraction of market cap, capped at +/-100. 10b5-1 routine sales are filtered out. Bullish if buys dominate (positive sub-score); bearish if sells dominate. A 'first buy in 12 months' classifier amplifies the signal when an officer who hasn't bought recently steps in." },
+      { key: "technicals",     label: "Technicals",
+        tip: "Composite of four readings: 14-day RSI (overbought >70, oversold <30), Bollinger band-width (squeeze setup when <5% of price), distance to the 50-day moving average (above = trend, below = breakdown), and 20-day relative volume (unusual activity >=1.5x average). Each contributes points toward a -100/+100 sub-score." },
+      { key: "analyst",        label: "Analyst actions",
+        tip: "Net upgrades minus downgrades over the trailing 90 days, weighted by broker tier (top firms count 1.0x, major 0.7x, others 0.5x). Combined with the average price-target gap vs spot: targets >=15% above spot saturate bullish, <=-15% saturate bearish." },
+      { key: "options",        label: "Options flow",
+        tip: "30-day call vs put premium ratio (log-scale), ask-side vs bid-side bias, and unusual-size sweep count. Bullish when calls dominate AND sweeps hit the ask; bearish when puts dominate AND sweeps hit the bid. Calibration pending while the daily history backfills." },
+      { key: "congress",       label: "Congress trades",
+        tip: "Disclosed buy and sell trades by US senators and representatives over the trailing 90 days, weighted by tier and amount band. Cluster bonus when multiple unique members trade the same name in the same direction. Calibration pending -- thin history per name." },
+      { key: "short_interest", label: "Short interest",
+        tip: "Percent of float sold short and cost-to-borrow trend. Three regimes: rising SI + rising CTB above the 50-day moving average = bearish (smart money short); high SI + cheap borrow into earnings = bullish squeeze setup; falling SI + rising price = bullish capitulation. Calibration pending -- sparse coverage today." },
     ];
-    const signalRow = (label, fired, points, note) => ({ label, fired, points, note });
-    const signals = [
-      signalRow("Aggression", !!pd?.aggression?.fired, 25, pd?.aggression?.rvol != null ? `RVOL ${Number(pd.aggression.rvol).toFixed(2)}x · threshold 1.5x` : "RVOL > 1.5x"),
-      signalRow("Squeeze", !!pd?.squeeze?.fired, 20, pd?.squeeze?.bbw != null ? `BB ${Number(pd.squeeze.bbw*100).toFixed(1)}% · threshold <4%` : "Bollinger BandWidth < 4%"),
-      signalRow("Momentum", !!pd?.momentum?.fired, 20, pd?.momentum?.rsi != null ? `RSI ${Number(pd.momentum.rsi).toFixed(0)} · 50-SMA cross` : "Close > 50-SMA AND RSI 40-70"),
-    ];
-    const insiderDol = Number(gd?.insider_first_buy?.total_dollar) || 0;
-    const insThreshold = Math.max(0.0002 * (Number.isFinite(mcap) ? mcap : 0), 500_000);
+
+    // Cap-discount chip for mega-caps -- now reads weights_used.insider
+    // directly so it matches the table column exactly, AND uses the real
+    // Tip component (portal-rendered, fast hover) instead of the title
+    // attribute (slow OS-level tooltip that Joe couldn't get to fire).
+    const liveInsiderW = Number(weights.insider);
+    const showCapNote =
+      Number.isFinite(capDisc) && capDisc < 0.999 && Number.isFinite(liveInsiderW);
+    const capNote = showCapNote ? (() => {
+      const capStr = Number.isFinite(mcap) && mcap > 0
+        ? (mcap >= 1e12 ? `$${(mcap/1e12).toFixed(1)}T` : mcap >= 1e9 ? `$${(mcap/1e9).toFixed(0)}B` : `$${(mcap/1e6).toFixed(0)}M`)
+        : "this cap";
+      return (
+        <Tip
+          label="Insider cap-discount mechanism"
+          def={"At a $500M cap the insider weight is at full strength. By $50B it has dropped to half, and by $500B it is one-quarter. The freed weight is redistributed pro-rata to the other five signals so the total always sums to 100%. Anchor: Lakonishok & Lee 2001 -- a $1M insider buy moves the dial at a $500M company but is rounding error at $500B."}
+        >
+          <span style={{display:"inline-flex",alignItems:"center",gap:6,padding:"4px 9px",borderRadius:999,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-2)",fontSize:11,lineHeight:1.3,cursor:"help",fontWeight:600}}>
+            Insider weight {(liveInsiderW * 100).toFixed(1)}% at {capStr}
+            <span style={{width:13,height:13,borderRadius:"50%",border:"1px solid var(--text-dim)",color:"var(--text-dim)",fontSize:9,display:"inline-flex",alignItems:"center",justifyContent:"center",lineHeight:1,fontWeight:400}}>i</span>
+          </span>
+        </Tip>
+      );
+    })() : null;
+
+    // v5.2: no more Insufficient Data banner -- every stock gets a score
+    // under the simpler "missing = 0 contribution" math.
+    const insufficientNote = null;
+
+    // v5.1 (e): the so_what plain-English summary that used to sit in the
+    // tile header (`band - so_what`) now lives inside the expanded panel,
+    // above the signals table. Joe wanted the header strip stripped down
+    // to just the band.
+    const soWhatLine = sig.so_what && band !== "Insufficient Data" ? (
+      <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-2)",fontSize:12,lineHeight:1.45,fontStyle:"italic"}}>
+        {sig.so_what}
+      </div>
+    ) : null;
+
+    // v5.1 (e): MT Signal tile is now just the COMPOSITE math (no per-signal
+    // "today's reading" -- that data lives in the dedicated Insider / Analyst /
+    // Short Interest / Technical Indicators / Unusual Flow tiles below).
+    // Joe rightly pointed out we had Technical Indicators + Unusual Flow as
+    // separate tiles AND were re-rendering the same data inside MT Signal,
+    // which made the tile look like a crammed catch-all.
     const detail = (
       <div style={{display:"flex",flexDirection:"column",gap:10,fontSize:12}}>
-        {!inZone && (
-          <div style={{padding:"8px 10px",borderRadius:8,background:"var(--surface-3)",border:"1px solid var(--border-faint, var(--border))",color:"var(--text-muted)",fontSize:11.5,lineHeight:1.45}}>
-            <b style={{color:"var(--text-2)"}}>Score shown for reference.</b> The Watch / High Conviction surfacing tags are validated only for stocks in the $300M-$3B range (where insider-buy alpha is statistically meaningful). Outside that range, the score is informational.
+        {insufficientNote}
+        {soWhatLine}
+        {capNote}
+        <div>
+          <div style={{display:"grid",gridTemplateColumns:"170px 80px 80px",gap:8,padding:"3px 0",fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",borderBottom:"1px solid var(--border-faint, var(--border))"}}>
+            <span>Signal</span>
+            <span style={{textAlign:"right"}}>Sub-score</span>
+            <span style={{textAlign:"right"}}>Weight</span>
           </div>
-        )}
-        <div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Filters</div>
-          {filters.map((f,i)=>(
-            <div key={"f"+i} style={{display:"grid",gridTemplateColumns:"110px 60px 1fr",gap:8,alignItems:"center",padding:"3px 0",fontSize:12}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{f.label}</span>
-              <span style={{color: f.pass ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))", fontWeight:600}}>{f.pass ? "✓ Pass" : "✗ Fail"}</span>
-              <span style={{color:"var(--text-2)",fontSize:11.5}}>{f.note}</span>
-            </div>
-          ))}
+          {SIGNAL_ORDER.map((s, i) => {
+            const sub = subs[s.key];
+            const w   = weights[s.key];
+            const subStr = fmtSub(sub);
+            const isLast = i === SIGNAL_ORDER.length - 1;
+            return (
+              <div key={"sig"+i} style={{display:"grid",gridTemplateColumns:"170px 80px 80px",gap:8,alignItems:"baseline",padding:"6px 0",borderBottom: isLast ? "none" : "1px solid var(--border-faint, var(--border))"}}>
+                <Tip label={s.label} def={s.tip}>
+                  <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.04em",color:"var(--text-2)",textTransform:"uppercase",fontWeight:600,cursor:"help",borderBottom:"1px dotted var(--text-dim)"}}>{s.label}</span>
+                </Tip>
+                <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)",textAlign:"right"}}>{subStr == null ? "—" : subStr}</span>
+                <span style={{color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontSize:11,textAlign:"right"}}>{fmtWeight(w)}</span>
+              </div>
+            );
+          })}
         </div>
-        <div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Signals</div>
-          {signals.map((s,i)=>(
-            <div key={"s"+i} style={{display:"grid",gridTemplateColumns:"110px 60px 1fr",gap:8,alignItems:"center",padding:"3px 0",fontSize:12}}>
-              <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{s.label}</span>
-              <span style={{color: s.fired ? "var(--green-text, var(--green))" : "var(--text-muted)", fontWeight:600}}>{s.fired ? `✓ +${s.points}` : "0"}</span>
-              <span style={{color:"var(--text-2)",fontSize:11.5}}>{s.note}</span>
-            </div>
-          ))}
-        </div>
-        <div>
-          <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)",marginBottom:6}}>Insider conviction</div>
-          <div style={{fontSize:12,color:"var(--text-2)"}}>
-            ${(insiderDol/1000).toFixed(0)}k aggregate in 30-day window · threshold ${(insThreshold/1000).toFixed(0)}k (max 2 bps of cap, $500k floor)
-          </div>
-        </div>
-        <div style={{borderTop:"1px solid var(--border-faint, var(--border))",paddingTop:8,fontSize:11.5,color:"var(--text-muted)",lineHeight:1.45}}>
-          <b style={{color:"var(--text-2)"}}>Backtest expectation</b> · 12-month walk-forward · production spec ($300M-$3B + cap-norm magnitude): mean +10.06%, win 76.2%, +8.62 percentage points alpha vs SPY, beats SPY 65.5% of weeks.
+        <div style={{fontSize:10.5,color:"var(--text-dim)",fontStyle:"italic",lineHeight:1.4}}>
+          Today's per-signal readings live in the dedicated tiles below (Insider Activity, Analyst Actions, Short Interest, Technical Indicators, Unusual Flow). Backtest stats and weight calibration live on the Methodology page.
         </div>
       </div>
     );
-    return { state, value, meta, detail };
+    return { state, value, meta, detail, _comps: comps, _subs: subs, _weights: weights };
+  })();
+
+  // ─── Dedicated per-signal tiles (v5.1 e) ────────────────────────────────
+  // Joe's UX complaint: Technical Indicators and Unusual Flow already exist
+  // as separate tiles; Insider / Analyst / Short Interest deserve the same
+  // treatment instead of being crammed into MacroTilt Signal. These three
+  // tiles read straight from mtSignal.diagnostic.scorer_components.
+  const sig = mtSignal;
+  const subsForTiles    = (sig && sig.sub_scores) || {};
+  const weightsForTiles = (sig && sig.weights_used) || {};
+  const compsForTiles   = (sig && sig.diagnostic && sig.diagnostic.scorer_components) || {};
+
+  const subStateColor = (v) => {
+    if (v == null || !Number.isFinite(Number(v))) return "neutral";
+    const n = Number(v);
+    if (n >=  50) return "green";
+    if (n >=  20) return "amber";
+    if (n <= -50) return "red";
+    if (n <= -20) return "amber";
+    return "neutral";
+  };
+  const fmtSubSimple = (v) => {
+    if (v == null || !Number.isFinite(Number(v))) return "—";
+    const n = Number(v);
+    return `${n > 0 ? "+" : ""}${n.toFixed(0)}`;
+  };
+  const fmtMoneyT = (n) => {
+    const x = Number(n);
+    if (!Number.isFinite(x) || x === 0) return null;
+    if (Math.abs(x) >= 1e9) return `$${(x/1e9).toFixed(1)}B`;
+    if (Math.abs(x) >= 1e6) return `$${(x/1e6).toFixed(1)}M`;
+    if (Math.abs(x) >= 1e3) return `$${(x/1e3).toFixed(0)}K`;
+    return `$${x.toFixed(0)}`;
+  };
+
+  // Insider Activity ----------------------------------------------------
+  // v5.2 (a): distinguish "data unavailable" (pipeline gap; components
+  // block missing or has no buy_count field at all) from "no signal"
+  // (data fetched cleanly, just no Form 4 events to report).
+  const insiderTile = (() => {
+    if (!sig) return { state: "loading", value: "…", meta: "Loading insider signal", detail: null };
+    const compsBlock = (sig && sig.diagnostic && sig.diagnostic.scorer_components) || null;
+    const c = compsForTiles.insider || null;
+    const sub = subsForTiles.insider;
+    const w   = weightsForTiles.insider;
+    // Pipeline gap: the scan didn't write an insider components block at all.
+    if (!c || c.buy_count == null) {
+      return { state: "neutral", value: "n/a", meta: "Insider data unavailable for this name today (pipeline gap)", detail: null };
+    }
+    const buys  = Number(c.buy_count || 0);
+    const sells = Number(c.sell_count || 0);
+    // Confirmed quiet: data fetched, no Form 4 events.
+    if (buys === 0 && sells === 0) {
+      return { state: "neutral", value: "0", meta: "No Form 4 buys or sells in the last 30 days", detail: null };
+    }
+    const value = fmtSubSimple(sub);
+    const buy$  = fmtMoneyT(c.buy_dollar_total);
+    const sell$ = fmtMoneyT(c.sell_dollar_total);
+    const bullets = [];
+    if (buys)  bullets.push(`${buys} buy${buys===1?"":"s"}${buy$  ? ` (${buy$})`  : ""}`);
+    if (sells) bullets.push(`${sells} sell${sells===1?"":"s"}${sell$ ? ` (${sell$})` : ""}`);
+    if (c.first_buy_fires) bullets.push("first buy in 12 months");
+    const meta = bullets.length ? bullets.join(" · ") : "no Form 4 events";
+    // v5.4 (item 11): list the individual Form 4 events when expanded.
+    const fmtDate = d => {
+      if (!d) return "";
+      const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
+      return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    };
+    const events = [...(insiderBuys || []).map(e => ({...e, _dir: 'buy'})),
+                    ...(insiderSells || []).map(e => ({...e, _dir: 'sell'}))]
+      .sort((a, b) => String(b.date || b.transaction_date || '').localeCompare(String(a.date || a.transaction_date || '')))
+      .slice(0, 12);
+    const eventList = events.length ? (
+      <div style={{marginTop:6,gridColumn:"1 / -1"}}>
+        <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",marginBottom:4}}>
+          Recent Form 4 events
+        </div>
+        {events.map((e, i) => {
+          const who = e.name || e.officer_name || e.insider || "Insider";
+          const date = fmtDate(e.date || e.transaction_date);
+          const amt = e.value || e.dollar_value || e.amount;
+          const dollars = amt ? fmtMoneyT(amt) : null;
+          const dir = e._dir === 'buy' ? "BUY" : "SELL";
+          const col = e._dir === 'buy' ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))";
+          return (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"42px 1fr auto auto",gap:8,alignItems:"baseline",padding:"3px 0",fontSize:11.5,borderBottom: i < events.length - 1 ? "1px solid var(--border-faint, var(--border))" : "none"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,color: col,fontWeight:600}}>{dir}</span>
+              <span style={{color:"var(--text-2)"}} title={who}>{String(who).slice(0,32)}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:"var(--text-muted)"}}>{date}</span>
+              <span style={{fontFamily:"var(--font-mono)",fontWeight:600,color:col,minWidth:60,textAlign:"right"}}>{dollars || "—"}</span>
+            </div>
+          );
+        })}
+      </div>
+    ) : null;
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Buys</span><span style={{textAlign:"right"}}>{buys}{buy$  ? ` (${buy$})`  : ""}</span>
+        <span style={{color:"var(--text-muted)"}}>Sells (ex-10b5-1)</span><span style={{textAlign:"right"}}>{sells}{sell$ ? ` (${sell$})` : ""}</span>
+        <span style={{color:"var(--text-muted)"}}>First buy in 12 months?</span><span style={{textAlign:"right"}}>{c.first_buy_fires ? "yes" : "no"}</span>
+        {c.buy_bps_of_mcap != null && (
+          <><span style={{color:"var(--text-muted)"}}>Buy $ as bps of mkt cap</span><span style={{fontFamily:"var(--font-mono)",textAlign:"right"}}>{Number(c.buy_bps_of_mcap).toFixed(2)} bps</span></>
+        )}
+        {eventList}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Source: SEC EDGAR Form 4, last 30 days. Sells are filtered to remove 10b5-1 routine plan disposals.
+        </span>
+      </div>
+    );
+    return { state: subStateColor(sub), value, meta, detail };
+  })();
+
+  // Congress Trades --------------------------------------------------------
+  // v5.4 (item 11): dedicated tile, separate from Unusual Flow. Shows the
+  // disclosed trades (member, date, direction, amount).
+  const congressTile = (() => {
+    const cBuys  = congressBuys  || [];
+    const cSells = congressSells || [];
+    const compC  = compsForTiles.congress || null;
+    const sub    = subsForTiles.congress;
+    const w      = weightsForTiles.congress;
+    if ((!compC || compC.buy_count == null) && cBuys.length === 0 && cSells.length === 0) {
+      return { state: "neutral", value: "n/a", meta: "Congress trade data unavailable for this name today", detail: null };
+    }
+    const buys  = compC ? Number(compC.buy_count  || 0) : cBuys.length;
+    const sells = compC ? Number(compC.sell_count || 0) : cSells.length;
+    if (buys === 0 && sells === 0) {
+      return { state: "neutral", value: "0", meta: "No disclosed congressional trades in the last 90 days", detail: null };
+    }
+    const value = sub != null ? fmtSubSimple(sub) : `${buys}/${sells}`;
+    const meta = [
+      buys  ? `${buys} buy${buys===1?"":"s"}`   : null,
+      sells ? `${sells} sell${sells===1?"":"s"}` : null,
+      compC?.unique_buyers ? `${compC.unique_buyers} unique members` : null,
+    ].filter(Boolean).join(" · ") || "no congress signal";
+    const fmtD = d => {
+      if (!d) return "";
+      const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
+      return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    };
+    const allRows = [...cBuys.map(e => ({...e,_d:'buy'})), ...cSells.map(e => ({...e,_d:'sell'}))]
+      .sort((a,b) => String(b.trade_date||b.disclosure_date||b.date||'').localeCompare(String(a.trade_date||a.disclosure_date||a.date||'')))
+      .slice(0, 12);
+    const eventList = allRows.length ? (
+      <div style={{marginTop:6,gridColumn:"1 / -1"}}>
+        <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",marginBottom:4}}>
+          Disclosed congressional trades
+        </div>
+        {allRows.map((e, i) => {
+          const who = e.member || e.representative || e.senator || e.name || "Member";
+          const date = fmtD(e.trade_date || e.disclosure_date || e.date);
+          const amt = e.amount_max || e.amount || e.amount_range || e.value;
+          const dollars = (typeof amt === 'number') ? fmtMoneyT(amt) : (typeof amt === 'string' ? amt : null);
+          const dir = e._d === 'buy' ? "BUY" : "SELL";
+          const col = e._d === 'buy' ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))";
+          return (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"42px 1fr auto auto",gap:8,alignItems:"baseline",padding:"3px 0",fontSize:11.5,borderBottom: i < allRows.length - 1 ? "1px solid var(--border-faint, var(--border))" : "none"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,color:col,fontWeight:600}}>{dir}</span>
+              <span style={{color:"var(--text-2)"}} title={who}>{String(who).slice(0,32)}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:"var(--text-muted)"}}>{date}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:col,minWidth:60,textAlign:"right"}}>{dollars || "—"}</span>
+            </div>
+          );
+        })}
+      </div>
+    ) : null;
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{sub != null ? fmtSubSimple(sub) : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Buys</span><span style={{textAlign:"right"}}>{buys}</span>
+        <span style={{color:"var(--text-muted)"}}>Sells</span><span style={{textAlign:"right"}}>{sells}</span>
+        {compC?.unique_buyers != null && <><span style={{color:"var(--text-muted)"}}>Unique members</span><span style={{textAlign:"right"}}>{compC.unique_buyers}</span></>}
+        {eventList}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Source: STOCK Act disclosures, last 90 days. Amounts are reported as ranges; the upper bound is shown.
+        </span>
+      </div>
+    );
+    return { state: sub == null ? "neutral" : subStateColor(sub), value, meta, detail };
+  })();
+
+  // Options Flow ------------------------------------------------------
+  // v5.4 (item 11): dedicated tile for unusual options flow events
+  // (calls / puts / sweeps). Split from the lumped Unusual Flow tile.
+  const optionsTile = (() => {
+    const fCalls = flowCalls || [];
+    const fPuts  = flowPuts  || [];
+    const compO  = compsForTiles.options || null;
+    const sub    = subsForTiles.options;
+    const w      = weightsForTiles.options;
+    if (!compO && fCalls.length === 0 && fPuts.length === 0) {
+      return { state: "neutral", value: "n/a", meta: "Options flow data unavailable for this name today", detail: null };
+    }
+    const callCt = fCalls.length;
+    const putCt  = fPuts.length;
+    if (callCt === 0 && putCt === 0) {
+      return { state: "neutral", value: "0", meta: "No unusual options flow events in last scan", detail: null };
+    }
+    const value = sub != null ? fmtSubSimple(sub) : `${callCt}/${putCt}`;
+    const meta = [
+      callCt ? `${callCt} call alert${callCt===1?"":"s"}` : null,
+      putCt  ? `${putCt} put alert${putCt===1?"":"s"}`   : null,
+    ].filter(Boolean).join(" · ") || "no flow events";
+    const fmtD = d => {
+      if (!d) return "";
+      const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
+      return dt.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    };
+    const allEvents = [...fCalls.map(e => ({...e,_d:'call'})), ...fPuts.map(e => ({...e,_d:'put'}))]
+      .sort((a,b) => String(b.alert_time||b.date||'').localeCompare(String(a.alert_time||a.date||'')))
+      .slice(0, 12);
+    const eventList = allEvents.length ? (
+      <div style={{marginTop:6,gridColumn:"1 / -1"}}>
+        <div style={{fontFamily:"var(--font-mono)",fontSize:9.5,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.12em",color:"var(--text-dim)",marginBottom:4}}>
+          Unusual flow alerts
+        </div>
+        {allEvents.map((e, i) => {
+          const date = fmtD(e.alert_time || e.date);
+          const strike = e.strike || e.strike_price;
+          const expiry = e.expiry || e.expiration;
+          const prem   = e.total_premium || e.premium || e.notional;
+          const dollars = prem ? fmtMoneyT(prem) : null;
+          const dir = e._d === 'call' ? "CALL" : "PUT";
+          const col = e._d === 'call' ? "var(--green-text, var(--green))" : "var(--red-text, var(--red))";
+          const desc = strike ? `$${strike}${expiry ? ` exp ${expiry.slice(0,10)}` : ""}` : (e.title || "alert");
+          return (
+            <div key={i} style={{display:"grid",gridTemplateColumns:"42px 1fr auto auto",gap:8,alignItems:"baseline",padding:"3px 0",fontSize:11.5,borderBottom: i < allEvents.length - 1 ? "1px solid var(--border-faint, var(--border))" : "none"}}>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:9.5,color:col,fontWeight:600}}>{dir}</span>
+              <span style={{color:"var(--text-2)"}} title={desc}>{String(desc).slice(0,32)}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:"var(--text-muted)"}}>{date}</span>
+              <span style={{fontFamily:"var(--font-mono)",color:col,minWidth:60,textAlign:"right"}}>{dollars || "—"}</span>
+            </div>
+          );
+        })}
+      </div>
+    ) : null;
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{sub != null ? fmtSubSimple(sub) : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Call alerts</span><span style={{textAlign:"right",color:callCt>0?"var(--green-text, var(--green))":"var(--text-2)"}}>{callCt}</span>
+        <span style={{color:"var(--text-muted)"}}>Put alerts</span><span style={{textAlign:"right",color:putCt>0?"var(--red-text, var(--red))":"var(--text-2)"}}>{putCt}</span>
+        {compO?.sweep_count != null && <><span style={{color:"var(--text-muted)"}}>Sweep orders</span><span style={{textAlign:"right"}}>{compO.sweep_count}</span></>}
+        {eventList}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Source: Unusual Whales unusual options activity feed.
+        </span>
+      </div>
+    );
+    return { state: sub == null ? "neutral" : subStateColor(sub), value, meta, detail };
+  })();
+
+  // Analyst Actions -----------------------------------------------------
+  const analystTile = (() => {
+    if (!sig) return { state: "loading", value: "…", meta: "Loading analyst signal", detail: null };
+    const c = compsForTiles.analyst || null;
+    const sub = subsForTiles.analyst;
+    const w   = weightsForTiles.analyst;
+    if (!c || c.action_count == null) {
+      return { state: "neutral", value: "n/a", meta: "Analyst data unavailable for this name today (pipeline gap)", detail: null };
+    }
+    const n = Number(c.action_count || 0);
+    if (n === 0) {
+      return { state: "neutral", value: "0", meta: "No analyst upgrades, downgrades, or price-target changes in the last 90 days", detail: null };
+    }
+    const value = fmtSubSimple(sub);
+    const gap = c.pt_gap_pct;
+    const ups   = Number(c.upgrades   || 0);
+    const downs = Number(c.downgrades || 0);
+    const inits = Number(c.initiations || 0);
+    const mts   = Number(c.maintained || 0);
+    const bullets = [];
+    if (ups || downs) bullets.push(`${ups} upgrade${ups===1?"":"s"} · ${downs} downgrade${downs===1?"":"s"}`);
+    else if (n) bullets.push(`${n} action${n===1?"":"s"} in 90d`);
+    if (gap != null && Number.isFinite(Number(gap))) bullets.push(`target ${Number(gap)>=0?"+":""}${Number(gap).toFixed(0)}% vs spot`);
+    const meta = bullets.length ? bullets.join(" · ") : "no analyst signal";
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        <span style={{color:"var(--text-muted)"}}>Total actions in last 90d</span><span style={{textAlign:"right"}}>{n}</span>
+        <span style={{color:"var(--text-muted)"}}>Upgrades</span><span style={{textAlign:"right",color: ups > 0 ? "var(--green-text, var(--green))" : "var(--text-2)"}}>{ups}</span>
+        <span style={{color:"var(--text-muted)"}}>Downgrades</span><span style={{textAlign:"right",color: downs > 0 ? "var(--red-text, var(--red))" : "var(--text-2)"}}>{downs}</span>
+        <span style={{color:"var(--text-muted)"}}>Initiations</span><span style={{textAlign:"right"}}>{inits}</span>
+        <span style={{color:"var(--text-muted)"}}>Maintained / reiterated</span><span style={{textAlign:"right"}}>{mts}</span>
+        {c.spot != null && <><span style={{color:"var(--text-muted)"}}>Spot</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>${Number(c.spot).toFixed(2)}</span></>}
+        {c.avg_target != null && <><span style={{color:"var(--text-muted)"}}>Avg price target</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>${Number(c.avg_target).toFixed(2)}</span></>}
+        {gap != null && Number.isFinite(Number(gap)) && (
+          <><span style={{color:"var(--text-muted)"}}>Target vs spot</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)",fontWeight:600,color:Number(gap)>0?"var(--green-text,var(--green))":Number(gap)<0?"var(--red-text,var(--red))":"var(--text)"}}>{Number(gap)>=0?"+":""}{Number(gap).toFixed(1)}%</span></>
+        )}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Net upgrades minus downgrades, weighted by analyst tier; combined with the average price-target gap to spot.
+        </span>
+      </div>
+    );
+    return { state: subStateColor(sub), value, meta, detail };
+  })();
+
+  // Short Interest ------------------------------------------------------
+  const siTile = (() => {
+    if (!sig) return { state: "loading", value: "…", meta: "Loading short interest", detail: null };
+    const c = compsForTiles.short_interest || null;
+    const sub = subsForTiles.short_interest;
+    const w   = weightsForTiles.short_interest;
+    if (!c || (c.latest_si_pct_of_float == null && c.latest_ctb_pct == null)) {
+      return { state: "neutral", value: "n/a", meta: "Short interest data unavailable for this name today (pipeline gap)", detail: null };
+    }
+    const siPct = c.latest_si_pct_of_float;
+    const ctb   = c.latest_ctb_pct;
+    const regime = c.regime;
+    const value = fmtSubSimple(sub);
+    const bullets = [];
+    if (siPct != null) bullets.push(`${Number(siPct).toFixed(1)}% of float short`);
+    if (ctb   != null) bullets.push(`cost-to-borrow ${Number(ctb).toFixed(1)}%`);
+    if (regime) bullets.push(String(regime).replace(/_/g, " "));
+    const meta = bullets.length ? bullets.join(" · ") : "no short interest signal";
+    const detail = (
+      <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
+        <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
+        <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
+        {siPct != null && <><span style={{color:"var(--text-muted)"}}>% of float short (latest)</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(siPct).toFixed(1)}%</span></>}
+        {c.prev_si_pct_of_float != null && <><span style={{color:"var(--text-muted)"}}>% of float short (prior)</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(c.prev_si_pct_of_float).toFixed(1)}%</span></>}
+        {c.rising_si_pp != null && <><span style={{color:"var(--text-muted)"}}>Change in SI %</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(c.rising_si_pp) >= 0 ? "+" : ""}{Number(c.rising_si_pp).toFixed(2)}pp</span></>}
+        {ctb != null && <><span style={{color:"var(--text-muted)"}}>Cost-to-borrow</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(ctb).toFixed(2)}%</span></>}
+        {c.days_to_earnings != null && <><span style={{color:"var(--text-muted)"}}>Days to earnings</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{Number(c.days_to_earnings)}</span></>}
+        {regime && <><span style={{color:"var(--text-muted)"}}>Regime</span><span style={{textAlign:"right"}}>{String(regime).replace(/_/g, " ")}</span></>}
+        <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
+          Three regimes: high SI + rising cost-to-borrow above 50-SMA = bearish; high SI + cheap borrow into earnings = squeeze setup; falling SI + rising price = capitulation.
+        </span>
+      </div>
+    );
+    return { state: subStateColor(sub), value, meta, detail };
   })();
 
   const macroTile = (() => {
@@ -220,15 +729,59 @@ function SignalIntelligenceRail({
   })();
 
   // Tile 3 — Technical Indicators
+  //
+  // v5.1 fix (2026-05-10): when opened from the v5 Trading Opportunities
+  // page, the legacy `tech` (from scanData.signals.technicals) and
+  // `composite.sections.technicals` are often empty for mega-cap names
+  // not in the v4 screener universe. We now fall back to the v5
+  // `mtSignal.diagnostic.scorer_components.technicals` block, which is
+  // populated for every name in the v5 universe (~3,300 names).
   const techTile = (() => {
     const techSec = composite?.sections?.technicals;
-    const score = techSec?.score;
+    // v5 fallback: pull the technicals component block when legacy is missing.
+    const v5Tech = (mtSignal && mtSignal.diagnostic && mtSignal.diagnostic.scorer_components)
+      ? (mtSignal.diagnostic.scorer_components.technicals || {})
+      : {};
+    // Prefer the v5 sub-score (range -100..+100) when no legacy composite score is present.
+    const v5SubScore = (mtSignal && mtSignal.sub_scores) ? mtSignal.sub_scores.technicals : null;
+    const score = techSec?.score != null ? techSec.score
+                : (v5SubScore != null ? Number(v5SubScore) : null);
     const state = score == null ? "loading"
                 : score >= 25 ? "green"
                 : score <= -25 ? "red"
                 : "amber";
     const value = score == null ? "…" : fmtSigned(score);
     const rows = [];
+
+    // ── v5-component-sourced rows (mega-cap fallback path) ──
+    // Mirror the rows the legacy block produces so the layout looks the same.
+    if (v5Tech.rsi14 != null && tech?.rsi_14 == null) {
+      const rsi = Number(v5Tech.rsi14);
+      rows.push({ label: "RSI(14)", val: rsi.toFixed(0), color: rsi >= 70 ? "red" : rsi <= 30 ? "amber" : "green" });
+    }
+    if (v5Tech.sma50 != null && v5Tech.today_close != null && tech?.pct_vs_50ma == null) {
+      const c = Number(v5Tech.today_close), s = Number(v5Tech.sma50);
+      if (s > 0) {
+        const p = ((c - s) / s) * 100;
+        rows.push({ label: "% vs 50d MA", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p > 5 ? "green" : p < -5 ? "red" : "amber" });
+      }
+    }
+    if (v5Tech.sma200 != null && v5Tech.today_close != null && tech?.pct_vs_200ma == null) {
+      const c = Number(v5Tech.today_close), s = Number(v5Tech.sma200);
+      if (s > 0) {
+        const p = ((c - s) / s) * 100;
+        rows.push({ label: "% vs 200d MA", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p > 10 ? "green" : p < -10 ? "red" : "amber" });
+      }
+    }
+    if (v5Tech.bb_bandwidth != null) {
+      const bw = Number(v5Tech.bb_bandwidth) * 100;
+      // Squeeze regime: band-width < 5% historically tight.
+      rows.push({ label: "Bollinger band-width", val: `${bw.toFixed(2)}%`, color: bw < 5 ? "amber" : "green" });
+    }
+    if (v5Tech.rvol_20d != null && tech?.vol_surge == null) {
+      const rv = Number(v5Tech.rvol_20d);
+      rows.push({ label: "Relative volume (20d)", val: `${rv.toFixed(2)}× avg`, color: rv >= 1.5 ? "green" : rv < 0.7 ? "amber" : "amber" });
+    }
     // Render every technical the scanner emits — the data shape is fixed in
     // trading-scanner/scanner/screener_unusual_whales.py / technicals.py and
     // we surface every field that's populated. Color = direction.
@@ -304,6 +857,21 @@ function SignalIntelligenceRail({
     if (tech?.ichimoku_tenkan != null && tech?.ichimoku_kijun != null) {
       const above = Number(tech.ichimoku_tenkan) > Number(tech.ichimoku_kijun);
       rows.push({ label: "Ichimoku", val: above ? "tenkan above kijun" : "tenkan below kijun", color: above ? "green" : "red" });
+    }
+    // v5.1 (d): cleaner empty state when the technicals scorer skipped this
+    // name (e.g. reason='too_few_closes'). Show a plain "No technicals data"
+    // line instead of "Composite ... 0 indicators in scope" which read like
+    // a broken tile during Joe's UAT.
+    if (rows.length === 0) {
+      const v5SkipReason = v5Tech && v5Tech.reason ? String(v5Tech.reason).replace(/_/g, ' ') : null;
+      return {
+        state: score == null ? "loading" : state,
+        value: score == null ? "—" : value,
+        meta: v5SkipReason
+          ? `No technicals data (${v5SkipReason})`
+          : "No technicals data on this name today",
+        detail: rows,
+      };
     }
     return { state, value, meta: `Composite ${value} · ${rows.length} indicators in scope`, detail: rows };
   })();
@@ -400,33 +968,8 @@ function SignalIntelligenceRail({
         <span style={{fontFamily:"var(--font-mono)",fontSize:11,fontWeight:700,textTransform:"uppercase",letterSpacing:"0.16em",color:"var(--text-dim)"}}>Signal Intelligence</span>
         <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:"var(--text-dim)",letterSpacing:"0.14em"}}>click to expand</span>
       </div>
-      <SignalCard title="MacroTilt Signal" {...mtSignalTile} ragColor={ragColor} defaultOpen />
-      <SignalCard title="Asset Tilt" {...tiltTile} ragColor={ragColor} />
-      <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
-        const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
-        const fmtBeta = v => v == null ? "—" : v.toFixed(2);
-        const fmt$ = v => v == null ? null : "$" + Math.round(v).toLocaleString();
-        const Row = ({ label, val, color }) => (
-          <div style={{display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"center",fontSize:12}}>
-            <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{label}</span>
-            <span style={{color:"var(--text)"}}>{val}</span>
-            <span style={{width:8,height:8,borderRadius:"50%",background:ragColor(color)}}/>
-          </div>
-        );
-        return (
-          <div style={{display:"flex",flexDirection:"column",gap:6}}>
-            <Row label="Beta · vs SPY"  val={fmtBeta(detail.beta)}             color={detail.flags.beta}/>
-            <Row label="Annualized vol" val={fmtPctMag(detail.annVol)}         color={detail.flags.annVol}/>
-            <Row label="Max drawdown"   val={fmtPctMag(detail.maxDD)}          color={detail.flags.maxDD}/>
-            <Row label="10-day 99% VaR" val={fmtPctMag(detail.var10d99) + (detail.var$ ? " · ~" + fmt$(detail.var$) : "")} color={detail.flags.var10}/>
-            {detail.sourceWindow && (
-              <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
-                Source: Yahoo daily · {detail.sourceWindow}
-              </div>
-            )}
-          </div>
-        );
-      }} />
+      <SignalCard title="MacroTilt Signal" {...mtSignalTile} ragColor={ragColor} />
+      <SignalCard title="Insider Activity" {...insiderTile} ragColor={ragColor} />
       <SignalCard title="Technical Indicators" {...techTile} ragColor={ragColor} renderDetail={detail => (
         <div style={{display:"flex",flexDirection:"column",gap:6}}>
           {detail.map((r,i)=>(
@@ -438,7 +981,10 @@ function SignalIntelligenceRail({
           ))}
         </div>
       )} />
-      <SignalCard title="Unusual Flow" {...flowTile} ragColor={ragColor} renderDetail={detail => {
+      <SignalCard title="Analyst Actions" {...analystTile} ragColor={ragColor} />
+      <SignalCard title="Options Flow" {...optionsTile} ragColor={ragColor} />
+      <SignalCard title="Congress Trades" {...congressTile} ragColor={ragColor} />
+      {false && <SignalCard title="Unusual Flow" {...flowTile} ragColor={ragColor} renderDetail={detail => {
         // LESSONS rule #33 — every category section ALWAYS renders with an
         // explicit empty-state line when no events. Never silently hide a
         // section just because it has zero events for this ticker.
@@ -535,6 +1081,32 @@ function SignalIntelligenceRail({
                      sign="neutral" amt={fmtMoney(r.premium) || "—"} />
               ))}
             </Section>
+          </div>
+        );
+      }} />}
+      <SignalCard title="Short Interest" {...siTile} ragColor={ragColor} />
+      <SignalCard title="Risk Metrics · 2Y" {...riskTile} ragColor={ragColor} renderDetail={detail => {
+        const fmtPctMag = v => v == null ? "—" : (v*100).toFixed(1) + "%";
+        const fmtBeta = v => v == null ? "—" : v.toFixed(2);
+        const fmt$ = v => v == null ? null : "$" + Math.round(v).toLocaleString();
+        const Row = ({ label, val, color }) => (
+          <div style={{display:"grid",gridTemplateColumns:"100px 1fr auto",gap:8,alignItems:"center",fontSize:12}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.06em",color:"var(--text-muted)",textTransform:"uppercase"}}>{label}</span>
+            <span style={{color:"var(--text)"}}>{val}</span>
+            <span style={{width:8,height:8,borderRadius:"50%",background:ragColor(color)}}/>
+          </div>
+        );
+        return (
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            <Row label="Beta · vs SPY"  val={fmtBeta(detail.beta)}             color={detail.flags.beta}/>
+            <Row label="Annualized vol" val={fmtPctMag(detail.annVol)}         color={detail.flags.annVol}/>
+            <Row label="Max drawdown"   val={fmtPctMag(detail.maxDD)}          color={detail.flags.maxDD}/>
+            <Row label="10-day 99% VaR" val={fmtPctMag(detail.var10d99) + (detail.var$ ? " · ~" + fmt$(detail.var$) : "")} color={detail.flags.var10}/>
+            {detail.sourceWindow && (
+              <div style={{marginTop:6,fontFamily:"var(--font-mono)",fontSize:9.5,textTransform:"uppercase",letterSpacing:"0.14em",color:"var(--text-dim)"}}>
+                Source: Yahoo daily · {detail.sourceWindow}
+              </div>
+            )}
           </div>
         );
       }} />
@@ -1377,7 +1949,10 @@ return(
           style={{fontSize:10,marginLeft:6,color:"var(--accent)",background:"var(--accent-soft)",border:"1px solid rgba(0,113,227,0.35)",borderRadius:4,padding:"2px 8px",fontFamily:"var(--font-mono)",fontWeight:600,cursor:wlBusy?"default":"pointer",letterSpacing:"0.06em"}}>{wlBusy?"…":"+ WATCHLIST"}</button></Tip>
       )}
     </div>
-    <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontWeight:500,fontSize:32,letterSpacing:"-0.012em",color:"var(--text)",lineHeight:1.05,margin:"0 0 6px"}}>
+    {/* v5.4: explicit overflowWrap + maxWidth so a long company name
+        (e.g. "Dianthus Therapeutics, Inc. Common Stock") wraps inside
+        the modal sheet instead of overflowing left. */}
+    <h1 style={{fontFamily:"var(--font-display, Fraunces, Georgia, serif)",fontWeight:500,fontSize:32,letterSpacing:"-0.012em",color:"var(--text)",lineHeight:1.05,margin:"0 0 6px",overflowWrap:"anywhere",wordBreak:"break-word",maxWidth:"100%"}}>
       {companyName}
       {sector&&!isFund&&<span style={{fontStyle:"italic",fontWeight:400,color:"var(--text-muted)"}}> · {sector}</span>}
     </h1>
