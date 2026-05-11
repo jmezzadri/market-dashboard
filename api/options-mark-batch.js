@@ -200,8 +200,17 @@ export default async function handler(req, res) {
     }
     try {
       const json = await uwGet(`/api/option-contract/${encodeURIComponent(occ)}/historic`, { limit: 1 });
-      // UW returns either an array or { data: [...] } depending on endpoint.
-      const histRow = Array.isArray(json) ? json[0] : (json?.data?.[0] || json);
+      // UW response shape for /option-contract/{occ}/historic — verified
+      // against live response 2026-05-11:
+      //   { "chains": [ { nbbo_bid, nbbo_ask, last_price, ... } ],
+      //     "etf_holdings": [] }
+      // Fall back to common alternative shapes for resilience.
+      const histRow = (
+        Array.isArray(json?.chains) ? json.chains[0]
+        : Array.isArray(json?.data) ? json.data[0]
+        : Array.isArray(json)       ? json[0]
+        : json
+      );
       const { mark, source } = computeMark(histRow);
       if (mark == null) {
         failed++;
