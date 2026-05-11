@@ -33,9 +33,9 @@ const COLUMNS = [
   { key: "name",     label: "Name",           group: "Identity",     numeric: false, default: true,
     tt: { label: "Identity", body: "Company name. Source: Polygon ticker reference." } },
   { key: "sector",   label: "Sector",         group: "Identity",     numeric: false, default: true, categorical: true,
-    tt: { label: "Sector", body: "GICS sector when available (e.g. Technology, Health Care, Real Estate). Renders '—' when no GICS sector is on record for the name. NOTE: we do not currently have a clean GICS Industry Group level on file -- the column to the right is GICS Industry (the lowest tier of the GICS hierarchy)." } },
-  { key: "ig",       label: "Industry",       group: "Identity",     numeric: false, default: true, categorical: true,
-    tt: { label: "Industry", body: "GICS Industry (the lowest tier of GICS classification). Source: Polygon SIC description (treated as Industry-level for now). The proper GICS hierarchy is Sector -> Industry Group -> Industry; the Industry Group tier needs a real GICS feed and is currently a gap." } },
+    tt: { label: "GICS Sector", body: "GICS Sector (11 top-level buckets). Derived from the ticker's SIC code via our SIC -> GICS mapping (~82% of the universe covered today; the remaining names show '—' because they lack a SIC code on Polygon's side). The same mapping anchors Scenario Analysis and Asset Tilt." } },
+  { key: "ig",       label: "Industry Group", group: "Identity",     numeric: false, default: true, categorical: true,
+    tt: { label: "GICS Industry Group", body: "GICS Industry Group (25 mid-level buckets, e.g. Pharmaceuticals · Biotechnology & Life Sciences, Capital Goods, Banks). Derived from the ticker's SIC code via the same SIC -> GICS mapping the Sector column uses, so the hierarchy stays consistent." } },
   { key: "price",    label: "Price",          group: "Quote",        numeric: true,  default: true,
     tt: { label: "Quote", body: "Last close. Source: Polygon Massive (end-of-day)." } },
   { key: "day_pct",  label: "Day %",          group: "Quote",        numeric: true,  default: true,
@@ -269,8 +269,12 @@ function shapeRow(scan, ref, snap) {
   return {
     ticker: scan.ticker,
     name: ref?.name || snap?.full_name || scan.ticker,
-    sector: derivedSector || "—",
-    ig: ref?.sic_description || "—",
+    // v5.5b: Sector + Industry Group come from the GICS-via-SIC mapping
+    // function on the server (ticker_state_current view). When the SIC
+    // mapping doesn't reach the name (no SIC code or out-of-range), the
+    // values are null -> render '—'. NOT a SIC description anymore.
+    sector: snap?.sector || "—",
+    ig:     snap?.industry_group || "—",
     price: close,
     day_pct: dayPct,
     mcap: scan?.market_cap != null ? Number(scan.market_cap) : null,
@@ -362,7 +366,7 @@ function useScanData() {
           const slice = tickers.slice(i, i + TICK_BATCH);
           const r = await supabase
             .from("ticker_state_current")
-            .select("ticker,ticker_name,gics_sector,sic_description,sic_code,last_close,prev_close_snap,day_perc_change,week_52_high,week_52_low,iv_rank,market_cap,snap_full_name")
+            .select("ticker,ticker_name,gics_sector,gics_industry_group,sic_description,sic_code,last_close,prev_close_snap,day_perc_change,week_52_high,week_52_low,iv_rank,market_cap,snap_full_name")
             .in("ticker", slice);
           (r?.data || []).forEach(row => {
             stateByT.set(row.ticker, row);
@@ -380,7 +384,8 @@ function useScanData() {
           snapByT.set(ticker, {
             ticker,
             full_name: row.snap_full_name,
-            sector: row.gics_sector,
+            sector: row.gics_sector,             // GICS sector via SIC mapping
+            industry_group: row.gics_industry_group, // GICS IG via SIC mapping
             close: row.last_close,
             prev_close: row.prev_close_snap,
             perc_change: row.day_perc_change,
