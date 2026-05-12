@@ -4823,7 +4823,7 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
       return { pctile: pctileOf(cur[1], sorted), stage: stageOfRun(r.points, mark) };
     };
     const vix = buildInd('vix'), mv = buildInd('move'), cp = buildInd('cpff');
-    const cycle = cycleV2.headlines && cycleV2.headlines.cycle_value && cycleV2.headlines.cycle_value.score_by_horizon ? cycleV2.headlines.cycle_value.score_by_horizon['6m'] : null;
+    const cycle = cycleV2.headlines && cycleV2.headlines.cycle_value && cycleV2.headlines.cycle_value.scores_by_horizon ? cycleV2.headlines.cycle_value.scores_by_horizon['6m'] : null;
     const stages = [vix ? vix.stage : 0, mv ? mv.stage : 0, cp ? cp.stage : 0];
     const sustained = stages.filter(s => s >= 2).length;
     const crossed = stages.filter(s => s === 1).length;
