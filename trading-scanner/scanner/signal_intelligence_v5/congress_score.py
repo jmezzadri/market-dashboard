@@ -120,13 +120,21 @@ def compute_congress_signal(rows: list[dict[str, Any]]) -> tuple[int | None, dic
     Returns (sub_score, components).
     sub_score is None when the window is empty.
     """
+    # 2026-05-12 Senior Quant fix. composite.py spec says "None = no data
+    # for this signal". Previously we returned None when nobody in Congress
+    # traded this ticker in 90 days — but that IS the data (zero activity,
+    # not a coverage gap). The congress_trades_daily table is populated
+    # for every disclosed trade across the full universe, so "empty window"
+    # is a real observation, not missing data. Set sub_score = 0 with
+    # diagnostic reason so the UI can show "0 — no congressional trades in
+    # 90 days" instead of an ambiguous "—".
     if not rows:
-        return None, {"reason": "no_rows"}
+        return 0, {"reason": "no_congress_activity_90d"}
 
     buys = [r for r in rows if _is_buy(r.get("transaction_type", ""))]
     sells = [r for r in rows if _is_sell(r.get("transaction_type", ""))]
     if not buys and not sells:
-        return None, {"reason": "no_buy_or_sell"}
+        return 0, {"reason": "no_congress_activity_90d"}
 
     buy_pts = sum(_tier_points(r.get("amount_bucket")) for r in buys)
     sell_pts = sum(_tier_points(r.get("amount_bucket")) for r in sells)

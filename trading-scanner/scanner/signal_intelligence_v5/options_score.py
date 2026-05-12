@@ -123,7 +123,14 @@ def compute_options_signal(snapshot: dict[str, Any] | None) -> tuple[int | None,
     unusual_n = _f(snapshot.get("unusual_count"))
 
     if call_p <= 0 and put_p <= 0:
-        return None, {"reason": "no_flow"}
+        # 2026-05-12 Senior Quant fix. The ticker has an options snapshot
+        # (it's IN Unusual Whales's options-coverage universe), it just
+        # had no call OR put premium today. That's "no flow today" — a
+        # zero observation, not a coverage gap. Score it 0 with reason.
+        # The legitimate coverage gap case (ticker NOT in UW's options
+        # universe at all) still falls through `if not snapshot` above
+        # and returns None.
+        return 0, {"reason": "no_flow_today"}
 
     # 1. Premium ratio (log10)
     if call_p > 0 and put_p > 0:
