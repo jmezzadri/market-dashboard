@@ -64,9 +64,9 @@ const STAGE_NAMES = ['Calm', 'Watching', 'Holding', 'Confirmed', 'Entrenched'];
 const REGIME_ORDER = ['Risk On', 'Neutral', 'Cautionary', 'Risk Off'];
 const REGIME_DESC = {
   'Risk On':    'No volatility triggers.',
-  'Neutral':    'One trigger crossed for a single week — possible head-fake.',
-  'Cautionary': 'Trigger sustained; cycle has already moved.',
-  'Risk Off':   'Trigger sustained; cycle still calm — actionable.',
+  'Neutral':    'One volatility trigger.',
+  'Cautionary': 'One or more volatility triggers sustained.',
+  'Risk Off':   'One or more volatility triggers sustained + late-cycle positioning.',
 };
 
 // ─────────────────────────────────────────────────────────────────────
