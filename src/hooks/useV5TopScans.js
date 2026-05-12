@@ -18,15 +18,6 @@ let _cache = null;
 const CACHE_TTL_MS = 5 * 60 * 1000;
 let _inflight = null;
 
-async function countBand(scan_date, bandLabel) {
-  const r = await supabase
-    .from("signal_intel_v5_daily")
-    .select("ticker", { count: "exact", head: true })
-    .eq("scan_date", scan_date)
-    .eq("band", bandLabel);
-  return Number.isFinite(Number(r?.count)) ? Number(r.count) : 0;
-}
-
 async function fetchAll(limit) {
   const latestRes = await supabase
     .from("signal_intel_v5_daily")
@@ -76,26 +67,33 @@ async function fetchAll(limit) {
     sector: sectorByTicker.get(r.ticker) || null,
   }));
 
-  // Band counts in parallel — five head-count queries, cheap because they
-  // don't return any row bodies. DB band strings are "Strong Buy",
-  // "Watch Buy", "Neutral", "Watch Sell", "Strong Sell".
-  const [strongBuy, watchBuy, neutral, watchSell, strongSell] = await Promise.all([
-    countBand(latest, "Strong Buy"),
-    countBand(latest, "Watch Buy"),
-    countBand(latest, "Neutral"),
-    countBand(latest, "Watch Sell"),
-    countBand(latest, "Strong Sell"),
-  ]);
+  // Band counts — one query for the whole scan_date returning just the
+  // band column, grouped client-side. This is more reliable than 5
+  // parallel HEAD count requests, which a CDN sometimes 503s even when
+  // the data is fine. The full table for one day is ~3-4k rows, ~80KB
+  // gzipped — comfortably small enough to pull on each Home page load.
+  const counts = { strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 };
+  try {
+    const all = await supabase
+      .from("signal_intel_v5_daily")
+      .select("band")
+      .eq("scan_date", latest);
+    (all?.data || []).forEach(r => {
+      const b = r?.band || "";
+      if (b === "Strong Buy")        counts.strong_buy++;
+      else if (b === "Watch Buy")    counts.watch_buy++;
+      else if (b === "Watch Sell")   counts.watch_sell++;
+      else if (b === "Strong Sell")  counts.strong_sell++;
+      else if (b === "Neutral")      counts.neutral++;
+    });
+  } catch (_) {
+    // Leave counts at zero — the tile renders a clean zero state rather
+    // than blowing up.
+  }
 
   return {
     rows,
-    bandCounts: {
-      strong_buy: strongBuy,
-      watch_buy: watchBuy,
-      neutral: neutral,
-      watch_sell: watchSell,
-      strong_sell: strongSell,
-    },
+    bandCounts: counts,
     scanDate: latest,
   };
 }
