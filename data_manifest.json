@@ -225,11 +225,7 @@
       "producer_script": "scripts/compute_sector_perf.py",
       "registered_at": "2026-05-12",
       "registered_via": "bug #1186 fix — yfinance rate-limited by Yahoo from GHA runners, swapped to Supabase per LESSONS 2026-04-30 (Polygon Basic cap) v9 pattern.",
-      "history_gap": {
-        "tickers": ["XLK", "XLC", "XLRE"],
-        "reason": "Missed in 2026-04-30 bootstrap; only ~10 days of forward Massive data; 3M / TTM / Vol show null until backfilled.",
-        "remediation": "Re-run V9-YFINANCE-BOOTSTRAP once Yahoo's GHA rate-limit lifts; tickers were added to bootstrap_yfinance_to_prices_eod.py TICKERS in same PR."
-      }
+      "history_backfill_2026_05_12": "XLK / XLC / XLRE history (2024-04-29 → 2026-04-24, 499 rows each) backfilled into public.prices_eod from Yahoo's v8 chart API direct (sandbox can hit it; GHA runners can't right now). All 15 sectors fully populated after the backfill."
     }
   }
 }
