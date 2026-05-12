@@ -172,8 +172,37 @@ def write_pipeline_run(sb_url, sb_key, pipeline_name, status,
         print(f"  [pipeline_runs] write {pipeline_name} status={status} HTTP {s}: {b}")
 
 
-def update_health(sb_url, sb_key, indicator_id, status, error=None):
-    now_iso = datetime.now(timezone.utc).isoformat()
+def update_health(sb_url, sb_key, indicator_id, status, error=None,
+                  data_as_of=None, coverage_pct=None, expected_next_run=None):
+    """
+    Writes a pipeline_health row.
+
+    Phase 1b - Data Steward overhaul (2026-05-12). The signature now
+    accepts three new columns added by migration 054:
+
+      data_as_of         The trading-day / observation-date of the LATEST
+                         data point this run produced. NOT the cron time.
+                         For prices_eod we pass the actual trade_date used
+                         (date_used in the EOD branch); for universe we
+                         pass today (current state); for corp actions
+                         likewise today.
+
+      coverage_pct       rows_written / rows_expected * 100. Catches
+                         silent coverage failures (e.g. a 'success' that
+                         only pulled 2,000 of 12,500 expected). Pass None
+                         for elements that don't have a knowable
+                         denominator.
+
+      expected_next_run  When this pipeline is next due per
+                         pipeline_schedule.yml. Floor of +24h applied if
+                         the caller doesn't pass one.
+
+    The freshness chips on the site rebind to pipeline_health.data_as_of
+    in Phase 2 so the day Joe sees on a chip is the actual trading day
+    the value is from, not 'today 4:07 AM ET because the cron ran'.
+    """
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
     patch = {
         "last_check_at": now_iso,
         "status": status,
@@ -182,6 +211,21 @@ def update_health(sb_url, sb_key, indicator_id, status, error=None):
     if status == "green":
         patch["last_good_at"] = now_iso
         patch["prev_status"] = "red"  # we know we started red
+    # Phase 1b additions ------------------------------------------------
+    if data_as_of is not None:
+        if hasattr(data_as_of, "isoformat"):
+            patch["data_as_of"] = data_as_of.isoformat()
+        else:
+            # YYYY-MM-DD -> EOD timestamp at 20:00 UTC (16:00 EDT close)
+            patch["data_as_of"] = f"{data_as_of}T20:00:00+00:00"
+    if coverage_pct is not None:
+        patch["coverage_pct"] = float(coverage_pct)
+    if expected_next_run is None:
+        expected_next_run = now + timedelta(hours=24)
+    if hasattr(expected_next_run, "isoformat"):
+        patch["expected_next_run"] = expected_next_run.isoformat()
+    else:
+        patch["expected_next_run"] = expected_next_run
     supabase_patch(sb_url, sb_key, "pipeline_health",
                    f"indicator_id=eq.{indicator_id}", patch)
 
@@ -249,7 +293,14 @@ def main():
         um_rows = dedupe_by_keys(um_rows, ["ticker"])
         n = supabase_upsert(URL, SK, "universe_master", um_rows, "ticker")
         print(f"  upserted {n} into universe_master")
-        update_health(URL, SK, "massive-universe", "green")
+        # Phase 1b: report data_as_of (current date — universe is "snapshot of now")
+        # and coverage_pct relative to the manifest-declared expected universe
+        # (~12,562 US-listed equities per data_manifest.json market.universe-massive).
+        EXPECTED_UNIVERSE = 12562
+        cov = (len(um_rows) / EXPECTED_UNIVERSE) * 100 if um_rows else 0
+        update_health(URL, SK, "massive-universe", "green",
+                      data_as_of=date.today(),
+                      coverage_pct=cov)
         write_pipeline_run(URL, SK, "massive-universe", "success", rows_processed=len(um_rows))
     except Exception as e:
         update_health(URL, SK, "massive-universe", "red", str(e))
@@ -303,7 +354,15 @@ def main():
         eod_rows = dedupe_by_keys(eod_rows, ["ticker","trade_date"])
         n = supabase_upsert(URL, SK, "prices_eod", eod_rows, "ticker,trade_date")
         print(f"  upserted {n} into prices_eod for {date_used}")
-        update_health(URL, SK, "massive-eod", "green")
+        # Phase 1b: data_as_of = the actual trade_date used (not today). This is
+        # the single most important freshness signal in the whole site — it's
+        # what the consumer chips will rebind to in Phase 2 so "Last close: Mon
+        # May 11" comes from THIS field, not 'today 4:07 AM ET'.
+        EXPECTED_EOD = 12500
+        cov = (len(eod_rows) / EXPECTED_EOD) * 100 if eod_rows else 0
+        update_health(URL, SK, "massive-eod", "green",
+                      data_as_of=date_used,
+                      coverage_pct=cov)
         write_pipeline_run(URL, SK, "massive-eod", "success", rows_processed=len(eod_rows))
     except Exception as e:
         update_health(URL, SK, "massive-eod", "red", str(e))
@@ -336,7 +395,8 @@ def main():
         n = supabase_upsert(URL, SK, "dividends", div_rows,
                             "ticker,ex_dividend_date,dividend_type")
         print(f"  upserted {n} into dividends")
-        update_health(URL, SK, "massive-corporate-actions", "green")
+        update_health(URL, SK, "massive-corporate-actions", "green",
+                      data_as_of=date.today())
         write_pipeline_run(URL, SK, "massive-corporate-actions", "success", rows_processed=len(div_rows))
     except Exception as e:
         update_health(URL, SK, "massive-corporate-actions", "red", str(e))
