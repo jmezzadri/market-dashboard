@@ -258,11 +258,24 @@ function sicCodeToSector(sicCode) {
 
 function shapeRow(scan, ref, snap) {
   const close = Number(snap?.close ?? 0) || null;
+  // Day % parsing.
+  //   Note the Number(null) === 0 quirk: a bare `Number(snap?.perc_change)`
+  //   silently coerces null to 0, then Number.isFinite(0) is true, so the
+  //   fallback never fires and every row paints 0.00%. The bug Joe flagged
+  //   on 2026-05-12 was caused by that combined with the producer
+  //   (universe_snapshots.perc_change) being null for 100% of rows.
+  //   We now: (a) read perc_change only when it's NOT null/undefined, and
+  //   (b) require both close and prev_close to be finite AND positive
+  //   before computing the fallback.
   let dayPct = null;
-  const pc = Number(snap?.perc_change);
-  if (Number.isFinite(pc)) dayPct = pc;
-  else if (Number.isFinite(close) && Number.isFinite(Number(snap?.prev_close)) && Number(snap?.prev_close) > 0) {
-    dayPct = ((close - Number(snap.prev_close)) / Number(snap.prev_close)) * 100;
+  const pcRaw = snap?.perc_change;
+  const pc = (pcRaw == null) ? NaN : Number(pcRaw);
+  const prevRaw = snap?.prev_close;
+  const prev = (prevRaw == null) ? NaN : Number(prevRaw);
+  if (Number.isFinite(pc)) {
+    dayPct = pc;
+  } else if (Number.isFinite(close) && Number.isFinite(prev) && prev > 0) {
+    dayPct = ((close - prev) / prev) * 100;
   }
   const subs = scan?.sub_scores || {};
   // v5.1: pull the scorer components so the restored legacy columns can
