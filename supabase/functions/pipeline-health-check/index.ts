@@ -273,6 +273,19 @@ async function handle(req: Request): Promise<Response> {
     } else if (row.indicator_id.startsWith("composite_")) {
       asOf = compositeLatestIso;
       if (!asOf) lastError = "composite_history_daily.json has no rows";
+    } else if (row.indicator_id === "scanner-v5-daily") {
+      // 2026-05-12 — producer-owned. The V5_SCAN_DAILY workflow writes
+      // data_as_of + last_good_at + coverage_pct to this row on every
+      // successful run. Use those values directly — don't look in
+      // indicator_history.json (the v5 scanner publishes to
+      // signal_intel_v5_daily, not the legacy history file). This stops
+      // this function from clobbering a green row with "indicator not
+      // present in indicator_history.json" + status=red minutes after a
+      // healthy scan finishes.
+      asOf = (row as unknown as { data_as_of?: string }).data_as_of
+        || row.last_good_at
+        || null;
+      if (!asOf) lastError = "scanner-v5-daily has not run yet";
     } else {
       const rec = indicators[row.indicator_id];
       if (!rec) {
