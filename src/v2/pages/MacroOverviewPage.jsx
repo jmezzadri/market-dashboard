@@ -307,12 +307,7 @@ export default function MacroOverviewPage() {
               <div className="mo-sub-list">
                 {cycle.subs.map(s => (
                   <div key={s.name} className="mo-sub-row" onClick={() => openSubComposite(s.name)}>
-                    <span className="mo-sub-name">
-                      {s.name}
-                      {s.horizonShown && s.horizonShown !== HORIZON && (
-                        <span style={{ fontSize: 9, color: 'var(--ink-3)', marginLeft: 6, fontWeight: 400, fontStyle: 'italic' }}>({s.horizonShown})</span>
-                      )}
-                    </span>
+                    <span className="mo-sub-name">{s.name}</span>
                     <span className="mo-sub-bar-wrap">
                       <span
                         className={`mo-sub-bar ${s.score >= 75 ? 'high' : s.score >= 50 ? 'med' : 'low'}`}
