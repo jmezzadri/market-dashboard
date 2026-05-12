@@ -34,10 +34,14 @@ import Drawer from '../components/Drawer';
 
 // Three vol anchors. Threshold = trailing-5y 85th percentile of raw values.
 // Dial scale_max is chosen to cover full historical range with headroom.
+// scaleMax is derived dynamically at render time from each anchor's threshold:
+//   scaleMax = threshold / 0.65
+// so the 85th-percentile threshold mark lands at the same 65% arc position on
+// every dial. No more invented numbers.
 const VOL_ANCHORS = [
-  { id: 'vix',  title: 'Equity Volatility',  niceName: 'VIX',  unit: '',     fmt: (v) => v.toFixed(1),     scaleMax: 80 },
-  { id: 'move', title: 'Bond Volatility',    niceName: 'MOVE', unit: '',     fmt: (v) => v.toFixed(0),     scaleMax: 250 },
-  { id: 'cpff', title: 'Funding Stress',     niceName: 'CPFF', unit: ' bp',  fmt: (v) => v.toFixed(0)+' bp', scaleMax: 200 },
+  { id: 'vix',  title: 'Equity Volatility',  niceName: 'VIX',  unit: '',     fmt: (v) => v.toFixed(1) },
+  { id: 'move', title: 'Bond Volatility',    niceName: 'MOVE', unit: '',     fmt: (v) => v.toFixed(0) },
+  { id: 'cpff', title: 'Funding Stress',     niceName: 'CPFF', unit: ' bp',  fmt: (v) => v.toFixed(0)+' bp' },
 ];
 
 // Seven cycle indicators. `bearishHigh` = true means HIGH value is bearish
@@ -188,7 +192,7 @@ export default function MacroOverviewPage() {
     const anchors = VOL_ANCHORS.map(cfg => {
       const raw = indHist[cfg.id];
       if (!raw || !raw.points || !raw.points.length) {
-        return { ...cfg, current: null, threshold: null, stage: 0, stageName: 'Calm', weekly: [], stages: [], asOf: null };
+        return { ...cfg, current: null, threshold: null, scaleMax: 100, stage: 0, stageName: 'Calm', weekly: [], stages: [], asOf: null };
       }
       const sorted5y = trailing5ySorted(raw.points);
       const threshold = valueAtPctile(sorted5y, 85);
@@ -196,10 +200,13 @@ export default function MacroOverviewPage() {
       const weekly = weeklyClose(raw.points, 24);
       const stages = weeklyStages(weekly, threshold);
       const stage = anchorStage(weekly, threshold);
+      // scale so threshold lands at 65% of the arc — same visual position across all 3 dials
+      const scaleMax = threshold != null ? threshold / 0.65 : 100;
       return {
         ...cfg,
         current: current[1],
         threshold,
+        scaleMax,
         stage,
         stageName: STAGE_NAMES[stage] || 'Calm',
         weekly,
@@ -333,14 +340,14 @@ export default function MacroOverviewPage() {
 
             <div className="mo-cycle-right">
               <div className="mo-sub-eyebrow">
-                Average of seven stress-direction percentile ranks &middot; click any indicator to drill in
+                Average of seven percentile ranks &middot; click any indicator to drill in
               </div>
               <div className="mo-ind-list">
                 <div className="mo-ind-header">
                   <span>Indicator</span>
                   <span></span>
                   <span>Reading</span>
-                  <span>%ile (stress)</span>
+                  <span>Percentile Rank</span>
                 </div>
                 {cycleInd.map(ind => {
                   const p = ind.stressPctile;
@@ -534,8 +541,8 @@ function DrawerContent({ drawer, data }) {
         <div className="mo-drawer-section">
           <p className="narrative">
             Current reading: <strong>{ind.valueText}</strong>.
-            Stress-direction percentile rank (full history): <strong>{ind.stressPctile != null ? ind.stressPctile + '%' : '—'}</strong>.
-            {ind.bearishHigh ? ' High value is bearish.' : ' Low value is bearish.'}
+            Percentile rank vs full history: <strong>{ind.stressPctile != null ? ind.stressPctile + '%' : '—'}</strong>.
+            {ind.bearishHigh ? ' (High value is the bearish direction for the cycle.)' : ' (Low value is the bearish direction for the cycle.)'}
           </p>
         </div>
         <div className="mo-drawer-stub">Indicator-detail chart is the next build pass.</div>
