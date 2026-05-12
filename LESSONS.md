@@ -41,6 +41,50 @@ expected content.
 
 ---
 
+## 2026-05-11 (b) — In-session JSON edits that never reach `main` = data lost
+
+**What happened:** ISM historical data has gone "missing" three times now.
+Each time the pattern was the same: an agent parsed a historical xlsx
+in-session, merged 598 Mfg + 267 Svc monthly points into a working copy of
+`public/indicator_history.json`, used it for the current task, and never
+committed that file to `main`. Other workflows (daily auto-refresh, scrape
+runs that started from a fresh checkout) overwrote the JSON with the 9/10
+point stub on every new run. The next session would clone fresh, see the
+stub, and claim "ISM data is missing." Joe's response: "How did you
+misplace this data 3 times? Why isn't it in our database?"
+
+**What you should do instead:** Any non-trivial data backfill (history,
+calibration tables, anything > a single new daily reading) is durably
+persisted to **Supabase first**, then the file/JSON change is committed to
+`main` in the SAME work item. Specifically:
+
+1. Identify the canonical source-of-truth table in Supabase. If none
+   exists for that data class, the Data Steward creates one (e.g.,
+   `public.indicator_observations` for time-series indicators).
+2. Upsert the parsed data into Supabase. The unique key prevents dupes on
+   re-runs.
+3. Commit the corresponding file change (JSON, calibration, manifest) to
+   a feature branch and merge into `main` before the task closes. No
+   "I'll do that next session" — that's how the data goes missing.
+4. The producer script (`refresh_*.py` or equivalent) gains a "hydrate
+   from Supabase if local series is shorter than DB" branch so that a
+   future fresh-checkout run repopulates from the source-of-truth before
+   appending new readings. This is the "can't go missing again"
+   guarantee.
+5. Archive the raw source file (xlsx, csv) under `data_archive/` in the
+   repo for reproducibility.
+
+The rule applies to every category of static history: indicators,
+calibration JSONs, scenario factor panels, sector composites, ticker
+metadata. If we parsed it once, future-us can read it from Supabase
+without re-parsing.
+
+**Applies to:** All historical data backfills, all calibration tables, all
+manifest updates that introduce a new data element.
+
+---
+
+
 ## 2026-04-30 — Self-monitor context window; offer a handoff before bogging down
 
 **What happened:** Long multi-turn sessions accumulate context, which
