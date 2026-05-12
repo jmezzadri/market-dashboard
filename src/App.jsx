@@ -6324,25 +6324,14 @@ return(
     feel identical at the top of the viewport. The freshness strip
     above the iframe was removed 2026-05-08 (Joe directive: page-to-
     page parity); freshness lives on each mechanism dial inside. */}
-{/* Macro Overview — v2 React rebuilds didn\'t hit the brand bar (multiple attempts 2026-05-10..11);
-    falling back to the legacy static HTML which Joe approves of. v2 framework data is still wired
-    into Scenario Analysis and Home — only this page reverts. Pick up the visual rebuild in a fresh
-    session against the legacy file as the reference. */}
+{/* Macro Overview — Signal Intelligence framework (Joe approved v5 mockup 2026-05-12).
+    Replaces the prior iframe-embedded static HTML. Component lives at
+    src/v2/pages/MacroOverviewPage.jsx and reads from /indicator_history.json
+    + /cycle_v2.json. */}
 {tab==="overview" && (
-<div style={{padding:0,margin:0,width:"100%"}}>
-<iframe
-  src="/MacroTilt_Macro_Overview_Page_v11.html"
-  title="Macro Overview"
-  scrolling="no"
-  style={{
-    border:"none",
-    width:"100%",
-    height:"1640px",
-    display:"block",
-    background:"#fafaf7",
-  }}
-/>
-</div>
+  <V2ErrorBoundary>
+    <MacroOverviewPageV2 />
+  </V2ErrorBoundary>
 )}
 
 {/* INDICATORS */}
