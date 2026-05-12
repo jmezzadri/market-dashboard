@@ -166,7 +166,19 @@ def score(ticker: str, score_date: date) -> dict[str, Any]:
             }
         }
     """
+    # 2026-05-12 Senior Quant + Data Steward joint fix. The composite.py spec
+    # says "None = no data for this signal on this ticker". The previous
+    # implementation conflated two distinct cases as None: (a) Form 4 query
+    # actually returned an empty list (= no insider activity in the window,
+    # a real "zero" reading) and (b) the upstream fetch errored or the
+    # ticker has no insider_history row at all (= true coverage gap). The
+    # UI then rendered both as "—" with no way for Joe to tell which was
+    # which. We now distinguish by setting sub_score = 0 (with diagnostic
+    # reason "no_form4_activity_30d") for case (a) and leaving sub_score
+    # = None only when the v2 signal computation itself can't reach a
+    # number (e.g. only routine 10b5-1 sales remain after filtering).
     rows = _fetch_window(ticker, score_date, INSIDER_WINDOW_DAYS)
+    no_activity_in_window = not rows
 
     buys = [r for r in rows if (r.get("transaction_code") or "").upper() == "P"]
     sells = [r for r in rows if (r.get("transaction_code") or "").upper() == "S"]
@@ -189,7 +201,14 @@ def score(ticker: str, score_date: date) -> dict[str, Any]:
 
     sub_score: int | None
     if v2_signal is None:
-        sub_score = None
+        # If the window came back empty (no Form 4 activity at all), the
+        # honest answer is "zero" — we queried the table, the table exists
+        # for this ticker (insider_history is populated from SEC EDGAR for
+        # every US-listed equity), and nobody traded. That's information,
+        # not a coverage gap. Set sub_score = 0 with a diagnostic reason
+        # so the UI can show "0 — no insider buys or sells in 30 days"
+        # instead of "—".
+        sub_score = 0 if no_activity_in_window else None
     else:
         boosted = v2_signal + (FIRST_BUY_BONUS if first_buy_fires and v2_signal > 0 else 0)
         sub_score = max(-FIRST_BUY_MAX_BUMP, min(FIRST_BUY_MAX_BUMP, boosted))
