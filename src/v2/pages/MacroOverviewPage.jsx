@@ -1,814 +1,544 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import MTChart from '../components/MTChart';
-import CountUp from '../components/CountUp';
-import FreshnessChip from '../components/FreshnessChip';
 import Drawer from '../components/Drawer';
+import FreshnessChip from '../components/FreshnessChip';
 
-/** Canonical mechanism → input map. Mirrors scripts/compute_v11_mechanisms.py PANELS. */
-const PANELS = {
-  valuation: {
-    num: '01', name: 'Valuation',
-    inputs: [
-      { id: 'cape',    name: 'CAPE (Shiller)',           direction: 'high_is_concerning' },
-      { id: 'erp',     name: 'Equity Risk Premium',      direction: 'low_is_concerning' },
-      { id: 'buffett', name: 'Buffett Indicator',        direction: 'high_is_concerning' },
-    ],
-  },
-  credit: {
-    num: '02', name: 'Credit',
-    inputs: [
-      { id: 'ig_oas',      name: 'IG OAS',          direction: 'bidir_bottom' },
-      { id: 'hy_oas',      name: 'HY OAS',          direction: 'bidir_bottom' },
-      { id: 'hy_ig_ratio', name: 'HY / IG ratio',   direction: 'bidir_bottom' },
-    ],
-  },
-  funding: {
-    num: '03', name: 'Funding',
-    inputs: [
-      { id: 'cpff',          name: 'Commercial Paper risk premium', direction: 'high_is_concerning' },
-      { id: 'stlfsi',        name: 'St. Louis Fed FSI',             direction: 'high_is_concerning' },
-      { id: 'bank_reserves', name: 'Bank reserves at Fed',          direction: 'low_is_concerning' },
-      { id: 'rrp',           name: 'Reverse repo balance',          direction: 'low_is_concerning' },
-    ],
-  },
-  growth: {
-    num: '04', name: 'Growth',
-    inputs: [
-      { id: 'cfnai_3ma', name: 'CFNAI 3-month',           direction: 'low_is_concerning' },
-      { id: 'jobless',   name: 'Initial Claims (4-wk)',   direction: 'high_is_concerning' },
-      { id: 'ism',       name: 'ISM Manufacturing PMI',   direction: 'low_is_concerning' },
-      { id: 'bkx_spx',   name: 'BKX / SPX ratio',         direction: 'low_is_concerning' },
-    ],
-  },
-  liquidity_policy: {
-    num: '05', name: 'Liquidity & Policy',
-    inputs: [
-      { id: 'anfci',    name: 'Chicago Fed ANFCI',     direction: 'high_is_concerning' },
-      { id: 'fed_bs',   name: 'Fed Balance Sheet YoY', direction: 'low_is_concerning' },
-      { id: 'sloos_ci', name: 'SLOOS C&I lending',     direction: 'high_is_concerning' },
-      { id: 'm2_yoy',   name: 'M2 Money Supply YoY',   direction: 'low_is_concerning' },
-    ],
-  },
-  positioning_breadth: {
-    num: '06', name: 'Positioning & Breadth',
-    inputs: [
-      { id: 'skew',       name: 'CBOE SKEW',                       direction: 'high_is_concerning' },
-      { id: 'vix',        name: 'VIX',                             direction: 'high_is_concerning' },
-      { id: 'eq_cr_corr', name: 'Equity-credit correlation (60d)', direction: 'high_is_concerning' },
-      { id: 'move',       name: 'MOVE Index (Treasury vol)',       direction: 'high_is_concerning' },
-    ],
-  },
-};
+/**
+ * Signal Intelligence — Macro Overview replacement.
+ *
+ * Joe directive 2026-05-12: replace the 7 sub-composite tile grid with a
+ * 4-state regime read (Risk On / Neutral / Cautionary / Risk Off) driven by
+ * three vol triggers (VIX, MOVE, CPFF) modulated by the cycle composite.
+ *
+ * Page structure (v5 mockup locked):
+ *   ├── Top strip: editorial header (left) + Regime tile (right)
+ *   ├── Three vol tiles in a row (Equity / Bond / Funding)
+ *   └── Wide Cycle Positioning tile with 7 sub-composite breakdown
+ *
+ * Rule book:
+ *   - Vol trigger = indicator above its trailing-5y 85th-percentile mark
+ *   - Stage: 0 calm, 1 crossed this week, 2 sustained 2-3w, 3 sustained 4w+
+ *   - Late-cycle = cycle composite ≥ 80 (top 20% of trailing 5y)
+ *   - Regime:
+ *       0 triggers crossed              → Risk On
+ *       1+ trigger crossed, none sustained → Neutral
+ *       1+ trigger sustained (stage ≥ 2) → Cautionary
+ *       sustained + late-cycle           → Risk Off
+ *
+ * Data sources (existing, no new pipelines):
+ *   - /indicator_history.json — daily VIX/MOVE/CPFF history
+ *   - /cycle_v2.json          — current cycle composite + 7 sub-composites
+ */
 
-const QUARTILE_START = '2011-01-01';
+// ───────── Constants ─────────
+const TRIGGER_PCTILE = 85;
+const LATE_CYCLE_THRESHOLD = 80;
+const HORIZON = '6m';
 
-function bandFromScore(score) {
-  if (score == null) return { id: 'unknown', cls: 'placeholder', label: '—' };
-  if (score < 25) return { id: 'r-on', cls: 'r-on', label: 'Risk On' };
-  if (score < 50) return { id: 'r-neu', cls: 'r-neu', label: 'Neutral' };
-  if (score < 75) return { id: 'r-cau', cls: 'r-cau', label: 'Cautionary' };
-  return { id: 'r-off', cls: 'r-off', label: 'Risk Off' };
+// ───────── Pure helpers ─────────
+
+function trailing5yValues(points) {
+  if (!points || points.length === 0) return [];
+  const last = new Date(points[points.length - 1][0]);
+  const cutoff = new Date(last);
+  cutoff.setFullYear(last.getFullYear() - 5);
+  return points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v);
 }
 
-function directionCorrectedScore(pct, direction) {
-  const d = (direction || 'high_is_concerning').toLowerCase();
-  if (d === 'low_is_concerning' || d === 'bidir_bottom') return 100 - pct;
-  return pct;
+function valueAtPercentile(samples, pct) {
+  if (!samples || samples.length === 0) return null;
+  const sorted = [...samples].sort((a, b) => a - b);
+  const idx = Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length));
+  return sorted[idx];
 }
 
 function percentileRank(value, samples) {
-  if (samples.length === 0) return 50;
-  let below = 0;
-  for (let i = 0; i < samples.length; i++) if (samples[i] < value) below++;
-  return (below / samples.length) * 100;
-}
-
-function vendorOnly(s) {
-  if (!s) return '—';
-  let v = String(s).split(/[(:]/)[0].trim();
-  v = v.split(' / ')[0].trim();
-  return v || s;
-}
-
-function cadenceFromHistory(history) {
-  if (!history || history.length < 2) return '—';
-  const a = history[history.length - 2][0];
-  const b = history[history.length - 1][0];
-  const da = new Date(a.length === 7 ? a + '-01' : a);
-  const db = new Date(b.length === 7 ? b + '-01' : b);
-  const gap = (db - da) / (1000 * 60 * 60 * 24);
-  if (gap < 4) return 'Daily';
-  if (gap < 10) return 'Weekly';
-  if (gap < 45) return 'Monthly';
-  return 'Quarterly';
-}
-
-function fmtVal(v, unit) {
-  if (v == null) return '—';
-  if (typeof v !== 'number') return String(v);
-  const av = Math.abs(v);
-  if (av >= 1000) return v.toFixed(0);
-  if (av >= 100) return v.toFixed(1);
-  return v.toFixed(2);
-}
-
-function fmtRelativeAge(iso) {
-  if (!iso) return '—';
-  const dt = new Date(iso); const now = Date.now();
-  const days = Math.floor((now - dt.getTime()) / 86400000);
-  if (days <= 0) return 'today';
-  if (days === 1) return 'yesterday';
-  if (days < 7) return `${days}d ago`;
-  return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function sparkPath(history, w = 54, h = 18) {
-  const last = (history || []).slice(-12);
-  if (last.length < 2) return '';
-  const vs = last.map((p) => p[1]);
-  const min = Math.min(...vs); const max = Math.max(...vs);
-  return last.map((p, i) => {
-    const x = (i / (last.length - 1)) * w;
-    const y = h - ((p[1] - min) / ((max - min) || 1)) * h;
-    return (i === 0 ? 'M' : 'L') + x.toFixed(1) + ' ' + y.toFixed(1);
-  }).join(' ');
-}
-
-function pctBandClass(pct, direction) {
-  if (pct == null) return 'r-neu';
-  const dcs = directionCorrectedScore(pct, direction);
-  if (dcs >= 85) return 'r-off';
-  if (dcs >= 75) return 'r-cau';
-  if (dcs <= 25) return 'r-on';
-  return 'r-neu';
-}
-
-/** Compute composite history series for a mechanism — 0-100 score per date.
- * Uses direction-corrected percentile of the value at each date vs the full sample.
- * Only includes dates where ALL mechanism indicators have a value (after Q-START).
- */
-function computeCompositeHistory(panel, indicatorHistory) {
-  const inds = (panel.inputs || []).map((inp) => {
-    const ih = indicatorHistory?.[inp.id];
-    if (!ih?.points) return null;
-    const filtered = ih.points.filter(([d, v]) => v != null && d >= QUARTILE_START);
-    if (filtered.length < 30) return null;
-    const sortedSample = [...filtered.map((p) => p[1])].sort((a, b) => a - b);
-    return { id: inp.id, direction: inp.direction, points: filtered, sample: sortedSample };
-  }).filter(Boolean);
-  if (inds.length === 0) return [];
-
-  // sample = 1 point per month from the union of dates (use the date set with most points)
-  const allDates = new Set();
-  inds.forEach((ind) => ind.points.forEach(([d]) => allDates.add(d)));
-  const dates = Array.from(allDates).sort();
-  // downsample to monthly
-  const monthly = [];
-  let lastMonth = null;
-  for (const d of dates) {
-    const m = d.slice(0, 7);
-    if (m !== lastMonth) { monthly.push(d); lastMonth = m; }
+  if (!samples || samples.length === 0 || value == null) return null;
+  const sorted = [...samples].sort((a, b) => a - b);
+  let lo = 0, hi = sorted.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (sorted[mid] < value) lo = mid + 1;
+    else hi = mid;
   }
+  return Math.round((lo / sorted.length) * 100);
+}
 
-  const out = [];
-  for (const date of monthly) {
-    const scores = [];
-    for (const ind of inds) {
-      // find latest point on or before date
-      let latest = null;
-      for (const [d, v] of ind.points) {
-        if (d <= date) latest = v; else break;
-      }
-      if (latest == null) continue;
-      const pct = percentileRank(latest, ind.sample);
-      scores.push(directionCorrectedScore(pct, ind.direction));
-    }
-    if (scores.length >= Math.max(2, Math.floor(inds.length * 0.6))) {
-      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-      out.push([date, +avg.toFixed(1)]);
-    }
+// Take daily points → array of last N weekly closes
+function weeklyAggregate(points, weeksBack = 24) {
+  if (!points || points.length === 0) return [];
+  const byWeek = {};
+  for (const [dateStr, val] of points) {
+    if (val == null || isNaN(val)) continue;
+    const d = new Date(dateStr);
+    const week = new Date(d);
+    week.setDate(d.getDate() - d.getDay()); // Sunday key
+    const key = week.toISOString().slice(0, 10);
+    byWeek[key] = { date: dateStr, value: val };
   }
-  return out;
+  const weeks = Object.keys(byWeek).sort();
+  return weeks.slice(-weeksBack).map(w => byWeek[w]);
 }
 
-function useMacroData() {
-  const [snap, setSnap] = useState(null);
-  const [calib, setCalib] = useState(null);
-  const [v10, setV10] = useState(null);
-  const [history, setHistory] = useState(null);
-  const [err, setErr] = useState(null);
-  useEffect(() => {
-    Promise.all([
-      fetch('/cycle_board_snapshot.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
-      fetch('/methodology_calibration_v11.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
-      fetch('/v10_allocation.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
-      fetch('/indicator_history.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
-    ]).then(([s, c, v, h]) => { setSnap(s); setCalib(c); setV10(v); setHistory(h); }).catch((e) => setErr(e?.message));
-  }, []);
-  return { snap, calib, v10, history, err };
-}
-
-function deriveMechanisms(snap, calib, v10, history) {
-  const ORDER = ['valuation', 'credit', 'funding', 'growth', 'liquidity_policy', 'positioning_breadth'];
-  const snapMechs = {};
-  (snap?.mechanisms || []).forEach((m) => { snapMechs[m.id] = m; });
-  const calibTiles = {};
-  (calib?.tiles || []).forEach((t) => { calibTiles[t.id] = t; });
-
-  return ORDER.map((id) => {
-    const panel = PANELS[id];
-    const sm = snapMechs[id];
-    const ct = calibTiles[id];
-    // Score: v10 (latest), then snapshot, then calibration headline
-    const score = v10?.mechanism_scores?.[id] ?? sm?.score ?? null;
-    const band = bandFromScore(score);
-    const v10Band = v10?.mechanism_bands?.[id]; // 'risk-off'/'caution'/'neutral'/'risk-on' string
-
-    // Build indicators list: prefer calibration JSON (rich Sprint 1 detail),
-    // fall back to PANELS+indicator_history (Sprint 2/4)
-    let indicators = [];
-    if (ct?.indicators?.length) {
-      indicators = ct.indicators.map((i) => ({
-        id: i.id,
-        name: i.name || i.id,
-        unit: i.unit || '',
-        current: i.current || null,
-        percentile: i.percentile != null ? Math.round(i.percentile) : null,
-        quartile: i.quartile,
-        direction: i.direction,
-        soWhat: i.so_what || '',
-        description: i.description || '',
-        source: i.source || '',
-        sampleWindow: i.sample_window || '',
-        history: i.history || (history?.[i.id]?.points || []),
-        kpis: i.kpis || [],
-        episodes: i.episodes || [],
-        comovement: i.comovement || [],
-        compositeShare: i.composite_share_pct,
-        release: i.release || null,
-      }));
-    } else if (panel?.inputs?.length) {
-      indicators = panel.inputs.map((inp) => {
-        const ih = history?.[inp.id];
-        const points = ih?.points || [];
-        const filtered = points.filter(([d, v]) => v != null && d >= QUARTILE_START);
-        const lastPt = filtered.length ? filtered[filtered.length - 1] : null;
-        const sample = filtered.map((p) => p[1]).sort((a, b) => a - b);
-        const pct = lastPt ? Math.round(percentileRank(lastPt[1], sample)) : null;
-        return {
-          id: inp.id,
-          name: inp.name,
-          unit: ih?.unit || '',
-          current: lastPt ? { value: lastPt[1], date: lastPt[0], unit: ih?.unit || '' } : null,
-          percentile: pct,
-          direction: inp.direction === 'low_is_concerning' ? 'low' : inp.direction === 'bidir_bottom' ? 'low' : 'high',
-          rawDirection: inp.direction,
-          soWhat: '',
-          description: '',
-          source: 'FRED',
-          history: filtered,
-        };
-      });
-    }
-
-    const flagged = indicators.filter((i) => {
-      if (i.percentile == null) return false;
-      const dcs = directionCorrectedScore(i.percentile, i.rawDirection || (i.direction === 'low' ? 'low_is_concerning' : 'high_is_concerning'));
-      return dcs >= 75;
-    }).length;
-
-    return {
-      id, name: panel?.name || id, num: panel?.num || '',
-      score, band,
-      v10Band, // for tile color we prefer v10's actual band string
-      bandClass: v10Band ? (v10Band === 'risk-off' ? 'r-off' : v10Band === 'caution' ? 'r-cau' : v10Band === 'neutral' ? 'r-neu' : v10Band === 'risk-on' ? 'r-on' : band.cls) : band.cls,
-      bandLabel: v10Band ? (v10Band === 'risk-off' ? 'Risk Off' : v10Band === 'caution' ? 'Cautionary' : v10Band === 'neutral' ? 'Neutral' : v10Band === 'risk-on' ? 'Risk On' : band.label) : band.label,
-      indicators,
-      flagged,
-      total: indicators.length,
-      shortDesc: ct?.description_short || '',
-      ruleText: typeof sm?.rule === 'string' ? sm.rule : (typeof ct?.rule === 'object' ? ct.rule.description : ''),
-      compositeHistory: computeCompositeHistory(panel || { inputs: [] }, history),
-    };
+// Stage at each week (consecutive weeks above mark, ending at that week)
+function weeklyStages(weekly, mark) {
+  if (mark == null) return weekly.map(() => 0);
+  let consec = 0;
+  return weekly.map(w => {
+    if (w.value >= mark) consec += 1; else consec = 0;
+    if (consec === 0) return 0;
+    if (consec === 1) return 1;
+    if (consec <= 3) return 2;
+    return 3;
   });
 }
 
-function IndicatorDetail({ ind, mechName }) {
-  const lastValue = ind.current?.value ?? (ind.history?.length ? ind.history[ind.history.length - 1][1] : null);
-  const asOfDate = ind.current?.date || (ind.history?.length ? ind.history[ind.history.length - 1][0] : '—');
-  const oneYearKpi = (ind.kpis || []).find((k) => k.label?.toLowerCase().includes('1-year'));
-  const chgClass = oneYearKpi ? (oneYearKpi.value > 0 ? 'down' : oneYearKpi.value < 0 ? 'up' : '') : '';
+function regimeFor(vixSt, moveSt, cpffSt, cycleVal) {
+  const stages = [vixSt, moveSt, cpffSt];
+  const sustained = stages.filter(s => s >= 2).length;
+  const crossed = stages.filter(s => s === 1).length;
+  const latecycle = cycleVal != null && cycleVal >= LATE_CYCLE_THRESHOLD;
+  if (sustained >= 1 && latecycle) return { label: 'Risk Off', key: 'risk-off', stage: 3 };
+  if (sustained >= 1) return { label: 'Cautionary', key: 'cautionary', stage: 2 };
+  if (crossed >= 1) return { label: 'Neutral', key: 'neutral', stage: 1 };
+  return { label: 'Risk On', key: 'risk-on', stage: 0 };
+}
+
+function fmtDate(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+// ───────── Component ─────────
+
+export default function MacroOverviewPage() {
+  const [indHist, setIndHist] = useState(null);
+  const [cycleV2, setCycleV2] = useState(null);
+  const [drawer, setDrawer] = useState({ open: false, kind: null, payload: null });
+
+  useEffect(() => {
+    fetch('/indicator_history.json', { cache: 'no-cache' })
+      .then(r => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
+    fetch('/cycle_v2.json', { cache: 'no-cache' })
+      .then(r => r.ok ? r.json() : null).then(setCycleV2).catch(() => {});
+  }, []);
+
+  const data = useMemo(() => {
+    if (!indHist || !cycleV2) return null;
+
+    function buildIndicator(key, niceName, unit) {
+      const raw = indHist[key];
+      if (!raw || !raw.points || raw.points.length === 0) return null;
+      const samples = trailing5yValues(raw.points);
+      const mark = valueAtPercentile(samples, TRIGGER_PCTILE);
+      const weekly = weeklyAggregate(raw.points, 24);
+      const stages = weeklyStages(weekly, mark);
+      const current = raw.points[raw.points.length - 1];
+      const pctile = percentileRank(current[1], samples);
+      return {
+        key, niceName, unit,
+        currentValue: current[1],
+        currentDate: current[0],
+        asOf: raw.as_of,
+        pctile, mark,
+        weekly: weekly.map((w, i) => ({ ...w, stage: stages[i] })),
+        currentStage: stages[stages.length - 1] || 0,
+      };
+    }
+
+    const vix = buildIndicator('vix', 'VIX', '');
+    const move = buildIndicator('move', 'MOVE', '');
+    const cpff = buildIndicator('cpff', 'CPFF', ' bp');
+
+    const cycleScore = cycleV2.headlines?.cycle_value?.score_by_horizon?.[HORIZON];
+    const cycleAsOf = cycleV2.as_of;
+    const subs = Object.entries(cycleV2.subcomposites || {}).map(([name, v]) => ({
+      name: name.replace(/([A-Z])/g, ' $1').replace(/^ /, '').replace('Money Banking', 'Money/Banking').replace('PositioningVol','Positioning / Vol'),
+      score: v.scores_by_horizon?.[HORIZON],
+    }));
+
+    const regime = regimeFor(
+      vix?.currentStage || 0, move?.currentStage || 0, cpff?.currentStage || 0, cycleScore
+    );
+
+    // Regime history (per-week) — uses each week's stages, fixed current cycle as proxy
+    const weeks = vix?.weekly?.length || 0;
+    const regimeHistory = [];
+    for (let i = 0; i < weeks; i++) {
+      const r = regimeFor(
+        vix?.weekly[i]?.stage || 0,
+        move?.weekly[i]?.stage || 0,
+        cpff?.weekly[i]?.stage || 0,
+        cycleScore
+      );
+      regimeHistory.push({
+        date: vix?.weekly[i]?.date,
+        label: r.label,
+        stage: r.stage,
+      });
+    }
+
+    return { vix, move, cpff, cycle: { score: cycleScore, asOf: cycleAsOf, subs }, regime, regimeHistory };
+  }, [indHist, cycleV2]);
+
+  if (!data) {
+    return (
+      <div className="v2-shell" style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>
+        Loading macro data...
+      </div>
+    );
+  }
+
+  const { vix, move, cpff, cycle, regime, regimeHistory } = data;
+
+  const openWeekSnapshot = (weekIdx) => {
+    setDrawer({ open: true, kind: 'week', payload: weekIdx });
+  };
+  const openIndicatorDetail = (which) => {
+    setDrawer({ open: true, kind: 'indicator', payload: which });
+  };
+  const openSubComposite = (name) => {
+    setDrawer({ open: true, kind: 'sub', payload: name });
+  };
+
   return (
     <>
-      <div className="t-eyebrow accent">{mechName} · indicator</div>
-      <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>{ind.name}</h3>
-      {ind.description && <p className="t-body" style={{ maxWidth: '62ch' }}>{ind.description}</p>}
-      <div className="v2-drawer-grid">
-        <div className="v2-drawer-stat">
-          <div className="lbl" title="Most recent value we have for this indicator.">Current reading</div>
-          <div className="v">{fmtVal(lastValue, ind.unit)}{ind.unit ? <span style={{ fontSize: 14, color: 'var(--ink-2)', marginLeft: 3 }}>{ind.unit}</span> : null}</div>
-          <div className="sub2">As of {asOfDate}</div>
-        </div>
-        <div className="v2-drawer-stat">
-          <div className="lbl" title="Where the current reading sits in the indicator&apos;s 15y baseline distribution. 0 = lowest reading in 15y; 100 = highest.">Percentile vs 15y</div>
-          <div className="v">{ind.percentile != null ? <>{ind.percentile}<span style={{ fontSize: 14, color: 'var(--ink-2)' }}>th</span></> : '—'}</div>
-          <div className="sub2">{ind.percentile != null ? (ind.percentile >= 75 ? 'top quartile' : ind.percentile <= 25 ? 'bottom quartile' : 'mid-range') : ''}</div>
-        </div>
-        <div className="v2-drawer-stat">
-          <div className="lbl" title="Change in the indicator&apos;s reading over the last year (when we have a 1-year KPI), otherwise the count of historical observations.">{oneYearKpi ? '1-year change' : 'Series'}</div>
-          <div className={`v ${chgClass}`} style={oneYearKpi ? {} : { fontSize: 22 }}>
-            {oneYearKpi ? `${oneYearKpi.value > 0 ? '+' : ''}${oneYearKpi.value.toFixed(2)}` : `${ind.history?.length || 0} pts`}
+      <style>{MO_CSS}</style>
+      <div className="mo-page">
+
+        {/* TOP STRIP */}
+        <div className="mo-top">
+          <div>
+            <div className="mo-eyebrow">Macro Overview</div>
+            <h1 className="mo-h1">Three volatility <em>triggers</em>, one <em>cycle position</em>, one regime read.</h1>
+            <p className="mo-lede">
+              Vol triggers tell us when trouble has arrived. The cycle composite tells us whether
+              that trouble matters. Together they produce a single state: <strong>Risk On</strong>{' '}
+              (stay invested), <strong>Neutral</strong> (probably noise), <strong>Cautionary</strong>{' '}
+              (trim risk), or <strong>Risk Off</strong> (defensive). We describe the tape — we don't
+              predict tops.
+            </p>
           </div>
-          <div className="sub2">{oneYearKpi?.value_pct != null ? `${oneYearKpi.value_pct > 0 ? '+' : ''}${oneYearKpi.value_pct.toFixed(1)}%` : (ind.direction === 'low' || ind.rawDirection?.includes('low') ? 'Low flags' : 'High flags')}</div>
+
+          {/* REGIME TILE */}
+          <aside className="mo-regime">
+            <h2 className="mo-regime-title">Regime</h2>
+            {['Risk On', 'Neutral', 'Cautionary', 'Risk Off'].map(name => (
+              <div key={name} className={`mo-rrow ${regime.label === name ? 'current' : ''}`}>
+                <span className="mo-rpill">{name}</span>
+                <span className="mo-rdesc">{regimeDescriptions[name]}</span>
+              </div>
+            ))}
+            <div className="mo-bar-wrap" style={{ marginTop: 18 }}>
+              <div className="mo-bar-frame">
+                <div className="mo-y-label">Regime</div>
+                <div className="mo-bar-strip">
+                  {regimeHistory.map((w, i) => (
+                    <span
+                      key={i}
+                      className={`mo-bar s${w.stage}`}
+                      style={{ height: 18 + w.stage * 24 + '%' }}
+                      data-tt={`${fmtDate(w.date)} · ${w.label}${i === regimeHistory.length - 1 ? ' · current' : ''}`}
+                      onClick={() => openWeekSnapshot(i)}
+                    />
+                  ))}
+                </div>
+              </div>
+              <div className="mo-bar-axis" style={{ paddingLeft: 26 }}><span>24 weeks ago</span><span>today</span></div>
+            </div>
+          </aside>
         </div>
+
+        {/* THREE VOL TILES */}
+        <div className="mo-vol-grid">
+          <IndicatorTile data={vix} onDial={() => openIndicatorDetail('vix')} onBar={openWeekSnapshot} />
+          <IndicatorTile data={move} onDial={() => openIndicatorDetail('move')} onBar={openWeekSnapshot} />
+          <IndicatorTile data={cpff} onDial={() => openIndicatorDetail('cpff')} onBar={openWeekSnapshot} />
+        </div>
+
+        {/* WIDE CYCLE POSITIONING TILE */}
+        <div className="mo-cycle">
+          <h2 className="mo-cycle-title">Cycle Positioning</h2>
+          <div className="mo-cycle-body">
+
+            <div className="mo-cycle-left" onClick={() => openIndicatorDetail('cycle')}>
+              <Dial value={cycle.score} mark={LATE_CYCLE_THRESHOLD} markLabel="top 20% mark" wide />
+              <div className="mo-readout">
+                <span className="mo-val">{cycle.score != null ? cycle.score : '—'}</span>
+                <span className="mo-denom">/ 100</span>
+              </div>
+            </div>
+
+            <div className="mo-cycle-right">
+              <div className="mo-sub-eyebrow">Rolled up from seven sub-composites · click any to drill in</div>
+              <div className="mo-sub-list">
+                {cycle.subs.map(s => (
+                  <div key={s.name} className="mo-sub-row" onClick={() => openSubComposite(s.name)}>
+                    <span className="mo-sub-name">{s.name}</span>
+                    <span className="mo-sub-bar-wrap">
+                      <span
+                        className={`mo-sub-bar ${s.score >= 75 ? 'high' : s.score >= 50 ? 'med' : 'low'}`}
+                        style={{ width: (s.score ?? 0) + '%' }}
+                      />
+                      <span className="mo-peak-mark" />
+                    </span>
+                    <span className="mo-sub-val">{s.score != null ? s.score : '—'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
-      {ind.history?.length >= 2 && (
-        <MTChart
-          data={ind.history}
-          initialRange="5Y"
-          timeframes={[{key:'1Y',label:'1Y'},{key:'3Y',label:'3Y'},{key:'5Y',label:'5Y'},{key:'10Y',label:'10Y'},{key:'MAX',label:'MAX'}]}
-          tintBands={(() => {
-            const cutHist = ind.history.slice(-260 * 5);
-            if (cutHist.length < 4) return null;
-            const vals = cutHist.map((p) => p[1]).filter((v) => v != null && !Number.isNaN(v));
-            if (vals.length < 4) return null;
-            const sorted = [...vals].sort((a, b) => a - b);
-            const q = (frac) => sorted[Math.max(0, Math.min(sorted.length - 1, Math.floor(sorted.length * frac)))];
-            return {
-              p25: q(0.25),
-              p50: q(0.50),
-              p75: q(0.75),
-              direction: ind.direction === 'low' || (typeof ind.direction === 'string' && ind.direction.startsWith('low')) ? 'low' : 'high',
-            };
-          })()}
-        />
-      )}
-      {ind.soWhat && (
-        <div className="v2-drawer-section">
-          <span className="t-eyebrow">So what</span>
-          <p className="t-body" style={{ marginTop: 0 }}>{ind.soWhat}</p>
-        </div>
-      )}
-      {ind.episodes?.length > 0 && (
-        <div className="v2-drawer-section">
-          <span className="t-eyebrow" title="Historical episodes when this indicator was in its top quartile, and how SPX performed 6 and 12 months later.">When this indicator was in its top quartile · 6m / 12m SPX after</span>
-          {ind.episodes.map((ep, i) => (
-            <div className="v2-drawer-row" key={i}>
-              <span className="lbl">{ep.period} ({ind.name} {ep.value})</span>
-              <span className="val">{ep.spx_6m_pct >= 0 ? '+' : ''}{ep.spx_6m_pct?.toFixed(1)}% · {ep.spx_12m_pct >= 0 ? '+' : ''}{ep.spx_12m_pct?.toFixed(1)}%</span>
-            </div>
-          ))}
-        </div>
-      )}
-      {ind.comovement?.length > 0 && (
-        <div className="v2-drawer-section">
-          <span className="t-eyebrow" title="Indicators that historically move in step with this one — useful to know what else this reading implies.">Moves in step with</span>
-          {ind.comovement.map((cm, i) => (
-            <div className="v2-drawer-row" key={i}>
-              <span className="lbl">{cm.peer_name}</span>
-              <span className="val">{cm.corr_5y != null ? cm.corr_5y.toFixed(2) : '—'} (5y)</span>
-            </div>
-          ))}
-        </div>
-      )}
-      <div className="v2-drawer-section">
-        <span className="t-eyebrow" title="The data vendor we license this series from, plus the freshness date of the latest reading.">Source · As of</span>
-        <div className="v2-drawer-row"><span className="lbl" title="Original data vendor.">Vendor</span><span className="val">{vendorOnly(ind.source)}</span></div>
-        <div className="v2-drawer-row"><span className="lbl" title="Date of the most recent reading we have on file for this indicator.">As of</span><span className="val">{ind.current?.date || (ind.history?.length ? ind.history[ind.history.length - 1][0] : '—')}</span></div>
-        <div className="v2-drawer-row"><span className="lbl" title="How frequently the vendor publishes a new reading.">Cadence</span><span className="val">{ind.release?.frequency || cadenceFromHistory(ind.history)}</span></div>
-        <div className="v2-drawer-row"><span className="lbl" title="The historical window we use to compute the percentile and tint-band cutoffs.">Baseline window</span><span className="val">{ind.sampleWindow || '5y trailing'}</span></div>
-        {ind.compositeShare != null && (
-          <div className="v2-drawer-row"><span className="lbl" title="How much this indicator weighs into the mechanism composite score.">Weight in {mechName} composite</span><span className="val">{ind.compositeShare.toFixed(1)}%</span></div>
+
+      <Drawer open={drawer.open} onClose={() => setDrawer({ open: false, kind: null, payload: null })}>
+        {drawer.open && (
+          <DrawerContent drawer={drawer} data={data} />
         )}
-      </div>
+      </Drawer>
     </>
   );
 }
 
-function MechanismOverview({ mech, onPickIndicator }) {
-  return (
-    <>
-      <div className="t-eyebrow accent">{mech.name} · cycle mechanism</div>
-      <h3 className="t-section" style={{ margin: '8px 0 12px', color: 'var(--ink-0)' }}>
-        {mech.name} — {mech.bandLabel}
-      </h3>
-      {mech.shortDesc && <p className="t-body" style={{ maxWidth: '62ch' }}>{mech.shortDesc}</p>}
+// ───────── Sub-component: indicator tile ─────────
 
-      <div className="v2-drawer-grid">
-        <div className="v2-drawer-stat">
-          <div className="lbl" title="Mechanism composite — average of the underlying indicators&apos; direction-corrected percentiles vs 5y baseline. 0 = supportive of risk; 100 = defensive.">Composite score</div>
-          <div className={`v ${mech.bandClass === 'r-off' ? 'down' : mech.bandClass === 'r-cau' ? 'warn' : mech.bandClass === 'r-on' ? 'up' : ''}`}>
-            {mech.score != null ? Math.round(mech.score) : '—'}{mech.score != null ? <span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /100</span> : null}
-          </div>
-          <div className="sub2">{mech.bandLabel}</div>
-        </div>
-        <div className="v2-drawer-stat">
-          <div className="lbl" title="Number of underlying indicators currently in their tail (top quartile for high-is-elevated, bottom quartile for low-is-elevated).">Inputs flagged</div>
-          <div className="v">{mech.flagged}<span style={{ fontSize: 16, color: 'var(--ink-2)' }}> /{mech.total}</span></div>
-          <div className="sub2" title="Whether any underlying indicators are currently in their tail.">{mech.flagged === 0 ? 'all benign' : 'in top quartile'}</div>
-        </div>
-        <div className="v2-drawer-stat">
-          <div className="lbl" title="Number of monthly composite readings we have on file for this mechanism, going back to the start of the calibration window.">Months of history</div>
-          <div className="v" style={{ fontSize: 22 }}>{mech.compositeHistory.length}</div>
-          <div className="sub2">monthly composite series</div>
+function IndicatorTile({ data, onDial, onBar }) {
+  if (!data) return null;
+  return (
+    <div className="mo-tile">
+      <h2 className="mo-tile-title">{tileLabel(data.key)}</h2>
+      <div className="mo-dial-wrap" onClick={onDial}>
+        <Dial value={data.pctile} mark={percentileRank(data.mark, [])} markLabel={`${formatVal(data.mark, data.key)}`} markVal={data.mark} />
+        <div className="mo-readout">
+          <span className="mo-val">{data.pctile != null ? data.pctile : '—'}</span>
+          <span className="mo-denom">/ 100</span>
         </div>
       </div>
-
-      {/* Composite mechanism history chart — derived from underlying indicator percentiles */}
-      {mech.compositeHistory.length >= 12 && (
-        <MTChart
-          data={mech.compositeHistory}
-          initialRange="5Y"
-          timeframes={[{key:'1Y',label:'1Y'},{key:'3Y',label:'3Y'},{key:'5Y',label:'5Y'},{key:'10Y',label:'10Y'},{key:'MAX',label:'MAX'}]}
-          yFormat={(v) => v.toFixed(0)}
-          tipFormat={(v) => `${v.toFixed(1)} /100`}
-          tintBands={{ p25: 25, p50: 50, p75: 75, direction: 'high' }}
-        />
-      )}
-
-      {mech.ruleText && (
-        <div className="v2-drawer-section">
-          <span className="t-eyebrow">Rule</span>
-          <p className="t-body" style={{ marginTop: 0 }}>{mech.ruleText}</p>
-        </div>
-      )}
-
-      <div className="v2-drawer-section">
-        <span className="t-eyebrow">Underlying indicators · click any to drill in</span>
-        <div className="v2-ind-list">
-          {mech.indicators.length === 0 && (
-            <p style={{ color: 'var(--ink-2)', fontSize: 13, padding: '14px 0' }}>Indicators not yet wired for this mechanism.</p>
-          )}
-          {mech.indicators.map((ind) => {
-            const band = pctBandClass(ind.percentile, ind.rawDirection || (ind.direction === 'low' ? 'low_is_concerning' : 'high_is_concerning'));
+      <div className="mo-bar-wrap">
+        <div className="mo-bar-axis"><span>24w</span><span>now</span></div>
+        <div className="mo-bar-strip no-frame">
+          {data.weekly.map((w, i) => {
+            const heightPct = clamp(
+              data.pctileOfWeek ? data.pctileOfWeek[i] : (w.value / (data.mark * 1.5)) * 100,
+              8, 95
+            );
             return (
-              <div key={ind.id} className={`v2-ind-row ${band}`} onClick={() => onPickIndicator(ind.id)}>
-                <span className="dot" />
-                <span className="name">{ind.name}</span>
-                <span className="val">{fmtVal(ind.current?.value, ind.unit)}<span className="unit">{ind.unit}</span></span>
-                <span className="pct">{ind.percentile != null ? `${ind.percentile}th pct` : '—'}</span>
-                <svg className="spark" viewBox="0 0 54 18" style={{ color: band === 'r-off' ? 'var(--down)' : band === 'r-cau' ? 'var(--warn)' : band === 'r-on' ? 'var(--up)' : 'var(--ink-2)' }}>
-                  <path d={sparkPath(ind.history)} fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-                <span className="arr">→</span>
-              </div>
+              <span
+                key={i}
+                className={`mo-bar s${w.stage}`}
+                style={{ height: heightPct + '%' }}
+                data-tt={`${fmtDate(w.date)} · ${formatVal(w.value, data.key)}`}
+                onClick={() => onBar(i)}
+              />
             );
           })}
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
+function tileLabel(key) {
+  return key === 'vix' ? 'Equity Volatility'
+    : key === 'move' ? 'Bond Volatility'
+    : 'Funding Stress';
+}
 
-// ─── <Dial> — semicircle gauge ported from MacroTilt_Macro_Overview_Page_v11.html ──
-// 4 wedges (Apple Blue gradient, Risk-on → Risk-off) + pointer line + dot. Single
-// source of visual truth across the composite hero dial and every card.
-// score: 0..100 (or null). isLive: false renders a grey placeholder wedge set.
-function Dial({ score, isLive = true, size = 'card' }) {
-  const W = size === 'hero' ? 380 : 220;
-  const H = size === 'hero' ? 230 : 140;
-  const cx = W / 2;
-  const cy = H - (size === 'hero' ? 50 : 12);
-  const R_outer = size === 'hero' ? 140 : 92;
-  const R_inner = size === 'hero' ? 90 : 64;
-  const FILLS = [
-    'rgba(0,113,227,0.18)',
-    'rgba(0,113,227,0.42)',
-    'rgba(0,113,227,0.68)',
-    'rgba(0,113,227,0.92)',
-  ];
-  const wedges = [
-    { from: 0,   to: 25  },
-    { from: 25,  to: 50  },
-    { from: 50,  to: 75  },
-    { from: 75,  to: 100 },
-  ];
-  const scoreToDeg = (s) => 180 - Math.max(0, Math.min(100, s)) * 1.8;
-  const polar = (r, deg) => {
-    const rad = (deg * Math.PI) / 180;
-    return [cx + r * Math.cos(rad), cy - r * Math.sin(rad)];
-  };
-  const paths = wedges.map((w, i) => {
-    const a0 = scoreToDeg(w.from), a1 = scoreToDeg(w.to);
-    const [x0o, y0o] = polar(R_outer, a0);
-    const [x1o, y1o] = polar(R_outer, a1);
-    const [x1i, y1i] = polar(R_inner, a1);
-    const [x0i, y0i] = polar(R_inner, a0);
-    const d = `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A ${R_outer} ${R_outer} 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A ${R_inner} ${R_inner} 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
-    return <path key={i} d={d} fill={FILLS[i]} fillOpacity={isLive ? 1 : 0.35} />;
-  });
-  let pointer = null;
-  if (isLive && score != null && Number.isFinite(score)) {
-    const a = scoreToDeg(score);
-    const [px, py] = polar(R_outer + 6, a);
-    pointer = (
-      <g>
-        <line x1={cx} y1={cy} x2={px.toFixed(2)} y2={py.toFixed(2)} stroke="var(--accent)" strokeWidth="2.6" strokeLinecap="round" />
-        <circle cx={px.toFixed(2)} cy={py.toFixed(2)} r="4.0" fill="var(--accent)" stroke="var(--bg-0, #fff)" strokeWidth="1.6" />
-        <circle cx={cx} cy={cy} r="4" fill="var(--accent)" />
-      </g>
-    );
+function formatVal(v, key) {
+  if (v == null) return '—';
+  return key === 'cpff' ? `${Math.round(v)} bp` : v.toFixed(1);
+}
+
+function clamp(n, lo, hi) {
+  if (n == null || isNaN(n)) return lo;
+  return Math.max(lo, Math.min(hi, n));
+}
+
+// ───────── Sub-component: Dial gauge ─────────
+
+function Dial({ value, mark, markLabel, markVal, wide = false }) {
+  const W = wide ? 260 : 230;
+  const H = wide ? 150 : 140;
+  const cx = 120, cy = 120, R = 100;
+  const v = value == null ? 0 : Math.max(0, Math.min(100, value));
+  const angle = 180 - (v * 1.8);
+  const rad = (angle * Math.PI) / 180;
+  const tipX = cx + R * Math.cos(rad);
+  const tipY = cy - R * Math.sin(rad);
+
+  // Trigger mark position (if mark is provided as a percentile, place at that angle)
+  let markX = null, markY = null;
+  if (mark != null) {
+    const mAngle = 180 - (mark * 1.8);
+    const mRad = (mAngle * Math.PI) / 180;
+    markX = cx + R * Math.cos(mRad);
+    markY = cy - R * Math.sin(mRad);
   }
-  const labelY = H - 8;
-  // Labels only on the hero dial (room for 4 spread-out strings).
-  // Card dials are too narrow at 220px to fit RISK-ON / NEUTRAL /
-  // CAUTION / RISK-OFF without collision, so we omit them and rely on
-  // the card's band-coloured pointer + score readout.
-  const labelStyle = { fontFamily: 'Inter, sans-serif', fontSize: 9, fill: 'var(--ink-2)', letterSpacing: '0.14em', fontWeight: 600 };
+
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ display: 'block', width: '100%', height: 'auto' }}>
-      {paths}
-      {pointer}
-      {size === 'hero' && (
+    <svg className="mo-dial" viewBox={`0 0 240 ${H}`} style={wide ? { maxWidth: 280 } : null}>
+      <path d="M 20 122 A 100 100 0 0 1 55 49" fill="rgba(0,113,227,0.18)" />
+      <path d="M 55 49 A 100 100 0 0 1 120 22" fill="rgba(0,113,227,0.42)" />
+      <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)" />
+      <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)" />
+      {markX != null && (
         <>
-          <text x={cx - R_outer + 8} y={labelY} textAnchor="start" {...labelStyle}>RISK-ON</text>
-          <text x={cx - R_outer * 0.35} y={labelY} textAnchor="middle" {...labelStyle}>NEUTRAL</text>
-          <text x={cx + R_outer * 0.35} y={labelY} textAnchor="middle" {...labelStyle}>CAUTION</text>
-          <text x={cx + R_outer - 8} y={labelY} textAnchor="end" {...labelStyle}>RISK-OFF</text>
+          <line x1={markX} y1={markY} x2={markX + 10 * Math.cos((180 - mark * 1.8) * Math.PI / 180)} y2={markY - 10 * Math.sin((180 - mark * 1.8) * Math.PI / 180)} stroke="#0e1115" strokeWidth="1.6" strokeLinecap="round" />
+          <circle cx={markX} cy={markY} r="3" fill="#0e1115" />
+          <text x={markX + 14 * Math.cos((180 - mark * 1.8) * Math.PI / 180)} y={markY - 14 * Math.sin((180 - mark * 1.8) * Math.PI / 180)} fontFamily="JetBrains Mono" fontSize="9" fill="#0e1115" fontWeight="600" textAnchor={mark > 50 ? 'start' : 'end'}>
+            {markLabel || ''}
+          </text>
         </>
       )}
+      <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round" />
+      <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8" />
+      <circle cx={cx} cy={cy} r="4.5" fill="var(--accent)" />
     </svg>
   );
 }
 
-// ─── Sub-composite metadata: prose captions by band + source/cadence ─────
-// Captions hand-written to mirror the legacy Macro Overview's voice. The
-// matching caption for the current band displays on the card.
-const SUB_META = {
-  Equities: {
-    num: '01', name: 'Equities', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
-    captions: {
-      'r-on':  'Valuations broadly cheap relative to long-run history — equity risk premium expanded, drawdown setup attractive.',
-      'r-neu': 'Valuations sitting around the middle of their long-run distribution. Neither rich nor cheap.',
-      'r-cau': 'Valuations elevated — CAPE, ERP, and Buffett are skewed into the upper half of long-run history. Risk-reward less favorable.',
-      'r-off': 'At cycle peak — CAPE, ERP, and Buffett ratio all sit in the top quartile of long-run history. Caution advised.',
-    },
-    cadence: 'Monthly · CAPE/ERP refresh; Buffett quarterly',
-  },
-  Rates: {
-    num: '02', name: 'Rates', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
-    captions: {
-      'r-on':  'Curve steep and term premium positive — early-cycle rates posture, supportive setup.',
-      'r-neu': 'Rates structure mid-cycle — neither inverted enough to flag risk-off nor steep enough to flag risk-on.',
-      'r-cau': 'Rates structure flashing late-cycle signals — flat curve, elevated term premium, real yields restrictive.',
-      'r-off': 'Late-cycle rates regime — inverted curve, high real rates, term premium working against risk assets.',
-    },
-    cadence: 'Daily · FRED · Kim–Wright Fed',
-  },
-  MoneyBanking: {
-    num: '03', name: 'Money / Banking', headline: 'cycle_value', headlineLabel: 'Cycle & Value',
-    captions: {
-      'r-on':  'Money supply expanding, bank reserves ample, credit growth healthy — reflationary setup.',
-      'r-neu': 'Bank-system liquidity sitting around average. Neither stretched nor flooding.',
-      'r-cau': 'Money supply growth and bank credit are in restrictive territory — late-cycle tightening signature.',
-      'r-off': 'Bank-system liquidity drained — reserves low, M2 contracting, unrealized losses elevated. Risk-off setup.',
-    },
-    cadence: 'Weekly · FRED · Fed H.4.1',
-  },
-  Credit: {
-    num: '04', name: 'Credit', headline: 'market_stress', headlineLabel: 'Market Stress',
-    captions: {
-      'r-on':  'Spreads sitting at extreme tights — investment-grade and high-yield have not been this compressed since before 2008. Late-cycle signature.',
-      'r-neu': 'Credit spreads sitting around long-run averages. Neither pricing panic nor euphoria.',
-      'r-cau': 'Spreads widening from prior tights — credit markets stepping back from peak risk appetite.',
-      'r-off': 'Credit spreads in panic territory — high-yield OAS and IG/HY ratio both flashing dislocation.',
-    },
-    cadence: 'Daily · ICE BofA via FRED',
-  },
-  Funding: {
-    num: '05', name: 'Funding', headline: 'market_stress', headlineLabel: 'Market Stress',
-    captions: {
-      'r-on':  'Bank-system funding spreads sit in the lower half of post-2018 history. Funding markets benign.',
-      'r-neu': 'Funding spreads mid-range — TGA balance and reverse-repo neither flooding nor draining.',
-      'r-cau': 'Funding indicators tightening — TGA build, RRP fading, CP spread widening. Liquidity at the margin getting expensive.',
-      'r-off': 'Funding indicators elevated — STLFSI and ANFCI in the upper quartile, CP risk premium spiking. Money markets dislocated.',
-    },
-    cadence: 'Daily · NY Fed · DTCC · FRED',
-  },
-  PositioningVol: {
-    num: '06', name: 'Positioning / Vol', headline: 'market_stress', headlineLabel: 'Market Stress',
-    captions: {
-      'r-on':  'Vol low, breadth strong, equity-credit correlation in trend mode. Positioning posture supportive.',
-      'r-neu': 'Vol and positioning indicators sitting around long-run averages.',
-      'r-cau': 'Vol creeping higher, breadth narrowing — positioning at the margin getting defensive.',
-      'r-off': 'Vol elevated and breadth thin — VIX, MOVE, and SKEW all in the upper quartile. Positioning crowded one-way.',
-    },
-    cadence: 'Daily · CBOE · NAAIM',
-  },
-  RealEconomy: {
-    num: '07', name: 'Real Economy', headline: 'real_economy', headlineLabel: 'Real Economy',
-    captions: {
-      'r-on':  'Real economy expanding — ISM in expansion, GDPNow positive, jobless claims low. Backdrop confirms risk-on.',
-      'r-neu': 'Real economy reading mid-range — neither expanding decisively nor contracting.',
-      'r-cau': 'Real economy softening — ISM near 50, jobless trending up, growth indicators weakening.',
-      'r-off': 'Real economy contracting — ISM below 50, jobless rising, CFNAI negative. Hard data confirming risk-off.',
-    },
-    cadence: 'Monthly · ISM · BLS · Atlanta Fed',
-  },
-};
+// ───────── Sub-component: drawer content ─────────
 
-// Headline section metadata (3 v2 headlines, tagline + question)
-const HEADLINE_META = {
-  cycle_value:   { label: 'Cycle & Value',  tagline: 'The Setup',  question: 'Is the structural backdrop high-risk or low-risk?' },
-  market_stress: { label: 'Market Stress',  tagline: 'The Panic',  question: 'Are the markets actually breaking right now?' },
-  real_economy:  { label: 'Real Economy',   tagline: 'The Truth',  question: 'Is the real world confirming what the market is saying?' },
-};
-
-export default function MacroOverviewPage() {
-  // v2 spec PR 3 — fetch cycle_v2.json for the new 3-headline panel.
-  const [cycleV2, setCycleV2] = React.useState(null);
-  const [v2Horizon, setV2Horizon] = React.useState("6m");
-  React.useEffect(() => {
-    fetch("/cycle_v2.json", { cache: "no-cache" })
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
-      .then(setCycleV2)
-      .catch((err) => { console.warn("[Macro Overview · v2 PR 3] cycle_v2.json fetch failed", err); });
-  }, []);
-  const { snap, calib, v10, history, err } = useMacroData();
-  const [openMechId, setOpenMechId] = useState(null);
-  const [openIndId, setOpenIndId] = useState(null);
-
-  const mechanisms = useMemo(() => deriveMechanisms(snap, calib, v10, history), [snap, calib, v10, history]);
-  const liveCount = mechanisms.filter((m) => m.score != null).length;
-  const liveScores = mechanisms.filter((m) => m.score != null).map((m) => m.score);
-  const flaggedTotal = mechanisms.filter((m) => m.bandClass === 'r-off' || m.bandClass === 'r-cau').length;
-  const rawStance = v10?.page_stance || snap?.page_stance || calib?.headline_gauge?.verdict_label || 'Loading';
-  // Theme #3: collapse any non-v2-lexicon variants to the canonical four
-  const STANCE_MAP = {
-    'Cautious': 'Cautionary',
-    'Stressed': 'Risk Off',
-    'Distressed': 'Risk Off',
-    'Concerning': 'Cautionary',
-    'Complacent': 'Cautionary',
-    'Normal': 'Neutral',
-  };
-  const headlineState = STANCE_MAP[rawStance] || rawStance;
-  const compositeAvg = liveScores.length
-    ? Math.round(liveScores.reduce((a, b) => a + b, 0) / liveScores.length)
-    : null;
-
-  function open(mechId) { setOpenMechId(mechId); setOpenIndId(null); }
-  function close() { setOpenMechId(null); setOpenIndId(null); }
-  function back() { setOpenIndId(null); }
-
-  const openMech = mechanisms.find((m) => m.id === openMechId);
-  const openInd = openMech?.indicators.find((i) => i.id === openIndId);
-
-  return (
-    <div className="v2-root">
-
-      <div className="v2-shell">
-
-        {/* HERO — single tight row: eyebrow + h1 + composite chip + horizon. */}
-        {cycleV2 && cycleV2.subcomposites && (() => {
-          const subOrder = ['Equities','Rates','MoneyBanking','Credit','Funding','PositioningVol','RealEconomy'];
-          const scoresArr = subOrder.map(s => cycleV2.subcomposites[s]?.scores_by_horizon?.[v2Horizon]).filter(v => v != null);
-          const compAvg = scoresArr.length ? Math.round(scoresArr.reduce((a,b)=>a+b,0) / scoresArr.length) : null;
-          const compBand = bandFromScore(compAvg);
-          return (
-            <section style={{ marginTop: 12, padding: '12px 0 16px', display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 320px', gap: 28, alignItems: 'start' }}>
-              <div>
-                <div className="t-eyebrow accent" style={{ marginBottom: 6, letterSpacing: '.10em' }}>Macro Overview · {snap?.as_of || calib?.as_of || ''}</div>
-                <h1 className="t-display" style={{ margin: '0 0 10px', color: 'var(--ink-0)', fontSize: 'clamp(22px, 2.2vw, 28px)', lineHeight: 1.22 }}>
-                  Where the cycle sits today, scored against history.
-                </h1>
-                <p style={{ color: 'var(--ink-2)', fontSize: 13, lineHeight: 1.55, margin: 0, maxWidth: 640 }}>
-                  Seven sub-composites scored 0&ndash;100, grouped into three headlines below. <strong>0&ndash;25</strong> Risk-on · <strong>25&ndash;50</strong> Neutral · <strong>50&ndash;75</strong> Cautionary · <strong>75&ndash;100</strong> Risk-off.
-                </p>
-                <div style={{ marginTop: 14, display: 'flex', gap: 8, alignItems: 'center' }}>
-                  <span style={{ fontSize: 10, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '.10em' }}>Horizon</span>
-                  {['1m','3m','6m','12m'].map((h) => (
-                    <button key={h} onClick={() => setV2Horizon(h)} style={{
-                      fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 11, fontWeight: 600,
-                      padding: '5px 12px',
-                      background: v2Horizon === h ? 'color-mix(in srgb, var(--accent) 14%, var(--surface))' : 'var(--surface)',
-                      color: v2Horizon === h ? 'var(--accent)' : 'var(--ink-2)',
-                      border: '1px solid var(--line-1)', borderRadius: 6, cursor: 'pointer', letterSpacing: '.04em',
-                    }}>{h}</button>
-                  ))}
-                </div>
-              </div>
-              <div className="tile" style={{ padding: '20px 24px', cursor: 'default', minWidth: 280, alignSelf: 'start' }}>
-                <div className="tile-eyebrow" style={{ textAlign: 'center', marginBottom: 6 }}>Composite</div>
-                <div style={{ maxWidth: 260, margin: '0 auto' }}>
-                  <Dial score={compAvg} size="hero" />
-                </div>
-                <div style={{ textAlign: 'center', marginTop: 4 }}>
-                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 44, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>{compAvg ?? '—'}</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em', textTransform: 'uppercase', marginLeft: 6 }}>/ 100</span>
-                </div>
-                <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase', marginTop: 2 }}>composite average</div>
-                <div style={{ textAlign: 'center', fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, color: 'var(--ink-0)', marginTop: 4 }}>{compBand.label} band</div>
-              </div>
-            </section>
-          );
-        })()}
-
-        {/* SECTIONS — one per v2 headline, with sub-composite dial cards under each. */}
-        {cycleV2 && cycleV2.subcomposites && Object.entries(HEADLINE_META).map(([hid, hMeta]) => {
-          const subsInHeadline = Object.entries(SUB_META).filter(([_, m]) => m.headline === hid);
-          if (!subsInHeadline.length) return null;
-          const h = cycleV2.headlines && cycleV2.headlines[hid];
-          const headlineScore = h && h.scores_by_horizon ? h.scores_by_horizon[v2Horizon] : null;
-          const headlineBand = bandFromScore(headlineScore);
-          return (
-            <section key={hid} style={{ marginTop: 36, paddingTop: 22, borderTop: '1px solid var(--line-0)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14, gap: 14, flexWrap: 'wrap' }}>
-                <div>
-                  <div className="t-eyebrow accent" style={{ marginBottom: 4 }}>{hMeta.tagline} &middot; {v2Horizon}</div>
-                  <h2 className="t-tile" style={{ margin: 0, color: 'var(--ink-0)' }}>{hMeta.label}</h2>
-                  <p style={{ color: 'var(--ink-2)', fontSize: 12, margin: '4px 0 0' }}>{hMeta.question}</p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 36, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.012em' }}>{headlineScore != null ? Math.round(headlineScore) : '—'}<span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '0.10em', marginLeft: 6 }}>/ 100</span></div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.08em', textTransform: 'uppercase' }}>{headlineBand.label}</div>
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
-                {subsInHeadline.map(([subId, meta]) => {
-                  const s = cycleV2.subcomposites[subId];
-                  if (!s) return null;
-                  const score = s.scores_by_horizon?.[v2Horizon];
-                  const band = bandFromScore(score);
-                  const caption = score == null ? 'Not scored at this horizon — fewer than two indicators pass the predictive-power gate.' : (meta.captions[band.cls] || '');
-                  const nScored = s.n_scored_by_horizon?.[v2Horizon] ?? 0;
-                  const nTotal = s.n_indicators_total ?? 0;
-                  return (
-                    <article key={subId} className="tile" style={{ cursor: 'default', padding: '20px 18px', textAlign: 'left' }}>
-                      <div style={{ position: 'relative' }}>
-                        <span style={{ position: 'absolute', top: -4, left: 0, fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em' }}>{meta.num}</span>
-                      </div>
-                      <h3 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 22, lineHeight: 1.2, letterSpacing: '-0.006em', color: 'var(--ink-0)', margin: '4px 0 12px', textAlign: 'center' }}>{s.label}</h3>
-                      <div style={{ maxWidth: 220, margin: '4px auto 8px' }}>
-                        <Dial score={score ?? null} isLive={score != null} />
-                      </div>
-                      <div style={{ textAlign: 'center', marginTop: -8, marginBottom: 8 }}>
-                        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 300, fontSize: 36, lineHeight: 1, color: 'var(--ink-0)', letterSpacing: '-0.02em' }}>
-                          {score != null ? Math.round(score) : '—'}
-                        </span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600, color: 'var(--ink-2)', letterSpacing: '0.10em', textTransform: 'uppercase', marginLeft: 4 }}>/ 100</span>
-                      </div>
-                      <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55, margin: '6px 0 12px', minHeight: 60 }}>{caption}</p>
-                      <div style={{ paddingTop: 12, borderTop: '0.5px dashed var(--line-1)', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '.01em', fontFamily: 'var(--font-ui)', fontStyle: 'italic' }}>
-                        Refreshes {meta.cadence} &middot; {nScored} of {nTotal} indicators scoring at this horizon
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-            </section>
-          );
-        })}
-
-        {/* REGIME chip + recommended action — preserved from prior v2 panel */}
-        {cycleV2 && cycleV2.regimes && cycleV2.regimes[v2Horizon] && (
-          <div style={{ marginTop: 28, padding: '16px 20px', background: 'var(--bg-1)', border: '1px solid var(--line-1)', borderRadius: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 14 }}>
-              <div>
-                <span className="t-eyebrow accent">Regime &middot; {v2Horizon}</span>
-                <h4 style={{ margin: '4px 0 0', fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize: 24, fontWeight: 500, color: 'var(--ink-0)' }}>
-                  {cycleV2.regimes[v2Horizon].label}
-                </h4>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <span className="t-eyebrow">Recommended action</span>
-                <p style={{ margin: '4px 0 0', fontSize: 14, color: 'var(--ink-0)', maxWidth: 460 }}>
-                  {cycleV2.regimes[v2Horizon].recommended_action}
-                </p>
-              </div>
-            </div>
-            <div style={{ marginTop: 10, fontSize: 11, color: 'var(--ink-2)', fontStyle: 'italic' }}>
-              {cycleV2.regimes[v2Horizon].real_economy_caption}
-            </div>
-          </div>
-        )}
-
-        <div style={{ margin: '48px 0 24px', paddingTop: 24, borderTop: '1px solid var(--line-0)', textAlign: 'center', color: 'var(--ink-2)', fontSize: 11, letterSpacing: '.06em', textTransform: 'uppercase' }}>
-          {(() => {
-            const vendors = new Set();
-            mechanisms.forEach((m) => m.indicators.forEach((i) => { if (i.source) vendors.add(vendorOnly(i.source)); }));
-            const asOf = snap?.as_of || calib?.as_of || null;
-            const vList = Array.from(vendors).join(' · ');
-            return (vList || 'FRED · CBOE · ICE BofA · Shiller · Kim-Wright Fed · ISM · BLS') + (asOf ? ' · As of ' + asOf : '');
-          })()}
-          {' · '}v{(calib?.version || '11.0').replace(/^v/, '')}
+function DrawerContent({ drawer, data }) {
+  if (drawer.kind === 'week') {
+    const i = drawer.payload;
+    const vixW = data.vix?.weekly[i];
+    const moveW = data.move?.weekly[i];
+    const cpffW = data.cpff?.weekly[i];
+    const r = data.regimeHistory[i];
+    return (
+      <>
+        <div className="v2-drawer-eyebrow">Weekly snapshot</div>
+        <h2 className="v2-drawer-title">{fmtDate(vixW?.date)} <em>{r?.label}</em></h2>
+        <div className="mo-drawer-section">
+          <table className="mo-drawer-table">
+            <thead><tr><th>Indicator</th><th style={{ textAlign: 'right' }}>Value</th><th style={{ textAlign: 'right' }}>State</th></tr></thead>
+            <tbody>
+              <tr><td>Equity Vol · VIX</td><td className="num">{formatVal(vixW?.value, 'vix')}</td><td className="num">{vixW?.stage === 0 ? 'Calm' : `Stage ${vixW?.stage}`}</td></tr>
+              <tr><td>Bond Vol · MOVE</td><td className="num">{formatVal(moveW?.value, 'move')}</td><td className="num">{moveW?.stage === 0 ? 'Calm' : `Stage ${moveW?.stage}`}</td></tr>
+              <tr><td>Funding · CPFF</td><td className="num">{formatVal(cpffW?.value, 'cpff')}</td><td className="num">{cpffW?.stage === 0 ? 'Calm' : `Stage ${cpffW?.stage}`}</td></tr>
+              <tr><td>Cycle Position</td><td className="num">{data.cycle.score}</td><td className="num">{data.cycle.score >= 80 ? 'At peak' : 'Mid-cycle'}</td></tr>
+            </tbody>
+          </table>
         </div>
-      </div>
-
-      <Drawer open={openMechId != null} onClose={close}
-        onBack={openIndId ? back : null} backLabel={openMech?.name || 'mechanism'}>
-        {openMechId && openMech && (
-          openIndId && openInd
-            ? <IndicatorDetail ind={openInd} mechName={openMech.name} />
-            : <MechanismOverview mech={openMech} onPickIndicator={(indId) => setOpenIndId(indId)} />
-        )}
-      </Drawer>
-      {err && (
-        <div style={{ position: 'fixed', bottom: 16, left: 16, padding: '10px 16px', background: 'var(--bg-1)', border: '1px solid var(--down)', borderRadius: 8, color: 'var(--down)', fontSize: 12 }}>
-          Macro Overview: failed to load live data ({err}).
+        <div className="mo-drawer-section">
+          <h4>Seven cycle sub-composites</h4>
+          <table className="mo-drawer-table">
+            <tbody>
+              {data.cycle.subs.map(s => (
+                <tr key={s.name}><td>{s.name}</td><td className="num">{s.score ?? '—'}</td></tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
-    </div>
-  );
+      </>
+    );
+  }
+  if (drawer.kind === 'indicator') {
+    return (
+      <>
+        <div className="v2-drawer-eyebrow">Indicator detail</div>
+        <h2 className="v2-drawer-title"><em>{drawer.payload.toUpperCase()}</em></h2>
+        <div className="mo-drawer-stub">
+          Indicator detail view — extended chart, weeks-above-mark rollup, and methodology.
+          Wiring after the v1 layout lands.
+        </div>
+      </>
+    );
+  }
+  if (drawer.kind === 'sub') {
+    return (
+      <>
+        <div className="v2-drawer-eyebrow">Sub-composite detail</div>
+        <h2 className="v2-drawer-title"><em>{drawer.payload}</em></h2>
+        <div className="mo-drawer-stub">
+          Sub-composite drill-down — underlying indicators, percentile ranks, methodology.
+          Wiring after the v1 layout lands.
+        </div>
+      </>
+    );
+  }
+  return null;
 }
+
+// ───────── Regime descriptions ─────────
+
+const regimeDescriptions = {
+  'Risk On':     'No volatility triggers.',
+  'Neutral':     'One volatility trigger crossed.',
+  'Cautionary':  'One or more volatility triggers sustained.',
+  'Risk Off':    'Sustained · late-cycle positioning.',
+};
+
+// ───────── Inline CSS (matches v5 mockup) ─────────
+
+const MO_CSS = `
+.mo-page{max-width:1280px;margin:0 auto;padding:28px 32px 64px}
+.mo-top{display:grid;grid-template-columns:1fr 480px;gap:32px;margin-bottom:22px;align-items:start}
+.mo-eyebrow{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:500;margin-bottom:8px}
+.mo-h1{font-family:var(--font-display);font-weight:400;font-size:34px;line-height:1.12;letter-spacing:-0.012em;margin:0 0 14px;color:var(--ink-0);max-width:620px}
+.mo-h1 em{font-style:italic;color:var(--accent)}
+.mo-lede{font-size:14px;color:var(--ink-1);line-height:1.6;margin:0;max-width:620px}
+.mo-lede strong{color:var(--ink-0);font-weight:600}
+
+.mo-regime{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px 18px}
+.mo-regime-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:24px;color:var(--accent);text-align:center;margin:0 0 18px;letter-spacing:-0.005em}
+.mo-rrow{display:grid;grid-template-columns:108px 1fr;gap:14px;padding:7px 0;align-items:center;font-size:12.5px;line-height:1.4}
+.mo-rpill{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:13px;text-align:center;padding:5px 0;border-radius:14px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--border-faint);letter-spacing:-0.005em}
+.mo-rrow.current .mo-rpill{background:var(--accent-soft);color:var(--accent);border:1.5px solid var(--accent);font-weight:500}
+.mo-rdesc{color:var(--ink-1);font-size:12.5px;font-weight:400}
+.mo-rrow.current .mo-rdesc{color:var(--ink-0);font-weight:500}
+
+.mo-bar-wrap{margin-top:14px;padding-top:12px;border-top:1px solid var(--border-faint)}
+.mo-bar-axis{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:6px}
+.mo-bar-frame{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:end}
+.mo-y-label{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--font-mono);font-size:8.5px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:500;text-align:center;padding-bottom:14px;white-space:nowrap}
+.mo-bar-strip{display:flex;align-items:end;gap:2px;height:48px;border-bottom:1px solid var(--border-faint);position:relative}
+.mo-bar-strip.no-frame{border-bottom:none;height:54px}
+.mo-bar{flex:1;border-radius:2px 2px 0 0;cursor:pointer;transition:filter 80ms,transform 80ms;min-height:5px;position:relative;outline:none}
+.mo-bar:hover{filter:brightness(1.15);transform:scaleY(1.04) translateY(-1.5px)}
+.mo-bar.s0{background:rgba(0,113,227,0.20)}
+.mo-bar.s1{background:rgba(0,113,227,0.42)}
+.mo-bar.s2{background:rgba(0,113,227,0.68)}
+.mo-bar.s3{background:rgba(0,113,227,0.92)}
+.mo-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0);color:#fff;font-family:var(--font-mono);font-size:10.5px;font-weight:500;letter-spacing:0.02em;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0ms;z-index:8}
+.mo-bar:hover::after{opacity:1}
+.mo-bar::before{content:'';position:absolute;left:50%;bottom:calc(100% + 1px);transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--ink-0);pointer-events:none;opacity:0;z-index:8}
+.mo-bar:hover::before{opacity:1}
+
+.mo-vol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.mo-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 18px}
+.mo-tile-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:22px;color:var(--accent);text-align:center;margin:0 0 4px;letter-spacing:-0.005em}
+.mo-dial-wrap{display:flex;flex-direction:column;align-items:center;margin:8px 0 0;cursor:pointer}
+.mo-dial{width:100%;max-width:230px;height:auto;display:block;transition:filter 80ms}
+.mo-dial-wrap:hover .mo-dial{filter:brightness(1.04)}
+.mo-readout{margin-top:-4px;display:flex;align-items:baseline;gap:5px}
+.mo-val{font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.015em;color:var(--ink-0)}
+.mo-denom{font-family:var(--font-display);font-style:italic;font-size:16px;color:var(--ink-3)}
+
+.mo-cycle{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px 28px}
+.mo-cycle-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:24px;color:var(--accent);text-align:left;margin:0 0 18px;letter-spacing:-0.005em}
+.mo-cycle-body{display:grid;grid-template-columns:300px 1fr;gap:34px;align-items:center}
+.mo-cycle-left{display:flex;flex-direction:column;align-items:center;cursor:pointer}
+.mo-cycle-right .mo-sub-eyebrow{font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:500;margin-bottom:10px}
+.mo-sub-list{display:flex;flex-direction:column;gap:7px}
+.mo-sub-row{display:grid;grid-template-columns:130px 1fr 38px;gap:14px;align-items:center;font-size:12.5px;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:5px;transition:background 80ms}
+.mo-sub-row:hover{background:var(--surface-2)}
+.mo-sub-name{color:var(--ink-1);font-weight:500}
+.mo-sub-bar-wrap{display:block;height:8px;background:var(--surface-2);border-radius:3px;overflow:hidden;position:relative}
+.mo-sub-bar{display:block;height:100%}
+.mo-sub-bar.low{background:rgba(0,113,227,0.32)}
+.mo-sub-bar.med{background:rgba(0,113,227,0.55)}
+.mo-sub-bar.high{background:rgba(0,113,227,0.85)}
+.mo-sub-val{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-0);font-weight:600;text-align:right}
+.mo-peak-mark{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:var(--ink-3);left:80%}
+
+.mo-drawer-section{margin-bottom:22px}
+.mo-drawer-section h4{font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin:0 0 10px}
+.mo-drawer-table{width:100%;border-collapse:collapse;font-size:13px}
+.mo-drawer-table th{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-3);font-weight:500;text-align:left;padding:8px 0;border-bottom:1px solid var(--border-faint)}
+.mo-drawer-table td{padding:9px 0;border-bottom:1px solid var(--border-faint);color:var(--ink-1)}
+.mo-drawer-table td.num{font-family:var(--font-mono);text-align:right;color:var(--ink-0);font-weight:500}
+.mo-drawer-stub{background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:14px 16px;color:var(--ink-1);font-size:13px;line-height:1.55}
+`;
