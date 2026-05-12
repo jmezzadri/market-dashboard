@@ -6076,7 +6076,7 @@ return(
              style={{...cardStyle, cursor:"pointer"}}>
           <div style={cardHeadSlimStyle}>
             <span style={cardTagStyle}>03</span>
-            <FreshnessDot indicatorId="signal_intel_v5_daily" asOfIso={v5ScanDate || null} style={{marginLeft:"auto"}}/>
+            <FreshnessDot indicatorId="scanner-v5-daily" asOfIso={v5ScanDate || null} style={{marginLeft:"auto"}}/>
           </div>
           <p style={tileExplainStyle}>An <span style={tileNameStyle}>Equity Scanner</span> that analyzes hundreds of data points to identify specific trading opportunities.</p>
 

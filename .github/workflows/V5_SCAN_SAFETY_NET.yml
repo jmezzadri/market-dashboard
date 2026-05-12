@@ -1,0 +1,94 @@
+name: V5_SCAN_SAFETY_NET
+
+# Safety-net rerun for the daily MacroTilt scanner.
+#
+# Built 2026-05-12 after a 3-day pipeline outage (Mon 5/11 scheduled runs
+# failed on a credential-injection hiccup; Tue 5/12 morning run logged
+# "Upserted 3300 rows" but rows didn't actually persist; Tue 5/12 evening
+# scheduled run never fired). The chip on the site stayed green the whole
+# time. Joe directive: I never want to manually poke this thing again.
+#
+# How this works:
+#   * Fires at 18:30 ET (90 minutes after the primary V5_SCAN_DAILY at
+#     17:00 ET). Both DST + EST crons listed.
+#   * Quick check first: does signal_intel_v5_daily have today's
+#     scan_date with >= 1,000 rows? If yes, exit clean and do nothing.
+#   * If no, run the full V5 composite scan (same scoring path as the
+#     primary). The hardened post-upsert verification in
+#     run_v5_scanner.py raises a hard failure if rows don't actually
+#     land, so GitHub will mark this run failed and we still get an
+#     alert.
+
+on:
+  schedule:
+    # 18:30 ET = 22:30 UTC during EDT
+    - cron: '30 22 * * 1-5'
+    # 18:30 ET = 23:30 UTC during EST
+    - cron: '30 23 * * 1-5'
+  workflow_dispatch:
+
+jobs:
+  safety_net:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scanner deps
+        working-directory: trading-scanner
+        run: |
+          pip install --upgrade pip
+          pip install requests
+
+      - name: Check if today's scan already landed
+        id: check
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          TODAY=$(date -u +%F)
+          RESP=$(curl -s -I \
+            -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+            -H "Prefer: count=exact" \
+            "$SUPABASE_URL/rest/v1/signal_intel_v5_daily?scan_date=eq.$TODAY&select=ticker&limit=1")
+          # Extract the total from "content-range: 0-0/3300"
+          TOTAL=$(echo "$RESP" | grep -i 'content-range' | awk -F'/' '{print $2}' | tr -d ' \r\n')
+          if [ -z "$TOTAL" ]; then TOTAL=0; fi
+          echo "Today=$TODAY · today's row count in signal_intel_v5_daily: $TOTAL"
+          echo "today=$TODAY" >> "$GITHUB_OUTPUT"
+          echo "rowcount=$TOTAL" >> "$GITHUB_OUTPUT"
+          if [ "$TOTAL" -ge 1000 ]; then
+            echo "Safety net: NO action needed — primary scan landed."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Safety net: primary scan did NOT land — re-running."
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Re-run v5 composite scan
+        if: steps.check.outputs.skip != 'true'
+        working-directory: trading-scanner
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          PYTHONPATH=. python3 run_v5_scanner.py --scan-date "${{ steps.check.outputs.today }}"
+
+      - name: Confirm landing
+        if: steps.check.outputs.skip != 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          TODAY=$(date -u +%F)
+          curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "Prefer: count=exact" \
+                  "$SUPABASE_URL/rest/v1/signal_intel_v5_daily?scan_date=eq.$TODAY&select=ticker&limit=1" \
+                  -I 2>&1 | grep -i content-range || true

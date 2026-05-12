@@ -251,6 +251,53 @@ def upsert_rows(rows: list[dict[str, Any]], batch_size: int = 500) -> int:
         total += len(batch)
     logger.info("Upserted %d rows to signal_intel_v5_daily", total)
 
+    # ── Post-upsert verification (2026-05-12) ──────────────────────────────
+    # A 2xx response from PostgREST is NOT proof that rows actually landed.
+    # We've seen runs log "Upserted 3300 rows" while the table held zero
+    # rows for that scan_date hours later. Re-query the table for the
+    # scan_date we just wrote; if the row count is too low, fail the job
+    # hard so it surfaces in GitHub Actions and the scheduler can
+    # auto-retry on the next interval.
+    if rows:
+        try:
+            scan_date_str = str(rows[0].get("scan_date") or "")
+            verify_url = (
+                f"{endpoint}?scan_date=eq.{scan_date_str}&select=ticker&limit=1"
+            )
+            verify_headers = dict(headers)
+            verify_headers["Prefer"] = "count=exact"
+            vr = requests.head(verify_url, headers=verify_headers, timeout=30)
+            crange = vr.headers.get("content-range", "")
+            actual = 0
+            if "/" in crange:
+                tail = crange.rsplit("/", 1)[-1].strip()
+                if tail.isdigit():
+                    actual = int(tail)
+            MIN_EXPECTED = 1000
+            if actual < MIN_EXPECTED:
+                logger.error(
+                    "POST-UPSERT VERIFICATION FAILED: only %d rows actually "
+                    "landed for scan_date=%s (expected >= %d). Upsert "
+                    "returned success but rows are missing from the table. "
+                    "Failing the job so the scheduler retries.",
+                    actual, scan_date_str, MIN_EXPECTED,
+                )
+                # Surface the failure mode the user-facing chip cares about.
+                raise SystemExit(2)
+            logger.info(
+                "Post-upsert verification OK: %d rows in signal_intel_v5_daily "
+                "for scan_date=%s",
+                actual, scan_date_str,
+            )
+        except SystemExit:
+            raise
+        except Exception as e:
+            logger.error(
+                "Post-upsert verification threw an exception (%s); failing "
+                "the job conservatively.", e,
+            )
+            raise SystemExit(2)
+
     # ── Phase 1b · Data Steward overhaul (2026-05-12) ──────────────────────
     # Write scanner-v5-daily to pipeline_health so a silent scanner death
     # (like 5/9 -> 5/12 when SUPABASE_ACCESS_TOKEN was missing for 2 cron
