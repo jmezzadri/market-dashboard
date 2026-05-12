@@ -707,6 +707,30 @@ function SignalIntelligenceRail({
     const callCt = fCalls.length;
     const putCt  = fPuts.length;
     if (callCt === 0 && putCt === 0) {
+      // 2026-05-12 — Joe directive: the v5 options scorer (compsForTiles.options)
+      // tracks unusual_count + premium even when no individual call/put
+      // alerts are saved to flow_alerts. Don't lie "0 / no events" when
+      // compO says there were 50 unusual events. Surface compO when it
+      // has signal; only fall back to "no flow events" when compO is also
+      // empty.
+      const uCount = compO ? Number(compO.unusual_count || 0) : 0;
+      if (uCount > 0) {
+        const askPrem = Number(compO.ask_side_premium || 0);
+        const callPrem = Number(compO.call_premium || 0);
+        const putPrem = Number(compO.put_premium || 0);
+        const fmtM = (n) => {
+          const a = Math.abs(n);
+          if (a >= 1_000_000) return `$${(n/1_000_000).toFixed(1)}M`;
+          if (a >= 1_000)     return `$${Math.round(n/1_000)}K`;
+          return `$${Math.round(n)}`;
+        };
+        let side = "";
+        if (callPrem > putPrem * 2)      side = " · call-heavy";
+        else if (putPrem > callPrem * 2) side = " · put-heavy";
+        const askPart = askPrem > 0 ? ` · ${fmtM(askPrem)} ask-side` : "";
+        const v = sub != null ? fmtSubSimple(sub) : String(uCount);
+        return { state: subStateColor(sub), value: v, meta: `${uCount} unusual event${uCount===1?"":"s"}${askPart}${side}`, detail: null };
+      }
       return { state: "neutral", value: "0", meta: "No unusual options flow events in last scan", detail: null };
     }
     const value = sub != null ? fmtSubSimple(sub) : `${callCt}/${putCt}`;
@@ -819,9 +843,14 @@ function SignalIntelligenceRail({
     const sub = subsForTiles.short_interest;
     const w   = weightsForTiles.short_interest;
     if (!c || (c.latest_si_pct_of_float == null && c.latest_ctb_pct == null)) {
-      // 2026-05-12 — Short Interest is FULL UNIVERSE (FINRA reports every
-      // 2 weeks for every US-listed equity). Null = ingest gap, not a
-      // coverage gap. Render ⚠.
+      // 2026-05-12 (revision) — Joe directive: when the v5 scorer set
+      // reason='no_si_data' it's telling us this ticker isn't covered by
+      // FINRA at all (ADRs / foreign issuers), not that the ingest broke.
+      // Show the "not covered" circle-slash with honest copy in that case;
+      // keep the red triangle for the genuine pipeline-gap case.
+      if (c && c.reason === "no_si_data") {
+        return { state: "neutral", value: "⊘", meta: "Not reported — FINRA short interest only covers US domestic equities. This ticker is likely an ADR or foreign issuer where short interest isn't reported through FINRA.", detail: null };
+      }
       return { state: "neutral", value: "⚠", meta: "Data missing — FINRA short interest ingest didn't return rows for this ticker. Engineering will catch on next freshness sweep.", detail: null };
     }
     const siPct = c.latest_si_pct_of_float;
