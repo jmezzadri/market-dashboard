@@ -21,11 +21,20 @@ latest XLSX manually as a fallback).
 
 Joe directive 2026-05-10: this is path (a) — free scrape, monthly cron,
 break-and-fix maintenance model.
+
+Joe directive 2026-05-11: ISM history has gone missing THREE times. Before
+any scrape we hydrate ism_mfg / ism_svc from the Supabase
+public.indicator_observations table if the local series is shorter than the
+DB-of-record. That table holds 598 Mfg points (1969-12 onward) and 267 Svc
+points (1997-07 onward). This script is now the single producer that can
+write to ism_mfg / ism_svc in indicator_history.json — any other workflow
+that clobbers them will be re-hydrated on the next run.
 """
 from __future__ import annotations
 
 import datetime as dt
 import json
+import os
 import re
 import sys
 import urllib.request
@@ -67,6 +76,9 @@ ROW_RE = re.compile(
     r"\s*<td[^>]*>[^<]*</td>"
     r"\s*<td[^>]*>(?P<actual>\d{2}\.\d|\d{2})</td>"
 )
+
+# Threshold below which we treat the local series as "stub" and hydrate from DB
+HYDRATE_THRESHOLD = 50  # months. Real series have 267+ for Svc, 598+ for Mfg.
 
 
 def parse_period(s: str) -> Optional[dt.date]:
@@ -114,6 +126,54 @@ def scrape(url: str) -> List[Tuple[str, float]]:
     return out
 
 
+# ---------------------------------------------------------------------------
+# Supabase hydration — the "can't go missing" backstop. Added 2026-05-11
+# after the third recurrence of ISM history being clobbered in main.
+# ---------------------------------------------------------------------------
+def supabase_hydrate(indicator_id: str) -> List[Tuple[str, float]]:
+    """Pull full series for indicator_id from public.indicator_observations.
+    Returns [] silently if Supabase env not set or the call fails — the
+    scraper itself can still run."""
+    url = os.environ.get("SUPABASE_URL")
+    key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
+    if not (url and key):
+        return []
+    try:
+        endpoint = (
+            f"{url}/rest/v1/indicator_observations"
+            f"?indicator_id=eq.{indicator_id}"
+            f"&select=observation_date,value&order=observation_date.asc&limit=2000"
+        )
+        req = urllib.request.Request(endpoint, headers={
+            "apikey": key,
+            "Authorization": f"Bearer {key}",
+        })
+        with urllib.request.urlopen(req, timeout=20) as r:
+            rows = json.loads(r.read())
+        return [(row["observation_date"], float(row["value"])) for row in rows]
+    except Exception as e:
+        print(f"  supabase hydrate failed for {indicator_id}: {e}", file=sys.stderr)
+        return []
+
+
+def maybe_hydrate(series: dict, indicator_id: str) -> bool:
+    """If the local series is shorter than the DB-of-record, replace it.
+    Returns True if hydration happened."""
+    local_pts = series.get("points") or []
+    if len(local_pts) >= HYDRATE_THRESHOLD:
+        return False
+    db_pts = supabase_hydrate(indicator_id)
+    if len(db_pts) <= len(local_pts):
+        return False
+    print(f"  HYDRATE {indicator_id}: local {len(local_pts)} pts → DB {len(db_pts)} pts")
+    series["points"] = [[d, v] for d, v in sorted(db_pts)]
+    series["source"] = (
+        "Supabase public.indicator_observations (hydrated by refresh_ism.py)"
+    )
+    series["as_of"] = dt.date.today().isoformat()
+    return True
+
+
 def main() -> int:
     if not INDICATOR_HISTORY.exists():
         print(f"FATAL: {INDICATOR_HISTORY} missing", file=sys.stderr)
@@ -121,10 +181,25 @@ def main() -> int:
 
     hist = json.loads(INDICATOR_HISTORY.read_text())
     appended = 0
+    hydrated = 0
     new_readings: Dict[str, List[Tuple[str, float]]] = {}
 
     for ind_id, url in SOURCES.items():
         print(f"\n[{ind_id}] scraping {url}")
+
+        # Existing series (or stub if first run)
+        series = hist.setdefault(ind_id, {
+            "freq": "M",
+            "unit": "index (50=expand)",
+            "as_of": dt.date.today().isoformat(),
+            "source": "investing.com (refresh_ism.py monthly scrape)",
+            "points": [],
+        })
+
+        # 2026-05-11 backstop: hydrate from Supabase BEFORE appending scrape.
+        if maybe_hydrate(series, ind_id):
+            hydrated += 1
+
         try:
             scraped = scrape(url)
         except Exception as e:
@@ -134,14 +209,6 @@ def main() -> int:
             print(f"  no rows parsed — page layout may have changed", file=sys.stderr)
             return 2
 
-        # Existing series (or empty list if first run)
-        series = hist.setdefault(ind_id, {
-            "freq": "M",
-            "unit": "index (50=expand)",
-            "as_of": dt.date.today().isoformat(),
-            "source": "investing.com (refresh_ism.py monthly scrape)",
-            "points": [],
-        })
         existing_dates = {d for d, _ in series.get("points", [])}
 
         added: List[Tuple[str, float]] = []
@@ -164,8 +231,8 @@ def main() -> int:
         else:
             print(f"  no new readings (latest scraped: {scraped[0][0]} = {scraped[0][1]})")
 
-    if appended == 0:
-        print(f"\nNo new ISM data — exiting cleanly without writing.")
+    if appended == 0 and hydrated == 0:
+        print(f"\nNo new ISM data and no hydration needed — exiting cleanly without writing.")
         return 0
 
     # Preserve compact format (file uses single-line JSON convention)
@@ -175,7 +242,7 @@ def main() -> int:
            else json.dumps(hist, indent=2, ensure_ascii=False))
     INDICATOR_HISTORY.write_text(out + "\n")
 
-    print(f"\nWrote {appended} new ISM reading(s) to {INDICATOR_HISTORY}")
+    print(f"\nWrote {appended} new ISM reading(s); hydrated {hydrated} series.")
     for ind, rows in new_readings.items():
         for p, v in sorted(rows):
             print(f"  {ind}: {p} = {v}")
