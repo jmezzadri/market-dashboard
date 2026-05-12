@@ -834,7 +834,8 @@ function ETFTable({ etfs, onEtfClick }) {
       rows={etfs}
       rowKey="t"
       onRowClick={onEtfClick}
-      features="look"
+      features="full"
+      storageKey="aa_etfs"
     />
   );
 }
@@ -855,7 +856,8 @@ function StockTable({ stocks, onTickerClick }) {
       rows={stocks}
       rowKey="t"
       onRowClick={onTickerClick ? (r) => onTickerClick(r.t) : undefined}
-      features="look"
+      features="full"
+      storageKey="aa_stocks"
     />
   );
 }
