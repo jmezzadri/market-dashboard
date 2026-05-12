@@ -67,13 +67,13 @@ function pctileOfSorted(value, sortedSamples) {
 // percentile-ranked vs the trailing 5 years, then direction-corrected so HIGHER
 // pctile = more late-cycle. Cycle Position score = average of the 7 corrected pcts.
 const CYCLE_INDICATORS = [
-  { id: 'copper_gold',  name: 'Copper / Gold ratio',     fmt: (v) => v.toFixed(3),                            invert: true  },
-  { id: 'bkx_spx_v11',  name: 'KBW Bank / S&P ratio',    fmt: (v) => v.toFixed(4),                            invert: true  },
-  { id: 'yield_curve',  name: 'Yield curve (10y − 2y)',  fmt: (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' bp', invert: true  },
-  { id: 'anfci',        name: 'Chicago Fed FCI',         fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2),      invert: false },
-  { id: 'ic4wsa',       name: 'Initial Jobless Claims',  fmt: (v) => Math.round(v) + 'K',                     invert: false },
-  { id: 'hy_ig',        name: 'High-Yield spread',       fmt: (v) => Math.round(v) + ' bp',                   invert: false },
-  { id: 'ig_oas',       name: 'Investment-Grade spread', fmt: (v) => Math.round(v) + ' bp',                   invert: false },
+  { id: 'copper_gold',  name: 'Copper / Gold ratio',     fmt: (v) => v.toFixed(3) },
+  { id: 'bkx_spx_v11',  name: 'KBW Bank / S&P ratio',    fmt: (v) => v.toFixed(4) },
+  { id: 'yield_curve',  name: 'Yield curve (10y − 2y)',  fmt: (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' bp' },
+  { id: 'anfci',        name: 'Chicago Fed FCI',         fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2) },
+  { id: 'ic4wsa',       name: 'Initial Jobless Claims',  fmt: (v) => Math.round(v) + 'K' },
+  { id: 'hy_ig',        name: 'High-Yield spread',       fmt: (v) => Math.round(v) + ' bp' },
+  { id: 'ig_oas',       name: 'Investment-Grade spread', fmt: (v) => Math.round(v) + ' bp' },
 ];
 
 // Take daily points → array of last N weekly closes
@@ -175,23 +175,21 @@ export default function MacroOverviewPage() {
     const cycleIndicators = CYCLE_INDICATORS.map(cfg => {
       const raw = indHist[cfg.id];
       if (!raw || !raw.points || !raw.points.length) {
-        return { id: cfg.id, name: cfg.name, value: null, pctile: null, lateCyclePctile: null, valueText: '—' };
+        return { id: cfg.id, name: cfg.name, value: null, pctile: null, valueText: '—' };
       }
       const sortedSamples = trailing5ySorted(raw.points);
       const current = raw.points[raw.points.length - 1];
       const rawPctile = pctileOfSorted(current[1], sortedSamples);
-      const lateCyclePctile = rawPctile == null ? null : (cfg.invert ? (100 - rawPctile) : rawPctile);
       return {
         id: cfg.id,
         name: cfg.name,
         value: current[1],
         pctile: rawPctile,
-        lateCyclePctile,
         valueText: current[1] != null && !isNaN(current[1]) ? cfg.fmt(current[1]) : '—',
       };
     });
-    // Cycle Position score = average of the 7 direction-corrected percentiles
-    const scoresAvail = cycleIndicators.map(i => i.lateCyclePctile).filter(p => p != null);
+    // Cycle Position score = simple average of the 7 raw percentile ranks
+    const scoresAvail = cycleIndicators.map(i => i.pctile).filter(p => p != null);
     const cycleScore = scoresAvail.length ? Math.round(scoresAvail.reduce((a, b) => a + b, 0) / scoresAvail.length) : null;
 
     const regime = regimeFor(
@@ -319,28 +317,28 @@ export default function MacroOverviewPage() {
 
             <div className="mo-cycle-right">
               <div className="mo-sub-eyebrow">
-                Average of seven late-cycle percentiles &middot; click any indicator to drill in
+                Average of seven percentile ranks &middot; click any indicator to drill in
               </div>
               <div className="mo-ind-list">
                 <div className="mo-ind-header">
+                  <span>Indicator</span>
                   <span></span>
                   <span>Reading</span>
-                  <span>Late-cycle %ile</span>
-                  <span></span>
+                  <span>Percentile Rank</span>
                 </div>
                 {cycle.indicators.map(ind => {
-                  const p = ind.lateCyclePctile;
+                  const p = ind.pctile;
                   return (
                     <div key={ind.id} className="mo-ind-row" onClick={() => openSubComposite(ind.name)}>
                       <span className="mo-ind-name">{ind.name}</span>
-                      <span className="mo-ind-reading">{ind.valueText}</span>
-                      <span className="mo-ind-pctile">{p != null ? p + '%' : '—'}</span>
                       <span className="mo-ind-barwrap">
                         <span
                           className={`mo-ind-bar ${p == null ? 'low' : p >= 75 ? 'high' : p >= 50 ? 'med' : 'low'}`}
                           style={{ width: (p ?? 0) + '%' }}
                         />
                       </span>
+                      <span className="mo-ind-reading">{ind.valueText}</span>
+                      <span className="mo-ind-pctile">{p != null ? p + '%' : '—'}</span>
                     </div>
                   );
                 })}
@@ -613,21 +611,21 @@ const MO_CSS = `
 .mo-sub-name{color:var(--ink-1);font-weight:500}
 .mo-sub-bar-wrap{display:block;height:8px;background:var(--surface-2);border-radius:3px;overflow:hidden;position:relative}
 .mo-ind-list{display:flex;flex-direction:column;gap:4px;font-size:12.5px}
-.mo-ind-header{display:grid;grid-template-columns:230px 90px 90px 110px;gap:14px;padding:4px 6px;color:var(--ink-3);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;border-bottom:1px solid var(--border-faint);margin-bottom:4px}
-.mo-ind-header span:nth-child(3){text-align:right}
-.mo-ind-row{display:grid;grid-template-columns:230px 90px 90px 110px;gap:14px;align-items:center;padding:6px;border-radius:5px;cursor:pointer;transition:background 80ms}
+.mo-ind-header{display:grid;grid-template-columns:230px 1fr 90px 110px;gap:18px;padding:4px 6px;color:var(--ink-3);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;border-bottom:1px solid var(--border-faint);margin-bottom:4px;white-space:nowrap}
+.mo-ind-header span:nth-child(3),.mo-ind-header span:nth-child(4){text-align:right}
+.mo-ind-row{display:grid;grid-template-columns:230px 1fr 90px 110px;gap:18px;align-items:center;padding:6px;border-radius:5px;cursor:pointer;transition:background 80ms}
 .mo-ind-row:hover{background:var(--surface-2)}
 .mo-ind-name{color:var(--ink-1);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mo-ind-reading{font-family:var(--font-mono);font-size:12px;color:var(--ink-0);font-weight:500;text-align:left;font-variant-numeric:tabular-nums}
+.mo-ind-reading{font-family:var(--font-mono);font-size:12px;color:var(--ink-0);font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
 .mo-ind-pctile{font-family:var(--font-mono);font-size:13px;color:var(--ink-0);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 .mo-ind-barwrap{display:block;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;position:relative}
 .mo-ind-bar{display:block;height:100%}
 .mo-ind-bar.low{background:rgba(0,113,227,0.30)}
 .mo-ind-bar.med{background:rgba(0,113,227,0.55)}
 .mo-ind-bar.high{background:rgba(0,113,227,0.85)}
-.mo-ind-avg{display:grid;grid-template-columns:230px 90px 90px 110px;gap:14px;padding:10px 6px 2px;align-items:center;border-top:1px solid var(--border-faint);margin-top:6px}
+.mo-ind-avg{display:grid;grid-template-columns:230px 1fr 90px 110px;gap:18px;padding:10px 6px 2px;align-items:center;border-top:1px solid var(--border-faint);margin-top:6px}
 .mo-ind-avg-label{font-family:var(--font-display);font-style:italic;font-size:12.5px;color:var(--ink-2);text-align:right}
-.mo-ind-avg-val{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--accent);letter-spacing:-0.005em;text-align:left}
+.mo-ind-avg-val{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--accent);letter-spacing:-0.005em;text-align:right}
 .mo-sub-bar{display:block;height:100%}
 .mo-sub-bar.low{background:rgba(0,113,227,0.32)}
 .mo-sub-bar.med{background:rgba(0,113,227,0.55)}
