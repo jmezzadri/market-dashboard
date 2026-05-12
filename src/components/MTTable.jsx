@@ -46,12 +46,27 @@ function defaultOpsFor(col) {
   return ["contains", "is", "is not"];
 }
 
+// Read the raw cell value used for filtering / categorical-picker /
+// search-on-this-column. Three-tier lookup:
+//   1) explicit col.filterValue(row) — use when the cell value lives
+//      somewhere other than row[key] AND sortValue returns a derived
+//      number (e.g. Watchlist's band column ranks "Strong Buy"=2 for
+//      sort, but the filter wants the string "Strong Buy"). Always
+//      preferred when present.
+//   2) row[key] if that's not undefined — covers the top-level case.
+//   3) col.sortValue(row) as a last resort — covers columns whose raw
+//      value lives only on a derived path and is the same shape sort
+//      uses (most non-numeric sortValues fit this).
+function readCellValue(row, col, key) {
+  if (col && typeof col.filterValue === "function") return col.filterValue(row);
+  const top = row != null ? row[key] : undefined;
+  if (top !== undefined) return top;
+  if (col && typeof col.sortValue === "function") return col.sortValue(row);
+  return undefined;
+}
+
 function rowMatchesFilter(row, f, col) {
-  // Read the cell value via the column's sortValue when it exists — that's
-  // how columns whose data is nested (e.g. r._v5?.band on Watchlist) make
-  // their cell value addressable. Falls back to row[f.key] for columns
-  // without a sortValue (the value just sits at the top level).
-  const v = col && typeof col.sortValue === "function" ? col.sortValue(row) : row[f.key];
+  const v = readCellValue(row, col, f.key);
   const value = f.value;
   // Multi-select categorical: f.value is an array of allowed values.
   // Empty array = no constraint (everything matches). Otherwise the row
@@ -360,13 +375,12 @@ export default function MTTable({
               {filterPopoverOpen && draftFilter && (() => {
                 const selectedCol = colByKey[draftFilter.key] || columns[0];
                 const isCategorical = !!selectedCol?.categorical;
-                // Distinct values from the source rows for multi-select pick.
-                // Pull via the column's sortValue so nested cells (e.g.
-                // r._v5?.band on Watchlist) are addressable; fall back to
-                // r[key] for top-level fields.
-                const readVal = (r) => selectedCol && typeof selectedCol.sortValue === "function"
-                  ? selectedCol.sortValue(r)
-                  : r[draftFilter.key];
+                // Distinct values for the categorical multi-select picker.
+                // Uses the same readCellValue() helper as the filter match
+                // so nested cells (e.g. r._v5?.band on Watchlist) and
+                // numeric-sortValue columns (band ranked 2/1/0/-1/-2 for
+                // sort) both resolve to their human-readable cell label.
+                const readVal = (r) => readCellValue(r, selectedCol, draftFilter.key);
                 const distinct = isCategorical
                   ? Array.from(new Set(rows.map(readVal).filter(x => x != null && String(x).trim() !== "")))
                       .sort((a, b) => String(a).localeCompare(String(b)))
