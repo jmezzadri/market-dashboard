@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-05-12T14:33:21+00:00",
+  "as_of": "2026-05-12T14:39:09+00:00",
   "version": "v2",
   "method": {
     "proxy": "Primary Select Sector SPDR ETF per GICS sector.",
@@ -141,6 +141,224 @@
       "vol_ttm": 5.7,
       "proxy": "LQD",
       "last_close": 108.93,
+      "last_date": "2026-05-11"
+    }
+  },
+  "industry_groups": {
+    "semis": {
+      "perf_1m": 37.81,
+      "perf_3m": 51.02,
+      "perf_ttm": 177.86,
+      "vol_ttm": 33.3,
+      "proxy": "SOXX",
+      "last_close": 532.76,
+      "last_date": "2026-05-11"
+    },
+    "software": {
+      "perf_1m": 21.45,
+      "perf_3m": 6.62,
+      "perf_ttm": -9.68,
+      "vol_ttm": 25.8,
+      "proxy": "IGV",
+      "last_close": 90.69,
+      "last_date": "2026-05-11"
+    },
+    "hardware": {
+      "perf_1m": 23.96,
+      "perf_3m": 24.06,
+      "perf_ttm": 63.56,
+      "vol_ttm": 20.3,
+      "proxy": "IYW",
+      "last_close": 240.04,
+      "last_date": "2026-05-11"
+    },
+    "intmedia": {
+      "perf_1m": 1.15,
+      "perf_3m": -0.16,
+      "perf_ttm": 18.6,
+      "vol_ttm": 13.3,
+      "proxy": "XLC",
+      "last_close": 115.58,
+      "last_date": "2026-05-11"
+    },
+    "telecom": {
+      "perf_1m": 1.8,
+      "perf_3m": 8.18,
+      "perf_ttm": 53.74,
+      "vol_ttm": 17.0,
+      "proxy": "IYZ",
+      "last_close": 41.94,
+      "last_date": "2026-05-11"
+    },
+    "banks": {
+      "perf_1m": -1.07,
+      "perf_3m": -6.66,
+      "perf_ttm": 21.28,
+      "vol_ttm": 22.1,
+      "proxy": "KBE",
+      "last_close": 62.92,
+      "last_date": "2026-05-11"
+    },
+    "insurance": {
+      "perf_1m": -1.25,
+      "perf_3m": -5.74,
+      "perf_ttm": -4.02,
+      "vol_ttm": 16.1,
+      "proxy": "KIE",
+      "last_close": 56.18,
+      "last_date": "2026-05-11"
+    },
+    "divfin": {
+      "perf_1m": 3.75,
+      "perf_3m": -0.36,
+      "perf_ttm": 23.14,
+      "vol_ttm": 19.2,
+      "proxy": "IAI",
+      "last_close": 177.82,
+      "last_date": "2026-05-11"
+    },
+    "capgoods": {
+      "perf_1m": 2.05,
+      "perf_3m": 0.77,
+      "perf_ttm": 28.71,
+      "vol_ttm": 15.5,
+      "proxy": "XLI",
+      "last_close": 175.04,
+      "last_date": "2026-05-11"
+    },
+    "transport": {
+      "perf_1m": 2.75,
+      "perf_3m": -2.7,
+      "perf_ttm": 28.53,
+      "vol_ttm": 21.2,
+      "proxy": "IYT",
+      "last_close": 80.06,
+      "last_date": "2026-05-11"
+    },
+    "defense": {
+      "perf_1m": -2.49,
+      "perf_3m": -3.39,
+      "perf_ttm": 40.97,
+      "vol_ttm": 20.4,
+      "proxy": "ITA",
+      "last_close": 225.99,
+      "last_date": "2026-05-11"
+    },
+    "pharma": {
+      "perf_1m": -4.96,
+      "perf_3m": -9.74,
+      "perf_ttm": 14.43,
+      "vol_ttm": 17.4,
+      "proxy": "PPH",
+      "last_close": 99.69,
+      "last_date": "2026-05-11"
+    },
+    "devices": {
+      "perf_1m": -11.62,
+      "perf_3m": -18.52,
+      "perf_ttm": -21.47,
+      "vol_ttm": 16.8,
+      "proxy": "IHI",
+      "last_close": 47.55,
+      "last_date": "2026-05-11"
+    },
+    "biotech": {
+      "perf_1m": 0.37,
+      "perf_3m": -2.51,
+      "perf_ttm": 42.64,
+      "vol_ttm": 20.5,
+      "proxy": "IBB",
+      "last_close": 170.0,
+      "last_date": "2026-05-11"
+    },
+    "foodbev": {
+      "perf_1m": -4.27,
+      "perf_3m": -3.43,
+      "perf_ttm": 3.01,
+      "vol_ttm": 12.6,
+      "proxy": "PBJ",
+      "last_close": 48.48,
+      "last_date": "2026-05-11"
+    },
+    "household": {
+      "perf_1m": 1.21,
+      "perf_3m": -4.64,
+      "perf_ttm": 2.45,
+      "vol_ttm": 12.7,
+      "proxy": "XLP",
+      "last_close": 83.37,
+      "last_date": "2026-05-11"
+    },
+    "retail": {
+      "perf_1m": -2.62,
+      "perf_3m": -8.99,
+      "perf_ttm": 16.46,
+      "vol_ttm": 21.3,
+      "proxy": "XRT",
+      "last_close": 81.66,
+      "last_date": "2026-05-11"
+    },
+    "autos": {
+      "perf_1m": 31.36,
+      "perf_3m": 36.1,
+      "perf_ttm": 117.66,
+      "vol_ttm": 25.6,
+      "proxy": "CARZ",
+      "last_close": 115.82,
+      "last_date": "2026-05-11"
+    },
+    "oilgas": {
+      "perf_1m": 0.54,
+      "perf_3m": 15.2,
+      "perf_ttm": 48.87,
+      "vol_ttm": 28.2,
+      "proxy": "XOP",
+      "last_close": 168.66,
+      "last_date": "2026-05-11"
+    },
+    "oilfield": {
+      "perf_1m": 4.89,
+      "perf_3m": 17.44,
+      "perf_ttm": 102.24,
+      "vol_ttm": 29.6,
+      "proxy": "OIH",
+      "last_close": 431.15,
+      "last_date": "2026-05-11"
+    },
+    "mining": {
+      "perf_1m": 10.5,
+      "perf_3m": 1.67,
+      "perf_ttm": 116.86,
+      "vol_ttm": 33.6,
+      "proxy": "XME",
+      "last_close": 124.54,
+      "last_date": "2026-05-11"
+    },
+    "chemicals": {
+      "perf_1m": 5.43,
+      "perf_3m": 2.72,
+      "perf_ttm": 57.2,
+      "vol_ttm": 25.2,
+      "proxy": "PYZ",
+      "last_close": 131.55,
+      "last_date": "2026-05-11"
+    },
+    "reits": {
+      "perf_1m": 4.21,
+      "perf_3m": 4.81,
+      "perf_ttm": 8.74,
+      "vol_ttm": 13.7,
+      "proxy": "VNQ",
+      "last_close": 96.69,
+      "last_date": "2026-05-11"
+    },
+    "electric": {
+      "perf_1m": -3.88,
+      "perf_3m": 3.82,
+      "perf_ttm": 12.71,
+      "vol_ttm": 14.3,
+      "proxy": "XLU",
+      "last_close": 45.14,
       "last_date": "2026-05-11"
     }
   }

@@ -685,28 +685,40 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBucket
       headerExtra: <InfoTip def={proxyDef + " " + returnDef} />,
       sortValue: (r) => r.perf_1m,
       render: (r) => <span style={{ color: pctColor(r.perf_1m) }}>{fmtPct(r.perf_1m)}</span>,
-      renderChild: () => <span style={{ color: "var(--text-muted)" }}>—</span>,
+      renderChild: (ig) => {
+        const p = sectorPerf?.industry_groups?.[ig.id]?.perf_1m;
+        return <span style={{ color: pctColor(p) }}>{fmtPct(p)}</span>;
+      },
     },
     {
       key: "p3m", label: "3M", numeric: true, defaultWidth: 70,
       headerExtra: <InfoTip def={proxyDef + " " + returnDef} />,
       sortValue: (r) => r.perf_3m,
       render: (r) => <span style={{ color: pctColor(r.perf_3m) }}>{fmtPct(r.perf_3m)}</span>,
-      renderChild: () => <span style={{ color: "var(--text-muted)" }}>—</span>,
+      renderChild: (ig) => {
+        const p = sectorPerf?.industry_groups?.[ig.id]?.perf_3m;
+        return <span style={{ color: pctColor(p) }}>{fmtPct(p)}</span>;
+      },
     },
     {
       key: "pttm", label: "TTM", numeric: true, defaultWidth: 70,
       headerExtra: <InfoTip def={proxyDef + " " + returnDef} />,
       sortValue: (r) => r.perf_ttm,
       render: (r) => <span style={{ color: pctColor(r.perf_ttm) }}>{fmtPct(r.perf_ttm)}</span>,
-      renderChild: () => <span style={{ color: "var(--text-muted)" }}>—</span>,
+      renderChild: (ig) => {
+        const p = sectorPerf?.industry_groups?.[ig.id]?.perf_ttm;
+        return <span style={{ color: pctColor(p) }}>{fmtPct(p)}</span>;
+      },
     },
     {
       key: "vol", label: "Vol", numeric: true, defaultWidth: 70,
       headerExtra: <InfoTip def={proxyDef + " " + volDef} />,
       sortValue: (r) => r.vol_ttm,
       render: (r) => <span style={{ color: "var(--text-2)" }}>{fmtVol(r.vol_ttm)}</span>,
-      renderChild: () => <span style={{ color: "var(--text-muted)" }}>—</span>,
+      renderChild: (ig) => {
+        const v = sectorPerf?.industry_groups?.[ig.id]?.vol_ttm;
+        return <span style={{ color: "var(--text-2)" }}>{fmtVol(v)}</span>;
+      },
     },
     {
       key: "rating",

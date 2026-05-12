@@ -44,6 +44,38 @@ SECTOR_PROXY = {
     "GLD":                      "GLD",
     "LQD":                      "LQD",
 }
+
+# 24 GICS Industry Groups. Each maps to its primary proxy ETF (the first
+# entry in compute_v10_allocation.py INDUSTRY_GROUPS[i]['tickers']).
+# Joe directive 2026-05-12: surface IG-level perf in the Recommended
+# Allocations drill-down so the rows aren't blank.
+INDUSTRY_GROUP_PROXY = {
+    "semis":     "SOXX",
+    "software":  "IGV",
+    "hardware":  "IYW",
+    "intmedia":  "XLC",
+    "telecom":   "IYZ",
+    "banks":     "KBE",
+    "insurance": "KIE",
+    "divfin":    "IAI",
+    "capgoods":  "XLI",
+    "transport": "IYT",
+    "defense":   "ITA",
+    "pharma":    "PPH",
+    "devices":   "IHI",
+    "biotech":   "IBB",
+    "foodbev":   "PBJ",
+    "household": "XLP",
+    "retail":    "XRT",
+    "autos":     "CARZ",
+    "oilgas":    "XOP",
+    "oilfield":  "OIH",
+    "mining":    "XME",
+    "chemicals": "PYZ",
+    "reits":     "VNQ",
+    "electric":  "XLU",
+}
+
 WINDOWS = {"perf_1m": 21, "perf_3m": 63, "perf_ttm": 252}
 
 
@@ -144,6 +176,32 @@ def main():
         if len(closes_only) < 252:
             insufficient.append(f"{ticker} (n={len(closes_only)})")
         print(f"  {sector:24s} {ticker:5s}  n={len(closes_only):3d}  1M {str(m['perf_1m']):>7}  3M {str(m['perf_3m']):>7}  TTM {str(m['perf_ttm']):>7}  vol {str(m['vol_ttm']):>5}")
+
+    # IG-level perf — same windows, same source, keyed by IG id.
+    out["industry_groups"] = {}
+    for ig_id, ticker in INDUSTRY_GROUP_PROXY.items():
+        try:
+            pairs = fetch_closes(supabase_url, key, ticker)
+        except Exception as e:
+            print(f"  IG {ig_id:11s} {ticker:5s}  FETCH ERR  {type(e).__name__}")
+            out["industry_groups"][ig_id] = {
+                "proxy": ticker, "perf_1m": None, "perf_3m": None, "perf_ttm": None,
+                "vol_ttm": None, "last_close": None, "last_date": None,
+            }
+            continue
+        if not pairs:
+            out["industry_groups"][ig_id] = {
+                "proxy": ticker, "perf_1m": None, "perf_3m": None, "perf_ttm": None,
+                "vol_ttm": None, "last_close": None, "last_date": None,
+            }
+            continue
+        closes_only = [c for _, c in pairs]
+        m = metrics_from_closes(closes_only)
+        m["proxy"] = ticker
+        m["last_close"] = round(closes_only[-1], 2)
+        m["last_date"] = pairs[-1][0]
+        out["industry_groups"][ig_id] = m
+        print(f"  IG {ig_id:11s} {ticker:5s}  n={len(closes_only):3d}  1M {str(m['perf_1m']):>7}  3M {str(m['perf_3m']):>7}  TTM {str(m['perf_ttm']):>7}  vol {str(m['vol_ttm']):>5}")
 
     Path("public/sector_perf.json").write_text(json.dumps(out, indent=2) + "\n")
     if insufficient:
