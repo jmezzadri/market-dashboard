@@ -441,6 +441,7 @@ function buildColumns({ onEdit, onClose, onDelete }) {
     {
       key: "band", label: "BAND", categorical: true, defaultWidth: 120,
       tooltip: "Strong Sell / Sell Watch / Neutral / Buy Watch / Strong Buy. Cutoffs at MT Score −50, −20, +20, +50.",
+      filterValue: (r) => r._v5?.band,
       sortValue: (r) => {
         const order = { "Strong Sell": -2, "Sell Watch": -1, "Neutral": 0, "Buy Watch": 1, "Strong Buy": 2 };
         return order[r._v5?.band] ?? null;
@@ -455,6 +456,7 @@ function buildColumns({ onEdit, onClose, onDelete }) {
     {
       key: "ig", label: "INDUSTRY GROUP", categorical: true, defaultWidth: 210,
       tooltip: "GICS Industry Group (25 mid-level buckets). Derived from the ticker's SIC code.",
+      filterValue: (r) => r._v5?.ig,
       sortValue: (r) => (r._v5?.ig || "").toLowerCase(),
       render: (r) => (
         <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }} title={r._v5?.ig}>
