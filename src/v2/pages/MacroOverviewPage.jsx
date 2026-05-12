@@ -326,26 +326,26 @@ export default function MacroOverviewPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {cycle.historyBars && cycle.historyBars.length > 0 && (
-          <div className="mo-bar-wrap" style={{ marginTop: 18 }}>
-            <div className="mo-bar-axis"><span>24 weeks ago</span><span>today</span></div>
-            <div className="mo-bar-strip no-frame">
-              {cycle.historyBars.map((w, i) => {
-                const heightPct = w.score == null ? 8 : Math.max(8, Math.min(95, w.score));
-                return (
-                  <span
-                    key={i}
-                    className={`mo-bar s${w.stage}`}
-                    style={{ height: heightPct + '%' }}
-                    data-tt={`${fmtDate(w.date)} · ${w.score != null ? w.score : '—'}`}
-                  />
-                );
-              })}
+          {cycle.historyBars && cycle.historyBars.length > 0 && (
+            <div className="mo-bar-wrap" style={{ marginTop: 18 }}>
+              <div className="mo-bar-axis"><span>24 weeks ago</span><span>today</span></div>
+              <div className="mo-bar-strip no-frame">
+                {cycle.historyBars.map((w, i) => {
+                  const heightPct = w.score == null ? 8 : Math.max(8, Math.min(95, w.score));
+                  return (
+                    <span
+                      key={i}
+                      className={`mo-bar s${w.stage}`}
+                      style={{ height: heightPct + '%' }}
+                      data-tt={`${fmtDate(w.date)} · ${w.score != null ? w.score : '—'}`}
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
       </div>
 
