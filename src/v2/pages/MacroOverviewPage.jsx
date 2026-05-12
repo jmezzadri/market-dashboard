@@ -67,13 +67,13 @@ function pctileOfSorted(value, sortedSamples) {
 // percentile-ranked vs the trailing 5 years, then direction-corrected so HIGHER
 // pctile = more late-cycle. Cycle Position score = average of the 7 corrected pcts.
 const CYCLE_INDICATORS = [
-  { id: 'copper_gold',  name: 'Copper / Gold',                         fmt: (v) => v.toFixed(3),                          invert: true  },
-  { id: 'bkx_spx_v11',  name: 'KBW Bank / S&P',                        fmt: (v) => v.toFixed(4),                          invert: true  },
-  { id: 'yield_curve',  name: 'Yield Curve (10y − 2y)',           fmt: (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' bp', invert: true  },
-  { id: 'anfci',        name: 'Chicago Fed Financial Conditions',      fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2),    invert: false },
-  { id: 'ic4wsa',       name: 'Initial Jobless Claims (4-wk avg)',     fmt: (v) => Math.round(v) + 'K',                   invert: false },
-  { id: 'hy_ig',        name: 'High-Yield credit spread',              fmt: (v) => Math.round(v) + ' bp',                 invert: false },
-  { id: 'ig_oas',       name: 'Investment-Grade credit spread',        fmt: (v) => Math.round(v) + ' bp',                 invert: false },
+  { id: 'copper_gold',  name: 'Copper / Gold ratio',     fmt: (v) => v.toFixed(3),                            invert: true  },
+  { id: 'bkx_spx_v11',  name: 'KBW Bank / S&P ratio',    fmt: (v) => v.toFixed(4),                            invert: true  },
+  { id: 'yield_curve',  name: 'Yield curve (10y − 2y)',  fmt: (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' bp', invert: true  },
+  { id: 'anfci',        name: 'Chicago Fed FCI',         fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2),      invert: false },
+  { id: 'ic4wsa',       name: 'Initial Jobless Claims',  fmt: (v) => Math.round(v) + 'K',                     invert: false },
+  { id: 'hy_ig',        name: 'High-Yield spread',       fmt: (v) => Math.round(v) + ' bp',                   invert: false },
+  { id: 'ig_oas',       name: 'Investment-Grade spread', fmt: (v) => Math.round(v) + ' bp',                   invert: false },
 ];
 
 // Take daily points → array of last N weekly closes
@@ -318,24 +318,38 @@ export default function MacroOverviewPage() {
             </div>
 
             <div className="mo-cycle-right">
-              <div className="mo-sub-eyebrow">Rolled up from seven indicators &middot; click any to drill in</div>
-              <div className="mo-sub-list">
+              <div className="mo-sub-eyebrow">
+                Average of seven late-cycle percentiles &middot; click any indicator to drill in
+              </div>
+              <div className="mo-ind-list">
+                <div className="mo-ind-header">
+                  <span></span>
+                  <span>Reading</span>
+                  <span>Late-cycle %ile</span>
+                  <span></span>
+                </div>
                 {cycle.indicators.map(ind => {
                   const p = ind.lateCyclePctile;
                   return (
-                    <div key={ind.id} className="mo-sub-row" onClick={() => openSubComposite(ind.name)}>
-                      <span className="mo-sub-name">{ind.name}</span>
-                      <span className="mo-sub-bar-wrap">
+                    <div key={ind.id} className="mo-ind-row" onClick={() => openSubComposite(ind.name)}>
+                      <span className="mo-ind-name">{ind.name}</span>
+                      <span className="mo-ind-reading">{ind.valueText}</span>
+                      <span className="mo-ind-pctile">{p != null ? p + '%' : '—'}</span>
+                      <span className="mo-ind-barwrap">
                         <span
-                          className={`mo-sub-bar ${p == null ? 'low' : p >= 75 ? 'high' : p >= 50 ? 'med' : 'low'}`}
+                          className={`mo-ind-bar ${p == null ? 'low' : p >= 75 ? 'high' : p >= 50 ? 'med' : 'low'}`}
                           style={{ width: (p ?? 0) + '%' }}
                         />
-                        <span className="mo-peak-mark" />
                       </span>
-                      <span className="mo-sub-val">{ind.valueText}</span>
                     </div>
                   );
                 })}
+                <div className="mo-ind-avg">
+                  <span></span>
+                  <span></span>
+                  <span className="mo-ind-avg-label">Average =</span>
+                  <span className="mo-ind-avg-val">{cycle.score != null ? cycle.score : '—'} / 100</span>
+                </div>
               </div>
             </div>
           </div>
@@ -598,6 +612,22 @@ const MO_CSS = `
 .mo-sub-row:hover{background:var(--surface-2)}
 .mo-sub-name{color:var(--ink-1);font-weight:500}
 .mo-sub-bar-wrap{display:block;height:8px;background:var(--surface-2);border-radius:3px;overflow:hidden;position:relative}
+.mo-ind-list{display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+.mo-ind-header{display:grid;grid-template-columns:230px 90px 90px 110px;gap:14px;padding:4px 6px;color:var(--ink-3);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;border-bottom:1px solid var(--border-faint);margin-bottom:4px}
+.mo-ind-header span:nth-child(3){text-align:right}
+.mo-ind-row{display:grid;grid-template-columns:230px 90px 90px 110px;gap:14px;align-items:center;padding:6px;border-radius:5px;cursor:pointer;transition:background 80ms}
+.mo-ind-row:hover{background:var(--surface-2)}
+.mo-ind-name{color:var(--ink-1);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mo-ind-reading{font-family:var(--font-mono);font-size:12px;color:var(--ink-0);font-weight:500;text-align:left;font-variant-numeric:tabular-nums}
+.mo-ind-pctile{font-family:var(--font-mono);font-size:13px;color:var(--ink-0);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
+.mo-ind-barwrap{display:block;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;position:relative}
+.mo-ind-bar{display:block;height:100%}
+.mo-ind-bar.low{background:rgba(0,113,227,0.30)}
+.mo-ind-bar.med{background:rgba(0,113,227,0.55)}
+.mo-ind-bar.high{background:rgba(0,113,227,0.85)}
+.mo-ind-avg{display:grid;grid-template-columns:230px 90px 90px 110px;gap:14px;padding:10px 6px 2px;align-items:center;border-top:1px solid var(--border-faint);margin-top:6px}
+.mo-ind-avg-label{font-family:var(--font-display);font-style:italic;font-size:12.5px;color:var(--ink-2);text-align:right}
+.mo-ind-avg-val{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--accent);letter-spacing:-0.005em;text-align:left}
 .mo-sub-bar{display:block;height:100%}
 .mo-sub-bar.low{background:rgba(0,113,227,0.32)}
 .mo-sub-bar.med{background:rgba(0,113,227,0.55)}
