@@ -1,6 +1,6 @@
 {
   "_doc": "Phase 2 scenario-stress mechanism scores. For each scenario, each calibrated indicator's peak-stress value is percentiled against the indicator's full live sample (post-2011) and direction-corrected 0-100 (higher = more stress) using the same convention as the live v11 cycle-mechanism scorer. Mechanism score = simple-average of available indicator scores; composite = simple-average of mechanism scores. Indicators with value=null (e.g. RRP pre-2013) or no historical sample are dropped from the denominator and listed in indicators_dropped per scenario. Refreshed nightly by scripts/compute_scenario_mechanism_stress.py at 23:00 UTC weekdays.",
-  "as_of": "2026-05-09",
+  "as_of": "2026-05-12",
   "framework": "v11 cycle mechanisms",
   "calibration_version": "phase2b-decisions-locked-2026-05-08",
   "calibration_as_of": "2026-05-08",
@@ -117,7 +117,7 @@
               "percentile": 0.0,
               "score": 0,
               "history_key": "hy_ig",
-              "history_sample_size": 813,
+              "history_sample_size": 811,
               "source_note": "Per Q1 substitute: Moody's BAA corporate yield Oct '87 \u2248 11.5% minus 10y Treasury ~9.0% = ~250 bps. Source: FRED BAA + DGS10. BAMLH0A0HYM2 series begins 1996. Tag: proxy."
             },
             {
@@ -169,8 +169,8 @@
           "id": "growth",
           "num": "04",
           "name": "Growth",
-          "score": 6,
-          "indicators_scored": 2,
+          "score": 8,
+          "indicators_scored": 1,
           "indicators_panel": 3,
           "indicators": [
             {
@@ -183,17 +183,6 @@
               "history_key": "ism",
               "history_sample_size": 38,
               "source_note": "Oct 1987 ISM Manufacturing PMI = 60.4. Economy was strong; the crash was a financial-system shock, not real-economy stress."
-            },
-            {
-              "id": "gdpnow",
-              "value": 6.9,
-              "as_of": "1987-Q4",
-              "direction": "low_is_concerning",
-              "percentile": 95.0,
-              "score": 5,
-              "history_key": "gdpnow",
-              "history_sample_size": 60,
-              "source_note": "Realized BEA advance GDP Q4 1987 = +6.9% (per Q2 methodology decision: realized print used pre-2014). Boom continued through the financial shock."
             }
           ]
         },
@@ -256,7 +245,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3860,
+              "history_sample_size": 3862,
               "source_note": "Per Q1 substitute: VXO (Black-Scholes-derived precursor; CBOE constructed retroactively from S&P 100 options) spiked to ~150 on Oct 19 '87 close. DRAFT \u2014 VXO Oct '87 reconstructions vary by source (range 100\u2013150); 150 represents the panic-peak reading. Tag: proxy."
             },
             {
@@ -267,14 +256,14 @@
               "percentile": 48.0,
               "score": 48,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3860,
+              "history_sample_size": 3861,
               "source_note": "60d correlation derived from S&P + Moody's BAA-Treasury proxy (BAMLH0A0HYM2 doesn't exist pre-1996). Estimate ~0.70 in Oct '87 panic. DRAFT \u2014 needs reconstruction in Phase 2C producer using BAA proxy."
             }
           ]
         }
       ],
       "composite_score": 48,
-      "indicators_scored_total": 14,
+      "indicators_scored_total": 13,
       "indicators_dropped": [
         {
           "id": "ig_hy_ratio",
@@ -291,6 +280,10 @@
         {
           "id": "ism_svc",
           "reason": "Dropped \u2014 ISM Non-Manufacturing (Services) PMI series began 1997. Growth mechanism re-aggregates per Q5 over ISM Mfg + GDPNow proxy."
+        },
+        {
+          "id": "gdpnow",
+          "reason": "insufficient history (0 points post-2011-01-01); minimum 24 required"
         },
         {
           "id": "sloos_ci",
@@ -366,10 +359,10 @@
               "value": 470,
               "as_of": "2000-03-31",
               "direction": "high_is_concerning",
-              "percentile": 97.4,
-              "score": 97,
+              "percentile": 97.8,
+              "score": 98,
               "history_key": "hy_ig",
-              "history_sample_size": 813,
+              "history_sample_size": 811,
               "source_note": "FRED BAMLH0A0HYM2 ~470 bps Mar '00 (elevated late-cycle credit fears)"
             },
             {
@@ -432,8 +425,8 @@
           "id": "growth",
           "num": "04",
           "name": "Growth",
-          "score": 16,
-          "indicators_scored": 3,
+          "score": 18,
+          "indicators_scored": 2,
           "indicators_panel": 3,
           "indicators": [
             {
@@ -457,17 +450,6 @@
               "history_key": "ism",
               "history_sample_size": 38,
               "source_note": "Mar 2000 ISM Services = 58.2 (strong expansion)"
-            },
-            {
-              "id": "gdpnow",
-              "value": 5.0,
-              "as_of": "2000-Q1",
-              "direction": "low_is_concerning",
-              "percentile": 88.3,
-              "score": 12,
-              "history_key": "gdpnow",
-              "history_sample_size": 60,
-              "source_note": "Realized BEA advance GDP Q1 2000 = +5.0% (per Q2 methodology decision: realized print used pre-2014)"
             }
           ]
         },
@@ -541,7 +523,7 @@
               "percentile": 2.8,
               "score": 3,
               "history_key": "skew",
-              "history_sample_size": 3798,
+              "history_sample_size": 3799,
               "source_note": "CBOE SKEW ~115 Mar '00 (elevated tail-hedge demand even during peak euphoria)"
             },
             {
@@ -552,7 +534,7 @@
               "percentile": 85.1,
               "score": 85,
               "history_key": "vix",
-              "history_sample_size": 3860,
+              "history_sample_size": 3862,
               "source_note": "VIX ~24 Mar 10 '00 Nasdaq peak (low for that era; pre-2008 VIX averaged higher than post-GFC norms)"
             },
             {
@@ -563,7 +545,7 @@
               "percentile": 0.7,
               "score": 1,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3860,
+              "history_sample_size": 3861,
               "source_note": "Equity-credit 60d corr ~0.40 Mar '00 (low \u2014 bull-market complacency, equity and credit decoupled)"
             },
             {
@@ -574,14 +556,14 @@
               "percentile": 89.8,
               "score": 90,
               "history_key": "move",
-              "history_sample_size": 3779,
+              "history_sample_size": 3780,
               "source_note": "MOVE Index ~115 Mar '00 (rate-cycle vol from Fed tightening)"
             }
           ]
         }
       ],
       "composite_score": 57,
-      "indicators_scored_total": 19,
+      "indicators_scored_total": 18,
       "indicators_dropped": [
         {
           "id": "ig_hy_ratio",
@@ -590,6 +572,10 @@
         {
           "id": "rrp",
           "reason": "Dropped \u2014 RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08, funding mechanism re-aggregates over CPFF + STLFSI + bank reserves."
+        },
+        {
+          "id": "gdpnow",
+          "reason": "insufficient history (0 points post-2011-01-01); minimum 24 required"
         }
       ]
     },
@@ -656,7 +642,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "hy_ig",
-              "history_sample_size": 813,
+              "history_sample_size": 811,
               "source_note": "FRED BAMLH0A0HYM2 peaked ~1099 bps Oct 10 '02"
             },
             {
@@ -719,8 +705,8 @@
           "id": "growth",
           "num": "04",
           "name": "Growth",
-          "score": 61,
-          "indicators_scored": 3,
+          "score": 52,
+          "indicators_scored": 2,
           "indicators_panel": 3,
           "indicators": [
             {
@@ -744,17 +730,6 @@
               "history_key": "ism",
               "history_sample_size": 38,
               "source_note": "Oct 2002 ISM Services = 53.4 (still expanding modestly)"
-            },
-            {
-              "id": "gdpnow",
-              "value": 0.7,
-              "as_of": "2002-Q4",
-              "direction": "low_is_concerning",
-              "percentile": 20.0,
-              "score": 80,
-              "history_key": "gdpnow",
-              "history_sample_size": 60,
-              "source_note": "Realized BEA advance GDP Q4 2002 = +0.7% (per Q2 methodology decision: realized print used pre-2014 since GDPNow launched mid-2014)"
             }
           ]
         },
@@ -828,7 +803,7 @@
               "percentile": 9.6,
               "score": 10,
               "history_key": "skew",
-              "history_sample_size": 3798,
+              "history_sample_size": 3799,
               "source_note": "CBOE SKEW averaged ~118 Oct '02"
             },
             {
@@ -839,7 +814,7 @@
               "percentile": 99.5,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3860,
+              "history_sample_size": 3862,
               "source_note": "VIX close 49.3 Oct 9 '02 (cycle peak)"
             },
             {
@@ -850,7 +825,7 @@
               "percentile": 30.6,
               "score": 31,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3860,
+              "history_sample_size": 3861,
               "source_note": "Equity-credit 60d corr ~0.65 Oct '02"
             },
             {
@@ -861,14 +836,14 @@
               "percentile": 98.8,
               "score": 99,
               "history_key": "move",
-              "history_sample_size": 3779,
+              "history_sample_size": 3780,
               "source_note": "MOVE peaked ~145 mid-'02 (telecom/Enron credit-induced rates vol)"
             }
           ]
         }
       ],
-      "composite_score": 65,
-      "indicators_scored_total": 19,
+      "composite_score": 63,
+      "indicators_scored_total": 18,
       "indicators_dropped": [
         {
           "id": "ig_hy_ratio",
@@ -877,6 +852,10 @@
         {
           "id": "rrp",
           "reason": "Dropped \u2014 RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08, funding mechanism re-aggregates over CPFF + STLFSI + bank reserves."
+        },
+        {
+          "id": "gdpnow",
+          "reason": "insufficient history (0 points post-2011-01-01); minimum 24 required"
         }
       ]
     },
@@ -943,7 +922,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "hy_ig",
-              "history_sample_size": 813,
+              "history_sample_size": 811,
               "source_note": "FRED BAMLH0A0HYM2 hit 1971 bps Dec 15 2008"
             },
             {
@@ -1006,8 +985,8 @@
           "id": "growth",
           "num": "04",
           "name": "Growth",
-          "score": 99,
-          "indicators_scored": 3,
+          "score": 100,
+          "indicators_scored": 2,
           "indicators_panel": 3,
           "indicators": [
             {
@@ -1031,17 +1010,6 @@
               "history_key": "ism",
               "history_sample_size": 38,
               "source_note": "Nov 2008 ISM Services = 37.8 (record low at time)"
-            },
-            {
-              "id": "gdpnow",
-              "value": -8.0,
-              "as_of": "2008-Q4",
-              "direction": "low_is_concerning",
-              "percentile": 1.7,
-              "score": 98,
-              "history_key": "gdpnow",
-              "history_sample_size": 60,
-              "source_note": "Q4 2008 advance GDP -8.4% (revised; GDPNow not live until 2014, used realized print as proxy)"
             }
           ]
         },
@@ -1115,7 +1083,7 @@
               "percentile": 2.7,
               "score": 3,
               "history_key": "skew",
-              "history_sample_size": 3798,
+              "history_sample_size": 3799,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 114.9 (was 118 as_of 2008-10-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: CBOE SKEW elevated 115-125 range Oct-Nov 2008"
             },
             {
@@ -1126,7 +1094,7 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3860,
+              "history_sample_size": 3862,
               "source_note": "VIX intraday 80.86 Nov 20 2008 (record high)"
             },
             {
@@ -1137,7 +1105,7 @@
               "percentile": 34.0,
               "score": 34,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3860,
+              "history_sample_size": 3861,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 0.66 (was 0.85 as_of 2008-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit corr near 0.85 at GFC peak"
             },
             {
@@ -1148,14 +1116,14 @@
               "percentile": 100.0,
               "score": 100,
               "history_key": "move",
-              "history_sample_size": 3779,
+              "history_sample_size": 3780,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2008-11-20 = 211.6 (was 213 as_of 2008-10-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE Index peaked ~213 Oct 2008 (Senior Quant validation 2026-05-09 \u2014 corrected from 260; original value likely confused with VIX peak)"
             }
           ]
         }
       ],
       "composite_score": 70,
-      "indicators_scored_total": 19,
+      "indicators_scored_total": 18,
       "indicators_dropped": [
         {
           "id": "ig_hy_ratio",
@@ -1164,6 +1132,10 @@
         {
           "id": "rrp",
           "reason": "Dropped \u2014 RRP facility launched Sep 2013 (post-scenario). Per Q4 methodology decision 2026-05-08, funding mechanism re-aggregates over the 3 available inputs (CPFF + STLFSI + bank reserves)."
+        },
+        {
+          "id": "gdpnow",
+          "reason": "insufficient history (0 points post-2011-01-01); minimum 24 required"
         }
       ]
     },
@@ -1230,7 +1202,7 @@
               "percentile": 99.0,
               "score": 99,
               "history_key": "hy_ig",
-              "history_sample_size": 813,
+              "history_sample_size": 811,
               "source_note": "FRED BAMLH0A0HYM2 closed 537 bps Dec 24 '18 (cycle peak)"
             },
             {
@@ -1295,7 +1267,7 @@
               "percentile": 25.9,
               "score": 74,
               "history_key": "rrp",
-              "history_sample_size": 3163,
+              "history_sample_size": 3164,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 8.0 (was 0.001 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: RRP minimal usage Dec '18 (~$1B daily, well below 2022 peak)"
             }
           ]
@@ -1304,8 +1276,8 @@
           "id": "growth",
           "num": "04",
           "name": "Growth",
-          "score": 39,
-          "indicators_scored": 3,
+          "score": 34,
+          "indicators_scored": 2,
           "indicators_panel": 3,
           "indicators": [
             {
@@ -1329,17 +1301,6 @@
               "history_key": "ism",
               "history_sample_size": 38,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-31 = 54.3 (was 57.6 as_of 2018-12-31). Original note: Dec 2018 ISM Services = 57.6 (still healthy expansion)"
-            },
-            {
-              "id": "gdpnow",
-              "value": 2.67,
-              "as_of": "2019-01-01",
-              "direction": "low_is_concerning",
-              "percentile": 51.7,
-              "score": 48,
-              "history_key": "gdpnow",
-              "history_sample_size": 60,
-              "source_note": "Aligned 2026-05-09 to indicator_history.json 2019-01-01 = 2.67 (was 2.7 as_of 2018-12-31). Original note: Atlanta Fed GDPNow Q4 2018 final ~2.7%"
             }
           ]
         },
@@ -1413,7 +1374,7 @@
               "percentile": 10.4,
               "score": 10,
               "history_key": "skew",
-              "history_sample_size": 3798,
+              "history_sample_size": 3799,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 118.3 (was 125 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: CBOE SKEW averaged ~125 Dec '18"
             },
             {
@@ -1424,7 +1385,7 @@
               "percentile": 97.9,
               "score": 98,
               "history_key": "vix",
-              "history_sample_size": 3860,
+              "history_sample_size": 3862,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 36.1 (was 36.07 as_of 2018-12-24). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX close 36.07 Dec 24 '18 (cycle peak)"
             },
             {
@@ -1435,7 +1396,7 @@
               "percentile": 73.0,
               "score": 73,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3860,
+              "history_sample_size": 3861,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 0.77 (was 0.55 as_of 2018-12-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit 60d corr ~0.55 Dec '18 (elevated but not panic)"
             },
             {
@@ -1446,18 +1407,22 @@
               "percentile": 37.7,
               "score": 38,
               "history_key": "move",
-              "history_sample_size": 3779,
+              "history_sample_size": 3780,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2018-12-24 = 66.0 (was 88 as_of 2018-12-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE peaked ~88 mid-Dec '18 (low by historical-stress standards)"
             }
           ]
         }
       ],
-      "composite_score": 62,
-      "indicators_scored_total": 20,
+      "composite_score": 61,
+      "indicators_scored_total": 19,
       "indicators_dropped": [
         {
           "id": "ig_hy_ratio",
           "reason": "no historical sample available in indicator_history.json"
+        },
+        {
+          "id": "gdpnow",
+          "reason": "insufficient history (0 points post-2011-01-01); minimum 24 required"
         }
       ]
     },
@@ -1524,7 +1489,7 @@
               "percentile": 99.9,
               "score": 100,
               "history_key": "hy_ig",
-              "history_sample_size": 813,
+              "history_sample_size": 811,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-31 = 880.0 (was 1100 as_of 2020-03-23). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: BAMLH0A0HYM2 peaked 1087 bps Mar 23 2020"
             },
             {
@@ -1589,7 +1554,7 @@
               "percentile": 32.0,
               "score": 68,
               "history_key": "rrp",
-              "history_sample_size": 3163,
+              "history_sample_size": 3164,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 26.9 (was 0 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: RRP usage minimal during stress"
             }
           ]
@@ -1598,8 +1563,8 @@
           "id": "growth",
           "num": "04",
           "name": "Growth",
-          "score": 88,
-          "indicators_scored": 3,
+          "score": 82,
+          "indicators_scored": 2,
           "indicators_panel": 3,
           "indicators": [
             {
@@ -1623,17 +1588,6 @@
               "history_key": "ism",
               "history_sample_size": 38,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-31 = 49.1 (was 41.8 as_of 2020-04-30). Original note: Apr 2020 ISM Services = 41.8"
-            },
-            {
-              "id": "gdpnow",
-              "value": -32.08,
-              "as_of": "2020-04-01",
-              "direction": "low_is_concerning",
-              "percentile": 0.0,
-              "score": 100,
-              "history_key": "gdpnow",
-              "history_sample_size": 60,
-              "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-04-01 = -32.08 (was -30.0 as_of 2020-Q2). Original note: Q2 2020 advance -32.9% annualized"
             }
           ]
         },
@@ -1707,7 +1661,7 @@
               "percentile": 6.9,
               "score": 7,
               "history_key": "skew",
-              "history_sample_size": 3798,
+              "history_sample_size": 3799,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 117.1 (was 135 as_of 2020-03-15). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: SKEW elevated mid-March"
             },
             {
@@ -1718,7 +1672,7 @@
               "percentile": 99.8,
               "score": 100,
               "history_key": "vix",
-              "history_sample_size": 3860,
+              "history_sample_size": 3862,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 61.6 (was 82.7 as_of 2020-03-16). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX intraday 85.5 Mar 18, close 82.7 Mar 16"
             },
             {
@@ -1729,7 +1683,7 @@
               "percentile": 99.6,
               "score": 100,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3860,
+              "history_sample_size": 3861,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 0.91 (was 0.8 as_of 2020-03-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit corr ~0.80 at COVID peak"
             },
             {
@@ -1740,18 +1694,22 @@
               "percentile": 97.6,
               "score": 98,
               "history_key": "move",
-              "history_sample_size": 3779,
+              "history_sample_size": 3780,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2020-03-23 = 135.4 (was 164 as_of 2020-03-09). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE peaked 164 Mar 9 2020"
             }
           ]
         }
       ],
-      "composite_score": 74,
-      "indicators_scored_total": 20,
+      "composite_score": 73,
+      "indicators_scored_total": 19,
       "indicators_dropped": [
         {
           "id": "ig_hy_ratio",
           "reason": "no historical sample available in indicator_history.json"
+        },
+        {
+          "id": "gdpnow",
+          "reason": "insufficient history (0 points post-2011-01-01); minimum 24 required"
         }
       ]
     },
@@ -1818,7 +1776,7 @@
               "percentile": 99.4,
               "score": 99,
               "history_key": "hy_ig",
-              "history_sample_size": 813,
+              "history_sample_size": 811,
               "source_note": "HY OAS peaked ~603 bps Sep-Oct 2022"
             },
             {
@@ -1883,7 +1841,7 @@
               "percentile": 98.5,
               "score": 1,
               "history_key": "rrp",
-              "history_sample_size": 3163,
+              "history_sample_size": 3164,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 2247.2 (was 2200 as_of 2022-12-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: RRP record $2.55T late-Dec 2022 (~$2.2T avg Q4)"
             }
           ]
@@ -1892,8 +1850,8 @@
           "id": "growth",
           "num": "04",
           "name": "Growth",
-          "score": 62,
-          "indicators_scored": 3,
+          "score": 82,
+          "indicators_scored": 2,
           "indicators_panel": 3,
           "indicators": [
             {
@@ -1917,17 +1875,6 @@
               "history_key": "ism",
               "history_sample_size": 38,
               "source_note": "Dec 2022 ISM Services dipped to 49.6"
-            },
-            {
-              "id": "gdpnow",
-              "value": 3.53,
-              "as_of": "2022-10-01",
-              "direction": "low_is_concerning",
-              "percentile": 80.0,
-              "score": 20,
-              "history_key": "gdpnow",
-              "history_sample_size": 60,
-              "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-01 = 3.53 (was 2.5 as_of 2022-Q4). Original note: Q4 2022 advance GDP +2.9%"
             }
           ]
         },
@@ -2001,7 +1948,7 @@
               "percentile": 16.0,
               "score": 16,
               "history_key": "skew",
-              "history_sample_size": 3798,
+              "history_sample_size": 3799,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 120.0 (was 135 as_of 2022-04-30). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: SKEW persistently elevated through 2022"
             },
             {
@@ -2012,7 +1959,7 @@
               "percentile": 97.0,
               "score": 97,
               "history_key": "vix",
-              "history_sample_size": 3860,
+              "history_sample_size": 3862,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 33.6 (was 36.5 as_of 2022-10-12). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX peaked 36.5 Oct 12 2022"
             },
             {
@@ -2023,7 +1970,7 @@
               "percentile": 98.7,
               "score": 99,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3860,
+              "history_sample_size": 3861,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 0.9 (was 0.65 as_of 2022-Q4). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit corr ~0.65 in 2022"
             },
             {
@@ -2034,18 +1981,22 @@
               "percentile": 99.7,
               "score": 100,
               "history_key": "move",
-              "history_sample_size": 3779,
+              "history_sample_size": 3780,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2022-10-12 = 160.7 (was 160 as_of 2022-10-21). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE peaked 160 Oct 2022 (UK gilt spillover)"
             }
           ]
         }
       ],
-      "composite_score": 68,
-      "indicators_scored_total": 20,
+      "composite_score": 72,
+      "indicators_scored_total": 19,
       "indicators_dropped": [
         {
           "id": "ig_hy_ratio",
           "reason": "no historical sample available in indicator_history.json"
+        },
+        {
+          "id": "gdpnow",
+          "reason": "insufficient history (0 points post-2011-01-01); minimum 24 required"
         }
       ]
     },
@@ -2109,10 +2060,10 @@
               "value": 393.0,
               "as_of": "2024-08-05",
               "direction": "high_is_concerning",
-              "percentile": 83.8,
+              "percentile": 84.1,
               "score": 84,
               "history_key": "hy_ig",
-              "history_sample_size": 813,
+              "history_sample_size": 811,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 393.0 (was 388 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: FRED BAMLH0A0HYM2 close ~388 bps Aug 5 '24 (intraday wider)"
             },
             {
@@ -2177,7 +2128,7 @@
               "percentile": 73.3,
               "score": 27,
               "history_key": "rrp",
-              "history_sample_size": 3163,
+              "history_sample_size": 3164,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 316.2 (was 300 as_of 2024-08-31). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: RRP balance ~$300B Aug '24 (well off the $2.55T Dec '22 peak; declining as QT progresses)"
             }
           ]
@@ -2186,8 +2137,8 @@
           "id": "growth",
           "num": "04",
           "name": "Growth",
-          "score": 71,
-          "indicators_scored": 3,
+          "score": 87,
+          "indicators_scored": 2,
           "indicators_panel": 3,
           "indicators": [
             {
@@ -2211,17 +2162,6 @@
               "history_key": "ism",
               "history_sample_size": 38,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-06-30 = 48.5 (was 51.4 as_of 2024-07-31). Original note: Jul 2024 ISM Services = 51.4 (just above 50)"
-            },
-            {
-              "id": "gdpnow",
-              "value": 2.79,
-              "as_of": "2024-07-01",
-              "direction": "low_is_concerning",
-              "percentile": 60.0,
-              "score": 40,
-              "history_key": "gdpnow",
-              "history_sample_size": 60,
-              "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-07-01 = 2.79 (was 2.5 as_of 2024-08-15). Original note: Atlanta Fed GDPNow Q3 2024 mid-quarter ~2.5%"
             }
           ]
         },
@@ -2295,7 +2235,7 @@
               "percentile": 85.9,
               "score": 86,
               "history_key": "skew",
-              "history_sample_size": 3798,
+              "history_sample_size": 3799,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 145.3 (was 140 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: CBOE SKEW ~140 average Aug '24 (chronically elevated through 2024)"
             },
             {
@@ -2306,7 +2246,7 @@
               "percentile": 98.5,
               "score": 99,
               "history_key": "vix",
-              "history_sample_size": 3860,
+              "history_sample_size": 3862,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 38.6 (was 38.57 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: VIX close 38.57 Aug 5 '24; intraday spike to 65.73 (record short-period spike)"
             },
             {
@@ -2317,7 +2257,7 @@
               "percentile": 38.0,
               "score": 38,
               "history_key": "eq_cr_corr",
-              "history_sample_size": 3860,
+              "history_sample_size": 3861,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 0.67 (was 0.5 as_of 2024-08-09). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: Equity-credit 60d corr ~0.50 Aug '24"
             },
             {
@@ -2328,18 +2268,22 @@
               "percentile": 92.5,
               "score": 93,
               "history_key": "move",
-              "history_sample_size": 3779,
+              "history_sample_size": 3780,
               "source_note": "Aligned 2026-05-09 to indicator_history.json 2024-08-05 = 121.2 (was 105 as_of 2024-08-05). The Phase 2D harness compares calibration vs the value the live engine sees at the scenario anchor; calibration must match that observation for the (scenario \u00d7 indicator) pair to score apples-to-apples. Original note: MOVE Index ~105 Aug 5 '24 (modestly elevated)"
             }
           ]
         }
       ],
-      "composite_score": 65,
-      "indicators_scored_total": 20,
+      "composite_score": 67,
+      "indicators_scored_total": 19,
       "indicators_dropped": [
         {
           "id": "ig_hy_ratio",
           "reason": "no historical sample available in indicator_history.json"
+        },
+        {
+          "id": "gdpnow",
+          "reason": "insufficient history (0 points post-2011-01-01); minimum 24 required"
         }
       ]
     }
