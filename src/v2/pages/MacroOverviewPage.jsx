@@ -62,16 +62,19 @@ function pctileOfSorted(value, sortedSamples) {
   return Math.round((lo / sortedSamples.length) * 100);
 }
 
-// Map raw cycle_v2.json sub-composite keys to display names
-const SUB_DISPLAY_NAME = {
-  Equities: 'Equities',
-  Credit: 'Credit',
-  Rates: 'Rates',
-  MoneyBanking: 'Money / Banking',
-  Funding: 'Funding',
-  RealEconomy: 'Real Economy',
-  PositioningVol: 'Positioning / Vol',
-};
+// Cycle Position is rolled up from these 7 raw indicators (matches the original
+// Signal Intelligence handoff). Each indicator is read from indicator_history.json,
+// percentile-ranked vs the trailing 5 years, then direction-corrected so HIGHER
+// pctile = more late-cycle. Cycle Position score = average of the 7 corrected pcts.
+const CYCLE_INDICATORS = [
+  { id: 'copper_gold',  name: 'Copper / Gold',                         fmt: (v) => v.toFixed(3),                          invert: true  },
+  { id: 'bkx_spx_v11',  name: 'KBW Bank / S&P',                        fmt: (v) => v.toFixed(4),                          invert: true  },
+  { id: 'yield_curve',  name: 'Yield Curve (10y − 2y)',           fmt: (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' bp', invert: true  },
+  { id: 'anfci',        name: 'Chicago Fed Financial Conditions',      fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2),    invert: false },
+  { id: 'ic4wsa',       name: 'Initial Jobless Claims (4-wk avg)',     fmt: (v) => Math.round(v) + 'K',                   invert: false },
+  { id: 'hy_ig',        name: 'High-Yield credit spread',              fmt: (v) => Math.round(v) + ' bp',                 invert: false },
+  { id: 'ig_oas',       name: 'Investment-Grade credit spread',        fmt: (v) => Math.round(v) + ' bp',                 invert: false },
+];
 
 // Take daily points → array of last N weekly closes
 function weeklyAggregate(points, weeksBack = 24) {
@@ -167,17 +170,29 @@ export default function MacroOverviewPage() {
     const move = buildIndicator('move', 'MOVE', '');
     const cpff = buildIndicator('cpff', 'CPFF', ' bp');
 
-    const cycleScore = cycleV2.headlines?.cycle_value?.scores_by_horizon?.[HORIZON];
     const cycleAsOf = cycleV2.as_of;
-    const HORIZON_FALLBACKS = [HORIZON, '12m', '3m', '1m'];
-    const subs = Object.entries(cycleV2.subcomposites || {}).map(([name, v]) => {
-      let score = null, horizonShown = HORIZON;
-      for (const h of HORIZON_FALLBACKS) {
-        const s = v.scores_by_horizon?.[h];
-        if (s != null) { score = s; horizonShown = h; break; }
+    // Build the 7 Cycle Position indicators from indicator_history.json
+    const cycleIndicators = CYCLE_INDICATORS.map(cfg => {
+      const raw = indHist[cfg.id];
+      if (!raw || !raw.points || !raw.points.length) {
+        return { id: cfg.id, name: cfg.name, value: null, pctile: null, lateCyclePctile: null, valueText: '—' };
       }
-      return { name: SUB_DISPLAY_NAME[name] || name, score, horizonShown };
+      const sortedSamples = trailing5ySorted(raw.points);
+      const current = raw.points[raw.points.length - 1];
+      const rawPctile = pctileOfSorted(current[1], sortedSamples);
+      const lateCyclePctile = rawPctile == null ? null : (cfg.invert ? (100 - rawPctile) : rawPctile);
+      return {
+        id: cfg.id,
+        name: cfg.name,
+        value: current[1],
+        pctile: rawPctile,
+        lateCyclePctile,
+        valueText: current[1] != null && !isNaN(current[1]) ? cfg.fmt(current[1]) : '—',
+      };
     });
+    // Cycle Position score = average of the 7 direction-corrected percentiles
+    const scoresAvail = cycleIndicators.map(i => i.lateCyclePctile).filter(p => p != null);
+    const cycleScore = scoresAvail.length ? Math.round(scoresAvail.reduce((a, b) => a + b, 0) / scoresAvail.length) : null;
 
     const regime = regimeFor(
       vix?.currentStage || 0, move?.currentStage || 0, cpff?.currentStage || 0, cycleScore
@@ -211,7 +226,7 @@ export default function MacroOverviewPage() {
         });
       }
     }
-    return { vix, move, cpff, cycle: { score: cycleScore, asOf: cycleAsOf, subs, historyBars: cycleHistoryBars }, regime, regimeHistory };
+    return { vix, move, cpff, cycle: { score: cycleScore, asOf: cycleAsOf, indicators: cycleIndicators, historyBars: cycleHistoryBars }, regime, regimeHistory };
   }, [indHist, cycleV2, cycleHist]);
 
   if (!data) {
@@ -303,21 +318,24 @@ export default function MacroOverviewPage() {
             </div>
 
             <div className="mo-cycle-right">
-              <div className="mo-sub-eyebrow">Rolled up from seven sub-composites · click any to drill in</div>
+              <div className="mo-sub-eyebrow">Rolled up from seven indicators &middot; click any to drill in</div>
               <div className="mo-sub-list">
-                {cycle.subs.map(s => (
-                  <div key={s.name} className="mo-sub-row" onClick={() => openSubComposite(s.name)}>
-                    <span className="mo-sub-name">{s.name}</span>
-                    <span className="mo-sub-bar-wrap">
-                      <span
-                        className={`mo-sub-bar ${s.score >= 75 ? 'high' : s.score >= 50 ? 'med' : 'low'}`}
-                        style={{ width: (s.score ?? 0) + '%' }}
-                      />
-                      <span className="mo-peak-mark" />
-                    </span>
-                    <span className="mo-sub-val">{s.score != null ? s.score : '—'}</span>
-                  </div>
-                ))}
+                {cycle.indicators.map(ind => {
+                  const p = ind.lateCyclePctile;
+                  return (
+                    <div key={ind.id} className="mo-sub-row" onClick={() => openSubComposite(ind.name)}>
+                      <span className="mo-sub-name">{ind.name}</span>
+                      <span className="mo-sub-bar-wrap">
+                        <span
+                          className={`mo-sub-bar ${p == null ? 'low' : p >= 75 ? 'high' : p >= 50 ? 'med' : 'low'}`}
+                          style={{ width: (p ?? 0) + '%' }}
+                        />
+                        <span className="mo-peak-mark" />
+                      </span>
+                      <span className="mo-sub-val">{ind.valueText}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
