@@ -289,34 +289,75 @@ function SignalIntelligenceRail({
                 <Tip label={s.label} def={s.tip}>
                   <span style={{fontFamily:"var(--font-mono)",fontSize:10,letterSpacing:"0.04em",color:"var(--text-2)",textTransform:"uppercase",fontWeight:600,cursor:"help",borderBottom:"1px dotted var(--text-dim)"}}>{s.label}</span>
                 </Tip>
-                {/* 2026-05-12 Joe directive: disambiguate "—" (no data
-                    for this signal on this ticker) from "0" (we have
-                    data, score is neutral). The dash becomes a small
-                    "no data" pill with a tooltip; the zero gets its own
-                    tooltip clarifying we DO have the data. */}
-                {subStr == null ? (
-                  <Tip
-                    label={`${s.label} — no data`}
-                    def={`We don't have ${s.label.toLowerCase()} data for this ticker yet. The upstream feed didn't cover this name in the last refresh window. NOT a zero reading — coverage gap.`}
-                  >
-                    <span style={{
-                      fontFamily:"var(--font-mono)", fontSize:10,
-                      letterSpacing:"0.04em", color:"var(--text-dim)", fontWeight:500,
-                      cursor:"help", borderBottom:"1px dotted var(--text-dim)",
-                      textAlign:"right", display:"inline-block", width:"100%",
-                    }}>no data</span>
-                  </Tip>
-                ) : (
-                  <Tip
-                    label={`${s.label} sub-score`}
-                    def={Number(sub) === 0
-                      ? `Zero reading — we have the data, the signal is neutral today (no bullish or bearish information from this feed).`
-                      : `Composite sub-score from -100 to +100. ${Number(sub) > 0 ? 'Positive = bullish for ' + s.label.toLowerCase() : 'Negative = bearish for ' + s.label.toLowerCase()}.`
-                    }
-                  >
-                    <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)",textAlign:"right",cursor:"help"}}>{subStr}</span>
-                  </Tip>
-                )}
+                {/* 2026-05-12 Joe directive: three distinct visual states.
+                    1. Numeric score (have data; might be neutral 0 or have a signal +/-X)
+                    2. ⊘ icon — "Not in scanned universe" (signal vendor doesn't cover this ticker)
+                    3. ⚠ icon — "Data fetch failed" (signal has full universe coverage; null means broken)
+
+                    Which fall into which (when sub_score is null):
+                    - analyst, options: vendor-restricted (~2,000 covered names).
+                      Null = ticker is genuinely outside the vendor's coverage universe.
+                    - insider, technicals, congress, short_interest: full universe
+                      (SEC Form 4, Polygon EOD, congress disclosures, FINRA). Null is
+                      a fetch failure or pipeline gap, not a coverage thing.
+
+                    Source-of-truth lives in the SIGNAL_COVERAGE map below; if you add
+                    a signal, decide which bucket it lives in. */}
+                {(() => {
+                  // Inline render — keeps the existing surrounding grid intact.
+                  if (subStr != null) {
+                    return (
+                      <Tip
+                        label={`${s.label} sub-score`}
+                        def={Number(sub) === 0
+                          ? `We have the data — the signal is neutral today (no bullish or bearish information from this feed).`
+                          : `Composite sub-score from -100 to +100. ${Number(sub) > 0 ? 'Positive = bullish for ' + s.label.toLowerCase() : 'Negative = bearish for ' + s.label.toLowerCase()}.`
+                        }
+                      >
+                        <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)",textAlign:"right",cursor:"help"}}>{subStr}</span>
+                      </Tip>
+                    );
+                  }
+                  const VENDOR_LIMITED = new Set(["analyst", "options"]);
+                  const isVendorLimited = VENDOR_LIMITED.has(s.key);
+                  const VENDOR_NAME = {
+                    analyst: "broker analyst coverage (~2,000 names)",
+                    options: "Unusual Whales options coverage (~2,000 names with active options markets)",
+                  };
+                  if (isVendorLimited) {
+                    return (
+                      <Tip
+                        label={`${s.label} — not in scanned universe`}
+                        def={`This ticker is outside the ${VENDOR_NAME[s.key] || s.label.toLowerCase() + " universe"}. The data feed only covers a subset of US-listed equities; this name isn't one of them. This is expected — not a bug.`}
+                      >
+                        <span style={{
+                          fontFamily:"var(--font-mono)", fontSize:14,
+                          color:"var(--text-dim)", fontWeight:400,
+                          cursor:"help", borderBottom:"1px dotted var(--text-dim)",
+                          textAlign:"right", display:"inline-block", width:"100%",
+                          letterSpacing:0,
+                        }}
+                        aria-label="not in scanned universe">⊘</span>
+                      </Tip>
+                    );
+                  }
+                  // Full-universe signal with null sub_score = pipeline gap / fetch failure
+                  return (
+                    <Tip
+                      label={`${s.label} — data missing`}
+                      def={`We should have ${s.label.toLowerCase()} data for this ticker (the underlying feed covers every US-listed equity). The latest scanner run didn't return a value — likely a pipeline gap. Engineering will catch this on the next freshness sweep.`}
+                    >
+                      <span style={{
+                        fontFamily:"var(--font-mono)", fontSize:14,
+                        color:"var(--red-text, var(--red))", fontWeight:600,
+                        cursor:"help", borderBottom:"1px dotted var(--red-text, var(--red))",
+                        textAlign:"right", display:"inline-block", width:"100%",
+                        letterSpacing:0,
+                      }}
+                      aria-label="data fetch failed">⚠</span>
+                    </Tip>
+                  );
+                })()}
                 <span style={{color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontSize:11,textAlign:"right"}}>{fmtWeight(w)}</span>
               </div>
             );
