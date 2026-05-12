@@ -462,7 +462,7 @@ function MechanismOverview({ mech, onPickIndicator }) {
 
 
 // ─── <Dial> — semicircle gauge ported from MacroTilt_Macro_Overview_Page_v11.html ──
-// 4 wedges (teal gradient, Risk-on → Risk-off) + pointer line + dot. Single
+// 4 wedges (Apple Blue gradient, Risk-on → Risk-off) + pointer line + dot. Single
 // source of visual truth across the composite hero dial and every card.
 // score: 0..100 (or null). isLive: false renders a grey placeholder wedge set.
 function Dial({ score, isLive = true, size = 'card' }) {
@@ -473,10 +473,10 @@ function Dial({ score, isLive = true, size = 'card' }) {
   const R_outer = size === 'hero' ? 140 : 92;
   const R_inner = size === 'hero' ? 90 : 64;
   const FILLS = [
-    'rgba(14,85,96,0.18)',
-    'rgba(14,85,96,0.42)',
-    'rgba(14,85,96,0.68)',
-    'rgba(14,85,96,0.92)',
+    'rgba(0,113,227,0.18)',
+    'rgba(0,113,227,0.42)',
+    'rgba(0,113,227,0.68)',
+    'rgba(0,113,227,0.92)',
   ];
   const wedges = [
     { from: 0,   to: 25  },
