@@ -6,7 +6,6 @@
 
 import { useState, useEffect, useMemo } from "react";
 import FreshnessDot from "../components/FreshnessDot";
-import { useSortableTable } from "../hooks/useSortableTable";
 import { InfoTip } from "../InfoTip";
 import MTTable from "../components/MTTable";
 
@@ -558,28 +557,31 @@ function EtfChip({ etf, onClick }) {
   );
 }
 
+// SectorTable — migrated to shared MTTable primitive (sweep PR, 2026-05-12).
+// Bars in the Tilt-vs-SPY column killed per Joe directive — colored % numbers
+// instead. IGs render as inline expanded child rows via MTTable's expandable
+// API. Defensive buckets merged into the same rows array, tagged via
+// _isDefensive so they render their own N/A markers.
 function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBuckets, defensivePerBucket, onSectorClick, onIGClick, onEtfClick }) {
   const [openSectorKey, setOpenSectorKey] = useState(null);
 
   // Enrich each sector row with perf + vol from sector_perf.json
-  const rows = useMemo(() => sectors.map(sec => {
+  const sectorRows = useMemo(() => sectors.map(sec => {
     const perf = sectorPerf?.sectors?.[sec.sector] || {};
-    const tiltDollar = sec.dollar * leverage;
     return {
       ...sec,
-      tiltDollar,
+      tiltDollar: sec.dollar * leverage,
       perf_1m: perf.perf_1m ?? null,
       perf_3m: perf.perf_3m ?? null,
       perf_ttm: perf.perf_ttm ?? null,
       vol_ttm: perf.vol_ttm ?? null,
       proxy: perf.proxy || null,
       _isDefensive: false,
+      _key: sec.sector,
     };
   }), [sectors, leverage, sectorPerf]);
 
-  // Defensive bucket rows — same shape as equity rows. perf/vol pulled from
-  // the same sector_perf.json keyed by the bucket ticker. tiltDollar = the
-  // current allocation per bucket (0 when sleeve inactive).
+  // Defensive bucket rows — same column shape; N/A for tilt + rating.
   const defensiveRows = useMemo(() => (defensiveBuckets || []).map(b => {
     const perf = sectorPerf?.sectors?.[b.ticker] || {};
     return {
@@ -594,210 +596,167 @@ function SectorTable({ sectors, igs, leverage, asOf, sectorPerf, defensiveBucket
       vol_ttm: perf.vol_ttm ?? null,
       proxy: perf.proxy || b.ticker,
       _isDefensive: true,
+      _key: "defensive:" + b.ticker,
     };
   }), [defensiveBuckets, defensivePerBucket, sectorPerf]);
 
-  const cols = [
-    { id: "sector",   label: "Sector",                 align: "left",  sortValue: r => r.sector },
-    { id: "vs_spy",   label: "Tilt vs SPY",            align: "left",  sortValue: r => r.vs_spy_pp },
-    { id: "alloc",    label: "Recommended Allocation", align: "right", sortValue: r => r.tiltDollar },
-    { id: "p1m",      label: "1M",                      align: "right", sortValue: r => r.perf_1m },
-    { id: "p3m",      label: "3M",                      align: "right", sortValue: r => r.perf_3m },
-    { id: "pttm",     label: "TTM",                     align: "right", sortValue: r => r.perf_ttm },
-    { id: "vol",      label: "Vol",                     align: "right", sortValue: r => r.vol_ttm },
-    { id: "rating",   label: "Rating",                  align: "right", sortValue: r => ({ "OW": 2, "MW": 1, "UW": 0 }[r.rating] ?? -1) },
-  ];
-  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({
-    rows, columns: cols, defaultColId: "alloc", defaultDir: "desc",
-  });
-
-  const grid = "1.55fr 1fr 110px 64px 64px 64px 64px 80px";
-  const sortArrow = (id) => sortCol === id ? (sortDir === "asc" ? " ↑" : " ↓") : "";
+  const allRows = useMemo(() => [...sectorRows, ...defensiveRows], [sectorRows, defensiveRows]);
 
   // Tooltip copy — plain English, exposed via InfoTip on the perf/vol headers
   const proxyDef = "Each sector is represented by its primary Select Sector SPDR ETF — Tech is XLK, Financials is XLF, Health Care is XLV, and so on. These are the most-traded sector funds, so the price you see is what an investor would actually capture if they bought the sector.";
   const returnDef = "Returns are price-only close-to-close (no dividends reinvested). 1M = trailing 21 trading days, 3M = trailing 63, TTM = trailing 252. Total-return numbers (including dividends) would be slightly higher.";
   const volDef = "Trailing 12-month annualized realized volatility. Standard deviation of daily log returns over the last 252 trading days, scaled to a yearly figure (multiplied by √252). This is the historical realized vol — not implied vol from options.";
 
-  return (
-    <>
-      <div style={{
-        display: "grid", gridTemplateColumns: grid,
-        gap: 10, padding: "14px 14px 12px",
-        fontSize: 12, fontWeight: 600, color: "var(--text)",
-        letterSpacing: "0.06em", textTransform: "uppercase",
-        borderBottom: "0.5px solid var(--border)", background: "var(--surface-2)",
-        alignItems: "center",
-      }}>
-        <div onClick={() => toggleSort("sector")} style={{cursor:"pointer", display:"inline-flex", alignItems:"center", gap:8}}>
-          Equity sectors{sortArrow("sector")}
-          <FreshnessDot indicatorId="v10_allocation" asOfIso={asOf} />
-        </div>
-        <div onClick={() => toggleSort("vs_spy")} style={{cursor:"pointer"}}>Tilt vs SPY{sortArrow("vs_spy")}</div>
-        <div onClick={() => toggleSort("alloc")} style={{textAlign:"right", cursor:"pointer"}}>Recommended Allocation{sortArrow("alloc")}</div>
-        <div onClick={() => toggleSort("p1m")} style={{textAlign:"right", cursor:"pointer"}}>1M{sortArrow("p1m")} <InfoTip def={proxyDef + " " + returnDef} /></div>
-        <div onClick={() => toggleSort("p3m")} style={{textAlign:"right", cursor:"pointer"}}>3M{sortArrow("p3m")} <InfoTip def={proxyDef + " " + returnDef} /></div>
-        <div onClick={() => toggleSort("pttm")} style={{textAlign:"right", cursor:"pointer"}}>TTM{sortArrow("pttm")} <InfoTip def={proxyDef + " " + returnDef} /></div>
-        <div onClick={() => toggleSort("vol")} style={{textAlign:"right", cursor:"pointer"}}>Vol{sortArrow("vol")} <InfoTip def={proxyDef + " " + volDef} /></div>
-        <div onClick={() => toggleSort("rating")} style={{textAlign:"right", cursor:"pointer"}}>Rating{sortArrow("rating")}</div>
-      </div>
-      {sorted.map(s => (
-        <SectorTableRow
-          key={s.sector}
-          sector={s}
-          igs={igs}
-          leverage={leverage}
-          isOpen={openSectorKey === s.sector}
-          onToggle={() => setOpenSectorKey(openSectorKey === s.sector ? null : s.sector)}
-          onSectorClick={onSectorClick}
-          onIGClick={onIGClick}
-          grid={grid}
-        />
-      ))}
-      {defensiveRows.map(d => (
-        <DefensiveTableRow key={d.ticker} bucket={d} grid={grid} onClick={() => onEtfClick && onEtfClick(d.ticker)} />
-      ))}
-    </>
-  );
-}
-
-// Defensive sub-row rendered inside the SectorTable so the page reads as one
-// continuous table. Tilt vs SPY = N/A (these are not in SPY); Recommended
-// Allocation = the dollar amount (0 when sleeve inactive); 1M/3M/TTM/Vol pulled
-// from sector_perf.json; Rating = N/A.
-function DefensiveTableRow({ bucket, grid, onClick }) {
   const fmtPct = (v) => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
   const fmtVol = (v) => v == null ? "—" : v.toFixed(1) + "%";
-  const isOff = (bucket.tiltDollar || 0) < 0.01;
-  return (
-    <div style={{ borderBottom: "0.5px solid var(--border)" }}>
-      <div
-        onClick={onClick}
-        onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"}
-        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
-        style={{
-          display: "grid", gridTemplateColumns: grid,
-          gap: 10, padding: "11px 14px",
-          alignItems: "center", fontSize: 13,
-          opacity: isOff ? 0.85 : 1,
-          cursor: onClick ? "pointer" : "default",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span style={{ fontWeight: 600 }}>{bucket.sector}</span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.08em" }}>{bucket.ticker}</span>
-        </div>
-        {/* Tilt vs SPY — N/A for defensive */}
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, color: "var(--text-muted)", textAlign: "center" }}>N/A</div>
-        {/* Recommended Allocation in dollars */}
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, textAlign: "right", color: isOff ? "var(--text-muted)" : "var(--text)" }}>${bucket.tiltDollar.toFixed(2)}</div>
-        {/* 1M / 3M / TTM */}
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_1m == null ? "var(--text-muted)" : bucket.perf_1m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_1m)}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_3m == null ? "var(--text-muted)" : bucket.perf_3m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_3m)}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: bucket.perf_ttm == null ? "var(--text-muted)" : bucket.perf_ttm < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(bucket.perf_ttm)}</div>
-        {/* Vol */}
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: "var(--text-2)" }}>{fmtVol(bucket.vol_ttm)}</div>
-        {/* Rating — N/A */}
-        <div style={{ textAlign: "right" }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)" }}>N/A</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+  const pctColor = (v) => v == null ? "var(--text-muted)" : v < 0 ? "var(--red)" : v > 0 ? "var(--green)" : "var(--text-muted)";
+  const tiltColor = (v) => v == null ? "var(--text-muted)" : v < 0 ? "var(--red)" : v > 0 ? "var(--green)" : "var(--text-muted)";
 
-function SectorTableRow({ sector, igs, leverage, isOpen, onToggle, onSectorClick, onIGClick, grid }) {
-  const sectorIGs = igs.filter(ig => ig.sector === sector.sector);
-  const tilt = sector.tiltDollar;
-  // Tilt-vs-SPY bar — diverging horizontal bar, scaled to ±10% (clamped),
-  // green for OW (positive), red for UW (negative).
-  const vs = sector.vs_spy_pp ?? 0;
-  const fillPct = Math.min(50, Math.abs(vs) / 10 * 50);
-  const tiltColor = vs > 0 ? "var(--green)" : vs < 0 ? "var(--red)" : "var(--text-muted)";
-  const fmtPct = (v) => v == null ? "—" : (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
-  const fmtVol = (v) => v == null ? "—" : v.toFixed(1) + "%";
-  return (
-    <div style={{ borderBottom: "0.5px solid var(--border)" }}>
-      <div onClick={() => onSectorClick(sector)} style={{
-        display: "grid", gridTemplateColumns: grid,
-        gap: 10, padding: "11px 14px",
-        cursor: "pointer", alignItems: "center", fontSize: 13,
-      }}
-      onMouseEnter={(e) => e.currentTarget.style.background = "var(--surface-2)"}
-      onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}>
-        <div style={{display:"flex", alignItems:"center", gap:8}}>
-          <span style={{ fontWeight: 600 }}>{sector.sector}</span>
-          {sectorIGs.length > 0 && (
-            <span
-              role="button"
-              aria-label={isOpen ? "Collapse industry groups" : "Expand industry groups"}
-              onClick={(e) => { e.stopPropagation(); onToggle(); }}
-              style={{
-                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                width: 22, height: 22, marginLeft: 4,
-                borderRadius: 6, fontSize: 11, fontWeight: 600,
-                color: "var(--text-muted)", background: "var(--surface-2)",
-                border: "0.5px solid var(--border)",
-                transition: "transform 0.15s",
-                transform: isOpen ? "rotate(90deg)" : "rotate(0deg)",
-                cursor: "pointer",
-              }}
-            >▸</span>
-          )}
-        </div>
-        {/* Tilt-vs-SPY diverging bar — bigger, with the % inside */}
-        <div style={{ position: "relative", height: 18, background: "var(--surface-2)", borderRadius: 4 }}>
-          <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:1, background:"var(--border)" }} />
-          {vs >= 0
-            ? <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:`${fillPct}%`, background:tiltColor, opacity:0.8, borderRadius:"0 4px 4px 0" }} />
-            : <div style={{ position:"absolute", right:"50%", top:0, bottom:0, width:`${fillPct}%`, background:tiltColor, opacity:0.8, borderRadius:"4px 0 0 4px" }} />
-          }
-          <div style={{ position:"absolute", left:0, right:0, top:0, bottom:0, display:"flex", alignItems:"center", justifyContent:"center", fontFamily:"var(--font-mono)", fontSize:11, fontWeight:600, color:"var(--text)" }}>
-            {vs > 0 ? "+" : ""}{vs.toFixed(1)}%
-          </div>
-        </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 13, fontWeight: 600, textAlign: "right" }}>${tilt.toFixed(2)}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: sector.perf_1m == null ? "var(--text-muted)" : sector.perf_1m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(sector.perf_1m)}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: sector.perf_3m == null ? "var(--text-muted)" : sector.perf_3m < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(sector.perf_3m)}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: sector.perf_ttm == null ? "var(--text-muted)" : sector.perf_ttm < 0 ? "var(--red)" : "var(--green)" }}>{fmtPct(sector.perf_ttm)}</div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 12, textAlign: "right", color: "var(--text-2)" }}>{fmtVol(sector.vol_ttm)}</div>
-        <div style={{ textAlign: "right" }}>
+  const columns = [
+    {
+      key: "sector",
+      label: "Equity sectors",
+      defaultWidth: 230,
+      headerExtra: <FreshnessDot indicatorId="v10_allocation" asOfIso={asOf} />,
+      sortValue: (r) => r.sector,
+      render: (r) => {
+        const sectorIGs = !r._isDefensive ? igs.filter(ig => ig.sector === r.sector) : [];
+        return (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontWeight: 600 }}>{r.sector}</span>
+            {r._isDefensive && (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.08em" }}>{r.ticker}</span>
+            )}
+            {sectorIGs.length > 0 && (
+              <span
+                role="button"
+                aria-label={openSectorKey === r.sector ? "Collapse industry groups" : "Expand industry groups"}
+                onClick={(e) => { e.stopPropagation(); setOpenSectorKey(openSectorKey === r.sector ? null : r.sector); }}
+                style={{
+                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                  width: 22, height: 22, borderRadius: 6, fontSize: 11, fontWeight: 600,
+                  color: "var(--text-muted)", background: "var(--surface-2)",
+                  border: "0.5px solid var(--border)",
+                  transition: "transform 0.15s",
+                  transform: openSectorKey === r.sector ? "rotate(90deg)" : "rotate(0deg)",
+                  cursor: "pointer",
+                }}
+              >▸</span>
+            )}
+          </span>
+        );
+      },
+      renderChild: (ig) => (
+        <span style={{ paddingLeft: 28, fontWeight: 500, color: "var(--text-2)" }}>{ig.name}</span>
+      ),
+    },
+    {
+      key: "vs_spy",
+      label: "Tilt vs SPY",
+      numeric: true,
+      defaultWidth: 110,
+      sortValue: (r) => r.vs_spy_pp,
+      render: (r) => {
+        if (r._isDefensive || r.vs_spy_pp == null) {
+          return <span style={{ color: "var(--text-muted)" }}>N/A</span>;
+        }
+        return <span style={{ color: tiltColor(r.vs_spy_pp), fontWeight: 600 }}>{(r.vs_spy_pp > 0 ? "+" : "") + r.vs_spy_pp.toFixed(1) + "%"}</span>;
+      },
+      renderChild: (ig) => (
+        ig.vs_spy_pp == null
+          ? <span style={{ color: "var(--text-muted)" }}>—</span>
+          : <span style={{ color: tiltColor(ig.vs_spy_pp) }}>{(ig.vs_spy_pp > 0 ? "+" : "") + ig.vs_spy_pp.toFixed(1) + "%"}</span>
+      ),
+    },
+    {
+      key: "alloc",
+      label: "Recommended allocation",
+      numeric: true,
+      defaultWidth: 170,
+      sortValue: (r) => r.tiltDollar,
+      render: (r) => {
+        const off = r._isDefensive && (r.tiltDollar || 0) < 0.01;
+        return <span style={{ fontWeight: 600, color: off ? "var(--text-muted)" : "var(--text)" }}>${(r.tiltDollar || 0).toFixed(2)}</span>;
+      },
+      renderChild: (ig) => <span>${((ig.dollar || 0) * leverage).toFixed(2)}</span>,
+    },
+    {
+      key: "p1m", label: "1M", numeric: true, defaultWidth: 70,
+      headerExtra: <InfoTip def={proxyDef + " " + returnDef} />,
+      sortValue: (r) => r.perf_1m,
+      render: (r) => <span style={{ color: pctColor(r.perf_1m) }}>{fmtPct(r.perf_1m)}</span>,
+      renderChild: () => <span style={{ color: "var(--text-muted)" }}>—</span>,
+    },
+    {
+      key: "p3m", label: "3M", numeric: true, defaultWidth: 70,
+      headerExtra: <InfoTip def={proxyDef + " " + returnDef} />,
+      sortValue: (r) => r.perf_3m,
+      render: (r) => <span style={{ color: pctColor(r.perf_3m) }}>{fmtPct(r.perf_3m)}</span>,
+      renderChild: () => <span style={{ color: "var(--text-muted)" }}>—</span>,
+    },
+    {
+      key: "pttm", label: "TTM", numeric: true, defaultWidth: 70,
+      headerExtra: <InfoTip def={proxyDef + " " + returnDef} />,
+      sortValue: (r) => r.perf_ttm,
+      render: (r) => <span style={{ color: pctColor(r.perf_ttm) }}>{fmtPct(r.perf_ttm)}</span>,
+      renderChild: () => <span style={{ color: "var(--text-muted)" }}>—</span>,
+    },
+    {
+      key: "vol", label: "Vol", numeric: true, defaultWidth: 70,
+      headerExtra: <InfoTip def={proxyDef + " " + volDef} />,
+      sortValue: (r) => r.vol_ttm,
+      render: (r) => <span style={{ color: "var(--text-2)" }}>{fmtVol(r.vol_ttm)}</span>,
+      renderChild: () => <span style={{ color: "var(--text-muted)" }}>—</span>,
+    },
+    {
+      key: "rating",
+      label: "Rating",
+      numeric: true,
+      defaultWidth: 90,
+      sortValue: (r) => ({ "OW": 2, "MW": 1, "UW": 0 }[r.rating] ?? -1),
+      render: (r) => {
+        if (r._isDefensive || !r.rating) {
+          return <span style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--text-muted)" }}>N/A</span>;
+        }
+        return (
           <span style={{
             display: "inline-block", padding: "3px 9px", fontSize: 10, fontWeight: 600,
-            background: RATING_BG[sector.rating], color: RATING_TEXT[sector.rating],
-            borderRadius: 999,
-          }}>{sector.rating}</span>
-        </div>
-      </div>
-      {isOpen && sectorIGs.map(ig => {
-        const igTilt = (ig.dollar || 0) * leverage;
-        return (
-          <div key={ig.id} onClick={(e) => { e.stopPropagation(); onIGClick(ig); }} style={{
-            display: "grid", gridTemplateColumns: grid, gap: 10,
-            padding: "8px 14px 8px 36px", fontSize: 12,
-            background: "var(--surface-2)", borderTop: "0.5px dotted var(--border)",
-            alignItems: "center", cursor: "pointer",
-          }}>
-            <div><strong>{ig.name}</strong></div>
-            <div style={{ position:"relative", height:10, background:"var(--bg)", borderRadius:3 }}>
-              <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:1, background:"var(--border)" }} />
-              {(ig.vs_spy_pp ?? 0) >= 0
-                ? <div style={{ position:"absolute", left:"50%", top:0, bottom:0, width:`${Math.min(50, Math.abs(ig.vs_spy_pp ?? 0) / 5 * 50)}%`, background:"var(--green)", opacity:0.8, borderRadius:"0 3px 3px 0" }} />
-                : <div style={{ position:"absolute", right:"50%", top:0, bottom:0, width:`${Math.min(50, Math.abs(ig.vs_spy_pp ?? 0) / 5 * 50)}%`, background:"var(--red)", opacity:0.8, borderRadius:"3px 0 0 3px" }} />
-              }
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, textAlign: "right" }}>${igTilt.toFixed(2)}</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right", color: "var(--text-muted)" }}>—</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right", color: "var(--text-muted)" }}>—</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right", color: "var(--text-muted)" }}>—</div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, textAlign: "right", color: "var(--text-muted)" }}>—</div>
-            <div style={{ textAlign: "right" }}>
-              <span style={{ display:"inline-block", padding:"2px 7px", fontSize:9, fontWeight:600, background:RATING_BG[ig.rating], color:RATING_TEXT[ig.rating], borderRadius:999 }}>{ig.rating}</span>
-            </div>
-          </div>
+            background: RATING_BG[r.rating], color: RATING_TEXT[r.rating], borderRadius: 999,
+          }}>{r.rating}</span>
         );
-      })}
-    </div>
+      },
+      renderChild: (ig) => (
+        ig.rating
+          ? <span style={{
+              display: "inline-block", padding: "2px 7px", fontSize: 9, fontWeight: 600,
+              background: RATING_BG[ig.rating], color: RATING_TEXT[ig.rating], borderRadius: 999,
+            }}>{ig.rating}</span>
+          : <span style={{ fontFamily: "var(--font-mono)", fontSize: 9, color: "var(--text-muted)" }}>—</span>
+      ),
+    },
+  ];
+
+  // Row click — defensive rows open the bucket ETF detail; sector rows open
+  // the sector side panel. Click on the expand arrow inside the sector cell
+  // is captured separately and stops propagation, so it doesn't reach here.
+  const handleRowClick = (r) => {
+    if (r._isDefensive) { onEtfClick && onEtfClick(r.ticker); }
+    else { onSectorClick && onSectorClick(r); }
+  };
+
+  return (
+    <MTTable
+      columns={columns}
+      rows={allRows}
+      rowKey="_key"
+      onRowClick={handleRowClick}
+      storageKey="recommended-allocations-v1"
+      expandable={{
+        isExpanded: (r) => !r._isDefensive && openSectorKey === r.sector,
+        childRows: (r) => igs.filter(ig => ig.sector === r.sector),
+        onChildClick: (ig) => onIGClick && onIGClick(ig),
+      }}
+    />
   );
 }
 
