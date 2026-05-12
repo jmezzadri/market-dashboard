@@ -20,7 +20,7 @@
 //
 // Joe directive 2026-05-11. Anchored to the Trading Opps v5 styling.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 const MIN_W = 30;
 const MAX_W = 600;
@@ -90,6 +90,11 @@ export default function MTTable({
   toolbar,
   className = "",
   emptyMessage = "No rows.",
+  // expandable rows: optional
+  //   isExpanded(row) => boolean
+  //   onToggle(row)   => void   (caller manages the expansion state)
+  //   renderExpanded(row) => ReactNode  (renders inside one <tr><td colSpan=N>)
+  expandable,
 }) {
   const isFull = features === "full";
 
@@ -424,6 +429,7 @@ export default function MTTable({
                       onDrop={(e) => { if (!isFull) return; e.preventDefault(); const dk = dragKeyRef.current; if (!dk || dk === c.key) return; moveColumn(dk, c.key); }}
                     >
                       {c.label}
+                      {c.headerExtra && <span style={{ marginLeft: 6, display: "inline-flex", alignItems: "center", verticalAlign: "middle" }}>{c.headerExtra}</span>}
                       {arrow && <span className="arrow"> {arrow}</span>}
                       {hasFilter && <span className="filter-dot" />}
                       {isFull && (
@@ -447,20 +453,47 @@ export default function MTTable({
                     {emptyMessage}
                   </td>
                 </tr>
-              ) : processedRows.map((row, i) => (
-                <tr
-                  key={getRowKey(row, i)}
-                  className={onRowClick ? "clickable" : ""}
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
-                  style={onRowClick ? { cursor: "pointer" } : undefined}
-                >
-                  {visibleCols.map(c => (
-                    <td key={c.key} className={c.numeric ? "numeric" : ""}>
-                      {c.render ? c.render(row) : (row[c.key] == null ? "—" : String(row[c.key]))}
-                    </td>
-                  ))}
-                </tr>
-              ))}
+              ) : processedRows.map((row, i) => {
+                const expanded = expandable?.isExpanded ? expandable.isExpanded(row) : false;
+                const childRows = expanded && expandable?.childRows ? (expandable.childRows(row) || []) : [];
+                const rowKeyVal = getRowKey(row, i);
+                return (
+                  <Fragment key={rowKeyVal}>
+                    <tr
+                      className={onRowClick ? "clickable" : ""}
+                      onClick={onRowClick ? () => onRowClick(row) : undefined}
+                      style={onRowClick ? { cursor: "pointer" } : undefined}
+                    >
+                      {visibleCols.map(c => (
+                        <td key={c.key} className={c.numeric ? "numeric" : ""}>
+                          {c.render ? c.render(row) : (row[c.key] == null ? "—" : String(row[c.key]))}
+                        </td>
+                      ))}
+                    </tr>
+                    {childRows.map((child, ci) => (
+                      <tr
+                        key={`${rowKeyVal}-c${ci}`}
+                        className={"mt-child" + (expandable?.onChildClick ? " clickable" : "")}
+                        onClick={expandable?.onChildClick ? () => expandable.onChildClick(child, row) : undefined}
+                        style={expandable?.onChildClick ? { cursor: "pointer" } : undefined}
+                      >
+                        {visibleCols.map(c => (
+                          <td key={c.key} className={c.numeric ? "numeric" : ""}>
+                            {c.renderChild ? c.renderChild(child, row) : c.render ? c.render(child) : (child[c.key] == null ? "—" : String(child[c.key]))}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                    {expanded && expandable?.renderExpanded && (
+                      <tr className="mt-expanded-row">
+                        <td colSpan={visibleCols.length} style={{ padding: 0 }}>
+                          {expandable.renderExpanded(row)}
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -554,4 +587,7 @@ const MT_TABLE_CSS = `
 }
 .mt-table-root--look .mt-table tbody tr:hover { background: transparent; }
 .mt-table-root--look .mt-table tbody tr.clickable:hover { background: var(--hover, var(--surface-3)); }
+.mt-table-root .mt-table tbody tr.mt-child td { background: var(--surface-2); font-size: 11.5px; padding-top: 9px; padding-bottom: 9px; }
+.mt-table-root .mt-table tbody tr.mt-child.clickable:hover td { background: #edeef1; }
+.mt-table-root .mt-table tbody tr.mt-child td.numeric { font-size: 11px; }
 `;
