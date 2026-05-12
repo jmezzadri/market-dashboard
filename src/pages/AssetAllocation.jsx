@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import FreshnessDot from "../components/FreshnessDot";
 import { useSortableTable } from "../hooks/useSortableTable";
 import { InfoTip } from "../InfoTip";
+import MTTable from "../components/MTTable";
 
 const STANCE_COLOR = {
   "Risk On":  "var(--green)",
@@ -861,71 +862,42 @@ function ModalShell({ title, subtitle, badge, onClose, children }) {
 
 function ETFTable({ etfs, onEtfClick }) {
   if (!etfs || !etfs.length) return null;
+  const columns = [
+    { key: "t",    label: "Ticker",   render: (r) => <strong style={{ fontFamily: "var(--font-mono)", color: onEtfClick ? "var(--accent)" : "var(--text)" }}>{r.t}</strong> },
+    { key: "n",    label: "Name" },
+    { key: "er",   label: "Expense", render: (r) => <span style={{ fontFamily: "var(--font-mono)" }}>{r.er}</span> },
+    { key: "aum",  label: "AUM",     render: (r) => <span style={{ fontFamily: "var(--font-mono)" }}>{r.aum}</span> },
+    { key: "flow", label: "30d flow", render: (r) => <span style={{ color: flowColor(r.flow) }}>{r.flow}</span> },
+  ];
   return (
-    <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", marginTop: 4 }}>
-      <thead>
-        <tr style={{ borderBottom: "0.5px solid var(--border)" }}>
-          {["Ticker","Name","Expense","AUM","30d flow"].map(h => (
-            <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontWeight: 500, fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {etfs.map(e => (
-          <tr key={e.t}
-            onClick={() => onEtfClick && onEtfClick(e)}
-            style={{
-              borderBottom: "0.5px dashed var(--border)",
-              cursor: onEtfClick ? "pointer" : "default",
-              transition: "background 120ms",
-            }}
-            onMouseEnter={(ev) => { if (onEtfClick) ev.currentTarget.style.background = "var(--surface-2)"; }}
-            onMouseLeave={(ev) => { ev.currentTarget.style.background = "transparent"; }}
-          >
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)", color: onEtfClick ? "var(--accent)" : "var(--text)" }}><strong>{e.t}</strong></td>
-            <td style={{ padding: "8px", fontSize: 12 }}>{e.n}</td>
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}>{e.er}</td>
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}>{e.aum}</td>
-            <td style={{ padding: "8px", color: flowColor(e.flow) }}>{e.flow}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <MTTable
+      columns={columns}
+      rows={etfs}
+      rowKey="t"
+      onRowClick={onEtfClick}
+      features="look"
+    />
   );
 }
 
 function StockTable({ stocks, onTickerClick }) {
   if (!stocks || !stocks.length) return null;
+  const d5Color = (v) => v.startsWith("+") ? "var(--green)" : v.startsWith("−") ? "var(--red)" : "var(--text-muted)";
+  const columns = [
+    { key: "t",    label: "Ticker",   render: (r) => <strong style={{ fontFamily: "var(--font-mono)", color: onTickerClick ? "var(--accent)" : "var(--text)" }}>{r.t}</strong> },
+    { key: "n",    label: "Name" },
+    { key: "px",   label: "Last", render: (r) => <span style={{ fontFamily: "var(--font-mono)" }}>{r.px}</span> },
+    { key: "d5",   label: "5d",   render: (r) => <span style={{ fontFamily: "var(--font-mono)", color: d5Color(r.d5) }}>{r.d5}</span> },
+    { key: "flow", label: "30d flow", render: (r) => <span style={{ color: flowColor(r.flow) }}>{r.flow}</span> },
+  ];
   return (
-    <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse", marginTop: 4 }}>
-      <thead>
-        <tr style={{ borderBottom: "0.5px solid var(--border)" }}>
-          {["Ticker","Name","Last","5d","30d flow"].map(h => (
-            <th key={h} style={{ textAlign: "left", padding: "6px 8px", fontWeight: 500, fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.06em", textTransform: "uppercase" }}>{h}</th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {stocks.map(s => (
-          <tr key={s.t}
-            onClick={() => onTickerClick && onTickerClick(s.t)}
-            style={{
-              borderBottom: "0.5px dashed var(--border)",
-              cursor: onTickerClick ? "pointer" : "default",
-              transition: "background 120ms",
-            }}
-            onMouseEnter={(ev) => { if (onTickerClick) ev.currentTarget.style.background = "var(--surface-2)"; }}
-            onMouseLeave={(ev) => { ev.currentTarget.style.background = "transparent"; }}
-          >
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)", color: onTickerClick ? "var(--accent)" : "var(--text)" }}><strong>{s.t}</strong></td>
-            <td style={{ padding: "8px" }}>{s.n}</td>
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)" }}>{s.px}</td>
-            <td style={{ padding: "8px", fontFamily: "var(--font-mono)", color: s.d5.startsWith("+") ? "var(--green)" : s.d5.startsWith("−") ? "var(--red)" : "var(--text-muted)" }}>{s.d5}</td>
-            <td style={{ padding: "8px", color: flowColor(s.flow) }}>{s.flow}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <MTTable
+      columns={columns}
+      rows={stocks}
+      rowKey="t"
+      onRowClick={onTickerClick ? (r) => onTickerClick(r.t) : undefined}
+      features="look"
+    />
   );
 }
 
