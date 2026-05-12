@@ -250,6 +250,50 @@ def upsert_rows(rows: list[dict[str, Any]], batch_size: int = 500) -> int:
             continue
         total += len(batch)
     logger.info("Upserted %d rows to signal_intel_v5_daily", total)
+
+    # ── Phase 1b · Data Steward overhaul (2026-05-12) ──────────────────────
+    # Write scanner-v5-daily to pipeline_health so a silent scanner death
+    # (like 5/9 -> 5/12 when SUPABASE_ACCESS_TOKEN was missing for 2 cron
+    # runs) becomes a visible amber/red chip instead of an invisible 3-day-
+    # stale Trading Opps table. data_as_of anchors to the actual scan_date
+    # this run produced, not now(); coverage_pct compares to the expected
+    # 3,300-ticker v5 universe so a half-broken scan that writes 1,800 rows
+    # flags coverage-low.
+    if total > 0 and rows:
+        try:
+            scan_date_str = str(rows[0].get("scan_date") or rows[0].get("scanDate") or "")
+            EXPECTED = 3300
+            cov = (total / EXPECTED) * 100
+            from datetime import timedelta as _td
+            now = datetime.now(timezone.utc)
+            ph_patch = {
+                "indicator_id": "scanner-v5-daily",
+                "label": "Scanner · V5 Composite Daily",
+                "source": "Computed (in-house v5 from UW + Massive + Polygon)",
+                "cadence": "D",
+                "expected_cadence_minutes": 1440,
+                "last_check_at": now.isoformat(),
+                "last_good_at": now.isoformat(),
+                "status": "green",
+                "last_error": None,
+                "data_as_of": f"{scan_date_str}T20:00:00+00:00",
+                "expected_next_run": (now + _td(hours=24)).isoformat(),
+                "coverage_pct": cov,
+            }
+            ph_endpoint = f"{url}/rest/v1/pipeline_health"
+            ph_headers = dict(headers)
+            ph_headers["Prefer"] = "resolution=merge-duplicates,return=minimal"
+            ph_r = requests.post(ph_endpoint, headers=ph_headers,
+                                 data=json.dumps([ph_patch], default=str), timeout=30)
+            if ph_r.status_code >= 400:
+                logger.warning("[pipeline_health] scanner-v5-daily upsert failed %s: %s",
+                               ph_r.status_code, ph_r.text[:200])
+            else:
+                logger.info("[pipeline_health] scanner-v5-daily registered, coverage=%.1f%%", cov)
+        except Exception as e:
+            # Never fail the scan because the health write hiccuped.
+            logger.warning("[pipeline_health] write failed (non-fatal): %s", e)
+
     return total
 
 
