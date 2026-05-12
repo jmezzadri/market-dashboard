@@ -28,6 +28,7 @@ import LoginScreen from "./auth/LoginScreen";
 import OnboardingPanel from "./auth/OnboardingPanel";
 import { useSession } from "./auth/useSession";
 import DataFreshness from "./components/DataFreshness";
+import MTTable from "./components/MTTable";
 import { latestTradingSessionDate, formatTradingDayLabel } from "./lib/freshnessClock";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import AdminUsage from "./AdminUsage";
@@ -1932,17 +1933,15 @@ function _cmp(a, b){
 // Liquidity & Policy → Positioning & Breadth → Watch List), then alphabetical within.
 const COMP_ORDER = { "Valuation":0, "Credit":1, "Funding":2, "Growth":3, "Liquidity & Policy":4, "Positioning & Breadth":5, "":6 };
 
+
+// AllIndicatorsTable — migrated to MTTable (Tier A) 2026-05-12 as part of
+// the unified-table sweep. The two-row toolbar (Composite chips + Category
+// chips) sits above MTTable and pre-filters the rows; MTTable owns sort,
+// resize, reorder, column visibility, search, and the inline expand
+// (renderExpanded) panel. Joe directive: composite + category chips
+// compose (no auto-clear).
 function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
-  // Subscribe to indicator_history.json hydration so this table re-renders
-  // once IND[id][6] / _histCache are mutated by _applyHistToGlobals — without
-  // this, the 9 new indicators (Reg #8) render their Current / 3M / 6M / 12M
-  // cells as em-dashes on first paint and never recover unless something else
-  // higher in the tree triggers a re-render before navigation.
   useHistReady();
-  // v2 spec PR 2 — fetch cycle_v2.json so we can surface the v2 indicator schema
-  // (signal_type_at_horizon + horizon_sensitive flag + sub-composite membership).
-  // The legacy Lead/Coincident/Lag column stays — those are different questions
-  // (cycle timing vs stress direction). v2 chips render alongside as a new column.
   const [cycleV2, setCycleV2] = useState(null);
   useEffect(() => {
     fetch("/cycle_v2.json", { cache: "no-cache" })
@@ -1951,50 +1950,30 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
       .catch((err) => { console.warn("[All Indicators · v2 PR 2] cycle_v2.json fetch failed", err); });
   }, []);
   const cycleV2ById = useMemo(() => {
-    // v2 PR 2.1 — key the lookup by BOTH the v2 indicator id AND the
-    // history_key so legacy table rows that use the history_key as their
-    // id (e.g. "hy_ig" → v2 "hy_oas", "ism" → v2 "ism_mfg") match.
     const m = {};
     if (cycleV2 && Array.isArray(cycleV2.indicators)) {
       cycleV2.indicators.forEach((row) => {
         if (row.id) m[row.id] = row;
         if (row.history_key && !m[row.history_key]) m[row.history_key] = row;
       });
-      // Legacy table has a single "ism" row that should map to ism_mfg
-      // (manufacturing PMI is the canonical headline ISM number).
       const ismMfg = cycleV2.indicators.find((r) => r.id === "ism_mfg");
       if (ismMfg && !m["ism"]) m["ism"] = ismMfg;
     }
     return m;
   }, [cycleV2]);
 
-  const [sortKey, setSortKey] = useState("default");
-  const [sortDir, setSortDir] = useState("asc");
-  // Reg #7: openIds is a Set so we can expand-all / collapse-all.
+  // Composite + category chip filters compose (Joe directive 2026-05-12).
+  const [filterComposite, setFilterComposite] = useState("all");
+  const [filterCategory,  setFilterCategory]  = useState("all");
   const [openIds, setOpenIds] = useState(() => new Set());
 
-  // P6 #20 — search + filter chips. Joe 2026-04-27.
-  const [search, setSearch] = useState("");
-  const [filterComposite, setFilterComposite] = useState("all"); // all | valuation | credit | funding | growth | liqpol | posbreath | reference
-  const [filterCategory, setFilterCategory]   = useState("all"); // all | equity | credit | rates | fincond | bank | labor
-
-  // Deep-link: when arriving via #indicators?id=X, expand that row and
-  // scroll it into view, then clear the parent's deeplink state so a manual
-  // navigation away and back doesn't keep re-firing.
-  //
-  // #1086 fix (2026-04-28): the original setTimeout(400ms) approach was
-  // racy — if the table hadn't finished rendering by 400ms (slow network,
-  // hydration in progress, the 9 new indicators not yet applied), the
-  // querySelector returned null and nothing scrolled. Replace with a
-  // double-rAF + bounded poll: try every 80ms for up to 2s, scroll the
-  // moment the row enters the DOM, then bail. Pairs with the useHistReady()
-  // subscription above so the row is guaranteed to render.
+  // Deep-link: when arriving via #indicators?id=X, expand that row and scroll.
   useEffect(() => {
     if (!deeplinkId) return;
     setOpenIds(prev => { const next = new Set(prev); next.add(deeplinkId); return next; });
     let cancelled = false;
     let attempts = 0;
-    const MAX_ATTEMPTS = 25;       // 25 x 80ms = 2s deadline
+    const MAX_ATTEMPTS = 25;
     const poll = () => {
       if (cancelled) return;
       const el = document.querySelector(`[data-indicator-id="${deeplinkId}"]`);
@@ -2005,14 +1984,11 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
       }
       attempts += 1;
       if (attempts >= MAX_ATTEMPTS) {
-        // Deadline hit — clear the deeplink so we don't loop forever.
         if (onDeeplinkConsumed) onDeeplinkConsumed();
         return;
       }
       setTimeout(poll, 80);
     };
-    // Wait two animation frames so React has committed the openIds update
-    // and the row's <tr> is in the DOM before the first lookup.
     requestAnimationFrame(() => requestAnimationFrame(poll));
     return () => { cancelled = true; };
   }, [deeplinkId]);
@@ -2026,7 +2002,7 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   };
 
   // Build row data — one row per indicator in IND.
-  const rows = Object.keys(IND).map(id => {
+  const rows = useMemo(() => Object.keys(IND).map(id => {
     const d = IND[id];
     const compMap = COMPOSITE_MAP[id];
     const composite = compMap ? compMap.composite : "";
@@ -2047,15 +2023,17 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
       weight,
       type,
       asOf: AS_OF[id] || "—",
+      asOfIso: AS_OF_ISO[id],
       cur, v3m, v6m, v12m,
     };
-  });
+  }), [cycleV2]);
 
   const weightedCount = rows.filter(r => r.weight != null).length;
   const refCount = rows.length - weightedCount;
 
-  // Filter (composite chip + category chip + free-text search)
-  const filtered = rows.filter(r => {
+  // Pre-filter rows by the two chip rows (compose), then pass to MTTable.
+  // MTTable still handles its own search + sort + column filter + visibility.
+  const filteredRows = useMemo(() => rows.filter(r => {
     if (filterComposite !== "all") {
       if (filterComposite === "valuation" && r.composite !== "Valuation")             return false;
       if (filterComposite === "credit"    && r.composite !== "Credit")                return false;
@@ -2066,89 +2044,189 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
       if (filterComposite === "reference" && r.composite)                              return false;
     }
     if (filterCategory !== "all" && r.cat !== filterCategory) return false;
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      const hay = `${r.id} ${r.label} ${r.sub} ${r.composite} ${r.cat} ${CATS[r.cat]?.label || ""}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
     return true;
-  });
+  }), [rows, filterComposite, filterCategory]);
 
-  // Sort
-  const sorted = [...filtered].sort((a, b) => {
-    if(sortKey === "default"){
-      const ca = COMP_ORDER[a.composite] ?? 3;
-      const cb = COMP_ORDER[b.composite] ?? 3;
-      if(ca !== cb) return ca - cb;
-      return (b.weight || 0) - (a.weight || 0);
-    }
-    let av, bv;
-    switch(sortKey){
-      case "label":     av = a.label;      bv = b.label;      break;
-      case "category":  av = CATS[a.cat]?.label || a.cat; bv = CATS[b.cat]?.label || b.cat; break;
-      case "freq":      av = a.freq;       bv = b.freq;       break;
-      case "composite": av = COMP_ORDER[a.composite] ?? 3; bv = COMP_ORDER[b.composite] ?? 3; break;
-      case "weight":    av = a.weight;     bv = b.weight;     break;
-      case "type":      av = a.type;       bv = b.type;       break;
-      case "asof":      av = AS_OF_TS(a.asOf); bv = AS_OF_TS(b.asOf); break;
-      case "cur":       av = a.cur;        bv = b.cur;        break;
-      case "v3m":       av = a.v3m;        bv = b.v3m;        break;
-      case "v6m":       av = a.v6m;        bv = b.v6m;        break;
-      case "v12m":      av = a.v12m;       bv = b.v12m;       break;
-      default:          return 0;
-    }
-    // Anchor nulls last in BOTH directions — only flip the comparison sign on
-    // the non-null pairs so a desc sort doesn't bring blank cells to the top.
-    if(av == null && bv == null) return 0;
-    if(av == null) return 1;
-    if(bv == null) return -1;
-    const c = _cmp(av, bv);
-    return sortDir === "asc" ? c : -c;
-  });
-
-  const onSort = (k) => {
-    if(sortKey === k) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortKey(k); setSortDir("asc"); }
-  };
-
-  const arrowFor = (k) => {
-    if(sortKey !== k) return "";
-    return sortDir === "asc" ? " ▲" : " ▼";
-  };
-
-  // Header cell with optional tooltip
-  const Th = ({ k, label, tip, align="left", width }) => {
-    const inner = (
-      <span style={{display:"inline-flex",alignItems:"center",gap:4,cursor:"pointer",userSelect:"none"}}>
-        {label}{arrowFor(k) && <span style={{fontSize:9,color:"var(--text-dim)"}}>{arrowFor(k)}</span>}
-      </span>
-    );
-    return (
-      <th onClick={()=>onSort(k)} style={{
-        textAlign: align, padding:"10px 12px",
-        fontSize:11, fontWeight:600, color:"var(--text-2)",
-        fontFamily:"var(--font-mono)", letterSpacing:"0.06em", textTransform:"uppercase",
-        borderBottom:"1px solid var(--border)", background:"var(--surface)",
-        whiteSpace:"nowrap", width,
-      }}>
-        {tip ? <Tip def={tip}>{inner}</Tip> : inner}
-      </th>
-    );
-  };
-
-  const tdBase = { padding:"12px 12px", fontSize:13, color:"var(--text)", borderBottom:"1px solid var(--border-faint)", verticalAlign:"middle" };
+  // MTTable column registry — render functions copied verbatim from the
+  // pre-migration bespoke table.
+  const columns = useMemo(() => [
+    {
+      key: "label", label: "Indicator", defaultWidth: 280,
+      sortValue: (r) => r.label,
+      render: (r) => {
+        const catCol = CATS[r.cat]?.color || "var(--text-dim)";
+        return (
+          <div data-indicator-id={r.id} style={{display:"flex",alignItems:"center",gap:8}}>
+            <div style={{width:3, height:18, background:catCol, borderRadius:1, flexShrink:0}}/>
+            <div>
+              <div style={{fontSize:13, fontWeight:600, color:"var(--text)"}}>{r.label}</div>
+              <div style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)", marginTop:1}}>{r.id}</div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "category", label: "Category", categorical: true, defaultWidth: 130,
+      sortValue: (r) => CATS[r.cat]?.label || r.cat,
+      render: (r) => {
+        const catCol = CATS[r.cat]?.color || "var(--text-dim)";
+        return (
+          <Tip def={CATEGORY_TOOLTIPS[r.cat] || ""}>
+            <span style={{
+              display:"inline-block",
+              fontSize:10, fontWeight:700, color:catCol, background:catCol+"15",
+              border:`1px solid ${catCol}55`, borderRadius:4, padding:"2px 7px",
+              fontFamily:"var(--font-mono)", letterSpacing:"0.03em",
+              textTransform:"uppercase", whiteSpace:"nowrap",
+            }}>{CATS[r.cat]?.label || r.cat}</span>
+          </Tip>
+        );
+      },
+    },
+    {
+      key: "freq", label: "Freq", categorical: true, defaultWidth: 70,
+      tooltip: "D = Daily · W = Weekly · M = Monthly · Q = Quarterly. The release cadence of the upstream source.",
+      sortValue: (r) => r.freq,
+      render: (r) => (
+        <span style={{
+          display:"inline-block", fontSize:11, color:"var(--text-2)",
+          border:"1px solid var(--border)", borderRadius:3, padding:"1px 6px",
+          fontFamily:"var(--font-mono)", fontWeight:600,
+        }}>{r.freq || "—"}</span>
+      ),
+    },
+    {
+      key: "composite", label: "Mechanism", categorical: true, defaultWidth: 170,
+      tooltip: "The cycle mechanism this indicator feeds. Watch List = displayed for context but not in any tile rule.",
+      sortValue: (r) => COMP_ORDER[r.composite] ?? 3,
+      render: (r) => {
+        const compTip = COMPOSITE_TOOLTIPS[r.composite];
+        if (!r.composite) return <span style={{fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)"}}>N/A</span>;
+        return (
+          <Tip def={compTip || ""}>
+            <span style={{
+              fontSize:11, fontWeight:600, color:"var(--accent)",
+              fontFamily:"var(--font-mono)", letterSpacing:"0.02em", whiteSpace:"nowrap",
+            }}>{r.composite}</span>
+          </Tip>
+        );
+      },
+    },
+    {
+      key: "type", label: "Type", categorical: true, defaultWidth: 90,
+      tooltip: "Lead = moves before the cycle. Coincident = with. Lag = after.",
+      sortValue: (r) => r.type,
+      render: (r) => r.type ? (
+        <Tip def={TYPE_TOOLTIP_BY_VAL[r.type] || ""}>
+          <span style={{
+            display:"inline-block",
+            fontSize:10, fontWeight:700, color: TYPE_COLOR[r.type] || "var(--text-2)",
+            border:`1px solid ${(TYPE_COLOR[r.type] || "var(--border)")}55`,
+            background: (TYPE_COLOR[r.type] || "transparent") + "15",
+            borderRadius:3, padding:"2px 7px", fontFamily:"var(--font-mono)",
+            letterSpacing:"0.03em", textTransform:"uppercase",
+          }}>{r.type}</span>
+        </Tip>
+      ) : <span style={{color:"var(--text-dim)"}}>—</span>,
+    },
+    {
+      key: "signal_v2", label: "Predictive @ 6m", defaultWidth: 160,
+      tooltip: "momentum: high reading predicts LOW forward return at 6m (de-risk). mean_reversion: high reading predicts HIGH forward return (opportunity / capitulation buy). flat: |IC| < 0.10, no signal.",
+      sortValue: (r) => {
+        const v2 = cycleV2ById[r.id];
+        return v2 && v2.ic_profile && v2.ic_profile["6m"];
+      },
+      render: (r) => {
+        const v2 = cycleV2ById[r.id];
+        if (!v2 || !v2.signal_type_at_horizon) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const st = v2.signal_type_at_horizon["6m"];
+        const ic = v2.ic_profile && v2.ic_profile["6m"];
+        const color = st === "momentum" ? "var(--accent)" :
+                      st === "mean_reversion" ? "var(--green)" :
+                      "var(--text-dim)";
+        const tip = st === "momentum"
+          ? "Momentum at 6m. High reading predicts LOW forward return — de-risk."
+          : st === "mean_reversion"
+          ? "Mean-reversion at 6m. High reading predicts HIGH forward return — opportunity / capitulation buy."
+          : "|IC| < 0.10 at 6m. No statistically meaningful signal.";
+        return (
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
+            <Tip def={tip}>
+              <span style={{
+                display:"inline-block",
+                fontSize:10, fontWeight:700, color,
+                border:`1px solid ${color}55`,
+                background: color + "15",
+                borderRadius:3, padding:"2px 7px", fontFamily:"var(--font-mono)",
+                letterSpacing:"0.03em", textTransform:"uppercase",
+              }}>{st === "mean_reversion" ? "mean-rev" : st}</span>
+            </Tip>
+            {v2.horizon_sensitive && (
+              <Tip def="Horizon-sensitive: signal_type flips across horizons.">
+                <span style={{fontSize:10, color:"var(--warn, var(--accent))", fontWeight:700}}>↔</span>
+              </Tip>
+            )}
+            {ic != null && (
+              <span style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)"}}>
+                IC {ic >= 0 ? "+" : ""}{ic.toFixed(2)}
+              </span>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "asof", label: "Last refresh", defaultWidth: 160,
+      tooltip: "Date the most recent observation was posted by the source.",
+      sortValue: (r) => AS_OF_TS(r.asOf),
+      render: (r) => (
+        <span style={{display:"inline-flex",alignItems:"center",gap:6, fontSize:12, color:"var(--text-2)", fontFamily:"var(--font-mono)"}}>
+          <FreshnessDot indicatorId={r.id} asOfIso={r.asOfIso} cadence={r.freq} label={r.label}/>
+          {r.asOf || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "cur", label: "Current", numeric: true, defaultWidth: 110,
+      sortValue: (r) => r.cur,
+      render: (r) => {
+        const sCur = sdScore(r.id, r.cur);
+        const colCur = sdTextColor(sCur);
+        return (
+          <span style={{fontFamily:"var(--font-mono)", fontWeight:700, color: colCur}}>
+            {fmtV(r.id, r.cur)}
+          </span>
+        );
+      },
+    },
+    {
+      key: "v3m", label: "3M ago", numeric: true, defaultWidth: 100,
+      tooltip: "Value approximately 90 days back. Em-dash when lookback exceeds available history.",
+      sortValue: (r) => r.v3m,
+      render: (r) => <span style={{fontFamily:"var(--font-mono)", color:"var(--text-2)"}}>{fmtV(r.id, r.v3m)}</span>,
+    },
+    {
+      key: "v6m", label: "6M ago", numeric: true, defaultWidth: 100,
+      tooltip: "Value approximately 180 days back.",
+      sortValue: (r) => r.v6m,
+      render: (r) => <span style={{fontFamily:"var(--font-mono)", color:"var(--text-2)"}}>{fmtV(r.id, r.v6m)}</span>,
+    },
+    {
+      key: "v12m", label: "12M ago", numeric: true, defaultWidth: 100,
+      tooltip: "Value approximately 365 days back.",
+      sortValue: (r) => r.v12m,
+      render: (r) => <span style={{fontFamily:"var(--font-mono)", color:"var(--text-2)"}}>{fmtV(r.id, r.v12m)}</span>,
+    },
+  ], [cycleV2ById]);
 
   return (
     <div style={{padding:"20px 20px 24px", maxWidth:1200, margin:"0 auto"}}>
 
-      {/* ── INTRO ROW ───────────────────────────────────────────────────
-           The page hero (RichHero above) now carries the H1 + lead paragraph
-           describing what the model reads and how it's calibrated. This row
-           keeps only the live count chip + the Expand-all toggle so the same
-           framing isn't said three times.  (2026-04-28 cleanup) */}
+      {/* ── INTRO ROW ── */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:14,flexWrap:"wrap"}}>
         <div style={{fontSize:12, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.04em"}}>
-          {rows.length} indicators total · {weightedCount} weighted into composites · {refCount} reference-only{filtered.length !== rows.length ? <span style={{color:"var(--accent)"}}> · {filtered.length} matching filters</span> : null}
+          {rows.length} indicators total · {weightedCount} weighted into composites · {refCount} reference-only{filteredRows.length !== rows.length ? <span style={{color:"var(--accent)"}}> · {filteredRows.length} matching filters</span> : null}
         </div>
         <button
           type="button"
@@ -2157,49 +2235,24 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
             else setOpenIds(new Set());
           }}
           style={{
-            padding:"6px 14px",
-            fontSize:11,
-            fontFamily:"var(--font-mono)",
-            fontWeight:700,
-            letterSpacing:"0.06em",
-            textTransform:"uppercase",
-            border:"1px solid var(--border)",
-            borderRadius:4,
-            cursor:"pointer",
-            background:"var(--surface-2)",
-            color:"var(--text)",
-            whiteSpace:"nowrap",
-            flexShrink:0,
+            padding:"6px 14px", fontSize:11, fontFamily:"var(--font-mono)", fontWeight:700,
+            letterSpacing:"0.06em", textTransform:"uppercase",
+            border:"1px solid var(--border)", borderRadius:4, cursor:"pointer",
+            background:"var(--surface-2)", color:"var(--text)", whiteSpace:"nowrap", flexShrink:0,
           }}
         >
           {openIds.size === 0 ? "Expand all" : "Collapse all"}
         </button>
       </div>
 
-      {/* ── SEARCH + FILTER CHIPS (P6 #20, Joe 2026-04-27) ───────── */}
+      {/* ── TWO-ROW CHIP TOOLBAR (Composite top, Category bottom) ── */}
       <div style={{
-        display:"flex", flexWrap:"wrap", gap:10, alignItems:"center",
+        display:"flex", flexDirection:"column", gap:8,
         padding:"12px 14px", marginBottom:14,
-        background:"var(--surface-2)",
-        border:"1px solid var(--border-faint)",
-        borderRadius:6,
+        background:"var(--surface-2)", border:"1px solid var(--border-faint)", borderRadius:6,
       }}>
-        <input
-          type="text"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder="Search indicators…"
-          style={{
-            flex:"1 1 240px", minWidth:200, maxWidth:340,
-            padding:"6px 10px", fontSize:13,
-            border:"1px solid var(--border)", borderRadius:4,
-            background:"var(--surface)", color:"var(--text)",
-            fontFamily:"var(--font-ui)",
-          }}
-        />
-        {/* Composite chips */}
-        <div style={{display:"inline-flex", gap:4, flexWrap:"wrap"}}>
-          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600}}>COMPOSITE</span>
+        <div style={{display:"flex", gap:4, flexWrap:"wrap", alignItems:"center"}}>
+          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600,minWidth:90}}>COMPOSITE</span>
           {[
             {k:"all",       label:"All",                col:"var(--text)"},
             {k:"valuation", label:"Valuation",          col:"var(--red)"},
@@ -2222,9 +2275,8 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
               }}>{c.label}</button>
           ))}
         </div>
-        {/* Category chips */}
-        <div style={{display:"inline-flex", gap:4, flexWrap:"wrap"}}>
-          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600}}>CATEGORY</span>
+        <div style={{display:"flex", gap:4, flexWrap:"wrap", alignItems:"center"}}>
+          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600,minWidth:90}}>CATEGORY</span>
           {[
             {k:"all", label:"All", col:"var(--text)"},
             ...Object.entries(CATS).map(([k, v]) => ({k, label:v.label, col:v.color})),
@@ -2240,210 +2292,45 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
                 fontWeight: 600, letterSpacing:"0.04em",
               }}>{c.label}</button>
           ))}
+          {(filterComposite !== "all" || filterCategory !== "all") && (
+            <button type="button"
+              onClick={() => { setFilterComposite("all"); setFilterCategory("all"); }}
+              style={{
+                fontFamily:"var(--font-mono)", fontSize:11,
+                padding:"4px 10px", borderRadius:4, cursor:"pointer",
+                border:"1px solid var(--accent)", color:"var(--accent)",
+                background:"transparent", fontWeight:600, marginLeft:"auto",
+              }}>RESET CHIPS</button>
+          )}
         </div>
-        {(search || filterComposite !== "all" || filterCategory !== "all") && (
-          <button type="button"
-            onClick={() => { setSearch(""); setFilterComposite("all"); setFilterCategory("all"); }}
-            style={{
-              fontFamily:"var(--font-mono)", fontSize:11,
-              padding:"4px 10px", borderRadius:4, cursor:"pointer",
-              border:"1px solid var(--accent)", color:"var(--accent)",
-              background:"transparent", fontWeight:600, marginLeft:"auto",
-            }}>RESET</button>
-        )}
       </div>
 
-      {/* ── SORTABLE TABLE ──────────────────────────────────────────── */}
-      <div style={{
-        background:"var(--surface)",
-        border:"1px solid var(--border)",
-        borderRadius:8,
-        overflow:"hidden",
-      }}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%", borderCollapse:"collapse"}}>
-            <thead>
-              <tr>
-                <Th k="label"     label="Indicator" />
-                <Th k="category"  label="Category" />
-                <Th k="freq"      label="Freq" align="center" width={60} tip="D = Daily · W = Weekly · M = Monthly · Q = Quarterly. The release cadence of the upstream source." />
-                <Th k="composite" label="Mechanism" tip="The cycle mechanism this indicator feeds. Watch List = displayed for context but not in any tile rule." />
-                <Th k="type"      label="Type" align="center" tip="Lead = moves before the cycle (Conference Board convention). Coincident = moves with the cycle. Lag = moves after." />
-                <Th k="signal_v2"  label="Predictive @ 6m" align="center" tip="v2 (PR 1 spec) — momentum: high reading predicts LOW forward return at 6m (de-risk). mean_reversion: high reading predicts HIGH forward return at 6m (opportunity / capitulation buy). flat: |IC| < 0.10 at 6m, no signal." />
-                <Th k="asof"      label="Last refresh" tip="Date the most recent observation was posted by the source. Daily refresh runs at market close." />
-                <Th k="cur"       label="Current" align="right" />
-                <Th k="v3m"       label="3M ago" align="right" tip="Value at approximately 90 days back, walked from the indicator's history series. — when lookback exceeds the available history." />
-                <Th k="v6m"       label="6M ago" align="right" tip="Value at approximately 180 days back." />
-                <Th k="v12m"      label="12M ago" align="right" tip="Value at approximately 365 days back." />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((r, idx) => {
-                const isOpen = openIds.has(r.id);
-                const catCol = CATS[r.cat]?.color || "var(--text-dim)";
-                const compTip = COMPOSITE_TOOLTIPS[r.composite];
-                const sCur = sdScore(r.id, r.cur);
-                const colCur = sdTextColor(sCur);
-                return (
-                  <Fragment key={r.id}>
-                    <tr
-                      data-indicator-id={r.id}
-                      onClick={() => toggleOne(r.id)}
-                      style={{
-                        cursor:"pointer",
-                        background: isOpen ? "var(--inset, var(--surface-2))" : "transparent",
-                      }}
-                      onMouseEnter={e => { if(!isOpen) e.currentTarget.style.background = "var(--inset, var(--surface-2))"; }}
-                      onMouseLeave={e => { if(!isOpen) e.currentTarget.style.background = "transparent"; }}
-                    >
-                      {/* Indicator name + key */}
-                      <td style={{...tdBase, paddingLeft:16}}>
-                        <div style={{display:"flex",alignItems:"center",gap:8}}>
-                          <div style={{width:3, height:18, background:catCol, borderRadius:1, flexShrink:0}}/>
-                          <div>
-                            <div style={{fontSize:13, fontWeight:600, color:"var(--text)"}}>{r.label}</div>
-                            <div style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)", marginTop:1}}>{r.id}</div>
-                          </div>
-                        </div>
-                      </td>
-                      {/* Category chip */}
-                      <td style={tdBase}>
-                        <Tip def={CATEGORY_TOOLTIPS[r.cat] || ""}>
-                          <span style={{
-                            display:"inline-block",
-                            fontSize:10, fontWeight:700, color:catCol, background:catCol+"15",
-                            border:`1px solid ${catCol}55`, borderRadius:4, padding:"2px 7px",
-                            fontFamily:"var(--font-mono)", letterSpacing:"0.03em",
-                            textTransform:"uppercase", whiteSpace:"nowrap",
-                          }}>{CATS[r.cat]?.label || r.cat}</span>
-                        </Tip>
-                      </td>
-                      {/* Freq chip */}
-                      <td style={{...tdBase, textAlign:"center"}}>
-                        <span style={{
-                          display:"inline-block", fontSize:11, color:"var(--text-2)",
-                          border:"1px solid var(--border)", borderRadius:3, padding:"1px 6px",
-                          fontFamily:"var(--font-mono)", fontWeight:600,
-                        }}>{r.freq || "—"}</span>
-                      </td>
-                      {/* Composite */}
-                      <td style={tdBase}>
-                        {r.composite ? (
-                          <Tip def={compTip || ""}>
-                            <span style={{
-                              fontSize:11, fontWeight:600, color:"var(--accent)",
-                              fontFamily:"var(--font-mono)", letterSpacing:"0.02em", whiteSpace:"nowrap",
-                            }}>{r.composite}</span>
-                          </Tip>
-                        ) : (
-                          <span style={{fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)"}}>N/A</span>
-                        )}
-                      </td>
-                      {/* Weight */}
-                      {/* Type */}
-                      <td style={{...tdBase, textAlign:"center"}}>
-                        {r.type ? (
-                          <Tip def={TYPE_TOOLTIP_BY_VAL[r.type] || ""}>
-                            <span style={{
-                              display:"inline-block",
-                              fontSize:10, fontWeight:700, color: TYPE_COLOR[r.type] || "var(--text-2)",
-                              border:`1px solid ${(TYPE_COLOR[r.type] || "var(--border)")}55`,
-                              background: (TYPE_COLOR[r.type] || "transparent") + "15",
-                              borderRadius:3, padding:"2px 7px", fontFamily:"var(--font-mono)",
-                              letterSpacing:"0.03em", textTransform:"uppercase",
-                            }}>{r.type}</span>
-                          </Tip>
-                        ) : (
-                          <span style={{color:"var(--text-dim)"}}>—</span>
-                        )}
-                      </td>
-                      {/* Predictive @ 6m (v2 PR 2) — signal_type chip at the primary horizon */}
-                      <td style={{...tdBase, textAlign:"center"}}>
-                        {(() => {
-                          const v2 = cycleV2ById[r.id];
-                          if (!v2 || !v2.signal_type_at_horizon) {
-                            return <span style={{color:"var(--text-dim)"}}>—</span>;
-                          }
-                          const st = v2.signal_type_at_horizon["6m"];
-                          const ic = v2.ic_profile && v2.ic_profile["6m"];
-                          const color = st === "momentum" ? "var(--accent)" :
-                                        st === "mean_reversion" ? "var(--green)" :
-                                        "var(--text-dim)";
-                          const tip = st === "momentum"
-                            ? "Momentum at 6m. High reading predicts LOW forward return — de-risk."
-                            : st === "mean_reversion"
-                            ? "Mean-reversion at 6m. High reading predicts HIGH forward return — opportunity / capitulation buy."
-                            : "|IC| < 0.10 at 6m. No statistically meaningful signal at this horizon.";
-                          return (
-                            <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-                              <Tip def={tip}>
-                                <span style={{
-                                  display:"inline-block",
-                                  fontSize:10, fontWeight:700, color,
-                                  border:`1px solid ${color}55`,
-                                  background: color + "15",
-                                  borderRadius:3, padding:"2px 7px", fontFamily:"var(--font-mono)",
-                                  letterSpacing:"0.03em", textTransform:"uppercase",
-                                }}>{st === "mean_reversion" ? "mean-rev" : st}</span>
-                              </Tip>
-                              {v2.horizon_sensitive && (
-                                <Tip def="Horizon-sensitive: signal_type flips across horizons. Tactical (1m) and strategic (12m) reads disagree on this indicator. Open detail view for full IC profile.">
-                                  <span style={{fontSize:10, color:"var(--warn, var(--accent))", fontWeight:700}}>↔</span>
-                                </Tip>
-                              )}
-                              {ic != null && (
-                                <span style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)"}}>
-                                  IC {ic >= 0 ? "+" : ""}{ic.toFixed(2)}
-                                </span>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </td>
-                      {/* Last refresh — FreshnessDot is the at-a-glance signal next to the date */}
-                      <td style={{...tdBase, fontSize:12, color:"var(--text-2)", fontFamily:"var(--font-mono)"}}>
-                        <span style={{display:"inline-flex",alignItems:"center",gap:6}}>
-                          <FreshnessDot indicatorId={r.id} asOfIso={AS_OF_ISO[r.id]} cadence={r.freq} label={r.label}/>
-                          {r.asOf || "—"}
-                        </span>
-                      </td>
-                      {/* Current */}
-                      <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", fontWeight:700, color: colCur}}>
-                        {fmtV(r.id, r.cur)}
-                      </td>
-                      {/* 3M ago */}
-                      <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", color:"var(--text-2)"}}>
-                        {fmtV(r.id, r.v3m)}
-                      </td>
-                      {/* 6M ago */}
-                      <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", color:"var(--text-2)"}}>
-                        {fmtV(r.id, r.v6m)}
-                      </td>
-                      {/* 12M ago */}
-                      <td style={{...tdBase, textAlign:"right", fontFamily:"var(--font-mono)", color:"var(--text-2)", paddingRight:16}}>
-                        {fmtV(r.id, r.v12m)}
-                      </td>
-                    </tr>
-                    {/* Inline expanded detail row — full-width detail panel */}
-                    {isOpen && (
-                      <tr>
-                        <td colSpan={11} style={{padding:0, background:"var(--surface-2)", borderBottom:"1px solid var(--border)"}}>
-                          <div style={{padding:"20px 24px"}}>
-                            <IndicatorDetailBody id={r.id} onClose={() => toggleOne(r.id)} inline />
-                          </div>
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <MTTable
+        columns={columns}
+        rows={filteredRows}
+        rowKey="id"
+        storageKey="all_indicators"
+        features="full"
+        onRowClick={(r) => toggleOne(r.id)}
+        toolbar={{
+          search: {
+            placeholder: "Search indicators…",
+            fields: ["id", "label", "sub"],
+          },
+        }}
+        expandable={{
+          isExpanded: (r) => openIds.has(r.id),
+          renderExpanded: (r) => (
+            <div style={{padding:"20px 24px", background:"var(--surface-2)"}}>
+              <IndicatorDetailBody id={r.id} onClose={() => toggleOne(r.id)} inline />
+            </div>
+          ),
+        }}
+      />
     </div>
   );
 }
+
 
 // Helper for as-of date sort — converts "Apr 16 2026" / "Mar 2026" / "Q4 2025" to ms.
 function AS_OF_TS(s){

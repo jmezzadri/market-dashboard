@@ -206,6 +206,30 @@
       "registered_at": "2026-05-10",
       "registered_via": "v2 spec PR 1 — Joe approval 2026-05-10",
       "name": "v2 regime label — 4-cell from Setup × Stress"
+    },
+    "market.sector_perf": {
+      "category": "market",
+      "name": "Per-sector 1M / 3M / TTM returns + TTM realized vol (15 ETFs)",
+      "sourcing_mode": "computed",
+      "source_vendor": "Supabase public.prices_eod (Massive/Polygon EOD feed + 2003+ yfinance bootstrap)",
+      "license_tier": "Massive (existing) + free historical bootstrap",
+      "cadence": "daily, 22:50 UTC weekdays — runs 5 min after v10 allocator",
+      "scheduled_fetch_et": "18:50",
+      "freshness_sla_hours": 49,
+      "consumer_surfaces": [
+        "Recommended Allocations (Asset Tilt) — 1M / 3M / TTM / Vol columns on every sector + defensive row"
+      ],
+      "failure_mode": "Supabase prices_eod read fails OR < 25 days of history for a ticker. Per-ticker fallback to nulls; one bad ticker doesn't fail the run.",
+      "owner": "Data Steward (ownership) + Senior Quant (methodology)",
+      "producer_workflow": ".github/workflows/sector-perf-daily.yml",
+      "producer_script": "scripts/compute_sector_perf.py",
+      "registered_at": "2026-05-12",
+      "registered_via": "bug #1186 fix — yfinance rate-limited by Yahoo from GHA runners, swapped to Supabase per LESSONS 2026-04-30 (Polygon Basic cap) v9 pattern.",
+      "history_gap": {
+        "tickers": ["XLK", "XLC", "XLRE"],
+        "reason": "Missed in 2026-04-30 bootstrap; only ~10 days of forward Massive data; 3M / TTM / Vol show null until backfilled.",
+        "remediation": "Re-run V9-YFINANCE-BOOTSTRAP once Yahoo's GHA rate-limit lifts; tickers were added to bootstrap_yfinance_to_prices_eod.py TICKERS in same PR."
+      }
     }
   }
 }

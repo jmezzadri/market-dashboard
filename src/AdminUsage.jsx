@@ -15,7 +15,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { useIsAdmin } from "./hooks/useIsAdmin";
-import { useSortableTable, SortArrow, sortableHeaderProps } from "./hooks/useSortableTable.jsx";
+import MTTable from "./components/MTTable";
 
 const SOURCE_COLORS = {
   universe_snapshot:  "#60a5fa",   // blue
@@ -332,54 +332,64 @@ function RemainingDailyByEndpoint({ rows }) {
 }
 
 // ── RECENT RUNS TABLE ───────────────────────────────────────────────────────
-// Bug #1040 (LESSONS rule #4): every column header click-sorts via the shared
-// useSortableTable hook. Sort cycles asc → desc on each click; numeric columns
-// default to desc on first click (largest first), text columns to asc.
+// Migrated to MTTable (Tier A) 2026-05-12 as part of the unified-table sweep.
+// MTTable owns sort / filter / resize / reorder / visibility / search.
 function RecentRunsTable({ rows }) {
   const latest = (rows || []).slice(0, 60);
   const RUNS_COLS = [
-    { id: "started",   label: "Started",   align: "left",  sortValue: r => r.started_at ? new Date(r.started_at).getTime() : null },
-    { id: "source",    label: "Source",    align: "left",  sortValue: r => SOURCE_LABELS[r.source] || r.source || null },
-    { id: "endpoint",  label: "Endpoint",  align: "left",  sortValue: r => r.endpoint || null },
-    { id: "calls",     label: "Calls",     align: "right", sortValue: r => r.calls_made ?? null },
-    { id: "remaining", label: "Remaining", align: "right", sortValue: r => r.remaining_daily ?? null },
-    { id: "peak",      label: "Peak RPM",  align: "right", sortValue: r => r.peak_rpm != null ? Number(r.peak_rpm) : null },
-    { id: "duration",  label: "Duration",  align: "right", sortValue: r => r.duration_seconds ?? null },
-    { id: "status",    label: "Status",    align: "left",  sortValue: r => r.status || null },
+    {
+      key: "started_at", label: "Started", defaultWidth: 150,
+      sortValue: (r) => r.started_at ? new Date(r.started_at).getTime() : null,
+      render: (r) => etDateTimeShort(r.started_at),
+    },
+    {
+      key: "source", label: "Source", categorical: true, defaultWidth: 130,
+      sortValue: (r) => SOURCE_LABELS[r.source] || r.source || null,
+      render: (r) => <SourceChip source={r.source} />,
+    },
+    {
+      key: "endpoint", label: "Endpoint", defaultWidth: 240,
+      sortValue: (r) => r.endpoint || null,
+      render: (r) => (
+        <span style={{ color: "var(--text-muted)", fontFamily: "monospace" }}>{r.endpoint || "—"}</span>
+      ),
+    },
+    {
+      key: "calls_made", label: "Calls", numeric: true, defaultWidth: 90,
+      sortValue: (r) => r.calls_made ?? null,
+      render: (r) => fmtInt(r.calls_made),
+    },
+    {
+      key: "remaining_daily", label: "Remaining", numeric: true, defaultWidth: 110,
+      sortValue: (r) => r.remaining_daily ?? null,
+      render: (r) => fmtInt(r.remaining_daily),
+    },
+    {
+      key: "peak_rpm", label: "Peak RPM", numeric: true, defaultWidth: 100,
+      sortValue: (r) => r.peak_rpm != null ? Number(r.peak_rpm) : null,
+      render: (r) => r.peak_rpm != null ? Number(r.peak_rpm).toFixed(0) : "—",
+    },
+    {
+      key: "duration_seconds", label: "Duration", numeric: true, defaultWidth: 100,
+      sortValue: (r) => r.duration_seconds ?? null,
+      render: (r) => fmtDuration(r.duration_seconds),
+    },
+    {
+      key: "status", label: "Status", categorical: true, defaultWidth: 110,
+      sortValue: (r) => r.status || null,
+      render: (r) => <StatusPill status={r.status} />,
+    },
   ];
-  const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({
-    rows: latest, columns: RUNS_COLS, defaultColId: "started", defaultDir: "desc",
-  });
   if (!latest.length) return <EmptyPanel msg="No runs yet." />;
   return (
     <ChartPanel title="Recent runs" subtitle={`Last ${latest.length} runs · most recent first`}>
-      <div style={{overflowX:"auto"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:12}}>
-          <thead>
-            <tr style={{color:"var(--text-muted)",fontFamily:"monospace",fontWeight:600,letterSpacing:"0.05em"}}>
-              {RUNS_COLS.map(col => (
-                <Th key={col.id} align={col.align} {...sortableHeaderProps({ colId: col.id, sortCol, sortDir, toggleSort })}>
-                  {col.label} <SortArrow dir={sortCol === col.id ? sortDir : null}/>
-                </Th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map(r => (
-              <tr key={r.id} style={{borderTop:"1px solid var(--border)"}}>
-                <Td>{etDateTimeShort(r.started_at)}</Td>
-                <Td><SourceChip source={r.source}/></Td>
-                <Td style={{color:"var(--text-muted)",fontFamily:"monospace"}}>{r.endpoint || "—"}</Td>
-                <Td align="right">{fmtInt(r.calls_made)}</Td>
-                <Td align="right">{fmtInt(r.remaining_daily)}</Td>
-                <Td align="right">{r.peak_rpm!=null ? Number(r.peak_rpm).toFixed(0) : "—"}</Td>
-                <Td align="right">{fmtDuration(r.duration_seconds)}</Td>
-                <Td><StatusPill status={r.status}/></Td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <MTTable
+        columns={RUNS_COLS}
+        rows={latest}
+        rowKey="id"
+        storageKey="admin_usage_recent_runs"
+        features="full"
+      />
     </ChartPanel>
   );
 }

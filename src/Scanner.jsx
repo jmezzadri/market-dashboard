@@ -13,6 +13,7 @@ import { useTickerEvents } from "./hooks/useTickerEvents";
 import SubCompositeStrip from "./components/SubCompositeStrip";
 import { normalizeTickerName } from "./lib/nameFormat";
 import CONGRESS_ROSTER from "./data/congress_roster.json";
+import MTTable from "./components/MTTable";
 
 const DATA_URL =
   "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
@@ -589,68 +590,56 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
 }
 
 // ── Sortable dark table ───────────────────────────────────────────────────────
-// headers: array of strings (display labels)
-// rows: array of { cells: [ReactNode], sortVals: [primitive] }
-// If sortVals not provided, falls back to cell text content (strings only).
-function SortableTable({ headers, rows }) {
-  const [sortCol, setSortCol] = useState(null);
-  const [sortDir, setSortDir] = useState("asc");
-
-  const handleSort = (i) => {
-    if (sortCol === i) setSortDir(d => d === "asc" ? "desc" : "asc");
-    else { setSortCol(i); setSortDir("asc"); }
-  };
-
-  const sorted = useMemo(() => {
-    if (sortCol === null) return rows;
-    return [...rows].sort((a, b) => {
-      const av = a.sortVals?.[sortCol] ?? a.cells[sortCol] ?? "";
-      const bv = b.sortVals?.[sortCol] ?? b.cells[sortCol] ?? "";
-      const cmp = typeof av === "number" && typeof bv === "number"
-        ? av - bv
-        : String(av).localeCompare(String(bv), undefined, { numeric: true });
-      return sortDir === "asc" ? cmp : -cmp;
+// Migrated to MTTable (Tier A) 2026-05-12 as part of the unified-table sweep.
+// The headers/rows call shape is preserved so existing call sites don't need
+// to change — internally we adapt headers/cells/sortVals into MTTable's
+// column-object schema. Local SortableTable + sort plumbing retired.
+//
+// headers: array of strings OR { label, term, key }
+// rows:    array of { cells: [ReactNode], sortVals: [primitive] }
+function SortableTable({ headers, rows, storageKey }) {
+  // Build a stable MTTable column registry from the header strings/objects.
+  const columns = useMemo(() => {
+    return headers.map((h, i) => {
+      const isObj = h && typeof h === "object";
+      const label = isObj ? h.label : h;
+      const term  = isObj ? h.term  : null;
+      const key   = isObj && h.key ? h.key : `col_${i}`;
+      // Detect numeric by inspecting the first non-null sortVal in this column.
+      let numeric = false;
+      for (const r of rows) {
+        const v = r.sortVals?.[i];
+        if (v != null) { numeric = typeof v === "number"; break; }
+      }
+      return {
+        key,
+        label,
+        numeric: numeric || false,
+        headerExtra: term ? <InfoTip term={term} size={11} /> : null,
+        sortValue: (row) => row.__sortVals?.[i] ?? row.__cells?.[i] ?? null,
+        render: (row) => row.__cells?.[i] ?? null,
+      };
     });
-  }, [rows, sortCol, sortDir]);
+  }, [headers, rows]);
+
+  // Wrap each input row into an object so MTTable's rowKey/sortValue/render
+  // path has a single object to reference.
+  const wrappedRows = useMemo(() => {
+    return rows.map((r, i) => ({
+      __idx: i,
+      __cells: r.cells,
+      __sortVals: r.sortVals,
+    }));
+  }, [rows]);
 
   return (
-    <div style={{ overflowX: "auto" }}>
-      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "monospace" }}>
-        <thead>
-          <tr style={{ borderBottom: `1px solid ${C.border2}` }}>
-            {headers.map((h, i) => {
-              // Allow headers to be either a plain string or { label, term }
-              // so individual columns can carry a definition tooltip.
-              const isObj = h && typeof h === "object";
-              const label = isObj ? h.label : h;
-              const term  = isObj ? h.term  : null;
-              const key = isObj ? (h.key || label) : h;
-              return (
-                <th key={key} style={{
-                  padding: "8px 10px", textAlign: "left", fontWeight: 700,
-                  color: sortCol === i ? C.text : C.dim, fontSize: 11, letterSpacing: "0.08em",
-                  whiteSpace: "nowrap", userSelect: "none",
-                }}>
-                  <span onClick={() => handleSort(i)} style={{ cursor: "pointer" }}>
-                    {label}{sortCol === i ? (sortDir === "asc" ? " ▲" : " ▼") : " ·"}
-                  </span>
-                  {term && <InfoTip term={term} size={11} />}
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <tbody>
-          {sorted.map((row, i) => (
-            <tr key={i} style={{ borderBottom: `1px solid ${C.border}`, background: i % 2 === 0 ? C.row1 : C.row2 }}>
-              {row.cells.map((cell, j) => (
-                <td key={j} style={{ padding: "8px 10px", color: C.muted, whiteSpace: "nowrap" }}>{cell}</td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <MTTable
+      columns={columns}
+      rows={wrappedRows}
+      rowKey="__idx"
+      storageKey={storageKey}
+      features="full"
+    />
   );
 }
 // Convenience: build a row with matching sortVals from raw values
@@ -688,6 +677,7 @@ function CongressTab({ data, onOpenTicker }) {
         Congressional trades disclosed under the STOCK Act · 45-day lookback · Click a member or ticker for detail.
       </div>
       <SortableTable
+        storageKey="scanner_congress"
         headers={["DATE","MEMBER","PARTY","CHAMBER","TICKER","DIRECTION","AMOUNT","FILED"]}
         rows={all.map((r, i) => {
           const dir = r.txn_type || r._dir || "";
@@ -880,6 +870,7 @@ function InsidersTab({ data, onOpenTicker }) {
         SEC Form 4 filings · Open-market purchases (code P) and sales (code S) · Excludes 10b5-1 automatic plan transactions
       </div>
       <SortableTable
+        storageKey="scanner_insiders"
         headers={["FILING DATE","INSIDER","TITLE","TICKER","DIRECTION","SHARES","VALUE","PRICE"]}
         rows={all.map(r => {
           const price  = r.price_per_share ? Number(r.price_per_share)
@@ -965,6 +956,7 @@ function FlowTab({ data, onOpenTicker }) {
         </div>
       ) : (
         <SortableTable
+          storageKey="scanner_flow"
           headers={[
             "DATE / TIME",
             "TICKER",
@@ -1159,6 +1151,7 @@ function TechnicalsTab({ data, onOpenTicker, userTickers = [], isSignedIn = fals
         </div>
       )}
       <SortableTable
+        storageKey="scanner_technicals"
         headers={[
           "TICKER",
           "PRICE",

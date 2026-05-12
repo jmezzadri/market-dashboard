@@ -184,7 +184,12 @@ function DocsTable({ cols, rows }) {
     cells.forEach((cell, j) => { o["c" + j] = cell; });
     return o;
   });
-  return <MTTable columns={columns} rows={rowObjs} rowKey="_id" features="look" />;
+  // Tier A across the board (sweep PR 2026-05-12): even reference / docs
+  // tables get the full sort/filter/resize/Columns toolbar so the site
+  // looks identical everywhere. Methodology page has many of these, so each
+  // gets a unique storageKey derived from its column shape.
+  const sk = "methodology_" + columns.map((c) => c.label).join("|").replace(/[^a-z0-9]+/gi, "_").slice(0, 60);
+  return <MTTable columns={columns} rows={rowObjs} rowKey="_id" features="full" storageKey={sk} />;
 }
 
 // ─── Section content (hand-written prose, no auto-generation) ──────────────
