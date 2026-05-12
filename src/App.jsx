@@ -6098,7 +6098,7 @@ return(
                       <div style={{position:"relative", width:"100%", height:5, background:"var(--surface-2)", borderRadius:2}}/>
                       <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>—</div>
                     </div>
-                    <div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text-dim)", minWidth:32, textAlign:"right"}}>—</div>
+                    <div style={{display:"flex", flexDirection:"column", alignItems:"flex-end", minWidth:42, gap:1}}><div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)", letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:500, lineHeight:1}}>MT Score</div><div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text-dim)", lineHeight:1}}>—</div></div>
                   </div>
                 );
               }
@@ -6114,7 +6114,7 @@ return(
                     </div>
                     <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>{r.sector || "—"}</div>
                   </div>
-                  <div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text)", minWidth:32, textAlign:"right"}}>{Number.isFinite(sc) ? sc.toFixed(0) : "—"}</div>
+                  <div style={{display:"flex", flexDirection:"column", alignItems:"flex-end", minWidth:42, gap:1}}><div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)", letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:500, lineHeight:1}}>MT Score</div><div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text)", lineHeight:1}}>{Number.isFinite(sc) ? sc.toFixed(0) : "—"}</div></div>
                 </div>
               );
             })}
