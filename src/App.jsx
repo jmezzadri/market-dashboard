@@ -4769,7 +4769,7 @@ function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceCol
 // (cycle composite + 7 sub-composites). Computes the regime client-side
 // per the same rule book that drives /#overview.
 // ─────────────────────────────────────────────────────────────────────
-function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, tileExplainStyle, tileNameStyle }){
+function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, tileExplainStyle, tileNameStyle, FreshnessDot, freshnessAsOf }){
   const [indHist, setIndHist] = React.useState(null);
   const [cycleV2, setCycleV2] = React.useState(null);
 
@@ -4847,7 +4847,8 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
       style: { ...cardStyle, cursor: "pointer" }
     },
       React.createElement("div", { style: cardHeadSlimStyle },
-        React.createElement("span", { style: cardTagStyle }, "01")
+        React.createElement("span", { style: cardTagStyle }, "01"),
+        FreshnessDot ? React.createElement(FreshnessDot, { indicatorId: "cycle_board", asOfIso: freshnessAsOf || null, style: { marginLeft: "auto" } }) : null
       ),
       React.createElement("p", { style: tileExplainStyle },
         "A ", React.createElement("span", { style: tileNameStyle }, "Macro Overview"),
@@ -5995,7 +5996,7 @@ return(
           This card runs the SAME math against the same JSON, so the
           home preview and /#overview show identical numbers, identical
           band, identical narrative. */}
-      <HomeRegimeTile navTo={navTo} cardStyle={cardStyle} cardHeadSlimStyle={cardHeadSlimStyle} cardTagStyle={cardTagStyle} tileExplainStyle={tileExplainStyle} tileNameStyle={tileNameStyle} />
+      <HomeRegimeTile navTo={navTo} cardStyle={cardStyle} cardHeadSlimStyle={cardHeadSlimStyle} cardTagStyle={cardTagStyle} tileExplainStyle={tileExplainStyle} tileNameStyle={tileNameStyle} FreshnessDot={FreshnessDot} freshnessAsOf={cycleBoardSnap?.as_of || null} />
 
       {/* 02 · Asset Tilt — re-lit 2026-05-04 with v10.1c live engine.
           Reads /v10_allocation.json which refreshes nightly at 22:45 UTC. */}
