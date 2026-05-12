@@ -108,7 +108,7 @@ export default function HomePage() {
       return { pctile: pctileOf(cur[1], sorted), currentValue: cur[1], mark, stage: stageOfRun(r.points, mark) };
     };
     const vix = buildInd('vix'), mv = buildInd('move'), cp = buildInd('cpff');
-    const cycle = cycleV2.headlines?.cycle_value?.score_by_horizon?.['6m'];
+    const cycle = cycleV2.headlines?.cycle_value?.scores_by_horizon?.['6m'];
     const stages = [vix?.stage || 0, mv?.stage || 0, cp?.stage || 0];
     const sustained = stages.filter(s => s >= 2).length;
     const crossed = stages.filter(s => s === 1).length;
