@@ -65,7 +65,14 @@ async function fetchRows() {
     .from("pipeline_health")
     .select(
       "indicator_id, label, source, cadence, expected_cadence_minutes, " +
-      "last_good_at, last_check_at, last_value, last_error, status, updated_at"
+      "last_good_at, last_check_at, last_value, last_error, status, updated_at, " +
+      // Phase 2 of the Data Steward overhaul (2026-05-12). The chips that
+      // consume this hook now anchor their displayed "as of" timestamp to
+      // data_as_of (the trading day the value represents) rather than
+      // last_good_at (the cron run time). coverage_pct is exposed so
+      // consumers can surface "16% of expected" alongside red status.
+      // expected_next_run lets us render "next refresh at <time>".
+      "data_as_of, expected_next_run, coverage_pct"
     );
   if (error) {
     // eslint-disable-next-line no-console
@@ -166,6 +173,14 @@ function statusForElement(elementId, fallback) {
     description: manifestEl?.description || null,
     sourceVendor: manifestEl?.source_vendor || phRow?.source || null,
     reason,
+    // Phase 2 of the Data Steward overhaul. dataAsOf is the trading day the
+    // value represents — the chip's "Last close: <date>" copy uses this,
+    // not lastGoodAt (cron run time). coveragePct and expectedNextRun ride
+    // along so tooltips can show "16% of expected universe" and "next
+    // refresh at <time>".
+    dataAsOf: phRow?.data_as_of || null,
+    coveragePct: phRow?.coverage_pct != null ? Number(phRow.coverage_pct) : null,
+    expectedNextRun: phRow?.expected_next_run || null,
     missingFromManifest: !manifestEl,
     missingFromPipelineHealth: !phRow,
   };
@@ -258,6 +273,12 @@ export function useFreshness(elementId, fallback) {
     sourceVendor: rolled.sourceVendor,
     slaHours: rolled.slaHours,
     calendar: rolled.calendar,
+    // Phase 2 — exposed to chips/tooltips so they can render the actual
+    // trading day the value is from, the coverage ratio, and the next
+    // expected refresh time.
+    dataAsOf: rolled.dataAsOf,
+    coveragePct: rolled.coveragePct,
+    expectedNextRun: rolled.expectedNextRun,
     reason: rolled.reason,
     cause: rolled.cause,
     redInputs: rolled.redInputs || [],
