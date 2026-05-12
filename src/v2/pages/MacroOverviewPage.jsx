@@ -164,7 +164,7 @@ export default function MacroOverviewPage() {
     const move = buildIndicator('move', 'MOVE', '');
     const cpff = buildIndicator('cpff', 'CPFF', ' bp');
 
-    const cycleScore = cycleV2.headlines?.cycle_value?.score_by_horizon?.[HORIZON];
+    const cycleScore = cycleV2.headlines?.cycle_value?.scores_by_horizon?.[HORIZON];
     const cycleAsOf = cycleV2.as_of;
     const subs = Object.entries(cycleV2.subcomposites || {}).map(([name, v]) => ({
       name: SUB_DISPLAY_NAME[name] || name,
