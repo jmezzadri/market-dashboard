@@ -1,5 +1,5 @@
 {
-  "as_of": "2026-05-12T13:22:48+00:00",
+  "as_of": "2026-05-12T14:33:21+00:00",
   "version": "v2",
   "method": {
     "proxy": "Primary Select Sector SPDR ETF per GICS sector.",
@@ -9,19 +9,19 @@
   },
   "sectors": {
     "Information Technology": {
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
+      "perf_1m": 25.21,
+      "perf_3m": 26.04,
+      "perf_ttm": 64.85,
+      "vol_ttm": 20.7,
       "proxy": "XLK",
       "last_close": 177.88,
       "last_date": "2026-05-11"
     },
     "Communication Services": {
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
+      "perf_1m": 1.15,
+      "perf_3m": -0.16,
+      "perf_ttm": 18.6,
+      "vol_ttm": 13.3,
       "proxy": "XLC",
       "last_close": 115.58,
       "last_date": "2026-05-11"
@@ -90,10 +90,10 @@
       "last_date": "2026-05-11"
     },
     "Real Estate": {
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
+      "perf_1m": 4.31,
+      "perf_3m": 6.14,
+      "perf_ttm": 7.24,
+      "vol_ttm": 13.6,
       "proxy": "XLRE",
       "last_close": 44.57,
       "last_date": "2026-05-11"
