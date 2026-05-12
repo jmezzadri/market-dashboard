@@ -22,6 +22,7 @@ import { supabase } from "../lib/supabase";
 import useMassiveTickerInfo from "../hooks/useMassiveTickerInfo";
 import useStockRiskMetrics from "../hooks/useStockRiskMetrics";
 import useTickerDeepDive from "../hooks/useTickerDeepDive";
+import useTickerEodPrice from "../hooks/useTickerEodPrice";
 import { useEarningsHistory } from "../hooks/useEarningsHistory";
 import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 
@@ -1684,9 +1685,19 @@ async function removeFromWatchlist(){
   finally{setWlBusy(false);}
 }
 const heldIn=(accounts||[]).flatMap(a=>a.positions.filter(p=>p.ticker===ticker).map(p=>({acct:a,p}))).filter(Boolean);
-const price=Number(sc.close||sc.prev_close||0)||null;
-const prevClose=Number(sc.prev_close||0)||null;
-const dayPct=price&&prevClose?((price-prevClose)/prevClose)*100:null;
+// 2026-05-12 — LUNR bug fix. Price now sourced from prices_eod
+// (Polygon Massive EOD) via useTickerEodPrice. The old waterfall
+// (sc.close || sc.prev_close) pulled from the screener overlay,
+// which for tickers UW doesn't cover (84% of universe, LUNR
+// included) silently picked up the wrong prices_eod row through
+// the universe overlay ordered by ingested_at rather than
+// trade_date — producing a six-day-old close labeled as today.
+// useTickerEodPrice always picks the latest two trade_date rows.
+const eodPrice = useTickerEodPrice(ticker);
+const price = eodPrice.last_close;
+const prevClose = eodPrice.prev_close;
+const dayPct = eodPrice.day_pct;
+const priceTradeDate = eodPrice.trade_date; // YYYY-MM-DD for the chip
 // Phase 4a — backfill the company name from the Massive-sourced
 // Supabase tables for tickers outside UW's screener (~11,000 of ~12,500).
 // ticker_reference (Phase 3 backfill) preferred; universe_master (always
@@ -1984,7 +1995,13 @@ return(
         {dayPct>=0?"▲ +":"▼ "}{fmt$(Math.abs(price-prevClose))} · {dayPct>=0?"+":""}{dayPct.toFixed(2)}%
       </div>
     )}
-    {(scanData?.universe_snapshot_ts||scanData?.ticker_events_ts)&&<div style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><DataFreshness pricesTs={scanData.universe_snapshot_ts} eventsTs={scanData.ticker_events_ts} compact/></div>}
+    {/* 2026-05-12 chip rebind: price freshness anchors to the actual
+        trade_date of the displayed last_close, NOT to universe_snapshots'
+        last fetch (which has no relationship to the value next to it for
+        the 84% of tickers UW doesn't cover). Events stays bound to the
+        scanner artifact's ticker_events_ts since the per-ticker event
+        rows ARE refreshed by that pipeline. */}
+    {(priceTradeDate||scanData?.ticker_events_ts)&&<div style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><DataFreshness pricesTs={priceTradeDate?`${priceTradeDate}T16:00:00-04:00`:null} eventsTs={scanData?.ticker_events_ts} compact/></div>}
   </div>
 </div>
 
