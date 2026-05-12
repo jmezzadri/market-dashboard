@@ -91,32 +91,48 @@ function hoursPastDue(lastGoodAt, slaHours, calendar) {
   return past > 0 ? Math.round(past) : null;
 }
 
+// 2026-05-12 — Joe directive: tooltip copy answers the user's question
+// plainly. NO internal element IDs (e.g. "v10_allocation"), NO jargon
+// like "SLA" or "aggregate". The tooltip says one of three things:
+//
+//   - "Data is fresh — last updated <date>"
+//   - "Data is stale — last updated <date> (X days ago)"
+//   - "Data freshness unknown" (when the element isn't registered yet)
+//
+// The hook prefers dataAsOf (the actual trading day of the value); falls
+// back to lastGoodAt (last successful cron run) when dataAsOf isn't set.
 function buildTooltip(f) {
   if (f.loading) return "Checking data freshness…";
-  if (f.missing) return `Freshness status not yet tracked for "${f.elementId}".`;
-
+  // Prefer the actual data-as-of trading day; fall back to last successful
+  // pipeline run. Either way the user gets a real timestamp, not an
+  // internal element ID.
+  const asOf = f.dataAsOf || f.lastGoodAt;
+  if (f.missing && !asOf) {
+    // Genuinely untracked. Don't expose the internal element name.
+    return "Data freshness not yet tracked.";
+  }
   if (f.status === "green") {
-    return `Data feeds are operating within defined SLAs. Last refresh: ${formatLastRefresh(f.lastGoodAt)}`;
+    if (!asOf) return "Data is fresh.";
+    return `Data is fresh. Last updated ${formatLastRefresh(asOf)}.`;
   }
-
-  // RED — three sub-cases.
-  if (f.cause?.kind === "input") {
-    const inp = f.cause.element;
-    const past = hoursPastDue(inp.lastGoodAt, inp.slaHours, inp.calendar);
-    const pastStr = past != null ? ` (${past} hours past due)` : "";
-    return `Stale: this aggregate is red because of ${inp.label} — last refresh ${formatLastRefresh(inp.lastGoodAt)}${pastStr}.`;
+  // RED — the answer is "data is stale". Detail how stale + why if useful,
+  // but keep the lead simple. Strip aggregate/input internals from the
+  // user-facing line; we keep the dependency name only because it tells
+  // the user which underlying feed broke.
+  if (!asOf) {
+    return "Data is stale. No successful refresh on record yet.";
   }
-  if (f.cause?.kind === "self" || (!f.cause && f.lastError)) {
-    const errPart = f.lastError ? ` (last attempt errored: ${f.lastError})` : "";
-    return `Stale: ${f.label} hasn't refreshed since ${formatLastRefresh(f.lastGoodAt)}${errPart}.`;
+  const past = hoursPastDue(f.lastGoodAt || asOf, f.slaHours, f.calendar);
+  // Pretty-print the age in days when it's > 24h; hours otherwise.
+  const ageStr = past != null
+    ? (past >= 48
+        ? ` (${Math.round(past / 24)} days overdue)`
+        : ` (${past} hours overdue)`)
+    : "";
+  if (f.cause?.kind === "input" && f.cause.element?.label) {
+    return `Data is stale. Underlying ${f.cause.element.label} feed last updated ${formatLastRefresh(f.cause.element.lastGoodAt)}${ageStr}.`;
   }
-  if (!f.lastGoodAt) {
-    return `Stale: ${f.label} has no successful refresh on record.`;
-  }
-  // Atomic stale.
-  const past = hoursPastDue(f.lastGoodAt, f.slaHours, f.calendar);
-  const pastStr = past != null ? ` (${past} hours past due)` : "";
-  return `Stale: ${f.label} hasn't refreshed since ${formatLastRefresh(f.lastGoodAt)}${pastStr}.`;
+  return `Data is stale. Last updated ${formatLastRefresh(asOf)}${ageStr}.`;
 }
 
 // Default click action: jump to the methodology README's freshness section,
