@@ -4833,10 +4833,10 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
   }, [indHist, cycleV2]);
 
   const regimeShortDesc = {
-    'Risk On':    'No volatility triggers. Stay fully invested.',
-    'Neutral':    'One trigger crossed — possible head fake. Hold.',
-    'Cautionary': 'One or more triggers sustained. Trim risk.',
-    'Risk Off':   'Sustained at late-cycle. Defensive stance.',
+    'Risk On':    'No volatility triggers.',
+    'Neutral':    'One volatility trigger crossed.',
+    'Cautionary': 'One or more volatility triggers sustained.',
+    'Risk Off':   'Sustained · late-cycle positioning.',
   };
 
   return (
@@ -4853,10 +4853,31 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
         "A ", React.createElement("span", { style: tileNameStyle }, "Macro Overview"),
         " of the markets — three volatility triggers and one cycle position, distilled to one regime read."
       ),
-      React.createElement("div", { style: { marginTop: 12, marginBottom: 12 } },
-        React.createElement("div", { style: { fontSize: 10, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 500, marginBottom: 4 } }, "Current regime"),
-        React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontStyle: "italic", fontWeight: 400, fontSize: 40, lineHeight: 1.05, color: "var(--accent)", letterSpacing: "-0.005em" } }, data ? data.label : "Loading…"),
-        React.createElement("div", { style: { fontSize: 13.5, color: "var(--text)", marginTop: 6, lineHeight: 1.5 } }, data ? regimeShortDesc[data.label] : "")
+      React.createElement("div", { style: { marginTop: 14, marginBottom: 16 } },
+        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 } },
+          ["Risk On", "Neutral", "Cautionary", "Risk Off"].map(name => {
+            const isCurrent = data && data.label === name;
+            return React.createElement("span", {
+              key: name,
+              style: {
+                fontFamily: "Fraunces, Georgia, serif",
+                fontStyle: "italic",
+                fontWeight: isCurrent ? 500 : 400,
+                fontSize: 14,
+                textAlign: "center",
+                padding: "6px 4px",
+                borderRadius: 16,
+                background: isCurrent ? "rgba(0,113,227,0.10)" : "var(--surface-2)",
+                color: isCurrent ? "var(--accent)" : "var(--text-dim)",
+                border: isCurrent ? "1.5px solid var(--accent)" : "1px solid var(--border)",
+                letterSpacing: "-0.005em",
+              }
+            }, name);
+          })
+        ),
+        React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontStyle: "italic", fontSize: 14, color: "var(--text-dim)", lineHeight: 1.5 } },
+          data ? (data.label + " — " + regimeShortDesc[data.label]) : ""
+        )
       ),
       React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, paddingTop: 14, borderTop: "1px solid var(--border)" } },
         [
