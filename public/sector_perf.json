@@ -1,147 +1,147 @@
 {
-  "as_of": "2026-05-12T08:14:15+00:00",
-  "version": "v1",
+  "as_of": "2026-05-12T13:14:06+00:00",
+  "version": "v2",
   "method": {
-    "proxy": "Primary Select Sector SPDR ETF per GICS sector \u2014 Tech \u2192 XLK, Communication Services \u2192 XLC, Financials \u2192 XLF, Health Care \u2192 XLV, Consumer Discretionary \u2192 XLY, Industrials \u2192 XLI, Consumer Staples \u2192 XLP, Energy \u2192 XLE, Materials \u2192 XLB, Real Estate \u2192 XLRE, Utilities \u2192 XLU.",
-    "returns": "Price-only adjusted close, close-to-close. 1M = trailing 21 trading days, 3M = trailing 63, TTM = trailing 252.",
-    "volatility": "Annualized realized vol = stdev of daily log returns over the trailing 252 trading days \u00d7 sqrt(252). Standard realized-vol convention.",
-    "source": "Yahoo Finance daily adjusted close."
+    "proxy": "Primary Select Sector SPDR ETF per GICS sector.",
+    "returns": "Price-only close-to-close from Supabase public.prices_eod. 1M = trailing 21 trading days, 3M = trailing 63, TTM = trailing 252.",
+    "volatility": "Annualized realized vol = stdev of daily log returns over the trailing 252 trading days x sqrt(252).",
+    "source": "Supabase public.prices_eod (Massive/Polygon EOD feed + 2003+ yfinance bootstrap residing in the same table)."
   },
   "sectors": {
     "Information Technology": {
-      "proxy": "XLK",
       "perf_1m": null,
       "perf_3m": null,
       "perf_ttm": null,
       "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "proxy": "XLK",
+      "last_close": 177.88,
+      "last_date": "2026-05-11"
     },
     "Communication Services": {
-      "proxy": "XLC",
       "perf_1m": null,
       "perf_3m": null,
       "perf_ttm": null,
       "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "proxy": "XLC",
+      "last_close": 115.58,
+      "last_date": "2026-05-11"
     },
     "Financials": {
+      "perf_1m": 0.81,
+      "perf_3m": -5.12,
+      "perf_ttm": 2.65,
+      "vol_ttm": 14.5,
       "proxy": "XLF",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 51.18,
+      "last_date": "2026-05-11"
     },
     "Health Care": {
+      "perf_1m": -2.9,
+      "perf_3m": -8.5,
+      "perf_ttm": 6.63,
+      "vol_ttm": 15.4,
       "proxy": "XLV",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 143.04,
+      "last_date": "2026-05-11"
     },
     "Consumer Discretionary": {
+      "perf_1m": 5.74,
+      "perf_3m": 1.55,
+      "perf_ttm": 18.52,
+      "vol_ttm": 18.6,
       "proxy": "XLY",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
-    },
-    "Industrials": {
-      "proxy": "XLI",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 119.37,
+      "last_date": "2026-05-11"
     },
     "Consumer Staples": {
+      "perf_1m": 1.21,
+      "perf_3m": -4.64,
+      "perf_ttm": 2.45,
+      "vol_ttm": 12.7,
       "proxy": "XLP",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 83.37,
+      "last_date": "2026-05-11"
+    },
+    "Industrials": {
+      "perf_1m": 2.05,
+      "perf_3m": 0.77,
+      "perf_ttm": 28.71,
+      "vol_ttm": 15.5,
+      "proxy": "XLI",
+      "last_close": 175.04,
+      "last_date": "2026-05-11"
     },
     "Energy": {
+      "perf_1m": 0.4,
+      "perf_3m": 6.58,
+      "perf_ttm": 40.11,
+      "vol_ttm": 20.3,
       "proxy": "XLE",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 57.17,
+      "last_date": "2026-05-11"
     },
     "Materials": {
+      "perf_1m": 0.58,
+      "perf_3m": 0.15,
+      "perf_ttm": 23.93,
+      "vol_ttm": 16.5,
       "proxy": "XLB",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 52.26,
+      "last_date": "2026-05-11"
     },
     "Real Estate": {
-      "proxy": "XLRE",
       "perf_1m": null,
       "perf_3m": null,
       "perf_ttm": null,
       "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "proxy": "XLRE",
+      "last_close": 44.57,
+      "last_date": "2026-05-11"
     },
     "Utilities": {
+      "perf_1m": -3.88,
+      "perf_3m": 3.82,
+      "perf_ttm": 12.71,
+      "vol_ttm": 14.3,
       "proxy": "XLU",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 45.14,
+      "last_date": "2026-05-11"
     },
     "BIL": {
+      "perf_1m": -0.01,
+      "perf_3m": 0.04,
+      "perf_ttm": -0.02,
+      "vol_ttm": 1.1,
       "proxy": "BIL",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 91.48,
+      "last_date": "2026-05-11"
     },
     "TLT": {
+      "perf_1m": -1.08,
+      "perf_3m": -2.24,
+      "perf_ttm": -1.56,
+      "vol_ttm": 10.2,
       "proxy": "TLT",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 85.56,
+      "last_date": "2026-05-11"
     },
     "GLD": {
+      "perf_1m": -0.57,
+      "perf_3m": -6.93,
+      "perf_ttm": 42.68,
+      "vol_ttm": 27.2,
       "proxy": "GLD",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 434.65,
+      "last_date": "2026-05-11"
     },
     "LQD": {
+      "perf_1m": -0.25,
+      "perf_3m": -1.47,
+      "perf_ttm": 2.14,
+      "vol_ttm": 5.7,
       "proxy": "LQD",
-      "perf_1m": null,
-      "perf_3m": null,
-      "perf_ttm": null,
-      "vol_ttm": null,
-      "last_close": null,
-      "last_date": null
+      "last_close": 108.93,
+      "last_date": "2026-05-11"
     }
   }
 }

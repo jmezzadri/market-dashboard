@@ -49,6 +49,11 @@ TICKERS = [
     "IGV", "SOXX", "IBB", "XLF", "XLV", "XLI", "XLE", "XLY",
     "XLP", "XLU", "XLB", "IYR", "IYZ", "MGK",
     "BIL", "TLT", "GLD", "LQD",
+    # Added 2026-05-12 (bug #1186) — these GICS sector ETFs were missed in
+    # the original bootstrap and only have ~10 days of Massive history, so
+    # sector_perf.json can't compute 3M / TTM / Vol for them. Re-run this
+    # bootstrap once Yahoo's GHA rate-limit lifts to populate history.
+    "XLK", "XLC", "XLRE",
 ]
 
 # ──────────────────────────────────────────────────────────────────
