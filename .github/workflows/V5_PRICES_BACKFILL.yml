@@ -1,0 +1,44 @@
+name: V5_PRICES_BACKFILL
+
+# One-shot (or as-needed) backfill of yfinance daily closes into prices_eod
+# for v5-universe tickers that have fewer than 60 daily closes — needed
+# for the v5 technicals scorer to compute (it requires ~60+ days).
+#
+# Built 2026-05-12 after Joe flagged the per-ticker dossier showing a red
+# warning triangle on Technicals for TSM. Investigation: TSM only had 10
+# closes in prices_eod (Massive's universe missed it initially). About
+# 17% of the v5 universe (~570 names) is in the same boat. yfinance
+# unauth bulk pull fixes it in one ~10-minute run.
+#
+# Trigger: workflow_dispatch. Re-run anytime; idempotent on
+# (ticker, trade_date) PK.
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: v5-prices-backfill
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install yfinance + pandas
+        run: pip install --upgrade pip yfinance pandas
+
+      - name: Run v5 prices backfill
+        env:
+          SUPABASE_URL:              ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN:     ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PYTHONUNBUFFERED:          "1"
+        run: |
+          python3 scripts/backfill_v5_prices.py
