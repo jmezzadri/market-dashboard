@@ -4864,13 +4864,27 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
           { name: "Bond Vol", d: data ? data.move : null },
           { name: "Funding", d: data ? data.cpff : null },
           { name: "Cycle", d: data ? { pctile: data.cycle } : null },
-        ].map(({ name, d }) =>
-          React.createElement("div", { key: name, style: { textAlign: "center" } },
-            React.createElement("div", { style: { fontSize: 9.5, letterSpacing: ".10em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 500, marginBottom: 4 } }, name),
-            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontSize: 22, lineHeight: 1, color: "var(--text)", fontVariantNumeric: "tabular-nums" } }, d && d.pctile != null ? d.pctile : "—"),
-            React.createElement("div", { style: { fontSize: 9, color: "var(--text-dim)", marginTop: 2 } }, "/ 100")
-          )
-        )
+        ].map(({ name, d }) => {
+          const pctile = d && d.pctile != null ? d.pctile : null;
+          const angle = pctile == null ? null : 180 - (pctile * 1.8);
+          const rad = angle == null ? null : (angle * Math.PI) / 180;
+          const tipX = rad == null ? "50" : (50 + 38 * Math.cos(rad)).toFixed(1);
+          const tipY = rad == null ? "50" : (50 - 38 * Math.sin(rad)).toFixed(1);
+          return React.createElement("div", { key: name, style: { textAlign: "center" } },
+            React.createElement("div", { style: { fontSize: 9.5, letterSpacing: ".10em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 500, marginBottom: 8 } }, name),
+            React.createElement("svg", { viewBox: "0 0 100 55", style: { width: "100%", maxWidth: 100, height: "auto", display: "block", margin: "0 auto 4px" } },
+              React.createElement("path", { d: "M 10 50 A 40 40 0 0 1 21.7 21.7", fill: "none", stroke: "rgba(0,113,227,0.18)", strokeWidth: 7 }),
+              React.createElement("path", { d: "M 21.7 21.7 A 40 40 0 0 1 50 10", fill: "none", stroke: "rgba(0,113,227,0.42)", strokeWidth: 7 }),
+              React.createElement("path", { d: "M 50 10 A 40 40 0 0 1 78.3 21.7", fill: "none", stroke: "rgba(0,113,227,0.68)", strokeWidth: 7 }),
+              React.createElement("path", { d: "M 78.3 21.7 A 40 40 0 0 1 90 50", fill: "none", stroke: "rgba(0,113,227,0.92)", strokeWidth: 7 }),
+              pctile != null && React.createElement("line", { x1: 50, y1: 50, x2: tipX, y2: tipY, stroke: "var(--accent)", strokeWidth: 1.8, strokeLinecap: "round" }),
+              pctile != null && React.createElement("circle", { cx: tipX, cy: tipY, r: 2.5, fill: "var(--accent)", stroke: "#fff", strokeWidth: 1 }),
+              pctile != null && React.createElement("circle", { cx: 50, cy: 50, r: 2.5, fill: "var(--accent)" })
+            ),
+            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontSize: 20, lineHeight: 1, color: "var(--text)", fontVariantNumeric: "tabular-nums", marginTop: 2 } }, pctile != null ? pctile : "—"),
+            React.createElement("div", { style: { fontSize: 9, color: "var(--text-dim)", marginTop: 1 } }, "/ 100")
+          );
+        })
       )
     )
   );
