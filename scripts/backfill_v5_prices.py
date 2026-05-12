@@ -59,7 +59,7 @@ def mgmt_query(sql):
     req = Request(
         f"https://api.supabase.com/v1/projects/{SUPABASE_URL.replace('https://','').split('.')[0]}/database/query",
         data=json.dumps({"query": sql}).encode(),
-        headers={"Authorization": f"Bearer {SA_TOKEN}", "Content-Type": "application/json"},
+        headers={"Authorization": f"Bearer {SA_TOKEN}", "Content-Type": "application/json", "User-Agent": "macrotilt-backfill/1.0"},
         method="POST")
     return json.loads(urlopen(req).read().decode())
 
