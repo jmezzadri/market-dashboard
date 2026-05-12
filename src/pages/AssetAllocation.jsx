@@ -1055,7 +1055,7 @@ export function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
             <span style={{
               fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600,
               color: ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 2 ? "var(--accent)"
-                     : ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 0.5 ? "rgba(14,85,96,0.65)"
+                     : ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 0.5 ? "rgba(0,113,227,0.65)"
                      : "var(--text-muted)",
             }}>{ig.vs_spy_pp != null ? `${ig.vs_spy_pp > 0 ? "+" : ""}${ig.vs_spy_pp}%` : "—"}</span>
           </button>
@@ -1124,9 +1124,9 @@ function HeatmapTile({ contributionMatrix, mechanismScores }) {
     // Joe directive 2026-05-07 — heatmap = shades of teal by magnitude.
     // Direction (tailwind / headwind) read from the +/- sign in the number.
     const a = Math.abs(v);
-    if (a > 0.7) return { bg: "rgba(14,85,96,0.55)", color: "#fff" };
-    if (a > 0.3) return { bg: "rgba(14,85,96,0.30)", color: "var(--text)" };
-    if (a > 0)   return { bg: "rgba(14,85,96,0.15)", color: "var(--text)" };
+    if (a > 0.7) return { bg: "rgba(0,113,227,0.55)", color: "#fff" };
+    if (a > 0.3) return { bg: "rgba(0,113,227,0.30)", color: "var(--text)" };
+    if (a > 0)   return { bg: "rgba(0,113,227,0.15)", color: "var(--text)" };
     return { bg: "transparent", color: "var(--text-muted)" };
   };
   return (

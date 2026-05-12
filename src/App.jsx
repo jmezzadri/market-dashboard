@@ -5570,9 +5570,9 @@ return(
     // Band → teal opacity. 0-25 risk-on (faintest), 25-50 neutral, 50-75
     // caution, 75-100 risk-off (full teal).
     const band = s < 25 ? "Risk-on" : s < 50 ? "Neutral" : s < 75 ? "Caution" : "Risk-off";
-    const stroke = s < 25 ? "rgba(14,85,96,.18)"
-                 : s < 50 ? "rgba(14,85,96,.32)"
-                 : s < 75 ? "rgba(14,85,96,.55)"
+    const stroke = s < 25 ? "rgba(0,113,227,.18)"
+                 : s < 50 ? "rgba(0,113,227,.32)"
+                 : s < 75 ? "rgba(0,113,227,.55)"
                  :          "var(--accent)";
     const dash = s * 1.32;
     const angle = Math.PI - (s * 1.8 * Math.PI / 180);
@@ -5582,7 +5582,7 @@ return(
       <>
         <div style={stEyebrowStyle}>{num} · {name}</div>
         <svg viewBox="0 0 100 60" width="92" height="56">
-          <path d="M 8 52 A 42 42 0 0 1 92 52" fill="none" stroke="rgba(14,85,96,.10)" strokeWidth="9"/>
+          <path d="M 8 52 A 42 42 0 0 1 92 52" fill="none" stroke="rgba(0,113,227,.10)" strokeWidth="9"/>
           <path d="M 8 52 A 42 42 0 0 1 92 52" fill="none" stroke={stroke} strokeWidth="9" strokeDasharray={`${dash},200`}/>
           <line x1="50" y1="52" x2={nx} y2={ny} stroke="currentColor" strokeWidth="1.4"/>
           <circle cx="50" cy="52" r="2.5" fill="currentColor"/>
@@ -5606,15 +5606,15 @@ return(
     const fill = vs == null ? 0 : Math.min(50, Math.abs(vs) / 10 * 50);
     const side = (vs ?? 0) >= 0 ? "left" : "right";
     const radius = side === "left" ? "0 3px 3px 0" : "3px 0 0 3px";
-    const tealMag = vs == null ? "rgba(14,85,96,.22)"
+    const tealMag = vs == null ? "rgba(0,113,227,.22)"
                   : Math.abs(vs) >= 3 ? "var(--accent)"
-                  : Math.abs(vs) >= 1 ? "rgba(14,85,96,.55)"
-                  :                     "rgba(14,85,96,.32)";
+                  : Math.abs(vs) >= 1 ? "rgba(0,113,227,.55)"
+                  :                     "rgba(0,113,227,.32)";
     const sign = (vs ?? 0) >= 0 ? "+" : "−";
     return (<>
       <div style={{fontFamily:"var(--font-ui)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase", marginBottom:4, fontWeight:600, textAlign:"left", width:"100%"}}>{sectorName}</div>
       <div style={{...stValueStyle("var(--text)"), fontSize:22, textAlign:"left", width:"100%"}}>{w.toFixed(1)}%</div>
-      <div style={{position:"relative", width:"100%", height:14, background:"rgba(14,85,96,.10)", borderRadius:3, margin:"10px 0 4px"}}>
+      <div style={{position:"relative", width:"100%", height:14, background:"rgba(0,113,227,.10)", borderRadius:3, margin:"10px 0 4px"}}>
         <div style={{position:"absolute", left:"50%", top:0, bottom:0, width:1, background:"var(--border)"}} />
         <div style={{position:"absolute", [side]:"50%", top:0, bottom:0, width:`${fill}%`, background:tealMag, borderRadius:radius}} />
       </div>
@@ -5651,8 +5651,8 @@ return(
     const CIRC = 2 * Math.PI * R;
     const segs = [
       ["Equities", buckets.Equities, "var(--accent)"],
-      ["Bonds",    buckets.Bonds,    "rgba(14,85,96,.70)"],
-      ["Other",    buckets.Other,    "rgba(14,85,96,.45)"],
+      ["Bonds",    buckets.Bonds,    "rgba(0,113,227,.70)"],
+      ["Other",    buckets.Other,    "rgba(0,113,227,.45)"],
       ["Cash",     buckets.Cash,     "var(--text-dim)"],
     ];
     let offset = 0;
@@ -5676,7 +5676,7 @@ return(
           ))}
         </div>
         <svg viewBox="0 0 80 80" width="92" height="92">
-          <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(14,85,96,.10)" strokeWidth={SW}/>
+          <circle cx="40" cy="40" r={R} fill="none" stroke="rgba(0,113,227,.10)" strokeWidth={SW}/>
           {segs.map(([name, pct, color]) => {
             if (!pct) return null;
             const dash = (pct/100) * CIRC;
@@ -5973,8 +5973,8 @@ return(
               .slice(0, 6);
             while (ranked.length < 6) ranked.push({_empty:true});
             const fillFor = (sc) => sc >= 75 ? "var(--accent)"
-                                    : sc >= 55 ? "rgba(14,85,96,.55)"
-                                    :            "rgba(14,85,96,.32)";
+                                    : sc >= 55 ? "rgba(0,113,227,.55)"
+                                    :            "rgba(0,113,227,.32)";
             return (
               <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-2)"}}>
                 {ranked.map((r, i) => {
@@ -6577,10 +6577,10 @@ An equity scanner that combines technical momentum, insider Form-4s, unusual opt
 <aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 14px",display:"flex",flexDirection:"column",alignItems:"center",textAlign:"center"}}>
 <div style={{fontFamily:"var(--font-ui)",fontSize:10,fontWeight:600,color:"var(--text-muted)",textTransform:"uppercase",letterSpacing:"0.18em",marginBottom:4}}>Today&apos;s scan</div>
 <svg viewBox="0 0 380 230" style={{display:"block",maxWidth:280,width:"100%",margin:"0 auto"}}>
-<path d={_wedge(180, 135)} fill="rgba(14,85,96,0.18)"/>
-<path d={_wedge(135, 90)} fill="rgba(14,85,96,0.42)"/>
-<path d={_wedge(90, 45)} fill="rgba(14,85,96,0.68)"/>
-<path d={_wedge(45, 0)} fill="rgba(14,85,96,0.92)"/>
+<path d={_wedge(180, 135)} fill="rgba(0,113,227,0.18)"/>
+<path d={_wedge(135, 90)} fill="rgba(0,113,227,0.42)"/>
+<path d={_wedge(90, 45)} fill="rgba(0,113,227,0.68)"/>
+<path d={_wedge(45, 0)} fill="rgba(0,113,227,0.92)"/>
 <g className="to-pointer" style={{transformOrigin:"190px 180px",animation:"toPointerSweep 1200ms cubic-bezier(0.22, 1, 0.36, 1) forwards"}}>
 <line x1="190" y1="180" x2={_tipX.toFixed(2)} y2={_tipY.toFixed(2)} stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/>
 <circle cx="190" cy="180" r="6" fill="currentColor"/>
