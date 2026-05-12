@@ -1,0 +1,310 @@
+# Normalized pipeline schedule for MacroTilt.
+# All times in ET. UTC conversion handled by individual workflow files.
+# Last updated: 2026-05-12. Owner: Data Steward.
+#
+# Schedule slots per Data Steward project rule:
+#   - Daily slow data:        06:00 ET (weekdays)
+#   - Daily EOD market data:  16:30 ET (weekdays)
+#   - Weekly:                 Saturday 06:00 ET
+#   - Monthly:                1st of month, 06:00 ET
+#   - Quarterly:              First business day after quarter close, 06:00 ET
+#
+# Workflows that don't fit a normalized slot live in `bespoke:` with a
+# written-down reason and a 30-day review date.
+#
+# Mapping source: DATA_LINEAGE_2026-05-12.md (39 workflows + 1 Vercel cron).
+# Each pipeline line references a manifest element id (see data_manifest.json).
+
+slots:
+
+  daily_slow_06_et:
+    description: |
+      Slow / morning data — pre-market ingest of feeds that publish overnight
+      or on a fixed morning schedule. Targets a 06:00 ET window so that any
+      consumer rendered at the 07:00 ET Daily Home Smoke run has fresh inputs.
+    pipelines:
+      - SPY_SECTOR_WEIGHTS_DAILY.yml: market.spy-sector-weights
+      - V11-CYCLE-MECHANISM_DAILY.yml: indicator.methodology-calibration-v11
+      - INDICATOR-REFRESH_7AM_WEEKDAYS.yml: indicator.indicator-history-fred-yahoo
+      - ANALYST_INGEST_DAILY.yml: scanner.analyst-ratings-uw
+      - CONGRESS_INGEST_DAILY.yml: scanner.congress-trades-uw
+      - OPTIONS_FLOW_INGEST_DAILY.yml: scanner.options-flow-uw
+      - SHORT_INTEREST_INGEST_DAILY.yml: scanner.short-interest-finra-uw
+      - DAILY-HOME-SMOKE.yml: infra.daily-home-smoke
+
+  daily_eod_1630_et:
+    description: |
+      End-of-day market close window. Targets 16:30 ET (just after the
+      US equity close at 16:00 ET) so option marks and intraday refreshes
+      land before the evening compute slot at 18:00-19:00 ET.
+    pipelines:
+      - vercel-cron /api/options-mark-batch: portfolio.option-mark-uw
+
+  weekly_saturday_am:
+    description: |
+      Saturday 06:00-08:00 ET window for weekly batch compute.
+      Catches up on data that doesn't need daily refresh (long-horizon
+      history backfills, weekly back-tests, cookie-health canaries).
+    pipelines:
+      - V9-ALLOCATION-WEEKLY.yml: scenario.v9-allocation-legacy
+      - SCENARIO-PRECOMPUTE-WEEKLY.yml: scenario.allocations-precompute
+      - CYCLE-V2-HISTORY-WEEKLY.yml: indicator.cycle-v2-history
+      - NEWS-ZH_PREMIUM_COOKIE_HEALTH-WEEKLY.yml: commentary.zerohedge-premium
+
+  monthly_1st:
+    description: |
+      First-of-month, 06:00 ET. Used for low-cadence reference data
+      that updates monthly or less.
+    pipelines:
+      - REFRESH-CONGRESS-ROSTER.yml: scanner.congress-roster
+
+  quarterly_first_biz_day:
+    description: |
+      Quarterly calibration window — 15th of Jan / Apr / Jul / Oct at
+      08:00 ET. Tied to Federal Reserve CCAR public-release cadence,
+      not a generic first-biz-day-of-quarter slot, so it lives at the
+      15th rather than the 1st of the quarter month.
+    pipelines:
+      - PHASE1-CALIBRATION.yml: scenario.ccar-calibration
+
+# Pipelines deliberately NOT on a normalized slot, with reason.
+# Per Data Steward rule, every bespoke schedule needs a written justification
+# and a review date 30 days out — if the reason no longer holds at review,
+# move the workflow to a normalized slot.
+
+bespoke:
+
+  - MASSIVE-DAILY.yml:
+      schedule: "18:00 ET + 20:00 ET + 23:00 ET weekdays"
+      manifest_element: market.prices-eod-massive
+      reason: |
+        Three fire windows on weekdays. Polygon's EOD aggregates settle
+        ~17:30 ET; the 18:00 ET primary captures fresh data, 20:00 + 23:00
+        are backups for the May 4-6 2026 incident where GitHub dropped
+        scheduled crons. Cannot run at 16:30 ET (data not yet settled)
+        and cannot share the evening compute slot at 18:30/18:45 ET
+        because every downstream allocator (v10, v11) consumes prices_eod.
+      review_at: 2026-06-12
+
+  - MASSIVE-TICKER-REFERENCE-BACKFILL.yml:
+      schedule: "Every 4 hours (00:30 / 04:30 / 08:30 / 12:30 / 16:30 / 20:30 ET)"
+      manifest_element: market.ticker-reference-massive
+      reason: |
+        Rolling refresh of ticker metadata (SIC codes, names, exchange).
+        New listings + delistings + corporate actions can land any
+        weekday; 4-hour cadence catches them within the same trading
+        session without overwhelming the Polygon API.
+      review_at: 2026-06-12
+
+  - UNIVERSE_SNAPSHOT_3X_WEEKDAYS.yml:
+      schedule: "10:00 / 13:00 / 15:45 ET weekdays"
+      manifest_element: scanner.universe-snapshot-uw
+      reason: |
+        IV Rank + market cap snapshots from UW are intraday data —
+        running them only once a day misses meaningful moves. The 15:45
+        ET fire is timed for just-before-close so the v5 scanner at
+        15:30/17:00 ET has the freshest IV Rank inputs.
+      review_at: 2026-06-12
+
+  - TICKER_EVENTS_3X_WEEKDAYS.yml:
+      schedule: "10:05 / 13:05 / 15:50 ET weekdays"
+      manifest_element: scanner.ticker-events-uw
+      reason: |
+        Mirrors UNIVERSE_SNAPSHOT_3X_WEEKDAYS so the Ticker Detail
+        modal has same-snapshot news / insider / congress / darkpool
+        feeds as the scanner row that opens it. Cannot share daily-slow
+        06:00 ET because intraday events would be 7+ hours stale by the
+        time a user opens the modal mid-day.
+      review_at: 2026-06-12
+
+  - SCAN_345PM_WEEKDAYS.yml:
+      schedule: "15:30 ET + 17:30 ET + 21:30 ET weekdays"
+      manifest_element: scanner.legacy-user-scan-data (legacy daily scan); see also scanner.v5-scan-composite
+      reason: |
+        The 15:30 ET fire targets the close-of-trade scan; backups at
+        17:30 and 21:30 handle dropped-cron events. May 4-6 2026
+        incident (cron dropped 3-4h late) is why three windows exist
+        instead of one. Lineage doc also references V5_SCAN_DAILY.yml at
+        17:00 ET — that file is not in the current worktree; reconcile
+        next review whether v5 scan is on this workflow or a separate one.
+      review_at: 2026-06-12
+
+  - INSIDER_INGEST_NIGHTLY.yml:
+      schedule: "18:00 ET + 20:00 ET + 23:00 ET weekdays"
+      manifest_element: scanner.insider-history-uw
+      reason: |
+        Mirrors MASSIVE-DAILY's three-window pattern for the same
+        dropped-cron-resilience reason. Insider feed publishes after
+        market close so 06:00 ET is too late; 18:00 ET is the earliest
+        the prior-day data is fully settled.
+      review_at: 2026-06-12
+
+  - cycle-mechanisms-daily.yml:
+      schedule: "18:30 ET weekdays"
+      manifest_element: indicator.cycle-board-snapshot
+      reason: |
+        Evening compute slot. Depends on prices_eod from MASSIVE-DAILY
+        (18:00 ET) so cannot run earlier. Cannot share daily-slow
+        06:00 ET because intraday Polygon data isn't ready yet.
+      review_at: 2026-06-12
+
+  - CYCLE-V2-DAILY.yml:
+      schedule: "18:30 ET weekdays"
+      manifest_element: indicator.cycle-v2-headline-cycle-value (+ market-stress / real-economy / regime-label)
+      reason: |
+        Runs in parallel with cycle-mechanisms-daily.yml at the same
+        18:30 ET slot. Per DATA_LINEAGE gap #4 — two parallel cycle
+        producers (v11 mechanisms vs v2 headlines) consume the same
+        FRED + Yahoo inputs. Consolidation candidate; until v11 is
+        confirmed to replace v2 (or vice versa), both stay.
+      review_at: 2026-06-12
+
+  - sector-perf-daily.yml:
+      schedule: "18:50 ET weekdays"
+      manifest_element: market.sector-perf
+      reason: |
+        Depends on MASSIVE-DAILY (18:00) for prices_eod. Runs in the
+        evening compute slot. Note: consumer code path not yet shipped
+        per lineage gap #2 — producer is live but Asset Tilt doesn't
+        render these columns. Candidate for pause until consumer ships.
+      review_at: 2026-06-12
+
+  - v10-allocation-daily.yml:
+      schedule: "18:45 ET weekdays"
+      manifest_element: scenario.v10-allocation
+      reason: |
+        Depends on cycle-mechanisms-daily (18:30) + CYCLE-V2-DAILY (18:30)
+        + MASSIVE-DAILY (18:00). Runs 15 minutes after upstream cycle
+        compute completes. Sole producer for Asset Tilt page.
+      review_at: 2026-06-12
+
+  - V10-ASSET-ALLOCATION.yml:
+      schedule: "Fri 17:30 ET + Mon-Thu 07:30 ET"
+      manifest_element: scenario.v10-allocation
+      reason: |
+        Weekly Friday refit (17:30 ET) of the v10 allocator parameters
+        + a regime-watch sanity check Mon-Thu morning. Separate from
+        v10-allocation-daily.yml (which is the daily evening rerun).
+        Two-workflow split kept because the weekly refit reads more
+        history and takes longer; the daily run reuses the refit output.
+      review_at: 2026-06-12
+
+  - INDICATOR-DRILLS-DAILY.yml:
+      schedule: "19:00 ET weekdays"
+      manifest_element: indicator.indicator-drills
+      reason: |
+        Depends on INDICATOR-REFRESH_7AM_WEEKDAYS's 18:00 ET secondary
+        fire + cycle-mechanisms-daily (18:30) for percentile context.
+        19:00 ET is the latest practical slot before the daily compute
+        chain wraps.
+      review_at: 2026-06-12
+
+  - scenario-stress-daily.yml:
+      schedule: "19:00 ET weekdays"
+      manifest_element: scenario.stress-daily
+      reason: |
+        Depends on cycle-mechanisms-daily (18:30) + CYCLE-V2-DAILY (18:30)
+        for the mechanism scores it stresses. 19:00 ET is the earliest
+        all upstream inputs are guaranteed ready.
+      review_at: 2026-06-12
+
+  - REFRESH-ISM-MONTHLY.yml:
+      schedule: "5th of month + Mondays weeks 1-2, 10:00 ET"
+      manifest_element: indicator.ism-mfg + indicator.ism-svc
+      reason: |
+        ISM publishes the Manufacturing PMI on the first business day
+        and the Services PMI on the third business day of each month.
+        We scrape from investing.com which lags 1-3 hours; the 5th + the
+        first two Mondays of the month cover both releases and catch
+        delayed posts. Cannot use the generic monthly_1st slot because
+        the data isn't published until day 1-3 of the month.
+      review_at: 2026-06-12
+
+  - PIPELINE-FRESHNESS-WATCHDOG.yml:
+      schedule: "Every 10 min, 10:00-23:50 ET weekdays + 00:00-03:00 ET Tue-Sat"
+      manifest_element: infra.pipeline-freshness-watchdog
+      reason: |
+        Health monitor — runs at high frequency so freshness chips on
+        the site stay accurate to within 10 minutes. Cannot share any
+        normalized slot; this is the slot.
+      review_at: 2026-06-12
+
+  - EARNINGS_HISTORY_WEEKLY.yml:
+      schedule: "Sunday 07:00 ET"
+      manifest_element: scanner.earnings-history-uw
+      reason: |
+        Earnings season pre-market refresh — Sunday lands the new week's
+        earnings calendar before Monday open. Saturday is reserved for
+        the weekly compute slot (V9 / scenario precompute / cycle v2
+        history); Sunday is the next-best fixed window.
+      review_at: 2026-06-12
+
+  - WORKFLOW_FAILURE_ALERT.yml:
+      schedule: "on workflow_run (event-triggered, not cron)"
+      manifest_element: infra.workflow-failure-alert
+      reason: |
+        Event-driven — fires whenever any scheduled workflow fails.
+        No cron at all.
+      review_at: 2026-06-12
+
+  - PR-CONTRACT-CHECK.yml:
+      schedule: "on pull_request (event-triggered)"
+      manifest_element: infra.pr-contract-check
+      reason: |
+        PR-only check; runs on every PR open / push. No cron.
+      review_at: 2026-06-12
+
+  - V2-CUTOVER-QUALITY-GATE.yml:
+      schedule: "on pull_request (event-triggered)"
+      manifest_element: infra.v2-cutover-quality-gate
+      reason: |
+        PR-only check; runs on every PR open / push. No cron.
+      review_at: 2026-06-12
+
+  - HORSE-RACE.yml:
+      schedule: "manual (workflow_dispatch only)"
+      manifest_element: infra.horse-race-backtest
+      reason: |
+        Manual back-test trigger. No cron, no schedule — runs on demand
+        when Senior Quant kicks it off.
+      review_at: 2026-06-12
+
+  - MASSIVE-INITIAL-BACKFILL.yml:
+      schedule: "manual (workflow_dispatch only)"
+      manifest_element: infra.massive-initial-backfill
+      reason: |
+        One-shot — ran 2026-04-28 to seed prices_eod / universe_master /
+        dividends / splits. Re-run only on cold-start of a new table.
+      review_at: 2026-06-12
+
+  - MASSIVE-V9-ETF-BACKFILL.yml:
+      schedule: "manual (workflow_dispatch only)"
+      manifest_element: infra.massive-v9-etf-backfill
+      reason: |
+        One-shot — already shipped. Re-run only on cold-start.
+      review_at: 2026-06-12
+
+  - V9-YFINANCE-BOOTSTRAP.yml:
+      schedule: "manual (workflow_dispatch only)"
+      manifest_element: infra.yfinance-bootstrap
+      reason: |
+        One-shot — filled the pre-2024 ETF history gap before Polygon
+        Basic's 2-year cap became binding. Already shipped.
+      review_at: 2026-06-12
+
+  - V9-ALLOCATION-BACKFILL.yml:
+      schedule: "manual (workflow_dispatch only)"
+      manifest_element: infra.v9-allocation-backfill
+      reason: |
+        One-shot — 52-week backfill of v9 allocations for the legacy
+        allocation_history.json chart. Already shipped.
+      review_at: 2026-06-12
+
+# Open follow-ups (not pipelines, but track here so they don't get lost):
+#   - portfolio.nav-chart: producer + schedule unverified. Likely a
+#     Vercel cron at /api/portfolio-history-snapshot but not visible in
+#     current vercel.json. Confirm before next review.
+#   - ANALYST_INGEST_DAILY / CONGRESS_INGEST_DAILY / OPTIONS_FLOW_INGEST_DAILY
+#     / SHORT_INTEREST_INGEST_DAILY: referenced in DATA_LINEAGE but not
+#     present in the current worktree's .github/workflows/ — may be folded
+#     into V5_SCAN_DAILY or another orchestrator. Reconcile next review.
