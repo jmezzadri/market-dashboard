@@ -38,7 +38,7 @@ const COL_DEFAULT_WIDTHS = {
   range_52w: 140, iv_rank: 80, rsi_14: 80, bb_bw: 100, rvol_20d: 90,
   pct_50ma: 90, pct_200ma: 90, ins_buys: 90, "ins_buy_$": 100,
 };
-const COL_MIN_WIDTH = 50;
+const COL_MIN_WIDTH = 30;
 const COL_MAX_WIDTH = 600;
 function widthFor(key, overrides) {
   const o = overrides && overrides[key];
@@ -1484,6 +1484,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                             padding: "11px 10px",
                             textAlign: c.numeric ? "right" : "left",
                             borderBottom: "1px solid var(--border)",
+                            borderRight: "1px solid var(--border-faint, var(--border))",
                             boxShadow: "0 1px 0 var(--border)",
                             cursor: "pointer",
                             whiteSpace: "nowrap",
@@ -1541,6 +1542,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                           <td key={k} style={{
                             padding: "11px 10px",
                             borderBottom: "1px solid var(--border-faint, var(--border))",
+                            borderRight: "1px solid var(--border-faint, var(--border))",
                             color: "var(--text-2)",
                             whiteSpace: "nowrap",
                             textAlign: c?.numeric ? "right" : "left",
@@ -1569,6 +1571,9 @@ export default function TradingOppsPage({ onOpenTicker }) {
       <style>{`
         th.mt-drag-over { background: var(--accent-soft, var(--surface-2)) !important; }
         th.mt-drag-source { opacity: 0.4; }
+        /* Drop the right border on the last column so the table's outer edge stays clean */
+        table thead tr th:last-child,
+        table tbody tr td:last-child { border-right: none !important; }
         @keyframes mt-band-pulse-anim {
           0%, 100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
           50%      { box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.04); }
