@@ -22,6 +22,16 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-12 — Code-speak to Joe is a hard ban, not a soft suggestion
+
+**What happened:** In a single session I described work to Joe using file names ("App.jsx," "HomePage.jsx"), code structures ("the iframe routing," "V2 gate"), version labels ("v2," "PR B"), and developer infrastructure terms ("bundle hash," "tree-shake," "merge"). Joe had to stop me multiple times in the same session to say "speak in English." Existing rules from 2026-04-28, 2026-05-02, 2026-05-04, 2026-05-08, and 2026-05-11 all already cover this — yet I kept regressing because I default to code-speak whenever describing a technical change.
+
+**What you should do instead:** Before sending any message to Joe, scan the draft for the following token classes and replace each with plain English describing what the USER SEES or what changes in the product: file paths and names, function names, framework names, build tools, version flags, feature flags, PR or commit IDs used as nouns, route patterns, query-parameter syntax, any developer-only term. If a sentence can't be written without one of those tokens, the sentence isn't ready — start over from "when you visit X you will see Y" and write the explanation from the user's vantage point only. The test: read the draft aloud as if to a friend who has never opened a developer tool. Any token they'd have to ask about disqualifies the sentence.
+
+**Applies to:** All. Hard rule. No exceptions for "technical" topics — every technical topic can be described in product-level English; if it can't, the topic isn't ready to send to Joe.
+
+---
+
 ## 2026-05-11 — Verify interaction paths, not just initial render
 
 **What happened:** PR #581 self-UAT confirmed the 4 scanner tiles rendered
