@@ -46,8 +46,12 @@ function defaultOpsFor(col) {
   return ["contains", "is", "is not"];
 }
 
-function rowMatchesFilter(row, f) {
-  const v = row[f.key];
+function rowMatchesFilter(row, f, col) {
+  // Read the cell value via the column's sortValue when it exists — that's
+  // how columns whose data is nested (e.g. r._v5?.band on Watchlist) make
+  // their cell value addressable. Falls back to row[f.key] for columns
+  // without a sortValue (the value just sits at the top level).
+  const v = col && typeof col.sortValue === "function" ? col.sortValue(row) : row[f.key];
   const value = f.value;
   // Multi-select categorical: f.value is an array of allowed values.
   // Empty array = no constraint (everything matches). Otherwise the row
@@ -184,7 +188,7 @@ export default function MTTable({
 
     // column filters
     if (isFull && colFilters.length > 0) {
-      r = r.filter(x => colFilters.every(f => rowMatchesFilter(x, f)));
+      r = r.filter(x => colFilters.every(f => rowMatchesFilter(x, f, colByKey[f.key])));
     }
 
     // sort
@@ -357,8 +361,14 @@ export default function MTTable({
                 const selectedCol = colByKey[draftFilter.key] || columns[0];
                 const isCategorical = !!selectedCol?.categorical;
                 // Distinct values from the source rows for multi-select pick.
+                // Pull via the column's sortValue so nested cells (e.g.
+                // r._v5?.band on Watchlist) are addressable; fall back to
+                // r[key] for top-level fields.
+                const readVal = (r) => selectedCol && typeof selectedCol.sortValue === "function"
+                  ? selectedCol.sortValue(r)
+                  : r[draftFilter.key];
                 const distinct = isCategorical
-                  ? Array.from(new Set(rows.map(r => r[draftFilter.key]).filter(x => x != null && String(x).trim() !== "")))
+                  ? Array.from(new Set(rows.map(readVal).filter(x => x != null && String(x).trim() !== "")))
                       .sort((a, b) => String(a).localeCompare(String(b)))
                   : [];
                 const selectedSet = new Set(Array.isArray(draftFilter.value) ? draftFilter.value : []);
