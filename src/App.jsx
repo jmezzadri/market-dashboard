@@ -4891,7 +4891,7 @@ const {isAdmin, loading:adminLoading}=useIsAdmin();
 // 2026-05-12 so the Home page Equity Scanner tile reads from the same
 // engine as the Trading Opps page (was rebucketBuy/rebucketNear which
 // is the legacy OVR / latest_scan_data.json pipeline).
-const {rows: v5TopRows, scanDate: v5ScanDate, loading: v5TopLoading} = useV5TopScans(6);
+const {rows: v5TopRows, bandCounts: v5BandCounts, scanDate: v5ScanDate, loading: v5TopLoading} = useV5TopScans(6);
 // Legacy redirect: "#portfolio" (old Holdings Detail tab) now lives inside
 // Portfolio & Insights. Any bookmark pointing at #portfolio resolves to
 // #portopps. Bug #1071 — alias four "natural" deep-link hashes that the
@@ -6043,6 +6043,46 @@ return(
             <FreshnessDot indicatorId="signal_intel_v5_daily" asOfIso={v5ScanDate || null} style={{marginLeft:"auto"}}/>
           </div>
           <p style={tileExplainStyle}>An <span style={tileNameStyle}>Equity Scanner</span> that analyzes hundreds of data points to identify specific trading opportunities.</p>
+
+          {/* Band-count summary strip — 4 small tiles showing the count of
+              names in each non-neutral band for today's scan. Added
+              2026-05-12 (Joe directive). Strong Buy/Sell get colored
+              numbers; the two Watch bands stay neutral. Hidden Neutral
+              count keeps the strip to the 4 most actionable buckets. */}
+          {(() => {
+            const counts = v5BandCounts || {strong_buy:0, watch_buy:0, watch_sell:0, strong_sell:0};
+            const stripCell = (label, value, valueColor) => (
+              <div key={label} style={{
+                background:"var(--surface)",
+                border:"1px solid var(--border-faint)",
+                borderRadius:6,
+                padding:"10px 8px",
+                textAlign:"center",
+                display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+              }}>
+                <div style={{
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  color:"var(--text-muted)", letterSpacing:"0.06em",
+                  textTransform:"uppercase", fontWeight:500,
+                }}>{label}</div>
+                <div style={{
+                  fontFamily:"var(--font-display)", fontVariantNumeric:"tabular-nums",
+                  fontSize:24, fontWeight:600, color:valueColor, lineHeight:1,
+                }}>{v5TopLoading ? "…" : Number(value || 0)}</div>
+              </div>
+            );
+            return (
+              <div style={{
+                display:"grid", gridTemplateColumns:"repeat(4, 1fr)",
+                gap:"var(--space-2)", marginBottom:"var(--space-3)",
+              }}>
+                {stripCell("Strong Buy",  counts.strong_buy,  "var(--green-text, #30d158)")}
+                {stripCell("Buy Watch",   counts.watch_buy,   "var(--text)")}
+                {stripCell("Sell Watch",  counts.watch_sell,  "var(--text)")}
+                {stripCell("Strong Sell", counts.strong_sell, "var(--red-text, #ff453a)")}
+              </div>
+            );
+          })()}
 
           {/* 6 sub-tiles — top 6 candidate tickers ranked by MT Score.
               Shared module-level styles. Footer stripped — Joe directive
