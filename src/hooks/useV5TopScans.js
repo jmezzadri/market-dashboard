@@ -67,24 +67,25 @@ async function fetchAll(limit) {
     sector: sectorByTicker.get(r.ticker) || null,
   }));
 
-  // Band counts — one query for the whole scan_date returning just the
-  // band column, grouped client-side. This is more reliable than 5
-  // parallel HEAD count requests, which a CDN sometimes 503s even when
-  // the data is fine. The full table for one day is ~3-4k rows, ~80KB
-  // gzipped — comfortably small enough to pull on each Home page load.
+  // Band counts — pull just the NON-Neutral rows for this scan_date
+  // and group client-side. The full universe is ~3-4k rows/day but only
+  // 15-50 of those are ever non-Neutral, so this stays comfortably
+  // inside the default Supabase row cap (1000) and small over the wire.
+  // We don't display the Neutral count, so we don't need to fetch it.
   const counts = { strong_buy: 0, watch_buy: 0, neutral: 0, watch_sell: 0, strong_sell: 0 };
   try {
-    const all = await supabase
+    const nonNeutral = await supabase
       .from("signal_intel_v5_daily")
       .select("band")
-      .eq("scan_date", latest);
-    (all?.data || []).forEach(r => {
+      .eq("scan_date", latest)
+      .neq("band", "Neutral")
+      .limit(1000);
+    (nonNeutral?.data || []).forEach(r => {
       const b = r?.band || "";
-      if (b === "Strong Buy")        counts.strong_buy++;
-      else if (b === "Watch Buy")    counts.watch_buy++;
-      else if (b === "Watch Sell")   counts.watch_sell++;
-      else if (b === "Strong Sell")  counts.strong_sell++;
-      else if (b === "Neutral")      counts.neutral++;
+      if (b === "Strong Buy")       counts.strong_buy++;
+      else if (b === "Watch Buy")   counts.watch_buy++;
+      else if (b === "Watch Sell")  counts.watch_sell++;
+      else if (b === "Strong Sell") counts.strong_sell++;
     });
   } catch (_) {
     // Leave counts at zero — the tile renders a clean zero state rather
