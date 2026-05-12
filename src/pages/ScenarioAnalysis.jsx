@@ -563,7 +563,7 @@ const STYLES = `
 .scenarios-page .coherence.unusual .score { color:var(--accent-parchment); }
 .scenarios-page .coherence.rare { background:rgba(107,122,133,.08); border-color:rgba(107,122,133,.3); }
 .scenarios-page .coherence.rare .score { color:var(--warn); }
-.scenarios-page .coherence.exotic { background:rgba(14,85,96,.08); border-color:rgba(14,85,96,.3); }
+.scenarios-page .coherence.exotic { background:rgba(0,113,227,.08); border-color:rgba(0,113,227,.3); }
 .scenarios-page .coherence.exotic .score { color:var(--accent-burgundy); }
 .scenarios-page .factor-grid { display:grid; grid-template-columns:1fr 1fr; gap:6px var(--s-4); margin-top:var(--s-3); }
 .scenarios-page .factor { display:grid; grid-template-columns:100px 1fr 60px 80px 22px; align-items:center; gap:7px; padding:4px 0; }
@@ -1663,7 +1663,7 @@ function CycleMechanismScenarioResultsTable({
           return (
           <div key={hId}
                onClick={() => setActiveDrill(isActive ? null : { type: "headline", id: hId })}
-               style={{ ...headlineCard, cursor: "pointer", outline: isActive ? "1.5px solid var(--accent, #0e5560)" : "none", outlineOffset: isActive ? -1 : 0 }}>
+               style={{ ...headlineCard, cursor: "pointer", outline: isActive ? "1.5px solid var(--accent, #0071e3)" : "none", outlineOffset: isActive ? -1 : 0 }}>
             <div style={{ ...headlineLabel, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span>{h.label}</span>
               <span style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: 0, textTransform: "none" }}>{isActive ? "▾" : "▸"}</span>
@@ -1717,7 +1717,7 @@ function CycleMechanismScenarioResultsTable({
           return (
             <div key={subId}
                  onClick={() => setActiveDrill(isActive ? null : { type: "sub", id: subId })}
-                 style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.5fr", gap: 6, padding: "6px 0", borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 12, alignItems: "center", cursor: "pointer", background: isActive ? "var(--surface-2, rgba(14,85,96,0.05))" : "transparent" }}>
+                 style={{ display: "grid", gridTemplateColumns: "1.4fr 0.7fr 0.7fr 0.5fr", gap: 6, padding: "6px 0", borderBottom: "0.5px solid var(--border)", fontFamily: "var(--font-ui)", fontSize: 12, alignItems: "center", cursor: "pointer", background: isActive ? "var(--surface-2, rgba(0,113,227,0.05))" : "transparent" }}>
                 <div style={{ color: "var(--ink-0)", display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ color: "var(--text-muted)", fontSize: 10 }}>{isActive ? "▾" : "▸"}</span>
                   <span>{SUB_LABELS[subId] || subId}</span>
@@ -1738,7 +1738,7 @@ function CycleMechanismScenarioResultsTable({
           const h = stress.headlines[activeDrill.id];
           if (!meta || !h) return null;
           return (
-            <div style={{ margin: "0 18px 18px", padding: "16px 18px", background: "var(--surface-2, rgba(14,85,96,0.05))", border: "0.5px solid var(--border)", borderRadius: "var(--r-sm)", position: "relative" }}>
+            <div style={{ margin: "0 18px 18px", padding: "16px 18px", background: "var(--surface-2, rgba(0,113,227,0.05))", border: "0.5px solid var(--border)", borderRadius: "var(--r-sm)", position: "relative" }}>
               <button onClick={() => setActiveDrill(null)}
                 style={{ position: "absolute", top: 8, right: 10, background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 14, padding: 4 }}
                 aria-label="Close drilldown">✕</button>
@@ -1784,7 +1784,7 @@ function CycleMechanismScenarioResultsTable({
           const sub = stress.subcomposites[activeDrill.id];
           if (!meta || !sub) return null;
           return (
-            <div style={{ margin: "0 18px 18px", padding: "16px 18px", background: "var(--surface-2, rgba(14,85,96,0.05))", border: "0.5px solid var(--border)", borderRadius: "var(--r-sm)", position: "relative" }}>
+            <div style={{ margin: "0 18px 18px", padding: "16px 18px", background: "var(--surface-2, rgba(0,113,227,0.05))", border: "0.5px solid var(--border)", borderRadius: "var(--r-sm)", position: "relative" }}>
               <button onClick={() => setActiveDrill(null)}
                 style={{ position: "absolute", top: 8, right: 10, background: "transparent", border: "none", color: "var(--text-muted)", cursor: "pointer", fontSize: 14, padding: 4 }}
                 aria-label="Close drilldown">✕</button>
