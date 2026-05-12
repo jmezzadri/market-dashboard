@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import Scanner from "./Scanner";
 import MacroOverviewPageV2 from "./v2/pages/MacroOverviewPage";
 import HomePageV2 from "./v2/pages/HomePage";
