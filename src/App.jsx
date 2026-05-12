@@ -4761,6 +4761,121 @@ function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceCol
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────
+// HomeRegimeTile — the "Macro Overview" mini on the Home tab.
+// Joe directive 2026-05-12: replaces the old 6-mechanism dial board
+// (cycle_board_snapshot.json) with the Signal Intelligence regime read.
+// Reads /indicator_history.json (VIX/MOVE/CPFF daily) + /cycle_v2.json
+// (cycle composite + 7 sub-composites). Computes the regime client-side
+// per the same rule book that drives /#overview.
+// ─────────────────────────────────────────────────────────────────────
+function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, tileExplainStyle, tileNameStyle }){
+  const [indHist, setIndHist] = React.useState(null);
+  const [cycleV2, setCycleV2] = React.useState(null);
+
+  React.useEffect(() => {
+    fetch("/indicator_history.json", { cache: "no-cache" })
+      .then(r => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
+    fetch("/cycle_v2.json", { cache: "no-cache" })
+      .then(r => r.ok ? r.json() : null).then(setCycleV2).catch(() => {});
+  }, []);
+
+  const data = React.useMemo(() => {
+    if (!indHist || !cycleV2) return null;
+    const TRIGGER_PCTILE = 85, LATE_CYCLE = 80;
+    const trailing5ySorted = (points) => {
+      if (!points || !points.length) return [];
+      const last = new Date(points[points.length - 1][0]);
+      const cutoff = new Date(last); cutoff.setFullYear(last.getFullYear() - 5);
+      return points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
+    };
+    const valAtPctile = (sorted, pct) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length))] : null;
+    const pctileOf = (v, sorted) => {
+      if (!sorted.length || v == null) return null;
+      let lo = 0, hi = sorted.length;
+      while (lo < hi) { const m = (lo + hi) >>> 1; if (sorted[m] < v) lo = m + 1; else hi = m; }
+      return Math.round((lo / sorted.length) * 100);
+    };
+    const stageOfRun = (points, mark) => {
+      if (!points || !points.length || mark == null) return 0;
+      const byWeek = {};
+      for (const [ds, val] of points) {
+        if (val == null || isNaN(val)) continue;
+        const d = new Date(ds), w = new Date(d); w.setDate(d.getDate() - d.getDay());
+        byWeek[w.toISOString().slice(0, 10)] = val;
+      }
+      const weeks = Object.keys(byWeek).sort().slice(-24);
+      let consec = 0;
+      for (let i = weeks.length - 1; i >= 0; i--) {
+        if (byWeek[weeks[i]] >= mark) consec++; else break;
+      }
+      if (consec === 0) return 0;
+      if (consec === 1) return 1;
+      if (consec <= 3) return 2;
+      return 3;
+    };
+    const buildInd = (key) => {
+      const r = indHist[key];
+      if (!r || !r.points || !r.points.length) return null;
+      const sorted = trailing5ySorted(r.points);
+      const mark = valAtPctile(sorted, TRIGGER_PCTILE);
+      const cur = r.points[r.points.length - 1];
+      return { pctile: pctileOf(cur[1], sorted), stage: stageOfRun(r.points, mark) };
+    };
+    const vix = buildInd('vix'), mv = buildInd('move'), cp = buildInd('cpff');
+    const cycle = cycleV2.headlines && cycleV2.headlines.cycle_value && cycleV2.headlines.cycle_value.score_by_horizon ? cycleV2.headlines.cycle_value.score_by_horizon['6m'] : null;
+    const stages = [vix ? vix.stage : 0, mv ? mv.stage : 0, cp ? cp.stage : 0];
+    const sustained = stages.filter(s => s >= 2).length;
+    const crossed = stages.filter(s => s === 1).length;
+    const latecycle = cycle != null && cycle >= LATE_CYCLE;
+    const label = (sustained >= 1 && latecycle) ? 'Risk Off' : sustained >= 1 ? 'Cautionary' : crossed >= 1 ? 'Neutral' : 'Risk On';
+    return { vix, move: mv, cpff: cp, cycle, label };
+  }, [indHist, cycleV2]);
+
+  const regimeShortDesc = {
+    'Risk On':    'No volatility triggers. Stay fully invested.',
+    'Neutral':    'One trigger crossed — possible head fake. Hold.',
+    'Cautionary': 'One or more triggers sustained. Trim risk.',
+    'Risk Off':   'Sustained at late-cycle. Defensive stance.',
+  };
+
+  return (
+    React.createElement("div", {
+      role: "link", tabIndex: 0,
+      onClick: () => navTo("overview"),
+      onKeyDown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navTo("overview"); } },
+      style: { ...cardStyle, cursor: "pointer" }
+    },
+      React.createElement("div", { style: cardHeadSlimStyle },
+        React.createElement("span", { style: cardTagStyle }, "01")
+      ),
+      React.createElement("p", { style: tileExplainStyle },
+        "A ", React.createElement("span", { style: tileNameStyle }, "Macro Overview"),
+        " of the markets — three volatility triggers and one cycle position, distilled to one regime read."
+      ),
+      React.createElement("div", { style: { marginTop: 12, marginBottom: 12 } },
+        React.createElement("div", { style: { fontSize: 10, letterSpacing: ".18em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 500, marginBottom: 4 } }, "Current regime"),
+        React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontStyle: "italic", fontWeight: 400, fontSize: 40, lineHeight: 1.05, color: "var(--accent)", letterSpacing: "-0.005em" } }, data ? data.label : "Loading…"),
+        React.createElement("div", { style: { fontSize: 13.5, color: "var(--text)", marginTop: 6, lineHeight: 1.5 } }, data ? regimeShortDesc[data.label] : "")
+      ),
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, paddingTop: 14, borderTop: "1px solid var(--border)" } },
+        [
+          { name: "Equity Vol", d: data ? data.vix : null },
+          { name: "Bond Vol", d: data ? data.move : null },
+          { name: "Funding", d: data ? data.cpff : null },
+          { name: "Cycle", d: data ? { pctile: data.cycle } : null },
+        ].map(({ name, d }) =>
+          React.createElement("div", { key: name, style: { textAlign: "center" } },
+            React.createElement("div", { style: { fontSize: 9.5, letterSpacing: ".10em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 500, marginBottom: 4 } }, name),
+            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontSize: 22, lineHeight: 1, color: "var(--text)", fontVariantNumeric: "tabular-nums" } }, d && d.pctile != null ? d.pctile : "—"),
+            React.createElement("div", { style: { fontSize: 9, color: "var(--text-dim)", marginTop: 2 } }, "/ 100")
+          )
+        )
+      )
+    )
+  );
+}
+
 export default function App(){
 // Kick off /indicator_history.json fetch on first mount and re-render the
 // whole tree once it lands. Mutation of SD/AS_OF/IND[id][6..8] + composite
@@ -5845,60 +5960,7 @@ return(
           This card runs the SAME math against the same JSON, so the
           home preview and /#overview show identical numbers, identical
           band, identical narrative. */}
-      <div role="link" tabIndex={0}
-           onClick={()=>navTo("overview")}
-           onKeyDown={(e)=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); navTo("overview"); } }}
-           style={{...cardStyle, cursor:"pointer"}}>
-        <div style={cardHeadSlimStyle}>
-          <span style={cardTagStyle}>01</span>
-          <FreshnessDot indicatorId="cycle_board" asOfIso={cycleBoardSnap?.as_of||null} style={{marginLeft:"auto"}}/>
-        </div>
-        <p style={tileExplainStyle}>A <span style={tileNameStyle}>Macro Overview</span> of the markets across 6 cycle mechanisms — calibrated to historical stress.</p>
-
-        {(() => {
-          if (!cycleBoardSnap) {
-            return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading cycle board…</div>;
-          }
-          const mechs = cycleBoardSnap.mechanisms || [];
-          if (!mechs.length) return null;
-
-          // ── Identical to v11s populateVerdict() at line 989-1014 of
-          // public/MacroTilt_Macro_Overview_Page_v11.html.
-          const avg = mechs.reduce((a, t) => a + (Number(t.score)||0), 0) / mechs.length;
-          const rounded = Math.round(avg);
-          // Bands match v11 footer copy: 0-25 Risk-on, 25-50 Neutral,
-          // 50-75 Caution, 75-100 Risk-off. No "stress/stressed" copy
-          // anywhere — Joe directive 2026-04-30. Lean on "above/below
-          // the cohort" or band-name vocabulary.
-          let label, narrative;
-          // Single short label per band — no narrative paragraph.
-          // The six mechanism cards below already say what's hot.
-          if      (avg < 25) { label = "Risk-on";  }
-          else if (avg < 50) { label = "Neutral";  }
-          else if (avg < 75) { label = "Caution";  }
-          else               { label = "Risk-off"; }
-          narrative = "";
-          // Bands per v11 footer copy: 0-25 Risk-on, 25-50 Neutral,
-          // 50-75 Caution, 75-100 Risk-off.
-          const bandFor = (s) => s < 25 ? "risk-on" : s < 50 ? "neutral" : s < 75 ? "caution" : "risk-off";
-          // Joe directive 2026-05-07: drop the colored band coding.
-          // Composite number is rendered in primary ink; the band name
-          // alongside is the only band signal needed.
-          const bandColor = () => "var(--text)";
-          const aggBand = bandFor(avg);
-          const aggCol  = bandColor(aggBand);
-
-          return (
-            <div style={{...stGridStyle, alignItems:"stretch"}}>
-              {mechs.map(m => (
-                <div key={m.id} onClick={()=>navTo("overview")} style={{...stStyle, alignItems:"center"}}>
-                  <DialMini score={m.score} num={m.num} name={m.name} />
-                </div>
-              ))}
-            </div>
-          );
-        })()}
-      </div>
+      <HomeRegimeTile navTo={navTo} cardStyle={cardStyle} cardHeadSlimStyle={cardHeadSlimStyle} cardTagStyle={cardTagStyle} tileExplainStyle={tileExplainStyle} tileNameStyle={tileNameStyle} />
 
       {/* 02 · Asset Tilt — re-lit 2026-05-04 with v10.1c live engine.
           Reads /v10_allocation.json which refreshes nightly at 22:45 UTC. */}
