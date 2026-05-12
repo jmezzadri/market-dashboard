@@ -36,32 +36,42 @@ const HORIZON = '6m';
 
 // ───────── Pure helpers ─────────
 
-function trailing5yValues(points) {
+function trailing5ySorted(points) {
   if (!points || points.length === 0) return [];
   const last = new Date(points[points.length - 1][0]);
   const cutoff = new Date(last);
   cutoff.setFullYear(last.getFullYear() - 5);
-  return points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v);
+  const vals = points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v).filter(v => v != null && !isNaN(v));
+  return vals.sort((a, b) => a - b);
 }
 
-function valueAtPercentile(samples, pct) {
-  if (!samples || samples.length === 0) return null;
-  const sorted = [...samples].sort((a, b) => a - b);
-  const idx = Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length));
-  return sorted[idx];
+function valueAtPercentileSorted(sortedSamples, pct) {
+  if (!sortedSamples || sortedSamples.length === 0) return null;
+  const idx = Math.min(sortedSamples.length - 1, Math.floor((pct / 100) * sortedSamples.length));
+  return sortedSamples[idx];
 }
 
-function percentileRank(value, samples) {
-  if (!samples || samples.length === 0 || value == null) return null;
-  const sorted = [...samples].sort((a, b) => a - b);
-  let lo = 0, hi = sorted.length;
+function pctileOfSorted(value, sortedSamples) {
+  if (!sortedSamples || sortedSamples.length === 0 || value == null || isNaN(value)) return null;
+  let lo = 0, hi = sortedSamples.length;
   while (lo < hi) {
     const mid = (lo + hi) >>> 1;
-    if (sorted[mid] < value) lo = mid + 1;
+    if (sortedSamples[mid] < value) lo = mid + 1;
     else hi = mid;
   }
-  return Math.round((lo / sorted.length) * 100);
+  return Math.round((lo / sortedSamples.length) * 100);
 }
+
+// Map raw cycle_v2.json sub-composite keys to display names
+const SUB_DISPLAY_NAME = {
+  Equities: 'Equities',
+  Credit: 'Credit',
+  Rates: 'Rates',
+  MoneyBanking: 'Money / Banking',
+  Funding: 'Funding',
+  RealEconomy: 'Real Economy',
+  PositioningVol: 'Positioning / Vol',
+};
 
 // Take daily points → array of last N weekly closes
 function weeklyAggregate(points, weeksBack = 24) {
@@ -129,19 +139,23 @@ export default function MacroOverviewPage() {
     function buildIndicator(key, niceName, unit) {
       const raw = indHist[key];
       if (!raw || !raw.points || raw.points.length === 0) return null;
-      const samples = trailing5yValues(raw.points);
-      const mark = valueAtPercentile(samples, TRIGGER_PCTILE);
+      const sortedSamples = trailing5ySorted(raw.points);
+      const mark = valueAtPercentileSorted(sortedSamples, TRIGGER_PCTILE);
       const weekly = weeklyAggregate(raw.points, 24);
       const stages = weeklyStages(weekly, mark);
       const current = raw.points[raw.points.length - 1];
-      const pctile = percentileRank(current[1], samples);
+      const pctile = pctileOfSorted(current[1], sortedSamples);
       return {
         key, niceName, unit,
         currentValue: current[1],
         currentDate: current[0],
         asOf: raw.as_of,
         pctile, mark,
-        weekly: weekly.map((w, i) => ({ ...w, stage: stages[i] })),
+        weekly: weekly.map((w, i) => ({
+          ...w,
+          stage: stages[i],
+          pctile: pctileOfSorted(w.value, sortedSamples),
+        })),
         currentStage: stages[stages.length - 1] || 0,
       };
     }
@@ -153,7 +167,7 @@ export default function MacroOverviewPage() {
     const cycleScore = cycleV2.headlines?.cycle_value?.score_by_horizon?.[HORIZON];
     const cycleAsOf = cycleV2.as_of;
     const subs = Object.entries(cycleV2.subcomposites || {}).map(([name, v]) => ({
-      name: name.replace(/([A-Z])/g, ' $1').replace(/^ /, '').replace('Money Banking', 'Money/Banking').replace('PositioningVol','Positioning / Vol'),
+      name: SUB_DISPLAY_NAME[name] || name,
       score: v.scores_by_horizon?.[HORIZON],
     }));
 
@@ -309,7 +323,11 @@ function IndicatorTile({ data, onDial, onBar }) {
     <div className="mo-tile">
       <h2 className="mo-tile-title">{tileLabel(data.key)}</h2>
       <div className="mo-dial-wrap" onClick={onDial}>
-        <Dial value={data.pctile} mark={percentileRank(data.mark, [])} markLabel={`${formatVal(data.mark, data.key)}`} markVal={data.mark} />
+        <Dial
+          value={data.pctile}
+          mark={TRIGGER_PCTILE}
+          markLabel={formatVal(data.mark, data.key)}
+        />
         <div className="mo-readout">
           <span className="mo-val">{data.pctile != null ? data.pctile : '—'}</span>
           <span className="mo-denom">/ 100</span>
@@ -319,10 +337,7 @@ function IndicatorTile({ data, onDial, onBar }) {
         <div className="mo-bar-axis"><span>24w</span><span>now</span></div>
         <div className="mo-bar-strip no-frame">
           {data.weekly.map((w, i) => {
-            const heightPct = clamp(
-              data.pctileOfWeek ? data.pctileOfWeek[i] : (w.value / (data.mark * 1.5)) * 100,
-              8, 95
-            );
+            const heightPct = clamp(w.pctile != null ? w.pctile : 20, 8, 95);
             return (
               <span
                 key={i}
