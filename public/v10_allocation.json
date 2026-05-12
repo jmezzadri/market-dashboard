@@ -299,7 +299,9 @@
         "liquidity_policy": 0.26,
         "positioning_breadth": -0.34
       },
-      "dollar": 9.22
+      "dollar": 9.22,
+      "weight_within_sector": 0.46,
+      "vs_spy_pp": -3.2
     },
     {
       "id": "software",
@@ -320,7 +322,9 @@
         "liquidity_policy": 0.312,
         "positioning_breadth": -0.238
       },
-      "dollar": 7.02
+      "dollar": 7.02,
+      "weight_within_sector": 0.35,
+      "vs_spy_pp": -2.4
     },
     {
       "id": "hardware",
@@ -340,7 +344,9 @@
         "liquidity_policy": 0.26,
         "positioning_breadth": -0.238
       },
-      "dollar": 3.81
+      "dollar": 3.81,
+      "weight_within_sector": 0.19,
+      "vs_spy_pp": -1.3
     },
     {
       "id": "intmedia",
@@ -360,7 +366,9 @@
         "liquidity_policy": 0.208,
         "positioning_breadth": -0.17
       },
-      "dollar": 3.64
+      "dollar": 3.64,
+      "weight_within_sector": 0.6,
+      "vs_spy_pp": -1.8
     },
     {
       "id": "telecom",
@@ -380,7 +388,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.102
       },
-      "dollar": 3.04
+      "dollar": 3.04,
+      "weight_within_sector": 0.4,
+      "vs_spy_pp": -0.6
     },
     {
       "id": "banks",
@@ -401,7 +411,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.136
       },
-      "dollar": 8.34
+      "dollar": 8.34,
+      "weight_within_sector": 0.54,
+      "vs_spy_pp": 1.3
     },
     {
       "id": "insurance",
@@ -421,7 +433,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.136
       },
-      "dollar": 4.79
+      "dollar": 4.79,
+      "weight_within_sector": 0.31,
+      "vs_spy_pp": 0.8
     },
     {
       "id": "divfin",
@@ -441,7 +455,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.136
       },
-      "dollar": 2.32
+      "dollar": 2.32,
+      "weight_within_sector": 0.15,
+      "vs_spy_pp": 0.4
     },
     {
       "id": "capgoods",
@@ -461,7 +477,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.136
       },
-      "dollar": 5.34
+      "dollar": 5.34,
+      "weight_within_sector": 0.5,
+      "vs_spy_pp": 0.8
     },
     {
       "id": "transport",
@@ -481,7 +499,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.136
       },
-      "dollar": 3.21
+      "dollar": 3.21,
+      "weight_within_sector": 0.3,
+      "vs_spy_pp": 0.5
     },
     {
       "id": "defense",
@@ -502,7 +522,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.034
       },
-      "dollar": 2.14
+      "dollar": 2.14,
+      "weight_within_sector": 0.2,
+      "vs_spy_pp": 0.3
     },
     {
       "id": "pharma",
@@ -523,7 +545,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.17
       },
-      "dollar": 7.11
+      "dollar": 7.11,
+      "weight_within_sector": 0.46,
+      "vs_spy_pp": 1.1
     },
     {
       "id": "devices",
@@ -543,7 +567,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.102
       },
-      "dollar": 4.94
+      "dollar": 4.94,
+      "weight_within_sector": 0.32,
+      "vs_spy_pp": 0.8
     },
     {
       "id": "biotech",
@@ -564,7 +590,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.0
       },
-      "dollar": 3.4
+      "dollar": 3.4,
+      "weight_within_sector": 0.22,
+      "vs_spy_pp": 0.5
     },
     {
       "id": "foodbev",
@@ -584,7 +612,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.136
       },
-      "dollar": 4.42
+      "dollar": 4.42,
+      "weight_within_sector": 0.62,
+      "vs_spy_pp": 0.7
     },
     {
       "id": "household",
@@ -604,7 +634,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.136
       },
-      "dollar": 2.71
+      "dollar": 2.71,
+      "weight_within_sector": 0.38,
+      "vs_spy_pp": 0.4
     },
     {
       "id": "retail",
@@ -624,7 +656,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.272
       },
-      "dollar": 6.21
+      "dollar": 6.21,
+      "weight_within_sector": 0.57,
+      "vs_spy_pp": -0.1
     },
     {
       "id": "autos",
@@ -644,7 +678,9 @@
         "liquidity_policy": 0.13,
         "positioning_breadth": -0.272
       },
-      "dollar": 4.68
+      "dollar": 4.68,
+      "weight_within_sector": 0.43,
+      "vs_spy_pp": -0.1
     },
     {
       "id": "oilgas",
@@ -665,7 +701,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.034
       },
-      "dollar": 3.8
+      "dollar": 3.8,
+      "weight_within_sector": 0.8,
+      "vs_spy_pp": 0.6
     },
     {
       "id": "oilfield",
@@ -686,7 +724,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.034
       },
-      "dollar": 0.95
+      "dollar": 0.95,
+      "weight_within_sector": 0.2,
+      "vs_spy_pp": 0.1
     },
     {
       "id": "mining",
@@ -707,7 +747,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.068
       },
-      "dollar": 1.55
+      "dollar": 1.55,
+      "weight_within_sector": 0.65,
+      "vs_spy_pp": 0.2
     },
     {
       "id": "chemicals",
@@ -727,7 +769,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": -0.068
       },
-      "dollar": 0.83
+      "dollar": 0.83,
+      "weight_within_sector": 0.35,
+      "vs_spy_pp": 0.1
     },
     {
       "id": "reits",
@@ -748,7 +792,9 @@
         "liquidity_policy": -0.39,
         "positioning_breadth": -0.034
       },
-      "dollar": 2.97
+      "dollar": 2.97,
+      "weight_within_sector": 1.0,
+      "vs_spy_pp": -0.0
     },
     {
       "id": "electric",
@@ -769,7 +815,9 @@
         "liquidity_policy": 0.0,
         "positioning_breadth": 0.136
       },
-      "dollar": 3.56
+      "dollar": 3.56,
+      "weight_within_sector": 1.0,
+      "vs_spy_pp": 0.6
     }
   ],
   "contribution_matrix": {

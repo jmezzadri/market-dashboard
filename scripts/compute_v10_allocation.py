@@ -252,6 +252,12 @@ def compute_ig_tilts(mechanism_scores: Dict[str, float], sector_rows: List[Dict]
             "contributions": contributions,
         })
     # Renormalize so each sector's IG dollars sum back to the sector's total
+    # AND emit vs_spy_pp per IG so the Recommended Allocations drill-down can
+    # show a real number in the Tilt vs SPY column instead of an em-dash.
+    # IG SPY-implied share-of-book = parent.spy_weight × weight_within_sector.
+    # IG actual share-of-book = ig.dollar / 100.
+    sector_spy_weight = {r["sector"]: r["spy_weight"] for r in sector_rows}
+    ig_static = {ig["id"]: ig for ig in INDUSTRY_GROUPS}
     for sector in SECTORS:
         sector_igs = [ig for ig in ig_rows if ig["sector"] == sector]
         if not sector_igs:
@@ -265,6 +271,11 @@ def compute_ig_tilts(mechanism_scores: Dict[str, float], sector_rows: List[Dict]
         for ig in sector_igs:
             for k in del_keys:
                 ig.pop(k, None)
+            wws = ig_static[ig["id"]]["weight_within_sector"]
+            ig["weight_within_sector"] = wws
+            ig_actual_share = ig["dollar"] / 100.0
+            ig_spy_share    = sector_spy_weight.get(sector, 0) * wws
+            ig["vs_spy_pp"] = round((ig_actual_share - ig_spy_share) * 100, 1)
     return ig_rows
 
 
