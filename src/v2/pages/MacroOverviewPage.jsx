@@ -126,11 +126,14 @@ export default function MacroOverviewPage() {
   const [cycleV2, setCycleV2] = useState(null);
   const [drawer, setDrawer] = useState({ open: false, kind: null, payload: null });
 
+  const [cycleHist, setCycleHist] = useState(null);
   useEffect(() => {
     fetch('/indicator_history.json', { cache: 'no-cache' })
       .then(r => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
     fetch('/cycle_v2.json', { cache: 'no-cache' })
       .then(r => r.ok ? r.json() : null).then(setCycleV2).catch(() => {});
+    fetch('/cycle_v2_history.json', { cache: 'no-cache' })
+      .then(r => r.ok ? r.json() : null).then(setCycleHist).catch(() => {});
   }, []);
 
   const data = useMemo(() => {
@@ -166,10 +169,15 @@ export default function MacroOverviewPage() {
 
     const cycleScore = cycleV2.headlines?.cycle_value?.scores_by_horizon?.[HORIZON];
     const cycleAsOf = cycleV2.as_of;
-    const subs = Object.entries(cycleV2.subcomposites || {}).map(([name, v]) => ({
-      name: SUB_DISPLAY_NAME[name] || name,
-      score: v.scores_by_horizon?.[HORIZON],
-    }));
+    const HORIZON_FALLBACKS = [HORIZON, '12m', '3m', '1m'];
+    const subs = Object.entries(cycleV2.subcomposites || {}).map(([name, v]) => {
+      let score = null, horizonShown = HORIZON;
+      for (const h of HORIZON_FALLBACKS) {
+        const s = v.scores_by_horizon?.[h];
+        if (s != null) { score = s; horizonShown = h; break; }
+      }
+      return { name: SUB_DISPLAY_NAME[name] || name, score, horizonShown };
+    });
 
     const regime = regimeFor(
       vix?.currentStage || 0, move?.currentStage || 0, cpff?.currentStage || 0, cycleScore
@@ -192,8 +200,19 @@ export default function MacroOverviewPage() {
       });
     }
 
-    return { vix, move, cpff, cycle: { score: cycleScore, asOf: cycleAsOf, subs }, regime, regimeHistory };
-  }, [indHist, cycleV2]);
+    let cycleHistoryBars = [];
+    if (cycleHist && cycleHist.series && cycleHist.series.headlines && cycleHist.series.headlines.cycle_value) {
+      const arr = cycleHist.series.headlines.cycle_value;
+      if (Array.isArray(arr) && arr.length > 0) {
+        cycleHistoryBars = arr.slice(-24).map(([d, v]) => {
+          const score = (v == null || isNaN(v)) ? null : Math.round(v);
+          const stage = score == null ? 0 : score < 25 ? 0 : score < 50 ? 1 : score < 75 ? 2 : 3;
+          return { date: d, score, stage };
+        });
+      }
+    }
+    return { vix, move, cpff, cycle: { score: cycleScore, asOf: cycleAsOf, subs, historyBars: cycleHistoryBars }, regime, regimeHistory };
+  }, [indHist, cycleV2, cycleHist]);
 
   if (!data) {
     return (
@@ -288,7 +307,12 @@ export default function MacroOverviewPage() {
               <div className="mo-sub-list">
                 {cycle.subs.map(s => (
                   <div key={s.name} className="mo-sub-row" onClick={() => openSubComposite(s.name)}>
-                    <span className="mo-sub-name">{s.name}</span>
+                    <span className="mo-sub-name">
+                      {s.name}
+                      {s.horizonShown && s.horizonShown !== HORIZON && (
+                        <span style={{ fontSize: 9, color: 'var(--ink-3)', marginLeft: 6, fontWeight: 400, fontStyle: 'italic' }}>({s.horizonShown})</span>
+                      )}
+                    </span>
                     <span className="mo-sub-bar-wrap">
                       <span
                         className={`mo-sub-bar ${s.score >= 75 ? 'high' : s.score >= 50 ? 'med' : 'low'}`}
@@ -303,6 +327,25 @@ export default function MacroOverviewPage() {
             </div>
           </div>
         </div>
+
+        {cycle.historyBars && cycle.historyBars.length > 0 && (
+          <div className="mo-bar-wrap" style={{ marginTop: 18 }}>
+            <div className="mo-bar-axis"><span>24 weeks ago</span><span>today</span></div>
+            <div className="mo-bar-strip no-frame">
+              {cycle.historyBars.map((w, i) => {
+                const heightPct = w.score == null ? 8 : Math.max(8, Math.min(95, w.score));
+                return (
+                  <span
+                    key={i}
+                    className={`mo-bar s${w.stage}`}
+                    style={{ height: heightPct + '%' }}
+                    data-tt={`${fmtDate(w.date)} · ${w.score != null ? w.score : '—'}`}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        )}
 
       </div>
 
