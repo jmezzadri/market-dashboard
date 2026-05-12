@@ -686,7 +686,21 @@ function AnimatedCount({ value, durationMs = 900 }) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function FunnelCard({ totals, scanDate }) {
-  const ts = scanDate ? new Date(`${scanDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · EOD" : "Pending";
+  // 2026-05-12 timezone fix. scanDate is a YYYY-MM-DD string (e.g. "2026-05-09")
+  // that represents the trading day the scan covers. The old formatter
+  // parsed it as UTC midnight, which renders as "May 8" in ET because UTC
+  // midnight is 8pm the prior day in NY. Joe caught this; chip lied about
+  // which day the scan was for. Now we parse the parts explicitly and label
+  // "Scan: <Mon Day, Year>" so the meaning is unambiguous.
+  let ts = "Pending";
+  if (scanDate) {
+    const [yy, mm, dd] = scanDate.split("-").map(n => Number(n));
+    if (Number.isFinite(yy) && Number.isFinite(mm) && Number.isFinite(dd)) {
+      // noon-local is always the same day regardless of DST edges
+      const d = new Date(yy, mm - 1, dd, 12, 0, 0);
+      ts = "Scan: " + d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    }
+  }
 
   // v5.5 (Joe's mockup): summary table = Total Universe / MacroTilt Gate /
   // Weak Signals · Missing Data. Then 4 band tiles: Strong Buy, Buy Watch,
