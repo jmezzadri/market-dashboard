@@ -1,335 +1,351 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Drawer from '../components/Drawer';
-import FreshnessChip from '../components/FreshnessChip';
 
 /**
- * Signal Intelligence — Macro Overview replacement.
+ * Macro Overview — Signal Intelligence regime read.
  *
- * Joe directive 2026-05-12: replace the 7 sub-composite tile grid with a
- * 4-state regime read (Risk On / Neutral / Cautionary / Risk Off) driven by
- * three vol triggers (VIX, MOVE, CPFF) modulated by the cycle composite.
+ * Built strictly to Risk_Off_Framework_Methodology.md. All math, thresholds,
+ * stages, and regime rules come from the spec; nothing is improvised here.
  *
- * Page structure (v5 mockup locked):
- *   ├── Top strip: editorial header (left) + Regime tile (right)
- *   ├── Three vol tiles in a row (Equity / Bond / Funding)
- *   └── Wide Cycle Positioning tile with 7 sub-composite breakdown
+ * Layer 1 — three vol anchors (CPFF, MOVE, VIX). Each has a threshold = its own
+ * trailing-5y 85th percentile. Stage = consecutive weeks above threshold
+ * (0 Calm → 1 Watching → 2 Holding → 3 Confirmed → 4 Entrenched).
  *
- * Rule book:
- *   - Vol trigger = indicator above its trailing-5y 85th-percentile mark
- *   - Stage: 0 calm, 1 crossed this week, 2 sustained 2-3w, 3 sustained 4w+
- *   - Late-cycle = cycle composite ≥ 80 (top 20% of trailing 5y)
- *   - Regime:
- *       0 triggers crossed              → Risk On
- *       1+ trigger crossed, none sustained → Neutral
- *       1+ trigger sustained (stage ≥ 2) → Cautionary
- *       sustained + late-cycle           → Risk Off
+ * Layer 2 — cycle composite = average of 7 stress-direction percentile ranks
+ * over the indicator's full history (Copper/Gold, KBW Bank/SPX, 10y-2y Yield
+ * Curve, Chicago Fed ANFCI, Initial Jobless Claims, HY OAS, IG OAS). "Stress
+ * direction" means: for indicators whose HIGH value is bearish (ANFCI, claims,
+ * HY/IG spreads) percentile is straight; for indicators whose LOW value is
+ * bearish (Copper/Gold, KBW/SPX, Yield Curve) percentile is inverted.
  *
- * Data sources (existing, no new pipelines):
- *   - /indicator_history.json — daily VIX/MOVE/CPFF history
- *   - /cycle_v2.json          — current cycle composite + 7 sub-composites
+ * Regime (per spec — mapped 1:1 to the locked lexicon):
+ *   GREEN  → Risk On     — no anchor at Stage 1+
+ *   WATCH  → Neutral     — one anchor at Stage 1 only (single-week cross)
+ *   AMBER  → Cautionary  — anchor Stage 2+, cycle composite quintile Q3-Q5
+ *   RED    → Risk Off    — anchor Stage 2+, cycle composite quintile Q1-Q2
+ *
+ * Data sources: /indicator_history.json (all raw indicator history).
+ * No /cycle_v2.json (different framework, different methodology — not used).
  */
 
-// ───────── Constants ─────────
-const TRIGGER_PCTILE = 85;
-const LATE_CYCLE_THRESHOLD = 80;
-const HORIZON = '6m';
+// ─────────────────────────────────────────────────────────────────────
+//   FRAMEWORK CONSTANTS — straight from Risk_Off_Framework_Methodology.md
+// ─────────────────────────────────────────────────────────────────────
 
-// ───────── Pure helpers ─────────
-
-function trailing5ySorted(points) {
-  if (!points || points.length === 0) return [];
-  const last = new Date(points[points.length - 1][0]);
-  const cutoff = new Date(last);
-  cutoff.setFullYear(last.getFullYear() - 5);
-  const vals = points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v).filter(v => v != null && !isNaN(v));
-  return vals.sort((a, b) => a - b);
-}
-
-function valueAtPercentileSorted(sortedSamples, pct) {
-  if (!sortedSamples || sortedSamples.length === 0) return null;
-  const idx = Math.min(sortedSamples.length - 1, Math.floor((pct / 100) * sortedSamples.length));
-  return sortedSamples[idx];
-}
-
-function pctileOfSorted(value, sortedSamples) {
-  if (!sortedSamples || sortedSamples.length === 0 || value == null || isNaN(value)) return null;
-  let lo = 0, hi = sortedSamples.length;
-  while (lo < hi) {
-    const mid = (lo + hi) >>> 1;
-    if (sortedSamples[mid] < value) lo = mid + 1;
-    else hi = mid;
-  }
-  return Math.round((lo / sortedSamples.length) * 100);
-}
-
-// Cycle Position is rolled up from these 7 raw indicators (matches the original
-// Signal Intelligence handoff). Each indicator is read from indicator_history.json,
-// percentile-ranked vs the trailing 5 years, then direction-corrected so HIGHER
-// pctile = more late-cycle. Cycle Position score = average of the 7 corrected pcts.
-const CYCLE_INDICATORS = [
-  { id: 'copper_gold',  name: 'Copper / Gold ratio',     fmt: (v) => v.toFixed(3) },
-  { id: 'bkx_spx_v11',  name: 'KBW Bank / S&P ratio',    fmt: (v) => v.toFixed(4) },
-  { id: 'yield_curve',  name: 'Yield curve (10y − 2y)',  fmt: (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' bp' },
-  { id: 'anfci',        name: 'Chicago Fed FCI',         fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2) },
-  { id: 'ic4wsa',       name: 'Initial Jobless Claims',  fmt: (v) => Math.round(v) + 'K' },
-  { id: 'hy_ig',        name: 'High-Yield spread',       fmt: (v) => Math.round(v) + ' bp' },
-  { id: 'ig_oas',       name: 'Investment-Grade spread', fmt: (v) => Math.round(v) + ' bp' },
+// Three vol anchors. Threshold = trailing-5y 85th percentile of raw values.
+// Dial scale_max is chosen to cover full historical range with headroom.
+const VOL_ANCHORS = [
+  { id: 'vix',  title: 'Equity Volatility',  niceName: 'VIX',  unit: '',     fmt: (v) => v.toFixed(1),     scaleMax: 80 },
+  { id: 'move', title: 'Bond Volatility',    niceName: 'MOVE', unit: '',     fmt: (v) => v.toFixed(0),     scaleMax: 250 },
+  { id: 'cpff', title: 'Funding Stress',     niceName: 'CPFF', unit: ' bp',  fmt: (v) => v.toFixed(0)+' bp', scaleMax: 200 },
 ];
 
-// Take daily points → array of last N weekly closes
-function weeklyAggregate(points, weeksBack = 24) {
-  if (!points || points.length === 0) return [];
-  const byWeek = {};
-  for (const [dateStr, val] of points) {
-    if (val == null || isNaN(val)) continue;
-    const d = new Date(dateStr);
-    const week = new Date(d);
-    week.setDate(d.getDate() - d.getDay()); // Sunday key
-    const key = week.toISOString().slice(0, 10);
-    byWeek[key] = { date: dateStr, value: val };
-  }
-  const weeks = Object.keys(byWeek).sort();
-  return weeks.slice(-weeksBack).map(w => byWeek[w]);
+// Seven cycle indicators. `bearishHigh` = true means HIGH value is bearish
+// (percentile rank in stress direction is the raw percentile). FALSE means LOW
+// value is bearish (percentile is inverted: stress_pct = 100 - raw_pct).
+const CYCLE_INDICATORS = [
+  { id: 'copper_gold',  name: 'Copper / Gold ratio',     bearishHigh: false, fmt: (v) => v.toFixed(3) },
+  { id: 'bkx_spx_v11',  name: 'KBW Bank / S&P ratio',    bearishHigh: false, fmt: (v) => v.toFixed(4) },
+  { id: 'yield_curve',  name: 'Yield curve (10y − 2y)',  bearishHigh: false, fmt: (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' bp' },
+  { id: 'anfci',        name: 'Chicago Fed FCI',         bearishHigh: true,  fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2) },
+  { id: 'ic4wsa',       name: 'Initial Jobless Claims',  bearishHigh: true,  fmt: (v) => Math.round(v) + 'K' },
+  { id: 'hy_ig',        name: 'High-Yield spread',       bearishHigh: true,  fmt: (v) => Math.round(v) + ' bp' },
+  { id: 'ig_oas',       name: 'Investment-Grade spread', bearishHigh: true,  fmt: (v) => Math.round(v) + ' bp' },
+];
+
+// Anchor stage names per spec. Index = stage number.
+const STAGE_NAMES = ['Calm', 'Watching', 'Holding', 'Confirmed', 'Entrenched'];
+
+// Regime labels, ordered least to most severe (matches GREEN/WATCH/AMBER/RED).
+const REGIME_ORDER = ['Risk On', 'Neutral', 'Cautionary', 'Risk Off'];
+const REGIME_DESC = {
+  'Risk On':    'No volatility triggers.',
+  'Neutral':    'One trigger crossed for a single week — possible head-fake.',
+  'Cautionary': 'Trigger sustained; cycle has already moved.',
+  'Risk Off':   'Trigger sustained; cycle still calm — actionable.',
+};
+
+// ─────────────────────────────────────────────────────────────────────
+//   PURE HELPERS
+// ─────────────────────────────────────────────────────────────────────
+
+function trailing5ySorted(points) {
+  if (!points || !points.length) return [];
+  const last = new Date(points[points.length - 1][0]);
+  const cutoff = new Date(last); cutoff.setFullYear(last.getFullYear() - 5);
+  return points
+    .filter(([d]) => new Date(d) >= cutoff)
+    .map(([, v]) => v)
+    .filter(v => v != null && !isNaN(v))
+    .sort((a, b) => a - b);
 }
 
-// Stage at each week (consecutive weeks above mark, ending at that week)
-function weeklyStages(weekly, mark) {
-  if (mark == null) return weekly.map(() => 0);
+function fullHistorySorted(points) {
+  if (!points || !points.length) return [];
+  return points
+    .map(([, v]) => v)
+    .filter(v => v != null && !isNaN(v))
+    .sort((a, b) => a - b);
+}
+
+function valueAtPctile(sorted, pct) {
+  if (!sorted.length) return null;
+  const idx = Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length));
+  return sorted[idx];
+}
+
+function pctileOf(value, sorted) {
+  if (!sorted.length || value == null || isNaN(value)) return null;
+  let lo = 0, hi = sorted.length;
+  while (lo < hi) { const m = (lo + hi) >>> 1; if (sorted[m] < value) lo = m + 1; else hi = m; }
+  return Math.round((lo / sorted.length) * 100);
+}
+
+// Collapse daily points → last N weekly closes (Sunday week-key, last value of week)
+function weeklyClose(points, weeksBack = 24) {
+  if (!points || !points.length) return [];
+  const byWeek = {};
+  for (const [ds, v] of points) {
+    if (v == null || isNaN(v)) continue;
+    const d = new Date(ds), w = new Date(d); w.setDate(d.getDate() - d.getDay());
+    byWeek[w.toISOString().slice(0, 10)] = { date: ds, value: v };
+  }
+  const ks = Object.keys(byWeek).sort();
+  return ks.slice(-weeksBack).map(k => byWeek[k]);
+}
+
+// Per spec: stage = consecutive weeks above threshold (anchored at most recent week).
+// 0 = below threshold, 1 = crossed this week, 2 = 2 weeks, 3 = 4 weeks, 4 = 8 weeks.
+function anchorStage(weekly, threshold) {
+  if (!weekly.length || threshold == null) return 0;
+  let consec = 0;
+  for (let i = weekly.length - 1; i >= 0; i--) {
+    if (weekly[i].value >= threshold) consec++;
+    else break;
+  }
+  if (consec === 0) return 0;
+  if (consec === 1) return 1;
+  if (consec <= 3) return 2;
+  if (consec <= 7) return 3;
+  return 4;
+}
+
+// Per-week stage history (each week sees stage based on its trailing consecutive run)
+function weeklyStages(weekly, threshold) {
   let consec = 0;
   return weekly.map(w => {
-    if (w.value >= mark) consec += 1; else consec = 0;
+    if (w.value >= threshold) consec++; else consec = 0;
     if (consec === 0) return 0;
     if (consec === 1) return 1;
     if (consec <= 3) return 2;
-    return 3;
+    if (consec <= 7) return 3;
+    return 4;
   });
 }
 
-function regimeFor(vixSt, moveSt, cpffSt, cycleVal) {
-  const stages = [vixSt, moveSt, cpffSt];
-  const sustained = stages.filter(s => s >= 2).length;
-  const crossed = stages.filter(s => s === 1).length;
-  const latecycle = cycleVal != null && cycleVal >= LATE_CYCLE_THRESHOLD;
-  if (sustained >= 1 && latecycle) return { label: 'Risk Off', key: 'risk-off', stage: 3 };
-  if (sustained >= 1) return { label: 'Cautionary', key: 'cautionary', stage: 2 };
-  if (crossed >= 1) return { label: 'Neutral', key: 'neutral', stage: 1 };
-  return { label: 'Risk On', key: 'risk-on', stage: 0 };
+// Cycle composite → quintile bucket. Q1 = lowest (most bullish), Q5 = highest (most bearish).
+function quintile(score) {
+  if (score == null) return null;
+  if (score < 20)  return 1;
+  if (score < 40)  return 2;
+  if (score < 60)  return 3;
+  if (score < 80)  return 4;
+  return 5;
+}
+
+// Regime per spec: anchor stages × cycle quintile.
+function computeRegime(stages, cycleQuintile) {
+  const maxStage = Math.max(...stages, 0);
+  if (maxStage === 0) return 'Risk On';
+  if (maxStage === 1 && stages.filter(s => s >= 1).length === 1) return 'Neutral';
+  // Anchor at Stage 2+
+  if (cycleQuintile == null) return 'Cautionary';
+  return cycleQuintile <= 2 ? 'Risk Off' : 'Cautionary';
 }
 
 function fmtDate(s) {
   if (!s) return '—';
-  const d = new Date(s);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// ───────── Component ─────────
+// ─────────────────────────────────────────────────────────────────────
+//   COMPONENT
+// ─────────────────────────────────────────────────────────────────────
 
 export default function MacroOverviewPage() {
   const [indHist, setIndHist] = useState(null);
-  const [cycleV2, setCycleV2] = useState(null);
   const [drawer, setDrawer] = useState({ open: false, kind: null, payload: null });
 
-  const [cycleHist, setCycleHist] = useState(null);
   useEffect(() => {
     fetch('/indicator_history.json', { cache: 'no-cache' })
       .then(r => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
-    fetch('/cycle_v2.json', { cache: 'no-cache' })
-      .then(r => r.ok ? r.json() : null).then(setCycleV2).catch(() => {});
-    fetch('/cycle_v2_history.json', { cache: 'no-cache' })
-      .then(r => r.ok ? r.json() : null).then(setCycleHist).catch(() => {});
   }, []);
 
   const data = useMemo(() => {
-    if (!indHist || !cycleV2) return null;
+    if (!indHist) return null;
 
-    function buildIndicator(key, niceName, unit) {
-      const raw = indHist[key];
-      if (!raw || !raw.points || raw.points.length === 0) return null;
-      const sortedSamples = trailing5ySorted(raw.points);
-      const mark = valueAtPercentileSorted(sortedSamples, TRIGGER_PCTILE);
-      const weekly = weeklyAggregate(raw.points, 24);
-      const stages = weeklyStages(weekly, mark);
-      const current = raw.points[raw.points.length - 1];
-      const pctile = pctileOfSorted(current[1], sortedSamples);
-      return {
-        key, niceName, unit,
-        currentValue: current[1],
-        currentDate: current[0],
-        asOf: raw.as_of,
-        pctile, mark,
-        weekly: weekly.map((w, i) => ({
-          ...w,
-          stage: stages[i],
-          pctile: pctileOfSorted(w.value, sortedSamples),
-        })),
-        currentStage: stages[stages.length - 1] || 0,
-      };
-    }
-
-    const vix = buildIndicator('vix', 'VIX', '');
-    const move = buildIndicator('move', 'MOVE', '');
-    const cpff = buildIndicator('cpff', 'CPFF', ' bp');
-
-    const cycleAsOf = cycleV2.as_of;
-    // Build the 7 Cycle Position indicators from indicator_history.json
-    const cycleIndicators = CYCLE_INDICATORS.map(cfg => {
+    // ── Vol anchors ──
+    const anchors = VOL_ANCHORS.map(cfg => {
       const raw = indHist[cfg.id];
       if (!raw || !raw.points || !raw.points.length) {
-        return { id: cfg.id, name: cfg.name, value: null, pctile: null, valueText: '—' };
+        return { ...cfg, current: null, threshold: null, stage: 0, stageName: 'Calm', weekly: [], stages: [], asOf: null };
       }
-      const sortedSamples = trailing5ySorted(raw.points);
+      const sorted5y = trailing5ySorted(raw.points);
+      const threshold = valueAtPctile(sorted5y, 85);
       const current = raw.points[raw.points.length - 1];
-      const rawPctile = pctileOfSorted(current[1], sortedSamples);
+      const weekly = weeklyClose(raw.points, 24);
+      const stages = weeklyStages(weekly, threshold);
+      const stage = anchorStage(weekly, threshold);
       return {
-        id: cfg.id,
-        name: cfg.name,
-        value: current[1],
-        pctile: rawPctile,
-        valueText: current[1] != null && !isNaN(current[1]) ? cfg.fmt(current[1]) : '—',
+        ...cfg,
+        current: current[1],
+        threshold,
+        stage,
+        stageName: STAGE_NAMES[stage] || 'Calm',
+        weekly,
+        stages,
+        asOf: raw.as_of,
       };
     });
-    // Cycle Position score = simple average of the 7 raw percentile ranks
-    const scoresAvail = cycleIndicators.map(i => i.pctile).filter(p => p != null);
-    const cycleScore = scoresAvail.length ? Math.round(scoresAvail.reduce((a, b) => a + b, 0) / scoresAvail.length) : null;
 
-    const regime = regimeFor(
-      vix?.currentStage || 0, move?.currentStage || 0, cpff?.currentStage || 0, cycleScore
-    );
+    // ── Cycle indicators (stress-direction percentile, full history) ──
+    const cycleInd = CYCLE_INDICATORS.map(cfg => {
+      const raw = indHist[cfg.id];
+      if (!raw || !raw.points || !raw.points.length) {
+        return { ...cfg, value: null, valueText: '—', stressPctile: null };
+      }
+      const sortedFull = fullHistorySorted(raw.points);
+      const current = raw.points[raw.points.length - 1];
+      const rawPct = pctileOf(current[1], sortedFull);
+      const stressPct = rawPct == null ? null : (cfg.bearishHigh ? rawPct : 100 - rawPct);
+      return {
+        ...cfg,
+        value: current[1],
+        valueText: current[1] != null && !isNaN(current[1]) ? cfg.fmt(current[1]) : '—',
+        stressPctile: stressPct,
+      };
+    });
+    const cycleAvail = cycleInd.map(i => i.stressPctile).filter(p => p != null);
+    const cycleScore = cycleAvail.length ? Math.round(cycleAvail.reduce((a, b) => a + b, 0) / cycleAvail.length) : null;
+    const cycleQuintile = quintile(cycleScore);
 
-    // Regime history (per-week) — uses each week's stages, fixed current cycle as proxy
-    const weeks = vix?.weekly?.length || 0;
+    // ── Regime ──
+    const stagesArr = anchors.map(a => a.stage);
+    const regime = computeRegime(stagesArr, cycleQuintile);
+
+    // ── Regime history (last 24 weeks) — replay per-week ──
+    const weeks = anchors[0]?.weekly?.length || 0;
     const regimeHistory = [];
     for (let i = 0; i < weeks; i++) {
-      const r = regimeFor(
-        vix?.weekly[i]?.stage || 0,
-        move?.weekly[i]?.stage || 0,
-        cpff?.weekly[i]?.stage || 0,
-        cycleScore
-      );
+      const wStages = anchors.map(a => a.stages[i] ?? 0);
+      // Use the CURRENT cycle quintile as a stand-in (we don't recompute weekly cycle history here)
+      const r = computeRegime(wStages, cycleQuintile);
       regimeHistory.push({
-        date: vix?.weekly[i]?.date,
-        label: r.label,
-        stage: r.stage,
+        date: anchors[0].weekly[i]?.date,
+        label: r,
       });
     }
 
-    let cycleHistoryBars = [];
-    if (cycleHist && cycleHist.series && cycleHist.series.headlines && cycleHist.series.headlines.cycle_value) {
-      const arr = cycleHist.series.headlines.cycle_value;
-      if (Array.isArray(arr) && arr.length > 0) {
-        cycleHistoryBars = arr.slice(-24).map(([d, v]) => {
-          const score = (v == null || isNaN(v)) ? null : Math.round(v);
-          const stage = score == null ? 0 : score < 25 ? 0 : score < 50 ? 1 : score < 75 ? 2 : 3;
-          return { date: d, score, stage };
-        });
-      }
-    }
-    return { vix, move, cpff, cycle: { score: cycleScore, asOf: cycleAsOf, indicators: cycleIndicators, historyBars: cycleHistoryBars }, regime, regimeHistory };
-  }, [indHist, cycleV2, cycleHist]);
+    return { anchors, cycleInd, cycleScore, cycleQuintile, regime, regimeHistory };
+  }, [indHist]);
 
   if (!data) {
-    return (
-      <div className="v2-shell" style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>
-        Loading macro data...
-      </div>
-    );
+    return <div className="v2-shell" style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>Loading macro data…</div>;
   }
 
-  const { vix, move, cpff, cycle, regime, regimeHistory } = data;
+  const { anchors, cycleInd, cycleScore, regime, regimeHistory } = data;
 
-  const openWeekSnapshot = (weekIdx) => {
-    setDrawer({ open: true, kind: 'week', payload: weekIdx });
-  };
-  const openIndicatorDetail = (which) => {
-    setDrawer({ open: true, kind: 'indicator', payload: which });
-  };
-  const openSubComposite = (name) => {
-    setDrawer({ open: true, kind: 'sub', payload: name });
-  };
+  const openWeek = (i) => setDrawer({ open: true, kind: 'week', payload: i });
+  const openAnchor = (id) => setDrawer({ open: true, kind: 'anchor', payload: id });
+  const openCycleInd = (id) => setDrawer({ open: true, kind: 'cycle_ind', payload: id });
 
   return (
     <>
       <style>{MO_CSS}</style>
       <div className="mo-page">
 
-        {/* TOP STRIP */}
+        {/* HEAD STRIP */}
         <div className="mo-top">
           <div>
             <div className="mo-eyebrow">Macro Overview</div>
-            <h1 className="mo-h1">Three volatility <em>triggers</em>, one <em>cycle position</em>, one regime read.</h1>
+            <h1 className="mo-h1">
+              Three volatility <em>triggers</em>, one <em>cycle position</em>, one regime read.
+            </h1>
             <p className="mo-lede">
-              Vol triggers tell us when trouble has arrived. The cycle composite tells us whether
-              that trouble matters. Together they produce a single state: <strong>Risk On</strong>{' '}
-              (stay invested), <strong>Neutral</strong> (probably noise), <strong>Cautionary</strong>{' '}
-              (trim risk), or <strong>Risk Off</strong> (defensive). We describe the tape — we don't
-              predict tops.
+              Vol triggers tell us when trouble has arrived. The cycle composite tells us
+              whether that trouble matters. Together they produce a single state:{' '}
+              <strong>Risk On</strong>, <strong>Neutral</strong>, <strong>Cautionary</strong>, or{' '}
+              <strong>Risk Off</strong>. We describe the tape — we don't predict tops.
             </p>
           </div>
 
           {/* REGIME TILE */}
           <aside className="mo-regime">
             <h2 className="mo-regime-title">Regime</h2>
-            {['Risk On', 'Neutral', 'Cautionary', 'Risk Off'].map(name => (
-              <div key={name} className={`mo-rrow ${regime.label === name ? 'current' : ''}`}>
+            {REGIME_ORDER.map(name => (
+              <div key={name} className={`mo-rrow ${regime === name ? 'current' : ''}`}>
                 <span className="mo-rpill">{name}</span>
-                <span className="mo-rdesc">{regimeDescriptions[name]}</span>
+                <span className="mo-rdesc">{REGIME_DESC[name]}</span>
               </div>
             ))}
-            <div className="mo-bar-wrap" style={{ marginTop: 18 }}>
-              <div className="mo-bar-frame">
-                <div className="mo-y-label">Regime</div>
-                <div className="mo-bar-strip">
-                  {regimeHistory.map((w, i) => (
+
+            <div className="mo-rhist-wrap">
+              <div className="mo-rhist-axis"><span>24 weeks ago</span><span>today</span></div>
+              <div className="mo-rhist-strip">
+                {regimeHistory.map((w, i) => {
+                  const stageHeight = REGIME_ORDER.indexOf(w.label);
+                  const heightPct = 18 + (stageHeight * 22);
+                  const stageClass = `s${stageHeight}`;
+                  return (
                     <span
                       key={i}
-                      className={`mo-bar s${w.stage}`}
-                      style={{ height: 18 + w.stage * 24 + '%' }}
-                      data-tt={`${fmtDate(w.date)} · ${w.label}${i === regimeHistory.length - 1 ? ' · current' : ''}`}
-                      onClick={() => openWeekSnapshot(i)}
+                      className={`mo-rhist-bar ${stageClass}`}
+                      style={{ height: heightPct + '%' }}
+                      data-tt={`${fmtDate(w.date)} · ${w.label}`}
+                      onClick={() => openWeek(i)}
                     />
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-              <div className="mo-bar-axis" style={{ paddingLeft: 26 }}><span>24 weeks ago</span><span>today</span></div>
             </div>
           </aside>
         </div>
 
-        {/* THREE VOL TILES */}
+        {/* THREE VOL TILES — raw value dials with raw threshold mark + stage badge */}
         <div className="mo-vol-grid">
-          <IndicatorTile data={vix} onDial={() => openIndicatorDetail('vix')} onBar={openWeekSnapshot} />
-          <IndicatorTile data={move} onDial={() => openIndicatorDetail('move')} onBar={openWeekSnapshot} />
-          <IndicatorTile data={cpff} onDial={() => openIndicatorDetail('cpff')} onBar={openWeekSnapshot} />
+          {anchors.map(a => (
+            <AnchorTile key={a.id} anchor={a} onDial={() => openAnchor(a.id)} onBar={openWeek} />
+          ))}
         </div>
 
-        {/* WIDE CYCLE POSITIONING TILE */}
+        {/* CYCLE POSITIONING — 7 stress-direction percentiles, simple average */}
         <div className="mo-cycle">
           <h2 className="mo-cycle-title">Cycle Positioning</h2>
-          <div className="mo-cycle-body">
 
-            <div className="mo-cycle-left" onClick={() => openIndicatorDetail('cycle')}>
-              <Dial value={cycle.score} mark={LATE_CYCLE_THRESHOLD} markLabel="top 20% mark" wide />
+          <div className="mo-cycle-body">
+            <div className="mo-cycle-left">
+              <CycleDial score={cycleScore} />
               <div className="mo-readout">
-                <span className="mo-val">{cycle.score != null ? cycle.score : '—'}</span>
+                <span className="mo-val">{cycleScore != null ? cycleScore : '—'}</span>
                 <span className="mo-denom">/ 100</span>
               </div>
             </div>
 
             <div className="mo-cycle-right">
               <div className="mo-sub-eyebrow">
-                Average of seven percentile ranks &middot; click any indicator to drill in
+                Average of seven stress-direction percentile ranks &middot; click any indicator to drill in
               </div>
               <div className="mo-ind-list">
                 <div className="mo-ind-header">
                   <span>Indicator</span>
                   <span></span>
                   <span>Reading</span>
-                  <span>Percentile Rank</span>
+                  <span>%ile (stress)</span>
                 </div>
-                {cycle.indicators.map(ind => {
-                  const p = ind.pctile;
+                {cycleInd.map(ind => {
+                  const p = ind.stressPctile;
                   return (
-                    <div key={ind.id} className="mo-ind-row" onClick={() => openSubComposite(ind.name)}>
+                    <div key={ind.id} className="mo-ind-row" onClick={() => openCycleInd(ind.id)}>
                       <span className="mo-ind-name">{ind.name}</span>
                       <span className="mo-ind-barwrap">
                         <span
@@ -343,75 +359,54 @@ export default function MacroOverviewPage() {
                   );
                 })}
                 <div className="mo-ind-avg">
-                  <span></span>
-                  <span></span>
+                  <span></span><span></span>
                   <span className="mo-ind-avg-label">Average =</span>
-                  <span className="mo-ind-avg-val">{cycle.score != null ? cycle.score : '—'} / 100</span>
+                  <span className="mo-ind-avg-val">{cycleScore != null ? cycleScore : '—'} / 100</span>
                 </div>
               </div>
             </div>
           </div>
-
-          {cycle.historyBars && cycle.historyBars.length > 0 && (
-            <div className="mo-bar-wrap" style={{ marginTop: 18 }}>
-              <div className="mo-bar-axis"><span>24 weeks ago</span><span>today</span></div>
-              <div className="mo-bar-strip no-frame">
-                {cycle.historyBars.map((w, i) => {
-                  const heightPct = w.score == null ? 8 : Math.max(8, Math.min(95, w.score));
-                  return (
-                    <span
-                      key={i}
-                      className={`mo-bar s${w.stage}`}
-                      style={{ height: heightPct + '%' }}
-                      data-tt={`${fmtDate(w.date)} · ${w.score != null ? w.score : '—'}`}
-                    />
-                  );
-                })}
-              </div>
-            </div>
-          )}
         </div>
 
       </div>
 
       <Drawer open={drawer.open} onClose={() => setDrawer({ open: false, kind: null, payload: null })}>
-        {drawer.open && (
-          <DrawerContent drawer={drawer} data={data} />
-        )}
+        {drawer.open && <DrawerContent drawer={drawer} data={data} />}
       </Drawer>
     </>
   );
 }
 
-// ───────── Sub-component: indicator tile ─────────
+// ─────────────────────────────────────────────────────────────────────
+//   SUB-COMPONENTS
+// ─────────────────────────────────────────────────────────────────────
 
-function IndicatorTile({ data, onDial, onBar }) {
-  if (!data) return null;
+function AnchorTile({ anchor, onDial, onBar }) {
+  const a = anchor;
   return (
     <div className="mo-tile">
-      <h2 className="mo-tile-title">{tileLabel(data.key)}</h2>
+      <h2 className="mo-tile-title">{a.title}</h2>
+      <div className="mo-stage-row">
+        <span className={`mo-stage-pill stage-${a.stage}`}>{a.stageName}</span>
+      </div>
       <div className="mo-dial-wrap" onClick={onDial}>
-        <Dial
-          value={data.pctile}
-          mark={TRIGGER_PCTILE}
-          markLabel={formatVal(data.mark, data.key)}
-        />
+        <RawDial value={a.current} threshold={a.threshold} max={a.scaleMax} fmt={a.fmt} />
         <div className="mo-readout">
-          <span className="mo-val">{data.pctile != null ? data.pctile : '—'}</span>
-          <span className="mo-denom">/ 100</span>
+          <span className="mo-val">{a.current != null ? a.fmt(a.current) : '—'}</span>
         </div>
+        <div className="mo-mark-line">mark = {a.threshold != null ? a.fmt(a.threshold) : '—'}</div>
       </div>
       <div className="mo-bar-wrap">
         <div className="mo-bar-axis"><span>24w</span><span>now</span></div>
-        <div className="mo-bar-strip no-frame">
-          {data.weekly.map((w, i) => {
-            const heightPct = clamp(w.pctile != null ? w.pctile : 20, 8, 95);
+        <div className="mo-bar-strip">
+          {a.weekly.map((w, i) => {
+            const heightPct = a.scaleMax ? Math.max(8, Math.min(95, (w.value / a.scaleMax) * 100)) : 50;
             return (
               <span
                 key={i}
-                className={`mo-bar s${w.stage}`}
+                className={`mo-bar s${a.stages[i] || 0}`}
                 style={{ height: heightPct + '%' }}
-                data-tt={`${fmtDate(w.date)} · ${formatVal(w.value, data.key)}`}
+                data-tt={`${fmtDate(w.date)} · ${a.fmt(w.value)}`}
                 onClick={() => onBar(i)}
               />
             );
@@ -422,55 +417,40 @@ function IndicatorTile({ data, onDial, onBar }) {
   );
 }
 
-function tileLabel(key) {
-  return key === 'vix' ? 'Equity Volatility'
-    : key === 'move' ? 'Bond Volatility'
-    : 'Funding Stress';
-}
-
-function formatVal(v, key) {
-  if (v == null) return '—';
-  return key === 'cpff' ? `${Math.round(v)} bp` : v.toFixed(1);
-}
-
-function clamp(n, lo, hi) {
-  if (n == null || isNaN(n)) return lo;
-  return Math.max(lo, Math.min(hi, n));
-}
-
-// ───────── Sub-component: Dial gauge ─────────
-
-function Dial({ value, mark, markLabel, markVal, wide = false }) {
-  const W = wide ? 260 : 230;
-  const H = wide ? 150 : 140;
+// Half-circle dial that maps RAW VALUE to position along the arc using a fixed
+// scale (0 → max). Threshold drawn as a tick + label at its raw position.
+function RawDial({ value, threshold, max, fmt }) {
   const cx = 120, cy = 120, R = 100;
-  const v = value == null ? 0 : Math.max(0, Math.min(100, value));
-  const angle = 180 - (v * 1.8);
+  const v = value == null || isNaN(value) ? 0 : Math.max(0, Math.min(max, value));
+  const valPct = (v / max) * 100;
+  const angle = 180 - (valPct * 1.8);
   const rad = (angle * Math.PI) / 180;
   const tipX = cx + R * Math.cos(rad);
   const tipY = cy - R * Math.sin(rad);
 
-  // Trigger mark position (if mark is provided as a percentile, place at that angle)
-  let markX = null, markY = null;
-  if (mark != null) {
-    const mAngle = 180 - (mark * 1.8);
-    const mRad = (mAngle * Math.PI) / 180;
-    markX = cx + R * Math.cos(mRad);
-    markY = cy - R * Math.sin(mRad);
+  let markX = null, markY = null, markLabelX = null, markLabelY = null;
+  if (threshold != null && !isNaN(threshold)) {
+    const tPct = Math.max(0, Math.min(100, (threshold / max) * 100));
+    const tAngle = 180 - (tPct * 1.8);
+    const tRad = (tAngle * Math.PI) / 180;
+    markX = cx + R * Math.cos(tRad);
+    markY = cy - R * Math.sin(tRad);
+    markLabelX = cx + (R + 14) * Math.cos(tRad);
+    markLabelY = cy - (R + 14) * Math.sin(tRad);
   }
 
   return (
-    <svg className="mo-dial" viewBox={`0 0 240 ${H}`} style={wide ? { maxWidth: 280 } : null}>
-      <path d="M 20 122 A 100 100 0 0 1 55 49" fill="rgba(0,113,227,0.18)" />
-      <path d="M 55 49 A 100 100 0 0 1 120 22" fill="rgba(0,113,227,0.42)" />
+    <svg className="mo-dial" viewBox="0 0 240 140">
+      <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)" />
+      <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)" />
       <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)" />
       <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)" />
       {markX != null && (
         <>
-          <line x1={markX} y1={markY} x2={markX + 10 * Math.cos((180 - mark * 1.8) * Math.PI / 180)} y2={markY - 10 * Math.sin((180 - mark * 1.8) * Math.PI / 180)} stroke="#0e1115" strokeWidth="1.6" strokeLinecap="round" />
+          <line x1={markX} y1={markY} x2={markX + 10*Math.cos((180 - (threshold/max*100)*1.8) * Math.PI/180)} y2={markY - 10*Math.sin((180 - (threshold/max*100)*1.8) * Math.PI/180)} stroke="#0e1115" strokeWidth="1.6" strokeLinecap="round" />
           <circle cx={markX} cy={markY} r="3" fill="#0e1115" />
-          <text x={markX + 14 * Math.cos((180 - mark * 1.8) * Math.PI / 180)} y={markY - 14 * Math.sin((180 - mark * 1.8) * Math.PI / 180)} fontFamily="JetBrains Mono" fontSize="9" fill="#0e1115" fontWeight="600" textAnchor={mark > 50 ? 'start' : 'end'}>
-            {markLabel || ''}
+          <text x={markLabelX} y={markLabelY} fontFamily="JetBrains Mono" fontSize="9" fill="#0e1115" fontWeight="600" textAnchor={threshold/max > 0.5 ? 'start' : 'end'}>
+            {fmt(threshold)}
           </text>
         </>
       )}
@@ -481,80 +461,93 @@ function Dial({ value, mark, markLabel, markVal, wide = false }) {
   );
 }
 
-// ───────── Sub-component: drawer content ─────────
+// Cycle dial — 0-100 score. Same gradient pattern, no threshold mark.
+function CycleDial({ score }) {
+  const cx = 120, cy = 120, R = 100;
+  const v = score == null ? 0 : Math.max(0, Math.min(100, score));
+  const angle = 180 - (v * 1.8);
+  const rad = (angle * Math.PI) / 180;
+  const tipX = cx + R * Math.cos(rad);
+  const tipY = cy - R * Math.sin(rad);
+  return (
+    <svg className="mo-dial" viewBox="0 0 240 140" style={{ maxWidth: 260 }}>
+      <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)" />
+      <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)" />
+      <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)" />
+      <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)" />
+      <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round" />
+      <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8" />
+      <circle cx={cx} cy={cy} r="4.5" fill="var(--accent)" />
+    </svg>
+  );
+}
 
 function DrawerContent({ drawer, data }) {
   if (drawer.kind === 'week') {
     const i = drawer.payload;
-    const vixW = data.vix?.weekly[i];
-    const moveW = data.move?.weekly[i];
-    const cpffW = data.cpff?.weekly[i];
-    const r = data.regimeHistory[i];
+    const wDate = data.anchors[0]?.weekly[i]?.date;
+    const r = data.regimeHistory[i]?.label;
     return (
       <>
         <div className="v2-drawer-eyebrow">Weekly snapshot</div>
-        <h2 className="v2-drawer-title">{fmtDate(vixW?.date)} <em>{r?.label}</em></h2>
+        <h2 className="v2-drawer-title">{fmtDate(wDate)} <em>{r}</em></h2>
         <div className="mo-drawer-section">
-          <table className="mo-drawer-table">
-            <thead><tr><th>Indicator</th><th style={{ textAlign: 'right' }}>Value</th><th style={{ textAlign: 'right' }}>State</th></tr></thead>
-            <tbody>
-              <tr><td>Equity Vol · VIX</td><td className="num">{formatVal(vixW?.value, 'vix')}</td><td className="num">{vixW?.stage === 0 ? 'Calm' : `Stage ${vixW?.stage}`}</td></tr>
-              <tr><td>Bond Vol · MOVE</td><td className="num">{formatVal(moveW?.value, 'move')}</td><td className="num">{moveW?.stage === 0 ? 'Calm' : `Stage ${moveW?.stage}`}</td></tr>
-              <tr><td>Funding · CPFF</td><td className="num">{formatVal(cpffW?.value, 'cpff')}</td><td className="num">{cpffW?.stage === 0 ? 'Calm' : `Stage ${cpffW?.stage}`}</td></tr>
-              <tr><td>Cycle Position</td><td className="num">{data.cycle.score}</td><td className="num">{data.cycle.score >= 80 ? 'At peak' : 'Mid-cycle'}</td></tr>
-            </tbody>
-          </table>
+          <h4>Three vol anchors</h4>
+          <table className="mo-drawer-table"><tbody>
+            {data.anchors.map(a => (
+              <tr key={a.id}><td>{a.title}</td><td className="num">{a.weekly[i] ? a.fmt(a.weekly[i].value) : '—'}</td><td className="num">{STAGE_NAMES[a.stages[i] || 0]}</td></tr>
+            ))}
+          </tbody></table>
         </div>
         <div className="mo-drawer-section">
-          <h4>Seven cycle sub-composites</h4>
-          <table className="mo-drawer-table">
-            <tbody>
-              {data.cycle.subs.map(s => (
-                <tr key={s.name}><td>{s.name}</td><td className="num">{s.score ?? '—'}</td></tr>
-              ))}
-            </tbody>
-          </table>
+          <h4>Cycle composite (current)</h4>
+          <p className="narrative">Cycle Position: <strong>{data.cycleScore} / 100</strong> · Average of seven stress-direction percentiles.</p>
         </div>
       </>
     );
   }
-  if (drawer.kind === 'indicator') {
+  if (drawer.kind === 'anchor') {
+    const a = data.anchors.find(x => x.id === drawer.payload);
+    if (!a) return null;
     return (
       <>
-        <div className="v2-drawer-eyebrow">Indicator detail</div>
-        <h2 className="v2-drawer-title"><em>{drawer.payload.toUpperCase()}</em></h2>
-        <div className="mo-drawer-stub">
-          Indicator detail view — extended chart, weeks-above-mark rollup, and methodology.
-          Wiring after the v1 layout lands.
+        <div className="v2-drawer-eyebrow">Anchor detail</div>
+        <h2 className="v2-drawer-title">{a.title}</h2>
+        <div className="mo-drawer-section">
+          <p className="narrative">
+            Current <strong>{a.niceName} = {a.current != null ? a.fmt(a.current) : '—'}</strong>.
+            Trailing-5y 85th-percentile threshold = <strong>{a.threshold != null ? a.fmt(a.threshold) : '—'}</strong>.
+            Stage: <strong>{a.stageName}</strong>.
+          </p>
         </div>
+        <div className="mo-drawer-stub">Indicator-detail chart (full history with threshold line, stage transitions, etc.) is the next build pass.</div>
       </>
     );
   }
-  if (drawer.kind === 'sub') {
+  if (drawer.kind === 'cycle_ind') {
+    const ind = data.cycleInd.find(x => x.id === drawer.payload);
+    if (!ind) return null;
     return (
       <>
-        <div className="v2-drawer-eyebrow">Sub-composite detail</div>
-        <h2 className="v2-drawer-title"><em>{drawer.payload}</em></h2>
-        <div className="mo-drawer-stub">
-          Sub-composite drill-down — underlying indicators, percentile ranks, methodology.
-          Wiring after the v1 layout lands.
+        <div className="v2-drawer-eyebrow">Cycle indicator</div>
+        <h2 className="v2-drawer-title">{ind.name}</h2>
+        <div className="mo-drawer-section">
+          <p className="narrative">
+            Current reading: <strong>{ind.valueText}</strong>.
+            Stress-direction percentile rank (full history): <strong>{ind.stressPctile != null ? ind.stressPctile + '%' : '—'}</strong>.
+            {ind.bearishHigh ? ' High value is bearish.' : ' Low value is bearish.'}
+          </p>
         </div>
+        <div className="mo-drawer-stub">Indicator-detail chart is the next build pass.</div>
       </>
     );
   }
   return null;
 }
 
-// ───────── Regime descriptions ─────────
-
-const regimeDescriptions = {
-  'Risk On':     'No volatility triggers.',
-  'Neutral':     'One volatility trigger crossed.',
-  'Cautionary':  'One or more volatility triggers sustained.',
-  'Risk Off':    'Sustained · late-cycle positioning.',
-};
-
-// ───────── Inline CSS (matches v5 mockup) ─────────
+// ─────────────────────────────────────────────────────────────────────
+//   CSS
+// ─────────────────────────────────────────────────────────────────────
 
 const MO_CSS = `
 .mo-page{max-width:1280px;margin:0 auto;padding:28px 32px 64px}
@@ -570,46 +563,56 @@ const MO_CSS = `
 .mo-rrow{display:grid;grid-template-columns:108px 1fr;gap:14px;padding:7px 0;align-items:center;font-size:12.5px;line-height:1.4}
 .mo-rpill{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:13px;text-align:center;padding:5px 0;border-radius:14px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--border-faint);letter-spacing:-0.005em}
 .mo-rrow.current .mo-rpill{background:var(--accent-soft);color:var(--accent);border:1.5px solid var(--accent);font-weight:500}
-.mo-rdesc{color:var(--ink-1);font-size:12.5px;font-weight:400}
+.mo-rdesc{color:var(--ink-1);font-size:12.5px}
 .mo-rrow.current .mo-rdesc{color:var(--ink-0);font-weight:500}
+.mo-rhist-wrap{margin-top:18px;padding-top:14px;border-top:1px solid var(--border-faint)}
+.mo-rhist-axis{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:6px}
+.mo-rhist-strip{display:flex;align-items:end;gap:2px;height:48px}
+.mo-rhist-bar{flex:1;border-radius:2px 2px 0 0;cursor:pointer;min-height:5px;position:relative;transition:filter 80ms,transform 80ms}
+.mo-rhist-bar:hover{filter:brightness(1.15);transform:scaleY(1.04)}
+.mo-rhist-bar.s0{background:rgba(0,113,227,0.20)}
+.mo-rhist-bar.s1{background:rgba(0,113,227,0.42)}
+.mo-rhist-bar.s2{background:rgba(0,113,227,0.68)}
+.mo-rhist-bar.s3{background:rgba(0,113,227,0.92)}
+.mo-rhist-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0);color:#fff;font-family:var(--font-mono);font-size:10.5px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;z-index:8}
+.mo-rhist-bar:hover::after{opacity:1}
+
+.mo-vol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.mo-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 18px}
+.mo-tile-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:22px;color:var(--accent);text-align:center;margin:0 0 8px;letter-spacing:-0.005em}
+.mo-stage-row{display:flex;justify-content:center;margin-bottom:4px}
+.mo-stage-pill{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.10em;text-transform:uppercase;padding:3px 10px;border-radius:11px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--border-faint);font-weight:600}
+.mo-stage-pill.stage-0{color:var(--ink-2)}
+.mo-stage-pill.stage-1{color:#c47a14;border-color:rgba(196,122,20,0.3);background:rgba(196,122,20,0.06)}
+.mo-stage-pill.stage-2,.mo-stage-pill.stage-3,.mo-stage-pill.stage-4{color:var(--accent);border-color:rgba(0,113,227,0.3);background:var(--accent-soft)}
+
+.mo-dial-wrap{display:flex;flex-direction:column;align-items:center;margin:8px 0 0;cursor:pointer}
+.mo-dial{width:100%;max-width:230px;height:auto;display:block;transition:filter 80ms}
+.mo-dial-wrap:hover .mo-dial{filter:brightness(1.04)}
+.mo-readout{margin-top:-4px;display:flex;align-items:baseline}
+.mo-val{font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.015em;color:var(--ink-0)}
+.mo-denom{font-family:var(--font-display);font-style:italic;font-size:16px;color:var(--ink-3);margin-left:4px}
+.mo-mark-line{font-family:var(--font-mono);font-size:10px;letter-spacing:0.04em;color:var(--ink-3);margin-top:6px}
 
 .mo-bar-wrap{margin-top:14px;padding-top:12px;border-top:1px solid var(--border-faint)}
 .mo-bar-axis{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:6px}
-.mo-bar-frame{display:grid;grid-template-columns:18px 1fr;gap:8px;align-items:end}
-.mo-y-label{writing-mode:vertical-rl;transform:rotate(180deg);font-family:var(--font-mono);font-size:8.5px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:500;text-align:center;padding-bottom:14px;white-space:nowrap}
-.mo-bar-strip{display:flex;align-items:end;gap:2px;height:48px;border-bottom:1px solid var(--border-faint);position:relative}
-.mo-bar-strip.no-frame{border-bottom:none;height:54px}
-.mo-bar{flex:1;border-radius:2px 2px 0 0;cursor:pointer;transition:filter 80ms,transform 80ms;min-height:5px;position:relative;outline:none}
-.mo-bar:hover{filter:brightness(1.15);transform:scaleY(1.04) translateY(-1.5px)}
+.mo-bar-strip{display:flex;align-items:end;gap:2px;height:48px;position:relative}
+.mo-bar{flex:1;border-radius:2px 2px 0 0;cursor:pointer;min-height:5px;position:relative;transition:filter 80ms}
+.mo-bar:hover{filter:brightness(1.15)}
 .mo-bar.s0{background:rgba(0,113,227,0.20)}
 .mo-bar.s1{background:rgba(0,113,227,0.42)}
 .mo-bar.s2{background:rgba(0,113,227,0.68)}
 .mo-bar.s3{background:rgba(0,113,227,0.92)}
-.mo-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0);color:#fff;font-family:var(--font-mono);font-size:10.5px;font-weight:500;letter-spacing:0.02em;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0ms;z-index:8}
+.mo-bar.s4{background:rgba(0,113,227,0.92)}
+.mo-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0);color:#fff;font-family:var(--font-mono);font-size:10.5px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;z-index:8}
 .mo-bar:hover::after{opacity:1}
-.mo-bar::before{content:'';position:absolute;left:50%;bottom:calc(100% + 1px);transform:translateX(-50%);border:5px solid transparent;border-top-color:var(--ink-0);pointer-events:none;opacity:0;z-index:8}
-.mo-bar:hover::before{opacity:1}
-
-.mo-vol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
-.mo-tile{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px 18px}
-.mo-tile-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:22px;color:var(--accent);text-align:center;margin:0 0 4px;letter-spacing:-0.005em}
-.mo-dial-wrap{display:flex;flex-direction:column;align-items:center;margin:8px 0 0;cursor:pointer}
-.mo-dial{width:100%;max-width:230px;height:auto;display:block;transition:filter 80ms}
-.mo-dial-wrap:hover .mo-dial{filter:brightness(1.04)}
-.mo-readout{margin-top:-4px;display:flex;align-items:baseline;gap:5px}
-.mo-val{font-family:var(--font-display);font-weight:400;font-size:42px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.015em;color:var(--ink-0)}
-.mo-denom{font-family:var(--font-display);font-style:italic;font-size:16px;color:var(--ink-3)}
 
 .mo-cycle{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px 28px}
 .mo-cycle-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:24px;color:var(--accent);text-align:left;margin:0 0 18px;letter-spacing:-0.005em}
 .mo-cycle-body{display:grid;grid-template-columns:300px 1fr;gap:34px;align-items:center}
-.mo-cycle-left{display:flex;flex-direction:column;align-items:center;cursor:pointer}
-.mo-cycle-right .mo-sub-eyebrow{font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:500;margin-bottom:10px}
-.mo-sub-list{display:flex;flex-direction:column;gap:7px}
-.mo-sub-row{display:grid;grid-template-columns:130px 1fr 38px;gap:14px;align-items:center;font-size:12.5px;cursor:pointer;padding:4px 6px;margin:-4px -6px;border-radius:5px;transition:background 80ms}
-.mo-sub-row:hover{background:var(--surface-2)}
-.mo-sub-name{color:var(--ink-1);font-weight:500}
-.mo-sub-bar-wrap{display:block;height:8px;background:var(--surface-2);border-radius:3px;overflow:hidden;position:relative}
+.mo-cycle-left{display:flex;flex-direction:column;align-items:center}
+
+.mo-sub-eyebrow{font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:500;margin-bottom:12px}
 .mo-ind-list{display:flex;flex-direction:column;gap:4px;font-size:12.5px}
 .mo-ind-header{display:grid;grid-template-columns:230px 1fr 90px 110px;gap:18px;padding:4px 6px;color:var(--ink-3);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;border-bottom:1px solid var(--border-faint);margin-bottom:4px;white-space:nowrap}
 .mo-ind-header span:nth-child(3),.mo-ind-header span:nth-child(4){text-align:right}
@@ -626,18 +629,13 @@ const MO_CSS = `
 .mo-ind-avg{display:grid;grid-template-columns:230px 1fr 90px 110px;gap:18px;padding:10px 6px 2px;align-items:center;border-top:1px solid var(--border-faint);margin-top:6px}
 .mo-ind-avg-label{font-family:var(--font-display);font-style:italic;font-size:12.5px;color:var(--ink-2);text-align:right}
 .mo-ind-avg-val{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--accent);letter-spacing:-0.005em;text-align:right}
-.mo-sub-bar{display:block;height:100%}
-.mo-sub-bar.low{background:rgba(0,113,227,0.32)}
-.mo-sub-bar.med{background:rgba(0,113,227,0.55)}
-.mo-sub-bar.high{background:rgba(0,113,227,0.85)}
-.mo-sub-val{font-family:var(--font-mono);font-size:11.5px;color:var(--ink-0);font-weight:600;text-align:right}
-.mo-peak-mark{position:absolute;top:-2px;bottom:-2px;width:1.5px;background:var(--ink-3);left:80%}
 
 .mo-drawer-section{margin-bottom:22px}
 .mo-drawer-section h4{font-size:10.5px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin:0 0 10px}
 .mo-drawer-table{width:100%;border-collapse:collapse;font-size:13px}
-.mo-drawer-table th{font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-3);font-weight:500;text-align:left;padding:8px 0;border-bottom:1px solid var(--border-faint)}
 .mo-drawer-table td{padding:9px 0;border-bottom:1px solid var(--border-faint);color:var(--ink-1)}
 .mo-drawer-table td.num{font-family:var(--font-mono);text-align:right;color:var(--ink-0);font-weight:500}
-.mo-drawer-stub{background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:14px 16px;color:var(--ink-1);font-size:13px;line-height:1.55}
+.narrative{font-size:13px;color:var(--ink-1);line-height:1.6;background:var(--surface-2);border-radius:6px;padding:12px 14px;margin:0}
+.narrative strong{color:var(--ink-0);font-weight:600}
+.mo-drawer-stub{background:var(--surface-2);border-left:3px solid var(--accent);border-radius:0 6px 6px 0;padding:14px 16px;color:var(--ink-1);font-size:13px;line-height:1.55;margin-top:14px}
 `;
