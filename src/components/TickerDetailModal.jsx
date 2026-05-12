@@ -416,7 +416,10 @@ function SignalIntelligenceRail({
     const w   = weightsForTiles.insider;
     // Pipeline gap: the scan didn't write an insider components block at all.
     if (!c || c.buy_count == null) {
-      return { state: "neutral", value: "n/a", meta: "Insider data unavailable for this name today (pipeline gap)", detail: null };
+      // 2026-05-12 Joe directive — full coverage signal (SEC Form 4 covers
+      // every US-listed equity), so null = pipeline gap, not a coverage
+      // gap. Tile renders ⚠ to match the summary row above.
+      return { state: "neutral", value: "⚠", meta: "Data missing — Form 4 ingest didn't return rows for this ticker. Engineering will catch on next freshness sweep.", detail: null };
     }
     const buys  = Number(c.buy_count || 0);
     const sells = Number(c.sell_count || 0);
@@ -424,7 +427,12 @@ function SignalIntelligenceRail({
     if (buys === 0 && sells === 0) {
       return { state: "neutral", value: "0", meta: "No Form 4 buys or sells in the last 30 days", detail: null };
     }
-    const value = fmtSubSimple(sub);
+    // 2026-05-12 — when sub is null but we have events, that means the v2
+    // signal returned None (typically because remaining transactions are all
+    // 10b5-1 routine sales after filtering, or any other filtered-to-zero
+    // outcome). The honest tile value is "0" (data fetched, signal nets
+    // out) with the bullets describing what was filtered, not "—".
+    const value = sub != null ? fmtSubSimple(sub) : "0";
     const buy$  = fmtMoneyT(c.buy_dollar_total);
     const sell$ = fmtMoneyT(c.sell_dollar_total);
     const bullets = [];
@@ -494,7 +502,9 @@ function SignalIntelligenceRail({
     const sub    = subsForTiles.congress;
     const w      = weightsForTiles.congress;
     if ((!compC || compC.buy_count == null) && cBuys.length === 0 && cSells.length === 0) {
-      return { state: "neutral", value: "n/a", meta: "Congress trade data unavailable for this name today", detail: null };
+      // 2026-05-12 — full coverage signal (every disclosed congressional trade
+      // lands in congress_trades_daily), so null = pipeline gap.
+      return { state: "neutral", value: "⚠", meta: "Data missing — congress disclosures ingest didn't return rows for this ticker. Engineering will catch on next freshness sweep.", detail: null };
     }
     const buys  = compC ? Number(compC.buy_count  || 0) : cBuys.length;
     const sells = compC ? Number(compC.sell_count || 0) : cSells.length;
@@ -564,7 +574,10 @@ function SignalIntelligenceRail({
     const sub    = subsForTiles.options;
     const w      = weightsForTiles.options;
     if (!compO && fCalls.length === 0 && fPuts.length === 0) {
-      return { state: "neutral", value: "n/a", meta: "Options flow data unavailable for this name today", detail: null };
+      // 2026-05-12 — Options Flow is VENDOR-RESTRICTED (Unusual Whales tracks
+      // ~2,000 names with active options markets). Null = ticker outside that
+      // universe, not a pipeline gap. Render ⊘.
+      return { state: "neutral", value: "⊘", meta: "Not in scanned universe — this ticker is outside Unusual Whales' options coverage (~2,000 names with active options markets). Expected, not a bug.", detail: null };
     }
     const callCt = fCalls.length;
     const putCt  = fPuts.length;
@@ -632,7 +645,10 @@ function SignalIntelligenceRail({
     const sub = subsForTiles.analyst;
     const w   = weightsForTiles.analyst;
     if (!c || c.action_count == null) {
-      return { state: "neutral", value: "n/a", meta: "Analyst data unavailable for this name today (pipeline gap)", detail: null };
+      // 2026-05-12 — Analyst Actions is VENDOR-RESTRICTED (~2,000 covered
+      // names with broker analyst coverage). Null usually = ticker not
+      // covered by analysts, not a pipeline gap. Render ⊘.
+      return { state: "neutral", value: "⊘", meta: "Not in scanned universe — this ticker is outside broker analyst coverage (~2,000 covered names). Expected, not a bug.", detail: null };
     }
     const n = Number(c.action_count || 0);
     if (n === 0) {
@@ -678,7 +694,10 @@ function SignalIntelligenceRail({
     const sub = subsForTiles.short_interest;
     const w   = weightsForTiles.short_interest;
     if (!c || (c.latest_si_pct_of_float == null && c.latest_ctb_pct == null)) {
-      return { state: "neutral", value: "n/a", meta: "Short interest data unavailable for this name today (pipeline gap)", detail: null };
+      // 2026-05-12 — Short Interest is FULL UNIVERSE (FINRA reports every
+      // 2 weeks for every US-listed equity). Null = ingest gap, not a
+      // coverage gap. Render ⚠.
+      return { state: "neutral", value: "⚠", meta: "Data missing — FINRA short interest ingest didn't return rows for this ticker. Engineering will catch on next freshness sweep.", detail: null };
     }
     const siPct = c.latest_si_pct_of_float;
     const ctb   = c.latest_ctb_pct;
