@@ -23,7 +23,7 @@
 //   onRemoveFromWatchlist  : (ticker) => Promise<void>
 //   portfolioAuthed        : bool
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
 import useV5ScanBatch from "../hooks/useV5ScanBatch";
 import { Tip } from "../InfoTip";
@@ -172,11 +172,89 @@ function WatchActionCell({ ticker, onWatchlist, onAdd, onRemove, busy, portfolio
   );
 }
 
+// ─── Theme cell: click-to-edit inline ──────────────────────────────────────
+// Renders the saved theme as muted text by default. Clicking switches to an
+// inline <input>. Pressing Enter or blurring saves via onUpdateTheme; Esc
+// cancels. Only editable for rows on the user's own watchlist (props guard).
+function ThemeCell({ ticker, value, editable, onUpdateTheme }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft]     = useState(value || "");
+  const [busy, setBusy]       = useState(false);
+  const [err, setErr]         = useState(null);
+  const inputRef = useRef(null);
+
+  // Keep draft in sync if the upstream value updates after a save.
+  useEffect(() => { if (!editing) setDraft(value || ""); }, [value, editing]);
+  useEffect(() => { if (editing && inputRef.current) inputRef.current.focus(); }, [editing]);
+
+  const save = async () => {
+    const next = draft.trim();
+    if (next === (value || "").trim()) { setEditing(false); return; }
+    setBusy(true); setErr(null);
+    try {
+      await onUpdateTheme(ticker, next);
+      setEditing(false);
+    } catch (e) {
+      setErr(String(e?.message || e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (!editing) {
+    return (
+      <span
+        onClick={editable ? (e) => { e.stopPropagation(); setEditing(true); } : undefined}
+        title={editable ? (value ? value + " · click to edit" : "Click to add a theme") : value}
+        style={{
+          color: value ? "var(--text-dim)" : "var(--text-muted)",
+          fontSize: 11,
+          fontStyle: value ? "normal" : "italic",
+          maxWidth: 220, display: "inline-block",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          verticalAlign: "bottom",
+          cursor: editable ? "text" : "default",
+        }}
+      >
+        {value || (editable ? "Add theme…" : "—")}
+      </span>
+    );
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      type="text"
+      value={draft}
+      disabled={busy}
+      onChange={(e) => setDraft(e.target.value)}
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") save();
+        if (e.key === "Escape") { setEditing(false); setDraft(value || ""); setErr(null); }
+      }}
+      onBlur={save}
+      placeholder="e.g. AI / Semis"
+      style={{
+        width: "100%", maxWidth: 220,
+        fontSize: 11, fontFamily: "var(--font-ui)",
+        padding: "2px 6px",
+        background: "var(--surface-2)",
+        border: "1px solid " + (err ? "var(--red, var(--accent))" : "var(--accent)"),
+        borderRadius: 4,
+        color: "var(--text)",
+        outline: "none",
+      }}
+      title={err || ""}
+    />
+  );
+}
+
 // ─── MTTable column registry ─────────────────────────────────────────────────
 // Schema per MTTable: { key, label, numeric?, defaultVisible?, defaultWidth?,
 // tooltip?, render?(row), sortValue?(row) }
 // numeric:true triggers right-aligned monospace tabular-nums per MTTable CSS.
-function buildColumns() {
+function buildColumns({ onUpdateTheme, userOwnsRow }) {
   const baseCols = [
     {
       key: "ticker", label: "TICKER", defaultWidth: 110,
@@ -310,13 +388,15 @@ function buildColumns() {
     },
     {
       key: "theme", label: "THEME", defaultWidth: 220,
-      tooltip: "Your watchlist note for this ticker",
+      tooltip: "Your watchlist note for this ticker. Click to edit.",
       sortValue: (r) => (r.theme || "").toLowerCase(),
       render: (r) => (
-        <span style={{
-          color: "var(--text-dim)", fontSize: 11, maxWidth: 220, display: "inline-block",
-          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", verticalAlign: "bottom",
-        }} title={r.theme}>{r.theme || "—"}</span>
+        <ThemeCell
+          ticker={r.ticker}
+          value={r.theme}
+          editable={!!onUpdateTheme && userOwnsRow(r.ticker)}
+          onUpdateTheme={onUpdateTheme}
+        />
       ),
     },
   ];
@@ -520,8 +600,6 @@ function buildColumns() {
   ];
 }
 
-const COLUMNS = buildColumns();
-
 export default function WatchlistTable({
   rows, signals, screener, info,
   onOpenTicker, heldTickers, emptyMessage,
@@ -529,8 +607,20 @@ export default function WatchlistTable({
   userWatchlistTickers,
   onAddToWatchlist,
   onRemoveFromWatchlist,
+  onUpdateTheme,
   portfolioAuthed = false,
 }) {
+  // Column registry depends on the row-ownership predicate, so re-derive
+  // when the user's watchlist set changes (e.g. they add/remove a ticker).
+  const COLUMNS = useMemo(
+    () => buildColumns({
+      onUpdateTheme: portfolioAuthed ? onUpdateTheme : null,
+      userOwnsRow: (t) => userWatchlistTickers
+        ? userWatchlistTickers.has(String(t || "").toUpperCase())
+        : false,
+    }),
+    [onUpdateTheme, portfolioAuthed, userWatchlistTickers]
+  );
   const [watchBusy, setWatchBusy] = useState(null);
   const onAdd = async (t) => {
     if (!onAddToWatchlist) return;
