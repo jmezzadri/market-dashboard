@@ -450,6 +450,7 @@ export default function MTTable({
               ) : processedRows.map((row, i) => (
                 <tr
                   key={getRowKey(row, i)}
+                  className={onRowClick ? "clickable" : ""}
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                   style={onRowClick ? { cursor: "pointer" } : undefined}
                 >
@@ -552,4 +553,5 @@ const MT_TABLE_CSS = `
   white-space: normal; overflow: visible; text-overflow: clip; vertical-align: top;
 }
 .mt-table-root--look .mt-table tbody tr:hover { background: transparent; }
+.mt-table-root--look .mt-table tbody tr.clickable:hover { background: var(--hover, var(--surface-3)); }
 `;
