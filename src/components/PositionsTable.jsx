@@ -1,59 +1,34 @@
 // PositionsTable — sortable, user-customizable positions grid.
 //
-// Item 36 rewrite: columns are now a registry, users can drag-reorder headers
-// and show/hide columns via the "Edit columns" picker. Layout preferences
-// persist per user to public.user_preferences (see useTablePreferences).
+// Migrated to MTTable (Tier A) 2026-05-12 as part of the unified-table sweep
+// (PR feature/dev-mttable-unified-sweep-pt2). MTTable owns sort, filter,
+// resize, reorder, visibility, search, and toolbar; the Actions column is
+// rendered via MTTable's new `pinned: "right"` mechanism so Edit / Close /
+// Delete buttons always sit on the rightmost edge and never participate in
+// reorder. Per-table column prefs persist via localStorage keyed by tableKey.
 //
 // Props
 // -----
 //   rows          : Array<raw position> (from App.jsx heldPositions).
-//                   Shape: { id, accountId, ticker, name, sector, price,
-//                            avgCost, shares, value, beta, acctLabel,
-//                            purchaseDate }
 //   grandTotal    : total wealth for % of wealth column
-//   screener      : { TICKER: { close, prev_close, marketcap, next_earnings_date,... } }
-//                   Used for PNL DAY, Market Cap, Next Earnings lookups.
-//   info          : { TICKER: { next_earnings_date, marketcap, dividend_yield, has_dividend,... } }
-//                   Used as a fallback when screener row isn't present.
+//   screener      : { TICKER: { close, prev_close, marketcap, ... } }
+//   info          : { TICKER: { next_earnings_date, marketcap, dividend_yield, ... } }
+//   signals       : scanData.signals (used by Trading Opps cluster renderers)
 //   onOpenTicker  : fn(ticker) — open detail modal
-//   onAdd, onBulkImport, onEdit, onClose, onDelete — action bar / row buttons.
-//                   onClose ships proceeds to a cash row via the
-//                   close_position RPC; onDelete is data-cleanup only.
+//   onAdd, onBulkImport, onRescan      — action-bar buttons (top)
+//   onEdit, onClose, onDelete          — per-row actions (pinned-right column)
 //   emptyMessage  : string shown when rows is empty
-//
-// Column registry
-// ---------------
-// Every column is { id, label, description, align, type, pinned?, getValue,
-// renderCell }. `getValue` is used for sort comparisons; `renderCell` turns
-// the value into a JSX node. Pinned columns (actions) can't be hidden or
-// reordered.
-//
-// Data sources per column (see useTablePreferences for how user preferences
-// merge with these defaults):
-//   ticker, name, sector, shares, price, avgCost, pnl$, pnlPct, wealthPct,
-//   account, beta, purchaseDate  →  the row itself
-//   totalCost, currentValue       →  derived (shares × avgCost / price)
-//   pnlDay$, pnlDayPct            →  screener[T].close / prev_close
-//   holdingDays, annualizedPnl    →  derived from purchaseDate
-//   marketcap, nextEarnings       →  screener[T] or info[T]
-//   divYield                      →  info[T].dividend_yield (may be null
-//                                    until a follow-up scan-ticker pass
-//                                    populates it)
+//   priceCaption / eventsCaption / footnoteSource — TableFootnote captions
+//   tableKey      : MTTable localStorage storageKey (default "positions")
 
 import { useMemo, useState } from "react";
 import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
 import useV5ScanBatch from "../hooks/useV5ScanBatch";
 import { Tip } from "../InfoTip";
-import TableColumnPicker from "./TableColumnPicker";
 import TableFootnote from "./TableFootnote";
-import { useTablePreferences } from "../hooks/useTablePreferences";
 import { computeSectionComposites, colorForDirection } from "../ticker/sectionComposites";
+import MTTable from "./MTTable";
 
-// Trading Opps signal columns (technicals/insider/options/congress/
-// analyst/dark-pool sub-scores + OVR composite). Joe directive 2026-05-11:
-// surface the same scanner intelligence next to every owned name on the
-// Portfolio Insights position tables. Columns + scoring logic mirror the
-// Trading Opps watchlist exactly so OVR here = OVR on Trading Opps.
 const SIGNAL_COLS = [
   { key: "technicals", short: "Technical",             long: "Technicals (25% of OVR)" },
   { key: "insider",    short: "Insider",               long: "Insider Form-4 buys/sells (25%)" },
@@ -88,7 +63,6 @@ const fmtShares = (v) =>
     maximumFractionDigits: 4,
   });
 
-// Compact market-cap: 1.47T, 180.6M, 42B, etc.
 const fmtMarketCap = (v) => {
   if (v == null) return "—";
   const n = Number(v);
@@ -101,9 +75,6 @@ const fmtMarketCap = (v) => {
 };
 
 const fmtDate = (v) => {
-  // Item #16: standardize to MM/DD/YYYY across all date columns (purchaseDate,
-  // nextEarnings). Using a locale-independent pad so server TZ / user locale
-  // never flips "Apr 6, 2026" vs "04/06/2026" spelling.
   if (!v) return "—";
   try {
     const d = new Date(v);
@@ -112,9 +83,7 @@ const fmtDate = (v) => {
     const dd = String(d.getDate()).padStart(2, "0");
     const yyyy = d.getFullYear();
     return `${mm}/${dd}/${yyyy}`;
-  } catch {
-    return "—";
-  }
+  } catch { return "—"; }
 };
 
 function daysBetween(from, to) {
@@ -143,10 +112,6 @@ const betaColor = (v) =>
   : v > 1.0 ? "var(--yellow)"
   : v > 0.5 ? "#B8860B" : "var(--green)";
 
-// Signal-section score cell — mirrors Trading Opps. Positive scores
-// render in the section's direction color (green/red); null renders as
-// muted em-dash. No tinting or pills here — the position rows are
-// already P&L-colored, layering more color noise would clutter them.
 function ScoreCell({ score, direction }) {
   const col = score == null ? "var(--text-dim)" : colorForDirection(direction);
   const display = score == null ? "—" : (score >= 0 ? "+" : "") + score;
@@ -157,19 +122,11 @@ function ScoreCell({ score, direction }) {
   );
 }
 
-function SortArrow({ dir }) {
-  if (!dir) return <span style={{ opacity: 0.3, marginLeft: 4 }}>↕</span>;
-  return <span style={{ marginLeft: 4, color: "var(--text)" }}>{dir === "asc" ? "▲" : "▼"}</span>;
-}
-
-// Item 41: format an option row's ticker cell into a compact spec so the
-// PositionsTable row reads "AAPL 04/17/26 $250 C LONG" instead of just "AAPL".
-// Non-option rows fall through to the bare ticker.
+// Compact option spec: "AAPL 04/17/26 $250 C LONG"
 function displayTicker(r) {
   if (r.assetClass !== "option") return r.ticker;
   const parts = [r.ticker];
   if (r.expiration) {
-    // YYYY-MM-DD → MM/DD/YY
     const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(r.expiration);
     if (m) parts.push(`${m[2]}/${m[3]}/${m[1].slice(2)}`);
   }
@@ -179,659 +136,489 @@ function displayTicker(r) {
   return parts.join(" ");
 }
 
-// ─── column registry ─────────────────────────────────────────────────────────
-// Values are computed up-front in the `enrich` step below and then read by
-// both the sort comparator (via `sortValue`) and `renderCell`.
-const COLUMNS = [
-  {
-    id: "ticker",
-    label: "TICKER",
-    description: "Ticker symbol",
-    align: "left",
-    sortValue: (r) => r.ticker,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>
-        {displayTicker(r)}
-      </span>
-    ),
-  },
-  {
-    id: "name",
-    label: "NAME",
-    description: "Company or fund name",
-    align: "left",
-    sortValue: (r) => (r.name || "").toLowerCase(),
-    renderCell: (r) => (
-      <span style={{
-        color: "var(--text-muted)", maxWidth: 220, display: "inline-block",
-        overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
-        verticalAlign: "bottom",
-      }} title={r.name}>{r.name || "—"}</span>
-    ),
-  },
-  {
-    id: "sector",
-    label: "SECTOR",
-    description: "Sector / asset class",
-    align: "left",
-    sortValue: (r) => (r.sector || "").toLowerCase(),
-    renderCell: (r) => (
-      <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }}>
-        {r.sector || "—"}
-      </span>
-    ),
-  },
-  {
-    id: "quantity",
-    label: "QTY",
-    description: "Total quantity held (shares for equities; units for crypto; dollars for cash)",
-    align: "right",
-    sortValue: (r) => r.quantity,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
-        {fmtShares(r.quantity)}
-      </span>
-    ),
-  },
-  {
-    id: "price",
-    label: "PRICE/SHARE",
-    description: "Current market price per share",
-    align: "right",
-    sortValue: (r) => r.price,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
-        {fmt$Full(r.price)}
-      </span>
-    ),
-  },
-  {
-    id: "avgCost",
-    label: "COST/SHARE",
-    description: "Average cost paid per share",
-    align: "right",
-    sortValue: (r) => r.avgCost,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-        {fmt$Full(r.avgCost)}
-      </span>
-    ),
-  },
-  {
-    id: "totalCost",
-    label: "TOTAL COST",
-    description: "shares × avg cost — what you paid in aggregate",
-    align: "right",
-    sortValue: (r) => r.totalCost,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-        {fmt$Full(r.totalCost)}
-      </span>
-    ),
-  },
-  {
-    id: "currentValue",
-    label: "CURRENT VALUE",
-    description: "shares × current price — what it's worth now",
-    align: "right",
-    sortValue: (r) => r.currentValue,
-    renderCell: (r) => {
-      // Have-Price gate (Joe directive — bug 1155). When the position has
-      // no fresh market price we refuse to display ANY value here — even
-      // if the persisted positions.value column still has the cost-basis
-      // fallback from the original row insert. The price itself is the
-      // source of truth; fall through to a muted "(no price yet)" label
-      // so the column does not lie about current market value.
-      if (r.price == null) {
+// ─── MTTable column registry ─────────────────────────────────────────────────
+// Schema per MTTable: { key, label, numeric?, categorical?, defaultVisible?,
+// defaultWidth?, tooltip?, render?(row), sortValue?(row), pinned? }
+function buildColumns({ onEdit, onClose, onDelete }) {
+  const baseCols = [
+    {
+      key: "ticker", label: "TICKER", defaultWidth: 130,
+      tooltip: "Ticker symbol (option positions render as TKR EXP STRIKE C/P L/S)",
+      sortValue: (r) => r.ticker,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", fontWeight: 700, color: "var(--text)" }}>
+          {displayTicker(r)}
+        </span>
+      ),
+    },
+    {
+      key: "name", label: "NAME", defaultWidth: 220,
+      tooltip: "Company or fund name",
+      sortValue: (r) => (r.name || "").toLowerCase(),
+      render: (r) => (
+        <span style={{
+          color: "var(--text-muted)", maxWidth: 220, display: "inline-block",
+          overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          verticalAlign: "bottom",
+        }} title={r.name}>{r.name || "—"}</span>
+      ),
+    },
+    {
+      key: "sector", label: "SECTOR", categorical: true, defaultWidth: 130, defaultVisible: false,
+      tooltip: "Sector / asset class",
+      sortValue: (r) => (r.sector || "").toLowerCase(),
+      render: (r) => (
+        <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }}>
+          {r.sector || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "quantity", label: "QTY", numeric: true, defaultWidth: 90,
+      tooltip: "Total quantity held (shares for equities; units for crypto; dollars for cash)",
+      sortValue: (r) => r.quantity,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{fmtShares(r.quantity)}</span>
+      ),
+    },
+    {
+      key: "price", label: "PRICE/SHARE", numeric: true, defaultWidth: 120,
+      tooltip: "Current market price per share",
+      sortValue: (r) => r.price,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{fmt$Full(r.price)}</span>
+      ),
+    },
+    {
+      key: "avgCost", label: "COST/SHARE", numeric: true, defaultWidth: 110,
+      tooltip: "Average cost paid per share",
+      sortValue: (r) => r.avgCost,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{fmt$Full(r.avgCost)}</span>
+      ),
+    },
+    {
+      key: "totalCost", label: "TOTAL COST", numeric: true, defaultWidth: 120,
+      tooltip: "shares × avg cost — what you paid in aggregate",
+      sortValue: (r) => r.totalCost,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{fmt$Full(r.totalCost)}</span>
+      ),
+    },
+    {
+      key: "currentValue", label: "CURRENT VALUE", numeric: true, defaultWidth: 130,
+      tooltip: "shares × current price — what it's worth now",
+      sortValue: (r) => r.currentValue,
+      render: (r) => {
+        if (r.price == null) {
+          return (
+            <span style={{ fontFamily: "var(--font-mono)", color: "var(--ink-2,#666)", fontStyle: "italic" }}>
+              (no price yet)
+            </span>
+          );
+        }
         return (
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--ink-2,#666)", fontStyle: "italic" }}>
-            (no price yet)
+          <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{fmt$Full(r.currentValue)}</span>
+        );
+      },
+    },
+    {
+      key: "pnlDay$", label: "PNL DAY $", numeric: true, defaultWidth: 105,
+      tooltip: "Today's dollar change on this position",
+      sortValue: (r) => r.pnlDay$,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.pnlDay$), fontWeight: 600 }}>
+          {fmt$Signed(r.pnlDay$)}
+        </span>
+      ),
+    },
+    {
+      key: "pnlDayPct", label: "PNL DAY %", numeric: true, defaultWidth: 95,
+      tooltip: "Today's percent change on this position",
+      sortValue: (r) => r.pnlDayPct,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.pnlDayPct), fontWeight: 600 }}>
+          {fmtPctSigned(r.pnlDayPct)}
+        </span>
+      ),
+    },
+    {
+      key: "pnl$", label: "TOTAL PNL $", numeric: true, defaultWidth: 120,
+      tooltip: "Unrealized gain/loss in dollars (current value − total cost)",
+      sortValue: (r) => r.pnl$,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.pnl$), fontWeight: 600 }}>
+          {fmt$Signed(r.pnl$)}
+        </span>
+      ),
+    },
+    {
+      key: "pnlPct", label: "PNL %", numeric: true, defaultWidth: 90,
+      tooltip: "Unrealized gain/loss percent (price / cost − 1)",
+      sortValue: (r) => r.pnlPct,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.pnlPct), fontWeight: 600 }}>
+          {fmtPctSigned(r.pnlPct)}
+        </span>
+      ),
+    },
+    {
+      key: "purchaseDate", label: "PURCHASE DATE", numeric: true, defaultWidth: 130,
+      tooltip: "Date position was acquired. Enables Holding Period and Annualized PnL.",
+      sortValue: (r) => r.purchaseDate ? new Date(r.purchaseDate).getTime() : null,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>{fmtDate(r.purchaseDate)}</span>
+      ),
+    },
+    {
+      key: "holdingDays", label: "HOLDING DAYS", numeric: true, defaultWidth: 120,
+      tooltip: "Days since purchase date. Empty if no purchase date set.",
+      sortValue: (r) => r.holdingDays,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+          {r.holdingDays == null ? "—" : r.holdingDays.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: "annualizedPnl", label: "ANNUALIZED PNL %", numeric: true, defaultWidth: 130, defaultVisible: false,
+      tooltip: "((current value / total cost) ^ (365 / holding days)) − 1. Needs purchase date.",
+      sortValue: (r) => r.annualizedPnl,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.annualizedPnl), fontWeight: 600 }}>
+          {fmtPctSigned(r.annualizedPnl)}
+        </span>
+      ),
+    },
+    {
+      key: "beta", label: "BETA", numeric: true, defaultWidth: 80,
+      tooltip: "Position beta vs. SPY (where available)",
+      sortValue: (r) => r.beta,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: betaColor(r.beta) }}>
+          {r.beta == null ? "—" : Number(r.beta).toFixed(2)}
+        </span>
+      ),
+    },
+    {
+      key: "wealthPct", label: "% OF TOTAL WEALTH", numeric: true, defaultWidth: 130,
+      tooltip: "Current value as % of total portfolio value",
+      sortValue: (r) => r.wealthPct,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>{fmtPct(r.wealthPct)}</span>
+      ),
+    },
+    {
+      key: "account", label: "ACCOUNT", categorical: true, defaultWidth: 130,
+      tooltip: "Account holding this position",
+      sortValue: (r) => (r.acctLabel || "").toLowerCase(),
+      render: (r) => (
+        <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }}>
+          {r.acctLabel || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "marketcap", label: "MARKET CAP", numeric: true, defaultWidth: 110,
+      tooltip: "Company market capitalization (from latest scan)",
+      sortValue: (r) => r.marketcap,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>{fmtMarketCap(r.marketcap)}</span>
+      ),
+    },
+    {
+      key: "divYield", label: "DIV YIELD", numeric: true, defaultWidth: 100,
+      tooltip: "Dividend yield, when available. 'Y' / 'N' shown if only has-dividend flag is known.",
+      sortValue: (r) => r.divYield != null ? r.divYield : (r.hasDividend ? 0.001 : null),
+      render: (r) => {
+        if (r.divYield != null && isFinite(r.divYield)) {
+          return (
+            <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+              {fmtPct(r.divYield * (r.divYield < 1 ? 100 : 1), 2)}
+            </span>
+          );
+        }
+        if (r.hasDividend === true)  return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>Y</span>;
+        if (r.hasDividend === false) return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>N</span>;
+        return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>—</span>;
+      },
+    },
+    {
+      key: "nextEarnings", label: "NEXT EARNINGS", numeric: true, defaultWidth: 125,
+      tooltip: "Next expected earnings report date",
+      sortValue: (r) => r.nextEarnings ? new Date(r.nextEarnings).getTime() : null,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>{fmtDate(r.nextEarnings)}</span>
+      ),
+    },
+    {
+      key: "ivRank", label: "IV RANK", numeric: true, defaultWidth: 85,
+      tooltip: "Implied volatility rank (0-100). Higher = richer option premium relative to this name's own 1-year range.",
+      sortValue: (r) => r.ivRank,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+          {r.ivRank == null ? "—" : Number(r.ivRank).toFixed(1)}
+        </span>
+      ),
+    },
+    {
+      key: "week52", label: "52W RANGE", numeric: true, defaultWidth: 160,
+      tooltip: "52-week low / high. Quick gut-check on where the current price sits in its yearly range.",
+      sortValue: (r) => r.weekHigh,
+      render: (r) => (
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
+          {r.weekLow != null && r.weekHigh != null ? `$${Number(r.weekLow).toFixed(2)} – $${Number(r.weekHigh).toFixed(2)}` : "—"}
+        </span>
+      ),
+    },
+  ];
+
+  const riskCols = [
+    {
+      key: "beta_2y", label: "BETA · 2Y", numeric: true, defaultWidth: 95,
+      tooltip: "Beta vs S&P 500 (SPY), 2-year weekly OLS regression. 1.0 = moves with market; >1.0 amplifies; <1.0 dampens.",
+      sortValue: (r) => r._risk?.beta ?? null,
+      render: (r) => {
+        const v = r._risk?.beta;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v > 1.3 ? "var(--orange-text)" : v < 0.6 ? "var(--yellow-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}</span>;
+      },
+    },
+    {
+      key: "annVol_2y", label: "ANN VOL", numeric: true, defaultWidth: 95,
+      tooltip: "Annualized volatility — 2Y daily standard deviation × √252.",
+      sortValue: (r) => r._risk?.annVol ?? null,
+      render: (r) => {
+        const v = r._risk?.annVol;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v > 0.40 ? "var(--red-text)" : v > 0.25 ? "var(--orange-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+      },
+    },
+    {
+      key: "maxDD_2y", label: "MAX DD", numeric: true, defaultWidth: 95,
+      tooltip: "Largest peak-to-trough decline over the last 2 years.",
+      sortValue: (r) => r._risk?.maxDD ?? null,
+      render: (r) => {
+        const v = r._risk?.maxDD;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v > 0.40 ? "var(--red-text)" : v > 0.25 ? "var(--orange-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+      },
+    },
+    {
+      key: "var10d99", label: "10D 99% VaR", numeric: true, defaultWidth: 170,
+      tooltip: "10-day 99% historical Value-at-Risk from 2Y daily rolling 10-day returns, 1st percentile.",
+      sortValue: (r) => r._risk?.var10d99 ?? null,
+      render: (r) => {
+        const v = r._risk?.var10d99;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v > 0.20 ? "var(--red-text)" : v > 0.10 ? "var(--orange-text)" : "var(--text)";
+        const $var = r.currentValue != null ? r.currentValue * v : null;
+        return (
+          <span style={{ fontFamily: "var(--font-mono)", color: col }}>
+            {(v*100).toFixed(1)}%
+            {$var != null && <span style={{color:"var(--text-muted)", marginLeft:6}}>(${Math.round($var).toLocaleString()})</span>}
           </span>
         );
-      }
-      return (
-        <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
-          {fmt$Full(r.currentValue)}
+      },
+    },
+  ];
+
+  const v5Cols = [
+    {
+      key: "mt_score", label: "MT SCORE", numeric: true, defaultWidth: 100,
+      tooltip: "MacroTilt Score — weighted blend of six v5 signals (−100 bearish to +100 bullish). The live engine that powers Trading Opps.",
+      sortValue: (r) => r._v5?.mt_score ?? null,
+      render: (r) => {
+        const v = r._v5?.mt_score;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v >= 50 ? "var(--green-text, var(--green))" : v >= 20 ? "var(--green)" : v <= -50 ? "var(--red-text, var(--red))" : v <= -20 ? "var(--red)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: col, fontSize: 13 }}>{v >= 0 ? "+" : ""}{Number(v).toFixed(1)}</span>;
+      },
+    },
+    {
+      key: "band", label: "BAND", categorical: true, defaultWidth: 120,
+      tooltip: "Strong Sell / Sell Watch / Neutral / Buy Watch / Strong Buy. Cutoffs at MT Score −50, −20, +20, +50.",
+      sortValue: (r) => {
+        const order = { "Strong Sell": -2, "Sell Watch": -1, "Neutral": 0, "Buy Watch": 1, "Strong Buy": 2 };
+        return order[r._v5?.band] ?? null;
+      },
+      render: (r) => {
+        const b = r._v5?.band;
+        if (!b) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = b === "Strong Buy" ? "var(--green-text, var(--green))" : b === "Buy Watch" ? "var(--green)" : b === "Sell Watch" ? "var(--red)" : b === "Strong Sell" ? "var(--red-text, var(--red))" : "var(--text-muted)";
+        return <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, color: col }}>{b}</span>;
+      },
+    },
+    {
+      key: "ig", label: "INDUSTRY GROUP", categorical: true, defaultWidth: 210,
+      tooltip: "GICS Industry Group (25 mid-level buckets). Derived from the ticker's SIC code.",
+      sortValue: (r) => (r._v5?.ig || "").toLowerCase(),
+      render: (r) => (
+        <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }} title={r._v5?.ig}>
+          {r._v5?.ig || "—"}
         </span>
-      );
+      ),
     },
-  },
-  {
-    id: "pnlDay$",
-    label: "PNL DAY $",
-    description: "Today's dollar change on this position",
-    align: "right",
-    sortValue: (r) => r.pnlDay$,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.pnlDay$), fontWeight: 600 }}>
-        {fmt$Signed(r.pnlDay$)}
-      </span>
-    ),
-  },
-  {
-    id: "pnlDayPct",
-    label: "PNL DAY %",
-    description: "Today's percent change on this position",
-    align: "right",
-    sortValue: (r) => r.pnlDayPct,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.pnlDayPct), fontWeight: 600 }}>
-        {fmtPctSigned(r.pnlDayPct)}
-      </span>
-    ),
-  },
-  {
-    id: "pnl$",
-    label: "TOTAL PNL $",
-    description: "Unrealized gain/loss in dollars (current value − total cost)",
-    align: "right",
-    sortValue: (r) => r.pnl$,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.pnl$), fontWeight: 600 }}>
-        {fmt$Signed(r.pnl$)}
-      </span>
-    ),
-  },
-  {
-    id: "pnlPct",
-    label: "PNL %",
-    description: "Unrealized gain/loss percent (price / cost − 1)",
-    align: "right",
-    sortValue: (r) => r.pnlPct,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.pnlPct), fontWeight: 600 }}>
-        {fmtPctSigned(r.pnlPct)}
-      </span>
-    ),
-  },
-  {
-    id: "beta",
-    label: "BETA",
-    description: "Position beta vs. SPY (where available)",
-    align: "right",
-    sortValue: (r) => r.beta,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: betaColor(r.beta) }}>
-        {r.beta == null ? "—" : Number(r.beta).toFixed(2)}
-      </span>
-    ),
-  },
-  {
-    id: "purchaseDate",
-    label: "PURCHASE DATE",
-    description: "Date position was acquired. Optional — enables Holding Period and Annualized PnL columns.",
-    align: "right",
-    sortValue: (r) => r.purchaseDate ? new Date(r.purchaseDate).getTime() : null,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
-        {fmtDate(r.purchaseDate)}
-      </span>
-    ),
-  },
-  {
-    id: "holdingDays",
-    label: "HOLDING PERIOD (DAYS)",
-    description: "Days since purchase date. Empty if no purchase date set.",
-    align: "right",
-    sortValue: (r) => r.holdingDays,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-        {r.holdingDays == null ? "—" : r.holdingDays.toLocaleString()}
-      </span>
-    ),
-  },
-  {
-    id: "annualizedPnl",
-    label: "ANNUALIZED PNL %",
-    description: "((current value / total cost) ^ (365 / holding days)) − 1. Needs purchase date.",
-    align: "right",
-    sortValue: (r) => r.annualizedPnl,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: pnlColor(r.annualizedPnl), fontWeight: 600 }}>
-        {fmtPctSigned(r.annualizedPnl)}
-      </span>
-    ),
-  },
-  {
-    id: "wealthPct",
-    label: "% OF TOTAL WEALTH",
-    description: "Current value as % of total portfolio value",
-    align: "right",
-    sortValue: (r) => r.wealthPct,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text)" }}>
-        {fmtPct(r.wealthPct)}
-      </span>
-    ),
-  },
-  {
-    id: "account",
-    label: "ACCOUNT",
-    description: "Account holding this position",
-    align: "left",
-    sortValue: (r) => (r.acctLabel || "").toLowerCase(),
-    renderCell: (r) => (
-      <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }}>
-        {r.acctLabel || "—"}
-      </span>
-    ),
-  },
-  {
-    id: "marketcap",
-    label: "MARKET CAP",
-    description: "Company market capitalization (from latest scan)",
-    align: "right",
-    sortValue: (r) => r.marketcap,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-        {fmtMarketCap(r.marketcap)}
-      </span>
-    ),
-  },
-  {
-    id: "divYield",
-    label: "DIV YIELD",
-    description: "Dividend yield, when available. 'Y' / 'N' shown if only has-dividend flag is known.",
-    align: "right",
-    sortValue: (r) => r.divYield != null ? r.divYield : (r.hasDividend ? 0.001 : null),
-    renderCell: (r) => {
-      if (r.divYield != null && isFinite(r.divYield)) {
-        return (
-          <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-            {fmtPct(r.divYield * (r.divYield < 1 ? 100 : 1), 2)}
-          </span>
-        );
-      }
-      if (r.hasDividend === true) {
-        return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>Y</span>;
-      }
-      if (r.hasDividend === false) {
-        return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>N</span>;
-      }
-      return <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-dim)" }}>—</span>;
+    {
+      key: "sub_short_interest", label: "SHORT INT", numeric: true, defaultWidth: 100,
+      tooltip: "Short Interest sub-score (−100 to +100).",
+      sortValue: (r) => r._v5?.sub_short_interest ?? null,
+      render: (r) => <ScoreCell score={r._v5?.sub_short_interest} direction={r._v5?.sub_short_interest > 0 ? "bullish" : r._v5?.sub_short_interest < 0 ? "bearish" : null} />,
     },
-  },
-  {
-    id: "nextEarnings",
-    label: "NEXT EARNINGS",
-    description: "Next expected earnings report date",
-    align: "right",
-    sortValue: (r) => r.nextEarnings ? new Date(r.nextEarnings).getTime() : null,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
-        {fmtDate(r.nextEarnings)}
-      </span>
-    ),
-  },
-  {
-    id: "beta_2y",
-    label: "BETA · 2Y",
-    description: "Beta vs S&P 500 (SPY), 2-year weekly OLS regression. 1.0 = moves with market; >1.0 amplifies; <1.0 dampens.",
-    align: "right",
-    sortValue: (r) => r._risk?.beta ?? null,
-    renderCell: (r) => {
-      const v = r._risk?.beta;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v > 1.3 ? "var(--orange-text)" : v < 0.6 ? "var(--yellow-text)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}</span>;
+    {
+      key: "rsi_14", label: "RSI(14)", numeric: true, defaultWidth: 85,
+      tooltip: "14-day Relative Strength Index. >70 conventionally overbought (red); <30 oversold (amber); 30–70 normal trend.",
+      sortValue: (r) => r._v5?.rsi_14 ?? null,
+      render: (r) => {
+        const v = r._v5?.rsi_14;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v > 70 ? "var(--red-text)" : v < 30 ? "var(--orange-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(1)}</span>;
+      },
     },
-  },
-  {
-    id: "annVol_2y",
-    label: "ANN VOL",
-    description: "Annualized volatility — 2Y daily standard deviation × √252. Roughly: 15-25% normal for diversified equities; 25-40% elevated; >40% high-beta single-name territory.",
-    align: "right",
-    sortValue: (r) => r._risk?.annVol ?? null,
-    renderCell: (r) => {
-      const v = r._risk?.annVol;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v > 0.40 ? "var(--red-text)" : v > 0.25 ? "var(--orange-text)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+    {
+      key: "bb_bw", label: "BB BAND-WIDTH", numeric: true, defaultWidth: 115,
+      tooltip: "Bollinger band-width as percent of the 20-day moving average. <5% = compression / squeeze (amber). >15% = expansion / trend in motion.",
+      sortValue: (r) => r._v5?.bb_bw ?? null,
+      render: (r) => {
+        const v = r._v5?.bb_bw;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v < 0.05 ? "var(--orange-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(2)}%</span>;
+      },
     },
-  },
-  {
-    id: "maxDD_2y",
-    label: "MAX DD",
-    description: "Largest peak-to-trough decline over the last 2 years. Captures worst-case capital impairment without selling.",
-    align: "right",
-    sortValue: (r) => r._risk?.maxDD ?? null,
-    renderCell: (r) => {
-      const v = r._risk?.maxDD;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v > 0.40 ? "var(--red-text)" : v > 0.25 ? "var(--orange-text)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(1)}%</span>;
+    {
+      key: "rvol_20d", label: "RVOL (20d)", numeric: true, defaultWidth: 100,
+      tooltip: "Today's volume divided by the 20-day average. ≥1.5× = unusual activity (green); <0.7× = quiet (amber); 1.0× = average.",
+      sortValue: (r) => r._v5?.rvol_20d ?? null,
+      render: (r) => {
+        const v = r._v5?.rvol_20d;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v >= 1.5 ? "var(--green-text)" : v < 0.7 ? "var(--orange-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}×</span>;
+      },
     },
-  },
-  {
-    id: "var10d99",
-    label: "10D 99% VaR",
-    description: "10-day 99% historical Value-at-Risk from 2Y daily rolling 10-day returns, 1st percentile.",
-    align: "right",
-    sortValue: (r) => r._risk?.var10d99 ?? null,
-    renderCell: (r) => {
-      const v = r._risk?.var10d99;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v > 0.20 ? "var(--red-text)" : v > 0.10 ? "var(--orange-text)" : "var(--text)";
-      const $var = r.currentValue != null ? r.currentValue * v : null;
-      return (
-        <span style={{ fontFamily: "var(--font-mono)", color: col }}>
-          {(v*100).toFixed(1)}%
-          {$var != null && <span style={{color:"var(--text-muted)", marginLeft:6}}>(${Math.round($var).toLocaleString()})</span>}
-        </span>
-      );
+    {
+      key: "pct_50ma", label: "% VS 50D MA", numeric: true, defaultWidth: 105,
+      tooltip: "Today's close as a percent distance from the 50-day SMA. >+5% uptrend; <−5% downtrend; between = ranging.",
+      sortValue: (r) => r._v5?.pct_50ma ?? null,
+      render: (r) => {
+        const v = r._v5?.pct_50ma;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v > 5 ? "var(--green-text)" : v < -5 ? "var(--red-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
+      },
     },
-  },
-  // ── Trading Opps columns merged in 2026-05-11 (Joe directive). Same
-  // scoring + thresholds as the watchlist; OVR here matches OVR there
-  // for the same ticker on the same scan. ────────────────────────────
-  {
-    id: "ivRank",
-    label: "IV RANK",
-    description: "Implied volatility rank (0-100). Higher = richer option premium relative to this name's own 1-year range. Useful when sizing covered calls / short puts against existing positions.",
-    align: "right",
-    sortValue: (r) => r.ivRank,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-        {r.ivRank == null ? "—" : Number(r.ivRank).toFixed(1)}
-      </span>
-    ),
-  },
-  {
-    id: "week52",
-    label: "52W RANGE",
-    description: "52-week low / high. Quick gut-check on where the current price sits in its yearly range.",
-    align: "right",
-    sortValue: (r) => r.weekHigh,
-    renderCell: (r) => (
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-dim)" }}>
-        {r.weekLow != null && r.weekHigh != null
-          ? `$${Number(r.weekLow).toFixed(2)} – $${Number(r.weekHigh).toFixed(2)}`
-          : "—"}
-      </span>
-    ),
-  },
-  // v4 signal cluster (TECH / INSIDER / OPTIONS / CONGRESS / ANALYST /
-  // DARK POOL / OVR) removed 2026-05-11 per Joe directive — replaced by
-  // the v5 columns below (MT Score / Band / sub_short_interest / etc.)
-  // which read from public.signal_intel_v5_daily, the live engine that
-  // powers Trading Opps. Definitions retired here; helper imports +
-  // row enrichment (r.sections, r.overall) left in place in case a
-  // follow-up needs them again.
-  // ── v5 Trading Opps columns merged in 2026-05-11 (Joe directive). These
-  // come from public.signal_intel_v5_daily — the live engine that powers
-  // the Trading Opps page. Numbers here match Trading Opps exactly for
-  // the same ticker on the same scan_date. ───────────────────────────────
-  {
-    id: "mt_score",
-    label: "MT SCORE",
-    description: "MacroTilt Score — weighted blend of six v5 signals (−100 bearish to +100 bullish). The live engine that powers Trading Opps.",
-    align: "center",
-    sortValue: (r) => r._v5?.mt_score ?? null,
-    renderCell: (r) => {
-      const v = r._v5?.mt_score;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v >= 50 ? "var(--green-text, var(--green))" : v >= 20 ? "var(--green)" : v <= -50 ? "var(--red-text, var(--red))" : v <= -20 ? "var(--red)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-ui)", fontVariantNumeric: "tabular-nums", fontWeight: 700, color: col, fontSize: 13 }}>{v >= 0 ? "+" : ""}{Number(v).toFixed(1)}</span>;
+    {
+      key: "pct_200ma", label: "% VS 200D MA", numeric: true, defaultWidth: 110,
+      tooltip: "Today's close as a percent distance from the 200-day SMA. >+10% strong long-term uptrend; <−10% downtrend; between = sideways.",
+      sortValue: (r) => r._v5?.pct_200ma ?? null,
+      render: (r) => {
+        const v = r._v5?.pct_200ma;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        const col = v > 10 ? "var(--green-text)" : v < -10 ? "var(--red-text)" : "var(--text)";
+        return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
+      },
     },
-  },
-  {
-    id: "band",
-    label: "BAND",
-    description: "Strong Sell / Sell Watch / Neutral / Buy Watch / Strong Buy. Cutoffs at MT Score −50, −20, +20, +50.",
-    align: "center",
-    sortValue: (r) => {
-      const order = { "Strong Sell": -2, "Sell Watch": -1, "Neutral": 0, "Buy Watch": 1, "Strong Buy": 2 };
-      return order[r._v5?.band] ?? null;
+    {
+      key: "ins_buys", label: "INSIDER BUYS (#)", numeric: true, defaultWidth: 120,
+      tooltip: "Number of Form 4 open-market buy events by company officers / directors in the recent window.",
+      sortValue: (r) => r._v5?.ins_buys ?? null,
+      render: (r) => {
+        const v = r._v5?.ins_buys;
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{v}</span>;
+      },
     },
-    renderCell: (r) => {
-      const b = r._v5?.band;
-      if (!b) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = b === "Strong Buy" ? "var(--green-text, var(--green))" : b === "Buy Watch" ? "var(--green)" : b === "Sell Watch" ? "var(--red)" : b === "Strong Sell" ? "var(--red-text, var(--red))" : "var(--text-muted)";
-      return <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, fontWeight: 600, color: col }}>{b}</span>;
+    {
+      key: "ins_buy_$", label: "INSIDER BUYS ($)", numeric: true, defaultWidth: 130,
+      tooltip: "Total dollar value of recent Form 4 open-market buy events.",
+      sortValue: (r) => r._v5?.["ins_buy_$"] ?? null,
+      render: (r) => {
+        const v = r._v5?.["ins_buy_$"];
+        if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
+        return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{fmtMarketCap(v)}</span>;
+      },
     },
-  },
-  {
-    id: "ig",
-    label: "INDUSTRY GROUP",
-    description: "GICS Industry Group (25 mid-level buckets). Derived from the ticker's SIC code via the same SIC→GICS mapping the Trading Opps page uses.",
-    align: "left",
-    sortValue: (r) => (r._v5?.ig || "").toLowerCase(),
-    renderCell: (r) => (
-      <span style={{ color: "var(--text-dim)", fontFamily: "var(--font-mono)", fontSize: 11, whiteSpace: "nowrap" }} title={r._v5?.ig}>
-        {r._v5?.ig || "—"}
-      </span>
-    ),
-  },
-  {
-    id: "sub_short_interest",
-    label: "SHORT INT",
-    description: "Short Interest sub-score (−100 to +100). Rising SI + rising borrow cost above 50-day SMA = bearish; high SI + cheap borrow into earnings = bullish squeeze setup. Currently on equal-weight floor (16.7%) while history accrues.",
-    align: "center",
-    sortValue: (r) => r._v5?.sub_short_interest ?? null,
-    renderCell: (r) => <ScoreCell score={r._v5?.sub_short_interest} direction={r._v5?.sub_short_interest > 0 ? "bullish" : r._v5?.sub_short_interest < 0 ? "bearish" : null} />,
-  },
-  {
-    id: "rsi_14",
-    label: "RSI(14)",
-    description: "14-day Relative Strength Index. >70 conventionally overbought (red); <30 oversold (amber); 30–70 normal trend.",
-    align: "right",
-    sortValue: (r) => r._v5?.rsi_14 ?? null,
-    renderCell: (r) => {
-      const v = r._v5?.rsi_14;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v > 70 ? "var(--red-text)" : v < 30 ? "var(--orange-text)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(1)}</span>;
-    },
-  },
-  {
-    id: "bb_bw",
-    label: "BB BAND-WIDTH",
-    description: "Bollinger band-width as percent of the 20-day moving average. <5% = compression / squeeze (amber). >15% = expansion / trend in motion.",
-    align: "right",
-    sortValue: (r) => r._v5?.bb_bw ?? null,
-    renderCell: (r) => {
-      const v = r._v5?.bb_bw;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v < 0.05 ? "var(--orange-text)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{(v*100).toFixed(2)}%</span>;
-    },
-  },
-  {
-    id: "rvol_20d",
-    label: "RVOL (20d)",
-    description: "Today's volume divided by the 20-day average. ≥1.5× = unusual activity (green); <0.7× = quiet (amber); 1.0× = average.",
-    align: "right",
-    sortValue: (r) => r._v5?.rvol_20d ?? null,
-    renderCell: (r) => {
-      const v = r._v5?.rvol_20d;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v >= 1.5 ? "var(--green-text)" : v < 0.7 ? "var(--orange-text)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v.toFixed(2)}×</span>;
-    },
-  },
-  {
-    id: "pct_50ma",
-    label: "% VS 50D MA",
-    description: "Today's close as a percent distance from the 50-day SMA. >+5% uptrend; <−5% downtrend; between = ranging.",
-    align: "right",
-    sortValue: (r) => r._v5?.pct_50ma ?? null,
-    renderCell: (r) => {
-      const v = r._v5?.pct_50ma;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v > 5 ? "var(--green-text)" : v < -5 ? "var(--red-text)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
-    },
-  },
-  {
-    id: "pct_200ma",
-    label: "% VS 200D MA",
-    description: "Today's close as a percent distance from the 200-day SMA. >+10% strong long-term uptrend; <−10% downtrend; between = sideways.",
-    align: "right",
-    sortValue: (r) => r._v5?.pct_200ma ?? null,
-    renderCell: (r) => {
-      const v = r._v5?.pct_200ma;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      const col = v > 10 ? "var(--green-text)" : v < -10 ? "var(--red-text)" : "var(--text)";
-      return <span style={{ fontFamily: "var(--font-mono)", color: col }}>{v >= 0 ? "+" : ""}{v.toFixed(1)}%</span>;
-    },
-  },
-  {
-    id: "ins_buys",
-    label: "INSIDER BUYS (#)",
-    description: "Number of Form 4 open-market buy events by company officers / directors in the recent window.",
-    align: "right",
-    sortValue: (r) => r._v5?.ins_buys ?? null,
-    renderCell: (r) => {
-      const v = r._v5?.ins_buys;
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{v}</span>;
-    },
-  },
-  {
-    id: "ins_buy_$",
-    label: "INSIDER BUYS ($)",
-    description: "Total dollar value of recent Form 4 open-market buy events.",
-    align: "right",
-    sortValue: (r) => r._v5?.["ins_buy_$"] ?? null,
-    renderCell: (r) => {
-      const v = r._v5?.["ins_buy_$"];
-      if (v == null) return <span style={{color:"var(--text-dim)"}}>—</span>;
-      return <span style={{ fontFamily: "var(--font-mono)", color: v > 0 ? "var(--green-text)" : "var(--text-dim)" }}>{fmtMarketCap(v)}</span>;
-    },
-  },
-  {
-    // Pinned rightmost, always visible, never draggable.
-    id: "actions",
-    label: "ACTIONS",
-    description: "Edit / delete this position",
-    align: "right",
-    pinned: true,
+  ];
+
+  // Pinned-right Actions column. Always renders rightmost via MTTable's
+  // pinned mechanism. Never reorderable, not sortable, always visible.
+  const showActions = Boolean(onEdit || onClose || onDelete);
+  const actionBtn = {
+    padding: "4px 8px", fontSize: 11, fontFamily: "var(--font-mono)",
+    letterSpacing: "0.04em", color: "var(--text-muted)",
+    background: "transparent", border: "1px solid var(--border)",
+    borderRadius: 4, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
+  };
+  const actionsCol = {
+    key: "_actions", label: "ACTIONS", defaultWidth: 220,
+    pinned: "right",
     sortable: false,
-    sortValue: () => null,
-    renderCell: () => null, // rendered specially in row loop
-  },
-];
+    tooltip: "Edit / close / delete this position",
+    render: (r) => (
+      <span onClick={(e) => e.stopPropagation()} style={{ whiteSpace: "nowrap" }}>
+        {onEdit && (
+          <Tip def="Edit position"><button type="button"
+            style={{ ...actionBtn, marginRight: 4 }}
+            onClick={(e) => { e.stopPropagation(); onEdit(r._raw); }}>Edit</button></Tip>
+        )}
+        {onClose && (
+          <Tip def="Close position — proceeds to a cash row, position soft-archived for history">
+            <button type="button"
+              style={{ ...actionBtn, marginRight: 4, color: "var(--green)", borderColor: "rgba(48,209,88,0.4)" }}
+              onClick={(e) => { e.stopPropagation(); onClose(r._raw); }}>Close</button>
+          </Tip>
+        )}
+        {onDelete && (
+          <Tip def="Delete entry — no cash impact. Use only for fixing wrong entries; for closing a real trade use Close instead.">
+            <button type="button"
+              style={{ ...actionBtn, color: "var(--red)", borderColor: "rgba(255,69,58,0.35)" }}
+              onClick={(e) => { e.stopPropagation(); onDelete(r._raw); }}>Delete</button>
+          </Tip>
+        )}
+      </span>
+    ),
+  };
 
-// Default column order (Joe, 2026-04-21 -> updated 2026-04-21 ship 2):
-// Ticker, Name, Current Price/Share, Cost/Share, PNL DAY $, PNL DAY %,
-// Total Cost, Current Value, Total PNL $, PNL %, Purchase Date,
-// Holding Period, Beta, % of Total Wealth, Account, Market Cap,
-// Div Yield, Next Earnings, Actions.
-//
-// P&L cluster (Total Cost -> Current Value -> Total PNL $ -> PNL %) is
-// adjacent on purpose - those four columns tell the cost-basis story.
-// 2026-05-11 (Joe directive): Trading Opps signal columns now ride
-// next to the portfolio P&L block. OVR sits adjacent to actions so the
-// scanner's verdict is the last thing the eye lands on. Sub-section
-// scores (TECH / INSIDER / OPTIONS / CONGRESS / ANALYST / DARK POOL)
-// follow the OVR, plus IV RANK + 52W RANGE for option-overlay context.
-const DEFAULT_ORDER = [
-  "ticker", "name", "quantity", "price", "avgCost", "pnlDay$", "pnlDayPct",
-  "totalCost", "currentValue", "pnl$", "pnlPct",
-  "purchaseDate", "holdingDays", "beta",
-  "beta_2y", "annVol_2y", "maxDD_2y", "var10d99",
-  "wealthPct", "account", "marketcap", "divYield", "nextEarnings",
-  "ivRank", "week52",
-  // v5 Trading Opps columns merged 2026-05-11. v4 signal cluster removed.
-  "mt_score", "band", "ig",
-  "sub_short_interest",
-  "rsi_14", "bb_bw", "rvol_20d", "pct_50ma", "pct_200ma",
-  "ins_buys", "ins_buy_$",
-  "actions",
-];
-
-// Defaults-visible matches DEFAULT_ORDER. Sector + annualizedPnl remain
-// opt-in via the column picker.
-const DEFAULT_VISIBLE = [...DEFAULT_ORDER];
-
-// Default column widths (px) - used when user has not dragged a custom
-// width. New columns added later should append here; existing users
-// get the default automatically via the forward-compat merge in
-// useTablePreferences.
-const DEFAULT_WIDTHS = {
-  ticker:        90,
-  name:          220,
-  sector:        120,
-  quantity:      90,
-  price:         120,
-  avgCost:       110,
-  totalCost:     115,
-  currentValue:  120,
-  "pnlDay$":     105,
-  pnlDayPct:     95,
-  "pnl$":        115,
-  pnlPct:        90,
-  beta:          70,
-  beta_2y:       95,
-  annVol_2y:     95,
-  maxDD_2y:      95,
-  var10d99:      170,
-  purchaseDate:  115,
-  holdingDays:   130,
-  annualizedPnl: 110,
-  wealthPct:     110,
-  account:       130,
-  marketcap:     100,
-  divYield:      95,
-  nextEarnings:  125,
-  ivRank:        85,
-  week52:        160,
-  // v5 columns 2026-05-11 (v4 signal cluster widths retired)
-  mt_score:      100,
-  band:          120,
-  ig:            210,
-  sub_short_interest: 100,
-  rsi_14:        85,
-  bb_bw:         115,
-  rvol_20d:      100,
-  pct_50ma:      105,
-  pct_200ma:     110,
-  ins_buys:      120,
-  "ins_buy_$":   130,
-  actions:       90,
-};
+  // Final column ordering — Joe directive 2026-04-21 + 2026-05-11 v5 cluster:
+  // ticker→name→qty→price/cost→day-pnl→cost/value/total-pnl block→hold/date→
+  // risk cluster→wealth/account→fundamentals→v5 cluster→pinned actions.
+  const ordered = [
+    baseCols[0], baseCols[1], baseCols[3], baseCols[4], baseCols[5], // ticker name qty price cost
+    baseCols[8], baseCols[9],                                          // pnlDay$, pnlDay%
+    baseCols[6], baseCols[7], baseCols[10], baseCols[11],             // totalCost currValue pnl$ pnl%
+    baseCols[12], baseCols[13], baseCols[14],                          // purchaseDate holdingDays annualizedPnl
+    baseCols[15],                                                       // beta
+    ...riskCols,                                                        // beta_2y annVol maxDD var10d99
+    baseCols[16], baseCols[17], baseCols[18], baseCols[19], baseCols[20], // wealthPct account marketcap divYield nextEarnings
+    baseCols[21], baseCols[22],                                          // ivRank week52
+    baseCols[2],                                                         // sector (default off)
+    ...v5Cols,                                                          // v5 cluster
+  ];
+  return showActions ? [...ordered, actionsCol] : ordered;
+}
 
 export default function PositionsTable({
-  rows, grandTotal, screener, info,
-  // 2026-05-11: full `scanData.signals` object — passed from caller so each
-  // row can compute the same OVR / sub-section scores users see on Trading
-  // Opps. Without it, signal cells render as em-dash but nothing crashes.
-  signals,
+  rows, grandTotal, screener, info, signals,
   onOpenTicker, emptyMessage,
   onAdd, onBulkImport, onRescan, onEdit, onClose, onDelete,
   rescanBusy, rescanProgress,
   tableKey = "positions",
-  // 2026-05-04 (Joe directive): footnote captions describe what data IS,
-  // not when a script ran. Caller computes the trading-session label and
-  // passes it as priceCaption (e.g. "Prices: latest close · Mon, May 4, 2026").
-  // eventsCaption follows the same pattern. footnoteSource is a vendor label.
   priceCaption, eventsCaption, footnoteSource,
 }) {
-  const showActionsCol = Boolean(onEdit || onClose || onDelete);
-  const showActionBar  = Boolean(onAdd || onBulkImport || onRescan);
-
-  // Load/save column prefs (order + visibility) per user.
-  const { prefs, setOrder, setVisible, setWidths, resetToDefaults } = useTablePreferences(tableKey, {
-    defaultOrder:   DEFAULT_ORDER,
-    defaultVisible: DEFAULT_VISIBLE,
-    defaultWidths:  DEFAULT_WIDTHS,
-  });
+  const showActionBar = Boolean(onAdd || onBulkImport || onRescan);
 
   const screenerMap = screener || {};
   const infoMap     = info     || {};
 
-  // P5 #35 — fetch 2Y risk metrics for visible tickers and stitch onto each
-  // row. Hook is module-cached + dedup, so N positions = N+1 fetches max
-  // (SPY shared); subsequent renders are instant.
   const _tickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
   const { metrics: _riskByTicker } = useRiskMetricsBatch(_tickers);
-  // 2026-05-11 (Joe directive): bring the LIVE v5 Trading Opps columns
-  // (MT Score, Band, Industry Group, Short Interest sub-score, RSI,
-  // BB BW, RVOL, % vs 50/200 MA, insider buy count/$) onto every position
-  // row so Portfolio Insights and Trading Opps tell the same story.
   const { byTicker: _v5ByTicker } = useV5ScanBatch(_tickers);
 
-  // Enrich each raw row once so sort + render read from the same shape.
   const enriched = useMemo(() => {
     return (rows || []).map((p) => {
       const T = String(p.ticker || "").toUpperCase();
@@ -843,55 +630,33 @@ export default function PositionsTable({
       const avgCost  = p.avgCost != null ? Number(p.avgCost) : null;
       const valueDb  = p.value   != null ? Number(p.value)   : null;
 
-      // Have-Price gate (Joe directive — bug 1155). The persisted
-      // positions.value column can hold a cost-basis fallback (qty *
-      // avg_cost) from the row's original insert when no live price has
-      // been ingested yet. Trusting it would silently show stale cost
-      // basis as "current value". Require a non-null `price` before any
-      // currentValue is computed.
       const currentValue = price != null
         ? (quantity != null ? quantity * price : valueDb)
         : null;
-      const totalCost    = (quantity != null && avgCost != null) ? quantity * avgCost : null;
-
+      const totalCost = (quantity != null && avgCost != null) ? quantity * avgCost : null;
       const pnl$   = (currentValue != null && totalCost != null) ? currentValue - totalCost : null;
-      const pnlPct = (price != null && avgCost)                  ? (price / avgCost - 1) * 100 : null;
+      const pnlPct = (price != null && avgCost) ? (price / avgCost - 1) * 100 : null;
 
-      // Daily change — screener gives us close + prev_close (strings). If
-      // scan hasn't populated, render "—" (null flows through everywhere).
       const scClose = sc.close     != null ? Number(sc.close)     : null;
       const scPrev  = sc.prev_close != null ? Number(sc.prev_close) : null;
       const perShareDay = (scClose != null && scPrev != null) ? scClose - scPrev : null;
       const pnlDay$   = (perShareDay != null && quantity != null) ? perShareDay * quantity : null;
-      const pnlDayPct = (scClose != null && scPrev)             ? (scClose / scPrev - 1) * 100 : null;
+      const pnlDayPct = (scClose != null && scPrev) ? (scClose / scPrev - 1) * 100 : null;
 
       const wealthPct = grandTotal && currentValue != null ? (currentValue / grandTotal) * 100 : null;
 
       const holdingDays = daysBetween(p.purchaseDate);
       const annualizedPnl = annualizedPct(currentValue, totalCost, holdingDays);
 
-      // Prefer screener marketcap (refreshed per run) over info (cached);
-      // both are strings on UW's wire, hence Number().
       const marketcap =
         sc.marketcap != null ? Number(sc.marketcap)
       : inf.marketcap != null ? Number(inf.marketcap)
       : null;
 
-      // Divvy yield: UW's info payload carries `dividend_yield` for some
-      // issuers (decimal, e.g. 0.0142 = 1.42%). When absent we fall back to
-      // the has_dividend boolean so the column still communicates something.
-      const divYield =
-        inf.dividend_yield != null ? Number(inf.dividend_yield)
-      : null;
+      const divYield = inf.dividend_yield != null ? Number(inf.dividend_yield) : null;
       const hasDividend = inf.has_dividend != null ? Boolean(inf.has_dividend) : null;
-
       const nextEarnings = inf.next_earnings_date || sc.next_earnings_date || null;
 
-      // Trading Opps signal scores — same function the watchlist uses, so
-      // every OVR / sub-score on this row matches what shows up on the
-      // Trading Opps screen for the same ticker. Falls back to a null
-      // shape when `signals` isn't wired (e.g. caller hasn't passed it),
-      // which renders every signal cell as an em-dash rather than crash.
       const composite = (signals
         ? computeSectionComposites(T, { signals })
         : null) || { sections: {}, overall: { score: null, direction: null } };
@@ -905,9 +670,6 @@ export default function PositionsTable({
         };
       });
 
-      // Extended scanner fields available on every Trading Opps row:
-      // implied-vol rank, 52-week range. Pull from screener first, info
-      // as fallback.
       const ivRank   = sc.iv_rank != null ? Number(sc.iv_rank) : (inf.iv_rank != null ? Number(inf.iv_rank) : null);
       const weekLow  = sc.week_52_low  != null ? Number(sc.week_52_low)  : (inf.week_52_low  != null ? Number(inf.week_52_low)  : null);
       const weekHigh = sc.week_52_high != null ? Number(sc.week_52_high) : (inf.week_52_high != null ? Number(inf.week_52_high) : null);
@@ -916,37 +678,17 @@ export default function PositionsTable({
         ticker: T,
         name: p.name || "",
         sector: p.sector || inf.sector || sc.sector || "",
-        quantity,
-        price,
-        avgCost,
-        totalCost,
-        currentValue,
-        pnl$,
-        pnlPct,
-        pnlDay$,
-        pnlDayPct,
+        quantity, price, avgCost, totalCost, currentValue,
+        pnl$, pnlPct, pnlDay$, pnlDayPct,
         beta: p.beta != null ? Number(p.beta) : null,
         purchaseDate: p.purchaseDate || null,
-        holdingDays,
-        annualizedPnl,
-        wealthPct,
+        holdingDays, annualizedPnl, wealthPct,
         acctLabel: p.acctLabel || "",
-        marketcap,
-        divYield,
-        hasDividend,
-        nextEarnings,
-        // Trading Opps fields merged in 2026-05-11.
+        marketcap, divYield, hasDividend, nextEarnings,
         sections: sectionScores,
-        overall:  { score: composite.overall?.score ?? null, direction: composite.overall?.direction ?? null },
-        ivRank,
-        weekLow,
-        weekHigh,
-        // v5 live signal_intel row (MT Score / Band / IG / sub-scores /
-        // RSI / BB BW / RVOL / % vs SMA / insider buys). Defaults to a
-        // null record so column renderers can safely read fields without
-        // optional-chain noise.
+        overall: { score: composite.overall?.score ?? null, direction: composite.overall?.direction ?? null },
+        ivRank, weekLow, weekHigh,
         _v5: _v5ByTicker[T] || null,
-        // Item 41: asset-class carry-through for displayTicker + downstream filters.
         assetClass:   p.assetClass   || "stock",
         contractType: p.contractType || null,
         direction:    p.direction    || null,
@@ -954,70 +696,29 @@ export default function PositionsTable({
         expiration:   p.expiration   || null,
         multiplier:   p.multiplier != null ? Number(p.multiplier) : null,
         manualPrice:  p.manualPrice != null ? Number(p.manualPrice) : null,
-        _risk:        _riskByTicker[T] || null,
+        _risk: _riskByTicker[T] || null,
         _raw: p,
       };
     });
   }, [rows, grandTotal, screenerMap, infoMap, _riskByTicker, signals, _v5ByTicker]);
 
-  // ─── Sort state ────────────────────────────────────────────────────────────
-  const [sortCol, setSortCol] = useState("wealthPct");
-  const [sortDir, setSortDir] = useState("desc");
+  // Memoize columns so MTTable doesn't churn its persisted layout each render.
+  const columns = useMemo(
+    () => buildColumns({ onEdit, onClose, onDelete }),
+    [onEdit, onClose, onDelete]
+  );
 
-  const toggleSort = (colId) => {
-    const col = COLUMNS.find((c) => c.id === colId);
-    if (!col || col.sortable === false) return;
-    if (colId === sortCol) {
-      setSortDir((d) => d === "asc" ? "desc" : "asc");
-    } else {
-      setSortCol(colId);
-      // Numeric cols → desc (most / biggest first); text → asc.
-      setSortDir(col.align === "right" ? "desc" : "asc");
-    }
-  };
-
-  const sorted = useMemo(() => {
-    const col = COLUMNS.find((c) => c.id === sortCol);
-    if (!col) return enriched;
-    const arr = [...enriched];
-    arr.sort((a, b) => {
-      const av = col.sortValue(a);
-      const bv = col.sortValue(b);
-      const aNull = av == null;
-      const bNull = bv == null;
-      if (aNull && bNull) return 0;
-      if (aNull) return 1;          // nulls always at the bottom
-      if (bNull) return -1;
-      let cmp;
-      if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
-      else cmp = String(av).localeCompare(String(bv), undefined, { numeric: true });
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [enriched, sortCol, sortDir]);
-
-  // ─── Action-bar + buttons ──────────────────────────────────────────────────
-  const actionBtn = {
-    padding: "4px 8px", fontSize: 11, fontFamily: "var(--font-mono)",
-    letterSpacing: "0.04em", color: "var(--text-muted)",
+  // ─── Action bar (Add / Bulk import / Rescan) — top of section ────────────
+  const topBarBtn = {
+    padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text)",
+    fontFamily: "var(--font-mono)", letterSpacing: "0.04em",
     background: "transparent", border: "1px solid var(--border)",
     borderRadius: 4, cursor: "pointer", userSelect: "none", whiteSpace: "nowrap",
   };
-  const topBarBtn = { ...actionBtn, padding: "6px 12px", fontSize: 12, fontWeight: 600, color: "var(--text)" };
   const topBarPrimary = { ...topBarBtn, color: "#fff", background: "var(--accent)", border: "1px solid var(--accent)" };
 
   const ActionBar = () => (
     <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginBottom: 8, flexWrap: "wrap" }}>
-      <TableColumnPicker
-        columns={COLUMNS.map(({ id, label, description, pinned }) => ({ id, label, description, pinned }))}
-        order={prefs.order}
-        visible={prefs.visible}
-        defaultOrder={DEFAULT_ORDER}
-        defaultVisible={DEFAULT_VISIBLE}
-        onOrderChange={setOrder}
-        onVisibleChange={setVisible}
-        onResetAll={resetToDefaults}
-      />
       {showActionBar && onRescan && (
         <Tip def="Refresh company names, sectors, beta values, and current prices for all your stock and fund positions. Useful if a row looks stale or is missing data. CASH rows are left alone."><button type="button"
           style={{ ...topBarBtn, opacity: rescanBusy ? 0.6 : 1, cursor: rescanBusy ? "progress" : "pointer" }}
@@ -1029,23 +730,13 @@ export default function PositionsTable({
         </button></Tip>
       )}
       {showActionBar && onBulkImport && (
-        <button type="button" style={topBarBtn} onClick={onBulkImport}>
-          Bulk import (CSV/XLSX)
-        </button>
+        <button type="button" style={topBarBtn} onClick={onBulkImport}>Bulk import (CSV/XLSX)</button>
       )}
       {showActionBar && onAdd && (
-        <button type="button" style={topBarPrimary} onClick={onAdd}>
-          + Add position
-        </button>
+        <button type="button" style={topBarPrimary} onClick={onAdd}>+ Add position</button>
       )}
     </div>
   );
-
-  // Drag state MUST be declared before any conditional return — React hook-order invariant (Item 36 hotfix).
-  const [dragId, setDragId] = useState(null);
-  const [dragOverId, setDragOverId] = useState(null);
-  // liveWidths (column resize) MUST also be declared before the early return -- same React hook-order invariant.
-  const [liveWidths, setLiveWidths] = useState(null);
 
   if (!enriched.length) {
     return (
@@ -1063,226 +754,17 @@ export default function PositionsTable({
     );
   }
 
-  // ─── Visible column list for this render ───────────────────────────────────
-  // Keep only ids the user has checked, then *always* append "actions" at the
-  // end if the actions column is in use (pinned rightmost).
-  const byId = new Map(COLUMNS.map((c) => [c.id, c]));
-  const visibleIds = prefs.order
-    .filter((id) => prefs.visible.includes(id) && byId.has(id))
-    .filter((id) => id !== "actions"); // actions handled separately
-  const visibleColumns = visibleIds.map((id) => byId.get(id)).filter(Boolean);
-  const actionsCol = showActionsCol ? byId.get("actions") : null;
-
-  // ─── Draggable headers ─────────────────────────────────────────────────────
-
-  const onHdrDragStart = (e, id) => {
-    setDragId(id);
-    try {
-      e.dataTransfer.effectAllowed = "move";
-      e.dataTransfer.setData("text/plain", id);
-    } catch {}
-  };
-  const onHdrDragOver = (e, id) => {
-    if (!dragId || id === "actions") return;
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    if (id !== dragOverId) setDragOverId(id);
-  };
-  const onHdrDrop = (e, targetId) => {
-    e.preventDefault();
-    const source = dragId;
-    setDragId(null);
-    setDragOverId(null);
-    if (!source || source === targetId || targetId === "actions") return;
-    const next = [...prefs.order];
-    const from = next.indexOf(source);
-    const to   = next.indexOf(targetId);
-    if (from < 0 || to < 0) return;
-    next.splice(from, 1);
-    next.splice(to, 0, source);
-    setOrder(next);
-  };
-  const onHdrDragEnd = () => { setDragId(null); setDragOverId(null); };
-
-  const headerStyle = {
-    fontSize: 10, fontWeight: 700, color: "var(--text-muted)",
-    fontFamily: "var(--font-mono)", letterSpacing: "0.08em",
-    padding: "6px 6px",
-    borderBottom: "1px solid var(--border)",
-    background: "var(--surface-3)", position: "sticky", top: 0,
-    userSelect: "none", whiteSpace: "nowrap",
-    overflow: "hidden", textOverflow: "ellipsis",
-  };
-
-  // --- Resizable columns ----------------------------------------------------
-  // Live widths during a drag - null when not resizing. We keep an in-memory
-  // copy instead of writing to prefs on every mousemove so the debounced
-  // save does not log dozens of intermediate widths. Final value is committed
-  // to setWidths() on mouseup.
-  const widthOf = (id) => (liveWidths && liveWidths[id] != null)
-    ? liveWidths[id]
-    : (prefs.widths[id] != null ? prefs.widths[id] : (DEFAULT_WIDTHS[id] || 100));
-
-  const onResizeStart = (e, id) => {
-    e.preventDefault();   // blocks parent <th>'s native drag from firing
-    e.stopPropagation();  // blocks sort-toggle click
-    const startX = e.clientX;
-    const startW = widthOf(id);
-    let next = startW;
-    const onMove = (ev) => {
-      next = Math.max(48, Math.min(2000, Math.round(startW + ev.clientX - startX)));
-      setLiveWidths((prev) => ({ ...(prev || {}), [id]: next }));
-    };
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      const merged = { ...prefs.widths, [id]: next };
-      setLiveWidths(null);
-      setWidths(merged);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-  };
-
-  const resizeHandleStyle = {
-    position: "absolute",
-    top: 0, right: 0, bottom: 0,
-    width: 6,
-    cursor: "col-resize",
-    userSelect: "none",
-    zIndex: 2,
-  };
-
   return (
     <>
       <ActionBar />
-      <div style={{ overflowX: "auto", border: "1px solid var(--border)", borderRadius: 6 }}>
-        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, tableLayout: "fixed" }}>
-          <colgroup>
-            {visibleColumns.map((col) => (
-              <col key={col.id} style={{ width: widthOf(col.id) }} />
-            ))}
-            {actionsCol && <col style={{ width: DEFAULT_WIDTHS.actions }} />}
-          </colgroup>
-          <thead>
-            <tr>
-              {visibleColumns.map((col) => {
-                const isDragOver = dragOverId === col.id && dragId && dragId !== col.id;
-                const isDragging = dragId === col.id;
-                return (
-                  <th
-                    key={col.id}
-                    draggable
-                    onDragStart={(e) => onHdrDragStart(e, col.id)}
-                    onDragOver={(e) => onHdrDragOver(e, col.id)}
-                    onDrop={(e) => onHdrDrop(e, col.id)}
-                    onDragEnd={onHdrDragEnd}
-                    onClick={() => toggleSort(col.id)}
-                    style={{
-                      ...headerStyle,
-                      textAlign: col.align === "right" ? "right" : "left",
-                      cursor: "grab",
-                      opacity: isDragging ? 0.5 : 1,
-                      borderLeft: isDragOver ? "2px solid var(--accent)" : "2px solid transparent",
-                    }}
-                  >
-                    {/* LESSONS rule #3: zero-latency tooltip via Tip
-                        primitive. Replaces the slow browser-default
-                        title= attribute that had ~750ms hover delay. */}
-                    <Tip def={col.description}>
-                      <span style={{ display: "inline-block" }}>
-                        {col.label}
-                        <SortArrow dir={sortCol === col.id ? sortDir : null} />
-                      </span>
-                    </Tip>
-                    <Tip def="Drag to resize column"><div draggable={false}
-                      onMouseDown={(e) => onResizeStart(e, col.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      style={resizeHandleStyle}/></Tip>
-                  </th>
-                );
-              })}
-              {actionsCol && (
-                <th
-                  style={{
-                    ...headerStyle, cursor: "default", textAlign: "right",
-                    borderLeft: "1px solid var(--border-faint)",
-                  }}
-                >
-                  <Tip def={actionsCol.description}>
-                    <span style={{ display: "inline-block" }}>{actionsCol.label}</span>
-                  </Tip>
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {sorted.map((row) => (
-              <tr
-                key={`${row.acctLabel}-${row.ticker}-${row._raw?.id || ""}`}
-                onClick={() => onOpenTicker?.(row.ticker)}
-                style={{
-                  cursor: "pointer",
-                  borderBottom: "1px solid var(--border-faint)",
-                  background: "var(--surface-2)",
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--surface-3)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--surface-2)")}
-              >
-                {visibleColumns.map((col) => (
-                  <td
-                    key={col.id}
-                    style={{
-                      padding: "7px 6px",
-                      textAlign: col.align === "right" ? "right" : "left",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {col.renderCell(row)}
-                  </td>
-                ))}
-                {actionsCol && (
-                  <td
-                    style={{ padding: "5px 6px", textAlign: "right", whiteSpace: "nowrap" }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {onEdit && (
-                      <Tip def="Edit position"><button type="button"
-                        style={{ ...actionBtn, marginRight: 4 }}
-                        onClick={(e) => { e.stopPropagation(); onEdit(row._raw); }}>
-                        Edit
-                      </button></Tip>
-                    )}
-                    {onClose && (
-                      <Tip def="Close position — proceeds to a cash row, position soft-archived for history">
-                        <button type="button"
-                          style={{ ...actionBtn, marginRight: 4, color: "var(--green)", borderColor: "rgba(48,209,88,0.4)" }}
-                          onClick={(e) => { e.stopPropagation(); onClose(row._raw); }}>
-                          Close
-                        </button>
-                      </Tip>
-                    )}
-                    {onDelete && (
-                      <Tip def="Delete entry — no cash impact. Use only for fixing wrong entries; for closing a real trade use Close instead.">
-                        <button type="button"
-                          style={{ ...actionBtn, color: "var(--red)", borderColor: "rgba(255,69,58,0.35)" }}
-                          onClick={(e) => { e.stopPropagation(); onDelete(row._raw); }}>
-                          Delete
-                        </button>
-                      </Tip>
-                    )}
-                  </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {/* Task #25: footnote keeps freshness + source attached to the table
-          body — useful on long portfolios where the section header scrolls
-          off-screen. Renders null if no ts / source is provided. */}
+      <MTTable
+        columns={columns}
+        rows={enriched}
+        rowKey={(r) => `${r.acctLabel}-${r.ticker}-${r._raw?.id || ""}`}
+        onRowClick={(row) => onOpenTicker?.(row.ticker)}
+        storageKey={tableKey}
+        features="full"
+      />
       <TableFootnote priceCaption={priceCaption} eventsCaption={eventsCaption} source={footnoteSource} />
     </>
   );

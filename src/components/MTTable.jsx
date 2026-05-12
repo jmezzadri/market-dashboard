@@ -138,10 +138,20 @@ export default function MTTable({
 
   // Resolve helpers
   const colByKey = useMemo(() => Object.fromEntries(columns.map(c => [c.key, c])), [columns]);
-  const visibleCols = useMemo(
-    () => order.map(k => colByKey[k]).filter(c => c && visible.has(c.key)),
-    [order, visible, colByKey]
+  // Pinned-right columns always render at the rightmost position regardless
+  // of `order`, are not draggable, and stay visible even if the user toggled
+  // them off via the Columns popover. Used for trailing action buttons
+  // (Positions: Edit / Close / Delete).
+  const pinnedRightCols = useMemo(
+    () => columns.filter(c => c.pinned === "right"),
+    [columns]
   );
+  const visibleCols = useMemo(() => {
+    const unpinned = order
+      .map(k => colByKey[k])
+      .filter(c => c && c.pinned !== "right" && visible.has(c.key));
+    return [...unpinned, ...pinnedRightCols];
+  }, [order, visible, colByKey, pinnedRightCols]);
 
   const getRowKey = (row, i) => {
     if (typeof rowKey === "function") return rowKey(row);
@@ -379,6 +389,7 @@ export default function MTTable({
                   {order.map(k => {
                     const col = colByKey[k];
                     if (!col) return null;
+                    if (col.pinned === "right") return null;
                     return (
                       <div
                         key={k}
@@ -419,20 +430,20 @@ export default function MTTable({
                   return (
                     <th
                       key={c.key}
-                      className={(c.numeric ? "numeric" : "") + (hasFilter ? " has-filter" : "")}
-                      draggable={isFull}
+                      className={(c.numeric ? "numeric" : "") + (hasFilter ? " has-filter" : "") + (c.pinned === "right" ? " mt-pinned-right" : "")}
+                      draggable={isFull && c.pinned !== "right"}
                       title={c.tooltip || ""}
-                      onClick={(e) => { if (e.target.classList.contains("resize-handle")) return; sortBy(c.key); }}
-                      onDragStart={(e) => { if (!isFull) return; dragKeyRef.current = c.key; e.dataTransfer.effectAllowed = "move"; e.currentTarget.classList.add("drag-source"); }}
+                      onClick={(e) => { if (e.target.classList.contains("resize-handle")) return; if (c.pinned === "right" && c.sortable === false) return; sortBy(c.key); }}
+                      onDragStart={(e) => { if (!isFull || c.pinned === "right") return; dragKeyRef.current = c.key; e.dataTransfer.effectAllowed = "move"; e.currentTarget.classList.add("drag-source"); }}
                       onDragEnd={(e) => { e.currentTarget.classList.remove("drag-source"); document.querySelectorAll(".mt-table thead th").forEach(x => x.classList.remove("drag-over")); dragKeyRef.current = null; }}
-                      onDragOver={(e) => { if (!isFull || !dragKeyRef.current || dragKeyRef.current === c.key) return; e.preventDefault(); document.querySelectorAll(".mt-table thead th").forEach(x => x.classList.remove("drag-over")); e.currentTarget.classList.add("drag-over"); }}
-                      onDrop={(e) => { if (!isFull) return; e.preventDefault(); const dk = dragKeyRef.current; if (!dk || dk === c.key) return; moveColumn(dk, c.key); }}
+                      onDragOver={(e) => { if (!isFull || !dragKeyRef.current || dragKeyRef.current === c.key || c.pinned === "right") return; e.preventDefault(); document.querySelectorAll(".mt-table thead th").forEach(x => x.classList.remove("drag-over")); e.currentTarget.classList.add("drag-over"); }}
+                      onDrop={(e) => { if (!isFull || c.pinned === "right") return; e.preventDefault(); const dk = dragKeyRef.current; if (!dk || dk === c.key) return; moveColumn(dk, c.key); }}
                     >
                       {c.label}
                       {c.headerExtra && <span style={{ marginLeft: 6, display: "inline-flex", alignItems: "center", verticalAlign: "middle" }}>{c.headerExtra}</span>}
                       {arrow && <span className="arrow"> {arrow}</span>}
                       {hasFilter && <span className="filter-dot" />}
-                      {isFull && (
+                      {isFull && c.pinned !== "right" && (
                         <span
                           className="resize-handle"
                           onMouseDown={(e) => startResize(c.key, e)}
