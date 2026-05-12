@@ -16,6 +16,7 @@
 // Site brand: Fraunces display, Inter body, JetBrains Mono technical, parchment palette.
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import MTTable from "../components/MTTable";
 
 // ─── Section schema ────────────────────────────────────────────────────────
 // Used for TOC, search filtering, and content rendering. Each subsection's
@@ -148,19 +149,8 @@ const styles = {
     padding: "10px 14px", borderRadius: 5, borderLeft: "3px solid var(--accent)",
     margin: "10px 0", whiteSpace: "pre-wrap", lineHeight: 1.55,
   },
-  table: {
-    width: "100%", fontSize: 12.5, borderCollapse: "collapse", margin: "10px 0 16px",
-  },
-  th: {
-    textAlign: "left", padding: "8px 10px", fontWeight: 500, fontSize: 10,
-    color: "var(--text-muted)", letterSpacing: "0.06em",
-    textTransform: "uppercase", borderBottom: "0.5px solid var(--border)",
-    background: "var(--surface-2)",
-  },
-  td: {
-    padding: "9px 10px", borderBottom: "0.5px dashed var(--border)",
-    verticalAlign: "top",
-  },
+  // table/th/td removed 2026-05-11 — replaced by shared MTTable primitive
+  // (rendered in Tier B "look" mode via the local DocsTable helper below).
   inlineCode: {
     fontFamily: "var(--font-mono, monospace)", fontSize: 12,
     background: "var(--surface-2)", padding: "1px 6px", borderRadius: 3,
@@ -173,6 +163,29 @@ function Code({ children }) { return <code style={styles.inlineCode}>{children}<
 function Formula({ children }) { return <div style={styles.formula}>{children}</div>; }
 function Callout({ children }) { return <div style={styles.callout}>{children}</div>; }
 function Body({ children }) { return <p style={styles.body}>{children}</p>; }
+
+// DocsTable — wraps the shared MTTable primitive in "look" (Tier B) mode for
+// the reference / lookup tables on this page. Cells keep their inline JSX
+// (Code, em, strong) via the column `render` prop. Each entry in `cols` can
+// be either a string label or an object `{ label, numeric }` — numeric
+// columns get right-aligned + tabular-nums per MTTable's styling.
+function DocsTable({ cols, rows }) {
+  const columns = cols.map((c, i) => {
+    const spec = typeof c === "string" ? { label: c } : c;
+    return {
+      key: "c" + i,
+      label: spec.label,
+      numeric: !!spec.numeric,
+      render: (r) => r["c" + i],
+    };
+  });
+  const rowObjs = rows.map((cells, i) => {
+    const o = { _id: i };
+    cells.forEach((cell, j) => { o["c" + j] = cell; });
+    return o;
+  });
+  return <MTTable columns={columns} rows={rowObjs} rowKey="_id" features="look" />;
+}
 
 // ─── Section content (hand-written prose, no auto-generation) ──────────────
 
@@ -207,19 +220,15 @@ const SECTION_CONTENT = {
       <Body>
         Read the composite first. The bands at the top of the dial are the cohort:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Composite</th>
-          <th style={styles.th}>Band</th>
-          <th style={styles.th}>What it means</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}><Code>0–25</Code></td><td style={styles.td}>Risk-on</td><td style={styles.td}>Most mechanisms read benign. Cycle is in a low-risk regime.</td></tr>
-          <tr><td style={styles.td}><Code>25–50</Code></td><td style={styles.td}>Neutral</td><td style={styles.td}>Composite sits in the middle. A few mechanisms run hot, the rest stay calm.</td></tr>
-          <tr><td style={styles.td}><Code>50–75</Code></td><td style={styles.td}>Caution</td><td style={styles.td}>Several mechanisms above the cohort. Heat is selective, not system-wide.</td></tr>
-          <tr><td style={styles.td}><Code>75–100</Code></td><td style={styles.td}>Risk-off</td><td style={styles.td}>Multiple mechanisms in the upper quartile. Broad-based heat.</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Composite", "Band", "What it means"]}
+        rows={[
+          [<Code>0–25</Code>,    "Risk-on",  "Most mechanisms read benign. Cycle is in a low-risk regime."],
+          [<Code>25–50</Code>,   "Neutral",  "Composite sits in the middle. A few mechanisms run hot, the rest stay calm."],
+          [<Code>50–75</Code>,   "Caution",  "Several mechanisms above the cohort. Heat is selective, not system-wide."],
+          [<Code>75–100</Code>,  "Risk-off", "Multiple mechanisms in the upper quartile. Broad-based heat."],
+        ]}
+      />
       <Body>
         Then look at the six mechanism dials. The one furthest from the cohort tells you the asymmetric
         risk; the others give context. Click any mechanism to see the underlying indicators that drove
@@ -239,22 +248,17 @@ const SECTION_CONTENT = {
         Six mechanisms, three or four indicators each, all from public sources. The exact panels
         running in production today:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Mechanism</th>
-          <th style={styles.th}>Indicators</th>
-          <th style={styles.th}>Source</th>
-          <th style={styles.th}>Cadence</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}>Valuation</td><td style={styles.td}>CAPE (Shiller), Equity Risk Premium (1/CAPE − 10y Treasury), Buffett Indicator (corporate equities ÷ GDP)</td><td style={styles.td}>Shiller · FRED</td><td style={styles.td}>Monthly + quarterly</td></tr>
-          <tr><td style={styles.td}>Credit</td><td style={styles.td}>IG OAS (Baa − 10y), HY OAS, HY/IG ratio</td><td style={styles.td}>ICE BofA via FRED</td><td style={styles.td}>Daily</td></tr>
-          <tr><td style={styles.td}>Funding</td><td style={styles.td}>Commercial paper risk premium, St. Louis Fed Financial Stress Index, Bank reserves at the Fed, Reverse repo balance</td><td style={styles.td}>FRED</td><td style={styles.td}>Daily + weekly</td></tr>
-          <tr><td style={styles.td}>Growth</td><td style={styles.td}>CFNAI 3-month, Jobless claims (4-week average), ISM Manufacturing PMI, Banks vs S&P 500 (BKX/SPX ratio)</td><td style={styles.td}>Chicago Fed · DOL · ISM · Yahoo</td><td style={styles.td}>Mixed (weekly + monthly + daily)</td></tr>
-          <tr><td style={styles.td}>Liquidity & Policy</td><td style={styles.td}>Chicago Fed ANFCI, Fed balance sheet YoY %, SLOOS C&I lending standards, M2 money supply YoY</td><td style={styles.td}>FRED · Chicago Fed</td><td style={styles.td}>Mixed (weekly + monthly + quarterly)</td></tr>
-          <tr><td style={styles.td}>Positioning & Breadth</td><td style={styles.td}>CBOE SKEW, VIX, equity-credit correlation (60-day), MOVE Index (Treasury vol)</td><td style={styles.td}>CBOE · ICE</td><td style={styles.td}>Daily</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Mechanism", "Indicators", "Source", "Cadence"]}
+        rows={[
+          ["Valuation",             "CAPE (Shiller), Equity Risk Premium (1/CAPE − 10y Treasury), Buffett Indicator (corporate equities ÷ GDP)", "Shiller · FRED", "Monthly + quarterly"],
+          ["Credit",                "IG OAS (Baa − 10y), HY OAS, HY/IG ratio",                                                                     "ICE BofA via FRED", "Daily"],
+          ["Funding",               "Commercial paper risk premium, St. Louis Fed Financial Stress Index, Bank reserves at the Fed, Reverse repo balance", "FRED", "Daily + weekly"],
+          ["Growth",                "CFNAI 3-month, Jobless claims (4-week average), ISM Manufacturing PMI, Banks vs S&P 500 (BKX/SPX ratio)",   "Chicago Fed · DOL · ISM · Yahoo", "Mixed (weekly + monthly + daily)"],
+          ["Liquidity & Policy",    "Chicago Fed ANFCI, Fed balance sheet YoY %, SLOOS C&I lending standards, M2 money supply YoY",               "FRED · Chicago Fed", "Mixed (weekly + monthly + quarterly)"],
+          ["Positioning & Breadth", "CBOE SKEW, VIX, equity-credit correlation (60-day), MOVE Index (Treasury vol)",                              "CBOE · ICE", "Daily"],
+        ]}
+      />
       <Body>
         Sprint 1 panels (Valuation, Credit, Growth) are exposed in
         <Code>methodology_calibration_v11.json</Code> with hand-curated descriptions, percentile
@@ -388,30 +392,26 @@ bidir_bottom         →  score = 100 − percentile`}</Formula>
       <Body>
         Inputs live in three files:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>File</th>
-          <th style={styles.th}>What it carries</th>
-          <th style={styles.th}>Refreshed by</th>
-        </tr></thead>
-        <tbody>
-          <tr>
-            <td style={styles.td}><Code>cycle_board_snapshot.json</Code></td>
-            <td style={styles.td}>Today's six mechanism scores (0–100 each)</td>
-            <td style={styles.td}><Code>compute_v11_mechanisms.py</Code> · 22:30 UTC</td>
-          </tr>
-          <tr>
-            <td style={styles.td}><Code>v10_allocation.json</Code></td>
-            <td style={styles.td}>Allocator output: equity %, defensive %, leverage, 11 sector tilts, 24 IG tilts, contribution matrix</td>
-            <td style={styles.td}><Code>compute_v10_allocation.py</Code> · 22:45 UTC</td>
-          </tr>
-          <tr>
-            <td style={styles.td}><Code>methodology_calibration_v11.json</Code></td>
-            <td style={styles.td}>Sprint 1 mechanism input panels with hand-curated percentiles + descriptions</td>
-            <td style={styles.td}>Manually updated when calibration windows change</td>
-          </tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["File", "What it carries", "Refreshed by"]}
+        rows={[
+          [
+            <Code>cycle_board_snapshot.json</Code>,
+            "Today's six mechanism scores (0–100 each)",
+            <><Code>compute_v11_mechanisms.py</Code> · 22:30 UTC</>,
+          ],
+          [
+            <Code>v10_allocation.json</Code>,
+            "Allocator output: equity %, defensive %, leverage, 11 sector tilts, 24 IG tilts, contribution matrix",
+            <><Code>compute_v10_allocation.py</Code> · 22:45 UTC</>,
+          ],
+          [
+            <Code>methodology_calibration_v11.json</Code>,
+            "Sprint 1 mechanism input panels with hand-curated percentiles + descriptions",
+            "Manually updated when calibration windows change",
+          ],
+        ]}
+      />
       <Body>
         Per-sector and per-IG sensitivities are baked into the allocator script as constants
         (see <Code>SECTOR_SENSITIVITY</Code> and <Code>INDUSTRY_GROUPS</Code> in
@@ -558,20 +558,16 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
       <Body>
         Action bands on the MacroTilt Score:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Score</th>
-          <th style={styles.th}>Band</th>
-          <th style={styles.th}>What it means</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}><Code>+50 to +100</Code></td><td style={styles.td}>Strong Buy</td><td style={styles.td}>Multiple bullish signals firing strongly. Highest conviction on the buy side.</td></tr>
-          <tr><td style={styles.td}><Code>+20 to +50</Code></td><td style={styles.td}>Watch Buy</td><td style={styles.td}>Tilting bullish on one or two signals. Smaller position size or wait for confirmation.</td></tr>
-          <tr><td style={styles.td}><Code>-20 to +20</Code></td><td style={styles.td}>Neutral</td><td style={styles.td}>Signals are mixed or quiet. No clear directional read.</td></tr>
-          <tr><td style={styles.td}><Code>-50 to -20</Code></td><td style={styles.td}>Watch Sell</td><td style={styles.td}>Tilting bearish on one or two signals. Watch list for trim or hedge.</td></tr>
-          <tr><td style={styles.td}><Code>-100 to -50</Code></td><td style={styles.td}>Strong Sell</td><td style={styles.td}>Multiple bearish signals firing strongly. Highest conviction on the sell side.</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Score", "Band", "What it means"]}
+        rows={[
+          [<Code>+50 to +100</Code>,  "Strong Buy",  "Multiple bullish signals firing strongly. Highest conviction on the buy side."],
+          [<Code>+20 to +50</Code>,   "Watch Buy",   "Tilting bullish on one or two signals. Smaller position size or wait for confirmation."],
+          [<Code>-20 to +20</Code>,   "Neutral",     "Signals are mixed or quiet. No clear directional read."],
+          [<Code>-50 to -20</Code>,   "Watch Sell",  "Tilting bearish on one or two signals. Watch list for trim or hedge."],
+          [<Code>-100 to -50</Code>,  "Strong Sell", "Multiple bearish signals firing strongly. Highest conviction on the sell side."],
+        ]}
+      />
       <Body>
         Every name in the universe is shown. There is no upper cap ceiling: NVDA, AAPL, GOOGL,
         KO - all scored, all visible. The same six signals run on every name. The only difference
@@ -585,22 +581,18 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
       <Body>
         The pipeline is built on six independent data streams plus a universe definition:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Stream</th>
-          <th style={styles.th}>Provider</th>
-          <th style={styles.th}>What it carries</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}>Universe + reference</td><td style={styles.td}>Polygon Massive</td><td style={styles.td}>Every US-listed Common Stock + ADR with market cap at least $300 million and last close above $5. About 3,300 names.</td></tr>
-          <tr><td style={styles.td}>EOD prices + volume</td><td style={styles.td}>Polygon Massive</td><td style={styles.td}>OHLCV for all names; feeds the technicals signal (Bollinger BandWidth, RSI, 50-day moving average, relative volume).</td></tr>
-          <tr><td style={styles.td}>Insider buys + sells</td><td style={styles.td}>Unusual Whales (SEC Form 4)</td><td style={styles.td}>Open-market purchases and sales by officers and directors (transaction code "P" and "S"). RSU grants, option exercises, and tax-withholding are filtered out.</td></tr>
-          <tr><td style={styles.td}>Options flow</td><td style={styles.td}>Unusual Whales</td><td style={styles.td}>Daily call and put volume vs open interest; flags unusual activity.</td></tr>
-          <tr><td style={styles.td}>Congress trades</td><td style={styles.td}>Quiver Quant</td><td style={styles.td}>Disclosed buy and sell trades by US senators and representatives within reporting windows.</td></tr>
-          <tr><td style={styles.td}>Analyst actions</td><td style={styles.td}>Unusual Whales</td><td style={styles.td}>Wall Street equity research: upgrades, downgrades, price target changes, initiations.</td></tr>
-          <tr><td style={styles.td}>Short interest</td><td style={styles.td}>FINRA short interest report</td><td style={styles.td}>Bi-monthly short interest as percent of float, plus day-to-cover.</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Stream", "Provider", "What it carries"]}
+        rows={[
+          ["Universe + reference",  "Polygon Massive",              "Every US-listed Common Stock + ADR with market cap at least $300 million and last close above $5. About 3,300 names."],
+          ["EOD prices + volume",   "Polygon Massive",              "OHLCV for all names; feeds the technicals signal (Bollinger BandWidth, RSI, 50-day moving average, relative volume)."],
+          ["Insider buys + sells",  "Unusual Whales (SEC Form 4)",  "Open-market purchases and sales by officers and directors (transaction code \"P\" and \"S\"). RSU grants, option exercises, and tax-withholding are filtered out."],
+          ["Options flow",          "Unusual Whales",               "Daily call and put volume vs open interest; flags unusual activity."],
+          ["Congress trades",       "Quiver Quant",                 "Disclosed buy and sell trades by US senators and representatives within reporting windows."],
+          ["Analyst actions",       "Unusual Whales",               "Wall Street equity research: upgrades, downgrades, price target changes, initiations."],
+          ["Short interest",        "FINRA short interest report",  "Bi-monthly short interest as percent of float, plus day-to-cover."],
+        ]}
+      />
       <Body>
         The nightly scan runs after the close and writes one row per (ticker, scan_date) to{" "}
         <Code>public.signal_intel_v5_daily</Code>. Each row carries the MacroTilt Score, the band,
@@ -625,38 +617,17 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         Each signal returns a sub-score from -100 to +100. Strong bullish reads (around +50 or
         higher) and strong bearish reads (around -50 or lower) are the actionable extremes.
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Signal</th>
-          <th style={styles.th}>What it reads</th>
-        </tr></thead>
-        <tbody>
-          <tr>
-            <td style={styles.td}>Insider buying</td>
-            <td style={styles.td}>Open-market Form 4 buys (and sells) by company officers and directors. Cap-normalized so a $1 million buy is read the same way at every company size. First-buy refinement: bonus for buyers with no prior purchase in the previous twelve months.</td>
-          </tr>
-          <tr>
-            <td style={styles.td}>Options flow</td>
-            <td style={styles.td}>Unusual call and put volume vs open interest. Persistent call-side imbalance is bullish, persistent put-side imbalance is bearish.</td>
-          </tr>
-          <tr>
-            <td style={styles.td}>Congress trades</td>
-            <td style={styles.td}>Recent disclosed buys and sells by US senators and representatives within the legal reporting window. Buying tilts bullish, selling tilts bearish.</td>
-          </tr>
-          <tr>
-            <td style={styles.td}>Technicals</td>
-            <td style={styles.td}>20-day Bollinger BandWidth, 14-day RSI, distance from the 50-day moving average, relative volume. Reads "tape strength" without leaning on any single indicator.</td>
-          </tr>
-          <tr>
-            <td style={styles.td}>Analyst actions</td>
-            <td style={styles.td}>Recent Wall Street equity research changes: upgrades, downgrades, price target moves, initiations. Upward momentum positive, downward momentum negative.</td>
-          </tr>
-          <tr>
-            <td style={styles.td}>Short interest</td>
-            <td style={styles.td}>Short interest as percent of float, plus week-over-week direction. Rising short interest is mildly bearish; falling short interest from elevated levels can be bullish (squeeze setup).</td>
-          </tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Signal", "What it reads"]}
+        rows={[
+          ["Insider buying",  "Open-market Form 4 buys (and sells) by company officers and directors. Cap-normalized so a $1 million buy is read the same way at every company size. First-buy refinement: bonus for buyers with no prior purchase in the previous twelve months."],
+          ["Options flow",    "Unusual call and put volume vs open interest. Persistent call-side imbalance is bullish, persistent put-side imbalance is bearish."],
+          ["Congress trades", "Recent disclosed buys and sells by US senators and representatives within the legal reporting window. Buying tilts bullish, selling tilts bearish."],
+          ["Technicals",      "20-day Bollinger BandWidth, 14-day RSI, distance from the 50-day moving average, relative volume. Reads \"tape strength\" without leaning on any single indicator."],
+          ["Analyst actions", "Recent Wall Street equity research changes: upgrades, downgrades, price target moves, initiations. Upward momentum positive, downward momentum negative."],
+          ["Short interest",  "Short interest as percent of float, plus week-over-week direction. Rising short interest is mildly bearish; falling short interest from elevated levels can be bullish (squeeze setup)."],
+        ]}
+      />
 
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The MacroTilt Score (calibrated weights)</h4>
       <Body>
@@ -665,22 +636,18 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         forward returns as the truth signal. Signals with insufficient historical data sit at the
         equal-weight floor (1/6) until the data layer is backfilled.
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Signal</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Weight</th>
-          <th style={styles.th}>Calibration status</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}>Insider buying</td><td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>36.30%</td><td style={styles.td}>Calibrated. Highest alpha in backtest (+7.18 percentage points vs SPY when strong, 61% hit rate).</td></tr>
-          <tr><td style={styles.td}>Options flow</td><td style={{ ...styles.td, textAlign: "right" }}>16.67%</td><td style={styles.td}>Equal-weight floor. Full history backfill in progress.</td></tr>
-          <tr><td style={styles.td}>Congress trades</td><td style={{ ...styles.td, textAlign: "right" }}>16.67%</td><td style={styles.td}>Equal-weight floor. Only 13 strong-signal events across the backtest year - thin history.</td></tr>
-          <tr><td style={styles.td}>Technicals</td><td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>8.69%</td><td style={styles.td}>Calibrated. Reliable mid-tier (+3.42 percentage points alpha when strong, 56% hit rate).</td></tr>
-          <tr><td style={styles.td}>Analyst actions</td><td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>5.00%</td><td style={styles.td}>Calibrated. Broad coverage but the lowest alpha among signals we could fit (+1.65 percentage points).</td></tr>
-          <tr><td style={styles.td}>Short interest</td><td style={{ ...styles.td, textAlign: "right" }}>16.67%</td><td style={styles.td}>Equal-weight floor. Sparse coverage (93 tickers historically).</td></tr>
-          <tr><td style={{ ...styles.td, fontWeight: 600 }}>Total</td><td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>100.00%</td><td style={styles.td}></td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Signal", { label: "Weight", numeric: true }, "Calibration status"]}
+        rows={[
+          ["Insider buying",  <strong>36.30%</strong>, "Calibrated. Highest alpha in backtest (+7.18 percentage points vs SPY when strong, 61% hit rate)."],
+          ["Options flow",    "16.67%",                "Equal-weight floor. Full history backfill in progress."],
+          ["Congress trades", "16.67%",                "Equal-weight floor. Only 13 strong-signal events across the backtest year - thin history."],
+          ["Technicals",      <strong>8.69%</strong>,  "Calibrated. Reliable mid-tier (+3.42 percentage points alpha when strong, 56% hit rate)."],
+          ["Analyst actions", <strong>5.00%</strong>,  "Calibrated. Broad coverage but the lowest alpha among signals we could fit (+1.65 percentage points)."],
+          ["Short interest",  "16.67%",                "Equal-weight floor. Sparse coverage (93 tickers historically)."],
+          [<strong>Total</strong>, <strong>100.00%</strong>, ""],
+        ]}
+      />
 
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Cap-aware insider weight</h4>
       <Body>
@@ -691,19 +658,19 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         grows. The weight freed up by the haircut is redistributed pro-rata across the other five
         signals so the total still sums to 100%.
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Market cap</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Insider weight factor</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Effective insider weight</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}>$500 million or less</td><td style={{ ...styles.td, textAlign: "right" }}>1.00</td><td style={{ ...styles.td, textAlign: "right" }}>36.3%</td></tr>
-          <tr><td style={styles.td}>$5 billion</td><td style={{ ...styles.td, textAlign: "right" }}>0.75</td><td style={{ ...styles.td, textAlign: "right" }}>27.2%</td></tr>
-          <tr><td style={styles.td}>$50 billion</td><td style={{ ...styles.td, textAlign: "right" }}>0.50</td><td style={{ ...styles.td, textAlign: "right" }}>18.2%</td></tr>
-          <tr><td style={styles.td}>$500 billion or more</td><td style={{ ...styles.td, textAlign: "right" }}>0.25</td><td style={{ ...styles.td, textAlign: "right" }}>9.1%</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={[
+          "Market cap",
+          { label: "Insider weight factor",    numeric: true },
+          { label: "Effective insider weight", numeric: true },
+        ]}
+        rows={[
+          ["$500 million or less",  "1.00", "36.3%"],
+          ["$5 billion",            "0.75", "27.2%"],
+          ["$50 billion",           "0.50", "18.2%"],
+          ["$500 billion or more",  "0.25", "9.1%"],
+        ]}
+      />
       <Body>
         Academic basis: Lakonishok &amp; Lee (2001){" "}
         <em>Are Insider Trades Informative?</em>, <em>Review of Financial Studies</em> 14(1),
@@ -721,42 +688,22 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         trading days forward. Alpha is the strategy return minus SPY's return on the same scan
         date. Sharpe is annualized from 12 non-overlapping monthly windows.
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Band</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Mean 21-day return</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Alpha vs SPY</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Beats SPY</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Sharpe</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={{ ...styles.td, fontWeight: 600 }}>Strong Buy</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>+8.30%</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>+7.21 pp</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>55.4%</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>3.00</td></tr>
-          <tr><td style={styles.td}>Watch Buy</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+3.39%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+2.23 pp</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>53.3%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>3.31</td></tr>
-          <tr><td style={styles.td}>Watch Sell</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+2.72%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+0.68 pp</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>47.6%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>0.61</td></tr>
-          <tr><td style={styles.td}>Strong Sell</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>-1.42%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>-2.99 pp</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>35.3%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td></tr>
-          <tr><td style={styles.td}>SPY benchmark</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+1.80%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>2.87</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={[
+          "Band",
+          { label: "Mean 21-day return", numeric: true },
+          { label: "Alpha vs SPY",       numeric: true },
+          { label: "Beats SPY",          numeric: true },
+          { label: "Sharpe",             numeric: true },
+        ]}
+        rows={[
+          [<strong>Strong Buy</strong>,  <strong>+8.30%</strong>, <strong>+7.21 pp</strong>, <strong>55.4%</strong>, <strong>3.00</strong>],
+          ["Watch Buy",                  "+3.39%", "+2.23 pp", "53.3%", "3.31"],
+          ["Watch Sell",                 "+2.72%", "+0.68 pp", "47.6%", "0.61"],
+          ["Strong Sell",                "-1.42%", "-2.99 pp", "35.3%", "--"],
+          ["SPY benchmark",              "+1.80%", "--",       "--",    "2.87"],
+        ]}
+      />
       <Body>
         The Strong Buy band beats SPY by more than 7 percentage points on average and earns a
         Sharpe ratio of 3.00 against SPY's 2.87 over the same window. The Strong Sell band
@@ -770,47 +717,23 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         For each signal alone, the table below shows how the bullish leg (sub-score around +50 or
         higher) performed when that signal was firing on its own.
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Signal</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Mean 21-day return</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Alpha vs SPY</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Hit rate</th>
-          <th style={styles.th}>Read</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={{ ...styles.td, fontWeight: 600 }}>Insider buying</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>+8.87%</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>+7.18 pp</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>61.1%</td>
-              <td style={styles.td}>Strongest signal by a wide margin.</td></tr>
-          <tr><td style={styles.td}>Technicals</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+4.28%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+3.42 pp</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>55.6%</td>
-              <td style={styles.td}>Reliable mid-tier contributor.</td></tr>
-          <tr><td style={styles.td}>Analyst actions</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+3.24%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+1.65 pp</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>56.6%</td>
-              <td style={styles.td}>Modest but the broadest coverage.</td></tr>
-          <tr><td style={styles.td}>Options flow</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={styles.td}>Calibration pending. Sits at equal-weight floor.</td></tr>
-          <tr><td style={styles.td}>Congress trades</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={styles.td}>Only 13 strong events in the backtest year. Floor weight.</td></tr>
-          <tr><td style={styles.td}>Short interest</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={styles.td}>Sparse coverage. Floor weight.</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={[
+          "Signal",
+          { label: "Mean 21-day return", numeric: true },
+          { label: "Alpha vs SPY",       numeric: true },
+          { label: "Hit rate",           numeric: true },
+          "Read",
+        ]}
+        rows={[
+          [<strong>Insider buying</strong>, <strong>+8.87%</strong>, <strong>+7.18 pp</strong>, <strong>61.1%</strong>, "Strongest signal by a wide margin."],
+          ["Technicals",      "+4.28%", "+3.42 pp", "55.6%", "Reliable mid-tier contributor."],
+          ["Analyst actions", "+3.24%", "+1.65 pp", "56.6%", "Modest but the broadest coverage."],
+          ["Options flow",    "--",     "--",       "--",    "Calibration pending. Sits at equal-weight floor."],
+          ["Congress trades", "--",     "--",       "--",    "Only 13 strong events in the backtest year. Floor weight."],
+          ["Short interest",  "--",     "--",       "--",    "Sparse coverage. Floor weight."],
+        ]}
+      />
 
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Where the alpha lives</h4>
       <Body>
@@ -818,37 +741,21 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         cap-bucket breakdown explains why - and is also why the insider weight is haircut on
         larger names.
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Cap bucket</th>
-          <th style={styles.th}>Band</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Mean 21-day return</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Alpha vs SPY</th>
-          <th style={{ ...styles.th, textAlign: "right" }}>Beats SPY</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={{ ...styles.td, fontWeight: 600 }}>$300M to $8.1B (small)</td>
-              <td style={{ ...styles.td, fontWeight: 600 }}>Strong Buy</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>+9.66%</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>+8.58 pp</td>
-              <td style={{ ...styles.td, textAlign: "right", fontWeight: 600 }}>58.3%</td></tr>
-          <tr><td style={styles.td}>$8.1B to $23.5B (mid)</td>
-              <td style={styles.td}>Strong Buy</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>+0.70%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>-0.43 pp</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>39.0%</td></tr>
-          <tr><td style={styles.td}>$23.5B to $200B (large)</td>
-              <td style={styles.td}>Watch Buy</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>-4.14%</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>-4.41 pp</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>27.3%</td></tr>
-          <tr><td style={styles.td}>$200B+ (mega)</td>
-              <td style={styles.td}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>--</td>
-              <td style={{ ...styles.td, textAlign: "right" }}>(unmeasured in backtest)</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={[
+          "Cap bucket",
+          "Band",
+          { label: "Mean 21-day return", numeric: true },
+          { label: "Alpha vs SPY",       numeric: true },
+          { label: "Beats SPY",          numeric: true },
+        ]}
+        rows={[
+          [<strong>$300M to $8.1B (small)</strong>,  <strong>Strong Buy</strong>, <strong>+9.66%</strong>, <strong>+8.58 pp</strong>, <strong>58.3%</strong>],
+          ["$8.1B to $23.5B (mid)",                  "Strong Buy",                "+0.70%", "-0.43 pp", "39.0%"],
+          ["$23.5B to $200B (large)",                "Watch Buy",                 "-4.14%", "-4.41 pp", "27.3%"],
+          ["$200B+ (mega)",                          "--",                        "--",     "--",       "(unmeasured in backtest)"],
+        ]}
+      />
       <Body>
         The clearest read: signal-driven alpha is concentrated in the $300M to $8.1B range. The
         cap-aware insider weight tries to bake that finding into the live composite, by reducing
@@ -936,22 +843,19 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
         Connect via Plaid (read-only — MacroTilt cannot place trades). Once connected, your positions
         appear sorted by dollar value, with each row carrying the scanner's action label:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Label</th>
-          <th style={styles.th}>When it shows</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}>BUY ZONE</td><td style={styles.td}>Scanner score 60+. Position aligned with the strongest current signal.</td></tr>
-          <tr><td style={styles.td}>HOLD</td><td style={styles.td}>Scanner score 35–60. Healthy hold range.</td></tr>
-          <tr><td style={styles.td}>WATCH</td><td style={styles.td}>Scanner score 20–35. Signals weakening.</td></tr>
-          <tr><td style={styles.td}>REVIEW</td><td style={styles.td}>Scanner score &lt; 20. Sell-watch zone.</td></tr>
-          <tr><td style={styles.td}>OUT OF SCOPE</td><td style={styles.td}>Position is in a sector the scanner doesn't evaluate (commodities, crypto, HY bond funds, broad international).</td></tr>
-          <tr><td style={styles.td}>NO SIGNAL</td><td style={styles.td}>Ticker isn't in the daily scanned universe.</td></tr>
-          <tr><td style={styles.td}>CORE</td><td style={styles.td}>Broad index fund (FXAIX, FSKAX, etc.). Not a tactical position.</td></tr>
-          <tr><td style={styles.td}>MONITOR</td><td style={styles.td}>Position is in a non-tactical account (401k, plan-fund). Can't act on tactical signals here.</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Label", "When it shows"]}
+        rows={[
+          ["BUY ZONE",     "Scanner score 60+. Position aligned with the strongest current signal."],
+          ["HOLD",         "Scanner score 35–60. Healthy hold range."],
+          ["WATCH",        "Scanner score 20–35. Signals weakening."],
+          ["REVIEW",       "Scanner score < 20. Sell-watch zone."],
+          ["OUT OF SCOPE", "Position is in a sector the scanner doesn't evaluate (commodities, crypto, HY bond funds, broad international)."],
+          ["NO SIGNAL",    "Ticker isn't in the daily scanned universe."],
+          ["CORE",         "Broad index fund (FXAIX, FSKAX, etc.). Not a tactical position."],
+          ["MONITOR",      "Position is in a non-tactical account (401k, plan-fund). Can't act on tactical signals here."],
+        ]}
+      />
     </>
   ),
   "port-data": (
@@ -959,18 +863,14 @@ equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct �
       <Body>
         Three streams come together:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Stream</th>
-          <th style={styles.th}>Source</th>
-          <th style={styles.th}>What it carries</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}>Brokerage positions</td><td style={styles.td}>Plaid</td><td style={styles.td}>Per-account: tickers, share counts, market value, cost basis, account type</td></tr>
-          <tr><td style={styles.td}>Scanner scores</td><td style={styles.td}><Code>latest_scan_data.json</Code></td><td style={styles.td}>Per-ticker composite score + signal-by-signal breakdown</td></tr>
-          <tr><td style={styles.td}>Account metadata</td><td style={styles.td}>Local config</td><td style={styles.td}>Tactical / plan-fund / IRA flags per account</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Stream", "Source", "What it carries"]}
+        rows={[
+          ["Brokerage positions", "Plaid",                                  "Per-account: tickers, share counts, market value, cost basis, account type"],
+          ["Scanner scores",      <Code>latest_scan_data.json</Code>,       "Per-ticker composite score + signal-by-signal breakdown"],
+          ["Account metadata",    "Local config",                           "Tactical / plan-fund / IRA flags per account"],
+        ]}
+      />
       <Body>
         Account-type flagging matters because a 401k position with limited fund choices isn't
         actionable in the same way as a self-directed brokerage. The MONITOR label exists so the
@@ -1013,19 +913,15 @@ else                                      →  REVIEW`}</Formula>
         (assertion failures halt the deploy), so they are guaranteed to hold in production rather
         than just promised in copy.
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Rule</th>
-          <th style={styles.th}>Why it exists</th>
-          <th style={styles.th}>Enforced where</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}><strong>Defensive ≤ 50%</strong></td><td style={styles.td}>Even in a maximum-stress regime, the engine never sells more than half the equity sleeve. Intent: stay invested through stress.</td><td style={styles.td}><Code>compute_v10_allocation.py</Code> + workflow audit</td></tr>
-          <tr><td style={styles.td}><strong>Leverage ≤ 1.5×</strong></td><td style={styles.td}>The 1.5× ceiling is the only path to leverage above 1.25×, and it's reserved for V-bottom regime-flip events. No path to runaway leverage.</td><td style={styles.td}><Code>compute_v10_allocation.py</Code> + workflow audit</td></tr>
-          <tr><td style={styles.td}><strong>Defensive XOR Leverage</strong></td><td style={styles.td}>Defensive sleeve and leverage are never on simultaneously. The two represent opposite tactical bets and the engine doesn't run them against each other.</td><td style={styles.td}><Code>compute_v10_allocation.py</Code> + workflow audit</td></tr>
-          <tr><td style={styles.td}><strong>All 6 mechanisms present</strong></td><td style={styles.td}>If any of the six mechanism scores is missing, the allocator does not produce a recommendation. No partial input → partial output.</td><td style={styles.td}><Code>compute_v10_allocation.py</Code> + workflow audit</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Rule", "Why it exists", "Enforced where"]}
+        rows={[
+          [<strong>Defensive ≤ 50%</strong>,            "Even in a maximum-stress regime, the engine never sells more than half the equity sleeve. Intent: stay invested through stress.", <><Code>compute_v10_allocation.py</Code> + workflow audit</>],
+          [<strong>Leverage ≤ 1.5×</strong>,            "The 1.5× ceiling is the only path to leverage above 1.25×, and it's reserved for V-bottom regime-flip events. No path to runaway leverage.", <><Code>compute_v10_allocation.py</Code> + workflow audit</>],
+          [<strong>Defensive XOR Leverage</strong>,     "Defensive sleeve and leverage are never on simultaneously. The two represent opposite tactical bets and the engine doesn't run them against each other.", <><Code>compute_v10_allocation.py</Code> + workflow audit</>],
+          [<strong>All 6 mechanisms present</strong>,   "If any of the six mechanism scores is missing, the allocator does not produce a recommendation. No partial input → partial output.", <><Code>compute_v10_allocation.py</Code> + workflow audit</>],
+        ]}
+      />
       <Callout>
         <strong>Why these rules are non-negotiable.</strong> The hard caps are not optimization
         constraints we accept reluctantly — they're the discipline that keeps the strategy
@@ -1045,21 +941,16 @@ else                                      →  REVIEW`}</Formula>
         <Code>scripts/backtest_v10_v11.py</Code> and refreshed in
         <Code>public/backtest_v10_v11_summary.json</Code>:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Metric</th>
-          <th style={styles.th}>v10.1c</th>
-          <th style={styles.th}>SPY</th>
-          <th style={styles.th}>v9 baseline (2008-2026)</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}>CAGR</td><td style={styles.td}><strong>13.89%</strong></td><td style={styles.td}>14.66%</td><td style={styles.td}>13.88%</td></tr>
-          <tr><td style={styles.td}>Sharpe (annualized)</td><td style={styles.td}><strong>1.029</strong></td><td style={styles.td}>1.030</td><td style={styles.td}>0.610</td></tr>
-          <tr><td style={styles.td}>Max drawdown</td><td style={styles.td}><strong>−21.36%</strong></td><td style={styles.td}>−23.97%</td><td style={styles.td}>−23.64%</td></tr>
-          <tr><td style={styles.td}>Calendar wins vs SPY</td><td style={styles.td}>5 of 15</td><td style={styles.td}>—</td><td style={styles.td}>10 of 19</td></tr>
-          <tr><td style={styles.td}>Months at 100% equity</td><td style={styles.td}>83%</td><td style={styles.td}>—</td><td style={styles.td}>—</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Metric", "v10.1c", "SPY", "v9 baseline (2008-2026)"]}
+        rows={[
+          ["CAGR",                  <strong>13.89%</strong>,    "14.66%",   "13.88%"],
+          ["Sharpe (annualized)",   <strong>1.029</strong>,     "1.030",    "0.610"],
+          ["Max drawdown",          <strong>−21.36%</strong>,   "−23.97%",  "−23.64%"],
+          ["Calendar wins vs SPY",  "5 of 15",                  "—",        "10 of 19"],
+          ["Months at 100% equity", "83%",                      "—",        "—"],
+        ]}
+      />
       <Body>
         The v10.1c value proposition: about 70% better risk-adjusted return than v9 (Sharpe 1.029
         vs 0.610), nearly identical Sharpe to SPY (1.029 vs 1.030), and 2.6 percentage points
@@ -1093,26 +984,23 @@ else                                      →  REVIEW`}</Formula>
       <Body>
         Every number on the site traces back to one of these public sources:
       </Body>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Source</th>
-          <th style={styles.th}>Used for</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}>FRED (Federal Reserve Economic Data)</td><td style={styles.td}>Most macro indicators — Buffett Indicator inputs (NCBCEL/GDP), credit spreads (BAA, BAMLH0A0HYM2), CFNAI, jobless claims (IC4WSA), ANFCI, M2 YoY, Fed balance sheet, bank reserves, reverse repo balance, commercial paper risk premium, SLOOS C&I, St. Louis Fed FSI</td></tr>
-          <tr><td style={styles.td}>ICE BofA via FRED</td><td style={styles.td}>HY OAS spread series</td></tr>
-          <tr><td style={styles.td}>CBOE</td><td style={styles.td}>VIX, SKEW</td></tr>
-          <tr><td style={styles.td}>ICE BofA</td><td style={styles.td}>MOVE Index (Treasury volatility)</td></tr>
-          <tr><td style={styles.td}>Shiller / multpl</td><td style={styles.td}>CAPE (cyclically-adjusted P/E)</td></tr>
-          <tr><td style={styles.td}>ISM (via FRED NAPMPI)</td><td style={styles.td}>Manufacturing PMI</td></tr>
-          <tr><td style={styles.td}>Yahoo Finance</td><td style={styles.td}>BKX (banks index) and SPX for the BKX/SPX growth signal; stock fundamentals (forward P/E, revenue growth, profitability) for the Trading Opportunities scanner</td></tr>
-          <tr><td style={styles.td}>Massive (Polygon Basic)</td><td style={styles.td}>Daily price data, universe master, dividends, splits</td></tr>
-          <tr><td style={styles.td}>Unusual Whales</td><td style={styles.td}>Options flow, dark pool volume, Form 4 insider buying, congressional disclosure</td></tr>
-          <tr><td style={styles.td}>ZeroHedge (RSS + Premium)</td><td style={styles.td}>News sentiment</td></tr>
-          <tr><td style={styles.td}>Wikipedia · iShares</td><td style={styles.td}>Index membership flags (S&P 500, NASDAQ-100, Russell 2000)</td></tr>
-          <tr><td style={styles.td}>Plaid</td><td style={styles.td}>Brokerage feed (read-only)</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Source", "Used for"]}
+        rows={[
+          ["FRED (Federal Reserve Economic Data)", "Most macro indicators — Buffett Indicator inputs (NCBCEL/GDP), credit spreads (BAA, BAMLH0A0HYM2), CFNAI, jobless claims (IC4WSA), ANFCI, M2 YoY, Fed balance sheet, bank reserves, reverse repo balance, commercial paper risk premium, SLOOS C&I, St. Louis Fed FSI"],
+          ["ICE BofA via FRED",                    "HY OAS spread series"],
+          ["CBOE",                                 "VIX, SKEW"],
+          ["ICE BofA",                             "MOVE Index (Treasury volatility)"],
+          ["Shiller / multpl",                     "CAPE (cyclically-adjusted P/E)"],
+          ["ISM (via FRED NAPMPI)",                "Manufacturing PMI"],
+          ["Yahoo Finance",                        "BKX (banks index) and SPX for the BKX/SPX growth signal; stock fundamentals (forward P/E, revenue growth, profitability) for the Trading Opportunities scanner"],
+          ["Massive (Polygon Basic)",              "Daily price data, universe master, dividends, splits"],
+          ["Unusual Whales",                       "Options flow, dark pool volume, Form 4 insider buying, congressional disclosure"],
+          ["ZeroHedge (RSS + Premium)",            "News sentiment"],
+          ["Wikipedia · iShares",                  "Index membership flags (S&P 500, NASDAQ-100, Russell 2000)"],
+          ["Plaid",                                "Brokerage feed (read-only)"],
+        ]}
+      />
       <Body>
         Every data element is registered in <Code>public/data_manifest.json</Code> with cadence,
         freshness SLA, and consumer surfaces. The freshness chip system on every page reads from
@@ -1123,30 +1011,27 @@ else                                      →  REVIEW`}</Formula>
   ),
   "glossary-content": (
     <>
-      <table style={styles.table}>
-        <thead><tr>
-          <th style={styles.th}>Term</th>
-          <th style={styles.th}>Definition</th>
-        </tr></thead>
-        <tbody>
-          <tr><td style={styles.td}><Code>bp</Code> (basis points)</td><td style={styles.td}>One basis point = 0.01%. 100bp = 1%.</td></tr>
-          <tr><td style={styles.td}>CAPE</td><td style={styles.td}>Cyclically-Adjusted P/E (Shiller). S&P 500 price divided by 10-year average inflation-adjusted earnings. Smooths earnings cycles.</td></tr>
-          <tr><td style={styles.td}>Composite</td><td style={styles.td}>Page-level 0–100 score; the simple average of the six cycle mechanisms.</td></tr>
-          <tr><td style={styles.td}>Cycle mechanism</td><td style={styles.td}>One of six categorical inputs to the cycle board: Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth.</td></tr>
-          <tr><td style={styles.td}>Defensive sleeve</td><td style={styles.td}>The four-bucket non-equity allocation: BIL (cash), TLT (long Treasuries), GLD (gold), LQD (IG corporate bonds).</td></tr>
-          <tr><td style={styles.td}>ERP</td><td style={styles.td}>Equity Risk Premium = S&P 500 earnings yield minus 10-year Treasury yield. A near-zero or negative ERP means stocks are priced for perfection.</td></tr>
-          <tr><td style={styles.td}>Gross exposure</td><td style={styles.td}>Total dollar exposure as % of capital. With leverage on, can exceed 100%; with defensive on, the equity slice falls below 100%.</td></tr>
-          <tr><td style={styles.td}>HY OAS</td><td style={styles.td}>High-Yield Option-Adjusted Spread. Yield premium that junk bonds offer over Treasuries.</td></tr>
-          <tr><td style={styles.td}>IG (Industry Group)</td><td style={styles.td}>GICS Industry Group, one classification level below Sector. The site uses 24 IGs across 11 sectors. Example: Semiconductors is an IG inside the Information Technology sector.</td></tr>
-          <tr><td style={styles.td}>IG OAS</td><td style={styles.td}>Investment-Grade Option-Adjusted Spread. Yield premium that corporate bonds offer over Treasuries.</td></tr>
-          <tr><td style={styles.td}>OW / MW / UW</td><td style={styles.td}>Overweight / Market-weight / Underweight. Refers to a sector or IG's allocation versus its SPY benchmark weight.</td></tr>
-          <tr><td style={styles.td}>Percentile</td><td style={styles.td}>Where a current value sits in a historical sample. p100 = highest reading on record; p0 = lowest.</td></tr>
-          <tr><td style={styles.td}>Sharpe ratio</td><td style={styles.td}>Annualized excess return divided by annualized volatility. Higher = better risk-adjusted return.</td></tr>
-          <tr><td style={styles.td}>SLOOS</td><td style={styles.td}>Senior Loan Officer Opinion Survey. Federal Reserve quarterly survey of bank lending standards.</td></tr>
-          <tr><td style={styles.td}>SPY</td><td style={styles.td}>SPDR S&P 500 ETF. The benchmark used for sector vs market relative weights.</td></tr>
-          <tr><td style={styles.td}>Stress score</td><td style={styles.td}>A 0–6 count: number of stress-detection mechanisms (Credit, Liq&Pol, Pos&Br) in caution or risk-off bands, weighted (caution=+1, risk-off=+2).</td></tr>
-        </tbody>
-      </table>
+      <DocsTable
+        cols={["Term", "Definition"]}
+        rows={[
+          [<><Code>bp</Code> (basis points)</>, "One basis point = 0.01%. 100bp = 1%."],
+          ["CAPE",                              "Cyclically-Adjusted P/E (Shiller). S&P 500 price divided by 10-year average inflation-adjusted earnings. Smooths earnings cycles."],
+          ["Composite",                         "Page-level 0–100 score; the simple average of the six cycle mechanisms."],
+          ["Cycle mechanism",                   "One of six categorical inputs to the cycle board: Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth."],
+          ["Defensive sleeve",                  "The four-bucket non-equity allocation: BIL (cash), TLT (long Treasuries), GLD (gold), LQD (IG corporate bonds)."],
+          ["ERP",                               "Equity Risk Premium = S&P 500 earnings yield minus 10-year Treasury yield. A near-zero or negative ERP means stocks are priced for perfection."],
+          ["Gross exposure",                    "Total dollar exposure as % of capital. With leverage on, can exceed 100%; with defensive on, the equity slice falls below 100%."],
+          ["HY OAS",                            "High-Yield Option-Adjusted Spread. Yield premium that junk bonds offer over Treasuries."],
+          ["IG (Industry Group)",               "GICS Industry Group, one classification level below Sector. The site uses 24 IGs across 11 sectors. Example: Semiconductors is an IG inside the Information Technology sector."],
+          ["IG OAS",                            "Investment-Grade Option-Adjusted Spread. Yield premium that corporate bonds offer over Treasuries."],
+          ["OW / MW / UW",                      "Overweight / Market-weight / Underweight. Refers to a sector or IG's allocation versus its SPY benchmark weight."],
+          ["Percentile",                        "Where a current value sits in a historical sample. p100 = highest reading on record; p0 = lowest."],
+          ["Sharpe ratio",                      "Annualized excess return divided by annualized volatility. Higher = better risk-adjusted return."],
+          ["SLOOS",                             "Senior Loan Officer Opinion Survey. Federal Reserve quarterly survey of bank lending standards."],
+          ["SPY",                               "SPDR S&P 500 ETF. The benchmark used for sector vs market relative weights."],
+          ["Stress score",                      "A 0–6 count: number of stress-detection mechanisms (Credit, Liq&Pol, Pos&Br) in caution or risk-off bands, weighted (caution=+1, risk-off=+2)."],
+        ]}
+      />
     </>
   ),
 };

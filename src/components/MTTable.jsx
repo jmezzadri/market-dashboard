@@ -269,7 +269,7 @@ export default function MTTable({
   }, [filterPopoverOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div ref={rootRef} className={"mt-table-root " + className}>
+    <div ref={rootRef} className={"mt-table-root " + (isFull ? "" : "mt-table-root--look ") + className}>
       <style>{MT_TABLE_CSS}</style>
 
       {/* Active column-filter chips */}
@@ -400,9 +400,11 @@ export default function MTTable({
       <div className="mt-card">
         <div className="mt-table-scroll">
           <table className="mt-table">
-            <colgroup>
-              {visibleCols.map(c => <col key={c.key} style={{ width: (widths[c.key] || c.defaultWidth || 100) + "px" }} />)}
-            </colgroup>
+            {isFull && (
+              <colgroup>
+                {visibleCols.map(c => <col key={c.key} style={{ width: (widths[c.key] || c.defaultWidth || 100) + "px" }} />)}
+              </colgroup>
+            )}
             <thead>
               <tr>
                 {visibleCols.map(c => {
@@ -535,4 +537,19 @@ const MT_TABLE_CSS = `
 .mt-table-root .mt-cols-popover .item .grip { color: var(--text-dim); font-family: var(--font-mono); cursor: grab; }
 .mt-table-root .mt-cols-popover .item.drag-source { opacity: 0.4; }
 .mt-table-root .mt-cols-popover .item.drag-over { box-shadow: inset 0 2px 0 var(--accent); }
+
+/* ── Tier B (features="look") overrides ─────────────────────────────────────
+   Docs / reference tables: cells must WRAP (no ellipsis), table sizes to its
+   content (no forced column widths), no inner scroll, no sticky header, no
+   row-hover. Header is not clickable. */
+.mt-table-root--look .mt-table { table-layout: auto; }
+.mt-table-root--look .mt-table-scroll { max-height: none; overflow: visible; }
+.mt-table-root--look .mt-table thead tr th {
+  position: static; cursor: default; white-space: normal; box-shadow: none;
+}
+.mt-table-root--look .mt-table thead tr th:hover { background: var(--surface-2); color: var(--text-muted); }
+.mt-table-root--look .mt-table tbody tr td {
+  white-space: normal; overflow: visible; text-overflow: clip; vertical-align: top;
+}
+.mt-table-root--look .mt-table tbody tr:hover { background: transparent; }
 `;
