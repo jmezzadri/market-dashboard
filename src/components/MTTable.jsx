@@ -670,7 +670,7 @@ const MT_TABLE_CSS = `
 .mt-table-root .mt-table thead tr th .arrow { color: var(--accent); font-size: 9px; margin-left: 4px; }
 .mt-table-root .mt-table thead tr th .filter-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background: var(--accent); margin-left: 5px; vertical-align: middle; }
 .mt-table-root .mt-table thead tr th .resize-handle { position: absolute; top: 0; right: 0; width: 8px; height: 100%; cursor: col-resize; user-select: none; z-index: 6; }
-.mt-table-root .mt-table thead tr th .resize-handle:hover { background: linear-gradient(to right, transparent, var(--accent-soft, rgba(14,85,96,0.10))); }
+.mt-table-root .mt-table thead tr th .resize-handle:hover { background: linear-gradient(to right, transparent, var(--accent-soft, rgba(0,113,227,0.10))); }
 .mt-table-root .mt-table thead tr th.drag-source { opacity: 0.4; }
 .mt-table-root .mt-table thead tr th.drag-over { box-shadow: inset 3px 0 0 var(--accent); }
 .mt-table-root .mt-table tbody tr td {
@@ -692,7 +692,7 @@ const MT_TABLE_CSS = `
 .mt-table-root .mt-spacer { flex: 1; }
 .mt-table-root .mt-active-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-md, 12px); box-shadow: var(--shadow-sm); margin-bottom: 8px; font-size: 12px; }
 .mt-table-root .mt-active-filters .label { font-family: var(--font-mono); font-size: 10px; font-weight: 600; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-muted); margin-right: 4px; }
-.mt-table-root .mt-active-filters .f { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 10px; border-radius: 999px; background: var(--accent-soft, rgba(14,85,96,0.10)); border: 1px solid var(--border); color: var(--text-2, var(--text)); font-size: 11.5px; }
+.mt-table-root .mt-active-filters .f { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px 4px 10px; border-radius: 999px; background: var(--accent-soft, rgba(0,113,227,0.10)); border: 1px solid var(--border); color: var(--text-2, var(--text)); font-size: 11.5px; }
 .mt-table-root .mt-active-filters .f b { font-weight: 600; }
 .mt-table-root .mt-active-filters .f .op { color: var(--text-muted); font-family: var(--font-mono); }
 .mt-table-root .mt-active-filters .f .x { background: transparent; border: 0; color: var(--text-muted); cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
