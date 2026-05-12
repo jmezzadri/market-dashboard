@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, Fragment } from "react";
 import Scanner from "./Scanner";
+import useV5TopScans from "./hooks/useV5TopScans";
 import MacroOverviewPageV2 from "./v2/pages/MacroOverviewPage";
 import HomePageV2 from "./v2/pages/HomePage";
 import IndicatorsPageV2 from "./v2/pages/IndicatorsPage";
@@ -4922,6 +4923,11 @@ useHistReady();
 // useIsAdmin() re-runs on sign-in/out; non-admins never see the tab and are
 // redirected to home if they land on #admin via a stale link. Task #30.
 const {isAdmin, loading:adminLoading}=useIsAdmin();
+// New scanner — top 6 by MT Score from signal_intel_v5_daily. Wired
+// 2026-05-12 so the Home page Equity Scanner tile reads from the same
+// engine as the Trading Opps page (was rebucketBuy/rebucketNear which
+// is the legacy OVR / latest_scan_data.json pipeline).
+const {rows: v5TopRows, bandCounts: v5BandCounts, scanDate: v5ScanDate, loading: v5TopLoading} = useV5TopScans(6);
 // Legacy redirect: "#portfolio" (old Holdings Detail tab) now lives inside
 // Portfolio & Insights. Any bookmark pointing at #portfolio resolves to
 // #portopps. Bug #1071 — alias four "natural" deep-link hashes that the
@@ -6038,18 +6044,31 @@ return(
         })()}
       </div>
 
-      {/* 03 · Trading Opportunities — top-of-book names, not just counts */}
+      {/* 03 · Equity Scanner — top-of-book names from the v5 engine.
+          Rewired 2026-05-12: was sourcing rebucketBuy/rebucketNear (OVR
+          0-100 from latest_scan_data.json via sectionComposites.js); now
+          reads the SAME engine the Trading Opps page uses
+          (signal_intel_v5_daily, MT Score, Band) via useV5TopScans.
+          Sub-tiles show ticker, band, sector, MT score. The score bar
+          maps 0..50 -> 0..100 so the visual cue still works for the
+          new -100..+100 scale (the hook filters to mt_score>=0). */}
       {(()=>{
-        // Top 3 buys (by overall score, highest first). Fall back to
-        // near-trigger names when the buy list is thin, so the tile
-        // always has at least one named opportunity if any exist.
-        const _topBuys = (rebucketBuy.length ? rebucketBuy : rebucketNear).slice(0, 3);
-        // Sector lookup for the name row's sub-copy.
-        const _sectorFor = (t) => {
-          const sc = scanData?.signals?.screener?.[t];
-          return sc?.sector || scanData?.ticker_names?.[t] || "";
+        const v5Rows = Array.isArray(v5TopRows) ? v5TopRows : [];
+        const ranked6 = v5Rows.slice(0, 6);
+        while (ranked6.length < 6) ranked6.push({_empty:true});
+
+        const fillFor = (sc) => sc >= 50 ? "var(--accent)"
+                                : sc >= 30 ? "rgba(0,113,227,.55)"
+                                :            "rgba(0,113,227,.32)";
+        const bandShort = (b) => {
+          if (!b) return "—";
+          const u = String(b).toUpperCase();
+          if (u.includes("STRONG BUY"))                          return "STRONG BUY";
+          if (u.includes("WATCH BUY") || u.includes("BUY WATCH")) return "WATCH BUY";
+          if (u.includes("NEUTRAL"))                             return "NEUTRAL";
+          return u;
         };
-        const rowHasData = _topBuys.length > 0;
+
         return (
         <div role="link" tabIndex={0}
              onClick={()=>navTo("portopps")}
@@ -6057,57 +6076,85 @@ return(
              style={{...cardStyle, cursor:"pointer"}}>
           <div style={cardHeadSlimStyle}>
             <span style={cardTagStyle}>03</span>
-            <FreshnessDot indicatorId="latest_scan_data" asOfIso={scanData?.scan_time||scanData?.date_iso||scanData?.date||null} style={{marginLeft:"auto"}}/>
+            <FreshnessDot indicatorId="signal_intel_v5_daily" asOfIso={v5ScanDate || null} style={{marginLeft:"auto"}}/>
           </div>
           <p style={tileExplainStyle}>An <span style={tileNameStyle}>Equity Scanner</span> that analyzes hundreds of data points to identify specific trading opportunities.</p>
 
-          {/* 6 sub-tiles — top 6 candidate tickers ranked by overall score.
-              Shared module-level styles. Footer stripped — Joe directive
-              2026-05-07 (no inconsistent footnotes between tiles). */}
+          {/* Band-count summary strip — 4 small tiles showing the count of
+              names in each non-neutral band for today's scan. Added
+              2026-05-12 (Joe directive). Strong Buy/Sell get colored
+              numbers; the two Watch bands stay neutral. Hidden Neutral
+              count keeps the strip to the 4 most actionable buckets. */}
           {(() => {
-            const ranked = [...rebucketBuy, ...rebucketNear]
-              .filter(r => r && typeof r.ovr === "number")
-              .sort((a, b) => b.ovr - a.ovr)
-              .slice(0, 6);
-            while (ranked.length < 6) ranked.push({_empty:true});
-            const fillFor = (sc) => sc >= 75 ? "var(--accent)"
-                                    : sc >= 55 ? "rgba(0,113,227,.55)"
-                                    :            "rgba(0,113,227,.32)";
+            const counts = v5BandCounts || {strong_buy:0, watch_buy:0, watch_sell:0, strong_sell:0};
+            const stripCell = (label, value, valueColor) => (
+              <div key={label} style={{
+                background:"var(--surface)",
+                border:"1px solid var(--border-faint)",
+                borderRadius:6,
+                padding:"10px 8px",
+                textAlign:"center",
+                display:"flex", flexDirection:"column", alignItems:"center", gap:4,
+              }}>
+                <div style={{
+                  fontFamily:"var(--font-mono)", fontSize:10,
+                  color:"var(--text-muted)", letterSpacing:"0.06em",
+                  textTransform:"uppercase", fontWeight:500,
+                }}>{label}</div>
+                <div style={{
+                  fontFamily:"var(--font-display)", fontVariantNumeric:"tabular-nums",
+                  fontSize:24, fontWeight:600, color:valueColor, lineHeight:1,
+                }}>{v5TopLoading ? "…" : Number(value || 0)}</div>
+              </div>
+            );
             return (
-              <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-2)"}}>
-                {ranked.map((r, i) => {
-                  if (r._empty) {
-                    return (
-                      <div key={"e"+i} style={{background:"var(--surface)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"10px 14px", display:"grid", gridTemplateColumns:"48px 1fr auto", gap:12, alignItems:"center", cursor:"default"}}>
-                        <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>#{i+1}</div>
-                        <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
-                          <div style={{fontFamily:"var(--font-display)", fontSize:18, fontWeight:500, color:"var(--text-dim)", lineHeight:1}}>—</div>
-                          <div style={{position:"relative", width:"100%", height:5, background:"var(--surface-2)", borderRadius:2}}/>
-                          <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>—</div>
-                        </div>
-                        <div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text-dim)", minWidth:32, textAlign:"right"}}>—</div>
-                      </div>
-                    );
-                  }
-                  const kind = r.ovr >= 60 ? "BUY" : "NEAR";
-                  const sect = _sectorFor(r.ticker);
-                  return (
-                    <div key={r.ticker} onClick={()=>navTo("portopps")} style={{background:"var(--surface)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"10px 14px", display:"grid", gridTemplateColumns:"48px 1fr auto", gap:12, alignItems:"center", cursor:"pointer"}}>
-                      <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>#{i+1} {kind}</div>
-                      <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
-                        <div style={{fontFamily:"var(--font-display)", fontSize:18, fontWeight:500, color:"var(--text)", lineHeight:1}}>{r.ticker}</div>
-                        <div style={{position:"relative", width:"100%", height:5, background:"var(--surface-2)", borderRadius:2}}>
-                          <div style={{position:"absolute", left:0, top:0, bottom:0, width:`${Math.max(0,Math.min(100, r.ovr))}%`, background:fillFor(r.ovr), borderRadius:2}}/>
-                        </div>
-                        <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>{sect || "—"}</div>
-                      </div>
-                      <div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text)", minWidth:32, textAlign:"right"}}>{r.ovr}</div>
-                    </div>
-                  );
-                })}
+              <div style={{
+                display:"grid", gridTemplateColumns:"repeat(4, 1fr)",
+                gap:"var(--space-2)", marginBottom:"var(--space-3)",
+              }}>
+                {stripCell("Strong Buy",  counts.strong_buy,  "var(--green-text, #30d158)")}
+                {stripCell("Buy Watch",   counts.watch_buy,   "var(--text)")}
+                {stripCell("Sell Watch",  counts.watch_sell,  "var(--text)")}
+                {stripCell("Strong Sell", counts.strong_sell, "var(--red-text, #ff453a)")}
               </div>
             );
           })()}
+
+          {/* 6 sub-tiles — top 6 candidate tickers ranked by MT Score.
+              Shared module-level styles. Footer stripped — Joe directive
+              2026-05-07 (no inconsistent footnotes between tiles). */}
+          <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:"var(--space-2)"}}>
+            {ranked6.map((r, i) => {
+              if (r._empty) {
+                return (
+                  <div key={"e"+i} style={{background:"var(--surface)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"10px 14px", display:"grid", gridTemplateColumns:"48px 1fr auto", gap:12, alignItems:"center", cursor:"default"}}>
+                    <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>#{i+1}</div>
+                    <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
+                      <div style={{fontFamily:"var(--font-display)", fontSize:18, fontWeight:500, color:"var(--text-dim)", lineHeight:1}}>{v5TopLoading ? "…" : "—"}</div>
+                      <div style={{position:"relative", width:"100%", height:5, background:"var(--surface-2)", borderRadius:2}}/>
+                      <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>—</div>
+                    </div>
+                    <div style={{display:"flex", flexDirection:"column", alignItems:"flex-end", minWidth:42, gap:1}}><div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)", letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:500, lineHeight:1}}>MT Score</div><div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text-dim)", lineHeight:1}}>—</div></div>
+                  </div>
+                );
+              }
+              const sc = Number(r.mt_score);
+              const scForBar = Math.max(0, Math.min(100, sc * 2));
+              return (
+                <div key={r.ticker} onClick={()=>navTo("portopps")} style={{background:"var(--surface)", border:"1px solid var(--border-faint)", borderRadius:6, padding:"10px 14px", display:"grid", gridTemplateColumns:"48px 1fr auto", gap:12, alignItems:"center", cursor:"pointer"}}>
+                  <div style={{fontFamily:"var(--font-mono)", fontSize:10, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>#{i+1} {bandShort(r.band)}</div>
+                  <div style={{display:"flex", flexDirection:"column", gap:4, minWidth:0}}>
+                    <div style={{fontFamily:"var(--font-display)", fontSize:18, fontWeight:500, color:"var(--text)", lineHeight:1}}>{r.ticker}</div>
+                    <div style={{position:"relative", width:"100%", height:5, background:"var(--surface-2)", borderRadius:2}}>
+                      <div style={{position:"absolute", left:0, top:0, bottom:0, width:`${scForBar}%`, background:fillFor(sc), borderRadius:2}}/>
+                    </div>
+                    <div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-muted)", letterSpacing:"0.06em", textTransform:"uppercase"}}>{r.sector || "—"}</div>
+                  </div>
+                  <div style={{display:"flex", flexDirection:"column", alignItems:"flex-end", minWidth:42, gap:1}}><div style={{fontFamily:"var(--font-mono)", fontSize:9, color:"var(--text-dim)", letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:500, lineHeight:1}}>MT Score</div><div style={{fontFamily:"var(--font-mono)", fontSize:18, fontWeight:600, color:"var(--text)", lineHeight:1}}>{Number.isFinite(sc) ? sc.toFixed(0) : "—"}</div></div>
+                </div>
+              );
+            })}
+          </div>
         </div>);
       })()}
 
