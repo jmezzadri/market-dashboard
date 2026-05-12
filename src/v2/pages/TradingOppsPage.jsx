@@ -20,6 +20,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabase";
 import ScannerTilesStrip from "../../components/ScannerTilesStrip";
 import Scanner from "../../Scanner";
+import MTTable from "../../components/MTTable";
 
 // ─────────────────────────────────────────────────────────────────────────
 // Constants
@@ -952,141 +953,59 @@ function renderCell(row, key) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Main page
 // ─────────────────────────────────────────────────────────────────────────
+// Main page (MTTable migration 2026-05-12 — unified-table sweep PR)
+// ─────────────────────────────────────────────────────────────────────────
+
+// Build MTTable column registry from the existing COLUMNS schema. Each
+// COLUMNS entry already carries label/group/numeric/categorical/default/
+// tooltip — we just reshape the keys MTTable expects.
+const MTTABLE_COLUMNS = COLUMNS.map(c => ({
+  key: c.key,
+  label: c.label,
+  numeric: !!c.numeric,
+  categorical: !!c.categorical,
+  group: c.group,
+  defaultVisible: !!c.default,
+  defaultWidth: COL_DEFAULT_WIDTHS[c.key] || DEFAULT_COL_WIDTH,
+  tooltip: c.tt ? `${c.tt.label} — ${c.tt.body}` : undefined,
+  sortValue: (r) => r[c.key],
+  render: (r) => renderCell(r, c.key),
+}));
+
+// Band-filter chips. v5.1 (d): Held / Watchlist placeholders removed.
+const BAND_CHIPS = [
+  { value: "__all__",      label: "All" },
+  { value: "Strong Buy",   label: "Strong Buy" },
+  { value: "Watch Buy",    label: "Buy Watch" },
+  { value: "Watch Sell",   label: "Sell Watch" },
+  { value: "Strong Sell",  label: "Strong Sell" },
+];
 
 export default function TradingOppsPage({ onOpenTicker }) {
   const { rows, scanDate, loading, error, totals } = useScanData();
-  const [colState, setColState] = useState(() => loadColState());
-  const [searchQ, setSearchQ] = useState("");
-  const [colMenuOpen, setColMenuOpen] = useState(false);
   const [extraRows, setExtraRows] = useState([]);
-  // v5.4 (item 3): filter-panel state.
-  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
-  const filterPanelRef = useRef(null);
-  const [draftFilter, setDraftFilter] = useState({ key: "score", op: ">", value: "" });
-  const colMenuRef = useRef(null);
-  const dragKeyRef = useRef(null);
+  const [bandFilter, setBandFilter] = useState("__all__");
+  // Scanner detail modal state — ScannerTilesStrip clicks set this to one
+  // of congress|insiders|flow|technicals; the modal renders <Scanner /> with
+  // that view forced. Null = modal closed.
+  const [scannerView, setScannerView] = useState(null);
 
-  useEffect(() => { saveColState(colState); }, [colState]);
-
+  // Lock body scroll while the scanner detail modal is open.
   useEffect(() => {
-    const onDoc = (e) => {
-      if (colMenuRef.current && !colMenuRef.current.contains(e.target)) setColMenuOpen(false);
-      if (filterPanelRef.current && !filterPanelRef.current.contains(e.target)) setFilterPanelOpen(false);
+    if (!scannerView) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e) => { if (e.key === "Escape") setScannerView(null); };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
     };
-    document.addEventListener("click", onDoc);
-    return () => document.removeEventListener("click", onDoc);
-  }, []);
+  }, [scannerView]);
 
+  // Merge custom-added tickers with the scan rows.
   const allRows = useMemo(() => [...rows, ...extraRows], [rows, extraRows]);
-
-  const filtered = useMemo(() => {
-    const q = searchQ.toLowerCase().trim();
-    // v5.4 item 3: column filters (in addition to the band pills + search).
-    // Each colFilter = { id, key, op, value }.
-    //   op = ">", ">=", "<", "<=", "=", "!=", "contains"
-    //   For string columns, contains uses lower-case substring match.
-    const colFilters = Array.isArray(colState.colFilters) ? colState.colFilters : [];
-    const matchOne = (row, f) => {
-      const v = row[f.key];
-      // v5.5: "in" op holds an ARRAY of allowed values -- multi-select.
-      // Used for categorical columns (Band, Sector, Industry).
-      if (f.op === "in") {
-        if (!Array.isArray(f.value) || f.value.length === 0) return true;
-        return f.value.some(x => String(v).toLowerCase() === String(x).toLowerCase());
-      }
-      if (v == null) return false;
-      if (f.op === "contains") {
-        return String(v).toLowerCase().includes(String(f.value).toLowerCase());
-      }
-      const nA = Number(v);
-      const nB = Number(f.value);
-      if (Number.isFinite(nA) && Number.isFinite(nB)) {
-        switch (f.op) {
-          case ">":  return nA >  nB;
-          case ">=": return nA >= nB;
-          case "<":  return nA <  nB;
-          case "<=": return nA <= nB;
-          case "=":  return nA === nB;
-          case "!=": return nA !== nB;
-        }
-      }
-      if (f.op === "=")  return String(v).toLowerCase() === String(f.value).toLowerCase();
-      if (f.op === "!=") return String(v).toLowerCase() !== String(f.value).toLowerCase();
-      return false;
-    };
-    return allRows.filter(r => {
-      if (q && !(r.ticker || "").toLowerCase().includes(q) && !(r.name || "").toLowerCase().includes(q)) return false;
-      // Band-chip filter (existing).
-      let bandOK = true;
-      switch (colState.filter) {
-        case "actionable":   bandOK = r.band === "Strong Buy" || r.band === "Watch Buy" || r.band === "Watch Sell" || r.band === "Strong Sell"; break;
-        case "strong_buy":   bandOK = r.band === "Strong Buy"; break;
-        case "watch_buy":    bandOK = r.band === "Watch Buy"; break;
-        case "neutral":      bandOK = r.band === "Neutral"; break;
-        case "watch_sell":   bandOK = r.band === "Watch Sell"; break;
-        case "strong_sell":  bandOK = r.band === "Strong Sell"; break;
-        case "held":         bandOK = r.band !== null; break; // placeholder
-        case "watchlist":    bandOK = r.band !== null; break; // placeholder
-        case "all":
-        default: bandOK = true;
-      }
-      if (!bandOK) return false;
-      // Column filters (all must pass).
-      for (const f of colFilters) {
-        if (!matchOne(r, f)) return false;
-      }
-      return true;
-    });
-  }, [allRows, searchQ, colState.filter, colState.colFilters]);
-
-  const sorted = useMemo(() => {
-    const k = colState.sort.key;
-    const dir = colState.sort.dir === "asc" ? 1 : -1;
-    return [...filtered].sort((a, b) => {
-      const av = a[k]; const bv = b[k];
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
-      return String(av).localeCompare(String(bv)) * dir;
-    });
-  }, [filtered, colState.sort]);
-
-  // Row groups: Strong Buy > Watch Buy > Strong Sell > Watch Sell > Neutral > Insufficient Data.
-  const groupOrder = ["strong_buy", "watch_buy", "strong_sell", "watch_sell", "neutral", "insufficient"];
-  const groupMeta = {
-    strong_buy:   { label: "Strong Buy",        dot: "var(--green-text, var(--green))" },
-    watch_buy:    { label: "Watch Buy",         dot: "var(--yellow-text, var(--yellow))" },
-    strong_sell:  { label: "Strong Sell",       dot: "var(--red-text, var(--red))" },
-    watch_sell:   { label: "Watch Sell",        dot: "var(--yellow-text, var(--yellow))" },
-    neutral:      { label: "Neutral",           dot: "var(--text-dim)" },
-    insufficient: { label: "Insufficient Data", dot: "var(--text-dim)" },
-  };
-
-  const visibleCols = colState.order.filter(k => colState.visible.includes(k));
-
-  const sortBy = (k) => {
-    setColState(s => {
-      if (s.sort.key === k) return { ...s, sort: { key: k, dir: s.sort.dir === "asc" ? "desc" : "asc" } };
-      return { ...s, sort: { key: k, dir: "desc" } };
-    });
-  };
-
-  const setFilter = (f) => setColState(s => ({ ...s, filter: f }));
-
-  // v5.4 (item 3): column filter helpers.
-  const addColFilter  = (f)  => setColState(s => ({ ...s, colFilters: [ ...(s.colFilters || []), { ...f, id: Date.now() + Math.random() } ] }));
-  const removeColFilter = (id) => setColState(s => ({ ...s, colFilters: (s.colFilters || []).filter(x => x.id !== id) }));
-  const clearColFilters = ()  => setColState(s => ({ ...s, colFilters: [] }));
-
-  const toggleCol = (k) => {
-    setColState(s => {
-      const visible = s.visible.includes(k) ? s.visible.filter(x => x !== k) : [...s.visible, k];
-      return { ...s, visible };
-    });
-  };
 
   const handleAddTicker = () => {
     // eslint-disable-next-line no-alert
@@ -1105,54 +1024,6 @@ export default function TradingOppsPage({ onOpenTicker }) {
     }]);
   };
 
-  const onDragStart = (e, key) => { dragKeyRef.current = key; e.dataTransfer.effectAllowed = "move"; e.target.classList.add("mt-drag-source"); };
-  const onDragEnd = (e) => { e.target.classList.remove("mt-drag-source"); document.querySelectorAll(".mt-drag-over").forEach(x => x.classList.remove("mt-drag-over")); };
-  const onDragOver = (e) => { if (!dragKeyRef.current) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; document.querySelectorAll(".mt-drag-over").forEach(x => x.classList.remove("mt-drag-over")); e.currentTarget.classList.add("mt-drag-over"); };
-  const onDrop = (e, dropKey) => {
-    e.preventDefault();
-    const dragKey = dragKeyRef.current;
-    dragKeyRef.current = null;
-    if (!dragKey || dragKey === dropKey) return;
-    setColState(s => {
-      const order = [...s.order];
-      const from = order.indexOf(dragKey);
-      const to = order.indexOf(dropKey);
-      if (from < 0 || to < 0) return s;
-      const [moved] = order.splice(from, 1);
-      order.splice(to, 0, moved);
-      return { ...s, order };
-    });
-  };
-
-  // Scanner detail modal state. ScannerTilesStrip clicks set this to one of
-  // congress|insiders|flow|technicals; the modal renders <Scanner /> with
-  // that view forced. Null = modal closed.
-  const [scannerView, setScannerView] = useState(null);
-  // Lock body scroll while modal is open.
-  useEffect(() => {
-    if (!scannerView) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (e) => { if (e.key === "Escape") setScannerView(null); };
-    window.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      window.removeEventListener("keydown", onKey);
-    };
-  }, [scannerView]);
-
-  // v5.1 (d): Held and Watchlist were placeholder filter chips that
-  // returned every row when clicked -- confusing during UAT. Hidden until
-  // the portfolio overlay is actually wired up (out of v5 scope).
-  // v5.2: dropped Insufficient Data chip (the band no longer exists).
-  const filterChips = [
-    { f: "all",          label: "All" },
-    { f: "strong_buy",   label: "Strong Buy" },
-    { f: "watch_buy",    label: "Buy Watch" },
-    { f: "watch_sell",   label: "Sell Watch" },
-    { f: "strong_sell",  label: "Strong Sell" },
-  ];
-
   return (
     <>
     <div style={{ minHeight: "100vh" }}>
@@ -1160,428 +1031,59 @@ export default function TradingOppsPage({ onOpenTicker }) {
 
       <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 32px" }}>
         <ScannerTilesStrip onTileClick={(v) => setScannerView(v)} />
-        {/* v5.4 (item 3): column-filter strip. Active filters render as
-            removable chips. "+ Add filter" opens a popover with column /
-            operator / value pickers. */}
-        {(colState.colFilters || []).length > 0 && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", padding: "10px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", marginTop: 24 }}>
-            <span style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", marginRight: 4 }}>
-              Filters
-            </span>
-            {(colState.colFilters || []).map(f => {
-              const c = COLUMNS.find(x => x.key === f.key);
-              return (
-                <span key={f.id} style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 8px 4px 10px", borderRadius: 999, background: "var(--accent-soft, var(--surface-2))", border: "1px solid var(--border)", color: "var(--text-2)", fontSize: 11.5, fontFamily: "var(--font-ui)" }}>
-                  <span style={{ fontWeight: 600 }}>{c?.label || f.key}</span>
-                  <span style={{ color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
-                    {f.op === "in" ? "is one of" : f.op}
-                  </span>
-                  <span style={{ fontFamily: "var(--font-mono)" }}>
-                    {Array.isArray(f.value)
-                      ? (f.value.length <= 2
-                          ? f.value.join(", ")
-                          : `${f.value.slice(0, 2).join(", ")} +${f.value.length - 2}`)
-                      : String(f.value)}
-                  </span>
-                  <button type="button" onClick={() => removeColFilter(f.id)} aria-label="Remove filter"
-                    style={{ background: "transparent", border: 0, color: "var(--text-muted)", cursor: "pointer", fontSize: 14, lineHeight: 1, padding: "0 2px" }}>×</button>
-                </span>
-              );
-            })}
-            <button type="button" onClick={clearColFilters}
-              style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-muted)", padding: "4px 10px", borderRadius: 999, fontSize: 11, cursor: "pointer", fontFamily: "var(--font-ui)" }}>
-              Clear all
-            </button>
-          </div>
-        )}
-
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", padding: "12px 16px", background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", marginTop: (colState.colFilters||[]).length > 0 ? 8 : 24, marginBottom: 16 }}>
-          {filterChips.map(c => {
-            const active = colState.filter === c.f;
-            return (
-              <button
-                key={c.f}
-                type="button"
-                onClick={() => setFilter(c.f)}
-                style={{
-                  background: active ? "var(--accent)" : "transparent",
-                  border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
-                  color: active ? "var(--surface)" : "var(--text-2)",
-                  padding: "6px 13px",
-                  borderRadius: 999,
-                  fontSize: 12,
-                  cursor: "pointer",
-                  fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)",
-                  transition: "all 0.15s",
-                }}
-              >
-                {c.label}
-              </button>
-            );
-          })}
-
-          <div style={{ flex: 1 }} />
-
-          <input
-            type="text"
-            placeholder="Search ticker..."
-            value={searchQ}
-            onChange={(e) => setSearchQ(e.target.value)}
-            style={{
-              background: "var(--surface-2)",
-              border: "1px solid var(--border)",
-              color: "var(--text)",
-              padding: "6px 12px",
-              borderRadius: 8,
-              fontSize: 12,
-              minWidth: 200,
-              fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)",
-            }}
-          />
-
-          {/* v5.4 (item 3): + Filter popover. */}
-          <div ref={filterPanelRef} style={{ position: "relative", display: "inline-block" }}>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setFilterPanelOpen(o => !o); }}
-              style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-2)", padding: "6px 13px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "var(--font-ui)", display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              + Filter
-              {(colState.colFilters || []).length > 0 && (
-                <span style={{ color: "var(--accent)", fontWeight: 600 }}>{colState.colFilters.length}</span>
-              )}
-            </button>
-            {filterPanelOpen && (() => {
-              // v5.5: context-aware popover. Categorical column -> multi-select
-              // checkbox list of distinct values. Numeric column -> operator + value.
-              const selectedCol = COLUMNS.find(c => c.key === draftFilter.key) || COLUMNS[0];
-              const isCategorical = !!selectedCol.categorical;
-              // Distinct values for the selected column (sorted).
-              const distinct = isCategorical ? Array.from(new Set(allRows.map(r => r[draftFilter.key]).filter(x => x != null && String(x).trim() !== ""))).sort((a, b) => String(a).localeCompare(String(b))) : [];
-              const selectedSet = new Set(Array.isArray(draftFilter.value) ? draftFilter.value : []);
-              const toggleVal = (v) => setDraftFilter(d => {
-                const cur = new Set(Array.isArray(d.value) ? d.value : []);
-                if (cur.has(v)) cur.delete(v); else cur.add(v);
-                return { ...d, op: "in", value: [...cur] };
-              });
-              return (
-                <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.20))", padding: 12, zIndex: 50, width: 340, maxHeight: 460, overflowY: "auto" }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, fontWeight: 600, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", paddingBottom: 8, borderBottom: "1px solid var(--border-faint, var(--border))", marginBottom: 10 }}>
-                    Add column filter
-                  </div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
-                      Column
-                      <select value={draftFilter.key}
-                        onChange={e => {
-                          const newKey = e.target.value;
-                          const c = COLUMNS.find(x => x.key === newKey);
-                          // Reset draft when switching column type.
-                          setDraftFilter(d => c?.categorical
-                            ? { key: newKey, op: "in", value: [] }
-                            : { key: newKey, op: ">", value: "" });
-                        }}
-                        style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)" }}>
-                        {COLUMNS.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-                      </select>
-                    </label>
-
-                    {isCategorical ? (
-                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                        <div style={{ fontSize: 11, color: "var(--text-muted)" }}>
-                          Pick values ({selectedSet.size} selected of {distinct.length})
-                        </div>
-                        <div style={{ maxHeight: 240, overflowY: "auto", border: "1px solid var(--border)", borderRadius: 6, background: "var(--surface-2)" }}>
-                          {distinct.length === 0 ? (
-                            <div style={{ padding: "10px 12px", fontSize: 11.5, color: "var(--text-dim)", fontStyle: "italic" }}>No values available for this column.</div>
-                          ) : distinct.map(val => (
-                            <label key={String(val)} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", fontSize: 12, color: "var(--text-2)", cursor: "pointer", borderBottom: "1px solid var(--border-faint, var(--border))" }}>
-                              <input type="checkbox" checked={selectedSet.has(val)} onChange={() => toggleVal(val)} style={{ accentColor: "var(--accent)", cursor: "pointer" }} />
-                              <span>{String(val)}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    ) : (
-                      <>
-                        <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
-                          Operator
-                          <select value={draftFilter.op === "in" ? ">" : draftFilter.op}
-                            onChange={e => setDraftFilter(d => ({ ...d, op: e.target.value }))}
-                            style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)" }}>
-                            <option value=">">{"greater than (>)"}</option>
-                            <option value=">=">{"greater or equal (>=)"}</option>
-                            <option value="<">{"less than (<)"}</option>
-                            <option value="<=">{"less or equal (<=)"}</option>
-                            <option value="=">{"equals (=)"}</option>
-                            <option value="!=">{"not equal (!=)"}</option>
-                            <option value="contains">{"contains text"}</option>
-                          </select>
-                        </label>
-                        <label style={{ display: "block", fontSize: 11, color: "var(--text-muted)" }}>
-                          Value
-                          <input type="text" value={typeof draftFilter.value === "string" ? draftFilter.value : ""}
-                            onChange={e => setDraftFilter(d => ({ ...d, value: e.target.value }))}
-                            onKeyDown={e => { if (e.key === "Enter" && draftFilter.value !== "") { addColFilter(draftFilter); setDraftFilter({ key: draftFilter.key, op: draftFilter.op, value: "" }); setFilterPanelOpen(false); } }}
-                            placeholder="e.g. 50, 1000000000"
-                            style={{ display: "block", width: "100%", marginTop: 4, padding: "6px 8px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 12, fontFamily: "var(--font-ui)", color: "var(--text)", boxSizing: "border-box" }} />
-                        </label>
-                      </>
-                    )}
-
-                    <button type="button"
-                      disabled={isCategorical ? selectedSet.size === 0 : draftFilter.value === ""}
-                      onClick={() => {
-                        if (isCategorical && selectedSet.size === 0) return;
-                        if (!isCategorical && draftFilter.value === "") return;
-                        addColFilter(draftFilter);
-                        setDraftFilter(isCategorical ? { key: draftFilter.key, op: "in", value: [] } : { key: draftFilter.key, op: draftFilter.op, value: "" });
-                        setFilterPanelOpen(false);
-                      }}
-                      style={{ marginTop: 4, padding: "8px 12px", borderRadius: 8, background: (isCategorical ? selectedSet.size === 0 : draftFilter.value === "") ? "var(--surface-2)" : "var(--accent)", border: "1px solid var(--accent)", color: (isCategorical ? selectedSet.size === 0 : draftFilter.value === "") ? "var(--text-dim)" : "var(--surface)", fontSize: 12, fontFamily: "var(--font-ui)", cursor: (isCategorical ? selectedSet.size === 0 : draftFilter.value === "") ? "default" : "pointer", fontWeight: 600 }}>
-                      Apply
-                    </button>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
-
-          <div ref={colMenuRef} style={{ position: "relative", display: "inline-block" }}>
-            <button
-              type="button"
-              onClick={(e) => { e.stopPropagation(); setColMenuOpen(o => !o); }}
-              style={{ background: "transparent", border: "1px solid var(--border)", color: "var(--text-2)", padding: "6px 13px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)", display: "inline-flex", alignItems: "center", gap: 6 }}
-            >
-              Columns
-              <span style={{ color: "var(--text-dim)", marginLeft: 6 }}>{colState.visible.length}/{COLUMNS.length}</span>
-            </button>
-            {colMenuOpen && (
-              <div style={{ position: "absolute", top: "calc(100% + 6px)", right: 0, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, boxShadow: "var(--shadow-lg, 0 16px 48px rgba(0,0,0,0.20))", padding: 8, zIndex: 50, minWidth: 280, maxHeight: 460, overflowY: "auto" }}>
-                <div style={{ fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", padding: "6px 10px 8px", fontWeight: 600, borderBottom: "1px solid var(--border-faint, var(--border))", marginBottom: 4, fontFamily: "var(--font-mono, JetBrains Mono, monospace)" }}>
-                  Show / hide &middot; Drag headers to reorder
-                </div>
-                {(() => {
-                  const groups = {};
-                  colState.order.forEach(k => {
-                    const c = COLUMNS.find(x => x.key === k);
-                    if (!c) return;
-                    if (!groups[c.group]) groups[c.group] = [];
-                    groups[c.group].push(c);
-                  });
-                  return Object.keys(groups).map(g => (
-                    <div key={g}>
-                      <div style={{ fontFamily: "var(--font-mono, JetBrains Mono, monospace)", fontSize: 10, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-dim)", padding: "8px 10px 4px", fontWeight: 600 }}>{g}</div>
-                      {groups[g].map(c => (
-                        <label key={c.key} style={{ display: "flex", alignItems: "center", gap: 10, padding: "7px 10px", borderRadius: 6, cursor: "pointer", color: "var(--text-2)", fontSize: 12, userSelect: "none" }}>
-                          <input
-                            type="checkbox"
-                            checked={colState.visible.includes(c.key)}
-                            onChange={() => toggleCol(c.key)}
-                            style={{ accentColor: "var(--accent)", cursor: "pointer" }}
-                          />
-                          <span>{c.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  ));
-                })()}
-              </div>
-            )}
-          </div>
-
-          <button
-            type="button"
-            onClick={handleAddTicker}
-            style={{ background: "var(--accent)", border: "1px solid var(--accent)", color: "var(--surface)", padding: "6px 13px", borderRadius: 8, fontSize: 12, cursor: "pointer", fontFamily: "var(--font-ui, Inter, system-ui, sans-serif)", display: "inline-flex", alignItems: "center", gap: 6 }}
-          >
-            + Add ticker
-          </button>
-        </div>
 
         {loading && (
-          <div style={{ padding: 32, color: "var(--text-muted)", fontSize: 13, textAlign: "center", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", background: "var(--surface)" }}>
+          <div style={{ padding: 32, color: "var(--text-muted)", fontSize: 13, textAlign: "center", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", background: "var(--surface)", marginTop: 24 }}>
             Loading scan...
           </div>
         )}
         {!loading && error && (
-          <div style={{ padding: 24, color: "var(--red-text, var(--red))", fontSize: 13, border: "1px solid var(--red, var(--border))", borderRadius: "var(--r-md, 16px)", background: "var(--surface)" }}>
+          <div style={{ padding: 24, color: "var(--red-text, var(--red))", fontSize: 13, border: "1px solid var(--red, var(--border))", borderRadius: "var(--r-md, 16px)", background: "var(--surface)", marginTop: 24 }}>
             Trading Opps: failed to load scan ({error}).
           </div>
         )}
         {!loading && !error && allRows.length === 0 && (
-          <div style={{ padding: 32, color: "var(--text-muted)", fontSize: 13, textAlign: "center", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", background: "var(--surface)" }}>
-            No scan data yet - the daily scan runs after market close. Once it completes, the universe and the band counts will populate here automatically.
+          <div style={{ padding: 32, color: "var(--text-muted)", fontSize: 13, textAlign: "center", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", background: "var(--surface)", marginTop: 24 }}>
+            No scan data yet — the daily scan runs after market close. Once it completes, the universe and the band counts will populate here automatically.
           </div>
         )}
 
         {!loading && !error && allRows.length > 0 && (
-          <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", overflow: "hidden" }}>
-            <div style={{ overflowX: "auto", maxHeight: "70vh", overflowY: "auto" }}>
-              <table style={{ width: "max-content", borderCollapse: "collapse", fontSize: 12, minWidth: "100%", tableLayout: "fixed" }}>
-                <colgroup>
-                  {visibleCols.map(k => (
-                    <col key={k} style={{ width: widthFor(k, colState.colWidths) + "px" }} />
-                  ))}
-                </colgroup>
-                <thead>
-                  <tr>
-                    {visibleCols.map(k => {
-                      const c = COLUMNS.find(x => x.key === k);
-                      if (!c) return null;
-                      const isSort = colState.sort.key === k;
-                      const arrow = isSort ? (colState.sort.dir === "asc" ? "↑" : "↓") : "";
-                      const colW = widthFor(k, colState.colWidths);
-                      const startResize = (ev) => {
-                        ev.stopPropagation();
-                        ev.preventDefault();
-                        const startX = ev.clientX;
-                        const startW = colW;
-                        const onMove = (e) => {
-                          const dx = e.clientX - startX;
-                          const next = Math.max(COL_MIN_WIDTH, Math.min(COL_MAX_WIDTH, startW + dx));
-                          setColState(s => ({ ...s, colWidths: { ...(s.colWidths || {}), [k]: next } }));
-                        };
-                        const onUp = () => {
-                          document.removeEventListener("mousemove", onMove);
-                          document.removeEventListener("mouseup", onUp);
-                          document.body.style.userSelect = "";
-                          document.body.style.cursor = "";
-                        };
-                        document.body.style.userSelect = "none";
-                        document.body.style.cursor = "col-resize";
-                        document.addEventListener("mousemove", onMove);
-                        document.addEventListener("mouseup", onUp);
-                      };
-                      const resetWidth = (e) => {
-                        e.stopPropagation();
-                        setColState(s => {
-                          const next = { ...(s.colWidths || {}) };
-                          delete next[k];
-                          return { ...s, colWidths: next };
-                        });
-                      };
-                      return (
-                        <th
-                          key={k}
-                          draggable
-                          onDragStart={(e) => onDragStart(e, k)}
-                          onDragEnd={onDragEnd}
-                          onDragOver={(e) => onDragOver(e, k)}
-                          onDrop={(e) => onDrop(e, k)}
-                          onClick={(e) => { if (!e.target.closest('[role="tooltip"]') && !e.target.closest('.mt-col-resize-handle')) sortBy(k); }}
-                          style={{
-                            position: "sticky",
-                            top: 0,
-                            zIndex: 5,
-                            background: "var(--surface-2)",
-                            fontFamily: "var(--font-mono, JetBrains Mono, monospace)",
-                            fontSize: 10,
-                            letterSpacing: "0.08em",
-                            textTransform: "uppercase",
-                            color: "var(--text-muted)",
-                            fontWeight: 600,
-                            padding: "11px 10px",
-                            textAlign: c.numeric ? "right" : "left",
-                            borderBottom: "1px solid var(--border)",
-                            borderRight: "1px solid var(--border-faint, var(--border))",
-                            boxShadow: "0 1px 0 var(--border)",
-                            cursor: "pointer",
-                            whiteSpace: "nowrap",
-                            userSelect: "none",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}
-                        >
-                          <Tooltip label={c.tt.label} body={c.tt.body} side="top">
-                            <span>
-                              {c.label}
-                              {arrow && <span style={{ marginLeft: 4, color: "var(--accent)", fontSize: 9 }}>{arrow}</span>}
-                            </span>
-                          </Tooltip>
-                          <span
-                            className="mt-col-resize-handle"
-                            onMouseDown={startResize}
-                            onClick={(e) => e.stopPropagation()}
-                            onDoubleClick={resetWidth}
-                            title="Drag to resize, double-click to reset"
-                            style={{
-                              position: "absolute",
-                              top: 0,
-                              right: 0,
-                              width: 8,
-                              height: "100%",
-                              cursor: "col-resize",
-                              userSelect: "none",
-                              zIndex: 6,
-                            }}
-                          />
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {/* v5.3 (c): band-group header rows removed. Band is a
-                      column on every row -- a "WATCH BUY · 19" row above
-                      19 watch-buy rows added nothing. Table renders flat
-                      under any sort. (Joe: "We don't need the table
-                      headers and to split the table for each band, we
-                      have it as a column already.") */}
-                  {sorted.map(r => (
-                    <tr
-                      key={r.ticker}
-                      onClick={() => { if (typeof onOpenTicker === "function") onOpenTicker(r.ticker); }}
-                      style={{ cursor: "pointer", transition: "background 0.12s" }}
-                      onMouseEnter={(e) => { e.currentTarget.style.background = "var(--hover)"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
-                    >
-                      {visibleCols.map(k => {
-                        const c = COLUMNS.find(x => x.key === k);
-                        return (
-                          <td key={k} style={{
-                            padding: "11px 10px",
-                            borderBottom: "1px solid var(--border-faint, var(--border))",
-                            borderRight: "1px solid var(--border-faint, var(--border))",
-                            color: "var(--text-2)",
-                            whiteSpace: "nowrap",
-                            textAlign: c?.numeric ? "right" : "left",
-                            fontVariantNumeric: c?.numeric ? "tabular-nums" : "normal",
-                            fontFamily: c?.numeric ? "var(--font-mono, JetBrains Mono, monospace)" : undefined,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                          }}>
-                            {renderCell(r, k)}
-                          </td>
-                        );
-                      })}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          <div style={{ marginTop: 24 }}>
+            <MTTable
+              columns={MTTABLE_COLUMNS}
+              rows={allRows}
+              rowKey="ticker"
+              onRowClick={(r) => { if (typeof onOpenTicker === "function") onOpenTicker(r.ticker); }}
+              storageKey="portopps_v5"
+              features="full"
+              toolbar={{
+                chips: {
+                  current: bandFilter,
+                  options: BAND_CHIPS,
+                  onSet: setBandFilter,
+                  predicate: (row, current) => {
+                    if (current === "__all__") return true;
+                    return row.band === current;
+                  },
+                },
+                search: {
+                  placeholder: "Search ticker...",
+                  fields: ["ticker", "name"],
+                },
+                addAction: {
+                  label: "+ Add ticker",
+                  onClick: handleAddTicker,
+                },
+              }}
+            />
           </div>
         )}
 
         <div style={{ margin: "32px 0 24px", paddingTop: 16, borderTop: "1px solid var(--border-faint, var(--border))", textAlign: "center", color: "var(--text-muted)", fontSize: 11, letterSpacing: "0.06em", textTransform: "uppercase", fontFamily: "var(--font-mono, JetBrains Mono, monospace)" }}>
-          Daily scan refreshes after market close &middot; Sources: Polygon Massive &middot; Unusual Whales &middot; SEC Form 4 &middot; Quiver Quant
+          Daily scan refreshes after market close · Sources: Polygon Massive · Unusual Whales · SEC Form 4 · Quiver Quant
         </div>
       </div>
-
-      <style>{`
-        th.mt-drag-over { background: var(--accent-soft, var(--surface-2)) !important; }
-        th.mt-drag-source { opacity: 0.4; }
-        /* Drop the right border on the last column so the table's outer edge stays clean */
-        table thead tr th:last-child,
-        table tbody tr td:last-child { border-right: none !important; }
-        @keyframes mt-band-pulse-anim {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); }
-          50%      { box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.04); }
-        }
-        .mt-band-pulse {
-          animation: mt-band-pulse-anim 2.4s ease-in-out infinite;
-        }
-      `}</style>
     </div>
 
     {scannerView && (

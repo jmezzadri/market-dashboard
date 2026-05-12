@@ -49,8 +49,14 @@ function defaultOpsFor(col) {
 function rowMatchesFilter(row, f) {
   const v = row[f.key];
   const value = f.value;
+  // Multi-select categorical: f.value is an array of allowed values.
+  // Empty array = no constraint (everything matches). Otherwise the row
+  // value must be in the list (case-insensitive).
   if (f.op === "is one of") {
-    const list = String(value).split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    const list = Array.isArray(value)
+      ? value.map(x => String(x ?? "").toLowerCase())
+      : String(value).split(",").map(s => s.trim().toLowerCase()).filter(Boolean);
+    if (list.length === 0) return true;
     return list.includes(String(v ?? "").toLowerCase());
   }
   if (f.op === "is")       return String(v ?? "").toLowerCase() === String(value).toLowerCase();
@@ -277,8 +283,12 @@ export default function MTTable({
   useEffect(() => {
     if (filterPopoverOpen && !draftFilter) {
       const first = columns[0];
-      const ops = defaultOpsFor(first);
-      setDraftFilter({ key: first.key, op: ops[0], value: "" });
+      if (first?.categorical) {
+        setDraftFilter({ key: first.key, op: "is one of", value: [] });
+      } else {
+        const ops = defaultOpsFor(first);
+        setDraftFilter({ key: first.key, op: ops[0], value: "" });
+      }
     }
     if (!filterPopoverOpen && draftFilter) setDraftFilter(null);
   }, [filterPopoverOpen]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -297,7 +307,9 @@ export default function MTTable({
               <span key={f.id} className="f">
                 <b>{c?.label || f.key}</b>
                 <span className="op">{f.op}</span>
-                <span>{Array.isArray(f.value) ? f.value.join(", ") : String(f.value)}</span>
+                <span>{Array.isArray(f.value)
+                  ? (f.value.length <= 2 ? f.value.join(", ") : `${f.value.slice(0, 2).join(", ")} +${f.value.length - 2}`)
+                  : String(f.value)}</span>
                 <button type="button" className="x" onClick={() => removeColumnFilter(f.id)} aria-label="Remove filter">×</button>
               </span>
             );
@@ -341,43 +353,97 @@ export default function MTTable({
                 + Filter
                 {colFilters.length > 0 && <span style={{ color: "var(--accent)", fontWeight: 600, marginLeft: 6 }}>{colFilters.length}</span>}
               </button>
-              {filterPopoverOpen && draftFilter && (
-                <div className="mt-popover open" onClick={(e) => e.stopPropagation()}>
-                  <h4>Add a column filter</h4>
-                  <div className="row">
-                    <select
-                      value={draftFilter.key}
-                      onChange={(e) => {
-                        const k = e.target.value;
-                        const col = colByKey[k];
-                        const ops = defaultOpsFor(col);
-                        setDraftFilter({ key: k, op: ops[0], value: "" });
-                      }}
-                    >
-                      {columns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
-                    </select>
+              {filterPopoverOpen && draftFilter && (() => {
+                const selectedCol = colByKey[draftFilter.key] || columns[0];
+                const isCategorical = !!selectedCol?.categorical;
+                // Distinct values from the source rows for multi-select pick.
+                const distinct = isCategorical
+                  ? Array.from(new Set(rows.map(r => r[draftFilter.key]).filter(x => x != null && String(x).trim() !== "")))
+                      .sort((a, b) => String(a).localeCompare(String(b)))
+                  : [];
+                const selectedSet = new Set(Array.isArray(draftFilter.value) ? draftFilter.value : []);
+                const toggleVal = (v) => setDraftFilter(d => {
+                  const cur = new Set(Array.isArray(d.value) ? d.value : []);
+                  if (cur.has(v)) cur.delete(v); else cur.add(v);
+                  return { ...d, op: "is one of", value: [...cur] };
+                });
+                return (
+                  <div className="mt-popover open" onClick={(e) => e.stopPropagation()}>
+                    <h4>Add a column filter</h4>
+                    <div className="row">
+                      <select
+                        value={draftFilter.key}
+                        onChange={(e) => {
+                          const k = e.target.value;
+                          const col = colByKey[k];
+                          if (col?.categorical) {
+                            setDraftFilter({ key: k, op: "is one of", value: [] });
+                          } else {
+                            const ops = defaultOpsFor(col);
+                            setDraftFilter({ key: k, op: ops[0], value: "" });
+                          }
+                        }}
+                      >
+                        {columns.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                      </select>
+                    </div>
+                    {isCategorical ? (
+                      <>
+                        <div className="row" style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                          Pick values ({selectedSet.size} of {distinct.length})
+                        </div>
+                        <div className="mt-multi-list">
+                          {distinct.length === 0 ? (
+                            <div style={{ padding: "10px 12px", fontSize: 11.5, color: "var(--text-dim)", fontStyle: "italic" }}>No values available.</div>
+                          ) : distinct.map(val => (
+                            <label key={String(val)} className="mt-multi-item">
+                              <input
+                                type="checkbox"
+                                checked={selectedSet.has(val)}
+                                onChange={() => toggleVal(val)}
+                              />
+                              <span>{String(val)}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="row">
+                          <select value={draftFilter.op} onChange={(e) => setDraftFilter(d => ({ ...d, op: e.target.value }))}>
+                            {defaultOpsFor(colByKey[draftFilter.key]).map(o => <option key={o}>{o}</option>)}
+                          </select>
+                        </div>
+                        <div className="row">
+                          <input
+                            type="text"
+                            placeholder="value..."
+                            value={draftFilter.value}
+                            onChange={(e) => setDraftFilter(d => ({ ...d, value: e.target.value }))}
+                            onKeyDown={(e) => { if (e.key === "Enter") addColumnFilter(); }}
+                          />
+                        </div>
+                      </>
+                    )}
+                    <div className="actions">
+                      <button type="button" className="mt-btn ghost" onClick={() => setPopover(null)}>Cancel</button>
+                      <button type="button" className="mt-btn primary" onClick={addColumnFilter}
+                        disabled={isCategorical ? selectedSet.size === 0 : !draftFilter.value}
+                      >Apply filter</button>
+                    </div>
                   </div>
-                  <div className="row">
-                    <select value={draftFilter.op} onChange={(e) => setDraftFilter(d => ({ ...d, op: e.target.value }))}>
-                      {defaultOpsFor(colByKey[draftFilter.key]).map(o => <option key={o}>{o}</option>)}
-                    </select>
-                  </div>
-                  <div className="row">
-                    <input
-                      type="text"
-                      placeholder="value..."
-                      value={draftFilter.value}
-                      onChange={(e) => setDraftFilter(d => ({ ...d, value: e.target.value }))}
-                      onKeyDown={(e) => { if (e.key === "Enter") addColumnFilter(); }}
-                    />
-                  </div>
-                  <div className="actions">
-                    <button type="button" className="mt-btn ghost" onClick={() => setPopover(null)}>Cancel</button>
-                    <button type="button" className="mt-btn primary" onClick={addColumnFilter}>Apply filter</button>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
             </div>
+          )}
+          {toolbar?.addAction && (
+            <button
+              type="button"
+              className="mt-add-action"
+              onClick={toolbar.addAction.onClick}
+            >
+              {toolbar.addAction.label}
+            </button>
           )}
           {isFull && (
             <div className="mt-popover-host">
@@ -386,26 +452,67 @@ export default function MTTable({
               </button>
               {colsPopoverOpen && (
                 <div className="mt-cols-popover open" onClick={(e) => e.stopPropagation()}>
-                  {order.map(k => {
-                    const col = colByKey[k];
-                    if (!col) return null;
-                    if (col.pinned === "right") return null;
-                    return (
-                      <div
-                        key={k}
-                        className="item"
-                        draggable
-                        onDragStart={(e) => { dragKeyRef.current = k; e.dataTransfer.effectAllowed = "move"; e.currentTarget.classList.add("drag-source"); }}
-                        onDragEnd={(e) => { e.currentTarget.classList.remove("drag-source"); document.querySelectorAll(".mt-cols-popover .item").forEach(x => x.classList.remove("drag-over")); dragKeyRef.current = null; }}
-                        onDragOver={(e) => { if (!dragKeyRef.current || dragKeyRef.current === k) return; e.preventDefault(); document.querySelectorAll(".mt-cols-popover .item").forEach(x => x.classList.remove("drag-over")); e.currentTarget.classList.add("drag-over"); }}
-                        onDrop={(e) => { e.preventDefault(); const dk = dragKeyRef.current; if (!dk || dk === k) return; moveColumn(dk, k); }}
-                      >
-                        <span className="grip">⋮⋮</span>
-                        <input type="checkbox" checked={visible.has(k)} onChange={() => toggleVisible(k)} />
-                        <span className="name">{col.label}</span>
+                  {(() => {
+                    // Detect whether any column has a `group` field. If so,
+                    // render a grouped popover with section headers in the
+                    // first-seen order of the group names. Otherwise fall
+                    // back to the flat list.
+                    const visibleEntries = order
+                      .map(k => colByKey[k])
+                      .filter(c => c && c.pinned !== "right");
+                    const hasGroups = visibleEntries.some(c => !!c.group);
+                    if (!hasGroups) {
+                      return visibleEntries.map(col => {
+                        const k = col.key;
+                        return (
+                          <div
+                            key={k}
+                            className="item"
+                            draggable
+                            onDragStart={(e) => { dragKeyRef.current = k; e.dataTransfer.effectAllowed = "move"; e.currentTarget.classList.add("drag-source"); }}
+                            onDragEnd={(e) => { e.currentTarget.classList.remove("drag-source"); document.querySelectorAll(".mt-cols-popover .item").forEach(x => x.classList.remove("drag-over")); dragKeyRef.current = null; }}
+                            onDragOver={(e) => { if (!dragKeyRef.current || dragKeyRef.current === k) return; e.preventDefault(); document.querySelectorAll(".mt-cols-popover .item").forEach(x => x.classList.remove("drag-over")); e.currentTarget.classList.add("drag-over"); }}
+                            onDrop={(e) => { e.preventDefault(); const dk = dragKeyRef.current; if (!dk || dk === k) return; moveColumn(dk, k); }}
+                          >
+                            <span className="grip">⋮⋮</span>
+                            <input type="checkbox" checked={visible.has(k)} onChange={() => toggleVisible(k)} />
+                            <span className="name">{col.label}</span>
+                          </div>
+                        );
+                      });
+                    }
+                    // Grouped layout
+                    const groupOrder = [];
+                    const groups = {};
+                    visibleEntries.forEach(c => {
+                      const g = c.group || "Other";
+                      if (!groups[g]) { groups[g] = []; groupOrder.push(g); }
+                      groups[g].push(c);
+                    });
+                    return groupOrder.map(g => (
+                      <div key={g}>
+                        <div className="mt-cols-group-header">{g}</div>
+                        {groups[g].map(col => {
+                          const k = col.key;
+                          return (
+                            <div
+                              key={k}
+                              className="item"
+                              draggable
+                              onDragStart={(e) => { dragKeyRef.current = k; e.dataTransfer.effectAllowed = "move"; e.currentTarget.classList.add("drag-source"); }}
+                              onDragEnd={(e) => { e.currentTarget.classList.remove("drag-source"); document.querySelectorAll(".mt-cols-popover .item").forEach(x => x.classList.remove("drag-over")); dragKeyRef.current = null; }}
+                              onDragOver={(e) => { if (!dragKeyRef.current || dragKeyRef.current === k) return; e.preventDefault(); document.querySelectorAll(".mt-cols-popover .item").forEach(x => x.classList.remove("drag-over")); e.currentTarget.classList.add("drag-over"); }}
+                              onDrop={(e) => { e.preventDefault(); const dk = dragKeyRef.current; if (!dk || dk === k) return; moveColumn(dk, k); }}
+                            >
+                              <span className="grip">⋮⋮</span>
+                              <input type="checkbox" checked={visible.has(k)} onChange={() => toggleVisible(k)} />
+                              <span className="name">{col.label}</span>
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    ));
+                  })()}
                 </div>
               )}
             </div>
@@ -582,6 +689,13 @@ const MT_TABLE_CSS = `
 .mt-table-root .mt-cols-popover .item .grip { color: var(--text-dim); font-family: var(--font-mono); cursor: grab; }
 .mt-table-root .mt-cols-popover .item.drag-source { opacity: 0.4; }
 .mt-table-root .mt-cols-popover .item.drag-over { box-shadow: inset 0 2px 0 var(--accent); }
+.mt-table-root .mt-cols-group-header { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.10em; text-transform: uppercase; color: var(--text-dim); padding: 8px 10px 4px; font-weight: 600; }
+.mt-table-root .mt-multi-list { max-height: 240px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; background: var(--surface-2); margin-bottom: 8px; }
+.mt-table-root .mt-multi-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12px; color: var(--text-2, var(--text)); cursor: pointer; border-bottom: 1px solid var(--border-faint, var(--border)); }
+.mt-table-root .mt-multi-item:last-child { border-bottom: none; }
+.mt-table-root .mt-multi-item input { accent-color: var(--accent); cursor: pointer; }
+.mt-table-root .mt-add-action { background: var(--accent); border: 1px solid var(--accent); color: var(--surface); padding: 6px 13px; border-radius: 999px; font-size: 12px; cursor: pointer; font-family: var(--font-ui, system-ui); font-weight: 600; }
+.mt-table-root .mt-add-action:hover { filter: brightness(1.08); }
 
 /* ── Tier B (features="look") overrides ─────────────────────────────────────
    Docs / reference tables: cells must WRAP (no ellipsis), table sizes to its
