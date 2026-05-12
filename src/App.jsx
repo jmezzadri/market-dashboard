@@ -5052,6 +5052,21 @@ const onRemoveFromWatchlist = async (t) => {
     .match({ user_id: session.user.id, ticker });
   if (!error) refetchPortfolio?.();
 };
+// Inline-edit handler for the Theme cell on every WatchlistTable row.
+// Writes a fresh theme string to public.watchlist for the signed-in user.
+// Returns true on success so the row's local edit state can clear; throws
+// on failure so the caller can show a transient error.
+const onUpdateWatchlistTheme = async (t, theme) => {
+  if (!session?.user?.id) return false;
+  const ticker = String(t || "").toUpperCase();
+  if (!ticker) return false;
+  const { error } = await supabase.from("watchlist")
+    .update({ theme: String(theme || "") })
+    .match({ user_id: session.user.id, ticker });
+  if (error) throw error;
+  await refetchPortfolio?.();
+  return true;
+};
 
 // SPX history snapshot: the Portfolio Insights tile uses composite_history_daily.json's
 // SPXp series as the SPY benchmark for true-period (1W/1M/YTD/TTM) returns.
@@ -6631,6 +6646,7 @@ return (<>
   userWatchlistTickers={userWatchlistTickers}
   onAddToWatchlist={onAddToWatchlist}
   onRemoveFromWatchlist={onRemoveFromWatchlist}
+  onUpdateTheme={onUpdateWatchlistTheme}
   portfolioAuthed={portfolioAuthed}
   onOpenTicker={(t)=>setTickerDetail(t)}
   tintByScore={true}
@@ -6795,6 +6811,7 @@ return(
         userWatchlistTickers={userWatchlistTickers}
         onAddToWatchlist={onAddToWatchlist}
         onRemoveFromWatchlist={onRemoveFromWatchlist}
+        onUpdateTheme={onUpdateWatchlistTheme}
         portfolioAuthed={portfolioAuthed}
         onOpenTicker={(t)=>setTickerDetail(t)}
         emptyMessage="Your watchlist is empty. Add a ticker below to start tracking names alongside your portfolio."
