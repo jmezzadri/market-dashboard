@@ -25,6 +25,28 @@ import Scanner from "../../Scanner";
 // Constants
 // ─────────────────────────────────────────────────────────────────────────
 
+
+// Default per-column pixel widths. Falls back to DEFAULT_COL_WIDTH when a
+// column key isn't listed. Users can override via the drag-resize handle on
+// each header right edge; overrides persist in colState.colWidths.
+const DEFAULT_COL_WIDTH = 90;
+const COL_DEFAULT_WIDTHS = {
+  ticker: 80, name: 220, sector: 130, ig: 190,
+  price: 80, day_pct: 80, mcap: 100, score: 90, band: 100,
+  sub_insider: 80, sub_options: 80, sub_congress: 80,
+  sub_technicals: 90, sub_analyst: 80, sub_short_interest: 100,
+  range_52w: 140, iv_rank: 80, rsi_14: 80, bb_bw: 100, rvol_20d: 90,
+  pct_50ma: 90, pct_200ma: 90, ins_buys: 90, "ins_buy_$": 100,
+};
+const COL_MIN_WIDTH = 50;
+const COL_MAX_WIDTH = 600;
+function widthFor(key, overrides) {
+  const o = overrides && overrides[key];
+  return (typeof o === "number" && o >= COL_MIN_WIDTH && o <= COL_MAX_WIDTH)
+    ? o
+    : (COL_DEFAULT_WIDTHS[key] || DEFAULT_COL_WIDTH);
+}
+
 // Per LESSONS rule: NO version strings in user-facing copy. The column
 // storage key is internal so it carries a private version tag.
 const STORAGE_KEY_COLS = "mt-portopps-cols-v5-1";
@@ -119,7 +141,7 @@ function loadColState() {
   } catch (e) { /* ignore */ }
 
   if (!saved) {
-    return { order: [...COL_KEYS], visible: [...DEFAULT_VISIBLE], sort: { key: "score", dir: "desc" }, filter: "all", colFilters: [] };
+    return { order: [...COL_KEYS], visible: [...DEFAULT_VISIBLE], sort: { key: "score", dir: "desc" }, filter: "all", colFilters: [], colWidths: {} };
   }
   const order = (saved.order || []).filter(k => COL_KEYS.includes(k));
   COL_KEYS.forEach(k => { if (!order.includes(k)) order.push(k); });
@@ -131,6 +153,7 @@ function loadColState() {
     sort: saved.sort || { key: "score", dir: "desc" },
     filter: (saved.filter && saved.filter !== "actionable") ? saved.filter : "all",
     colFilters: Array.isArray(saved.colFilters) ? saved.colFilters : [],
+    colWidths: (saved.colWidths && typeof saved.colWidths === "object") ? saved.colWidths : {},
   };
 }
 
@@ -1395,7 +1418,12 @@ export default function TradingOppsPage({ onOpenTicker }) {
         {!loading && !error && allRows.length > 0 && (
           <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: "var(--r-md, 16px)", boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))", overflow: "hidden" }}>
             <div style={{ overflowX: "auto", maxHeight: "70vh", overflowY: "auto" }}>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, minWidth: 1400 }}>
+              <table style={{ width: "max-content", borderCollapse: "collapse", fontSize: 12, minWidth: "100%", tableLayout: "fixed" }}>
+                <colgroup>
+                  {visibleCols.map(k => (
+                    <col key={k} style={{ width: widthFor(k, colState.colWidths) + "px" }} />
+                  ))}
+                </colgroup>
                 <thead>
                   <tr>
                     {visibleCols.map(k => {
@@ -1403,6 +1431,36 @@ export default function TradingOppsPage({ onOpenTicker }) {
                       if (!c) return null;
                       const isSort = colState.sort.key === k;
                       const arrow = isSort ? (colState.sort.dir === "asc" ? "↑" : "↓") : "";
+                      const colW = widthFor(k, colState.colWidths);
+                      const startResize = (ev) => {
+                        ev.stopPropagation();
+                        ev.preventDefault();
+                        const startX = ev.clientX;
+                        const startW = colW;
+                        const onMove = (e) => {
+                          const dx = e.clientX - startX;
+                          const next = Math.max(COL_MIN_WIDTH, Math.min(COL_MAX_WIDTH, startW + dx));
+                          setColState(s => ({ ...s, colWidths: { ...(s.colWidths || {}), [k]: next } }));
+                        };
+                        const onUp = () => {
+                          document.removeEventListener("mousemove", onMove);
+                          document.removeEventListener("mouseup", onUp);
+                          document.body.style.userSelect = "";
+                          document.body.style.cursor = "";
+                        };
+                        document.body.style.userSelect = "none";
+                        document.body.style.cursor = "col-resize";
+                        document.addEventListener("mousemove", onMove);
+                        document.addEventListener("mouseup", onUp);
+                      };
+                      const resetWidth = (e) => {
+                        e.stopPropagation();
+                        setColState(s => {
+                          const next = { ...(s.colWidths || {}) };
+                          delete next[k];
+                          return { ...s, colWidths: next };
+                        });
+                      };
                       return (
                         <th
                           key={k}
@@ -1411,7 +1469,7 @@ export default function TradingOppsPage({ onOpenTicker }) {
                           onDragEnd={onDragEnd}
                           onDragOver={(e) => onDragOver(e, k)}
                           onDrop={(e) => onDrop(e, k)}
-                          onClick={(e) => { if (!e.target.closest('[role="tooltip"]')) sortBy(k); }}
+                          onClick={(e) => { if (!e.target.closest('[role="tooltip"]') && !e.target.closest('.mt-col-resize-handle')) sortBy(k); }}
                           style={{
                             position: "sticky",
                             top: 0,
@@ -1430,6 +1488,8 @@ export default function TradingOppsPage({ onOpenTicker }) {
                             cursor: "pointer",
                             whiteSpace: "nowrap",
                             userSelect: "none",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                           }}
                         >
                           <Tooltip label={c.tt.label} body={c.tt.body} side="top">
@@ -1438,6 +1498,23 @@ export default function TradingOppsPage({ onOpenTicker }) {
                               {arrow && <span style={{ marginLeft: 4, color: "var(--accent)", fontSize: 9 }}>{arrow}</span>}
                             </span>
                           </Tooltip>
+                          <span
+                            className="mt-col-resize-handle"
+                            onMouseDown={startResize}
+                            onClick={(e) => e.stopPropagation()}
+                            onDoubleClick={resetWidth}
+                            title="Drag to resize, double-click to reset"
+                            style={{
+                              position: "absolute",
+                              top: 0,
+                              right: 0,
+                              width: 8,
+                              height: "100%",
+                              cursor: "col-resize",
+                              userSelect: "none",
+                              zIndex: 6,
+                            }}
+                          />
                         </th>
                       );
                     })}
@@ -1469,6 +1546,8 @@ export default function TradingOppsPage({ onOpenTicker }) {
                             textAlign: c?.numeric ? "right" : "left",
                             fontVariantNumeric: c?.numeric ? "tabular-nums" : "normal",
                             fontFamily: c?.numeric ? "var(--font-mono, JetBrains Mono, monospace)" : undefined,
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
                           }}>
                             {renderCell(r, k)}
                           </td>
