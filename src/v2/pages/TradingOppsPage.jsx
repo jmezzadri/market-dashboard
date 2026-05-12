@@ -686,21 +686,7 @@ function AnimatedCount({ value, durationMs = 900 }) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function FunnelCard({ totals, scanDate }) {
-  // 2026-05-12 timezone fix. scanDate is a YYYY-MM-DD string (e.g. "2026-05-09")
-  // that represents the trading day the scan covers. The old formatter
-  // parsed it as UTC midnight, which renders as "May 8" in ET because UTC
-  // midnight is 8pm the prior day in NY. Joe caught this; chip lied about
-  // which day the scan was for. Now we parse the parts explicitly and label
-  // "Scan: <Mon Day, Year>" so the meaning is unambiguous.
-  let ts = "Pending";
-  if (scanDate) {
-    const [yy, mm, dd] = scanDate.split("-").map(n => Number(n));
-    if (Number.isFinite(yy) && Number.isFinite(mm) && Number.isFinite(dd)) {
-      // noon-local is always the same day regardless of DST edges
-      const d = new Date(yy, mm - 1, dd, 12, 0, 0);
-      ts = "Scan: " + d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-    }
-  }
+  const ts = scanDate ? new Date(`${scanDate}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric" }) + " · EOD" : "Pending";
 
   // v5.5 (Joe's mockup): summary table = Total Universe / MacroTilt Gate /
   // Weak Signals · Missing Data. Then 4 band tiles: Strong Buy, Buy Watch,
@@ -869,28 +855,59 @@ function BandPill({ value }) {
   );
 }
 
-function SubScoreCell({ value }) {
-  // v5.3: distinguish "data missing for this name" (null -> n/a, italic +
-  // amber dot) from "data fetched, score is exactly zero / quiet" (0 ->
-  // plain "0" in normal text). Joe's call: "0 = we checked and there is
-  // no insider buys/sells; — = we don't have the data."
-  if (value == null || !Number.isFinite(Number(value))) {
+// 2026-05-12 Joe directive: mirror the modal's three-state sub-score render
+// on the table. Same map of which signals are vendor-restricted vs full
+// coverage lives here — kept in sync with src/components/TickerDetailModal.jsx.
+//   Vendor-restricted (render ⊘ when null): sub_analyst, sub_options
+//   Full universe        (render ⚠ when null): sub_insider, sub_technicals,
+//                                              sub_congress, sub_short_interest
+const SUBSCORE_VENDOR_LIMITED = new Set(["sub_analyst", "sub_options"]);
+const SUBSCORE_VENDOR_LABEL = {
+  sub_analyst: "broker analyst coverage (~2,000 names)",
+  sub_options: "Unusual Whales options coverage (~2,000 names with active options markets)",
+};
+const SUBSCORE_NICE_NAME = {
+  sub_insider:        "Insider buying",
+  sub_options:        "Options flow",
+  sub_congress:       "Congress trades",
+  sub_technicals:     "Technicals",
+  sub_analyst:        "Analyst actions",
+  sub_short_interest: "Short interest",
+};
+
+function SubScoreCell({ value, signalKey }) {
+  if (value != null && Number.isFinite(Number(value))) {
+    const n = Number(value);
+    const color = n >=  50 ? "var(--green-text, var(--green))"
+                : n >=  20 ? "var(--yellow-text, var(--text))"
+                : n <= -50 ? "var(--red-text, var(--red))"
+                : n <= -20 ? "var(--yellow-text, var(--text))"
+                :            "var(--text-muted)";
+    const sign = n > 0 ? "+" : "";
+    const niceName = SUBSCORE_NICE_NAME[signalKey] || "signal";
+    const tip = n === 0
+      ? `We have the data — ${niceName.toLowerCase()} is neutral today (no bullish or bearish information from this feed).`
+      : `${niceName} sub-score (-100 to +100). ${n > 0 ? "Positive = bullish" : "Negative = bearish"}.`;
+    return <span style={{ color, fontWeight: 600, cursor: "help" }} title={tip}>{sign}{n.toFixed(0)}</span>;
+  }
+  const niceName = SUBSCORE_NICE_NAME[signalKey] || "this signal";
+  if (SUBSCORE_VENDOR_LIMITED.has(signalKey)) {
+    const vendorPhrase = SUBSCORE_VENDOR_LABEL[signalKey] || `${niceName.toLowerCase()} universe`;
     return (
-      <span style={{ color: "var(--text-dim)", fontStyle: "italic", display: "inline-flex", alignItems: "center", gap: 4 }}
-            title="No data for this signal on this name today (pipeline gap)">
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--yellow, #b89000)", opacity: 0.7 }} aria-hidden="true" />
-        n/a
-      </span>
+      <span
+        style={{ color: "var(--text-dim)", fontSize: 14, cursor: "help", borderBottom: "1px dotted var(--text-dim)" }}
+        title={`Not in scanned universe. This ticker is outside the ${vendorPhrase}. The data feed only covers a subset of US-listed equities; this name isn't one of them. Expected — not a bug.`}
+        aria-label="not in scanned universe"
+      >⊘</span>
     );
   }
-  const n = Number(value);
-  const color = n >=  50 ? "var(--green-text, var(--green))"
-              : n >=  20 ? "var(--yellow-text, var(--text))"
-              : n <= -50 ? "var(--red-text, var(--red))"
-              : n <= -20 ? "var(--yellow-text, var(--text))"
-              :            "var(--text-muted)";
-  const sign = n > 0 ? "+" : "";
-  return <span style={{ color, fontWeight: 600 }}>{sign}{n.toFixed(0)}</span>;
+  return (
+    <span
+      style={{ color: "var(--red-text, var(--red))", fontSize: 14, fontWeight: 600, cursor: "help", borderBottom: "1px dotted var(--red-text, var(--red))" }}
+      title={`Data missing — we should have ${niceName.toLowerCase()} for this ticker (full US-listed coverage). The latest scanner run didn't return a value — likely a pipeline gap. Engineering will catch on next freshness sweep.`}
+      aria-label="data fetch failed"
+    >⚠</span>
+  );
 }
 
 function renderCell(row, key) {
@@ -929,7 +946,7 @@ function renderCell(row, key) {
   if (key === "score") return <ScoreCell value={v} />;
   if (key === "band") return <BandPill value={v} />;
   if (key === "sub_insider" || key === "sub_options" || key === "sub_congress" || key === "sub_technicals" || key === "sub_analyst" || key === "sub_short_interest") {
-    return <SubScoreCell value={v} />;
+    return <SubScoreCell value={v} signalKey={key} />;
   }
   // ── v5.1 restored legacy columns ──
   if (key === "range_52w") {
