@@ -1,5 +1,5 @@
 /* ============================================================================
-   MacroTilt — Theme System (Option A · Citadel teal hybrid)
+   MacroTilt — Theme System (Option B · Apple Blue single accent)
    ----------------------------------------------------------------------------
    Single source of truth for every palette, surface, type, radius, shadow,
    and motion token. NO competing palette systems. NO data-mt-theme. NO
@@ -14,16 +14,17 @@
    we sweep them out in step 2.
 
    Palette discipline:
-     • One brand accent — deep teal — used for active nav, primary CTA, hero
-       numbers, link text. NEVER as decorative wallpaper.
+     • One brand accent — Apple system blue — used for active nav, primary CTA,
+       hero numbers, link text. NEVER as decorative wallpaper.
      • Direction green/red ONLY for actual direction (positive/negative).
        Never decorative. Cool tones (forest / wine), not iOS-bright.
      • BANNED FAMILIES: parchment, champagne, mustard, ochre, oxblood-warm,
        muted forest, golden tan, cream-cream. Every shade in the warm family
-       is off-limits.
-     • BANNED SATURATION: Apple iOS-bright palette (var(--green), var(--red), var(--yellow),
-       var(--accent), var(--text-muted)). Folded to neutral cool tones via --yellow / --orange
-       / --blue / --purple aliases below.
+       is off-limits. (Joe directive 2026-05-12: warm-tone ban stands.)
+     • BANNED SATURATION (DIRECTION COLORS ONLY): the iOS-bright var(--green),
+       var(--red), var(--yellow) are folded to neutral cool tones via the
+       --yellow / --orange / --purple aliases below. The Apple-bright blue
+       IS the brand accent — var(--accent) and var(--blue) use it intentionally.
 
    Auto light/dark via prefers-color-scheme; manual override via
    [data-theme="light"|"dark"] on <html>.
@@ -66,9 +67,9 @@
   --bg-grad:       radial-gradient(ellipse at top, #ffffff 0%, #fafaf7 60%, #f0f0ec 100%);
   --surface:       #ffffff;
   --surface-2:     #f4f5f7;
-  --surface-3:     rgba(14,85,96,0.04);
+  --surface-3:     rgba(0,113,227,0.04);
   --surface-solid: #ffffff;
-  --hover:         rgba(14,85,96,0.06);
+  --hover:         rgba(0,113,227,0.06);
 
   /* Borders */
   --border:        rgba(14,17,21,0.10);
@@ -82,9 +83,9 @@
   --text-dim:      #98989f;
 
   /* Brand accent — single deep teal */
-  --accent:        #0e5560;
-  --accent-soft:   rgba(14,85,96,0.10);
-  --link:          #0e5560;
+  --accent:        #0071e3;
+  --accent-soft:   rgba(0,113,227,0.10);
+  --link:          #0071e3;
 
   /* Shadows */
   --shadow-sm:  0 1px 2px rgba(0,0,0,0.04), 0 1px 3px rgba(0,0,0,0.06);
@@ -110,8 +111,8 @@
   --yellow-text:  #4a5765;
   --orange:       #6b7a85;
   --orange-text:  #4a5765;
-  --blue:         #0e5560;    /* alias to brand accent */
-  --blue-text:    #0e5560;
+  --blue:         #0071e3;    /* alias to brand accent */
+  --blue-text:    #0071e3;
   --purple:       #5e5e63;
   --purple-text:  #2a2a2e;
 
@@ -189,9 +190,9 @@
     --text-muted:    #98989f;
     --text-dim:      #6e6e74;
 
-    --accent:        #5fb5c4;     /* lifted teal for dark surfaces */
-    --accent-soft:   rgba(95,181,196,0.12);
-    --link:          #5fb5c4;
+    --accent:        #0a84ff;     /* Apple system blue, lifted for dark surfaces */
+    --accent-soft:   rgba(10,132,255,0.18);
+    --link:          #0a84ff;
 
     --shadow-sm:  0 1px 2px rgba(0,0,0,0.40);
     --shadow-md:  0 4px 14px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.30);
@@ -210,8 +211,8 @@
     --yellow-text:  #98a4b0;
     --orange:       #6e7a85;
     --orange-text:  #98a4b0;
-    --blue:         #5fb5c4;
-    --blue-text:    #5fb5c4;
+    --blue:         #0a84ff;
+    --blue-text:    #0a84ff;
     --purple:       #98989f;
     --purple-text:  #d2d2d7;
 
@@ -238,9 +239,9 @@
   --text-muted:    #98989f;
   --text-dim:      #6e6e74;
 
-  --accent:        #5fb5c4;
-  --accent-soft:   rgba(95,181,196,0.12);
-  --link:          #5fb5c4;
+  --accent:        #0a84ff;
+  --accent-soft:   rgba(10,132,255,0.18);
+  --link:          #0a84ff;
 
   --shadow-sm:  0 1px 2px rgba(0,0,0,0.40);
   --shadow-md:  0 4px 14px rgba(0,0,0,0.50), 0 2px 6px rgba(0,0,0,0.30);
@@ -259,8 +260,8 @@
   --yellow-text:  #98a4b0;
   --orange:       #6e7a85;
   --orange-text:  #98a4b0;
-  --blue:         #5fb5c4;
-  --blue-text:    #5fb5c4;
+  --blue:         #0a84ff;
+  --blue-text:    #0a84ff;
   --purple:       #98989f;
   --purple-text:  #d2d2d7;
 
