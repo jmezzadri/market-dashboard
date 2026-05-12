@@ -290,7 +290,18 @@ function SignalIntelligenceRail({
             // zero short interest." MSFT's underlying is "1.1% of float,
             // 2.8d to cover" — neutral signal, but data exists. Same idea
             // for the other signals. Sourced from scorer_components.
-            const comps = compsForTiles && compsForTiles[s.key];
+            //
+            // TDZ FIX 2026-05-12 — read scorer_components directly from sig
+            // (which IS in scope here). The earlier version of this code
+            // referenced the local `compsForTiles` variable that gets
+            // declared further down in this function, causing a "Cannot
+            // access 'L' before initialization" crash on MSFT (and any
+            // other ticker that opened the modal expanded). LESSONS rule:
+            // const inside function scope must be declared above its IIFE
+            // consumers. Bypassing compsForTiles avoids the same bug.
+            const comps = sig && sig.diagnostic && sig.diagnostic.scorer_components
+              ? sig.diagnostic.scorer_components[s.key]
+              : null;
             const subUnderline = (() => {
               if (sub == null || comps == null) return null;
               if (s.key === "short_interest") {
