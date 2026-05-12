@@ -284,6 +284,49 @@ function SignalIntelligenceRail({
             const w   = weights[s.key];
             const subStr = fmtSub(sub);
             const isLast = i === SIGNAL_ORDER.length - 1;
+            // 2026-05-12 Joe directive: when sub_score is a real number,
+            // show the actual underlying data on a tiny second line below
+            // the score so "Short Interest: 0" doesn't read as "MSFT has
+            // zero short interest." MSFT's underlying is "1.1% of float,
+            // 2.8d to cover" — neutral signal, but data exists. Same idea
+            // for the other signals. Sourced from scorer_components.
+            const comps = compsForTiles && compsForTiles[s.key];
+            const subUnderline = (() => {
+              if (sub == null || comps == null) return null;
+              if (s.key === "short_interest") {
+                const si = comps.latest_si_pct_of_float;
+                if (si != null) return `${Number(si).toFixed(1)}% of float short`;
+              }
+              if (s.key === "insider") {
+                const buys = Number(comps.buy_count || 0);
+                const sells = Number(comps.sell_count || 0);
+                if (buys || sells) return `${buys} buy${buys===1?"":"s"} · ${sells} sell${sells===1?"":"s"} in 30d`;
+                return "no Form 4 events in 30d";
+              }
+              if (s.key === "congress") {
+                const buys = Number(comps.buy_count || 0);
+                const sells = Number(comps.sell_count || 0);
+                if (buys || sells) return `${buys} buy${buys===1?"":"s"} · ${sells} sell${sells===1?"":"s"} in 90d`;
+                return "no congressional trades in 90d";
+              }
+              if (s.key === "options") {
+                const callCt = Number(comps.call_alert_count || 0);
+                const putCt = Number(comps.put_alert_count || 0);
+                if (callCt || putCt) return `${callCt} call · ${putCt} put alerts`;
+                return "no unusual flow today";
+              }
+              if (s.key === "analyst") {
+                const n = Number(comps.actions_count || 0);
+                if (n) return `${n} action${n===1?"":"s"} in 90d`;
+                return "no analyst actions in 90d";
+              }
+              if (s.key === "technicals") {
+                const rsi = comps.rsi14;
+                if (Number.isFinite(Number(rsi))) return `RSI ${Number(rsi).toFixed(0)}`;
+                return null;
+              }
+              return null;
+            })();
             return (
               <div key={"sig"+i} style={{display:"grid",gridTemplateColumns:"170px 80px 80px",gap:8,alignItems:"baseline",padding:"6px 0",borderBottom: isLast ? "none" : "1px solid var(--border-faint, var(--border))"}}>
                 <Tip label={s.label} def={s.tip}>
@@ -314,7 +357,12 @@ function SignalIntelligenceRail({
                           : `Composite sub-score from -100 to +100. ${Number(sub) > 0 ? 'Positive = bullish for ' + s.label.toLowerCase() : 'Negative = bearish for ' + s.label.toLowerCase()}.`
                         }
                       >
-                        <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)",textAlign:"right",cursor:"help"}}>{subStr}</span>
+                        <span style={{display:"inline-flex",flexDirection:"column",alignItems:"flex-end",cursor:"help",width:"100%"}}>
+                          <span style={{color: subColor(sub), fontWeight:600, fontFamily:"var(--font-mono)"}}>{subStr}</span>
+                          {subUnderline && (
+                            <span style={{fontSize:9,color:"var(--text-dim)",fontFamily:"var(--font-mono)",marginTop:1,whiteSpace:"nowrap"}}>{subUnderline}</span>
+                          )}
+                        </span>
                       </Tip>
                     );
                   }
