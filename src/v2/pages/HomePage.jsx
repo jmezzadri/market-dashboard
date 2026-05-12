@@ -51,12 +51,78 @@ export default function HomePage() {
   // v2 spec PR 3.1 — Home macro tile shows 3 v2 headlines @ 6m alongside the
   // legacy composite + 6-mechanism mini bar (legacy stays during transition).
   const [cycleV2, setCycleV2] = useState(null);
+  const [indHist, setIndHist] = useState(null);
   useEffect(() => {
     fetch("/cycle_v2.json", { cache: "no-cache" })
       .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
       .then(setCycleV2)
-      .catch((err) => { console.warn("[Home · v2 PR 3.1] cycle_v2.json fetch failed", err); });
+      .catch((err) => { console.warn("[Home] cycle_v2.json fetch failed", err); });
+    fetch("/indicator_history.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null)
+      .then(setIndHist)
+      .catch((err) => { console.warn("[Home] indicator_history.json fetch failed", err); });
   }, []);
+
+  // ─── Signal Intelligence regime computation (mirrors MacroOverviewPage rule book) ───
+  const si = useMemo(() => {
+    if (!indHist || !cycleV2) return null;
+    const TRIGGER_PCTILE = 85, LATE_CYCLE = 80;
+    const trailing5ySorted = (points) => {
+      if (!points || !points.length) return [];
+      const last = new Date(points[points.length - 1][0]);
+      const cutoff = new Date(last); cutoff.setFullYear(last.getFullYear() - 5);
+      return points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
+    };
+    const valAtPctile = (sorted, pct) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length))] : null;
+    const pctileOf = (v, sorted) => {
+      if (!sorted.length || v == null) return null;
+      let lo = 0, hi = sorted.length;
+      while (lo < hi) { const m = (lo + hi) >>> 1; if (sorted[m] < v) lo = m + 1; else hi = m; }
+      return Math.round((lo / sorted.length) * 100);
+    };
+    const stageOfRun = (points, mark) => {
+      if (!points || !points.length || mark == null) return 0;
+      let consec = 0;
+      // last 24 weeks daily — approximate consecutive-week-above by collapsing to weekly Friday closes
+      const byWeek = {};
+      for (const [ds, val] of points) {
+        if (val == null || isNaN(val)) continue;
+        const d = new Date(ds), w = new Date(d); w.setDate(d.getDate() - d.getDay());
+        byWeek[w.toISOString().slice(0, 10)] = val;
+      }
+      const weeks = Object.keys(byWeek).sort().slice(-24);
+      for (let i = weeks.length - 1; i >= 0; i--) {
+        if (byWeek[weeks[i]] >= mark) consec++; else break;
+      }
+      if (consec === 0) return 0;
+      if (consec === 1) return 1;
+      if (consec <= 3) return 2;
+      return 3;
+    };
+    const buildInd = (key) => {
+      const r = indHist[key];
+      if (!r || !r.points || !r.points.length) return null;
+      const sorted = trailing5ySorted(r.points);
+      const mark = valAtPctile(sorted, TRIGGER_PCTILE);
+      const cur = r.points[r.points.length - 1];
+      return { pctile: pctileOf(cur[1], sorted), currentValue: cur[1], mark, stage: stageOfRun(r.points, mark) };
+    };
+    const vix = buildInd('vix'), mv = buildInd('move'), cp = buildInd('cpff');
+    const cycle = cycleV2.headlines?.cycle_value?.score_by_horizon?.['6m'];
+    const stages = [vix?.stage || 0, mv?.stage || 0, cp?.stage || 0];
+    const sustained = stages.filter(s => s >= 2).length;
+    const crossed = stages.filter(s => s === 1).length;
+    const latecycle = cycle != null && cycle >= LATE_CYCLE;
+    const label = (sustained >= 1 && latecycle) ? 'Risk Off' : sustained >= 1 ? 'Cautionary' : crossed >= 1 ? 'Neutral' : 'Risk On';
+    return { vix, move: mv, cpff: cp, cycle, regime: { label } };
+  }, [indHist, cycleV2]);
+
+  const regimeShortDesc = {
+    'Risk On':    'No volatility triggers. Stay fully invested.',
+    'Neutral':    'One trigger crossed — possible head fake. Hold.',
+    'Cautionary': 'One or more triggers sustained. Trim risk.',
+    'Risk Off':   'Sustained at late-cycle. Defensive stance.',
+  };
   const { snap, v10, scan, err } = useHomeData();
   const { user, loading: authLoading } = useSession();
   const greetingName = user
@@ -149,56 +215,42 @@ export default function HomePage() {
       <div className="v2-shell">
         <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, padding: '32px 0 0' }} className="v2-home-grid">
 
-          {/* CARD 1 · MACRO OVERVIEW MINI */}
+          {/* CARD 1 · MACRO OVERVIEW — Signal Intelligence regime read */}
           <article className="v2-tile" onClick={() => navTo('overview')} tabIndex={0}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <span className="t-eyebrow accent">01 · Where the cycle sits today</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <span className="t-eyebrow accent">01 · Macro Overview</span>
               <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />
             </div>
-            <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:14, marginBottom:14 }}>
-              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--warn)', fontFeatureSettings:'"tnum"' }}>
-                {compAvg != null ? <CountUp to={compAvg} /> : '—'}
-                {compAvg != null && <span style={{ fontSize:22, color:'var(--ink-2)', marginLeft:4 }}>/100</span>}
-              </span>
-              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:22, color:'var(--ink-0)' }}>{compBand.label}</span>
-            </div>
-            <p style={{ color:'var(--ink-1)', fontSize:14, lineHeight:1.55, paddingBottom:16, borderBottom:'1px solid var(--line-0)', margin:0 }}>
-              {snap?.headline || `${mechs.length} mechanism${mechs.length===1?'':'s'} live · ${mechs.filter((m)=>m.concerning_count > 0).length} above Neutral.`}
-            </p>
-            {cycleV2 && cycleV2.headlines && (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ fontSize:9, letterSpacing:'.1em', textTransform:'uppercase', color:'var(--ink-2)', fontWeight:500, marginBottom:6 }}>
-                  v2 @ 6m
-                </div>
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:6 }}>
-                  {[
-                    { id: 'cycle_value',   short: 'Setup'   },
-                    { id: 'market_stress', short: 'Stress'  },
-                    { id: 'real_economy', short: 'Real Econ' },
-                  ].map(({ id, short }) => {
-                    const h = cycleV2.headlines[id];
-                    const v = h && h.scores_by_horizon ? h.scores_by_horizon['6m'] : null;
-                    const tone = v == null ? 'ink-3' : v < 25 ? 'up' : v < 50 ? 'info' : v < 75 ? 'warn' : 'down';
-                    return (
-                      <div key={id} style={{ background:'var(--bg-2)', borderRadius:8, padding:'10px 8px', textAlign:'center', borderTop:`2px solid var(--${tone})` }}>
-                        <div style={{ fontSize:9, letterSpacing:'.1em', textTransform:'uppercase', color:'var(--ink-2)', fontWeight:500, marginBottom:6, lineHeight:1.2, minHeight:22, display:'flex', alignItems:'center', justifyContent:'center' }}>{short}</div>
-                        <div style={{ fontFamily:'Inter,system-ui,-apple-system,sans-serif', fontSize:22, color: v == null ? 'var(--ink-3)' : 'var(--ink-0)', fontFeatureSettings:'"tnum"', lineHeight:1 }}>
-                          {v == null ? '—' : v}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-                {cycleV2.regimes && cycleV2.regimes['6m'] && (
-                  <div style={{ marginTop: 10, fontSize: 11, color: 'var(--ink-2)' }}>
-                    <strong style={{ color: 'var(--ink-0)', fontWeight: 600 }}>{cycleV2.regimes['6m'].label}</strong>
-                    {' · '}{cycleV2.regimes['6m'].recommended_action}
-                  </div>
-                )}
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 500, marginBottom: 4 }}>
+                Current regime
               </div>
-            )}
+              <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontStyle: 'italic', fontWeight: 400, fontSize: 40, lineHeight: 1.05, color: 'var(--accent)', letterSpacing: '-0.005em' }}>
+                {si?.regime?.label || 'Loading…'}
+              </div>
+              <div style={{ fontSize: 13.5, color: 'var(--ink-1)', marginTop: 6, lineHeight: 1.5 }}>
+                {si?.regime?.label ? regimeShortDesc[si.regime.label] : ''}
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, paddingTop: 16, borderTop: '1px solid var(--line-0)' }}>
+              {[
+                { name: 'Equity Vol', sub: 'VIX', d: si?.vix },
+                { name: 'Bond Vol', sub: 'MOVE', d: si?.move },
+                { name: 'Funding', sub: 'CPFF', d: si?.cpff },
+                { name: 'Cycle', sub: 'POSITION', d: { pctile: si?.cycle, stage: si?.cycle >= 80 ? 3 : si?.cycle >= 50 ? 1 : 0 } },
+              ].map(({ name, sub, d }) => (
+                <div key={sub} style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: 9.5, letterSpacing: '.10em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 500, marginBottom: 4, lineHeight: 1.2 }}>{name}</div>
+                  <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 26, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', letterSpacing: '-0.005em' }}>
+                    {d?.pctile != null ? d.pctile : '—'}
+                  </div>
+                  <div style={{ fontSize: 9, letterSpacing: '.06em', color: 'var(--ink-3)', marginTop: 4, fontStyle: 'italic' }}>
+                    {sub}
+                  </div>
+                </div>
+              ))}
+            </div>
           </article>
-
           {/* CARD 2 · ASSET TILT (with sector mini-list folded in) */}
           <article className="v2-tile" onClick={() => navTo('allocation')} tabIndex={0}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
