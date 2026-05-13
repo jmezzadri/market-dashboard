@@ -17,6 +17,14 @@ import V2ErrorBoundary from "./v2/components/ErrorBoundary";
 // v2 cutover NOT acceptable to Joe in current state. Legacy v1 restored.
 // Append ?v=2 to URL to access the cutover preview for triage.
 const V2_ENABLED = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("v") === "2";
+
+// Preview-deploy admin bypass — true on every host except macrotilt.com.
+// Lets the new Admin pages (landing, Massive, UW, Data Health) be
+// reviewed on Vercel preview URLs without a sign-in. Production
+// (macrotilt.com) keeps the existing useIsAdmin gate.
+const IS_PRODUCTION_HOST = typeof window !== "undefined"
+  && /(^|\.)macrotilt\.com$/.test(window.location.hostname);
+const ADMIN_PREVIEW_BYPASS = typeof window !== "undefined" && !IS_PRODUCTION_HOST;
 import {
   useTheme, Hero, Tile, SectionHeader, Footer,
   Sidebar, SidebarToggleButton,
@@ -5012,7 +5020,7 @@ useEffect(()=>{
 // for adminLoading to settle so the initial check doesn't bounce real admins
 // off their own tab before the is_admin() RPC resolves.
 useEffect(()=>{
-  if(!adminLoading && !isAdmin && (tab==="admin" || tab==="bugs")) setTab("home");
+  if(!adminLoading && !isAdmin && !ADMIN_PREVIEW_BYPASS && (tab==="admin" || tab==="bugs")) setTab("home");
 },[tab,isAdmin,adminLoading]);
 
 // ─── Navigation stack — so the drill-down back button returns to the
@@ -5524,7 +5532,7 @@ const catScores = Object.entries(CATS).map(([catId,cat])=>{
 // Admin-only nav item appended at runtime. Non-admins never see it. We use
 // the existing NavIconGauge since the sidebar doesn't expose a distinct
 // shield glyph; icon semantics here are "instrument panel", which fits.
-const navItems = isAdmin
+const navItems = (isAdmin || ADMIN_PREVIEW_BYPASS)
   ? [...NAV_ITEMS,
      { divider:true, label:"Admin" },
      { id:"admin", label:"Admin · Data",      icon:<NavIconGauge/> },

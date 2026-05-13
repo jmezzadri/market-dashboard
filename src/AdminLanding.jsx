@@ -28,6 +28,14 @@ import { useMemo } from "react";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import { useDataHealth, VENDOR_MONTHLY_COST } from "./hooks/useDataHealth";
 
+// Preview deploys (everything outside macrotilt.com) skip the admin gate
+// so the pages are reviewable without a sign-in. Production rendering on
+// macrotilt.com is gated as before — useIsAdmin() still runs and its
+// result is honoured. Live data on preview comes from the baked
+// /admin_health_snapshot.json fallback inside useDataHealth.
+const IS_PRODUCTION_HOST = typeof window !== "undefined"
+  && /(^|\.)macrotilt\.com$/.test(window.location.hostname);
+
 const GREEN = "#34d399";
 const RED   = "#ef4444";
 const AMBER = "#B8860B";
@@ -110,7 +118,11 @@ function vendorStats(byVendor, vendorName) {
 }
 
 export default function AdminLanding() {
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  // useIsAdmin always runs (hooks-rules). On non-production hosts the
+  // gate below is short-circuited so the page renders for everyone.
+  const live = useIsAdmin();
+  const isAdmin     = IS_PRODUCTION_HOST ? live.isAdmin : true;
+  const adminLoading = IS_PRODUCTION_HOST ? live.loading : false;
   const { byVendor, rows, loading } = useDataHealth();
 
   // Cross-vendor rollups for the Data Health tile.

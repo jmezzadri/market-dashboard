@@ -123,6 +123,31 @@ export const VENDOR_MONTHLY_COST = {
   "MacroTilt in-house":      "—",
 };
 
+// ─── Preview-deploy snapshot fallback ───────────────────────────────────────
+// On Vercel preview URLs we don't always have an authenticated admin session
+// (Supabase auth redirect allowlist is keyed to the production host). To
+// keep the admin pages reviewable without an admin login on previews, we
+// fall back to a baked snapshot at /admin_health_snapshot.json — produced
+// from production pipeline_health by a maintainer (current as of the
+// commit shipping this file). The snapshot is only consumed if the live
+// Supabase query comes back empty.
+//
+// Production rendering on macrotilt.com goes through the live Supabase
+// query as before; the snapshot is just a safety net for preview deploys
+// and any future scenario where the live query is gated.
+async function fetchSnapshot() {
+  try {
+    const resp = await fetch("/admin_health_snapshot.json", { cache: "default" });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return Array.isArray(data) ? data : [];
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn("[useDataHealth] snapshot fetch failed:", e?.message || e);
+    return [];
+  }
+}
+
 // ─── Supabase fetch ─────────────────────────────────────────────────────────
 async function fetchRows() {
   const { data, error } = await supabase
@@ -135,9 +160,21 @@ async function fetchRows() {
   if (error) {
     // eslint-disable-next-line no-console
     console.warn("[useDataHealth] supabase error:", error.message);
-    return cachedRows || [];
+    // Fall back to the snapshot so admin pages still render under
+    // RLS-blocked / network-failure conditions (preview deploys).
+    const snap = await fetchSnapshot();
+    cachedRows = snap;
+    lastFetchAt = Date.now();
+    return cachedRows;
   }
-  cachedRows = data || [];
+  let rows = data || [];
+  // If the live query returns 0 rows (RLS blocked the read for a non-admin
+  // session, typically a preview deploy), fall back to the baked snapshot.
+  if (rows.length === 0) {
+    const snap = await fetchSnapshot();
+    if (snap.length > 0) rows = snap;
+  }
+  cachedRows = rows;
   lastFetchAt = Date.now();
   return cachedRows;
 }

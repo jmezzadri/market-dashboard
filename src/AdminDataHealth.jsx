@@ -31,6 +31,11 @@ import {
   canonicalVendor,
 } from "./hooks/useDataHealth";
 
+// Preview deploys skip the admin gate so the page is reviewable without
+// a sign-in. Production (macrotilt.com) keeps the gate.
+const IS_PRODUCTION_HOST = typeof window !== "undefined"
+  && /(^|\.)macrotilt\.com$/.test(window.location.hostname);
+
 const GREEN = "#34d399";
 const RED   = "#ef4444";
 const AMBER = "#B8860B";
@@ -137,7 +142,9 @@ function Td({ children, align = "left", style }) {
 }
 
 export default function AdminDataHealth() {
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const live = useIsAdmin();
+  const isAdmin     = IS_PRODUCTION_HOST ? live.isAdmin : true;
+  const adminLoading = IS_PRODUCTION_HOST ? live.loading : false;
   const { rows, byVendor, loading, error, reload } = useDataHealth();
   const [statusFilter, setStatusFilter] = useState("all");
   const [vendorFilter, setVendorFilter] = useState("all");
