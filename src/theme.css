@@ -82,7 +82,7 @@
   --text-muted:    #5e5e63;
   --text-dim:      #98989f;
 
-  /* Aliases — v2 pages use --ink-*/--bg-*/--line-* names. Map them
+  /* Aliases. v2 pages use --ink-N / --bg-N / --line-N names. Map them
      onto the canonical --text / --surface / --border tokens so they
      flip automatically between light + dark mode. Without these
      aliases, every var(--ink-N, #hex) call site fell back to a
