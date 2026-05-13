@@ -487,10 +487,39 @@ export default function MacroOverviewPage() {
         x['fullstage_' + a.id] = consec === 0 ? 0 : consec === 1 ? 1 : consec <= 3 ? 2 : consec <= 7 ? 3 : 4;
       });
     });
+    // Precompute the HISTORICAL cycle composite at every week. For each
+    // cycle indicator, take its most recent weekly value at or before the
+    // target week (binary search), percentile-rank it against the indicator's
+    // full sample, flip for inverted-direction indicators, and average across
+    // the seven. The regime classifier then uses this PER-WEEK cycle composite
+    // (not today's value) so Risk Off can actually fire when a trigger is
+    // sustained AND the cycle was calm at that historical moment.
+    const fullCycleByDate = {};
+    for (const d of fullDates) {
+      const pcts = [];
+      for (const ind of cycleInd) {
+        if (!ind.allWeekly.length || !ind.sortedFull.length) continue;
+        // Binary search: latest week with date <= d
+        let lo = 0, hi = ind.allWeekly.length;
+        while (lo < hi) {
+          const mid = (lo + hi) >>> 1;
+          if (ind.allWeekly[mid].date <= d) lo = mid + 1; else hi = mid;
+        }
+        const idx = lo - 1;
+        if (idx < 0) continue;
+        const v = ind.allWeekly[idx].value;
+        const rawPct = pctileOf(v, ind.sortedFull);
+        if (rawPct == null) continue;
+        pcts.push(ind.bearishHigh ? rawPct : 100 - rawPct);
+      }
+      if (pcts.length) fullCycleByDate[d] = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
+    }
+
     const fullRegime = fullDates.map(d => {
       const x = fullByDate[d];
       const stages = anchors.map(a => x['fullstage_' + a.id] || 0);
-      return { date: d, label: computeRegime(stages, cycleScore), stages };
+      const histCycle = fullCycleByDate[d] != null ? fullCycleByDate[d] : cycleScore;
+      return { date: d, label: computeRegime(stages, histCycle), stages, cycle: histCycle };
     });
 
     return { anchors, cycleInd, cycleScore, cycleQuintile: quintile(cycleScore), regime, regimeHistory, fullRegime };
@@ -579,7 +608,7 @@ export default function MacroOverviewPage() {
                   );
                 })}
               </div>
-              <button className="mo-rhist-fullhist" onClick={() => openRegimeHistory(null)}>SEE FULL HISTORY (1996 – TODAY) ›</button>
+              <button className="mo-rhist-fullhist" onClick={() => openRegimeHistory(null)}>SEE FULL HISTORY ({fullRegime[0]?.date?.slice(0,4) || ''} – TODAY) ›</button>
             </div>
             {openWeek != null && (
               <div className="mo-rhist-panel">
@@ -1086,7 +1115,7 @@ function RegimeHistoryModalContent({ fullRegime, filterState }) {
     <>
       <div className="mo-modal-eyebrow">Regime · backtested history</div>
       <div className="mo-modal-h">
-        <h3>Regime{filterState ? ` = "${filterState}"` : ''} · 1996 – today</h3>
+        <h3>Regime{filterState ? ` = "${filterState}"` : ''} · {fullRegime[0]?.date?.slice(0,4) || ''} – today</h3>
         <div className="mo-modal-right">
           <div className="mo-big-val">{filterState ? filtered.length : total}<span style={{fontStyle:'italic',fontSize:18,color:'var(--ink-3, var(--text-muted, #5e5e63))',marginLeft:2}}>weeks</span></div>
           <div className="mo-big-meta">{filterState ? 'MATCHING' : 'TOTAL'}</div>
