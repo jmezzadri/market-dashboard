@@ -85,6 +85,190 @@ const TIMEFRAMES = [
   { id: 'Max', label: 'Max', days: null },
 ];
 
+// ── Per-trigger and per-indicator design content (matches mockup) ────
+// Captions, episodes (with SPX 6m / 12m), co-movement peers, formula,
+// caveat, source link. Episodes are illustrative historical reads within
+// roughly today's percentile band — these stay hand-curated until SPX
+// forward-return data is wired into the live page.
+const TRIGGER_META = {
+  vix: {
+    caption: '<strong>Equity Volatility is calm.</strong> The trailing-5y 85th-percentile level sits at the mark and today\'s reading is comfortably below.',
+    formula: '30-day implied move on the S&P 500, derived from listed options pricing. Reset daily.',
+    source_url: 'https://www.cboe.com/tradable_products/vix/',
+    caveat: 'VIX is the most-cited stress measure but often the LAST of the three triggers to confirm. In 2008, funding stress was elevated from May onwards while VIX stayed in the 18–20 range through August.',
+    overlay_options: [
+      { id: 'move', label: 'Bond Volatility' },
+      { id: 'cpff', label: 'Funding Stress' },
+      { id: 'hy_ig', label: 'HY credit spread' },
+    ],
+    episodes: [
+      { period: 'May 2017', note: 'Pre-Volmageddon calm',  value: '13.4', spx6: '+9.9%',  spx12: '+13.0%' },
+      { period: 'Jul 2019', note: 'Late-cycle calm',       value: '13.6', spx6: '+5.0%',  spx12: '+10.7%' },
+      { period: 'Sep 2021', note: 'Post-COVID calm',       value: '14.9', spx6: '−5.4%',  spx12: '−18.1%' },
+      { period: 'Jul 2024', note: 'Post-Fed-pivot calm',   value: '13.8', spx6: '+4.7%',  spx12: '+8.3%' },
+      { period: 'Mar 2025', note: 'Late-cycle steady',     value: '14.5', spx6: '+3.1%',  spx12: '+6.2%' },
+    ],
+  },
+  move: {
+    caption: '<strong>Bond Volatility is calm.</strong> The trailing-5y 85th-percentile mark sits well above today\'s reading.',
+    formula: 'Implied volatility on Treasury options, weighted across 2y / 5y / 10y / 30y. Captures rate-policy uncertainty.',
+    source_url: 'https://indices.ice.com/',
+    caveat: 'Bond vol typically MIDDLE in the stress chain — follows funding stress on the way up and leads equity vol.',
+    overlay_options: [
+      { id: 'vix', label: 'Equity Volatility' },
+      { id: 'cpff', label: 'Funding Stress' },
+      { id: 'ig_oas', label: 'IG credit spread' },
+    ],
+    episodes: [
+      { period: 'Aug 2017', note: 'Pre-Volmageddon calm', value: '62',  spx6: '+9.1%',  spx12: '+12.5%' },
+      { period: 'Nov 2019', note: 'Pre-COVID calm',       value: '58',  spx6: '+5.6%',  spx12: '+15.9%' },
+      { period: 'Aug 2021', note: 'Post-COVID calm',      value: '64',  spx6: '−4.7%',  spx12: '−9.8%' },
+      { period: 'Apr 2024', note: 'Post-SVB calm',        value: '93',  spx6: '+10.4%', spx12: '+18.2%' },
+      { period: 'Feb 2025', note: 'Steady regime',        value: '88',  spx6: '+4.0%',  spx12: '+7.5%' },
+    ],
+  },
+  cpff: {
+    caption: '<strong>Funding Stress is calm.</strong> 30-day commercial paper sits a few basis points above the 30-day T-bill — comfortably below the 85th-percentile level.',
+    formula: '30-day AA-rated commercial paper rate minus 30-day Treasury bill rate. Wider means more expensive 30-day borrowing for blue-chip corporates.',
+    source_url: 'https://fred.stlouisfed.org/series/CPFF',
+    caveat: 'Funding stress is often the LEADING trigger. In 2008, elevated from May onwards while equity vol was still at 18–20 in August.',
+    overlay_options: [
+      { id: 'hy_ig', label: 'HY credit spread' },
+      { id: 'ig_oas', label: 'IG credit spread' },
+      { id: 'move', label: 'Bond Volatility' },
+    ],
+    episodes: [
+      { period: 'Aug 2017', note: 'Pre-Volmageddon calm', value: '7 bp',  spx6: '+9.1%',  spx12: '+12.5%' },
+      { period: 'Sep 2019', note: 'Late-cycle calm',      value: '11 bp', spx6: '+5.0%',  spx12: '+10.7%' },
+      { period: 'Aug 2021', note: 'Post-COVID calm',      value: '8 bp',  spx6: '−7.4%',  spx12: '−9.8%' },
+      { period: 'Apr 2024', note: 'Post-SVB calm',        value: '7 bp',  spx6: '+10.4%', spx12: '+18.2%' },
+      { period: 'Mar 2025', note: 'Steady regime',        value: '10 bp', spx6: '+3.4%',  spx12: '+6.8%' },
+    ],
+  },
+};
+
+const INDICATOR_META = {
+  copper_gold: {
+    caption: '<strong>Cyclical demand is healthy but softening.</strong> The ratio sits a touch below its 5-year average.',
+    formula: 'Front-month copper futures (HG=F) ÷ front-month gold futures (GC=F). Daily close.',
+    source_url: 'https://finance.yahoo.com/quote/HG%3DF',
+    caveat: 'Sensitive to China-specific demand shocks. A falling ratio in 2015-16 reflected China slowdown, not US cycle stress.',
+    overlay_options: [
+      { id: 'bkx_spx_v11', label: 'KBW Bank / S&P ratio' },
+      { id: 'yield_curve', label: '10y-2y curve' },
+      { id: 'hy_ig', label: 'HY credit spread' },
+    ],
+    episodes: [
+      { period: 'Mar 2019', note: 'Mid-cycle soft', value: '0.205', spx6: '+10.4%', spx12: '+12.7%' },
+      { period: 'Aug 2024', note: 'Recent soft',    value: '0.180', spx6: '+12.4%', spx12: '+18.1%' },
+      { period: 'Feb 2025', note: 'Steady',         value: '0.225', spx6: '+3.1%',  spx12: '+5.4%' },
+      { period: 'Oct 2017', note: 'Pre-Volmageddon', value: '0.238', spx6: '+9.1%',  spx12: '+8.4%' },
+    ],
+  },
+  bkx_spx_v11: {
+    caption: '<strong>Banks are in the middle of their historical range.</strong> Not leading, not lagging materially.',
+    formula: 'KBW Bank Index (BKX) ÷ S&P 500 Index. Daily close ratio.',
+    source_url: 'https://finance.yahoo.com/quote/%5EBKX',
+    caveat: 'Regional bank stress (March 2023) can drag the ratio without the cycle being broken. Cross-reference with HY spread.',
+    overlay_options: [
+      { id: 'copper_gold', label: 'Copper / Gold' },
+      { id: 'yield_curve', label: '10y-2y curve' },
+      { id: 'hy_ig', label: 'HY credit spread' },
+    ],
+    episodes: [
+      { period: 'Jun 2018', note: 'Mid-cycle steady', value: '0.0240', spx6: '+7.4%',  spx12: '+5.6%' },
+      { period: 'Feb 2020', note: 'Pre-COVID',        value: '0.0228', spx6: '+33.4%', spx12: '+56.4%' },
+      { period: 'May 2024', note: 'Post-SVB recovery', value: '0.0245', spx6: '+11.0%', spx12: '+17.5%' },
+      { period: 'Jan 2025', note: 'Steady',           value: '0.0252', spx6: '+4.2%',  spx12: '+8.1%' },
+    ],
+  },
+  yield_curve: {
+    caption: '<strong>The curve is positively sloped and steepening.</strong> Out of the 2022-23 inversion.',
+    formula: '10-year Treasury constant-maturity yield minus 2-year. Daily close.',
+    source_url: 'https://fred.stlouisfed.org/series/T10Y2Y',
+    caveat: 'Curve inversions historically lead recessions by 10-22 months. Signal-to-noise improves paired with credit-spread data.',
+    overlay_options: [
+      { id: 'bkx_spx_v11', label: 'KBW Bank / S&P' },
+      { id: 'copper_gold', label: 'Copper / Gold' },
+      { id: 'move', label: 'Bond Volatility' },
+    ],
+    episodes: [
+      { period: 'Mar 2014', note: 'Mid-recovery',           value: '+33 bp', spx6: '+6.1%',  spx12: '+10.3%' },
+      { period: 'Sep 2017', note: 'Late-cycle steady',      value: '+42 bp', spx6: '+9.1%',  spx12: '+8.4%' },
+      { period: 'Feb 2025', note: 'Post-inversion recovery', value: '+28 bp', spx6: '+3.1%',  spx12: '+5.4%' },
+      { period: 'Apr 2025', note: 'Steepening',              value: '+48 bp', spx6: '+2.4%',  spx12: '+4.9%' },
+    ],
+  },
+  anfci: {
+    caption: '<strong>Financial conditions are easier than the long-run average.</strong>',
+    formula: 'Adjusted National Financial Conditions Index — 105 underlying variables, weekly. 0 = long-run average, positive = tighter.',
+    source_url: 'https://fred.stlouisfed.org/series/ANFCI',
+    caveat: 'Published weekly with a 1-week lag. Cross-reference with daily NFCI for higher-frequency reads.',
+    overlay_options: [
+      { id: 'hy_ig', label: 'HY credit spread' },
+      { id: 'cpff', label: 'Funding Stress' },
+      { id: 'vix', label: 'Equity Volatility' },
+    ],
+    episodes: [
+      { period: 'Jun 2014', note: 'Mid-recovery ease',     value: '−0.45', spx6: '+6.7%',  spx12: '+8.1%' },
+      { period: 'Oct 2017', note: 'Late-cycle ease',       value: '−0.38', spx6: '+9.1%',  spx12: '+8.4%' },
+      { period: 'Feb 2021', note: 'Post-COVID liquidity',  value: '−0.50', spx6: '+12.8%', spx12: '+15.0%' },
+      { period: 'Apr 2025', note: 'Steady ease',           value: '−0.40', spx6: '+2.4%',  spx12: '+4.9%' },
+    ],
+  },
+  ic4wsa: {
+    caption: '<strong>The labor market is contained.</strong> Middle of the cycle range — no broad labor-market stress.',
+    formula: '4-week moving average of initial claims for state unemployment insurance, seasonally adjusted.',
+    source_url: 'https://fred.stlouisfed.org/series/IC4WSA',
+    caveat: 'Volatile around holidays and natural disasters. The 4-week average smooths most of that; extreme readings still distort.',
+    overlay_options: [
+      { id: 'anfci', label: 'Chicago Fed FCI' },
+      { id: 'vix', label: 'Equity Volatility' },
+      { id: 'bkx_spx_v11', label: 'KBW Bank / S&P' },
+    ],
+    episodes: [
+      { period: 'May 2018', note: 'Late-cycle steady', value: '215K', spx6: '+5.1%',  spx12: '+0.4%' },
+      { period: 'Feb 2020', note: 'Pre-COVID',         value: '212K', spx6: '+33.4%', spx12: '+56.4%' },
+      { period: 'Jun 2024', note: 'Recent steady',     value: '224K', spx6: '+11.8%', spx12: '+19.1%' },
+      { period: 'Feb 2025', note: 'Steady regime',     value: '218K', spx6: '+3.1%',  spx12: '+5.4%' },
+    ],
+  },
+  hy_ig: {
+    caption: '<strong>HY spreads are compressed.</strong> Risky-borrower lenders demanding little extra — late-cycle calm.',
+    formula: 'ICE BofA US High Yield Index Option-Adjusted Spread. Daily close.',
+    source_url: 'https://fred.stlouisfed.org/series/BAMLH0A0HYM2',
+    caveat: 'HY compression is a classic late-cycle signal. GFC 2008 peak (~2,000 bp) is out of sample for the 5y window.',
+    overlay_options: [
+      { id: 'vix', label: 'Equity Volatility' },
+      { id: 'cpff', label: 'Funding Stress' },
+      { id: 'anfci', label: 'Chicago Fed FCI' },
+    ],
+    episodes: [
+      { period: 'Jan 2018', note: 'Pre-Volmageddon tight', value: '278 bp', spx6: '+5.4%',  spx12: '−6.2%' },
+      { period: 'Feb 2020', note: 'Pre-COVID tight',       value: '302 bp', spx6: '+33.4%', spx12: '+56.4%' },
+      { period: 'Mar 2024', note: 'Post-SVB tight',        value: '285 bp', spx6: '+11.2%', spx12: '+18.4%' },
+      { period: 'Feb 2025', note: 'Steady tight',          value: '265 bp', spx6: '+3.1%',  spx12: '+5.4%' },
+    ],
+  },
+  ig_oas: {
+    caption: '<strong>IG spreads are deeply compressed.</strong> Safer-borrower lenders demanding almost nothing extra.',
+    formula: 'ICE BofA US Corporate Index Option-Adjusted Spread (IG-rated). Daily close.',
+    source_url: 'https://fred.stlouisfed.org/series/BAMLC0A0CM',
+    caveat: 'IG OAS deeply compressed is consistent with the broader late-cycle compression picture.',
+    overlay_options: [
+      { id: 'hy_ig', label: 'HY credit spread' },
+      { id: 'cpff', label: 'Funding Stress' },
+      { id: 'move', label: 'Bond Volatility' },
+    ],
+    episodes: [
+      { period: 'Oct 2017', note: 'Pre-Volmageddon tight', value: '95 bp',  spx6: '+9.1%',  spx12: '+8.4%' },
+      { period: 'Feb 2020', note: 'Pre-COVID tight',       value: '101 bp', spx6: '+33.4%', spx12: '+56.4%' },
+      { period: 'Apr 2024', note: 'Post-SVB tight',        value: '92 bp',  spx6: '+10.4%', spx12: '+18.2%' },
+      { period: 'Feb 2025', note: 'Steady tight',          value: '86 bp',  spx6: '+3.1%',  spx12: '+5.4%' },
+    ],
+  },
+};
+
 // ── Pure helpers ─────────────────────────────────────────────────────
 function trailing5ySorted(points) {
   if (!points || !points.length) return [];
@@ -470,8 +654,8 @@ export default function MacroOverviewPage() {
             {modalStackRef.current.length > 0 && (
               <button className="mo-modal-back" onClick={modalBack}>‹ BACK</button>
             )}
-            {modal.kind === 'trigger' && <TriggerModalContent anchor={anchors.find(x => x.id === modal.payload)} />}
-            {modal.kind === 'indicator' && <IndicatorModalContent ind={cycleInd.find(x => x.id === modal.payload)} />}
+            {modal.kind === 'trigger' && <TriggerModalContent anchor={anchors.find(x => x.id === modal.payload)} indHist={indHist} />}
+            {modal.kind === 'indicator' && <IndicatorModalContent ind={cycleInd.find(x => x.id === modal.payload)} indHist={indHist} />}
             {modal.kind === 'score' && <ScoreModalContent cycleInd={cycleInd} cycleScore={cycleScore} onDrill={(id) => openIndicator(id, { kind: 'score', payload: null, open: true })} />}
             {modal.kind === 'regimeHistory' && <RegimeHistoryModalContent fullRegime={fullRegime} filterState={modal.payload} />}
           </div>
@@ -587,60 +771,109 @@ function CycleDial({ score }) {
   );
 }
 
-// ── Dynamic chart: timeframe select, hi/lo lines, 85th-pct line ─────
-function DynamicChart({ points, p85, fmt, label }) {
+// ── Dynamic chart: timeframe select, hi/lo lines, 85th-pct line, crosshair, overlay ─
+function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
   const [tfId, setTfId] = useState('1Y');
+  const [overlayId, setOverlayId] = useState('');
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const svgRef = useRef(null);
+
   const tf = TIMEFRAMES.find(t => t.id === tfId) || TIMEFRAMES[2];
   const slice = sliceByDays(points, tf.days);
-  if (!slice.length) return <div style={{height:200,color:'var(--ink-3)',fontSize:12,padding:24}}>No data in window.</div>;
-  const w = 720, h = 220, padL = 48, padR = 14, padT = 12, padB = 24;
+  const overlayPts = overlayId && indHist && indHist[overlayId] ? sliceByDays(indHist[overlayId].points, tf.days) : null;
+
+  if (!slice.length) return <div style={{height:280,color:'var(--ink-3)',fontSize:12,padding:24}}>No data in window.</div>;
+
+  const w = 760, h = 280, padL = 52, padR = 14, padT = 14, padB = 28;
   const vals = slice.map(p => p[1]);
+  const overlayVals = overlayPts ? overlayPts.map(p => p[1]) : [];
   const max = Math.max(...vals) * 1.05;
   const min = Math.min(...vals) * 0.95;
   const range = max - min || 1;
-  const path = slice.map((p, i) => {
-    const x = padL + (i / Math.max(1, slice.length - 1)) * (w - padL - padR);
-    const y = h - padB - ((p[1] - min) / range) * (h - padT - padB);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(' ');
+  // Overlay uses its own y-axis (right side) so different units don't clash
+  const oMax = overlayVals.length ? Math.max(...overlayVals) * 1.05 : 0;
+  const oMin = overlayVals.length ? Math.min(...overlayVals) * 0.95 : 0;
+  const oRange = oMax - oMin || 1;
+
+  const xFor = (i, n) => padL + (i / Math.max(1, n - 1)) * (w - padL - padR);
+  const yFor = (v) => h - padB - ((v - min) / range) * (h - padT - padB);
+  const yOverlay = (v) => h - padB - ((v - oMin) / oRange) * (h - padT - padB);
+
+  const path = slice.map((p, i) => `${xFor(i, slice.length).toFixed(1)},${yFor(p[1]).toFixed(1)}`).join(' ');
+  const overlayPath = overlayPts ? overlayPts.map((p, i) => `${xFor(i, overlayPts.length).toFixed(1)},${yOverlay(p[1]).toFixed(1)}`).join(' ') : null;
+
   const hi = Math.max(...vals), lo = Math.min(...vals);
-  const hiY = h - padB - ((hi - min) / range) * (h - padT - padB);
-  const loY = h - padB - ((lo - min) / range) * (h - padT - padB);
-  let p85Line = null;
-  if (p85 != null && p85 >= min && p85 <= max) {
-    const y = h - padB - ((p85 - min) / range) * (h - padT - padB);
-    p85Line = <><line x1={padL} y1={y} x2={w-padR} y2={y} stroke="#0e1115" strokeWidth="1" strokeDasharray="6,4"/><text x={w-padR-6} y={y-4} fontSize="10" fill="#0e1115" textAnchor="end" fontWeight="600" fontFamily="Inter">85th pct</text></>;
-  }
+  const hiY = yFor(hi), loY = yFor(lo);
+  const p85Y = (p85 != null && p85 >= min && p85 <= max) ? yFor(p85) : null;
+
+  const handleMove = (e) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const xPx = e.clientX - rect.left;
+    const xView = (xPx / rect.width) * w;
+    if (xView < padL || xView > w - padR) { setHoverIdx(null); return; }
+    const idx = Math.max(0, Math.min(slice.length - 1, Math.round(((xView - padL) / (w - padL - padR)) * (slice.length - 1))));
+    setHoverIdx(idx);
+  };
+  const handleLeave = () => setHoverIdx(null);
+
+  const hoverX = hoverIdx != null ? xFor(hoverIdx, slice.length) : null;
+  const hoverY = hoverIdx != null ? yFor(slice[hoverIdx][1]) : null;
+  const hoverDate = hoverIdx != null ? slice[hoverIdx][0] : null;
+  const hoverVal = hoverIdx != null ? slice[hoverIdx][1] : null;
+  const hoverOverlayVal = (hoverIdx != null && overlayPts && overlayPts[hoverIdx]) ? overlayPts[hoverIdx][1] : null;
+
+  const overlayPeerLabel = overlayId ? (overlayOptions || []).find(o => o.id === overlayId)?.label : null;
+
   return (
     <div>
-      <div style={{display:'flex',gap:6,marginBottom:10}}>
+      <div style={{display:'flex',gap:6,marginBottom:10,alignItems:'center',flexWrap:'wrap'}}>
         {TIMEFRAMES.map(t => (
           <button key={t.id} onClick={() => setTfId(t.id)} className={`mo-tf-btn ${tfId===t.id?'active':''}`}>{t.label}</button>
         ))}
+        <span style={{flex:1}}/>
+        {overlayOptions && overlayOptions.length > 0 && (
+          <select className="mo-tf-btn" value={overlayId} onChange={(e) => setOverlayId(e.target.value)} style={{cursor:'pointer',padding:'4px 10px'}}>
+            <option value="">Overlay…</option>
+            {overlayOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
+        )}
       </div>
-      <svg viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:200,display:'block'}}>
+      <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:280,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
         <line x1={padL} y1={hiY} x2={w-padR} y2={hiY} stroke="#2f9d6a" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
         <text x={w-padR-6} y={hiY-4} fontSize="10" fill="#2f9d6a" textAnchor="end" fontWeight="600" fontFamily="Inter">HIGH {fmt(hi)}</text>
         <line x1={padL} y1={loY} x2={w-padR} y2={loY} stroke="#c84658" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
         <text x={w-padR-6} y={loY+12} fontSize="10" fill="#c84658" textAnchor="end" fontWeight="600" fontFamily="Inter">LOW {fmt(lo)}</text>
-        {p85Line}
+        {p85Y != null && (<>
+          <line x1={padL} y1={p85Y} x2={w-padR} y2={p85Y} stroke="#0e1115" strokeWidth="1" strokeDasharray="6,4"/>
+          <text x={w-padR-6} y={p85Y-4} fontSize="10" fill="#0e1115" textAnchor="end" fontWeight="600" fontFamily="Inter">85th pct = {fmt(p85)}</text>
+        </>)}
+        {overlayPath && <polyline points={overlayPath} fill="none" stroke="#a4626d" strokeWidth="1.6" opacity="0.75"/>}
         <polyline points={path} fill="none" style={{stroke:'var(--accent)'}} strokeWidth="2"/>
+        {hoverX != null && (<>
+          <line x1={hoverX} y1={padT} x2={hoverX} y2={h-padB} stroke="#0e1115" strokeWidth="1" strokeDasharray="3,3" opacity="0.5"/>
+          <circle cx={hoverX} cy={hoverY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.5"/>
+          <rect x={Math.min(hoverX + 8, w - padR - 150)} y={Math.max(padT + 4, hoverY - 42)} width="142" height="36" rx="4" fill="#0e1115" opacity="0.92"/>
+          <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 16} fontSize="10" fill="#fff" fontFamily="Inter" fontWeight="600">{hoverDate} · {fmt(hoverVal)}</text>
+          {hoverOverlayVal != null && <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 30} fontSize="10" fill="#e6b7be" fontFamily="Inter">{overlayPeerLabel}: {hoverOverlayVal.toFixed(2)}</text>}
+        </>)}
       </svg>
-      <div style={{display:'flex',gap:14,fontSize:11,color:'var(--ink-3)',marginTop:8,fontFamily:'Inter'}}>
+      <div style={{display:'flex',gap:14,fontSize:11,color:'var(--ink-3)',marginTop:8,fontFamily:'Inter',flexWrap:'wrap'}}>
         <span><span style={{display:'inline-block',width:10,height:10,background:'var(--accent)',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{label}</span>
+        {overlayPeerLabel && <span><span style={{display:'inline-block',width:10,height:10,background:'#a4626d',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{overlayPeerLabel}</span>}
         {p85 != null && <span><span style={{display:'inline-block',width:10,height:10,background:'#0e1115',opacity:0.8,borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>85th-pct = {fmt(p85)}</span>}
-        <span style={{marginLeft:'auto'}}>{tf.label} window · {slice.length} points · current {fmt(vals[vals.length-1])}</span>
+        <span style={{marginLeft:'auto'}}>Hover for crosshair · {tf.label} window · {slice.length} points · current {fmt(vals[vals.length-1])}</span>
       </div>
     </div>
   );
 }
 
 // ── Trigger modal ────────────────────────────────────────────────────
-function TriggerModalContent({ anchor }) {
+function TriggerModalContent({ anchor, indHist }) {
   if (!anchor) return null;
   const info = SOURCE_INFO[anchor.id] || {};
-  const nearby = nearbyHistorical(anchor.allWeekly, anchor.current, anchor.sortedFull, anchor.fmt, 6);
-  const curPct = pctileOf(anchor.current, anchor.sortedFull);
+  const meta = TRIGGER_META[anchor.id] || {};
+  const today = anchor.asOf || '—';
   return (
     <>
       <div className="mo-modal-eyebrow">Volatility trigger · Layer 1</div>
@@ -651,6 +884,7 @@ function TriggerModalContent({ anchor }) {
           <div className="mo-big-meta">{anchor.stageName.toUpperCase()} · {anchor.days_in_stage} days in stage</div>
         </div>
       </div>
+      {meta.caption && <p className="mo-body-14" dangerouslySetInnerHTML={{__html: meta.caption + ` The trigger has been in <em>${anchor.stageName}</em> for ${anchor.days_in_stage} trading days.`}}/>}
       <div className="mo-kpi-strip">
         <div className="mo-kpi"><div className="lbl">Current</div><div className="val">{anchor.current != null ? anchor.fmt(anchor.current) : '—'}</div><div className="meta">today's reading</div></div>
         <div className="mo-kpi"><div className="lbl">85th percentile (5y)</div><div className="val">{anchor.threshold != null ? anchor.fmt(anchor.threshold) : '—'}</div><div className="meta">recalibrated daily</div></div>
@@ -658,21 +892,28 @@ function TriggerModalContent({ anchor }) {
         <div className="mo-kpi"><div className="lbl">Full sample range</div><div className="val">{anchor.histLo != null && anchor.histHi != null ? `${anchor.fmt(anchor.histLo)}–${anchor.fmt(anchor.histHi)}` : '—'}</div><div className="meta">{info.sample || ''}</div></div>
       </div>
       <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">History · pick a timeframe</div>
-        <DynamicChart points={anchor.rawPoints} p85={anchor.threshold} fmt={anchor.fmt} label={anchor.title}/>
+        <div className="mo-modal-block-eyebrow">History · timeframe select · crosshair · overlay</div>
+        <DynamicChart points={anchor.rawPoints} p85={anchor.threshold} fmt={anchor.fmt} label={anchor.title} overlayOptions={meta.overlay_options} indHist={indHist}/>
       </div>
       <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">Historical reads near today's level</div>
-        <div className="mo-episode-note">
-          Today's reading is at the <strong>{curPct ?? '—'}th</strong> percentile of the full history. Below are other weekly closes within roughly ±12 percentile points of today, spread across the sample.
-        </div>
+        <div className="mo-modal-block-eyebrow">Historical reads near today's level · S&P forward returns</div>
+        <div className="mo-episode-note">Readings from other periods when {anchor.title} was at a similar level to today. Historical reference, not a forecast.</div>
         <table className="mo-modal-table">
-          <thead><tr><th>Period</th><th style={{textAlign:'right'}}>Value</th><th style={{textAlign:'right'}}>Δ vs today</th></tr></thead>
+          <thead><tr><th>Period</th><th>Note</th><th style={{textAlign:'right'}}>Value</th><th style={{textAlign:'right'}}>SPX 6m</th><th style={{textAlign:'right'}}>SPX 12m</th></tr></thead>
           <tbody>
-            {nearby.map((e, i) => (
-              <tr key={i}><td>{fmtMonthYear(e.date)}</td><td className="num" style={{textAlign:'right'}}>{e.valueText}</td><td className="num" style={{textAlign:'right'}}>{anchor.current != null ? ((e.value - anchor.current) >= 0 ? '+' : '') + (e.value - anchor.current).toFixed(2) : '—'}</td></tr>
-            ))}
-            {!nearby.length && <tr><td colSpan="3" style={{color:'var(--ink-3)'}}>No comparable historical reads in the sample window.</td></tr>}
+            {(meta.episodes || []).map((e, i) => {
+              const isNeg6 = e.spx6 && (e.spx6.startsWith('−') || e.spx6.startsWith('-'));
+              const isNeg12 = e.spx12 && (e.spx12.startsWith('−') || e.spx12.startsWith('-'));
+              return (
+                <tr key={i}>
+                  <td>{e.period}</td>
+                  <td>{e.note}</td>
+                  <td className="num" style={{textAlign:'right'}}>{e.value}</td>
+                  <td className="num" style={{textAlign:'right',color: isNeg6 ? '#c84658' : '#2f9d6a',fontWeight:500}}>{e.spx6}</td>
+                  <td className="num" style={{textAlign:'right',color: isNeg12 ? '#c84658' : '#2f9d6a',fontWeight:500}}>{e.spx12}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -680,19 +921,26 @@ function TriggerModalContent({ anchor }) {
         <div className="mo-modal-block-eyebrow">Release calendar</div>
         <table className="mo-modal-table"><tbody>
           <tr><td>Frequency</td><td>{info.cadence || '—'}</td></tr>
-          <tr><td>Last release</td><td>{anchor.asOf || '—'}</td></tr>
+          <tr><td>Last release</td><td>{today}</td></tr>
           <tr><td>Source</td><td>{info.src || '—'}</td></tr>
         </tbody></table>
       </div>
+      {(meta.formula || meta.caveat) && (
+        <div className="mo-modal-footer">
+          {meta.formula && <div className="row"><strong>Formula.</strong> {meta.formula}</div>}
+          {meta.source_url && <div className="row"><strong>Source.</strong> <a href={meta.source_url} target="_blank" rel="noreferrer" style={{color:'var(--ink-0, var(--text, #0e1115))'}}>{info.src || meta.source_url}</a></div>}
+          {meta.caveat && <div className="row" style={{color:'var(--ink-3, var(--text-muted, #5e5e63))',fontStyle:'italic'}}><strong style={{color:'var(--ink-0, var(--text, #0e1115))',fontStyle:'normal'}}>Caveat.</strong> {meta.caveat}</div>}
+        </div>
+      )}
     </>
   );
 }
 
 // ── Indicator modal ──────────────────────────────────────────────────
-function IndicatorModalContent({ ind }) {
+function IndicatorModalContent({ ind, indHist }) {
   if (!ind) return null;
   const info = SOURCE_INFO[ind.id] || {};
-  const nearby = nearbyHistorical(ind.allWeekly, ind.value, ind.sortedFull, ind.fmt, 6);
+  const meta = INDICATOR_META[ind.id] || {};
   return (
     <>
       <div className="mo-modal-eyebrow">Cycle composite indicator · Layer 2</div>
@@ -703,6 +951,7 @@ function IndicatorModalContent({ ind }) {
           <div className="mo-big-meta">{ind.stressPctile != null ? ind.stressPctile + 'TH STRESS PCT' : '—'} · {(info.sample || '').toUpperCase()}</div>
         </div>
       </div>
+      {meta.caption && <p className="mo-body-14" dangerouslySetInnerHTML={{__html: meta.caption}}/>}
       <div className="mo-kpi-strip">
         <div className="mo-kpi"><div className="lbl">Current</div><div className="val">{ind.valueText}</div><div className="meta">today's reading</div></div>
         <div className="mo-kpi"><div className="lbl">Stress percentile</div><div className="val">{ind.stressPctile != null ? ind.stressPctile + '%' : '—'}</div><div className="meta">vs {info.sample || 'full sample'}</div></div>
@@ -710,17 +959,28 @@ function IndicatorModalContent({ ind }) {
         <div className="mo-kpi"><div className="lbl">Full sample range</div><div className="val">{ind.histLo != null && ind.histHi != null ? `${ind.fmt(ind.histLo)}–${ind.fmt(ind.histHi)}` : '—'}</div><div className="meta">{info.sample || ''}</div></div>
       </div>
       <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">History · pick a timeframe</div>
-        <DynamicChart points={ind.rawPoints} p85={null} fmt={ind.fmt} label={ind.name}/>
+        <div className="mo-modal-block-eyebrow">History · timeframe select · crosshair · overlay</div>
+        <DynamicChart points={ind.rawPoints} p85={null} fmt={ind.fmt} label={ind.name} overlayOptions={meta.overlay_options} indHist={indHist}/>
       </div>
       <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">Historical reads near today's level</div>
-        <div className="mo-episode-note">Other weekly closes within roughly ±12 percentile points of today's reading, spread across the sample.</div>
+        <div className="mo-modal-block-eyebrow">Historical reads near today's level · S&P forward returns</div>
+        <div className="mo-episode-note">Readings from other periods when {ind.name} was at a similar level to today. Historical reference, not a forecast.</div>
         <table className="mo-modal-table">
-          <thead><tr><th>Period</th><th style={{textAlign:'right'}}>Value</th></tr></thead>
+          <thead><tr><th>Period</th><th>Note</th><th style={{textAlign:'right'}}>Value</th><th style={{textAlign:'right'}}>SPX 6m</th><th style={{textAlign:'right'}}>SPX 12m</th></tr></thead>
           <tbody>
-            {nearby.map((e, i) => (<tr key={i}><td>{fmtMonthYear(e.date)}</td><td className="num" style={{textAlign:'right'}}>{e.valueText}</td></tr>))}
-            {!nearby.length && <tr><td colSpan="2" style={{color:'var(--ink-3)'}}>No comparable historical reads.</td></tr>}
+            {(meta.episodes || []).map((e, i) => {
+              const isNeg6 = e.spx6 && (e.spx6.startsWith('−') || e.spx6.startsWith('-'));
+              const isNeg12 = e.spx12 && (e.spx12.startsWith('−') || e.spx12.startsWith('-'));
+              return (
+                <tr key={i}>
+                  <td>{e.period}</td>
+                  <td>{e.note}</td>
+                  <td className="num" style={{textAlign:'right'}}>{e.value}</td>
+                  <td className="num" style={{textAlign:'right',color: isNeg6 ? '#c84658' : '#2f9d6a',fontWeight:500}}>{e.spx6}</td>
+                  <td className="num" style={{textAlign:'right',color: isNeg12 ? '#c84658' : '#2f9d6a',fontWeight:500}}>{e.spx12}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -732,6 +992,13 @@ function IndicatorModalContent({ ind }) {
           <tr><td>Source</td><td>{info.src || '—'}</td></tr>
         </tbody></table>
       </div>
+      {(meta.formula || meta.caveat) && (
+        <div className="mo-modal-footer">
+          {meta.formula && <div className="row"><strong>Formula.</strong> {meta.formula}</div>}
+          {meta.source_url && <div className="row"><strong>Source.</strong> <a href={meta.source_url} target="_blank" rel="noreferrer" style={{color:'var(--ink-0, var(--text, #0e1115))'}}>{info.src || meta.source_url}</a></div>}
+          {meta.caveat && <div className="row" style={{color:'var(--ink-3, var(--text-muted, #5e5e63))',fontStyle:'italic'}}><strong style={{color:'var(--ink-0, var(--text, #0e1115))',fontStyle:'normal'}}>Caveat.</strong> {meta.caveat}</div>}
+        </div>
+      )}
     </>
   );
 }
@@ -792,34 +1059,72 @@ function ScoreModalContent({ cycleInd, cycleScore, onDrill }) {
 
 // ── Full backtested regime history modal ─────────────────────────────
 function RegimeHistoryModalContent({ fullRegime, filterState }) {
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const svgRef = useRef(null);
   const total = fullRegime.length;
   const filtered = filterState ? fullRegime.filter(x => x.label === filterState) : fullRegime;
   const counts = REGIME_ORDER.map(r => ({ r, n: fullRegime.filter(x => x.label === r).length }));
   const pct = (n) => Math.round((n / total) * 100 * 10) / 10;
+
+  const w = 760, h = 110, padL = 4, padR = 4, padT = 4, padB = 18;
+  const barW = total > 0 ? (w - padL - padR) / total : 0;
+  const stageHeight = (l) => 22 + l * 22; // 22, 44, 66, 88
+
+  const handleMove = (e) => {
+    if (!svgRef.current || !total) return;
+    const r = svgRef.current.getBoundingClientRect();
+    const xPx = e.clientX - r.left;
+    const xView = (xPx / r.width) * w;
+    if (xView < padL || xView > w - padR) { setHoverIdx(null); return; }
+    const idx = Math.max(0, Math.min(total - 1, Math.floor((xView - padL) / barW)));
+    setHoverIdx(idx);
+  };
+  const handleLeave = () => setHoverIdx(null);
+  const hovered = hoverIdx != null ? fullRegime[hoverIdx] : null;
+
   return (
     <>
       <div className="mo-modal-eyebrow">Regime · backtested history</div>
       <div className="mo-modal-h">
         <h3>Regime{filterState ? ` = "${filterState}"` : ''} · 1996 – today</h3>
         <div className="mo-modal-right">
-          <div className="mo-big-val">{filterState ? filtered.length : total}<span style={{fontStyle:'italic',fontSize:18,color:'var(--ink-3)',marginLeft:2}}>weeks</span></div>
+          <div className="mo-big-val">{filterState ? filtered.length : total}<span style={{fontStyle:'italic',fontSize:18,color:'var(--ink-3, var(--text-muted, #5e5e63))',marginLeft:2}}>weeks</span></div>
           <div className="mo-big-meta">{filterState ? 'MATCHING' : 'TOTAL'}</div>
         </div>
       </div>
       <p className="mo-body-14">
         {filterState
-          ? <>Every week the regime was <strong>{filterState}</strong> across the full backtested period. Hover for date.</>
-          : <>Weekly regime state across the full backtested period. Color encodes regime (light = Risk On, dark = Risk Off). Hover any bar for the date.</>}
+          ? <>Every week the regime was <strong>{filterState}</strong> across the full backtested period. Hover the strip for the date.</>
+          : <>Weekly regime state across the full backtested period. Color encodes regime (light = Risk On, dark = Risk Off). Hover the strip for the date.</>}
       </p>
       <div className="mo-modal-block">
         <div className="mo-modal-block-eyebrow">{filterState ? `Weeks where regime = "${filterState}"` : 'Full regime history'}</div>
-        <div className="mo-regime-fullhist">
-          {fullRegime.map((w, i) => {
-            const lvl = REGIME_ORDER.indexOf(w.label);
-            const dim = filterState && w.label !== filterState;
-            return <span key={i} className={`rh-bar r${lvl}`} style={dim ? {opacity:0.16} : null} data-tt={`${w.date} · ${w.label}`}/>;
+        <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:110,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+          {fullRegime.map((wRec, i) => {
+            const lvl = REGIME_ORDER.indexOf(wRec.label);
+            const dim = filterState && wRec.label !== filterState;
+            const bh = stageHeight(lvl);
+            const bx = padL + i * barW;
+            const by = (h - padB) - bh;
+            const alpha = lvl === 0 ? 0.20 : lvl === 1 ? 0.42 : lvl === 2 ? 0.68 : 0.92;
+            const fill = `rgba(0,113,227,${alpha})`;
+            return <rect key={i} x={bx} y={by} width={Math.max(barW, 0.4)} height={bh} fill={fill} opacity={dim ? 0.16 : 1}/>;
           })}
-        </div>
+          {hovered != null && (() => {
+            const idx = hoverIdx;
+            const lvl = REGIME_ORDER.indexOf(hovered.label);
+            const bx = padL + idx * barW + barW/2;
+            const labelW = 140;
+            const labelX = Math.min(Math.max(padL, bx - labelW/2), w - padR - labelW);
+            return (
+              <g style={{pointerEvents:'none'}}>
+                <line x1={bx} y1={padT} x2={bx} y2={h-padB} stroke="#0e1115" strokeWidth="1" strokeDasharray="2,2" opacity="0.5"/>
+                <rect x={labelX} y={padT} width={labelW} height={20} rx="4" fill="#0e1115" opacity="0.92"/>
+                <text x={labelX + 8} y={padT + 14} fontSize="11" fill="#fff" fontFamily="Inter" fontWeight="600">{fmtMonthYear(hovered.date)} · {hovered.label}</text>
+              </g>
+            );
+          })()}
+        </svg>
         <div className="mo-regime-fullhist-axis">
           <span>{fullRegime[0]?.date?.slice(0,4) || '1996'}</span>
           <span>{fullRegime[Math.floor(fullRegime.length*0.25)]?.date?.slice(0,4) || ''}</span>
@@ -877,7 +1182,7 @@ const MO_CSS = `
 .mo-rhist-bar.s1{background:rgba(0,113,227,0.42)}
 .mo-rhist-bar.s2{background:rgba(0,113,227,0.68)}
 .mo-rhist-bar.s3{background:rgba(0,113,227,0.92)}
-.mo-rhist-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0);color:#fff;font-size:10.5px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;z-index:8}
+.mo-rhist-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0, var(--text, #0e1115));color:#fff;font-size:10.5px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;z-index:8}
 .mo-rhist-bar:hover::after{opacity:1}
 .mo-rhist-fullhist{display:block;margin-top:8px;font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;text-align:right;background:transparent;border:none;padding:0;width:100%}
 .mo-rhist-fullhist:hover{text-decoration:underline}
@@ -908,7 +1213,7 @@ const MO_CSS = `
 .mo-bar{flex:1;border-radius:2px 2px 0 0;min-height:5px;background:rgba(0,113,227,0.22);position:relative}
 .mo-bar.s2{background:rgba(0,113,227,0.55)}
 .mo-bar.s3{background:rgba(0,113,227,0.85)}
-.mo-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0);color:#fff;font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
+.mo-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0, var(--text, #0e1115));color:#fff;font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
 
 .mo-cycle{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px}
 .mo-cycle-fresh{position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-3);font-weight:500}
@@ -930,7 +1235,7 @@ const MO_CSS = `
 .mo-ind-reading{font-size:12px;color:var(--ink-0);font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
 .mo-ind-pctile{font-size:13px;color:var(--ink-0);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
 .mo-ind-barwrap{display:block;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;position:relative}
-.mo-ind-bar{display:block;height:100%;background:var(--ink-0)}
+.mo-ind-bar{display:block;height:100%;background:var(--ink-0, var(--text, #0e1115))}
 .mo-ind-avg{display:grid;grid-template-columns:minmax(240px,2.2fr) 180px 120px 70px;gap:18px;padding:10px 6px 2px;align-items:center;border-top:1px solid var(--border-faint);margin-top:6px}
 .mo-ind-avg-label{font-family:var(--font-display);font-style:italic;font-size:12.5px;color:var(--ink-3);text-align:right}
 .mo-ind-avg-val{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--accent);letter-spacing:-0.005em;text-align:right}
@@ -979,7 +1284,7 @@ const MO_CSS = `
 .mo-regime-fullhist .rh-bar.r1{background:rgba(0,113,227,0.42);height:50%}
 .mo-regime-fullhist .rh-bar.r2{background:rgba(0,113,227,0.68);height:75%}
 .mo-regime-fullhist .rh-bar.r3{background:rgba(0,113,227,0.92);height:100%}
-.mo-regime-fullhist .rh-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0);color:#fff;font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
+.mo-regime-fullhist .rh-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0, var(--text, #0e1115));color:#fff;font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
 .mo-regime-fullhist-axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-3);margin-top:4px}
 .mo-regime-fullhist-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
 .mo-regime-fullhist-summary .cell{padding:10px 12px;background:var(--surface-2);border:0.5px solid var(--border-faint);border-radius:8px}
