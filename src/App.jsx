@@ -1815,6 +1815,38 @@ return(
 // Sprint 2 (placeholder): Funding (+ leveraged_loan addition to Credit).
 // Sprint 4 (placeholder): Liquidity & Policy, Positioning & Breadth.
 // Source: methodology-v11.md and data_triage.html row 141-158.
+//
+// Signal Intelligence layer assignment (2026-05-12). Maps indicator IDs to the
+// layer they feed in the current Macro Overview engine. Authoritative source:
+// src/v2/pages/MacroOverviewPage.jsx (VOL_ANCHORS + CYCLE_INDICATORS). Every
+// indicator not listed here is "Reference only" — visible for context but not
+// part of the live regime read.
+const SIGNAL_LAYER_BY_ID = {
+  // Layer 1 — three volatility triggers
+  vix:          "Vol trigger",
+  move:         "Vol trigger",
+  cpff:         "Vol trigger",
+  // Layer 2 — seven cycle composite indicators
+  copper_gold:  "Cycle composite",
+  bkx_spx_v11:  "Cycle composite",
+  yield_curve:  "Cycle composite",
+  anfci:        "Cycle composite",
+  ic4wsa:       "Cycle composite",
+  hy_ig:        "Cycle composite",
+  ig_oas:       "Cycle composite",
+};
+const LAYER_ORDER = { "Vol trigger": 0, "Cycle composite": 1, "Reference": 2 };
+const LAYER_COLOR = {
+  "Vol trigger":     "var(--accent)",
+  "Cycle composite": "var(--green-text, var(--accent))",
+  "Reference":       "var(--text-muted)",
+};
+const LAYER_TOOLTIP = {
+  "Vol trigger":     "One of the three volatility triggers in Layer 1 of Signal Intelligence (Equity Vol / Bond Vol / Funding Stress).",
+  "Cycle composite": "One of the seven cycle indicators averaged into the cycle composite (Layer 2 of Signal Intelligence).",
+  "Reference":       "Tracked for context. Not part of the live regime read.",
+};
+
 const COMPOSITE_MAP = {
   // ── Valuation (Sprint 1 LIVE) ──────────────────────────────────────────
   cape:        { composite:"Valuation",            sprint:1 },
@@ -2005,9 +2037,7 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
   // Build row data — one row per indicator in IND.
   const rows = useMemo(() => Object.keys(IND).map(id => {
     const d = IND[id];
-    const compMap = COMPOSITE_MAP[id];
-    const composite = compMap ? compMap.composite : "";
-    const weight = compMap ? compMap.weight : null;
+    const layer = SIGNAL_LAYER_BY_ID[id] || "Reference";
     const type = TYPE_MAP[id] || "";
     const cur = d[6];
     const v3m = _valueAtDaysAgo(id, 90);
@@ -2020,8 +2050,7 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
       cat: d[2],
       tier: d[3],
       freq: IND_FREQ[id] || "",
-      composite,
-      weight,
+      layer,
       type,
       asOf: AS_OF[id] || "—",
       asOfIso: AS_OF_ISO[id],
@@ -2029,20 +2058,17 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
     };
   }), [cycleV2]);
 
-  const weightedCount = rows.filter(r => r.weight != null).length;
-  const refCount = rows.length - weightedCount;
+  const volCount   = rows.filter(r => r.layer === "Vol trigger").length;
+  const cycleCount = rows.filter(r => r.layer === "Cycle composite").length;
+  const refCount   = rows.filter(r => r.layer === "Reference").length;
 
   // Pre-filter rows by the two chip rows (compose), then pass to MTTable.
   // MTTable still handles its own search + sort + column filter + visibility.
   const filteredRows = useMemo(() => rows.filter(r => {
     if (filterComposite !== "all") {
-      if (filterComposite === "valuation" && r.composite !== "Valuation")             return false;
-      if (filterComposite === "credit"    && r.composite !== "Credit")                return false;
-      if (filterComposite === "funding"   && r.composite !== "Funding")               return false;
-      if (filterComposite === "growth"    && r.composite !== "Growth")                return false;
-      if (filterComposite === "liqpol"    && r.composite !== "Liquidity & Policy")    return false;
-      if (filterComposite === "posbreath" && r.composite !== "Positioning & Breadth") return false;
-      if (filterComposite === "reference" && r.composite)                              return false;
+      if (filterComposite === "vol"       && r.layer !== "Vol trigger")     return false;
+      if (filterComposite === "cycle"     && r.layer !== "Cycle composite") return false;
+      if (filterComposite === "reference" && r.layer !== "Reference")       return false;
     }
     if (filterCategory !== "all" && r.cat !== filterCategory) return false;
     return true;
@@ -2098,18 +2124,17 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
       ),
     },
     {
-      key: "composite", label: "Mechanism", categorical: true, defaultWidth: 170,
-      tooltip: "The cycle mechanism this indicator feeds. Watch List = displayed for context but not in any tile rule.",
-      sortValue: (r) => COMP_ORDER[r.composite] ?? 3,
+      key: "layer", label: "Layer", categorical: true, defaultWidth: 170,
+      tooltip: "Which layer of Signal Intelligence this indicator feeds. Vol trigger = Layer 1 (Equity Vol / Bond Vol / Funding Stress). Cycle composite = one of seven indicators averaged into Layer 2. Reference = tracked for context, not part of the live regime read.",
+      sortValue: (r) => LAYER_ORDER[r.layer] ?? 3,
       render: (r) => {
-        const compTip = COMPOSITE_TOOLTIPS[r.composite];
-        if (!r.composite) return <span style={{fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)"}}>N/A</span>;
+        const col = LAYER_COLOR[r.layer] || "var(--text-muted)";
         return (
-          <Tip def={compTip || ""}>
+          <Tip def={LAYER_TOOLTIP[r.layer] || ""}>
             <span style={{
-              fontSize:11, fontWeight:600, color:"var(--accent)",
+              fontSize:11, fontWeight:600, color: col,
               fontFamily:"var(--font-mono)", letterSpacing:"0.02em", whiteSpace:"nowrap",
-            }}>{r.composite}</span>
+            }}>{r.layer}</span>
           </Tip>
         );
       },
@@ -2130,52 +2155,6 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
           }}>{r.type}</span>
         </Tip>
       ) : <span style={{color:"var(--text-dim)"}}>—</span>,
-    },
-    {
-      key: "signal_v2", label: "Predictive @ 6m", defaultWidth: 160,
-      tooltip: "momentum: high reading predicts LOW forward return at 6m (de-risk). mean_reversion: high reading predicts HIGH forward return (opportunity / capitulation buy). flat: |IC| < 0.10, no signal.",
-      sortValue: (r) => {
-        const v2 = cycleV2ById[r.id];
-        return v2 && v2.ic_profile && v2.ic_profile["6m"];
-      },
-      render: (r) => {
-        const v2 = cycleV2ById[r.id];
-        if (!v2 || !v2.signal_type_at_horizon) return <span style={{color:"var(--text-dim)"}}>—</span>;
-        const st = v2.signal_type_at_horizon["6m"];
-        const ic = v2.ic_profile && v2.ic_profile["6m"];
-        const color = st === "momentum" ? "var(--accent)" :
-                      st === "mean_reversion" ? "var(--green)" :
-                      "var(--text-dim)";
-        const tip = st === "momentum"
-          ? "Momentum at 6m. High reading predicts LOW forward return — de-risk."
-          : st === "mean_reversion"
-          ? "Mean-reversion at 6m. High reading predicts HIGH forward return — opportunity / capitulation buy."
-          : "|IC| < 0.10 at 6m. No statistically meaningful signal.";
-        return (
-          <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6}}>
-            <Tip def={tip}>
-              <span style={{
-                display:"inline-block",
-                fontSize:10, fontWeight:700, color,
-                border:`1px solid ${color}55`,
-                background: color + "15",
-                borderRadius:3, padding:"2px 7px", fontFamily:"var(--font-mono)",
-                letterSpacing:"0.03em", textTransform:"uppercase",
-              }}>{st === "mean_reversion" ? "mean-rev" : st}</span>
-            </Tip>
-            {v2.horizon_sensitive && (
-              <Tip def="Horizon-sensitive: signal_type flips across horizons.">
-                <span style={{fontSize:10, color:"var(--warn, var(--accent))", fontWeight:700}}>↔</span>
-              </Tip>
-            )}
-            {ic != null && (
-              <span style={{fontSize:10, color:"var(--text-dim)", fontFamily:"var(--font-mono)"}}>
-                IC {ic >= 0 ? "+" : ""}{ic.toFixed(2)}
-              </span>
-            )}
-          </div>
-        );
-      },
     },
     {
       key: "asof", label: "Last refresh", defaultWidth: 160,
@@ -2227,7 +2206,7 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
       {/* ── INTRO ROW ── */}
       <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",gap:16,marginBottom:14,flexWrap:"wrap"}}>
         <div style={{fontSize:12, color:"var(--text-muted)", fontFamily:"var(--font-mono)", letterSpacing:"0.04em"}}>
-          {rows.length} indicators total · {weightedCount} weighted into composites · {refCount} reference-only{filteredRows.length !== rows.length ? <span style={{color:"var(--accent)"}}> · {filteredRows.length} matching filters</span> : null}
+          {rows.length} indicators total · {volCount} vol triggers · {cycleCount} cycle composite · {refCount} reference{filteredRows.length !== rows.length ? <span style={{color:"var(--accent)"}}> · {filteredRows.length} matching filters</span> : null}
         </div>
         <button
           type="button"
@@ -2253,16 +2232,12 @@ function AllIndicatorsTable({ deeplinkId, onDeeplinkConsumed }={}){
         background:"var(--surface-2)", border:"1px solid var(--border-faint)", borderRadius:6,
       }}>
         <div style={{display:"flex", gap:4, flexWrap:"wrap", alignItems:"center"}}>
-          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600,minWidth:90}}>COMPOSITE</span>
+          <span style={{fontSize:10,fontFamily:"var(--font-mono)",color:"var(--text-dim)",letterSpacing:"0.08em",padding:"4px 6px",fontWeight:600,minWidth:90}}>LAYER</span>
           {[
-            {k:"all",       label:"All",                col:"var(--text)"},
-            {k:"valuation", label:"Valuation",          col:"var(--red)"},
-            {k:"credit",    label:"Credit",             col:"var(--red)"},
-            {k:"funding",   label:"Funding",            col:"var(--yellow)"},
-            {k:"growth",    label:"Growth",             col:"#1f9d60"},
-            {k:"liqpol",    label:"Liquidity & Policy", col:"#4a6fa5"},
-            {k:"posbreath", label:"Positioning",        col:"#7a4a8a"},
-            {k:"reference", label:"Watch List",         col:"var(--text-muted)"},
+            {k:"all",       label:"All",              col:"var(--text)"},
+            {k:"vol",       label:"Vol triggers",     col:"var(--accent)"},
+            {k:"cycle",     label:"Cycle composite",  col:"var(--green-text, var(--accent))"},
+            {k:"reference", label:"Reference",        col:"var(--text-muted)"},
           ].map(c => (
             <button key={c.k} type="button"
               onClick={() => setFilterComposite(c.k)}
@@ -6483,25 +6458,24 @@ return(
 {tab==="indicators" && V2_ENABLED && <V2ErrorBoundary><IndicatorsPageV2 /></V2ErrorBoundary>}
 {tab==="indicators" && !V2_ENABLED && (()=>{
   const _indCount = Object.keys(IND||{}).length;
-  // Truth: an indicator is "in composites" iff it has a COMPOSITE_MAP entry
-  // (drives the same _weightedCount used by the table intro at line 2064).
-  const _weightedCount = Object.keys(COMPOSITE_MAP||{}).length;
-  const _refCount = _indCount - _weightedCount;
+  const _volCount = Object.values(SIGNAL_LAYER_BY_ID||{}).filter(l => l === "Vol trigger").length;
+  const _cycleCount = Object.values(SIGNAL_LAYER_BY_ID||{}).filter(l => l === "Cycle composite").length;
+  const _refCount = _indCount - _volCount - _cycleCount;
   const _catCount = Object.keys(CATS||{}).length;
   return <div style={{maxWidth:1200,margin:"0 auto",padding:"0 20px"}}><RichHero
     eyebrow="All Indicators"
     headline={"Every signal "}
     italicAccent={"the model reads."}
-    italicSub={"Calibrated against twenty-one years of equity drawdowns."}
+    italicSub={"Sourced live from the data registry."}
     stance={`${_indCount} INDICATORS`}
     stanceColor="strong"
     freshLine={"Auto-refresh · last poll <6 min ago"}
-    lead={<>Every macro indicator the model uses to score regime stress — <strong style={{fontWeight:600,color:"var(--text)"}}>{_indCount} calibrated series</strong> feeding the six cycle mechanisms (Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth). Each is normalized against its long-run mean and standard deviation, then weighted by predictive power (<strong style={{fontWeight:600,color:"var(--text)"}}>AUC for S&amp;P −15% drawdowns</strong>) inside its mechanism. Hover any row for source, formula, current reading, and meaning. Filter by category at the top. Click a row to open the full indicator detail.</>}
+    lead={<>Every indicator MacroTilt tracks — the <strong style={{fontWeight:600,color:"var(--text)"}}>three volatility triggers</strong> and <strong style={{fontWeight:600,color:"var(--text)"}}>seven cycle composite indicators</strong> that produce the Signal Intelligence regime read, plus reference series tracked for context. Click any row for source, formula, current reading, and meaning. Filter by layer or category at the top.</>}
     kpis={[
-      {lbl:"Indicators", v:_indCount, sub:"total tracked"},
-      {lbl:"In mechanisms", v:_weightedCount, col:"var(--green-text)", sub:`feed cycle mechanisms · ${_refCount} reference-only`},
-      {lbl:"Sources", v:"8", sub:"FRED · Fed · ICE BofA · ISM · BLS · Shiller…"},
-      {lbl:"Categories", v:_catCount, sub:"Equity & Vol, Credit, Rates…"},
+      {lbl:"Indicators",       v:_indCount,   sub:"total tracked"},
+      {lbl:"Vol triggers",     v:_volCount,   col:"var(--accent)",     sub:"Layer 1 of Signal Intelligence"},
+      {lbl:"Cycle composite",  v:_cycleCount, col:"var(--green-text)", sub:`feed Layer 2 · ${_refCount} reference-only`},
+      {lbl:"Categories",       v:_catCount,   sub:"Equity & Vol, Credit, Rates…"},
     ]}
   /></div>;
 })()}
