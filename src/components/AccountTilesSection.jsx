@@ -104,23 +104,23 @@ function fmtNum(v, dp = 2) {
 }
 function colorTwr(v) {
   if (v == null) return "var(--text-muted)";
-  if (v > 0.05) return "#137333";
-  if (v > 0) return "#2e7d4f";
-  if (v > -0.05) return "#a85d00";
-  return "#9a1f1f";
+  if (v > 0.05) return "var(--green-text)";
+  if (v > 0) return "var(--green)";
+  if (v > -0.05) return "var(--yellow-text)";
+  return "var(--red-text)";
 }
 function colorSharpe(v) {
   if (v == null) return "var(--text-muted)";
-  if (v > 1.0) return "#137333";
-  if (v > 0.5) return "#2e7d4f";
-  if (v > 0) return "#7a6e3a";
-  return "#9a1f1f";
+  if (v > 1.0) return "var(--green-text)";
+  if (v > 0.5) return "var(--green)";
+  if (v > 0) return "var(--yellow-text)";
+  return "var(--red-text)";
 }
 function colorBeta(v) {
   if (v == null) return "var(--text-muted)";
-  if (v > 1.5) return "#9a1f1f";
-  if (v > 1.1) return "#a85d00";
-  if (v < 0.4) return "#3d5a80";
+  if (v > 1.5) return "var(--red-text)";
+  if (v > 1.1) return "var(--yellow-text)";
+  if (v < 0.4) return "var(--text-muted)";
   return "var(--text)";
 }
 
@@ -146,8 +146,8 @@ function Sparkline({ navSeries, tall = false, compact = false }) {
   const linePath = "M " + pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" L ");
   const areaPath = linePath + ` L ${pts[n - 1][0].toFixed(1)},${H} L 0,${H} Z`;
   const up = navs[n - 1] >= navs[0];
-  const stroke = tall ? "#7a2e2a" : (up ? "#137333" : "#9a1f1f");
-  const fill = tall ? "#7a2e2a18" : (up ? "#13733322" : "#9a1f1f22");
+  const stroke = tall ? "var(--red-text)" : (up ? "var(--green-text)" : "var(--red-text)");
+  const fill = tall ? "color-mix(in srgb, var(--red) 12%, transparent)" : (up ? "color-mix(in srgb, var(--green) 13%, transparent)" : "color-mix(in srgb, var(--red) 13%, transparent)");
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: H, display: "block" }}>
       <path d={areaPath} fill={fill} stroke="none" />
@@ -158,11 +158,11 @@ function Sparkline({ navSeries, tall = false, compact = false }) {
 }
 
 const ACCOUNT_DOT_COLORS = {
-  "EY 401(K)":    "#7a2e2a",
+  "EY 401(K)":    "var(--red-text)",
   "Taxable":      "#b58a3d",
   "Ethan 529":    "#3a6e58",
   "Scarlett 529": "#a8587a",
-  "ROTH IRA":     "#3d5a80",
+  "ROTH IRA":     "var(--accent)",
   "HSA":          "#7a6e3a",
 };
 
@@ -254,8 +254,8 @@ export default function AccountTilesSection({
 
       <div style={grid}>
         {tiles.map((t) => {
-          const cashChipColor = t.cash < 0 ? "#9a1f1f" : (t.cash > 0 ? "#3d5a80" : "#5e5e63");
-          const cashChipBg = t.cash < 0 ? "#fdecec" : (t.cash > 0 ? "#ecf2fa" : "#f0f0f3");
+          const cashChipColor = t.cash < 0 ? "var(--red-text)" : (t.cash > 0 ? "var(--accent)" : "var(--text-muted)");
+          const cashChipBg = t.cash < 0 ? "color-mix(in srgb, var(--red) 10%, transparent)" : (t.cash > 0 ? "var(--accent-soft)" : "var(--surface-3)");
           const cashLabel = t.cash < 0 ? "MARGIN" : "CASH";
           const isExpanded = t.id === expandedId;
           return (

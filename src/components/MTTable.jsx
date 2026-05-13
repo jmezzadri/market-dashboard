@@ -737,6 +737,6 @@ const MT_TABLE_CSS = `
 .mt-table-root--look .mt-table tbody tr:hover { background: transparent; }
 .mt-table-root--look .mt-table tbody tr.clickable:hover { background: var(--hover, var(--surface-3)); }
 .mt-table-root .mt-table tbody tr.mt-child td { background: var(--surface-2); font-size: 11.5px; padding-top: 9px; padding-bottom: 9px; }
-.mt-table-root .mt-table tbody tr.mt-child.clickable:hover td { background: #edeef1; }
+.mt-table-root .mt-table tbody tr.mt-child.clickable:hover td { background: var(--hover, var(--surface-3)); }
 .mt-table-root .mt-table tbody tr.mt-child td.numeric { font-size: 11px; }
 `;

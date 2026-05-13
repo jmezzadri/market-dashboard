@@ -318,7 +318,7 @@ export default function OnboardingPanel({ userId, onDone }) {
     letterSpacing: "0.08em",
     fontWeight: 600,
     color: active ? "var(--text)" : "var(--text-muted)",
-    background: active ? "var(--surface-1)" : "transparent",
+    background: active ? "var(--surface-2)" : "transparent",
     border: "1px solid var(--border)",
     borderRight: "none",
     cursor: "pointer",
