@@ -279,11 +279,15 @@ export default function MacroOverviewPage() {
               Three volatility <em>triggers</em>, one <em>cycle position</em>, one regime read.
             </h1>
             <p className="mo-lede">
-              Vol triggers tell us when trouble has arrived. The cycle composite tells us
-              whether that trouble matters. Together they produce a single state:{' '}
+              We describe the tape — we don't predict tops. Combined into one of four states:{' '}
               <strong>Risk On</strong>, <strong>Neutral</strong>, <strong>Cautionary</strong>, or{' '}
-              <strong>Risk Off</strong>. We describe the tape — we don't predict tops.
+              <strong>Risk Off</strong>.
             </p>
+            <ul className="mo-bullets">
+              <li><strong>Volatility Triggers</strong> tell us <em>when</em> trouble has arrived.</li>
+              <li><strong>Cycle Positioning</strong> tells us <em>whether</em> that trouble matters yet.</li>
+              <li><strong>Regime</strong> is the rolled-up read across both layers.</li>
+            </ul>
           </div>
 
           {/* REGIME TILE */}
@@ -560,10 +564,14 @@ const MO_CSS = `
 .mo-page{max-width:1280px;margin:0 auto;padding:28px 32px 64px}
 .mo-top{display:grid;grid-template-columns:1fr 480px;gap:32px;margin-bottom:22px;align-items:start}
 .mo-eyebrow{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:500;margin-bottom:8px}
-.mo-h1{font-family:var(--font-display);font-weight:400;font-size:34px;line-height:1.12;letter-spacing:-0.012em;margin:0 0 14px;color:var(--ink-0);max-width:620px}
+.mo-h1{font-family:var(--font-display);font-weight:400;font-size:46px;line-height:1.10;letter-spacing:-0.015em;margin:8px 0 18px;color:var(--ink-0);max-width:720px}
 .mo-h1 em{font-style:italic;color:var(--accent)}
-.mo-lede{font-size:14px;color:var(--ink-1);line-height:1.6;margin:0;max-width:620px}
+.mo-lede{font-size:16px;color:var(--ink-1);line-height:1.55;margin:0 0 16px;max-width:620px}
 .mo-lede strong{color:var(--ink-0);font-weight:600}
+.mo-bullets{font-size:15px;color:var(--ink-1);line-height:1.7;padding-left:22px;max-width:680px;margin:0}
+.mo-bullets li{margin-bottom:6px}
+.mo-bullets li strong{color:var(--ink-0);font-weight:600}
+.mo-bullets li em{font-style:italic;color:var(--accent)}
 
 .mo-regime{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px 18px}
 .mo-regime-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:24px;color:var(--accent);text-align:center;margin:0 0 18px;letter-spacing:-0.005em}
