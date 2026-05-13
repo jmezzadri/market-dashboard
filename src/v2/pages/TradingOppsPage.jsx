@@ -1143,22 +1143,16 @@ export default function TradingOppsPage({ onOpenTicker }) {
     </div>
 
     {scannerView && (
-      <div
-        onClick={() => setScannerView(null)}
-        style={{
-          position: "fixed",
-          inset: 0,
-          background: "rgba(8,12,18,0.55)",
-          backdropFilter: "blur(2px)",
-          zIndex: 1000,
-          overflow: "auto",
-        }}
-      >
+      // Use the same modal-backdrop pattern as TickerDetailModal so the
+      // sheet centers properly and the surrounding chrome (side nav, page
+      // header) blurs out instead of bleeding through. Joe 2026-05-13: the
+      // overlay was "jammed up" — too light a blur and too wide a sheet,
+      // so the modal didn't feel centered against the visible content.
+      <div className="modal-backdrop" onClick={() => setScannerView(null)}>
         <div
+          className="modal-wrap"
           onClick={(e) => e.stopPropagation()}
           style={{
-            margin: "32px auto",
-            maxWidth: 1280,
             background: "var(--surface)",
             border: "1px solid var(--border)",
             borderRadius: "var(--r-lg, 14px)",
