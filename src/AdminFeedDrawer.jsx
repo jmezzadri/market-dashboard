@@ -306,27 +306,30 @@ export default function AdminFeedDrawer({ feed, onClose }) {
                 {manifestEntries.length > 1 && (
                   <div style={{ fontSize: 11, color: MUTED, fontFamily: "monospace", marginBottom: 6 }}>{m.name}</div>
                 )}
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-                  <thead>
-                    <tr style={{ color: MUTED, fontFamily: "monospace", fontSize: 10, letterSpacing: "0.05em" }}>
-                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid var(--border)", textTransform: "uppercase", fontWeight: 600, width: 120 }}>Tab</th>
-                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid var(--border)", textTransform: "uppercase", fontWeight: 600 }}>Tile / surface</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(m.consumer_surfaces || []).map((s, i) => {
-                      // Handle both { tab, tile } objects and plain strings.
-                      const tab = typeof s === "object" ? s.tab : "—";
-                      const tile = typeof s === "object" ? s.tile : s;
-                      return (
-                        <tr key={i} style={{ borderTop: "1px solid var(--border)" }}>
-                          <td style={{ padding: "7px 8px", color: "var(--text)", fontFamily: "monospace", fontSize: 11, fontWeight: 600 }}>{tab}</td>
-                          <td style={{ padding: "7px 8px", color: "var(--text-2)", lineHeight: 1.5 }}>{tile}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <ul style={{ margin: 0, padding: "0 0 0 18px", lineHeight: 1.7 }}>
+                  {(m.consumer_surfaces || []).map((s, i) => {
+                    // The manifest uses several shapes across rows:
+                    //   { tab, tile }                 — most older rows
+                    //   { component }                 — newer rows
+                    //   { tab, surface }              — alternate
+                    //   { route, where, surface, … } — richer ops rows
+                    // Render whichever non-null leaf strings are present.
+                    if (typeof s === "string") {
+                      return <li key={i} style={{ fontSize: 13, color: "var(--text)" }}>{s}</li>;
+                    }
+                    if (!s || typeof s !== "object") return null;
+                    const labelParts = [];
+                    if (s.tab)       labelParts.push(<strong key="tab" style={{ fontFamily: "monospace", fontSize: 11, color: "var(--text-2)" }}>{s.tab}</strong>);
+                    if (s.route)     labelParts.push(<strong key="rt"  style={{ fontFamily: "monospace", fontSize: 11, color: "var(--text-2)" }}>{s.route}</strong>);
+                    const body = s.tile || s.surface || s.component || s.where || s.element || JSON.stringify(s);
+                    return (
+                      <li key={i} style={{ fontSize: 13, color: "var(--text)", marginBottom: 4 }}>
+                        {labelParts.length > 0 && <>{labelParts.reduce((acc, el, idx) => acc.length ? [...acc, " · ", el] : [el], [])} <span style={{ color: MUTED }}>—</span> </>}
+                        {body}
+                      </li>
+                    );
+                  })}
+                </ul>
               </div>
             ))}
           </Section>
