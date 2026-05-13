@@ -1107,28 +1107,30 @@ function ScoreModalContent({ cycleInd, cycleScore, onDrill }) {
 
 // ── Full backtested regime history modal ─────────────────────────────
 function RegimeHistoryModalContent({ fullRegime, filterState }) {
-  const [hoverIdx, setHoverIdx] = useState(null);
-  const svgRef = useRef(null);
+  // Heatmap-style strip — color-only regime encoding, full-height bars.
+  // Tooltip is an HTML overlay (position:absolute) so it follows the mouse
+  // properly in both X and Y, instead of being pinned inside the SVG.
+  const [hover, setHover] = useState(null); // { idx, x, y }
+  const containerRef = useRef(null);
   const total = fullRegime.length;
   const filtered = filterState ? fullRegime.filter(x => x.label === filterState) : fullRegime;
   const counts = REGIME_ORDER.map(r => ({ r, n: fullRegime.filter(x => x.label === r).length }));
   const pct = (n) => Math.round((n / total) * 100 * 10) / 10;
 
-  const w = 760, h = 110, padL = 4, padR = 4, padT = 4, padB = 18;
-  const barW = total > 0 ? (w - padL - padR) / total : 0;
-  const stageHeight = (l) => 22 + l * 22; // 22, 44, 66, 88
+  // viewBox: 1 unit = 1 week wide; height arbitrary (stretches via preserveAspectRatio="none")
+  const STRIP_H_PX = 120;
 
   const handleMove = (e) => {
-    if (!svgRef.current || !total) return;
-    const r = svgRef.current.getBoundingClientRect();
+    if (!containerRef.current || !total) return;
+    const r = containerRef.current.getBoundingClientRect();
     const xPx = e.clientX - r.left;
-    const xView = (xPx / r.width) * w;
-    if (xView < padL || xView > w - padR) { setHoverIdx(null); return; }
-    const idx = Math.max(0, Math.min(total - 1, Math.floor((xView - padL) / barW)));
-    setHoverIdx(idx);
+    const yPx = e.clientY - r.top;
+    if (xPx < 0 || xPx > r.width) { setHover(null); return; }
+    const idx = Math.max(0, Math.min(total - 1, Math.floor((xPx / r.width) * total)));
+    setHover({ idx, x: xPx, y: yPx, w: r.width });
   };
-  const handleLeave = () => setHoverIdx(null);
-  const hovered = hoverIdx != null ? fullRegime[hoverIdx] : null;
+  const handleLeave = () => setHover(null);
+  const hovered = hover != null ? fullRegime[hover.idx] : null;
 
   return (
     <>
@@ -1147,32 +1149,38 @@ function RegimeHistoryModalContent({ fullRegime, filterState }) {
       </p>
       <div className="mo-modal-block">
         <div className="mo-modal-block-eyebrow">{filterState ? `Weeks where regime = "${filterState}"` : 'Full regime history'}</div>
-        <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:110,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
-          {fullRegime.map((wRec, i) => {
-            const lvl = REGIME_ORDER.indexOf(wRec.label);
-            const dim = filterState && wRec.label !== filterState;
-            const bh = stageHeight(lvl);
-            const bx = padL + i * barW;
-            const by = (h - padB) - bh;
-            const alpha = lvl === 0 ? 0.20 : lvl === 1 ? 0.42 : lvl === 2 ? 0.68 : 0.92;
-            const fill = `rgba(0,113,227,${alpha})`;
-            return <rect key={i} x={bx} y={by} width={Math.max(barW, 0.4)} height={bh} fill={fill} opacity={dim ? 0.16 : 1}/>;
-          })}
-          {hovered != null && (() => {
-            const idx = hoverIdx;
-            const lvl = REGIME_ORDER.indexOf(hovered.label);
-            const bx = padL + idx * barW + barW/2;
-            const labelW = 140;
-            const labelX = Math.min(Math.max(padL, bx - labelW/2), w - padR - labelW);
-            return (
-              <g style={{pointerEvents:'none'}}>
-                <line x1={bx} y1={padT} x2={bx} y2={h-padB} style={{stroke:'var(--text)'}} strokeWidth="1" strokeDasharray="2,2" opacity="0.5"/>
-                <rect x={labelX} y={padT} width={labelW} height={20} rx="4" style={{fill:'var(--text)'}} opacity="0.92"/>
-                <text x={labelX + 8} y={padT + 14} fontSize="11" style={{fill:'var(--bg)'}} fontFamily="Inter" fontWeight="600">{fmtMonthYear(hovered.date)} · {hovered.label}</text>
-              </g>
-            );
-          })()}
-        </svg>
+        <div ref={containerRef} onMouseMove={handleMove} onMouseLeave={handleLeave}
+             style={{position:'relative', height:STRIP_H_PX, background:'var(--surface-2)', borderRadius:8, overflow:'hidden', cursor:'crosshair'}}>
+          <svg viewBox={`0 0 ${total || 1} 100`} preserveAspectRatio="none"
+               style={{width:'100%', height:'100%', display:'block'}}>
+            {fullRegime.map((wRec, i) => {
+              const lvl = REGIME_ORDER.indexOf(wRec.label);
+              const dim = filterState && wRec.label !== filterState;
+              const alpha = lvl === 0 ? 0.22 : lvl === 1 ? 0.45 : lvl === 2 ? 0.72 : 0.96;
+              const fill = `rgba(0,113,227,${alpha})`;
+              return <rect key={i} x={i} y={0} width={1.02} height={100} fill={fill} opacity={dim ? 0.18 : 1}/>;
+            })}
+            {hover != null && (
+              <line x1={hover.idx + 0.5} y1={0} x2={hover.idx + 0.5} y2={100}
+                    stroke="var(--text)" strokeOpacity="0.7" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>
+            )}
+          </svg>
+          {hovered != null && hover != null && (
+            <div style={{
+              position:'absolute',
+              left: Math.min(Math.max(hover.x + 12, 8), (hover.w || 0) - 200),
+              top: Math.max(hover.y - 36, 8),
+              background:'var(--ink-0, var(--text, #0e1115))',
+              color:'var(--bg, #ffffff)',
+              padding:'5px 10px', borderRadius:4,
+              fontSize:11, fontWeight:600,
+              fontFamily:'Inter',
+              pointerEvents:'none',
+              whiteSpace:'nowrap',
+              boxShadow:'0 2px 8px rgba(0,0,0,0.18)',
+            }}>{fmtMonthYear(hovered.date)} · {hovered.label}</div>
+          )}
+        </div>
         <div className="mo-regime-fullhist-axis">
           <span>{fullRegime[0]?.date?.slice(0,4) || '1996'}</span>
           <span>{fullRegime[Math.floor(fullRegime.length*0.25)]?.date?.slice(0,4) || ''}</span>
