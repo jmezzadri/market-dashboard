@@ -1,18 +1,10 @@
 /* ─────── PageHero — canonical page header (locked 2026-05-13) ───────
-   Every top-level page (Home / Macro Overview / Asset Tilt /
-   Trading Opportunities / Portfolio Insights / Scenario Analysis /
-   All Indicators) renders this header so eyebrow/title/bullets land
-   on the same Y and the same X on every tab — regardless of which
-   parent wrapper hosts the component.
+   Every top-level page renders this header so eyebrow / title /
+   bullets land on the same Y and the same X on every tab.
 
-   The break-out trick:
-     `width: 100%; margin-inline: 0` keeps PageHero inside its parent
-     flow but `.mt-page-hero-inner` uses its own max-width and
-     centers itself inside the .app-main canvas (NOT the parent's
-     narrower max-width). The trick: position the inner via a
-     negative-margin-100vw + viewport-padding-left so it always
-     uses the SAME canvas (full viewport minus sidebar) on every
-     page.
+   Consumers MUST render <PageHero> as a direct child of .app-main
+   (i.e. NOT nested inside another max-width / padded wrapper). That
+   way the inner block centers within the same canvas on every page.
    ──────────────────────────────────────────────────────────────────── */
 
 .mt-page-hero {
@@ -22,50 +14,17 @@
 }
 
 .mt-page-hero-inner {
-  /* Break out of any parent maxWidth so this header always centers
-     within the same canvas: viewport minus sidebar (232px). */
-  position: relative;
-  left: 50%;
-  right: 50%;
-  width: 100vw;
-  margin-left: -50vw;
-  margin-right: -50vw;
-  padding-left: calc(232px + 32px);
-  padding-right: 32px;
-  padding-top: 32px;
-  padding-bottom: 24px;
-  box-sizing: border-box;
-
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 32px 24px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 380px;
   gap: 36px;
   align-items: start;
-
-  /* Cap the inner content so it doesn't sprawl on ultra-wide displays.
-     The canvas is (100vw - 232px) wide; cap the GRID at 1280 within. */
-}
-
-/* Cap the grid to 1280 max — use ::before/::after spacers, or simpler,
-   wrap content in a max-width column. We instead constrain via padding. */
-@media (min-width: 1700px) {
-  .mt-page-hero-inner {
-    padding-left: calc((100vw - 232px - 1280px) / 2 + 232px + 32px);
-    padding-right: calc((100vw - 232px - 1280px) / 2 + 32px);
-  }
 }
 
 .mt-page-hero-left  { min-width: 0; }
 .mt-page-hero-right { min-width: 0; }
-
-/* On narrow viewports (mobile) sidebar collapses; remove the offset. */
-@media (max-width: 860px) {
-  .mt-page-hero-inner {
-    padding-left: 32px;
-    padding-right: 32px;
-    grid-template-columns: 1fr;
-    gap: 24px;
-  }
-}
 
 .mt-page-eyebrow {
   font-family: var(--font-ui, 'Inter', system-ui, sans-serif);
@@ -118,5 +77,6 @@
 }
 
 @media (max-width: 980px) {
+  .mt-page-hero-inner { grid-template-columns: 1fr; gap: 24px; }
   .mt-page-title { font-size: 32px; }
 }
