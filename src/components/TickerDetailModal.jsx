@@ -321,34 +321,40 @@ function SignalIntelligenceRail({
                 return "no congressional trades in 90d";
               }
               if (s.key === "options") {
-                // Caption priority order: alert counts (when present), then
-                // unusual-event count + ask-side bias (the actual drivers of
-                // the sub-score), then a true "no flow" fallback. Reading
-                // only call_alert_count/put_alert_count caused the
-                // "+88 vs no unusual flow today" contradiction Joe flagged
-                // 2026-05-12 — the score is built from unusual_count +
-                // ask_side_premium + ratio_log10, not the alert-count
-                // fields.
+                // 2026-05-12 (revision) — the v5 options score is a blend
+                // of unusual_count + ask-side bias + call/put premium
+                // ratio + sweep_count. The caption has to read ALL of
+                // those, not just the alert counts or unusual_count.
+                // ORCL (Joe screenshot): unusual_count=0 but call_premium
+                // $22.9M, ask_side_premium $20.2M, ratio_log10=1.5 — the
+                // +68 score came from premium + ask bias. The earlier
+                // version of this caption fell through to "no unusual
+                // flow today" because it only checked unusual_count.
                 const callCt = Number(comps.call_alert_count || 0);
                 const putCt = Number(comps.put_alert_count || 0);
                 if (callCt || putCt) return `${callCt} call · ${putCt} put alerts`;
                 const unusualN = Number(comps.unusual_count || 0);
-                if (unusualN > 0) {
-                  const askPrem = Number(comps.ask_side_premium || 0);
-                  const callPrem = Number(comps.call_premium || 0);
-                  const putPrem = Number(comps.put_premium || 0);
+                const callPrem = Number(comps.call_premium || 0);
+                const putPrem  = Number(comps.put_premium  || 0);
+                const askPrem  = Number(comps.ask_side_premium || 0);
+                const bidPrem  = Number(comps.bid_side_premium || 0);
+                const totalPrem = callPrem + putPrem;
+                if (unusualN > 0 || totalPrem > 0 || askPrem > 0 || bidPrem > 0) {
                   const fmtM = (n) => {
                     const a = Math.abs(n);
                     if (a >= 1_000_000) return `$${(n/1_000_000).toFixed(1)}M`;
                     if (a >= 1_000)     return `$${Math.round(n/1_000)}K`;
                     return `$${Math.round(n)}`;
                   };
-                  // Bias toward whichever side has the most premium.
                   let side = "";
                   if (callPrem > putPrem * 2)      side = " · call-heavy";
                   else if (putPrem > callPrem * 2) side = " · put-heavy";
-                  const askPart = askPrem > 0 ? ` · ${fmtM(askPrem)} ask-side` : "";
-                  return `${unusualN} unusual event${unusualN===1?"":"s"}${askPart}${side}`;
+                  // Lead with whichever fact is the strongest signal.
+                  const parts = [];
+                  if (unusualN > 0) parts.push(`${unusualN} unusual event${unusualN===1?"":"s"}`);
+                  if (totalPrem > 0) parts.push(`${fmtM(totalPrem)} premium`);
+                  if (askPrem > 0)   parts.push(`${fmtM(askPrem)} ask-side`);
+                  return parts.join(" · ") + side;
                 }
                 return "no unusual flow today";
               }
@@ -447,6 +453,34 @@ function SignalIntelligenceRail({
                           letterSpacing:0,
                         }}
                         aria-label="backfill pending">⧗</span>
+                      </Tip>
+                    );
+                  }
+                  if (s.key === "insider" && comps && typeof comps === "object" &&
+                      ((Number(comps.buy_count || 0) > 0) || (Number(comps.sell_count || 0) > 0))) {
+                    // Joe ORCL case 2026-05-12: insider sub_score is null
+                    // (the v2_signal computation declined to produce a value),
+                    // but the underlying data IS present — buy_count or
+                    // sell_count is non-zero. The legacy fallback rendered
+                    // the generic "data fetch failed" red triangle, which
+                    // contradicts the caption two pixels below it. Honest
+                    // render: show that we have the events and that the
+                    // composite couldn't make a directional call.
+                    const buys = Number(comps.buy_count || 0);
+                    const sells = Number(comps.sell_count || 0);
+                    return (
+                      <Tip
+                        label="Insider — events present, no directional read"
+                        def={`We have the Form 4 data (${buys} buy${buys===1?"":"s"} · ${sells} sell${sells===1?"":"s"} in 30d), but the composite scorer couldn\u2019t derive a clean bullish/bearish signal from the volume / size pattern. Treat as neutral, not as a fetch failure.`}
+                      >
+                        <span style={{
+                          fontFamily:"var(--font-mono)", fontSize:14,
+                          color:"var(--text-muted)", fontWeight:500,
+                          cursor:"help", borderBottom:"1px dotted var(--text-dim)",
+                          textAlign:"right", display:"inline-block", width:"100%",
+                          letterSpacing:0,
+                        }}
+                        aria-label="events present, neutral read">~</span>
                       </Tip>
                     );
                   }
