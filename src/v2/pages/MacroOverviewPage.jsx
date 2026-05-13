@@ -805,7 +805,7 @@ function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
   const slice = sliceByDays(points, tf.days);
   const overlayPts = overlayId && indHist && indHist[overlayId] ? sliceByDays(indHist[overlayId].points, tf.days) : null;
 
-  if (!slice.length) return <div style={{height:280,color:'var(--ink-3)',fontSize:12,padding:24}}>No data in window.</div>;
+  if (!slice.length) return <div style={{height:360,color:'var(--ink-3)',fontSize:12,padding:24}}>No data in window.</div>;
 
   const w = 760, h = 280, padL = 52, padR = 14, padT = 14, padB = 28;
   const vals = slice.map(p => p[1]);
@@ -862,7 +862,7 @@ function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
           </select>
         )}
       </div>
-      <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:280,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+      <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:360,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
         <line x1={padL} y1={hiY} x2={w-padR} y2={hiY} stroke="#2f9d6a" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
         <text x={w-padR-6} y={hiY-4} fontSize="10" fill="#2f9d6a" textAnchor="end" fontWeight="600" fontFamily="Inter">HIGH {fmt(hi)}</text>
         <line x1={padL} y1={loY} x2={w-padR} y2={loY} stroke="#c84658" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
@@ -1264,7 +1264,7 @@ const MO_CSS = `
 .mo-ind-avg-val{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--accent);letter-spacing:-0.005em;text-align:right}
 
 .mo-scrim{position:fixed;inset:0;z-index:9000;background:rgba(14,17,21,0.42);display:flex;align-items:flex-start;justify-content:center;padding:60px 32px;overflow-y:auto}
-.mo-modal-card{position:relative;width:100%;max-width:940px;background:var(--surface);border:0.5px solid var(--border-strong, var(--border));border-radius:12px;box-shadow:0 18px 48px rgba(14,17,21,0.18);padding:28px 36px 36px}
+.mo-modal-card{position:relative;width:100%;max-width:1180px;background:var(--surface);border:0.5px solid var(--border-strong, var(--border));border-radius:12px;box-shadow:0 18px 48px rgba(14,17,21,0.18);padding:28px 28px 36px}
 .mo-modal-close{position:absolute;top:14px;right:18px;border:none;background:transparent;cursor:pointer;font-size:24px;line-height:1;color:var(--ink-3);padding:6px 8px;border-radius:6px}
 .mo-modal-close:hover{background:var(--surface-2);color:var(--ink-0)}
 .mo-modal-back{font-size:11px;font-weight:600;color:var(--ink-3);background:transparent;border:none;cursor:pointer;padding:4px 0 0;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px}
