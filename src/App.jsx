@@ -4752,23 +4752,47 @@ function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceCol
 // ─────────────────────────────────────────────────────────────────────
 function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, tileExplainStyle, tileNameStyle, FreshnessDot, freshnessAsOf }){
   const [indHist, setIndHist] = React.useState(null);
-  const [cycleV2, setCycleV2] = React.useState(null);
 
   React.useEffect(() => {
     fetch("/indicator_history.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
-    fetch("/cycle_v2.json", { cache: "no-cache" })
-      .then(r => r.ok ? r.json() : null).then(setCycleV2).catch(() => {});
   }, []);
 
+  // Mirrors the engine in src/v2/pages/MacroOverviewPage.jsx — same data
+  // file, same weekly resample, same trailing-5y 85th-pctile thresholds for
+  // vol triggers, same 7-indicator full-history stress-direction average for
+  // the cycle composite, same regime classifier. So this tile reads the
+  // SAME numbers the /#overview page does.
+  const STAGES = ['Calm', 'Watching', 'Holding', 'Confirmed', 'Entrenched'];
+  const VOL_TRIGS = [
+    { id: 'vix',  name: 'Equity Vol', fmt: (v) => v.toFixed(1) },
+    { id: 'move', name: 'Bond Vol',   fmt: (v) => Math.round(v).toString() },
+    { id: 'cpff', name: 'Funding',    fmt: (v) => Math.round(v) + ' bp' },
+  ];
+  const CYCLE_INDS = [
+    { id: 'copper_gold', bearishHigh: false },
+    { id: 'bkx_spx_v11', bearishHigh: false },
+    { id: 'yield_curve', bearishHigh: false },
+    { id: 'anfci',       bearishHigh: true },
+    { id: 'ic4wsa',      bearishHigh: true },
+    { id: 'hy_ig',       bearishHigh: true },
+    { id: 'ig_oas',      bearishHigh: true },
+  ];
+
   const data = React.useMemo(() => {
-    if (!indHist || !cycleV2) return null;
-    const TRIGGER_PCTILE = 85, LATE_CYCLE = 80;
-    const trailing5ySorted = (points) => {
-      if (!points || !points.length) return [];
-      const last = new Date(points[points.length - 1][0]);
-      const cutoff = new Date(last); cutoff.setFullYear(last.getFullYear() - 5);
-      return points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
+    if (!indHist) return null;
+
+    const weeklyClose = (points) => {
+      const byWeek = {};
+      for (const [ds, val] of (points || [])) {
+        if (val == null || isNaN(val)) continue;
+        const d = new Date(ds);
+        const dow = d.getUTCDay();
+        const fri = new Date(d);
+        fri.setUTCDate(d.getUTCDate() + ((4 - dow + 7) % 7));
+        byWeek[fri.toISOString().slice(0, 10)] = val;
+      }
+      return Object.entries(byWeek).sort();
     };
     const valAtPctile = (sorted, pct) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length))] : null;
     const pctileOf = (v, sorted) => {
@@ -4777,47 +4801,70 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
       while (lo < hi) { const m = (lo + hi) >>> 1; if (sorted[m] < v) lo = m + 1; else hi = m; }
       return Math.round((lo / sorted.length) * 100);
     };
-    const stageOfRun = (points, mark) => {
-      if (!points || !points.length || mark == null) return 0;
-      const byWeek = {};
-      for (const [ds, val] of points) {
-        if (val == null || isNaN(val)) continue;
-        const d = new Date(ds), w = new Date(d); w.setDate(d.getDate() - d.getDay());
-        byWeek[w.toISOString().slice(0, 10)] = val;
-      }
-      const weeks = Object.keys(byWeek).sort().slice(-24);
+    const stageOf = (weeklyArr, mark) => {
+      if (!weeklyArr.length || mark == null) return 0;
+      const last8 = weeklyArr.slice(-8);
       let consec = 0;
-      for (let i = weeks.length - 1; i >= 0; i--) {
-        if (byWeek[weeks[i]] >= mark) consec++; else break;
+      for (let k = last8.length - 1; k >= 0; k--) {
+        if (last8[k][1] >= mark) consec++; else break;
       }
       if (consec === 0) return 0;
       if (consec === 1) return 1;
-      if (consec <= 3) return 2;
-      return 3;
+      if (consec < 4) return 2;
+      if (consec < 8) return 3;
+      return 4;
     };
-    const buildInd = (key) => {
+
+    const TRIGGER_PCTILE = 85;
+    const buildVol = (key) => {
       const r = indHist[key];
       if (!r || !r.points || !r.points.length) return null;
-      const sorted = trailing5ySorted(r.points);
-      const mark = valAtPctile(sorted, TRIGGER_PCTILE);
-      const cur = r.points[r.points.length - 1];
-      return { pctile: pctileOf(cur[1], sorted), stage: stageOfRun(r.points, mark) };
+      const wkly = weeklyClose(r.points);
+      if (!wkly.length) return null;
+      const last = new Date(wkly[wkly.length - 1][0]);
+      const cutoff = new Date(last); cutoff.setUTCFullYear(last.getUTCFullYear() - 5);
+      const trailing5y = wkly.filter(([d]) => new Date(d) >= cutoff).map(p => p[1]).sort((a, b) => a - b);
+      const mark = valAtPctile(trailing5y, TRIGGER_PCTILE);
+      const cur = r.points[r.points.length - 1][1];
+      const pct = pctileOf(cur, trailing5y);
+      const stage = stageOf(wkly, mark);
+      return { current: cur, pctile: pct, stage };
     };
-    const vix = buildInd('vix'), mv = buildInd('move'), cp = buildInd('cpff');
-    const cycle = cycleV2.headlines && cycleV2.headlines.cycle_value && cycleV2.headlines.cycle_value.scores_by_horizon ? cycleV2.headlines.cycle_value.scores_by_horizon['6m'] : null;
+
+    const vix = buildVol('vix'), mv = buildVol('move'), cp = buildVol('cpff');
+
+    const cycPcts = [];
+    for (const ci of CYCLE_INDS) {
+      const r = indHist[ci.id];
+      if (!r || !r.points || !r.points.length) continue;
+      const wkly = weeklyClose(r.points);
+      if (!wkly.length) continue;
+      const allVals = wkly.map(p => p[1]).sort((a, b) => a - b);
+      const cur = r.points[r.points.length - 1][1];
+      const rawPct = pctileOf(cur, allVals);
+      if (rawPct == null) continue;
+      cycPcts.push(ci.bearishHigh ? rawPct : (100 - rawPct));
+    }
+    const cycleScore = cycPcts.length ? Math.round(cycPcts.reduce((a, b) => a + b, 0) / cycPcts.length) : null;
+
     const stages = [vix ? vix.stage : 0, mv ? mv.stage : 0, cp ? cp.stage : 0];
-    const sustained = stages.filter(s => s >= 2).length;
-    const crossed = stages.filter(s => s === 1).length;
-    const latecycle = cycle != null && cycle >= LATE_CYCLE;
-    const label = (sustained >= 1 && latecycle) ? 'Risk Off' : sustained >= 1 ? 'Cautionary' : crossed >= 1 ? 'Neutral' : 'Risk On';
-    return { vix, move: mv, cpff: cp, cycle, label };
-  }, [indHist, cycleV2]);
+    const maxStage = Math.max(...stages);
+    const nElev = stages.filter(s => s >= 1).length;
+    let label;
+    if (maxStage === 0) label = 'Risk On';
+    else if (maxStage === 1 && nElev === 1) label = 'Neutral';
+    else if (cycleScore == null) label = 'Cautionary';
+    else if (cycleScore < 40) label = 'Risk Off';
+    else label = 'Cautionary';
+
+    return { vix, move: mv, cpff: cp, cycle: cycleScore, label };
+  }, [indHist]);
 
   const regimeShortDesc = {
     'Risk On':    'No volatility triggers.',
     'Neutral':    'One volatility trigger crossed.',
     'Cautionary': 'One or more volatility triggers sustained.',
-    'Risk Off':   'Sustained · late-cycle positioning.',
+    'Risk Off':   'Sustained · cycle composite below 40.',
   };
 
   return (
@@ -4862,19 +4909,24 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
         )
       ),
       React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, paddingTop: 14, borderTop: "1px solid var(--border)" } },
-        [
-          { name: "Equity Vol", d: data ? data.vix : null },
-          { name: "Bond Vol", d: data ? data.move : null },
-          { name: "Funding", d: data ? data.cpff : null },
-          { name: "Cycle", d: data ? { pctile: data.cycle } : null },
-        ].map(({ name, d }) => {
-          const pctile = d && d.pctile != null ? d.pctile : null;
+        VOL_TRIGS.concat([{ id: 'cycle', name: 'Cycle', fmt: null }]).map(trig => {
+          const d = data ? data[trig.id === 'cycle' ? 'cycle' : trig.id === 'vix' ? 'vix' : trig.id === 'move' ? 'move' : 'cpff'] : null;
+          const isCycle = trig.id === 'cycle';
+          // Needle angle from pctile (0-100). For vol triggers that's trailing-5y pctile; for cycle that's the cycle composite itself.
+          const pctile = isCycle ? d : (d && d.pctile != null ? d.pctile : null);
           const angle = pctile == null ? null : 180 - (pctile * 1.8);
           const rad = angle == null ? null : (angle * Math.PI) / 180;
           const tipX = rad == null ? "50" : (50 + 38 * Math.cos(rad)).toFixed(1);
           const tipY = rad == null ? "50" : (50 - 38 * Math.sin(rad)).toFixed(1);
-          return React.createElement("div", { key: name, style: { textAlign: "center" } },
-            React.createElement("div", { style: { fontSize: 9.5, letterSpacing: ".10em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 500, marginBottom: 8 } }, name),
+          // Big value + sub-label per Joe directive 2026-05-13.
+          const bigVal = isCycle
+            ? (d != null ? d.toString() : "—")
+            : (d && d.current != null ? trig.fmt(d.current) : "—");
+          const subLbl = isCycle
+            ? "of 100"
+            : (d && d.stage != null ? STAGES[d.stage] : "—");
+          return React.createElement("div", { key: trig.id, style: { textAlign: "center" } },
+            React.createElement("div", { style: { fontSize: 9.5, letterSpacing: ".10em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 500, marginBottom: 8 } }, trig.name),
             React.createElement("svg", { viewBox: "0 0 100 55", style: { width: "100%", maxWidth: 100, height: "auto", display: "block", margin: "0 auto 4px" } },
               React.createElement("path", { d: "M 10 50 A 40 40 0 0 1 21.7 21.7", fill: "none", stroke: "rgba(0,113,227,0.18)", strokeWidth: 7 }),
               React.createElement("path", { d: "M 21.7 21.7 A 40 40 0 0 1 50 10", fill: "none", stroke: "rgba(0,113,227,0.42)", strokeWidth: 7 }),
@@ -4884,8 +4936,8 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
               pctile != null && React.createElement("circle", { cx: tipX, cy: tipY, r: 2.5, fill: "var(--accent)", stroke: "#fff", strokeWidth: 1 }),
               pctile != null && React.createElement("circle", { cx: 50, cy: 50, r: 2.5, fill: "var(--accent)" })
             ),
-            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontSize: 20, lineHeight: 1, color: "var(--text)", fontVariantNumeric: "tabular-nums", marginTop: 2 } }, pctile != null ? pctile : "—"),
-            React.createElement("div", { style: { fontSize: 9, color: "var(--text-dim)", marginTop: 1 } }, "/ 100")
+            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontSize: 20, lineHeight: 1, color: "var(--text)", fontVariantNumeric: "tabular-nums", marginTop: 2 } }, bigVal),
+            React.createElement("div", { style: { fontSize: 9, color: "var(--text-dim)", marginTop: 1 } }, subLbl)
           );
         })
       )
