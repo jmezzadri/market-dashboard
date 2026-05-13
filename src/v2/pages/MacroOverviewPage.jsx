@@ -52,7 +52,7 @@ const REGIME_LEAVE = {
 const VOL_ANCHORS = [
   { id: 'vix',  title: 'Equity Volatility', niceName: 'VIX',  unit: '',    fmt: (v) => v.toFixed(1) },
   { id: 'move', title: 'Bond Volatility',   niceName: 'MOVE', unit: '',    fmt: (v) => v.toFixed(0) },
-  { id: 'cpff', title: 'Funding Stress',    niceName: 'CPFF', unit: '',     fmt: (v) => v.toFixed(0) },
+  { id: 'cpff', title: 'Funding Stress',    niceName: 'CPFF', unit: ' bp', fmt: (v) => v.toFixed(0) + ' bp' },
 ];
 
 const CYCLE_INDICATORS = [
@@ -750,8 +750,8 @@ function RawDial({ value, threshold, max, fmt }) {
       <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)" />
       <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)" />
       {markX != null && (<>
-        <circle cx={markX} cy={markY} r="3" fill="#0e1115" />
-        <text x={markLabelX} y={markLabelY} fontFamily="Inter,sans-serif" fontSize="9" fill="#0e1115" fontWeight="600" textAnchor={threshold/max > 0.5 ? 'start' : 'end'}>{fmt(threshold)}</text>
+        <circle cx={markX} cy={markY} r="3" style={{fill:'var(--text)'}} />
+        <text x={markLabelX} y={markLabelY} fontFamily="Inter,sans-serif" fontSize="9" style={{fill:'var(--text)'}} fontWeight="600" textAnchor={threshold/max > 0.5 ? 'start' : 'end'}>{fmt(threshold)}</text>
       </>)}
       <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round"/>
       <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8"/>
@@ -782,8 +782,8 @@ function CycleDial({ score }) {
       <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)" />
       <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)" />
       {ticks.map(t => (
-        <g key={t.v} fontSize="9" fontFamily="Inter,sans-serif" fill="#5e5e63" fontWeight="500">
-          <line x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} stroke="#5e5e63" strokeWidth="1"/>
+        <g key={t.v} fontSize="9" fontFamily="Inter,sans-serif" style={{fill:'var(--text-muted)'}} fontWeight="500">
+          <line x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} style={{stroke:'var(--text-muted)'}} strokeWidth="1"/>
           <text x={t.lx} y={t.ly} textAnchor="middle">{t.v}</text>
         </g>
       ))}
@@ -886,8 +886,8 @@ function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
           })}
           {/* 85th percentile reference (kept — the indicator-specific annotation) */}
           {p85Y != null && (<>
-            <line x1={padL} y1={p85Y} x2={w-padR} y2={p85Y} stroke="#0e1115" strokeWidth="1" strokeDasharray="6,4"/>
-            <text x={w-padR-6} y={p85Y-4} fontSize="10" fill="#0e1115" textAnchor="end" fontWeight="600" fontFamily="Inter">85th pct = {fmt(p85)}</text>
+            <line x1={padL} y1={p85Y} x2={w-padR} y2={p85Y} style={{stroke:'var(--text)'}} strokeWidth="1" strokeDasharray="6,4"/>
+            <text x={w-padR-6} y={p85Y-4} fontSize="10" style={{fill:'var(--text)'}} textAnchor="end" fontWeight="600" fontFamily="Inter">85th pct = {fmt(p85)}</text>
           </>)}
           {/* X-axis: 3 date labels — start, middle, end */}
           <text x={xFor(0, slice.length)} y={h-6} fontSize="10" fill="var(--ink-3)" textAnchor="start" fontFamily="Inter">{fmtAxisDate(slice[0][0])}</text>
@@ -898,18 +898,18 @@ function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
           <polyline points={path} fill="none" style={{stroke:'var(--accent)'}} strokeWidth="2"/>
           {/* Crosshair + tooltip */}
           {hoverX != null && (<>
-            <line x1={hoverX} y1={padT} x2={hoverX} y2={h-padB} stroke="#0e1115" strokeWidth="1" strokeDasharray="3,3" opacity="0.5"/>
+            <line x1={hoverX} y1={padT} x2={hoverX} y2={h-padB} style={{stroke:'var(--text)'}} strokeWidth="1" strokeDasharray="3,3" opacity="0.5"/>
             <circle cx={hoverX} cy={hoverY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.5"/>
-            <rect x={Math.min(hoverX + 8, w - padR - 150)} y={Math.max(padT + 4, hoverY - 42)} width="142" height="36" rx="4" fill="#0e1115" opacity="0.92"/>
-            <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 16} fontSize="10" fill="#fff" fontFamily="Inter" fontWeight="600">{hoverDate} · {fmt(hoverVal)}</text>
-            {hoverOverlayVal != null && <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 30} fontSize="10" fill="#e6b7be" fontFamily="Inter">{overlayPeerLabel}: {hoverOverlayVal.toFixed(2)}</text>}
+            <rect x={Math.min(hoverX + 8, w - padR - 150)} y={Math.max(padT + 4, hoverY - 42)} width="142" height="36" rx="4" style={{fill:'var(--text)'}} opacity="0.92"/>
+            <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 16} fontSize="10" style={{fill:'var(--bg)'}} fontFamily="Inter" fontWeight="600">{hoverDate} · {fmt(hoverVal)}</text>
+            {hoverOverlayVal != null && <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 30} fontSize="10" style={{fill:'var(--bg)',opacity:0.65}} fontFamily="Inter">{overlayPeerLabel}: {hoverOverlayVal.toFixed(2)}</text>}
           </>)}
         </svg>
       </div>
       <div style={{display:'flex',gap:14,fontSize:11,color:'var(--ink-3)',marginTop:8,fontFamily:'Inter',flexWrap:'wrap'}}>
         <span><span style={{display:'inline-block',width:10,height:10,background:'var(--accent)',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{label}</span>
         {overlayPeerLabel && <span><span style={{display:'inline-block',width:10,height:10,background:'#a4626d',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{overlayPeerLabel}</span>}
-        {p85 != null && <span><span style={{display:'inline-block',width:10,height:10,background:'#0e1115',opacity:0.8,borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>85th-pct = {fmt(p85)}</span>}
+        {p85 != null && <span><span style={{display:'inline-block',width:10,height:10,background:'var(--text)',opacity:0.8,borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>85th-pct = {fmt(p85)}</span>}
         <span style={{marginLeft:'auto'}}>Hover for crosshair · {tf.label} window · {slice.length} points · current {fmt(vals[vals.length-1])}</span>
       </div>
     </div>
@@ -1166,9 +1166,9 @@ function RegimeHistoryModalContent({ fullRegime, filterState }) {
             const labelX = Math.min(Math.max(padL, bx - labelW/2), w - padR - labelW);
             return (
               <g style={{pointerEvents:'none'}}>
-                <line x1={bx} y1={padT} x2={bx} y2={h-padB} stroke="#0e1115" strokeWidth="1" strokeDasharray="2,2" opacity="0.5"/>
-                <rect x={labelX} y={padT} width={labelW} height={20} rx="4" fill="#0e1115" opacity="0.92"/>
-                <text x={labelX + 8} y={padT + 14} fontSize="11" fill="#fff" fontFamily="Inter" fontWeight="600">{fmtMonthYear(hovered.date)} · {hovered.label}</text>
+                <line x1={bx} y1={padT} x2={bx} y2={h-padB} style={{stroke:'var(--text)'}} strokeWidth="1" strokeDasharray="2,2" opacity="0.5"/>
+                <rect x={labelX} y={padT} width={labelW} height={20} rx="4" style={{fill:'var(--text)'}} opacity="0.92"/>
+                <text x={labelX + 8} y={padT + 14} fontSize="11" style={{fill:'var(--bg)'}} fontFamily="Inter" fontWeight="600">{fmtMonthYear(hovered.date)} · {hovered.label}</text>
               </g>
             );
           })()}
