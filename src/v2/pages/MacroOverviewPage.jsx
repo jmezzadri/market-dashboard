@@ -52,7 +52,7 @@ const REGIME_LEAVE = {
 const VOL_ANCHORS = [
   { id: 'vix',  title: 'Equity Volatility', niceName: 'VIX',  unit: '',    fmt: (v) => v.toFixed(1) },
   { id: 'move', title: 'Bond Volatility',   niceName: 'MOVE', unit: '',    fmt: (v) => v.toFixed(0) },
-  { id: 'cpff', title: 'Funding Stress',    niceName: 'CPFF', unit: ' bp', fmt: (v) => v.toFixed(0) + ' bp' },
+  { id: 'cpff', title: 'Funding Stress',    niceName: 'CPFF', unit: '',     fmt: (v) => v.toFixed(0) },
 ];
 
 const CYCLE_INDICATORS = [
