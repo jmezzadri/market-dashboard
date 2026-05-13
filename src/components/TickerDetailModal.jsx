@@ -709,6 +709,12 @@ function SignalIntelligenceRail({
         <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
           Source: SEC EDGAR Form 4, last 30 days. Sells are filtered to remove 10b5-1 routine plan disposals.
         </span>
+        <div style={{display:"flex",justifyContent:"flex-end",marginTop:6,gridColumn:"1 / -1"}}>
+          <a onClick={(e) => { e.stopPropagation(); goToScannerSection("insiders", onClose); }}
+             style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--accent)",letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:500,cursor:"pointer",textDecoration:"none"}}>
+            See full screener →
+          </a>
+        </div>
       </div>
     );
     return { state: subStateColor(sub), value, meta, detail };
@@ -885,6 +891,12 @@ function SignalIntelligenceRail({
         <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
           Source: Unusual Whales unusual options activity feed. Score blends unusual-event count, call/put premium ratio, ask-side bias, and sweep order count.
         </span>
+        <div style={{display:"flex",justifyContent:"flex-end",marginTop:6,gridColumn:"1 / -1"}}>
+          <a onClick={(e) => { e.stopPropagation(); goToScannerSection("flow", onClose); }}
+             style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--accent)",letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:500,cursor:"pointer",textDecoration:"none"}}>
+            See full screener →
+          </a>
+        </div>
       </div>
     );
 
