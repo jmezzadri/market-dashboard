@@ -125,16 +125,35 @@ const LIMITATIONS = [
 ];
 
 // ── Sections shown in the jump-nav. ──────────────────────────────────────
+// Anchors point at section IDs in the body. They are NOT URL-hash anchors —
+// clicking a chip calls scrollToSection(id) which jumps the viewport without
+// touching window.location.hash (the site's tab router watches the hash and
+// would swallow any unknown value back to the Home tab).
 const SECTIONS = [
-  { id: 'question',      label: 'The question' },
-  { id: 'architecture',  label: 'Two layers' },
-  { id: 'triggers',      label: 'Layer 1 — volatility triggers' },
-  { id: 'composite',     label: 'Layer 2 — cycle composite' },
-  { id: 'regime',        label: 'The four-state read' },
-  { id: 'thresholds',    label: 'How thresholds are set' },
-  { id: 'limits',        label: 'What this does not do' },
-  { id: 'sources',       label: 'Where the data comes from' },
+  // Group 1 — Macro Overview / Signal Intelligence
+  { id: 'mo-question',     label: 'Macro Overview · the question',  group: 'Macro Overview' },
+  { id: 'mo-architecture', label: 'Two layers' },
+  { id: 'mo-triggers',     label: 'Layer 1 — volatility triggers' },
+  { id: 'mo-composite',    label: 'Layer 2 — cycle composite' },
+  { id: 'mo-regime',       label: 'The four-state read' },
+  { id: 'mo-thresholds',   label: 'How thresholds are set' },
+  { id: 'mo-limits',       label: 'What this does not do' },
+  // Group 2 — the rest of the site
+  { id: 'asset-tilt',      label: 'Asset Tilt',          group: 'Other pages' },
+  { id: 'trading-opps',    label: 'Trading Opportunities' },
+  { id: 'portfolio',       label: 'Portfolio Insights' },
+  { id: 'scenarios',       label: 'Scenario Analysis' },
+  // Group 3 — registry
+  { id: 'sources',         label: 'Where the data comes from', group: 'Sources' },
 ];
+
+// scrollToSection — used instead of href="#id" to avoid touching the URL hash
+// (which the site's tab router uses for navigation).
+function scrollToSection(e, id) {
+  if (e && e.preventDefault) e.preventDefault();
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 // ── Small style helpers reused below. ────────────────────────────────────
 const sectionBox = {
@@ -226,29 +245,51 @@ export default function MethodologyBody({ withJumpNav = true }) {
         >
           <span style={{ ...eyebrow, marginBottom: 0, marginRight: 4 }}>Jump to</span>
           {SECTIONS.map((s) => (
-            <a
-              key={s.id}
-              href={`#${s.id}`}
-              style={{
-                fontSize: 12,
-                padding: '5px 11px',
-                borderRadius: 999,
-                border: '1px solid var(--line-1, var(--border, #ddd))',
-                color: 'var(--ink-1, var(--text, #222))',
-                textDecoration: 'none',
-                background: 'var(--bg-2, var(--surface-2, transparent))',
-              }}
-            >
-              {s.label}
-            </a>
+            <React.Fragment key={s.id}>
+              {s.group && (
+                <span style={{
+                  fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase',
+                  color: 'var(--ink-2, var(--text-muted, #666))',
+                  fontWeight: 600, marginLeft: 8, marginRight: 2,
+                }}>{s.group} ›</span>
+              )}
+              <a
+                href="#readme"
+                onClick={(e) => scrollToSection(e, s.id)}
+                style={{
+                  fontSize: 12,
+                  padding: '5px 11px',
+                  borderRadius: 999,
+                  border: '1px solid var(--line-1, var(--border, #ddd))',
+                  color: 'var(--ink-1, var(--text, #222))',
+                  textDecoration: 'none',
+                  background: 'var(--bg-2, var(--surface-2, transparent))',
+                  cursor: 'pointer',
+                }}
+              >
+                {s.label}
+              </a>
+            </React.Fragment>
           ))}
         </nav>
       )}
 
       {/* ────────────────────────────────────────────────────────────────
-          1. The question
+          MACRO OVERVIEW — sections 1 through 7 cover the Macro Overview
+          page (Signal Intelligence framework).
           ──────────────────────────────────────────────────────────────── */}
-      <section id="question" style={sectionBox}>
+
+      <div style={{
+        margin: '20px 0 8px',
+        padding: '10px 0',
+        fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
+        color: 'var(--ink-2, var(--text-muted, #666))', fontWeight: 600,
+        borderTop: '1px solid var(--line-1, var(--border, #ddd))',
+        textAlign: 'center',
+      }}>Macro Overview</div>
+
+      {/* 1. The question */}
+      <section id="mo-question" style={sectionBox}>
         <div style={eyebrow}>The question this framework answers</div>
         <h2 style={h2}>When to take chips off the table.</h2>
         <p style={{ ...body, marginTop: 14 }}>
@@ -262,7 +303,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
       {/* ────────────────────────────────────────────────────────────────
           2. Two layers
           ──────────────────────────────────────────────────────────────── */}
-      <section id="architecture" style={sectionBox}>
+      <section id="mo-architecture" style={sectionBox}>
         <div style={eyebrow}>The architecture</div>
         <h2 style={h2}>Two layers of evidence, one regime read.</h2>
         <p style={{ ...body, marginTop: 14 }}>
@@ -284,7 +325,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
       {/* ────────────────────────────────────────────────────────────────
           3. Layer 1 — volatility triggers
           ──────────────────────────────────────────────────────────────── */}
-      <section id="triggers" style={sectionBox}>
+      <section id="mo-triggers" style={sectionBox}>
         <div style={eyebrow}>Layer 1</div>
         <h2 style={h2}>Three volatility triggers, ordered by who cracks first.</h2>
         <p style={{ ...body, marginTop: 14 }}>
@@ -340,7 +381,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
       {/* ────────────────────────────────────────────────────────────────
           4. Layer 2 — cycle composite
           ──────────────────────────────────────────────────────────────── */}
-      <section id="composite" style={sectionBox}>
+      <section id="mo-composite" style={sectionBox}>
         <div style={eyebrow}>Layer 2</div>
         <h2 style={h2}>One cycle composite, built from seven indicators.</h2>
         <p style={{ ...body, marginTop: 14 }}>
@@ -394,7 +435,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
       {/* ────────────────────────────────────────────────────────────────
           5. The four-state read
           ──────────────────────────────────────────────────────────────── */}
-      <section id="regime" style={sectionBox}>
+      <section id="mo-regime" style={sectionBox}>
         <div style={eyebrow}>The four-state read</div>
         <h2 style={h2}>One label that combines both layers.</h2>
         <p style={{ ...body, marginTop: 14 }}>
@@ -441,7 +482,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
       {/* ────────────────────────────────────────────────────────────────
           6. Thresholds
           ──────────────────────────────────────────────────────────────── */}
-      <section id="thresholds" style={sectionBox}>
+      <section id="mo-thresholds" style={sectionBox}>
         <div style={eyebrow}>How the thresholds are set</div>
         <h2 style={h2}>Same percentile, regime-adaptive window.</h2>
         <p style={{ ...body, marginTop: 14 }}>
@@ -463,7 +504,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
       {/* ────────────────────────────────────────────────────────────────
           7. What this does not do
           ──────────────────────────────────────────────────────────────── */}
-      <section id="limits" style={sectionBox}>
+      <section id="mo-limits" style={sectionBox}>
         <div style={eyebrow}>What this framework will not do</div>
         <h2 style={h2}>Honest limits.</h2>
         <p style={{ ...body, marginTop: 14 }}>
@@ -480,8 +521,112 @@ export default function MethodologyBody({ withJumpNav = true }) {
       </section>
 
       {/* ────────────────────────────────────────────────────────────────
-          8. Sources — auto-populated from the data registry
+          OTHER PAGES — what each other site surface does and how it works
           ──────────────────────────────────────────────────────────────── */}
+
+      <div style={{
+        margin: '36px 0 8px',
+        padding: '10px 0',
+        fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
+        color: 'var(--ink-2, var(--text-muted, #666))', fontWeight: 600,
+        borderTop: '1px solid var(--line-1, var(--border, #ddd))',
+        textAlign: 'center',
+      }}>The other pages on the site</div>
+
+      {/* Asset Tilt */}
+      <section id="asset-tilt" style={sectionBox}>
+        <div style={eyebrow}>Asset Tilt</div>
+        <h2 style={h2}>Translating the macro read into portfolio actions.</h2>
+        <p style={{ ...body, marginTop: 14 }}>
+          The Macro Overview page describes <em>where we are</em>. The Asset Tilt page answers <em>what to do about it</em> — an explicit allocation recommendation across eleven equity sectors, twenty-four industry groups, and a four-bucket defensive sleeve. Equity percentage, defensive percentage, leverage, and per-sector tilts all come out of a single decision engine.
+        </p>
+        <p style={{ ...body, marginTop: 14 }}>
+          Two hard rules constrain every output. <strong>Defensive sleeve never exceeds 50%</strong> of capital, even in the worst regime — the system will not put more than half the book in bonds, cash, and gold. <strong>Leverage never exceeds 1.5×</strong>, and defensive and leverage are never on at the same time. If the engine wants any defensive sleeve, leverage drops to 1.0×. These are constraints in the optimization, not assumptions about what is optimal.
+        </p>
+        <div style={{
+          marginTop: 18, padding: 16,
+          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
+          borderLeft: '3px solid var(--accent)',
+          borderRadius: '0 6px 6px 0',
+          fontSize: 13.5, color: 'var(--ink-1, #222)',
+        }}>
+          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> The Asset Tilt engine was built and back-tested against the older cycle-mechanism framework that Signal Intelligence replaced on Macro Overview. The recommendations on Asset Tilt today are still produced by that older engine. Recalibrating the engine against Signal Intelligence is multi-week work — it sits on the active punch list, scoped for the Senior Quant. Until that recalibration lands and is back-tested, treat the Asset Tilt numbers as a v1 recommendation, not a Signal-Intelligence-anchored one.
+        </div>
+      </section>
+
+      {/* Trading Opportunities */}
+      <section id="trading-opps" style={sectionBox}>
+        <div style={eyebrow}>Trading Opportunities</div>
+        <h2 style={h2}>Specific names to act on today.</h2>
+        <p style={{ ...body, marginTop: 14 }}>
+          The Trading Opportunities page is the actionable end of the funnel. The Macro Overview tells you the regime. The Asset Tilt tells you how to lean by sector. Trading Opportunities turns that lean into <strong>specific tickers</strong> — a Buy Watch list and a Sell Watch list that refresh every trading day.
+        </p>
+        <p style={{ ...body, marginTop: 14 }}>
+          The scanner runs over a universe of roughly three thousand US-listed equities each evening. For each name, it computes a score from eight technical and qualitative signals (insider buying, options unusual activity, momentum vs. moving averages, relative strength against the index hedge, liquidity, short interest, recent volatility, and a regulatory-news veto). Names with the highest composite score and that pass three hard gates appear on the Buy Watch tile. Names with collapsing scores plus deterioration in fundamentals appear on the Sell Watch tile.
+        </p>
+        <p style={{ ...body, marginTop: 14 }}>
+          Click any row on the page for the full breakdown: signal-by-signal scores, the live price chart, the option chain, insider-trading filings, and the news catalysts that explain why the name showed up.
+        </p>
+        <div style={{
+          marginTop: 18, padding: 16,
+          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
+          borderLeft: '3px solid var(--accent)',
+          borderRadius: '0 6px 6px 0',
+          fontSize: 13.5, color: 'var(--ink-1, #222)',
+        }}>
+          <strong style={{ color: 'var(--ink-0, #000)' }}>How the regime feeds in.</strong> The Trading Opportunities scanner is independent of the Signal Intelligence regime read — it scores names on their own merits. The regime read is used as a gating layer above the scanner: in Cautionary or Risk Off regimes, the Buy Watch list is pruned and the Sell Watch list is featured first. In Risk On the Buy Watch is featured first.
+        </div>
+      </section>
+
+      {/* Portfolio Insights */}
+      <section id="portfolio" style={sectionBox}>
+        <div style={eyebrow}>Portfolio Insights</div>
+        <h2 style={h2}>How your actual book is positioned.</h2>
+        <p style={{ ...body, marginTop: 14 }}>
+          The Portfolio Insights page reads your live brokerage positions and shows where your book actually sits today — allocation across asset classes, sector exposure, top holdings by weight, account-by-account breakdowns, watch list, and a trade-history ledger of every closed position. It is descriptive, not prescriptive.
+        </p>
+        <p style={{ ...body, marginTop: 14 }}>
+          Positions are imported from your brokerage account via a secure read-only connection. The page recomputes every metric on load — your account-level returns, your asset-class rollup, your sector concentration, your option mark-to-market — using live prices for stocks and live option-chain data for any open options. Realized profit and loss for the tax year is computed from your actual close-position records using FIFO lot-matching with wash-sale treatment.
+        </p>
+        <p style={{ ...body, marginTop: 14 }}>
+          The page does not give portfolio recommendations. It tells you what you are holding. If you want to know what to lean toward, that lives on Asset Tilt. If you want specific names, that lives on Trading Opportunities.
+        </p>
+      </section>
+
+      {/* Scenario Analysis */}
+      <section id="scenarios" style={sectionBox}>
+        <div style={eyebrow}>Scenario Analysis</div>
+        <h2 style={h2}>How your portfolio reacts under stress.</h2>
+        <p style={{ ...body, marginTop: 14 }}>
+          The Scenario Analysis page runs a shock through the macro factor panel and tells you how your portfolio, the Asset Tilt recommendation, and each cycle indicator move in response. Two flavors: <strong>historical scenarios</strong> (the GFC, COVID, Volmageddon, the 2022 rate-hike cycle, and several others) replay the actual shock through today's factor structure; <strong>bespoke shocks</strong> let you pin one or more factors at a chosen size of move and propagate the rest using historical correlations.
+        </p>
+        <p style={{ ...body, marginTop: 14 }}>
+          The page returns a portfolio-level profit-and-loss estimate, a per-position breakdown of which holdings move most under that shock, and the updated Asset Tilt recommendation the engine would produce in that scenario.
+        </p>
+        <div style={{
+          marginTop: 18, padding: 16,
+          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
+          borderLeft: '3px solid var(--accent)',
+          borderRadius: '0 6px 6px 0',
+          fontSize: 13.5, color: 'var(--ink-1, #222)',
+        }}>
+          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> Like Asset Tilt, the scenario engine was built around the older cycle-mechanism framework. The shocks it propagates and the per-indicator responses it shows are anchored to that older framework. Migrating Scenario Analysis to Signal Intelligence is multi-week work — it sits on the active punch list. Treat scenario outputs today as directional rather than literal, until the rebuild lands.
+        </div>
+      </section>
+
+      {/* ────────────────────────────────────────────────────────────────
+          Sources — auto-populated from the data registry
+          ──────────────────────────────────────────────────────────────── */}
+
+      <div style={{
+        margin: '36px 0 8px',
+        padding: '10px 0',
+        fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
+        color: 'var(--ink-2, var(--text-muted, #666))', fontWeight: 600,
+        borderTop: '1px solid var(--line-1, var(--border, #ddd))',
+        textAlign: 'center',
+      }}>Sources</div>
+
       <section id="sources" style={sectionBox}>
         <div style={eyebrow}>Where the data comes from</div>
         <h2 style={h2}>Sources.</h2>
