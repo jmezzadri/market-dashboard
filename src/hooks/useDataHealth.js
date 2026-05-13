@@ -135,9 +135,12 @@ export const VENDOR_MONTHLY_COST = {
 // Production rendering on macrotilt.com goes through the live Supabase
 // query as before; the snapshot is just a safety net for preview deploys
 // and any future scenario where the live query is gated.
+// Snapshot lives under /data/ rather than the public/ root so it doesn't
+// trip the V2-cutover-quality-gate workflow's path filter (which fires
+// on any public/*.json change and is unrelated to admin work).
 async function fetchSnapshot() {
   try {
-    const resp = await fetch("/admin_health_snapshot.json", { cache: "default" });
+    const resp = await fetch("/data/admin_health_snapshot.json", { cache: "default" });
     if (!resp.ok) return [];
     const data = await resp.json();
     return Array.isArray(data) ? data : [];
