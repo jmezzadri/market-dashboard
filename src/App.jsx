@@ -1002,7 +1002,7 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
       const h = Math.max(1, baseY - y);
       const recent = i >= data.length - 3;
       return <rect key={i} x={x} y={y} width={barW} height={h}
-        fill={recent ? col : "#505050"} opacity={recent ? 0.95 : 0.7} />;
+        fill={recent ? col : "var(--text-dim)"} opacity={recent ? 0.95 : 0.7} />;
     });
   })()
 ) : (
@@ -1308,12 +1308,12 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 {[0,25,50,75,100].map(v=>(
 <g key={v}>
 <line x1={pL} y1={yp(v)} x2={pL+IW} y2={yp(v)} stroke="var(--border)" strokeWidth="0.5"/>
-<text x={pL-4} y={yp(v)+3} textAnchor="end" fill="#a0a0a0" fontSize="6" fontFamily="monospace">{v}</text>
+<text x={pL-4} y={yp(v)+3} textAnchor="end" style={{fill:'var(--text-dim)'}} fontSize="6" fontFamily="monospace">{v}</text>
 </g>
 ))}
 {/* Right axis — S&P levels */}
 {spTicks.map(v=>(
-<text key={v} x={pL+IW+4} y={ypSP(v)+3} fill="var(--text-muted)88" fontSize="6" fontFamily="monospace">{v>=1000?(v/1000)+"k":v}</text>
+<text key={v} x={pL+IW+4} y={ypSP(v)+3} style={{fill:'var(--text-muted)',opacity:0.55}} fontSize="6" fontFamily="monospace">{v>=1000?(v/1000)+"k":v}</text>
 ))}
 {/* Crisis markers */}
 {marks.map(cm=>(
@@ -1327,13 +1327,13 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 <circle cx={lastSP[0]} cy={lastSP[1]} r="3" fill={SP_COL} stroke="var(--bg)" strokeWidth="1.2" opacity="0.9"/>
 <text x={lastSP[0]+4} y={lastSP[1]+3} fill={SP_COL} fontSize="6" fontFamily="monospace" opacity="0.85">{(spVals[spVals.length-1]/1000).toFixed(1)}k</text>
 {/* Stress line */}
-<path d={fullPath} fill="none" stroke="#404040" strokeWidth="1.2" strokeLinejoin="round"/>
+<path d={fullPath} fill="none" style={{stroke:'var(--text-dim)'}} strokeWidth="1.2" strokeLinejoin="round"/>
 <path d={recentPath} fill="none" stroke={col} strokeWidth="2.5" strokeLinejoin="round"/>
 <circle cx={lastPt[0]} cy={lastPt[1]} r="4" fill={col} stroke="var(--bg)" strokeWidth="1.5"/>
 <text x={lastPt[0]} y={lastPt[1]-9} textAnchor="middle" fill={col} fontSize="7" fontFamily="monospace" fontWeight="800">{COMP100}</text>
 {/* X-axis labels */}
 {labels.map((l,i)=>showLbl[i]&&(
-<text key={i} x={xp(i)} y={H-5} textAnchor="middle" fill="#5a5a5a" fontSize="6" fontFamily="monospace">{xAxisLabel(l)}</text>
+<text key={i} x={xp(i)} y={H-5} textAnchor="middle" style={{fill:'var(--text-dim)'}} fontSize="6" fontFamily="monospace">{xAxisLabel(l)}</text>
 ))}
 {/* Hover crosshair */}
 {hover&&(()=>{
@@ -1504,7 +1504,7 @@ const [fx,fy]=pt(start+fS);
 return(
 <div onClick={onClick} style={{display:"flex",flexDirection:"column",alignItems:"center",cursor:onClick?"pointer":"default"}}>
 <svg width="148" height="120" viewBox="0 0 148 120">
-<path d={`M ${sx} ${sy} A ${r} ${r} 0 1 1 ${ex} ${ey}`} fill="none" stroke="#151515" strokeWidth="11" strokeLinecap="round"/>
+<path d={`M ${sx} ${sy} A ${r} ${r} 0 1 1 ${ex} ${ey}`} fill="none" strokeWidth="11" style={{stroke:'var(--border-strong)'}} strokeLinecap="round"/>
 {norm>0.01&&<path d={`M ${sx} ${sy} A ${r} ${r} 0 ${la} 1 ${fx} ${fy}`} fill="none" stroke={col} strokeWidth="11" strokeLinecap="round" opacity="0.9"/>}
 {[0.2,0.4,0.6,0.8].map(t=>{const [tx,ty]=pt(start+sweep*t);return(<circle key={t} cx={tx} cy={ty} r="2.5" fill="var(--bg)"/>);})}
 <line x1={cx} y1={cy} x2={nx} y2={ny} stroke="white" strokeWidth="1.8" strokeLinecap="round" opacity="0.5"/>
@@ -1530,7 +1530,7 @@ const adjL=tp(hLo),adjH=tp(hHi);
 const adjCur=tp(cur);
 const adjAvg=tp(sp.mean);
 return(
-<div style={{position:"relative",height:14,background:"#151515",borderRadius:3,marginBottom:4}}>
+<div style={{position:"relative",height:14,background:"var(--surface-2)",borderRadius:3,marginBottom:4}}>
 <div style={{position:"absolute",left:`${Math.min(adjL,adjH)}%`,width:`${Math.abs(adjH-adjL)}%`,top:0,bottom:0,background:"rgba(34,197,94,0.12)",borderLeft:"1px solid rgba(34,197,94,0.3)",borderRight:"1px solid rgba(34,197,94,0.3)"}}/>
 <div style={{position:"absolute",left:`${adjAvg}%`,top:0,bottom:0,width:1,background:"rgba(34,197,94,0.5)",transform:"translateX(-50%)"}}/>
 <div style={{position:"absolute",left:`${adjCur}%`,top:-1,bottom:-1,width:3,background:col,borderRadius:2,transform:"translateX(-50%)",boxShadow:`0 0 5px ${col}`}}/>
@@ -1647,8 +1647,8 @@ const catCol=CATS[cat]?.color||"#6b7280";
 const s=sdScore(id,cur);
 const col=sdColor(s);
 const colT=sdTextColor(s);
-const tierCol=tier===1?"var(--yellow-text)":tier===2?"#94a3b8":"#4b5563";
-const tierBorder=tier===1?"#B8860B":tier===2?"#94a3b8":"#4b5563";
+const tierCol=tier===1?"var(--yellow-text)":tier===2?"var(--text-muted)":"var(--text-dim)";
+const tierBorder=tier===1?"var(--yellow-text)":tier===2?"var(--text-muted)":"var(--text-dim)";
 return(
 <div id={`card-${id}`} onClick={()=>onOpen(id)} className="indicator-card"
 style={{background:"var(--surface)",border:`1px solid var(--border-faint)`,borderRadius:8,padding:"12px 14px",cursor:"pointer",transition:"transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease)",position:"relative"}}
@@ -1704,8 +1704,8 @@ const catCol=CATS[cat]?.color||"var(--text-dim)";
 const s=sdScore(id,cur);
 const col=sdColor(s);
 const colT=sdTextColor(s);
-const tierCol=tier===1?"var(--yellow-text)":tier===2?"#94a3b8":"#4b5563";
-const tierBorder=tier===1?"#B8860B":tier===2?"#94a3b8":"#4b5563";
+const tierCol=tier===1?"var(--yellow-text)":tier===2?"var(--text-muted)":"var(--text-dim)";
+const tierBorder=tier===1?"var(--yellow-text)":tier===2?"var(--text-muted)":"var(--text-dim)";
 const sp=SD[id];
 // Bug #1035: 12-month range-bar scale now comes from the actual last 365
 // days of daily points in indicator_history.json via get12MWindowStats(),
@@ -2951,7 +2951,7 @@ const topHeadwinds=Object.entries(sector.subsectors[0]?.sensitivities||{})
   .sort((a,b)=>b.impact-a.impact).slice(0,3);
 return(
 <div onClick={()=>setExpanded(e=>!e)}
-style={{background:expanded?"var(--border-faint)":"var(--surface)",border:`1px solid ${expanded?outlook.color+"55":"#1c1c1c"}`,borderRadius:8,padding:"14px 16px",cursor:"pointer",transition:"all 0.2s"}}>
+style={{background:expanded?"var(--border-faint)":"var(--surface)",border:`1px solid ${expanded?outlook.color+"55":"var(--border)"}`,borderRadius:8,padding:"14px 16px",cursor:"pointer",transition:"all 0.2s"}}>
 <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
   <div style={{flex:1,minWidth:0}}>
     <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:3}}>
@@ -3750,7 +3750,7 @@ return(
       <div style={{display:"flex",justifyContent:"space-between",fontSize:9,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",marginBottom:4}}>
         <span>◀ DE-RISK</span><span>NEUTRAL</span><span>ADD RISK ▶</span>
       </div>
-      <div style={{position:"relative",height:18,background:"linear-gradient(to right, var(--red)22 0%, var(--red)11 25%, var(--border) 50%, var(--green)11 75%, var(--green)22 100%)",borderRadius:3,overflow:"hidden"}}>
+      <div style={{position:"relative",height:18,background:"linear-gradient(to right, color-mix(in srgb, var(--red) 13%, transparent) 0%, color-mix(in srgb, var(--red) 7%, transparent) 25%, var(--border) 50%, color-mix(in srgb, var(--green) 7%, transparent) 75%, color-mix(in srgb, var(--green) 13%, transparent) 100%)",borderRadius:3,overflow:"hidden"}}>
         {/* Marker for tactical */}
         <div title={`Tactical ${NEAR_COMP_LAB.toFixed(2)}`} style={{position:"absolute",top:0,bottom:0,left:`calc(${Math.max(2,Math.min(98,50-NEAR_COMP_LAB*25))}% - 2px)`,width:4,background:NEAR_BUCKET.color,borderRadius:2,boxShadow:"0 0 4px rgba(0,0,0,0.2)"}}/>
         {/* Marker for strategic */}
@@ -3820,7 +3820,7 @@ return(
           {/* Top contributors — visual chips */}
           <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
             {t.movers.map(m=>(
-              <span key={m.id} style={{fontSize:10,fontFamily:"monospace",padding:"2px 6px",borderRadius:2,background:m.contrib>=0?"var(--red)15":"var(--green)15",color:m.contrib>=0?"var(--red)":"var(--green)",border:`1px solid ${m.contrib>=0?"var(--red)55":"var(--green)55"}`}}>
+              <span key={m.id} style={{fontSize:10,fontFamily:"monospace",padding:"2px 6px",borderRadius:2,background:m.contrib>=0?"color-mix(in srgb, var(--red) 8%, transparent)":"color-mix(in srgb, var(--green) 8%, transparent)",color:m.contrib>=0?"var(--red)":"var(--green)",border:`1px solid ${m.contrib>=0?"color-mix(in srgb, var(--red) 33%, transparent)":"color-mix(in srgb, var(--green) 33%, transparent)"}`}}>
                 {m.label} {m.contrib>=0?"+":""}{m.contrib.toFixed(2)}
               </span>
             ))}
@@ -3916,7 +3916,7 @@ return(
         return(
           <button key={s.id} onClick={()=>setScenarioId(isSel?null:s.id)}
             style={{padding:"6px 12px",fontSize:11,fontFamily:"monospace",letterSpacing:"0.05em",
-              background:isSel?"var(--red)20":"var(--surface-2)",
+              background:isSel?"color-mix(in srgb, var(--red) 12%, transparent)":"var(--surface-2)",
               color:isSel?"var(--red)":"var(--text)",
               border:`1px solid ${isSel?"var(--red)":"var(--border)"}`,
               borderRadius:3,cursor:"pointer",fontWeight:isSel?700:400}}>
@@ -4022,7 +4022,7 @@ return(
         </div>
 
         {/* ROW 3: PORTFOLIO $ impact */}
-        <div style={{background:stressOut.portfolioUSD>=0?"var(--green)15":"var(--red)15",border:`2px solid ${stressOut.portfolioUSD>=0?"var(--green)":"var(--red)"}`,borderRadius:6,padding:"14px 16px"}}>
+        <div style={{background:stressOut.portfolioUSD>=0?"color-mix(in srgb, var(--green) 8%, transparent)":"color-mix(in srgb, var(--red) 8%, transparent)",border:`2px solid ${stressOut.portfolioUSD>=0?"var(--green)":"var(--red)"}`,borderRadius:6,padding:"14px 16px"}}>
           <div style={{fontSize:10,color:"var(--text-dim)",fontFamily:"monospace",letterSpacing:"0.12em",fontWeight:700,marginBottom:6}}>
             STEP 3 · IMPACT ON YOUR PORTFOLIO (at S&P sector weights)
           </div>
@@ -4411,7 +4411,7 @@ return(
 {generatedAt&&<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"monospace",marginTop:4}}>📅 Generated {generatedAt}</div>}
 </div>
 <button onClick={generate} disabled={loading}
-style={{padding:"8px 20px",borderRadius:4,border:`1px solid ${loading?"#333":CONV.color}`,background:loading?"var(--border-faint)":CONV.color+"20",color:loading?"var(--text)":CONV.color,cursor:loading?"not-allowed":"pointer",fontSize:12,fontFamily:"monospace",fontWeight:700,minWidth:160}}>
+style={{padding:"8px 20px",borderRadius:4,border:`1px solid ${loading?"var(--border)":CONV.color}`,background:loading?"var(--border-faint)":CONV.color+"20",color:loading?"var(--text)":CONV.color,cursor:loading?"not-allowed":"pointer",fontSize:12,fontFamily:"monospace",fontWeight:700,minWidth:160}}>
 {loading?"⟳ GENERATING...":"▶ GENERATE ANALYSIS"}
 </button>
 </div>
@@ -4434,7 +4434,7 @@ return(
 </div>
 
 {error&&(
-<div style={{padding:"10px 14px",background:"var(--red)10",border:"1px solid var(--red)33",borderRadius:4,marginBottom:12}}>
+<div style={{padding:"10px 14px",background:"color-mix(in srgb, var(--red) 6%, transparent)",border:"1px solid color-mix(in srgb, var(--red) 20%, transparent)",borderRadius:4,marginBottom:12}}>
 <div style={{fontSize:12,color:"var(--red)",fontFamily:"monospace"}}>{error}</div>
 </div>
 )}
@@ -4470,7 +4470,7 @@ return(
 {!analysis&&!loading&&!error&&(
 <div style={{padding:"30px 20px",textAlign:"center",borderTop:"1px solid var(--border-faint)"}}>
 <div style={{fontSize:14,color:"var(--text-muted)",fontFamily:"monospace",marginBottom:8}}>Click "Generate Analysis" to get a live narrative</div>
-<div style={{fontSize:12,color:"#9a9a9a",fontFamily:"monospace"}}>Claude will analyze all current indicator readings and write a fresh macro summary</div>
+<div style={{fontSize:12,color:"var(--text-muted)",fontFamily:"monospace"}}>Claude will analyze all current indicator readings and write a fresh macro summary</div>
 </div>
 )}
 </div>
@@ -6692,7 +6692,7 @@ const _wedge = (a0, a1) => {
   return `M ${x0o.toFixed(2)} ${y0o.toFixed(2)} A 140 140 0 0 1 ${x1o.toFixed(2)} ${y1o.toFixed(2)} L ${x1i.toFixed(2)} ${y1i.toFixed(2)} A 90 90 0 0 0 ${x0i.toFixed(2)} ${y0i.toFixed(2)} Z`;
 };
 const [_tipX, _tipY] = _polar(148, _aToday);
-const _bandColor = _topScore >= 75 ? "var(--green)" : _topScore >= 50 ? "var(--gold, #a87c1f)" : "var(--text-muted)";
+const _bandColor = _topScore >= 75 ? "var(--green)" : _topScore >= 50 ? "var(--yellow-text)" : "var(--text-muted)";
 const _startDeg = -(180 - _aToday);
 return(<>
 {/* Trading Opps hero — exact MO mirror.

@@ -1243,7 +1243,7 @@ const MO_CSS = `
 .mo-rhist-bar.s1{background:rgba(0,113,227,0.42)}
 .mo-rhist-bar.s2{background:rgba(0,113,227,0.68)}
 .mo-rhist-bar.s3{background:rgba(0,113,227,0.92)}
-.mo-rhist-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0, var(--text, #0e1115));color:#fff;font-size:10.5px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;z-index:8}
+.mo-rhist-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0, var(--text, #0e1115));color:var(--bg);font-size:10.5px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;z-index:8}
 .mo-rhist-bar:hover::after{opacity:1}
 .mo-rhist-fullhist{display:block;margin-top:8px;font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;text-align:right;background:transparent;border:none;padding:0;width:100%}
 .mo-rhist-fullhist:hover{text-decoration:underline}
@@ -1274,7 +1274,7 @@ const MO_CSS = `
 .mo-bar{flex:1;border-radius:2px 2px 0 0;min-height:5px;background:rgba(0,113,227,0.22);position:relative}
 .mo-bar.s2{background:rgba(0,113,227,0.55)}
 .mo-bar.s3{background:rgba(0,113,227,0.85)}
-.mo-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0, var(--text, #0e1115));color:#fff;font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
+.mo-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0, var(--text, #0e1115));color:var(--bg);font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
 
 .mo-cycle{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px}
 .mo-cycle-fresh{position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-3);font-weight:500}
@@ -1346,7 +1346,7 @@ const MO_CSS = `
 .mo-regime-fullhist .rh-bar.r1{background:rgba(0,113,227,0.42);height:50%}
 .mo-regime-fullhist .rh-bar.r2{background:rgba(0,113,227,0.68);height:75%}
 .mo-regime-fullhist .rh-bar.r3{background:rgba(0,113,227,0.92);height:100%}
-.mo-regime-fullhist .rh-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0, var(--text, #0e1115));color:#fff;font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
+.mo-regime-fullhist .rh-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0, var(--text, #0e1115));color:var(--bg);font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
 .mo-regime-fullhist-axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-3);margin-top:4px}
 .mo-regime-fullhist-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
 .mo-regime-fullhist-summary .cell{padding:10px 12px;background:var(--surface-2);border:0.5px solid var(--border-faint);border-radius:8px}

@@ -163,7 +163,7 @@ export default function TradeHistorySection({ rows, loading, accounts }) {
   const sectionPanel = { background: "var(--surface)", border: "1px solid var(--border-faint)", borderRadius: 8, marginBottom: 12, overflow: "hidden" };
   const sectionHeader = { padding: "10px 14px", borderBottom: "1px solid var(--border-faint)", background: "var(--surface-2)", display: "flex", justifyContent: "space-between", alignItems: "center" };
   const sectionTitleStyle = { fontSize: 11, color: "var(--text)", fontFamily: "var(--font-mono)", letterSpacing: "0.15em", fontWeight: 700 };
-  const ACCENT = "#4a6fa5";
+  const ACCENT = "var(--accent)";
 
   const closeCount = useMemo(() => (rows || []).filter(r => r.realizedPnl != null).length, [rows]);
 

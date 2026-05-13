@@ -1639,7 +1639,7 @@ function CycleMechanismScenarioResultsTable({
     const c = Math.round(cur), s = Math.round(str);
     const d = s - c;
     if (d === 0) return <span style={{ color:"var(--text-muted)", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>±0</span>;
-    const tone = d > 0 ? "var(--neg, #b03030)" : "var(--pos, #2a7a4f)";
+    const tone = d > 0 ? "var(--red-text)" : "var(--green-text)";
     const sign = d > 0 ? "+" : "−";
     return <span style={{ color: tone, fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" }}>{sign}{Math.abs(d)}</span>;
   };

@@ -57,7 +57,7 @@ const STAGE_META = {
   approved:          { label: "Approved",           color: "var(--text-muted)", sla_h:  24 },
   merged:            { label: "Merged",             color: "var(--green)", sla_h:   1 },
   deployed:          { label: "Deployed",           color: "#10b981", sla_h:  24 },
-  verified_closed:   { label: "Verified closed",    color: "#6b7280", sla_h: null },
+  verified_closed:   { label: "Verified closed",    color: "var(--text-muted)", sla_h: null },
 };
 
 // Legacy → canonical status mapping (matches AdminBugs.jsx).
@@ -133,7 +133,7 @@ function ownerColor(tone) {
   if (tone === "joe")    return "#B8860B";
   if (tone === "auto")   return "var(--green)";
   if (tone === "info")   return "#60a5fa";
-  return "#6b7280";
+  return "var(--text-muted)";
 }
 
 function etDateTime(iso) {
@@ -235,7 +235,7 @@ export default function WorkflowTimeline({ row, blockers = [] }) {
           Workflow
         </div>
         <div style={{ fontSize: 13, color: "var(--text)", marginTop: 4 }}>
-          Closed as <b style={{ color: "#94a3b8" }}>{normalized.replace("_", " ")}</b>{" "}
+          Closed as <b style={{ color: "var(--text-muted)" }}>{normalized.replace("_", " ")}</b>{" "}
           {row.verified_at || row.resolved_at ? `· ${etDateTime(row.verified_at || row.resolved_at)}` : ""}
         </div>
       </div>

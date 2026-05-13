@@ -110,7 +110,7 @@ const betaColor = (v) =>
   v == null ? "var(--text-dim)"
   : v > 1.5 ? "var(--red)"
   : v > 1.0 ? "var(--yellow)"
-  : v > 0.5 ? "#B8860B" : "var(--green)";
+  : v > 0.5 ? "var(--yellow-text)" : "var(--green)";
 
 function ScoreCell({ score, direction }) {
   const col = score == null ? "var(--text-dim)" : colorForDirection(direction);

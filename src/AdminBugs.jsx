@@ -1070,7 +1070,7 @@ function VerifyShippedPanel({ row }) {
     }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         <span style={{ width: 8, height: 8, borderRadius: 4, background: "#10b981" }} />
-        <div style={{ fontSize: 11, fontFamily: "monospace", color: "#059669", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
+        <div style={{ fontSize: 11, fontFamily: "monospace", color: "var(--green-text)", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>
           Verify before reopening — does what shipped match what you asked for?
         </div>
       </div>
@@ -1088,14 +1088,14 @@ function VerifyShippedPanel({ row }) {
           <div style={{ ...bodyStyle, fontFamily: "monospace", fontSize: 11 }}>
             {prUrl && (
               <div style={{ marginBottom: 4 }}>
-                <a href={prUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#059669", textDecoration: "underline" }}>
+                <a href={prUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--green-text)", textDecoration: "underline" }}>
                   PR #{row.fixed_pr || row.merged_pr}
                 </a>
               </div>
             )}
             {commitUrl && (
               <div style={{ marginBottom: 4 }}>
-                commit <a href={commitUrl} target="_blank" rel="noopener noreferrer" style={{ color: "#059669", textDecoration: "underline" }}>{shortSha}</a>
+                commit <a href={commitUrl} target="_blank" rel="noopener noreferrer" style={{ color: "var(--green-text)", textDecoration: "underline" }}>{shortSha}</a>
               </div>
             )}
             {row.deployed_at && (
