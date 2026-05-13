@@ -13,6 +13,7 @@ import React, { useState, useMemo, useCallback, useEffect } from "react";
 import { useUserPortfolio } from "../hooks/useUserPortfolio";
 import { useSortableTable, SortArrow, sortableHeaderProps } from "../hooks/useSortableTable";
 import { SectorModal, IGModal } from "./AssetAllocation";
+import PageHero from "../v2/components/PageHero";
 
 // ════════════════════════════════════════════════════════════════════════
 // REAL ENGINE OUTPUT — Sprint 2: precomputed stressed allocations
@@ -1006,27 +1007,30 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
       <main className="scenarios-page" style={{ maxWidth: 1216, margin: "0 auto", padding: "24px 32px 48px" }}>
         {/* HERO — eyebrow + h1 + subtitle on left, Scenario Selection card on right.
             Matches MO/AT/TO hero spec (PR #483). */}
-        <section style={{ display:"grid", gridTemplateColumns:"1fr 340px", gap:24, alignItems:"start", marginBottom:14 }}>
-          <div style={{ minWidth:0 }}>
-            <div style={_eyebrow}>Scenario Analysis</div>
-            <h1 style={_h1}>
-              See how your portfolio, and Macro Tilt&apos;s engines react under stress &ndash; run custom <em style={_emItalic}>multi-factor shocks</em> or use our <em style={_emItalic}>historical scenarios</em>.
-            </h1>
-          </div>
-          <aside style={_rightCard}>
-            <div style={_cardEyebrow}>Scenario Selection</div>
-            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
-              {Object.entries(SCENARIO_SHORT).map(([id, short]) => (
-                <button key={id} onClick={() => { onModeChange("canned"); onScenarioClick(id); }} style={_scenBtn(mode==="canned" && scenario===id)}>
-                  {short}
-                </button>
-              ))}
-            </div>
-            <button onClick={() => onModeChange("bespoke")} style={_customBtn(mode==="bespoke")}>
-              Custom Multi-Factor Shock
-            </button>
-          </aside>
-        </section>
+        <PageHero
+          eyebrow="Scenario Analysis"
+          title={<>See how your portfolio and MacroTilt&apos;s engines react under stress &ndash; run custom <em>multi-factor shocks</em> or use our <em>historical scenarios</em>.</>}
+          bullets={[
+            "8 canned historical scenarios",
+            "Custom multi-factor hypothetical shocks (realistic and bespoke)",
+            "Ability to change shock horizon",
+          ]}
+          right={
+            <aside style={_rightCard}>
+              <div style={_cardEyebrow}>Scenario Selection</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:6 }}>
+                {Object.entries(SCENARIO_SHORT).map(([id, short]) => (
+                  <button key={id} onClick={() => { onModeChange("canned"); onScenarioClick(id); }} style={_scenBtn(mode==="canned" && scenario===id)}>
+                    {short}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => onModeChange("bespoke")} style={_customBtn(mode==="bespoke")}>
+                Custom Multi-Factor Shock
+              </button>
+            </aside>
+          }
+        />
 
         {/* Bespoke shock builder — always rendered but collapsible.
             Click the chevron to hide the 12 sliders when not in use. */}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback, useRef, Fragment } fr
 import Scanner from "./Scanner";
 import useV5TopScans from "./hooks/useV5TopScans";
 import MacroOverviewPageV2 from "./v2/pages/MacroOverviewPage";
+import PageHero from "./v2/components/PageHero";
 import HomePageV2 from "./v2/pages/HomePage";
 import IndicatorsPageV2 from "./v2/pages/IndicatorsPage";
 import AssetTiltPageV2 from "./v2/pages/AssetTiltPage";
@@ -5902,51 +5903,15 @@ return(
 
       return (<>
         {/* ── WELCOME HERO ── */}
-        <div className="mt-home-hero" style={{
-          display:"grid",
-          gridTemplateColumns:"minmax(0, 1.25fr) minmax(0, 1fr)",
-          gap:"var(--space-7)",
-          alignItems:"end",
-          padding:"var(--space-3) 0 var(--space-5)",
-          borderBottom:"1px solid var(--border-faint)",
-          position:"relative",
-          overflow:"hidden",
-        }}>
-          {/* Ambient orbital arcs — Option A spec, static (no animation, accessible by default). */}
-          <div aria-hidden="true" style={{
-            position:"absolute",
-            right:-180, top:"50%", transform:"translateY(-50%)",
-            width:580, height:580,
-            opacity:0.10,
-            pointerEvents:"none",
-            zIndex:0,
-          }}>
-            <svg viewBox="-200 -200 400 400" style={{width:"100%", height:"100%"}}>
-              <circle r="80"  fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
-              <circle r="120" fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
-              <circle r="160" fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
-              <circle r="200" fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
-              <circle r="240" fill="none" stroke="var(--text-muted)" strokeWidth="0.5"/>
-            </svg>
-          </div>
-          <div style={{position:"relative", zIndex:1}}>
-            <div style={{
-              fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600,
-              color:"var(--text-muted)", letterSpacing:"0.10em", textTransform:"uppercase",
-              marginBottom:14,
-            }}>
-              MacroTilt
-            </div>
-            <h1 style={{
-              fontFamily:"var(--font-display)", fontWeight:400,
-              fontSize:"clamp(28px, 3.4vw, 38px)",
-              lineHeight:1.18, letterSpacing:"-0.012em",
-              color:"var(--text)", margin:0, marginBottom:0,
-            }}>
-              Purpose-built tools designed to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat benchmarks</em> on a risk-adjusted basis using <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>discipline, not instinct.</em>
-            </h1>
-          </div>
-        </div>
+        <PageHero
+          eyebrow="MacroTilt"
+          title={<>Purpose-built tools designed to <em>beat benchmarks</em> on a risk-adjusted basis using <em>discipline, not instinct.</em></>}
+          bullets={[
+            <><strong style={{color:"var(--text)",fontWeight:600}}>Macro Overview:</strong> today&rsquo;s macro backdrop &mdash; risk on or off?</>,
+            <><strong style={{color:"var(--text)",fontWeight:600}}>Asset Tilt:</strong> sector-specific asset allocation recommendations</>,
+            <><strong style={{color:"var(--text)",fontWeight:600}}>Equity Scanner:</strong> name-specific ideas</>,
+          ]}
+        />
 
         {/* ORIENTATION TILES retired 2026-05-07 — the left nav already
             lists Macro Overview / Asset Tilt / Trading Opportunities, so
@@ -6468,22 +6433,32 @@ return(
   const _cycleCount = Object.keys(IND||{}).filter(id => SIGNAL_LAYER_BY_ID[id] === "Cycle composite").length;
   const _refCount   = _indCount - _volCount - _cycleCount;
   const _catCount = Object.keys(CATS||{}).length;
-  return <div style={{maxWidth:1200,margin:"0 auto",padding:"0 20px"}}><RichHero
-    eyebrow="All Indicators"
-    headline={"Every signal "}
-    italicAccent={"the model reads."}
-    italicSub={"Sourced live from the data registry."}
-    stance={`${_indCount} INDICATORS`}
-    stanceColor="strong"
-    freshLine={"Auto-refresh · last poll <6 min ago"}
-    lead={<>Every indicator MacroTilt tracks — the <strong style={{fontWeight:600,color:"var(--text)"}}>three volatility triggers</strong> and <strong style={{fontWeight:600,color:"var(--text)"}}>seven cycle composite indicators</strong> that produce the Signal Intelligence regime read, plus reference series tracked for context. Click any row for source, formula, current reading, and meaning. Filter by layer or category at the top.</>}
-    kpis={[
-      {lbl:"Indicators",       v:_indCount,   sub:"total tracked"},
-      {lbl:"Vol triggers",     v:_volCount,   col:"var(--accent)",     sub:"Layer 1 of Signal Intelligence"},
-      {lbl:"Cycle composite",  v:_cycleCount, col:"var(--green-text)", sub:`feed Layer 2 · ${_refCount} reference-only`},
-      {lbl:"Categories",       v:_catCount,   sub:"Equity & Vol, Credit, Rates…"},
-    ]}
-  /></div>;
+  return (
+    <PageHero
+      eyebrow="All Indicators"
+      title={<>Every indicator tracked on MacroTilt.com &mdash; what it is, why and how it&rsquo;s used.</>}
+      bullets={[
+        "Sourced live from our data registry",
+        "Leading, lagging, and coincidental indicators",
+      ]}
+      right={
+        <aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"14px 18px",display:"flex",flexDirection:"column",gap:10,textAlign:"right"}}>
+          <div style={{fontFamily:"var(--font-mono)",fontSize:11,letterSpacing:"0.08em",textTransform:"uppercase",color:"var(--green-text)",fontWeight:700}}>● {_indCount} INDICATORS</div>
+          <div style={{fontFamily:"var(--font-ui)",fontSize:11,color:"var(--text-muted)"}}>Auto-refresh &middot; last poll &lt;6 min ago</div>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginTop:6,textAlign:"left"}}>
+            <div style={{padding:"8px 10px",background:"var(--surface-2)",border:"0.5px solid var(--border-faint)",borderRadius:8}}>
+              <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-muted)",fontWeight:600}}>Vol triggers</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--accent)"}}>{_volCount}</div>
+            </div>
+            <div style={{padding:"8px 10px",background:"var(--surface-2)",border:"0.5px solid var(--border-faint)",borderRadius:8}}>
+              <div style={{fontSize:9,letterSpacing:"0.14em",textTransform:"uppercase",color:"var(--text-muted)",fontWeight:600}}>Cycle composite</div>
+              <div style={{fontFamily:"var(--font-mono)",fontSize:18,fontWeight:700,color:"var(--green-text)"}}>{_cycleCount}</div>
+            </div>
+          </div>
+        </aside>
+      }
+    />
+  );
 })()}
 {tab==="indicators"&&(<AllIndicatorsTable deeplinkId={indicatorDeeplink} onDeeplinkConsumed={()=>setIndicatorDeeplink(null)}/>)}
 
@@ -6606,19 +6581,14 @@ return(
     {lbl:"Portfolio Sharpe", v:_sharpeStr, sub:`S&P ${_spySharpeStr}`},
   ];
   return (
-    <section style={{display:"grid",gridTemplateColumns:"1fr 360px",gap:36,alignItems:"start",marginBottom:32}}>
-      <div style={{minWidth:0}}>
-        <div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",marginBottom:14,display:"flex",alignItems:"center",gap:10}}>
-          Portfolio Insights
-          <FreshnessDot indicatorId="portfolio_history" asOfIso={_latestDate}/>
-        </div>
-        <h1 style={{fontFamily:"var(--font-display)",fontWeight:400,fontSize:"clamp(28px, 3.4vw, 38px)",lineHeight:1.18,letterSpacing:"-0.012em",color:"var(--text)",margin:"0 0 12px"}}>
-          Your portfolio and watchlist &ndash; <em style={{fontStyle:"italic",color:"var(--accent)",fontWeight:500}}>augmented with MacroTilt&rsquo;s signal intelligence.</em>
-        </h1>
-        <p style={{fontFamily:"var(--font-ui)",fontSize:16,color:"var(--text-2)",lineHeight:1.55,margin:"10px 0 0",maxWidth:720}}>
-          {_acctCount} account{_acctCount===1?"":"s"} &middot; {heldPositions.length} open position{heldPositions.length===1?"":"s"} &middot; synced daily. Time-weighted returns, position-level alerts, and the same scanner signals you see on Trading Opps applied to every name you own.
-        </p>
-      </div>
+    <PageHero
+      eyebrow={<span style={{display:"inline-flex",alignItems:"center",gap:10}}>Portfolio Insights <FreshnessDot indicatorId="portfolio_history" asOfIso={_latestDate}/></span>}
+      title={<>Your portfolio and watchlist &ndash; <em>augmented with MacroTilt&rsquo;s signal intelligence.</em></>}
+      bullets={[
+        "Time-weighted performance, and position-level alerts",
+        "The same MacroTilt Score you see on Trading Opportunities applied to your positions",
+      ]}
+      right={
       <aside style={{background:"var(--surface)",border:"1px solid var(--border)",borderRadius:12,padding:"18px 20px 16px"}}>
         <div style={{fontFamily:"var(--font-ui)",fontSize:11,fontWeight:600,color:"var(--text-muted)",letterSpacing:"0.10em",textTransform:"uppercase",textAlign:"center",marginBottom:12}}>
           Key Statistics <span style={{color:"var(--text-dim)"}}>vs. S&amp;P 500</span>
@@ -6633,7 +6603,9 @@ return(
           ))}
         </div>
       </aside>
-    </section>
+      }
+    />
+  
   );
 })()}
 {showTrading&&(()=>{
