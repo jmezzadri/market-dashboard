@@ -523,14 +523,29 @@ export default function MacroOverviewPage() {
       return { date: d, label: computeRegime(stages, histCycle), stages, cycle: histCycle };
     });
 
-    return { anchors, cycleInd, cycleScore, cycleQuintile: quintile(cycleScore), regime, regimeHistory, fullRegime };
+    // SPX series for the backtested regime history modal (Option A: SPX line + regime bands).
+    // We rasterize the daily SPX to one point per week (Friday close) so the chart is 
+    // aligned with the weekly fullRegime data. Falls back gracefully if spx is missing.
+    let spxWeekly = [];
+    if (indHist.spx && indHist.spx.points && indHist.spx.points.length) {
+      const byWeek = {};
+      for (const [ds, val] of indHist.spx.points) {
+        if (val == null || isNaN(val)) continue;
+        const dObj = new Date(ds);
+        const dow = dObj.getUTCDay();
+        const fri = new Date(dObj); fri.setUTCDate(dObj.getUTCDate() + ((4 - dow + 7) % 7));
+        byWeek[fri.toISOString().slice(0, 10)] = val;
+      }
+      spxWeekly = Object.entries(byWeek).sort().map(([d, v]) => [d, v]);
+    }
+    return { anchors, cycleInd, cycleScore, cycleQuintile: quintile(cycleScore), regime, regimeHistory, fullRegime, spxWeekly };
   }, [indHist]);
 
   if (!data) {
     return <div className="mo-page" style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>Loading macro data…</div>;
   }
 
-  const { anchors, cycleInd, cycleScore, regime, regimeHistory, fullRegime } = data;
+  const { anchors, cycleInd, cycleScore, regime, regimeHistory, fullRegime, spxWeekly } = data;
 
   const openTrigger = (id) => setModal({ open: true, kind: 'trigger', payload: id });
   const openIndicator = (id, parent) => { if (parent) modalStackRef.current.push(parent); setModal({ open: true, kind: 'indicator', payload: id }); };
@@ -680,7 +695,7 @@ export default function MacroOverviewPage() {
             {modal.kind === 'trigger' && <TriggerModalContent anchor={anchors.find(x => x.id === modal.payload)} indHist={indHist} />}
             {modal.kind === 'indicator' && <IndicatorModalContent ind={cycleInd.find(x => x.id === modal.payload)} indHist={indHist} />}
             {modal.kind === 'score' && <ScoreModalContent cycleInd={cycleInd} cycleScore={cycleScore} onDrill={(id) => openIndicator(id, { kind: 'score', payload: null, open: true })} />}
-            {modal.kind === 'regimeHistory' && <RegimeHistoryModalContent fullRegime={fullRegime} filterState={modal.payload} />}
+            {modal.kind === 'regimeHistory' && <RegimeHistoryModalContent fullRegime={fullRegime} spxWeekly={spxWeekly} filterState={modal.payload} />}
           </div>
         </div>
       )}
@@ -1106,31 +1121,123 @@ function ScoreModalContent({ cycleInd, cycleScore, onDrill }) {
 }
 
 // ── Full backtested regime history modal ─────────────────────────────
-function RegimeHistoryModalContent({ fullRegime, filterState }) {
-  // Heatmap-style strip — color-only regime encoding, full-height bars.
-  // Tooltip is an HTML overlay (position:absolute) so it follows the mouse
-  // properly in both X and Y, instead of being pinned inside the SVG.
-  const [hover, setHover] = useState(null); // { idx, x, y }
+function RegimeHistoryModalContent({ fullRegime, spxWeekly, filterState }) {
+  // Option A: SPX line on log scale with regime states drawn as vertical
+  // shaded bands behind the line. Federal-Reserve-style recession-bars
+  // pattern, the institutional standard for regime-indicator validation.
+  // Tooltip is an HTML overlay so it follows the mouse properly.
+  const [hover, setHover] = useState(null); // { idx, x, y, w }
   const containerRef = useRef(null);
   const total = fullRegime.length;
   const filtered = filterState ? fullRegime.filter(x => x.label === filterState) : fullRegime;
   const counts = REGIME_ORDER.map(r => ({ r, n: fullRegime.filter(x => x.label === r).length }));
   const pct = (n) => Math.round((n / total) * 100 * 10) / 10;
 
-  // viewBox: 1 unit = 1 week wide; height arbitrary (stretches via preserveAspectRatio="none")
-  const STRIP_H_PX = 120;
+  // Build merged series — fullRegime drives the X axis; pair each week with
+  // the nearest SPX value (forward-fill from spxWeekly).
+  const merged = useMemo(() => {
+    const spxMap = {};
+    for (const [d, v] of (spxWeekly || [])) spxMap[d] = v;
+    let lastSpx = null;
+    return fullRegime.map(r => {
+      const v = spxMap[r.date];
+      if (v != null) lastSpx = v;
+      return { date: r.date, label: r.label, spx: lastSpx };
+    });
+  }, [fullRegime, spxWeekly]);
+
+  const haveSpx = merged.some(m => m.spx != null);
+  const N = merged.length;
+
+  // viewBox + scaling
+  const W = 1200, H = 440, padL = 60, padR = 24, padT = 44, padB = 38;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+  // Log-scale Y on SPX values that exist
+  const spxVals = merged.map(m => m.spx).filter(v => v != null && v > 0);
+  const spxLogMin = spxVals.length ? Math.log(Math.min(...spxVals) * 0.85) : 0;
+  const spxLogMax = spxVals.length ? Math.log(Math.max(...spxVals) * 1.15) : 1;
+  const xFor = (i) => padL + (i / Math.max(1, N - 1)) * innerW;
+  const yFor = (v) => padT + innerH - ((Math.log(v) - spxLogMin) / (spxLogMax - spxLogMin)) * innerH;
+
+  // Regime band colors (lower alpha than the standalone strip — they sit behind the line)
+  const bandColor = (lbl) =>
+    lbl === 'Risk On'    ? 'rgba(0,113,227,0.08)' :
+    lbl === 'Neutral'    ? 'rgba(0,113,227,0.20)' :
+    lbl === 'Cautionary' ? 'rgba(0,113,227,0.45)' :
+                            'rgba(10,37,64,0.65)';
+
+  // Build contiguous regime runs for band rects
+  const bands = [];
+  if (N > 0) {
+    let s = 0;
+    for (let i = 1; i <= N; i++) {
+      if (i === N || merged[i].label !== merged[s].label) {
+        bands.push({ from: s, to: i - 1, label: merged[s].label });
+        s = i;
+      }
+    }
+  }
+
+  // Year ticks (every 5 years)
+  const yearTicks = [];
+  const seenYr = new Set();
+  for (let i = 0; i < N; i++) {
+    const yr = parseInt(merged[i].date.slice(0, 4), 10);
+    if (yr % 5 === 0 && !seenYr.has(yr)) { seenYr.add(yr); yearTicks.push({ x: xFor(i), yr }); }
+  }
+
+  // Y gridlines + labels — nice log ticks
+  const yGrids = [];
+  if (haveSpx) {
+    for (const v of [250, 500, 1000, 2000, 4000, 6000]) {
+      if (v >= Math.exp(spxLogMin) && v <= Math.exp(spxLogMax)) {
+        yGrids.push({ v, y: yFor(v) });
+      }
+    }
+  }
+
+  // Major event annotations
+  const EVENTS = [
+    { date: '1998-10-09', label: 'LTCM' },
+    { date: '2001-09-14', label: '9/11' },
+    { date: '2008-09-19', label: 'Lehman' },
+    { date: '2011-08-12', label: 'EU debt' },
+    { date: '2020-03-23', label: 'COVID' },
+    { date: '2022-06-17', label: 'Fed pivot' },
+  ];
+  const findIdx = (iso) => {
+    for (let i = 0; i < N; i++) if (merged[i].date >= iso) return i;
+    return -1;
+  };
+
+  // Build SPX path
+  let spxPath = '';
+  let lastValid = false;
+  for (let i = 0; i < N; i++) {
+    const v = merged[i].spx;
+    if (v == null || v <= 0) { lastValid = false; continue; }
+    spxPath += (lastValid ? 'L ' : 'M ') + xFor(i).toFixed(1) + ',' + yFor(v).toFixed(1) + ' ';
+    lastValid = true;
+  }
 
   const handleMove = (e) => {
-    if (!containerRef.current || !total) return;
+    if (!containerRef.current || !N) return;
     const r = containerRef.current.getBoundingClientRect();
     const xPx = e.clientX - r.left;
     const yPx = e.clientY - r.top;
     if (xPx < 0 || xPx > r.width) { setHover(null); return; }
-    const idx = Math.max(0, Math.min(total - 1, Math.floor((xPx / r.width) * total)));
+    // Map xPx → SVG x in viewBox space
+    const xView = (xPx / r.width) * W;
+    if (xView < padL || xView > W - padR) { setHover(null); return; }
+    const frac = (xView - padL) / innerW;
+    const idx = Math.max(0, Math.min(N - 1, Math.round(frac * (N - 1))));
     setHover({ idx, x: xPx, y: yPx, w: r.width });
   };
   const handleLeave = () => setHover(null);
-  const hovered = hover != null ? fullRegime[hover.idx] : null;
+  const hovered = hover != null ? merged[hover.idx] : null;
+  const hoveredCx = hover != null ? xFor(hover.idx) : null;
+  const hoveredCy = (hovered && hovered.spx != null) ? yFor(hovered.spx) : null;
 
   return (
     <>
@@ -1144,55 +1251,89 @@ function RegimeHistoryModalContent({ fullRegime, filterState }) {
       </div>
       <p className="mo-body-14">
         {filterState
-          ? <>Every week the regime was <strong>{filterState}</strong> across the full backtested period. Hover the strip for the date.</>
-          : <>Weekly regime state across the full backtested period. Color encodes regime (light = Risk On, dark = Risk Off). Hover the strip for the date.</>}
+          ? <>Every week the regime was <strong>{filterState}</strong>, drawn as shaded bands behind the S&P 500. Hover anywhere for date · regime · index level.</>
+          : <>Weekly regime states shown as vertical shaded bands behind the S&amp;P 500 line. Risk Off periods should cluster around real market crashes — the visual sniff test for whether the framework worked. Hover for date · regime · index level.</>}
       </p>
       <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">{filterState ? `Weeks where regime = "${filterState}"` : 'Full regime history'}</div>
+        <div className="mo-modal-block-eyebrow">{filterState ? `S&P 500 · regime = "${filterState}"` : 'S&P 500 with regime backdrop · 1986 – today'}</div>
         <div ref={containerRef} onMouseMove={handleMove} onMouseLeave={handleLeave}
-             style={{position:'relative', height:STRIP_H_PX, background:'var(--surface-2)', borderRadius:8, overflow:'hidden', cursor:'crosshair'}}>
-          <svg viewBox={`0 0 ${total || 1} 100`} preserveAspectRatio="none"
-               style={{width:'100%', height:'100%', display:'block'}}>
-            {fullRegime.map((wRec, i) => {
-              const lvl = REGIME_ORDER.indexOf(wRec.label);
-              const dim = filterState && wRec.label !== filterState;
-              // Risk On / Neutral / Cautionary scale alpha on Apple Blue.
-              // Risk Off jumps to a genuinely darker hue (navy) so the visual
-              // separation from Cautionary is unmistakable.
-              const fill = lvl === 0 ? 'rgba(0,113,227,0.20)'
-                         : lvl === 1 ? 'rgba(0,113,227,0.50)'
-                         : lvl === 2 ? 'rgba(0,113,227,0.95)'
-                         :             '#0a2540';
-              return <rect key={i} x={i} y={0} width={1.02} height={100} fill={fill} opacity={dim ? 0.18 : 1}/>;
+             style={{position:'relative', height:440, background:'var(--surface-2)', borderRadius:8, overflow:'hidden', cursor:'crosshair'}}>
+          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:'100%', display:'block'}}>
+            {/* Regime shaded bands */}
+            {bands.map((b, bi) => {
+              const dim = filterState && b.label !== filterState;
+              const x = xFor(b.from);
+              const xn = b.to >= N - 1 ? padL + innerW : xFor(b.to + 1);
+              return <rect key={bi} x={x.toFixed(1)} y={padT} width={Math.max(0.5, xn - x).toFixed(1)} height={innerH} fill={bandColor(b.label)} opacity={dim ? 0.20 : 1}/>;
             })}
+            {/* Y gridlines + labels */}
+            {yGrids.map((g, gi) => (
+              <g key={gi}>
+                <line x1={padL} y1={g.y.toFixed(1)} x2={W - padR} y2={g.y.toFixed(1)} stroke="var(--ink-0)" strokeOpacity="0.10" strokeWidth="0.5" vectorEffect="non-scaling-stroke"/>
+                <text x={padL - 8} y={g.y + 3} fontSize="10" fontFamily="Inter" fill="var(--ink-3)" textAnchor="end">{g.v >= 1000 ? (g.v/1000).toFixed(g.v >= 10000 ? 0 : 1) + 'k' : g.v}</text>
+              </g>
+            ))}
+            {/* Year ticks */}
+            {yearTicks.map((yt, yi) => (
+              <g key={yi}>
+                <line x1={yt.x.toFixed(1)} y1={padT + innerH} x2={yt.x.toFixed(1)} y2={padT + innerH + 4} stroke="var(--ink-3)" strokeWidth="0.5" vectorEffect="non-scaling-stroke"/>
+                <text x={yt.x.toFixed(1)} y={padT + innerH + 18} fontSize="10" fontFamily="Inter" fill="var(--ink-3)" textAnchor="middle">{yt.yr}</text>
+              </g>
+            ))}
+            {/* Event markers */}
+            {!filterState && EVENTS.map((ev, ei) => {
+              const idx = findIdx(ev.date);
+              if (idx < 0) return null;
+              const ex = xFor(idx);
+              return (
+                <g key={ei}>
+                  <line x1={ex.toFixed(1)} y1={padT} x2={ex.toFixed(1)} y2={padT + innerH} stroke="var(--ink-0)" strokeOpacity="0.35" strokeWidth="0.8" strokeDasharray="2,3" vectorEffect="non-scaling-stroke"/>
+                  <text x={ex.toFixed(1)} y={padT - 8} fontSize="10" fontFamily="Inter" fill="var(--ink-1)" fontWeight="600" textAnchor="middle">{ev.label}</text>
+                </g>
+              );
+            })}
+            {/* SPX line */}
+            {haveSpx && <path d={spxPath} fill="none" stroke="var(--accent)" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>}
+            {/* Title text inside */}
+            <text x={padL} y="22" fontSize="13" fontWeight="700" fill="var(--ink-0)" fontFamily="Inter">S&amp;P 500 · log scale</text>
+            <text x={padL} y="36" fontSize="11" fill="var(--ink-2)" fontFamily="Inter">Background bands = weekly regime state · {N.toLocaleString()} weeks total</text>
+            {/* Hover cursor */}
             {hover != null && (
-              <line x1={hover.idx + 0.5} y1={0} x2={hover.idx + 0.5} y2={100}
-                    stroke="var(--text)" strokeOpacity="0.7" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>
+              <line x1={hoveredCx.toFixed(1)} y1={padT} x2={hoveredCx.toFixed(1)} y2={padT + innerH} stroke="var(--ink-0)" strokeWidth="1" strokeOpacity="0.6" vectorEffect="non-scaling-stroke"/>
+            )}
+            {hover != null && hoveredCy != null && (
+              <circle cx={hoveredCx.toFixed(1)} cy={hoveredCy.toFixed(1)} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>
             )}
           </svg>
           {hovered != null && hover != null && (
             <div style={{
               position:'absolute',
-              left: Math.min(Math.max(hover.x + 12, 8), (hover.w || 0) - 200),
-              top: Math.max(hover.y - 36, 8),
+              left: Math.min(Math.max(hover.x + 12, 8), (hover.w || 0) - 220),
+              top: Math.max(hover.y - 50, 8),
               background:'var(--ink-0, var(--text, #0e1115))',
               color:'var(--bg, #ffffff)',
-              padding:'5px 10px', borderRadius:4,
+              padding:'6px 10px', borderRadius:4,
               fontSize:11, fontWeight:600,
               fontFamily:'Inter',
               pointerEvents:'none',
               whiteSpace:'nowrap',
-              boxShadow:'0 2px 8px rgba(0,0,0,0.18)',
-            }}>{fmtMonthYear(hovered.date)} · {hovered.label}</div>
+              boxShadow:'0 4px 12px rgba(0,0,0,0.20)',
+              lineHeight:1.5,
+            }}>
+              {fmtMonthYear(hovered.date)} · {hovered.label}
+              {hovered.spx != null && <><br/>SPX {Math.round(hovered.spx).toLocaleString()}</>}
+            </div>
           )}
         </div>
+        {/* Year axis under the chart */}
         <div className="mo-regime-fullhist-axis">
-          <span>{fullRegime[0]?.date?.slice(0,4) || '1996'}</span>
+          <span>{fullRegime[0]?.date?.slice(0,4) || ''}</span>
           <span>{fullRegime[Math.floor(fullRegime.length*0.25)]?.date?.slice(0,4) || ''}</span>
           <span>{fullRegime[Math.floor(fullRegime.length*0.5)]?.date?.slice(0,4) || ''}</span>
           <span>{fullRegime[Math.floor(fullRegime.length*0.75)]?.date?.slice(0,4) || ''}</span>
           <span>today</span>
         </div>
+        {/* Summary boxes */}
         <div className="mo-regime-fullhist-summary">
           {counts.map(c => (<div key={c.r} className="cell"><div className="label">{c.r}</div><div className="val">{pct(c.n)}%</div><div className="sub">{c.n} weeks</div></div>))}
         </div>
