@@ -14,6 +14,14 @@ name: V5_PRICES_BACKFILL
 # (ticker, trade_date) PK.
 
 on:
+  # Weekly auto-backfill so any v5-universe ticker that drifts under 60
+  # daily closes (new additions, ADRs that Massive misses, etc.) gets
+  # caught without anyone having to notice. Saturday 8am ET = 12pm UTC
+  # while EDT, 1pm UTC while EST. Markets closed, yfinance unauth +
+  # bulk-friendly. Run is a no-op when nothing is under-covered.
+  schedule:
+    - cron: '0 12 * * 6'  # Sat 8am ET (EDT)
+    - cron: '0 13 * * 6'  # Sat 8am ET (EST)
   workflow_dispatch:
 
 concurrency:
