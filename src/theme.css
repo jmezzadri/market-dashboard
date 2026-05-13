@@ -82,6 +82,23 @@
   --text-muted:    #5e5e63;
   --text-dim:      #98989f;
 
+  /* Aliases — v2 pages use --ink-*/--bg-*/--line-* names. Map them
+     onto the canonical --text / --surface / --border tokens so they
+     flip automatically between light + dark mode. Without these
+     aliases, every var(--ink-N, #hex) call site fell back to a
+     hardcoded light-mode hex, leaving dark-mode text invisible.
+     (2026-05-13.) */
+  --ink-0: var(--text);
+  --ink-1: var(--text-2);
+  --ink-2: var(--text-muted);
+  --ink-3: var(--text-dim);
+  --bg-0:  var(--bg);
+  --bg-1:  var(--surface);
+  --bg-2:  var(--surface-2);
+  --bg-3:  var(--surface-3);
+  --line-0: var(--border-faint);
+  --line-1: var(--border);
+
   /* Brand accent — single deep teal */
   --accent:        #0071e3;
   --accent-soft:   rgba(0,113,227,0.10);
