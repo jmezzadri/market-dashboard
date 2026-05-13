@@ -8,6 +8,7 @@ import { useState, useEffect, useMemo } from "react";
 import FreshnessDot from "../components/FreshnessDot";
 import { InfoTip } from "../InfoTip";
 import MTTable from "../components/MTTable";
+import PageHero from "../v2/components/PageHero";
 
 const STANCE_COLOR = {
   "Risk On":  "var(--green)",
@@ -1237,23 +1238,21 @@ export default function AssetTilt({ onOpenTicker }) {
   const defensivePerBucket = defensiveTotal / DEFENSIVE_BUCKETS.length;
 
   return (
-    <main style={{ maxWidth: 1216, margin: "0 auto", padding: "24px 32px 48px" }}>
+    <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 0 48px" }}>
       {/* HERO — Joe mockup 2026-05-08 v3:
           LEFT (~2/3): eyebrow + h1 + Engine subtitle.
           RIGHT (~1/3): "Key Statistics vs. S&P 500" card with 4 KPI cells. */}
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 36, alignItems: "start", marginBottom: 32 }}>
-        <div>
-          <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, letterSpacing: "0.10em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600, marginBottom: 14 }}>
-            Asset Tilt
-          </div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "clamp(28px, 3.4vw, 38px)", fontWeight: 400, margin: "0 0 12px", letterSpacing: "-0.012em", lineHeight: 1.18, color: "var(--text)" }}>
-            A back-tested model that seeks to <em style={{fontStyle:"italic", color:"var(--accent)", fontWeight:500}}>beat the S&P 500 on a risk-adjusted basis</em> over the long run.
-          </h1>
-          <p style={{ fontFamily: "var(--font-ui)", fontSize: 16, lineHeight: 1.55, color: "var(--text-2)", margin: "10px 0 0", maxWidth: 720, fontWeight: 400 }}>
-            Thousands of back-tested risk factors and macro variables, overlaid with the live <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Cycle Mechanisms</a> readings from Macro Overview, produce a recommended portfolio. Hard rules keep it in the fairway &mdash; e.g., max leverage 150%, max defensive 50%.
-          </p>
-        </div>
-        <aside style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px 14px", display: "flex", flexDirection: "column", textAlign: "center" }}>
+      <PageHero
+        eyebrow="Asset Tilt"
+        title={<>A back-tested <em>asset allocation tool</em> that seeks to beat the S&amp;P 500 on a risk-adjusted basis over the long run.</>}
+        bullets={[
+          "Dozens of macro variables correlated to equity sector-specific risk factors",
+          <>Overlaid with Regime readings from <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Macro Overview</a></>,
+          "Rules to keep allocations in the fairway (e.g., leverage ≤ 150%, defensive ≤ 50%)",
+          "One simple asset allocation recommendation",
+        ]}
+        right={
+<aside style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px 14px", display: "flex", flexDirection: "column", textAlign: "center" }}>
           <div style={{ fontFamily: "var(--font-ui)", fontSize: 10, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.18em", marginBottom: 14 }}>
             Key Statistics vs. S&amp;P 500
           </div>
@@ -1285,9 +1284,9 @@ export default function AssetTilt({ onOpenTicker }) {
             <a href="#methodology" style={{ fontSize: 11, fontWeight: 500, color: "var(--accent)", letterSpacing: "0.04em" }}>Read the full methodology &rarr;</a>
           </div>
         </aside>
-      </section>
-
-
+        }
+      />
+      <div style={{ padding: "0 32px" }}>
       {/* Recommended Allocations — Joe mockup 2026-05-08 v3. Wraps the
           sortable sector table + defensive sleeve + total row in a labeled
           card so the page reads as 3 distinct blocks: hero, allocations,
@@ -1340,6 +1339,7 @@ export default function AssetTilt({ onOpenTicker }) {
       {mechModal && <MechanismModal mechanism={mechModal} onClose={() => setMechModal(null)} />}
       {sectorModal && <SectorModal sector={sectorModal} igs={v10.industry_groups} onClose={() => setSectorModal(null)} onIGClick={(ig) => { setSectorModal(null); setIgModal(ig); }} onEtfClick={(e) => onOpenTicker(e.t || e)} />}
       {igModal && <IGModal ig={igModal} sectorIGs={v10.industry_groups.filter(x => x.sector === igModal.sector)} parentSector={v10.sectors.find(s => s.sector === igModal.sector)} onClose={() => setIgModal(null)} onEtfClick={(e) => onOpenTicker(e.t || e)} onBackToSector={(sector) => { setIgModal(null); setSectorModal(sector); }} onTickerClick={(t) => onOpenTicker(t)} />}
+      </div>
     </main>
   );
 }

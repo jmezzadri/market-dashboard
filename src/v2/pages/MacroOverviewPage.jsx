@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import PageHero from '../components/PageHero';
 
 /**
  * Macro Overview — Signal Intelligence regime read, native React, REAL data.
@@ -518,24 +519,17 @@ export default function MacroOverviewPage() {
         if (!e.target.closest('.mo-rhist-bar') && !e.target.closest('.mo-rhist-panel')) setOpenWeek(null);
       }}>
 
-        {/* HEAD STRIP — hero left, regime right */}
-        <div className="mo-top">
-          <div>
-            <div className="mo-eyebrow">Macro Overview</div>
-            <h1 className="mo-h1">
-              Three volatility <em>triggers</em>, one <em>cycle position</em>, one regime read.
-            </h1>
-            <p className="mo-lede">
-              We describe the tape — we don't predict tops. Combined into one of four states:{' '}
-              <strong>Risk On</strong>, <strong>Neutral</strong>, <strong>Cautionary</strong>, or <strong>Risk Off</strong>.
-            </p>
-            <ul className="mo-bullets">
-              <li><strong>Volatility Triggers</strong> tell us <em>when</em> trouble has arrived.</li>
-              <li><strong>Cycle Positioning</strong> tells us <em>whether</em> that trouble matters yet.</li>
-              <li><strong>Regime</strong> is the rolled-up read across both layers.</li>
-            </ul>
-          </div>
-
+        {/* HEAD STRIP — canonical PageHero (locked 2026-05-13) */}
+        <PageHero
+          eyebrow="Macro Overview"
+          title={<>Three <em>Volatility Signals</em> plus one <em>Cycle Positioning</em> composite provide an intuitive Macro Regime read.</>}
+          bullets={[
+            "Volatility Triggers tell us when trouble has arrived",
+            "Those triggers must persist to be actionable",
+            <>Cycle Composite acts as a confirmation layer &mdash; telling us when to act</>,
+            "Regimes: Risk On, Neutral, Cautionary, or Risk Off",
+          ]}
+          right={
           <aside className="mo-regime">
             <div className="mo-tile-fresh"><span className="fresh-dot"/>{fmtFresh(anchors[0]?.asOf)}</div>
             <h2 className="mo-regime-title">Regime</h2>
@@ -598,8 +592,8 @@ export default function MacroOverviewPage() {
               </div>
             )}
           </aside>
-        </div>
-
+          }
+        />
         {/* THREE VOL TILES */}
         <div className="mo-vol-grid">
           {anchors.map(a => (

@@ -16,6 +16,7 @@
 // Theme parity: every color is a CSS variable. Light + dark both clean.
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, Fragment } from "react";
+import PageHero from "../components/PageHero";
 import { createPortal } from "react-dom";
 import { supabase } from "../../lib/supabase";
 import ScannerTilesStrip from "../../components/ScannerTilesStrip";
@@ -787,34 +788,20 @@ function FunnelCard({ totals, scanDate }) {
 // ─────────────────────────────────────────────────────────────────────────
 
 function Hero({ totals, scanDate }) {
-  // v5.5 (Joe's mockup): single big sentence on the left, summary card on
-  // the right. Phrase uses italic accent on "proprietary signal intelligence"
-  // and on "MacroTilt Score" -- matches the site's existing italic-accent
-  // pattern (Fraunces italic in --accent color).
+  // Canonical PageHero — locked 2026-05-13 (Joe directive — every page
+  // header looks the same).
   return (
-    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "32px 32px 16px" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) 380px", gap: 36, alignItems: "start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-          <h2
-            style={{
-              fontFamily: "var(--font-display, Fraunces, Georgia, serif)",
-              fontSize: 30,
-              fontWeight: 500,
-              letterSpacing: "-0.015em",
-              lineHeight: 1.18,
-              color: "var(--text)",
-              margin: 0,
-            }}
-          >
-            Cutting through the noise with{" "}
-            <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>proprietary signal intelligence</em>
-            {" "}to identify trading opportunities &ndash; six signals rolled into an overall{" "}
-            <em style={{ fontStyle: "italic", color: "var(--accent)", fontWeight: 500 }}>MacroTilt Score</em>.
-          </h2>
-        </div>
-        <FunnelCard totals={totals} scanDate={scanDate} />
-      </div>
-    </div>
+    <PageHero
+      eyebrow="Trading Opportunities"
+      title={<>Cutting through the noise with <em>proprietary signal intelligence</em> to identify trading opportunities &ndash; six signals rolled into an overall <em>MacroTilt Score</em>.</>}
+      bullets={[
+        "Full universe scan of U.S. equities",
+        "Filter out micro and penny stocks",
+        "Apply indicator logic (e.g., Congress, insiders, technicals, options flow, analyst ratings)",
+        "Compute a single MacroTilt Score",
+      ]}
+      right={<FunnelCard totals={totals} scanDate={scanDate} />}
+    />
   );
 }
 
