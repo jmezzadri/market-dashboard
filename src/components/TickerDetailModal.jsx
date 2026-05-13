@@ -790,16 +790,11 @@ function SignalIntelligenceRail({
     // caption above uses. Reads alert counts → premium → ask-side in
     // priority order.
     const sharedCap = captionFor.options(compO);
-    if (callCt === 0 && putCt === 0) {
-      if (sharedCap && sharedCap !== "no unusual flow today") {
-        const uCount = compO ? Number(compO.unusual_count || 0) : 0;
-        const v = sub != null ? fmtSubSimple(sub) : (uCount > 0 ? String(uCount) : "—");
-        return { state: subStateColor(sub), value: v, meta: sharedCap, detail: null };
-      }
-      return { state: "neutral", value: "0", meta: "No unusual options flow events in last scan", detail: null };
-    }
-    const value = sub != null ? fmtSubSimple(sub) : `${callCt}/${putCt}`;
-    const meta = sharedCap || `${callCt} call · ${putCt} put alerts`;
+
+    // ── Detail builder (Joe directive 2026-05-12): every tile opens
+    // with details — the Options tile is no exception. Build the detail
+    // panel from compO + alert events whenever we have any of them, and
+    // attach it to every "we have data" return below.
     const fmtD = d => {
       if (!d) return "";
       const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
@@ -833,20 +828,49 @@ function SignalIntelligenceRail({
         })}
       </div>
     ) : null;
-    const detail = (
+    const callPrem = compO ? Number(compO.call_premium || 0) : 0;
+    const putPrem  = compO ? Number(compO.put_premium  || 0) : 0;
+    const askPrem  = compO ? Number(compO.ask_side_premium || 0) : 0;
+    const bidPrem  = compO ? Number(compO.bid_side_premium || 0) : 0;
+    const unusualN = compO ? Number(compO.unusual_count || 0) : 0;
+    const ratio    = compO ? compO.ratio_log10 : null;
+    const askBias  = compO ? compO.ask_bias : null;
+    const buildDetail = () => (
       <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
         <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{sub != null ? fmtSubSimple(sub) : "—"}</span>
         <span style={{color:"var(--text-muted)"}}>Weight in composite</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{Number.isFinite(Number(w)) ? `${(Number(w)*100).toFixed(1)}%` : "—"}</span>
-        <span style={{color:"var(--text-muted)"}}>Call alerts</span><span style={{textAlign:"right",color:callCt>0?"var(--green-text, var(--green))":"var(--text-2)"}}>{callCt}</span>
-        <span style={{color:"var(--text-muted)"}}>Put alerts</span><span style={{textAlign:"right",color:putCt>0?"var(--red-text, var(--red))":"var(--text-2)"}}>{putCt}</span>
-        {compO?.sweep_count != null && <><span style={{color:"var(--text-muted)"}}>Sweep orders</span><span style={{textAlign:"right"}}>{compO.sweep_count}</span></>}
+        {compO && <>
+          <span style={{color:"var(--text-muted)"}}>Unusual events</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{unusualN}</span>
+          {callPrem > 0 && <><span style={{color:"var(--text-muted)"}}>Call premium</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)",color:"var(--green-text, var(--green))"}}>{fmtMoneyT(callPrem)}</span></>}
+          {putPrem  > 0 && <><span style={{color:"var(--text-muted)"}}>Put premium</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)",color:"var(--red-text, var(--red))"}}>{fmtMoneyT(putPrem)}</span></>}
+          {askPrem  > 0 && <><span style={{color:"var(--text-muted)"}}>Ask-side premium</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{fmtMoneyT(askPrem)}</span></>}
+          {bidPrem  > 0 && <><span style={{color:"var(--text-muted)"}}>Bid-side premium</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{fmtMoneyT(bidPrem)}</span></>}
+          {Number.isFinite(Number(ratio)) && <><span style={{color:"var(--text-muted)"}}>Call/put premium ratio</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>10^{Number(ratio).toFixed(2)}</span></>}
+          {Number.isFinite(Number(askBias)) && <><span style={{color:"var(--text-muted)"}}>Ask-side bias</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{(Number(askBias)*100).toFixed(0)}%</span></>}
+          {compO.sweep_count != null && <><span style={{color:"var(--text-muted)"}}>Sweep orders</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)"}}>{compO.sweep_count}</span></>}
+        </>}
+        <span style={{color:"var(--text-muted)"}}>Call alerts</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)",color:callCt>0?"var(--green-text, var(--green))":"var(--text-2)"}}>{callCt}</span>
+        <span style={{color:"var(--text-muted)"}}>Put alerts</span><span style={{textAlign:"right",fontFamily:"var(--font-mono)",color:putCt>0?"var(--red-text, var(--red))":"var(--text-2)"}}>{putCt}</span>
         {eventList}
         <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
-          Source: Unusual Whales unusual options activity feed.
+          Source: Unusual Whales unusual options activity feed. Score blends unusual-event count, call/put premium ratio, ask-side bias, and sweep order count.
         </span>
       </div>
     );
-    return { state: sub == null ? "neutral" : subStateColor(sub), value, meta, detail };
+
+    if (callCt === 0 && putCt === 0) {
+      if (sharedCap && sharedCap !== "no unusual flow today") {
+        const v = sub != null ? fmtSubSimple(sub) : (unusualN > 0 ? String(unusualN) : "—");
+        return { state: subStateColor(sub), value: v, meta: sharedCap, detail: buildDetail() };
+      }
+      // True quiet — compO exists but everything's zero. Still expose the
+      // detail panel so the user can SEE that everything's zero (instead
+      // of having to take "no flow" on faith).
+      return { state: "neutral", value: "0", meta: "No unusual options flow events in last scan", detail: compO ? buildDetail() : null };
+    }
+    const value = sub != null ? fmtSubSimple(sub) : `${callCt}/${putCt}`;
+    const meta = sharedCap || `${callCt} call · ${putCt} put alerts`;
+    return { state: sub == null ? "neutral" : subStateColor(sub), value, meta, detail: buildDetail() };
   })();
 
   // Analyst Actions -----------------------------------------------------
