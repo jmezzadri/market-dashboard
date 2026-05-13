@@ -1827,13 +1827,17 @@ const SIGNAL_LAYER_BY_ID = {
   move:         "Vol trigger",
   cpff:         "Vol trigger",
   // Layer 2 — seven cycle composite indicators
+  // (each indicator carries the engine id plus the legacy IND-table id where
+  //  they differ, so the chip filter resolves correctly on both surfaces.)
   copper_gold:  "Cycle composite",
-  bkx_spx_v11:  "Cycle composite",
+  bkx_spx:      "Cycle composite",   // legacy IND id (engine uses bkx_spx_v11)
+  bkx_spx_v11:  "Cycle composite",   // engine id
   yield_curve:  "Cycle composite",
   anfci:        "Cycle composite",
-  ic4wsa:       "Cycle composite",
+  jobless:      "Cycle composite",   // legacy IND id (engine uses ic4wsa)
+  ic4wsa:       "Cycle composite",   // engine id
   hy_ig:        "Cycle composite",
-  ig_oas:       "Cycle composite",
+  ig_oas:       "Cycle composite",   // engine id; not yet in legacy IND table
 };
 const LAYER_ORDER = { "Vol trigger": 0, "Cycle composite": 1, "Reference": 2 };
 const LAYER_COLOR = {
@@ -6458,9 +6462,11 @@ return(
 {tab==="indicators" && V2_ENABLED && <V2ErrorBoundary><IndicatorsPageV2 /></V2ErrorBoundary>}
 {tab==="indicators" && !V2_ENABLED && (()=>{
   const _indCount = Object.keys(IND||{}).length;
-  const _volCount = Object.values(SIGNAL_LAYER_BY_ID||{}).filter(l => l === "Vol trigger").length;
-  const _cycleCount = Object.values(SIGNAL_LAYER_BY_ID||{}).filter(l => l === "Cycle composite").length;
-  const _refCount = _indCount - _volCount - _cycleCount;
+  // Count distinct indicators on the page (in IND) for each layer. Aliases in
+  // SIGNAL_LAYER_BY_ID would double-count, so iterate IND keys directly.
+  const _volCount   = Object.keys(IND||{}).filter(id => SIGNAL_LAYER_BY_ID[id] === "Vol trigger").length;
+  const _cycleCount = Object.keys(IND||{}).filter(id => SIGNAL_LAYER_BY_ID[id] === "Cycle composite").length;
+  const _refCount   = _indCount - _volCount - _cycleCount;
   const _catCount = Object.keys(CATS||{}).length;
   return <div style={{maxWidth:1200,margin:"0 auto",padding:"0 20px"}}><RichHero
     eyebrow="All Indicators"
