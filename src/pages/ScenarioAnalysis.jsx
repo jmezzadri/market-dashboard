@@ -1004,7 +1004,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   return (
     <>
       <style dangerouslySetInnerHTML={{ __html: STYLES }} />
-      <main className="scenarios-page" style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 0 48px" }}>
+      <main className="scenarios-page" style={{ maxWidth: 1280, margin: "0 auto", padding: "0 0 48px" }}>
         {/* HERO — eyebrow + h1 + subtitle on left, Scenario Selection card on right.
             Matches MO/AT/TO hero spec (PR #483). */}
         <PageHero
@@ -1032,7 +1032,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           }
         />
 
-        <div style={{ padding: "0 32px" }}>
+        <div style={{ padding: "24px 32px 0" }}>
         {/* Bespoke shock builder — always rendered but collapsible.
             Click the chevron to hide the 12 sliders when not in use. */}
         {(

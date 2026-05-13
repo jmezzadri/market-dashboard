@@ -1238,7 +1238,7 @@ export default function AssetTilt({ onOpenTicker }) {
   const defensivePerBucket = defensiveTotal / DEFENSIVE_BUCKETS.length;
 
   return (
-    <main style={{ maxWidth: 1280, margin: "0 auto", padding: "24px 0 48px" }}>
+    <main style={{ maxWidth: 1280, margin: "0 auto", padding: "0 0 48px" }}>
       {/* HERO — Joe mockup 2026-05-08 v3:
           LEFT (~2/3): eyebrow + h1 + Engine subtitle.
           RIGHT (~1/3): "Key Statistics vs. S&P 500" card with 4 KPI cells. */}
@@ -1286,7 +1286,7 @@ export default function AssetTilt({ onOpenTicker }) {
         </aside>
         }
       />
-      <div style={{ padding: "0 32px" }}>
+      <div style={{ padding: "24px 32px 0" }}>
       {/* Recommended Allocations — Joe mockup 2026-05-08 v3. Wraps the
           sortable sector table + defensive sleeve + total row in a labeled
           card so the page reads as 3 distinct blocks: hero, allocations,

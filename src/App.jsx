@@ -5832,7 +5832,16 @@ return(
     );
   };
 
-  return (
+  return (<>
+  <PageHero
+    eyebrow="MacroTilt"
+    title={<>Purpose-built tools designed to <em>beat benchmarks</em> on a risk-adjusted basis using <em>discipline, not instinct.</em></>}
+    bullets={[
+      <><strong style={{color:"var(--text)",fontWeight:600}}>Macro Overview:</strong> today&rsquo;s macro backdrop &mdash; risk on or off?</>,
+      <><strong style={{color:"var(--text)",fontWeight:600}}>Asset Tilt:</strong> sector-specific asset allocation recommendations</>,
+      <><strong style={{color:"var(--text)",fontWeight:600}}>Equity Scanner:</strong> name-specific ideas</>,
+    ]}
+  />
   <main className="fade-in main-padded mt-home" style={{
     maxWidth:1280, margin:"0 auto",
     padding:"24px 32px 48px",
@@ -5903,15 +5912,6 @@ return(
 
       return (<>
         {/* ── WELCOME HERO ── */}
-        <PageHero
-          eyebrow="MacroTilt"
-          title={<>Purpose-built tools designed to <em>beat benchmarks</em> on a risk-adjusted basis using <em>discipline, not instinct.</em></>}
-          bullets={[
-            <><strong style={{color:"var(--text)",fontWeight:600}}>Macro Overview:</strong> today&rsquo;s macro backdrop &mdash; risk on or off?</>,
-            <><strong style={{color:"var(--text)",fontWeight:600}}>Asset Tilt:</strong> sector-specific asset allocation recommendations</>,
-            <><strong style={{color:"var(--text)",fontWeight:600}}>Equity Scanner:</strong> name-specific ideas</>,
-          ]}
-        />
 
         {/* ORIENTATION TILES retired 2026-05-07 — the left nav already
             lists Macro Overview / Asset Tilt / Trading Opportunities, so
@@ -6392,7 +6392,8 @@ return(
       )}
     </section>
 
-  </main>);
+  </main>
+  </>);
 })()}
 
 {/* ─────── DRILL-DOWN — section header for non-home views ─────── */}
@@ -6524,20 +6525,7 @@ const cardStyle={background:"var(--surface-2)",border:"1px solid var(--border-fa
 const tagStyle=col=>({fontSize:10,fontWeight:700,color:"#fff",background:col,padding:"2px 7px",borderRadius:3,fontFamily:"var(--font-mono)",letterSpacing:"0.05em",cursor:"pointer",userSelect:"none"});
 const showTrading=tab==="portopps";
 const showInsights=tab==="insights";
-return(
-<div style={{padding:"24px 32px 48px",display:"flex",flexDirection:"column",maxWidth:1216,margin:"0 auto"}}>
-{/* INLINE SIGN-IN CTA — only when not authed. Per B2 spec: portopps is
-    publicly clickable, but shows zero-state + a contextual prompt instead
-    of a full LoginScreen. Signing in swaps the skeleton for real data. */}
-{showInsights&&!portfolioAuthed&&(
-<div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px",marginBottom:12,display:"flex",gap:14,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
-<div style={{flex:"1 1 260px",minWidth:0}}>
-<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:4,fontWeight:700}}>SIGN IN TO SEE YOUR PORTFOLIO</div>
-<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>Sign in to populate Portfolio Insights with your own accounts, positions, and watchlist — private to your account.</div>
-</div>
-<button onClick={()=>setShowPortoppsLogin(true)} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</button>
-</div>
-)}
+return(<>
 {showInsights&&portfolioAuthed&&(()=>{
   // Portfolio Insights hero — two-col layout mirroring Trading Opps /
   // Macro Overview. Left: eyebrow + serif headline + italic accent +
@@ -6608,6 +6596,20 @@ return(
   
   );
 })()}
+<div style={{padding:"24px 32px 48px",display:"flex",flexDirection:"column",maxWidth:1216,margin:"0 auto"}}>
+{/* INLINE SIGN-IN CTA — only when not authed. Per B2 spec: portopps is
+    publicly clickable, but shows zero-state + a contextual prompt instead
+    of a full LoginScreen. Signing in swaps the skeleton for real data. */}
+{showInsights&&!portfolioAuthed&&(
+<div style={{background:"var(--surface-2)",border:"1px solid var(--border)",borderRadius:8,padding:"14px 16px",marginBottom:12,display:"flex",gap:14,alignItems:"center",justifyContent:"space-between",flexWrap:"wrap"}}>
+<div style={{flex:"1 1 260px",minWidth:0}}>
+<div style={{fontSize:11,color:"var(--text-muted)",fontFamily:"var(--font-mono)",letterSpacing:"0.08em",marginBottom:4,fontWeight:700}}>SIGN IN TO SEE YOUR PORTFOLIO</div>
+<div style={{fontSize:13,color:"var(--text)",lineHeight:1.5}}>Sign in to populate Portfolio Insights with your own accounts, positions, and watchlist — private to your account.</div>
+</div>
+<button onClick={()=>setShowPortoppsLogin(true)} style={{padding:"10px 16px",fontSize:13,fontWeight:600,color:"#fff",background:"var(--accent)",border:"none",borderRadius:"var(--radius-sm)",cursor:"pointer",whiteSpace:"nowrap"}}>Sign in</button>
+</div>
+)}
+
 {showTrading&&(()=>{
 const universeCount=Object.keys(scanData?.signals?.screener||{}).length;
 const watchlistSize=(WATCHLIST||[]).length;
@@ -7079,7 +7081,7 @@ return(
 
 
 </div>
-);
+</>);
 })()}
 
 {/* Per-ticker detail modal — opens from any ticker-level 'Details' click in
