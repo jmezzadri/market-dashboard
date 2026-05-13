@@ -848,6 +848,15 @@ function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
 
   const overlayPeerLabel = overlayId ? (overlayOptions || []).find(o => o.id === overlayId)?.label : null;
 
+  // X-axis date formatter — month + 2-digit year for spans > 1 year, otherwise month + day
+  const spanDays = (new Date(slice[slice.length-1][0]) - new Date(slice[0][0])) / 86400000;
+  const fmtAxisDate = (s) => {
+    const d = new Date(s);
+    if (spanDays > 365) return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+  const midIdx = Math.floor(slice.length / 2);
+
   return (
     <div>
       <div style={{display:'flex',gap:6,marginBottom:10,alignItems:'center',flexWrap:'wrap'}}>
@@ -862,25 +871,41 @@ function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
           </select>
         )}
       </div>
-      <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{width:'100%',height:360,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
-        <line x1={padL} y1={hiY} x2={w-padR} y2={hiY} stroke="#2f9d6a" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
-        <text x={w-padR-6} y={hiY-4} fontSize="10" fill="#2f9d6a" textAnchor="end" fontWeight="600" fontFamily="Inter">HIGH {fmt(hi)}</text>
-        <line x1={padL} y1={loY} x2={w-padR} y2={loY} stroke="#c84658" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
-        <text x={w-padR-6} y={loY+12} fontSize="10" fill="#c84658" textAnchor="end" fontWeight="600" fontFamily="Inter">LOW {fmt(lo)}</text>
-        {p85Y != null && (<>
-          <line x1={padL} y1={p85Y} x2={w-padR} y2={p85Y} stroke="#0e1115" strokeWidth="1" strokeDasharray="6,4"/>
-          <text x={w-padR-6} y={p85Y-4} fontSize="10" fill="#0e1115" textAnchor="end" fontWeight="600" fontFamily="Inter">85th pct = {fmt(p85)}</text>
-        </>)}
-        {overlayPath && <polyline points={overlayPath} fill="none" stroke="#a4626d" strokeWidth="1.6" opacity="0.75"/>}
-        <polyline points={path} fill="none" style={{stroke:'var(--accent)'}} strokeWidth="2"/>
-        {hoverX != null && (<>
-          <line x1={hoverX} y1={padT} x2={hoverX} y2={h-padB} stroke="#0e1115" strokeWidth="1" strokeDasharray="3,3" opacity="0.5"/>
-          <circle cx={hoverX} cy={hoverY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.5"/>
-          <rect x={Math.min(hoverX + 8, w - padR - 150)} y={Math.max(padT + 4, hoverY - 42)} width="142" height="36" rx="4" fill="#0e1115" opacity="0.92"/>
-          <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 16} fontSize="10" fill="#fff" fontFamily="Inter" fontWeight="600">{hoverDate} · {fmt(hoverVal)}</text>
-          {hoverOverlayVal != null && <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 30} fontSize="10" fill="#e6b7be" fontFamily="Inter">{overlayPeerLabel}: {hoverOverlayVal.toFixed(2)}</text>}
-        </>)}
-      </svg>
+      <div className="mo-chart-card">
+        <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{width:'100%',height:360,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+          {/* Y-axis: 5 tick gridlines + value labels */}
+          {[0, 0.25, 0.5, 0.75, 1].map(t => {
+            const v = min + t * (max - min);
+            const y = yFor(v);
+            return (
+              <g key={'y'+t}>
+                <line x1={padL} y1={y} x2={w-padR} y2={y} stroke="var(--border)" strokeWidth="0.5" opacity="0.7"/>
+                <text x={padL-6} y={y+3} fontSize="10" fill="var(--ink-3)" textAnchor="end" fontFamily="Inter">{fmt(v)}</text>
+              </g>
+            );
+          })}
+          {/* 85th percentile reference (kept — the indicator-specific annotation) */}
+          {p85Y != null && (<>
+            <line x1={padL} y1={p85Y} x2={w-padR} y2={p85Y} stroke="#0e1115" strokeWidth="1" strokeDasharray="6,4"/>
+            <text x={w-padR-6} y={p85Y-4} fontSize="10" fill="#0e1115" textAnchor="end" fontWeight="600" fontFamily="Inter">85th pct = {fmt(p85)}</text>
+          </>)}
+          {/* X-axis: 3 date labels — start, middle, end */}
+          <text x={xFor(0, slice.length)} y={h-6} fontSize="10" fill="var(--ink-3)" textAnchor="start" fontFamily="Inter">{fmtAxisDate(slice[0][0])}</text>
+          <text x={xFor(midIdx, slice.length)} y={h-6} fontSize="10" fill="var(--ink-3)" textAnchor="middle" fontFamily="Inter">{fmtAxisDate(slice[midIdx][0])}</text>
+          <text x={xFor(slice.length-1, slice.length)} y={h-6} fontSize="10" fill="var(--ink-3)" textAnchor="end" fontFamily="Inter">{fmtAxisDate(slice[slice.length-1][0])}</text>
+          {/* Series */}
+          {overlayPath && <polyline points={overlayPath} fill="none" stroke="#a4626d" strokeWidth="1.6" opacity="0.75"/>}
+          <polyline points={path} fill="none" style={{stroke:'var(--accent)'}} strokeWidth="2"/>
+          {/* Crosshair + tooltip */}
+          {hoverX != null && (<>
+            <line x1={hoverX} y1={padT} x2={hoverX} y2={h-padB} stroke="#0e1115" strokeWidth="1" strokeDasharray="3,3" opacity="0.5"/>
+            <circle cx={hoverX} cy={hoverY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.5"/>
+            <rect x={Math.min(hoverX + 8, w - padR - 150)} y={Math.max(padT + 4, hoverY - 42)} width="142" height="36" rx="4" fill="#0e1115" opacity="0.92"/>
+            <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 16} fontSize="10" fill="#fff" fontFamily="Inter" fontWeight="600">{hoverDate} · {fmt(hoverVal)}</text>
+            {hoverOverlayVal != null && <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 30} fontSize="10" fill="#e6b7be" fontFamily="Inter">{overlayPeerLabel}: {hoverOverlayVal.toFixed(2)}</text>}
+          </>)}
+        </svg>
+      </div>
       <div style={{display:'flex',gap:14,fontSize:11,color:'var(--ink-3)',marginTop:8,fontFamily:'Inter',flexWrap:'wrap'}}>
         <span><span style={{display:'inline-block',width:10,height:10,background:'var(--accent)',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{label}</span>
         {overlayPeerLabel && <span><span style={{display:'inline-block',width:10,height:10,background:'#a4626d',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{overlayPeerLabel}</span>}
@@ -1265,6 +1290,7 @@ const MO_CSS = `
 
 .mo-scrim{position:fixed;inset:0;z-index:9000;background:rgba(14,17,21,0.42);display:flex;align-items:flex-start;justify-content:center;padding:60px 32px;overflow-y:auto}
 .mo-modal-card{position:relative;width:100%;max-width:1180px;background:var(--surface);border:0.5px solid var(--border-strong, var(--border));border-radius:12px;box-shadow:0 18px 48px rgba(14,17,21,0.18);padding:28px 28px 36px}
+.mo-chart-card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:8px;padding:12px 14px}
 .mo-modal-close{position:absolute;top:14px;right:18px;border:none;background:transparent;cursor:pointer;font-size:24px;line-height:1;color:var(--ink-3);padding:6px 8px;border-radius:6px}
 .mo-modal-close:hover{background:var(--surface-2);color:var(--ink-0)}
 .mo-modal-back{font-size:11px;font-weight:600;color:var(--ink-3);background:transparent;border:none;cursor:pointer;padding:4px 0 0;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px}
