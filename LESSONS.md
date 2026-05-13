@@ -833,3 +833,44 @@ structure (lifting components out of wrappers, splitting/merging
 fragments, restructuring IIFE returns, moving block content across
 ancestor boundaries).
 
+### 2026-05-13 — CSS color/surface tokens must be theme-aware; never hide an undefined variable behind a hex fallback
+
+**What happened:** PageHero (PR #660) and dozens of v2 page CSS blocks
+referenced `var(--ink-0, #0f1115)` / `var(--ink-2, #6b7280)` /
+`var(--ink-3, ...)` / `var(--bg-1, ...)` / `var(--line-0, ...)`. None of
+those token names were defined anywhere in theme.css. The hardcoded
+hex fallback fired in BOTH light AND dark mode, so dark-mode text
+rendered dark-on-dark and was effectively invisible. The bug landed
+silently across 306 call sites in 16 files before Joe screenshot-
+flagged it on the home title (PR #675) and again on the Macro
+Overview vol gauges (PR #677).
+
+**What you should do instead:** For any color, surface, border, or
+text-on-something CSS in a v2 page or shared component:
+
+1. Use the canonical theme tokens that are defined in BOTH `:root`
+   and `[data-theme="dark"]` blocks in theme.css. The set is:
+   `--text`, `--text-2`, `--text-muted`, `--text-dim`, `--bg`,
+   `--surface`, `--surface-2`, `--surface-3`, `--border`,
+   `--border-faint`, `--border-strong`, `--accent`, `--accent-soft`,
+   `--green`, `--red`, `--green-text`, `--red-text`, `--yellow`.
+
+2. Never write `var(--foo, #hex)` where `--foo` is not actually
+   defined in theme.css. If you don't know whether a token is
+   defined, search theme.css with `grep -n "^[[:space:]]*--foo:"`.
+   If it's not there, you're shipping the hardcoded fallback in
+   every theme.
+
+3. If you genuinely need a new semantic token (e.g. a "warning
+   accent" or "stress-2"), DEFINE it in theme.css's `:root` AND
+   `[data-theme="dark"]` block AND the `@media (prefers-color-scheme:
+   dark)` block — all three. Do not hardcode it inline.
+
+4. After any new CSS color rule, load the page in BOTH light and
+   dark mode before declaring the change done. Joe should not be
+   the dark-mode test reporter.
+
+**Applies to:** UX Designer + Lead Developer — any time CSS color,
+background, or border lands in a JSX inline style, a `.css` file, or
+a `<style>` block.
+
