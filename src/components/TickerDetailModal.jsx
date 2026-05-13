@@ -359,8 +359,25 @@ function SignalIntelligenceRail({
                 return "no unusual flow today";
               }
               if (s.key === "analyst") {
-                const n = Number(comps.actions_count || 0);
-                if (n) return `${n} action${n===1?"":"s"} in 90d`;
+                // Bug: the field on the producer is action_count
+                // (singular), not actions_count. Original caption checked
+                // the wrong name and always fell through to "no analyst
+                // actions in 90d" — contradicting the +100 sub-score for
+                // ORCL which had 26 actions and 2 upgrades.
+                const n  = Number(comps.action_count || 0);
+                const up = Number(comps.upgrades || 0);
+                const dn = Number(comps.downgrades || 0);
+                if (n > 0 || up > 0 || dn > 0) {
+                  const parts = [];
+                  if (up > 0) parts.push(`${up} upgrade${up===1?"":"s"}`);
+                  if (dn > 0) parts.push(`${dn} downgrade${dn===1?"":"s"}`);
+                  if (parts.length === 0 && n > 0) parts.push(`${n} action${n===1?"":"s"} in 90d`);
+                  const gap = Number(comps.pt_gap_pct);
+                  if (Number.isFinite(gap) && Math.abs(gap) >= 1) {
+                    parts.push(`target ${gap > 0 ? "+" : ""}${gap.toFixed(0)}% vs spot`);
+                  }
+                  return parts.join(" · ");
+                }
                 return "no analyst actions in 90d";
               }
               if (s.key === "technicals") {
@@ -747,11 +764,17 @@ function SignalIntelligenceRail({
       // compO says there were 50 unusual events. Surface compO when it
       // has signal; only fall back to "no flow events" when compO is also
       // empty.
-      const uCount = compO ? Number(compO.unusual_count || 0) : 0;
-      if (uCount > 0) {
-        const askPrem = Number(compO.ask_side_premium || 0);
-        const callPrem = Number(compO.call_premium || 0);
-        const putPrem = Number(compO.put_premium || 0);
+      // Mirror the row-caption logic: the v5 options score is a blend of
+      // unusual_count + premium + ask-side bias. Don't say "no events" if
+      // any of those fields show signal. ORCL case (Joe 2026-05-12):
+      // unusual_count=0 but $22.9M of call premium drove a +68 score.
+      const uCount   = compO ? Number(compO.unusual_count || 0) : 0;
+      const askPrem  = compO ? Number(compO.ask_side_premium || 0) : 0;
+      const bidPrem  = compO ? Number(compO.bid_side_premium || 0) : 0;
+      const callPrem = compO ? Number(compO.call_premium || 0) : 0;
+      const putPrem  = compO ? Number(compO.put_premium || 0) : 0;
+      const totalPrem = callPrem + putPrem;
+      if (uCount > 0 || totalPrem > 0 || askPrem > 0 || bidPrem > 0) {
         const fmtM = (n) => {
           const a = Math.abs(n);
           if (a >= 1_000_000) return `$${(n/1_000_000).toFixed(1)}M`;
@@ -761,9 +784,12 @@ function SignalIntelligenceRail({
         let side = "";
         if (callPrem > putPrem * 2)      side = " · call-heavy";
         else if (putPrem > callPrem * 2) side = " · put-heavy";
-        const askPart = askPrem > 0 ? ` · ${fmtM(askPrem)} ask-side` : "";
-        const v = sub != null ? fmtSubSimple(sub) : String(uCount);
-        return { state: subStateColor(sub), value: v, meta: `${uCount} unusual event${uCount===1?"":"s"}${askPart}${side}`, detail: null };
+        const parts = [];
+        if (uCount > 0)    parts.push(`${uCount} unusual event${uCount===1?"":"s"}`);
+        if (totalPrem > 0) parts.push(`${fmtM(totalPrem)} premium`);
+        if (askPrem > 0)   parts.push(`${fmtM(askPrem)} ask-side`);
+        const v = sub != null ? fmtSubSimple(sub) : (uCount > 0 ? String(uCount) : "—");
+        return { state: subStateColor(sub), value: v, meta: parts.join(" · ") + side, detail: null };
       }
       return { state: "neutral", value: "0", meta: "No unusual options flow events in last scan", detail: null };
     }
