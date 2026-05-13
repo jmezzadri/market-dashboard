@@ -1035,6 +1035,31 @@ export default function TradingOppsPage({ onOpenTicker }) {
     };
   }, [scannerView]);
 
+  // 2026-05-13 — listen for the "mt:scanner:set-view" event dispatched
+  // by TickerDetailModal's "See full screener →" links. When the dossier
+  // closes, the user lands on this page; the event opens the scanner
+  // overlay for the requested section (Congress / Insiders / Flow /
+  // Technicals) instead of dumping them at the top of the table.
+  useEffect(() => {
+    function onSetView(e) {
+      const v = e?.detail?.view;
+      if (["congress","insiders","flow","technicals"].includes(v)) {
+        setScannerView(v);
+      }
+    }
+    window.addEventListener("mt:scanner:set-view", onSetView);
+    // Also read the sessionStorage marker on mount, in case the dossier
+    // dispatched the event before this page was even rendered.
+    try {
+      const v = sessionStorage.getItem("mt:scanner:initial-view");
+      if (v && ["congress","insiders","flow","technicals"].includes(v)) {
+        sessionStorage.removeItem("mt:scanner:initial-view");
+        setScannerView(v);
+      }
+    } catch (_) { /* private mode */ }
+    return () => window.removeEventListener("mt:scanner:set-view", onSetView);
+  }, []);
+
   // Merge custom-added tickers with the scan rows.
   const allRows = useMemo(() => [...rows, ...extraRows], [rows, extraRows]);
 
