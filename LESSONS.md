@@ -22,6 +22,52 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-13 — Every new public table in Supabase migrations must include explicit GRANT
+
+**What happened:** On 2026-05-13 Supabase notified us they are
+changing the default behavior for the Data API. Starting May 30, 2026
+for new projects and October 30, 2026 for existing projects (including
+ours), tables created in the `public` schema are no longer
+auto-exposed to the Data API. The site uses the Data API
+(`@supabase/supabase-js` from the browser and from `api/scan-ticker.js`),
+so any future table added without an explicit `GRANT` will silently
+return a `42501` permission error to the front end and any tile that
+reads it will render as `—`. Existing tables keep their current
+grants, so today's site is unaffected; the risk is the next migration
+we ship.
+
+**What you should do instead:** Every migration that creates a table
+in the `public` schema must include the grant block below, scoped to
+the actual access pattern. Reference table is
+`supabase/migrations/000_TEMPLATE.sql`. Pre-merge checklist:
+
+```
+grant select                                  on public.<table> to anon;
+grant select, insert, update, delete          on public.<table> to authenticated;
+grant all                                     on public.<table> to service_role;
+
+alter table public.<table> enable row level security;
+
+create policy "<descriptive name>"
+  on public.<table> for select to authenticated
+  using (auth.uid() = user_id);
+```
+
+Trim the grants and policies to the minimum the consumer actually
+needs. Service-only ingestion tables (e.g. `prices_eod`,
+`indicator_observations`) do not need `anon` or `authenticated`
+grants at all — `service_role` alone is sufficient if no front-end
+tile reads from them directly. Data Steward sign-off is required on
+every PR that adds a table in `public`; the sign-off message must
+name which roles got which privileges and why.
+
+**Applies to:** Lead Developer and Data Steward. Every PR touching
+`supabase/migrations/*.sql` or anything that calls
+`api.supabase.com/v1/projects/<ref>/database/query` with a
+`create table` payload.
+
+---
+
 ## 2026-05-12 — Code-speak to Joe is a hard ban, not a soft suggestion
 
 **What happened:** In a single session I described work to Joe using file names ("App.jsx," "HomePage.jsx"), code structures ("the iframe routing," "V2 gate"), version labels ("v2," "PR B"), and developer infrastructure terms ("bundle hash," "tree-shake," "merge"). Joe had to stop me multiple times in the same session to say "speak in English." Existing rules from 2026-04-28, 2026-05-02, 2026-05-04, 2026-05-08, and 2026-05-11 all already cover this — yet I kept regressing because I default to code-speak whenever describing a technical change.
