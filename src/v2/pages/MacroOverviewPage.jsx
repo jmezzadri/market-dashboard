@@ -1156,8 +1156,13 @@ function RegimeHistoryModalContent({ fullRegime, filterState }) {
             {fullRegime.map((wRec, i) => {
               const lvl = REGIME_ORDER.indexOf(wRec.label);
               const dim = filterState && wRec.label !== filterState;
-              const alpha = lvl === 0 ? 0.22 : lvl === 1 ? 0.45 : lvl === 2 ? 0.72 : 0.96;
-              const fill = `rgba(0,113,227,${alpha})`;
+              // Risk On / Neutral / Cautionary scale alpha on Apple Blue.
+              // Risk Off jumps to a genuinely darker hue (navy) so the visual
+              // separation from Cautionary is unmistakable.
+              const fill = lvl === 0 ? 'rgba(0,113,227,0.20)'
+                         : lvl === 1 ? 'rgba(0,113,227,0.50)'
+                         : lvl === 2 ? 'rgba(0,113,227,0.95)'
+                         :             '#0a2540';
               return <rect key={i} x={i} y={0} width={1.02} height={100} fill={fill} opacity={dim ? 0.18 : 1}/>;
             })}
             {hover != null && (
