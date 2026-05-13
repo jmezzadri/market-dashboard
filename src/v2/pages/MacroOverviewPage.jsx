@@ -542,6 +542,80 @@ export default function MacroOverviewPage() {
   return (
     <>
       <style>{MO_CSS}</style>
+      <PageHero
+        eyebrow="Macro Overview"
+        title={<>Three <em>Volatility Signals</em> plus one <em>Cycle Positioning</em> composite provide an intuitive Macro Regime read.</>}
+        bullets={[
+          "Volatility Triggers tell us when trouble has arrived",
+          "Those triggers must persist to be actionable",
+          <>Cycle Composite acts as a confirmation layer &mdash; telling us when to act</>,
+          "Regimes: Risk On, Neutral, Cautionary, or Risk Off",
+        ]}
+        right={
+        <aside className="mo-regime">
+          <div className="mo-tile-fresh"><span className="fresh-dot"/>{fmtFresh(anchors[0]?.asOf)}</div>
+          <h2 className="mo-regime-title">Regime</h2>
+          {REGIME_ORDER.map(name => (
+            <React.Fragment key={name}>
+              <div
+                className={`mo-rrow ${regime === name ? 'current' : ''}`}
+                onClick={() => setOpenPill(openPill === name ? null : name)}
+              >
+                <span className="mo-rpill">{name}</span>
+                <span className="mo-rdesc">{REGIME_DESC[name]}</span>
+                <span className="mo-r-arrow">▾</span>
+              </div>
+              {openPill === name && (
+                <div className="mo-pill-panel">
+                  <div className="mo-pill-head">What "{name}" means</div>
+                  {REGIME_DESC[name]}
+                  <div className="mo-pill-leave">{REGIME_LEAVE[name]}</div>
+                  <div className="mo-pill-seehist">
+                    <button onClick={(e) => { e.stopPropagation(); openRegimeHistory(name); }}>SEE FULL HISTORY ›</button>
+                  </div>
+                </div>
+              )}
+            </React.Fragment>
+          ))}
+
+          <div className="mo-rhist-wrap">
+            <div className="mo-rhist-axis"><span>24 weeks ago</span><span>today</span></div>
+            <div className="mo-rhist-strip">
+              {regimeHistory.map((w, i) => {
+                const lvl = REGIME_ORDER.indexOf(w.label);
+                const heightPct = 18 + (lvl * 22);
+                return (
+                  <span
+                    key={i}
+                    className={`mo-rhist-bar s${lvl}`}
+                    style={{ height: heightPct + '%' }}
+                    data-tt={`${fmtDate(w.date)} · ${w.label}`}
+                    onClick={() => setOpenWeek(openWeek === i ? null : i)}
+                  />
+                );
+              })}
+            </div>
+            <button className="mo-rhist-fullhist" onClick={() => openRegimeHistory(null)}>SEE FULL HISTORY ({fullRegime[0]?.date?.slice(0,4) || ''} – TODAY) ›</button>
+          </div>
+          {openWeek != null && (
+            <div className="mo-rhist-panel">
+              <div className="mo-rhist-panel-head">Weekly snapshot · {fmtDate(regimeHistory[openWeek]?.date)}</div>
+              <table>
+                {anchors.map(a => (
+                  <tr key={a.id}>
+                    <td>{a.title}</td>
+                    <td className="num">{a.weekly[openWeek] ? a.fmt(a.weekly[openWeek].value) : '—'}</td>
+                    <td className="num">{STAGES[a.stages[openWeek] || 0]}</td>
+                  </tr>
+                ))}
+                <tr><td>Cycle composite</td><td className="num">{cycleScore ?? '—'}</td><td className="num">/ 100</td></tr>
+                <tr><td><strong>Regime</strong></td><td colSpan="2" style={{textAlign:'right'}}><span className="mo-pill">{regimeHistory[openWeek]?.label}</span></td></tr>
+              </table>
+            </div>
+          )}
+        </aside>
+        }
+      />
       <div className="mo-page" onClick={(e) => {
         // Click outside inline panels closes them
         if (!e.target.closest('.mo-rrow') && !e.target.closest('.mo-pill-panel')) setOpenPill(null);
@@ -549,80 +623,6 @@ export default function MacroOverviewPage() {
       }}>
 
         {/* HEAD STRIP — canonical PageHero (locked 2026-05-13) */}
-        <PageHero
-          eyebrow="Macro Overview"
-          title={<>Three <em>Volatility Signals</em> plus one <em>Cycle Positioning</em> composite provide an intuitive Macro Regime read.</>}
-          bullets={[
-            "Volatility Triggers tell us when trouble has arrived",
-            "Those triggers must persist to be actionable",
-            <>Cycle Composite acts as a confirmation layer &mdash; telling us when to act</>,
-            "Regimes: Risk On, Neutral, Cautionary, or Risk Off",
-          ]}
-          right={
-          <aside className="mo-regime">
-            <div className="mo-tile-fresh"><span className="fresh-dot"/>{fmtFresh(anchors[0]?.asOf)}</div>
-            <h2 className="mo-regime-title">Regime</h2>
-            {REGIME_ORDER.map(name => (
-              <React.Fragment key={name}>
-                <div
-                  className={`mo-rrow ${regime === name ? 'current' : ''}`}
-                  onClick={() => setOpenPill(openPill === name ? null : name)}
-                >
-                  <span className="mo-rpill">{name}</span>
-                  <span className="mo-rdesc">{REGIME_DESC[name]}</span>
-                  <span className="mo-r-arrow">▾</span>
-                </div>
-                {openPill === name && (
-                  <div className="mo-pill-panel">
-                    <div className="mo-pill-head">What "{name}" means</div>
-                    {REGIME_DESC[name]}
-                    <div className="mo-pill-leave">{REGIME_LEAVE[name]}</div>
-                    <div className="mo-pill-seehist">
-                      <button onClick={(e) => { e.stopPropagation(); openRegimeHistory(name); }}>SEE FULL HISTORY ›</button>
-                    </div>
-                  </div>
-                )}
-              </React.Fragment>
-            ))}
-
-            <div className="mo-rhist-wrap">
-              <div className="mo-rhist-axis"><span>24 weeks ago</span><span>today</span></div>
-              <div className="mo-rhist-strip">
-                {regimeHistory.map((w, i) => {
-                  const lvl = REGIME_ORDER.indexOf(w.label);
-                  const heightPct = 18 + (lvl * 22);
-                  return (
-                    <span
-                      key={i}
-                      className={`mo-rhist-bar s${lvl}`}
-                      style={{ height: heightPct + '%' }}
-                      data-tt={`${fmtDate(w.date)} · ${w.label}`}
-                      onClick={() => setOpenWeek(openWeek === i ? null : i)}
-                    />
-                  );
-                })}
-              </div>
-              <button className="mo-rhist-fullhist" onClick={() => openRegimeHistory(null)}>SEE FULL HISTORY ({fullRegime[0]?.date?.slice(0,4) || ''} – TODAY) ›</button>
-            </div>
-            {openWeek != null && (
-              <div className="mo-rhist-panel">
-                <div className="mo-rhist-panel-head">Weekly snapshot · {fmtDate(regimeHistory[openWeek]?.date)}</div>
-                <table>
-                  {anchors.map(a => (
-                    <tr key={a.id}>
-                      <td>{a.title}</td>
-                      <td className="num">{a.weekly[openWeek] ? a.fmt(a.weekly[openWeek].value) : '—'}</td>
-                      <td className="num">{STAGES[a.stages[openWeek] || 0]}</td>
-                    </tr>
-                  ))}
-                  <tr><td>Cycle composite</td><td className="num">{cycleScore ?? '—'}</td><td className="num">/ 100</td></tr>
-                  <tr><td><strong>Regime</strong></td><td colSpan="2" style={{textAlign:'right'}}><span className="mo-pill">{regimeHistory[openWeek]?.label}</span></td></tr>
-                </table>
-              </div>
-            )}
-          </aside>
-          }
-        />
         {/* THREE VOL TILES */}
         <div className="mo-vol-grid">
           {anchors.map(a => (
