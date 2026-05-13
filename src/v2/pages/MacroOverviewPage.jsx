@@ -624,10 +624,10 @@ function DynamicChart({ points, p85, fmt, label }) {
         <line x1={padL} y1={loY} x2={w-padR} y2={loY} stroke="#c84658" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
         <text x={w-padR-6} y={loY+12} fontSize="10" fill="#c84658" textAnchor="end" fontWeight="600" fontFamily="Inter">LOW {fmt(lo)}</text>
         {p85Line}
-        <polyline points={path} fill="none" stroke="#0071e3" strokeWidth="2"/>
+        <polyline points={path} fill="none" style={{stroke:'var(--accent)'}} strokeWidth="2"/>
       </svg>
       <div style={{display:'flex',gap:14,fontSize:11,color:'var(--ink-3)',marginTop:8,fontFamily:'Inter'}}>
-        <span><span style={{display:'inline-block',width:10,height:10,background:'#0071e3',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{label}</span>
+        <span><span style={{display:'inline-block',width:10,height:10,background:'var(--accent)',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{label}</span>
         {p85 != null && <span><span style={{display:'inline-block',width:10,height:10,background:'#0e1115',opacity:0.8,borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>85th-pct = {fmt(p85)}</span>}
         <span style={{marginLeft:'auto'}}>{tf.label} window · {slice.length} points · current {fmt(vals[vals.length-1])}</span>
       </div>
