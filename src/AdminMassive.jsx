@@ -27,9 +27,10 @@
 // on the last EOD pull, typically late-listed or recently-delisted
 // names that the producer accepts as expected slippage.
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import { useDataHealth } from "./hooks/useDataHealth";
+import AdminFeedDrawer from "./AdminFeedDrawer";
 
 // Preview deploys skip the admin gate so the page is reviewable without
 // a sign-in. Production (macrotilt.com) keeps the gate.
@@ -118,6 +119,7 @@ export default function AdminMassive() {
   const isAdmin     = IS_PRODUCTION_HOST ? live.isAdmin : true;
   const adminLoading = IS_PRODUCTION_HOST ? live.loading : false;
   const { byVendor, loading, error, reload } = useDataHealth();
+  const [selectedFeed, setSelectedFeed] = useState(null);
 
   const feeds = useMemo(() => {
     const g = byVendor.get("Polygon Massive");
@@ -219,10 +221,17 @@ export default function AdminMassive() {
               </thead>
               <tbody>
                 {feeds.map((r) => (
-                  <tr key={r.indicator_id} style={{ borderTop: "1px solid var(--border)" }}>
+                  <tr
+                    key={r.indicator_id}
+                    onClick={() => setSelectedFeed(r)}
+                    style={{ borderTop: "1px solid var(--border)", cursor: "pointer" }}
+                    title="Click for source-to-target lineage"
+                    onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-2)"; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                  >
                     <Td>
                       <div style={{ fontWeight: 600, color: "var(--text)" }}>{r.label || r.indicator_id}</div>
-                      <div style={{ fontSize: 10, color: MUTED, fontFamily: "monospace" }}>{r.indicator_id}</div>
+                      <div style={{ fontSize: 10, color: MUTED, fontFamily: "monospace" }}>{r.indicator_id} <span style={{ color: "var(--accent)", marginLeft: 6 }}>· details ›</span></div>
                     </Td>
                     <Td><StatusPill status={r.status} /></Td>
                     <Td>
@@ -246,9 +255,11 @@ export default function AdminMassive() {
       )}
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: MUTED }}>
-        <div>Refreshes every 60 seconds from Supabase pipeline_health.</div>
+        <div>Refreshes every 60 seconds from Supabase pipeline_health. Click any feed row for source-to-target lineage.</div>
         <button onClick={reload} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "5px 10px", color: "var(--text-2)", fontSize: 11, cursor: "pointer" }}>Reload</button>
       </div>
+
+      <AdminFeedDrawer feed={selectedFeed} onClose={() => setSelectedFeed(null)} />
     </main>
   );
 }

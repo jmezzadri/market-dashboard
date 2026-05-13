@@ -30,6 +30,7 @@ import {
   VENDOR_MONTHLY_COST,
   canonicalVendor,
 } from "./hooks/useDataHealth";
+import AdminFeedDrawer from "./AdminFeedDrawer";
 
 // Preview deploys skip the admin gate so the page is reviewable without
 // a sign-in. Production (macrotilt.com) keeps the gate.
@@ -148,6 +149,7 @@ export default function AdminDataHealth() {
   const { rows, byVendor, loading, error, reload } = useDataHealth();
   const [statusFilter, setStatusFilter] = useState("all");
   const [vendorFilter, setVendorFilter] = useState("all");
+  const [selectedFeed, setSelectedFeed] = useState(null);
 
   // ─ Section 1 inputs: per-vendor rollup table ─
   const vendorRows = useMemo(() => {
@@ -328,10 +330,17 @@ export default function AdminDataHealth() {
             </thead>
             <tbody>
               {filteredFeeds.map((r) => (
-                <tr key={r.indicator_id} style={{ borderTop: "1px solid var(--border)" }}>
+                <tr
+                  key={r.indicator_id}
+                  onClick={() => setSelectedFeed(r)}
+                  style={{ borderTop: "1px solid var(--border)", cursor: "pointer" }}
+                  title="Click for source-to-target lineage"
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-2)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
                   <Td>
                     <div style={{ fontWeight: 600, color: "var(--text)" }}>{r.label || r.indicator_id}</div>
-                    <div style={{ fontSize: 10, color: MUTED, fontFamily: "monospace" }}>{r.indicator_id}</div>
+                    <div style={{ fontSize: 10, color: MUTED, fontFamily: "monospace" }}>{r.indicator_id} <span style={{ color: "var(--accent)", marginLeft: 6 }}>· details ›</span></div>
                   </Td>
                   <Td style={{ color: "var(--text-2)" }}>{canonicalVendor(r.source)}</Td>
                   <Td style={{ color: MUTED, fontFamily: "monospace" }}>{r.cadence || "—"}</Td>
@@ -375,14 +384,21 @@ export default function AdminDataHealth() {
             </thead>
             <tbody>
               {recentRuns.map((r) => (
-                <tr key={r.indicator_id + ":" + r.last_check_at} style={{ borderTop: "1px solid var(--border)" }}>
+                <tr
+                  key={r.indicator_id + ":" + r.last_check_at}
+                  onClick={() => setSelectedFeed(r)}
+                  style={{ borderTop: "1px solid var(--border)", cursor: "pointer" }}
+                  title="Click for source-to-target lineage"
+                  onMouseEnter={(e) => { e.currentTarget.style.background = "var(--surface-2)"; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; }}
+                >
                   <Td>
                     <div>{fmtRelative(r.last_check_at)}</div>
                     <div style={{ fontSize: 10, color: MUTED, fontFamily: "monospace" }}>{fmtDateTime(r.last_check_at)}</div>
                   </Td>
                   <Td>
                     <div style={{ fontWeight: 600 }}>{r.label || r.indicator_id}</div>
-                    <div style={{ fontSize: 10, color: MUTED, fontFamily: "monospace" }}>{r.indicator_id}</div>
+                    <div style={{ fontSize: 10, color: MUTED, fontFamily: "monospace" }}>{r.indicator_id} <span style={{ color: "var(--accent)", marginLeft: 6 }}>· details ›</span></div>
                   </Td>
                   <Td style={{ color: "var(--text-2)" }}>{canonicalVendor(r.source)}</Td>
                   <Td><StatusPill status={r.status} /></Td>
@@ -399,9 +415,11 @@ export default function AdminDataHealth() {
       </Section>
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 14, fontSize: 11, color: MUTED }}>
-        <div>Refreshes every 60 seconds from Supabase pipeline_health.</div>
+        <div>Refreshes every 60 seconds from Supabase pipeline_health. Click any feed row for source-to-target lineage.</div>
         <button onClick={reload} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 6, padding: "5px 10px", color: "var(--text-2)", fontSize: 11, cursor: "pointer" }}>Reload</button>
       </div>
+
+      <AdminFeedDrawer feed={selectedFeed} onClose={() => setSelectedFeed(null)} />
     </main>
   );
 }
