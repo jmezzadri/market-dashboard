@@ -1,681 +1,893 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 /**
- * MethodologyBody — Signal Intelligence framework, plain-English methodology.
+ * MethodologyBody — full rebuild (2026-05-12).
  *
- * Source of truth for what is described here:
- *   Risk_Off_Framework_Methodology.md (spec, repo workspace)
- *   src/v2/pages/MacroOverviewPage.jsx (live engine — formulas, thresholds,
- *     stage logic, regime classifier)
+ * Two-column layout: sticky table of contents on the left, content on the
+ * right. Five numbered sections (01 Macro Overview · 02 Asset Tilt · 03
+ * Trading Opportunities · 04 Portfolio Insights · 05 Scenario Analysis),
+ * each with the same four subsections — Why we built it · How to use it ·
+ * Data behind it · Models & calcs.
  *
- * Anything that names a vol trigger, a cycle indicator, a stage, a quintile
- * cutoff, or a regime state must match the engine character-for-character.
- * Do not introduce a value here that is not produced by the engine. If the
- * engine changes, this page changes in the same PR.
- *
- * Rendered by both /#readme (default URL, legacy wrapper) and the
- * preview-URL v2 Methodology page, so the surfaces cannot drift.
+ * Source-of-truth:
+ *   Risk_Off_Framework_Methodology.md  (Signal Intelligence spec)
+ *   src/v2/pages/MacroOverviewPage.jsx  (the engine — Macro Overview section)
+ *   Legacy src/pages/MethodologyPage.jsx (Asset Tilt / Trading Opps /
+ *     Portfolio Insights subsections are lifted from the legacy file because
+ *     those engines have not changed).
  */
 
-// ── Four-state lexicon — identical to the engine. ────────────────────────
-const REGIME_STATES = [
-  {
-    label: 'Risk On',
-    cls:   'r-on',
-    short: 'No volatility trigger above its mark.',
-    detail: 'Vol is calm. The fully-invested default position. No action.',
+// ─── styles ─────────────────────────────────────────────────────────────
+const ST = {
+  layout: { display: 'grid', gridTemplateColumns: '240px 1fr', gap: 36, alignItems: 'start' },
+  toc: {
+    position: 'sticky', top: 24, padding: '8px 0 24px',
+    fontSize: 13, fontFamily: 'inherit',
+    maxHeight: 'calc(100vh - 48px)', overflowY: 'auto',
   },
-  {
-    label: 'Neutral',
-    cls:   'r-neu',
-    short: 'Exactly one trigger crossed for exactly one week.',
-    detail: 'Roughly one in four single-week crosses are head-fakes — they slip back below the mark within a week. Note it. Do not act yet.',
+  tocEyebrow: { fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-3, var(--text-muted, #5e5e63))', fontWeight: 600, marginBottom: 14 },
+  tocSection: { marginBottom: 18 },
+  tocSectionHead: {
+    display: 'grid', gridTemplateColumns: '24px 1fr', gap: 8, alignItems: 'baseline',
+    cursor: 'pointer', padding: '6px 0',
   },
-  {
-    label: 'Cautionary',
-    cls:   'r-cau',
-    short: 'A trigger has held above its mark for at least two weeks.',
-    detail: 'Head-fake filtered. Vol is real. The cycle composite is in the middle to upper zone — the cycle has either started to confirm or already broken. Past the forward-looking signal point; act on personal risk tolerance.',
+  tocNum: { fontFamily: 'var(--font-display, Fraunces, serif)', fontWeight: 400, fontSize: 14, color: 'var(--ink-3, var(--text-muted, #5e5e63))', fontVariantNumeric: 'tabular-nums' },
+  tocSectionLabel: { fontFamily: 'var(--font-display, Fraunces, serif)', fontWeight: 400, fontSize: 15, color: 'var(--ink-0, var(--text, #0e1115))', letterSpacing: '-0.005em' },
+  tocBlurb: { fontSize: 11.5, color: 'var(--ink-3, var(--text-muted, #5e5e63))', marginLeft: 32, marginTop: 1, fontStyle: 'italic' },
+  tocSubs: { listStyle: 'none', padding: 0, margin: '6px 0 0 32px' },
+  tocSub: {
+    fontSize: 12, color: 'var(--ink-2, var(--text, #2a2a2e))',
+    padding: '4px 0', cursor: 'pointer',
+    borderLeft: '2px solid transparent', paddingLeft: 10, marginLeft: -10,
   },
-  {
-    label: 'Risk Off',
-    cls:   'r-off',
-    short: 'A trigger has held for at least two weeks AND the cycle composite is in the deepest calm zone.',
-    detail: 'The actionable signal. Vol has cracked while the macro cycle still looks fine — leading edge, not trailing edge. Late-cycle setup, early-stress confirmation. This is when broad confirmation is most likely to follow.',
-  },
-];
+  tocSubActive: { color: 'var(--accent, #0071e3)', borderLeftColor: 'var(--accent, #0071e3)', fontWeight: 500 },
+  content: { minWidth: 0 },
+  section: { padding: '8px 0 32px', marginBottom: 24, scrollMarginTop: 24, borderBottom: '0.5px solid var(--line-1, var(--border, rgba(14,17,21,0.06)))' },
+  sectionEyebrow: { fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--accent, #0071e3)', fontWeight: 600, marginBottom: 6 },
+  sectionH2: { fontFamily: 'var(--font-display, Fraunces, serif)', fontSize: 32, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.015em', lineHeight: 1.1, color: 'var(--ink-0, var(--text, #0e1115))' },
+  sectionBlurb: { fontFamily: 'var(--font-display, Fraunces, serif)', fontSize: 17, fontStyle: 'italic', color: 'var(--ink-3, var(--text-muted, #5e5e63))', margin: '0 0 28px', lineHeight: 1.4 },
+  subBlock: { padding: '8px 0', marginBottom: 14, scrollMarginTop: 24 },
+  subH3: { fontFamily: 'var(--font-display, Fraunces, serif)', fontSize: 22, fontWeight: 400, margin: '24px 0 12px', letterSpacing: '-0.01em', lineHeight: 1.15, color: 'var(--ink-0, var(--text, #0e1115))' },
+  subH4: { fontFamily: 'var(--font-display, Fraunces, serif)', fontSize: 16, fontWeight: 500, margin: '24px 0 8px', letterSpacing: '-0.005em', color: 'var(--ink-0, var(--text, #0e1115))' },
+  body: { fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink-1, var(--text, #2a2a2e))', margin: '0 0 12px' },
+  callout: { background: 'var(--bg-2, var(--surface-2, #f4f5f7))', border: '0.5px solid var(--line-1, var(--border, rgba(0,0,0,0.10)))', borderRadius: 8, padding: '14px 16px', margin: '12px 0 16px', fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink-1, var(--text, #2a2a2e))' },
+  honestCallout: { background: 'rgba(0,113,227,0.06)', borderLeft: '3px solid var(--accent, #0071e3)', borderRadius: '0 6px 6px 0', padding: '14px 16px', margin: '18px 0', fontSize: 13.5, lineHeight: 1.6, color: 'var(--ink-1, var(--text, #2a2a2e))' },
+  formula: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12.5, background: 'var(--bg-2, var(--surface-2, #f4f5f7))', padding: '12px 16px', borderRadius: 6, borderLeft: '3px solid var(--accent, #0071e3)', margin: '10px 0', whiteSpace: 'pre-wrap', lineHeight: 1.55, color: 'var(--ink-1, var(--text, #2a2a2e))' },
+  inlineCode: { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 12.5, background: 'var(--bg-2, var(--surface-2, #f4f5f7))', padding: '1px 6px', borderRadius: 3, color: 'var(--ink-0, var(--text, #0e1115))' },
+  bullet: { margin: '8px 0', lineHeight: 1.6, fontSize: 14.5, color: 'var(--ink-1, var(--text, #2a2a2e))' },
+  tableWrap: { margin: '14px 0 18px', overflowX: 'auto' },
+  table: { width: '100%', borderCollapse: 'collapse', fontSize: 13.5 },
+  th: { textAlign: 'left', padding: '10px 12px 8px 0', borderBottom: '1px solid var(--ink-0, var(--text, #0e1115))', fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3, var(--text-muted, #5e5e63))' },
+  td: { padding: '10px 12px 10px 0', borderBottom: '0.5px dashed var(--line-1, var(--border, rgba(0,0,0,0.10)))', color: 'var(--ink-2, var(--text, #2a2a2e))', verticalAlign: 'top' },
+};
 
-// ── Three vol triggers — identical to the engine. ────────────────────────
-const VOL_TRIGGERS = [
-  {
-    name: 'Equity Volatility',
-    measures: 'The 30-day implied move on the S&P 500.',
-    position: 'Often the LAST to confirm. The most-cited stress measure, but the slowest of the three.',
-  },
-  {
-    name: 'Bond Volatility',
-    measures: 'Implied volatility on Treasury options. Captures rate-policy uncertainty and bond-market stress.',
-    position: 'MIDDLE. Often follows funding stress and leads equity vol.',
-  },
-  {
-    name: 'Funding Stress',
-    measures: 'The spread of commercial paper rates over Treasury bills — how expensive it is for blue-chip companies to borrow for 30 days.',
-    position: 'Often the LEADING trigger. In 2008, this was elevated from May onwards while equity vol stayed calm through August.',
-  },
-];
-
-// ── Five stages — identical to the engine. ───────────────────────────────
-const STAGE_TABLE = [
-  { stage: 'Calm',       weeks: 'Below the mark',         meaning: 'No action.' },
-  { stage: 'Watching',   weeks: 'One week above',         meaning: 'About one in four single-week crosses are head-fakes — they resolve back below within a week. Note it. Do not act yet.' },
-  { stage: 'Holding',    weeks: 'Two to three weeks',     meaning: 'Head-fake filtered out. Worth preparing.' },
-  { stage: 'Confirmed',  weeks: 'Four to seven weeks',    meaning: 'The signal is real. Act consistent with your own risk tolerance.' },
-  { stage: 'Entrenched', weeks: 'Eight weeks or longer',  meaning: 'Late-stage signal. The math still says drawdown probability is elevated even if you have not acted yet.' },
-];
-
-// ── Seven cycle indicators — identical to the engine. ────────────────────
-// flipped=true means LOW value is the bearish direction. The engine inverts
-// the percentile rank for those four (100 minus raw rank) so all seven point
-// in the same direction inside the average.
-const CYCLE_INDICATORS = [
-  { name: 'Copper / Gold ratio',          higherMeans: 'Cyclical demand is healthy (bullish).',                flipped: true  },
-  { name: 'KBW Bank index / S&P ratio',   higherMeans: 'Banks are leading the market (bullish, healthy credit).', flipped: true  },
-  { name: '10-year minus 2-year Treasury spread', higherMeans: 'Yield curve is steeper (bullish, banks make money lending).', flipped: true  },
-  { name: 'Chicago Fed financial conditions',     higherMeans: 'Conditions are tighter (bearish).',           flipped: false },
-  { name: 'Initial jobless claims',       higherMeans: 'More people are losing their jobs (bearish).',         flipped: false },
-  { name: 'High-Yield credit spread',     higherMeans: 'Risky-borrower lenders demand more compensation (bearish, credit stress).', flipped: false },
-  { name: 'Investment-Grade credit spread', higherMeans: 'Safer-borrower lenders demand more compensation (bearish, credit stress).', flipped: false },
-];
-
-// ── Cycle composite quintile bands — identical to the engine. ────────────
-const QUINTILE_BANDS = [
-  { band: 'Q1', range: 'Under 20',  meaning: 'Deepest calm. Late expansion, nothing has broken yet.' },
-  { band: 'Q2', range: '20 to 40',  meaning: 'Calm. Late-cycle territory.' },
-  { band: 'Q3', range: '40 to 60',  meaning: 'Middle. Early stress visible in some places.' },
-  { band: 'Q4', range: '60 to 80',  meaning: 'Stress is broad and confirmed in several places.' },
-  { band: 'Q5', range: '80 and up', meaning: 'Full-blown macro stress. The cycle has already broken.' },
-];
-
-// ── Limitations — sourced verbatim from the spec doc, plain language. ────
-const LIMITATIONS = [
-  {
-    head: 'It does not call entries or bottoms.',
-    body: 'The framework answers one question: when to take chips off the table. It is silent on when to put them back. A separate decision rule (not this page) governs re-entry.',
-  },
-  {
-    head: 'A bounce-back and a grind look the same here.',
-    body: 'The framework measures the deepest peak-to-trough drop over a forward window. A drop that recovers in three months and a drop that grinds for a year are scored identically. For a fully-invested investor with patience, those are roughly equivalent. For a stop-loss-driven investor, the second is much worse — the framework does not distinguish.',
-  },
-  {
-    head: 'Two crises dominate the deep-stress sample.',
-    body: 'The conditional drawdown numbers behind the framework are heavily shaped by the 2008 financial crisis and the 2020 pandemic crash. Slower-grinding tops (2000 to 2002) contribute, but the deepest-stress readings are dominated by those two episodes.',
-  },
-  {
-    head: 'Pre-2002 history runs on two triggers, not three.',
-    body: 'Bond Volatility is not available in free public data before 2002. Any back-test that pre-dates 2002 reduces to Equity Vol plus Funding Stress. The 1998 LTCM crisis — the most consequential pre-2006 test — cannot be fully verified with the three-trigger framework.',
-  },
-  {
-    head: 'Credit-spread substitutes used before 2011 are not exact.',
-    body: 'Native high-yield and investment-grade credit-spread series only run back to 2011 (investment grade) and 2011 (high yield). Before that the framework uses BAA-AAA spreads as a proxy. Correlation is high (0.87 for high yield, 0.98 for investment grade) but the proxy is less sensitive to the deepest credit-stress episodes.',
-  },
-  {
-    head: '1996 had seven false positives.',
-    body: 'The framework fired Risk Off seven times during 1996 mid-bull-market wobbles that did not lead to drawdowns. Vol triggers twitched, but credit was tight and cyclicals were not weakening. A filter for sustained cyclical weakness would have cleared most of those out — it was deliberately not added to keep the framework simple.',
-  },
-];
-
-// ── Sections shown in the jump-nav. ──────────────────────────────────────
-// Anchors point at section IDs in the body. They are NOT URL-hash anchors —
-// clicking a chip calls scrollToSection(id) which jumps the viewport without
-// touching window.location.hash (the site's tab router watches the hash and
-// would swallow any unknown value back to the Home tab).
-const SECTIONS = [
-  // Group 1 — Macro Overview / Signal Intelligence
-  { id: 'mo-question',     label: 'Macro Overview · the question',  group: 'Macro Overview' },
-  { id: 'mo-architecture', label: 'Two layers' },
-  { id: 'mo-triggers',     label: 'Layer 1 — volatility triggers' },
-  { id: 'mo-composite',    label: 'Layer 2 — cycle composite' },
-  { id: 'mo-regime',       label: 'The four-state read' },
-  { id: 'mo-thresholds',   label: 'How thresholds are set' },
-  { id: 'mo-limits',       label: 'What this does not do' },
-  // Group 2 — the rest of the site
-  { id: 'asset-tilt',      label: 'Asset Tilt',          group: 'Other pages' },
-  { id: 'trading-opps',    label: 'Trading Opportunities' },
-  { id: 'portfolio',       label: 'Portfolio Insights' },
-  { id: 'scenarios',       label: 'Scenario Analysis' },
-  // Group 3 — registry
-  { id: 'sources',         label: 'Where the data comes from', group: 'Sources' },
-];
-
-// scrollToSection — used instead of href="#id" to avoid touching the URL hash
-// (which the site's tab router uses for navigation).
-function scrollToSection(e, id) {
-  if (e && e.preventDefault) e.preventDefault();
-  const el = document.getElementById(id);
-  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// ─── helper components ─────────────────────────────────────────────────
+function Code({ children }) { return <code style={ST.inlineCode}>{children}</code>; }
+function Body({ children }) { return <p style={ST.body}>{children}</p>; }
+function Formula({ children }) { return <div style={ST.formula}>{children}</div>; }
+function Callout({ children }) { return <div style={ST.callout}>{children}</div>; }
+function HonestCallout({ children }) { return <div style={ST.honestCallout}>{children}</div>; }
+function DocsTable({ cols, rows }) {
+  return (
+    <div style={ST.tableWrap}>
+      <table style={ST.table}>
+        <thead><tr>{cols.map((c, i) => {
+          const label = typeof c === 'string' ? c : c.label;
+          const numeric = typeof c !== 'string' && c.numeric;
+          return <th key={i} style={{ ...ST.th, textAlign: numeric ? 'right' : 'left' }}>{label}</th>;
+        })}</tr></thead>
+        <tbody>{rows.map((r, ri) => (
+          <tr key={ri}>{r.map((cell, ci) => {
+            const numeric = typeof cols[ci] !== 'string' && cols[ci].numeric;
+            return <td key={ci} style={{ ...ST.td, textAlign: numeric ? 'right' : 'left', fontVariantNumeric: numeric ? 'tabular-nums' : 'normal' }}>{cell}</td>;
+          })}</tr>
+        ))}</tbody>
+      </table>
+    </div>
+  );
 }
 
-// ── Small style helpers reused below. ────────────────────────────────────
-const sectionBox = {
-  background: 'var(--bg-1, var(--surface, #fff))',
-  border: '1px solid var(--line-1, var(--border, rgba(0,0,0,0.08)))',
-  borderRadius: 'var(--r-tile, 12px)',
-  padding: 28,
-  marginTop: 24,
-  scrollMarginTop: 80,
-};
-const eyebrow = {
-  fontSize: 11,
-  letterSpacing: '0.18em',
-  textTransform: 'uppercase',
-  color: 'var(--ink-2, var(--text-muted, #555))',
-  fontWeight: 500,
-  marginBottom: 8,
-};
-const h2 = {
-  fontFamily: 'var(--font-display, inherit)',
-  fontWeight: 400,
-  fontSize: 26,
-  lineHeight: 1.18,
-  margin: '6px 0 0',
-  color: 'var(--ink-0, var(--text, #000))',
-};
-const body = {
-  fontSize: 14,
-  color: 'var(--ink-1, var(--text, #222))',
-  lineHeight: 1.6,
-  maxWidth: '68ch',
-};
-const tableBase = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  marginTop: 16,
-  fontSize: 13,
-};
-const th = {
-  textAlign: 'left',
-  padding: '10px 8px',
-  borderBottom: '1px solid var(--line-1, var(--border, #ddd))',
-  color: 'var(--ink-2, var(--text-muted, #555))',
-  fontWeight: 500,
-  fontSize: 11,
-  letterSpacing: '0.06em',
-  textTransform: 'uppercase',
-};
-const td = {
-  padding: '10px 8px',
-  borderBottom: '1px solid var(--line-0, rgba(0,0,0,0.06))',
-  color: 'var(--ink-1, var(--text, #222))',
-  verticalAlign: 'top',
+// ─── sections + subsections ─────────────────────────────────────────────
+const SECTIONS = [
+  {
+    id: 'macro-overview', num: '01', title: 'Macro Overview',
+    blurb: 'Where the cycle sits today.',
+    sub: [
+      { id: 'macro-why',    label: 'Why we built it' },
+      { id: 'macro-how',    label: 'How to use it' },
+      { id: 'macro-data',   label: 'Data behind it' },
+      { id: 'macro-models', label: 'Models & calcs' },
+    ],
+  },
+  {
+    id: 'asset-tilt', num: '02', title: 'Asset Tilt',
+    blurb: 'Where the cycle says to lean.',
+    sub: [
+      { id: 'tilt-why',    label: 'Why we built it' },
+      { id: 'tilt-how',    label: 'How to use it' },
+      { id: 'tilt-data',   label: 'Data behind it' },
+      { id: 'tilt-models', label: 'Models & calcs' },
+    ],
+  },
+  {
+    id: 'trading-opps', num: '03', title: 'Trading Opportunities',
+    blurb: 'What to act on today.',
+    sub: [
+      { id: 'ops-why',    label: 'Why we built it' },
+      { id: 'ops-how',    label: 'How to use it' },
+      { id: 'ops-data',   label: 'Data behind it' },
+      { id: 'ops-models', label: 'Models & calcs' },
+    ],
+  },
+  {
+    id: 'portfolio-insights', num: '04', title: 'Portfolio Insights',
+    blurb: 'How your actual book is positioned.',
+    sub: [
+      { id: 'port-why',    label: 'Why we built it' },
+      { id: 'port-how',    label: 'How to use it' },
+      { id: 'port-data',   label: 'Data behind it' },
+      { id: 'port-models', label: 'Models & calcs' },
+    ],
+  },
+  {
+    id: 'scenarios', num: '05', title: 'Scenario Analysis',
+    blurb: 'How your portfolio reacts under stress.',
+    sub: [
+      { id: 'sc-why',    label: 'Why we built it' },
+      { id: 'sc-how',    label: 'How to use it' },
+      { id: 'sc-data',   label: 'Data behind it' },
+      { id: 'sc-models', label: 'Models & calcs' },
+    ],
+  },
+];
+
+// ─── content per subsection ─────────────────────────────────────────────
+const SECTION_CONTENT = {
+
+  // ============================================================
+  // §1 MACRO OVERVIEW — Signal Intelligence framework
+  // ============================================================
+  'macro-why': (
+    <>
+      <Body>
+        Market regime drives every other decision on the site. Without a clean read of where the cycle
+        sits, every allocation choice and every stock pick is a guess about the macro context. The
+        Macro Overview answers one question: <strong>given everything we can measure, when do we take risk off?</strong>
+      </Body>
+      <Body>
+        We do not predict tops. We do not call entries. We describe state. The framework is a
+        forward-looking sell-warning system — when do the conditions look like a meaningful drawdown
+        is closer than the calm surface suggests.
+      </Body>
+      <Callout>
+        <strong>The regime label is descriptive, not prescriptive.</strong> A read of "Risk Off" does
+        not mean "sell everything." It means "vol has cracked while the cycle still looks calm — that
+        is the leading edge, act on your own risk tolerance." What to do about it lives one click
+        away, in <em>Asset Tilt</em>.
+      </Callout>
+    </>
+  ),
+  'macro-how': (
+    <>
+      <Body>
+        The page reads in two layers and rolls up to a single four-state label.
+      </Body>
+      <h4 style={ST.subH4}>Read the regime label first</h4>
+      <Body>
+        The right-rail Regime tile shows one of four labels: <strong>Risk On</strong> ·{' '}
+        <strong>Neutral</strong> · <strong>Cautionary</strong> · <strong>Risk Off</strong>. The current
+        state has the colored pill; the other three are dimmed. The descriptions tell you what each
+        state means.
+      </Body>
+      <DocsTable
+        cols={['State', 'Definition', 'What it means']}
+        rows={[
+          ['Risk On',     'No volatility trigger above its 85th-percentile level.', 'Vol is calm. Fully-invested default. No action.'],
+          ['Neutral',     'Exactly one trigger crossed for exactly one week.',       'Roughly one-in-four single-week crosses are head-fakes. Note it. Do not act yet.'],
+          ['Cautionary',  'A trigger has held above for 2+ weeks AND the cycle composite is at 40 or above.', 'Vol is real but the cycle has either started to confirm or already broken — past the forward-looking signal point.'],
+          ['Risk Off',    'A trigger has held above for 2+ weeks AND the cycle composite is below 40.', 'Vol cracked while the cycle still looks fine. The actionable late-cycle setup — broad confirmation is most likely to follow.'],
+        ]}
+      />
+      <h4 style={ST.subH4}>Layer 1 — three volatility triggers</h4>
+      <Body>
+        Three dials at the top of the page: Equity Volatility · Bond Volatility · Funding Stress.
+        Each one has its own mark — the trailing-5y 85th-percentile level. The arrow on the dial
+        shows where today sits relative to that level. Each dial also carries a five-stage progression
+        (Calm → Watching → Holding → Confirmed → Entrenched) based on how many consecutive weeks the
+        reading has stayed above its mark.
+      </Body>
+      <h4 style={ST.subH4}>Layer 2 — cycle composite</h4>
+      <Body>
+        Below the three triggers, a single 0-to-100 score plus the seven indicators that feed it. The
+        composite is the simple average of seven stress-direction percentile ranks. Higher means more
+        stress. The score is bucketed into five 20-point bands so you can read the cycle position at a
+        glance.
+      </Body>
+    </>
+  ),
+  'macro-data': (
+    <>
+      <Body>
+        Two layers, ten indicators total. All from public sources.
+      </Body>
+      <h4 style={ST.subH4}>Layer 1 — three volatility triggers</h4>
+      <DocsTable
+        cols={['Trigger', 'Source', 'Cadence', 'Sample']}
+        rows={[
+          ['Equity Volatility (VIX)',         'CBOE direct feed',                  'Daily, real-time',  '1996 to today'],
+          ['Bond Volatility (MOVE Index)',    'ICE BofA via FRED',                 'Daily after close',  '2002 to today'],
+          ['Funding Stress (CPFF spread)',    'Federal Reserve H.15 · FRED CPFF',  'Weekly · Wed',       '2006 to today (TED proxy pre-2006)'],
+        ]}
+      />
+      <h4 style={ST.subH4}>Layer 2 — seven cycle composite indicators</h4>
+      <DocsTable
+        cols={['Indicator', 'Direction', 'Source', 'Sample']}
+        rows={[
+          ['Copper / Gold ratio',                'Low = stress (flipped)',  'Yahoo · CME front-month futures',     '2000 to today'],
+          ['KBW Bank / S&P ratio',               'Low = stress (flipped)',  'NASDAQ KBW BKX index',                '1993 to today'],
+          ['Yield curve (10y − 2y)',             'Low = stress (flipped)',  'Federal Reserve H.15 · FRED T10Y2Y',  '1976 to today'],
+          ['Chicago Fed financial conditions',   'High = stress',           'Chicago Fed · FRED ANFCI',            '1971 to today'],
+          ['Initial jobless claims (4-week avg)', 'High = stress',          'US DOL · FRED IC4WSA',                '1967 to today'],
+          ['High-Yield credit spread',           'High = stress',           'ICE BofA · FRED BAMLH0A0HYM2',        '2011 to today (BAA-AAA proxy pre-2011)'],
+          ['Investment-Grade credit spread',     'High = stress',           'ICE BofA · FRED BAMLC0A0CM',          '2006 to today (BAA10Y proxy pre-2006)'],
+        ]}
+      />
+      <Body>
+        Pre-2002 history runs on the reduced 2-anchor stack because public Bond Volatility data is
+        only available from 2002. Pre-2011 high-yield and investment-grade spreads use proxy series
+        (BAA-AAA and BAA10Y respectively); correlations to the native series during the overlap window
+        are 0.87 and 0.98.
+      </Body>
+    </>
+  ),
+  'macro-models': (
+    <>
+      <Body>
+        The framework is two layers plus a regime classifier.
+      </Body>
+      <h4 style={ST.subH4}>Layer 1 — trigger mark, stage, and progression</h4>
+      <Body>
+        Each trigger has a mark — the trailing-5y 85th-percentile level of its own values. The mark
+        is recomputed every weekday at 7 AM ET against the new five-year window. As markets evolve
+        the mark drifts; today's 2009-style high-vol regime and a 2017-style low-vol regime each get
+        their own calibrated mark.
+      </Body>
+      <Formula>{`mark_i = quantile_85( trigger_i.values[last 5 years] )
+
+if trigger_i.current >= mark_i:
+   consecutive_weeks_above += 1
+else:
+   consecutive_weeks_above = 0
+
+stage = 0  (Calm)       if weeks_above == 0
+        1  (Watching)   if weeks_above == 1
+        2  (Holding)    if 2 <= weeks_above <= 3
+        3  (Confirmed)  if 4 <= weeks_above <= 7
+        4  (Entrenched) if weeks_above >= 8`}</Formula>
+
+      <h4 style={ST.subH4}>Layer 2 — cycle composite</h4>
+      <Body>
+        Each cycle indicator is ranked against its own <strong>full history</strong>. The longest
+        series (Initial Jobless Claims) runs back to 1967; the shortest (Copper/Gold) back to 2000.
+        Full history because macro indicators have decades of cycle structure to anchor against —
+        unlike vol triggers, whose market regime drifts, so they use a rolling 5-year window.
+      </Body>
+      <Formula>{`for each cycle indicator i:
+   raw_pct = percentile_rank( indicator_i.current, indicator_i.history )
+   if indicator_i.bearish_direction == "low":  stress_pct = 100 - raw_pct
+   else:                                       stress_pct = raw_pct
+
+cycle_composite = round( mean(stress_pct over all 7 indicators) )    # in [0, 100]
+
+band = "0–20 deepest calm"      if cycle_composite <  20
+       "20–40 calm / late-cycle" if cycle_composite < 40
+       "40–60 middle"             if cycle_composite < 60
+       "60–80 broad stress"       if cycle_composite < 80
+       "80–100 macro stress"      otherwise`}</Formula>
+
+      <h4 style={ST.subH4}>Regime classifier</h4>
+      <Formula>{`max_stage = max( stage over all 3 triggers )
+sum_at_stage_1 = count( triggers with stage == 1 )
+
+if max_stage == 0:                                    regime = "Risk On"
+elif max_stage == 1 and sum_at_stage_1 == 1:          regime = "Neutral"
+elif max_stage >= 2 and cycle_composite < 40:         regime = "Risk Off"
+elif max_stage >= 2:                                  regime = "Cautionary"`}</Formula>
+      <Body>
+        The classifier favors the actionable Risk Off label only when vol has cracked AND the cycle
+        composite is still low — that is the late-cycle setup the framework is calibrated for.
+        Sustained vol with a stressed cycle composite reads Cautionary instead, because the
+        forward-looking edge has already been priced in.
+      </Body>
+      <h4 style={ST.subH4}>Refresh pipeline</h4>
+      <Body>
+        Triggers refresh after the US close (or after their underlying release for CPFF). The cycle
+        composite recomputes once any of its seven indicators updates. The regime classifier runs on
+        every change and writes a snapshot file the rest of the site reads.
+      </Body>
+    </>
+  ),
+
+  // ============================================================
+  // §2 ASSET TILT
+  // ============================================================
+  'tilt-why': (
+    <>
+      <Body>
+        The macro state is useless if it doesn't translate into portfolio actions. The Asset Tilt page
+        does that translation: given today's regime read, it produces an explicit allocation
+        recommendation — equity %, defensive %, leverage, sector tilts, industry-group tilts.
+      </Body>
+      <Body>
+        Two design principles. First, <strong>every threshold is backtested</strong>. No hand-picked
+        cutoffs, no narrative reasoning that drifts when the regime shifts. The decision rules are
+        deterministic, calibrated against 2012–2026 history, and re-run on every new data point.
+      </Body>
+      <Body>
+        Second, <strong>hard caps prevent any regime from blowing past prudent bounds</strong>:
+      </Body>
+      <ul style={{ paddingLeft: 22, margin: '8px 0 12px' }}>
+        <li style={ST.bullet}>Defensive sleeve never exceeds 50% of capital, even in a maximum-stress regime.</li>
+        <li style={ST.bullet}>Leverage never exceeds 1.5×.</li>
+        <li style={ST.bullet}>Defensive and leverage are never on at the same time. If the engine wants any defensive sleeve, leverage drops to 1.0×.</li>
+        <li style={ST.bullet}>All input mechanisms feed every decision. No single point of failure in the input layer.</li>
+      </ul>
+    </>
+  ),
+  'tilt-how': (
+    <>
+      <Body>
+        The page reads top-to-bottom in five blocks.
+      </Body>
+      <h4 style={ST.subH4}>1. Hero & KPI strip</h4>
+      <Body>
+        Page-level stance pill plus five KPIs: Equity %, Defensive %, Leverage, stress score, gross
+        exposure. The headline copy describes the regime in one sentence — and only claims defensive
+        activation when defensive % is actually positive.
+      </Body>
+      <h4 style={ST.subH4}>2. Cycle inputs strip</h4>
+      <Body>
+        The same cycle inputs from Macro Overview, repeated here as a quick-glance reference for
+        what's driving today's allocation. Each card is clickable to see the inputs that drove its
+        state.
+      </Body>
+      <h4 style={ST.subH4}>3. Recommended Asset Tilt table</h4>
+      <Body>
+        Eleven sectors plus four defensive buckets. Each row shows the sector name, ETF tickers
+        (clickable for ETF detail), a visual bar, the dollar tilt (leverage-adjusted; per $100 of
+        capital), and the rating + delta vs SPY. Click any sector to expand its industry groups
+        inline. Click any IG to see the constituent ETFs and stocks.
+      </Body>
+      <h4 style={ST.subH4}>4. Mechanism heatmap</h4>
+      <Body>
+        Cycle mechanisms × eleven sectors. Each cell shows whether that mechanism is currently a
+        tailwind (positive) or headwind (negative) for that sector. The math is the sector's
+        historical sensitivity to the mechanism multiplied by today's mechanism score.
+      </Body>
+      <h4 style={ST.subH4}>5. Methodology footer</h4>
+      <Body>
+        One-line summary of the calibration plus a link to this page. The page refreshes nightly,
+        shortly after the Macro Overview snapshot.
+      </Body>
+    </>
+  ),
+  'tilt-data': (
+    <>
+      <Body>
+        Inputs live in three places:
+      </Body>
+      <DocsTable
+        cols={['Input', 'What it carries', 'Refreshed by']}
+        rows={[
+          ['Cycle snapshot',          'Today\'s regime read + the underlying mechanism scores', 'The Macro Overview pipeline, nightly'],
+          ['Allocator output',        'Equity %, defensive %, leverage, 11 sector tilts, 24 industry-group tilts, contribution matrix', 'The allocator script, nightly after the cycle snapshot'],
+          ['Calibration constants',   'Per-sector and per-IG sensitivity coefficients, hard caps, threshold values', 'Manually updated when calibration windows change'],
+        ]}
+      />
+      <Body>
+        Per-sector and per-IG sensitivities are baked into the allocator as constants. Each sector
+        has a small set of sensitivity coefficients — one per mechanism — anchored on per-sector
+        regression studies. Each industry group inherits its parent sector's sensitivities plus
+        IG-specific adjustments (e.g. Semiconductors carries an extra negative sensitivity to growth
+        and positioning on top of the Tech-sector base).
+      </Body>
+      <Body>
+        Sector ETF universe: eleven GICS sectors with three ETF families to choose from per sector —
+        the SPDR XL series (XLK / XLC / XLF / XLV / XLY / XLI / XLP / XLE / XLB / XLRE / XLU), the
+        Vanguard V series (VGT / VOX / VFH / VHT / VCR / VIS / VDC / VDE / VAW / VNQ / VPU), and the
+        Fidelity F series (FTEC / FCOM / FNCL / FHLC / FDIS / FIDU / FSTA / FENY / FMAT / FREL / FUTY).
+        Plus four defensive buckets: BIL (cash), TLT (long Treasuries), GLD (gold), LQD (IG corporate
+        bonds). SPY weights for the relative-tilt computation come from a quarterly snapshot.
+      </Body>
+    </>
+  ),
+  'tilt-models': (
+    <>
+      <Body>
+        The allocator runs in five deterministic steps. The rules are versioned in the script.
+      </Body>
+      <h4 style={ST.subH4}>Step 1 — Stress score</h4>
+      <Body>
+        The stress score is a weighted count of how many stress-detection mechanisms are flagging
+        concern. The three are Credit, Liquidity &amp; Policy, and Positioning &amp; Breadth — chosen
+        because together they cover credit-side contagion (Credit), policy/liquidity reversals
+        (Liq&amp;Pol), and crowd / sentiment dynamics (Pos&amp;Br).
+      </Body>
+      <Formula>{`for each of [Credit, Liq&Pol, Pos&Br]:
+   if mechanism band == "Caution"  →  +1
+   if mechanism band == "Risk Off" →  +2
+
+stress_score ∈ [0, 6]`}</Formula>
+      <h4 style={ST.subH4}>Step 2 — Equity vs Defensive split</h4>
+      <Formula>{`if stress_score < 4:    defensive_pct = 0%
+else:                   defensive_pct = (stress_score - 3) × 20%, capped at 50%
+
+equity_pct = 1 - defensive_pct`}</Formula>
+      <Body>
+        The intent: <em>most of the time at 100% equity</em>. The threshold 4 means the engine only
+        activates defensive when stress is severe. In the 2012-2026 calibration window, this rule kept
+        the allocator at 100% equity 88% of the time.
+      </Body>
+      <h4 style={ST.subH4}>Step 3 — Leverage</h4>
+      <Formula>{`if defensive_pct > 0:                                     leverage = 1.0×    (XOR rule)
+elif all mechanisms in {Risk On, Neutral}:               leverage = 1.25×
+else:                                                     leverage = 1.0×
+
+(future: V-bottom regime-flip detection unlocks up to 1.5×)`}</Formula>
+      <h4 style={ST.subH4}>Step 4 — Per-sector tilt</h4>
+      <Formula>{`for each sector:
+   tilt_score = Σᵢ (sensitivityᵢ × normalized_scoreᵢ)
+       where normalized_scoreᵢ = (mechanism_scoreᵢ - 50) / 50  ∈ [-1, +1]
+
+   if tilt_score > +0.3:  rating = OW, multiplier = 1.20× SPY weight
+   if tilt_score < -0.3:  rating = UW, multiplier = 0.75× SPY weight
+   else:                   rating = MW, multiplier = 1.00× SPY weight
+
+equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct × $100)`}</Formula>
+      <h4 style={ST.subH4}>Step 5 — Per-industry-group tilt</h4>
+      <Formula>{`for each industry group:
+   ig_sensitivity = parent_sector_sensitivity + ig_specific_adjustment
+   tilt_score, rating same logic as sector
+   ig dollars renormalized so each sector's IGs sum back to its sector total`}</Formula>
+      <h4 style={ST.subH4}>Audit checks (every refresh)</h4>
+      <Body>
+        Before the allocation file is committed, four assertions run:
+      </Body>
+      <ul style={{ paddingLeft: 22, margin: '8px 0 12px' }}>
+        <li style={ST.bullet}><Code>defensive_pct ≤ 50%</Code></li>
+        <li style={ST.bullet}><Code>leverage ≤ 1.5×</Code></li>
+        <li style={ST.bullet}><Code>NOT (defensive_pct &gt; 0 AND leverage &gt; 1.0×)</Code></li>
+        <li style={ST.bullet}><Code>all mechanisms present in input</Code></li>
+      </ul>
+      <Body>
+        Any assertion failure halts the pipeline and the page keeps the last-known-good allocation.
+        No partial or inconsistent allocations ship.
+      </Body>
+      <HonestCallout>
+        <strong>Honest status today.</strong> The Asset Tilt engine was built and back-tested against
+        an older cycle-mechanism framework that Signal Intelligence replaced on Macro Overview.
+        The recommendations on Asset Tilt today are still produced by that older engine. Recalibrating
+        against Signal Intelligence is multi-week work — it sits on the active punch list, scoped for
+        the Senior Quant. Until the recalibration lands and is back-tested, treat the Asset Tilt
+        numbers as a v1 recommendation, not a Signal-Intelligence-anchored one.
+      </HonestCallout>
+    </>
+  ),
+
+  // ============================================================
+  // §3 TRADING OPPORTUNITIES — lifted from legacy, current engine
+  // ============================================================
+  'ops-why': (
+    <>
+      <Body>
+        Asset Tilt tells you which sectors and industry groups to lean into. Trading Opportunities
+        goes one level finer: <strong>which specific stocks within those</strong>. The page scores
+        every US-listed stock over $300 million in market cap, daily, across six independent signals
+        — and blends them into a single MacroTilt Score from −100 to +100.
+      </Body>
+      <Body>
+        Positive scores mean the signals lean bullish. Negative scores mean they lean bearish. Cutoffs
+        at −50, −20, +20, and +50 sort every name into one of five bands — Strong Sell, Watch Sell,
+        Neutral, Watch Buy, Strong Buy. The page works as a top-to-bottom ranking of the entire market
+        every trading day.
+      </Body>
+    </>
+  ),
+  'ops-how': (
+    <>
+      <Body>
+        Open the page. The funnel card on the right shows how the full equity universe collapses to
+        today's universe, what signal coverage looks like, and the count in each of the five bands.
+        The table below ranks every scored name. Filter chips at the top let you focus on a single
+        band or your held names.
+      </Body>
+      <Body>Action bands on the MacroTilt Score:</Body>
+      <DocsTable
+        cols={['Score', 'Band', 'What it means']}
+        rows={[
+          [<Code>+50 to +100</Code>,  'Strong Buy',  'Multiple bullish signals firing strongly. Highest conviction on the buy side.'],
+          [<Code>+20 to +50</Code>,   'Watch Buy',   'Tilting bullish on one or two signals. Smaller position size or wait for confirmation.'],
+          [<Code>−20 to +20</Code>,   'Neutral',     'Signals are mixed or quiet. No clear directional read.'],
+          [<Code>−50 to −20</Code>,   'Watch Sell',  'Tilting bearish on one or two signals. Watch list for trim or hedge.'],
+          [<Code>−100 to −50</Code>,  'Strong Sell', 'Multiple bearish signals firing strongly. Highest conviction on the sell side.'],
+        ]}
+      />
+      <Body>
+        Every name in the universe is shown. There is no upper cap ceiling: NVDA, AAPL, GOOGL, KO —
+        all scored, all visible. The same six signals run on every name. The only difference at the
+        largest end of the cap range is that the insider weight is shrunk (see "Cap-aware insider
+        weight" in Models &amp; calcs).
+      </Body>
+    </>
+  ),
+  'ops-data': (
+    <>
+      <Body>The pipeline is built on six independent data streams plus a universe definition.</Body>
+      <DocsTable
+        cols={['Stream', 'Provider', 'What it carries']}
+        rows={[
+          ['Universe + reference',  'Polygon Massive',              'Every US-listed Common Stock + ADR with market cap at least $300 million and last close above $5. About 3,300 names.'],
+          ['EOD prices + volume',   'Polygon Massive',              'OHLCV for all names; feeds the technicals signal (Bollinger BandWidth, RSI, 50-day moving average, relative volume).'],
+          ['Insider buys + sells',  'Unusual Whales (SEC Form 4)',  'Open-market purchases and sales by officers and directors. Tax-withholding, RSU grants, and option exercises filtered out.'],
+          ['Options flow',          'Unusual Whales',               'Daily call and put volume vs open interest; flags unusual activity.'],
+          ['Congress trades',       'Quiver Quant',                 'Disclosed buy and sell trades by US senators and representatives.'],
+          ['Analyst actions',       'Unusual Whales',               'Wall Street equity research: upgrades, downgrades, price target changes, initiations.'],
+          ['Short interest',        'FINRA short interest report',  'Bi-monthly short interest as percent of float, plus day-to-cover.'],
+        ]}
+      />
+      <Body>
+        The nightly scan runs after the close and writes one row per (ticker, scan_date) to the
+        signal-scoring table. Each row carries the MacroTilt Score, the band, all six sub-scores, the
+        weights actually applied (after the cap-aware insider adjustment), and a plain-English summary.
+      </Body>
+    </>
+  ),
+  'ops-models': (
+    <>
+      <h4 style={ST.subH4}>Universe</h4>
+      <Body>
+        Every US-listed Common Stock + ADR with market cap at least $300 million and last close above
+        $5. About 3,300 names. No upper cap ceiling. The $300 million floor drops micro-caps where
+        execution risk dominates; the $5 close filter drops penny names.
+      </Body>
+      <h4 style={ST.subH4}>The six signals</h4>
+      <Body>
+        Each signal returns a sub-score from −100 to +100. Strong bullish reads (around +50 or higher)
+        and strong bearish reads (around −50 or lower) are the actionable extremes.
+      </Body>
+      <DocsTable
+        cols={['Signal', 'What it reads']}
+        rows={[
+          ['Insider buying',  'Open-market Form 4 buys and sells by company officers and directors. Cap-normalized so a $1 million buy reads the same way at every company size. First-buy refinement: bonus for buyers with no prior purchase in the previous twelve months.'],
+          ['Options flow',    'Unusual call and put volume vs open interest. Persistent call-side imbalance is bullish, persistent put-side imbalance is bearish.'],
+          ['Congress trades', 'Recent disclosed buys and sells by US senators and representatives. Buying tilts bullish, selling tilts bearish.'],
+          ['Technicals',      '20-day Bollinger BandWidth, 14-day RSI, distance from the 50-day moving average, relative volume. Reads "tape strength" without leaning on any single indicator.'],
+          ['Analyst actions', 'Recent Wall Street research changes: upgrades, downgrades, price target moves, initiations.'],
+          ['Short interest',  'Short interest as percent of float, plus week-over-week direction. Rising short interest is mildly bearish; falling short interest from elevated levels can be bullish (squeeze setup).'],
+        ]}
+      />
+      <h4 style={ST.subH4}>The MacroTilt Score (calibrated weights)</h4>
+      <Body>
+        The composite is a weighted average of the six sub-scores. Weights were fit on a 12-month
+        walk-forward backtest (52 weekly Mondays, May 2025 through May 2026) using realized 21-day
+        forward returns as the truth signal. Signals with insufficient historical data sit at the
+        equal-weight floor (one-sixth) until the data layer is backfilled.
+      </Body>
+      <DocsTable
+        cols={['Signal', { label: 'Weight', numeric: true }, 'Calibration status']}
+        rows={[
+          ['Insider buying',  <strong>36.30%</strong>, 'Calibrated. Highest alpha in backtest (+7.18 pp vs SPY when strong, 61% hit rate).'],
+          ['Options flow',    '16.67%',                'Equal-weight floor. Full history backfill in progress.'],
+          ['Congress trades', '16.67%',                'Equal-weight floor. Thin history (only 13 strong-signal events across backtest year).'],
+          ['Technicals',      <strong>8.69%</strong>,  'Calibrated. Reliable mid-tier (+3.42 pp alpha when strong, 56% hit rate).'],
+          ['Analyst actions', <strong>5.00%</strong>,  'Calibrated. Broad coverage; the lowest alpha among signals we could fit (+1.65 pp).'],
+          ['Short interest',  '16.67%',                'Equal-weight floor. Sparse coverage (93 tickers historically).'],
+          [<strong>Total</strong>, <strong>100.00%</strong>, ''],
+        ]}
+      />
+      <h4 style={ST.subH4}>Cap-aware insider weight</h4>
+      <Body>
+        Only the insider signal is haircut by market cap. A $1 million open-market purchase by a
+        director is meaningful at a $500 million company. The same purchase at a $500 billion mega-cap
+        is rounding error. The weight on the insider signal shrinks as market cap grows; the freed
+        weight is redistributed pro-rata across the other five signals so the total still sums to 100%.
+      </Body>
+      <DocsTable
+        cols={['Market cap', { label: 'Insider weight factor', numeric: true }, { label: 'Effective insider weight', numeric: true }]}
+        rows={[
+          ['$500 million or less', '1.00', '36.3%'],
+          ['$5 billion',           '0.75', '27.2%'],
+          ['$50 billion',          '0.50', '18.2%'],
+          ['$500 billion or more', '0.25', '9.1%'],
+        ]}
+      />
+      <h4 style={ST.subH4}>Backtest results</h4>
+      <Body>
+        12-month walk-forward, 52 weekly Mondays from 2025-05-12 through 2026-05-04. Universe sized at
+        about 2,800 names per scan date. Forward return is realized close-to-close, 21 trading days
+        forward.
+      </Body>
+      <DocsTable
+        cols={['Band', { label: 'Mean 21-day return', numeric: true }, { label: 'Alpha vs SPY', numeric: true }, { label: 'Beats SPY', numeric: true }, { label: 'Sharpe', numeric: true }]}
+        rows={[
+          [<strong>Strong Buy</strong>,  <strong>+8.30%</strong>, <strong>+7.21 pp</strong>, <strong>55.4%</strong>, <strong>3.00</strong>],
+          ['Watch Buy',                  '+3.39%', '+2.23 pp', '53.3%', '3.31'],
+          ['Watch Sell',                 '+2.72%', '+0.68 pp', '47.6%', '0.61'],
+          ['Strong Sell',                '−1.42%', '−2.99 pp', '35.3%', '—'],
+          ['SPY benchmark',              '+1.80%', '—',        '—',     '2.87'],
+        ]}
+      />
+      <Body>
+        The Strong Buy band beats SPY by more than 7 percentage points on average and earns a Sharpe
+        of 3.00 against SPY's 2.87. The Strong Sell band falls during an up year — a real negative
+        alpha. The bands are monotonic with realized return: the methodology works as a top-to-bottom
+        sorter.
+      </Body>
+    </>
+  ),
+
+  // ============================================================
+  // §4 PORTFOLIO INSIGHTS — lifted from legacy
+  // ============================================================
+  'port-why': (
+    <>
+      <Body>
+        Connect the tactical signals to your actual holdings. Without this surface, the rest of the
+        site is theoretical — interesting macro charts and ranked stock lists, but no integration with
+        what you actually own.
+      </Body>
+      <Body>
+        The page reads your brokerage positions and cross-references them against today's scanner
+        scores and Asset Tilt sector ratings. Each position gets an action label tailored to what the
+        data is currently saying about it.
+      </Body>
+    </>
+  ),
+  'port-how': (
+    <>
+      <Body>
+        Top of the page: hero with totals (net asset value, year-to-date realized profit/loss, today's
+        unrealized change) and a stance pill that summarizes overall book risk.
+      </Body>
+      <Body>
+        Below: <strong>Allocation</strong> bar showing how today's value splits across asset classes
+        (equity / option / cash / other). <strong>Accounts</strong> rollup showing each brokerage
+        sub-tile with its own value, return, and top positions. <strong>Watchlist</strong> for names
+        you are tracking but not holding. <strong>Trade History</strong> ledger of every closed
+        position with realized profit/loss, holding period, and reason for the close.
+      </Body>
+      <Body>
+        Click any position to open the same Ticker Detail modal used on Trading Opportunities — that
+        is the integration point. The position shows today's MacroTilt Score, the score's recent
+        trajectory, what would have to change for the score to move out of its current band, and the
+        suggested action.
+      </Body>
+    </>
+  ),
+  'port-data': (
+    <>
+      <Body>Two streams feed the page:</Body>
+      <DocsTable
+        cols={['Stream', 'What it carries', 'Refreshed by']}
+        rows={[
+          ['Brokerage positions', 'Today\'s positions across all linked accounts: ticker, account, quantity, cost basis, unrealized profit/loss, asset class.', 'Plaid (account sync) writes to the positions table; the page reads it directly on load.'],
+          ['Closed trade ledger', 'Every realized close, partial close, or expiration. Date, ticker, account, gross/net proceeds, realized profit/loss, holding period, lot-match method.', 'The close-position RPC writes one row per close. Tax-year totals are computed on the fly.'],
+        ]}
+      />
+      <Body>
+        Realized P&amp;L uses FIFO lot-matching with wash-sale treatment per IRS rules. Wash-sale
+        disallowed losses are not deducted from the current-year P&amp;L total; they are added to the
+        basis of the replacement lot and shown in a separate column in the trade history.
+      </Body>
+    </>
+  ),
+  'port-models': (
+    <>
+      <h4 style={ST.subH4}>Allocation rollup</h4>
+      <Body>
+        Positions are bucketed by asset class. Short option positions (negative quantity × premium)
+        are bucketed separately from long options. Negative cash balances are flagged as margin debt.
+        Short stock positions reduce the long-equity total.
+      </Body>
+      <h4 style={ST.subH4}>Today's unrealized change</h4>
+      <Body>
+        Computed by comparing today's mark against yesterday's close mark, summed across all positions.
+        Options use the bid/ask midpoint where available, fallback to the model price.
+      </Body>
+      <h4 style={ST.subH4}>Position action label</h4>
+      <Body>
+        Each position carries a suggested action derived from three inputs:
+      </Body>
+      <Formula>{`band       = MacroTilt Score band of the ticker (Strong Buy / Watch Buy / Neutral / Watch Sell / Strong Sell)
+sector_tilt = Asset Tilt sector rating for the ticker's sector (OW / MW / UW)
+hold_pct    = position's % of total portfolio value
+
+action =
+  if band == "Strong Sell":                                          "Trim / Close"
+  elif band == "Watch Sell" and hold_pct > 5%:                        "Trim"
+  elif band == "Strong Buy" and sector_tilt == "OW" and hold_pct<3%:  "Add"
+  elif band == "Strong Buy":                                          "Hold +"
+  elif band == "Neutral":                                             "Hold"
+  elif sector_tilt == "UW" and hold_pct > 5%:                         "Trim (sector UW)"
+  else:                                                                "Hold"`}</Formula>
+      <Body>
+        Action labels are <strong>suggestions, not commands</strong>. The page is descriptive; the
+        decision to execute stays with you.
+      </Body>
+    </>
+  ),
+
+  // ============================================================
+  // §5 SCENARIO ANALYSIS — fresh
+  // ============================================================
+  'sc-why': (
+    <>
+      <Body>
+        Macro Overview tells you where the cycle sits today. Asset Tilt tells you how to lean.
+        Scenario Analysis answers the next question: <strong>what happens to my book — and to the Asset
+        Tilt recommendation — when the macro panel moves?</strong>
+      </Body>
+      <Body>
+        Two flavors. <strong>Historical scenarios</strong> replay the actual shock from a named episode
+        (GFC, COVID, Volmageddon, the 2022 rate-hike cycle, etc.) through today's factor structure.
+        <strong> Bespoke shocks</strong> let you pin one or more factors at a chosen size of move and
+        propagate the rest using historical correlations.
+      </Body>
+    </>
+  ),
+  'sc-how': (
+    <>
+      <Body>
+        Pick a scenario from the list, or build a bespoke shock by pinning one or more factor sliders.
+        The page returns three reads:
+      </Body>
+      <ul style={{ paddingLeft: 22, margin: '8px 0 12px' }}>
+        <li style={ST.bullet}><strong>Portfolio impact.</strong> Estimated profit/loss across your book under the shock. Per-position breakdown of which holdings move most.</li>
+        <li style={ST.bullet}><strong>Cycle inputs after the shock.</strong> Where each macro indicator lands once the shock has propagated.</li>
+        <li style={ST.bullet}><strong>Updated Asset Tilt.</strong> What the allocator would recommend under the new regime — equity %, defensive %, leverage, sector tilts.</li>
+      </ul>
+      <Body>
+        Use historical scenarios when you want a literal "if 2008 happened again from today" read.
+        Use bespoke shocks when you want to stress-test a single factor (e.g., "what if HY OAS widens
+        300 basis points by itself").
+      </Body>
+    </>
+  ),
+  'sc-data': (
+    <>
+      <Body>
+        The scenario engine reads from four sources:
+      </Body>
+      <DocsTable
+        cols={['Source', 'What it carries']}
+        rows={[
+          ['Macro factor panel',          'Current values for the 16-factor macro panel (rates, credit, equity vol, FX, commodity, growth indicators).'],
+          ['Factor correlation matrix',   'Pairwise correlations on weekly first differences. Calibrated against the full sample (1996 to today).'],
+          ['Sector / IG sensitivity matrix', 'Same matrix used by the Asset Tilt allocator — per-sector and per-IG coefficients against each factor.'],
+          ['Historical scenario archive', '8 named episodes (GFC, COVID, Volmageddon, 2022 rate-hike, 1998 LTCM, 2011 EU debt, 2018 Q4, 2015 China). Each carries the realized shock to every factor over the episode window.'],
+        ]}
+      />
+    </>
+  ),
+  'sc-models': (
+    <>
+      <h4 style={ST.subH4}>Bespoke shock propagation</h4>
+      <Body>
+        Pinning a factor at <Code>+kσ</Code> moves the other factors by their correlation to the pinned
+        factor, bounded by the size of the pinned move.
+      </Body>
+      <Formula>{`for each unpinned factor j:
+   propagated_j = β_j,pinned × pin_size_in_sigmas    where β_j,pinned ≈ corr(j, pinned)
+
+bounded to ±max(|pin_size|) so unpinned factors never exceed the pinned factor's magnitude.
+
+multi-pin: weighted average of each pin's propagation, weighted by 1/distance_from_pin.`}</Formula>
+      <h4 style={ST.subH4}>Historical replay</h4>
+      <Body>
+        A named scenario carries the realized factor shocks from its episode window. The engine applies
+        those shocks to today's factor levels, then re-runs the cycle composite + regime classifier
+        against the post-shock factor panel.
+      </Body>
+      <h4 style={ST.subH4}>Portfolio P&amp;L estimate</h4>
+      <Formula>{`for each position p:
+   factor_betas = sector_sensitivity[p.sector] + ig_specific_adjustment[p.industry_group]
+   delta_return = Σf factor_betas[f] × factor_shock[f]
+   delta_value  = p.market_value × delta_return
+
+portfolio_pnl = Σp delta_value`}</Formula>
+      <h4 style={ST.subH4}>Updated Asset Tilt under the shock</h4>
+      <Body>
+        After the cycle inputs have been re-computed against the shocked factor panel, the standard
+        five-step allocator runs as normal. Output: equity %, defensive %, leverage, and per-sector
+        tilts under the new regime.
+      </Body>
+      <HonestCallout>
+        <strong>Honest status today.</strong> Like Asset Tilt, the scenario engine was built around the
+        older cycle-mechanism framework. The factor shocks it propagates and the per-indicator responses
+        it shows are anchored to that older framework. Migrating Scenario Analysis to Signal Intelligence
+        is multi-week work — it sits on the active punch list. Treat scenario outputs today as
+        directional rather than literal, until the rebuild lands.
+      </HonestCallout>
+    </>
+  ),
 };
 
-export default function MethodologyBody({ withJumpNav = true }) {
-  const [manifest, setManifest] = useState(null);
+// ─── component ──────────────────────────────────────────────────────────
+export default function MethodologyBody() {
+  const [activeId, setActiveId] = useState(SECTIONS[0].sub[0].id);
+
+  // Scroll spy — observe each subsection, pick the one closest to the viewport top
   useEffect(() => {
-    fetch('/data_manifest.json', { cache: 'no-cache' })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setManifest)
-      .catch(() => {});
-  }, []);
+    const ids = SECTIONS.flatMap(s => s.sub.map(x => x.id));
+    const handler = () => {
+      let best = activeId;
+      let bestTop = -Infinity;
+      for (const id of ids) {
+        const el = document.getElementById(id);
+        if (!el) continue;
+        const top = el.getBoundingClientRect().top;
+        if (top <= 80 && top > bestTop) { bestTop = top; best = id; }
+      }
+      if (best !== activeId) setActiveId(best);
+    };
+    handler();
+    window.addEventListener('scroll', handler, { passive: true });
+    return () => window.removeEventListener('scroll', handler);
+  }, [activeId]);
 
-  // Build the live source-vendor list from the data registry.
-  const sources = useMemo(() => {
-    const els = manifest?.elements || {};
-    const out = new Set();
-    Object.values(els).forEach((e) => {
-      const v = e?.source_vendor || e?.source || '';
-      if (v) v.split(/[·,;|]/).forEach((s) => { const t = s.trim(); if (t) out.add(t); });
-    });
-    return Array.from(out).sort();
-  }, [manifest]);
+  const scrollTo = (id) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   return (
-    <div>
-      {withJumpNav && (
-        <nav
-          aria-label="Methodology sections"
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 8,
-            alignItems: 'center',
-            padding: '10px 0 4px',
-            marginBottom: 8,
-          }}
-        >
-          <span style={{ ...eyebrow, marginBottom: 0, marginRight: 4 }}>Jump to</span>
-          {SECTIONS.map((s) => (
-            <React.Fragment key={s.id}>
-              {s.group && (
-                <span style={{
-                  fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase',
-                  color: 'var(--ink-2, var(--text-muted, #666))',
-                  fontWeight: 600, marginLeft: 8, marginRight: 2,
-                }}>{s.group} ›</span>
-              )}
-              <a
-                href="#readme"
-                onClick={(e) => scrollToSection(e, s.id)}
-                style={{
-                  fontSize: 12,
-                  padding: '5px 11px',
-                  borderRadius: 999,
-                  border: '1px solid var(--line-1, var(--border, #ddd))',
-                  color: 'var(--ink-1, var(--text, #222))',
-                  textDecoration: 'none',
-                  background: 'var(--bg-2, var(--surface-2, transparent))',
-                  cursor: 'pointer',
-                }}
-              >
-                {s.label}
-              </a>
-            </React.Fragment>
-          ))}
-        </nav>
-      )}
+    <div style={ST.layout}>
 
-      {/* ────────────────────────────────────────────────────────────────
-          MACRO OVERVIEW — sections 1 through 7 cover the Macro Overview
-          page (Signal Intelligence framework).
-          ──────────────────────────────────────────────────────────────── */}
-
-      <div style={{
-        margin: '20px 0 8px',
-        padding: '10px 0',
-        fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
-        color: 'var(--ink-2, var(--text-muted, #666))', fontWeight: 600,
-        borderTop: '1px solid var(--line-1, var(--border, #ddd))',
-        textAlign: 'center',
-      }}>Macro Overview</div>
-
-      {/* 1. The question */}
-      <section id="mo-question" style={sectionBox}>
-        <div style={eyebrow}>The question this framework answers</div>
-        <h2 style={h2}>When to take chips off the table.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          MacroTilt is built for an investor who is almost always fully invested in equities. The operational question is not when to buy — it is when to take risk off. Signal Intelligence is the framework that answers it.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          It is not a buy signal. It does not call entries, bottoms, or "buy the dip" moments. It is a forward-looking sell-warning system: when do the conditions look like a meaningful drawdown is closer than the calm surface suggests.
-        </p>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────
-          2. Two layers
-          ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-architecture" style={sectionBox}>
-        <div style={eyebrow}>The architecture</div>
-        <h2 style={h2}>Two layers of evidence, one regime read.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          Two layers, each looking at a different kind of evidence:
-        </p>
-        <ul style={{ ...body, paddingLeft: 22, marginTop: 8 }}>
-          <li style={{ marginBottom: 8 }}>
-            <strong>Layer 1 — three volatility triggers.</strong> Equity Vol, Bond Vol, Funding Stress. These are fast, forward-looking, and crack before the macro economy confirms.
-          </li>
-          <li>
-            <strong>Layer 2 — one cycle composite.</strong> Seven macro indicators averaged into a single 0-to-100 score. Tells you whether the cycle is calm (the dangerous setup) or already broken.
-          </li>
-        </ul>
-        <p style={{ ...body, marginTop: 14 }}>
-          Layer 1 tells us when trouble has arrived. Layer 2 tells us whether that trouble matters yet. Combined, they produce one of four labels — Risk On, Neutral, Cautionary, or Risk Off — that describes the tape today.
-        </p>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────
-          3. Layer 1 — volatility triggers
-          ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-triggers" style={sectionBox}>
-        <div style={eyebrow}>Layer 1</div>
-        <h2 style={h2}>Three volatility triggers, ordered by who cracks first.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          Each trigger has a mark on a half-circle dial. The mark is the level the reading has been at or above on only the worst one-in-seven trading days over the past five years. That is the trailing five-year 85th percentile of the trigger's own values.
-        </p>
-        <table style={tableBase}>
-          <thead><tr>
-            <th style={th}>Trigger</th>
-            <th style={th}>What it measures</th>
-            <th style={th}>Position in the stress chain</th>
-          </tr></thead>
-          <tbody>
-            {VOL_TRIGGERS.map((t) => (
-              <tr key={t.name}>
-                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{t.name}</td>
-                <td style={td}>{t.measures}</td>
-                <td style={td}>{t.position}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>How the mark stays current.</h3>
-        <p style={{ ...body, marginTop: 8 }}>
-          Every weekday at 7 AM Eastern Time, the underlying weekly history refreshes. The five-year window slides forward one day. The mark is re-computed against the new window. Nothing manual — the mark drifts as markets evolve, so a 2009-style high-vol regime and a 2017-style low-vol regime each get their own calibrated mark.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          Each dial is scaled so the mark always lands at the same arc position, no matter the units. So an Equity Vol of 18, a Bond Vol of 90, and a Funding Stress of 25 basis points are all visually comparable — same arc position, different units.
-        </p>
-
-        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>Five stages, one per trigger.</h3>
-        <p style={{ ...body, marginTop: 8 }}>
-          Once a trigger crosses its mark, it moves through five stages based on how many consecutive weeks it has stayed above. Each trigger has its own stage at any given moment.
-        </p>
-        <table style={tableBase}>
-          <thead><tr>
-            <th style={th}>Stage</th>
-            <th style={th}>How long above the mark</th>
-            <th style={th}>What it means</th>
-          </tr></thead>
-          <tbody>
-            {STAGE_TABLE.map((s) => (
-              <tr key={s.stage}>
-                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{s.stage}</td>
-                <td style={td}>{s.weeks}</td>
-                <td style={td}>{s.meaning}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────
-          4. Layer 2 — cycle composite
-          ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-composite" style={sectionBox}>
-        <div style={eyebrow}>Layer 2</div>
-        <h2 style={h2}>One cycle composite, built from seven indicators.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          The cycle composite is the fact-check on Layer 1. Each of the seven indicators below is ranked against its own full history — the longest one runs back to the 1960s. The rank is then converted into a 0-to-100 stress percentile: higher means more stress. For four of the seven indicators, low readings actually mean stress, so we flip the rank (100 minus the raw rank) before averaging. That way all seven point in the same direction.
-        </p>
-        <table style={tableBase}>
-          <thead><tr>
-            <th style={th}>Indicator</th>
-            <th style={th}>Higher reading means</th>
-            <th style={{ ...th, textAlign: 'center' }}>Direction flipped before averaging?</th>
-          </tr></thead>
-          <tbody>
-            {CYCLE_INDICATORS.map((i) => (
-              <tr key={i.name}>
-                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{i.name}</td>
-                <td style={td}>{i.higherMeans}</td>
-                <td style={{ ...td, textAlign: 'center', fontWeight: 600 }}>{i.flipped ? 'Yes' : 'No'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <p style={{ ...body, marginTop: 14 }}>
-          The seven stress percentiles are averaged into a single 0-to-100 score. Then the score is bucketed into a quintile:
-        </p>
-        <table style={tableBase}>
-          <thead><tr>
-            <th style={th}>Quintile</th>
-            <th style={th}>Score range</th>
-            <th style={th}>What it means</th>
-          </tr></thead>
-          <tbody>
-            {QUINTILE_BANDS.map((q) => (
-              <tr key={q.band}>
-                <td style={{ ...td, fontWeight: 600, color: 'var(--ink-0, var(--text, #000))' }}>{q.band}</td>
-                <td style={td}>{q.range}</td>
-                <td style={td}>{q.meaning}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <h3 style={{ ...h2, fontSize: 18, marginTop: 28 }}>Why a calm cycle composite is the dangerous setup.</h3>
-        <p style={{ ...body, marginTop: 8 }}>
-          A low composite reading means the cycle looks fine on the surface. That is the exact moment a vol crack is most actionable — the engine is deep in the expansion and the things that usually break first have not broken yet. When vol cracks while the cycle still looks calm, we are at the leading edge of trouble, not the back end of it. That is the setup the framework is designed to catch.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          If the composite is already in the upper half (Q3 to Q5) when a vol trigger fires, we are already inside a downturn. The forward-looking edge is gone — by then it is reactive, not preemptive.
-        </p>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────
-          5. The four-state read
-          ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-regime" style={sectionBox}>
-        <div style={eyebrow}>The four-state read</div>
-        <h2 style={h2}>One label that combines both layers.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          Every reading rolls up into one of four labels. No exceptions, no in-between states.
-        </p>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-          gap: 14,
-          marginTop: 18,
-        }}>
-          {REGIME_STATES.map((r) => (
+      {/* ─── LEFT · sticky table of contents ─── */}
+      <aside style={ST.toc}>
+        <div style={ST.tocEyebrow}>Contents</div>
+        {SECTIONS.map((s) => (
+          <div key={s.id} style={ST.tocSection}>
             <div
-              key={r.label}
-              style={{
-                padding: 18,
-                background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-                border: '1px solid var(--line-1, var(--border, #e3e3e3))',
-                borderRadius: 'var(--r-md, 10px)',
-              }}
+              style={ST.tocSectionHead}
+              onClick={() => scrollTo(s.sub[0].id)}
             >
-              <span className={`v2-pill ${r.cls}`} style={{
-                display: 'inline-block',
-                fontFamily: 'var(--font-display, inherit)',
-                fontStyle: 'italic',
-                fontWeight: 500,
-                fontSize: 14,
-                padding: '4px 14px',
-                borderRadius: 14,
-                background: 'var(--bg-1, rgba(255,255,255,0.85))',
-                border: '1px solid var(--line-1, #d8d8d8)',
-                color: 'var(--ink-0, #111)',
-              }}>{r.label}</span>
-              <p style={{ ...body, fontSize: 13, marginTop: 10, fontWeight: 500, color: 'var(--ink-0, #111)' }}>{r.short}</p>
-              <p style={{ ...body, fontSize: 12.5, marginTop: 8 }}>{r.detail}</p>
+              <span style={ST.tocNum}>{s.num}</span>
+              <span style={ST.tocSectionLabel}>{s.title}</span>
             </div>
-          ))}
-        </div>
-        <p style={{ ...body, marginTop: 20, fontSize: 13 }}>
-          The Risk Off label is the actionable one — vol has cracked while the cycle still looks calm. That is the moment broad confirmation is most likely to follow. The Cautionary label is the reactive cousin — vol has cracked but the cycle has already broken, so the forward-looking edge has already been priced in.
-        </p>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────
-          6. Thresholds
-          ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-thresholds" style={sectionBox}>
-        <div style={eyebrow}>How the thresholds are set</div>
-        <h2 style={h2}>Same percentile, regime-adaptive window.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          Three decisions sit behind every threshold on this page:
-        </p>
-        <ul style={{ ...body, paddingLeft: 22, marginTop: 8 }}>
-          <li style={{ marginBottom: 10 }}>
-            <strong>Same percentile across triggers.</strong> All three vol triggers are marked at their own 85th percentile. That makes them like-for-like — an 85th-percentile reading is equally rare for each trigger regardless of the absolute units.
-          </li>
-          <li style={{ marginBottom: 10 }}>
-            <strong>Trailing five-year window.</strong> Funding markets changed after the 2009 reforms. Bond-market behavior shifted in the 2010s. Equity vol drifted lower across the same decade. A rolling five-year window absorbs those regime shifts so the mark stays calibrated to today's market, not to a structural era that has already ended.
-          </li>
-          <li>
-            <strong>85th percentile, not 95th or 75th.</strong> The 95th only fires during a full-blown crisis — by then it is too late to act forward-looking. The 75th has too many false positives. 85th is calibrated for the risk-off decision, validated across the available history.
-          </li>
-        </ul>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────
-          7. What this does not do
-          ──────────────────────────────────────────────────────────────── */}
-      <section id="mo-limits" style={sectionBox}>
-        <div style={eyebrow}>What this framework will not do</div>
-        <h2 style={h2}>Honest limits.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          A framework that does not name its limits is not a framework — it is a sales pitch. These are the limits.
-        </p>
-        <div style={{ marginTop: 8 }}>
-          {LIMITATIONS.map((l) => (
-            <div key={l.head} style={{ marginTop: 18 }}>
-              <div style={{ fontWeight: 600, color: 'var(--ink-0, var(--text, #000))', fontSize: 14, marginBottom: 4 }}>{l.head}</div>
-              <p style={{ ...body, marginTop: 0, fontSize: 13.5 }}>{l.body}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────
-          OTHER PAGES — what each other site surface does and how it works
-          ──────────────────────────────────────────────────────────────── */}
-
-      <div style={{
-        margin: '36px 0 8px',
-        padding: '10px 0',
-        fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
-        color: 'var(--ink-2, var(--text-muted, #666))', fontWeight: 600,
-        borderTop: '1px solid var(--line-1, var(--border, #ddd))',
-        textAlign: 'center',
-      }}>The other pages on the site</div>
-
-      {/* Asset Tilt */}
-      <section id="asset-tilt" style={sectionBox}>
-        <div style={eyebrow}>Asset Tilt</div>
-        <h2 style={h2}>Translating the macro read into portfolio actions.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          The Macro Overview page describes <em>where we are</em>. The Asset Tilt page answers <em>what to do about it</em> — an explicit allocation recommendation across eleven equity sectors, twenty-four industry groups, and a four-bucket defensive sleeve. Equity percentage, defensive percentage, leverage, and per-sector tilts all come out of a single decision engine.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          Two hard rules constrain every output. <strong>Defensive sleeve never exceeds 50%</strong> of capital, even in the worst regime — the system will not put more than half the book in bonds, cash, and gold. <strong>Leverage never exceeds 1.5×</strong>, and defensive and leverage are never on at the same time. If the engine wants any defensive sleeve, leverage drops to 1.0×. These are constraints in the optimization, not assumptions about what is optimal.
-        </p>
-        <div style={{
-          marginTop: 18, padding: 16,
-          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-          borderLeft: '3px solid var(--accent)',
-          borderRadius: '0 6px 6px 0',
-          fontSize: 13.5, color: 'var(--ink-1, #222)',
-        }}>
-          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> The Asset Tilt engine was built and back-tested against the older cycle-mechanism framework that Signal Intelligence replaced on Macro Overview. The recommendations on Asset Tilt today are still produced by that older engine. Recalibrating the engine against Signal Intelligence is multi-week work — it sits on the active punch list, scoped for the Senior Quant. Until that recalibration lands and is back-tested, treat the Asset Tilt numbers as a v1 recommendation, not a Signal-Intelligence-anchored one.
-        </div>
-      </section>
-
-      {/* Trading Opportunities */}
-      <section id="trading-opps" style={sectionBox}>
-        <div style={eyebrow}>Trading Opportunities</div>
-        <h2 style={h2}>Specific names to act on today.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          The Trading Opportunities page is the actionable end of the funnel. The Macro Overview tells you the regime. The Asset Tilt tells you how to lean by sector. Trading Opportunities turns that lean into <strong>specific tickers</strong> — a Buy Watch list and a Sell Watch list that refresh every trading day.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          The scanner runs over a universe of roughly three thousand US-listed equities each evening. For each name, it computes a score from eight technical and qualitative signals (insider buying, options unusual activity, momentum vs. moving averages, relative strength against the index hedge, liquidity, short interest, recent volatility, and a regulatory-news veto). Names with the highest composite score and that pass three hard gates appear on the Buy Watch tile. Names with collapsing scores plus deterioration in fundamentals appear on the Sell Watch tile.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          Click any row on the page for the full breakdown: signal-by-signal scores, the live price chart, the option chain, insider-trading filings, and the news catalysts that explain why the name showed up.
-        </p>
-        <div style={{
-          marginTop: 18, padding: 16,
-          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-          borderLeft: '3px solid var(--accent)',
-          borderRadius: '0 6px 6px 0',
-          fontSize: 13.5, color: 'var(--ink-1, #222)',
-        }}>
-          <strong style={{ color: 'var(--ink-0, #000)' }}>How the regime feeds in.</strong> The Trading Opportunities scanner is independent of the Signal Intelligence regime read — it scores names on their own merits. The regime read is used as a gating layer above the scanner: in Cautionary or Risk Off regimes, the Buy Watch list is pruned and the Sell Watch list is featured first. In Risk On the Buy Watch is featured first.
-        </div>
-      </section>
-
-      {/* Portfolio Insights */}
-      <section id="portfolio" style={sectionBox}>
-        <div style={eyebrow}>Portfolio Insights</div>
-        <h2 style={h2}>How your actual book is positioned.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          The Portfolio Insights page reads your live brokerage positions and shows where your book actually sits today — allocation across asset classes, sector exposure, top holdings by weight, account-by-account breakdowns, watch list, and a trade-history ledger of every closed position. It is descriptive, not prescriptive.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          Positions are imported from your brokerage account via a secure read-only connection. The page recomputes every metric on load — your account-level returns, your asset-class rollup, your sector concentration, your option mark-to-market — using live prices for stocks and live option-chain data for any open options. Realized profit and loss for the tax year is computed from your actual close-position records using FIFO lot-matching with wash-sale treatment.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          The page does not give portfolio recommendations. It tells you what you are holding. If you want to know what to lean toward, that lives on Asset Tilt. If you want specific names, that lives on Trading Opportunities.
-        </p>
-      </section>
-
-      {/* Scenario Analysis */}
-      <section id="scenarios" style={sectionBox}>
-        <div style={eyebrow}>Scenario Analysis</div>
-        <h2 style={h2}>How your portfolio reacts under stress.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          The Scenario Analysis page runs a shock through the macro factor panel and tells you how your portfolio, the Asset Tilt recommendation, and each cycle indicator move in response. Two flavors: <strong>historical scenarios</strong> (the GFC, COVID, Volmageddon, the 2022 rate-hike cycle, and several others) replay the actual shock through today's factor structure; <strong>bespoke shocks</strong> let you pin one or more factors at a chosen size of move and propagate the rest using historical correlations.
-        </p>
-        <p style={{ ...body, marginTop: 14 }}>
-          The page returns a portfolio-level profit-and-loss estimate, a per-position breakdown of which holdings move most under that shock, and the updated Asset Tilt recommendation the engine would produce in that scenario.
-        </p>
-        <div style={{
-          marginTop: 18, padding: 16,
-          background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-          borderLeft: '3px solid var(--accent)',
-          borderRadius: '0 6px 6px 0',
-          fontSize: 13.5, color: 'var(--ink-1, #222)',
-        }}>
-          <strong style={{ color: 'var(--ink-0, #000)' }}>Honest status today.</strong> Like Asset Tilt, the scenario engine was built around the older cycle-mechanism framework. The shocks it propagates and the per-indicator responses it shows are anchored to that older framework. Migrating Scenario Analysis to Signal Intelligence is multi-week work — it sits on the active punch list. Treat scenario outputs today as directional rather than literal, until the rebuild lands.
-        </div>
-      </section>
-
-      {/* ────────────────────────────────────────────────────────────────
-          Sources — auto-populated from the data registry
-          ──────────────────────────────────────────────────────────────── */}
-
-      <div style={{
-        margin: '36px 0 8px',
-        padding: '10px 0',
-        fontSize: 12, letterSpacing: '0.18em', textTransform: 'uppercase',
-        color: 'var(--ink-2, var(--text-muted, #666))', fontWeight: 600,
-        borderTop: '1px solid var(--line-1, var(--border, #ddd))',
-        textAlign: 'center',
-      }}>Sources</div>
-
-      <section id="sources" style={sectionBox}>
-        <div style={eyebrow}>Where the data comes from</div>
-        <h2 style={h2}>Sources.</h2>
-        <p style={{ ...body, marginTop: 14 }}>
-          Every data element on MacroTilt is registered against a vendor and a freshness window. The list below is generated live — it stays in sync with what is actually wired today, not what was wired six months ago.
-        </p>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))',
-          gap: 10,
-          marginTop: 16,
-        }}>
-          {sources.length
-            ? sources.map((s) => (
-                <div
-                  key={s}
-                  style={{
-                    padding: '9px 13px',
-                    background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-                    borderRadius: 'var(--r-sm, 6px)',
-                    border: '1px solid var(--line-1, var(--border, #e3e3e3))',
-                    fontSize: 13,
-                    color: 'var(--ink-0, var(--text, #111))',
-                  }}
+            <div style={ST.tocBlurb}>{s.blurb}</div>
+            <ul style={ST.tocSubs}>
+              {s.sub.map((sub) => (
+                <li
+                  key={sub.id}
+                  style={{ ...ST.tocSub, ...(activeId === sub.id ? ST.tocSubActive : null) }}
+                  onClick={() => scrollTo(sub.id)}
                 >
-                  {s}
-                </div>
-              ))
-            : (
-              <span style={{ ...body, fontSize: 12.5, color: 'var(--ink-2, var(--text-muted, #555))' }}>
-                Loading sources…
-              </span>
-            )}
-        </div>
-      </section>
+                  {sub.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </aside>
 
-      {/* Footer line. */}
-      <div style={{
-        margin: '40px 0 24px',
-        paddingTop: 22,
-        borderTop: '1px solid var(--line-0, rgba(0,0,0,0.08))',
-        textAlign: 'center',
-        color: 'var(--ink-2, var(--text-muted, #555))',
-        fontSize: 11,
-        letterSpacing: '0.06em',
-        textTransform: 'uppercase',
-      }}>
-        Signal Intelligence · {sources.length} source vendors · {Object.keys(manifest?.elements || {}).length} registered data elements
-      </div>
+      {/* ─── RIGHT · content ─── */}
+      <main style={ST.content}>
+        {SECTIONS.map((s, sIdx) => (
+          <section key={s.id} id={s.id} style={ST.section}>
+            <div style={ST.sectionEyebrow}>{s.num} · {s.title}</div>
+            <h2 style={ST.sectionH2}>{s.title}</h2>
+            <p style={ST.sectionBlurb}>{s.blurb}</p>
+            {s.sub.map((sub) => (
+              <div key={sub.id} id={sub.id} style={ST.subBlock}>
+                <h3 style={ST.subH3}>{sub.label}</h3>
+                {SECTION_CONTENT[sub.id] || <Body>Coming soon.</Body>}
+              </div>
+            ))}
+          </section>
+        ))}
+      </main>
+
     </div>
   );
 }
