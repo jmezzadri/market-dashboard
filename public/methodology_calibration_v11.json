@@ -2,7 +2,7 @@
   "version": "v11.0.0",
   "framework": "cycle-mechanism-counting",
   "sprint": 1,
-  "as_of": "2026-05-12",
+  "as_of": "2026-05-13",
   "lexicon": {
     "states": [
       "Normal",
@@ -63,8 +63,8 @@
           "source_url": "https://www.multpl.com/shiller-pe",
           "sample_window": "post-2011 (15y)",
           "current": {
-            "date": "2026-05-11",
-            "value": 42.15
+            "date": "2026-05-12",
+            "value": 42.08
           },
           "percentile": 100.0,
           "quartile": 4,
@@ -559,7 +559,7 @@
             ],
             [
               "2026-05-31",
-              42.15
+              42.08
             ]
           ],
           "direction": "high",
@@ -567,26 +567,26 @@
           "kpis": [
             {
               "label": "1-month change",
-              "value": 3.81,
-              "value_pct": 9.9,
+              "value": 3.74,
+              "value_pct": 9.8,
               "direction": "up"
             },
             {
               "label": "3-month change",
-              "value": 2.62,
-              "value_pct": 6.6,
+              "value": 2.55,
+              "value_pct": 6.5,
               "direction": "up"
             },
             {
               "label": "1-year change",
-              "value": 7.07,
-              "value_pct": 20.2,
+              "value": 7.0,
+              "value_pct": 20.0,
               "direction": "up"
             },
             {
               "label": "Distance from peak",
               "value": 0.0,
-              "peak_value": 42.15,
+              "peak_value": 42.08,
               "peak_date": "2026-05",
               "direction": "flat"
             }
@@ -626,8 +626,8 @@
             {
               "peer_id": "hy_oas",
               "peer_name": "HY OAS",
-              "corr_1y": -0.34,
-              "corr_5y": -0.66,
+              "corr_1y": -0.37,
+              "corr_5y": -0.67,
               "n_1y": 12,
               "n_5y": 36
             },
@@ -677,7 +677,7 @@
           "sample_window": "post-2011 (15y)",
           "current": {
             "date": "2026-05-31",
-            "value": -2.01
+            "value": -2.04
           },
           "percentile": 0.5,
           "quartile": 1,
@@ -1421,32 +1421,32 @@
             ],
             [
               "2026-05-31",
-              -2.0075
+              -2.0436
             ]
           ],
           "alert_score": 99,
           "kpis": [
             {
               "label": "1-month change",
-              "value": -0.2158,
-              "value_pct": 12.0,
+              "value": -0.2518,
+              "value_pct": 14.1,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -0.5672,
-              "value_pct": 39.4,
+              "value": -0.6033,
+              "value_pct": 41.9,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -0.4481,
-              "value_pct": 28.7,
+              "value": -0.4842,
+              "value_pct": 31.1,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -5.3365,
+              "value": -5.3726,
               "peak_value": 3.329,
               "peak_date": "2020-03",
               "direction": "dn"
@@ -1482,7 +1482,7 @@
             {
               "peer_id": "cape",
               "peer_name": "CAPE (Shiller)",
-              "corr_1y": -0.29,
+              "corr_1y": -0.33,
               "corr_5y": -0.18,
               "n_1y": 12,
               "n_5y": 60
@@ -1490,8 +1490,8 @@
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-11",
-            "next_release": "2026-05-12 (T+1)",
+            "last_release": "2026-05-12",
+            "next_release": "2026-05-13 (T+1)",
             "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
             "source_url": "https://fred.stlouisfed.org/series/DGS10"
           },
@@ -2511,7 +2511,7 @@
       ],
       "current_state": "Risk Off",
       "rule_status": "3 of 3 indicators in top-tail quartile",
-      "as_of": "2026-05-12",
+      "as_of": "2026-05-13",
       "composite_score": 100,
       "composite_breakdown": [
         {
@@ -3161,14 +3161,14 @@
             "source": "FRED: BAA \u2212 DGS10 (monthly)",
             "source_url": "https://fred.stlouisfed.org/series/BAA"
           },
-          "composite_share_pct": 43.0
+          "composite_share_pct": 41.7
         },
         {
           "id": "hy_oas",
           "name": "HY OAS",
           "unit": "bp",
           "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
-          "so_what": "HY OAS sits in the bottom quartile of its post-2011 sample. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle caution rather than imminent risk-off.",
+          "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle caution rather than imminent risk-off.",
           "formula": "HY OAS = ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
           "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
           "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
@@ -3176,9 +3176,9 @@
           "data_caveat": "ICE BofA license restricts FRED's free history to post-2011. GFC 2008 peak (~2,000bp) is out of sample.",
           "current": {
             "date": "2026-05-31",
-            "value": 281.0
+            "value": 279.0
           },
-          "percentile": 13.5,
+          "percentile": 8.1,
           "quartile": 1,
           "history": [
             [
@@ -3327,33 +3327,33 @@
             ],
             [
               "2026-05-31",
-              281.0
+              279.0
             ]
           ],
           "direction": "bidir_bottom",
-          "alert_score": 86,
+          "alert_score": 92,
           "kpis": [
             {
               "label": "1-month change",
-              "value": -2.0,
-              "value_pct": -0.7,
+              "value": -4.0,
+              "value_pct": -1.4,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -31.0,
-              "value_pct": -9.9,
+              "value": -33.0,
+              "value_pct": -10.6,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -51.0,
-              "value_pct": -15.4,
+              "value": -53.0,
+              "value_pct": -16.0,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -188.0,
+              "value": -190.0,
               "peak_value": 469.0,
               "peak_date": "2023-05",
               "direction": "dn"
@@ -3373,8 +3373,8 @@
             {
               "peer_id": "cape",
               "peer_name": "CAPE (Shiller)",
-              "corr_1y": -0.34,
-              "corr_5y": -0.66,
+              "corr_1y": -0.37,
+              "corr_5y": -0.67,
               "n_1y": 12,
               "n_5y": 36
             },
@@ -3397,7 +3397,7 @@
             {
               "peer_id": "bkx_spx",
               "peer_name": "Banks vs S&P 500 (BKX/SPX)",
-              "corr_1y": -0.01,
+              "corr_1y": -0.0,
               "corr_5y": -0.29,
               "n_1y": 12,
               "n_5y": 36
@@ -3405,12 +3405,12 @@
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-11",
-            "next_release": "2026-05-12 (T+1)",
+            "last_release": "2026-05-12",
+            "next_release": "2026-05-13 (T+1)",
             "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
             "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
           },
-          "composite_share_pct": 43.0
+          "composite_share_pct": 44.7
         },
         {
           "id": "hy_ig_ratio",
@@ -3649,36 +3649,36 @@
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-11",
-            "next_release": "2026-05-12 (T+1)",
+            "last_release": "2026-05-12",
+            "next_release": "2026-05-13 (T+1)",
             "source": "Derived: HY OAS / (BAA \u2212 DGS10)",
             "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2"
           },
-          "composite_share_pct": 14.0
+          "composite_share_pct": 13.6
         }
       ],
       "current_state": "Cautionary",
       "rule_status": "2 of 3 in bottom quartile",
-      "as_of": "2026-05-12",
-      "composite_score": 67,
+      "as_of": "2026-05-13",
+      "composite_score": 69,
       "composite_breakdown": [
         {
           "indicator_id": "ig_oas",
           "name": "IG OAS (Baa \u2212 10y)",
           "alert_score": 86,
-          "share_pct": 43.0
+          "share_pct": 41.7
         },
         {
           "indicator_id": "hy_oas",
           "name": "HY OAS",
-          "alert_score": 86,
-          "share_pct": 43.0
+          "alert_score": 92,
+          "share_pct": 44.7
         },
         {
           "indicator_id": "hy_ig_ratio",
           "name": "HY/IG ratio",
           "alert_score": 28,
-          "share_pct": 14.0
+          "share_pct": 13.6
         }
       ],
       "headline_caption": "Credit caution \u2014 high-yield and IG spreads pricing minimal default risk."
@@ -4862,7 +4862,7 @@
             {
               "peer_id": "hy_oas",
               "peer_name": "HY OAS",
-              "corr_1y": 0.23,
+              "corr_1y": 0.22,
               "corr_5y": 0.08,
               "n_1y": 12,
               "n_5y": 36
@@ -4875,7 +4875,7 @@
             "source": "FRED: IC4WSA (weekly)",
             "source_url": "https://fred.stlouisfed.org/series/IC4WSA"
           },
-          "composite_share_pct": 43.9
+          "composite_share_pct": 43.8
         },
         {
           "id": "ism",
@@ -5136,14 +5136,14 @@
           "source_url": "https://finance.yahoo.com/quote/%5EBKX",
           "sample_window": "post-2006 (20y)",
           "current": {
-            "date": "2026-05-11",
-            "value": 0.09
+            "date": "2026-05-12",
+            "value": 0.08
           },
-          "z_score": -1.1,
+          "z_score": -1.11,
           "trend_60d": "falling",
           "elevated": true,
           "deteriorating": true,
-          "percentile": 2.3,
+          "percentile": 2.0,
           "quartile": 1,
           "direction": "low_is_concerning",
           "history": [
@@ -5637,32 +5637,32 @@
             ],
             [
               "2026-05-31",
-              0.0851
+              0.0849
             ]
           ],
-          "alert_score": 95,
+          "alert_score": 96,
           "kpis": [
             {
               "label": "1-month change",
-              "value": -0.0042,
-              "value_pct": -4.7,
+              "value": -0.0044,
+              "value_pct": -4.9,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -0.0039,
-              "value_pct": -4.4,
+              "value": -0.0041,
+              "value_pct": -4.6,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -0.0052,
-              "value_pct": -5.8,
+              "value": -0.0054,
+              "value_pct": -6.0,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -0.3501,
+              "value": -0.3503,
               "peak_value": 0.4352,
               "peak_date": "2006-07",
               "direction": "dn"
@@ -5682,7 +5682,7 @@
             {
               "peer_id": "hy_oas",
               "peer_name": "HY OAS",
-              "corr_1y": -0.01,
+              "corr_1y": -0.0,
               "corr_5y": -0.29,
               "n_1y": 12,
               "n_5y": 36
@@ -5698,7 +5698,7 @@
             {
               "peer_id": "erp",
               "peer_name": "Equity Risk Premium",
-              "corr_1y": -0.01,
+              "corr_1y": 0.01,
               "corr_5y": -0.1,
               "n_1y": 12,
               "n_5y": 60
@@ -5711,12 +5711,12 @@
             "source": "Yahoo: ^BKX, ^GSPC (daily)",
             "source_url": "https://finance.yahoo.com/quote/%5EBKX"
           },
-          "composite_share_pct": 42.6
+          "composite_share_pct": 42.9
         }
       ],
       "current_state": "Cautionary",
       "rule_status": "1 of 4 elevated \u00b7 3 of 4 deteriorating over 60d",
-      "as_of": "2026-05-12",
+      "as_of": "2026-05-13",
       "composite_score": 56,
       "composite_breakdown": [
         {
@@ -5729,7 +5729,7 @@
           "indicator_id": "jobless",
           "name": "Jobless claims (4w)",
           "alert_score": 98,
-          "share_pct": 43.9
+          "share_pct": 43.8
         },
         {
           "indicator_id": "ism",
@@ -5740,8 +5740,8 @@
         {
           "indicator_id": "bkx_spx",
           "name": "Banks vs S&P 500 (BKX/SPX)",
-          "alert_score": 95,
-          "share_pct": 42.6
+          "alert_score": 96,
+          "share_pct": 42.9
         }
       ],
       "headline_caption": "Soft patches forming in the real-economy reads."
