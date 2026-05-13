@@ -1,23 +1,16 @@
 // AdminFeedDrawer — right-side drawer that opens on click of any feed row
 // in the Admin Data Health or Polygon Massive tables.
 //
-// Answers the questions Joe was struggling to find on the site:
-//   • Where does this data come from? (vendor + API / scrape / computed /
-//     manual / file download)
-//   • What columns / fields does it produce? (data_fields table)
-//   • What table or file does it land in? (target_storage)
-//   • Which pages on the site consume it? (consumer_surfaces)
-//   • What breaks if it goes away? (failure_mode)
-//   • What's its current health? (status, last refresh, coverage)
-//
-// Data sources:
-//   1. pipeline_health row (passed in as `feed` prop) — live status,
-//      last refresh, coverage, errors.
-//   2. /data_manifest.json — schema metadata (vendor, schedule, target
-//      storage, consumer surfaces, failure mode).
+// Reads:
+//   1. pipeline_health row (passed in as `feed` prop) — live status.
+//   2. /data_manifest.json — the deployed 86-element manifest with rich
+//      source / target / consumer metadata.
 //   3. src/lib/feedLineage.js — pipeline_health.indicator_id → manifest
-//      key mapping plus curated per-feed ingestion mechanism and data
-//      field tables.
+//      element mapping plus curated extras (API endpoint URLs, column lists).
+//
+// Surfaces the questions Joe asked: vendor, API vs scrape vs computed,
+// which Supabase table or JSON file it lands in, which pages on the site
+// read it, what breaks if it dies.
 
 import { useEffect, useState } from "react";
 import { canonicalVendor, VENDOR_MONTHLY_COST } from "./hooks/useDataHealth";
@@ -67,10 +60,10 @@ function IngestionBadge({ kind }) {
   const palette = {
     api:           { bg: "#3b82f615", border: "#3b82f6", label: "API CALL" },
     scrape:        { bg: "#f59e0b15", border: "#f59e0b", label: "WEB SCRAPE" },
-    computed:      { bg: "#8b5cf615", border: "#8b5cf6", label: "COMPUTED" },
+    computed:      { bg: "#8b5cf615", border: "#8b5cf6", label: "COMPUTED IN-HOUSE" },
     derived:       { bg: "#06b6d415", border: "#06b6d4", label: "DERIVED" },
     file_download: { bg: "#14b8a615", border: "#14b8a6", label: "FILE DOWNLOAD" },
-    manual:        { bg: "#ec489915", border: "#ec4899", label: "MANUAL ENTRY" },
+    manual:        { bg: "#ec489915", border: "#ec4899", label: "USER-ENTERED" },
     unknown:       { bg: "var(--surface-2)", border: "var(--border)", label: "UNKNOWN" },
   };
   const p = palette[kind] || palette.unknown;
@@ -97,7 +90,7 @@ function Section({ title, hint, children }) {
 
 function KV({ label, value, mono = false }) {
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "160px 1fr", gap: 10, padding: "5px 0", alignItems: "baseline" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "170px 1fr", gap: 10, padding: "5px 0", alignItems: "baseline" }}>
       <div style={{ fontSize: 11, color: MUTED, fontFamily: "monospace" }}>{label}</div>
       <div style={{ fontSize: 13, color: "var(--text)", fontFamily: mono ? "monospace" : "inherit", lineHeight: 1.5, wordBreak: "break-word" }}>{value}</div>
     </div>
@@ -105,14 +98,19 @@ function KV({ label, value, mono = false }) {
 }
 
 export default function AdminFeedDrawer({ feed, onClose }) {
-  // Load /data_manifest.json once per session for the schema metadata.
-  const [manifest, setManifest] = useState(null);
+  // Load /data_manifest.json (list of 86 elements).
+  const [elementsList, setElementsList] = useState(null);
   useEffect(() => {
     let mounted = true;
     fetch("/data_manifest.json", { cache: "default" })
       .then((r) => r.ok ? r.json() : null)
-      .then((j) => { if (mounted) setManifest(j); })
-      .catch(() => { if (mounted) setManifest(null); });
+      .then((j) => {
+        if (!mounted) return;
+        // Manifest schema: { _meta, elements: [...], ... }
+        const list = Array.isArray(j?.elements) ? j.elements : [];
+        setElementsList(list);
+      })
+      .catch(() => { if (mounted) setElementsList([]); });
     return () => { mounted = false; };
   }, []);
 
@@ -126,18 +124,23 @@ export default function AdminFeedDrawer({ feed, onClose }) {
 
   if (!feed) return null;
 
-  const { manifestKeys, detail } = lookupFeed(feed.indicator_id);
-  const manifestEntries = (manifest?.elements && manifestKeys.length)
-    ? manifestKeys.map((k) => manifest.elements[k]).filter(Boolean)
-    : [];
-  // For the ingestion-mechanism fallback when detail.ingestion isn't set,
-  // pick the first matched manifest entry.
-  const ingestion = detail?.ingestion
-    ? { kind: detail._ingestion_kind || guessKindFromText(detail.ingestion), explain: detail.ingestion }
-    : ingestionFromManifest(manifestEntries[0]);
+  const { manifestEntries, detail, unregistered } = lookupFeed(feed.indicator_id, elementsList || []);
+  const primary = manifestEntries[0];
+
+  // Ingestion mechanism: prefer the curated explain string, then derive
+  // from manifest if we have one, else fall back to "unknown".
+  let ingestion;
+  if (detail?.ingestion_explain) {
+    ingestion = { kind: detail.ingestion_kind || "api", explain: detail.ingestion_explain };
+  } else {
+    ingestion = ingestionFromManifest(primary);
+  }
 
   const vendorName = canonicalVendor(feed.source);
-  const cost = VENDOR_MONTHLY_COST[vendorName] || "—";
+  const cost = primary?.monthly_cost_usd != null
+    ? (primary.monthly_cost_usd === 0 ? "Free" : `$${primary.monthly_cost_usd}/mo`)
+    : (VENDOR_MONTHLY_COST[vendorName] || "—");
+  const loadingManifest = elementsList === null;
 
   return (
     <>
@@ -158,7 +161,7 @@ export default function AdminFeedDrawer({ feed, onClose }) {
         aria-label={`Feed details for ${feed.label || feed.indicator_id}`}
         style={{
           position: "fixed", top: 0, right: 0, bottom: 0,
-          width: "min(640px, 100vw)",
+          width: "min(680px, 100vw)",
           background: "var(--surface)",
           borderLeft: "1px solid var(--border)",
           boxShadow: "-8px 0 24px rgba(0,0,0,0.12)",
@@ -194,44 +197,64 @@ export default function AdminFeedDrawer({ feed, onClose }) {
           </div>
         </header>
 
-        {/* Body */}
+        {loadingManifest && (
+          <div style={{ padding: "20px", color: MUTED, fontSize: 12, fontStyle: "italic" }}>Loading manifest…</div>
+        )}
+
+        {/* Where it comes from */}
         <Section title="Where it comes from">
           <p style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, margin: "0 0 12px" }}>
             {ingestion.explain}
           </p>
-          <KV label="Vendor"        value={vendorName} />
-          <KV label="Monthly cost"  value={cost} mono />
+          <KV label="Vendor"          value={primary?.source_vendor || vendorName} />
+          <KV label="Monthly cost"    value={cost} mono />
           {detail?.api_endpoint && <KV label="API endpoint" value={detail.api_endpoint} mono />}
-          {(detail?.triggered_by || manifestEntries[0]?.refresh_trigger) && (
-            <KV label="Triggered by" value={detail?.triggered_by || manifestEntries[0].refresh_trigger} />
+          {!detail?.api_endpoint && primary?.source_endpoint && (
+            <KV label="Source"        value={primary.source_endpoint} mono />
           )}
-          {(manifestEntries[0]?.schedule_et) && (
-            <KV label="Schedule"     value={manifestEntries[0].schedule_et} />
+          {(primary?.scheduled_fetch_time_et) && (
+            <KV label="Scheduled at"   value={`${primary.scheduled_fetch_time_et} ET`} mono />
           )}
-          {(manifestEntries[0]?.cadence) && (
-            <KV label="Cadence"      value={manifestEntries[0].cadence} />
+          {(primary?.refresh_trigger) && (
+            <KV label="Triggered by"   value={primary.refresh_trigger} mono />
           )}
+          {(primary?.producer_script) && (
+            <KV label="Producer script" value={primary.producer_script} mono />
+          )}
+          {(primary?.cadence) && <KV label="Cadence" value={primary.cadence} />}
+          {(primary?.license_tier) && <KV label="License tier" value={primary.license_tier} />}
         </Section>
 
+        {/* Where it lands */}
         <Section title="Where it lands">
-          {manifestEntries.length === 0 && (
-            <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>
-              No manifest entry mapped for this feed yet. Falling back to live pipeline_health row only.
+          {!primary && (
+            <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic", lineHeight: 1.6, marginBottom: 10 }}>
+              {unregistered
+                ? "Not yet registered in the data manifest. Add an element entry to /public/data_manifest.json to surface schema metadata here."
+                : "No matching manifest entry found for this feed's indicator_id. Try adding a mapping in src/lib/feedLineage.js."}
             </div>
           )}
           {manifestEntries.map((m, i) => (
-            <div key={i} style={{ marginBottom: i < manifestEntries.length - 1 ? 14 : 0 }}>
-              <KV label="Target storage" value={m.target_storage || "—"} mono />
+            <div key={i} style={{ marginBottom: i < manifestEntries.length - 1 ? 14 : 0, paddingBottom: i < manifestEntries.length - 1 ? 12 : 0, borderBottom: i < manifestEntries.length - 1 ? "1px dashed var(--border)" : "none" }}>
+              {manifestEntries.length > 1 && (
+                <div style={{ fontSize: 11, color: MUTED, fontFamily: "monospace", marginBottom: 6 }}>{m.name}</div>
+              )}
+              <KV label="Output destination" value={m.output_destination || "—"} mono />
               {m.freshness_sla_hours != null && (
                 <KV label="Freshness deadline" value={`${m.freshness_sla_hours} hours`} mono />
               )}
               {m.category && <KV label="Category" value={m.category} />}
+              {m.description && (
+                <div style={{ fontSize: 12, color: "var(--text-2)", lineHeight: 1.55, marginTop: 8, fontStyle: "italic" }}>
+                  {m.description}
+                </div>
+              )}
             </div>
           ))}
 
           {/* Live snapshot from pipeline_health */}
           <div style={{ marginTop: 14, padding: "10px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 6, fontSize: 11, color: MUTED, fontFamily: "monospace" }}>
-            Live snapshot · status <strong style={{ color: "var(--text)" }}>{feed.status}</strong>
+            Live · status <strong style={{ color: "var(--text)" }}>{feed.status}</strong>
             {" · "}last refresh <strong style={{ color: "var(--text)" }}>{fmtDateTime(feed.last_good_at)}</strong>
             {feed.data_as_of && <> · data through <strong style={{ color: "var(--text)" }}>{fmtDateTime(feed.data_as_of)}</strong></>}
             {feed.coverage_pct != null && <> · coverage <strong style={{ color: "var(--text)" }}>{Number(feed.coverage_pct).toFixed(1)}%</strong></>}
@@ -268,42 +291,53 @@ export default function AdminFeedDrawer({ feed, onClose }) {
         {!detail?.data_fields?.length && (
           <Section title="Data fields produced">
             <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic", lineHeight: 1.6 }}>
-              Field-level lineage for this feed isn't curated yet. Add an entry under <code style={{ fontFamily: "monospace" }}>src/lib/feedLineage.js → FEED_DETAILS</code> to expose the column list here.
+              Field-level lineage for this feed isn't curated yet. Add an entry under src/lib/feedLineage.js → FEED_DETAILS to expose the column list here.
             </div>
           </Section>
         )}
 
-        {/* Consumer surfaces */}
-        {manifestEntries.length > 0 && (
+        {/* Consumer surfaces — the manifest schema is a list of {tab, tile} */}
+        {manifestEntries.some((m) => Array.isArray(m.consumer_surfaces) && m.consumer_surfaces.length > 0) && (
           <Section title="Where it shows up on the site" hint={
             manifestEntries.reduce((a, m) => a + (m.consumer_surfaces?.length || 0), 0) + " surfaces"
           }>
             {manifestEntries.map((m, mi) => (
               <div key={mi} style={{ marginBottom: mi < manifestEntries.length - 1 ? 14 : 0 }}>
                 {manifestEntries.length > 1 && (
-                  <div style={{ fontSize: 11, color: MUTED, fontFamily: "monospace", marginBottom: 6 }}>
-                    {m.element || manifestKeys[mi]}
-                  </div>
+                  <div style={{ fontSize: 11, color: MUTED, fontFamily: "monospace", marginBottom: 6 }}>{m.name}</div>
                 )}
-                {(m.consumer_surfaces || []).length === 0 && (
-                  <div style={{ fontSize: 12, color: MUTED, fontStyle: "italic" }}>No live consumer surfaces listed.</div>
-                )}
-                <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.7 }}>
-                  {(m.consumer_surfaces || []).map((s, i) => (
-                    <li key={i} style={{ fontSize: 13, color: "var(--text)" }}>{s}</li>
-                  ))}
-                </ul>
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ color: MUTED, fontFamily: "monospace", fontSize: 10, letterSpacing: "0.05em" }}>
+                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid var(--border)", textTransform: "uppercase", fontWeight: 600, width: 120 }}>Tab</th>
+                      <th style={{ textAlign: "left", padding: "6px 8px", borderBottom: "1px solid var(--border)", textTransform: "uppercase", fontWeight: 600 }}>Tile / surface</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(m.consumer_surfaces || []).map((s, i) => {
+                      // Handle both { tab, tile } objects and plain strings.
+                      const tab = typeof s === "object" ? s.tab : "—";
+                      const tile = typeof s === "object" ? s.tile : s;
+                      return (
+                        <tr key={i} style={{ borderTop: "1px solid var(--border)" }}>
+                          <td style={{ padding: "7px 8px", color: "var(--text)", fontFamily: "monospace", fontSize: 11, fontWeight: 600 }}>{tab}</td>
+                          <td style={{ padding: "7px 8px", color: "var(--text-2)", lineHeight: 1.5 }}>{tile}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             ))}
           </Section>
         )}
 
-        {/* Failure mode */}
+        {/* Failure mode (when present in manifest entry) */}
         {manifestEntries.some((m) => m.failure_mode) && (
           <Section title="If this feed dies">
             {manifestEntries.map((m, i) => m.failure_mode ? (
               <p key={i} style={{ fontSize: 13, color: "var(--text)", lineHeight: 1.6, margin: i === 0 ? "0 0 8px" : "8px 0 0" }}>
-                {manifestEntries.length > 1 && <span style={{ fontFamily: "monospace", color: MUTED, fontSize: 11, display: "block", marginBottom: 4 }}>{m.element || manifestKeys[i]}:</span>}
+                {manifestEntries.length > 1 && <span style={{ fontFamily: "monospace", color: MUTED, fontSize: 11, display: "block", marginBottom: 4 }}>{m.name}:</span>}
                 {m.failure_mode}
               </p>
             ) : null)}
@@ -312,22 +346,9 @@ export default function AdminFeedDrawer({ feed, onClose }) {
 
         {/* Footer */}
         <footer style={{ padding: "12px 20px", borderTop: "1px solid var(--border)", marginTop: "auto", fontSize: 10, color: MUTED, fontFamily: "monospace", letterSpacing: "0.05em" }}>
-          Lineage data combines /data_manifest.json + curated entries in src/lib/feedLineage.js. Live row from Supabase pipeline_health.
+          Lineage from /data_manifest.json + curated extras in src/lib/feedLineage.js. Live row from Supabase pipeline_health.
         </footer>
       </aside>
     </>
   );
-}
-
-// Best-effort kind classification from a curated explain string, for the
-// badge colour. Used when FEED_DETAILS provides custom prose but no
-// _ingestion_kind field. Falls back to 'api' (the most common case).
-function guessKindFromText(text = "") {
-  const t = text.toLowerCase();
-  if (t.includes("scrape"))   return "scrape";
-  if (t.includes("computed") || t.includes("calculated"))  return "computed";
-  if (t.includes("derived"))  return "derived";
-  if (t.includes("manual"))   return "manual";
-  if (t.includes("file") && t.includes("downloaded")) return "file_download";
-  return "api";
 }
