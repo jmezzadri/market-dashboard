@@ -56,6 +56,22 @@ function _fmtMoneyShort(n) {
   return `$${Math.round(n)}`;
 }
 
+// 2026-05-13 — small helper used by the per-signal sub tiles. Sets the
+// sessionStorage key that Scanner.jsx reads on mount, then navigates to
+// #scanner so the user lands on the right sub-page (Congress, Insiders,
+// Options Flow, or Technicals).
+function goToScannerSection(section, onClose) {
+  try { sessionStorage.setItem("mt:scanner:initial-view", section); } catch (_) { /* private mode */ }
+  try {
+    if (typeof onClose === "function") onClose();
+    if (typeof window !== "undefined") window.location.hash = "#scanner";
+    // Also dispatch the event so an already-mounted Scanner re-renders the right view.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("mt:scanner:set-view", { detail: { view: section } }));
+    }
+  } catch (_) { /* ignore */ }
+}
+
 const captionFor = {
   insider(comps) {
     if (!comps || typeof comps !== "object") return null;
@@ -150,6 +166,7 @@ function SignalIntelligenceRail({
   congressBuys, congressSells, insiderBuys, insiderSells,
   flowCalls, flowPuts, darkPoolPrints, news,
   nextEarn, earnTimeForChip, impMove30, scrollToSection,
+  onClose,
 }) {
   // Last-4-quarters earnings strip — reads from public.earnings_history,
   // which is refreshed weekly by trading-scanner/run_earnings_history.py.
@@ -771,6 +788,12 @@ function SignalIntelligenceRail({
         <span style={{gridColumn:"1 / -1",color:"var(--text-dim)",fontSize:10.5,fontStyle:"italic",marginTop:4}}>
           Source: STOCK Act disclosures, last 90 days. Amounts are reported as ranges; the upper bound is shown.
         </span>
+        <div style={{display:"flex",justifyContent:"flex-end",marginTop:6,gridColumn:"1 / -1"}}>
+          <a onClick={(e) => { e.stopPropagation(); goToScannerSection("congress", onClose); }}
+             style={{fontFamily:"var(--font-mono)",fontSize:10,color:"var(--accent)",letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:500,cursor:"pointer",textDecoration:"none"}}>
+            See full screener →
+          </a>
+        </div>
       </div>
     );
     return { state: sub == null ? "neutral" : subStateColor(sub), value, meta, detail };
@@ -2498,6 +2521,7 @@ return(
   earnTimeForChip={earnTimeForChip}
   impMove30={impMove30}
   scrollToSection={scrollToSection}
+  onClose={onClose}
 />
 </aside>
 </div>
