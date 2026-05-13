@@ -37,6 +37,112 @@ import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 // LESSONS rule #30: every value derives from live data (composite,
 // cycleBoardSnap, v9Alloc, scanData feeds); no hardcoded narrative.
 // ============================================================================
+// ─── SHARED CAPTION BUILDERS ────────────────────────────────────────────
+// Single source of truth for the underline / caption text under each
+// signal's value, used by BOTH the MacroTilt Signal panel rows AND the
+// standalone tiles below. Built 2026-05-12 (Joe directive after the ORCL
+// "+68 next to no unusual flow today" episode) so the two surfaces can't
+// drift again.
+//
+// Each function takes a scorer_components[signal] block and returns a
+// plain-English string, or null when there's nothing to say. Callers
+// decide how to render no-data states (vendor-limited, ADR, etc) — these
+// helpers only describe data that IS present.
+function _fmtMoneyShort(n) {
+  const a = Math.abs(Number(n));
+  if (!Number.isFinite(a)) return null;
+  if (a >= 1_000_000) return `$${(n/1_000_000).toFixed(1)}M`;
+  if (a >= 1_000)     return `$${Math.round(n/1_000)}K`;
+  return `$${Math.round(n)}`;
+}
+
+const captionFor = {
+  insider(comps) {
+    if (!comps || typeof comps !== "object") return null;
+    const buys  = Number(comps.buy_count  || 0);
+    const sells = Number(comps.sell_count || 0);
+    if (buys || sells) {
+      const buy$  = comps.buy_dollar_total  ? ` (${_fmtMoneyShort(comps.buy_dollar_total)})`  : "";
+      const sell$ = comps.sell_dollar_total ? ` (${_fmtMoneyShort(comps.sell_dollar_total)})` : "";
+      const parts = [];
+      if (buys)  parts.push(`${buys} buy${buys===1?"":"s"}${buy$}`);
+      if (sells) parts.push(`${sells} sell${sells===1?"":"s"}${sell$}`);
+      if (comps.first_buy_fires) parts.push("first buy in 12 months");
+      return parts.join(" · ");
+    }
+    return "no Form 4 events in 30d";
+  },
+  congress(comps) {
+    if (!comps || typeof comps !== "object") return null;
+    const buys  = Number(comps.buy_count  || 0);
+    const sells = Number(comps.sell_count || 0);
+    if (buys || sells) return `${buys} buy${buys===1?"":"s"} · ${sells} sell${sells===1?"":"s"} in 90d`;
+    return "no congressional trades in 90d";
+  },
+  options(comps) {
+    if (!comps || typeof comps !== "object") return null;
+    // Alert counts come first when present.
+    const callCt = Number(comps.call_alert_count || 0);
+    const putCt  = Number(comps.put_alert_count  || 0);
+    if (callCt || putCt) return `${callCt} call · ${putCt} put alerts`;
+    // Otherwise read the SAME fields the v5 options scorer reads.
+    const unusualN = Number(comps.unusual_count || 0);
+    const callPrem = Number(comps.call_premium  || 0);
+    const putPrem  = Number(comps.put_premium   || 0);
+    const askPrem  = Number(comps.ask_side_premium || 0);
+    const bidPrem  = Number(comps.bid_side_premium || 0);
+    const totalPrem = callPrem + putPrem;
+    if (unusualN > 0 || totalPrem > 0 || askPrem > 0 || bidPrem > 0) {
+      let side = "";
+      if (callPrem > putPrem * 2)      side = " · call-heavy";
+      else if (putPrem > callPrem * 2) side = " · put-heavy";
+      const parts = [];
+      if (unusualN > 0)  parts.push(`${unusualN} unusual event${unusualN===1?"":"s"}`);
+      if (totalPrem > 0) parts.push(`${_fmtMoneyShort(totalPrem)} premium`);
+      if (askPrem > 0)   parts.push(`${_fmtMoneyShort(askPrem)} ask-side`);
+      return parts.join(" · ") + side;
+    }
+    return "no unusual flow today";
+  },
+  analyst(comps) {
+    if (!comps || typeof comps !== "object") return null;
+    // Field name is action_count (singular) — the producer uses this.
+    const n  = Number(comps.action_count || 0);
+    const up = Number(comps.upgrades     || 0);
+    const dn = Number(comps.downgrades   || 0);
+    if (n > 0 || up > 0 || dn > 0) {
+      const parts = [];
+      if (up > 0) parts.push(`${up} upgrade${up===1?"":"s"}`);
+      if (dn > 0) parts.push(`${dn} downgrade${dn===1?"":"s"}`);
+      if (parts.length === 0 && n > 0) parts.push(`${n} action${n===1?"":"s"} in 90d`);
+      const gap = Number(comps.pt_gap_pct);
+      if (Number.isFinite(gap) && Math.abs(gap) >= 1) {
+        parts.push(`target ${gap > 0 ? "+" : ""}${gap.toFixed(0)}% vs spot`);
+      }
+      return parts.join(" · ");
+    }
+    return "no analyst actions in 90d";
+  },
+  technicals(comps) {
+    if (!comps || typeof comps !== "object") return null;
+    const parts = [];
+    const rsi = Number(comps.rsi14);
+    if (Number.isFinite(rsi)) parts.push(`RSI ${rsi.toFixed(0)}`);
+    return parts.length ? parts.join(" · ") : null;
+  },
+  short_interest(comps) {
+    if (!comps || typeof comps !== "object") return null;
+    const siPct  = comps.latest_si_pct_of_float;
+    const ctb    = comps.latest_ctb_pct;
+    const regime = comps.regime;
+    const parts  = [];
+    if (siPct != null) parts.push(`${Number(siPct).toFixed(1)}% of float short`);
+    if (ctb   != null) parts.push(`cost-to-borrow ${Number(ctb).toFixed(1)}%`);
+    if (regime) parts.push(String(regime).replace(/_/g, " "));
+    return parts.length ? parts.join(" · ") : null;
+  },
+};
+
 function SignalIntelligenceRail({
   ticker, composite, tech, scanData, sc, cycleBoardSnap, v9Alloc, mtSignal,
   riskMetrics, heldIn,
@@ -302,91 +408,14 @@ function SignalIntelligenceRail({
             const comps = sig && sig.diagnostic && sig.diagnostic.scorer_components
               ? sig.diagnostic.scorer_components[s.key]
               : null;
-            const subUnderline = (() => {
-              if (sub == null || comps == null) return null;
-              if (s.key === "short_interest") {
-                const si = comps.latest_si_pct_of_float;
-                if (si != null) return `${Number(si).toFixed(1)}% of float short`;
-              }
-              if (s.key === "insider") {
-                const buys = Number(comps.buy_count || 0);
-                const sells = Number(comps.sell_count || 0);
-                if (buys || sells) return `${buys} buy${buys===1?"":"s"} · ${sells} sell${sells===1?"":"s"} in 30d`;
-                return "no Form 4 events in 30d";
-              }
-              if (s.key === "congress") {
-                const buys = Number(comps.buy_count || 0);
-                const sells = Number(comps.sell_count || 0);
-                if (buys || sells) return `${buys} buy${buys===1?"":"s"} · ${sells} sell${sells===1?"":"s"} in 90d`;
-                return "no congressional trades in 90d";
-              }
-              if (s.key === "options") {
-                // 2026-05-12 (revision) — the v5 options score is a blend
-                // of unusual_count + ask-side bias + call/put premium
-                // ratio + sweep_count. The caption has to read ALL of
-                // those, not just the alert counts or unusual_count.
-                // ORCL (Joe screenshot): unusual_count=0 but call_premium
-                // $22.9M, ask_side_premium $20.2M, ratio_log10=1.5 — the
-                // +68 score came from premium + ask bias. The earlier
-                // version of this caption fell through to "no unusual
-                // flow today" because it only checked unusual_count.
-                const callCt = Number(comps.call_alert_count || 0);
-                const putCt = Number(comps.put_alert_count || 0);
-                if (callCt || putCt) return `${callCt} call · ${putCt} put alerts`;
-                const unusualN = Number(comps.unusual_count || 0);
-                const callPrem = Number(comps.call_premium || 0);
-                const putPrem  = Number(comps.put_premium  || 0);
-                const askPrem  = Number(comps.ask_side_premium || 0);
-                const bidPrem  = Number(comps.bid_side_premium || 0);
-                const totalPrem = callPrem + putPrem;
-                if (unusualN > 0 || totalPrem > 0 || askPrem > 0 || bidPrem > 0) {
-                  const fmtM = (n) => {
-                    const a = Math.abs(n);
-                    if (a >= 1_000_000) return `$${(n/1_000_000).toFixed(1)}M`;
-                    if (a >= 1_000)     return `$${Math.round(n/1_000)}K`;
-                    return `$${Math.round(n)}`;
-                  };
-                  let side = "";
-                  if (callPrem > putPrem * 2)      side = " · call-heavy";
-                  else if (putPrem > callPrem * 2) side = " · put-heavy";
-                  // Lead with whichever fact is the strongest signal.
-                  const parts = [];
-                  if (unusualN > 0) parts.push(`${unusualN} unusual event${unusualN===1?"":"s"}`);
-                  if (totalPrem > 0) parts.push(`${fmtM(totalPrem)} premium`);
-                  if (askPrem > 0)   parts.push(`${fmtM(askPrem)} ask-side`);
-                  return parts.join(" · ") + side;
-                }
-                return "no unusual flow today";
-              }
-              if (s.key === "analyst") {
-                // Bug: the field on the producer is action_count
-                // (singular), not actions_count. Original caption checked
-                // the wrong name and always fell through to "no analyst
-                // actions in 90d" — contradicting the +100 sub-score for
-                // ORCL which had 26 actions and 2 upgrades.
-                const n  = Number(comps.action_count || 0);
-                const up = Number(comps.upgrades || 0);
-                const dn = Number(comps.downgrades || 0);
-                if (n > 0 || up > 0 || dn > 0) {
-                  const parts = [];
-                  if (up > 0) parts.push(`${up} upgrade${up===1?"":"s"}`);
-                  if (dn > 0) parts.push(`${dn} downgrade${dn===1?"":"s"}`);
-                  if (parts.length === 0 && n > 0) parts.push(`${n} action${n===1?"":"s"} in 90d`);
-                  const gap = Number(comps.pt_gap_pct);
-                  if (Number.isFinite(gap) && Math.abs(gap) >= 1) {
-                    parts.push(`target ${gap > 0 ? "+" : ""}${gap.toFixed(0)}% vs spot`);
-                  }
-                  return parts.join(" · ");
-                }
-                return "no analyst actions in 90d";
-              }
-              if (s.key === "technicals") {
-                const rsi = comps.rsi14;
-                if (Number.isFinite(Number(rsi))) return `RSI ${Number(rsi).toFixed(0)}`;
-                return null;
-              }
-              return null;
-            })();
+            // 2026-05-12 — single-source-of-truth captionFor helper
+            // (shared with the standalone tiles). The previous inline IIFE
+            // here had drifted from the tile builders' caption logic on
+            // Options/Analyst/Insider. Both surfaces now read the same
+            // function so they can't disagree.
+            const subUnderline = (sub == null || comps == null)
+              ? null
+              : (captionFor[s.key] ? captionFor[s.key](comps) : null);
             return (
               <div key={"sig"+i} style={{display:"grid",gridTemplateColumns:"170px 80px 80px",gap:8,alignItems:"baseline",padding:"6px 0",borderBottom: isLast ? "none" : "1px solid var(--border-faint, var(--border))"}}>
                 <Tip label={s.label} def={s.tip}>
@@ -757,47 +786,20 @@ function SignalIntelligenceRail({
     }
     const callCt = fCalls.length;
     const putCt  = fPuts.length;
+    // captionFor.options is the shared truth — same function the row
+    // caption above uses. Reads alert counts → premium → ask-side in
+    // priority order.
+    const sharedCap = captionFor.options(compO);
     if (callCt === 0 && putCt === 0) {
-      // 2026-05-12 — Joe directive: the v5 options scorer (compsForTiles.options)
-      // tracks unusual_count + premium even when no individual call/put
-      // alerts are saved to flow_alerts. Don't lie "0 / no events" when
-      // compO says there were 50 unusual events. Surface compO when it
-      // has signal; only fall back to "no flow events" when compO is also
-      // empty.
-      // Mirror the row-caption logic: the v5 options score is a blend of
-      // unusual_count + premium + ask-side bias. Don't say "no events" if
-      // any of those fields show signal. ORCL case (Joe 2026-05-12):
-      // unusual_count=0 but $22.9M of call premium drove a +68 score.
-      const uCount   = compO ? Number(compO.unusual_count || 0) : 0;
-      const askPrem  = compO ? Number(compO.ask_side_premium || 0) : 0;
-      const bidPrem  = compO ? Number(compO.bid_side_premium || 0) : 0;
-      const callPrem = compO ? Number(compO.call_premium || 0) : 0;
-      const putPrem  = compO ? Number(compO.put_premium || 0) : 0;
-      const totalPrem = callPrem + putPrem;
-      if (uCount > 0 || totalPrem > 0 || askPrem > 0 || bidPrem > 0) {
-        const fmtM = (n) => {
-          const a = Math.abs(n);
-          if (a >= 1_000_000) return `$${(n/1_000_000).toFixed(1)}M`;
-          if (a >= 1_000)     return `$${Math.round(n/1_000)}K`;
-          return `$${Math.round(n)}`;
-        };
-        let side = "";
-        if (callPrem > putPrem * 2)      side = " · call-heavy";
-        else if (putPrem > callPrem * 2) side = " · put-heavy";
-        const parts = [];
-        if (uCount > 0)    parts.push(`${uCount} unusual event${uCount===1?"":"s"}`);
-        if (totalPrem > 0) parts.push(`${fmtM(totalPrem)} premium`);
-        if (askPrem > 0)   parts.push(`${fmtM(askPrem)} ask-side`);
+      if (sharedCap && sharedCap !== "no unusual flow today") {
+        const uCount = compO ? Number(compO.unusual_count || 0) : 0;
         const v = sub != null ? fmtSubSimple(sub) : (uCount > 0 ? String(uCount) : "—");
-        return { state: subStateColor(sub), value: v, meta: parts.join(" · ") + side, detail: null };
+        return { state: subStateColor(sub), value: v, meta: sharedCap, detail: null };
       }
       return { state: "neutral", value: "0", meta: "No unusual options flow events in last scan", detail: null };
     }
     const value = sub != null ? fmtSubSimple(sub) : `${callCt}/${putCt}`;
-    const meta = [
-      callCt ? `${callCt} call alert${callCt===1?"":"s"}` : null,
-      putCt  ? `${putCt} put alert${putCt===1?"":"s"}`   : null,
-    ].filter(Boolean).join(" · ") || "no flow events";
+    const meta = sharedCap || `${callCt} call · ${putCt} put alerts`;
     const fmtD = d => {
       if (!d) return "";
       const dt = new Date(String(d).slice(0,10) + "T00:00:00Z");
@@ -869,11 +871,8 @@ function SignalIntelligenceRail({
     const downs = Number(c.downgrades || 0);
     const inits = Number(c.initiations || 0);
     const mts   = Number(c.maintained || 0);
-    const bullets = [];
-    if (ups || downs) bullets.push(`${ups} upgrade${ups===1?"":"s"} · ${downs} downgrade${downs===1?"":"s"}`);
-    else if (n) bullets.push(`${n} action${n===1?"":"s"} in 90d`);
-    if (gap != null && Number.isFinite(Number(gap))) bullets.push(`target ${Number(gap)>=0?"+":""}${Number(gap).toFixed(0)}% vs spot`);
-    const meta = bullets.length ? bullets.join(" · ") : "no analyst signal";
+    // captionFor.analyst is the shared truth — same function the row above uses.
+    const meta = captionFor.analyst(c) || "no analyst signal";
     const detail = (
       <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
         <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
@@ -917,11 +916,8 @@ function SignalIntelligenceRail({
     const ctb   = c.latest_ctb_pct;
     const regime = c.regime;
     const value = fmtSubSimple(sub);
-    const bullets = [];
-    if (siPct != null) bullets.push(`${Number(siPct).toFixed(1)}% of float short`);
-    if (ctb   != null) bullets.push(`cost-to-borrow ${Number(ctb).toFixed(1)}%`);
-    if (regime) bullets.push(String(regime).replace(/_/g, " "));
-    const meta = bullets.length ? bullets.join(" · ") : "no short interest signal";
+    // captionFor.short_interest is the shared truth — same function the row above uses.
+    const meta = captionFor.short_interest(c) || "no short interest signal";
     const detail = (
       <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6,fontSize:12,lineHeight:1.45}}>
         <span style={{color:"var(--text-muted)"}}>Sub-score</span><span style={{fontFamily:"var(--font-mono)",fontWeight:600,textAlign:"right"}}>{value}</span>
