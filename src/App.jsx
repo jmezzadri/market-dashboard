@@ -34,6 +34,9 @@ import { latestTradingSessionDate, formatTradingDayLabel } from "./lib/freshness
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import AdminUsage from "./AdminUsage";
 import AdminBugs from "./AdminBugs";
+import AdminLanding from "./AdminLanding";
+import AdminMassive from "./AdminMassive";
+import AdminDataHealth from "./AdminDataHealth";
 import { useUserPortfolio } from "./hooks/useUserPortfolio";
 import { usePrivateScanSupplement } from "./hooks/usePrivateScanSupplement";
 import { useUniverseSnapshot } from "./hooks/useUniverseSnapshot";
@@ -4662,7 +4665,7 @@ const TAB_META={
   portopps:  {eyebrow:"Trading Opportunities", title:"Trading Opportunities", sub:"The unfiltered daily scan plus your watchlist — scored on five signal sources."},
   insights:  {eyebrow:"Portfolio Insights",      title:"Portfolio Insights",      sub:"Allocation, notable signals, positions, and account-by-account detail across your real book. Sign-in required."},
   readme:    {eyebrow:"FAQ & Methodology",    title:"How this works",          sub:"Sources, methodology, and the meaning of every score, regime, and signal."},
-  admin:     {eyebrow:"Admin · API Usage",    title:"UW API usage",            sub:"Daily calls, quota remaining, peak RPM, and recent run history. Visible only to admins."},
+  admin:     {eyebrow:"Admin",                 title:"Data sources & pipeline health", sub:"Three destinations: Polygon Massive, Unusual Whales, and a cross-vendor Data Health view of every feed on the site. Visible only to admins."},
   bugs:      {eyebrow:"Admin · Bug Tracker",  title:"Bug reports",             sub:"Institutional-grade triage: every bug, its status, proposed fix, complexity, and lifecycle stamps. Admin only."},
   lab:       {eyebrow:"Sector Lab · BETA",    title:"Sector Lab",              sub:"Experimental overlays on top of the sector engine — cycle-stage classifier, factor-debug panel, read-only ranking mirror. Admin only."},
 };
@@ -4989,6 +4992,22 @@ useEffect(()=>{
   window.addEventListener("hashchange",onHashChange);
   return()=>window.removeEventListener("hashchange",onHashChange);
 },[tab]);
+
+// Admin sub-view (?view=massive|uw|health) — separate from `tab` because
+// resolveHash() strips the ?query suffix. Without this, navigating from
+// /#admin (landing) to /#admin?view=massive would leave `tab === "admin"`
+// unchanged and the admin dispatcher below would not re-render.
+const readAdminView=()=>{
+  if(typeof window==="undefined")return null;
+  const qs=(window.location.hash||"").replace(/^#/,"").split("?")[1]||"";
+  return new URLSearchParams(qs).get("view");
+};
+const [adminView,setAdminView]=useState(readAdminView);
+useEffect(()=>{
+  const onHashChange=()=>{ const next=readAdminView(); setAdminView((cur)=>cur===next?cur:next); };
+  window.addEventListener("hashchange",onHashChange);
+  return()=>window.removeEventListener("hashchange",onHashChange);
+},[]);
 // Redirect #admin → #home if the resolved session isn't an admin. We wait
 // for adminLoading to settle so the initial check doesn't bounce real admins
 // off their own tab before the is_admin() RPC resolves.
@@ -5508,7 +5527,7 @@ const catScores = Object.entries(CATS).map(([catId,cat])=>{
 const navItems = isAdmin
   ? [...NAV_ITEMS,
      { divider:true, label:"Admin" },
-     { id:"admin", label:"Admin · Usage",     icon:<NavIconGauge/> },
+     { id:"admin", label:"Admin · Data",      icon:<NavIconGauge/> },
      { id:"bugs",  label:"Admin · Bugs",      icon:<NavIconGrid/>  }]
   : NAV_ITEMS;
 
@@ -7185,9 +7204,19 @@ return(
   </ErrorBoundary>
 )}
 
-{/* ADMIN · UW API USAGE — gated by useIsAdmin() above. Task #30. */}
+{/* ADMIN — three destinations behind a tile landing.
+    Hash sub-routing: #admin (landing) · #admin?view=massive (Polygon
+    Massive detail) · #admin?view=uw (Unusual Whales detail — the old
+    UW Usage page kept intact) · #admin?view=health (cross-vendor Data
+    Health scorecard). The `view` param is read inside each render so
+    a hash change re-renders the matched component automatically via
+    the existing hashchange listener that drives `tab`.
+    Gated by useIsAdmin() above. */}
 {tab==="admin" && V2_ENABLED && <V2ErrorBoundary><AdminPageV2 /></V2ErrorBoundary>}
-{tab==="admin" && !V2_ENABLED && <AdminUsage/>}
+{tab==="admin" && !V2_ENABLED && adminView==="uw"      && <AdminUsage/>}
+{tab==="admin" && !V2_ENABLED && adminView==="massive" && <AdminMassive/>}
+{tab==="admin" && !V2_ENABLED && adminView==="health"  && <AdminDataHealth/>}
+{tab==="admin" && !V2_ENABLED && !adminView            && <AdminLanding/>}
 
 {/* ADMIN · BUGS — gated by useIsAdmin() above. Task #36. */}
 {V2_ENABLED && tab==="bugs" && <V2ErrorBoundary><AdminPageV2 /></V2ErrorBoundary>}
