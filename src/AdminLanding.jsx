@@ -111,10 +111,20 @@ function Tile({ title, eyebrow, body, footer, accent, onClick, big = false }) {
   );
 }
 
+// Returns a plain-data shape with `feeds` as a COUNT (not the raw array
+// that byVendor.get(v).feeds carries). The footer markup below renders
+// `{feeds}` directly into a span, so an array there crashes React with
+// the "Objects are not valid as a React child" invariant.
 function vendorStats(byVendor, vendorName) {
   const g = byVendor.get(vendorName);
   if (!g) return { feeds: 0, green: 0, red: 0, amber: 0, lastGoodAt: null };
-  return g;
+  return {
+    feeds:     Array.isArray(g.feeds) ? g.feeds.length : (g.feeds || 0),
+    green:     g.green || 0,
+    red:       g.red || 0,
+    amber:     g.amber || 0,
+    lastGoodAt: g.lastGoodAt || null,
+  };
 }
 
 export default function AdminLanding() {
