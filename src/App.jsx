@@ -4767,7 +4767,7 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
   const VOL_TRIGS = [
     { id: 'vix',  name: 'Equity Vol', fmt: (v) => v.toFixed(1) },
     { id: 'move', name: 'Bond Vol',   fmt: (v) => Math.round(v).toString() },
-    { id: 'cpff', name: 'Funding',    fmt: (v) => Math.round(v) + ' bp' },
+    { id: 'cpff', name: 'Funding',    fmt: (v) => Math.round(v).toString() },
   ];
   const CYCLE_INDS = [
     { id: 'copper_gold', bearishHigh: false },
