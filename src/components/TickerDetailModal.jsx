@@ -707,8 +707,15 @@ function SignalIntelligenceRail({
     const sub    = subsForTiles.congress;
     const w      = weightsForTiles.congress;
     if ((!compC || compC.buy_count == null) && cBuys.length === 0 && cSells.length === 0) {
-      // 2026-05-12 — full coverage signal (every disclosed congressional trade
-      // lands in congress_trades_daily), so null = pipeline gap.
+      // 2026-05-13 — Joe directive: the v5 congress scorer OMITS buy_count
+      // and sell_count when there's genuinely no activity in 90d and
+      // instead writes reason='no_congress_activity_90d'. That's "no
+      // trades", not a pipeline gap. The MacroTilt Signal row above shows
+      // 0 / "no congressional trades in 90d" in that case — the tile now
+      // matches.
+      if (compC && typeof compC.reason === "string") {
+        return { state: "neutral", value: "0", meta: captionFor.congress(compC) || "No disclosed congressional trades in the last 90 days", detail: null };
+      }
       return { state: "neutral", value: "⚠", meta: "Data missing — congress disclosures ingest didn't return rows for this ticker. Engineering will catch on next freshness sweep.", detail: null };
     }
     const buys  = compC ? Number(compC.buy_count  || 0) : cBuys.length;
@@ -1064,10 +1071,14 @@ function SignalIntelligenceRail({
     const v5Tech = (mtSignal && mtSignal.diagnostic && mtSignal.diagnostic.scorer_components)
       ? (mtSignal.diagnostic.scorer_components.technicals || {})
       : {};
-    // Prefer the v5 sub-score (range -100..+100) when no legacy composite score is present.
+    // 2026-05-13 — Joe directive: the MacroTilt Signal panel row and
+    // the standalone tile must agree on the headline number. The row uses
+    // the v5 sub-score (range -100..+100), so the tile does too. Legacy
+    // composite from scanData.signals.technicals still informs the
+    // detail rows below but no longer overrides the headline score.
     const v5SubScore = (mtSignal && mtSignal.sub_scores) ? mtSignal.sub_scores.technicals : null;
-    const score = techSec?.score != null ? techSec.score
-                : (v5SubScore != null ? Number(v5SubScore) : null);
+    const score = v5SubScore != null ? Number(v5SubScore)
+                : (techSec?.score != null ? techSec.score : null);
     const state = score == null ? "loading"
                 : score >= 25 ? "green"
                 : score <= -25 ? "red"
