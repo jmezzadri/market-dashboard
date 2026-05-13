@@ -874,3 +874,38 @@ text-on-something CSS in a v2 page or shared component:
 background, or border lands in a JSX inline style, a `.css` file, or
 a `<style>` block.
 
+### 2026-05-13 — Never put `*/` inside a CSS comment body — close the comment, break the build
+
+**What happened:** PR #677 added a CSS comment that described "v2 pages use
+`--ink-*/--bg-*/--line-*` names". The literal text `--ink-*/--bg-*` contains
+the substring `*/`, which closed the `/* ... */` comment early. Everything
+after `*/` parsed as raw CSS until the next `*/`, producing invalid
+declarations. The Vercel build pipeline got stuck on the bad CSS and
+broke unrelated agents who were trying to ship from the same repo.
+
+**What you should do instead:** When writing CSS comments, NEVER let the
+descriptive text contain the literal characters `*/`. Two patterns to
+watch for:
+
+1. Glob-style asterisks: `--ink-*/--bg-*` — replace with `--ink-N / --bg-N`
+   (use letter placeholders or spell out, no `*` immediately before `/`).
+2. Math or path-like fragments: `width*/height`, `comment*/value` — break
+   the sequence with a space (`width * / height`).
+
+Before committing any CSS-block change, grep the diff for `*/` and visually
+confirm every occurrence is an INTENDED comment close. A 1-second check:
+
+  git diff src/theme.css | grep -n '\\*/'
+
+Every `*/` you find should be on its own line OR at the very end of a
+comment. If it's mid-sentence inside what you think is a comment, you've
+just broken the comment.
+
+For CSS comment bodies specifically, prefer plain English over symbolic
+shorthand. The original comment was easier to read as
+"v2 pages use ink, bg, and line tokens" than as "--ink-*/--bg-*/--line-*".
+
+**Applies to:** Any agent touching `.css` files OR inline `<style>` blocks
+OR JSX template strings that emit CSS. Especially: CSS authors who are
+also developers and instinctively use glob syntax in prose.
+
