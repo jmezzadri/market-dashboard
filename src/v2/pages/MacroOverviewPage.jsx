@@ -862,7 +862,7 @@ function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
           </select>
         )}
       </div>
-      <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} style={{width:'100%',height:360,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+      <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{width:'100%',height:360,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
         <line x1={padL} y1={hiY} x2={w-padR} y2={hiY} stroke="#2f9d6a" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
         <text x={w-padR-6} y={hiY-4} fontSize="10" fill="#2f9d6a" textAnchor="end" fontWeight="600" fontFamily="Inter">HIGH {fmt(hi)}</text>
         <line x1={padL} y1={loY} x2={w-padR} y2={loY} stroke="#c84658" strokeWidth="1" strokeDasharray="3,3" opacity="0.7"/>
