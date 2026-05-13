@@ -22,6 +22,14 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-12 (b) — Any caption next to a signal value must read the same data that drives the value
+
+**What happened:** The per-ticker dossier showed Options Flow "+88" stacked above the caption "no unusual flow today" — contradictory on the same screen. The score was driven by `unusual_count` + `ask_side_premium` + premium-ratio fields; the caption read only `call_alert_count` and `put_alert_count` which happened to be zero. Same pattern bit Technicals (the score was null because of "too few closes" but the rendered icon was a generic "fetch failed" red triangle) and Short Interest (the score was null because TSM is an ADR and FINRA doesn't cover ADRs — but the rendered copy said "ingest didn't return rows", implying a pipeline gap). Three separate dishonest-caption-vs-score cases shipped to prod, all because the rendering code read a DIFFERENT slice of the data than the scoring code.
+
+**What you should do instead:** Any caption, underline, tooltip, icon, color, or sub-line rendered next to a signal value (sub-score, count, dollar amount, status) MUST be derived from the same `scorer_components`/diagnostic record that drove the value. Before rendering a default fallback string ("no events today", "data missing", a red triangle, etc.), check the producer's `reason` field if it exists, then check the OTHER fields in `scorer_components` that could explain the score, before falling back. The test: open the same record in Supabase, look at every non-null field, and confirm the caption a user sees mentions at least one of them. If the caption could be true while the score is non-zero, the caption is wrong.
+
+---
+
 ## 2026-05-12 — Code-speak to Joe is a hard ban, not a soft suggestion
 
 **What happened:** In a single session I described work to Joe using file names ("App.jsx," "HomePage.jsx"), code structures ("the iframe routing," "V2 gate"), version labels ("v2," "PR B"), and developer infrastructure terms ("bundle hash," "tree-shake," "merge"). Joe had to stop me multiple times in the same session to say "speak in English." Existing rules from 2026-04-28, 2026-05-02, 2026-05-04, 2026-05-08, and 2026-05-11 all already cover this — yet I kept regressing because I default to code-speak whenever describing a technical change.
