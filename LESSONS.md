@@ -809,3 +809,27 @@ every other negative-value path in the same file for the same conflation.
 **Applies to:** All allocation / rollup / aggregation logic — App.jsx
 assetRollup, account cash chips, any new tile that summarizes book NAV.
 
+### 2026-05-13 — Parse JSX after any structural rewrite before pushing
+
+**What happened:** Two python regex scripts that lifted `<PageHero>` out of
+padded wrappers (Home + Portfolio Insights structural lift in PR #664)
+introduced unbalanced `<>...</>` fragments. The first corrupted App.jsx's
+outer App-component return; the second left the insights IIFE Fragment
+open. Neither was caught locally; both required revert + re-push cycles
+and a wasted Vercel build.
+
+**What you should do instead:** After any sed/python/regex edit that adds
+or removes JSX elements (especially `<>...</>` fragments, IIFE returns,
+or component wrappers), run a parse check on every modified file before
+staging the commit:
+
+  node -e "require('@babel/parser').parse(require('fs').readFileSync('FILE','utf8'),{sourceType:'module',plugins:['jsx']})"
+
+If it errors, fix the structural mismatch first. Never push JSX surgery
+without that parse check.
+
+**Applies to:** Lead Developer — any time the edit pipeline rewrites JSX
+structure (lifting components out of wrappers, splitting/merging
+fragments, restructuring IIFE returns, moving block content across
+ancestor boundaries).
+
