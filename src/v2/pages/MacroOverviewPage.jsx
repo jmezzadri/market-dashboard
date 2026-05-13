@@ -594,6 +594,7 @@ export default function MacroOverviewPage() {
           </aside>
           }
         />
+        <div className="mo-body-inner" style={{padding:"0 32px"}}>
         {/* THREE VOL TILES */}
         <div className="mo-vol-grid">
           {anchors.map(a => (
@@ -636,6 +637,7 @@ export default function MacroOverviewPage() {
               </div>
             </div>
           </div>
+        </div>
         </div>
 
       </div>
@@ -1136,7 +1138,7 @@ function RegimeHistoryModalContent({ fullRegime, filterState }) {
 
 // ── CSS ──────────────────────────────────────────────────────────────
 const MO_CSS = `
-.mo-page{max-width:1280px;margin:0 auto;padding:28px 32px 64px}
+.mo-page{max-width:1280px;margin:0 auto;padding:28px 0 64px}
 .mo-top{display:grid;grid-template-columns:1fr 460px;gap:32px;margin-bottom:40px;align-items:start}
 .mo-eyebrow{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:500;margin-bottom:8px}
 .mo-h1{font-family:var(--font-display);font-weight:400;font-size:46px;line-height:1.10;letter-spacing:-0.015em;margin:8px 0 18px;color:var(--ink-0);max-width:720px}
