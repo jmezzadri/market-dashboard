@@ -546,7 +546,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
         <div style={{
           marginTop: 18, padding: 16,
           background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-          borderLeft: '3px solid var(--accent, #0071e3)',
+          borderLeft: '3px solid var(--accent)',
           borderRadius: '0 6px 6px 0',
           fontSize: 13.5, color: 'var(--ink-1, #222)',
         }}>
@@ -570,7 +570,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
         <div style={{
           marginTop: 18, padding: 16,
           background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-          borderLeft: '3px solid var(--accent, #0071e3)',
+          borderLeft: '3px solid var(--accent)',
           borderRadius: '0 6px 6px 0',
           fontSize: 13.5, color: 'var(--ink-1, #222)',
         }}>
@@ -606,7 +606,7 @@ export default function MethodologyBody({ withJumpNav = true }) {
         <div style={{
           marginTop: 18, padding: 16,
           background: 'var(--bg-2, var(--surface-2, rgba(0,0,0,0.02)))',
-          borderLeft: '3px solid var(--accent, #0071e3)',
+          borderLeft: '3px solid var(--accent)',
           borderRadius: '0 6px 6px 0',
           fontSize: 13.5, color: 'var(--ink-1, #222)',
         }}>
