@@ -32,9 +32,14 @@ const STREAM_DEFAULTS = {
   },
   prices: {
     label: "Prices",
-    staleHours: 24,
-    staleReason: "prices feed may have failed",
-    tip: "What each ticker is trading for right now. Refreshed 3x per US trading day (10:00 AM, 1:00 PM, and 3:45 PM ET). Includes last close, prior close and day change, market cap, implied volatility rank, options volume and premium, put/call ratio, and 52-week high/low. This is the live-quote feed used by the price column in every table on the site. Source: Unusual Whales screener API.",
+    // EOD ingest fires once per trading day at ~16:30 ET (Polygon Massive
+    // via the MASSIVE-DAILY workflow). During the trading day before the
+    // close fires, prices_eod legitimately holds yesterday's close — that
+    // is not a failure, it is the schedule. Stale only if more than one
+    // full trading day late.
+    staleHours: 30,
+    staleReason: "EOD ingest overdue",
+    tip: "Latest end-of-day closing price from our pricing vendor (Polygon Massive). Ingested once per US trading day at ~16:30 ET, about 30 minutes after the bell. During the trading day before the close fires, this stream points at yesterday's close — that is the expected state, not a failure. Source: Polygon Massive EOD feed, ingested into the prices_eod table.",
   },
   events: {
     label: "Events",

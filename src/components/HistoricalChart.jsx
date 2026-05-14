@@ -64,9 +64,14 @@ const SUGGESTED_PEERS_BY_SECTOR = {
 
 function fmtDate(d) {
   if (!d) return "";
-  // d is "YYYY-MM-DD" string
+  // d is "YYYY-MM-DD" string. Pin both parse + render to UTC so the
+  // displayed date matches the data date. Without the timeZone option,
+  // toLocaleDateString falls back to the browser's local timezone — for
+  // an ET browser, UTC midnight on (e.g.) 2026-05-14 renders as
+  // 2026-05-13 8 PM ET, and the chart's last-bar label off-by-ones to
+  // "May 13" when the underlying point is from May 14. (Bug 2026-05-14.)
   const dt = new Date(d + "T00:00:00Z");
-  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit" });
+  return dt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "2-digit", timeZone: "UTC" });
 }
 
 async function fetchHistory({ ticker, period, from, to }) {

@@ -1,15 +1,32 @@
 # MASSIVE-DAILY — daily refresh of Massive-sourced tables.
 #
-# Runs every weekday at three fire windows after US market close so a
-# dropped GitHub schedule (which has happened — May 4 2026 incident)
-# does not silently swallow the day's refresh:
-#   - 22:00 UTC = 18:00 ET   (primary, ~30 min after market close)
-#   - 00:00 UTC = 20:00 ET   (backup A, fires next-day Tue-Sat)
-#   - 03:00 UTC = 23:00 ET   (backup B, fires next-day Tue-Sat)
-# Backups B and A are no-ops when the primary already ran (the script
-# is idempotent — universe + prices + corp actions all upsert by
-# natural key, so re-running is safe).  Also triggerable on demand
-# via workflow_dispatch.
+# Bug #YYYY-MM-DD (2026-05-14): previously the primary fired at 22:00 UTC
+# (18:00 ET, 2 hours after the bell) and in practice ran 4-8 hours late
+# via Backup B because GitHub Actions schedules drift. That left today's
+# close out of prices_eod until ~2:30 AM ET the next morning, and the
+# ticker-drawer headline rendered yesterday's $8.86 ONDS close next to
+# a chart that already had today's $11.21. Primary fire moved up to
+# 20:30 UTC (16:30 ET, ~30 min after market close) so today's close
+# lands the same day. Older fires retained as backups in case the primary
+# is dropped or delayed.
+#
+# Fire windows (UTC):
+#   - 20:30 UTC = 16:30 ET (primary, ~30 min after market close)
+#   - 21:00 UTC = 17:00 ET (backup A, ~1 h after close)
+#   - 22:00 UTC = 18:00 ET (backup B, ~2 h after close — old primary)
+#   - 00:00 UTC = 20:00 ET (backup C, fires next-day Tue-Sat)
+#   - 03:00 UTC = 23:00 ET (backup D, fires next-day Tue-Sat)
+# Backups are no-ops when an earlier window already wrote the day
+# (the script is idempotent — universe + prices + corp actions all
+# upsert by natural key, so re-running is safe).
+# Also triggerable on demand via workflow_dispatch.
+#
+# Note on timing: this assumes US market close at 16:00 ET. During
+# DST (most of the year, second Sunday in March → first Sunday in
+# November) ET = UTC-4, so 16:30 ET = 20:30 UTC. In standard time
+# ET = UTC-5, so 16:30 ET = 21:30 UTC. The 20:30 + 21:00 UTC primary
+# pair covers DST; the 22:00 UTC backup covers standard time. All
+# upserts are idempotent so an early-and-late fire pair is harmless.
 #
 # Same backfill script as the one-shot MASSIVE-INITIAL-BACKFILL, but
 # with shorter dividends/splits lookback windows since most rows
@@ -23,11 +40,13 @@ name: MASSIVE-DAILY
 
 on:
   schedule:
-    # Cron is UTC. Three weekday fire windows so a dropped or delayed
+    # Cron is UTC. Five weekday fire windows so a dropped or delayed
     # GitHub schedule is recovered the same evening (idempotent script).
-    - cron: "0 22 * * 1-5"   # Primary: Mon-Fri 18:00 ET
-    - cron: "0 0  * * 2-6"   # Backup A: Mon-Fri 20:00 ET (Tue-Sat 00:00 UTC)
-    - cron: "0 3  * * 2-6"   # Backup B: Mon-Fri 23:00 ET (Tue-Sat 03:00 UTC)
+    - cron: "30 20 * * 1-5"  # Primary: Mon-Fri 16:30 ET (DST)
+    - cron: "0 21  * * 1-5"  # Backup A: Mon-Fri 17:00 ET (DST)
+    - cron: "0 22  * * 1-5"  # Backup B: Mon-Fri 18:00 ET (DST) / 17:00 ET (standard)
+    - cron: "0 0   * * 2-6"  # Backup C: Mon-Fri 20:00 ET (Tue-Sat 00:00 UTC)
+    - cron: "0 3   * * 2-6"  # Backup D: Mon-Fri 23:00 ET (Tue-Sat 03:00 UTC)
   workflow_dispatch: {}
 
 jobs:
