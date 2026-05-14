@@ -523,29 +523,35 @@ export default function MacroOverviewPage() {
       return { date: d, label: computeRegime(stages, histCycle), stages, cycle: histCycle };
     });
 
-    // SPX series for the backtested regime history modal (Option A: SPX line + regime bands).
-    // We rasterize the daily SPX to one point per week (Friday close) so the chart is 
-    // aligned with the weekly fullRegime data. Falls back gracefully if spx is missing.
-    let spxWeekly = [];
+    // SPX series for the backtested regime history modal (Option A).
+    // Must use the SAME Sunday-of-week key formula the engine uses for
+    // fullByDate (setDate(d - d.getDay())) so SPX values join cleanly with
+    // each fullRegime[i].date. weekKey() returns ISO date of the Sunday
+    // starting the week containing the given date.
+    const weekKey = (ds) => {
+      const d = new Date(ds), w = new Date(d);
+      w.setDate(d.getDate() - d.getDay());
+      return w.toISOString().slice(0, 10);
+    };
+    // spxByWeek: Map Sunday-of-week key -> latest SPX value in that week.
+    const spxByWeek = {};
     if (indHist.spx && indHist.spx.points && indHist.spx.points.length) {
-      const byWeek = {};
       for (const [ds, val] of indHist.spx.points) {
         if (val == null || isNaN(val)) continue;
-        const dObj = new Date(ds);
-        const dow = dObj.getUTCDay();
-        const fri = new Date(dObj); fri.setUTCDate(dObj.getUTCDate() + ((4 - dow + 7) % 7));
-        byWeek[fri.toISOString().slice(0, 10)] = val;
+        spxByWeek[weekKey(ds)] = val; // last write wins -> last reading of week
       }
-      spxWeekly = Object.entries(byWeek).sort().map(([d, v]) => [d, v]);
     }
-    return { anchors, cycleInd, cycleScore, cycleQuintile: quintile(cycleScore), regime, regimeHistory, fullRegime, spxWeekly };
+    // Provide spxByWeek (object map) and a weekKey helper to the modal.
+    const spxWeekly = spxByWeek;
+    const spxWeekKey = weekKey;
+    return { anchors, cycleInd, cycleScore, cycleQuintile: quintile(cycleScore), regime, regimeHistory, fullRegime, spxWeekly, spxWeekKey };
   }, [indHist]);
 
   if (!data) {
     return <div className="mo-page" style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>Loading macro data…</div>;
   }
 
-  const { anchors, cycleInd, cycleScore, regime, regimeHistory, fullRegime, spxWeekly } = data;
+  const { anchors, cycleInd, cycleScore, regime, regimeHistory, fullRegime, spxWeekly, spxWeekKey } = data;
 
   const openTrigger = (id) => setModal({ open: true, kind: 'trigger', payload: id });
   const openIndicator = (id, parent) => { if (parent) modalStackRef.current.push(parent); setModal({ open: true, kind: 'indicator', payload: id }); };
@@ -695,7 +701,7 @@ export default function MacroOverviewPage() {
             {modal.kind === 'trigger' && <TriggerModalContent anchor={anchors.find(x => x.id === modal.payload)} indHist={indHist} />}
             {modal.kind === 'indicator' && <IndicatorModalContent ind={cycleInd.find(x => x.id === modal.payload)} indHist={indHist} />}
             {modal.kind === 'score' && <ScoreModalContent cycleInd={cycleInd} cycleScore={cycleScore} onDrill={(id) => openIndicator(id, { kind: 'score', payload: null, open: true })} />}
-            {modal.kind === 'regimeHistory' && <RegimeHistoryModalContent fullRegime={fullRegime} spxWeekly={spxWeekly} filterState={modal.payload} />}
+            {modal.kind === 'regimeHistory' && <RegimeHistoryModalContent fullRegime={fullRegime} spxWeekly={spxWeekly} spxWeekKey={spxWeekKey} filterState={modal.payload} />}
           </div>
         </div>
       )}
@@ -1121,7 +1127,7 @@ function ScoreModalContent({ cycleInd, cycleScore, onDrill }) {
 }
 
 // ── Full backtested regime history modal ─────────────────────────────
-function RegimeHistoryModalContent({ fullRegime, spxWeekly, filterState }) {
+function RegimeHistoryModalContent({ fullRegime, spxWeekly, spxWeekKey, filterState }) {
   // Option A: SPX line on log scale with regime states drawn as vertical
   // shaded bands behind the line. Federal-Reserve-style recession-bars
   // pattern, the institutional standard for regime-indicator validation.
@@ -1134,17 +1140,19 @@ function RegimeHistoryModalContent({ fullRegime, spxWeekly, filterState }) {
   const pct = (n) => Math.round((n / total) * 100 * 10) / 10;
 
   // Build merged series — fullRegime drives the X axis; pair each week with
-  // the nearest SPX value (forward-fill from spxWeekly).
+  // its SPX value via Sunday-of-week key (same convention as the engine's
+  // fullByDate). Forward-fill across rare weeks where SPX is missing.
   const merged = useMemo(() => {
-    const spxMap = {};
-    for (const [d, v] of (spxWeekly || [])) spxMap[d] = v;
+    const spxMap = spxWeekly || {};
+    const wKey = spxWeekKey || ((s) => s);
     let lastSpx = null;
     return fullRegime.map(r => {
-      const v = spxMap[r.date];
+      const k = wKey(r.date);
+      const v = spxMap[k];
       if (v != null) lastSpx = v;
       return { date: r.date, label: r.label, spx: lastSpx };
     });
-  }, [fullRegime, spxWeekly]);
+  }, [fullRegime, spxWeekly, spxWeekKey]);
 
   const haveSpx = merged.some(m => m.spx != null);
   const N = merged.length;
@@ -1207,6 +1215,9 @@ function RegimeHistoryModalContent({ fullRegime, spxWeekly, filterState }) {
     { date: '2022-06-17', label: 'Fed pivot' },
   ];
   const findIdx = (iso) => {
+    if (N === 0) return -1;
+    // Reject events earlier than the chart's first date or later than the last
+    if (iso < merged[0].date || iso > merged[N - 1].date) return -1;
     for (let i = 0; i < N; i++) if (merged[i].date >= iso) return i;
     return -1;
   };
@@ -1255,7 +1266,7 @@ function RegimeHistoryModalContent({ fullRegime, spxWeekly, filterState }) {
           : <>Weekly regime states shown as vertical shaded bands behind the S&amp;P 500 line. Risk Off periods should cluster around real market crashes — the visual sniff test for whether the framework worked. Hover for date · regime · index level.</>}
       </p>
       <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">{filterState ? `S&P 500 · regime = "${filterState}"` : 'S&P 500 with regime backdrop · 1986 – today'}</div>
+        <div className="mo-modal-block-eyebrow">{filterState ? `S&P 500 · regime = "${filterState}"` : `S&P 500 with regime backdrop · ${fullRegime[0]?.date?.slice(0,4) || ''} – today`}</div>
         <div ref={containerRef} onMouseMove={handleMove} onMouseLeave={handleLeave}
              style={{position:'relative', height:440, background:'var(--surface-2)', borderRadius:8, overflow:'hidden', cursor:'crosshair'}}>
           <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:'100%', display:'block'}}>
