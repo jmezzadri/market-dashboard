@@ -955,3 +955,43 @@ shorthand. The original comment was easier to read as
 OR JSX template strings that emit CSS. Especially: CSS authors who are
 also developers and instinctively use glob syntax in prose.
 
+---
+
+## 2026-05-13 — NEVER use 2006 as a lower bound for regime / macro data
+
+**What happened:** After the indicator_history.json backfill shipped
+this morning (extending every series back to its true start — VIX
+1996, TED proxy for CPFF back to 1986, ANFCI to 1971, etc.), the
+regime backtested history modal STILL rendered "Regime · 2006 – today"
+because the engine collapsed the date range. The chart's earliest year
+shown to the user was 2006. Joe verbatim: "The entire data set goes
+back to 1996!!! NEVER USE 2006 again. This has been logged as a rule.
+I cant say this again." 2006 was the cutoff of the OLD pre-backfill
+data file. After today it is wrong everywhere.
+
+**What you should do instead:** The default lower bound for ANY
+regime / macro chart, copy, or eyebrow text on macrotilt.com is 1996.
+Never hardcode "2006". Never accept "2006" as a dynamic output from
+the engine — if `fullRegime[0]?.date` evaluates to a 2006 string, that
+is a bug in how the engine merges per-indicator series, not a correct
+value to display. Find the bug in the engine and fix it.
+
+Specific debugging hint for the known engine bug: `fullByDate` is
+populated from the union of all anchors' (vix / move / cpff) allWeekly
+arrays, so dates before 2002 only have CPFF data, not MOVE. If any
+downstream gate requires all three anchors to have values for a week,
+the regime collapses to the latest common start (2002 from MOVE).
+Pre-2002 the framework should still produce a regime read using the
+two anchors that exist (VIX + CPFF) — this is exactly what the
+methodology page's "reduced 2-anchor stack" disclaimer describes.
+
+Same principle for any other "lower bound" question: copper/gold
+starts in 2000, KBW/SPX in 1993, yield curve in 1976, ANFCI in 1971,
+jobless claims in 1967. The default first-year-to-show is whatever
+the underlying data file actually delivers, not the prior file's
+cutoff.
+
+**Applies to:** All chart axes, eyebrow copy, modal titles, X-axis
+ticks, hover ranges, methodology references, and any computed
+date-range string on macrotilt.com. Every specialist binds to this
+rule.
