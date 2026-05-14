@@ -123,9 +123,9 @@ function FilterChip({ active, label, count, onClick, tone }) {
   );
 }
 
-function Section({ title, subtitle, children }) {
+function Section({ title, subtitle, children, id }) {
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 16px", marginBottom: 14 }}>
+    <div id={id} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 16px", marginBottom: 14, scrollMarginTop: 80 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{title}</div>
         {subtitle && <div style={{ fontSize: 11, color: MUTED, fontFamily: "monospace" }}>{subtitle}</div>}
@@ -266,12 +266,41 @@ export default function AdminDataHealth() {
               {vendorRows.map((v) => {
                 const tone = v.red > 0 ? "bad" : v.amber > 0 ? "warn" : "good";
                 const c = tone === "good" ? GREEN : tone === "warn" ? AMBER : RED;
+                const isClickable = v.red > 0 || v.amber > 0;
+                const onClickRow = () => {
+                  // Pre-filter the feed table to show only the broken feeds
+                  // for this vendor, then scroll the feed table into view so
+                  // the answer to "which feed is failing?" is one click away.
+                  const targetStatus = v.red > 0 ? "red" : "amber";
+                  setStatusFilter(targetStatus);
+                  setVendorFilter(v.vendor);
+                  setTimeout(() => {
+                    const el = document.getElementById("feed-table-section");
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 50);
+                };
                 return (
-                  <tr key={v.vendor} style={{ borderTop: "1px solid var(--border)" }}>
+                  <tr
+                    key={v.vendor}
+                    onClick={isClickable ? onClickRow : undefined}
+                    title={isClickable ? `Click to see which ${tone === "bad" ? "red" : "amber"} feed${(v.red+v.amber)>1?"s":""} ${v.vendor} has` : undefined}
+                    style={{
+                      borderTop: "1px solid var(--border)",
+                      cursor: isClickable ? "pointer" : "default",
+                      transition: "background 80ms ease",
+                    }}
+                    onMouseEnter={(e) => { if (isClickable) e.currentTarget.style.background = "var(--surface-2)"; }}
+                    onMouseLeave={(e) => { if (isClickable) e.currentTarget.style.background = "transparent"; }}
+                  >
                     <Td>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <StatusDot tone={v.red > 0 ? "red" : v.amber > 0 ? "amber" : "green"} />
                         <span style={{ fontWeight: 600 }}>{v.vendor}</span>
+                        {isClickable && (
+                          <span style={{ fontSize: 10, color: c, fontFamily: "monospace", marginLeft: 4 }}>
+                            · show {tone === "bad" ? "red" : "amber"} ›
+                          </span>
+                        )}
                       </div>
                     </Td>
                     <Td align="right" style={{ fontFamily: "monospace" }}>{v.cost}</Td>
@@ -294,6 +323,7 @@ export default function AdminDataHealth() {
 
       {/* ─── Section 2: Feed table with filters ─────────────────────── */}
       <Section
+        id="feed-table-section"
         title="Feed table"
         subtitle={`${filteredFeeds.length} of ${rows.length} feeds`}
       >
