@@ -17,6 +17,11 @@ import { supabase } from "./lib/supabase";
 import { useIsAdmin } from "./hooks/useIsAdmin";
 import MTTable from "./components/MTTable";
 
+// Preview deploys skip the admin gate so the page is reviewable without
+// a sign-in. Production (macrotilt.com) keeps the gate.
+const IS_PRODUCTION_HOST = typeof window !== "undefined"
+  && /(^|\.)macrotilt\.com$/.test(window.location.hostname);
+
 const SOURCE_COLORS = {
   universe_snapshot:  "#60a5fa",   // blue
   ticker_events:      "var(--accent)",   // violet
@@ -519,7 +524,9 @@ function PeriodTotals({ rows, grain }) {
 
 // ── TOP-LEVEL COMPONENT ─────────────────────────────────────────────────────
 export default function AdminUsage() {
-  const { isAdmin, loading: adminLoading } = useIsAdmin();
+  const live = useIsAdmin();
+  const isAdmin     = IS_PRODUCTION_HOST ? live.isAdmin : true;
+  const adminLoading = IS_PRODUCTION_HOST ? live.loading : false;
   const { rows, error, loading, reload } = useApiUsageLog(90);
   const [grain, setGrain] = useState("day");
 
@@ -552,6 +559,23 @@ export default function AdminUsage() {
 
   return (
     <main className="fade-in main-padded" style={{maxWidth:1200, margin:"0 auto", padding:"var(--space-4) var(--space-8) var(--space-10)"}}>
+      {/* Breadcrumb back to the Admin landing (matches the Polygon Massive +
+          Data Health pages so every admin destination has the same way out). */}
+      <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:14,fontSize:12,color:"var(--text-muted)"}}>
+        <button
+          onClick={() => { window.location.hash = "admin"; }}
+          style={{background:"none",border:"none",color:"var(--text-2)",cursor:"pointer",padding:0,fontSize:12,textDecoration:"underline"}}
+        >‹ Admin overview</button>
+        <span>·</span>
+        <span style={{color:"var(--text)"}}>Unusual Whales</span>
+      </div>
+      <header style={{marginBottom:18}}>
+        <h1 style={{fontSize:22,fontWeight:700,color:"var(--text)",margin:0,letterSpacing:"-0.015em"}}>Unusual Whales</h1>
+        <p style={{fontSize:13,color:"var(--text-2)",marginTop:6,marginBottom:0,lineHeight:1.55,maxWidth:760}}>
+          Daily API call volume, quota burn, peak request-per-minute, and recent run history across the Unusual Whales scanners.
+        </p>
+      </header>
+
       {/* KPI strip */}
       <div style={{display:"grid",gridTemplateColumns:"repeat(4, minmax(0,1fr))",gap:12,marginBottom:16}}>
         <KpiTile label="Calls today" value={fmtInt(callsToday)} sub={`${todaysRows.length} runs`} />
