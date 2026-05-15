@@ -14,7 +14,7 @@
   },
   "yield_regime": {
     "state": "Inflationary",
-    "delta_y_3m_bp": 42.0,
+    "delta_y_3m_bp": 43.0,
     "delta_y_3m_percentile_5y": 0.766,
     "inflationary_threshold_bp": 32.0,
     "deflationary_threshold_bp": -11.0,
