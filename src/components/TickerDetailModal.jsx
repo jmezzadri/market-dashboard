@@ -23,6 +23,7 @@ import useMassiveTickerInfo from "../hooks/useMassiveTickerInfo";
 import useStockRiskMetrics from "../hooks/useStockRiskMetrics";
 import useTickerDeepDive from "../hooks/useTickerDeepDive";
 import useTickerEodPrice from "../hooks/useTickerEodPrice";
+import useTickerTechnicalsLive from "../hooks/useTickerTechnicalsLive";
 import { useEarningsHistory } from "../hooks/useEarningsHistory";
 import { WATCHLIST_FALLBACK } from "../data/watchlistFallback";
 
@@ -1986,7 +1987,31 @@ useEffect(()=>{
 },[onClose]);
 if(!ticker)return null;
 const sc=scanData?.signals?.screener?.[ticker]||{};
-const tech=scanData?.signals?.technicals?.[ticker]||{};
+const _techCached = scanData?.signals?.technicals?.[ticker] || {};
+const _techLive   = useTickerTechnicalsLive(ticker);
+// Merge: live values (computed from the same Yahoo daily history the
+// chart uses) take precedence over the cached scan snapshot. The cache
+// still supplies fields the live hook doesn't compute (Bollinger %B,
+// Stochastic K/D, OBV, Ichimoku, etc.). Fixes the "GLD technicals 17
+// days stale" class of bug — daily Python scanner filters ETFs, so
+// their cache rows go cold; the live hook has no such gap.
+const tech = {
+  ..._techCached,
+  ...(_techLive && {
+    ...(Number.isFinite(_techLive.week_change)        && { week_change:        _techLive.week_change }),
+    ...(Number.isFinite(_techLive.month_change)       && { month_change:       _techLive.month_change }),
+    ...(Number.isFinite(_techLive.ytd_change)         && { ytd_change:         _techLive.ytd_change }),
+    ...(Number.isFinite(_techLive.pct_vs_50ma)        && { pct_vs_50ma:        _techLive.pct_vs_50ma }),
+    ...(Number.isFinite(_techLive.pct_vs_200ma)       && { pct_vs_200ma:       _techLive.pct_vs_200ma }),
+    ...(_techLive.above_50ma  != null && { above_50ma:  _techLive.above_50ma }),
+    ...(_techLive.above_200ma != null && { above_200ma: _techLive.above_200ma }),
+    ...(Number.isFinite(_techLive.rsi_14)             && { rsi_14:             _techLive.rsi_14 }),
+    ...(_techLive.macd_cross && { macd_cross:                                  _techLive.macd_cross }),
+    ...(Number.isFinite(_techLive.vol_surge)          && { vol_surge:          _techLive.vol_surge }),
+    ...(Number.isFinite(_techLive.spy_relative_month) && { spy_relative_month: _techLive.spy_relative_month }),
+    ...(Number.isFinite(_techLive.spy_relative_ytd)   && { spy_relative_ytd:   _techLive.spy_relative_ytd }),
+  }),
+};
 const score=scanData?.score_by_ticker?.[ticker];
 // Bug #1017 — fetch per-ticker Google News (whitelist + dedupe is done on the
 // server). Fires when `ticker` changes. Server already 10m-cached, client
