@@ -174,6 +174,7 @@ serve(async (req) => {
   const errors = results.filter((r) => !r.ok).map((r) => ({ ticker: r.ticker, error: r.error }));
 
   let written = 0;
+  let positionsRefreshed = 0;
   if (rows.length > 0) {
     const sb = createClient(SUPABASE_URL, SERVICE_KEY);
     const { data, error } = await sb
@@ -185,8 +186,20 @@ serve(async (req) => {
       return json({ ok: false, error: error.message, errors }, 502);
     }
     written = data?.length ?? rows.length;
+
+    // Critical: keep positions.price in lockstep with prices_eod so the
+    // positions table and the drawer headline never disagree on the
+    // same ticker. The refresh_positions_from_eod RPC is idempotent;
+    // calling it after every write costs a few ms and prevents the
+    // cached-vs-live drift Joe surfaced on 2026-05-14.
+    const { data: rpcData, error: rpcError } = await sb.rpc("refresh_positions_from_eod");
+    if (rpcError) {
+      console.warn(`[eod-same-day] positions refresh failed (non-fatal): ${rpcError.message}`);
+    } else if (Array.isArray(rpcData) && rpcData[0]) {
+      positionsRefreshed = Number(rpcData[0]?.rows_updated) || 0;
+    }
   }
 
-  console.log(`[eod-same-day] done requested=${tickers.length} written=${written} errors=${errors.length}`);
-  return json({ ok: true, requested: tickers.length, written, rows, errors });
+  console.log(`[eod-same-day] done requested=${tickers.length} written=${written} positions_refreshed=${positionsRefreshed} errors=${errors.length}`);
+  return json({ ok: true, requested: tickers.length, written, positions_refreshed: positionsRefreshed, rows, errors });
 });
