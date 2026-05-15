@@ -43,6 +43,7 @@ const EMPTY = {
   prev_close: null,
   trade_date: null,
   prev_trade_date: null,
+  ingested_at: null,
   day_pct: null,
   loading: false,
   source: null,
@@ -76,7 +77,7 @@ export default function useTickerEodPrice(ticker) {
     async function readPricesEod() {
       const { data, error } = await supabase
         .from("prices_eod")
-        .select("close, trade_date")
+        .select("close, trade_date, ingested_at")
         .eq("ticker", upper)
         .order("trade_date", { ascending: false })
         .limit(2);
@@ -99,6 +100,7 @@ export default function useTickerEodPrice(ticker) {
         prev_close,
         trade_date: cur?.trade_date || null,
         prev_trade_date: prev?.trade_date || null,
+        ingested_at: cur?.ingested_at || null,
         day_pct,
         loading: false,
         source: "prices_eod",

@@ -94,16 +94,30 @@ function ema(arr, n) {
 }
 
 function rsi14(closesDesc) {
-  // Classic Wilder RSI over the last 14 trading sessions.
+  // Wilder RSI computed with proper running smoothing over the full
+  // available series — same algorithm the chart's RSI sub-pane uses.
+  // The previous single-window calculation (last 15 closes only) gave
+  // a different answer than the chart by ±1-2 points because it
+  // discarded the smoothing context the chart inherits from earlier
+  // history.
   if (!closesDesc || closesDesc.length < 15) return null;
-  const asc = closesDesc.slice(0, 15).reverse(); // 15 points = 14 deltas
+  const period = 14;
+  // Convert to chronological order for forward Wilder recursion.
+  const asc = closesDesc.slice().reverse();
   let gain = 0, loss = 0;
-  for (let i = 1; i < asc.length; i++) {
-    const d = asc[i] - asc[i - 1];
-    if (d > 0) gain += d; else loss -= d;
+  for (let i = 1; i <= period; i++) {
+    const ch = asc[i] - asc[i - 1];
+    if (ch >= 0) gain += ch; else loss -= ch;
   }
-  const avgGain = gain / 14;
-  const avgLoss = loss / 14;
+  let avgGain = gain / period;
+  let avgLoss = loss / period;
+  for (let i = period + 1; i < asc.length; i++) {
+    const ch = asc[i] - asc[i - 1];
+    const g = ch >= 0 ? ch : 0;
+    const l = ch < 0 ? -ch : 0;
+    avgGain = (avgGain * (period - 1) + g) / period;
+    avgLoss = (avgLoss * (period - 1) + l) / period;
+  }
   if (avgLoss === 0) return 100;
   const rs = avgGain / avgLoss;
   return 100 - 100 / (1 + rs);
