@@ -1440,6 +1440,8 @@ export default function AssetTilt({ onOpenTicker }) {
   const [indHist, setIndHist] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(null); // null | "stress" | "yield"
   const [historyTimeframe, setHistoryTimeframe] = useState("1Y");
+  const [stressBarHover, setStressBarHover] = useState(null); // index | null
+  const [yieldBarHover, setYieldBarHover] = useState(null);
   const [mechModal, setMechModal] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
@@ -1600,7 +1602,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Watch · {macroEngine.stress?.watch_threshold_value?.toFixed(0)}</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Watch</text></>);
                   })()}
                   {/* Risk Off threshold marker (85th pctile) */}
                   {(() => {
@@ -1608,7 +1610,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y + 8} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Risk Off · {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y + 8} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Risk Off</text></>);
                   })()}
                 </svg>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{macroEngine.stress?.move_value?.toFixed(1)}</div>
@@ -1616,26 +1618,35 @@ export default function AssetTilt({ onOpenTicker }) {
                   {Math.round((macroEngine.stress?.move_percentile_5y || 0) * 100)}th pctile · Watch {macroEngine.stress?.watch_threshold_value?.toFixed(0)} · Risk Off {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}
                 </div>
               </div>
-              {/* 24-week bar strip (matches Macro Overview AnchorTile) */}
+              {/* 24-week bar strip with JS-rendered hover tooltip */}
               {backtest?.weekly?.length >= 24 && (() => {
                 const weeks24 = backtest.weekly.slice(-24);
-                const maxPct = 1.0;
+                const hoverW = stressBarHover != null ? weeks24[stressBarHover] : null;
                 return (
-                  <div style={{ marginTop: 14 }}>
+                  <div style={{ marginTop: 14, position: "relative" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
                       <span>24W</span><span>NOW</span>
                     </div>
-                    <div style={{ display: "flex", gap: 2, height: 32, alignItems: "flex-end", marginTop: 4 }}>
-                      {weeks24.map((w) => {
+                    <div style={{ display: "flex", gap: 2, height: 32, alignItems: "flex-end", marginTop: 4 }}
+                         onMouseLeave={() => setStressBarHover(null)}>
+                      {weeks24.map((w, i) => {
                         const pct = w.move_pctile_5y || 0;
                         const h = Math.max(8, Math.min(95, pct * 100));
                         const opacity = pct >= 0.85 ? 0.92 : pct >= 0.75 ? 0.68 : pct >= 0.5 ? 0.42 : 0.30;
                         return (
-                          <span key={w.date} title={`${w.date} · MOVE ${w.move?.toFixed(0)} · ${Math.round(pct * 100)}th pctile · ${w.stress_state}`}
-                                style={{ flex: 1, height: `${h}%`, background: `rgba(0,113,227,${opacity})`, borderRadius: 1, cursor: "default" }} />
+                          <span key={w.date}
+                                onMouseEnter={() => setStressBarHover(i)}
+                                style={{ flex: 1, height: `${h}%`, background: `rgba(0,113,227,${opacity})`, borderRadius: 1, cursor: "default",
+                                         outline: stressBarHover === i ? "1px solid var(--accent)" : "none" }} />
                         );
                       })}
                     </div>
+                    {hoverW && (
+                      <div style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.10)", pointerEvents: "none", zIndex: 5, whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{new Date(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div><strong style={{ fontWeight: 500 }}>MOVE {hoverW.move?.toFixed(0)}</strong> · {Math.round((hoverW.move_pctile_5y || 0) * 100)}th pctile · <span style={{ color: "var(--accent)" }}>{hoverW.stress_state}</span></div>
+                      </div>
+                    )}
                     <div style={{ marginTop: 10, textAlign: "center" }}>
                       <a onClick={() => setHistoryOpen("stress")} style={{ fontSize: 10.5, letterSpacing: "0.095em", color: "var(--accent)", cursor: "pointer", textDecoration: "none" }}>
                         SEE FULL HISTORY (1986 – TODAY) ›
@@ -1687,14 +1698,14 @@ export default function AssetTilt({ onOpenTicker }) {
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x - 4} y={y - 6} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600" textAnchor="end">Deflat · {macroEngine.yield_regime?.deflationary_threshold_bp?.toFixed(0)} bp</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x - 4} y={y - 6} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600" textAnchor="end">Deflat</text></>);
                   })()}
                   {(() => {
                     const angle = 180 - (70 * 1.8);
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Inflat · +{macroEngine.yield_regime?.inflationary_threshold_bp?.toFixed(0)} bp</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Inflat</text></>);
                   })()}
                 </svg>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{(macroEngine.yield_regime?.delta_y_3m_bp || 0) >= 0 ? "+" : ""}{macroEngine.yield_regime?.delta_y_3m_bp?.toFixed(0)} bp</div>
@@ -1705,22 +1716,32 @@ export default function AssetTilt({ onOpenTicker }) {
               {/* 24-week bar strip — yield regime */}
               {backtest?.weekly?.length >= 24 && (() => {
                 const weeks24 = backtest.weekly.slice(-24);
+                const hoverW = yieldBarHover != null ? weeks24[yieldBarHover] : null;
                 return (
-                  <div style={{ marginTop: 14 }}>
+                  <div style={{ marginTop: 14, position: "relative" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
                       <span>24W</span><span>NOW</span>
                     </div>
-                    <div style={{ display: "flex", gap: 2, height: 32, alignItems: "flex-end", marginTop: 4 }}>
-                      {weeks24.map((w) => {
+                    <div style={{ display: "flex", gap: 2, height: 32, alignItems: "flex-end", marginTop: 4 }}
+                         onMouseLeave={() => setYieldBarHover(null)}>
+                      {weeks24.map((w, i) => {
                         const pct = w.delta_y_3m_pctile_5y || 0;
                         const h = Math.max(8, Math.min(95, pct * 100));
                         const opacity = pct >= 0.70 ? 0.68 : pct <= 0.30 ? 0.55 : 0.30;
                         return (
-                          <span key={w.date} title={`${w.date} · ΔY-3M ${(w.delta_y_3m_bp >= 0 ? "+" : "") + (w.delta_y_3m_bp || 0).toFixed(0)} bp · ${Math.round(pct * 100)}th pctile · ${w.yield_regime}`}
-                                style={{ flex: 1, height: `${h}%`, background: `rgba(0,113,227,${opacity})`, borderRadius: 1, cursor: "default" }} />
+                          <span key={w.date}
+                                onMouseEnter={() => setYieldBarHover(i)}
+                                style={{ flex: 1, height: `${h}%`, background: `rgba(0,113,227,${opacity})`, borderRadius: 1, cursor: "default",
+                                         outline: yieldBarHover === i ? "1px solid var(--accent)" : "none" }} />
                         );
                       })}
                     </div>
+                    {hoverW && (
+                      <div style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.10)", pointerEvents: "none", zIndex: 5, whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{new Date(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div><strong style={{ fontWeight: 500 }}>ΔY-3M {(hoverW.delta_y_3m_bp >= 0 ? "+" : "") + (hoverW.delta_y_3m_bp || 0).toFixed(0)} bp</strong> · {Math.round((hoverW.delta_y_3m_pctile_5y || 0) * 100)}th pctile · <span style={{ color: "var(--accent)" }}>{hoverW.yield_regime}</span></div>
+                      </div>
+                    )}
                     <div style={{ marginTop: 10, textAlign: "center" }}>
                       <a onClick={() => setHistoryOpen("yield")} style={{ fontSize: 10.5, letterSpacing: "0.095em", color: "var(--accent)", cursor: "pointer", textDecoration: "none" }}>
                         SEE FULL HISTORY (1986 – TODAY) ›
