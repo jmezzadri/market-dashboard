@@ -1194,6 +1194,7 @@ export default function AssetTilt({ onOpenTicker }) {
   const [v10, setV10] = useState(null);
   const [macroEngine, setMacroEngine] = useState(null);
   const [backtest, setBacktest] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(null); // null | "stress" | "yield"
   const [mechModal, setMechModal] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
@@ -1367,6 +1368,34 @@ export default function AssetTilt({ onOpenTicker }) {
                   {Math.round((macroEngine.stress?.move_percentile_5y || 0) * 100)}th pctile · Watch {macroEngine.stress?.watch_threshold_value?.toFixed(0)} · Risk Off {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}
                 </div>
               </div>
+              {/* 24-week bar strip (matches Macro Overview AnchorTile) */}
+              {backtest?.weekly?.length >= 24 && (() => {
+                const weeks24 = backtest.weekly.slice(-24);
+                const maxPct = 1.0;
+                return (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+                      <span>24W</span><span>NOW</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 2, height: 32, alignItems: "flex-end", marginTop: 4 }}>
+                      {weeks24.map((w) => {
+                        const pct = w.move_pctile_5y || 0;
+                        const h = Math.max(8, Math.min(95, pct * 100));
+                        const opacity = pct >= 0.85 ? 0.92 : pct >= 0.75 ? 0.68 : pct >= 0.5 ? 0.42 : 0.30;
+                        return (
+                          <span key={w.date} title={`${w.date} · MOVE ${w.move?.toFixed(0)} · ${Math.round(pct * 100)}th pctile · ${w.stress_state}`}
+                                style={{ flex: 1, height: `${h}%`, background: `rgba(0,113,227,${opacity})`, borderRadius: 1, cursor: "default" }} />
+                        );
+                      })}
+                    </div>
+                    <div style={{ marginTop: 10, textAlign: "center" }}>
+                      <a onClick={() => setHistoryOpen("stress")} style={{ fontSize: 10.5, letterSpacing: "0.095em", color: "var(--accent)", cursor: "pointer", textDecoration: "none" }}>
+                        SEE FULL HISTORY (1986 – TODAY) ›
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* YIELD REGIME DIAL */}
@@ -1424,6 +1453,33 @@ export default function AssetTilt({ onOpenTicker }) {
                   {Math.round((macroEngine.yield_regime?.delta_y_3m_percentile_5y || 0) * 100)}th pctile · Infl ≥ +{macroEngine.yield_regime?.inflationary_threshold_bp?.toFixed(0)} bp · Defl ≤ {macroEngine.yield_regime?.deflationary_threshold_bp?.toFixed(0)} bp
                 </div>
               </div>
+              {/* 24-week bar strip — yield regime */}
+              {backtest?.weekly?.length >= 24 && (() => {
+                const weeks24 = backtest.weekly.slice(-24);
+                return (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+                      <span>24W</span><span>NOW</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 2, height: 32, alignItems: "flex-end", marginTop: 4 }}>
+                      {weeks24.map((w) => {
+                        const pct = w.delta_y_3m_pctile_5y || 0;
+                        const h = Math.max(8, Math.min(95, pct * 100));
+                        const opacity = pct >= 0.70 ? 0.68 : pct <= 0.30 ? 0.55 : 0.30;
+                        return (
+                          <span key={w.date} title={`${w.date} · ΔY-3M ${(w.delta_y_3m_bp >= 0 ? "+" : "") + (w.delta_y_3m_bp || 0).toFixed(0)} bp · ${Math.round(pct * 100)}th pctile · ${w.yield_regime}`}
+                                style={{ flex: 1, height: `${h}%`, background: `rgba(0,113,227,${opacity})`, borderRadius: 1, cursor: "default" }} />
+                        );
+                      })}
+                    </div>
+                    <div style={{ marginTop: 10, textAlign: "center" }}>
+                      <a onClick={() => setHistoryOpen("yield")} style={{ fontSize: 10.5, letterSpacing: "0.095em", color: "var(--accent)", cursor: "pointer", textDecoration: "none" }}>
+                        SEE FULL HISTORY (1986 – TODAY) ›
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ALLOCATION SUMMARY */}
@@ -1591,6 +1647,69 @@ export default function AssetTilt({ onOpenTicker }) {
           </div>
         </section>
       )}
+
+      {/* FULL HISTORY MODAL — opens from "SEE FULL HISTORY ›" links under each dial */}
+      {historyOpen && backtest?.weekly && (() => {
+        const w = backtest.weekly;
+        const W = 800, H = 280, padL = 38, padR = 12, padT = 16, padB = 28;
+        const innerW = W - padL - padR;
+        const innerH = H - padT - padB;
+        const isStress = historyOpen === "stress";
+        const valueKey = isStress ? "move_pctile_5y" : "delta_y_3m_pctile_5y";
+        const stateKey = isStress ? "stress_state" : "yield_regime";
+        const upperBand = isStress ? 0.85 : 0.70;
+        const midBand = isStress ? 0.75 : 0.30;
+        const title = isStress ? "Stress signal · trailing 5-year MOVE percentile" : "Yield regime · trailing 5-year ΔY-3M percentile";
+        const upperLabel = isStress ? "85th · Risk Off" : "70th · Inflationary";
+        const midLabel = isStress ? "75th · Watch" : "30th · Deflationary";
+        const yToPx = (v) => padT + innerH * (1 - v);
+        const points = w.map((p, i) => [padL + (i / (w.length - 1)) * innerW, yToPx(p[valueKey] || 0)]);
+        const path = points.map((p, i) => (i === 0 ? "M " : "L ") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+        // Year ticks every 5 years
+        const yearLabels = [];
+        const seen = new Set();
+        w.forEach((p, i) => {
+          const y = parseInt(p.date.slice(0, 4), 10);
+          if (y % 5 === 0 && !seen.has(y)) { seen.add(y); yearLabels.push({ y, x: padL + (i / (w.length - 1)) * innerW }); }
+        });
+        return (
+          <div onClick={() => setHistoryOpen(null)} style={{ position: "fixed", inset: 0, background: "rgba(14,17,21,0.45)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 880, maxWidth: "94vw", maxHeight: "90vh", padding: 28, overflowY: "auto", position: "relative" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+                <div>
+                  <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 4 }}>Backtested history · 1986 → today</div>
+                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontStyle: "italic", fontWeight: 400, margin: 0 }}>{title}</h2>
+                </div>
+                <button onClick={() => setHistoryOpen(null)} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 18, padding: "4px 14px", fontSize: 12, color: "var(--text-muted)", cursor: "pointer" }}>Close ×</button>
+              </div>
+              <div style={{ background: "var(--surface-2)", borderRadius: 8, padding: 14, marginTop: 14 }}>
+                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: 320 }}>
+                  {/* threshold bands */}
+                  <rect x={padL} y={yToPx(1.0)} width={innerW} height={yToPx(upperBand) - yToPx(1.0)} fill="rgba(0,113,227,0.08)" />
+                  <rect x={padL} y={yToPx(upperBand)} width={innerW} height={yToPx(midBand) - yToPx(upperBand)} fill="rgba(0,113,227,0.04)" />
+                  {/* threshold lines */}
+                  <line x1={padL} y1={yToPx(upperBand)} x2={W - padR} y2={yToPx(upperBand)} stroke="rgba(14,17,21,0.30)" strokeWidth="1" strokeDasharray="3 3" />
+                  <line x1={padL} y1={yToPx(midBand)} x2={W - padR} y2={yToPx(midBand)} stroke="rgba(14,17,21,0.20)" strokeWidth="1" strokeDasharray="3 3" />
+                  {/* y-axis labels */}
+                  <text x="6" y={yToPx(0) + 4} fontSize="10" fill="var(--text-dim)" fontFamily="Inter">0</text>
+                  <text x="6" y={yToPx(0.5) + 4} fontSize="10" fill="var(--text-dim)" fontFamily="Inter">50</text>
+                  <text x="6" y={yToPx(1.0) + 4} fontSize="10" fill="var(--text-dim)" fontFamily="Inter">100</text>
+                  <text x={W - padR - 4} y={yToPx(upperBand) - 4} fontSize="10" fill="var(--text-muted)" textAnchor="end" fontFamily="Inter" fontWeight="500">{upperLabel}</text>
+                  <text x={W - padR - 4} y={yToPx(midBand) - 4} fontSize="10" fill="var(--text-muted)" textAnchor="end" fontFamily="Inter">{midLabel}</text>
+                  {/* x-axis ticks */}
+                  {yearLabels.map(yl => (<text key={yl.y} x={yl.x} y={H - padB + 16} fontSize="9.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{yl.y}</text>))}
+                  {/* main series */}
+                  <path d={path} fill="none" stroke="var(--accent)" strokeWidth="1.4" />
+                </svg>
+              </div>
+              <div style={{ marginTop: 14, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
+                {(backtest.weekly || []).length} weekly observations · December 1986 to today. Shaded bands mark the engine's de-risking zones.{" "}
+                {isStress ? "Above the 75th percentile, allocation drops to 80% equity (Watch). Above the 85th percentile, allocation drops to 50% equity (Risk Off)." : "Above the 70th percentile, the engine routes the defensive sleeve to the Inflationary mix (avoiding long-duration Treasuries). Below the 30th percentile, it routes to the Deflationary mix (leaning into long Treasuries as flight-to-safety)."}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MODALS */}
       {mechModal && <MechanismModal mechanism={mechModal} onClose={() => setMechModal(null)} />}
