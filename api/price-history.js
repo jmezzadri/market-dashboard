@@ -137,9 +137,13 @@ export default async function handler(req, res) {
       };
     }).filter(Boolean);
 
-    // Cache aggressively at the edge — daily prices don't change intraday
-    // for closed sessions. 1 hour during market hours, 24 hours otherwise.
-    res.setHeader("Cache-Control", "public, s-maxage=3600, stale-while-revalidate=86400");
+    // Cache short during the current trading session so today's bar
+    // (which Yahoo updates within minutes of any tick) propagates to
+    // the chart on every reload. Stale-while-revalidate keeps the
+    // experience snappy. Earlier 1-hour cache caused the chart to
+    // show "yesterday's last bar" while the rest of the site had
+    // today's intraday number. Bug 2026-05-15.
+    res.setHeader("Cache-Control", "public, s-maxage=120, stale-while-revalidate=600");
     res.setHeader("Content-Type", "application/json");
     return res.status(200).json({
       ticker,

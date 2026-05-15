@@ -2415,7 +2415,7 @@ return(
         the 84% of tickers UW doesn't cover). Events stays bound to the
         scanner artifact's ticker_events_ts since the per-ticker event
         rows ARE refreshed by that pipeline. */}
-    {(priceTradeDate||scanData?.ticker_events_ts)&&<div style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><DataFreshness pricesTs={priceTradeDate?`${priceTradeDate}T16:00:00-04:00`:null} eventsTs={scanData?.ticker_events_ts} compact/></div>}
+    {(priceTradeDate||scanData?.ticker_events_ts)&&<div style={{marginTop:6,display:"flex",justifyContent:"flex-end"}}><DataFreshness pricesTs={eodPrice.ingested_at || (priceTradeDate?`${priceTradeDate}T16:00:00-04:00`:null)} eventsTs={scanData?.ticker_events_ts} compact/></div>}
   </div>
 </div>
 
