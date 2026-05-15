@@ -1259,17 +1259,29 @@ function findNamedEvent(dateStr) {
 //          fmtY   = (v) => label string (for axis + tooltip)
 //          logY   = bool — log-scale y-axis
 //          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
-function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [] }) {
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null }) {
   const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
-  const [overlayKey, setOverlayKey] = useState(null);
+  const [overlayKey, setOverlayKey] = useState(defaultOverlay);
   const svgRef = useRef(null);
-  // Compose final series list: base series + active overlay (if any)
   const overlay = overlayKey ? availableOverlays.find(o => o.key === overlayKey) : null;
   const allSeries = overlay ? [...series, { ...overlay, dashed: true }] : series;
 
-  const tfWeeks = { "1M": 4, "6M": 26, "1Y": 52, "5Y": 260, "Max": data.length };
-  const w = data.slice(-tfWeeks[tf]);
+  // Auto-detect data cadence (daily vs weekly) by sampling gaps between consecutive dates
+  const cadence = (() => {
+    if (data.length < 10) return "weekly";
+    let gapSum = 0, n = 0;
+    for (let i = 1; i < Math.min(20, data.length); i++) {
+      const a = new Date(data[i - 1].date), b = new Date(data[i].date);
+      gapSum += (b - a) / (1000 * 60 * 60 * 24);
+      n++;
+    }
+    return (gapSum / n) < 4 ? "daily" : "weekly";
+  })();
+  const tfPoints = cadence === "daily"
+    ? { "1M": 21, "6M": 126, "1Y": 252, "5Y": 1260, "Max": data.length }
+    : { "1M": 4,  "6M": 26,  "1Y": 52,  "5Y": 260,  "Max": data.length };
+  const w = data.slice(-tfPoints[tf]);
 
   const W = 800, H = height, padL = 56, padR = 24, padT = 18, padB = 36;
   const innerW = W - padL - padR;
@@ -2030,6 +2042,7 @@ export default function AssetTilt({ onOpenTicker }) {
                       ]}
                       fmtY={fmtVal}
                       defaultTf="5Y"
+                      defaultOverlay={isStress && dailyVixIdx ? "vix" : null}
                       height={320}
                       availableOverlays={isStress ? [
                         ...(dailyVixIdx ? [{ key: "vix", label: "Equity Volatility (VIX)", color: "rgba(168,99,154,0.85)" }] : []),
