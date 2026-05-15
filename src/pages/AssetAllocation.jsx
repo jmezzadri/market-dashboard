@@ -875,25 +875,118 @@ function StockTable({ stocks, onTickerClick }) {
   );
 }
 
+// Mechanism description / input indicators / sector impact — keyed by id.
+// Used to populate the rich MechanismModal when a heatmap row is clicked.
+const MECH_INPUTS = {
+  valuation: {
+    desc: "Equity valuations vs history. Captures stretched / cheap conditions across price multiples, real yields, and credit spreads.",
+    indicators: [
+      { name: "Shiller CAPE", source: "Robert Shiller / multpl.com", direction: "high = concerning" },
+      { name: "10-year Treasury yield", source: "FRED · DGS10", direction: "low = concerning (cheap discount rate)" },
+      { name: "HY OAS", source: "ICE BofA · FRED BAMLH0A0HYM2", direction: "low = concerning (complacent credit)" },
+    ],
+  },
+  credit: {
+    desc: "Credit-market stress. When spreads widen and bank lending tightens, equity risk premium climbs.",
+    indicators: [
+      { name: "IG OAS", source: "ICE BofA · FRED BAMLC0A0CM", direction: "high = concerning" },
+      { name: "HY OAS", source: "ICE BofA · FRED BAMLH0A0HYM2", direction: "high = concerning" },
+      { name: "SLOOS C&I lending standards", source: "Federal Reserve · FRED DRTSCILM", direction: "tightening = concerning" },
+    ],
+  },
+  funding: {
+    desc: "Funding-market stress. Commercial paper spreads + financial conditions indices price the cost of short-dated leverage.",
+    indicators: [
+      { name: "CPFF (3M CP − Fed funds)", source: "Federal Reserve · FRED DCPF3M − DFF", direction: "high = concerning" },
+      { name: "ANFCI", source: "Chicago Fed · FRED ANFCI", direction: "high = concerning" },
+      { name: "STLFSI4", source: "St Louis Fed · FRED STLFSI4", direction: "high = concerning" },
+    ],
+  },
+  growth: {
+    desc: "Real-economy growth pulse. ISM, jobless claims, JOLTS quits aggregate the demand backdrop.",
+    indicators: [
+      { name: "ISM Manufacturing PMI", source: "ISM", direction: "low = concerning" },
+      { name: "Initial jobless claims (4w avg)", source: "DOL · FRED IC4WSA", direction: "high = concerning" },
+      { name: "JOLTS quits rate", source: "BLS · FRED JTSQUR", direction: "low = concerning" },
+    ],
+  },
+  liquidity_policy: {
+    desc: "Monetary liquidity and policy stance. Reserves, money supply, and the Fed balance sheet trajectory.",
+    indicators: [
+      { name: "M2 YoY growth", source: "Federal Reserve · FRED M2SL", direction: "low = concerning" },
+      { name: "Fed balance sheet", source: "Federal Reserve · FRED WALCL", direction: "shrinking = concerning" },
+      { name: "RRP usage", source: "Federal Reserve · FRED RRPONTSYD", direction: "high = excess liquidity" },
+    ],
+  },
+  positioning_breadth: {
+    desc: "Market-internal positioning and breadth. Bank-sector relative strength, eq-credit correlation, and SKEW gauge how stretched positioning is.",
+    indicators: [
+      { name: "KBW Bank / S&P ratio", source: "Yahoo · ^BKX / ^GSPC", direction: "low = concerning (bank stress)" },
+      { name: "Eq-Credit correlation", source: "Derived · SPY vs HY OAS", direction: "low = concerning (decoupling)" },
+      { name: "SKEW", source: "CBOE · ^SKEW", direction: "high = concerning (tail demand)" },
+    ],
+  },
+};
+
 function MechanismModal({ mechanism, onClose }) {
   if (!mechanism) return null;
   const b = bandOf(mechanism.score);
+  const meta = MECH_INPUTS[mechanism.id] || { desc: "", indicators: [] };
+  const bandBg = b === "risk-on" ? "rgba(47,157,106,0.12)" : b === "risk-off" ? "rgba(200,70,88,0.12)" : "rgba(94,94,99,0.12)";
   return (
     <ModalShell
       title={`${mechanism.num} · ${mechanism.name}`}
-      subtitle="Cycle mechanism"
+      subtitle="Cycle mechanism · diagnostic for sector tilts"
       badge={<span style={{
-        background: b === "risk-on" ? RATING_BG.OW : b === "risk-off" ? RATING_BG.UW : RATING_BG.MW,
+        background: bandBg,
         color: BAND_COLOR[b],
         fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 999,
       }}>{bandLabel(b)} · {mechanism.score}/100</span>}
       onClose={onClose}
     >
-      <p style={{ fontSize: 13, lineHeight: 1.55, color: "var(--text-muted)", margin: "16px 0 0" }}>
-        Mechanism score derived from quartile-based scoring of underlying indicators in
-        the post-2011 historical sample. Bands: 0-25 Risk On · 25-50 Neutral · 50-75 Caution · 75-100 Risk Off.
-        See methodology page for the input panel and threshold logic.
-      </p>
+      <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text)", margin: "16px 0 18px" }}>{meta.desc}</p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 18 }}>
+        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "12px 14px" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Today's score</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, lineHeight: 1.15, marginTop: 4 }}>{mechanism.score}<span style={{ fontSize: 14, color: "var(--text-muted)" }}> / 100</span></div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{bandLabel(b)} band</div>
+        </div>
+        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "12px 14px" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Indicator panel</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, lineHeight: 1.15, marginTop: 4 }}>{meta.indicators.length}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>primitives feeding score</div>
+        </div>
+        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "12px 14px" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Bands</div>
+          <div style={{ fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>0-25 Risk On<br/>25-50 Neutral<br/>50-75 Caution<br/>75-100 Risk Off</div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Input indicators</div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 18 }}>
+        <thead>
+          <tr>
+            <th style={{ textAlign: "left", padding: "8px 8px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Indicator</th>
+            <th style={{ textAlign: "left", padding: "8px 8px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Source</th>
+            <th style={{ textAlign: "left", padding: "8px 8px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Direction</th>
+          </tr>
+        </thead>
+        <tbody>
+          {meta.indicators.map(ind => (
+            <tr key={ind.name}>
+              <td style={{ padding: "8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text)" }}>{ind.name}</td>
+              <td style={{ padding: "8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text-muted)" }}>{ind.source}</td>
+              <td style={{ padding: "8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text-muted)", fontStyle: "italic" }}>{ind.direction}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ paddingTop: 14, borderTop: "1px solid var(--border-faint)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6 }}>
+        <strong style={{ color: "var(--text)", fontWeight: 500 }}>Methodology.</strong>{" "}
+        Mechanism score is the equal-weighted mean of direction-corrected percentile ranks across the input indicators. Higher score = more concerning conditions. Sector impact (the heatmap row) shows the mechanism's marginal contribution to each sector's tilt rating today.
+      </div>
     </ModalShell>
   );
 }
@@ -1112,13 +1205,17 @@ export function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBa
 }
 
 
-function HeatmapTile({ contributionMatrix, mechanismScores }) {
+function HeatmapTile({ contributionMatrix, mechanismScores, onMechanismClick }) {
   if (!contributionMatrix) return null;
   const sectors = contributionMatrix.cols_sectors;
   const mechs = contributionMatrix.rows;
   const MECH_LABEL = {
     valuation: "Valuation", credit: "Credit", funding: "Funding",
     growth: "Growth", liquidity_policy: "Liquidity & Policy", positioning_breadth: "Positioning & Breadth",
+  };
+  const MECH_NUM = {
+    valuation: "01", credit: "02", funding: "03",
+    growth: "04", liquidity_policy: "05", positioning_breadth: "06",
   };
   const cellColor = (v) => {
     if (Math.abs(v) < 0.15) return { bg: "rgba(94,94,99,0.10)", color: "var(--text-muted)" };
@@ -1156,14 +1253,19 @@ function HeatmapTile({ contributionMatrix, mechanismScores }) {
           </thead>
           <tbody>
             {mechs.map(m => (
-              <tr key={m}>
+              <tr key={m}
+                  onClick={() => onMechanismClick && onMechanismClick({ id: m, num: MECH_NUM[m] || "·", name: MECH_LABEL[m], score: Math.round(mechanismScores?.[m] ?? 0) })}
+                  style={{ cursor: onMechanismClick ? "pointer" : "default" }}
+                  onMouseEnter={(e) => { if (onMechanismClick) e.currentTarget.style.background = "var(--surface-2)"; }}
+                  onMouseLeave={(e) => { if (onMechanismClick) e.currentTarget.style.background = "transparent"; }}>
                 <td style={{ padding: "5px 12px", fontWeight: 500, fontSize: 12 }}>
-                  <span style={{ color: "var(--text)" }}>{MECH_LABEL[m]}</span>
+                  <span style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: 2, textDecorationColor: "rgba(0,113,227,0.3)" }}>{MECH_LABEL[m]}</span>
                   {mechanismScores && mechanismScores[m] != null && (
                     <span style={{ marginLeft: 8, fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>
                       {Math.round(mechanismScores[m])} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>/ 100</span>
                     </span>
                   )}
+                  <span style={{ marginLeft: 8, fontSize: 10, color: "var(--accent)", letterSpacing: "0.04em" }}>›</span>
                 </td>
                 {sectors.map(s => {
                   const v = contributionMatrix.by_sector[s]?.[m] ?? 0;
@@ -1291,10 +1393,17 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
   const allVals = [...w.flatMap(p => allSeries.map(s => p[s.key]).filter(v => v != null && (!logY || v > 0))), ...horizontalLines.map(h => h.value).filter(v => v != null)];
   let yMinRaw = Math.min(...allVals);
   let yMaxRaw = Math.max(...allVals);
-  const yPad = (yMaxRaw - yMinRaw) * 0.08 || 1;
-  let yMin = yMinRaw - yPad;
-  let yMax = yMaxRaw + yPad;
-  if (logY) { yMin = Math.max(yMin, 0.01); }
+  // Multiplicative padding for log scale, additive for linear.
+  let yMin, yMax;
+  if (logY) {
+    yMin = yMinRaw / 1.04;
+    yMax = yMaxRaw * 1.04;
+    yMin = Math.max(yMin, 0.01);
+  } else {
+    const yPad = (yMaxRaw - yMinRaw) * 0.08 || Math.abs(yMaxRaw) * 0.05 || 1;
+    yMin = yMinRaw - yPad;
+    yMax = yMaxRaw + yPad;
+  }
   if (yMinProp != null) { yMin = yMinProp; }
 
   const yScale = logY ? Math.log(yMax / yMin) : (yMax - yMin);
@@ -1831,7 +1940,7 @@ export default function AssetTilt({ onOpenTicker }) {
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Heatmap</h2>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>Which mechanisms are tailwinds vs headwinds for each sector right now.</div>
         </div>
-        <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} />
+        <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} onMechanismClick={setMechModal} />
       </section>
 
       {/* Bottom methodology footer killed 2026-05-07 — methodology paragraph
@@ -1892,9 +2001,8 @@ export default function AssetTilt({ onOpenTicker }) {
                   { key: "regime_only_cumulative", label: "Regime + Cash",             color: "#0071e3", dashed: true },
                   { key: "spy_cumulative",         label: "SPY buy & hold",            color: "rgba(94,94,99,0.7)" },
                 ]}
-                fmtY={(v) => "$" + (v < 10 ? v.toFixed(1) : Math.round(v).toLocaleString())}
+                fmtY={(v) => "$" + (v < 10 ? v.toFixed(2) : Math.round(v).toLocaleString())}
                 logY={true}
-                yMin={1.0}
                 defaultTf="Max"
                 height={340}
               />
