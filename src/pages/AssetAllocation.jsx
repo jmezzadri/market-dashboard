@@ -1195,6 +1195,7 @@ export default function AssetTilt({ onOpenTicker }) {
   const [macroEngine, setMacroEngine] = useState(null);
   const [backtest, setBacktest] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(null); // null | "stress" | "yield"
+  const [historyTimeframe, setHistoryTimeframe] = useState("1Y");
   const [mechModal, setMechModal] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
@@ -1328,7 +1329,8 @@ export default function AssetTilt({ onOpenTicker }) {
                   }}>{s}</span>
                 ))}
               </div>
-              <div style={{ position: "relative", textAlign: "center", marginTop: 12 }}>
+              <div onClick={() => setHistoryOpen("stress")} style={{ position: "relative", textAlign: "center", marginTop: 12, cursor: "pointer" }}>
+                <span style={{ position: "absolute", top: -4, right: 0, fontSize: 9.5, letterSpacing: "0.095em", color: "var(--text-dim)", fontWeight: 500 }}>CLICK FOR DETAIL ›</span>
                 <svg viewBox="0 0 240 140" style={{ width: "100%", maxWidth: 240, display: "block", margin: "0 auto" }}>
                   <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)"/>
                   <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)"/>
@@ -1415,7 +1417,8 @@ export default function AssetTilt({ onOpenTicker }) {
                   }}>{s}</span>
                 ))}
               </div>
-              <div style={{ position: "relative", textAlign: "center", marginTop: 12 }}>
+              <div onClick={() => setHistoryOpen("yield")} style={{ position: "relative", textAlign: "center", marginTop: 12, cursor: "pointer" }}>
+                <span style={{ position: "absolute", top: -4, right: 0, fontSize: 9.5, letterSpacing: "0.095em", color: "var(--text-dim)", fontWeight: 500 }}>CLICK FOR DETAIL ›</span>
                 <svg viewBox="0 0 240 140" style={{ width: "100%", maxWidth: 240, display: "block", margin: "0 auto" }}>
                   <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)"/>
                   <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)"/>
@@ -1650,61 +1653,221 @@ export default function AssetTilt({ onOpenTicker }) {
 
       {/* FULL HISTORY MODAL — opens from "SEE FULL HISTORY ›" links under each dial */}
       {historyOpen && backtest?.weekly && (() => {
-        const w = backtest.weekly;
-        const W = 800, H = 280, padL = 38, padR = 12, padT = 16, padB = 28;
+        const allWeeks = backtest.weekly;
+        const isStress = historyOpen === "stress";
+        const valueKey = isStress ? "move" : "delta_y_3m_bp";
+        const pctileKey = isStress ? "move_pctile_5y" : "delta_y_3m_pctile_5y";
+        const stateKey = isStress ? "stress_state" : "yield_regime";
+        const upperThrKey = isStress ? "risk_off_threshold" : "inflationary_threshold_bp";
+        const midThrKey = isStress ? "watch_threshold" : "deflationary_threshold_bp";
+        const tfId = historyTimeframe || "1Y";
+        const tfWeeks = { "1M": 4, "6M": 26, "1Y": 52, "5Y": 260, "Max": allWeeks.length };
+        const w = allWeeks.slice(-tfWeeks[tfId]);
+        const last = w[w.length - 1];
+
+        const title = isStress ? "Bond Volatility" : "Yield Regime";
+        const eyebrow = isStress ? "Volatility trigger · stress signal" : "Yield direction · regime classifier";
+        const fmtVal = (v) => isStress ? Math.round(v).toString() : ((v >= 0 ? "+" : "") + Math.round(v) + " bp");
+        const unitSuffix = isStress ? "" : "bp";
+        const currentVal = last[valueKey] || 0;
+        const currentPctile = (last[pctileKey] || 0) * 100;
+        const upperMark = last[upperThrKey] || 0;
+        const stateNow = last[stateKey];
+
+        // Days in state (count back from end while state holds)
+        let daysInState = 1;
+        for (let i = allWeeks.length - 2; i >= 0; i--) {
+          if (allWeeks[i][stateKey] === stateNow) daysInState += 7; else break;
+        }
+        // Full sample range
+        const allVals = allWeeks.map(p => p[valueKey] || 0);
+        const minVal = Math.min(...allVals);
+        const maxVal = Math.max(...allVals);
+
+        // Caption sentence
+        const captionState = (stateNow || "").toLowerCase();
+        const caption = isStress
+          ? `${title} is ${captionState === "risk on" ? "calm" : captionState === "watch" ? "watching" : "stressed"}. The trailing-5y 85th-percentile mark sits ${currentVal < upperMark ? "well above" : "below"} today's reading. The trigger has been in ${stateNow} for ${daysInState} trading days.`
+          : `${title} is ${stateNow}. Today's 3-month change in 10-year yield sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window. The yield regime has been ${stateNow} for ${daysInState} trading days.`;
+
+        // Chart geometry
+        const W = 780, H = 320, padL = 56, padR = 36, padT = 32, padB = 36;
         const innerW = W - padL - padR;
         const innerH = H - padT - padB;
-        const isStress = historyOpen === "stress";
-        const valueKey = isStress ? "move_pctile_5y" : "delta_y_3m_pctile_5y";
-        const stateKey = isStress ? "stress_state" : "yield_regime";
-        const upperBand = isStress ? 0.85 : 0.70;
-        const midBand = isStress ? 0.75 : 0.30;
-        const title = isStress ? "Stress signal · trailing 5-year MOVE percentile" : "Yield regime · trailing 5-year ΔY-3M percentile";
-        const upperLabel = isStress ? "85th · Risk Off" : "70th · Inflationary";
-        const midLabel = isStress ? "75th · Watch" : "30th · Deflationary";
-        const yToPx = (v) => padT + innerH * (1 - v);
-        const points = w.map((p, i) => [padL + (i / (w.length - 1)) * innerW, yToPx(p[valueKey] || 0)]);
-        const path = points.map((p, i) => (i === 0 ? "M " : "L ") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-        // Year ticks every 5 years
-        const yearLabels = [];
-        const seen = new Set();
-        w.forEach((p, i) => {
-          const y = parseInt(p.date.slice(0, 4), 10);
-          if (y % 5 === 0 && !seen.has(y)) { seen.add(y); yearLabels.push({ y, x: padL + (i / (w.length - 1)) * innerW }); }
-        });
+        const vals = w.map(p => p[valueKey] || 0);
+        const thrUpper = w.map(p => p[upperThrKey] || 0);
+        const thrMid = w.map(p => p[midThrKey] || 0);
+        const allShown = [...vals, ...thrUpper, ...thrMid];
+        let yMin = Math.min(...allShown);
+        let yMax = Math.max(...allShown);
+        const yPad = (yMax - yMin) * 0.10 || 1;
+        yMin = yMin - yPad;
+        yMax = yMax + yPad;
+        const xToPx = (i) => padL + (i / (w.length - 1)) * innerW;
+        const yToPx = (v) => padT + ((yMax - v) / (yMax - yMin)) * innerH;
+        const path = (arr) => arr.map((v, i) => (i === 0 ? "M " : "L ") + xToPx(i).toFixed(1) + " " + yToPx(v).toFixed(1)).join(" ");
+        // Y-axis ticks — 5 evenly spaced
+        const yTicks = [];
+        for (let i = 0; i <= 4; i++) {
+          const v = yMin + (yMax - yMin) * (i / 4);
+          yTicks.push({ v, y: yToPx(v) });
+        }
+        // X-axis labels — start, middle, end
+        const xLabels = [
+          { i: 0, d: w[0].date },
+          { i: Math.floor(w.length / 2), d: w[Math.floor(w.length / 2)].date },
+          { i: w.length - 1, d: w[w.length - 1].date },
+        ].map(p => ({ x: xToPx(p.i), label: (() => { const d = new Date(p.d); return d.toLocaleDateString("en-US", { month: "short", year: "2-digit" }); })() }));
+
+        // Historical reads near today's level — find episodes from FULL history at similar percentile band (±5pp)
+        const targetPct = currentPctile / 100;
+        const band = 0.05;
+        const matches = allWeeks.map((p, i) => ({ ...p, idx: i, similar: Math.abs((p[pctileKey] || 0) - targetPct) <= band }));
+        const episodes = [];
+        let inEp = false; let ep = null;
+        for (const m of matches) {
+          if (m.similar && !inEp) { ep = { startIdx: m.idx, peakIdx: m.idx, peakVal: m[valueKey], state: m[stateKey] }; inEp = true; }
+          else if (m.similar && inEp) { if (Math.abs((m[pctileKey] - targetPct)) < Math.abs((allWeeks[ep.peakIdx][pctileKey] - targetPct))) { ep.peakIdx = m.idx; ep.peakVal = m[valueKey]; ep.state = m[stateKey]; } }
+          else if (!m.similar && inEp) { ep.endIdx = m.idx - 1; episodes.push(ep); inEp = false; }
+        }
+        if (inEp && ep) { ep.endIdx = allWeeks.length - 1; episodes.push(ep); }
+        // Filter: 4+ weeks; exclude the current ongoing episode (peak within last 4 weeks of full series)
+        const past = episodes.filter(e => (e.endIdx - e.startIdx + 1) >= 4 && (allWeeks.length - 1 - e.peakIdx) > 4);
+        // For each past episode, compute SPX 6M / 12M forward returns from peak
+        const enriched = past.map(e => {
+          const peak = allWeeks[e.peakIdx];
+          const i = e.peakIdx;
+          const spx6 = (i + 26 < allWeeks.length) ? (allWeeks[i + 26].spy_cumulative / peak.spy_cumulative - 1) : null;
+          const spx12 = (i + 52 < allWeeks.length) ? (allWeeks[i + 52].spy_cumulative / peak.spy_cumulative - 1) : null;
+          // Named episode lookup from drawdowns
+          const matchEp = (backtest.drawdowns || []).find(d => peak.date >= d.window_start && peak.date <= d.window_end);
+          return { ...e, peakDate: peak.date, peakPctile: (peak[pctileKey] || 0) * 100, spx6, spx12, eventNote: matchEp ? matchEp.name : "Period read" };
+        }).sort((a, b) => Math.abs(a.peakPctile - currentPctile) - Math.abs(b.peakPctile - currentPctile)).slice(0, 8);
+
         return (
-          <div onClick={() => setHistoryOpen(null)} style={{ position: "fixed", inset: 0, background: "rgba(14,17,21,0.45)", zIndex: 100, display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 880, maxWidth: "94vw", maxHeight: "90vh", padding: 28, overflowY: "auto", position: "relative" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+          <div onClick={() => { setHistoryOpen(null); setHistoryTimeframe(null); }} style={{ position: "fixed", inset: 0, background: "rgba(14,17,21,0.45)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 48, paddingBottom: 48, overflowY: "auto" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 920, maxWidth: "94vw", padding: 32, position: "relative" }}>
+              {/* Header row: eyebrow + title + freshness chip · big number + stage on right */}
+              <button onClick={() => { setHistoryOpen(null); setHistoryTimeframe(null); }} style={{ position: "absolute", top: 18, right: 22, background: "transparent", border: "none", fontSize: 14, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>Close <span style={{ fontSize: 18 }}>×</span></button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "flex-start", marginBottom: 14 }}>
                 <div>
-                  <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "var(--text-muted)", textTransform: "uppercase", marginBottom: 4 }}>Backtested history · 1986 → today</div>
-                  <h2 style={{ fontFamily: "var(--font-display)", fontSize: 22, fontStyle: "italic", fontWeight: 400, margin: 0 }}>{title}</h2>
+                  <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "var(--accent)", textTransform: "uppercase", fontWeight: 500, marginBottom: 6 }}>{eyebrow}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                    <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400, margin: 0, color: "var(--text)" }}>{title}</h2>
+                    <span style={{ background: "rgba(47,157,106,0.10)", color: "var(--green)", borderRadius: 11, padding: "3px 11px", fontSize: 10, letterSpacing: "0.095em", fontWeight: 500, textTransform: "uppercase" }}>● FRESH · {macroEngine?.as_of}</span>
+                  </div>
                 </div>
-                <button onClick={() => setHistoryOpen(null)} style={{ background: "transparent", border: "1px solid var(--border)", borderRadius: 18, padding: "4px 14px", fontSize: 12, color: "var(--text-muted)", cursor: "pointer" }}>Close ×</button>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 40, lineHeight: 1, color: "var(--text)" }}>{fmtVal(currentVal)}</div>
+                  <div style={{ fontSize: 11, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", marginTop: 6, fontWeight: 500 }}>{stateNow} · {daysInState} days in state</div>
+                </div>
               </div>
-              <div style={{ background: "var(--surface-2)", borderRadius: 8, padding: 14, marginTop: 14 }}>
-                <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: 320 }}>
-                  {/* threshold bands */}
-                  <rect x={padL} y={yToPx(1.0)} width={innerW} height={yToPx(upperBand) - yToPx(1.0)} fill="rgba(0,113,227,0.08)" />
-                  <rect x={padL} y={yToPx(upperBand)} width={innerW} height={yToPx(midBand) - yToPx(upperBand)} fill="rgba(0,113,227,0.04)" />
-                  {/* threshold lines */}
-                  <line x1={padL} y1={yToPx(upperBand)} x2={W - padR} y2={yToPx(upperBand)} stroke="rgba(14,17,21,0.30)" strokeWidth="1" strokeDasharray="3 3" />
-                  <line x1={padL} y1={yToPx(midBand)} x2={W - padR} y2={yToPx(midBand)} stroke="rgba(14,17,21,0.20)" strokeWidth="1" strokeDasharray="3 3" />
-                  {/* y-axis labels */}
-                  <text x="6" y={yToPx(0) + 4} fontSize="10" fill="var(--text-dim)" fontFamily="Inter">0</text>
-                  <text x="6" y={yToPx(0.5) + 4} fontSize="10" fill="var(--text-dim)" fontFamily="Inter">50</text>
-                  <text x="6" y={yToPx(1.0) + 4} fontSize="10" fill="var(--text-dim)" fontFamily="Inter">100</text>
-                  <text x={W - padR - 4} y={yToPx(upperBand) - 4} fontSize="10" fill="var(--text-muted)" textAnchor="end" fontFamily="Inter" fontWeight="500">{upperLabel}</text>
-                  <text x={W - padR - 4} y={yToPx(midBand) - 4} fontSize="10" fill="var(--text-muted)" textAnchor="end" fontFamily="Inter">{midLabel}</text>
-                  {/* x-axis ticks */}
-                  {yearLabels.map(yl => (<text key={yl.y} x={yl.x} y={H - padB + 16} fontSize="9.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{yl.y}</text>))}
-                  {/* main series */}
-                  <path d={path} fill="none" stroke="var(--accent)" strokeWidth="1.4" />
+
+              {/* Caption sentence */}
+              <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6, marginBottom: 22 }}>
+                <strong style={{ fontWeight: 500 }}>{title} is {captionState === "risk on" || captionState === "neutral" ? captionState : stateNow}.</strong>{" "}
+                {caption.replace(`${title} is ${captionState === "risk on" || captionState === "neutral" ? captionState : stateNow}.`, "").trim()}
+              </div>
+
+              {/* KPI strip — 4 cards matching live modal */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
+                {[
+                  { lbl: "Current", val: fmtVal(currentVal), sub: "today's reading" },
+                  { lbl: isStress ? "85th percentile (5y)" : "70th percentile (5y)", val: fmtVal(upperMark), sub: "recalibrated daily" },
+                  { lbl: isStress ? "Stage" : "Regime", val: stateNow, sub: daysInState + " days" },
+                  { lbl: "Full sample range", val: fmtVal(minVal) + "–" + fmtVal(maxVal), sub: "1986 to today" },
+                ].map(k => (
+                  <div key={k.lbl} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px" }}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>{k.lbl}</div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 26, lineHeight: 1.15, marginTop: 6, color: "var(--text)" }}>{k.val}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{k.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Chart block */}
+              <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>History · timeframe select · overlay</div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {["1M", "6M", "1Y", "5Y", "Max"].map(t => (
+                      <button key={t} onClick={() => setHistoryTimeframe(t)} style={{
+                        background: t === tfId ? "var(--accent-soft)" : "transparent",
+                        border: "1px solid " + (t === tfId ? "var(--accent)" : "var(--border)"),
+                        color: t === tfId ? "var(--accent)" : "var(--text-muted)",
+                        borderRadius: 11, padding: "4px 12px", fontSize: 11, letterSpacing: "0.04em", cursor: "pointer", fontWeight: 500,
+                      }}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" style={{ width: "100%", height: 340 }}>
+                  {/* Y-axis gridlines + labels */}
+                  {yTicks.map((t, i) => (
+                    <g key={i}>
+                      <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="rgba(14,17,21,0.06)" strokeWidth="1" />
+                      <text x={padL - 8} y={t.y + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end" fontFamily="Inter">{fmtVal(t.v)}</text>
+                    </g>
+                  ))}
+                  {/* X-axis labels */}
+                  {xLabels.map((l, i) => (
+                    <text key={i} x={l.x} y={H - padB + 18} fontSize="10.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{l.label}</text>
+                  ))}
+                  {/* Upper threshold overlay (dashed) — varies over time (trailing 5y) */}
+                  <path d={path(thrUpper)} fill="none" stroke="var(--text-muted)" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.7" />
+                  {/* Mid threshold overlay (for yield regime) */}
+                  {!isStress && <path d={path(thrMid)} fill="none" stroke="var(--text-muted)" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.4" />}
+                  {/* Main value series */}
+                  <path d={path(vals)} fill="none" stroke="var(--accent)" strokeWidth="1.6" />
+                  {/* Current value circle */}
+                  <circle cx={xToPx(w.length - 1)} cy={yToPx(currentVal)} r="4" fill="var(--accent)" stroke="#fff" strokeWidth="1.5" />
                 </svg>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 11, color: "var(--text-muted)" }}>
+                  <div style={{ display: "flex", gap: 18 }}>
+                    <span><span style={{ display: "inline-block", width: 10, height: 2, background: "var(--accent)", verticalAlign: "middle", marginRight: 6 }}></span>{title}</span>
+                    <span><span style={{ display: "inline-block", width: 10, height: 0, borderTop: "2px dashed var(--text-muted)", verticalAlign: "middle", marginRight: 6 }}></span>{isStress ? "85th-pct mark = " + fmtVal(upperMark) : "70th-pct mark = " + fmtVal(upperMark)}</span>
+                  </div>
+                  <span>{tfId} window · {w.length} points · current {fmtVal(currentVal)}</span>
+                </div>
               </div>
-              <div style={{ marginTop: 14, fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
-                {(backtest.weekly || []).length} weekly observations · December 1986 to today. Shaded bands mark the engine's de-risking zones.{" "}
-                {isStress ? "Above the 75th percentile, allocation drops to 80% equity (Watch). Above the 85th percentile, allocation drops to 50% equity (Risk Off)." : "Above the 70th percentile, the engine routes the defensive sleeve to the Inflationary mix (avoiding long-duration Treasuries). Below the 30th percentile, it routes to the Deflationary mix (leaning into long Treasuries as flight-to-safety)."}
+
+              {/* Historical reads near today's level */}
+              {enriched.length > 0 && (
+                <div style={{ marginBottom: 22 }}>
+                  <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>Historical reads near today's level · S&P forward returns</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 10 }}>Readings from other periods when {title} was at a similar level to today (±5 percentile points). Historical reference, not a forecast.</div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Period</th>
+                        <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Note</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Value</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>SPX 6M</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>SPX 12M</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {enriched.map((e) => {
+                        const d = new Date(e.peakDate);
+                        const periodLabel = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                        return (
+                          <tr key={e.peakDate}>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)" }}>{periodLabel}</td>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text-2)" }}>{e.eventNote}</td>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", fontFamily: "var(--font-mono)" }}>{fmtVal(e.peakVal)}</td>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", fontFamily: "var(--font-mono)", color: e.spx6 == null ? "var(--text-dim)" : (e.spx6 >= 0 ? "var(--green)" : "var(--red)") }}>{e.spx6 == null ? "—" : (e.spx6 >= 0 ? "+" : "") + (e.spx6 * 100).toFixed(1) + "%"}</td>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", fontFamily: "var(--font-mono)", color: e.spx12 == null ? "var(--text-dim)" : (e.spx12 >= 0 ? "var(--green)" : "var(--red)") }}>{e.spx12 == null ? "—" : (e.spx12 >= 0 ? "+" : "") + (e.spx12 * 100).toFixed(1) + "%"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Formula footer */}
+              <div style={{ paddingTop: 14, borderTop: "1px solid var(--border-faint)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6 }}>
+                <strong style={{ color: "var(--text)", fontWeight: 500 }}>Formula.</strong>{" "}
+                {isStress ? "Trailing 5-year percentile rank of the spliced MOVE Index (1986–2002 proxy from rolling 21-day std of 10-year yield daily changes × √252, Z-standardized; 2002-onward actual MOVE from Yahoo). Weekly Friday close drives Monday-open execution." : "Trailing 5-year percentile rank of the 3-month change in 10-year Treasury yield (FRED DGS10), measured in basis points. Picks the active defensive sleeve when the engine is Watch or Risk Off."}
               </div>
             </div>
           </div>
