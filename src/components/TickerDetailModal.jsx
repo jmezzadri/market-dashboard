@@ -2034,6 +2034,26 @@ async function addToWatchlist(){
     // Trigger server-side scan so this modal fills in without waiting
     // for the next scheduled 3:30 PM run.
     onTickerAdded?.(ticker.toUpperCase());
+    // 2026-05-14 — Yahoo same-day fallback. Polygon Basic tier won't
+    // serve today's grouped EOD until T+1, so a freshly-added watchlist
+    // ticker would render as a dash until the next overnight ingest.
+    // Fire-and-forget call to the eod-same-day edge function pulls
+    // today's close from Yahoo into prices_eod within ~1 second so the
+    // drawer and the watchlist table both show real numbers immediately.
+    (async () => {
+      try {
+        const accessToken = session?.access_token;
+        await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/eod-same-day`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ ticker: ticker.toUpperCase() }),
+        });
+      } catch (_) { /* best-effort; useTickerEodPrice self-heal still runs */ }
+    })();
   }catch(err){setWlError(err.message||String(err));}
   finally{setWlBusy(false);}
 }

@@ -10,6 +10,15 @@
 //   row via the wrong ordering and rendered $24.11 (close from 5/7) when
 //   the latest close was $32.42 (5/11). Joe's bug report driving this fix.
 //
+// Same-day self-heal (added 2026-05-14):
+//   Polygon Basic tier won't serve today's grouped EOD until T+1, so
+//   prices_eod sits a trading day behind between market close and the
+//   next morning's ingest. When the hook's first read returns a
+//   trade_date older than the most recent NYSE trading session, we fire
+//   the eod-same-day edge function (Yahoo fallback) and re-query. This
+//   makes intraday opens of a stale-row ticker self-heal within ~1
+//   second instead of waiting for the next batch.
+//
 // What it returns:
 //   { last_close, prev_close, trade_date, prev_trade_date, day_pct,
 //     loading, source: "prices_eod", error }
@@ -23,9 +32,11 @@
 // Performance:
 //   Two prices_eod lookups per modal open, ordered by trade_date DESC
 //   LIMIT 1 (and LIMIT 1 OFFSET 1). Indexed on (ticker, trade_date).
-//   Under 50 ms in practice.
+//   Under 50 ms in practice. Same-day self-heal adds ~1s but only when
+//   the row is actually stale.
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { latestTradingSessionDate } from "../lib/freshnessClock";
 
 const EMPTY = {
   last_close: null,
@@ -37,6 +48,17 @@ const EMPTY = {
   source: null,
   error: null,
 };
+
+// Format the most recent NYSE trading session as a YYYY-MM-DD anchored
+// to ET (not UTC) so comparisons against prices_eod.trade_date are
+// meaningful. prices_eod.trade_date is stored as the calendar ET date
+// of the session.
+function latestSessionETDate() {
+  const d = latestTradingSessionDate();
+  if (!d) return null;
+  const s = d.toLocaleDateString("en-CA", { timeZone: "America/New_York" }); // YYYY-MM-DD
+  return s;
+}
 
 export default function useTickerEodPrice(ticker) {
   const [state, setState] = useState(EMPTY);
@@ -50,46 +72,85 @@ export default function useTickerEodPrice(ticker) {
     setState(s => ({ ...s, loading: true, error: null }));
 
     const upper = ticker.toUpperCase();
+
+    async function readPricesEod() {
+      const { data, error } = await supabase
+        .from("prices_eod")
+        .select("close, trade_date")
+        .eq("ticker", upper)
+        .order("trade_date", { ascending: false })
+        .limit(2);
+      if (error) throw new Error(error.message || String(error));
+      const rows = Array.isArray(data) ? data : [];
+      return { cur: rows[0] || null, prev: rows[1] || null };
+    }
+
+    function commit({ cur, prev }) {
+      const last_close = cur  ? Number(cur.close)  : null;
+      const prev_close = prev ? Number(prev.close) : null;
+      const day_pct =
+        Number.isFinite(last_close) &&
+        Number.isFinite(prev_close) &&
+        prev_close > 0
+          ? ((last_close - prev_close) / prev_close) * 100
+          : null;
+      setState({
+        last_close,
+        prev_close,
+        trade_date: cur?.trade_date || null,
+        prev_trade_date: prev?.trade_date || null,
+        day_pct,
+        loading: false,
+        source: "prices_eod",
+        error: null,
+      });
+    }
+
     (async () => {
       try {
-        // Pull the latest two rows of prices_eod for this ticker, ordered
-        // by trade_date DESC. Two rows = today's close + prior trading
-        // day's close, which together give us the day-% change. If the
-        // ticker has only one row of history (brand-new listing), prev
-        // is null and day_pct stays null — we deliberately don't fall
-        // back to anything stale.
-        const { data, error } = await supabase
-          .from("prices_eod")
-          .select("close, trade_date")
-          .eq("ticker", upper)
-          .order("trade_date", { ascending: false })
-          .limit(2);
+        let result = await readPricesEod();
         if (cancelled) return;
-        if (error) {
-          setState({ ...EMPTY, error: error.message || String(error) });
+
+        // Self-heal: if the most recent prices_eod row for this ticker
+        // is older than the latest NYSE trading session, ask the
+        // eod-same-day edge function to fetch today's bar from Yahoo
+        // and upsert. Re-query prices_eod after.
+        const sessionDate = latestSessionETDate();
+        const haveDate = result.cur?.trade_date || null;
+        if (sessionDate && haveDate && haveDate < sessionDate) {
+          // Commit what we have first so the modal renders something
+          // immediately rather than spinning.
+          commit(result);
+          try {
+            const { data: sess } = await supabase.auth.getSession();
+            const accessToken = sess?.session?.access_token;
+            await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/eod-same-day`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+              },
+              body: JSON.stringify({ ticker: upper }),
+            });
+          } catch (e) {
+            // Fallback is best-effort; the committed (stale) value still renders.
+            // eslint-disable-next-line no-console
+            console.warn("[useTickerEodPrice] eod-same-day fallback failed", e);
+          }
+          if (cancelled) return;
+          // Re-query after the upsert.
+          try {
+            const fresh = await readPricesEod();
+            if (cancelled) return;
+            commit(fresh);
+          } catch (_) {
+            // Stick with what we already committed.
+          }
           return;
         }
-        const rows = Array.isArray(data) ? data : [];
-        const cur  = rows[0] || null;
-        const prev = rows[1] || null;
-        const last_close  = cur  ? Number(cur.close)  : null;
-        const prev_close  = prev ? Number(prev.close) : null;
-        const day_pct =
-          Number.isFinite(last_close) &&
-          Number.isFinite(prev_close) &&
-          prev_close > 0
-            ? ((last_close - prev_close) / prev_close) * 100
-            : null;
-        setState({
-          last_close,
-          prev_close,
-          trade_date: cur?.trade_date || null,
-          prev_trade_date: prev?.trade_date || null,
-          day_pct,
-          loading: false,
-          source: "prices_eod",
-          error: null,
-        });
+
+        commit(result);
       } catch (e) {
         if (!cancelled) {
           setState({ ...EMPTY, error: e?.message || String(e) });
