@@ -369,6 +369,99 @@ def main():
         write_pipeline_run(URL, SK, "massive-eod", "failure", error=str(e))
         raise
 
+    # 2.5) Same-day fallback via Yahoo for the names the user actually
+    #      looks at. Polygon's grouped Daily Market Summary endpoint
+    #      returns HTTP 403 NOT_AUTHORIZED on Basic tier for today's
+    #      date until T+1, so prices_eod sits a trading day behind
+    #      between market close and tomorrow morning's ingest.
+    #
+    #      Yahoo's free chart endpoint publishes today's close within
+    #      minutes of the bell, so we pull it for the union of
+    #      (active positions ∪ watchlist ∪ today's scored scan universe).
+    #      The eod-same-day edge function upserts the bar with
+    #      source='yahoo-sameday'; the next morning's Polygon run
+    #      overwrites those rows with the canonical Massive bar via
+    #      the same (ticker, trade_date) upsert key.
+    #
+    #      This step is skipped only when the Polygon step already
+    #      landed today's date — otherwise it always fires (idempotent
+    #      on weekends + holidays: Yahoo returns the most recent
+    #      session, which is already in the table).
+    today_utc = date.today().isoformat()
+    if date_used != today_utc:
+        print(f"\n[2.5/5] Yahoo same-day fallback (Polygon landed {date_used}, today is {today_utc})…")
+        try:
+            # Build the universe of names worth pulling intraday — the
+            # tickers the user actually sees on screen.
+            sb_headers = {
+                "apikey": SK,
+                "Authorization": f"Bearer {SK}",
+            }
+            tickers_set = set()
+
+            # (a) Active positions
+            status, body = http_json(
+                f"{URL}/rest/v1/positions?select=ticker&closed_at=is.null",
+                headers=sb_headers,
+            )
+            if status < 300 and isinstance(body, list):
+                for r in body:
+                    t = (r.get("ticker") or "").strip().upper()
+                    if t: tickers_set.add(t)
+
+            # (b) Watchlist
+            status, body = http_json(
+                f"{URL}/rest/v1/watchlist?select=ticker",
+                headers=sb_headers,
+            )
+            if status < 300 and isinstance(body, list):
+                for r in body:
+                    t = (r.get("ticker") or "").strip().upper()
+                    if t: tickers_set.add(t)
+
+            # (c) Today's scored scan universe — restricted to TOP 500
+            #     by MT Score so we stay well under Yahoo's gentle
+            #     rate limit. Anything outside the top 500 won't show
+            #     in the Trading Opps surface anyway.
+            status, body = http_json(
+                f"{URL}/rest/v1/signal_intel_v5_daily?select=ticker&scan_date=eq.{today_utc}&order=mt_score.desc.nullslast&limit=500",
+                headers=sb_headers,
+            )
+            if status < 300 and isinstance(body, list):
+                for r in body:
+                    t = (r.get("ticker") or "").strip().upper()
+                    if t: tickers_set.add(t)
+
+            tickers = sorted(tickers_set)
+            print(f"  union of (positions ∪ watchlist ∪ top-500 scan) = {len(tickers)} tickers")
+
+            if tickers:
+                # Call the eod-same-day edge function in chunks of 100
+                # to stay within the function wall-clock budget.
+                fn_url = f"{URL}/functions/v1/eod-same-day"
+                fn_headers = {
+                    "Authorization": f"Bearer {SK}",
+                    "Content-Type": "application/json",
+                }
+                CHUNK = 100
+                total_written = 0
+                total_errors = 0
+                for i in range(0, len(tickers), CHUNK):
+                    chunk = tickers[i:i+CHUNK]
+                    status, body = http_json(
+                        fn_url, method="POST",
+                        headers=fn_headers,
+                        body={"tickers": chunk},
+                    )
+                    if status >= 300:
+                        print(f"  chunk {i}-{i+len(chunk)} HTTP {status}: {body}")
+                        continue
+                    total_written += body.get("written", 0) if isinstance(body, dict) else 0
+                    total_errors += len(body.get("errors", []) if isinstance(body, dict) else [])
+                print(f"  Yahoo fallback: wrote {total_written}/{len(tickers)} same-day rows, {total_errors} errors")
+        except Exception as e:
+            print(f"  Yahoo same-day fallback failed (non-fatal): {e}")
+
     # 3) Dividends — last 90 days
     print("\n[3/4] Dividends (last 90 days)…")
     time.sleep(THROTTLE_SECONDS)
