@@ -1192,6 +1192,8 @@ function HeatmapTile({ contributionMatrix, mechanismScores }) {
 export default function AssetTilt({ onOpenTicker }) {
   const [cycleBoard, setCycleBoard] = useState(null);
   const [v10, setV10] = useState(null);
+  const [macroEngine, setMacroEngine] = useState(null);
+  const [backtest, setBacktest] = useState(null);
   const [mechModal, setMechModal] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
@@ -1200,6 +1202,10 @@ export default function AssetTilt({ onOpenTicker }) {
   useEffect(() => {
     fetch("/cycle_board_snapshot.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setCycleBoard).catch(() => setCycleBoard(null));
+    fetch("/macrotilt_engine.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null).then(setMacroEngine).catch(() => {});
+    fetch("/macrotilt_engine_backtest.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null).then(setBacktest).catch(() => {});
     fetch("/v10_allocation.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setV10).catch(() => setV10(null));
     fetch("/sector_perf.json", { cache: "no-cache" })
@@ -1246,10 +1252,10 @@ export default function AssetTilt({ onOpenTicker }) {
         eyebrow="Asset Tilt"
         title={<>A back-tested <em>asset allocation tool</em> that seeks to beat the S&amp;P 500 on a risk-adjusted basis over the long run.</>}
         bullets={[
-          "Dozens of macro variables correlated to equity sector-specific risk factors",
-          <>Overlaid with Regime readings from <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Macro Overview</a></>,
-          "Rules to keep allocations in the fairway (e.g., leverage ≤ 150%, defensive ≤ 50%)",
-          "One simple asset allocation recommendation",
+          "Bond-market volatility (MOVE) and 3-month change in 10-year yield set the regime + equity exposure",
+          "Factor-level reads on credit, valuation, breadth, growth and liquidity drive sector + industry-group tilts within the equity bucket",
+          "Defensive sleeve fires only when stress crosses the Watch threshold; sleeve composition keys off yield direction (Inflationary / Neutral / Deflationary)",
+          "Validated 1986 → 2026 over 2,056 weeks · Sharpe 0.61 vs SPY 0.50 · max drawdown 35% vs 55%",
         ]}
         right={
 <aside style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px 14px", display: "flex", flexDirection: "column", textAlign: "center" }}>
@@ -1258,10 +1264,10 @@ export default function AssetTilt({ onOpenTicker }) {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1, textAlign: "left" }}>
             {[
-              { label: "CAGR",         value: "13.85%",  sub: "vs SPY 11.61%" },
-              { label: "Sharpe",       value: "1.034",    sub: "annualized" },
-              { label: "Max Drawdown", value: "−20.81%", sub: "peak-to-trough" },
-              { label: "Calibration",  value: "Jan 2012", sub: "through May 2026" },
+              { label: "CAGR",         value: backtest?.validation?.engine?.cagr != null ? backtest.validation.engine.cagr.toFixed(2) + "%" : "11.74%",  sub: "vs SPY " + (backtest?.validation?.spy?.cagr != null ? backtest.validation.spy.cagr.toFixed(2) + "%" : "10.86%") },
+              { label: "Sharpe",       value: backtest?.validation?.engine?.sharpe != null ? backtest.validation.engine.sharpe.toFixed(2) : "0.61",    sub: "vs SPY " + (backtest?.validation?.spy?.sharpe != null ? backtest.validation.spy.sharpe.toFixed(2) : "0.50") },
+              { label: "Max Drawdown", value: backtest?.validation?.engine?.max_drawdown != null ? (backtest.validation.engine.max_drawdown * 100).toFixed(1) + "%" : "−35.0%", sub: "vs SPY " + (backtest?.validation?.spy?.max_drawdown != null ? (backtest.validation.spy.max_drawdown * 100).toFixed(1) + "%" : "−54.6%") },
+              { label: "Validated",    value: "1986 → 2026", sub: (backtest?.validation?.n_weeks || "2,056") + " weeks" },
             ].map(t => (
               <div key={t.label} style={{
                 background: "var(--surface-2)", border: "0.5px solid var(--border-faint)",
@@ -1286,6 +1292,176 @@ export default function AssetTilt({ onOpenTicker }) {
         </aside>
         }
       />
+
+      {/* TODAY'S ENGINE READ — new 2-axis regime engine (validated 1986-2026).
+          Reads /macrotilt_engine.json. Two dials in MacroTilt's existing
+          dial pattern: Stress (MOVE percentile) + Yield Regime (3-month change
+          in 10Y yield, percentile-ranked). Sleeve composition hidden when
+          defensive_pct = 0 (Risk On). */}
+      {macroEngine && (
+        <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, padding: "24px 28px", margin: "24px 32px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Today's Engine Read</h2>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+              <FreshnessDot indicatorId="macrotilt_engine" asOfIso={macroEngine.as_of} />
+              <span style={{ marginLeft: 8 }}>{macroEngine.sources?.stress_signal} · {macroEngine.sources?.yield_filter} · As of {macroEngine.as_of}</span>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 280px", gap: 18, alignItems: "stretch" }}>
+
+            {/* STRESS DIAL */}
+            <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 18px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontStyle: "italic", fontWeight: 400 }}>Stress signal</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em" }}>BOND-MARKET VOL · MOVE</div>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                {["Risk On", "Watch", "Risk Off"].map(s => (
+                  <span key={s} style={{
+                    fontSize: 9.5, letterSpacing: "0.095em", textTransform: "uppercase", padding: "3px 11px",
+                    borderRadius: 11, fontWeight: 500,
+                    background: s === macroEngine.stress?.state ? "rgba(0,113,227,0.10)" : "var(--surface-2)",
+                    color: s === macroEngine.stress?.state ? "var(--accent)" : "var(--text-dim)",
+                    border: s === macroEngine.stress?.state ? "1px solid var(--accent)" : "1px solid var(--border)",
+                  }}>{s}</span>
+                ))}
+              </div>
+              <div style={{ position: "relative", textAlign: "center", marginTop: 12 }}>
+                <svg viewBox="0 0 240 140" style={{ width: "100%", maxWidth: 240, display: "block", margin: "0 auto" }}>
+                  <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)"/>
+                  <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)"/>
+                  <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)"/>
+                  <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)"/>
+                  {(() => {
+                    const pct = (macroEngine.stress?.move_percentile_5y || 0);
+                    const angle = 180 - (pct * 100 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const tipX = 120 + 100 * Math.cos(rad);
+                    const tipY = 120 - 100 * Math.sin(rad);
+                    return (<>
+                      <line x1="120" y1="120" x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round"/>
+                      <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8"/>
+                      <circle cx="120" cy="120" r="4.5" fill="var(--accent)"/>
+                    </>);
+                  })()}
+                  {/* Watch threshold marker (75th pctile) */}
+                  {(() => {
+                    const angle = 180 - (75 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const x = 120 + 100 * Math.cos(rad);
+                    const y = 120 - 100 * Math.sin(rad);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">75th</text></>);
+                  })()}
+                  {/* Risk Off threshold marker (85th pctile) */}
+                  {(() => {
+                    const angle = 180 - (85 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const x = 120 + 100 * Math.cos(rad);
+                    const y = 120 - 100 * Math.sin(rad);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y + 8} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">85th</text></>);
+                  })()}
+                </svg>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{macroEngine.stress?.move_value?.toFixed(1)}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                  {Math.round((macroEngine.stress?.move_percentile_5y || 0) * 100)}th pctile · Watch {macroEngine.stress?.watch_threshold_value?.toFixed(0)} · Risk Off {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}
+                </div>
+              </div>
+            </div>
+
+            {/* YIELD REGIME DIAL */}
+            <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 18px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontStyle: "italic", fontWeight: 400 }}>Yield regime</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em" }}>3M Δ · 10Y TREASURY</div>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                {["Deflationary", "Neutral", "Inflationary"].map(s => (
+                  <span key={s} style={{
+                    fontSize: 9.5, letterSpacing: "0.095em", textTransform: "uppercase", padding: "3px 11px",
+                    borderRadius: 11, fontWeight: 500,
+                    background: s === macroEngine.yield_regime?.state ? "rgba(0,113,227,0.10)" : "var(--surface-2)",
+                    color: s === macroEngine.yield_regime?.state ? "var(--accent)" : "var(--text-dim)",
+                    border: s === macroEngine.yield_regime?.state ? "1px solid var(--accent)" : "1px solid var(--border)",
+                  }}>{s}</span>
+                ))}
+              </div>
+              <div style={{ position: "relative", textAlign: "center", marginTop: 12 }}>
+                <svg viewBox="0 0 240 140" style={{ width: "100%", maxWidth: 240, display: "block", margin: "0 auto" }}>
+                  <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)"/>
+                  <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)"/>
+                  <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)"/>
+                  <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)"/>
+                  {(() => {
+                    const pct = (macroEngine.yield_regime?.delta_y_3m_percentile_5y || 0);
+                    const angle = 180 - (pct * 100 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const tipX = 120 + 100 * Math.cos(rad);
+                    const tipY = 120 - 100 * Math.sin(rad);
+                    return (<>
+                      <line x1="120" y1="120" x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round"/>
+                      <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8"/>
+                      <circle cx="120" cy="120" r="4.5" fill="var(--accent)"/>
+                    </>);
+                  })()}
+                  {(() => {
+                    const angle = 180 - (30 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const x = 120 + 100 * Math.cos(rad);
+                    const y = 120 - 100 * Math.sin(rad);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x - 24} y={y - 6} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">{macroEngine.yield_regime?.deflationary_threshold_bp?.toFixed(0)} bp</text></>);
+                  })()}
+                  {(() => {
+                    const angle = 180 - (70 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const x = 120 + 100 * Math.cos(rad);
+                    const y = 120 - 100 * Math.sin(rad);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">+{macroEngine.yield_regime?.inflationary_threshold_bp?.toFixed(0)} bp</text></>);
+                  })()}
+                </svg>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{(macroEngine.yield_regime?.delta_y_3m_bp || 0) >= 0 ? "+" : ""}{macroEngine.yield_regime?.delta_y_3m_bp?.toFixed(0)} bp</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                  {Math.round((macroEngine.yield_regime?.delta_y_3m_percentile_5y || 0) * 100)}th pctile · Infl ≥ +{macroEngine.yield_regime?.inflationary_threshold_bp?.toFixed(0)} bp · Defl ≤ {macroEngine.yield_regime?.deflationary_threshold_bp?.toFixed(0)} bp
+                </div>
+              </div>
+            </div>
+
+            {/* ALLOCATION SUMMARY */}
+            <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 18px", display: "flex", flexDirection: "column" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontStyle: "italic", fontWeight: 400 }}>Allocation</div>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: 2 }}>ENGINE STANCE</div>
+
+              <div style={{ display: "flex", gap: 24, marginTop: 22, alignItems: "flex-end", justifyContent: "center" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 36, lineHeight: 1 }}>{macroEngine.allocation?.equity_pct}<span style={{ fontStyle: "italic", fontSize: 20, color: "var(--text-muted)" }}>%</span></div>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: 4 }}>EQUITY</div>
+                </div>
+                <div style={{ textAlign: "center", color: macroEngine.allocation?.defensive_pct > 0 ? "var(--text)" : "var(--text-dim)" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 36, lineHeight: 1 }}>{macroEngine.allocation?.defensive_pct}<span style={{ fontStyle: "italic", fontSize: 20, color: "var(--text-muted)" }}>%</span></div>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: 4 }}>DEFENSIVE</div>
+                </div>
+              </div>
+
+              {macroEngine.allocation?.defensive_pct > 0 ? (
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--border-faint)" }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 8 }}>Active sleeve · {macroEngine.allocation?.active_sleeve_label}</div>
+                  {Object.entries(macroEngine.allocation?.active_sleeve_composition || {}).filter(([_, v]) => v > 0).map(([leg, w]) => (
+                    <div key={leg} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                      <span>{leg === "cash" ? "Cash" : leg}</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}>{Math.round(w * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--border-faint)", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
+                  Defensive sleeve · <strong style={{ color: "var(--text)", fontWeight: 500 }}>standby</strong> — would activate as <strong style={{ color: "var(--text)", fontWeight: 500 }}>{macroEngine.allocation?.active_sleeve_label}</strong> mix if stress crosses Watch threshold.
+                </div>
+              )}
+            </div>
+
+          </div>
+        </section>
+      )}
       <div style={{ padding: "24px 32px 0" }}>
       {/* Recommended Allocations — Joe mockup 2026-05-08 v3. Wraps the
           sortable sector table + defensive sleeve + total row in a labeled
@@ -1334,6 +1510,87 @@ export default function AssetTilt({ onOpenTicker }) {
 
       {/* Bottom methodology footer killed 2026-05-07 — methodology paragraph
           is now in the hero at the top of the page. */}
+
+
+      {/* BACKTEST VALIDATION — full 1986-2026 data series powering the engine
+          calibration. Reads /macrotilt_engine_backtest.json (2,056 weekly
+          observations + per-drawdown attribution). */}
+      {backtest && (
+        <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20, marginTop: 0 }}>
+          <div style={{ padding: "14px 18px 12px", borderBottom: "0.5px solid var(--border)", background: "var(--surface)" }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Backtest Validation · 1986 → 2026</h2>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>
+              Every weekly observation used to calibrate the engine. {(backtest.weekly || []).length} weekly observations · {(backtest.drawdowns || []).length} major drawdown episodes documented.
+            </div>
+          </div>
+
+          <div style={{ padding: "18px 22px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
+              {[
+                { lbl: "Final value", val: "$" + (backtest.validation?.engine?.final_value?.toFixed(2) || "—"), sub: "vs SPY $" + (backtest.validation?.spy?.final_value?.toFixed(2) || "—") + " · $1 invested 1986" },
+                { lbl: "CAGR",        val: (backtest.validation?.engine?.cagr?.toFixed(2) || "—") + "%", sub: "vs SPY " + (backtest.validation?.spy?.cagr?.toFixed(2) || "—") + "%" },
+                { lbl: "Volatility",  val: (backtest.validation?.engine?.vol?.toFixed(1) || "—") + "%", sub: "vs SPY " + (backtest.validation?.spy?.vol?.toFixed(1) || "—") + "%" },
+                { lbl: "Max drawdown", val: ((backtest.validation?.engine?.max_drawdown || 0) * 100).toFixed(1) + "%", sub: "vs SPY " + ((backtest.validation?.spy?.max_drawdown || 0) * 100).toFixed(1) + "%" },
+              ].map(k => (
+                <div key={k.lbl} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "12px" }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>{k.lbl}</div>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 22, lineHeight: 1.15, marginTop: 4 }}>{k.val}</div>
+                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{k.sub}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Cumulative wealth chart — engine vs SPY, 1986 onward */}
+            <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
+              Cumulative wealth · $1 invested December 1986 (log scale)
+            </div>
+            <div style={{ background: "var(--surface-2)", borderRadius: 8, padding: "14px", height: 240, marginBottom: 18 }}>
+              {(() => {
+                const w = backtest.weekly || [];
+                if (!w.length) return null;
+                const W = 800, H = 200;
+                const eng = w.map((p, i) => [i / (w.length - 1) * W, H - (Math.log(p.engine_cumulative || 1) / Math.log(100)) * H]);
+                const spy = w.map((p, i) => [i / (w.length - 1) * W, H - (Math.log(p.spy_cumulative || 1) / Math.log(100)) * H]);
+                const path = (pts) => pts.map((p, i) => (i === 0 ? "M " : "L ") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+                return (
+                  <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
+                    <line x1="0" y1={H * 0.5} x2={W} y2={H * 0.5} stroke="rgba(14,17,21,0.10)" strokeWidth="1" strokeDasharray="3 3"/>
+                    <path d={path(spy)} fill="none" stroke="rgba(94,94,99,0.6)" strokeWidth="1.5"/>
+                    <path d={path(eng)} fill="none" stroke="var(--accent)" strokeWidth="2"/>
+                  </svg>
+                );
+              })()}
+            </div>
+
+            {/* Drawdown table — engine vs SPY at every major peak-to-trough */}
+            <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
+              Drawdown comparison · engine vs SPY at major peak-to-trough episodes
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Episode</th>
+                  <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>SPY depth</th>
+                  <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Engine depth</th>
+                  <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Engine − SPY</th>
+                  <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Dominant yield regime</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(backtest.drawdowns || []).map(d => (
+                  <tr key={d.name}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)" }}>{d.name}</td>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", color: "var(--red)", fontFamily: "var(--font-mono)" }}>{(d.spy_depth * 100).toFixed(1)}%</td>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", color: "var(--red)", fontFamily: "var(--font-mono)" }}>{(d.engine_depth * 100).toFixed(1)}%</td>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", color: d.diff_pp > 0 ? "var(--green)" : "var(--text-muted)", fontFamily: "var(--font-mono)" }}>+{d.diff_pp?.toFixed(1)} pp</td>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text-muted)" }}>{d.yield_regime_dominant}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
 
       {/* MODALS */}
       {mechModal && <MechanismModal mechanism={mechModal} onClose={() => setMechModal(null)} />}
