@@ -436,6 +436,31 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
   const scoremap   = data.score_by_ticker || {};
   const ptPct = config.profit_target_pct || 20;
   const slPct = config.stop_loss_pct     || 15;
+  // Single source of truth for price + day-change on every card the
+  // scanner renders: prices_eod via the batched hook. Replaces direct
+  // screener.close/prev_close reads (those still come from Unusual
+  // Whales and refresh on a different cadence). Same hook used by the
+  // Watchlist and Positions tables — every list-rendering surface now
+  // resolves prices the same way.
+  const _opTickers = useMemo(() => {
+    const s = new Set();
+    (buy_opportunities || []).forEach(it => it?.ticker && s.add(String(it.ticker).toUpperCase()));
+    (watch_items       || []).forEach(it => it?.ticker && s.add(String(it.ticker).toUpperCase()));
+    (userAccounts || []).forEach(a => (a.positions || []).forEach(p => p?.ticker && s.add(String(p.ticker).toUpperCase())));
+    (userWatchlist || []).forEach(w => w?.ticker && s.add(String(w.ticker).toUpperCase()));
+    return Array.from(s);
+  }, [buy_opportunities, watch_items, userAccounts, userWatchlist]);
+  const { byTicker: _eodByTicker } = usePricesEodBatch(_opTickers);
+  // Resolver: prices_eod > screener.close > screener.prev_close > caller fallback.
+  const resolveEodPrice = (t, fallback = null) => {
+    const T = String(t || "").toUpperCase();
+    const eod = _eodByTicker[T] || {};
+    if (Number.isFinite(eod.close)) return Number(eod.close);
+    const sc = screenerMap[T] || {};
+    if (sc.close      != null) return Number(sc.close);
+    if (sc.prev_close != null) return Number(sc.prev_close);
+    return fallback;
+  };
 
   const perfRow = (t) => {
     const sc = screenerMap[t] || {};
@@ -455,7 +480,7 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
   const renderBuyWatch = (item, tier) => {
     const t = item.ticker;
     const sc = screenerMap[t] || {};
-    const price = item.current_price ?? Number(sc.prev_close);
+    const price = resolveEodPrice(t, item.current_price ?? Number(sc.prev_close));
     const pt = price ? price * (1 + ptPct / 100) : null;
     const sl = price ? price * (1 - slPct / 100) : null;
     const company = normalizeTickerName(sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "");
@@ -486,7 +511,7 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
   const renderWatchlistEntry = (w) => {
     const t = w.ticker;
     const sc = screenerMap[t] || {};
-    const price = Number(sc.close || sc.prev_close || 0) || null;
+    const price = resolveEodPrice(t, Number(sc.close || sc.prev_close || 0) || null);
     const score = scoremap[t] ?? null;
     const company = normalizeTickerName(sc.full_name || sc.company_name || w.name || (data.ticker_names||{})[t] || "");
     const ptsl = (
@@ -511,7 +536,7 @@ function OverviewTab({ data, focusTicker, userAccounts = [], userWatchlist = [],
   const renderPortfolioEntry = (p) => {
     const t = p.ticker;
     const sc = screenerMap[t] || {};
-    const price = p.price != null ? Number(p.price) : (Number(sc.close || sc.prev_close || 0) || null);
+    const price = resolveEodPrice(t, p.price != null ? Number(p.price) : (Number(sc.close || sc.prev_close || 0) || null));
     const score = scoremap[t] ?? null;
     const company = normalizeTickerName(p.name || sc.full_name || sc.company_name || (data.ticker_names||{})[t] || "");
     const qty    = p.quantity != null ? Number(p.quantity) : null;
@@ -1763,3 +1788,4 @@ export default function Scanner({ focusTicker = null, onFocusConsumed, onOpenTic
     </div>
   );
 }
+import usePricesEodBatch from "./hooks/usePricesEodBatch";
