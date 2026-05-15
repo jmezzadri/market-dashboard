@@ -1170,11 +1170,12 @@ function SignalIntelligenceRail({
       });
     }
     if (tech?.pct_vs_50ma != null) {
-      const p = Number(tech.pct_vs_50ma);
+      // Stored as fraction (0.05 = 5%) — convert to percent for display.
+      const p = Number(tech.pct_vs_50ma) * 100;
       rows.push({ label: "% vs 50d MA", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p > 5 ? "green" : p < -5 ? "red" : "amber" });
     }
     if (tech?.pct_vs_200ma != null) {
-      const p = Number(tech.pct_vs_200ma);
+      const p = Number(tech.pct_vs_200ma) * 100;
       rows.push({ label: "% vs 200d MA", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p > 10 ? "green" : p < -10 ? "red" : "amber" });
     }
     if (tech?.adx_14 != null) {
@@ -1186,23 +1187,24 @@ function SignalIntelligenceRail({
       rows.push({ label: "Volume surge", val: `${vs.toFixed(2)}× avg`, color: vs >= 1.5 ? "green" : vs < 0.7 ? "amber" : "amber" });
     }
     if (tech?.week_change != null) {
-      const p = Number(tech.week_change);
+      // Stored as fraction (0.02 = 2%) — convert to percent for display.
+      const p = Number(tech.week_change) * 100;
       rows.push({ label: "1-week change", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
     }
     if (tech?.month_change != null) {
-      const p = Number(tech.month_change);
+      const p = Number(tech.month_change) * 100;
       rows.push({ label: "1-month change", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
     }
     if (tech?.ytd_change != null) {
-      const p = Number(tech.ytd_change);
+      const p = Number(tech.ytd_change) * 100;
       rows.push({ label: "YTD change", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
     }
     if (tech?.spy_relative_month != null) {
-      const p = Number(tech.spy_relative_month);
+      const p = Number(tech.spy_relative_month) * 100;
       rows.push({ label: "1-month vs SPY", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
     }
     if (tech?.spy_relative_ytd != null) {
-      const p = Number(tech.spy_relative_ytd);
+      const p = Number(tech.spy_relative_ytd) * 100;
       rows.push({ label: "YTD vs SPY", val: `${p>=0?"+":""}${p.toFixed(1)}%`, color: p >= 0 ? "green" : "red" });
     }
     if (tech?.tech_summary != null) {
