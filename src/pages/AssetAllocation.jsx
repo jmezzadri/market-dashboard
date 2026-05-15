@@ -1879,71 +1879,47 @@ export default function AssetTilt({ onOpenTicker }) {
         </section>
       )}
 
-      {/* FULL HISTORY MODAL — opens from "SEE FULL HISTORY ›" links under each dial */}
+      {/* FULL HISTORY MODAL — opens from the dial wraps + the SEE FULL HISTORY links */}
       {historyOpen && backtest?.weekly && (() => {
         const allWeeks = backtest.weekly;
         const isStress = historyOpen === "stress";
-        const valueKey = isStress ? "move" : "delta_y_3m_bp";
+        const valueKey  = isStress ? "move" : "delta_y_3m_bp";
         const pctileKey = isStress ? "move_pctile_5y" : "delta_y_3m_pctile_5y";
-        const stateKey = isStress ? "stress_state" : "yield_regime";
+        const stateKey  = isStress ? "stress_state" : "yield_regime";
         const upperThrKey = isStress ? "risk_off_threshold" : "inflationary_threshold_bp";
-        const midThrKey = isStress ? "watch_threshold" : "deflationary_threshold_bp";
-        const tfId = historyTimeframe || "1Y";
-        const tfWeeks = { "1M": 4, "6M": 26, "1Y": 52, "5Y": 260, "Max": allWeeks.length };
-        const w = allWeeks.slice(-tfWeeks[tfId]);
-        const last = w[w.length - 1];
+        const midThrKey   = isStress ? "watch_threshold" : "deflationary_threshold_bp";
 
-        const title = isStress ? "Bond Volatility" : "Yield Regime";
+        const last = allWeeks[allWeeks.length - 1];
+        const title  = isStress ? "Bond Volatility" : "Yield Regime";
         const eyebrow = isStress ? "Volatility trigger · stress signal" : "Yield direction · regime classifier";
-        const fmtVal = (v) => isStress ? Math.round(v).toString() : ((v >= 0 ? "+" : "") + Math.round(v) + " bp");
-        const unitSuffix = isStress ? "" : "bp";
-        const currentVal = last[valueKey] || 0;
-        const currentPctile = (last[pctileKey] || 0) * 100;
-        const upperMark = last[upperThrKey] || 0;
-        const stateNow = last[stateKey];
+        const fmtVal = (v) => v == null ? "—" : (isStress ? Math.round(v).toString() : ((v >= 0 ? "+" : "") + Math.round(v) + " bp"));
 
-        // Days in state (count back from end while state holds)
+        const currentVal    = last[valueKey] || 0;
+        const currentPctile = (last[pctileKey] || 0) * 100;
+        const upperMark     = last[upperThrKey] || 0;
+        const midMark       = last[midThrKey] || 0;
+        const stateNow      = last[stateKey];
+
+        // Days in state
         let daysInState = 1;
         for (let i = allWeeks.length - 2; i >= 0; i--) {
           if (allWeeks[i][stateKey] === stateNow) daysInState += 7; else break;
         }
+
         // Full sample range
-        const allVals = allWeeks.map(p => p[valueKey] || 0);
+        const allVals = allWeeks.map(p => p[valueKey] || 0).filter(v => v != null);
         const minVal = Math.min(...allVals);
         const maxVal = Math.max(...allVals);
 
-        // Caption sentence
-        const captionState = (stateNow || "").toLowerCase();
-        const caption = isStress
-          ? `${title} is ${captionState === "risk on" ? "calm" : captionState === "watch" ? "watching" : "stressed"}. The trailing-5y 85th-percentile mark sits ${currentVal < upperMark ? "well above" : "below"} today's reading. The trigger has been in ${stateNow} for ${daysInState} trading days.`
-          : `${title} is ${stateNow}. Today's 3-month change in 10-year yield sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window. The yield regime has been ${stateNow} for ${daysInState} trading days.`;
+        // Caption
+        const captionState = isStress
+          ? (stateNow === "Risk On" ? "calm" : stateNow === "Watch" ? "watching" : "stressed")
+          : stateNow;
+        const captionSentence = isStress
+          ? `The trailing-5y 85th-percentile mark sits ${currentVal < upperMark ? "well above" : "below"} today's reading. The trigger has been in ${stateNow} for ${daysInState} trading days.`
+          : `Today's 3-month change in 10-year yield sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window. The yield regime has been ${stateNow} for ${daysInState} trading days.`;
 
-              <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
-                <HistoryChart
-                  data={allWeeks}
-                  series={[
-                    { key: valueKey, label: title, color: "var(--accent)" },
-                  ]}
-                  horizontalLines={[
-                    { value: upperMark, label: (isStress ? "85th-pct = " : "70th-pct = ") + fmtVal(upperMark), color: "rgba(14,17,21,0.55)" },
-                    ...(!isStress ? [{ value: (last[midThrKey] || 0), label: "30th-pct = " + fmtVal(last[midThrKey] || 0), color: "rgba(14,17,21,0.35)" }] : []),
-                  ]}
-                  fmtY={fmtVal}
-                  defaultTf="1Y"
-                  height={320}
-                  availableOverlays={isStress ? [
-                    { key: "delta_y_3m_bp", label: "ΔY-3M (bp)", color: "rgba(94,94,99,0.7)" },
-                    { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
-                  ] : [
-                    { key: "move", label: "MOVE level", color: "rgba(94,94,99,0.7)" },
-                    { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
-                  ]}
-                />
-              </div>
-
-        // Historical reads near today's level — find similar-percentile-band
-        // episodes from full history (±5 pp), tag each with a named event,
-        // and compute SPX 6M/12M forward returns from the saved cumulative series.
+        // Historical reads near today's level (similar-percentile-band episodes)
         const targetPct = currentPctile / 100;
         const band = 0.05;
         const matches = allWeeks.map((p, i) => ({ ...p, idx: i, similar: Math.abs((p[pctileKey] || 0) - targetPct) <= band }));
@@ -1962,12 +1938,75 @@ export default function AssetTilt({ onOpenTicker }) {
         const enriched = past.map(e => {
           const peak = allWeeks[e.peakIdx];
           const i = e.peakIdx;
-          const spx6 = (i + 26 < allWeeks.length) ? (allWeeks[i + 26].spy_cumulative / peak.spy_cumulative - 1) : null;
+          const spx6  = (i + 26 < allWeeks.length) ? (allWeeks[i + 26].spy_cumulative / peak.spy_cumulative - 1) : null;
           const spx12 = (i + 52 < allWeeks.length) ? (allWeeks[i + 52].spy_cumulative / peak.spy_cumulative - 1) : null;
           return { ...e, peakDate: peak.date, peakPctile: (peak[pctileKey] || 0) * 100, spx6, spx12, eventNote: findNamedEvent(peak.date) };
         }).sort((a, b) => Math.abs(a.peakPctile - currentPctile) - Math.abs(b.peakPctile - currentPctile)).slice(0, 8);
 
-                      {/* Historical reads near today's level */}
+        return (
+          <div onClick={() => { setHistoryOpen(null); setHistoryTimeframe(null); }} style={{ position: "fixed", inset: 0, background: "rgba(14,17,21,0.45)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 48, paddingBottom: 48, overflowY: "auto" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 920, maxWidth: "94vw", padding: 32, position: "relative" }}>
+
+              {/* Header row */}
+              <button onClick={() => { setHistoryOpen(null); setHistoryTimeframe(null); }} style={{ position: "absolute", top: 18, right: 22, background: "transparent", border: "none", fontSize: 14, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>Close <span style={{ fontSize: 18 }}>×</span></button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "flex-start", marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "var(--accent)", textTransform: "uppercase", fontWeight: 500, marginBottom: 6 }}>{eyebrow}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                    <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400, margin: 0, color: "var(--text)" }}>{title}</h2>
+                    <span style={{ background: "rgba(47,157,106,0.10)", color: "var(--green)", borderRadius: 11, padding: "3px 11px", fontSize: 10, letterSpacing: "0.095em", fontWeight: 500, textTransform: "uppercase" }}>● FRESH · {macroEngine?.as_of}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 40, lineHeight: 1, color: "var(--text)" }}>{fmtVal(currentVal)}</div>
+                  <div style={{ fontSize: 11, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", marginTop: 6, fontWeight: 500 }}>{stateNow} · {daysInState} days in state</div>
+                </div>
+              </div>
+
+              {/* Caption sentence */}
+              <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6, marginBottom: 22 }}>
+                <strong style={{ fontWeight: 500 }}>{title} is {captionState}.</strong>{" "}{captionSentence}
+              </div>
+
+              {/* KPI strip */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
+                {[
+                  { lbl: "Current",                            val: fmtVal(currentVal), sub: "today's reading" },
+                  { lbl: isStress ? "85th percentile (5y)" : "70th percentile (5y)", val: fmtVal(upperMark), sub: "recalibrated daily" },
+                  { lbl: isStress ? "Stage" : "Regime",        val: stateNow,            sub: daysInState + " days" },
+                  { lbl: "Full sample range",                  val: fmtVal(minVal) + "–" + fmtVal(maxVal), sub: "1986 to today" },
+                ].map(k => (
+                  <div key={k.lbl} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px" }}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>{k.lbl}</div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 26, lineHeight: 1.15, marginTop: 6, color: "var(--text)" }}>{k.val}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{k.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Chart */}
+              <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
+                <HistoryChart
+                  data={allWeeks}
+                  series={[{ key: valueKey, label: title, color: "var(--accent)" }]}
+                  horizontalLines={[
+                    { value: upperMark, label: (isStress ? "85th-pct = " : "70th-pct = ") + fmtVal(upperMark), color: "rgba(14,17,21,0.55)" },
+                    ...(!isStress ? [{ value: midMark, label: "30th-pct = " + fmtVal(midMark), color: "rgba(14,17,21,0.35)" }] : []),
+                  ]}
+                  fmtY={fmtVal}
+                  defaultTf="1Y"
+                  height={320}
+                  availableOverlays={isStress ? [
+                    { key: "delta_y_3m_bp",    label: "ΔY-3M (bp)",          color: "rgba(94,94,99,0.7)" },
+                    { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
+                  ] : [
+                    { key: "move",              label: "MOVE level",          color: "rgba(94,94,99,0.7)" },
+                    { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
+                  ]}
+                />
+              </div>
+
+              {/* Historical reads near today's level */}
               {enriched.length > 0 && (
                 <div style={{ marginBottom: 22 }}>
                   <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>Historical reads near today's level · S&P forward returns</div>
@@ -1975,8 +2014,8 @@ export default function AssetTilt({ onOpenTicker }) {
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
                       <tr>
-                        <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Period</th>
-                        <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Note</th>
+                        <th style={{ textAlign: "left",  padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Period</th>
+                        <th style={{ textAlign: "left",  padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Note</th>
                         <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Value</th>
                         <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>SPX 6M</th>
                         <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>SPX 12M</th>
@@ -2001,7 +2040,7 @@ export default function AssetTilt({ onOpenTicker }) {
                 </div>
               )}
 
-              {/* Release Calendar block — matches live Bond Vol modal */}
+              {/* Release Calendar */}
               <div style={{ marginBottom: 22, background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px" }}>
                 <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Release calendar</div>
                 <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "10px 32px", fontSize: 13 }}>
@@ -2025,6 +2064,7 @@ export default function AssetTilt({ onOpenTicker }) {
                 <div style={{ fontStyle: "italic", color: "var(--text-muted)" }}><strong style={{ color: "var(--text)", fontWeight: 500, fontStyle: "normal" }}>Caveat.</strong>{" "}
                 {isStress ? "Bond vol typically MIDDLE in the stress chain — follows funding stress on the way up and leads equity vol." : "ΔY-3M signal is the regime classifier, not the de-risking trigger. Stress (MOVE) drives the equity-bucket size; ΔY-3M only picks which defensive mix activates."}</div>
               </div>
+
             </div>
           </div>
         );
