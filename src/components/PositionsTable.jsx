@@ -24,6 +24,7 @@
 import { useMemo, useState } from "react";
 import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
 import useV5ScanBatch from "../hooks/useV5ScanBatch";
+import usePricesEodBatch from "../hooks/usePricesEodBatch";
 import { Tip } from "../InfoTip";
 import TableFootnote from "./TableFootnote";
 import { computeSectionComposites, colorForDirection } from "../ticker/sectionComposites";
@@ -615,6 +616,16 @@ export default function PositionsTable({
   const showActionBar = Boolean(onAdd || onBulkImport || onRescan);
 
   const screenerMap = screener || {};
+  // Single source of truth for live price + day-change: prices_eod via
+  // the batched hook. positions.price is kept in lockstep with prices_eod
+  // by refresh_positions_from_eod (called after every Yahoo same-day
+  // write), but UI tables must still read through this hook so that
+  // (a) on-page refreshes propagate without a hard reload, and (b) the
+  // DAY % calc uses the same source as the PRICE column. The legacy
+  // screener overlay is kept only as a fallback for tickers with no
+  // prices_eod row at all (brand-new listings before first ingest).
+  const _eodTickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
+  const { byTicker: _eodByTicker } = usePricesEodBatch(_eodTickers);
   const infoMap     = info     || {};
 
   const _tickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
@@ -628,9 +639,21 @@ export default function PositionsTable({
       const inf = infoMap[T] || {};
 
       const quantity = p.quantity != null ? Number(p.quantity) : null;
-      const price    = p.price   != null ? Number(p.price)   : null;
       const avgCost  = p.avgCost != null ? Number(p.avgCost) : null;
       const valueDb  = p.value   != null ? Number(p.value)   : null;
+
+      // Resolve the live price + prev-close through usePricesEodBatch so
+      // every list-rendering surface (Positions here, Watchlist, drawer
+      // headline) reads the same number. Fallback ladder for tickers
+      // outside prices_eod coverage: positions.price (Massive-synced),
+      // then screener overlay (Unusual Whales), then screener prev_close.
+      const eod = _eodByTicker[T] || {};
+      const price = Number.isFinite(eod.close) ? eod.close
+                  : (p.price != null ? Number(p.price)
+                  : (sc.close != null ? Number(sc.close)
+                  : (sc.prev_close != null ? Number(sc.prev_close) : null)));
+      const scPrevFallback = sc.prev_close != null ? Number(sc.prev_close) : null;
+      const prev  = Number.isFinite(eod.prev_close) ? eod.prev_close : scPrevFallback;
 
       const currentValue = price != null
         ? (quantity != null ? quantity * price : valueDb)
@@ -639,11 +662,12 @@ export default function PositionsTable({
       const pnl$   = (currentValue != null && totalCost != null) ? currentValue - totalCost : null;
       const pnlPct = (price != null && avgCost) ? (price / avgCost - 1) * 100 : null;
 
-      const scClose = sc.close     != null ? Number(sc.close)     : null;
-      const scPrev  = sc.prev_close != null ? Number(sc.prev_close) : null;
-      const perShareDay = (scClose != null && scPrev != null) ? scClose - scPrev : null;
+      // PNL DAY $ / % use the same (price, prev) pair the PRICE column
+      // displays, so the math is internally consistent. Was previously
+      // pulling sc.close/sc.prev_close which could disagree with PRICE.
+      const perShareDay = (price != null && prev != null) ? price - prev : null;
       const pnlDay$   = (perShareDay != null && quantity != null) ? perShareDay * quantity : null;
-      const pnlDayPct = (scClose != null && scPrev) ? (scClose / scPrev - 1) * 100 : null;
+      const pnlDayPct = (price != null && prev) ? (price / prev - 1) * 100 : null;
 
       const wealthPct = grandTotal && currentValue != null ? (currentValue / grandTotal) * 100 : null;
 
@@ -702,7 +726,7 @@ export default function PositionsTable({
         _raw: p,
       };
     });
-  }, [rows, grandTotal, screenerMap, infoMap, _riskByTicker, signals, _v5ByTicker]);
+  }, [rows, grandTotal, screenerMap, infoMap, _riskByTicker, signals, _v5ByTicker, _eodByTicker]);
 
   // Memoize columns so MTTable doesn't churn its persisted layout each render.
   const columns = useMemo(
