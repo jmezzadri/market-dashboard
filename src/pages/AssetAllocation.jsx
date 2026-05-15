@@ -4,7 +4,7 @@
 //   /cycle_board_snapshot.json  — 6 mechanism scores (refreshed nightly at 22:30 UTC)
 //   /v10_allocation.json        — today's recommended allocation (refreshed nightly at 22:45 UTC)
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import FreshnessDot from "../components/FreshnessDot";
 import { InfoTip } from "../InfoTip";
 import MTTable from "../components/MTTable";
@@ -1189,6 +1189,157 @@ function HeatmapTile({ contributionMatrix, mechanismScores }) {
 
 // ─── Main ────────────────────────────────────────────────────────────────
 
+
+// ── HistoryChart — interactive line chart with timeframe + crosshair ──
+// Mirrors the live Macro Overview modal chart pattern. Used by both the
+// Backtest Validation section and any other inline history view that
+// needs the same brand-consistent look + feel.
+//   props: series = [{ key, label, color, dashed?: bool }]
+//          data   = full array of points keyed by `date` (YYYY-MM-DD)
+//          yKey   = unused placeholder for clarity; each series reads its own `key`
+//          fmtY   = (v) => label string (for axis + tooltip)
+//          logY   = bool — log-scale y-axis
+//          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320 }) {
+  const [tf, setTf] = useState(defaultTf);
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const svgRef = useRef(null);
+
+  const tfWeeks = { "1M": 4, "6M": 26, "1Y": 52, "5Y": 260, "Max": data.length };
+  const w = data.slice(-tfWeeks[tf]);
+
+  const W = 800, H = height, padL = 56, padR = 24, padT = 18, padB = 36;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+
+  // y-range across all series in the timeframe
+  const allVals = w.flatMap(p => series.map(s => p[s.key]).filter(v => v != null && (!logY || v > 0)));
+  let yMinRaw = Math.min(...allVals);
+  let yMaxRaw = Math.max(...allVals);
+  const yPad = (yMaxRaw - yMinRaw) * 0.08 || 1;
+  let yMin = yMinRaw - yPad;
+  let yMax = yMaxRaw + yPad;
+  if (logY) { yMin = Math.max(yMin, 0.01); }
+
+  const yScale = logY ? Math.log(yMax / yMin) : (yMax - yMin);
+  const yToPx = (v) => {
+    if (logY) return padT + (Math.log(yMax / v) / yScale) * innerH;
+    return padT + ((yMax - v) / yScale) * innerH;
+  };
+  const xToPx = (i) => padL + (i / Math.max(1, w.length - 1)) * innerW;
+  const pathFor = (key) => w.map((p, i) => {
+    const v = p[key];
+    if (v == null) return null;
+    return [xToPx(i), yToPx(v)];
+  }).filter(Boolean).map((pt, i) => (i === 0 ? "M " : "L ") + pt[0].toFixed(1) + " " + pt[1].toFixed(1)).join(" ");
+
+  // y-axis ticks: 5 ticks evenly spaced (linear) or per-decade (log)
+  const yTicks = [];
+  if (logY) {
+    const lo = Math.log(yMin), hi = Math.log(yMax);
+    for (let i = 0; i <= 4; i++) {
+      const lv = lo + (hi - lo) * (i / 4);
+      const v = Math.exp(lv);
+      yTicks.push({ v, y: yToPx(v) });
+    }
+  } else {
+    for (let i = 0; i <= 4; i++) {
+      const v = yMin + (yMax - yMin) * (i / 4);
+      yTicks.push({ v, y: yToPx(v) });
+    }
+  }
+  // x-axis date labels (3 ticks)
+  const xLabels = [
+    { i: 0, d: w[0]?.date },
+    { i: Math.floor(w.length / 2), d: w[Math.floor(w.length / 2)]?.date },
+    { i: w.length - 1, d: w[w.length - 1]?.date },
+  ].filter(p => p.d).map(p => ({ x: xToPx(p.i), label: (() => { const d = new Date(p.d); return d.toLocaleDateString("en-US", { month: "short", year: tf === "Max" || tf === "5Y" ? "numeric" : "2-digit" }); })() }));
+
+  const handleMove = (e) => {
+    if (!svgRef.current || w.length === 0) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const xRel = (e.clientX - rect.left) / rect.width * W;
+    const xData = (xRel - padL) / innerW;
+    const idx = Math.round(xData * (w.length - 1));
+    if (idx >= 0 && idx < w.length) setHoverIdx(idx);
+  };
+  const handleLeave = () => setHoverIdx(null);
+
+  const hover = hoverIdx != null ? w[hoverIdx] : null;
+  const hoverX = hoverIdx != null ? xToPx(hoverIdx) : null;
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>History · timeframe select · crosshair</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          {["1M", "6M", "1Y", "5Y", "Max"].map(t => (
+            <button key={t} onClick={() => setTf(t)} style={{
+              background: t === tf ? "var(--accent-soft)" : "transparent",
+              border: "1px solid " + (t === tf ? "var(--accent)" : "var(--border)"),
+              color: t === tf ? "var(--accent)" : "var(--text-muted)",
+              borderRadius: 11, padding: "4px 12px", fontSize: 11, letterSpacing: "0.04em", cursor: "pointer", fontWeight: 500,
+            }}>{t}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ position: "relative" }}>
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height, display: "block", cursor: "crosshair" }} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+          {/* y-axis gridlines + labels */}
+          {yTicks.map((t, i) => (
+            <g key={i}>
+              <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="rgba(14,17,21,0.06)" strokeWidth="1" />
+              <text x={padL - 8} y={t.y + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end" fontFamily="Inter">{fmtY(t.v)}</text>
+            </g>
+          ))}
+          {/* x-axis labels */}
+          {xLabels.map((l, i) => (
+            <text key={i} x={l.x} y={H - padB + 18} fontSize="10.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{l.label}</text>
+          ))}
+          {/* series paths */}
+          {series.map(s => (
+            <path key={s.key} d={pathFor(s.key)} fill="none" stroke={s.color} strokeWidth={s.dashed ? "1.4" : "1.7"} strokeDasharray={s.dashed ? "4 4" : undefined} opacity={s.dashed ? 0.8 : 1} />
+          ))}
+          {/* crosshair */}
+          {hoverIdx != null && hoverX != null && (
+            <g>
+              <line x1={hoverX} y1={padT} x2={hoverX} y2={H - padB} stroke="rgba(14,17,21,0.20)" strokeWidth="1" strokeDasharray="2 3" />
+              {series.map(s => {
+                const v = w[hoverIdx][s.key];
+                if (v == null) return null;
+                return <circle key={s.key} cx={hoverX} cy={yToPx(v)} r="4" fill={s.color} stroke="#fff" strokeWidth="1.5" />;
+              })}
+            </g>
+          )}
+        </svg>
+        {/* crosshair tooltip card */}
+        {hover && (
+          <div style={{ position: "absolute", top: 8, right: 8, background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.08)", minWidth: 220 }}>
+            <div style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>{(() => { const d = new Date(hover.date); return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); })()}</div>
+            {series.map(s => (
+              <div key={s.key} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "2px 0" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-2)" }}>
+                  <span style={{ display: "inline-block", width: 10, height: 2, background: s.color, borderRadius: 1 }} />{s.label}
+                </span>
+                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}>{hover[s.key] != null ? fmtY(hover[s.key]) : "—"}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 18, marginTop: 10, fontSize: 11.5, color: "var(--text-muted)", flexWrap: "wrap" }}>
+        {series.map(s => (
+          <span key={s.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "inline-block", width: 14, height: s.dashed ? 0 : 2, borderTop: s.dashed ? "2px dashed " + s.color : "2px solid " + s.color }} />
+            {s.label}
+          </span>
+        ))}
+        <span style={{ marginLeft: "auto" }}>{tf} window · {w.length} points</span>
+      </div>
+    </div>
+  );
+}
+
 export default function AssetTilt({ onOpenTicker }) {
   const [cycleBoard, setCycleBoard] = useState(null);
   const [v10, setV10] = useState(null);
@@ -1584,41 +1735,51 @@ export default function AssetTilt({ onOpenTicker }) {
           </div>
 
           <div style={{ padding: "18px 22px" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
-              {[
-                { lbl: "Final value", val: "$" + (backtest.validation?.engine?.final_value?.toFixed(2) || "—"), sub: "vs SPY $" + (backtest.validation?.spy?.final_value?.toFixed(2) || "—") + " · $1 invested 1986" },
-                { lbl: "CAGR",        val: (backtest.validation?.engine?.cagr?.toFixed(2) || "—") + "%", sub: "vs SPY " + (backtest.validation?.spy?.cagr?.toFixed(2) || "—") + "%" },
-                { lbl: "Volatility",  val: (backtest.validation?.engine?.vol?.toFixed(1) || "—") + "%", sub: "vs SPY " + (backtest.validation?.spy?.vol?.toFixed(1) || "—") + "%" },
-                { lbl: "Max drawdown", val: ((backtest.validation?.engine?.max_drawdown || 0) * 100).toFixed(1) + "%", sub: "vs SPY " + ((backtest.validation?.spy?.max_drawdown || 0) * 100).toFixed(1) + "%" },
-              ].map(k => (
-                <div key={k.lbl} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "12px" }}>
-                  <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>{k.lbl}</div>
-                  <div style={{ fontFamily: "var(--font-display)", fontSize: 22, lineHeight: 1.15, marginTop: 4 }}>{k.val}</div>
-                  <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{k.sub}</div>
-                </div>
-              ))}
+            {/* 3-strategy comparison KPI grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 22 }}>
+              {["spy", "regime_only", "engine"].map(strat => {
+                const v = backtest.validation?.[strat] || {};
+                const labelMap = { spy: "SPY buy & hold", regime_only: "Regime + Cash", engine: "Regime + Sleeve" };
+                const colorMap = { spy: "rgba(94,94,99,0.7)", regime_only: "#0071e3", engine: "var(--accent)" };
+                return (
+                  <div key={strat} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
+                      <span style={{ display: "inline-block", width: 12, height: strat === "regime_only" ? 0 : 2, borderTop: strat === "regime_only" ? "2px dashed " + colorMap[strat] : "2px solid " + colorMap[strat] }} />
+                      {labelMap[strat]}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>$1 →</div><div style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1.15 }}>${v.final_value?.toFixed(2) || "—"}</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>CAGR</div><div style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1.15 }}>{v.cagr?.toFixed(2) || "—"}%</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Sharpe</div><div style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1.15 }}>{v.sharpe?.toFixed(2) || "—"}</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Max DD</div><div style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1.15, color: "var(--red)" }}>{((v.max_drawdown || 0) * 100).toFixed(1)}%</div></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 14, padding: "10px 14px", background: "rgba(0,113,227,0.04)", borderRadius: 8 }}>
+              <strong style={{ color: "var(--text)", fontWeight: 500 }}>Three strategies compared.</strong>{" "}
+              <em>SPY buy &amp; hold</em> is the passive benchmark. <em>Regime + Cash</em> uses the engine's stress signal to de-risk into cash when MOVE crosses the 75th-percentile (Watch) and 85th-percentile (Risk Off) marks — equity exposure scales 100 / 80 / 50%. <em>Regime + Sleeve</em> adds the yield-direction-aware defensive sleeve (Cash + GLD + SHY/TLT keyed off the 3-month change in 10-year yield). The big Sharpe lift comes from the regime signal; the sleeve adds incremental return through the 2000s and 2020 downturns by avoiding duration drag.
+              {" "}<strong style={{ color: "var(--text)", fontWeight: 500 }}>Note:</strong> sector + IG tilts from the v9 factor model are NOT included in these strategy lines — those would require running v9 historically across all 2,056 weeks. This is queued for a Day 4 follow-up.
             </div>
 
             {/* Cumulative wealth chart — engine vs SPY, 1986 onward */}
             <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
               Cumulative wealth · $1 invested December 1986 (log scale)
             </div>
-            <div style={{ background: "var(--surface-2)", borderRadius: 8, padding: "14px", height: 240, marginBottom: 18 }}>
-              {(() => {
-                const w = backtest.weekly || [];
-                if (!w.length) return null;
-                const W = 800, H = 200;
-                const eng = w.map((p, i) => [i / (w.length - 1) * W, H - (Math.log(p.engine_cumulative || 1) / Math.log(100)) * H]);
-                const spy = w.map((p, i) => [i / (w.length - 1) * W, H - (Math.log(p.spy_cumulative || 1) / Math.log(100)) * H]);
-                const path = (pts) => pts.map((p, i) => (i === 0 ? "M " : "L ") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
-                return (
-                  <svg viewBox={"0 0 " + W + " " + H} preserveAspectRatio="none" style={{ width: "100%", height: "100%" }}>
-                    <line x1="0" y1={H * 0.5} x2={W} y2={H * 0.5} stroke="rgba(14,17,21,0.10)" strokeWidth="1" strokeDasharray="3 3"/>
-                    <path d={path(spy)} fill="none" stroke="rgba(94,94,99,0.6)" strokeWidth="1.5"/>
-                    <path d={path(eng)} fill="none" stroke="var(--accent)" strokeWidth="2"/>
-                  </svg>
-                );
-              })()}
+            <div style={{ background: "var(--surface-2)", borderRadius: 8, padding: "16px 20px", marginBottom: 18 }}>
+              <HistoryChart
+                data={backtest.weekly || []}
+                series={[
+                  { key: "engine_cumulative",      label: "Regime + Defensive Sleeve", color: "var(--accent)" },
+                  { key: "regime_only_cumulative", label: "Regime + Cash (no sleeve)", color: "#0071e3", dashed: true },
+                  { key: "spy_cumulative",         label: "SPY buy & hold",            color: "rgba(94,94,99,0.7)" },
+                ]}
+                fmtY={(v) => "$" + v.toFixed(v < 10 ? 1 : 0)}
+                logY={true}
+                defaultTf="Max"
+                height={320}
+              />
             </div>
 
             {/* Drawdown table — engine vs SPY at every major peak-to-trough */}
