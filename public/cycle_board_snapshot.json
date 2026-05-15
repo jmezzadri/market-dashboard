@@ -1,6 +1,6 @@
 {
   "_doc": "v11 cycle-mechanism scores. Sprint 1 (Valuation/Credit/Growth) reads indicator percentiles directly from methodology_calibration_v11.json with direction encoding (high/low/bidir_top/bidir_bottom). Sprint 2 (Funding/Liquidity & Policy/Positioning & Breadth) computes from indicator_history.json post-2011 sample. Refreshed nightly by scripts/compute_v11_mechanisms.py at 22:30 UTC weekdays.",
-  "as_of": "2026-05-14",
+  "as_of": "2026-05-15",
   "framework": "v11 \u2014 six cycle mechanisms",
   "calibration_label": "Sprint 1+2 calibration",
   "mechanisms": [
