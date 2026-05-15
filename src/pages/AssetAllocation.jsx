@@ -1227,6 +1227,18 @@ const NAMED_EVENTS = [
   { start: "2024-12-01", end: "2025-02-14", name: "Steady regime" },
   { start: "2025-09-01", end: "2026-01-01", name: "Late-cycle ease" },
   { start: "2026-02-01", end: "2026-05-31", name: "Current calm regime" },
+  // Additional reference windows
+  { start: "2003-12-01", end: "2004-12-31", name: "Mid-cycle Iraq-era calm" },
+  { start: "2005-06-01", end: "2006-08-31", name: "Goldilocks expansion" },
+  { start: "2009-07-01", end: "2010-03-15", name: "Post-GFC reflation" },
+  { start: "2010-08-01", end: "2011-06-30", name: "QE2 calm" },
+  { start: "2012-08-01", end: "2014-12-31", name: "Post-Eurozone calm" },
+  { start: "2014-08-01", end: "2015-07-31", name: "Pre-China calm" },
+  { start: "2016-08-01", end: "2017-03-31", name: "Post-Brexit calm" },
+  { start: "2019-06-01", end: "2019-07-31", name: "Mid-cycle calm" },
+  { start: "2021-06-01", end: "2021-11-30", name: "Post-COVID extended calm" },
+  { start: "2023-08-01", end: "2024-01-31", name: "Post-banking-stress calm" },
+  { start: "2024-08-15", end: "2024-11-30", name: "Post-carry-unwind calm" },
 ]
 function findNamedEvent(dateStr) {
   for (const e of NAMED_EVENTS) {
@@ -1412,6 +1424,7 @@ export default function AssetTilt({ onOpenTicker }) {
   const [v10, setV10] = useState(null);
   const [macroEngine, setMacroEngine] = useState(null);
   const [backtest, setBacktest] = useState(null);
+  const [indHist, setIndHist] = useState(null);
   const [historyOpen, setHistoryOpen] = useState(null); // null | "stress" | "yield"
   const [historyTimeframe, setHistoryTimeframe] = useState("1Y");
   const [mechModal, setMechModal] = useState(null);
@@ -1426,6 +1439,8 @@ export default function AssetTilt({ onOpenTicker }) {
       .then((r) => r.ok ? r.json() : null).then(setMacroEngine).catch(() => {});
     fetch("/macrotilt_engine_backtest.json", { cache: "no-cache" })
       .then((r) => r.ok ? r.json() : null).then(setBacktest).catch(() => {});
+    fetch("/indicator_history.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
     fetch("/v10_allocation.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setV10).catch(() => setV10(null));
     fetch("/sector_perf.json", { cache: "no-cache" })
@@ -1934,7 +1949,7 @@ export default function AssetTilt({ onOpenTicker }) {
           } else if (!m.similar && inEp) { ep.endIdx = m.idx - 1; episodes.push(ep); inEp = false; }
         }
         if (inEp && ep) { ep.endIdx = allWeeks.length - 1; episodes.push(ep); }
-        const past = episodes.filter(e => (e.endIdx - e.startIdx + 1) >= 4 && (allWeeks.length - 1 - e.peakIdx) > 4);
+        const past = episodes.filter(e => (e.endIdx - e.startIdx + 1) >= 4 && (allWeeks.length - 1 - e.peakIdx) > 4 && (isStress ? allWeeks[e.peakIdx].date >= "2002-11-12" : true));
         const enriched = past.map(e => {
           const peak = allWeeks[e.peakIdx];
           const i = e.peakIdx;
@@ -1984,26 +1999,47 @@ export default function AssetTilt({ onOpenTicker }) {
                 ))}
               </div>
 
-              {/* Chart */}
+              {/* Chart — DAILY data when stress (indicator_history.json), weekly fallback for yield regime */}
               <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
-                <HistoryChart
-                  data={allWeeks}
-                  series={[{ key: valueKey, label: title, color: "var(--accent)" }]}
-                  horizontalLines={[
-                    { value: upperMark, label: (isStress ? "85th-pct = " : "70th-pct = ") + fmtVal(upperMark), color: "rgba(14,17,21,0.55)" },
-                    ...(!isStress ? [{ value: midMark, label: "30th-pct = " + fmtVal(midMark), color: "rgba(14,17,21,0.35)" }] : []),
-                  ]}
-                  fmtY={fmtVal}
-                  defaultTf="1Y"
-                  height={320}
-                  availableOverlays={isStress ? [
-                    { key: "delta_y_3m_bp",    label: "ΔY-3M (bp)",          color: "rgba(94,94,99,0.7)" },
-                    { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
-                  ] : [
-                    { key: "move",              label: "MOVE level",          color: "rgba(94,94,99,0.7)" },
-                    { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
-                  ]}
-                />
+                {(() => {
+                  // Build the daily data set if available
+                  let chartData = allWeeks;
+                  let chartValueKey = valueKey;
+                  let chartLabel = title;
+                  if (isStress && indHist?.move?.points) {
+                    // Daily MOVE (2002-11-12 onward — actual data, not Z-proxy)
+                    chartData = indHist.move.points
+                      .filter(p => p[0] >= "2002-11-12")
+                      .map(p => ({ date: p[0], move: p[1] }));
+                    chartValueKey = "move";
+                  }
+                  // Build daily VIX overlay too (also from indicator_history)
+                  let dailyVixIdx = null;
+                  if (isStress && indHist?.vix?.points && chartData.length > 0) {
+                    dailyVixIdx = {};
+                    for (const [d, v] of indHist.vix.points) dailyVixIdx[d] = v;
+                    chartData = chartData.map(p => ({ ...p, vix: dailyVixIdx[p.date] ?? null }));
+                  }
+                  return (
+                    <HistoryChart
+                      data={chartData}
+                      series={[{ key: chartValueKey, label: chartLabel, color: "var(--accent)" }]}
+                      horizontalLines={[
+                        { value: upperMark, label: (isStress ? "85th-pct = " : "70th-pct = ") + fmtVal(upperMark), color: "rgba(14,17,21,0.55)" },
+                        ...(!isStress ? [{ value: midMark, label: "30th-pct = " + fmtVal(midMark), color: "rgba(14,17,21,0.35)" }] : []),
+                      ]}
+                      fmtY={fmtVal}
+                      defaultTf="5Y"
+                      height={320}
+                      availableOverlays={isStress ? [
+                        ...(dailyVixIdx ? [{ key: "vix", label: "Equity Volatility (VIX)", color: "rgba(168,99,154,0.85)" }] : []),
+                      ] : [
+                        { key: "move",              label: "MOVE level",          color: "rgba(94,94,99,0.7)" },
+                        { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
+                      ]}
+                    />
+                  );
+                })()}
               </div>
 
               {/* Historical reads near today's level */}
