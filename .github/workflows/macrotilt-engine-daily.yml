@@ -1,0 +1,82 @@
+name: macrotilt-engine-daily
+
+# Daily compute of the MacroTilt 2-axis regime engine.
+# Reads public/indicator_history.json (spliced MOVE 2002-11-12+) and pulls
+# DGS10 from FRED. Writes public/macrotilt_engine.json — consumed by Macro
+# Overview page, Asset Tilt page, and the home page tile.
+#
+# Schedule:
+#   - Daily 19:45 UTC weekdays (≈ 15:45 ET standard / 14:45 ET DST)
+#     so the snapshot is current before market close. The weekly Friday read
+#     drives Monday-open execution per the engine spec.
+#
+# Pattern: cycle-mechanisms-daily.yml.
+
+on:
+  schedule:
+    - cron: "45 19 * * 1-5"
+  workflow_dispatch:
+
+concurrency:
+  group: macrotilt-engine-daily
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  compute:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install pandas numpy
+
+      - name: Run compute
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python scripts/compute_macrotilt_engine.py
+
+      - name: Verify snapshot is contract-compatible
+        run: |
+          test -s public/macrotilt_engine.json
+          python -c "
+          import json
+          d = json.load(open('public/macrotilt_engine.json'))
+          assert d.get('as_of'), 'missing as_of'
+          assert d.get('framework') == 'MacroTilt 2-axis engine', f'bad framework: {d.get(\"framework\")}'
+          stress = d.get('stress', {})
+          assert stress.get('state') in ('Risk On','Watch','Risk Off'), f'bad stress state: {stress.get(\"state\")}'
+          assert isinstance(stress.get('move_value'), (int, float))
+          assert 0 <= stress.get('move_percentile_5y') <= 1
+          yr = d.get('yield_regime', {})
+          assert yr.get('state') in ('Inflationary','Neutral','Deflationary'), f'bad yield state: {yr.get(\"state\")}'
+          assert 0 <= yr.get('delta_y_3m_percentile_5y') <= 1
+          alloc = d.get('allocation', {})
+          assert alloc.get('equity_pct') in (50, 80, 100), f'bad equity_pct: {alloc.get(\"equity_pct\")}'
+          assert alloc.get('defensive_pct') in (0, 20, 50), f'bad defensive_pct: {alloc.get(\"defensive_pct\")}'
+          sl = alloc.get('active_sleeve_composition', {})
+          total = sum(sl.values())
+          assert abs(total - 1.0) < 1e-6, f'sleeve composition does not sum to 1: {total}'
+          print('OK', d['as_of'], stress['state'], yr['state'], f'{alloc[\"equity_pct\"]}% equity')
+          "
+
+      - name: Commit snapshot if changed
+        run: |
+          git config user.name "macrotilt-bot"
+          git config user.email "macrotilt-bot@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain public/macrotilt_engine.json)" ]]; then
+            git add public/macrotilt_engine.json
+            git commit -m "MacroTilt engine daily refresh — $(date -u +%Y-%m-%d) [skip ci]"
+            git push
+          else
+            echo "No change to public/macrotilt_engine.json"
+          fi

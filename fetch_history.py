@@ -342,7 +342,7 @@ def fetch_all():
                                  "points": series_to_points(bps, round_dp=1)}
 
     print("MOVE Index ...")
-    s = safe_yf("^MOVE")
+    s = safe_yf("^MOVE", start="2002-11-12")  # spliced pre-2006 window per FINAL_LOCKED_ENGINE_2026-05-13
     if s is not None and len(s) > 100:
         result["move"] = {"freq": "D", "unit": "index",
                           "points": series_to_points(s, round_dp=1)}

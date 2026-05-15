@@ -1,0 +1,39 @@
+{
+  "_doc": "MacroTilt 2-axis regime engine. Axis 1 (stress) drives the de-risking decision from MOVE percentile. Axis 2 (yield direction) selects the defensive sleeve when de-risked. Validated 1986-2026 (Sharpe 0.61, max drawdown 35.0% vs SPY's 54.6%). Refreshed weekly Friday 15:45 ET by scripts/compute_macrotilt_engine.py via .github/workflows/macrotilt-engine-daily.yml.",
+  "framework": "MacroTilt 2-axis engine",
+  "calibration_label": "1986-2026 validated (locked 2026-05-13)",
+  "as_of": "2026-05-15",
+  "next_refresh": "2026-05-22",
+  "stress": {
+    "state": "Risk On",
+    "move_value": 69.6,
+    "move_percentile_5y": 0.161,
+    "watch_threshold_value": 115.8,
+    "risk_off_threshold_value": 123.7,
+    "trailing_window_weeks": 261
+  },
+  "yield_regime": {
+    "state": "Inflationary",
+    "delta_y_3m_bp": 42.0,
+    "delta_y_3m_percentile_5y": 0.766,
+    "inflationary_threshold_bp": 32.0,
+    "deflationary_threshold_bp": -11.0,
+    "trailing_window_weeks": 261
+  },
+  "allocation": {
+    "equity_pct": 100,
+    "defensive_pct": 0,
+    "active_sleeve_label": "Inflationary",
+    "active_sleeve_composition": {
+      "cash": 0.5,
+      "GLD": 0.3,
+      "SHY": 0.2,
+      "TLT": 0.0
+    }
+  },
+  "sources": {
+    "stress_signal": "ICE BofA MOVE Index via Yahoo (^MOVE)",
+    "stress_signal_pre_2002_proxy": "21-day rolling std of DGS10 daily changes x sqrt(252), Z-standardized (validation only; not used live)",
+    "yield_filter": "10-year Treasury constant maturity via FRED (DGS10)"
+  }
+}
