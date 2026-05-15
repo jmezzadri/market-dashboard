@@ -1259,7 +1259,7 @@ function findNamedEvent(dateStr) {
 //          fmtY   = (v) => label string (for axis + tooltip)
 //          logY   = bool — log-scale y-axis
 //          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
-function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null }) {
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null, yMin: yMinProp = null }) {
   const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [overlayKey, setOverlayKey] = useState(defaultOverlay);
@@ -1295,6 +1295,7 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
   let yMin = yMinRaw - yPad;
   let yMax = yMaxRaw + yPad;
   if (logY) { yMin = Math.max(yMin, 0.01); }
+  if (yMinProp != null) { yMin = yMinProp; }
 
   const yScale = logY ? Math.log(yMax / yMin) : (yMax - yMin);
   const yToPx = (v) => {
@@ -1599,7 +1600,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">75th</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Watch · {macroEngine.stress?.watch_threshold_value?.toFixed(0)}</text></>);
                   })()}
                   {/* Risk Off threshold marker (85th pctile) */}
                   {(() => {
@@ -1607,7 +1608,7 @@ export default function AssetTilt({ onOpenTicker }) {
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y + 8} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">85th</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y + 8} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Risk Off · {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}</text></>);
                   })()}
                 </svg>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{macroEngine.stress?.move_value?.toFixed(1)}</div>
@@ -1686,14 +1687,14 @@ export default function AssetTilt({ onOpenTicker }) {
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x - 24} y={y - 6} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">{macroEngine.yield_regime?.deflationary_threshold_bp?.toFixed(0)} bp</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x - 4} y={y - 6} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600" textAnchor="end">Deflat · {macroEngine.yield_regime?.deflationary_threshold_bp?.toFixed(0)} bp</text></>);
                   })()}
                   {(() => {
                     const angle = 180 - (70 * 1.8);
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">+{macroEngine.yield_regime?.inflationary_threshold_bp?.toFixed(0)} bp</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Inflat · +{macroEngine.yield_regime?.inflationary_threshold_bp?.toFixed(0)} bp</text></>);
                   })()}
                 </svg>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{(macroEngine.yield_regime?.delta_y_3m_bp || 0) >= 0 ? "+" : ""}{macroEngine.yield_regime?.delta_y_3m_bp?.toFixed(0)} bp</div>
@@ -1829,35 +1830,35 @@ export default function AssetTilt({ onOpenTicker }) {
           </div>
 
           <div style={{ padding: "18px 22px" }}>
-            {/* 3-strategy comparison KPI grid */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 22 }}>
-              {["spy", "regime_only", "engine"].map(strat => {
-                const v = backtest.validation?.[strat] || {};
-                const labelMap = { spy: "SPY buy & hold", regime_only: "Regime + Cash", engine: "Regime + Sleeve" };
-                const colorMap = { spy: "rgba(94,94,99,0.7)", regime_only: "#0071e3", engine: "var(--accent)" };
+            {/* 4-strategy comparison KPI grid — each tile carries its own description */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
+              {[
+                { key: "spy",          label: "SPY buy & hold",           color: "rgba(94,94,99,0.7)", dashed: false, desc: "Passive benchmark. Hold the broad equity index through every regime." },
+                { key: "regime_only",  label: "Regime + Cash",            color: "#0071e3",            dashed: true,  desc: "Use the engine's stress signal to scale equity 100 / 80 / 50%. Defensive bucket sits in cash." },
+                { key: "engine",       label: "Regime + Defensive Sleeve",color: "var(--accent)",      dashed: false, desc: "Same regime scaling, but the defensive bucket activates the yield-direction-aware sleeve (Cash + GLD + SHY/TLT)." },
+                { key: "asset_tilt",   label: "Engine + Asset Tilt",      color: "#a8639a",            dashed: false, recommended: true, desc: "The MacroTilt strategy. Equity bucket follows the v9 sector allocation; defensive bucket follows the engine sleeve. Full stack." },
+              ].map(s => {
+                const v = backtest.validation?.[s.key] || {};
                 return (
-                  <div key={strat} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
-                      <span style={{ display: "inline-block", width: 12, height: strat === "regime_only" ? 0 : 2, borderTop: strat === "regime_only" ? "2px dashed " + colorMap[strat] : "2px solid " + colorMap[strat] }} />
-                      {labelMap[strat]}
+                  <div key={s.key} style={{ background: "var(--surface-2)", border: s.recommended ? "1.5px solid " + s.color : "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px", position: "relative" }}>
+                    {s.recommended && <span style={{ position: "absolute", top: -8, right: 12, background: s.color, color: "#fff", borderRadius: 11, padding: "2px 9px", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>MacroTilt</span>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>
+                      <span style={{ display: "inline-block", width: 14, height: s.dashed ? 0 : 2, borderTop: s.dashed ? "2px dashed " + s.color : "2px solid " + s.color }} />
+                      {s.label}
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>$1 →</div><div style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1.15 }}>${v.final_value?.toFixed(2) || "—"}</div></div>
-                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>CAGR</div><div style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1.15 }}>{v.cagr?.toFixed(2) || "—"}%</div></div>
-                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Sharpe</div><div style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1.15 }}>{v.sharpe?.toFixed(2) || "—"}</div></div>
-                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Max DD</div><div style={{ fontFamily: "var(--font-display)", fontSize: 20, lineHeight: 1.15, color: "var(--red)" }}>{((v.max_drawdown || 0) * 100).toFixed(1)}%</div></div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>$1 →</div><div style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.15 }}>${v.final_value?.toFixed(2) || "—"}</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>CAGR</div><div style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.15 }}>{v.cagr?.toFixed(2) || "—"}%</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Sharpe</div><div style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.15 }}>{v.sharpe?.toFixed(2) || "—"}</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Max DD</div><div style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.15, color: "var(--red)" }}>{((v.max_drawdown || 0) * 100).toFixed(1)}%</div></div>
                     </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>{s.desc}</div>
                   </div>
                 );
               })}
             </div>
-            <div style={{ fontSize: 11.5, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 14, padding: "10px 14px", background: "rgba(0,113,227,0.04)", borderRadius: 8 }}>
-              <strong style={{ color: "var(--text)", fontWeight: 500 }}>Three strategies compared.</strong>{" "}
-              <em>SPY buy &amp; hold</em> is the passive benchmark. <em>Regime + Cash</em> uses the engine's stress signal to de-risk into cash when MOVE crosses the 75th-percentile (Watch) and 85th-percentile (Risk Off) marks — equity exposure scales 100 / 80 / 50%. <em>Regime + Sleeve</em> adds the yield-direction-aware defensive sleeve (Cash + GLD + SHY/TLT keyed off the 3-month change in 10-year yield). The big Sharpe lift comes from the regime signal; the sleeve adds incremental return through the 2000s and 2020 downturns by avoiding duration drag.
-              {" "}<strong style={{ color: "var(--text)", fontWeight: 500 }}>Note:</strong> sector + IG tilts from the v9 factor model are NOT included in these strategy lines — those would require running v9 historically across all 2,056 weeks. This is queued for a Day 4 follow-up.
-            </div>
 
-            {/* Cumulative wealth chart — engine vs SPY, 1986 onward */}
+            {/* Cumulative wealth chart — 4 strategies overlaid */}
             <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
               Cumulative wealth · $1 invested December 1986 (log scale)
             </div>
@@ -1865,14 +1866,16 @@ export default function AssetTilt({ onOpenTicker }) {
               <HistoryChart
                 data={backtest.weekly || []}
                 series={[
+                  { key: "asset_tilt_cumulative",  label: "Engine + Asset Tilt",       color: "#a8639a" },
                   { key: "engine_cumulative",      label: "Regime + Defensive Sleeve", color: "var(--accent)" },
-                  { key: "regime_only_cumulative", label: "Regime + Cash (no sleeve)", color: "#0071e3", dashed: true },
+                  { key: "regime_only_cumulative", label: "Regime + Cash",             color: "#0071e3", dashed: true },
                   { key: "spy_cumulative",         label: "SPY buy & hold",            color: "rgba(94,94,99,0.7)" },
                 ]}
-                fmtY={(v) => "$" + v.toFixed(v < 10 ? 1 : 0)}
+                fmtY={(v) => "$" + (v < 10 ? v.toFixed(1) : Math.round(v).toLocaleString())}
                 logY={true}
+                yMin={1.0}
                 defaultTf="Max"
-                height={320}
+                height={340}
               />
             </div>
 
