@@ -20,13 +20,13 @@
       "id": "funding",
       "num": "03",
       "name": "Funding",
-      "score": 44
+      "score": 46
     },
     {
       "id": "growth",
       "num": "04",
       "name": "Growth",
-      "score": 46
+      "score": 48
     },
     {
       "id": "liquidity_policy",
@@ -38,7 +38,7 @@
       "id": "positioning_breadth",
       "num": "06",
       "name": "Positioning & Breadth",
-      "score": 64
+      "score": 73
     }
   ]
 }
