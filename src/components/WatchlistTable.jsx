@@ -26,6 +26,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import useRiskMetricsBatch from "../hooks/useRiskMetricsBatch";
 import useV5ScanBatch from "../hooks/useV5ScanBatch";
+import usePricesEodBatch from "../hooks/usePricesEodBatch";
 import { Tip } from "../InfoTip";
 import {
   computeSectionComposites,
@@ -639,6 +640,11 @@ export default function WatchlistTable({
   const _tickers = useMemo(() => (rows || []).map(r => String(r.ticker || "").toUpperCase()).filter(Boolean), [rows]);
   const { metrics: _riskByTicker } = useRiskMetricsBatch(_tickers);
   const { byTicker: _v5ByTicker } = useV5ScanBatch(_tickers);
+  // Single source of truth for price + day-change: prices_eod via the
+  // batched hook. Replaces the old scanData.signals.screener.close read,
+  // which had its own refresh cadence and could disagree with the
+  // Positions table on the same screen (Joe 2026-05-15 bug report).
+  const { byTicker: _eodByTicker } = usePricesEodBatch(_tickers);
 
   const enriched = useMemo(() => {
     return (rows || []).map((w) => {
@@ -662,9 +668,20 @@ export default function WatchlistTable({
       const hasRealName = w.name && w.name.trim().toUpperCase() !== t;
       const rawName = hasRealName ? w.name : (sc.full_name || inf.full_name || "");
 
-      const price    = sc.close != null ? Number(sc.close) : (sc.prev_close != null ? Number(sc.prev_close) : null);
-      const prev     = sc.prev_close != null ? Number(sc.prev_close) : null;
-      const dayChangePct = (price != null && prev) ? (price / prev - 1) * 100 : null;
+      // Price + prev-close come from prices_eod via usePricesEodBatch so
+      // every list-rendering surface (Watchlist here, Positions in
+      // useUserPortfolio's positions.price, the drawer headline in
+      // useTickerEodPrice) resolves the same numbers. Fall back to the
+      // legacy screener overlay only when prices_eod has no row for
+      // the ticker — that is the case for very-new listings before
+      // the first overnight ingest.
+      const eod = _eodByTicker[t] || {};
+      const price = Number.isFinite(eod.close) ? eod.close
+                  : (sc.close != null ? Number(sc.close) : (sc.prev_close != null ? Number(sc.prev_close) : null));
+      const prev  = Number.isFinite(eod.prev_close) ? eod.prev_close
+                  : (sc.prev_close != null ? Number(sc.prev_close) : null);
+      const dayChangePct = Number.isFinite(eod.day_pct) ? eod.day_pct
+                         : ((price != null && prev) ? (price / prev - 1) * 100 : null);
 
       const onWatchlist = userWatchlistTickers ? userWatchlistTickers.has(t) : false;
       return {
