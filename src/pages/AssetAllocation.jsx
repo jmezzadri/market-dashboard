@@ -4,7 +4,7 @@
 //   /cycle_board_snapshot.json  — 6 mechanism scores (refreshed nightly at 22:30 UTC)
 //   /v10_allocation.json        — today's recommended allocation (refreshed nightly at 22:45 UTC)
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import FreshnessDot from "../components/FreshnessDot";
 import { InfoTip } from "../InfoTip";
 import MTTable from "../components/MTTable";
@@ -875,25 +875,118 @@ function StockTable({ stocks, onTickerClick }) {
   );
 }
 
+// Mechanism description / input indicators / sector impact — keyed by id.
+// Used to populate the rich MechanismModal when a heatmap row is clicked.
+const MECH_INPUTS = {
+  valuation: {
+    desc: "Equity valuations vs history. Captures stretched / cheap conditions across price multiples, real yields, and credit spreads.",
+    indicators: [
+      { name: "Shiller CAPE", source: "Robert Shiller / multpl.com", direction: "high = concerning" },
+      { name: "10-year Treasury yield", source: "FRED · DGS10", direction: "low = concerning (cheap discount rate)" },
+      { name: "HY OAS", source: "ICE BofA · FRED BAMLH0A0HYM2", direction: "low = concerning (complacent credit)" },
+    ],
+  },
+  credit: {
+    desc: "Credit-market stress. When spreads widen and bank lending tightens, equity risk premium climbs.",
+    indicators: [
+      { name: "IG OAS", source: "ICE BofA · FRED BAMLC0A0CM", direction: "high = concerning" },
+      { name: "HY OAS", source: "ICE BofA · FRED BAMLH0A0HYM2", direction: "high = concerning" },
+      { name: "SLOOS C&I lending standards", source: "Federal Reserve · FRED DRTSCILM", direction: "tightening = concerning" },
+    ],
+  },
+  funding: {
+    desc: "Funding-market stress. Commercial paper spreads + financial conditions indices price the cost of short-dated leverage.",
+    indicators: [
+      { name: "CPFF (3M CP − Fed funds)", source: "Federal Reserve · FRED DCPF3M − DFF", direction: "high = concerning" },
+      { name: "ANFCI", source: "Chicago Fed · FRED ANFCI", direction: "high = concerning" },
+      { name: "STLFSI4", source: "St Louis Fed · FRED STLFSI4", direction: "high = concerning" },
+    ],
+  },
+  growth: {
+    desc: "Real-economy growth pulse. ISM, jobless claims, JOLTS quits aggregate the demand backdrop.",
+    indicators: [
+      { name: "ISM Manufacturing PMI", source: "ISM", direction: "low = concerning" },
+      { name: "Initial jobless claims (4w avg)", source: "DOL · FRED IC4WSA", direction: "high = concerning" },
+      { name: "JOLTS quits rate", source: "BLS · FRED JTSQUR", direction: "low = concerning" },
+    ],
+  },
+  liquidity_policy: {
+    desc: "Monetary liquidity and policy stance. Reserves, money supply, and the Fed balance sheet trajectory.",
+    indicators: [
+      { name: "M2 YoY growth", source: "Federal Reserve · FRED M2SL", direction: "low = concerning" },
+      { name: "Fed balance sheet", source: "Federal Reserve · FRED WALCL", direction: "shrinking = concerning" },
+      { name: "RRP usage", source: "Federal Reserve · FRED RRPONTSYD", direction: "high = excess liquidity" },
+    ],
+  },
+  positioning_breadth: {
+    desc: "Market-internal positioning and breadth. Bank-sector relative strength, eq-credit correlation, and SKEW gauge how stretched positioning is.",
+    indicators: [
+      { name: "KBW Bank / S&P ratio", source: "Yahoo · ^BKX / ^GSPC", direction: "low = concerning (bank stress)" },
+      { name: "Eq-Credit correlation", source: "Derived · SPY vs HY OAS", direction: "low = concerning (decoupling)" },
+      { name: "SKEW", source: "CBOE · ^SKEW", direction: "high = concerning (tail demand)" },
+    ],
+  },
+};
+
 function MechanismModal({ mechanism, onClose }) {
   if (!mechanism) return null;
   const b = bandOf(mechanism.score);
+  const meta = MECH_INPUTS[mechanism.id] || { desc: "", indicators: [] };
+  const bandBg = b === "risk-on" ? "rgba(47,157,106,0.12)" : b === "risk-off" ? "rgba(200,70,88,0.12)" : "rgba(94,94,99,0.12)";
   return (
     <ModalShell
       title={`${mechanism.num} · ${mechanism.name}`}
-      subtitle="Cycle mechanism"
+      subtitle="Cycle mechanism · diagnostic for sector tilts"
       badge={<span style={{
-        background: b === "risk-on" ? RATING_BG.OW : b === "risk-off" ? RATING_BG.UW : RATING_BG.MW,
+        background: bandBg,
         color: BAND_COLOR[b],
         fontSize: 11, fontWeight: 600, padding: "4px 10px", borderRadius: 999,
       }}>{bandLabel(b)} · {mechanism.score}/100</span>}
       onClose={onClose}
     >
-      <p style={{ fontSize: 13, lineHeight: 1.55, color: "var(--text-muted)", margin: "16px 0 0" }}>
-        Mechanism score derived from quartile-based scoring of underlying indicators in
-        the post-2011 historical sample. Bands: 0-25 Risk On · 25-50 Neutral · 50-75 Caution · 75-100 Risk Off.
-        See methodology page for the input panel and threshold logic.
-      </p>
+      <p style={{ fontSize: 14, lineHeight: 1.6, color: "var(--text)", margin: "16px 0 18px" }}>{meta.desc}</p>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10, marginBottom: 18 }}>
+        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "12px 14px" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Today's score</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, lineHeight: 1.15, marginTop: 4 }}>{mechanism.score}<span style={{ fontSize: 14, color: "var(--text-muted)" }}> / 100</span></div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{bandLabel(b)} band</div>
+        </div>
+        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "12px 14px" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Indicator panel</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: 24, lineHeight: 1.15, marginTop: 4 }}>{meta.indicators.length}</div>
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>primitives feeding score</div>
+        </div>
+        <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "12px 14px" }}>
+          <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>Bands</div>
+          <div style={{ fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>0-25 Risk On<br/>25-50 Neutral<br/>50-75 Caution<br/>75-100 Risk Off</div>
+        </div>
+      </div>
+
+      <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>Input indicators</div>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginBottom: 18 }}>
+        <thead>
+          <tr>
+            <th style={{ textAlign: "left", padding: "8px 8px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Indicator</th>
+            <th style={{ textAlign: "left", padding: "8px 8px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Source</th>
+            <th style={{ textAlign: "left", padding: "8px 8px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--text-muted)", fontWeight: 600 }}>Direction</th>
+          </tr>
+        </thead>
+        <tbody>
+          {meta.indicators.map(ind => (
+            <tr key={ind.name}>
+              <td style={{ padding: "8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text)" }}>{ind.name}</td>
+              <td style={{ padding: "8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text-muted)" }}>{ind.source}</td>
+              <td style={{ padding: "8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text-muted)", fontStyle: "italic" }}>{ind.direction}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div style={{ paddingTop: 14, borderTop: "1px solid var(--border-faint)", fontSize: 11, color: "var(--text-muted)", lineHeight: 1.6 }}>
+        <strong style={{ color: "var(--text)", fontWeight: 500 }}>Methodology.</strong>{" "}
+        Mechanism score is the equal-weighted mean of direction-corrected percentile ranks across the input indicators. Higher score = more concerning conditions. Sector impact (the heatmap row) shows the mechanism's marginal contribution to each sector's tilt rating today.
+      </div>
     </ModalShell>
   );
 }
@@ -1112,13 +1205,17 @@ export function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBa
 }
 
 
-function HeatmapTile({ contributionMatrix, mechanismScores }) {
+function HeatmapTile({ contributionMatrix, mechanismScores, onMechanismClick }) {
   if (!contributionMatrix) return null;
   const sectors = contributionMatrix.cols_sectors;
   const mechs = contributionMatrix.rows;
   const MECH_LABEL = {
     valuation: "Valuation", credit: "Credit", funding: "Funding",
     growth: "Growth", liquidity_policy: "Liquidity & Policy", positioning_breadth: "Positioning & Breadth",
+  };
+  const MECH_NUM = {
+    valuation: "01", credit: "02", funding: "03",
+    growth: "04", liquidity_policy: "05", positioning_breadth: "06",
   };
   const cellColor = (v) => {
     if (Math.abs(v) < 0.15) return { bg: "rgba(94,94,99,0.10)", color: "var(--text-muted)" };
@@ -1156,14 +1253,19 @@ function HeatmapTile({ contributionMatrix, mechanismScores }) {
           </thead>
           <tbody>
             {mechs.map(m => (
-              <tr key={m}>
+              <tr key={m}
+                  onClick={() => onMechanismClick && onMechanismClick({ id: m, num: MECH_NUM[m] || "·", name: MECH_LABEL[m], score: Math.round(mechanismScores?.[m] ?? 0) })}
+                  style={{ cursor: onMechanismClick ? "pointer" : "default" }}
+                  onMouseEnter={(e) => { if (onMechanismClick) e.currentTarget.style.background = "var(--surface-2)"; }}
+                  onMouseLeave={(e) => { if (onMechanismClick) e.currentTarget.style.background = "transparent"; }}>
                 <td style={{ padding: "5px 12px", fontWeight: 500, fontSize: 12 }}>
-                  <span style={{ color: "var(--text)" }}>{MECH_LABEL[m]}</span>
+                  <span style={{ color: "var(--accent)", textDecoration: "underline", textUnderlineOffset: 2, textDecorationColor: "rgba(0,113,227,0.3)" }}>{MECH_LABEL[m]}</span>
                   {mechanismScores && mechanismScores[m] != null && (
                     <span style={{ marginLeft: 8, fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>
                       {Math.round(mechanismScores[m])} <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>/ 100</span>
                     </span>
                   )}
+                  <span style={{ marginLeft: 8, fontSize: 10, color: "var(--accent)", letterSpacing: "0.04em" }}>›</span>
                 </td>
                 {sectors.map(s => {
                   const v = contributionMatrix.by_sector[s]?.[m] ?? 0;
@@ -1189,9 +1291,266 @@ function HeatmapTile({ contributionMatrix, mechanismScores }) {
 
 // ─── Main ────────────────────────────────────────────────────────────────
 
+
+
+// ── Named events for "Historical reads near today's level" table ──────
+// Curated from major market regime episodes. findNamedEvent(date) returns
+// the descriptive label for a given YYYY-MM-DD date, falling back to a
+// month/year date label if none match.
+const NAMED_EVENTS = [
+  // Crisis / stress episodes
+  { start: "1987-08-01", end: "1988-03-01", name: "Black Monday & aftermath" },
+  { start: "1990-07-01", end: "1991-04-01", name: "1990 recession" },
+  { start: "1994-02-01", end: "1994-12-01", name: "Bond market massacre" },
+  { start: "1997-07-01", end: "1997-12-01", name: "Asian financial crisis" },
+  { start: "1998-08-01", end: "1999-01-15", name: "LTCM crisis" },
+  { start: "2000-03-01", end: "2002-10-01", name: "Dot-com bust" },
+  { start: "2007-07-01", end: "2009-03-15", name: "Global Financial Crisis" },
+  { start: "2010-04-15", end: "2010-07-01", name: "Flash Crash & Eurozone" },
+  { start: "2011-07-15", end: "2011-12-01", name: "S&P downgrade · Eurozone" },
+  { start: "2013-05-15", end: "2013-09-30", name: "Taper tantrum" },
+  { start: "2015-08-15", end: "2016-02-15", name: "China devaluation" },
+  { start: "2018-02-01", end: "2018-04-15", name: "Volmageddon" },
+  { start: "2018-09-15", end: "2019-01-15", name: "Q4 2018 selloff" },
+  { start: "2020-02-15", end: "2020-04-30", name: "COVID crash" },
+  { start: "2022-01-01", end: "2022-10-15", name: "Inflation · rate hikes" },
+  { start: "2023-03-01", end: "2023-05-15", name: "SVB · banking stress" },
+  { start: "2025-02-15", end: "2025-06-15", name: "Tariff fears" },
+  // Calm-period labels — used when today's stress level is low and we
+  // look for prior similar-low reads. Matches the live modal copy style.
+  { start: "1995-06-01", end: "1996-06-01", name: "Mid-90s expansion calm" },
+  { start: "2003-12-01", end: "2007-06-01", name: "Pre-GFC calm" },
+  { start: "2012-04-01", end: "2013-04-01", name: "Post-Eurozone calm" },
+  { start: "2014-01-01", end: "2014-08-01", name: "Tapering calm" },
+  { start: "2017-04-01", end: "2018-01-15", name: "Pre-Volmageddon calm" },
+  { start: "2019-04-01", end: "2020-02-14", name: "Pre-COVID calm" },
+  { start: "2021-04-01", end: "2021-11-01", name: "Post-COVID calm" },
+  { start: "2024-04-01", end: "2024-07-31", name: "Post-SVB calm" },
+  { start: "2024-12-01", end: "2025-02-14", name: "Steady regime" },
+  { start: "2025-09-01", end: "2026-01-01", name: "Late-cycle ease" },
+  { start: "2026-02-01", end: "2026-05-31", name: "Current calm regime" },
+  // Additional reference windows
+  { start: "2003-12-01", end: "2004-12-31", name: "Mid-cycle Iraq-era calm" },
+  { start: "2005-06-01", end: "2006-08-31", name: "Goldilocks expansion" },
+  { start: "2009-07-01", end: "2010-03-15", name: "Post-GFC reflation" },
+  { start: "2010-08-01", end: "2011-06-30", name: "QE2 calm" },
+  { start: "2012-08-01", end: "2014-12-31", name: "Post-Eurozone calm" },
+  { start: "2014-08-01", end: "2015-07-31", name: "Pre-China calm" },
+  { start: "2016-08-01", end: "2017-03-31", name: "Post-Brexit calm" },
+  { start: "2019-06-01", end: "2019-07-31", name: "Mid-cycle calm" },
+  { start: "2021-06-01", end: "2021-11-30", name: "Post-COVID extended calm" },
+  { start: "2023-08-01", end: "2024-01-31", name: "Post-banking-stress calm" },
+  { start: "2024-08-15", end: "2024-11-30", name: "Post-carry-unwind calm" },
+]
+function findNamedEvent(dateStr) {
+  for (const e of NAMED_EVENTS) {
+    if (dateStr >= e.start && dateStr <= e.end) return e.name;
+  }
+  // Fallback: month/year label
+  const d = new Date(dateStr);
+  return d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
+
+// ── HistoryChart — interactive line chart with timeframe + crosshair ──
+// Mirrors the live Macro Overview modal chart pattern. Used by both the
+// Backtest Validation section and any other inline history view that
+// needs the same brand-consistent look + feel.
+//   props: series = [{ key, label, color, dashed?: bool }]
+//          data   = full array of points keyed by `date` (YYYY-MM-DD)
+//          yKey   = unused placeholder for clarity; each series reads its own `key`
+//          fmtY   = (v) => label string (for axis + tooltip)
+//          logY   = bool — log-scale y-axis
+//          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null, yMin: yMinProp = null }) {
+  const [tf, setTf] = useState(defaultTf);
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const [overlayKey, setOverlayKey] = useState(defaultOverlay);
+  const svgRef = useRef(null);
+  const overlay = overlayKey ? availableOverlays.find(o => o.key === overlayKey) : null;
+  const allSeries = overlay ? [...series, { ...overlay, dashed: true }] : series;
+
+  // Auto-detect data cadence (daily vs weekly) by sampling gaps between consecutive dates
+  const cadence = (() => {
+    if (data.length < 10) return "weekly";
+    let gapSum = 0, n = 0;
+    for (let i = 1; i < Math.min(20, data.length); i++) {
+      const a = new Date(data[i - 1].date), b = new Date(data[i].date);
+      gapSum += (b - a) / (1000 * 60 * 60 * 24);
+      n++;
+    }
+    return (gapSum / n) < 4 ? "daily" : "weekly";
+  })();
+  const tfPoints = cadence === "daily"
+    ? { "1M": 21, "6M": 126, "1Y": 252, "5Y": 1260, "Max": data.length }
+    : { "1M": 4,  "6M": 26,  "1Y": 52,  "5Y": 260,  "Max": data.length };
+  const w = data.slice(-tfPoints[tf]);
+
+  const W = 800, H = height, padL = 56, padR = 24, padT = 18, padB = 36;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
+
+  // y-range across all series in the timeframe
+  const allVals = [...w.flatMap(p => allSeries.map(s => p[s.key]).filter(v => v != null && (!logY || v > 0))), ...horizontalLines.map(h => h.value).filter(v => v != null)];
+  let yMinRaw = Math.min(...allVals);
+  let yMaxRaw = Math.max(...allVals);
+  // Multiplicative padding for log scale, additive for linear.
+  let yMin, yMax;
+  if (logY) {
+    yMin = yMinRaw / 1.04;
+    yMax = yMaxRaw * 1.04;
+    yMin = Math.max(yMin, 0.01);
+  } else {
+    const yPad = (yMaxRaw - yMinRaw) * 0.08 || Math.abs(yMaxRaw) * 0.05 || 1;
+    yMin = yMinRaw - yPad;
+    yMax = yMaxRaw + yPad;
+  }
+  if (yMinProp != null) { yMin = yMinProp; }
+
+  const yScale = logY ? Math.log(yMax / yMin) : (yMax - yMin);
+  const yToPx = (v) => {
+    if (logY) return padT + (Math.log(yMax / v) / yScale) * innerH;
+    return padT + ((yMax - v) / yScale) * innerH;
+  };
+  const xToPx = (i) => padL + (i / Math.max(1, w.length - 1)) * innerW;
+  const pathFor = (key) => w.map((p, i) => {
+    const v = p[key];
+    if (v == null) return null;
+    return [xToPx(i), yToPx(v)];
+  }).filter(Boolean).map((pt, i) => (i === 0 ? "M " : "L ") + pt[0].toFixed(1) + " " + pt[1].toFixed(1)).join(" ");
+
+  // y-axis ticks: 5 ticks evenly spaced (linear) or per-decade (log)
+  const yTicks = [];
+  if (logY) {
+    const lo = Math.log(yMin), hi = Math.log(yMax);
+    for (let i = 0; i <= 4; i++) {
+      const lv = lo + (hi - lo) * (i / 4);
+      const v = Math.exp(lv);
+      yTicks.push({ v, y: yToPx(v) });
+    }
+  } else {
+    for (let i = 0; i <= 4; i++) {
+      const v = yMin + (yMax - yMin) * (i / 4);
+      yTicks.push({ v, y: yToPx(v) });
+    }
+  }
+  // x-axis date labels (3 ticks)
+  const xLabels = [
+    { i: 0, d: w[0]?.date },
+    { i: Math.floor(w.length / 2), d: w[Math.floor(w.length / 2)]?.date },
+    { i: w.length - 1, d: w[w.length - 1]?.date },
+  ].filter(p => p.d).map(p => ({ x: xToPx(p.i), label: (() => { const d = new Date(p.d); return d.toLocaleDateString("en-US", { month: "short", year: tf === "Max" || tf === "5Y" ? "numeric" : "2-digit" }); })() }));
+
+  const handleMove = (e) => {
+    if (!svgRef.current || w.length === 0) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const xRel = (e.clientX - rect.left) / rect.width * W;
+    const xData = (xRel - padL) / innerW;
+    const idx = Math.round(xData * (w.length - 1));
+    if (idx >= 0 && idx < w.length) setHoverIdx(idx);
+  };
+  const handleLeave = () => setHoverIdx(null);
+
+  const hover = hoverIdx != null ? w[hoverIdx] : null;
+  const hoverX = hoverIdx != null ? xToPx(hoverIdx) : null;
+
+  return (
+    <div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>History · timeframe select · crosshair{availableOverlays.length > 0 ? " · overlay" : ""}</div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {availableOverlays.length > 0 && (
+            <select value={overlayKey || ""} onChange={(e) => setOverlayKey(e.target.value || null)} style={{
+              fontSize: 11, padding: "4px 10px", borderRadius: 11, border: "1px solid var(--border)",
+              background: "var(--surface)", color: "var(--text)", cursor: "pointer", marginRight: 8, letterSpacing: "0.04em",
+            }}>
+              <option value="">OVERLAY…</option>
+              {availableOverlays.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+            </select>
+          )}
+          {["1M", "6M", "1Y", "5Y", "Max"].map(t => (
+            <button key={t} onClick={() => setTf(t)} style={{
+              background: t === tf ? "var(--accent-soft)" : "transparent",
+              border: "1px solid " + (t === tf ? "var(--accent)" : "var(--border)"),
+              color: t === tf ? "var(--accent)" : "var(--text-muted)",
+              borderRadius: 11, padding: "4px 12px", fontSize: 11, letterSpacing: "0.04em", cursor: "pointer", fontWeight: 500,
+            }}>{t}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ position: "relative" }}>
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height, display: "block", cursor: "crosshair" }} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+          {/* y-axis gridlines + labels */}
+          {yTicks.map((t, i) => (
+            <g key={i}>
+              <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="rgba(14,17,21,0.06)" strokeWidth="1" />
+              <text x={padL - 8} y={t.y + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end" fontFamily="Inter">{fmtY(t.v)}</text>
+            </g>
+          ))}
+          {/* x-axis labels */}
+          {xLabels.map((l, i) => (
+            <text key={i} x={l.x} y={H - padB + 18} fontSize="10.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{l.label}</text>
+          ))}
+          {/* horizontal reference lines */}
+          {horizontalLines.map((h, i) => (
+            <g key={"h" + i}>
+              <line x1={padL} y1={yToPx(h.value)} x2={W - padR} y2={yToPx(h.value)} stroke={h.color || "var(--text-muted)"} strokeWidth="1.2" strokeDasharray="6 4" />
+              <text x={W - padR - 6} y={yToPx(h.value) - 6} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
+            </g>
+          ))}
+          {/* series paths */}
+          {allSeries.map(s => (
+            <path key={s.key} d={pathFor(s.key)} fill="none" stroke={s.color} strokeWidth={s.dashed ? "1.4" : "1.7"} strokeDasharray={s.dashed ? "4 4" : undefined} opacity={s.dashed ? 0.8 : 1} />
+          ))}
+          {/* crosshair */}
+          {hoverIdx != null && hoverX != null && (
+            <g>
+              <line x1={hoverX} y1={padT} x2={hoverX} y2={H - padB} stroke="rgba(14,17,21,0.20)" strokeWidth="1" strokeDasharray="2 3" />
+              {allSeries.map(s => {
+                const v = w[hoverIdx][s.key];
+                if (v == null) return null;
+                return <circle key={s.key} cx={hoverX} cy={yToPx(v)} r="4" fill={s.color} stroke="#fff" strokeWidth="1.5" />;
+              })}
+            </g>
+          )}
+        </svg>
+        {/* crosshair tooltip card */}
+        {hover && (
+          <div style={{ position: "absolute", top: 8, right: 8, background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.08)", minWidth: 220 }}>
+            <div style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>{(() => { const d = new Date(hover.date); return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); })()}</div>
+            {allSeries.map(s => (
+              <div key={s.key} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "2px 0" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-2)" }}>
+                  <span style={{ display: "inline-block", width: 10, height: 2, background: s.color, borderRadius: 1 }} />{s.label}
+                </span>
+                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}>{hover[s.key] != null ? fmtY(hover[s.key]) : "—"}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 18, marginTop: 10, fontSize: 11.5, color: "var(--text-muted)", flexWrap: "wrap" }}>
+        {[...allSeries, ...horizontalLines.map((h, i) => ({ key: "hline" + i, label: h.label, color: h.color || "var(--text-muted)", dashed: true }))].map(s => (
+          <span key={s.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "inline-block", width: 14, height: s.dashed ? 0 : 2, borderTop: s.dashed ? "2px dashed " + s.color : "2px solid " + s.color }} />
+            {s.label}
+          </span>
+        ))}
+        <span style={{ marginLeft: "auto" }}>{tf} window · {w.length} points</span>
+      </div>
+    </div>
+  );
+}
+
 export default function AssetTilt({ onOpenTicker }) {
   const [cycleBoard, setCycleBoard] = useState(null);
   const [v10, setV10] = useState(null);
+  const [macroEngine, setMacroEngine] = useState(null);
+  const [backtest, setBacktest] = useState(null);
+  const [indHist, setIndHist] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(null); // null | "stress" | "yield"
+  const [historyTimeframe, setHistoryTimeframe] = useState("1Y");
+  const [stressBarHover, setStressBarHover] = useState(null); // index | null
+  const [yieldBarHover, setYieldBarHover] = useState(null);
   const [mechModal, setMechModal] = useState(null);
   const [sectorModal, setSectorModal] = useState(null);
   const [igModal, setIgModal] = useState(null);
@@ -1200,6 +1559,12 @@ export default function AssetTilt({ onOpenTicker }) {
   useEffect(() => {
     fetch("/cycle_board_snapshot.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setCycleBoard).catch(() => setCycleBoard(null));
+    fetch("/macrotilt_engine.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null).then(setMacroEngine).catch(() => {});
+    fetch("/macrotilt_engine_backtest.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null).then(setBacktest).catch(() => {});
+    fetch("/indicator_history.json", { cache: "no-cache" })
+      .then((r) => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
     fetch("/v10_allocation.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setV10).catch(() => setV10(null));
     fetch("/sector_perf.json", { cache: "no-cache" })
@@ -1246,10 +1611,10 @@ export default function AssetTilt({ onOpenTicker }) {
         eyebrow="Asset Tilt"
         title={<>A back-tested <em>asset allocation tool</em> that seeks to beat the S&amp;P 500 on a risk-adjusted basis over the long run.</>}
         bullets={[
-          "Dozens of macro variables correlated to equity sector-specific risk factors",
-          <>Overlaid with Regime readings from <a href="#overview" style={{color:"var(--accent)", fontWeight:500, textDecoration:"none", borderBottom:"1px solid var(--accent)"}}>Macro Overview</a></>,
-          "Rules to keep allocations in the fairway (e.g., leverage ≤ 150%, defensive ≤ 50%)",
-          "One simple asset allocation recommendation",
+          "Bond-market volatility (MOVE) and 3-month change in 10-year yield set the regime + equity exposure",
+          "Factor-level reads on credit, valuation, breadth, growth and liquidity drive sector + industry-group tilts within the equity bucket",
+          "Defensive sleeve fires only when stress crosses the Watch threshold; sleeve composition keys off yield direction (Inflationary / Neutral / Deflationary)",
+          "Validated 1986 → 2026 over 2,056 weeks · Sharpe 0.61 vs SPY 0.50 · max drawdown 35% vs 55%",
         ]}
         right={
 <aside style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, padding: "18px 20px 14px", display: "flex", flexDirection: "column", textAlign: "center" }}>
@@ -1258,10 +1623,10 @@ export default function AssetTilt({ onOpenTicker }) {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, flex: 1, textAlign: "left" }}>
             {[
-              { label: "CAGR",         value: "13.85%",  sub: "vs SPY 11.61%" },
-              { label: "Sharpe",       value: "1.034",    sub: "annualized" },
-              { label: "Max Drawdown", value: "−20.81%", sub: "peak-to-trough" },
-              { label: "Calibration",  value: "Jan 2012", sub: "through May 2026" },
+              { label: "CAGR",         value: backtest?.validation?.engine?.cagr != null ? backtest.validation.engine.cagr.toFixed(2) + "%" : "11.74%",  sub: "vs SPY " + (backtest?.validation?.spy?.cagr != null ? backtest.validation.spy.cagr.toFixed(2) + "%" : "10.86%") },
+              { label: "Sharpe",       value: backtest?.validation?.engine?.sharpe != null ? backtest.validation.engine.sharpe.toFixed(2) : "0.61",    sub: "vs SPY " + (backtest?.validation?.spy?.sharpe != null ? backtest.validation.spy.sharpe.toFixed(2) : "0.50") },
+              { label: "Max Drawdown", value: backtest?.validation?.engine?.max_drawdown != null ? (backtest.validation.engine.max_drawdown * 100).toFixed(1) + "%" : "−35.0%", sub: "vs SPY " + (backtest?.validation?.spy?.max_drawdown != null ? (backtest.validation.spy.max_drawdown * 100).toFixed(1) + "%" : "−54.6%") },
+              { label: "Validated",    value: "1986 → 2026", sub: (backtest?.validation?.n_weeks || "2,056") + " weeks" },
             ].map(t => (
               <div key={t.label} style={{
                 background: "var(--surface-2)", border: "0.5px solid var(--border-faint)",
@@ -1286,6 +1651,252 @@ export default function AssetTilt({ onOpenTicker }) {
         </aside>
         }
       />
+
+      {/* TODAY'S ENGINE READ — new 2-axis regime engine (validated 1986-2026).
+          Reads /macrotilt_engine.json. Two dials in MacroTilt's existing
+          dial pattern: Stress (MOVE percentile) + Yield Regime (3-month change
+          in 10Y yield, percentile-ranked). Sleeve composition hidden when
+          defensive_pct = 0 (Risk On). */}
+      {macroEngine && (
+        <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, padding: "24px 28px", margin: "24px 32px 0" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 16 }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Today's Engine Read</h2>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+              <FreshnessDot indicatorId="macrotilt_engine" asOfIso={macroEngine.as_of} />
+              <span style={{ marginLeft: 8 }}>{macroEngine.sources?.stress_signal} · {macroEngine.sources?.yield_filter} · As of {macroEngine.as_of}</span>
+            </div>
+          </div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 280px", gap: 18, alignItems: "stretch" }}>
+
+            {/* STRESS DIAL */}
+            <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 18px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontStyle: "italic", fontWeight: 400 }}>Stress signal</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em" }}>BOND-MARKET VOL · MOVE</div>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                {["Risk On", "Watch", "Risk Off"].map(s => (
+                  <span key={s} style={{
+                    fontSize: 9.5, letterSpacing: "0.095em", textTransform: "uppercase", padding: "3px 11px",
+                    borderRadius: 11, fontWeight: 500,
+                    background: s === macroEngine.stress?.state ? "rgba(0,113,227,0.10)" : "var(--surface-2)",
+                    color: s === macroEngine.stress?.state ? "var(--accent)" : "var(--text-dim)",
+                    border: s === macroEngine.stress?.state ? "1px solid var(--accent)" : "1px solid var(--border)",
+                  }}>{s}</span>
+                ))}
+              </div>
+              <div onClick={() => setHistoryOpen("stress")} style={{ position: "relative", textAlign: "center", marginTop: 12, cursor: "pointer" }}>
+                <span style={{ position: "absolute", top: -4, right: 0, fontSize: 9.5, letterSpacing: "0.095em", color: "var(--text-dim)", fontWeight: 500 }}>CLICK FOR DETAIL ›</span>
+                <svg viewBox="0 0 240 140" style={{ width: "100%", maxWidth: 240, display: "block", margin: "0 auto" }}>
+                  <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)"/>
+                  <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)"/>
+                  <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)"/>
+                  <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)"/>
+                  {(() => {
+                    const pct = (macroEngine.stress?.move_percentile_5y || 0);
+                    const angle = 180 - (pct * 100 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const tipX = 120 + 100 * Math.cos(rad);
+                    const tipY = 120 - 100 * Math.sin(rad);
+                    return (<>
+                      <line x1="120" y1="120" x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round"/>
+                      <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8"/>
+                      <circle cx="120" cy="120" r="4.5" fill="var(--accent)"/>
+                    </>);
+                  })()}
+                  {/* Watch threshold marker (75th pctile) */}
+                  {(() => {
+                    const angle = 180 - (75 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const x = 120 + 100 * Math.cos(rad);
+                    const y = 120 - 100 * Math.sin(rad);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Watch</text></>);
+                  })()}
+                  {/* Risk Off threshold marker (85th pctile) */}
+                  {(() => {
+                    const angle = 180 - (85 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const x = 120 + 100 * Math.cos(rad);
+                    const y = 120 - 100 * Math.sin(rad);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y + 8} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Risk Off</text></>);
+                  })()}
+                </svg>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{macroEngine.stress?.move_value?.toFixed(1)}</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                  {Math.round((macroEngine.stress?.move_percentile_5y || 0) * 100)}th pctile · Watch {macroEngine.stress?.watch_threshold_value?.toFixed(0)} · Risk Off {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}
+                </div>
+              </div>
+              {/* 24-week bar strip with JS-rendered hover tooltip */}
+              {backtest?.weekly?.length >= 24 && (() => {
+                const weeks24 = backtest.weekly.slice(-24);
+                const hoverW = stressBarHover != null ? weeks24[stressBarHover] : null;
+                return (
+                  <div style={{ marginTop: 14, position: "relative" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+                      <span>24W</span><span>NOW</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 2, height: 32, alignItems: "flex-end", marginTop: 4 }}
+                         onMouseLeave={() => setStressBarHover(null)}>
+                      {weeks24.map((w, i) => {
+                        const pct = w.move_pctile_5y || 0;
+                        const h = Math.max(8, Math.min(95, pct * 100));
+                        const opacity = pct >= 0.85 ? 0.92 : pct >= 0.75 ? 0.68 : pct >= 0.5 ? 0.42 : 0.30;
+                        return (
+                          <span key={w.date}
+                                onMouseEnter={() => setStressBarHover(i)}
+                                style={{ flex: 1, height: `${h}%`, background: `rgba(0,113,227,${opacity})`, borderRadius: 1, cursor: "default",
+                                         outline: stressBarHover === i ? "1px solid var(--accent)" : "none" }} />
+                        );
+                      })}
+                    </div>
+                    {hoverW && (
+                      <div style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.10)", pointerEvents: "none", zIndex: 5, whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{new Date(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div><strong style={{ fontWeight: 500 }}>MOVE {hoverW.move?.toFixed(0)}</strong> · {Math.round((hoverW.move_pctile_5y || 0) * 100)}th pctile · <span style={{ color: "var(--accent)" }}>{hoverW.stress_state}</span></div>
+                      </div>
+                    )}
+                    <div style={{ marginTop: 10, textAlign: "center" }}>
+                      <a onClick={() => setHistoryOpen("stress")} style={{ fontSize: 10.5, letterSpacing: "0.095em", color: "var(--accent)", cursor: "pointer", textDecoration: "none" }}>
+                        SEE FULL HISTORY (1986 – TODAY) ›
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* YIELD REGIME DIAL */}
+            <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 18px" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontStyle: "italic", fontWeight: 400 }}>Yield regime</div>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em" }}>3M Δ · 10Y TREASURY</div>
+              </div>
+              <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
+                {["Deflationary", "Neutral", "Inflationary"].map(s => (
+                  <span key={s} style={{
+                    fontSize: 9.5, letterSpacing: "0.095em", textTransform: "uppercase", padding: "3px 11px",
+                    borderRadius: 11, fontWeight: 500,
+                    background: s === macroEngine.yield_regime?.state ? "rgba(0,113,227,0.10)" : "var(--surface-2)",
+                    color: s === macroEngine.yield_regime?.state ? "var(--accent)" : "var(--text-dim)",
+                    border: s === macroEngine.yield_regime?.state ? "1px solid var(--accent)" : "1px solid var(--border)",
+                  }}>{s}</span>
+                ))}
+              </div>
+              <div onClick={() => setHistoryOpen("yield")} style={{ position: "relative", textAlign: "center", marginTop: 12, cursor: "pointer" }}>
+                <span style={{ position: "absolute", top: -4, right: 0, fontSize: 9.5, letterSpacing: "0.095em", color: "var(--text-dim)", fontWeight: 500 }}>CLICK FOR DETAIL ›</span>
+                <svg viewBox="0 0 240 140" style={{ width: "100%", maxWidth: 240, display: "block", margin: "0 auto" }}>
+                  <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)"/>
+                  <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)"/>
+                  <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)"/>
+                  <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)"/>
+                  {(() => {
+                    const pct = (macroEngine.yield_regime?.delta_y_3m_percentile_5y || 0);
+                    const angle = 180 - (pct * 100 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const tipX = 120 + 100 * Math.cos(rad);
+                    const tipY = 120 - 100 * Math.sin(rad);
+                    return (<>
+                      <line x1="120" y1="120" x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round"/>
+                      <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8"/>
+                      <circle cx="120" cy="120" r="4.5" fill="var(--accent)"/>
+                    </>);
+                  })()}
+                  {(() => {
+                    const angle = 180 - (30 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const x = 120 + 100 * Math.cos(rad);
+                    const y = 120 - 100 * Math.sin(rad);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x - 4} y={y - 6} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600" textAnchor="end">Deflat</text></>);
+                  })()}
+                  {(() => {
+                    const angle = 180 - (70 * 1.8);
+                    const rad = angle * Math.PI / 180;
+                    const x = 120 + 100 * Math.cos(rad);
+                    const y = 120 - 100 * Math.sin(rad);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Inflat</text></>);
+                  })()}
+                </svg>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{(macroEngine.yield_regime?.delta_y_3m_bp || 0) >= 0 ? "+" : ""}{macroEngine.yield_regime?.delta_y_3m_bp?.toFixed(0)} bp</div>
+                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                  {Math.round((macroEngine.yield_regime?.delta_y_3m_percentile_5y || 0) * 100)}th pctile · Infl ≥ +{macroEngine.yield_regime?.inflationary_threshold_bp?.toFixed(0)} bp · Defl ≤ {macroEngine.yield_regime?.deflationary_threshold_bp?.toFixed(0)} bp
+                </div>
+              </div>
+              {/* 24-week bar strip — yield regime */}
+              {backtest?.weekly?.length >= 24 && (() => {
+                const weeks24 = backtest.weekly.slice(-24);
+                const hoverW = yieldBarHover != null ? weeks24[yieldBarHover] : null;
+                return (
+                  <div style={{ marginTop: 14, position: "relative" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>
+                      <span>24W</span><span>NOW</span>
+                    </div>
+                    <div style={{ display: "flex", gap: 2, height: 32, alignItems: "flex-end", marginTop: 4 }}
+                         onMouseLeave={() => setYieldBarHover(null)}>
+                      {weeks24.map((w, i) => {
+                        const pct = w.delta_y_3m_pctile_5y || 0;
+                        const h = Math.max(8, Math.min(95, pct * 100));
+                        const opacity = pct >= 0.70 ? 0.68 : pct <= 0.30 ? 0.55 : 0.30;
+                        return (
+                          <span key={w.date}
+                                onMouseEnter={() => setYieldBarHover(i)}
+                                style={{ flex: 1, height: `${h}%`, background: `rgba(0,113,227,${opacity})`, borderRadius: 1, cursor: "default",
+                                         outline: yieldBarHover === i ? "1px solid var(--accent)" : "none" }} />
+                        );
+                      })}
+                    </div>
+                    {hoverW && (
+                      <div style={{ position: "absolute", top: -52, left: "50%", transform: "translateX(-50%)", background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 6, padding: "5px 10px", fontSize: 11, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.10)", pointerEvents: "none", zIndex: 5, whiteSpace: "nowrap" }}>
+                        <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>{new Date(hoverW.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}</div>
+                        <div><strong style={{ fontWeight: 500 }}>ΔY-3M {(hoverW.delta_y_3m_bp >= 0 ? "+" : "") + (hoverW.delta_y_3m_bp || 0).toFixed(0)} bp</strong> · {Math.round((hoverW.delta_y_3m_pctile_5y || 0) * 100)}th pctile · <span style={{ color: "var(--accent)" }}>{hoverW.yield_regime}</span></div>
+                      </div>
+                    )}
+                    <div style={{ marginTop: 10, textAlign: "center" }}>
+                      <a onClick={() => setHistoryOpen("yield")} style={{ fontSize: 10.5, letterSpacing: "0.095em", color: "var(--accent)", cursor: "pointer", textDecoration: "none" }}>
+                        SEE FULL HISTORY (1986 – TODAY) ›
+                      </a>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* ALLOCATION SUMMARY */}
+            <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 18px", display: "flex", flexDirection: "column" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: 16, fontStyle: "italic", fontWeight: 400 }}>Allocation</div>
+              <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: 2 }}>ENGINE STANCE</div>
+
+              <div style={{ display: "flex", gap: 24, marginTop: 22, alignItems: "flex-end", justifyContent: "center" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 36, lineHeight: 1 }}>{macroEngine.allocation?.equity_pct}<span style={{ fontStyle: "italic", fontSize: 20, color: "var(--text-muted)" }}>%</span></div>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: 4 }}>EQUITY</div>
+                </div>
+                <div style={{ textAlign: "center", color: macroEngine.allocation?.defensive_pct > 0 ? "var(--text)" : "var(--text-dim)" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 36, lineHeight: 1 }}>{macroEngine.allocation?.defensive_pct}<span style={{ fontStyle: "italic", fontSize: 20, color: "var(--text-muted)" }}>%</span></div>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", marginTop: 4 }}>DEFENSIVE</div>
+                </div>
+              </div>
+
+              {macroEngine.allocation?.defensive_pct > 0 ? (
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--border-faint)" }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 8 }}>Active sleeve · {macroEngine.allocation?.active_sleeve_label}</div>
+                  {Object.entries(macroEngine.allocation?.active_sleeve_composition || {}).filter(([_, v]) => v > 0).map(([leg, w]) => (
+                    <div key={leg} style={{ display: "flex", justifyContent: "space-between", fontSize: 12, padding: "3px 0" }}>
+                      <span>{leg === "cash" ? "Cash" : leg}</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}>{Math.round(w * 100)}%</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ marginTop: 18, paddingTop: 14, borderTop: "1px solid var(--border-faint)", fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6 }}>
+                  Defensive sleeve · <strong style={{ color: "var(--text)", fontWeight: 500 }}>standby</strong> — would activate as <strong style={{ color: "var(--text)", fontWeight: 500 }}>{macroEngine.allocation?.active_sleeve_label}</strong> mix if stress crosses Watch threshold.
+                </div>
+              )}
+            </div>
+
+          </div>
+        </section>
+      )}
       <div style={{ padding: "24px 32px 0" }}>
       {/* Recommended Allocations — Joe mockup 2026-05-08 v3. Wraps the
           sortable sector table + defensive sleeve + total row in a labeled
@@ -1329,11 +1940,316 @@ export default function AssetTilt({ onOpenTicker }) {
           <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Heatmap</h2>
           <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>Which mechanisms are tailwinds vs headwinds for each sector right now.</div>
         </div>
-        <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} />
+        <HeatmapTile contributionMatrix={v10.contribution_matrix} mechanismScores={v10.mechanism_scores} onMechanismClick={setMechModal} />
       </section>
 
       {/* Bottom methodology footer killed 2026-05-07 — methodology paragraph
           is now in the hero at the top of the page. */}
+
+
+      {/* BACKTEST VALIDATION — full 1986-2026 data series powering the engine
+          calibration. Reads /macrotilt_engine_backtest.json (2,056 weekly
+          observations + per-drawdown attribution). */}
+      {backtest && (
+        <section style={{ background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 12, overflow: "hidden", marginBottom: 20, marginTop: 0 }}>
+          <div style={{ padding: "14px 18px 12px", borderBottom: "0.5px solid var(--border)", background: "var(--surface)" }}>
+            <h2 style={{ fontFamily: "var(--font-display)", fontSize: 18, fontWeight: 500, margin: 0, letterSpacing: "-0.005em" }}>Backtest Validation · 1986 → 2026</h2>
+            <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 3 }}>
+              Every weekly observation used to calibrate the engine. {(backtest.weekly || []).length} weekly observations · {(backtest.drawdowns || []).length} major drawdown episodes documented.
+            </div>
+          </div>
+
+          <div style={{ padding: "18px 22px" }}>
+            {/* 4-strategy comparison KPI grid — each tile carries its own description */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
+              {[
+                { key: "spy",          label: "SPY buy & hold",           color: "rgba(94,94,99,0.7)", dashed: false, desc: "Passive benchmark. Hold the broad equity index through every regime." },
+                { key: "regime_only",  label: "Regime + Cash",            color: "#0071e3",            dashed: true,  desc: "Use the engine's stress signal to scale equity 100 / 80 / 50%. Defensive bucket sits in cash." },
+                { key: "engine",       label: "Regime + Defensive Sleeve",color: "var(--accent)",      dashed: false, desc: "Same regime scaling, but the defensive bucket activates the yield-direction-aware sleeve (Cash + GLD + SHY/TLT)." },
+                { key: "asset_tilt",   label: "Engine + Asset Tilt",      color: "#a8639a",            dashed: false, recommended: true, desc: "The MacroTilt strategy. Equity bucket follows the v9 sector allocation; defensive bucket follows the engine sleeve. Full stack." },
+              ].map(s => {
+                const v = backtest.validation?.[s.key] || {};
+                return (
+                  <div key={s.key} style={{ background: "var(--surface-2)", border: s.recommended ? "1.5px solid " + s.color : "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px", position: "relative" }}>
+                    {s.recommended && <span style={{ position: "absolute", top: -8, right: 12, background: s.color, color: "#fff", borderRadius: 11, padding: "2px 9px", fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>MacroTilt</span>}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>
+                      <span style={{ display: "inline-block", width: 14, height: s.dashed ? 0 : 2, borderTop: s.dashed ? "2px dashed " + s.color : "2px solid " + s.color }} />
+                      {s.label}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>$1 →</div><div style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.15 }}>${v.final_value?.toFixed(2) || "—"}</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>CAGR</div><div style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.15 }}>{v.cagr?.toFixed(2) || "—"}%</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Sharpe</div><div style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.15 }}>{v.sharpe?.toFixed(2) || "—"}</div></div>
+                      <div><div style={{ fontSize: 9.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 500 }}>Max DD</div><div style={{ fontFamily: "var(--font-display)", fontSize: 19, lineHeight: 1.15, color: "var(--red)" }}>{((v.max_drawdown || 0) * 100).toFixed(1)}%</div></div>
+                    </div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", lineHeight: 1.45 }}>{s.desc}</div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Cumulative wealth chart — 4 strategies overlaid */}
+            <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
+              Cumulative wealth · $1 invested December 1986 (log scale)
+            </div>
+            <div style={{ background: "var(--surface-2)", borderRadius: 8, padding: "16px 20px", marginBottom: 18 }}>
+              <HistoryChart
+                data={backtest.weekly || []}
+                series={[
+                  { key: "asset_tilt_cumulative",  label: "Engine + Asset Tilt",       color: "#a8639a" },
+                  { key: "engine_cumulative",      label: "Regime + Defensive Sleeve", color: "var(--accent)" },
+                  { key: "regime_only_cumulative", label: "Regime + Cash",             color: "#0071e3", dashed: true },
+                  { key: "spy_cumulative",         label: "SPY buy & hold",            color: "rgba(94,94,99,0.7)" },
+                ]}
+                fmtY={(v) => "$" + (v < 10 ? v.toFixed(2) : Math.round(v).toLocaleString())}
+                logY={true}
+                defaultTf="Max"
+                height={340}
+              />
+            </div>
+
+            {/* Drawdown table — engine vs SPY at every major peak-to-trough */}
+            <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
+              Drawdown comparison · engine vs SPY at major peak-to-trough episodes
+            </div>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Episode</th>
+                  <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>SPY depth</th>
+                  <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Engine depth</th>
+                  <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Engine − SPY</th>
+                  <th style={{ textAlign: "left", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Dominant yield regime</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(backtest.drawdowns || []).map(d => (
+                  <tr key={d.name}>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)" }}>{d.name}</td>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", color: "var(--red)", fontFamily: "var(--font-mono)" }}>{(d.spy_depth * 100).toFixed(1)}%</td>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", color: "var(--red)", fontFamily: "var(--font-mono)" }}>{(d.engine_depth * 100).toFixed(1)}%</td>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", color: d.diff_pp > 0 ? "var(--green)" : "var(--text-muted)", fontFamily: "var(--font-mono)" }}>+{d.diff_pp?.toFixed(1)} pp</td>
+                    <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text-muted)" }}>{d.yield_regime_dominant}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      {/* FULL HISTORY MODAL — opens from the dial wraps + the SEE FULL HISTORY links */}
+      {historyOpen && backtest?.weekly && (() => {
+        const allWeeks = backtest.weekly;
+        const isStress = historyOpen === "stress";
+        const valueKey  = isStress ? "move" : "delta_y_3m_bp";
+        const pctileKey = isStress ? "move_pctile_5y" : "delta_y_3m_pctile_5y";
+        const stateKey  = isStress ? "stress_state" : "yield_regime";
+        const upperThrKey = isStress ? "risk_off_threshold" : "inflationary_threshold_bp";
+        const midThrKey   = isStress ? "watch_threshold" : "deflationary_threshold_bp";
+
+        const last = allWeeks[allWeeks.length - 1];
+        const title  = isStress ? "Bond Volatility" : "Yield Regime";
+        const eyebrow = isStress ? "Volatility trigger · stress signal" : "Yield direction · regime classifier";
+        const fmtVal = (v) => v == null ? "—" : (isStress ? Math.round(v).toString() : ((v >= 0 ? "+" : "") + Math.round(v) + " bp"));
+
+        const currentVal    = last[valueKey] || 0;
+        const currentPctile = (last[pctileKey] || 0) * 100;
+        const upperMark     = last[upperThrKey] || 0;
+        const midMark       = last[midThrKey] || 0;
+        const stateNow      = last[stateKey];
+
+        // Days in state
+        let daysInState = 1;
+        for (let i = allWeeks.length - 2; i >= 0; i--) {
+          if (allWeeks[i][stateKey] === stateNow) daysInState += 7; else break;
+        }
+
+        // Full sample range
+        const allVals = allWeeks.map(p => p[valueKey] || 0).filter(v => v != null);
+        const minVal = Math.min(...allVals);
+        const maxVal = Math.max(...allVals);
+
+        // Caption
+        const captionState = isStress
+          ? (stateNow === "Risk On" ? "calm" : stateNow === "Watch" ? "watching" : "stressed")
+          : stateNow;
+        const captionSentence = isStress
+          ? `The trailing-5y 85th-percentile mark sits ${currentVal < upperMark ? "well above" : "below"} today's reading. The trigger has been in ${stateNow} for ${daysInState} trading days.`
+          : `Today's 3-month change in 10-year yield sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window. The yield regime has been ${stateNow} for ${daysInState} trading days.`;
+
+        // Historical reads near today's level (similar-percentile-band episodes)
+        const targetPct = currentPctile / 100;
+        const band = 0.05;
+        const matches = allWeeks.map((p, i) => ({ ...p, idx: i, similar: Math.abs((p[pctileKey] || 0) - targetPct) <= band }));
+        const episodes = [];
+        let inEp = false; let ep = null;
+        for (const m of matches) {
+          if (m.similar && !inEp) { ep = { startIdx: m.idx, peakIdx: m.idx, peakVal: m[valueKey], state: m[stateKey] }; inEp = true; }
+          else if (m.similar && inEp) {
+            if (Math.abs((m[pctileKey] || 0) - targetPct) < Math.abs((allWeeks[ep.peakIdx][pctileKey] - targetPct))) {
+              ep.peakIdx = m.idx; ep.peakVal = m[valueKey]; ep.state = m[stateKey];
+            }
+          } else if (!m.similar && inEp) { ep.endIdx = m.idx - 1; episodes.push(ep); inEp = false; }
+        }
+        if (inEp && ep) { ep.endIdx = allWeeks.length - 1; episodes.push(ep); }
+        const past = episodes.filter(e => (e.endIdx - e.startIdx + 1) >= 4 && (allWeeks.length - 1 - e.peakIdx) > 4 && (isStress ? allWeeks[e.peakIdx].date >= "2002-11-12" : true));
+        const enriched = past.map(e => {
+          const peak = allWeeks[e.peakIdx];
+          const i = e.peakIdx;
+          const spx6  = (i + 26 < allWeeks.length) ? (allWeeks[i + 26].spy_cumulative / peak.spy_cumulative - 1) : null;
+          const spx12 = (i + 52 < allWeeks.length) ? (allWeeks[i + 52].spy_cumulative / peak.spy_cumulative - 1) : null;
+          return { ...e, peakDate: peak.date, peakPctile: (peak[pctileKey] || 0) * 100, spx6, spx12, eventNote: findNamedEvent(peak.date) };
+        }).sort((a, b) => Math.abs(a.peakPctile - currentPctile) - Math.abs(b.peakPctile - currentPctile)).slice(0, 8);
+
+        return (
+          <div onClick={() => { setHistoryOpen(null); setHistoryTimeframe(null); }} style={{ position: "fixed", inset: 0, background: "rgba(14,17,21,0.45)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 48, paddingBottom: 48, overflowY: "auto" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 920, maxWidth: "94vw", padding: 32, position: "relative" }}>
+
+              {/* Header row */}
+              <button onClick={() => { setHistoryOpen(null); setHistoryTimeframe(null); }} style={{ position: "absolute", top: 18, right: 22, background: "transparent", border: "none", fontSize: 14, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>Close <span style={{ fontSize: 18 }}>×</span></button>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: 24, alignItems: "flex-start", marginBottom: 14 }}>
+                <div>
+                  <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "var(--accent)", textTransform: "uppercase", fontWeight: 500, marginBottom: 6 }}>{eyebrow}</div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
+                    <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400, margin: 0, color: "var(--text)" }}>{title}</h2>
+                    <span style={{ background: "rgba(47,157,106,0.10)", color: "var(--green)", borderRadius: 11, padding: "3px 11px", fontSize: 10, letterSpacing: "0.095em", fontWeight: 500, textTransform: "uppercase" }}>● FRESH · {macroEngine?.as_of}</span>
+                  </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontFamily: "var(--font-display)", fontSize: 40, lineHeight: 1, color: "var(--text)" }}>{fmtVal(currentVal)}</div>
+                  <div style={{ fontSize: 11, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", marginTop: 6, fontWeight: 500 }}>{stateNow} · {daysInState} days in state</div>
+                </div>
+              </div>
+
+              {/* Caption sentence */}
+              <div style={{ fontSize: 14, color: "var(--text)", lineHeight: 1.6, marginBottom: 22 }}>
+                <strong style={{ fontWeight: 500 }}>{title} is {captionState}.</strong>{" "}{captionSentence}
+              </div>
+
+              {/* KPI strip */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
+                {[
+                  { lbl: "Current",                            val: fmtVal(currentVal), sub: "today's reading" },
+                  { lbl: isStress ? "85th percentile (5y)" : "70th percentile (5y)", val: fmtVal(upperMark), sub: "recalibrated daily" },
+                  { lbl: isStress ? "Stage" : "Regime",        val: stateNow,            sub: daysInState + " days" },
+                  { lbl: "Full sample range",                  val: fmtVal(minVal) + "–" + fmtVal(maxVal), sub: "1986 to today" },
+                ].map(k => (
+                  <div key={k.lbl} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px" }}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>{k.lbl}</div>
+                    <div style={{ fontFamily: "var(--font-display)", fontSize: 26, lineHeight: 1.15, marginTop: 6, color: "var(--text)" }}>{k.val}</div>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{k.sub}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Chart — DAILY data when stress (indicator_history.json), weekly fallback for yield regime */}
+              <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
+                {(() => {
+                  // Build the daily data set if available
+                  let chartData = allWeeks;
+                  let chartValueKey = valueKey;
+                  let chartLabel = title;
+                  if (isStress && indHist?.move?.points) {
+                    // Daily MOVE (2002-11-12 onward — actual data, not Z-proxy)
+                    chartData = indHist.move.points
+                      .filter(p => p[0] >= "2002-11-12")
+                      .map(p => ({ date: p[0], move: p[1] }));
+                    chartValueKey = "move";
+                  }
+                  // Build daily VIX overlay too (also from indicator_history)
+                  let dailyVixIdx = null;
+                  if (isStress && indHist?.vix?.points && chartData.length > 0) {
+                    dailyVixIdx = {};
+                    for (const [d, v] of indHist.vix.points) dailyVixIdx[d] = v;
+                    chartData = chartData.map(p => ({ ...p, vix: dailyVixIdx[p.date] ?? null }));
+                  }
+                  return (
+                    <HistoryChart
+                      data={chartData}
+                      series={[{ key: chartValueKey, label: chartLabel, color: "var(--accent)" }]}
+                      horizontalLines={[
+                        { value: upperMark, label: (isStress ? "85th-pct = " : "70th-pct = ") + fmtVal(upperMark), color: "rgba(14,17,21,0.55)" },
+                        ...(!isStress ? [{ value: midMark, label: "30th-pct = " + fmtVal(midMark), color: "rgba(14,17,21,0.35)" }] : []),
+                      ]}
+                      fmtY={fmtVal}
+                      defaultTf="5Y"
+                      defaultOverlay={isStress && dailyVixIdx ? "vix" : null}
+                      height={320}
+                      availableOverlays={isStress ? [
+                        ...(dailyVixIdx ? [{ key: "vix", label: "Equity Volatility (VIX)", color: "rgba(168,99,154,0.85)" }] : []),
+                      ] : [
+                        { key: "move",              label: "MOVE level",          color: "rgba(94,94,99,0.7)" },
+                        { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
+                      ]}
+                    />
+                  );
+                })()}
+              </div>
+
+              {/* Historical reads near today's level */}
+              {enriched.length > 0 && (
+                <div style={{ marginBottom: 22 }}>
+                  <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>Historical reads near today's level · S&P forward returns</div>
+                  <div style={{ fontSize: 12, color: "var(--text-muted)", fontStyle: "italic", marginBottom: 10 }}>Readings from other periods when {title} was at a similar level to today (±5 percentile points). Historical reference, not a forecast.</div>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left",  padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Period</th>
+                        <th style={{ textAlign: "left",  padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Note</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>Value</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>SPX 6M</th>
+                        <th style={{ textAlign: "right", padding: "10px 8px", borderBottom: "1px solid var(--border)", color: "var(--text-muted)", fontSize: 10, letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>SPX 12M</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {enriched.map((e) => {
+                        const d = new Date(e.peakDate);
+                        const periodLabel = d.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+                        return (
+                          <tr key={e.peakDate}>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)" }}>{periodLabel}</td>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", color: "var(--text-2)" }}>{e.eventNote}</td>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", fontFamily: "var(--font-mono)" }}>{fmtVal(e.peakVal)}</td>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", fontFamily: "var(--font-mono)", color: e.spx6 == null ? "var(--text-dim)" : (e.spx6 >= 0 ? "var(--green)" : "var(--red)") }}>{e.spx6 == null ? "—" : (e.spx6 >= 0 ? "+" : "") + (e.spx6 * 100).toFixed(1) + "%"}</td>
+                            <td style={{ padding: "10px 8px", borderBottom: "1px solid var(--border-faint)", textAlign: "right", fontFamily: "var(--font-mono)", color: e.spx12 == null ? "var(--text-dim)" : (e.spx12 >= 0 ? "var(--green)" : "var(--red)") }}>{e.spx12 == null ? "—" : (e.spx12 >= 0 ? "+" : "") + (e.spx12 * 100).toFixed(1) + "%"}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Release Calendar */}
+              <div style={{ marginBottom: 22, background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px" }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Release calendar</div>
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "10px 32px", fontSize: 13 }}>
+                  <div style={{ color: "var(--text-muted)" }}>Frequency</div>
+                  <div>Daily after close</div>
+                  <div style={{ color: "var(--text-muted)" }}>Last release</div>
+                  <div>{macroEngine?.as_of}</div>
+                  <div style={{ color: "var(--text-muted)" }}>Source</div>
+                  <div>{isStress ? "ICE BofA via Yahoo (^MOVE)" : "FRED DGS10 (10-year Treasury constant maturity)"}</div>
+                  <div style={{ color: "var(--text-muted)" }}>Next refresh</div>
+                  <div>Fri {macroEngine?.next_refresh} 15:45 ET</div>
+                </div>
+              </div>
+
+              {/* Formula · Source · Caveat */}
+              <div style={{ paddingTop: 14, borderTop: "1px solid var(--border-faint)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.7 }}>
+                <div style={{ marginBottom: 6 }}><strong style={{ color: "var(--text)", fontWeight: 500 }}>Formula.</strong>{" "}
+                {isStress ? "Implied volatility on Treasury options, weighted across 2y / 5y / 10y / 30y. Captures rate-policy uncertainty." : "Change in 10-year Treasury constant maturity yield over the trailing 3 months, in basis points. Negative = yields falling; positive = yields rising."}</div>
+                <div style={{ marginBottom: 6 }}><strong style={{ color: "var(--text)", fontWeight: 500 }}>Source.</strong>{" "}
+                {isStress ? "ICE BofA · via Yahoo (^MOVE) for 2002-onward; rolling 21-day std of 10-year yield daily changes × √252, Z-standardized to MOVE, for 1986–2002 proxy." : "FRED · DGS10."}</div>
+                <div style={{ fontStyle: "italic", color: "var(--text-muted)" }}><strong style={{ color: "var(--text)", fontWeight: 500, fontStyle: "normal" }}>Caveat.</strong>{" "}
+                {isStress ? "Bond vol typically MIDDLE in the stress chain — follows funding stress on the way up and leads equity vol." : "ΔY-3M signal is the regime classifier, not the de-risking trigger. Stress (MOVE) drives the equity-bucket size; ΔY-3M only picks which defensive mix activates."}</div>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MODALS */}
       {mechModal && <MechanismModal mechanism={mechModal} onClose={() => setMechModal(null)} />}
