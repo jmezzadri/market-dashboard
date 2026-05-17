@@ -966,5 +966,19 @@
       }
     ],
     "methodology_version": "v9.1"
+  },
+  {
+    "as_of": "2026-05-15T22:44:19.131631+00:00",
+    "snapshotted_at": "2026-05-17T21:54:16.515313+00:00",
+    "stance_label": "Defensive",
+    "equities_pct_capital": 0,
+    "other_pct_capital": 100,
+    "total_deployed_pct_capital": 100,
+    "cash_or_margin_pct_capital": 0,
+    "leverage": 0,
+    "equity_share": 0,
+    "alpha": null,
+    "picks": [],
+    "methodology_version": null
   }
 ]
