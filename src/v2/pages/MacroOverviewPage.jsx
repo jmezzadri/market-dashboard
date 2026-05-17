@@ -339,11 +339,59 @@ function ArrowGlyph({ delta, dir, fmt }) {
   return <span style={{color, fontFamily:'var(--font-mono)', fontSize:11, fontVariantNumeric:'tabular-nums'}}>{arrow} {formatted}</span>;
 }
 
-// ─── Sparkline — tiny inline 1y trend chart, no axes, pure shape.
-//     Auto-detects cadence from data; trims to the trailing ~1y window.
-function Sparkline({ points, width = 130, height = 32, dir = 'neutral' }) {
-  if (!points || points.length < 2) return <span style={{ display: 'inline-block', width, height }} />;
-  // Take last 252 daily points or 52 weekly — same heuristic as HistoryChart.
+// ─── Data-viz palette — distinct from the brand --accent (which stays for
+//     page chrome only: H1, italic title accent, link colors). These three
+//     colors are SEMANTIC: hot = stressed reading, cool = calm reading,
+//     watch = mid-range. They're applied to mini-chart lines + percentile
+//     bars so a glance at the page lights up where the hotspots are.
+const VIZ_COLORS = {
+  hot:     '#D946C4',  // magenta — high stress
+  cool:    '#10B981',  // emerald-teal — calm
+  watch:   '#F59E0B',  // amber — mid
+  neutral: '#64748B',  // slate — direction-agnostic indicators
+  faint:   'rgba(100,116,139,0.18)',  // faint slate for chart fills
+};
+
+// Decide a tile's heat color from its 5y percentile + direction-of-stress.
+function heatColor(pct, dir) {
+  if (pct == null) return VIZ_COLORS.neutral;
+  if (dir === 'hw') {
+    if (pct >= 0.75) return VIZ_COLORS.hot;
+    if (pct >= 0.50) return VIZ_COLORS.watch;
+    return VIZ_COLORS.cool;
+  }
+  if (dir === 'lw') {
+    if (pct <= 0.25) return VIZ_COLORS.hot;
+    if (pct <= 0.50) return VIZ_COLORS.watch;
+    return VIZ_COLORS.cool;
+  }
+  return VIZ_COLORS.neutral;
+}
+
+function heatLabel(pct, dir) {
+  if (pct == null) return null;
+  if (dir === 'hw') {
+    if (pct >= 0.75) return 'Stressed';
+    if (pct >= 0.50) return 'Elevated';
+    return 'Calm';
+  }
+  if (dir === 'lw') {
+    if (pct <= 0.25) return 'Weak';
+    if (pct <= 0.50) return 'Soft';
+    return 'Healthy';
+  }
+  return null;
+}
+
+// ─── MiniChart — a properly-sized in-tile chart, ~320×110, that you can
+//     actually read trends from. Trailing 1y window. Includes min/max y
+//     labels and start/end date markers. Line color is the tile's heat
+//     color. No sparkline — this is a real little chart.
+function MiniChart({ points, color = VIZ_COLORS.neutral, width = 320, height = 110 }) {
+  if (!points || points.length < 2) {
+    return <div style={{ width, height, background: 'var(--surface-2)', borderRadius: 6 }} />;
+  }
+  // Cadence detect
   let gap = 0, n = 0;
   for (let i = 1; i < Math.min(20, points.length); i++) {
     gap += (new Date(points[i][0]) - new Date(points[i-1][0])) / 86400000; n++;
@@ -351,51 +399,60 @@ function Sparkline({ points, width = 130, height = 32, dir = 'neutral' }) {
   const daily = (gap / n) < 4;
   const window = points.slice(- (daily ? 252 : 52));
   const vals = window.map(p => p[1]).filter(v => v != null);
-  if (vals.length < 2) return <span style={{ display: 'inline-block', width, height }} />;
+  if (vals.length < 2) return <div style={{ width, height, background: 'var(--surface-2)', borderRadius: 6 }} />;
   const lo = Math.min(...vals), hi = Math.max(...vals);
-  const pad = (hi - lo) * 0.06 || Math.abs(hi) * 0.04 || 1;
+  const pad = (hi - lo) * 0.08 || Math.abs(hi) * 0.05 || 1;
   const yLo = lo - pad, yHi = hi + pad;
-  const x = i => (i / Math.max(1, window.length - 1)) * (width - 4) + 2;
-  const y = v => height - 3 - ((v - yLo) / (yHi - yLo)) * (height - 6);
+  const padL = 6, padR = 6, padT = 14, padB = 18;
+  const innerW = width - padL - padR, innerH = height - padT - padB;
+  const xToPx = i => padL + (i / Math.max(1, window.length - 1)) * innerW;
+  const yToPx = v => padT + ((yHi - v) / (yHi - yLo)) * innerH;
   let d = '';
   window.forEach((p, i) => {
     if (p[1] == null) return;
-    d += (d ? ' L ' : 'M ') + x(i).toFixed(1) + ' ' + y(p[1]).toFixed(1);
+    d += (d ? ' L ' : 'M ') + xToPx(i).toFixed(1) + ' ' + yToPx(p[1]).toFixed(1);
   });
-  // Direction of the SLOPE: last point vs first
-  const slope = (window[window.length-1][1] ?? 0) - (window[0][1] ?? 0);
-  // Brand: monochrome Apple blue. Use varying opacity for emphasis based on slope magnitude.
-  const stroke = 'var(--accent)';
-  const fill = 'rgba(14,85,96,0.06)';
-  // Area fill path
-  const lastX = x(window.length - 1).toFixed(1);
-  const firstX = x(0).toFixed(1);
-  const areaD = d + ` L ${lastX} ${height - 3} L ${firstX} ${height - 3} Z`;
+  const last = window[window.length - 1];
+  const lastX = xToPx(window.length - 1);
+  const lastY = yToPx(last[1]);
+  // Area fill below the line
+  const areaD = d + ` L ${lastX.toFixed(1)} ${height - padB} L ${padL} ${height - padB} Z`;
+  const firstDate = new Date(window[0][0]);
+  const lastDate = new Date(last[0]);
+  const dateFmt = d => d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+  // Faint background grid: 2 horizontal lines (33/66%)
+  const gridYs = [padT + innerH/3, padT + innerH*2/3];
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} style={{ display: 'block' }}>
-      <path d={areaD} fill={fill} />
-      <path d={d} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastX} cy={y(window[window.length-1][1])} r="2.5" fill={stroke} />
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} style={{ display: 'block' }} preserveAspectRatio="none">
+      {gridYs.map((y, i) => (
+        <line key={i} x1={padL} y1={y} x2={width - padR} y2={y} stroke="rgba(14,17,21,0.06)" strokeWidth="1" />
+      ))}
+      <path d={areaD} fill={color} fillOpacity="0.10" />
+      <path d={d} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastX} cy={lastY} r="3" fill={color} stroke="#fff" strokeWidth="1" />
+      {/* Y axis labels: hi top-left, lo bottom-left */}
+      <text x={padL + 2} y={padT - 2} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{hi.toFixed(hi >= 100 ? 0 : 2)}</text>
+      <text x={padL + 2} y={height - padB + 9} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{lo.toFixed(hi >= 100 ? 0 : 2)}</text>
+      {/* X axis labels: start (left) and end (right) */}
+      <text x={padL} y={height - 4} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{dateFmt(firstDate)}</text>
+      <text x={width - padR} y={height - 4} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="end">{dateFmt(lastDate)}</text>
     </svg>
   );
 }
 
-// ─── PctileBar — replaces the small dot. Horizontal bar showing the 5y
-//     range, with a marker at "today". Visually scannable at a glance.
-function PctileBar({ pct, width = 80 }) {
-  if (pct == null) return <span style={{ display: 'inline-block', width, height: 8 }} />;
-  // Color intensity = percentile rank (brand-monochromatic Apple blue).
-  const fillOpacity = 0.18 + pct * 0.72;
+// ─── PctileBar — 5y percentile range with marker.
+function PctileBar({ pct, color = VIZ_COLORS.neutral, width = '100%', height = 8 }) {
+  if (pct == null) return <div style={{ width, height }} />;
   return (
-    <div title={`${Math.round(pct*100)}th percentile (trailing 5 years)`} style={{
-      position: 'relative', width, height: 8, background: 'var(--surface-2)',
-      borderRadius: 4, overflow: 'visible', border: '0.5px solid var(--border-faint)'
+    <div title={`${Math.round(pct*100)}th percentile (5y)`} style={{
+      position: 'relative', width, height, background: 'var(--surface-2)',
+      borderRadius: height / 2, border: '0.5px solid var(--border-faint)',
     }}>
       <div style={{
         position: 'absolute', left: 0, top: 0, bottom: 0,
         width: `${Math.max(2, pct*100)}%`,
-        background: `rgba(14,85,96,${fillOpacity})`,
-        borderRadius: 4,
+        background: color, opacity: 0.85,
+        borderRadius: height / 2,
       }} />
       <div style={{
         position: 'absolute', left: `${Math.max(2, pct*100)}%`, top: -2, bottom: -2,
@@ -406,51 +463,102 @@ function PctileBar({ pct, width = 80 }) {
   );
 }
 
-// ─── PanelStrip — domain "temperature" strip: a bar per indicator, height
-//     = 5y percentile. Lets the eye scan the panel for hotspots in one look.
-//     Click any bar → opens that indicator's modal.
-function PanelStrip({ indicators, hist, onOpen }) {
+// ─── Domain heatmap strip — one cell per indicator inside this panel,
+//     filled with its heat color, sized equally. Click any cell to drill in.
+//     This is the "where are the hotspots" glance.
+function DomainHeatStrip({ indicators, hist, onOpen }) {
   return (
-    <div style={{ marginBottom: 16, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '0.5px solid var(--border-faint)' }}>
-      <div style={{ fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: 8 }}>
-        Panel snapshot · click a bar to drill in
-      </div>
-      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-        {indicators.map(ind => {
-          const series = hist[ind.id];
-          let pct = null;
-          if (series && series.points && series.points.length) {
-            const cur = series.points[series.points.length - 1][1];
-            pct = trailingPctile(series.points, cur);
-          }
-          const h = pct != null ? Math.max(6, pct * 56) : 6;
-          const op = pct != null ? (0.22 + pct * 0.70) : 0.10;
-          return (
-            <div key={ind.id} onClick={() => onOpen(ind.id)} style={{
-              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
-              cursor: 'pointer', minWidth: 0,
-            }}>
-              <div style={{ height: 60, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center' }}>
-                <div style={{
-                  width: '70%', height: `${h}px`,
-                  background: `rgba(14,85,96,${op})`,
-                  borderRadius: '3px 3px 0 0',
-                  border: '0.5px solid rgba(14,85,96,0.32)',
-                  transition: 'filter 80ms',
-                }} />
-              </div>
-              <div style={{
-                fontSize: 10, color: 'var(--text-muted)', marginTop: 5, fontFamily: 'var(--font-mono)',
-                letterSpacing: '0.02em', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden',
-                textOverflow: 'ellipsis', maxWidth: '100%',
-              }}>{ind.short}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
-                {pct != null ? Math.round(pct*100) + 'th' : '—'}
-              </div>
+    <div style={{ display: 'flex', gap: 4, marginBottom: 18 }}>
+      {indicators.map(ind => {
+        const series = hist[ind.id];
+        let pct = null;
+        if (series && series.points && series.points.length) {
+          const cur = series.points[series.points.length - 1][1];
+          pct = trailingPctile(series.points, cur);
+        }
+        const c = heatColor(pct, ind.dir);
+        const lbl = heatLabel(pct, ind.dir);
+        return (
+          <div key={ind.id} onClick={() => onOpen(ind.id)} title={`${ind.short} · ${pct != null ? Math.round(pct*100)+'th' : '—'} pctile${lbl ? ' · ' + lbl : ''}`} style={{
+            flex: 1, minWidth: 0, height: 36, borderRadius: 6, cursor: 'pointer',
+            background: c, opacity: 0.85,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'transform 80ms, opacity 80ms',
+          }}>
+            <span style={{ fontSize: 9.5, color: '#fff', fontFamily: 'var(--font-mono)', fontWeight: 600, letterSpacing: '0.04em', textShadow: '0 1px 2px rgba(0,0,0,0.18)' }}>{ind.short}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── IndicatorTile — the new core unit. Replaces the row layout entirely.
+//     Each tile gives a name, current value, delta, a real chart with axis
+//     labels, and a heat-colored percentile bar. Click anywhere to open
+//     the wide modal.
+function IndicatorTile({ ind, hist, onOpen }) {
+  const series = hist[ind.id];
+  const has = !!(series && series.points && series.points.length);
+  const currentVal = has ? series.points[series.points.length - 1][1] : null;
+  const delta = has ? thirtyDayDelta(series.points) : null;
+  const pct = has ? trailingPctile(series.points, currentVal) : null;
+  const c = heatColor(pct, ind.dir);
+  const lbl = heatLabel(pct, ind.dir);
+  return (
+    <div onClick={() => has && onOpen(ind.id)} style={{
+      background: 'var(--surface)',
+      border: '0.5px solid var(--border)',
+      borderTop: `2px solid ${c}`,
+      borderRadius: 10,
+      padding: '16px 18px 14px',
+      cursor: has ? 'pointer' : 'default',
+      transition: 'border-color 120ms, box-shadow 120ms, transform 120ms',
+      display: 'flex', flexDirection: 'column', gap: 10, minWidth: 0,
+    }}
+    onMouseEnter={e => { if (has) { e.currentTarget.style.boxShadow = '0 4px 14px rgba(14,17,21,0.06)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}}
+    onMouseLeave={e => { e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'none'; }}>
+
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+        <div>
+          <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 600, lineHeight: 1.3 }}>{ind.label}</div>
+          {lbl && (
+            <div style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: c, fontWeight: 700, marginTop: 4 }}>
+              {lbl}
             </div>
-          );
-        })}
+          )}
+        </div>
+        {has && <FreshnessChip elementId={`indicator-${ind.id}-${(series.freq || 'd').toLowerCase()}`} fallback={series.as_of} />}
       </div>
+
+      {/* Value + delta */}
+      {has ? (
+        <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 400, color: 'var(--text)', letterSpacing: '-0.012em', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
+            {ind.fmt(currentVal)}
+          </div>
+          <ArrowGlyph delta={delta} dir={ind.dir} fmt={ind.fmt} />
+        </div>
+      ) : (
+        <div style={{ fontSize: 12, color: 'var(--text-dim)' }}>No data</div>
+      )}
+
+      {/* Chart */}
+      {has && <MiniChart points={series.points} color={c} />}
+
+      {/* Percentile bar */}
+      {has && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
+          <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, flexShrink: 0 }}>5y</span>
+          <div style={{ flex: 1 }}>
+            <PctileBar pct={pct} color={c} />
+          </div>
+          <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--text-2)', fontWeight: 600, fontVariantNumeric: 'tabular-nums', minWidth: 32, textAlign: 'right' }}>
+            {pct != null ? Math.round(pct*100) + 'th' : '—'}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -591,93 +699,31 @@ export default function MacroOverviewPage() {
 function DomainPanel({ panel, indicators, hist, onOpen }) {
   return (
     <section style={{
-      background: 'var(--surface)',
-      border: '0.5px solid var(--border)',
-      borderRadius: 12,
-      padding: '24px 28px',
-      marginBottom: 20,
+      background: 'transparent',
+      padding: '0 0 8px',
+      marginBottom: 28,
     }}>
-      <div style={{ marginBottom: 16, borderBottom: '0.5px solid var(--border-faint)', paddingBottom: 12 }}>
+      <div style={{ marginBottom: 14 }}>
         <h2 style={{
           fontFamily: 'var(--font-display)',
           fontStyle: 'italic',
           fontWeight: 400,
-          fontSize: 22,
-          color: 'var(--accent)',
+          fontSize: 24,
+          color: 'var(--text)',
           margin: '0 0 4px',
-          letterSpacing: '-0.005em',
+          letterSpacing: '-0.008em',
         }}>{panel.title}</h2>
-        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.55 }}>{panel.subtitle}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55 }}>{panel.subtitle}</div>
       </div>
 
-      <PanelStrip indicators={indicators} hist={hist} onOpen={onOpen} />
+      <DomainHeatStrip indicators={indicators} hist={hist} onOpen={onOpen} />
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 100px 100px 140px 92px 80px', gap: 14, padding: '8px 4px 8px', borderBottom: '0.5px solid var(--border-faint)', fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600 }}>
-        <div>Indicator</div>
-        <div>Current</div>
-        <div>30-day Δ</div>
-        <div>1y trend</div>
-        <div title="5-year percentile">5y range</div>
-        <div style={{ textAlign: 'right' }}>Fresh</div>
-      </div>
-
-      <div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {indicators.map(ind => (
-          <IndicatorRow key={ind.id} ind={ind} hist={hist[ind.id]} onOpen={onOpen} />
+          <IndicatorTile key={ind.id} ind={ind} hist={hist} onOpen={onOpen} />
         ))}
       </div>
     </section>
-  );
-}
-
-function IndicatorRow({ ind, hist, onOpen }) {
-  if (!hist || !hist.points || hist.points.length === 0) {
-    return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 100px 100px 140px 92px 80px', gap: 14, alignItems: 'center', padding: '12px 4px', borderBottom: '0.5px dashed var(--border-faint)' }}>
-        <div style={{ fontSize: 13.5, color: 'var(--text-muted)' }}>{ind.label}</div>
-        <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>no data</div>
-        <div /><div /><div /><div />
-      </div>
-    );
-  }
-  const currentVal = hist.points[hist.points.length - 1][1];
-  const delta = thirtyDayDelta(hist.points);
-  const pct = trailingPctile(hist.points, currentVal);
-  return (
-    <div
-      onClick={() => onOpen(ind.id)}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '1.4fr 100px 100px 140px 92px 80px',
-        gap: 14,
-        alignItems: 'center',
-        padding: '12px 4px',
-        borderBottom: '0.5px dashed var(--border-faint)',
-        cursor: 'pointer',
-        transition: 'background 80ms',
-      }}
-      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
-      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-    >
-      <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500 }}>
-        {ind.label}
-      </div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
-        {ind.fmt(currentVal)}
-      </div>
-      <div>
-        <ArrowGlyph delta={delta} dir={ind.dir} fmt={ind.fmt} />
-      </div>
-      <div>
-        <Sparkline points={hist.points} dir={ind.dir} />
-      </div>
-      <div>
-        <PctileBar pct={pct} />
-      </div>
-      <div style={{ textAlign: 'right' }}>
-        <FreshnessChip elementId={`indicator-${ind.id}-${(hist.freq || 'd').toLowerCase()}`} fallback={hist.as_of} />
-      </div>
-    </div>
   );
 }
 
