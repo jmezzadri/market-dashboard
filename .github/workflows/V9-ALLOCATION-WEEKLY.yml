@@ -83,8 +83,8 @@ jobs:
           current = json.loads(alloc_path.read_text())
 
           # Lift just the fields the AA tab needs for comparison views.
-          equity_share = current.get("equity_share", 0)
-          leverage     = current.get("leverage", 0)
+          equity_share = current.get("equity_share") or 0
+          leverage     = current.get("leverage") or 0
           equities_pp  = round(equity_share * leverage * 100, 2)
           other_pp     = round((1 - equity_share) * 100, 2) if equity_share < 1 else 0
           total_pp     = equities_pp + other_pp

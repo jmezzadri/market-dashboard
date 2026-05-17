@@ -1361,7 +1361,7 @@ function findNamedEvent(dateStr) {
 //          fmtY   = (v) => label string (for axis + tooltip)
 //          logY   = bool — log-scale y-axis
 //          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
-function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null, yMin: yMinProp = null }) {
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false }) {
   const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [overlayKey, setOverlayKey] = useState(defaultOverlay);
@@ -1383,7 +1383,25 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
   const tfPoints = cadence === "daily"
     ? { "1M": 21, "6M": 126, "1Y": 252, "5Y": 1260, "Max": data.length }
     : { "1M": 4,  "6M": 26,  "1Y": 52,  "5Y": 260,  "Max": data.length };
-  const w = data.slice(-tfPoints[tf]);
+  let w = data.slice(-tfPoints[tf]);
+
+  // Rebase mode — normalize each series so its first visible point = 1.0
+  // (% return from start of the visible window). Lets the chart show
+  // relative performance over the selected timeframe.
+  if (rebase && w.length > 0) {
+    const baseVals = {};
+    for (const s of allSeries) {
+      for (const p of w) { if (p[s.key] != null && p[s.key] !== 0) { baseVals[s.key] = p[s.key]; break; } }
+    }
+    w = w.map(p => {
+      const o = { ...p };
+      for (const s of allSeries) {
+        const base = baseVals[s.key];
+        if (base != null && p[s.key] != null) o[s.key] = p[s.key] / base;
+      }
+      return o;
+    });
+  }
 
   const W = 800, H = height, padL = 56, padR = 24, padT = 18, padB = 36;
   const innerW = W - padL - padR;
@@ -1988,9 +2006,9 @@ export default function AssetTilt({ onOpenTicker }) {
               })}
             </div>
 
-            {/* Cumulative wealth chart — 4 strategies overlaid */}
+            {/* Relative performance chart — rebased to 0% at start of visible window */}
             <div style={{ fontSize: 10, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 8 }}>
-              Cumulative wealth · $1 invested December 1986 (log scale)
+              Relative performance · % return from start of selected window
             </div>
             <div style={{ background: "var(--surface-2)", borderRadius: 8, padding: "16px 20px", marginBottom: 18 }}>
               <HistoryChart
@@ -2001,8 +2019,8 @@ export default function AssetTilt({ onOpenTicker }) {
                   { key: "regime_only_cumulative", label: "Regime + Cash",             color: "#0071e3", dashed: true },
                   { key: "spy_cumulative",         label: "SPY buy & hold",            color: "rgba(94,94,99,0.7)" },
                 ]}
-                fmtY={(v) => "$" + (v < 10 ? v.toFixed(2) : Math.round(v).toLocaleString())}
-                logY={true}
+                fmtY={(v) => ((v - 1) * 100 >= 0 ? "+" : "") + ((v - 1) * 100).toFixed(1) + "%"}
+                rebase={true}
                 defaultTf="Max"
                 height={340}
               />
