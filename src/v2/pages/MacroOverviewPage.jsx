@@ -28,7 +28,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../components/PageHero';
 import FreshnessChip from '../components/FreshnessChip';
-import Drawer from '../components/Drawer';
 
 // ─── HistoryChart — IDENTICAL to AssetAllocation.jsx. Do NOT change here
 //     without updating Asset Tilt in lockstep. Joe rule: every chart is the
@@ -340,15 +339,162 @@ function ArrowGlyph({ delta, dir, fmt }) {
   return <span style={{color, fontFamily:'var(--font-mono)', fontSize:11, fontVariantNumeric:'tabular-nums'}}>{arrow} {formatted}</span>;
 }
 
-function PctileDot({ pct }) {
-  if (pct == null) return <span style={{width:14, height:14, display:'inline-block'}} />;
-  const opacity = 0.25 + pct * 0.65;
+// ─── Sparkline — tiny inline 1y trend chart, no axes, pure shape.
+//     Auto-detects cadence from data; trims to the trailing ~1y window.
+function Sparkline({ points, width = 130, height = 32, dir = 'neutral' }) {
+  if (!points || points.length < 2) return <span style={{ display: 'inline-block', width, height }} />;
+  // Take last 252 daily points or 52 weekly — same heuristic as HistoryChart.
+  let gap = 0, n = 0;
+  for (let i = 1; i < Math.min(20, points.length); i++) {
+    gap += (new Date(points[i][0]) - new Date(points[i-1][0])) / 86400000; n++;
+  }
+  const daily = (gap / n) < 4;
+  const window = points.slice(- (daily ? 252 : 52));
+  const vals = window.map(p => p[1]).filter(v => v != null);
+  if (vals.length < 2) return <span style={{ display: 'inline-block', width, height }} />;
+  const lo = Math.min(...vals), hi = Math.max(...vals);
+  const pad = (hi - lo) * 0.06 || Math.abs(hi) * 0.04 || 1;
+  const yLo = lo - pad, yHi = hi + pad;
+  const x = i => (i / Math.max(1, window.length - 1)) * (width - 4) + 2;
+  const y = v => height - 3 - ((v - yLo) / (yHi - yLo)) * (height - 6);
+  let d = '';
+  window.forEach((p, i) => {
+    if (p[1] == null) return;
+    d += (d ? ' L ' : 'M ') + x(i).toFixed(1) + ' ' + y(p[1]).toFixed(1);
+  });
+  // Direction of the SLOPE: last point vs first
+  const slope = (window[window.length-1][1] ?? 0) - (window[0][1] ?? 0);
+  // Brand: monochrome Apple blue. Use varying opacity for emphasis based on slope magnitude.
+  const stroke = 'var(--accent)';
+  const fill = 'rgba(14,85,96,0.06)';
+  // Area fill path
+  const lastX = x(window.length - 1).toFixed(1);
+  const firstX = x(0).toFixed(1);
+  const areaD = d + ` L ${lastX} ${height - 3} L ${firstX} ${height - 3} Z`;
   return (
-    <span title={`${Math.round(pct*100)}th percentile (5y)`} style={{
-      width: 14, height: 14, borderRadius: '50%', display: 'inline-block',
-      background: `rgba(14,85,96,${opacity})`,
-      border: '1px solid rgba(14,85,96,0.3)'
-    }} />
+    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} style={{ display: 'block' }}>
+      <path d={areaD} fill={fill} />
+      <path d={d} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={lastX} cy={y(window[window.length-1][1])} r="2.5" fill={stroke} />
+    </svg>
+  );
+}
+
+// ─── PctileBar — replaces the small dot. Horizontal bar showing the 5y
+//     range, with a marker at "today". Visually scannable at a glance.
+function PctileBar({ pct, width = 80 }) {
+  if (pct == null) return <span style={{ display: 'inline-block', width, height: 8 }} />;
+  // Color intensity = percentile rank (brand-monochromatic Apple blue).
+  const fillOpacity = 0.18 + pct * 0.72;
+  return (
+    <div title={`${Math.round(pct*100)}th percentile (trailing 5 years)`} style={{
+      position: 'relative', width, height: 8, background: 'var(--surface-2)',
+      borderRadius: 4, overflow: 'visible', border: '0.5px solid var(--border-faint)'
+    }}>
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: `${Math.max(2, pct*100)}%`,
+        background: `rgba(14,85,96,${fillOpacity})`,
+        borderRadius: 4,
+      }} />
+      <div style={{
+        position: 'absolute', left: `${Math.max(2, pct*100)}%`, top: -2, bottom: -2,
+        width: 2, background: 'var(--text)', transform: 'translateX(-1px)',
+        borderRadius: 1,
+      }} />
+    </div>
+  );
+}
+
+// ─── PanelStrip — domain "temperature" strip: a bar per indicator, height
+//     = 5y percentile. Lets the eye scan the panel for hotspots in one look.
+//     Click any bar → opens that indicator's modal.
+function PanelStrip({ indicators, hist, onOpen }) {
+  return (
+    <div style={{ marginBottom: 16, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '0.5px solid var(--border-faint)' }}>
+      <div style={{ fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: 8 }}>
+        Panel snapshot · click a bar to drill in
+      </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+        {indicators.map(ind => {
+          const series = hist[ind.id];
+          let pct = null;
+          if (series && series.points && series.points.length) {
+            const cur = series.points[series.points.length - 1][1];
+            pct = trailingPctile(series.points, cur);
+          }
+          const h = pct != null ? Math.max(6, pct * 56) : 6;
+          const op = pct != null ? (0.22 + pct * 0.70) : 0.10;
+          return (
+            <div key={ind.id} onClick={() => onOpen(ind.id)} style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+              cursor: 'pointer', minWidth: 0,
+            }}>
+              <div style={{ height: 60, display: 'flex', alignItems: 'flex-end', width: '100%', justifyContent: 'center' }}>
+                <div style={{
+                  width: '70%', height: `${h}px`,
+                  background: `rgba(14,85,96,${op})`,
+                  borderRadius: '3px 3px 0 0',
+                  border: '0.5px solid rgba(14,85,96,0.32)',
+                  transition: 'filter 80ms',
+                }} />
+              </div>
+              <div style={{
+                fontSize: 10, color: 'var(--text-muted)', marginTop: 5, fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.02em', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden',
+                textOverflow: 'ellipsis', maxWidth: '100%',
+              }}>{ind.short}</div>
+              <div style={{ fontSize: 10, color: 'var(--text-dim)', fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}>
+                {pct != null ? Math.round(pct*100) + 'th' : '—'}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── Modal — centered, near-full-width container for indicator detail.
+//     Replaces the right-side Drawer per Joe's 2026-05-17 request.
+function Modal({ open, onClose, children }) {
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose && onClose(); }
+    if (open) {
+      document.addEventListener('keydown', onKey);
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [open, onClose]);
+  if (!open) return null;
+  return (
+    <>
+      <div onClick={onClose} style={{
+        position: 'fixed', inset: 0, background: 'rgba(14,17,21,0.42)',
+        zIndex: 50, animation: 'mtFadeIn 160ms ease-out',
+      }} />
+      <div role="dialog" aria-modal="true" style={{
+        position: 'fixed', top: '4vh', left: '50%', transform: 'translateX(-50%)',
+        width: 'min(1200px, 94vw)', maxHeight: '92vh', overflowY: 'auto',
+        background: 'var(--surface)', borderRadius: 14, zIndex: 60,
+        boxShadow: '0 16px 64px rgba(14,17,21,0.20), 0 4px 16px rgba(14,17,21,0.08)',
+        border: '0.5px solid var(--border)',
+      }}>
+        <button onClick={onClose} aria-label="Close" style={{
+          position: 'absolute', top: 16, right: 16, width: 34, height: 34,
+          borderRadius: '50%', border: '0.5px solid var(--border)',
+          background: 'var(--surface)', cursor: 'pointer', fontSize: 18,
+          color: 'var(--text-muted)', lineHeight: 1, padding: 0,
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2,
+        }}>×</button>
+        {children}
+      </div>
+    </>
   );
 }
 
@@ -464,11 +610,14 @@ function DomainPanel({ panel, indicators, hist, onOpen }) {
         <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.55 }}>{panel.subtitle}</div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 110px 110px 22px 90px', gap: 14, padding: '8px 4px 8px', borderBottom: '0.5px solid var(--border-faint)', fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600 }}>
+      <PanelStrip indicators={indicators} hist={hist} onOpen={onOpen} />
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 100px 100px 140px 92px 80px', gap: 14, padding: '8px 4px 8px', borderBottom: '0.5px solid var(--border-faint)', fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600 }}>
         <div>Indicator</div>
         <div>Current</div>
         <div>30-day Δ</div>
-        <div title="5-year percentile" style={{textAlign:'center'}}>5y</div>
+        <div>1y trend</div>
+        <div title="5-year percentile">5y range</div>
         <div style={{ textAlign: 'right' }}>Fresh</div>
       </div>
 
@@ -484,10 +633,10 @@ function DomainPanel({ panel, indicators, hist, onOpen }) {
 function IndicatorRow({ ind, hist, onOpen }) {
   if (!hist || !hist.points || hist.points.length === 0) {
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 110px 110px 22px 90px', gap: 14, alignItems: 'center', padding: '11px 4px', borderBottom: '0.5px dashed var(--border-faint)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 100px 100px 140px 92px 80px', gap: 14, alignItems: 'center', padding: '12px 4px', borderBottom: '0.5px dashed var(--border-faint)' }}>
         <div style={{ fontSize: 13.5, color: 'var(--text-muted)' }}>{ind.label}</div>
         <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>no data</div>
-        <div /><div /><div />
+        <div /><div /><div /><div />
       </div>
     );
   }
@@ -499,10 +648,10 @@ function IndicatorRow({ ind, hist, onOpen }) {
       onClick={() => onOpen(ind.id)}
       style={{
         display: 'grid',
-        gridTemplateColumns: '1.4fr 110px 110px 22px 90px',
+        gridTemplateColumns: '1.4fr 100px 100px 140px 92px 80px',
         gap: 14,
         alignItems: 'center',
-        padding: '11px 4px',
+        padding: '12px 4px',
         borderBottom: '0.5px dashed var(--border-faint)',
         cursor: 'pointer',
         transition: 'background 80ms',
@@ -519,8 +668,11 @@ function IndicatorRow({ ind, hist, onOpen }) {
       <div>
         <ArrowGlyph delta={delta} dir={ind.dir} fmt={ind.fmt} />
       </div>
-      <div style={{ textAlign: 'center' }}>
-        <PctileDot pct={pct} />
+      <div>
+        <Sparkline points={hist.points} dir={ind.dir} />
+      </div>
+      <div>
+        <PctileBar pct={pct} />
       </div>
       <div style={{ textAlign: 'right' }}>
         <FreshnessChip elementId={`indicator-${ind.id}-${(hist.freq || 'd').toLowerCase()}`} fallback={hist.as_of} />
@@ -537,40 +689,48 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
   const delta30 = thirtyDayDelta(series.points);
   const pct5y = trailingPctile(series.points, currentVal);
   return (
-    <Drawer open={true} onClose={onClose}>
-      <div style={{ padding: '24px 28px 32px' }}>
-        <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 6 }}>{panelTitle(def.panel)}</div>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 26, color: 'var(--text)', letterSpacing: '-0.005em', margin: '0 0 16px' }}>
+    <Modal open={true} onClose={onClose}>
+      <div style={{ padding: '32px 40px 36px' }}>
+        <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>{panelTitle(def.panel)}</div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 32, color: 'var(--text)', letterSpacing: '-0.012em', margin: '0 0 22px' }}>
           {def.label}
         </h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 22 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
           <KPI label="Current" value={def.fmt(currentVal)} sub={`As of ${series.as_of || '—'}`} />
-          <KPI label="30-day Δ" value={delta30 != null ? (delta30 >= 0 ? '+' : '') + def.fmt(Math.abs(delta30)).replace(/^\+/, '') : '—'} sub="vs 30d ago" />
+          <KPI label="30-day Δ" value={delta30 != null ? (delta30 >= 0 ? '+' : '') + def.fmt(Math.abs(delta30)).replace(/^\+/, '') : '—'} sub="vs 30 days ago" />
           <KPI label="5y percentile" value={pct5y != null ? Math.round(pct5y*100) + 'th' : '—'} sub="trailing 5 years" />
+          <KPI label="History since" value={series.points[0][0]} sub={`${series.points.length.toLocaleString()} points`} />
         </div>
 
-        <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 18 }}>
+        <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 12, padding: '22px 24px', marginBottom: 22 }}>
           <HistoryChart
             series={[{ key: 'value', label: def.short, color: 'var(--accent)' }]}
             data={chartData}
             fmtY={def.fmt}
             defaultTf="5Y"
-            height={320}
+            height={400}
           />
         </div>
 
-        <div style={{ background: 'var(--surface-2)', border: '0.5px solid var(--border-faint)', borderRadius: 10, padding: '16px 18px' }}>
-          <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>Methodology</div>
-          <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, margin: 0 }}>
-            {def.methodology}
-          </p>
-          <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--text-muted)' }}>
-            Cadence: {series.freq === 'D' ? 'Daily' : series.freq === 'W' ? 'Weekly' : series.freq === 'M' ? 'Monthly' : series.freq === 'Q' ? 'Quarterly' : series.freq} · {series.points.length.toLocaleString()} points since {series.points[0][0]}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 18 }}>
+          <div style={{ background: 'var(--surface-2)', border: '0.5px solid var(--border-faint)', borderRadius: 12, padding: '20px 22px' }}>
+            <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>Methodology</div>
+            <p style={{ fontSize: 14, color: 'var(--text-2)', lineHeight: 1.65, margin: 0 }}>
+              {def.methodology}
+            </p>
+          </div>
+          <div style={{ background: 'var(--surface-2)', border: '0.5px solid var(--border-faint)', borderRadius: 12, padding: '20px 22px' }}>
+            <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>Cadence & freshness</div>
+            <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.65 }}>
+              {series.freq === 'D' ? 'Daily' : series.freq === 'W' ? 'Weekly' : series.freq === 'M' ? 'Monthly' : series.freq === 'Q' ? 'Quarterly' : series.freq}
+              <br />
+              Last update: {series.as_of || '—'}
+            </div>
           </div>
         </div>
       </div>
-    </Drawer>
+    </Modal>
   );
 }
 
