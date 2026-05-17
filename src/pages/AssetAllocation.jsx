@@ -1361,7 +1361,7 @@ function findNamedEvent(dateStr) {
 //          fmtY   = (v) => label string (for axis + tooltip)
 //          logY   = bool — log-scale y-axis
 //          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
-function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false }) {
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null }) {
   const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [overlayKey, setOverlayKey] = useState(defaultOverlay);
@@ -1495,6 +1495,29 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
           ))}
         </div>
       </div>
+      {/* Persistent crosshair readout — rendered above the chart so it never covers the lines */}
+      <div style={{ minHeight: 56, padding: "8px 12px", background: hover ? "var(--surface-2)" : "transparent", border: "0.5px solid " + (hover ? "var(--border-faint)" : "transparent"), borderRadius: 8, marginBottom: 8, fontSize: 12, color: "var(--text)", transition: "background 80ms" }}>
+        {hover ? (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <div style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>{(() => { const d = new Date(hover.date); return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); })()}</div>
+              <div style={{ fontSize: 10.5, color: "var(--text-dim)", letterSpacing: "0.04em" }}>HOVER · POINT {hoverIdx + 1} OF {w.length}</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(" + allSeries.length + ", 1fr)", gap: 12 }}>
+              {allSeries.map(s => (
+                <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-muted)" }}>
+                    <span style={{ display: "inline-block", width: 10, height: 2, background: s.color, borderRadius: 1 }} />{s.label}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{hover[s.key] != null ? fmtY(hover[s.key]) : "—"}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 11.5, color: "var(--text-dim)", fontStyle: "italic" }}>Hover the chart for the crosshair readout · all {allSeries.length} series at the cursor's date</div>
+        )}
+      </div>
       <div style={{ position: "relative" }}>
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height, display: "block", cursor: "crosshair" }} onMouseMove={handleMove} onMouseLeave={handleLeave}>
           {/* y-axis gridlines + labels */}
@@ -1515,10 +1538,16 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
               <text x={W - padR - 6} y={yToPx(h.value) - 6} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
             </g>
           ))}
-          {/* series paths */}
-          {allSeries.map(s => (
-            <path key={s.key} d={pathFor(s.key)} fill="none" stroke={s.color} strokeWidth={s.dashed ? "1.4" : "1.7"} strokeDasharray={s.dashed ? "4 4" : undefined} opacity={s.dashed ? 0.8 : 1} />
-          ))}
+          {/* series paths — vary stroke widths so overlapping lines don't fully hide each other */}
+          {allSeries.map((s, i) => {
+            // Widest stroke for the BOTTOM-most line in the legend, getting thinner up the stack
+            const w = s.dashed ? 1.4 : (3.0 - i * 0.4);
+            return (
+              <path key={s.key} d={pathFor(s.key)} fill="none" stroke={s.color}
+                    strokeWidth={Math.max(1.2, w)} strokeDasharray={s.dashed ? "4 4" : undefined}
+                    opacity={s.dashed ? 0.8 : (i === 0 ? 1 : 0.9)} />
+            );
+          })}
           {/* crosshair */}
           {hoverIdx != null && hoverX != null && (
             <g>
@@ -1531,20 +1560,6 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
             </g>
           )}
         </svg>
-        {/* crosshair tooltip card */}
-        {hover && (
-          <div style={{ position: "absolute", top: 8, right: 8, background: "var(--surface)", border: "0.5px solid var(--border)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--text)", boxShadow: "0 2px 6px rgba(14,17,21,0.08)", minWidth: 220 }}>
-            <div style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600, marginBottom: 6 }}>{(() => { const d = new Date(hover.date); return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); })()}</div>
-            {allSeries.map(s => (
-              <div key={s.key} style={{ display: "flex", justifyContent: "space-between", gap: 14, padding: "2px 0" }}>
-                <span style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--text-2)" }}>
-                  <span style={{ display: "inline-block", width: 10, height: 2, background: s.color, borderRadius: 1 }} />{s.label}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontWeight: 500 }}>{hover[s.key] != null ? fmtY(hover[s.key]) : "—"}</span>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
       <div style={{ display: "flex", gap: 18, marginTop: 10, fontSize: 11.5, color: "var(--text-muted)", flexWrap: "wrap" }}>
         {[...allSeries, ...horizontalLines.map((h, i) => ({ key: "hline" + i, label: h.label, color: h.color || "var(--text-muted)", dashed: true }))].map(s => (
@@ -1555,6 +1570,20 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
         ))}
         <span style={{ marginLeft: "auto" }}>{tf} window · {w.length} points</span>
       </div>
+      {/* Detect overlapping rebased series and surface the note when applicable */}
+      {(() => {
+        if (!overlapNote || !rebase || w.length < 2 || allSeries.length < 2) return null;
+        const last = w[w.length - 1];
+        const finals = allSeries.map(s => last[s.key]).filter(v => v != null);
+        if (finals.length < 2) return null;
+        const spread = Math.max(...finals) - Math.min(...finals);
+        if (spread > 0.005) return null;  // ≥ 0.5% spread = lines visibly differ
+        return (
+          <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(0,113,227,0.06)", border: "0.5px solid rgba(0,113,227,0.18)", borderRadius: 8, fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.5 }}>
+            <span style={{ color: "var(--accent)", fontWeight: 600, marginRight: 4 }}>Note:</span>{overlapNote}
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -2023,6 +2052,7 @@ export default function AssetTilt({ onOpenTicker }) {
                 rebase={true}
                 defaultTf="Max"
                 height={340}
+                overlapNote="When the engine is Risk On the entire window, Regime + Cash and Regime + Sleeve match SPY (100% equity, defensive bucket empty) — only Engine + Asset Tilt diverges."
               />
             </div>
 
