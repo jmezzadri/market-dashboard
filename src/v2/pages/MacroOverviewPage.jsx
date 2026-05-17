@@ -1,1508 +1,585 @@
+// MacroOverviewPage.jsx — Macro Overview reframed as pure indicator backdrop.
+//
+// Council sign-offs on the design (chat, 2026-05-17):
+//   UX Designer — approved layout (5 stacked domain panels, hero + meta tile).
+//   Senior Quant — approved 26-indicator bucketing across the five panels.
+//   Data Steward — every indicator id below is registered in /data_manifest.json
+//                  and pulls through /indicator_history.json; FreshnessChip wired.
+//   Lead Developer — owns the build.
+//
+// Structure
+//   PageHero (title + bullets + small right-side meta tile)
+//   Five domain panels stacked top to bottom:
+//     Rates · Credit · Equities · Money & Banking · Economy
+//   Each panel: one-line plain-English subtitle + indicator rows.
+//   Each row: name · current value · 30d direction arrow · 5y percentile dot · freshness chip.
+//   Click any row → modal with KPI strip + HistoryChart (timeframe pills, crosshair) + methodology.
+//
+// What dies on this page (now lives on Asset Tilt):
+//   - Regime classifier (Risk On / Watch / Risk Off + Inflationary / Neutral / Deflationary)
+//   - Three vol-trigger tiles (VIX / MOVE / CPFF)
+//   - 7-indicator cycle composite
+//   - 24-week regime bar strip
+//
+// HistoryChart is inlined here so the new page can ship without touching
+// AssetAllocation.jsx. Behavior is identical line-for-line to the Asset Tilt
+// version — a follow-up PR will extract it to a single shared component.
+
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import PageHero from '../components/PageHero';
+import FreshnessChip from '../components/FreshnessChip';
+import Drawer from '../components/Drawer';
 
-/**
- * Macro Overview — Signal Intelligence regime read, native React, REAL data.
- *
- * Built strictly to Risk_Off_Framework_Methodology.md. All math, thresholds,
- * stages, and regime rules come from the spec; nothing is improvised.
- *
- * Layer 1 — three vol triggers (Equity Vol / Bond Vol / Funding Stress). Each
- * has a mark = its trailing-5y 85th-percentile level. Stage = consecutive
- * weeks above the mark (0 Calm → 1 Watching → 2 Holding → 3 Confirmed →
- * 4 Entrenched).
- *
- * Layer 2 — cycle composite = average of 7 stress-direction percentile ranks
- * over each indicator's full history (Copper/Gold, KBW Bank/S&P, 10y-2y curve,
- * Chicago Fed ANFCI, Initial Jobless Claims, HY OAS, IG OAS).
- *
- * Regime classifier:
- *   No anchor above mark                        → Risk On
- *   One anchor at Stage 1 (one-week cross)     → Neutral
- *   Anchor at Stage 2+ AND cycle composite ≥40 → Cautionary
- *   Anchor at Stage 2+ AND cycle composite <40 → Risk Off
- *
- * Click drill-downs (matches approved mockup):
- *   - Regime label pill → inline "what it means" panel
- *   - 24-week regime bar → inline weekly snapshot panel
- *   - Vol trigger dial → modal with KPI strip, dynamic chart, hi/lo lines,
- *                       85th-pct line, same-percentile-band historical reads,
- *                       release calendar, formula footnote
- *   - Cycle composite indicator row → same modal pattern for that indicator
- *   - Cycle composite score → modal with seven-indicator breakdown
- *   - "See full history" → modal with backtested regime weeks 1996→today
- */
-
-// ── Framework constants ──────────────────────────────────────────────
-const STAGES = ['Calm', 'Watching', 'Holding', 'Confirmed', 'Entrenched'];
-const REGIME_ORDER = ['Risk On', 'Neutral', 'Cautionary', 'Risk Off'];
-const REGIME_DESC = {
-  'Risk On':    'No volatility triggers above their 85th-percentile mark.',
-  'Neutral':    'Exactly one trigger crossed for one week only.',
-  'Cautionary': 'A trigger has held above for 2+ weeks AND cycle composite ≥ 40.',
-  'Risk Off':   'A trigger has held above for 2+ weeks AND cycle composite < 40.',
-};
-const REGIME_LEAVE = {
-  'Risk On':    'To leave this state: any one of Equity Vol, Bond Vol, or Funding Stress crosses above its 85th-percentile level for at least one week.',
-  'Neutral':    'To leave this state: the trigger holds for a second week → Cautionary or Risk Off. Or it slips back below → Risk On.',
-  'Cautionary': 'To leave this state: the trigger settles back below its 85th-percentile mark OR the cycle composite drops below 40.',
-  'Risk Off':   'To leave this state: the trigger settles back below its mark OR the cycle composite rises above 40 (which downgrades the read to Cautionary).',
-};
-
-const VOL_ANCHORS = [
-  { id: 'vix',  title: 'Equity Volatility', niceName: 'VIX',  unit: '',    fmt: (v) => v.toFixed(1) },
-  { id: 'move', title: 'Bond Volatility',   niceName: 'MOVE', unit: '',    fmt: (v) => v.toFixed(0) },
-  { id: 'cpff', title: 'Funding Stress',    niceName: 'CPFF', unit: ' bp', fmt: (v) => v.toFixed(0) + ' bp' },
-];
-
-const CYCLE_INDICATORS = [
-  { id: 'copper_gold', name: 'Copper / Gold ratio',          bearishHigh: false, fmt: (v) => v.toFixed(3) },
-  { id: 'bkx_spx_v11', name: 'KBW Bank / S&P ratio',         bearishHigh: false, fmt: (v) => v.toFixed(4) },
-  { id: 'yield_curve', name: 'Yield curve (10y − 2y)',       bearishHigh: false, fmt: (v) => (v >= 0 ? '+' : '') + Math.round(v) + ' bp' },
-  { id: 'anfci',       name: 'Chicago Fed FCI',              bearishHigh: true,  fmt: (v) => (v >= 0 ? '+' : '') + v.toFixed(2) },
-  { id: 'ic4wsa',      name: 'Initial Jobless Claims',       bearishHigh: true,  fmt: (v) => Math.round(v) + 'K' },
-  { id: 'hy_ig',       name: 'High-Yield spread',            bearishHigh: true,  fmt: (v) => Math.round(v) + ' bp' },
-  { id: 'ig_oas',      name: 'Investment-Grade spread',      bearishHigh: true,  fmt: (v) => Math.round(v) + ' bp' },
-];
-
-const SOURCE_INFO = {
-  vix:         { src: 'CBOE direct feed',                cadence: 'Daily, real-time',  sample: '1996 to today' },
-  move:        { src: 'ICE BofA via FRED',                cadence: 'Daily after close', sample: '2002 to today' },
-  cpff:        { src: 'Federal Reserve H.15 · FRED CPFF', cadence: 'Weekly · Wed',      sample: '2006 to today (TED proxy pre-2006)' },
-  copper_gold: { src: 'Yahoo · CME front-month futures',  cadence: 'Continuous',        sample: '2000 to today', direction: 'Low = stress (flipped)' },
-  bkx_spx_v11: { src: 'NASDAQ KBW BKX index',             cadence: 'Continuous',        sample: '1993 to today', direction: 'Low = stress (flipped)' },
-  yield_curve: { src: 'Federal Reserve H.15 · FRED T10Y2Y', cadence: 'Daily after close', sample: '1976 to today', direction: 'Low = stress (flipped)' },
-  anfci:       { src: 'Chicago Fed · FRED ANFCI',         cadence: 'Weekly · Wed',      sample: '1971 to today', direction: 'High = stress' },
-  ic4wsa:      { src: 'US DOL · FRED IC4WSA',             cadence: 'Weekly · Thu',      sample: '1967 to today', direction: 'High = stress' },
-  hy_ig:       { src: 'ICE BofA · FRED BAMLH0A0HYM2',     cadence: 'Daily after close', sample: '2011 to today (BAA-AAA proxy pre-2011)', direction: 'High = stress' },
-  ig_oas:      { src: 'ICE BofA · FRED BAMLC0A0CM',       cadence: 'Daily after close', sample: '2006 to today (BAA10Y proxy pre-2006)', direction: 'High = stress' },
-};
-
-const TIMEFRAMES = [
-  { id: '1M', label: '1M', days: 30 },
-  { id: '6M', label: '6M', days: 182 },
-  { id: '1Y', label: '1Y', days: 365 },
-  { id: '5Y', label: '5Y', days: 1825 },
-  { id: 'Max', label: 'Max', days: null },
-];
-
-// ── Per-trigger and per-indicator design content (matches mockup) ────
-// Captions, episodes (with SPX 6m / 12m), co-movement peers, formula,
-// caveat, source link. Episodes are illustrative historical reads within
-// roughly today's percentile band — these stay hand-curated until SPX
-// forward-return data is wired into the live page.
-const TRIGGER_META = {
-  vix: {
-    caption: '<strong>Equity Volatility is calm.</strong> The trailing-5y 85th-percentile level sits at the mark and today\'s reading is comfortably below.',
-    formula: '30-day implied move on the S&P 500, derived from listed options pricing. Reset daily.',
-    source_url: 'https://www.cboe.com/tradable_products/vix/',
-    caveat: 'VIX is the most-cited stress measure but often the LAST of the three triggers to confirm. In 2008, funding stress was elevated from May onwards while VIX stayed in the 18–20 range through August.',
-    overlay_options: [
-      { id: 'move', label: 'Bond Volatility' },
-      { id: 'cpff', label: 'Funding Stress' },
-      { id: 'hy_ig', label: 'HY credit spread' },
-    ],
-    episodes: [
-      { period: 'May 2017', note: 'Pre-Volmageddon calm',  value: '13.4', spx6: '+9.9%',  spx12: '+13.0%' },
-      { period: 'Jul 2019', note: 'Late-cycle calm',       value: '13.6', spx6: '+5.0%',  spx12: '+10.7%' },
-      { period: 'Sep 2021', note: 'Post-COVID calm',       value: '14.9', spx6: '−5.4%',  spx12: '−18.1%' },
-      { period: 'Jul 2024', note: 'Post-Fed-pivot calm',   value: '13.8', spx6: '+4.7%',  spx12: '+8.3%' },
-      { period: 'Mar 2025', note: 'Late-cycle steady',     value: '14.5', spx6: '+3.1%',  spx12: '+6.2%' },
-    ],
-  },
-  move: {
-    caption: '<strong>Bond Volatility is calm.</strong> The trailing-5y 85th-percentile mark sits well above today\'s reading.',
-    formula: 'Implied volatility on Treasury options, weighted across 2y / 5y / 10y / 30y. Captures rate-policy uncertainty.',
-    source_url: 'https://indices.ice.com/',
-    caveat: 'Bond vol typically MIDDLE in the stress chain — follows funding stress on the way up and leads equity vol.',
-    overlay_options: [
-      { id: 'vix', label: 'Equity Volatility' },
-      { id: 'cpff', label: 'Funding Stress' },
-      { id: 'ig_oas', label: 'IG credit spread' },
-    ],
-    episodes: [
-      { period: 'Aug 2017', note: 'Pre-Volmageddon calm', value: '62',  spx6: '+9.1%',  spx12: '+12.5%' },
-      { period: 'Nov 2019', note: 'Pre-COVID calm',       value: '58',  spx6: '+5.6%',  spx12: '+15.9%' },
-      { period: 'Aug 2021', note: 'Post-COVID calm',      value: '64',  spx6: '−4.7%',  spx12: '−9.8%' },
-      { period: 'Apr 2024', note: 'Post-SVB calm',        value: '93',  spx6: '+10.4%', spx12: '+18.2%' },
-      { period: 'Feb 2025', note: 'Steady regime',        value: '88',  spx6: '+4.0%',  spx12: '+7.5%' },
-    ],
-  },
-  cpff: {
-    caption: '<strong>Funding Stress is calm.</strong> 30-day commercial paper sits a few basis points above the 30-day T-bill — comfortably below the 85th-percentile level.',
-    formula: '30-day AA-rated commercial paper rate minus 30-day Treasury bill rate. Wider means more expensive 30-day borrowing for blue-chip corporates.',
-    source_url: 'https://fred.stlouisfed.org/series/CPFF',
-    caveat: 'Funding stress is often the LEADING trigger. In 2008, elevated from May onwards while equity vol was still at 18–20 in August.',
-    overlay_options: [
-      { id: 'hy_ig', label: 'HY credit spread' },
-      { id: 'ig_oas', label: 'IG credit spread' },
-      { id: 'move', label: 'Bond Volatility' },
-    ],
-    episodes: [
-      { period: 'Aug 2017', note: 'Pre-Volmageddon calm', value: '7 bp',  spx6: '+9.1%',  spx12: '+12.5%' },
-      { period: 'Sep 2019', note: 'Late-cycle calm',      value: '11 bp', spx6: '+5.0%',  spx12: '+10.7%' },
-      { period: 'Aug 2021', note: 'Post-COVID calm',      value: '8 bp',  spx6: '−7.4%',  spx12: '−9.8%' },
-      { period: 'Apr 2024', note: 'Post-SVB calm',        value: '7 bp',  spx6: '+10.4%', spx12: '+18.2%' },
-      { period: 'Mar 2025', note: 'Steady regime',        value: '10 bp', spx6: '+3.4%',  spx12: '+6.8%' },
-    ],
-  },
-};
-
-const INDICATOR_META = {
-  copper_gold: {
-    caption: '<strong>Cyclical demand is healthy but softening.</strong> The ratio sits a touch below its 5-year average.',
-    formula: 'Front-month copper futures (HG=F) ÷ front-month gold futures (GC=F). Daily close.',
-    source_url: 'https://finance.yahoo.com/quote/HG%3DF',
-    caveat: 'Sensitive to China-specific demand shocks. A falling ratio in 2015-16 reflected China slowdown, not US cycle stress.',
-    overlay_options: [
-      { id: 'bkx_spx_v11', label: 'KBW Bank / S&P ratio' },
-      { id: 'yield_curve', label: '10y-2y curve' },
-      { id: 'hy_ig', label: 'HY credit spread' },
-    ],
-    episodes: [
-      { period: 'Mar 2019', note: 'Mid-cycle soft', value: '0.205', spx6: '+10.4%', spx12: '+12.7%' },
-      { period: 'Aug 2024', note: 'Recent soft',    value: '0.180', spx6: '+12.4%', spx12: '+18.1%' },
-      { period: 'Feb 2025', note: 'Steady',         value: '0.225', spx6: '+3.1%',  spx12: '+5.4%' },
-      { period: 'Oct 2017', note: 'Pre-Volmageddon', value: '0.238', spx6: '+9.1%',  spx12: '+8.4%' },
-    ],
-  },
-  bkx_spx_v11: {
-    caption: '<strong>Banks are in the middle of their historical range.</strong> Not leading, not lagging materially.',
-    formula: 'KBW Bank Index (BKX) ÷ S&P 500 Index. Daily close ratio.',
-    source_url: 'https://finance.yahoo.com/quote/%5EBKX',
-    caveat: 'Regional bank stress (March 2023) can drag the ratio without the cycle being broken. Cross-reference with HY spread.',
-    overlay_options: [
-      { id: 'copper_gold', label: 'Copper / Gold' },
-      { id: 'yield_curve', label: '10y-2y curve' },
-      { id: 'hy_ig', label: 'HY credit spread' },
-    ],
-    episodes: [
-      { period: 'Jun 2018', note: 'Mid-cycle steady', value: '0.0240', spx6: '+7.4%',  spx12: '+5.6%' },
-      { period: 'Feb 2020', note: 'Pre-COVID',        value: '0.0228', spx6: '+33.4%', spx12: '+56.4%' },
-      { period: 'May 2024', note: 'Post-SVB recovery', value: '0.0245', spx6: '+11.0%', spx12: '+17.5%' },
-      { period: 'Jan 2025', note: 'Steady',           value: '0.0252', spx6: '+4.2%',  spx12: '+8.1%' },
-    ],
-  },
-  yield_curve: {
-    caption: '<strong>The curve is positively sloped and steepening.</strong> Out of the 2022-23 inversion.',
-    formula: '10-year Treasury constant-maturity yield minus 2-year. Daily close.',
-    source_url: 'https://fred.stlouisfed.org/series/T10Y2Y',
-    caveat: 'Curve inversions historically lead recessions by 10-22 months. Signal-to-noise improves paired with credit-spread data.',
-    overlay_options: [
-      { id: 'bkx_spx_v11', label: 'KBW Bank / S&P' },
-      { id: 'copper_gold', label: 'Copper / Gold' },
-      { id: 'move', label: 'Bond Volatility' },
-    ],
-    episodes: [
-      { period: 'Mar 2014', note: 'Mid-recovery',           value: '+33 bp', spx6: '+6.1%',  spx12: '+10.3%' },
-      { period: 'Sep 2017', note: 'Late-cycle steady',      value: '+42 bp', spx6: '+9.1%',  spx12: '+8.4%' },
-      { period: 'Feb 2025', note: 'Post-inversion recovery', value: '+28 bp', spx6: '+3.1%',  spx12: '+5.4%' },
-      { period: 'Apr 2025', note: 'Steepening',              value: '+48 bp', spx6: '+2.4%',  spx12: '+4.9%' },
-    ],
-  },
-  anfci: {
-    caption: '<strong>Financial conditions are easier than the long-run average.</strong>',
-    formula: 'Adjusted National Financial Conditions Index — 105 underlying variables, weekly. 0 = long-run average, positive = tighter.',
-    source_url: 'https://fred.stlouisfed.org/series/ANFCI',
-    caveat: 'Published weekly with a 1-week lag. Cross-reference with daily NFCI for higher-frequency reads.',
-    overlay_options: [
-      { id: 'hy_ig', label: 'HY credit spread' },
-      { id: 'cpff', label: 'Funding Stress' },
-      { id: 'vix', label: 'Equity Volatility' },
-    ],
-    episodes: [
-      { period: 'Jun 2014', note: 'Mid-recovery ease',     value: '−0.45', spx6: '+6.7%',  spx12: '+8.1%' },
-      { period: 'Oct 2017', note: 'Late-cycle ease',       value: '−0.38', spx6: '+9.1%',  spx12: '+8.4%' },
-      { period: 'Feb 2021', note: 'Post-COVID liquidity',  value: '−0.50', spx6: '+12.8%', spx12: '+15.0%' },
-      { period: 'Apr 2025', note: 'Steady ease',           value: '−0.40', spx6: '+2.4%',  spx12: '+4.9%' },
-    ],
-  },
-  ic4wsa: {
-    caption: '<strong>The labor market is contained.</strong> Middle of the cycle range — no broad labor-market stress.',
-    formula: '4-week moving average of initial claims for state unemployment insurance, seasonally adjusted.',
-    source_url: 'https://fred.stlouisfed.org/series/IC4WSA',
-    caveat: 'Volatile around holidays and natural disasters. The 4-week average smooths most of that; extreme readings still distort.',
-    overlay_options: [
-      { id: 'anfci', label: 'Chicago Fed FCI' },
-      { id: 'vix', label: 'Equity Volatility' },
-      { id: 'bkx_spx_v11', label: 'KBW Bank / S&P' },
-    ],
-    episodes: [
-      { period: 'May 2018', note: 'Late-cycle steady', value: '215K', spx6: '+5.1%',  spx12: '+0.4%' },
-      { period: 'Feb 2020', note: 'Pre-COVID',         value: '212K', spx6: '+33.4%', spx12: '+56.4%' },
-      { period: 'Jun 2024', note: 'Recent steady',     value: '224K', spx6: '+11.8%', spx12: '+19.1%' },
-      { period: 'Feb 2025', note: 'Steady regime',     value: '218K', spx6: '+3.1%',  spx12: '+5.4%' },
-    ],
-  },
-  hy_ig: {
-    caption: '<strong>HY spreads are compressed.</strong> Risky-borrower lenders demanding little extra — late-cycle calm.',
-    formula: 'ICE BofA US High Yield Index Option-Adjusted Spread. Daily close.',
-    source_url: 'https://fred.stlouisfed.org/series/BAMLH0A0HYM2',
-    caveat: 'HY compression is a classic late-cycle signal. GFC 2008 peak (~2,000 bp) is out of sample for the 5y window.',
-    overlay_options: [
-      { id: 'vix', label: 'Equity Volatility' },
-      { id: 'cpff', label: 'Funding Stress' },
-      { id: 'anfci', label: 'Chicago Fed FCI' },
-    ],
-    episodes: [
-      { period: 'Jan 2018', note: 'Pre-Volmageddon tight', value: '278 bp', spx6: '+5.4%',  spx12: '−6.2%' },
-      { period: 'Feb 2020', note: 'Pre-COVID tight',       value: '302 bp', spx6: '+33.4%', spx12: '+56.4%' },
-      { period: 'Mar 2024', note: 'Post-SVB tight',        value: '285 bp', spx6: '+11.2%', spx12: '+18.4%' },
-      { period: 'Feb 2025', note: 'Steady tight',          value: '265 bp', spx6: '+3.1%',  spx12: '+5.4%' },
-    ],
-  },
-  ig_oas: {
-    caption: '<strong>IG spreads are deeply compressed.</strong> Safer-borrower lenders demanding almost nothing extra.',
-    formula: 'ICE BofA US Corporate Index Option-Adjusted Spread (IG-rated). Daily close.',
-    source_url: 'https://fred.stlouisfed.org/series/BAMLC0A0CM',
-    caveat: 'IG OAS deeply compressed is consistent with the broader late-cycle compression picture.',
-    overlay_options: [
-      { id: 'hy_ig', label: 'HY credit spread' },
-      { id: 'cpff', label: 'Funding Stress' },
-      { id: 'move', label: 'Bond Volatility' },
-    ],
-    episodes: [
-      { period: 'Oct 2017', note: 'Pre-Volmageddon tight', value: '95 bp',  spx6: '+9.1%',  spx12: '+8.4%' },
-      { period: 'Feb 2020', note: 'Pre-COVID tight',       value: '101 bp', spx6: '+33.4%', spx12: '+56.4%' },
-      { period: 'Apr 2024', note: 'Post-SVB tight',        value: '92 bp',  spx6: '+10.4%', spx12: '+18.2%' },
-      { period: 'Feb 2025', note: 'Steady tight',          value: '86 bp',  spx6: '+3.1%',  spx12: '+5.4%' },
-    ],
-  },
-};
-
-// ── Pure helpers ─────────────────────────────────────────────────────
-function trailing5ySorted(points) {
-  if (!points || !points.length) return [];
-  const last = new Date(points[points.length - 1][0]);
-  const cutoff = new Date(last); cutoff.setFullYear(last.getFullYear() - 5);
-  return points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
-}
-function fullHistorySorted(points) {
-  if (!points || !points.length) return [];
-  return points.map(([, v]) => v).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
-}
-function valueAtPctile(sorted, pct) {
-  if (!sorted.length) return null;
-  const idx = Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length));
-  return sorted[idx];
-}
-function pctileOf(value, sorted) {
-  if (!sorted.length || value == null || isNaN(value)) return null;
-  let lo = 0, hi = sorted.length;
-  while (lo < hi) { const m = (lo + hi) >>> 1; if (sorted[m] < value) lo = m + 1; else hi = m; }
-  return Math.round((lo / sorted.length) * 100);
-}
-function weeklyClose(points, weeksBack = 24) {
-  if (!points || !points.length) return [];
-  const byWeek = {};
-  for (const [ds, v] of points) {
-    if (v == null || isNaN(v)) continue;
-    const d = new Date(ds), w = new Date(d); w.setDate(d.getDate() - d.getDay());
-    byWeek[w.toISOString().slice(0, 10)] = { date: ds, value: v };
-  }
-  const ks = Object.keys(byWeek).sort();
-  return ks.slice(-weeksBack).map(k => byWeek[k]);
-}
-function weeklyAll(points) {
-  if (!points || !points.length) return [];
-  const byWeek = {};
-  for (const [ds, v] of points) {
-    if (v == null || isNaN(v)) continue;
-    const d = new Date(ds), w = new Date(d); w.setDate(d.getDate() - d.getDay());
-    byWeek[w.toISOString().slice(0, 10)] = { date: ds, value: v };
-  }
-  const ks = Object.keys(byWeek).sort();
-  return ks.map(k => byWeek[k]);
-}
-function anchorStage(weekly, threshold) {
-  if (!weekly.length || threshold == null) return 0;
-  let consec = 0;
-  for (let i = weekly.length - 1; i >= 0; i--) {
-    if (weekly[i].value >= threshold) consec++;
-    else break;
-  }
-  if (consec === 0) return 0;
-  if (consec === 1) return 1;
-  if (consec <= 3) return 2;
-  if (consec <= 7) return 3;
-  return 4;
-}
-function weeklyStages(weekly, threshold) {
-  let consec = 0;
-  return weekly.map(w => {
-    if (w.value >= threshold) consec++; else consec = 0;
-    if (consec === 0) return 0;
-    if (consec === 1) return 1;
-    if (consec <= 3) return 2;
-    if (consec <= 7) return 3;
-    return 4;
-  });
-}
-function quintile(score) {
-  if (score == null) return null;
-  if (score < 20) return 1; if (score < 40) return 2; if (score < 60) return 3; if (score < 80) return 4;
-  return 5;
-}
-function bandLabel(score) {
-  if (score == null) return '—';
-  if (score < 20) return 'deepest calm';
-  if (score < 40) return 'calm / late-cycle';
-  if (score < 60) return 'middle of the range';
-  if (score < 80) return 'broad stress visible';
-  return 'full-blown macro stress';
-}
-function computeRegime(stages, cycleScore) {
-  const maxStage = Math.max(...stages, 0);
-  if (maxStage === 0) return 'Risk On';
-  if (maxStage === 1 && stages.filter(s => s >= 1).length === 1) return 'Neutral';
-  if (cycleScore == null) return 'Cautionary';
-  return cycleScore < 40 ? 'Risk Off' : 'Cautionary';
-}
-function fmtDate(s) {
-  if (!s) return '—';
-  return new Date(s).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-function fmtMonthYear(s) {
-  if (!s) return '—';
-  return new Date(s).toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
-}
-function fmtFresh(asOf) {
-  if (!asOf) return 'FRESH';
-  const d = new Date(asOf);
-  return 'FRESH · ' + d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-function sliceByDays(points, days) {
-  if (!points || !points.length || days == null) return points || [];
-  const lastDate = new Date(points[points.length - 1][0]);
-  const cutoff = new Date(lastDate); cutoff.setDate(lastDate.getDate() - days);
-  return points.filter(([d]) => new Date(d) >= cutoff);
-}
-function nearbyHistorical(weekly, currentValue, sortedFull, fmt, n = 6) {
-  // Find historical weekly closes within ±15 percentile points of today's value.
-  const curPct = pctileOf(currentValue, sortedFull);
-  if (curPct == null) return [];
-  const lo = sortedFull[Math.max(0, Math.floor((curPct - 12) / 100 * sortedFull.length))];
-  const hi = sortedFull[Math.min(sortedFull.length - 1, Math.floor((curPct + 12) / 100 * sortedFull.length))];
-  // Exclude the last ~year so we don't show very recent reads
-  const cutoffDate = new Date(); cutoffDate.setFullYear(cutoffDate.getFullYear() - 1);
-  const candidates = weekly.filter(w => {
-    const v = w.value;
-    return v >= Math.min(lo, hi) && v <= Math.max(lo, hi) && new Date(w.date) < cutoffDate;
-  });
-  // Pick a spread across history — every N-th item
-  const step = Math.max(1, Math.floor(candidates.length / n));
-  const out = [];
-  for (let i = 0; i < candidates.length && out.length < n; i += step) out.push(candidates[i]);
-  return out.map(w => ({ date: w.date, value: w.value, valueText: fmt(w.value) }));
-}
-
-// ── Component ────────────────────────────────────────────────────────
-export default function MacroOverviewPage() {
-  const [indHist, setIndHist] = useState(null);
-  const [modal, setModal] = useState({ open: false, kind: null, payload: null });
-  const [openPill, setOpenPill] = useState(null);              // which regime pill is expanded
-  const [openWeek, setOpenWeek] = useState(null);              // which 24-week bar is expanded inline
-  const modalStackRef = useRef([]);                            // for modal back-stack
-
-  useEffect(() => {
-    fetch('/indicator_history.json', { cache: 'no-cache' })
-      .then(r => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
-  }, []);
-
-  const data = useMemo(() => {
-    if (!indHist) return null;
-
-    const anchors = VOL_ANCHORS.map(cfg => {
-      const raw = indHist[cfg.id];
-      if (!raw || !raw.points || !raw.points.length) {
-        return { ...cfg, current: null, threshold: null, scaleMax: 100, stage: 0, stageName: 'Calm', weekly: [], stages: [], allWeekly: [], sortedFull: [], asOf: null };
-      }
-      const sorted5y = trailing5ySorted(raw.points);
-      const threshold = valueAtPctile(sorted5y, 85);
-      const current = raw.points[raw.points.length - 1];
-      const weekly = weeklyClose(raw.points, 24);
-      const stages = weeklyStages(weekly, threshold);
-      const stage = anchorStage(weekly, threshold);
-      const scaleMax = threshold != null ? threshold / 0.65 : 100;
-      const allWeekly = weeklyAll(raw.points);
-      const sortedFull = fullHistorySorted(raw.points);
-      const histLo = sortedFull.length ? sortedFull[0] : null;
-      const histHi = sortedFull.length ? sortedFull[sortedFull.length - 1] : null;
-      const days_in_stage = (() => { let c = 0; for (let i = stages.length - 1; i >= 0; i--) { if (stages[i] === stage) c++; else break; } return c * 7; })();
-      return {
-        ...cfg, current: current[1], threshold, scaleMax, stage,
-        stageName: STAGES[stage] || 'Calm',
-        weekly, stages, allWeekly, sortedFull, asOf: raw.as_of,
-        rawPoints: raw.points, histLo, histHi, days_in_stage,
-      };
-    });
-
-    const cycleInd = CYCLE_INDICATORS.map(cfg => {
-      const raw = indHist[cfg.id];
-      if (!raw || !raw.points || !raw.points.length) {
-        return { ...cfg, value: null, valueText: '—', stressPctile: null, allWeekly: [], sortedFull: [], rawPoints: [] };
-      }
-      const sortedFull = fullHistorySorted(raw.points);
-      const current = raw.points[raw.points.length - 1];
-      const rawPct = pctileOf(current[1], sortedFull);
-      const stressPct = rawPct == null ? null : (cfg.bearishHigh ? rawPct : 100 - rawPct);
-      const allWeekly = weeklyAll(raw.points);
-      const histLo = sortedFull.length ? sortedFull[0] : null;
-      const histHi = sortedFull.length ? sortedFull[sortedFull.length - 1] : null;
-      return {
-        ...cfg, value: current[1], valueText: current[1] != null && !isNaN(current[1]) ? cfg.fmt(current[1]) : '—',
-        stressPctile: stressPct, allWeekly, sortedFull, rawPoints: raw.points, asOf: raw.as_of, histLo, histHi,
-      };
-    });
-    const cycleAvail = cycleInd.map(i => i.stressPctile).filter(p => p != null);
-    const cycleScore = cycleAvail.length ? Math.round(cycleAvail.reduce((a, b) => a + b, 0) / cycleAvail.length) : null;
-
-    const stagesArr = anchors.map(a => a.stage);
-    const regime = computeRegime(stagesArr, cycleScore);
-
-    // 24-week regime history (derive each week's regime from each anchor's stage at that week + same cycle composite)
-    const weeks = anchors[0]?.weekly?.length || 0;
-    const regimeHistory = [];
-    for (let i = 0; i < weeks; i++) {
-      const wStages = anchors.map(a => a.stages[i] ?? 0);
-      const r = computeRegime(wStages, cycleScore);
-      regimeHistory.push({ date: anchors[0].weekly[i]?.date, label: r, stages: wStages });
-    }
-
-    // Full backtested regime weekly history — align all anchors weekly by date
-    const fullByDate = {};
-    anchors.forEach(a => {
-      a.allWeekly.forEach(w => {
-        if (!fullByDate[w.date]) fullByDate[w.date] = { date: w.date };
-        fullByDate[w.date]['stage_' + a.id] = w.value >= a.threshold ? 1 : 0;
-        fullByDate[w.date]['val_' + a.id] = w.value;
-      });
-    });
-    const fullDates = Object.keys(fullByDate).sort();
-    // Stage logic over full history per trigger
-    anchors.forEach(a => {
-      let consec = 0;
-      fullDates.forEach(d => {
-        const x = fullByDate[d];
-        if (x['stage_' + a.id]) consec++; else consec = 0;
-        x['fullstage_' + a.id] = consec === 0 ? 0 : consec === 1 ? 1 : consec <= 3 ? 2 : consec <= 7 ? 3 : 4;
-      });
-    });
-    // Precompute the HISTORICAL cycle composite at every week. For each
-    // cycle indicator, take its most recent weekly value at or before the
-    // target week (binary search), percentile-rank it against the indicator's
-    // full sample, flip for inverted-direction indicators, and average across
-    // the seven. The regime classifier then uses this PER-WEEK cycle composite
-    // (not today's value) so Risk Off can actually fire when a trigger is
-    // sustained AND the cycle was calm at that historical moment.
-    const fullCycleByDate = {};
-    for (const d of fullDates) {
-      const pcts = [];
-      for (const ind of cycleInd) {
-        if (!ind.allWeekly.length || !ind.sortedFull.length) continue;
-        // Binary search: latest week with date <= d
-        let lo = 0, hi = ind.allWeekly.length;
-        while (lo < hi) {
-          const mid = (lo + hi) >>> 1;
-          if (ind.allWeekly[mid].date <= d) lo = mid + 1; else hi = mid;
-        }
-        const idx = lo - 1;
-        if (idx < 0) continue;
-        const v = ind.allWeekly[idx].value;
-        const rawPct = pctileOf(v, ind.sortedFull);
-        if (rawPct == null) continue;
-        pcts.push(ind.bearishHigh ? rawPct : 100 - rawPct);
-      }
-      if (pcts.length) fullCycleByDate[d] = Math.round(pcts.reduce((a, b) => a + b, 0) / pcts.length);
-    }
-
-    const fullRegime = fullDates.map(d => {
-      const x = fullByDate[d];
-      const stages = anchors.map(a => x['fullstage_' + a.id] || 0);
-      const histCycle = fullCycleByDate[d] != null ? fullCycleByDate[d] : cycleScore;
-      return { date: d, label: computeRegime(stages, histCycle), stages, cycle: histCycle };
-    });
-
-    // SPX series for the backtested regime history modal (Option A).
-    // Must use the SAME Sunday-of-week key formula the engine uses for
-    // fullByDate (setDate(d - d.getDay())) so SPX values join cleanly with
-    // each fullRegime[i].date. weekKey() returns ISO date of the Sunday
-    // starting the week containing the given date.
-    const weekKey = (ds) => {
-      const d = new Date(ds), w = new Date(d);
-      w.setDate(d.getDate() - d.getDay());
-      return w.toISOString().slice(0, 10);
-    };
-    // spxByWeek: Map Sunday-of-week key -> latest SPX value in that week.
-    const spxByWeek = {};
-    if (indHist.spx && indHist.spx.points && indHist.spx.points.length) {
-      for (const [ds, val] of indHist.spx.points) {
-        if (val == null || isNaN(val)) continue;
-        spxByWeek[weekKey(ds)] = val; // last write wins -> last reading of week
-      }
-    }
-    // Provide spxByWeek (object map) and a weekKey helper to the modal.
-    const spxWeekly = spxByWeek;
-    const spxWeekKey = weekKey;
-    return { anchors, cycleInd, cycleScore, cycleQuintile: quintile(cycleScore), regime, regimeHistory, fullRegime, spxWeekly, spxWeekKey };
-  }, [indHist]);
-
-  if (!data) {
-    return <div className="mo-page" style={{ padding: '60px 32px', textAlign: 'center', color: 'var(--ink-2)' }}>Loading macro data…</div>;
-  }
-
-  const { anchors, cycleInd, cycleScore, regime, regimeHistory, fullRegime, spxWeekly, spxWeekKey } = data;
-
-  const openTrigger = (id) => setModal({ open: true, kind: 'trigger', payload: id });
-  const openIndicator = (id, parent) => { if (parent) modalStackRef.current.push(parent); setModal({ open: true, kind: 'indicator', payload: id }); };
-  const openScore = () => setModal({ open: true, kind: 'score', payload: null });
-  const openRegimeHistory = (filterState) => setModal({ open: true, kind: 'regimeHistory', payload: filterState });
-  const closeModal = () => { setModal({ open: false, kind: null, payload: null }); modalStackRef.current = []; };
-  const modalBack = () => { const prev = modalStackRef.current.pop(); if (prev) setModal(prev); else closeModal(); };
-
-  return (
-    <>
-      <style>{MO_CSS}</style>
-      <PageHero
-        eyebrow="Macro Overview"
-        title={<>Three <em>Volatility Signals</em> plus one <em>Cycle Positioning</em> composite provide an intuitive Macro Regime read.</>}
-        bullets={[
-          "Volatility Triggers tell us when trouble has arrived",
-          "Those triggers must persist to be actionable",
-          <>Cycle Composite acts as a confirmation layer &mdash; telling us when to act</>,
-          "Regimes: Risk On, Neutral, Cautionary, or Risk Off",
-        ]}
-        right={
-        <aside className="mo-regime">
-          <div className="mo-tile-fresh"><span className="fresh-dot"/>{fmtFresh(anchors[0]?.asOf)}</div>
-          <h2 className="mo-regime-title">Regime</h2>
-          {REGIME_ORDER.map(name => (
-            <React.Fragment key={name}>
-              <div
-                className={`mo-rrow ${regime === name ? 'current' : ''}`}
-                onClick={() => setOpenPill(openPill === name ? null : name)}
-              >
-                <span className="mo-rpill">{name}</span>
-                <span className="mo-rdesc">{REGIME_DESC[name]}</span>
-                <span className="mo-r-arrow">▾</span>
-              </div>
-              {openPill === name && (
-                <div className="mo-pill-panel">
-                  <div className="mo-pill-head">What "{name}" means</div>
-                  {REGIME_DESC[name]}
-                  <div className="mo-pill-leave">{REGIME_LEAVE[name]}</div>
-                  <div className="mo-pill-seehist">
-                    <button onClick={(e) => { e.stopPropagation(); openRegimeHistory(name); }}>SEE FULL HISTORY ›</button>
-                  </div>
-                </div>
-              )}
-            </React.Fragment>
-          ))}
-
-          <div className="mo-rhist-wrap">
-            <div className="mo-rhist-axis"><span>24 weeks ago</span><span>today</span></div>
-            <div className="mo-rhist-strip">
-              {regimeHistory.map((w, i) => {
-                const lvl = REGIME_ORDER.indexOf(w.label);
-                const heightPct = 18 + (lvl * 22);
-                return (
-                  <span
-                    key={i}
-                    className={`mo-rhist-bar s${lvl}`}
-                    style={{ height: heightPct + '%' }}
-                    data-tt={`${fmtDate(w.date)} · ${w.label}`}
-                    onClick={() => setOpenWeek(openWeek === i ? null : i)}
-                  />
-                );
-              })}
-            </div>
-            <button className="mo-rhist-fullhist" onClick={() => openRegimeHistory(null)}>SEE FULL HISTORY ({fullRegime[0]?.date?.slice(0,4) || ''} – TODAY) ›</button>
-          </div>
-          {openWeek != null && (
-            <div className="mo-rhist-panel">
-              <div className="mo-rhist-panel-head">Weekly snapshot · {fmtDate(regimeHistory[openWeek]?.date)}</div>
-              <table>
-                {anchors.map(a => (
-                  <tr key={a.id}>
-                    <td>{a.title}</td>
-                    <td className="num">{a.weekly[openWeek] ? a.fmt(a.weekly[openWeek].value) : '—'}</td>
-                    <td className="num">{STAGES[a.stages[openWeek] || 0]}</td>
-                  </tr>
-                ))}
-                <tr><td>Cycle composite</td><td className="num">{cycleScore ?? '—'}</td><td className="num">/ 100</td></tr>
-                <tr><td><strong>Regime</strong></td><td colSpan="2" style={{textAlign:'right'}}><span className="mo-pill">{regimeHistory[openWeek]?.label}</span></td></tr>
-              </table>
-            </div>
-          )}
-        </aside>
-        }
-      />
-      <div className="mo-page" onClick={(e) => {
-        // Click outside inline panels closes them
-        if (!e.target.closest('.mo-rrow') && !e.target.closest('.mo-pill-panel')) setOpenPill(null);
-        if (!e.target.closest('.mo-rhist-bar') && !e.target.closest('.mo-rhist-panel')) setOpenWeek(null);
-      }}>
-
-        {/* HEAD STRIP — canonical PageHero (locked 2026-05-13) */}
-        {/* THREE VOL TILES */}
-        <div className="mo-vol-grid">
-          {anchors.map(a => (
-            <AnchorTile key={a.id} anchor={a} onDial={() => openTrigger(a.id)} />
-          ))}
-        </div>
-
-        {/* CYCLE POSITIONING */}
-        <div className="mo-cycle">
-          <div className="mo-cycle-fresh"><span className="fresh-dot"/>{fmtFresh(cycleInd[0]?.asOf)}</div>
-          <h2 className="mo-cycle-title">Cycle Positioning</h2>
-          <div className="mo-cycle-body">
-            <div className="mo-cycle-left" onClick={openScore}>
-              <span className="mo-cycle-hint">CLICK FOR BREAKDOWN ›</span>
-              <CycleDial score={cycleScore} />
-              <div className="mo-readout"><span className="mo-val">{cycleScore != null ? cycleScore : '—'}</span><span className="mo-denom">/ 100</span></div>
-              <div className="mo-cycle-band">{bandLabel(cycleScore)}</div>
-            </div>
-            <div className="mo-cycle-right">
-              <div className="mo-sub-eyebrow">Average of seven percentile ranks · ranked against each indicator's full history · click any row to drill in</div>
-              <div className="mo-ind-list">
-                <div className="mo-ind-header">
-                  <span>Indicator</span><span></span><span>Reading</span><span>Pctile</span>
-                </div>
-                {cycleInd.map(ind => {
-                  const p = ind.stressPctile;
-                  return (
-                    <div key={ind.id} className="mo-ind-row" onClick={() => openIndicator(ind.id)}>
-                      <span className="mo-ind-name">{ind.name}</span>
-                      <span className="mo-ind-barwrap"><span className="mo-ind-bar" style={{ width: (p ?? 0) + '%' }}/></span>
-                      <span className="mo-ind-reading">{ind.valueText}</span>
-                      <span className="mo-ind-pctile">{p != null ? p + '%' : '—'}</span>
-                    </div>
-                  );
-                })}
-                <div className="mo-ind-avg">
-                  <span></span><span></span><span className="mo-ind-avg-label">Average =</span>
-                  <span className="mo-ind-avg-val">{cycleScore != null ? cycleScore : '—'} / 100</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      {/* MODAL */}
-      {modal.open && (
-        <div className="mo-scrim" onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}>
-          <div className="mo-modal-card">
-            <button className="mo-modal-close" onClick={closeModal}>×</button>
-            {modalStackRef.current.length > 0 && (
-              <button className="mo-modal-back" onClick={modalBack}>‹ BACK</button>
-            )}
-            {modal.kind === 'trigger' && <TriggerModalContent anchor={anchors.find(x => x.id === modal.payload)} indHist={indHist} />}
-            {modal.kind === 'indicator' && <IndicatorModalContent ind={cycleInd.find(x => x.id === modal.payload)} indHist={indHist} />}
-            {modal.kind === 'score' && <ScoreModalContent cycleInd={cycleInd} cycleScore={cycleScore} onDrill={(id) => openIndicator(id, { kind: 'score', payload: null, open: true })} />}
-            {modal.kind === 'regimeHistory' && <RegimeHistoryModalContent fullRegime={fullRegime} spxWeekly={spxWeekly} spxWeekKey={spxWeekKey} filterState={modal.payload} />}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-// ── Anchor (vol trigger) tile ────────────────────────────────────────
-function AnchorTile({ anchor, onDial }) {
-  const a = anchor;
-  return (
-    <div className="mo-tile">
-      <div className="mo-tile-fresh"><span className="fresh-dot"/>{fmtFresh(a.asOf)}</div>
-      <h2 className="mo-tile-title">{a.title}</h2>
-      <div className="mo-stage-row">
-        <span className={`mo-stage-pill stage-${a.stage}`}>{a.stageName}</span>
-      </div>
-      <div className="mo-dial-wrap" onClick={onDial}>
-        <span className="mo-dial-hint">CLICK FOR DETAIL ›</span>
-        <RawDial value={a.current} threshold={a.threshold} max={a.scaleMax} fmt={a.fmt}/>
-        <div className="mo-readout"><span className="mo-val">{a.current != null ? a.fmt(a.current) : '—'}</span></div>
-        <div className="mo-mark-line">85th percentile = {a.threshold != null ? a.fmt(a.threshold) : '—'}</div>
-      </div>
-      <div className="mo-bar-wrap">
-        <div className="mo-bar-axis"><span>24w</span><span>now</span></div>
-        <div className="mo-bar-strip">
-          {a.weekly.map((w, i) => {
-            const heightPct = a.scaleMax ? Math.max(8, Math.min(95, (w.value / a.scaleMax) * 100)) : 50;
-            return (
-              <span
-                key={i}
-                className={`mo-bar s${a.stages[i] || 0}`}
-                style={{ height: heightPct + '%' }}
-                data-tt={`${fmtDate(w.date)} · ${a.fmt(w.value)}`}
-              />
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ── Half-circle dial: value vs threshold mark ────────────────────────
-function RawDial({ value, threshold, max, fmt }) {
-  const cx = 120, cy = 120, R = 100;
-  const v = value == null || isNaN(value) ? 0 : Math.max(0, Math.min(max, value));
-  const valPct = (v / max) * 100;
-  const angle = 180 - (valPct * 1.8);
-  const rad = (angle * Math.PI) / 180;
-  const tipX = cx + R * Math.cos(rad);
-  const tipY = cy - R * Math.sin(rad);
-  let markX = null, markY = null, markLabelX = null, markLabelY = null;
-  if (threshold != null && !isNaN(threshold)) {
-    const tPct = Math.max(0, Math.min(100, (threshold / max) * 100));
-    const tAngle = 180 - (tPct * 1.8);
-    const tRad = (tAngle * Math.PI) / 180;
-    markX = cx + R * Math.cos(tRad);
-    markY = cy - R * Math.sin(tRad);
-    markLabelX = cx + (R + 14) * Math.cos(tRad);
-    markLabelY = cy - (R + 14) * Math.sin(tRad);
-  }
-  return (
-    <svg className="mo-dial" viewBox="0 0 240 140">
-      <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)" />
-      <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)" />
-      <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)" />
-      <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)" />
-      {markX != null && (<>
-        <circle cx={markX} cy={markY} r="3" style={{fill:'var(--text)'}} />
-        <text x={markLabelX} y={markLabelY} fontFamily="Inter,sans-serif" fontSize="9" style={{fill:'var(--text)'}} fontWeight="600" textAnchor={threshold/max > 0.5 ? 'start' : 'end'}>{fmt(threshold)}</text>
-      </>)}
-      <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round"/>
-      <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8"/>
-      <circle cx={cx} cy={cy} r="4.5" fill="var(--accent)"/>
-    </svg>
-  );
-}
-
-// ── Cycle composite arc with 0/20/40/60/80 tick markers ──────────────
-function CycleDial({ score }) {
-  const cx = 120, cy = 120, R = 100;
-  const v = score == null ? 0 : Math.max(0, Math.min(100, score));
-  const angle = 180 - (v * 1.8);
-  const rad = (angle * Math.PI) / 180;
-  const tipX = cx + R * Math.cos(rad);
-  const tipY = cy - R * Math.sin(rad);
-  const ticks = [
-    { v: 0,  x1: 20,  y1: 122, x2: 14,  y2: 128, lx: 8,   ly: 138 },
-    { v: 20, x1: 55,  y1: 49,  x2: 49,  y2: 42,  lx: 38,  ly: 42  },
-    { v: 40, x1: 120, y1: 22,  x2: 120, y2: 14,  lx: 120, ly: 11  },
-    { v: 60, x1: 185, y1: 49,  x2: 191, y2: 42,  lx: 202, ly: 42  },
-    { v: 80, x1: 220, y1: 122, x2: 226, y2: 128, lx: 232, ly: 138 },
-  ];
-  return (
-    <svg className="mo-dial" viewBox="0 0 240 150" style={{maxWidth:260}}>
-      <path d="M 20 122 A 100 100 0 0 1 55 49"  fill="rgba(0,113,227,0.18)" />
-      <path d="M 55 49 A 100 100 0 0 1 120 22"  fill="rgba(0,113,227,0.42)" />
-      <path d="M 120 22 A 100 100 0 0 1 185 49" fill="rgba(0,113,227,0.68)" />
-      <path d="M 185 49 A 100 100 0 0 1 220 122" fill="rgba(0,113,227,0.92)" />
-      {ticks.map(t => (
-        <g key={t.v} fontSize="9" fontFamily="Inter,sans-serif" style={{fill:'var(--text-muted)'}} fontWeight="500">
-          <line x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2} style={{stroke:'var(--text-muted)'}} strokeWidth="1"/>
-          <text x={t.lx} y={t.ly} textAnchor="middle">{t.v}</text>
-        </g>
-      ))}
-      <line x1={cx} y1={cy} x2={tipX} y2={tipY} stroke="var(--accent)" strokeWidth="2.8" strokeLinecap="round"/>
-      <circle cx={tipX} cy={tipY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.8"/>
-      <circle cx={cx} cy={cy} r="4.5" fill="var(--accent)"/>
-    </svg>
-  );
-}
-
-// ── Dynamic chart: timeframe select, hi/lo lines, 85th-pct line, crosshair, overlay ─
-function DynamicChart({ points, p85, fmt, label, overlayOptions, indHist }) {
-  const [tfId, setTfId] = useState('1Y');
-  const [overlayId, setOverlayId] = useState('');
+// ─── HistoryChart — IDENTICAL to AssetAllocation.jsx. Do NOT change here
+//     without updating Asset Tilt in lockstep. Joe rule: every chart is the
+//     same chart.
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null }) {
+  const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
+  const [overlayKey, setOverlayKey] = useState(defaultOverlay);
   const svgRef = useRef(null);
+  const overlay = overlayKey ? availableOverlays.find(o => o.key === overlayKey) : null;
+  const allSeries = overlay ? [...series, { ...overlay, dashed: true }] : series;
 
-  const tf = TIMEFRAMES.find(t => t.id === tfId) || TIMEFRAMES[2];
-  const slice = sliceByDays(points, tf.days);
-  const overlayPts = overlayId && indHist && indHist[overlayId] ? sliceByDays(indHist[overlayId].points, tf.days) : null;
+  const cadence = (() => {
+    if (data.length < 10) return "weekly";
+    let gapSum = 0, n = 0;
+    for (let i = 1; i < Math.min(20, data.length); i++) {
+      const a = new Date(data[i - 1].date), b = new Date(data[i].date);
+      gapSum += (b - a) / (1000 * 60 * 60 * 24);
+      n++;
+    }
+    return (gapSum / n) < 4 ? "daily" : "weekly";
+  })();
+  const tfPoints = cadence === "daily"
+    ? { "1M": 21, "6M": 126, "1Y": 252, "5Y": 1260, "Max": data.length }
+    : { "1M": 4,  "6M": 26,  "1Y": 52,  "5Y": 260,  "Max": data.length };
+  let w = data.slice(-tfPoints[tf]);
 
-  if (!slice.length) return <div style={{height:360,color:'var(--ink-3)',fontSize:12,padding:24}}>No data in window.</div>;
+  if (rebase && w.length > 0) {
+    const baseVals = {};
+    for (const s of allSeries) {
+      for (const p of w) { if (p[s.key] != null && p[s.key] !== 0) { baseVals[s.key] = p[s.key]; break; } }
+    }
+    w = w.map(p => {
+      const o = { ...p };
+      for (const s of allSeries) {
+        const base = baseVals[s.key];
+        if (base != null && p[s.key] != null) o[s.key] = p[s.key] / base;
+      }
+      return o;
+    });
+  }
 
-  const w = 760, h = 280, padL = 52, padR = 14, padT = 14, padB = 28;
-  const vals = slice.map(p => p[1]);
-  const overlayVals = overlayPts ? overlayPts.map(p => p[1]) : [];
-  const max = Math.max(...vals) * 1.05;
-  const min = Math.min(...vals) * 0.95;
-  const range = max - min || 1;
-  // Overlay uses its own y-axis (right side) so different units don't clash
-  const oMax = overlayVals.length ? Math.max(...overlayVals) * 1.05 : 0;
-  const oMin = overlayVals.length ? Math.min(...overlayVals) * 0.95 : 0;
-  const oRange = oMax - oMin || 1;
+  const W = 800, H = height, padL = 56, padR = 24, padT = 18, padB = 36;
+  const innerW = W - padL - padR;
+  const innerH = H - padT - padB;
 
-  const xFor = (i, n) => padL + (i / Math.max(1, n - 1)) * (w - padL - padR);
-  const yFor = (v) => h - padB - ((v - min) / range) * (h - padT - padB);
-  const yOverlay = (v) => h - padB - ((v - oMin) / oRange) * (h - padT - padB);
+  const allVals = [...w.flatMap(p => allSeries.map(s => p[s.key]).filter(v => v != null && (!logY || v > 0))), ...horizontalLines.map(h => h.value).filter(v => v != null)];
+  let yMinRaw = Math.min(...allVals);
+  let yMaxRaw = Math.max(...allVals);
+  let yMin, yMax;
+  if (logY) {
+    yMin = yMinRaw / 1.04;
+    yMax = yMaxRaw * 1.04;
+    yMin = Math.max(yMin, 0.01);
+  } else {
+    const yPad = (yMaxRaw - yMinRaw) * 0.08 || Math.abs(yMaxRaw) * 0.05 || 1;
+    yMin = yMinRaw - yPad;
+    yMax = yMaxRaw + yPad;
+  }
+  if (yMinProp != null) { yMin = yMinProp; }
 
-  const path = slice.map((p, i) => `${xFor(i, slice.length).toFixed(1)},${yFor(p[1]).toFixed(1)}`).join(' ');
-  const overlayPath = overlayPts ? overlayPts.map((p, i) => `${xFor(i, overlayPts.length).toFixed(1)},${yOverlay(p[1]).toFixed(1)}`).join(' ') : null;
+  const yScale = logY ? Math.log(yMax / yMin) : (yMax - yMin);
+  const yToPx = (v) => {
+    if (logY) return padT + (Math.log(yMax / v) / yScale) * innerH;
+    return padT + ((yMax - v) / yScale) * innerH;
+  };
+  const xToPx = (i) => padL + (i / Math.max(1, w.length - 1)) * innerW;
+  const pathFor = (key) => w.map((p, i) => {
+    const v = p[key];
+    if (v == null) return null;
+    return [xToPx(i), yToPx(v)];
+  }).filter(Boolean).map((pt, i) => (i === 0 ? "M " : "L ") + pt[0].toFixed(1) + " " + pt[1].toFixed(1)).join(" ");
 
-  const hi = Math.max(...vals), lo = Math.min(...vals);
-  const hiY = yFor(hi), loY = yFor(lo);
-  const p85Y = (p85 != null && p85 >= min && p85 <= max) ? yFor(p85) : null;
+  const yTicks = [];
+  if (logY) {
+    const lo = Math.log(yMin), hi = Math.log(yMax);
+    for (let i = 0; i <= 4; i++) {
+      const lv = lo + (hi - lo) * (i / 4);
+      const v = Math.exp(lv);
+      yTicks.push({ v, y: yToPx(v) });
+    }
+  } else {
+    for (let i = 0; i <= 4; i++) {
+      const v = yMin + (yMax - yMin) * (i / 4);
+      yTicks.push({ v, y: yToPx(v) });
+    }
+  }
+  const xLabels = [
+    { i: 0, d: w[0]?.date },
+    { i: Math.floor(w.length / 2), d: w[Math.floor(w.length / 2)]?.date },
+    { i: w.length - 1, d: w[w.length - 1]?.date },
+  ].filter(p => p.d).map(p => ({ x: xToPx(p.i), label: (() => { const d = new Date(p.d); return d.toLocaleDateString("en-US", { month: "short", year: tf === "Max" || tf === "5Y" ? "numeric" : "2-digit" }); })() }));
 
   const handleMove = (e) => {
-    if (!svgRef.current) return;
+    if (!svgRef.current || w.length === 0) return;
     const rect = svgRef.current.getBoundingClientRect();
-    const xPx = e.clientX - rect.left;
-    const xView = (xPx / rect.width) * w;
-    if (xView < padL || xView > w - padR) { setHoverIdx(null); return; }
-    const idx = Math.max(0, Math.min(slice.length - 1, Math.round(((xView - padL) / (w - padL - padR)) * (slice.length - 1))));
-    setHoverIdx(idx);
+    const xRel = (e.clientX - rect.left) / rect.width * W;
+    const xData = (xRel - padL) / innerW;
+    const idx = Math.round(xData * (w.length - 1));
+    if (idx >= 0 && idx < w.length) setHoverIdx(idx);
   };
   const handleLeave = () => setHoverIdx(null);
 
-  const hoverX = hoverIdx != null ? xFor(hoverIdx, slice.length) : null;
-  const hoverY = hoverIdx != null ? yFor(slice[hoverIdx][1]) : null;
-  const hoverDate = hoverIdx != null ? slice[hoverIdx][0] : null;
-  const hoverVal = hoverIdx != null ? slice[hoverIdx][1] : null;
-  const hoverOverlayVal = (hoverIdx != null && overlayPts && overlayPts[hoverIdx]) ? overlayPts[hoverIdx][1] : null;
-
-  const overlayPeerLabel = overlayId ? (overlayOptions || []).find(o => o.id === overlayId)?.label : null;
-
-  // X-axis date formatter — month + 2-digit year for spans > 1 year, otherwise month + day
-  const spanDays = (new Date(slice[slice.length-1][0]) - new Date(slice[0][0])) / 86400000;
-  const fmtAxisDate = (s) => {
-    const d = new Date(s);
-    if (spanDays > 365) return d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  };
-  const midIdx = Math.floor(slice.length / 2);
+  const hover = hoverIdx != null ? w[hoverIdx] : null;
+  const hoverX = hoverIdx != null ? xToPx(hoverIdx) : null;
 
   return (
     <div>
-      <div style={{display:'flex',gap:6,marginBottom:10,alignItems:'center',flexWrap:'wrap'}}>
-        {TIMEFRAMES.map(t => (
-          <button key={t.id} onClick={() => setTfId(t.id)} className={`mo-tf-btn ${tfId===t.id?'active':''}`}>{t.label}</button>
-        ))}
-        <span style={{flex:1}}/>
-        {overlayOptions && overlayOptions.length > 0 && (
-          <select className="mo-tf-btn" value={overlayId} onChange={(e) => setOverlayId(e.target.value)} style={{cursor:'pointer',padding:'4px 10px'}}>
-            <option value="">Overlay…</option>
-            {overlayOptions.map(o => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, gap: 12, flexWrap: "wrap" }}>
+        <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>History · timeframe select · crosshair{availableOverlays.length > 0 ? " · overlay" : ""}</div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {availableOverlays.length > 0 && (
+            <select value={overlayKey || ""} onChange={(e) => setOverlayKey(e.target.value || null)} style={{
+              fontSize: 11, padding: "4px 10px", borderRadius: 11, border: "1px solid var(--border)",
+              background: "var(--surface)", color: "var(--text)", cursor: "pointer", marginRight: 8, letterSpacing: "0.04em",
+            }}>
+              <option value="">OVERLAY…</option>
+              {availableOverlays.map(o => <option key={o.key} value={o.key}>{o.label}</option>)}
+            </select>
+          )}
+          {["1M", "6M", "1Y", "5Y", "Max"].map(t => (
+            <button key={t} onClick={() => setTf(t)} style={{
+              background: t === tf ? "var(--accent-soft)" : "transparent",
+              border: "1px solid " + (t === tf ? "var(--accent)" : "var(--border)"),
+              color: t === tf ? "var(--accent)" : "var(--text-muted)",
+              borderRadius: 11, padding: "4px 12px", fontSize: 11, letterSpacing: "0.04em", cursor: "pointer", fontWeight: 500,
+            }}>{t}</button>
+          ))}
+        </div>
+      </div>
+      <div style={{ minHeight: 56, padding: "8px 12px", background: hover ? "var(--surface-2)" : "transparent", border: "0.5px solid " + (hover ? "var(--border-faint)" : "transparent"), borderRadius: 8, marginBottom: 8, fontSize: 12, color: "var(--text)", transition: "background 80ms" }}>
+        {hover ? (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+              <div style={{ fontSize: 10.5, color: "var(--text-muted)", letterSpacing: "0.04em", textTransform: "uppercase", fontWeight: 600 }}>{(() => { const d = new Date(hover.date); return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" }); })()}</div>
+              <div style={{ fontSize: 10.5, color: "var(--text-dim)", letterSpacing: "0.04em" }}>HOVER · POINT {hoverIdx + 1} OF {w.length}</div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(" + allSeries.length + ", 1fr)", gap: 12 }}>
+              {allSeries.map(s => (
+                <div key={s.key} style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "var(--text-muted)" }}>
+                    <span style={{ display: "inline-block", width: 10, height: 2, background: s.color, borderRadius: 1 }} />{s.label}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontWeight: 600, fontSize: 14, color: "var(--text)" }}>{hover[s.key] != null ? fmtY(hover[s.key]) : "—"}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div style={{ fontSize: 11.5, color: "var(--text-dim)", fontStyle: "italic" }}>Hover the chart for the crosshair readout · all {allSeries.length} series at the cursor's date</div>
         )}
       </div>
-      <div className="mo-chart-card">
-        <svg ref={svgRef} viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" style={{width:'100%',height:360,display:'block'}} onMouseMove={handleMove} onMouseLeave={handleLeave}>
-          {/* Y-axis: 5 tick gridlines + value labels */}
-          {[0, 0.25, 0.5, 0.75, 1].map(t => {
-            const v = min + t * (max - min);
-            const y = yFor(v);
+      <div style={{ position: "relative" }}>
+        <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height, display: "block", cursor: "crosshair" }} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+          {yTicks.map((t, i) => (
+            <g key={i}>
+              <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="rgba(14,17,21,0.06)" strokeWidth="1" />
+              <text x={padL - 8} y={t.y + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end" fontFamily="Inter">{fmtY(t.v)}</text>
+            </g>
+          ))}
+          {xLabels.map((l, i) => (
+            <text key={i} x={l.x} y={H - padB + 18} fontSize="10.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{l.label}</text>
+          ))}
+          {horizontalLines.map((h, i) => (
+            <g key={"h" + i}>
+              <line x1={padL} y1={yToPx(h.value)} x2={W - padR} y2={yToPx(h.value)} stroke={h.color || "var(--text-muted)"} strokeWidth="1.2" strokeDasharray="6 4" />
+              <text x={W - padR - 6} y={yToPx(h.value) - 6} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
+            </g>
+          ))}
+          {allSeries.map((s, i) => {
+            const sw = s.dashed ? 1.4 : (3.0 - i * 0.4);
             return (
-              <g key={'y'+t}>
-                <line x1={padL} y1={y} x2={w-padR} y2={y} stroke="var(--border)" strokeWidth="0.5" opacity="0.7"/>
-                <text x={padL-6} y={y+3} fontSize="10" fill="var(--ink-3)" textAnchor="end" fontFamily="Inter">{fmt(v)}</text>
-              </g>
+              <path key={s.key} d={pathFor(s.key)} fill="none" stroke={s.color}
+                    strokeWidth={Math.max(1.2, sw)} strokeDasharray={s.dashed ? "4 4" : undefined}
+                    opacity={s.dashed ? 0.8 : (i === 0 ? 1 : 0.9)} />
             );
           })}
-          {/* 85th percentile reference (kept — the indicator-specific annotation) */}
-          {p85Y != null && (<>
-            <line x1={padL} y1={p85Y} x2={w-padR} y2={p85Y} style={{stroke:'var(--text)'}} strokeWidth="1" strokeDasharray="6,4"/>
-            <text x={w-padR-6} y={p85Y-4} fontSize="10" style={{fill:'var(--text)'}} textAnchor="end" fontWeight="600" fontFamily="Inter">85th pct = {fmt(p85)}</text>
-          </>)}
-          {/* X-axis: 3 date labels — start, middle, end */}
-          <text x={xFor(0, slice.length)} y={h-6} fontSize="10" fill="var(--ink-3)" textAnchor="start" fontFamily="Inter">{fmtAxisDate(slice[0][0])}</text>
-          <text x={xFor(midIdx, slice.length)} y={h-6} fontSize="10" fill="var(--ink-3)" textAnchor="middle" fontFamily="Inter">{fmtAxisDate(slice[midIdx][0])}</text>
-          <text x={xFor(slice.length-1, slice.length)} y={h-6} fontSize="10" fill="var(--ink-3)" textAnchor="end" fontFamily="Inter">{fmtAxisDate(slice[slice.length-1][0])}</text>
-          {/* Series */}
-          {overlayPath && <polyline points={overlayPath} fill="none" stroke="#a4626d" strokeWidth="1.6" opacity="0.75"/>}
-          <polyline points={path} fill="none" style={{stroke:'var(--accent)'}} strokeWidth="2"/>
-          {/* Crosshair + tooltip */}
-          {hoverX != null && (<>
-            <line x1={hoverX} y1={padT} x2={hoverX} y2={h-padB} style={{stroke:'var(--text)'}} strokeWidth="1" strokeDasharray="3,3" opacity="0.5"/>
-            <circle cx={hoverX} cy={hoverY} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.5"/>
-            <rect x={Math.min(hoverX + 8, w - padR - 150)} y={Math.max(padT + 4, hoverY - 42)} width="142" height="36" rx="4" style={{fill:'var(--text)'}} opacity="0.92"/>
-            <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 16} fontSize="10" style={{fill:'var(--bg)'}} fontFamily="Inter" fontWeight="600">{hoverDate} · {fmt(hoverVal)}</text>
-            {hoverOverlayVal != null && <text x={Math.min(hoverX + 8, w - padR - 150) + 8} y={Math.max(padT + 4, hoverY - 42) + 30} fontSize="10" style={{fill:'var(--bg)',opacity:0.65}} fontFamily="Inter">{overlayPeerLabel}: {hoverOverlayVal.toFixed(2)}</text>}
-          </>)}
+          {hoverIdx != null && hoverX != null && (
+            <g>
+              <line x1={hoverX} y1={padT} x2={hoverX} y2={H - padB} stroke="rgba(14,17,21,0.20)" strokeWidth="1" strokeDasharray="2 3" />
+              {allSeries.map(s => {
+                const v = w[hoverIdx][s.key];
+                if (v == null) return null;
+                return <circle key={s.key} cx={hoverX} cy={yToPx(v)} r="4" fill={s.color} stroke="#fff" strokeWidth="1.5" />;
+              })}
+            </g>
+          )}
         </svg>
       </div>
-      <div style={{display:'flex',gap:14,fontSize:11,color:'var(--ink-3)',marginTop:8,fontFamily:'Inter',flexWrap:'wrap'}}>
-        <span><span style={{display:'inline-block',width:10,height:10,background:'var(--accent)',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{label}</span>
-        {overlayPeerLabel && <span><span style={{display:'inline-block',width:10,height:10,background:'#a4626d',borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>{overlayPeerLabel}</span>}
-        {p85 != null && <span><span style={{display:'inline-block',width:10,height:10,background:'var(--text)',opacity:0.8,borderRadius:2,marginRight:5,verticalAlign:'middle'}}/>85th-pct = {fmt(p85)}</span>}
-        <span style={{marginLeft:'auto'}}>Hover for crosshair · {tf.label} window · {slice.length} points · current {fmt(vals[vals.length-1])}</span>
+      <div style={{ display: "flex", gap: 18, marginTop: 10, fontSize: 11.5, color: "var(--text-muted)", flexWrap: "wrap" }}>
+        {[...allSeries, ...horizontalLines.map((h, i) => ({ key: "hline" + i, label: h.label, color: h.color || "var(--text-muted)", dashed: true }))].map(s => (
+          <span key={s.key} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span style={{ display: "inline-block", width: 14, height: s.dashed ? 0 : 2, borderTop: s.dashed ? "2px dashed " + s.color : "2px solid " + s.color }} />
+            {s.label}
+          </span>
+        ))}
+        <span style={{ marginLeft: "auto" }}>{tf} window · {w.length} points</span>
+      </div>
+      {(() => {
+        if (!overlapNote || !rebase || w.length < 2 || allSeries.length < 2) return null;
+        const last = w[w.length - 1];
+        const finals = allSeries.map(s => last[s.key]).filter(v => v != null);
+        if (finals.length < 2) return null;
+        const spread = Math.max(...finals) - Math.min(...finals);
+        if (spread > 0.005) return null;
+        return (
+          <div style={{ marginTop: 10, padding: "8px 12px", background: "rgba(0,113,227,0.06)", border: "0.5px solid rgba(0,113,227,0.18)", borderRadius: 8, fontSize: 11.5, color: "var(--text-2)", lineHeight: 1.5 }}>
+            <span style={{ color: "var(--accent)", fontWeight: 600, marginRight: 4 }}>Note:</span>{overlapNote}
+          </div>
+        );
+      })()}
+    </div>
+  );
+}
+
+// ─── Indicator catalog ──────────────────────────────────────────────────
+// dir: 'hw' (high-warns — rising = stress), 'lw' (low-warns — falling = stress),
+//      'neutral' (direction is informational, not good/bad).
+const INDICATORS = {
+  // RATES
+  yield_curve:   { panel: 'rates', label: 'Yield curve (10y − 2y)',        short: '10y−2y',     fmt: v => (v>=0?'+':'') + Math.round(v) + ' bp',           dir: 'lw',       methodology: 'A positive slope is normal; inversion has historically led recessions by 10–22 months.' },
+  real_rates:    { panel: 'rates', label: '10y real yield',                short: '10y real',   fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'hw',       methodology: 'Nominal 10y Treasury minus 10y breakeven inflation. Higher real rates tighten financial conditions.' },
+  move:          { panel: 'rates', label: 'MOVE · bond volatility',        short: 'MOVE',       fmt: v => v.toFixed(0),                                    dir: 'hw',       methodology: 'Implied volatility on Treasury options across the curve. Captures rate-policy uncertainty.' },
+  term_premium:  { panel: 'rates', label: 'Term premium',                  short: 'Term prem',  fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'neutral',  methodology: 'Extra yield investors demand for holding long-dated paper over rolling short paper.' },
+  breakeven_10y: { panel: 'rates', label: '10y breakeven inflation',       short: '10y BE',     fmt: v => v.toFixed(2) + '%',                              dir: 'neutral',  methodology: 'Market-implied 10y inflation: nominal 10y yield minus 10y TIPS yield.' },
+
+  // CREDIT
+  hy_ig:         { panel: 'credit', label: 'High-yield OAS',               short: 'HY OAS',     fmt: v => Math.round(v) + ' bp',                           dir: 'hw',       methodology: 'ICE BofA US High Yield Index option-adjusted spread. Daily close.' },
+  ig_oas:        { panel: 'credit', label: 'Investment-grade OAS',         short: 'IG OAS',     fmt: v => Math.round(v) + ' bp',                           dir: 'hw',       methodology: 'ICE BofA US Corporate Index option-adjusted spread. Daily close.' },
+  hy_ig_ratio:   { panel: 'credit', label: 'HY / IG spread ratio',         short: 'HY/IG',      fmt: v => v.toFixed(2),                                    dir: 'hw',       methodology: 'Pure premium for credit risk, normalized by duration. Rising = lenders pricing more risk.' },
+  sloos_ci:      { panel: 'credit', label: 'SLOOS · C&I tightening',       short: 'SLOOS C&I',  fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'hw',       methodology: 'Net % of banks tightening commercial & industrial loan standards. Quarterly Fed survey.' },
+  sloos_cre:     { panel: 'credit', label: 'SLOOS · CRE tightening',       short: 'SLOOS CRE',  fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'hw',       methodology: 'Net % of banks tightening commercial real estate loan standards. Quarterly Fed survey.' },
+
+  // EQUITIES
+  spx_200dma:    { panel: 'equities', label: 'SPX vs 200-day average',     short: 'SPX vs 200d',fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'lw',       methodology: 'Distance of the S&P 500 from its 200-day moving average. Below = sustained downtrend.' },
+  cape:          { panel: 'equities', label: 'CAPE · Shiller P/E',         short: 'CAPE',       fmt: v => v.toFixed(1) + 'x',                              dir: 'hw',       methodology: 'Price divided by 10-year average inflation-adjusted earnings. Multi-cycle valuation measure.' },
+  vix:           { panel: 'equities', label: 'VIX · equity volatility',    short: 'VIX',        fmt: v => v.toFixed(1),                                    dir: 'hw',       methodology: '30-day implied move on the S&P 500, derived from listed options pricing. Reset daily.' },
+  skew:          { panel: 'equities', label: 'SKEW · tail risk',           short: 'SKEW',       fmt: v => v.toFixed(0),                                    dir: 'hw',       methodology: 'Premium of out-of-the-money S&P puts. Captures crash-risk demand.' },
+  eq_cr_corr:    { panel: 'equities', label: 'Equity-credit correlation',  short: 'Eq/Cr corr', fmt: v => v.toFixed(2),                                    dir: 'neutral',  methodology: '60-day rolling correlation of SPX returns with HY OAS changes.' },
+
+  // MONEY & BANKING
+  cpff:          { panel: 'money', label: 'Commercial paper spread',       short: 'CPFF',       fmt: v => Math.round(v) + ' bp',                           dir: 'hw',       methodology: '30-day AA-rated commercial paper minus 30-day T-bill. Wider = expensive 30-day corporate borrowing.' },
+  anfci:         { panel: 'money', label: 'Chicago Fed FCI',               short: 'ANFCI',      fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'hw',       methodology: 'Adjusted National Financial Conditions Index — 105 underlying variables. 0 = long-run average.' },
+  stlfsi:        { panel: 'money', label: 'St. Louis FCI',                 short: 'STLFSI',     fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'hw',       methodology: 'St. Louis Fed Financial Stress Index. Weekly. Composite of 18 weekly financial variables.' },
+  bkx_spx_v11:   { panel: 'money', label: 'KBW Bank / SPX',                short: 'BKX/SPX',    fmt: v => v.toFixed(4),                                    dir: 'lw',       methodology: 'KBW Bank Index divided by S&P 500. Banks underperform when balance sheets are stressed.' },
+  bank_credit:   { panel: 'money', label: 'Bank credit growth (YoY)',      short: 'Bank credit',fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'lw',       methodology: 'Year-over-year growth in total loans and leases at all US commercial banks.' },
+  fed_bs:        { panel: 'money', label: 'Fed balance sheet',             short: 'Fed BS',     fmt: v => '$' + (v/1e3).toFixed(2) + 'T',                  dir: 'neutral',  methodology: 'Total assets on the Federal Reserve balance sheet, in millions of dollars.' },
+
+  // ECONOMY
+  ic4wsa:        { panel: 'economy', label: 'Initial jobless claims (4w)', short: 'IC4WSA',     fmt: v => Math.round(v) + 'K',                             dir: 'hw',       methodology: '4-week moving average of initial unemployment claims, seasonally adjusted.' },
+  ism:           { panel: 'economy', label: 'ISM Manufacturing',           short: 'ISM Mfg',    fmt: v => v.toFixed(1),                                    dir: 'lw',       methodology: 'Manufacturing purchasing managers index. 50 = neutral; below = contraction.' },
+  jolts_quits:   { panel: 'economy', label: 'JOLTS · quits rate',          short: 'Quits',      fmt: v => v.toFixed(1) + '%',                              dir: 'neutral',  methodology: '% of employed workers voluntarily leaving each month. Higher = labor confidence.' },
+  copper_gold:   { panel: 'economy', label: 'Copper / Gold ratio',         short: 'Cu/Au',      fmt: v => v.toFixed(3),                                    dir: 'lw',       methodology: 'Front-month copper futures over gold futures. Cyclical demand indicator.' },
+  usd:           { panel: 'economy', label: 'USD broad index',             short: 'USD',        fmt: v => v.toFixed(2),                                    dir: 'neutral',  methodology: 'Trade-weighted broad dollar index against a basket of major currencies.' },
+  cfnai:         { panel: 'economy', label: 'Chicago Fed Nat. Activity',   short: 'CFNAI',      fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'lw',       methodology: '85-indicator composite of real US economic activity, normalized to 0.' },
+};
+
+const PANELS = [
+  { id: 'rates',    title: 'Rates',            subtitle: 'The cost and shape of money — what duration is being repriced.' },
+  { id: 'credit',   title: 'Credit',           subtitle: 'What lenders are charging for risk, and whether they\'re still lending.' },
+  { id: 'equities', title: 'Equities',         subtitle: 'What the stock tape is pricing in — level, volatility, and tail risk.' },
+  { id: 'money',    title: 'Money & Banking',  subtitle: 'How freely capital is moving through the financial plumbing.' },
+  { id: 'economy',  title: 'Economy',          subtitle: 'The real-world pulse — labor, activity, and cyclical demand.' },
+];
+
+// ─── helpers ────────────────────────────────────────────────────────────
+function ascending(arr) { return [...arr].sort((a,b) => a-b); }
+
+function percentile(value, arr) {
+  if (!arr || arr.length === 0 || value == null) return null;
+  const sorted = ascending(arr);
+  let lo = 0, hi = sorted.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (sorted[mid] < value) lo = mid + 1; else hi = mid;
+  }
+  return lo / sorted.length;
+}
+
+function trailingPctile(points, value) {
+  if (!points || (value == null && value !== 0)) return null;
+  const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - 5);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const recent = points.filter(p => p[0] >= cutoffStr).map(p => p[1]).filter(v => v != null);
+  return percentile(value, recent);
+}
+
+function thirtyDayDelta(points) {
+  if (!points || points.length < 2) return null;
+  const today = points[points.length - 1][1];
+  const target = new Date(); target.setDate(target.getDate() - 30);
+  const t = target.toISOString().slice(0,10);
+  let priorIdx = 0;
+  for (let i = points.length - 1; i >= 0; i--) { if (points[i][0] <= t) { priorIdx = i; break; } }
+  const prior = points[priorIdx][1];
+  if (prior == null) return null;
+  return today - prior;
+}
+
+function ArrowGlyph({ delta, dir, fmt }) {
+  if (delta == null) return <span style={{color:'var(--text-dim)'}}>—</span>;
+  const up = delta > 0;
+  let color = 'var(--text-muted)';
+  if (dir === 'hw') color = up ? 'var(--red-text)' : 'var(--green-text)';
+  if (dir === 'lw') color = up ? 'var(--green-text)' : 'var(--red-text)';
+  const arrow = up ? '▲' : (delta < 0 ? '▼' : '◆');
+  const abs = Math.abs(delta);
+  const formatted = fmt ? fmt(abs).replace(/^\+/, '') : abs.toFixed(2);
+  return <span style={{color, fontFamily:'var(--font-mono)', fontSize:11, fontVariantNumeric:'tabular-nums'}}>{arrow} {formatted}</span>;
+}
+
+function PctileDot({ pct }) {
+  if (pct == null) return <span style={{width:14, height:14, display:'inline-block'}} />;
+  const opacity = 0.25 + pct * 0.65;
+  return (
+    <span title={`${Math.round(pct*100)}th percentile (5y)`} style={{
+      width: 14, height: 14, borderRadius: '50%', display: 'inline-block',
+      background: `rgba(14,85,96,${opacity})`,
+      border: '1px solid rgba(14,85,96,0.3)'
+    }} />
+  );
+}
+
+function panelTitle(panelId) {
+  if (panelId === 'money') return 'Money & Banking';
+  return panelId.charAt(0).toUpperCase() + panelId.slice(1);
+}
+
+// ─── Main ───────────────────────────────────────────────────────────────
+export default function MacroOverviewPage() {
+  const [hist, setHist] = useState(null);
+  const [modal, setModal] = useState(null);
+
+  useEffect(() => {
+    fetch('/indicator_history.json', { cache: 'no-cache' })
+      .then(r => r.ok ? r.json() : null).then(setHist).catch(() => setHist(null));
+  }, []);
+
+  const asOf = hist?.__meta__?.generated_at_utc?.slice(0,10) || null;
+  const totalIndicators = Object.keys(INDICATORS).length;
+  const panelGroups = useMemo(() => {
+    const g = {};
+    for (const p of PANELS) g[p.id] = [];
+    for (const [id, def] of Object.entries(INDICATORS)) {
+      if (g[def.panel]) g[def.panel].push({ id, ...def });
+    }
+    return g;
+  }, []);
+
+  if (!hist) {
+    return (
+      <main style={{ maxWidth: 1280, margin: '0 auto', padding: '60px 32px' }}>
+        <div style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: 12 }}>
+          Loading Macro Overview…
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main style={{ maxWidth: 1280, margin: '0 auto', padding: '0 0 64px' }}>
+      <PageHero
+        eyebrow="Macro Overview"
+        title={<>The five things you should know about the <em>macro tape</em> today.</>}
+        bullets={[
+          'No regime call on this page — that lives on Asset Tilt. This is the indicator backdrop.',
+          'Five domains: Rates, Credit, Equities, Money & Banking, and the real Economy.',
+          'Click any indicator for full history, methodology, and overlays.',
+        ]}
+        right={
+          <aside style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px 14px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-ui)', fontSize: 10, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.18em', marginBottom: 14 }}>
+              On this page
+            </div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 42, fontWeight: 400, lineHeight: 1, letterSpacing: '-0.015em', color: 'var(--text)' }}>
+              {totalIndicators}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+              indicators · five domains
+            </div>
+            {asOf && (
+              <div style={{ marginTop: 14, fontSize: 11, color: 'var(--text-muted)' }}>
+                Updated {asOf}
+              </div>
+            )}
+          </aside>
+        }
+      />
+
+      <div style={{ padding: '8px 32px 0' }}>
+        {PANELS.map(panel => (
+          <DomainPanel
+            key={panel.id}
+            panel={panel}
+            indicators={panelGroups[panel.id]}
+            hist={hist}
+            onOpen={setModal}
+          />
+        ))}
+      </div>
+
+      {modal && (
+        <IndicatorModal
+          indicatorId={modal}
+          def={INDICATORS[modal]}
+          hist={hist}
+          onClose={() => setModal(null)}
+        />
+      )}
+    </main>
+  );
+}
+
+function DomainPanel({ panel, indicators, hist, onOpen }) {
+  return (
+    <section style={{
+      background: 'var(--surface)',
+      border: '0.5px solid var(--border)',
+      borderRadius: 12,
+      padding: '24px 28px',
+      marginBottom: 20,
+    }}>
+      <div style={{ marginBottom: 16, borderBottom: '0.5px solid var(--border-faint)', paddingBottom: 12 }}>
+        <h2 style={{
+          fontFamily: 'var(--font-display)',
+          fontStyle: 'italic',
+          fontWeight: 400,
+          fontSize: 22,
+          color: 'var(--accent)',
+          margin: '0 0 4px',
+          letterSpacing: '-0.005em',
+        }}>{panel.title}</h2>
+        <div style={{ fontSize: 12.5, color: 'var(--text-muted)', lineHeight: 1.55 }}>{panel.subtitle}</div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 110px 110px 22px 90px', gap: 14, padding: '8px 4px 8px', borderBottom: '0.5px solid var(--border-faint)', fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', letterSpacing: '0.10em', textTransform: 'uppercase', fontWeight: 600 }}>
+        <div>Indicator</div>
+        <div>Current</div>
+        <div>30-day Δ</div>
+        <div title="5-year percentile" style={{textAlign:'center'}}>5y</div>
+        <div style={{ textAlign: 'right' }}>Fresh</div>
+      </div>
+
+      <div>
+        {indicators.map(ind => (
+          <IndicatorRow key={ind.id} ind={ind} hist={hist[ind.id]} onOpen={onOpen} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function IndicatorRow({ ind, hist, onOpen }) {
+  if (!hist || !hist.points || hist.points.length === 0) {
+    return (
+      <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 110px 110px 22px 90px', gap: 14, alignItems: 'center', padding: '11px 4px', borderBottom: '0.5px dashed var(--border-faint)' }}>
+        <div style={{ fontSize: 13.5, color: 'var(--text-muted)' }}>{ind.label}</div>
+        <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>no data</div>
+        <div /><div /><div />
+      </div>
+    );
+  }
+  const currentVal = hist.points[hist.points.length - 1][1];
+  const delta = thirtyDayDelta(hist.points);
+  const pct = trailingPctile(hist.points, currentVal);
+  return (
+    <div
+      onClick={() => onOpen(ind.id)}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: '1.4fr 110px 110px 22px 90px',
+        gap: 14,
+        alignItems: 'center',
+        padding: '11px 4px',
+        borderBottom: '0.5px dashed var(--border-faint)',
+        cursor: 'pointer',
+        transition: 'background 80ms',
+      }}
+      onMouseEnter={e => e.currentTarget.style.background = 'var(--surface-2)'}
+      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+    >
+      <div style={{ fontSize: 13.5, color: 'var(--text)', fontWeight: 500 }}>
+        {ind.label}
+      </div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+        {ind.fmt(currentVal)}
+      </div>
+      <div>
+        <ArrowGlyph delta={delta} dir={ind.dir} fmt={ind.fmt} />
+      </div>
+      <div style={{ textAlign: 'center' }}>
+        <PctileDot pct={pct} />
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <FreshnessChip elementId={`indicator-${ind.id}-${(hist.freq || 'd').toLowerCase()}`} fallback={hist.as_of} />
       </div>
     </div>
   );
 }
 
-// ── Trigger modal ────────────────────────────────────────────────────
-function TriggerModalContent({ anchor, indHist }) {
-  if (!anchor) return null;
-  const info = SOURCE_INFO[anchor.id] || {};
-  const meta = TRIGGER_META[anchor.id] || {};
-  const today = anchor.asOf || '—';
+function IndicatorModal({ indicatorId, def, hist, onClose }) {
+  const series = hist[indicatorId];
+  if (!series || !series.points) return null;
+  const chartData = series.points.map(([d, v]) => ({ date: d, value: v }));
+  const currentVal = series.points[series.points.length - 1][1];
+  const delta30 = thirtyDayDelta(series.points);
+  const pct5y = trailingPctile(series.points, currentVal);
   return (
-    <>
-      <div className="mo-modal-eyebrow">Volatility trigger · Layer 1</div>
-      <div className="mo-modal-h">
-        <h3>{anchor.title}<span className="mo-source-fresh"><span className="fresh-dot"/>{fmtFresh(anchor.asOf)}</span></h3>
-        <div className="mo-modal-right">
-          <div className="mo-big-val">{anchor.current != null ? anchor.fmt(anchor.current) : '—'}</div>
-          <div className="mo-big-meta">{anchor.stageName.toUpperCase()} · {anchor.days_in_stage} days in stage</div>
-        </div>
-      </div>
-      {meta.caption && <p className="mo-body-14" dangerouslySetInnerHTML={{__html: meta.caption + ` The trigger has been in <em>${anchor.stageName}</em> for ${anchor.days_in_stage} trading days.`}}/>}
-      <div className="mo-kpi-strip">
-        <div className="mo-kpi"><div className="lbl">Current</div><div className="val">{anchor.current != null ? anchor.fmt(anchor.current) : '—'}</div><div className="meta">today's reading</div></div>
-        <div className="mo-kpi"><div className="lbl">85th percentile (5y)</div><div className="val">{anchor.threshold != null ? anchor.fmt(anchor.threshold) : '—'}</div><div className="meta">recalibrated daily</div></div>
-        <div className="mo-kpi"><div className="lbl">Stage</div><div className="val">{anchor.stageName}</div><div className="meta">{anchor.days_in_stage} days</div></div>
-        <div className="mo-kpi"><div className="lbl">Full sample range</div><div className="val">{anchor.histLo != null && anchor.histHi != null ? `${anchor.fmt(anchor.histLo)}–${anchor.fmt(anchor.histHi)}` : '—'}</div><div className="meta">{info.sample || ''}</div></div>
-      </div>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">History · timeframe select · crosshair · overlay</div>
-        <DynamicChart points={anchor.rawPoints} p85={anchor.threshold} fmt={anchor.fmt} label={anchor.title} overlayOptions={meta.overlay_options} indHist={indHist}/>
-      </div>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">Historical reads near today's level · S&P forward returns</div>
-        <div className="mo-episode-note">Readings from other periods when {anchor.title} was at a similar level to today. Historical reference, not a forecast.</div>
-        <table className="mo-modal-table">
-          <thead><tr><th>Period</th><th>Note</th><th style={{textAlign:'right'}}>Value</th><th style={{textAlign:'right'}}>SPX 6m</th><th style={{textAlign:'right'}}>SPX 12m</th></tr></thead>
-          <tbody>
-            {(meta.episodes || []).map((e, i) => {
-              const isNeg6 = e.spx6 && (e.spx6.startsWith('−') || e.spx6.startsWith('-'));
-              const isNeg12 = e.spx12 && (e.spx12.startsWith('−') || e.spx12.startsWith('-'));
-              return (
-                <tr key={i}>
-                  <td>{e.period}</td>
-                  <td>{e.note}</td>
-                  <td className="num" style={{textAlign:'right'}}>{e.value}</td>
-                  <td className="num" style={{textAlign:'right',color: isNeg6 ? '#c84658' : '#2f9d6a',fontWeight:500}}>{e.spx6}</td>
-                  <td className="num" style={{textAlign:'right',color: isNeg12 ? '#c84658' : '#2f9d6a',fontWeight:500}}>{e.spx12}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">Release calendar</div>
-        <table className="mo-modal-table"><tbody>
-          <tr><td>Frequency</td><td>{info.cadence || '—'}</td></tr>
-          <tr><td>Last release</td><td>{today}</td></tr>
-          <tr><td>Source</td><td>{info.src || '—'}</td></tr>
-        </tbody></table>
-      </div>
-      {(meta.formula || meta.caveat) && (
-        <div className="mo-modal-footer">
-          {meta.formula && <div className="row"><strong>Formula.</strong> {meta.formula}</div>}
-          {meta.source_url && <div className="row"><strong>Source.</strong> <a href={meta.source_url} target="_blank" rel="noreferrer" style={{color:'var(--ink-0, var(--text, #0e1115))'}}>{info.src || meta.source_url}</a></div>}
-          {meta.caveat && <div className="row" style={{color:'var(--ink-3, var(--text-muted, #5e5e63))',fontStyle:'italic'}}><strong style={{color:'var(--ink-0, var(--text, #0e1115))',fontStyle:'normal'}}>Caveat.</strong> {meta.caveat}</div>}
-        </div>
-      )}
-    </>
-  );
-}
+    <Drawer open={true} onClose={onClose}>
+      <div style={{ padding: '24px 28px 32px' }}>
+        <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 6 }}>{panelTitle(def.panel)}</div>
+        <h2 style={{ fontFamily: 'var(--font-display)', fontWeight: 400, fontSize: 26, color: 'var(--text)', letterSpacing: '-0.005em', margin: '0 0 16px' }}>
+          {def.label}
+        </h2>
 
-// ── Indicator modal ──────────────────────────────────────────────────
-function IndicatorModalContent({ ind, indHist }) {
-  if (!ind) return null;
-  const info = SOURCE_INFO[ind.id] || {};
-  const meta = INDICATOR_META[ind.id] || {};
-  return (
-    <>
-      <div className="mo-modal-eyebrow">Cycle composite indicator · Layer 2</div>
-      <div className="mo-modal-h">
-        <h3>{ind.name}<span className="mo-source-fresh"><span className="fresh-dot"/>{fmtFresh(ind.asOf)}</span></h3>
-        <div className="mo-modal-right">
-          <div className="mo-big-val">{ind.valueText}</div>
-          <div className="mo-big-meta">{ind.stressPctile != null ? ind.stressPctile + 'TH STRESS PCT' : '—'} · {(info.sample || '').toUpperCase()}</div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 22 }}>
+          <KPI label="Current" value={def.fmt(currentVal)} sub={`As of ${series.as_of || '—'}`} />
+          <KPI label="30-day Δ" value={delta30 != null ? (delta30 >= 0 ? '+' : '') + def.fmt(Math.abs(delta30)).replace(/^\+/, '') : '—'} sub="vs 30d ago" />
+          <KPI label="5y percentile" value={pct5y != null ? Math.round(pct5y*100) + 'th' : '—'} sub="trailing 5 years" />
         </div>
-      </div>
-      {meta.caption && <p className="mo-body-14" dangerouslySetInnerHTML={{__html: meta.caption}}/>}
-      <div className="mo-kpi-strip">
-        <div className="mo-kpi"><div className="lbl">Current</div><div className="val">{ind.valueText}</div><div className="meta">today's reading</div></div>
-        <div className="mo-kpi"><div className="lbl">Stress percentile</div><div className="val">{ind.stressPctile != null ? ind.stressPctile + '%' : '—'}</div><div className="meta">vs {info.sample || 'full sample'}</div></div>
-        <div className="mo-kpi"><div className="lbl">Direction</div><div className="val" style={{fontSize:14}}>{info.direction || '—'}</div><div className="meta"></div></div>
-        <div className="mo-kpi"><div className="lbl">Full sample range</div><div className="val">{ind.histLo != null && ind.histHi != null ? `${ind.fmt(ind.histLo)}–${ind.fmt(ind.histHi)}` : '—'}</div><div className="meta">{info.sample || ''}</div></div>
-      </div>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">History · timeframe select · crosshair · overlay</div>
-        <DynamicChart points={ind.rawPoints} p85={null} fmt={ind.fmt} label={ind.name} overlayOptions={meta.overlay_options} indHist={indHist}/>
-      </div>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">Historical reads near today's level · S&P forward returns</div>
-        <div className="mo-episode-note">Readings from other periods when {ind.name} was at a similar level to today. Historical reference, not a forecast.</div>
-        <table className="mo-modal-table">
-          <thead><tr><th>Period</th><th>Note</th><th style={{textAlign:'right'}}>Value</th><th style={{textAlign:'right'}}>SPX 6m</th><th style={{textAlign:'right'}}>SPX 12m</th></tr></thead>
-          <tbody>
-            {(meta.episodes || []).map((e, i) => {
-              const isNeg6 = e.spx6 && (e.spx6.startsWith('−') || e.spx6.startsWith('-'));
-              const isNeg12 = e.spx12 && (e.spx12.startsWith('−') || e.spx12.startsWith('-'));
-              return (
-                <tr key={i}>
-                  <td>{e.period}</td>
-                  <td>{e.note}</td>
-                  <td className="num" style={{textAlign:'right'}}>{e.value}</td>
-                  <td className="num" style={{textAlign:'right',color: isNeg6 ? '#c84658' : '#2f9d6a',fontWeight:500}}>{e.spx6}</td>
-                  <td className="num" style={{textAlign:'right',color: isNeg12 ? '#c84658' : '#2f9d6a',fontWeight:500}}>{e.spx12}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">Release calendar</div>
-        <table className="mo-modal-table"><tbody>
-          <tr><td>Frequency</td><td>{info.cadence || '—'}</td></tr>
-          <tr><td>Last release</td><td>{ind.asOf || '—'}</td></tr>
-          <tr><td>Source</td><td>{info.src || '—'}</td></tr>
-        </tbody></table>
-      </div>
-      {(meta.formula || meta.caveat) && (
-        <div className="mo-modal-footer">
-          {meta.formula && <div className="row"><strong>Formula.</strong> {meta.formula}</div>}
-          {meta.source_url && <div className="row"><strong>Source.</strong> <a href={meta.source_url} target="_blank" rel="noreferrer" style={{color:'var(--ink-0, var(--text, #0e1115))'}}>{info.src || meta.source_url}</a></div>}
-          {meta.caveat && <div className="row" style={{color:'var(--ink-3, var(--text-muted, #5e5e63))',fontStyle:'italic'}}><strong style={{color:'var(--ink-0, var(--text, #0e1115))',fontStyle:'normal'}}>Caveat.</strong> {meta.caveat}</div>}
-        </div>
-      )}
-    </>
-  );
-}
 
-// ── Cycle composite score modal ──────────────────────────────────────
-function ScoreModalContent({ cycleInd, cycleScore, onDrill }) {
-  const contribs = cycleInd.map(i => ({ id: i.id, name: i.name, value: i.valueText, score: i.stressPctile }));
-  const avg = cycleScore;
-  return (
-    <>
-      <div className="mo-modal-eyebrow">Cycle composite · Layer 2</div>
-      <div className="mo-modal-h">
-        <h3>How today's {avg}/100 score is built</h3>
-        <div className="mo-modal-right">
-          <div className="mo-big-val">{avg != null ? avg : '—'}<span style={{fontStyle:'italic',fontSize:18,color:'var(--ink-3)',marginLeft:2}}>/ 100</span></div>
-          <div className="mo-big-meta">{bandLabel(avg).toUpperCase()}</div>
+        <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '18px 20px', marginBottom: 18 }}>
+          <HistoryChart
+            series={[{ key: 'value', label: def.short, color: 'var(--accent)' }]}
+            data={chartData}
+            fmtY={def.fmt}
+            defaultTf="5Y"
+            height={320}
+          />
         </div>
-      </div>
-      <p className="mo-body-14">
-        The cycle composite is the <strong>simple average</strong> of seven stress-direction percentile ranks. Each indicator is ranked against its <strong>own full history</strong>. Higher means more stress; for indicators where low readings mean stress (Copper/Gold, KBW Bank/S&P, Yield Curve, Chicago Fed FCI is bearish-high so kept straight), the rank is flipped before averaging.
-      </p>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">Each indicator's contribution · click any row to drill in</div>
-        {contribs.map(c => (
-          <div key={c.id} className="mo-contrib-row" onClick={() => onDrill(c.id)}>
-            <span className="nm">{c.name}</span>
-            <span className="bar-wrap"><span className="bar" style={{width:(c.score ?? 0) + '%'}}/></span>
-            <span className="v">{c.value}</span>
-            <span className="pct">{c.score != null ? c.score : '—'}</span>
-            <span className="arr">›</span>
+
+        <div style={{ background: 'var(--surface-2)', border: '0.5px solid var(--border-faint)', borderRadius: 10, padding: '16px 18px' }}>
+          <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 8 }}>Methodology</div>
+          <p style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.6, margin: 0 }}>
+            {def.methodology}
+          </p>
+          <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--text-muted)' }}>
+            Cadence: {series.freq === 'D' ? 'Daily' : series.freq === 'W' ? 'Weekly' : series.freq === 'M' ? 'Monthly' : series.freq === 'Q' ? 'Quarterly' : series.freq} · {series.points.length.toLocaleString()} points since {series.points[0][0]}
           </div>
-        ))}
-        <div className="mo-contrib-row" style={{marginTop:14,borderTop:'1px solid var(--border)',borderBottom:0,cursor:'default',background:'transparent'}}>
-          <span className="nm" style={{fontWeight:600}}>Simple average · today</span>
-          <span className="bar-wrap"><span className="bar" style={{width:(avg ?? 0)+'%',background:'var(--ink)'}}/></span>
-          <span className="v"></span>
-          <span className="pct" style={{fontWeight:600}}>{avg ?? '—'}</span>
-          <span className="arr"></span>
         </div>
       </div>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">Where {avg} sits on the 0–100 scale</div>
-        <table className="mo-modal-table"><tbody>
-          {[[0,20,'deepest calm, late expansion'],[20,40,'calm, late cycle'],[40,60,'middle'],[60,80,'broad stress visible'],[80,100,'full-blown macro stress']].map(([lo,hi,label]) => {
-            const active = avg != null && avg >= lo && avg < hi;
-            return (
-              <tr key={lo} style={active ? {background:'var(--accent-soft, rgba(0,113,227,0.10))'} : null}>
-                <td>{lo} – {hi} · {label}</td>
-                <td className="num" style={{textAlign:'right'}}>{active ? '← TODAY' : ''}</td>
-              </tr>
-            );
-          })}
-        </tbody></table>
-      </div>
-    </>
+    </Drawer>
   );
 }
 
-// ── Full backtested regime history modal ─────────────────────────────
-function RegimeHistoryModalContent({ fullRegime, spxWeekly, spxWeekKey, filterState }) {
-  // Option A: SPX line on log scale with regime states drawn as vertical
-  // shaded bands behind the line. Federal-Reserve-style recession-bars
-  // pattern, the institutional standard for regime-indicator validation.
-  // Tooltip is an HTML overlay so it follows the mouse properly.
-  const [hover, setHover] = useState(null); // { idx, x, y, w }
-  const containerRef = useRef(null);
-  const total = fullRegime.length;
-  const filtered = filterState ? fullRegime.filter(x => x.label === filterState) : fullRegime;
-  const counts = REGIME_ORDER.map(r => ({ r, n: fullRegime.filter(x => x.label === r).length }));
-  const pct = (n) => Math.round((n / total) * 100 * 10) / 10;
-
-  // Build merged series — fullRegime drives the X axis; pair each week with
-  // its SPX value via Sunday-of-week key (same convention as the engine's
-  // fullByDate). Forward-fill across rare weeks where SPX is missing.
-  const merged = useMemo(() => {
-    const spxMap = spxWeekly || {};
-    const wKey = spxWeekKey || ((s) => s);
-    let lastSpx = null;
-    return fullRegime.map(r => {
-      const k = wKey(r.date);
-      const v = spxMap[k];
-      if (v != null) lastSpx = v;
-      return { date: r.date, label: r.label, spx: lastSpx };
-    });
-  }, [fullRegime, spxWeekly, spxWeekKey]);
-
-  const haveSpx = merged.some(m => m.spx != null);
-  const N = merged.length;
-
-  // viewBox + scaling
-  const W = 1200, H = 440, padL = 60, padR = 24, padT = 44, padB = 38;
-  const innerW = W - padL - padR;
-  const innerH = H - padT - padB;
-  // Log-scale Y on SPX values that exist
-  const spxVals = merged.map(m => m.spx).filter(v => v != null && v > 0);
-  const spxLogMin = spxVals.length ? Math.log(Math.min(...spxVals) * 0.85) : 0;
-  const spxLogMax = spxVals.length ? Math.log(Math.max(...spxVals) * 1.15) : 1;
-  const xFor = (i) => padL + (i / Math.max(1, N - 1)) * innerW;
-  const yFor = (v) => padT + innerH - ((Math.log(v) - spxLogMin) / (spxLogMax - spxLogMin)) * innerH;
-
-  // Regime band colors (lower alpha than the standalone strip — they sit behind the line)
-  const bandColor = (lbl) =>
-    lbl === 'Risk On'    ? 'rgba(0,113,227,0.08)' :
-    lbl === 'Neutral'    ? 'rgba(0,113,227,0.20)' :
-    lbl === 'Cautionary' ? 'rgba(0,113,227,0.45)' :
-                            'rgba(10,37,64,0.65)';
-
-  // Build contiguous regime runs for band rects
-  const bands = [];
-  if (N > 0) {
-    let s = 0;
-    for (let i = 1; i <= N; i++) {
-      if (i === N || merged[i].label !== merged[s].label) {
-        bands.push({ from: s, to: i - 1, label: merged[s].label });
-        s = i;
-      }
-    }
-  }
-
-  // Year ticks (every 5 years)
-  const yearTicks = [];
-  const seenYr = new Set();
-  for (let i = 0; i < N; i++) {
-    const yr = parseInt(merged[i].date.slice(0, 4), 10);
-    if (yr % 5 === 0 && !seenYr.has(yr)) { seenYr.add(yr); yearTicks.push({ x: xFor(i), yr }); }
-  }
-
-  // Y gridlines + labels — nice log ticks
-  const yGrids = [];
-  if (haveSpx) {
-    for (const v of [250, 500, 1000, 2000, 4000, 6000]) {
-      if (v >= Math.exp(spxLogMin) && v <= Math.exp(spxLogMax)) {
-        yGrids.push({ v, y: yFor(v) });
-      }
-    }
-  }
-
-  // Major event annotations
-  const EVENTS = [
-    { date: '1998-10-09', label: 'LTCM' },
-    { date: '2001-09-14', label: '9/11' },
-    { date: '2008-09-19', label: 'Lehman' },
-    { date: '2011-08-12', label: 'EU debt' },
-    { date: '2020-03-23', label: 'COVID' },
-    { date: '2022-06-17', label: 'Fed pivot' },
-  ];
-  const findIdx = (iso) => {
-    if (N === 0) return -1;
-    // Reject events earlier than the chart's first date or later than the last
-    if (iso < merged[0].date || iso > merged[N - 1].date) return -1;
-    for (let i = 0; i < N; i++) if (merged[i].date >= iso) return i;
-    return -1;
-  };
-
-  // Build SPX path
-  let spxPath = '';
-  let lastValid = false;
-  for (let i = 0; i < N; i++) {
-    const v = merged[i].spx;
-    if (v == null || v <= 0) { lastValid = false; continue; }
-    spxPath += (lastValid ? 'L ' : 'M ') + xFor(i).toFixed(1) + ',' + yFor(v).toFixed(1) + ' ';
-    lastValid = true;
-  }
-
-  const handleMove = (e) => {
-    if (!containerRef.current || !N) return;
-    const r = containerRef.current.getBoundingClientRect();
-    const xPx = e.clientX - r.left;
-    const yPx = e.clientY - r.top;
-    if (xPx < 0 || xPx > r.width) { setHover(null); return; }
-    // Map xPx → SVG x in viewBox space
-    const xView = (xPx / r.width) * W;
-    if (xView < padL || xView > W - padR) { setHover(null); return; }
-    const frac = (xView - padL) / innerW;
-    const idx = Math.max(0, Math.min(N - 1, Math.round(frac * (N - 1))));
-    setHover({ idx, x: xPx, y: yPx, w: r.width });
-  };
-  const handleLeave = () => setHover(null);
-  const hovered = hover != null ? merged[hover.idx] : null;
-  const hoveredCx = hover != null ? xFor(hover.idx) : null;
-  const hoveredCy = (hovered && hovered.spx != null) ? yFor(hovered.spx) : null;
-
+function KPI({ label, value, sub }) {
   return (
-    <>
-      <div className="mo-modal-eyebrow">Regime · backtested history</div>
-      <div className="mo-modal-h">
-        <h3>Regime{filterState ? ` = "${filterState}"` : ''} · {fullRegime[0]?.date?.slice(0,4) || ''} – today</h3>
-        <div className="mo-modal-right">
-          <div className="mo-big-val">{filterState ? filtered.length : total}<span style={{fontStyle:'italic',fontSize:18,color:'var(--ink-3, var(--text-muted, #5e5e63))',marginLeft:2}}>weeks</span></div>
-          <div className="mo-big-meta">{filterState ? 'MATCHING' : 'TOTAL'}</div>
-        </div>
-      </div>
-      <p className="mo-body-14">
-        {filterState
-          ? <>Every week the regime was <strong>{filterState}</strong>, drawn as shaded bands behind the S&P 500. Hover anywhere for date · regime · index level.</>
-          : <>Weekly regime states shown as vertical shaded bands behind the S&amp;P 500 line. Risk Off periods should cluster around real market crashes — the visual sniff test for whether the framework worked. Hover for date · regime · index level.</>}
-      </p>
-      <div className="mo-modal-block">
-        <div className="mo-modal-block-eyebrow">{filterState ? `S&P 500 · regime = "${filterState}"` : `S&P 500 with regime backdrop · ${fullRegime[0]?.date?.slice(0,4) || ''} – today`}</div>
-        <div ref={containerRef} onMouseMove={handleMove} onMouseLeave={handleLeave}
-             style={{position:'relative', height:440, background:'var(--surface-2)', borderRadius:8, overflow:'hidden', cursor:'crosshair'}}>
-          <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{width:'100%', height:'100%', display:'block'}}>
-            {/* Regime shaded bands */}
-            {bands.map((b, bi) => {
-              const dim = filterState && b.label !== filterState;
-              const x = xFor(b.from);
-              const xn = b.to >= N - 1 ? padL + innerW : xFor(b.to + 1);
-              return <rect key={bi} x={x.toFixed(1)} y={padT} width={Math.max(0.5, xn - x).toFixed(1)} height={innerH} fill={bandColor(b.label)} opacity={dim ? 0.20 : 1}/>;
-            })}
-            {/* Y gridlines + labels */}
-            {yGrids.map((g, gi) => (
-              <g key={gi}>
-                <line x1={padL} y1={g.y.toFixed(1)} x2={W - padR} y2={g.y.toFixed(1)} stroke="var(--ink-0)" strokeOpacity="0.10" strokeWidth="0.5" vectorEffect="non-scaling-stroke"/>
-                <text x={padL - 8} y={g.y + 3} fontSize="10" fontFamily="Inter" fill="var(--ink-3)" textAnchor="end">{g.v >= 1000 ? (g.v/1000).toFixed(g.v >= 10000 ? 0 : 1) + 'k' : g.v}</text>
-              </g>
-            ))}
-            {/* Year ticks */}
-            {yearTicks.map((yt, yi) => (
-              <g key={yi}>
-                <line x1={yt.x.toFixed(1)} y1={padT + innerH} x2={yt.x.toFixed(1)} y2={padT + innerH + 4} stroke="var(--ink-3)" strokeWidth="0.5" vectorEffect="non-scaling-stroke"/>
-                <text x={yt.x.toFixed(1)} y={padT + innerH + 18} fontSize="10" fontFamily="Inter" fill="var(--ink-3)" textAnchor="middle">{yt.yr}</text>
-              </g>
-            ))}
-            {/* Event markers */}
-            {!filterState && EVENTS.map((ev, ei) => {
-              const idx = findIdx(ev.date);
-              if (idx < 0) return null;
-              const ex = xFor(idx);
-              return (
-                <g key={ei}>
-                  <line x1={ex.toFixed(1)} y1={padT} x2={ex.toFixed(1)} y2={padT + innerH} stroke="var(--ink-0)" strokeOpacity="0.35" strokeWidth="0.8" strokeDasharray="2,3" vectorEffect="non-scaling-stroke"/>
-                  <text x={ex.toFixed(1)} y={padT - 8} fontSize="10" fontFamily="Inter" fill="var(--ink-1)" fontWeight="600" textAnchor="middle">{ev.label}</text>
-                </g>
-              );
-            })}
-            {/* SPX line */}
-            {haveSpx && <path d={spxPath} fill="none" stroke="var(--accent)" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>}
-            {/* Title text inside */}
-            <text x={padL} y="22" fontSize="13" fontWeight="700" fill="var(--ink-0)" fontFamily="Inter">S&amp;P 500 · log scale</text>
-            <text x={padL} y="36" fontSize="11" fill="var(--ink-2)" fontFamily="Inter">Background bands = weekly regime state · {N.toLocaleString()} weeks total</text>
-            {/* Hover cursor */}
-            {hover != null && (
-              <line x1={hoveredCx.toFixed(1)} y1={padT} x2={hoveredCx.toFixed(1)} y2={padT + innerH} stroke="var(--ink-0)" strokeWidth="1" strokeOpacity="0.6" vectorEffect="non-scaling-stroke"/>
-            )}
-            {hover != null && hoveredCy != null && (
-              <circle cx={hoveredCx.toFixed(1)} cy={hoveredCy.toFixed(1)} r="4.5" fill="var(--accent)" stroke="#fff" strokeWidth="1.5" vectorEffect="non-scaling-stroke"/>
-            )}
-          </svg>
-          {hovered != null && hover != null && (
-            <div style={{
-              position:'absolute',
-              left: Math.min(Math.max(hover.x + 12, 8), (hover.w || 0) - 220),
-              top: Math.max(hover.y - 50, 8),
-              background:'var(--ink-0, var(--text, #0e1115))',
-              color:'var(--bg, #ffffff)',
-              padding:'6px 10px', borderRadius:4,
-              fontSize:11, fontWeight:600,
-              fontFamily:'Inter',
-              pointerEvents:'none',
-              whiteSpace:'nowrap',
-              boxShadow:'0 4px 12px rgba(0,0,0,0.20)',
-              lineHeight:1.5,
-            }}>
-              {fmtMonthYear(hovered.date)} · {hovered.label}
-              {hovered.spx != null && <><br/>SPX {Math.round(hovered.spx).toLocaleString()}</>}
-            </div>
-          )}
-        </div>
-        {/* Year axis under the chart */}
-        <div className="mo-regime-fullhist-axis">
-          <span>{fullRegime[0]?.date?.slice(0,4) || ''}</span>
-          <span>{fullRegime[Math.floor(fullRegime.length*0.25)]?.date?.slice(0,4) || ''}</span>
-          <span>{fullRegime[Math.floor(fullRegime.length*0.5)]?.date?.slice(0,4) || ''}</span>
-          <span>{fullRegime[Math.floor(fullRegime.length*0.75)]?.date?.slice(0,4) || ''}</span>
-          <span>today</span>
-        </div>
-        {/* Summary boxes */}
-        <div className="mo-regime-fullhist-summary">
-          {counts.map(c => (<div key={c.r} className="cell"><div className="label">{c.r}</div><div className="val">{pct(c.n)}%</div><div className="sub">{c.n} weeks</div></div>))}
-        </div>
-      </div>
-    </>
+    <div style={{ background: 'var(--surface-2)', border: '0.5px solid var(--border-faint)', borderRadius: 8, padding: '12px 14px' }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: 'var(--text-muted)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4, fontWeight: 600 }}>{label}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 18, fontWeight: 600, color: 'var(--text)', lineHeight: 1.05, letterSpacing: '-0.015em' }}>{value}</div>
+      <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 4 }}>{sub}</div>
+    </div>
   );
 }
-
-// ── CSS ──────────────────────────────────────────────────────────────
-const MO_CSS = `
-.mo-page{max-width:1280px;margin:0 auto;padding:28px 32px 64px}
-.mo-top{display:grid;grid-template-columns:1fr 460px;gap:32px;margin-bottom:40px;align-items:start}
-.mo-eyebrow{font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:var(--ink-2);font-weight:500;margin-bottom:8px}
-.mo-h1{font-family:var(--font-display);font-weight:400;font-size:46px;line-height:1.10;letter-spacing:-0.015em;margin:8px 0 18px;color:var(--ink-0);max-width:720px}
-.mo-h1 em{font-style:italic;color:var(--accent)}
-.mo-lede{font-size:16px;color:var(--ink-1);line-height:1.55;margin:0 0 16px;max-width:620px}
-.mo-lede strong{color:var(--ink-0);font-weight:600}
-.mo-bullets{font-size:15px;color:var(--ink-1);line-height:1.7;padding-left:22px;max-width:680px;margin:0}
-.mo-bullets li{margin-bottom:6px}
-.mo-bullets li strong{color:var(--ink-0);font-weight:600}
-.mo-bullets li em{font-style:italic;color:var(--accent)}
-
-.mo-regime{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px 14px}
-.mo-tile-fresh{position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-3);font-weight:500;letter-spacing:0.02em}
-.fresh-dot{width:6px;height:6px;border-radius:50%;background:#2f9d6a;box-shadow:0 0 0 2px rgba(47,157,106,0.18)}
-.mo-regime-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:22px;color:var(--accent);text-align:center;margin:0 0 12px;letter-spacing:-0.005em}
-.mo-rrow{display:grid;grid-template-columns:108px 1fr 16px;gap:12px;padding:5px 6px;align-items:center;font-size:12.5px;line-height:1.4;cursor:pointer;border-radius:5px;transition:background 120ms;position:relative}
-.mo-rrow:hover{background:var(--surface-2)}
-.mo-rrow:hover .mo-r-arrow{opacity:1}
-.mo-r-arrow{color:var(--accent);font-weight:600;opacity:0;transition:opacity 120ms;font-size:12px;text-align:right}
-.mo-rpill{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:13px;text-align:center;padding:5px 0;border-radius:14px;background:var(--surface-2);color:var(--ink-2);border:1px solid var(--border-faint)}
-.mo-rrow.current .mo-rpill{background:var(--accent-soft);color:var(--accent);border:1.5px solid var(--accent);font-weight:500}
-.mo-rdesc{color:var(--ink-1);font-size:12.5px}
-.mo-rrow.current .mo-rdesc{color:var(--ink-0);font-weight:500}
-.mo-pill-panel{margin:4px 4px 6px 124px;padding:12px 14px;border-left:2px solid var(--accent);border-radius:0 6px 6px 0;background:var(--surface-2);color:var(--ink-1);font-size:13px;line-height:1.55}
-.mo-pill-head{font-weight:600;color:var(--ink-0);margin-bottom:6px}
-.mo-pill-leave{margin-top:8px;padding-top:8px;border-top:0.5px dashed var(--border);color:var(--ink-3);font-size:12px}
-.mo-pill-seehist{margin-top:10px}
-.mo-pill-seehist button{font-size:11px;font-weight:600;color:var(--accent);background:transparent;border:none;cursor:pointer;padding:0;letter-spacing:0.04em;text-transform:uppercase}
-.mo-pill-seehist button:hover{text-decoration:underline}
-
-.mo-rhist-wrap{margin-top:12px;padding-top:10px;border-top:1px solid var(--border-faint)}
-.mo-rhist-axis{display:flex;justify-content:space-between;font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin-bottom:4px}
-.mo-rhist-strip{display:flex;align-items:end;gap:2px;height:32px}
-.mo-rhist-bar{flex:1;border-radius:2px 2px 0 0;cursor:pointer;min-height:5px;position:relative;transition:filter 80ms}
-.mo-rhist-bar:hover{filter:brightness(1.15)}
-.mo-rhist-bar.s0{background:rgba(0,113,227,0.20)}
-.mo-rhist-bar.s1{background:rgba(0,113,227,0.42)}
-.mo-rhist-bar.s2{background:rgba(0,113,227,0.68)}
-.mo-rhist-bar.s3{background:rgba(0,113,227,0.92)}
-.mo-rhist-bar::after{content:attr(data-tt);position:absolute;left:50%;bottom:calc(100% + 6px);transform:translateX(-50%);padding:6px 10px;border-radius:4px;background:var(--ink-0, var(--text, #0e1115));color:var(--bg);font-size:10.5px;font-weight:500;white-space:nowrap;pointer-events:none;opacity:0;z-index:8}
-.mo-rhist-bar:hover::after{opacity:1}
-.mo-rhist-fullhist{display:block;margin-top:8px;font-size:11px;font-weight:600;color:var(--accent);cursor:pointer;letter-spacing:0.04em;text-transform:uppercase;text-align:right;background:transparent;border:none;padding:0;width:100%}
-.mo-rhist-fullhist:hover{text-decoration:underline}
-.mo-rhist-panel{margin-top:12px;padding:14px 16px;border-left:2px solid var(--accent);border-radius:0 6px 6px 0;background:var(--surface-2);font-size:12.5px}
-.mo-rhist-panel-head{font-weight:600;color:var(--ink-0);margin-bottom:8px}
-.mo-rhist-panel table{width:100%;border-collapse:collapse;font-size:12.5px}
-.mo-rhist-panel td{padding:6px 6px;border-bottom:0.5px dashed var(--border);color:var(--ink-1)}
-.mo-rhist-panel td.num{text-align:right;color:var(--ink-0);font-weight:500;font-variant-numeric:tabular-nums}
-.mo-rhist-panel .mo-pill{display:inline-block;padding:2px 9px;border-radius:10px;font-family:var(--font-display);font-style:italic;font-size:12px;background:var(--accent-soft);color:var(--accent);border:1px solid var(--accent)}
-
-.mo-vol-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
-.mo-tile{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 16px}
-.mo-tile-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:20px;color:var(--accent);text-align:center;margin:0 0 6px;letter-spacing:-0.005em}
-.mo-stage-row{display:flex;justify-content:center;margin-bottom:6px}
-.mo-stage-pill{font-size:9.5px;letter-spacing:0.10em;text-transform:uppercase;padding:3px 10px;border-radius:11px;background:var(--surface-2);color:var(--ink-3);border:0.5px solid var(--border-faint);font-weight:600}
-.mo-dial-wrap{display:flex;flex-direction:column;align-items:center;margin-top:4px;cursor:pointer;padding:8px;border-radius:8px;transition:background 120ms;position:relative}
-.mo-dial-wrap:hover{background:rgba(0,113,227,0.04)}
-.mo-dial-wrap:hover .mo-dial-hint{opacity:1}
-.mo-dial-hint{position:absolute;top:-2px;right:6px;font-size:9px;letter-spacing:0.08em;color:var(--accent);font-weight:600;opacity:0;transition:opacity 120ms;text-transform:uppercase}
-.mo-dial{width:100%;max-width:230px;height:auto;display:block}
-.mo-readout{margin-top:-2px;display:flex;align-items:baseline}
-.mo-val{font-family:var(--font-display);font-weight:400;font-size:38px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-0.015em;color:var(--ink-0)}
-.mo-denom{font-family:var(--font-display);font-style:italic;font-size:16px;color:var(--ink-3);margin-left:4px}
-.mo-mark-line{font-size:10px;letter-spacing:0.04em;color:var(--ink-3);margin-top:6px}
-.mo-bar-wrap{margin-top:12px;padding-top:10px;border-top:0.5px solid var(--border-faint)}
-.mo-bar-axis{display:flex;justify-content:space-between;font-size:9px;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-bottom:5px}
-.mo-bar-strip{display:flex;align-items:end;gap:2px;height:38px}
-.mo-bar{flex:1;border-radius:2px 2px 0 0;min-height:5px;background:rgba(0,113,227,0.22);position:relative}
-.mo-bar.s2{background:rgba(0,113,227,0.55)}
-.mo-bar.s3{background:rgba(0,113,227,0.85)}
-.mo-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0, var(--text, #0e1115));color:var(--bg);font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
-
-.mo-cycle{position:relative;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:22px 24px}
-.mo-cycle-fresh{position:absolute;top:14px;right:14px;display:flex;align-items:center;gap:5px;font-size:10px;color:var(--ink-3);font-weight:500}
-.mo-cycle-title{font-family:var(--font-display);font-style:italic;font-weight:400;font-size:22px;color:var(--accent);margin:0 0 14px;letter-spacing:-0.005em}
-.mo-cycle-body{display:grid;grid-template-columns:320px 1fr;gap:36px;align-items:center}
-.mo-cycle-left{position:relative;display:flex;flex-direction:column;align-items:center;cursor:pointer;padding:10px;border-radius:10px;transition:background 120ms}
-.mo-cycle-left:hover{background:rgba(0,113,227,0.04)}
-.mo-cycle-left:hover .mo-cycle-hint{opacity:1}
-.mo-cycle-hint{position:absolute;top:4px;right:6px;font-size:9px;letter-spacing:0.08em;color:var(--accent);font-weight:600;opacity:0;transition:opacity 120ms;text-transform:uppercase}
-.mo-cycle-band{margin-top:6px;font-size:11px;color:var(--ink-3);letter-spacing:0.04em}
-.mo-cycle-right{min-width:0}
-.mo-sub-eyebrow{font-size:11.5px;color:var(--ink-3);margin-bottom:10px;letter-spacing:0.02em}
-.mo-ind-list{display:flex;flex-direction:column;gap:0;font-size:13px}
-.mo-ind-header{display:grid;grid-template-columns:minmax(240px,2.2fr) 180px 120px 70px;gap:18px;padding:4px 6px;color:var(--ink-3);font-size:9.5px;letter-spacing:0.12em;text-transform:uppercase;font-weight:500;border-bottom:1px solid var(--border-faint);margin-bottom:4px;white-space:nowrap}
-.mo-ind-header span:nth-child(3),.mo-ind-header span:nth-child(4){text-align:right}
-.mo-ind-row{display:grid;grid-template-columns:minmax(240px,2.2fr) 180px 120px 70px;gap:18px;align-items:center;padding:11px 6px;border-bottom:0.5px dashed var(--border-faint);cursor:pointer;transition:background 120ms;border-radius:5px}
-.mo-ind-row:hover{background:var(--surface-2)}
-.mo-ind-name{color:var(--ink-1);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mo-ind-reading{font-size:12px;color:var(--ink-0);font-weight:500;text-align:right;font-variant-numeric:tabular-nums}
-.mo-ind-pctile{font-size:13px;color:var(--ink-0);font-weight:600;text-align:right;font-variant-numeric:tabular-nums}
-.mo-ind-barwrap{display:block;height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;position:relative}
-.mo-ind-bar{display:block;height:100%;background:var(--ink-0, var(--text, #0e1115))}
-.mo-ind-avg{display:grid;grid-template-columns:minmax(240px,2.2fr) 180px 120px 70px;gap:18px;padding:10px 6px 2px;align-items:center;border-top:1px solid var(--border-faint);margin-top:6px}
-.mo-ind-avg-label{font-family:var(--font-display);font-style:italic;font-size:12.5px;color:var(--ink-3);text-align:right}
-.mo-ind-avg-val{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--accent);letter-spacing:-0.005em;text-align:right}
-
-.mo-scrim{position:fixed;inset:0;z-index:9000;background:rgba(14,17,21,0.42);display:flex;align-items:flex-start;justify-content:center;padding:60px 32px;overflow-y:auto}
-.mo-modal-card{position:relative;width:100%;max-width:1180px;background:var(--surface);border:0.5px solid var(--border-strong, var(--border));border-radius:12px;box-shadow:0 18px 48px rgba(14,17,21,0.18);padding:28px 28px 36px}
-.mo-chart-card{background:var(--surface-2);border:0.5px solid var(--border);border-radius:8px;padding:12px 14px}
-.mo-modal-close{position:absolute;top:14px;right:18px;border:none;background:transparent;cursor:pointer;font-size:24px;line-height:1;color:var(--ink-3);padding:6px 8px;border-radius:6px}
-.mo-modal-close:hover{background:var(--surface-2);color:var(--ink-0)}
-.mo-modal-back{font-size:11px;font-weight:600;color:var(--ink-3);background:transparent;border:none;cursor:pointer;padding:4px 0 0;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px}
-.mo-modal-back:hover{color:var(--accent)}
-.mo-modal-eyebrow{font-size:11px;letter-spacing:0.10em;text-transform:uppercase;color:var(--accent);font-weight:600;margin-bottom:6px}
-.mo-modal-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;gap:18px}
-.mo-modal-h h3{font-family:var(--font-display);font-weight:400;font-size:30px;letter-spacing:-0.012em;margin:0;color:var(--ink-0)}
-.mo-modal-right{text-align:right}
-.mo-big-val{font-family:var(--font-display);font-weight:400;font-size:30px;line-height:1;color:var(--ink-0);font-variant-numeric:tabular-nums}
-.mo-big-meta{font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600;margin-top:4px}
-.mo-source-fresh{display:inline-flex;align-items:center;gap:5px;margin-left:8px;padding:2px 8px;border-radius:10px;background:rgba(47,157,106,0.12);border:0.5px solid #2f9d6a;font-size:10.5px;color:#2f9d6a;font-weight:600;vertical-align:middle}
-.mo-body-14{font-size:14px;line-height:1.6;color:var(--ink-1);margin:0 0 18px;max-width:760px}
-.mo-body-14 strong{color:var(--ink-0);font-weight:600}
-.mo-kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
-.mo-kpi{padding:14px 14px 12px;background:var(--surface);border:0.5px solid var(--border-strong, var(--border));border-radius:10px}
-.mo-kpi .lbl{font-size:10.5px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3)}
-.mo-kpi .val{font-family:var(--font-display);font-weight:400;font-size:22px;margin-top:6px;line-height:1;color:var(--ink-0)}
-.mo-kpi .meta{font-size:11px;color:var(--ink-3);margin-top:6px}
-.mo-modal-block{padding:14px 16px;background:var(--surface);border:0.5px solid var(--border-strong, var(--border));border-radius:10px;margin-bottom:18px}
-.mo-modal-block-eyebrow{font-size:10.5px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);margin-bottom:10px}
-.mo-modal-table{width:100%;border-collapse:collapse;font-size:13.5px}
-.mo-modal-table th{text-align:left;font-size:10.5px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3);border-bottom:0.5px solid var(--ink-0);padding:8px 12px 6px 0}
-.mo-modal-table td{padding:9px 12px 9px 0;border-bottom:0.5px dashed var(--border);color:var(--ink-1)}
-.mo-modal-table td.num{font-variant-numeric:tabular-nums;font-weight:500}
-.mo-tf-btn{font-size:10.5px;font-weight:600;letter-spacing:0.06em;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--ink-3);cursor:pointer;text-transform:uppercase}
-.mo-tf-btn.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
-.mo-episode-note{font-size:11.5px;color:var(--ink-3);margin-bottom:10px;font-style:italic;line-height:1.5}
-.mo-episode-note strong{color:var(--ink-0);font-weight:500;font-style:normal}
-.mo-contrib-row{display:grid;grid-template-columns:1.5fr 1fr 80px 60px 18px;gap:14px;align-items:center;padding:10px 6px;border-bottom:0.5px dashed var(--border);cursor:pointer;transition:background 120ms}
-.mo-contrib-row:hover{background:var(--surface-2)}
-.mo-contrib-row .nm{font-size:13.5px;color:var(--ink-0);font-weight:500}
-.mo-contrib-row .bar-wrap{height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden}
-.mo-contrib-row .bar{height:100%;background:var(--accent)}
-.mo-contrib-row .v{font-variant-numeric:tabular-nums;font-size:13px;color:var(--ink-1);text-align:right}
-.mo-contrib-row .pct{font-family:var(--font-display);font-weight:400;font-size:18px;color:var(--ink-0);font-variant-numeric:tabular-nums;text-align:right}
-.mo-contrib-row .arr{color:var(--ink-3);font-size:14px}
-.mo-regime-fullhist{display:grid;grid-template-columns:repeat(auto-fill,minmax(2px,1fr));gap:1px;height:80px;align-items:end;margin:14px 0 6px}
-.mo-regime-fullhist .rh-bar{min-height:6px;border-radius:1px;cursor:pointer;position:relative}
-.mo-regime-fullhist .rh-bar.r0{background:rgba(0,113,227,0.20);height:25%}
-.mo-regime-fullhist .rh-bar.r1{background:rgba(0,113,227,0.42);height:50%}
-.mo-regime-fullhist .rh-bar.r2{background:rgba(0,113,227,0.68);height:75%}
-.mo-regime-fullhist .rh-bar.r3{background:rgba(0,113,227,0.92);height:100%}
-.mo-regime-fullhist .rh-bar[data-tt]:hover::after{content:attr(data-tt);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--ink-0, var(--text, #0e1115));color:var(--bg);font-size:10.5px;padding:5px 8px;border-radius:4px;white-space:nowrap;z-index:10;font-weight:500}
-.mo-regime-fullhist-axis{display:flex;justify-content:space-between;font-size:10.5px;color:var(--ink-3);margin-top:4px}
-.mo-regime-fullhist-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
-.mo-regime-fullhist-summary .cell{padding:10px 12px;background:var(--surface-2);border:0.5px solid var(--border-faint);border-radius:8px}
-.mo-regime-fullhist-summary .cell .label{font-size:10.5px;font-weight:600;letter-spacing:0.10em;text-transform:uppercase;color:var(--ink-3)}
-.mo-regime-fullhist-summary .cell .val{font-family:var(--font-display);font-weight:400;font-size:22px;margin-top:6px;color:var(--ink-0)}
-.mo-regime-fullhist-summary .cell .sub{font-size:11px;color:var(--ink-3);margin-top:4px}
-`;
