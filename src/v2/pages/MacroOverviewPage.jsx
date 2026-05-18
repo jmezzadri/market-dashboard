@@ -403,15 +403,15 @@ function heatLabel(pct, dir) {
   return 'Mid-range (5y)';
 }
 
-// ─── MiniChart — a properly-sized in-tile chart, ~320×110, that you can
-//     actually read trends from. Trailing 1y window. Includes min/max y
-//     labels and start/end date markers. Line color is the tile's heat
-//     color. No sparkline — this is a real little chart.
-function MiniChart({ points, color = VIZ_COLORS.neutral, width = 320, height = 110 }) {
+// ─── MiniChart — properly-sized in-tile chart (~320×110) with min/max y
+//     labels, 4-digit start/end date markers, and a crosshair + tooltip
+//     on hover. Trailing 1y window. Line color = the tile's heat color.
+function MiniChart({ points, color = VIZ_COLORS.neutral, fmt = (v) => v.toFixed(2), width = 320, height = 110 }) {
+  const [hoverIdx, setHoverIdx] = useState(null);
+  const svgRef = useRef(null);
   if (!points || points.length < 2) {
     return <div style={{ width, height, background: 'var(--surface-2)', borderRadius: 6 }} />;
   }
-  // Cadence detect
   let gap = 0, n = 0;
   for (let i = 1; i < Math.min(20, points.length); i++) {
     gap += (new Date(points[i][0]) - new Date(points[i-1][0])) / 86400000; n++;
@@ -435,28 +435,79 @@ function MiniChart({ points, color = VIZ_COLORS.neutral, width = 320, height = 1
   const last = window[window.length - 1];
   const lastX = xToPx(window.length - 1);
   const lastY = yToPx(last[1]);
-  // Area fill below the line
   const areaD = d + ` L ${lastX.toFixed(1)} ${height - padB} L ${padL} ${height - padB} Z`;
   const firstDate = new Date(window[0][0]);
   const lastDate = new Date(last[0]);
-  const dateFmt = d => d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-  // Faint background grid: 2 horizontal lines (33/66%)
+  const axisDateFmt = d => d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+  const tipDateFmt  = d => d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const gridYs = [padT + innerH/3, padT + innerH*2/3];
+
+  // Hover handling: map mouse x into an index in window
+  const handleMove = (e) => {
+    if (!svgRef.current) return;
+    const rect = svgRef.current.getBoundingClientRect();
+    const xRel = (e.clientX - rect.left) / rect.width * width;
+    const xData = (xRel - padL) / innerW;
+    const idx = Math.round(xData * (window.length - 1));
+    if (idx >= 0 && idx < window.length) setHoverIdx(idx);
+  };
+  const handleLeave = () => setHoverIdx(null);
+
+  const hover = hoverIdx != null ? window[hoverIdx] : null;
+  const hoverX = hoverIdx != null ? xToPx(hoverIdx) : null;
+  const hoverY = hover != null && hover[1] != null ? yToPx(hover[1]) : null;
+  // Tooltip placement: anchor inside the chart, flip to left side if cursor near right edge.
+  const tipFlip = hoverIdx != null && hoverIdx > window.length * 0.66;
+
   return (
-    <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height} style={{ display: 'block' }} preserveAspectRatio="none">
-      {gridYs.map((y, i) => (
-        <line key={i} x1={padL} y1={y} x2={width - padR} y2={y} stroke="rgba(14,17,21,0.06)" strokeWidth="1" />
-      ))}
-      <path d={areaD} fill={color} fillOpacity="0.10" />
-      <path d={d} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={lastX} cy={lastY} r="3" fill={color} stroke="#fff" strokeWidth="1" />
-      {/* Y axis labels: hi top-left, lo bottom-left */}
-      <text x={padL + 2} y={padT - 2} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{hi.toFixed(hi >= 100 ? 0 : 2)}</text>
-      <text x={padL + 2} y={height - padB + 9} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{lo.toFixed(hi >= 100 ? 0 : 2)}</text>
-      {/* X axis labels: start (left) and end (right) */}
-      <text x={padL} y={height - 4} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{dateFmt(firstDate)}</text>
-      <text x={width - padR} y={height - 4} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="end">{dateFmt(lastDate)}</text>
-    </svg>
+    <div style={{ position: 'relative' }}>
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} width={width} height={height}
+           style={{ display: 'block', cursor: 'crosshair', userSelect: 'none' }}
+           preserveAspectRatio="none"
+           onMouseMove={handleMove} onMouseLeave={handleLeave}>
+        {gridYs.map((y, i) => (
+          <line key={i} x1={padL} y1={y} x2={width - padR} y2={y} stroke="rgba(120,127,135,0.18)" strokeWidth="1" />
+        ))}
+        <path d={areaD} fill={color} fillOpacity="0.10" />
+        <path d={d} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx={lastX} cy={lastY} r="3" fill={color} stroke="var(--surface)" strokeWidth="1" />
+        <text x={padL + 2} y={padT - 2} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{hi.toFixed(hi >= 100 ? 0 : 2)}</text>
+        <text x={padL + 2} y={height - padB + 9} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{lo.toFixed(hi >= 100 ? 0 : 2)}</text>
+        <text x={padL} y={height - 4} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{axisDateFmt(firstDate)}</text>
+        <text x={width - padR} y={height - 4} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="end">{axisDateFmt(lastDate)}</text>
+        {/* Crosshair */}
+        {hoverX != null && (
+          <g>
+            <line x1={hoverX} y1={padT} x2={hoverX} y2={height - padB} stroke="var(--text-muted)" strokeWidth="1" strokeDasharray="2 3" opacity="0.7" />
+            {hoverY != null && (
+              <circle cx={hoverX} cy={hoverY} r="3.5" fill={color} stroke="var(--surface)" strokeWidth="1.4" />
+            )}
+          </g>
+        )}
+      </svg>
+      {/* Tooltip — small floating panel anchored inside the chart container */}
+      {hover && hover[1] != null && hoverX != null && (
+        <div style={{
+          position: 'absolute',
+          top: 4,
+          [tipFlip ? 'left' : 'right']: tipFlip ? 4 : 4,
+          background: 'var(--text)',
+          color: 'var(--bg)',
+          padding: '4px 8px',
+          borderRadius: 4,
+          fontSize: 10.5,
+          lineHeight: 1.3,
+          fontFamily: 'var(--font-mono)',
+          fontVariantNumeric: 'tabular-nums',
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.18)',
+        }}>
+          <div style={{ opacity: 0.75, fontSize: 9.5, marginBottom: 1 }}>{tipDateFmt(new Date(hover[0]))}</div>
+          <div style={{ fontWeight: 600 }}>{fmt(hover[1])}</div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -565,7 +616,7 @@ function IndicatorTile({ ind, hist, onOpen }) {
       )}
 
       {/* Chart */}
-      {has && <MiniChart points={series.points} color={c} />}
+      {has && <MiniChart points={series.points} color={c} fmt={ind.fmt} />}
 
       {/* Percentile bar */}
       {has && (
@@ -776,10 +827,10 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
 
         <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 12, padding: '22px 24px', marginBottom: 22 }}>
           <HistoryChart
-            series={[{ key: 'value', label: def.short, color: 'var(--accent)' }]}
+            series={[{ key: 'value', label: def.short, color: heatColor(pct5y, def.dir) }]}
             data={chartData}
             fmtY={def.fmt}
-            defaultTf="5Y"
+            defaultTf="Max"
             height={400}
           />
         </div>
