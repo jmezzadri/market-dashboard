@@ -4762,120 +4762,88 @@ function RichHero({eyebrow, headline, italicAccent, italicSub, stance, stanceCol
 // per the same rule book that drives /#overview.
 // ─────────────────────────────────────────────────────────────────────
 function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, tileExplainStyle, tileNameStyle, FreshnessDot, freshnessAsOf }){
-  const [indHist, setIndHist] = React.useState(null);
+  // 5-domain Macro Overview heat preview (cutover 2026-05-18 — replaces the
+  // old vol-triggers + cycle composite + 4-state regime framing). Mirrors
+  // the new /#overview page bucketing 1:1 so the home preview and the
+  // page agree.
 
+  const [indHist, setIndHist] = React.useState(null);
   React.useEffect(() => {
     fetch("/indicator_history.json", { cache: "no-cache" })
       .then(r => r.ok ? r.json() : null).then(setIndHist).catch(() => {});
   }, []);
 
-  // Mirrors the engine in src/v2/pages/MacroOverviewPage.jsx — same data
-  // file, same weekly resample, same trailing-5y 85th-pctile thresholds for
-  // vol triggers, same 7-indicator full-history stress-direction average for
-  // the cycle composite, same regime classifier. So this tile reads the
-  // SAME numbers the /#overview page does.
-  const STAGES = ['Calm', 'Watching', 'Holding', 'Confirmed', 'Entrenched'];
-  const VOL_TRIGS = [
-    { id: 'vix',  name: 'Equity Vol', fmt: (v) => v.toFixed(1) },
-    { id: 'move', name: 'Bond Vol',   fmt: (v) => Math.round(v).toString() },
-    { id: 'cpff', name: 'Funding',    fmt: (v) => Math.round(v).toString() },
-  ];
-  const CYCLE_INDS = [
-    { id: 'copper_gold', bearishHigh: false },
-    { id: 'bkx_spx_v11', bearishHigh: false },
-    { id: 'yield_curve', bearishHigh: false },
-    { id: 'anfci',       bearishHigh: true },
-    { id: 'ic4wsa',      bearishHigh: true },
-    { id: 'hy_ig',       bearishHigh: true },
-    { id: 'ig_oas',      bearishHigh: true },
+  const VIZ = { hot: "#D946C4", cool: "#10B981", watch: "#F59E0B", neutral: "#64748B" };
+  const INDICATOR_DIR = {
+    yield_curve: 'lw', real_rates: 'hw', move: 'hw', term_premium: 'hw', breakeven_10y: 'neutral',
+    hy_ig: 'hw', ig_oas: 'hw', hy_ig_ratio: 'hw', sloos_ci: 'hw', sloos_cre: 'hw',
+    buffett: 'hw', cape: 'hw', vix: 'hw', skew: 'hw', eq_cr_corr: 'neutral',
+    cpff: 'hw', anfci: 'hw', stlfsi: 'hw', bkx_spx_v11: 'lw', bank_credit: 'lw', fed_bs: 'lw',
+    ic4wsa: 'hw', ism: 'lw', jolts_quits: 'lw', copper_gold: 'lw', usd: 'neutral', cfnai: 'lw',
+  };
+  const PANEL_INDS = {
+    rates:    ['yield_curve','real_rates','move','term_premium','breakeven_10y'],
+    credit:   ['hy_ig','ig_oas','hy_ig_ratio','sloos_ci','sloos_cre'],
+    equities: ['buffett','cape','vix','skew','eq_cr_corr'],
+    money:    ['cpff','anfci','stlfsi','bkx_spx_v11','bank_credit','fed_bs'],
+    economy:  ['ic4wsa','ism','jolts_quits','copper_gold','usd','cfnai'],
+  };
+  const PANEL_LIST = [
+    { id:'rates',    label:'Rates' },
+    { id:'credit',   label:'Credit' },
+    { id:'equities', label:'Equities' },
+    { id:'money',    label:'Money' },
+    { id:'economy',  label:'Economy' },
   ];
 
   const data = React.useMemo(() => {
     if (!indHist) return null;
-
-    const weeklyClose = (points) => {
-      const byWeek = {};
-      for (const [ds, val] of (points || [])) {
-        if (val == null || isNaN(val)) continue;
-        const d = new Date(ds);
-        const dow = d.getUTCDay();
-        const fri = new Date(d);
-        fri.setUTCDate(d.getUTCDate() + ((4 - dow + 7) % 7));
-        byWeek[fri.toISOString().slice(0, 10)] = val;
-      }
-      return Object.entries(byWeek).sort();
-    };
-    const valAtPctile = (sorted, pct) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length))] : null;
-    const pctileOf = (v, sorted) => {
-      if (!sorted.length || v == null) return null;
+    const trailingPctile5y = (points, value) => {
+      if (!points || (value == null && value !== 0)) return null;
+      const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - 5);
+      const cutoffStr = cutoff.toISOString().slice(0,10);
+      const recent = points.filter(p => p[0] >= cutoffStr).map(p => p[1]).filter(v => v != null);
+      if (!recent.length) return null;
+      const sorted = [...recent].sort((a,b) => a-b);
       let lo = 0, hi = sorted.length;
-      while (lo < hi) { const m = (lo + hi) >>> 1; if (sorted[m] < v) lo = m + 1; else hi = m; }
-      return Math.round((lo / sorted.length) * 100);
+      while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < value) lo = m+1; else hi = m; }
+      return lo / sorted.length;
     };
-    const stageOf = (weeklyArr, mark) => {
-      if (!weeklyArr.length || mark == null) return 0;
-      const last8 = weeklyArr.slice(-8);
-      let consec = 0;
-      for (let k = last8.length - 1; k >= 0; k--) {
-        if (last8[k][1] >= mark) consec++; else break;
+    const bucket = (pct, dir) => {
+      if (pct == null) return 'unknown';
+      if (dir === 'hw') return pct >= 0.75 ? 'stressed' : pct >= 0.50 ? 'elevated' : 'calm';
+      if (dir === 'lw') return pct <= 0.25 ? 'stressed' : pct <= 0.50 ? 'elevated' : 'calm';
+      return 'neutral';
+    };
+    const out = {};
+    let totS = 0, totE = 0, totC = 0, totN = 0, totAll = 0;
+    for (const p of PANEL_LIST) {
+      const counts = { stressed:0, elevated:0, calm:0, neutral:0 };
+      for (const id of PANEL_INDS[p.id]) {
+        const s = indHist[id];
+        if (!s || !s.points || !s.points.length) continue;
+        const cur = s.points[s.points.length - 1][1];
+        const pct = trailingPctile5y(s.points, cur);
+        const b = bucket(pct, INDICATOR_DIR[id]);
+        if (b === 'stressed') counts.stressed++;
+        else if (b === 'elevated') counts.elevated++;
+        else if (b === 'calm') counts.calm++;
+        else counts.neutral++;
       }
-      if (consec === 0) return 0;
-      if (consec === 1) return 1;
-      if (consec < 4) return 2;
-      if (consec < 8) return 3;
-      return 4;
-    };
-
-    const TRIGGER_PCTILE = 85;
-    const buildVol = (key) => {
-      const r = indHist[key];
-      if (!r || !r.points || !r.points.length) return null;
-      const wkly = weeklyClose(r.points);
-      if (!wkly.length) return null;
-      const last = new Date(wkly[wkly.length - 1][0]);
-      const cutoff = new Date(last); cutoff.setUTCFullYear(last.getUTCFullYear() - 5);
-      const trailing5y = wkly.filter(([d]) => new Date(d) >= cutoff).map(p => p[1]).sort((a, b) => a - b);
-      const mark = valAtPctile(trailing5y, TRIGGER_PCTILE);
-      const cur = r.points[r.points.length - 1][1];
-      const pct = pctileOf(cur, trailing5y);
-      const stage = stageOf(wkly, mark);
-      return { current: cur, pctile: pct, stage };
-    };
-
-    const vix = buildVol('vix'), mv = buildVol('move'), cp = buildVol('cpff');
-
-    const cycPcts = [];
-    for (const ci of CYCLE_INDS) {
-      const r = indHist[ci.id];
-      if (!r || !r.points || !r.points.length) continue;
-      const wkly = weeklyClose(r.points);
-      if (!wkly.length) continue;
-      const allVals = wkly.map(p => p[1]).sort((a, b) => a - b);
-      const cur = r.points[r.points.length - 1][1];
-      const rawPct = pctileOf(cur, allVals);
-      if (rawPct == null) continue;
-      cycPcts.push(ci.bearishHigh ? rawPct : (100 - rawPct));
+      const worst = counts.stressed > 0 ? 'stressed' : counts.elevated > 0 ? 'elevated' : counts.calm > 0 ? 'calm' : 'neutral';
+      out[p.id] = { ...counts, worst, total: PANEL_INDS[p.id].length };
+      totS += counts.stressed; totE += counts.elevated; totC += counts.calm; totN += counts.neutral;
+      totAll += PANEL_INDS[p.id].length;
     }
-    const cycleScore = cycPcts.length ? Math.round(cycPcts.reduce((a, b) => a + b, 0) / cycPcts.length) : null;
-
-    const stages = [vix ? vix.stage : 0, mv ? mv.stage : 0, cp ? cp.stage : 0];
-    const maxStage = Math.max(...stages);
-    const nElev = stages.filter(s => s >= 1).length;
-    let label;
-    if (maxStage === 0) label = 'Risk On';
-    else if (maxStage === 1 && nElev === 1) label = 'Neutral';
-    else if (cycleScore == null) label = 'Cautionary';
-    else if (cycleScore < 40) label = 'Risk Off';
-    else label = 'Cautionary';
-
-    return { vix, move: mv, cpff: cp, cycle: cycleScore, label };
+    out._tot = { stressed: totS, elevated: totE, calm: totC, neutral: totN, total: totAll };
+    return out;
   }, [indHist]);
 
-  const regimeShortDesc = {
-    'Risk On':    'No volatility triggers.',
-    'Neutral':    'One volatility trigger crossed.',
-    'Cautionary': 'One or more volatility triggers sustained.',
-    'Risk Off':   'Sustained · cycle composite below 40.',
+  const colorFor = (worst) => {
+    if (worst === 'stressed') return VIZ.hot;
+    if (worst === 'elevated') return VIZ.watch;
+    if (worst === 'calm')     return VIZ.cool;
+    return VIZ.neutral;
   };
 
   return (
@@ -4887,74 +4855,58 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
     },
       React.createElement("div", { style: cardHeadSlimStyle },
         React.createElement("span", { style: cardTagStyle }, "01"),
-        FreshnessDot ? React.createElement(FreshnessDot, { indicatorId: "cycle_board", asOfIso: freshnessAsOf || null, style: { marginLeft: "auto" } }) : null
+        FreshnessDot ? React.createElement(FreshnessDot, { indicatorId: "indicator_history", asOfIso: (indHist && indHist.__meta__ && indHist.__meta__.generated_at_utc) ? indHist.__meta__.generated_at_utc.slice(0,10) : freshnessAsOf || null, style: { marginLeft: "auto" } }) : null
       ),
       React.createElement("p", { style: tileExplainStyle },
         "A ", React.createElement("span", { style: tileNameStyle }, "Macro Overview"),
-        " of the markets — three volatility triggers and one cycle position, distilled to one regime read."
+        " of the markets — five domain reads across rates, credit, equities, money & banking, and the real economy."
       ),
-      React.createElement("div", { style: { marginTop: 14, marginBottom: 16 } },
-        React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 10, marginBottom: 12 } },
-          ["Risk On", "Neutral", "Cautionary", "Risk Off"].map(name => {
-            const isCurrent = data && data.label === name;
-            return React.createElement("span", {
-              key: name,
-              style: {
-                fontFamily: "Fraunces, Georgia, serif",
-                fontStyle: "italic",
-                fontWeight: isCurrent ? 500 : 400,
-                fontSize: 14,
-                textAlign: "center",
-                padding: "6px 4px",
-                borderRadius: 16,
-                background: isCurrent ? "rgba(0,113,227,0.10)" : "var(--surface-2)",
-                color: isCurrent ? "var(--accent)" : "var(--text-dim)",
-                border: isCurrent ? "1.5px solid var(--accent)" : "1px solid var(--border)",
-                letterSpacing: "-0.005em",
-              }
-            }, name);
-          })
-        ),
-        React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontStyle: "italic", fontSize: 14, color: "var(--text-dim)", lineHeight: 1.5 } },
-          data ? (data.label + " — " + regimeShortDesc[data.label]) : ""
-        )
+      React.createElement("div", { style: { marginTop: 14, marginBottom: 14, fontSize: 13, color: "var(--text-2)", lineHeight: 1.55 } },
+        data ? React.createElement(React.Fragment, null,
+          "Across ",
+          data._tot.total,
+          " indicators: ",
+          React.createElement("strong", { style: { color: VIZ.hot } }, data._tot.stressed + " stressed"),
+          " · ",
+          React.createElement("strong", { style: { color: VIZ.watch } }, data._tot.elevated + " elevated"),
+          " · ",
+          React.createElement("strong", { style: { color: VIZ.cool } }, data._tot.calm + " calm"),
+          data._tot.neutral > 0 ? React.createElement(React.Fragment, null,
+            " · ",
+            React.createElement("strong", { style: { color: VIZ.neutral } }, data._tot.neutral + " range-only")
+          ) : null
+        ) : "Loading…"
       ),
-      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, paddingTop: 14, borderTop: "1px solid var(--border)" } },
-        VOL_TRIGS.concat([{ id: 'cycle', name: 'Cycle', fmt: null }]).map(trig => {
-          const d = data ? data[trig.id === 'cycle' ? 'cycle' : trig.id === 'vix' ? 'vix' : trig.id === 'move' ? 'move' : 'cpff'] : null;
-          const isCycle = trig.id === 'cycle';
-          // Needle angle from pctile (0-100). For vol triggers that's trailing-5y pctile; for cycle that's the cycle composite itself.
-          const pctile = isCycle ? d : (d && d.pctile != null ? d.pctile : null);
-          const angle = pctile == null ? null : 180 - (pctile * 1.8);
-          const rad = angle == null ? null : (angle * Math.PI) / 180;
-          const tipX = rad == null ? "50" : (50 + 38 * Math.cos(rad)).toFixed(1);
-          const tipY = rad == null ? "50" : (50 - 38 * Math.sin(rad)).toFixed(1);
-          // Big value + sub-label per Joe directive 2026-05-13.
-          const bigVal = isCycle
-            ? (d != null ? d.toString() : "—")
-            : (d && d.current != null ? trig.fmt(d.current) : "—");
-          const subLbl = isCycle
-            ? "of 100"
-            : (d && d.stage != null ? STAGES[d.stage] : "—");
-          return React.createElement("div", { key: trig.id, style: { textAlign: "center" } },
-            React.createElement("div", { style: { fontSize: 9.5, letterSpacing: ".10em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 500, marginBottom: 8 } }, trig.name),
-            React.createElement("svg", { viewBox: "0 0 100 55", style: { width: "100%", maxWidth: 100, height: "auto", display: "block", margin: "0 auto 4px" } },
-              React.createElement("path", { d: "M 10 50 A 40 40 0 0 1 21.7 21.7", fill: "none", stroke: "rgba(0,113,227,0.18)", strokeWidth: 7 }),
-              React.createElement("path", { d: "M 21.7 21.7 A 40 40 0 0 1 50 10", fill: "none", stroke: "rgba(0,113,227,0.42)", strokeWidth: 7 }),
-              React.createElement("path", { d: "M 50 10 A 40 40 0 0 1 78.3 21.7", fill: "none", stroke: "rgba(0,113,227,0.68)", strokeWidth: 7 }),
-              React.createElement("path", { d: "M 78.3 21.7 A 40 40 0 0 1 90 50", fill: "none", stroke: "rgba(0,113,227,0.92)", strokeWidth: 7 }),
-              pctile != null && React.createElement("line", { x1: 50, y1: 50, x2: tipX, y2: tipY, stroke: "var(--accent)", strokeWidth: 1.8, strokeLinecap: "round" }),
-              pctile != null && React.createElement("circle", { cx: tipX, cy: tipY, r: 2.5, fill: "var(--accent)", stroke: "#fff", strokeWidth: 1 }),
-              pctile != null && React.createElement("circle", { cx: 50, cy: 50, r: 2.5, fill: "var(--accent)" })
+      React.createElement("div", { style: { display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8, paddingTop: 14, borderTop: "1px solid var(--border)" } },
+        PANEL_LIST.map(p => {
+          const d = data ? data[p.id] : null;
+          const c = colorFor(d ? d.worst : 'unknown');
+          return React.createElement("div", {
+            key: p.id,
+            style: {
+              background: "var(--surface)",
+              border: "0.5px solid var(--border-faint)",
+              borderTop: "3px solid " + c,
+              borderRadius: 8,
+              padding: "10px 6px 12px",
+              textAlign: "center",
+              minWidth: 0,
+            }
+          },
+            React.createElement("div", { style: { fontSize: 11, fontWeight: 600, color: "var(--text)", letterSpacing: "0.02em", marginBottom: 6 } }, p.label),
+            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontWeight: 400, fontSize: 24, lineHeight: 1, color: c, fontVariantNumeric: "tabular-nums" } },
+              d ? d.stressed.toString() : "—"
             ),
-            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontSize: 20, lineHeight: 1, color: "var(--text)", fontVariantNumeric: "tabular-nums", marginTop: 2 } }, bigVal),
-            React.createElement("div", { style: { fontSize: 9, color: "var(--text-dim)", marginTop: 1 } }, subLbl)
+            React.createElement("div", { style: { fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-dim)", marginTop: 5, fontWeight: 600 } },
+              "stressed / " + (d ? d.total : "—")
+            )
           );
         })
       )
     )
   );
 }
+
 
 export default function App(){
 // Kick off /indicator_history.json fetch on first mount and re-render the
@@ -5916,8 +5868,8 @@ return(
     eyebrow="MacroTilt"
     title={<>Purpose-built tools designed to <em>beat benchmarks</em> on a risk-adjusted basis using <em>discipline, not instinct.</em></>}
     bullets={[
-      <><strong style={{color:"var(--text)",fontWeight:600}}>Macro Overview:</strong> today&rsquo;s macro backdrop &mdash; risk on or off?</>,
-      <><strong style={{color:"var(--text)",fontWeight:600}}>Asset Tilt:</strong> sector-specific asset allocation recommendations</>,
+      <><strong style={{color:"var(--text)",fontWeight:600}}>Macro Overview:</strong> indicator backdrop across rates, credit, equities, money &amp; banking, and the real economy.</>,
+      <><strong style={{color:"var(--text)",fontWeight:600}}>Asset Tilt:</strong> 2-axis engine sets the regime, equity %, and sector tilts.</>,
       <><strong style={{color:"var(--text)",fontWeight:600}}>Equity Scanner:</strong> name-specific ideas</>,
     ]}
   />
@@ -6037,6 +5989,36 @@ return(
           <FreshnessDot indicatorId="v10_allocation" asOfIso={v10AllocSnap?.as_of||null} style={{marginLeft:"auto"}}/>
         </div>
         <p style={tileExplainStyle}>An <span style={tileNameStyle}>Asset Tilt Engine</span> for optimal portfolio allocation — back-tested rigorously.</p>
+        {(() => {
+          // 2-axis engine read — added 2026-05-18 home cutover.
+          // Inline fetch keeps the patch surface small; no new top-level state.
+          const [eng, setEng] = React.useState(null);
+          React.useEffect(() => {
+            fetch('/macrotilt_engine.json', { cache: 'no-cache' })
+              .then(r => r.ok ? r.json() : null).then(setEng).catch(() => {});
+          }, []);
+          const VIZ = { hot: '#D946C4', cool: '#10B981', watch: '#F59E0B' };
+          const stressState = eng?.stress?.state || null;
+          const yieldRegime = eng?.yield_regime?.state || null;
+          const eqPct = eng?.allocation?.equity_pct != null ? Math.round(eng.allocation.equity_pct) : null;
+          const stressColor = stressState === 'Risk Off' ? VIZ.hot : stressState === 'Watch' ? VIZ.watch : stressState === 'Risk On' ? VIZ.cool : 'var(--text-muted)';
+          return (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '0.5px solid var(--border-faint)', marginBottom: 14 }}>
+              <div>
+                <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Stress</div>
+                <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: stressColor, marginTop: 4, lineHeight: 1 }}>{stressState || '—'}</div>
+              </div>
+              <div>
+                <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Yield</div>
+                <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: 'var(--text)', marginTop: 4, lineHeight: 1 }}>{yieldRegime || '—'}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Equity</div>
+                <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: 'var(--text)', marginTop: 4, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{eqPct != null ? eqPct + '%' : '—'}</div>
+              </div>
+            </div>
+          );
+        })()}
         {(() => {
           if (!v10AllocSnap) {
             return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
