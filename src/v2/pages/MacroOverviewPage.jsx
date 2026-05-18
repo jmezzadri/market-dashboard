@@ -460,9 +460,9 @@ function MiniChart({ points, color = VIZ_COLORS.neutral, fmt = (v) => v.toFixed(
   const tipFlip = hoverIdx != null && hoverIdx > window.length * 0.66;
 
   return (
-    <div style={{ position: 'relative' }}>
-      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`} width={width} height={height}
-           style={{ display: 'block', cursor: 'crosshair', userSelect: 'none' }}
+    <div style={{ position: 'relative', width: '100%', height: height, overflow: 'hidden' }}>
+      <svg ref={svgRef} viewBox={`0 0 ${width} ${height}`}
+           style={{ display: 'block', cursor: 'crosshair', userSelect: 'none', width: '100%', height: '100%' }}
            preserveAspectRatio="none"
            onMouseMove={handleMove} onMouseLeave={handleLeave}>
         {gridYs.map((y, i) => (
