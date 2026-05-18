@@ -4866,7 +4866,7 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
           "Across ",
           data._tot.total,
           " indicators: ",
-          React.createElement("strong", { style: { color: VIZ.hot } }, data._tot.stressed + " stressed"),
+          React.createElement("strong", { style: { color: VIZ.hot } }, data._tot.stressed + " hot"),
           " · ",
           React.createElement("strong", { style: { color: VIZ.watch } }, data._tot.elevated + " elevated"),
           " · ",
@@ -4881,6 +4881,9 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
         PANEL_LIST.map(p => {
           const d = data ? data[p.id] : null;
           const c = colorFor(d ? d.worst : 'unknown');
+          // Segmented distribution bar — proportions of hot/elev/calm/neutral in this domain
+          const total = d ? d.total : 0;
+          const seg = (n) => total > 0 ? `${(n/total)*100}%` : "0%";
           return React.createElement("div", {
             key: p.id,
             style: {
@@ -4888,17 +4891,40 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
               border: "0.5px solid var(--border-faint)",
               borderTop: "3px solid " + c,
               borderRadius: 8,
-              padding: "10px 6px 12px",
+              padding: "12px 10px 12px",
               textAlign: "center",
               minWidth: 0,
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
             }
           },
-            React.createElement("div", { style: { fontSize: 11, fontWeight: 600, color: "var(--text)", letterSpacing: "0.02em", marginBottom: 6 } }, p.label),
-            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontWeight: 400, fontSize: 24, lineHeight: 1, color: c, fontVariantNumeric: "tabular-nums" } },
+            React.createElement("div", { style: { fontSize: 11.5, fontWeight: 600, color: "var(--text)", letterSpacing: "0.02em" } }, p.label),
+            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontWeight: 400, fontSize: 28, lineHeight: 1, color: c, fontVariantNumeric: "tabular-nums" } },
               d ? d.stressed.toString() : "—"
             ),
-            React.createElement("div", { style: { fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-dim)", marginTop: 5, fontWeight: 600 } },
-              "stressed / " + (d ? d.total : "—")
+            React.createElement("div", { style: { fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 600 } },
+              "hot of " + (d ? d.total : "—")
+            ),
+            // Mini segmented bar — hot | elevated | calm | range-only
+            React.createElement("div", {
+              style: { display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", marginTop: 2 }
+            },
+              d && d.stressed > 0 ? React.createElement("div", { style: { width: seg(d.stressed), background: VIZ.hot } }) : null,
+              d && d.elevated > 0 ? React.createElement("div", { style: { width: seg(d.elevated), background: VIZ.watch } }) : null,
+              d && d.calm > 0     ? React.createElement("div", { style: { width: seg(d.calm),     background: VIZ.cool } }) : null,
+              d && d.neutral > 0  ? React.createElement("div", { style: { width: seg(d.neutral),  background: VIZ.neutral } }) : null
+            ),
+            // Breakdown row: small counts
+            React.createElement("div", { style: { fontSize: 9.5, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.02em", lineHeight: 1.5 } },
+              d ? React.createElement(React.Fragment, null,
+                React.createElement("span", { style: { color: VIZ.hot, fontWeight: 600 } }, d.stressed),
+                " · ",
+                React.createElement("span", { style: { color: VIZ.watch, fontWeight: 600 } }, d.elevated),
+                " · ",
+                React.createElement("span", { style: { color: VIZ.cool, fontWeight: 600 } }, d.calm),
+                d.neutral > 0 ? React.createElement(React.Fragment, null, " · ", React.createElement("span", { style: { color: VIZ.neutral, fontWeight: 600 } }, d.neutral)) : null
+              ) : "—"
             )
           );
         })
