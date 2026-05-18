@@ -283,7 +283,7 @@ function PeakRpm({ rows, grain }) {
             </g>
           );
         })}
-        <path d={d} stroke="var(--accent)" strokeWidth="1.5" fill="none" />
+        <path d={d} stroke="var(--accent)" strokeWidth="1.25" fill="none" />
         {pts.map((p,i) => <circle key={i} cx={xScale(i)} cy={yScale(p.v)} r="2.5" fill="var(--accent)" />)}
         {pts.map((p,i) => {
           if (i===0 || i===pts.length-1 || i%labelEvery===0) {

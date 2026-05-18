@@ -718,7 +718,7 @@ export default function HistoricalChart({ ticker, defaultPeriod = "1y", height =
           {rebased.map(s => {
             const path = s.points.map((p, i) => `${i===0?"M":"L"} ${xToPx(i).toFixed(2)} ${yToPx(p[yField]).toFixed(2)}`).join(" ");
             return (
-              <path key={s.ticker} d={path} fill="none" stroke={s.color} strokeWidth="1.6" />
+              <path key={s.ticker} d={path} fill="none" stroke={s.color} strokeWidth="1.25" />
             );
           })}
 

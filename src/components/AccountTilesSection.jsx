@@ -151,7 +151,7 @@ function Sparkline({ navSeries, tall = false, compact = false }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height: H, display: "block" }}>
       <path d={areaPath} fill={fill} stroke="none" />
-      <path d={linePath} fill="none" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
+      <path d={linePath} fill="none" stroke={stroke} strokeWidth="1.25" strokeLinejoin="round" strokeLinecap="round" />
       <circle cx={pts[n - 1][0].toFixed(1)} cy={pts[n - 1][1].toFixed(1)} r="2.5" fill={stroke} />
     </svg>
   );

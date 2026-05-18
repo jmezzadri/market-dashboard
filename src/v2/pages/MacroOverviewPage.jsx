@@ -40,6 +40,11 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
   const overlay = overlayKey ? availableOverlays.find(o => o.key === overlayKey) : null;
   const allSeries = overlay ? [...series, { ...overlay, dashed: true }] : series;
 
+  // Detect daily / weekly / monthly cadence from the average gap between samples.
+  // Monthly indicators (CFNAI, JOLTS, ISM, etc.) used to fall into the weekly
+  // bucket, which made the 5Y pill ask for 260 weekly points — and when the
+  // series only had ~243 monthly points the slice returned the WHOLE array,
+  // making 5Y identical to MAX.
   const cadence = (() => {
     if (data.length < 10) return "weekly";
     let gapSum = 0, n = 0;
@@ -48,11 +53,16 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
       gapSum += (b - a) / (1000 * 60 * 60 * 24);
       n++;
     }
-    return (gapSum / n) < 4 ? "daily" : "weekly";
+    const avgGap = gapSum / n;
+    if (avgGap < 4) return "daily";
+    if (avgGap < 20) return "weekly";
+    return "monthly";
   })();
   const tfPoints = cadence === "daily"
     ? { "1M": 21, "6M": 126, "1Y": 252, "5Y": 1260, "Max": data.length }
-    : { "1M": 4,  "6M": 26,  "1Y": 52,  "5Y": 260,  "Max": data.length };
+    : cadence === "weekly"
+      ? { "1M": 4,  "6M": 26,  "1Y": 52,  "5Y": 260,  "Max": data.length }
+      : { "1M": 3,  "6M": 6,   "1Y": 12,  "5Y": 60,   "Max": data.length };
   let w = data.slice(-tfPoints[tf]);
 
   if (rebase && w.length > 0) {
@@ -193,15 +203,15 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
           ))}
           {horizontalLines.map((h, i) => (
             <g key={"h" + i}>
-              <line x1={padL} y1={yToPx(h.value)} x2={W - padR} y2={yToPx(h.value)} stroke={h.color || "var(--text-muted)"} strokeWidth="1.2" strokeDasharray="6 4" />
+              <line x1={padL} y1={yToPx(h.value)} x2={W - padR} y2={yToPx(h.value)} stroke={h.color || "var(--text-muted)"} strokeWidth="1.0" strokeDasharray="6 4" />
               <text x={W - padR - 6} y={yToPx(h.value) - 6} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
             </g>
           ))}
           {allSeries.map((s, i) => {
-            const sw = s.dashed ? 1.4 : (3.0 - i * 0.4);
+            const sw = s.dashed ? 1.1 : (1.5 - i * 0.2);
             return (
               <path key={s.key} d={pathFor(s.key)} fill="none" stroke={s.color}
-                    strokeWidth={Math.max(1.2, sw)} strokeDasharray={s.dashed ? "4 4" : undefined}
+                    strokeWidth={Math.max(1.0, sw)} strokeDasharray={s.dashed ? "4 4" : undefined}
                     opacity={s.dashed ? 0.8 : (i === 0 ? 1 : 0.9)} />
             );
           })}
@@ -282,7 +292,7 @@ const INDICATORS = {
   jolts_quits:   { panel: 'economy', label: 'JOLTS · quits rate',          short: 'Quits',      fmt: v => v.toFixed(1) + '%',                              dir: 'lw',       methodology: '% of employed workers voluntarily leaving each month. A low quits rate means workers do not feel confident enough to leave — labor-market weakness signal.' },
   copper_gold:   { panel: 'economy', label: 'Copper / Gold ratio',         short: 'Cu/Au',      fmt: v => v.toFixed(3),                                    dir: 'lw',       methodology: 'Front-month copper futures over gold futures. Cyclical demand indicator.' },
   usd:           { panel: 'economy', label: 'USD broad index',             short: 'USD',        fmt: v => v.toFixed(2),                                    dir: 'neutral',  methodology: 'Trade-weighted broad dollar index against a basket of major currencies.' },
-  cfnai:         { panel: 'economy', label: 'Chicago Fed Nat. Activity',   short: 'CFNAI',      fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'lw',       methodology: '85-indicator composite of real US economic activity, normalized to 0.' },
+  cfnai:         { panel: 'economy', label: 'Chicago Fed National Activity',   short: 'CFNAI',      fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'lw',       methodology: '85-indicator composite of real US economic activity, normalized to 0.' },
 };
 
 const PANELS = [
@@ -465,7 +475,7 @@ function MiniChart({ points, color = VIZ_COLORS.neutral, fmt = (v) => v.toFixed(
           <line key={i} x1={padL} y1={y} x2={width - padR} y2={y} stroke="rgba(120,127,135,0.18)" strokeWidth="1" />
         ))}
         <path d={areaD} fill={color} fillOpacity="0.10" />
-        <path d={d} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <path d={d} fill="none" stroke={color} strokeWidth="1.25" strokeLinecap="round" strokeLinejoin="round" />
         <circle cx={lastX} cy={lastY} r="3" fill={color} stroke="var(--surface)" strokeWidth="1" />
         <text x={padL + 2} y={padT - 2} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{hi.toFixed(hi >= 100 ? 0 : 2)}</text>
         <text x={padL + 2} y={height - padB + 9} fontSize="9" fill="var(--text-dim)" fontFamily="var(--font-mono)" textAnchor="start">{lo.toFixed(hi >= 100 ? 0 : 2)}</text>
