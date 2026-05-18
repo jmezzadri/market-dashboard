@@ -4796,6 +4796,38 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
     { id:'economy',  label:'Economy' },
   ];
 
+  // Short label + format function for each indicator (mirrors the catalog in
+  // src/v2/pages/MacroOverviewPage.jsx — used only for the stressed-list copy).
+  const IM = {
+    yield_curve:   { l:'Yield curve (10y−2y)', f: v => (v>=0?'+':'') + Math.round(v) + ' bp' },
+    real_rates:    { l:'10y real yield',       f: v => (v>=0?'+':'') + v.toFixed(2) + '%' },
+    move:          { l:'MOVE',                 f: v => v.toFixed(0) },
+    term_premium:  { l:'Term premium',         f: v => (v>=0?'+':'') + Math.round(v) + ' bp' },
+    breakeven_10y: { l:'10y breakeven',        f: v => v.toFixed(2) + '%' },
+    hy_ig:         { l:'HY OAS',               f: v => Math.round(v) + ' bp' },
+    ig_oas:        { l:'IG OAS',               f: v => Math.round(v) + ' bp' },
+    hy_ig_ratio:   { l:'HY / IG ratio',        f: v => v.toFixed(2) },
+    sloos_ci:      { l:'SLOOS · C&I',          f: v => (v>=0?'+':'') + v.toFixed(1) + '%' },
+    sloos_cre:     { l:'SLOOS · CRE',          f: v => (v>=0?'+':'') + v.toFixed(1) + '%' },
+    buffett:       { l:'Buffett indicator',    f: v => v.toFixed(0) + '%' },
+    cape:          { l:'CAPE',                 f: v => v.toFixed(1) + 'x' },
+    vix:           { l:'VIX',                  f: v => v.toFixed(1) },
+    skew:          { l:'SKEW',                 f: v => v.toFixed(0) },
+    eq_cr_corr:    { l:'Equity-credit corr',   f: v => v.toFixed(2) },
+    cpff:          { l:'CPFF',                 f: v => Math.round(v) + ' bp' },
+    anfci:         { l:'Chicago Fed FCI',      f: v => (v>=0?'+':'') + v.toFixed(2) },
+    stlfsi:        { l:'St. Louis FCI',        f: v => (v>=0?'+':'') + v.toFixed(2) },
+    bkx_spx_v11:   { l:'KBW Bank / SPX',       f: v => v.toFixed(4) },
+    bank_credit:   { l:'Bank credit YoY',      f: v => (v>=0?'+':'') + v.toFixed(1) + '%' },
+    fed_bs:        { l:'Fed BS (YoY)',         f: v => (v>=0?'+':'') + v.toFixed(2) + '%' },
+    ic4wsa:        { l:'Jobless claims (4w)',  f: v => Math.round(v) + 'K' },
+    ism:           { l:'ISM Manufacturing',    f: v => v.toFixed(1) },
+    jolts_quits:   { l:'JOLTS quits',          f: v => v.toFixed(1) + '%' },
+    copper_gold:   { l:'Copper / Gold',        f: v => v.toFixed(3) },
+    usd:           { l:'USD index',            f: v => v.toFixed(2) },
+    cfnai:         { l:'CFNAI',                f: v => (v>=0?'+':'') + v.toFixed(2) },
+  };
+
   const data = React.useMemo(() => {
     if (!indHist) return null;
     const trailingPctile5y = (points, value) => {
@@ -4816,6 +4848,7 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
       return 'neutral';
     };
     const out = {};
+    const stressedList = [];
     let totS = 0, totE = 0, totC = 0, totN = 0, totAll = 0;
     for (const p of PANEL_LIST) {
       const counts = { stressed:0, elevated:0, calm:0, neutral:0 };
@@ -4825,7 +4858,10 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
         const cur = s.points[s.points.length - 1][1];
         const pct = trailingPctile5y(s.points, cur);
         const b = bucket(pct, INDICATOR_DIR[id]);
-        if (b === 'stressed') counts.stressed++;
+        if (b === 'stressed') {
+          counts.stressed++;
+          stressedList.push({ id, panel: p.label, panelId: p.id, value: cur, pctile: pct });
+        }
         else if (b === 'elevated') counts.elevated++;
         else if (b === 'calm') counts.calm++;
         else counts.neutral++;
@@ -4835,7 +4871,14 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
       totS += counts.stressed; totE += counts.elevated; totC += counts.calm; totN += counts.neutral;
       totAll += PANEL_INDS[p.id].length;
     }
+    // Sort stressed list by how far past the 75/25 threshold the reading sits — most-extreme first.
+    stressedList.sort((a, b) => {
+      const aExt = a.pctile >= 0.5 ? a.pctile : 1 - a.pctile;
+      const bExt = b.pctile >= 0.5 ? b.pctile : 1 - b.pctile;
+      return bExt - aExt;
+    });
     out._tot = { stressed: totS, elevated: totE, calm: totC, neutral: totN, total: totAll };
+    out._stressedList = stressedList;
     return out;
   }, [indHist]);
 
@@ -4866,7 +4909,7 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
           "Across ",
           data._tot.total,
           " indicators: ",
-          React.createElement("strong", { style: { color: VIZ.hot } }, data._tot.stressed + " hot"),
+          React.createElement("strong", { style: { color: VIZ.hot } }, data._tot.stressed + " stressed"),
           " · ",
           React.createElement("strong", { style: { color: VIZ.watch } }, data._tot.elevated + " elevated"),
           " · ",
@@ -4881,9 +4924,6 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
         PANEL_LIST.map(p => {
           const d = data ? data[p.id] : null;
           const c = colorFor(d ? d.worst : 'unknown');
-          // Segmented distribution bar — proportions of hot/elev/calm/neutral in this domain
-          const total = d ? d.total : 0;
-          const seg = (n) => total > 0 ? `${(n/total)*100}%` : "0%";
           return React.createElement("div", {
             key: p.id,
             style: {
@@ -4891,43 +4931,58 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
               border: "0.5px solid var(--border-faint)",
               borderTop: "3px solid " + c,
               borderRadius: 8,
-              padding: "12px 10px 12px",
+              padding: "12px 8px 14px",
               textAlign: "center",
               minWidth: 0,
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
             }
           },
-            React.createElement("div", { style: { fontSize: 11.5, fontWeight: 600, color: "var(--text)", letterSpacing: "0.02em" } }, p.label),
-            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontWeight: 400, fontSize: 28, lineHeight: 1, color: c, fontVariantNumeric: "tabular-nums" } },
+            React.createElement("div", { style: { fontSize: 11.5, fontWeight: 600, color: "var(--text)", letterSpacing: "0.02em", marginBottom: 6 } }, p.label),
+            React.createElement("div", { style: { fontFamily: "Fraunces, Georgia, serif", fontWeight: 400, fontSize: 26, lineHeight: 1, color: c, fontVariantNumeric: "tabular-nums" } },
               d ? d.stressed.toString() : "—"
             ),
-            React.createElement("div", { style: { fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-dim)", fontWeight: 600 } },
-              "hot of " + (d ? d.total : "—")
-            ),
-            // Mini segmented bar — hot | elevated | calm | range-only
-            React.createElement("div", {
-              style: { display: "flex", height: 6, borderRadius: 3, overflow: "hidden", background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", marginTop: 2 }
-            },
-              d && d.stressed > 0 ? React.createElement("div", { style: { width: seg(d.stressed), background: VIZ.hot } }) : null,
-              d && d.elevated > 0 ? React.createElement("div", { style: { width: seg(d.elevated), background: VIZ.watch } }) : null,
-              d && d.calm > 0     ? React.createElement("div", { style: { width: seg(d.calm),     background: VIZ.cool } }) : null,
-              d && d.neutral > 0  ? React.createElement("div", { style: { width: seg(d.neutral),  background: VIZ.neutral } }) : null
-            ),
-            // Breakdown row: small counts
-            React.createElement("div", { style: { fontSize: 9.5, color: "var(--text-muted)", fontFamily: "var(--font-mono)", letterSpacing: "0.02em", lineHeight: 1.5 } },
-              d ? React.createElement(React.Fragment, null,
-                React.createElement("span", { style: { color: VIZ.hot, fontWeight: 600 } }, d.stressed),
-                " · ",
-                React.createElement("span", { style: { color: VIZ.watch, fontWeight: 600 } }, d.elevated),
-                " · ",
-                React.createElement("span", { style: { color: VIZ.cool, fontWeight: 600 } }, d.calm),
-                d.neutral > 0 ? React.createElement(React.Fragment, null, " · ", React.createElement("span", { style: { color: VIZ.neutral, fontWeight: 600 } }, d.neutral)) : null
-              ) : "—"
+            React.createElement("div", { style: { fontSize: 9, letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-dim)", marginTop: 5, fontWeight: 600 } },
+              "stressed / " + (d ? d.total : "—")
             )
           );
         })
+      ),
+      // Stressed-indicators list — fills the rest of the tile with what's actually hot today.
+      React.createElement("div", {
+        style: { marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--border)" }
+      },
+        React.createElement("div", {
+          style: {
+            fontSize: 10, letterSpacing: "0.16em", textTransform: "uppercase",
+            color: "var(--text-muted)", fontWeight: 600, marginBottom: 10,
+          }
+        }, "Stressed today" + (data && data._stressedList && data._stressedList.length ? " · " + data._stressedList.length : "")),
+        data && data._stressedList && data._stressedList.length > 0 ? React.createElement("div", {
+          style: { display: "flex", flexDirection: "column", gap: 6 }
+        },
+          data._stressedList.slice(0, 6).map(item => {
+            const meta = IM[item.id] || { l: item.id, f: (v) => String(v) };
+            return React.createElement("div", {
+              key: item.id,
+              style: {
+                display: "grid",
+                gridTemplateColumns: "78px 1fr 100px 36px",
+                gap: 12,
+                alignItems: "center",
+                fontSize: 13,
+                padding: "5px 2px",
+              }
+            },
+              React.createElement("span", {
+                style: { fontSize: 9.5, letterSpacing: "0.10em", textTransform: "uppercase", color: VIZ.hot, fontWeight: 700 }
+              }, item.panel),
+              React.createElement("span", { style: { color: "var(--text)", fontWeight: 500 } }, meta.l),
+              React.createElement("span", { style: { fontFamily: "var(--font-mono)", textAlign: "right", color: "var(--text)", fontVariantNumeric: "tabular-nums", fontWeight: 600 } }, meta.f(item.value)),
+              React.createElement("span", { style: { fontFamily: "var(--font-mono)", textAlign: "right", color: VIZ.hot, fontSize: 11, fontWeight: 700 } }, Math.round(item.pctile * 100) + "th")
+            );
+          })
+        ) : React.createElement("div", {
+          style: { fontSize: 12.5, color: "var(--text-muted)", fontStyle: "italic" }
+        }, data ? "Nothing is currently stressed across the 27 indicators. Tap to see all." : "Loading…")
       )
     )
   );
