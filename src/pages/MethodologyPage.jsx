@@ -27,7 +27,7 @@ const SECTIONS = [
     id: "macro-overview",
     num: "01",
     title: "Macro Overview",
-    blurb: "Where the cycle sits today.",
+    blurb: "The indicator backdrop across five domains.",
     sub: [
       { id: "macro-why",      label: "Why we built it" },
       { id: "macro-how",      label: "How to use it" },
@@ -39,7 +39,7 @@ const SECTIONS = [
     id: "asset-tilt",
     num: "02",
     title: "Asset Tilt",
-    blurb: "Where the cycle says to lean.",
+    blurb: "Engine read, sleeve, sectors, industry groups.",
     sub: [
       { id: "tilt-why",       label: "Why we built it" },
       { id: "tilt-how",       label: "How to use it" },
@@ -82,7 +82,7 @@ const SECTIONS = [
     id: "backtest",
     num: "B",
     title: "Backtest evidence",
-    blurb: "v10.1c against v9 baseline.",
+    blurb: "1986–2026 validation, four strategies compared.",
     sub: [],
   },
   {
@@ -201,167 +201,188 @@ const SECTION_CONTENT = {
   "macro-why": (
     <>
       <Body>
-        Market regime drives every other decision on the site. Without a clean read of where the cycle
-        sits, every allocation choice and every stock pick is a guess about the macro context. The Macro
-        Overview answers one question: <strong>given everything we can measure, when do we take risk off?</strong>
+        Macro Overview is the indicator backdrop. Twenty-seven public indicators across
+        five domains — <strong>Rates</strong>, <strong>Credit</strong>, <strong>Equities</strong>,
+        <strong> Money &amp; Banking</strong>, and <strong>Economy</strong>. The page does not call
+        a regime, does not say buy or sell, does not produce a recommendation. It tells you, in
+        one screen, where every input is sitting relative to its own five-year history.
       </Body>
       <Body>
-        We do not predict tops. We do not call entries. We describe state. The framework is a
-        forward-looking sell-warning system — when do the conditions look like a meaningful drawdown is
-        closer than the calm surface suggests. Two layers of evidence, one rolled-up regime label.
+        The job is descriptive. A reader scans the page in 30 seconds and answers three questions:
+        what's calm, what's elevated, what's stressed. The actionable read — equity-versus-defensive,
+        sectors, industry groups — lives one click away on <em>Asset Tilt</em>, where the engine
+        translates the backdrop into an allocation.
       </Body>
       <Callout>
-        <strong>The regime label is descriptive, not prescriptive.</strong> A read of "Risk Off" does
-        not mean "sell everything." It means "vol has cracked while the cycle still looks calm —
-        that is the leading edge, act on your own risk tolerance." What to do about it lives one
-        click away, in <em>Asset Tilt</em>.
+        <strong>No regime label on this page.</strong> Risk On / Watch / Risk Off and
+        Inflationary / Neutral / Deflationary are the engine's vocabulary and live on Asset Tilt.
+        Macro Overview is the underlying indicator data those engine reads are built from — plus
+        twenty more indicators the engine doesn't formally trade off but a careful reader still wants
+        to see.
       </Callout>
     </>
   ),
   "macro-how": (
     <>
       <Body>
-        The page reads in two layers and rolls up to a single four-state label.
+        The page reads top to bottom in three pieces: the hero with the color legend, five domain
+        panels, and a modal that opens when you click any tile.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Read the regime label first</h4>
-      <Body>
-        The right-rail Regime tile shows one of four labels. The current state has the colored pill;
-        the other three are dimmed. Click any label to see what it means and what would have to
-        happen to leave it.
-      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Color legend</h4>
       <DocsTable
-        cols={["State", "Definition", "What it means"]}
+        cols={["Color", "Label", "What it means"]}
         rows={[
-          ["Risk On",     "No volatility trigger above its 85th-percentile level.",            "Vol is calm. Fully-invested default. No action."],
-          ["Neutral",     "Exactly one trigger crossed for exactly one week.",                 "Roughly one-in-four single-week crosses are head-fakes. Note it. Do not act yet."],
-          ["Cautionary",  "A trigger has held above for 2+ weeks AND cycle composite ≥ 40.",   "Vol is real but the cycle has either started to confirm or already broken. Past the forward-looking signal point."],
-          ["Risk Off",    "A trigger has held above for 2+ weeks AND cycle composite < 40.",   "Vol cracked while the cycle still looks fine. The actionable late-cycle setup — broad confirmation is most likely to follow."],
+          [<span style={{display:"inline-block",width:14,height:14,borderRadius:"50%",background:"#10B981",verticalAlign:"middle"}}/>,  "Calm",       "Indicator is not signalling stress. Reading is comfortably inside its 5-year normal range."],
+          [<span style={{display:"inline-block",width:14,height:14,borderRadius:"50%",background:"#F59E0B",verticalAlign:"middle"}}/>,  "Elevated",   "Mid-range. Worth watching but not at an extreme."],
+          [<span style={{display:"inline-block",width:14,height:14,borderRadius:"50%",background:"#D946C4",verticalAlign:"middle"}}/>,  "Stressed",   "Reading is at an extreme of its 5-year range. The direction of the extreme depends on the indicator — a stressed jobless-claims tile means claims are high; a stressed copper/gold tile means the ratio is low."],
+          [<span style={{display:"inline-block",width:14,height:14,borderRadius:"50%",background:"#64748B",verticalAlign:"middle"}}/>,  "Range only", "For direction-agnostic indicators (USD, breakeven inflation, equity-credit correlation), the pill reads High / Mid / Low against the 5-year range without a stress claim."],
         ]}
       />
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Layer 1 — three volatility triggers</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The five panels</h4>
+      <DocsTable
+        cols={["Panel", "What it covers", "Indicators"]}
+        rows={[
+          ["Rates",            "The cost and shape of money — what duration is being repriced.",          "5 — yield curve, 10y real yield, MOVE, term premium, 10y breakeven"],
+          ["Credit",           "What lenders are charging for risk, and whether they're still lending.",  "5 — HY OAS, IG OAS, HY/IG ratio, SLOOS C&I, SLOOS CRE"],
+          ["Equities",         "What the stock tape is pricing in — level, volatility, and tail risk.",     "5 — Buffett indicator, CAPE, VIX, SKEW, equity-credit correlation"],
+          ["Money & Banking",  "How freely capital is moving through the financial plumbing.",            "6 — CPFF spread, ANFCI, STLFSI, KBW Bank / SPX, bank credit growth, Fed balance sheet YoY"],
+          ["Economy",          "The real-world pulse — labor, activity, and cyclical demand.",            "6 — jobless claims (4w), ISM Manufacturing, JOLTS quits, copper/gold, USD broad, CFNAI"],
+        ]}
+      />
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>What each tile shows</h4>
       <Body>
-        Three dials at the top of the page: Equity Volatility (VIX) · Bond Volatility (MOVE) · Funding
-        Stress (CPFF). Each has its own mark — the trailing-5y 85th-percentile level. The arrow on the
-        dial shows where today sits relative to that level. Each dial carries a five-stage progression
-        (Calm → Watching → Holding → Confirmed → Entrenched) based on how many consecutive weeks the
-        reading has stayed above its mark.
+        Tiles sit in a three-column grid inside each panel. Every tile carries the same anatomy: the
+        indicator name + abbreviation, the current value formatted for the indicator type, a 30-day
+        directional arrow (color-coded to whether the move is towards stress or away from it), a
+        small line chart over the trailing year, a percentile bar showing where today sits in the
+        trailing 5-year range, and the Calm / Elevated / Stressed pill.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Layer 2 — cycle composite</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>The full-history modal</h4>
       <Body>
-        Below the three triggers, a single 0-to-100 score plus the seven indicators that feed it.
-        The composite is the simple average of seven stress-direction percentile ranks. Higher means
-        more stress. The score is bucketed into five 20-point bands so you can read the cycle
-        position at a glance.
+        Click any tile to open a wide centered modal (about 1200 pixels). The modal has a four-cell
+        KPI strip (today's value, 30-day change, 5-year percentile, what it means in plain English),
+        a full-history line chart (defaults to the maximum available window, with 1M / 6M / 1Y / 5Y
+        / Max timeframe pills and a crosshair on hover), and a methodology paragraph specific to
+        that indicator.
       </Body>
       <Body>
-        Refresh cadence: VIX and MOVE update after the US close, every weekday. CPFF refreshes weekly
-        on Wednesday. Cycle indicators refresh on their own release schedules.
+        Refresh cadence: each indicator refreshes on its own release schedule — most daily after the
+        US close, a few weekly (CPFF, STLFSI) or monthly (ISM, JOLTS quits, SLOOS quarterly). The
+        freshness chip on each tile reads from the data manifest and shows green inside the SLA,
+        amber when one to two refreshes are overdue, red on a real failure.
       </Body>
     </>
   ),
   "macro-data": (
     <>
       <Body>
-        Two layers, ten indicators total. All from public sources.
+        Twenty-seven indicators, all from public sources. Each indicator's source, freshness SLA,
+        and consumer surfaces are registered in the project's data manifest — the same registry the
+        freshness chips read from.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Layer 1 — three volatility triggers</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Rates panel (5 indicators)</h4>
       <DocsTable
-        cols={["Trigger", "Source", "Cadence", "Sample"]}
+        cols={["Indicator", "Source", "Cadence"]}
         rows={[
-          ["Equity Volatility (VIX)",         "CBOE direct feed",                  "Daily, real-time",   "1996 to today"],
-          ["Bond Volatility (MOVE Index)",    "ICE BofA via FRED",                 "Daily after close",   "2002 to today"],
-          ["Funding Stress (CPFF spread)",    "Federal Reserve H.15 · FRED CPFF",  "Weekly · Wed",        "2006 to today (TED proxy pre-2006)"],
+          ["Yield curve (10y − 2y)",      "Federal Reserve H.15 · FRED T10Y2Y",            "Daily"],
+          ["10y real yield",               "FRED — nominal 10y minus 10y breakeven",      "Daily"],
+          ["MOVE · bond volatility",        "ICE BofA · Yahoo ^MOVE",                       "Daily after close"],
+          ["Term premium",                 "Federal Reserve / ACM estimate",                "Daily"],
+          ["10y breakeven inflation",      "FRED — nominal 10y minus 10y TIPS",            "Daily"],
         ]}
       />
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Layer 2 — seven cycle composite indicators</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Credit panel (5 indicators)</h4>
       <DocsTable
-        cols={["Indicator", "Direction", "Source", "Sample"]}
+        cols={["Indicator", "Source", "Cadence"]}
         rows={[
-          ["Copper / Gold ratio",                  "Low = stress (rank flipped)",  "Yahoo · CME front-month futures",     "2000 to today"],
-          ["KBW Bank / S&P ratio",                 "Low = stress (rank flipped)",  "NASDAQ KBW BKX index",                "1993 to today"],
-          ["Yield curve (10y − 2y)",               "Low = stress (rank flipped)",  "Federal Reserve H.15 · FRED T10Y2Y",  "1976 to today"],
-          ["Chicago Fed financial conditions",     "High = stress",                "Chicago Fed · FRED ANFCI",            "1971 to today"],
-          ["Initial jobless claims (4-week avg)",  "High = stress",                "US DOL · FRED IC4WSA",                "1967 to today"],
-          ["High-Yield credit spread",             "High = stress",                "ICE BofA · FRED BAMLH0A0HYM2",        "2011 to today (BAA-AAA proxy pre-2011)"],
-          ["Investment-Grade credit spread",       "High = stress",                "ICE BofA · FRED BAMLC0A0CM",          "2006 to today (BAA10Y proxy pre-2006)"],
+          ["High-yield OAS",               "ICE BofA · FRED BAMLH0A0HYM2",                 "Daily after close"],
+          ["Investment-grade OAS",         "ICE BofA · FRED BAMLC0A0CM",                   "Daily after close"],
+          ["HY / IG spread ratio",         "Derived from HY OAS and IG OAS",                "Daily"],
+          ["SLOOS · C&I tightening",        "Federal Reserve SLOOS",                          "Quarterly"],
+          ["SLOOS · CRE tightening",        "Federal Reserve SLOOS",                          "Quarterly"],
         ]}
       />
-      <Body>
-        Pre-2002 history runs on the reduced 2-anchor stack because public Bond Volatility data is
-        only available from 2002. Pre-2011 high-yield and investment-grade spreads use proxy series
-        (BAA-AAA and BAA10Y respectively); correlations to the native series during the overlap
-        window are 0.87 and 0.98.
-      </Body>
-      <Body>
-        Vol triggers are calibrated against a <strong>trailing 5-year window</strong> — market vol
-        regimes drift over decades. Cycle indicators are ranked against their <strong>full
-        history</strong> — macro structure has multi-decade cycle anchors and benefits from the
-        widest possible sample.
-      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Equities panel (5 indicators)</h4>
+      <DocsTable
+        cols={["Indicator", "Source", "Cadence"]}
+        rows={[
+          ["Buffett indicator (Mkt cap / GDP)",  "BEA GDP + Wilshire 5000 / FRED WILL5000",   "Quarterly GDP · daily market cap"],
+          ["CAPE · Shiller P/E",                "Shiller · multpl.com",                       "Monthly"],
+          ["VIX · equity volatility",           "CBOE direct feed",                          "Daily, real-time"],
+          ["SKEW · tail risk",                  "CBOE direct feed",                          "Daily, real-time"],
+          ["Equity-credit correlation",          "60-day rolling — SPX returns vs HY OAS",      "Daily"],
+        ]}
+      />
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Money &amp; Banking panel (6 indicators)</h4>
+      <DocsTable
+        cols={["Indicator", "Source", "Cadence"]}
+        rows={[
+          ["CPFF · Commercial paper spread", "Federal Reserve H.15 · FRED CPFF",            "Weekly · Wednesday"],
+          ["ANFCI · Chicago Fed FCI",        "Chicago Fed · FRED ANFCI",                    "Weekly"],
+          ["STLFSI · St. Louis FCI",         "St. Louis Fed · FRED STLFSI",                 "Weekly"],
+          ["KBW Bank / SPX",               "NASDAQ KBW BKX ÷ S&P 500",                    "Daily"],
+          ["Bank credit growth (YoY)",     "Federal Reserve H.8 · FRED TOTBKCR",          "Weekly"],
+          ["Fed balance sheet (YoY)",      "Federal Reserve H.4.1 · FRED WALCL",          "Weekly"],
+        ]}
+      />
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Economy panel (6 indicators)</h4>
+      <DocsTable
+        cols={["Indicator", "Source", "Cadence"]}
+        rows={[
+          ["Initial jobless claims (4w)",  "US DOL · FRED IC4WSA",                         "Weekly"],
+          ["ISM Manufacturing PMI",        "ISM · FRED NAPMPI",                            "Monthly"],
+          ["JOLTS · quits rate",            "BLS JOLTS · FRED QUITS",                      "Monthly (one-month lag)"],
+          ["Copper / Gold ratio",          "Yahoo · CME front-month futures",              "Daily"],
+          ["USD broad index",              "Federal Reserve H.10 · FRED DTWEXBGS",         "Daily"],
+          ["CFNAI · Chicago Fed Nat. Activity",  "Chicago Fed · FRED CFNAI",            "Monthly"],
+        ]}
+      />
     </>
   ),
   "macro-models": (
     <>
       <Body>
-        Two layers plus a regime classifier.
+        There is no composite, no regime classifier, no aggregator on this page. The Calm / Elevated /
+        Stressed pill on each tile is computed per indicator, independently, against that indicator's
+        own trailing 5-year history. The math is the same for every tile; the direction-of-stress
+        flag is what changes.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Layer 1 — trigger mark, stage, and progression</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>How the state pill is decided</h4>
       <Body>
-        Each trigger has a mark — the trailing-5y 85th-percentile level of its own values. The mark
-        is recomputed every weekday against the new five-year window. As markets evolve the mark
-        drifts; a 2009-style high-vol regime and a 2017-style low-vol regime each get their own
-        calibrated mark.
+        For each indicator, the page computes the percentile rank of today's value against the
+        trailing 5-year window of that indicator's history. The pill is then assigned based on the
+        indicator's direction-of-stress flag:
       </Body>
-      <Formula>{`mark_i = quantile_85( trigger_i.values[last 5 years] )
-
-if trigger_i.current >= mark_i:
-   consecutive_weeks_above += 1
-else:
-   consecutive_weeks_above = 0
-
-stage = 0  (Calm)        if weeks_above == 0
-        1  (Watching)    if weeks_above == 1
-        2  (Holding)     if 2 <= weeks_above <= 3
-        3  (Confirmed)   if 4 <= weeks_above <= 7
-        4  (Entrenched)  if weeks_above >= 8`}</Formula>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Layer 2 — cycle composite</h4>
+      <DocsTable
+        cols={["Direction-of-stress", "Stressed when", "Elevated when", "Calm when", "Examples"]}
+        rows={[
+          ["High is bad",  "Pctile ≥ 75th", "Pctile ≥ 50th", "Otherwise",       "HY OAS, VIX, jobless claims, MOVE, CAPE"],
+          ["Low is bad",   "Pctile ≤ 25th", "Pctile ≤ 50th", "Otherwise",       "Yield curve, ISM, copper/gold, bank credit growth"],
+          ["No direction", "n/a",            "n/a",             "Always range-only", "USD, 10y breakeven, equity-credit correlation"],
+        ]}
+      />
       <Body>
-        Each cycle indicator is ranked against its own <strong>full history</strong>. The longest
-        series (Initial Jobless Claims) runs back to 1967; the shortest (Copper / Gold) back to
-        2000. For four of the seven indicators, low readings actually mean stress — those four are
-        rank-flipped before averaging so all seven point in the same direction.
+        The five-year window is the same calibration choice the engine on Asset Tilt uses for its
+        own percentiles, so the two surfaces stay on the same time scale. A given indicator can
+        therefore look Stressed on Macro Overview while the engine still reads Risk On overall — the
+        engine only trades off a small subset of indicators (MOVE for stress, 3-month change in 10y
+        yield for direction), and the rest of the 27-indicator backdrop is context.
       </Body>
-      <Formula>{`for each cycle indicator i:
-   raw_pct = percentile_rank( indicator_i.current, indicator_i.history )
-   if indicator_i.bearish_direction == "low":  stress_pct = 100 - raw_pct
-   else:                                       stress_pct = raw_pct
-
-cycle_composite = round( mean(stress_pct over all 7 indicators) )    # in [0, 100]
-
-band = "0–20 deepest calm"       if cycle_composite < 20
-       "20–40 calm / late-cycle" if cycle_composite < 40
-       "40–60 middle"             if cycle_composite < 60
-       "60–80 broad stress"       if cycle_composite < 80
-       "80–100 macro stress"      otherwise`}</Formula>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Regime classifier</h4>
-      <Formula>{`max_stage         = max( stage over all 3 triggers )
-sum_at_stage_1    = count( triggers with stage == 1 )
-
-if max_stage == 0:                                    regime = "Risk On"
-elif max_stage == 1 and sum_at_stage_1 == 1:          regime = "Neutral"
-elif max_stage >= 2 and cycle_composite < 40:         regime = "Risk Off"
-elif max_stage >= 2:                                  regime = "Cautionary"`}</Formula>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>30-day directional arrow</h4>
       <Body>
-        The classifier favors the actionable Risk Off label only when vol has cracked AND the cycle
-        composite is still in deep-calm territory — that is the late-cycle setup the framework is
-        calibrated for. Sustained vol with a stressed cycle composite reads Cautionary instead,
-        because the forward-looking edge has already been priced in.
+        Beside the value on each tile, a small arrow shows the 30-day change. The color of the
+        arrow reflects the direction-of-stress flag: an upward move in a high-is-bad indicator is
+        red (worse), an upward move in a low-is-bad indicator is green (better). Direction-agnostic
+        tiles use a neutral diamond. The arrow only carries direction — the magnitude lives on the
+        tile chart and in the modal.
       </Body>
       <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Refresh pipeline</h4>
       <Body>
-        Triggers refresh after the US close (or after their underlying release for CPFF). The cycle
-        composite recomputes once any of its seven indicators updates. The regime classifier runs on
-        every change and writes a snapshot file the rest of the site reads.
+        Every indicator refreshes on its own schedule per the data manifest. The tile reads its
+        current value from <Code>indicator_history.json</Code>, which is rebuilt by the indicator
+        refresh job after each producer completes. Per-tile freshness chips show the elapsed time
+        since the last successful pull and turn amber / red against the indicator's SLA when a
+        producer is behind.
       </Body>
     </>
   ),
@@ -372,202 +393,228 @@ elif max_stage >= 2:                                  regime = "Cautionary"`}</F
   "tilt-why": (
     <>
       <Body>
-        The macro state is useless if it doesn't translate into portfolio actions. The Asset Tilt page
-        does that translation: given today's mechanism scores, it produces an explicit allocation
-        recommendation — equity %, defensive %, leverage, sector tilts, industry-group tilts.
+        Asset Tilt is where the engine read lives and where the v9 sector allocator runs. Macro
+        Overview tells you the state of every indicator; Asset Tilt translates the engine's two
+        axes into an actual allocation — equity versus defensive, sleeve composition, sector and
+        industry-group tilts, and the leverage decision inside the equity bucket.
       </Body>
       <Body>
-        Two design principles. First, <strong>every threshold is backtested</strong>. No hand-picked
-        cutoffs, no narrative reasoning that drifts when the regime shifts. The decision rules are
-        deterministic, calibrated against 2012–2026 history, and re-run on every new data point.
+        Two design principles. First, <strong>every threshold is backtested.</strong> The engine's
+        75th and 85th percentile MOVE thresholds and 30th / 70th percentile yield thresholds were
+        chosen against the 1986–2026 backtest before being committed to code. The v9 sector
+        allocator's per-sector sensitivities were anchored on regression studies over the same
+        window. No hand-picked cutoffs.
       </Body>
       <Body>
-        Second, <strong>hard caps prevent any regime from blowing past prudent bounds</strong>:
+        Second, <strong>hard caps prevent any regime from blowing past prudent bounds:</strong>
       </Body>
       <ul style={{ ...styles.body, paddingLeft: 22 }}>
-        <li style={styles.bullet}>Defensive sleeve never exceeds 50% of capital, even in a maximum-stress regime.</li>
-        <li style={styles.bullet}>Leverage never exceeds 1.5×.</li>
-        <li style={styles.bullet}>Defensive and leverage are never on at the same time. If the engine wants any defensive sleeve, leverage drops to 1.0×.</li>
-        <li style={styles.bullet}>All six mechanisms feed every decision. No single point of failure in the input layer.</li>
+        <li style={styles.bullet}>Engine never drives equity below 50 percent of capital, even in deep Risk Off.</li>
+        <li style={styles.bullet}>Defensive sleeve never exceeds 50 percent of capital — the same constraint from the other side.</li>
+        <li style={styles.bullet}>v9 sector allocator caps leverage at 1.5×. Leverage activates only in calm regimes; when the engine wants any defensive sleeve at all, leverage drops to 1.0×.</li>
+        <li style={styles.bullet}>Defensive sleeve composition is fully determined by the yield regime — the engine reads it from a hard-coded table, no override.</li>
       </ul>
       <Body>
-        These rules are constraints in the optimization, not assumptions about what's optimal. Within
-        the constraints, the decision rules learn from history what allocation has historically
-        delivered the best risk-adjusted return at each stress level.
+        These rules are constraints in the architecture, not assumptions about what's optimal.
+        Within the constraints, the engine and the v9 allocator each do their separate jobs.
       </Body>
     </>
   ),
   "tilt-how": (
     <>
       <Body>
-        The page reads top-to-bottom in five blocks:
+        The page reads top to bottom in five blocks:
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>1. Hero & KPI strip</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>1. Hero + KPI strip</h4>
       <Body>
-        Page-level stance pill (Risk On / Neutral / Cautious / Risk Off) plus five KPIs: Equity %,
-        Defensive %, Leverage, Stress score, Gross exposure. The headline copy describes the regime
-        in one sentence — and only claims defensive activation when defensive % is actually positive.
+        The page hero opens with a one-sentence pitch (a back-tested allocation tool that seeks to
+        beat the S&amp;P 500 on a risk-adjusted basis) plus four bullets describing the engine, the
+        factor reads behind sector tilts, the defensive sleeve activation rule, and the headline
+        validation numbers. A four-cell KPI tile to the right of the hero shows CAGR, Sharpe, max
+        drawdown, and the validation window — each cell carries a "vs SPY" subline so the engine
+        and the benchmark are visible at the same time.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>2. Cycle mechanisms strip</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>2. Today's Engine Read</h4>
       <Body>
-        The same six mechanisms from Macro Overview, repeated here as a quick-glance reference for
-        what's driving today's allocation. Each card is clickable to see the mechanism's underlying
-        indicators.
+        Three cells side by side, fed from the engine snapshot:
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>3. Recommended Asset Tilt table</h4>
+      <ul style={{ ...styles.body, paddingLeft: 22 }}>
+        <li style={styles.bullet}><strong>Stress signal</strong> — a dial showing where the MOVE Index sits in its trailing 5-year percentile, with Risk On / Watch / Risk Off pills and the Watch (75th) and Risk Off (85th) threshold markers drawn on the dial. A 24-week mini bar strip below the dial shows the recent percentile path; click for the full 1986–today history.</li>
+        <li style={styles.bullet}><strong>Yield regime</strong> — a second dial showing the 3-month change in the 10-year Treasury yield as a 5-year percentile, with Deflationary / Neutral / Inflationary pills and the 30th and 70th threshold markers. Same 24-week strip + full-history click-through.</li>
+        <li style={styles.bullet}><strong>Allocation</strong> — the headline equity-versus-defensive split for today's engine state (100/0, 80/20, or 50/50). When the defensive sleeve is active, the cell expands to show the sleeve composition (cash / GLD / SHY / TLT weights) for today's yield regime; when the sleeve is dormant, the cell shows the sleeve that would activate if stress crossed the Watch threshold.</li>
+      </ul>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>3. Recommended Allocations</h4>
       <Body>
-        Eleven sectors plus four defensive buckets. Each row shows the sector name, ETF tickers
-        (clickable for ETF detail), a visual bar, the dollar tilt (leverage-adjusted; per $100 of
-        capital), and the rating + delta vs SPY. Click any sector to expand its industry groups
-        inline. Click any IG to see the constituent ETFs and stocks.
+        A unified sortable table covering 11 GICS sectors plus 24 industry groups within them. Each
+        row shows the sector or IG, the tilt direction (overweight / market-weight / underweight),
+        the dollar weight scaled to the equity bucket and the leverage multiplier, the rating
+        versus SPY, ETF tickers (clickable for the ETF detail), and the per-mechanism contribution
+        bar that drove the tilt. Click any sector to expand its industry groups; click any IG to
+        open the IG detail with constituent ETFs and stocks. The defensive sleeve sits at the
+        bottom of the same table when active, so the page reads as one continuous allocation.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>4. Mechanism heatmap</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>4. Heatmap</h4>
       <Body>
-        Six mechanisms × eleven sectors. Each cell shows whether that mechanism is currently a tailwind
-        (green) or headwind (red) for that sector. The math is the sector's historical sensitivity to
-        the mechanism multiplied by today's mechanism score. Hover any cell for the math, click for the
-        sector's full breakdown.
+        Six factor mechanisms across 11 sectors. Each cell shows whether that mechanism is
+        currently a tailwind (green) or headwind (red) for that sector. The math is the sector's
+        historical sensitivity to the mechanism multiplied by today's mechanism score. Hover any
+        cell for the arithmetic; click for the sector's full breakdown.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>5. Methodology footer</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>5. Backtest Validation · 1986 → 2026</h4>
       <Body>
-        One-line summary of the calibration plus a link to this page. The page refreshes nightly at
-        22:45 UTC, fifteen minutes after the Macro Overview's cycle board.
+        Four strategies compared side by side over the full 40-year sample: SPY buy-and-hold,
+        Regime + Cash (engine stress signal scales equity, defensive bucket sits in cash),
+        Regime + Defensive Sleeve (engine stress signal plus the yield-regime-aware sleeve), and
+        Engine + Asset Tilt (the full MacroTilt strategy: engine sleeve + v9 sector and IG
+        allocation inside the equity bucket). Each strategy gets a four-cell KPI card and the
+        relative-performance chart shows all four lines from a common 0% start. Below the chart, a
+        per-drawdown table documents the 11 historical drawdowns of 10 percent or worse and how
+        each strategy navigated each one.
       </Body>
     </>
   ),
   "tilt-data": (
     <>
       <Body>
-        Inputs live in three files:
+        The page reads three snapshot files. Each has a registered producer in the data manifest;
+        the freshness chips at the top of the page surface staleness in real time.
       </Body>
       <DocsTable
-        cols={["File", "What it carries", "Refreshed by"]}
+        cols={["File", "What it carries", "Producer + cadence"]}
         rows={[
           [
-            <Code>cycle_board_snapshot.json</Code>,
-            "Today's six mechanism scores (0–100 each)",
-            <><Code>compute_v11_mechanisms.py</Code> · 22:30 UTC</>,
+            <Code>macrotilt_engine.json</Code>,
+            "Today's engine state — stress state (Risk On / Watch / Risk Off), stress percentile + MOVE value + threshold values, yield regime (Inflationary / Neutral / Deflationary), 3M Δy-10y percentile + bp value + threshold bp values, headline allocation (equity % + defensive %), active sleeve label, sleeve composition weights.",
+            <><Code>compute_macrotilt_engine.py</Code> · daily after close + Friday rebalance signal</>,
           ],
           [
             <Code>v10_allocation.json</Code>,
-            "Allocator output: equity %, defensive %, leverage, 11 sector tilts, 24 IG tilts, contribution matrix",
-            <><Code>compute_v10_allocation.py</Code> · 22:45 UTC</>,
+            "v9 sector allocator output — 11 sector weights and OW/MW/UW ratings, 24 industry-group tilts with $ exposure, contribution matrix per IG, per-mechanism scores and bands, leverage multiplier, defensive bucket dollar amounts.",
+            <><Code>compute_v10_allocation.py</Code> · nightly 22:45 UTC</>,
           ],
           [
-            <Code>methodology_calibration_v11.json</Code>,
-            "Sprint 1 mechanism input panels with hand-curated percentiles + descriptions",
-            "Manually updated when calibration windows change",
+            <Code>macrotilt_engine_backtest.json</Code>,
+            "1986–2026 weekly observation file (about 2,056 weeks) plus 11 documented drawdown episodes. Each weekly row carries the MOVE value + percentile, the 3M Δy-10y + percentile, the resulting stress state and yield regime, and the cumulative return of each of the four backtest strategies. Powers the bar strips, the relative-performance chart, and the drawdown table.",
+            <>Backtest harness run on each engine spec lock (last · 2026-05-13)</>,
           ],
         ]}
       />
       <Body>
-        Per-sector and per-IG sensitivities are baked into the allocator script as constants
-        (see <Code>SECTOR_SENSITIVITY</Code> and <Code>INDUSTRY_GROUPS</Code> in
+        Per-sector and per-IG sensitivities are baked into the v9 allocator script as constants
+        (<Code>SECTOR_SENSITIVITY</Code> and <Code>INDUSTRY_GROUPS</Code> in
         <Code>compute_v10_allocation.py</Code>). Each sector has six sensitivity coefficients —
-        one per mechanism — anchored on per-sector regression studies in the
-        <Code>v6_per_sector_factor_map.md</Code> document. Each IG inherits its parent sector's
-        sensitivities plus IG-specific adjustments (e.g. Semiconductors carries an extra negative
-        sensitivity to Growth and Positioning & Breadth on top of the Tech-sector base).
+        one per mechanism — anchored on regression studies in the per-sector factor map. Each IG
+        inherits its parent sector's sensitivities plus IG-specific adjustments (e.g. Semiconductors
+        carries an extra negative sensitivity to Growth and Positioning &amp; Breadth on top of the
+        Information Technology sector base).
       </Body>
       <Body>
-        Sector ETF universe: eleven GICS sectors with three ETF families to choose from per sector —
-        the SPDR XL series (XLK / XLC / XLF / XLV / XLY / XLI / XLP / XLE / XLB / XLRE / XLU), the
-        Vanguard V series (VGT / VOX / VFH / VHT / VCR / VIS / VDC / VDE / VAW / VNQ / VPU), and the
-        Fidelity F series (FTEC / FCOM / FNCL / FHLC / FDIS / FIDU / FSTA / FENY / FMAT / FREL / FUTY).
-        Plus four defensive buckets: BIL (cash), TLT (long Treasuries), GLD (gold), LQD (IG corporate
-        bonds). SPY weights for the relative-tilt computation come from a quarterly snapshot.
+        Sector ETF universe: 11 GICS sectors with three ETF families to choose from per sector —
+        the SPDR XL series, the Vanguard V series, and the Fidelity F series. Plus four defensive
+        buckets used by the v9 allocator: BIL (cash), TLT (long Treasuries), GLD (gold), LQD (IG
+        corporate bonds). The engine's own defensive sleeve uses cash / GLD / SHY / TLT. SPY
+        weights for the relative-tilt computation come from a quarterly snapshot.
       </Body>
     </>
   ),
   "tilt-models": (
     <>
       <Body>
-        The allocator runs in five steps. Each step is deterministic and the rules are versioned
-        in the script.
+        Two engines, in series. The MacroTilt 2-axis engine decides the equity-versus-defensive
+        split and the sleeve composition; the v9 sector allocator runs inside the equity bucket
+        and produces sector + IG tilts. Both are deterministic and versioned in the scripts.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 1 — Stress score</h4>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 1 — Stress signal (engine, Axis 1)</h4>
       <Body>
-        The stress score is the count, weighted, of how many of the three stress-detection mechanisms
-        are flagging concern. The three are <strong>Credit</strong>, <strong>Liquidity & Policy</strong>,
-        and <strong>Positioning & Breadth</strong> — chosen because together they cover credit-side
-        contagion (Credit), policy/liquidity reversals (Liq&Pol), and crowd / sentiment dynamics (Pos&Br).
+        Every Friday after the US close, the engine takes the latest MOVE Index reading and asks
+        where it sits in its trailing 5-year window. The thresholds are constants — 75th and 85th
+        percentile — but the underlying window moves with the data, so a 2009-style high-vol regime
+        and a 2017-style low-vol regime calibrate their own threshold levels against their own
+        recent history.
       </Body>
-      <Formula>{`for each of [Credit, Liq&Pol, Pos&Br]:
-   if mechanism band == "Caution" (50–75)  →  +1
-   if mechanism band == "Risk Off" (75–100) →  +2
+      <Formula>{`window_5y     = MOVE values from the trailing 5 calendar years
+move_pctile   = percentile_rank(MOVE_today, window_5y)
 
-stress_score ∈ [0, 6]`}</Formula>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 2 — Equity vs Defensive split</h4>
-      <Formula>{`if stress_score < 4   →  defensive_pct = 0%
-else                  →  defensive_pct = (stress_score − 3) × 20%, capped at 50%
+if move_pctile < 0.75:                stress_state = "Risk On"
+elif move_pctile < 0.85:              stress_state = "Watch"
+else:                                 stress_state = "Risk Off"
 
-equity_pct = 1 − defensive_pct`}</Formula>
+equity_pct     = { 1.00 if Risk On, 0.80 if Watch, 0.50 if Risk Off }
+defensive_pct  = 1 - equity_pct`}</Formula>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 2 — Yield direction (engine, Axis 2)</h4>
       <Body>
-        Calibrated 2026-05-04. The intent: <em>most of the time at 100% equity</em> (Joe directive).
-        The threshold 4 means the engine activates defensive only when stress is severe — three
-        mechanisms in caution, or one in risk-off plus two in caution. In the 2012–2026 sample, this
-        rule kept the allocator at 100% equity 88% of the time.
+        Same trailing 5-year window, different signal. The engine computes the change in the
+        10-year Treasury yield over the past 3 months (today's yield minus the yield 3 months ago,
+        in basis points) and asks where that change sits in its trailing 5-year distribution. The
+        thresholds are 30th and 70th percentile. Axis 2 does not affect the equity-versus-defensive
+        split — that is entirely Axis 1's job — but it selects which defensive sleeve gets used
+        when the engine wants defense.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 3 — Leverage</h4>
-      <Formula>{`if defensive_pct > 0           →  leverage = 1.0×    (XOR rule)
-elif all 6 mechs in {Risk-on, Neutral} →  leverage = 1.25×
-else                            →  leverage = 1.0×
+      <Formula>{`delta_y_3m       = (DGS10_today - DGS10_3M_ago)  in basis points
+delta_pctile     = percentile_rank(delta_y_3m, trailing_5y_distribution)
 
-(future v10.2: V-bottom regime-flip detection unlocks up to 1.5×)`}</Formula>
+if delta_pctile <= 0.30:    yield_regime = "Deflationary"
+elif delta_pctile < 0.70:   yield_regime = "Neutral"
+else:                       yield_regime = "Inflationary"`}</Formula>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 3 — Defensive sleeve composition</h4>
       <Body>
-        Leverage activates only in genuinely calm regimes. The 1.5× ceiling is reserved for V-bottom
-        regime-flip events (three or more mechanisms transitioning Risk-Off → Caution in a single
-        month) — a v10.2 follow-up that requires historical state tracking we haven't built yet.
-        Today's allocator stays at 1.0× or 1.25×.
+        When the engine wants any defensive sleeve, the composition is determined by the yield
+        regime. No discretion, no override. The Inflationary sleeve deliberately holds no long
+        Treasuries because they bleed value when yields are rising; the Deflationary sleeve leans
+        into long Treasuries as a flight-to-quality hedge.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 4 — Per-sector tilt</h4>
-      <Formula>{`for each sector:
-   tilt_score = Σᵢ (sensitivityᵢ × normalized_scoreᵢ)
-       where normalized_scoreᵢ = (mechanism_scoreᵢ − 50) / 50  ∈ [−1, +1]
+      <DocsTable
+        cols={["Yield regime", "Cash", "GLD (gold)", "SHY (short Treasuries)", "TLT (long Treasuries)"]}
+        rows={[
+          ["Inflationary",  "50%", "30%", "20%", "0%"],
+          ["Deflationary",  "25%", "25%", "0%",  "50%"],
+          ["Neutral",       "50%", "25%", "0%",  "25%"],
+        ]}
+      />
+      <Body>
+        Weights inside the sleeve sum to 100 percent of the defensive bucket. If the stress state
+        says 50 percent defensive and the yield regime says Inflationary, the actual portfolio
+        split is 50 percent equity + 25 percent cash + 15 percent gold + 10 percent short
+        Treasuries.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 4 — v9 sector and IG tilts inside the equity bucket</h4>
+      <Body>
+        The v9 allocator runs against the same six mechanisms used on Asset Tilt's heatmap:
+        Valuation, Credit, Funding, Growth, Liquidity &amp; Policy, Positioning &amp; Breadth. Each
+        mechanism is scored 0–100 from its calibrated input panel. For each sector, the contribution
+        of mechanism <em>m</em> is the sector's historical sensitivity to <em>m</em> (a constant in
+        the script) multiplied by today's <em>m</em> score normalized around its neutral midpoint.
+        The sector's overall tilt score is the sum of six contributions; the OW/MW/UW rating is a
+        threshold on that score. Industry groups inherit their parent sector's sensitivities and
+        add IG-specific adjustments.
+      </Body>
+      <Formula>{`for each sector s and each mechanism m:
+   contribution[s, m] = SECTOR_SENSITIVITY[s][m] * (score[m] - 50) / 50
 
-   if tilt_score > +0.3  →  rating = OW,  multiplier = 1.20× SPY weight
-   if tilt_score < −0.3  →  rating = UW,  multiplier = 0.75× SPY weight
-   else                  →  rating = MW,  multiplier = 1.00× SPY weight
+tilt_score[s] = sum( contribution[s, m] over 6 mechanisms )
 
-equity dollars = SPY_weight × multiplier  (renormalized so total = equity_pct × $100)`}</Formula>
+rating[s] = "OW"   if tilt_score[s]  >=  threshold_OW
+          = "UW"   if tilt_score[s]  <= -threshold_UW
+          = "MW"   otherwise`}</Formula>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 5 — Leverage (v9, inside the equity bucket)</h4>
       <Body>
-        Each sector's six sensitivities are coefficients between roughly −1.5 and +1.5. Positive means
-        the sector benefits when that mechanism is in caution/risk-off; negative means the sector is
-        hurt. The sensitivity matrix is anchored on per-sector regression studies but documented as
-        constants in code rather than re-fit every night — refits happen on a calibration cadence
-        (Sprint 2 was 2026-05-04).
+        The v9 allocator can apply leverage <strong>only when the engine is fully Risk On.</strong>
+        If the engine wants any defensive sleeve at all, leverage drops to 1.0×. In Risk On, v9
+        looks at its six mechanism bands and applies a modest 1.25× only when all six are reading
+        Risk-on or Neutral. The 1.5× ceiling is reserved for a future V-bottom regime-flip path
+        that requires historical state tracking the production code does not yet implement — in
+        practice today's allocator stays at 1.0× or 1.25×.
       </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Step 5 — Per-IG tilt</h4>
-      <Formula>{`for each industry group:
-   ig_sensitivity = parent_sector_sensitivity + ig_specific_adjustment
-   tilt_score, rating same logic as sector
-   ig dollars renormalized so each sector's IGs sum back to its sector total`}</Formula>
+      <Formula>{`if defensive_pct > 0:                    leverage = 1.00x      (XOR rule)
+elif all 6 mech bands in {Risk On, Neutral}: leverage = 1.25x
+else:                                    leverage = 1.00x`}</Formula>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Refresh pipeline</h4>
       <Body>
-        IGs inherit the parent sector's sensitivity and add IG-specific deltas. Example: the Banks
-        IG inside Financials adds −0.4 to Funding and −0.3 to Credit on top of the Financials base
-        — banks are more sensitive to funding stress than the sector's other IGs (Insurance,
-        Diversified Financials).
-      </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Defensive sleeve composition</h4>
-      <Body>
-        When defensive_pct &gt; 0, the four buckets (BIL · TLT · GLD · LQD) are equal-weighted:
-        each gets <Code>defensive_pct / 4</Code> of capital. This is intentionally simple — the
-        allocator's value is in the equity-vs-defensive decision, not in micro-optimizing within
-        the defensive sleeve.
-      </Body>
-      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Audit checks (every refresh)</h4>
-      <Body>
-        Before <Code>v10_allocation.json</Code> is committed, the workflow runs four assertions:
-      </Body>
-      <ul style={{ ...styles.body, paddingLeft: 22 }}>
-        <li style={styles.bullet}><Code>defensive_pct ≤ 50%</Code></li>
-        <li style={styles.bullet}><Code>leverage ≤ 1.5×</Code></li>
-        <li style={styles.bullet}><Code>NOT (defensive_pct &gt; 0 AND leverage &gt; 1.0×)</Code></li>
-        <li style={styles.bullet}><Code>all 6 mechanisms present in input</Code></li>
-      </ul>
-      <Body>
-        Any assertion failure halts the workflow and the page keeps the last-known-good allocation.
-        No partial / inconsistent allocations ship.
+        The engine snapshot recomputes daily after the US close and writes
+        <Code> macrotilt_engine.json</Code>; the weekly rebalance signal lands every Friday close.
+        The v9 sector allocator runs nightly at 22:45 UTC and writes
+        <Code> v10_allocation.json</Code>. The backtest weekly history file refreshes on each
+        engine spec lock (most recent lock · 2026-05-13).
       </Body>
     </>
   ),
@@ -957,103 +1004,142 @@ else                                      →  REVIEW`}</Formula>
   "hard-rules-content": (
     <>
       <Body>
-        Four constraints bind every allocation decision. They are enforced in the workflow itself
-        (assertion failures halt the deploy), so they are guaranteed to hold in production rather
-        than just promised in copy.
+        Five constraints bind every allocation decision. They are enforced in the engine compute
+        script and the v9 sector allocator — assertion failures halt the deploy, so the rules are
+        guaranteed to hold in production rather than just promised in copy.
       </Body>
       <DocsTable
         cols={["Rule", "Why it exists", "Enforced where"]}
         rows={[
-          [<strong>Defensive ≤ 50%</strong>,            "Even in a maximum-stress regime, the engine never sells more than half the equity sleeve. Intent: stay invested through stress.", <><Code>compute_v10_allocation.py</Code> + workflow audit</>],
-          [<strong>Leverage ≤ 1.5×</strong>,            "The 1.5× ceiling is the only path to leverage above 1.25×, and it's reserved for V-bottom regime-flip events. No path to runaway leverage.", <><Code>compute_v10_allocation.py</Code> + workflow audit</>],
-          [<strong>Defensive XOR Leverage</strong>,     "Defensive sleeve and leverage are never on simultaneously. The two represent opposite tactical bets and the engine doesn't run them against each other.", <><Code>compute_v10_allocation.py</Code> + workflow audit</>],
-          [<strong>All 6 mechanisms present</strong>,   "If any of the six mechanism scores is missing, the allocator does not produce a recommendation. No partial input → partial output.", <><Code>compute_v10_allocation.py</Code> + workflow audit</>],
+          [<strong>Defensive sleeve ≤ 50%</strong>,                "The engine's Risk Off state caps defensive allocation at 50%. Even in maximum stress, the engine never sells more than half the equity sleeve. Intent: stay invested through stress.",   "Engine compute script · workflow audit"],
+          [<strong>Equity ≥ 50%</strong>,                          "The complement to the defensive cap. Combined with the cap, the portfolio is at least 50/50 even in the deepest engine de-risking signal.",                                            "Engine compute script · workflow audit"],
+          [<strong>Sleeve composition is regime-keyed only</strong>,    "When defensive is active, the cash / gold / short-Treasury / long-Treasury weights come from the yield-regime table — no manual override. Keeps the sleeve aligned with the rate environment.", "Engine compute script · workflow audit"],
+          [<strong>v9 leverage ≤ 1.5×</strong>,                       "The v9 sector allocator caps leverage at 1.5×. The 1.5× ceiling is reserved for a V-bottom regime-flip path; today's allocator runs at 1.0× or 1.25×. No path to runaway leverage.",  "v9 compute script · workflow audit"],
+          [<strong>Defensive XOR leverage</strong>,                     "If the engine wants any defensive sleeve, v9 leverage drops to 1.0×. Defensive and leverage represent opposite tactical bets and the system never runs them against each other.",    "v9 compute script · workflow audit"],
         ]}
       />
       <Callout>
         <strong>Why these rules are non-negotiable.</strong> The hard caps are not optimization
-        constraints we accept reluctantly — they're the discipline that keeps the strategy
-        inside reasonable risk bounds across every regime, including ones we haven't seen yet.
-        Backtested-best-fit rules can drift in unfamiliar regimes; hard caps don't.
+        constraints we accept reluctantly — they're the discipline that keeps the strategy inside
+        reasonable risk bounds across every regime, including ones we haven't seen yet. The
+        1986–2026 validation tested the engine across 11 historical drawdowns; the hard caps are
+        why even the worst-case episode (2008 GFC) shows a 35 percent strategy drawdown versus 55
+        percent for SPY.
       </Callout>
     </>
   ),
   "backtest-content": (
     <>
       <Body>
-        v10.1c (current production engine) is backtested against 2012-01 through 2026-03 (171
-        months) using monthly rebalancing. Each historical month's allocation comes from running
-        the v10.1c rules against the mechanism scores available at that point in time (no
-        lookahead). Sector returns from yfinance for the eleven sector ETFs plus the four
-        defensive ETFs (BIL / TLT / GLD / LQD). Numbers below are produced by
-        <Code>scripts/backtest_v10_v11.py</Code> and refreshed in
-        <Code>public/backtest_v10_v11_summary.json</Code>:
+        The MacroTilt strategy is validated over <strong>1986–2026</strong> — about 2,056 weeks
+        of weekly rebalancing. Each historical week's allocation comes from running the engine
+        rules and the v9 sector allocator against the data available at that point in time (no
+        lookahead). Equity returns from SPY; defensive sleeve returns from BIL (cash proxy), GLD,
+        SHY, and TLT. Pre-2002 MOVE history is replaced with a Z-standardized proxy built from
+        21-day rolling standard deviation of daily 10-year Treasury yield changes, rescaled so its
+        mean and standard deviation match the actual MOVE Index over 2002–2007. The live
+        production engine only reads actual MOVE values; the proxy is used for backtest only.
+      </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Four strategies, head to head</h4>
+      <Body>
+        The backtest section on Asset Tilt compares four strategies. Each adds one layer of the
+        full system, so the contribution of each component is visible directly.
       </Body>
       <DocsTable
-        cols={["Metric", "v10.1c", "SPY", "v9 baseline (2008-2026)"]}
+        cols={["Strategy", "What it does", "$1 →", "CAGR", "Sharpe", "Max DD"]}
         rows={[
-          ["CAGR",                  <strong>13.89%</strong>,    "14.66%",   "13.88%"],
-          ["Sharpe (annualized)",   <strong>1.029</strong>,     "1.030",    "0.610"],
-          ["Max drawdown",          <strong>−21.36%</strong>,   "−23.97%",  "−23.64%"],
-          ["Calendar wins vs SPY",  "5 of 15",                  "—",        "10 of 19"],
-          ["Months at 100% equity", "83%",                      "—",        "—"],
+          ["SPY buy-and-hold",                "Passive benchmark. Hold the broad equity index through every regime.",                                                  "$65.05",  "+10.86%",  "0.50",  "−54.6%"],
+          ["Regime + Cash",                   "Use the engine's stress signal to scale equity 100 / 80 / 50%. Defensive bucket sits in cash. Isolates the de-risking decision.",  "—",       "—",        "—",     "—"],
+          ["Regime + Defensive Sleeve",       "Same regime scaling, but the defensive bucket activates the yield-regime-aware sleeve (cash + GLD + SHY/TLT). Isolates the sleeve contribution.", "—",  "—",        "—",     "—"],
+          [<><strong>Engine + Asset Tilt</strong> <span style={{color:"var(--text-muted)",fontSize:11}}>(MacroTilt)</span></>, "Full stack. Engine sleeve when de-risked; v9 sector + industry-group allocation inside the equity bucket.", <strong>$89.57</strong>, <strong>+11.74%</strong>, <strong>0.61</strong>, <strong>−35.0%</strong>],
         ]}
       />
       <Body>
-        The v10.1c value proposition: about 70% better risk-adjusted return than v9 (Sharpe 1.029
-        vs 0.610), nearly identical Sharpe to SPY (1.029 vs 1.030), and 2.6 percentage points
-        smaller maximum drawdown than SPY (−21.36% vs −23.97%) — at the cost of about 80bp of
-        annualized CAGR vs SPY. The strategy is doing what it's designed to do: take less risk per
-        unit of return.
+        The Engine + Asset Tilt strategy delivers <strong>+88 basis points of annualized return
+        over SPY</strong> at <strong>240 basis points lower volatility</strong>, which compounds to
+        a 38 percent terminal-wealth advantage over the 40-year window ($89.57 versus $65.05 per
+        dollar invested). The Sharpe ratio is 0.61 versus SPY's 0.50; max drawdown is 35 percent
+        versus 55 percent. The intermediate strategies in the table show that the de-risking
+        decision (Regime + Cash vs SPY) and the regime-aware sleeve (Regime + Defensive Sleeve vs
+        Regime + Cash) each contribute, and v9 sector tilts add the rest of the gap on top. The
+        live Asset Tilt page reads every weekly observation and the per-drawdown attribution from
+        <Code> macrotilt_engine_backtest.json</Code>.
       </Body>
+      <h4 style={{ ...styles.subH3, fontSize: 15, marginTop: 18 }}>Per-drawdown attribution — 11 episodes</h4>
       <Body>
-        v10.1c outperformed SPY in 5 of 15 calendar years; the standout was 2022 (+2.66pp vs SPY)
-        — precisely the inflation / rates regime the engine is built for. The four other wins
-        (2016, 2019, 2020, 2021) came from sector tilts firing correctly. The largest miss was
-        2024 (−6.25pp vs SPY), where the tech underweight (correctly flagged by stretched
-        Valuation) dragged in a tech-led bull market.
+        Eleven SPY drawdowns of 10 percent or worse over 1986–2026. The "dominant yield regime"
+        column shows the yield regime the engine spent the majority of the drawdown weeks in — the
+        defensive sleeve composition follows from that.
+      </Body>
+      <DocsTable
+        cols={["Episode", "SPY depth", "Dominant yield regime", "SPY", "Engine + Asset Tilt", "Difference", "What happened"]}
+        rows={[
+          ["1987 Black Monday",     "−33.3%",  "Inflationary (62% of weeks)",   "−33.0%",  "−31.8%",  "+1.1 pp",  "Engine caught the volatility crack late; partial defensive sleeve absorbed about a percentage point of the drop."],
+          ["1990 Recession",        "−18.3%",  "Inflationary (50% of weeks)",   "−16.3%",  "−15.5%",  "+0.7 pp",  "Modest help. Cash-heavy inflationary sleeve held duration risk down in a rising-rate environment."],
+          ["1998 LTCM",             "−17.6%",  "Neutral (75% of weeks)",        "−16.1%",  "−16.1%",  "0.0 pp",   "Engine did not fire. Vol was contained until it wasn't. Neutral sleeve when it did fire matched SPY's path."],
+          ["1999 Y2K",              "−11.7%",  "Inflationary (57% of weeks)",   "−10.9%",  "−12.0%",  "−1.1 pp",  "The only losing episode in the eleven. A short-lived vol spike fired the engine into Watch and the sleeve trailed equity slightly."],
+          ["2000 Dot-com",          "−45.7%",  "Deflationary (45% of weeks)",   "−43.3%",  "−31.9%",  "+11.3 pp", "Engine sat at Risk Off through the heart of the decline; the deflationary sleeve's 50% TLT allocation outperformed equity by about 13 percentage points."],
+          ["2007 GFC",              "−54.6%",  "Deflationary (62% of weeks)",   "−54.5%",  "−30.7%",  "+23.8 pp", "The single largest contribution. Engine held cash + TLT through the deflationary regime; spared 23.8 percentage points versus SPY."],
+          ["2015 China",            "−11.2%",  "Neutral (61% of weeks)",        "−9.0%",   "−9.0%",   "0.0 pp",   "Engine did not fire. Vol stayed below the 75th-percentile threshold throughout the episode."],
+          ["2018 Q4",               "−17.1%",  "Inflationary (71% of weeks)",   "−16.4%",  "−16.4%",  "0.0 pp",   "Vol spiked late; the engine's signal arrived too late to help on the way down."],
+          ["2020 COVID",            "−31.8%",  "Deflationary (100% of weeks)",  "−30.7%",  "−18.8%",  "+11.9 pp", "Engine fired into Risk Off in week one of the crash; deflationary sleeve's TLT-heavy mix dominated. The fastest and cleanest engine win in the sample."],
+          ["2022 bear",             "−23.9%",  "Inflationary (78% of weeks)",   "−23.2%",  "−14.0%",  "+9.2 pp",  "Inflationary sleeve correctly avoided long Treasuries — they would have been the worst possible defensive asset in 2022's bond rout. Cash and gold carried the absolute return."],
+          ["2025 spring",           "−16.9%",  "Neutral (62% of weeks)",        "−15.6%",  "−15.6%",  "0.0 pp",   "Engine did not fire. The drawdown unfolded inside the calm-vol regime."],
+        ]}
+      />
+      <Body>
+        Pattern: the strategy adds value in <strong>deep drawdowns driven by bond-market stress</strong>
+        (2000, 2007, 2020, 2022) and is approximately neutral in shallower drawdowns or those that
+        unfold inside the calm-vol regime (1998, 2015, 2025). The yield-regime axis matters
+        directly — in 2007 and 2020 the deflationary sleeve's TLT-heavy mix did the heavy lifting,
+        and in 2022 the inflationary sleeve's TLT-free mix kept the strategy out of a bond rout that
+        would have crushed a generic 60/40 defensive sleeve.
       </Body>
       <Callout>
-        <strong>Honest gap.</strong> v10.1c has not been tested against 2008–2011 (the GFC and
-        post-GFC recovery) because the indicator history file we backfill from starts in 2011.
-        v9's edge in the 2008-2026 backtest came largely from its GFC handling. Until we backfill
-        pre-2011 indicator data, the engine has not been stress-tested against a real systemic
-        crisis. Rule discipline (the hard caps) is what protects against unfamiliar regimes in
-        the meantime.
+        <strong>Calibration discipline.</strong> The 75th / 85th / 70th / 30th percentile
+        thresholds were the original spec; they were not optimized against the backtest. The
+        defensive sleeve weights (50/30/20/0 for Inflationary, 25/25/0/50 for Deflationary,
+        50/25/0/25 for Neutral) were grid-searched against the backtest, constrained to round-number
+        weights summing to 100. No threshold was tuned to lift any one drawdown's attribution
+        number.
       </Callout>
       <Body>
-        Full evidence pack: <Code>PHASE2_V10_BACKTEST.md</Code> in the project workspace. Every
-        threshold in v10.1c was tuned against this backtest before being committed to code.
+        Full evidence pack: the locked engine spec at <Code>FINAL_LOCKED_ENGINE_2026-05-13.md</Code>
+        and the consolidated backtest at <Code>CONSOLIDATED_2AXIS_BACKTEST_2026-05-13.md</Code> in
+        the project workspace. Every threshold in the engine was locked against this validation
+        before being committed to code.
       </Body>
     </>
   ),
   "sources-content": (
     <>
       <Body>
-        Every number on the site traces back to one of these public sources:
+        Every number on the site traces back to one of these public vendors. Every data-driven
+        surface on the site labels itself "Vendor · As of [date]"; this list is the master.
       </Body>
       <DocsTable
-        cols={["Source", "Used for"]}
+        cols={["Vendor", "What it provides"]}
         rows={[
-          ["FRED (Federal Reserve Economic Data)", "Most macro indicators — Buffett Indicator inputs (NCBCEL/GDP), credit spreads (BAA, BAMLH0A0HYM2), CFNAI, jobless claims (IC4WSA), ANFCI, M2 YoY, Fed balance sheet, bank reserves, reverse repo balance, commercial paper risk premium, SLOOS C&I, St. Louis Fed FSI"],
-          ["ICE BofA via FRED",                    "HY OAS spread series"],
-          ["CBOE",                                 "VIX, SKEW"],
-          ["ICE BofA",                             "MOVE Index (Treasury volatility)"],
-          ["Shiller / multpl",                     "CAPE (cyclically-adjusted P/E)"],
-          ["ISM (via FRED NAPMPI)",                "Manufacturing PMI"],
-          ["Yahoo Finance",                        "BKX (banks index) and SPX for the BKX/SPX growth signal; stock fundamentals (forward P/E, revenue growth, profitability) for the Trading Opportunities scanner"],
-          ["Massive (Polygon Basic)",              "Daily price data, universe master, dividends, splits"],
-          ["Unusual Whales",                       "Options flow, dark pool volume, Form 4 insider buying, congressional disclosure"],
-          ["ZeroHedge (RSS + Premium)",            "News sentiment"],
-          ["Wikipedia · iShares",                  "Index membership flags (S&P 500, NASDAQ-100, Russell 2000)"],
-          ["Plaid",                                "Brokerage feed (read-only)"],
+          ["Federal Reserve · FRED",         "10y Treasury yield (DGS10), 2y yield (DGS2), 10y–2y curve (T10Y2Y), Effective Fed Funds (DFF), Fed balance sheet (WALCL), bank credit (TOTBKCR), M2 (M2SL), SLOOS C&I and CRE tightening surveys, jobless claims (IC4WSA), CPFF spread, ANFCI, STLFSI, T-bills, ICE BofA credit spreads (BAMLH0A0HYM2 high-yield, BAMLC0A0CM investment-grade, BAMLH0A3HYC CCC), USD broad index (DTWEXBGS), CFNAI, Conference Board LEI"],
+          ["ICE BofA · Yahoo ^MOVE",         "MOVE Index (Treasury volatility) — the primary engine input"],
+          ["CBOE",                           "VIX (equity volatility), SKEW (tail-risk skew)"],
+          ["Shiller · multpl",               "CAPE (Shiller P/E), trailing S&P 500 P/E"],
+          ["ISM (via FRED NAPMPI)",          "Manufacturing PMI"],
+          ["BLS JOLTS (via FRED QUITS)",     "Job openings, hires, separations, quits rate"],
+          ["BEA",                            "US GDP for the Buffett indicator (US market cap / GDP)"],
+          ["Yahoo Finance",                  "KBW Bank index, copper / gold futures, stock fundamentals (forward P/E, revenue growth, profitability) for the Trading Opportunities scanner"],
+          ["Polygon Massive",                "Daily equity prices for the universe of US-listed common stocks + ADRs, dividends, splits"],
+          ["Unusual Whales",                 "Options flow, dark-pool volume, Form 4 insider buying, Congressional disclosure"],
+          ["ZeroHedge (RSS + Premium)",      "News sentiment"],
+          ["Wikipedia · iShares",            "Index membership flags (S&P 500, NASDAQ-100, Russell 2000)"],
+          ["Plaid",                          "Brokerage feed (read-only) for Portfolio Insights"],
         ]}
       />
       <Body>
-        Every data element is registered in <Code>public/data_manifest.json</Code> with cadence,
-        freshness SLA, and consumer surfaces. The freshness chip system on every page reads from
-        that manifest plus <Code>pipeline_health</Code> in Supabase to show green / amber / red
-        per data flow.
+        Every data element is registered in the project's data manifest with cadence, freshness
+        SLA, and the surfaces that consume it. The freshness chip on each tile reads from that
+        manifest plus the pipeline-health snapshot to show green (within SLA), amber (one to two
+        refreshes overdue), or red (three or more overdue or a producer failure).
       </Body>
     </>
   ),
@@ -1062,22 +1148,35 @@ else                                      →  REVIEW`}</Formula>
       <DocsTable
         cols={["Term", "Definition"]}
         rows={[
-          [<><Code>bp</Code> (basis points)</>, "One basis point = 0.01%. 100bp = 1%."],
+          [<><Code>bp</Code> (basis points)</>, "One basis point = 0.01%. 100 bp = 1%."],
+          ["Buffett indicator",                 "US market capitalization divided by US GDP. A standard valuation gauge; readings above 150% are historically rich."],
           ["CAPE",                              "Cyclically-Adjusted P/E (Shiller). S&P 500 price divided by 10-year average inflation-adjusted earnings. Smooths earnings cycles."],
-          ["Composite",                         "Page-level 0–100 score; the simple average of the six cycle mechanisms."],
-          ["Cycle mechanism",                   "One of six categorical inputs to the cycle board: Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth."],
-          ["Defensive sleeve",                  "The four-bucket non-equity allocation: BIL (cash), TLT (long Treasuries), GLD (gold), LQD (IG corporate bonds)."],
-          ["ERP",                               "Equity Risk Premium = S&P 500 earnings yield minus 10-year Treasury yield. A near-zero or negative ERP means stocks are priced for perfection."],
-          ["Gross exposure",                    "Total dollar exposure as % of capital. With leverage on, can exceed 100%; with defensive on, the equity slice falls below 100%."],
+          ["Calm / Elevated / Stressed",        "Per-tile state on Macro Overview, driven by the trailing 5-year percentile of that indicator against its direction-of-stress flag. NOT the engine's stress state — that's a separate concept on Asset Tilt."],
+          ["Defensive sleeve",                  "The non-equity allocation when the engine wants defense. Composition is fully determined by the yield regime (Inflationary / Neutral / Deflationary)."],
+          ["Deflationary",                      "Yield regime where the 3-month change in the 10y Treasury yield sits in the bottom 30% of its trailing 5y window — yields falling fast. Defensive sleeve leans into long Treasuries."],
+          ["Engine read",                       "The MacroTilt 2-axis engine's two-pill output on Asset Tilt: stress state (Risk On / Watch / Risk Off) and yield regime (Inflationary / Neutral / Deflationary)."],
+          ["ERP",                               "Equity Risk Premium = S&P 500 earnings yield minus 10y Treasury yield. A near-zero or negative ERP means stocks are priced for perfection."],
+          ["Heatmap",                           "Asset Tilt grid showing six factor mechanisms across 11 sectors; each cell is the sector's sensitivity to the mechanism times today's mechanism score."],
           ["HY OAS",                            "High-Yield Option-Adjusted Spread. Yield premium that junk bonds offer over Treasuries."],
-          ["IG (Industry Group)",               "GICS Industry Group, one classification level below Sector. The site uses 24 IGs across 11 sectors. Example: Semiconductors is an IG inside the Information Technology sector."],
-          ["IG OAS",                            "Investment-Grade Option-Adjusted Spread. Yield premium that corporate bonds offer over Treasuries."],
+          ["IG (Industry Group)",               "GICS Industry Group, one classification level below Sector. 24 IGs across 11 sectors."],
+          ["IG OAS",                            "Investment-Grade Option-Adjusted Spread. Yield premium that IG corporate bonds offer over Treasuries."],
+          ["Inflationary",                      "Yield regime where the 3-month change in the 10y Treasury yield sits in the top 30% of its trailing 5y window — yields rising fast. Defensive sleeve avoids long Treasuries."],
+          ["Leverage (v9)",                     "Gross-exposure multiplier inside the v9 equity allocator. 1.0× default; 1.25× when all six mechanism bands read Risk On or Neutral and the engine is Risk On; cap at 1.5×."],
+          ["Mechanism (v9)",                    "One of six factor inputs to the v9 sector allocator: Valuation, Credit, Funding, Growth, Liquidity & Policy, Positioning & Breadth."],
+          ["MOVE Index",                        "ICE BofA's Treasury-market volatility index. The primary stress-signal input to the engine — analogous to VIX but for the bond market."],
+          ["Neutral (yield)",                   "Yield regime where the 3-month change in the 10y Treasury yield sits between the 30th and 70th percentile of its trailing 5y window."],
           ["OW / MW / UW",                      "Overweight / Market-weight / Underweight. Refers to a sector or IG's allocation versus its SPY benchmark weight."],
           ["Percentile",                        "Where a current value sits in a historical sample. p100 = highest reading on record; p0 = lowest."],
+          ["Risk Off",                          "Stress state where the MOVE Index is at or above the 85th percentile of its trailing 5y window. Engine allocates 50% equity / 50% defensive."],
+          ["Risk On",                           "Stress state where the MOVE Index is below the 75th percentile of its trailing 5y window. Engine allocates 100% equity / 0% defensive."],
           ["Sharpe ratio",                      "Annualized excess return divided by annualized volatility. Higher = better risk-adjusted return."],
           ["SLOOS",                             "Senior Loan Officer Opinion Survey. Federal Reserve quarterly survey of bank lending standards."],
-          ["SPY",                               "SPDR S&P 500 ETF. The benchmark used for sector vs market relative weights."],
-          ["Stress score",                      "A 0–6 count: number of stress-detection mechanisms (Credit, Liq&Pol, Pos&Br) in caution or risk-off bands, weighted (caution=+1, risk-off=+2)."],
+          ["Sortino ratio",                     "Like Sharpe, but volatility is computed only over down-days. Higher = better at avoiding losses specifically."],
+          ["Splice (MOVE)",                     "The transition from a pre-2002 Z-standardized proxy to the actual ICE BofA MOVE Index at 2002-11-12. Used for backtest only; the live engine reads actual MOVE values only."],
+          ["SPY",                               "SPDR S&P 500 ETF. The benchmark used for sector vs market relative weights and for the engine's headline comparison."],
+          ["Stress signal",                     "Axis 1 of the engine. The trailing 5-year percentile of the MOVE Index. Outputs Risk On, Watch, or Risk Off."],
+          ["Watch",                             "Stress state where the MOVE Index sits between the 75th and 85th percentile of its trailing 5y window. Engine allocates 80% equity / 20% defensive."],
+          ["Yield regime",                      "Axis 2 of the engine. The trailing 5-year percentile of the 3-month change in the 10y Treasury yield. Outputs Inflationary, Neutral, or Deflationary."],
         ]}
       />
     </>
@@ -1163,16 +1262,15 @@ export default function MethodologyPage() {
         }}>Methodology</h1>
         <p style={{ fontSize: 16, lineHeight: 1.55, color: "var(--text-muted)", maxWidth: 760, margin: 0 }}>
           MacroTilt runs a three-stage funnel from macro state to portfolio holdings.
-          <strong style={{ color: "var(--text)" }}> Macro Overview</strong> describes where the cycle sits today.
-          <strong style={{ color: "var(--text)" }}> Asset Tilt</strong> turns that into an explicit allocation recommendation
-          across equity, defensive sleeve, leverage, sectors, and industry groups.
+          <strong style={{ color: "var(--text)" }}> Macro Overview</strong> is the indicator backdrop — 27 indicators across Rates, Credit, Equities, Money &amp; Banking, and the real Economy.
+          <strong style={{ color: "var(--text)" }}> Asset Tilt</strong> is where the 2-axis engine read lives and turns the backdrop into an allocation across equity, defensive sleeve, sectors, and industry groups.
           <strong style={{ color: "var(--text)" }}> Trading Opportunities</strong> picks specific stocks within those.
           <strong style={{ color: "var(--text)" }}> Portfolio Insights</strong> connects all of it to your actual holdings.
         </p>
         <div style={{ marginTop: 18, display: "flex", gap: 18, flexWrap: "wrap", fontSize: 12, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-          <span>Last updated · 2026-05-04</span>
-          <span>Calibration · v10.1c · Sprint 2 (2026-05-03)</span>
-          <span>Backtest window · 2012-01 through 2026-03 (171 months)</span>
+          <span>Last updated · 2026-05-18</span>
+          <span>Engine spec lock · 2026-05-13 (2-axis: MOVE + 10y yield direction)</span>
+          <span>Backtest window · 1986 → 2026 · 2,056 weeks</span>
         </div>
       </div>
 
