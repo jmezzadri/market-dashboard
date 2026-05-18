@@ -383,9 +383,6 @@ function heatColor(pct, dir) {
 function heatLabel(pct, dir) {
   // Direction-aware label tied 1:1 to heat color:
   //   magenta = Stressed, amber = Elevated, teal = Calm.
-  // For direction-agnostic indicators (no built-in good/bad sense),
-  // we instead describe WHERE in the 5y range the reading sits, so the
-  // user still gets context without an editorial good/bad call.
   if (pct == null) return null;
   if (dir === 'hw') {
     if (pct >= 0.75) return 'Stressed';
@@ -397,7 +394,6 @@ function heatLabel(pct, dir) {
     if (pct <= 0.50) return 'Elevated';
     return 'Calm';
   }
-  // neutral
   if (pct >= 0.75) return 'High vs. 5y range';
   if (pct <= 0.25) return 'Low vs. 5y range';
   return 'Mid-range (5y)';
@@ -746,7 +742,7 @@ export default function MacroOverviewPage() {
       <div style={{ display: 'flex', justifyContent: 'center', gap: 28, padding: '20px 32px 4px', flexWrap: 'wrap' }}>
         <LegendDot color={VIZ_COLORS.cool}    label="Calm"      sub="Reading is not signalling stress" />
         <LegendDot color={VIZ_COLORS.watch}   label="Elevated"  sub="Mid-range — worth watching" />
-        <LegendDot color={VIZ_COLORS.hot}     label="Stressed"  sub="Reading is signalling stress" />
+        <LegendDot color={VIZ_COLORS.hot}     label="Stressed"  sub="Reading is at an extreme of its 5y range" />
         <LegendDot color={VIZ_COLORS.neutral} label="Range-only" sub="Direction-agnostic — shown vs. 5y range" />
       </div>
 
