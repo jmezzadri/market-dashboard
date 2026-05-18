@@ -4989,6 +4989,44 @@ function HomeRegimeTile({ navTo, cardStyle, cardHeadSlimStyle, cardTagStyle, til
 }
 
 
+// HomeAssetTiltEngineRead — engine-read tile body inside the Home page's
+// Asset Tilt card (tile #02). Extracted from an inline IIFE on 2026-05-18
+// because the IIFE was calling React.useState and React.useEffect inside
+// App.jsx's render tree, making those hooks belong to App itself. When the
+// user navigated away from Home (tab !== "home"), those hooks were skipped
+// → App.jsx rendered fewer hooks than expected → React error #300, every
+// non-Home route blanked. Moving the hooks into a real component scopes
+// them to the component, so mount/unmount on navigation is fine.
+function HomeAssetTiltEngineRead() {
+  const [eng, setEng] = React.useState(null);
+  React.useEffect(() => {
+    fetch('/macrotilt_engine.json', { cache: 'no-cache' })
+      .then(r => r.ok ? r.json() : null).then(setEng).catch(() => {});
+  }, []);
+  const VIZ = { hot: '#D946C4', cool: '#10B981', watch: '#F59E0B' };
+  const stressState = eng?.stress?.state || null;
+  const yieldRegime = eng?.yield_regime?.state || null;
+  const eqPct = eng?.allocation?.equity_pct != null ? Math.round(eng.allocation.equity_pct) : null;
+  const stressColor = stressState === 'Risk Off' ? VIZ.hot : stressState === 'Watch' ? VIZ.watch : stressState === 'Risk On' ? VIZ.cool : 'var(--text-muted)';
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '0.5px solid var(--border-faint)', marginBottom: 14 }}>
+      <div>
+        <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Stress</div>
+        <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: stressColor, marginTop: 4, lineHeight: 1 }}>{stressState || '—'}</div>
+      </div>
+      <div>
+        <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Yield</div>
+        <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: 'var(--text)', marginTop: 4, lineHeight: 1 }}>{yieldRegime || '—'}</div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Equity</div>
+        <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: 'var(--text)', marginTop: 4, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{eqPct != null ? eqPct + '%' : '—'}</div>
+      </div>
+    </div>
+  );
+}
+
+
 export default function App(){
 // Kick off /indicator_history.json fetch on first mount and re-render the
 // whole tree once it lands. Mutation of SD/AS_OF/IND[id][6..8] + composite
@@ -6070,36 +6108,7 @@ return(
           <FreshnessDot indicatorId="v10_allocation" asOfIso={v10AllocSnap?.as_of||null} style={{marginLeft:"auto"}}/>
         </div>
         <p style={tileExplainStyle}>An <span style={tileNameStyle}>Asset Tilt Engine</span> for optimal portfolio allocation — back-tested rigorously.</p>
-        {(() => {
-          // 2-axis engine read — added 2026-05-18 home cutover.
-          // Inline fetch keeps the patch surface small; no new top-level state.
-          const [eng, setEng] = React.useState(null);
-          React.useEffect(() => {
-            fetch('/macrotilt_engine.json', { cache: 'no-cache' })
-              .then(r => r.ok ? r.json() : null).then(setEng).catch(() => {});
-          }, []);
-          const VIZ = { hot: '#D946C4', cool: '#10B981', watch: '#F59E0B' };
-          const stressState = eng?.stress?.state || null;
-          const yieldRegime = eng?.yield_regime?.state || null;
-          const eqPct = eng?.allocation?.equity_pct != null ? Math.round(eng.allocation.equity_pct) : null;
-          const stressColor = stressState === 'Risk Off' ? VIZ.hot : stressState === 'Watch' ? VIZ.watch : stressState === 'Risk On' ? VIZ.cool : 'var(--text-muted)';
-          return (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, padding: '12px 14px', background: 'var(--surface-2)', borderRadius: 8, border: '0.5px solid var(--border-faint)', marginBottom: 14 }}>
-              <div>
-                <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Stress</div>
-                <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: stressColor, marginTop: 4, lineHeight: 1 }}>{stressState || '—'}</div>
-              </div>
-              <div>
-                <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Yield</div>
-                <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: 'var(--text)', marginTop: 4, lineHeight: 1 }}>{yieldRegime || '—'}</div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-dim)', fontWeight: 600 }}>Equity</div>
-                <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, color: 'var(--text)', marginTop: 4, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{eqPct != null ? eqPct + '%' : '—'}</div>
-              </div>
-            </div>
-          );
-        })()}
+        <HomeAssetTiltEngineRead />
         {(() => {
           if (!v10AllocSnap) {
             return <div style={{fontFamily:"var(--font-mono)", fontSize:11, color:"var(--text-dim)", padding:"12px 0"}}>Loading allocation…</div>;
