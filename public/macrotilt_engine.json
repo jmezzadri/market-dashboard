@@ -6,16 +6,16 @@
   "next_refresh": "2026-05-22",
   "stress": {
     "state": "Risk On",
-    "move_value": 69.6,
-    "move_percentile_5y": 0.161,
+    "move_value": 79.9,
+    "move_percentile_5y": 0.261,
     "watch_threshold_value": 115.8,
     "risk_off_threshold_value": 123.7,
     "trailing_window_weeks": 261
   },
   "yield_regime": {
     "state": "Inflationary",
-    "delta_y_3m_bp": 43.0,
-    "delta_y_3m_percentile_5y": 0.766,
+    "delta_y_3m_bp": 55.0,
+    "delta_y_3m_percentile_5y": 0.835,
     "inflationary_threshold_bp": 32.0,
     "deflationary_threshold_bp": -11.0,
     "trailing_window_weeks": 261
