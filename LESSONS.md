@@ -22,6 +22,127 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-18 — IIFE-with-hooks inside JSX is forbidden; lift into a real component
+
+**What happened:** An inline `(() => { ... React.useState(...) ... React.useEffect(...) ... })()` block inside the Home render path (introduced by PR #705) caused React error #300 ("rendered fewer hooks than expected") on every non-Home route. The IIFE only executed when `tab === "home"`, so the parent component's hook count varied across renders — React tore down the whole page tree. The methodology revert (PR #709) had nothing to do with the actual cause; the real fix was PR #710, which extracted the IIFE into a proper `HomeAssetTiltEngineRead` function component.
+
+**What you should do instead:** Never call a React hook (`useState`, `useEffect`, `useMemo`, `useCallback`, `useRef`, `useReducer`, `useLayoutEffect`, `useContext`, etc., or any `React.use*` equivalent) inside an inline IIFE in JSX. If a render block needs local state or effects, declare it as a real function component at module or top-of-component scope and call it like any other component. Hooks must be called the same number of times on every render of their parent — IIFEs that are gated by props, route, or any condition break that invariant.
+
+Before merging any PR that touches a render-heavy `.jsx`/`.tsx` file, grep the diff for the pattern `(() =>` within ~20 lines of `useState|useEffect|useMemo|useCallback|useRef`. A one-line check that works against the whole `src/` tree:
+
+  python3 - <<'PY'
+  import os, re
+  HOOK = re.compile(r'\b(useState|useEffect|useMemo|useCallback|useRef|useReducer|useLayoutEffect|useContext)\b|\bReact\.use[A-Z]')
+  START = re.compile(r'\(\s*\(\s*\)\s*=>\s*\{')
+  for d,_,fs in os.walk('src'):
+      for f in fs:
+          if not f.endswith(('.jsx','.tsx','.js','.ts')): continue
+          src=open(os.path.join(d,f)).read()
+          for m in START.finditer(src):
+              # walk braces forward, check body for hooks
+              ...
+  PY
+
+**Applies to:** Lead Developer + UX Designer — every PR that adds or modifies JSX. PR #710 is the canonical fix shape; copy that pattern when extracting.
+
+---
+
+## 2026-05-18 — A revert is not a fix; trust the symptom over the timing
+
+**What happened:** After PR #708 (methodology page rewrite) shipped and the production site went blank on every non-readme route, I reverted with PR #709 and reported "site recovered". Joe loaded the site and was still seeing the blanking. The actual bug was the IIFE-with-hooks pattern in PR #705 (the previous day's Home tile work) — the methodology PR was unrelated. Reverting PR #708 had no effect on the symptom because PR #708 was not the cause.
+
+**What you should do instead:** When the user reports the problem persists after a revert, stop confirming "recovery". Treat "still broken after revert" as evidence the revert was irrelevant and resume root-cause analysis from scratch. Specifically:
+
+1. Open the browser console on the failing route. Read the actual JavaScript error before guessing.
+2. If you can't see the console (e.g., authenticated views), ask Joe to read it back verbatim — never assume.
+3. Grep the deployed bundle (or the diff) for the fingerprint of the failure (e.g., "Minified React error #300", the line number, the component name in the stack).
+4. Walk backwards in `git log` for changes that match the symptom shape, not the most recent PR.
+
+A revert is a valid hypothesis test, not a fix. Confirm the fix in the browser, not in the merge log.
+
+**Applies to:** Lead Developer.
+
+---
+
+## 2026-05-18 — Read the live workspace spec docs BEFORE editing page-level files
+
+**What happened:** Three sessions today were spent rewriting the Methodology page (PRs #706, #707, #708) without first reading `HANDOFF_ENGINE_ROLLOUT_2026-05-17.md` and `FINAL_LOCKED_ENGINE_2026-05-13.md` in `~/Documents/market-dashboard/`. Each rewrite missed structural facts that were already documented in those files — the 5-domain Macro Overview layout, the 2-axis engine, the v9 reality. Two of the three rewrites were reverted (#706 and #708); the third (#707) needed a second rewrite (#711) on top of the correct source.
+
+**What you should do instead:** Before touching any page-level file — `src/App.jsx`, anything under `src/pages/`, the Methodology page, the Macro Overview, the Asset Tilt page — read every workspace doc whose filename names that surface. The mandatory glob:
+
+  ~/Documents/market-dashboard/HANDOFF_*.md
+  ~/Documents/market-dashboard/FINAL_LOCKED_*.md
+  ~/Documents/market-dashboard/*_SPEC*.md
+  ~/Documents/market-dashboard/*_PUNCHLIST*.md
+
+These are the source of truth for what the page should currently look like. The project's Pre-Flight Checklist already says "Check Knowledge Base files for brand guidelines, research papers, and reference material before asking me for details" — this is enforcing that step for page-level work specifically. Skipping it cost three sessions today.
+
+**Applies to:** All four specialists. Lead Developer especially when rewriting a page.
+
+---
+
+## 2026-05-13 — Splice continuity: percentile rules are NOT scale-invariant across distribution shifts
+
+**What happened:** When splicing a derived proxy series (1962-2002) onto an actual indicator series (2002-2026) inside a trailing 5-year percentile firing rule, the post-splice firing rate registered 100% Risk Off for 18 consecutive months. I'd initially claimed the percentile-based firing rule was scale-invariant — true within a single series, false when the trailing window straddles two distinct distributions. The proxy and actual MOVE had nearly identical means in the 2006-2026 overlap (1.011x ratio) but different local distributions in 1997-2007 — and the rolling window crossing the splice point experienced a step-function regime change in the data itself.
+
+**What you should do instead:** Before splicing any two indicator series, compute their local distribution stats in adjacent 5-year windows on either side of the splice. If the means or standard deviations differ by more than ~5%, apply a Z-score distribution mapping: `X_scaled = μ_after + (X_before - μ_before) / σ_before × σ_after`. After splicing, run a continuity validation: count fires in 6-month windows on either side of the splice. A smooth transition is expected; a step-function (e.g., 50% → 100%) is a bug. Document the anchor parameters (μ_before, σ_before, μ_after, σ_after) in the methodology so they're reproducible.
+
+**Applies to:** All data-splicing work for indicator series feeding any percentile-based or rolling-window rule.
+
+---
+
+## 2026-05-13 — Don't confuse "available at source" with "in the on-disk file"
+
+**What happened:** The deployed `indicator_history.json` had MOVE data starting in 2006, but the actual MOVE Index has data back to its inception (2002-11-12) on Yahoo (`^MOVE`). I built the splice methodology assuming the deployed data was the canonical source, which left a 3-year hole (Nov 2002 – Jan 2006) where the spliced series went stale at a single value and corrupted the rolling window for 18 months post-splice. The fix required pulling the missing 2002-2006 MOVE data from Yahoo and splicing it into the series.
+
+**What you should do instead:** When using any indicator series for analysis, check three things separately:
+
+1. The on-disk JSON's first observation date.
+2. The original source's inception date (FRED series, Yahoo ticker, vendor documentation).
+3. The published methodology's window (e.g., the Risk_Off methodology says MOVE goes back to 2002 — that's the authoritative window).
+
+If 1 and 2 disagree, pull the missing window from source. Don't just splice on top of an incomplete on-disk window.
+
+**Applies to:** All indicator analyses that depend on a specific window.
+
+---
+
+## 2026-05-13 — Sub-composites double-count; build panels from primitives
+
+**What happened:** The retired Risk & Liquidity composite weighted four indicators (ANFCI, VIX, STLFSI4, CMDI) equally. But ANFCI is itself a weighted composite of ~105 financial indicators that INCLUDE VIX, MOVE, HY OAS, CPFF, and others. STLFSI4 is a similar composite of 18 indicators that also include VIX. CMDI is built from corporate bond stress measures already in ANFCI. The correlation matrix in the 2006-2026 overlap showed ANFCI-CMDI at 0.99, ANFCI-STLFSI at 0.90 — these are essentially the same indicator with different labels. The composite's apparent diversification was illusory.
+
+**What you should do instead:** When building any indicator panel, audit whether the panel members are PRIMITIVES (raw market data: a price, a yield, a spread) or COMPOSITES (weighted averages of other indicators). If composites, check what's inside them. Build panels from primitives where possible. If a composite is included, exclude its sub-components from separate weighting. Run a Pearson and Spearman correlation matrix on the panel and flag any pair > 0.85 — that's a double-counting candidate.
+
+**Applies to:** All composite/panel design work.
+
+---
+
+## 2026-05-13 — Test indicator subsets empirically, not by assumption
+
+**What happened:** I shipped a 5-indicator panel (VIX, MOVE, CPFF, HY OAS, 10y-2y) as the "Signal Intelligence" framework based on its published methodology, without testing the predictive value of each indicator or each subset. When I finally ran the AUC analysis at multiple horizons, the data showed: (a) the yield curve has AUC < 0.50 for forecasting near-term drawdowns at any horizon up to 12 months — it's not a near-term predictor; (b) CPFF has weak AUC across the board; (c) MOVE alone produces a better Sharpe ratio (0.61) than the full 5-indicator panel (0.56). The full panel was being dragged down by the weakest indicators.
+
+**What you should do instead:** Before adopting any indicator panel for production, run AUC analysis at multiple forward horizons (1w, 1m, 3m, 6m, 12m) for each indicator individually and for every subset. Test against forward drawdown probabilities (10%, 15%, 20%). Flag any indicator with AUC < 0.55 at the relevant horizon for the use case. The "more indicators is better" intuition is wrong — dilution is real, and a single strong predictor beats a panel padded with weak ones.
+
+**Applies to:** Senior Quant work on any indicator-driven regime engine.
+
+---
+
+## 2026-05-13 — Inflationary vs deflationary stress requires different defensive sleeves
+
+**What happened:** The original defensive sleeve (50% cash + 25% TLT + 25% GLD) was implicitly assuming a deflationary crash regime — long Treasuries rally as a flight-to-safety asset. This assumption broke in 2022, where rising yields drove both equities AND TLT down ~20% simultaneously. The framework's "Risk Off" signal correctly fired, but the defensive sleeve compounded the loss instead of hedging it.
+
+**What you should do instead:** When the regime label is Risk Off (or any de-risked state), check the yield direction (trailing 3-month change in 10Y Treasury yield, percentile-ranked vs trailing 5y) to determine the type of stress. Switch defensive sleeves accordingly:
+
+- Inflationary (yields rising fast, ≥70th pctile): cash + gold + SHY (short Treasuries) — avoid duration.
+- Deflationary (yields falling fast, ≤30th pctile): cash + gold + TLT (long Treasuries) — lean into flight-to-safety.
+- Neutral: balanced mix.
+
+This two-axis architecture (stress on Axis 1, regime direction on Axis 2) is the structural fix for the discount-rate-shock blind spot in traditional risk-parity / trend strategies.
+
+**Applies to:** All defensive overlay design work, especially anything that defaults to TLT as the equity hedge.
+
+---
+
 ## 2026-05-13 — Every new public table in Supabase migrations must include explicit GRANT
 
 **What happened:** On 2026-05-13 Supabase notified us they are
