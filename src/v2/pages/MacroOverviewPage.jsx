@@ -251,7 +251,7 @@ const INDICATORS = {
   yield_curve:   { panel: 'rates', label: 'Yield curve (10y − 2y)',        short: '10y−2y',     fmt: v => (v>=0?'+':'') + Math.round(v) + ' bp',           dir: 'lw',       methodology: 'A positive slope is normal; inversion has historically led recessions by 10–22 months.' },
   real_rates:    { panel: 'rates', label: '10y real yield',                short: '10y real',   fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'hw',       methodology: 'Nominal 10y Treasury minus 10y breakeven inflation. Higher real rates tighten financial conditions.' },
   move:          { panel: 'rates', label: 'MOVE · bond volatility',        short: 'MOVE',       fmt: v => v.toFixed(0),                                    dir: 'hw',       methodology: 'Implied volatility on Treasury options across the curve. Captures rate-policy uncertainty.' },
-  term_premium:  { panel: 'rates', label: 'Term premium',                  short: 'Term prem',  fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'neutral',  methodology: 'Extra yield investors demand for holding long-dated paper over rolling short paper.' },
+  term_premium:  { panel: 'rates', label: 'Term premium',                  short: 'Term prem',  fmt: v => (v>=0?'+':'') + Math.round(v) + ' bp',           dir: 'neutral',  methodology: 'Extra yield investors demand for holding long-dated paper over rolling short paper. Quoted in basis points.' },
   breakeven_10y: { panel: 'rates', label: '10y breakeven inflation',       short: '10y BE',     fmt: v => v.toFixed(2) + '%',                              dir: 'neutral',  methodology: 'Market-implied 10y inflation: nominal 10y yield minus 10y TIPS yield.' },
 
   // CREDIT
@@ -262,7 +262,7 @@ const INDICATORS = {
   sloos_cre:     { panel: 'credit', label: 'SLOOS · CRE tightening',       short: 'SLOOS CRE',  fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'hw',       methodology: 'Net % of banks tightening commercial real estate loan standards. Quarterly Fed survey.' },
 
   // EQUITIES
-  spx_200dma:    { panel: 'equities', label: 'SPX vs 200-day average',     short: 'SPX vs 200d',fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'lw',       methodology: 'Distance of the S&P 500 from its 200-day moving average. Below = sustained downtrend.' },
+  buffett:       { panel: 'equities', label: 'Buffett indicator',          short: 'Mkt/GDP',    fmt: v => v.toFixed(0) + '%',                              dir: 'hw',       methodology: 'US equity market cap as a percentage of GDP. High readings flag rich valuations relative to economic activity.' },
   cape:          { panel: 'equities', label: 'CAPE · Shiller P/E',         short: 'CAPE',       fmt: v => v.toFixed(1) + 'x',                              dir: 'hw',       methodology: 'Price divided by 10-year average inflation-adjusted earnings. Multi-cycle valuation measure.' },
   vix:           { panel: 'equities', label: 'VIX · equity volatility',    short: 'VIX',        fmt: v => v.toFixed(1),                                    dir: 'hw',       methodology: '30-day implied move on the S&P 500, derived from listed options pricing. Reset daily.' },
   skew:          { panel: 'equities', label: 'SKEW · tail risk',           short: 'SKEW',       fmt: v => v.toFixed(0),                                    dir: 'hw',       methodology: 'Premium of out-of-the-money S&P puts. Captures crash-risk demand.' },
@@ -274,7 +274,7 @@ const INDICATORS = {
   stlfsi:        { panel: 'money', label: 'St. Louis FCI',                 short: 'STLFSI',     fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'hw',       methodology: 'St. Louis Fed Financial Stress Index. Weekly. Composite of 18 weekly financial variables.' },
   bkx_spx_v11:   { panel: 'money', label: 'KBW Bank / SPX',                short: 'BKX/SPX',    fmt: v => v.toFixed(4),                                    dir: 'lw',       methodology: 'KBW Bank Index divided by S&P 500. Banks underperform when balance sheets are under pressure.' },
   bank_credit:   { panel: 'money', label: 'Bank credit growth (YoY)',      short: 'Bank credit',fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'lw',       methodology: 'Year-over-year growth in total loans and leases at all US commercial banks.' },
-  fed_bs:        { panel: 'money', label: 'Fed balance sheet',             short: 'Fed BS',     fmt: v => '$' + (v/1e3).toFixed(2) + 'T',                  dir: 'neutral',  methodology: 'Total assets on the Federal Reserve balance sheet, in millions of dollars.' },
+  fed_bs:        { panel: 'money', label: 'Fed balance sheet (YoY)',       short: 'Fed BS YoY', fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'neutral',  methodology: 'Year-over-year change in the size of the Federal Reserve balance sheet. Positive = expanding; negative = quantitative tightening.' },
 
   // ECONOMY
   ic4wsa:        { panel: 'economy', label: 'Initial jobless claims (4w)', short: 'IC4WSA',     fmt: v => Math.round(v) + 'K',                             dir: 'hw',       methodology: '4-week moving average of initial unemployment claims, seasonally adjusted.' },
@@ -352,6 +352,18 @@ const VIZ_COLORS = {
   faint:   'rgba(100,116,139,0.18)',  // faint slate for chart fills
 };
 
+function LegendDot({ color, label, sub }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <span style={{ width: 12, height: 12, borderRadius: '50%', background: color, flexShrink: 0, opacity: 0.9 }} />
+      <div style={{ display: 'flex', flexDirection: 'column' }}>
+        <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text)', letterSpacing: '0.02em' }}>{label}</span>
+        <span style={{ fontSize: 10.5, color: 'var(--text-muted)' }}>{sub}</span>
+      </div>
+    </div>
+  );
+}
+
 // Decide a tile's heat color from its 5y percentile + direction-of-stress.
 function heatColor(pct, dir) {
   if (pct == null) return VIZ_COLORS.neutral;
@@ -369,16 +381,20 @@ function heatColor(pct, dir) {
 }
 
 function heatLabel(pct, dir) {
-  if (pct == null) return null;
+  // Single taxonomy tied directly to the heat color, regardless of indicator
+  // direction sense. Color and label always agree: magenta = Stressed,
+  // amber = Elevated, teal-cyan = Calm. For direction-neutral indicators,
+  // no label.
+  if (pct == null || dir === 'neutral') return null;
   if (dir === 'hw') {
     if (pct >= 0.75) return 'Stressed';
     if (pct >= 0.50) return 'Elevated';
     return 'Calm';
   }
   if (dir === 'lw') {
-    if (pct <= 0.25) return 'Weak';
-    if (pct <= 0.50) return 'Soft';
-    return 'Healthy';
+    if (pct <= 0.25) return 'Stressed';
+    if (pct <= 0.50) return 'Elevated';
+    return 'Calm';
   }
   return null;
 }
@@ -671,6 +687,13 @@ export default function MacroOverviewPage() {
           </aside>
         }
       />
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: 28, padding: '20px 32px 4px', flexWrap: 'wrap' }}>
+        <LegendDot color={VIZ_COLORS.cool}    label="Calm"      sub="Reading is not signalling stress" />
+        <LegendDot color={VIZ_COLORS.watch}   label="Elevated"  sub="Mid-range — worth watching" />
+        <LegendDot color={VIZ_COLORS.hot}     label="Stressed"  sub="Reading is signalling stress" />
+        <LegendDot color={VIZ_COLORS.neutral} label="Neutral"   sub="Indicator has no good/bad sense" />
+      </div>
 
       <div style={{ padding: '8px 32px 0' }}>
         {PANELS.map(panel => (
