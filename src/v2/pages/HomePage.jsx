@@ -26,19 +26,116 @@ function scoreBand(score) {
   return { id: 'r-off', cls: 'r-off', label: 'Risk Off' };
 }
 
+// ─── 2-axis engine integration (cutover from old regime/cycle framework) ────
+//     Stress + yield read comes from macrotilt_engine.json.
+//     Macro Overview tile mini-preview mirrors the new 5-panel Macro Overview
+//     page — domain heat indicators computed off indicator_history.json.
+
+const VIZ_COLORS = {
+  hot:     '#D946C4',
+  cool:    '#10B981',
+  watch:   '#F59E0B',
+  neutral: '#64748B',
+};
+
+// Direction-of-stress sense for each indicator on the new Macro Overview page.
+// Mirror of INDICATORS[*].dir in src/v2/pages/MacroOverviewPage.jsx.
+const INDICATOR_DIR = {
+  // RATES
+  yield_curve: 'lw', real_rates: 'hw', move: 'hw', term_premium: 'hw', breakeven_10y: 'neutral',
+  // CREDIT
+  hy_ig: 'hw', ig_oas: 'hw', hy_ig_ratio: 'hw', sloos_ci: 'hw', sloos_cre: 'hw',
+  // EQUITIES
+  buffett: 'hw', cape: 'hw', vix: 'hw', skew: 'hw', eq_cr_corr: 'neutral',
+  // MONEY & BANKING
+  cpff: 'hw', anfci: 'hw', stlfsi: 'hw', bkx_spx_v11: 'lw', bank_credit: 'lw', fed_bs: 'lw',
+  // ECONOMY
+  ic4wsa: 'hw', ism: 'lw', jolts_quits: 'lw', copper_gold: 'lw', usd: 'neutral', cfnai: 'lw',
+};
+
+const PANEL_INDICATORS = {
+  rates:    ['yield_curve','real_rates','move','term_premium','breakeven_10y'],
+  credit:   ['hy_ig','ig_oas','hy_ig_ratio','sloos_ci','sloos_cre'],
+  equities: ['buffett','cape','vix','skew','eq_cr_corr'],
+  money:    ['cpff','anfci','stlfsi','bkx_spx_v11','bank_credit','fed_bs'],
+  economy:  ['ic4wsa','ism','jolts_quits','copper_gold','usd','cfnai'],
+};
+
+const PANEL_LIST = [
+  { id: 'rates',    label: 'Rates' },
+  { id: 'credit',   label: 'Credit' },
+  { id: 'equities', label: 'Equities' },
+  { id: 'money',    label: 'Money' },
+  { id: 'economy',  label: 'Economy' },
+];
+
+function trailingPctile5y(points, value) {
+  if (!points || (value == null && value !== 0)) return null;
+  const cutoff = new Date(); cutoff.setFullYear(cutoff.getFullYear() - 5);
+  const cutoffStr = cutoff.toISOString().slice(0,10);
+  const recent = points.filter(p => p[0] >= cutoffStr).map(p => p[1]).filter(v => v != null);
+  if (!recent.length) return null;
+  const sorted = [...recent].sort((a,b) => a-b);
+  let lo = 0, hi = sorted.length;
+  while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < value) lo = m+1; else hi = m; }
+  return lo / sorted.length;
+}
+
+function heatBucket(pct, dir) {
+  if (pct == null) return 'unknown';
+  if (dir === 'hw') return pct >= 0.75 ? 'stressed' : pct >= 0.50 ? 'elevated' : 'calm';
+  if (dir === 'lw') return pct <= 0.25 ? 'stressed' : pct <= 0.50 ? 'elevated' : 'calm';
+  // neutral direction — by percentile band, not a stress call
+  if (pct >= 0.75) return 'high';
+  if (pct <= 0.25) return 'low';
+  return 'mid';
+}
+
+function heatColorFor(bucket) {
+  if (bucket === 'stressed') return VIZ_COLORS.hot;
+  if (bucket === 'elevated') return VIZ_COLORS.watch;
+  if (bucket === 'calm')     return VIZ_COLORS.cool;
+  return VIZ_COLORS.neutral;
+}
+
+// Domain summary: counts of stressed/elevated/calm/neutral indicators in a domain.
+function summarizeDomain(panelId, indHist) {
+  const ids = PANEL_INDICATORS[panelId] || [];
+  const counts = { stressed: 0, elevated: 0, calm: 0, neutral: 0 };
+  for (const id of ids) {
+    const series = indHist && indHist[id];
+    if (!series || !series.points || !series.points.length) continue;
+    const cur = series.points[series.points.length - 1][1];
+    const pct = trailingPctile5y(series.points, cur);
+    const dir = INDICATOR_DIR[id];
+    const b = heatBucket(pct, dir);
+    if (b === 'stressed') counts.stressed++;
+    else if (b === 'elevated') counts.elevated++;
+    else if (b === 'calm') counts.calm++;
+    else counts.neutral++;
+  }
+  // Domain heat = the worst bucket present (stressed > elevated > calm > neutral)
+  const worst = counts.stressed > 0 ? 'stressed' : counts.elevated > 0 ? 'elevated' : counts.calm > 0 ? 'calm' : 'neutral';
+  return { ...counts, worst, total: ids.length };
+}
+
 function useHomeData() {
   const [snap, setSnap] = useState(null);
   const [v10, setV10] = useState(null);
   const [scan, setScan] = useState(null);
+  const [engine, setEngine] = useState(null);
+  const [indHist, setIndHist] = useState(null);
   const [err, setErr] = useState(null);
   useEffect(() => {
     Promise.all([
       fetch('/cycle_board_snapshot.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
       fetch('/v10_allocation.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
       fetch('/latest_scan_data.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
-    ]).then(([s, v, sc]) => { setSnap(s); setV10(v); setScan(sc); }).catch((e) => setErr(e?.message));
+      fetch('/macrotilt_engine.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
+      fetch('/indicator_history.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
+    ]).then(([s, v, sc, en, ih]) => { setSnap(s); setV10(v); setScan(sc); setEngine(en); setIndHist(ih); }).catch((e) => setErr(e?.message));
   }, []);
-  return { snap, v10, scan, err };
+  return { snap, v10, scan, engine, indHist, err };
 }
 
 function navTo(hash) {
@@ -48,82 +145,9 @@ function navTo(hash) {
 }
 
 export default function HomePage() {
-  // v2 spec PR 3.1 — Home macro tile shows 3 v2 headlines @ 6m alongside the
-  // legacy composite + 6-mechanism mini bar (legacy stays during transition).
-  const [cycleV2, setCycleV2] = useState(null);
-  const [indHist, setIndHist] = useState(null);
-  useEffect(() => {
-    fetch("/cycle_v2.json", { cache: "no-cache" })
-      .then((r) => r.ok ? r.json() : Promise.reject(new Error("cycle_v2.json HTTP " + r.status)))
-      .then(setCycleV2)
-      .catch((err) => { console.warn("[Home] cycle_v2.json fetch failed", err); });
-    fetch("/indicator_history.json", { cache: "no-cache" })
-      .then((r) => r.ok ? r.json() : null)
-      .then(setIndHist)
-      .catch((err) => { console.warn("[Home] indicator_history.json fetch failed", err); });
-  }, []);
-
-  // ─── Signal Intelligence regime computation (mirrors MacroOverviewPage rule book) ───
-  const si = useMemo(() => {
-    if (!indHist || !cycleV2) return null;
-    const TRIGGER_PCTILE = 85, LATE_CYCLE = 80;
-    const trailing5ySorted = (points) => {
-      if (!points || !points.length) return [];
-      const last = new Date(points[points.length - 1][0]);
-      const cutoff = new Date(last); cutoff.setFullYear(last.getFullYear() - 5);
-      return points.filter(([d]) => new Date(d) >= cutoff).map(([, v]) => v).filter(v => v != null && !isNaN(v)).sort((a, b) => a - b);
-    };
-    const valAtPctile = (sorted, pct) => sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor((pct / 100) * sorted.length))] : null;
-    const pctileOf = (v, sorted) => {
-      if (!sorted.length || v == null) return null;
-      let lo = 0, hi = sorted.length;
-      while (lo < hi) { const m = (lo + hi) >>> 1; if (sorted[m] < v) lo = m + 1; else hi = m; }
-      return Math.round((lo / sorted.length) * 100);
-    };
-    const stageOfRun = (points, mark) => {
-      if (!points || !points.length || mark == null) return 0;
-      let consec = 0;
-      // last 24 weeks daily — approximate consecutive-week-above by collapsing to weekly Friday closes
-      const byWeek = {};
-      for (const [ds, val] of points) {
-        if (val == null || isNaN(val)) continue;
-        const d = new Date(ds), w = new Date(d); w.setDate(d.getDate() - d.getDay());
-        byWeek[w.toISOString().slice(0, 10)] = val;
-      }
-      const weeks = Object.keys(byWeek).sort().slice(-24);
-      for (let i = weeks.length - 1; i >= 0; i--) {
-        if (byWeek[weeks[i]] >= mark) consec++; else break;
-      }
-      if (consec === 0) return 0;
-      if (consec === 1) return 1;
-      if (consec <= 3) return 2;
-      return 3;
-    };
-    const buildInd = (key) => {
-      const r = indHist[key];
-      if (!r || !r.points || !r.points.length) return null;
-      const sorted = trailing5ySorted(r.points);
-      const mark = valAtPctile(sorted, TRIGGER_PCTILE);
-      const cur = r.points[r.points.length - 1];
-      return { pctile: pctileOf(cur[1], sorted), currentValue: cur[1], mark, stage: stageOfRun(r.points, mark) };
-    };
-    const vix = buildInd('vix'), mv = buildInd('move'), cp = buildInd('cpff');
-    const cycle = cycleV2.headlines?.cycle_value?.scores_by_horizon?.['6m'];
-    const stages = [vix?.stage || 0, mv?.stage || 0, cp?.stage || 0];
-    const sustained = stages.filter(s => s >= 2).length;
-    const crossed = stages.filter(s => s === 1).length;
-    const latecycle = cycle != null && cycle >= LATE_CYCLE;
-    const label = (sustained >= 1 && latecycle) ? 'Risk Off' : sustained >= 1 ? 'Cautionary' : crossed >= 1 ? 'Neutral' : 'Risk On';
-    return { vix, move: mv, cpff: cp, cycle, regime: { label } };
-  }, [indHist, cycleV2]);
-
-  const regimeShortDesc = {
-    'Risk On':    'No volatility triggers. Stay fully invested.',
-    'Neutral':    'One trigger crossed — possible head fake. Hold.',
-    'Cautionary': 'One or more triggers sustained. Trim risk.',
-    'Risk Off':   'Sustained at late-cycle. Defensive stance.',
-  };
-  const { snap, v10, scan, err } = useHomeData();
+  // ─── 2-axis engine cutover (PR Home v2): engine + indicator_history power
+  //     the new Macro Overview mini preview and the Asset Tilt headline.
+  const { snap, v10, scan, engine, indHist, err } = useHomeData();
   const { user, loading: authLoading } = useSession();
   const greetingName = user
     ? (user.user_metadata?.first_name
@@ -132,26 +156,43 @@ export default function HomePage() {
        || 'there')
     : null;
 
-  // Composite avg from snapshot mechanisms
-  const mechs = snap?.mechanisms || [];
-  const compAvg = mechs.length
-    ? Math.round(mechs.reduce((a, m) => a + (m.score || 0), 0) / mechs.length)
-    : null;
-  const compBand = scoreBand(compAvg);
+  // 2-axis engine read (replaces cycle_board composite + old stance text)
+  const stressState   = engine?.stress?.state || null;             // 'Risk On' | 'Watch' | 'Risk Off'
+  const yieldRegime   = engine?.yield_regime?.state || null;       // 'Inflationary' | 'Neutral' | 'Deflationary'
+  const enginePct     = engine?.allocation?.equity_pct != null ? Math.round(engine.allocation.equity_pct) : null;
+  const engineDefPct  = engine?.allocation?.defensive_pct != null ? Math.round(engine.allocation.defensive_pct) : null;
+  const engineSleeve  = engine?.allocation?.active_sleeve_label || null;
+  const engineAsOf    = engine?.as_of || null;
 
-  // Asset Tilt summary from v10
-  const eqPct = v10?.equity_pct != null ? Math.round(v10.equity_pct * 100) : null;
-  const defPct = v10?.defensive_pct != null ? Math.round(v10.defensive_pct * 100) : null;
-  const lev = v10?.leverage != null ? v10.leverage.toFixed(2) : '—';
-  const stance = v10?.page_stance || '—';
+  // v10 still provides sector OW/UW tilts (AA stays on v9 per project memory).
   const sectors = v10?.sectors || [];
+  const lev     = v10?.leverage != null ? v10.leverage.toFixed(2) : '1.00';
   const ow = sectors.filter((s) => s.rating === 'OW').slice(0, 3);
   const uw = sectors.filter((s) => s.rating === 'UW').slice(0, 3);
 
-  // Today's stance copy from cycle board
-  const stanceLabel = compAvg != null
-    ? (compAvg < 25 ? 'Risk On' : compAvg < 50 ? 'Neutral' : compAvg < 75 ? 'Cautionary' : 'Risk Off')
-    : 'Loading';
+  // Domain heat preview for Macro Overview tile.
+  const domainSummaries = useMemo(() => {
+    if (!indHist) return null;
+    const out = {};
+    for (const p of PANEL_LIST) out[p.id] = summarizeDomain(p.id, indHist);
+    return out;
+  }, [indHist]);
+
+  // Aggregate across all 26 indicators on the new page.
+  const totalCounts = useMemo(() => {
+    if (!domainSummaries) return null;
+    const t = { stressed: 0, elevated: 0, calm: 0, neutral: 0, total: 0 };
+    for (const id of Object.keys(domainSummaries)) {
+      const s = domainSummaries[id];
+      t.stressed += s.stressed; t.elevated += s.elevated; t.calm += s.calm; t.neutral += s.neutral;
+      t.total += s.total;
+    }
+    return t;
+  }, [domainSummaries]);
+
+  // Hero stance colors
+  const stressHeroColor = stressState === 'Risk Off' ? VIZ_COLORS.hot : stressState === 'Watch' ? VIZ_COLORS.watch : stressState === 'Risk On' ? VIZ_COLORS.cool : 'var(--ink-2)';
+  
 
   // Top scan picks — read from the actual JSON shape:
   //   scan.buy_opportunities (>=80 score)
@@ -200,13 +241,15 @@ export default function HomePage() {
               </h1>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, paddingBottom: 6, textAlign: 'right' }}>
-              <span className="t-eyebrow">Today's stance</span>
-              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--warn)', fontFeatureSettings:'"tnum"' }}>
-                {compAvg != null ? <CountUp to={compAvg} /> : '—'}
-                {compAvg != null && <span style={{ fontSize: 24, color: 'var(--ink-2)', marginLeft: 2 }}>/100</span>}
+              <span className="t-eyebrow">Today's engine read</span>
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:54, lineHeight:.95, letterSpacing:'-.02em', color: stressHeroColor, fontFeatureSettings:'"tnum"' }}>
+                {stressState || '—'}
               </span>
-              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:18, color:'var(--ink-0)' }}>{stanceLabel}</span>
-              <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:16, color:'var(--ink-1)' }}>
+                {yieldRegime ? `${yieldRegime} yield regime` : ''}
+                {enginePct != null ? ` · ${enginePct}% equity` : ''}
+              </span>
+              <FreshnessChip elementId="macrotilt_engine" fallback={engineAsOf} />
             </div>
           </div>
         </div>
@@ -215,66 +258,83 @@ export default function HomePage() {
       <div className="v2-shell">
         <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, padding: '32px 0 0' }} className="v2-home-grid">
 
-          {/* CARD 1 · MACRO OVERVIEW — Signal Intelligence regime read */}
+          {/* CARD 1 · MACRO OVERVIEW — 5-domain heat preview (mirrors the new page) */}
           <article className="v2-tile" onClick={() => navTo('overview')} tabIndex={0}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <span className="t-eyebrow accent">01 · Macro Overview</span>
-              <FreshnessChip elementId="cycle_board" fallback={snap?.as_of} />
+              <FreshnessChip elementId="indicator_history" fallback={indHist?.__meta__?.generated_at_utc?.slice(0,10)} />
             </div>
-            <div style={{ marginBottom: 18 }}>
-              <div style={{ fontSize: 10, letterSpacing: '.18em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 500, marginBottom: 4 }}>
-                Current regime
-              </div>
-              <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontStyle: 'italic', fontWeight: 400, fontSize: 40, lineHeight: 1.05, color: 'var(--accent)', letterSpacing: '-0.005em' }}>
-                {si?.regime?.label || 'Loading…'}
-              </div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink-1)', marginTop: 6, lineHeight: 1.5 }}>
-                {si?.regime?.label ? regimeShortDesc[si.regime.label] : ''}
-              </div>
+            <div style={{ fontSize: 13, color: 'var(--ink-1)', marginBottom: 14, lineHeight: 1.55 }}>
+              {totalCounts ? (
+                <>
+                  Across the {totalCounts.total} indicators on the page:
+                  {' '}
+                  <strong style={{ color: VIZ_COLORS.hot }}>{totalCounts.stressed} stressed</strong>
+                  {' · '}
+                  <strong style={{ color: VIZ_COLORS.watch }}>{totalCounts.elevated} elevated</strong>
+                  {' · '}
+                  <strong style={{ color: VIZ_COLORS.cool }}>{totalCounts.calm} calm</strong>
+                  {totalCounts.neutral > 0 ? <> · <strong style={{ color: VIZ_COLORS.neutral }}>{totalCounts.neutral} range-only</strong></> : null}
+                </>
+              ) : 'Loading…'}
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, paddingTop: 16, borderTop: '1px solid var(--line-0)' }}>
-              {[
-                { name: 'Equity Vol', sub: 'VIX', d: si?.vix },
-                { name: 'Bond Vol', sub: 'MOVE', d: si?.move },
-                { name: 'Funding', sub: 'CPFF', d: si?.cpff },
-                { name: 'Cycle', sub: 'POSITION', d: { pctile: si?.cycle, stage: si?.cycle >= 80 ? 3 : si?.cycle >= 50 ? 1 : 0 } },
-              ].map(({ name, sub, d }) => (
-                <div key={sub} style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: 9.5, letterSpacing: '.10em', textTransform: 'uppercase', color: 'var(--ink-3)', fontWeight: 500, marginBottom: 4, lineHeight: 1.2 }}>{name}</div>
-                  <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 26, lineHeight: 1, color: 'var(--ink-0)', fontFeatureSettings: '"tnum"', letterSpacing: '-0.005em' }}>
-                    {d?.pctile != null ? d.pctile : '—'}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8 }}>
+              {PANEL_LIST.map(p => {
+                const sum = domainSummaries?.[p.id];
+                const worstColor = sum ? heatColorFor(sum.worst) : VIZ_COLORS.neutral;
+                const stressedN = sum?.stressed || 0;
+                return (
+                  <div key={p.id} style={{
+                    background: 'var(--bg-1)',
+                    border: `0.5px solid var(--line-1)`,
+                    borderTop: `3px solid ${worstColor}`,
+                    borderRadius: 8,
+                    padding: '10px 8px 12px',
+                    textAlign: 'center',
+                    minWidth: 0,
+                  }}>
+                    <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-0)', letterSpacing: '0.02em', marginBottom: 6 }}>{p.label}</div>
+                    <div style={{ fontFamily: 'Fraunces, Georgia, serif', fontWeight: 400, fontSize: 22, lineHeight: 1, color: worstColor, fontFeatureSettings: '"tnum"' }}>
+                      {sum ? stressedN : '—'}
+                    </div>
+                    <div style={{ fontSize: 9.5, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-3)', marginTop: 5, fontWeight: 600 }}>
+                      stressed / {sum?.total ?? '—'}
+                    </div>
                   </div>
-                  <div style={{ fontSize: 9, letterSpacing: '.06em', color: 'var(--ink-3)', marginTop: 4, fontStyle: 'italic' }}>
-                    {sub}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
+            </div>
+            <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--line-0)', fontSize: 11, color: 'var(--ink-2)', letterSpacing: '0.04em' }}>
+              Open Macro Overview →
             </div>
           </article>
-          {/* CARD 2 · ASSET TILT (with sector mini-list folded in) */}
+          {/* CARD 2 · ASSET TILT — 2-axis engine read + sector tilts from v10 */}
           <article className="v2-tile" onClick={() => navTo('allocation')} tabIndex={0}>
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
-              <span className="t-eyebrow accent">02 · Where the cycle says to lean</span>
-              <FreshnessChip elementId="v10_allocation" fallback={v10?.as_of} />
+              <span className="t-eyebrow accent">02 · Asset Tilt</span>
+              <FreshnessChip elementId="macrotilt_engine" fallback={engineAsOf} />
             </div>
-            <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:14, marginBottom:14 }}>
-              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color:'var(--up)', fontFeatureSettings:'"tnum"' }}>
-                {eqPct != null ? <CountUp to={eqPct} /> : '—'}
-                {eqPct != null && <span style={{ fontSize:22, color:'var(--ink-2)', marginLeft:2 }}>%</span>}
+            <div style={{ display:'flex', alignItems:'baseline', justifyContent:'space-between', gap:14, marginBottom:10 }}>
+              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:64, lineHeight:.95, letterSpacing:'-.02em', color: stressHeroColor, fontFeatureSettings:'"tnum"' }}>
+                {enginePct != null ? <CountUp to={enginePct} /> : '—'}
+                {enginePct != null && <span style={{ fontSize:22, color:'var(--ink-2)', marginLeft:2 }}>%</span>}
               </span>
-              <span style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:22, color:'var(--ink-0)' }}>{stance} · {lev}× lev</span>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontFamily: 'Inter,system-ui,-apple-system,sans-serif', fontSize:20, color: stressHeroColor, fontWeight: 600, lineHeight: 1.1 }}>{stressState || '—'}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 4 }}>{yieldRegime ? `${yieldRegime} yield regime` : ''}</div>
+              </div>
             </div>
-            {eqPct != null && (
+            {enginePct != null && (
               <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
                 <div style={{ flex:1, height:8, background:'var(--bg-2)', borderRadius:'var(--r-pill)', overflow:'hidden', display:'flex' }}>
-                  <div style={{ background:'var(--up)', height:'100%', width:`${eqPct}%` }} />
-                  <div style={{ background:'var(--accent)', height:'100%', width:`${defPct}%` }} />
+                  <div style={{ background: VIZ_COLORS.cool, height:'100%', width:`${enginePct}%` }} />
+                  <div style={{ background: VIZ_COLORS.watch, height:'100%', width:`${engineDefPct}%` }} />
                 </div>
               </div>
             )}
             <div style={{ display:'flex', gap:14, fontSize:11, color:'var(--ink-2)', letterSpacing:'.04em', marginBottom:14 }}>
-              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{eqPct ?? '—'}%</strong> equity</span>
-              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{defPct ?? '—'}%</strong> defensive</span>
+              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{enginePct ?? '—'}%</strong> equity</span>
+              <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{engineDefPct ?? 0}%</strong> defensive{engineSleeve && engineDefPct ? ` (${engineSleeve})` : ''}</span>
               <span><strong style={{ color:'var(--ink-0)', fontWeight:500 }}>{lev}×</strong> leverage</span>
             </div>
             <div style={{ paddingTop:14, borderTop:'1px solid var(--line-0)' }}>
