@@ -1018,8 +1018,8 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
   })()
 ) : (
   <>
-    <path d={fullPath} fill="none" stroke="#505050" strokeWidth="1.5" strokeLinejoin="round"/>
-    <path d={recentPath} fill="none" stroke={col} strokeWidth="2.5" strokeLinejoin="round"/>
+    <path d={fullPath} fill="none" stroke="#505050" strokeWidth="1.0" strokeLinejoin="round"/>
+    <path d={recentPath} fill="none" stroke={col} strokeWidth="1.5" strokeLinejoin="round"/>
     <circle cx={lastPt[0]} cy={lastPt[1]} r="4" fill={col} stroke="var(--bg)" strokeWidth="1.5"/>
   </>
 )}
@@ -1334,12 +1334,12 @@ onMouseLeave={()=>setHover(null)} onTouchEnd={()=>setTimeout(()=>setHover(null),
 </g>
 ))}
 {/* S&P line (behind stress) */}
-<path d={spPath} fill="none" stroke={SP_COL} strokeWidth="1.5" strokeLinejoin="round" opacity="0.65"/>
+<path d={spPath} fill="none" stroke={SP_COL} strokeWidth="1.0" strokeLinejoin="round" opacity="0.65"/>
 <circle cx={lastSP[0]} cy={lastSP[1]} r="3" fill={SP_COL} stroke="var(--bg)" strokeWidth="1.2" opacity="0.9"/>
 <text x={lastSP[0]+4} y={lastSP[1]+3} fill={SP_COL} fontSize="6" fontFamily="monospace" opacity="0.85">{(spVals[spVals.length-1]/1000).toFixed(1)}k</text>
 {/* Stress line */}
-<path d={fullPath} fill="none" style={{stroke:'var(--text-dim)'}} strokeWidth="1.2" strokeLinejoin="round"/>
-<path d={recentPath} fill="none" stroke={col} strokeWidth="2.5" strokeLinejoin="round"/>
+<path d={fullPath} fill="none" style={{stroke:'var(--text-dim)'}} strokeWidth="1.0" strokeLinejoin="round"/>
+<path d={recentPath} fill="none" stroke={col} strokeWidth="1.5" strokeLinejoin="round"/>
 <circle cx={lastPt[0]} cy={lastPt[1]} r="4" fill={col} stroke="var(--bg)" strokeWidth="1.5"/>
 <text x={lastPt[0]} y={lastPt[1]-9} textAnchor="middle" fill={col} fontSize="7" fontFamily="monospace" fontWeight="800">{COMP100}</text>
 {/* X-axis labels */}
@@ -1474,8 +1474,8 @@ return(
 <text x={cm.x} y={cm.y-2} textAnchor="middle" fill={cm.color} fontSize={compact?5:5.5} fontFamily="monospace">{fmtRaw(cm.raw)}</text>
 </g>
 ))}
-<path d={fullPath} fill="none" stroke="#505050" strokeWidth="1.5" strokeLinejoin="round"/>
-<path d={recentPath} fill="none" stroke={col} strokeWidth="2.5" strokeLinejoin="round"/>
+<path d={fullPath} fill="none" stroke="#505050" strokeWidth="1.0" strokeLinejoin="round"/>
+<path d={recentPath} fill="none" stroke={col} strokeWidth="1.5" strokeLinejoin="round"/>
 <circle cx={lastPt[0]} cy={lastPt[1]} r={compact?3.5:4} fill={col} stroke="var(--bg)" strokeWidth="1.5"/>
 <text x={lastPt[0]} y={lastPt[1]-(compact?6:7)} textAnchor="middle" fill={col} fontSize={compact?6:7} fontFamily="monospace" fontWeight="800">{fmtRaw(data[data.length-1][1])}</text>
 {labels.map((l,i)=>showLbl[i]&&(
@@ -7155,7 +7155,7 @@ return(
         {/* SPY line first (under) */}
         {spyPoints && <polyline fill="none" stroke="var(--text-dim)" strokeWidth="1.4" strokeDasharray="3 3" points={spyPoints} />}
         {/* Portfolio line on top */}
-        <polyline fill="none" stroke="var(--accent)" strokeWidth="1.8" points={navPoints} />
+        <polyline fill="none" stroke="var(--accent)" strokeWidth="1.25" points={navPoints} />
         {/* End-point dots */}
         <circle cx={xOf(agg.length - 1)} cy={yOf(agg[agg.length - 1].nav)} r="3" fill="var(--accent)" />
         {spyLine && spyLine.length > 0 && <circle cx={xOf(spyLine.length - 1)} cy={yOf(spyLine[spyLine.length - 1].v)} r="2.5" fill="var(--text-dim)" />}

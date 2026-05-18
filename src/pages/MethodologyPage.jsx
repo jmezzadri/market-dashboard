@@ -307,7 +307,7 @@ const SECTION_CONTENT = {
           ["JOLTS · quits rate",              "BLS · FRED JTSQUR",           "Monthly"],
           ["Copper / Gold ratio",             "CME front-month via Yahoo",   "Daily"],
           ["USD broad index",                 "Federal Reserve H.10 · FRED DTWEXBGS", "Daily"],
-          ["Chicago Fed Nat. Activity",       "Chicago Fed · FRED CFNAI",    "Monthly"],
+          ["Chicago Fed National Activity",       "Chicago Fed · FRED CFNAI",    "Monthly"],
         ]}
       />
       <Body>
