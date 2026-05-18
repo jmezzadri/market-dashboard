@@ -251,7 +251,7 @@ const INDICATORS = {
   yield_curve:   { panel: 'rates', label: 'Yield curve (10y − 2y)',        short: '10y−2y',     fmt: v => (v>=0?'+':'') + Math.round(v) + ' bp',           dir: 'lw',       methodology: 'A positive slope is normal; inversion has historically led recessions by 10–22 months.' },
   real_rates:    { panel: 'rates', label: '10y real yield',                short: '10y real',   fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'hw',       methodology: 'Nominal 10y Treasury minus 10y breakeven inflation. Higher real rates tighten financial conditions.' },
   move:          { panel: 'rates', label: 'MOVE · bond volatility',        short: 'MOVE',       fmt: v => v.toFixed(0),                                    dir: 'hw',       methodology: 'Implied volatility on Treasury options across the curve. Captures rate-policy uncertainty.' },
-  term_premium:  { panel: 'rates', label: 'Term premium',                  short: 'Term prem',  fmt: v => (v>=0?'+':'') + Math.round(v) + ' bp',           dir: 'neutral',  methodology: 'Extra yield investors demand for holding long-dated paper over rolling short paper. Quoted in basis points.' },
+  term_premium:  { panel: 'rates', label: 'Term premium',                  short: 'Term prem',  fmt: v => (v>=0?'+':'') + Math.round(v) + ' bp',           dir: 'hw',       methodology: 'Extra yield investors demand for holding long-dated paper over rolling short paper, in basis points. A rising term premium signals bond holders pricing more duration risk — typically a late-cycle / stress signal.' },
   breakeven_10y: { panel: 'rates', label: '10y breakeven inflation',       short: '10y BE',     fmt: v => v.toFixed(2) + '%',                              dir: 'neutral',  methodology: 'Market-implied 10y inflation: nominal 10y yield minus 10y TIPS yield.' },
 
   // CREDIT
@@ -274,12 +274,12 @@ const INDICATORS = {
   stlfsi:        { panel: 'money', label: 'St. Louis FCI',                 short: 'STLFSI',     fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'hw',       methodology: 'St. Louis Fed Financial Stress Index. Weekly. Composite of 18 weekly financial variables.' },
   bkx_spx_v11:   { panel: 'money', label: 'KBW Bank / SPX',                short: 'BKX/SPX',    fmt: v => v.toFixed(4),                                    dir: 'lw',       methodology: 'KBW Bank Index divided by S&P 500. Banks underperform when balance sheets are under pressure.' },
   bank_credit:   { panel: 'money', label: 'Bank credit growth (YoY)',      short: 'Bank credit',fmt: v => (v>=0?'+':'') + v.toFixed(1) + '%',              dir: 'lw',       methodology: 'Year-over-year growth in total loans and leases at all US commercial banks.' },
-  fed_bs:        { panel: 'money', label: 'Fed balance sheet (YoY)',       short: 'Fed BS YoY', fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'neutral',  methodology: 'Year-over-year change in the size of the Federal Reserve balance sheet. Positive = expanding; negative = quantitative tightening.' },
+  fed_bs:        { panel: 'money', label: 'Fed balance sheet (YoY)',       short: 'Fed BS YoY', fmt: v => (v>=0?'+':'') + v.toFixed(2) + '%',              dir: 'lw',       methodology: 'Year-over-year change in the size of the Federal Reserve balance sheet. Negative = the Fed is shrinking its balance sheet (quantitative tightening) — a tightening force on risk assets.' },
 
   // ECONOMY
   ic4wsa:        { panel: 'economy', label: 'Initial jobless claims (4w)', short: 'IC4WSA',     fmt: v => Math.round(v) + 'K',                             dir: 'hw',       methodology: '4-week moving average of initial unemployment claims, seasonally adjusted.' },
   ism:           { panel: 'economy', label: 'ISM Manufacturing',           short: 'ISM Mfg',    fmt: v => v.toFixed(1),                                    dir: 'lw',       methodology: 'Manufacturing purchasing managers index. 50 = neutral; below = contraction.' },
-  jolts_quits:   { panel: 'economy', label: 'JOLTS · quits rate',          short: 'Quits',      fmt: v => v.toFixed(1) + '%',                              dir: 'neutral',  methodology: '% of employed workers voluntarily leaving each month. Higher = labor confidence.' },
+  jolts_quits:   { panel: 'economy', label: 'JOLTS · quits rate',          short: 'Quits',      fmt: v => v.toFixed(1) + '%',                              dir: 'lw',       methodology: '% of employed workers voluntarily leaving each month. A low quits rate means workers do not feel confident enough to leave — labor-market weakness signal.' },
   copper_gold:   { panel: 'economy', label: 'Copper / Gold ratio',         short: 'Cu/Au',      fmt: v => v.toFixed(3),                                    dir: 'lw',       methodology: 'Front-month copper futures over gold futures. Cyclical demand indicator.' },
   usd:           { panel: 'economy', label: 'USD broad index',             short: 'USD',        fmt: v => v.toFixed(2),                                    dir: 'neutral',  methodology: 'Trade-weighted broad dollar index against a basket of major currencies.' },
   cfnai:         { panel: 'economy', label: 'Chicago Fed Nat. Activity',   short: 'CFNAI',      fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'lw',       methodology: '85-indicator composite of real US economic activity, normalized to 0.' },
@@ -381,11 +381,12 @@ function heatColor(pct, dir) {
 }
 
 function heatLabel(pct, dir) {
-  // Single taxonomy tied directly to the heat color, regardless of indicator
-  // direction sense. Color and label always agree: magenta = Stressed,
-  // amber = Elevated, teal-cyan = Calm. For direction-neutral indicators,
-  // no label.
-  if (pct == null || dir === 'neutral') return null;
+  // Direction-aware label tied 1:1 to heat color:
+  //   magenta = Stressed, amber = Elevated, teal = Calm.
+  // For direction-agnostic indicators (no built-in good/bad sense),
+  // we instead describe WHERE in the 5y range the reading sits, so the
+  // user still gets context without an editorial good/bad call.
+  if (pct == null) return null;
   if (dir === 'hw') {
     if (pct >= 0.75) return 'Stressed';
     if (pct >= 0.50) return 'Elevated';
@@ -396,7 +397,10 @@ function heatLabel(pct, dir) {
     if (pct <= 0.50) return 'Elevated';
     return 'Calm';
   }
-  return null;
+  // neutral
+  if (pct >= 0.75) return 'High vs. 5y range';
+  if (pct <= 0.25) return 'Low vs. 5y range';
+  return 'Mid-range (5y)';
 }
 
 // ─── MiniChart — a properly-sized in-tile chart, ~320×110, that you can
@@ -692,7 +696,7 @@ export default function MacroOverviewPage() {
         <LegendDot color={VIZ_COLORS.cool}    label="Calm"      sub="Reading is not signalling stress" />
         <LegendDot color={VIZ_COLORS.watch}   label="Elevated"  sub="Mid-range — worth watching" />
         <LegendDot color={VIZ_COLORS.hot}     label="Stressed"  sub="Reading is signalling stress" />
-        <LegendDot color={VIZ_COLORS.neutral} label="Neutral"   sub="Indicator has no good/bad sense" />
+        <LegendDot color={VIZ_COLORS.neutral} label="Range-only" sub="Direction-agnostic — shown vs. 5y range" />
       </div>
 
       <div style={{ padding: '8px 32px 0' }}>
