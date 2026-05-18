@@ -743,8 +743,6 @@ function DomainPanel({ panel, indicators, hist, onOpen }) {
         <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.55 }}>{panel.subtitle}</div>
       </div>
 
-      <DomainHeatStrip indicators={indicators} hist={hist} onOpen={onOpen} />
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
         {indicators.map(ind => (
           <IndicatorTile key={ind.id} ind={ind} hist={hist} onOpen={onOpen} />
