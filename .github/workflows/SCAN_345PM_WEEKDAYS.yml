@@ -172,7 +172,29 @@ jobs:
           fi
 
           git commit -m "Scan data update [skip ci]"
-          git push || echo "Push failed (non-fatal); next scheduled run will retry."
+          # Retry-on-collision. Other workflows / PR merges can push to main
+          # while the scanner is running; first push then collides on
+          # non-fast-forward. Rebase onto remote main and retry up to 4
+          # times (each retry waits a few seconds for the upstream to
+          # settle). Bug #1187 step — was: single push, fail silently,
+          # wait for next scheduled run. New: actually land the commit.
+          for attempt in 1 2 3 4 5; do
+            if git push; then
+              echo "✓ Push succeeded on attempt $attempt."
+              break
+            fi
+            if [ "$attempt" = "5" ]; then
+              echo "::error::Push failed 5 times — giving up. Next scheduled run will retry."
+              exit 1
+            fi
+            echo "Push collided (attempt $attempt); rebasing on remote main and retrying in 5s..."
+            sleep 5
+            git fetch origin main
+            git rebase origin/main || {
+              echo "::error::Rebase failed — bailing out."
+              exit 1
+            }
+          done
 
       - name: Compute sector ranks → sector_rank_history
         # Phase 3 PR #7. Reads the just-published public/latest_scan_data.json,
