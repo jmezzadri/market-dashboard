@@ -975,7 +975,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // "all IGs inherit parent sector stress" approximation was wrong; proper
   // IG-level factor calibration is Phase 2.
   const GICS_IDS = ["XLK","XLC","XLF","XLY","XLI","XLB","XLE","XLV","XLP","XLU","XLRE"];
-  const DEFENSIVE_IDS = ["BIL","TLT","GLD","LQD"];
+  // LQD removed 2026-05-18 (Joe directive): engine never recommends an allocation to IG corp.
+  const DEFENSIVE_IDS = ["BIL","TLT","GLD"];
   // Map Scenarios sector name → Asset Tilt sector name (already declared above as SCEN_TO_AT_SECTOR)
   const _v10IGsBySector = (() => {
     const m = {};
@@ -1152,7 +1153,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
 
         {/* TWO-COLUMN GRID — Joe mockup 2026-05-08:
             LEFT (~0.95fr): Asset Tilt Engine Scenario Results.
-            RIGHT (~1.05fr): Cycle Mechanism Scenario Results + Your Portfolio. */}
+            RIGHT (~1.05fr): Your Portfolio. (Cycle Mechanism panel removed 2026-05-18.) */}
         <div style={{ display:"grid", gridTemplateColumns:"0.95fr 1.05fr", gap:20, alignItems:"start" }}>
 
           {/* LEFT COLUMN — TABLE 1: Asset Tilt Engine Scenario Results */}
@@ -1176,22 +1177,9 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
             scenToAt={SCEN_TO_AT_SECTOR}
           />
 
-          {/* RIGHT COLUMN — TABLE 2 (placeholder) + TABLE 3 (Your Portfolio) stacked */}
+          {/* RIGHT COLUMN — Your Portfolio (Cycle Mechanism panel deleted 2026-05-18). */}
           <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
-
-            {/* TABLE 2 — Cycle Mechanism Scenario Results (Phase 2E live) */}
-            <CycleMechanismScenarioResultsTable
-              mode={mode}
-              scenarioId={scenario}
-              scenarioName={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : null}
-              effShocks={effShocks}
-              indicatorHistory={indicatorHistory}
-              tableCard={_tableCard}
-              tableHead={_tableHead}
-              tableTitle={_tableTitle}
-              tableSub={_tableSub}
-            />
-
+            {/* Cycle Mechanism panel deleted 2026-05-18 (Joe directive) — v11 board is deprecated; right column is now Your Portfolio only. */}
             {/* TABLE 3 — Your Portfolio under stress */}
             <Table3Portfolio
               positions={realPnl.positions || []}
