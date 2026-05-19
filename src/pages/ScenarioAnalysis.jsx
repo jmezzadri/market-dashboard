@@ -431,9 +431,18 @@ function compositeNew(currentVal, deltaZ, isStressUp) {
   return Math.max(0, Math.min(100, Math.round(currentVal + deltaZ * 12 * (isStressUp ? 1 : -1))));
 }
 function portfolioPnL(sectorPcts, portfolio = PORTFOLIO) {
+  // Position-level P&L cannot exceed -100% (you can\'t lose more than the
+  // position is worth). Joe flagged 2026-05-18 that Crypto positions were
+  // showing -100%+ losses on the live page. Root cause: BTC has beta 1.80
+  // plus extreme loadings (vix +1.5, real_rates +1.0, hy +1.2, stlfsi +1.4,
+  // anfci +1.0); the raw dot-product × horizon scale can easily exceed
+  // -100% under a heavy multi-factor shock. The raw stress number was
+  // never clamped at the floor. This fix clamps each position\'s stress %
+  // and the resulting $ P&L at -100%.
   const positions = portfolio.map(p => {
     const s = SECTOR_BY_NAME[p.sector];
-    const pct = s ? sectorPcts[s.id] || 0 : 0;
+    const rawPct = s ? sectorPcts[s.id] || 0 : 0;
+    const pct = Math.max(-100, rawPct);
     return { ...p, pct, dollar: p.value * pct / 100 };
   });
   return { positions, total: positions.reduce((s, p) => s + p.dollar, 0) };
