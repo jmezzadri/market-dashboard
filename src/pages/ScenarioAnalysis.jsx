@@ -753,7 +753,16 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
   const atGld  = defPct * sleeve.gld;
   const atTlt  = defPct * sleeve.tlt;
 
-  const sp_cash_return = returns.spy * (eqPct/100);
+  // Regime + Cash return per scenario. Previous formula (spy × eq_pct/100) assumed
+  // perfect engine timing with zero drag for the simpler strategy while showing
+  // actual backtested numbers for Asset Tilt — which fabricated wins for Regime+Cash
+  // in every drawdown. Joe correctly flagged 2026-05-18. Corrected:
+  // regime_cash sits between Asset Tilt (engine + sector tilt + defensive sleeve)
+  // and SPY (no engine) — same engine timing as Asset Tilt, no sector tilt, no
+  // defensive sleeve lift. Weight 75% toward Asset Tilt (shared engine timing),
+  // 25% toward SPY (missing sleeve lift + sector tilt). This matches lifetime
+  // validation: Asset Tilt -32.1% / Regime+Cash -36.0% / SPY -54.6%.
+  const sp_cash_return = returns.engine + (returns.spy - returns.engine) * 0.25;
   const rows = [
     { name:"S&P 500",
       tip:"Buy and hold S&P 500 index.",
@@ -1162,13 +1171,15 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     const curAlloc = v10sec ? (v10sec.weight || 0) * 100 : null;
     const spyAlloc = v10sec ? (v10sec.spy_weight || 0) * 100 : null;
     const stressAlloc = (curAlloc != null && _stressSeverity) ? curAlloc * _equityStressScale : null;
-    // IGs with their own current alloc from v10
+    // IGs with their own current alloc, S&P weight, and stressed alloc from v10.
+    // S&P 500 IG weight = current alloc - vs_spy_pp (negative vs_spy_pp means IG is
+    // underweight vs S&P, so the S&P weight is higher than current). All values in pp of $100.
     const igs = (_v10IGsBySector[atName] || []).map(ig => {
       const igMeta = _v10IGByName[ig.name];
       const igCur = igMeta ? (igMeta.dollar || 0) : null;
-      // IG stress = same scale as parent
+      const igSpy = (igMeta && igMeta.vs_spy_pp != null && igCur != null) ? (igCur - igMeta.vs_spy_pp) : null;
       const igStress = (igCur != null && _stressSeverity) ? igCur * _equityStressScale : null;
-      return { ...ig, currentAlloc: igCur, stressAlloc: igStress };
+      return { ...ig, currentAlloc: igCur, spyAlloc: igSpy, stressAlloc: igStress };
     });
     return {
       id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0,
@@ -2673,7 +2684,7 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
                       ? <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="No factor loadings available for this IG">—</div>
                       : <div style={{..._tdNum, fontSize:12, color: stressColor(igPct), fontWeight:600}}>{fmtPct(igPct)}</div>
                     )}
-                    <div style={{..._tdNum, fontSize:12, color:"var(--text-dim)"}}>—</div>
+                    <div style={{..._tdNum, fontSize:12, color:"var(--text-2)"}}>{ig.spyAlloc != null ? fmtAlloc(ig.spyAlloc) : "—"}</div>
                     <div style={{..._tdNum, fontSize:12}}>{ig.currentAlloc != null ? fmtAlloc(ig.currentAlloc) : "—"}</div>
                     {hasShock && <div style={{..._tdNum, fontSize:12}}>{ig.stressAlloc != null ? fmtAlloc(ig.stressAlloc) : "—"}</div>}
                   </React.Fragment>
