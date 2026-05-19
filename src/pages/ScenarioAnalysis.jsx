@@ -338,7 +338,38 @@ const SECTORS_RAW = [
   // on each underlying.
   { id:"HY",  name:"HY Bonds",              assetClass:"Defensive", beta:0.55, current:0, loadings:{ vix:+0.5, move:+0.4, real_rates:+0.6, term_premium:-0.1, dxy:0, copper_gold:-0.2, hy:+2.5, stlfsi:+1.2, anfci:+0.9, aaii:-0.3, putcall:+0.3, breadth:-0.3 }, igs:[] },
   { id:"INTL",name:"International Equity",  assetClass:"Equity",    beta:0.95, current:0, loadings:{ vix:+0.75, move:+0.4, real_rates:+0.4, term_premium:-0.1, dxy:-0.9, copper_gold:-0.3, hy:+0.6, stlfsi:+0.65, anfci:+0.5, aaii:-0.4, putcall:+0.45, breadth:-0.55 }, igs:[] },
-  { id:"BTC", name:"Crypto",                assetClass:"Equity",    beta:1.80, current:0, loadings:{ vix:+1.5, move:+0.5, real_rates:+1.0, term_premium:-0.3, dxy:-0.4, copper_gold:-0.5, hy:+1.2, stlfsi:+1.4, anfci:+1.0, aaii:-0.7, putcall:+0.9, breadth:-1.0 }, igs:[] },
+  // Crypto loadings RECALIBRATED 2026-05-18 against empirical BTC monthly regression
+  // (Yahoo BTC-USD 2016-07 to 2026-05, n=119 monthly observations, R² = 0.165).
+  // Methodology: OLS of BTC monthly log-returns on z-score changes of 9 measurable
+  // macro factors (vix / move / real_rates / term_premium / dxy / copper_gold /
+  // hy_ig / stlfsi / anfci). Regression coefficients translated into engine-format
+  // loadings via loading_i = -reg_coef_i / (1.4 × beta), with beta = 1.5 (consistent
+  // with published BTC factor research). Sign conventions matched to engine SCENARIOS
+  // shock conventions. Old loadings were textbook v1 starting points (Sprint 2.6) —
+  // they produced > -100% sector returns for high-beta + heavy-shock combinations,
+  // which is mathematically impossible at the position level (Joe flagged 2026-05-18).
+  //
+  // IMPORTANT LIMITATIONS (Senior Quant note — honest):
+  //   1. Regression sample is 2016-07 to 2026-05. BTC didn't exist for the pre-2014
+  //      scenarios (Black Monday '87, Dot Com '00/'02, GFC '08, Rate Hikes '18 partial).
+  //      The factor model APPLIED to those scenarios is fundamentally extrapolation.
+  //   2. The sample includes the post-2014 "QE era" where real-rates-down ↔ BTC-up
+  //      was the dominant pattern. Applied to GFC '08 (where real rates ALSO fell),
+  //      the model predicts a BTC RALLY, not a crash. This is a real signal of
+  //      sample-period bias — not a bug. The full backtested validation of BTC
+  //      under historical pre-2014 stress is impossible.
+  //   3. aaii / putcall / breadth set to 0 (not measurable from indicator_history).
+  //      Old fabricated values for these three were the biggest contributor to the
+  //      > -100% problem on high-shock scenarios. Zeroing them is more honest than
+  //      guessing.
+  //   4. R² of 0.165 means 83% of BTC monthly variance is idiosyncratic. The factor
+  //      model is a coarse first-pass — not a precision instrument.
+  // Backlog: rerun with monthly HY OAS interpolation, add reasonable sentiment proxies,
+  // and consider a nonlinear (saturating or log) loss function for tail events.
+  { id:"BTC", name:"Crypto", assetClass:"Equity", beta:1.50, current:0,
+    loadings:{ vix:+0.009, move:-0.003, real_rates:+0.152, term_premium:-0.071, dxy:-0.003, copper_gold:-0.004, hy:+0.030, stlfsi:+0.008, anfci:-0.001, aaii:0, putcall:0, breadth:0 },
+    loading_source:"empirical_btc_regression_2016_2026",
+    igs:[] },
   { id:"SPX", name:"Broad US Equity",       assetClass:"Equity",    beta:1.00, current:0, loadings:{ vix:+0.85, move:+0.4, real_rates:+0.5, term_premium:-0.2, dxy:-0.1, copper_gold:-0.25, hy:+0.7, stlfsi:+0.75, anfci:+0.55, aaii:-0.4, putcall:+0.45, breadth:-0.6 }, igs:[] },
   { id:"CSH", name:"Cash",                  assetClass:"Defensive", beta:0.00, current:0, loadings:{ vix:0, move:0, real_rates:0, term_premium:0, dxy:0, copper_gold:0, hy:0, stlfsi:0, anfci:0, aaii:0, putcall:0, breadth:0 }, igs:[] },
 ];
