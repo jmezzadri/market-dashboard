@@ -286,6 +286,70 @@ async function handle(req: Request): Promise<Response> {
         || row.last_good_at
         || null;
       if (!asOf) lastError = "scanner-v5-daily has not run yet";
+    } else if (
+      row.indicator_id === "latest_scan" ||
+      row.indicator_id === "cycle_board" ||
+      row.indicator_id === "sector_perf" ||
+      row.indicator_id === "scenario_stress" ||
+      row.indicator_id === "scenarios" ||
+      row.indicator_id === "indicator_history"
+    ) {
+      // 2026-05-19 (#1148 fix) — these rows used to fall into the generic
+      // indicator_history lookup and always RED because they are not
+      // indicators in that bundle; they are snapshot JSON files served
+      // alongside it. Read the file's own freshness stamp instead.
+      const FILE_MAP: Record<string, { path: string; field: string }> = {
+        latest_scan:        { path: "/latest_scan_data.json",     field: "scan_time" },
+        cycle_board:        { path: "/cycle_board_snapshot.json", field: "as_of" },
+        sector_perf:        { path: "/sector_perf.json",          field: "as_of" },
+        scenario_stress:    { path: "/scenario_stress.json",      field: "as_of" },
+        scenarios:          { path: "/scenario_allocations.json", field: "as_of" },
+        indicator_history:  { path: "/indicator_history.json",    field: "__meta__.generated_at_utc" },
+      };
+      const cfg = FILE_MAP[row.indicator_id];
+      try {
+        const r = await fetch(`${SITE_BASE}${cfg.path}`, { cache: "no-store" });
+        if (!r.ok) {
+          lastError = `${cfg.path} ${r.status}`;
+        } else {
+          const j = await r.json();
+          const parts = cfg.field.split(".");
+          let v: unknown = j;
+          for (const p of parts) { v = v && typeof v === "object" ? (v as Record<string, unknown>)[p] : undefined; }
+          if (typeof v === "string" && v.length > 0) {
+            asOf = v;
+          } else {
+            lastError = `${cfg.path} missing ${cfg.field}`;
+          }
+        }
+      } catch (e) {
+        lastError = `${cfg.path} fetch error: ${(e as Error).message}`;
+      }
+    } else if (
+      row.indicator_id === "uw-universe-snapshots" ||
+      row.indicator_id === "portfolio_history"
+    ) {
+      // 2026-05-19 (#1148 fix) — these rows monitor Supabase tables, not
+      // public JSON files. Read max ingested_at / as_of_date from the
+      // table directly.
+      const TABLE_MAP: Record<string, { table: string; col: string }> = {
+        "uw-universe-snapshots": { table: "universe_snapshots", col: "snapshot_ts" },
+        "portfolio_history":     { table: "portfolio_history",  col: "as_of" },
+      };
+      const cfg = TABLE_MAP[row.indicator_id];
+      const { data, error } = await supabase
+        .from(cfg.table)
+        .select(cfg.col)
+        .order(cfg.col, { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        lastError = `${cfg.table} query: ${error.message}`;
+      } else if (!data) {
+        lastError = `${cfg.table} has no rows`;
+      } else {
+        asOf = (data as Record<string, string>)[cfg.col];
+      }
     } else {
       const rec = indicators[row.indicator_id];
       if (!rec) {
