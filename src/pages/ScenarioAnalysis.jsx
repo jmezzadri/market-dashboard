@@ -656,16 +656,31 @@ const STYLES = `
 .scenarios-page .demo-banner { background:rgba(216,178,122,.15); border:1px dashed var(--accent-parchment); padding:8px 14px; border-radius:var(--r-sm); margin-bottom:var(--s-4); font-size:12px; font-family:var(--font-ui); color:var(--ink-1); }
 .scenarios-page .demo-banner b { color:var(--accent-burgundy); }
 
-/* ── bespoke shock sliders (added 2026-05-10 — were missing entirely) ── */
-.scenarios-page .sliders { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px 24px; margin-top:var(--s-3); }
-.scenarios-page .slider-row { display:grid; grid-template-columns:120px 1fr 96px; align-items:center; gap:12px; padding:6px 8px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
-.scenarios-page .slider-row:hover { background:var(--bg-2); }
-.scenarios-page .slider-row.driver { background:rgba(184,70,47,.10); border-left-color:var(--accent-burgundy); }
-.scenarios-page .slider-row .slider-label { font-family:var(--font-ui); font-size:12px; color:var(--ink-1); font-weight:500; }
-.scenarios-page .slider-row input[type="range"] { width:100%; accent-color:var(--accent-burgundy); }
-.scenarios-page .slider-row .slider-val { display:flex; flex-direction:column; align-items:flex-end; line-height:1.15; font-family:var(--font-ui); font-variant-numeric:tabular-nums; }
-.scenarios-page .slider-row .slider-val .sigma { font-size:12px; font-weight:600; color:var(--ink-0); }
-.scenarios-page .slider-row .slider-val .nominal { font-size:10.5px; color:var(--ink-2); margin-top:1px; }
+/* ── bespoke shock builder — card-style layout per Joe mockup 2026-05-18 ── */
+.scenarios-page .builder.card { background:var(--surface); border:1px solid var(--accent); border-radius:14px; padding:22px 26px 18px; box-shadow:var(--shadow-sm); margin-bottom:20px; }
+.scenarios-page .builder.card .builder-head { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+.scenarios-page .builder.card .builder-head h2 { font-family:var(--font-display); font-weight:500; font-size:20px; margin:0; color:var(--text); letter-spacing:-0.008em; }
+.scenarios-page .builder.card .builder-head .close { cursor:pointer; background:transparent; border:none; font-size:18px; color:var(--text-muted); padding:4px 10px; border-radius:6px; line-height:1; }
+.scenarios-page .builder.card .builder-head .close:hover { background:var(--hover); color:var(--text); }
+.scenarios-page .builder.card .builder-helper { font-size:12.5px; color:var(--text-muted); margin:0 0 16px; max-width:88ch; line-height:1.5; }
+.scenarios-page .builder.card .builder-toolbar { display:flex; align-items:center; gap:18px; flex-wrap:wrap; padding:10px 0 14px; margin-bottom:6px; border-bottom:0.5px solid var(--border-faint); }
+.scenarios-page .builder.card .builder-toolbar .tlbl { font-size:10px; font-weight:600; color:var(--text-muted); letter-spacing:0.10em; text-transform:uppercase; }
+.scenarios-page .builder.card .builder-toolbar .seg { display:inline-flex; border:1px solid var(--border); border-radius:6px; overflow:hidden; }
+.scenarios-page .builder.card .builder-toolbar .seg button { font-family:var(--font-ui); font-size:11px; font-weight:600; padding:6px 14px; background:var(--surface); color:var(--text-2); border:none; border-left:1px solid var(--border); cursor:pointer; letter-spacing:0.04em; }
+.scenarios-page .builder.card .builder-toolbar .seg button:first-child { border-left:none; }
+.scenarios-page .builder.card .builder-toolbar .seg button.active { background:var(--accent-soft); color:var(--accent); }
+.scenarios-page .builder.card .builder-toolbar .reset { font-family:var(--font-ui); font-size:11px; font-weight:600; padding:6px 12px; border-radius:6px; border:1px solid var(--border); background:var(--surface-2); color:var(--text-2); cursor:pointer; letter-spacing:0.04em; text-transform:uppercase; }
+.scenarios-page .builder.card .builder-toolbar .reset:hover { background:var(--hover); }
+.scenarios-page .builder.card .sliders { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:10px 28px; margin-top:14px; }
+.scenarios-page .builder.card .slider-row { display:grid; grid-template-columns:108px 1fr 78px; align-items:center; gap:12px; padding:8px 6px; border-radius:var(--r-sm); border-left:3px solid transparent; transition:background 120ms, border-color 120ms; }
+.scenarios-page .builder.card .slider-row:hover { background:var(--surface-2); }
+.scenarios-page .builder.card .slider-row.driver { background:var(--accent-soft); border-left-color:var(--accent); }
+.scenarios-page .builder.card .slider-row .slider-label { font-family:var(--font-ui); font-size:12.5px; color:var(--text); font-weight:500; }
+.scenarios-page .builder.card .slider-row input[type="range"] { width:100%; accent-color:var(--accent); }
+.scenarios-page .builder.card .slider-row .slider-val { display:flex; flex-direction:column; align-items:flex-end; line-height:1.15; font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.scenarios-page .builder.card .slider-row .slider-val .sigma { font-size:12px; font-weight:600; color:var(--text); }
+.scenarios-page .builder.card .slider-row .slider-val .nominal { font-size:10.5px; color:var(--text-muted); margin-top:2px; }
+.scenarios-page .builder.card .builder-disclosure { font-size:11px; color:var(--text-muted); font-style:italic; padding:12px 0 0; margin-top:14px; border-top:0.5px solid var(--border-faint); }
 
 @media (max-width: 980px) {
   .scenarios-page .output-grid { grid-template-columns:1fr; }
@@ -1215,70 +1230,34 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
         />
 
         <div style={{ padding: "24px 32px 0" }}>
-        {/* Bespoke shock builder — always rendered but collapsible.
-            Click the chevron to hide the 12 sliders when not in use. */}
-        {(
-          <div className="builder" style={{ marginBottom:20 }}>
-            <div className="builder-row" style={{marginBottom:"var(--s-2)"}}>
-              <button
-                onClick={() => setBuilderCollapsed(c => !c)}
-                aria-label={builderCollapsed ? "Expand bespoke shock builder" : "Collapse bespoke shock builder"}
-                style={{
-                  background: "var(--bg-2)",
-                  border: "1px solid var(--line-1)",
-                  borderRadius: "var(--r-sm)",
-                  cursor: "pointer",
-                  padding: "7px 14px",
-                  color: "var(--ink-0)",
-                  fontFamily: "var(--font-ui)",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 8,
-                }}
-              >
-                <span style={{ fontSize: 16, lineHeight: 1, color: "var(--accent)" }}>{builderCollapsed ? "▸" : "▾"}</span>
-                <span>{builderCollapsed ? "Show bespoke shock builder" : "Hide bespoke shock builder"}</span>
-              </button>
-              {!builderCollapsed && <div className="builder-label">Propagation</div>}
-              {!builderCollapsed && (
-                <div className="prop-toggle">
-                  <button className={prop === "realistic" ? "active" : ""} onClick={onPropToggle}>Realistic (correlated)</button>
-                  <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (independent)</button>
-                </div>
-              )}
-              <div style={{marginLeft:"auto", display:"flex", gap:"var(--s-3)", alignItems:"center"}}>
-                {!builderCollapsed && <button className="reset-btn" onClick={onReset}>Reset</button>}
-                {!builderCollapsed && <div className="builder-label">Horizon</div>}
-                {!builderCollapsed && (
-                  <div className="horizon-tabs">
-                    {["1mo","3mo","6mo"].map(h => (
-                      <button key={h} className={horizon === h ? "active" : ""} onClick={() => setHorizon(h)}>{h}</button>
-                    ))}
-                  </div>
-                )}
-                {builderCollapsed && (() => {
-                  // Only count as shocked when in bespoke mode AND the σ
-                  // differs from today's reading. Canned mode (no scenario)
-                  // returns zeros from getEffectiveShocks; comparing those
-                  // against today's z would falsely report every factor as
-                  // shocked.
-                  const shocked = mode === "bespoke"
-                    ? FACTOR_IDS.filter(fid => Math.abs((effShocks[fid] || 0) - (currentReadingsZ?.[fid] || 0)) > 0.05)
-                    : [];
-                  if (!shocked.length) return <span style={{ fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-2)" }}>No active shocks · sliders at today’s readings</span>;
-                  const summary = shocked.slice(0,3).map(f => `${(FACTORS.find(x=>x.id===f)?.name || f)} ${effShocks[f] >= 0 ? "+" : ""}${effShocks[f].toFixed(1)}σ`).join(" · ");
-                  return <span style={{ fontFamily:"var(--font-ui)", fontSize:11, color:"var(--ink-1)", fontWeight:600 }}>{shocked.length} factor{shocked.length === 1 ? "" : "s"} shocked · {summary}{shocked.length > 3 ? ` + ${shocked.length - 3} more` : ""}</span>;
-                })()}
-              </div>
+        {/* Custom Multi-Factor Shock builder — card layout per Joe mockup 2026-05-18.
+            Auto-opens when mode === "bespoke" (driven by Custom Multi-Factor Shock
+            button in the scenario picker). Header carries title + close; toolbar
+            inside the card holds Propagation + Horizon + Reset; sliders below in a
+            3-column grid. σ AND nominal both shown per slider per Joe directive. */}
+        {!builderCollapsed && (
+          <div className="builder card">
+            <div className="builder-head">
+              <h2>Custom Multi-Factor Shock</h2>
+              <button className="close" aria-label="Close Custom Multi-Factor Shock" onClick={() => { setBuilderCollapsed(true); if (mode === "bespoke") onModeChange("canned"); }}>×</button>
             </div>
-            {!builderCollapsed && <div className="sliders">
+            <p className="builder-helper">Pick your own factor moves below. The engine recomputes regime, Asset Tilt allocation, and your portfolio P&amp;L from this exact shock — no historical anchoring.</p>
+            <div className="builder-toolbar">
+              <span className="tlbl">Propagation</span>
+              <div className="seg">
+                <button className={prop === "realistic" ? "active" : ""} onClick={onPropToggle}>Realistic (correlated)</button>
+                <button className={prop === "bespoke" ? "active" : ""} onClick={onPropToggle}>Custom (independent)</button>
+              </div>
+              <span style={{ marginLeft: 8 }} className="tlbl">Horizon</span>
+              <div className="seg">
+                {["1mo","3mo","6mo"].map(h => (
+                  <button key={h} className={horizon === h ? "active" : ""} onClick={() => setHorizon(h)}>{h}</button>
+                ))}
+              </div>
+              <button className="reset" style={{ marginLeft: "auto" }} onClick={onReset}>Reset</button>
+            </div>
+            <div className="sliders">
               {FACTOR_IDS.map(fid => {
-                // FACTORS is an ARRAY of {id,name,min,max,step} — not a lookup
-                // map — so FACTORS[fid] returns undefined for a string fid.
-                // Use .find() to locate the factor entry, and read .name (the
-                // actual field) rather than the non-existent .label.
                 const f = FACTORS.find(x => x.id === fid);
                 if (!f) return null;
                 const v = effShocks[fid];
@@ -1296,8 +1275,8 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
                   </div>
                 );
               })}
-            </div>}
-            {!builderCollapsed && <div className="disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: every slider is independent — drag any one and only that factor moves. Sliders start at today’s live reading; the coherence indicator below flags combinations that haven’t shown up together historically."}</div>}
+            </div>
+            <div className="builder-disclosure">{prop === "realistic" ? "Realistic mode: drag any one slider to set it as the driver. The other 11 factors auto-propagate based on historical correlations." : "Custom mode: every slider is independent — drag any one and only that factor moves. Sliders start at today\'s live reading; the coherence indicator below flags combinations that haven\'t shown up together historically."}</div>
           </div>
         )}
 
