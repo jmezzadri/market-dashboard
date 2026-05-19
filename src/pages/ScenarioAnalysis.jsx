@@ -299,6 +299,22 @@ const SCENARIOS = {
     proxy:false, lowConf:true },
 };
 
+// Crypto factor model validity guard — Joe directive 2026-05-18.
+// BTC did not exist for pre-2014 scenarios (Black Monday, Dotcom, GFC).
+// Inflation 2022 produces > -100% under the empirical linear factor model
+// (sample-bias from QE-era regression; linear model breaks down for
+// +3.2σ real-rates shock). For these scenarios we display "—" for the
+// Crypto sector and any Crypto-class positions, with a hover note that
+// the model is not valid for that window. Senior Quant decision: refuse
+// to model what we can not model honestly.
+const CRYPTO_INVALID_SCENARIOS = new Set([
+  "black_monday_1987",
+  "dotcom_slow_2000",
+  "dotcom_capitulation_2002",
+  "gfc_2008",
+  "inflation_2022",
+]);
+
 const SECTORS_RAW = [
   { id:"XLK", name:"Technology",            assetClass:"Equity", beta:1.15, current:18, loadings:{ vix:+0.85, move:+0.40, real_rates:+0.85, term_premium:-0.30, dxy:+0.45, copper_gold:+0.20, hy:+0.55, stlfsi:+0.65, anfci:+0.50, aaii:-0.40, putcall:+0.50, breadth:-0.70 },
     igs:[{name:"Software"},{name:"Semiconductors"},{name:"Hardware & Equipment"},{name:"IT Services"}] },
@@ -338,7 +354,38 @@ const SECTORS_RAW = [
   // on each underlying.
   { id:"HY",  name:"HY Bonds",              assetClass:"Defensive", beta:0.55, current:0, loadings:{ vix:+0.5, move:+0.4, real_rates:+0.6, term_premium:-0.1, dxy:0, copper_gold:-0.2, hy:+2.5, stlfsi:+1.2, anfci:+0.9, aaii:-0.3, putcall:+0.3, breadth:-0.3 }, igs:[] },
   { id:"INTL",name:"International Equity",  assetClass:"Equity",    beta:0.95, current:0, loadings:{ vix:+0.75, move:+0.4, real_rates:+0.4, term_premium:-0.1, dxy:-0.9, copper_gold:-0.3, hy:+0.6, stlfsi:+0.65, anfci:+0.5, aaii:-0.4, putcall:+0.45, breadth:-0.55 }, igs:[] },
-  { id:"BTC", name:"Crypto",                assetClass:"Equity",    beta:1.80, current:0, loadings:{ vix:+1.5, move:+0.5, real_rates:+1.0, term_premium:-0.3, dxy:-0.4, copper_gold:-0.5, hy:+1.2, stlfsi:+1.4, anfci:+1.0, aaii:-0.7, putcall:+0.9, breadth:-1.0 }, igs:[] },
+  // Crypto loadings RECALIBRATED 2026-05-18 against empirical BTC monthly regression
+  // (Yahoo BTC-USD 2016-07 to 2026-05, n=119 monthly observations, R² = 0.165).
+  // Methodology: OLS of BTC monthly log-returns on z-score changes of 9 measurable
+  // macro factors (vix / move / real_rates / term_premium / dxy / copper_gold /
+  // hy_ig / stlfsi / anfci). Regression coefficients translated into engine-format
+  // loadings via loading_i = -reg_coef_i / (1.4 × beta), with beta = 1.5 (consistent
+  // with published BTC factor research). Sign conventions matched to engine SCENARIOS
+  // shock conventions. Old loadings were textbook v1 starting points (Sprint 2.6) —
+  // they produced > -100% sector returns for high-beta + heavy-shock combinations,
+  // which is mathematically impossible at the position level (Joe flagged 2026-05-18).
+  //
+  // IMPORTANT LIMITATIONS (Senior Quant note — honest):
+  //   1. Regression sample is 2016-07 to 2026-05. BTC didn't exist for the pre-2014
+  //      scenarios (Black Monday '87, Dot Com '00/'02, GFC '08, Rate Hikes '18 partial).
+  //      The factor model APPLIED to those scenarios is fundamentally extrapolation.
+  //   2. The sample includes the post-2014 "QE era" where real-rates-down ↔ BTC-up
+  //      was the dominant pattern. Applied to GFC '08 (where real rates ALSO fell),
+  //      the model predicts a BTC RALLY, not a crash. This is a real signal of
+  //      sample-period bias — not a bug. The full backtested validation of BTC
+  //      under historical pre-2014 stress is impossible.
+  //   3. aaii / putcall / breadth set to 0 (not measurable from indicator_history).
+  //      Old fabricated values for these three were the biggest contributor to the
+  //      > -100% problem on high-shock scenarios. Zeroing them is more honest than
+  //      guessing.
+  //   4. R² of 0.165 means 83% of BTC monthly variance is idiosyncratic. The factor
+  //      model is a coarse first-pass — not a precision instrument.
+  // Backlog: rerun with monthly HY OAS interpolation, add reasonable sentiment proxies,
+  // and consider a nonlinear (saturating or log) loss function for tail events.
+  { id:"BTC", name:"Crypto", assetClass:"Equity", beta:1.50, current:0,
+    loadings:{ vix:+0.009, move:-0.003, real_rates:+0.152, term_premium:-0.071, dxy:-0.003, copper_gold:-0.004, hy:+0.030, stlfsi:+0.008, anfci:-0.001, aaii:0, putcall:0, breadth:0 },
+    loading_source:"empirical_btc_regression_2016_2026",
+    igs:[] },
   { id:"SPX", name:"Broad US Equity",       assetClass:"Equity",    beta:1.00, current:0, loadings:{ vix:+0.85, move:+0.4, real_rates:+0.5, term_premium:-0.2, dxy:-0.1, copper_gold:-0.25, hy:+0.7, stlfsi:+0.75, anfci:+0.55, aaii:-0.4, putcall:+0.45, breadth:-0.6 }, igs:[] },
   { id:"CSH", name:"Cash",                  assetClass:"Defensive", beta:0.00, current:0, loadings:{ vix:0, move:0, real_rates:0, term_premium:0, dxy:0, copper_gold:0, hy:0, stlfsi:0, anfci:0, aaii:0, putcall:0, breadth:0 }, igs:[] },
 ];
@@ -431,12 +478,17 @@ function compositeNew(currentVal, deltaZ, isStressUp) {
   return Math.max(0, Math.min(100, Math.round(currentVal + deltaZ * 12 * (isStressUp ? 1 : -1))));
 }
 function portfolioPnL(sectorPcts, portfolio = PORTFOLIO) {
+  // null sector stress (e.g. Crypto on a scenario where the factor model is not
+  // valid) → null position P&L; the render shows "—" instead of a fabricated number.
   const positions = portfolio.map(p => {
     const s = SECTOR_BY_NAME[p.sector];
-    const pct = s ? sectorPcts[s.id] || 0 : 0;
-    return { ...p, pct, dollar: p.value * pct / 100 };
+    const raw = s ? sectorPcts[s.id] : 0;
+    if (raw === null || raw === undefined) {
+      return { ...p, pct: null, dollar: null };
+    }
+    return { ...p, pct: raw, dollar: p.value * raw / 100 };
   });
-  return { positions, total: positions.reduce((s, p) => s + p.dollar, 0) };
+  return { positions, total: positions.reduce((s, p) => s + (p.dollar || 0), 0) };
 }
 function newAllocation(factorShocks, horizon) {
   const sectorPcts = sectorShocks(factorShocks, horizon);
@@ -981,7 +1033,16 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   );
   const hasShock = (mode === "canned" && scenario)
     || (mode === "bespoke" && Object.entries(effShocks).some(([f, v]) => Math.abs((v || 0) - (todayReadingsForShock[f] || 0)) > 0.05));
-  const sectorPcts = useMemo(() => sectorShocks(effShocks, horizon), [effShocks, horizon]);
+  const sectorPcts = useMemo(() => {
+    const raw = sectorShocks(effShocks, horizon);
+    // Crypto factor model is not valid for scenarios where BTC did not exist
+    // or where the linear model breaks down. Set BTC stress to null so the
+    // table renders "—" instead of an implausible number.
+    if (mode === "canned" && scenario && CRYPTO_INVALID_SCENARIOS.has(scenario)) {
+      raw.BTC = null;
+    }
+    return raw;
+  }, [effShocks, horizon, mode, scenario]);
 
   // Phase 2G — per-IG stress %. Same dot-product math as sectorShocks(), but
   // IG-specific: parent-sector loadings (from ig_factor_loadings.json, v1
@@ -1206,7 +1267,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   }));
 
   const _stressColor = (pct) => pct > 0 ? "var(--green)" : (pct < 0 ? "var(--red, #b8332a)" : "var(--text-muted)");
-  const _fmtPct = (pct) => (pct === 0 || !hasShock ? "—" : (pct > 0 ? "+" : "") + pct.toFixed(1) + "%");
+  const _fmtPct = (pct) => (pct == null || pct === 0 || !hasShock ? "—" : (pct > 0 ? "+" : "") + pct.toFixed(1) + "%");
   const _fmtDollar = (v) => v === 0 ? "$0" : (v < 0 ? "−$" : "+$") + Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
   return (
@@ -1337,7 +1398,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
         {/* TWO-COLUMN GRID — Joe mockup 2026-05-08:
             LEFT (~0.95fr): Asset Tilt Engine Scenario Results.
             RIGHT (~1.05fr): Your Portfolio. (Cycle Mechanism panel removed 2026-05-18.) */}
-        <div style={{ display:"grid", gridTemplateColumns:"0.95fr 1.05fr", gap:20, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1.18fr 0.82fr", gap:20, alignItems:"start" }}>
 
           {/* LEFT COLUMN — TABLE 1: Asset Tilt Engine Scenario Results */}
           <Table1AssetTilt
@@ -2630,14 +2691,14 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
   const eq = useSortableTable({ rows: equityParents, columns: cols, defaultColId: "pct", defaultDir: "asc" });
   const df = useSortableTable({ rows: defensiveRows, columns: cols, defaultColId: "pct", defaultDir: "desc" });
 
-  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 12px", borderBottom:"0.5px solid var(--border)", whiteSpace:"normal", lineHeight:1.25, cursor:"pointer", userSelect:"none" };
+  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em", padding:"10px 6px", borderBottom:"0.5px solid var(--border)", whiteSpace:"nowrap", lineHeight:1.25, cursor:"pointer", userSelect:"none" };
   const _thNoSort = { ..._th, cursor:"default" };
-  const _td = { fontSize:13, color:"var(--text)", padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
-  const _tdNum = { fontSize:13, padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right", fontVariantNumeric:"tabular-nums" };
+  const _td = { fontSize:12.5, color:"var(--text)", padding:"10px 6px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
+  const _tdNum = { fontSize:12.5, padding:"10px 6px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right", fontVariantNumeric:"tabular-nums" };
   const fmtAlloc = (v) => v == null ? "—" : (Math.abs(v) < 0.05 ? "0.0%" : v.toFixed(1) + "%");
 
   // 6 columns: sector(1fr) | proxy(70px) | stress(95px) | spy(78px) | cur(78px) | stress-alloc(78px)
-  const gridTemplate = hasShock ? "1fr 70px 95px 78px 78px 86px" : "1fr 70px 78px 78px";
+  const gridTemplate = hasShock ? "minmax(132px, 1fr) 50px 78px 58px 58px 64px" : "minmax(160px, 1fr) 56px 70px 70px";
 
   return (
     <div style={tableCard}>
@@ -2654,7 +2715,7 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
         {/* COL HEADERS */}
         <div style={{..._th, textAlign:"left", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("name")}>Sector / IG <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
         <div style={{..._th, textAlign:"left", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
-        {hasShock && <div style={{..._th, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("pct")}>Stress Return <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
+        {hasShock && <div style={{..._th, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("pct")}>Stress <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
         <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>S&amp;P 500</div>
         <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Current</div>
         {hasShock && <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Stress</div>}
@@ -2716,8 +2777,13 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
 // Table 3 — sortable Your Portfolio table with proper column widths so P&L doesn't wrap.
 function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTicker, stressColor, fmtDollar, tableCard, tableHead, tableTitle, tableSub }) {
   const rows = positions.map(p => ({
-    ticker: p.ticker, sector: p.sector, value: p.value || 0, dollar: p.dollar || 0, pct: p.pct || 0,
-    stressed: (p.value || 0) + (p.dollar || 0)
+    ticker: p.ticker, sector: p.sector,
+    value: p.value || 0,
+    // Preserve null (factor model not valid for this sector under selected scenario)
+    // so the renderer can show "—" instead of fabricating a $0 / 0% P&L.
+    dollar: p.dollar === null ? null : (p.dollar || 0),
+    pct:    p.pct    === null ? null : (p.pct    || 0),
+    stressed: p.dollar === null ? null : (p.value || 0) + (p.dollar || 0)
   }));
   const cols = [
     { id:"ticker",   label:"Ticker",   align:"left",  sortValue: r => r.ticker },
@@ -2729,7 +2795,7 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
   ];
   const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({ rows, columns: cols, defaultColId: "value", defaultDir: "desc" });
   const totalCurr = rows.reduce((s,r) => s + r.value, 0);
-  const totalStressed = rows.reduce((s,r) => s + r.stressed, 0);
+  const totalStressed = rows.reduce((s,r) => s + (r.stressed || 0), 0);
   const totalPctNum = totalCurr > 0 ? (total / totalCurr) * 100 : 0;
   const totK = (totalCurr/1000).toFixed(0);
   const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 12px", borderBottom:"0.5px solid var(--border)", whiteSpace:"nowrap", cursor:"pointer", userSelect:"none" };
@@ -2750,15 +2816,17 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
         {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("dollar")}>P&amp;L $ <SortArrow dir={sortCol==="dollar"?sortDir:null}/></div>}
         {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("pct")}>P&amp;L % <SortArrow dir={sortCol==="pct"?sortDir:null}/></div>}
         {sorted.map((pos, i) => {
-          const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
+          const isUnmodeled = pos.dollar === null;
+          const noteTitle = isUnmodeled ? "Factor model not valid for this position under the selected scenario. See the methodology note in the Asset Tilt Engine table." : undefined;
+          const pctText = isUnmodeled ? "—" : ((pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%");
           return (
             <React.Fragment key={i}>
               <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} title={pos.ticker} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
               <div style={{..._td, color:"var(--text-muted)"}} title={pos.sector}>{pos.sector}</div>
               <div style={_tdNum}>${pos.value.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
-              {hasShock && <div style={_tdNum}>${pos.stressed.toLocaleString(undefined, {maximumFractionDigits:0})}</div>}
-              {hasShock && <div style={{..._tdNum, color: stressColor(pos.dollar), fontWeight:600}}>{fmtDollar(pos.dollar)}</div>}
-              {hasShock && <div style={{..._tdNum, color: stressColor(pos.pct), fontWeight:600}}>{pctText}</div>}
+              {hasShock && <div style={{..._tdNum, color: isUnmodeled ? "var(--text-dim)" : undefined}} title={noteTitle}>{isUnmodeled ? "—" : "$" + pos.stressed.toLocaleString(undefined, {maximumFractionDigits:0})}</div>}
+              {hasShock && <div style={{..._tdNum, color: isUnmodeled ? "var(--text-dim)" : stressColor(pos.dollar), fontWeight:600}} title={noteTitle}>{isUnmodeled ? "—" : fmtDollar(pos.dollar)}</div>}
+              {hasShock && <div style={{..._tdNum, color: isUnmodeled ? "var(--text-dim)" : stressColor(pos.pct), fontWeight:600}} title={noteTitle}>{pctText}</div>}
             </React.Fragment>
           );
         })}

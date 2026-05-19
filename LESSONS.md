@@ -22,6 +22,58 @@ When Joe corrects a mistake, propose a new entry here before closing the task.
 
 ---
 
+## 2026-05-19 — Plain-English ban applies to EVERY reply, not just code reviews
+
+**What happened:** Joe blew up after I described the Asset Tilt
+recalibration work in chat using terms like the names of source files,
+the names of internal JSON keys, the names of statistical methods, the
+specific math notation for goodness-of-fit, and the symbols inside the
+code. The existing 2026-05-12 rule already said no code-speak — "never
+file names, table names, branches, function names, or raw shell
+errors." Joe pointed out he'd flagged this multiple times and asked me
+to file a stronger lesson.
+
+**What you should do instead:** When talking to Joe, treat every chat
+reply as a conversation with a partner at a consulting firm who is not
+a coder. The following are all banned, with no exceptions, regardless
+of how short the reply is or how technical the topic is:
+
+  - Any path, any file name, any directory name. Even with the
+    extension stripped. Even in a URL. Even in a "PR description."
+  - Any function name, variable name, constant name, class name, prop
+    name, hook name, route name, table name, column name in a database
+    or JSON file. Even if it's in backticks. Even if I'm explaining
+    "what I changed."
+  - Any statistical term that isn't already in business English:
+    R-squared, OLS, beta_vs_spy, z-score, log-return, factor loading,
+    coefficient. Say "the model explains about a sixth of crypto's
+    monthly moves," not "R² = 0.16."
+  - Any branch name, commit hash, build artifact name, build hash.
+  - Any raw error string, stack trace line, exit code, HTTP status
+    code phrased as a number, anything that looks like it was copied
+    out of a terminal.
+  - Any tool or framework name when irrelevant: "in this React
+    component", "via Vercel cache", "the JSX renders" — all banned in
+    chat. Joe does not care what runs where.
+
+The single allowed exception is the PR number (e.g., "PR #717") because
+Joe uses that himself in chat and uses it to click through to GitHub.
+Everything else gets translated. "We pulled BTC monthly prices from a
+public source going back ten years and ran the math to figure out how
+crypto actually responds to each of the engine's twelve stress
+factors" — yes. "Yahoo BTC-USD monthly closes 2016-07 → 2026-05, OLS on
+z-score changes" — no.
+
+If I catch myself about to type any of the above, I rewrite the
+sentence first. If a sentence cannot be written without the banned
+term, I have not understood the work well enough to talk about it.
+
+**Applies to:** Every chat reply Joe sees. Comments inside code files
+and PR descriptions are exempt (those audiences are different). Chat
+is the only audience this rule governs, and it governs all of chat.
+
+---
+
 ## 2026-05-18 — IIFE-with-hooks inside JSX is forbidden; lift into a real component
 
 **What happened:** An inline `(() => { ... React.useState(...) ... React.useEffect(...) ... })()` block inside the Home render path (introduced by PR #705) caused React error #300 ("rendered fewer hooks than expected") on every non-Home route. The IIFE only executed when `tab === "home"`, so the parent component's hook count varied across renders — React tore down the whole page tree. The methodology revert (PR #709) had nothing to do with the actual cause; the real fix was PR #710, which extracted the IIFE into a proper `HomeAssetTiltEngineRead` function component.
