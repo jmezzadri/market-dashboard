@@ -2,16 +2,20 @@ import React, { useEffect, useMemo, useState } from 'react';
 import CountUp from '../components/CountUp';
 import FreshnessChip from '../components/FreshnessChip';
 import { useSession } from '../../auth/useSession';
+import { supabase } from '../../lib/supabase';
 
 /**
  * HomePage v2 — cutover.
  *
- * Live JSON sources:
- *   /cycle_board_snapshot.json — for Macro Overview mini-card (composite + 6 mech scores)
- *   /v10_allocation.json       — for Asset Tilt mini-card (equity/def/lev + sector OW/UW)
- *   /latest_scan_data.json     — for Daily Opp Scan tile + headlines feed
+ * Live data sources:
+ *   /cycle_board_snapshot.json      — Macro Overview mini-card (composite + 6 mech scores)
+ *   /v10_allocation.json            — Asset Tilt mini-card (equity/def/lev + sector OW/UW)
+ *   Supabase signal_intel_v5_daily  — Daily Opp Scan tile picks (bug #1187 migration:
+ *                                     was /latest_scan_data.json which silently went
+ *                                     stale; now reads same live v5 table the Trading
+ *                                     Opps page reads from)
  *
- * No synthetic data. Every value reads from the JSON; '—' if missing.
+ * No synthetic data. Every value reads from the live source; '—' if missing.
  */
 
 function fmtMoney(n) {
@@ -32,11 +36,55 @@ function useHomeData() {
   const [scan, setScan] = useState(null);
   const [err, setErr] = useState(null);
   useEffect(() => {
+    // Cycle snapshot + allocation still fetch from public JSON.
     Promise.all([
       fetch('/cycle_board_snapshot.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
       fetch('/v10_allocation.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
-      fetch('/latest_scan_data.json', { cache: 'no-cache' }).then((r) => r.ok ? r.json() : null),
-    ]).then(([s, v, sc]) => { setSnap(s); setV10(v); setScan(sc); }).catch((e) => setErr(e?.message));
+    ]).then(([s, v]) => { setSnap(s); setV10(v); }).catch((e) => setErr(e?.message));
+
+    // Scan picks now come from Supabase signal_intel_v5_daily directly.
+    // Bug #1187: was fetch('/latest_scan_data.json') which silently went
+    // 11 days stale — now reads the same live v5 table the Trading Opps
+    // page reads. Shaped to match the legacy file's keys so downstream
+    // useMemo blocks (buys / nears / headlines) keep working unchanged.
+    (async () => {
+      try {
+        const latest = await supabase
+          .from('signal_intel_v5_daily')
+          .select('scan_date')
+          .order('scan_date', { ascending: false })
+          .limit(1);
+        const scanDate = latest.data?.[0]?.scan_date;
+        if (!scanDate) { setScan(null); return; }
+
+        const rows = await supabase
+          .from('signal_intel_v5_daily')
+          .select('ticker, mt_score, band, so_what')
+          .eq('scan_date', scanDate)
+          .in('band', ['Strong Buy', 'Watch Buy', 'Watch Sell'])
+          .order('mt_score', { ascending: false, nullsFirst: false })
+          .limit(20);
+
+        const list = rows.data || [];
+        const buy_opportunities = list
+          .filter((r) => r.band === 'Strong Buy')
+          .map((r) => ({ ticker: r.ticker, composite_score: r.mt_score, reason: r.so_what }));
+        const watch_items = list
+          .filter((r) => r.band === 'Watch Buy' || r.band === 'Watch Sell')
+          .map((r) => ({ ticker: r.ticker, composite_score: r.mt_score, reason: r.so_what }));
+
+        setScan({
+          scan_time: scanDate + 'T16:00:00-04:00',
+          buy_opportunities,
+          watch_items,
+          // signals.market_news intentionally absent — headlines feed is a
+          // separate concern, not in scope of bug #1187. Downstream code
+          // already handles missing market_news gracefully.
+        });
+      } catch (e) {
+        setErr(e?.message);
+      }
+    })();
   }, []);
   return { snap, v10, scan, err };
 }
