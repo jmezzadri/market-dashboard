@@ -1379,7 +1379,7 @@ function findNamedEvent(dateStr) {
 //          fmtY   = (v) => label string (for axis + tooltip)
 //          logY   = bool — log-scale y-axis
 //          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
-function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], verticalReferences = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null, sourceLine = null }) {
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], verticalReferences = [], drawdownBands = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null, sourceLine = null }) {
   const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [overlayKey, setOverlayKey] = useState(defaultOverlay);
@@ -1538,6 +1538,26 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
       </div>
       <div style={{ position: "relative" }}>
         <svg ref={svgRef} viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" style={{ width: "100%", height, display: "block", cursor: "crosshair" }} onMouseMove={handleMove} onMouseLeave={handleLeave}>
+          {/* drawdown bands — rendered first so they sit BEHIND gridlines and series */}
+          {drawdownBands.filter(b => {
+            if (!w.length) return false;
+            return b.end >= w[0].date && b.start <= w[w.length - 1].date;
+          }).map((b, i) => {
+            const startIdx = Math.max(0, w.findIndex(p => p.date >= b.start));
+            let endIdx = w.findIndex(p => p.date >= b.end);
+            if (endIdx < 0) endIdx = w.length - 1;
+            const x1 = xToPx(startIdx);
+            const x2 = xToPx(Math.max(endIdx, startIdx + 1));
+            const labelX = (x1 + x2) / 2;
+            return (
+              <g key={"dd" + i}>
+                <rect x={x1} y={padT} width={Math.max(2, x2 - x1)} height={innerH} fill="rgba(200,70,88,0.08)" stroke="none" />
+                {(x2 - x1) > 32 && (
+                  <text x={labelX} y={padT + 12} fontSize="8.5" fill="rgba(200,70,88,0.85)" textAnchor="middle" fontFamily="Inter" fontWeight="600" letterSpacing="0.04em">{b.label || ""}</text>
+                )}
+              </g>
+            );
+          })}
           {/* y-axis gridlines + labels */}
           {yTicks.map((t, i) => (
             <g key={i}>
@@ -1549,13 +1569,25 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
           {xLabels.map((l, i) => (
             <text key={i} x={l.x} y={H - padB + 18} fontSize="10.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{l.label}</text>
           ))}
-          {/* horizontal reference lines */}
-          {horizontalLines.map((h, i) => (
-            <g key={"h" + i}>
-              <line x1={padL} y1={yToPx(h.value)} x2={W - padR} y2={yToPx(h.value)} stroke={h.color || "var(--text-muted)"} strokeWidth="1.0" strokeDasharray="6 4" />
-              <text x={W - padR - 6} y={yToPx(h.value) - 6} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
-            </g>
-          ))}
+          {/* horizontal reference lines — labels stagger above/below the line so
+              two nearby thresholds (e.g. Watch + Risk Off) don't overlap. */}
+          {(() => {
+            const sorted = horizontalLines.map((h, i) => ({ ...h, _origIdx: i })).filter(h => h.value != null).sort((a, b) => a.value - b.value);
+            const yPositions = sorted.map(h => yToPx(h.value));
+            return sorted.map((h, i) => {
+              // If next line is within 14px, put this label BELOW the line and the next one ABOVE its line.
+              const tooCloseToNext = i < sorted.length - 1 && Math.abs(yPositions[i] - yPositions[i + 1]) < 14;
+              const tooCloseToPrev = i > 0 && Math.abs(yPositions[i] - yPositions[i - 1]) < 14;
+              const labelAbove = !tooCloseToNext || tooCloseToPrev;
+              const labelY = labelAbove ? yPositions[i] - 4 : yPositions[i] + 12;
+              return (
+                <g key={"h" + h._origIdx}>
+                  <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke={h.color || "var(--text-muted)"} strokeWidth="1.0" strokeDasharray="6 4" />
+                  <text x={W - padR - 6} y={labelY} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
+                </g>
+              );
+            });
+          })()}
           {/* vertical reference markers (e.g., methodology splice dates) */}
           {verticalReferences.filter(vr => {
             if (!w.length) return false;
@@ -2218,7 +2250,7 @@ export default function AssetTilt({ onOpenTicker }) {
                   { lbl: "Current",                            val: fmtVal(currentVal), sub: "today's reading" },
                   { lbl: isStress ? "85th percentile (5y)" : "70th percentile (5y)", val: fmtVal(upperMark), sub: "recalibrated daily" },
                   { lbl: isStress ? "Stage" : "Regime",        val: stateNow,            sub: daysInState + " days" },
-                  { lbl: "Full sample range",                  val: fmtVal(minVal) + "–" + fmtVal(maxVal), sub: "1986 to today" },
+                  { lbl: "Full sample range",                  val: fmtVal(minVal) + "–" + fmtVal(maxVal), sub: isStress ? "Real MOVE: 2002–today · 1986–2002 via yield-vol proxy" : "1986 to today" },
                 ].map(k => (
                   <div key={k.lbl} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>{k.lbl}</div>
@@ -2275,12 +2307,21 @@ export default function AssetTilt({ onOpenTicker }) {
                   const sourceLineText = isStress
                     ? "Source: ICE BofA MOVE Index via Yahoo (^MOVE) · Refreshed daily after market close"
                     : "Source: 10-Year Treasury yield (FRED DGS10) · Refreshed daily; MOVE overlay shown above is from Yahoo (^MOVE) · pre-2002 portion is a 21-day rolling 10y-yield realized-vol proxy used for back-testing";
+                  // S&P >10% drawdown bands from the validated backtest — gives the user
+                  // visual anchors for major historical stress periods (GFC, COVID, etc.)
+                  // so they can see how the stress signal / yield regime behaved during each.
+                  const ddBands = (backtest?.drawdowns || []).map(d => ({
+                    start: d.window_start,
+                    end:   d.window_end,
+                    label: d.name,
+                  }));
                   return (
                     <HistoryChart
                       data={chartData}
                       series={[{ key: chartValueKey, label: chartLabel, color: "var(--accent)" }]}
                       horizontalLines={linesForChart}
                       verticalReferences={spliceMarker}
+                      drawdownBands={ddBands}
                       fmtY={fmtVal}
                       defaultTf="5Y"
                       defaultOverlay={isStress && dailyVixIdx ? "vix" : null}
