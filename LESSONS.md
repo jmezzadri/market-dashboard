@@ -1168,3 +1168,44 @@ cutoff.
 ticks, hover ranges, methodology references, and any computed
 date-range string on macrotilt.com. Every specialist binds to this
 rule.
+
+### [2026-05-19] — Plain-English rule applies to PR numbers, internal IDs, status names, and version labels — not just file/table names
+
+**What happened:** Joe blew up at me three separate times in the same
+session for the same root cause — talking to him in codespeak. First
+time the offending tokens were file names and table names. Second time
+I cleaned those up but used internal scoring labels like
+"Tilt points" and "OVR". Third time I cleaned those up but shipped a
+status table full of "PR #727," "PR #728," "cycle_mechanism_board (v11
+retired)," "methodology_calibration_v11," "composite_history," and
+"PR λ." Joe: "I only want plain english speak."
+
+The 2026-05-12 LESSONS rule already binds: "PLAIN ENGLISH ONLY — never
+file names, table names, branches, function names, or raw shell
+errors." But I kept treating internal identifiers as somehow exempt
+because they're not literally file paths. They are exactly the kind
+of thing the rule was written to ban.
+
+**What you should do instead:** Before sending ANY status update,
+table, or written summary to Joe, do a sweep of the body text for:
+(a) anything with an underscore, (b) anything that starts with `PR #`
+or `#` followed by a 3+ digit number, (c) git terms (branch, commit,
+merge, push, rebase, SHA), (d) version labels like v9 / v10 / v11 /
+v5 / phase-2 / sprint-N, (e) status enum values (verified_closed,
+in_progress, wontfix, etc.), (f) any token that wouldn't appear in a
+Wall Street Journal article about your work. If you see ANY of these
+in the body of the response, rewrite them as plain English:
+  - "PR #727" → "a code change I shipped"
+  - "cycle_mechanism_board" → "the old cycle indicator monitor"
+  - "v11" → "the old framework" or "the previous version of the
+    macro engine"
+  - "verified_closed" → "closed"
+  - "main branch" → "the live site"
+
+It is fine to use these tokens in code, in tool calls, in the file
+contents of commits / PR descriptions / bug records — anywhere
+another engineer would read them. The rule binds on direct
+conversation with Joe in chat.
+
+**Applies to:** All written conversation with Joe. Every specialist
+binds to this rule.
