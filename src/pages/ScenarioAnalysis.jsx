@@ -793,17 +793,19 @@ const STRAT_SLEEVES = {
 };
 
 function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock, tableCard, tableHead, tableTitle, tableSub, userPositions, userTotal, userPnlTotal }) {
-  if (!hasShock || !scenarioId) return null;
-  const regime = STRAT_REGIME_MAP[scenarioId];
-  const returns = STRAT_RETURNS_MAP[scenarioId];
-  if (!regime || !returns) return null;
+  // Panel renders ALWAYS so the table structure persists. When no scenario is
+  // selected, every numeric cell shows "—" — only the numbers populate when a
+  // scenario is clicked. Joe directive 2026-05-19: no more layout shifts.
+  const regime = scenarioId ? STRAT_REGIME_MAP[scenarioId] : null;
+  const returns = scenarioId ? STRAT_RETURNS_MAP[scenarioId] : null;
+  const haveScenario = !!(hasShock && scenarioId && regime && returns);
 
-  const eqPct = regime.severity === "Risk Off" ? 50 : 80;
-  const defPct = 100 - eqPct;
-  const sleeve = STRAT_SLEEVES[regime.yieldDir] || STRAT_SLEEVES.Neutral;
-  const atCash = defPct * (sleeve.cash + sleeve.shy);
-  const atGld  = defPct * sleeve.gld;
-  const atTlt  = defPct * sleeve.tlt;
+  const eqPct = haveScenario ? (regime.severity === "Risk Off" ? 50 : 80) : null;
+  const defPct = eqPct != null ? 100 - eqPct : null;
+  const sleeve = haveScenario ? (STRAT_SLEEVES[regime.yieldDir] || STRAT_SLEEVES.Neutral) : null;
+  const atCash = (haveScenario && sleeve) ? defPct * (sleeve.cash + sleeve.shy) : null;
+  const atGld  = (haveScenario && sleeve) ? defPct * sleeve.gld : null;
+  const atTlt  = (haveScenario && sleeve) ? defPct * sleeve.tlt : null;
 
   // Regime + Cash return per scenario. Previous formula (spy × eq_pct/100) assumed
   // perfect engine timing with zero drag for the simpler strategy while showing
@@ -814,15 +816,19 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
   // defensive sleeve lift. Weight 75% toward Asset Tilt (shared engine timing),
   // 25% toward SPY (missing sleeve lift + sector tilt). This matches lifetime
   // validation: Asset Tilt -32.1% / Regime+Cash -36.0% / SPY -54.6%.
-  const sp_cash_return = returns.engine + (returns.spy - returns.engine) * 0.25;
+  const sp_cash_return = haveScenario ? returns.engine + (returns.spy - returns.engine) * 0.25 : null;
   // User portfolio rollup — bucket positions into Equity / Cash / Gold / TLT.
+  // Asset-class bucketing. Strict: only LITERAL cash equivalents go to Cash;
+  // HY Bonds + IG Corp Bond have credit/duration risk and behave equity-like
+  // in stress (Joe correctly flagged HY Bonds inflating Cash to 82.6% under
+  // the old mapping). They roll into Equity now.
   const bucketFor = (sector) => {
     if (!sector) return null;
     const x = String(sector).toLowerCase();
-    if (x === "cash" || x === "hy bonds" || x === "ig corp bond" || x === "bonds") return "cash";
+    if (x === "cash" || x === "money market") return "cash";
     if (x === "gold") return "gold";
     if (x === "usts (20+yr)" || x.includes("long treasur") || x === "tlt") return "tlt";
-    return "equity";
+    return "equity"; // everything else: equity sectors, international, broad, crypto, HY Bonds, IG Corp Bond
   };
   let yp_total = 0, yp_pnl = 0, yp_eq = 0, yp_cash = 0, yp_gld = 0, yp_tlt = 0;
   let yp_anyValid = false;
@@ -845,24 +851,31 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
   const yp_tlt_pct  = yp_total > 0 ? (yp_tlt  / yp_total) * 100 : null;
   const yp_ret      = yp_total > 0 ? (yp_pnl  / yp_total) * 100 : null;
 
+  // Allocations for the user portfolio row are independent of scenario selection
+  // (it's just a rollup of current holdings). But Return / Max DD ONLY populate
+  // when a scenario is active — without it there's nothing to compute against.
   const rows = [
     { name:"S&P 500",
       tip:"Buy and hold S&P 500 index.",
       eq:100, cash:0, gld:0, tlt:0,
-      ret:returns.spy, dd:returns.spy, brand:false },
+      ret: haveScenario ? returns.spy : null, dd: haveScenario ? returns.spy : null,
+      brand:false },
     { name:"S&P 500 / Cash",
       tip:"Follow the Asset Tilt Stress Signal by reducing equity exposure to 80% when the signal reads 'Watch' or 50% when it reads 'Risk Off'.",
-      eq:eqPct, cash:100-eqPct, gld:0, tlt:0,
-      ret:sp_cash_return, dd:sp_cash_return, brand:false },
+      eq:eqPct, cash: eqPct != null ? 100-eqPct : null, gld:0, tlt:0,
+      ret:sp_cash_return, dd:sp_cash_return,
+      brand:false },
     yp_anyValid ? {
       name:"Your Portfolio",
       tip:"Your actual holdings rolled up to the same asset classes, with this scenario's factor shocks applied position-by-position. Positions where the factor model is not valid for the selected scenario are excluded.",
       eq:yp_eq_pct, cash:yp_cash_pct, gld:yp_gld_pct, tlt:yp_tlt_pct,
-      ret:yp_ret, dd:yp_ret, brand:false, you:true } : null,
+      ret: haveScenario ? yp_ret : null, dd: haveScenario ? yp_ret : null,
+      brand:false, you:true } : null,
     { name:"Asset Tilt",
       tip:"Follow the full Asset Tilt recommendation across equity sectors and defensive sleeve allocations.",
       eq:eqPct, cash:atCash, gld:atGld, tlt:atTlt,
-      ret:returns.engine, dd:returns.engine, brand:true },
+      ret: haveScenario ? returns.engine : null, dd: haveScenario ? returns.engine : null,
+      brand:true },
   ].filter(Boolean);
 
   const fmtA = v => (!v || v === 0) ? "—" : (v < 1 ? v.toFixed(1) + "%" : (Number.isInteger(v) ? v : v.toFixed(1)) + "%");
@@ -876,16 +889,16 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
       <div style={{ ...tableHead, display:"flex", justifyContent:"space-between", alignItems:"flex-end", gap:24 }}>
         <div>
           <div style={{ fontSize:11, fontWeight:600, color:"var(--text-muted)", letterSpacing:"0.16em", textTransform:"uppercase", marginBottom:8 }}>
-            Strategy allocations · under {scenarioName}{scenarioWindow ? " · " + scenarioWindow : ""}
+            Strategy allocations{scenarioName ? " · under " + scenarioName : ""}{scenarioWindow ? " · " + scenarioWindow : ""}
           </div>
           <h2 style={tableTitle}>How each strategy would have been positioned — going into this scenario.</h2>
         </div>
         <div style={{ textAlign:"right", minWidth:140 }}>
           <div style={{ fontSize:9.5, fontWeight:600, color:"var(--text-muted)", letterSpacing:"0.08em", textTransform:"uppercase" }}>Asset Tilt return · this window</div>
-          <div style={{ fontFamily:"var(--font-display)", fontWeight:400, fontSize:32, lineHeight:1.1, color:"var(--accent)", letterSpacing:"-0.012em", marginTop:4 }}>
-            {(returns.engine >= 0 ? "+" : "−") + Math.abs(returns.engine).toFixed(1) + "%"}
+          <div style={{ fontFamily:"var(--font-display)", fontWeight:400, fontSize:32, lineHeight:1.1, color: haveScenario ? "var(--accent)" : "var(--text-dim)", letterSpacing:"-0.012em", marginTop:4 }}>
+            {haveScenario ? ((returns.engine >= 0 ? "+" : "−") + Math.abs(returns.engine).toFixed(1) + "%") : "—"}
           </div>
-          {scenarioWindow ? <div style={{ fontSize:11, color:"var(--text-muted)", fontFamily:"var(--font-mono)", marginTop:2 }}>{scenarioWindow}</div> : null}
+          {scenarioWindow ? <div style={{ fontSize:11, color:"var(--text-muted)", fontFamily:"var(--font-mono)", marginTop:2 }}>{scenarioWindow}</div> : <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)", marginTop:2 }}>Pick a scenario</div>}
         </div>
       </div>
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
@@ -1208,7 +1221,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   const _emItalic = { fontStyle:"italic", color:"var(--accent)", fontWeight:500 };
   const _subtitle = { fontFamily:"var(--font-ui)", fontSize:16, color:"var(--text-2)", lineHeight:1.55, margin:"10px 0 0", maxWidth:720 };
   const _rightCard = { background:"var(--surface)", border:"1px solid var(--border)", borderRadius:12, padding:"12px 14px 10px", display:"flex", flexDirection:"column" };
-  const _cardEyebrow = { fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.18em", marginBottom:8, textAlign:"center" };
+  const _cardEyebrow = { fontFamily:"var(--font-display)", fontSize:18, fontWeight:500, color:"var(--accent)", letterSpacing:"-0.005em", marginBottom:14, textAlign:"center" };
   const _scenBtn = (active) => ({
     fontFamily:"var(--font-ui)", fontSize:11, fontWeight:500,
     padding:"8px 10px", borderRadius:6,
@@ -2742,7 +2755,8 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
   const fmtAlloc = (v) => v == null ? "—" : (Math.abs(v) < 0.05 ? "0.0%" : v.toFixed(1) + "%");
 
   // 6 columns: sector(1fr) | proxy(70px) | stress(95px) | spy(78px) | cur(78px) | stress-alloc(78px)
-  const gridTemplate = hasShock ? "minmax(132px, 1fr) 50px 78px 58px 58px 64px" : "minmax(160px, 1fr) 56px 70px 70px";
+  // Always 6 columns so the structure persists. Stress Return + Stress Alloc cells show "—" until a scenario is selected.
+  const gridTemplate = "minmax(132px, 1fr) 50px 78px 58px 58px 64px";
 
   return (
     <div style={tableCard}>
@@ -2751,18 +2765,16 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
         <div style={tableSub}>{hasShock ? "How each equity sector, industry group, and defensive asset class is impacted by the selected scenario. Click a sector row to expand its industry groups; click a sector name for the scenario-aware drilldown." : "Pick a scenario above (or run a custom shock) to see how each sector and industry group would move."}</div>
       </div>
       <div style={{ display:"grid", gridTemplateColumns: gridTemplate }}>
-        {/* GROUP HEADER ROW: empty over first 3 cols, "Asset Allocation" over the 3 alloc cols */}
-        {hasShock ? <>
-          <div style={{ ..._thNoSort, gridColumn:"1 / 4", background:"transparent", borderBottom:"none", paddingBottom:0 }}></div>
-          <div style={{ gridColumn:"4 / 7", textAlign:"center", fontStyle:"italic", fontFamily:"var(--font-display)", fontWeight:500, fontSize:13, color:"var(--text-2)", padding:"6px 8px", background:"var(--accent-soft)", borderBottom:"0.5px solid var(--accent)", letterSpacing:0, textTransform:"none" }}>Asset Allocation</div>
-        </> : null}
-        {/* COL HEADERS */}
+        {/* GROUP HEADER ROW: empty over first 3 cols, "Asset Allocation" over the 3 alloc cols. Always rendered now. */}
+        <div style={{ ..._thNoSort, gridColumn:"1 / 4", background:"transparent", borderBottom:"none", paddingBottom:0 }}></div>
+        <div style={{ gridColumn:"4 / 7", textAlign:"center", fontStyle:"italic", fontFamily:"var(--font-display)", fontWeight:500, fontSize:13, color:"var(--text-2)", padding:"6px 8px", background:"var(--accent-soft)", borderBottom:"0.5px solid var(--accent)", letterSpacing:0, textTransform:"none" }}>Asset Allocation</div>
+        {/* COL HEADERS — always 6, Stress columns show "—" when no scenario */}
         <div style={{..._th, textAlign:"left", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("name")}>Sector / IG <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
         <div style={{..._th, textAlign:"left", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
-        {hasShock && <div style={{..._th, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("pct")}>Stress <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
+        <div style={{..._th, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("pct")}>Stress <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>
         <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>S&amp;P 500</div>
         <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Current</div>
-        {hasShock && <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Stress</div>}
+        <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Stress</div>
         {/* EQUITY SECTORS group label */}
         <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
         {eq.sorted.map(s => {
@@ -2775,23 +2787,24 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
                 <span title={s.name} onClick={(e) => { e.stopPropagation(); if (scenToAt[s.name]) openSectorByName(s.name); }} style={{textDecoration: scenToAt[s.name] ? "underline" : "none", textDecorationColor:"rgba(128,128,128,0.35)", textUnderlineOffset:3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{s.name}</span>
               </div>
               <div style={_td}>{s.ticker}</div>
-              {hasShock && <div style={{..._tdNum, color: stressColor(s.pct), fontWeight:600}}>{fmtPct(s.pct)}</div>}
+              <div style={{..._tdNum, color: hasShock ? stressColor(s.pct) : "var(--text-dim)", fontWeight:600}}>{hasShock ? fmtPct(s.pct) : "—"}</div>
               <div style={{..._tdNum, color:"var(--text-2)"}}>{fmtAlloc(s.spyAlloc)}</div>
               <div style={_tdNum}>{fmtAlloc(s.currentAlloc)}</div>
-              {hasShock && <div style={{..._tdNum, fontWeight:600}}>{fmtAlloc(s.stressAlloc)}</div>}
+              <div style={{..._tdNum, fontWeight:600, color: hasShock ? undefined : "var(--text-dim)"}}>{hasShock ? fmtAlloc(s.stressAlloc) : "—"}</div>
               {isExpanded && s.igs.map((ig, ix) => {
                 const igPct = igStressFor(ig.name);
                 return (
                   <React.Fragment key={s.id + "-" + ix}>
                     <div style={{..._td, paddingLeft:38, color:"var(--text-2)", fontSize:12, cursor:"pointer", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} onClick={() => openIGByName && openIGByName(ig.name, s.name)}>{ig.name}</div>
                     <div style={{..._td, fontSize:12, color:"var(--text-muted)"}}>{ig.proxy}</div>
-                    {hasShock && (igPct === null
-                      ? <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="No factor loadings available for this IG">—</div>
-                      : <div style={{..._tdNum, fontSize:12, color: stressColor(igPct), fontWeight:600}}>{fmtPct(igPct)}</div>
-                    )}
+                    {(!hasShock)
+                      ? <div style={{..._tdNum, fontSize:12, color:"var(--text-dim)"}}>—</div>
+                      : (igPct === null
+                          ? <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="No factor loadings available for this IG">—</div>
+                          : <div style={{..._tdNum, fontSize:12, color: stressColor(igPct), fontWeight:600}}>{fmtPct(igPct)}</div>)}
                     <div style={{..._tdNum, fontSize:12, color:"var(--text-2)"}}>{ig.spyAlloc != null ? fmtAlloc(ig.spyAlloc) : "—"}</div>
                     <div style={{..._tdNum, fontSize:12}}>{ig.currentAlloc != null ? fmtAlloc(ig.currentAlloc) : "—"}</div>
-                    {hasShock && <div style={{..._tdNum, fontSize:12}}>{ig.stressAlloc != null ? fmtAlloc(ig.stressAlloc) : "—"}</div>}
+                    <div style={{..._tdNum, fontSize:12, color: hasShock ? undefined : "var(--text-dim)"}}>{hasShock ? (ig.stressAlloc != null ? fmtAlloc(ig.stressAlloc) : "—") : "—"}</div>
                   </React.Fragment>
                 );
               })}
@@ -2804,10 +2817,10 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
           <React.Fragment key={r.ticker}>
             <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
             <div style={_td}>{r.ticker}</div>
-            {hasShock && <div style={{..._tdNum, color: stressColor(r.pct), fontWeight:600}}>{fmtPct(r.pct)}</div>}
+            <div style={{..._tdNum, color: hasShock ? stressColor(r.pct) : "var(--text-dim)", fontWeight:600}}>{hasShock ? fmtPct(r.pct) : "—"}</div>
             <div style={{..._tdNum, color:"var(--text-2)"}}>{fmtAlloc(r.spyAlloc)}</div>
             <div style={_tdNum}>{fmtAlloc(r.currentAlloc)}</div>
-            {hasShock && <div style={{..._tdNum, fontWeight:600}}>{fmtAlloc(r.stressAlloc)}</div>}
+            <div style={{..._tdNum, fontWeight:600, color: hasShock ? undefined : "var(--text-dim)"}}>{hasShock ? fmtAlloc(r.stressAlloc) : "—"}</div>
           </React.Fragment>
         ))}
       </div>
