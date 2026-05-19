@@ -2,7 +2,7 @@
   "version": "v11.0.0",
   "framework": "cycle-mechanism-counting",
   "sprint": 1,
-  "as_of": "2026-05-18",
+  "as_of": "2026-05-19",
   "lexicon": {
     "states": [
       "Normal",
@@ -63,8 +63,8 @@
           "source_url": "https://www.multpl.com/shiller-pe",
           "sample_window": "post-2011 (15y)",
           "current": {
-            "date": "2026-05-15",
-            "value": 41.66
+            "date": "2026-05-18",
+            "value": 41.63
           },
           "percentile": 100.0,
           "quartile": 4,
@@ -559,7 +559,7 @@
             ],
             [
               "2026-05-31",
-              41.66
+              41.63
             ]
           ],
           "direction": "high",
@@ -567,26 +567,26 @@
           "kpis": [
             {
               "label": "1-month change",
-              "value": 2.73,
-              "value_pct": 7.0,
+              "value": 2.7,
+              "value_pct": 6.9,
               "direction": "up"
             },
             {
               "label": "3-month change",
-              "value": 2.13,
-              "value_pct": 5.4,
+              "value": 2.1,
+              "value_pct": 5.3,
               "direction": "up"
             },
             {
               "label": "1-year change",
-              "value": 6.58,
-              "value_pct": 18.8,
+              "value": 6.55,
+              "value_pct": 18.7,
               "direction": "up"
             },
             {
               "label": "Distance from peak",
               "value": 0.0,
-              "peak_value": 41.66,
+              "peak_value": 41.63,
               "peak_date": "2026-05",
               "direction": "flat"
             }
@@ -677,7 +677,7 @@
           "sample_window": "post-2011 (15y)",
           "current": {
             "date": "2026-05-31",
-            "value": -2.07
+            "value": -2.19
           },
           "percentile": 0.5,
           "quartile": 1,
@@ -1421,32 +1421,32 @@
             ],
             [
               "2026-05-31",
-              -2.0696
+              -2.1879
             ]
           ],
           "alert_score": 99,
           "kpis": [
             {
               "label": "1-month change",
-              "value": -0.2383,
-              "value_pct": 13.0,
+              "value": -0.3566,
+              "value_pct": 19.5,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -0.6293,
-              "value_pct": 43.7,
+              "value": -0.7476,
+              "value_pct": 51.9,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -0.5102,
-              "value_pct": 32.7,
+              "value": -0.6285,
+              "value_pct": 40.3,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -5.3986,
+              "value": -5.5169,
               "peak_value": 3.329,
               "peak_date": "2020-03",
               "direction": "dn"
@@ -1482,16 +1482,16 @@
             {
               "peer_id": "cape",
               "peer_name": "CAPE (Shiller)",
-              "corr_1y": -0.31,
-              "corr_5y": -0.18,
+              "corr_1y": -0.4,
+              "corr_5y": -0.2,
               "n_1y": 12,
               "n_5y": 60
             }
           ],
           "release": {
             "frequency": "D",
-            "last_release": "2026-05-15",
-            "next_release": "2026-05-16 (T+1)",
+            "last_release": "2026-05-18",
+            "next_release": "2026-05-19 (T+1)",
             "source": "Derived: 1/CAPE \u2212 DGS10 (FRED)",
             "source_url": "https://fred.stlouisfed.org/series/DGS10"
           },
@@ -2511,7 +2511,7 @@
       ],
       "current_state": "Risk Off",
       "rule_status": "3 of 3 indicators in top-tail quartile",
-      "as_of": "2026-05-18",
+      "as_of": "2026-05-19",
       "composite_score": 100,
       "composite_breakdown": [
         {
@@ -3168,7 +3168,7 @@
           "name": "HY OAS",
           "unit": "bp",
           "description": "Yield premium on high-yield (junk-rated) corporate bonds over Treasuries. The most-watched single read on credit-market stress. Tight spreads = priced for perfection; wide spreads = stress is here.",
-          "so_what": "HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle caution rather than imminent risk-off.",
+          "so_what": "At 284 bp HY OAS sits in the bottom quartile of the post-2011 sample. The high-yield market is pricing minimal default risk \u2014 a read consistent with late-cycle caution rather than imminent risk-off.",
           "formula": "HY OAS = ICE BofA US High Yield Master II Option-Adjusted Spread, in basis points",
           "source": "FRED: BAMLH0A0HYM2 (daily, monthly resample)",
           "source_url": "https://fred.stlouisfed.org/series/BAMLH0A0HYM2",
@@ -3659,7 +3659,7 @@
       ],
       "current_state": "Cautionary",
       "rule_status": "2 of 3 in bottom quartile",
-      "as_of": "2026-05-18",
+      "as_of": "2026-05-19",
       "composite_score": 68,
       "composite_breakdown": [
         {
@@ -4875,7 +4875,7 @@
             "source": "FRED: IC4WSA (weekly)",
             "source_url": "https://fred.stlouisfed.org/series/IC4WSA"
           },
-          "composite_share_pct": 39.2
+          "composite_share_pct": 39.4
         },
         {
           "id": "ism",
@@ -5139,11 +5139,11 @@
             "date": "2026-05-18",
             "value": 0.08
           },
-          "z_score": -1.12,
+          "z_score": -1.11,
           "trend_60d": "falling",
           "elevated": true,
           "deteriorating": true,
-          "percentile": 1.5,
+          "percentile": 1.9,
           "quartile": 1,
           "direction": "low_is_concerning",
           "history": [
@@ -5637,32 +5637,32 @@
             ],
             [
               "2026-05-31",
-              0.084
+              0.0846
             ]
           ],
-          "alert_score": 97,
+          "alert_score": 96,
           "kpis": [
             {
               "label": "1-month change",
-              "value": -0.0053,
-              "value_pct": -5.9,
+              "value": -0.0047,
+              "value_pct": -5.3,
               "direction": "dn"
             },
             {
               "label": "3-month change",
-              "value": -0.005,
-              "value_pct": -5.6,
+              "value": -0.0044,
+              "value_pct": -4.9,
               "direction": "dn"
             },
             {
               "label": "1-year change",
-              "value": -0.0063,
-              "value_pct": -7.0,
+              "value": -0.0057,
+              "value_pct": -6.3,
               "direction": "dn"
             },
             {
               "label": "Distance from peak",
-              "value": -0.3512,
+              "value": -0.3506,
               "peak_value": 0.4352,
               "peak_date": "2006-07",
               "direction": "dn"
@@ -5698,7 +5698,7 @@
             {
               "peer_id": "erp",
               "peer_name": "Equity Risk Premium",
-              "corr_1y": 0.04,
+              "corr_1y": 0.08,
               "corr_5y": -0.1,
               "n_1y": 12,
               "n_5y": 60
@@ -5711,12 +5711,12 @@
             "source": "Yahoo: ^BKX, ^GSPC (daily)",
             "source_url": "https://finance.yahoo.com/quote/%5EBKX"
           },
-          "composite_share_pct": 46.4
+          "composite_share_pct": 46.2
         }
       ],
       "current_state": "Cautionary",
       "rule_status": "1 of 4 elevated \u00b7 3 of 4 deteriorating over 60d",
-      "as_of": "2026-05-18",
+      "as_of": "2026-05-19",
       "composite_score": 52,
       "composite_breakdown": [
         {
@@ -5729,7 +5729,7 @@
           "indicator_id": "jobless",
           "name": "Jobless claims (4w)",
           "alert_score": 82,
-          "share_pct": 39.2
+          "share_pct": 39.4
         },
         {
           "indicator_id": "ism",
@@ -5740,8 +5740,8 @@
         {
           "indicator_id": "bkx_spx",
           "name": "Banks vs S&P 500 (BKX/SPX)",
-          "alert_score": 97,
-          "share_pct": 46.4
+          "alert_score": 96,
+          "share_pct": 46.2
         }
       ],
       "headline_caption": "Soft patches forming in the real-economy reads."
