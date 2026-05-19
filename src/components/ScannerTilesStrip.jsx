@@ -7,9 +7,13 @@
 // padding / font scale than the legacy Scanner landing.
 
 import { useEffect, useState } from "react";
+import { supabase } from "../lib/supabase";
 
-const DATA_URL =
-  "https://raw.githubusercontent.com/jmezzadri/market-dashboard/main/public/latest_scan_data.json";
+// Bug #1187 — was fetching public/latest_scan_data.json which silently
+// went 11 days stale (5/8-5/18) because the producer workflow had a
+// shallow-clone gate bug that made it skip every run. Now reads the four
+// counts directly from the live Supabase tables — same numbers, fresh
+// every day, no static-file dependency.
 
 // Tile metadata — accent colors match the legacy Scanner landing so
 // downstream brand recognition stays intact.
@@ -97,28 +101,79 @@ export default function ScannerTilesStrip({ onTileClick }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(DATA_URL + "?t=" + Date.now())
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json();
-      })
-      .then(d => {
-        if (!cancelled) { setData(d); setLoading(false); }
-      })
-      .catch(e => {
-        if (!cancelled) { setError(e.message || "fetch failed"); setLoading(false); }
-      });
+    (async () => {
+      try {
+        // Pull the most recent date present in each feed (last 7 days max),
+        // then count rows on that date. "Most recent" rather than "today" so
+        // weekends + holidays don't blank the tiles.
+        const sevenAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+
+        // Congress: count of disclosed trades filed in last 7d.
+        const cong = await supabase
+          .from("congress_trades_daily")
+          .select("transaction_date", { count: "exact", head: true })
+          .gte("transaction_date", sevenAgo);
+
+        // Insiders: count of Form 4 transactions filed in last 7d.
+        const ins = await supabase
+          .from("insider_history")
+          .select("filing_date", { count: "exact", head: true })
+          .gte("filing_date", sevenAgo);
+
+        // Options Flow: latest day's alert tickers.
+        const flowLatest = await supabase
+          .from("options_flow_daily")
+          .select("as_of_date")
+          .order("as_of_date", { ascending: false })
+          .limit(1);
+        let flowCount = 0;
+        if (flowLatest.data && flowLatest.data[0]?.as_of_date) {
+          const flowCnt = await supabase
+            .from("options_flow_daily")
+            .select("ticker", { count: "exact", head: true })
+            .eq("as_of_date", flowLatest.data[0].as_of_date);
+          flowCount = flowCnt.count || 0;
+        }
+
+        // Technicals = tickers scored in latest v5 scan.
+        const techLatest = await supabase
+          .from("signal_intel_v5_daily")
+          .select("scan_date")
+          .order("scan_date", { ascending: false })
+          .limit(1);
+        let techCount = 0;
+        if (techLatest.data && techLatest.data[0]?.scan_date) {
+          const techCnt = await supabase
+            .from("signal_intel_v5_daily")
+            .select("ticker", { count: "exact", head: true })
+            .eq("scan_date", techLatest.data[0].scan_date);
+          techCount = techCnt.count || 0;
+        }
+
+        if (!cancelled) {
+          setData({
+            congress: cong.count || 0,
+            insider: ins.count || 0,
+            flow: flowCount,
+            tech: techCount,
+          });
+          setLoading(false);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          setError(e?.message || "fetch failed");
+          setLoading(false);
+        }
+      }
+    })();
     return () => { cancelled = true; };
   }, []);
 
-  // KPI counts per tile
-  const congressN = ((data?.signals?.congress_buys?.length  || 0)
-                  +  (data?.signals?.congress_sells?.length || 0));
-  const insiderN  = ((data?.signals?.insider_buys?.length   || 0)
-                  +  (data?.signals?.insider_sales?.length  || 0));
-  const flowN     = ((data?.signals?.flow_alerts?.length    || 0)
-                  +  (data?.signals?.put_flow_alerts?.length|| 0));
-  const techN     = Object.keys(data?.signals?.technicals  || {}).length;
+  // KPI counts per tile (now sourced live from Supabase)
+  const congressN = data?.congress || 0;
+  const insiderN  = data?.insider  || 0;
+  const flowN     = data?.flow     || 0;
+  const techN     = data?.tech     || 0;
 
   return (
     <div style={{ marginTop: 24, marginBottom: 12 }}>
