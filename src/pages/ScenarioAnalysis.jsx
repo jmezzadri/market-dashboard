@@ -792,7 +792,7 @@ const STRAT_SLEEVES = {
   Neutral:      { cash: 0.40, gld: 0.25, tlt: 0.25, shy: 0.10 },
 };
 
-function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock, tableCard, tableHead, tableTitle, tableSub }) {
+function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock, tableCard, tableHead, tableTitle, tableSub, userPositions, userTotal, userPnlTotal }) {
   if (!hasShock || !scenarioId) return null;
   const regime = STRAT_REGIME_MAP[scenarioId];
   const returns = STRAT_RETURNS_MAP[scenarioId];
@@ -815,6 +815,36 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
   // 25% toward SPY (missing sleeve lift + sector tilt). This matches lifetime
   // validation: Asset Tilt -32.1% / Regime+Cash -36.0% / SPY -54.6%.
   const sp_cash_return = returns.engine + (returns.spy - returns.engine) * 0.25;
+  // User portfolio rollup — bucket positions into Equity / Cash / Gold / TLT.
+  const bucketFor = (sector) => {
+    if (!sector) return null;
+    const x = String(sector).toLowerCase();
+    if (x === "cash" || x === "hy bonds" || x === "ig corp bond" || x === "bonds") return "cash";
+    if (x === "gold") return "gold";
+    if (x === "usts (20+yr)" || x.includes("long treasur") || x === "tlt") return "tlt";
+    return "equity";
+  };
+  let yp_total = 0, yp_pnl = 0, yp_eq = 0, yp_cash = 0, yp_gld = 0, yp_tlt = 0;
+  let yp_anyValid = false;
+  (userPositions || []).forEach(pos => {
+    if (pos.dollar === null) return;
+    yp_anyValid = true;
+    const v = pos.value || 0;
+    yp_total += v;
+    yp_pnl   += pos.dollar || 0;
+    const b = bucketFor(pos.sector);
+    if (b === "equity") yp_eq += v;
+    else if (b === "cash") yp_cash += v;
+    else if (b === "gold") yp_gld += v;
+    else if (b === "tlt") yp_tlt += v;
+    else yp_eq += v;
+  });
+  const yp_eq_pct   = yp_total > 0 ? (yp_eq   / yp_total) * 100 : null;
+  const yp_cash_pct = yp_total > 0 ? (yp_cash / yp_total) * 100 : null;
+  const yp_gld_pct  = yp_total > 0 ? (yp_gld  / yp_total) * 100 : null;
+  const yp_tlt_pct  = yp_total > 0 ? (yp_tlt  / yp_total) * 100 : null;
+  const yp_ret      = yp_total > 0 ? (yp_pnl  / yp_total) * 100 : null;
+
   const rows = [
     { name:"S&P 500",
       tip:"Buy and hold S&P 500 index.",
@@ -824,11 +854,16 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
       tip:"Follow the Asset Tilt Stress Signal by reducing equity exposure to 80% when the signal reads 'Watch' or 50% when it reads 'Risk Off'.",
       eq:eqPct, cash:100-eqPct, gld:0, tlt:0,
       ret:sp_cash_return, dd:sp_cash_return, brand:false },
+    yp_anyValid ? {
+      name:"Your Portfolio",
+      tip:"Your actual holdings rolled up to the same asset classes, with this scenario's factor shocks applied position-by-position. Positions where the factor model is not valid for the selected scenario are excluded.",
+      eq:yp_eq_pct, cash:yp_cash_pct, gld:yp_gld_pct, tlt:yp_tlt_pct,
+      ret:yp_ret, dd:yp_ret, brand:false, you:true } : null,
     { name:"Asset Tilt",
       tip:"Follow the full Asset Tilt recommendation across equity sectors and defensive sleeve allocations.",
       eq:eqPct, cash:atCash, gld:atGld, tlt:atTlt,
       ret:returns.engine, dd:returns.engine, brand:true },
-  ];
+  ].filter(Boolean);
 
   const fmtA = v => (!v || v === 0) ? "—" : (v < 1 ? v.toFixed(1) + "%" : (Number.isInteger(v) ? v : v.toFixed(1)) + "%");
   const _th = { fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", textAlign:"left", padding:"8px 10px", borderBottom:"0.5px solid var(--border)" };
