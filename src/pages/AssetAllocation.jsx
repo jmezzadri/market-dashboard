@@ -2007,13 +2007,12 @@ export default function AssetTilt({ onOpenTicker }) {
           </div>
 
           <div style={{ padding: "18px 22px" }}>
-            {/* 4-strategy comparison KPI grid — each tile carries its own description */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
+            {/* 3-strategy comparison KPI grid — Regime + Defensive Sleeve dropped 2026-05-18 (Joe directive). Renamed to the canonical lexicon: SPY → S&P 500, Regime + Cash → S&P 500 / Cash, Engine + Asset Tilt → Asset Tilt. */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 22 }}>
               {[
-                { key: "spy",          label: "SPY buy & hold",           color: "rgba(94,94,99,0.7)", dashed: false, desc: "Passive benchmark. Hold the broad equity index through every regime." },
-                { key: "regime_only",  label: "Regime + Cash",            color: "#0071e3",            dashed: true,  desc: "Use the engine's stress signal to scale equity 100 / 80 / 50%. Defensive bucket sits in cash." },
-                { key: "engine",       label: "Regime + Defensive Sleeve",color: "var(--accent)",      dashed: false, desc: "Same regime scaling, but the defensive bucket activates the yield-direction-aware sleeve (Cash + GLD + SHY/TLT)." },
-                { key: "asset_tilt",   label: "Engine + Asset Tilt",      color: "#a8639a",            dashed: false, recommended: true, desc: "The MacroTilt strategy. Equity bucket follows the v9 sector allocation; defensive bucket follows the engine sleeve. Full stack." },
+                { key: "spy",          label: "S&P 500",         color: "rgba(94,94,99,0.7)", dashed: false, desc: "Buy and hold S&P 500 index." },
+                { key: "regime_only",  label: "S&P 500 / Cash",  color: "#0071e3",            dashed: true,  desc: "Follow the Asset Tilt Stress Signal by reducing equity exposure to 80% when the signal reads 'Watch' or 50% when it reads 'Risk Off'." },
+                { key: "asset_tilt",   label: "Asset Tilt",      color: "var(--accent)",      dashed: false, recommended: true, desc: "Follow the full Asset Tilt recommendation across equity sectors and defensive sleeve allocations." },
               ].map(s => {
                 const v = backtest.validation?.[s.key] || {};
                 return (
@@ -2043,16 +2042,15 @@ export default function AssetTilt({ onOpenTicker }) {
               <HistoryChart
                 data={backtest.weekly || []}
                 series={[
-                  { key: "asset_tilt_cumulative",  label: "Engine + Asset Tilt",       color: "#a8639a" },
-                  { key: "engine_cumulative",      label: "Regime + Defensive Sleeve", color: "var(--accent)" },
-                  { key: "regime_only_cumulative", label: "Regime + Cash",             color: "#0071e3", dashed: true },
-                  { key: "spy_cumulative",         label: "SPY buy & hold",            color: "rgba(94,94,99,0.7)" },
+                  { key: "asset_tilt_cumulative",  label: "Asset Tilt",                color: "var(--accent)" },
+                  { key: "regime_only_cumulative", label: "S&P 500 / Cash",            color: "#0071e3", dashed: true },
+                  { key: "spy_cumulative",         label: "S&P 500",                   color: "rgba(94,94,99,0.7)" },
                 ]}
                 fmtY={(v) => ((v - 1) * 100 >= 0 ? "+" : "") + ((v - 1) * 100).toFixed(1) + "%"}
                 rebase={true}
                 defaultTf="Max"
                 height={340}
-                overlapNote="When the engine is Risk On the entire window, Regime + Cash and Regime + Sleeve match SPY (100% equity, defensive bucket empty) — only Engine + Asset Tilt diverges."
+                overlapNote="When the engine is Risk On the entire window, S&P 500 / Cash matches S&P 500 (100% equity) — only Asset Tilt diverges via the sector tilt."
               />
             </div>
 
