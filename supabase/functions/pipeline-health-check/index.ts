@@ -292,6 +292,7 @@ async function handle(req: Request): Promise<Response> {
       row.indicator_id === "sector_perf" ||
       row.indicator_id === "scenario_stress" ||
       row.indicator_id === "scenarios" ||
+      row.indicator_id === "v10_allocation" ||
       row.indicator_id === "indicator_history"
     ) {
       // 2026-05-19 (#1148 fix) — these rows used to fall into the generic
@@ -304,6 +305,7 @@ async function handle(req: Request): Promise<Response> {
         sector_perf:        { path: "/sector_perf.json",          field: "as_of" },
         scenario_stress:    { path: "/scenario_stress.json",      field: "as_of" },
         scenarios:          { path: "/scenario_allocations.json", field: "as_of" },
+        v10_allocation:     { path: "/v10_allocation.json",       field: "as_of" },
         indicator_history:  { path: "/indicator_history.json",    field: "__meta__.generated_at_utc" },
       };
       const cfg = FILE_MAP[row.indicator_id];
