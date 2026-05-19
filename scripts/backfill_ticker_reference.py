@@ -151,6 +151,41 @@ def update_health(sb_url, sb_key, indicator_id, status, error=None):
                    f"indicator_id=eq.{indicator_id}", patch)
 
 
+def write_pipeline_run(sb_url, sb_key, pipeline_name, status,
+                       rows_processed=None, duration_seconds=None, error=None):
+    """Stamp pipeline_runs with the most recent run record.
+
+    Mirrors the helper in backfill_massive_initial.py so the freshness
+    monitor's "did the pipeline run today" check sees this script when
+    it completes. Without this call the pipeline_runs row for
+    massive-ticker-details silently drifted to weeks-stale even though
+    the data table was being refreshed daily — root cause of the red
+    chip seen 2026-05-19 in bug #1148.
+    """
+    now_iso = datetime.now(timezone.utc).isoformat()
+    headers = {
+        "apikey": sb_key,
+        "Authorization": f"Bearer {sb_key}",
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+    }
+    body = [{
+        "pipeline_name":    pipeline_name,
+        "last_run_at":      now_iso,
+        "last_run_status":  status,
+        "last_error":       error,
+        "rows_processed":   rows_processed,
+        "duration_seconds": duration_seconds,
+        "updated_at":       now_iso,
+    }]
+    url = f"{sb_url}/rest/v1/pipeline_runs?on_conflict=pipeline_name"
+    s, b = http_json(url, method="POST", headers=headers, body=body)
+    if s >= 300:
+        # Don't fail the whole run for a registry-write hiccup; the next
+        # successful run will overwrite the row anyway.
+        print(f"[write_pipeline_run] WARN status={s} body={b[:200]}")
+
+
 def fetch_ticker_details(api_key, ticker):
     url = (f"https://api.polygon.io/v3/reference/tickers/"
            f"{ticker}?apiKey={api_key}")
@@ -289,6 +324,7 @@ def main():
     if not targets:
         print("[backfill] nothing to do - universe fully fresh")
         update_health(URL, SK, "massive-ticker-details", "green")
+        write_pipeline_run(URL, SK, "massive-ticker-details", "success", rows_processed=0)
         return 0
 
     print(f"[backfill] targets this run: {len(targets)} "
@@ -354,8 +390,12 @@ def main():
     if upserted == 0 and real_errors == len(targets):
         # All targets failed for non-404 reasons — likely auth, network, or
         # Polygon outage. This IS red.
-        update_health(URL, SK, "massive-ticker-details", "red",
-                      f"all {len(targets)} calls failed; samples: {error_samples}")
+        err_msg = f"all {len(targets)} calls failed; samples: {error_samples}"
+        update_health(URL, SK, "massive-ticker-details", "red", err_msg)
+        write_pipeline_run(URL, SK, "massive-ticker-details", "failure",
+                            rows_processed=0,
+                            duration_seconds=int(elapsed),
+                            error=err_msg)
         return 2
 
     if upserted == 0 and not_found == len(targets):
@@ -364,6 +404,9 @@ def main():
               f"(delisted on Polygon); marking healthy and exiting 0.")
 
     update_health(URL, SK, "massive-ticker-details", "green")
+    write_pipeline_run(URL, SK, "massive-ticker-details", "success",
+                        rows_processed=upserted,
+                        duration_seconds=int(elapsed))
     return 0
 
 
