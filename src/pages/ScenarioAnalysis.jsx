@@ -2698,7 +2698,7 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
   const fmtAlloc = (v) => v == null ? "—" : (Math.abs(v) < 0.05 ? "0.0%" : v.toFixed(1) + "%");
 
   // 6 columns: sector(1fr) | proxy(70px) | stress(95px) | spy(78px) | cur(78px) | stress-alloc(78px)
-  const gridTemplate = hasShock ? "minmax(180px, 1fr) 68px 115px 76px 76px 86px" : "minmax(180px, 1fr) 68px 76px 76px";
+  const gridTemplate = hasShock ? "minmax(150px, 1fr) 56px 92px 66px 66px 76px" : "minmax(170px, 1fr) 62px 78px 78px";
 
   return (
     <div style={tableCard}>
@@ -2715,7 +2715,7 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
         {/* COL HEADERS */}
         <div style={{..._th, textAlign:"left", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("name")}>Sector / IG <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
         <div style={{..._th, textAlign:"left", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
-        {hasShock && <div style={{..._th, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("pct")}>Stress Return <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
+        {hasShock && <div style={{..._th, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("pct")}>Stress <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
         <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>S&amp;P 500</div>
         <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Current</div>
         {hasShock && <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Stress</div>}
