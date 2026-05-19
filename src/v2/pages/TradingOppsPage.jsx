@@ -713,6 +713,7 @@ function FunnelCard({ totals, scanDate }) {
   return (
     <div
       style={{
+        position: "relative",
         padding: "16px 16px 14px",
         borderRadius: "var(--r-lg, 14px)",
         border: "1px solid var(--border)",
@@ -721,7 +722,11 @@ function FunnelCard({ totals, scanDate }) {
         boxShadow: "var(--shadow-sm, 0 1px 2px rgba(0,0,0,0.04))",
       }}
     >
-      {/* Header: "Today's Scan" centered, EOD date small-right */}
+      {/* Header: "Today's Scan" centered, EOD date small-right.
+          Wrapper carries position:relative so the absolute-positioned
+          date chip below anchors INSIDE this tile, not the nearest
+          positioned ancestor (which was causing the chip to render
+          in the page margin to the right of the tile). */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
         <span style={{ fontFamily: "var(--font-display, Fraunces, Georgia, serif)", fontWeight: 500, fontSize: 16, color: "var(--text)", margin: "0 auto" }}>
           Today&rsquo;s Scan
@@ -1173,3 +1178,4 @@ export default function TradingOppsPage({ onOpenTicker }) {
     </>
   );
 }
+
