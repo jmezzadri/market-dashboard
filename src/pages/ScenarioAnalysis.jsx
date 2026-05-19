@@ -866,21 +866,27 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={i}>
-              <td style={{ ..._td, fontWeight: r.brand ? 600 : 500, color: r.brand ? "var(--accent)" : "var(--text)" }}>
-                {r.name}
-                <span title={r.tip} style={{ display:"inline-block", width:14, height:14, borderRadius:"50%", background:"var(--surface-2)", color:"var(--text-muted)", fontSize:9, fontWeight:600, textAlign:"center", lineHeight:"14px", marginLeft:6, cursor:"help", verticalAlign:"1px" }}>i</span>
-                {r.brand && <span style={{ display:"inline-block", background:"var(--accent)", color:"#fff", borderRadius:10, padding:"1px 7px", fontSize:8.5, letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:600, marginLeft:8, verticalAlign:"middle" }}>MacroTilt</span>}
-              </td>
-              <td style={_tdNum}>{fmtA(r.eq)}</td>
-              <td style={_tdNum}>{fmtA(r.cash)}</td>
-              <td style={_tdNum}>{fmtA(r.gld)}</td>
-              <td style={_tdNum}>{fmtA(r.tlt)}</td>
-              <td style={{ ..._tdNum, color: r.ret < 0 ? "var(--red-text)" : "var(--green-text)", fontWeight:600 }}>{r.ret.toFixed(1)}%</td>
-              <td style={{ ..._tdNum, color: r.dd < 0 ? "var(--red-text)" : "var(--green-text)", fontWeight:600 }}>{r.dd.toFixed(1)}%</td>
-            </tr>
-          ))}
+          {rows.map((r, i) => {
+            const rowBg = r.you ? "var(--surface-2)" : undefined;
+            const nameColor = r.brand ? "var(--accent)" : r.you ? "var(--text)" : "var(--text)";
+            const nameWeight = (r.brand || r.you) ? 600 : 500;
+            return (
+              <tr key={i} style={{ background: rowBg }}>
+                <td style={{ ..._td, fontWeight: nameWeight, color: nameColor }}>
+                  {r.name}
+                  <span title={r.tip} style={{ display:"inline-block", width:14, height:14, borderRadius:"50%", background:"var(--surface-2)", color:"var(--text-muted)", fontSize:9, fontWeight:600, textAlign:"center", lineHeight:"14px", marginLeft:6, cursor:"help", verticalAlign:"1px" }}>i</span>
+                  {r.brand && <span style={{ display:"inline-block", background:"var(--accent)", color:"#fff", borderRadius:10, padding:"1px 7px", fontSize:8.5, letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:600, marginLeft:8, verticalAlign:"middle" }}>MacroTilt</span>}
+                  {r.you && <span style={{ display:"inline-block", background:"var(--text-muted)", color:"#fff", borderRadius:10, padding:"1px 7px", fontSize:8.5, letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:600, marginLeft:8, verticalAlign:"middle" }}>You</span>}
+                </td>
+                <td style={_tdNum}>{fmtA(r.eq)}</td>
+                <td style={_tdNum}>{fmtA(r.cash)}</td>
+                <td style={_tdNum}>{fmtA(r.gld)}</td>
+                <td style={_tdNum}>{fmtA(r.tlt)}</td>
+                <td style={{ ..._tdNum, color: r.ret == null ? "var(--text-muted)" : (r.ret < 0 ? "var(--red-text)" : "var(--green-text)"), fontWeight:600 }}>{r.ret == null ? "—" : r.ret.toFixed(1) + "%"}</td>
+                <td style={{ ..._tdNum, color: r.dd == null ? "var(--text-muted)" : (r.dd < 0 ? "var(--red-text)" : "var(--green-text)"), fontWeight:600 }}>{r.dd == null ? "—" : r.dd.toFixed(1) + "%"}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -1393,6 +1399,9 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
           tableHead={_tableHead}
           tableTitle={_tableTitle}
           tableSub={_tableSub}
+          userPositions={realPnl.positions || []}
+          userTotal={portfolioTotal || 0}
+          userPnlTotal={realPnl.total || 0}
         />
 
         {/* TWO-COLUMN GRID — Joe mockup 2026-05-08:
