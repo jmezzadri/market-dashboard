@@ -1110,14 +1110,19 @@ function CompositionChart({ rows, totalLabel = "Sector total" }) {
   );
 }
 
-export function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
+export function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick, scenarioContext }) {
   if (!sector) return null;
   const sectorIGs = igs.filter(ig => ig.sector === sector.sector);
   const sectorEtfs = SECTOR_ETFS[sector.sector] || [];
+  const sc = scenarioContext; // { name, window, sectorStressPct, igStressByName }
   return (
     <ModalShell
       title={sector.sector}
-      subtitle={`Sector · $${sector.dollar.toFixed(2)} of $100 capital · vs SPY ${sector.vs_spy_pp >= 0 ? "+" : ""}${sector.vs_spy_pp}%`}
+      subtitle={
+        sc && sc.name
+          ? `Sector · under ${sc.name}${sc.window ? " · " + sc.window : ""} · stress ${sc.sectorStressPct != null ? (sc.sectorStressPct > 0 ? "+" : "") + sc.sectorStressPct.toFixed(1) + "%" : "—"} · $${sector.dollar.toFixed(2)} of $100 current`
+          : `Sector · $${sector.dollar.toFixed(2)} of $100 capital · vs SPY ${sector.vs_spy_pp >= 0 ? "+" : ""}${sector.vs_spy_pp}%`
+      }
       badge={null}
       onClose={onClose}
     >
@@ -1146,12 +1151,25 @@ export function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
               </span>
             </div>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}>${ig.dollar.toFixed(2)}</span>
-            <span style={{
-              fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600,
-              color: ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 2 ? "var(--accent)"
-                     : ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 0.5 ? "rgba(0,113,227,0.65)"
-                     : "var(--text-muted)",
-            }}>{ig.vs_spy_pp != null ? `${ig.vs_spy_pp > 0 ? "+" : ""}${ig.vs_spy_pp}%` : "—"}</span>
+            {sc && sc.name
+              ? (() => {
+                  const igStress = sc.igStressByName ? sc.igStressByName[ig.name] : null;
+                  return (
+                    <span title={"Stress return under " + sc.name} style={{
+                      fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600,
+                      color: igStress != null ? (igStress > 0 ? "var(--green-text)" : "var(--red-text)") : "var(--text-muted)",
+                    }}>{igStress != null ? `${igStress > 0 ? "+" : ""}${igStress.toFixed(1)}%` : "—"}</span>
+                  );
+                })()
+              : (
+                <span style={{
+                  fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600,
+                  color: ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 2 ? "var(--accent)"
+                         : ig.vs_spy_pp != null && Math.abs(ig.vs_spy_pp) >= 0.5 ? "rgba(0,113,227,0.65)"
+                         : "var(--text-muted)",
+                }}>{ig.vs_spy_pp != null ? `${ig.vs_spy_pp > 0 ? "+" : ""}${ig.vs_spy_pp}%` : "—"}</span>
+              )
+            }
           </button>
         ))}
       </div>
@@ -1159,7 +1177,7 @@ export function SectorModal({ sector, igs, onClose, onIGClick, onEtfClick }) {
   );
 }
 
-export function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBackToSector, onTickerClick }) {
+export function IGModal({ ig, sectorIGs, parentSector, onClose, onEtfClick, onBackToSector, onTickerClick, scenarioContext }) {
   if (!ig) return null;
   const detail = IG_DETAIL[ig.id] || { etfs: [], stocks: [] };
   // Real sector-avg-IG benchmark: total $ in this sector ÷ number of IGs in it.

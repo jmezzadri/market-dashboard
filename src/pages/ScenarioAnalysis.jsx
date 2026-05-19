@@ -925,6 +925,14 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // reality instead of zeros.
   const [readingsSeeded, setReadingsSeeded] = useState(false);
   const [builderCollapsed, setBuilderCollapsed] = useState(true);
+  // Auto-expand the builder when user clicks Custom Multi-Factor Shock (mode → bespoke);
+  // auto-collapse when they pick a canned scenario. Per Joe directive 2026-05-18: the
+  // bespoke shock builder is no longer a separate toggle — it's the natural surface for
+  // the Custom Multi-Factor Shock button.
+  useEffect(() => {
+    if (mode === "bespoke") setBuilderCollapsed(false);
+    else if (mode === "canned" && scenario) setBuilderCollapsed(true);
+  }, [mode, scenario]);
   const currentReadingsZ = useMemo(() => indicatorHistory ? getCurrentReadings(indicatorHistory) : Object.fromEntries(FACTOR_IDS.map(f => [f, 0])), [indicatorHistory]);
   useEffect(() => {
     if (readingsSeeded) return;
@@ -1119,15 +1127,56 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     });
     return m;
   })();
+  // v10 sector lookup keyed by Asset Tilt sector name (matches SCEN_TO_AT_SECTOR mapping)
+  const _v10SectorByName = (v10 && Array.isArray(v10.sectors))
+    ? Object.fromEntries(v10.sectors.map(x => [x.sector, x]))
+    : {};
+  const _v10IGByName = (v10 && Array.isArray(v10.industry_groups))
+    ? Object.fromEntries(v10.industry_groups.map(x => [x.name, x]))
+    : {};
+  // Scenario-driven stress allocation scaling. Risk Off → 50% equity, Watch → 80%, Risk On → 100%.
+  // Severity is inferred from the canned scenario id, or from the current-engine state in bespoke mode.
+  const _stressSeverity = (() => {
+    if (mode === "canned" && scenario && STRAT_REGIME_MAP[scenario]) return STRAT_REGIME_MAP[scenario].severity;
+    return null; // bespoke mode: leave stress alloc blank for now (engine not rerun client-side)
+  })();
+  const _equityStressScale = _stressSeverity === "Risk Off" ? 0.50 : _stressSeverity === "Watch" ? 0.80 : 1.00;
   const _equityParents = SECTORS.filter(s => GICS_IDS.includes(s.id)).map(s => {
     const atName = SCEN_TO_AT_SECTOR[s.name] || s.name;
+    const v10sec = _v10SectorByName[atName];
+    const curAlloc = v10sec ? (v10sec.weight || 0) * 100 : null;
+    const spyAlloc = v10sec ? (v10sec.spy_weight || 0) * 100 : null;
+    const stressAlloc = (curAlloc != null && _stressSeverity) ? curAlloc * _equityStressScale : null;
+    // IGs with their own current alloc from v10
+    const igs = (_v10IGsBySector[atName] || []).map(ig => {
+      const igMeta = _v10IGByName[ig.name];
+      const igCur = igMeta ? (igMeta.dollar || 0) : null;
+      // IG stress = same scale as parent
+      const igStress = (igCur != null && _stressSeverity) ? igCur * _equityStressScale : null;
+      return { ...ig, currentAlloc: igCur, stressAlloc: igStress };
+    });
     return {
       id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0,
-      igs: _v10IGsBySector[atName] || []
+      currentAlloc: curAlloc, spyAlloc, stressAlloc,
+      igs
     };
   });
+  // Engine sleeve composition under stress, by yield direction.
+  // Total defensive pct = 100 - equityStressScale*100; sleeve composition within that bucket.
+  const _yieldDir = (mode === "canned" && scenario && STRAT_REGIME_MAP[scenario]) ? STRAT_REGIME_MAP[scenario].yieldDir : null;
+  const _sleeveTotalPct = _stressSeverity ? (1 - _equityStressScale) * 100 : 0;
+  const _sleeveMix = _yieldDir ? STRAT_SLEEVES[_yieldDir] : null;
+  // Map defensive proxy id (BIL/TLT/GLD) → stress alloc %
+  const _defensiveStressById = {};
+  if (_sleeveMix && _stressSeverity) {
+    _defensiveStressById.TLT = _sleeveTotalPct * _sleeveMix.tlt;
+    _defensiveStressById.GLD = _sleeveTotalPct * _sleeveMix.gld;
+    _defensiveStressById.BIL = _sleeveTotalPct * (_sleeveMix.cash + _sleeveMix.shy); // SHY folded into BIL/cash for display
+  }
   const _defensiveRows = SECTORS.filter(s => DEFENSIVE_IDS.includes(s.id)).map(s => ({
-    id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0
+    id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0,
+    currentAlloc: 0, spyAlloc: 0,
+    stressAlloc: _stressSeverity ? (_defensiveStressById[s.id] != null ? _defensiveStressById[s.id] : 0) : null,
   }));
 
   const _stressColor = (pct) => pct > 0 ? "var(--green)" : (pct < 0 ? "var(--red, #b8332a)" : "var(--text-muted)");
@@ -1343,8 +1392,78 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
         </div>
         </div>
       </main>
-      {sectorModal && v10 && <SectorModal sector={sectorModal} igs={v10.industry_groups} onClose={() => setSectorModal(null)} onIGClick={(ig) => { setSectorModal(null); setIgModal(ig); }} onEtfClick={(e) => onOpenTicker && onOpenTicker(e.t || e)} />}
-      {igModal && v10 && <IGModal ig={igModal} sectorIGs={v10.industry_groups.filter(x => x.sector === igModal.sector)} parentSector={v10.sectors.find(x => x.sector === igModal.sector)} onClose={() => setIgModal(null)} onEtfClick={(e) => onOpenTicker && onOpenTicker(e.t || e)} onBackToSector={(sector) => { setIgModal(null); setSectorModal(sector); }} onTickerClick={(t) => onOpenTicker && onOpenTicker(t)} />}
+      {(() => {
+        // Build scenarioContext when a scenario is active so the modals show stress numbers.
+        if (!hasShock) return null;
+        const sName = mode === "canned" && scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : (mode === "bespoke" ? "Custom shock" : null);
+        const sWindow = mode === "canned" && scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].window : null;
+        if (!sName) return null;
+        // Lookup sector stress from sectorPcts (keyed by Asset Tilt sector name).
+        // Asset Tilt v10.sectors uses standard GICS names; SCEN_TO_AT_SECTOR maps Scenarios' short names → AT names.
+        // For modal use, sector.sector is the AT name; find scenario stress by reverse-lookup.
+        const _atToScenName = Object.fromEntries(Object.entries(SCEN_TO_AT_SECTOR).map(([k,v]) => [v, k]));
+        const sectorStressFor = (atName) => {
+          const scnName = _atToScenName[atName] || atName;
+          const secEntry = SECTORS.find(x => x.name === scnName);
+          if (!secEntry) return null;
+          return sectorPcts[secEntry.id] || null;
+        };
+        const igStressByNameMap = (() => {
+          const m = {};
+          if (igLoadings && Array.isArray(igLoadings.industry_groups) && igPcts) {
+            igLoadings.industry_groups.forEach(ig => {
+              const v = igPcts[ig.id];
+              if (v !== undefined && v !== null) m[ig.name] = v;
+            });
+          }
+          return m;
+        })();
+        return null;
+      })()}
+      {sectorModal && v10 && <SectorModal
+        sector={sectorModal}
+        igs={v10.industry_groups}
+        onClose={() => setSectorModal(null)}
+        onIGClick={(ig) => { setSectorModal(null); setIgModal(ig); }}
+        onEtfClick={(e) => onOpenTicker && onOpenTicker(e.t || e)}
+        scenarioContext={(() => {
+          if (!hasShock) return null;
+          const sName = mode === "canned" && scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : (mode === "bespoke" ? "Custom shock" : null);
+          if (!sName) return null;
+          const sWindow = mode === "canned" && scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].window : null;
+          const _atToScenName = Object.fromEntries(Object.entries(SCEN_TO_AT_SECTOR).map(([k,v]) => [v, k]));
+          const scnName = _atToScenName[sectorModal.sector] || sectorModal.sector;
+          const secEntry = SECTORS.find(x => x.name === scnName);
+          const sectorStressPct = secEntry ? (sectorPcts[secEntry.id] || null) : null;
+          const igStressByName = {};
+          if (igLoadings && Array.isArray(igLoadings.industry_groups) && igPcts) {
+            igLoadings.industry_groups.forEach(ig => {
+              const v = igPcts[ig.id];
+              if (v !== undefined && v !== null) igStressByName[ig.name] = v;
+            });
+          }
+          return { name: sName, window: sWindow, sectorStressPct, igStressByName };
+        })()}
+      />}
+      {igModal && v10 && <IGModal
+        ig={igModal}
+        sectorIGs={v10.industry_groups.filter(x => x.sector === igModal.sector)}
+        parentSector={v10.sectors.find(x => x.sector === igModal.sector)}
+        onClose={() => setIgModal(null)}
+        onEtfClick={(e) => onOpenTicker && onOpenTicker(e.t || e)}
+        onBackToSector={(sector) => { setIgModal(null); setSectorModal(sector); }}
+        onTickerClick={(t) => onOpenTicker && onOpenTicker(t)}
+        scenarioContext={(() => {
+          if (!hasShock) return null;
+          const sName = mode === "canned" && scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : (mode === "bespoke" ? "Custom shock" : null);
+          if (!sName) return null;
+          const sWindow = mode === "canned" && scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].window : null;
+          const igStress = (igPcts && igLoadings)
+            ? (igLoadings.industry_groups || []).filter(x => x.name === igModal.name).map(x => igPcts[x.id])[0]
+            : null;
+          return { name: sName, window: sWindow, igStressPct: (igStress != null ? igStress : null) };
+        })()}
+      />}
     </>
   );
 }
@@ -2498,10 +2617,8 @@ function L4PanelReal({ scenario, baseline, asOf }) {
 // Table 1 — sortable, sectors collapsible (default collapsed), IGs use v10 proxy ETFs.
 // IG-level stress shows "—" with note (Phase 2 calibration).
 function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, expandedSectors, toggleSectorExpanded, openSectorByName, openIGByName, onOpenTicker, stressColor, fmtPct, tableCard, tableHead, tableTitle, tableSub, scenToAt, hasShock }) {
-  // Phase 2G — look up per-IG stress %. v10's industry_groups list keys IGs by
-  // a flat id ("semis", "software", …); ig_factor_loadings.json uses the same
-  // id keys. ScenarioAnalysis's IG rows here only carry name + proxy, so we
-  // resolve via name → ig_id by walking igLoadings.
+  // 6-column layout per Joe directive 2026-05-18:
+  // Sector / Industry Group | Proxy | Stress Return | [Asset Allocation: S&P 500 | Current | Stress]
   const igIdByName = useMemo(() => {
     const m = {};
     if (igLoadings && Array.isArray(igLoadings.industry_groups)) {
@@ -2518,31 +2635,40 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
   const cols = [
     { id:"name",   label:"Sector / Industry Group", align:"left",  sortValue: r => r.name },
     { id:"ticker", label:"Proxy",                   align:"left",  sortValue: r => r.ticker || "" },
-    { id:"pct",    label:"Stress",                  align:"right", sortValue: r => r.pct ?? null },
+    { id:"pct",    label:"Stress Return",           align:"right", sortValue: r => r.pct ?? null },
   ];
   const eq = useSortableTable({ rows: equityParents, columns: cols, defaultColId: "pct", defaultDir: "asc" });
   const df = useSortableTable({ rows: defensiveRows, columns: cols, defaultColId: "pct", defaultDir: "desc" });
 
-  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 14px", borderBottom:"0.5px solid var(--border)", whiteSpace:"normal", lineHeight:1.25, cursor:"pointer", userSelect:"none" };
-  const _td = { fontSize:13, color:"var(--text)", padding:"10px 14px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
-  const _tdNum = { fontSize:13, padding:"10px 14px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right" };
+  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 12px", borderBottom:"0.5px solid var(--border)", whiteSpace:"normal", lineHeight:1.25, cursor:"pointer", userSelect:"none" };
+  const _thNoSort = { ..._th, cursor:"default" };
+  const _td = { fontSize:13, color:"var(--text)", padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
+  const _tdNum = { fontSize:13, padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right", fontVariantNumeric:"tabular-nums" };
+  const fmtAlloc = (v) => v == null ? "—" : (Math.abs(v) < 0.05 ? "0.0%" : v.toFixed(1) + "%");
 
-  const Header = () => (
-    <>
-      <div style={{..._th, textAlign:"left"}} onClick={() => eq.toggleSort("name")}>Sector / Industry Group <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
-      <div style={{..._th, textAlign:"left"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
-      {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => eq.toggleSort("pct")}>Stress <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
-    </>
-  );
+  // 6 columns: sector(1fr) | proxy(70px) | stress(95px) | spy(78px) | cur(78px) | stress-alloc(78px)
+  const gridTemplate = hasShock ? "1fr 70px 95px 78px 78px 86px" : "1fr 70px 78px 78px";
 
   return (
     <div style={tableCard}>
       <div style={tableHead}>
         <h2 style={tableTitle}>Asset Tilt Engine</h2>
-        <div style={tableSub}>{hasShock ? "How each equity sector, industry group, and defensive asset class is impacted by the selected scenario. Click a sector row to expand its industry groups." : "Pick a scenario above (or run a custom shock) to see how each sector and industry group would move."}</div>
+        <div style={tableSub}>{hasShock ? "How each equity sector, industry group, and defensive asset class is impacted by the selected scenario. Click a sector row to expand its industry groups; click a sector name for the scenario-aware drilldown." : "Pick a scenario above (or run a custom shock) to see how each sector and industry group would move."}</div>
       </div>
-      <div style={{ display:"grid", gridTemplateColumns: hasShock ? "1fr 70px 90px" : "1fr 70px" }}>
-        <Header/>
+      <div style={{ display:"grid", gridTemplateColumns: gridTemplate }}>
+        {/* GROUP HEADER ROW: empty over first 3 cols, "Asset Allocation" over the 3 alloc cols */}
+        {hasShock ? <>
+          <div style={{ ..._thNoSort, gridColumn:"1 / 4", background:"transparent", borderBottom:"none", paddingBottom:0 }}></div>
+          <div style={{ gridColumn:"4 / 7", textAlign:"center", fontStyle:"italic", fontFamily:"var(--font-display)", fontWeight:500, fontSize:13, color:"var(--text-2)", padding:"6px 8px", background:"var(--accent-soft)", borderBottom:"0.5px solid var(--accent)", letterSpacing:0, textTransform:"none" }}>Asset Allocation</div>
+        </> : null}
+        {/* COL HEADERS */}
+        <div style={{..._th, textAlign:"left", alignSelf:"end"}} onClick={() => eq.toggleSort("name")}>Sector / Industry Group <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
+        <div style={{..._th, textAlign:"left", alignSelf:"end"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
+        {hasShock && <div style={{..._th, textAlign:"right", alignSelf:"end"}} onClick={() => eq.toggleSort("pct")}>Stress Return <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
+        <div style={{..._thNoSort, textAlign:"right", alignSelf:"end"}}>S&amp;P 500</div>
+        <div style={{..._thNoSort, textAlign:"right", alignSelf:"end"}}>Current</div>
+        {hasShock && <div style={{..._thNoSort, textAlign:"right", alignSelf:"end"}}>Stress</div>}
+        {/* EQUITY SECTORS group label */}
         <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
         {eq.sorted.map(s => {
           const isExpanded = expandedSectors.has(s.id);
@@ -2555,6 +2681,9 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
               </div>
               <div style={_td}>{s.ticker}</div>
               {hasShock && <div style={{..._tdNum, color: stressColor(s.pct), fontWeight:600}}>{fmtPct(s.pct)}</div>}
+              <div style={{..._tdNum, color:"var(--text-2)"}}>{fmtAlloc(s.spyAlloc)}</div>
+              <div style={_tdNum}>{fmtAlloc(s.currentAlloc)}</div>
+              {hasShock && <div style={{..._tdNum, fontWeight:600}}>{fmtAlloc(s.stressAlloc)}</div>}
               {isExpanded && s.igs.map((ig, ix) => {
                 const igPct = igStressFor(ig.name);
                 return (
@@ -2565,23 +2694,30 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
                       ? <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="No factor loadings available for this IG">—</div>
                       : <div style={{..._tdNum, fontSize:12, color: stressColor(igPct), fontWeight:600}}>{fmtPct(igPct)}</div>
                     )}
+                    <div style={{..._tdNum, fontSize:12, color:"var(--text-dim)"}}>—</div>
+                    <div style={{..._tdNum, fontSize:12}}>{ig.currentAlloc != null ? fmtAlloc(ig.currentAlloc) : "—"}</div>
+                    {hasShock && <div style={{..._tdNum, fontSize:12}}>{ig.stressAlloc != null ? fmtAlloc(ig.stressAlloc) : "—"}</div>}
                   </React.Fragment>
                 );
               })}
             </React.Fragment>
           );
         })}
+        {/* DEFENSIVE SLEEVE group label */}
         <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Defensive Sleeve</div>
         {df.sorted.map(r => (
           <React.Fragment key={r.ticker}>
             <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
             <div style={_td}>{r.ticker}</div>
             {hasShock && <div style={{..._tdNum, color: stressColor(r.pct), fontWeight:600}}>{fmtPct(r.pct)}</div>}
+            <div style={{..._tdNum, color:"var(--text-2)"}}>{fmtAlloc(r.spyAlloc)}</div>
+            <div style={_tdNum}>{fmtAlloc(r.currentAlloc)}</div>
+            {hasShock && <div style={{..._tdNum, fontWeight:600}}>{fmtAlloc(r.stressAlloc)}</div>}
           </React.Fragment>
         ))}
       </div>
       <div style={{ padding:"10px 14px", fontFamily:"var(--font-ui)", fontSize:11, color:"var(--text-muted)", fontStyle:"italic", borderTop:"0.5px solid var(--border)" }}>
-        IG stress = parent-sector factor loadings × IG-specific beta vs SPY, horizon-scaled (Phase 2F v1 inheritance, directional regime test 83% pass).
+        Stress allocation is the engine\'s recommended weight under the selected scenario: equity scaled to 50% on Risk Off, 80% on Watch, plus the defensive sleeve weighted by yield direction. IG stress return = parent-sector factor loadings × IG-specific beta vs SPY.
       </div>
     </div>
   );
