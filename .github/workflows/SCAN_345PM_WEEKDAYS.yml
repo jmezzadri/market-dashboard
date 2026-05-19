@@ -81,14 +81,25 @@ jobs:
             echo "SKIP_RUN=true" >> "$GITHUB_ENV"
             exit 0
           fi
-          # Last commit date for the file, in ET.
-          LAST_COMMIT_ET=$(TZ=America/New_York git log -1 --format=%ad --date=format:%Y-%m-%d -- public/latest_scan_data.json 2>/dev/null || echo "")
-          echo "NY time: $NY_HM · today (ET): $TODAY_ET · last scan commit (ET): ${LAST_COMMIT_ET:-none}"
-          if [ "$LAST_COMMIT_ET" = "$TODAY_ET" ]; then
-            echo "::notice::Today's scan already committed at $LAST_COMMIT_ET — idempotent skip."
+          # Idempotency-by-DATA. Earlier version asked "git log" what the
+          # last commit date for the file was, but the shallow clone above
+          # (fetch-depth: 1) made git log return HEAD's date instead of the
+          # actual file's last-commit date — so the gate said "already ran
+          # today" on every single run and the scanner silently skipped for
+          # 11 straight days (2026-05-08 → 2026-05-18). Bug #1187.
+          # New rule: read the scan_time stamped INSIDE the file and
+          # compare its date portion to today. The file always carries a
+          # scan_time; if today's date matches, skip.
+          FILE_DATE_ET=""
+          if [ -f public/latest_scan_data.json ]; then
+            FILE_DATE_ET=$(python3 -c "import json,sys; d=json.load(open('public/latest_scan_data.json')); print(d.get('scan_time','')[:10])" 2>/dev/null || echo "")
+          fi
+          echo "NY time: $NY_HM · today (ET): $TODAY_ET · file scan_time date: ${FILE_DATE_ET:-none}"
+          if [ "$FILE_DATE_ET" = "$TODAY_ET" ]; then
+            echo "::notice::Today'"'"'s scan already published (file scan_time = $FILE_DATE_ET) — idempotent skip."
             echo "SKIP_RUN=true" >> "$GITHUB_ENV"
           else
-            echo "✓ Last scan was $LAST_COMMIT_ET, today is $TODAY_ET — proceeding."
+            echo "✓ File scan_time is $FILE_DATE_ET, today is $TODAY_ET — proceeding."
           fi
 
       - name: Checkout repository
