@@ -2013,7 +2013,7 @@ export default function AssetTilt({ onOpenTicker }) {
                 { key: "spy",          label: "SPY buy & hold",           color: "rgba(94,94,99,0.7)", dashed: false, desc: "Passive benchmark. Hold the broad equity index through every regime." },
                 { key: "regime_only",  label: "Regime + Cash",            color: "#0071e3",            dashed: true,  desc: "Use the engine's stress signal to scale equity 100 / 80 / 50%. Defensive bucket sits in cash." },
                 { key: "engine",       label: "Regime + Defensive Sleeve",color: "var(--accent)",      dashed: false, desc: "Same regime scaling, but the defensive bucket activates the yield-direction-aware sleeve (Cash + GLD + SHY/TLT)." },
-                { key: "asset_tilt",   label: "Engine + Asset Tilt",      color: "#a8639a",            dashed: false, recommended: true, desc: "The MacroTilt strategy. Equity bucket follows the v9 sector allocation; defensive bucket follows the engine sleeve. Full stack." },
+                { key: "asset_tilt",   label: "Engine + Asset Tilt",      color: "var(--accent)",      dashed: false, recommended: true, desc: "The MacroTilt strategy. Equity bucket follows the v9 sector allocation; defensive bucket follows the engine sleeve. Full stack." },
               ].map(s => {
                 const v = backtest.validation?.[s.key] || {};
                 return (
@@ -2043,7 +2043,7 @@ export default function AssetTilt({ onOpenTicker }) {
               <HistoryChart
                 data={backtest.weekly || []}
                 series={[
-                  { key: "asset_tilt_cumulative",  label: "Engine + Asset Tilt",       color: "#a8639a" },
+                  { key: "asset_tilt_cumulative",  label: "Engine + Asset Tilt",       color: "var(--accent)" },
                   { key: "engine_cumulative",      label: "Regime + Defensive Sleeve", color: "var(--accent)" },
                   { key: "regime_only_cumulative", label: "Regime + Cash",             color: "#0071e3", dashed: true },
                   { key: "spy_cumulative",         label: "SPY buy & hold",            color: "rgba(94,94,99,0.7)" },

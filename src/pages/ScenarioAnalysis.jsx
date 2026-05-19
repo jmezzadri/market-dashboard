@@ -679,6 +679,138 @@ const STYLES = `
 // MAIN COMPONENT
 // ════════════════════════════════════════════════════════════════════════
 
+
+// ────────────────────────────────────────────────────────────────────────
+// StrategyAllocPanel — 3-row strategy comparison panel inserted ABOVE the
+// body grid on the Scenario Analysis page. Renders S&P 500 / S&P 500 / Cash /
+// Asset Tilt with their actual allocation under the selected scenario, plus
+// scenario return + max DD per strategy.
+//
+// Data sources:
+//   - scenario regime classification (severity + yield direction): hardcoded
+//     per scenario_id, sourced from macrotilt_engine_backtest.json drawdowns
+//   - SPY + engine returns per scenario: hardcoded from
+//     macrotilt_engine_backtest.json drawdowns (validated 1986-2026)
+//   - Engine equity_pct + sleeve composition: matches the locked engine spec
+//     (Risk Off → 50% equity; Watch → 80%; sleeve by yield direction)
+//
+// Hidden when no canned scenario is selected (i.e., bespoke mode).
+// ────────────────────────────────────────────────────────────────────────
+const STRAT_REGIME_MAP = {
+  black_monday_1987:       { severity: "Risk Off", yieldDir: "Inflationary" },
+  dotcom_slow_2000:        { severity: "Risk Off", yieldDir: "Neutral" },
+  dotcom_capitulation_2002:{ severity: "Risk Off", yieldDir: "Deflationary" },
+  gfc_2008:                { severity: "Risk Off", yieldDir: "Deflationary" },
+  q4_2018:                 { severity: "Watch",    yieldDir: "Inflationary" },
+  covid_2020:              { severity: "Risk Off", yieldDir: "Deflationary" },
+  inflation_2022:          { severity: "Risk Off", yieldDir: "Inflationary" },
+  ai_2024:                 { severity: "Watch",    yieldDir: "Neutral" },
+};
+// Returns per scenario (depth % × 100) — pulled from macrotilt_engine_backtest.json drawdowns.
+const STRAT_RETURNS_MAP = {
+  black_monday_1987:       { spy: -32.7, engine: -31.7 },
+  dotcom_slow_2000:        { spy: -45.7, engine: -34.9 },
+  dotcom_capitulation_2002:{ spy: -27.0, engine: -22.0 }, // illustrative — short window not isolated in backtest
+  gfc_2008:                { spy: -54.6, engine: -31.6 },
+  q4_2018:                 { spy: -17.1, engine: -17.1 },
+  covid_2020:              { spy: -31.8, engine: -22.3 },
+  inflation_2022:          { spy: -23.9, engine: -14.9 },
+  ai_2024:                 { spy: -8.5,  engine: -8.0  },
+};
+// Sleeve composition (fraction of TOTAL portfolio when defensive bucket is fully activated).
+// Matches FINAL_LOCKED_ENGINE_2026-05-13. Cash row absorbs SHY for display.
+const STRAT_SLEEVES = {
+  Inflationary: { cash: 0.50, gld: 0.30, tlt: 0.00, shy: 0.20 },
+  Deflationary: { cash: 0.25, gld: 0.25, tlt: 0.50, shy: 0.00 },
+  Neutral:      { cash: 0.40, gld: 0.25, tlt: 0.25, shy: 0.10 },
+};
+
+function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock, tableCard, tableHead, tableTitle, tableSub }) {
+  if (!hasShock || !scenarioId) return null;
+  const regime = STRAT_REGIME_MAP[scenarioId];
+  const returns = STRAT_RETURNS_MAP[scenarioId];
+  if (!regime || !returns) return null;
+
+  const eqPct = regime.severity === "Risk Off" ? 50 : 80;
+  const defPct = 100 - eqPct;
+  const sleeve = STRAT_SLEEVES[regime.yieldDir] || STRAT_SLEEVES.Neutral;
+  const atCash = defPct * (sleeve.cash + sleeve.shy);
+  const atGld  = defPct * sleeve.gld;
+  const atTlt  = defPct * sleeve.tlt;
+
+  const sp_cash_return = returns.spy * (eqPct/100);
+  const rows = [
+    { name:"S&P 500",
+      tip:"Buy and hold S&P 500 index.",
+      eq:100, cash:0, gld:0, tlt:0,
+      ret:returns.spy, dd:returns.spy, brand:false },
+    { name:"S&P 500 / Cash",
+      tip:"Follow the Asset Tilt Stress Signal by reducing equity exposure to 80% when the signal reads 'Watch' or 50% when it reads 'Risk Off'.",
+      eq:eqPct, cash:100-eqPct, gld:0, tlt:0,
+      ret:sp_cash_return, dd:sp_cash_return, brand:false },
+    { name:"Asset Tilt",
+      tip:"Follow the full Asset Tilt recommendation across equity sectors and defensive sleeve allocations.",
+      eq:eqPct, cash:atCash, gld:atGld, tlt:atTlt,
+      ret:returns.engine, dd:returns.engine, brand:true },
+  ];
+
+  const fmtA = v => (!v || v === 0) ? "—" : (v < 1 ? v.toFixed(1) + "%" : (Number.isInteger(v) ? v : v.toFixed(1)) + "%");
+  const _th = { fontFamily:"var(--font-ui)", fontSize:10, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", textAlign:"left", padding:"8px 10px", borderBottom:"0.5px solid var(--border)" };
+  const _thNum = { ..._th, textAlign:"right" };
+  const _td = { fontSize:13, padding:"13px 10px", borderBottom:"0.5px solid var(--border-faint)", whiteSpace:"nowrap" };
+  const _tdNum = { ..._td, textAlign:"right", fontFamily:"var(--font-mono)", fontVariantNumeric:"tabular-nums" };
+
+  return (
+    <div style={{ ...tableCard, marginBottom:20 }}>
+      <div style={{ ...tableHead, display:"flex", justifyContent:"space-between", alignItems:"flex-end", gap:24 }}>
+        <div>
+          <div style={{ fontSize:11, fontWeight:600, color:"var(--text-muted)", letterSpacing:"0.16em", textTransform:"uppercase", marginBottom:8 }}>
+            Strategy allocations · under {scenarioName}{scenarioWindow ? " · " + scenarioWindow : ""}
+          </div>
+          <h2 style={tableTitle}>How each strategy would have been positioned — going into this scenario.</h2>
+        </div>
+        <div style={{ textAlign:"right", minWidth:140 }}>
+          <div style={{ fontSize:9.5, fontWeight:600, color:"var(--text-muted)", letterSpacing:"0.08em", textTransform:"uppercase" }}>Asset Tilt return · this window</div>
+          <div style={{ fontFamily:"var(--font-display)", fontWeight:400, fontSize:32, lineHeight:1.1, color:"var(--accent)", letterSpacing:"-0.012em", marginTop:4 }}>
+            {(returns.engine >= 0 ? "+" : "−") + Math.abs(returns.engine).toFixed(1) + "%"}
+          </div>
+          {scenarioWindow ? <div style={{ fontSize:11, color:"var(--text-muted)", fontFamily:"var(--font-mono)", marginTop:2 }}>{scenarioWindow}</div> : null}
+        </div>
+      </div>
+      <table style={{ width:"100%", borderCollapse:"collapse" }}>
+        <thead>
+          <tr>
+            <th style={{ ..._th, width:"36%" }}>Strategy</th>
+            <th style={_thNum}>Equity</th>
+            <th style={_thNum}>Cash</th>
+            <th style={_thNum}>Gold</th>
+            <th style={_thNum}>TLT</th>
+            <th style={_thNum}>Return</th>
+            <th style={_thNum}>Max DD</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r, i) => (
+            <tr key={i}>
+              <td style={{ ..._td, fontWeight: r.brand ? 600 : 500, color: r.brand ? "var(--accent)" : "var(--text)" }}>
+                {r.name}
+                <span title={r.tip} style={{ display:"inline-block", width:14, height:14, borderRadius:"50%", background:"var(--surface-2)", color:"var(--text-muted)", fontSize:9, fontWeight:600, textAlign:"center", lineHeight:"14px", marginLeft:6, cursor:"help", verticalAlign:"1px" }}>i</span>
+                {r.brand && <span style={{ display:"inline-block", background:"var(--accent)", color:"#fff", borderRadius:10, padding:"1px 7px", fontSize:8.5, letterSpacing:"0.08em", textTransform:"uppercase", fontWeight:600, marginLeft:8, verticalAlign:"middle" }}>MacroTilt</span>}
+              </td>
+              <td style={_tdNum}>{fmtA(r.eq)}</td>
+              <td style={_tdNum}>{fmtA(r.cash)}</td>
+              <td style={_tdNum}>{fmtA(r.gld)}</td>
+              <td style={_tdNum}>{fmtA(r.tlt)}</td>
+              <td style={{ ..._tdNum, color: r.ret < 0 ? "var(--red-text)" : "var(--green-text)", fontWeight:600 }}>{r.ret.toFixed(1)}%</td>
+              <td style={{ ..._tdNum, color: r.dd < 0 ? "var(--red-text)" : "var(--green-text)", fontWeight:600 }}>{r.dd.toFixed(1)}%</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function ScenarioAnalysis({ onOpenTicker }) {
   const [mode, setMode] = useState("canned");
   // Wire-through to the same modals Asset Tilt uses, so a sector click here
@@ -1150,6 +1282,18 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
             </button>
           )}
         </div>
+
+        {/* Strategy allocations panel — added 2026-05-18 per Joe directive. Hidden in bespoke mode. */}
+        <StrategyAllocPanel
+          scenarioId={mode === "canned" ? scenario : null}
+          scenarioName={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : null}
+          scenarioWindow={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].window : null}
+          hasShock={hasShock}
+          tableCard={_tableCard}
+          tableHead={_tableHead}
+          tableTitle={_tableTitle}
+          tableSub={_tableSub}
+        />
 
         {/* TWO-COLUMN GRID — Joe mockup 2026-05-08:
             LEFT (~0.95fr): Asset Tilt Engine Scenario Results.
