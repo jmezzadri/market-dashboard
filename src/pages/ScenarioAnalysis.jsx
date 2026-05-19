@@ -299,6 +299,22 @@ const SCENARIOS = {
     proxy:false, lowConf:true },
 };
 
+// Crypto factor model validity guard — Joe directive 2026-05-18.
+// BTC did not exist for pre-2014 scenarios (Black Monday, Dotcom, GFC).
+// Inflation 2022 produces > -100% under the empirical linear factor model
+// (sample-bias from QE-era regression; linear model breaks down for
+// +3.2σ real-rates shock). For these scenarios we display "—" for the
+// Crypto sector and any Crypto-class positions, with a hover note that
+// the model is not valid for that window. Senior Quant decision: refuse
+// to model what we can not model honestly.
+const CRYPTO_INVALID_SCENARIOS = new Set([
+  "black_monday_1987",
+  "dotcom_slow_2000",
+  "dotcom_capitulation_2002",
+  "gfc_2008",
+  "inflation_2022",
+]);
+
 const SECTORS_RAW = [
   { id:"XLK", name:"Technology",            assetClass:"Equity", beta:1.15, current:18, loadings:{ vix:+0.85, move:+0.40, real_rates:+0.85, term_premium:-0.30, dxy:+0.45, copper_gold:+0.20, hy:+0.55, stlfsi:+0.65, anfci:+0.50, aaii:-0.40, putcall:+0.50, breadth:-0.70 },
     igs:[{name:"Software"},{name:"Semiconductors"},{name:"Hardware & Equipment"},{name:"IT Services"}] },
@@ -462,12 +478,17 @@ function compositeNew(currentVal, deltaZ, isStressUp) {
   return Math.max(0, Math.min(100, Math.round(currentVal + deltaZ * 12 * (isStressUp ? 1 : -1))));
 }
 function portfolioPnL(sectorPcts, portfolio = PORTFOLIO) {
+  // null sector stress (e.g. Crypto on a scenario where the factor model is not
+  // valid) → null position P&L; the render shows "—" instead of a fabricated number.
   const positions = portfolio.map(p => {
     const s = SECTOR_BY_NAME[p.sector];
-    const pct = s ? sectorPcts[s.id] || 0 : 0;
-    return { ...p, pct, dollar: p.value * pct / 100 };
+    const raw = s ? sectorPcts[s.id] : 0;
+    if (raw === null || raw === undefined) {
+      return { ...p, pct: null, dollar: null };
+    }
+    return { ...p, pct: raw, dollar: p.value * raw / 100 };
   });
-  return { positions, total: positions.reduce((s, p) => s + p.dollar, 0) };
+  return { positions, total: positions.reduce((s, p) => s + (p.dollar || 0), 0) };
 }
 function newAllocation(factorShocks, horizon) {
   const sectorPcts = sectorShocks(factorShocks, horizon);
@@ -1012,7 +1033,16 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   );
   const hasShock = (mode === "canned" && scenario)
     || (mode === "bespoke" && Object.entries(effShocks).some(([f, v]) => Math.abs((v || 0) - (todayReadingsForShock[f] || 0)) > 0.05));
-  const sectorPcts = useMemo(() => sectorShocks(effShocks, horizon), [effShocks, horizon]);
+  const sectorPcts = useMemo(() => {
+    const raw = sectorShocks(effShocks, horizon);
+    // Crypto factor model is not valid for scenarios where BTC did not exist
+    // or where the linear model breaks down. Set BTC stress to null so the
+    // table renders "—" instead of an implausible number.
+    if (mode === "canned" && scenario && CRYPTO_INVALID_SCENARIOS.has(scenario)) {
+      raw.BTC = null;
+    }
+    return raw;
+  }, [effShocks, horizon, mode, scenario]);
 
   // Phase 2G — per-IG stress %. Same dot-product math as sectorShocks(), but
   // IG-specific: parent-sector loadings (from ig_factor_loadings.json, v1
@@ -1237,7 +1267,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   }));
 
   const _stressColor = (pct) => pct > 0 ? "var(--green)" : (pct < 0 ? "var(--red, #b8332a)" : "var(--text-muted)");
-  const _fmtPct = (pct) => (pct === 0 || !hasShock ? "—" : (pct > 0 ? "+" : "") + pct.toFixed(1) + "%");
+  const _fmtPct = (pct) => (pct == null || pct === 0 || !hasShock ? "—" : (pct > 0 ? "+" : "") + pct.toFixed(1) + "%");
   const _fmtDollar = (v) => v === 0 ? "$0" : (v < 0 ? "−$" : "+$") + Math.abs(v).toLocaleString(undefined, { maximumFractionDigits: 0 });
 
   return (
@@ -2668,7 +2698,7 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
   const fmtAlloc = (v) => v == null ? "—" : (Math.abs(v) < 0.05 ? "0.0%" : v.toFixed(1) + "%");
 
   // 6 columns: sector(1fr) | proxy(70px) | stress(95px) | spy(78px) | cur(78px) | stress-alloc(78px)
-  const gridTemplate = hasShock ? "1fr 70px 95px 78px 78px 86px" : "1fr 70px 78px 78px";
+  const gridTemplate = hasShock ? "minmax(180px, 1fr) 68px 115px 76px 76px 86px" : "minmax(180px, 1fr) 68px 76px 76px";
 
   return (
     <div style={tableCard}>
@@ -2747,8 +2777,13 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
 // Table 3 — sortable Your Portfolio table with proper column widths so P&L doesn't wrap.
 function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTicker, stressColor, fmtDollar, tableCard, tableHead, tableTitle, tableSub }) {
   const rows = positions.map(p => ({
-    ticker: p.ticker, sector: p.sector, value: p.value || 0, dollar: p.dollar || 0, pct: p.pct || 0,
-    stressed: (p.value || 0) + (p.dollar || 0)
+    ticker: p.ticker, sector: p.sector,
+    value: p.value || 0,
+    // Preserve null (factor model not valid for this sector under selected scenario)
+    // so the renderer can show "—" instead of fabricating a $0 / 0% P&L.
+    dollar: p.dollar === null ? null : (p.dollar || 0),
+    pct:    p.pct    === null ? null : (p.pct    || 0),
+    stressed: p.dollar === null ? null : (p.value || 0) + (p.dollar || 0)
   }));
   const cols = [
     { id:"ticker",   label:"Ticker",   align:"left",  sortValue: r => r.ticker },
@@ -2760,7 +2795,7 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
   ];
   const { sorted, sortCol, sortDir, toggleSort } = useSortableTable({ rows, columns: cols, defaultColId: "value", defaultDir: "desc" });
   const totalCurr = rows.reduce((s,r) => s + r.value, 0);
-  const totalStressed = rows.reduce((s,r) => s + r.stressed, 0);
+  const totalStressed = rows.reduce((s,r) => s + (r.stressed || 0), 0);
   const totalPctNum = totalCurr > 0 ? (total / totalCurr) * 100 : 0;
   const totK = (totalCurr/1000).toFixed(0);
   const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 12px", borderBottom:"0.5px solid var(--border)", whiteSpace:"nowrap", cursor:"pointer", userSelect:"none" };
@@ -2781,15 +2816,17 @@ function Table3Portfolio({ positions, total, hasShock, portfolioSource, onOpenTi
         {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("dollar")}>P&amp;L $ <SortArrow dir={sortCol==="dollar"?sortDir:null}/></div>}
         {hasShock && <div style={{..._th, textAlign:"right"}} onClick={() => toggleSort("pct")}>P&amp;L % <SortArrow dir={sortCol==="pct"?sortDir:null}/></div>}
         {sorted.map((pos, i) => {
-          const pctText = (pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%";
+          const isUnmodeled = pos.dollar === null;
+          const noteTitle = isUnmodeled ? "Factor model not valid for this position under the selected scenario. See the methodology note in the Asset Tilt Engine table." : undefined;
+          const pctText = isUnmodeled ? "—" : ((pos.pct === 0 || !hasShock) ? "—" : (pos.pct > 0 ? "+" : "") + pos.pct.toFixed(1) + "%");
           return (
             <React.Fragment key={i}>
               <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} title={pos.ticker} onClick={() => onOpenTicker && onOpenTicker(pos.ticker)}>{pos.ticker}</div>
               <div style={{..._td, color:"var(--text-muted)"}} title={pos.sector}>{pos.sector}</div>
               <div style={_tdNum}>${pos.value.toLocaleString(undefined, {maximumFractionDigits:0})}</div>
-              {hasShock && <div style={_tdNum}>${pos.stressed.toLocaleString(undefined, {maximumFractionDigits:0})}</div>}
-              {hasShock && <div style={{..._tdNum, color: stressColor(pos.dollar), fontWeight:600}}>{fmtDollar(pos.dollar)}</div>}
-              {hasShock && <div style={{..._tdNum, color: stressColor(pos.pct), fontWeight:600}}>{pctText}</div>}
+              {hasShock && <div style={{..._tdNum, color: isUnmodeled ? "var(--text-dim)" : undefined}} title={noteTitle}>{isUnmodeled ? "—" : "$" + pos.stressed.toLocaleString(undefined, {maximumFractionDigits:0})}</div>}
+              {hasShock && <div style={{..._tdNum, color: isUnmodeled ? "var(--text-dim)" : stressColor(pos.dollar), fontWeight:600}} title={noteTitle}>{isUnmodeled ? "—" : fmtDollar(pos.dollar)}</div>}
+              {hasShock && <div style={{..._tdNum, color: isUnmodeled ? "var(--text-dim)" : stressColor(pos.pct), fontWeight:600}} title={noteTitle}>{pctText}</div>}
             </React.Fragment>
           );
         })}
