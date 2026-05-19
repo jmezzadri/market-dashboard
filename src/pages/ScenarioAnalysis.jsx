@@ -2691,10 +2691,10 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
   const eq = useSortableTable({ rows: equityParents, columns: cols, defaultColId: "pct", defaultDir: "asc" });
   const df = useSortableTable({ rows: defensiveRows, columns: cols, defaultColId: "pct", defaultDir: "desc" });
 
-  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", padding:"10px 12px", borderBottom:"0.5px solid var(--border)", whiteSpace:"normal", lineHeight:1.25, cursor:"pointer", userSelect:"none" };
+  const _th = { fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.06em", padding:"10px 6px", borderBottom:"0.5px solid var(--border)", whiteSpace:"nowrap", lineHeight:1.25, cursor:"pointer", userSelect:"none" };
   const _thNoSort = { ..._th, cursor:"default" };
-  const _td = { fontSize:13, color:"var(--text)", padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
-  const _tdNum = { fontSize:13, padding:"10px 12px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right", fontVariantNumeric:"tabular-nums" };
+  const _td = { fontSize:12.5, color:"var(--text)", padding:"10px 6px", borderBottom:"0.5px solid var(--border-faint, var(--border))" };
+  const _tdNum = { fontSize:12.5, padding:"10px 6px", borderBottom:"0.5px solid var(--border-faint, var(--border))", fontFamily:"var(--font-mono)", textAlign:"right", fontVariantNumeric:"tabular-nums" };
   const fmtAlloc = (v) => v == null ? "—" : (Math.abs(v) < 0.05 ? "0.0%" : v.toFixed(1) + "%");
 
   // 6 columns: sector(1fr) | proxy(70px) | stress(95px) | spy(78px) | cur(78px) | stress-alloc(78px)
