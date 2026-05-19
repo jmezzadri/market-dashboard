@@ -1379,7 +1379,7 @@ function findNamedEvent(dateStr) {
 //          fmtY   = (v) => label string (for axis + tooltip)
 //          logY   = bool — log-scale y-axis
 //          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
-function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null }) {
+function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], verticalReferences = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null, sourceLine = null }) {
   const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [overlayKey, setOverlayKey] = useState(defaultOverlay);
@@ -1552,17 +1552,31 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
           {/* horizontal reference lines */}
           {horizontalLines.map((h, i) => (
             <g key={"h" + i}>
-              <line x1={padL} y1={yToPx(h.value)} x2={W - padR} y2={yToPx(h.value)} stroke={h.color || "var(--text-muted)"} strokeWidth="1.2" strokeDasharray="6 4" />
+              <line x1={padL} y1={yToPx(h.value)} x2={W - padR} y2={yToPx(h.value)} stroke={h.color || "var(--text-muted)"} strokeWidth="1.0" strokeDasharray="6 4" />
               <text x={W - padR - 6} y={yToPx(h.value) - 6} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
             </g>
           ))}
-          {/* series paths — vary stroke widths so overlapping lines don't fully hide each other */}
+          {/* vertical reference markers (e.g., methodology splice dates) */}
+          {verticalReferences.filter(vr => {
+            if (!w.length) return false;
+            return vr.date >= w[0].date && vr.date <= w[w.length - 1].date;
+          }).map((vr, i) => {
+            const idx = w.findIndex(p => p.date >= vr.date);
+            if (idx < 0) return null;
+            const x = xToPx(idx);
+            return (
+              <g key={"vr" + i}>
+                <line x1={x} y1={padT} x2={x} y2={H - padB} stroke={vr.color || "rgba(14,17,21,0.45)"} strokeWidth="1.0" strokeDasharray="3 3" />
+                <text x={x + 4} y={padT + 10} fontSize="9.5" fill={vr.color || "var(--text-muted)"} textAnchor="start" fontFamily="Inter" fontWeight="600">{vr.label || ""}</text>
+              </g>
+            );
+          })}
+          {/* series paths — thinner-line styling matched to Macro Overview chart */}
           {allSeries.map((s, i) => {
-            // Widest stroke for the BOTTOM-most line in the legend, getting thinner up the stack
-            const w = s.dashed ? 1.4 : (3.0 - i * 0.4);
+            const sw = s.dashed ? 1.1 : (1.5 - i * 0.2);
             return (
               <path key={s.key} d={pathFor(s.key)} fill="none" stroke={s.color}
-                    strokeWidth={Math.max(1.2, w)} strokeDasharray={s.dashed ? "4 4" : undefined}
+                    strokeWidth={Math.max(1.0, sw)} strokeDasharray={s.dashed ? "4 4" : undefined}
                     opacity={s.dashed ? 0.8 : (i === 0 ? 1 : 0.9)} />
             );
           })}
@@ -1588,6 +1602,11 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
         ))}
         <span style={{ marginLeft: "auto" }}>{tf} window · {w.length} points</span>
       </div>
+      {sourceLine && (
+        <div style={{ marginTop: 8, fontSize: 11, color: "var(--text-muted)", letterSpacing: "0.04em" }}>
+          {sourceLine}
+        </div>
+      )}
       {/* Detect overlapping rebased series and surface the note when applicable */}
       {(() => {
         if (!overlapNote || !rebase || w.length < 2 || allSeries.length < 2) return null;
@@ -1778,13 +1797,15 @@ export default function AssetTilt({ onOpenTicker }) {
                     const y = 120 - 100 * Math.sin(rad);
                     return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y - 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Watch</text></>);
                   })()}
-                  {/* Risk Off threshold marker (85th pctile) */}
+                  {/* Risk Off threshold marker (85th pctile) — text anchored to the
+                      LEFT of the marker so the label doesn't run off the right edge
+                      of the SVG viewBox (was cut off pre-fix). */}
                   {(() => {
                     const angle = 180 - (85 * 1.8);
                     const rad = angle * Math.PI / 180;
                     const x = 120 + 100 * Math.cos(rad);
                     const y = 120 - 100 * Math.sin(rad);
-                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x + 8} y={y + 8} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600">Risk Off</text></>);
+                    return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x - 8} y={y + 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600" textAnchor="end">Risk Off</text></>);
                   })()}
                 </svg>
                 <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{macroEngine.stress?.move_value?.toFixed(1)}</div>
@@ -2228,14 +2249,38 @@ export default function AssetTilt({ onOpenTicker }) {
                     for (const [d, v] of indHist.vix.points) dailyVixIdx[d] = v;
                     chartData = chartData.map(p => ({ ...p, vix: dailyVixIdx[p.date] ?? null }));
                   }
+                  // Watch threshold is calibrated daily at the 75th pctile for stress; here we
+                  // reach for the actual value off the backtest's last row so the label reflects
+                  // the same number the dial uses.
+                  const watchValueStress = backtest?.weekly?.length
+                    ? backtest.weekly[backtest.weekly.length - 1].watch_threshold
+                    : null;
+                  const stressLines = [
+                    ...(watchValueStress != null
+                      ? [{ value: watchValueStress, label: "Watch threshold = " + fmtVal(watchValueStress), color: "rgba(204,143,0,0.75)" }]
+                      : []),
+                    { value: upperMark, label: "Risk Off threshold = " + fmtVal(upperMark), color: "rgba(200,70,88,0.80)" },
+                  ];
+                  const yieldLines = [
+                    { value: upperMark, label: "Inflationary threshold = " + fmtVal(upperMark), color: "rgba(168,99,154,0.80)" },
+                    { value: midMark,   label: "Deflationary threshold = " + fmtVal(midMark),   color: "rgba(33,118,174,0.80)" },
+                  ];
+                  const linesForChart = isStress ? stressLines : yieldLines;
+                  // Splice marker — for yield-regime chart (which extends back to 1986
+                  // using a 10y-yield realized-vol proxy for MOVE), draw a vertical
+                  // reference at 2002-11-12 where the real ICE BofA MOVE feed begins.
+                  const spliceMarker = !isStress
+                    ? [{ date: "2002-11-12", label: "Real MOVE begins · prior is yield-vol proxy", color: "rgba(14,17,21,0.45)" }]
+                    : [];
+                  const sourceLineText = isStress
+                    ? "Source: ICE BofA MOVE Index via Yahoo (^MOVE) · Refreshed daily after market close"
+                    : "Source: 10-Year Treasury yield (FRED DGS10) · Refreshed daily; MOVE overlay shown above is from Yahoo (^MOVE) · pre-2002 portion is a 21-day rolling 10y-yield realized-vol proxy used for back-testing";
                   return (
                     <HistoryChart
                       data={chartData}
                       series={[{ key: chartValueKey, label: chartLabel, color: "var(--accent)" }]}
-                      horizontalLines={[
-                        { value: upperMark, label: (isStress ? "85th-pct = " : "70th-pct = ") + fmtVal(upperMark), color: "rgba(14,17,21,0.55)" },
-                        ...(!isStress ? [{ value: midMark, label: "30th-pct = " + fmtVal(midMark), color: "rgba(14,17,21,0.35)" }] : []),
-                      ]}
+                      horizontalLines={linesForChart}
+                      verticalReferences={spliceMarker}
                       fmtY={fmtVal}
                       defaultTf="5Y"
                       defaultOverlay={isStress && dailyVixIdx ? "vix" : null}
@@ -2246,6 +2291,7 @@ export default function AssetTilt({ onOpenTicker }) {
                         { key: "move",              label: "MOVE level",          color: "rgba(94,94,99,0.7)" },
                         { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
                       ]}
+                      sourceLine={sourceLineText}
                     />
                   );
                 })()}
