@@ -1398,7 +1398,7 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
         {/* TWO-COLUMN GRID — Joe mockup 2026-05-08:
             LEFT (~0.95fr): Asset Tilt Engine Scenario Results.
             RIGHT (~1.05fr): Your Portfolio. (Cycle Mechanism panel removed 2026-05-18.) */}
-        <div style={{ display:"grid", gridTemplateColumns:"0.95fr 1.05fr", gap:20, alignItems:"start" }}>
+        <div style={{ display:"grid", gridTemplateColumns:"1.18fr 0.82fr", gap:20, alignItems:"start" }}>
 
           {/* LEFT COLUMN — TABLE 1: Asset Tilt Engine Scenario Results */}
           <Table1AssetTilt
@@ -2698,7 +2698,7 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
   const fmtAlloc = (v) => v == null ? "—" : (Math.abs(v) < 0.05 ? "0.0%" : v.toFixed(1) + "%");
 
   // 6 columns: sector(1fr) | proxy(70px) | stress(95px) | spy(78px) | cur(78px) | stress-alloc(78px)
-  const gridTemplate = hasShock ? "minmax(150px, 1fr) 56px 92px 66px 66px 76px" : "minmax(170px, 1fr) 62px 78px 78px";
+  const gridTemplate = hasShock ? "minmax(132px, 1fr) 50px 78px 58px 58px 64px" : "minmax(160px, 1fr) 56px 70px 70px";
 
   return (
     <div style={tableCard}>
