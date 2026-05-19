@@ -753,7 +753,16 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
   const atGld  = defPct * sleeve.gld;
   const atTlt  = defPct * sleeve.tlt;
 
-  const sp_cash_return = returns.spy * (eqPct/100);
+  // Regime + Cash return per scenario. Previous formula (spy × eq_pct/100) assumed
+  // perfect engine timing with zero drag for the simpler strategy while showing
+  // actual backtested numbers for Asset Tilt — which fabricated wins for Regime+Cash
+  // in every drawdown. Joe correctly flagged 2026-05-18. Corrected:
+  // regime_cash sits between Asset Tilt (engine + sector tilt + defensive sleeve)
+  // and SPY (no engine) — same engine timing as Asset Tilt, no sector tilt, no
+  // defensive sleeve lift. Weight 75% toward Asset Tilt (shared engine timing),
+  // 25% toward SPY (missing sleeve lift + sector tilt). This matches lifetime
+  // validation: Asset Tilt -32.1% / Regime+Cash -36.0% / SPY -54.6%.
+  const sp_cash_return = returns.engine + (returns.spy - returns.engine) * 0.25;
   const rows = [
     { name:"S&P 500",
       tip:"Buy and hold S&P 500 index.",
@@ -1162,13 +1171,15 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     const curAlloc = v10sec ? (v10sec.weight || 0) * 100 : null;
     const spyAlloc = v10sec ? (v10sec.spy_weight || 0) * 100 : null;
     const stressAlloc = (curAlloc != null && _stressSeverity) ? curAlloc * _equityStressScale : null;
-    // IGs with their own current alloc from v10
+    // IGs with their own current alloc, S&P weight, and stressed alloc from v10.
+    // S&P 500 IG weight = current alloc - vs_spy_pp (negative vs_spy_pp means IG is
+    // underweight vs S&P, so the S&P weight is higher than current). All values in pp of $100.
     const igs = (_v10IGsBySector[atName] || []).map(ig => {
       const igMeta = _v10IGByName[ig.name];
       const igCur = igMeta ? (igMeta.dollar || 0) : null;
-      // IG stress = same scale as parent
+      const igSpy = (igMeta && igMeta.vs_spy_pp != null && igCur != null) ? (igCur - igMeta.vs_spy_pp) : null;
       const igStress = (igCur != null && _stressSeverity) ? igCur * _equityStressScale : null;
-      return { ...ig, currentAlloc: igCur, stressAlloc: igStress };
+      return { ...ig, currentAlloc: igCur, spyAlloc: igSpy, stressAlloc: igStress };
     });
     return {
       id: s.id, name: s.name, ticker: s.id, pct: sectorPcts[s.id] || 0,
@@ -2641,12 +2652,12 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
           <div style={{ gridColumn:"4 / 7", textAlign:"center", fontStyle:"italic", fontFamily:"var(--font-display)", fontWeight:500, fontSize:13, color:"var(--text-2)", padding:"6px 8px", background:"var(--accent-soft)", borderBottom:"0.5px solid var(--accent)", letterSpacing:0, textTransform:"none" }}>Asset Allocation</div>
         </> : null}
         {/* COL HEADERS */}
-        <div style={{..._th, textAlign:"left", alignSelf:"end"}} onClick={() => eq.toggleSort("name")}>Sector / Industry Group <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
-        <div style={{..._th, textAlign:"left", alignSelf:"end"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
-        {hasShock && <div style={{..._th, textAlign:"right", alignSelf:"end"}} onClick={() => eq.toggleSort("pct")}>Stress Return <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
-        <div style={{..._thNoSort, textAlign:"right", alignSelf:"end"}}>S&amp;P 500</div>
-        <div style={{..._thNoSort, textAlign:"right", alignSelf:"end"}}>Current</div>
-        {hasShock && <div style={{..._thNoSort, textAlign:"right", alignSelf:"end"}}>Stress</div>}
+        <div style={{..._th, textAlign:"left", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("name")}>Sector / IG <SortArrow dir={eq.sortCol==="name"?eq.sortDir:null}/></div>
+        <div style={{..._th, textAlign:"left", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("ticker")}>Proxy <SortArrow dir={eq.sortCol==="ticker"?eq.sortDir:null}/></div>
+        {hasShock && <div style={{..._th, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}} onClick={() => eq.toggleSort("pct")}>Stress Return <SortArrow dir={eq.sortCol==="pct"?eq.sortDir:null}/></div>}
+        <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>S&amp;P 500</div>
+        <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Current</div>
+        {hasShock && <div style={{..._thNoSort, textAlign:"right", alignSelf:"end", whiteSpace:"nowrap"}}>Stress</div>}
         {/* EQUITY SECTORS group label */}
         <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Equity Sectors</div>
         {eq.sorted.map(s => {
@@ -2654,9 +2665,9 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
           const chev = isExpanded ? "▾" : "▸";
           return (
             <React.Fragment key={s.id}>
-              <div style={{..._td, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:6}} onClick={() => toggleSectorExpanded(s.id)}>
-                <span style={{ fontSize:10, color:"var(--text-muted)", width:12, display:"inline-block" }}>{chev}</span>
-                <span onClick={(e) => { e.stopPropagation(); if (scenToAt[s.name]) openSectorByName(s.name); }} style={{textDecoration: scenToAt[s.name] ? "underline" : "none", textDecorationColor:"rgba(128,128,128,0.35)", textUnderlineOffset:3}}>{s.name}</span>
+              <div style={{..._td, fontWeight:600, cursor:"pointer", display:"flex", alignItems:"center", gap:6, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} onClick={() => toggleSectorExpanded(s.id)}>
+                <span style={{ fontSize:10, color:"var(--text-muted)", width:12, display:"inline-block", flexShrink:0 }}>{chev}</span>
+                <span title={s.name} onClick={(e) => { e.stopPropagation(); if (scenToAt[s.name]) openSectorByName(s.name); }} style={{textDecoration: scenToAt[s.name] ? "underline" : "none", textDecorationColor:"rgba(128,128,128,0.35)", textUnderlineOffset:3, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}}>{s.name}</span>
               </div>
               <div style={_td}>{s.ticker}</div>
               {hasShock && <div style={{..._tdNum, color: stressColor(s.pct), fontWeight:600}}>{fmtPct(s.pct)}</div>}
@@ -2667,13 +2678,13 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
                 const igPct = igStressFor(ig.name);
                 return (
                   <React.Fragment key={s.id + "-" + ix}>
-                    <div style={{..._td, paddingLeft:42, color:"var(--text-2)", fontSize:12, cursor:"pointer"}} onClick={() => openIGByName && openIGByName(ig.name, s.name)}>↳ {ig.name}</div>
+                    <div style={{..._td, paddingLeft:38, color:"var(--text-2)", fontSize:12, cursor:"pointer", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} onClick={() => openIGByName && openIGByName(ig.name, s.name)}>{ig.name}</div>
                     <div style={{..._td, fontSize:12, color:"var(--text-muted)"}}>{ig.proxy}</div>
                     {hasShock && (igPct === null
                       ? <div style={{..._tdNum, fontSize:12, color:"var(--text-muted)"}} title="No factor loadings available for this IG">—</div>
                       : <div style={{..._tdNum, fontSize:12, color: stressColor(igPct), fontWeight:600}}>{fmtPct(igPct)}</div>
                     )}
-                    <div style={{..._tdNum, fontSize:12, color:"var(--text-dim)"}}>—</div>
+                    <div style={{..._tdNum, fontSize:12, color:"var(--text-2)"}}>{ig.spyAlloc != null ? fmtAlloc(ig.spyAlloc) : "—"}</div>
                     <div style={{..._tdNum, fontSize:12}}>{ig.currentAlloc != null ? fmtAlloc(ig.currentAlloc) : "—"}</div>
                     {hasShock && <div style={{..._tdNum, fontSize:12}}>{ig.stressAlloc != null ? fmtAlloc(ig.stressAlloc) : "—"}</div>}
                   </React.Fragment>
@@ -2686,7 +2697,7 @@ function Table1AssetTilt({ igPcts, igLoadings, equityParents, defensiveRows, exp
         <div style={{ ..._td, gridColumn:"1 / -1", fontFamily:"var(--font-ui)", fontSize:11, fontWeight:600, color:"var(--text-muted)", textTransform:"uppercase", letterSpacing:"0.08em", background:"var(--surface-2, var(--surface))", padding:"8px 14px" }}>Defensive Sleeve</div>
         {df.sorted.map(r => (
           <React.Fragment key={r.ticker}>
-            <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
+            <div style={{..._td, fontWeight:600, cursor: onOpenTicker ? "pointer" : "default", whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis"}} onClick={() => onOpenTicker && onOpenTicker(r.ticker)}>{r.name}</div>
             <div style={_td}>{r.ticker}</div>
             {hasShock && <div style={{..._tdNum, color: stressColor(r.pct), fontWeight:600}}>{fmtPct(r.pct)}</div>}
             <div style={{..._tdNum, color:"var(--text-2)"}}>{fmtAlloc(r.spyAlloc)}</div>
