@@ -2362,7 +2362,7 @@ export default function AssetTilt({ onOpenTicker }) {
 
         return (
           <div onClick={() => { setHistoryOpen(null); setHistoryTimeframe(null); }} style={{ position: "fixed", inset: 0, background: "rgba(14,17,21,0.45)", zIndex: 100, display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: 48, paddingBottom: 48, overflowY: "auto" }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: 920, maxWidth: "94vw", padding: 32, position: "relative" }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 12, width: "min(1200px, 94vw)", maxHeight: "92vh", overflowY: "auto", padding: 32, position: "relative" }}>
 
               {/* Header row */}
               <button onClick={() => { setHistoryOpen(null); setHistoryTimeframe(null); }} style={{ position: "absolute", top: 18, right: 22, background: "transparent", border: "none", fontSize: 14, color: "var(--text-muted)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>Close <span style={{ fontSize: 18 }}>×</span></button>
@@ -2402,7 +2402,7 @@ export default function AssetTilt({ onOpenTicker }) {
               </div>
 
               {/* Chart — DAILY data when stress (indicator_history.json), weekly fallback for yield regime */}
-              <div style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
+              <div style={{ background: "#ffffff", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px", marginBottom: 22 }}>
                 {(() => {
                   // Build the daily data set if available
                   let chartData = allWeeks;
@@ -2543,7 +2543,7 @@ export default function AssetTilt({ onOpenTicker }) {
               )}
 
               {/* Release Calendar */}
-              <div style={{ marginBottom: 22, background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px" }}>
+              <div style={{ marginBottom: 22, background: "#ffffff", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "16px 20px" }}>
                 <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600, marginBottom: 12 }}>Release calendar</div>
                 <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "10px 32px", fontSize: 13 }}>
                   <div style={{ color: "var(--text-muted)" }}>Frequency</div>
