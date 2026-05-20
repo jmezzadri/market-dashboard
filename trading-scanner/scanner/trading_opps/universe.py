@@ -1,26 +1,30 @@
 """
 Screener universe — rebuilt Trading Opportunities screener.
 
-Locked spec (TRADING_OPPS_SCREENER_SPEC_2026-05-20.md, Section 2). A stock
-is eligible to be scored if ALL of these hold:
+A stock is eligible to be scored if ALL of these hold:
 
   * US-listed Common Stock or ADR  (universe_master.type IN ('CS','ADRC'))
   * Last close >= $5
-  * 90-trading-day average dollar volume >= $10,000,000
+  * 90-trading-day MEDIAN daily dollar volume >= $1,500,000
 
 There is NO market-cap floor (the dollar-volume floor is the liquidity
-gate) and NO trend / momentum / relative-strength pre-filter. This is the
-"$10M/day dollar-volume floor" from Joe's Decision 1 — it replaces the
-unbuildable bid-ask-spread filter from the model draft.
+gate) and NO trend / momentum / relative-strength pre-filter.
 
-Expected size: ~2,000-2,500 names.
+2026-05-20 RETAIL RE-SCOPE (Joe): the original spec set a $10M *average*
+dollar-volume floor sized for an institutional book. The screener is now
+optimised for a retail account trading $10k-$30k positions, where running
+out of daily volume / causing slippage is not a concern. The floor is
+lowered to $1.5M and the statistic is the MEDIAN daily dollar volume
+(median is robust to one-off volume spikes — a truer liquidity read).
+This keeps the live universe identical to the universe the Phase 2
+backtest calibrated on.
 
 This is the single source of truth for "which tickers do the Phase 1
 ingest pipelines pull?" Both darkpool_ingest.py and options_eod_ingest.py
 import build_screener_universe() from here.
 
 Auth: SUPABASE_URL + SUPABASE_ACCESS_TOKEN (Management API, read-only
-query). Mirrors the pattern in signal_intelligence_v5/universe.py.
+query).
 """
 
 from __future__ import annotations
@@ -31,11 +35,11 @@ from typing import Any
 import requests
 
 
-# ── Universe gates — locked spec Section 2 ───────────────────────────────────
-MIN_LAST_CLOSE_USD = 5.00            # last close must be >= $5
-MIN_AVG_DOLLAR_VOL_USD = 10_000_000  # 90-day avg close*volume must be >= $10M
+# ── Universe gates ───────────────────────────────────────────────────────────
+MIN_LAST_CLOSE_USD = 5.00                # last close must be >= $5
+MIN_MEDIAN_DOLLAR_VOL_USD = 1_500_000    # 90-day median close*volume >= $1.5M
 DOLLAR_VOL_LOOKBACK_TRADING_DAYS = 90
-INCLUDED_ASSET_TYPES = ("CS", "ADRC")  # universe_master.type values
+INCLUDED_ASSET_TYPES = ("CS", "ADRC")    # universe_master.type values
 
 
 def _management_query(sql: str) -> list[dict[str, Any]]:
@@ -58,12 +62,12 @@ def _management_query(sql: str) -> list[dict[str, Any]]:
 
 def build_screener_universe() -> list[str]:
     """
-    Return the sorted, de-duped ticker list passing the locked spec gates.
+    Return the sorted, de-duped ticker list passing the universe gates.
 
     Per ticker, takes the most recent 90 trading rows in prices_eod, requires
-    their average dollar volume (close * volume) to clear $10M and the latest
-    close to clear $5, and requires universe_master to mark the ticker as an
-    active Common Stock or ADR.
+    the MEDIAN of their daily dollar volume (close * volume) to clear $1.5M and
+    the latest close to clear $5, and requires universe_master to mark the
+    ticker as an active Common Stock or ADR.
     """
     sql = f"""
     WITH recent AS (
@@ -84,7 +88,8 @@ def build_screener_universe() -> list[str]:
      AND um.type IN {INCLUDED_ASSET_TYPES!r}
     WHERE r.rn <= {DOLLAR_VOL_LOOKBACK_TRADING_DAYS}
     GROUP BY r.ticker
-    HAVING AVG(r.close * r.volume) >= {MIN_AVG_DOLLAR_VOL_USD}
+    HAVING percentile_cont(0.5) WITHIN GROUP (ORDER BY r.close * r.volume)
+               >= {MIN_MEDIAN_DOLLAR_VOL_USD}
        AND MAX(CASE WHEN r.rn = 1 THEN r.close END) >= {MIN_LAST_CLOSE_USD}
     ORDER BY r.ticker
     """
