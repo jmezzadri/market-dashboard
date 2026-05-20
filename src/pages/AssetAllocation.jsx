@@ -1380,6 +1380,9 @@ function findNamedEvent(dateStr) {
 //          logY   = bool — log-scale y-axis
 //          defaultTf = "1M" | "6M" | "1Y" | "5Y" | "Max"
 function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, defaultTf = "Max", height = 320, availableOverlays = [], horizontalLines = [], verticalReferences = [], drawdownBands = [], zoneTints = [], defaultOverlay = null, yMin: yMinProp = null, rebase = false, overlapNote = null, sourceLine = null }) {
+  // Note: when an overlay is active and its dataset has its own scale we put
+  // it on a SECONDARY (right) y-axis so a 0-100 indicator can be compared
+  // cleanly against a 100-300 main series. See dualAxisOverlay logic below.
   const [tf, setTf] = useState(defaultTf);
   const [hoverIdx, setHoverIdx] = useState(null);
   const [overlayKey, setOverlayKey] = useState(defaultOverlay);
@@ -1426,10 +1429,14 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
   const innerH = H - padT - padB;
 
   // y-range across all series in the timeframe
-  const allVals = [...w.flatMap(p => allSeries.map(s => p[s.key]).filter(v => v != null && (!logY || v > 0))), ...horizontalLines.map(h => h.value).filter(v => v != null)];
-  let yMinRaw = Math.min(...allVals);
-  let yMaxRaw = Math.max(...allVals);
-  // Multiplicative padding for log scale, additive for linear.
+  // Primary y-range (left axis) — main series + horizontal thresholds + zone tint bounds
+  const primarySeriesKeys = series.map(s => s.key);
+  const primaryVals = [
+    ...w.flatMap(p => primarySeriesKeys.map(k => p[k]).filter(v => v != null && (!logY || v > 0))),
+    ...horizontalLines.map(h => h.value).filter(v => v != null),
+  ];
+  let yMinRaw = Math.min(...primaryVals);
+  let yMaxRaw = Math.max(...primaryVals);
   let yMin, yMax;
   if (logY) {
     yMin = yMinRaw / 1.04;
@@ -1442,16 +1449,47 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
   }
   if (yMinProp != null) { yMin = yMinProp; }
 
+  // Secondary y-range (right axis) — overlay series, computed independently
+  // so an overlay on a totally different scale (e.g. VIX 10-80 on a MOVE
+  // chart that runs 50-300) renders readably instead of pasted on the bottom.
+  // Activated automatically whenever an overlay is selected and its scale
+  // doesn't fit cleanly inside the primary range.
+  let y2Min = null, y2Max = null, dualAxisActive = false;
+  if (overlay && overlay.key) {
+    const overlayVals = w.map(p => p[overlay.key]).filter(v => v != null);
+    if (overlayVals.length > 0) {
+      const oMin = Math.min(...overlayVals);
+      const oMax = Math.max(...overlayVals);
+      // Decide if overlay scale is too different from primary to share the axis.
+      const overlap = !(oMax < yMin || oMin > yMax);
+      const scaleRatio = (oMax - oMin) / Math.max(1e-9, (yMax - yMin));
+      if (!overlap || scaleRatio < 0.25 || scaleRatio > 4) {
+        const oPad = (oMax - oMin) * 0.08 || Math.abs(oMax) * 0.05 || 1;
+        y2Min = oMin - oPad;
+        y2Max = oMax + oPad;
+        dualAxisActive = true;
+      }
+    }
+  }
+
   const yScale = logY ? Math.log(yMax / yMin) : (yMax - yMin);
   const yToPx = (v) => {
     if (logY) return padT + (Math.log(yMax / v) / yScale) * innerH;
     return padT + ((yMax - v) / yScale) * innerH;
   };
+  // Secondary axis helper — null when not active so callers can short-circuit.
+  const y2Scale = dualAxisActive ? (y2Max - y2Min) : null;
+  const y2ToPx = dualAxisActive
+    ? ((v) => padT + ((y2Max - v) / y2Scale) * innerH)
+    : null;
   const xToPx = (i) => padL + (i / Math.max(1, w.length - 1)) * innerW;
+  // Overlay key goes through y2ToPx when dual axis active; everything else uses yToPx.
+  const isOverlayKey = (key) => dualAxisActive && overlay && key === overlay.key;
   const pathFor = (key) => w.map((p, i) => {
     const v = p[key];
     if (v == null) return null;
-    return [xToPx(i), yToPx(v)];
+    const py = isOverlayKey(key) ? y2ToPx(v) : yToPx(v);
+    return [xToPx(i), py];
   }).filter(Boolean).map((pt, i) => (i === 0 ? "M " : "L ") + pt[0].toFixed(1) + " " + pt[1].toFixed(1)).join(" ");
 
   // y-axis ticks: 5 ticks evenly spaced (linear) or per-decade (log)
@@ -1575,13 +1613,24 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
               </g>
             );
           })}
-          {/* y-axis gridlines + labels */}
+          {/* y-axis gridlines + labels (LEFT — primary axis) */}
           {yTicks.map((t, i) => (
             <g key={i}>
               <line x1={padL} y1={t.y} x2={W - padR} y2={t.y} stroke="rgba(14,17,21,0.06)" strokeWidth="1" />
               <text x={padL - 8} y={t.y + 4} fontSize="10" fill="var(--text-dim)" textAnchor="end" fontFamily="Inter">{fmtY(t.v)}</text>
             </g>
           ))}
+          {/* y-axis labels (RIGHT — secondary axis, only when an overlay is on a separate scale) */}
+          {dualAxisActive && (() => {
+            const ticks = [];
+            for (let i = 0; i <= 4; i++) {
+              const v = y2Min + (y2Max - y2Min) * (i / 4);
+              ticks.push({ v, y: y2ToPx(v) });
+            }
+            return ticks.map((t, i) => (
+              <text key={"r" + i} x={W - padR + 6} y={t.y + 4} fontSize="10" fill={overlay.color || "var(--text-dim)"} textAnchor="start" fontFamily="Inter">{t.v.toFixed(1)}</text>
+            ));
+          })()}
           {/* x-axis labels */}
           {xLabels.map((l, i) => (
             <text key={i} x={l.x} y={H - padB + 18} fontSize="10.5" fill="var(--text-dim)" textAnchor="middle" fontFamily="Inter">{l.label}</text>
@@ -1636,7 +1685,8 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
               {allSeries.map(s => {
                 const v = w[hoverIdx][s.key];
                 if (v == null) return null;
-                return <circle key={s.key} cx={hoverX} cy={yToPx(v)} r="4" fill={s.color} stroke="#fff" strokeWidth="1.5" />;
+                const cy = isOverlayKey(s.key) ? y2ToPx(v) : yToPx(v);
+                return <circle key={s.key} cx={hoverX} cy={cy} r="4" fill={s.color} stroke="#fff" strokeWidth="1.5" />;
               })}
             </g>
           )}
@@ -1672,6 +1722,80 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
       })()}
     </div>
   );
+}
+
+// Friendly labels for indicator_history.json keys — used to populate the
+// modal chart overlay picker dynamically from the full indicator catalog
+// rather than the prior hand-picked 1-2 overlays. Bug #1187 follow-up
+// (Joe directive 2026-05-19): "any indicator on the site should be available
+// as an overlay on either Asset Tilt modal chart". Keys not in this map fall
+// back to the indicator id with underscores stripped.
+const ASSET_TILT_OVERLAY_LABELS = {
+  vix:           "VIX · equity volatility",
+  move:          "MOVE · bond volatility",
+  skew:          "SKEW · tail risk",
+  hy_ig:         "High-yield credit spread",
+  ig_oas:        "Investment-grade credit spread",
+  yield_curve:   "Yield curve (10y - 2y)",
+  real_rates:    "10y real yield",
+  term_premium:  "Term premium",
+  copper_gold:   "Copper / Gold ratio",
+  bkx_spx:       "KBW Bank / SPX",
+  bkx_spx_v11:   "KBW Bank / SPX (v11)",
+  usd:           "USD broad index",
+  anfci:         "Chicago Fed Financial Conditions",
+  stlfsi:        "St. Louis Fed Financial Conditions",
+  cpff:          "Commercial paper spread",
+  loan_syn:      "Syndicated loan spread",
+  bank_credit:   "Bank credit growth (YoY)",
+  ic4wsa:        "Initial jobless claims (4w)",
+  jobless:       "Jobless claims",
+  cmdi:          "Composite mkt distress index",
+  cape:          "CAPE · Shiller P/E",
+  ism:           "ISM Manufacturing",
+  jolts_quits:   "JOLTS · quits rate",
+  cfnai:         "Chicago Fed National Activity",
+  sloos_ci:      "SLOOS · C&I tightening",
+  sloos_cre:     "SLOOS · CRE tightening",
+  credit_3y:     "3y credit spread",
+  bank_unreal:   "Bank unrealized losses",
+  m2_yoy:        "M2 money supply (YoY)",
+  fed_bs:        "Fed balance sheet (YoY)",
+  rrp:           "Fed reverse repo",
+  eq_cr_corr:    "Equity-credit correlation",
+  buffett:       "Buffett indicator",
+  hy_ig_ratio:   "HY / IG spread ratio",
+  breakeven_10y: "10y breakeven inflation",
+  spx_200dma:    "SPX vs 200-day MA",
+  engine_cumulative: "Strategy $ (engine)",
+};
+
+// Palette for dynamic overlays — different from the brand --accent so the
+// overlay always reads as "second series" not "main series".
+const ASSET_TILT_OVERLAY_PALETTE = [
+  "rgba(168,99,154,0.85)",   // purple
+  "rgba(33,118,174,0.85)",   // blue
+  "rgba(204,143,0,0.85)",    // amber
+  "rgba(200,70,88,0.85)",    // red
+  "rgba(94,94,99,0.85)",     // grey
+  "rgba(46,128,108,0.85)",   // teal
+];
+
+function buildOverlayCatalog(indHist, excludeKey = null) {
+  if (!indHist) return [];
+  const keys = Object.keys(indHist)
+    .filter(k => k !== excludeKey && k !== "__meta__")
+    .filter(k => Array.isArray(indHist[k]?.points) && indHist[k].points.length > 0)
+    .sort((a, b) => {
+      const la = ASSET_TILT_OVERLAY_LABELS[a] || a;
+      const lb = ASSET_TILT_OVERLAY_LABELS[b] || b;
+      return la.localeCompare(lb);
+    });
+  return keys.map((k, i) => ({
+    key:   k,
+    label: ASSET_TILT_OVERLAY_LABELS[k] || k.replace(/_/g, " "),
+    color: ASSET_TILT_OVERLAY_PALETTE[i % ASSET_TILT_OVERLAY_PALETTE.length],
+  }));
 }
 
 export default function AssetTilt({ onOpenTicker }) {
@@ -2285,18 +2409,35 @@ export default function AssetTilt({ onOpenTicker }) {
                   let chartValueKey = valueKey;
                   let chartLabel = title;
                   if (isStress && indHist?.move?.points) {
-                    // Daily MOVE (2002-11-12 onward — actual data, not Z-proxy)
                     chartData = indHist.move.points
                       .filter(p => p[0] >= "2002-11-12")
                       .map(p => ({ date: p[0], move: p[1] }));
                     chartValueKey = "move";
                   }
-                  // Build daily VIX overlay too (also from indicator_history)
-                  let dailyVixIdx = null;
-                  if (isStress && indHist?.vix?.points && chartData.length > 0) {
-                    dailyVixIdx = {};
-                    for (const [d, v] of indHist.vix.points) dailyVixIdx[d] = v;
-                    chartData = chartData.map(p => ({ ...p, vix: dailyVixIdx[p.date] ?? null }));
+                  // ANY-INDICATOR OVERLAY — merge every indicator from
+                  // indicator_history.json into the chart's row objects so the
+                  // overlay dropdown can pick any of them. Each indicator's
+                  // series is indexed by date and folded into matching rows;
+                  // if a row's date doesn't appear in an indicator, that cell
+                  // stays null and the line breaks naturally there.
+                  if (indHist && chartData.length > 0) {
+                    const idxByKey = {};
+                    for (const k of Object.keys(indHist)) {
+                      if (k === "__meta__") continue;
+                      const pts = indHist[k]?.points;
+                      if (!Array.isArray(pts)) continue;
+                      const idx = {};
+                      for (const [d, v] of pts) idx[d] = v;
+                      idxByKey[k] = idx;
+                    }
+                    chartData = chartData.map(p => {
+                      const out = { ...p };
+                      for (const k of Object.keys(idxByKey)) {
+                        if (k === chartValueKey) continue;
+                        if (out[k] == null) out[k] = idxByKey[k][p.date] ?? null;
+                      }
+                      return out;
+                    });
                   }
                   // Watch threshold is calibrated daily at the 75th pctile for stress; here we
                   // reach for the actual value off the backtest's last row so the label reflects
@@ -2358,14 +2499,9 @@ export default function AssetTilt({ onOpenTicker }) {
                       zoneTints={zoneTintsForChart}
                       fmtY={fmtVal}
                       defaultTf="5Y"
-                      defaultOverlay={isStress && dailyVixIdx ? "vix" : null}
+                      defaultOverlay={isStress && indHist?.vix?.points ? "vix" : (!isStress && indHist?.move?.points ? "move" : null)}
                       height={320}
-                      availableOverlays={isStress ? [
-                        ...(dailyVixIdx ? [{ key: "vix", label: "Equity Volatility (VIX)", color: "rgba(168,99,154,0.85)" }] : []),
-                      ] : [
-                        { key: "move",              label: "MOVE level",          color: "rgba(94,94,99,0.7)" },
-                        { key: "engine_cumulative", label: "Strategy $ (engine)", color: "rgba(0,113,227,0.5)" },
-                      ]}
+                      availableOverlays={buildOverlayCatalog(indHist, chartValueKey)}
                       sourceLine={sourceLineText}
                     />
                   );
