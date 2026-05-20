@@ -1209,3 +1209,43 @@ conversation with Joe in chat.
 
 **Applies to:** All written conversation with Joe. Every specialist
 binds to this rule.
+
+### [2026-05-19] — UAT every chart change in BOTH light and dark theme before claiming verified
+
+**What happened:** Shipped two PRs that hardcoded #ffffff for chart
+container backgrounds and rgba(255,255,255,...) for threshold-line
+halos and label backplates. Looked great in light theme. Joe loaded
+the site in dark theme: bright white rectangles cutting across every
+chart, floating white backplates behind every threshold label. "All
+charts now all fucked up on dark theme." Three separate UX failures
+on the same turn that he had to flag himself.
+
+The pattern: I look at the page once in whichever theme my browser
+defaults to, take a screenshot, see it looks fine, claim done. Theme-
+sensitive bugs are invisible to a single-theme UAT.
+
+**What you should do instead:** Before claiming any chart or modal
+change verified, load the affected page in BOTH light AND dark theme
+(toggle is in the top-right of every MacroTilt page). Screenshot
+each. Visually confirm:
+
+  - chart container background blends into the page surround in both
+    themes (use var(--surface) not #ffffff)
+  - threshold-line halos read as a subtle haze, not a bright band
+    (use var(--surface-solid) or var(--surface), not rgba(255,255,255))
+  - label backplates blend with the surrounding chart container
+    (use var(--surface), not white)
+  - dial labels remain readable against the colored arcs
+  - drawdown band tints don't disappear or saturate
+  - hover crosshair dot stroke can stay #fff (foreground on colored
+    fill — readable in both themes)
+
+Foreground accents on colored shapes (badge text, hover dot strokes,
+selected pill text on colored background) can stay #fff — those read
+the same in both themes because they sit on a colored backdrop, not
+the page background. The rule is: anything that touches the page
+background or chart canvas surface must use a theme variable.
+
+**Applies to:** All chart, modal, dial, badge, and panel work going
+forward. Every specialist binds. Pre-merge UAT checklist for any
+chart-touching PR must include both-theme screenshots.
