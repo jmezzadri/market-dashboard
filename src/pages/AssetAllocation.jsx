@@ -1608,12 +1608,20 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
             if (endIdx < 0) endIdx = w.length - 1;
             const x1 = xToPx(startIdx);
             const x2 = xToPx(Math.max(endIdx, startIdx + 1));
+            const width = Math.max(2, x2 - x1);
             const labelX = (x1 + x2) / 2;
+            const label = b.label || "";
+            // Always label. Horizontal if the band is wide enough; otherwise
+            // rotate 90deg so even a 4-pixel band fits its name vertically.
+            const rotate = width < 50;
             return (
               <g key={"dd" + i}>
-                <rect x={x1} y={padT} width={Math.max(2, x2 - x1)} height={innerH} fill="rgba(200,70,88,0.08)" stroke="none" />
-                {(x2 - x1) > 32 && (
-                  <text x={labelX} y={padT + 12} fontSize="8.5" fill="rgba(200,70,88,0.85)" textAnchor="middle" fontFamily="Inter" fontWeight="600" letterSpacing="0.04em">{b.label || ""}</text>
+                <rect x={x1} y={padT} width={width} height={innerH} fill="rgba(200,70,88,0.08)" stroke="none" />
+                {label && !rotate && (
+                  <text x={labelX} y={padT + 11} fontSize="9" fill="rgba(150,40,60,0.95)" textAnchor="middle" fontFamily="Inter" fontWeight="600" letterSpacing="0.02em">{label}</text>
+                )}
+                {label && rotate && (
+                  <text x={labelX} y={padT + 6} fontSize="8.5" fill="rgba(150,40,60,0.95)" textAnchor="start" fontFamily="Inter" fontWeight="600" letterSpacing="0.02em" transform={`rotate(90 ${labelX} ${padT + 6})`}>{label}</text>
                 )}
               </g>
             );
@@ -1646,15 +1654,18 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
             const sorted = horizontalLines.map((h, i) => ({ ...h, _origIdx: i })).filter(h => h.value != null).sort((a, b) => a.value - b.value);
             const yPositions = sorted.map(h => yToPx(h.value));
             return sorted.map((h, i) => {
-              // If next line is within 14px, put this label BELOW the line and the next one ABOVE its line.
-              const tooCloseToNext = i < sorted.length - 1 && Math.abs(yPositions[i] - yPositions[i + 1]) < 14;
-              const tooCloseToPrev = i > 0 && Math.abs(yPositions[i] - yPositions[i - 1]) < 14;
+              const tooCloseToNext = i < sorted.length - 1 && Math.abs(yPositions[i] - yPositions[i + 1]) < 18;
+              const tooCloseToPrev = i > 0 && Math.abs(yPositions[i] - yPositions[i - 1]) < 18;
               const labelAbove = !tooCloseToNext || tooCloseToPrev;
-              const labelY = labelAbove ? yPositions[i] - 4 : yPositions[i] + 12;
+              const labelY = labelAbove ? yPositions[i] - 6 : yPositions[i] + 14;
               return (
                 <g key={"h" + h._origIdx}>
-                  <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke={h.color || "var(--text-muted)"} strokeWidth="1.0" strokeDasharray="6 4" />
-                  <text x={W - padR - 6} y={labelY} fontSize="10" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="500">{h.label || ""}</text>
+                  {/* White halo behind the dashed line for contrast against the chart series */}
+                  <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke="rgba(255,255,255,0.85)" strokeWidth="4" />
+                  <line x1={padL} y1={yPositions[i]} x2={W - padR} y2={yPositions[i]} stroke={h.color || "var(--text-muted)"} strokeWidth="1.8" strokeDasharray="7 4" />
+                  {/* White halo behind the label */}
+                  <rect x={W - padR - 6 - (h.label||"").length * 5.5} y={labelY - 8} width={(h.label||"").length * 5.7 + 8} height={12} fill="rgba(255,255,255,0.92)" stroke="none" />
+                  <text x={W - padR - 6} y={labelY} fontSize="10.5" fill={h.color || "var(--text-muted)"} textAnchor="end" fontFamily="Inter" fontWeight="600">{h.label || ""}</text>
                 </g>
               );
             });
