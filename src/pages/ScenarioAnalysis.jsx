@@ -792,13 +792,17 @@ const STRAT_SLEEVES = {
   Neutral:      { cash: 0.40, gld: 0.25, tlt: 0.25, shy: 0.10 },
 };
 
-function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock, tableCard, tableHead, tableTitle, tableSub, userPositions, userTotal, userPnlTotal }) {
+function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, customReturns, customRegime, hasShock, tableCard, tableHead, tableTitle, tableSub, userPositions, userTotal, userPnlTotal }) {
   // Panel renders ALWAYS so the table structure persists. When no scenario is
   // selected, every numeric cell shows "—" — only the numbers populate when a
   // scenario is clicked. Joe directive 2026-05-19: no more layout shifts.
-  const regime = scenarioId ? STRAT_REGIME_MAP[scenarioId] : null;
-  const returns = scenarioId ? STRAT_RETURNS_MAP[scenarioId] : null;
-  const haveScenario = !!(hasShock && scenarioId && regime && returns);
+  // Canned scenarios look up regime + returns from the historical maps;
+  // a custom shock supplies them via customRegime / customReturns (computed
+  // from the live factor shock by the parent). Either path produces a real
+  // strategy table — the bespoke path is no longer stubbed.
+  const regime = scenarioId ? STRAT_REGIME_MAP[scenarioId] : (customRegime || null);
+  const returns = scenarioId ? STRAT_RETURNS_MAP[scenarioId] : (customReturns || null);
+  const haveScenario = !!(hasShock && regime && returns && regime.severity);
 
   const eqPct = haveScenario ? (regime.severity === "Risk Off" ? 50 : 80) : null;
   const defPct = eqPct != null ? 100 - eqPct : null;
@@ -898,7 +902,9 @@ function StrategyAllocPanel({ scenarioId, scenarioName, scenarioWindow, hasShock
           <div style={{ fontFamily:"var(--font-display)", fontWeight:400, fontSize:32, lineHeight:1.1, color: haveScenario ? "var(--accent)" : "var(--text-dim)", letterSpacing:"-0.012em", marginTop:4 }}>
             {haveScenario ? ((returns.engine >= 0 ? "+" : "−") + Math.abs(returns.engine).toFixed(1) + "%") : "—"}
           </div>
-          {scenarioWindow ? <div style={{ fontSize:11, color:"var(--text-muted)", fontFamily:"var(--font-mono)", marginTop:2 }}>{scenarioWindow}</div> : <div style={{ fontSize:11, color:"var(--text-dim)", fontFamily:"var(--font-mono)", marginTop:2 }}>Pick a scenario</div>}
+          {scenarioWindow
+            ? <div style={{ fontSize:11, color:"var(--text-muted)", fontFamily:"var(--font-mono)", marginTop:2 }}>{scenarioWindow}</div>
+            : <div style={{ fontSize:11, color: haveScenario ? "var(--text-muted)" : "var(--text-dim)", fontFamily:"var(--font-mono)", marginTop:2 }}>{haveScenario ? "Custom shock" : "Pick a scenario"}</div>}
         </div>
       </div>
       <table style={{ width:"100%", borderCollapse:"collapse" }}>
@@ -1277,7 +1283,18 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   // Severity is inferred from the canned scenario id, or from the current-engine state in bespoke mode.
   const _stressSeverity = (() => {
     if (mode === "canned" && scenario && STRAT_REGIME_MAP[scenario]) return STRAT_REGIME_MAP[scenario].severity;
-    return null; // bespoke mode: leave stress alloc blank for now (engine not rerun client-side)
+    if (mode === "bespoke" && hasShock) {
+      // Custom shock → regime via the engine's own MOVE-percentile rule.
+      // The MOVE slider is in standard deviations; a z-score maps directly
+      // to a percentile. z = 1.0364 is the 85th percentile (Risk Off cutoff),
+      // z = 0.6745 is the 75th percentile (Watch cutoff) — the same two
+      // thresholds the live engine uses.
+      const moveZ = effShocks.move || 0;
+      if (moveZ >= 1.0364) return "Risk Off";
+      if (moveZ >= 0.6745) return "Watch";
+      return "Risk On";
+    }
+    return null;
   })();
   const _equityStressScale = _stressSeverity === "Risk Off" ? 0.50 : _stressSeverity === "Watch" ? 0.80 : 1.00;
   const _equityParents = SECTORS.filter(s => GICS_IDS.includes(s.id)).map(s => {
@@ -1304,7 +1321,19 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
   });
   // Engine sleeve composition under stress, by yield direction.
   // Total defensive pct = 100 - equityStressScale*100; sleeve composition within that bucket.
-  const _yieldDir = (mode === "canned" && scenario && STRAT_REGIME_MAP[scenario]) ? STRAT_REGIME_MAP[scenario].yieldDir : null;
+  const _yieldDir = (() => {
+    if (mode === "canned" && scenario && STRAT_REGIME_MAP[scenario]) return STRAT_REGIME_MAP[scenario].yieldDir;
+    if (mode === "bespoke" && hasShock) {
+      // Custom shock → yield direction via the real-rates shock percentile.
+      // z = 0.5244 is the 70th percentile (Inflationary cutoff), z = -0.5244
+      // the 30th (Deflationary) — mirrors the engine's yield-axis cutoffs.
+      const rrZ = effShocks.real_rates || 0;
+      if (rrZ >= 0.5244) return "Inflationary";
+      if (rrZ <= -0.5244) return "Deflationary";
+      return "Neutral";
+    }
+    return null;
+  })();
   const _sleeveTotalPct = _stressSeverity ? (1 - _equityStressScale) * 100 : 0;
   const _sleeveMix = _yieldDir ? STRAT_SLEEVES[_yieldDir] : null;
   // Map defensive proxy id (BIL/TLT/GLD) → stress alloc %
@@ -1319,6 +1348,33 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
     currentAlloc: 0, spyAlloc: 0,
     stressAlloc: _stressSeverity ? (_defensiveStressById[s.id] != null ? _defensiveStressById[s.id] : 0) : null,
   }));
+
+  // Custom-shock strategy returns. Canned scenarios look returns up from the
+  // historical backtest (STRAT_RETURNS_MAP); a custom shock has no history to
+  // look up, so compute from the same factor→sector stress the rest of the
+  // page already uses. Bug fix 2026-05-20 — the bespoke path was previously
+  // stubbed ("engine not rerun client-side") so the Strategy table showed
+  // em-dashes for every custom shock.
+  const _customReturns = (() => {
+    if (mode !== "bespoke" || !hasShock) return null;
+    // S&P 500 return = S&P-weight-weighted sum of equity sector stresses.
+    let spy = 0, spyWtSum = 0;
+    for (const p of _equityParents) {
+      const st = sectorPcts[p.id];
+      if (p.spyAlloc != null && st != null) { spy += (p.spyAlloc / 100) * st; spyWtSum += p.spyAlloc / 100; }
+    }
+    if (spyWtSum > 0 && spyWtSum < 0.98) spy = spy / spyWtSum; // normalize if S&P weights don't sum to ~100
+    // Asset Tilt engine return = de-risked equity (tilted ~5% better than the
+    // index via sector tilt) + the defensive sleeve's return under the shock.
+    const eqFrac = _equityStressScale;            // 1.00 / 0.80 / 0.50
+    const defFrac = 1 - eqFrac;
+    const sleeve = STRAT_SLEEVES[_yieldDir] || STRAT_SLEEVES.Neutral;
+    const gldStress = sectorPcts.GLD || 0;
+    const tltStress = sectorPcts.TLT || 0;
+    const defReturn = sleeve.gld * gldStress + sleeve.tlt * tltStress; // cash + shy ≈ 0 over the window
+    const engine = eqFrac * (spy * 0.95) + defFrac * defReturn;
+    return { spy, engine };
+  })();
 
   const _stressColor = (pct) => pct > 0 ? "var(--green)" : (pct < 0 ? "var(--red, #b8332a)" : "var(--text-muted)");
   const _fmtPct = (pct) => (pct == null || pct === 0 || !hasShock ? "—" : (pct > 0 ? "+" : "") + pct.toFixed(1) + "%");
@@ -1440,8 +1496,10 @@ export default function ScenarioAnalysis({ onOpenTicker }) {
         {/* Strategy allocations panel — added 2026-05-18 per Joe directive. Hidden in bespoke mode. */}
         <StrategyAllocPanel
           scenarioId={mode === "canned" ? scenario : null}
-          scenarioName={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : null}
-          scenarioWindow={scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].window : null}
+          scenarioName={mode === "canned" && scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].name : (mode === "bespoke" && hasShock ? "Custom shock" : null)}
+          scenarioWindow={mode === "canned" && scenario && SCENARIOS[scenario] ? SCENARIOS[scenario].window : null}
+          customReturns={_customReturns}
+          customRegime={mode === "bespoke" && hasShock ? { severity: _stressSeverity, yieldDir: _yieldDir } : null}
           hasShock={hasShock}
           tableCard={_tableCard}
           tableHead={_tableHead}
