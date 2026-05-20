@@ -1,0 +1,73 @@
+name: OPTIONS_EOD_INGEST_DAILY
+
+# Phase 1 of the Trading Opportunities overhaul — per-contract end-of-day
+# options.
+#
+# For every name in the screener universe, pulls UW's per-ticker options
+# feed (per-contract volume / open interest / greeks plus the day's
+# put-call ratio, net premium, implied vol, implied moves, realized vol)
+# into public.options_eod_daily — one row per (ticker, as_of_date).
+# Idempotent UPSERT on (ticker, as_of_date); a re-run is a no-op.
+#
+# Normalized EOD market-data slot: 16:30 ET weekdays (per pipeline_schedule.yml).
+#
+# Required GitHub secrets (already configured for the other UW ingests):
+#   UNUSUAL_WHALES_API_KEY
+#   UW_CLIENT_API_ID            (default: 100001)
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY   (table writes)
+#   SUPABASE_ACCESS_TOKEN       (Management API — universe query)
+
+on:
+  schedule:
+    # 16:30 ET = 20:30 UTC (EDT) / 21:30 UTC (EST). Weekdays only.
+    - cron: '30 20 * * 1-5'
+    - cron: '30 21 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      as_of:
+        description: "YYYY-MM-DD as-of date (default: today UTC)"
+        required: false
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install scanner deps
+        working-directory: trading-scanner
+        run: |
+          pip install --upgrade pip
+          pip install requests
+
+      - name: Run options end-of-day ingest
+        working-directory: trading-scanner
+        env:
+          UNUSUAL_WHALES_API_KEY: ${{ secrets.UNUSUAL_WHALES_API_KEY }}
+          UW_CLIENT_API_ID: ${{ secrets.UW_CLIENT_API_ID || '100001' }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.as_of }}" ]; then
+            ARGS="--as-of ${{ inputs.as_of }}"
+          fi
+          PYTHONPATH=. python3 -m scanner.trading_opps.options_eod_ingest \
+            --max-seconds 18000 $ARGS
+
+      - name: Surface row count
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          curl -s -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+                  -H "Prefer: count=exact" \
+                  "$SUPABASE_URL/rest/v1/options_eod_daily?select=ticker&limit=1" \
+                  -I 2>&1 | grep -i content-range || true
