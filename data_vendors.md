@@ -1,6 +1,6 @@
 # MacroTilt Data Vendor Ledger
 
-Last updated: 2026-05-12. Owner: Data Steward.
+Last updated: 2026-05-20. Owner: Data Steward.
 
 This is the cost + blast-radius ledger for every external data source that feeds the live site. Eight vendors total. Run-rate as of 2026-05-12 is approximately **$209/month** ($2,508/year), down from the pre-cancellation ~$420/month after the 2026-04-22 subscription audit retired Cursor and Unusual Whales Retail Pro.
 
@@ -59,7 +59,7 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
 
 ## 4. Unusual Whales
 
-- **Monthly cost:** ~$12.50/month ($150/year UW API tier, kept per 2026-04-22 audit). The $63/month UW Retail Pro tier ($756/year) was **cancelled** on 2026-04-22.
+- **Monthly cost:** ~$12.50/month ($150/year UW API tier, kept per 2026-04-22 audit). The $63/month UW Retail Pro tier ($756/year) was **cancelled** on 2026-04-22. The Phase 1 dark-pool and per-contract options feeds added 2026-05-20 for the rebuilt Trading Opportunities screener are exposed on this same $150/year API tier — no upgrade cost (verified per Decision 2 of the Trading Opportunities overhaul).
 - **License tier:** Paid API. Key `UNUSUAL_WHALES_API_KEY` in workflow secrets. Per the 2026-05-09 insider backfill memo, the API tier does NOT honor ticker filters — bulk endpoints stream global and we filter client-side.
 - **What it powers (manifest elements):**
   - `scanner.v5-scan-composite` — MT Score + Band per ticker (the trading scanner output)
@@ -70,6 +70,8 @@ If a vendor disappears, the "Removal blast radius" line tells Joe exactly what g
   - `scanner.analyst-ratings-uw` — analyst ratings (sub-score)
   - `scanner.short-interest-finra-uw` — UW continuous estimate (blended with FINRA settlement)
   - `scanner.ticker-events-uw` — News / Insider / Congress / Dark Pool event streams for Ticker Detail modal
+  - `scanner.darkpool-prints-uw` — dark-pool block prints feeding the rebuilt Trading Opportunities screener's dark-pool layer (Phase 1 of the overhaul)
+  - `scanner.options-eod-uw` — per-contract end-of-day options feeding the rebuilt screener's options layer + the Group 3 options-sentiment columns (Phase 1 of the overhaul)
   - `scanner.earnings-history-uw` — earnings beats/misses for Ticker Detail
   - `scanner.legacy-user-scan-data` — legacy daily scan (back-compat only)
   - `news.ticker-events-news` — News tab feed

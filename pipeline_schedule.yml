@@ -1,6 +1,6 @@
 # Normalized pipeline schedule for MacroTilt.
 # All times in ET. UTC conversion handled by individual workflow files.
-# Last updated: 2026-05-15. Owner: Data Steward.
+# Last updated: 2026-05-20. Owner: Data Steward.
 #
 # Schedule slots per Data Steward project rule:
 #   - Daily slow data:        06:00 ET (weekdays)
@@ -39,6 +39,8 @@ slots:
       land before the evening compute slot at 18:00-19:00 ET.
     pipelines:
       - vercel-cron /api/options-mark-batch: portfolio.option-mark-uw
+      - DARKPOOL_INGEST_DAILY.yml: scanner.darkpool-prints-uw
+      - OPTIONS_EOD_INGEST_DAILY.yml: scanner.options-eod-uw
 
   weekly_saturday_am:
     description: |
