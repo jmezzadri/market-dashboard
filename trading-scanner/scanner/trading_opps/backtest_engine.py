@@ -50,12 +50,17 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(HERE, "data")
 
 # ───────────────────────────────────────────────────────────────────────────
-# Locked spec constants (Phase 0 — TRADING_OPPS_SCREENER_SPEC_2026-05-20.md)
+# Universe constants
+#   Phase 0 spec set a $10M average-daily-dollar-volume floor for an
+#   institutional-size book. 2026-05-20 RETAIL RE-SCOPE (Joe): positions are
+#   $10k-$30k, so slippage / volume-exhaustion is not a concern. The floor is
+#   lowered to $1.5M and the statistic moved from mean to MEDIAN daily dollar
+#   volume (median is robust to one-off volume spikes — a truer liquidity read).
 # ───────────────────────────────────────────────────────────────────────────
 PRICE_FLOOR = 5.0                # min share price, USD
-ADV_FLOOR = 10_000_000.0         # min 90-day average daily dollar volume, USD
-ADV_WINDOW = 90                  # trading days
-ADV_MIN_PERIODS = 60             # accept a 60-day estimate so the universe is
+MDV_FLOOR = 1_500_000.0          # min 90-day MEDIAN daily dollar volume, USD
+MDV_WINDOW = 90                  # trading days
+MDV_MIN_PERIODS = 60             # accept a 60-day estimate so the universe is
                                  # not blank for a name's first ~3 months
 SMA_WINDOW = 200                 # 200-day simple moving average (strict)
 RSI_WINDOW = 14                  # 14-day Wilder RSI
@@ -217,8 +222,8 @@ def build_panel(px: pd.DataFrame) -> pd.DataFrame:
     px["sma200"] = sma_global.where(cc >= SMA_WINDOW - 1)
 
     dollar_vol = px["close"] * px["volume"]
-    adv_global = dollar_vol.rolling(ADV_WINDOW, min_periods=ADV_MIN_PERIODS).mean()
-    px["adv90"] = adv_global.where(cc >= ADV_MIN_PERIODS - 1)
+    mdv_global = dollar_vol.rolling(MDV_WINDOW, min_periods=MDV_MIN_PERIODS).median()
+    px["mdv90"] = mdv_global.where(cc >= MDV_MIN_PERIODS - 1)
 
     # RSI (Wilder) — computed per ticker so the recursive average never bleeds
     # across ticker boundaries.
@@ -236,13 +241,14 @@ def build_panel(px: pd.DataFrame) -> pd.DataFrame:
 # 3. UNIVERSE  (point-in-time eligibility per the locked spec, Section 2)
 # ───────────────────────────────────────────────────────────────────────────
 def mark_eligible(panel: pd.DataFrame) -> pd.DataFrame:
-    """Add boolean 'eligible': US common stock proxy, price>=$5, ADV>=$10M."""
+    """Add boolean 'eligible': US common stock proxy, price >= $5, and a
+    90-day median daily dollar volume >= $1.5M (retail-scoped liquidity floor)."""
     is_etf = panel["ticker"].isin(ETF_EXCLUDE)
     panel["eligible"] = (
         (panel["close"] >= PRICE_FLOOR)
-        & (panel["adv90"] >= ADV_FLOOR)
+        & (panel["mdv90"] >= MDV_FLOOR)
         & (~is_etf)
-        & (panel["adv90"].notna())
+        & (panel["mdv90"].notna())
     )
     return panel
 
@@ -344,7 +350,7 @@ def attach_decision_bar(signals: pd.DataFrame, panel: pd.DataFrame) -> pd.DataFr
     """For each signal, find the ticker's last price bar on or before the
     signal date — that bar carries the indicators read at decision time and
     the forward-return columns (which already start from the *next* bar)."""
-    pcols = ["ticker", "trade_date", "close", "sma200", "rsi14", "adv90",
+    pcols = ["ticker", "trade_date", "close", "sma200", "rsi14", "mdv90",
              "eligible"] + [f"eret_{h}" for h in FWD_HORIZONS]
     p = panel[pcols].sort_values("trade_date")
     s = signals.sort_values("signal_date").copy()
@@ -676,13 +682,15 @@ def derive_trend_points(trend_study: dict) -> tuple:
 
 
 def calibrate_insider_points(studies: dict, window: int) -> dict:
-    """Decide the A/B/C point values.
+    """Set the A/B/C point values from each rule's measured standalone edge.
 
-    Method: the draft (A=4, B=4, C=3) is the prior. Each rule is measured
-    standalone at T+21 in the chosen window. The draft is kept unless the
-    measured per-rule QUALITY ranking robustly contradicts it. With samples of
-    n=34-67 per rule, finely re-ranking the rules would be overfitting; the test
-    is whether the draft's 4/4/3 ordering matches the measured ordering."""
+    Method (mirrors the V5 calibration — points proportional to measured edge,
+    never gut-set): each rule is measured on its own at T+21 in the chosen
+    window; a quality score = win_rate x average_return (the two objectives the
+    screener optimises) is computed; points are set proportional to that
+    quality, scaled so the strongest rule sits at the spec's ~4-point layer
+    cap, rounded to whole points and clamped to [1, 4]. A rule with too few
+    signals (n < MIN_N) to measure carries the draft value."""
     study = studies[window]
     ev = {}
     for rule, key in [("rule_a", "A"), ("rule_b", "B"), ("rule_c", "C")]:
@@ -692,19 +700,38 @@ def calibrate_insider_points(studies: dict, window: int) -> dict:
                    "alpha_vs_market": m.get("alpha_vs_market"),
                    "profit_factor": m.get("profit_factor")}
     draft = DRAFT["insider"]
-    pts = {"A": draft["A"], "B": draft["B"], "C": draft["C"]}
-    # rank rules by absolute avg return to check the draft ordering
-    order = sorted(["A", "B", "C"],
-                   key=lambda k: (ev[k]["avg_return"] or -9), reverse=True)
+    quality = {}
+    for k in ("A", "B", "C"):
+        n, w, a = ev[k]["n"], ev[k]["win_rate"], ev[k]["avg_return"]
+        if n >= MIN_N and w is not None and a is not None:
+            quality[k] = max(w, 0.0) * max(a, 0.0)
+    if quality and max(quality.values()) > 0:
+        top = max(quality.values())
+        pts = {}
+        for k in ("A", "B", "C"):
+            if k in quality:
+                pts[k] = int(max(1, min(4, round(4.0 * quality[k] / top))))
+            else:
+                pts[k] = draft[k]
+        method = "edge-proportional (quality = win rate x average return)"
+    else:
+        pts = {k: draft[k] for k in ("A", "B", "C")}
+        method = "draft carried (insufficient sample to measure)"
+    order = sorted(["A", "B", "C"], key=lambda k: quality.get(k, -9.0), reverse=True)
+    changed = [k for k in ("A", "B", "C") if pts[k] != draft[k]]
     pts["_evidence"] = ev
-    pts["_n"] = {f"rule_{k.lower()}": ev[k]["n"] for k in ev}
-    pts["_measured_return_rank"] = order
+    pts["_quality"] = {k: round(quality.get(k, 0.0), 6) for k in ("A", "B", "C")}
+    pts["_n"] = {f"rule_{k.lower()}": ev[k]["n"] for k in ("A", "B", "C")}
+    pts["_measured_quality_rank"] = order
+    pts["_method"] = method
+    pts["_changed_from_draft"] = ({k: f"{draft[k]} -> {pts[k]}" for k in changed}
+                                  if changed else "none — matches draft")
     pts["_verdict"] = (
-        "Draft A=4/B=4/C=3 kept. The backtest measured per-rule return ranking "
-        f"is {order[0]}>{order[1]}>{order[2]}; every rule clears a >50% win rate "
-        "and >1.5 profit factor. Samples (n=34-67/rule) are too small to justify "
-        "re-ranking, and the 1,701-permutation sweep places 4/4/3 in its top "
-        "performance cluster — the draft point values are backtest-confirmed.")
+        f"Point values set by {method}. Measured quality rank "
+        f"{order[0]} > {order[1]} > {order[2]}. " +
+        (("Changed vs the draft: "
+          + "; ".join(f"Rule {k} {draft[k]}->{pts[k]}" for k in changed) + ".")
+         if changed else "Result matches the draft A=4 / B=4 / C=3."))
     return pts
 
 
@@ -871,12 +898,20 @@ def main():
     max_score = cap + max(0, trend_cfg["above_sma"])
     calibrated = {
         "_comment": "MacroTilt Trading Opportunities screener — Phase 2 "
-                    "backtest-calibrated config. The live engine reads this file. "
-                    "Generated by backtest_engine.py.",
-        "version": "phase2-1.0",
+                    "backtest-calibrated config (RETAIL-optimized, 2026-05-20). "
+                    "The live engine reads this file. Generated by backtest_engine.py.",
+        "version": "phase2-retail-1.0",
         "generated": str(datetime.now().date()),
         "scoring_mode": "option_1_insider_plus_trend",
         "shadow_layers": ["dark_pool", "options"],
+        "universe": {
+            "price_floor_usd": PRICE_FLOOR,
+            "liquidity_floor_usd": MDV_FLOOR,
+            "liquidity_statistic": "90-day median daily dollar volume",
+            "_note": "Retail re-scope 2026-05-20: lowered from a $10M average "
+                     "to a $1.5M median daily-dollar-volume floor for $10k-$30k "
+                     "positions. universe.py mirrors these values.",
+        },
         "long": {
             "insider": {
                 "rule_a_points": ins_pts["A"],
@@ -958,8 +993,11 @@ def main():
         "threshold_curve": threshold_curve,
         "insider_points_calibration": {
             "A": ins_pts["A"], "B": ins_pts["B"], "C": ins_pts["C"], "cap": cap,
+            "method": ins_pts["_method"],
             "per_rule_evidence": ins_pts["_evidence"],
-            "measured_return_rank": ins_pts["_measured_return_rank"],
+            "per_rule_quality": ins_pts["_quality"],
+            "measured_quality_rank": ins_pts["_measured_quality_rank"],
+            "changed_from_draft": ins_pts["_changed_from_draft"],
             "verdict": ins_pts["_verdict"]},
         "window_diagnostic": int(window_diag),
         "final_config": calibrated,

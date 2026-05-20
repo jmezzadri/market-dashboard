@@ -115,29 +115,39 @@ def test_no_lookahead():
           E.audit_lookahead(panel)["passed"])
 
 
-# ── 6. Universe gate ────────────────────────────────────────────────────────
+# ── 6. Universe gate (retail floor: $1.5M median daily dollar volume) ────────
 def test_universe_gate():
     n = 120
     rows = []
-    # liquid $20 stock — should be eligible
-    for i in range(n):
-        rows.append(("LIQ", pd.Timestamp("2025-01-01") + pd.Timedelta(days=i),
-                     20.0, 20.0, 20.0, 20.0, 2_000_000))   # $40M/day
-    # penny stock — fails the $5 floor
-    for i in range(n):
-        rows.append(("PNY", pd.Timestamp("2025-01-01") + pd.Timedelta(days=i),
-                     2.0, 2.0, 2.0, 2.0, 2_000_000))
-    # illiquid stock — fails the $10M ADV floor
-    for i in range(n):
-        rows.append(("ILQ", pd.Timestamp("2025-01-01") + pd.Timedelta(days=i),
-                     20.0, 20.0, 20.0, 20.0, 50_000))       # $1M/day
+
+    def add(tk, price, vol_series):
+        for i in range(n):
+            v = vol_series[i] if isinstance(vol_series, list) else vol_series
+            rows.append((tk, pd.Timestamp("2025-01-01") + pd.Timedelta(days=i),
+                         price, price, price, price, v))
+
+    add("LIQ", 20.0, 2_000_000)   # $40M/day — clears the retail floor easily
+    add("PNY", 2.0, 2_000_000)    # $2 stock  — fails the $5 price floor
+    add("ILQ", 20.0, 50_000)      # $1M/day   — fails the $1.5M floor
+    add("MID", 20.0, 150_000)     # $3M/day   — passes the retail floor,
+                                  #             would have failed the old $10M
+    # SPIKE: $0.6M/day most days, occasional $30M spikes. Mean clears $1.5M,
+    # MEDIAN does not — must fail under the median-based rule.
+    spike = [30_000] * n
+    for i in range(0, n, 10):
+        spike[i] = 1_500_000      # a spike day every 10 sessions
+    add("SPK", 20.0, spike)
+
     df = pd.DataFrame(rows, columns=["ticker", "trade_date", "open", "high",
                                      "low", "close", "volume"])
     panel = E.mark_eligible(E.build_panel(df))
     last = panel.groupby("ticker").tail(1).set_index("ticker")["eligible"]
     check("liquid $20 stock is eligible", bool(last["LIQ"]))
     check("$2 penny stock fails the $5 price floor", not bool(last["PNY"]))
-    check("$1M/day stock fails the $10M dollar-volume floor", not bool(last["ILQ"]))
+    check("$1M/day stock fails the $1.5M dollar-volume floor", not bool(last["ILQ"]))
+    check("$3M/day stock passes the retail $1.5M floor", bool(last["MID"]))
+    check("spiky stock with a sub-$1.5M MEDIAN fails (median, not mean)",
+          not bool(last["SPK"]))
 
 
 if __name__ == "__main__":
