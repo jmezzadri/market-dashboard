@@ -14,7 +14,7 @@
       "id": "credit",
       "num": "02",
       "name": "Credit",
-      "score": 68
+      "score": 66
     },
     {
       "id": "funding",
@@ -38,7 +38,7 @@
       "id": "positioning_breadth",
       "num": "06",
       "name": "Positioning & Breadth",
-      "score": 69
+      "score": 65
     }
   ]
 }
