@@ -1463,7 +1463,12 @@ function HistoryChart({ series, data, fmtY = (v) => v.toFixed(2), logY = false, 
       // Decide if overlay scale is too different from primary to share the axis.
       const overlap = !(oMax < yMin || oMin > yMax);
       const scaleRatio = (oMax - oMin) / Math.max(1e-9, (yMax - yMin));
-      if (!overlap || scaleRatio < 0.25 || scaleRatio > 4) {
+      // Tightened threshold 2026-05-19 — was 0.25/4 (too conservative; VIX
+      // 10-80 overlaid on Bond Vol 50-300 has ratio ~0.28 and would not
+      // trigger, leaving VIX squished at the bottom). New: any overlay whose
+      // range is less than half the primary's range (or vice versa) gets
+      // its own axis.
+      if (!overlap || scaleRatio < 0.5 || scaleRatio > 2) {
         const oPad = (oMax - oMin) * 0.08 || Math.abs(oMax) * 0.05 || 1;
         y2Min = oMin - oPad;
         y2Max = oMax + oPad;
@@ -1981,10 +1986,33 @@ export default function AssetTilt({ onOpenTicker }) {
                     return (<><circle cx={x} cy={y} r="3" fill="var(--text)"/><text x={x - 8} y={y + 4} fontSize="9" fontFamily="Inter" fill="var(--text)" fontWeight="600" textAnchor="end">Risk Off</text></>);
                   })()}
                 </svg>
-                <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{macroEngine.stress?.move_value?.toFixed(1)}</div>
-                <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
-                  {Math.round((macroEngine.stress?.move_percentile_5y || 0) * 100)}th pctile · Watch {macroEngine.stress?.watch_threshold_value?.toFixed(0)} · Risk Off {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}
-                </div>
+                {(() => {
+                  // Show LIVE daily MOVE on the dial so this matches Macro Overview
+                  // exactly. The engine regime call (Risk On / Watch / Risk Off)
+                  // continues to use the Friday-close engine snapshot — that's how
+                  // the strategy actually rebalances — but the headline value users
+                  // see is the live spot reading. Bug fix 2026-05-19 (Joe directive
+                  // after two-page mismatch: 79.9 weekly close on Asset Tilt vs
+                  // 86.1 live on Macro Overview).
+                  const livePts = indHist?.move?.points || [];
+                  const liveLast = livePts.length ? livePts[livePts.length - 1] : null;
+                  const liveVal  = liveLast ? liveLast[1] : null;
+                  const liveDate = liveLast ? liveLast[0] : null;
+                  const shown = liveVal != null ? liveVal : macroEngine.stress?.move_value;
+                  return (
+                    <>
+                      <div style={{ fontFamily: "var(--font-display)", fontSize: 28, lineHeight: 1, marginTop: 4 }}>{shown != null ? shown.toFixed(1) : "—"}</div>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                        {Math.round((macroEngine.stress?.move_percentile_5y || 0) * 100)}th pctile · Watch {macroEngine.stress?.watch_threshold_value?.toFixed(0)} · Risk Off {macroEngine.stress?.risk_off_threshold_value?.toFixed(0)}
+                      </div>
+                      {liveDate && (
+                        <div style={{ fontSize: 10, color: "var(--text-dim)", marginTop: 4, letterSpacing: "0.02em" }}>
+                          Live · {liveDate} · regime rebalances weekly
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
               </div>
               {/* 24-week bar strip with JS-rendered hover tooltip */}
               {backtest?.weekly?.length >= 24 && (() => {
@@ -2311,7 +2339,19 @@ export default function AssetTilt({ onOpenTicker }) {
         const eyebrow = isStress ? "Volatility trigger · stress signal" : "Yield direction · regime classifier";
         const fmtVal = (v) => v == null ? "—" : (isStress ? Math.round(v).toString() : ((v >= 0 ? "+" : "") + Math.round(v) + " bp"));
 
-        const currentVal    = last[valueKey] || 0;
+        let currentVal    = last[valueKey] || 0;
+        // For the stress (Bond Vol) modal: override "current" with the live
+        // daily MOVE reading so the modal matches Macro Overview's value
+        // instead of the weekly engine-snapshot value. The engine regime,
+        // percentile bands, and threshold calls all still come from the
+        // weekly snapshot — that's the strategy. Only the headline number
+        // is updated to live.
+        let liveAsOf = null;
+        if (isStress && indHist?.move?.points?.length) {
+          const movePts = indHist.move.points;
+          const lp = movePts[movePts.length - 1];
+          if (lp && lp[1] != null) { currentVal = lp[1]; liveAsOf = lp[0]; }
+        }
         const currentPctile = (last[pctileKey] || 0) * 100;
         const upperMark     = last[upperThrKey] || 0;
         const midMark       = last[midThrKey] || 0;
@@ -2371,7 +2411,7 @@ export default function AssetTilt({ onOpenTicker }) {
                   <div style={{ fontSize: 11, letterSpacing: "0.12em", color: "var(--accent)", textTransform: "uppercase", fontWeight: 500, marginBottom: 6 }}>{eyebrow}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 8 }}>
                     <h2 style={{ fontFamily: "var(--font-display)", fontSize: 28, fontWeight: 400, margin: 0, color: "var(--text)" }}>{title}</h2>
-                    <span style={{ background: "rgba(47,157,106,0.10)", color: "var(--green)", borderRadius: 11, padding: "3px 11px", fontSize: 10, letterSpacing: "0.095em", fontWeight: 500, textTransform: "uppercase" }}>● FRESH · {macroEngine?.as_of}</span>
+                    <span style={{ background: "rgba(47,157,106,0.10)", color: "var(--green)", borderRadius: 11, padding: "3px 11px", fontSize: 10, letterSpacing: "0.095em", fontWeight: 500, textTransform: "uppercase" }}>● FRESH · {liveAsOf || macroEngine?.as_of}</span>
                   </div>
                 </div>
                 <div style={{ textAlign: "right" }}>
@@ -2388,7 +2428,7 @@ export default function AssetTilt({ onOpenTicker }) {
               {/* KPI strip */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
                 {[
-                  { lbl: "Current",                            val: fmtVal(currentVal), sub: "today's reading" },
+                  { lbl: "Current",                            val: fmtVal(currentVal), sub: liveAsOf ? ("live · " + liveAsOf) : "today's reading" },
                   { lbl: isStress ? "85th percentile (5y)" : "70th percentile (5y)", val: fmtVal(upperMark), sub: "recalibrated daily" },
                   { lbl: isStress ? "Stage" : "Regime",        val: stateNow,            sub: daysInState + " days" },
                   { lbl: "Full sample range",                  val: fmtVal(minVal) + "–" + fmtVal(maxVal), sub: isStress ? "Real MOVE: 2002–today · 1986–2002 via yield-vol proxy" : "1986 to today" },
