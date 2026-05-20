@@ -295,6 +295,40 @@ const INDICATORS = {
   cfnai:         { panel: 'economy', label: 'Chicago Fed National Activity',   short: 'CFNAI',      fmt: v => (v>=0?'+':'') + v.toFixed(2),                    dir: 'lw',       methodology: '85-indicator composite of real US economic activity, normalized to 0.' },
 };
 
+// Source attribution per indicator key — surfaces the vendor + dataset on
+// the modal "Source · Cadence · Freshness" panel so the user can trace any
+// number on the page back to where it came from. Mirrors the Per-Ticker
+// Data Inventory format (vendor · feed identifier). Joe directive 2026-05-19.
+const INDICATOR_SOURCES = {
+  yield_curve:   "FRED · 10-Year minus 2-Year Treasury (T10Y2Y)",
+  real_rates:    "FRED · 10-Year Treasury Inflation-Indexed Yield (DFII10)",
+  move:          "Yahoo · ICE BofA MOVE Index (^MOVE)",
+  term_premium:  "NY Fed · ACM Term Premium",
+  breakeven_10y: "FRED · 10-Year Breakeven Inflation (T10YIE)",
+  hy_ig:         "FRED · ICE BofA US High-Yield OAS (BAMLH0A0HYM2)",
+  ig_oas:        "FRED · ICE BofA US Corporate OAS (BAMLC0A0CM)",
+  hy_ig_ratio:   "In-house · HY OAS / IG OAS ratio (from FRED feeds above)",
+  sloos_ci:      "FRED · Senior Loan Officer Survey · C&I tightening (DRTSCILM)",
+  sloos_cre:     "FRED · Senior Loan Officer Survey · CRE tightening (DRTSCRELM)",
+  buffett:       "In-house · US equity market cap / GDP (Wilshire 5000 + GDP via FRED)",
+  cape:          "multpl.com · Shiller cyclically-adjusted P/E",
+  vix:           "Yahoo · CBOE Volatility Index (^VIX)",
+  skew:          "Yahoo · CBOE SKEW Index (^SKEW)",
+  eq_cr_corr:    "In-house · 60-day rolling correlation of SPX returns and HY OAS changes",
+  cpff:          "FRED · 30-day AA commercial paper minus 30-day T-bill (RIFSPPAAAD90NB - DTB3)",
+  anfci:         "FRED · Chicago Fed Adjusted National Financial Conditions Index (ANFCI)",
+  stlfsi:        "FRED · St. Louis Fed Financial Stress Index (STLFSI4)",
+  bkx_spx_v11:   "Yahoo · KBW Bank Index (^BKX) / S&P 500 (^GSPC)",
+  bank_credit:   "FRED · H.8 Total Loans & Leases at All US Commercial Banks (TOTLL)",
+  fed_bs:        "FRED · Total Assets of the Federal Reserve (WALCL)",
+  ic4wsa:        "FRED · 4-week Moving Average of Initial Jobless Claims (IC4WSA)",
+  ism:           "ISM website · Manufacturing PMI (monthly)",
+  jolts_quits:   "FRED · JOLTS Quits Rate (JTSQUR)",
+  copper_gold:   "Yahoo · Copper futures (HG=F) / Gold futures (GC=F)",
+  usd:           "Yahoo · ICE US Dollar Broad Index (DX-Y.NYB)",
+  cfnai:         "FRED · Chicago Fed National Activity Index (CFNAI)",
+};
+
 const PANELS = [
   { id: 'rates',    title: 'Rates',            subtitle: 'The cost and shape of money — what duration is being repriced.' },
   { id: 'credit',   title: 'Credit',           subtitle: 'What lenders are charging for risk, and whether they\'re still lending.' },
@@ -831,7 +865,7 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
           <KPI label="History since" value={series.points[0][0]} sub={`${series.points.length.toLocaleString()} points`} />
         </div>
 
-        <div style={{ background: 'var(--surface)', border: '0.5px solid var(--border)', borderRadius: 12, padding: '22px 24px', marginBottom: 22 }}>
+        <div style={{ background: '#ffffff', border: '0.5px solid var(--border)', borderRadius: 12, padding: '22px 24px', marginBottom: 22 }}>
           <HistoryChart
             series={[{ key: 'value', label: def.short, color: heatColor(pct5y, def.dir) }]}
             data={chartData}
@@ -849,11 +883,20 @@ function IndicatorModal({ indicatorId, def, hist, onClose }) {
             </p>
           </div>
           <div style={{ background: 'var(--surface-2)', border: '0.5px solid var(--border-faint)', borderRadius: 12, padding: '20px 22px' }}>
-            <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>Cadence & freshness</div>
+            <div style={{ fontSize: 10.5, letterSpacing: '0.18em', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, marginBottom: 10 }}>Source · Cadence · Freshness</div>
             <div style={{ fontSize: 13, color: 'var(--text-2)', lineHeight: 1.65 }}>
-              {series.freq === 'D' ? 'Daily' : series.freq === 'W' ? 'Weekly' : series.freq === 'M' ? 'Monthly' : series.freq === 'Q' ? 'Quarterly' : series.freq}
-              <br />
-              Last update: {series.as_of || '—'}
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>Source</div>
+                {INDICATOR_SOURCES[indicatorId] || 'Source not yet mapped'}
+              </div>
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>Cadence</div>
+                {series.freq === 'D' ? 'Daily' : series.freq === 'W' ? 'Weekly' : series.freq === 'M' ? 'Monthly' : series.freq === 'Q' ? 'Quarterly' : series.freq}
+              </div>
+              <div>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 600, marginBottom: 2 }}>Last update</div>
+                {series.as_of || '—'}
+              </div>
             </div>
           </div>
         </div>
