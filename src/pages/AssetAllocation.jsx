@@ -2384,7 +2384,7 @@ export default function AssetTilt({ onOpenTicker }) {
           ? (stateNow === "Risk On" ? "calm" : stateNow === "Watch" ? "watching" : "stressed")
           : stateNow;
         const captionSentence = isStress
-          ? `The trailing-5y 85th-percentile mark sits ${currentVal < upperMark ? "well above" : "below"} today's reading. The trigger has been in ${stateNow} for ${daysInState} trading days.`
+          ? `Today's reading sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window — ${currentVal < midMark ? "below the Watch threshold" : currentVal < upperMark ? "in the Watch band" : "above the Risk Off threshold"}. The trigger has been in ${stateNow} for ${daysInState} trading days.`
           : `Today's 3-month change in 10-year yield sits at the ${Math.round(currentPctile)}th percentile of its trailing 5-year window. The yield regime has been ${stateNow} for ${daysInState} trading days.`;
 
         // Historical reads near today's level (similar-percentile-band episodes)
@@ -2440,9 +2440,13 @@ export default function AssetTilt({ onOpenTicker }) {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 22 }}>
                 {[
                   { lbl: "Current",                            val: fmtVal(currentVal), sub: liveAsOf ? ("live · " + liveAsOf) : "today's reading" },
-                  { lbl: isStress ? "85th percentile (5y)" : "70th percentile (5y)", val: fmtVal(upperMark), sub: "recalibrated daily" },
-                  { lbl: isStress ? "Stage" : "Regime",        val: stateNow,            sub: daysInState + " days" },
-                  { lbl: "Full sample range",                  val: fmtVal(minVal) + "–" + fmtVal(maxVal), sub: isStress ? "Real MOVE: 2002–today · 1986–2002 via yield-vol proxy" : "1986 to today" },
+                  { lbl: isStress ? "Watch threshold" : "Deflationary threshold",
+                    val: fmtVal(midMark),
+                    sub: isStress ? "75th percentile · 5y" : "30th percentile · 5y" },
+                  { lbl: isStress ? "Risk Off threshold" : "Inflationary threshold",
+                    val: fmtVal(upperMark),
+                    sub: isStress ? "85th percentile · 5y" : "70th percentile · 5y" },
+                  { lbl: isStress ? "Stage" : "Regime",        val: stateNow,            sub: daysInState + " days in state" },
                 ].map(k => (
                   <div key={k.lbl} style={{ background: "var(--surface-2)", border: "0.5px solid var(--border-faint)", borderRadius: 8, padding: "14px 16px" }}>
                     <div style={{ fontSize: 10, letterSpacing: "0.095em", color: "var(--text-muted)", textTransform: "uppercase", fontWeight: 600 }}>{k.lbl}</div>
@@ -2551,7 +2555,7 @@ export default function AssetTilt({ onOpenTicker }) {
                       fmtY={fmtVal}
                       defaultTf="5Y"
                       defaultOverlay={isStress && indHist?.vix?.points ? "vix" : (!isStress && indHist?.move?.points ? "move" : null)}
-                      height={320}
+                      height={400}
                       availableOverlays={buildOverlayCatalog(indHist, chartValueKey)}
                       sourceLine={sourceLineText}
                     />
@@ -2607,13 +2611,15 @@ export default function AssetTilt({ onOpenTicker }) {
                   <div>Next US weekday close, ~4:30 PM ET</div>
                   <div style={{ color: "var(--text-muted)" }}>Strategy rebalance</div>
                   <div>Weekly · Friday close (engine uses the Friday reading for the regime call)</div>
+                  <div style={{ color: "var(--text-muted)" }}>Full sample range</div>
+                  <div>{fmtVal(minVal) + "–" + fmtVal(maxVal)}{isStress ? " · real MOVE 2002–today, 1986–2002 via yield-vol proxy" : " · 1986 to today"}</div>
                 </div>
               </div>
 
               {/* Formula · Source · Caveat */}
               <div style={{ paddingTop: 14, borderTop: "1px solid var(--border-faint)", fontSize: 12, color: "var(--text-2)", lineHeight: 1.7 }}>
-                <div style={{ marginBottom: 6 }}><strong style={{ color: "var(--text)", fontWeight: 500 }}>Formula.</strong>{" "}
-                {isStress ? "Implied volatility on Treasury options, weighted across 2y / 5y / 10y / 30y. Captures rate-policy uncertainty." : "Change in 10-year Treasury constant maturity yield over the trailing 3 months, in basis points. Negative = yields falling; positive = yields rising."}</div>
+                <div style={{ marginBottom: 6 }}><strong style={{ color: "var(--text)", fontWeight: 500 }}>Methodology.</strong>{" "}
+                {isStress ? "Implied volatility on Treasury options across the curve. Captures rate-policy uncertainty." : "Change in 10-year Treasury constant maturity yield over the trailing 3 months, in basis points. Negative = yields falling; positive = yields rising."}</div>
                 <div style={{ marginBottom: 6 }}><strong style={{ color: "var(--text)", fontWeight: 500 }}>Source.</strong>{" "}
                 {isStress ? "ICE BofA · via Yahoo (^MOVE) for 2002-onward; rolling 21-day std of 10-year yield daily changes × √252, Z-standardized to MOVE, for 1986–2002 proxy." : "FRED · DGS10."}</div>
                 <div style={{ fontStyle: "italic", color: "var(--text-muted)" }}><strong style={{ color: "var(--text)", fontWeight: 500, fontStyle: "normal" }}>Caveat.</strong>{" "}
